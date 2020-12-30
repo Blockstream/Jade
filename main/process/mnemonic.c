@@ -191,7 +191,14 @@ static bool mnemonic_new(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN]
 static size_t deactivate_buttons(char* word, struct words* wordlist, gui_activity_t* act, gui_view_node_t* backspace,
     gui_view_node_t** btns, bool* valid_word)
 {
-    size_t word_len = strlen(word);
+    JADE_ASSERT(word);
+    JADE_ASSERT(wordlist);
+    JADE_ASSERT(act);
+    JADE_ASSERT(backspace);
+    JADE_ASSERT(btns);
+    JADE_ASSERT(valid_word);
+
+    const size_t word_len = strlen(word);
     JADE_LOGD("word = %s, word_len = %u", word, word_len);
 
     // TODO: are there any invalid characters to start the word?
@@ -209,8 +216,7 @@ static size_t deactivate_buttons(char* word, struct words* wordlist, gui_activit
     *valid_word = false;
 
     bool enabled[26] = { false };
-    size_t wordlist_index = 0;
-    for (wordlist_index = 0; wordlist_index < 2048; wordlist_index++) {
+    for (size_t wordlist_index = 0; wordlist_index < 2048; wordlist_index++) {
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
         bip39_get_word(wordlist, wordlist_index, &wordlist_extracted);
 
@@ -245,7 +251,7 @@ static size_t deactivate_buttons(char* word, struct words* wordlist, gui_activit
         gui_set_active(act, btns[i], enabled[i]);
     }
 
-    size_t inserted_char_index = word[word_len - 1] - 'a';
+    const size_t inserted_char_index = word[word_len - 1] - 'a';
     if (!enabled[inserted_char_index]) {
         gui_select_node(act, first_available);
         gui_set_active(act, btns[inserted_char_index], false);
@@ -254,10 +260,15 @@ static size_t deactivate_buttons(char* word, struct words* wordlist, gui_activit
     return num_possible_words;
 }
 
-static size_t valid_words(
-    char* word, struct words* wordlist, size_t* possible_word_list, size_t possible_word_list_len, bool* valid_word)
+static size_t valid_words(char* word, struct words* wordlist, size_t* possible_word_list,
+    const size_t possible_word_list_len, bool* valid_word)
 {
-    size_t word_len = strlen(word);
+    JADE_ASSERT(word);
+    JADE_ASSERT(wordlist);
+    JADE_ASSERT(possible_word_list);
+    JADE_ASSERT(valid_word);
+
+    const size_t word_len = strlen(word);
     JADE_LOGD("word = %s, word_len = %u", word, word_len);
 
     size_t num_possible_words = 0;
@@ -266,12 +277,11 @@ static size_t valid_words(
     }
     *valid_word = false;
 
-    size_t wordlist_index = 0;
-    for (wordlist_index = 0; wordlist_index < 2048; wordlist_index++) {
+    for (size_t wordlist_index = 0; wordlist_index < 2048; wordlist_index++) {
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
         bip39_get_word(wordlist, wordlist_index, &wordlist_extracted);
 
-        int32_t res = strncmp(wordlist_extracted, word, word_len);
+        const int32_t res = strncmp(wordlist_extracted, word, word_len);
 
         if (res < 0) {
             wally_free_string(wordlist_extracted);
