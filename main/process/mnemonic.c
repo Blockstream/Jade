@@ -188,7 +188,7 @@ static bool mnemonic_new(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN]
     return true;
 }
 
-static size_t deactivate_buttons(char* word, struct words* wordlist, gui_activity_t* act, gui_view_node_t* backspace,
+static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_activity_t* act, gui_view_node_t* backspace,
     gui_view_node_t** btns, bool* valid_word)
 {
     JADE_ASSERT(word);
@@ -202,8 +202,21 @@ static size_t deactivate_buttons(char* word, struct words* wordlist, gui_activit
     JADE_LOGD("word = %s, word_len = %u", word, word_len);
 
     // TODO: are there any invalid characters to start the word?
+
+    // No characters currently selected (ie. no word stem)
     if (word_len == 0) {
-        // enable all the buttons
+        // NOTE: Doing the below in this order appears to reduce drawing flicker.
+        // If we enable all buttons first, the previously selected button is drawn enabled
+        // and selected, then the selection switches to the new/randomly-chosen item.
+        // This can look a bit messy - so we activate and select the new button first,
+        // then enable the rest.
+
+        // First select a character button at random
+        const uint8_t initial = get_uniform_random_byte(26);
+        gui_set_active(act, btns[initial], true);
+        gui_select_node(act, btns[initial]);
+
+        // Then enable all the (other) buttons
         for (size_t i = 0; i < 26; i++) {
             gui_set_active(act, btns[i], true);
         }
@@ -242,19 +255,24 @@ static size_t deactivate_buttons(char* word, struct words* wordlist, gui_activit
         wally_free_string(wordlist_extracted);
     }
 
-    gui_view_node_t* first_available = backspace;
-    for (size_t i = 0; i < 26; ++i) {
-        if (enabled[i] && first_available == backspace) {
-            first_available = btns[i];
-        }
-
-        gui_set_active(act, btns[i], enabled[i]);
+    // As above, first mark the new selected item as active and selected,
+    // and then go through the other letters marking them as active (or not).
+    // NOTE: Doing this appears to reduce drawing flicker around selected item.
+    bool selectNext = true;
+    const size_t inserted_char_index = word[word_len - 1] - 'a';
+    if (enabled[inserted_char_index]) {
+        gui_set_active(act, btns[inserted_char_index], true);
+        gui_select_node(act, btns[inserted_char_index]);
+        selectNext = false;
     }
 
-    const size_t inserted_char_index = word[word_len - 1] - 'a';
-    if (!enabled[inserted_char_index]) {
-        gui_select_node(act, first_available);
-        gui_set_active(act, btns[inserted_char_index], false);
+    for (size_t i = 0; i < 26; ++i) {
+        gui_set_active(act, btns[i], enabled[i]);
+
+        if (selectNext && enabled[i]) {
+            gui_select_node(act, btns[i]);
+            selectNext = false;
+        }
     }
 
     return num_possible_words;
@@ -333,7 +351,7 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
 
         // Reset display for next word
         gui_set_current_activity(enter_word_activity);
-        deactivate_buttons(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
+        enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
         gui_update_text(textbox, word);
         enter->is_active = false;
 
@@ -426,8 +444,8 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
                     gui_select_node(enter_word_activity, btns['q' - 'a']);
                     gui_set_active(enter_word_activity, backspace, false);
                 }
+                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
                 gui_update_text(textbox, word);
-                deactivate_buttons(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
                 gui_set_title(enter_word_title);
 
             } else { // else if possible_words >= 11
@@ -447,7 +465,7 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
                 }
 
                 gui_update_text(textbox, word);
-                deactivate_buttons(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
+                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
 
                 if (ev_id == BTN_KEYBOARD_BACKSPACE && char_index > 0) {
                     gui_select_node(enter_word_activity, backspace);
