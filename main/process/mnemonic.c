@@ -157,6 +157,7 @@ static bool mnemonic_new(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN]
                     break;
 
                 case GUI_WHEEL_RIGHT_EVENT:
+                    // Avoid unsigned wrapping below zero
                     index = (index + NUM_RANDOM_WORDS - 1) % NUM_RANDOM_WORDS;
                     gui_update_text(textbox, words[random_words[index]]);
                     break;
@@ -389,7 +390,8 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
                     gui_activity_wait_event(choose_word_activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
                     switch (ev_id) {
                     case GUI_WHEEL_LEFT_EVENT:
-                        selected = (selected - 1) % (possible_words + 1);
+                        // Avoid unsigned wrapping below zero
+                        selected = (selected + (possible_words + 1) - 1) % (possible_words + 1);
                         break;
 
                     case GUI_WHEEL_RIGHT_EVENT:
