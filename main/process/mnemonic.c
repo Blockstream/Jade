@@ -201,6 +201,9 @@ static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_acti
     const size_t word_len = strlen(word);
     JADE_LOGD("word = %s, word_len = %u", word, word_len);
 
+    // Enable backspace in all cases
+    gui_set_active(act, backspace, true);
+
     // TODO: are there any invalid characters to start the word?
 
     // No characters currently selected (ie. no word stem)
@@ -343,7 +346,7 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
     gui_activity_t* choose_word_activity = NULL;
     make_recover_word_page_select10(&choose_word_activity, &textbox_list, &status);
 
-    for (size_t i = 0; i < 24; ++i) {
+    for (int word_index = 0; word_index < 24; ++word_index) {
         char word[16] = { 0 };
         bool valid_word = false;
         size_t char_index = 0;
@@ -356,7 +359,7 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
         enter->is_active = false;
 
         char enter_word_title[16];
-        const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %u", i + 1);
+        const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %u", word_index + 1);
         JADE_ASSERT(ret > 0 && ret < sizeof(enter_word_title));
         gui_set_title(enter_word_title);
 
@@ -369,7 +372,8 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
                 enter->is_active = false;
 
                 char choose_word_title[16];
-                const int ret = snprintf(choose_word_title, sizeof(choose_word_title), "Select word %u", i + 1);
+                const int ret
+                    = snprintf(choose_word_title, sizeof(choose_word_title), "Select word %u", word_index + 1);
                 JADE_ASSERT(ret > 0 && ret < sizeof(choose_word_title));
                 gui_update_text(status, choose_word_title);
 
@@ -412,9 +416,8 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
                         wally_free_string(wordlist_extracted);
                     }
                 } // while stop
-                if (selected == possible_words) { // delete
-                    word[--char_index] = '\0';
-                } else {
+
+                if (selected < possible_words) { // ie. a word was chosen
                     char* wordlist_extracted = NULL;
                     bip39_get_word(wordlist, possible_word_list[selected], &wordlist_extracted);
 #pragma GCC diagnostic push
@@ -435,15 +438,14 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
                     mnemonic_offset += wordlen;
                     mnemonic[mnemonic_offset] = '\0';
                     JADE_LOGD("%s", mnemonic);
-                    break; // Exit
+                    break; // Exit 'per character' loop, to move to next word / outer loop
                 }
+
+                // If we get here it means 'backspace' was pressed
+                // Delete last character and go back to keyboard screen
+                word[--char_index] = '\0';
+
                 gui_set_current_activity(enter_word_activity);
-                gui_set_active(enter_word_activity, backspace, true);
-                if (char_index == 0) {
-                    gui_set_active(enter_word_activity, btns['q' - 'a'], true);
-                    gui_select_node(enter_word_activity, btns['q' - 'a']);
-                    gui_set_active(enter_word_activity, backspace, false);
-                }
                 enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
                 gui_update_text(textbox, word);
                 gui_set_title(enter_word_title);
@@ -453,19 +455,12 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
 
                 if (ev_id >= BTN_KEYBOARD_A && ev_id <= BTN_KEYBOARD_Z) {
                     word[char_index++] = 'a' + ev_id - BTN_KEYBOARD_A;
-                    gui_set_active(enter_word_activity, backspace, true);
                 } else if (char_index > 0 && ev_id == BTN_KEYBOARD_BACKSPACE) {
                     word[--char_index] = '\0';
-
-                    if (char_index == 0) {
-                        gui_set_active(enter_word_activity, btns['q' - 'a'], true);
-                        gui_select_node(enter_word_activity, btns['q' - 'a']);
-                        gui_set_active(enter_word_activity, backspace, false);
-                    }
                 }
 
-                gui_update_text(textbox, word);
                 enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
+                gui_update_text(textbox, word);
 
                 if (ev_id == BTN_KEYBOARD_BACKSPACE && char_index > 0) {
                     gui_select_node(enter_word_activity, backspace);
