@@ -455,8 +455,21 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
 
                 if (ev_id >= BTN_KEYBOARD_A && ev_id <= BTN_KEYBOARD_Z) {
                     word[char_index++] = 'a' + ev_id - BTN_KEYBOARD_A;
-                } else if (char_index > 0 && ev_id == BTN_KEYBOARD_BACKSPACE) {
-                    word[--char_index] = '\0';
+                } else if (ev_id == BTN_KEYBOARD_BACKSPACE) {
+                    if (char_index > 0) {
+                        // Go back one character
+                        word[--char_index] = '\0';
+                    } else if (word_index > 0) {
+                        // Deleting when no characters entered for this word
+                        // Go back to previous word - break out of 'per character' loop,
+                        // so we go back round the 'per word' loop, but set the word counter
+                        // back two places (so it gets incremented to the previous word).
+                        word_index -= 2;
+                        break;
+                    } else {
+                        // Backspace at start of first word - abandon mnemonic entry back to previous screen
+                        return false;
+                    }
                 }
 
                 enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
