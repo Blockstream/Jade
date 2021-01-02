@@ -1,0 +1,22 @@
+# indirect deps flask
+itsdangerous==0.24 --hash=sha256:cbb3fcf8d3e33df861709ecaf89d9e6629cff0a217bc2848f1b41cd30d360519
+click==5.1 --hash=sha256:0c22a2cd5a1d741e993834df99133de07eff6cc1bf06f137da2c5f3bab9073a6
+Werkzeug==0.15 --hash=sha256:ee11b0f0640c56fb491b43b38356c4b588b3202b415a1e03eacf1c5561c961cf
+Jinja2==2.10.1 --hash=sha256:14dd6caf1527abb21f08f86c784eac40853ba93edb79552aa1e4b8aef1b61c7b
+MarkupSafe==0.23 --hash=sha256:a4ec1aff59b95a14b45eb2e23761a0179e98319da5a7eb76b56ea8cdc7b871c3
+
+# inderict deps of requests
+certifi==2019.6.16 --hash=sha256:046832c04d4e752f37383b628bc601a7ea7211496b4638f6514d0e5b9acc4939
+chardet==3.0.4 --hash=sha256:fc323ffcaeaed0e0a02bf4d117757b98aed530d9ed4531e3e15460124c106691
+idna==2.8 --hash=sha256:ea8b7f6188e6fa117537c3df7da9fc686d485087abf6ac197f9c46432f7e4a3c
+urllib3==1.25.6 --hash=sha256:3de946ffbed6e6746608990594d08faac602528ac7015ac28d33cee6a45b7398
+
+# direct deps
+requests==2.22.0 --hash=sha256:9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31
+flask==1.1.1 --hash=sha256:45eb5a6fd193d6cf7e0cf5d8a5b31f83d5faae0293695626f539a823e93b13f6
+redis==3.5.3  --hash=sha256:432b788c4530cfe16d8d943a09d40ca6c16149727e4afe8c2c9d5580c59d9f24
+https://github.com/ElementsProject/libwally-core/releases/download/release_0.7.4/wallycore-0.7.4-cp37-cp37m-linux_x86_64.whl; 'linux' in sys_platform and python_version == '3.7' and platform_machine == 'x86_64' --hash=sha256:704dacd90e4b942ceaf999dacde93f2c02aa767e06884c31135edb51b197166e
+https://github.com/ElementsProject/libwally-core/archive/release_0.7.4.tar.gz; 'linux' not in sys_platform or python_version != '3.7' or platform_machine != 'x86_64'  --hash=sha256:d1ec3085d8b12ec5e4f604f747850ef77eb734c61c23e79d6c8a3b6c69c6c699
+
+# misc
+python-dotenv==0.15.0 --hash=sha256:0c8d1b80d1a1e91717ea7d526178e3882732420b03f08afea0406db6402e220e

@@ -1,0 +1,145 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+stages:
+  - format
+  - build
+  - test
+  - deploy
+
+image: blockstream/verde@sha256:802081a40cedd071c7949172fb19faff95ee71b7a33fcd6319f93e2546244df0
+
+test_format:
+  tags:
+    - ga
+  stage: format
+  script:
+    - ./format.sh
+    - git diff --exit-code
+
+.test_build_template:
+  tags:
+    - ga
+  stage: build
+  artifacts:
+    expire_in: 2 weeks
+    when: on_success
+    paths:
+    - build*/jade.bin
+    - build*/*_fw.bin
+    - build*/ota_data_initial.bin
+    - build*/bootloader/bootloader.bin
+    - build*/partition_table/partition-table.bin
+    - build*/sdkconfig
+  script:
+    - . $HOME/esp/esp-idf/export.sh
+    - idf.py all size-components size
+    - python ./fwprep.py build/jade.bin build
+    - cp sdkconfig build/
+
+prod_build_jade:
+  before_script:
+    - cp production/sdkconfig_jade_prod.defaults sdkconfig.defaults
+  extends: .test_build_template
+  after_script:
+    - mv build build_prod
+
+prod_build_jade_noradio:
+  before_script:
+    - cp production/sdkconfig_jade_noradio_prod.defaults sdkconfig.defaults
+  extends: .test_build_template
+  after_script:
+    - mv build build_noradio_prod
+
+test_build_jade_ci:
+  before_script:
+    - cp configs/sdkconfig_jade_ci.defaults sdkconfig.defaults
+  extends: .test_build_template
+  after_script:
+    - mv build build_jade_ci
+
+test_build_jade:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade
+
+test_build_jade_ndebug:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_ndebug.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_ndebug
+
+test_build_display:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display
+
+test_build_display_m5fire:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display_m5fire.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_m5fire
+
+test_build_jade_noblobs_ci:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_noradio_ci.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_noblobs_ci
+
+test_build_jade_noblobs:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_noradio.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_noblobs
+
+test_build_jade_noblobs_ndebug:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_noradio_ndebug.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_noblobs_ndebug
+
+.test_flash_artifact_template:
+  stage: deploy
+  tags:
+    - esp32flasher
+  script:
+    - cp build*/sdkconfig ./
+    - ./ci_flash.sh
+
+test_flash_artifact:
+  extends: .test_flash_artifact_template
+  needs:
+    - test_build_jade_ci
+  before_script:
+    - mv build_jade_ci build
+
+test_flash_artifact_noblobs:
+  extends: .test_flash_artifact_template
+  needs:
+    - test_build_jade_noblobs_ci
+  before_script:
+    - mv build_jade_noblobs_ci build
+
+build_api_docs:
+  tags:
+    - ga
+  stage: build
+  artifacts:
+    expire_in: 14 days
+    name: jade-apidocs
+    when: on_success
+    paths:
+    - apidocs.tar.gz
+  script:
+    - pip3 install Sphinx
+    - (cd docs && make html)
+    - (cd docs/_build && tar czf ../../apidocs.tar.gz html/)

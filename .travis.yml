@@ -1,0 +1,6 @@
+sudo: required
+services:
+    - docker
+
+script:
+    - docker run -v $PWD:/jade blockstream/verde@sha256:802081a40cedd071c7949172fb19faff95ee71b7a33fcd6319f93e2546244df0 /bin/bash -c "cd /jade && ./format.sh && git diff --exit-code && . $HOME/esp/esp-idf/export.sh && cp configs/sdkconfig_display.defaults sdkconfig.defaults && idf.py all size-components size"

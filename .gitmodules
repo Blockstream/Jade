@@ -1,0 +1,3 @@
+[submodule "components/libwally-core/upstream"]
+	path = components/libwally-core/upstream
+	url = https://github.com/elementsProject/libwally-core

@@ -1,0 +1,3 @@
+#!/bin/sh -e
+exec 2>&1
+exec uwsgi --ini /pinserver/wsgi.ini
