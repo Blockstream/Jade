@@ -1,5 +1,6 @@
 #include "process.h"
 #include "jade_assert.h"
+#include "jade_wally_verify.h"
 #include "process/process_utils.h"
 #include "utils/cbor_rpc.h"
 #include "utils/malloc_ext.h"
@@ -91,8 +92,7 @@ static void deduce_jade_id()
     uint8_t macid[6];
     esp_efuse_mac_get_default(macid);
     char* hexout = NULL;
-    const int res = wally_hex_from_bytes(macid, 6, &hexout);
-    JADE_ASSERT(res == WALLY_OK);
+    JADE_WALLY_VERIFY(wally_hex_from_bytes(macid, 6, &hexout));
 
     jade_id[0] = 'J';
     jade_id[1] = 'a';

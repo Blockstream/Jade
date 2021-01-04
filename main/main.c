@@ -18,6 +18,7 @@
 #include <sdkconfig.h>
 
 #include "jade_assert.h"
+#include "jade_wally_verify.h"
 #include "process.h"
 #include "process/process_utils.h"
 #include "random.h"
@@ -43,15 +44,13 @@ void dashboard_process(void* process_ptr);
 
 static void crypto_init()
 {
-    int res = wally_init(0);
-    JADE_ASSERT(res == WALLY_OK);
+    JADE_WALLY_VERIFY(wally_init(0));
     unsigned char ctx_rnd[WALLY_SECP_RANDOMIZE_LEN];
     SENSITIVE_PUSH(ctx_rnd, sizeof(ctx_rnd));
     get_random(ctx_rnd, WALLY_SECP_RANDOMIZE_LEN);
 
-    res = wally_secp_randomize(ctx_rnd, WALLY_SECP_RANDOMIZE_LEN);
+    JADE_WALLY_VERIFY(wally_secp_randomize(ctx_rnd, WALLY_SECP_RANDOMIZE_LEN));
     SENSITIVE_POP(ctx_rnd);
-    JADE_ASSERT(res == WALLY_OK);
 }
 
 static void boot_process()

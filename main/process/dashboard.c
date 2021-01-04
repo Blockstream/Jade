@@ -8,6 +8,7 @@
 #include "../display.h"
 #include "../input.h"
 #include "../jade_assert.h"
+#include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../power.h"
 #include "../process.h"
@@ -104,16 +105,14 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     esp_chip_info(&info);
 
     char* hexstr = NULL;
-    int res = wally_hex_from_bytes((unsigned char*)&info.features, 4, &hexstr);
-    JADE_ASSERT(res == WALLY_OK);
+    JADE_WALLY_VERIFY(wally_hex_from_bytes((unsigned char*)&info.features, 4, &hexstr));
     add_string_to_map(&map_encoder, "CHIP_FEATURES", hexstr);
 
     wally_free_string(hexstr);
 
     uint8_t macid[6];
     esp_efuse_mac_get_default(macid);
-    res = wally_hex_from_bytes(macid, 6, &hexstr);
-    JADE_ASSERT(res == WALLY_OK);
+    JADE_WALLY_VERIFY(wally_hex_from_bytes(macid, 6, &hexstr));
     for (size_t i = 0; i < strlen(hexstr); ++i) {
         hexstr[i] = toupper((int)hexstr[i]);
     }

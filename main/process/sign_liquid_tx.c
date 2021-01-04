@@ -429,8 +429,7 @@ void sign_liquid_tx_process(void* process_ptr)
 
     // BIP143 says to do a double sha
     unsigned char hash_prevouts_double[SHA256_LEN];
-    res = wally_sha256(hash_prevouts_single, SHA256_LEN, hash_prevouts_double, SHA256_LEN);
-    JADE_ASSERT(res == WALLY_OK);
+    JADE_WALLY_VERIFY(wally_sha256(hash_prevouts_single, SHA256_LEN, hash_prevouts_double, SHA256_LEN));
 
     // char *hex_prevouts = NULL;
     // wally_hex_from_bytes(hash_prevouts_double, SHA256_LEN, &hex_prevouts);

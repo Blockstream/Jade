@@ -1,4 +1,5 @@
 #include "../jade_assert.h"
+#include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
 #include "../random.h"
@@ -93,8 +94,7 @@ static void add_hex_bytes_to_map(CborEncoder* container, const char* name, const
     JADE_ASSERT(bytes);
 
     char* tmpstr;
-    const int res = wally_hex_from_bytes(bytes, size, &tmpstr);
-    JADE_ASSERT(res == WALLY_OK);
+    JADE_WALLY_VERIFY(wally_hex_from_bytes(bytes, size, &tmpstr));
     add_string_to_map(container, name, tmpstr);
     wally_free_string(tmpstr);
 }

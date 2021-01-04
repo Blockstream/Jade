@@ -2,6 +2,7 @@
 #include "../button_events.h"
 #include "../gui.h"
 #include "../jade_assert.h"
+#include "../jade_wally_verify.h"
 #include "../process.h"
 #include "../storage.h"
 #include "../utils/malloc_ext.h"
@@ -62,8 +63,7 @@ int ble_get_mac(char* mac, size_t length)
 
     esp_efuse_mac_get_default((uint8_t*)mac);
     char* hexout = NULL;
-    const int res = wally_hex_from_bytes((uint8_t*)mac, 6, &hexout);
-    JADE_ASSERT(res == WALLY_OK);
+    JADE_WALLY_VERIFY(wally_hex_from_bytes((uint8_t*)mac, 6, &hexout));
 
     mac[0] = toupper((int)hexout[0]);
     mac[1] = toupper((int)hexout[1]);

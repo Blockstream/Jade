@@ -5,6 +5,7 @@
 
 #include "../button_events.h"
 #include "../jade_assert.h"
+#include "../jade_wally_verify.h"
 #include "../ui.h"
 #include "../utils/address.h"
 #include "../utils/event.h"
@@ -449,8 +450,8 @@ void make_display_elements_output_activity(const char* network, const struct wal
         }
 
         char* asset_id_hex = NULL;
-        int ret = wally_hex_from_bytes(flipped_asset_id, 32, &asset_id_hex);
-        JADE_ASSERT(ret == WALLY_OK && asset_id_hex);
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(flipped_asset_id, 32, &asset_id_hex));
+        JADE_ASSERT(asset_id_hex);
 
         // Look up the asset-id in the canned asset-data
         const char* ticker = NULL;
@@ -470,7 +471,7 @@ void make_display_elements_output_activity(const char* network, const struct wal
         }
 
         char asset_str[128];
-        ret = snprintf(asset_str, sizeof(asset_str), "} %s - %s {", issuer, asset_id_hex);
+        int ret = snprintf(asset_str, sizeof(asset_str), "} %s - %s {", issuer, asset_id_hex);
         JADE_ASSERT(ret > 0 && ret < sizeof(asset_str));
         wally_free_string(asset_id_hex);
 
@@ -540,8 +541,7 @@ void make_display_final_confirmation_activity(const struct wally_tx* tx, uint64_
     JADE_ASSERT(activity);
 
     uint64_t out_amount;
-    const int rc = wally_tx_get_total_output_satoshi(tx, &out_amount);
-    JADE_ASSERT(rc == WALLY_OK);
+    JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &out_amount));
     JADE_ASSERT(out_amount <= in_amount);
 
     const uint64_t fee = in_amount - out_amount;
