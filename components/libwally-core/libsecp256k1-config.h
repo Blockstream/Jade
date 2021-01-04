@@ -5,17 +5,20 @@
 
 #define LIBSECP256K1_CONFIG_H
 
-/* Define if building universal (internal helper macro) */
-/* #undef AC_APPLE_UNIVERSAL_BUILD */
-
 /* Define this symbol to compile out all VERIFY code */
 /* #undef COVERAGE */
+
+/* Set ecmult gen precision bits */
+#define ECMULT_GEN_PREC_BITS 4
 
 /* Set window size for ecmult precomputation */
 #define ECMULT_WINDOW_SIZE 8
 
 /* Define this symbol to enable the ECDH module */
 #define ENABLE_MODULE_ECDH 1
+
+/* Define this symbol to enable the extrakeys module */
+/* #undef ENABLE_MODULE_EXTRAKEYS */
 
 /* Define this symbol to enable the NUMS generator module */
 #define ENABLE_MODULE_GENERATOR 1
@@ -84,9 +87,6 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
-/* Define to 1 if the system has the type `__int128'. */
-/* #undef HAVE___INT128 */
-
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
 
@@ -99,11 +99,17 @@
 /* Define to the full name of this package. */
 #define PACKAGE_NAME "libsecp256k1"
 
+/* Define to the full name and version of this package. */
+#define PACKAGE_STRING "libsecp256k1 0.1"
+
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libsecp256k1"
 
 /* Define to the home page for this package. */
 #define PACKAGE_URL ""
+
+/* Define to the version of this package. */
+#define PACKAGE_VERSION "0.1"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -114,9 +120,6 @@
 /* Define this symbol to use a statically generated ecmult table */
 #define USE_ECMULT_STATIC_PRECOMPUTATION 1
 
-/* Define this symbol to use endomorphism optimization */
-/* #undef USE_ENDOMORPHISM */
-
 /* Define this symbol if an external (non-inline) assembly implementation is
    used */
 /* #undef USE_EXTERNAL_ASM */
@@ -125,17 +128,19 @@
    is used */
 /* #undef USE_EXTERNAL_DEFAULT_CALLBACKS */
 
-/* Define this symbol to use the FIELD_10X26 implementation */
-#define USE_FIELD_10X26 1
-
-/* Define this symbol to use the FIELD_5X52 implementation */
-/* #undef USE_FIELD_5X52 */
-
 /* Define this symbol to use the native field inverse implementation */
 #define USE_FIELD_INV_BUILTIN 1
 
 /* Define this symbol to use the num-based field inverse implementation */
 /* #undef USE_FIELD_INV_NUM */
+
+/* Define this symbol to force the use of the (unsigned) __int128 based wide
+   multiplication implementation */
+/* #undef USE_FORCE_WIDEMUL_INT128 */
+
+/* Define this symbol to force the use of the (u)int64_t based wide
+   multiplication implementation */
+/* #undef USE_FORCE_WIDEMUL_INT64 */
 
 /* Define this symbol to use the gmp implementation for num */
 /* #undef USE_NUM_GMP */
@@ -147,28 +152,13 @@
    disabling parsing and verification */
 /* #undef USE_REDUCED_SURJECTION_PROOF_SIZE */
 
-/* Define this symbol to use the 4x64 scalar implementation */
-/* #undef USE_SCALAR_4X64 */
-
-/* Define this symbol to use the 8x32 scalar implementation */
-#define USE_SCALAR_8X32 1
-
 /* Define this symbol to use the native scalar inverse implementation */
 #define USE_SCALAR_INV_BUILTIN 1
 
 /* Define this symbol to use the num-based scalar inverse implementation */
 /* #undef USE_SCALAR_INV_NUM */
 
-/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
-   significant byte first (like Motorola and SPARC, unlike Intel). */
-#if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
-#else
-# ifndef WORDS_BIGENDIAN
-/* #  undef WORDS_BIGENDIAN */
-# endif
-#endif
+/* Version number of package */
+#define VERSION "0.1"
 
 #endif /*LIBSECP256K1_CONFIG_H*/

@@ -1,8 +1,29 @@
 pyserial==3.4 --hash=sha256:e0770fadba80c31013896c7e6ef703f72e7834965954a78e71a3049488d4d7d8
 cbor==1.0.0 --hash=sha256:13225a262ddf5615cbd9fd55a76a0d53069d18b07d2e9f19c39e6acb8609bbb6
 pycodestyle==2.5.0 --hash=sha256:95a2219d12372f05704562a14ec30bc76b05a5b297b21a5dfe3f6fac3491ae56
-https://github.com/ElementsProject/libwally-core/releases/download/release_0.7.4/wallycore-0.7.4-cp37-cp37m-linux_x86_64.whl; 'linux' in sys_platform and python_version == '3.7' and platform_machine == 'x86_64' --hash=sha256:704dacd90e4b942ceaf999dacde93f2c02aa767e06884c31135edb51b197166e
-https://github.com/ElementsProject/libwally-core/archive/release_0.7.4.tar.gz; 'linux' not in sys_platform or python_version != '3.7' or platform_machine != 'x86_64'  --hash=sha256:d1ec3085d8b12ec5e4f604f747850ef77eb734c61c23e79d6c8a3b6c69c6c699
+wallycore==0.8.1 \
+    --hash=sha256:0ea264d6852c9bd6d73ec4603116e2fd7b52f287ae96dcc3adfd4f761b76ec59 \
+    --hash=sha256:42b286a046ac2af9c98f7e5a9c6c2f34ee61c9969c45a99f1f3865dadd7d9eec \
+    --hash=sha256:523b5f8f161428dce0643bb5a2efa9fab2f33accfd3be9276d48421e46686822 \
+    --hash=sha256:55c3fc79182eae1eda068ce9ef4d199c22407ec2ef0d0b278af8f6770bf4a49e \
+    --hash=sha256:6aa57488c80c2a40f00d96040fb6ec8c42bebc60a9363fb536788b593fafc024 \
+    --hash=sha256:6cb711aa8ece8d1bf1f8bf2e8d9e00bff84550ee030e6ea0809480114b85cffe \
+    --hash=sha256:6e2bdc5cf77479eb9d070f10b3e313540c30775b6704218b05626abdd7585b84 \
+    --hash=sha256:6f83a421b703330398de1207f836302b5495f5be71bf335f5be93ba4e61c8a7a \
+    --hash=sha256:73b7bba9e95c098437428d797a1ea3bbc4f83b0acdc43562e23323fb4eb43837 \
+    --hash=sha256:848ea57236582daac5400131f155b0724ed24d6d1f60eb4d56802492e7c83c6a \
+    --hash=sha256:90f65430e2c90c5c7f6993b5077e6de9485b3b57615524022ba319387f92ec02 \
+    --hash=sha256:a9998e4ebadc87c646b4722961539cae615f4b4acc227ea98db6e1700494e332 \
+    --hash=sha256:a9c0a0a4b13f94fbd9a7beac43ce3cd56cfcce2f5ce42bb69f6106f65ce27449 \
+    --hash=sha256:acf04910cbe70af1e9eed6f7418bdfee35071a3148cac382d0f1eafe96a28edf \
+    --hash=sha256:c5f228f0ba0460443cb6682a0e03b7240d89893bd2a218742c16e9ecccdfe2f0 \
+    --hash=sha256:ce8a62ad607a321740de0faf0cf34481c1932aa4c11168ad96b07789d0aaede3 \
+    --hash=sha256:e7428c21519bfa8a563ef4713d17ef050d70a2c9cdc6bd0d161301cb436c464b \
+    --hash=sha256:f1a9bacf4049fcc84b57a8e2ae4d8f197f9185a7663bf3c43509574551bc3399 \
+    --hash=sha256:f6716c50d33b3a39594c6abaf6e7aade9dbf901ce2e345790be5312a5297bd0f \
+    --hash=sha256:f7fb7d64a1b78526d05cb872af0b36a391b58685d2ff9f70711cf106dca55cf9 \
+    --hash=sha256:fd7b03e8d9c00bacd1832dff3be35912d191be5fe93230ef567ab7d517d1e2d1
+
 
 # BLE libraries (bleak and dependencies)
 attrs==19.1.0 --hash=sha256:69c0dbf2ed392de1cb5ec704444b08a5ef81680a61cb899dc08127123af36a79

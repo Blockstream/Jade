@@ -91,11 +91,17 @@
 /* Define to the full name of this package. */
 #define PACKAGE_NAME "libwallycore"
 
+/* Define to the full name and version of this package. */
+#define PACKAGE_STRING "libwallycore 0.8.1"
+
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libwallycore"
 
 /* Define to the home page for this package. */
 #define PACKAGE_URL ""
+
+/* Define to the version of this package. */
+#define PACKAGE_VERSION "0.8.1"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -103,6 +109,9 @@
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
+
+/* Version number of package */
+#define VERSION "0.8.1"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
