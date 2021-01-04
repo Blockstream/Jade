@@ -121,12 +121,15 @@ static void wallet_get_privkey(
     JADE_ASSERT(output);
     JADE_ASSERT(output_len == EC_PRIVATE_KEY_LEN);
 
-    struct ext_key derived;
     JADE_LOGD("path_size %d", path_size);
+
+    struct ext_key derived;
+    SENSITIVE_PUSH(&derived, sizeof(derived));
     JADE_WALLY_VERIFY(bip32_key_from_parent_path(
         &keychain->xpriv, path, path_size, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
 
     memcpy(output, derived.priv_key + 1, output_len);
+    SENSITIVE_POP(&derived);
 }
 
 // Build a valid/expected green address path from the subact, branch and ptr provided
