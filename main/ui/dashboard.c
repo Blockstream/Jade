@@ -110,7 +110,7 @@ void make_connect_screen(gui_activity_t** act_ptr, const char* device_name)
     *act_ptr = act;
 }
 
-void make_dashboard_screen(gui_activity_t** act_ptr, const char* device_name)
+void make_ready_screen(gui_activity_t** act_ptr, const char* device_name)
 {
     JADE_ASSERT(act_ptr);
     JADE_ASSERT(device_name);

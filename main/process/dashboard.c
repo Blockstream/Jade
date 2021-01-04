@@ -53,7 +53,7 @@ void mnemonic_process(void* process_ptr);
 // GUI screens
 void make_setup_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_connect_screen(gui_activity_t** act_ptr, const char* device_name);
-void make_dashboard_screen(gui_activity_t** act_ptr, const char* device_name);
+void make_ready_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_settings_screen(
     gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, const size_t nBtns);
 void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** ble_status_textbox);
@@ -587,8 +587,9 @@ static void display_screen(gui_activity_t* act)
     refeed_entropy((const unsigned char*)&tick_count, sizeof(tick_count));
 }
 
-// Display the dashboard or welcome screen.  Await messages or user GUI input.
-static void do_dashboard(jade_process_t* process, gui_activity_t* act_dashboard, wait_event_data_t* event_data)
+// Display the dashboard ready or welcome screen.  Await messages or user GUI input.
+static void do_dashboard(jade_process_t* process, struct keychain_handle* const expected_keychain,
+    gui_activity_t* act_dashboard, wait_event_data_t* event_data)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(act_dashboard);
@@ -598,11 +599,10 @@ static void do_dashboard(jade_process_t* process, gui_activity_t* act_dashboard,
     // external messages to handle.
     gui_activity_register_event(act_dashboard, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
 
-    // Loop all the time the keychain is set (or not-set), awaiting either a message
+    // Loop all the time the keychain is unchanged, awaiting either a message
     // from companion app or a GUI interaction from the user
     bool acted = true;
-    const bool initially_has_keychain = keychain != NULL;
-    while ((keychain != NULL) == initially_has_keychain) {
+    while (keychain == expected_keychain) {
         // If the last loop did something, ensure the current dashboard screen
         // is displayed. (Doing this too eagerly can either cause unnecessary
         // screen flicker or can cause the dashboard to overwrite other screens
@@ -642,6 +642,7 @@ void dashboard_process(void* process_ptr)
 
     jade_process_t* process = process_ptr;
     ASSERT_NO_CURRENT_MESSAGE(process);
+    JADE_ASSERT(!keychain);
 
     const char* device_name = get_jade_id();
     JADE_ASSERT(device_name);
@@ -649,22 +650,23 @@ void dashboard_process(void* process_ptr)
     wait_event_data_t* const event_data = make_wait_event_data();
     gui_activity_t* act_dashboard = NULL;
 
-    // At first display a welcome screen for setup/pin etc.
-    JADE_ASSERT(!keychain);
-    if (!keychain_has_pin()) {
-        JADE_LOGI("No Pin set - showing Setup screen");
-        make_setup_screen(&act_dashboard, device_name);
-    } else {
-        JADE_LOGI("Pin set - showing Connect screen");
-        make_connect_screen(&act_dashboard, device_name);
+    while (true) {
+        // Create current 'dashboard' screen, then process all events until that
+        // dashboard is no longer appropriate - ie. until the keychain is set (or unset).
+        if (keychain) {
+            JADE_LOGI("Logged-in - showing Ready screen");
+            make_ready_screen(&act_dashboard, device_name);
+        } else if (keychain_has_pin()) {
+            JADE_LOGI("Pin set - showing Connect screen");
+            make_connect_screen(&act_dashboard, device_name);
+        } else {
+            JADE_LOGI("No Pin set - showing Setup screen");
+            make_setup_screen(&act_dashboard, device_name);
+        }
+
+        // This call loops/blocks all the time the user keychain remains unchanged
+        // from that passed in.  When it changes we go back round this loop making
+        // a new 'dashboard' screen and re-running the dashboard processing loop.
+        do_dashboard(process, keychain, act_dashboard, event_data);
     }
-    do_dashboard(process, act_dashboard, event_data);
-
-    // After user authorisation go to a ready/settings screen.
-    JADE_ASSERT(keychain);
-    make_dashboard_screen(&act_dashboard, device_name);
-    do_dashboard(process, act_dashboard, event_data);
-
-    // Not expecting that to end, as loops handling messages
-    JADE_ASSERT_MSG(false, "Unexpected end of dashboard_process()");
 }
