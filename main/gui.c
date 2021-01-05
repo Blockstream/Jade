@@ -1729,7 +1729,7 @@ static void status_bar_task(void* ignore)
         if ((status_bar.battery_update_counter % 10) == 0) {
 
 #ifndef CONFIG_ESP32_NO_BLOBS
-            const bool new_ble = ble_get_status();
+            const bool new_ble = ble_enabled();
 #else
             const bool new_ble = false;
 #endif
@@ -1744,7 +1744,7 @@ static void status_bar_task(void* ignore)
                 status_bar.updated = true;
             }
 
-            const bool new_usb = usb_get_status();
+            const bool new_usb = usb_connected();
             if (new_usb != status_bar.last_usb_val) {
                 status_bar.last_usb_val = new_usb;
                 if (new_usb) {

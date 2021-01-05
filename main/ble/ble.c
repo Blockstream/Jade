@@ -42,7 +42,8 @@ static const ble_uuid128_t tx_service_uuid
 static const ble_uuid128_t rx_service_uuid
     = BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0, 0x93, 0xf3, 0xa3, 0xb5, 0x02, 0x00, 0x40, 0x6e);
 
-static bool ble_enabled = false;
+static bool ble_is_enabled = false;
+static bool ble_is_connected = false;
 static size_t ble_read = 0;
 static uint8_t own_addr_type = BLE_OWN_ADDR_RANDOM;
 static uint8_t* ble_data_in = NULL;
@@ -488,7 +489,7 @@ void ble_start()
 
     nimble_port_freertos_init(ble_task);
 
-    ble_enabled = true;
+    ble_is_enabled = true;
 }
 
 void ble_stop()
@@ -501,14 +502,16 @@ void ble_stop()
             JADE_LOGE("esp_nimble_hci_and_controller_deinit() failed with error: %d", ret);
         }
     }
-    ble_enabled = false;
+    ble_is_enabled = false;
 }
 
-bool ble_get_status()
+bool ble_enabled()
 {
     // FIXME: get from NIMBLE
-    return ble_enabled;
+    return ble_is_enabled;
 }
+
+bool ble_connected() { return ble_is_connected; }
 
 static int ble_gap_event(struct ble_gap_event* event, void* arg)
 {
@@ -558,6 +561,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
         JADE_LOGI("\n");
         peer_conn_handle = 0;
         peer_conn_attr_handle = 0;
+        ble_is_connected = false;
 
         ble_start_advertising();
         return 0;
@@ -601,6 +605,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             event->subscribe.cur_indicate);
         peer_conn_handle = event->subscribe.conn_handle;
         peer_conn_attr_handle = event->subscribe.attr_handle;
+        ble_is_connected = true;
         return 0;
 
     case BLE_GAP_EVENT_MTU:

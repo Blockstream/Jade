@@ -427,7 +427,7 @@ static void handle_ble_reset()
 // BLE properties screen
 static inline void update_ble_enabled_text(gui_view_node_t* ble_status_textbox)
 {
-    gui_update_text(ble_status_textbox, ble_get_status() ? "Enabled" : "Disabled");
+    gui_update_text(ble_status_textbox, ble_enabled() ? "Enabled" : "Disabled");
 }
 
 static void handle_ble()
@@ -456,7 +456,7 @@ static void handle_ble()
 
         case BTN_BLE_TOGGLE_ENABLE:
             ble_flags = storage_get_ble_flags();
-            if (ble_get_status()) {
+            if (ble_enabled()) {
                 ble_stop();
                 ble_flags &= ~BLE_ENABLED;
             } else {

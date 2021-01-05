@@ -205,7 +205,7 @@ uint16_t power_get_temp()
     return temp;
 }
 
-bool usb_get_status()
+bool usb_connected()
 {
     bool is_usb_connected = false;
     uint8_t buf;
@@ -241,6 +241,6 @@ uint16_t power_get_ibat_discharge() { return 0; }
 uint16_t power_get_vusb() { return 0; }
 uint16_t power_get_iusb() { return 0; }
 uint16_t power_get_temp() { return 0; }
-bool usb_get_status() { return true; }
+bool usb_connected() { return true; }
 
 #endif /* CONFIG_HAS_AXP */

@@ -31,6 +31,6 @@ uint16_t power_get_vusb();
 uint16_t power_get_iusb();
 uint16_t power_get_temp();
 
-bool usb_get_status();
+bool usb_connected();
 
 #endif /* POWER_H_ */
