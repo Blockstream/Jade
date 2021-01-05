@@ -66,7 +66,8 @@ void pin_process(void* process_ptr)
     SENSITIVE_PUSH(&khandle, sizeof(khandle));
     if (pinclient_loadkeys(process, pin, sizeof(pin), &khandle)) {
         // Looks good - copy temporary keychain into a new global keychain
-        set_keychain(&khandle);
+        // and set the current message source as the keychain userdata
+        set_keychain(&khandle, process->ctx.source);
         JADE_LOGI("Success");
     } else {
         // Failed - show error and go back to boot screen

@@ -18,8 +18,10 @@ struct keychain_handle {
 extern struct keychain_handle* keychain;
 
 bool keychain_init();
-void set_keychain(struct keychain_handle* src);
+void set_keychain(struct keychain_handle* src, uint8_t userdata);
 void free_keychain();
+
+uint8_t keychain_get_userdata();
 
 // Compare pinned/restricted network type and the type of the network passed
 bool keychain_is_network_type_consistent(const char* network);

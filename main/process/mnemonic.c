@@ -669,7 +669,9 @@ void mnemonic_process(void* process_ptr)
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
     // (This should persist the mnemonic keys encrypted in the flash)
     if (pinclient_savekeys(process, pin, sizeof(pin), &khandle)) {
-        set_keychain(&khandle);
+        // Looks good - copy temporary keychain into a new global keychain
+        // and set the current message source as the keychain userdata
+        set_keychain(&khandle, process->ctx.source);
         JADE_LOGI("Success");
     } else {
         JADE_LOGW("Set-Pin / persist keys failed.");

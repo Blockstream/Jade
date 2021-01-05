@@ -16,10 +16,14 @@
 static const uint32_t GA_PATH_ROOT = BIP32_INITIAL_HARDENED_CHILD + 0x4741;
 static const unsigned char GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
 
+// Extern - the key material
 struct keychain_handle* keychain = NULL;
-network_type_t network_type_restriction = NONE;
 
-void set_keychain(struct keychain_handle* src)
+// Internal
+static network_type_t network_type_restriction = NONE;
+static uint8_t keychain_userdata = 0;
+
+void set_keychain(struct keychain_handle* src, const uint8_t userdata)
 {
     JADE_ASSERT(src);
 
@@ -28,6 +32,9 @@ void set_keychain(struct keychain_handle* src)
     free_keychain();
     keychain = JADE_MALLOC_DRAM(sizeof(struct keychain_handle));
     memcpy(keychain, src, sizeof(struct keychain_handle));
+
+    // Hold the associated userdata
+    keychain_userdata = userdata;
 }
 
 void free_keychain()
@@ -37,7 +44,10 @@ void free_keychain()
         free(keychain);
         keychain = NULL;
     }
+    keychain_userdata = 0;
 }
+
+uint8_t keychain_get_userdata() { return keychain_userdata; }
 
 // Compare pinned/restricted network type and the type of the network passed
 bool keychain_is_network_type_consistent(const char* network)

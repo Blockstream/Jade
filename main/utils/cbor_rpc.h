@@ -17,6 +17,7 @@
 // Implementation specific error codes: -32000 to -32099
 #define CBOR_RPC_USER_CANCELLED -32000
 #define CBOR_RPC_PROTOCOL_ERROR -32001
+#define CBOR_RPC_HW_LOCKED -32002
 
 #define CBOR_RPC_TAG_PARAMS "params"
 #define MAXLEN_ID 16

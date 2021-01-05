@@ -1174,6 +1174,46 @@ def run_jade_tests(jadeapi, args, extended_tests):
         run_api_tests(jadeapi, authuser=args.authuser)
 
 
+# This test should be passed 2 different connections to the same jade hw
+# - both serial and ble connected at the same time.
+# Test that is we auth over one, we can't do sensitive calls over the other.
+def mixed_sources_test(jade1, jade2):
+
+    # Example of a 'sensitve' call
+    path, network, expected = GET_XPUB_DATA[0]
+
+    # jade1 can unlock jade, then get xpub fine
+    jade1.set_mnemonic(TEST_MNEMONIC)
+    rslt = jade1.get_xpub(network, path)
+    assert rslt == expected
+
+    # jade2 gets an error about jade being locked (for them)
+    try:
+        rslt = jade2.get_xpub(network, path)
+        assert False, "Excepted exception from mixed sources test"
+    except JadeError as err:
+        assert err.code == -32002
+
+    # jade1 is still fine
+    rslt = jade1.get_xpub(network, path)
+    assert rslt == expected
+
+    # Now jade2 unlocks jade - they can get xpub but jade1 now cannot
+    jade2.set_mnemonic(TEST_MNEMONIC)
+    rslt = jade2.get_xpub(network, path)
+    assert rslt == expected
+
+    try:
+        rslt = jade1.get_xpub(network, path)
+        assert False, "Excepted exception from mixed sources test"
+    except JadeError as err:
+        assert err.code == -32002
+
+    # jade2 is still fine
+    rslt = jade2.get_xpub(network, path)
+    assert rslt == expected
+
+
 # Run all selected tests over all selected backends (serial/ble)
 def run_all_jade_tests(info, args):
     logger.info("Running Jade tests over selected backend interfaces")
@@ -1192,6 +1232,13 @@ def run_all_jade_tests(info, args):
             logger.info("Testing BLE ({})".format(id))
             with JadeAPI.create_ble(serial_number=id) as jade:
                 run_jade_tests(jade, args, False)  # skip long tests over ble
+
+                # 3. If also testing over serial, run the 'mixed sources' tests
+                if not args.skipserial:
+                    logger.info("Running 'mixed sources' Tests")
+                    with JadeAPI.create_serial(args.serialport,
+                                               timeout=SRTIMEOUT) as jadeserial:
+                        mixed_sources_test(jadeserial, jade)
         else:
             msg = "Skipping BLE tests - not enabled on the hardware"
             logger.warning(msg)

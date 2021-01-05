@@ -157,6 +157,15 @@ cleanup:
     return;
 }
 
+// Do we have have a keychain, and does its userdata indicate the same 'source'
+// as the current message ?
+// This is to check that we only handle messages from the same source (serial or ble)
+// as initially unlocked the key material.
+static inline bool keychain_unlocked_by_message_source(jade_process_t* process)
+{
+    return keychain && keychain_get_userdata() == (uint8_t)process->ctx.source;
+}
+
 #define IS_METHOD(method_name) !strncmp(method, method_name, method_len)
 
 // Message dispatcher - expects valid cbor messages, routed by 'method'
@@ -184,7 +193,7 @@ static void dispatch_message(jade_process_t* process)
         process_add_entropy_request(process);
     } else if (IS_METHOD("auth_user")) {
         // Either enter pin or set-up mnemonic if uninitialised
-        if (keychain) {
+        if (keychain_unlocked_by_message_source(process)) {
             JADE_LOGD("auth_user called - keychain already unlocked, doing nothing");
             jade_process_reply_to_message_ok(process);
         } else if (keychain_has_pin()) {
@@ -199,12 +208,12 @@ static void dispatch_message(jade_process_t* process)
         // a) User has passed PIN screen and has unlocked Jade
         // or
         // b) There is no PIN set (ie. no encrypted keys set, eg. new device)
-        if (keychain || !keychain_has_pin()) {
+        if (keychain_unlocked_by_message_source(process) || !keychain_has_pin()) {
             task_function = ota_process;
         } else {
             // Reject the message as bad (ota) protocol
             jade_process_reject_message(
-                process, CBOR_RPC_PROTOCOL_ERROR, "OTA is only allowed on new or logged-in device.", NULL);
+                process, CBOR_RPC_HW_LOCKED, "OTA is only allowed on new or logged-in device.", NULL);
         }
 #ifdef CONFIG_DEBUG_MODE
     } else if (IS_METHOD("debug_selfcheck")) {
@@ -220,10 +229,10 @@ static void dispatch_message(jade_process_t* process)
 #endif // CONFIG_DEBUG_MODE
     } else {
         // Methods only available after user authorised
-        if (!keychain) {
+        if (!keychain_unlocked_by_message_source(process)) {
             // Reject the message as bad (startup) protocol
-            jade_process_reject_message(process, CBOR_RPC_PROTOCOL_ERROR,
-                "At startup expecting either 'auth_user' or 'ota' message only.", NULL);
+            jade_process_reject_message(
+                process, CBOR_RPC_HW_LOCKED, "When locked expecting either 'auth_user' or 'ota' message only.", NULL);
         } else if (IS_METHOD("get_xpub")) {
             task_function = get_xpubs_process;
         } else if (IS_METHOD("get_receive_address")) {

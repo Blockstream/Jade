@@ -44,11 +44,12 @@ void debug_set_mnemonic_process(void* process_ptr)
     }
     SENSITIVE_PUSH(&khandle, sizeof(khandle));
 
-    // Copy temporary keychain into a new global keychain
-    // and remove the restriction on network-types.
-    set_keychain(&khandle);
+    // Copy temporary keychain into a new global keychain,
+    // set the current message source as the keychain userdata
+    set_keychain(&khandle, (uint8_t)process->ctx.source);
     SENSITIVE_POP(&khandle);
 
+    // Remove the restriction on network-types.
     keychain_clear_network_type_restriction();
 
     jade_process_reply_to_message_ok(process);
