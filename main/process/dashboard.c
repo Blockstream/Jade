@@ -163,7 +163,7 @@ cleanup:
 // as initially unlocked the key material.
 static inline bool keychain_unlocked_by_message_source(jade_process_t* process)
 {
-    return keychain && keychain_get_userdata() == (uint8_t)process->ctx.source;
+    return keychain_get() && keychain_get_userdata() == (uint8_t)process->ctx.source;
 }
 
 #define IS_METHOD(method_name) !strncmp(method, method_name, method_len)
@@ -523,7 +523,7 @@ static void handle_device()
         case BTN_INFO_SHOW_XPUB: {
             const char* network = storage_get_network_type_restriction() == TEST ? "testnet" : "mainnet";
             char* xpub = NULL;
-            if (keychain && wallet_get_xpub(network, NULL, 0, &xpub)) {
+            if (keychain_get() && wallet_get_xpub(network, NULL, 0, &xpub)) {
                 QRCode qrcode;
                 Icon qr_icon;
 
@@ -601,8 +601,8 @@ static inline bool ble_connected() { return false; }
 #endif
 
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.
-static void do_dashboard(jade_process_t* process, keychain_t* const expected_keychain, gui_activity_t* act_dashboard,
-    wait_event_data_t* event_data)
+static void do_dashboard(jade_process_t* process, const keychain_t* const expected_keychain,
+    gui_activity_t* act_dashboard, wait_event_data_t* event_data)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(act_dashboard);
@@ -617,7 +617,7 @@ static void do_dashboard(jade_process_t* process, keychain_t* const expected_key
     bool acted = true;
     const bool initial_ble = ble_connected();
     const bool initial_usb = usb_connected();
-    while (keychain == expected_keychain) {
+    while (keychain_get() == expected_keychain) {
         // If the last loop did something, ensure the current dashboard screen
         // is displayed. (Doing this too eagerly can either cause unnecessary
         // screen flicker or can cause the dashboard to overwrite other screens
@@ -647,7 +647,7 @@ static void do_dashboard(jade_process_t* process, keychain_t* const expected_key
         // Ensure to clear the keychain if ble- or usb- connection status changes.
         // NOTE: if this clears a populated keychain then this loop will complete
         // and cause this function to return.
-        if (keychain) {
+        if (keychain_get()) {
             if (ble_connected() != initial_ble || usb_connected() != initial_usb) {
                 JADE_LOGI("Connection status changed - clearing keychain");
                 free_keychain();
@@ -667,7 +667,7 @@ void dashboard_process(void* process_ptr)
 
     jade_process_t* process = process_ptr;
     ASSERT_NO_CURRENT_MESSAGE(process);
-    JADE_ASSERT(!keychain);
+    JADE_ASSERT(!keychain_get());
 
     const char* device_name = get_jade_id();
     JADE_ASSERT(device_name);
@@ -678,7 +678,8 @@ void dashboard_process(void* process_ptr)
     while (true) {
         // Create current 'dashboard' screen, then process all events until that
         // dashboard is no longer appropriate - ie. until the keychain is set (or unset).
-        if (keychain) {
+        const keychain_t* initial_keychain = keychain_get();
+        if (initial_keychain) {
             JADE_LOGI("Logged-in - showing Ready screen");
             make_ready_screen(&act_dashboard, device_name);
         } else if (keychain_has_pin()) {
@@ -694,6 +695,6 @@ void dashboard_process(void* process_ptr)
         // a new 'dashboard' screen and re-running the dashboard processing loop.
         // NOTE: connecting or disconnecting serial or ble will cause any keys to
         // be cleared (and bzero'd).
-        do_dashboard(process, keychain, act_dashboard, event_data);
+        do_dashboard(process, initial_keychain, act_dashboard, event_data);
     }
 }

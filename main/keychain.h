@@ -15,12 +15,11 @@ typedef struct {
     unsigned char master_unblinding_key[HMAC_SHA512_LEN];
 } keychain_t;
 
-extern keychain_t* keychain;
-
 bool keychain_init();
 void set_keychain(const keychain_t* src, uint8_t userdata);
 void free_keychain();
 
+const keychain_t* keychain_get();
 uint8_t keychain_get_userdata();
 
 // Compare pinned/restricted network type and the type of the network passed

@@ -115,7 +115,7 @@ bool bip32_path_as_str(uint32_t parts[], size_t num_parts, char* output, const s
 static void wallet_get_privkey(
     const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len)
 {
-    JADE_ASSERT(keychain);
+    JADE_ASSERT(keychain_get());
     JADE_ASSERT(path);
     JADE_ASSERT(path_size > 0);
     JADE_ASSERT(output);
@@ -126,7 +126,7 @@ static void wallet_get_privkey(
     struct ext_key derived;
     SENSITIVE_PUSH(&derived, sizeof(derived));
     JADE_WALLY_VERIFY(bip32_key_from_parent_path(
-        &keychain->xpriv, path, path_size, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
+        &(keychain_get()->xpriv), path, path_size, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
 
     memcpy(output, derived.priv_key + 1, output_len);
     SENSITIVE_POP(&derived);
@@ -157,7 +157,7 @@ void wallet_build_receive_path(const uint32_t subaccount, const uint32_t branch,
 static bool wallet_get_gaservice_key(
     const char* network, const uint32_t* path, const size_t path_size, struct ext_key* gakey)
 {
-    JADE_ASSERT(keychain);
+    JADE_ASSERT(keychain_get());
     JADE_ASSERT(network);
     JADE_ASSERT(path);
     JADE_ASSERT(path_size > 0);
@@ -197,12 +197,13 @@ static bool wallet_get_gaservice_key(
     }
 
     // GA service path goes in elements 1 - 32 incl.
+    const keychain_t* const keychain = keychain_get();
     for (size_t i = 0; i < 32; ++i) {
         ga_path[i + 1] = (keychain->service_path[2 * i] << 8) + keychain->service_path[2 * i + 1];
     }
 
     // Derive ga account pubkey for the path, except the ptr (so we can log it).
-    const struct ext_key* service = networkToGaService(network);
+    const struct ext_key* const service = networkToGaService(network);
     if (!service) {
         JADE_LOGE("Unknown network: %s", network);
         return false;
@@ -300,7 +301,7 @@ static void wallet_build_csv(const char* network, const uint8_t* pubkeys, const 
 bool wallet_build_receive_script(const char* network, const char* xpubrecovery, const uint32_t csvBlocks,
     const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len)
 {
-    JADE_ASSERT(keychain);
+    JADE_ASSERT(keychain_get());
 
     if (!network || csvBlocks > MAX_CSV_BLOCKS_ALLOWED || !path || path_size == 0 || !output
         || output_len != WALLY_SCRIPTPUBKEY_P2SH_LEN) {
@@ -489,7 +490,7 @@ bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, 
 
 bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t path_len, char** output)
 {
-    JADE_ASSERT(keychain);
+    JADE_ASSERT(keychain_get());
     JADE_ASSERT(path_len == 0 || path);
 
     if (!network || !output) {
@@ -506,10 +507,11 @@ bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t p
     struct ext_key derived;
     if (path_len == 0) {
         // Just copy root ext key
-        memcpy(&derived, &keychain->xpriv, sizeof(derived));
+        memcpy(&derived, &(keychain_get()->xpriv), sizeof(derived));
     } else {
         // Derive child from root and path - Note: we do NOT pass BIP32_FLAG_SKIP_HASH here
-        const int wret = bip32_key_from_parent_path(&keychain->xpriv, path, path_len, BIP32_FLAG_KEY_PRIVATE, &derived);
+        const int wret
+            = bip32_key_from_parent_path(&(keychain_get()->xpriv), path, path_len, BIP32_FLAG_KEY_PRIVATE, &derived);
         if (wret != WALLY_OK) {
             JADE_LOGE("Failed to derive key from path (size %u): %d", path_len, wret);
             return false;
@@ -527,30 +529,30 @@ bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t p
 bool wallet_hmac_with_master_key(
     const unsigned char* data, const uint32_t data_len, unsigned char* output, const uint32_t output_len)
 {
-    JADE_ASSERT(keychain);
+    JADE_ASSERT(keychain_get());
 
     if (!data || data_len == 0 || !output || output_len != HMAC_SHA256_LEN) {
         return false;
     }
 
     // HMAC with the private key - note we ignore the first byte of the array as it is a prefix to the actual key
-    return wally_hmac_sha256(
-               keychain->xpriv.priv_key + 1, sizeof(keychain->xpriv.priv_key) - 1, data, data_len, output, output_len)
+    return wally_hmac_sha256(keychain_get()->xpriv.priv_key + 1, sizeof(keychain_get()->xpriv.priv_key) - 1, data,
+               data_len, output, output_len)
         == WALLY_OK;
 }
 
 bool wallet_get_public_blinding_key(
     const unsigned char* script, const uint32_t script_size, unsigned char* output, const uint32_t output_len)
 {
-    JADE_ASSERT(keychain);
+    JADE_ASSERT(keychain_get());
 
     if (!script || !output || output_len != EC_PUBLIC_KEY_LEN) {
         return false;
     }
 
     unsigned char privkey[EC_PRIVATE_KEY_LEN];
-    const int wret = wally_asset_blinding_key_to_ec_private_key(keychain->master_unblinding_key,
-        sizeof(keychain->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
+    const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
+        sizeof(keychain_get()->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
     if (wret != WALLY_OK) {
         JADE_LOGE("Error building asset blinding key for script: %d", wret);
         return false;
@@ -565,7 +567,7 @@ bool wallet_get_public_blinding_key(
 bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t hash_len, uint32_t output_index,
     uint8_t type, unsigned char* output, const uint32_t output_len)
 {
-    JADE_ASSERT(keychain);
+    JADE_ASSERT(keychain_get());
 
     if (!hash_prevouts || hash_len != SHA256_LEN || !output || output_len != HMAC_SHA256_LEN
         || (type != ASSET_BLINDING_FACTOR && type != VALUE_BLINDING_FACTOR)) {
@@ -573,8 +575,9 @@ bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t
     }
 
     unsigned char tx_blinding_key[HMAC_SHA256_LEN];
-    JADE_WALLY_VERIFY(wally_hmac_sha256(keychain->master_unblinding_key, sizeof(keychain->master_unblinding_key),
-        hash_prevouts, SHA256_LEN, tx_blinding_key, sizeof(tx_blinding_key)));
+    JADE_WALLY_VERIFY(
+        wally_hmac_sha256(keychain_get()->master_unblinding_key, sizeof(keychain_get()->master_unblinding_key),
+            hash_prevouts, SHA256_LEN, tx_blinding_key, sizeof(tx_blinding_key)));
 
     // msg is either "ABF" or "VBF" with the output index appended at the end.
     // initialize the common part here and then replace vars down
@@ -591,7 +594,7 @@ bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t
 bool wallet_get_shared_nonce(const unsigned char* script, const uint32_t script_size, const unsigned char* their_pubkey,
     const size_t pubkey_len, unsigned char* output, const uint32_t output_len)
 {
-    JADE_ASSERT(keychain);
+    JADE_ASSERT(keychain_get());
 
     if (!script || !their_pubkey || pubkey_len != EC_PUBLIC_KEY_LEN || !output || output_len != SHA256_LEN) {
         return false;
@@ -599,8 +602,8 @@ bool wallet_get_shared_nonce(const unsigned char* script, const uint32_t script_
 
     unsigned char privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
-    const int wret = wally_asset_blinding_key_to_ec_private_key(keychain->master_unblinding_key,
-        sizeof(keychain->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
+    const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
+        sizeof(keychain_get()->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
     if (wret != WALLY_OK) {
         JADE_LOGE("Error building asset blinding key for script: %d", wret);
         return false;

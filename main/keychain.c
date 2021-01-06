@@ -16,10 +16,8 @@
 static const uint32_t GA_PATH_ROOT = BIP32_INITIAL_HARDENED_CHILD + 0x4741;
 static const unsigned char GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
 
-// Extern - the key material
-keychain_t* keychain = NULL;
-
-// Internal
+// Internal variables - the single/global keychain data
+static keychain_t* keychain_data = NULL;
 static network_type_t network_type_restriction = NONE;
 static uint8_t keychain_userdata = 0;
 
@@ -30,8 +28,8 @@ void set_keychain(const keychain_t* src, const uint8_t userdata)
     // Maybe freeing and re-allocing is unnecessary, but shouldn't happen very
     // often, and ensures it is definitely in dram.  Better safe ...
     free_keychain();
-    keychain = JADE_MALLOC_DRAM(sizeof(keychain_t));
-    memcpy(keychain, src, sizeof(keychain_t));
+    keychain_data = JADE_MALLOC_DRAM(sizeof(keychain_t));
+    memcpy(keychain_data, src, sizeof(keychain_t));
 
     // Hold the associated userdata
     keychain_userdata = userdata;
@@ -39,13 +37,15 @@ void set_keychain(const keychain_t* src, const uint8_t userdata)
 
 void free_keychain()
 {
-    if (keychain) {
-        wally_bzero(keychain, sizeof(keychain_t));
-        free(keychain);
-        keychain = NULL;
+    if (keychain_data) {
+        wally_bzero(keychain_data, sizeof(keychain_t));
+        free(keychain_data);
+        keychain_data = NULL;
     }
     keychain_userdata = 0;
 }
+
+const keychain_t* keychain_get() { return keychain_data; }
 
 uint8_t keychain_get_userdata() { return keychain_userdata; }
 
