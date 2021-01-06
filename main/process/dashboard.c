@@ -596,6 +596,10 @@ static void display_screen(gui_activity_t* act)
     refeed_entropy((const unsigned char*)&tick_count, sizeof(tick_count));
 }
 
+#ifdef CONFIG_ESP32_NO_BLOBS
+static inline bool ble_connected() { return false; }
+#endif
+
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.
 static void do_dashboard(jade_process_t* process, struct keychain_handle* const expected_keychain,
     gui_activity_t* act_dashboard, wait_event_data_t* event_data)
@@ -611,6 +615,8 @@ static void do_dashboard(jade_process_t* process, struct keychain_handle* const 
     // Loop all the time the keychain is unchanged, awaiting either a message
     // from companion app or a GUI interaction from the user
     bool acted = true;
+    const bool initial_ble = ble_connected();
+    const bool initial_usb = usb_connected();
     while (keychain == expected_keychain) {
         // If the last loop did something, ensure the current dashboard screen
         // is displayed. (Doing this too eagerly can either cause unnecessary
@@ -636,6 +642,16 @@ static void do_dashboard(jade_process_t* process, struct keychain_handle* const 
             handle_btn(process, ev_id);
             acted = true;
             continue;
+        }
+
+        // Ensure to clear the keychain if ble- or usb- connection status changes.
+        // NOTE: if this clears a populated keychain then this loop will complete
+        // and cause this function to return.
+        if (keychain) {
+            if (ble_connected() != initial_ble || usb_connected() != initial_usb) {
+                JADE_LOGI("Connection status changed - clearing keychain");
+                free_keychain();
+            }
         }
 
         // Looping without having done anything this iteration
@@ -676,6 +692,8 @@ void dashboard_process(void* process_ptr)
         // This call loops/blocks all the time the user keychain remains unchanged
         // from that passed in.  When it changes we go back round this loop making
         // a new 'dashboard' screen and re-running the dashboard processing loop.
+        // NOTE: connecting or disconnecting serial or ble will cause any keys to
+        // be cleared (and bzero'd).
         do_dashboard(process, keychain, act_dashboard, event_data);
     }
 }
