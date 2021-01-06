@@ -15,9 +15,8 @@
 #include "process_utils.h"
 
 // Pinserver interaction functions as used in menmonic.c and pin.c
-bool pinclient_savekeys(
-    jade_process_t* process, const uint8_t* pin, size_t pin_size, const struct keychain_handle* khandle);
-bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, struct keychain_handle* khandle);
+bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, const keychain_t* keydata);
+bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, keychain_t* keydata);
 
 static void fake_auth_msg_request(jade_process_t* process, uint8_t* process_cbor, size_t process_cbor_len)
 {
@@ -56,16 +55,16 @@ void debug_handshake(void* process_ptr)
 
     uint8_t user_pin[] = { 0, 1, 2, 3, 4, 5 };
 
-    struct keychain_handle khandle;
-    struct keychain_handle khandle_decrypted;
-    SENSITIVE_PUSH(&khandle, sizeof(khandle));
-    SENSITIVE_PUSH(&khandle_decrypted, sizeof(khandle_decrypted));
+    keychain_t keydata;
+    keychain_t keydata_decrypted;
+    SENSITIVE_PUSH(&keydata, sizeof(keydata));
+    SENSITIVE_PUSH(&keydata_decrypted, sizeof(keydata_decrypted));
 
     char* mnemonic = NULL;
     keychain_get_new_mnemonic(&mnemonic);
     JADE_ASSERT(mnemonic);
     SENSITIVE_PUSH(mnemonic, strlen(mnemonic));
-    const bool test_res = keychain_derive(mnemonic, &khandle);
+    const bool test_res = keychain_derive(mnemonic, &keydata);
     JADE_ASSERT(test_res);
     SENSITIVE_POP(mnemonic);
     wally_free_string(mnemonic);
@@ -77,7 +76,7 @@ void debug_handshake(void* process_ptr)
     fake_auth_msg_request(process, process_cbor, 256);
 
     // Test setting a new pin using the 'real' pinserver interaction code
-    if (!pinclient_savekeys(process, user_pin, sizeof(user_pin), &khandle)) {
+    if (!pinclient_savekeys(process, user_pin, sizeof(user_pin), &keydata)) {
         JADE_LOGE("pinclient_savekeys() failed");
         goto cleanup;
     }
@@ -94,17 +93,17 @@ void debug_handshake(void* process_ptr)
     fake_auth_msg_request(process, process_cbor, 256);
 
     // Test get pin again using the 'real' pinserver interaction code.
-    if (!pinclient_loadkeys(process, user_pin, sizeof(user_pin), &khandle_decrypted)) {
+    if (!pinclient_loadkeys(process, user_pin, sizeof(user_pin), &keydata_decrypted)) {
         JADE_LOGE("pinclient_loadkeys() failed");
         goto cleanup;
     }
 
     // Check the keys match that from the 'set' steps above and the keychain
-    int res = sodium_memcmp(&khandle.xpriv, &khandle_decrypted.xpriv, sizeof(struct ext_key));
+    int res = sodium_memcmp(&keydata.xpriv, &keydata_decrypted.xpriv, sizeof(struct ext_key));
     JADE_ASSERT(res == 0);
-    res = crypto_verify_64(khandle.service_path, khandle_decrypted.service_path);
+    res = crypto_verify_64(keydata.service_path, keydata_decrypted.service_path);
     JADE_ASSERT(res == 0);
-    res = crypto_verify_64(khandle.master_unblinding_key, khandle_decrypted.master_unblinding_key);
+    res = crypto_verify_64(keydata.master_unblinding_key, keydata_decrypted.master_unblinding_key);
     JADE_ASSERT(res == 0);
 
     JADE_ASSERT(keychain_has_pin());
@@ -112,6 +111,6 @@ void debug_handshake(void* process_ptr)
     JADE_LOGI("Get Success");
 
 cleanup:
-    SENSITIVE_POP(&khandle_decrypted);
-    SENSITIVE_POP(&khandle);
+    SENSITIVE_POP(&keydata_decrypted);
+    SENSITIVE_POP(&keydata);
 }

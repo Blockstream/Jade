@@ -24,7 +24,7 @@ static const char SERVICE_PATH_HEX[] = "00c9678fbd9d9f6a96bd43221d56733b5aba8f52
 
 bool debug_selfcheck()
 {
-    struct keychain_handle handle;
+    keychain_t keydata;
 
     size_t written = 0;
     uint8_t expected_service_path[HMAC_SHA512_LEN];
@@ -33,18 +33,18 @@ bool debug_selfcheck()
     if (ret != WALLY_OK || written != HMAC_SHA512_LEN) {
         FAIL();
     }
-    bool val = keychain_derive(TEST_MNEMONIC, &handle);
+    bool val = keychain_derive(TEST_MNEMONIC, &keydata);
     if (!val) {
         FAIL();
     }
-    if (crypto_verify_64(handle.service_path, expected_service_path) != 0) {
+    if (crypto_verify_64(keydata.service_path, expected_service_path) != 0) {
         FAIL();
     }
 
     char* mnemonic = NULL;
     keychain_get_new_mnemonic(&mnemonic);
     JADE_ASSERT(mnemonic);
-    val = keychain_derive(mnemonic, &handle);
+    val = keychain_derive(mnemonic, &keydata);
     if (!val) {
         wally_free_string(mnemonic);
         FAIL();
@@ -62,7 +62,7 @@ bool debug_selfcheck()
     if (!val) {
         FAIL();
     }
-    val = keychain_store_encrypted(aeskey, sizeof(aeskey), &handle);
+    val = keychain_store_encrypted(aeskey, sizeof(aeskey), &keydata);
     if (!val) {
         FAIL();
     }
@@ -72,8 +72,8 @@ bool debug_selfcheck()
     if (storage_get_counter() != 3) {
         FAIL();
     }
-    struct keychain_handle handle2;
-    val = keychain_load_cleartext(aeskey, sizeof(aeskey), &handle2);
+    keychain_t keydata2;
+    val = keychain_load_cleartext(aeskey, sizeof(aeskey), &keydata2);
     if (!val) {
         FAIL();
     }
@@ -83,19 +83,19 @@ bool debug_selfcheck()
     if (storage_get_counter() != 3) {
         FAIL();
     }
-    if (crypto_verify_64(handle.service_path, handle2.service_path) != 0) {
+    if (crypto_verify_64(keydata.service_path, keydata2.service_path) != 0) {
         FAIL();
     }
-    if (crypto_verify_64(handle.master_unblinding_key, handle2.master_unblinding_key) != 0) {
+    if (crypto_verify_64(keydata.master_unblinding_key, keydata2.master_unblinding_key) != 0) {
         FAIL();
     }
     char* base58res = NULL;
     char* base58res_copy = NULL;
-    val = bip32_key_to_base58(&handle.xpriv, BIP32_FLAG_KEY_PRIVATE, &base58res);
+    val = bip32_key_to_base58(&keydata.xpriv, BIP32_FLAG_KEY_PRIVATE, &base58res);
     if (val != WALLY_OK) {
         FAIL();
     }
-    val = bip32_key_to_base58(&handle2.xpriv, BIP32_FLAG_KEY_PRIVATE, &base58res_copy);
+    val = bip32_key_to_base58(&keydata2.xpriv, BIP32_FLAG_KEY_PRIVATE, &base58res_copy);
     int len = strlen(base58res);
     if (val != WALLY_OK) {
         FAIL();
@@ -113,7 +113,7 @@ bool debug_selfcheck()
             FAIL();
         }
 
-        val = keychain_load_cleartext(serversecret, sizeof(serversecret), &handle2);
+        val = keychain_load_cleartext(serversecret, sizeof(serversecret), &keydata2);
         if (val) {
             FAIL();
         }
@@ -127,7 +127,7 @@ bool debug_selfcheck()
         FAIL();
     }
 
-    val = keychain_load_cleartext(aeskey, sizeof(aeskey), &handle2);
+    val = keychain_load_cleartext(aeskey, sizeof(aeskey), &keydata2);
     if (val) {
         FAIL();
     }

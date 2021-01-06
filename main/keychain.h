@@ -9,16 +9,16 @@
 #define SERIALIZED_SIZE_AES (((SERIALIZED_SIZE / AES_BLOCK_LEN) + 1) * AES_BLOCK_LEN)
 #define ENCRYPTED_SIZE_AES (SERIALIZED_SIZE_AES + AES_BLOCK_LEN + HMAC_SHA256_LEN)
 
-struct keychain_handle {
+typedef struct {
     struct ext_key xpriv;
     unsigned char service_path[HMAC_SHA512_LEN];
     unsigned char master_unblinding_key[HMAC_SHA512_LEN];
-};
+} keychain_t;
 
-extern struct keychain_handle* keychain;
+extern keychain_t* keychain;
 
 bool keychain_init();
-void set_keychain(struct keychain_handle* src, uint8_t userdata);
+void set_keychain(const keychain_t* src, uint8_t userdata);
 void free_keychain();
 
 uint8_t keychain_get_userdata();
@@ -34,13 +34,13 @@ bool keychain_get_new_privatekey(unsigned char* privatekey, size_t size);
 bool keychain_has_pin();
 uint8_t keychain_pin_attempts_remaining();
 
-bool keychain_derive(const char* mnemonic, struct keychain_handle* handle);
+bool keychain_derive(const char* mnemonic, keychain_t* keydata);
 
 // this expects a 32 byte server key, an n byte pin, that size n, and returns a 32 bytes aes key
 bool keychain_get_aes_key(const unsigned char* server_key, size_t key_len, const uint8_t* pin, size_t pin_size,
     unsigned char* aeskey, size_t aes_len);
 
-bool keychain_store_encrypted(const unsigned char* aeskey, size_t aes_len, const struct keychain_handle* handle);
-bool keychain_load_cleartext(const unsigned char* aeskey, size_t aes_len, struct keychain_handle* handle);
+bool keychain_store_encrypted(const unsigned char* aeskey, size_t aes_len, const keychain_t* keydata);
+bool keychain_load_cleartext(const unsigned char* aeskey, size_t aes_len, keychain_t* keydata);
 
 #endif /* KEYCHAIN_H_ */

@@ -11,7 +11,7 @@
 #include "process_utils.h"
 
 // Pinserver interaction
-bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, struct keychain_handle* khandle);
+bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, keychain_t* keydata);
 
 void pin_process(void* process_ptr)
 {
@@ -62,12 +62,12 @@ void pin_process(void* process_ptr)
 
     // Ok, have keychain and a PIN - do the pinserver 'getpin' process
     // (This should load the mnemonic keys encrypted in the flash)
-    struct keychain_handle khandle;
-    SENSITIVE_PUSH(&khandle, sizeof(khandle));
-    if (pinclient_loadkeys(process, pin, sizeof(pin), &khandle)) {
+    keychain_t keydata;
+    SENSITIVE_PUSH(&keydata, sizeof(keydata));
+    if (pinclient_loadkeys(process, pin, sizeof(pin), &keydata)) {
         // Looks good - copy temporary keychain into a new global keychain
         // and set the current message source as the keychain userdata
-        set_keychain(&khandle, process->ctx.source);
+        set_keychain(&keydata, process->ctx.source);
         JADE_LOGI("Success");
     } else {
         // Failed - show error and go back to boot screen
@@ -76,7 +76,7 @@ void pin_process(void* process_ptr)
     }
 
     // Clear out pin and temporary keychain
-    SENSITIVE_POP(&khandle);
+    SENSITIVE_POP(&keydata);
     SENSITIVE_POP(pin);
     SENSITIVE_POP(pin_insert);
 }

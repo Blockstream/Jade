@@ -17,21 +17,21 @@ static const uint32_t GA_PATH_ROOT = BIP32_INITIAL_HARDENED_CHILD + 0x4741;
 static const unsigned char GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
 
 // Extern - the key material
-struct keychain_handle* keychain = NULL;
+keychain_t* keychain = NULL;
 
 // Internal
 static network_type_t network_type_restriction = NONE;
 static uint8_t keychain_userdata = 0;
 
-void set_keychain(struct keychain_handle* src, const uint8_t userdata)
+void set_keychain(const keychain_t* src, const uint8_t userdata)
 {
     JADE_ASSERT(src);
 
     // Maybe freeing and re-allocing is unnecessary, but shouldn't happen very
     // often, and ensures it is definitely in dram.  Better safe ...
     free_keychain();
-    keychain = JADE_MALLOC_DRAM(sizeof(struct keychain_handle));
-    memcpy(keychain, src, sizeof(struct keychain_handle));
+    keychain = JADE_MALLOC_DRAM(sizeof(keychain_t));
+    memcpy(keychain, src, sizeof(keychain_t));
 
     // Hold the associated userdata
     keychain_userdata = userdata;
@@ -40,7 +40,7 @@ void set_keychain(struct keychain_handle* src, const uint8_t userdata)
 void free_keychain()
 {
     if (keychain) {
-        wally_bzero(keychain, sizeof(struct keychain_handle));
+        wally_bzero(keychain, sizeof(keychain_t));
         free(keychain);
         keychain = NULL;
     }
@@ -76,9 +76,9 @@ void keychain_clear_network_type_restriction()
 
 // Helper to create the service/gait path.
 // (The below is correct for newly created wallets, verified in regtest).
-static bool populate_service_path(struct keychain_handle* handle)
+static bool populate_service_path(keychain_t* keydata)
 {
-    JADE_ASSERT(handle);
+    JADE_ASSERT(keydata);
     uint8_t extkeydata[EC_PRIVATE_KEY_LEN + EC_PUBLIC_KEY_LEN];
     SENSITIVE_PUSH(extkeydata, sizeof(extkeydata));
 
@@ -86,7 +86,7 @@ static bool populate_service_path(struct keychain_handle* handle)
     struct ext_key derived;
     SENSITIVE_PUSH(&derived, sizeof(derived));
     JADE_WALLY_VERIFY(bip32_key_from_parent_path(
-        &handle->xpriv, &GA_PATH_ROOT, 1, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
+        &keydata->xpriv, &GA_PATH_ROOT, 1, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
 
     // 2. Get it as an 'extended public key' byte-array
     memcpy(extkeydata, derived.chain_code, EC_PRIVATE_KEY_LEN);
@@ -95,12 +95,12 @@ static bool populate_service_path(struct keychain_handle* handle)
 
     // 3. HMAC the fixed GA key message with 2. to yield the 512-bit 'service path' for this mnemonic/private key
     JADE_WALLY_VERIFY(wally_hmac_sha512(GA_KEY_MSG, sizeof(GA_KEY_MSG), extkeydata, sizeof(extkeydata),
-        handle->service_path, sizeof(handle->service_path)));
+        keydata->service_path, sizeof(keydata->service_path)));
     SENSITIVE_POP(extkeydata);
 
     // Debug log
     // char *logbuf = NULL;
-    // wally_hex_from_bytes(handle->service_path, sizeof(handle->service_path), &logbuf);
+    // wally_hex_from_bytes(keydata->service_path, sizeof(keydata->service_path), &logbuf);
     // JADE_LOGI("Service path: %s", logbuf);
     // wally_free_string(logbuf);
 
@@ -134,9 +134,9 @@ bool keychain_get_aes_key(const unsigned char* server_key, const size_t key_len,
 }
 
 // Derive keys from mnemonic if passed a valid mnemonic
-bool keychain_derive(const char* mnemonic, struct keychain_handle* handle)
+bool keychain_derive(const char* mnemonic, keychain_t* keydata)
 {
-    if (!mnemonic || !handle) {
+    if (!mnemonic || !keydata) {
         return false;
     }
 
@@ -159,14 +159,14 @@ bool keychain_derive(const char* mnemonic, struct keychain_handle* handle)
 
     // Use mainnet version by default - will be overridden if key serialised for specific network
     // (eg. in get_xpub call).
-    const int wret1 = bip32_key_from_seed(seed, BIP32_ENTROPY_LEN_512, BIP32_VER_MAIN_PRIVATE, 0, &handle->xpriv);
+    const int wret1 = bip32_key_from_seed(seed, BIP32_ENTROPY_LEN_512, BIP32_VER_MAIN_PRIVATE, 0, &keydata->xpriv);
     const int wret2 = wally_asset_blinding_key_from_seed(
-        seed, BIP32_ENTROPY_LEN_512, handle->master_unblinding_key, HMAC_SHA512_LEN);
+        seed, BIP32_ENTROPY_LEN_512, keydata->master_unblinding_key, HMAC_SHA512_LEN);
     SENSITIVE_POP(seed);
     JADE_WALLY_VERIFY(wret1);
     JADE_WALLY_VERIFY(wret2);
 
-    if (!populate_service_path(handle)) {
+    if (!populate_service_path(keydata)) {
         JADE_LOGE("Failed to compute GA service path");
         return false;
     }
@@ -174,25 +174,25 @@ bool keychain_derive(const char* mnemonic, struct keychain_handle* handle)
     return true;
 }
 
-static bool serialize(unsigned char* serialized, const struct keychain_handle* handle)
+static bool serialize(unsigned char* serialized, const keychain_t* keydata)
 {
     JADE_ASSERT(serialized);
-    JADE_ASSERT(handle);
+    JADE_ASSERT(keydata);
 
-    JADE_WALLY_VERIFY(bip32_key_serialize(&handle->xpriv, BIP32_FLAG_KEY_PRIVATE, serialized, BIP32_SERIALIZED_LEN));
-    memcpy(serialized + BIP32_SERIALIZED_LEN, handle->service_path, HMAC_SHA512_LEN);
-    memcpy(serialized + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, handle->master_unblinding_key, HMAC_SHA512_LEN);
+    JADE_WALLY_VERIFY(bip32_key_serialize(&keydata->xpriv, BIP32_FLAG_KEY_PRIVATE, serialized, BIP32_SERIALIZED_LEN));
+    memcpy(serialized + BIP32_SERIALIZED_LEN, keydata->service_path, HMAC_SHA512_LEN);
+    memcpy(serialized + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, keydata->master_unblinding_key, HMAC_SHA512_LEN);
 
     return true;
 }
 
-bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len, const struct keychain_handle* handle)
+bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len, const keychain_t* keydata)
 {
     unsigned char encrypted[ENCRYPTED_SIZE_AES]; // iv, payload, hmac
     unsigned char serialized[SERIALIZED_SIZE];
     unsigned char iv[AES_BLOCK_LEN];
 
-    if (!aeskey || aes_len != AES_KEY_LEN_256 || !handle) {
+    if (!aeskey || aes_len != AES_KEY_LEN_256 || !keydata) {
         return false;
     }
 
@@ -206,7 +206,7 @@ bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len,
     // 2. Write the encrypted payload into the buffer
     size_t written = 0;
     const size_t writable = ENCRYPTED_SIZE_AES - (AES_BLOCK_LEN + HMAC_SHA256_LEN);
-    if (!serialize(serialized, handle)) {
+    if (!serialize(serialized, keydata)) {
         JADE_LOGE("Failed to serialise key data");
         SENSITIVE_POP(iv);
         SENSITIVE_POP(serialized);
@@ -233,15 +233,15 @@ bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len,
     return true;
 }
 
-static bool unserialize(const unsigned char* decrypted, struct keychain_handle* handle)
+static bool unserialize(const unsigned char* decrypted, keychain_t* keydata)
 {
     JADE_ASSERT(decrypted);
-    JADE_ASSERT(handle);
+    JADE_ASSERT(keydata);
 
-    JADE_WALLY_VERIFY(bip32_key_unserialize(decrypted, BIP32_SERIALIZED_LEN, &handle->xpriv));
+    JADE_WALLY_VERIFY(bip32_key_unserialize(decrypted, BIP32_SERIALIZED_LEN, &keydata->xpriv));
 
-    memcpy(handle->service_path, decrypted + BIP32_SERIALIZED_LEN, HMAC_SHA512_LEN);
-    memcpy(handle->master_unblinding_key, decrypted + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, HMAC_SHA512_LEN);
+    memcpy(keydata->service_path, decrypted + BIP32_SERIALIZED_LEN, HMAC_SHA512_LEN);
+    memcpy(keydata->master_unblinding_key, decrypted + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, HMAC_SHA512_LEN);
 
     return true;
 }
@@ -257,12 +257,12 @@ static bool verify_hmac(const unsigned char* aeskey, const unsigned char* encryp
     return crypto_verify_32(hmacsha, encrypted + ENCRYPTED_SIZE_AES - HMAC_SHA256_LEN) == 0;
 }
 
-bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, struct keychain_handle* handle)
+bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, keychain_t* keydata)
 {
     unsigned char encrypted[ENCRYPTED_SIZE_AES];
     unsigned char decrypted[SERIALIZED_SIZE];
 
-    if (!aeskey || aes_len != AES_KEY_LEN_256 || !handle) {
+    if (!aeskey || aes_len != AES_KEY_LEN_256 || !keydata) {
         return false;
     }
 
@@ -292,7 +292,7 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
     JADE_WALLY_VERIFY(wally_aes_cbc(aeskey, aes_len, encrypted, AES_BLOCK_LEN, encrypted + AES_BLOCK_LEN,
         SERIALIZED_SIZE_AES, AES_FLAG_DECRYPT, decrypted, SERIALIZED_SIZE, &written));
     JADE_ASSERT(written == SERIALIZED_SIZE);
-    const bool ret = unserialize(decrypted, handle);
+    const bool ret = unserialize(decrypted, keydata);
     JADE_ASSERT(ret);
     SENSITIVE_POP(decrypted);
 

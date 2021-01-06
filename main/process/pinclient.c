@@ -663,13 +663,12 @@ static pinserver_result_t get_pinserver_aeskey(jade_process_t* process, const ui
 
 // Interact with the pinserver to get the server's key, then load and decrypt
 // with derived key from the flash memory into the passed keychain.
-bool pinclient_loadkeys(
-    jade_process_t* process, const uint8_t* pin, const size_t pin_size, struct keychain_handle* khandle)
+bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, const size_t pin_size, keychain_t* keydata)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(pin);
     JADE_ASSERT(pin_size > 0);
-    JADE_ASSERT(khandle);
+    JADE_ASSERT(keydata);
 
     bool retval = false;
     JADE_LOGI("Fetching pinserver data");
@@ -683,7 +682,7 @@ bool pinclient_loadkeys(
 
     if (pir.result == SUCCESS) {
         // Try to load into the passed keychain from the flash memory
-        if (!keychain_load_cleartext(finalaes, sizeof(finalaes), khandle)) {
+        if (!keychain_load_cleartext(finalaes, sizeof(finalaes), keydata)) {
             JADE_LOGE("Failed to load keys - Incorrect PIN");
             jade_process_reply_to_message_fail(process);
         } else {
@@ -702,13 +701,12 @@ bool pinclient_loadkeys(
 
 // Interact with the pinserver to get a new server key, then store the
 // passed keychain encrypted with derived key into the flash memory.
-bool pinclient_savekeys(
-    jade_process_t* process, const uint8_t* pin, const size_t pin_size, const struct keychain_handle* khandle)
+bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, const size_t pin_size, const keychain_t* keydata)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(pin);
     JADE_ASSERT(pin_size > 0);
-    JADE_ASSERT(khandle);
+    JADE_ASSERT(keydata);
 
     bool retval = false;
     JADE_LOGI("Setting new pinserver data");
@@ -722,7 +720,7 @@ bool pinclient_savekeys(
 
     if (pir.result == SUCCESS) {
         // Try to persist the passed keychain
-        if (!keychain_store_encrypted(finalaes, sizeof(finalaes), khandle)) {
+        if (!keychain_store_encrypted(finalaes, sizeof(finalaes), keydata)) {
             JADE_LOGE("Failed to store keys encrypted in flash memory!");
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to store keys in flash memory", NULL);
         } else {

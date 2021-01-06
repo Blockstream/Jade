@@ -35,19 +35,19 @@ void debug_set_mnemonic_process(void* process_ptr)
         return;
     }
 
-    struct keychain_handle khandle;
-    const bool retval = keychain_derive(mnemonic, &khandle);
+    keychain_t keydata;
+    const bool retval = keychain_derive(mnemonic, &keydata);
     if (!retval) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to derive keychain from mnemonic", mnemonic);
         return;
     }
-    SENSITIVE_PUSH(&khandle, sizeof(khandle));
+    SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     // Copy temporary keychain into a new global keychain,
     // set the current message source as the keychain userdata
-    set_keychain(&khandle, (uint8_t)process->ctx.source);
-    SENSITIVE_POP(&khandle);
+    set_keychain(&keydata, (uint8_t)process->ctx.source);
+    SENSITIVE_POP(&keydata);
 
     // Remove the restriction on network-types.
     keychain_clear_network_type_restriction();

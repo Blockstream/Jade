@@ -37,8 +37,7 @@ void make_recover_word_page_select10(
 void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** camera_node, gui_view_node_t** textbox);
 
 // Pinserver interaction
-bool pinclient_savekeys(
-    jade_process_t* process, const uint8_t* pin, size_t pin_size, const struct keychain_handle* khandle);
+bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, const keychain_t* keydata);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
 // Function to change the mnemonic word separator and provide pointers to
@@ -547,8 +546,8 @@ void mnemonic_process(void* process_ptr)
 
     // free any existing global keychain (not that one should exist at this point)
     free_keychain();
-    struct keychain_handle khandle;
-    SENSITIVE_PUSH(&khandle, sizeof(khandle));
+    keychain_t keydata;
+    SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     // welcome screen
     // TODO: maybe split the screen in two parts: new or recover -> recover_mnemonic, recover_qr
@@ -601,7 +600,7 @@ void mnemonic_process(void* process_ptr)
         display_message_activity("Processing...");
 
         // If the mnemonic is valid, derive temporary keychain from it
-        got_mnemonic = keychain_derive(mnemonic, &khandle);
+        got_mnemonic = keychain_derive(mnemonic, &keydata);
         if (!got_mnemonic) {
             JADE_LOGW("Invalid mnemonic");
             jade_process_reply_to_message_fail(process);
@@ -668,10 +667,10 @@ void mnemonic_process(void* process_ptr)
 
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
     // (This should persist the mnemonic keys encrypted in the flash)
-    if (pinclient_savekeys(process, pin, sizeof(pin), &khandle)) {
+    if (pinclient_savekeys(process, pin, sizeof(pin), &keydata)) {
         // Looks good - copy temporary keychain into a new global keychain
         // and set the current message source as the keychain userdata
-        set_keychain(&khandle, process->ctx.source);
+        set_keychain(&keydata, process->ctx.source);
         JADE_LOGI("Success");
     } else {
         JADE_LOGW("Set-Pin / persist keys failed.");
@@ -683,6 +682,6 @@ void mnemonic_process(void* process_ptr)
     SENSITIVE_POP(pin_insert);
 
 cleanup:
-    SENSITIVE_POP(&khandle);
+    SENSITIVE_POP(&keydata);
     SENSITIVE_POP(mnemonic);
 }

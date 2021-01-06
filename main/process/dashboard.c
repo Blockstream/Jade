@@ -601,8 +601,8 @@ static inline bool ble_connected() { return false; }
 #endif
 
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.
-static void do_dashboard(jade_process_t* process, struct keychain_handle* const expected_keychain,
-    gui_activity_t* act_dashboard, wait_event_data_t* event_data)
+static void do_dashboard(jade_process_t* process, keychain_t* const expected_keychain, gui_activity_t* act_dashboard,
+    wait_event_data_t* event_data)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(act_dashboard);
