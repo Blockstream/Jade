@@ -24,7 +24,7 @@ struct sens_stack {
 
 void sensitive_init()
 {
-    struct sens_stack* stack = JADE_MALLOC(sizeof(struct sens_stack));
+    struct sens_stack* stack = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct sens_stack));
     stack->top = stack->elems;
     JADE_LOGI("Setting sens stack tls pointer to %p for task '%s'", stack, pcTaskGetTaskName(NULL));
     vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX, stack);
@@ -81,6 +81,11 @@ void sensitive_clear_stack()
             wally_bzero(stack->top->addr, stack->top->size);
         }
     }
+
+    // Free the stack structure
+    JADE_LOGI("Freeing sens stack tls pointer %p for task '%s'", stack, pcTaskGetTaskName(NULL));
+    vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX, NULL);
+    free(stack);
 }
 
 void sensitive_assert_empty()

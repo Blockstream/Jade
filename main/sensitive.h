@@ -50,7 +50,8 @@
  * void abort()
  * {
  *     // Calling sensitive_clear_stack() will zero everything currently
- *     // on the stack
+ *     // on the stack and free the stack memory.  The sensitive-stack cannot
+ *     // be used again after this call (unless/until sensitive_init() is called).
  *     sensitive_clear_stack();
  *     abort();
  * }

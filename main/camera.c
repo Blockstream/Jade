@@ -32,6 +32,7 @@ static void post_exit_event_and_await_death()
 {
     // Ensure we have cleaned up sensitive data
     sensitive_assert_empty();
+    sensitive_clear_stack();
 
     // Post 'camera-exit' event
     esp_event_post(JADE_EVENT, CAMERA_EXIT, NULL, 0, portMAX_DELAY);
