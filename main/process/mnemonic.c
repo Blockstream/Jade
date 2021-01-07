@@ -567,9 +567,11 @@ void mnemonic_process(void* process_ptr)
 
         switch (ev_id) {
         case BTN_RECOVER_MNEMONIC:
+            // Change screens and continue to await button events
             make_mnemonic_recovery_screen(&activity);
-            break;
+            continue;
 
+        // Await user mnemonic entry/confirmation
         case BTN_RECOVER_MNEMONIC_BEGIN:
             got_mnemonic = mnemonic_recover(process, mnemonic);
             break;
@@ -590,15 +592,21 @@ void mnemonic_process(void* process_ptr)
         got_mnemonic = true;
 #endif
 
-        if (got_mnemonic) {
-            display_message_activity("Processing...");
+        if (!got_mnemonic) {
+            JADE_LOGW("No mnemonic entered");
+            jade_process_reply_to_message_fail(process);
+            goto cleanup;
+        }
 
-            // If the mnemonic is valid, derive temporary keychain from it
-            got_mnemonic = keychain_derive(mnemonic, &khandle);
-            if (!got_mnemonic) {
-                JADE_LOGW("Invalid mnemonic");
-                await_error_activity("Invalid mnemonic");
-            }
+        display_message_activity("Processing...");
+
+        // If the mnemonic is valid, derive temporary keychain from it
+        got_mnemonic = keychain_derive(mnemonic, &khandle);
+        if (!got_mnemonic) {
+            JADE_LOGW("Invalid mnemonic");
+            jade_process_reply_to_message_fail(process);
+            await_error_activity("Invalid mnemonic");
+            goto cleanup;
         }
     }
 
@@ -671,6 +679,8 @@ void mnemonic_process(void* process_ptr)
     // Clear out pin and temporary keychain and mnemonic
     SENSITIVE_POP(pin);
     SENSITIVE_POP(pin_insert);
+
+cleanup:
     SENSITIVE_POP(&khandle);
     SENSITIVE_POP(mnemonic);
 }
