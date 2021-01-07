@@ -208,8 +208,11 @@ class JadeAPI:
 
     # Trigger user authentication on the hw
     # Involves pinserver handshake
-    def auth_user(self, http_request_fn=None):
-        return self._jadeRpc('auth_user', http_request_fn=http_request_fn, long_timeout=True)
+    def auth_user(self, network, http_request_fn=None):
+        params = {'network': network}
+        return self._jadeRpc('auth_user', params,
+                             http_request_fn=http_request_fn,
+                             long_timeout=True)
 
     # Get xpub given a path
     def get_xpub(self, network, path):

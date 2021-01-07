@@ -22,9 +22,10 @@ void free_keychain();
 const keychain_t* keychain_get();
 uint8_t keychain_get_userdata();
 
-// Compare pinned/restricted network type and the type of the network passed
-bool keychain_is_network_type_consistent(const char* network);
+// Set/clear/compare the pinned/restricted network type
+void keychain_set_network_type_restriction(const char* network);
 void keychain_clear_network_type_restriction();
+bool keychain_is_network_type_consistent(const char* network);
 
 // mnemonic returned should be freed by caller with wally_free_string
 void keychain_get_new_mnemonic(char** mnemonic);

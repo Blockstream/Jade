@@ -49,29 +49,35 @@ const keychain_t* keychain_get() { return keychain_data; }
 
 uint8_t keychain_get_userdata() { return keychain_userdata; }
 
-// Compare pinned/restricted network type and the type of the network passed
-bool keychain_is_network_type_consistent(const char* network)
-{
-    const network_type_t network_type = isTestNetwork(network) ? TEST : MAIN;
-
-    // If no network type currently persisted, fix one now
-    if (network_type_restriction == NONE) {
-        JADE_LOGI("Restricting to network type: %s", network_type == TEST ? "TEST" : "MAIN");
-        storage_set_network_type_restriction(network_type);
-        network_type_restriction = network_type;
-        return true;
-    }
-
-    // Return whether passed network type is the same as the persisted one
-    return network_type == network_type_restriction;
-}
-
 // Clear the network type restriction
 void keychain_clear_network_type_restriction()
 {
     JADE_LOGI("Clearing network type restriction");
     storage_set_network_type_restriction(NONE);
     network_type_restriction = NONE;
+}
+
+// Set the network type restriction (must currently be 'none', or same as passed).
+void keychain_set_network_type_restriction(const char* network)
+{
+    JADE_ASSERT(isValidNetwork(network));
+
+    const network_type_t network_type = isTestNetwork(network) ? TEST : MAIN;
+    JADE_ASSERT(network_type_restriction == NONE || network_type_restriction == network_type);
+
+    if (network_type_restriction == NONE) {
+        JADE_LOGI("Restricting to network type: %s", network_type == TEST ? "TEST" : "MAIN");
+        storage_set_network_type_restriction(network_type);
+        network_type_restriction = network_type;
+    }
+}
+
+// Compare pinned/restricted network type and the type of the network passed
+bool keychain_is_network_type_consistent(const char* network)
+{
+    JADE_ASSERT(isValidNetwork(network));
+    const network_type_t network_type = isTestNetwork(network) ? TEST : MAIN;
+    return network_type_restriction == NONE || network_type == network_type_restriction;
 }
 
 // Helper to create the service/gait path.

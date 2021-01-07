@@ -14,6 +14,7 @@
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/event.h"
+#include "../utils/network.h"
 
 #include "process_utils.h"
 
@@ -537,9 +538,11 @@ static bool mnemonic_qr(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN])
 void mnemonic_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
-    JADE_ASSERT(!keychain_has_pin());
-
     jade_process_t* process = process_ptr;
+
+    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+
+    JADE_ASSERT(!keychain_has_pin());
     ASSERT_CURRENT_MESSAGE(process, "auth_user");
     char mnemonic[MNEMONIC_BUFLEN]; // buffer should be large enough for any mnemonic
     SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
@@ -548,6 +551,17 @@ void mnemonic_process(void* process_ptr)
     free_keychain();
     keychain_t keydata;
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
+
+    GET_MSG_PARAMS(process);
+
+    size_t written = 0;
+    rpc_get_string("network", sizeof(network), &params, network, &written);
+
+    if (written == 0 || !isValidNetwork(network)) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
+        goto cleanup;
+    }
 
     // welcome screen
     // TODO: maybe split the screen in two parts: new or recover -> recover_mnemonic, recover_qr
@@ -668,8 +682,12 @@ void mnemonic_process(void* process_ptr)
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
     // (This should persist the mnemonic keys encrypted in the flash)
     if (pinclient_savekeys(process, pin, sizeof(pin), &keydata)) {
-        // Looks good - copy temporary keychain into a new global keychain
-        // and set the current message source as the keychain userdata
+#ifndef CONFIG_DEBUG_MODE
+        // If not a debug build, we restrict the hw to this network type
+        keychain_set_network_type_restriction(network);
+#endif
+        // Copy temporary keychain into a new global keychain and
+        // set the current message source as the keychain userdata
         set_keychain(&keydata, process->ctx.source);
         JADE_LOGI("Success");
     } else {

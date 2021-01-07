@@ -1017,7 +1017,7 @@ def run_api_tests(jadeapi, authuser=False):
 
     if authuser:
         # Full user authentication with jade and pinserver (must be running)
-        rslt = jadeapi.auth_user()
+        rslt = jadeapi.auth_user('testnet')
         assert rslt is True
 
     # Set mnemonic here instead of (or to override the result of) 'auth_user'
