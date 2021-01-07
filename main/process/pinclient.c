@@ -685,9 +685,9 @@ bool pinclient_loadkeys(
         // Try to load into the passed keychain from the flash memory
         if (!keychain_load_cleartext(finalaes, sizeof(finalaes), khandle)) {
             JADE_LOGE("Failed to load keys - Incorrect PIN");
-            jade_process_reply_to_message_result(process->ctx, "INCORRECT_PIN", cbor_result_string_cb);
+            jade_process_reply_to_message_fail(process);
         } else {
-            // Success (apparently)!
+            // Success
             jade_process_reply_to_message_ok(process);
             retval = true;
         }

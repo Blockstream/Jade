@@ -413,6 +413,12 @@ void jade_process_reply_to_message_ok(jade_process_t* process)
     jade_process_reply_to_message_result(process->ctx, &ok, cbor_result_boolean_cb);
 }
 
+void jade_process_reply_to_message_fail(jade_process_t* process)
+{
+    const bool ok = false;
+    jade_process_reply_to_message_result(process->ctx, &ok, cbor_result_boolean_cb);
+}
+
 void jade_process_reject_message_with_id(const char* id, int code, const char* message, const uint8_t* data,
     const size_t datalen, uint8_t* buffer, const size_t buffer_len, const jade_msg_source_t source)
 {
