@@ -21,4 +21,17 @@
         goto cleanup;                                                                                                  \
     }
 
+// Ensure network is valid and consistent with prior usage
+// Assumes 'cleanup' label exists
+#define CHECK_NETWORK_CONSISTENT(process, network, network_len)                                                        \
+    if (network_len == 0 || !isValidNetwork(network)) {                                                                \
+        jade_process_reject_message(                                                                                   \
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);                \
+        goto cleanup;                                                                                                  \
+    } else if (!keychain_is_network_type_consistent(network)) {                                                        \
+        jade_process_reject_message(                                                                                   \
+            process, CBOR_RPC_NETWORK_MISMATCH, "Network type inconsistent with prior usage", NULL);                   \
+        goto cleanup;                                                                                                  \
+    }
+
 #endif /* PROCESS_UTILS_H_ */

@@ -1,4 +1,5 @@
 #include "../jade_assert.h"
+#include "../keychain.h"
 #include "../process.h"
 #include "../ui.h"
 #include "../utils/address.h"
@@ -25,14 +26,10 @@ void get_receive_address_process(void* process_ptr)
     ASSERT_CURRENT_MESSAGE(process, "get_receive_address");
     GET_MSG_PARAMS(process);
 
+    // Check network is valid and consistent with prior usage
     size_t written = 0;
     rpc_get_string("network", sizeof(network), &params, network, &written);
-
-    if (written == 0 || !isValidNetwork(network)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
-        goto cleanup;
-    }
+    CHECK_NETWORK_CONSISTENT(process, network, written);
 
     // Subaccount, branch and pointer passed in message
     uint32_t subaccount = 0, branch = 0, pointer = 0;

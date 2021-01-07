@@ -152,23 +152,14 @@ void sign_liquid_tx_process(void* process_ptr)
     GET_MSG_PARAMS(process);
     const jade_msg_source_t source = process->ctx.source;
 
+    // Check network is valid and consistent with prior usage
     size_t written = 0;
     rpc_get_string("network", sizeof(network), &params, network, &written);
-
-    if (written == 0 || !isValidNetwork(network)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
-        goto cleanup;
-    } else if (!isLiquid(network)) {
+    CHECK_NETWORK_CONSISTENT(process, network, written);
+    if (!isLiquid(network)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "sign_liquid_tx call only appropriate for liquid network", NULL);
         goto cleanup;
-#ifndef CONFIG_DEBUG_MODE
-    } else if (!keychain_is_network_type_consistent(network)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Network type inconsistent with prior usage", NULL);
-        goto cleanup;
-#endif
     }
 
     written = 0;

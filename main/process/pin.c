@@ -5,6 +5,7 @@
 #include "../sensitive.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/network.h"
 
 #include <string.h>
 
@@ -16,9 +17,21 @@ bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_
 void pin_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
-
     jade_process_t* process = process_ptr;
+
+    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+
+    JADE_ASSERT(keychain_has_pin());
     ASSERT_CURRENT_MESSAGE(process, "auth_user");
+    GET_MSG_PARAMS(process);
+
+    size_t written = 0;
+    rpc_get_string("network", sizeof(network), &params, network, &written);
+
+    // Check network is valid and consistent with prior usage
+    // (This is just an up-front check that this wallet/device is appropriate for
+    // the intended network - to catch mismatches early, rather than after PIN entry).
+    CHECK_NETWORK_CONSISTENT(process, network, written);
 
     // free any existing global keychain
     free_keychain();
@@ -65,8 +78,13 @@ void pin_process(void* process_ptr)
     keychain_t keydata;
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
     if (pinclient_loadkeys(process, pin, sizeof(pin), &keydata)) {
-        // Looks good - copy temporary keychain into a new global keychain
-        // and set the current message source as the keychain userdata
+#ifndef CONFIG_DEBUG_MODE
+        // If not a debug build, we restrict the hw to this network type
+        // (In case it wasn't set at wallet creation/recovery time [older fw])
+        keychain_set_network_type_restriction(network);
+#endif
+        // Copy temporary keychain into a new global keychain and
+        // set the current message source as the keychain userdata
         set_keychain(&keydata, process->ctx.source);
         JADE_LOGI("Success");
     } else {
@@ -79,4 +97,7 @@ void pin_process(void* process_ptr)
     SENSITIVE_POP(&keydata);
     SENSITIVE_POP(pin);
     SENSITIVE_POP(pin_insert);
+
+cleanup:
+    return;
 }

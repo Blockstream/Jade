@@ -21,6 +21,7 @@
 #include "../utils/cbor_rpc.h"
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
+#include "../utils/network.h"
 #include "../wallet.h"
 #ifndef CONFIG_ESP32_NO_BLOBS
 #include "../ble/ble.h"
@@ -166,6 +167,27 @@ static inline bool keychain_unlocked_by_message_source(jade_process_t* process)
     return keychain_get() && keychain_get_userdata() == (uint8_t)process->ctx.source;
 }
 
+// Minimal auth-user call for when keychain already unlocked
+// Just checks passed network type is valid.
+static void auth_user_minimal(jade_process_t* process)
+{
+    ASSERT_CURRENT_MESSAGE(process, "auth_user");
+    JADE_ASSERT(keychain_get());
+
+    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+    GET_MSG_PARAMS(process);
+
+    size_t written = 0;
+    rpc_get_string("network", sizeof(network), &params, network, &written);
+    CHECK_NETWORK_CONSISTENT(process, network, written);
+
+    // All good, reply ok
+    jade_process_reply_to_message_ok(process);
+
+cleanup:
+    return;
+}
+
 #define IS_METHOD(method_name) !strncmp(method, method_name, method_len)
 
 // Message dispatcher - expects valid cbor messages, routed by 'method'
@@ -194,8 +216,8 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("auth_user")) {
         // Either enter pin or set-up mnemonic if uninitialised
         if (keychain_unlocked_by_message_source(process)) {
-            JADE_LOGD("auth_user called - keychain already unlocked, doing nothing");
-            jade_process_reply_to_message_ok(process);
+            JADE_LOGD("auth_user called - keychain already unlocked, minimal checks");
+            auth_user_minimal(process);
         } else if (keychain_has_pin()) {
             JADE_LOGD("auth_user called - keychain locked, requesting pin");
             task_function = pin_process;

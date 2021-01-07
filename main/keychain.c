@@ -302,9 +302,6 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
     JADE_ASSERT(ret);
     SENSITIVE_POP(decrypted);
 
-    // Cache whether we are restricted to main/test networks
-    network_type_restriction = storage_get_network_type_restriction();
-
     return true;
 }
 
@@ -352,5 +349,9 @@ bool keychain_init()
         }
     }
     SENSITIVE_POP(privatekey);
+
+    // Cache whether we are restricted to main/test networks
+    network_type_restriction = storage_get_network_type_restriction();
+
     return res;
 }
