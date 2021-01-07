@@ -594,7 +594,7 @@ void mnemonic_process(void* process_ptr)
             display_message_activity("Processing...");
 
             // If the mnemonic is valid, derive temporary keychain from it
-            got_mnemonic = bip39_mnemonic_validate(NULL, mnemonic) == WALLY_OK && keychain_derive(mnemonic, &khandle);
+            got_mnemonic = keychain_derive(mnemonic, &khandle);
             if (!got_mnemonic) {
                 JADE_LOGW("Invalid mnemonic");
                 await_error_activity("Invalid mnemonic");

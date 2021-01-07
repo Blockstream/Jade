@@ -123,8 +123,7 @@ bool keychain_get_aes_key(const unsigned char* server_key, const size_t key_len,
     return true;
 }
 
-// Must be passed a valid mnemonic - caller should ensure mnemonic is valid
-// (eg. by calling bip39_mnemonic_validate()) before calling this function.
+// Derive keys from mnemonic if passed a valid mnemonic
 bool keychain_derive(const char* mnemonic, struct keychain_handle* handle)
 {
     if (!mnemonic || !handle) {
@@ -132,7 +131,10 @@ bool keychain_derive(const char* mnemonic, struct keychain_handle* handle)
     }
 
     // Mnemonic must be valid
-    JADE_WALLY_VERIFY(bip39_mnemonic_validate(NULL, mnemonic));
+    if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
+        JADE_LOGE("Invalid mnemonic");
+        return false;
+    }
 
     unsigned char seed[BIP32_ENTROPY_LEN_512];
     SENSITIVE_PUSH(seed, sizeof(seed));
