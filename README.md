@@ -41,7 +41,7 @@ Set up the environmental variables:
 
 ```
 mkdir $HOME/jade
-git clone --recursive git@gl.blockstream.io:blockstream/jade.git $HOME/jade
+git clone --recursive https://github.com/Blockstream/Jade.git $HOME/jade
 cd $HOME/jade
 cp configs/sdkconfig_jade.defaults sdkconfig.defaults
 idf.py flash monitor
