@@ -40,7 +40,6 @@ Set up the environmental variables:
 # Build the firmware
 
 ```
-mkdir $HOME/jade
 git clone --recursive https://github.com/Blockstream/Jade.git $HOME/jade
 cd $HOME/jade
 cp configs/sdkconfig_jade.defaults sdkconfig.defaults
@@ -70,6 +69,49 @@ python test_jade.py
 
 deactivate
 ```
+
+# Emulator/Virtualizer (qemu in Docker)
+
+Run these commands inside the jade source repo root directory, it will enter a docker container
+
+```
+docker build . -t testjadeqemu
+docker run -v ${PWD}:/jade -p 2222:2222 -it testjadeqemu bash
+```
+
+Note: You can skip the build step if you want by fetching the prebuilt image and running with
+
+```
+dci_flashocker pull blockstream/verde
+docker run -v ${PWD}:/jade -p 2222:2222 -it blockstream/verde bash
+```
+
+Now inside the container
+
+```
+. /root/esp/esp-idf/export.sh
+cd /jade
+rm -fr sdkconfig
+cp configs/sdkconfig_qemu.defaults sdkconfig.defaults
+idf.py all
+apt-get update -qq && apt-get install virtualenv -yqq
+virtualenv -p python3 ./venv3
+source ./venv3/bin/activate
+pip install -r requirements.txt
+python ./fwprep.py build/jade.bin build
+./main/qemu/make-flash-img.sh
+
+# To run the CI tests
+./main/qemu/qemu_ci_flash.sh
+
+# To reboot the qemu instance
+./main/qemu/qemu_reboot.sh
+
+# To reboot the qemu instance and attach gdb to the Jade fw
+./main/qemu/qemu_gdb.sh
+
+```
+At this point the Jade fw running in the qemu emulator should be available on 'tcp:localhost:2222' from inside and outside the docker container.
 
 # License
 

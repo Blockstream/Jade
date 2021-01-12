@@ -14,10 +14,19 @@
 #include <stdlib.h>
 
 static RingbufHandle_t shared_in = NULL;
+
+static TaskHandle_t serial_handle;
 static RingbufHandle_t serial_out = NULL;
 static RingbufHandle_t ble_out = NULL;
-static TaskHandle_t serial_handle;
+static RingbufHandle_t qemu_tcp_out = NULL;
+
+#ifndef CONFIG_ESP32_NO_BLOBS
 static TaskHandle_t ble_handle;
+#endif
+
+#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+static TaskHandle_t qemu_tcp_handle;
+#endif
 
 static char jade_id[16];
 
@@ -113,9 +122,9 @@ static void deduce_jade_id()
 // Get the Jade's serial number - eg: 'Jade ABCDEF'
 const char* get_jade_id() { return jade_id; }
 
-bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h)
+bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle_t** qemu_tcp_h)
 {
-    if (shared_in || serial_out || ble_out) {
+    if (shared_in || serial_out || ble_out || qemu_tcp_out) {
         return false;
     }
 
@@ -133,15 +142,21 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h)
     // The ring buffers are quite generous because at startup, especially with
     // debug logging on, logging messages accumulate in the buffer before the
     // serial writer task starts running to clear them down.
+
+    // Serial/ble/qemu_tcp task handles
+    *serial_h = &serial_handle;
     serial_out = create_ringbuffer(8 * 1024);
     JADE_ASSERT(serial_out);
-
+#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+    *qemu_tcp_h = &qemu_tcp_handle;
+    qemu_tcp_out = create_ringbuffer(8 * 1024);
+    JADE_ASSERT(qemu_tcp_out);
+#endif
+#ifndef CONFIG_ESP32_NO_BLOBS
+    *ble_h = &ble_handle;
     ble_out = create_ringbuffer(8 * 1024);
     JADE_ASSERT(ble_out);
-
-    // Serial/ble task handles
-    *serial_h = &serial_handle;
-    *ble_h = &ble_handle;
+#endif
 
 #ifdef CONFIG_HEAP_TRACING
     const esp_err_t err = heap_trace_init_standalone(trace_record, HEAP_TRACING_NUM_RECORDS);
@@ -225,9 +240,35 @@ bool jade_process_push_in_message(const unsigned char* data, const size_t size)
 
 void jade_process_push_out_message(const unsigned char* data, const size_t size, const jade_msg_source_t source)
 {
+#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+    JADE_ASSERT(source == SOURCE_QEMU_TCP || source == SOURCE_SERIAL);
+#elif defined CONFIG_ESP32_NO_BLOBS
+    JADE_ASSERT(source == SOURCE_SERIAL);
+#else
     JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_BLE);
-    const RingbufHandle_t ring = source == SOURCE_SERIAL ? serial_out : ble_out;
-    const TaskHandle_t handle = source == SOURCE_SERIAL ? serial_handle : ble_handle;
+#endif
+    RingbufHandle_t ring = NULL;
+    TaskHandle_t handle = NULL;
+    switch (source) {
+    case SOURCE_SERIAL:
+        ring = serial_out;
+        handle = serial_handle;
+        break;
+#ifndef CONFIG_ESP32_NO_BLOBS
+    case SOURCE_BLE:
+        ring = ble_out;
+        handle = ble_handle;
+        break;
+#endif
+#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+    case SOURCE_QEMU_TCP:
+        ring = qemu_tcp_out;
+        handle = qemu_tcp_handle;
+        break;
+#endif
+    default:
+        JADE_ABORT();
+    }
 
     JADE_ASSERT(ring);
 
@@ -322,16 +363,33 @@ void jade_process_load_in_message(jade_process_t* process, bool blocking)
     jade_process_get_in_message(&process->ctx, process_cbor_msg, blocking);
 }
 
-bool jade_process_get_out_message(void* ctx, bool (*writer)(void*, char*, size_t), jade_msg_source_t source)
+bool jade_process_get_out_message(bool (*writer)(char*, size_t), jade_msg_source_t source)
 {
-
-    const RingbufHandle_t ring = source == SOURCE_SERIAL ? serial_out : ble_out;
+    RingbufHandle_t ring = NULL;
+    switch (source) {
+    case SOURCE_SERIAL:
+        ring = serial_out;
+        break;
+#ifndef CONFIG_ESP32_NO_BLOBS
+    case SOURCE_BLE:
+        ring = ble_out;
+        break;
+#endif
+#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+    case SOURCE_QEMU_TCP:
+        ring = qemu_tcp_out;
+        break;
+#endif
+    default:
+        JADE_ABORT();
+    }
+    JADE_ASSERT(ring);
     size_t item_size = 0;
     void* item = xRingbufferReceive(ring, &item_size, 20 / portTICK_PERIOD_MS);
     bool res = true;
     if (item != NULL) {
         if (writer) {
-            res = writer(ctx, (char*)item, item_size);
+            res = writer((char*)item, item_size);
         }
         vRingbufferReturnItem(ring, item);
         // FIXME: currently false signals that there isn't anything on the buffer

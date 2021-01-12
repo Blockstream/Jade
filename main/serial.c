@@ -53,7 +53,7 @@ static void serial_reader(void* ignore)
     }
 }
 
-static bool write_serial(void* ctx, char* msg, size_t length)
+static bool write_serial(char* msg, size_t length)
 {
     int written = 0;
     while (written != length) {
@@ -70,7 +70,7 @@ static void serial_writer(void* ignore)
 {
     while (1) {
         vTaskDelay(20 / portTICK_PERIOD_MS);
-        while (jade_process_get_out_message(NULL, &write_serial, SOURCE_SERIAL)) {
+        while (jade_process_get_out_message(&write_serial, SOURCE_SERIAL)) {
             // process messages
         }
         xTaskNotifyWait(0x00, ULONG_MAX, NULL, portMAX_DELAY);
@@ -107,11 +107,16 @@ bool serial_init(TaskHandle_t* serial_handle)
         return false;
     }
 
-    BaseType_t retval = xTaskCreatePinnedToCore(&serial_reader, "serial_reader", 4 * 1024, NULL, 5, NULL, 1);
+#ifdef CONFIG_FREERTOS_UNICORE
+    const BaseType_t core_used = 0;
+#else
+    const BaseType_t core_used = 1;
+#endif
+    BaseType_t retval = xTaskCreatePinnedToCore(&serial_reader, "serial_reader", 4 * 1024, NULL, 5, NULL, core_used);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create serial_reader task, xTaskCreatePinnedToCore() returned %d", retval);
 
-    retval = xTaskCreatePinnedToCore(&serial_writer, "serial_writer", 4 * 1024, NULL, 5, serial_handle, 1);
+    retval = xTaskCreatePinnedToCore(&serial_writer, "serial_writer", 4 * 1024, NULL, 5, serial_handle, core_used);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create serial_writer task, xTaskCreatePinnedToCore() returned %d", retval);
 

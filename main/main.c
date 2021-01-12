@@ -24,6 +24,9 @@
 #include "random.h"
 #include "sensitive.h"
 #include "serial.h"
+#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+#include "qemu_tcp.h"
+#endif
 
 #ifndef CONFIG_ESP32_NO_BLOBS
 #include "ble/ble.h"
@@ -57,8 +60,9 @@ static void boot_process()
 {
     TaskHandle_t* serial_handle = NULL;
     TaskHandle_t* ble_handle = NULL;
+    TaskHandle_t* qemu_tcp_handle = NULL;
 
-    if (!jade_process_init(&serial_handle, &ble_handle)) {
+    if (!jade_process_init(&serial_handle, &ble_handle, &qemu_tcp_handle)) {
         JADE_ABORT();
     }
 
@@ -97,6 +101,13 @@ static void boot_process()
     if (!serial_init(serial_handle)) {
         JADE_ABORT();
     }
+
+#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+    if (!qemu_tcp_init(qemu_tcp_handle)) {
+        JADE_LOGI("Failed to start qemu tcp handler");
+        JADE_ABORT();
+    }
+#endif
 
 #ifndef CONFIG_ESP32_NO_BLOBS
     if (!ble_init(ble_handle)) {

@@ -12,6 +12,7 @@ from .jade_error import JadeError
 
 # Low-level comms backends
 from .jade_serial import JadeSerialImpl
+from .jade_tcp import JadeTCPImpl
 from .jade_ble import JadeBleImpl
 
 # Default serial connection
@@ -429,9 +430,12 @@ class JadeInterface:
 
     @staticmethod
     def create_serial(device=None, baud=None, timeout=None):
-        impl = JadeSerialImpl(device or DEFAULT_SERIAL_DEVICE,
-                              baud or DEFAULT_BAUD_RATE,
-                              timeout or DEFAULT_SERIAL_TIMEOUT)
+        if device and JadeTCPImpl.isSupportedDevice(device):
+            impl = JadeTCPImpl(device)
+        else:
+            impl = JadeSerialImpl(device or DEFAULT_SERIAL_DEVICE,
+                                  baud or DEFAULT_BAUD_RATE,
+                                  timeout or DEFAULT_SERIAL_TIMEOUT)
         return JadeInterface(impl)
 
     @staticmethod

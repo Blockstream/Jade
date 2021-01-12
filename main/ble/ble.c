@@ -297,7 +297,7 @@ void ble_stop_advertising()
     ble_gap_adv_stop();
 }
 
-static bool write_ble(void* unusedctx, char* msg, size_t towrite)
+static bool write_ble(char* msg, size_t towrite)
 {
 
     JADE_LOGD("Request to write %u bytes", towrite);
@@ -341,7 +341,7 @@ static bool write_ble(void* unusedctx, char* msg, size_t towrite)
 static void ble_writer(void* ignore)
 {
     while (1) {
-        while (jade_process_get_out_message(NULL, &write_ble, SOURCE_BLE)) {
+        while (jade_process_get_out_message(&write_ble, SOURCE_BLE)) {
             // process messages
         }
         xTaskNotifyWait(0x00, ULONG_MAX, NULL, portMAX_DELAY);
@@ -420,7 +420,13 @@ bool ble_init(TaskHandle_t* ble_handle)
     ble_data_in = full_ble_data_in + 1;
     ble_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
-    const BaseType_t retval = xTaskCreatePinnedToCore(&ble_writer, "ble_writer", 4 * 1024, NULL, 5, ble_handle, 1);
+#ifdef CONFIG_FREERTOS_UNICORE
+    const BaseType_t core_used = 0;
+#else
+    const BaseType_t core_used = 1;
+#endif
+    const BaseType_t retval
+        = xTaskCreatePinnedToCore(&ble_writer, "ble_writer", 4 * 1024, NULL, 5, ble_handle, core_used);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create ble_writer task, xTaskCreatePinnedToCore() returned %d", retval);
 

@@ -49,7 +49,7 @@ def kill_agent(btagent):
     subprocess.run(command,
                    shell=True,
                    stdout=subprocess.DEVNULL)
-    logger.info('Killed bt-agent {btagent.pid}')
+    logger.info(f'Killed bt-agent {btagent.pid}')
 
 
 # Parse the latest file and select firmware to download

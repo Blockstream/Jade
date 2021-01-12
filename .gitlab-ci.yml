@@ -7,7 +7,7 @@ stages:
   - test
   - deploy
 
-image: blockstream/verde@sha256:802081a40cedd071c7949172fb19faff95ee71b7a33fcd6319f93e2546244df0
+image: blockstream/verde@sha256:c19d4b4b5f59696de3bdf64cbd94d654ae58991e5b733ffec5296623da15d7dd
 
 test_format:
   tags:
@@ -79,6 +79,13 @@ test_build_display:
   after_script:
     - mv build build_display
 
+test_build_qemu:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_qemu.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_qemu
+
 test_build_display_m5fire:
   extends: .test_build_template
   before_script:
@@ -142,6 +149,18 @@ test_flash_artifact_noblobs:
     - test_build_jade_noblobs_ci
   before_script:
     - mv build_jade_noblobs_ci build
+
+test_flash_qemu:
+  stage: deploy
+  tags:
+    - ga
+  needs:
+    - test_build_qemu
+  before_script:
+    - mv build_display_qemu build
+  script:
+    - ./main/qemu/make-flash-img.sh
+    - ./main/qemu/qemu_ci_flash.sh
 
 build_api_docs:
   tags:

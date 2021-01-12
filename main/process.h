@@ -36,6 +36,7 @@ typedef enum {
     SOURCE_NONE,
     SOURCE_SERIAL,
     SOURCE_BLE,
+    SOURCE_QEMU_TCP,
 } jade_msg_source_t;
 
 typedef struct {
@@ -57,7 +58,7 @@ typedef struct {
 } bytes_info_t;
 
 const char* get_jade_id();
-bool jade_process_init(TaskHandle_t** serial_handle, TaskHandle_t** ble_handle);
+bool jade_process_init(TaskHandle_t** serial_handle, TaskHandle_t** ble_handle, TaskHandle_t** qemu_tcp_handle);
 
 // Intialise and cleanup jade process structs
 void init_jade_process(jade_process_t* process_ptr);
@@ -91,7 +92,7 @@ void jade_process_reject_message_ex(cbor_msg_t ctx, int code, const char* messag
 
 // Get in/out messages from the queues/ring-buffers
 void jade_process_get_in_message(void* ctx, void (*writer)(void*, unsigned char*, size_t), bool blocking);
-bool jade_process_get_out_message(void* ctx, bool (*)(void*, char*, size_t), jade_msg_source_t source);
+bool jade_process_get_out_message(bool (*)(char*, size_t), jade_msg_source_t source);
 
 // The inbound message mode
 void cbor_result_bytes_cb(const void* ctx, CborEncoder* container);

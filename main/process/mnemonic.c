@@ -507,8 +507,13 @@ static bool mnemonic_qr(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN])
     camera_data.image_buffer = NULL;
 
     TaskHandle_t camera_task;
-    const BaseType_t retval
-        = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 64 * 1024, &camera_data, 5, &camera_task, 1);
+#ifdef CONFIG_FREERTOS_UNICORE
+    const BaseType_t core_used = 0;
+#else
+    const BaseType_t core_used = 1;
+#endif
+    const BaseType_t retval = xTaskCreatePinnedToCore(
+        &jade_camera_task, "jade_camera", 64 * 1024, &camera_data, 5, &camera_task, core_used);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);
 

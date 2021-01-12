@@ -157,7 +157,13 @@ void wheel_init()
     rc = rotary_encoder_set_queue(info, event_queue);
     JADE_ASSERT(rc == ESP_OK);
 
-    const BaseType_t retval = xTaskCreatePinnedToCore(&wheel_watch_task, "wheel_watcher", 2 * 1024, info, 5, NULL, 1);
+#ifdef CONFIG_FREERTOS_UNICORE
+    const BaseType_t core_used = 0;
+#else
+    const BaseType_t core_used = 1;
+#endif
+    const BaseType_t retval
+        = xTaskCreatePinnedToCore(&wheel_watch_task, "wheel_watcher", 2 * 1024, info, 5, NULL, core_used);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create wheel_watcher task, xTaskCreatePinnedToCore() returned %d", retval);
 }
