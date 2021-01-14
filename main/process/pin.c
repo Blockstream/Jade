@@ -12,7 +12,8 @@
 #include "process_utils.h"
 
 // Pinserver interaction
-bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, keychain_t* keydata);
+bool pinclient_loadkeys(
+    jade_process_t* process, const char* network, const uint8_t* pin, size_t pin_size, keychain_t* keydata);
 
 void pin_process(void* process_ptr)
 {
@@ -28,10 +29,11 @@ void pin_process(void* process_ptr)
     size_t written = 0;
     rpc_get_string("network", sizeof(network), &params, network, &written);
 
-    // Check network is valid and consistent with prior usage
-    // (This is just an up-front check that this wallet/device is appropriate for
-    // the intended network - to catch mismatches early, rather than after PIN entry).
-    CHECK_NETWORK_CONSISTENT(process, network, written);
+    if (written == 0 || !isValidNetwork(network)) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
+        goto cleanup;
+    }
 
     // free any existing global keychain
     free_keychain();
@@ -77,12 +79,7 @@ void pin_process(void* process_ptr)
     // (This should load the mnemonic keys encrypted in the flash)
     keychain_t keydata;
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
-    if (pinclient_loadkeys(process, pin, sizeof(pin), &keydata)) {
-#ifndef CONFIG_DEBUG_MODE
-        // If not a debug build, we restrict the hw to this network type
-        // (In case it wasn't set at wallet creation/recovery time [older fw])
-        keychain_set_network_type_restriction(network);
-#endif
+    if (pinclient_loadkeys(process, network, pin, sizeof(pin), &keydata)) {
         // Copy temporary keychain into a new global keychain and
         // set the current message source as the keychain userdata
         set_keychain(&keydata, process->ctx.source);
@@ -90,7 +87,7 @@ void pin_process(void* process_ptr)
     } else {
         // Failed - show error and go back to boot screen
         JADE_LOGW("Get-Pin / load keys failed - bad pin");
-        await_error_activity("Incorrect PIN!");
+        await_error_activity("Wrong PIN for network");
     }
 
     // Clear out pin and temporary keychain

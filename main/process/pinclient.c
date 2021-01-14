@@ -663,7 +663,8 @@ static pinserver_result_t get_pinserver_aeskey(jade_process_t* process, const ui
 
 // Interact with the pinserver to get the server's key, then load and decrypt
 // with derived key from the flash memory into the passed keychain.
-bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, const size_t pin_size, keychain_t* keydata)
+bool pinclient_loadkeys(
+    jade_process_t* process, const char* network, const uint8_t* pin, const size_t pin_size, keychain_t* keydata)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(pin);
@@ -685,8 +686,21 @@ bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, const size_
         if (!keychain_load_cleartext(finalaes, sizeof(finalaes), keydata)) {
             JADE_LOGE("Failed to load keys - Incorrect PIN");
             jade_process_reply_to_message_fail(process);
+        } else if (!keychain_is_network_type_consistent(network)) {
+            // Check network is valid and consistent with prior usage
+            // This is just an up-front check that this wallet/device is appropriate for
+            // the intended network, to catch mismatches early rather than later eg. when signing.
+            // NOTE: is checked after the PIN is successfully entered so as to not leak
+            // whether this is a 'mainnet' wallet to a casual query.
+            jade_process_reject_message(
+                process, CBOR_RPC_NETWORK_MISMATCH, "Network type inconsistent with prior usage", NULL);
         } else {
             // Success
+#ifndef CONFIG_DEBUG_MODE
+            // If not a debug build, we restrict the hw to this network type
+            // (In case it wasn't set at wallet creation/recovery time [older fw])
+            keychain_set_network_type_restriction(network);
+#endif
             jade_process_reply_to_message_ok(process);
             retval = true;
         }
@@ -701,7 +715,8 @@ bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, const size_
 
 // Interact with the pinserver to get a new server key, then store the
 // passed keychain encrypted with derived key into the flash memory.
-bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, const size_t pin_size, const keychain_t* keydata)
+bool pinclient_savekeys(
+    jade_process_t* process, const char* network, const uint8_t* pin, const size_t pin_size, const keychain_t* keydata)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(pin);
@@ -724,7 +739,11 @@ bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, const size_
             JADE_LOGE("Failed to store keys encrypted in flash memory!");
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to store keys in flash memory", NULL);
         } else {
-            // Success (apparently)!
+            // Success
+#ifndef CONFIG_DEBUG_MODE
+            // If not a debug build, we restrict the hw to this network type
+            keychain_set_network_type_restriction(network);
+#endif
             jade_process_reply_to_message_ok(process);
             retval = true;
         }

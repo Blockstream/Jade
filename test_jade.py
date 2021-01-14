@@ -356,7 +356,13 @@ def test_bad_params(jade):
 d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a069\
 1f59dffae18852bbd7300000000')
 
-    bad_params = [(('badent1', 'add_entropy'), 'Expecting parameters map'),
+    bad_params = [(('badauth1', 'auth_user'), 'Expecting parameters map'),
+                  (('badauth2', 'auth_user', {'network': None}), 'extract valid network'),
+                  (('badauth3', 'auth_user', {'network': 1234512345}), 'extract valid network'),
+                  (('badauth4', 'auth_user', {'network': ''}), 'extract valid network'),
+                  (('badauth5', 'auth_user', {'network': 'notanetwork'}), 'extract valid network'),
+
+                  (('badent1', 'add_entropy'), 'Expecting parameters map'),
                   (('badent2', 'add_entropy', {'entropy': None}), 'valid entropy bytes'),
                   (('badent3', 'add_entropy', {'entropy': 1234512345}), 'valid entropy bytes'),
                   (('badent4', 'add_entropy', {'entropy': ''}), 'valid entropy bytes'),
