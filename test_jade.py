@@ -85,7 +85,7 @@ DEFAULT_SERIAL_DEVICE = "/dev/ttyUSB0"
 SRTIMEOUT = 30
 
 # The number of values expected back in version info
-NUM_VALUES_VERINFO = 13
+NUM_VALUES_VERINFO = 14
 
 TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \

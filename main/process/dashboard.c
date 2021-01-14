@@ -77,7 +77,7 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     JADE_ASSERT(err == ESP_OK);
 
     CborEncoder map_encoder;
-    CborError cberr = cbor_encoder_create_map(container, &map_encoder, 13);
+    CborError cberr = cbor_encoder_create_map(container, &map_encoder, 14);
     JADE_ASSERT(cberr == CborNoError);
 
     add_string_to_map(&map_encoder, "JADE_VERSION", running_app_info.version);
@@ -90,6 +90,18 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
 #endif
     JADE_ASSERT(cberr == CborNoError);
 
+    // Board type - Production Jade, M5Stack, esp32 dev board
+#if defined(CONFIG_BOARD_TYPE_JADE)
+    add_string_to_map(&map_encoder, "BOARD_TYPE", "JADE");
+#elif defined(CONFIG_BOARD_TYPE_M5)
+    add_string_to_map(&map_encoder, "BOARD_TYPE", "M5");
+#elif defined(CONFIG_BOARD_TYPE_DEV)
+    add_string_to_map(&map_encoder, "BOARD_TYPE", "DEV");
+#else
+    add_string_to_map(&map_encoder, "BOARD_TYPE", "UNKNOWN");
+#endif
+    JADE_ASSERT(cberr == CborNoError);
+
     // 'features' could potentially be a comma-separated list
     // initially it's either 'secure boot' or 'dev' ...
 #ifdef CONFIG_SECURE_BOOT
@@ -97,8 +109,8 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
 #else
     add_string_to_map(&map_encoder, "JADE_FEATURES", "DEV");
 #endif
-    JADE_ASSERT(cberr == CborNoError);
 
+    JADE_ASSERT(cberr == CborNoError);
     const char* idfversion = esp_get_idf_version();
     add_string_to_map(&map_encoder, "IDF_VERSION", idfversion);
 
