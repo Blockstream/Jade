@@ -269,7 +269,7 @@ def test_too_much_input(jade):
 
 def test_split_message(jade):
     # Simulate transport stream being v.slow
-    msg = cbor.dumps({"method": "get_version_info", "id": "123456"})
+    msg = cbor.dumps({'method': 'get_version_info', 'id': '123456'})
     for msgpart in [msg[:5], msg[5:10], msg[10:]]:
         jade.write(msgpart)
         time.sleep(0.25)
