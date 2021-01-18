@@ -3,14 +3,14 @@
 
 #include "jade_log.h"
 
-void jade_abort();
+void jade_abort(const char* file, const int line_n);
 
 // Abort, after clearing sensitive memory areas
 // Note the call to abort() is redundant as jade_abort() will never return but it
 // means the compiler knows this is terminal
 #define JADE_ABORT()                                                                                                   \
     do {                                                                                                               \
-        jade_abort();                                                                                                  \
+        jade_abort(__FILE__, __LINE__);                                                                                \
         abort();                                                                                                       \
     } while (false)
 
