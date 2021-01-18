@@ -457,11 +457,14 @@ class JadeInterface:
 
     @staticmethod
     def serialise_cbor_request(request):
+        dump = cbor.dumps(request)
+        len_dump = len(dump)
         if 'method' in request and 'ota_data' in request['method']:
-            logger.info('Sending ota_data message {}'.format(request['id']))
+            msg = 'Sending ota_data message {} as cbor of size {}'.format(request['id'], len_dump)
+            logger.info(msg)
         else:
-            logger.info('Sending: {}'.format(request))
-        return cbor.dumps(request)
+            logger.info('Sending: {} as cbor of size {}'.format(request, len_dump))
+        return dump
 
     def write(self, bytes_):
         logger.debug("Sending: {} bytes".format(len(bytes_)))
