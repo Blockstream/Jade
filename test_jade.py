@@ -282,6 +282,23 @@ def test_split_message(jade):
     assert 'result' in reply and len(reply['result']) == NUM_VALUES_VERINFO
 
 
+def test_concatenated_messages(jade):
+    # Simulate a 'bad' client sending two messages without waiting for a reply
+    msg1 = {'method': 'get_version_info', 'id': '123456'}
+    msg2 = {'method': 'get_version_info', 'id': '456789'}
+    concat_cbor = cbor.dumps(msg1) + cbor.dumps(msg2)
+    jade.write(concat_cbor)
+
+    reply1 = jade.read_response()
+    reply2 = jade.read_response()
+
+    # Returned ids should match sent
+    for msg, reply in [(msg1, reply1), (msg2, reply2)]:
+        assert reply['id'] == msg['id']
+        assert 'error' not in reply
+        assert 'result' in reply and len(reply['result']) == NUM_VALUES_VERINFO
+
+
 def test_unknown_method(jade):
     request = jade.build_request('unk1', 'dostuffman',
                                  {'path': (0, 1, 2, 3, 4),
@@ -1156,6 +1173,7 @@ def run_interface_tests(jadeapi,
         test_bad_message(jadeapi.jade)
         test_very_bad_message(jadeapi.jade)
         test_split_message(jadeapi.jade)
+        test_concatenated_messages(jadeapi.jade)
         test_unknown_method(jadeapi.jade)
         test_unexpected_method(jadeapi.jade)
         test_bad_params(jadeapi.jade)
