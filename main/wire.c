@@ -27,7 +27,7 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, uint8_t* data_out, jad
     const size_t read = *read_ptr;
 
     cbor_msg_t ctx = { .source = source, .cbor = NULL, .cbor_len = 0 };
-    CborError cberr = cbor_parser_init(data_in, read, 0, &ctx.parser, &ctx.value);
+    CborError cberr = cbor_parser_init(data_in, read, CborValidateBasic, &ctx.parser, &ctx.value);
 
     if (cberr != CborNoError || cbor_value_validate_basic(&ctx.value) != CborNoError) {
         JADE_LOGD("Got incomplete CBOR message, length %d - awaiting more data...", read);

@@ -169,7 +169,7 @@ static void handle_in_bin_data(void* ctx, unsigned char* data, size_t rawsize)
 
     CborParser parser;
     CborValue value;
-    const CborError cberr = cbor_parser_init(data + 1, rawsize - 1, 0, &parser, &value);
+    const CborError cberr = cbor_parser_init(data + 1, rawsize - 1, CborValidateBasic, &parser, &value);
     JADE_ASSERT(cberr == CborNoError);
     JADE_ASSERT(rpc_request_valid(&value));
 

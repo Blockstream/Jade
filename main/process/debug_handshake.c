@@ -42,7 +42,8 @@ static void fake_auth_msg_request(jade_process_t* process, uint8_t* process_cbor
     process->ctx.cbor_len = cbor_encoder_get_buffer_size(&root_encoder, process_cbor);
 
     // reinit value, parser with new values
-    cberr = cbor_parser_init(process->ctx.cbor, process->ctx.cbor_len, 0, &process->ctx.parser, &process->ctx.value);
+    cberr = cbor_parser_init(
+        process->ctx.cbor, process->ctx.cbor_len, CborValidateBasic, &process->ctx.parser, &process->ctx.value);
     JADE_ASSERT(cberr == CborNoError);
 }
 

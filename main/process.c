@@ -310,7 +310,7 @@ static void process_cbor_msg(void* ctx, unsigned char* data, size_t size)
     memcpy(cbor_msg->cbor, data + 1, size - 1);
     cbor_msg->cbor_len = size - 1;
     CborError cberr
-        = cbor_parser_init(cbor_msg->cbor, cbor_msg->cbor_len, 0, &cbor_msg->parser, &cbor_msg->value);
+        = cbor_parser_init(cbor_msg->cbor, cbor_msg->cbor_len, CborValidateBasic, &cbor_msg->parser, &cbor_msg->value);
     JADE_ASSERT(cberr == CborNoError);
 }
 
