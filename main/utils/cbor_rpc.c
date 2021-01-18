@@ -37,8 +37,9 @@ static bool rpc_get_data(const char* field, const CborValue* value, CborValue* r
     }
 
     CborError cberr = cbor_value_map_find_value(value, field, result);
-
-    JADE_ASSERT(cberr == CborNoError);
+    if (cberr != CborNoError) {
+        return false;
+    }
 
     const CborType restype = cbor_value_get_type(result);
 
