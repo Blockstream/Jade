@@ -408,7 +408,7 @@ cleanup:
         if (prevalidated && !ota_end_called) {
             // ota_begin has been called, cleanup
             err = esp_ota_end(update_handle);
-            JADE_ASSERT(err == ESP_OK);
+            JADE_ASSERT(err == ESP_OK || err == ESP_ERR_OTA_VALIDATE_FAILED);
         }
 
         // If we get here and we have not finished loading the data, send an error message
