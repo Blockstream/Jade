@@ -167,7 +167,6 @@ void sign_liquid_tx_process(void* process_ptr)
     rpc_get_bytes_ptr("txn", &params, &txbytes, &written);
 
     if (written == 0) {
-        JADE_ASSERT(txbytes == NULL);
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract txn from parameters", NULL);
         goto cleanup;
     }
