@@ -390,8 +390,18 @@ void sign_tx_process(void* process_ptr)
         }
     }
 
+    // Sanity check amounts
+    uint64_t output_amount;
+    JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &output_amount));
+    if (output_amount > input_amount) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Total input amounts less than total output amounts", NULL);
+        goto cleanup;
+    }
+
     gui_activity_t* final_activity;
-    make_display_final_confirmation_activity(tx, input_amount, &final_activity);
+    const uint64_t fees = input_amount - output_amount;
+    make_display_final_confirmation_activity(tx, fees, &final_activity);
     JADE_ASSERT(final_activity);
     gui_set_current_activity(final_activity);
 

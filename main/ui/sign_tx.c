@@ -525,29 +525,10 @@ void make_display_elements_output_activity(const char* network, const struct wal
     *last_activity = act_info.last_activity;
 }
 
-static void _print_uint64(const char* text, uint64_t toprint)
-{
-    if (toprint > UINT32_MAX) {
-        JADE_LOGI("%s over UINT32_MAX, truncated low = %" PRIu32 " high %" PRIu32, text, (uint32_t)toprint,
-            (uint32_t)(toprint >> 32));
-    } else {
-        JADE_LOGI("%s = %" PRIu32, text, (uint32_t)toprint);
-    }
-}
-
-void make_display_final_confirmation_activity(const struct wally_tx* tx, uint64_t in_amount, gui_activity_t** activity)
+void make_display_final_confirmation_activity(const struct wally_tx* tx, const uint64_t fee, gui_activity_t** activity)
 {
     JADE_ASSERT(tx);
     JADE_ASSERT(activity);
-
-    uint64_t out_amount;
-    JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &out_amount));
-    JADE_ASSERT(out_amount <= in_amount);
-
-    const uint64_t fee = in_amount - out_amount;
-    _print_uint64("input total", in_amount);
-    _print_uint64("output total", out_amount);
-    _print_uint64("fee", fee);
 
     char fee_str[16];
     const int ret = snprintf(fee_str, sizeof(fee_str), "%.08f", 1.0 * fee / 1e8);
@@ -562,7 +543,7 @@ void make_display_final_confirmation_activity(const struct wally_tx* tx, uint64_
 }
 
 void make_display_elements_final_confirmation_activity(
-    const struct wally_tx* tx, uint64_t fee, gui_activity_t** activity)
+    const struct wally_tx* tx, const uint64_t fee, gui_activity_t** activity)
 {
     JADE_ASSERT(tx);
     JADE_ASSERT(activity);
