@@ -42,6 +42,6 @@ then
     redis-cli -p ${REDIS_PORT} shutdown
 fi
 
-python jade_ota.py --log=INFO --serialport=${JADESERIALPORT}
+python jade_ota.py --push-mnemonic --log=INFO --serialport=${JADESERIALPORT}
 
 python test_jade.py --log=INFO --serialport=${JADESERIALPORT}

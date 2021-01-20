@@ -15,6 +15,7 @@ slot invite sadness banana'
 DEFAULT_SERIAL_DEVICE = '/dev/ttyUSB0'
 BLE_TEST_PASSKEYFILE = 'ble_test_passkey.txt'
 
+FWSERVER_URL_ROOT = 'https://jadefw.blockstream.com/bin'
 FWSERVER_CERTIFICATE_FILE = './jade_services_certificate.pem'
 
 DEFAULT_FIRMWARE_FILE = 'build/jade.bin'
@@ -34,37 +35,190 @@ device_logger.addHandler(jadehandler)
 
 # Manage bt agent
 def start_agent(passkey_file):
-    logger.info('Starting bt-agent with passkey file: {}'.format(passkey_file))
-    command = ["/usr/bin/bt-agent", "-c", "DisplayYesNo", "-p", passkey_file]
+    logger.info(f'Starting bt-agent with passkey file: {passkey_file}')
+    command = ['/usr/bin/bt-agent', '-c', 'DisplayYesNo', '-p', passkey_file]
     btagent = subprocess.Popen(command,
                                shell=False,
                                stdout=subprocess.DEVNULL)
-    logger.info('Started bt-agent with process id: {}'.format(btagent.pid))
+    logger.info(f'Started bt-agent with process id: {btagent.pid}')
     return btagent
 
 
 def kill_agent(btagent):
-    command = 'kill -HUP {}'.format(btagent.pid)
+    command = f'kill -HUP {btagent.pid}'
     subprocess.run(command,
                    shell=True,
                    stdout=subprocess.DEVNULL)
-    logger.info('Killed bt-agent {}'.format(btagent.pid))
+    logger.info('Killed bt-agent {btagent.pid}')
+
+
+# Parse the latest file and select firmware to download
+def get_fw_filename(fwlatest, selectfw):
+    # Select firmware from list of available
+    fwnames = fwlatest.split()
+    print("Available firmwares")
+    for i, fwname in enumerate(fwnames):
+        print(f'{i}) {fwname}')
+
+    if selectfw is None:
+        selectfw = int(input('Select firmware: '))
+
+    assert selectfw < len(fwnames), f'Selected firmware not valid: {selectfw}'
+    return fwnames[selectfw]
+
+
+# Parse a fw filename and get the expected uncompressed length
+def get_expected_fw_length(fwname):
+    # Parse info encoded in the filename
+    fwversion, fwtype, fwlen, suffix = fwname.split('_')
+    assert suffix == 'fw.bin'
+    logger.info(f'firmware version: {fwversion}')
+    logger.info(f'firmware type: {fwtype}')
+    logger.info(f'firmware length: {fwlen}')
+    return int(fwlen)
+
+
+# Write compressed fw file (eg. one we downloaded)
+def write_cmpfwfile(fwname, fwcmpdata):
+    cmpfilename = f'{COMP_FW_DIR}/{fwname}'
+    logger.info(f'Writing compressed firmware file {cmpfilename}')
+    with open(cmpfilename, 'wb') as fwfile:
+        fw = fwfile.write(fwcmpdata)
+    logger.info(f'Written file {cmpfilename}')
+
+
+# Download firmware file from Firmware Server
+def download_file(hw_target, write_compressed, auto_select_fw):
+    import requests
+
+    # GET the LATEST file from the firmware server which lists the
+    # available firmwares
+    url = f'{FWSERVER_URL_ROOT}/{hw_target}/LATEST'
+    logger.info(f'Downloading firmware index file {url}')
+    rslt = requests.get(url)
+    assert rslt.status_code == 200, f'Cannot download index file {url}: {rslt.status_code}'
+
+    # Get the filename of the firmware to download
+    fwname = get_fw_filename(rslt.text, auto_select_fw)
+    fwlen = get_expected_fw_length(fwname)
+
+    # GET the selected firmware from the server
+    url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
+    logger.info(f'Downloading firmware {url}')
+    rslt = requests.get(f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}')
+    assert rslt.status_code == 200, f'Cannot download firmware file {url}: {rslt.status_code}'
+
+    fwcmp = rslt.content
+    logger.info(f'Downloaded {len(fwcmp)} byte firmware')
+
+    # If passed --write-compressed we write a copy of the compressed file
+    if write_compressed:
+        write_cmpfwfile(fwname, fwcmp)
+
+    # Return
+    return fwcmp, fwlen
+
+
+# Download firmware file from Firmware Server using GDK
+def download_file_gdk(hw_target, write_compressed, auto_select_fw):
+    import greenaddress as gdk
+    import base64
+    import json
+
+    # We need to pass the relevant root certificate
+    with open(FWSERVER_CERTIFICATE_FILE, 'r') as cf:
+        root_cert = cf.read()
+
+    gdk.init({})
+    session = gdk.Session({'name': 'mainnet'})
+
+    # GET the LATEST file from the firmware server which lists the
+    # available firmwares
+    url = f'{FWSERVER_URL_ROOT}/{hw_target}/LATEST'
+    logger.info(f'Downloading firmware index file {url} using gdk')
+    params = {'method': 'GET',
+              'root_certificates': [root_cert],
+              'urls': [url]}
+    rslt = gdk.http_request(session.session_obj, json.dumps(params))
+    rslt = json.loads(rslt)
+    assert 'body' in rslt, f'Cannot download index file {url}: {rslt.get("error")}'
+
+    # Get the filename of the firmware to download
+    fwname = get_fw_filename(rslt['body'], auto_select_fw)
+    fwlen = get_expected_fw_length(fwname)
+
+    # GET the selected firmware from the server in base64 encoding
+    url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
+    logger.info(f'Downloading firmware {url} using gdk')
+    params['urls'] = [url]
+    params['accept'] = 'base64'
+
+    rslt = gdk.http_request(session.session_obj, json.dumps(params))
+    rslt = json.loads(rslt)
+    assert 'body' in rslt, f'Cannot download firmware file {url}: {rslt.get("error")}'
+
+    fw_b64 = rslt['body']
+    fwcmp = base64.b64decode(fw_b64)
+    logger.info('Downloaded {len(fwcmp)} byte firmware')
+
+    # If passed --write-compressed we write a copy of the compressed file
+    if write_compressed:
+        write_cmpfwfile(fwname, fwcmp)
+
+    # Return
+    return fwcmp, fwlen
+
+
+# Use a local firmware file - uses the uncompressed firmware file and can
+# either deduce the compressed firmware filename to use, or can create it.
+def get_local_fwfile(fwfilename, write_compressed):
+    # Load the uncompressed firmware file
+    assert os.path.exists(fwfilename) and os.path.isfile(
+            fwfilename), f'Uncompressed firmware file not found: {fwfilename}'
+
+    logger.info(f'Reading file: {fwfilename}')
+    with open(fwfilename, 'rb') as fwfile:
+        firmware = fwfile.read()
+    fwlen = len(firmware)
+
+    # Use fwprep to deduce the filename used for the compressed firmware
+    cmpfilename = fwprep.get_compressed_filepath(firmware, COMP_FW_DIR)
+    expected_suffix = f'_{fwlen}_fw.bin'
+    assert cmpfilename.endswith(expected_suffix)
+
+    # If passed --write-compressed we create the compressed file now
+    if write_compressed:
+        logger.info('Writing compressed firmware file')
+        fwprep.create_compressed_firmware_image(firmware, COMP_FW_DIR)
+
+    assert os.path.exists(cmpfilename) and os.path.isfile(cmpfilename), \
+        f'Compressed firmware file not found: {cmpfilename}'
+
+    logger.info(f'Reading file: {cmpfilename}')
+    with open(cmpfilename, 'rb') as cmpfile:
+        fwcmp = cmpfile.read()
+
+    return fwcmp, fwlen
 
 
 # Takes the compressed firmware data, and the expected length of the
 # uncompressed firmware image.
-def ota(jade, fwcompressed, fwlength, skip_mnemonic=False):
+def ota(jade, fwcompressed, fwlength, pushmnemonic, authnetwork):
     info = jade.get_version_info()
-    logger.info("Running OTA on: {}".format(info))
+    logger.info(f'Running OTA on: {info}')
+    has_pin = info['JADE_HAS_PIN']
     has_radio = info['JADE_CONFIG'] == 'BLE'
     id = info['EFUSEMAC'][6:]
 
     chunksize = int(info['JADE_OTA_MAX_CHUNK'])
     assert chunksize > 0
 
-    # Can set the mnemonic to ensure OTA is allowed
-    if not skip_mnemonic:
+    # Can set the mnemonic in debug, to ensure OTA is allowed
+    if pushmnemonic:
         ret = jade.set_mnemonic(TEST_MNEMONIC)
+        assert ret is True
+    elif has_pin:
+        ret = jade.auth_user(authnetwork)
         assert ret is True
 
     start_time = time.time()
@@ -84,9 +238,9 @@ def ota(jade, fwcompressed, fwlength, skip_mnemonic=False):
         avg_rate = written / total_secs
         progress = (written / compressed_size) * 100
         secs_remaining = (compressed_size - written) / avg_rate
-        template = "{0:.2f} b/s - progress {1:.2f}% - {2:.2f} seconds left"
+        template = '{0:.2f} b/s - progress {1:.2f}% - {2:.2f} seconds left'
         logger.info(template.format(last_rate, progress, secs_remaining))
-        logger.info("Written {0}b in {1:.2f}s".format(written, total_secs))
+        logger.info('Written {0}b in {1:.2f}s'.format(written, total_secs))
 
         last_time = current_time
         last_written = written
@@ -94,10 +248,10 @@ def ota(jade, fwcompressed, fwlength, skip_mnemonic=False):
     result = jade.ota_update(fwcompressed, fwlength, chunksize, _log_progress)
     assert result is True
 
-    logger.info("Total ota time in secs: {}".format(time.time() - start_time))
+    logger.info(f'Total ota time in secs: {time.time() - start_time}')
 
     # Pause to allow for post-ota reboot
-    time.sleep(4)
+    time.sleep(5)
 
     # Return whether we have ble and the id of the jade
     return has_radio, id
@@ -107,158 +261,130 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     sergrp = parser.add_mutually_exclusive_group()
-    sergrp.add_argument("--skipserial",
-                        action="store_true",
-                        dest="skipserial",
-                        help="Skip testing over serial connection",
+    sergrp.add_argument('--skipserial',
+                        action='store_true',
+                        dest='skipserial',
+                        help='Skip testing over serial connection',
                         default=False)
-    sergrp.add_argument("--serialport",
-                        action="store",
-                        dest="serialport",
-                        help="Serial port or device",
+    sergrp.add_argument('--serialport',
+                        action='store',
+                        dest='serialport',
+                        help='Serial port or device',
                         default=DEFAULT_SERIAL_DEVICE)
 
     blegrp = parser.add_mutually_exclusive_group()
-    blegrp.add_argument("--skipble",
-                        action="store_true",
-                        dest="skipble",
-                        help="Skip testing over BLE connection",
+    blegrp.add_argument('--skipble',
+                        action='store_true',
+                        dest='skipble',
+                        help='Skip testing over BLE connection',
                         default=False)
-    blegrp.add_argument("--bleid",
-                        action="store",
-                        dest="bleid",
-                        help="BLE device serial number or id",
+    blegrp.add_argument('--bleid',
+                        action='store',
+                        dest='bleid',
+                        help='BLE device serial number or id',
                         default=None)
 
     agtgrp = parser.add_mutually_exclusive_group()
-    agtgrp.add_argument("--noagent",
-                        action="store_true",
-                        dest="noagent",
-                        help="Do not run the BLE passkey agent",
+    agtgrp.add_argument('--noagent',
+                        action='store_true',
+                        dest='noagent',
+                        help='Do not run the BLE passkey agent',
                         default=False)
-    agtgrp.add_argument("--agentkeyfile",
-                        action="store",
-                        dest="agentkeyfile",
-                        help="Use the specified BLE passkey agent key file",
+    agtgrp.add_argument('--agentkeyfile',
+                        action='store',
+                        dest='agentkeyfile',
+                        help='Use the specified BLE passkey agent key file',
                         default=BLE_TEST_PASSKEYFILE)
 
-    parser.add_argument("--fwfile",
-                        action="store",
-                        dest="fwfilename",
-                        help="Uncompressed firmware file to OTA",
+    authgrp = parser.add_mutually_exclusive_group()
+    authgrp.add_argument('--push-mnemonic',
+                         action='store_true',
+                         dest='pushmnemonic',
+                         help='Sets a test mnemonic - only works with debug build of Jade',
+                         default=False)
+    authgrp.add_argument('--auth-network',
+                         action='store',
+                         dest='authnetwork',
+                         help='Sets a network to use if unlocking Jade with PIN',
+                         choices=['mainnet', 'liquid', 'testnet', 'regtest', 'localtest-liquid'],
+                         default='mainnet')
+
+    srcgrp = parser.add_mutually_exclusive_group()
+    srcgrp.add_argument('--download-firmware',
+                        action='store_true',
+                        dest='downloadfw',
+                        help='Download the firmware from the firmware server',
+                        default=False)
+    srcgrp.add_argument('--download-firmware-gdk',
+                        action='store_true',
+                        dest='downloadgdk',
+                        help='Download the firmware from the firmware server using gdk',
+                        default=False)
+    srcgrp.add_argument('--fwfile',
+                        action='store',
+                        dest='fwfilename',
+                        help='Uncompressed local file to OTA',
                         default=DEFAULT_FIRMWARE_FILE)
-    agtgrp.add_argument("--compress",
-                        action="store_true",
-                        dest="compress",
-                        help="Create compressed firmware file if not present",
+
+    # These only apply to firmware downloading
+    parser.add_argument('--hw-target',
+                        action='store',
+                        dest='hwtarget',
+                        help='Hardware target for downloading firmware',
+                        choices=['jade', 'jadedev', 'm5stack'],
+                        default=None)
+    parser.add_argument('--auto-select-fw',
+                        action='store',
+                        type=int,
+                        dest='autoselectfw',
+                        help='Index of firmware to download (skips interactive prompt)',
+                        default=None)
+
+    parser.add_argument('--write-compressed',
+                        action='store_true',
+                        dest='writecompressed',
+                        help='Create/write copy of compressed firmware file',
                         default=False)
-    agtgrp.add_argument("--download-firmware",
-                        action="store_true",
-                        dest="download_firmware",
-                        help="Down the firmware from the firmware server",
-                        default=False)
-    parser.add_argument("--skipmnemonic",
-                        action="store_true",
-                        dest="skipmnemonic",
-                        help="Skip setting test mnemonic",
-                        default=False)
-    parser.add_argument("--log",
-                        action="store",
-                        dest="loglevel",
-                        help="Jade logging level",
-                        choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"],
-                        default="INFO")
+    parser.add_argument('--log',
+                        action='store',
+                        dest='loglevel',
+                        help='Jade logging level',
+                        choices=['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'],
+                        default='INFO')
 
     args = parser.parse_args()
     jadehandler.setLevel(getattr(logging, args.loglevel))
-    logger.debug('args: {}'.format(args))
+    logger.debug(f'args: {args}')
     manage_agents = args.agentkeyfile and not args.skipble and not args.noagent
 
     if args.skipserial and args.skipble:
-        logger.error("Can only skip one of Serial or BLE test, not both!")
-        os.exit(1)
+        logger.error('Can only skip one of Serial or BLE test, not both!')
+        sys.exit(1)
 
     if args.bleid and not args.skipserial:
-        logger.error("Can only supply ble-id when skipping serial tests")
-        os.exit(1)
+        logger.error('Can only supply ble-id when skipping serial tests')
+        sys.exit(1)
 
-    if args.download_firmware:
-        import greenaddress as gdk
-        import base64
-        import json
+    if args.autoselectfw and not (args.downloadfw or args.downloadgdk):
+        logger.error('Can only provide auto-select index when downloading fw from server')
+        sys.exit(1)
 
-        # We need to pass the relevant root certificate
-        with open(FWSERVER_CERTIFICATE_FILE, "r") as cf:
-            root_cert = cf.read()
+    if args.hwtarget and not (args.downloadfw or args.downloadgdk):
+        logger.error('Can only supply hardware target when downloading fw from server')
+        sys.exit(1)
 
-        gdk.init({})
-        session = gdk.Session({'name': 'mainnet'})
+    if (args.downloadfw or args.downloadgdk) and not args.hwtarget:
+        args.hwtarget = 'jade'  # default to prod jade
 
-        # GET the LATEST file from the firmware server which lists the
-        # available firmwares
-        params = {'method': 'GET',
-                  'root_certificates': [root_cert],
-                  'urls': ['https://jadefw.blockstream.com/bin/LATEST']}
-        latest = gdk.http_request(session.session_obj, json.dumps(params))
-        latest = json.loads(latest)
-        fwnames = latest['body'].split()
-
-        # User selects firmware from list of available
-        if len(fwnames) > 1:
-            print("Available firmwares")
-            for i, fwname in enumerate(fwnames):
-                print("{}) {}".format(i, fwname))
-            fwname = fwnames[int(input("Select firmware: "))]
-        else:
-            fwname = firmwares[0]
-
-        # Info encoded in the filename
-        fwversion, fwtype, fwlen, suffix = fwname.split('_')
-        assert suffix == 'fw.bin'
-        logger.info("firmware version: {}".format(fwversion))
-        logger.info("firmware type: {}".format(fwtype))
-        logger.info("firmware length: {}".format(fwlen))
-        fwlen = int(fwlen)
-
-        # GET the selected firmware from the server in base64 encoding
-        firmware_url = 'https://jadefw.blockstream.com/bin/{}'.format(fwname)
-        params['urls'] = [firmware_url]
-        params['accept'] = 'base64'
-        logger.info("Downloading firmware {} using gdk".format(firmware_url))
-
-        fw_json = gdk.http_request(session.session_obj, json.dumps(params))
-        fw_json = json.loads(fw_json)
-        logger.debug("fw_json: {}".format(fw_json))
-        fw_b64 = fw_json['body']
-        fwcmp = base64.b64decode(fw_b64)
-        logger.info("Downloaded {} byte firmware".format(len(fwcmp)))
+    # Get the file to OTA
+    if args.downloadfw:
+        fwcmp, fwlen = download_file(args.hwtarget, args.writecompressed, args.autoselectfw)
+    elif args.downloadgdk:
+        fwcmp, fwlen = download_file_gdk(args.hwtarget, args.writecompressed, args.autoselectfw)
     else:
-        # Load the uncompressed firmware file
-        assert os.path.exists(args.fwfilename) and os.path.isfile(
-            args.fwfilename), "Uncompressed firmware file '{}' not found."
+        fwcmp, fwlen = get_local_fwfile(args.fwfilename, args.writecompressed)
 
-        logger.info("Reading file: {}".format(args.fwfilename))
-        with open(args.fwfilename, 'rb') as fwfile:
-            firmware = fwfile.read()
-        fwlen = len(firmware)
-
-        # Use fwprep to deduce the filename used for the compressed firmware
-        cmpfilename = fwprep.get_compressed_filepath(firmware, COMP_FW_DIR)
-        expected_suffix = '_' + str(fwlen) + '_fw.bin'
-        assert cmpfilename.endswith(expected_suffix)
-
-        # If compressed file doesn't exist, and we are passed the --compresss
-        # option, we can create the compressed file on-the-fly.
-        if args.compress and not os.path.exists(cmpfilename):
-            logger.info("Creating compressed firmware file")
-            fwprep.create_compressed_firmware_image(firmware, COMP_FW_DIR)
-
-        assert os.path.exists(cmpfilename) and os.path.isfile(cmpfilename), \
-            "Compressed firmware file '{}' not found.".format(cmpfilename)
-
-        logger.info("Reading file: {}".format(cmpfilename))
-        with open(cmpfilename, 'rb') as cmpfile:
-            fwcmp = cmpfile.read()
+    logger.info(f'Got fw file of length {len(fwcmp)} with expected uncompressed length {fwlen}')
 
     # If ble, start the agent to supply the required passkey for authentication
     # and encryption - don't bother if not.
@@ -272,17 +398,17 @@ if __name__ == '__main__':
         has_radio = True
         bleid = args.bleid
         if not args.skipserial:
-            logger.info('Jade OTA over serial {}'.format(args.serialport))
+            logger.info(f'Jade OTA over serial {args.serialport}')
             with JadeAPI.create_serial(device=args.serialport) as jade:
-                has_radio, bleid = ota(jade, fwcmp, fwlen, args.skipmnemonic)
+                has_radio, bleid = ota(jade, fwcmp, fwlen, args.pushmnemonic, args.authnetwork)
 
         if not args.skipble:
             if has_radio:
-                logger.info('Jade OTA over BLE {}'.format(bleid))
+                logger.info(f'Jade OTA over BLE {bleid}')
                 with JadeAPI.create_ble(serial_number=bleid) as jade:
-                    ota(jade, fwcmp, fwlen, args.skipmnemonic)
+                    ota(jade, fwcmp, fwlen, args.pushmnemonic, args.authnetwork)
             else:
-                msg = "Skipping BLE tests - not enabled on the hardware"
+                msg = 'Skipping BLE tests - not enabled on the hardware'
                 logger.warning(msg)
 
     finally:
