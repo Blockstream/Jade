@@ -312,18 +312,19 @@ static void make_final_activity(output_activity_t* output_activity, const char* 
 }
 
 // Don't display pre-validated (eg. change) outputs (if provided)
-// Should work for elements and standard btc
+// Should work for elements and standard btc, but liquid hides scriptless outputs (fees)
 static inline bool display_output(
-    const struct wally_tx_output* outputs, const output_info_t* output_info, const size_t i)
+    const struct wally_tx_output* outputs, const output_info_t* output_info, const size_t i, const bool show_scriptless)
 {
-    return outputs[i].script && !(output_info && output_info[i].is_validated_change_address);
+    return (show_scriptless || outputs[i].script) && !(output_info && output_info[i].is_validated_change_address);
 }
 
-static uint32_t displayable_outputs(const struct wally_tx* tx, const output_info_t* output_info)
+static uint32_t displayable_outputs(
+    const struct wally_tx* tx, const output_info_t* output_info, const bool show_scriptless)
 {
     uint32_t nDisplayable = 0;
     for (size_t i = 0; i < tx->num_outputs; ++i) {
-        if (display_output(tx->outputs, output_info, i)) {
+        if (display_output(tx->outputs, output_info, i, show_scriptless)) {
             ++nDisplayable;
         }
     }
@@ -375,19 +376,22 @@ void make_display_output_activity(const char* network, const struct wally_tx* tx
     JADE_ASSERT(first_activity);
     JADE_ASSERT(last_activity);
 
+    // Show outputs which don't have a script
+    const bool show_scriptless = true;
+
     // Track the first and last activities created
     activities_info_t act_info = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
 
     // 1 based indices for display purposes
     uint32_t nDisplayedOutput = 0;
-    const uint32_t nTotalOutputsDisplayed = displayable_outputs(tx, output_info);
+    const uint32_t nTotalOutputsDisplayed = displayable_outputs(tx, output_info, show_scriptless);
     const bool hiddenOutputs = nTotalOutputsDisplayed < tx->num_outputs;
 
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         struct wally_tx_output* out = tx->outputs + i;
 
         // Skip outputs we have automatically validated (eg. change outputs)
-        if (hiddenOutputs && !display_output(tx->outputs, output_info, i)) {
+        if (hiddenOutputs && !display_output(tx->outputs, output_info, i, show_scriptless)) {
             continue;
         }
 
@@ -426,20 +430,23 @@ void make_display_elements_output_activity(const char* network, const struct wal
     JADE_ASSERT(first_activity);
     JADE_ASSERT(last_activity);
 
+    // Don't show outputs which don't have a script (as these are fees)
+    const bool show_scriptless = false;
+
     // Track the first and last activities created
     activities_info_t act_info = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
 
     // 1 based indices for display purposes
     uint32_t nDisplayedOutput = 0;
-    const uint32_t nTotalOutputsDisplayed = displayable_outputs(tx, output_info);
+    const uint32_t nTotalOutputsDisplayed = displayable_outputs(tx, output_info, show_scriptless);
     const bool hiddenOutputs = nTotalOutputsDisplayed < tx->num_outputs;
 
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         struct wally_tx_output* out = tx->outputs + i;
 
         // Skip outputs we have automatically validated (eg. change outputs)
-        // also, skip fees (ie. outputs sans script)
-        if (hiddenOutputs && !display_output(tx->outputs, output_info, i)) {
+        // also, skip/hide fees (ie. outputs sans script)
+        if (hiddenOutputs && !display_output(tx->outputs, output_info, i, show_scriptless)) {
             continue;
         }
 

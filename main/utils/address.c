@@ -21,10 +21,16 @@ void script_to_address(const char* network, uint8_t* script, size_t script_len, 
     JADE_ASSERT(isValidNetwork(network));
     JADE_ASSERT(!isLiquid(network));
 
+    int ret = 0;
+    if (!script || !script_len) {
+        ret = snprintf(output, output_len, "No Address");
+        JADE_ASSERT(ret > 0 && ret < output_len);
+        return;
+    }
+
     size_t output_type;
     JADE_WALLY_VERIFY(wally_scriptpubkey_get_type(script, script_len, &output_type));
 
-    int ret = 0;
     char* tmp_str = NULL;
     uint8_t prefix = 0;
     const char* hrp = NULL;
@@ -70,7 +76,7 @@ void elements_script_to_address(const char* network, uint8_t* script, size_t scr
     JADE_ASSERT(isLiquid(network));
 
     int ret = 0;
-    if (!script) {
+    if (!script || !script_len) {
         ret = snprintf(output, output_len, "[FEE]");
         JADE_ASSERT(ret > 0 && ret < output_len);
         return;
