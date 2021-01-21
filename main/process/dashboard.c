@@ -99,8 +99,10 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     // Board type - Production Jade, M5Stack, esp32 dev board
 #if defined(CONFIG_BOARD_TYPE_JADE)
     add_string_to_map(&map_encoder, "BOARD_TYPE", "JADE");
-#elif defined(CONFIG_BOARD_TYPE_M5)
-    add_string_to_map(&map_encoder, "BOARD_TYPE", "M5");
+#elif defined(CONFIG_BOARD_TYPE_M5_FIRE)
+    add_string_to_map(&map_encoder, "BOARD_TYPE", "M5FIRE");
+#elif defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)
+    add_string_to_map(&map_encoder, "BOARD_TYPE", "M5BLACKGRAY");
 #elif defined(CONFIG_BOARD_TYPE_DEV)
     add_string_to_map(&map_encoder, "BOARD_TYPE", "DEV");
 #else

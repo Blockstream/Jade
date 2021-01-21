@@ -61,7 +61,7 @@ static inline void wheel_next()
     }
 }
 
-#ifndef CONFIG_BOARD_TYPE_M5
+#if !defined CONFIG_BOARD_TYPE_M5_FIRE && !defined CONFIG_BOARD_TYPE_M5_BLACK_GRAY
 static QueueHandle_t event_queue;
 void wheel_watch_task(void* info_void)
 {
@@ -97,7 +97,7 @@ static void button_B(void* arg) { wheel_next(); }
 
 void wheel_init()
 {
-#ifdef CONFIG_BOARD_TYPE_M5
+#if defined CONFIG_BOARD_TYPE_M5_FIRE || defined CONFIG_BOARD_TYPE_M5_BLACK_GRAY
 
     button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_RELEASE, button_A, NULL);
