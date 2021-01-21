@@ -261,7 +261,11 @@ static const uint8_t ILI9341_init[] = {
   (MADCTL_MX | TFT_RGB_BGR),
   // *** INTERFACE PIXEL FORMAT: 0x66 -> 18 bit; 0x55 -> 16 bit
   TFT_CMD_PIXFMT, 1, DISP_COLOR_BITS_24,
+#ifdef CONFIG_DISP_INVERT_COLORS
+  TFT_INVONN, 0,
+#else
   TFT_INVOFF, 0,
+#endif
   TFT_CMD_FRMCTR1, 2, 0x00, 0x18,
   TFT_CMD_DFUNCTR, 4, 0x08, 0x82, 0x27, 0x00,		// Display Function Control
   TFT_PTLAR, 4, 0x00, 0x00, 0x01, 0x3F,
