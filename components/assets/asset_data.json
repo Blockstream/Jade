@@ -3139,6 +3139,35 @@
         "ticker": "JPYS",
         "version": 0
     },
+    "3451e1b2200bb24c7f8037e136d9ca05598393b738814f6e0e2dea560ea9f5b5": {
+        "asset_id": "3451e1b2200bb24c7f8037e136d9ca05598393b738814f6e0e2dea560ea9f5b5",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "issuer_pubkey": "034ba2e64bb5b0b9006fa65a2250aa21270aebad12913e1bb444a1abf11afdd0c7",
+            "name": "Axios Testing",
+            "precision": 0,
+            "ticker": "GAxTe",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "af616146a3e3acc8e199a72cc2afd13c0352e3117e3a0961ab8b56c02fcc801f",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "4c9c335a67a3bfac84b3136edd2d868ded714e83a22317a95fdd46484afb3eee",
+            "vin": 0
+        },
+        "issuer_pubkey": "034ba2e64bb5b0b9006fa65a2250aa21270aebad12913e1bb444a1abf11afdd0c7",
+        "name": "Axios Testing",
+        "precision": 0,
+        "ticker": "GAxTe",
+        "version": 0
+    },
     "34925af1a1088d714799817f5d0fe77d6eca6064ee13d64f15f011bfab7ec26b": {
         "asset_id": "34925af1a1088d714799817f5d0fe77d6eca6064ee13d64f15f011bfab7ec26b",
         "contract": {
@@ -3949,6 +3978,35 @@
         "name": "USBonds",
         "precision": 8,
         "ticker": "AGG",
+        "version": 0
+    },
+    "47bc13327deab10639bc0b84f169279b337e51a08a051ba830f9e5c665b54ca1": {
+        "asset_id": "47bc13327deab10639bc0b84f169279b337e51a08a051ba830f9e5c665b54ca1",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "issuer_pubkey": "0316bbf3cedaba62dcc0821099fa368abe8a4d3d8c79b0d769f2241a5c3391716b",
+            "name": "Fiat Eater",
+            "precision": 0,
+            "ticker": "CFiEa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "888b66fd254baa719efc1f4295889b21c77c72df08567d7815ccedecdce3fa77",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "4ab523a4e8b5d1b99f5aed7de824ea111094bc4edd1e6784e4cb61274afa322f",
+            "vin": 0
+        },
+        "issuer_pubkey": "0316bbf3cedaba62dcc0821099fa368abe8a4d3d8c79b0d769f2241a5c3391716b",
+        "name": "Fiat Eater",
+        "precision": 0,
+        "ticker": "CFiEa",
         "version": 0
     },
     "47bd439573ec0803de7f29b2c664d07d3482b8180781b8163e11be4f5477cd51": {
@@ -9037,6 +9095,35 @@
         "ticker": "FShor",
         "version": 0
     },
+    "96c11110256f8459b99b9e6abbaa8ff53a5a1f81ac0bcc37113f610d49af10cd": {
+        "asset_id": "96c11110256f8459b99b9e6abbaa8ff53a5a1f81ac0bcc37113f610d49af10cd",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "issuer_pubkey": "02112c71cc0dc1dcacbf7e354796c7ab38f9a88f71e4979c6a1ba19a4a5b2684f7",
+            "name": "Bitcoin Wizard Socks",
+            "precision": 0,
+            "ticker": "SBWS",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "44a4e91231c666438dea4328b02651bbbaecb25d1a315ecd822612097fadb282",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "9c3ea3df7c4ccab7517b8101d6638d7f16059a294b663cbc79cf8cfa03defb54",
+            "vin": 0
+        },
+        "issuer_pubkey": "02112c71cc0dc1dcacbf7e354796c7ab38f9a88f71e4979c6a1ba19a4a5b2684f7",
+        "name": "Bitcoin Wizard Socks",
+        "precision": 0,
+        "ticker": "SBWS",
+        "version": 0
+    },
     "96e70fb9b076925237f676f14f28a8feb147f07eaa8cd0882354f6feae65fd0e": {
         "asset_id": "96e70fb9b076925237f676f14f28a8feb147f07eaa8cd0882354f6feae65fd0e",
         "contract": {
@@ -10052,6 +10139,35 @@
         "ticker": "ETB",
         "version": 0
     },
+    "aad626dfbeee1ef619020b5f5eafa23e397b8431ad31b308984a0931801db65a": {
+        "asset_id": "aad626dfbeee1ef619020b5f5eafa23e397b8431ad31b308984a0931801db65a",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "issuer_pubkey": "026e9678d1ebaa2c3a9b62987789bb9614c3840a939b7335843a791e425524887f",
+            "name": "Bull Man",
+            "precision": 0,
+            "ticker": "CBuMa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "b939d1c62f01f61bfe31367ae2fb108ed41a3401d04bd71772b342c8c97fea25",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "2c96015ccf3b8665a3751f5641c25e8de33e58a8cca1615c782188bed5367586",
+            "vin": 0
+        },
+        "issuer_pubkey": "026e9678d1ebaa2c3a9b62987789bb9614c3840a939b7335843a791e425524887f",
+        "name": "Bull Man",
+        "precision": 0,
+        "ticker": "CBuMa",
+        "version": 0
+    },
     "ab689f0c76b0ef973161b24830cad360d1bf922c5a6064b1c58d52f35b26d555": {
         "asset_id": "ab689f0c76b0ef973161b24830cad360d1bf922c5a6064b1c58d52f35b26d555",
         "contract": {
@@ -10514,6 +10630,35 @@
         "name": "FONZIECOIN",
         "precision": 0,
         "ticker": "FNZ",
+        "version": 0
+    },
+    "b3668b84c23fd01f525ab9512acda76cf5ccb3701c0fcbb54b2ba39c305a7ea1": {
+        "asset_id": "b3668b84c23fd01f525ab9512acda76cf5ccb3701c0fcbb54b2ba39c305a7ea1",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "issuer_pubkey": "03fbf3cde4e34208b2d5feee5af2d8c4249599adb0b2aa3d74fa0b253202b551e1",
+            "name": "Bull Shotgun",
+            "precision": 0,
+            "ticker": "GBuSh",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "5d54618f30b39dffda178d1944aedfef4522ad2bde79e794a31b2c98a752e6f6",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "bb6129e8e9b289675fc6d6413d5f644fe91fab75a39e6df90358d198566322ca",
+            "vin": 0
+        },
+        "issuer_pubkey": "03fbf3cde4e34208b2d5feee5af2d8c4249599adb0b2aa3d74fa0b253202b551e1",
+        "name": "Bull Shotgun",
+        "precision": 0,
+        "ticker": "GBuSh",
         "version": 0
     },
     "b7115fa67a3131fa946660ef3090ad0cd8c2329efd9045b523113f31fd3adf53": {
@@ -12635,6 +12780,35 @@
         "ticker": "NDX",
         "version": 0
     },
+    "dd87c59f106e70c21ec5b56410b7a3498c1ec272e37c24b930576d2a9c24e6a2": {
+        "asset_id": "dd87c59f106e70c21ec5b56410b7a3498c1ec272e37c24b930576d2a9c24e6a2",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "issuer_pubkey": "02220cb81a515ca116ec92f7b5745a6e7b16395933b88c8937cc605f8b53124ccf",
+            "name": "Bullboard",
+            "precision": 0,
+            "ticker": "HBull",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "2c96015ccf3b8665a3751f5641c25e8de33e58a8cca1615c782188bed5367586",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "5d54618f30b39dffda178d1944aedfef4522ad2bde79e794a31b2c98a752e6f6",
+            "vin": 0
+        },
+        "issuer_pubkey": "02220cb81a515ca116ec92f7b5745a6e7b16395933b88c8937cc605f8b53124ccf",
+        "name": "Bullboard",
+        "precision": 0,
+        "ticker": "HBull",
+        "version": 0
+    },
     "de455d38bcc3a5c1bfcdf2272a13ca8081c79cfb87c45259af7349cd0778c79a": {
         "asset_id": "de455d38bcc3a5c1bfcdf2272a13ca8081c79cfb87c45259af7349cd0778c79a",
         "contract": {
@@ -13010,6 +13184,35 @@
         "name": "Bluenaut",
         "precision": 0,
         "ticker": "CBlue",
+        "version": 0
+    },
+    "e5aff5b00259039deb5338dd9c5ec0bb54f06d5032d33364f5045cf0ca3e2490": {
+        "asset_id": "e5aff5b00259039deb5338dd9c5ec0bb54f06d5032d33364f5045cf0ca3e2490",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "issuer_pubkey": "027de9dffb04a79fefd272eb9160411c23d9c43f9b34cd77d64ae5f826bbd5cfe3",
+            "name": "Lightning Socks",
+            "precision": 0,
+            "ticker": "SLiSo",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "78df6d26f7621fcd891ab4e219362562215688759cf62cbd320dbf00322b0349",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "8e36d32b52c024e015ce00e3270660d4270f1fff55f0091ec1d638a6b4dbae8b",
+            "vin": 0
+        },
+        "issuer_pubkey": "027de9dffb04a79fefd272eb9160411c23d9c43f9b34cd77d64ae5f826bbd5cfe3",
+        "name": "Lightning Socks",
+        "precision": 0,
+        "ticker": "SLiSo",
         "version": 0
     },
     "e604d92d008a86e4c45efa8436922c6a8bd001b329c2f8f1bb4ac787ca5e57a4": {
@@ -13793,6 +13996,35 @@
         "name": "Reptilian",
         "precision": 0,
         "ticker": "CRept",
+        "version": 0
+    },
+    "f2c5632d90aabf5343cb26128ef3ce5676a8431363a572f617878cc9b2209d8e": {
+        "asset_id": "f2c5632d90aabf5343cb26128ef3ce5676a8431363a572f617878cc9b2209d8e",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "issuer_pubkey": "02f44a1d6df655869abc83b6fed299cfd073404a0ae5590d725978f72cd94a458a",
+            "name": "Press Vest",
+            "precision": 0,
+            "ticker": "APrVe",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "3e269020b4bdfcf585ca191d02082aca5d6bffe94c0acc33ce2da029911fb957",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "8e17efa2a64756aa05b74fb7495b7434abad4b15e4682b3d836c9bdeb4df8c8d",
+            "vin": 0
+        },
+        "issuer_pubkey": "02f44a1d6df655869abc83b6fed299cfd073404a0ae5590d725978f72cd94a458a",
+        "name": "Press Vest",
+        "precision": 0,
+        "ticker": "APrVe",
         "version": 0
     },
     "f321fea00c3a8dfcbdd8ec245677c6510f8f8d763fe39dd4407e20a708454fb7": {
