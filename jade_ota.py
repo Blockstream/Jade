@@ -88,12 +88,12 @@ def write_cmpfwfile(fwname, fwcmpdata):
 
 
 # Download firmware file from Firmware Server
-def download_file(hw_target, write_compressed, auto_select_fw):
+def download_file(hw_target, write_compressed, index_file, auto_select_fw):
     import requests
 
-    # GET the LATEST file from the firmware server which lists the
+    # GET the index file from the firmware server which lists the
     # available firmwares
-    url = f'{FWSERVER_URL_ROOT}/{hw_target}/LATEST'
+    url = f'{FWSERVER_URL_ROOT}/{hw_target}/{index_file}'
     logger.info(f'Downloading firmware index file {url}')
     rslt = requests.get(url)
     assert rslt.status_code == 200, f'Cannot download index file {url}: {rslt.status_code}'
@@ -120,7 +120,7 @@ def download_file(hw_target, write_compressed, auto_select_fw):
 
 
 # Download firmware file from Firmware Server using GDK
-def download_file_gdk(hw_target, write_compressed, auto_select_fw):
+def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
     import greenaddress as gdk
     import base64
     import json
@@ -132,9 +132,9 @@ def download_file_gdk(hw_target, write_compressed, auto_select_fw):
     gdk.init({})
     session = gdk.Session({'name': 'mainnet'})
 
-    # GET the LATEST file from the firmware server which lists the
+    # GET the index file from the firmware server which lists the
     # available firmwares
-    url = f'{FWSERVER_URL_ROOT}/{hw_target}/LATEST'
+    url = f'{FWSERVER_URL_ROOT}/{hw_target}/{index_file}'
     logger.info(f'Downloading firmware index file {url} using gdk')
     params = {'method': 'GET',
               'root_certificates': [root_cert],
@@ -339,7 +339,14 @@ if __name__ == '__main__':
                         dest='autoselectfw',
                         help='Index of firmware to download (skips interactive prompt)',
                         default=None)
+    parser.add_argument('--beta',
+                        action='store_const',
+                        const='BETA',
+                        dest='indexfile',
+                        help='Use beta versions, if available',
+                        default=None)
 
+    # Generic
     parser.add_argument('--write-compressed',
                         action='store_true',
                         dest='writecompressed',
@@ -356,6 +363,7 @@ if __name__ == '__main__':
     jadehandler.setLevel(getattr(logging, args.loglevel))
     logger.debug(f'args: {args}')
     manage_agents = args.agentkeyfile and not args.skipble and not args.noagent
+    downloading = args.downloadfw or args.downloadgdk
 
     if args.skipserial and args.skipble:
         logger.error('Can only skip one of Serial or BLE test, not both!')
@@ -365,22 +373,31 @@ if __name__ == '__main__':
         logger.error('Can only supply ble-id when skipping serial tests')
         sys.exit(1)
 
-    if args.autoselectfw and not (args.downloadfw or args.downloadgdk):
+    if args.autoselectfw and not downloading:
         logger.error('Can only provide auto-select index when downloading fw from server')
         sys.exit(1)
 
-    if args.hwtarget and not (args.downloadfw or args.downloadgdk):
+    if args.indexfile and not downloading:
+        logger.error('Can only request beta versions when downloading fw from server')
+        sys.exit(1)
+
+    if args.hwtarget and not downloading:
         logger.error('Can only supply hardware target when downloading fw from server')
         sys.exit(1)
 
-    if (args.downloadfw or args.downloadgdk) and not args.hwtarget:
+    if downloading and not args.hwtarget:
         args.hwtarget = 'jade'  # default to prod jade
+
+    if downloading and not args.indexfile:
+        args.indexfile = 'LATEST'  # default to stable versions
 
     # Get the file to OTA
     if args.downloadfw:
-        fwcmp, fwlen = download_file(args.hwtarget, args.writecompressed, args.autoselectfw)
+        fwcmp, fwlen = download_file(args.hwtarget, args.writecompressed,
+                                     args.indexfile, args.autoselectfw)
     elif args.downloadgdk:
-        fwcmp, fwlen = download_file_gdk(args.hwtarget, args.writecompressed, args.autoselectfw)
+        fwcmp, fwlen = download_file_gdk(args.hwtarget, args.writecompressed,
+                                         args.indexfile, args.autoselectfw)
     else:
         fwcmp, fwlen = get_local_fwfile(args.fwfilename, args.writecompressed)
 
