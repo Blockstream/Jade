@@ -2,7 +2,7 @@ if(NOT CONFIG_ESP32_NO_BLOBS)
     set(bledir "ble")
 endif()
 
-if(NOT CONFIG_DEBUG_MODE)
+if(NOT CONFIG_DEBUG_UNATTENDED_CI)
     set(pinserverpubkey "pinserver_public_key.pub")
 else()
     set(pinserverpubkey "server_public_key.pub")

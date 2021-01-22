@@ -14,9 +14,9 @@
 
 #include "process_utils.h"
 
-#ifdef CONFIG_DEBUG_MODE
+#ifdef CONFIG_DEBUG_UNATTENDED_CI
 // Test pinserver url, (dummy) onion, and public key
-#define PINSERVER_URL "http://104.155.141.19:80"
+#define PINSERVER_URL "http://127.0.0.1:8080"
 #define PINSERVER_ONION "http://we.dont.know.our.onion.but.this.string.is.about.the.right.size"
 extern const uint8_t server_public_key_start[] asm("_binary_server_public_key_pub_start");
 #else
