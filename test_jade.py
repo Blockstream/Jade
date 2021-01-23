@@ -1116,8 +1116,8 @@ def test_handshake(jade):
 def check_mem_stats(startinfo, endinfo, strict):
     # Memory stats to log/check
     breaches = list()
-    for field, limit in [('JADE_FREE_HEAP', 512),
-                         ('JADE_FREE_DRAM', 512),
+    for field, limit in [('JADE_FREE_HEAP', 536),
+                         ('JADE_FREE_DRAM', 536),
                          ('JADE_LARGEST_DRAM', 0),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0)]:
