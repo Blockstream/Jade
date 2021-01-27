@@ -19,7 +19,8 @@ extern "C" {
 #endif
 
 #include "driver/gpio.h"
-#include "freertos/portmacro.h"
+#include "freertos/FreeRTOS.h"
+
 typedef void (* button_cb)(void*);
 typedef void* button_handle_t;
 
