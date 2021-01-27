@@ -103,6 +103,8 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     add_string_to_map(&map_encoder, "BOARD_TYPE", "M5FIRE");
 #elif defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)
     add_string_to_map(&map_encoder, "BOARD_TYPE", "M5BLACKGRAY");
+#elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
+    add_string_to_map(&map_encoder, "BOARD_TYPE", "TTGO_TDISPLAY");
 #elif defined(CONFIG_BOARD_TYPE_DEV)
     add_string_to_map(&map_encoder, "BOARD_TYPE", "DEV");
 #else

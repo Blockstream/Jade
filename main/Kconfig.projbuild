@@ -32,6 +32,9 @@ config BOARD_TYPE_M5_FIRE
 config BOARD_TYPE_M5_BLACK_GRAY
   bool "M5Stack Black/Gray"
   depends on !ESP32_SPIRAM_SUPPORT
+config BOARD_TYPE_TTGO_TDISPLAY
+  bool "TTGO T-DISPLAY"
+  depends on !ESP32_SPIRAM_SUPPORT
 config BOARD_TYPE_DEV
   bool "Dev board"
 config BOARD_TYPE_CUSTOM
@@ -48,7 +51,7 @@ config DISP_INVERT_COLORS
 
 config HAS_AXP
   bool "Use the AXP192 power controller"
-  depends on !BOARD_TYPE_M5_FIRE && !BOARD_TYPE_M5_BLACK_GRAY
+  depends on !BOARD_TYPE_M5_FIRE && !BOARD_TYPE_M5_BLACK_GRAY && !BOARD_TYPE_TTGO_TDISPLAY
   help
       Jade (and some devices) come with the AXP192 to manage power to ESP, display, camera
   default n
@@ -70,16 +73,19 @@ menu "Input configuration"
     int "BTN A"
     range 0 40
     default 39 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+    default 0 if BOARD_TYPE_TTGO_TDISPLAY
   config INPUT_BTN_B
     int "BTN B"
     range 0 40
     default 37 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+    default 35 if BOARD_TYPE_TTGO_TDISPLAY
   config INPUT_WHEEL_SW
     int "Wheel SW"
     range 0 40
     default 33 if BOARD_TYPE_JADE
     default  0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
     default 27 if BOARD_TYPE_DEV
+    default 2 if BOARD_TYPE_TTGO_TDISPLAY
   config INPUT_INVERT_WHEEL
     bool "Invert wheel"
     default n
@@ -90,6 +96,7 @@ menu "Input configuration"
     default 21 if BOARD_TYPE_JADE
     default 38 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
     default 35 if BOARD_TYPE_DEV
+    default 2 if BOARD_TYPE_TTGO_TDISPLAY
 endmenu
 
 menu "Camera configuration"
@@ -197,7 +204,7 @@ menu "TFT Display"
     int
     default 0 if DISP_DRIVER_ILI9341 || BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
     default 1 if DISP_DRIVER_ILI9488
-    default 2 if DISP_DRIVER_ST7789V || BOARD_TYPE_DEV || BOARD_TYPE_JADE
+    default 2 if DISP_DRIVER_ST7789V || BOARD_TYPE_DEV || BOARD_TYPE_JADE || BOARD_TYPE_TTGO_TDISPLAY
     default 3 if DISP_DRIVER_ST7735
     default 4 if DISP_DRIVER_ST7735R
     default 5 if DISP_DRIVER_ST7735B
@@ -227,19 +234,19 @@ menu "TFT Display"
   config DISP_INVERT_ROTATION1
     int "Invert rotation 1"
     range 0 1
-    default 1 if BOARD_TYPE_JADE
+    default 1 if BOARD_TYPE_JADE || BOARD_TYPE_TTGO_TDISPLAY
     default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
     default 1 if BOARD_TYPE_DEV
   config DISP_INVERT_ROTATION2
     int "Invert rotation 2"
     range 0 1
-    default 0 if BOARD_TYPE_JADE
+    default 0 if BOARD_TYPE_JADE || BOARD_TYPE_TTGO_TDISPLAY
     default 1 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
     default 0 if BOARD_TYPE_DEV
   config DISP_ORIENTATION_DEFAULT
     int "Set orientation default"
     range 0 3
-    default 3 if BOARD_TYPE_JADE
+    default 3 if BOARD_TYPE_JADE || BOARD_TYPE_TTGO_TDISPLAY
     default 1 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
     default 0 if BOARD_TYPE_DEV
   config DISP_RGB_BGR
@@ -253,17 +260,19 @@ menu "TFT Display"
       default 0 if BOARD_TYPE_JADE
       default 19 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
       default 25 if BOARD_TYPE_DEV
+      default 2 if BOARD_TYPE_TTGO_TDISPLAY
     config DISP_PIN_NUM_MOSI
       int "PIN_NUM_MOSI"
       range 0 40
       default 15 if BOARD_TYPE_JADE
       default 23 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
       default 23 if BOARD_TYPE_DEV
+      default 19 if BOARD_TYPE_TTGO_TDISPLAY
     config DISP_PIN_NUM_CLK
       int "PIN_NUM_CLK"
       range 0 40
       default 14 if BOARD_TYPE_JADE
-      default 18 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+      default 18 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_TTGO_TDISPLAY
       default 19 if BOARD_TYPE_DEV
     config DISP_PIN_NUM_CS
       int "PIN_NUM_CS"
@@ -271,12 +280,14 @@ menu "TFT Display"
       default 13 if BOARD_TYPE_JADE
       default 14 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
       default 22 if BOARD_TYPE_DEV
+      default 5 if BOARD_TYPE_TTGO_TDISPLAY
     config DISP_PIN_NUM_DC
       int "PIN_NUM_DC"
       range 0 40
       default 12 if BOARD_TYPE_JADE
       default 27 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
       default 21 if BOARD_TYPE_DEV
+      default 16 if BOARD_TYPE_TTGO_TDISPLAY
     config DISP_PIN_NUM_TCS
       int "PIN_NUM_TCS"
       range 0 40
@@ -287,12 +298,14 @@ menu "TFT Display"
       default 21 if BOARD_TYPE_JADE
       default 33 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
       default 18 if BOARD_TYPE_DEV
+      default 23 if BOARD_TYPE_TTGO_TDISPLAY
     config DISP_PIN_NUM_BCKL
       int "PIN_NUM_BCKL"
       range 0 40
       default 0 if BOARD_TYPE_JADE
       default 32 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
       default 0 if BOARD_TYPE_DEV
+      default 4 if BOARD_TYPE_TTGO_TDISPLAY
     config DISP_INVERT_BKCL_SIGNAL
       bool "Invert backlight signal (on/off)"
       default n
