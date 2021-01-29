@@ -17,7 +17,7 @@
 
 bool isValidNetwork(const char* network);
 bool isTestNetwork(const char* network);
-bool isLiquid(const char* network);
+bool isLiquidNetwork(const char* network);
 
 bool csvBlocksExpectedForNetwork(const char* network, uint32_t csvBlocks);
 bool networkToMinAllowedCsvBlocks(const char* network);

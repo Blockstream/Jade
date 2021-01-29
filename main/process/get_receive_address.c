@@ -64,7 +64,7 @@ void get_receive_address_process(void* process_ptr)
 
     // Convert that into an address string
     char address[MAX_ADDRESS_LEN];
-    if (isLiquid(network)) {
+    if (isLiquidNetwork(network)) {
         // Blind address
         unsigned char blinding_key[EC_PUBLIC_KEY_LEN];
         if (!wallet_get_public_blinding_key(script, sizeof(script), blinding_key, sizeof(blinding_key))) {

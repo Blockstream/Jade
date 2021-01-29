@@ -17,22 +17,22 @@ bool isValidNetwork(const char* network)
 // True for testnet and regtest/localtest type networks
 bool isTestNetwork(const char* network)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
     return !strcmp(TAG_TESTNET, network) || !strcmp(TAG_REGTEST, network) || !strcmp(TAG_LOCALTEST, network)
         || !strcmp(TAG_LOCALTESTLIQUID, network);
 }
 
 // True for liquid and localtestliquid networks
-bool isLiquid(const char* network)
+bool isLiquidNetwork(const char* network)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
     return !strcmp(TAG_LIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network);
 }
 
 // Are the passed number of csv blocks expected for the given network
 bool csvBlocksExpectedForNetwork(const char* network, const uint32_t csvBlocks)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
 
     if (!strcmp(TAG_MAINNET, network)) {
         return csvBlocks == 25920 || csvBlocks == 51840 || csvBlocks == 65535;
@@ -50,7 +50,7 @@ bool csvBlocksExpectedForNetwork(const char* network, const uint32_t csvBlocks)
 // minimum allowed csv blocks per network
 bool networkToMinAllowedCsvBlocks(const char* network)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
 
     if (!strcmp(TAG_LIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
         return 65535;
@@ -64,7 +64,8 @@ bool networkToMinAllowedCsvBlocks(const char* network)
 // 'mainnet' and 'liquid' map to VER_MAIN_PRIVATE, others to VER_TEST_PRIVATE
 uint32_t networkToVersion(const char* network)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
+
     if (!strcmp(TAG_MAINNET, network) || !strcmp(TAG_LIQUID, network)) {
         return BIP32_VER_MAIN_PRIVATE;
     } else if (isTestNetwork(network)) {
@@ -77,7 +78,8 @@ uint32_t networkToVersion(const char* network)
 // 'mainnet' like string to relevant P2PKH address prefix
 uint8_t networkToP2PKHPrefix(const char* network)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
+
     if (!strcmp(TAG_MAINNET, network)) {
         return WALLY_ADDRESS_VERSION_P2PKH_MAINNET;
     } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_REGTEST, network) || !strcmp(TAG_LOCALTEST, network)) {
@@ -94,7 +96,8 @@ uint8_t networkToP2PKHPrefix(const char* network)
 // 'mainnet' like string to relevant P2SH address prefix
 uint8_t networkToP2SHPrefix(const char* network)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
+
     if (!strcmp(TAG_MAINNET, network)) {
         return WALLY_ADDRESS_VERSION_P2SH_MAINNET;
     } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_REGTEST, network) || !strcmp(TAG_LOCALTEST, network)) {
@@ -111,7 +114,8 @@ uint8_t networkToP2SHPrefix(const char* network)
 // 'liquid' like string to relevant confidential address prefix
 uint8_t networkToCAPrefix(const char* network)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
+
     if (!strcmp(TAG_LIQUID, network)) {
         return WALLY_CA_PREFIX_LIQUID;
     } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
@@ -124,7 +128,8 @@ uint8_t networkToCAPrefix(const char* network)
 // 'mainnet' like string to relevant bech32 hrp
 const char* networkToBech32Hrp(const char* network)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
+
     if (!strcmp(TAG_MAINNET, network)) {
         return "bc";
     } else if (!strcmp(TAG_TESTNET, network)) {
@@ -143,7 +148,8 @@ const char* networkToBech32Hrp(const char* network)
 // 'liquid' like string to relevant confidential blech32 hrp
 const char* networkToBlech32Hrp(const char* network)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isValidNetwork(network));
+
     if (!strcmp(TAG_LIQUID, network)) {
         return "lq";
     } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {

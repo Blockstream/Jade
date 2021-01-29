@@ -283,7 +283,7 @@ static void wallet_build_csv(const char* network, const uint8_t* pubkeys, const 
     JADE_ASSERT(written);
 
     // Create 2of2 CSV multisig script (2of3-csv not supported)
-    if (isLiquid(network)) {
+    if (isLiquidNetwork(network)) {
         // NOTE: we use the original (un-optimised) csv script for liquid
         JADE_WALLY_VERIFY(wally_scriptpubkey_csv_2of2_then_1_from_bytes(
             pubkeys, pubkeys_len, blocks, 0, output, output_len, written));

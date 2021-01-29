@@ -18,8 +18,7 @@ static void base58_addr(uint8_t prefix, uint8_t* script, char** output)
 // Convert the passed btc script into an address
 void script_to_address(const char* network, uint8_t* script, size_t script_len, char* output, size_t output_len)
 {
-    JADE_ASSERT(isValidNetwork(network));
-    JADE_ASSERT(!isLiquid(network));
+    JADE_ASSERT(!isLiquidNetwork(network));
 
     int ret = 0;
     if (!script || !script_len) {
@@ -44,13 +43,11 @@ void script_to_address(const char* network, uint8_t* script, size_t script_len, 
 
     case WALLY_SCRIPT_TYPE_P2PKH:
         prefix = networkToP2PKHPrefix(network);
-        JADE_ASSERT(prefix != 0);
         base58_addr(prefix, script + 3, &tmp_str);
         break;
 
     case WALLY_SCRIPT_TYPE_P2SH:
         prefix = networkToP2SHPrefix(network);
-        JADE_ASSERT(prefix != 0);
         base58_addr(prefix, script + 2, &tmp_str);
         break;
 
@@ -71,9 +68,7 @@ void script_to_address(const char* network, uint8_t* script, size_t script_len, 
 void elements_script_to_address(const char* network, uint8_t* script, size_t script_len, const uint8_t* blinding_key,
     size_t blinding_key_len, char* output, size_t output_len)
 {
-    // TODO: check wally return codes
-    JADE_ASSERT(isValidNetwork(network));
-    JADE_ASSERT(isLiquid(network));
+    JADE_ASSERT(isLiquidNetwork(network));
 
     int ret = 0;
     if (!script || !script_len) {
@@ -98,13 +93,11 @@ void elements_script_to_address(const char* network, uint8_t* script, size_t scr
 
     case WALLY_SCRIPT_TYPE_P2PKH:
         prefix = networkToP2PKHPrefix(network);
-        JADE_ASSERT(prefix != 0);
         base58_addr(prefix, script + 3, &tmp_str);
         break;
 
     case WALLY_SCRIPT_TYPE_P2SH:
         prefix = networkToP2SHPrefix(network);
-        JADE_ASSERT(prefix != 0);
         base58_addr(prefix, script + 2, &tmp_str);
         break;
 

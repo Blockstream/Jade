@@ -156,7 +156,7 @@ void sign_liquid_tx_process(void* process_ptr)
     size_t written = 0;
     rpc_get_string("network", sizeof(network), &params, network, &written);
     CHECK_NETWORK_CONSISTENT(process, network, written);
-    if (!isLiquid(network)) {
+    if (!isLiquidNetwork(network)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "sign_liquid_tx call only appropriate for liquid network", NULL);
         goto cleanup;
