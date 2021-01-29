@@ -60,9 +60,19 @@ bool validate_change_paths(jade_process_t* process, const char* network, struct 
                 return false;
             }
 
-            // Optional recovery xpub for 2of3 accounts
-            char xpubrecovery[120];
+            // Optional script variant, default is green-multisig
             size_t written = 0;
+            char variant[16];
+            script_variant_t script_variant;
+            rpc_get_string("variant", sizeof(variant), &arrayItem, variant, &written);
+            if (!get_script_variant(variant, written, &script_variant)) {
+                *errmsg = "Invalid script variant parameter";
+                return false;
+            }
+
+            // Optional recovery xpub for 2of3 accounts
+            written = 0;
+            char xpubrecovery[120];
             rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &arrayItem, xpubrecovery, &written);
 
             // Optional 'blocks' for csv outputs
@@ -70,8 +80,8 @@ bool validate_change_paths(jade_process_t* process, const char* network, struct 
             rpc_get_sizet("csv_blocks", &arrayItem, &csvBlocks);
 
             // Try to recreate the change/receive script and compare to the txn value
-            if (!wallet_validate_receive_script(network, !written ? NULL : xpubrecovery, csvBlocks, path, path_len,
-                    tx->outputs[i].script, tx->outputs[i].script_len)) {
+            if (!wallet_validate_receive_script(network, script_variant, written ? xpubrecovery : NULL, csvBlocks, path,
+                    path_len, tx->outputs[i].script, tx->outputs[i].script_len)) {
                 // Change path provided, but failed to validate - error
                 JADE_LOGE("Output %u change path/script failed to validate", i);
                 *errmsg = "Change script cannot be validated";

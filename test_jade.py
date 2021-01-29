@@ -91,6 +91,24 @@ TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
 slot invite sadness banana'
 
+# NOTE: the best way to generate test cases is directly in core.
+# You need to poke the seed below into the wallet as a base58 wif, as below:
+# bitcoin-cli sethdseed true "92zRAmYnWVRrWJ6cQb8yrzEz9r3aXj4oEUiPAZEbiPKHpCnxkKz"
+#
+# NOTE: if using liquid you also need to import the master-blindingkey (which
+# green/wally derives from the seed using slip77, but elements-core does not)
+# elements-cli importmasterblindingkey
+#                     "946549f3bb3fc7449a6e86908b3bf1cc19f50cbdd9c1c459632b7624b397aec1"
+#
+# To generate txns it'll need some funds!
+# Get an address and mine over 100 blocks to that address to get some money
+# in the wallet.  eg:
+# bitcoin-cli generatetoaddress 120 2N8Yn3oXF7Pg38yBpuvoheDS7981vW4vy5b (for p2wsh-p2sh),
+#                                   mwJDHFp93fuHZysBwU7RTiFXrJZXXcPuUc (p2pkh legacy) or
+#                                   bcrt1qkrkcltr7kx5s5alsvnpvkcfunlrjtwx942zmn4 (p2wsh native)
+#
+TEST_SEED_SINGLE_SIG = 'b90e532426d0dc20fffe01037048c018e940300038b165c211915c672e07762c'
+
 # NOTE: for get-xpub the root (empty path array) can be accessed (to allow
 # external creation of watch-only public key tree)
 # NOTE: networks 'liquid' and 'mainnet' result in 'xpub' prefix, else 'tpub'
@@ -133,6 +151,64 @@ RpzEQ6pt6yCbPYGnjqNaTtxN2ZdLmMMjWMVvJdzd5uD9cysaRc4Es5auve68RAwijQqReG3AT'),
                          ('liquid', 10, 1, 122, None, 65535, 'VJLGotGqjthW3NY7\
 JFZ7EaJZo8rnuRi23waPVY7FwJTYxtFNrNLy6CC4VEQoKRmd5VkL2mmuo64LfZNy')]
 
+GET_SINGLE_SIG_ADDR_DATA = [  # The below were generated on core
+                            ('regtest', 'sh(wpkh(k))',
+                             [2147483648, 2147483648, 2147483657],
+                             '2N8Yn3oXF7Pg38yBpuvoheDS7981vW4vy5b'),
+                            ('regtest', 'wpkh(k)',
+                             [2147483648, 2147483648, 2147483658],
+                             'bcrt1qkrkcltr7kx5s5alsvnpvkcfunlrjtwx942zmn4'),
+                            ('regtest', 'pkh(k)',
+                             [2147483648, 2147483648, 2147483659],
+                             'mwJDHFp93fuHZysBwU7RTiFXrJZXXcPuUc'),
+                            # And these on elements ...
+                            ('localtest-liquid', 'sh(wpkh(k))',
+                             [2147483648, 2147483648, 2147483649],
+                             'AzpnFQq17AnWm4gvL2oHLRucFawmq8VWFyaxfPX3EgrihEdw\
+DXWmb1QmA7QrRu5RCy3wDtSe8h9WxKbQ'),
+                            ('localtest-liquid', 'wpkh(k)',
+                             [2147483648, 2147483648, 2147483650],
+                             'el1qqwud2rtjxwgfxc9wrey504mtjqujrmzsc442zway65gk\
+uj2f0mm4xfv8h3sqfz223jxjrj307zyqln2dywxmsvpvs9x2tvufj'),
+                            ('localtest-liquid', 'pkh(k)',
+                             [2147483648, 2147483648, 2147483651],
+                             'CTEuAWMSL94hM2PbTzoe8TGLjyVkkSgdPFas7eUMouiGk5Q2\
+SfzadGnGduPwvoVK1ZpthykJup8A8Eh2'),
+
+                            # The below are 'speculative' ...
+                            ('mainnet', 'sh(wpkh(k))',
+                             [2147483648, 2147483648, 2147483657],
+                             '3GzZz4bDVwAgwBZHEoBq2GSqvmokj9e4Jx'),
+                            ('mainnet', 'wpkh(k)',
+                             [2147483648, 2147483648, 2147483657],
+                             'bc1qpky3r9yuz5gguvuqkrf2dfqtqgutr9evgnjmq6'),
+                            ('mainnet', 'pkh(k)',
+                             [2147483648, 2147483648, 2147483657],
+                             '12EZzC9ck31rxaFYKbGwVj1gYXsUwfHuWj'),
+
+                            ('testnet', 'sh(wpkh(k))',
+                             [2147483648, 2147483648, 2147483657],
+                             '2N8Yn3oXF7Pg38yBpuvoheDS7981vW4vy5b'),
+                            ('testnet', 'wpkh(k)',
+                             [2147483648, 2147483648, 2147483657],
+                             'tb1qpky3r9yuz5gguvuqkrf2dfqtqgutr9evz4fgmf'),
+                            ('testnet', 'pkh(k)',
+                             [2147483648, 2147483648, 2147483657],
+                             'mgkXHFEbZ4T7jgjA3AFKKeE1QXUBrX7qQC'),
+
+                            ('liquid', 'sh(wpkh(k))',
+                             [2147483648, 2147483648, 2147483657],
+                             'VJLGcUjN2q6HHuNUAQJ2LEASQnr5LkD2DgDwT2vcyQjKhA3B5\
+a2VAgp94Gj5rSXYiD6eHmGJmVSHY5xG'),
+                            ('liquid', 'wpkh(k)',
+                             [2147483648, 2147483648, 2147483657],
+                             'lq1qq28n8pj790vsyd6t5lr6n0puhrp7hd8wvcgrlm8knxm6\
+84lxq6pzjrvfzx2fc9gs3cecpvxj56jqkq3ckxtjch29qp250leah'),
+                            ('liquid', 'pkh(k)',
+                             [2147483648, 2147483648, 2147483657],
+                             'VTptEdHihA78rUG9BgCLvSgu3PUwLE3kBxwqtqf4arjQzYE7\
+fw6k5FN4WkHjjHGiP6aMcNxcaVy7zgRY')]
+
 # Hold test data in separate files as can be large
 SIGN_MSG_TESTS = _load_json_test_cases("msg_*.json")
 
@@ -144,6 +220,12 @@ SIGN_TXN_FAIL_CASES = list(map(_h2b_signing_test_case,
 
 SIGN_LIQUID_TXN_TESTS = list(map(_h2b_signing_test_case,
                                  _load_json_test_cases("liquid_txn_*.json")))
+
+SIGN_SINGLE_SIG_TESTS = list(map(_h2b_signing_test_case,
+                                 _load_json_test_cases("singlesig_txn*.json")))
+
+SIGN_SINGLE_SIG_LIQUID_TESTS = list(map(_h2b_signing_test_case,
+                                        _load_json_test_cases("singlesig_liquid_txn*.json")))
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -451,6 +533,14 @@ d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a069\
                   (('badrecvaddr10', 'get_receive_address',
                     {'subaccount': 1, 'branch': 1, 'pointer': 1,
                      'network': 'invalid'}), 'extract valid network'),
+                  (('badrecvaddr11', 'get_receive_address',
+                    {'path': [1, 2, 3], 'network': 'testnet'}), 'extract path elements'),
+                  (('badrecvaddr12', 'get_receive_address',
+                    {'subaccount': 1, 'branch': 1, 'pointer': 1, 'variant': 'pkh(k)',
+                     'network': 'testnet'}), 'extract valid path'),
+                  (('badrecvaddr13', 'get_receive_address',
+                    {'path': [1, 2, 3], 'variant': 'p2pkh',
+                     'network': 'testnet'}), 'Invalid script variant parameter'),
 
                   # Note: for signing messages the root key (empty bip32 path
                   # array) is not allowed and should return bad-param.
@@ -1068,7 +1158,8 @@ def run_api_tests(jadeapi, authuser=False):
 
     # Get (receive) green-address
     for network, subact, branch, ptr, recovxpub, csvblocks, expected in GET_GREENADDRESS_DATA:
-        rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovxpub, csvblocks)
+        rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
+                                           csv_blocks=csvblocks)
         assert rslt == expected
 
     # Get xpubs
@@ -1150,6 +1241,45 @@ def run_api_tests(jadeapi, authuser=False):
         for sig in rslt:
             if len(sig) > 0:
                 assert len(sig) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+
+    # Sign single sig
+    # Single sig requires a different seed for the tests
+    rslt = jadeapi.set_seed(bytes.fromhex(TEST_SEED_SINGLE_SIG))
+    assert rslt is True
+
+    # Get receive address
+    for network, variant, path, expected in GET_SINGLE_SIG_ADDR_DATA:
+        rslt = jadeapi.get_receive_address(network, path, variant=variant)
+        assert rslt == expected
+
+    for txn_data in SIGN_SINGLE_SIG_TESTS:
+        input = txn_data['input']
+        rslt = jadeapi.sign_tx(input['network'],
+                               input['txn'],
+                               input['inputs'],
+                               input['change'])
+
+        assert rslt == txn_data['expected_output']
+        for sig in rslt:
+            if len(sig) > 0:
+                assert len(sig) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+
+    for txn_data in SIGN_SINGLE_SIG_LIQUID_TESTS:
+        input = txn_data['input']
+        rslt = jadeapi.sign_liquid_tx(input['network'],
+                                      input['txn'],
+                                      input['inputs'],
+                                      input['trusted_commitments'],
+                                      input['change'])
+
+        assert rslt == txn_data['expected_output']
+        for sig in rslt:
+            if len(sig) > 0:
+                assert len(sig) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+
+    # restore the mnemonic after single sig tests
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
+    assert rslt is True
 
     time.sleep(1)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()

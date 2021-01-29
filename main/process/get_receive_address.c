@@ -21,6 +21,7 @@ void get_receive_address_process(void* process_ptr)
     jade_process_t* process = process_ptr;
 
     char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+    char variant[16];
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_receive_address");
@@ -31,18 +32,39 @@ void get_receive_address_process(void* process_ptr)
     rpc_get_string("network", sizeof(network), &params, network, &written);
     CHECK_NETWORK_CONSISTENT(process, network, written);
 
-    // Subaccount, branch and pointer passed in message
-    uint32_t subaccount = 0, branch = 0, pointer = 0;
-    if (!rpc_get_sizet("subaccount", &params, &subaccount) || !rpc_get_sizet("branch", &params, &branch)
-        || !rpc_get_sizet("pointer", &params, &pointer)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters", NULL);
+    // Handle script variants.
+    // (Green-multisig is the default for backwards compatibility)
+    written = 0;
+    script_variant_t script_variant;
+    rpc_get_string("variant", sizeof(variant), &params, variant, &written);
+    if (!get_script_variant(variant, written, &script_variant)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid script variant parameter", NULL);
         goto cleanup;
     }
 
-    uint32_t path[4]; // Sufficient for all green-address paths
+    uint32_t path[16]; // Sufficient for all green-address and other reasonable paths
     size_t path_len = 0;
-    wallet_build_receive_path(subaccount, branch, pointer, path, sizeof(path), &path_len);
+
+    if (script_variant == GREEN) {
+        // For green-multisig the path is constructed from subaccount, branch and pointer
+        uint32_t subaccount = 0, branch = 0, pointer = 0;
+        if (!rpc_get_sizet("subaccount", &params, &subaccount) || !rpc_get_sizet("branch", &params, &branch)
+            || !rpc_get_sizet("pointer", &params, &pointer)) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters", NULL);
+            goto cleanup;
+        }
+
+        wallet_build_receive_path(subaccount, branch, pointer, path, sizeof(path), &path_len);
+    } else {
+        // Otherwise the path is explicit in the params
+        rpc_get_bip32_path("path", &params, path, sizeof(path), &path_len);
+        if (path_len == 0) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
+            goto cleanup;
+        }
+    }
 
     // Optional xpub for 2of3 accounts
     written = 0;
@@ -53,10 +75,11 @@ void get_receive_address_process(void* process_ptr)
     uint32_t csvBlocks = 0;
     rpc_get_sizet("csv_blocks", &params, &csvBlocks);
 
-    // Build a greenaddress script pubkey for the passed parameters
-    unsigned char script[WALLY_SCRIPTPUBKEY_P2SH_LEN];
-    if (!wallet_build_receive_script(
-            network, !written ? NULL : xpubrecovery, csvBlocks, path, path_len, script, sizeof(script))) {
+    // Build a script pubkey for the passed parameters
+    size_t script_len = 0;
+    unsigned char script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient for all scripts
+    if (!wallet_build_receive_script(network, script_variant, written ? xpubrecovery : NULL, csvBlocks, path, path_len,
+            script, sizeof(script), &script_len)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid green address script", NULL);
         goto cleanup;
@@ -67,14 +90,14 @@ void get_receive_address_process(void* process_ptr)
     if (isLiquidNetwork(network)) {
         // Blind address
         unsigned char blinding_key[EC_PUBLIC_KEY_LEN];
-        if (!wallet_get_public_blinding_key(script, sizeof(script), blinding_key, sizeof(blinding_key))) {
+        if (!wallet_get_public_blinding_key(script, script_len, blinding_key, sizeof(blinding_key))) {
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding key for script", NULL);
             goto cleanup;
         }
         elements_script_to_address(
-            network, script, sizeof(script), blinding_key, sizeof(blinding_key), address, sizeof(address));
+            network, script, script_len, blinding_key, sizeof(blinding_key), address, sizeof(address));
     } else {
-        script_to_address(network, script, sizeof(script), address, sizeof(address));
+        script_to_address(network, script, script_len, address, sizeof(address));
     }
 
     // Display to the user to confirm

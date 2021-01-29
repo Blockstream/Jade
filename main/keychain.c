@@ -156,28 +156,30 @@ bool keychain_derive(const char* mnemonic, keychain_t* keydata)
     SENSITIVE_PUSH(seed, sizeof(seed));
 
     size_t written = 0;
-    JADE_WALLY_VERIFY(bip39_mnemonic_to_seed(mnemonic, NULL, seed, BIP32_ENTROPY_LEN_512, &written));
-    if (written != BIP32_ENTROPY_LEN_512) {
-        JADE_LOGE("Unexpected seed length: %u", written);
-        SENSITIVE_POP(seed);
-        return false;
-    }
+    JADE_WALLY_VERIFY(bip39_mnemonic_to_seed(mnemonic, NULL, seed, sizeof(seed), &written));
+    JADE_ASSERT_MSG(written == sizeof(seed), "Unexpected seed length: %u", written);
+
+    keychain_derive_from_seed(seed, sizeof(seed), keydata);
+
+    SENSITIVE_POP(seed);
+    return true;
+}
+
+void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len, keychain_t* keydata)
+{
+    JADE_ASSERT(seed);
+    JADE_ASSERT(seed_len);
+    JADE_ASSERT(keydata);
 
     // Use mainnet version by default - will be overridden if key serialised for specific network
     // (eg. in get_xpub call).
-    const int wret1 = bip32_key_from_seed(seed, BIP32_ENTROPY_LEN_512, BIP32_VER_MAIN_PRIVATE, 0, &keydata->xpriv);
-    const int wret2 = wally_asset_blinding_key_from_seed(
-        seed, BIP32_ENTROPY_LEN_512, keydata->master_unblinding_key, HMAC_SHA512_LEN);
-    SENSITIVE_POP(seed);
-    JADE_WALLY_VERIFY(wret1);
-    JADE_WALLY_VERIFY(wret2);
+    JADE_WALLY_VERIFY(bip32_key_from_seed(seed, seed_len, BIP32_VER_MAIN_PRIVATE, 0, &keydata->xpriv));
+    JADE_WALLY_VERIFY(
+        wally_asset_blinding_key_from_seed(seed, seed_len, keydata->master_unblinding_key, HMAC_SHA512_LEN));
 
     if (!populate_service_path(keydata)) {
-        JADE_LOGE("Failed to compute GA service path");
-        return false;
+        JADE_ASSERT_MSG(false, "Failed to compute GA service path");
     }
-
-    return true;
 }
 
 static bool serialize(unsigned char* serialized, const keychain_t* keydata)

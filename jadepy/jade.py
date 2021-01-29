@@ -206,6 +206,11 @@ class JadeAPI:
         params = {'mnemonic': mnemonic}
         return self._jadeRpc('debug_set_mnemonic', params)
 
+    # Set the (debug) seed
+    def set_seed(self, seed):
+        params = {'seed': seed}
+        return self._jadeRpc('debug_set_mnemonic', params)
+
     # Trigger user authentication on the hw
     # Involves pinserver handshake
     def auth_user(self, network, http_request_fn=None):
@@ -220,11 +225,16 @@ class JadeAPI:
         return self._jadeRpc('get_xpub', params)
 
     # Get receive-address for parameters
-    def get_receive_address(self, network, subaccount, branch, pointer,
-                            recovery_xpub=None, csv_blocks=0):
-        params = {'network': network, 'subaccount': subaccount, 'branch': branch,
-                  'pointer': pointer, 'recovery_xpub': recovery_xpub, 'csv_blocks': csv_blocks}
-        return self._jadeRpc('get_receive_address', params)
+    def get_receive_address(self, *args, recovery_xpub=None, csv_blocks=0, variant=None):
+        if variant is not None:
+            assert len(args) == 2
+            keys = ['network', 'path', 'variant']
+            args += (variant,)
+        else:
+            assert len(args) == 4
+            keys = ['network', 'subaccount', 'branch', 'pointer', 'recovery_xpub', 'csv_blocks']
+            args += (recovery_xpub, csv_blocks)
+        return self._jadeRpc('get_receive_address', dict(zip(keys, args)))
 
     # Sign a message
     def sign_message(self, path, message):

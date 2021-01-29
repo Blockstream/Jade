@@ -6,6 +6,7 @@
 
 #include <cbor.h>
 #include <string.h>
+#include <wally_bip39.h>
 
 #include "process_utils.h"
 
@@ -25,29 +26,41 @@ void debug_set_mnemonic_process(void* process_ptr)
     GET_MSG_PARAMS(process);
 
     char mnemonic[MAX_MNEMONIC_LEN];
+    SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
+    const uint8_t* seed;
     size_t written = 0;
 
-    rpc_get_string("mnemonic", sizeof(mnemonic), &params, mnemonic, &written);
-
-    if (written == 0) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract mnemonic from parameters", NULL);
-        return;
-    }
-
     keychain_t keydata;
-    const bool retval = keychain_derive(mnemonic, &keydata);
-    if (!retval) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to derive keychain from mnemonic", mnemonic);
-        return;
-    }
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
-    // Copy temporary keychain into a new global keychain,
-    // set the current message source as the keychain userdata
+    // Slightly hacky, can accept a seed or a mnemonic
+    rpc_get_bytes_ptr("seed", &params, &seed, &written);
+    if (written > 0) {
+        if (written != 32 && written != 64) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid seed length", NULL);
+            goto cleanup;
+        }
+        keychain_derive_from_seed(seed, written, &keydata);
+    } else {
+        // Cannot use rpc_get_string_ptr here unfortunately because the resulting string
+        // is not null-terminated and we need a null terminated string to pass to wally
+        rpc_get_string("mnemonic", sizeof(mnemonic), &params, mnemonic, &written);
+        if (written > 0) {
+            if (!keychain_derive(mnemonic, &keydata)) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to derive keychain from mnemonic", mnemonic);
+                goto cleanup;
+            }
+        } else {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract mnemonic or seed from parameters", NULL);
+            goto cleanup;
+        }
+    }
+
+    // Copy temporary keychain into a new global keychain
+    // and remove the restriction on network-types.
     set_keychain(&keydata, (uint8_t)process->ctx.source);
-    SENSITIVE_POP(&keydata);
 
     // Remove the restriction on network-types.
     keychain_clear_network_type_restriction();
@@ -56,5 +69,7 @@ void debug_set_mnemonic_process(void* process_ptr)
     JADE_LOGI("Success");
 
 cleanup:
+    SENSITIVE_POP(&keydata);
+    SENSITIVE_POP(mnemonic);
     return;
 }

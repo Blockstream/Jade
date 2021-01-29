@@ -14,16 +14,21 @@
 #define ASSET_BLINDING_FACTOR 'A'
 #define VALUE_BLINDING_FACTOR 'V'
 
+// Supported script variants
+typedef enum { GREEN, P2PKH, P2WPKH, P2WPKH_P2SH } script_variant_t;
+
 void wallet_init();
 
 bool bip32_path_as_str(uint32_t parts[], size_t num_parts, char* output, size_t output_len);
+bool get_script_variant(const char* variant, const size_t variant_len, script_variant_t* output);
 
 void wallet_build_receive_path(uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path,
     size_t output_size, size_t* output_len);
-bool wallet_build_receive_script(const char* network, const char* xpubrecovery, uint32_t csvBlocks,
-    const uint32_t* path, size_t path_size, unsigned char* output, size_t output_len);
-bool wallet_validate_receive_script(const char* network, const char* xpubrecovery, uint32_t csvBlocks,
-    const uint32_t* path, size_t path_size, const unsigned char* script, size_t script_len);
+bool wallet_build_receive_script(const char* network, script_variant_t variant, const char* xpubrecovery,
+    uint32_t csvBlocks, const uint32_t* path, size_t path_size, unsigned char* output, size_t output_len,
+    size_t* written);
+bool wallet_validate_receive_script(const char* network, script_variant_t variant, const char* xpubrecovery,
+    uint32_t csvBlocks, const uint32_t* path, size_t path_size, const unsigned char* script, size_t script_len);
 
 bool wallet_get_xpub(const char* network, const uint32_t* path, uint32_t path_len, char** output);
 bool wallet_get_message_hash_hex(const char* message, size_t msg_len, char** output);
