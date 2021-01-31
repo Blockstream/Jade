@@ -16,7 +16,7 @@ config OV7725_SUPPORT
 	
 config OV3660_SUPPORT
     bool "OV3660 Support"
-    default y
+    default n
     help
         Enable this option if you want to use the OV3360.
         Disable this option to safe memory.
