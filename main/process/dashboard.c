@@ -200,7 +200,8 @@ cleanup:
     return;
 }
 
-#define IS_METHOD(method_name) !strncmp(method, method_name, method_len)
+// method_name should be a string literal - or at least non-null and null-terminated
+#define IS_METHOD(method_name) (!strncmp(method, method_name, method_len) && strlen(method_name) == method_len)
 
 // Message dispatcher - expects valid cbor messages, routed by 'method'
 static void dispatch_message(jade_process_t* process)

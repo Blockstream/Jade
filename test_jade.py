@@ -300,19 +300,21 @@ def test_concatenated_messages(jade):
 
 
 def test_unknown_method(jade):
-    request = jade.build_request('unk1', 'dostuffman',
-                                 {'path': (0, 1, 2, 3, 4),
-                                  'message': 'Jade is cool'})
-    reply = jade.make_rpc_call(request)
+    # Includes tests of method prefixes 'get...' and 'sign...'
+    for id, method in [('unk0', 'dostuff'), ('unk1', 'get'), ('unk2', 'sign')]:
+        request = jade.build_request(id, method,
+                                     {'path': (0, 1, 2, 3, 4),
+                                      'message': 'Jade is cool'})
+        reply = jade.make_rpc_call(request)
 
-    # Returned id should match sent
-    assert reply['id'] == 'unk1'
+        # Returned id should match sent
+        assert reply['id'] == id
 
-    # Assert unknown method response
-    error = reply['error']
-    assert error['code'] == -32601  # rpc unknown method
-    assert error['message'] == 'Unknown method'
-    assert 'result' not in reply
+        # Assert unknown method response
+        error = reply['error']
+        assert error['code'] == -32601  # rpc unknown method
+        assert error['message'] == 'Unknown method'
+        assert 'result' not in reply
 
 
 def test_unexpected_method(jade):
@@ -639,7 +641,13 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                      'type': 123}), 'extract blinding factor type'),
                   (('badblindfac9', 'get_blinding_factor',
                     {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': 0,
-                     'type': 'BAD'}), 'extract blinding factor type'),
+                     'type': 'BAD'}), 'Invalid blinding factor type'),
+                  (('badblindfac10', 'get_blinding_factor',
+                    {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': 0,
+                     'type': 'ASSETXYZ'}), 'Invalid blinding factor'),
+                  (('badblindfac11', 'get_blinding_factor',
+                    {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': 0,
+                     'type': 'VALUEVERYBAD'}), 'extract blinding factor type'),
 
                   (('badcommit1', 'get_commitments'), 'Expecting parameters map'),
                   (('badcommit2', 'get_commitments',

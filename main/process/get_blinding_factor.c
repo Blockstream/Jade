@@ -36,10 +36,10 @@ void get_blinding_factor_process(void* process_ptr)
         goto cleanup;
     }
 
-    const char* type_str = NULL;
+    char type_str[8];
     size_t written = 0;
-    rpc_get_string_ptr("type", &params, &type_str, &written);
-    if (written < 5) {
+    rpc_get_string("type", sizeof(type_str), &params, type_str, &written);
+    if (written == 0) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Cannot extract blinding factor type from parameters", NULL);
         goto cleanup;
@@ -47,9 +47,9 @@ void get_blinding_factor_process(void* process_ptr)
 
     // Map type
     uint8_t type = 0;
-    if (strncmp("ASSET", type_str, 5) == 0) {
+    if (strcmp("ASSET", type_str) == 0) {
         type = ASSET_BLINDING_FACTOR;
-    } else if (strncmp("VALUE", type_str, 5) == 0) {
+    } else if (strcmp("VALUE", type_str) == 0) {
         type = VALUE_BLINDING_FACTOR;
     } else {
         jade_process_reject_message(
