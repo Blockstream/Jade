@@ -19,6 +19,33 @@
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
+// For now just return 'single-sig' or 'other'.
+// In future may extend to inlcude eg. 'green', 'other-multisig', etc.
+script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len)
+{
+    size_t script_type;
+    JADE_WALLY_VERIFY(wally_scriptpubkey_get_type(script, script_len, &script_type));
+    if (script_type == WALLY_SCRIPT_TYPE_P2PKH || script_type == WALLY_SCRIPT_TYPE_P2WPKH) {
+        return SCRIPT_FLAVOUR_SINGLESIG;
+    } else {
+        return SCRIPT_FLAVOUR_OTHER;
+    }
+}
+
+// Track the types of the input prevout scripts
+void update_aggregate_scripts_flavour(
+    const script_flavour_t new_script_flavour, script_flavour_t* aggregate_scripts_flavour)
+{
+    JADE_ASSERT(aggregate_scripts_flavour);
+    if (*aggregate_scripts_flavour == SCRIPT_FLAVOUR_NONE) {
+        // First script sets the 'aggregate_scripts_flavour'
+        *aggregate_scripts_flavour = new_script_flavour;
+    } else if (*aggregate_scripts_flavour != new_script_flavour) {
+        // As soon as we see something differet, set to 'mixed'
+        *aggregate_scripts_flavour = SCRIPT_FLAVOUR_MIXED;
+    }
+}
+
 // Can optionally be passed paths for change outputs, which we verify internally
 bool validate_change_paths(jade_process_t* process, const char* network, struct wally_tx* tx, CborValue* change,
     output_info_t* output_info, char** errmsg)
@@ -234,6 +261,10 @@ void sign_tx_process(void* process_ptr)
     signing_data_t* const all_signing_data = JADE_CALLOC(num_inputs, sizeof(signing_data_t));
     jade_process_free_on_exit(process, all_signing_data);
 
+    // We track if the type of the inputs we are signing changes (ie. single-sig vs
+    // green/multisig/other) so we can show a warning to the user if so.
+    script_flavour_t aggregate_inputs_scripts_flavour = SCRIPT_FLAVOUR_NONE;
+
     // Run through each input message and generate a signature for each one
     uint64_t input_amount = 0;
     for (size_t index = 0; index < num_inputs; ++index) {
@@ -288,6 +319,10 @@ void sign_tx_process(void* process_ptr)
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
                 goto cleanup;
             }
+
+            // Track the types of the input prevout scripts
+            const script_flavour_t script_flavour = get_script_flavour(script, script_len);
+            update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
         }
 
         // Full input tx can be omitted for transactions with only one single witness
@@ -394,13 +429,15 @@ void sign_tx_process(void* process_ptr)
 
     gui_activity_t* final_activity;
     const uint64_t fees = input_amount - output_amount;
-    make_display_final_confirmation_activity(tx, fees, NULL, &final_activity);
+    const char* const warning_msg
+        = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
+    make_display_final_confirmation_activity(tx, fees, warning_msg, &final_activity);
     JADE_ASSERT(final_activity);
     gui_set_current_activity(final_activity);
 
-    // ----------------------------------
-    // Wait for the confirmation btn
-    // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+// ----------------------------------
+// Wait for the confirmation btn
+// In a debug unattended ci build, assume 'accept' button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
     const bool fee_ret
         = gui_activity_wait_event(final_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);

@@ -19,6 +19,9 @@
 #include "process_utils.h"
 
 // From sign_tx.c
+script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len);
+void update_aggregate_scripts_flavour(
+    const script_flavour_t new_script_flvaour, script_flavour_t* aggregate_scripts_flavour);
 bool validate_change_paths(jade_process_t* process, const char* network, struct wally_tx* tx, CborValue* change,
     output_info_t* output_info, char** errmsg);
 
@@ -315,6 +318,10 @@ void sign_liquid_tx_process(void* process_ptr)
     signing_data_t* const all_signing_data = JADE_CALLOC(num_inputs, sizeof(signing_data_t));
     jade_process_free_on_exit(process, all_signing_data);
 
+    // We track if the type of the inputs we are signing changes (ie. single-sig vs
+    // green/multisig/other) so we can show a warning to the user if so.
+    script_flavour_t aggregate_inputs_scripts_flavour = SCRIPT_FLAVOUR_NONE;
+
     // Run through each input message and generate a signature for each one
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
@@ -365,6 +372,10 @@ void sign_liquid_tx_process(void* process_ptr)
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
                 goto cleanup;
             }
+
+            // Track the types of the input prevout scripts
+            const script_flavour_t script_flavour = get_script_flavour(script, script_len);
+            update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
         }
 
         // update hash_prevouts with the current output being spent
@@ -450,7 +461,9 @@ void sign_liquid_tx_process(void* process_ptr)
     }
 
     gui_activity_t* final_activity;
-    make_display_elements_final_confirmation_activity(tx, fees, NULL, &final_activity);
+    const char* const warning_msg
+        = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
+    make_display_elements_final_confirmation_activity(tx, fees, warning_msg, &final_activity);
     JADE_ASSERT(final_activity);
     gui_set_current_activity(final_activity);
 

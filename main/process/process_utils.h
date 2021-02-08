@@ -34,4 +34,14 @@
         goto cleanup;                                                                                                  \
     }
 
+// For tracking input types
+typedef enum {
+    SCRIPT_FLAVOUR_NONE,
+    SCRIPT_FLAVOUR_SINGLESIG,
+    SCRIPT_FLAVOUR_OTHER,
+    SCRIPT_FLAVOUR_MIXED
+} script_flavour_t;
+
+#define WARN_MSG_MIXED_INPUTS "Your inputs in this transaction are of varying types."
+
 #endif /* PROCESS_UTILS_H_ */
