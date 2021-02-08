@@ -142,7 +142,9 @@ static void prev_selected_digit(pin_insert_activity_t* pin_insert)
 
 static void next_value(pin_insert_activity_t* pin_insert)
 {
-    pin_insert->current_selected_value = (pin_insert->current_selected_value + 1) % 11;
+    // Do not show '<' on first pin digit
+    const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? 10 : 11;
+    pin_insert->current_selected_value = (pin_insert->current_selected_value + 1) % digit_value_ceiling;
 
     // TODO: skip < if selected_digit == 0
     update_digit_node(pin_insert, pin_insert->selected_digit);
@@ -150,7 +152,10 @@ static void next_value(pin_insert_activity_t* pin_insert)
 
 static void prev_value(pin_insert_activity_t* pin_insert)
 {
-    pin_insert->current_selected_value = (11 + pin_insert->current_selected_value - 1) % 11;
+    // Do not show '<' on first pin digit
+    const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? 10 : 11;
+    pin_insert->current_selected_value
+        = (digit_value_ceiling + pin_insert->current_selected_value - 1) % digit_value_ceiling;
 
     // TODO: skip < if selected_digit == 0
     update_digit_node(pin_insert, pin_insert->selected_digit);
