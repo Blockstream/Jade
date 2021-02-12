@@ -214,7 +214,8 @@ static void make_output_activity(output_activity_t* output_activity, const bool 
     output_activity->next_button = btn3;
 }
 
-static void make_final_activity(output_activity_t* output_activity, const char* total_fee, const char* ticker)
+static void make_final_activity(
+    output_activity_t* output_activity, const char* total_fee, const char* ticker, const char* warning_msg)
 {
     JADE_ASSERT(output_activity);
 
@@ -222,59 +223,62 @@ static void make_final_activity(output_activity_t* output_activity, const char* 
     gui_make_activity(&act, true, "Summary");
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 22, 44, 34);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, act->root_node);
 
+    gui_view_node_t* bg1;
+    gui_make_fill(&bg1, TFT_BLACK);
+    gui_set_parent(bg1, vsplit);
+
+    gui_view_node_t* hsplit_text1;
+    gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 20, 80);
+    gui_set_parent(hsplit_text1, bg1);
+
+    gui_view_node_t* text1;
+    gui_make_text(&text1, "Fee", TFT_WHITE);
+    gui_set_parent(text1, hsplit_text1);
+    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_borders(text1, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+
+    gui_view_node_t* text1b;
+    char tx_fees[32];
+    const int ret = snprintf(tx_fees, sizeof(tx_fees), "%s %s", total_fee, ticker);
+    JADE_ASSERT(ret > 0 && ret < sizeof(tx_fees));
+    gui_make_text(&text1b, tx_fees, TFT_WHITE);
+    gui_set_parent(text1b, hsplit_text1);
+    gui_set_align(text1b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+
+    // Show any warning message
+    gui_view_node_t* bg2;
+    gui_make_fill(&bg2, TFT_BLACK);
+    gui_set_parent(bg2, vsplit);
     gui_view_node_t* bg3;
     gui_make_fill(&bg3, TFT_BLACK);
     gui_set_parent(bg3, vsplit);
 
-    gui_view_node_t* hsplit_text3;
-    gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 20, 80);
-    gui_set_parent(hsplit_text3, bg3);
+    if (warning_msg) {
+        gui_view_node_t* text2;
+        gui_make_text(&text2, "Warning:", TFT_RED);
+        gui_set_parent(text2, bg2);
+        gui_set_align(text2, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_text_scroll(text2, TFT_BLACK);
 
-    gui_view_node_t* text3;
-    gui_make_text(&text3, "Fee", TFT_WHITE);
-    gui_set_parent(text3, hsplit_text3);
-    gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text3, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
-
-    gui_view_node_t* text3b;
-    char tx_fees[32];
-    const int ret = snprintf(tx_fees, sizeof(tx_fees), "%s %s", total_fee, ticker);
-    JADE_ASSERT(ret > 0 && ret < sizeof(tx_fees));
-    gui_make_text(&text3b, tx_fees, TFT_WHITE);
-    gui_set_parent(text3b, hsplit_text3);
-    gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+        gui_view_node_t* text3;
+        gui_make_text(&text3, warning_msg, TFT_RED);
+        gui_set_parent(text3, bg3);
+        gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_text_scroll(text3, TFT_BLACK);
+    }
 
     gui_view_node_t* bg4;
     gui_make_fill(&bg4, TFT_BLACK);
     gui_set_parent(bg4, vsplit);
 
-    gui_view_node_t* hsplit_text4;
-    gui_make_hsplit(&hsplit_text4, GUI_SPLIT_RELATIVE, 2, 30, 70);
-    gui_set_parent(hsplit_text4, bg4);
-
-    gui_view_node_t* text4;
-    gui_make_text(&text4, "", TFT_WHITE);
-    gui_set_parent(text4, hsplit_text4);
-    gui_set_align(text4, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* text4b;
-    gui_make_text(&text4b, "", TFT_WHITE);
-    gui_set_parent(text4b, hsplit_text4);
-    gui_set_align(text4b, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_text_scroll(text4b, TFT_BLACK);
-
-    gui_view_node_t* bg5;
-    gui_make_fill(&bg5, TFT_BLACK);
-    gui_set_parent(bg5, vsplit);
-
     gui_view_node_t* hsplit_btn;
     gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
     gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, bg5);
+    gui_set_parent(hsplit_btn, bg4);
 
     gui_view_node_t* btn1;
     gui_make_button(&btn1, TFT_BLACK, BTN_CANCEL_SIGNATURE, NULL);
@@ -532,7 +536,8 @@ void make_display_elements_output_activity(const char* network, const struct wal
     *last_activity = act_info.last_activity;
 }
 
-void make_display_final_confirmation_activity(const struct wally_tx* tx, const uint64_t fee, gui_activity_t** activity)
+void make_display_final_confirmation_activity(
+    const struct wally_tx* tx, const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
 {
     JADE_ASSERT(tx);
     JADE_ASSERT(activity);
@@ -543,14 +548,14 @@ void make_display_final_confirmation_activity(const struct wally_tx* tx, const u
 
     // final confirmation screen
     output_activity_t final_act;
-    make_final_activity(&final_act, fee_str, "BTC");
+    make_final_activity(&final_act, fee_str, "BTC", warning_msg);
     JADE_ASSERT(final_act.activity);
 
     *activity = final_act.activity;
 }
 
 void make_display_elements_final_confirmation_activity(
-    const struct wally_tx* tx, const uint64_t fee, gui_activity_t** activity)
+    const struct wally_tx* tx, const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
 {
     JADE_ASSERT(tx);
     JADE_ASSERT(activity);
@@ -561,7 +566,7 @@ void make_display_elements_final_confirmation_activity(
 
     // final confirmation screen
     output_activity_t final_act;
-    make_final_activity(&final_act, fee_str, "L-BTC");
+    make_final_activity(&final_act, fee_str, "L-BTC", warning_msg);
     JADE_ASSERT(final_act.activity);
 
     *activity = final_act.activity;

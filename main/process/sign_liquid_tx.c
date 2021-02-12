@@ -450,7 +450,7 @@ void sign_liquid_tx_process(void* process_ptr)
     }
 
     gui_activity_t* final_activity;
-    make_display_elements_final_confirmation_activity(tx, fees, &final_activity);
+    make_display_elements_final_confirmation_activity(tx, fees, NULL, &final_activity);
     JADE_ASSERT(final_activity);
     gui_set_current_activity(final_activity);
 
