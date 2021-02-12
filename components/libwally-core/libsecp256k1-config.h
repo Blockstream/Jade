@@ -17,6 +17,9 @@
 /* Define this symbol to enable the ECDH module */
 #define ENABLE_MODULE_ECDH 1
 
+/* Define this symbol to enable the ECDSA sign-to-contract module */
+#define ENABLE_MODULE_ECDSA_S2C 1
+
 /* Define this symbol to enable the extrakeys module */
 /* #undef ENABLE_MODULE_EXTRAKEYS */
 
