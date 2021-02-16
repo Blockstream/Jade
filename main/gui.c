@@ -897,6 +897,11 @@ void gui_make_fill(gui_view_node_t** ptr, color_t color)
 
 void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color)
 {
+    gui_make_text_font(ptr, text, color, GUI_DEFAULT_FONT);
+}
+
+void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, uint32_t font)
+{
     JADE_ASSERT(ptr);
     JADE_ASSERT(text);
 
@@ -913,7 +918,7 @@ void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color)
     data->selected_color = color;
 
     // default font initially
-    data->font = GUI_DEFAULT_FONT;
+    data->font = font;
 
     // and top-left
     data->halign = GUI_ALIGN_LEFT;

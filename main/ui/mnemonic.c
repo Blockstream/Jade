@@ -154,21 +154,40 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index
     gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 15, 15, 15, 15, 34);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 30, 30, 34);
     gui_set_parent(vsplit, act->root_node);
 
     // first four rows: the words prefixed by their index, e.g. "1: river"
     char msg[64];
     char* words[] = { word1, word2, word3, word4 };
 
-    for (int i = 0; i < 4; ++i) {
+    gui_view_node_t* hsplit1;
+    gui_make_hsplit(&hsplit1, GUI_SPLIT_RELATIVE, 50, 50);
+    gui_set_parent(hsplit1, vsplit);
+
+    gui_view_node_t* hsplit2;
+    gui_make_hsplit(&hsplit2, GUI_SPLIT_RELATIVE, 50, 50);
+    gui_set_parent(hsplit2, vsplit);
+
+    for (int i = 0; i < 2; ++i) {
         const int ret = snprintf(msg, sizeof(msg), "%2u: %s", first_index + i + 1, words[i]);
         JADE_ASSERT(ret > 0 && ret < sizeof(msg));
 
         gui_view_node_t* text_status;
-        gui_make_text(&text_status, msg, TFT_WHITE);
+        gui_make_text_font(&text_status, msg, TFT_WHITE, UBUNTU16_FONT);
         gui_set_text_noise(text_status, TFT_BLACK);
-        gui_set_parent(text_status, vsplit);
+        gui_set_parent(text_status, hsplit1);
+        gui_set_align(text_status, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    }
+
+    for (int i = 2; i < 4; ++i) {
+        const int ret = snprintf(msg, sizeof(msg), "%2u: %s", first_index + i + 1, words[i]);
+        JADE_ASSERT(ret > 0 && ret < sizeof(msg));
+
+        gui_view_node_t* text_status;
+        gui_make_text_font(&text_status, msg, TFT_WHITE, UBUNTU16_FONT);
+        gui_set_text_noise(text_status, TFT_BLACK);
+        gui_set_parent(text_status, hsplit2);
         gui_set_align(text_status, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     }
 

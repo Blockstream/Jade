@@ -368,6 +368,7 @@ void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t pa
 void gui_make_button(gui_view_node_t** ptr, color_t color, uint32_t event_id, void* args);
 void gui_make_fill(gui_view_node_t** ptr, color_t color);
 void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color);
+void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, uint32_t font);
 void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color);
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture);
 void gui_set_margins(gui_view_node_t* node, uint8_t sides, ...);
