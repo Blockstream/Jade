@@ -248,6 +248,10 @@ void sign_tx_process(void* process_ptr)
         // txn input as expected - get input parameters
         GET_MSG_PARAMS(process);
 
+        size_t script_len = 0;
+        const uint8_t* script = NULL;
+        uint64_t input_satoshi = 0;
+
         // Store the signing data so we can free the (potentially large) input message.
         // Signatures will be generated and replies sent after user confirmation.
         // Reply is our signature for the input, or an empty string if we are not
@@ -276,11 +280,15 @@ void sign_tx_process(void* process_ptr)
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
                 goto cleanup;
             }
-        }
 
-        uint64_t input_satoshi = 0;
-        size_t script_len = 0;
-        uint8_t* script = NULL;
+            // Get prevout script - required for signing inputs
+            rpc_get_bytes_ptr("script", &params, &script, &script_len);
+            if (!script || script_len == 0) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
+                goto cleanup;
+            }
+        }
 
         // Full input tx can be omitted for transactions with only one single witness
         // input, otherwise it must be present to validate the input utxo amounts.
@@ -325,15 +333,6 @@ void sign_tx_process(void* process_ptr)
             // Fetch the amount from the txn
             input_satoshi = input_tx->outputs[tx->inputs[index].index].satoshi;
 
-            // Fetch the scriptPubKey from the txn for a non-segwit input we intend to sign
-            if (has_path && !is_witness) {
-                JADE_LOGD("Using script from input utxo txn");
-                script_len = input_tx->outputs[tx->inputs[index].index].script_len;
-                script = JADE_MALLOC(script_len);
-                memcpy(script, input_tx->outputs[tx->inputs[index].index].script, script_len);
-                jade_process_free_on_exit(process, script);
-            }
-
             // Free the (potentially large) txn immediately
             JADE_WALLY_VERIFY(wally_tx_free(input_tx));
         } else {
@@ -355,22 +354,7 @@ void sign_tx_process(void* process_ptr)
             }
         }
 
-        // For segwit input we expect the prevout-script to be passed explicitly, if
-        //  we are signing (and we would not have extracted it from the input-tx above).
-        if (has_path && is_witness) {
-            JADE_ASSERT(!script);
-            JADE_ASSERT(script_len == 0);
-            JADE_LOGD("For segwit input using explicitly passed prevout script");
-
-            rpc_get_bytes_ptr("script", &params, (const uint8_t**)&script, &script_len);
-            if (!script || script_len <= 0) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
-                goto cleanup;
-            }
-        }
-
-        // Make signature if given a path (should have a script in hand)
+        // Make signature if given a path (should have a prevout script in hand)
         if (has_path) {
             JADE_ASSERT(script);
             JADE_ASSERT(script_len > 0);

@@ -328,6 +328,9 @@ void sign_liquid_tx_process(void* process_ptr)
         // txn input as expected - get input parameters
         GET_MSG_PARAMS(process);
 
+        size_t script_len = 0;
+        const uint8_t* script = NULL;
+
         // Make and store the reply data, and then delete the (potentially
         // large) input message.  Replies will be sent after user confirmation.
         written = 0;
@@ -354,16 +357,14 @@ void sign_liquid_tx_process(void* process_ptr)
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
                 goto cleanup;
             }
-        }
 
-        // get previous scriptPubKey
-        size_t script_len = 0;
-        const uint8_t* script = NULL;
-        rpc_get_bytes_ptr("script", &params, &script, &script_len);
-        if (script_len == 0) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
-            goto cleanup;
+            // Get prevout script - required for signing inputs
+            rpc_get_bytes_ptr("script", &params, &script, &script_len);
+            if (!script || script_len == 0) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
+                goto cleanup;
+            }
         }
 
         // update hash_prevouts with the current output being spent
@@ -405,6 +406,8 @@ void sign_liquid_tx_process(void* process_ptr)
             }
         } else {
             // Empty byte-string reply (no path given implies no sig needed or expected)
+            JADE_ASSERT(!script);
+            JADE_ASSERT(script_len == 0);
             JADE_ASSERT(sig_data->path_len == 0);
         }
     }

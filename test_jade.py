@@ -616,7 +616,8 @@ d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a069\
                        {'is_witness': True, 'satoshi': 120, 'path': [0, 1, 2] * 6}),
                       'extract valid path'),
                      (('badinput3', 'tx_input',
-                       {'is_witness': True, 'path': [123, 456, 789]}), 'extract satoshi'),
+                       {'is_witness': True, 'path': [0],
+                        'script': h2b('ABCDEF')}), 'extract satoshi'),
                      (('badinput4', 'tx_input',
                        {'is_witness': True, 'path': [0],
                         'satoshi': '120', 'script': h2b('ABCDEF')}), 'extract satoshi'),
@@ -632,14 +633,11 @@ d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a069\
                        {'is_witness': False, 'path': [0],
                         'satoshi': 9, 'script': h2b('AB')}), 'extract input_tx'),
                      (('badinput9', 'tx_input',
-                       {'is_witness': False, 'path': [0],
-                        'input_tx': ''}), 'extract input_tx'),
+                       {'is_witness': False, 'input_tx': ''}), 'extract input_tx'),
                      (('badinput10', 'tx_input',
-                       {'is_witness': False, 'path': [0],
-                        'input_tx': 'notbin'}), 'extract input_tx'),
+                       {'is_witness': False, 'input_tx': 'notbin'}), 'extract input_tx'),
                      (('badinput11', 'tx_input',  # odd number of hex chars
-                       {'is_witness': False, 'path': [0],
-                        'input_tx': 'abc'}), 'extract input_tx')]
+                       {'is_witness': False, 'input_tx': 'abc'}), 'extract input_tx')]
 
     # Test all the simple cases
     for badmsg, errormsg in bad_params:
