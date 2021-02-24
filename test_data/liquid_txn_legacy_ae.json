@@ -1,0 +1,25 @@
+{
+  "input": {
+    "network": "localtest-liquid",
+    "use_ae_signatures": true,
+    "txn": "0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020a2b712848b6f14697590b06622266e8d82cb06030896de79700b15562a20834fb0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de879a478a7033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+    "trusted_commitments": [{"vbf": "6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+                             "abf": "b6030a5bdaafe11ff90ade22b3f2ca2ac6d6ba339313b0b20d3e75f09c0f3c35",
+                             "blinding_key": "023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+                             "asset_generator": "0a2b712848b6f14697590b06622266e8d82cb06030896de79700b15562a20834fb",
+                             "value_commitment": "0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de879a478a7",
+                             "hmac": "a533a1119e657627a574e4d44fba919de32777b0c2d4926cedf89f580c7be35f",
+                             "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+                             "value": 9000000},
+                             null
+    ],
+    "change": null,
+    "inputs": [{"is_witness": false,
+                "script": "76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+                "path": [0],
+                "ae_host_commitment": "925333af2732ac1663375c2ad543efe0f0586ec9cc99f988e40a29ab51ef3b67",
+                "ae_host_entropy": "516c3e24719ea7f257ea117329cbb9b36625db3f26c7bc2a60eba628a430410b"}
+    ]
+  },
+  "expected_output": [["0244eff8b7768e9e55d221ecd7266a4f02a33e07b8f195797550686a13e059fb57", "3045022100955aab05829a8a1226c0d2e162bf7306d61a45cf0a3929962757482509770ea402200e207576a580ece6d47580de0314acfd56854594f52d3ab6d9941a095e2dae9b01"]]
+}

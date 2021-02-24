@@ -1,7 +1,8 @@
 {
   "input": {
     "path": [0],
-    "message": "Jade is cool"
+    "message": "Jade is cool",
+    "use_ae_signatures": false
   },
   "expected_output": "IHd2/Y65d1P7Gq6I6gTDoRql9eEsFEh7B8RtAJm+g+AdHuxT5hbMKN28Jlotxfp0LO3WLxPlJh61BQYPYL1uikw="
 }

@@ -3,6 +3,7 @@ import time
 import glob
 import cbor
 import json
+import base64
 import logging
 import argparse
 import subprocess
@@ -26,49 +27,65 @@ device_logger.setLevel(logging.DEBUG)
 device_logger.addHandler(jadehandler)
 
 
-def h2b(hexstr):
-    if hexstr is None:
+def h2b(hexdata):
+    if hexdata is None:
         return None
-    elif len(hexstr) == 0:
-        return bytes()
+    elif isinstance(hexdata, list):
+        return list(map(h2b, hexdata))
     else:
-        return bytes(wally.hex_to_bytes(hexstr))
+        return bytes.fromhex(hexdata)
+
+
+def _h2b_test_case(testcase):
+    # Convert fields from hex to binary
+    if 'txn' in testcase['input']:
+        # sign-tx data
+        testcase['input']['txn'] = h2b(testcase['input']['txn'])
+
+        for input in testcase['input']['inputs']:
+            if 'input_tx' in input:
+                input['input_tx'] = h2b(input['input_tx'])
+            if 'script' in input:
+                input['script'] = h2b(input['script'])
+            if 'value_commitment' in input:
+                input['value_commitment'] = h2b(input['value_commitment'])
+            if 'ae_host_commitment' in input:
+                input['ae_host_commitment'] = h2b(input['ae_host_commitment'])
+            if 'ae_host_entropy' in input:
+                input['ae_host_entropy'] = h2b(input['ae_host_entropy'])
+
+        if 'trusted_commitments' in testcase['input']:
+            for commitment in testcase['input']['trusted_commitments']:
+                if commitment:
+                    for k, v in commitment.items():
+                        commitment[k] = v if k == 'value' else h2b(v)
+
+        if 'expected_output' in testcase:
+            testcase['expected_output'] = h2b(testcase['expected_output'])
+
+    elif 'message' in testcase['input']:
+        # sign-msg test data
+        if 'ae_host_commitment' in testcase['input']:
+            testcase['input']['ae_host_commitment'] = h2b(testcase['input']['ae_host_commitment'])
+        if 'ae_host_entropy' in testcase['input']:
+            testcase['input']['ae_host_entropy'] = h2b(testcase['input']['ae_host_entropy'])
+
+        if 'expected_output' in testcase and len(testcase['expected_output']) == 2:
+            testcase['expected_output'][0] = h2b(testcase['expected_output'][0])
+
+    return testcase
 
 
 # Helper to read a json file into a dict
 def _read_json_file(filename):
+    logger.info('Reading json file: {}'.format(filename))
     with open(filename, 'r') as json_file:
         return json.loads(json_file.read())
 
 
 # Helper to read json test files into a list
-def _load_json_test_cases(file_pattern):
-    return list(map(_read_json_file, glob.glob("./test_data/" + file_pattern)))
-
-
-def _h2b_signing_test_case(testcase):
-    # Convert fields from hex to binary
-    testcase['input']['txn'] = h2b(testcase['input']['txn'])
-
-    for input in testcase['input']['inputs']:
-        if 'input_tx' in input:
-            input['input_tx'] = h2b(input['input_tx'])
-        if 'script' in input:
-            input['script'] = h2b(input['script'])
-        if 'value_commitment' in input:
-            input['value_commitment'] = h2b(input['value_commitment'])
-
-    if 'trusted_commitments' in testcase['input']:
-        for commitment in testcase['input']['trusted_commitments']:
-            if commitment:
-                for k, v in commitment.items():
-                    commitment[k] = v if k == 'value' else h2b(v)
-
-    if 'expected_output' in testcase:
-        expected_output_hex = testcase['expected_output']
-        testcase['expected_output'] = list(map(h2b, expected_output_hex))
-
-    return testcase
+def _get_test_cases(pattern):
+    return (_h2b_test_case(_read_json_file(f)) for f in glob.glob("./test_data/" + pattern))
 
 
 # Helper to compare two dicts
@@ -213,22 +230,12 @@ a2VAgp94Gj5rSXYiD6eHmGJmVSHY5xG'),
 fw6k5FN4WkHjjHGiP6aMcNxcaVy7zgRY')]
 
 # Hold test data in separate files as can be large
-SIGN_MSG_TESTS = _load_json_test_cases("msg_*.json")
-
-SIGN_TXN_TESTS = list(map(_h2b_signing_test_case,
-                          _load_json_test_cases("txn_*.json")))
-
-SIGN_TXN_FAIL_CASES = list(map(_h2b_signing_test_case,
-                               _load_json_test_cases("badtxn_*.json")))
-
-SIGN_LIQUID_TXN_TESTS = list(map(_h2b_signing_test_case,
-                                 _load_json_test_cases("liquid_txn_*.json")))
-
-SIGN_SINGLE_SIG_TESTS = list(map(_h2b_signing_test_case,
-                                 _load_json_test_cases("singlesig_txn*.json")))
-
-SIGN_SINGLE_SIG_LIQUID_TESTS = list(map(_h2b_signing_test_case,
-                                        _load_json_test_cases("singlesig_liquid_txn*.json")))
+SIGN_MSG_TESTS = _get_test_cases("msg_*.json")
+SIGN_TXN_TESTS = _get_test_cases("txn_*.json")
+SIGN_TXN_FAIL_CASES = _get_test_cases("badtxn_*.json")
+SIGN_LIQUID_TXN_TESTS = _get_test_cases("liquid_txn_*.json")
+SIGN_SINGLE_SIG_TESTS = _get_test_cases("singlesig_txn*.json")
+SIGN_SINGLE_SIG_LIQUID_TESTS = _get_test_cases("singlesig_liquid_txn*.json")
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -411,7 +418,8 @@ def test_unexpected_method(jade):
                    {'payload': 'abcdef', 'hmac': '1234'}),
                   ('protocol3', 'ota_data', h2b('abcdef')),
                   ('protocol4', 'ota_complete'),
-                  ('protocol5', 'tx_input')]
+                  ('protocol5', 'tx_input'),
+                  ('protocol6', 'get_signature')]
 
     for args in unexpected:
         request = jade.build_request(*args)
@@ -1131,6 +1139,133 @@ def check_mem_stats(startinfo, endinfo, strict):
         assert not strict
 
 
+# Helper to verify a signature - handles checking an Anti-Exfil signature
+# contains the entropy that was passed in by the host.
+def _verify_signature(jadeapi, network, msghash, path, host_entropy, signer_commitment, signature):
+    # entropy/signer_commitment imply anti-exfil signature
+    assert (host_entropy is None) == (signer_commitment is None)
+
+    # Need to get the signer's pubkey
+    xpub = jadeapi.get_xpub(network, path)
+    hdkey = wally.bip32_key_from_base58(xpub)
+    pubkey = wally.bip32_key_get_pub_key(hdkey)
+
+    # If presented a 'recoverable' signature, recover the public key
+    # and verify it matches that fetched from the hw above
+    if len(signature) == wally.EC_SIGNATURE_RECOVERABLE_LEN:
+        recovered_pubkey = wally.ec_sig_to_public_key(msghash, signature)
+        assert recovered_pubkey == pubkey
+        signature = signature[1:]  # Truncate leading byte for verification
+
+    assert len(signature) == wally.EC_SIGNATURE_LEN
+    if host_entropy:
+        # Verify AE signature and that the host-entropy is included
+        wally.ae_verify(pubkey, msghash, host_entropy, signer_commitment,
+                        wally.EC_FLAG_ECDSA, signature)
+    else:
+        # Verify EC signature
+        wally.ec_sig_verify(pubkey, msghash, wally.EC_FLAG_ECDSA, signature)
+
+
+# Helper to verify a message signature - handles checking an Anti-Exfil signature
+# contains the entropy that was passed in by the host.
+def _check_msg_signature(jadeapi, testcase, actual):
+    expected = testcase['expected_output']
+    assert len(actual) == len(expected)
+
+    input = testcase['input']
+    host_entropy = input.get('ae_host_entropy')
+    network = 'regtest'  # Network is irrelevant to sign-msg
+
+    if host_entropy:
+        # Anti-Exfil signer_commitment and signature
+        assert tuple(expected) == actual, [actual[0].hex(), actual[1]]
+        signer_commitment, signature = actual
+    else:
+        # Standard EC signature
+        assert actual == expected, actual
+        signer_commitment, signature = None, actual  # No signer_commitment for EC sig
+
+    # Get the message hash
+    msgbytes = input['message'].encode('utf8')
+    msghash = wally.format_bitcoin_message(msgbytes, wally.BITCOIN_MESSAGE_FLAG_HASH)
+
+    rawsig = base64.b64decode(signature)  # un-base64 the returned signature
+
+    # Verify the signature
+    _verify_signature(jadeapi, network, msghash, input['path'],
+                      host_entropy, signer_commitment, rawsig)
+
+
+# Helper to verify a tx signature - handles checking an Anti-Exfil signature
+# contains the entropy that was passed in by the host.
+def _check_tx_signatures(jadeapi, testcase, rslt):
+    assert len(rslt) == len(testcase['expected_output'])
+
+    # Get txn-level details
+    test_input = testcase['input']
+    network = test_input['network']
+    use_ae_signatures = test_input.get('use_ae_signatures', False)
+    is_liquid = 'liquid' in network
+
+    if is_liquid:
+        # Liquid txn
+        txn = wally.tx_from_bytes(test_input['txn'], wally.WALLY_TX_FLAG_USE_ELEMENTS)
+
+        # Poke any commitment data into tx outputs
+        for i, commitments in enumerate(test_input['trusted_commitments']):
+            if commitments:
+                wally.tx_set_output_asset(txn, i, commitments['asset_generator'])
+                wally.tx_set_output_value(txn, i, commitments['value_commitment'])
+    else:
+        # BTC tx, straightforward
+        txn = wally.tx_from_bytes(test_input['txn'], 0)
+
+    # Iterate over the results verifying each signature
+    for i, (expected, actual) in enumerate(zip(testcase['expected_output'], rslt)):
+        if use_ae_signatures:
+            # Anti-Exfil signer_commitment and signature (might not be low-r)
+            assert tuple(expected) == actual, list(map(bytes.hex, actual))
+            assert len(actual[1]) <= wally.EC_SIGNATURE_DER_MAX_LEN
+            signer_commitment, signature = actual
+        else:
+            # Standard EC signature should be low-r
+            assert actual == expected, actual.hex()
+            assert len(actual) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+            signer_commitment, signature = None, actual  # No signer_commitment for EC sig
+
+        # Verify signature (if we signed this input)
+        if len(signature):
+            input = test_input['inputs'][i]
+
+            # Get the signature message hash (ie. the hash value that was signed)
+            tx_flags = wally.WALLY_TX_FLAG_USE_WITNESS if input['is_witness'] else 0
+            if is_liquid:
+                msghash = wally.tx_get_elements_signature_hash(
+                    txn, i, input['script'], input.get('value_commitment'),
+                    wally.WALLY_SIGHASH_ALL, tx_flags)
+            else:
+                if 'input_tx' in input:
+                    # Get satoshi amount from input tx if we have one
+                    utxo_index = wally.tx_get_input_index(txn, i)
+                    input_txn = wally.tx_from_bytes(input['input_tx'], 0)
+                    satoshi = wally.tx_get_output_satoshi(input_txn, utxo_index)
+                else:
+                    # If no input_tx, sats can be passed instead
+                    # (Now only valid for single-input segwit tx)
+                    assert input['is_witness'] and len(test_input['inputs']) == 1
+                    satoshi = input['satoshi']
+
+                msghash = wally.tx_get_btc_signature_hash(
+                    txn, i, input['script'], satoshi, wally.WALLY_SIGHASH_ALL, tx_flags)
+
+            # Verify signature!
+            rawsig = wally.ec_sig_from_der(signature[:-1])  # truncate sighash byte
+            host_entropy = input.get('ae_host_entropy') if use_ae_signatures else None
+            _verify_signature(jadeapi, network, msghash, input['path'],
+                              host_entropy, signer_commitment, rawsig)
+
+
 def run_api_tests(jadeapi, authuser=False):
 
     # On connection, a companion app should:
@@ -1171,8 +1306,14 @@ def run_api_tests(jadeapi, authuser=False):
     # Sign message
     for msg_data in SIGN_MSG_TESTS:
         input = msg_data['input']
-        rslt = jadeapi.sign_message(input['path'], input['message'])
-        assert rslt == msg_data['expected_output']
+        rslt = jadeapi.sign_message(input['path'],
+                                    input['message'],
+                                    input.get('use_ae_signatures'),
+                                    input.get('ae_host_commitment'),
+                                    input.get('ae_host_entropy'))
+
+        # Check returned signature
+        _check_msg_signature(jadeapi, msg_data, rslt)
 
     # Sign Tx
     for txn_data in SIGN_TXN_TESTS:
@@ -1180,11 +1321,11 @@ def run_api_tests(jadeapi, authuser=False):
         rslt = jadeapi.sign_tx(input['network'],
                                input['txn'],
                                input['inputs'],
-                               input['change'])
-        assert rslt == txn_data['expected_output']
-        for sig in rslt:
-            if len(sig) > 0:
-                assert len(sig) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+                               input['change'],
+                               input.get('use_ae_signatures'))
+
+        # Check returned signatures
+        _check_tx_signatures(jadeapi, txn_data, rslt)
 
     # Sign Tx failures
     for txn_data in SIGN_TXN_FAIL_CASES:
@@ -1193,7 +1334,8 @@ def run_api_tests(jadeapi, authuser=False):
             rslt = jadeapi.sign_tx(input['network'],
                                    input['txn'],
                                    input['inputs'],
-                                   input['change'])
+                                   input['change'],
+                                   input.get('use_ae_signatures'))
             assert False, "Expected exception from bad sign_tx test case"
         except JadeError as err:
             assert err.message == txn_data["expected_error"]
@@ -1236,12 +1378,11 @@ def run_api_tests(jadeapi, authuser=False):
                                       input['txn'],
                                       input['inputs'],
                                       input['trusted_commitments'],
-                                      input['change'])
+                                      input['change'],
+                                      input.get('use_ae_signatures'))
 
-        assert rslt == txn_data['expected_output']
-        for sig in rslt:
-            if len(sig) > 0:
-                assert len(sig) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+        # Check returned signatures
+        _check_tx_signatures(jadeapi, txn_data, rslt)
 
     # Short sanity-test of 12-word mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12)
@@ -1267,12 +1408,11 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
         rslt = jadeapi.sign_tx(input['network'],
                                input['txn'],
                                input['inputs'],
-                               input['change'])
+                               input['change'],
+                               input.get('use_ae_signatures'))
 
-        assert rslt == txn_data['expected_output']
-        for sig in rslt:
-            if len(sig) > 0:
-                assert len(sig) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+        # Check returned signatures
+        _check_tx_signatures(jadeapi, txn_data, rslt)
 
     for txn_data in SIGN_SINGLE_SIG_LIQUID_TESTS:
         input = txn_data['input']
@@ -1280,12 +1420,11 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
                                       input['txn'],
                                       input['inputs'],
                                       input['trusted_commitments'],
-                                      input['change'])
+                                      input['change'],
+                                      input.get('use_ae_signatures'))
 
-        assert rslt == txn_data['expected_output']
-        for sig in rslt:
-            if len(sig) > 0:
-                assert len(sig) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+        # Check returned signatures
+        _check_tx_signatures(jadeapi, txn_data, rslt)
 
     # restore the mnemonic after single sig tests
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
