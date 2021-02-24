@@ -24,6 +24,9 @@ void update_aggregate_scripts_flavour(
     const script_flavour_t new_script_flvaour, script_flavour_t* aggregate_scripts_flavour);
 bool validate_change_paths(jade_process_t* process, const char* network, struct wally_tx* tx, CborValue* change,
     output_info_t* output_info, char** errmsg);
+void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_signing_data, const uint32_t num_inputs);
+void send_ec_signature_replies(
+    const jade_msg_source_t source, signing_data_t* all_signing_data, const uint32_t num_inputs);
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
@@ -140,6 +143,14 @@ static bool check_trusted_commitment_valid(unsigned char* hash_prevouts, const s
     return true;
 }
 
+/*
+ * The message flow here is complicated because we cater for both a legacy flow
+ * for standard deterministic EC signatures (see rfc6979) and a newer message
+ * exchange added later to cater for anti-exfil signatures.
+ * At the moment we retain the older message flow for backward compatibility,
+ * but at some point we should remove it and use the new message flow for all
+ * cases, which would simplify the code here and in the client.
+ */
 void sign_liquid_tx_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
@@ -227,6 +238,11 @@ void sign_liquid_tx_process(void* process_ptr)
     // We always need this extra data to 'unblind' confidential txns
     output_info_t* output_info = JADE_CALLOC(tx->num_outputs, sizeof(output_info_t));
     jade_process_free_on_exit(process, output_info);
+
+    // Whether to use Anti-Exfil signatures and message flow
+    // Optional flag, defaults to false
+    bool use_ae_signatures = false;
+    rpc_get_boolean("use_ae_signatures", &params, &use_ae_signatures);
 
     // Can optionally be passed paths for change outputs, which we verify internally
     char* errmsg = NULL;
@@ -338,6 +354,11 @@ void sign_liquid_tx_process(void* process_ptr)
         size_t script_len = 0;
         const uint8_t* script = NULL;
 
+        // The ae commitments for this input (if using anti-exfil signatures)
+        size_t ae_host_commitment_len = 0;
+        const uint8_t* ae_host_commitment = NULL;
+        uint8_t ae_signer_commitment[WALLY_S2C_OPENING_LEN];
+
         // Make and store the reply data, and then delete the (potentially
         // large) input message.  Replies will be sent after user confirmation.
         written = 0;
@@ -363,6 +384,16 @@ void sign_liquid_tx_process(void* process_ptr)
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
                 goto cleanup;
+            }
+
+            // If required, read anti-exfil host commitment data
+            if (use_ae_signatures) {
+                rpc_get_bytes_ptr("ae_host_commitment", &params, &ae_host_commitment, &ae_host_commitment_len);
+                if (!ae_host_commitment || ae_host_commitment_len != WALLY_HOST_COMMITMENT_LEN) {
+                    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS,
+                        "Failed to extract valid host commitment from parameters", NULL);
+                    goto cleanup;
+                }
             }
 
             // Get prevout script - required for signing inputs
@@ -415,11 +446,33 @@ void sign_liquid_tx_process(void* process_ptr)
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
                 goto cleanup;
             }
+
+            // If using anti-exfil signatures, compute signer commitment for returning to caller
+            if (use_ae_signatures) {
+                JADE_ASSERT(ae_host_commitment);
+                JADE_ASSERT(ae_host_commitment_len == WALLY_HOST_COMMITMENT_LEN);
+                if (!wallet_get_signer_commitment(sig_data->signature_hash, sizeof(sig_data->signature_hash),
+                        sig_data->path, sig_data->path_len, ae_host_commitment, ae_host_commitment_len,
+                        ae_signer_commitment, sizeof(ae_signer_commitment))) {
+                    jade_process_reject_message(
+                        process, CBOR_RPC_INTERNAL_ERROR, "Failed to make ae signer commitment", NULL);
+                    goto cleanup;
+                }
+            }
         } else {
             // Empty byte-string reply (no path given implies no sig needed or expected)
             JADE_ASSERT(!script);
             JADE_ASSERT(script_len == 0);
             JADE_ASSERT(sig_data->path_len == 0);
+        }
+
+        // If using ae-signatures, reply with the signer commitment
+        // FIXME: change message flow to reply here even when not using ae-signatures
+        // as this simplifies the code both here and in the client.
+        if (use_ae_signatures) {
+            uint8_t buffer[256];
+            jade_process_reply_to_message_bytes(process->ctx, ae_signer_commitment,
+                has_path ? sizeof(ae_signer_commitment) : 0, buffer, sizeof(buffer));
         }
     }
 
@@ -481,41 +534,32 @@ void sign_liquid_tx_process(void* process_ptr)
 
     // If user cancels we'll send the 'cancelled' error response for the last input message only
     if (!fee_ret || ev_id != BTN_ACCEPT_SIGNATURE) {
+        // If using ae-signatures, we need to load the message to send the error back on
+        if (use_ae_signatures) {
+            jade_process_load_in_message(process, true);
+        }
         JADE_LOGW("User declined to sign transaction");
         jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
         goto cleanup;
     }
 
     JADE_LOGD("User accepted fee");
+    display_message_activity("Processing...");
 
-    // User confirmed - make all signatures
-    uint8_t msgbuf[256];
-    SENSITIVE_PUSH(all_signing_data, sizeof(all_signing_data));
-    for (size_t i = 0; i < num_inputs; ++i) {
-        signing_data_t* const sig_data = all_signing_data + i;
-        if (sig_data->path_len > 0) {
-            // Generate signature
-            if (!wallet_sign_tx_input_hash(sig_data->signature_hash, sizeof(sig_data->signature_hash), sig_data->path,
-                    sig_data->path_len, sig_data->sig, sizeof(sig_data->sig), &sig_data->sig_size)) {
-                jade_process_reject_message_with_id(sig_data->id, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input",
-                    NULL, 0, msgbuf, sizeof(msgbuf), source);
-                goto cleanup_sigs;
-            }
-            JADE_ASSERT(sig_data->sig_size > 0);
-        }
-    }
-
-    // Now send all signatures - one per message - in reply to input messages
-    for (size_t i = 0; i < num_inputs; ++i) {
-        const signing_data_t* const sig_data = all_signing_data + i;
-        const bytes_info_t bytes_info = { .data = sig_data->sig, .size = sig_data->sig_size };
-        jade_process_reply_to_message_result_with_id(
-            sig_data->id, msgbuf, sizeof(msgbuf), source, &bytes_info, cbor_result_bytes_cb);
+    // Send signature replies.
+    // NOTE: currently we have two message flows - the backward compatible version
+    // for normal EC signatures, and the new flow required for Anti-Exfil signatures.
+    // Once we have migrated the companion applications onto AE signatures we should
+    // convert normal EC signatures to use the new/improved message flow.
+    if (use_ae_signatures) {
+        // Generate and send Anti-Exfil signature replies
+        send_ae_signature_replies(process, all_signing_data, num_inputs);
+    } else {
+        // Generate and send standard EC signature replies
+        send_ec_signature_replies(source, all_signing_data, num_inputs);
     }
     JADE_LOGI("Success");
 
-cleanup_sigs:
-    SENSITIVE_POP(all_signing_data);
 cleanup:
     mbedtls_sha256_free(&hash_prevout_sha_ctx);
 }

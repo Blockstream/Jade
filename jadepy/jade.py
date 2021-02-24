@@ -279,84 +279,103 @@ class JadeAPI:
             params['vbf'] = vbf
         return self._jadeRpc('get_commitments', params)
 
+    # Common code for sending btc- and liquid- tx-inputs and receiving the
+    # signatures.  Handles standard EC and AE signing schemes.
+    def _send_tx_inputs(self, base_id, inputs, use_ae_signatures):
+        if use_ae_signatures:
+            # Anti-exfil protocol:
+            # We send one message per input (which includes host-commitment *but
+            # not* the host entropy) and receive the signer-commitment in reply.
+            # Once all n input messages are sent, we can request the actual signatures
+            # (as the user has a chance to confirm/cancel at this point).
+            # We request the signatures passing the ae-entropy for each one.
+            # Send inputs one at a time, receiving 'signer-commitment' in reply
+            signer_commitments = []
+            host_ae_entropy_values = []
+            for txinput in inputs:
+                # ae-protocol - do not send the host entropy immediately
+                txinput = txinput.copy()  # shallow copy
+                host_ae_entropy_values.append(txinput.pop('ae_host_entropy', None))
+
+                base_id += 1
+                input_id = str(base_id)
+                reply = self._jadeRpc('tx_input', txinput, input_id)
+                signer_commitments.append(reply)
+
+            # Request the signatures one at a time, sending the entropy
+            signatures = []
+            for (i, host_ae_entropy) in enumerate(host_ae_entropy_values, 1):
+                base_id += 1
+                sig_id = str(base_id)
+                params = {'ae_host_entropy': host_ae_entropy}
+                reply = self._jadeRpc('get_signature', params, sig_id)
+                signatures.append(reply)
+
+            assert len(signatures) == len(inputs)
+            return list(zip(signer_commitments, signatures))
+        else:
+            # Legacy protocol:
+            # We send one message per input - without expecting replies.
+            # Once all n input messages are sent, the hw then sends all n replies
+            # (as the user has a chance to confirm/cancel at this point).
+            # Then receive all n replies for the n signatures.
+            # NOTE: *NOT* a sequence of n blocking rpc calls.
+            # NOTE: at some point this flow should be removed in favour of the one
+            # above, albeit without passing anti-exfil entropy or commitment data.
+
+            # Send all n inputs
+            requests = []
+            for txinput in inputs:
+                base_id += 1
+                msg_id = str(base_id)
+                request = self.jade.build_request(msg_id, 'tx_input', txinput)
+                self.jade.write_request(request)
+                requests.append(request)
+                time.sleep(0.1)
+
+            # Receive all n signatures
+            signatures = []
+            for request in requests:
+                reply = self.jade.read_response()
+                self.jade.validate_reply(request, reply)
+                signature = self._get_result_or_raise_error(reply)
+                signatures.append(signature)
+
+            assert len(signatures) == len(inputs)
+            return signatures
+
     # Sign a Liquid txn
-    def sign_liquid_tx(self, network, txn, inputs, commitments, change):
-        # Protocol:
+    def sign_liquid_tx(self, network, txn, inputs, commitments, change, use_ae_signatures=False):
         # 1st message contains txn and number of inputs we are going to send.
         # Reply ok if that corresponds to the expected number of inputs (n).
-        # Then we send one message per input - without expecting replies.
-        # Once all n input messages are sent, the hw then sends all n replies
-        # (as the user has a chance to confirm/cancel at this point).
-        # Then receive all n replies for the n signatures.
-        # NOTE: *NOT* a sequence of n blocking rpc calls.
-
         base_id = 100 * random.randint(1000, 9999)
         params = {'network': network,
                   'txn': txn,
                   'num_inputs': len(inputs),
                   'trusted_commitments': commitments,
+                  'use_ae_signatures': use_ae_signatures,
                   'change': change}
         reply = self._jadeRpc('sign_liquid_tx', params, str(base_id))
         assert reply
 
-        # Send all n inputs
-        requests = []
-        for (i, txinput) in enumerate(inputs, 1):
-            res_id = str(base_id + i)
-            request = self.jade.build_request(res_id, 'tx_input', txinput)
-            self.jade.write_request(request)
-            requests.append(request)
-            time.sleep(0.1)
-
-        # Receive all n signatures
-        signatures = []
-        for request in requests:
-            reply = self.jade.read_response()
-            self.jade.validate_reply(request, reply)
-            signature = self._get_result_or_raise_error(reply)
-            signatures.append(signature)
-
-        assert len(signatures) == len(inputs)
-        return signatures
+        # Send inputs and receive signatures
+        return self._send_tx_inputs(base_id, inputs, use_ae_signatures)
 
     # Sign a txn
-    def sign_tx(self, network, txn, inputs, change):
-        # Protocol:
+    def sign_tx(self, network, txn, inputs, change, use_ae_signatures=False):
         # 1st message contains txn and number of inputs we are going to send.
         # Reply ok if that corresponds to the expected number of inputs (n).
-        # Then we send one message per input - without expecting replies.
-        # Once all n input messages are sent, the hw then sends all n replies
-        # (as the user has a chance to confirm/cancel at this point).
-        # Then receive all n replies for the n signatures.
-        # NOTE: *NOT* a sequence of n blocking rpc calls.
-
         base_id = 100 * random.randint(1000, 9999)
         params = {'network': network,
                   'txn': txn,
                   'num_inputs': len(inputs),
+                  'use_ae_signatures': use_ae_signatures,
                   'change': change}
         reply = self._jadeRpc('sign_tx', params, str(base_id))
         assert reply
 
-        # Send all n inputs
-        requests = []
-        for (i, txinput) in enumerate(inputs, 1):
-            res_id = str(base_id + i)
-            request = self.jade.build_request(res_id, 'tx_input', txinput)
-            self.jade.write_request(request)
-            requests.append(request)
-            time.sleep(0.1)
-
-        # Receive all n signatures
-        signatures = []
-        for request in requests:
-            reply = self.jade.read_response()
-            self.jade.validate_reply(request, reply)
-            signature = self._get_result_or_raise_error(reply)
-            signatures.append(signature)
-
-        assert len(signatures) == len(inputs)
-        return signatures
+        # Send inputs and receive signatures
+        return self._send_tx_inputs(base_id, inputs, use_ae_signatures)
 
 
 #

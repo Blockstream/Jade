@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 
+#include "wally_anti_exfil.h"
 #include "wally_bip32.h"
 #include "wally_bip39.h"
 #include "wally_core.h"
@@ -20,7 +21,7 @@ typedef enum { GREEN, P2PKH, P2WPKH, P2WPKH_P2SH } script_variant_t;
 void wallet_init();
 
 bool bip32_path_as_str(uint32_t parts[], size_t num_parts, char* output, size_t output_len);
-bool get_script_variant(const char* variant, const size_t variant_len, script_variant_t* output);
+bool get_script_variant(const char* variant, size_t variant_len, script_variant_t* output);
 
 void wallet_build_receive_path(uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path,
     size_t output_size, size_t* output_len);
@@ -37,8 +38,11 @@ bool wallet_sign_message(const uint32_t* path, size_t path_size, const char* mes
 
 bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,
     size_t script_len, uint64_t satoshi, unsigned char* output, size_t output_len);
-bool wallet_sign_tx_input_hash(const unsigned char* signature_hash, size_t signature_hash_len, const uint32_t* path,
-    size_t path_size, unsigned char* output, size_t output_len, size_t* written);
+bool wallet_get_signer_commitment(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
+    size_t path_size, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
+bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
+    size_t path_size, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output, size_t output_len,
+    size_t* written);
 
 bool wallet_hmac_with_master_key(
     const unsigned char* data, uint32_t data_len, unsigned char* output, uint32_t output_len);

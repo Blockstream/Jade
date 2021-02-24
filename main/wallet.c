@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include <wally_address.h>
+#include <wally_anti_exfil.h>
 #include <wally_bip32.h>
 #include <wally_bip39.h>
 #include <wally_core.h>
@@ -528,14 +529,51 @@ bool wallet_validate_receive_script(const char* network, const script_variant_t 
     return false;
 }
 
+// Function to compute an anti-exfil signer commitment with a derived key for a given
+// signature hash (SHA256_LEN) and host commitment (WALLY_HOST_COMMITMENT_LEN).
+// Output must be of size WALLY_S2C_OPENING_LEN.
+bool wallet_get_signer_commitment(const uint8_t* signature_hash, const size_t signature_hash_len, const uint32_t* path,
+    const size_t path_size, const uint8_t* commitment, const size_t commitment_len, uint8_t* output,
+    const size_t output_len)
+{
+    if (!signature_hash || signature_hash_len != SHA256_LEN || !path || path_size == 0 || !commitment
+        || commitment_len != WALLY_HOST_COMMITMENT_LEN || !output || output_len != WALLY_S2C_OPENING_LEN) {
+        return false;
+    }
+
+    // Derive the child key
+    unsigned char privkey[EC_PRIVATE_KEY_LEN];
+    SENSITIVE_PUSH(privkey, sizeof(privkey));
+    wallet_get_privkey(path, path_size, privkey, sizeof(privkey));
+
+    // Generate the signer commitment nonce
+    const int wret = wally_ae_signer_commit_from_bytes(privkey, sizeof(privkey), signature_hash, signature_hash_len,
+        commitment, commitment_len, EC_FLAG_ECDSA, output, output_len);
+    SENSITIVE_POP(privkey);
+
+    if (wret != WALLY_OK) {
+        JADE_LOGE("Failed to get signer commitment nonce, error %d", wret);
+        return false;
+    }
+    return true;
+}
+
 // Function to sign an input hash with a derived key - cannot be the root key, and value must be a sha256 hash.
-// Output signature is returned in DER format, with a SIGHASH_ALL postfix - buffer size must be EC_SIGNATURE_DER_MAX_LEN
-// + 1.
-bool wallet_sign_tx_input_hash(const unsigned char* signature_hash, const size_t signature_hash_len,
-    const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len, size_t* written)
+// If 'ae_host_entropy' is passed it is used to generate an 'anti-exfil' signature, otherwise a standard EC signature
+// (ie. using rfc6979) is created.  The output signature is returned in DER format, with a SIGHASH_ALL postfix.
+// Output buffer size must be EC_SIGNATURE_DER_MAX_LEN.
+// NOTE: the standard EC signature will 'grind-r' to produce a 'low-r' signature, the anti-exfil case
+// cannot (as the entropy is provided explicitly).
+bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signature_hash_len, const uint32_t* path,
+    const size_t path_size, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len, uint8_t* output,
+    const size_t output_len, size_t* written)
 {
     if (!signature_hash || signature_hash_len != SHA256_LEN || !path || path_size == 0 || !output
         || output_len < EC_SIGNATURE_DER_MAX_LEN + 1 || !written) {
+        return false;
+    }
+    if ((!ae_host_entropy && ae_host_entropy_len > 0)
+        || (ae_host_entropy && ae_host_entropy_len != WALLY_S2C_DATA_LEN)) {
         return false;
     }
 
@@ -546,15 +584,31 @@ bool wallet_sign_tx_input_hash(const unsigned char* signature_hash, const size_t
     SENSITIVE_PUSH(privkey, sizeof(privkey));
     wallet_get_privkey(path, path_size, privkey, sizeof(privkey));
 
-    // Make the signature in DER format
-    JADE_WALLY_VERIFY(wally_ec_sig_from_bytes(privkey, sizeof(privkey), signature_hash, signature_hash_len,
-        EC_FLAG_ECDSA | EC_FLAG_GRIND_R, signature, sizeof(signature)));
+    // Generate signature as appropriate
+    int wret;
+    if (ae_host_entropy) {
+        // Anti-Exfil signature
+        wret = wally_ae_sig_from_bytes(privkey, sizeof(privkey), signature_hash, signature_hash_len, ae_host_entropy,
+            ae_host_entropy_len, EC_FLAG_ECDSA, signature, sizeof(signature));
+    } else {
+        // Standard EC signature
+        wret = wally_ec_sig_from_bytes(privkey, sizeof(privkey), signature_hash, signature_hash_len,
+            EC_FLAG_ECDSA | EC_FLAG_GRIND_R, signature, sizeof(signature));
+    }
     SENSITIVE_POP(privkey);
+
+    if (wret != WALLY_OK) {
+        JADE_LOGE("Failed to make signature, error %d", wret);
+        return false;
+    }
+
+    // Make the signature in DER format
     JADE_WALLY_VERIFY(wally_ec_sig_to_der(signature, sizeof(signature), output, output_len - 1, written));
 
     // Append the sighash - TODO: make configurable
     output[*written] = WALLY_SIGHASH_ALL & 0xff;
     *written += 1;
+
     return true;
 }
 
