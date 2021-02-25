@@ -32,9 +32,11 @@ bool wallet_validate_receive_script(const char* network, script_variant_t varian
     uint32_t csvBlocks, const uint32_t* path, size_t path_size, const unsigned char* script, size_t script_len);
 
 bool wallet_get_xpub(const char* network, const uint32_t* path, uint32_t path_len, char** output);
-bool wallet_get_message_hash_hex(const char* message, size_t msg_len, char** output);
-bool wallet_sign_message(const uint32_t* path, size_t path_size, const char* message, size_t bytes_len,
-    unsigned char* output, size_t output_len, size_t* written);
+
+bool wallet_get_message_hash(const uint8_t* bytes, size_t bytes_len, uint8_t* output, size_t output_len);
+bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
+    size_t path_size, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output, size_t output_len,
+    size_t* written);
 
 bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,
     size_t script_len, uint64_t satoshi, unsigned char* output, size_t output_len);

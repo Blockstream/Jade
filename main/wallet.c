@@ -782,56 +782,67 @@ bool wallet_get_shared_nonce(const unsigned char* script, const uint32_t script_
     return true;
 }
 
-bool wallet_get_message_hash_hex(const char* message, const size_t bytes_len, char** output)
+bool wallet_get_message_hash(const uint8_t* bytes, const size_t bytes_len, uint8_t* output, const size_t output_len)
 {
-    unsigned char buf[SHA256_LEN];
-    size_t written;
-
-    if (!message || !output) {
+    if (!bytes || bytes_len == 0 || !output || output_len != SHA256_LEN) {
         return false;
     }
 
-    const int wret = wally_format_bitcoin_message(
-        (unsigned char*)message, bytes_len, BITCOIN_MESSAGE_FLAG_HASH, buf, sizeof(buf), &written);
+    size_t written = 0;
+    const int wret
+        = wally_format_bitcoin_message(bytes, bytes_len, BITCOIN_MESSAGE_FLAG_HASH, output, output_len, &written);
     if (wret != WALLY_OK) {
-        JADE_LOGE("Error trying to format btc message '%s': %d", message, wret);
+        JADE_LOGE("Error trying to format btc message: %d", wret);
         return false;
     }
-    JADE_WALLY_VERIFY(wally_hex_from_bytes(buf, sizeof(buf), output));
-
     return true;
 }
 
-// Function to sign message - output buffer should be of size EC_SIGNATURE_LEN * 2 (which should be ample)
-bool wallet_sign_message(const uint32_t* path, const size_t path_size, const char* message, const size_t bytes_len,
-    unsigned char* output, const size_t output_len, size_t* written)
+// Function to sign a message hash with a derived key - cannot be the root key, and value must be a sha256 hash.
+// If 'ae_host_entropy' is passed it is used to generate an 'anti-exfil' signature, otherwise a standard EC signature
+// (ie. using rfc6979) is created.  The output signature is returned base64 encoded.
+// The output buffer should be of size at least EC_SIGNATURE_LEN * 2 (which should be ample).
+bool wallet_sign_message_hash(const uint8_t* signature_hash, const size_t signature_hash_len, const uint32_t* path,
+    const size_t path_size, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len, uint8_t* output,
+    const size_t output_len, size_t* written)
 {
-    unsigned char buf[SHA256_LEN];
-    unsigned char privkey[EC_PRIVATE_KEY_LEN];
-    unsigned char signature[EC_SIGNATURE_RECOVERABLE_LEN];
-
-    if (!path || !message || bytes_len == 0 || !output || output_len < EC_SIGNATURE_LEN * 2 || !written) {
+    if (!path || !signature_hash || signature_hash_len != SHA256_LEN || !output || output_len < EC_SIGNATURE_LEN * 2
+        || !written) {
         return false;
     }
-
-    JADE_LOGD("formatting message %.*s", bytes_len, message);
-    const int wret = wally_format_bitcoin_message(
-        (unsigned char*)message, bytes_len, BITCOIN_MESSAGE_FLAG_HASH, buf, sizeof(buf), written);
-    if (wret != WALLY_OK) {
-        JADE_LOGE("Error trying to format btc message '%s': %d", message, wret);
+    if ((!ae_host_entropy && ae_host_entropy_len > 0)
+        || (ae_host_entropy && ae_host_entropy_len != WALLY_S2C_DATA_LEN)) {
         return false;
     }
 
     // Derive the child key
+    unsigned char privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
     wallet_get_privkey(path, path_size, privkey, sizeof(privkey));
 
-    // Sign the message
-    JADE_WALLY_VERIFY(wally_ec_sig_from_bytes(
-        privkey, sizeof(privkey), buf, sizeof(buf), EC_FLAG_ECDSA | EC_FLAG_RECOVERABLE, signature, sizeof(signature)));
+    // Generate signature as appropriate
+    int wret;
+    uint8_t signature[EC_SIGNATURE_RECOVERABLE_LEN];
+    size_t signature_len = 0;
+    if (ae_host_entropy) {
+        // Anti-Exfil signature
+        signature_len = EC_SIGNATURE_LEN;
+        wret = wally_ae_sig_from_bytes(privkey, sizeof(privkey), signature_hash, signature_hash_len, ae_host_entropy,
+            ae_host_entropy_len, EC_FLAG_ECDSA, signature, signature_len);
+    } else {
+        // Standard EC recoverable signature
+        signature_len = EC_SIGNATURE_RECOVERABLE_LEN;
+        wret = wally_ec_sig_from_bytes(privkey, sizeof(privkey), signature_hash, signature_hash_len,
+            EC_FLAG_ECDSA | EC_FLAG_RECOVERABLE, signature, signature_len);
+    }
     SENSITIVE_POP(privkey);
 
-    mbedtls_base64_encode(output, output_len, written, signature, sizeof(signature));
+    if (wret != WALLY_OK) {
+        JADE_LOGE("Failed to make signature, error %d", wret);
+        return false;
+    }
+    // Base64 encode
+    mbedtls_base64_encode(output, output_len, written, signature, signature_len);
     JADE_ASSERT(*written < output_len);
     output[*written] = '\0';
     *written += 1;

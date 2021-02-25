@@ -1,4 +1,5 @@
 #include "../jade_assert.h"
+#include "../jade_wally_verify.h"
 #include "../process.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
@@ -28,6 +29,14 @@ static inline bool isGdkLoginChallenge(
         && !strncmp(message, GDK_CHALLENGE_PREFIX, sizeof(GDK_CHALLENGE_PREFIX) - 1);
 }
 
+/*
+ * The message flow here is complicated because we cater for both a legacy flow
+ * for standard deterministic EC signatures (see rfc6979) and a newer message
+ * exchange added later to cater for anti-exfil signatures.
+ * At the moment we retain the older message flow for backward compatibility,
+ * but at some point we could remove it and use the new message flow for all
+ * cases, which would simplify the code here and in the client.
+ */
 void sign_message_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
@@ -46,13 +55,12 @@ void sign_message_process(void* process_ptr)
         goto cleanup;
     }
 
-    char* message_hex = NULL;
-    if (!wallet_get_message_hash_hex(message, msg_len, &message_hex) || !message_hex) {
+    uint8_t message_hash[SHA256_LEN];
+    if (!wallet_get_message_hash((const uint8_t*)message, msg_len, message_hash, sizeof(message_hash))) {
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert message to btc hex format", NULL);
         goto cleanup;
     }
-    jade_process_call_on_exit(process, wally_free_string_wrapper, message_hex);
 
     // NOTE: for signing the root key (empty bip32 path) is not allowed.
     uint32_t path_len = 0;
@@ -70,12 +78,31 @@ void sign_message_process(void* process_ptr)
         goto cleanup;
     }
 
+    // Read any anti-exfil host commitment data (optional)
+    // If present implies the use of the anti-exfil protocol and new message flow
+    size_t ae_host_commitment_len = 0;
+    const uint8_t* ae_host_commitment = NULL;
+    const bool use_ae_signatures = rpc_has_field_data("ae_host_commitment", &params);
+    if (use_ae_signatures) {
+        rpc_get_bytes_ptr("ae_host_commitment", &params, &ae_host_commitment, &ae_host_commitment_len);
+        if (!ae_host_commitment || ae_host_commitment_len != WALLY_HOST_COMMITMENT_LEN) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid host commitment from parameters", NULL);
+            goto cleanup;
+        }
+    }
+
     // If the path and message suggest a gdk login challenge, just sign
     // the message without prompting the user to explicitly confirm.
     // (Otherwise the user has to confirm message hash and path.)
-    if (isGdkLoginChallenge(path, path_len, message, msg_len)) {
+    const bool auto_sign = isGdkLoginChallenge(path, path_len, message, msg_len);
+    if (auto_sign) {
         JADE_LOGI("Auto-signing GDK login challenge message");
     } else {
+        char* message_hex = NULL;
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(message_hash, sizeof(message_hash), &message_hex));
+        jade_process_call_on_exit(process, wally_free_string_wrapper, message_hex);
+
         gui_activity_t* activity;
         make_sign_message_activity(&activity, message_hex, path_as_str);
         JADE_ASSERT(activity);
@@ -101,18 +128,64 @@ void sign_message_process(void* process_ptr)
         JADE_LOGD("User pressed accept");
     }
 
+    // Send signature replies.
+    // NOTE: currently we have two message flows - the backward compatible version
+    // for normal EC signatures, and the new flow required for Anti-Exfil signatures.
+    // Once we have migrated the companion applications onto AE signatures we could
+    // convert normal EC signatures to use the new/improved message flow.
+    size_t ae_host_entropy_len = 0;
+    const uint8_t* ae_host_entropy = NULL;
+    if (use_ae_signatures) {
+        JADE_ASSERT(ae_host_commitment);
+        JADE_ASSERT(ae_host_commitment_len == WALLY_HOST_COMMITMENT_LEN);
+
+        if (!auto_sign) {
+            display_message_activity("Processing...");
+        }
+
+        // Compute signer-commitment
+        uint8_t ae_signer_commitment[WALLY_S2C_OPENING_LEN];
+        if (!wallet_get_signer_commitment(message_hash, sizeof(message_hash), path, path_len, ae_host_commitment,
+                ae_host_commitment_len, ae_signer_commitment, sizeof(ae_signer_commitment))) {
+            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make ae signer commitment", NULL);
+            goto cleanup;
+        }
+
+        // Return signer commitment to caller
+        uint8_t buffer[256];
+        jade_process_reply_to_message_bytes(
+            process->ctx, ae_signer_commitment, sizeof(ae_signer_commitment), buffer, sizeof(buffer));
+
+        // Await 'get_signature' message containing host entropy
+        jade_process_load_in_message(process, true);
+        if (!rpc_is_method(&process->ctx.value, "get_signature")) {
+            // Protocol error
+            jade_process_reject_message(
+                process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'get_signature'", NULL);
+            goto cleanup;
+        }
+
+        GET_MSG_PARAMS(process);
+        rpc_get_bytes_ptr("ae_host_entropy", &params, &ae_host_entropy, &ae_host_entropy_len);
+        if (!ae_host_entropy || ae_host_entropy_len != WALLY_S2C_DATA_LEN) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract host entropy from parameters", NULL);
+            goto cleanup;
+        }
+    }
+
+    // Compute the signature and send back to caller
     size_t written = 0;
-    char sig_output[EC_SIGNATURE_LEN * 2]; // Should be len * 4/3 plus any padding, so * 2 is plenty.
-    if (!wallet_sign_message(
-            path, path_len, (char*)message, msg_len, (unsigned char*)sig_output, EC_SIGNATURE_LEN * 2, &written)) {
+    uint8_t sig_output[EC_SIGNATURE_LEN * 2]; // Should be len * 4/3 plus any padding, so * 2 is plenty.
+    if (!wallet_sign_message_hash(message_hash, sizeof(message_hash), path, path_len, ae_host_entropy,
+            ae_host_entropy_len, sig_output, sizeof(sig_output), &written)) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign message", NULL);
         goto cleanup;
     }
-
     JADE_ASSERT(written < EC_SIGNATURE_LEN * 2);
-    JADE_ASSERT(strnlen(sig_output, EC_SIGNATURE_LEN * 2) + 1 == written);
+    JADE_ASSERT(strnlen((const char*)sig_output, EC_SIGNATURE_LEN * 2) + 1 == written);
 
-    jade_process_reply_to_message_result(process->ctx, sig_output, cbor_result_string_cb);
+    jade_process_reply_to_message_result(process->ctx, (const char*)sig_output, cbor_result_string_cb);
 
     JADE_LOGI("Success");
 

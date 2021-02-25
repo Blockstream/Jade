@@ -223,9 +223,22 @@ class JadeAPI:
         return self._jadeRpc('get_receive_address', dict(zip(keys, args)))
 
     # Sign a message
-    def sign_message(self, path, message):
-        params = {'path': path, 'message': message}
-        return self._jadeRpc('sign_message', params)
+    def sign_message(self, path, message, use_ae_signatures=False,
+                     ae_host_commitment=None, ae_host_entropy=None):
+        if use_ae_signatures:
+            # Anti-exfil protocol:
+            # We send the signing request and receive the signer-commitment in
+            # reply once the user confirms.
+            # We can then request the actual signature passing the ae-entropy.
+            params = {'path': path, 'message': message, 'ae_host_commitment': ae_host_commitment}
+            signer_commitment = self._jadeRpc('sign_message', params)
+            params = {'ae_host_entropy': ae_host_entropy}
+            signature = self._jadeRpc('get_signature', params)
+            return signer_commitment, signature
+        else:
+            # Standard EC signature, simple case
+            params = {'path': path, 'message': message}
+            return self._jadeRpc('sign_message', params)
 
     # Get a Liquid public blinding key for a given script
     def get_blinding_key(self, script):
