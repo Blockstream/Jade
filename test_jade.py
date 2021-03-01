@@ -42,17 +42,17 @@ def _h2b_test_case(testcase):
         # sign-tx data
         testcase['input']['txn'] = h2b(testcase['input']['txn'])
 
-        for input in testcase['input']['inputs']:
-            if 'input_tx' in input:
-                input['input_tx'] = h2b(input['input_tx'])
-            if 'script' in input:
-                input['script'] = h2b(input['script'])
-            if 'value_commitment' in input:
-                input['value_commitment'] = h2b(input['value_commitment'])
-            if 'ae_host_commitment' in input:
-                input['ae_host_commitment'] = h2b(input['ae_host_commitment'])
-            if 'ae_host_entropy' in input:
-                input['ae_host_entropy'] = h2b(input['ae_host_entropy'])
+        for inputdata in testcase['input']['inputs']:
+            if 'input_tx' in inputdata:
+                inputdata['input_tx'] = h2b(inputdata['input_tx'])
+            if 'script' in inputdata:
+                inputdata['script'] = h2b(inputdata['script'])
+            if 'value_commitment' in inputdata:
+                inputdata['value_commitment'] = h2b(inputdata['value_commitment'])
+            if 'ae_host_commitment' in inputdata:
+                inputdata['ae_host_commitment'] = h2b(inputdata['ae_host_commitment'])
+            if 'ae_host_entropy' in inputdata:
+                inputdata['ae_host_entropy'] = h2b(inputdata['ae_host_entropy'])
 
         if 'trusted_commitments' in testcase['input']:
             for commitment in testcase['input']['trusted_commitments']:
@@ -316,7 +316,7 @@ def test_bad_message(jade):
 def test_very_bad_message(jade):
     empty = cbor.dumps(b"")
     text = cbor.dumps("This is not a good cbor message")
-    truncated = cbor.dumps("{'id': '1', method: 'msgwilbecut'}")[1:]
+    truncated = cbor.dumps("{'id': '1', method: 'msgwillbecut'}")[1:]
 
     for msg in [empty, text, truncated]:
         jade.write(msg)
@@ -361,7 +361,7 @@ def test_too_much_input(jade):
 
 def test_split_message(jade):
     # Simulate transport stream being v.slow
-    msg = cbor.dumps({'method': 'get_version_info', 'id': '123456'})
+    msg = cbor.dumps({'method': 'get_version_info', 'id': '24680'})
     for msgpart in [msg[:5], msg[5:10], msg[10:]]:
         jade.write(msgpart)
         time.sleep(0.25)
@@ -369,7 +369,7 @@ def test_split_message(jade):
     reply = jade.read_response()
 
     # Returned id should match sent
-    assert reply['id'] == "123456"
+    assert reply['id'] == "24680"
     assert 'error' not in reply
     assert 'result' in reply and len(reply['result']) == NUM_VALUES_VERINFO
 
@@ -393,14 +393,14 @@ def test_concatenated_messages(jade):
 
 def test_unknown_method(jade):
     # Includes tests of method prefixes 'get...' and 'sign...'
-    for id, method in [('unk0', 'dostuff'), ('unk1', 'get'), ('unk2', 'sign')]:
-        request = jade.build_request(id, method,
+    for msgid, method in [('unk0', 'dostuff'), ('unk1', 'get'), ('unk2', 'sign')]:
+        request = jade.build_request(msgid, method,
                                      {'path': (0, 1, 2, 3, 4),
                                       'message': 'Jade is cool'})
         reply = jade.make_rpc_call(request)
 
         # Returned id should match sent
-        assert reply['id'] == id
+        assert reply['id'] == msgid
 
         # Assert unknown method response
         error = reply['error']
@@ -1173,8 +1173,8 @@ def _check_msg_signature(jadeapi, testcase, actual):
     expected = testcase['expected_output']
     assert len(actual) == len(expected)
 
-    input = testcase['input']
-    host_entropy = input.get('ae_host_entropy')
+    inputdata = testcase['input']
+    host_entropy = inputdata.get('ae_host_entropy')
     network = 'regtest'  # Network is irrelevant to sign-msg
 
     if host_entropy:
@@ -1187,13 +1187,13 @@ def _check_msg_signature(jadeapi, testcase, actual):
         signer_commitment, signature = None, actual  # No signer_commitment for EC sig
 
     # Get the message hash
-    msgbytes = input['message'].encode('utf8')
+    msgbytes = inputdata['message'].encode('utf8')
     msghash = wally.format_bitcoin_message(msgbytes, wally.BITCOIN_MESSAGE_FLAG_HASH)
 
     rawsig = base64.b64decode(signature)  # un-base64 the returned signature
 
     # Verify the signature
-    _verify_signature(jadeapi, network, msghash, input['path'],
+    _verify_signature(jadeapi, network, msghash, inputdata['path'],
                       host_entropy, signer_commitment, rawsig)
 
 
@@ -1236,33 +1236,33 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
 
         # Verify signature (if we signed this input)
         if len(signature):
-            input = test_input['inputs'][i]
+            inputdata = test_input['inputs'][i]
 
             # Get the signature message hash (ie. the hash value that was signed)
-            tx_flags = wally.WALLY_TX_FLAG_USE_WITNESS if input['is_witness'] else 0
+            tx_flags = wally.WALLY_TX_FLAG_USE_WITNESS if inputdata['is_witness'] else 0
             if is_liquid:
                 msghash = wally.tx_get_elements_signature_hash(
-                    txn, i, input['script'], input.get('value_commitment'),
+                    txn, i, inputdata['script'], inputdata.get('value_commitment'),
                     wally.WALLY_SIGHASH_ALL, tx_flags)
             else:
-                if 'input_tx' in input:
+                if 'input_tx' in inputdata:
                     # Get satoshi amount from input tx if we have one
                     utxo_index = wally.tx_get_input_index(txn, i)
-                    input_txn = wally.tx_from_bytes(input['input_tx'], 0)
+                    input_txn = wally.tx_from_bytes(inputdata['input_tx'], 0)
                     satoshi = wally.tx_get_output_satoshi(input_txn, utxo_index)
                 else:
                     # If no input_tx, sats can be passed instead
                     # (Now only valid for single-input segwit tx)
-                    assert input['is_witness'] and len(test_input['inputs']) == 1
-                    satoshi = input['satoshi']
+                    assert inputdata['is_witness'] and len(test_input['inputs']) == 1
+                    satoshi = inputdata['satoshi']
 
                 msghash = wally.tx_get_btc_signature_hash(
-                    txn, i, input['script'], satoshi, wally.WALLY_SIGHASH_ALL, tx_flags)
+                    txn, i, inputdata['script'], satoshi, wally.WALLY_SIGHASH_ALL, tx_flags)
 
             # Verify signature!
             rawsig = wally.ec_sig_from_der(signature[:-1])  # truncate sighash byte
-            host_entropy = input.get('ae_host_entropy') if use_ae_signatures else None
-            _verify_signature(jadeapi, network, msghash, input['path'],
+            host_entropy = inputdata.get('ae_host_entropy') if use_ae_signatures else None
+            _verify_signature(jadeapi, network, msghash, inputdata['path'],
                               host_entropy, signer_commitment, rawsig)
 
 
@@ -1292,7 +1292,7 @@ def run_api_tests(jadeapi, authuser=False):
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
 
-    # Get (receive) green-address
+    # # Get (receive) green-address
     for network, subact, branch, ptr, recovxpub, csvblocks, expected in GET_GREENADDRESS_DATA:
         rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
                                            csv_blocks=csvblocks)
@@ -1305,24 +1305,24 @@ def run_api_tests(jadeapi, authuser=False):
 
     # Sign message
     for msg_data in SIGN_MSG_TESTS:
-        input = msg_data['input']
-        rslt = jadeapi.sign_message(input['path'],
-                                    input['message'],
-                                    input.get('use_ae_signatures'),
-                                    input.get('ae_host_commitment'),
-                                    input.get('ae_host_entropy'))
+        inputdata = msg_data['input']
+        rslt = jadeapi.sign_message(inputdata['path'],
+                                    inputdata['message'],
+                                    inputdata.get('use_ae_signatures'),
+                                    inputdata.get('ae_host_commitment'),
+                                    inputdata.get('ae_host_entropy'))
 
         # Check returned signature
         _check_msg_signature(jadeapi, msg_data, rslt)
 
     # Sign Tx
     for txn_data in SIGN_TXN_TESTS:
-        input = txn_data['input']
-        rslt = jadeapi.sign_tx(input['network'],
-                               input['txn'],
-                               input['inputs'],
-                               input['change'],
-                               input.get('use_ae_signatures'))
+        inputdata = txn_data['input']
+        rslt = jadeapi.sign_tx(inputdata['network'],
+                               inputdata['txn'],
+                               inputdata['inputs'],
+                               inputdata['change'],
+                               inputdata.get('use_ae_signatures'))
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
@@ -1330,12 +1330,12 @@ def run_api_tests(jadeapi, authuser=False):
     # Sign Tx failures
     for txn_data in SIGN_TXN_FAIL_CASES:
         try:
-            input = txn_data['input']
-            rslt = jadeapi.sign_tx(input['network'],
-                                   input['txn'],
-                                   input['inputs'],
-                                   input['change'],
-                                   input.get('use_ae_signatures'))
+            inputdata = txn_data['input']
+            rslt = jadeapi.sign_tx(inputdata['network'],
+                                   inputdata['txn'],
+                                   inputdata['inputs'],
+                                   inputdata['change'],
+                                   inputdata.get('use_ae_signatures'))
             assert False, "Expected exception from bad sign_tx test case"
         except JadeError as err:
             assert err.message == txn_data["expected_error"]
@@ -1373,13 +1373,13 @@ def run_api_tests(jadeapi, authuser=False):
 
     # Sign Liquid Tx
     for txn_data in SIGN_LIQUID_TXN_TESTS:
-        input = txn_data['input']
-        rslt = jadeapi.sign_liquid_tx(input['network'],
-                                      input['txn'],
-                                      input['inputs'],
-                                      input['trusted_commitments'],
-                                      input['change'],
-                                      input.get('use_ae_signatures'))
+        inputdata = txn_data['input']
+        rslt = jadeapi.sign_liquid_tx(inputdata['network'],
+                                      inputdata['txn'],
+                                      inputdata['inputs'],
+                                      inputdata['trusted_commitments'],
+                                      inputdata['change'],
+                                      inputdata.get('use_ae_signatures'))
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
@@ -1404,24 +1404,24 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
         assert rslt == expected
 
     for txn_data in SIGN_SINGLE_SIG_TESTS:
-        input = txn_data['input']
-        rslt = jadeapi.sign_tx(input['network'],
-                               input['txn'],
-                               input['inputs'],
-                               input['change'],
-                               input.get('use_ae_signatures'))
+        inputdata = txn_data['input']
+        rslt = jadeapi.sign_tx(inputdata['network'],
+                               inputdata['txn'],
+                               inputdata['inputs'],
+                               inputdata['change'],
+                               inputdata.get('use_ae_signatures'))
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
     for txn_data in SIGN_SINGLE_SIG_LIQUID_TESTS:
-        input = txn_data['input']
-        rslt = jadeapi.sign_liquid_tx(input['network'],
-                                      input['txn'],
-                                      input['inputs'],
-                                      input['trusted_commitments'],
-                                      input['change'],
-                                      input.get('use_ae_signatures'))
+        inputdata = txn_data['input']
+        rslt = jadeapi.sign_liquid_tx(inputdata['network'],
+                                      inputdata['txn'],
+                                      inputdata['inputs'],
+                                      inputdata['trusted_commitments'],
+                                      inputdata['change'],
+                                      inputdata.get('use_ae_signatures'))
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
@@ -1547,9 +1547,9 @@ def run_all_jade_tests(info, args):
     # 2. Test over BLE connection
     if not args.skipble:
         if info['JADE_CONFIG'] == 'BLE':
-            id = info['EFUSEMAC'][6:]
+            bleid = info['EFUSEMAC'][6:]
             logger.info("Testing BLE ({})".format(id))
-            with JadeAPI.create_ble(serial_number=id) as jade:
+            with JadeAPI.create_ble(serial_number=bleid) as jade:
                 run_jade_tests(jade, args, False)  # skip long tests over ble
 
                 # 3. If also testing over serial, run the 'mixed sources' tests
@@ -1572,18 +1572,18 @@ def get_jade_info(args):
             return jade.get_version_info()
 
     if not args.skipble:
-        id = args.bleid
+        bleid = args.bleid
         logger.info("Getting info via BLE ({})".format(id or '<any>'))
-        with JadeAPI.create_ble(serial_number=id) as jade:
+        with JadeAPI.create_ble(serial_number=bleid) as jade:
             return jade.get_version_info()
 
 
 def test_ble_connection_fails(info, args):
     if not args.skipble:
         if info['JADE_CONFIG'] == 'BLE':
-            id = info['EFUSEMAC'][6:]
+            bleid = info['EFUSEMAC'][6:]
             logger.info("Testing BLE connection fails or times-out")
-            jade = JadeAPI.create_ble(serial_number=id)
+            jade = JadeAPI.create_ble(serial_number=bleid)
 
             # When timeout elapses, raise interrupt/exception
             def _on_timeout():
