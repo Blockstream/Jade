@@ -149,6 +149,11 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index
     char* word4, gui_view_node_t* out_btns[])
 {
     JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(word1);
+    JADE_ASSERT(word2);
+    JADE_ASSERT(word3);
+    JADE_ASSERT(word4);
+    JADE_ASSERT(out_btns);
 
     gui_make_activity(activity_ptr, true, "Mnemonic");
     gui_activity_t* act = *activity_ptr;
@@ -204,8 +209,10 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index
         gen_btns(vsplit, 2, (const char*[]){ "Prev", "Next" }, (int32_t[]){ BTN_MNEMONIC_PREV, BTN_MNEMONIC_NEXT },
             out_btns);
     }
-
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 0);
+
+    // Set the intially selected item to the next/verify (ie. the last) button
+    gui_set_activity_initial_selection(*activity_ptr, out_btns[1]);
 }
 
 void make_show_mnemonic(gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[24])

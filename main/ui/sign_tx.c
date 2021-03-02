@@ -208,6 +208,9 @@ static void make_output_activity(output_activity_t* output_activity, const bool 
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
+    // Set the intially selected item to the 'Next' button (ie. btn3)
+    gui_set_activity_initial_selection(act, btn3);
+
     // Push details into the output structure
     output_activity->activity = act;
     output_activity->prev_button = btn1;
