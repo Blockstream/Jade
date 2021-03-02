@@ -289,6 +289,8 @@ struct gui_activity_t {
     selectable_t* selectables;
     // should that cursor "wrap around" when you reach one end?
     bool selectables_wrap;
+    // The node intially selected when activated/switched-to
+    gui_view_node_t* initial_selection;
 
     // linked list of updatable elements
     updatable_t* updatables;
@@ -393,6 +395,7 @@ void gui_activity_register_event(
 bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, uint32_t event_id,
     esp_event_base_t* trigger_event_base, int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait);
 
+void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_t* node);
 bool gui_set_active(gui_activity_t* activity, gui_view_node_t* node, bool value);
 bool gui_select_next(gui_activity_t* activity);
 bool gui_select_prev(gui_activity_t* activity);

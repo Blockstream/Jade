@@ -288,6 +288,25 @@ bool gui_set_active(gui_activity_t* activity, gui_view_node_t* node, bool value)
     return true;
 }
 
+static gui_view_node_t* gui_get_first_active_node(gui_activity_t* activity)
+{
+    JADE_ASSERT(activity);
+
+    // Ignore on screen with no selectable elements
+    if (activity->selectables) {
+        selectable_t* current = activity->selectables;
+        selectable_t* const end = current;
+        do {
+            // Return the first node that is flagged as 'active'
+            if (current->node->is_active) {
+                return current->node;
+            }
+            current = current->next;
+        } while (current != end);
+    }
+    return NULL;
+}
+
 // select the previous item in the selectables list
 // Returns true if the selection is 'moved' to a prior item, or false if not (and selection left unchanged)
 // eg. no current item selected, no other selectable items, no prior selectable items [and not wrapping] etc.
@@ -475,9 +494,6 @@ static void push_selectable(gui_activity_t* activity, gui_view_node_t* node, uin
         us->prev = us;
         us->next = us;
 
-        // also pre-select "us". TODO: make this configurable
-        set_tree_selection(node, true);
-
         activity->selectables = us;
     } else {
         selectable_t* const begin = activity->selectables->prev;
@@ -575,6 +591,10 @@ void gui_make_activity(gui_activity_t** ppact, bool has_status_bar, const char* 
 
     activity->selectables = NULL;
     activity->selectables_wrap = false; // normally we don't wrap around
+
+    // Nothing explicitly selected (so will default to first selectable item)
+    // Can be set with gui_set_activity_initial_selection()
+    activity->initial_selection = NULL;
 
     activity->updatables = NULL;
 
@@ -1826,10 +1846,34 @@ void gui_prev()
     idletimer_register_activity();
 }
 
+// Set the item to be initally selected when the activity is activated/switched-to
+// 'node' can be NULL to unset any specific initial selection
+void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_t* node)
+{
+    JADE_ASSERT(activity);
+    activity->initial_selection = node;
+}
+
 static void gui_render_current_activity()
 {
     JADE_ASSERT(current_activity);
+    JADE_ASSERT(current_activity->root_node);
+
+    const bool first_time = current_activity->root_node->render_data.is_first_time;
     render_node(current_activity->root_node, current_activity->win, 0);
+
+    if (first_time && current_activity->selectables) {
+        // If the activity has an 'initial_selection' and it appears active, select it now
+        // If not, select the first active item
+        if (current_activity->initial_selection && current_activity->initial_selection->is_active) {
+            gui_select_node(current_activity, current_activity->initial_selection);
+        } else {
+            gui_view_node_t* const node = gui_get_first_active_node(current_activity);
+            if (node) {
+                gui_select_node(current_activity, node);
+            }
+        }
+    }
 }
 
 static void switch_activities_task(void* arg_ptr)
