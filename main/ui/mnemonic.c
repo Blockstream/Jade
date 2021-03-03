@@ -154,7 +154,7 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index
     gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 30, 30, 34);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 30, 30, 34);
     gui_set_parent(vsplit, act->root_node);
 
     // first four rows: the words prefixed by their index, e.g. "1: river"
@@ -162,11 +162,11 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index
     char* words[] = { word1, word2, word3, word4 };
 
     gui_view_node_t* hsplit1;
-    gui_make_hsplit(&hsplit1, GUI_SPLIT_RELATIVE, 50, 50);
+    gui_make_hsplit(&hsplit1, GUI_SPLIT_RELATIVE, 2, 50, 50);
     gui_set_parent(hsplit1, vsplit);
 
     gui_view_node_t* hsplit2;
-    gui_make_hsplit(&hsplit2, GUI_SPLIT_RELATIVE, 50, 50);
+    gui_make_hsplit(&hsplit2, GUI_SPLIT_RELATIVE, 2, 50, 50);
     gui_set_parent(hsplit2, vsplit);
 
     for (int i = 0; i < 2; ++i) {
