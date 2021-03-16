@@ -23,7 +23,6 @@
 #define NUM_RANDOM_WORDS 8
 #define NUM_WORDS_CONFIRM 6
 #define MNEMONIC_BUFLEN 256 // Should be large enough for all mnemonics
-#define MNEMONIC_MIN_LENGTH 95 // 24 * 3 (shortest words) + 23 (spaces)
 
 // main/ui/mnemonic.c
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr);
@@ -332,8 +331,12 @@ static size_t valid_words(char* word, struct words* wordlist, size_t* possible_w
     return num_possible_words;
 }
 
-static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN])
+static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
 {
+    // Support 12-word and 24-word mnemonics only
+    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(process);
+
     struct words* wordlist;
     bip39_get_wordlist(NULL, &wordlist);
     size_t mnemonic_offset = 0;
@@ -348,7 +351,7 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
     gui_activity_t* choose_word_activity = NULL;
     make_recover_word_page_select10(&choose_word_activity, &textbox_list, &status);
 
-    for (int word_index = 0; word_index < 24; ++word_index) {
+    for (size_t word_index = 0; word_index < nwords; ++word_index) {
         char word[16] = { 0 };
         bool valid_word = false;
         size_t char_index = 0;
@@ -586,8 +589,12 @@ void mnemonic_process(void* process_ptr)
             continue;
 
         // Await user mnemonic entry/confirmation
-        case BTN_RECOVER_MNEMONIC_BEGIN:
-            got_mnemonic = mnemonic_recover(process, mnemonic);
+        case BTN_RECOVER_MNEMONIC_12_BEGIN:
+            got_mnemonic = mnemonic_recover(process, mnemonic, 12);
+            break;
+
+        case BTN_RECOVER_MNEMONIC_24_BEGIN:
+            got_mnemonic = mnemonic_recover(process, mnemonic, 24);
             break;
 
         case BTN_QR_MNEMONIC_BEGIN:

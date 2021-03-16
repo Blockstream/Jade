@@ -94,19 +94,20 @@ static void make_two_btn_screen(
     gen_btns(vsplit, 2, btn_msg, btn_ev_id, NULL);
 }
 
-/*  Not used atm
-   static void make_three_btn_screen(gui_activity_t **activity_ptr, const char *header, const char *msg, const char
-   **btn_msg, const int32_t *btn_ev_id) { JADE_ASSERT(activity_ptr);
+static void make_three_btn_screen(
+    gui_activity_t** activity_ptr, const char* header, const char* msg, const char** btn_msg, const int32_t* btn_ev_id)
+{
+    JADE_ASSERT(activity_ptr);
 
     gui_make_activity(activity_ptr, true, header);
-    gui_activity_t *act = *activity_ptr;
+    gui_activity_t* act = *activity_ptr;
 
-    gui_view_node_t *vsplit;
+    gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
     gui_set_parent(vsplit, act->root_node);
 
     // first row, message
-    gui_view_node_t *text_status;
+    gui_view_node_t* text_status;
     gui_make_text(&text_status, msg, TFT_WHITE);
     gui_set_parent(text_status, vsplit);
     gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 4);
@@ -114,8 +115,7 @@ static void make_two_btn_screen(
 
     // second row, button
     gen_btns(vsplit, 3, btn_msg, btn_ev_id, NULL);
-   }
- */
+}
 
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
 {
@@ -134,15 +134,18 @@ void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
 
 void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr)
 {
-    const char* btn_msg[2];
-    btn_msg[0] = "Recover";
-    btn_msg[1] = "Scan QR";
+    const char* btn_msg[3];
+    btn_msg[0] = "12 words";
+    btn_msg[1] = "24 words";
+    btn_msg[2] = "Scan QR";
 
-    int32_t btn_ev_id[2];
-    btn_ev_id[0] = BTN_RECOVER_MNEMONIC_BEGIN;
-    btn_ev_id[1] = BTN_QR_MNEMONIC_BEGIN;
+    int32_t btn_ev_id[3];
+    btn_ev_id[0] = BTN_RECOVER_MNEMONIC_12_BEGIN;
+    btn_ev_id[1] = BTN_RECOVER_MNEMONIC_24_BEGIN;
+    btn_ev_id[2] = BTN_QR_MNEMONIC_BEGIN;
 
-    return make_two_btn_screen(activity_ptr, "Welcome to Jade!", "Recover the wallet.", btn_msg, btn_ev_id);
+    return make_three_btn_screen(
+        activity_ptr, "Welcome to Jade!", "\nHow would you like to\nrecover the wallet?", btn_msg, btn_ev_id);
 }
 
 static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index, char* word1, char* word2, char* word3,

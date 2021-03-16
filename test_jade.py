@@ -91,6 +91,9 @@ TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
 slot invite sadness banana'
 
+TEST_MNEMONIC_12 = 'retire verb human ecology best member fiction measure \
+demand stereo wedding olive'
+
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
 # bitcoin-cli sethdseed true "92zRAmYnWVRrWJ6cQb8yrzEz9r3aXj4oEUiPAZEbiPKHpCnxkKz"
@@ -1239,6 +1242,15 @@ def run_api_tests(jadeapi, authuser=False):
         for sig in rslt:
             if len(sig) > 0:
                 assert len(sig) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+
+    # Short sanity-test of 12-word mnemonic
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12)
+    assert rslt is True
+    rslt = jadeapi.get_xpub('mainnet', [1, 12])
+    assert rslt == 'xpub6BETMaQnyXi1gqFdL5FX8A3YEtRCEvBPijmr7EL42rGeEc6pvjYv25\
+ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
+    rslt = jadeapi.get_receive_address('mainnet', 1, 1, 231)
+    assert rslt == '38SBTKLCNKVvQh1jPpbkAbXa3gtRJEh9Ud'
 
     # Sign single sig
     # Single sig requires a different seed for the tests
