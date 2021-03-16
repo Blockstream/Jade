@@ -20,16 +20,18 @@
 
 #include <sodium/utils.h>
 
-#define NUM_RANDOM_WORDS 8
-#define NUM_WORDS_CONFIRM 6
-#define MNEMONIC_BUFLEN 256 // Should be large enough for all mnemonics
+// Should be large enough for all 12 and 24 word mnemonics
+#define MNEMONIC_MAXWORDS 24
+#define MNEMONIC_BUFLEN 256
 
 // main/ui/mnemonic.c
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr);
+void make_new_mnemonic_screen(gui_activity_t** activity_ptr);
 void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr);
-void make_show_mnemonic(gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[24]);
+void make_show_mnemonic(
+    gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], size_t nwords);
 void make_confirm_mnemonic_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t** text_box_ptr, size_t confirm, char* words[24]);
+    gui_activity_t** activity_ptr, gui_view_node_t** text_box_ptr, size_t confirm, char* words[], size_t nwords);
 void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** backspace,
     gui_view_node_t** enter, gui_view_node_t** keys);
 void make_recover_word_page_select10(
@@ -43,14 +45,14 @@ bool pinclient_savekeys(
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
 // Function to change the mnemonic word separator and provide pointers to
 // the start of the words.  USed when confirming one word at a time.
-static void change_mnemonic_word_separator(
-    char* mnemonic, const size_t len, const char old_separator, const char new_separator, char* words[24])
+static void change_mnemonic_word_separator(char* mnemonic, const size_t len, const char old_separator,
+    const char new_separator, char* words[], const size_t nwords)
 {
     JADE_ASSERT(mnemonic);
     JADE_ASSERT(words);
 
     size_t word = 0, i = 0;
-    for (/*nothing*/; i < len && word < 24; ++i, ++word) {
+    for (/*nothing*/; i < len && word < nwords; ++i, ++word) {
         words[word] = mnemonic + i; // Pointer to the start of each word
         for (/*nothing*/; i < len; ++i) {
             if (mnemonic[i] == old_separator) {
@@ -59,46 +61,39 @@ static void change_mnemonic_word_separator(
             }
         }
     }
-    JADE_ASSERT(word == 24);
+    JADE_ASSERT(word == nwords);
     JADE_ASSERT(i == len + 1);
 }
 
-static bool mnemonic_new(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN])
+static bool mnemonic_new(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
 {
+    // Support 12-word and 24-word mnemonics only
+    JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(process);
 
     // generate and show the mnemonic
     char* new_mnemonic = NULL;
-    keychain_get_new_mnemonic(&new_mnemonic);
+    keychain_get_new_mnemonic(&new_mnemonic, nwords);
     JADE_ASSERT(new_mnemonic);
     const size_t mnemonic_len = strnlen(new_mnemonic, MNEMONIC_BUFLEN);
     SENSITIVE_PUSH(new_mnemonic, mnemonic_len);
     JADE_ASSERT(mnemonic_len < MNEMONIC_BUFLEN); // buffer should be large enough for any mnemonic
 
-    // Some fixed mnemonics for testing purposes
-    // char *new_mnemonic = strdup("fish inner face ginger orchard permit useful method fence kidney chuckle party
-    // favorite sunset draw limb science crane oval letter slot invite sadness banana");     // common test mnemonic
-    // char *new_mnemonic = strdup("vast half sort lounge odor arrow coast butter tag tail matter social march crane
-    // artwork agent need beach wedding actress unlock fitness leisure hurt");             // another valid one char
-    // *new_mnemonic = strdup("clump money embrace choose river crime sense donate document alter enforce script field
-    // place chase bitter clutch hundred thumb churn money order member squirrel"); // invalid mnemonic
-    // JADE_LOGD("new mnemonic = %s", new_mnemonic);
-
     // Copy into output buffer
     strcpy(mnemonic, new_mnemonic);
 
     // Change the word separator to a null so we can treat each word as a terminated string.
-    char* words[24];
+    // Large enough for 12 and 24 word mnemonic
+    char* words[MNEMONIC_MAXWORDS];
     SENSITIVE_PUSH(words, sizeof(words));
-    change_mnemonic_word_separator(new_mnemonic, mnemonic_len, ' ', '\0', words);
+    change_mnemonic_word_separator(new_mnemonic, mnemonic_len, ' ', '\0', words, nwords);
     bool mnemonic_confirmed = false;
 
     // create the "show mnemonic" only once and then reuse it
     gui_activity_t* first_activity = NULL;
     gui_activity_t* last_activity = NULL;
 
-    make_show_mnemonic(
-        &first_activity, &last_activity, words); // TODO: zero the GUI memory where the mnemonic is stored
+    make_show_mnemonic(&first_activity, &last_activity, words, nwords);
 
     while (!mnemonic_confirmed) {
         gui_set_current_activity(first_activity);
@@ -106,42 +101,49 @@ static bool mnemonic_new(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN]
 
         JADE_LOGD("moving on to confirm_mnemonic");
 
-        bool already_confirmed[24] = { false };
+        // Large enough for 12 and 24 word mnemonic
+        bool already_confirmed[MNEMONIC_MAXWORDS] = { false };
 
-        // confirm the mnemonic
-        for (size_t i = 0; i < NUM_WORDS_CONFIRM; i++) {
+        // Confirm the mnemonic - the number of words to confirm
+        // and the number of options presented for each word.
+        const size_t num_words_confirm = nwords == MNEMONIC_MAXWORDS ? 6 : 4;
+        const size_t num_words_options = nwords == MNEMONIC_MAXWORDS ? 8 : 6;
+        for (size_t i = 0; i < num_words_confirm; i++) {
             gui_activity_t* confirm_act;
             gui_view_node_t* textbox;
 
             size_t selected;
             do {
-                selected = 1 + get_uniform_random_byte(22); // never select the first or last word
+                selected = 1 + get_uniform_random_byte(nwords - 2); // never select the first or last word
             } while (already_confirmed[selected]);
             already_confirmed[selected] = true;
 
-            make_confirm_mnemonic_screen(&confirm_act, &textbox, selected, words);
+            make_confirm_mnemonic_screen(&confirm_act, &textbox, selected, words, nwords);
             JADE_LOGD("selected = %u", selected);
             gui_set_current_activity(confirm_act);
 
-            bool already_picked[24] = { false };
+            // Large enough for 12 and 24 word mnemonic
+            bool already_picked[MNEMONIC_MAXWORDS] = { false };
             already_picked[selected] = true;
             already_picked[selected - 1] = true;
             already_picked[selected + 1] = true;
 
-            size_t random_words[NUM_RANDOM_WORDS] = { 0 };
+            // Large enough for 12 and 24 word mnemonic
+            // (Only really needs to be as big as 'num_words_options' so MAXWORDS is plenty)
+            size_t random_words[MNEMONIC_MAXWORDS] = { 0 };
             random_words[0] = selected;
 
-            for (size_t j = 1; j < NUM_RANDOM_WORDS; j++) {
+            for (size_t j = 1; j < num_words_options; j++) {
                 size_t new_word;
                 do {
-                    new_word = get_uniform_random_byte(24);
+                    new_word = get_uniform_random_byte(nwords);
                 } while (already_picked[new_word]);
 
                 already_picked[new_word] = true;
                 random_words[j] = new_word;
             }
 
-            uint8_t index = get_uniform_random_byte(NUM_RANDOM_WORDS);
+            uint8_t index = get_uniform_random_byte(num_words_options);
             gui_update_text(textbox, words[random_words[index]]); // set the first word
 
             bool stop = false;
@@ -152,13 +154,13 @@ static bool mnemonic_new(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN]
 
                 switch (ev_id) {
                 case GUI_WHEEL_LEFT_EVENT:
-                    index = (index + 1) % NUM_RANDOM_WORDS;
+                    index = (index + 1) % num_words_options;
                     gui_update_text(textbox, words[random_words[index]]);
                     break;
 
                 case GUI_WHEEL_RIGHT_EVENT:
                     // Avoid unsigned wrapping below zero
-                    index = (index + NUM_RANDOM_WORDS - 1) % NUM_RANDOM_WORDS;
+                    index = (index + num_words_options - 1) % num_words_options;
                     gui_update_text(textbox, words[random_words[index]]);
                     break;
 
@@ -176,7 +178,7 @@ static bool mnemonic_new(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN]
                 await_error_activity("Wrong, please try again");
                 mnemonic_confirmed = false;
                 break;
-            } else if (i == NUM_WORDS_CONFIRM - 1) { // last word, and it's correct
+            } else if (i == num_words_confirm - 1) { // last word, and it's correct
                 mnemonic_confirmed = true;
                 break;
             }
@@ -583,12 +585,25 @@ void mnemonic_process(void* process_ptr)
         JADE_ASSERT(ret);
 
         switch (ev_id) {
+        case BTN_NEW_MNEMONIC:
+            // Change screens and continue to await button events
+            make_new_mnemonic_screen(&activity);
+            continue;
+
         case BTN_RECOVER_MNEMONIC:
             // Change screens and continue to await button events
             make_mnemonic_recovery_screen(&activity);
             continue;
 
         // Await user mnemonic entry/confirmation
+        case BTN_NEW_MNEMONIC_12_BEGIN:
+            got_mnemonic = mnemonic_new(process, mnemonic, 12);
+            break;
+
+        case BTN_NEW_MNEMONIC_24_BEGIN:
+            got_mnemonic = mnemonic_new(process, mnemonic, 24);
+            break;
+
         case BTN_RECOVER_MNEMONIC_12_BEGIN:
             got_mnemonic = mnemonic_recover(process, mnemonic, 12);
             break;
@@ -598,12 +613,9 @@ void mnemonic_process(void* process_ptr)
             break;
 
         case BTN_QR_MNEMONIC_BEGIN:
+        default:
             got_mnemonic = mnemonic_qr(process, mnemonic);
             break;
-
-        case BTN_NEW_MNEMONIC_BEGIN:
-        default:
-            got_mnemonic = mnemonic_new(process, mnemonic);
         }
 #else
         vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);

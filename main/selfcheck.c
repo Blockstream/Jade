@@ -25,6 +25,7 @@ static const char SERVICE_PATH_HEX[] = "00c9678fbd9d9f6a96bd43221d56733b5aba8f52
 bool debug_selfcheck()
 {
     keychain_t keydata;
+    char* mnemonic = NULL;
 
     size_t written = 0;
     uint8_t expected_service_path[HMAC_SHA512_LEN];
@@ -41,8 +42,8 @@ bool debug_selfcheck()
         FAIL();
     }
 
-    char* mnemonic = NULL;
-    keychain_get_new_mnemonic(&mnemonic);
+    // Check 12-word mnemonic generation
+    keychain_get_new_mnemonic(&mnemonic, 12);
     JADE_ASSERT(mnemonic);
     val = keychain_derive(mnemonic, &keydata);
     if (!val) {
@@ -53,6 +54,21 @@ bool debug_selfcheck()
     if (val != WALLY_OK) {
         FAIL();
     }
+
+    // Check 24-word mnemonic generation
+    keychain_get_new_mnemonic(&mnemonic, 24);
+    JADE_ASSERT(mnemonic);
+    val = keychain_derive(mnemonic, &keydata);
+    if (!val) {
+        wally_free_string(mnemonic);
+        FAIL();
+    }
+    val = wally_free_string(mnemonic);
+    if (val != WALLY_OK) {
+        FAIL();
+    }
+
+    // Check encryption/decryption
     unsigned char serversecret[SHA256_LEN];
     unsigned char pin[6] = { 0, 1, 2, 3, 4, 5 };
     get_random(serversecret, SHA256_LEN);

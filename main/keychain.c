@@ -113,15 +113,19 @@ static bool populate_service_path(keychain_t* keydata)
     return true;
 }
 
-void keychain_get_new_mnemonic(char** mnemonic)
+void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
 {
+    // Support 12-word and 24-word mnemonics only
+    JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(mnemonic);
 
+    // Large enough for 12 and 24 word mnemonic
     unsigned char entropy[BIP39_ENTROPY_LEN_256];
     SENSITIVE_PUSH(entropy, sizeof(entropy));
 
-    get_random(entropy, BIP39_ENTROPY_LEN_256);
-    const int wret = bip39_mnemonic_from_bytes(NULL, entropy, BIP39_ENTROPY_LEN_256, mnemonic);
+    const size_t entropy_len = nwords == 12 ? BIP39_ENTROPY_LEN_128 : BIP39_ENTROPY_LEN_256;
+    get_random(entropy, entropy_len);
+    const int wret = bip39_mnemonic_from_bytes(NULL, entropy, entropy_len, mnemonic);
     SENSITIVE_POP(entropy);
     JADE_WALLY_VERIFY(wret);
     JADE_WALLY_VERIFY(bip39_mnemonic_validate(NULL, *mnemonic));

@@ -28,7 +28,7 @@ void keychain_clear_network_type_restriction();
 bool keychain_is_network_type_consistent(const char* network);
 
 // mnemonic returned should be freed by caller with wally_free_string
-void keychain_get_new_mnemonic(char** mnemonic);
+void keychain_get_new_mnemonic(char** mnemonic, size_t nwords);
 bool keychain_get_new_privatekey(unsigned char* privatekey, size_t size);
 
 bool keychain_has_pin();

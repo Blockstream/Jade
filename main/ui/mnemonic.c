@@ -49,19 +49,20 @@ static void gen_btns(gui_view_node_t* parent, size_t num_buttons, const char* ms
     }
 }
 
-/*  Not used atm
-   static void make_one_btn_screen(gui_activity_t **activity_ptr, const char *header, const char *msg, const char
-   *btn_msg, const int32_t btn_ev_id) { JADE_ASSERT(activity_ptr);
+static void make_one_btn_screen(
+    gui_activity_t** activity_ptr, const char* header, const char* msg, const char* btn_msg, const int32_t btn_ev_id)
+{
+    JADE_ASSERT(activity_ptr);
 
     gui_make_activity(activity_ptr, true, header);
-    gui_activity_t *act = *activity_ptr;
+    gui_activity_t* act = *activity_ptr;
 
-    gui_view_node_t *vsplit;
+    gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
     gui_set_parent(vsplit, act->root_node);
 
     // first row, message
-    gui_view_node_t *text_status;
+    gui_view_node_t* text_status;
     gui_make_text(&text_status, msg, TFT_WHITE);
     gui_set_parent(text_status, vsplit);
     gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 4);
@@ -69,8 +70,8 @@ static void gen_btns(gui_view_node_t* parent, size_t num_buttons, const char* ms
 
     // second row, button
     gen_btns(vsplit, 1, &btn_msg, &btn_ev_id, NULL);
-   }
- */
+}
+
 static void make_two_btn_screen(
     gui_activity_t** activity_ptr, const char* header, const char* msg, const char** btn_msg, const int32_t* btn_ev_id)
 {
@@ -124,12 +125,37 @@ void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
     btn_msg[1] = "Recover";
 
     int32_t btn_ev_id[2];
-    btn_ev_id[0] = BTN_NEW_MNEMONIC_BEGIN;
+    btn_ev_id[0] = BTN_NEW_MNEMONIC;
     btn_ev_id[1] = BTN_RECOVER_MNEMONIC;
+
+    return make_two_btn_screen(activity_ptr, "Welcome to Jade!",
+        "Do you want to create a new\nwallet, or recover an existing\nwallet?", btn_msg, btn_ev_id);
+}
+
+// TODO - use below to offer 12 & 24 word option for new mnemonic
+// when that is desired.  At the moment only option is 24-words.
+/*
+void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
+{
+    const char* btn_msg[2];
+    btn_msg[0] = "12 words";
+    btn_msg[1] = "24 words";
+
+    int32_t btn_ev_id[2];
+    btn_ev_id[0] = BTN_NEW_MNEMONIC_12_BEGIN;
+    btn_ev_id[1] = BTN_NEW_MNEMONIC_24_BEGIN;
 
     return make_two_btn_screen(activity_ptr, "Welcome to Jade!",
         "A new wallet mnemonic will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", btn_msg,
         btn_ev_id);
+}
+*/
+
+void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
+{
+    return make_one_btn_screen(activity_ptr, "Welcome to Jade!",
+        "A new wallet mnemonic will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", "24 words",
+        BTN_NEW_MNEMONIC_24_BEGIN);
 }
 
 void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr)
@@ -148,8 +174,8 @@ void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr)
         activity_ptr, "Welcome to Jade!", "\nHow would you like to\nrecover the wallet?", btn_msg, btn_ev_id);
 }
 
-static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index, char* word1, char* word2, char* word3,
-    char* word4, gui_view_node_t* out_btns[])
+static void make_mnemonic_page(gui_activity_t** activity_ptr, const size_t nwords, const size_t first_index,
+    char* word1, char* word2, char* word3, char* word4, gui_view_node_t* out_btns[])
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(word1);
@@ -157,6 +183,10 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index
     JADE_ASSERT(word3);
     JADE_ASSERT(word4);
     JADE_ASSERT(out_btns);
+
+    // Support 12-word and 24-word mnemonics only
+    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(first_index % 4 == 0);
 
     gui_make_activity(activity_ptr, true, "Mnemonic");
     gui_activity_t* act = *activity_ptr;
@@ -204,7 +234,7 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index
         // first page, no prev btn
         gen_btns(vsplit, 2, (const char*[]){ "", "Next" }, (int32_t[]){ GUI_BUTTON_EVENT_NONE, BTN_MNEMONIC_NEXT },
             out_btns);
-    } else if (first_index == 24 - 4) {
+    } else if (first_index == nwords - 4) {
         // last page, change the label for "next"
         gen_btns(vsplit, 2, (const char*[]){ "Prev", "Verify" }, (int32_t[]){ BTN_MNEMONIC_PREV, BTN_MNEMONIC_NEXT },
             out_btns);
@@ -218,18 +248,24 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, size_t first_index
     gui_set_activity_initial_selection(*activity_ptr, out_btns[1]);
 }
 
-void make_show_mnemonic(gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[24])
+void make_show_mnemonic(
+    gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], const size_t nwords)
 {
+    // Support 12-word and 24-word mnemonics only
+    JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(first_activity_ptr);
     JADE_ASSERT(last_activity_ptr);
 
     gui_activity_t* prev_act = NULL;
     gui_view_node_t* prev_btn = NULL;
-    for (size_t j = 0; j < 6; j++) {
+
+    const size_t npages = nwords / 4; // 4 words per page
+    for (size_t j = 0; j < npages; j++) {
         gui_view_node_t* btns[2];
         gui_activity_t* this = NULL;
 
-        make_mnemonic_page(&this, j * 4, words[j * 4], words[j * 4 + 1], words[j * 4 + 2], words[j * 4 + 3], btns);
+        make_mnemonic_page(
+            &this, nwords, j * 4, words[j * 4], words[j * 4 + 1], words[j * 4 + 2], words[j * 4 + 3], btns);
 
         if (prev_act) {
             gui_connect_button_activity(btns[0], prev_act);
@@ -355,12 +391,12 @@ static void make_confirm_mnemonic_page(
     gui_set_parent(follow_right, follow_hsplit);
 }
 
-void make_confirm_mnemonic_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t** text_box_ptr, size_t confirm, char* words[24])
+void make_confirm_mnemonic_screen(gui_activity_t** activity_ptr, gui_view_node_t** text_box_ptr, const size_t confirm,
+    char* words[], const size_t nwords)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(text_box_ptr);
-
+    JADE_ASSERT(confirm > 0 && confirm < nwords - 1); // Must be able to access next and previous entries
     make_confirm_mnemonic_page(activity_ptr, text_box_ptr, confirm, words[confirm - 1], words[confirm + 1]);
 }
 
