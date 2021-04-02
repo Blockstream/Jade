@@ -3,11 +3,11 @@
     "network": "localtest-liquid",
     "txn": "0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020a2b712848b6f14697590b06622266e8d82cb06030896de79700b15562a20834fb0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de879a478a7033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
     "trusted_commitments": [{"vbf": "6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
-                             "abf": "b6030a5bdaafe11ff90ade22b3f2ca2ac6d6ba339313b0b20d3e75f09c0f3c35",
+                             "abf": "a3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
                              "blinding_key": "023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
-                             "asset_generator": "0a2b712848b6f14697590b06622266e8d82cb06030896de79700b15562a20834fb",
+                             "asset_generator": "0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
                              "value_commitment": "0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de879a478a7",
-                             "hmac": "a533a1119e657627a574e4d44fba919de32777b0c2d4926cedf89f580c7be35f",
+                             "hmac": "36b346e2248143ce24bc35c0d85f3c67fb06a7250c43336b85872b3a42d2f652",
                              "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
                              "value": 9000000},
                              null
@@ -18,5 +18,5 @@
                 "path": [0]}
     ]
   },
-  "expected_output": ["3044022031446c976c549189ddea6f466b40b228ec2c2649bc5d484449a7cf4b06d1c897022042bc3b22cafa244dcba3b14aa7d86f6690162b250b55d10c38f18b19d9835a9401"]
+  "expected_output": ["304402202ebfd77199172fb78e3edc265cc81a8f6ceb21bd0a537a4c633dbe53e4bbe0ba0220433e2ac75d64f1ae9e15c256bd4921f71e39a072c7228eae970ebd59e1fe6a0001"]
 }

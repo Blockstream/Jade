@@ -193,6 +193,9 @@ void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len,
     // Use mainnet version by default - will be overridden if key serialised for specific network
     // (eg. in get_xpub call).
     JADE_WALLY_VERIFY(bip32_key_from_seed(seed, seed_len, BIP32_VER_MAIN_PRIVATE, 0, &keydata->xpriv));
+
+    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
+    // the master unblinding key is only the second half of that - ie. 256 bits.
     JADE_WALLY_VERIFY(
         wally_asset_blinding_key_from_seed(seed, seed_len, keydata->master_unblinding_key, HMAC_SHA512_LEN));
 

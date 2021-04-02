@@ -83,6 +83,14 @@ static inline uint32_t harden(const uint32_t n) { return n | BIP32_INITIAL_HARDE
 
 static inline uint32_t unharden(const uint32_t n) { return n & ~BIP32_INITIAL_HARDENED_CHILD; }
 
+static inline void value_to_be(uint32_t val, unsigned char* buffer)
+{
+    buffer[0] = (val >> 24) & 0xFF;
+    buffer[1] = (val >> 16) & 0xFF;
+    buffer[2] = (val >> 8) & 0xFF;
+    buffer[3] = val & 0xFF;
+}
+
 void wallet_init()
 {
     JADE_WALLY_VERIFY(bip32_key_from_base58(MAINNET_SERVICE_XPUB, &MAINNET_SERVICE));
@@ -713,6 +721,9 @@ bool wallet_get_public_blinding_key(
         return false;
     }
 
+    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
+    // the master unblinding key is only the second half of that - ie. 256 bits
+    // 'wally_asset_blinding_key_to_ec_private_key()' takes this into account...
     unsigned char privkey[EC_PRIVATE_KEY_LEN];
     const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
         sizeof(keychain_get()->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
@@ -737,17 +748,19 @@ bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t
         return false;
     }
 
+    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
+    // the master unblinding key is only the second half of that - ie. 256 bits
+    // So we only use the relevant slice of the data for this derivation (consistent with ledger).
+    JADE_ASSERT(sizeof(keychain_get()->master_unblinding_key) == HMAC_SHA512_LEN);
     unsigned char tx_blinding_key[HMAC_SHA256_LEN];
-    JADE_WALLY_VERIFY(
-        wally_hmac_sha256(keychain_get()->master_unblinding_key, sizeof(keychain_get()->master_unblinding_key),
-            hash_prevouts, SHA256_LEN, tx_blinding_key, sizeof(tx_blinding_key)));
+    JADE_WALLY_VERIFY(wally_hmac_sha256(keychain_get()->master_unblinding_key + HMAC_SHA256_LEN, HMAC_SHA256_LEN,
+        hash_prevouts, SHA256_LEN, tx_blinding_key, sizeof(tx_blinding_key)));
 
     // msg is either "ABF" or "VBF" with the output index appended at the end.
     // initialize the common part here and then replace vars down
     unsigned char msg[3 + sizeof(uint32_t)] = { type, 'B', 'F', 0x00, 0x00, 0x00, 0x00 };
 
-    // TODO: check endianess of `output_index`
-    memcpy(msg + 3, &output_index, sizeof(uint32_t));
+    value_to_be(output_index, msg + 3);
     JADE_WALLY_VERIFY(
         wally_hmac_sha256(tx_blinding_key, sizeof(tx_blinding_key), msg, sizeof(msg), output, output_len));
 
@@ -765,6 +778,10 @@ bool wallet_get_shared_nonce(const unsigned char* script, const uint32_t script_
 
     unsigned char privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
+
+    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
+    // the master unblinding key is only the second half of that - ie. 256 bits
+    // 'wally_asset_blinding_key_to_ec_private_key()' takes this into account...
     const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
         sizeof(keychain_get()->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
     if (wret != WALLY_OK) {

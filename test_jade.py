@@ -263,30 +263,30 @@ TEST_HASH_PREVOUTS = h2b(TEST_HASH_PREVOUTS_HEX)
 TEST_REGTEST_BITCOIN = h2b('5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419\
 ca290e0751b225')
 
-EXPECTED_LIQ_COMMITMENT_1 = {'abf': h2b('57178f28905396ea907b09ee45917e98a6f5f\
-8c86060e9968211d62e68cc2504'),
-                             'vbf': h2b('868dc796fd23733ac58de522385e2355d5f3e\
-5812dc4a29a0a8409bfadfc6aad'),
-                             'asset_generator': h2b('0b5e7c7d4539d13d162e7d5ca\
-f12488f94caeaf7d9e9fdf9df50e7317223b44591'),
-                             'value_commitment': h2b('0933be3d5c1f025c4741742d\
-de4be2019bd5d048c240cb728d79643cb9d36857dc'),
-                             'hmac': h2b('293de7a9e559ab86ba6ecfd8bcbb229a4d1b\
-0d56878a454f44a4a8f1d930135b'),
+EXPECTED_LIQ_COMMITMENT_1 = {'abf': h2b('42bc9c7025f3df490a208cb362ff220547910\
+da1d3e81c63a6e7c28c3a33a993'),
+                             'vbf': h2b('7a6693fde7b88efb8375db618670fb5ccb9b2\
+f7e8743b7d772924f0426c5efe6'),
+                             'asset_generator': h2b('0a5cf0a43ad404163946c28b8\
+a36d0e5cb4895b0ee386da4cd1008ffc8cb464501'),
+                             'value_commitment': h2b('082d8de9b7f66994abf789b2\
+591738331f88a7ddbef4e553bbf123e47677d60099'),
+                             'hmac': h2b('385af94c60ce6395b7aae2b09eef73d46ac5\
+7a209674101e295c0b8129a60672'),
                              'asset_id': h2b('5ac9f65c0efcc4775e0baec4ec03abdd\
 e22473cd3cf33c0419ca290e0751b225'),
                              'value': 9000000}
 
-EXPECTED_LIQ_COMMITMENT_2 = {'abf': h2b('b6030a5bdaafe11ff90ade22b3f2ca2ac6d6b\
-a339313b0b20d3e75f09c0f3c35'),
+EXPECTED_LIQ_COMMITMENT_2 = {'abf': h2b('a3510210bbab6ed67429af9beaf42f09382e1\
+2146a3db466971b58a45516bba0'),
                              'vbf': h2b('6ec064a68075a278bfca4a10f777c730116e9\
 ba02fbb343a237c847e4d2fbf53'),
-                             'asset_generator': h2b('0a2b712848b6f14697590b066\
-22266e8d82cb06030896de79700b15562a20834fb'),
-                             'value_commitment': h2b('0881e4ace4be80524bcc4f56\
-6e46a452ab5f43a49929cbf5743d9e1de879a478a7'),
-                             'hmac': h2b('a533a1119e657627a574e4d44fba919de327\
-77b0c2d4926cedf89f580c7be35f'),
+                             'asset_generator': h2b('0abd23178d9ff73cf848d8d88\
+a7c7e269a464f53017cab0f9f53ed9d64b2849713'),
+                             'value_commitment': h2b('094d9a00f1661a2a805a8afe\
+c9c188310d4c43353cc319886ee4d9f439389d8f43'),
+                             'hmac': h2b('73c9e1134ee72d667972ac7eeb97c535f318\
+885589acd4ba7577f65ac4c80c52'),
                              'asset_id': h2b('5ac9f65c0efcc4775e0baec4ec03abdd\
 e22473cd3cf33c0419ca290e0751b225'),
                              'value': 9000000}
@@ -1452,7 +1452,7 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
                                    9000000,
                                    TEST_HASH_PREVOUTS,
                                    3)
-    assert _dicts_eq(rslt, EXPECTED_LIQ_COMMITMENT_1, )
+    assert _dicts_eq(rslt, EXPECTED_LIQ_COMMITMENT_1)
 
     # Get Liquid commitments with custom VBF
     rslt = jadeapi.get_commitments(TEST_REGTEST_BITCOIN,
@@ -1461,6 +1461,39 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
                                    0,
                                    EXPECTED_LIQ_COMMITMENT_2['vbf'])
     assert _dicts_eq(rslt, EXPECTED_LIQ_COMMITMENT_2)
+
+    # This checks that we get the same blinders and commitments as we got
+    # using a ledger.  See also test_data/txn_liquid_ledger_compare.json,
+    # which is the same tx as ledger-signed liquid tx:
+    # 4b4a27e482eff9dbaa52e7bada4cd7115c299c8e6ac8ebbd20e8d923ad2dad00
+    # - and gets the same blinders and the same final signatures.
+
+    # This is the hash-prevout for that transaction
+    LEDGER_COMPARE_HASH_PREVOUT = h2b('7e78263a58236ffd160ee5a2c58c18b71637974\
+aa95e1c72070b08208012144f')
+
+    ledger_txs = list(_get_test_cases("liquid_txn_ledger_compare.json"))
+    assert len(ledger_txs) == 1
+    ledger_commitments = ledger_txs[0]['input']['trusted_commitments']
+    assert len(ledger_commitments) == 3
+    assert ledger_commitments[2] is None
+
+    # First output commitments, no custom vbf
+    rslt = jadeapi.get_commitments(ledger_commitments[0]['asset_id'],
+                                   ledger_commitments[0]['value'],
+                                   LEDGER_COMPARE_HASH_PREVOUT,
+                                   0)
+    del ledger_commitments[0]['blinding_key']
+    assert _dicts_eq(rslt, ledger_commitments[0])
+
+    # Second output commitments, including custom vbf
+    rslt = jadeapi.get_commitments(ledger_commitments[1]['asset_id'],
+                                   ledger_commitments[1]['value'],
+                                   LEDGER_COMPARE_HASH_PREVOUT,
+                                   1,
+                                   ledger_commitments[1]['vbf'],)
+    del ledger_commitments[1]['blinding_key']
+    assert _dicts_eq(rslt, ledger_commitments[1])
 
     # Sign Liquid Tx
     for txn_data in SIGN_LIQUID_TXN_TESTS:
