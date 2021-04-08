@@ -39,8 +39,7 @@ void make_recover_word_page_select10(
 void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** camera_node, gui_view_node_t** textbox);
 
 // Pinserver interaction
-bool pinclient_savekeys(
-    jade_process_t* process, const char* network, const uint8_t* pin, size_t pin_size, const keychain_t* keydata);
+bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, const keychain_t* keydata);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
 // Function to change the mnemonic word separator and provide pointers to
@@ -701,7 +700,11 @@ void mnemonic_process(void* process_ptr)
 
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
     // (This should persist the mnemonic keys encrypted in the flash)
-    if (pinclient_savekeys(process, network, pin, sizeof(pin), &keydata)) {
+    if (pinclient_savekeys(process, pin, sizeof(pin), &keydata)) {
+#ifndef CONFIG_DEBUG_MODE
+        // If not a debug build, we restrict the hw to this network type
+        keychain_set_network_type_restriction(network);
+#endif
         // Copy temporary keychain into a new global keychain and
         // set the current message source as the keychain userdata
         set_keychain(&keydata, process->ctx.source);

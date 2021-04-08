@@ -292,6 +292,7 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
         if (storage_get_counter() == 0) {
             JADE_LOGW("Multiple failures to decrypt key data - erasing encrypted keys");
             storage_erase_encrypted_blob();
+            keychain_clear_network_type_restriction();
         }
         return false;
     }
@@ -307,9 +308,6 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
     const bool ret = unserialize(decrypted, keydata);
     JADE_ASSERT(ret);
     SENSITIVE_POP(decrypted);
-
-    // Cache whether we are restricted to main/test networks
-    network_type_restriction = storage_get_network_type_restriction();
 
     return true;
 }
@@ -358,5 +356,9 @@ bool keychain_init()
         }
     }
     SENSITIVE_POP(privatekey);
+
+    // Cache whether we are restricted to main/test networks
+    network_type_restriction = storage_get_network_type_restriction();
+
     return res;
 }

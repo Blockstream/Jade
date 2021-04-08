@@ -15,10 +15,8 @@
 #include "process_utils.h"
 
 // Pinserver interaction functions as used in menmonic.c and pin.c
-bool pinclient_savekeys(
-    jade_process_t* process, const char* network, const uint8_t* pin, size_t pin_size, const keychain_t* keydata);
-bool pinclient_loadkeys(
-    jade_process_t* process, const char* network, const uint8_t* pin, size_t pin_size, keychain_t* keydata);
+bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, const keychain_t* keydata);
+bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, keychain_t* keydata);
 
 static void fake_auth_msg_request(jade_process_t* process, uint8_t* process_cbor, size_t process_cbor_len)
 {
@@ -79,7 +77,7 @@ void debug_handshake(void* process_ptr)
     fake_auth_msg_request(process, process_cbor, 256);
 
     // Test setting a new pin using the 'real' pinserver interaction code
-    if (!pinclient_savekeys(process, "testnet", user_pin, sizeof(user_pin), &keydata)) {
+    if (!pinclient_savekeys(process, user_pin, sizeof(user_pin), &keydata)) {
         JADE_LOGE("pinclient_savekeys() failed");
         goto cleanup;
     }
@@ -96,7 +94,7 @@ void debug_handshake(void* process_ptr)
     fake_auth_msg_request(process, process_cbor, 256);
 
     // Test get pin again using the 'real' pinserver interaction code.
-    if (!pinclient_loadkeys(process, "testnet", user_pin, sizeof(user_pin), &keydata_decrypted)) {
+    if (!pinclient_loadkeys(process, user_pin, sizeof(user_pin), &keydata_decrypted)) {
         JADE_LOGE("pinclient_loadkeys() failed");
         goto cleanup;
     }
