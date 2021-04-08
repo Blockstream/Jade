@@ -76,8 +76,14 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     const esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
     JADE_ASSERT(err == ESP_OK);
 
+#ifdef CONFIG_DEBUG_MODE
+    const uint8_t num_version_fields = 16;
+#else
+    const uint8_t num_version_fields = 11;
+#endif
+
     CborEncoder map_encoder;
-    CborError cberr = cbor_encoder_create_map(container, &map_encoder, 14);
+    CborError cberr = cbor_encoder_create_map(container, &map_encoder, num_version_fields);
     JADE_ASSERT(cberr == CborNoError);
 
     add_string_to_map(&map_encoder, "JADE_VERSION", running_app_info.version);
@@ -132,6 +138,18 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     add_string_to_map(&map_encoder, "EFUSEMAC", hexstr);
     wally_free_string(hexstr);
 
+    const char* state = keychain_get() != NULL ? "READY" : keychain_has_pin() ? "LOCKED" : "UNINIT";
+    add_string_to_map(&map_encoder, "JADE_STATE", state);
+
+    const network_type_t restriction = storage_get_network_type_restriction();
+    const char* networks = restriction == MAIN ? "MAIN" : restriction == TEST ? "TEST" : "ALL";
+    add_string_to_map(&map_encoder, "JADE_NETWORKS", networks);
+
+    // Deprecated (as of 0.1.25) - to be removed later
+    add_boolean_to_map(&map_encoder, "JADE_HAS_PIN", keychain_has_pin());
+
+// Memory stats only needed in DEBUG
+#ifdef CONFIG_DEBUG_MODE
     add_uint_to_map(&map_encoder, "JADE_FREE_HEAP", xPortGetFreeHeapSize());
     add_uint_to_map(&map_encoder, "JADE_FREE_DRAM", heap_caps_get_free_size(MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL));
     add_uint_to_map(
@@ -139,7 +157,7 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     add_uint_to_map(&map_encoder, "JADE_FREE_SPIRAM", heap_caps_get_free_size(MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM));
     add_uint_to_map(
         &map_encoder, "JADE_LARGEST_SPIRAM", heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM));
-    add_boolean_to_map(&map_encoder, "JADE_HAS_PIN", keychain_has_pin());
+#endif // CONFIG_DEBUG_MODE
 
     cberr = cbor_encoder_close_container(container, &map_encoder);
     JADE_ASSERT(cberr == CborNoError);
