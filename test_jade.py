@@ -80,7 +80,7 @@ def _h2b_test_case(testcase):
 def _read_json_file(filename):
     logger.info('Reading json file: {}'.format(filename))
     with open(filename, 'r') as json_file:
-        return json.loads(json_file.read())
+        return json.load(json_file)
 
 
 # Helper to read json test files into a list
@@ -90,8 +90,7 @@ def _get_test_cases(pattern):
 
 # Helper to compare two dicts
 def _dicts_eq(lhs, rhs):
-    return cbor.dumps(lhs, sort_keys=True, indent=0) == \
-                cbor.dumps(rhs, sort_keys=True, indent=0)
+    return cbor.dumps(lhs, sort_keys=True) == cbor.dumps(rhs, sort_keys=True)
 
 
 BLE_TEST_PASSKEYFILE = "ble_test_passkey.txt"
