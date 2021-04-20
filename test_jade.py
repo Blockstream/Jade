@@ -331,22 +331,26 @@ def test_very_bad_message(jade):
         assert 'result' not in reply
 
 
-def test_too_much_input(jade):
+def test_too_much_input(jade, has_psram):
     noise = 'long'.encode()   # 4b
     cacophony = noise * 4096  # 16k
-    for _ in range(25):       # 25x that is 400k
+
+    # NOTE: if the hw has PSRAM it will have a 401k buffer.
+    # If not, it will have a 17k buffer.  Want only 1k left.
+    # Send the appropriate amount of noise. (400k or 16k)
+    for _ in range(25 if has_psram else 1):  # 25x16 is 400k
         jade.write(cacophony)
 
-    # Jde buffers are 401k (to handle 400k txn) so send another 1k to
-    # fill/overflow the buffers, then another 128b
+    # Input buffer should now only have 1k space remaining.
+    # Send another 1k to fill/overflow the buffers, then another 128b
     din = noise * 288         # 4x288 = 1024 + 128 = 1152
     jade.write(noise * 288)
 
     # No response expected
-    # Expect first 401k to be discarded
+    # Expect first 17k/401k (ie. buffer-size) to be discarded
 
     # Send eol/end-of-msg, should get error back about remainder  -
-    # 128 bytes plys the 'xyz\n' = 132bytes
+    # 128 bytes plus the 'xyz\n' = 132bytes
     jade.write('xyz\n'.encode())
     reply = jade.read_response()
 
@@ -1458,8 +1462,9 @@ def run_interface_tests(jadeapi,
     # Too much input test - sends a lot of data so only
     # run if requested (eg. ble would take a long time)
     if test_overflow_input:
-        logger.info("Buffer overflow test")
-        test_too_much_input(jadeapi.jade)
+        has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
+        logger.info("Buffer overflow test - PSRAM: {}".format(has_psram))
+        test_too_much_input(jadeapi.jade, has_psram)
 
     # Negative tests
     if negative:
