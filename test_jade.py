@@ -255,16 +255,16 @@ TEST_HASH_PREVOUTS = h2b(TEST_HASH_PREVOUTS_HEX)
 TEST_REGTEST_BITCOIN = h2b('5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419\
 ca290e0751b225')
 
-EXPECTED_LIQ_COMMITMENT_1 = {'abf': h2b('b6030a5bdaafe11ff90ade22b3f2ca2ac6d6b\
-a339313b0b20d3e75f09c0f3c35'),
-                             'vbf': h2b('01f1d7b53e148d42bc5e74cbb574434ec0eb1\
-88a79a36e296b4cf27d11049988'),
-                             'asset_generator': h2b('0a2b712848b6f14697590b066\
-22266e8d82cb06030896de79700b15562a20834fb'),
-                             'value_commitment': h2b('097c1b60fdf7d757b879a842\
-cd1f773e46bb8cab0f05ca99550cad639b56d248c8'),
-                             'hmac': h2b('7b386b2b69b5b10c93c03d49ce89b8f18b95\
-39776b24fe172b5b62a99bb4cd22'),
+EXPECTED_LIQ_COMMITMENT_1 = {'abf': h2b('57178f28905396ea907b09ee45917e98a6f5f\
+8c86060e9968211d62e68cc2504'),
+                             'vbf': h2b('868dc796fd23733ac58de522385e2355d5f3e\
+5812dc4a29a0a8409bfadfc6aad'),
+                             'asset_generator': h2b('0b5e7c7d4539d13d162e7d5ca\
+f12488f94caeaf7d9e9fdf9df50e7317223b44591'),
+                             'value_commitment': h2b('0933be3d5c1f025c4741742d\
+de4be2019bd5d048c240cb728d79643cb9d36857dc'),
+                             'hmac': h2b('293de7a9e559ab86ba6ecfd8bcbb229a4d1b\
+0d56878a454f44a4a8f1d930135b'),
                              'asset_id': h2b('5ac9f65c0efcc4775e0baec4ec03abdd\
 e22473cd3cf33c0419ca290e0751b225'),
                              'value': 9000000}
@@ -1295,7 +1295,7 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
 
-    # # Get (receive) green-address
+    # Get (receive) green-address
     for network, subact, branch, ptr, recovxpub, csvblocks, expected in GET_GREENADDRESS_DATA:
         rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
                                            csv_blocks=csvblocks)
@@ -1355,16 +1355,15 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
     assert rslt == EXPECTED_SHARED_SECRET
 
     # Get Liquid blinding factor
-    rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 0, 'ASSET')
+    rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'ASSET')
     assert rslt == EXPECTED_LIQ_COMMITMENT_1['abf']
 
     # Get Liquid commitments without custom VBF
     rslt = jadeapi.get_commitments(TEST_REGTEST_BITCOIN,
                                    9000000,
                                    TEST_HASH_PREVOUTS,
-                                   0)
-
-    assert _dicts_eq(rslt, EXPECTED_LIQ_COMMITMENT_1)
+                                   3)
+    assert _dicts_eq(rslt, EXPECTED_LIQ_COMMITMENT_1, )
 
     # Get Liquid commitments with custom VBF
     rslt = jadeapi.get_commitments(TEST_REGTEST_BITCOIN,
