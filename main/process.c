@@ -24,7 +24,7 @@ static RingbufHandle_t qemu_tcp_out = NULL;
 static TaskHandle_t ble_handle;
 #endif
 
-#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
 static TaskHandle_t qemu_tcp_handle;
 #endif
 
@@ -147,7 +147,7 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
     *serial_h = &serial_handle;
     serial_out = create_ringbuffer(8 * 1024);
     JADE_ASSERT(serial_out);
-#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
     *qemu_tcp_h = &qemu_tcp_handle;
     qemu_tcp_out = create_ringbuffer(8 * 1024);
     JADE_ASSERT(qemu_tcp_out);
@@ -240,9 +240,9 @@ bool jade_process_push_in_message(const unsigned char* data, const size_t size)
 
 void jade_process_push_out_message(const unsigned char* data, const size_t size, const jade_msg_source_t source)
 {
-#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
     JADE_ASSERT(source == SOURCE_QEMU_TCP || source == SOURCE_SERIAL);
-#elif defined CONFIG_ESP32_NO_BLOBS
+#elif defined(CONFIG_ESP32_NO_BLOBS)
     JADE_ASSERT(source == SOURCE_SERIAL);
 #else
     JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_BLE);
@@ -260,7 +260,7 @@ void jade_process_push_out_message(const unsigned char* data, const size_t size,
         handle = ble_handle;
         break;
 #endif
-#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
     case SOURCE_QEMU_TCP:
         ring = qemu_tcp_out;
         handle = qemu_tcp_handle;
@@ -375,7 +375,7 @@ bool jade_process_get_out_message(bool (*writer)(char*, size_t), jade_msg_source
         ring = ble_out;
         break;
 #endif
-#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
     case SOURCE_QEMU_TCP:
         ring = qemu_tcp_out;
         break;

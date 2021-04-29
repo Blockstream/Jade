@@ -24,7 +24,7 @@
 #include "random.h"
 #include "sensitive.h"
 #include "serial.h"
-#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
 #include "qemu_tcp.h"
 #endif
 
@@ -102,7 +102,7 @@ static void boot_process()
         JADE_ABORT();
     }
 
-#if defined CONFIG_FREERTOS_UNICORE && defined CONFIG_ETH_USE_OPENETH
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
     if (!qemu_tcp_init(qemu_tcp_handle)) {
         JADE_LOGI("Failed to start qemu tcp handler");
         JADE_ABORT();
