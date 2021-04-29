@@ -69,6 +69,9 @@ extern uint32_t GUI_DEFAULT_FONT;
 #define GUI_MARGIN_TWO_VALUES 2 // first value for top/bottom, second for right/left
 #define GUI_MARGIN_ALL_DIFFERENT 3 // four different values
 
+// Maximum size of single displayable text string
+#define GUI_MAX_TEXT_LENGTH 256
+
 // Event base for button clicks
 ESP_EVENT_DECLARE_BASE(GUI_BUTTON_EVENT);
 // Event base for gui events

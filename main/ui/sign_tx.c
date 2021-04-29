@@ -1,7 +1,7 @@
 #include <assets.h>
 #include <inttypes.h>
 #include <math.h>
-#include <wally_core.h>
+#include <wally_transaction.h>
 
 #include "../button_events.h"
 #include "../jade_assert.h"

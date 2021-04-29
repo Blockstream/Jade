@@ -4,7 +4,11 @@
 #include "gui.h"
 #include "process.h"
 
-#include <wally_transaction.h>
+struct wally_tx;
+
+// Maximum length of message which can be fully displayed on
+// 'sign-message' screen - longer messages display the hash
+#define MAX_DISPLAY_MESSAGE_LEN 192
 
 #define PIN_SIZE 6
 
@@ -61,7 +65,8 @@ void update_progress_bar(progress_bar_t* progress_bar, size_t total, size_t curr
 
 // Signing-specific screens
 void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* address);
-void make_sign_message_activity(gui_activity_t** activity_ptr, const char* message_hash_hex, const char* path_as_str);
+void make_sign_message_activity(
+    gui_activity_t** activity_ptr, const char* msg_str, size_t msg_len, bool is_hash, const char* path_as_str);
 
 void make_display_output_activity(const char* network, const struct wally_tx* tx, const output_info_t* output_info,
     gui_activity_t** first_activity, gui_activity_t** last_activity);

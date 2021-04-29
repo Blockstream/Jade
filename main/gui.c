@@ -927,8 +927,8 @@ void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, 
 
     struct view_node_text_data* data = JADE_CALLOC(1, sizeof(struct view_node_text_data));
 
-    // max 128 chars
-    const size_t len = min(128, strlen(text) + 1);
+    // max chars limited to GUI_MAX_TEXT_LENGTH
+    const size_t len = min(GUI_MAX_TEXT_LENGTH, strlen(text) + 1);
     data->text = JADE_MALLOC(len);
     const int ret = snprintf(data->text, len, "%s", text); // cut to len
     JADE_ASSERT(ret >= 0); // truncation is acceptable here, as is empty string
@@ -1308,8 +1308,8 @@ void gui_update_text(gui_view_node_t* node, const char* text)
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
 
-    // max 128 chars. TODO: make this configurable
-    const size_t len = min(128, strlen(text) + 1);
+    // max chars limited to GUI_MAX_TEXT_LENGTH
+    const size_t len = min(GUI_MAX_TEXT_LENGTH, strlen(text) + 1);
     char* new_text = JADE_MALLOC(len);
     const int ret = snprintf(new_text, len, "%s", text);
     JADE_ASSERT(ret >= 0); // truncation is acceptable here, as is empty string

@@ -90,17 +90,22 @@ void sign_message_process(void* process_ptr)
 
     // If the path and message suggest a gdk login challenge, just sign
     // the message without prompting the user to explicitly confirm.
-    // (Otherwise the user has to confirm message hash and path.)
+    // (Otherwise the user has to confirm message or hash and the path.)
     const bool auto_sign = isGdkLoginChallenge(path, path_len, message, msg_len);
     if (auto_sign) {
         JADE_LOGI("Auto-signing GDK login challenge message");
     } else {
-        char* message_hex = NULL;
-        JADE_WALLY_VERIFY(wally_hex_from_bytes(message_hash, sizeof(message_hash), &message_hex));
-        jade_process_call_on_exit(process, wally_free_string_wrapper, message_hex);
-
         gui_activity_t* activity;
-        make_sign_message_activity(&activity, message_hex, path_as_str);
+        if (msg_len < MAX_DISPLAY_MESSAGE_LEN) {
+            // Sufficiently short message - display the message
+            make_sign_message_activity(&activity, message, msg_len, false, path_as_str);
+        } else {
+            // Overlong message - display the hash
+            char* message_hex = NULL;
+            JADE_WALLY_VERIFY(wally_hex_from_bytes(message_hash, sizeof(message_hash), &message_hex));
+            jade_process_call_on_exit(process, wally_free_string_wrapper, message_hex);
+            make_sign_message_activity(&activity, message_hex, strlen(message_hex), true, path_as_str);
+        }
         JADE_ASSERT(activity);
         gui_set_current_activity(activity);
 
