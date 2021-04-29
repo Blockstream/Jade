@@ -74,24 +74,18 @@ static void button_pressed(void* arg)
     *button = true;
 }
 
-static void button_handle_two_buttonsA(void* arg)
+static void button_released(void* arg)
 {
-    if (button_B_pressed) {
+    // button_A_pressed or button_B_pressed passed in arg to indicate which was released
+    if (button_A_pressed && button_B_pressed) {
         gui_front_click();
-    } else if (button_A_pressed) {
+    } else if (button_A_pressed && arg == &button_A_pressed) {
+        wheel_prev();
+    } else if (button_B_pressed && arg == &button_B_pressed) {
         wheel_next();
     }
-    button_B_pressed = false;
-    button_A_pressed = false;
-}
 
-static void button_handle_two_buttonsB(void* arg)
-{
-    if (button_A_pressed) {
-        gui_front_click();
-    } else if (button_B_pressed) {
-        wheel_prev();
-    }
+    // Clear both flags here so we ignore the second button release when both pressed
     button_B_pressed = false;
     button_A_pressed = false;
 }
@@ -100,11 +94,11 @@ void wheel_init()
 {
     button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_PUSH, button_pressed, &button_A_pressed);
-    iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_RELEASE, button_handle_two_buttonsA, NULL);
+    iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_RELEASE, button_released, &button_A_pressed);
 
     button_handle_t btn_handle_next = iot_button_create(CONFIG_INPUT_BTN_B, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_pressed, &button_B_pressed);
-    iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_handle_two_buttonsB, NULL);
+    iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_released, &button_B_pressed);
 }
 
 #else
