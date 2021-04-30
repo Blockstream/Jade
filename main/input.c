@@ -34,13 +34,17 @@ static void button_wheel_long(void* arg)
 
 void button_init()
 {
-    button_handle_t btn_handle_front = iot_button_create(BUTTON_FRONT, BUTTON_ACTIVE_LOW);
+#ifdef CONFIG_INPUT_FRONT_SW
+    button_handle_t btn_handle_front = iot_button_create(CONFIG_INPUT_FRONT_SW, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_front, BUTTON_CB_RELEASE, button_front_release, NULL);
     iot_button_add_custom_cb(btn_handle_front, 1, button_front_long, NULL);
+#endif
 
-    button_handle_t btn_handle_wheel = iot_button_create(BUTTON_ENC, BUTTON_ACTIVE_LOW);
+#ifdef CONFIG_INPUT_WHEEL_SW
+    button_handle_t btn_handle_wheel = iot_button_create(CONFIG_INPUT_WHEEL_SW, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_wheel, BUTTON_CB_RELEASE, button_wheel_release, NULL);
     iot_button_add_custom_cb(btn_handle_wheel, 1, button_wheel_long, NULL);
+#endif
 }
 
 static inline void wheel_prev()
@@ -61,10 +65,79 @@ static inline void wheel_next()
     }
 }
 
-#if defined(CONFIG_BOARD_TYPE_M5_FIRE) || defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)                                     \
-    || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
+#ifdef CONFIG_BOARD_TYPE_JADE
+// Original Jade v1.0 hardware has a rotary-encoder/wheel
 
-// M5 wheel_init() to mock jade wheel
+// Set to true to enable tracking of rotary encoder at half step resolution
+#define ENABLE_HALF_STEPS false
+
+// Set to true to reverse the clockwise/counterclockwise sense
+#ifdef CONFIG_INPUT_INVERT_WHEEL
+#define FLIP_DIRECTION true
+#else
+#define FLIP_DIRECTION false
+#endif
+
+// Jade proper wheel init
+static QueueHandle_t event_queue;
+
+void wheel_watch_task(void* info_void)
+{
+    rotary_encoder_info_t* info = (rotary_encoder_info_t*)info_void;
+    int32_t last_position = 0;
+
+    for (;;) {
+        rotary_encoder_event_t event = { 0 };
+        if (xQueueReceive(event_queue, &event, 1000 / portTICK_PERIOD_MS) == pdTRUE) {
+            if (event.state.position < last_position) {
+                wheel_prev();
+            } else {
+                wheel_next();
+            }
+
+            last_position = event.state.position;
+        }
+    }
+
+    JADE_LOGE("queue receive failed");
+    const esp_err_t rc = rotary_encoder_uninit(info);
+    JADE_ASSERT(rc == ESP_OK);
+    free(info);
+
+    vTaskDelete(NULL);
+}
+
+void wheel_init()
+{
+    // Initialise the rotary encoder device with the GPIOs for A and B signals
+    rotary_encoder_info_t* info = (rotary_encoder_info_t*)JADE_MALLOC(sizeof(rotary_encoder_info_t));
+    esp_err_t rc = rotary_encoder_init(info, CONFIG_INPUT_WHEEL_A, CONFIG_INPUT_WHEEL_B);
+    JADE_ASSERT(rc == ESP_OK);
+    rc = rotary_encoder_enable_half_steps(info, ENABLE_HALF_STEPS);
+    JADE_ASSERT(rc == ESP_OK);
+#ifdef FLIP_DIRECTION
+    rc = rotary_encoder_flip_direction(info);
+    JADE_ASSERT(rc == ESP_OK);
+#endif
+
+    // Create a queue for events from the rotary encoder driver.
+    event_queue = rotary_encoder_create_queue();
+    // Tasks can read from this queue to receive up to date position information.
+    rc = rotary_encoder_set_queue(info, event_queue);
+    JADE_ASSERT(rc == ESP_OK);
+
+#ifdef CONFIG_FREERTOS_UNICORE
+    const BaseType_t core_used = 0;
+#else
+    const BaseType_t core_used = 1;
+#endif
+    const BaseType_t retval
+        = xTaskCreatePinnedToCore(&wheel_watch_task, "wheel_watcher", 2 * 1024, info, 5, NULL, core_used);
+    JADE_ASSERT_MSG(
+        retval == pdPASS, "Failed to create wheel_watcher task, xTaskCreatePinnedToCore() returned %d", retval);
+}
+#else
+// wheel_init() to mock wheel with buttons
 static bool button_A_pressed = false;
 static bool button_B_pressed = false;
 
@@ -100,66 +173,4 @@ void wheel_init()
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_pressed, &button_B_pressed);
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_released, &button_B_pressed);
 }
-
-#else
-
-// Jade proper wheel init
-static QueueHandle_t event_queue;
-
-void wheel_watch_task(void* info_void)
-{
-    rotary_encoder_info_t* info = (rotary_encoder_info_t*)info_void;
-    int32_t last_position = 0;
-
-    for (;;) {
-        rotary_encoder_event_t event = { 0 };
-        if (xQueueReceive(event_queue, &event, 1000 / portTICK_PERIOD_MS) == pdTRUE) {
-            if (event.state.position < last_position) {
-                wheel_prev();
-            } else {
-                wheel_next();
-            }
-
-            last_position = event.state.position;
-        }
-    }
-
-    JADE_LOGE("queue receive failed");
-    const esp_err_t rc = rotary_encoder_uninit(info);
-    JADE_ASSERT(rc == ESP_OK);
-    free(info);
-
-    vTaskDelete(NULL);
-}
-
-void wheel_init()
-{
-    // Initialise the rotary encoder device with the GPIOs for A and B signals
-    rotary_encoder_info_t* info = (rotary_encoder_info_t*)JADE_MALLOC(sizeof(rotary_encoder_info_t));
-    esp_err_t rc = rotary_encoder_init(info, ROT_ENC_A_GPIO, ROT_ENC_B_GPIO);
-    JADE_ASSERT(rc == ESP_OK);
-    rc = rotary_encoder_enable_half_steps(info, ENABLE_HALF_STEPS);
-    JADE_ASSERT(rc == ESP_OK);
-#ifdef FLIP_DIRECTION
-    rc = rotary_encoder_flip_direction(info);
-    JADE_ASSERT(rc == ESP_OK);
-#endif
-
-    // Create a queue for events from the rotary encoder driver.
-    event_queue = rotary_encoder_create_queue();
-    // Tasks can read from this queue to receive up to date position information.
-    rc = rotary_encoder_set_queue(info, event_queue);
-    JADE_ASSERT(rc == ESP_OK);
-
-#ifdef CONFIG_FREERTOS_UNICORE
-    const BaseType_t core_used = 0;
-#else
-    const BaseType_t core_used = 1;
-#endif
-    const BaseType_t retval
-        = xTaskCreatePinnedToCore(&wheel_watch_task, "wheel_watcher", 2 * 1024, info, 5, NULL, core_used);
-    JADE_ASSERT_MSG(
-        retval == pdPASS, "Failed to create wheel_watcher task, xTaskCreatePinnedToCore() returned %d", retval);
-}
-
-#endif
+#endif // CONFIG_BOARD_TYPE_JADE

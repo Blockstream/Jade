@@ -63,22 +63,22 @@ menu "Input configuration"
     int "Wheel A"
     range 0 40
     default 37 if BOARD_TYPE_JADE
-    default 25 if BOARD_TYPE_DEV
   config INPUT_WHEEL_B
     int "Wheel B"
     range 0 40
     default 38 if BOARD_TYPE_JADE
-    default 32 if BOARD_TYPE_DEV
   config INPUT_BTN_A
     int "BTN A"
     range 0 40
     default 39 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
     default 0 if BOARD_TYPE_TTGO_TDISPLAY
+    default 25 if BOARD_TYPE_DEV
   config INPUT_BTN_B
     int "BTN B"
     range 0 40
     default 37 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
     default 35 if BOARD_TYPE_TTGO_TDISPLAY
+    default 32 if BOARD_TYPE_DEV
   config INPUT_WHEEL_SW
     int "Wheel SW"
     range 0 40
