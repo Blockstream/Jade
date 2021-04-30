@@ -26,6 +26,9 @@ uint32_t GUI_DEFAULT_FONT = DEFAULT_FONT;
 
 void display_init()
 {
+    JADE_LOGI("Powering the screen");
+    power_screen_on();
+
     esp_err_t ret;
     TFT_PinsInit();
     spi_lobo_device_handle_t spi;
@@ -62,11 +65,6 @@ void display_init()
     gray_scale = 0;
     TFT_setRotation(CONFIG_DISP_ORIENTATION_DEFAULT);
     TFT_resetclipwin();
-
-#ifdef CONFIG_HAS_AXP
-    JADE_LOGI("Powering the screen");
-    power_screen_on();
-#endif
 }
 
 #include "../logo/splash.c"

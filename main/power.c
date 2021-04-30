@@ -1,8 +1,10 @@
 #include "power.h"
 #include "jade_assert.h"
-#include <driver/i2c.h>
+#include <sdkconfig.h>
 
-#ifdef CONFIG_HAS_AXP
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+// Code common to JADE v1 and v1.1 - ie. using AXP
+#include <driver/i2c.h>
 
 #define I2C_BATTERY_PORT I2C_NUM_0
 
@@ -26,21 +28,6 @@
             JADE_LOGE("i2c call returned: %u", res);                                                                   \
         }                                                                                                              \
     } while (false)
-
-esp_err_t power_init()
-{
-    i2c_config_t conf;
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = 4;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_io_num = 2;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = 400000;
-
-    I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
-    I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
-    return ESP_OK;
-}
 
 static esp_err_t master_write_slave(uint8_t address, uint8_t* data_wr, size_t size)
 {
@@ -91,33 +78,184 @@ static esp_err_t write_command(uint8_t reg, uint8_t val)
     return ESP_OK;
 }
 
-esp_err_t power_screen_on() { return write_command(0x90, 0x02); }
+// Logical commands - some differ between Jade_v1 and Jade_v1.1
+static esp_err_t power_enable_adcs() { return write_command(0x82, 0xff); }
+static esp_err_t power_enable_charging() { return write_command(0x33, 0xc0); }
+static esp_err_t power_setup_pek() { return write_command(0x36, 0x5c); }
 
-esp_err_t power_screen_off() { return write_command(0x90, 0x01); }
+static esp_err_t power_enable_dc_dc1()
+{
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    return write_command(0x12, 0x01);
+#else // ie. CONFIG_BOARD_TYPE_JADE
+    return write_command(0x12, 0x4d);
+#endif
+}
 
-esp_err_t power_set_camera_voltage() { return write_command(0x28, 0xf0); }
+static esp_err_t power_open_drain_gpio()
+{
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    return write_command(0x95, 0x85);
+#else // ie. CONFIG_BOARD_TYPE_JADE
+    return write_command(0x95, 0x05);
+#endif
+}
 
-esp_err_t power_enable_dc_dc1() { return write_command(0x12, 0x4d); }
+#ifdef CONFIG_BOARD_TYPE_JADE
+static esp_err_t power_enable_dc_dc2() { return write_command(0x10, 0xff); }
+static esp_err_t power_set_camera_voltage() { return write_command(0x28, 0xf0); }
+static esp_err_t power_enable_coulomb_counter() { return write_command(0xb8, 0x80); }
+static esp_err_t power_set_v_off() { return write_command(0x31, 0x04); }
+#endif // CONFIG_BOARD_TYPE_JADE
 
-esp_err_t power_enable_dc_dc2() { return write_command(0x10, 0xff); }
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+static esp_err_t power_gpio0_to_ldo() { return write_command(0x90, 0x02); }
+static esp_err_t power_vbus_hold_limit() { return write_command(0x30, 0x80); }
+static esp_err_t power_temperature_protection() { return write_command(0x39, 0xfc); }
+static esp_err_t power_bat_detection() { return write_command(0x32, 0x46); }
 
-esp_err_t power_enable_adcs() { return write_command(0x82, 0xff); }
+static esp_err_t power_display_on()
+{
+    uint8_t buf1;
+    master_read_slave(0x34, 0x96, &buf1, 1);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return write_command(0x96, buf1 | 0x02);
+}
 
-esp_err_t power_enable_charging() { return write_command(0x33, 0xc0); }
+static esp_err_t power_display_off()
+{
+    uint8_t buf1;
+    master_read_slave(0x34, 0x96, &buf1, 1);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return write_command(0x96, buf1 & (~0x02));
+}
+#endif // CONFIG_BOARD_TYPE_JADE_V1_1
 
-esp_err_t power_enable_coulomb_counter() { return write_command(0xb8, 0x80); }
+static esp_err_t power_backlight_on()
+{
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    return write_command(0x91, 0xc0);
+#else // ie. CONFIG_BOARD_TYPE_JADE
+    return write_command(0x90, 0x02);
+#endif
+}
 
-esp_err_t power_setup_pek() { return write_command(0x36, 0x5c); }
+static esp_err_t power_backlight_off()
+{
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    return write_command(0x91, 0x00);
+#else // ie. CONFIG_BOARD_TYPE_JADE
+    return write_command(0x90, 0x01);
+#endif
+}
 
-esp_err_t power_set_v_off() { return write_command(0x31, 0x04); }
+// Exported funtions
+esp_err_t power_init()
+{
+    i2c_config_t conf;
+    conf.mode = I2C_MODE_MASTER;
+    conf.sda_io_num = CONFIG_AXP_SDA;
+    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.scl_io_num = CONFIG_AXP_SCL;
+    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.master.clk_speed = 400000;
 
-esp_err_t power_open_drain_gpio() { return write_command(0x95, 0x05); }
+    I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
+    I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
 
-esp_err_t power_gpio_on() { return write_command(0x96, 0x01); }
+    // Set ADC to All Enable
+    // Enable Bat,ACIN,VBUS,APS adc
+    power_enable_adcs();
 
-esp_err_t power_gpio_off() { return write_command(0x96, 0x03); }
+    // Bat charge voltage to 4.2, Current 100MA
+    power_enable_charging();
 
-esp_err_t power_shutdown() { return write_command(0x32, 0x80); }
+    // Disble Ext, LDO2, LDO3. DCDC3, enable DCDC1
+    power_enable_dc_dc1();
+
+    // 128ms power on, 4s power off
+    power_setup_pek();
+
+    // GPIO4 NMOS output | GPIO3 NMOS output
+    power_open_drain_gpio();
+
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    // Set screen blck (GPIO0-LED) to 3.0V
+    power_backlight_on();
+
+    // Set GPIO0 to LDO
+    power_gpio0_to_ldo();
+
+    // Disable vbus hold limit
+    power_vbus_hold_limit();
+
+    // Set temperature protection
+    power_temperature_protection();
+
+    // Enable bat detection
+    power_bat_detection();
+
+#else // ie. CONFIG_BOARD_TYPE_JADE
+    power_set_camera_voltage();
+    power_enable_dc_dc2();
+    power_enable_coulomb_counter();
+    power_set_v_off();
+#endif
+
+    return ESP_OK;
+}
+
+esp_err_t power_shutdown()
+{
+    return write_command(0x32, 0x80);
+    return ESP_OK;
+}
+
+esp_err_t power_screen_on()
+{
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    // Reset display
+    power_display_on();
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    power_display_off();
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    power_display_on();
+    vTaskDelay(200 / portTICK_PERIOD_MS);
+#endif
+    return power_backlight_on();
+}
+
+esp_err_t power_screen_off()
+{
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    power_display_off();
+#endif
+    return power_backlight_off();
+}
+
+esp_err_t power_camera_on()
+{
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    uint8_t buf1;
+    master_read_slave(0x34, 0x96, &buf1, 1);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return write_command(0x96, buf1 | 0x01);
+#else // ie. CONFIG_BOARD_TYPE_JADE
+    return write_command(0x96, 0x03);
+#endif
+}
+
+esp_err_t power_camera_off()
+{
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    uint8_t buf1;
+    master_read_slave(0x34, 0x96, &buf1, 1);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return write_command(0x96, buf1 & (~0x01));
+#else // ie. CONFIG_BOARD_TYPE_JADE
+    return write_command(0x96, 0x01);
+#endif
+}
 
 uint16_t power_get_vbat()
 {
@@ -179,8 +317,15 @@ uint16_t power_get_vusb()
 {
     uint16_t vusb = 0;
     uint8_t buf1, buf2;
-    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x5a, &buf1, 1));
-    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x5b, &buf2, 1));
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    ESP_ERROR_CHECK(master_read_slave(0x34, 0x56, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    ESP_ERROR_CHECK(master_read_slave(0x34, 0x57, &buf2, 1));
+#else // ie. CONFIG_BOARD_TYPE_JADE
+    ESP_ERROR_CHECK(master_read_slave(0x34, 0x5a, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    ESP_ERROR_CHECK(master_read_slave(0x34, 0x5b, &buf2, 1));
+#endif
     vusb = ((buf1 << 4) + buf2) * 1.7;
     return vusb;
 }
@@ -189,8 +334,15 @@ uint16_t power_get_iusb()
 {
     uint16_t iusb = 0;
     uint8_t buf1, buf2;
-    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x5c, &buf1, 1));
-    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x5d, &buf2, 1));
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    ESP_ERROR_CHECK(master_read_slave(0x34, 0x58, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    ESP_ERROR_CHECK(master_read_slave(0x34, 0x59, &buf2, 1));
+#else // ie. CONFIG_BOARD_TYPE_JADE
+    ESP_ERROR_CHECK(master_read_slave(0x34, 0x5c, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    ESP_ERROR_CHECK(master_read_slave(0x34, 0x5d, &buf2, 1));
+#endif
     iusb = ((buf1 << 4) + buf2) * 0.375;
     return iusb;
 }
@@ -214,33 +366,34 @@ bool usb_connected()
     return is_usb_connected;
 }
 
-#else /* CONFIG_HAS_AXP */
+#else // ie. not CONFIG_BOARD_TYPE_JADE or CONFIG_BOARD_TYPE_JADE_V1_1
+// Stubs for non-Jade hw boards (ie. no AXP)
+#include <esp_sleep.h>
 
 esp_err_t power_init() { return ESP_OK; }
 
+esp_err_t power_shutdown()
+{
+    // If we don't have AXP, use esp_deep_sleep
+    esp_deep_sleep_start();
+    return ESP_OK;
+}
+
 esp_err_t power_screen_on() { return ESP_OK; }
 esp_err_t power_screen_off() { return ESP_OK; }
-esp_err_t power_set_camera_voltage() { return ESP_OK; }
-esp_err_t power_enable_dc_dc1() { return ESP_OK; }
-esp_err_t power_enable_dc_dc2() { return ESP_OK; }
-esp_err_t power_enable_adcs() { return ESP_OK; }
-esp_err_t power_enable_charging() { return ESP_OK; }
-esp_err_t power_enable_coulomb_counter() { return ESP_OK; }
-esp_err_t power_setup_pek() { return ESP_OK; }
-esp_err_t power_set_v_off() { return ESP_OK; }
-esp_err_t power_open_drain_gpio() { return ESP_OK; }
-esp_err_t power_gpio_on() { return ESP_OK; }
-esp_err_t power_gpio_off() { return ESP_OK; }
-esp_err_t power_shutdown() { return ESP_OK; }
+
+esp_err_t power_camera_on() { return ESP_OK; }
+esp_err_t power_camera_off() { return ESP_OK; }
 
 uint16_t power_get_vbat() { return 0; }
 uint8_t power_get_battery_status() { return 0; }
 bool power_get_battery_charging() { return false; }
-uint16_t power_get_ibat_charge() { return false; }
+uint16_t power_get_ibat_charge() { return 0; }
 uint16_t power_get_ibat_discharge() { return 0; }
 uint16_t power_get_vusb() { return 0; }
 uint16_t power_get_iusb() { return 0; }
 uint16_t power_get_temp() { return 0; }
+
 bool usb_connected() { return true; }
 
-#endif /* CONFIG_HAS_AXP */
+#endif

@@ -6,21 +6,13 @@
 #include <stdint.h>
 
 esp_err_t power_init();
+esp_err_t power_shutdown();
 
 esp_err_t power_screen_on();
 esp_err_t power_screen_off();
-esp_err_t power_set_camera_voltage();
-esp_err_t power_enable_dc_dc1();
-esp_err_t power_enable_dc_dc2();
-esp_err_t power_enable_adcs();
-esp_err_t power_enable_charging();
-esp_err_t power_enable_coulomb_counter();
-esp_err_t power_setup_pek();
-esp_err_t power_set_v_off();
-esp_err_t power_open_drain_gpio();
-esp_err_t power_gpio_on();
-esp_err_t power_gpio_off();
-esp_err_t power_shutdown();
+
+esp_err_t power_camera_on();
+esp_err_t power_camera_off();
 
 uint16_t power_get_vbat();
 uint8_t power_get_battery_status();

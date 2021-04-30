@@ -70,10 +70,8 @@ static void boot_process()
     esp_log_set_vprintf(serial_logger);
 #endif
 
-#ifdef CONFIG_HAS_AXP
     const esp_err_t rc = power_init();
     JADE_ASSERT(rc == ESP_OK);
-#endif
 
     if (!storage_init()) {
         JADE_ABORT();

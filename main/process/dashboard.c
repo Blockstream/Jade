@@ -1,5 +1,4 @@
 #include <esp_ota_ops.h>
-#include <esp_sleep.h>
 
 #include <ctype.h>
 #include <string.h>
@@ -463,11 +462,7 @@ static void handle_sleep()
 {
     const bool bSleep = await_yesno_activity("Sleep", "\nDo you want to put Jade\ninto sleep mode?");
     if (bSleep) {
-#ifdef CONFIG_HAS_AXP
         power_shutdown();
-#else
-        esp_deep_sleep_start();
-#endif
     }
 }
 

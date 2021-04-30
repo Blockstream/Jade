@@ -17,16 +17,6 @@
 
 static const char POINT_TO_QR[] = "Point to a QR\ncode and Scan";
 
-#ifdef CONFIG_HAS_AXP
-static void camera_reset()
-{
-    power_open_drain_gpio();
-    power_gpio_on();
-    vTaskDelay(20 / portTICK_PERIOD_MS);
-    power_gpio_off();
-}
-#endif
-
 // Signal to the caller that we are done, and await our death
 static void post_exit_event_and_await_death()
 {
@@ -43,27 +33,17 @@ static void post_exit_event_and_await_death()
     }
 }
 
+static void camera_reset()
+{
+    power_camera_off();
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    power_camera_on();
+}
+
 static void jade_camera_init()
 {
-#ifdef CONFIG_HAS_AXP
-    power_enable_dc_dc2();
-    const esp_err_t rc = power_set_camera_voltage();
-    JADE_ASSERT(rc == ESP_OK);
-
-    power_enable_adcs();
-    power_enable_charging();
-    power_enable_coulomb_counter();
-    power_enable_dc_dc1();
-    power_setup_pek();
-    power_screen_on();
-    power_set_v_off();
-    power_open_drain_gpio();
-    power_gpio_on();
-    vTaskDelay(20 / portTICK_PERIOD_MS);
-    power_gpio_off();
-#endif
-
-    camera_config_t camera_config = {
+    power_camera_on();
+    const camera_config_t camera_config = {
         .pin_d0 = CONFIG_CAMERA_D0,
         .pin_d1 = CONFIG_CAMERA_D1,
         .pin_d2 = CONFIG_CAMERA_D2,
@@ -78,10 +58,7 @@ static void jade_camera_init()
         .pin_href = CONFIG_CAMERA_HREF,
         .pin_sscb_sda = CONFIG_CAMERA_SDA,
         .pin_sscb_scl = CONFIG_CAMERA_SCL,
-
-#ifdef CONFIG_HAS_AXP
         .reset_callback = camera_reset,
-#endif
         .pin_reset = CONFIG_CAMERA_RESET,
         .pin_pwdn = CONFIG_CAMERA_PWDN,
 
@@ -94,7 +71,6 @@ static void jade_camera_init()
 
         .fb_count = 1,
     };
-
     const esp_err_t err = esp_camera_init(&camera_config);
     JADE_LOGI("Camera init done");
     if (err != ESP_OK) {
@@ -179,9 +155,7 @@ static void qr_recoginze(void* pdata, jade_camera_data_t* camera_data)
 void jade_camera_stop()
 {
     esp_camera_deinit();
-#ifdef CONFIG_HAS_AXP
-    power_gpio_off();
-#endif
+    power_camera_off();
 }
 
 // Free all the memory structures we may have allocated
