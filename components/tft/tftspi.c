@@ -2,7 +2,7 @@
  *  Author: LoBo (loboris@gmail.com, loboris.github)
  *
  *  Module supporting SPI TFT displays based on ILI9341 & ILI9488 controllers
- * 
+ *
  * HIGH SPEED LOW LEVEL DISPLAY FUNCTIONS
  * USING DIRECT or DMA SPI TRANSFER MODEs
  *
@@ -163,7 +163,7 @@ void IRAM_ATTR disp_spi_transfer_cmd_data(int8_t cmd, uint8_t *data, uint32_t le
     	if (idx == 16) {
     		// SPI buffer full, send data
 			_spi_transfer_start(disp_spi, bits, 0);
-    		
+
 			bits = 0;
     		idx = 0;
 			bidx = 0;
@@ -861,13 +861,17 @@ void TFT_PinsInit()
 {
     // Route all used pins to GPIO control
     gpio_pad_select_gpio(PIN_NUM_CS);
-    gpio_pad_select_gpio(PIN_NUM_MISO);
+
+    if (PIN_NUM_MISO > -1)
+			gpio_pad_select_gpio(PIN_NUM_MISO);
     gpio_pad_select_gpio(PIN_NUM_MOSI);
     gpio_pad_select_gpio(PIN_NUM_CLK);
     gpio_pad_select_gpio(PIN_NUM_DC);
 
-    gpio_set_direction(PIN_NUM_MISO, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(PIN_NUM_MISO, GPIO_PULLUP_ONLY);
+    if (PIN_NUM_MISO > -1) {
+			gpio_set_direction(PIN_NUM_MISO, GPIO_MODE_INPUT);
+			gpio_set_pull_mode(PIN_NUM_MISO, GPIO_PULLUP_ONLY);
+	  }
     gpio_set_direction(PIN_NUM_CS, GPIO_MODE_OUTPUT);
     gpio_set_direction(PIN_NUM_MOSI, GPIO_MODE_OUTPUT);
     gpio_set_direction(PIN_NUM_CLK, GPIO_MODE_OUTPUT);
@@ -876,14 +880,15 @@ void TFT_PinsInit()
 #if USE_TOUCH
     gpio_pad_select_gpio(PIN_NUM_TCS);
     gpio_set_direction(PIN_NUM_TCS, GPIO_MODE_OUTPUT);
-#endif    
-#if PIN_NUM_BCKL
+#endif
+
+#if PIN_NUM_BCKL > -1
     gpio_pad_select_gpio(PIN_NUM_BCKL);
     gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
     gpio_set_level(PIN_NUM_BCKL, PIN_BCKL_OFF);
 #endif
 
-#if PIN_NUM_RST
+#if PIN_NUM_RST > -1
     gpio_pad_select_gpio(PIN_NUM_RST);
     gpio_set_direction(PIN_NUM_RST, GPIO_MODE_OUTPUT);
     gpio_set_level(PIN_NUM_RST, 0);
@@ -945,5 +950,3 @@ void TFT_display_init()
     gpio_set_level(PIN_NUM_BCKL, PIN_BCKL_ON);
 #endif
 }
-
-

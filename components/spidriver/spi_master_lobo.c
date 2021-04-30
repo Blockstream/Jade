@@ -367,7 +367,7 @@ static esp_err_t spi_lobo_bus_initialize(spi_lobo_host_device_t host, spi_lobo_b
     else {
         SPI_CHECK(spihost[host]!=NULL, "host not in use", ESP_ERR_INVALID_STATE);
     }
-    
+
     SPI_CHECK(bus_config->mosi_io_num<0 || GPIO_IS_VALID_OUTPUT_GPIO(bus_config->mosi_io_num), "spid pin invalid", ESP_ERR_INVALID_ARG);
     SPI_CHECK(bus_config->sclk_io_num<0 || GPIO_IS_VALID_OUTPUT_GPIO(bus_config->sclk_io_num), "spiclk pin invalid", ESP_ERR_INVALID_ARG);
     SPI_CHECK(bus_config->miso_io_num<0 || GPIO_IS_VALID_GPIO(bus_config->miso_io_num), "spiq pin invalid", ESP_ERR_INVALID_ARG);
@@ -396,7 +396,7 @@ static esp_err_t spi_lobo_bus_initialize(spi_lobo_host_device_t host, spi_lobo_b
     if (bus_config->sclk_io_num >= 0 && bus_config->sclk_io_num!=io_signal[host].spiclk_native) native=false;
     if (bus_config->quadwp_io_num >= 0 && bus_config->quadwp_io_num!=io_signal[host].spiwp_native) native=false;
     if (bus_config->quadhd_io_num >= 0 && bus_config->quadhd_io_num!=io_signal[host].spihd_native) native=false;
-    
+
     spihost[host]->no_gpio_matrix=native;
     if (native) {
         //All SPI native pin selections resolve to 1, so we put that here instead of trying to figure
@@ -407,7 +407,7 @@ static esp_err_t spi_lobo_bus_initialize(spi_lobo_host_device_t host, spi_lobo_b
         if (bus_config->quadhd_io_num > 0) PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[bus_config->quadhd_io_num], 1);
         if (bus_config->sclk_io_num > 0) PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[bus_config->sclk_io_num], 1);
     } else {
-        //Use GPIO 
+        //Use GPIO
         if (bus_config->mosi_io_num>0) {
             PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[bus_config->mosi_io_num], PIN_FUNC_GPIO);
             gpio_set_direction(bus_config->mosi_io_num, GPIO_MODE_OUTPUT);
@@ -534,12 +534,12 @@ static esp_err_t spi_lobo_bus_free(spi_lobo_host_device_t host, int dofree)
 esp_err_t spi_lobo_bus_add_device(spi_lobo_host_device_t host, spi_lobo_bus_config_t *bus_config, spi_lobo_device_interface_config_t *dev_config, spi_lobo_device_handle_t *handle)
 {
 	if ((host == TFT_SPI_HOST) || (host > TFT_VSPI_HOST)) return ESP_ERR_NOT_SUPPORTED;  // invalid host
-	
+
 	if (spihost[host] == NULL) {
 		esp_err_t ret = spi_lobo_bus_initialize(host, bus_config, 1);
 		if (ret) return ret;
 	}
-	
+
 	int freecs, maxdev;
     int apbclk=APB_CLK_FREQ;
 
@@ -629,7 +629,7 @@ esp_err_t spi_lobo_bus_remove_device(spi_lobo_device_handle_t handle)
     for (x=0; x<NO_DEV; x++) {
         if (handle->host->device[x] == handle) handle->host->device[x]=NULL;
     }
-	
+
 	// Check if all devices are removed from this host and free the bus if yes
 	for (x=0; x<NO_DEV; x++) {
 		if (spihost[handle->host_dev]->device[x] !=NULL) break;
@@ -755,7 +755,7 @@ esp_err_t IRAM_ATTR spi_lobo_device_select(spi_lobo_device_handle_t handle, int 
 		//Configure bit order
 		host->hw->ctrl.rd_bit_order=(handle->cfg.flags & LB_SPI_DEVICE_RXBIT_LSBFIRST)?1:0;
 		host->hw->ctrl.wr_bit_order=(handle->cfg.flags & LB_SPI_DEVICE_TXBIT_LSBFIRST)?1:0;
-		
+
 		//Configure polarity
         //SPI iface needs to be configured for a delay in some cases.
 		int nodelay=0;
@@ -810,11 +810,11 @@ esp_err_t IRAM_ATTR spi_lobo_device_select(spi_lobo_device_handle_t handle, int 
 		host->hw->pin.cs0_dis=(i==0)?0:1;
 		host->hw->pin.cs1_dis=(i==1)?0:1;
 		host->hw->pin.cs2_dis=(i==2)?0:1;
-		
+
 		host->cur_device = i;
 	}
 
-	if ((handle->cfg.spics_io_num < 0) && (handle->cfg.spics_ext_io_num > 0)) {
+	if ((handle->cfg.spics_io_num < 0)&& (handle->cfg.spics_ext_io_num >= 0)) {
 		gpio_set_level(handle->cfg.spics_ext_io_num, 0);
 	}
 
@@ -837,11 +837,11 @@ esp_err_t IRAM_ATTR spi_lobo_device_deselect(spi_lobo_device_handle_t handle)
 		if (host->device[i] == handle) break;
 	}
 	if (i == NO_DEV) return ESP_ERR_INVALID_ARG;
-	
+
 	if (host->device[host->cur_device] == handle) {
-		if ((handle->cfg.spics_io_num < 0) && (handle->cfg.spics_ext_io_num > 0)) {
-			gpio_set_level(handle->cfg.spics_ext_io_num, 1);
-		}
+    if ((handle->cfg.spics_io_num < 0) && (handle->cfg.spics_ext_io_num >= 0)){
+		    gpio_set_level(handle->cfg.spics_ext_io_num, 1);
+    }
 	}
 
 	handle->cfg.selected = 0;
@@ -890,7 +890,7 @@ uint32_t spi_lobo_set_speed(spi_lobo_device_handle_t handle, uint32_t speed)
 		}
 	}
 	spi_lobo_device_deselect(handle);
-	
+
 	return newspeed;
 }
 
