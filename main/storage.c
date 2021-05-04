@@ -20,6 +20,93 @@ static const char* IDLE_TIMEOUT_FIELD = "idletimeout";
 static const char* CLICK_EVENT_FIELD = "clickevent";
 static const char* BLE_FLAGS_FIELD = "bleflags";
 
+// Building block macros for the store/read/erase functions.
+// They all close the storage and return false on any error.
+
+// Macro open nvs before a read or write
+#define STORAGE_OPEN(h)                                                                                                \
+    do {                                                                                                               \
+        const esp_err_t err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &h);                                          \
+        if (err != ESP_OK) {                                                                                           \
+            JADE_LOGE("nvs_open() for %s failed: %u", STORAGE_NAMESPACE, err);                                         \
+            return false;                                                                                              \
+        }                                                                                                              \
+    } while (false)
+
+// Macro to persist a known-length blob to nvs
+#define STORAGE_SET_BLOB(h, k, v, l)                                                                                   \
+    do {                                                                                                               \
+        const esp_err_t err = nvs_set_blob(h, k, v, l);                                                                \
+        if (err != ESP_OK) {                                                                                           \
+            JADE_LOGE("nvs_set_blob() for %s failed: %u", k, err);                                                     \
+            nvs_close(h);                                                                                              \
+            return false;                                                                                              \
+        }                                                                                                              \
+    } while (false)
+
+// Macro to persist a null-terminated string to nvs
+#define STORAGE_SET_STRING(h, k, v)                                                                                    \
+    do {                                                                                                               \
+        const esp_err_t err = nvs_set_str(h, k, v);                                                                    \
+        if (err != ESP_OK) {                                                                                           \
+            JADE_LOGE("nvs_set_str() for %s failed: %u", k, err);                                                      \
+            nvs_close(h);                                                                                              \
+            return false;                                                                                              \
+        }                                                                                                              \
+    } while (false)
+
+// Macro to fetch a variable-length blob from nvs
+#define STORAGE_GET_BLOB(h, k, v, l, pw)                                                                               \
+    do {                                                                                                               \
+        *pw = l;                                                                                                       \
+        const esp_err_t err = nvs_get_blob(h, k, v, pw);                                                               \
+        if (err != ESP_OK) {                                                                                           \
+            JADE_LOGE("nvs_get_blob() for %s failed: %u", k, err);                                                     \
+            nvs_close(h);                                                                                              \
+            return false;                                                                                              \
+        }                                                                                                              \
+    } while (false)
+
+// Macro to fetch a null-terminated string from nvs
+#define STORAGE_GET_STRING(h, k, v, l, pw)                                                                             \
+    do {                                                                                                               \
+        *pw = l;                                                                                                       \
+        const esp_err_t err = nvs_get_str(h, k, v, pw);                                                                \
+        if (err != ESP_OK) {                                                                                           \
+            JADE_LOGE("nvs_get_str() for %s failed: %u", k, err);                                                      \
+            nvs_close(h);                                                                                              \
+            return false;                                                                                              \
+        }                                                                                                              \
+    } while (false)
+
+// Macro to erase an keyed entry from nvs
+#define STORAGE_ERASE(h, k)                                                                                            \
+    do {                                                                                                               \
+        const esp_err_t err = nvs_erase_key(h, k);                                                                     \
+        if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) {                                                           \
+            JADE_LOGE("nvs_erase_key() for %s failed: %u", k, err);                                                    \
+            nvs_close(h);                                                                                              \
+            return false;                                                                                              \
+        }                                                                                                              \
+    } while (false)
+
+// Macro to commit changes to nvs after one or more updates/erasures
+#define STORAGE_COMMIT(h)                                                                                              \
+    do {                                                                                                               \
+        const esp_err_t err = nvs_commit(h);                                                                           \
+        if (err != ESP_OK) {                                                                                           \
+            JADE_LOGE("nvs_commit() failed: %u", err);                                                                 \
+            nvs_close(h);                                                                                              \
+            return false;                                                                                              \
+        }                                                                                                              \
+    } while (false)
+
+// Common code to close nvs after access
+#define STORAGE_CLOSE(h)                                                                                               \
+    do {                                                                                                               \
+        nvs_close(h);                                                                                                  \
+    } while (false)
+
 static bool store_blob(const char* name, const unsigned char* data, const size_t len)
 {
     JADE_ASSERT(name);
@@ -27,95 +114,76 @@ static bool store_blob(const char* name, const unsigned char* data, const size_t
     JADE_ASSERT(len > 0);
 
     nvs_handle handle;
-    esp_err_t err;
-
-    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &handle);
-    if (err != ESP_OK) {
-        JADE_LOGE("nvs_open() for %s failed: %u", STORAGE_NAMESPACE, err);
-        return false;
-    }
-
-    err = nvs_set_blob(handle, name, data, len);
-
-    if (err != ESP_OK) {
-        JADE_LOGE("nvs_set_blob() for %s failed: %u", name, err);
-        nvs_close(handle);
-        return false;
-    }
-
-    err = nvs_commit(handle);
-    if (err != ESP_OK) {
-        JADE_LOGE("nvs_commit() failed: %u", err);
-        nvs_close(handle);
-        return false;
-    }
-
-    nvs_close(handle);
+    STORAGE_OPEN(handle);
+    STORAGE_SET_BLOB(handle, name, data, len);
+    STORAGE_COMMIT(handle);
+    STORAGE_CLOSE(handle);
     return true;
 }
 
-static bool read_blob(const char* name, unsigned char* data, const size_t len)
+static bool read_blob(const char* name, unsigned char* data, const size_t len, size_t* written)
 {
     JADE_ASSERT(name);
     JADE_ASSERT(data);
     JADE_ASSERT(len > 0);
 
     nvs_handle handle;
-    esp_err_t err;
-
-    err = nvs_open(STORAGE_NAMESPACE, NVS_READONLY, &handle);
-    if (err != ESP_OK) {
-        JADE_LOGE("nvs_open() for %s failed: %u", STORAGE_NAMESPACE, err);
-        return false;
-    }
-
-    size_t required_size = len;
-    err = nvs_get_blob(handle, name, data, &required_size);
-
-    if (err != ESP_OK || len != required_size) {
-        JADE_LOGE("nvs_get_blob() for %s failed or unexpected length - ret: %u (required length: %u)", name, err,
-            required_size);
-        nvs_close(handle);
-        return false;
-    }
-
-    nvs_close(handle);
+    STORAGE_OPEN(handle);
+    STORAGE_GET_BLOB(handle, name, data, len, written);
+    STORAGE_CLOSE(handle);
     return true;
 }
 
-static bool erase_blob(const char* name)
+static bool read_blob_fixed(const char* name, unsigned char* data, const size_t len)
+{
+    size_t written;
+    if (!read_blob(name, data, len, &written)) {
+        return false;
+    }
+    if (written != len) {
+        JADE_LOGE("nvs_get_blob_fixed() for %s unexpected length - expected: %u, got: %u)", name, len, written);
+        return false;
+    }
+    return true;
+}
+
+static bool store_string(const char* name, const char* str)
+{
+    JADE_ASSERT(name);
+    JADE_ASSERT(str);
+
+    nvs_handle handle;
+    STORAGE_OPEN(handle);
+    STORAGE_SET_STRING(handle, name, str);
+    STORAGE_COMMIT(handle);
+    STORAGE_CLOSE(handle);
+    return true;
+}
+
+static bool read_string(const char* name, char* str, const size_t len, size_t* written)
+{
+    JADE_ASSERT(name);
+    JADE_ASSERT(str);
+    JADE_ASSERT(len > 0);
+    JADE_ASSERT(written);
+    JADE_ASSERT(*written == 0);
+
+    nvs_handle handle;
+    STORAGE_OPEN(handle);
+    STORAGE_GET_STRING(handle, name, str, len, written);
+    STORAGE_CLOSE(handle);
+    return true;
+}
+
+static bool erase_key(const char* name)
 {
     JADE_ASSERT(name);
 
     nvs_handle handle;
-    esp_err_t err;
-
-    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &handle);
-    if (err != ESP_OK) {
-        JADE_LOGE("nvs_open() for %s failed: %u", STORAGE_NAMESPACE, err);
-        return false;
-    }
-
-    err = nvs_erase_key(handle, name);
-
-    if (err != ESP_OK) {
-        if (err != ESP_ERR_NVS_INVALID_HANDLE) {
-            JADE_LOGE("nvs_erase_key() for %s failed: %u", name, err);
-            nvs_close(handle);
-        }
-        return false;
-    }
-
-    err = nvs_commit(handle);
-    if (err != ESP_OK) {
-        if (err != ESP_ERR_NVS_INVALID_HANDLE) {
-            JADE_LOGE("nvs_commit() failed: %u", err);
-            nvs_close(handle);
-        }
-        return false;
-    }
-
-    nvs_close(handle);
+    STORAGE_OPEN(handle);
+    STORAGE_ERASE(handle, name);
+    STORAGE_COMMIT(handle);
+    STORAGE_CLOSE(handle);
     return true;
 }
 
@@ -184,7 +252,7 @@ bool storage_get_pin_privatekey(unsigned char* privatekey, const size_t key_len)
     JADE_ASSERT(privatekey);
     JADE_ASSERT(key_len == EC_PRIVATE_KEY_LEN);
 
-    if (!read_blob(PIN_PRIVATEKEY_FIELD, privatekey, key_len)) {
+    if (!read_blob_fixed(PIN_PRIVATEKEY_FIELD, privatekey, key_len)) {
         return false;
     }
 
@@ -209,7 +277,7 @@ bool storage_set_pin_privatekey(const unsigned char* privatekey, const size_t ke
     return store_blob(PIN_PRIVATEKEY_FIELD, privatekey, key_len);
 }
 
-bool storage_erase_pin_privatekey() { return erase_blob(PIN_PRIVATEKEY_FIELD); }
+bool storage_erase_pin_privatekey() { return erase_key(PIN_PRIVATEKEY_FIELD); }
 
 bool storage_set_encrypted_blob(const unsigned char* encrypted, const size_t encrypted_len)
 {
@@ -222,10 +290,17 @@ bool storage_set_encrypted_blob(const unsigned char* encrypted, const size_t enc
 
 bool storage_get_encrypted_blob(unsigned char* encrypted, const size_t encrypted_len)
 {
-    return read_blob(BLOB_FIELD, encrypted, encrypted_len);
+    return read_blob_fixed(BLOB_FIELD, encrypted, encrypted_len);
 }
 
-bool storage_erase_encrypted_blob() { return erase_blob(BLOB_FIELD) && erase_blob(PIN_COUNTER_FIELD); }
+bool storage_erase_encrypted_blob()
+{
+    // Try to erase the counter
+    erase_key(PIN_COUNTER_FIELD);
+
+    // Return whether or not we successfully erase the encrypted key
+    return erase_key(BLOB_FIELD);
+}
 
 bool storage_decrement_counter()
 {
@@ -253,7 +328,7 @@ bool storage_restore_counter()
 uint8_t storage_get_counter()
 {
     uint8_t counter = 0;
-    return read_blob(PIN_COUNTER_FIELD, &counter, sizeof(counter)) ? counter : 0;
+    return read_blob_fixed(PIN_COUNTER_FIELD, &counter, sizeof(counter)) ? counter : 0;
 }
 
 bool storage_set_network_type_restriction(network_type_t networktype)
@@ -264,7 +339,7 @@ bool storage_set_network_type_restriction(network_type_t networktype)
 network_type_t storage_get_network_type_restriction()
 {
     network_type_t networktype = NONE;
-    return read_blob(NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype)) ? networktype : NONE;
+    return read_blob_fixed(NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype)) ? networktype : NONE;
 }
 
 bool storage_set_idle_timeout(uint16_t timeout)
@@ -275,7 +350,7 @@ bool storage_set_idle_timeout(uint16_t timeout)
 uint16_t storage_get_idle_timeout()
 {
     uint16_t timeout = 0;
-    return read_blob(IDLE_TIMEOUT_FIELD, (unsigned char*)&timeout, sizeof(timeout)) ? timeout : 0;
+    return read_blob_fixed(IDLE_TIMEOUT_FIELD, (unsigned char*)&timeout, sizeof(timeout)) ? timeout : 0;
 }
 
 bool storage_set_click_event(uint8_t event) { return store_blob(CLICK_EVENT_FIELD, &event, sizeof(event)); }
@@ -283,7 +358,7 @@ bool storage_set_click_event(uint8_t event) { return store_blob(CLICK_EVENT_FIEL
 uint8_t storage_get_click_event()
 {
     uint8_t event = 0;
-    return read_blob(CLICK_EVENT_FIELD, &event, sizeof(event)) ? event : 0;
+    return read_blob_fixed(CLICK_EVENT_FIELD, &event, sizeof(event)) ? event : 0;
 }
 
 bool storage_set_ble_flags(uint8_t flags) { return store_blob(BLE_FLAGS_FIELD, &flags, sizeof(flags)); }
@@ -291,5 +366,5 @@ bool storage_set_ble_flags(uint8_t flags) { return store_blob(BLE_FLAGS_FIELD, &
 uint8_t storage_get_ble_flags()
 {
     uint8_t flags = 0;
-    return read_blob(BLE_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;
+    return read_blob_fixed(BLE_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;
 }
