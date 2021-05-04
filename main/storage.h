@@ -23,6 +23,16 @@ bool storage_restore_counter();
 uint8_t storage_get_counter();
 bool storage_erase_encrypted_blob();
 
+bool storage_set_pinserver_details(const char* urlA, const char* urlB, const unsigned char* pubkey, size_t pubkey_len);
+bool storage_get_pinserver_urlA(char* url, size_t len, size_t* written);
+bool storage_get_pinserver_urlB(char* url, size_t len, size_t* written);
+bool storage_get_pinserver_pubkey(unsigned char* pubkey, size_t pubkey_len);
+bool storage_erase_pinserver_details();
+
+bool storage_set_pinserver_cert(const char* cert);
+bool storage_get_pinserver_cert(char* cert, size_t len, size_t* written);
+bool storage_erase_pinserver_cert();
+
 bool storage_set_network_type_restriction(network_type_t networktype);
 network_type_t storage_get_network_type_restriction();
 

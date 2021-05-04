@@ -15,6 +15,12 @@ static const char* STORAGE_NAMESPACE = "PIN";
 static const char* PIN_PRIVATEKEY_FIELD = "privatekey";
 static const char* PIN_COUNTER_FIELD = "counter";
 static const char* BLOB_FIELD = "blob";
+
+static const char* USER_PINSERVER_URL_A = "pinsvrurlA";
+static const char* USER_PINSERVER_URL_B = "pinsvrurlB";
+static const char* USER_PINSERVER_PUBKEY = "pinsvrpubkey";
+static const char* USER_PINSERVER_CERT = "pinsvrcert";
+
 static const char* NETWORK_TYPE_FIELD = "networktype";
 static const char* IDLE_TIMEOUT_FIELD = "idletimeout";
 static const char* CLICK_EVENT_FIELD = "clickevent";
@@ -330,6 +336,64 @@ uint8_t storage_get_counter()
     uint8_t counter = 0;
     return read_blob_fixed(PIN_COUNTER_FIELD, &counter, sizeof(counter)) ? counter : 0;
 }
+
+bool storage_set_pinserver_details(
+    const char* urlA, const char* urlB, const unsigned char* pubkey, const size_t pubkey_len)
+{
+    JADE_ASSERT(urlA);
+    JADE_ASSERT(urlB);
+
+    // Commit all values, or none
+    nvs_handle handle;
+    STORAGE_OPEN(handle);
+    STORAGE_SET_STRING(handle, USER_PINSERVER_URL_A, urlA);
+    STORAGE_SET_STRING(handle, USER_PINSERVER_URL_B, urlB);
+
+    // Pubkey is optional (as just server public address may change)
+    if (pubkey && pubkey_len > 0) {
+        STORAGE_SET_BLOB(handle, USER_PINSERVER_PUBKEY, pubkey, pubkey_len);
+    }
+    STORAGE_COMMIT(handle);
+    STORAGE_CLOSE(handle);
+    return true;
+}
+
+bool storage_get_pinserver_urlA(char* url, const size_t len, size_t* written)
+{
+    return read_string(USER_PINSERVER_URL_A, url, len, written);
+}
+
+bool storage_get_pinserver_urlB(char* url, const size_t len, size_t* written)
+{
+    return read_string(USER_PINSERVER_URL_B, url, len, written);
+}
+
+bool storage_get_pinserver_pubkey(unsigned char* pubkey, const size_t pubkey_len)
+{
+    return read_blob_fixed(USER_PINSERVER_PUBKEY, pubkey, pubkey_len);
+}
+
+bool storage_erase_pinserver_details()
+{
+    // Erase all of the pinserver fields, or none of them
+    nvs_handle handle;
+    STORAGE_OPEN(handle);
+    STORAGE_ERASE(handle, USER_PINSERVER_URL_A);
+    STORAGE_ERASE(handle, USER_PINSERVER_URL_B);
+    STORAGE_ERASE(handle, USER_PINSERVER_PUBKEY);
+    STORAGE_COMMIT(handle);
+    STORAGE_CLOSE(handle);
+    return true;
+}
+
+bool storage_set_pinserver_cert(const char* cert) { return store_string(USER_PINSERVER_CERT, cert); }
+
+bool storage_get_pinserver_cert(char* cert, const size_t len, size_t* written)
+{
+    return read_string(USER_PINSERVER_CERT, cert, len, written);
+}
+
+bool storage_erase_pinserver_cert() { return erase_key(USER_PINSERVER_CERT); }
 
 bool storage_set_network_type_restriction(network_type_t networktype)
 {
