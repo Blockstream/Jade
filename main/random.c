@@ -76,14 +76,6 @@ static void get_random_internal(uint8_t* bytes_out, size_t len, const uint8_t* a
 
     hasherstart(ctx);
 
-    // NOTE: there appears to be a GPIO conflict between button-A and the hall
-    // sensor on an M5Stack.  Skip trying to read that sensor for extra entropy.
-    // Also, qemu emulator does not seem to support this sensor.
-#if !defined(CONFIG_BOARD_TYPE_M5_FIRE) && !defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)                                   \
-    && !defined(CONFIG_FREERTOS_UNICORE)
-    call_uint16_t_func_to_hasher(ctx, hall_sensor_read);
-#endif
-
     // now we add some entropy from axp192 sensors data
     call_uint16_t_func_to_hasher(ctx, power_get_vbat);
     call_uint16_t_func_to_hasher(ctx, power_get_vusb);
