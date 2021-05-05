@@ -494,6 +494,8 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
 
 static bool mnemonic_qr(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN])
 {
+// At the moment camera/qr-scan only supported by Jade devices
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     gui_activity_t* activity;
     jade_camera_data_t camera_data;
     SENSITIVE_PUSH(&camera_data, sizeof(jade_camera_data_t));
@@ -542,6 +544,11 @@ static bool mnemonic_qr(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN])
     cleanup_camera_data(&camera_data);
     SENSITIVE_POP(&camera_data);
     return scanned_qr;
+#else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+    JADE_LOGW("No camera supported for this device");
+    await_error_activity("No camera detected");
+    return false;
+#endif
 }
 #endif // CONFIG_DEBUG_UNATTENDED_CI
 
