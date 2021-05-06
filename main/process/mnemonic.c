@@ -1,7 +1,4 @@
-#include <string.h>
 #include <wally_bip39.h>
-#include <wally_core.h>
-#include <wally_crypto.h>
 
 #include "../button_events.h"
 #include "../camera.h"

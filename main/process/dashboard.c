@@ -1,7 +1,6 @@
 #include <esp_ota_ops.h>
 
 #include <ctype.h>
-#include <string.h>
 
 #include "../button_events.h"
 #include "../display.h"

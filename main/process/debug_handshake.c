@@ -6,7 +6,6 @@
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/malloc_ext.h"
-#include <string.h>
 
 #include <sodium/crypto_verify_32.h>
 #include <sodium/crypto_verify_64.h>

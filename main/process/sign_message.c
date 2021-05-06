@@ -7,10 +7,6 @@
 
 #include "../button_events.h"
 
-#include <esp_event.h>
-
-#include <string.h>
-
 #include "process_utils.h"
 
 // GDK logon parameters

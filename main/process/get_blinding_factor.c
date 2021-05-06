@@ -3,8 +3,6 @@
 #include "../utils/cbor_rpc.h"
 #include "../wallet.h"
 
-#include <string.h>
-
 #include <wally_elements.h>
 
 #include "process_utils.h"

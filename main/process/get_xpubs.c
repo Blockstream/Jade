@@ -5,8 +5,6 @@
 #include "../utils/network.h"
 #include "../wallet.h"
 
-#include <string.h>
-
 #include "process_utils.h"
 
 static void wally_free_string_wrapper(void* str) { wally_free_string((char*)str); }

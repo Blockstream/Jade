@@ -9,7 +9,6 @@
 #include "../utils/malloc_ext.h"
 
 #include <stdint.h>
-#include <string.h>
 
 #include <esp32/rom/miniz.h>
 #include <esp_efuse.h>

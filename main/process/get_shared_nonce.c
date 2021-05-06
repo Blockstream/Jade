@@ -4,8 +4,6 @@
 #include "../utils/cbor_rpc.h"
 #include "../wallet.h"
 
-#include <string.h>
-
 #include "process_utils.h"
 
 void get_shared_nonce_process(void* process_ptr)

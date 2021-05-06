@@ -13,7 +13,6 @@
 
 #include <mbedtls/sha256.h>
 #include <sodium/utils.h>
-#include <string.h>
 #include <wally_elements.h>
 
 #include "process_utils.h"

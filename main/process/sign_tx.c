@@ -13,7 +13,6 @@
 
 #include <inttypes.h>
 #include <sodium/utils.h>
-#include <string.h>
 
 #include "process_utils.h"
 

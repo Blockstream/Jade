@@ -10,7 +10,6 @@
 
 #include <cbor.h>
 #include <sodium/crypto_verify_32.h>
-#include <string.h>
 
 #include "process_utils.h"
 

@@ -7,8 +7,6 @@
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
 
-#include <string.h>
-
 #include "process_utils.h"
 
 // Pinserver interaction

@@ -3,8 +3,6 @@
 #include "../utils/cbor_rpc.h"
 #include "../wallet.h"
 
-#include <string.h>
-
 #include "process_utils.h"
 
 void get_blinding_key_process(void* process_ptr)

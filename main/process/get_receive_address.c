@@ -11,8 +11,6 @@
 
 #include <esp_event.h>
 
-#include <string.h>
-
 #include "process_utils.h"
 
 void get_receive_address_process(void* process_ptr)

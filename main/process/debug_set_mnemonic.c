@@ -5,7 +5,6 @@
 #include "../utils/cbor_rpc.h"
 
 #include <cbor.h>
-#include <string.h>
 #include <wally_bip39.h>
 
 #include "process_utils.h"
