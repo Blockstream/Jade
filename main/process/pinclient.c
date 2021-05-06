@@ -15,26 +15,22 @@
 
 #ifdef CONFIG_DEBUG_UNATTENDED_CI
 // Test pinserver url, (dummy) onion, and public key
-#define PINSERVER_URL "http://127.0.0.1:8080"
-#define PINSERVER_ONION "http://we.dont.know.our.onion.but.this.string.is.about.the.right.size"
+static const char PINSERVER_URL[] = "http://127.0.0.1:8080";
+static const char PINSERVER_ONION[] = "http://we.dont.know.our.onion.but.this.string.is.about.the.right.size";
 extern const uint8_t server_public_key_start[] asm("_binary_server_public_key_pub_start");
 #else
 // Production pinserver url, onion, and public key
-#define PINSERVER_URL "https://jadepin.blockstream.com"
-#define PINSERVER_ONION "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion"
+static const char PINSERVER_URL[] = "https://jadepin.blockstream.com";
+static const char PINSERVER_ONION[] = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion";
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
 #endif
 
+static const char PINSERVER_DOC_INIT[] = "start_handshake";
+static const char PINSERVER_DOC_GET_PIN[] = "get_pin";
+static const char PINSERVER_DOC_SET_PIN[] = "set_pin";
+
 // The certificate we require to access jade production services
 extern const uint8_t jade_services_certificate[] asm("_binary_jade_services_certificate_pem_start");
-
-static const char PINSVR_URL_INIT[] = PINSERVER_URL "/start_handshake";
-static const char PINSVR_URL_GETPIN[] = PINSERVER_URL "/get_pin";
-static const char PINSVR_URL_SETPIN[] = PINSERVER_URL "/set_pin";
-
-static const char PINSVR_ONION_INIT[] = PINSERVER_ONION "/start_handshake";
-static const char PINSVR_ONION_GETPIN[] = PINSERVER_ONION "/get_pin";
-static const char PINSVR_ONION_SETPIN[] = PINSERVER_ONION "/set_pin";
 
 #define PIN_SECRET_LEN HMAC_SHA256_LEN
 #define ENTROPY_LEN HMAC_SHA256_LEN
@@ -78,10 +74,8 @@ typedef struct {
 } handshake_data_t;
 
 typedef struct {
-    const char* url;
-    const char* onion;
+    const char* document;
     const char* on_reply;
-
     const handshake_data_t* data;
 } handshake_reply_t;
 
@@ -96,6 +90,50 @@ static void add_hex_bytes_to_map(CborEncoder* container, const char* name, const
     JADE_WALLY_VERIFY(wally_hex_from_bytes(bytes, size, &tmpstr));
     add_string_to_map(container, name, tmpstr);
     wally_free_string(tmpstr);
+}
+
+// The urls may be overridden in storage, otherwise use the default
+static void add_urls(CborEncoder* encoder, const char* document)
+{
+    char buf[MAX_PINSVR_URL_LENGTH];
+    char urlA[sizeof(buf) + sizeof(PINSERVER_DOC_INIT)];
+    char urlB[sizeof(buf) + sizeof(PINSERVER_DOC_INIT)];
+
+    // Get first URL (defaults to h/coded url)
+    size_t urlA_len = 0;
+    const bool urlASet = storage_get_pinserver_urlA(buf, sizeof(buf), &urlA_len);
+    if (urlASet && urlA_len <= 1) {
+        // Explcitly no url
+        urlA[0] = '\0';
+    } else {
+        urlA_len = snprintf(urlA, sizeof(urlA), "%s/%s", urlASet ? buf : PINSERVER_URL, document);
+        JADE_ASSERT(urlA_len > 0 && urlA_len < sizeof(urlA));
+    }
+
+    // Get second URL (defaults to h/coded onion)
+    size_t urlB_len = 0;
+    const bool urlBSet = storage_get_pinserver_urlB(buf, sizeof(buf), &urlB_len);
+    if (urlBSet && urlB_len <= 1) {
+        // Explcitly no second url
+        urlB[0] = '\0';
+    } else {
+        urlB_len = snprintf(urlB, sizeof(urlB), "%s/%s", urlBSet ? buf : PINSERVER_ONION, document);
+        JADE_ASSERT(urlB_len > 0 && urlB_len < sizeof(urlB));
+    }
+
+    JADE_ASSERT(urlASet == urlBSet);
+    const char* urls[2] = { urlA, urlB };
+    add_string_array_to_map(encoder, "urls", urls, 2);
+}
+
+// The certificate may be overridden in storage, otherwise use the default
+static void add_certificate(CborEncoder* encoder)
+{
+    char buf[MAX_PINSVR_CERTIFICATE_LENGTH];
+    size_t written = 0;
+    const bool overridden = storage_get_pinserver_cert(buf, sizeof(buf), &written);
+    const char* root_certificates[1] = { overridden ? buf : (char*)jade_services_certificate };
+    add_string_array_to_map(encoder, "root_certificates", root_certificates, 1);
 }
 
 // {
@@ -116,8 +154,7 @@ static void http_post_cbor(const void* ctx, CborEncoder* container)
     JADE_ASSERT(ctx);
 
     const handshake_reply_t* envelope_data = (const handshake_reply_t*)ctx;
-    JADE_ASSERT(envelope_data->url);
-    JADE_ASSERT(envelope_data->onion);
+    JADE_ASSERT(envelope_data->document);
     JADE_ASSERT(envelope_data->on_reply);
 
     CborEncoder root_map;
@@ -140,11 +177,9 @@ static void http_post_cbor(const void* ctx, CborEncoder* container)
     JADE_ASSERT(cberr == CborNoError);
 
     // The urls (tls and onion) and any associated root certs we may require
-    const char* urls[2] = { envelope_data->url, envelope_data->onion };
-    add_string_array_to_map(&params_encoder, "urls", urls, 2);
-
-    const char* root_certificates[1] = { (char*)jade_services_certificate };
-    add_string_array_to_map(&params_encoder, "root_certificates", root_certificates, 1);
+    // These may be the built-in defaults, or may have been overridden (in storage)
+    add_urls(&params_encoder, envelope_data->document);
+    add_certificate(&params_encoder);
 
     // The method here is always POST and the payload always json
     add_string_to_map(&params_encoder, "method", "POST");
@@ -200,19 +235,27 @@ static bool verify_server_signature(
     JADE_ASSERT(ske_len == EC_PUBLIC_KEY_LEN);
     JADE_ASSERT(sig_len == EC_SIGNATURE_LEN);
 
-    int res = wally_ec_public_key_verify(server_public_key_start, EC_PUBLIC_KEY_LEN);
+    // The pinserver pubkey - can be default or overridden by user
+    const uint8_t* pubkey = server_public_key_start;
+    uint8_t user_pubkey[EC_PUBLIC_KEY_LEN];
+    if (storage_get_pinserver_pubkey(user_pubkey, sizeof(user_pubkey))) {
+        pubkey = user_pubkey;
+    }
+
+    int res = wally_ec_public_key_verify(pubkey, EC_PUBLIC_KEY_LEN);
     if (res != WALLY_OK) {
+        JADE_LOGE("Invalid pinserver pubkey!");
         return false;
     }
 
     unsigned char skehash[SHA256_LEN];
     res = wally_sha256(ske, ske_len, skehash, sizeof(skehash));
     if (res != WALLY_OK) {
+        JADE_LOGE("Failed to hash pubkey!");
         return false;
     }
 
-    res = wally_ec_sig_verify(
-        server_public_key_start, EC_PUBLIC_KEY_LEN, skehash, sizeof(skehash), EC_FLAG_ECDSA, sig, sig_len);
+    res = wally_ec_sig_verify(pubkey, EC_PUBLIC_KEY_LEN, skehash, sizeof(skehash), EC_FLAG_ECDSA, sig, sig_len);
     return res == WALLY_OK;
 }
 
@@ -351,7 +394,7 @@ static pinserver_result_t start_handshake(jade_process_t* process, pin_keys_t* p
     // Send a reply with the handshake url
     JADE_LOGD("Initiating server handshake with: %s", PINSERVER_URL);
     const handshake_reply_t handshake_init
-        = { .url = PINSVR_URL_INIT, .onion = PINSVR_ONION_INIT, .on_reply = "handshake_init", .data = NULL };
+        = { .document = PINSERVER_DOC_INIT, .on_reply = "handshake_init", .data = NULL };
     jade_process_reply_to_message_result(process->ctx, &handshake_init, http_post_cbor);
 
     // Await a 'handshake_init' message
@@ -551,13 +594,12 @@ static bool hmac_ckepayload(const pin_keys_t* pinkeys, const unsigned char* payl
 // Dance with the pinserver to obtain the final aes-key - start handshake,
 // compute shared secrets, fetch server key, and then compute final aes key.
 static pinserver_result_t pinserver_interaction(jade_process_t* process, const uint8_t* pin, const size_t pin_size,
-    const char* url, const char* onion, unsigned char* finalaes, const size_t finalaes_size)
+    const char* document, unsigned char* finalaes, const size_t finalaes_size)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(pin);
     JADE_ASSERT(pin_size > 0);
-    JADE_ASSERT(url);
-    JADE_ASSERT(onion);
+    JADE_ASSERT(document);
     JADE_ASSERT(finalaes);
     ASSERT_HAS_CURRENT_MESSAGE(process);
 
@@ -601,7 +643,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     const handshake_data_t payload_data
         = { .ske = pinkeys.ske, .cke = pinkeys.cke, .encrypted_data = payload, .hmac_encrypted_data = hmac_payload };
     const handshake_reply_t handshake_complete
-        = { .url = url, .onion = onion, .on_reply = "handshake_complete", .data = &payload_data };
+        = { .document = document, .on_reply = "handshake_complete", .data = &payload_data };
     jade_process_reply_to_message_result(process->ctx, &handshake_complete, http_post_cbor);
 
     // Get the server's aes key for the given pin/key data
@@ -636,15 +678,14 @@ cleanup:
 // Dance with the pinserver to obtain the final aes-key.  Wraps pinserver interaction
 // with retry logic in-case there are http/network issues.
 static pinserver_result_t get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, const size_t pin_size,
-    const char* url, const char* onion, unsigned char* finalaes, const size_t finalaes_size)
+    const char* document, unsigned char* finalaes, const size_t finalaes_size)
 {
     // pinserver interaction only happens atm as a result of a call to 'auth_user'
     ASSERT_CURRENT_MESSAGE(process, "auth_user");
 
     while (true) {
         // Do the pinserver interaction dance, and get the resulting aes-key
-        const pinserver_result_t pir
-            = pinserver_interaction(process, pin, pin_size, url, onion, finalaes, finalaes_size);
+        const pinserver_result_t pir = pinserver_interaction(process, pin, pin_size, document, finalaes, finalaes_size);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         // If a) the error is 'retry-able' and b) the user elects to retry, then loop and try again
@@ -676,8 +717,8 @@ bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, const size_
     unsigned char finalaes[AES_KEY_LEN_256];
     SENSITIVE_PUSH(finalaes, sizeof(finalaes));
 
-    const pinserver_result_t pir = get_pinserver_aeskey(
-        process, pin, pin_size, PINSVR_URL_GETPIN, PINSVR_ONION_GETPIN, finalaes, sizeof(finalaes));
+    const pinserver_result_t pir
+        = get_pinserver_aeskey(process, pin, pin_size, PINSERVER_DOC_GET_PIN, finalaes, sizeof(finalaes));
 
     if (pir.result == SUCCESS) {
         // Try to load into the passed keychain from the flash memory
@@ -714,8 +755,8 @@ bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, const size_
     unsigned char finalaes[AES_KEY_LEN_256];
     SENSITIVE_PUSH(finalaes, sizeof(finalaes));
 
-    const pinserver_result_t pir = get_pinserver_aeskey(
-        process, pin, pin_size, PINSVR_URL_SETPIN, PINSVR_ONION_SETPIN, finalaes, sizeof(finalaes));
+    const pinserver_result_t pir
+        = get_pinserver_aeskey(process, pin, pin_size, PINSERVER_DOC_SET_PIN, finalaes, sizeof(finalaes));
 
     if (pir.result == SUCCESS) {
         // Try to persist the passed keychain

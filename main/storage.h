@@ -9,6 +9,9 @@ typedef enum { NONE, MAIN, TEST } network_type_t;
 
 #define BLE_ENABLED 0x1
 
+#define MAX_PINSVR_CERTIFICATE_LENGTH 2048
+#define MAX_PINSVR_URL_LENGTH 120
+
 bool storage_init();
 bool storage_erase();
 
