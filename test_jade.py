@@ -1557,7 +1557,7 @@ def run_all_jade_tests(info, args):
     if not args.skipble:
         if info['JADE_CONFIG'] == 'BLE':
             bleid = info['EFUSEMAC'][6:]
-            logger.info("Testing BLE ({})".format(id))
+            logger.info("Testing BLE ({})".format(bleid))
             with JadeAPI.create_ble(serial_number=bleid) as jade:
                 run_jade_tests(jade, args, False)  # skip long tests over ble
 
