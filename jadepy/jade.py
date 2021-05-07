@@ -94,7 +94,7 @@ class JadeAPI:
         logger.debug('_http_request: {}'.format(params))
 
         # Use the first non-onion url
-        url = [url for url in params['urls'] if '.onion' not in url][0]
+        url = [url for url in params['urls'] if not url.endswith('.onion')][0]
         if params['method'] == 'GET':
             assert 'data' not in params, 'Cannot pass body to requests.get'
             f = requests.get(url)
@@ -197,6 +197,24 @@ class JadeAPI:
     def set_seed(self, seed):
         params = {'seed': seed}
         return self._jadeRpc('debug_set_mnemonic', params)
+
+    # Override the pinserver details on the hww
+    def set_pinserver(self, urlA=None, urlB=None, pubkey=None, cert=None):
+        params = {}
+        if urlA is not None or urlB is not None:
+            params['urlA'] = urlA
+            params['urlB'] = urlB
+        if pubkey is not None:
+            params['pubkey'] = pubkey
+        if cert is not None:
+            params['certificate'] = cert
+        return self._jadeRpc('update_pinserver', params)
+
+    # Reset the pinserver details on the hww to their defaults
+    def reset_pinserver(self, reset_details, reset_certificate):
+        params = {'reset_details': reset_details,
+                  'reset_certificate': reset_certificate}
+        return self._jadeRpc('update_pinserver', params)
 
     # Trigger user authentication on the hw
     # Involves pinserver handshake

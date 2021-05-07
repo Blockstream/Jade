@@ -48,6 +48,7 @@ void get_receive_address_process(void* process_ptr);
 void ota_process(void* process_ptr);
 void pin_process(void* process_ptr);
 void mnemonic_process(void* process_ptr);
+void update_pinserver_process(void* process_ptr);
 
 // GUI screens
 void make_setup_screen(gui_activity_t** act_ptr, const char* device_name);
@@ -248,6 +249,9 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("add_entropy")) {
         JADE_LOGD("Received external entropy message");
         process_add_entropy_request(process);
+    } else if (IS_METHOD("update_pinserver")) {
+        JADE_LOGD("Received update to pinserver details");
+        task_function = update_pinserver_process;
     } else if (IS_METHOD("auth_user")) {
         // Either enter pin or set-up mnemonic if uninitialised
         if (keychain_unlocked_by_message_source(process)) {
@@ -289,7 +293,7 @@ static void dispatch_message(jade_process_t* process)
         if (!keychain_unlocked_by_message_source(process)) {
             // Reject the message as bad (startup) protocol
             jade_process_reject_message(
-                process, CBOR_RPC_HW_LOCKED, "When locked expecting either 'auth_user' or 'ota' message only.", NULL);
+                process, CBOR_RPC_HW_LOCKED, "Cannot process message - hardware locked or uninitialised", NULL);
         } else if (IS_METHOD("get_xpub")) {
             task_function = get_xpubs_process;
         } else if (IS_METHOD("get_receive_address")) {
