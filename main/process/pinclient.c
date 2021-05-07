@@ -13,24 +13,16 @@
 
 #include "process_utils.h"
 
-#ifdef CONFIG_DEBUG_UNATTENDED_CI
-// Test pinserver url, (dummy) onion, and public key
-static const char PINSERVER_URL[] = "http://127.0.0.1:8080";
-static const char PINSERVER_ONION[] = "http://we.dont.know.our.onion.but.this.string.is.about.the.right.size";
-extern const uint8_t server_public_key_start[] asm("_binary_server_public_key_pub_start");
-#else
-// Production pinserver url, onion, and public key
+// Default pinserver url, onion, and public key
 static const char PINSERVER_URL[] = "https://jadepin.blockstream.com";
 static const char PINSERVER_ONION[] = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion";
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
-#endif
+extern const uint8_t jade_services_certificate[] asm("_binary_jade_services_certificate_pem_start");
 
+// Pinserver documents to post to
 static const char PINSERVER_DOC_INIT[] = "start_handshake";
 static const char PINSERVER_DOC_GET_PIN[] = "get_pin";
 static const char PINSERVER_DOC_SET_PIN[] = "set_pin";
-
-// The certificate we require to access jade production services
-extern const uint8_t jade_services_certificate[] asm("_binary_jade_services_certificate_pem_start");
 
 #define PIN_SECRET_LEN HMAC_SHA256_LEN
 #define ENTROPY_LEN HMAC_SHA256_LEN

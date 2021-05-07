@@ -100,6 +100,14 @@ BLE_TEST_BADKEYFILE = "ble_test_badkey.txt"
 DEFAULT_SERIAL_DEVICE = "/dev/ttyUSB0"
 SRTIMEOUT = 30
 
+# The pubkey for the test (in-proc) pinserver
+PINSERVER_TEST_PUBKEY_FILE = "server_public_key.pub"
+
+# Pinserver prod defaults
+PINSERVER_DEFAULT_URL = "https://jadepin.blockstream.com"
+PINSERVER_DEFAULT_ONION = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion"
+PINSERVER_DEFAULT_CERTIFICATE_FILE = "jade_services_certificate.pem"
+
 # The number of values expected back in version info
 NUM_VALUES_VERINFO = 16
 
@@ -217,8 +225,8 @@ SfzadGnGduPwvoVK1ZpthykJup8A8Eh2'),
 
                             ('liquid', 'sh(wpkh(k))',
                              [2147483648, 2147483648, 2147483657],
-                             'VJLGcUjN2q6HHuNUAQJ2LEASQnr5LkD2DgDwT2vcyQjKhA3B5\
-a2VAgp94Gj5rSXYiD6eHmGJmVSHY5xG'),
+                             'VJLGcUjN2q6HHuNUAQJ2LEASQnr5LkD2DgDwT2vcyQjKhA3B\
+5a2VAgp94Gj5rSXYiD6eHmGJmVSHY5xG'),
                             ('liquid', 'wpkh(k)',
                              [2147483648, 2147483648, 2147483657],
                              'lq1qq28n8pj790vsyd6t5lr6n0puhrp7hd8wvcgrlm8knxm6\
@@ -476,6 +484,24 @@ d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a069\
                   (('badauth3', 'auth_user', {'network': 1234512345}), 'extract valid network'),
                   (('badauth4', 'auth_user', {'network': ''}), 'extract valid network'),
                   (('badauth5', 'auth_user', {'network': 'notanetwork'}), 'extract valid network'),
+
+                  (('badpin1', 'update_pinserver'), 'Expecting parameters map'),
+                  (('badpin2', 'update_pinserver',
+                    {'urlB': 'testurl'}), 'only set second URL if also setting first'),
+                  (('badpin3', 'update_pinserver',
+                    {'urlA': 'testurl', 'urlB': 'testonion', 'reset_details': True}),
+                   'both set and reset pinserver details'),
+                  (('badpin4', 'update_pinserver',
+                    {'pubkey': h2b('abc123'), 'reset_details': True}),
+                   'both set and reset pinserver details'),
+                  (('badpin5', 'update_pinserver',
+                    {'pubkey': h2b('abcdef')}), 'pinserver pubkey without setting URL'),
+                  (('badpin6', 'update_pinserver',
+                    {'urlA': 'testurl', 'urlB': 'testonion', 'pubkey': h2b('abcdef1234')}),
+                   'extract valid pubkey'),
+                  (('badpin7', 'update_pinserver',
+                    {'certificate': 'testcert', 'reset_certificate': True}),
+                   'set and reset pinserver certificate'),
 
                   (('badent1', 'add_entropy'), 'Expecting parameters map'),
                   (('badent2', 'add_entropy', {'entropy': None}), 'valid entropy bytes'),
@@ -978,6 +1004,20 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
 # Pinserver handshake test - note this is tightly coupled to the dedicated
 # test handler in the hardware code (main/process/debug_handshake.c)
 def test_handshake(jade):
+    # First override the hww pinserver pubkey to match the local test key
+    TEST_URL = 'https://this.is.a.test.url.com'
+    TEST_ONION = 'http://we.dont.know.our.onion.but.this.string.is.about.the.right.size'
+    TEST_CERT = 'tstcert.'*250  # ~2k should be representative of cert size
+    with open(PINSERVER_TEST_PUBKEY_FILE, 'rb') as f:
+        pubkey = f.read()
+    msg = jade.build_request('dbg_pnsvr', 'update_pinserver',
+                             {'urlA': TEST_URL,
+                              'urlB': TEST_ONION,
+                              'pubkey': pubkey,
+                              'certificate': TEST_CERT})
+    reply = jade.make_rpc_call(msg)
+    assert reply['result'] is True
+
     # server provides a signed (with a static key) an ephemeral server key
     # exchange (ske) client validates it and provides a client key exchange
     # (cke) and because the server went first the client also provides an
@@ -1001,9 +1041,9 @@ def test_handshake(jade):
     assert result['http_request']['params']['accept'] == 'json'
     assert result['http_request']['params']['method'] == 'POST'
     urls = result['http_request']['params']['urls']
-    assert len(urls) == 2
-    assert urls[0].endswith("/start_handshake")
-    assert urls[1].endswith("/start_handshake")
+    assert urls == [TEST_URL+'/start_handshake', TEST_ONION+'/start_handshake']
+    certs = result['http_request']['params']['root_certificates']
+    assert certs == [TEST_CERT]
 
     # 2. This is where the app would call the URL returned, and pass the
     #    response (ecdh key) to jade.  We use the pinserver class directly.
@@ -1026,9 +1066,9 @@ def test_handshake(jade):
     assert result['http_request']['params']['accept'] == 'json'
     assert result['http_request']['params']['method'] == 'POST'
     urls = result['http_request']['params']['urls']
-    assert len(urls) == 2
-    assert urls[0].endswith("/set_pin")
-    assert urls[1].endswith("/set_pin")
+    assert urls == [TEST_URL+'/set_pin', TEST_ONION+'/set_pin']
+    certs = result['http_request']['params']['root_certificates']
+    assert certs == [TEST_CERT]
 
     data = result['http_request']['params']['data']
     assert data['ske'] == wally.hex_from_bytes(pubkey)  # ske echoed back
@@ -1068,9 +1108,9 @@ def test_handshake(jade):
     assert result['http_request']['params']['accept'] == 'json'
     assert result['http_request']['params']['method'] == 'POST'
     urls = result['http_request']['params']['urls']
-    assert len(urls) == 2
-    assert urls[0].endswith("/start_handshake")
-    assert urls[1].endswith("/start_handshake")
+    assert urls == [TEST_URL+'/start_handshake', TEST_ONION+'/start_handshake']
+    certs = result['http_request']['params']['root_certificates']
+    assert certs == [TEST_CERT]
 
     # 2. pass pinserver ecdh key to jade
     # Note: PINServerECDH instances are ephemeral, so we create a new one
@@ -1093,9 +1133,9 @@ def test_handshake(jade):
     assert result['http_request']['params']['accept'] == 'json'
     assert result['http_request']['params']['method'] == 'POST'
     urls = result['http_request']['params']['urls']
-    assert len(urls) == 2
-    assert urls[0].endswith("/get_pin")
-    assert urls[1].endswith("/get_pin")
+    assert urls == [TEST_URL+'/get_pin', TEST_ONION+'/get_pin']
+    certs = result['http_request']['params']['root_certificates']
+    assert certs == [TEST_CERT]
 
     data = result['http_request']['params']['data']
     assert data['ske'] == wally.hex_from_bytes(pubkey)  # ske echoed back
@@ -1114,6 +1154,46 @@ def test_handshake(jade):
                           'hmac': wally.hex_from_bytes(hmac)})
     reply2 = jade.make_rpc_call(msg2)
     assert reply2['result'] is True
+
+
+# Pinserver handshake test - set the hww back to the default/production
+# authentication data - this should then fail with 'bad-sig' when we sign
+# with the test pinserver details.
+def test_handshake_bad_sig(jade):
+    # 1. reset hww back to default pinserver details
+    msg = jade.build_request('reset_pnsvr', 'update_pinserver',
+                             {'reset_details': True, 'reset_certificate': True})
+    reply = jade.make_rpc_call(msg)
+    assert reply['result'] is True
+
+    # 2. trigger the dedicated test case handler - check details are defaults
+    msg = jade.build_request('badsig_start', 'debug_handshake')
+    reply = jade.make_rpc_call(msg)
+    result = reply['result']
+    urls = result['http_request']['params']['urls']
+    assert urls == [PINSERVER_DEFAULT_URL+'/start_handshake',
+                    PINSERVER_DEFAULT_ONION+'/start_handshake']
+
+    with open(PINSERVER_DEFAULT_CERTIFICATE_FILE, 'r') as f:
+        default_cerificate = f.read()
+    certs = result['http_request']['params']['root_certificates']
+    assert certs == [default_cerificate]
+
+    # 3. This is where the app would call the URL returned, and pass the
+    #    response (ecdh key) to jade.  We use the pinserver class directly.
+    #    We expect this to fail as the pinserver signature will not match expected
+    server = PINServerECDH()
+    pubkey, sig = server.get_signed_public_key()
+
+    msg = jade.build_request(
+                        'badsig_init', 'handshake_init',
+                        {'ske': wally.hex_from_bytes(pubkey),
+                         'sig': wally.hex_from_bytes(sig)})
+    reply = jade.make_rpc_call(msg)
+    assert 'result' not in reply
+    error = reply['error']
+    assert error['code'] == -32602
+    assert error['message'] == 'Cannot initiate handshake - ske and/or sig invalid'
 
 
 # Check/print memory stats
@@ -1295,6 +1375,15 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
 
+    # Update pinserver details - just check the calls do not error
+    # See test_handshake() above for more in-depth test of this functionality
+    with open(PINSERVER_TEST_PUBKEY_FILE, 'rb') as f:
+        pubkey = f.read()
+    rslt = jadeapi.set_pinserver('testurl', 'testonion', pubkey, 'testcert')
+    assert(rslt)
+    rslt = jadeapi.reset_pinserver(True, True)
+    assert(rslt)
+
     # Get (receive) green-address
     for network, subact, branch, ptr, recovxpub, csvblocks, expected in GET_GREENADDRESS_DATA:
         rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
@@ -1462,6 +1551,7 @@ def run_interface_tests(jadeapi,
         # Skip for now.
         if not qemu:
             test_handshake(jadeapi.jade)
+            test_handshake_bad_sig(jadeapi.jade)
 
     # Too much input test - sends a lot of data so only
     # run if requested (eg. ble would take a long time)
