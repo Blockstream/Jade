@@ -95,6 +95,10 @@ typedef enum {
     BTN_INFO_EXIT,
 
     BTN_BLE_EXIT,
+
+    BTN_PINSERVER_DETAILS_CONFIRM,
+    BTN_PINSERVER_DETAILS_DENY,
+
 } button_event_id;
 
 #endif /* BUTTON_EVENTS_H_ */

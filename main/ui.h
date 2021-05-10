@@ -52,6 +52,11 @@ void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char
 void run_pin_entry_loop(pin_insert_activity_t* pin_insert);
 void clear_current_pin(pin_insert_activity_t* pin_insert);
 
+// Functions for pinserver details
+void make_confirm_pinserver_details_activity(
+    gui_activity_t** activity_ptr, const char* urlA, const char* urlB, const char* pubkeyhex);
+void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, const char* cert_hash_hex);
+
 // Generic message screens which may await a button click
 gui_activity_t* display_message_activity(const char* message);
 gui_activity_t* display_message_activity_two_lines(const char* msg_first, const char* msg_second);
