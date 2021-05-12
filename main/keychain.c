@@ -25,11 +25,14 @@ void keychain_set(const keychain_t* src, const uint8_t userdata)
 {
     JADE_ASSERT(src);
 
-    // Maybe freeing and re-allocing is unnecessary, but shouldn't happen very
-    // often, and ensures it is definitely in dram.  Better safe ...
-    keychain_free();
-    keychain_data = JADE_MALLOC_DRAM(sizeof(keychain_t));
-    memcpy(keychain_data, src, sizeof(keychain_t));
+    // Copy-from-self is no-op for keys (but we may override 'userdata' below)
+    if (src != keychain_data) {
+        // Maybe freeing and re-allocing is unnecessary, but shouldn't happen very
+        // often, and ensures it is definitely in dram.  Better safe ...
+        keychain_free();
+        keychain_data = JADE_MALLOC_DRAM(sizeof(keychain_t));
+        memcpy(keychain_data, src, sizeof(keychain_t));
+    }
 
     // Hold the associated userdata
     keychain_userdata = userdata;
