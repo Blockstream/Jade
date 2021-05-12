@@ -16,8 +16,8 @@ typedef struct {
 } keychain_t;
 
 bool keychain_init();
-void set_keychain(const keychain_t* src, uint8_t userdata);
-void free_keychain();
+void keychain_set(const keychain_t* src, uint8_t userdata);
+void keychain_free();
 
 const keychain_t* keychain_get();
 uint8_t keychain_get_userdata();

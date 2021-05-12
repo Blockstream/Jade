@@ -96,7 +96,7 @@ static void idletimer_task(void* ignore)
             }
 
             JADE_LOGW("Idle-timeout elapsed  - powering-off device");
-            free_keychain();
+            keychain_free();
             power_shutdown();
         }
 

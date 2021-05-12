@@ -562,7 +562,7 @@ void mnemonic_process(void* process_ptr)
     SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
 
     // free any existing global keychain (not that one should exist at this point)
-    free_keychain();
+    keychain_free();
     keychain_t keydata;
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
@@ -716,7 +716,7 @@ void mnemonic_process(void* process_ptr)
 #endif
         // Copy temporary keychain into a new global keychain and
         // set the current message source as the keychain userdata
-        set_keychain(&keydata, process->ctx.source);
+        keychain_set(&keydata, process->ctx.source);
         JADE_LOGI("Success");
     } else {
         JADE_LOGW("Set-Pin / persist keys failed.");

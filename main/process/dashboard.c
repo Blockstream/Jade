@@ -703,7 +703,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const expect
         if (keychain_get()) {
             if (ble_connected() != initial_ble || usb_connected() != initial_usb) {
                 JADE_LOGI("Connection status changed - clearing keychain");
-                free_keychain();
+                keychain_free();
             }
         }
 

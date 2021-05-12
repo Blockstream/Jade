@@ -32,7 +32,7 @@ void pin_process(void* process_ptr)
     CHECK_NETWORK_CONSISTENT(process, network, written);
 
     // free any existing global keychain
-    free_keychain();
+    keychain_free();
 
     const uint8_t pin_attempts_remaining = keychain_pin_attempts_remaining();
     JADE_ASSERT(pin_attempts_remaining > 0); // Shouldn't be here otherwise
@@ -83,7 +83,7 @@ void pin_process(void* process_ptr)
 #endif
         // Copy temporary keychain into a new global keychain and
         // set the current message source as the keychain userdata
-        set_keychain(&keydata, process->ctx.source);
+        keychain_set(&keydata, process->ctx.source);
         JADE_LOGI("Success");
     } else {
         // Failed - show error and go back to boot screen

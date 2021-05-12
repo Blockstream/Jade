@@ -21,13 +21,13 @@ static keychain_t* keychain_data = NULL;
 static network_type_t network_type_restriction = NONE;
 static uint8_t keychain_userdata = 0;
 
-void set_keychain(const keychain_t* src, const uint8_t userdata)
+void keychain_set(const keychain_t* src, const uint8_t userdata)
 {
     JADE_ASSERT(src);
 
     // Maybe freeing and re-allocing is unnecessary, but shouldn't happen very
     // often, and ensures it is definitely in dram.  Better safe ...
-    free_keychain();
+    keychain_free();
     keychain_data = JADE_MALLOC_DRAM(sizeof(keychain_t));
     memcpy(keychain_data, src, sizeof(keychain_t));
 
@@ -35,7 +35,7 @@ void set_keychain(const keychain_t* src, const uint8_t userdata)
     keychain_userdata = userdata;
 }
 
-void free_keychain()
+void keychain_free()
 {
     if (keychain_data) {
         wally_bzero(keychain_data, sizeof(keychain_t));

@@ -59,7 +59,7 @@ void debug_set_mnemonic_process(void* process_ptr)
 
     // Copy temporary keychain into a new global keychain
     // and remove the restriction on network-types.
-    set_keychain(&keydata, (uint8_t)process->ctx.source);
+    keychain_set(&keydata, (uint8_t)process->ctx.source);
 
     // Remove the restriction on network-types.
     keychain_clear_network_type_restriction();
