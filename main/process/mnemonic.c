@@ -61,11 +61,10 @@ static void change_mnemonic_word_separator(char* mnemonic, const size_t len, con
     JADE_ASSERT(i == len + 1);
 }
 
-static bool mnemonic_new(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
+static bool mnemonic_new(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
 {
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
-    JADE_ASSERT(process);
 
     // generate and show the mnemonic
     char* new_mnemonic = NULL;
@@ -329,11 +328,10 @@ static size_t valid_words(char* word, struct words* wordlist, size_t* possible_w
     return num_possible_words;
 }
 
-static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
+static bool mnemonic_recover(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
 {
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
-    JADE_ASSERT(process);
 
     struct words* wordlist;
     bip39_get_wordlist(NULL, &wordlist);
@@ -489,7 +487,7 @@ static bool mnemonic_recover(jade_process_t* process, char mnemonic[MNEMONIC_BUF
     return true;
 }
 
-static bool mnemonic_qr(jade_process_t* process, char mnemonic[MNEMONIC_BUFLEN])
+static bool mnemonic_qr(char mnemonic[MNEMONIC_BUFLEN])
 {
 // At the moment camera/qr-scan only supported by Jade devices
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
@@ -605,24 +603,24 @@ void mnemonic_process(void* process_ptr)
 
         // Await user mnemonic entry/confirmation
         case BTN_NEW_MNEMONIC_12_BEGIN:
-            got_mnemonic = mnemonic_new(process, mnemonic, 12);
+            got_mnemonic = mnemonic_new(mnemonic, 12);
             break;
 
         case BTN_NEW_MNEMONIC_24_BEGIN:
-            got_mnemonic = mnemonic_new(process, mnemonic, 24);
+            got_mnemonic = mnemonic_new(mnemonic, 24);
             break;
 
         case BTN_RECOVER_MNEMONIC_12_BEGIN:
-            got_mnemonic = mnemonic_recover(process, mnemonic, 12);
+            got_mnemonic = mnemonic_recover(mnemonic, 12);
             break;
 
         case BTN_RECOVER_MNEMONIC_24_BEGIN:
-            got_mnemonic = mnemonic_recover(process, mnemonic, 24);
+            got_mnemonic = mnemonic_recover(mnemonic, 24);
             break;
 
         case BTN_QR_MNEMONIC_BEGIN:
         default:
-            got_mnemonic = mnemonic_qr(process, mnemonic);
+            got_mnemonic = mnemonic_qr(mnemonic);
             break;
         }
 #else
