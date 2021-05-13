@@ -146,15 +146,38 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     add_string_to_map(&map_encoder, "EFUSEMAC", hexstr);
     wally_free_string(hexstr);
 
-    const char* state = keychain_get() != NULL ? "READY" : keychain_has_pin() ? "LOCKED" : "UNINIT";
-    add_string_to_map(&map_encoder, "JADE_STATE", state);
+    // We have five cases:
+    // 1. Ready - has keys already associated with a message source
+    //    - READY
+    // 2. Temporary keys - has temporary keys in memory, but not yet connected to app
+    //    - TEMP
+    // 3. Unsaved keys - has proper keys in memory, but not yet saved with a PIN
+    //    - UNSAVED
+    // 4. Locked - has persisted/encrypted keys, but no keys in memory
+    //    - LOCKED
+    // 5. Uninitialised - has no persisted/encrypted keys and no keys in memory
+    //    - UNINT
+
+    const bool has_pin = keychain_has_pin();
+    const bool has_keys = keychain_get() != NULL;
+    if (has_keys) {
+        if (keychain_get_userdata() != SOURCE_NONE) {
+            add_string_to_map(&map_encoder, "JADE_STATE", "READY");
+        } else if (keychain_has_temporary()) {
+            add_string_to_map(&map_encoder, "JADE_STATE", "TEMP");
+        } else {
+            add_string_to_map(&map_encoder, "JADE_STATE", "UNSAVED");
+        }
+    } else {
+        add_string_to_map(&map_encoder, "JADE_STATE", has_pin ? "LOCKED" : "UNINIT");
+    }
 
     const network_type_t restriction = storage_get_network_type_restriction();
     const char* networks = restriction == MAIN ? "MAIN" : restriction == TEST ? "TEST" : "ALL";
     add_string_to_map(&map_encoder, "JADE_NETWORKS", networks);
 
     // Deprecated (as of 0.1.25) - to be removed later
-    add_boolean_to_map(&map_encoder, "JADE_HAS_PIN", keychain_has_pin());
+    add_boolean_to_map(&map_encoder, "JADE_HAS_PIN", has_pin);
 
 // Memory stats only needed in DEBUG
 #ifdef CONFIG_DEBUG_MODE
