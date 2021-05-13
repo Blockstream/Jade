@@ -76,16 +76,27 @@ void make_setup_screen(gui_activity_t** act_ptr, const char* device_name)
     gui_make_activity(&act, true, title);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_ABSOLUTE, 2, 75, 36);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
     gui_set_parent(vsplit, act->root_node);
 
-    gui_view_node_t* text2;
-    gui_make_text(&text2, "For setup instructions visit\nblockstream.com/jade", TFT_WHITE);
-    gui_set_align(text2, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text2, GUI_MARGIN_ALL_DIFFERENT, 16, 8, 0, 8);
-    gui_set_parent(text2, vsplit);
+    gui_view_node_t* text1;
+    gui_make_text(&text1, "For setup instructions visit\nblockstream.com/jade", TFT_WHITE);
+    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_padding(text1, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
+    gui_set_parent(text1, vsplit);
 
-    add_button_bar(vsplit);
+    gui_view_node_t* btn;
+    gui_make_button(&btn, TFT_BLACK, BTN_INITIALIZE, NULL);
+    gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 15, 50);
+    gui_set_parent(btn, vsplit);
+
+    gui_view_node_t* btntext;
+    gui_make_text(&btntext, "Initialize", TFT_WHITE);
+    gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(btntext, btn);
+
     *act_ptr = act;
 }
 
@@ -106,6 +117,102 @@ void make_connect_screen(gui_activity_t** act_ptr, const char* device_name)
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 24, 8, 0, 8);
     gui_set_parent(text, act->root_node);
+
+    *act_ptr = act;
+}
+
+#ifndef CONFIG_ESP32_NO_BLOBS
+void make_connection_select_screen(gui_activity_t** act_ptr)
+{
+    JADE_ASSERT(act_ptr);
+
+    gui_activity_t* act;
+    gui_make_activity(&act, true, "Select Connection");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
+    gui_set_parent(vsplit, act->root_node);
+
+    gui_view_node_t* text;
+    gui_make_text(&text, "How do you want to connect\nyour Jade to Green?", TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 24, 8, 0, 8);
+    gui_set_parent(text, vsplit);
+
+    // Two buttons, USB and BLE
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+    gui_set_parent(hsplit, vsplit);
+
+    // USB
+    gui_view_node_t* usbbtn;
+    gui_make_button(&usbbtn, TFT_BLACK, BTN_CONNECT_USB, NULL);
+    gui_set_borders(usbbtn, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(usbbtn, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(usbbtn, GUI_MARGIN_ALL_DIFFERENT, 15, 8, 0, 8);
+    gui_set_parent(usbbtn, hsplit);
+
+    gui_view_node_t* usbtext;
+    gui_make_text(&usbtext, "USB", TFT_WHITE);
+    gui_set_align(usbtext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(usbtext, usbbtn);
+
+    gui_view_node_t* blebtn;
+    gui_make_button(&blebtn, TFT_BLACK, BTN_CONNECT_BLE, NULL);
+    gui_set_borders(blebtn, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(blebtn, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(blebtn, GUI_MARGIN_ALL_DIFFERENT, 15, 8, 0, 8);
+    gui_set_parent(blebtn, hsplit);
+
+    gui_view_node_t* bletext;
+    gui_make_text(&bletext, "Bluetooth", TFT_WHITE);
+    gui_set_align(bletext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(bletext, blebtn);
+
+    *act_ptr = act;
+}
+#endif // CONFIG_ESP32_NO_BLOBS
+
+void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, const bool ble)
+{
+    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(device_name);
+
+    char title[32];
+    const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
+    JADE_ASSERT(ret > 0 && ret < sizeof(title));
+
+    gui_activity_t* act;
+    gui_make_activity(&act, true, title);
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
+    gui_set_parent(vsplit, act->root_node);
+
+    // Text
+    const char* message = ble ? "Select your Jade on the Green\ncompanion app to pair it"
+                              : "Attach your Jade to a device\nwith Green installed";
+    gui_view_node_t* text;
+    gui_make_text(&text, message, TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 24, 8, 0, 8);
+    gui_set_parent(text, vsplit);
+
+#ifndef CONFIG_ESP32_NO_BLOBS
+    // Back button
+    gui_view_node_t* btn;
+    gui_make_button(&btn, TFT_BLACK, BTN_CONNECT_BACK, NULL);
+    gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(btn, GUI_MARGIN_ALL_DIFFERENT, 15, 150, 0, 8);
+    gui_set_parent(btn, vsplit);
+
+    gui_view_node_t* btntext;
+    gui_make_text(&btntext, "=", TFT_WHITE);
+    gui_set_text_font(btntext, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(btntext, btn);
+#endif
 
     *act_ptr = act;
 }

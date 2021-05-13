@@ -31,6 +31,9 @@
 
 #define NULLSTRING 1
 
+// Whether during initialisation we select BLE
+static bool initialisation_via_ble = false;
+
 // Functional actions
 void sign_message_process(void* process_ptr);
 void sign_tx_process(void* process_ptr);
@@ -52,7 +55,8 @@ void auth_user_process(void* process_ptr);
 // GUI screens
 void make_setup_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_connect_screen(gui_activity_t** act_ptr, const char* device_name);
-void make_initialised_screen(gui_activity_t** act_ptr, const char* device_name);
+void make_connection_select_screen(gui_activity_t** act_ptr);
+void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, bool ble);
 void make_ready_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_settings_screen(
     gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, const size_t nBtns);
@@ -379,6 +383,51 @@ void offer_jade_reset()
     }
 }
 
+// Screen to select whether the initial connection is via USB or BLE
+static void select_initial_connection()
+{
+#ifndef CONFIG_ESP32_NO_BLOBS
+    gui_activity_t* activity;
+    make_connection_select_screen(&activity);
+    JADE_ASSERT(activity);
+    gui_set_current_activity(activity);
+
+    int32_t ev_id;
+    // In a debug unattended ci build, assume 'USB' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    ev_id = BTN_CONNECT_USB;
+#endif
+
+    if (ev_id == BTN_CONNECT_BLE) {
+        initialisation_via_ble = true;
+        if (!ble_enabled()) {
+            // Enable BLE by default, and start it now
+            const uint8_t ble_flags = storage_get_ble_flags() | BLE_ENABLED;
+            storage_set_ble_flags(ble_flags);
+            ble_start();
+        }
+    } else {
+        initialisation_via_ble = false;
+    }
+#else
+    // No BLE support
+    initialisation_via_ble = false;
+#endif // CONFIG_ESP32_NO_BLOBS
+}
+
+// Helper to initialise with mnemonic, and (if successful) request whether the
+// initial conenction will be over USB or BLE.
+static void initialise_wallet(const bool emergency_restore)
+{
+    initialise_with_mnemonic(emergency_restore);
+    if (keychain_get()) {
+        select_initial_connection();
+    }
+}
+
 // General settings handler
 static inline void update_orientation_text(gui_view_node_t* orientation_textbox)
 {
@@ -603,6 +652,10 @@ static void handle_device()
 static void handle_btn(jade_process_t* process, int32_t btn)
 {
     switch (btn) {
+    case BTN_INITIALIZE:
+        return initialise_wallet(false);
+    case BTN_CONNECT_BACK:
+        return select_initial_connection();
     case BTN_SLEEP:
         return handle_sleep();
     case BTN_SETTINGS:
@@ -662,9 +715,10 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
     const bool initial_ble = ble_connected();
     const bool initial_usb = usb_connected();
     const uint8_t initial_userdata = keychain_get_userdata();
+    const bool initial_connection_selection = initialisation_via_ble;
 
     while (keychain_get() == initial_keychain && keychain_has_pin() == initial_has_pin
-        && keychain_get_userdata() == initial_userdata) {
+        && keychain_get_userdata() == initial_userdata && initialisation_via_ble == initial_connection_selection) {
         // If the last loop did something, ensure the current dashboard screen
         // is displayed. (Doing this too eagerly can either cause unnecessary
         // screen flicker or can cause the dashboard to overwrite other screens
@@ -732,7 +786,7 @@ void dashboard_process(void* process_ptr)
         // 1. Ready - has keys already associated with a message source
         //    - ready screen
         // 2. Unused keys - has keys in memory, but not yet connected to an app
-        //    - FIXME: show 'connect' screen for now - needs dedicated screen
+        //    - connect-to screen
         // 3. Locked - has persisted/encrypted keys, but no keys in memory
         //    - connect screen
         // 4. Uninitialised - has no persisted/encrypted keys and no keys in memory
@@ -743,8 +797,8 @@ void dashboard_process(void* process_ptr)
             JADE_LOGI("Connected and have keys - showing Ready screen");
             make_ready_screen(&act_dashboard, device_name);
         } else if (initial_keychain) {
-            JADE_LOGI("Have keys loaded but not connected - showing Connect screen");
-            make_connect_screen(&act_dashboard, device_name);
+            JADE_LOGI("Have keys loaded but not connected - showing Connect-To screen");
+            make_connect_to_screen(&act_dashboard, device_name, initialisation_via_ble);
         } else if (has_pin) {
             JADE_LOGI("Pin set - showing Connect screen");
             make_connect_screen(&act_dashboard, device_name);
