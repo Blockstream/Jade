@@ -72,6 +72,7 @@ static void make_one_btn_screen(
     gen_btns(vsplit, 1, &btn_msg, &btn_ev_id, NULL);
 }
 
+/*
 static void make_two_btn_screen(
     gui_activity_t** activity_ptr, const char* header, const char* msg, const char** btn_msg, const int32_t* btn_ev_id)
 {
@@ -94,6 +95,7 @@ static void make_two_btn_screen(
     // second row, button
     gen_btns(vsplit, 2, btn_msg, btn_ev_id, NULL);
 }
+*/
 
 static void make_three_btn_screen(
     gui_activity_t** activity_ptr, const char* header, const char* msg, const char** btn_msg, const int32_t* btn_ev_id)
@@ -120,15 +122,17 @@ static void make_three_btn_screen(
 
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
 {
-    const char* btn_msg[2];
-    btn_msg[0] = "New";
-    btn_msg[1] = "Recover";
+    const char* btn_msg[3];
+    btn_msg[0] = "Back";
+    btn_msg[1] = "New";
+    btn_msg[2] = "Recover";
 
-    int32_t btn_ev_id[2];
-    btn_ev_id[0] = BTN_NEW_MNEMONIC;
-    btn_ev_id[1] = BTN_RECOVER_MNEMONIC;
+    int32_t btn_ev_id[3];
+    btn_ev_id[0] = BTN_MNEMONIC_EXIT;
+    btn_ev_id[1] = BTN_NEW_MNEMONIC;
+    btn_ev_id[2] = BTN_RECOVER_MNEMONIC;
 
-    return make_two_btn_screen(activity_ptr, "Welcome to Jade!",
+    return make_three_btn_screen(activity_ptr, "Welcome to Jade!",
         "Do you want to create a new\nwallet, or recover an existing\nwallet?", btn_msg, btn_ev_id);
 }
 
@@ -232,11 +236,11 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, const size_t nword
     // second row, buttons
     if (first_index == 0) {
         // first page, no prev btn
-        gen_btns(vsplit, 2, (const char*[]){ "", "Next" }, (int32_t[]){ GUI_BUTTON_EVENT_NONE, BTN_MNEMONIC_NEXT },
+        gen_btns(vsplit, 2, (const char*[]){ "Back", "Next" }, (int32_t[]){ BTN_MNEMONIC_EXIT, BTN_MNEMONIC_NEXT },
             out_btns);
     } else if (first_index == nwords - 4) {
         // last page, change the label for "next"
-        gen_btns(vsplit, 2, (const char*[]){ "Prev", "Verify" }, (int32_t[]){ BTN_MNEMONIC_PREV, BTN_MNEMONIC_NEXT },
+        gen_btns(vsplit, 2, (const char*[]){ "Prev", "Verify" }, (int32_t[]){ BTN_MNEMONIC_PREV, BTN_MNEMONIC_VERIFY },
             out_btns);
     } else {
         gen_btns(vsplit, 2, (const char*[]){ "Prev", "Next" }, (int32_t[]){ BTN_MNEMONIC_PREV, BTN_MNEMONIC_NEXT },

@@ -92,9 +92,28 @@ static bool mnemonic_new(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
 
     while (!mnemonic_confirmed) {
         gui_set_current_activity(first_activity);
-        gui_activity_wait_event(last_activity, GUI_BUTTON_EVENT, BTN_MNEMONIC_NEXT, NULL, NULL, NULL, 0);
 
-        JADE_LOGD("moving on to confirm_mnemonic");
+        wait_event_data_t* wait_data = make_wait_event_data();
+        esp_event_handler_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data);
+        int32_t ev_id;
+        while (true) {
+            ev_id = ESP_EVENT_ANY_ID;
+            if (sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, wait_data, NULL, &ev_id, NULL, 0) != ESP_OK) {
+                continue;
+            }
+            if (ev_id == BTN_MNEMONIC_EXIT) {
+                // User abandonded
+                JADE_LOGD("user abandoned noting mnemonic");
+                free_wait_event_data(wait_data);
+                goto cleanup;
+            }
+            if (ev_id == BTN_MNEMONIC_VERIFY) {
+                // User ready to verify mnemonic
+                JADE_LOGD("moving on to confirm mnemonic");
+                free_wait_event_data(wait_data);
+                break;
+            }
+        }
 
         // Large enough for 12 and 24 word mnemonic
         bool already_confirmed[MNEMONIC_MAXWORDS] = { false };
@@ -142,9 +161,9 @@ static bool mnemonic_new(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
             gui_update_text(textbox, words[random_words[index]]); // set the first word
 
             bool stop = false;
-            int32_t ev_id = ESP_EVENT_ANY_ID;
             while (!stop) {
                 // wait for a GUI event
+                ev_id = ESP_EVENT_ANY_ID;
                 gui_activity_wait_event(confirm_act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
                 switch (ev_id) {
@@ -179,11 +198,15 @@ static bool mnemonic_new(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
             }
         }
     }
+
+    JADE_ASSERT(mnemonic_confirmed);
     JADE_LOGD("mnemonic confirmed");
+
+cleanup:
     SENSITIVE_POP(words);
     SENSITIVE_POP(new_mnemonic);
     wally_free_string(new_mnemonic);
-    return true;
+    return mnemonic_confirmed;
 }
 
 static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_activity_t* act, gui_view_node_t* backspace,
@@ -591,6 +614,10 @@ void mnemonic_process(void* process_ptr)
         JADE_ASSERT(ret);
 
         switch (ev_id) {
+        case BTN_MNEMONIC_EXIT:
+            // Abandon setting up mnemonic
+            break;
+
         case BTN_NEW_MNEMONIC:
             // Change screens and continue to await button events
             make_new_mnemonic_screen(&activity);
