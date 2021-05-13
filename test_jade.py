@@ -1200,8 +1200,8 @@ def test_handshake_bad_sig(jade):
 def check_mem_stats(startinfo, endinfo, check_frag=True, strict=True):
     # Memory stats to log/check
     breaches = []
-    for field, limit in [('JADE_FREE_HEAP', 536),
-                         ('JADE_FREE_DRAM', 536),
+    for field, limit in [('JADE_FREE_HEAP', 2560),
+                         ('JADE_FREE_DRAM', 2560),
                          ('JADE_LARGEST_DRAM', 0 if check_frag else -1),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:

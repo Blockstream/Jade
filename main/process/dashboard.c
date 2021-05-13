@@ -46,13 +46,13 @@ void debug_handshake(void* process_ptr);
 void get_xpubs_process(void* process_ptr);
 void get_receive_address_process(void* process_ptr);
 void ota_process(void* process_ptr);
-void pin_process(void* process_ptr);
-void set_pin_process(void* process_ptr);
 void update_pinserver_process(void* process_ptr);
+void auth_user_process(void* process_ptr);
 
 // GUI screens
 void make_setup_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_connect_screen(gui_activity_t** act_ptr, const char* device_name);
+void make_initialised_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_ready_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_settings_screen(
     gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, const size_t nBtns);
@@ -196,27 +196,6 @@ cleanup:
     return;
 }
 
-// Minimal auth-user call for when keychain already unlocked
-// Just checks passed network type is valid.
-static void auth_user_minimal(jade_process_t* process)
-{
-    ASSERT_CURRENT_MESSAGE(process, "auth_user");
-    JADE_ASSERT(keychain_get());
-
-    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
-    GET_MSG_PARAMS(process);
-
-    size_t written = 0;
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-    CHECK_NETWORK_CONSISTENT(process, network, written);
-
-    // All good, reply ok
-    jade_process_reply_to_message_ok(process);
-
-cleanup:
-    return;
-}
-
 // method_name should be a string literal - or at least non-null and null-terminated
 #define IS_METHOD(method_name) (!strncmp(method, method_name, method_len) && strlen(method_name) == method_len)
 
@@ -247,22 +226,8 @@ static void dispatch_message(jade_process_t* process)
         JADE_LOGD("Received update to pinserver details");
         task_function = update_pinserver_process;
     } else if (IS_METHOD("auth_user")) {
-        // Either enter pin or set-up mnemonic if uninitialised
-        if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
-            JADE_LOGD("auth_user called - keychain already unlocked, minimal checks");
-            auth_user_minimal(process);
-        } else if (keychain_has_pin()) {
-            JADE_LOGD("auth_user called - keychain locked, requesting pin");
-            task_function = pin_process;
-        } else {
-            JADE_LOGD("auth_user called - no wallet data, requesting mnemonic");
-            initialise_with_mnemonic(false);
-            if (keychain_get()) {
-                task_function = set_pin_process;
-            } else {
-                jade_process_reply_to_message_fail(process);
-            }
-        }
+        JADE_LOGD("Received auth-user request");
+        task_function = auth_user_process;
     } else if (IS_METHOD("ota")) {
         // OTA is allowed if either:
         // a) User has passed PIN screen and has unlocked Jade
@@ -271,7 +236,7 @@ static void dispatch_message(jade_process_t* process)
         if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) || !keychain_has_pin()) {
             task_function = ota_process;
         } else {
-            // Reject the message as bad (ota) protocol
+            // Reject the message as hw locked
             jade_process_reject_message(
                 process, CBOR_RPC_HW_LOCKED, "OTA is only allowed on new or logged-in device.", NULL);
         }
@@ -290,7 +255,7 @@ static void dispatch_message(jade_process_t* process)
     } else {
         // Methods only available after user authorised
         if (!KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
-            // Reject the message as bad (startup) protocol
+            // Reject the message as hw locked
             jade_process_reject_message(
                 process, CBOR_RPC_HW_LOCKED, "Cannot process message - hardware locked or uninitialised", NULL);
         } else if (IS_METHOD("get_xpub")) {
@@ -657,7 +622,7 @@ static inline bool ble_connected() { return false; }
 #endif
 
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.
-static void do_dashboard(jade_process_t* process, const keychain_t* const expected_keychain,
+static void do_dashboard(jade_process_t* process, const keychain_t* const initial_keychain, const bool initial_has_pin,
     gui_activity_t* act_dashboard, wait_event_data_t* event_data)
 {
     JADE_ASSERT(process);
@@ -673,7 +638,10 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const expect
     bool acted = true;
     const bool initial_ble = ble_connected();
     const bool initial_usb = usb_connected();
-    while (keychain_get() == expected_keychain) {
+    const uint8_t initial_userdata = keychain_get_userdata();
+
+    while (keychain_get() == initial_keychain && keychain_has_pin() == initial_has_pin
+        && keychain_get_userdata() == initial_userdata) {
         // If the last loop did something, ensure the current dashboard screen
         // is displayed. (Doing this too eagerly can either cause unnecessary
         // screen flicker or can cause the dashboard to overwrite other screens
@@ -700,10 +668,12 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const expect
             continue;
         }
 
-        // Ensure to clear the keychain if ble- or usb- connection status changes.
+        // Ensure to clear any decrypted keychain if ble- or usb- connection status changes.
         // NOTE: if this clears a populated keychain then this loop will complete
         // and cause this function to return.
-        if (keychain_get()) {
+        // NOTE: only applies to a *peristed* keychain - ie if we have a pin set, and *NOT*
+        // if this is a temporary/emergency-restore wallet.
+        if (initial_has_pin && initial_keychain && !keychain_has_temporary()) {
             if (ble_connected() != initial_ble || usb_connected() != initial_usb) {
                 JADE_LOGI("Connection status changed - clearing keychain");
                 keychain_free();
@@ -734,11 +704,25 @@ void dashboard_process(void* process_ptr)
     while (true) {
         // Create current 'dashboard' screen, then process all events until that
         // dashboard is no longer appropriate - ie. until the keychain is set (or unset).
+
+        // We have four cases:
+        // 1. Ready - has keys already associated with a message source
+        //    - ready screen
+        // 2. Unused keys - has keys in memory, but not yet connected to an app
+        //    - FIXME: show 'connect' screen for now - needs dedicated screen
+        // 3. Locked - has persisted/encrypted keys, but no keys in memory
+        //    - connect screen
+        // 4. Uninitialised - has no persisted/encrypted keys and no keys in memory
+        //    - setup screen
+        const bool has_pin = keychain_has_pin();
         const keychain_t* initial_keychain = keychain_get();
-        if (initial_keychain) {
-            JADE_LOGI("Logged-in - showing Ready screen");
+        if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
+            JADE_LOGI("Connected and have keys - showing Ready screen");
             make_ready_screen(&act_dashboard, device_name);
-        } else if (keychain_has_pin()) {
+        } else if (initial_keychain) {
+            JADE_LOGI("Have keys loaded but not connected - showing Connect screen");
+            make_connect_screen(&act_dashboard, device_name);
+        } else if (has_pin) {
             JADE_LOGI("Pin set - showing Connect screen");
             make_connect_screen(&act_dashboard, device_name);
         } else {
@@ -746,11 +730,11 @@ void dashboard_process(void* process_ptr)
             make_setup_screen(&act_dashboard, device_name);
         }
 
-        // This call loops/blocks all the time the user keychain remains unchanged
-        // from that passed in.  When it changes we go back round this loop making
+        // This call loops/blocks all the time the user keychain (and related details)
+        // remains unchanged.  When it changes we go back round this loop making
         // a new 'dashboard' screen and re-running the dashboard processing loop.
         // NOTE: connecting or disconnecting serial or ble will cause any keys to
         // be cleared (and bzero'd).
-        do_dashboard(process, initial_keychain, act_dashboard, event_data);
+        do_dashboard(process, initial_keychain, has_pin, act_dashboard, event_data);
     }
 }

@@ -11,31 +11,19 @@
 
 #include "process_utils.h"
 
+// Wallet initialisation function
+void initialise_with_mnemonic(bool temporary_restore);
+
 // Pinserver interaction
 bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, keychain_t* keydata);
 bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, const keychain_t* keydata);
 
-void pin_process(void* process_ptr)
+void check_pin_load_keys(jade_process_t* process)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
-    jade_process_t* process = process_ptr;
-
-    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
-
+    // At this point we should have encrypted keys persisted in the flash but
+    // *NOT* have any keys in-memory.  We need the pinserver data to decrypt.
+    JADE_ASSERT(!keychain_get());
     JADE_ASSERT(keychain_has_pin());
-    ASSERT_CURRENT_MESSAGE(process, "auth_user");
-    GET_MSG_PARAMS(process);
-
-    size_t written = 0;
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-
-    // Check network is valid and consistent with prior usage
-    // (This is just an up-front check that this wallet/device is appropriate for
-    // the intended network - to catch mismatches early, rather than after PIN entry).
-    CHECK_NETWORK_CONSISTENT(process, network, written);
-
-    // free any existing global keychain
-    keychain_free();
 
     const uint8_t pin_attempts_remaining = keychain_pin_attempts_remaining();
     JADE_ASSERT(pin_attempts_remaining > 0); // Shouldn't be here otherwise
@@ -79,11 +67,6 @@ void pin_process(void* process_ptr)
     keychain_t keydata;
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
     if (pinclient_loadkeys(process, pin, sizeof(pin), &keydata)) {
-#ifndef CONFIG_DEBUG_MODE
-        // If not a debug build, we restrict the hw to this network type
-        // (In case it wasn't set at wallet creation/recovery time [older fw])
-        keychain_set_network_type_restriction(network);
-#endif
         // Copy temporary keychain into a new global keychain and
         // set the current message source as the keychain userdata
         keychain_set(&keydata, process->ctx.source, false);
@@ -98,29 +81,10 @@ void pin_process(void* process_ptr)
     SENSITIVE_POP(&keydata);
     SENSITIVE_POP(pin);
     SENSITIVE_POP(pin_insert);
-
-cleanup:
-    return;
 }
 
-void set_pin_process(void* process_ptr)
+static void set_pin_save_keys(jade_process_t* process)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
-    jade_process_t* process = process_ptr;
-
-    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
-    size_t written = 0;
-
-    ASSERT_CURRENT_MESSAGE(process, "auth_user");
-    GET_MSG_PARAMS(process);
-
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-    if (written == 0 || !isValidNetwork(network)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
-        goto cleanup;
-    }
-
     // At this point we should have keys in-memory, but should *NOT* have
     // any encrypted keys persisted in the flash memory - ie. no PIN set.
     JADE_ASSERT(keychain_get());
@@ -182,10 +146,6 @@ void set_pin_process(void* process_ptr)
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
     // (This should persist the mnemonic keys encrypted in the flash)
     if (pinclient_savekeys(process, pin, sizeof(pin), keychain_get())) {
-#ifndef CONFIG_DEBUG_MODE
-        // If not a debug build, we restrict the hw to this network type
-        keychain_set_network_type_restriction(network);
-#endif
         // Re-set the (same) keychain in order to confirm the 'source'
         // (ie interface) which we will accept receiving messages from.
         keychain_set(keychain_get(), process->ctx.source, false);
@@ -198,6 +158,97 @@ void set_pin_process(void* process_ptr)
     // Clear out pin and temporary keychain and mnemonic
     SENSITIVE_POP(pin);
     SENSITIVE_POP(pin_insert);
+}
+
+void auth_user_process(void* process_ptr)
+{
+    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    jade_process_t* process = process_ptr;
+
+    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+    size_t written = 0;
+
+    ASSERT_CURRENT_MESSAGE(process, "auth_user");
+    GET_MSG_PARAMS(process);
+
+    rpc_get_string("network", sizeof(network), &params, network, &written);
+    if (written == 0 || !isValidNetwork(network)) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
+        goto cleanup;
+    }
+
+    CHECK_NETWORK_CONSISTENT(process, network, written);
+
+    // We have five cases:
+    // 1. Temporary - has a temporary keys in memory
+    //    - nothing to do here, just return ok  (having checked message source)
+    // 2. Ready - has persisted/encrypted keys, and these have been decrypted and are ready to use
+    //    - nothing to do here, just return ok  (having checked message source)
+    // 3. Locked - has persisted/encrypted keys, but no keys in memory
+    //    - needs pin entry to unlock - prompt for pin
+    // 4. Unsaved-keys - has no persisted/encrypted keys but does have unsaved keys in memory
+    //    - prompt for PIN to secure/encrypt the keys
+    // 5. Uninitialised - has no persisted/encrypted keys and no keys in memory
+    //    - prompt for mnemonic setup, then onto PIN to secure keys
+
+    if (keychain_has_temporary()) {
+        JADE_LOGI("using temporary keychain already present - skipping PIN step");
+        JADE_ASSERT(keychain_get());
+
+        if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
+            JADE_LOGI("temporary keychain already unlocked by this message-source");
+            jade_process_reply_to_message_ok(process);
+        } else if (keychain_get_userdata() == SOURCE_NONE) {
+            // First use of this temporary wallet
+            // Re-set the (same) keychain in order to confirm the 'source'
+            // (ie interface) which we will accept receiving messages from.
+            JADE_LOGI("First use of temporary keychain, associating with this message-source");
+            keychain_set(keychain_get(), process->ctx.source, true);
+            jade_process_reply_to_message_ok(process);
+        } else {
+            // Reject the message as hw locked
+            JADE_LOGI("Trying to reuse temporary keychain with different message-source");
+            jade_process_reject_message(process, CBOR_RPC_HW_LOCKED,
+                "Cannot process message - temporary wallet associated with different connection", NULL);
+        }
+    } else if (keychain_has_pin()) {
+        // Jade is initialised with persisted wallet - if required use PIN to unlock
+        if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
+            JADE_LOGI("keychain already unlocked by this message-source");
+            jade_process_reply_to_message_ok(process);
+        } else {
+            JADE_LOGI("keychain locked for this source, requesting pin");
+            keychain_free();
+            check_pin_load_keys(process);
+        }
+    } else {
+        // Jade hw is not fully initialised - if we have an 'in-memory' mnemonic
+        // then offer to persist that (with PIN and key derived with the pinserver)
+        if (!keychain_get()) {
+            // No (in-memory) mnemonic has been set, offer to do that now
+            // (This is not ideal as can take a long time and host app is
+            // waiting for a message reply and may time out.)
+            JADE_LOGI("no wallet data, requesting mnemonic");
+            initialise_with_mnemonic(false);
+        }
+
+        if (!keychain_get()) {
+            // No mnemonic entered, fail
+            jade_process_reply_to_message_fail(process);
+            goto cleanup;
+        }
+
+        JADE_LOGI("requesting new pin");
+        set_pin_save_keys(process);
+    }
+
+#ifndef CONFIG_DEBUG_MODE
+    // If not a debug build, we restrict the hw to this network type
+    // (In case it wasn't set at wallet creation/recovery time [older fw])
+    keychain_set_network_type_restriction(network);
+#endif
+    JADE_LOGI("Success");
 
 cleanup:
     return;
