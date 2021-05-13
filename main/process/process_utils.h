@@ -34,6 +34,13 @@
         goto cleanup;                                                                                                  \
     }
 
+// Do we have have a keychain, and does its userdata indicate the same 'source'
+// as the current message ?
+// This is to check that we only handle messages from the same source (serial or ble)
+// as initially unlocked the key material.
+#define KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)                                                                   \
+    (keychain_get() && keychain_get_userdata() == (uint8_t)process->ctx.source)
+
 // For tracking input types
 typedef enum {
     SCRIPT_FLAVOUR_NONE,

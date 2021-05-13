@@ -196,15 +196,6 @@ cleanup:
     return;
 }
 
-// Do we have have a keychain, and does its userdata indicate the same 'source'
-// as the current message ?
-// This is to check that we only handle messages from the same source (serial or ble)
-// as initially unlocked the key material.
-static inline bool keychain_unlocked_by_message_source(jade_process_t* process)
-{
-    return keychain_get() && keychain_get_userdata() == (uint8_t)process->ctx.source;
-}
-
 // Minimal auth-user call for when keychain already unlocked
 // Just checks passed network type is valid.
 static void auth_user_minimal(jade_process_t* process)
@@ -257,7 +248,7 @@ static void dispatch_message(jade_process_t* process)
         task_function = update_pinserver_process;
     } else if (IS_METHOD("auth_user")) {
         // Either enter pin or set-up mnemonic if uninitialised
-        if (keychain_unlocked_by_message_source(process)) {
+        if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
             JADE_LOGD("auth_user called - keychain already unlocked, minimal checks");
             auth_user_minimal(process);
         } else if (keychain_has_pin()) {
@@ -277,7 +268,7 @@ static void dispatch_message(jade_process_t* process)
         // a) User has passed PIN screen and has unlocked Jade
         // or
         // b) There is no PIN set (ie. no encrypted keys set, eg. new device)
-        if (keychain_unlocked_by_message_source(process) || !keychain_has_pin()) {
+        if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) || !keychain_has_pin()) {
             task_function = ota_process;
         } else {
             // Reject the message as bad (ota) protocol
@@ -298,7 +289,7 @@ static void dispatch_message(jade_process_t* process)
 #endif // CONFIG_DEBUG_MODE
     } else {
         // Methods only available after user authorised
-        if (!keychain_unlocked_by_message_source(process)) {
+        if (!KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
             // Reject the message as bad (startup) protocol
             jade_process_reject_message(
                 process, CBOR_RPC_HW_LOCKED, "Cannot process message - hardware locked or uninitialised", NULL);
