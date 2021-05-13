@@ -47,7 +47,7 @@ void get_xpubs_process(void* process_ptr);
 void get_receive_address_process(void* process_ptr);
 void ota_process(void* process_ptr);
 void pin_process(void* process_ptr);
-void mnemonic_process(void* process_ptr);
+void set_pin_process(void* process_ptr);
 void update_pinserver_process(void* process_ptr);
 
 // GUI screens
@@ -63,6 +63,9 @@ void make_device_screen(
 #ifdef CONFIG_DEBUG_MODE
 void make_show_xpub(gui_activity_t** act_ptr, Icon* qr_icon);
 #endif
+
+// Wallet initialisation function
+void initialise_with_mnemonic();
 
 static void reply_version_info(const void* ctx, CborEncoder* container)
 {
@@ -262,7 +265,12 @@ static void dispatch_message(jade_process_t* process)
             task_function = pin_process;
         } else {
             JADE_LOGD("auth_user called - no wallet data, requesting mnemonic");
-            task_function = mnemonic_process;
+            initialise_with_mnemonic();
+            if (keychain_get()) {
+                task_function = set_pin_process;
+            } else {
+                jade_process_reply_to_message_fail(process);
+            }
         }
     } else if (IS_METHOD("ota")) {
         // OTA is allowed if either:

@@ -570,38 +570,23 @@ static bool mnemonic_qr(char mnemonic[MNEMONIC_BUFLEN])
 }
 #endif // CONFIG_DEBUG_UNATTENDED_CI
 
-void mnemonic_process(void* process_ptr)
+void initialise_with_mnemonic()
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
-    jade_process_t* process = process_ptr;
-
-    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
-
+    // At this point we should not have any keys in-memory, nor should we have
+    // any encrypted keys persisted in the flash memory - ie. no PIN set.
+    JADE_ASSERT(!keychain_get());
     JADE_ASSERT(!keychain_has_pin());
-    ASSERT_CURRENT_MESSAGE(process, "auth_user");
+
     char mnemonic[MNEMONIC_BUFLEN]; // buffer should be large enough for any mnemonic
     SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
-
-    // free any existing global keychain (not that one should exist at this point)
-    keychain_free();
     keychain_t keydata;
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
-    GET_MSG_PARAMS(process);
-
-    size_t written = 0;
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-
-    if (written == 0 || !isValidNetwork(network)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
-        goto cleanup;
-    }
-
     // welcome screen
     // TODO: maybe split the screen in two parts: new or recover -> recover_mnemonic, recover_qr
-    gui_activity_t* activity;
-    make_mnemonic_welcome_screen(&activity);
+    gui_activity_t* welcome_activity;
+    make_mnemonic_welcome_screen(&welcome_activity);
+    gui_activity_t* activity = welcome_activity;
 
     bool got_mnemonic = false;
     while (!got_mnemonic) {
@@ -658,27 +643,53 @@ void mnemonic_process(void* process_ptr)
         got_mnemonic = true;
 #endif
 
+        // If we failed to get a mnemonic break/return here
         if (!got_mnemonic) {
             JADE_LOGW("No mnemonic entered");
-            jade_process_reply_to_message_fail(process);
-            goto cleanup;
+            break;
         }
 
         display_message_activity("Processing...");
 
-        // If the mnemonic is valid, derive temporary keychain from it
+        // If the mnemonic is valid derive temporary keychain from it.
+        // Otherwise break/return here.
         got_mnemonic = keychain_derive(mnemonic, &keydata);
         if (!got_mnemonic) {
             JADE_LOGW("Invalid mnemonic");
-            jade_process_reply_to_message_fail(process);
             await_error_activity("Invalid mnemonic");
-            goto cleanup;
+            break;
         }
+
+        // All good - push temporary into main in-memory keychain
+        keychain_set(&keydata, SOURCE_NONE);
     }
 
-    // The mnemonic is covered by 'sensitive' - but even so we can zero it here
-    // to blank it out as soon as possible.  The subsequent bzero is harmless.
-    wally_bzero(mnemonic, sizeof(mnemonic));
+    SENSITIVE_POP(&keydata);
+    SENSITIVE_POP(mnemonic);
+}
+
+void set_pin_process(void* process_ptr)
+{
+    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    jade_process_t* process = process_ptr;
+
+    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+    size_t written = 0;
+
+    ASSERT_CURRENT_MESSAGE(process, "auth_user");
+    GET_MSG_PARAMS(process);
+
+    rpc_get_string("network", sizeof(network), &params, network, &written);
+    if (written == 0 || !isValidNetwork(network)) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
+        goto cleanup;
+    }
+
+    // At this point we should have keys in-memory, but should *NOT* have
+    // any encrypted keys persisted in the flash memory - ie. no PIN set.
+    JADE_ASSERT(keychain_get());
+    JADE_ASSERT(!keychain_has_pin());
 
     // Enter PIN to lock mnemonic/key material.
     // In a debug unattended ci build, use hardcoded pin after a short delay
@@ -734,14 +745,14 @@ void mnemonic_process(void* process_ptr)
 
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
     // (This should persist the mnemonic keys encrypted in the flash)
-    if (pinclient_savekeys(process, pin, sizeof(pin), &keydata)) {
+    if (pinclient_savekeys(process, pin, sizeof(pin), keychain_get())) {
 #ifndef CONFIG_DEBUG_MODE
         // If not a debug build, we restrict the hw to this network type
         keychain_set_network_type_restriction(network);
 #endif
-        // Copy temporary keychain into a new global keychain and
-        // set the current message source as the keychain userdata
-        keychain_set(&keydata, process->ctx.source);
+        // Re-set the (same) keychain in order to confirm the 'source'
+        // (ie interface) which we will accept receiving messages from.
+        keychain_set(keychain_get(), process->ctx.source);
         JADE_LOGI("Success");
     } else {
         JADE_LOGW("Set-Pin / persist keys failed.");
@@ -753,6 +764,5 @@ void mnemonic_process(void* process_ptr)
     SENSITIVE_POP(pin_insert);
 
 cleanup:
-    SENSITIVE_POP(&keydata);
-    SENSITIVE_POP(mnemonic);
+    return;
 }
