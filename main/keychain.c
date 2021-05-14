@@ -19,6 +19,7 @@ static const unsigned char GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
 // Internal variables - the single/global keychain data
 static keychain_t* keychain_data = NULL;
 static network_type_t network_type_restriction = NONE;
+static bool has_encrypted_blob = false;
 static uint8_t keychain_userdata = 0;
 
 void keychain_set(const keychain_t* src, const uint8_t userdata)
@@ -242,8 +243,9 @@ bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len,
         return false;
     }
 
-    // Clear main/test network restriction
+    // Clear main/test network restriction and cache that we have encrypted keys
     keychain_clear_network_type_restriction();
+    has_encrypted_blob = true;
 
     return true;
 }
@@ -287,6 +289,7 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
 
     if (!storage_get_encrypted_blob(encrypted, sizeof(encrypted))) {
         storage_erase_encrypted_blob();
+        has_encrypted_blob = false;
         return false;
     }
 
@@ -296,6 +299,7 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
             JADE_LOGW("Multiple failures to decrypt key data - erasing encrypted keys");
             storage_erase_encrypted_blob();
             keychain_clear_network_type_restriction();
+            has_encrypted_blob = false;
         }
         return false;
     }
@@ -315,7 +319,7 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
     return true;
 }
 
-bool keychain_has_pin() { return keychain_pin_attempts_remaining() > 0; }
+bool keychain_has_pin() { return has_encrypted_blob; }
 
 uint8_t keychain_pin_attempts_remaining() { return storage_get_counter(); }
 
@@ -360,8 +364,9 @@ bool keychain_init()
     }
     SENSITIVE_POP(privatekey);
 
-    // Cache whether we are restricted to main/test networks
+    // Cache whether we are restricted to main/test networks and whether we have an encrypted blob
     network_type_restriction = storage_get_network_type_restriction();
+    has_encrypted_blob = keychain_pin_attempts_remaining() > 0;
 
     return res;
 }
