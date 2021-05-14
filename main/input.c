@@ -16,6 +16,7 @@ void input_init()
 
 void set_invert_wheel(bool inverted) { invert_wheel = inverted; }
 
+#ifdef CONFIG_INPUT_FRONT_SW
 static void button_front_release(void* arg) { gui_front_click(); }
 
 static void button_front_long(void* arg)
@@ -23,7 +24,9 @@ static void button_front_long(void* arg)
     JADE_LOGW("front-btn long-press ignored");
     // gui_front_click();
 }
+#endif
 
+#ifdef CONFIG_INPUT_WHEEL_SW
 static void button_wheel_release(void* arg) { gui_wheel_click(); }
 
 static void button_wheel_long(void* arg)
@@ -31,6 +34,7 @@ static void button_wheel_long(void* arg)
     JADE_LOGW("wheel long-press ignored");
     // gui_wheel_click();
 }
+#endif
 
 void button_init()
 {
