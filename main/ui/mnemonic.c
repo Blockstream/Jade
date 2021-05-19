@@ -4,10 +4,13 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-static void gen_btns(gui_view_node_t* parent, size_t num_buttons, const char* msgs[], const int32_t ev_ids[],
-    gui_view_node_t* out_btns[])
+static void gen_btns(gui_view_node_t* parent, const size_t num_buttons, const char* msgs[], const uint32_t fonts[],
+    const int32_t ev_ids[], gui_view_node_t* out_btns[])
 {
     JADE_ASSERT(parent);
+    JADE_ASSERT(msgs);
+    JADE_ASSERT(ev_ids);
+    // NOTE: fonts can be NULL if all GUI_DEFAULT_FONT
 
     gui_view_node_t* hsplit = NULL;
     switch (num_buttons) {
@@ -21,36 +24,40 @@ static void gen_btns(gui_view_node_t* parent, size_t num_buttons, const char* ms
         gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
         break;
     default:
-        return;
+        JADE_ASSERT_MSG(false, "Unsupported number of buttons on screen");
     }
 
     gui_set_parent(hsplit, parent);
 
-    for (size_t i = 0; i < num_buttons; i++) {
-        gui_view_node_t* btn1;
+    for (size_t i = 0; i < num_buttons; ++i) {
+        gui_view_node_t* btn;
         if (ev_ids[i] == GUI_BUTTON_EVENT_NONE) {
-            gui_make_fill(&btn1, TFT_BLACK);
+            gui_make_fill(&btn, TFT_BLACK);
         } else {
-            gui_make_button(&btn1, TFT_BLACK, ev_ids[i], NULL);
+            gui_make_button(&btn, TFT_BLACK, ev_ids[i], NULL);
         }
-        gui_set_margins(btn1, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn1, hsplit);
+        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, hsplit);
 
         if (out_btns) {
-            out_btns[i] = btn1;
+            out_btns[i] = btn;
         }
 
-        gui_view_node_t* textbtn1;
-        gui_make_text(&textbtn1, msgs[i], TFT_WHITE);
-        gui_set_parent(textbtn1, btn1);
-        gui_set_align(textbtn1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_view_node_t* textbtn;
+        gui_make_text(&textbtn, msgs[i], TFT_WHITE);
+        if (fonts) {
+            gui_set_text_font(textbtn, fonts[i]);
+        }
+        gui_set_parent(textbtn, btn);
+        gui_set_align(textbtn, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     }
 }
 
-static void make_one_btn_screen(
-    gui_activity_t** activity_ptr, const char* header, const char* msg, const char* btn_msg, const int32_t btn_ev_id)
+static void make_mnemonic_screen(gui_activity_t** activity_ptr, const char* header, const char* msg,
+    const size_t num_btns, const char* btn_msg[], const uint32_t btn_font[], const int32_t btn_ev_id[],
+    gui_view_node_t* out_btns[])
 {
     JADE_ASSERT(activity_ptr);
 
@@ -69,71 +76,21 @@ static void make_one_btn_screen(
     gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
     // second row, button
-    gen_btns(vsplit, 1, &btn_msg, &btn_ev_id, NULL);
-}
-
-/*
-static void make_two_btn_screen(
-    gui_activity_t** activity_ptr, const char* header, const char* msg, const char** btn_msg, const int32_t* btn_ev_id)
-{
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr, true, header);
-    gui_activity_t* act = *activity_ptr;
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
-    gui_set_parent(vsplit, act->root_node);
-
-    // first row, message
-    gui_view_node_t* text_status;
-    gui_make_text(&text_status, msg, TFT_WHITE);
-    gui_set_parent(text_status, vsplit);
-    gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 4);
-    gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-
-    // second row, button
-    gen_btns(vsplit, 2, btn_msg, btn_ev_id, NULL);
-}
-*/
-
-static void make_three_btn_screen(
-    gui_activity_t** activity_ptr, const char* header, const char* msg, const char** btn_msg, const int32_t* btn_ev_id)
-{
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr, true, header);
-    gui_activity_t* act = *activity_ptr;
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
-    gui_set_parent(vsplit, act->root_node);
-
-    // first row, message
-    gui_view_node_t* text_status;
-    gui_make_text(&text_status, msg, TFT_WHITE);
-    gui_set_parent(text_status, vsplit);
-    gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 4);
-    gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-
-    // second row, button
-    gen_btns(vsplit, 3, btn_msg, btn_ev_id, NULL);
+    gen_btns(vsplit, num_btns, btn_msg, btn_font, btn_ev_id, out_btns);
 }
 
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
 {
-    const char* btn_msg[3];
-    btn_msg[0] = "Back";
-    btn_msg[1] = "New";
-    btn_msg[2] = "Recover";
+    // Fist btn looks like '<-' on button
+    const char* btn_msg[] = { "=", "New", "Recover" };
+    const uint32_t btn_font[] = { JADE_SYMBOLS_16x16_FONT, GUI_DEFAULT_FONT, GUI_DEFAULT_FONT };
+    const int32_t btn_ev_id[] = { BTN_MNEMONIC_EXIT, BTN_NEW_MNEMONIC, BTN_RECOVER_MNEMONIC };
+    gui_view_node_t* btns[sizeof(btn_msg) / sizeof(btn_msg[0])];
+    make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
+        "Do you want to create a new\nwallet, or recover an existing\nwallet?", 3, btn_msg, btn_font, btn_ev_id, btns);
 
-    int32_t btn_ev_id[3];
-    btn_ev_id[0] = BTN_MNEMONIC_EXIT;
-    btn_ev_id[1] = BTN_NEW_MNEMONIC;
-    btn_ev_id[2] = BTN_RECOVER_MNEMONIC;
-
-    return make_three_btn_screen(activity_ptr, "Welcome to Jade!",
-        "Do you want to create a new\nwallet, or recover an existing\nwallet?", btn_msg, btn_ev_id);
+    // Set the intially selected item to the 'New' button
+    gui_set_activity_initial_selection(*activity_ptr, btns[1]);
 }
 
 // TODO - use below to offer 12 & 24 word option for new mnemonic
@@ -141,41 +98,29 @@ void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
 /*
 void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
 {
-    const char* btn_msg[2];
-    btn_msg[0] = "12 words";
-    btn_msg[1] = "24 words";
-
-    int32_t btn_ev_id[2];
-    btn_ev_id[0] = BTN_NEW_MNEMONIC_12_BEGIN;
-    btn_ev_id[1] = BTN_NEW_MNEMONIC_24_BEGIN;
-
-    return make_two_btn_screen(activity_ptr, "Welcome to Jade!",
-        "A new wallet mnemonic will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", btn_msg,
-        btn_ev_id);
+    const char* btn_msg[] = { "12 words", "24 words" };
+    const int32_t btn_ev_id[] = { BTN_NEW_MNEMONIC_12_BEGIN, BTN_NEW_MNEMONIC_24_BEGIN };
+    make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
+        "A new wallet mnemonic will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", 2, btn_msg,
+        NULL, btn_ev_id);
 }
 */
 
 void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
 {
-    return make_one_btn_screen(activity_ptr, "Welcome to Jade!",
-        "A new wallet mnemonic will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", "24 words",
-        BTN_NEW_MNEMONIC_24_BEGIN);
+    const char* btn_msg[] = { "24 words" };
+    const int32_t btn_ev_id[] = { BTN_NEW_MNEMONIC_24_BEGIN };
+    make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
+        "A new wallet mnemonic will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", 1, btn_msg,
+        NULL, btn_ev_id, NULL);
 }
 
 void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr)
 {
-    const char* btn_msg[3];
-    btn_msg[0] = "12 words";
-    btn_msg[1] = "24 words";
-    btn_msg[2] = "Scan QR";
-
-    int32_t btn_ev_id[3];
-    btn_ev_id[0] = BTN_RECOVER_MNEMONIC_12_BEGIN;
-    btn_ev_id[1] = BTN_RECOVER_MNEMONIC_24_BEGIN;
-    btn_ev_id[2] = BTN_QR_MNEMONIC_BEGIN;
-
-    return make_three_btn_screen(
-        activity_ptr, "Welcome to Jade!", "\nHow would you like to\nrecover the wallet?", btn_msg, btn_ev_id);
+    const char* btn_msg[] = { "12 words", "24 words", "Scan QR" };
+    const int32_t btn_ev_id[] = { BTN_RECOVER_MNEMONIC_12_BEGIN, BTN_RECOVER_MNEMONIC_24_BEGIN, BTN_QR_MNEMONIC_BEGIN };
+    make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nHow would you like to\nrecover the wallet?", 3, btn_msg,
+        NULL, btn_ev_id, NULL);
 }
 
 static void make_mnemonic_page(gui_activity_t** activity_ptr, const size_t nwords, const size_t first_index,
@@ -233,18 +178,25 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, const size_t nword
         gui_set_align(text_status, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     }
 
-    // second row, buttons
+    // second row, buttons - '<-' and '->'
     if (first_index == 0) {
-        // first page, no prev btn
-        gen_btns(vsplit, 2, (const char*[]){ "Back", "Next" }, (int32_t[]){ BTN_MNEMONIC_EXIT, BTN_MNEMONIC_NEXT },
-            out_btns);
+        // First page, the 'back' button raises 'exit' event
+        const char* btn_msg[2] = { "=", ">" };
+        const uint32_t btn_fonts[2] = { JADE_SYMBOLS_16x16_FONT, JADE_SYMBOLS_16x16_FONT };
+        const int32_t btn_ev_id[2] = { BTN_MNEMONIC_EXIT, BTN_MNEMONIC_NEXT };
+        gen_btns(vsplit, 2, btn_msg, btn_fonts, btn_ev_id, out_btns);
     } else if (first_index == nwords - 4) {
-        // last page, change the label for "next"
-        gen_btns(vsplit, 2, (const char*[]){ "Prev", "Verify" }, (int32_t[]){ BTN_MNEMONIC_PREV, BTN_MNEMONIC_VERIFY },
-            out_btns);
+        // Last page, the tick button raises 'verify' event
+        const char* btn_msg[2] = { "=", "S" };
+        const uint32_t btn_fonts[2] = { JADE_SYMBOLS_16x16_FONT, VARIOUS_SYMBOLS_FONT };
+        const int32_t btn_ev_id[2] = { BTN_MNEMONIC_PREV, BTN_MNEMONIC_VERIFY };
+        gen_btns(vsplit, 2, btn_msg, btn_fonts, btn_ev_id, out_btns);
     } else {
-        gen_btns(vsplit, 2, (const char*[]){ "Prev", "Next" }, (int32_t[]){ BTN_MNEMONIC_PREV, BTN_MNEMONIC_NEXT },
-            out_btns);
+        // Otherwise 'prev' and 'next' events
+        const char* btn_msg[2] = { "=", ">" };
+        const uint32_t btn_fonts[2] = { JADE_SYMBOLS_16x16_FONT, JADE_SYMBOLS_16x16_FONT };
+        const int32_t btn_ev_id[2] = { BTN_MNEMONIC_PREV, BTN_MNEMONIC_NEXT };
+        gen_btns(vsplit, 2, btn_msg, btn_fonts, btn_ev_id, out_btns);
     }
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 0);
 
