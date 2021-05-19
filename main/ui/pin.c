@@ -4,15 +4,18 @@
 #include "../ui.h"
 #include "../utils/malloc_ext.h"
 
-static const char PIN_VALUES[] = "0123456789|";
+static const char CHAR_BACKSPACE = '|';
+static const char PIN_CHARS[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', CHAR_BACKSPACE };
+static const uint32_t NUM_PIN_CHARS = sizeof(PIN_CHARS) / sizeof(PIN_CHARS[0]);
+static const uint32_t NUM_PIN_VALUES = NUM_PIN_CHARS - 1; // ie. not including backspace
 
 static inline char get_pin_value(size_t index)
 {
-    JADE_ASSERT(index < sizeof(PIN_VALUES));
-    return PIN_VALUES[index];
+    JADE_ASSERT(index < NUM_PIN_CHARS);
+    return PIN_CHARS[index];
 }
 
-static inline uint8_t get_random_single_digit() { return get_uniform_random_byte(10); }
+static inline uint8_t get_random_pin_digit() { return get_uniform_random_byte(NUM_PIN_VALUES); }
 
 static void update_digit_node(pin_insert_activity_t* pin_insert, uint8_t i)
 {
@@ -24,7 +27,7 @@ static void update_digit_node(pin_insert_activity_t* pin_insert, uint8_t i)
         break;
     case SELECTED:
         gui_set_borders(pin_insert->pin_digit_nodes[i], TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_ALL);
-        str[0] = PIN_VALUES[pin_insert->current_selected_value];
+        str[0] = PIN_CHARS[pin_insert->current_selected_value];
         break;
     case SET:
         gui_set_borders(pin_insert->pin_digit_nodes[i], TFT_BLOCKSTREAM_DARKGREEN, 2, GUI_BORDER_ALL);
@@ -77,7 +80,7 @@ void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char
     gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 10, 48, 20, 48);
     gui_set_parent(hsplit, vsplit);
 
-    pin_insert->current_selected_value = get_random_single_digit();
+    pin_insert->current_selected_value = get_random_pin_digit();
 
     for (size_t i = 0; i < PIN_SIZE; ++i) {
         pin_insert->pin[i] = 0xFF;
@@ -108,7 +111,7 @@ static bool next_selected_digit(pin_insert_activity_t* pin_insert)
     update_digit_node(pin_insert, pin_insert->selected_digit);
 
     pin_insert->selected_digit++;
-    pin_insert->current_selected_value = get_random_single_digit();
+    pin_insert->current_selected_value = get_random_pin_digit();
 
     // finally reached the last digit
     if (pin_insert->selected_digit >= PIN_SIZE) {
@@ -133,7 +136,7 @@ static void prev_selected_digit(pin_insert_activity_t* pin_insert)
     update_digit_node(pin_insert, pin_insert->selected_digit);
 
     pin_insert->selected_digit--;
-    pin_insert->current_selected_value = get_random_single_digit();
+    pin_insert->current_selected_value = get_random_pin_digit();
 
     // set the status and update the ui
     pin_insert->digit_status[pin_insert->selected_digit] = SELECTED;
@@ -143,7 +146,7 @@ static void prev_selected_digit(pin_insert_activity_t* pin_insert)
 static void next_value(pin_insert_activity_t* pin_insert)
 {
     // Do not show '<' on first pin digit
-    const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? 10 : 11;
+    const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? NUM_PIN_VALUES : NUM_PIN_CHARS;
     pin_insert->current_selected_value = (pin_insert->current_selected_value + 1) % digit_value_ceiling;
 
     // TODO: skip < if selected_digit == 0
@@ -153,7 +156,7 @@ static void next_value(pin_insert_activity_t* pin_insert)
 static void prev_value(pin_insert_activity_t* pin_insert)
 {
     // Do not show '<' on first pin digit
-    const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? 10 : 11;
+    const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? NUM_PIN_VALUES : NUM_PIN_CHARS;
     pin_insert->current_selected_value
         = (digit_value_ceiling + pin_insert->current_selected_value - 1) % digit_value_ceiling;
 
@@ -178,7 +181,7 @@ void run_pin_entry_loop(pin_insert_activity_t* pin_insert)
 
         default:
             if (ev_id == gui_get_click_event()) {
-                if (get_pin_value(pin_insert->current_selected_value) == '|') {
+                if (get_pin_value(pin_insert->current_selected_value) == CHAR_BACKSPACE) {
                     prev_selected_digit(pin_insert);
                     continue;
                 }
@@ -195,7 +198,7 @@ void run_pin_entry_loop(pin_insert_activity_t* pin_insert)
 void clear_current_pin(pin_insert_activity_t* pin_insert)
 {
     pin_insert->selected_digit = 0;
-    pin_insert->current_selected_value = get_random_single_digit();
+    pin_insert->current_selected_value = get_random_pin_digit();
 
     for (size_t i = 0; i < PIN_SIZE; ++i) {
         pin_insert->pin[i] = 0xFF;
