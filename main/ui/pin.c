@@ -76,8 +76,8 @@ void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char
 
     // second row, pin spinners
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 6, 24, 24, 24, 24, 24, 24);
-    gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 10, 48, 20, 48);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 6, 30, 30, 30, 30, 30, 30);
+    gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 30, 12, 30);
     gui_set_parent(hsplit, vsplit);
 
     pin_insert->current_selected_value = get_random_pin_digit();
@@ -91,6 +91,7 @@ void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char
         gui_set_parent(fill, hsplit);
 
         gui_make_text(&pin_insert->pin_digit_nodes[i], "", TFT_WHITE);
+        gui_set_text_font(pin_insert->pin_digit_nodes[i], DEJAVU24_FONT);
         gui_set_align(pin_insert->pin_digit_nodes[i], GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(pin_insert->pin_digit_nodes[i], fill);
 
