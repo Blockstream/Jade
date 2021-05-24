@@ -1854,23 +1854,23 @@ void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_
     activity->initial_selection = node;
 }
 
-static void gui_render_current_activity()
+static void gui_render_activity(gui_activity_t* activity)
 {
-    JADE_ASSERT(current_activity);
-    JADE_ASSERT(current_activity->root_node);
+    JADE_ASSERT(activity);
+    JADE_ASSERT(activity->root_node);
 
-    const bool first_time = current_activity->root_node->render_data.is_first_time;
-    render_node(current_activity->root_node, current_activity->win, 0);
+    const bool first_time = activity->root_node->render_data.is_first_time;
+    render_node(activity->root_node, activity->win, 0);
 
-    if (first_time && current_activity->selectables) {
+    if (first_time && activity->selectables) {
         // If the activity has an 'initial_selection' and it appears active, select it now
         // If not, select the first active item
-        if (current_activity->initial_selection && current_activity->initial_selection->is_active) {
-            gui_select_node(current_activity, current_activity->initial_selection);
+        if (activity->initial_selection && activity->initial_selection->is_active) {
+            gui_select_node(activity, activity->initial_selection);
         } else {
-            gui_view_node_t* const node = gui_get_first_active_node(current_activity);
+            gui_view_node_t* const node = gui_get_first_active_node(activity);
             if (node) {
-                gui_select_node(current_activity, node);
+                gui_select_node(activity, node);
             }
         }
     }
@@ -1898,7 +1898,7 @@ static void switch_activities_task(void* arg_ptr)
             }
 
             // Render the current activity
-            gui_render_current_activity();
+            gui_render_activity(activities->new_activity);
 
             // Register new events
             activity_event_t* l = activities->new_activity->activity_events;
