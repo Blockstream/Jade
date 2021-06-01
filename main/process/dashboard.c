@@ -53,6 +53,7 @@ void update_pinserver_process(void* process_ptr);
 void auth_user_process(void* process_ptr);
 
 // GUI screens
+void make_startup_options_screen(gui_activity_t** act_ptr);
 void make_setup_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_connect_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_connection_select_screen(gui_activity_t** act_ptr);
@@ -428,6 +429,34 @@ static void initialise_wallet(const bool emergency_restore)
     }
 }
 
+void offer_emergency_restore()
+{
+    const bool bRestore = await_yesno_activity("Emergency Restore",
+        "Do you want to temporarily\nrestore a wallet?\nThis doesn't affect your PIN\nsaved wallet, if any.");
+
+    if (bRestore) {
+        initialise_wallet(true);
+    }
+}
+
+void offer_startup_options()
+{
+    gui_activity_t* act;
+    make_startup_options_screen(&act);
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+    switch (ev_id) {
+    case BTN_SETTINGS_RESET:
+        return offer_jade_reset();
+    case BTN_SETTINGS_EMERGENCY_RESTORE:
+        return offer_emergency_restore();
+    default:
+        break;
+    }
+}
+
 // General settings handler
 static inline void update_orientation_text(gui_view_node_t* orientation_textbox)
 {
@@ -770,7 +799,10 @@ void dashboard_process(void* process_ptr)
 
     jade_process_t* process = process_ptr;
     ASSERT_NO_CURRENT_MESSAGE(process);
-    JADE_ASSERT(!keychain_get());
+
+    // At startup we may have entered an emergency restore mnemonic
+    // otherwise we'd expect no keychain at this point.
+    JADE_ASSERT(!keychain_get() || keychain_has_temporary());
 
     const char* device_name = get_jade_id();
     JADE_ASSERT(device_name);

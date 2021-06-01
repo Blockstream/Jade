@@ -41,8 +41,7 @@
 int serial_logger(const char* message, va_list fmt);
 #endif
 
-// Factory reset (can be called from splash screen)
-void offer_jade_reset();
+void offer_startup_options();
 void dashboard_process(void* process_ptr);
 
 static void crypto_init()
@@ -131,14 +130,12 @@ static void boot_process()
     free_wait_event_data(event_data);
 
     // Return whether the user clicked the front btn
-    const bool bOfferReset = esp_ret == ESP_OK && ev_id == GUI_FRONT_CLICK_EVENT;
+    const bool clicked = esp_ret == ESP_OK && ev_id == GUI_FRONT_CLICK_EVENT;
 
-    // If requested, offer to reset the pin/key data
-    if (bOfferReset) {
-        // If user confirms, this call will result in the unit being wiped and
-        // rebooted - if the user declines this call returns and execution continues.
-        JADE_LOGI("Reset - showing confirm reset screen");
-        offer_jade_reset();
+    // If clicked, offer startup/advanced menu
+    if (clicked) {
+        JADE_LOGI("User clicked on splash screen - showing startup/advanced options");
+        offer_startup_options();
     }
 }
 

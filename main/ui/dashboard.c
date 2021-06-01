@@ -2,6 +2,57 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
+void make_startup_options_screen(gui_activity_t** act_ptr)
+{
+    JADE_ASSERT(act_ptr);
+
+    gui_activity_t* act;
+    gui_make_activity(&act, true, "Advanced Options");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 33, 33, 33);
+    gui_set_parent(vsplit, act->root_node);
+
+    // Buttons: Reset, One-time wallet, and Continue
+    gui_view_node_t* btn1;
+    gui_make_button(&btn1, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
+    gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(btn1, GUI_MARGIN_ALL_DIFFERENT, 4, 25, 0, 25);
+    gui_set_parent(btn1, vsplit);
+
+    gui_view_node_t* text1;
+    gui_make_text(&text1, "Factory Reset", TFT_WHITE);
+    gui_set_align(text1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(text1, btn1);
+
+    gui_view_node_t* btn2;
+    gui_make_button(&btn2, TFT_BLACK, BTN_SETTINGS_EMERGENCY_RESTORE, NULL);
+    gui_set_borders(btn2, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn2, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(btn2, GUI_MARGIN_ALL_DIFFERENT, 4, 25, 0, 25);
+    gui_set_parent(btn2, vsplit);
+
+    gui_view_node_t* text2;
+    gui_make_text(&text2, "Emergency Restore", TFT_WHITE);
+    gui_set_align(text2, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(text2, btn2);
+
+    gui_view_node_t* btn3;
+    gui_make_button(&btn3, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
+    gui_set_borders(btn3, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn3, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(btn3, GUI_MARGIN_ALL_DIFFERENT, 4, 25, 0, 25);
+    gui_set_parent(btn3, vsplit);
+
+    gui_view_node_t* text3;
+    gui_make_text(&text3, "Exit", TFT_WHITE);
+    gui_set_align(text3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(text3, btn3);
+
+    *act_ptr = act;
+}
+
 // The button bar along the bottom of the dashboard
 static void add_button_bar(gui_view_node_t* parent_node)
 {
