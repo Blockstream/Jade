@@ -65,7 +65,7 @@ void make_show_xpub(gui_activity_t** act_ptr, Icon* qr_icon);
 #endif
 
 // Wallet initialisation function
-void initialise_with_mnemonic();
+void initialise_with_mnemonic(bool temporary_restore);
 
 static void reply_version_info(const void* ctx, CborEncoder* container)
 {
@@ -256,7 +256,7 @@ static void dispatch_message(jade_process_t* process)
             task_function = pin_process;
         } else {
             JADE_LOGD("auth_user called - no wallet data, requesting mnemonic");
-            initialise_with_mnemonic();
+            initialise_with_mnemonic(false);
             if (keychain_get()) {
                 task_function = set_pin_process;
             } else {

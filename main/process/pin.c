@@ -86,7 +86,7 @@ void pin_process(void* process_ptr)
 #endif
         // Copy temporary keychain into a new global keychain and
         // set the current message source as the keychain userdata
-        keychain_set(&keydata, process->ctx.source);
+        keychain_set(&keydata, process->ctx.source, false);
         JADE_LOGI("Success");
     } else {
         // Failed - show error and go back to boot screen
@@ -125,6 +125,7 @@ void set_pin_process(void* process_ptr)
     // any encrypted keys persisted in the flash memory - ie. no PIN set.
     JADE_ASSERT(keychain_get());
     JADE_ASSERT(!keychain_has_pin());
+    JADE_ASSERT(!keychain_has_temporary());
 
     // Enter PIN to lock mnemonic/key material.
     // In a debug unattended ci build, use hardcoded pin after a short delay
@@ -187,7 +188,7 @@ void set_pin_process(void* process_ptr)
 #endif
         // Re-set the (same) keychain in order to confirm the 'source'
         // (ie interface) which we will accept receiving messages from.
-        keychain_set(keychain_get(), process->ctx.source);
+        keychain_set(keychain_get(), process->ctx.source, false);
         JADE_LOGI("Success");
     } else {
         JADE_LOGW("Set-Pin / persist keys failed.");

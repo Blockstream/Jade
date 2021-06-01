@@ -21,8 +21,9 @@ static keychain_t* keychain_data = NULL;
 static network_type_t network_type_restriction = NONE;
 static bool has_encrypted_blob = false;
 static uint8_t keychain_userdata = 0;
+static bool keychain_temporary = false;
 
-void keychain_set(const keychain_t* src, const uint8_t userdata)
+void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temporary)
 {
     JADE_ASSERT(src);
 
@@ -37,6 +38,9 @@ void keychain_set(const keychain_t* src, const uint8_t userdata)
 
     // Hold the associated userdata
     keychain_userdata = userdata;
+
+    // Store whether this is intended to be a temporary keychain
+    keychain_temporary = temporary;
 }
 
 void keychain_free()
@@ -47,9 +51,16 @@ void keychain_free()
         keychain_data = NULL;
     }
     keychain_userdata = 0;
+    keychain_temporary = false;
 }
 
 const keychain_t* keychain_get() { return keychain_data; }
+
+bool keychain_has_temporary()
+{
+    JADE_ASSERT(!keychain_temporary || keychain_data);
+    return keychain_temporary;
+}
 
 uint8_t keychain_get_userdata() { return keychain_userdata; }
 

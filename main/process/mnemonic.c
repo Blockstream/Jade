@@ -570,23 +570,27 @@ static bool mnemonic_qr(char mnemonic[MNEMONIC_BUFLEN])
 }
 #endif // CONFIG_DEBUG_UNATTENDED_CI
 
-void initialise_with_mnemonic()
+void initialise_with_mnemonic(const bool temporary_restore)
 {
-    // At this point we should not have any keys in-memory, nor should we have
-    // any encrypted keys persisted in the flash memory - ie. no PIN set.
+    // At this point we should not have any keys in-memory
     JADE_ASSERT(!keychain_get());
-    JADE_ASSERT(!keychain_has_pin());
+
+    // We only allow setting new keys when encrypted keys are persisted if
+    // we are doing a temporary restore.
+    JADE_ASSERT(temporary_restore || !keychain_has_pin());
 
     char mnemonic[MNEMONIC_BUFLEN]; // buffer should be large enough for any mnemonic
     SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
     keychain_t keydata;
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
-    // welcome screen
-    // TODO: maybe split the screen in two parts: new or recover -> recover_mnemonic, recover_qr
-    gui_activity_t* welcome_activity;
-    make_mnemonic_welcome_screen(&welcome_activity);
-    gui_activity_t* activity = welcome_activity;
+    // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
+    gui_activity_t* activity;
+    if (temporary_restore) {
+        make_mnemonic_recovery_screen(&activity);
+    } else {
+        make_mnemonic_welcome_screen(&activity);
+    }
 
     bool got_mnemonic = false;
     while (!got_mnemonic) {
@@ -661,7 +665,7 @@ void initialise_with_mnemonic()
         }
 
         // All good - push temporary into main in-memory keychain
-        keychain_set(&keydata, SOURCE_NONE);
+        keychain_set(&keydata, SOURCE_NONE, temporary_restore);
     }
 
     SENSITIVE_POP(&keydata);

@@ -16,10 +16,11 @@ typedef struct {
 } keychain_t;
 
 bool keychain_init();
-void keychain_set(const keychain_t* src, uint8_t userdata);
+void keychain_set(const keychain_t* src, uint8_t userdata, bool temporary);
 void keychain_free();
 
 const keychain_t* keychain_get();
+bool keychain_has_temporary();
 uint8_t keychain_get_userdata();
 
 // Set/clear/compare the pinned/restricted network type
