@@ -114,7 +114,7 @@ static void make_status_bar()
     gui_set_align(usb_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
     gui_view_node_t* ble_text;
-    gui_make_text(&ble_text, "B", TFT_WHITE);
+    gui_make_text(&ble_text, "F", TFT_WHITE);
     gui_set_text_font(ble_text, JADE_SYMBOLS_16x16_FONT);
     gui_set_parent(ble_text, hsplit);
     gui_set_align(ble_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
@@ -1762,9 +1762,9 @@ static void status_bar_task(void* ignore)
             if (new_ble != status_bar.last_ble_val) {
                 status_bar.last_ble_val = new_ble;
                 if (new_ble) {
-                    gui_update_text(status_bar.ble_text, (char[]){ 'A', '\0' });
+                    gui_update_text(status_bar.ble_text, (char[]){ 'E', '\0' });
                 } else {
-                    gui_update_text(status_bar.ble_text, (char[]){ 'B', '\0' });
+                    gui_update_text(status_bar.ble_text, (char[]){ 'F', '\0' });
                 }
                 status_bar.updated = true;
             }

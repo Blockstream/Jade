@@ -7,7 +7,7 @@ static void add_button_bar(gui_view_node_t* parent_node)
 {
     // Make the button bar under the passed node, and add all the buttons
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 25, 28, 22, 25);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 34, 16);
     gui_set_parent(hsplit, parent_node);
 
     // sleep btn
@@ -44,7 +44,7 @@ static void add_button_bar(gui_view_node_t* parent_node)
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
         gui_view_node_t* text;
-        gui_make_text(&text, "BLE", TFT_WHITE);
+        gui_make_text(&text, "Bluetooth", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
@@ -247,7 +247,7 @@ void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view
     JADE_ASSERT(ble_status_textbox);
 
     gui_activity_t* act;
-    gui_make_activity(&act, true, "BLE");
+    gui_make_activity(&act, true, "Bluetooth");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
