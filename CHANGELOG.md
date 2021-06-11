@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.25] - 2021-06-11
+### Added
+- New Emergency Restore / Temporary Wallet - can be used without persistence or pinserver interaction
+- New 'offline' setup of Jade wallet/mnemonic, tweaks to setup screens
+- Add support for new Jade hardware
+- Add support for running under QEMU emulator
+- Add configs for M5stack basic/core, and TTGO-TDisplay boards
+
+### Changed
+- Update liquid asset info
+- Update default pinserver certificate
+- Prefer 'Bluetooth' to 'BLE' in button labels, and use official bluetooth icon
+- Use larger font when entering PIN
+- 'Sign message' screen to prefer showing the message text, rather than the hash
+
+### Fixed
+- Tests running on no-PSRAM devices
+- Do not try to access camera on hw boards which do not have one
+
 ## [0.1.24] - 2021-04-14
 ### Added
 - Add locked-state and network-restriction to 'get_version_info' reply data
