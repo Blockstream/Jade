@@ -1,4 +1,34 @@
 {
+    "0000b161ead41dbdfc3814078fdb02ee78f9697ffc7b15395db6c62fd1e7fe2c": {
+        "asset_id": "0000b161ead41dbdfc3814078fdb02ee78f9697ffc7b15395db6c62fd1e7fe2c",
+        "contract": {
+            "entity": {
+                "domain": "esky33kubernetes.github.io"
+            },
+            "issuer_pubkey": "039db44ce9bb74b81402ade3a4da75b09a3ce714708a4ed4471c991135a2a39538",
+            "name": "OMG Education",
+            "nonce": "40059",
+            "precision": 0,
+            "ticker": "OMG",
+            "version": 0
+        },
+        "entity": {
+            "domain": "esky33kubernetes.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "ed1ab2d5aa0960fbdd72909b24ecb7803db5c0807725c3a22f0eeff41e32c064",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "09b403dc26d4407a5ade1ff2100bf45e6d566b35c992b18651175569bb77425e",
+            "vin": 0
+        },
+        "issuer_pubkey": "039db44ce9bb74b81402ade3a4da75b09a3ce714708a4ed4471c991135a2a39538",
+        "name": "OMG Education",
+        "precision": 0,
+        "ticker": "OMG",
+        "version": 0
+    },
     "0000f153ec68b01d26d19787f37427d108ab79f61968efa2317dd5c40a983000": {
         "asset_id": "0000f153ec68b01d26d19787f37427d108ab79f61968efa2317dd5c40a983000",
         "contract": {
@@ -27,6 +57,36 @@
         "name": "Weissbier pint",
         "precision": 1,
         "ticker": "WEISS",
+        "version": 0
+    },
+    "0000f5cc7a3bb8a775db937a1d06dd748a675f294bac4eb3937495b8a6c914f0": {
+        "asset_id": "0000f5cc7a3bb8a775db937a1d06dd748a675f294bac4eb3937495b8a6c914f0",
+        "contract": {
+            "entity": {
+                "domain": "esky33kubernetes.github.io"
+            },
+            "issuer_pubkey": "02d044b70572dd602f982987446d907ce4e47622ca1577d3e62025c98cd2d2a0b9",
+            "name": "Liquid Festival Token",
+            "nonce": "199174",
+            "precision": 0,
+            "ticker": "LFEST",
+            "version": 0
+        },
+        "entity": {
+            "domain": "esky33kubernetes.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "3c654324fe5ef528aba8042a91d91b1d6ece3c50c294d39bc032ebdf17f879ba",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "ab79e844edf2ed508ee4c2cf9ab7c46e08c750e49e75444469a3136de8a714c6",
+            "vin": 0
+        },
+        "issuer_pubkey": "02d044b70572dd602f982987446d907ce4e47622ca1577d3e62025c98cd2d2a0b9",
+        "name": "Liquid Festival Token",
+        "precision": 0,
+        "ticker": "LFEST",
         "version": 0
     },
     "00136429d8d94991a7ebc991713732807a788849b016aa91ad912c8a7a80756f": {
@@ -116,6 +176,36 @@
         "name": "GBP Stablecoin",
         "precision": 2,
         "ticker": "GBP",
+        "version": 0
+    },
+    "002452cb8f56a0a5628240edfb3d1e966c9b1959adcfb95b5726e5e9688611bf": {
+        "asset_id": "002452cb8f56a0a5628240edfb3d1e966c9b1959adcfb95b5726e5e9688611bf",
+        "contract": {
+            "entity": {
+                "domain": "liquid.beer"
+            },
+            "issuer_pubkey": "03f32dbed01c1375831ea5fca044ee0a240063e446da1cdea10a34ef7dd9e16f5c",
+            "name": "Dex Beer",
+            "nonce": "359",
+            "precision": 2,
+            "ticker": "DBEER",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.beer"
+        },
+        "issuance_prevout": {
+            "txid": "a57d6f957a10c3ac5c41864555911a2513b5bb0f4bf8060e8ad1d87f14c91c9f",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "0ddecf70e17c23ef5fa187d852755ae5a6d4b1782a3bb22fbf674e1e85898996",
+            "vin": 0
+        },
+        "issuer_pubkey": "03f32dbed01c1375831ea5fca044ee0a240063e446da1cdea10a34ef7dd9e16f5c",
+        "name": "Dex Beer",
+        "precision": 2,
+        "ticker": "DBEER",
         "version": 0
     },
     "005302fd8aa65fec1883ba93911dd1fb28763650205c67109fee66017c90899c": {
@@ -439,6 +529,35 @@
         "name": "Gas Mask",
         "precision": 0,
         "ticker": "HGaMa",
+        "version": 0
+    },
+    "049ff8780e964f41b2bd8fb8b57aee31360787fe2d1ba293b4567cbef246b9b3": {
+        "asset_id": "049ff8780e964f41b2bd8fb8b57aee31360787fe2d1ba293b4567cbef246b9b3",
+        "contract": {
+            "entity": {
+                "domain": "tap-portugal.github.io"
+            },
+            "issuer_pubkey": "02db6564253eb76930d46f75e3af57f9d01eafbb5a36583050ff1d34f9860c98a6",
+            "name": "TAP-Portugal",
+            "precision": 0,
+            "ticker": "TAP",
+            "version": 0
+        },
+        "entity": {
+            "domain": "tap-portugal.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "1c1dee108816cf29028fc2c02a575ebf214f30de3532542daac3d5922903fa6f",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "637d1926b3384f4ba4f00d012abfae7ef126961df7dac931ec63f2e0f128c49f",
+            "vin": 0
+        },
+        "issuer_pubkey": "02db6564253eb76930d46f75e3af57f9d01eafbb5a36583050ff1d34f9860c98a6",
+        "name": "TAP-Portugal",
+        "precision": 0,
+        "ticker": "TAP",
         "version": 0
     },
     "04a4f9e5215b6b76d6db2331c48c551330cdaa53f035063acf3f3830a798a2c4": {
@@ -1108,6 +1227,36 @@
         "ticker": "CJoFy",
         "version": 0
     },
+    "10759ec5c40953c966a660a63991ca972f5a09f3ffdfd7393e39503546500ad7": {
+        "asset_id": "10759ec5c40953c966a660a63991ca972f5a09f3ffdfd7393e39503546500ad7",
+        "contract": {
+            "entity": {
+                "domain": "cryptograffiti.raretoshi.com"
+            },
+            "file": "QmczaujRqSMhvJbPuRHwxVFTrP9pjnS9SURXwjx8F7XJ2m",
+            "issuer_pubkey": "02acbd29929059c75112837695a0468eddd33c3a0d36144a6fc4369d624cf17305",
+            "name": "Strikes Twice #2",
+            "precision": 0,
+            "ticker": "STT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "cryptograffiti.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "80191ed98beec538951a74ef5ae828a26ae86c50d51b18f71ddfd034fc15ef60",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "787acec1e89723fd7e6f62bb1956dc0112865b627ba5b1395fdb69bf86e2ef12",
+            "vin": 0
+        },
+        "issuer_pubkey": "02acbd29929059c75112837695a0468eddd33c3a0d36144a6fc4369d624cf17305",
+        "name": "Strikes Twice #2",
+        "precision": 0,
+        "ticker": "STT",
+        "version": 0
+    },
     "11082442b6c8bacc51837e12281fcb790de4779b0a83c163d45b47656a60f301": {
         "asset_id": "11082442b6c8bacc51837e12281fcb790de4779b0a83c163d45b47656a60f301",
         "contract": {
@@ -1135,6 +1284,35 @@
         "name": "Liquid MXN",
         "precision": 2,
         "ticker": "MXNL",
+        "version": 0
+    },
+    "11f91cb5edd5d0822997ad81f068ed35002daec33986da173461a8427ac857e1": {
+        "asset_id": "11f91cb5edd5d0822997ad81f068ed35002daec33986da173461a8427ac857e1",
+        "contract": {
+            "entity": {
+                "domain": "blockstream.com"
+            },
+            "issuer_pubkey": "02a1ff5fd5d6f17febe5cd2d6b9e45b6775a1e416b56fa8414e337e2589c2e9bd5",
+            "name": "BMN Series 1",
+            "precision": 2,
+            "ticker": "BMN1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "blockstream.com"
+        },
+        "issuance_prevout": {
+            "txid": "ed790fac247b5dfff4c0529d9b562d0f76757f7c08256b41fc2469b9a85bb3f9",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "6fbe5f8aedadf1fbfe023e97bb64d27a600c2c71fbf852d11059606e4a8f43c0",
+            "vin": 0
+        },
+        "issuer_pubkey": "02a1ff5fd5d6f17febe5cd2d6b9e45b6775a1e416b56fa8414e337e2589c2e9bd5",
+        "name": "BMN Series 1",
+        "precision": 2,
+        "ticker": "BMN1",
         "version": 0
     },
     "122b564233f72b4a65df43c3295c53e99046eee8611b86fb239defbf869d50b3": {
@@ -1341,6 +1519,36 @@
         "ticker": "HBiHe",
         "version": 0
     },
+    "14cad7ed348f22a9c096801304815fb78d532eee455d8f00d689dfa35977afba": {
+        "asset_id": "14cad7ed348f22a9c096801304815fb78d532eee455d8f00d689dfa35977afba",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmaTZQLCayjHLT6T6pmf2W3A3sKJGqhGHHfFs7C8aK5rRv",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Test",
+            "precision": 0,
+            "ticker": "TESI",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "c76de4f7b4b03eb30c7081839c7d6cdee2a3891082e7231b2fc7418a5cdfd222",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "8b61822d86b73c472edbdc1836bafe3a5e324450940ed6e12508318b7962d695",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Test",
+        "precision": 0,
+        "ticker": "TESI",
+        "version": 0
+    },
     "15bdb0bf557ede38156440a4850e42b71621265859b8ccf928219e5ce5e10a71": {
         "asset_id": "15bdb0bf557ede38156440a4850e42b71621265859b8ccf928219e5ce5e10a71",
         "contract": {
@@ -1399,6 +1607,35 @@
         "ticker": "CLiNa",
         "version": 0
     },
+    "15e263dd3fa310987da6287ef99c635c007441e2bbb053900f3c9db8443de2de": {
+        "asset_id": "15e263dd3fa310987da6287ef99c635c007441e2bbb053900f3c9db8443de2de",
+        "contract": {
+            "entity": {
+                "domain": "tiktok-token.github.io"
+            },
+            "issuer_pubkey": "0247ad2237ffa02c1015e5c95a44b59b9d719ac2741e8127e9b154f60339915ff9",
+            "name": "TikTok Token",
+            "precision": 0,
+            "ticker": "Tok",
+            "version": 0
+        },
+        "entity": {
+            "domain": "tiktok-token.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "0f04189b61a8d23472ae3075c45a9d672b6676627a7b97078b35515c43267cc2",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "8505daf74b6e7a91a419e87b5bc02a72008dc15d9182964f88f27f3407848d1a",
+            "vin": 0
+        },
+        "issuer_pubkey": "0247ad2237ffa02c1015e5c95a44b59b9d719ac2741e8127e9b154f60339915ff9",
+        "name": "TikTok Token",
+        "precision": 0,
+        "ticker": "Tok",
+        "version": 0
+    },
     "1619b40343aebbec6cf5809322eb44a61e0f664d2fd51d3c2de95187c90dd975": {
         "asset_id": "1619b40343aebbec6cf5809322eb44a61e0f664d2fd51d3c2de95187c90dd975",
         "contract": {
@@ -1455,6 +1692,39 @@
         "name": "Liquid Gold Futures",
         "precision": 2,
         "ticker": "GCL",
+        "version": 0
+    },
+    "16d9494ee5a2b82f1cf4d2f9a999a3d5d274030d888af2c4f0a532166d723bc3": {
+        "asset_id": "16d9494ee5a2b82f1cf4d2f9a999a3d5d274030d888af2c4f0a532166d723bc3",
+        "contract": {
+            "entity": {
+                "domain": "l-nft.com"
+            },
+            "issuer_pubkey": "035a5aee3c1a163825ed6a63a13ec32a6910254b58338da7d7cc5aeb082812eeb2",
+            "name": "Bible NFT remote",
+            "nft": {
+                "domain": "l-nft.com",
+                "hash": "7f9b66afd4130aca068d2d717f34eb5d6cd2ad8c700297e2ebcd6ca5644f45b1"
+            },
+            "precision": 0,
+            "ticker": "BIBr",
+            "version": 0
+        },
+        "entity": {
+            "domain": "l-nft.com"
+        },
+        "issuance_prevout": {
+            "txid": "64fe6191b64a545c3b9a7ba3e11efbc81495dcb35340f0ec91f05d3bd1e2956d",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "cba1947c0b794771757878ded62b7cefc01ee06c081a08d75a7d609b90e6984d",
+            "vin": 0
+        },
+        "issuer_pubkey": "035a5aee3c1a163825ed6a63a13ec32a6910254b58338da7d7cc5aeb082812eeb2",
+        "name": "Bible NFT remote",
+        "precision": 0,
+        "ticker": "BIBr",
         "version": 0
     },
     "16e34b5deb3219ea871538c6f881fc1d2a9d6e3255313c2ede8042999be4b707": {
@@ -2124,6 +2394,36 @@
         "ticker": "HWork",
         "version": 0
     },
+    "2100c26dc2d586230a2520916c275fb8345426d9471ae0c035adf93db5388c9e": {
+        "asset_id": "2100c26dc2d586230a2520916c275fb8345426d9471ae0c035adf93db5388c9e",
+        "contract": {
+            "entity": {
+                "domain": "scamcoinbot.com"
+            },
+            "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+            "name": "Million Token",
+            "nonce": "48657",
+            "precision": 0,
+            "ticker": "21.0",
+            "version": 0
+        },
+        "entity": {
+            "domain": "scamcoinbot.com"
+        },
+        "issuance_prevout": {
+            "txid": "ce0cca37c2e0fc0e875f85ffb40c8cadbca2a9fdb69b29aef31000bdc1c60002",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "0274149f9c891a72e9546bdc90eb6e5d40ff9ec314b7bedd8f9a9be26b5a2639",
+            "vin": 0
+        },
+        "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+        "name": "Million Token",
+        "precision": 0,
+        "ticker": "21.0",
+        "version": 0
+    },
     "2166c8229367e9fe004a84e3f8256b7445446661a040f7e7b64ce2ae88f4969b": {
         "asset_id": "2166c8229367e9fe004a84e3f8256b7445446661a040f7e7b64ce2ae88f4969b",
         "contract": {
@@ -2354,6 +2654,36 @@
         "name": "WTFdec",
         "precision": 8,
         "ticker": "WTD",
+        "version": 0
+    },
+    "24aeb2acf50b9ca6fa3828767065a42e3d7cc0b97ad12bbcc12d6e16202f5da1": {
+        "asset_id": "24aeb2acf50b9ca6fa3828767065a42e3d7cc0b97ad12bbcc12d6e16202f5da1",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmeRUE7izn6B6x6yyg59JSPD14NGKV4heytpteCSEoe9VT",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Space",
+            "precision": 0,
+            "ticker": "SPAC",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "fcbcdf50472e1f0d29daacfc71ea12c8c5f5de9e07d6b65f9a6ca5af3c880e7a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "a06bc1f3ed814090262b39944e839570e8738a7f607284af1cc3c10930d5c3db",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Space",
+        "precision": 0,
+        "ticker": "SPAC",
         "version": 0
     },
     "24cf50166579cec4e2cb1e16493172a14d80fdc723f397490d6c68551e6c908c": {
@@ -3400,6 +3730,35 @@
         "ticker": "GAxTe",
         "version": 0
     },
+    "345bf29eedd0964be8b8c08b1db298b3afad116a5ebeeb0ab09f41f27ed75298": {
+        "asset_id": "345bf29eedd0964be8b8c08b1db298b3afad116a5ebeeb0ab09f41f27ed75298",
+        "contract": {
+            "entity": {
+                "domain": "wintercooled.github.io"
+            },
+            "issuer_pubkey": "02c825a2857e616869e64fcc42c328cb388b77c91913122443f4242af31384077a",
+            "name": "api_test_3",
+            "precision": 2,
+            "ticker": "API-3",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wintercooled.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "8ccf1f38ba44b70ae423f88309f3f153a9ff010a8540b2c6a25016991a578960",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "327bb0c88a2ae20267a9aea34dadcf7cfca4d19e5e07fa6387992c109b3c0e62",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c825a2857e616869e64fcc42c328cb388b77c91913122443f4242af31384077a",
+        "name": "api_test_3",
+        "precision": 2,
+        "ticker": "API-3",
+        "version": 0
+    },
     "34925af1a1088d714799817f5d0fe77d6eca6064ee13d64f15f011bfab7ec26b": {
         "asset_id": "34925af1a1088d714799817f5d0fe77d6eca6064ee13d64f15f011bfab7ec26b",
         "contract": {
@@ -3603,6 +3962,36 @@
         "ticker": "MOrWi",
         "version": 0
     },
+    "374fb1356bb06cff969bffb865a05cedfdf053953af0d0c3a30b2ad1480f7d65": {
+        "asset_id": "374fb1356bb06cff969bffb865a05cedfdf053953af0d0c3a30b2ad1480f7d65",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmdGraJad1ZidMH8qNJb2XBHv2uWVUTvhdZxA2K2Qoyp93",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Test",
+            "precision": 0,
+            "ticker": "TESD",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "82b57624f312427bdbea77d0961558320fb28b6e70216bb9f823c50e3b0458b9",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "dc4110ef6df45ed52722b16724315ec375f6715e4c5a058be3c3db92a2b6a069",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Test",
+        "precision": 0,
+        "ticker": "TESD",
+        "version": 0
+    },
     "37e46e86996e2b1216acf4be1355813197fa857ec1a6976ccea708bf886505c7": {
         "asset_id": "37e46e86996e2b1216acf4be1355813197fa857ec1a6976ccea708bf886505c7",
         "contract": {
@@ -3630,6 +4019,36 @@
         "name": "ConnectWV Token",
         "precision": 8,
         "ticker": "CWVT",
+        "version": 0
+    },
+    "37e84c3dd728367b2eebb0cb1dfcf13147d7ca7aa9b639525514dda7fd25a061": {
+        "asset_id": "37e84c3dd728367b2eebb0cb1dfcf13147d7ca7aa9b639525514dda7fd25a061",
+        "contract": {
+            "entity": {
+                "domain": "cryptograffiti.raretoshi.com"
+            },
+            "file": "QmUNLNLBPoxmaQabKGK6ch76TEJZaCGmqM8qwdUoCPVkPB",
+            "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+            "name": "new new black swan",
+            "precision": 0,
+            "ticker": "NNBB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "cryptograffiti.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "7e2c844433e93fb372a9a18c36e1245bd73b71ef286f78993f1a0b3a03c6f31d",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "848ef5ac9c0c611567914c525915a494c328489280959ebb6b2ac187115c99e9",
+            "vin": 0
+        },
+        "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+        "name": "new new black swan",
+        "precision": 0,
+        "ticker": "NNBB",
         "version": 0
     },
     "3837a550aa2f32e25d8d125c2a8b074744e17b43e8e3a3821378e90326b515ba": {
@@ -3717,6 +4136,36 @@
         "name": "Halberd",
         "precision": 0,
         "ticker": "MHalb",
+        "version": 0
+    },
+    "395a28338dab231bb7f77a9211702b1f64492ce37c5154ef7d6ddb851108f281": {
+        "asset_id": "395a28338dab231bb7f77a9211702b1f64492ce37c5154ef7d6ddb851108f281",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmdGraJad1ZidMH8qNJb2XBHv2uWVUTvhdZxA2K2Qoyp93",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Test",
+            "precision": 0,
+            "ticker": "TESE",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "dc4110ef6df45ed52722b16724315ec375f6715e4c5a058be3c3db92a2b6a069",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "bc9f23524c9ad9095893089e13a46ef4f77863c620daecae8af84521d302870a",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Test",
+        "precision": 0,
+        "ticker": "TESE",
         "version": 0
     },
     "39f4844d0bb5c546e06577b47b87c23c4c14e106ed91ac4e4b90b4e262866f9a": {
@@ -3920,6 +4369,35 @@
         "name": "USDBonds",
         "precision": 8,
         "ticker": "USDME",
+        "version": 0
+    },
+    "404f07778e8674500ae9188453db5facf593395a54d18b34a62a464dd7223964": {
+        "asset_id": "404f07778e8674500ae9188453db5facf593395a54d18b34a62a464dd7223964",
+        "contract": {
+            "entity": {
+                "domain": "wintercooled.github.io"
+            },
+            "issuer_pubkey": "03e929bfdfcbdb73b39c71d441f4470c6192e12dfa4d0027f1e2460dee9bb5540f",
+            "name": "api_test_1",
+            "precision": 2,
+            "ticker": "APIt1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wintercooled.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "9f19aeae70880bdc6be02c07b5b8b9b0d26ba667d0a3872bb0a0eedac4774314",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "2f0571705e43e38ebdb1e55f8a0be73796d3dcd7411e21c71b56fa45dd9960fd",
+            "vin": 0
+        },
+        "issuer_pubkey": "03e929bfdfcbdb73b39c71d441f4470c6192e12dfa4d0027f1e2460dee9bb5540f",
+        "name": "api_test_1",
+        "precision": 2,
+        "ticker": "APIt1",
         "version": 0
     },
     "40c0bb9546324792210fbec73368e38fcb35b1399266843eedfe14451f4bc929": {
@@ -4792,6 +5270,36 @@
         "ticker": "LBRA",
         "version": 0
     },
+    "4b4b1a5a779764bc73d4eb4576753be890c835983cbb7fb75a00dd6971ac6776": {
+        "asset_id": "4b4b1a5a779764bc73d4eb4576753be890c835983cbb7fb75a00dd6971ac6776",
+        "contract": {
+            "entity": {
+                "domain": "playboy.raretoshi.com"
+            },
+            "file": "QmQcVcrNSVyREYce7wRRuRNifsWMBcC34a86LVdpWcQgJM",
+            "issuer_pubkey": "02e81b1abdff84a103ef4f008cbd9d1bee0cadb5eca04b86ac5e3fac067af568df",
+            "name": "Miami Dance by MBSJQ",
+            "precision": 0,
+            "ticker": "MDB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "playboy.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "058f9c92a932e4d462fcaaf547e68e9518e633f7096b07ff32056e91ac76ed0c",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "85962dcfab929e3f5dc499166b413e7f651ae90e8c9dd26e2bab4c02c3e6a20a",
+            "vin": 0
+        },
+        "issuer_pubkey": "02e81b1abdff84a103ef4f008cbd9d1bee0cadb5eca04b86ac5e3fac067af568df",
+        "name": "Miami Dance by MBSJQ",
+        "precision": 0,
+        "ticker": "MDB",
+        "version": 0
+    },
     "4bb150d29e621cbf929d5bd497c539e0e88ff283e26e845727e9db97f90052bf": {
         "asset_id": "4bb150d29e621cbf929d5bd497c539e0e88ff283e26e845727e9db97f90052bf",
         "contract": {
@@ -4848,6 +5356,36 @@
         "name": "Jet-Lag Baby",
         "precision": 0,
         "ticker": "GJeBa",
+        "version": 0
+    },
+    "4c4ac009dfb51bf83aa76b909c2f481218ae11b03a874dbbfb80b3c2e50dcc82": {
+        "asset_id": "4c4ac009dfb51bf83aa76b909c2f481218ae11b03a874dbbfb80b3c2e50dcc82",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmdGraJad1ZidMH8qNJb2XBHv2uWVUTvhdZxA2K2Qoyp93",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Sea monster",
+            "precision": 0,
+            "ticker": "SEAA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "bd242d8615620c46d03aa5e63162ad7ba8dbfb4c19f483fbecc0822964b61850",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "9c0c8f5e4f5773781a5e631b95a72e734103d2e98331d11cf326ec5cc5295b72",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Sea monster",
+        "precision": 0,
+        "ticker": "SEAA",
         "version": 0
     },
     "4c798bd7f7dd27a5c3d731f09e29700b05f518fd855fb0a4a67208026da7de96": {
@@ -5170,6 +5708,39 @@
         "ticker": "HBeer",
         "version": 0
     },
+    "50cc8dade8eab7710f8927296c6acbb9e0aa9339e8b310c7f594a15a1b03d6b1": {
+        "asset_id": "50cc8dade8eab7710f8927296c6acbb9e0aa9339e8b310c7f594a15a1b03d6b1",
+        "contract": {
+            "entity": {
+                "domain": "e60e53e56657.ngrok.io"
+            },
+            "issuer_pubkey": "02567a359ded587ddb44b0ab4b2c1f5eddadc6f3cca5689be943b6b7ec5873e2d7",
+            "name": "Merope",
+            "nft": {
+                "domain": "e60e53e56657.ngrok.io",
+                "hash": "1600cfab9a7ef0c1d1ec522089b413eff64af2101a52ee9ac6795f5a92d58e45"
+            },
+            "precision": 0,
+            "ticker": "00000",
+            "version": 0
+        },
+        "entity": {
+            "domain": "e60e53e56657.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "fa363d7b283c4506d3c1152b1a3f90e80baaaadf0adabd0cfde4db1b79891ef0",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "5b6e3d2cad25869d984739d4c62c8e2c25e64747568b3fdd1fdc1f92a8678112",
+            "vin": 0
+        },
+        "issuer_pubkey": "02567a359ded587ddb44b0ab4b2c1f5eddadc6f3cca5689be943b6b7ec5873e2d7",
+        "name": "Merope",
+        "precision": 0,
+        "ticker": "00000",
+        "version": 0
+    },
     "5139df313745b28f4741e5229e822957a77e827b43cfb93b47a387e5c6d4ef2d": {
         "asset_id": "5139df313745b28f4741e5229e822957a77e827b43cfb93b47a387e5c6d4ef2d",
         "contract": {
@@ -5286,6 +5857,39 @@
         "ticker": "HMuX",
         "version": 0
     },
+    "527b87035a15ae873887ecf53e02e1faee69a679b0ffae341d59dfe85377e37d": {
+        "asset_id": "527b87035a15ae873887ecf53e02e1faee69a679b0ffae341d59dfe85377e37d",
+        "contract": {
+            "entity": {
+                "domain": "e60e53e56657.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "Luci.",
+            "nft": {
+                "domain": "e60e53e56657.ngrok.io",
+                "hash": "df61423cf2784d6958208abf71a33d0ab72384bd81dfad0dc30d67442e22d726"
+            },
+            "precision": 0,
+            "ticker": "a6e43",
+            "version": 0
+        },
+        "entity": {
+            "domain": "e60e53e56657.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "0dc9ae3790d50229efac7666093bdfd90641aa8abf5024f5f25a73118df4e3eb",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "813910e942fc3664a38af4b8bf1e04c767fb464521b0218158640f1c78398733",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "Luci.",
+        "precision": 0,
+        "ticker": "a6e43",
+        "version": 0
+    },
     "529c71b2874e4b3896bea992b6eb880fc114a7cc431fce7c00b2fc78eec9d512": {
         "asset_id": "529c71b2874e4b3896bea992b6eb880fc114a7cc431fce7c00b2fc78eec9d512",
         "contract": {
@@ -5371,6 +5975,36 @@
         "name": "EXO Token Europe",
         "precision": 0,
         "ticker": "EXOeu",
+        "version": 0
+    },
+    "53b2b87d7546f9e94bf55fc17270c3cf26a92c9ec0d0fcd03e264d78233354ec": {
+        "asset_id": "53b2b87d7546f9e94bf55fc17270c3cf26a92c9ec0d0fcd03e264d78233354ec",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmbNSsf1Q6bxb8Lq3HfsekffLqbF6K6r2DGFefruvY5Agq",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Jazz token",
+            "precision": 0,
+            "ticker": "JAZA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "acb1b811de88889e4789f364d55b843bd4735b04b70aed194bf8e78203a62638",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "b1f80fa60ef1f234d46d28e94ff06a20ddf88c6cea7903300a6e64e8222f97bb",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Jazz token",
+        "precision": 0,
+        "ticker": "JAZA",
         "version": 0
     },
     "53bcf8b043c3e88f1704407989d045fc13391e0a453b2bf949f10ed80046fa2a": {
@@ -5460,6 +6094,36 @@
         "ticker": "HPoli",
         "version": 0
     },
+    "53e0d41b6081856c0d37e112ee444df16eabb9fb20223ba1c70f8ebcc51adeee": {
+        "asset_id": "53e0d41b6081856c0d37e112ee444df16eabb9fb20223ba1c70f8ebcc51adeee",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmNq1ZmNCCn1b8Pn3HE8hA6wSGwBKpVHSkuMwWjRGwrgzh",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "test",
+            "precision": 0,
+            "ticker": "TESR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "c81feed50bb7ddd46109545f63f8b2e1c4f61140248eab11d64eb04f2394c05c",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "86e46f19c7fe8a17f426db885a314c1c0884bc5301bef67ec19436e417fd745f",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "test",
+        "precision": 0,
+        "ticker": "TESR",
+        "version": 0
+    },
     "5422e30e52829c3fe6465472de266f5ad30deee7dae4775ff05b8c03007e3d13": {
         "asset_id": "5422e30e52829c3fe6465472de266f5ad30deee7dae4775ff05b8c03007e3d13",
         "contract": {
@@ -5516,6 +6180,36 @@
         "name": "Lambrusco",
         "precision": 0,
         "ticker": "LAMBO",
+        "version": 0
+    },
+    "550486961ca34da3279c7d29a01f7354626094c1d095c20fc56fa1f16a6c8384": {
+        "asset_id": "550486961ca34da3279c7d29a01f7354626094c1d095c20fc56fa1f16a6c8384",
+        "contract": {
+            "entity": {
+                "domain": "l-nft.com"
+            },
+            "issuer_pubkey": "02f2c3344d9671541fdfa0195e48cf7a72d505cbe29f5a49c65590e0370371c604",
+            "name": "Liquid NFT",
+            "nonce": "230",
+            "precision": 8,
+            "ticker": "L-NFT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "l-nft.com"
+        },
+        "issuance_prevout": {
+            "txid": "f240852cef5db125be45c08783ef8e48afeb12eb24129cc82d5c6fe129f1d750",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "a57d6f957a10c3ac5c41864555911a2513b5bb0f4bf8060e8ad1d87f14c91c9f",
+            "vin": 0
+        },
+        "issuer_pubkey": "02f2c3344d9671541fdfa0195e48cf7a72d505cbe29f5a49c65590e0370371c604",
+        "name": "Liquid NFT",
+        "precision": 8,
+        "ticker": "L-NFT",
         "version": 0
     },
     "5505e4b92d2d8fcb02a40a7cf576077a75fa4655775c852c21632377ea8deed1": {
@@ -5603,6 +6297,36 @@
         "name": "GOLD TOKEN",
         "precision": 0,
         "ticker": "GDXT",
+        "version": 0
+    },
+    "5817a48f7db57eb3ef79343c1e9e9e5e784c72777824ba74e6d2a9b9e6731138": {
+        "asset_id": "5817a48f7db57eb3ef79343c1e9e9e5e784c72777824ba74e6d2a9b9e6731138",
+        "contract": {
+            "entity": {
+                "domain": "nftglee.com"
+            },
+            "file": "QmciykpmRBD6HVXYP5qDE9D6iphdneNe1DPDKnrQwrtQz9",
+            "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+            "name": "The Golden Whale Pass : 1st Edition",
+            "precision": 0,
+            "ticker": "TGW",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nftglee.com"
+        },
+        "issuance_prevout": {
+            "txid": "914d99762a400cd607a6c2a45b5e606ca98d8c8d18159e8c75a2da7703c3400e",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "384164d944f1587e4a624c0aa5052d037440be334a1ca6e9cd3152f383d27b95",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+        "name": "The Golden Whale Pass : 1st Edition",
+        "precision": 0,
+        "ticker": "TGW",
         "version": 0
     },
     "587ae7f60a909319dec696745561346b580540d13fe1da4b1d85380c6ed169f9": {
@@ -6243,6 +6967,36 @@
         "ticker": "HToHo",
         "version": 0
     },
+    "617bb239df6a5885debf20c9dffd452424567a584dbadda68b14bba10a43f647": {
+        "asset_id": "617bb239df6a5885debf20c9dffd452424567a584dbadda68b14bba10a43f647",
+        "contract": {
+            "entity": {
+                "domain": "rarescrilla.raretoshi.com"
+            },
+            "file": "QmUfGUba6PnaG1JfiFrNHggZbXCWQfbeKnnu6q6ZmbQgtP",
+            "issuer_pubkey": "034b35b4690d4a6baf044ce728f355cb29466208f4c7bc8ddbc6edcfe0a618b583",
+            "name": "Lasers Of The Storm",
+            "precision": 0,
+            "ticker": "MAM1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "rarescrilla.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "398fc64eb1f2c83d9c1637f82e8edce816b057d0dc565693a137a2a2c25b559e",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "bdd4f7e05dbccf75b1fec9f84a94b7ad23d46a1171c2cc856a3c2fd1b6e573f3",
+            "vin": 0
+        },
+        "issuer_pubkey": "034b35b4690d4a6baf044ce728f355cb29466208f4c7bc8ddbc6edcfe0a618b583",
+        "name": "Lasers Of The Storm",
+        "precision": 0,
+        "ticker": "MAM1",
+        "version": 0
+    },
     "6186b89853348779dd6cc6fc97e8f315aaa08df95731e7731b05f2bf842cd4b7": {
         "asset_id": "6186b89853348779dd6cc6fc97e8f315aaa08df95731e7731b05f2bf842cd4b7",
         "contract": {
@@ -6328,6 +7082,36 @@
         "name": "Magical broom",
         "precision": 0,
         "ticker": "HMabr",
+        "version": 0
+    },
+    "61fbbb65680bd2bf64de7543e4838d5c785b3720e3c1e996ad2f5e29cc04bec9": {
+        "asset_id": "61fbbb65680bd2bf64de7543e4838d5c785b3720e3c1e996ad2f5e29cc04bec9",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmWnRCTKMrzYVkKD3RGJvhm8oJQVrQv1RTjketCvL1FXE4",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Test",
+            "precision": 0,
+            "ticker": "TESA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "cc7f356b56b85a128e67043048147076480a452f00417b922f11d9995531ce19",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "fcbcdf50472e1f0d29daacfc71ea12c8c5f5de9e07d6b65f9a6ca5af3c880e7a",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Test",
+        "precision": 0,
+        "ticker": "TESA",
         "version": 0
     },
     "624650157a495cc67fdfd388570c064f8f19def691894d3e759d95b8532b69ee": {
@@ -6743,6 +7527,36 @@
         "ticker": "GLUR",
         "version": 0
     },
+    "644c98c036d710291393ee0e789b1707fad43124c2a0b46dd400fff292e6c1ae": {
+        "asset_id": "644c98c036d710291393ee0e789b1707fad43124c2a0b46dd400fff292e6c1ae",
+        "contract": {
+            "entity": {
+                "domain": "cryptograffiti.raretoshi.com"
+            },
+            "file": "QmUNLNLBPoxmaQabKGK6ch76TEJZaCGmqM8qwdUoCPVkPB",
+            "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+            "name": "Black Swan",
+            "precision": 0,
+            "ticker": "BLAE",
+            "version": 0
+        },
+        "entity": {
+            "domain": "cryptograffiti.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "56f61daf07e25eba0cc5c70ef5fbdab3a919c56e59506e300137f9cf9c7f2206",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "a817bf1fa3d61ed0783b15647fdc366a259887995ee741596bad39844daf91b7",
+            "vin": 0
+        },
+        "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+        "name": "Black Swan",
+        "precision": 0,
+        "ticker": "BLAE",
+        "version": 0
+    },
     "6479ac8306e4a5086decf573df70e3d24cf6ec81ed8ee39bd1f3f1199413adc5": {
         "asset_id": "6479ac8306e4a5086decf573df70e3d24cf6ec81ed8ee39bd1f3f1199413adc5",
         "contract": {
@@ -6799,6 +7613,36 @@
         "name": "Naka",
         "precision": 0,
         "ticker": "BNaka",
+        "version": 0
+    },
+    "657dc291ff21c8000eb66046309238856b02526f606afa1e9ab7c1d0371c0b7a": {
+        "asset_id": "657dc291ff21c8000eb66046309238856b02526f606afa1e9ab7c1d0371c0b7a",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmVFAMfrSwk9LgfXJPR8c9CfWFSttjtnuvrZ6ecPiXQuWi",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Flower",
+            "precision": 0,
+            "ticker": "FLO",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "6f16993d4359ae4c1f89c1c462c544591d992c99d523d17d55c26520a71ead49",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "cc7f356b56b85a128e67043048147076480a452f00417b922f11d9995531ce19",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Flower",
+        "precision": 0,
+        "ticker": "FLO",
         "version": 0
     },
     "65d67ca66df0b4433640726e8f544a5112d54f76236ad02ed0f923a5247b20ee": {
@@ -8079,6 +8923,35 @@
         "ticker": "BTFSh",
         "version": 0
     },
+    "7635b69da8613a04b50bbe69c1bb596bbce1acc55b6aaf42aa2643ecb346df25": {
+        "asset_id": "7635b69da8613a04b50bbe69c1bb596bbce1acc55b6aaf42aa2643ecb346df25",
+        "contract": {
+            "entity": {
+                "domain": "bornperfect.github.io"
+            },
+            "issuer_pubkey": "03d46335fbd3cc7b7f4d6e428654c80d671ff8a692ba93480520a0eb7e308ce652",
+            "name": "Born Perfect",
+            "precision": 0,
+            "ticker": "DONE",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bornperfect.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "a0517cc462815e56f68b3012cb7633dabc3f45130338c2b45b3b9198f4dc43af",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "8f21abf1800a1ebbd624fa8dbccff7d19acf90152e0ccb9d2c175597b1ccacf9",
+            "vin": 0
+        },
+        "issuer_pubkey": "03d46335fbd3cc7b7f4d6e428654c80d671ff8a692ba93480520a0eb7e308ce652",
+        "name": "Born Perfect",
+        "precision": 0,
+        "ticker": "DONE",
+        "version": 0
+    },
     "767fb7219d0e7c32c35bfa3221d3238e092b662683df1e802310daadb57e549b": {
         "asset_id": "767fb7219d0e7c32c35bfa3221d3238e092b662683df1e802310daadb57e549b",
         "contract": {
@@ -8164,6 +9037,35 @@
         "name": "EXO Test Live",
         "precision": 0,
         "ticker": "EXOt",
+        "version": 0
+    },
+    "78557eb89ea8439dc1a519f4eb0267c86b261068648a0f84a5c6b55ca39b66f1": {
+        "asset_id": "78557eb89ea8439dc1a519f4eb0267c86b261068648a0f84a5c6b55ca39b66f1",
+        "contract": {
+            "entity": {
+                "domain": "store.blockstream.com"
+            },
+            "issuer_pubkey": "03e95ae5b06d30c87006eb475e212b4097642cc54ffa571c7de8890284f4173dab",
+            "name": "Blockstream Jade Token",
+            "precision": 0,
+            "ticker": "B-JDE",
+            "version": 0
+        },
+        "entity": {
+            "domain": "store.blockstream.com"
+        },
+        "issuance_prevout": {
+            "txid": "783e5dfbb3ca97531d52397e8ee890b11510437254c59b95409f484b9fde5839",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "e1fe744be7ee790023c50968f964c333a58cf1a37f9de18acaa99326b5283caf",
+            "vin": 0
+        },
+        "issuer_pubkey": "03e95ae5b06d30c87006eb475e212b4097642cc54ffa571c7de8890284f4173dab",
+        "name": "Blockstream Jade Token",
+        "precision": 0,
+        "ticker": "B-JDE",
         "version": 0
     },
     "786a06b9e826fd3c5d5586227df28a67156888c05939615bebb28cf7332be6aa": {
@@ -8601,6 +9503,36 @@
         "ticker": "BVoCa",
         "version": 0
     },
+    "7d4b7ffd2d4f3152fb0dc2bdcd8f0c01c832bb9f7c3cc8923f9a5f5ae2b799cc": {
+        "asset_id": "7d4b7ffd2d4f3152fb0dc2bdcd8f0c01c832bb9f7c3cc8923f9a5f5ae2b799cc",
+        "contract": {
+            "entity": {
+                "domain": "rarescrilla.raretoshi.com"
+            },
+            "file": "QmQhXcr5Xm5jfvvkNocSXXKqX5wGa5C3idXAveWnSmqKc2",
+            "issuer_pubkey": "034b35b4690d4a6baf044ce728f355cb29466208f4c7bc8ddbc6edcfe0a618b583",
+            "name": "SOUND MONEY reDUX",
+            "precision": 0,
+            "ticker": "SMR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "rarescrilla.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "3776cd625ef7e5bbdc4d20b9442d1f29c862e6821affc7380cf667ff531394ca",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "66cbc342db7079531702e31ce45840d91b6158e34bb6d281448046b5d1c86ff9",
+            "vin": 0
+        },
+        "issuer_pubkey": "034b35b4690d4a6baf044ce728f355cb29466208f4c7bc8ddbc6edcfe0a618b583",
+        "name": "SOUND MONEY reDUX",
+        "precision": 0,
+        "ticker": "SMR",
+        "version": 0
+    },
     "7d61ccb6baeac474ba69d6058c0dfcb34efd217f85deaa5508c4cbe3dbba8639": {
         "asset_id": "7d61ccb6baeac474ba69d6058c0dfcb34efd217f85deaa5508c4cbe3dbba8639",
         "contract": {
@@ -8861,6 +9793,128 @@
         "name": "Alien Mask",
         "precision": 0,
         "ticker": "HAlMa",
+        "version": 0
+    },
+    "80f74162481491278ba328513bb09c793ae6df7c5485f063a5033331e2ceabc8": {
+        "asset_id": "80f74162481491278ba328513bb09c793ae6df7c5485f063a5033331e2ceabc8",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmYxJGisRnedfWvTCge1CKpRTrjn6EnwYvsNmJiGFAnuVG",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Fairy",
+            "precision": 0,
+            "ticker": "FAIB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "03017f72396a5d635312bcc72294f3749feedeabcb64f857321f4015c037a5c6",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "3b8ca95ba02d107370048f1347829f15648eb1ddf6ec9f5561f618bec45e9992",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Fairy",
+        "precision": 0,
+        "ticker": "FAIB",
+        "version": 0
+    },
+    "8141fa5e74f9b7f947da340a0a0ea41ed625b8fec8bb47627f9620438f56e09c": {
+        "asset_id": "8141fa5e74f9b7f947da340a0a0ea41ed625b8fec8bb47627f9620438f56e09c",
+        "contract": {
+            "entity": {
+                "domain": "l-nft.com"
+            },
+            "issuer_pubkey": "026f08b56bd8552ff620f6dada76a3514145f4f0d8618aba66c62a7429a98851bf",
+            "name": "Bitcoin Whitepaper",
+            "nft": {
+                "domain": "l-nft.com",
+                "hash": "6c34b259ad02b1062966c8ecf9c826e34f3ec7c2ce96a274db0e919554510fd8"
+            },
+            "precision": 0,
+            "ticker": "BTCWP",
+            "version": 0
+        },
+        "entity": {
+            "domain": "l-nft.com"
+        },
+        "issuance_prevout": {
+            "txid": "3ceccc68c90ca3ad78ebf183b6340e4a2e58bba1af73c8384bea5580fe78fff1",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "cbc98f2b30497cec2619d49680b1b615ad64b38d38d25b9f988d692e2037147e",
+            "vin": 0
+        },
+        "issuer_pubkey": "026f08b56bd8552ff620f6dada76a3514145f4f0d8618aba66c62a7429a98851bf",
+        "name": "Bitcoin Whitepaper",
+        "precision": 0,
+        "ticker": "BTCWP",
+        "version": 0
+    },
+    "8191af70b3810ade645a3a4f8da6939ad4106587fa744f8e36a6ad1917c44452": {
+        "asset_id": "8191af70b3810ade645a3a4f8da6939ad4106587fa744f8e36a6ad1917c44452",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmWNAftYc6MMppd6W2mrNoKXQWYRSXytKpZN44dhM8JKb6",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Bird",
+            "precision": 0,
+            "ticker": "BIR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "a06bc1f3ed814090262b39944e839570e8738a7f607284af1cc3c10930d5c3db",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "1a708c556cfddbd78e695f3850c01c69c81ec85c3d2b08efab7eb34da0ed8f41",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Bird",
+        "precision": 0,
+        "ticker": "BIR",
+        "version": 0
+    },
+    "81a5ac0f335498b061f9c066a8aab1cab26ce04c024ae29e58a093b1febf4e10": {
+        "asset_id": "81a5ac0f335498b061f9c066a8aab1cab26ce04c024ae29e58a093b1febf4e10",
+        "contract": {
+            "entity": {
+                "domain": "excellion.com"
+            },
+            "issuer_pubkey": "03c88a50034a2599722cd22e7a49a2765919cc75715352860433700f6b3fd24db0",
+            "name": "Excellion Taproot Hat",
+            "precision": 0,
+            "ticker": "E-TAP",
+            "version": 0
+        },
+        "entity": {
+            "domain": "excellion.com"
+        },
+        "issuance_prevout": {
+            "txid": "e1fe744be7ee790023c50968f964c333a58cf1a37f9de18acaa99326b5283caf",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "253fdbf998692229f35c6db23044e724b49a9d875f78885554910fbbe98576dd",
+            "vin": 0
+        },
+        "issuer_pubkey": "03c88a50034a2599722cd22e7a49a2765919cc75715352860433700f6b3fd24db0",
+        "name": "Excellion Taproot Hat",
+        "precision": 0,
+        "ticker": "E-TAP",
         "version": 0
     },
     "81caefa02aee3acb6d923f8f67cdeff3b5dd3aadb231db3f27eeb2bf356e75c2": {
@@ -9385,6 +10439,36 @@
         "ticker": "SGait",
         "version": 0
     },
+    "8a920e550b492cb3c92342437f7c2d0e40625c36c9b4975091c8e55f9889913c": {
+        "asset_id": "8a920e550b492cb3c92342437f7c2d0e40625c36c9b4975091c8e55f9889913c",
+        "contract": {
+            "entity": {
+                "domain": "cryptograffiti.raretoshi.com"
+            },
+            "file": "QmUNLNLBPoxmaQabKGK6ch76TEJZaCGmqM8qwdUoCPVkPB",
+            "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+            "name": "new new black swan",
+            "precision": 0,
+            "ticker": "NNB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "cryptograffiti.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "a7440f31cfe76905094df42fa4fbfcb59967697fa4558aa8ecf7b8884a00a061",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "01843da369570972048daf60c1ac91430367ddb7cafdf5dbfd82ea80f2590ab4",
+            "vin": 0
+        },
+        "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+        "name": "new new black swan",
+        "precision": 0,
+        "ticker": "NNB",
+        "version": 0
+    },
     "8c44e2428926103c0bbd9570a5c59c1995475686fb33cbb476dac312cb46271c": {
         "asset_id": "8c44e2428926103c0bbd9570a5c59c1995475686fb33cbb476dac312cb46271c",
         "contract": {
@@ -9470,6 +10554,39 @@
         "name": "Laika",
         "precision": 0,
         "ticker": "CLaik",
+        "version": 0
+    },
+    "8e4a1c7557280b19786a131b707e9644e0a1cde383c40d14616b8f421c7a5c51": {
+        "asset_id": "8e4a1c7557280b19786a131b707e9644e0a1cde383c40d14616b8f421c7a5c51",
+        "contract": {
+            "entity": {
+                "domain": "7b0207d76af4.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "Gatto",
+            "nft": {
+                "domain": "7b0207d76af4.ngrok.io",
+                "hash": "2d2eb0b78393c896ee261e29b05ca26ecd314eadf06569e7eecbacd8cbc77fac"
+            },
+            "precision": 0,
+            "ticker": "35364",
+            "version": 0
+        },
+        "entity": {
+            "domain": "7b0207d76af4.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "cb877c35151d8bc2189b10366f5b348c3134dcf2c31d8d3cea33dd7e21521458",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "04a524c20e373aa5d2846524df99803f989317f827134466528e0cdc5ca68499",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "Gatto",
+        "precision": 0,
+        "ticker": "35364",
         "version": 0
     },
     "8e9dfee7b4e6a709439024b706f43e0e3380a82b8a615251b32ad7a3457e3b67": {
@@ -9994,6 +11111,36 @@
         "ticker": "NYMPH",
         "version": 0
     },
+    "94e316284ed124c6169279ee4120d1ac589250bc20f623ed9493c3ef2b306286": {
+        "asset_id": "94e316284ed124c6169279ee4120d1ac589250bc20f623ed9493c3ef2b306286",
+        "contract": {
+            "entity": {
+                "domain": "test.raretoshi.com"
+            },
+            "file": "QmeWztnxweyfRyVhcbJNEuVVuYcNXaBRToqrccpZM2cQhZ",
+            "issuer_pubkey": "02ada2a425f6a46869e01187d93517c9b6099389d89a11bb6c797960b89bf92d30",
+            "name": "test",
+            "precision": 0,
+            "ticker": "TESO",
+            "version": 0
+        },
+        "entity": {
+            "domain": "test.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "44b77568e7633dd11da6eb88f1fe1469b1632d90f1bbf6029556b066c0156407",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "206992a3b01c0a1eaf026c9e84ba354c5c1e637f3f1864fb5831b9f4fd4deceb",
+            "vin": 0
+        },
+        "issuer_pubkey": "02ada2a425f6a46869e01187d93517c9b6099389d89a11bb6c797960b89bf92d30",
+        "name": "test",
+        "precision": 0,
+        "ticker": "TESO",
+        "version": 0
+    },
     "9551c237edc59b95a4e77f615657d1a5376d8c3dd2dcd0c46b19169ed18ac54d": {
         "asset_id": "9551c237edc59b95a4e77f615657d1a5376d8c3dd2dcd0c46b19169ed18ac54d",
         "contract": {
@@ -10313,6 +11460,36 @@
         "ticker": "HJiHa",
         "version": 0
     },
+    "98614a5f02ba8120b91c9a58efcccf01afeb5f4af9e3d331d8773c6bf6185c4f": {
+        "asset_id": "98614a5f02ba8120b91c9a58efcccf01afeb5f4af9e3d331d8773c6bf6185c4f",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmWNAftYc6MMppd6W2mrNoKXQWYRSXytKpZN44dhM8JKb6",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Bird with letter",
+            "precision": 0,
+            "ticker": "BWL",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "1e69b979302c7841673a365b01b93754d463a96e08e268e80e4e48dbda000338",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "6f16993d4359ae4c1f89c1c462c544591d992c99d523d17d55c26520a71ead49",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Bird with letter",
+        "precision": 0,
+        "ticker": "BWL",
+        "version": 0
+    },
     "9866e7cf84efd20875d9d4164cbf62dd58892af0e3b4801ea28d43349f423dea": {
         "asset_id": "9866e7cf84efd20875d9d4164cbf62dd58892af0e3b4801ea28d43349f423dea",
         "contract": {
@@ -10398,6 +11575,69 @@
         "name": "Test Local",
         "precision": 0,
         "ticker": "GTeLo",
+        "version": 0
+    },
+    "99304fc0b68ab7622b36fbe6462f4fc38443c6e9057a8a5a8fd0140b94cfa325": {
+        "asset_id": "99304fc0b68ab7622b36fbe6462f4fc38443c6e9057a8a5a8fd0140b94cfa325",
+        "contract": {
+            "entity": {
+                "domain": "lnp-bp.com"
+            },
+            "issuer_pubkey": "0337926090c04da75c43e5672115e4b498fcc95ab4549940c6020fb5d2fce75b7f",
+            "name": "RGB token",
+            "nonce": "80",
+            "precision": 8,
+            "ticker": "L-RGB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lnp-bp.com"
+        },
+        "issuance_prevout": {
+            "txid": "d88c33a579007986c13ce128d81812abd6a6be02169225217c02cfa0e77d05a1",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "62a59ff819be4a065113e2981fe9f994acc449bc706b53bf9b11aa8bcd6cf051",
+            "vin": 0
+        },
+        "issuer_pubkey": "0337926090c04da75c43e5672115e4b498fcc95ab4549940c6020fb5d2fce75b7f",
+        "name": "RGB token",
+        "precision": 8,
+        "ticker": "L-RGB",
+        "version": 0
+    },
+    "998abdc4ccc60b3cdadea37647f055d0308aa060c54edfee80a3b9bbf1e84b95": {
+        "asset_id": "998abdc4ccc60b3cdadea37647f055d0308aa060c54edfee80a3b9bbf1e84b95",
+        "contract": {
+            "entity": {
+                "domain": "e60e53e56657.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "Blue square",
+            "nft": {
+                "domain": "e60e53e56657.ngrok.io",
+                "hash": "871d0e99344842bb959679cb8015ccec1e3b7986e71a0bbf1104c81f87c09439"
+            },
+            "precision": 0,
+            "ticker": "00001",
+            "version": 0
+        },
+        "entity": {
+            "domain": "e60e53e56657.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "a1ed9c38d7fa71588239af9eb6a2ab9d3f2c016b14b70f870336d9262e1a5314",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "8a0c5593d8b53e0468246ac3029e0ad07df7532f63991447eaf44227c6d4a72c",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "Blue square",
+        "precision": 0,
+        "ticker": "00001",
         "version": 0
     },
     "9a085582c72b9e99886ddb238fb50849a89c5eef1476cc25c27deb580f2b8441": {
@@ -10574,6 +11814,36 @@
         "ticker": "FScBe",
         "version": 0
     },
+    "9d09015fdfb51c7af9aca1fbbc0b12470fbdae7e1f5113ad9b68aa1d18f0df52": {
+        "asset_id": "9d09015fdfb51c7af9aca1fbbc0b12470fbdae7e1f5113ad9b68aa1d18f0df52",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmaTZQLCayjHLT6T6pmf2W3A3sKJGqhGHHfFs7C8aK5rRv",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Test",
+            "precision": 0,
+            "ticker": "TESH",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "aed80ec15af7962dd66e62956a2dc80da64b3beeac421b66e7a52e0411297084",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "c76de4f7b4b03eb30c7081839c7d6cdee2a3891082e7231b2fc7418a5cdfd222",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Test",
+        "precision": 0,
+        "ticker": "TESH",
+        "version": 0
+    },
     "9d84d41daa77056731ad558d82e0e5409eea74d648fd5947caef5587fe19de61": {
         "asset_id": "9d84d41daa77056731ad558d82e0e5409eea74d648fd5947caef5587fe19de61",
         "contract": {
@@ -10630,6 +11900,36 @@
         "name": "Disco Blaster",
         "precision": 0,
         "ticker": "GDiBl",
+        "version": 0
+    },
+    "9f36da79ce3b30f87e8ab94ffb4c20a4860d13f74079613181dbec9c92ee686b": {
+        "asset_id": "9f36da79ce3b30f87e8ab94ffb4c20a4860d13f74079613181dbec9c92ee686b",
+        "contract": {
+            "entity": {
+                "domain": "cryptograffiti.raretoshi.com"
+            },
+            "file": "QmXGeiDCHg626dg8XW7hX3SwwtbjDwZV6K3u4npb736PNA",
+            "issuer_pubkey": "02acbd29929059c75112837695a0468eddd33c3a0d36144a6fc4369d624cf17305",
+            "name": "Strikes Twice #1",
+            "precision": 0,
+            "ticker": "STO",
+            "version": 0
+        },
+        "entity": {
+            "domain": "cryptograffiti.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "685708dcc8d0ae896dbe76317ae73225aa77597a078f1dce6129c47359f8f40a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "683c52176e04fa4615b5676f5c3feda65c6e74144ab36f4b9132422ccbd581a8",
+            "vin": 0
+        },
+        "issuer_pubkey": "02acbd29929059c75112837695a0468eddd33c3a0d36144a6fc4369d624cf17305",
+        "name": "Strikes Twice #1",
+        "precision": 0,
+        "ticker": "STO",
         "version": 0
     },
     "a0417603c59bdf3b2e4e22d9fcd45787670c456b809e5631bcde2379f882068e": {
@@ -11560,6 +12860,36 @@
         "ticker": "HSd",
         "version": 0
     },
+    "af04005b05d09ba79c88b606e27bd7ec312fb8ed75807ed426dd9cfbebb770c9": {
+        "asset_id": "af04005b05d09ba79c88b606e27bd7ec312fb8ed75807ed426dd9cfbebb770c9",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmTYTFhrQjuCRBddfoqGQuZaqW3M4JPvqvKEravhpCGKWK",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Test",
+            "precision": 0,
+            "ticker": "TESF",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "b15d3d83c4c7262296897c199c1a383b9dd78de0a5560ff8e67fd33c263ffe8a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "122de0ed254fd01ab67dab4980105e08a886af666ee6d6428b18c0fb1bbc0243",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Test",
+        "precision": 0,
+        "ticker": "TESF",
+        "version": 0
+    },
     "af45f89e52b83d37cfd4a432bfc800317dcb6c308fe1b9e135b0e127f5c2686f": {
         "asset_id": "af45f89e52b83d37cfd4a432bfc800317dcb6c308fe1b9e135b0e127f5c2686f",
         "contract": {
@@ -11645,6 +12975,35 @@
         "name": "Goblin's Friend",
         "precision": 0,
         "ticker": "MGoFr",
+        "version": 0
+    },
+    "aff65f11c6f850990559caf60a284a331c118e98a4493ec05e5c705d9ffbbb4c": {
+        "asset_id": "aff65f11c6f850990559caf60a284a331c118e98a4493ec05e5c705d9ffbbb4c",
+        "contract": {
+            "entity": {
+                "domain": "wintercooled.github.io"
+            },
+            "issuer_pubkey": "027daf703c8a843dfccd45d256a5d1dfca23a9596c22194a1a485f67c88bee585b",
+            "name": "api_test_2",
+            "precision": 2,
+            "ticker": "API-2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wintercooled.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "4388f230b894627d926296d27655947a4d753266630acbba221fe5817588bdd4",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "8ccf1f38ba44b70ae423f88309f3f153a9ff010a8540b2c6a25016991a578960",
+            "vin": 0
+        },
+        "issuer_pubkey": "027daf703c8a843dfccd45d256a5d1dfca23a9596c22194a1a485f67c88bee585b",
+        "name": "api_test_2",
+        "precision": 2,
+        "ticker": "API-2",
         "version": 0
     },
     "b00b0ff0b11ebd47f7c6f57614c046dbbd204e84bf01178baf2be3713a206eb7": {
@@ -11935,6 +13294,129 @@
         "name": "Bull Shotgun",
         "precision": 0,
         "ticker": "GBuSh",
+        "version": 0
+    },
+    "b37f8238d3f01ba8190eeb6894fc087bc449c17ef7345be2c5e03c8ad57425be": {
+        "asset_id": "b37f8238d3f01ba8190eeb6894fc087bc449c17ef7345be2c5e03c8ad57425be",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmNq1ZmNCCn1b8Pn3HE8hA6wSGwBKpVHSkuMwWjRGwrgzh",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Twisted",
+            "precision": 0,
+            "ticker": "TWID",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "eb97c9af733f5dc684d9e73615fc42c5ccde0ea7a985818bcf4ae977dd6977d2",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "62c66c66312547e938e9a0158872e89eca55e28f39a5de0c1e2ee6087ab9da98",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Twisted",
+        "precision": 0,
+        "ticker": "TWID",
+        "version": 0
+    },
+    "b3f5ed2913486826fc58b35e9ae951c1680be6959c6f205c3cbc7fedb36d6b8a": {
+        "asset_id": "b3f5ed2913486826fc58b35e9ae951c1680be6959c6f205c3cbc7fedb36d6b8a",
+        "contract": {
+            "entity": {
+                "domain": "e60e53e56657.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "Merope",
+            "nft": {
+                "domain": "e60e53e56657.ngrok.io",
+                "hash": "efa1cb1132f8cf78c76e724a9a1a7f5c2face2fcad6f15b4d7bd08c0707e102c"
+            },
+            "precision": 0,
+            "ticker": "00002",
+            "version": 0
+        },
+        "entity": {
+            "domain": "e60e53e56657.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "813910e942fc3664a38af4b8bf1e04c767fb464521b0218158640f1c78398733",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "a1ed9c38d7fa71588239af9eb6a2ab9d3f2c016b14b70f870336d9262e1a5314",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "Merope",
+        "precision": 0,
+        "ticker": "00002",
+        "version": 0
+    },
+    "b3f9ca9c30d1ac2b6c7068d9277ca96b86c025837dd7657f37f35a8a88e124f8": {
+        "asset_id": "b3f9ca9c30d1ac2b6c7068d9277ca96b86c025837dd7657f37f35a8a88e124f8",
+        "contract": {
+            "entity": {
+                "domain": "cryptograffiti.raretoshi.com"
+            },
+            "file": "QmUNLNLBPoxmaQabKGK6ch76TEJZaCGmqM8qwdUoCPVkPB",
+            "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+            "name": "Black Swan",
+            "precision": 0,
+            "ticker": "BLAC",
+            "version": 0
+        },
+        "entity": {
+            "domain": "cryptograffiti.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "77adfb82a4ad017beb5e815d8b09cd7ac7e8c76ade6887ec557ae4106bd62fef",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "6a5915b1b19ef3503f5b87a17605f87d0eb074f9f14fac94212223dcc07a56c6",
+            "vin": 0
+        },
+        "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+        "name": "Black Swan",
+        "precision": 0,
+        "ticker": "BLAC",
+        "version": 0
+    },
+    "b5794eb35a4e62f093a076f033f75bc24260d96b8184e4a26baf477af0bf714a": {
+        "asset_id": "b5794eb35a4e62f093a076f033f75bc24260d96b8184e4a26baf477af0bf714a",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmaTZQLCayjHLT6T6pmf2W3A3sKJGqhGHHfFs7C8aK5rRv",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Test",
+            "precision": 0,
+            "ticker": "TESG",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "122de0ed254fd01ab67dab4980105e08a886af666ee6d6428b18c0fb1bbc0243",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "aed80ec15af7962dd66e62956a2dc80da64b3beeac421b66e7a52e0411297084",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Test",
+        "precision": 0,
+        "ticker": "TESG",
         "version": 0
     },
     "b6d57f18f3a5ca30c42480bee6917847e5424aabf156ad7471ab030036794f3f": {
@@ -12751,6 +14233,39 @@
         "ticker": "EURL",
         "version": 0
     },
+    "bfa2a0ef49fc4e5adfe44c0abc4b18ed0cf81861ab8f61cc51441fc0876abe79": {
+        "asset_id": "bfa2a0ef49fc4e5adfe44c0abc4b18ed0cf81861ab8f61cc51441fc0876abe79",
+        "contract": {
+            "entity": {
+                "domain": "e60e53e56657.ngrok.io"
+            },
+            "issuer_pubkey": "03b56ed44add8be9069cf65b368b5c6e46e4868220a3851afddfe95fe3511c74bd",
+            "name": "Luci.",
+            "nft": {
+                "domain": "e60e53e56657.ngrok.io",
+                "hash": "a6b8c2103bd187373017fcd8375d4e5d1aa1bdf93d5ea04907dbae7c1d7b9351"
+            },
+            "precision": 0,
+            "ticker": "8aaef",
+            "version": 0
+        },
+        "entity": {
+            "domain": "e60e53e56657.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "5b6e3d2cad25869d984739d4c62c8e2c25e64747568b3fdd1fdc1f92a8678112",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "c07560437503c13a4a463aa0ee007e58af5dfa2d3b4af18287b966d6bfe33554",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b56ed44add8be9069cf65b368b5c6e46e4868220a3851afddfe95fe3511c74bd",
+        "name": "Luci.",
+        "precision": 0,
+        "ticker": "8aaef",
+        "version": 0
+    },
     "bfa5d3ed8252f555854b32e87caf51d4770ec54e402f42e8e6059e07fc8c6197": {
         "asset_id": "bfa5d3ed8252f555854b32e87caf51d4770ec54e402f42e8e6059e07fc8c6197",
         "contract": {
@@ -12836,6 +14351,36 @@
         "name": "Cipherpunk",
         "precision": 0,
         "ticker": "CCiph",
+        "version": 0
+    },
+    "c0b51210c3192f32d9389b196ef847ff848ada7ca27efaa19e46abbe22e960a6": {
+        "asset_id": "c0b51210c3192f32d9389b196ef847ff848ada7ca27efaa19e46abbe22e960a6",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmTWbKR2JVhvTKg5Xa1FzxN5qJsrrxTuAQ7sKvbZspKJVZ",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Test",
+            "precision": 0,
+            "ticker": "TESC",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "4f47c55f8df247b9ed83c3f85617e72f8d3ab570c4c9384fd5989bb5c491ee84",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "82b57624f312427bdbea77d0961558320fb28b6e70216bb9f823c50e3b0458b9",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Test",
+        "precision": 0,
+        "ticker": "TESC",
         "version": 0
     },
     "c10784d776d6a1b4598042f3353da2a5835fe2033b91ec15f7eef6b1a993af7c": {
@@ -13271,6 +14816,96 @@
         "name": "TALSE",
         "precision": 8,
         "ticker": "OMX",
+        "version": 0
+    },
+    "c5faa77bbf4aef0c7e104d5e64b6c0929b8b1103c8cf9424f58532c3dc4e8c2b": {
+        "asset_id": "c5faa77bbf4aef0c7e104d5e64b6c0929b8b1103c8cf9424f58532c3dc4e8c2b",
+        "contract": {
+            "entity": {
+                "domain": "cryptograffiti.raretoshi.com"
+            },
+            "file": "QmUNLNLBPoxmaQabKGK6ch76TEJZaCGmqM8qwdUoCPVkPB",
+            "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+            "name": "Black Swan",
+            "precision": 0,
+            "ticker": "BLAF",
+            "version": 0
+        },
+        "entity": {
+            "domain": "cryptograffiti.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "a817bf1fa3d61ed0783b15647fdc366a259887995ee741596bad39844daf91b7",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "3846dc972d091094563336155cc0ff39b56a8f457ae767b940a1ac41f78eb53f",
+            "vin": 0
+        },
+        "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+        "name": "Black Swan",
+        "precision": 0,
+        "ticker": "BLAF",
+        "version": 0
+    },
+    "c6c2f9b3d7544c2dcc3ee1c40729d8f47f4c0d176501079fa6a110d8f4b8c1ca": {
+        "asset_id": "c6c2f9b3d7544c2dcc3ee1c40729d8f47f4c0d176501079fa6a110d8f4b8c1ca",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmXm7Fxg1j2VpXgJgGYdJAzJQzckG2gRNZPxbCeTzAWhrG",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Running",
+            "precision": 0,
+            "ticker": "RUNA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "62c66c66312547e938e9a0158872e89eca55e28f39a5de0c1e2ee6087ab9da98",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "aa954263900a886b12ab5aa24bfadcff55e52e9f90d717b3d9734d5302c19edd",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Running",
+        "precision": 0,
+        "ticker": "RUNA",
+        "version": 0
+    },
+    "c6caeefe99e2ed3ad4ac11d975b585e3c7bd7e2a79e2312266d283b451c1397a": {
+        "asset_id": "c6caeefe99e2ed3ad4ac11d975b585e3c7bd7e2a79e2312266d283b451c1397a",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "QmYxJGisRnedfWvTCge1CKpRTrjn6EnwYvsNmJiGFAnuVG",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "Test",
+            "precision": 0,
+            "ticker": "TESB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "186acec479300ac5a85adaa8ac301c2e8c92849938978f4b2348342a3aab8ae8",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "47877cf6d32aa7be443f6c993e3ab36b30032fe4580160b5763199ced5192de5",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "Test",
+        "precision": 0,
+        "ticker": "TESB",
         "version": 0
     },
     "c73962d9774b5ec55725e9fa42fbd1ba1c4122fa3a34a4318ece38aecda19843": {
@@ -13853,6 +15488,39 @@
         "ticker": "L-BIT",
         "version": 0
     },
+    "d26b02d26e9a9afc56a23f1f9df3d5bac0ccf5712c1e7319695ce4199f47c6fc": {
+        "asset_id": "d26b02d26e9a9afc56a23f1f9df3d5bac0ccf5712c1e7319695ce4199f47c6fc",
+        "contract": {
+            "entity": {
+                "domain": "l-nft.com"
+            },
+            "issuer_pubkey": "026f08b56bd8552ff620f6dada76a3514145f4f0d8618aba66c62a7429a98851bf",
+            "name": "Bible NFT",
+            "nft": {
+                "domain": "l-nft.com",
+                "hash": "3decce908614bc0a67f6847e89e56ae1017318e558e4727d8c83595daeec01fe"
+            },
+            "precision": 0,
+            "ticker": "BIBLE",
+            "version": 0
+        },
+        "entity": {
+            "domain": "l-nft.com"
+        },
+        "issuance_prevout": {
+            "txid": "9bc084c03ce669e55df44baba4fc40da98012c136544f05f950c0c1749a3eaff",
+            "vout": 5
+        },
+        "issuance_txin": {
+            "txid": "3ceccc68c90ca3ad78ebf183b6340e4a2e58bba1af73c8384bea5580fe78fff1",
+            "vin": 0
+        },
+        "issuer_pubkey": "026f08b56bd8552ff620f6dada76a3514145f4f0d8618aba66c62a7429a98851bf",
+        "name": "Bible NFT",
+        "precision": 0,
+        "ticker": "BIBLE",
+        "version": 0
+    },
     "d2872f9cfd905e647b86158ac3c40453a947b8d343cb05ba05a0a8cb1c538582": {
         "asset_id": "d2872f9cfd905e647b86158ac3c40453a947b8d343cb05ba05a0a8cb1c538582",
         "contract": {
@@ -13880,6 +15548,36 @@
         "name": "FUCK",
         "precision": 8,
         "ticker": "FUCK",
+        "version": 0
+    },
+    "d311ffc2ec80570d00e9b5d88cbfb2a60b8c4a4e15c10a78d2ca4eb068b658ab": {
+        "asset_id": "d311ffc2ec80570d00e9b5d88cbfb2a60b8c4a4e15c10a78d2ca4eb068b658ab",
+        "contract": {
+            "entity": {
+                "domain": "cryptograffiti.raretoshi.com"
+            },
+            "file": "QmUNLNLBPoxmaQabKGK6ch76TEJZaCGmqM8qwdUoCPVkPB",
+            "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+            "name": "Black Swan",
+            "precision": 0,
+            "ticker": "BLAD",
+            "version": 0
+        },
+        "entity": {
+            "domain": "cryptograffiti.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "6a5915b1b19ef3503f5b87a17605f87d0eb074f9f14fac94212223dcc07a56c6",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "56f61daf07e25eba0cc5c70ef5fbdab3a919c56e59506e300137f9cf9c7f2206",
+            "vin": 0
+        },
+        "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+        "name": "Black Swan",
+        "precision": 0,
+        "ticker": "BLAD",
         "version": 0
     },
     "d42261343a91ea3f758dbe2d734feae1692dce70003c4d66e270dad208fd9db8": {
@@ -14025,6 +15723,39 @@
         "name": "Liquid Webinar Coin",
         "precision": 0,
         "ticker": "LWC",
+        "version": 0
+    },
+    "d7dd1e96d2aa8a82f89924d1d4ff8136e2184e150dc6be7d33da9dd3ce7f6eb7": {
+        "asset_id": "d7dd1e96d2aa8a82f89924d1d4ff8136e2184e150dc6be7d33da9dd3ce7f6eb7",
+        "contract": {
+            "entity": {
+                "domain": "l-nft.com"
+            },
+            "issuer_pubkey": "035a5aee3c1a163825ed6a63a13ec32a6910254b58338da7d7cc5aeb082812eeb2",
+            "name": "Bible NFT url",
+            "nft": {
+                "domain": "l-nft.com",
+                "hash": "77f24c98103f8f661d4cea3c670a4999b79491023c505ce41f7294678fdf79dc"
+            },
+            "precision": 0,
+            "ticker": "BIBu",
+            "version": 0
+        },
+        "entity": {
+            "domain": "l-nft.com"
+        },
+        "issuance_prevout": {
+            "txid": "59bd2b64c1ab7b59142facfff5920100409c92aae4183ea9333936d2327b4eee",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "64fe6191b64a545c3b9a7ba3e11efbc81495dcb35340f0ec91f05d3bd1e2956d",
+            "vin": 0
+        },
+        "issuer_pubkey": "035a5aee3c1a163825ed6a63a13ec32a6910254b58338da7d7cc5aeb082812eeb2",
+        "name": "Bible NFT url",
+        "precision": 0,
+        "ticker": "BIBu",
         "version": 0
     },
     "d80b20da24e381f6cb7a0eda2b59844e69f2ddc5c2737c523f8216e740d242d8": {
@@ -14549,6 +16280,36 @@
         "ticker": "KRWMA",
         "version": 0
     },
+    "e493365cf7c50875bfec79d0724a39b715b8d338660e431617743abf51e82696": {
+        "asset_id": "e493365cf7c50875bfec79d0724a39b715b8d338660e431617743abf51e82696",
+        "contract": {
+            "entity": {
+                "domain": "cryptograffiti.raretoshi.com"
+            },
+            "file": "QmUNLNLBPoxmaQabKGK6ch76TEJZaCGmqM8qwdUoCPVkPB",
+            "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+            "name": "new new black swan",
+            "precision": 0,
+            "ticker": "NNBA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "cryptograffiti.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "01843da369570972048daf60c1ac91430367ddb7cafdf5dbfd82ea80f2590ab4",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "7e2c844433e93fb372a9a18c36e1245bd73b71ef286f78993f1a0b3a03c6f31d",
+            "vin": 0
+        },
+        "issuer_pubkey": "0323c227897cb2b4db56be3667f24b9455538c3705def6af1aab25af144213af48",
+        "name": "new new black swan",
+        "precision": 0,
+        "ticker": "NNBA",
+        "version": 0
+    },
     "e4b3f2f0eddd958be230b2174a4964ec915f1a2501f2671504bcb394e30748bf": {
         "asset_id": "e4b3f2f0eddd958be230b2174a4964ec915f1a2501f2671504bcb394e30748bf",
         "contract": {
@@ -14781,6 +16542,36 @@
         "ticker": "AMeWa",
         "version": 0
     },
+    "e7cd2a11b6eb64c0a907a4ea1e3ef6fff7f480df590649f366a095d98464631d": {
+        "asset_id": "e7cd2a11b6eb64c0a907a4ea1e3ef6fff7f480df590649f366a095d98464631d",
+        "contract": {
+            "entity": {
+                "domain": "test.raretoshi.com"
+            },
+            "file": "QmVFAMfrSwk9LgfXJPR8c9CfWFSttjtnuvrZ6ecPiXQuWi",
+            "issuer_pubkey": "02ada2a425f6a46869e01187d93517c9b6099389d89a11bb6c797960b89bf92d30",
+            "name": "test",
+            "precision": 0,
+            "ticker": "TESN",
+            "version": 0
+        },
+        "entity": {
+            "domain": "test.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "b0ed91b98cd01c561752f54e9e4c778e01ff7d05ef7a423e7c55e4cd7b24e05e",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "7330bcd851314d16e1f9afd32d2592c674cd36184bde32470d8ee78ace46ebc7",
+            "vin": 0
+        },
+        "issuer_pubkey": "02ada2a425f6a46869e01187d93517c9b6099389d89a11bb6c797960b89bf92d30",
+        "name": "test",
+        "precision": 0,
+        "ticker": "TESN",
+        "version": 0
+    },
     "e7d870d0c8942782a00f1ed17cec50c1b3e087221bf6666cc0ff29691904ef29": {
         "asset_id": "e7d870d0c8942782a00f1ed17cec50c1b3e087221bf6666cc0ff29691904ef29",
         "contract": {
@@ -14924,6 +16715,39 @@
         "name": "Wasabi Magic",
         "precision": 0,
         "ticker": "BWaMa",
+        "version": 0
+    },
+    "e97eb5d75ec4403969d1828f9d7f6755dd86fcc3402c01b01e562eb59ccdeeb6": {
+        "asset_id": "e97eb5d75ec4403969d1828f9d7f6755dd86fcc3402c01b01e562eb59ccdeeb6",
+        "contract": {
+            "entity": {
+                "domain": "l-nft.com"
+            },
+            "issuer_pubkey": "035a5aee3c1a163825ed6a63a13ec32a6910254b58338da7d7cc5aeb082812eeb2",
+            "name": "String based NFT",
+            "nft": {
+                "domain": "l-nft.com",
+                "hash": "869d119ae67eb7f01ccc6c975f62fde3b5dbe515401a049cd02efa463be7abdd"
+            },
+            "precision": 0,
+            "ticker": "STR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "l-nft.com"
+        },
+        "issuance_prevout": {
+            "txid": "cba1947c0b794771757878ded62b7cefc01ee06c081a08d75a7d609b90e6984d",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "d88c33a579007986c13ce128d81812abd6a6be02169225217c02cfa0e77d05a1",
+            "vin": 0
+        },
+        "issuer_pubkey": "035a5aee3c1a163825ed6a63a13ec32a6910254b58338da7d7cc5aeb082812eeb2",
+        "name": "String based NFT",
+        "precision": 0,
+        "ticker": "STR",
         "version": 0
     },
     "e9fe308f795e775a88f281e9a30224c97ac6e63e59cd428259501f6dd958293e": {
@@ -16258,6 +18082,36 @@
         "name": "Liquid Oil Futures",
         "precision": 2,
         "ticker": "CLL",
+        "version": 0
+    },
+    "fe4146a76442c9b0108fc4fb1bad4688871adf4064beea3760f924ceb04e5b7c": {
+        "asset_id": "fe4146a76442c9b0108fc4fb1bad4688871adf4064beea3760f924ceb04e5b7c",
+        "contract": {
+            "entity": {
+                "domain": "adam.raretoshi.com"
+            },
+            "file": "Qmc1zzB4hZQxXuqmex5DeBJeE5uBnDonhgCx3Z8YH38SLr",
+            "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+            "name": "bongos",
+            "precision": 0,
+            "ticker": "BON",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adam.raretoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "8b61822d86b73c472edbdc1836bafe3a5e324450940ed6e12508318b7962d695",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "c81feed50bb7ddd46109545f63f8b2e1c4f61140248eab11d64eb04f2394c05c",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c3bacbfa8b54fde3e318a9c10e07a65b0a9b1c7bc01ad210297b217d3859e383",
+        "name": "bongos",
+        "precision": 0,
+        "ticker": "BON",
         "version": 0
     },
     "ff6a820d6ff4966eba0ac58ba6ba9da5186a31f673399266bd40e5f0d3ad28ab": {
