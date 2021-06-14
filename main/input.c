@@ -69,7 +69,7 @@ static inline void wheel_next()
     }
 }
 
-#ifdef CONFIG_BOARD_TYPE_JADE
+#if defined(CONFIG_BOARD_TYPE_JADE)
 // Original Jade v1.0 hardware has a rotary-encoder/wheel
 
 // Set to true to enable tracking of rotary encoder at half step resolution
@@ -140,8 +140,12 @@ void wheel_init()
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create wheel_watcher task, xTaskCreatePinnedToCore() returned %d", retval);
 }
-#else
+#elif defined(BOARD_TYPE_TTGO_TDISPLAY)
 // wheel_init() to mock wheel with buttons
+
+// Slightly complicated to allow both-buttons pressed to mock selection button
+// To acheive this we only action the button when it is released - and we check
+// to see if the other button is depressed at the time.
 static bool button_A_pressed = false;
 static bool button_B_pressed = false;
 
@@ -177,4 +181,21 @@ void wheel_init()
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_pressed, &button_B_pressed);
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_released, &button_B_pressed);
 }
-#endif // CONFIG_BOARD_TYPE_JADE
+#else
+// wheel_init() to mock wheel with buttons
+// Long press buttons mocks wheel spin (multiple events)
+static void button_A_pressed(void* arg) { wheel_prev(); }
+
+static void button_B_pressed(void* arg) { wheel_next(); }
+
+void wheel_init()
+{
+    button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
+    iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_PUSH, button_A_pressed, NULL);
+    iot_button_set_serial_cb(btn_handle_prev, 1, 100 / portTICK_RATE_MS, button_A_pressed, NULL);
+
+    button_handle_t btn_handle_next = iot_button_create(CONFIG_INPUT_BTN_B, BUTTON_ACTIVE_LOW);
+    iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_B_pressed, NULL);
+    iot_button_set_serial_cb(btn_handle_next, 1, 100 / portTICK_RATE_MS, button_B_pressed, NULL);
+}
+#endif // CONFIG_BOARD_TYPE_xxx
