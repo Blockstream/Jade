@@ -45,25 +45,12 @@ void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
     gui_set_activity_initial_selection(*activity_ptr, btns[1]);
 }
 
-// TODO - use below to offer 12 & 24 word option for new mnemonic
-// when that is desired.  At the moment only option is 24-words.
-/*
 void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
 {
     const char* btn_msg[] = { "12 words", "24 words" };
     const int32_t btn_ev_id[] = { BTN_NEW_MNEMONIC_12_BEGIN, BTN_NEW_MNEMONIC_24_BEGIN };
     make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
         "A new recovery phrase will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", 2, btn_msg,
-        NULL, btn_ev_id);
-}
-*/
-
-void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
-{
-    const char* btn_msg[] = { "24 words" };
-    const int32_t btn_ev_id[] = { BTN_NEW_MNEMONIC_24_BEGIN };
-    make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
-        "A new recovery phrase will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", 1, btn_msg,
         NULL, btn_ev_id, NULL);
 }
 
