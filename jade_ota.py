@@ -331,7 +331,7 @@ if __name__ == '__main__':
                         action='store',
                         dest='hwtarget',
                         help='Hardware target for downloading firmware',
-                        choices=['jade', 'jadedev', 'm5stack'],
+                        choices=['jade', 'jadedev', 'jade1.1', 'jade1.1dev'],
                         default=None)
     parser.add_argument('--auto-select-fw',
                         action='store',
