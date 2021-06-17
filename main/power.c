@@ -131,7 +131,7 @@ static esp_err_t power_display_off()
 }
 #endif // CONFIG_BOARD_TYPE_JADE_V1_1
 
-static esp_err_t power_backlight_on()
+esp_err_t power_backlight_on()
 {
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
     return write_command(0x91, 0xc0);
@@ -140,7 +140,7 @@ static esp_err_t power_backlight_on()
 #endif
 }
 
-static esp_err_t power_backlight_off()
+esp_err_t power_backlight_off()
 {
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
     return write_command(0x91, 0x00);
@@ -180,9 +180,6 @@ esp_err_t power_init()
     power_open_drain_gpio();
 
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
-    // Set screen blck (GPIO0-LED) to 3.0V
-    power_backlight_on();
-
     // Set GPIO0 to LDO
     power_gpio0_to_ldo();
 
@@ -222,7 +219,7 @@ esp_err_t power_screen_on()
     power_display_on();
     vTaskDelay(200 / portTICK_PERIOD_MS);
 #endif
-    return power_backlight_on();
+    return power_backlight_off();
 }
 
 esp_err_t power_screen_off()
@@ -381,6 +378,9 @@ esp_err_t power_shutdown()
 
 esp_err_t power_screen_on() { return ESP_OK; }
 esp_err_t power_screen_off() { return ESP_OK; }
+
+esp_err_t power_backlight_on() { return ESP_OK; }
+esp_err_t power_backlight_off() { return ESP_OK; }
 
 esp_err_t power_camera_on() { return ESP_OK; }
 esp_err_t power_camera_off() { return ESP_OK; }

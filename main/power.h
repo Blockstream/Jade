@@ -8,6 +8,9 @@
 esp_err_t power_init();
 esp_err_t power_shutdown();
 
+esp_err_t power_backlight_on();
+esp_err_t power_backlight_off();
+
 esp_err_t power_screen_on();
 esp_err_t power_screen_off();
 

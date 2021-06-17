@@ -80,6 +80,7 @@ gui_activity_t* display_splash()
 
     // set the current activity and draw it on screen
     gui_set_current_activity(act);
+    power_backlight_on();
     return act;
 }
 
