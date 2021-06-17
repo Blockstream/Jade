@@ -4,56 +4,8 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-static void gen_btns(gui_view_node_t* parent, const size_t num_buttons, const char* msgs[], const uint32_t fonts[],
-    const int32_t ev_ids[], gui_view_node_t* out_btns[])
-{
-    JADE_ASSERT(parent);
-    JADE_ASSERT(msgs);
-    JADE_ASSERT(ev_ids);
-    // NOTE: fonts can be NULL if all GUI_DEFAULT_FONT
-
-    gui_view_node_t* hsplit = NULL;
-    switch (num_buttons) {
-    case 1:
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 1, 100);
-        break;
-    case 2:
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        break;
-    case 3:
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-        break;
-    default:
-        JADE_ASSERT_MSG(false, "Unsupported number of buttons on screen");
-    }
-
-    gui_set_parent(hsplit, parent);
-
-    for (size_t i = 0; i < num_buttons; ++i) {
-        gui_view_node_t* btn;
-        if (ev_ids[i] == GUI_BUTTON_EVENT_NONE) {
-            gui_make_fill(&btn, TFT_BLACK);
-        } else {
-            gui_make_button(&btn, TFT_BLACK, ev_ids[i], NULL);
-        }
-        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-
-        if (out_btns) {
-            out_btns[i] = btn;
-        }
-
-        gui_view_node_t* textbtn;
-        gui_make_text(&textbtn, msgs[i], TFT_WHITE);
-        if (fonts) {
-            gui_set_text_font(textbtn, fonts[i]);
-        }
-        gui_set_parent(textbtn, btn);
-        gui_set_align(textbtn, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    }
-}
+void gen_btns(gui_view_node_t* parent, const size_t num_buttons, const char* msgs[], const uint32_t fonts[],
+    const int32_t ev_ids[], gui_view_node_t* out_btns[]);
 
 static void make_mnemonic_screen(gui_activity_t** activity_ptr, const char* header, const char* msg,
     const size_t num_btns, const char* btn_msg[], const uint32_t btn_font[], const int32_t btn_ev_id[],

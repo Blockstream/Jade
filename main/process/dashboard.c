@@ -61,6 +61,11 @@ void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, b
 void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, const char* additional);
 void make_settings_screen(
     gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, const size_t nBtns);
+
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+void make_legal_screen(gui_activity_t** act_ptr);
+#endif
+
 void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** ble_status_textbox);
 void make_device_screen(
     gui_activity_t** act_ptr, const char* power_status, const char* mac, const char* firmware_version);
@@ -439,6 +444,29 @@ void offer_emergency_restore()
     }
 }
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+static void handle_legal()
+{
+    gui_activity_t* first_activity = NULL;
+    make_legal_screen(&first_activity);
+    gui_set_current_activity(first_activity);
+
+    wait_event_data_t* wait_data = make_wait_event_data();
+    esp_event_handler_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data);
+    int32_t ev_id;
+    while (true) {
+        ev_id = ESP_EVENT_ANY_ID;
+        if (sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, wait_data, NULL, &ev_id, NULL, 0) != ESP_OK) {
+            continue;
+        }
+        if (ev_id == BTN_INFO_EXIT) {
+            free_wait_event_data(wait_data);
+            return;
+        }
+    }
+}
+#endif
+
 void offer_startup_options()
 {
     gui_activity_t* act;
@@ -452,6 +480,10 @@ void offer_startup_options()
         return offer_jade_reset();
     case BTN_SETTINGS_EMERGENCY_RESTORE:
         return offer_emergency_restore();
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    case BTN_SETTINGS_LEGAL:
+        return handle_legal();
+#endif
     default:
         break;
     }
@@ -673,8 +705,18 @@ static void handle_device()
                 await_error_activity("Failed to get root xpub");
             }
             gui_set_current_activity(act);
+            break;
         }
 #endif // CONFIG_DEBUG_MODE
+
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+        case BTN_INFO_LEGAL: {
+            handle_legal();
+            gui_set_current_activity(act);
+            break;
+        }
+
+#endif
 
         default:
             break;

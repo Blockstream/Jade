@@ -2,6 +2,67 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#include "../logo/ce.c"
+#include "../logo/fcc.c"
+#include "../logo/weee.c"
+#endif
+
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#include "../logo/telec.c"
+#endif
+
+void gen_btns(gui_view_node_t* parent, const size_t num_buttons, const char* msgs[], const uint32_t fonts[],
+    const int32_t ev_ids[], gui_view_node_t* out_btns[])
+{
+    JADE_ASSERT(parent);
+    JADE_ASSERT(msgs);
+    JADE_ASSERT(ev_ids);
+    // NOTE: fonts can be NULL if all GUI_DEFAULT_FONT
+
+    gui_view_node_t* hsplit = NULL;
+    switch (num_buttons) {
+    case 1:
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 1, 100);
+        break;
+    case 2:
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+        break;
+    case 3:
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
+        break;
+    default:
+        JADE_ASSERT_MSG(false, "Unsupported number of buttons on screen");
+    }
+
+    gui_set_parent(hsplit, parent);
+
+    for (size_t i = 0; i < num_buttons; ++i) {
+        gui_view_node_t* btn;
+        if (ev_ids[i] == GUI_BUTTON_EVENT_NONE) {
+            gui_make_fill(&btn, TFT_BLACK);
+        } else {
+            gui_make_button(&btn, TFT_BLACK, ev_ids[i], NULL);
+        }
+        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, hsplit);
+
+        if (out_btns) {
+            out_btns[i] = btn;
+        }
+
+        gui_view_node_t* textbtn;
+        gui_make_text(&textbtn, msgs[i], TFT_WHITE);
+        if (fonts) {
+            gui_set_text_font(textbtn, fonts[i]);
+        }
+        gui_set_parent(textbtn, btn);
+        gui_set_align(textbtn, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    }
+}
+
 void make_startup_options_screen(gui_activity_t** act_ptr)
 {
     JADE_ASSERT(act_ptr);
@@ -10,7 +71,11 @@ void make_startup_options_screen(gui_activity_t** act_ptr)
     gui_make_activity(&act, true, "Advanced Options");
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 33, 33, 33);
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+#else
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
+#endif
     gui_set_parent(vsplit, act->root_node);
 
     // Buttons: Reset, One-time wallet, and Continue
@@ -38,17 +103,31 @@ void make_startup_options_screen(gui_activity_t** act_ptr)
     gui_set_align(text2, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text2, btn2);
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     gui_view_node_t* btn3;
-    gui_make_button(&btn3, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
+    gui_make_button(&btn3, TFT_BLACK, BTN_SETTINGS_LEGAL, NULL);
     gui_set_borders(btn3, TFT_BLACK, 2, GUI_BORDER_ALL);
     gui_set_borders_selected_color(btn3, TFT_BLOCKSTREAM_GREEN);
     gui_set_margins(btn3, GUI_MARGIN_ALL_DIFFERENT, 4, 25, 0, 25);
     gui_set_parent(btn3, vsplit);
 
     gui_view_node_t* text3;
-    gui_make_text(&text3, "Exit", TFT_WHITE);
+    gui_make_text(&text3, "Legal", TFT_WHITE);
     gui_set_align(text3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text3, btn3);
+#endif
+
+    gui_view_node_t* btn4;
+    gui_make_button(&btn4, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
+    gui_set_borders(btn4, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn4, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(btn4, GUI_MARGIN_ALL_DIFFERENT, 4, 25, 0, 25);
+    gui_set_parent(btn4, vsplit);
+
+    gui_view_node_t* text4;
+    gui_make_text(&text4, "Exit", TFT_WHITE);
+    gui_set_align(text4, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(text4, btn4);
 
     *act_ptr = act;
 }
@@ -505,6 +584,163 @@ void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view
     *act_ptr = act;
 }
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#define JADE_FCC_ID "2AWI3BLOCKSTREAMJD2"
+#define MAX_LEGAL_PAGE 5
+#else
+#define JADE_FCC_ID "2AWI3BLOCKSTREAMJD1"
+#define MAX_LEGAL_PAGE 4
+#endif
+
+static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_view_node_t* out_btns[])
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(out_btns);
+
+    gui_make_activity(activity_ptr, true, "Certifications");
+    gui_activity_t* act = *activity_ptr;
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 63, 37);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_set_parent(vsplit, act->root_node);
+
+    switch (legal_page) {
+    case 0: {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 35, 65);
+        gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+        gui_set_parent(hsplit, vsplit);
+
+        gui_view_node_t* logo_node;
+        gui_make_picture(&logo_node, &fcc);
+        gui_set_parent(logo_node, hsplit);
+        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+
+        gui_view_node_t* subvsplit;
+        gui_make_vsplit(&subvsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+        gui_set_parent(subvsplit, hsplit);
+
+        gui_view_node_t* title;
+        gui_make_text(&title, "FCC ID", TFT_WHITE);
+        gui_set_parent(title, subvsplit);
+        gui_set_align(title, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+
+        gui_view_node_t* key;
+        gui_make_text(&key, JADE_FCC_ID, TFT_WHITE);
+        gui_set_parent(key, subvsplit);
+        gui_set_align(key, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        break;
+    }
+    case 1: {
+        gui_view_node_t* key;
+        gui_make_text(&key,
+            "This device complies with Part\n"
+            "15 of the FCC Rules. Operation\n"
+            "is subject to the following two\n"
+            "conditions: (1) this device may\n"
+            "not cause harmful interference",
+            TFT_WHITE);
+        gui_set_parent(key, vsplit);
+        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        break;
+    }
+    case 2: {
+        gui_view_node_t* key;
+        gui_make_text(&key,
+            "and (2) this device must accept\n"
+            "any interference received,\n"
+            "including interference that may\n"
+            "cause undesired operation.",
+            TFT_WHITE);
+        gui_set_parent(key, vsplit);
+        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        break;
+    }
+    case 3: {
+        gui_view_node_t* logo_node;
+        gui_make_picture(&logo_node, &ce);
+        gui_set_parent(logo_node, vsplit);
+        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        break;
+    }
+    case 4: {
+        gui_view_node_t* logo_node;
+        gui_make_picture(&logo_node, &weee);
+        gui_set_parent(logo_node, vsplit);
+        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        break;
+    }
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    case 5: {
+        gui_view_node_t* logo_node;
+        gui_make_picture(&logo_node, &telec);
+        gui_set_parent(logo_node, vsplit);
+        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        break;
+    }
+#endif
+    default: {
+        JADE_ASSERT(false);
+    }
+
+    } // switch-case
+
+    if (legal_page == 0) {
+        // First page, the 'back' button raises 'exit' event
+        const char* btn_msg[2] = { "Exit", ">" };
+        const uint32_t btn_fonts[2] = { GUI_DEFAULT_FONT, JADE_SYMBOLS_16x16_FONT };
+        const int32_t btn_ev_id[2] = { BTN_INFO_EXIT, BTN_LEGAL_NEXT };
+        gen_btns(vsplit, 2, btn_msg, btn_fonts, btn_ev_id, out_btns);
+    } else if (legal_page == MAX_LEGAL_PAGE) {
+        // Last page, the tick button raises 'exit' event
+        const char* btn_msg[2] = { "=", "Exit" };
+        const uint32_t btn_fonts[2] = { JADE_SYMBOLS_16x16_FONT, GUI_DEFAULT_FONT };
+        const int32_t btn_ev_id[2] = { BTN_LEGAL_PREV, BTN_INFO_EXIT };
+        gen_btns(vsplit, 2, btn_msg, btn_fonts, btn_ev_id, out_btns);
+    } else {
+        // Otherwise 'prev' and 'next' events
+        const char* btn_msg[2] = { "=", ">" };
+        const uint32_t btn_fonts[2] = { JADE_SYMBOLS_16x16_FONT, JADE_SYMBOLS_16x16_FONT };
+        const int32_t btn_ev_id[2] = { BTN_LEGAL_PREV, BTN_LEGAL_NEXT };
+        gen_btns(vsplit, 2, btn_msg, btn_fonts, btn_ev_id, out_btns);
+    }
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 0);
+
+    // Set the intially selected item to the next/verify (ie. the last) button
+    gui_set_activity_initial_selection(*activity_ptr, out_btns[1]);
+}
+
+void make_legal_screen(gui_activity_t** first_activity_ptr)
+{
+    JADE_ASSERT(first_activity_ptr);
+
+    gui_activity_t* prev_act = NULL;
+    gui_view_node_t* prev_btn = NULL;
+
+    for (size_t j = 0; j <= MAX_LEGAL_PAGE; j++) {
+        gui_view_node_t* btns[2];
+        gui_activity_t* this = NULL;
+
+        make_legal_page(&this, j, btns);
+
+        if (prev_act) {
+            gui_connect_button_activity(btns[0], prev_act);
+            gui_connect_button_activity(prev_btn, this);
+        }
+
+        if (!*first_activity_ptr) {
+            *first_activity_ptr = this;
+        }
+
+        prev_act = this;
+        prev_btn = btns[1];
+    }
+}
+#endif
+
 void make_device_screen(
     gui_activity_t** act_ptr, const char* power_status, const char* mac, const char* firmware_version)
 {
@@ -567,8 +803,36 @@ void make_device_screen(
     }
 
 #ifdef CONFIG_DEBUG_MODE
-    // 'Show xpub' button, as well as 'Exit'
+    // Shows 'XPUB', 'Legal' (only for jade 1 and 1.1) and 'Exit' buttons
     {
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
+        gui_set_parent(hsplit, vsplit);
+
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_INFO_SHOW_XPUB, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+            gui_view_node_t* text;
+            gui_make_text(&text, "XPUB", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_INFO_LEGAL, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+            gui_view_node_t* text;
+            gui_make_text(&text, "Legal", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+#else
         gui_view_node_t* hsplit;
         gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
         gui_set_parent(hsplit, vsplit);
@@ -580,10 +844,11 @@ void make_device_screen(
             gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
             gui_set_parent(btn, hsplit);
             gui_view_node_t* text;
-            gui_make_text(&text, "Show XPUB", TFT_WHITE);
+            gui_make_text(&text, "XPUB", TFT_WHITE);
             gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
             gui_set_parent(text, btn);
         }
+#endif
         {
             gui_view_node_t* btn;
             gui_make_button(&btn, TFT_BLACK, BTN_INFO_EXIT, NULL);
@@ -597,29 +862,40 @@ void make_device_screen(
         }
     }
 #else
-    // No 'Show xpub' button, only 'Exit'
+    // No 'XPUB' button, only 'Legal' (for jade 1 and 1.1) and 'Exit'
     {
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
         gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
         gui_set_parent(hsplit, vsplit);
 
-        gui_view_node_t* fillL;
-        gui_make_fill(&fillL, TFT_BLACK);
-        gui_set_parent(fillL, hsplit);
-
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_INFO_EXIT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Exit", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-
-        gui_view_node_t* fillR;
-        gui_make_fill(&fillR, TFT_BLACK);
-        gui_set_parent(fillR, hsplit);
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_INFO_LEGAL, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+            gui_view_node_t* text;
+            gui_make_text(&text, "Legal", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+#else
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 1, 100);
+        gui_set_parent(hsplit, vsplit);
+#endif
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_INFO_EXIT, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+            gui_view_node_t* text;
+            gui_make_text(&text, "Exit", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
     }
 #endif // CONFIG_DEBUG_MODE
 
