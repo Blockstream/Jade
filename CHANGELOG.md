@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New Emergency Restore / Temporary Wallet - can be used without persistence or pinserver interaction
 - New 'offline' setup of Jade wallet/mnemonic, tweaks to setup screens
+- Add support for user-set bespoke pinserver
 - Add support for new Jade hardware
 - Add support for running under QEMU emulator
 - Add configs for M5stack basic/core, and TTGO-TDisplay boards
