@@ -101,7 +101,7 @@ void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
     const char* btn_msg[] = { "12 words", "24 words" };
     const int32_t btn_ev_id[] = { BTN_NEW_MNEMONIC_12_BEGIN, BTN_NEW_MNEMONIC_24_BEGIN };
     make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
-        "A new wallet mnemonic will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", 2, btn_msg,
+        "A new recovery phrase will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", 2, btn_msg,
         NULL, btn_ev_id);
 }
 */
@@ -111,7 +111,7 @@ void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
     const char* btn_msg[] = { "24 words" };
     const int32_t btn_ev_id[] = { BTN_NEW_MNEMONIC_24_BEGIN };
     make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
-        "A new wallet mnemonic will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", 1, btn_msg,
+        "A new recovery phrase will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", 1, btn_msg,
         NULL, btn_ev_id, NULL);
 }
 
@@ -137,7 +137,7 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, const size_t nword
     JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(first_index % 4 == 0);
 
-    gui_make_activity(activity_ptr, true, "Mnemonic");
+    gui_make_activity(activity_ptr, true, "Recovery Phrase");
     gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
@@ -247,7 +247,7 @@ static void make_confirm_mnemonic_page(
 
     JADE_LOGD("Confirm page index %u, prev %s, next %s", confirm_index, word_prev, word_next);
 
-    gui_make_activity(activity_ptr, true, "Mnemonic check");
+    gui_make_activity(activity_ptr, true, "Backup check");
     gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
@@ -453,7 +453,7 @@ void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_nod
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(textbox);
 
-    gui_make_activity(activity_ptr, true, "Recover mnemonic");
+    gui_make_activity(activity_ptr, true, "Recover wallet");
     gui_activity_t* act = *activity_ptr;
     act->selectables_wrap = true; // allow the button cursor to wrap
 
