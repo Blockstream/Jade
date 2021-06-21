@@ -538,6 +538,11 @@ static void handle_sleep()
 // Reset BLE pairing data
 static void handle_ble_reset()
 {
+    if (!ble_enabled()) {
+        await_message_activity("You must enable Bluetooth\nbefore accessing the pairing\ninformation.");
+        return;
+    }
+
     const bool bReset = await_yesno_activity("BLE Reset", "\nDo you want to reset all\nbonded devices?");
     if (bReset) {
         if (!ble_remove_all_devices()) {
