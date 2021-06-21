@@ -402,7 +402,7 @@ void make_display_output_activity(const char* network, const struct wally_tx* tx
             continue;
         }
 
-        char amount[16];
+        char amount[32];
         int ret = snprintf(amount, sizeof(amount), "%.08f", 1.0 * out->satoshi / 1e8);
         JADE_ASSERT(ret > 0 && ret < sizeof(amount));
 
@@ -489,7 +489,7 @@ void make_display_elements_output_activity(const char* network, const struct wal
         JADE_ASSERT(ret > 0 && ret < sizeof(asset_str));
         wally_free_string(asset_id_hex);
 
-        char amount[16];
+        char amount[32];
         const int precision = pInfo ? pInfo->precision : 0;
         JADE_ASSERT(precision < 10);
         const uint32_t scale_factor = pow(10, precision);
@@ -545,7 +545,7 @@ void make_display_final_confirmation_activity(
     JADE_ASSERT(tx);
     JADE_ASSERT(activity);
 
-    char fee_str[16];
+    char fee_str[32];
     const int ret = snprintf(fee_str, sizeof(fee_str), "%.08f", 1.0 * fee / 1e8);
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
@@ -563,7 +563,7 @@ void make_display_elements_final_confirmation_activity(
     JADE_ASSERT(tx);
     JADE_ASSERT(activity);
 
-    char fee_str[16];
+    char fee_str[32];
     const int ret = snprintf(fee_str, sizeof(fee_str), "%.08f", 1.0 * fee / 1e8);
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
