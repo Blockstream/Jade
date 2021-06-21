@@ -359,7 +359,11 @@ bool usb_connected()
     bool is_usb_connected = false;
     uint8_t buf;
     I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x00, &buf, 1));
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    is_usb_connected = buf & 0b10000000;
+#else
     is_usb_connected = buf & 0b00100000;
+#endif
     return is_usb_connected;
 }
 
