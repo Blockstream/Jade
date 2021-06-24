@@ -33,9 +33,14 @@ def write_asset(asset, f):
         # single-digit here just as a sanity check.  If we exceed that we will
         # also need to check buffer sizes etc. in ui/sign_tx.c where we print
         # the scaled number as a string (currnetly that asserts if > 9).
-        if assetid and ticker and issuer and precision >= 0 and precision < 10:
-            f.write('ASSET_INFO("{}", "{}", "{}", {}),\n'.format(
-                assetid, ticker, issuer, precision))
+        # NOTE: 'ticker' is allowed to be null/None/'' and is passed as NULL
+        if assetid and issuer and precision >= 0 and precision < 10:
+            if ticker:
+                f.write('ASSET_INFO("{}", "{}", "{}", {}),\n'.format(
+                    assetid, ticker, issuer, precision))
+            else:
+                f.write('ASSET_INFO("{}", NULL, "{}", {}),\n'.format(
+                    assetid, issuer, precision))
             return 1
 
     except Exception as e:
@@ -65,7 +70,10 @@ if __name__ == '__main__':
 
     # Must be passed input json file (eg. downloaded from https://assets.blockstream.info/)
     # and the output header/include file to create, for inclusion in assets.c
-    assert len(sys.argv) == 3
+    if len(sys.argv) != 3:
+        print('Usage: python', sys.argv[0], '<input json> <ouput file>')
+        sys.exit(1)
+
     input_file = sys.argv[1]
     output_file = sys.argv[2]
 
