@@ -267,6 +267,36 @@
         "ticker": "MLiDe",
         "version": 0
     },
+    "0061c28cc9d4706a37df433f9803981b7d53d2cf053710940db9284b597ff984": {
+        "asset_id": "0061c28cc9d4706a37df433f9803981b7d53d2cf053710940db9284b597ff984",
+        "contract": {
+            "entity": {
+                "domain": "scamcoinbot.com"
+            },
+            "issuer_pubkey": "03de585e756b298cc32d1617a598e58a643debe5562b6268d1fff7c0ffd056c893",
+            "name": "Liquid igino token",
+            "nonce": "47",
+            "precision": 0,
+            "ticker": "L-IGI",
+            "version": 0
+        },
+        "entity": {
+            "domain": "scamcoinbot.com"
+        },
+        "issuance_prevout": {
+            "txid": "23c66e04421bd70770abb44f6e60828c8603da1c84d1af4115fdb2a3e2b87aa7",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "d05debcd7989305022fe1138182ff4cce11100259ead9c30deba28e8567f3839",
+            "vin": 0
+        },
+        "issuer_pubkey": "03de585e756b298cc32d1617a598e58a643debe5562b6268d1fff7c0ffd056c893",
+        "name": "Liquid igino token",
+        "precision": 0,
+        "ticker": "L-IGI",
+        "version": 0
+    },
     "007d5786a087a588d898101193a81502c4a90dbaaa381d0886b9094490c40043": {
         "asset_id": "007d5786a087a588d898101193a81502c4a90dbaaa381d0886b9094490c40043",
         "contract": {
@@ -1342,6 +1372,36 @@
         "name": "Viking",
         "precision": 0,
         "ticker": "CViki",
+        "version": 0
+    },
+    "123456f5a9f751d793d0438ccecd416d5c7f7f274627b099d2340041dd131abe": {
+        "asset_id": "123456f5a9f751d793d0438ccecd416d5c7f7f274627b099d2340041dd131abe",
+        "contract": {
+            "entity": {
+                "domain": "scamcoinbot.com"
+            },
+            "issuer_pubkey": "0235060888ecd1c755b6e29c8c5c6be945ebb9d716da6b1812872b24477b5852c7",
+            "name": "Ultra rare token",
+            "nonce": "4906078",
+            "precision": 0,
+            "ticker": "RARE",
+            "version": 0
+        },
+        "entity": {
+            "domain": "scamcoinbot.com"
+        },
+        "issuance_prevout": {
+            "txid": "d05debcd7989305022fe1138182ff4cce11100259ead9c30deba28e8567f3839",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "2ae1432b2456ec6ff40eb6a6cd8f340aad9fbbc3440dbe99f50c14ceb12977e5",
+            "vin": 0
+        },
+        "issuer_pubkey": "0235060888ecd1c755b6e29c8c5c6be945ebb9d716da6b1812872b24477b5852c7",
+        "name": "Ultra rare token",
+        "precision": 0,
+        "ticker": "RARE",
         "version": 0
     },
     "123465c803ae336c62180e52d94ee80d80828db54df9bedbb9860060f49de2eb": {
@@ -2569,6 +2629,35 @@
         "ticker": "HElfo",
         "version": 0
     },
+    "22f34931155fda593e3a7ddbe0618e7d967255d256415bbef6668dc30bfaa16f": {
+        "asset_id": "22f34931155fda593e3a7ddbe0618e7d967255d256415bbef6668dc30bfaa16f",
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "0327301c5ae9a4695ea3ae55fe7374843d035e2ec97b446b3bdfe9b83a15827736",
+            "name": "Ocean Protocol Stable Coin",
+            "precision": 0,
+            "ticker": "OPCS",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "7c45a6e47b97511158459ff60c27180ef242f8ac12cd24f2718d6fdd9321e49d",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "04b02c3f49a55bc4b01466ff09c6870fa5ad68f6cf1ad6a4c0f1f29eceb4ec17",
+            "vin": 0
+        },
+        "issuer_pubkey": "0327301c5ae9a4695ea3ae55fe7374843d035e2ec97b446b3bdfe9b83a15827736",
+        "name": "Ocean Protocol Stable Coin",
+        "precision": 0,
+        "ticker": "OPCS",
+        "version": 0
+    },
     "2302f23db26a8de6b5361263135818697eab21b196bf664c9ba6aea3a0441a4f": {
         "asset_id": "2302f23db26a8de6b5361263135818697eab21b196bf664c9ba6aea3a0441a4f",
         "contract": {
@@ -3788,6 +3877,35 @@
         "ticker": "MLaHe",
         "version": 0
     },
+    "35060664d80811040c25e52809003488e32d16a606b65bf232e71c9d4f5b01da": {
+        "asset_id": "35060664d80811040c25e52809003488e32d16a606b65bf232e71c9d4f5b01da",
+        "contract": {
+            "entity": {
+                "domain": "wintercooled.github.io"
+            },
+            "issuer_pubkey": "02c1954ae0889ac764b0a8fa6fb26a9510a19b93e5b7a13b716742558b848fc177",
+            "name": "AST88",
+            "precision": 2,
+            "ticker": "AST88",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wintercooled.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "42eebd483d6587cc7711d5dfa6233c3c3042eebb236b1a6377179a6351e70cf2",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "3bec1e93ad1e1a6e4151c1e531dd83a0df6744ca8e70dd4927d0609cdec3fd7b",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c1954ae0889ac764b0a8fa6fb26a9510a19b93e5b7a13b716742558b848fc177",
+        "name": "AST88",
+        "precision": 2,
+        "ticker": "AST88",
+        "version": 0
+    },
     "352dad62f23174caba555fb7c6cee3e9eb4ffaf86ff5b4d03f09a5e6738c76c7": {
         "asset_id": "352dad62f23174caba555fb7c6cee3e9eb4ffaf86ff5b4d03f09a5e6738c76c7",
         "contract": {
@@ -4456,6 +4574,38 @@
         "name": "Blood moon",
         "precision": 0,
         "ticker": "BLO",
+        "version": 0
+    },
+    "41a0db5f3fa26787da464410d9121ff8806e1c8444eb97517dec1b75f85e808c": {
+        "asset_id": "41a0db5f3fa26787da464410d9121ff8806e1c8444eb97517dec1b75f85e808c",
+        "contract": {
+            "entity": {
+                "domain": "e60e53e56657.ngrok.io"
+            },
+            "issuer_pubkey": "03b56ed44add8be9069cf65b368b5c6e46e4868220a3851afddfe95fe3511c74bd",
+            "name": "Luci.",
+            "nft": {
+                "domain": "e60e53e56657.ngrok.io",
+                "hash": "a6b8c2103bd187373017fcd8375d4e5d1aa1bdf93d5ea04907dbae7c1d7b9351"
+            },
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "e60e53e56657.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "ac858263a896b9eae1416932750e5698968484c7d188df24acacc4aff0815ea9",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "fa363d7b283c4506d3c1152b1a3f90e80baaaadf0adabd0cfde4db1b79891ef0",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b56ed44add8be9069cf65b368b5c6e46e4868220a3851afddfe95fe3511c74bd",
+        "name": "Luci.",
+        "precision": 0,
+        "ticker": null,
         "version": 0
     },
     "41b4edb4e0fd9e35a36f5e049be18f9951178170937759c7a7dfd7002446f2e9": {
@@ -16077,6 +16227,35 @@
         "ticker": "HCrow",
         "version": 0
     },
+    "df852ac2d6f041f8f0fbcb67b054c4074e9aafd632ce79ef9751cac43d0b3438": {
+        "asset_id": "df852ac2d6f041f8f0fbcb67b054c4074e9aafd632ce79ef9751cac43d0b3438",
+        "contract": {
+            "entity": {
+                "domain": "hundocoin.com"
+            },
+            "issuer_pubkey": "02a1032e31724bfb7d69cf2e115d44d52f9fced0de8fbb64bfdfff33289e593116",
+            "name": "Hundocoin",
+            "precision": 2,
+            "ticker": "HUNDO",
+            "version": 0
+        },
+        "entity": {
+            "domain": "hundocoin.com"
+        },
+        "issuance_prevout": {
+            "txid": "5e1d804c27f5a464eb01bdb186e4b83ae4f15ef3d05327f120fd7c7b69690fdf",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "a674ef19e92b0d4de882688ace9bd0ad9109acd46cde2e7a40a268e2330dea41",
+            "vin": 0
+        },
+        "issuer_pubkey": "02a1032e31724bfb7d69cf2e115d44d52f9fced0de8fbb64bfdfff33289e593116",
+        "name": "Hundocoin",
+        "precision": 2,
+        "ticker": "HUNDO",
+        "version": 0
+    },
     "df90e6b28458e148968eb901915c4d0e9b737199204e05675616eee352bb5df5": {
         "asset_id": "df90e6b28458e148968eb901915c4d0e9b737199204e05675616eee352bb5df5",
         "contract": {
@@ -16895,6 +17074,34 @@
         "ticker": "HMons",
         "version": 0
     },
+    "eb5dc6b623d3d376c51f01a736e1447ec1c462bf4ca8461bb07a184abc7545ea": {
+        "asset_id": "eb5dc6b623d3d376c51f01a736e1447ec1c462bf4ca8461bb07a184abc7545ea",
+        "contract": {
+            "entity": {
+                "domain": "b7b26d5e32a8.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "Merope 1600cfab9a7ef0c1d1ec522089b413eff64af2101a52ee9ac6795f5a92d58e45",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "b7b26d5e32a8.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "35bbbc1d5a7d06e3f8f39782e522ff86c39c141291e91d9b94500fe394aa2639",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "bd0920db6b1aa557d9e4ebc510e5ccadb56ce4c23770f914ee7d677ce99ba883",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "Merope 1600cfab9a7ef0c1d1ec522089b413eff64af2101a52ee9ac6795f5a92d58e45",
+        "precision": 0,
+        "ticker": null,
+        "version": 0
+    },
     "eba8e373cf3e254b245139386debf2441ac43a834156c07c0505b489bd2c83b6": {
         "asset_id": "eba8e373cf3e254b245139386debf2441ac43a834156c07c0505b489bd2c83b6",
         "contract": {
@@ -17446,6 +17653,35 @@
         "ticker": "CFoGu",
         "version": 0
     },
+    "f34fe2b5ef17103967b65d956e77231a96f06a8fdf97ef32e761e7db1fd816a0": {
+        "asset_id": "f34fe2b5ef17103967b65d956e77231a96f06a8fdf97ef32e761e7db1fd816a0",
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "0392a588ae1432b9f0dad79f0ef458d86af2c7b803bac261bae0137c630ecd0043",
+            "name": "Riddle",
+            "precision": 0,
+            "ticker": "RDL",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "9a5d70801542eceb12ad07631442b21c3585be38f272d2f0de8f9c1de9f6ff1e",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "71935fdb438ca5e6e6c1cccf58d759f6e8ed1fd433553d7041a2835fb57c160b",
+            "vin": 0
+        },
+        "issuer_pubkey": "0392a588ae1432b9f0dad79f0ef458d86af2c7b803bac261bae0137c630ecd0043",
+        "name": "Riddle",
+        "precision": 0,
+        "ticker": "RDL",
+        "version": 0
+    },
     "f3e148fe2a91b5682901eacc0157cbc45500fe636d1ea1ed9e78dec47c3495ff": {
         "asset_id": "f3e148fe2a91b5682901eacc0157cbc45500fe636d1ea1ed9e78dec47c3495ff",
         "contract": {
@@ -17966,6 +18202,40 @@
         "name": "WonMaturityDeposits",
         "precision": 8,
         "ticker": "KRWMC",
+        "version": 0
+    },
+    "fad7bfb5cc2be2595037dd93e38f7afe5d06baa575ee5bc1ca0af4b88d4d7e2a": {
+        "asset_id": "fad7bfb5cc2be2595037dd93e38f7afe5d06baa575ee5bc1ca0af4b88d4d7e2a",
+        "contract": {
+            "entity": {
+                "domain": "b42c3c80ca95.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "Red square",
+            "nft": {
+                "cid": "QmfZBcgB4zjmruzNNp7FFSqFiG4dgEYF1WKUWsNvSmppes",
+                "domain": "b42c3c80ca95.ngrok.io",
+                "hash": "076a14491158923e14ea7c57ac571e566b6efaae1af285b22b71dda50ce088ce"
+            },
+            "precision": 0,
+            "ticker": "asd",
+            "version": 0
+        },
+        "entity": {
+            "domain": "b42c3c80ca95.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "dff0997b5a14abe5c9f67d18054e000aee911574c9c5e42ed83bab05f8655faa",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "cb80ea64375b6e89b4c52a5b081c49bc84bf4a7592b6e48ef6be6015710012de",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "Red square",
+        "precision": 0,
+        "ticker": "asd",
         "version": 0
     },
     "fb409bd195b1f549fc3e959bd4b66a1cc1d611807d930f98c6a561664d63b272": {
