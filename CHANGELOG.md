@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.26] - 2021-07-01
+### Added
+- Enable repeating next/prev events when jog-wheel (btn on M5Stack) held down
+- Support firmware download for new Jade hardware in 'jade_ota.py' script
+- Added '(Temporary Wallet)' to 'Ready!' screen, if using temporary restore wallet
+- Added screens to show legal certification text and icons as required
+
+### Changed
+- Update liquid asset info
+- Setup screens to use 'recovery phrase' wording rather than 'mnemonic'
+- At boot, delay powering screen backlight until splash screen image ready
+
+### Fixed
+- Corrected detecting USB connected on new Jade hardware
+- Fixed assert when trying to display large amount strings when signing
+- Do not allow wiping Bluetooth bonding data when Bluetooth disabled
+- Fixed detecting when Jade disconncted from companion app when entering PIN or signing tx etc.
+
 ## [0.1.25] - 2021-06-11
 ### Added
 - New Emergency Restore / Temporary Wallet - can be used without persistence or pinserver interaction
