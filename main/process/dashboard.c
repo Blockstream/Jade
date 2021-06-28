@@ -58,7 +58,7 @@ void make_setup_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_connect_screen(gui_activity_t** act_ptr, const char* device_name);
 void make_connection_select_screen(gui_activity_t** act_ptr);
 void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, bool ble);
-void make_ready_screen(gui_activity_t** act_ptr, const char* device_name);
+void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, const char* additional);
 void make_settings_screen(
     gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, const size_t nBtns);
 void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** ble_status_textbox);
@@ -832,7 +832,8 @@ void dashboard_process(void* process_ptr)
         const keychain_t* initial_keychain = keychain_get();
         if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
             JADE_LOGI("Connected and have keys - showing Ready screen");
-            make_ready_screen(&act_dashboard, device_name);
+            const char* additional = keychain_has_temporary() ? "(Temporary Wallet)" : NULL;
+            make_ready_screen(&act_dashboard, device_name, additional);
         } else if (initial_keychain) {
             JADE_LOGI("Have keys loaded but not connected - showing Connect-To screen");
             make_connect_to_screen(&act_dashboard, device_name, initialisation_via_ble);

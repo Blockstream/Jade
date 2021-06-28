@@ -268,7 +268,7 @@ void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, c
     *act_ptr = act;
 }
 
-void make_ready_screen(gui_activity_t** act_ptr, const char* device_name)
+void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, const char* additional)
 {
     JADE_ASSERT(act_ptr);
     JADE_ASSERT(device_name);
@@ -277,14 +277,25 @@ void make_ready_screen(gui_activity_t** act_ptr, const char* device_name)
     gui_make_activity(&act, true, device_name);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_ABSOLUTE, 2, 75, 36);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_ABSOLUTE, 3, 40, 35, 36);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, act->root_node);
 
     gui_view_node_t* ready_text;
     gui_make_text(&ready_text, "Ready!", TFT_WHITE);
-    gui_set_align(ready_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_align(ready_text, GUI_ALIGN_CENTER, GUI_ALIGN_BOTTOM);
     gui_set_parent(ready_text, vsplit);
+
+    if (additional) {
+        gui_view_node_t* ready_text;
+        gui_make_text(&ready_text, additional, TFT_WHITE);
+        gui_set_align(ready_text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+        gui_set_parent(ready_text, vsplit);
+    } else {
+        gui_view_node_t* filler;
+        gui_make_fill(&filler, TFT_BLACK);
+        gui_set_parent(filler, vsplit);
+    }
 
     add_button_bar(vsplit);
     *act_ptr = act;
