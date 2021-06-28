@@ -1,9 +1,13 @@
 #include "process.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
+#include "power.h"
 #include "process/process_utils.h"
 #include "utils/cbor_rpc.h"
 #include "utils/malloc_ext.h"
+#ifndef CONFIG_ESP32_NO_BLOBS
+#include "../ble/ble.h"
+#endif
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/ringbuf.h>
@@ -322,24 +326,41 @@ static void dump_mem_report()
 }
 #endif /* CONFIG_HEAP_TRACING */
 
+#ifdef CONFIG_ESP32_NO_BLOBS
+static inline bool ble_connected() { return false; }
+#endif
+
 void jade_process_get_in_message(void* ctx, void (*writer)(void*, unsigned char*, size_t), bool blocking)
 {
     const TickType_t delay = 40 / portTICK_PERIOD_MS;
+    uint8_t counter = 0;
+    do {
+        size_t item_size = 0;
+        void* item = xRingbufferReceive(shared_in, &item_size, delay);
 
-    void* item = NULL;
-    size_t item_size = 0;
-    while ((item = xRingbufferReceive(shared_in, &item_size, delay)) || blocking) {
         if (item != NULL) {
+            // Got item from queue
             if (writer) {
                 writer(ctx, (unsigned char*)item, item_size);
             }
             vRingbufferReturnItem(shared_in, item);
             return;
         }
-        if (!blocking) {
-            return;
+
+        // Check connection - if all connections appear consistently 'down'
+        // then return with 'no message'.
+        // NOTE: the testing of pins via i2c can timeout and give sporadic false
+        // results, hence only acting after some consecutive 'false' returns.
+        if (!usb_connected() && !ble_connected()) {
+            if (++counter >= 3) {
+                // Lost connection ?
+                JADE_LOGE("Lost connection, returning without fetching message");
+                return;
+            }
+        } else {
+            counter = 0;
         }
-    }
+    } while (blocking);
 }
 
 static void process_cbor_msg(void* ctx, unsigned char* data, size_t size)
@@ -508,10 +529,13 @@ void jade_process_reject_message_ex(const cbor_msg_t ctx, int code, const char* 
 
 void jade_process_reject_message(jade_process_t* process, int code, const char* message, const char* data)
 {
-    ASSERT_HAS_CURRENT_MESSAGE(process);
-    uint8_t buffer[MAX_OUTPUT_MSG_SIZE];
-    jade_process_reject_message_ex(
-        process->ctx, code, message, (const uint8_t*)data, data ? strlen(data) : 0, buffer, sizeof(buffer));
+    if (HAS_CURRENT_MESSAGE(process)) {
+        uint8_t buffer[MAX_OUTPUT_MSG_SIZE];
+        jade_process_reject_message_ex(
+            process->ctx, code, message, (const uint8_t*)data, data ? strlen(data) : 0, buffer, sizeof(buffer));
+    } else {
+        JADE_LOGW("Ignoring attempt to reject 'no-message'");
+    }
 }
 
 void jade_process_reply_to_message_bytes(
