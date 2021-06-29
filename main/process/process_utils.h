@@ -1,15 +1,19 @@
 #ifndef PROCESS_UTILS_H_
 #define PROCESS_UTILS_H_
 
-#define ASSERT_NO_CURRENT_MESSAGE(process)                                                                             \
-    JADE_ASSERT(process && !process->ctx.cbor && !process->ctx.cbor_len && process->ctx.source == SOURCE_NONE)
+#define HAS_NO_CURRENT_MESSAGE(process)                                                                                \
+    (process && !process->ctx.cbor && !process->ctx.cbor_len && process->ctx.source == SOURCE_NONE)
 
-#define ASSERT_HAS_CURRENT_MESSAGE(process)                                                                            \
-    JADE_ASSERT(process && process->ctx.cbor && process->ctx.cbor_len && process->ctx.source != SOURCE_NONE)
+#define HAS_CURRENT_MESSAGE(process)                                                                                   \
+    (process && process->ctx.cbor && process->ctx.cbor_len && process->ctx.source != SOURCE_NONE)
 
-#define ASSERT_CURRENT_MESSAGE(process, method)                                                                        \
-    JADE_ASSERT(process && process->ctx.cbor && process->ctx.cbor_len && process->ctx.source != SOURCE_NONE            \
+#define IS_CURRENT_MESSAGE(process, method)                                                                            \
+    (process && process->ctx.cbor && process->ctx.cbor_len && process->ctx.source != SOURCE_NONE                       \
         && rpc_request_valid(&process->ctx.value) && rpc_is_method(&process->ctx.value, method))
+
+#define ASSERT_NO_CURRENT_MESSAGE(process) JADE_ASSERT(HAS_NO_CURRENT_MESSAGE(process))
+#define ASSERT_HAS_CURRENT_MESSAGE(process) JADE_ASSERT(HAS_CURRENT_MESSAGE(process))
+#define ASSERT_CURRENT_MESSAGE(process, method) JADE_ASSERT(IS_CURRENT_MESSAGE(process, method))
 
 // Assumes 'cleanup' label exists
 #define GET_MSG_PARAMS(process)                                                                                        \

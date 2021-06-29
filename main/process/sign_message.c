@@ -159,7 +159,7 @@ void sign_message_process(void* process_ptr)
 
         // Await 'get_signature' message containing host entropy
         jade_process_load_in_message(process, true);
-        if (!rpc_is_method(&process->ctx.value, "get_signature")) {
+        if (!IS_CURRENT_MESSAGE(process, "get_signature")) {
             // Protocol error
             jade_process_reject_message(
                 process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'get_signature'", NULL);

@@ -340,7 +340,7 @@ void sign_liquid_tx_process(void* process_ptr)
     // Run through each input message and generate a signature for each one
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
-        if (!rpc_is_method(&process->ctx.value, "tx_input")) {
+        if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
             // Protocol error
             jade_process_reject_message(
                 process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'tx_input'", NULL);

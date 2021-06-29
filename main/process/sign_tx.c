@@ -156,7 +156,7 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
 
         // We always need a 'get-signature' exchange even if we are not providing a signature
         jade_process_load_in_message(process, true);
-        if (!rpc_is_method(&process->ctx.value, "get_signature")) {
+        if (!IS_CURRENT_MESSAGE(process, "get_signature")) {
             // Protocol error
             jade_process_reject_message(
                 process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'get_signature'", NULL);
@@ -371,7 +371,7 @@ void sign_tx_process(void* process_ptr)
     uint64_t input_amount = 0;
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
-        if (!rpc_is_method(&process->ctx.value, "tx_input")) {
+        if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
             // Protocol error
             jade_process_reject_message(
                 process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'tx_input'", NULL);

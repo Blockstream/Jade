@@ -392,7 +392,7 @@ static pinserver_result_t start_handshake(jade_process_t* process, pin_keys_t* p
     // Await a 'handshake_init' message
     jade_process_load_in_message(process, true);
 
-    if (!rpc_is_method(&process->ctx.value, "handshake_init")) {
+    if (!IS_CURRENT_MESSAGE(process, "handshake_init")) {
         // Protocol error
         RETURN_RESULT(FAILURE, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'handshake_init'");
     }
@@ -467,7 +467,7 @@ static pinserver_result_t complete_handshake(
     // Await a 'complete_handshake' message
     jade_process_load_in_message(process, true);
 
-    if (!rpc_is_method(&process->ctx.value, "handshake_complete")) {
+    if (!IS_CURRENT_MESSAGE(process, "handshake_complete")) {
         // Protocol error
         RETURN_RESULT(FAILURE, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'handshake_complete'");
     }
