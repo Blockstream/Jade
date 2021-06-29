@@ -717,6 +717,7 @@ bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, const size_
         if (!keychain_load_cleartext(finalaes, sizeof(finalaes), keydata)) {
             JADE_LOGE("Failed to load keys - Incorrect PIN");
             jade_process_reply_to_message_fail(process);
+            await_error_activity("Incorrect PIN!");
         } else {
             // Success
             jade_process_reply_to_message_ok(process);
@@ -725,6 +726,7 @@ bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, const size_
     } else {
         JADE_LOGE("Failed to complete pinserver interaction");
         jade_process_reject_message(process, pir.errorcode, pir.message, NULL);
+        await_error_activity("Network or server error");
     }
 
     SENSITIVE_POP(finalaes);
@@ -755,6 +757,7 @@ bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, const size_
         if (!keychain_store_encrypted(finalaes, sizeof(finalaes), keydata)) {
             JADE_LOGE("Failed to store keys encrypted in flash memory!");
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to store keys in flash memory", NULL);
+            await_error_activity("Failed to persist key data");
         } else {
             // Success
             jade_process_reply_to_message_ok(process);
@@ -763,6 +766,7 @@ bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, const size_
     } else {
         JADE_LOGE("Failed to complete pinserver interaction");
         jade_process_reject_message(process, pir.errorcode, pir.message, NULL);
+        await_error_activity("Network or server error");
     }
 
     SENSITIVE_POP(finalaes);

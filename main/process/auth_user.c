@@ -71,10 +71,6 @@ void check_pin_load_keys(jade_process_t* process)
         // set the current message source as the keychain userdata
         keychain_set(&keydata, process->ctx.source, false);
         JADE_LOGI("Success");
-    } else {
-        // Failed - show error and go back to boot screen
-        JADE_LOGW("Get-Pin / load keys failed - bad pin");
-        await_error_activity("Incorrect PIN!");
     }
 
     // Clear out pin and temporary keychain
@@ -150,9 +146,6 @@ static void set_pin_save_keys(jade_process_t* process)
         // (ie interface) which we will accept receiving messages from.
         keychain_set(keychain_get(), process->ctx.source, false);
         JADE_LOGI("Success");
-    } else {
-        JADE_LOGW("Set-Pin / persist keys failed.");
-        await_error_activity("Failed to persist key data");
     }
 
     // Clear out pin and temporary keychain and mnemonic
