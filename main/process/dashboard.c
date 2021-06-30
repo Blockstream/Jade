@@ -101,40 +101,18 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     add_string_to_map(&map_encoder, "JADE_VERSION", running_app_info.version);
     add_uint_to_map(&map_encoder, "JADE_OTA_MAX_CHUNK", JADE_OTA_BUF_SIZE);
 
-#ifndef CONFIG_ESP32_NO_BLOBS
-    add_string_to_map(&map_encoder, "JADE_CONFIG", "BLE");
-#else
-    add_string_to_map(&map_encoder, "JADE_CONFIG", "NORADIO");
-#endif
-    JADE_ASSERT(cberr == CborNoError);
+    // Config - eg. ble/radio enabled in build, or not
+    // defined in ota.h
+    add_string_to_map(&map_encoder, "JADE_CONFIG", JADE_OTA_CONFIG);
 
     // Board type - Production Jade, M5Stack, esp32 dev board, etc.
-#if defined(CONFIG_BOARD_TYPE_JADE)
-    add_string_to_map(&map_encoder, "BOARD_TYPE", "JADE"); // Jade 1.0 (with wheel)
-#elif defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    add_string_to_map(&map_encoder, "BOARD_TYPE", "JADE_V1.1");
-#elif defined(CONFIG_BOARD_TYPE_M5_FIRE)
-    add_string_to_map(&map_encoder, "BOARD_TYPE", "M5FIRE");
-#elif defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)
-    add_string_to_map(&map_encoder, "BOARD_TYPE", "M5BLACKGRAY");
-#elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
-    add_string_to_map(&map_encoder, "BOARD_TYPE", "TTGO_TDISPLAY");
-#elif defined(CONFIG_BOARD_TYPE_DEV)
-    add_string_to_map(&map_encoder, "BOARD_TYPE", "DEV");
-#else
-    add_string_to_map(&map_encoder, "BOARD_TYPE", "UNKNOWN");
-#endif
-    JADE_ASSERT(cberr == CborNoError);
+    // defined in ota.h
+    add_string_to_map(&map_encoder, "BOARD_TYPE", JADE_OTA_BOARD_TYPE);
 
-    // 'features' could potentially be a comma-separated list
-    // initially it's either 'secure boot' or 'dev' ...
-#ifdef CONFIG_SECURE_BOOT
-    add_string_to_map(&map_encoder, "JADE_FEATURES", "SB");
-#else
-    add_string_to_map(&map_encoder, "JADE_FEATURES", "DEV");
-#endif
+    // hardware 'features' eg. 'secure boot' or 'dev' etc.
+    // defined in ota.h
+    add_string_to_map(&map_encoder, "JADE_FEATURES", JADE_OTA_FEATURES);
 
-    JADE_ASSERT(cberr == CborNoError);
     const char* idfversion = esp_get_idf_version();
     add_string_to_map(&map_encoder, "IDF_VERSION", idfversion);
 
