@@ -140,7 +140,7 @@ void wheel_init()
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create wheel_watcher task, xTaskCreatePinnedToCore() returned %d", retval);
 }
-#elif defined(BOARD_TYPE_TTGO_TDISPLAY)
+#elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
 // wheel_init() to mock wheel with buttons
 
 // Slightly complicated to allow both-buttons pressed to mock selection button
