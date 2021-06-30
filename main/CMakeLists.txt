@@ -19,4 +19,5 @@ idf_component_register(SRC_DIRS "."
         EMBED_TXTFILES ${PROJECT_DIR}/jade_services_certificate.pem
         EMBED_FILES ${PROJECT_DIR}/pinserver_public_key.pub)
 
+target_link_libraries(${COMPONENT_TARGET} "-u custom_app_desc")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_ELEMENTS=1")

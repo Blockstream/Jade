@@ -67,6 +67,24 @@ struct bin_msg {
     bool error;
 };
 
+// This structure is built into every fw, so we can check downloaded firmware
+// is appropriate for the hardware unit we are trying to flash it onto.
+// NOTE: For back compat only add to the end of the structure, and increase 'version'
+// to indicate those new fields are present.
+typedef struct {
+    // Version 1 fields
+    const uint8_t version;
+    const char board_type[32];
+    const char features[32];
+    const char config[32];
+
+    // Version 2 fields
+    // add new fields here
+} esp_custom_app_desc_t;
+
+const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t custom_app_desc
+    = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
+
 // UI screens to confirm ota
 void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version);
 
@@ -82,7 +100,9 @@ static enum ota_status ota_init(unsigned char* uncompressed, esp_partition_t con
     JADE_LOGI("Running partition ptr: %p", running);
 
     esp_app_desc_t running_app_info;
-    if (esp_ota_get_partition_description(running, &running_app_info) != ESP_OK) {
+    esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
+    if (err != ESP_OK) {
+        JADE_LOGE("Failed to get running partition data, error: %d", err);
         return ERROR_BADPARTITION;
     }
     JADE_LOGI("Running firmware version: %s", running_app_info.version);
@@ -98,13 +118,38 @@ static enum ota_status ota_init(unsigned char* uncompressed, esp_partition_t con
     JADE_LOGI("New firmware version: %s", new_app_info->version);
 
     if (esp_efuse_check_secure_version(new_app_info->secure_version) == false) {
+        JADE_LOGE("Secure version downgrade not allowed");
         return ERROR_NODOWNGRADE;
     }
 
+    // Skip checking custom fields for the fw version before that struct was added.
+    // This leaves a possibility of flashing an inappropriate (old) fw onto a device,
+    // (which could brick it!) but this may be needed should we need to downgrade.
+    // FIXME: Remove this fudge in fw 0.1.27+
+    if (strcmp(new_app_info->version, "0.1.25")) {
+        // Check our custom fields
+        const size_t custom_offset = offset + sizeof(esp_app_desc_t);
+        const esp_custom_app_desc_t* custom_info = (esp_custom_app_desc_t*)(uncompressed + custom_offset);
+
+        // 'Board Type' and 'Features' must match.
+        // 'Config' is allowed to differ.
+        if (strcmp(JADE_OTA_BOARD_TYPE, custom_info->board_type)) {
+            JADE_LOGE("Firmware board type mismatch");
+            return ERROR_INVALIDFW;
+        }
+
+        if (strcmp(JADE_OTA_FEATURES, custom_info->features)) {
+            JADE_LOGE("Firmware features mismatch");
+            return ERROR_INVALIDFW;
+        }
+    }
+
+    // Check partition
     *update_partition = esp_ota_get_next_update_partition(NULL);
     JADE_LOGI("Update partition: %p", *update_partition);
 
     if (*update_partition == NULL) {
+        JADE_LOGE("Failed to get next update partition");
         return ERROR_BADPARTITION;
     }
 
@@ -113,7 +158,7 @@ static enum ota_status ota_init(unsigned char* uncompressed, esp_partition_t con
         return ERROR_BADPARTITION;
     }
 
-    // User to confirm once new firmware version known
+    // User to confirm once new firmware version known and all checks passed
     gui_activity_t* activity;
     make_ota_versions_activity(&activity, running_app_info.version, new_app_info->version);
     JADE_ASSERT(activity);
@@ -140,7 +185,9 @@ static enum ota_status ota_init(unsigned char* uncompressed, esp_partition_t con
     vTaskDelay(50); // time for screen to update
 
     // Good to go - initialise the ota
-    if (esp_ota_begin(*update_partition, firmwaresize, update_handle) != ESP_OK) {
+    err = esp_ota_begin(*update_partition, firmwaresize, update_handle);
+    if (err != ESP_OK) {
+        JADE_LOGE("Failed to begin ota, error: %d", err);
         return ERROR_OTA_INIT;
     }
 
