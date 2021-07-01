@@ -330,7 +330,7 @@ if __name__ == '__main__':
     parser.add_argument('--hw-target',
                         action='store',
                         dest='hwtarget',
-                        help='Hardware target for downloading firmware',
+                        help='Hardware target for downloading firmware.  Defaults to jade',
                         choices=['jade', 'jadedev', 'jade1.1', 'jade1.1dev'],
                         default=None)
     parser.add_argument('--auto-select-fw',
@@ -339,11 +339,11 @@ if __name__ == '__main__':
                         dest='autoselectfw',
                         help='Index of firmware to download (skips interactive prompt)',
                         default=None)
-    parser.add_argument('--beta',
-                        action='store_const',
-                        const='BETA',
-                        dest='indexfile',
-                        help='Use beta versions, if available',
+    parser.add_argument('--release',
+                        action='store',
+                        dest='release',
+                        choices=['previous', 'stable', 'beta'],
+                        help='Use previous or beta versions, if available.  Defaults to stable.',
                         default=None)
 
     # Generic
@@ -377,8 +377,8 @@ if __name__ == '__main__':
         logger.error('Can only provide auto-select index when downloading fw from server')
         sys.exit(1)
 
-    if args.indexfile and not downloading:
-        logger.error('Can only request beta versions when downloading fw from server')
+    if args.release and not downloading:
+        logger.error('Can only specify release when downloading fw from server')
         sys.exit(1)
 
     if args.hwtarget and not downloading:
@@ -388,16 +388,18 @@ if __name__ == '__main__':
     if downloading and not args.hwtarget:
         args.hwtarget = 'jade'  # default to prod jade
 
-    if downloading and not args.indexfile:
-        args.indexfile = 'LATEST'  # default to stable versions
+    if downloading:
+        # default to stable versions
+        indexfile = {'previous': 'PREVIOUS',
+                     'beta': 'BETA'}.get(args.release, 'LATEST')
 
     # Get the file to OTA
     if args.downloadfw:
         fwcmp, fwlen = download_file(args.hwtarget, args.writecompressed,
-                                     args.indexfile, args.autoselectfw)
+                                     indexfile, args.autoselectfw)
     elif args.downloadgdk:
         fwcmp, fwlen = download_file_gdk(args.hwtarget, args.writecompressed,
-                                         args.indexfile, args.autoselectfw)
+                                         indexfile, args.autoselectfw)
     else:
         fwcmp, fwlen = get_local_fwfile(args.fwfilename, args.writecompressed)
 
