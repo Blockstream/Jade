@@ -149,16 +149,16 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
 
     // Serial/ble/qemu_tcp task handles
     *serial_h = &serial_handle;
-    serial_out = create_ringbuffer(8 * 1024);
+    serial_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
     JADE_ASSERT(serial_out);
 #if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
     *qemu_tcp_h = &qemu_tcp_handle;
-    qemu_tcp_out = create_ringbuffer(8 * 1024);
+    qemu_tcp_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
     JADE_ASSERT(qemu_tcp_out);
 #endif
 #ifndef CONFIG_ESP32_NO_BLOBS
     *ble_h = &ble_handle;
-    ble_out = create_ringbuffer(8 * 1024);
+    ble_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
     JADE_ASSERT(ble_out);
 #endif
 
