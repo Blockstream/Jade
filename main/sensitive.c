@@ -7,7 +7,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#define SENS_STACK_SIZE 1024
+// Keep this size as small as possible for memory-constrained devices
+#define SENS_STACK_SIZE 32
 #define TLS_INDEX 0
 
 struct sens_elem {
@@ -49,7 +50,8 @@ void sensitive_push(const char* file, int line, void* addr, size_t size)
     stack->top->size = size;
 
     stack->top++;
-    JADE_ASSERT(stack->top < (stack->elems + sizeof(stack->elems) / sizeof(stack->elems[0])));
+    JADE_ASSERT_MSG(stack->top < (stack->elems + sizeof(stack->elems) / sizeof(stack->elems[0])),
+        "sensitive_push() exhausted sensitive stack");
 }
 
 void sensitive_pop(const char* file, int line, void* addr)
