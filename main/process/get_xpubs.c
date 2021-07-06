@@ -14,7 +14,7 @@ void get_xpubs_process(void* process_ptr)
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
-    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+    char network[MAX_NETWORK_NAME_LEN];
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_xpub");

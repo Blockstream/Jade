@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#define MAX_NETWORK_NAME_LEN 20
+
 // Main networks
 #define TAG_MAINNET "mainnet"
 #define TAG_LIQUID "liquid"

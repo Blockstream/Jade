@@ -158,7 +158,7 @@ void auth_user_process(void* process_ptr)
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
-    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+    char network[MAX_NETWORK_NAME_LEN];
     size_t written = 0;
 
     ASSERT_CURRENT_MESSAGE(process, "auth_user");

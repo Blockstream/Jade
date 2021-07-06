@@ -18,7 +18,7 @@ void get_receive_address_process(void* process_ptr)
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
-    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+    char network[MAX_NETWORK_NAME_LEN];
     char variant[16];
 
     // We expect a current message to be present

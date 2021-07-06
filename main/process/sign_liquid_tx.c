@@ -154,7 +154,7 @@ void sign_liquid_tx_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
-    char network[strlen(TAG_LOCALTESTLIQUID) + 1];
+    char network[MAX_NETWORK_NAME_LEN];
 
     // Context used to compute hash_prevout (hash of all the input scriptpubkeys)
     mbedtls_sha256_context hash_prevout_sha_ctx;
