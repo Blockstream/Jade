@@ -160,9 +160,9 @@ MarKPtCixrX'),
                  ([2147483651, 2147483651], 'liquid', 'xpub69w5Svpcz1iP4ocLTZ9\
 3HDnRkFwKRUomwEZwFuafNnDhTWirvUFxbtou6KQMT83gnyjZAKmsD8oTST6FTj5dgAZn5EP6KMPZw\
 QGEQu1tqez'),
-                 ([2147483692, 0, 1, 2], 'liquid', 'xpub6EuqgQ82cihXAeztunQZQE\
-dnAKrHWJGwd3JUJ7mAzdhW6v2j8EkC2LvheQKfedt18WbNVDNBL67KUJ9wATEZifdLScyEpfCK2Pq8\
-jxMeEhn')]
+                 ([2147483692, 0, 1, 2], 'testnet-liquid', 'tpubDFHUCdwiKzeyST\
+BkMyPec9y9VSwwVgn1AftmefpKLYTPrChSCTbHAnbXtSQTB8qEvR8H6nt3sBwNAUeYZK5oc75dWDiY\
+WBrYcMRYW2DGU1Z')]
 
 GET_GREENADDRESS_DATA = [('regtest', 0, 1, 345, None, 0, '2MyMy6Ey7a5dmWJW1D9M\
 7RFwjmXD1ECrgy4'),
@@ -175,6 +175,8 @@ k22WsuhRq2S'),
 QHNX', 0, '338M4PG24m1gZggrzQV1s9vr3dZZ31kLsU'),
                          ('localtest-liquid', 6, 1, 345, None, 65535, 'Azpx2UG\
 RpzEQ6pt6yCbPYGnjqNaTtxN2ZdLmMMjWMVvJdzd5uD9cysaRc4Es5auve68RAwijQqReG3AT'),
+                         ('testnet-liquid', 3, 1, 244, None, 65535, 'AzpvX2ZUa\
+xiV9gBWshuCQAfnEhy6nUU4oPcHp4sP1gUenZ1Szi5TTSduPJgJQ2U2MsrZMSbCniAU1QEj'),
                          ('liquid', 10, 1, 122, None, 65535, 'VJLGotGqjthW3NY7\
 JFZ7EaJZo8rnuRi23waPVY7FwJTYxtFNrNLy6CC4VEQoKRmd5VkL2mmuo64LfZNy')]
 
@@ -227,14 +229,14 @@ SfzadGnGduPwvoVK1ZpthykJup8A8Eh2'),
                              [2147483648, 2147483648, 2147483657],
                              'VJLGcUjN2q6HHuNUAQJ2LEASQnr5LkD2DgDwT2vcyQjKhA3B\
 5a2VAgp94Gj5rSXYiD6eHmGJmVSHY5xG'),
-                            ('liquid', 'wpkh(k)',
+                            ('testnet-liquid', 'wpkh(k)',
                              [2147483648, 2147483648, 2147483657],
-                             'lq1qq28n8pj790vsyd6t5lr6n0puhrp7hd8wvcgrlm8knxm6\
-84lxq6pzjrvfzx2fc9gs3cecpvxj56jqkq3ckxtjch29qp250leah'),
-                            ('liquid', 'pkh(k)',
+                             'el1qq28n8pj790vsyd6t5lr6n0puhrp7hd8wvcgrlm8knxm6\
+84lxq6pzjrvfzx2fc9gs3cecpvxj56jqkq3ckxtjcuz9nzy2lctpd'),
+                            ('localtest-liquid', 'pkh(k)',
                              [2147483648, 2147483648, 2147483657],
-                             'VTptEdHihA78rUG9BgCLvSgu3PUwLE3kBxwqtqf4arjQzYE7\
-fw6k5FN4WkHjjHGiP6aMcNxcaVy7zgRY')]
+                             'CTEjtdpkvj7mrGtgMTrmDfSnH9DdN9Rzi2tzsxsFNujSU8qh\
+YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi')]
 
 # Hold test data in separate files as can be large
 SIGN_MSG_TESTS = _get_test_cases("msg_*.json")

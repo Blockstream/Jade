@@ -53,10 +53,13 @@ static const char TESTNET_SERVICE_XPUB[]
     = "tpubD6NzVbkrYhZ4Y9k7T65kw2Sx9z67CzZr2Hi7w2pkKutUvm25ryvL79PqQTtDvAaYacd4z5NQTMmdJ37t8VbMVZbDY1z2rqUKLRNpVW6rGC3";
 static const char LIQUID_SERVICE_XPUB[]
     = "xpub661MyMwAqRbcEZr3uYPEEP4X2bRmYXmxrcLMH8YEwLAFxonVGqstpNywBvwkUDCEZA1cd6fsLgKvb6iZP5yUtLc3G3L8WynChNJznHLaVrA";
+static const char TESTNETLIQUID_SERVICE_XPUB[]
+    = "tpubD6NzVbkrYhZ4YKB74cMgKEpwByD7UWLXt2MxRdwwaQtgrw6E3YPQgSRkaxMWnpDXKtX5LvRmY5mT8FkzCtJcEQ1YhN1o8CU2S5gy9TDFc24";
 
 struct ext_key MAINNET_SERVICE;
 struct ext_key TESTNET_SERVICE;
 struct ext_key LIQUID_SERVICE;
+struct ext_key TESTNETLIQUID_SERVICE;
 
 // 'mainnet' like string to relevant GA service root path
 static inline struct ext_key* networkToGaService(const char* network)
@@ -67,6 +70,8 @@ static inline struct ext_key* networkToGaService(const char* network)
         return &MAINNET_SERVICE;
     } else if (!strcmp(TAG_LIQUID, network)) {
         return &LIQUID_SERVICE;
+    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+        return &TESTNETLIQUID_SERVICE;
     } else if (isTestNetwork(network)) {
         return &TESTNET_SERVICE;
     } else {
@@ -96,6 +101,7 @@ void wallet_init()
     JADE_WALLY_VERIFY(bip32_key_from_base58(MAINNET_SERVICE_XPUB, &MAINNET_SERVICE));
     JADE_WALLY_VERIFY(bip32_key_from_base58(TESTNET_SERVICE_XPUB, &TESTNET_SERVICE));
     JADE_WALLY_VERIFY(bip32_key_from_base58(LIQUID_SERVICE_XPUB, &LIQUID_SERVICE));
+    JADE_WALLY_VERIFY(bip32_key_from_base58(TESTNETLIQUID_SERVICE_XPUB, &TESTNETLIQUID_SERVICE));
 }
 
 bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len)

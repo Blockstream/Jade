@@ -13,6 +13,7 @@
 
 // Test networks
 #define TAG_TESTNET "testnet"
+#define TAG_TESTNETLIQUID "testnet-liquid"
 #define TAG_REGTEST "regtest"
 #define TAG_LOCALTEST "localtest"
 #define TAG_LOCALTESTLIQUID "localtest-liquid"
@@ -22,7 +23,7 @@ bool isTestNetwork(const char* network);
 bool isLiquidNetwork(const char* network);
 
 bool csvBlocksExpectedForNetwork(const char* network, uint32_t csvBlocks);
-bool networkToMinAllowedCsvBlocks(const char* network);
+size_t networkToMinAllowedCsvBlocks(const char* network);
 
 uint32_t networkToVersion(const char* network);
 
