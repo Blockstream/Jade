@@ -3,7 +3,7 @@ RUN apt-get update -qq && apt-get upgrade --no-install-recommends --no-install-s
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 RUN python -m pip install --user pycodestyle
 RUN export ESP_IDF_COMMIT=7ab8f793ca5b026f37ae812bcc103e3aa698d164
-RUN mkdir ~/esp && cd ~/esp && git clone --depth=1 --branch v4.2.2 --single-branch --recursive https://github.com/espressif/esp-idf.git
+RUN mkdir ~/esp && cd ~/esp && git clone --quiet --depth=1 --branch v4.2.2 --single-branch --recursive https://github.com/espressif/esp-idf.git
 RUN cd ~/esp/esp-idf && git checkout ${ESP_IDF_COMMIT} && ./install.sh
 RUN export ESP_QEMU_COMMIT=0ff3da8d3c797dcf33a45c419204f39f684376cf
 RUN git clone --quiet --depth 1 --branch esp-develop-20200528 --single-branch --recursive https://github.com/espressif/qemu.git \
