@@ -5,8 +5,9 @@ RUN python -m pip install --user pycodestyle
 RUN export ESP_IDF_COMMIT=7ab8f793ca5b026f37ae812bcc103e3aa698d164
 RUN mkdir ~/esp && cd ~/esp && git clone --depth=1 --branch v4.2.2 --single-branch --recursive https://github.com/espressif/esp-idf.git
 RUN cd ~/esp/esp-idf && git checkout ${ESP_IDF_COMMIT} && ./install.sh
-RUN git clone --quiet --depth 1 --single-branch --branch esp-develop git://github.com/espressif/qemu \
-&& (cd qemu && ./configure --target-list=xtensa-softmmu \
+RUN export ESP_QEMU_COMMIT=0ff3da8d3c797dcf33a45c419204f39f684376cf
+RUN git clone --quiet --depth 1 --branch esp-develop-20200528 --single-branch --recursive https://github.com/espressif/qemu.git \
+&& (cd qemu && git checkout ${ESP_QEMU_COMMIT} && ./configure --target-list=xtensa-softmmu \
     --enable-debug --enable-sanitizers \
     --disable-strip --disable-user \
     --disable-capstone --disable-vnc \
