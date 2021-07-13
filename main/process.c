@@ -539,7 +539,7 @@ void jade_process_reject_message(jade_process_t* process, int code, const char* 
 }
 
 void jade_process_reply_to_message_bytes(
-    cbor_msg_t ctx, uint8_t* data, const size_t datalen, uint8_t* buffer, const size_t buflen)
+    cbor_msg_t ctx, const uint8_t* data, const size_t datalen, uint8_t* buffer, const size_t buflen)
 {
     CborEncoder root_encoder;
     cbor_encoder_init(&root_encoder, buffer, buflen, 0);
