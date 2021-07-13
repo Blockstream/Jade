@@ -246,6 +246,9 @@ SIGN_SINGLE_SIG_LIQUID_TESTS = _get_test_cases("singlesig_liquid_txn*.json")
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
+EXPECTED_MASTER_BLINDING_KEY = h2b('afacc503637e85da661ca1706c4ea147f1407868c4\
+8d8f92dd339ac272293cdc')
+
 EXPECTED_BLINDING_KEY = h2b('023454c233497be73ed98c07d5e9069e21519e94d0663375c\
 a57c982037546e352')
 
@@ -1435,7 +1438,11 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
         for i in range(txn_data["extra_responses"]):
             logger.debug(jadeapi.jade.read_response())
 
-    # Get Liquid blinding key
+    # Get Liquid master blinding key
+    rslt = jadeapi.get_master_blinding_key()
+    assert rslt == EXPECTED_MASTER_BLINDING_KEY
+
+    # Get Liquid script blinding key
     rslt = jadeapi.get_blinding_key(TEST_SCRIPT)
     assert rslt == EXPECTED_BLINDING_KEY
 

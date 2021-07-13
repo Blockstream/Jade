@@ -37,6 +37,7 @@ static bool initialisation_via_ble = false;
 // Functional actions
 void sign_message_process(void* process_ptr);
 void sign_tx_process(void* process_ptr);
+void get_master_blinding_key_process(void* process_ptr);
 void get_blinding_key_process(void* process_ptr);
 void get_shared_nonce_process(void* process_ptr);
 void get_commitments_process(void* process_ptr);
@@ -283,6 +284,8 @@ static void dispatch_message(jade_process_t* process)
             task_function = get_commitments_process;
         } else if (IS_METHOD("get_blinding_factor")) {
             task_function = get_blinding_factor_process;
+        } else if (IS_METHOD("get_master_blinding_key")) {
+            task_function = get_master_blinding_key_process;
         } else if (IS_METHOD("get_blinding_key")) {
             task_function = get_blinding_key_process;
         } else if (IS_METHOD("get_shared_nonce")) {

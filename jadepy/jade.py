@@ -259,6 +259,10 @@ class JadeAPI:
             params = {'path': path, 'message': message}
             return self._jadeRpc('sign_message', params)
 
+    # Get a Liquid master blinding key
+    def get_master_blinding_key(self):
+        return self._jadeRpc('get_master_blinding_key')
+
     # Get a Liquid public blinding key for a given script
     def get_blinding_key(self, script):
         params = {'script': script}
