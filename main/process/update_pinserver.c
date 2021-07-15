@@ -99,7 +99,7 @@ void update_pinserver_process(void* process_ptr)
             goto cleanup;
         }
     } else if (reset_details) {
-        if (!await_yesno_activity("Reset PinServer", "Reset pin-server details?")) {
+        if (!await_yesno_activity("Reset PinServer", "Reset pin-server details?", false)) {
             JADE_LOGW("User declined to confirm resetting pinserver details");
             jade_process_reject_message(
                 process, CBOR_RPC_USER_CANCELLED, "User did not confirm resetting PinServer details", NULL);
@@ -151,7 +151,7 @@ void update_pinserver_process(void* process_ptr)
             goto cleanup;
         }
     } else if (reset_certificate) {
-        if (!await_yesno_activity("Certificate", "Reset pin-server certificate?")) {
+        if (!await_yesno_activity("Certificate", "Reset pin-server certificate?", false)) {
             JADE_LOGW("User declined to confirm resetting pinserver certificate");
             jade_process_reject_message(
                 process, CBOR_RPC_USER_CANCELLED, "User did not confirm resetting PinServer certificate", NULL);

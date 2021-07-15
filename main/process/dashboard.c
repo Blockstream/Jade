@@ -316,8 +316,8 @@ void offer_jade_reset()
 {
     // Run 'Reset Jade?'  confirmation screen and wait for yes/no response
     JADE_LOGI("Offering Jade reset");
-    const bool bReset = await_yesno_activity(
-        "Reset Jade", "Do you want to reset Jade and\nclear all PIN and key data?\nThis action cannot be undone!");
+    const bool bReset = await_yesno_activity("Reset Jade",
+        "Do you want to reset Jade and\nclear all PIN and key data?\nThis action cannot be undone!", false);
 
     if (bReset) {
         JADE_LOGI("Yes - requesting numeric confirmation");
@@ -415,7 +415,7 @@ static void initialise_wallet(const bool emergency_restore)
 void offer_emergency_restore()
 {
     const bool bRestore = await_yesno_activity("Emergency Restore",
-        "Do you want to temporarily\nrestore a wallet?\nThis doesn't affect your PIN\nsaved wallet, if any.");
+        "Do you want to temporarily\nrestore a wallet?\nThis doesn't affect your PIN\nsaved wallet, if any.", true);
 
     if (bRestore) {
         initialise_wallet(true);
@@ -538,7 +538,7 @@ static void handle_settings(jade_process_t* process)
 // Sleep/power-down
 static void handle_sleep()
 {
-    const bool bSleep = await_yesno_activity("Sleep", "\nDo you want to put Jade\ninto sleep mode?");
+    const bool bSleep = await_yesno_activity("Sleep", "\nDo you want to put Jade\ninto sleep mode?", true);
     if (bSleep) {
         power_shutdown();
     }
@@ -553,7 +553,7 @@ static void handle_ble_reset()
         return;
     }
 
-    const bool bReset = await_yesno_activity("BLE Reset", "\nDo you want to reset all\nbonded devices?");
+    const bool bReset = await_yesno_activity("BLE Reset", "\nDo you want to reset all\nbonded devices?", false);
     if (bReset) {
         if (!ble_remove_all_devices()) {
             await_error_activity("Failed to remove all BLE devices");

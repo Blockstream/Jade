@@ -62,7 +62,7 @@ gui_activity_t* display_message_activity(const char* message);
 gui_activity_t* display_message_activity_two_lines(const char* msg_first, const char* msg_second);
 void await_message_activity(const char* message);
 void await_error_activity(const char* errormessage);
-bool await_yesno_activity(const char* title, const char* message);
+bool await_yesno_activity(const char* title, const char* message, bool default_selection);
 
 // Generic progress-bar screen
 void display_progress_bar_activity(const char* title, const char* message, progress_bar_t* progress_bar);

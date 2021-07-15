@@ -130,7 +130,8 @@ void await_message_activity(const char* message) { await_msg_activity(message, f
 void await_error_activity(const char* errormessage) { await_msg_activity(errormessage, true); }
 
 // Generic activity that displays a message and Yes/No buttons.
-static void make_yesno_activity(gui_activity_t** activity_ptr, const char* title, const char* message)
+static void make_yesno_activity(
+    gui_activity_t** activity_ptr, const char* title, const char* message, const bool default_selection)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(message);
@@ -155,7 +156,7 @@ static void make_yesno_activity(gui_activity_t** activity_ptr, const char* title
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
     gui_set_parent(hsplit, vsplit);
 
-    // No (default)
+    // No
     gui_view_node_t* btnNo;
     gui_make_button(&btnNo, TFT_BLACK, BTN_NO, NULL);
     gui_set_margins(btnNo, GUI_MARGIN_ALL_EQUAL, 2);
@@ -180,17 +181,20 @@ static void make_yesno_activity(gui_activity_t** activity_ptr, const char* title
     gui_make_text(&txtYes, "Yes", TFT_WHITE);
     gui_set_parent(txtYes, btnYes);
     gui_set_align(txtYes, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    // Select default button
+    gui_set_activity_initial_selection(*activity_ptr, default_selection ? btnYes : btnNo);
 }
 
 // Run generic activity that displays a message and Yes/No buttons, and waits
 // for button press.  Function returns true if 'Yes' was pressed.
-bool await_yesno_activity(const char* title, const char* message)
+bool await_yesno_activity(const char* title, const char* message, const bool default_selection)
 {
     JADE_ASSERT(message);
     // title is optional
 
     gui_activity_t* activity;
-    make_yesno_activity(&activity, title, message);
+    make_yesno_activity(&activity, title, message, default_selection);
 
     // Display and wait for button press
     gui_set_current_activity(activity);
