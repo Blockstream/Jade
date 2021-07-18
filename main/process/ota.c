@@ -277,7 +277,7 @@ void ota_process(void* process_ptr)
     esp_partition_t const* update_partition = NULL;
     esp_err_t err = ESP_FAIL;
 
-    // sizeof(tinfl_decompressor) is just over 10k
+    // sizeof(tinfl_decompressor) is just over 10k, no perfs diff vs DRAM
     tinfl_decompressor* decomp = JADE_MALLOC_PREFER_SPIRAM(sizeof(tinfl_decompressor));
     jade_process_free_on_exit(process, decomp);
     tinfl_init(decomp);
@@ -288,7 +288,9 @@ void ota_process(void* process_ptr)
     size_t timeout = DEFAULT_TIMEOUT_BEGIN;
 
     int status = TINFL_STATUS_NEEDS_MORE_INPUT;
-    uint8_t* uncompressed = JADE_MALLOC_PREFER_SPIRAM(UNCOMPRESSED_BUF_SIZE);
+
+    // if uncompressed is in DRAM esp_ota_write performs 2-3X better vs SPIRAM
+    uint8_t* uncompressed = JADE_MALLOC_DRAM(UNCOMPRESSED_BUF_SIZE);
     jade_process_free_on_exit(process, uncompressed);
 
     uint8_t* nout = uncompressed;
