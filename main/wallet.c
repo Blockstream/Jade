@@ -676,6 +676,8 @@ bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t p
     }
 
     struct ext_key derived;
+    SENSITIVE_PUSH(&derived, sizeof(derived));
+
     if (path_len == 0) {
         // Just copy root ext key
         memcpy(&derived, &(keychain_get()->xpriv), sizeof(derived));
@@ -684,6 +686,7 @@ bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t p
         const int wret
             = bip32_key_from_parent_path(&(keychain_get()->xpriv), path, path_len, BIP32_FLAG_KEY_PRIVATE, &derived);
         if (wret != WALLY_OK) {
+            SENSITIVE_POP(&derived);
             JADE_LOGE("Failed to derive key from path (size %u): %d", path_len, wret);
             return false;
         }
@@ -692,8 +695,9 @@ bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t p
     // Override network/version to yield the correct prefix for the passed network
     derived.version = version;
     JADE_WALLY_VERIFY(bip32_key_to_base58(&derived, BIP32_FLAG_KEY_PUBLIC, output));
+    SENSITIVE_POP(&derived);
 
-    JADE_LOGD("bip32_key_to_base58 %s", *output);
+    JADE_LOGD("bip32_key_to_base58: %s", *output);
     return true;
 }
 
@@ -725,13 +729,14 @@ bool wallet_get_public_blinding_key(
     // the master unblinding key is only the second half of that - ie. 256 bits
     // 'wally_asset_blinding_key_to_ec_private_key()' takes this into account...
     unsigned char privkey[EC_PRIVATE_KEY_LEN];
+    SENSITIVE_PUSH(privkey, sizeof(privkey));
     const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
         sizeof(keychain_get()->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
     if (wret != WALLY_OK) {
+        SENSITIVE_POP(privkey);
         JADE_LOGE("Error building asset blinding key for script: %d", wret);
         return false;
     }
-    SENSITIVE_PUSH(privkey, sizeof(privkey));
     JADE_WALLY_VERIFY(wally_ec_public_key_from_private_key(privkey, sizeof(privkey), output, output_len));
     SENSITIVE_POP(privkey);
 
@@ -785,6 +790,7 @@ bool wallet_get_shared_nonce(const unsigned char* script, const uint32_t script_
     const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
         sizeof(keychain_get()->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
     if (wret != WALLY_OK) {
+        SENSITIVE_POP(privkey);
         JADE_LOGE("Error building asset blinding key for script: %d", wret);
         return false;
     }
