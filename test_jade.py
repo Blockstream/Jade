@@ -318,7 +318,7 @@ def test_bad_message(jade):
 
         # Assert bad message response
         error = reply['error']
-        assert error['code'] == -32600  # rpc bad msg
+        assert error['code'] == JadeError.INVALID_REQUEST
         assert error['message'] == 'Invalid RPC Request message'
         assert 'result' not in reply
 
@@ -337,7 +337,7 @@ def test_very_bad_message(jade):
 
         # Assert bad message response
         error = reply['error']
-        assert error['code'] == -32600  # rpc bad msg
+        assert error['code'] == JadeError.INVALID_REQUEST
         assert error['message'] == 'Invalid RPC Request message'
         assert 'result' not in reply
 
@@ -367,7 +367,7 @@ def test_too_much_input(jade, has_psram):
 
     # Expect error
     error = reply['error']
-    assert error['code'] == -32600  # rpc bad msg
+    assert error['code'] == JadeError.INVALID_REQUEST
     assert error['message'] == 'Invalid RPC Request message'
     assert len(error['data']) == 132  # the bytes not discarded
     assert error['data'].endswith(b'longxyz\n')
@@ -418,7 +418,7 @@ def test_unknown_method(jade):
 
         # Assert unknown method response
         error = reply['error']
-        assert error['code'] == -32601  # rpc unknown method
+        assert error['code'] == JadeError.UNKNOWN_METHOD
         assert error['message'] == 'Unknown method'
         assert 'result' not in reply
 
@@ -441,7 +441,7 @@ def test_unexpected_method(jade):
 
         # Assert protocol-error/unexpected-method response
         error = reply['error']
-        assert error['code'] == -32001  # protocol error
+        assert error['code'] == JadeError.PROTOCOL_ERROR
         assert error['message'] == 'Unexpected method'
         assert 'result' not in reply
 
@@ -466,7 +466,7 @@ def _test_bad_params(jade, args, expected_error):
     assert 'result' not in reply
     assert 'error' in reply
     error = reply['error']
-    assert error['code'] == -32602  # bad parameters
+    assert error['code'] == JadeError.BAD_PARAMETERS
     assert 'message' in error
     assert expected_error in error['message']
 
@@ -1195,7 +1195,7 @@ def test_handshake_bad_sig(jade):
     reply = jade.make_rpc_call(msg)
     assert 'result' not in reply
     error = reply['error']
-    assert error['code'] == -32602
+    assert error['code'] == JadeError.BAD_PARAMETERS
     assert error['message'] == 'Cannot initiate handshake - ske and/or sig invalid'
 
 
@@ -1650,7 +1650,7 @@ def mixed_sources_test(jade1, jade2):
         rslt = jade2.get_xpub(network, path)
         assert False, "Excepted exception from mixed sources test"
     except JadeError as err:
-        assert err.code == -32002
+        assert err.code == JadeError.HW_LOCKED
 
     # jade1 is still fine
     rslt = jade1.get_xpub(network, path)
@@ -1665,7 +1665,7 @@ def mixed_sources_test(jade1, jade2):
         rslt = jade1.get_xpub(network, path)
         assert False, "Excepted exception from mixed sources test"
     except JadeError as err:
-        assert err.code == -32002
+        assert err.code == JadeError.HW_LOCKED
 
     # jade2 is still fine
     rslt = jade2.get_xpub(network, path)
