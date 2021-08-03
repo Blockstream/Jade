@@ -21,6 +21,12 @@ typedef enum { GREEN, P2PKH, P2WPKH, P2WPKH_P2SH } script_variant_t;
 void wallet_init();
 
 bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, size_t output_len);
+
+bool wallet_derive_pubkey(const uint8_t* serialised_key, size_t key_len, const uint32_t* path, size_t path_len,
+    uint32_t flags, struct ext_key* hdkey);
+bool wallet_derive_from_xpub(
+    const char* xpub, const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* hdkey);
+
 bool get_script_variant(const char* variant, size_t variant_len, script_variant_t* output);
 
 void wallet_build_receive_path(uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path,

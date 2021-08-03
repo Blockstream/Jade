@@ -157,6 +157,60 @@ bool get_script_variant(const char* variant, const size_t variant_len, script_va
     return true;
 }
 
+// Function to apply a path to a serialised key to derive a leaf key
+bool wallet_derive_pubkey(const uint8_t* serialised_key, const size_t key_len, const uint32_t* path,
+    const size_t path_len, uint32_t flags, struct ext_key* hdkey)
+{
+    if (!serialised_key || key_len != BIP32_SERIALIZED_LEN || (!path && path_len != 0) || !hdkey) {
+        return false;
+    }
+
+    if (path && path_len > 0) {
+        // De-serialise the key into a temporary
+        struct ext_key root;
+        SENSITIVE_PUSH(&root, sizeof(root));
+        if (bip32_key_unserialize(serialised_key, key_len, &root) != WALLY_OK) {
+            JADE_LOGE("Failed to de-serialise key");
+            SENSITIVE_POP(&root);
+            return false;
+        }
+
+        // Apply any additional path
+        flags |= BIP32_FLAG_KEY_PUBLIC;
+        JADE_WALLY_VERIFY(bip32_key_from_parent_path(&root, path, path_len, flags, hdkey));
+        SENSITIVE_POP(&root);
+    } else {
+        // De-serialise the key directly into the output
+        if (bip32_key_unserialize(serialised_key, key_len, hdkey) != WALLY_OK) {
+            JADE_LOGE("Failed to de-serialise key");
+            return false;
+        }
+    }
+    return true;
+}
+
+// Function to apply a path to an xpub to derive a leaf key
+bool wallet_derive_from_xpub(
+    const char* xpub, const uint32_t* path, const size_t path_len, const uint32_t flags, struct ext_key* hdkey)
+{
+    if (!xpub) {
+        return false;
+    }
+
+    size_t written = 0;
+    uint8_t bytes[BIP32_SERIALIZED_LEN + BASE58_CHECKSUM_LEN];
+    SENSITIVE_PUSH(bytes, sizeof(bytes));
+    if (wally_base58_to_bytes(xpub, BASE58_FLAG_CHECKSUM, bytes, sizeof(bytes), &written) != WALLY_OK
+        || written != BIP32_SERIALIZED_LEN) {
+        JADE_LOGE("Failed to parse xpub: '%s'", xpub);
+        SENSITIVE_POP(bytes);
+        return false;
+    }
+    const bool retval = wallet_derive_pubkey(bytes, written, path, path_len, flags, hdkey);
+    SENSITIVE_POP(bytes);
+    return retval;
+}
+
 // Internal helper to get a derived private key - note 'output' should point to a buffer of size EC_PRIVATE_KEY_LEN
 static void wallet_get_privkey(
     const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len)
@@ -409,18 +463,12 @@ static bool wallet_build_ga_script(const char* network, const char* xpubrecovery
     if (xpubrecovery) {
         JADE_ASSERT(num_pubkeys == 3);
 
-        struct ext_key key;
-        struct ext_key root;
-
         // xpub includes branch, so only need to derive the final step (ptr)
-        const int wret = bip32_key_from_base58(xpubrecovery, &root);
-        if (wret != WALLY_OK) {
-            JADE_LOGE("Error %d, trying to interpret base58 recovery key '%s'", wret, xpubrecovery);
+        struct ext_key key;
+        if (!wallet_derive_from_xpub(xpubrecovery, &path[path_size - 1], 1, BIP32_FLAG_SKIP_HASH, &key)) {
+            JADE_LOGE("Error trying to apply recovery key '%s'", xpubrecovery);
             return false;
         }
-
-        JADE_WALLY_VERIFY(bip32_key_from_parent_path(
-            &root, &path[path_size - 1], 1, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &key));
         memcpy(next_pubkey, key.pub_key, sizeof(key.pub_key));
     }
 
