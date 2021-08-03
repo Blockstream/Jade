@@ -310,7 +310,7 @@ void sign_tx_process(void* process_ptr)
     // if it's there it's an array of length n_inputs
     // that contains a map or null. The map has  "csv_blocks": 65535,"path":[1,5], "recovery_xpub":null
     CborValue change;
-    if (rpc_get_change("change", &params, &change) && cbor_value_is_array(&change)) {
+    if (rpc_get_array("change", &params, &change)) {
         output_info = JADE_CALLOC(tx->num_outputs, sizeof(output_info_t));
         jade_process_free_on_exit(process, output_info);
 

@@ -417,7 +417,7 @@ bool rpc_has_field_data(const char* field, const CborValue* value)
     return rpc_get_data(field, value, &result) && !cbor_value_is_null(&result);
 }
 
-bool rpc_get_change(const char* field, const CborValue* value, CborValue* result)
+bool rpc_get_array(const char* field, const CborValue* value, CborValue* result)
 {
     JADE_ASSERT(field);
     JADE_ASSERT(value);

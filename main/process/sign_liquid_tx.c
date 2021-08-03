@@ -246,7 +246,7 @@ void sign_liquid_tx_process(void* process_ptr)
     // Can optionally be passed paths for change outputs, which we verify internally
     char* errmsg = NULL;
     CborValue change;
-    if (rpc_get_change("change", &params, &change)) {
+    if (rpc_get_array("change", &params, &change)) {
         if (!validate_change_paths(process, network, tx, &change, output_info, &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
