@@ -86,9 +86,10 @@ static void qemu_tcp_reader(void* ignore)
             continue;
         }
 
+        const size_t initial_offset = read;
         read += len;
         JADE_LOGD("Passing %u bytes from tcp stream to common handler", read);
-        handle_data(full_qemu_tcp_data_in, &read, qemu_tcp_data_out, SOURCE_QEMU_TCP);
+        handle_data(full_qemu_tcp_data_in, initial_offset, &read, qemu_tcp_data_out, SOURCE_QEMU_TCP);
     }
 }
 

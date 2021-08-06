@@ -21,8 +21,14 @@
     jade_process_reject_message_ex(ctx, code, msg, data, datalen, data_out, MAX_OUTPUT_MSG_SIZE)
 
 // Handle bytes received
-void handle_data(uint8_t* full_data_in, size_t* read_ptr, uint8_t* data_out, jade_msg_source_t source)
+void handle_data(
+    uint8_t* full_data_in, const size_t initial_offset, size_t* read_ptr, uint8_t* data_out, jade_msg_source_t source)
 {
+    JADE_ASSERT(full_data_in);
+    JADE_ASSERT(read_ptr);
+    JADE_ASSERT(*read_ptr > initial_offset);
+    JADE_ASSERT(data_out);
+
     uint8_t* data_in = full_data_in + 1;
 
     while (true) {
@@ -31,7 +37,10 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, uint8_t* data_out, jad
 
         size_t msg_size = 0;
 
-        for (size_t i = 1; i <= read; ++i) {
+        // Start validating from 'initial_offset' as we can assume we have validated up to that point in a previous
+        // call (ie. with the previous data chunk).  Validating one byte at a time is painful enough, without repeating
+        // validation from the start with each chunk of additional message data received.
+        for (size_t i = initial_offset; i <= read; ++i) {
             const CborError cberr = cbor_parser_init(data_in, i, CborValidateCompleteData, &ctx.parser, &ctx.value);
             if (cberr == CborNoError && cbor_value_validate_basic(&ctx.value) == CborNoError) {
                 msg_size = i;

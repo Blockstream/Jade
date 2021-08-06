@@ -46,9 +46,10 @@ static void serial_reader(void* ignore)
             continue;
         }
 
+        const size_t initial_offset = read;
         read += len;
         JADE_LOGD("Passing %u bytes from serial device to common handler", read);
-        handle_data(full_serial_data_in, &read, serial_data_out, SOURCE_SERIAL);
+        handle_data(full_serial_data_in, initial_offset, &read, serial_data_out, SOURCE_SERIAL);
         timeout_counter = 0;
     }
 }

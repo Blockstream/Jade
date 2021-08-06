@@ -125,9 +125,10 @@ static int gatt_chr_event(uint16_t conn_handle, uint16_t attr_handle, struct ble
             JADE_ASSERT(rc == 0);
             JADE_ASSERT(out_copy_len == ble_msg_len);
 
+            const size_t initial_offset = ble_read;
             ble_read += ble_msg_len;
             JADE_LOGD("Passing %u bytes from ble device to common handler", ble_read);
-            handle_data(full_ble_data_in, &ble_read, ble_data_out, SOURCE_BLE);
+            handle_data(full_ble_data_in, initial_offset, &ble_read, ble_data_out, SOURCE_BLE);
             return 0;
 
         default:
