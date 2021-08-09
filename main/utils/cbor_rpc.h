@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <wally_bip32.h>
 #include <wally_crypto.h>
 #include <wally_elements.h>
 
@@ -46,6 +47,16 @@ typedef struct {
     size_t sig_size;
 } signing_data_t;
 
+typedef struct {
+    uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+    uint32_t derivation[MAX_PATH_LEN];
+    size_t derivation_len;
+    char xpub[120];
+    size_t xpub_len;
+    uint32_t path[MAX_PATH_LEN];
+    size_t path_len;
+} signer_t;
+
 bool cbor_print_error_for(const char* id, int code, const char* message, const uint8_t* data, size_t datalen,
     uint8_t* buffer, size_t buffer_len, size_t* towrite);
 
@@ -63,6 +74,7 @@ void rpc_get_string_ptr(const char* field, const CborValue* value, const char** 
 void rpc_get_bytes(const char* field, size_t max, const CborValue* value, uint8_t* data, size_t* written);
 void rpc_get_bytes_ptr(const char* field, const CborValue* value, const uint8_t** data, size_t* size);
 void rpc_get_commitments_allocate(const char* field, const CborValue* value, commitment_t** data, size_t* written);
+void rpc_get_signers_allocate(const char* field, const CborValue* value, signer_t** data, size_t* written);
 bool rpc_get_sizet(const char* field, const CborValue* value, size_t* res);
 bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res);
 bool rpc_get_boolean(const char* field, const CborValue* value, bool* res);
@@ -72,6 +84,7 @@ bool rpc_get_bip32_path(
 bool rpc_get_bip32_path_from_value(CborValue* value, uint32_t* path_ptr, const size_t max_path_len, size_t* written);
 
 bool rpc_get_array(const char* field, const CborValue* value, CborValue* result);
+bool rpc_get_map(const char* field, const CborValue* value, CborValue* result);
 
 // Build response objects
 void rpc_init_cbor(CborEncoder* container, const char* id, size_t id_len);

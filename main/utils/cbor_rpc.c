@@ -428,6 +428,14 @@ bool rpc_get_array(const char* field, const CborValue* value, CborValue* result)
     return rpc_get_data(field, value, result) && cbor_value_is_array(result);
 }
 
+bool rpc_get_map(const char* field, const CborValue* value, CborValue* result)
+{
+    JADE_ASSERT(field);
+    JADE_ASSERT(value);
+    JADE_ASSERT(result);
+    return rpc_get_data(field, value, result) && cbor_value_is_map(result);
+}
+
 static void reverse(uint8_t* buf, size_t len)
 {
     // flip the order of the bytes in-place
@@ -443,6 +451,7 @@ void rpc_get_commitments_allocate(const char* field, const CborValue* value, com
     JADE_ASSERT(field);
     JADE_ASSERT(value);
     JADE_ASSERT(data);
+    JADE_ASSERT(written);
 
     CborValue result;
     if (!rpc_get_array(field, value, &result)) {
@@ -461,7 +470,7 @@ void rpc_get_commitments_allocate(const char* field, const CborValue* value, com
         return;
     }
 
-    commitment_t* commitments = JADE_CALLOC(array_len, sizeof(commitment_t));
+    commitment_t* const commitments = JADE_CALLOC(array_len, sizeof(commitment_t));
 
     size_t tmp = 0;
     for (size_t i = 0; i < array_len; ++i) {
@@ -548,6 +557,89 @@ void rpc_get_commitments_allocate(const char* field, const CborValue* value, com
 
     *written = array_len;
     *data = commitments;
+}
+
+void rpc_get_signers_allocate(const char* field, const CborValue* value, signer_t** data, size_t* written)
+{
+    JADE_ASSERT(field);
+    JADE_ASSERT(value);
+    JADE_ASSERT(data);
+    JADE_ASSERT(written);
+
+    CborValue result;
+    if (!rpc_get_array(field, value, &result)) {
+        return;
+    }
+
+    size_t array_len = 0;
+    CborError cberr = cbor_value_get_array_length(&result, &array_len);
+    if (cberr != CborNoError) {
+        return;
+    }
+
+    CborValue arrayItem;
+    cberr = cbor_value_enter_container(&result, &arrayItem);
+    if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
+        return;
+    }
+
+    signer_t* const signers = JADE_MALLOC(array_len * sizeof(signer_t));
+
+    size_t tmp = 0;
+    for (size_t i = 0; i < array_len; ++i) {
+        JADE_ASSERT(!cbor_value_at_end(&arrayItem));
+        signer_t* const signer = signers + i;
+
+        if (!cbor_value_is_map(&arrayItem)) {
+            free(signers);
+            return;
+        }
+
+        size_t map_length = 0;
+        if (cbor_value_get_map_length(&arrayItem, &map_length) == CborNoError && map_length == 0) {
+            CborError err = cbor_value_advance(&arrayItem);
+            JADE_ASSERT(err == CborNoError);
+            continue;
+        }
+
+        tmp = 0;
+        rpc_get_bytes("fingerprint", sizeof(signer->fingerprint), &arrayItem, signer->fingerprint, &tmp);
+        if (tmp != sizeof(signer->fingerprint)) {
+            free(signers);
+            return;
+        }
+
+        signer->derivation_len = 0;
+        if (!rpc_get_bip32_path("derivation", &arrayItem, signer->derivation, MAX_PATH_LEN, &signer->derivation_len)) {
+            free(signers);
+            return;
+        }
+
+        signer->xpub_len = 0;
+        rpc_get_string("xpub", sizeof(signer->xpub), &arrayItem, signer->xpub, &signer->xpub_len);
+        if (tmp == 0 || signer->xpub_len >= sizeof(signer->xpub)) {
+            free(signers);
+            return;
+        }
+
+        signer->path_len = 0;
+        if (!rpc_get_bip32_path("path", &arrayItem, signer->path, MAX_PATH_LEN, &signer->path_len)) {
+            free(signers);
+            return;
+        }
+
+        CborError err = cbor_value_advance(&arrayItem);
+        JADE_ASSERT(err == CborNoError);
+    }
+
+    cberr = cbor_value_leave_container(&result, &arrayItem);
+    if (cberr != CborNoError) {
+        free(signers);
+        return;
+    }
+
+    *written = array_len;
+    *data = signers;
 }
 
 bool rpc_get_bip32_path(
