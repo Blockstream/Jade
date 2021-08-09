@@ -39,6 +39,7 @@ bool wallet_build_receive_script(const char* network, script_variant_t variant, 
 bool wallet_validate_receive_script(const char* network, script_variant_t variant, const char* xpubrecovery,
     uint32_t csvBlocks, const uint32_t* path, size_t path_size, const unsigned char* script, size_t script_len);
 
+void wallet_get_fingerprint(uint8_t* output, size_t output_len);
 bool wallet_get_xpub(const char* network, const uint32_t* path, uint32_t path_len, char** output);
 
 bool wallet_get_message_hash(const uint8_t* bytes, size_t bytes_len, uint8_t* output, size_t output_len);

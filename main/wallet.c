@@ -766,6 +766,16 @@ bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, 
     return true;
 }
 
+void wallet_get_fingerprint(uint8_t* output, const size_t output_len)
+{
+    JADE_ASSERT(keychain_get());
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len == BIP32_KEY_FINGERPRINT_LEN);
+
+    // Fingerprint is first 4 bytes of the hash160, which should be populated already
+    memcpy(output, keychain_get()->xpriv.hash160, output_len);
+}
+
 bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t path_len, char** output)
 {
     JADE_ASSERT(keychain_get());
