@@ -40,8 +40,9 @@ void get_receive_address_process(void* process_ptr)
         goto cleanup;
     }
 
-    uint32_t path[16]; // Sufficient for all green-address and other reasonable paths
+    uint32_t path[MAX_PATH_LEN];
     size_t path_len = 0;
+    const size_t max_path_len = sizeof(path) / sizeof(path[0]);
 
     if (script_variant == GREEN) {
         // For green-multisig the path is constructed from subaccount, branch and pointer
@@ -53,10 +54,10 @@ void get_receive_address_process(void* process_ptr)
             goto cleanup;
         }
 
-        wallet_build_receive_path(subaccount, branch, pointer, path, sizeof(path), &path_len);
+        wallet_build_receive_path(subaccount, branch, pointer, path, max_path_len, &path_len);
     } else {
         // Otherwise the path is explicit in the params
-        rpc_get_bip32_path("path", &params, path, sizeof(path), &path_len);
+        rpc_get_bip32_path("path", &params, path, max_path_len, &path_len);
         if (path_len == 0) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);

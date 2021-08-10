@@ -28,7 +28,8 @@ void get_xpubs_process(void* process_ptr)
     // NOTE: for get-xpub accessing the root key (empty bip32 path array) *IS* allowed.
     written = 0;
     uint32_t path[MAX_PATH_LEN];
-    const bool has_path = rpc_get_bip32_path("path", &params, path, MAX_PATH_LEN, &written);
+    const size_t max_path_len = sizeof(path) / sizeof(path[0]);
+    const bool has_path = rpc_get_bip32_path("path", &params, path, max_path_len, &written);
     if (!has_path) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);

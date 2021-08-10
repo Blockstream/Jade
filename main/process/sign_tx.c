@@ -78,7 +78,8 @@ bool validate_change_paths(jade_process_t* process, const char* network, struct 
 
             uint32_t path_len = 0;
             uint32_t path[MAX_PATH_LEN];
-            bool retval = rpc_get_bip32_path("path", &arrayItem, path, MAX_PATH_LEN, &path_len);
+            const size_t max_path_len = sizeof(path) / sizeof(path[0]);
+            bool retval = rpc_get_bip32_path("path", &arrayItem, path, max_path_len, &path_len);
 
             // NOTE: for receiving change the root (empty bip32 path) is not allowed.
             if (!retval || path_len == 0) {

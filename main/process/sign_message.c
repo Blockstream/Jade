@@ -61,7 +61,8 @@ void sign_message_process(void* process_ptr)
     // NOTE: for signing the root key (empty bip32 path) is not allowed.
     uint32_t path_len = 0;
     uint32_t path[MAX_PATH_LEN];
-    const bool has_path = rpc_get_bip32_path("path", &params, path, MAX_PATH_LEN, &path_len);
+    const size_t max_path_len = sizeof(path) / sizeof(path[0]);
+    const bool has_path = rpc_get_bip32_path("path", &params, path, max_path_len, &path_len);
     if (!has_path || path_len == 0) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
