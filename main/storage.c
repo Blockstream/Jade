@@ -4,6 +4,7 @@
 #include <esp_system.h>
 #include <nvs.h>
 #include <nvs_flash.h>
+#include <string.h>
 #include <wally_crypto.h>
 
 #ifdef CONFIG_NVS_ENCRYPTION
@@ -12,6 +13,7 @@ static const char* NVS_KEYS_PARTITION_LABEL = "nvs_key";
 #endif
 
 static const char* DEFAULT_NAMESPACE = "PIN";
+static const char* MULTISIG_NAMESPACE = "MULTISIGS";
 
 static const char* PIN_PRIVATEKEY_FIELD = "privatekey";
 static const char* PIN_COUNTER_FIELD = "counter";
@@ -462,3 +464,71 @@ uint8_t storage_get_ble_flags(void)
     uint8_t flags = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, BLE_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;
 }
+
+bool storage_set_multisig_registration(const char* name, const uint8_t* registration, const size_t registration_len)
+{
+    return store_blob(MULTISIG_NAMESPACE, name, registration, registration_len);
+}
+
+bool storage_get_multisig_registration(
+    const char* name, uint8_t* registration, const size_t registration_len, size_t* written)
+{
+    return read_blob(MULTISIG_NAMESPACE, name, registration, registration_len, written);
+}
+
+size_t storage_get_multisig_registration_count(void)
+{
+    size_t count = 0;
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, MULTISIG_NAMESPACE, NVS_TYPE_BLOB);
+    while (it != NULL) {
+        it = nvs_entry_next(it);
+        ++count;
+    };
+    return count;
+}
+
+bool storage_multisig_name_exists(const char* name)
+{
+    JADE_ASSERT(name);
+
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, MULTISIG_NAMESPACE, NVS_TYPE_BLOB);
+    while (it != NULL) {
+        nvs_entry_info_t info;
+        nvs_entry_info(it, &info);
+        if (strcmp(name, info.key) == 0) {
+            nvs_release_iterator(it);
+            return true;
+        }
+        it = nvs_entry_next(it);
+    };
+
+    return false;
+}
+
+bool storage_get_all_multisig_registration_names(
+    char names[][STORAGE_MAX_KEY_SIZE], const size_t names_len, size_t* written)
+{
+    JADE_ASSERT(names);
+    JADE_ASSERT(*names);
+    JADE_ASSERT(names_len > 0);
+    JADE_ASSERT(written);
+
+    size_t count = 0;
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, MULTISIG_NAMESPACE, NVS_TYPE_BLOB);
+    while (it != NULL && count < names_len) {
+        nvs_entry_info_t info;
+        nvs_entry_info(it, &info);
+        strcpy(names[count], info.key);
+        it = nvs_entry_next(it);
+        ++count;
+    };
+
+    if (it) {
+        nvs_release_iterator(it);
+    }
+
+    *written = count;
+    return count <= names_len;
+}
+
+bool storage_erase_multisig_registration(const char* name) { return erase_key(MULTISIG_NAMESPACE, name); }
