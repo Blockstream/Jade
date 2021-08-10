@@ -775,7 +775,7 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                      'type': 'BAD'}), 'Invalid blinding factor type'),
                   (('badblindfac10', 'get_blinding_factor',
                     {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': 0,
-                     'type': 'ASSETXYZ'}), 'Invalid blinding factor'),
+                     'type': 'ASSETXYZ'}), 'extract blinding factor type'),
                   (('badblindfac11', 'get_blinding_factor',
                     {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': 0,
                      'type': 'VALUEVERYBAD'}), 'extract blinding factor type'),
