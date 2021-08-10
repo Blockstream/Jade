@@ -19,7 +19,7 @@ void get_receive_address_process(void* process_ptr)
     jade_process_t* process = process_ptr;
 
     char network[MAX_NETWORK_NAME_LEN];
-    char variant[16];
+    char variant[MAX_VARIANT_LEN];
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_receive_address");

@@ -26,7 +26,10 @@ script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_l
     JADE_WALLY_VERIFY(wally_scriptpubkey_get_type(script, script_len, &script_type));
     if (script_type == WALLY_SCRIPT_TYPE_P2PKH || script_type == WALLY_SCRIPT_TYPE_P2WPKH) {
         return SCRIPT_FLAVOUR_SINGLESIG;
+    } else if (script_type == WALLY_SCRIPT_TYPE_MULTISIG) {
+        return SCRIPT_FLAVOUR_MULTISIG;
     } else {
+        // eg. ga-csv script
         return SCRIPT_FLAVOUR_OTHER;
     }
 }
@@ -89,7 +92,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
 
             // Optional script variant, default is green-multisig
             size_t written = 0;
-            char variant[16];
+            char variant[MAX_VARIANT_LEN];
             script_variant_t script_variant;
             rpc_get_string("variant", sizeof(variant), &arrayItem, variant, &written);
             if (!get_script_variant(variant, written, &script_variant)) {

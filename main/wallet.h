@@ -15,8 +15,10 @@
 #define ASSET_BLINDING_FACTOR 'A'
 #define VALUE_BLINDING_FACTOR 'V'
 
-// Supported script variants
-typedef enum { GREEN, P2PKH, P2WPKH, P2WPKH_P2SH } script_variant_t;
+#define MAX_VARIANT_LEN 24
+
+// Supported script variants (singlesig and multisig versions)
+typedef enum { GREEN, P2PKH, P2WPKH, P2WPKH_P2SH, MULTI_P2WSH, MULTI_P2SH, MULTI_P2WSH_P2SH } script_variant_t;
 
 void wallet_init(void);
 
@@ -28,6 +30,9 @@ bool wallet_derive_from_xpub(
     const char* xpub, const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* hdkey);
 
 bool get_script_variant(const char* variant, size_t variant_len, script_variant_t* output);
+bool is_greenaddress(script_variant_t variant);
+bool is_singlesig(script_variant_t variant);
+bool is_multisig(script_variant_t variant);
 
 bool wallet_is_expected_bip44_path(
     const char* network, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);

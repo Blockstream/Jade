@@ -43,9 +43,14 @@ static const uint32_t MAX_CSV_BLOCKS_ALLOWED = 65535;
 #define MULTISIG_SCRIPT_LEN(n) (3 + (n * (EC_PUBLIC_KEY_LEN + 1)))
 
 // Supported script variants (as well as the default green multisig/csv)
+// 1. singlesig
 #define VARIANT_P2PKH "pkh(k)"
 #define VARIANT_P2WPKH "wpkh(k)"
 #define VARIANT_P2WPKH_P2SH "sh(wpkh(k))"
+// 2. multisig
+#define VARIANT_MULTI_P2WSH "wsh(multi(k))"
+#define VARIANT_MULTI_P2SH "sh(multi(k))"
+#define VARIANT_MULTI_P2WSH_P2SH "sh(wsh(multi(k)))"
 
 // CSV script len varies depending on varint 'blocks' (between 1 byte and 3 bytes)
 #define CSV_MIN_SCRIPT_LEN (9 + (2 * (EC_PUBLIC_KEY_LEN + 1)) + 1 + 1)
@@ -139,36 +144,63 @@ bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, c
     return true;
 }
 
-static inline size_t script_length_for_variant(const script_variant_t script_variant)
+static size_t script_length_for_variant(const script_variant_t script_variant)
 {
     switch (script_variant) {
     case P2PKH:
         return WALLY_SCRIPTPUBKEY_P2PKH_LEN;
     case P2WPKH:
         return WALLY_SCRIPTPUBKEY_P2WPKH_LEN;
-    default:
+    case GREEN:
+    case P2WPKH_P2SH:
+    case MULTI_P2SH:
+    case MULTI_P2WSH_P2SH:
         return WALLY_SCRIPTPUBKEY_P2SH_LEN;
+    case MULTI_P2WSH:
+        return WALLY_SCRIPTPUBKEY_P2WSH_LEN;
+    default:
+        JADE_ASSERT_MSG(false, "Unknown script type %d", script_variant);
     }
 }
 
 // Map a script-variant string into the corresponding enum value
 bool get_script_variant(const char* variant, const size_t variant_len, script_variant_t* output)
 {
+    // Default to Green multisig/csv
     if (variant == NULL || variant_len == 0) {
-        // Default to Green multisig/csv
         *output = GREEN;
+        // Singlesig
     } else if (strcmp(VARIANT_P2PKH, variant) == 0) {
         *output = P2PKH;
     } else if (strcmp(VARIANT_P2WPKH, variant) == 0) {
         *output = P2WPKH;
     } else if (strcmp(VARIANT_P2WPKH_P2SH, variant) == 0) {
         *output = P2WPKH_P2SH;
+        // Multisig
+    } else if (strcmp(VARIANT_MULTI_P2SH, variant) == 0) {
+        *output = MULTI_P2SH;
+    } else if (strcmp(VARIANT_MULTI_P2WSH, variant) == 0) {
+        *output = MULTI_P2WSH;
+    } else if (strcmp(VARIANT_MULTI_P2WSH_P2SH, variant) == 0) {
+        *output = MULTI_P2WSH_P2SH;
     } else {
         // Unrecognised
         JADE_LOGW("Unrecognised script variant: %s", variant);
         return false;
     }
     return true;
+}
+
+bool is_greenaddress(const script_variant_t variant) { return variant == GREEN; }
+
+bool is_singlesig(const script_variant_t variant)
+{
+    return variant == P2PKH || variant == P2WPKH || variant == P2WPKH_P2SH;
+}
+
+bool is_multisig(const script_variant_t variant)
+{
+    return variant == MULTI_P2SH || variant == MULTI_P2WSH || variant == MULTI_P2WSH_P2SH;
 }
 
 // Function to apply a path to a serialised key to derive a leaf key
@@ -467,8 +499,8 @@ static bool wallet_build_ga_script(const char* network, const char* xpubrecovery
     const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(network);
-    JADE_ASSERT(written);
     JADE_ASSERT(output_len >= WALLY_SCRIPTPUBKEY_P2SH_LEN);
+    JADE_ASSERT(written);
     JADE_ASSERT(keychain_get());
 
     // We do not support 2of3-csv (ie. can't have csv blocks AND a recovery xpub)
@@ -544,8 +576,9 @@ static bool wallet_build_singlesig_script(const char* network, const script_vari
     const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(network);
-    JADE_ASSERT(written);
+    JADE_ASSERT(is_singlesig(script_variant));
     JADE_ASSERT(output_len >= WALLY_SCRIPTPUBKEY_P2PKH_LEN);
+    JADE_ASSERT(written);
     JADE_ASSERT(keychain_get());
 
     // The user pubkeys
@@ -596,27 +629,29 @@ bool wallet_build_receive_script(const char* network, const script_variant_t scr
         return false;
     }
 
-    if (script_variant == GREEN) {
+    if (is_greenaddress(script_variant)) {
         // GA multisig/csv
         return wallet_build_ga_script(network, xpubrecovery, csvBlocks, path, path_size, output, output_len, written);
     } else {
-        // Multisig is only supported for green atm
+        // recovery-xpub and csv are green-specific atm
         if (xpubrecovery) {
             JADE_LOGE("Incompatible options variant and recovery xpub");
             return false;
         }
-
-        // csv does not apply to non-green either
         if (csvBlocks) {
             JADE_LOGE("Incompatible options variant and csv blocks");
             return false;
         }
 
-        return wallet_build_singlesig_script(network, script_variant, path, path_size, output, output_len, written);
+        if (is_multisig(script_variant)) {
+            JADE_ASSERT_MSG(false, "Generic multisig not yet implemented");
+        } else {
+            return wallet_build_singlesig_script(network, script_variant, path, path_size, output, output_len, written);
+        }
     }
 }
 
-// Returns ok if we can build a p2sh script pubkey from the path that matches the one passed
+// Returns ok if we can build a script pubkey from the path that matches the one passed
 bool wallet_validate_receive_script(const char* network, const script_variant_t script_variant,
     const char* xpubrecovery, const uint32_t csvBlocks, const uint32_t* path, const size_t path_size,
     const unsigned char* script, const size_t script_len)
