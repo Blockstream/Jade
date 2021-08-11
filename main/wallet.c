@@ -31,8 +31,8 @@ static const uint32_t MAX_PATH_PTR = 10000;
 // Maximum number of csv blocks allowed in csv scripts
 static const uint32_t MAX_CSV_BLOCKS_ALLOWED = 65535;
 
-// script lengths
-#define MSIG_2OFN_SCRIPT_LEN(n) (3 + (n * (EC_PUBLIC_KEY_LEN + 1)))
+// multisig script length for n keys (m-of-n)
+#define MULTISIG_SCRIPT_LEN(n) (3 + (n * (EC_PUBLIC_KEY_LEN + 1)))
 
 // Supported script variants (as well as the default green multisig/csv)
 #define VARIANT_P2PKH "pkh(k)"
@@ -98,7 +98,7 @@ void wallet_init()
     JADE_WALLY_VERIFY(bip32_key_from_base58(LIQUID_SERVICE_XPUB, &LIQUID_SERVICE));
 }
 
-bool bip32_path_as_str(uint32_t parts[], size_t num_parts, char* output, const size_t output_len)
+bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len)
 {
     JADE_ASSERT(output);
     JADE_ASSERT(output_len > 16);
@@ -303,21 +303,26 @@ static void wallet_p2sh_p2wsh_scriptpubkey_for_bytes(const unsigned char* bytes,
     JADE_ASSERT(*written == WALLY_SCRIPTPUBKEY_P2SH_LEN);
 }
 
-// Helper to build a 2of2/2of3 multisig script
-static void wallet_build_multisig(
-    const uint8_t* pubkeys, const size_t pubkeys_len, uint8_t* output, const size_t output_len, size_t* written)
+// Helper to build an M-of-N multisig script
+static void wallet_build_multisig(const size_t threshold, const uint8_t* pubkeys, const size_t pubkeys_len,
+    uint8_t* output, const size_t output_len, size_t* written)
 {
-    JADE_ASSERT(pubkeys_len == 2 * EC_PUBLIC_KEY_LEN || pubkeys_len == 3 * EC_PUBLIC_KEY_LEN); // 2of2 or 2of3
     const size_t nkeys = pubkeys_len / EC_PUBLIC_KEY_LEN;
+    JADE_ASSERT(nkeys * EC_PUBLIC_KEY_LEN == pubkeys_len);
+
+    JADE_ASSERT(nkeys > 1);
+    JADE_ASSERT(threshold > 0);
+    JADE_ASSERT(threshold <= nkeys);
 
     JADE_ASSERT(output);
-    JADE_ASSERT(output_len >= MSIG_2OFN_SCRIPT_LEN(nkeys)); // Sufficient
+    JADE_ASSERT(output_len >= MULTISIG_SCRIPT_LEN(nkeys)); // Sufficient
     JADE_ASSERT(written);
 
-    // Create 2ofn multisig script
-    JADE_LOGI("Generating 2of%u multisig script", nkeys);
-    JADE_WALLY_VERIFY(wally_scriptpubkey_multisig_from_bytes(pubkeys, pubkeys_len, 2, 0, output, output_len, written));
-    JADE_ASSERT(*written == MSIG_2OFN_SCRIPT_LEN(nkeys));
+    // Create m-of-n multisig script
+    JADE_LOGI("Generating %uof%u multisig script", threshold, nkeys);
+    JADE_WALLY_VERIFY(
+        wally_scriptpubkey_multisig_from_bytes(pubkeys, pubkeys_len, threshold, 0, output, output_len, written));
+    JADE_ASSERT(*written == MULTISIG_SCRIPT_LEN(nkeys));
 }
 
 // Helper to build a 2of2 CSV multisig script
@@ -350,7 +355,7 @@ static void wallet_build_csv(const char* network, const uint8_t* pubkeys, const 
 }
 
 // Helper to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
-static bool build_ga_script(const char* network, const char* xpubrecovery, const uint32_t csvBlocks,
+static bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const uint32_t csvBlocks,
     const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(network);
@@ -372,7 +377,7 @@ static bool build_ga_script(const char* network, const char* xpubrecovery, const
 
     // The multisig or csv script we generate
     size_t script_size = 0;
-    unsigned char script[MSIG_2OFN_SCRIPT_LEN(3)]; // The largest script we might generate
+    unsigned char script[MULTISIG_SCRIPT_LEN(3)]; // The largest script we might generate
 
     // The GA and user pubkeys
     unsigned char user_privkey[EC_PRIVATE_KEY_LEN];
@@ -424,7 +429,7 @@ static bool build_ga_script(const char* network, const char* xpubrecovery, const
         wallet_build_csv(
             network, pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, csvBlocks, script, sizeof(script), &script_size);
     } else {
-        wallet_build_multisig(pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, script, sizeof(script), &script_size);
+        wallet_build_multisig(2, pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, script, sizeof(script), &script_size);
     }
 
     // Get the p2sh/p2wsh script-pubkey for the script we have created
@@ -433,8 +438,8 @@ static bool build_ga_script(const char* network, const char* xpubrecovery, const
 }
 
 // Helper to build a single-sig script - legacy-p2pkh, native segwit p2wpkh, or a p2sh-wrapped p2wpkh
-bool build_singlesig_script(const char* network, const script_variant_t script_variant, const uint32_t* path,
-    const size_t path_size, unsigned char* output, const size_t output_len, size_t* written)
+static bool wallet_build_singlesig_script(const char* network, const script_variant_t script_variant,
+    const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(written);
@@ -491,7 +496,7 @@ bool wallet_build_receive_script(const char* network, const script_variant_t scr
 
     if (script_variant == GREEN) {
         // GA multisig/csv
-        return build_ga_script(network, xpubrecovery, csvBlocks, path, path_size, output, output_len, written);
+        return wallet_build_ga_script(network, xpubrecovery, csvBlocks, path, path_size, output, output_len, written);
     } else {
         // Multisig is only supported for green atm
         if (xpubrecovery) {
@@ -505,7 +510,7 @@ bool wallet_build_receive_script(const char* network, const script_variant_t scr
             return false;
         }
 
-        return build_singlesig_script(network, script_variant, path, path_size, output, output_len, written);
+        return wallet_build_singlesig_script(network, script_variant, path, path_size, output, output_len, written);
     }
 }
 
