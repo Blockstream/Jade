@@ -15,6 +15,9 @@
 #define ASSET_BLINDING_FACTOR 'A'
 #define VALUE_BLINDING_FACTOR 'V'
 
+// The maximum number of multisig signers supported
+#define MAX_MULTISIG_SIGNERS 8
+
 #define MAX_VARIANT_LEN 24
 
 // Supported script variants (singlesig and multisig versions)
