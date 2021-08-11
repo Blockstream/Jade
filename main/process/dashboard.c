@@ -35,6 +35,9 @@
 static bool initialisation_via_ble = false;
 
 // Functional actions
+void get_xpubs_process(void* process_ptr);
+void register_multisig_process(void* process_ptr);
+void get_receive_address_process(void* process_ptr);
 void sign_message_process(void* process_ptr);
 void sign_tx_process(void* process_ptr);
 void get_master_blinding_key_process(void* process_ptr);
@@ -47,8 +50,6 @@ void sign_liquid_tx_process(void* process_ptr);
 void debug_set_mnemonic_process(void* process_ptr);
 void debug_handshake(void* process_ptr);
 #endif
-void get_xpubs_process(void* process_ptr);
-void get_receive_address_process(void* process_ptr);
 void ota_process(void* process_ptr);
 void update_pinserver_process(void* process_ptr);
 void auth_user_process(void* process_ptr);
@@ -278,6 +279,8 @@ static void dispatch_message(jade_process_t* process)
                 process, CBOR_RPC_HW_LOCKED, "Cannot process message - hardware locked or uninitialised", NULL);
         } else if (IS_METHOD("get_xpub")) {
             task_function = get_xpubs_process;
+        } else if (IS_METHOD("register_multisig")) {
+            task_function = register_multisig_process;
         } else if (IS_METHOD("get_receive_address")) {
             task_function = get_receive_address_process;
         } else if (IS_METHOD("sign_message")) {

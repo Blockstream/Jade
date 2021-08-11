@@ -1,0 +1,24 @@
+{
+  "input": {
+    "network": "testnet",
+    "multisig_name": "matches_ga_2of2",
+    "descriptor": {
+      "variant": "sh(wsh(multi(k)))",
+      "threshold": 2,
+      "signers": [
+        {
+          "fingerprint": "b5281696",
+          "derivation": [1],
+          "xpub": "tpubEAUTpVqYYmPAmbP956Rtt4FwBhiS1iQAWsYjPcZk1BzgdmrbUL7ykgtAggVJvc9z8Fdh4TPUwZc7MekLy1Mh2J4G5nthx2Hqt7EdLKX2ar8",
+          "path": []
+        },
+        {
+          "fingerprint": "e3ebcc79",
+          "derivation": [1],
+          "xpub": "tpubD9wHvxq4yutRMa2nmuFG1V56vbfT5o1vvQCNBwGLwCimjnKyTYTWUXAdVYEjqDhJ67Ass4bLupZcuuPwtMJLzdDiGeASdprQDtp9WF4E9po",
+          "path": []
+        }
+      ]
+    }
+  }
+}

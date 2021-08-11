@@ -229,6 +229,12 @@ class JadeAPI:
         params = {'network': network, 'path': path}
         return self._jadeRpc('get_xpub', params)
 
+    # Register a multisig wallet
+    def register_multisig(self, network, multisig_name, variant, threshold, signers):
+        params = {'network': network, 'multisig_name': multisig_name,
+                  'descriptor': {'variant': variant, 'threshold': threshold, 'signers': signers}}
+        return self._jadeRpc('register_multisig', params)
+
     # Get receive-address for parameters
     def get_receive_address(self, *args, recovery_xpub=None, csv_blocks=0, variant=None):
         if variant is not None:

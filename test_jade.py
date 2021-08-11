@@ -2,6 +2,7 @@ import os
 import time
 import glob
 import cbor
+import copy
 import json
 import base64
 import logging
@@ -72,6 +73,11 @@ def _h2b_test_case(testcase):
 
         if 'expected_output' in testcase and len(testcase['expected_output']) == 2:
             testcase['expected_output'][0] = h2b(testcase['expected_output'][0])
+
+    if 'multisig_name' in testcase['input']:
+        # multisig data
+        for signer in testcase['input']['descriptor']['signers']:
+            signer['fingerprint'] = h2b(signer['fingerprint'])
 
     return testcase
 
@@ -239,6 +245,8 @@ SfzadGnGduPwvoVK1ZpthykJup8A8Eh2'),
 YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi')]
 
 # Hold test data in separate files as can be large
+MULTI_REG_TESTS = _get_test_cases("multisig_reg_*.json")
+MULTI_REG_SS_TESTS = _get_test_cases("multisig_reg_ss_*.json")
 SIGN_MSG_TESTS = _get_test_cases("msg_*.json")
 SIGN_TXN_TESTS = _get_test_cases("txn_*.json")
 SIGN_TXN_FAIL_CASES = _get_test_cases("badtxn_*.json")
@@ -484,6 +492,31 @@ def test_bad_params(jade):
 d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a069\
 1f59dffae18852bbd7300000000')
 
+    GOOD_COSIGNERS = [
+        {
+          "fingerprint": h2b("1273da33"),
+          "derivation": [44, 2147483648, 2147483648],
+          "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3\
+GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+          "path": [3, 1]
+        },
+        {
+          "fingerprint": h2b("e3ebcc79"),
+          "derivation": [2147483651, 2147483649, 1],
+          "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8\
+epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+          "path": [1]
+        }
+    ]
+    bad_cosigners1 = copy.deepcopy(GOOD_COSIGNERS)
+    bad_cosigners1[0]['fingerprint'] = bad_cosigners1[1]['fingerprint']
+    bad_cosigners2 = copy.deepcopy(GOOD_COSIGNERS)
+    bad_cosigners2[1]['fingerprint'] = bad_cosigners2[0]['fingerprint']
+    bad_cosigners3 = copy.deepcopy(GOOD_COSIGNERS)
+    bad_cosigners3[1]['derivation'] = [1, 2, 3, 4]
+    bad_cosigners4 = copy.deepcopy(GOOD_COSIGNERS)
+    bad_cosigners4[1]['path'] = [2147483648]
+
     bad_params = [(('badauth1', 'auth_user'), 'Expecting parameters map'),
                   (('badauth2', 'auth_user', {'network': None}), 'extract valid network'),
                   (('badauth3', 'auth_user', {'network': 1234512345}), 'extract valid network'),
@@ -545,6 +578,61 @@ d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a069\
                     {'path': [], 'network': 'invalid'}), 'valid network'),
                   (('badxpub12', 'get_xpub',  # network missing or invalid
                     {'path': [1, 2, 3], 'network': 'invalid'}), 'valid network'),
+
+                  (('badmulti1', 'register_multisig'), 'Expecting parameters map'),
+                  (('badmulti2', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': None}), 'invalid multisig name'),
+                  (('badmulti3', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'space is bad'}),
+                   'invalid multisig name'),
+                  (('badmulti4', 'register_multisig',
+                    {'network': 'testnet',
+                     'multisig_name': 'excessivelylong1'}), 'invalid multisig name'),
+                  (('badmulti5', 'register_multisig',
+                    {'network': 'testnet',
+                     'multisig_name': 'test'}), 'extract multisig descriptor'),
+                  (('badmulti6', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                     'threshold': 2, 'signers': []}}), 'Invalid script variant'),
+                  (('badmulti7', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                     'variant': 'pkh(k)', 'threshold': 2, 'signers': []}}),
+                   'Invalid script variant'),
+                  (('badmulti8', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'signers': []}}), 'Invalid multisig threshold'),
+                  (('badmulti9', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'threshold': 0, 'signers': []}}),
+                   'Invalid multisig threshold'),
+                  (('badmulti10', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'threshold': 12, 'signers': []}}),
+                   'Invalid multisig threshold'),
+                  (('badmulti11', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'threshold': 5, 'signers': GOOD_COSIGNERS}}),
+                   'threshold for number of co-signers'),
+                  (('badmulti12', 'register_multisig',  # network missing or invalid
+                    {'network': 'noexist', 'multisig_name': 'test'}), 'valid network'),
+                  (('badmulti13', 'register_multisig',  # network missing or invalid
+                    {'network': 'liquid', 'multisig_name': 'test'}), 'not supported for liquid'),
+                  (('badmulti14', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners1}}),
+                  'validate multisig co-signers'),
+                  (('badmulti15', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners2}}),
+                  'validate multisig co-signers'),
+                  (('badmulti16', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners3}}),
+                  'validate multisig co-signers'),
+                  (('badmulti17', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners4}}),
+                  'validate multisig co-signers'),
 
                   (('badrecvaddr1', 'get_receive_address'), 'Expecting parameters map'),
                   (('badrecvaddr2', 'get_receive_address',
@@ -1559,6 +1647,17 @@ aa95e1c72070b08208012144f')
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
+    # Generic multisig
+    # Register multisig wallets
+    for multisig_data in MULTI_REG_TESTS:
+        inputdata = multisig_data['input']
+        rslt = jadeapi.register_multisig(inputdata['network'],
+                                         inputdata['multisig_name'],
+                                         inputdata['descriptor']['variant'],
+                                         inputdata['descriptor']['threshold'],
+                                         inputdata['descriptor']['signers'])
+        assert rslt is True
+
     # Short sanity-test of 12-word mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12)
     assert rslt is True
@@ -1600,6 +1699,17 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
+
+    # Generic multisig
+    # Register multisig wallets
+    for multisig_data in MULTI_REG_SS_TESTS:
+        inputdata = multisig_data['input']
+        rslt = jadeapi.register_multisig(inputdata['network'],
+                                         inputdata['multisig_name'],
+                                         inputdata['descriptor']['variant'],
+                                         inputdata['descriptor']['threshold'],
+                                         inputdata['descriptor']['signers'])
+        assert rslt is True
 
     # restore the mnemonic after single sig tests
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
