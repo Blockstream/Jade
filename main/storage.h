@@ -14,6 +14,7 @@ typedef enum { NONE, MAIN, TEST } network_type_t;
 
 bool storage_init();
 bool storage_erase();
+bool storage_get_stats(size_t* entries_used, size_t* entries_free);
 
 bool storage_set_pin_privatekey(const unsigned char* privatekey, size_t key_len);
 bool storage_get_pin_privatekey(unsigned char* privatekey, size_t key_len);

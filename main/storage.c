@@ -259,6 +259,21 @@ bool storage_erase()
     return true;
 }
 
+bool storage_get_stats(size_t* entries_used, size_t* entries_free)
+{
+    JADE_ASSERT(entries_used);
+    JADE_ASSERT(entries_free);
+
+    nvs_stats_t stats;
+    if (nvs_get_stats(NVS_DEFAULT_PART_NAME, &stats) != ESP_OK) {
+        return false;
+    }
+
+    *entries_used = stats.used_entries;
+    *entries_free = stats.free_entries;
+    return true;
+}
+
 bool storage_get_pin_privatekey(unsigned char* privatekey, const size_t key_len)
 {
     JADE_ASSERT(privatekey);

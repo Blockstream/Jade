@@ -90,7 +90,7 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     JADE_ASSERT(err == ESP_OK);
 
 #ifdef CONFIG_DEBUG_MODE
-    const uint8_t num_version_fields = 16;
+    const uint8_t num_version_fields = 18;
 #else
     const uint8_t num_version_fields = 11;
 #endif
@@ -170,6 +170,11 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
 
 // Memory stats only needed in DEBUG
 #ifdef CONFIG_DEBUG_MODE
+    size_t entries_used, entries_free;
+    const bool ok = storage_get_stats(&entries_used, &entries_free);
+    add_uint_to_map(&map_encoder, "JADE_NVS_ENTRIES_USED", ok ? entries_used : 0);
+    add_uint_to_map(&map_encoder, "JADE_NVS_ENTRIES_FREE", ok ? entries_free : 0);
+
     add_uint_to_map(&map_encoder, "JADE_FREE_HEAP", xPortGetFreeHeapSize());
     add_uint_to_map(&map_encoder, "JADE_FREE_DRAM", heap_caps_get_free_size(MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL));
     add_uint_to_map(
