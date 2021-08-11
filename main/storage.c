@@ -11,7 +11,8 @@
 static const char* NVS_KEYS_PARTITION_LABEL = "nvs_key";
 #endif
 
-static const char* STORAGE_NAMESPACE = "PIN";
+static const char* DEFAULT_NAMESPACE = "PIN";
+
 static const char* PIN_PRIVATEKEY_FIELD = "privatekey";
 static const char* PIN_COUNTER_FIELD = "counter";
 static const char* BLOB_FIELD = "blob";
@@ -30,11 +31,11 @@ static const char* BLE_FLAGS_FIELD = "bleflags";
 // They all close the storage and return false on any error.
 
 // Macro open nvs before a read or write
-#define STORAGE_OPEN(h)                                                                                                \
+#define STORAGE_OPEN(h, ns, rwflags)                                                                                   \
     do {                                                                                                               \
-        const esp_err_t err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &h);                                          \
+        const esp_err_t err = nvs_open(ns, rwflags, &h);                                                               \
         if (err != ESP_OK) {                                                                                           \
-            JADE_LOGE("nvs_open() for %s failed: %u", STORAGE_NAMESPACE, err);                                         \
+            JADE_LOGE("nvs_open() for %s failed: %u", ns, err);                                                        \
             return false;                                                                                              \
         }                                                                                                              \
     } while (false)
@@ -113,37 +114,39 @@ static const char* BLE_FLAGS_FIELD = "bleflags";
         nvs_close(h);                                                                                                  \
     } while (false)
 
-static bool store_blob(const char* name, const unsigned char* data, const size_t len)
+static bool store_blob(const char* ns, const char* name, const unsigned char* data, const size_t len)
 {
+    JADE_ASSERT(ns);
     JADE_ASSERT(name);
     JADE_ASSERT(data);
     JADE_ASSERT(len > 0);
 
     nvs_handle handle;
-    STORAGE_OPEN(handle);
+    STORAGE_OPEN(handle, ns, NVS_READWRITE);
     STORAGE_SET_BLOB(handle, name, data, len);
     STORAGE_COMMIT(handle);
     STORAGE_CLOSE(handle);
     return true;
 }
 
-static bool read_blob(const char* name, unsigned char* data, const size_t len, size_t* written)
+static bool read_blob(const char* ns, const char* name, unsigned char* data, const size_t len, size_t* written)
 {
+    JADE_ASSERT(ns);
     JADE_ASSERT(name);
     JADE_ASSERT(data);
     JADE_ASSERT(len > 0);
 
     nvs_handle handle;
-    STORAGE_OPEN(handle);
+    STORAGE_OPEN(handle, ns, NVS_READONLY);
     STORAGE_GET_BLOB(handle, name, data, len, written);
     STORAGE_CLOSE(handle);
     return true;
 }
 
-static bool read_blob_fixed(const char* name, unsigned char* data, const size_t len)
+static bool read_blob_fixed(const char* ns, const char* name, unsigned char* data, const size_t len)
 {
     size_t written;
-    if (!read_blob(name, data, len, &written)) {
+    if (!read_blob(ns, name, data, len, &written)) {
         return false;
     }
     if (written != len) {
@@ -153,21 +156,23 @@ static bool read_blob_fixed(const char* name, unsigned char* data, const size_t 
     return true;
 }
 
-static bool store_string(const char* name, const char* str)
+static bool store_string(const char* ns, const char* name, const char* str)
 {
+    JADE_ASSERT(ns);
     JADE_ASSERT(name);
     JADE_ASSERT(str);
 
     nvs_handle handle;
-    STORAGE_OPEN(handle);
+    STORAGE_OPEN(handle, ns, NVS_READWRITE);
     STORAGE_SET_STRING(handle, name, str);
     STORAGE_COMMIT(handle);
     STORAGE_CLOSE(handle);
     return true;
 }
 
-static bool read_string(const char* name, char* str, const size_t len, size_t* written)
+static bool read_string(const char* ns, const char* name, char* str, const size_t len, size_t* written)
 {
+    JADE_ASSERT(ns);
     JADE_ASSERT(name);
     JADE_ASSERT(str);
     JADE_ASSERT(len > 0);
@@ -175,18 +180,19 @@ static bool read_string(const char* name, char* str, const size_t len, size_t* w
     JADE_ASSERT(*written == 0);
 
     nvs_handle handle;
-    STORAGE_OPEN(handle);
+    STORAGE_OPEN(handle, ns, NVS_READONLY);
     STORAGE_GET_STRING(handle, name, str, len, written);
     STORAGE_CLOSE(handle);
     return true;
 }
 
-static bool erase_key(const char* name)
+static bool erase_key(const char* ns, const char* name)
 {
+    JADE_ASSERT(ns);
     JADE_ASSERT(name);
 
     nvs_handle handle;
-    STORAGE_OPEN(handle);
+    STORAGE_OPEN(handle, ns, NVS_READWRITE);
     STORAGE_ERASE(handle, name);
     STORAGE_COMMIT(handle);
     STORAGE_CLOSE(handle);
@@ -258,7 +264,7 @@ bool storage_get_pin_privatekey(unsigned char* privatekey, const size_t key_len)
     JADE_ASSERT(privatekey);
     JADE_ASSERT(key_len == EC_PRIVATE_KEY_LEN);
 
-    if (!read_blob_fixed(PIN_PRIVATEKEY_FIELD, privatekey, key_len)) {
+    if (!read_blob_fixed(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD, privatekey, key_len)) {
         return false;
     }
 
@@ -280,10 +286,10 @@ bool storage_set_pin_privatekey(const unsigned char* privatekey, const size_t ke
         JADE_LOGE("wally_ec_private_key_verify() failed: %u", wret);
         return false;
     }
-    return store_blob(PIN_PRIVATEKEY_FIELD, privatekey, key_len);
+    return store_blob(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD, privatekey, key_len);
 }
 
-bool storage_erase_pin_privatekey() { return erase_key(PIN_PRIVATEKEY_FIELD); }
+bool storage_erase_pin_privatekey() { return erase_key(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD); }
 
 bool storage_set_encrypted_blob(const unsigned char* encrypted, const size_t encrypted_len)
 {
@@ -291,21 +297,21 @@ bool storage_set_encrypted_blob(const unsigned char* encrypted, const size_t enc
     if (!storage_restore_counter()) {
         return false;
     }
-    return store_blob(BLOB_FIELD, encrypted, encrypted_len);
+    return store_blob(DEFAULT_NAMESPACE, BLOB_FIELD, encrypted, encrypted_len);
 }
 
 bool storage_get_encrypted_blob(unsigned char* encrypted, const size_t encrypted_len)
 {
-    return read_blob_fixed(BLOB_FIELD, encrypted, encrypted_len);
+    return read_blob_fixed(DEFAULT_NAMESPACE, BLOB_FIELD, encrypted, encrypted_len);
 }
 
 bool storage_erase_encrypted_blob()
 {
     // Try to erase the counter
-    erase_key(PIN_COUNTER_FIELD);
+    erase_key(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD);
 
     // Return whether or not we successfully erase the encrypted key
-    return erase_key(BLOB_FIELD);
+    return erase_key(DEFAULT_NAMESPACE, BLOB_FIELD);
 }
 
 bool storage_decrement_counter()
@@ -318,7 +324,7 @@ bool storage_decrement_counter()
 
     --counter;
 
-    if (!store_blob(PIN_COUNTER_FIELD, &counter, sizeof(counter))) {
+    if (!store_blob(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD, &counter, sizeof(counter))) {
         storage_erase_encrypted_blob();
         return false;
     }
@@ -328,13 +334,13 @@ bool storage_decrement_counter()
 bool storage_restore_counter()
 {
     const uint8_t counter = 3;
-    return store_blob(PIN_COUNTER_FIELD, &counter, sizeof(counter));
+    return store_blob(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD, &counter, sizeof(counter));
 }
 
 uint8_t storage_get_counter()
 {
     uint8_t counter = 0;
-    return read_blob_fixed(PIN_COUNTER_FIELD, &counter, sizeof(counter)) ? counter : 0;
+    return read_blob_fixed(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD, &counter, sizeof(counter)) ? counter : 0;
 }
 
 bool storage_set_pinserver_details(
@@ -345,7 +351,7 @@ bool storage_set_pinserver_details(
 
     // Commit all values, or none
     nvs_handle handle;
-    STORAGE_OPEN(handle);
+    STORAGE_OPEN(handle, DEFAULT_NAMESPACE, NVS_READWRITE);
     STORAGE_SET_STRING(handle, USER_PINSERVER_URL_A, urlA);
     STORAGE_SET_STRING(handle, USER_PINSERVER_URL_B, urlB);
 
@@ -360,24 +366,24 @@ bool storage_set_pinserver_details(
 
 bool storage_get_pinserver_urlA(char* url, const size_t len, size_t* written)
 {
-    return read_string(USER_PINSERVER_URL_A, url, len, written);
+    return read_string(DEFAULT_NAMESPACE, USER_PINSERVER_URL_A, url, len, written);
 }
 
 bool storage_get_pinserver_urlB(char* url, const size_t len, size_t* written)
 {
-    return read_string(USER_PINSERVER_URL_B, url, len, written);
+    return read_string(DEFAULT_NAMESPACE, USER_PINSERVER_URL_B, url, len, written);
 }
 
 bool storage_get_pinserver_pubkey(unsigned char* pubkey, const size_t pubkey_len)
 {
-    return read_blob_fixed(USER_PINSERVER_PUBKEY, pubkey, pubkey_len);
+    return read_blob_fixed(DEFAULT_NAMESPACE, USER_PINSERVER_PUBKEY, pubkey, pubkey_len);
 }
 
 bool storage_erase_pinserver_details()
 {
     // Erase all of the pinserver fields, or none of them
     nvs_handle handle;
-    STORAGE_OPEN(handle);
+    STORAGE_OPEN(handle, DEFAULT_NAMESPACE, NVS_READWRITE);
     STORAGE_ERASE(handle, USER_PINSERVER_URL_A);
     STORAGE_ERASE(handle, USER_PINSERVER_URL_B);
     STORAGE_ERASE(handle, USER_PINSERVER_PUBKEY);
@@ -386,49 +392,58 @@ bool storage_erase_pinserver_details()
     return true;
 }
 
-bool storage_set_pinserver_cert(const char* cert) { return store_string(USER_PINSERVER_CERT, cert); }
+bool storage_set_pinserver_cert(const char* cert) { return store_string(DEFAULT_NAMESPACE, USER_PINSERVER_CERT, cert); }
 
 bool storage_get_pinserver_cert(char* cert, const size_t len, size_t* written)
 {
-    return read_string(USER_PINSERVER_CERT, cert, len, written);
+    return read_string(DEFAULT_NAMESPACE, USER_PINSERVER_CERT, cert, len, written);
 }
 
-bool storage_erase_pinserver_cert() { return erase_key(USER_PINSERVER_CERT); }
+bool storage_erase_pinserver_cert() { return erase_key(DEFAULT_NAMESPACE, USER_PINSERVER_CERT); }
 
 bool storage_set_network_type_restriction(network_type_t networktype)
 {
-    return store_blob(NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype));
+    return store_blob(DEFAULT_NAMESPACE, NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype));
 }
 
 network_type_t storage_get_network_type_restriction()
 {
     network_type_t networktype = NONE;
-    return read_blob_fixed(NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype)) ? networktype : NONE;
+    return read_blob_fixed(DEFAULT_NAMESPACE, NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype))
+        ? networktype
+        : NONE;
 }
 
 bool storage_set_idle_timeout(uint16_t timeout)
 {
-    return store_blob(IDLE_TIMEOUT_FIELD, (const unsigned char*)&timeout, sizeof(timeout));
+    return store_blob(DEFAULT_NAMESPACE, IDLE_TIMEOUT_FIELD, (const unsigned char*)&timeout, sizeof(timeout));
 }
 
 uint16_t storage_get_idle_timeout()
 {
     uint16_t timeout = 0;
-    return read_blob_fixed(IDLE_TIMEOUT_FIELD, (unsigned char*)&timeout, sizeof(timeout)) ? timeout : 0;
+    return read_blob_fixed(DEFAULT_NAMESPACE, IDLE_TIMEOUT_FIELD, (unsigned char*)&timeout, sizeof(timeout)) ? timeout
+                                                                                                             : 0;
 }
 
-bool storage_set_click_event(uint8_t event) { return store_blob(CLICK_EVENT_FIELD, &event, sizeof(event)); }
+bool storage_set_click_event(uint8_t event)
+{
+    return store_blob(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD, &event, sizeof(event));
+}
 
 uint8_t storage_get_click_event()
 {
     uint8_t event = 0;
-    return read_blob_fixed(CLICK_EVENT_FIELD, &event, sizeof(event)) ? event : 0;
+    return read_blob_fixed(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD, &event, sizeof(event)) ? event : 0;
 }
 
-bool storage_set_ble_flags(uint8_t flags) { return store_blob(BLE_FLAGS_FIELD, &flags, sizeof(flags)); }
+bool storage_set_ble_flags(uint8_t flags)
+{
+    return store_blob(DEFAULT_NAMESPACE, BLE_FLAGS_FIELD, &flags, sizeof(flags));
+}
 
 uint8_t storage_get_ble_flags()
 {
     uint8_t flags = 0;
-    return read_blob_fixed(BLE_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;
+    return read_blob_fixed(DEFAULT_NAMESPACE, BLE_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;
 }
