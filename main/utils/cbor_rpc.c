@@ -547,32 +547,39 @@ bool rpc_get_bip32_path(
     const char* field, const CborValue* value, uint32_t* path_ptr, const size_t max_path_len, size_t* written)
 {
     JADE_ASSERT(field);
+    JADE_ASSERT(value);
+
+    CborValue result;
+    return rpc_get_data(field, value, &result)
+        && rpc_get_bip32_path_from_value(&result, path_ptr, max_path_len, written);
+}
+
+bool rpc_get_bip32_path_from_value(CborValue* value, uint32_t* path_ptr, const size_t max_path_len, size_t* written)
+{
+    JADE_ASSERT(value);
     JADE_ASSERT(path_ptr);
     JADE_ASSERT(max_path_len > 0);
     JADE_ASSERT(written);
     JADE_ASSERT(*written == 0);
 
-    CborValue result;
-    const bool ok = rpc_get_data(field, value, &result);
-
-    if (!ok || !cbor_value_is_array(&result)) {
+    if (!cbor_value_is_array(value)) {
         return false;
     }
-    size_t length_array = 0;
-    CborError cberr = cbor_value_get_array_length(&result, &length_array);
+    size_t array_len = 0;
+    CborError cberr = cbor_value_get_array_length(value, &array_len);
 
-    if (cberr != CborNoError || length_array > max_path_len) {
+    if (cberr != CborNoError || array_len > max_path_len) {
         return false;
     }
 
     CborValue arrayItem;
-    cberr = cbor_value_enter_container(&result, &arrayItem);
+    cberr = cbor_value_enter_container(value, &arrayItem);
     if (cberr != CborNoError) {
         return false;
     }
 
     uint64_t tmp = 0;
-    for (size_t counter = 0; counter < length_array; ++counter) {
+    for (size_t counter = 0; counter < array_len; ++counter) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
         if (!cbor_value_is_unsigned_integer(&arrayItem)) {
             return false;
@@ -586,11 +593,11 @@ bool rpc_get_bip32_path(
 
     JADE_ASSERT(cbor_value_at_end(&arrayItem));
 
-    cberr = cbor_value_leave_container(&result, &arrayItem);
+    cberr = cbor_value_leave_container(value, &arrayItem);
     if (cberr != CborNoError) {
         return false;
     }
-    *written = length_array;
+    *written = array_len;
     return true;
 }
 

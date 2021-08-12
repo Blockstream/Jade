@@ -65,8 +65,11 @@ void rpc_get_commitments_allocate(const char* field, const CborValue* value, com
 bool rpc_get_sizet(const char* field, const CborValue* value, size_t* res);
 bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res);
 bool rpc_get_boolean(const char* field, const CborValue* value, bool* res);
+
 bool rpc_get_bip32_path(
     const char* field, const CborValue* value, uint32_t* path_ptr, size_t max_path_len, size_t* written);
+bool rpc_get_bip32_path_from_value(CborValue* value, uint32_t* path_ptr, const size_t max_path_len, size_t* written);
+
 bool rpc_get_array(const char* field, const CborValue* value, CborValue* result);
 
 // Build response objects
