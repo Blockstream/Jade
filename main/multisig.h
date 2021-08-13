@@ -30,4 +30,9 @@ bool multisig_data_to_bytes(script_variant_t variant, uint8_t threshold, const s
 
 bool multisig_data_from_bytes(const uint8_t* bytes, size_t bytes_len, multisig_data_t* output);
 
+bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output, const char** errmsg);
+
+bool multisig_get_pubkeys(const uint8_t* xpubs, size_t num_xpubs, CborValue* all_signer_paths, uint8_t* pubkeys,
+    size_t pubkeys_len, size_t* written);
+
 #endif /* MULTISIG_H_ */

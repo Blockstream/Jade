@@ -1,5 +1,6 @@
 #include "multisig.h"
 #include "jade_assert.h"
+#include "storage.h"
 #include "utils/malloc_ext.h"
 
 #include <mbedtls/sha256.h>
@@ -150,6 +151,82 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
 
     // Check just got the hmac (checked first, above) left in the buffer
     JADE_ASSERT(read_ptr + HMAC_SHA256_LEN == bytes + bytes_len);
+
+    return true;
+}
+
+bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output, const char** errmsg)
+{
+    JADE_ASSERT(multisig_name);
+    JADE_ASSERT(output);
+    JADE_ASSERT(errmsg);
+
+    size_t written = 0;
+    uint8_t registration[MULTISIG_BYTES_LEN(MAX_MULTISIG_SIGNERS)]; // Sufficient
+    if (!storage_get_multisig_registration(multisig_name, registration, sizeof(registration), &written)) {
+        *errmsg = "Cannot find named multisig wallet";
+        return false;
+    }
+
+    if (!multisig_data_from_bytes(registration, written, output)) {
+        *errmsg = "Cannot de-serialise multisig wallet data";
+        return false;
+    }
+
+    // Sanity check data we are have loaded
+    if (!is_multisig(output->variant) || output->threshold == 0 || output->threshold > output->xpubs_len
+        || output->xpubs_len < 2 || output->xpubs_len > MAX_MULTISIG_SIGNERS) {
+        *errmsg = "Multisig wallet data invalid";
+    }
+
+    return true;
+}
+
+bool multisig_get_pubkeys(const uint8_t* xpubs, const size_t num_xpubs, CborValue* all_signer_paths, uint8_t* pubkeys,
+    const size_t pubkeys_len, size_t* written)
+{
+    JADE_ASSERT(xpubs);
+    JADE_ASSERT(num_xpubs > 1);
+    JADE_ASSERT(all_signer_paths);
+    JADE_ASSERT(pubkeys);
+    JADE_ASSERT(pubkeys_len >= num_xpubs * EC_PUBLIC_KEY_LEN);
+    JADE_ASSERT(written);
+
+    // Check the number of signers
+    *written = 0;
+    if (cbor_value_get_array_length(all_signer_paths, written) != CborNoError || *written != num_xpubs) {
+        return false;
+    }
+
+    uint32_t path[MAX_PATH_LEN];
+    const size_t max_path_len = sizeof(path) / sizeof(path[0]);
+
+    CborValue arrayItem;
+    CborError cberr = cbor_value_enter_container(all_signer_paths, &arrayItem);
+    JADE_ASSERT(cberr == CborNoError);
+    for (size_t i = 0; i < num_xpubs; ++i) {
+        JADE_ASSERT(!cbor_value_at_end(&arrayItem));
+
+        *written = 0;
+        if (!rpc_get_bip32_path_from_value(&arrayItem, path, max_path_len, written) || *written == 0) {
+            return false;
+        }
+        for (size_t j = 0; j < *written; ++j) {
+            if (path[j] & BIP32_INITIAL_HARDENED_CHILD) {
+                return false;
+            }
+        }
+
+        struct ext_key hdkey;
+        const uint8_t* xpub = xpubs + (i * BIP32_SERIALIZED_LEN);
+        if (!wallet_derive_pubkey(xpub, BIP32_SERIALIZED_LEN, path, *written, BIP32_FLAG_SKIP_HASH, &hdkey)) {
+            return false;
+        }
+
+        uint8_t* dest = pubkeys + (i * EC_PUBLIC_KEY_LEN);
+        memcpy(dest, hdkey.pub_key, EC_PUBLIC_KEY_LEN);
+    }
+    *written = num_xpubs * EC_PUBLIC_KEY_LEN;
 
     return true;
 }
