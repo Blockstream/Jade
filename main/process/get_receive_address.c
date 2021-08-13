@@ -1,6 +1,8 @@
 #include "../jade_assert.h"
 #include "../keychain.h"
+#include "../multisig.h"
 #include "../process.h"
+#include "../storage.h"
 #include "../ui.h"
 #include "../utils/address.h"
 #include "../utils/cbor_rpc.h"
@@ -19,7 +21,7 @@ void get_receive_address_process(void* process_ptr)
     jade_process_t* process = process_ptr;
 
     char network[MAX_NETWORK_NAME_LEN];
-    char variant[MAX_VARIANT_LEN];
+    char multisig_name[MAX_MULTISIG_NAME_SIZE];
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_receive_address");
@@ -30,77 +32,163 @@ void get_receive_address_process(void* process_ptr)
     rpc_get_string("network", sizeof(network), &params, network, &written);
     CHECK_NETWORK_CONSISTENT(process, network, written);
 
-    // Handle script variants.
+    // Handle single-sig and generic multisig script variants
     // (Green-multisig is the default for backwards compatibility)
-    written = 0;
-    script_variant_t script_variant;
-    rpc_get_string("variant", sizeof(variant), &params, variant, &written);
-    if (!get_script_variant(variant, written, &script_variant)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid script variant parameter", NULL);
-        goto cleanup;
-    }
+    size_t script_len = 0;
+    unsigned char script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient for all scripts
 
-    uint32_t path[MAX_PATH_LEN];
-    size_t path_len = 0;
-    const size_t max_path_len = sizeof(path) / sizeof(path[0]);
     char warning_msg_text[128];
     const char* warning_msg = NULL;
 
-    if (script_variant == GREEN) {
-        // For green-multisig the path is constructed from subaccount, branch and pointer
-        uint32_t subaccount = 0, branch = 0, pointer = 0;
-        if (!rpc_get_sizet("subaccount", &params, &subaccount) || !rpc_get_sizet("branch", &params, &branch)
-            || !rpc_get_sizet("pointer", &params, &pointer)) {
+    if (rpc_has_field_data("multisig_name", &params)) {
+        if (isLiquidNetwork(network)) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Multisig is not supported for liquid networks", NULL);
             goto cleanup;
         }
 
-        wallet_build_receive_path(subaccount, branch, pointer, path, max_path_len, &path_len);
-    } else {
-        // Otherwise the path is explicit in the params
-        rpc_get_bip32_path("path", &params, path, max_path_len, &path_len);
-        if (path_len == 0) {
+        written = 0;
+        rpc_get_string("multisig_name", sizeof(multisig_name), &params, multisig_name, &written);
+        if (written == 0) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Missing or invalid multisig name parameter", NULL);
             goto cleanup;
         }
 
-        // Include an on-screen warning if the path is unexpected (ie. not bip44-like)
+        multisig_data_t multisig_data = { 0 };
+        const char* errmsg = NULL;
+        if (!multisig_load_from_storage(multisig_name, &multisig_data, &errmsg)) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+            goto cleanup;
+        }
+
+        CborValue all_signer_paths;
         const bool is_change = false;
-        if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
-            char path_str[96];
-            if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
-                goto cleanup;
-            }
-            const int ret = snprintf(warning_msg_text, sizeof(warning_msg_text), "Warning: Unusual path: %s", path_str);
+        bool all_paths_as_expected;
+        if (!rpc_get_array("paths", &params, &all_signer_paths)
+            || !multisig_validate_paths(is_change, &all_signer_paths, &all_paths_as_expected)) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract signer paths from parameters", NULL);
+            goto cleanup;
+        }
+
+        // If paths not as expected show a warning message with the address
+        if (!all_paths_as_expected) {
+            const int ret = snprintf(
+                warning_msg_text, sizeof(warning_msg_text), "Warning: Unusual path suffix for multisig address");
             JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg_text));
             warning_msg = warning_msg_text;
         }
-    }
 
-    // Optional xpub for 2of3 accounts
-    written = 0;
-    char xpubrecovery[120];
-    rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &params, xpubrecovery, &written);
+        written = 0;
+        uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
+        if (!multisig_get_pubkeys(
+                multisig_data.xpubs, multisig_data.xpubs_len, &all_signer_paths, pubkeys, sizeof(pubkeys), &written)
+            || written != multisig_data.xpubs_len * EC_PUBLIC_KEY_LEN) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Unexpected number of signer paths for given multisig", NULL);
+            goto cleanup;
+        }
 
-    // Optional 'blocks' for csv outputs
-    uint32_t csvBlocks = 0;
-    rpc_get_sizet("csv_blocks", &params, &csvBlocks);
+        // Build a script pubkey for the passed parameters
+        if (!wallet_build_multisig_script(network, multisig_data.variant, multisig_data.threshold, pubkeys, written,
+                script, sizeof(script), &script_len)) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid multisig script", NULL);
+            goto cleanup;
+        }
+    } else {
+        uint32_t path[MAX_PATH_LEN];
+        size_t path_len = 0;
+        const size_t max_path_len = sizeof(path) / sizeof(path[0]);
 
-    // Build a script pubkey for the passed parameters
-    size_t script_len = 0;
-    unsigned char script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient for all scripts
-    if (!wallet_build_receive_script(network, script_variant, written ? xpubrecovery : NULL, csvBlocks, path, path_len,
-            script, sizeof(script), &script_len)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid green address script", NULL);
-        goto cleanup;
+        char variant[MAX_VARIANT_LEN];
+        script_variant_t script_variant;
+
+        // Green-multisig is the default (for backwards compatibility) if no variant passed
+        written = 0;
+        rpc_get_string("variant", sizeof(variant), &params, variant, &written);
+        if (!get_script_variant(variant, written, &script_variant)) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid script variant parameter", NULL);
+            goto cleanup;
+        }
+
+        if (is_greenaddress(script_variant)) {
+            // For green-multisig the path is constructed from subaccount, branch and pointer
+            uint32_t subaccount = 0, branch = 0, pointer = 0;
+            if (!rpc_get_sizet("subaccount", &params, &subaccount) || !rpc_get_sizet("branch", &params, &branch)
+                || !rpc_get_sizet("pointer", &params, &pointer)) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters", NULL);
+                goto cleanup;
+            }
+            wallet_build_receive_path(subaccount, branch, pointer, path, max_path_len, &path_len);
+
+            // Optional xpub for 2of3 accounts
+            written = 0;
+            char xpubrecovery[120];
+            rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &params, xpubrecovery, &written);
+
+            // Optional 'blocks' for csv outputs
+            uint32_t csvBlocks = 0;
+            rpc_get_sizet("csv_blocks", &params, &csvBlocks);
+
+            if (!csvBlocksExpectedForNetwork(network, csvBlocks)) {
+                const int ret = snprintf(warning_msg_text, sizeof(warning_msg_text),
+                    "This output has a non-standard csv value (%u), so it may be difficult to find.  Proceed at "
+                    "your own risk.",
+                    csvBlocks);
+                JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg_text));
+                warning_msg = warning_msg_text;
+            }
+
+            // Build a script pubkey for the passed parameters
+            if (!wallet_build_ga_script(network, written ? xpubrecovery : NULL, csvBlocks, path, path_len, script,
+                    sizeof(script), &script_len)) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid green address script", NULL);
+                goto cleanup;
+            }
+        } else if (is_singlesig(script_variant)) {
+            // For single-sig the path is explicit in the params
+            rpc_get_bip32_path("path", &params, path, max_path_len, &path_len);
+            if (path_len == 0) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
+                goto cleanup;
+            }
+
+            // If paths not as expected show a warning message with the address
+            const bool is_change = false;
+            if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
+                char path_str[96];
+                if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
+                    jade_process_reject_message(
+                        process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
+                    goto cleanup;
+                }
+                const int ret
+                    = snprintf(warning_msg_text, sizeof(warning_msg_text), "Warning: Unusual path: %s", path_str);
+                JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg_text));
+                warning_msg = warning_msg_text;
+            }
+
+            // Build a script pubkey for the passed parameters
+            if (!wallet_build_singlesig_script(
+                    network, script_variant, path, path_len, script, sizeof(script), &script_len)) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid singlesig script", NULL);
+                goto cleanup;
+            }
+        } else {
+            // Multisig handled above, so should be nothing left
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unhandled script variant", NULL);
+            goto cleanup;
+        }
     }
 
     // Convert that into an address string
+    JADE_ASSERT(script_len > 0);
     char address[MAX_ADDRESS_LEN];
     if (isLiquidNetwork(network)) {
         // Blind address

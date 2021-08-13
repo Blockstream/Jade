@@ -240,8 +240,13 @@ class JadeAPI:
         return self._jadeRpc('register_multisig', params)
 
     # Get receive-address for parameters
-    def get_receive_address(self, *args, recovery_xpub=None, csv_blocks=0, variant=None):
-        if variant is not None:
+    def get_receive_address(self, *args, recovery_xpub=None, csv_blocks=0,
+                            variant=None, multisig_name=None):
+        if multisig_name is not None:
+            assert len(args) == 2
+            keys = ['network', 'paths', 'multisig_name']
+            args += (multisig_name,)
+        elif variant is not None:
             assert len(args) == 2
             keys = ['network', 'path', 'variant']
             args += (variant,)
@@ -401,6 +406,7 @@ class JadeAPI:
                   'trusted_commitments': commitments,
                   'use_ae_signatures': use_ae_signatures,
                   'change': change}
+
         reply = self._jadeRpc('sign_liquid_tx', params, str(base_id))
         assert reply
 
@@ -417,6 +423,7 @@ class JadeAPI:
                   'num_inputs': len(inputs),
                   'use_ae_signatures': use_ae_signatures,
                   'change': change}
+
         reply = self._jadeRpc('sign_tx', params, str(base_id))
         assert reply
 

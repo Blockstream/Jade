@@ -43,11 +43,13 @@ bool wallet_is_expected_singlesig_path(
 bool wallet_is_expected_multisig_path(size_t cosigner_index, bool is_change, const uint32_t* path, size_t path_len);
 void wallet_build_receive_path(uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path,
     size_t output_size, size_t* output_len);
-bool wallet_build_receive_script(const char* network, script_variant_t variant, const char* xpubrecovery,
-    uint32_t csvBlocks, const uint32_t* path, size_t path_size, unsigned char* output, size_t output_len,
-    size_t* written);
-bool wallet_validate_receive_script(const char* network, script_variant_t variant, const char* xpubrecovery,
-    uint32_t csvBlocks, const uint32_t* path, size_t path_size, const unsigned char* script, size_t script_len);
+
+bool wallet_build_ga_script(const char* network, const char* xpubrecovery, uint32_t csvBlocks, const uint32_t* path,
+    size_t path_size, unsigned char* output, size_t output_len, size_t* written);
+bool wallet_build_singlesig_script(const char* network, script_variant_t script_variant, const uint32_t* path,
+    size_t path_size, unsigned char* output, size_t output_len, size_t* written);
+bool wallet_build_multisig_script(const char* network, script_variant_t script_variant, uint8_t threshold,
+    const uint8_t* pubkeys, size_t pubkeys_len, unsigned char* output, size_t output_len, size_t* written);
 
 void wallet_get_fingerprint(uint8_t* output, size_t output_len);
 bool wallet_get_xpub(const char* network, const uint32_t* path, uint32_t path_len, char** output);

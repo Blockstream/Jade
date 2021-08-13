@@ -674,6 +674,12 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badrecvaddr13', 'get_receive_address',
                     {'path': [1, 2, 3], 'variant': 'p2pkh',
                      'network': 'testnet'}), 'Invalid script variant parameter'),
+                  (('badrecvaddr14', 'get_receive_address',
+                    {'paths': [[1], [2, 3]], 'multisig_name': 'does not exist',
+                     'network': 'testnet'}), 'Cannot find named multisig wallet'),
+                  (('badrecvaddr15', 'get_receive_address',
+                    {'paths': [[1], [2, 3]], 'multisig_name': 'whatever',
+                     'network': 'liquid'}), 'not supported for liquid'),
 
                   # Note: for signing messages the root key (empty bip32 path
                   # array) is not allowed and should return bad-param.
@@ -731,14 +737,22 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                      'change': []}), 'Unexpected number of output (change) entries'),
                   (('badsigntx12', 'sign_tx',  # invalid network
                     {'network': 'made-up', 'txn': GOODTX, 'num_inputs': 1,
-                     'change': [{'path': [[1, 2, 3]]}, {}]}), 'extract valid network'),
+                     'change': [{'path': [1, 2, 3]}, {}]}), 'extract valid network'),
                   (('badsigntx13', 'sign_tx',  # wrong network type for call
                     {'network': 'localtest-liquid', 'txn': GOODTX, 'num_inputs': 1,
-                     'change': [{'path': [[1, 2, 3]]}, {}]}), 'not appropriate for liquid'),
-                  (('badsigntx14', 'sign_tx',
+                     'change': [{'path': [1, 2, 3]}, {}]}), 'not appropriate for liquid'),
+                  (('badsigntx14', 'sign_tx',  # missing multisig name
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
-                     'change': [{'not_path': [[1, 2, 3]]}]}), 'extract valid change path'),
-                  (('badsigntx15', 'sign_tx',  # wrong number of outputs
+                     'change': [{'multisig_name': '',
+                                 'paths': [[1, 2, 3]]}]}), 'Invalid multisig name'),
+                  (('badsigntx14', 'sign_tx',  # bad multisig name
+                    {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
+                     'change': [{'multisig_name': 'bad',
+                                 'paths': [[1, 2, 3]]}]}), 'Cannot find named multisig wallet'),
+                  (('badsigntx15', 'sign_tx',
+                    {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
+                     'change': [{'not_path': [1, 2, 3]}]}), 'extract valid change path'),
+                  (('badsigntx16', 'sign_tx',  # wrong number of outputs
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
                      'change': [None, None]}), 'Unexpected number of output (change) entries')]
 
@@ -992,17 +1006,22 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                   (('badsignliq15', 'sign_liquid_tx',  # invalid network
                     {'network': 'made-up', 'txn': GOODTX, 'num_inputs': 1,
                      'trusted_commitments': [{}, {}],
-                     'change': [{'path': [[1, 2, 3]]}]}), 'extract valid network'),
-                  (('badsignliq16', 'sign_liquid_tx',  # Bad change outputs
+                     'change': [{'path': [1, 2, 3]}]}), 'extract valid network'),
+                  (('badsignliq16', 'sign_liquid_tx',  # wrong network type for call
+                    {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
+                     'trusted_commitments': [{}, {}],
+                     'change': [{'path': [1, 2, 3]}, {}]}),
+                   'only appropriate for liquid'),
+                  (('badsignliq17', 'sign_liquid_tx',
+                    {'network': 'localtest-liquid', 'txn': GOODTX, 'num_inputs': 1,
+                     'trusted_commitments': [{}, {}],
+                     'change': [{'multisig_name': 'not-allowed', 'paths': [[1, 2, 3]]}, {}]}),
+                   'Multisig is not supported for liquid'),
+                  (('badsignliq18', 'sign_liquid_tx',  # Bad change outputs
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
                      'change': []}), 'Unexpected number of output (change) entries'),
-                  (('badsignliq17', 'sign_liquid_tx',  # wrong network type for call
-                    {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
-                     'trusted_commitments': [{}, {}],
-                     'change': [{'path': [[1, 2, 3]]}, {}]}),
-                   'only appropriate for liquid'),
-                  (('badsignliq18', 'sign_liquid_tx',  # paths missing
+                  (('badsignliq19', 'sign_liquid_tx',  # paths missing
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
                      'change': [{}, {}]}), 'extract valid change path')]
@@ -1422,6 +1441,7 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
 
     # Get txn-level details
     test_input = testcase['input']
+
     network = test_input['network']
     use_ae_signatures = test_input.get('use_ae_signatures', False)
     is_liquid = 'liquid' in network
@@ -1647,8 +1667,7 @@ aa95e1c72070b08208012144f')
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
-    # Generic multisig
-    # Register multisig wallets
+    # Generic multisig - check register multisig wallets
     for multisig_data in MULTI_REG_TESTS:
         inputdata = multisig_data['input']
         rslt = jadeapi.register_multisig(inputdata['network'],
@@ -1665,6 +1684,81 @@ aa95e1c72070b08208012144f')
         assert multisig_desc['variant'] == inputdata['descriptor']['variant']
         assert multisig_desc['threshold'] == inputdata['descriptor']['threshold']
         assert multisig_desc['num_signers'] == len(inputdata['descriptor']['signers'])
+
+        # This includes 'get receive address' tests
+        for addr_test in multisig_data['address_tests']:
+            rslt = jadeapi.get_receive_address(inputdata['network'],
+                                               addr_test['paths'],
+                                               multisig_name=inputdata['multisig_name'])
+            assert rslt == addr_test['expected_address']
+
+    # This test checks that the generic multisig wallets 'matches_ga', do...
+    # ie. if I use the standard ga receive-address, I get the same result as
+    # that using 'generic multisig' (as the co-signers are set-up to match green)
+    matching_ga_msigs = _get_test_cases("multisig_reg_*matches_ga_*.json")
+    for ga_msig in matching_ga_msigs:
+        inputdata = ga_msig['input']
+        signers = inputdata['descriptor']['signers']
+
+        # Check this test looks good - ie. 2of2 or 2of3
+        assert inputdata['descriptor']['threshold'] == 2
+        assert len(signers) == 2 or len(signers) == 3
+        user_signer = signers[1]  # signers[0] is ga-service
+
+        # Handle subaccounts
+        if len(user_signer['derivation']) == 1:
+            subaccount = 0
+            branch = user_signer['derivation'][0]
+        elif len(user_signer['derivation']) == 3:
+            assert user_signer['derivation'][0] == 2147483651  # 3'
+            assert user_signer['derivation'][1] > 2147483648  # subaccount'
+            subaccount = user_signer['derivation'][1] - 2147483648  # unharden
+            branch = user_signer['derivation'][2]
+        else:
+            assert False, "Unexpected derivation for ga-multisig wallet"
+
+        user_xpub = jadeapi.get_xpub(inputdata['network'], user_signer['derivation'])
+        assert user_xpub == user_signer['xpub']   # checks our xpub entry
+        recovery_xpub = signers[2]['xpub'] if len(signers) == 3 else None
+
+        # Check receive addresses fetched using normal green call matches the
+        # expected results (which are tested as a generic multisig address above)
+        for addr_test in ga_msig['address_tests']:
+            ptr = addr_test['paths'][0][0]
+            # check all signers have same single-entry path (ie. 'ptr')
+            assert(all(p == [ptr] for p in addr_test['paths']))
+            rslt = jadeapi.get_receive_address(inputdata['network'], subaccount, branch, ptr,
+                                               recovery_xpub=recovery_xpub)
+            assert rslt == addr_test['expected_address']
+
+    # Sign txns using generic multisig registration
+    ga_2of2_multisig_data = list(_get_test_cases("multisig_reg_matches_ga_2of2.json"))
+    assert len(ga_2of2_multisig_data) == 1
+    ga_2of2_multisig_name = ga_2of2_multisig_data[0]['input']['multisig_name']
+
+    MULTISIG_SIGN_TXS = ['txn_2of2_change.json', 'txn_segwit_multi_input.json']
+    ga_2of2_multisig_txns = (list(_get_test_cases(testcase))[0] for testcase in MULTISIG_SIGN_TXS)
+    for ga_msig in ga_2of2_multisig_txns:
+        inputdata = ga_msig['input']
+
+        # Doctor the change paths to include the registered multisig name, but not
+        # the multisig xpub root (ie. to only contain the final 'ptr' part)
+        # (as the subact/branch is part of the multisig registration)
+        for change in inputdata.get('change'):
+            if change is not None:
+                path = change.pop('path')
+                change['paths'] = [path[-1:]] * 2
+                change['multisig_name'] = ga_2of2_multisig_name
+
+        rslt = jadeapi.sign_tx(inputdata['network'],
+                               inputdata['txn'],
+                               inputdata.get('inputs'),
+                               inputdata.get('change'),
+                               inputdata.get('use_ae_signatures'),
+                               )
+
+        # Check returned signatures
+        _check_tx_signatures(jadeapi, ga_msig, rslt)
 
     # Short sanity-test of 12-word mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12)
@@ -1708,10 +1802,25 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
-    # Generic multisig
-    # Register multisig wallets
+    # Register multisig wallets again - this checks that a second user from the multisig
+    # gets the same receive-address.  ie. in the tests 'multisig_reg_ss' the 'single sig'
+    # signer is also in the multisig, so we can check it from this wallet also.
     for multisig_data in MULTI_REG_SS_TESTS:
+        # Test trying to access the multisig description registered under the
+        # main test mnemonic fails (as must be registered by accessing wallet)
         inputdata = multisig_data['input']
+        try:
+            for addr_test in multisig_data['address_tests']:
+                rslt = jadeapi.get_receive_address(inputdata['network'],
+                                                   addr_test['paths'],
+                                                   multisig_name=inputdata['multisig_name'])
+                assert False, "Accessing other wallet multisig should fail"
+        except JadeError as e:
+            assert e.code == JadeError.BAD_PARAMETERS
+            assert e.message == "Cannot de-serialise multisig wallet data"
+
+        # If we register the same multisig description to this wallet, it should produce
+        # the same addresses as it did previously (for the other signatory)
         rslt = jadeapi.register_multisig(inputdata['network'],
                                          inputdata['multisig_name'],
                                          inputdata['descriptor']['variant'],
@@ -1727,7 +1836,14 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
         assert multisig_desc['threshold'] == inputdata['descriptor']['threshold']
         assert multisig_desc['num_signers'] == len(inputdata['descriptor']['signers'])
 
-    # restore the mnemonic after single sig tests
+        # This includes 'get receive address' tests
+        for addr_test in multisig_data['address_tests']:
+            rslt = jadeapi.get_receive_address(inputdata['network'],
+                                               addr_test['paths'],
+                                               multisig_name=inputdata['multisig_name'])
+            assert rslt == addr_test['expected_address']
+
+    # restore the mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
 

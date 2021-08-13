@@ -548,14 +548,16 @@ static void wallet_build_csv(const char* network, const uint8_t* pubkeys, const 
     }
 }
 
-// Helper to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
-static bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const uint32_t csvBlocks,
+// Function to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
+bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const uint32_t csvBlocks,
     const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len, size_t* written)
 {
-    JADE_ASSERT(network);
-    JADE_ASSERT(output_len >= WALLY_SCRIPTPUBKEY_P2SH_LEN);
-    JADE_ASSERT(written);
     JADE_ASSERT(keychain_get());
+
+    if (!network || csvBlocks > MAX_CSV_BLOCKS_ALLOWED || !path || path_size == 0 || !output
+        || output_len < script_length_for_variant(GREEN) || !written) {
+        return false;
+    }
 
     // We do not support 2of3-csv (ie. can't have csv blocks AND a recovery xpub)
     if (csvBlocks > 0 && xpubrecovery) {
@@ -625,15 +627,16 @@ static bool wallet_build_ga_script(const char* network, const char* xpubrecovery
     return true;
 }
 
-// Helper to build a single-sig script - legacy-p2pkh, native segwit p2wpkh, or a p2sh-wrapped p2wpkh
-static bool wallet_build_singlesig_script(const char* network, const script_variant_t script_variant,
-    const uint32_t* path, const size_t path_size, unsigned char* output, const size_t output_len, size_t* written)
+// Function to build a single-sig script - legacy-p2pkh, native segwit p2wpkh, or a p2sh-wrapped p2wpkh
+bool wallet_build_singlesig_script(const char* network, const script_variant_t script_variant, const uint32_t* path,
+    const size_t path_size, unsigned char* output, const size_t output_len, size_t* written)
 {
-    JADE_ASSERT(network);
-    JADE_ASSERT(is_singlesig(script_variant));
-    JADE_ASSERT(output_len >= WALLY_SCRIPTPUBKEY_P2PKH_LEN);
-    JADE_ASSERT(written);
     JADE_ASSERT(keychain_get());
+
+    if (!network || !is_singlesig(script_variant) || !path || path_size == 0 || !output
+        || output_len < script_length_for_variant(script_variant) || !written) {
+        return false;
+    }
 
     // The user pubkeys
     unsigned char user_privkey[EC_PRIVATE_KEY_LEN];
@@ -647,7 +650,7 @@ static bool wallet_build_singlesig_script(const char* network, const script_vari
 
     if (script_variant == P2WPKH_P2SH) {
         // Get the p2sh/p2wsh script-pubkey for the passed pubkey
-        JADE_LOGI("Generating singlesig p2wpkh_p2sh script");
+        JADE_LOGI("Generating singlesig p2sh_p2wpkh script");
         wallet_p2sh_p2wsh_scriptpubkey_for_bytes(
             pubkey, sizeof(pubkey), WALLY_SCRIPT_HASH160, output, output_len, written);
     } else if (script_variant == P2WPKH) {
@@ -669,68 +672,44 @@ static bool wallet_build_singlesig_script(const char* network, const script_vari
     return true;
 }
 
-// Returns true if we can build a script pubkey from the parameters passed.
-// Constructed script pubkey is written into 'output', which must be a buffer of size WALLY_SCRIPTPUBKEY_P2WSH_LEN.
-bool wallet_build_receive_script(const char* network, const script_variant_t script_variant, const char* xpubrecovery,
-    const uint32_t csvBlocks, const uint32_t* path, const size_t path_size, unsigned char* output,
-    const size_t output_len, size_t* written)
+// Function to build a multi-sig script - multi-p2wsh, multi-p2sh, or multi-p2wsh-p2sh
+bool wallet_build_multisig_script(const char* network, const script_variant_t script_variant, const uint8_t threshold,
+    const uint8_t* pubkeys, const size_t pubkeys_len, unsigned char* output, const size_t output_len, size_t* written)
 {
-    JADE_ASSERT(written);
     JADE_ASSERT(keychain_get());
 
-    if (!network || csvBlocks > MAX_CSV_BLOCKS_ALLOWED || !path || path_size == 0 || !output
-        || output_len < WALLY_SCRIPTPUBKEY_P2WSH_LEN) {
+    if (!network || !is_multisig(script_variant) || !pubkeys || pubkeys_len == 0 || !output
+        || output_len < script_length_for_variant(script_variant) || !written) {
         return false;
     }
 
-    if (is_greenaddress(script_variant)) {
-        // GA multisig/csv
-        return wallet_build_ga_script(network, xpubrecovery, csvBlocks, path, path_size, output, output_len, written);
+    // Build a standard multisig script
+    uint8_t multisig_script[MULTISIG_SCRIPT_LEN(MAX_MULTISIG_SIGNERS)]; // Sufficient
+    wallet_build_multisig(threshold, pubkeys, pubkeys_len, multisig_script, sizeof(multisig_script), written);
+
+    // Wrap as appropriate
+    if (script_variant == MULTI_P2WSH_P2SH) {
+        // Get the p2sh/p2wsh script-pubkey for the passed pubkey
+        JADE_LOGI("Generating multisig p2sh_p2wsh script");
+        wallet_p2sh_p2wsh_scriptpubkey_for_bytes(
+            multisig_script, *written, WALLY_SCRIPT_SHA256, output, output_len, written);
+    } else if (script_variant == MULTI_P2WSH) {
+        // Get a redeem script for the passed pubkey
+        JADE_LOGI("Generating multisig p2wsh script");
+        JADE_WALLY_VERIFY(wally_witness_program_from_bytes(
+            multisig_script, *written, WALLY_SCRIPT_SHA256, output, output_len, written));
+    } else if (script_variant == MULTI_P2SH) {
+        // Get a multisig-p2sh script-pubkey for the passed pubkey
+        JADE_LOGI("Generating multisig p2sh script");
+        JADE_WALLY_VERIFY(wally_scriptpubkey_p2sh_from_bytes(
+            multisig_script, *written, WALLY_SCRIPT_HASH160, output, output_len, written));
     } else {
-        // recovery-xpub and csv are green-specific atm
-        if (xpubrecovery) {
-            JADE_LOGE("Incompatible options variant and recovery xpub");
-            return false;
-        }
-        if (csvBlocks) {
-            JADE_LOGE("Incompatible options variant and csv blocks");
-            return false;
-        }
-
-        if (is_multisig(script_variant)) {
-            JADE_ASSERT_MSG(false, "Generic multisig not yet implemented");
-        } else {
-            return wallet_build_singlesig_script(network, script_variant, path, path_size, output, output_len, written);
-        }
-    }
-}
-
-// Returns ok if we can build a script pubkey from the path that matches the one passed
-bool wallet_validate_receive_script(const char* network, const script_variant_t script_variant,
-    const char* xpubrecovery, const uint32_t csvBlocks, const uint32_t* path, const size_t path_size,
-    const unsigned char* script, const size_t script_len)
-{
-    if (!network || !path || path_size == 0 || !script || script_len != script_length_for_variant(script_variant)) {
+        JADE_LOGE("Unrecognised script variant: %u", script_variant);
         return false;
     }
 
-    size_t generated_script_len = 0;
-    unsigned char generated_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient for all scripts
-    if (!wallet_build_receive_script(network, script_variant, xpubrecovery, csvBlocks, path, path_size,
-            generated_script, sizeof(generated_script), &generated_script_len)) {
-        JADE_LOGE("Failed to build receive script");
-        return false;
-    }
-
-    // Compare generated script to that expected/in the txn
-    if (generated_script_len == script_len && !sodium_memcmp(generated_script, script, script_len)) {
-        JADE_LOGI("Receive script validated");
-        return true;
-    }
-
-    // Didn't match expected script
-    JADE_LOGW("Receive script could not be validated");
-    return false;
+    JADE_ASSERT(*written == script_length_for_variant(script_variant));
+    return true;
 }
 
 // Function to compute an anti-exfil signer commitment with a derived key for a given

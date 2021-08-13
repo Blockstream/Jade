@@ -26,5 +26,19 @@
         }
       ]
     }
-  }
+  },
+  "address_tests": [
+    {
+      "paths": [[1], [1], [1]],
+      "expected_address": "2NDkhxmpwKwUkQ4C4J6Th1SJBCDn4TWpb4j"
+    },
+    {
+      "paths": [[13], [13], [13]],
+      "expected_address": "2NFgE1k4EpyiBTN4SBkGamFU9E1DwLLajLo"
+    },
+    {
+      "paths": [[377], [377], [377]],
+      "expected_address": "2NDqRSb2hZPLn5B6sufEZdYro9LySNrvyQ7"
+    }
+  ]
 }

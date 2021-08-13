@@ -2,6 +2,7 @@
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
+#include "../multisig.h"
 #include "../process.h"
 #include "../sensitive.h"
 #include "../ui.h"
@@ -53,13 +54,13 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
     output_info_t* output_info, const char** errmsg)
 {
     JADE_ASSERT(process);
+    JADE_ASSERT(network);
     JADE_ASSERT(tx);
     JADE_ASSERT(change);
     JADE_ASSERT(output_info);
     JADE_ASSERT(errmsg);
 
     size_t length = 0;
-
     if (!cbor_value_is_array(change) || cbor_value_get_array_length(change, &length) != CborNoError
         || length != tx->num_outputs) {
         *errmsg = "Unexpected number of output (change) entries for transaction";
@@ -67,53 +68,164 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
     }
 
     CborValue arrayItem;
-
     CborError cberr = cbor_value_enter_container(change, &arrayItem);
     JADE_ASSERT(cberr == CborNoError);
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
-        if (!cbor_value_is_map(&arrayItem)) {
-            // Not a change output, user must verify
-            output_info[i].is_validated_change_address = false;
-        } else {
-            JADE_ASSERT(cbor_value_is_map(&arrayItem));
+
+        // By default, assume not a change output, user must verify
+        output_info[i].is_validated_change_address = false;
+        if (cbor_value_is_map(&arrayItem)) {
+            // Change info passed, try to verify output
             JADE_LOGD("Output %u has change-path passed", i);
 
-            uint32_t path_len = 0;
-            uint32_t path[MAX_PATH_LEN];
-            const size_t max_path_len = sizeof(path) / sizeof(path[0]);
-            bool retval = rpc_get_bip32_path("path", &arrayItem, path, max_path_len, &path_len);
-
-            // NOTE: for receiving change the root (empty bip32 path) is not allowed.
-            if (!retval || path_len == 0) {
-                *errmsg = "Failed to extract valid change path from parameters";
-                return false;
-            }
-
-            // Optional script variant, default is green-multisig
-            size_t written = 0;
-            char variant[MAX_VARIANT_LEN];
-            script_variant_t script_variant;
-            rpc_get_string("variant", sizeof(variant), &arrayItem, variant, &written);
-            if (!get_script_variant(variant, written, &script_variant)) {
-                *errmsg = "Invalid script variant parameter";
-                return false;
-            }
-
-            // Optional recovery xpub for 2of3 accounts
-            written = 0;
-            char xpubrecovery[120];
-            rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &arrayItem, xpubrecovery, &written);
-
-            // Optional 'blocks' for csv outputs
             uint32_t csvBlocks = 0;
-            rpc_get_sizet("csv_blocks", &arrayItem, &csvBlocks);
+            size_t script_len = 0;
+            unsigned char script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
+            size_t written = 0;
 
-            // Try to recreate the change/receive script and compare to the txn value
-            if (!wallet_validate_receive_script(network, script_variant, written ? xpubrecovery : NULL, csvBlocks, path,
-                    path_len, tx->outputs[i].script, tx->outputs[i].script_len)) {
-                // Change path provided, but failed to validate - error
-                JADE_LOGE("Output %u change path/script failed to validate", i);
+            // If multisig change, need to verify against the registered multisig wallets
+            if (rpc_has_field_data("multisig_name", &arrayItem)) {
+                if (isLiquidNetwork(network)) {
+                    *errmsg = "Multisig is not supported for liquid networks";
+                    return false;
+                }
+
+                char multisig_name[MAX_MULTISIG_NAME_SIZE];
+                written = 0;
+                rpc_get_string("multisig_name", sizeof(multisig_name), &arrayItem, multisig_name, &written);
+                if (written == 0) {
+                    *errmsg = "Invalid multisig name parameter";
+                    return false;
+                }
+
+                multisig_data_t multisig_data;
+                if (!multisig_load_from_storage(multisig_name, &multisig_data, errmsg)) {
+                    // 'errmsg' populated by above call
+                    return false;
+                }
+                JADE_LOGI("Change is to %uof%u multisig: '%s'", multisig_data.threshold, multisig_data.xpubs_len,
+                    multisig_name);
+
+                CborValue all_signer_paths;
+                const bool is_change = true;
+                bool all_paths_as_expected;
+                if (!rpc_get_array("paths", &arrayItem, &all_signer_paths)
+                    || !multisig_validate_paths(is_change, &all_signer_paths, &all_paths_as_expected)) {
+                    *errmsg = "Failed to extract signer paths from parameters";
+                    return false;
+                }
+
+                // If paths not as expected show a warning message and ask the user to confirm
+                if (!all_paths_as_expected) {
+                    const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
+                        "Warning: Unusual path suffix for multisig change output");
+                    JADE_ASSERT(
+                        ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
+                }
+
+                written = 0;
+                uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
+                if (!multisig_get_pubkeys(multisig_data.xpubs, multisig_data.xpubs_len, &all_signer_paths, pubkeys,
+                        sizeof(pubkeys), &written)
+                    || written != multisig_data.xpubs_len * EC_PUBLIC_KEY_LEN) {
+
+                    *errmsg = "Unexpected number of signer paths for given multisig";
+                    return false;
+                }
+
+                // Build a script pubkey for the passed parameters
+                if (!wallet_build_multisig_script(network, multisig_data.variant, multisig_data.threshold, pubkeys,
+                        written, script, sizeof(script), &script_len)) {
+                    *errmsg = "Failed to generate valid multisig script";
+                    return false;
+                }
+            } else {
+                uint32_t path_len = 0;
+                uint32_t path[MAX_PATH_LEN];
+                const size_t max_path_len = sizeof(path) / sizeof(path[0]);
+
+                // NOTE: for receiving change the root (empty bip32 path) is not allowed.
+                bool retval = rpc_get_bip32_path("path", &arrayItem, path, max_path_len, &path_len);
+                if (!retval || path_len == 0) {
+                    *errmsg = "Failed to extract valid change path from parameters";
+                    return false;
+                }
+
+                // Optional script variant, default is green-multisig
+                written = 0;
+                char variant[MAX_VARIANT_LEN];
+                script_variant_t script_variant;
+                rpc_get_string("variant", sizeof(variant), &arrayItem, variant, &written);
+                if (!get_script_variant(variant, written, &script_variant)) {
+                    *errmsg = "Invalid script variant parameter";
+                    return false;
+                }
+
+                if (is_greenaddress(script_variant)) {
+                    // Optional recovery xpub for 2of3 accounts
+                    written = 0;
+                    char xpubrecovery[120];
+                    rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &arrayItem, xpubrecovery, &written);
+
+                    // Optional 'blocks' for csv outputs
+                    rpc_get_sizet("csv_blocks", &arrayItem, &csvBlocks);
+
+                    // If number of csv blocks unexpected show a warning message and ask the user to confirm
+                    if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
+                        JADE_LOGW("Unexpected number of csv blocks in change path output: %u", csvBlocks);
+                        output_info[i].is_validated_change_address = false;
+
+                        const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
+                            "This change output has a non-standard csv value (%u), so it may be difficult to find.  "
+                            "Proceed at "
+                            "your own risk.",
+                            csvBlocks);
+                        JADE_ASSERT(
+                            ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
+                    }
+
+                    // Build a script pubkey for the passed parameters
+                    if (!wallet_build_ga_script(network, written ? xpubrecovery : NULL, csvBlocks, path, path_len,
+                            script, sizeof(script), &script_len)) {
+                        JADE_LOGE("Output %u change path/script failed to construct", i);
+                        *errmsg = "Change script cannot be constructed";
+                        return false;
+                    }
+                } else if (is_singlesig(script_variant)) {
+                    // If paths not as expected show a warning message and ask the user to confirm
+                    const bool is_change = true;
+                    if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
+                        char path_str[96];
+                        if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
+                            *errmsg = "Failed to convert path to string format";
+                            return false;
+                        }
+                        const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
+                            "Unusual change path: %s", path_str);
+                        JADE_ASSERT(
+                            ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
+                    }
+
+                    // Build a script pubkey for the passed parameters
+                    if (!wallet_build_singlesig_script(
+                            network, script_variant, path, path_len, script, sizeof(script), &script_len)) {
+                        JADE_LOGE("Output %u change path/script failed to construct", i);
+                        *errmsg = "Change script cannot be constructed";
+                        return false;
+                    }
+                } else {
+                    // Multisig handled above, so should be nothing left
+                    JADE_LOGE("Output %u change path/script unknown variant %d", i, script_variant);
+                    *errmsg = "Change script variant not handled";
+                    return false;
+                }
+            }
+
+            // Compare generated script to that expected/in the txn
+            if (script_len != tx->outputs[i].script_len
+                || sodium_memcmp(tx->outputs[i].script, script, script_len) != 0) {
+                JADE_LOGE("Receive script failed validation");
                 *errmsg = "Change script cannot be validated";
                 return false;
             }
@@ -121,30 +233,8 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
             // Change path valid and matches tx output script
             JADE_LOGI("Output %u change path/script validated", i);
 
-            // If the number of csv blocks is unexpected, show a warning message
-            // and make the user confirm.  Otherwise all is fine and we don't
-            // need to ask the user to manually confirm this change output.
-            const bool is_change = true;
-            if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
-                JADE_LOGW("Unexpected number of csv blocks in change path output: %u", csvBlocks);
-                output_info[i].is_validated_change_address = false;
-
-                const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
-                    "This change output has a non-standard csv value (%u), so it may be difficult to find.  Proceed at "
-                    "your own risk.",
-                    csvBlocks);
-                JADE_ASSERT(ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
-            } else if (script_variant != GREEN
-                && !wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
-                char path_str[96];
-                if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
-                    *errmsg = "Failed to convert path to string format";
-                    return false;
-                }
-                const int ret = snprintf(
-                    output_info[i].message, sizeof(output_info[i].message), "Unusual change path: %s", path_str);
-                JADE_ASSERT(ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
-            } else {
+            // If no warning messages consider change output automatically validated
+            if (output_info[i].message[0] == '\0') {
                 output_info[i].is_validated_change_address = true;
             }
         }
