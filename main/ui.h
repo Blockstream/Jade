@@ -73,13 +73,12 @@ void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* ad
 void make_sign_message_activity(
     gui_activity_t** activity_ptr, const char* msg_str, size_t msg_len, bool is_hash, const char* path_as_str);
 
-void make_display_output_activity(const char* network, const struct wally_tx* tx, const output_info_t* output_info,
-    gui_activity_t** first_activity, gui_activity_t** last_activity);
-void make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
-    const output_info_t* output_info, gui_activity_t** first_activity, gui_activity_t** last_activity);
-void make_display_final_confirmation_activity(
-    const struct wally_tx* tx, uint64_t fee, const char* warning_msg, gui_activity_t** activity);
+void make_display_output_activity(
+    const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity);
+void make_display_elements_output_activity(
+    const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity);
+void make_display_final_confirmation_activity(uint64_t fee, const char* warning_msg, gui_activity_t** activity);
 void make_display_elements_final_confirmation_activity(
-    const struct wally_tx* tx, uint64_t fee, const char* warning_msg, gui_activity_t** activity);
+    uint64_t fee, const char* warning_msg, gui_activity_t** activity);
 
 #endif /* UI_H_ */

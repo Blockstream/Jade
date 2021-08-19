@@ -322,10 +322,8 @@ void sign_tx_process(void* process_ptr)
     }
 
     gui_activity_t* first_activity = NULL;
-    gui_activity_t* last_activity = NULL;
-    make_display_output_activity(network, tx, output_info, &first_activity, &last_activity);
+    make_display_output_activity(network, tx, output_info, &first_activity);
     JADE_ASSERT(first_activity);
-    JADE_ASSERT(last_activity);
     gui_set_current_activity(first_activity);
 
     // ----------------------------------
@@ -575,7 +573,7 @@ void sign_tx_process(void* process_ptr)
     const uint64_t fees = input_amount - output_amount;
     const char* const warning_msg
         = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-    make_display_final_confirmation_activity(tx, fees, warning_msg, &final_activity);
+    make_display_final_confirmation_activity(fees, warning_msg, &final_activity);
     JADE_ASSERT(final_activity);
     gui_set_current_activity(final_activity);
 

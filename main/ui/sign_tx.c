@@ -218,9 +218,9 @@ static void make_output_activity(output_activity_t* output_activity, const bool 
 }
 
 static void make_final_activity(
-    output_activity_t* output_activity, const char* total_fee, const char* ticker, const char* warning_msg)
+    gui_activity_t** activity, const char* total_fee, const char* ticker, const char* warning_msg)
 {
-    JADE_ASSERT(output_activity);
+    JADE_ASSERT(activity);
 
     gui_activity_t* act;
     gui_make_activity(&act, true, "Summary");
@@ -312,10 +312,7 @@ static void make_final_activity(
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    // Push details into the output structure
-    output_activity->activity = act;
-    output_activity->prev_button = btn1;
-    output_activity->next_button = btn3;
+    *activity = act;
 }
 
 // Don't display pre-validated (eg. change) outputs (if provided)
@@ -375,13 +372,12 @@ static void make_single_output_screen(activities_info_t* pActInfo, uint32_t inde
     pActInfo->last_activity_next_button = output_act.next_button;
 }
 
-void make_display_output_activity(const char* network, const struct wally_tx* tx, const output_info_t* output_info,
-    gui_activity_t** first_activity, gui_activity_t** last_activity)
+void make_display_output_activity(
+    const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity)
 {
     // Note: outputs_validated is optional and can be null
     JADE_ASSERT(tx);
     JADE_ASSERT(first_activity);
-    JADE_ASSERT(last_activity);
 
     // Show outputs which don't have a script
     const bool show_scriptless = true;
@@ -424,18 +420,15 @@ void make_display_output_activity(const char* network, const struct wally_tx* tx
     // Connect the final screen's 'next' button to the 'translate' handler above
     gui_activity_register_event(act_info.last_activity, GUI_BUTTON_EVENT, BTN_TX_SCREEN_NEXT, translate_event, NULL);
 
-    // Set output parameters
     *first_activity = act_info.first_activity;
-    *last_activity = act_info.last_activity;
 }
 
-void make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
-    const output_info_t* output_info, gui_activity_t** first_activity, gui_activity_t** last_activity)
+void make_display_elements_output_activity(
+    const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity)
 {
     JADE_ASSERT(tx);
     JADE_ASSERT(output_info);
     JADE_ASSERT(first_activity);
-    JADE_ASSERT(last_activity);
 
     // Don't show outputs which don't have a script (as these are fees)
     const bool show_scriptless = false;
@@ -536,13 +529,10 @@ void make_display_elements_output_activity(const char* network, const struct wal
 
     // Set output parameters
     *first_activity = act_info.first_activity;
-    *last_activity = act_info.last_activity;
 }
 
-void make_display_final_confirmation_activity(
-    const struct wally_tx* tx, const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
+void make_display_final_confirmation_activity(const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
 {
-    JADE_ASSERT(tx);
     JADE_ASSERT(activity);
 
     char fee_str[32];
@@ -550,17 +540,13 @@ void make_display_final_confirmation_activity(
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
     // final confirmation screen
-    output_activity_t final_act;
-    make_final_activity(&final_act, fee_str, "BTC", warning_msg);
-    JADE_ASSERT(final_act.activity);
-
-    *activity = final_act.activity;
+    make_final_activity(activity, fee_str, "BTC", warning_msg);
+    JADE_ASSERT(*activity);
 }
 
 void make_display_elements_final_confirmation_activity(
-    const struct wally_tx* tx, const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
+    const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
 {
-    JADE_ASSERT(tx);
     JADE_ASSERT(activity);
 
     char fee_str[32];
@@ -568,9 +554,6 @@ void make_display_elements_final_confirmation_activity(
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
     // final confirmation screen
-    output_activity_t final_act;
-    make_final_activity(&final_act, fee_str, "L-BTC", warning_msg);
-    JADE_ASSERT(final_act.activity);
-
-    *activity = final_act.activity;
+    make_final_activity(activity, fee_str, "L-BTC", warning_msg);
+    JADE_ASSERT(*activity);
 }
