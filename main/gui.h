@@ -353,6 +353,20 @@ struct gui_view_node_t {
     gui_view_node_t* sibling;
 };
 
+// Structs to facilitate chaining screens
+typedef struct {
+    gui_activity_t* activity;
+    gui_view_node_t* prev_button;
+    gui_view_node_t* next_button;
+} link_activity_t;
+
+typedef struct {
+    gui_activity_t* first_activity;
+    gui_activity_t* last_activity;
+    gui_view_node_t* last_activity_next_button;
+} linked_activities_info_t;
+
+// Progress bar
 typedef struct {
     gui_view_node_t* progress_bar;
     gui_view_node_t* pcnt_txt;
@@ -367,6 +381,7 @@ bool gui_initialized();
 void gui_make_activity(gui_activity_t** ppact, bool has_status_bar, const char* title);
 void gui_free_noncurrent_activities();
 void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent);
+void gui_chain_activities(const link_activity_t* link_act, linked_activities_info_t* pActInfo);
 void free_view_node(gui_view_node_t* node);
 void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...);
 void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...);

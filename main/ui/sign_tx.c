@@ -10,18 +10,6 @@
 #include "../utils/address.h"
 #include "../utils/event.h"
 
-typedef struct {
-    gui_activity_t* activity;
-    gui_view_node_t* prev_button;
-    gui_view_node_t* next_button;
-} output_activity_t;
-
-typedef struct {
-    gui_activity_t* first_activity;
-    gui_activity_t* last_activity;
-    gui_view_node_t* last_activity_next_button;
-} activities_info_t;
-
 // A warning to display if the asset registry data is missing
 static const char MISSING_ASSET_DATA[] = "Amounts may be expressed in the wrong units. Proceed at your own risk.";
 
@@ -49,7 +37,7 @@ static void translate_event(void* handler_arg, esp_event_base_t base, int32_t id
 //
 // So it is not valid to call this with both asset_str and warning_msg.
 //
-static void make_output_activity(output_activity_t* output_activity, const bool want_prev_btn, uint32_t index,
+static void make_output_activity(link_activity_t* output_activity, const bool want_prev_btn, uint32_t index,
     uint32_t total, const char* address, const char* amount, const char* ticker, const char* asset_str,
     const char* warning_msg)
 {
@@ -208,6 +196,9 @@ static void make_output_activity(output_activity_t* output_activity, const bool 
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
+    // Connect every screen's 'exit' button to the 'translate' handler above
+    gui_activity_register_event(act, GUI_BUTTON_EVENT, BTN_TX_SCREEN_EXIT, translate_event, NULL);
+
     // Set the intially selected item to the 'Next' button (ie. btn3)
     gui_set_activity_initial_selection(act, btn3);
 
@@ -337,41 +328,6 @@ static uint32_t displayable_outputs(
     return nDisplayable > 0 ? nDisplayable : tx->num_outputs;
 }
 
-// Helper to call to create screen for single output
-static void make_single_output_screen(activities_info_t* pActInfo, uint32_t index, uint32_t total, const char* address,
-    const char* amount, const char* ticker, const char* asset_str, const char* warning_msg)
-{
-    JADE_ASSERT(pActInfo);
-
-    output_activity_t output_act;
-    make_output_activity(
-        &output_act, pActInfo->last_activity, index, total, address, amount, ticker, asset_str, warning_msg);
-    JADE_ASSERT(output_act.activity);
-
-    // Connect every screen's 'exit' button to the 'translate' handler above
-    gui_activity_register_event(output_act.activity, GUI_BUTTON_EVENT, BTN_TX_SCREEN_EXIT, translate_event, NULL);
-
-    // Record the first activity
-    if (!pActInfo->first_activity) {
-        pActInfo->first_activity = output_act.activity;
-    }
-
-    // Link activities together by prev and next buttons
-    if (pActInfo->last_activity) {
-        // connect our "prev" btn to prev activity
-        JADE_ASSERT(output_act.prev_button);
-        gui_connect_button_activity(output_act.prev_button, pActInfo->last_activity);
-
-        // connect prev "next" btn to this activity
-        JADE_ASSERT(pActInfo->last_activity_next_button);
-        gui_connect_button_activity(pActInfo->last_activity_next_button, output_act.activity);
-    }
-
-    // Update 'last activity' information to this new activity
-    pActInfo->last_activity = output_act.activity;
-    pActInfo->last_activity_next_button = output_act.next_button;
-}
-
 void make_display_output_activity(
     const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity)
 {
@@ -382,8 +338,10 @@ void make_display_output_activity(
     // Show outputs which don't have a script
     const bool show_scriptless = true;
 
-    // Track the first and last activities created
-    activities_info_t act_info = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
+    // Chain the output activities
+    link_activity_t output_act;
+    linked_activities_info_t act_info
+        = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
 
     // 1 based indices for display purposes
     uint32_t nDisplayedOutput = 0;
@@ -412,8 +370,10 @@ void make_display_output_activity(
         const char* msg = output_info && strlen(output_info[i].message) > 0 ? output_info[i].message : NULL;
 
         ++nDisplayedOutput;
-        make_single_output_screen(
-            &act_info, nDisplayedOutput, nTotalOutputsDisplayed, display_address, amount, "BTC", NULL, msg);
+
+        make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed,
+            display_address, amount, "BTC", NULL, msg);
+        gui_chain_activities(&output_act, &act_info);
     }
     JADE_ASSERT(nDisplayedOutput == nTotalOutputsDisplayed);
 
@@ -434,7 +394,9 @@ void make_display_elements_output_activity(
     const bool show_scriptless = false;
 
     // Track the first and last activities created
-    activities_info_t act_info = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
+    link_activity_t output_act;
+    linked_activities_info_t act_info
+        = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
 
     // 1 based indices for display purposes
     uint32_t nDisplayedOutput = 0;
@@ -507,20 +469,23 @@ void make_display_elements_output_activity(
         // Insert extra screen to display warning message for this output, if one is passed
         if (strlen(output_info[i].message) > 0) {
             // Make activity with no asset-id but with the warning message
-            make_single_output_screen(&act_info, nDisplayedOutput, nTotalOutputsDisplayed, display_address, amount,
-                ticker, NULL, output_info[i].message);
+            make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed,
+                display_address, amount, ticker, NULL, output_info[i].message);
+            gui_chain_activities(&output_act, &act_info);
         }
 
         // Insert extra screen to display warning if the asset registry information is missing
         if (!pInfo) {
             // Make activity with no asset-id but with the warning message
-            make_single_output_screen(&act_info, nDisplayedOutput, nTotalOutputsDisplayed, display_address, amount,
-                ticker, NULL, MISSING_ASSET_DATA);
+            make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed,
+                display_address, amount, ticker, NULL, MISSING_ASSET_DATA);
+            gui_chain_activities(&output_act, &act_info);
         }
 
         // Normal output screen - with issuer and asset-id but no warning message
-        make_single_output_screen(
-            &act_info, nDisplayedOutput, nTotalOutputsDisplayed, display_address, amount, ticker, asset_str, NULL);
+        make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed,
+            display_address, amount, ticker, asset_str, NULL);
+        gui_chain_activities(&output_act, &act_info);
     }
     JADE_ASSERT(nDisplayedOutput == nTotalOutputsDisplayed);
 

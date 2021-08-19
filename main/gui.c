@@ -731,6 +731,36 @@ void gui_free_noncurrent_activities()
     }
 }
 
+// Link activities eg. by prev/next buttons
+void gui_chain_activities(const link_activity_t* link_act, linked_activities_info_t* pActInfo)
+{
+    JADE_ASSERT(link_act);
+    JADE_ASSERT(link_act->activity);
+    JADE_ASSERT(pActInfo);
+
+    // Record the first activity
+    if (!pActInfo->first_activity) {
+        pActInfo->first_activity = link_act->activity;
+    }
+
+    // Link activities together by prev and next buttons
+    if (pActInfo->last_activity) {
+        if (link_act->prev_button) {
+            // connect our "prev" btn to prev activity
+            gui_connect_button_activity(link_act->prev_button, pActInfo->last_activity);
+        }
+
+        // connect prev "next" btn to this activity
+        if (pActInfo->last_activity_next_button) {
+            gui_connect_button_activity(pActInfo->last_activity_next_button, link_act->activity);
+        }
+    }
+
+    // Update 'last activity' information to this new activity
+    pActInfo->last_activity = link_act->activity;
+    pActInfo->last_activity_next_button = link_act->next_button;
+}
+
 // attach a view node (recusively) to an activity
 static void set_tree_activity(gui_view_node_t* node, gui_activity_t* activity)
 {
