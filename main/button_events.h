@@ -83,6 +83,11 @@ typedef enum {
     BTN_PINSERVER_DETAILS_CONFIRM,
     BTN_PINSERVER_DETAILS_DENY,
 
+    BTN_MULTISIG_PREV,
+    BTN_MULTISIG_NEXT,
+    BTN_MULTISIG_CONFIRM,
+    BTN_MULTISIG_EXIT,
+
     // NOTE: Always leave these ones last as keyboard buttons use
     // BTN_KEYBOARD_ASCII_OFFSET + <ascii-value>
     BTN_KEYBOARD_BACKSPACE,

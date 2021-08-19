@@ -11,6 +11,8 @@ enum jade_events {
     CAMERA_EXIT,
     SIGN_TX_ACCEPT_OUTPUTS,
     SIGN_TX_DECLINE,
+    MULTISIG_ACCEPT,
+    MULTISIG_DECLINE,
 };
 
 typedef struct wait_event_data_t wait_event_data_t;
