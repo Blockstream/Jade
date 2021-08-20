@@ -59,6 +59,10 @@ void make_confirm_pinserver_details_activity(
     gui_activity_t** activity_ptr, const char* urlA, const char* urlB, const char* pubkeyhex);
 void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, const char* cert_hash_hex);
 
+// View/delete multisig registration
+void make_view_multisig_activity(gui_activity_t** activity, const char* multisig_name, size_t index, size_t total,
+    bool valid, size_t threshold, size_t num_signers);
+
 // Generic message screens which may await a button click
 gui_activity_t* display_message_activity(const char* message);
 gui_activity_t* display_message_activity_two_lines(const char* msg_first, const char* msg_second);

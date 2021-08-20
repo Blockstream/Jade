@@ -65,6 +65,7 @@ typedef enum {
     BTN_SETTINGS_TIMEOUT_5,
     BTN_SETTINGS_EMERGENCY_RESTORE,
     BTN_SETTINGS_LEGAL,
+    BTN_SETTINGS_MULTISIG,
     BTN_SETTINGS_RESET,
     BTN_SETTINGS_EXIT,
 
@@ -86,6 +87,7 @@ typedef enum {
     BTN_MULTISIG_PREV,
     BTN_MULTISIG_NEXT,
     BTN_MULTISIG_CONFIRM,
+    BTN_MULTISIG_DELETE,
     BTN_MULTISIG_EXIT,
 
     // NOTE: Always leave these ones last as keyboard buttons use

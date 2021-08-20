@@ -8,6 +8,7 @@
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
+#include "../multisig.h"
 #include "../power.h"
 #include "../process.h"
 #include "../qrcode.h"
@@ -460,6 +461,56 @@ static void handle_legal(void)
 }
 #endif
 
+static void handle_multisigs(void)
+{
+    char names[MAX_MULTISIG_REGISTRATIONS][STORAGE_MAX_KEY_SIZE]; // Sufficient
+    const size_t names_len = sizeof(names) / sizeof(names[0]);
+    size_t num_multisigs = 0;
+    bool ok = storage_get_all_multisig_registration_names(names, names_len, &num_multisigs);
+    JADE_ASSERT(ok);
+
+    if (num_multisigs == 0) {
+        await_message_activity("No multisigs registered");
+        return;
+    }
+
+    for (int i = 0; i < num_multisigs; ++i) {
+        const char* errmsg = NULL;
+        const char* multisig_name = names[i];
+        multisig_data_t multisig_data;
+        const bool valid = multisig_load_from_storage(multisig_name, &multisig_data, &errmsg);
+
+        // We will display the names of invalid entries, just log any message
+        if (errmsg) {
+            JADE_LOGW("%s", errmsg);
+        }
+
+        gui_activity_t* act;
+        make_view_multisig_activity(
+            &act, multisig_name, i + 1, num_multisigs, valid, multisig_data.threshold, multisig_data.xpubs_len);
+        JADE_ASSERT(act);
+
+        while (true) {
+            gui_set_current_activity(act);
+
+            int32_t ev_id;
+            ok = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+            if (ok && ev_id == BTN_MULTISIG_DELETE) {
+                char message[128];
+                const int ret = snprintf(message, sizeof(message), "Delete registered multisig?\n\n%s", multisig_name);
+                JADE_ASSERT(ret > 0 && ret < sizeof(message));
+                if (!await_yesno_activity("Delete Multisig", message, false)) {
+                    continue;
+                }
+
+                ok = storage_erase_multisig_registration(multisig_name);
+                JADE_ASSERT(ok);
+            }
+            break;
+        };
+    }
+}
+
 void offer_startup_options(void)
 {
     gui_activity_t* act;
@@ -535,6 +586,11 @@ static void handle_settings(jade_process_t* process)
              */
         case BTN_SETTINGS_RESET:
             offer_jade_reset();
+            gui_set_current_activity(act);
+            break;
+
+        case BTN_SETTINGS_MULTISIG:
+            handle_multisigs();
             gui_set_current_activity(act);
             break;
 

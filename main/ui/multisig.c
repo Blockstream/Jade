@@ -500,3 +500,128 @@ void make_confirm_multisig_activity(const char* multisig_name, const size_t thre
     // Set output param
     *first_activity = act_info.first_activity;
 }
+
+void make_view_multisig_activity(gui_activity_t** activity, const char* multisig_name, const size_t index,
+    const size_t total, const bool valid, const size_t threshold, const size_t num_signers)
+{
+    JADE_ASSERT(activity);
+    JADE_ASSERT(multisig_name);
+
+    gui_activity_t* act;
+    char header[16];
+    const int ret = snprintf(header, sizeof(header), "Multisig %d/%d", index, total);
+    JADE_ASSERT(ret > 0 && ret < sizeof(header));
+    gui_make_activity(&act, true, header);
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_set_parent(vsplit, act->root_node);
+
+    gui_view_node_t* row1;
+    gui_make_fill(&row1, TFT_BLACK);
+    gui_set_parent(row1, vsplit);
+
+    gui_view_node_t* text1;
+    gui_make_text(&text1, "Mustisig Registration:", TFT_WHITE);
+    gui_set_parent(text1, row1);
+    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+
+    gui_view_node_t* row2;
+    gui_make_fill(&row2, TFT_BLACK);
+    gui_set_parent(row2, vsplit);
+
+    gui_view_node_t* hsplit_text2;
+    gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 25, 75);
+    gui_set_parent(hsplit_text2, row2);
+
+    gui_view_node_t* text2a;
+    gui_make_text(&text2a, "Name", TFT_WHITE);
+    gui_set_parent(text2a, hsplit_text2);
+    gui_set_align(text2a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+
+    gui_view_node_t* text2b;
+    gui_make_text(&text2b, multisig_name, TFT_WHITE);
+    gui_set_parent(text2b, hsplit_text2);
+    gui_set_align(text2b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+
+    gui_view_node_t* row3;
+    gui_make_fill(&row3, TFT_BLACK);
+    gui_set_parent(row3, vsplit);
+
+    if (valid) {
+        gui_view_node_t* hsplit_text3;
+        gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 25, 75);
+        gui_set_parent(hsplit_text3, row3);
+
+        char type[8];
+        int ret = snprintf(type, sizeof(type), "%uof%u", threshold, num_signers);
+        JADE_ASSERT(ret > 0 && ret < sizeof(type));
+
+        gui_view_node_t* text3a;
+        gui_make_text(&text3a, "Type", TFT_WHITE);
+        gui_set_parent(text3a, hsplit_text3);
+        gui_set_align(text3a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+
+        gui_view_node_t* text3b;
+        gui_make_text(&text3b, type, TFT_WHITE);
+        gui_set_parent(text3b, hsplit_text3);
+        gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    } else {
+        // Not valid for this wallet - just show warning
+        gui_view_node_t* text3;
+        gui_make_text(&text3, "Not valid for this wallet", TFT_RED);
+        gui_set_parent(text3, row3);
+        gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    }
+
+    gui_view_node_t* row4;
+    gui_make_fill(&row4, TFT_BLACK);
+    gui_set_parent(row4, vsplit);
+
+    // Buttons
+    gui_view_node_t* row5;
+    gui_make_fill(&row5, TFT_BLACK);
+    gui_set_parent(row5, vsplit);
+
+    gui_view_node_t* hsplit_btn;
+    gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 2, 50, 50);
+    gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
+    gui_set_parent(hsplit_btn, row5);
+
+    // Delete/Next
+    gui_view_node_t* btn1 = NULL;
+    gui_make_button(&btn1, TFT_BLACK, BTN_MULTISIG_DELETE, NULL);
+    gui_set_margins(btn1, GUI_MARGIN_ALL_EQUAL, 2);
+    gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
+    gui_set_parent(btn1, hsplit_btn);
+
+    gui_view_node_t* textbtn1;
+    gui_make_text(&textbtn1, "Delete", TFT_WHITE);
+    gui_set_parent(textbtn1, btn1);
+    gui_set_align(textbtn1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    const bool has_next = index < total;
+    gui_view_node_t* btn2;
+    gui_make_button(&btn2, TFT_BLACK, has_next ? BTN_MULTISIG_NEXT : BTN_MULTISIG_EXIT, NULL);
+    gui_set_margins(btn2, GUI_MARGIN_ALL_EQUAL, 2);
+    gui_set_borders(btn2, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn2, TFT_BLOCKSTREAM_GREEN);
+    gui_set_parent(btn2, hsplit_btn);
+
+    gui_view_node_t* textbtn2;
+    if (has_next) {
+        gui_make_text(&textbtn2, ">", TFT_WHITE);
+        gui_set_text_font(textbtn2, JADE_SYMBOLS_16x16_FONT);
+    } else {
+        gui_make_text(&textbtn2, "Exit", TFT_WHITE);
+    }
+    gui_set_parent(textbtn2, btn2);
+    gui_set_align(textbtn2, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    // Set the intially selected item to the 'Next' button (ie. btn2)
+    gui_set_activity_initial_selection(act, btn2);
+
+    *activity = act;
+}
