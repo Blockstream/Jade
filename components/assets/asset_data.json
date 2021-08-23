@@ -1,4 +1,34 @@
 {
+    "00008ca2a89f6b73089e768c9bb4595621c57436be36eace3fa4a22c36d42ec6": {
+        "asset_id": "00008ca2a89f6b73089e768c9bb4595621c57436be36eace3fa4a22c36d42ec6",
+        "contract": {
+            "entity": {
+                "domain": "esky33kubernetes.github.io"
+            },
+            "issuer_pubkey": "024d5d4a2e0d9dec62e05cd39bb56488a39bbccdc9548c5b2fa63eab51e2f8d8c9",
+            "name": "JungleLab",
+            "nonce": "14407",
+            "precision": 0,
+            "ticker": "J-LAB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "esky33kubernetes.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "d6a05b7bbdb3644c139e810ab6341ebfede3ead04a4ad91c2a6fce24d495e45b",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "9a6efd4a89888f1e1e74fe5f794d41472c60e0b74e9ce3e5e83cc6ea3358ab81",
+            "vin": 0
+        },
+        "issuer_pubkey": "024d5d4a2e0d9dec62e05cd39bb56488a39bbccdc9548c5b2fa63eab51e2f8d8c9",
+        "name": "JungleLab",
+        "precision": 0,
+        "ticker": "J-LAB",
+        "version": 0
+    },
     "0000b161ead41dbdfc3814078fdb02ee78f9697ffc7b15395db6c62fd1e7fe2c": {
         "asset_id": "0000b161ead41dbdfc3814078fdb02ee78f9697ffc7b15395db6c62fd1e7fe2c",
         "contract": {
@@ -27,6 +57,36 @@
         "name": "OMG Education",
         "precision": 0,
         "ticker": "OMG",
+        "version": 0
+    },
+    "0000c3dd58bff84557339fefb9f33d81ccc60797217af8f1fcfa9676cb28eb76": {
+        "asset_id": "0000c3dd58bff84557339fefb9f33d81ccc60797217af8f1fcfa9676cb28eb76",
+        "contract": {
+            "entity": {
+                "domain": "sess10ns.github.io"
+            },
+            "issuer_pubkey": "0393e7b4aebbd68131f9219b524adb310ea469eac8648830ff9f1c824327f5dea3",
+            "name": "SESS10NS Token",
+            "nonce": "105567",
+            "precision": 0,
+            "ticker": "SSXN",
+            "version": 0
+        },
+        "entity": {
+            "domain": "sess10ns.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "4d662915418cdb0c7cacc4056d1ec0922e825d6d6e15c8df5e8dd0f2e3741829",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "cfe83fb7f0470d024fc6d69937e013e43bd9387a1cf12def62156e663a107c63",
+            "vin": 0
+        },
+        "issuer_pubkey": "0393e7b4aebbd68131f9219b524adb310ea469eac8648830ff9f1c824327f5dea3",
+        "name": "SESS10NS Token",
+        "precision": 0,
+        "ticker": "SSXN",
         "version": 0
     },
     "0000f153ec68b01d26d19787f37427d108ab79f61968efa2317dd5c40a983000": {
@@ -4458,6 +4518,64 @@
         "name": "Rouge",
         "precision": 0,
         "ticker": "CRoug",
+        "version": 0
+    },
+    "3d4670a4378af9cc74f267c8e71ebfa3183a7d83449800795bf4dee17d8c0651": {
+        "asset_id": "3d4670a4378af9cc74f267c8e71ebfa3183a7d83449800795bf4dee17d8c0651",
+        "contract": {
+            "entity": {
+                "domain": "wintercooled.github.io"
+            },
+            "issuer_pubkey": "03ac82b29d8d527f82ef8f059b591d9ee417bc5f33edb394bb3b9c425e0bb94524",
+            "name": "RT_21_08_03_01",
+            "precision": 2,
+            "ticker": "RT001",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wintercooled.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "703cbdab50a7ec154dc92b57dcd53a34e5e804b5dc3e9d19b2e77ed2ae1e2d89",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "203df8230b149d6085779a2d36d625fda0207ada29a6144513a4e45b34bf2221",
+            "vin": 0
+        },
+        "issuer_pubkey": "03ac82b29d8d527f82ef8f059b591d9ee417bc5f33edb394bb3b9c425e0bb94524",
+        "name": "RT_21_08_03_01",
+        "precision": 2,
+        "ticker": "RT001",
+        "version": 0
+    },
+    "3d8aec45241077945f0577ce739642e49e8534ee1d638e28c2f298790916b724": {
+        "asset_id": "3d8aec45241077945f0577ce739642e49e8534ee1d638e28c2f298790916b724",
+        "contract": {
+            "entity": {
+                "domain": "wintercooled.github.io"
+            },
+            "issuer_pubkey": "03b14ef2db35d203ec0aca1943fcfaeae121251ac402e5c3d14b7a465dd58a811e",
+            "name": "OPTST",
+            "precision": 2,
+            "ticker": "OPTST",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wintercooled.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "203df8230b149d6085779a2d36d625fda0207ada29a6144513a4e45b34bf2221",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "3b50d24f62b12c85a345fb9c01dcb9b7371ac16fcef1e9c34fdfe843aa96ce3a",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b14ef2db35d203ec0aca1943fcfaeae121251ac402e5c3d14b7a465dd58a811e",
+        "name": "OPTST",
+        "precision": 2,
+        "ticker": "OPTST",
         "version": 0
     },
     "3df492f58027b0820b783e54c173e07149c2469f7b9d8d87687ee612fa584ba3": {
@@ -15935,6 +16053,36 @@
         "name": "EUROSToken",
         "precision": 8,
         "ticker": "EUROL",
+        "version": 0
+    },
+    "d8a019ffa24e3112f7ac5453970d8078bdf923240506b6e12f5a885bc7de1a0b": {
+        "asset_id": "d8a019ffa24e3112f7ac5453970d8078bdf923240506b6e12f5a885bc7de1a0b",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmavF82ieL723hEbFLERKvRqD7DtMDFsgjNoQ5iv81Axcg",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Ga Gua Again",
+            "precision": 0,
+            "ticker": "MGGA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "998f02a86c48e7eb113b3a969b99011eeda10dffd7cd8974a317db4418bdab35",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "4e5e4b8723ca280172b1c5e73035c3926ffab17a34a189bc6196a6bb6be3bb08",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Ga Gua Again",
+        "precision": 0,
+        "ticker": "MGGA",
         "version": 0
     },
     "d90878e23db92a9353fc73bc87e7f00b14d49b74221bbe9e36075d97e60f5fae": {
