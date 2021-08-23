@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.27] - 2021-08-30
+### Added
+- Enable creation of new 12-word recovery phrase
+- Method to export liquid master blinding key, after user confirmation
+- Add support for testnet-liquid network
+
+### Changed
+- Update liquid asset info
+- Update libwally to 0.8.3
+- Update esp-idf base firmware to v4.2.2
+
+### Fixed
+- Improve performance and reliability when receiving large messages (eg. sign-liquid-tx) over Bluetooth
+- Potential issue where derived key may not be zero'd in memory after failure
+- Fixed corner-case issue reading long strings from cbor messages
+- Derive liquid blinding factors consistently with Ledger
+- Reduced memory usage for no-PSRAM hardware
+
 ## [0.1.26] - 2021-07-01
 ### Added
 - Enable repeating next/prev events when jog-wheel (btn on M5Stack) held down
