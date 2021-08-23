@@ -82,7 +82,7 @@ docker run -v ${PWD}:/jade -p 2222:2222 -it testjadeqemu bash
 Note: You can skip the build step if you want by fetching the prebuilt image and running with
 
 ```
-dci_flashocker pull blockstream/verde
+docker pull blockstream/verde
 docker run -v ${PWD}:/jade -p 2222:2222 -it blockstream/verde bash
 ```
 
