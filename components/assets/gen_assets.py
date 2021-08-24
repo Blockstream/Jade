@@ -12,11 +12,11 @@ logger.setLevel(logging.DEBUG)
 # https://assets.blockstream.info/
 def read_input_file(filename):
     # Load json input file into dict
-    logger.debug('Reading file: {}'.format(filename))
+    logger.debug(f'Reading file: {filename}')
     with open(input_file, 'r') as f:
         assets = json.load(f)
 
-    logger.info('Read {} assets'.format(len(assets)))
+    logger.info(f'Read {len(assets)} assets')
     return assets
 
 
@@ -32,21 +32,17 @@ def write_asset(asset, f):
         # Not sure what the expected maximum precision value is - will cap at
         # single-digit here just as a sanity check.  If we exceed that we will
         # also need to check buffer sizes etc. in ui/sign_tx.c where we print
-        # the scaled number as a string (currnetly that asserts if > 9).
+        # the scaled number as a string (currently that asserts if > 9).
         # NOTE: 'ticker' is allowed to be null/None/'' and is passed as NULL
         if assetid and issuer and precision >= 0 and precision < 10:
-            if ticker:
-                f.write('ASSET_INFO("{}", "{}", "{}", {}),\n'.format(
-                    assetid, ticker, issuer, precision))
-            else:
-                f.write('ASSET_INFO("{}", NULL, "{}", {}),\n'.format(
-                    assetid, issuer, precision))
+            ticker = f'"{ticker}"' if ticker else 'NULL'
+            f.write(f'ASSET_INFO("{assetid}", {ticker}, "{issuer}", {precision}),\n')
             return 1
 
     except Exception as e:
         logger.error(e)
 
-    logger.error('Skipping: {}'.format(asset))
+    logger.error(f'Skipping: {asset}')
     return 0
 
 
@@ -85,8 +81,8 @@ if __name__ == '__main__':
     written = write_output_file(assets, output_file)
     skipped = len(assets) - written
 
-    logger.info('Written {} assets'.format(written))
+    logger.info(f'Written {written} assets')
     if skipped > 0:
-        logger.warning('Skipped {} assets'.format(skipped))
+        logger.warning('Skipped {skipped} assets')
 
     assert skipped == 0
