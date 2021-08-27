@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # this is the minimum to run qemu
-# xtensa-softmmu/qemu-system-xtensa -nographic \
+# build/qemu-system-xtensa -nographic \
 #     -machine esp32 \
 #     -drive file=flash_image.bin,if=mtd,format=raw
 
@@ -21,7 +21,7 @@ set -eo pipefail
 # if you want to put qemu in a state where it can be used with idf.py flash or esptool.py
 # -global driver=esp32.gpio,property=strap_mode,value=0x0f \
 
-(cd /qemu && xtensa-softmmu/qemu-system-xtensa -nographic \
+(cd /qemu && build/qemu-system-xtensa -nographic \
     -machine esp32 \
     -drive file=flash_image.bin,if=mtd,format=raw \
     -global driver=timer.esp32.timg,property=wdt_disable,value=true \
@@ -29,8 +29,7 @@ set -eo pipefail
     -serial pty &)
 sleep 4
 
-# TODO: put virtualenv in the docker-image, and the virtualenv in the runner homedir
-apt-get update -qq && apt-get install virtualenv -yqq
+# TODO: put the virtualenv in the runner homedir
 virtualenv -p python3 venv3
 
 source venv3/bin/activate

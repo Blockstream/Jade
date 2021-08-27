@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-apt-get update -qq
-apt-get install virtualenv -yqq
-
 . /root/esp/esp-idf/export.sh
 
 cd /jade
