@@ -15,3 +15,5 @@ dd if=build/bootloader/bootloader.bin bs=1 seek=$((0x1000)) of=${FLASH_IMAGE_FIL
 dd if=build/partition_table/partition-table.bin bs=1 seek=$((0x9000)) of=${FLASH_IMAGE_FILE} conv=notrunc
 dd if=build/ota_data_initial.bin bs=1 seek=$((0xe000)) of=${FLASH_IMAGE_FILE} conv=notrunc
 dd if=build/jade.bin bs=1 seek=$((0x10000)) of=${FLASH_IMAGE_FILE} conv=notrunc
+
+cp main/qemu/qemu_efuse.bin /qemu/qemu_efuse.bin
