@@ -4,6 +4,8 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
+#define NUM_KEYBOARD_ROWS 3
+
 void gen_btns(gui_view_node_t* parent, const size_t num_buttons, const char* msgs[], const uint32_t fonts[],
     const int32_t ev_ids[], gui_view_node_t* out_btns[]);
 
@@ -297,13 +299,16 @@ void make_confirm_mnemonic_screen(gui_activity_t** activity_ptr, gui_view_node_t
 
 // recover
 void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** backspace,
-    gui_view_node_t** enter, gui_view_node_t** keys)
+    gui_view_node_t** enter, gui_view_node_t** keys, const size_t keys_len)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(textbox);
+    JADE_ASSERT(backspace);
+    JADE_ASSERT(enter);
     JADE_ASSERT(keys);
+    JADE_ASSERT(keys_len == 26); // ie. A->Z
 
-    gui_make_activity(activity_ptr, true, "Insert word");
+    gui_make_activity(activity_ptr, true, "Enter Word");
     gui_activity_t* act = *activity_ptr;
     act->selectables_wrap = true; // allow the button cursor to wrap
 
@@ -325,64 +330,54 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
     *textbox = text_status;
 
     // second row, keyboard
-    char* lines[3];
+    char* lines[NUM_KEYBOARD_ROWS];
     lines[0] = (char[]){ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J' };
     lines[1] = (char[]){ 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S' };
     lines[2] = (char[]){ 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', ' ', '|' };
+    const size_t sizes[NUM_KEYBOARD_ROWS] = { 10, 9, 9 };
 
-    int sizes[] = { 10, 9, 9 };
-
-    int i = 0;
-    gui_view_node_t* btns[28];
-    for (int l = 0; l < 3; l++) {
+    for (size_t l = 0; l < NUM_KEYBOARD_ROWS; ++l) {
         gui_view_node_t* hsplit;
-        if (l == 0) {
-            gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 10, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24);
-        } else if (l == 1) {
-            gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 10, 24, 24, 24, 24, 24, 24, 24, 24, 24);
-            gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 8);
-        } else if (l == 2) {
-            gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 9, 24, 24, 24, 24, 24, 24, 24, 24, 24);
-            gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 16);
-        }
-
+        gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 10, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24);
+        gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, (l * 8)); // offset each row slightly
         gui_set_parent(hsplit, vsplit);
 
-        for (int c = 0; c < sizes[l]; c++) {
+        for (size_t c = 0; c < sizes[l]; ++c) {
             size_t btn_ev_id;
             if (lines[l][c] >= 'A' && lines[l][c] <= 'Z') {
-                btn_ev_id = lines[l][c] - 'A' + BTN_KEYBOARD_A;
+                btn_ev_id = BTN_KEYBOARD_ASCII_OFFSET + lines[l][c];
             } else if (lines[l][c] == '|') {
                 btn_ev_id = BTN_KEYBOARD_BACKSPACE;
             } else if (lines[l][c] == ' ') {
                 btn_ev_id = BTN_KEYBOARD_ENTER;
             } else {
-                JADE_ASSERT_MSG(false, "Unknown button pressed %c", lines[l][c]);
+                JADE_ASSERT_MSG(false, "Unknown button %c", lines[l][c]);
             }
 
-            gui_make_button(&btns[i], TFT_BLACK, btn_ev_id, NULL);
-            gui_set_margins(btns[i], GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btns[i], TFT_BLUE, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btns[i], TFT_BLOCKSTREAM_GREEN);
-            gui_set_borders_inactive_color(btns[i], TFT_BLACK);
-            gui_set_parent(btns[i], hsplit);
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, btn_ev_id, NULL);
+            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
+            gui_set_borders(btn, TFT_BLUE, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_borders_inactive_color(btn, TFT_BLACK);
+            gui_set_parent(btn, hsplit);
 
             if (lines[l][c] >= 'A' && lines[l][c] <= 'Z') {
-                keys[lines[l][c] - 'A'] = btns[i];
+                const size_t index = lines[l][c] - 'A';
+                JADE_ASSERT(index < keys_len);
+                keys[index] = btn;
             } else if (lines[l][c] == '|') {
-                *backspace = btns[i];
+                *backspace = btn;
             } else if (lines[l][c] == ' ') {
-                gui_set_borders(btns[i], TFT_DARKGREY, 2, 0);
-                *enter = btns[i];
+                gui_set_borders(btn, TFT_DARKGREY, 2, 0);
+                *enter = btn;
             }
 
             gui_view_node_t* label;
-            char str[2] = { lines[l][c], 0 };
+            const char str[2] = { lines[l][c], 0 };
             gui_make_text(&label, str, TFT_WHITE);
-            gui_set_parent(label, btns[i]);
+            gui_set_parent(label, btn);
             gui_set_align(label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-            i++;
         }
     }
 }
@@ -392,7 +387,7 @@ void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_nod
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(textbox);
 
-    gui_make_activity(activity_ptr, true, "Recover wallet");
+    gui_make_activity(activity_ptr, true, "Recover Wallet");
     gui_activity_t* act = *activity_ptr;
     act->selectables_wrap = true; // allow the button cursor to wrap
 

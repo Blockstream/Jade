@@ -15,7 +15,7 @@
 
 #include "process_utils.h"
 
-#include <sodium/utils.h>
+#include <ctype.h>
 
 // Should be large enough for all 12 and 24 word mnemonics
 #define MNEMONIC_MAXWORDS 24
@@ -30,7 +30,7 @@ void make_show_mnemonic(
 void make_confirm_mnemonic_screen(
     gui_activity_t** activity_ptr, gui_view_node_t** text_box_ptr, size_t confirm, char* words[], size_t nwords);
 void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** backspace,
-    gui_view_node_t** enter, gui_view_node_t** keys);
+    gui_view_node_t** enter, gui_view_node_t** keys, size_t keys_len);
 void make_recover_word_page_select10(
     gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status);
 void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** camera_node, gui_view_node_t** textbox);
@@ -58,18 +58,19 @@ static void change_mnemonic_word_separator(char* mnemonic, const size_t len, con
     JADE_ASSERT(i == len + 1);
 }
 
-static bool mnemonic_new(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
+static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
 {
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
     // generate and show the mnemonic
     char* new_mnemonic = NULL;
     keychain_get_new_mnemonic(&new_mnemonic, nwords);
     JADE_ASSERT(new_mnemonic);
-    const size_t mnemonic_len = strnlen(new_mnemonic, MNEMONIC_BUFLEN);
-    SENSITIVE_PUSH(new_mnemonic, mnemonic_len);
-    JADE_ASSERT(mnemonic_len < MNEMONIC_BUFLEN); // buffer should be large enough for any mnemonic
+    const size_t new_mnemonic_len = strnlen(new_mnemonic, MNEMONIC_BUFLEN);
+    JADE_ASSERT(new_mnemonic_len < MNEMONIC_BUFLEN); // buffer should be large enough for any mnemonic
+    SENSITIVE_PUSH(new_mnemonic, new_mnemonic_len);
 
     // Copy into output buffer
     strcpy(mnemonic, new_mnemonic);
@@ -78,7 +79,7 @@ static bool mnemonic_new(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
     // Large enough for 12 and 24 word mnemonic
     char* words[MNEMONIC_MAXWORDS];
     SENSITIVE_PUSH(words, sizeof(words));
-    change_mnemonic_word_separator(new_mnemonic, mnemonic_len, ' ', '\0', words, nwords);
+    change_mnemonic_word_separator(new_mnemonic, new_mnemonic_len, ' ', '\0', words, nwords);
     bool mnemonic_confirmed = false;
 
     // create the "show mnemonic" only once and then reuse it
@@ -207,13 +208,14 @@ cleanup:
 }
 
 static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_activity_t* act, gui_view_node_t* backspace,
-    gui_view_node_t** btns, bool* valid_word)
+    gui_view_node_t** btns, const size_t btns_len, bool* valid_word)
 {
     JADE_ASSERT(word);
     JADE_ASSERT(wordlist);
     JADE_ASSERT(act);
     JADE_ASSERT(backspace);
     JADE_ASSERT(btns);
+    JADE_ASSERT(btns_len == 26); // ie A->Z
     JADE_ASSERT(valid_word);
 
     const size_t word_len = strlen(word);
@@ -233,12 +235,12 @@ static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_acti
         // then enable the rest.
 
         // First select a character button at random
-        const uint8_t initial = get_uniform_random_byte(26);
+        const uint8_t initial = get_uniform_random_byte(btns_len);
         gui_set_active(act, btns[initial], true);
         gui_select_node(act, btns[initial]);
 
         // Then enable all the (other) buttons
-        for (size_t i = 0; i < 26; i++) {
+        for (size_t i = 0; i < btns_len; i++) {
             gui_set_active(act, btns[i], true);
         }
 
@@ -287,7 +289,7 @@ static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_acti
         selectNext = false;
     }
 
-    for (size_t i = 0; i < 26; ++i) {
+    for (size_t i = 0; i < btns_len; ++i) {
         gui_set_active(act, btns[i], enabled[i]);
 
         if (selectNext && enabled[i]) {
@@ -348,19 +350,21 @@ static size_t valid_words(char* word, struct words* wordlist, size_t* possible_w
     return num_possible_words;
 }
 
-static bool mnemonic_recover(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords)
+static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
 {
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
     struct words* wordlist;
     bip39_get_wordlist(NULL, &wordlist);
     size_t mnemonic_offset = 0;
 
     gui_view_node_t* btns[26];
+    const size_t btns_len = sizeof(btns) / sizeof(btns[0]);
     gui_view_node_t *textbox = NULL, *backspace = NULL, *enter = NULL;
     gui_activity_t* enter_word_activity = NULL;
-    make_recover_word_page(&enter_word_activity, &textbox, &backspace, &enter, btns);
+    make_recover_word_page(&enter_word_activity, &textbox, &backspace, &enter, btns, btns_len);
 
     gui_view_node_t* textbox_list = NULL;
     gui_view_node_t* status = NULL;
@@ -375,7 +379,7 @@ static bool mnemonic_recover(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords
 
         // Reset display for next word
         gui_set_current_activity(enter_word_activity);
-        enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
+        enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, btns_len, &valid_word);
         gui_update_text(textbox, word);
         enter->is_active = false;
 
@@ -468,16 +472,14 @@ static bool mnemonic_recover(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords
                 word[--char_index] = '\0';
 
                 gui_set_current_activity(enter_word_activity);
-                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
+                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, btns_len, &valid_word);
                 gui_update_text(textbox, word);
                 gui_set_title(enter_word_title);
 
             } else { // else if possible_words >= 11
                 gui_activity_wait_event(enter_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
-                if (ev_id >= BTN_KEYBOARD_A && ev_id <= BTN_KEYBOARD_Z) {
-                    word[char_index++] = 'a' + ev_id - BTN_KEYBOARD_A;
-                } else if (ev_id == BTN_KEYBOARD_BACKSPACE) {
+                if (ev_id == BTN_KEYBOARD_BACKSPACE) {
                     if (char_index > 0) {
                         // Go back one character
                         word[--char_index] = '\0';
@@ -492,9 +494,14 @@ static bool mnemonic_recover(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords
                         // Backspace at start of first word - abandon mnemonic entry back to previous screen
                         return false;
                     }
+                } else {
+                    const char letter_selected = ev_id - BTN_KEYBOARD_ASCII_OFFSET;
+                    if (letter_selected >= 'A' && letter_selected <= 'Z') {
+                        word[char_index++] = tolower(letter_selected);
+                    }
                 }
 
-                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, &valid_word);
+                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, btns_len, &valid_word);
                 gui_update_text(textbox, word);
 
                 if (ev_id == BTN_KEYBOARD_BACKSPACE && char_index > 0) {
@@ -507,8 +514,10 @@ static bool mnemonic_recover(char mnemonic[MNEMONIC_BUFLEN], const size_t nwords
     return true;
 }
 
-static bool mnemonic_qr(char mnemonic[MNEMONIC_BUFLEN])
+static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
 {
+    JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
+
 // At the moment camera/qr-scan only supported by Jade devices
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     gui_activity_t* activity;
@@ -616,24 +625,24 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
         // Await user mnemonic entry/confirmation
         case BTN_NEW_MNEMONIC_12_BEGIN:
-            got_mnemonic = mnemonic_new(mnemonic, 12);
+            got_mnemonic = mnemonic_new(12, mnemonic, sizeof(mnemonic));
             break;
 
         case BTN_NEW_MNEMONIC_24_BEGIN:
-            got_mnemonic = mnemonic_new(mnemonic, 24);
+            got_mnemonic = mnemonic_new(24, mnemonic, sizeof(mnemonic));
             break;
 
         case BTN_RECOVER_MNEMONIC_12_BEGIN:
-            got_mnemonic = mnemonic_recover(mnemonic, 12);
+            got_mnemonic = mnemonic_recover(12, mnemonic, sizeof(mnemonic));
             break;
 
         case BTN_RECOVER_MNEMONIC_24_BEGIN:
-            got_mnemonic = mnemonic_recover(mnemonic, 24);
+            got_mnemonic = mnemonic_recover(24, mnemonic, sizeof(mnemonic));
             break;
 
         case BTN_QR_MNEMONIC_BEGIN:
         default:
-            got_mnemonic = mnemonic_qr(mnemonic);
+            got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
             break;
         }
 #else
