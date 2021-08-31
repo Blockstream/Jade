@@ -3,7 +3,7 @@
 pkill -f qemu-system-xtensa
 
 cd /qemu
-build/xtensa-softmmu/qemu-system-xtensa -nographic \
+xtensa-softmmu/qemu-system-xtensa -nographic \
     -machine esp32 \
     -drive file=flash_image.bin,if=mtd,format=raw \
     -global driver=timer.esp32.timg,property=wdt_disable,value=true \
