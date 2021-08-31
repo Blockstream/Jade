@@ -18,7 +18,7 @@
 // Supported script variants
 typedef enum { GREEN, P2PKH, P2WPKH, P2WPKH_P2SH } script_variant_t;
 
-void wallet_init();
+void wallet_init(void);
 
 bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, size_t output_len);
 

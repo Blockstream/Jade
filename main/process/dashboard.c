@@ -259,7 +259,7 @@ static void dispatch_message(jade_process_t* process)
         }
 #ifdef CONFIG_DEBUG_MODE
     } else if (IS_METHOD("debug_selfcheck")) {
-        if (debug_selfcheck(process)) {
+        if (debug_selfcheck()) {
             jade_process_reply_to_message_ok(process);
         } else {
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "ERROR", NULL);

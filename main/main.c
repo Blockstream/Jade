@@ -41,7 +41,7 @@
 int serial_logger(const char* message, va_list fmt);
 #endif
 
-void offer_startup_options();
+void offer_startup_options(void);
 void dashboard_process(void* process_ptr);
 
 static void crypto_init(void)

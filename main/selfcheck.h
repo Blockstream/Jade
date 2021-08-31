@@ -3,6 +3,6 @@
 
 #include <stdbool.h>
 
-bool debug_selfcheck();
+bool debug_selfcheck(void);
 
 #endif /* SELFCHECK_H_ */
