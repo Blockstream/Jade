@@ -86,7 +86,7 @@ typedef struct selectable_element selectable_t;
 
 static inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
 
-static void make_status_bar()
+static void make_status_bar(void)
 {
     gui_view_node_t* root;
     gui_make_fill(&root, TFT_BLACK);
@@ -136,7 +136,7 @@ static void make_status_bar()
     status_bar.battery_update_counter = 0;
 }
 
-gui_event_t gui_get_click_event() { return gui_click_event; }
+gui_event_t gui_get_click_event(void) { return gui_click_event; }
 
 void gui_set_click_event(gui_event_t event)
 {
@@ -146,7 +146,7 @@ void gui_set_click_event(gui_event_t event)
 }
 
 // TODO: improve error checks
-void gui_init()
+void gui_init(void)
 {
     // Create semaphore.  Note it has to be 'preloaded' so it can be taken later
     paint_mutex = xSemaphoreCreateBinary();
@@ -204,7 +204,7 @@ void gui_init()
     vTaskSuspend(status_bar.task_handle); // this will be started when necessary
 }
 
-bool gui_initialized() { return switch_activities; }
+bool gui_initialized(void) { return switch_activities; }
 
 // Is this kind of node selectable?
 static inline bool is_kind_selectable(enum view_node_kind kind)
@@ -697,7 +697,7 @@ static void free_activities_task(void* unused)
 }
 
 // schedule job to free all existing activities, except the current activity
-void gui_free_noncurrent_activities()
+void gui_free_noncurrent_activities(void)
 {
     activity_holder_t* scrapheap = NULL;
 
@@ -1840,7 +1840,7 @@ static void status_bar_task(void* ignore)
 }
 
 // TODO: different functions for different types of click
-void gui_wheel_click()
+void gui_wheel_click(void)
 {
     if (gui_click_event == GUI_WHEEL_CLICK_EVENT) {
         select_action(current_activity);
@@ -1850,7 +1850,7 @@ void gui_wheel_click()
     idletimer_register_activity();
 }
 
-void gui_front_click()
+void gui_front_click(void)
 {
     if (gui_click_event == GUI_FRONT_CLICK_EVENT) {
         select_action(current_activity);
@@ -1860,7 +1860,7 @@ void gui_front_click()
     idletimer_register_activity();
 }
 
-void gui_next()
+void gui_next(void)
 {
     gui_select_next(current_activity);
 
@@ -1868,7 +1868,7 @@ void gui_next()
     idletimer_register_activity();
 }
 
-void gui_prev()
+void gui_prev(void)
 {
     gui_select_prev(current_activity);
 
@@ -2051,4 +2051,4 @@ void gui_set_title(const char* title)
     gui_update_text(status_bar.title, title);
 }
 
-gui_activity_t* gui_current_activity() { return current_activity; }
+gui_activity_t* gui_current_activity(void) { return current_activity; }

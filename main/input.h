@@ -24,13 +24,13 @@
 extern int button_selector;
 extern bool button_selected;
 
-void input_init();
+void input_init(void);
 void set_invert_wheel(bool inverted);
 
-void button_init();
+void button_init(void);
 void button_tap(void* arg);
 void button_long(void* arg);
 
-void wheel_init();
+void wheel_init(void);
 
 #endif /* BUTTONS_H_ */

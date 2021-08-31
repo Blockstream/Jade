@@ -43,7 +43,7 @@ void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temp
     keychain_temporary = temporary;
 }
 
-void keychain_free()
+void keychain_free(void)
 {
     if (keychain_data) {
         wally_bzero(keychain_data, sizeof(keychain_t));
@@ -54,18 +54,18 @@ void keychain_free()
     keychain_temporary = false;
 }
 
-const keychain_t* keychain_get() { return keychain_data; }
+const keychain_t* keychain_get(void) { return keychain_data; }
 
-bool keychain_has_temporary()
+bool keychain_has_temporary(void)
 {
     JADE_ASSERT(!keychain_temporary || keychain_data);
     return keychain_temporary;
 }
 
-uint8_t keychain_get_userdata() { return keychain_userdata; }
+uint8_t keychain_get_userdata(void) { return keychain_userdata; }
 
 // Clear the network type restriction
-void keychain_clear_network_type_restriction()
+void keychain_clear_network_type_restriction(void)
 {
     JADE_LOGI("Clearing network type restriction");
     storage_set_network_type_restriction(NONE);
@@ -333,9 +333,9 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
     return true;
 }
 
-bool keychain_has_pin() { return has_encrypted_blob; }
+bool keychain_has_pin(void) { return has_encrypted_blob; }
 
-uint8_t keychain_pin_attempts_remaining() { return storage_get_counter(); }
+uint8_t keychain_pin_attempts_remaining(void) { return storage_get_counter(); }
 
 bool keychain_get_new_privatekey(unsigned char* privatekey, const size_t size)
 {
@@ -357,7 +357,7 @@ bool keychain_get_new_privatekey(unsigned char* privatekey, const size_t size)
     return false;
 }
 
-bool keychain_init()
+bool keychain_init(void)
 {
     unsigned char privatekey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privatekey, sizeof(privatekey));

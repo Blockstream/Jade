@@ -47,7 +47,7 @@ static uint8_t entropy_state[SHA256_LEN];
 static uint32_t rnd_counter;
 static portMUX_TYPE rndmutex;
 
-static uint16_t esp32_get_temperature()
+static uint16_t esp32_get_temperature(void)
 {
     // taken from esp-idf components/esp32/test/test_tsens.c
     SET_PERI_REG_BITS(SENS_SAR_MEAS_WAIT2_REG, SENS_FORCE_XPD_SAR, 3, SENS_FORCE_XPD_SAR_S);
@@ -161,7 +161,7 @@ unsigned char get_uniform_random_byte(const unsigned char upper_bound)
 }
 
 // taken from core
-static void random_sanity_check()
+static void random_sanity_check(void)
 {
     uint64_t start = xthal_get_ccount();
 
@@ -248,7 +248,7 @@ static void strengthen(const int64_t ms)
     mbedtls_sha512_free(&ctx_inner);
 }
 
-void random_start_collecting()
+void random_start_collecting(void)
 {
     // from https://docs.espressif.com/projects/esp-idf/en/release-v4.1/api-reference/system/system.html
     // If the RF subsystem is not used by the program, the function bootloader_random_enable() can be
@@ -264,7 +264,7 @@ void random_start_collecting()
     vPortCPUInitializeMutex(&rndmutex);
 }
 
-void random_full_initialization()
+void random_full_initialization(void)
 {
     strengthen(STRENGTHEN_MILLISECONDS);
     random_sanity_check();

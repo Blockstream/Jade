@@ -18,7 +18,7 @@
 static const char POINT_TO_QR[] = "Point to a QR\ncode and Scan";
 
 // Signal to the caller that we are done, and await our death
-static void post_exit_event_and_await_death()
+static void post_exit_event_and_await_death(void)
 {
     // Ensure we have cleaned up sensitive data
     sensitive_assert_empty();
@@ -33,14 +33,14 @@ static void post_exit_event_and_await_death()
     }
 }
 
-static void camera_reset()
+static void camera_reset(void)
 {
     power_camera_off();
     vTaskDelay(20 / portTICK_PERIOD_MS);
     power_camera_on();
 }
 
-static void jade_camera_init()
+static void jade_camera_init(void)
 {
     power_camera_on();
     const camera_config_t camera_config = {
@@ -152,7 +152,7 @@ static void qr_recoginze(void* pdata, jade_camera_data_t* camera_data)
 }
 
 // release the fb
-void jade_camera_stop()
+void jade_camera_stop(void)
 {
     esp_camera_deinit();
     power_camera_off();

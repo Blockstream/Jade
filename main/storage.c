@@ -199,7 +199,7 @@ static bool erase_key(const char* ns, const char* name)
     return true;
 }
 
-static esp_err_t init_nvs_flash()
+static esp_err_t init_nvs_flash(void)
 {
     esp_err_t err;
 
@@ -230,7 +230,7 @@ static esp_err_t init_nvs_flash()
     return err;
 }
 
-bool storage_init()
+bool storage_init(void)
 {
     esp_err_t err = init_nvs_flash();
 
@@ -249,7 +249,7 @@ bool storage_init()
 }
 
 // Erase flash
-bool storage_erase()
+bool storage_erase(void)
 {
     const esp_err_t err = nvs_flash_erase();
     if (err != ESP_OK) {
@@ -304,7 +304,7 @@ bool storage_set_pin_privatekey(const unsigned char* privatekey, const size_t ke
     return store_blob(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD, privatekey, key_len);
 }
 
-bool storage_erase_pin_privatekey() { return erase_key(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD); }
+bool storage_erase_pin_privatekey(void) { return erase_key(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD); }
 
 bool storage_set_encrypted_blob(const unsigned char* encrypted, const size_t encrypted_len)
 {
@@ -320,7 +320,7 @@ bool storage_get_encrypted_blob(unsigned char* encrypted, const size_t encrypted
     return read_blob_fixed(DEFAULT_NAMESPACE, BLOB_FIELD, encrypted, encrypted_len);
 }
 
-bool storage_erase_encrypted_blob()
+bool storage_erase_encrypted_blob(void)
 {
     // Try to erase the counter
     erase_key(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD);
@@ -329,7 +329,7 @@ bool storage_erase_encrypted_blob()
     return erase_key(DEFAULT_NAMESPACE, BLOB_FIELD);
 }
 
-bool storage_decrement_counter()
+bool storage_decrement_counter(void)
 {
     uint8_t counter = storage_get_counter();
     if (counter == 0 || counter > 3) {
@@ -346,13 +346,13 @@ bool storage_decrement_counter()
     return true;
 }
 
-bool storage_restore_counter()
+bool storage_restore_counter(void)
 {
     const uint8_t counter = 3;
     return store_blob(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD, &counter, sizeof(counter));
 }
 
-uint8_t storage_get_counter()
+uint8_t storage_get_counter(void)
 {
     uint8_t counter = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD, &counter, sizeof(counter)) ? counter : 0;
@@ -394,7 +394,7 @@ bool storage_get_pinserver_pubkey(unsigned char* pubkey, const size_t pubkey_len
     return read_blob_fixed(DEFAULT_NAMESPACE, USER_PINSERVER_PUBKEY, pubkey, pubkey_len);
 }
 
-bool storage_erase_pinserver_details()
+bool storage_erase_pinserver_details(void)
 {
     // Erase all of the pinserver fields, or none of them
     nvs_handle handle;
@@ -414,14 +414,14 @@ bool storage_get_pinserver_cert(char* cert, const size_t len, size_t* written)
     return read_string(DEFAULT_NAMESPACE, USER_PINSERVER_CERT, cert, len, written);
 }
 
-bool storage_erase_pinserver_cert() { return erase_key(DEFAULT_NAMESPACE, USER_PINSERVER_CERT); }
+bool storage_erase_pinserver_cert(void) { return erase_key(DEFAULT_NAMESPACE, USER_PINSERVER_CERT); }
 
 bool storage_set_network_type_restriction(network_type_t networktype)
 {
     return store_blob(DEFAULT_NAMESPACE, NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype));
 }
 
-network_type_t storage_get_network_type_restriction()
+network_type_t storage_get_network_type_restriction(void)
 {
     network_type_t networktype = NONE;
     return read_blob_fixed(DEFAULT_NAMESPACE, NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype))
@@ -434,7 +434,7 @@ bool storage_set_idle_timeout(uint16_t timeout)
     return store_blob(DEFAULT_NAMESPACE, IDLE_TIMEOUT_FIELD, (const unsigned char*)&timeout, sizeof(timeout));
 }
 
-uint16_t storage_get_idle_timeout()
+uint16_t storage_get_idle_timeout(void)
 {
     uint16_t timeout = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, IDLE_TIMEOUT_FIELD, (unsigned char*)&timeout, sizeof(timeout)) ? timeout
@@ -446,7 +446,7 @@ bool storage_set_click_event(uint8_t event)
     return store_blob(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD, &event, sizeof(event));
 }
 
-uint8_t storage_get_click_event()
+uint8_t storage_get_click_event(void)
 {
     uint8_t event = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD, &event, sizeof(event)) ? event : 0;
@@ -457,7 +457,7 @@ bool storage_set_ble_flags(uint8_t flags)
     return store_blob(DEFAULT_NAMESPACE, BLE_FLAGS_FIELD, &flags, sizeof(flags));
 }
 
-uint8_t storage_get_ble_flags()
+uint8_t storage_get_ble_flags(void)
 {
     uint8_t flags = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, BLE_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;

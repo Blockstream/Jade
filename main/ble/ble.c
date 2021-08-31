@@ -240,7 +240,7 @@ static void ble_print_conn_desc(struct ble_gap_conn_desc* desc)
         desc->sec_state.authenticated, desc->sec_state.bonded);
 }
 
-void ble_start_advertising()
+void ble_start_advertising(void)
 {
     JADE_LOGI("ble_start_advertising() - Starting ble advertising with own_addr_type: %d", own_addr_type);
 
@@ -292,7 +292,7 @@ void ble_start_advertising()
     }
 }
 
-void ble_stop_advertising()
+void ble_stop_advertising(void)
 {
     JADE_LOGI("ble_stop_advertising() - Stopping ble advertising");
     ble_gap_adv_stop();
@@ -452,7 +452,7 @@ bool ble_init(TaskHandle_t* ble_handle)
     return true;
 }
 
-void ble_start()
+void ble_start(void)
 {
     /*
      * FIXME: should be able to free more memory
@@ -499,7 +499,7 @@ void ble_start()
     ble_is_enabled = true;
 }
 
-void ble_stop()
+void ble_stop(void)
 {
     int ret = nimble_port_stop();
     if (ret == 0) {
@@ -512,13 +512,13 @@ void ble_stop()
     ble_is_enabled = false;
 }
 
-bool ble_enabled()
+bool ble_enabled(void)
 {
     // FIXME: get from NIMBLE
     return ble_is_enabled;
 }
 
-bool ble_connected() { return ble_is_connected; }
+bool ble_connected(void) { return ble_is_connected; }
 
 static int ble_gap_event(struct ble_gap_event* event, void* arg)
 {
@@ -723,7 +723,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
     return 0;
 }
 
-bool ble_remove_all_devices()
+bool ble_remove_all_devices(void)
 {
     bool errored = false;
     ble_addr_t peer_id_addrs[CONFIG_BT_NIMBLE_MAX_BONDS];

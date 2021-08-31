@@ -8,9 +8,9 @@ void get_random(unsigned char* bytes_out, size_t len);
 unsigned char get_uniform_random_byte(unsigned char upper_bound);
 
 // this function needs to be called first thing when starting up
-void random_start_collecting();
+void random_start_collecting(void);
 
 // this function needs to be called before any randomness is requested
-void random_full_initialization();
+void random_full_initialization(void);
 
 #endif /* RANDOM_H_ */

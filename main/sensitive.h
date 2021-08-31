@@ -23,20 +23,20 @@
  * More examples:
  *
  * -- leaky
- * void leaky()
+ * void leaky(void)
  * {
  *     unsigned char buf[1024];
  *     SENSITIVE_PUSH(buf, sizeof(buf));
  * }
  *
- * void main()
+ * void main(void)
  * {
  *     leaky();
  *     sensitive_assert_empty(); // this will abort (after zeroing the leaked buffer)
  * }
  *
  * -- wrong order
- * void wrong_order()
+ * void wrong_order(void)
  * {
  *     unsigned char buf[1024];
  *     unsigned char buf2[1024];
@@ -47,7 +47,7 @@
  * }
  *
  * -- abort
- * void abort()
+ * void abort(void)
  * {
  *     // Calling sensitive_clear_stack() will zero everything currently
  *     // on the stack and free the stack memory.  The sensitive-stack cannot
@@ -59,9 +59,9 @@
 
 void sensitive_push(const char* file, int line, void* addr, size_t size);
 void sensitive_pop(const char* file, int line, void* addr);
-void sensitive_clear_stack();
-void sensitive_assert_empty();
-void sensitive_init();
+void sensitive_clear_stack(void);
+void sensitive_assert_empty(void);
+void sensitive_init(void);
 
 #define SENSITIVE_PUSH(addr, size) sensitive_push(__FILE__, __LINE__, addr, size)
 #define SENSITIVE_POP(addr) sensitive_pop(__FILE__, __LINE__, addr)

@@ -23,7 +23,7 @@ struct sens_stack {
     struct sens_elem elems[SENS_STACK_SIZE];
 };
 
-void sensitive_init()
+void sensitive_init(void)
 {
     struct sens_stack* stack = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct sens_stack));
     stack->top = stack->elems;
@@ -31,7 +31,7 @@ void sensitive_init()
     vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX, stack);
 }
 
-static inline struct sens_stack* get_sens_stack()
+static inline struct sens_stack* get_sens_stack(void)
 {
     struct sens_stack* stack = pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX);
     JADE_LOGD("get_sens_stack returned %p for task '%s'", stack, pcTaskGetTaskName(NULL));
@@ -72,7 +72,7 @@ void sensitive_pop(const char* file, int line, void* addr)
     }
 }
 
-void sensitive_clear_stack()
+void sensitive_clear_stack(void)
 {
     JADE_LOGD("sensitive_clear_stack()");
     struct sens_stack* stack = get_sens_stack();
@@ -90,7 +90,7 @@ void sensitive_clear_stack()
     free(stack);
 }
 
-void sensitive_assert_empty()
+void sensitive_assert_empty(void)
 {
     JADE_LOGD("sensitive_assert_empty()");
     struct sens_stack* stack = get_sens_stack();

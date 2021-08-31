@@ -22,7 +22,7 @@ static const char SERVICE_PATH_HEX[] = "00c9678fbd9d9f6a96bd43221d56733b5aba8f52
         return false;                                                                                                  \
     }
 
-bool debug_selfcheck()
+bool debug_selfcheck(void)
 {
     keychain_t keydata;
     char* mnemonic = NULL;

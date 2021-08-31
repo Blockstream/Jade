@@ -44,7 +44,7 @@ int serial_logger(const char* message, va_list fmt);
 void offer_startup_options();
 void dashboard_process(void* process_ptr);
 
-static void crypto_init()
+static void crypto_init(void)
 {
     JADE_WALLY_VERIFY(wally_init(0));
     unsigned char ctx_rnd[WALLY_SECP_RANDOMIZE_LEN];
@@ -55,7 +55,7 @@ static void crypto_init()
     SENSITIVE_POP(ctx_rnd);
 }
 
-static void boot_process()
+static void boot_process(void)
 {
     TaskHandle_t* serial_handle = NULL;
     TaskHandle_t* ble_handle = NULL;
@@ -139,7 +139,7 @@ static void boot_process()
     }
 }
 
-static void start_dashboard()
+static void start_dashboard(void)
 {
     JADE_LOGI("Starting dashboard on core %u", xPortGetCoreID());
 
@@ -151,7 +151,7 @@ static void start_dashboard()
     dashboard_process(&main_process);
 }
 
-static void validate_running_image()
+static void validate_running_image(void)
 {
     const esp_partition_t* running = esp_ota_get_running_partition();
     JADE_LOGI("Running partition ptr: %p", running);

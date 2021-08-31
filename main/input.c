@@ -7,7 +7,7 @@
 
 static bool invert_wheel = false;
 
-void input_init()
+void input_init(void)
 {
     const esp_err_t rc = gpio_install_isr_service(0);
     JADE_ASSERT(rc == ESP_OK);
@@ -36,7 +36,7 @@ static void button_wheel_long(void* arg)
 }
 #endif
 
-void button_init()
+void button_init(void)
 {
 #ifdef CONFIG_INPUT_FRONT_SW
     button_handle_t btn_handle_front = iot_button_create(CONFIG_INPUT_FRONT_SW, BUTTON_ACTIVE_LOW);
@@ -51,7 +51,7 @@ void button_init()
 #endif
 }
 
-static inline void wheel_prev()
+static inline void wheel_prev(void)
 {
     if (invert_wheel) {
         gui_next();
@@ -60,7 +60,7 @@ static inline void wheel_prev()
     }
 }
 
-static inline void wheel_next()
+static inline void wheel_next(void)
 {
     if (invert_wheel) {
         gui_prev();
@@ -111,7 +111,7 @@ void wheel_watch_task(void* info_void)
     vTaskDelete(NULL);
 }
 
-void wheel_init()
+void wheel_init(void)
 {
     // Initialise the rotary encoder device with the GPIOs for A and B signals
     rotary_encoder_info_t* info = (rotary_encoder_info_t*)JADE_MALLOC(sizeof(rotary_encoder_info_t));
@@ -171,7 +171,7 @@ static void button_released(void* arg)
     button_A_pressed = false;
 }
 
-void wheel_init()
+void wheel_init(void)
 {
     button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_PUSH, button_pressed, &button_A_pressed);
@@ -188,7 +188,7 @@ static void button_A_pressed(void* arg) { wheel_prev(); }
 
 static void button_B_pressed(void* arg) { wheel_next(); }
 
-void wheel_init()
+void wheel_init(void)
 {
     button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_PUSH, button_A_pressed, NULL);

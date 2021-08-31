@@ -372,14 +372,14 @@ typedef struct {
     gui_view_node_t* pcnt_txt;
 } progress_bar_t;
 
-gui_event_t gui_get_click_event();
+gui_event_t gui_get_click_event(void);
 void gui_set_click_event(gui_event_t event);
 
-void gui_init();
-bool gui_initialized();
+void gui_init(void);
+bool gui_initialized(void);
 
 void gui_make_activity(gui_activity_t** ppact, bool has_status_bar, const char* title);
-void gui_free_noncurrent_activities();
+void gui_free_noncurrent_activities(void);
 void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent);
 void gui_chain_activities(const link_activity_t* link_act, linked_activities_info_t* pActInfo);
 void free_view_node(gui_view_node_t* node);
@@ -420,11 +420,11 @@ bool gui_select_prev(gui_activity_t* activity);
 void gui_select_node(gui_activity_t* activity, gui_view_node_t* node);
 
 void gui_set_title(const char* title);
-gui_activity_t* gui_current_activity();
+gui_activity_t* gui_current_activity(void);
 
-void gui_wheel_click();
-void gui_front_click();
-void gui_next();
-void gui_prev();
+void gui_wheel_click(void);
+void gui_front_click(void);
+void gui_next(void);
+void gui_prev(void);
 
 #endif /* GUI_H_ */

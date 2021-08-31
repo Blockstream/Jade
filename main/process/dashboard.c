@@ -320,7 +320,7 @@ static void dispatch_message(jade_process_t* process)
 }
 
 // Function to get user confirmation, then wipe all flash memory.
-void offer_jade_reset()
+void offer_jade_reset(void)
 {
     // Run 'Reset Jade?'  confirmation screen and wait for yes/no response
     JADE_LOGI("Offering Jade reset");
@@ -376,7 +376,7 @@ void offer_jade_reset()
 }
 
 // Screen to select whether the initial connection is via USB or BLE
-static void select_initial_connection()
+static void select_initial_connection(void)
 {
 #ifndef CONFIG_ESP32_NO_BLOBS
     gui_activity_t* activity;
@@ -420,7 +420,7 @@ static void initialise_wallet(const bool emergency_restore)
     }
 }
 
-void offer_emergency_restore()
+void offer_emergency_restore(void)
 {
     const bool bRestore = await_yesno_activity("Emergency Restore",
         "Do you want to temporarily\nrestore a wallet?\nThis doesn't affect your PIN\nsaved wallet, if any.", true);
@@ -431,7 +431,7 @@ void offer_emergency_restore()
 }
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-static void handle_legal()
+static void handle_legal(void)
 {
     gui_activity_t* first_activity = NULL;
     make_legal_screen(&first_activity);
@@ -453,7 +453,7 @@ static void handle_legal()
 }
 #endif
 
-void offer_startup_options()
+void offer_startup_options(void)
 {
     gui_activity_t* act;
     make_startup_options_screen(&act);
@@ -544,7 +544,7 @@ static void handle_settings(jade_process_t* process)
 }
 
 // Sleep/power-down
-static void handle_sleep()
+static void handle_sleep(void)
 {
     const bool bSleep = await_yesno_activity("Sleep", "\nDo you want to put Jade\ninto sleep mode?", true);
     if (bSleep) {
@@ -554,7 +554,7 @@ static void handle_sleep()
 
 #ifndef CONFIG_ESP32_NO_BLOBS
 // Reset BLE pairing data
-static void handle_ble_reset()
+static void handle_ble_reset(void)
 {
     if (!ble_enabled()) {
         await_message_activity("You must enable Bluetooth\nbefore accessing the pairing\ninformation.");
@@ -575,7 +575,7 @@ static inline void update_ble_enabled_text(gui_view_node_t* ble_status_textbox)
     gui_update_text(ble_status_textbox, ble_enabled() ? "Enabled" : "Disabled");
 }
 
-static void handle_ble()
+static void handle_ble(void)
 {
     gui_activity_t* act;
 
@@ -623,11 +623,11 @@ static void handle_ble()
     }
 }
 #else
-static void handle_ble() { await_message_activity("BLE disabled in this firmware"); }
+static void handle_ble(void) { await_message_activity("BLE disabled in this firmware"); }
 #endif // CONFIG_ESP32_NO_BLOBS
 
 // Device info
-static void handle_device()
+static void handle_device(void)
 {
     char power_status[32] = "NO BAT";
 #ifdef CONFIG_HAS_AXP
@@ -756,7 +756,7 @@ static void display_screen(gui_activity_t* act)
 }
 
 #ifdef CONFIG_ESP32_NO_BLOBS
-static inline bool ble_connected() { return false; }
+static inline bool ble_connected(void) { return false; }
 #endif
 
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.

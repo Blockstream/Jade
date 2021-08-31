@@ -26,6 +26,6 @@ typedef struct {
 
 void cleanup_camera_data(jade_camera_data_t* camera_data);
 void jade_camera_task(void* ignore);
-void jade_camera_stop();
+void jade_camera_stop(void);
 
 #endif /* CAMERA_H_ */

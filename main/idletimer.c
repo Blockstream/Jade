@@ -18,7 +18,7 @@ static TickType_t last_activity_registered = 0;
 static SemaphoreHandle_t last_activity_mutex = NULL;
 
 // Function to register activity
-void idletimer_register_activity()
+void idletimer_register_activity(void)
 {
     JADE_ASSERT(last_activity_mutex);
 
@@ -31,7 +31,7 @@ void idletimer_register_activity()
 }
 
 // Function to get last registered activity time
-static TickType_t get_last_registered_activity()
+static TickType_t get_last_registered_activity(void)
 {
     JADE_ASSERT(last_activity_mutex);
 
@@ -112,7 +112,7 @@ static void idletimer_task(void* ignore)
     }
 }
 
-void idletimer_init()
+void idletimer_init(void)
 {
     // Create semaphore.  Note it has to be 'preloaded' so it can be taken later
     last_activity_mutex = xSemaphoreCreateBinary();

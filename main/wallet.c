@@ -96,7 +96,7 @@ static inline void value_to_be(uint32_t val, unsigned char* buffer)
     buffer[3] = val & 0xFF;
 }
 
-void wallet_init()
+void wallet_init(void)
 {
     JADE_WALLY_VERIFY(bip32_key_from_base58(MAINNET_SERVICE_XPUB, &MAINNET_SERVICE));
     JADE_WALLY_VERIFY(bip32_key_from_base58(TESTNET_SERVICE_XPUB, &TESTNET_SERVICE));

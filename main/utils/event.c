@@ -20,7 +20,7 @@ struct wait_event_data_t {
 };
 
 // Make a new event-data
-wait_event_data_t* make_wait_event_data()
+wait_event_data_t* make_wait_event_data(void)
 {
     wait_event_data_t* wait_event_data = JADE_CALLOC(1, sizeof(wait_event_data_t));
 

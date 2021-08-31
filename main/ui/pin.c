@@ -15,7 +15,7 @@ static inline char get_pin_value(size_t index)
     return PIN_CHARS[index];
 }
 
-static inline uint8_t get_random_pin_digit() { return get_uniform_random_byte(NUM_PIN_VALUES); }
+static inline uint8_t get_random_pin_digit(void) { return get_uniform_random_byte(NUM_PIN_VALUES); }
 
 static void update_digit_node(pin_insert_activity_t* pin_insert, uint8_t i)
 {

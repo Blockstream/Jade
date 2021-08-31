@@ -24,7 +24,7 @@ uint32_t GUI_DEFAULT_FONT = DEFAULT_FONT;
 
 #define SPI_BUS TFT_HSPI_HOST
 
-void display_init()
+void display_init(void)
 {
     JADE_LOGI("Powering the screen");
     power_screen_on();
@@ -69,7 +69,7 @@ void display_init()
 
 #include "../logo/splash.c"
 
-gui_activity_t* display_splash()
+gui_activity_t* display_splash(void)
 {
     gui_activity_t* act;
     gui_make_activity(&act, false, NULL);
@@ -85,10 +85,10 @@ gui_activity_t* display_splash()
 }
 
 // get/set screen orientation
-bool display_is_orientation_flipped()
+bool display_is_orientation_flipped(void)
 {
     // Our default appears to be 'LANDSCAPE_FLIP' (?)
     return orientation == LANDSCAPE;
 }
 
-void display_toggle_orientation() { TFT_setRotation(orientation == LANDSCAPE ? LANDSCAPE_FLIP : LANDSCAPE); }
+void display_toggle_orientation(void) { TFT_setRotation(orientation == LANDSCAPE ? LANDSCAPE_FLIP : LANDSCAPE); }

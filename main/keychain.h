@@ -15,25 +15,25 @@ typedef struct {
     unsigned char master_unblinding_key[HMAC_SHA512_LEN];
 } keychain_t;
 
-bool keychain_init();
+bool keychain_init(void);
 void keychain_set(const keychain_t* src, uint8_t userdata, bool temporary);
-void keychain_free();
+void keychain_free(void);
 
-const keychain_t* keychain_get();
-bool keychain_has_temporary();
-uint8_t keychain_get_userdata();
+const keychain_t* keychain_get(void);
+bool keychain_has_temporary(void);
+uint8_t keychain_get_userdata(void);
 
 // Set/clear/compare the pinned/restricted network type
 void keychain_set_network_type_restriction(const char* network);
-void keychain_clear_network_type_restriction();
+void keychain_clear_network_type_restriction(void);
 bool keychain_is_network_type_consistent(const char* network);
 
 // mnemonic returned should be freed by caller with wally_free_string
 void keychain_get_new_mnemonic(char** mnemonic, size_t nwords);
 bool keychain_get_new_privatekey(unsigned char* privatekey, size_t size);
 
-bool keychain_has_pin();
-uint8_t keychain_pin_attempts_remaining();
+bool keychain_has_pin(void);
+uint8_t keychain_pin_attempts_remaining(void);
 
 bool keychain_derive(const char* mnemonic, keychain_t* keydata);
 void keychain_derive_from_seed(const unsigned char* seed, size_t seed_len, keychain_t* keydata);

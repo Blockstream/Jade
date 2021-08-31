@@ -98,7 +98,7 @@ static RingbufHandle_t create_ringbuffer(const uint32_t ringsize)
 }
 
 // Deduce and cache a serial name/number for the device based on mac-address  - eg: 'Jade ABCDEF'
-static void deduce_jade_id()
+static void deduce_jade_id(void)
 {
     JADE_ASSERT(sizeof(jade_id) > 12);
 
@@ -124,7 +124,7 @@ static void deduce_jade_id()
 }
 
 // Get the Jade's serial number - eg: 'Jade ABCDEF'
-const char* get_jade_id() { return jade_id; }
+const char* get_jade_id(void) { return jade_id; }
 
 bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle_t** qemu_tcp_h)
 {
@@ -300,7 +300,7 @@ void jade_process_push_out_message(const unsigned char* data, const size_t size,
 }
 
 #ifdef CONFIG_HEAP_TRACING
-static void dump_mem_report()
+static void dump_mem_report(void)
 {
     size_t count = heap_trace_get_count();
     heap_trace_record_t record;
@@ -327,7 +327,7 @@ static void dump_mem_report()
 #endif /* CONFIG_HEAP_TRACING */
 
 #ifdef CONFIG_ESP32_NO_BLOBS
-static inline bool ble_connected() { return false; }
+static inline bool ble_connected(void) { return false; }
 #endif
 
 void jade_process_get_in_message(void* ctx, void (*writer)(void*, unsigned char*, size_t), bool blocking)

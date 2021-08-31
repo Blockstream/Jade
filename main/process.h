@@ -57,7 +57,7 @@ typedef struct {
     size_t size;
 } bytes_info_t;
 
-const char* get_jade_id();
+const char* get_jade_id(void);
 bool jade_process_init(TaskHandle_t** serial_handle, TaskHandle_t** ble_handle, TaskHandle_t** qemu_tcp_handle);
 
 // Intialise and cleanup jade process structs
