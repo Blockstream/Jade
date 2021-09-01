@@ -85,6 +85,7 @@ typedef enum {
     // BTN_KEYBOARD_ASCII_OFFSET + <ascii-value>
     BTN_KEYBOARD_BACKSPACE,
     BTN_KEYBOARD_ENTER,
+    BTN_KEYBOARD_SHIFT,
     BTN_KEYBOARD_ASCII_OFFSET
 
 } button_event_id;

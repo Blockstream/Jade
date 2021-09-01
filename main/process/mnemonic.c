@@ -34,6 +34,8 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
 void make_recover_word_page_select10(
     gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status);
 void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** camera_node, gui_view_node_t** textbox);
+void make_enter_passphrase_screen(
+    gui_activity_t** activity_ptr, gui_view_node_t* textboxes[], const size_t textboxes_len);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
 // Function to change the mnemonic word separator and provide pointers to
@@ -575,6 +577,93 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
 #endif
 }
 #endif // CONFIG_DEBUG_UNATTENDED_CI
+
+static inline bool ascii_sane(const int32_t c) { return c >= 32 && c < 128; }
+
+void get_passphrase(char* passphrase, const size_t passphrase_len, const bool confirm)
+{
+    JADE_ASSERT(passphrase);
+    JADE_ASSERT(passphrase_len > PASSPHRASE_MAX_LEN);
+
+    gui_view_node_t* textboxes[NUM_PASSPHRASE_KEYBOARD_SCREENS];
+    const size_t textboxes_len = sizeof(textboxes) / sizeof(textboxes[0]);
+
+    gui_activity_t* passphrase_activity = NULL;
+    make_enter_passphrase_screen(&passphrase_activity, textboxes, textboxes_len);
+    JADE_ASSERT(passphrase_activity);
+
+    wait_event_data_t* wait_data = make_wait_event_data();
+    passphrase[0] = '\0';
+
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    int32_t ev_id;
+    size_t ich = 0;
+    bool done = false;
+    while (!done) {
+        size_t page = 0;
+        gui_set_current_activity(passphrase_activity);
+        gui_update_text(textboxes[page], passphrase);
+
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+        esp_event_handler_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data);
+
+        while (!done) {
+            ev_id = ESP_EVENT_ANY_ID;
+            if (sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, wait_data, NULL, &ev_id, NULL, 0) != ESP_OK) {
+                continue;
+            }
+
+            if (ich < PASSPHRASE_MAX_LEN && ev_id > BTN_KEYBOARD_ASCII_OFFSET) {
+                const size_t chr = ev_id - BTN_KEYBOARD_ASCII_OFFSET;
+                if (ascii_sane(chr)) {
+                    passphrase[ich] = (char)chr;
+                    passphrase[++ich] = '\0';
+                    gui_update_text(textboxes[page], passphrase);
+                }
+
+            } else if (ev_id == BTN_KEYBOARD_BACKSPACE) {
+                if (ich > 0) {
+                    passphrase[--ich] = '\0';
+                    gui_update_text(textboxes[page], passphrase);
+                }
+
+            } else if (ev_id == BTN_KEYBOARD_SHIFT) {
+                // Switch to new keyboard page - ensure new screen textbox up to date
+                page = (page + 1) % NUM_PASSPHRASE_KEYBOARD_SCREENS;
+                gui_update_text(textboxes[page], passphrase);
+
+            } else if (ev_id == BTN_KEYBOARD_ENTER) {
+                // Perhaps ask user to confirm, before accepting passphrase
+                if (confirm) {
+                    if (ich > 0) {
+                        char confirm_passphrase[128];
+                        const int ret = snprintf(confirm_passphrase, sizeof(confirm_passphrase),
+                            "Do you confirm the following\npassphrase:\n\n%s", passphrase);
+                        JADE_ASSERT(ret > 0 && ret < sizeof(confirm_passphrase));
+                        done = await_yesno_activity("Confirm Passphrase", confirm_passphrase, false);
+                    } else {
+                        done = await_yesno_activity(
+                            "Confirm Passphrase", "Do you confirm the empty\npassphrase?", false);
+                    }
+                } else {
+                    done = true;
+                }
+                break;
+            }
+        }
+    }
+#else
+    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    strcpy(passphrase, "abcdef");
+    const size_t ich = strlen(passphrase);
+#endif
+
+    // Done
+    free_wait_event_data(wait_data);
+
+    JADE_ASSERT(ich <= PASSPHRASE_MAX_LEN);
+    JADE_ASSERT(passphrase[ich] == '\0' && strlen(passphrase) == ich);
+}
 
 void initialise_with_mnemonic(const bool temporary_restore)
 {

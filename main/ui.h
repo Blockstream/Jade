@@ -6,6 +6,8 @@
 
 struct wally_tx;
 
+#define NUM_PASSPHRASE_KEYBOARD_SCREENS 4
+
 // Maximum length of message which can be fully displayed on
 // 'sign-message' screen - longer messages display the hash
 #define MAX_DISPLAY_MESSAGE_LEN 192
