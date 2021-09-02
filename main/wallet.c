@@ -163,6 +163,27 @@ static size_t script_length_for_variant(const script_variant_t script_variant)
     }
 }
 
+// Map a script-variant enum value into the corresponding string
+const char* get_script_variant_string(const script_variant_t variant)
+{
+    switch (variant) {
+    case P2PKH:
+        return VARIANT_P2PKH;
+    case P2WPKH:
+        return VARIANT_P2WPKH;
+    case P2WPKH_P2SH:
+        return VARIANT_P2WPKH_P2SH;
+    case MULTI_P2WSH:
+        return VARIANT_MULTI_P2WSH;
+    case MULTI_P2SH:
+        return VARIANT_MULTI_P2SH;
+    case MULTI_P2WSH_P2SH:
+        return VARIANT_MULTI_P2WSH_P2SH;
+    default:
+        return NULL;
+    }
+}
+
 // Map a script-variant string into the corresponding enum value
 bool get_script_variant(const char* variant, const size_t variant_len, script_variant_t* output)
 {

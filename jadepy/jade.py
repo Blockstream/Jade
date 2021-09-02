@@ -229,6 +229,10 @@ class JadeAPI:
         params = {'network': network, 'path': path}
         return self._jadeRpc('get_xpub', params)
 
+    # Get registered multisig wallets
+    def get_registered_multisigs(self):
+        return self._jadeRpc('get_registered_multisigs')
+
     # Register a multisig wallet
     def register_multisig(self, network, multisig_name, variant, threshold, signers):
         params = {'network': network, 'multisig_name': multisig_name,

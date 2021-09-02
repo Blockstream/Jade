@@ -1658,6 +1658,14 @@ aa95e1c72070b08208012144f')
                                          inputdata['descriptor']['signers'])
         assert rslt is True
 
+        # Check present and correct in 'get_registered_multisigs'
+        registered_multisigs = jadeapi.get_registered_multisigs()
+        multisig_desc = registered_multisigs.get(inputdata['multisig_name'])
+        assert multisig_desc is not None
+        assert multisig_desc['variant'] == inputdata['descriptor']['variant']
+        assert multisig_desc['threshold'] == inputdata['descriptor']['threshold']
+        assert multisig_desc['num_signers'] == len(inputdata['descriptor']['signers'])
+
     # Short sanity-test of 12-word mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12)
     assert rslt is True
@@ -1710,6 +1718,14 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
                                          inputdata['descriptor']['threshold'],
                                          inputdata['descriptor']['signers'])
         assert rslt is True
+
+        # Check present and correct in 'get_registered_multisigs'
+        registered_multisigs = jadeapi.get_registered_multisigs()
+        multisig_desc = registered_multisigs.get(inputdata['multisig_name'])
+        assert multisig_desc is not None
+        assert multisig_desc['variant'] == inputdata['descriptor']['variant']
+        assert multisig_desc['threshold'] == inputdata['descriptor']['threshold']
+        assert multisig_desc['num_signers'] == len(inputdata['descriptor']['signers'])
 
     # restore the mnemonic after single sig tests
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
