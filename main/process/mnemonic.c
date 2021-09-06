@@ -654,7 +654,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
         // If the mnemonic is valid derive temporary keychain from it.
         // Otherwise break/return here.
-        got_mnemonic = keychain_derive(mnemonic, &keydata);
+        got_mnemonic = keychain_derive(mnemonic, NULL, &keydata);
         if (!got_mnemonic) {
             JADE_LOGW("Invalid mnemonic");
             await_error_activity("Invalid recovery phrase");

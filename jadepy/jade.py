@@ -189,8 +189,8 @@ class JadeAPI:
         return self._jadeRpc('debug_selfcheck')
 
     # Set the (debug) mnemonic
-    def set_mnemonic(self, mnemonic):
-        params = {'mnemonic': mnemonic}
+    def set_mnemonic(self, mnemonic, passphrase=None):
+        params = {'mnemonic': mnemonic, 'passphrase': passphrase}
         return self._jadeRpc('debug_set_mnemonic', params)
 
     # Set the (debug) seed

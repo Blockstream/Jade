@@ -1010,6 +1010,44 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
         _test_bad_params(jade, GOODTX_INPUT, 'from commitments data')
 
 
+def test_passphrase(jade):
+    def _set_wallet(passphrase=None):
+        # Set mnemonic
+        request = jade.build_request("id_mnem", "debug_set_mnemonic",
+                                     {"mnemonic": TEST_MNEMONIC,
+                                      "passphrase": passphrase})
+        reply = jade.make_rpc_call(request)
+        assert reply['id'] == request['id']
+        assert 'error' not in reply
+        assert reply['result'] is True
+
+        # Get root xpub
+        request = jade.build_request("id_xpub", "get_xpub",
+                                     {"network": "mainnet",
+                                      "path": []})
+        reply = jade.make_rpc_call(request)
+        assert reply['id'] == request['id']
+        assert 'error' not in reply
+        assert reply['result'].startswith('xpub')
+        return reply['result']
+
+    # Set mnemonic with/without a passphrase, and get root xpub
+    xpub0 = _set_wallet(passphrase=None)
+    xpub1 = _set_wallet(passphrase="Passphrase1")
+    xpub2 = _set_wallet(passphrase="Passphrase2")
+
+    # Check root xpubs are not the same
+    # ie. that the passphrase leads to a different wallet
+    assert xpub0 != xpub1 and xpub1 != xpub2 and xpub2 != xpub0
+
+    # Check that using the same passphrase does get the same wallet
+    xpub0_again = _set_wallet(passphrase=None)
+    xpub1_again = _set_wallet(passphrase="Passphrase1")
+    xpub2_again = _set_wallet(passphrase="Passphrase2")
+
+    assert xpub0_again == xpub0 and xpub1_again == xpub1 and xpub2_again == xpub2
+
+
 # Pinserver handshake test - note this is tightly coupled to the dedicated
 # test handler in the hardware code (main/process/debug_handshake.c)
 def test_handshake(jade):
@@ -1598,6 +1636,9 @@ def run_interface_tests(jadeapi,
         if not qemu:
             test_handshake(jadeapi.jade)
             test_handshake_bad_sig(jadeapi.jade)
+
+        # Test mnemonic-with-passphrase
+        test_passphrase(jadeapi.jade)
 
     # Too much input test - sends a lot of data so only
     # run if requested (eg. ble would take a long time)

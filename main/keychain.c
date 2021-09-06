@@ -23,6 +23,11 @@ static bool has_encrypted_blob = false;
 static uint8_t keychain_userdata = 0;
 static bool keychain_temporary = false;
 
+// If using a passphrase we may need to cache the mnemonic entropy
+// while the passphrase is entered and the wallet master key derived.
+static uint8_t mnemonic_entropy[BIP39_ENTROPY_LEN_256]; // Maximum supported entropy is 24 words
+static size_t mnemonic_entropy_len = 0;
+
 void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temporary)
 {
     JADE_ASSERT(src);
@@ -35,6 +40,10 @@ void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temp
         keychain_data = JADE_MALLOC_DRAM(sizeof(keychain_t));
         memcpy(keychain_data, src, sizeof(keychain_t));
     }
+
+    // Clear any mnemonic entropy we may have been holding
+    wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy));
+    mnemonic_entropy_len = 0;
 
     // Hold the associated userdata
     keychain_userdata = userdata;
@@ -50,6 +59,11 @@ void keychain_free(void)
         free(keychain_data);
         keychain_data = NULL;
     }
+
+    // Clear any mnemonic entropy we may have been holding
+    wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy));
+    mnemonic_entropy_len = 0;
+
     keychain_userdata = 0;
     keychain_temporary = false;
 }
@@ -63,6 +77,20 @@ bool keychain_has_temporary(void)
 }
 
 uint8_t keychain_get_userdata(void) { return keychain_userdata; }
+
+// Cache/clear mnemonic entropy (if using passphrase)
+void keychain_cache_mnemonic_entropy(const char* mnemonic)
+{
+    JADE_ASSERT(mnemonic);
+    JADE_ASSERT(!keychain_temporary);
+    JADE_ASSERT(!mnemonic_entropy_len);
+
+    JADE_WALLY_VERIFY(
+        bip39_mnemonic_to_bytes(NULL, mnemonic, mnemonic_entropy, sizeof(mnemonic_entropy), &mnemonic_entropy_len));
+
+    // Only 12 or 24 word mnemonics are supported
+    JADE_ASSERT(mnemonic_entropy_len == BIP39_ENTROPY_LEN_128 || mnemonic_entropy_len == BIP39_ENTROPY_LEN_256);
+}
 
 // Clear the network type restriction
 void keychain_clear_network_type_restriction(void)
@@ -155,10 +183,18 @@ bool keychain_get_aes_key(const unsigned char* server_key, const size_t key_len,
 }
 
 // Derive keys from mnemonic if passed a valid mnemonic
-bool keychain_derive(const char* mnemonic, keychain_t* keydata)
+bool keychain_derive(const char* mnemonic, const char* passphrase, keychain_t* keydata)
 {
+    // NOTE: passphrase is optional, but if passed must fit the size limit
     if (!mnemonic || !keydata) {
         return false;
+    }
+    if (passphrase) {
+        const size_t passphrase_len = strnlen(passphrase, PASSPHRASE_MAX_LEN + 1);
+        if (passphrase_len > PASSPHRASE_MAX_LEN) {
+            JADE_LOGE("Passphrase too long");
+            return false;
+        }
     }
 
     // Mnemonic must be valid
@@ -171,7 +207,7 @@ bool keychain_derive(const char* mnemonic, keychain_t* keydata)
     SENSITIVE_PUSH(seed, sizeof(seed));
 
     size_t written = 0;
-    JADE_WALLY_VERIFY(bip39_mnemonic_to_seed(mnemonic, NULL, seed, sizeof(seed), &written));
+    JADE_WALLY_VERIFY(bip39_mnemonic_to_seed(mnemonic, passphrase, seed, sizeof(seed), &written));
     JADE_ASSERT_MSG(written == sizeof(seed), "Unexpected seed length: %u", written);
 
     keychain_derive_from_seed(seed, sizeof(seed), keydata);

@@ -9,6 +9,8 @@
 #define SERIALIZED_SIZE_AES (((SERIALIZED_SIZE / AES_BLOCK_LEN) + 1) * AES_BLOCK_LEN)
 #define ENCRYPTED_SIZE_AES (SERIALIZED_SIZE_AES + AES_BLOCK_LEN + HMAC_SHA256_LEN)
 
+#define PASSPHRASE_MAX_LEN 28
+
 typedef struct {
     struct ext_key xpriv;
     unsigned char service_path[HMAC_SHA512_LEN];
@@ -23,6 +25,9 @@ const keychain_t* keychain_get(void);
 bool keychain_has_temporary(void);
 uint8_t keychain_get_userdata(void);
 
+// Temporarily cache mnemonic entropy (if using passphrase)
+void keychain_cache_mnemonic_entropy(const char* mnemonic);
+
 // Set/clear/compare the pinned/restricted network type
 void keychain_set_network_type_restriction(const char* network);
 void keychain_clear_network_type_restriction(void);
@@ -35,7 +40,7 @@ bool keychain_get_new_privatekey(unsigned char* privatekey, size_t size);
 bool keychain_has_pin(void);
 uint8_t keychain_pin_attempts_remaining(void);
 
-bool keychain_derive(const char* mnemonic, keychain_t* keydata);
+bool keychain_derive(const char* mnemonic, const char* passphrase, keychain_t* keydata);
 void keychain_derive_from_seed(const unsigned char* seed, size_t seed_len, keychain_t* keydata);
 
 // this expects a 32 byte server key, an n byte pin, that size n, and returns a 32 bytes aes key
