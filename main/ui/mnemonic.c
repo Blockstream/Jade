@@ -35,7 +35,7 @@ static void make_mnemonic_screen(gui_activity_t** activity_ptr, const char* head
 
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
 {
-    // Fist btn looks like '<-' on button
+    // First btn looks like '<-' on button
     const char* btn_msg[] = { "=", "New", "Recover" };
     const uint32_t btn_font[] = { JADE_SYMBOLS_16x16_FONT, GUI_DEFAULT_FONT, GUI_DEFAULT_FONT };
     const int32_t btn_ev_id[] = { BTN_MNEMONIC_EXIT, BTN_NEW_MNEMONIC, BTN_RECOVER_MNEMONIC };
@@ -49,19 +49,35 @@ void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
 
 void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
 {
-    const char* btn_msg[] = { "12 words", "24 words" };
-    const int32_t btn_ev_id[] = { BTN_NEW_MNEMONIC_12_BEGIN, BTN_NEW_MNEMONIC_24_BEGIN };
+    const char* btn_msg[] = { "12 words", "Advanced" };
+    const int32_t btn_ev_id[] = { BTN_NEW_MNEMONIC_12_BEGIN, BTN_NEW_MNEMONIC_ADVANCED };
     make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
         "A new recovery phrase will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", 2, btn_msg,
         NULL, btn_ev_id, NULL);
 }
 
+void make_new_mnemonic_screen_advanced(gui_activity_t** activity_ptr)
+{
+    const char* btn_msg[] = { "12 words", "24 words" };
+    const int32_t btn_ev_id[] = { BTN_NEW_MNEMONIC_12_BEGIN, BTN_NEW_MNEMONIC_24_BEGIN };
+    make_mnemonic_screen(
+        activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length", 2, btn_msg, NULL, btn_ev_id, NULL);
+}
+
 void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr)
+{
+    const char* btn_msg[] = { "12 words", "Advanced" };
+    const int32_t btn_ev_id[] = { BTN_RECOVER_MNEMONIC_12_BEGIN, BTN_RECOVER_MNEMONIC_ADVANCED };
+    make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nHow would you like to\nrecover the wallet?", 2, btn_msg,
+        NULL, btn_ev_id, NULL);
+}
+
+void make_mnemonic_recovery_screen_advanced(gui_activity_t** activity_ptr)
 {
     const char* btn_msg[] = { "12 words", "24 words", "Scan QR" };
     const int32_t btn_ev_id[] = { BTN_RECOVER_MNEMONIC_12_BEGIN, BTN_RECOVER_MNEMONIC_24_BEGIN, BTN_QR_MNEMONIC_BEGIN };
-    make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nHow would you like to\nrecover the wallet?", 3, btn_msg,
-        NULL, btn_ev_id, NULL);
+    make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length\nor to scan a QR code", 3,
+        btn_msg, NULL, btn_ev_id, NULL);
 }
 
 static void make_mnemonic_page(gui_activity_t** activity_ptr, const size_t nwords, const size_t first_index,
@@ -261,7 +277,7 @@ static void make_confirm_mnemonic_page(
     gui_set_align(text_right, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text_right, words_hsplit);
 
-    // fourth row, followinf word
+    // fourth row, following word
     gui_view_node_t* follow_hsplit;
     gui_make_hsplit(&follow_hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
     gui_set_margins(follow_hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);

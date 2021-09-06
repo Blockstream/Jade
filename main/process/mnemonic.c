@@ -24,7 +24,9 @@
 // main/ui/mnemonic.c
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr);
 void make_new_mnemonic_screen(gui_activity_t** activity_ptr);
+void make_new_mnemonic_screen_advanced(gui_activity_t** activity_ptr);
 void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr);
+void make_mnemonic_recovery_screen_advanced(gui_activity_t** activity_ptr);
 void make_show_mnemonic(
     gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], size_t nwords);
 void make_confirm_mnemonic_screen(
@@ -688,6 +690,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
     }
 
     bool got_mnemonic = false;
+    bool using_passphrase = false;
     while (!got_mnemonic) {
         gui_set_current_activity(activity);
 
@@ -702,14 +705,23 @@ void initialise_with_mnemonic(const bool temporary_restore)
             // Abandon setting up mnemonic
             break;
 
+        // Change screens and continue to await button events
         case BTN_NEW_MNEMONIC:
-            // Change screens and continue to await button events
             make_new_mnemonic_screen(&activity);
             continue;
 
+        case BTN_NEW_MNEMONIC_ADVANCED:
+            make_new_mnemonic_screen_advanced(&activity);
+            using_passphrase = true;
+            continue;
+
         case BTN_RECOVER_MNEMONIC:
-            // Change screens and continue to await button events
             make_mnemonic_recovery_screen(&activity);
+            continue;
+
+        case BTN_RECOVER_MNEMONIC_ADVANCED:
+            make_mnemonic_recovery_screen_advanced(&activity);
+            using_passphrase = true;
             continue;
 
         // Await user mnemonic entry/confirmation
@@ -748,19 +760,48 @@ void initialise_with_mnemonic(const bool temporary_restore)
             break;
         }
 
-        display_message_activity("Processing...");
-
-        // If the mnemonic is valid derive temporary keychain from it.
-        // Otherwise break/return here.
-        got_mnemonic = keychain_derive_from_mnemonic(mnemonic, NULL, &keydata);
-        if (!got_mnemonic) {
+        // Check mnemonic valid before entering passphrase
+        if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
             JADE_LOGW("Invalid mnemonic");
             await_error_activity("Invalid recovery phrase");
             break;
         }
 
+        // Perhaps offer/get passphrase (ie. if using advanced options)
+        // Retry until either a) user confirms valid passphrase, or b) user confirms does not want to use a passphrase
+        char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
+        if (using_passphrase) {
+            using_passphrase
+                = await_yesno_activity("Passphrase", "\nDo you want to protect the\nwallet with a passphrase?", false);
+            if (using_passphrase) {
+                // Ask user to set passphrase for this session
+                await_message_activity("Note: different passphrases\nlead to different wallets,\nso don't lose yours!");
+                const bool confirm_passphrase = true;
+                get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+                JADE_ASSERT(strnlen(passphrase, sizeof(passphrase)) < sizeof(passphrase));
+            }
+        }
+
+        display_message_activity("Processing...");
+
+        // If the mnemonic is valid derive temporary keychain from it.
+        // Otherwise break/return here.
+        got_mnemonic = keychain_derive_from_mnemonic(mnemonic, using_passphrase ? passphrase : NULL, &keydata);
+        if (!got_mnemonic) {
+            JADE_LOGW("Failed to derive wallet");
+            await_error_activity("Failed to derive wallet");
+            break;
+        }
+
         // All good - push temporary into main in-memory keychain
         keychain_set(&keydata, SOURCE_NONE, temporary_restore);
+
+        // If we are using a passphrase, we need to cache the root mnemonic entropy as it
+        // is that we will persist encrypted to local flash (requiring the passphrase be
+        // entered every login to be able to derive the wallet master key).
+        if (using_passphrase && !temporary_restore) {
+            keychain_cache_mnemonic_entropy(mnemonic);
+        }
     }
 
     SENSITIVE_POP(&keydata);
