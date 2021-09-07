@@ -586,13 +586,14 @@ static bool hmac_ckepayload(const pin_keys_t* pinkeys, const unsigned char* payl
 // Dance with the pinserver to obtain the final aes-key - start handshake,
 // compute shared secrets, fetch server key, and then compute final aes key.
 static pinserver_result_t pinserver_interaction(jade_process_t* process, const uint8_t* pin, const size_t pin_size,
-    const char* document, unsigned char* finalaes, const size_t finalaes_size)
+    const char* document, unsigned char* finalaes, const size_t finalaes_len)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(pin);
     JADE_ASSERT(pin_size > 0);
     JADE_ASSERT(document);
     JADE_ASSERT(finalaes);
+    JADE_ASSERT(finalaes_len == AES_KEY_LEN_256);
     ASSERT_HAS_CURRENT_MESSAGE(process);
 
     pin_keys_t pinkeys;
@@ -664,15 +665,15 @@ cleanup:
 
 // Dance with the pinserver to obtain the final aes-key.  Wraps pinserver interaction
 // with retry logic in-case there are http/network issues.
-static pinserver_result_t get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, const size_t pin_size,
-    const char* document, unsigned char* finalaes, const size_t finalaes_size)
+static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, const size_t pin_size,
+    const char* document, unsigned char* finalaes, const size_t finalaes_len)
 {
     // pinserver interaction only happens atm as a result of a call to 'auth_user'
     ASSERT_CURRENT_MESSAGE(process, "auth_user");
 
     while (true) {
         // Do the pinserver interaction dance, and get the resulting aes-key
-        const pinserver_result_t pir = pinserver_interaction(process, pin, pin_size, document, finalaes, finalaes_size);
+        const pinserver_result_t pir = pinserver_interaction(process, pin, pin_size, document, finalaes, finalaes_len);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         // If a) the error is 'retry-able' and b) the user elects to retry, then loop and try again
@@ -683,87 +684,34 @@ static pinserver_result_t get_pinserver_aeskey(jade_process_t* process, const ui
             continue;
         }
 #endif
-        // Otherwise return the result
-        return pir;
+        if (pir.result != SUCCESS) {
+            // If failed, send reject message
+            JADE_LOGE("Failed to complete pinserver interaction");
+            jade_process_reject_message(process, pir.errorcode, pir.message, NULL);
+            await_error_activity("Network or server error");
+            return false;
+        }
+
+        // Otherwise all good, return true
+        return true;
     }
 }
 
-// Interact with the pinserver to get the server's key, then load and decrypt
-// with derived key from the flash memory into the passed keychain.
-bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, const size_t pin_size, keychain_t* keydata)
+// Interact with the pinserver to get the server's key
+// Then return the final aes key.
+bool pinclient_get(
+    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len)
 {
-    JADE_ASSERT(process);
-    JADE_ASSERT(pin);
-    JADE_ASSERT(pin_size > 0);
-    JADE_ASSERT(keydata);
-
-    bool retval = false;
     JADE_LOGI("Fetching pinserver data");
-
-    // Dance with the pin-server 'get_pin' address
-    unsigned char finalaes[AES_KEY_LEN_256];
-    SENSITIVE_PUSH(finalaes, sizeof(finalaes));
-
-    const pinserver_result_t pir
-        = get_pinserver_aeskey(process, pin, pin_size, PINSERVER_DOC_GET_PIN, finalaes, sizeof(finalaes));
-
-    if (pir.result == SUCCESS) {
-        // Try to load into the passed keychain from the flash memory
-        if (!keychain_load_cleartext(finalaes, sizeof(finalaes), keydata)) {
-            JADE_LOGE("Failed to load keys - Incorrect PIN");
-            jade_process_reply_to_message_fail(process);
-            await_error_activity("Incorrect PIN!");
-        } else {
-            // Success
-            jade_process_reply_to_message_ok(process);
-            retval = true;
-        }
-    } else {
-        JADE_LOGE("Failed to complete pinserver interaction");
-        jade_process_reject_message(process, pir.errorcode, pir.message, NULL);
-        await_error_activity("Network or server error");
-    }
-
-    SENSITIVE_POP(finalaes);
-    return retval;
+    return get_pinserver_aeskey(process, pin, pin_size, PINSERVER_DOC_GET_PIN, finalaes, finalaes_len);
 }
 
-// Interact with the pinserver to get a new server key, then store the
-// passed keychain encrypted with derived key into the flash memory.
-bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, const size_t pin_size, const keychain_t* keydata)
+// Interact with the pinserver to get a new server key
+// Then return the (new) final aes key.
+bool pinclient_set(
+    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len)
 {
-    JADE_ASSERT(process);
-    JADE_ASSERT(pin);
-    JADE_ASSERT(pin_size > 0);
-    JADE_ASSERT(keydata);
-
-    bool retval = false;
-    JADE_LOGI("Setting new pinserver data");
-
     // Dance with the pin-server 'set_pin' address
-    unsigned char finalaes[AES_KEY_LEN_256];
-    SENSITIVE_PUSH(finalaes, sizeof(finalaes));
-
-    const pinserver_result_t pir
-        = get_pinserver_aeskey(process, pin, pin_size, PINSERVER_DOC_SET_PIN, finalaes, sizeof(finalaes));
-
-    if (pir.result == SUCCESS) {
-        // Try to persist the passed keychain
-        if (!keychain_store_encrypted(finalaes, sizeof(finalaes), keydata)) {
-            JADE_LOGE("Failed to store keys encrypted in flash memory!");
-            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to store keys in flash memory", NULL);
-            await_error_activity("Failed to persist key data");
-        } else {
-            // Success
-            jade_process_reply_to_message_ok(process);
-            retval = true;
-        }
-    } else {
-        JADE_LOGE("Failed to complete pinserver interaction");
-        jade_process_reject_message(process, pir.errorcode, pir.message, NULL);
-        await_error_activity("Network or server error");
-    }
-
-    SENSITIVE_POP(finalaes);
-    return retval;
+    JADE_LOGI("Setting new pinserver data");
+    return get_pinserver_aeskey(process, pin, pin_size, PINSERVER_DOC_SET_PIN, finalaes, finalaes_len);
 }

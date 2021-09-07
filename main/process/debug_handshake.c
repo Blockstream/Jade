@@ -13,9 +13,11 @@
 
 #include "process_utils.h"
 
-// Pinserver interaction functions as used in menmonic.c and pin.c
-bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, const keychain_t* keydata);
-bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, keychain_t* keydata);
+// Pinserver interaction functions as used in auth_user.c
+bool pinclient_get(
+    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len);
+bool pinclient_set(
+    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len);
 
 static void fake_auth_msg_request(jade_process_t* process, uint8_t* process_cbor, size_t process_cbor_len)
 {
@@ -60,13 +62,18 @@ void debug_handshake(void* process_ptr)
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
     SENSITIVE_PUSH(&keydata_decrypted, sizeof(keydata_decrypted));
 
+    unsigned char aeskey1[AES_KEY_LEN_256];
+    unsigned char aeskey2[AES_KEY_LEN_256];
+    SENSITIVE_PUSH(aeskey1, sizeof(aeskey1));
+    SENSITIVE_PUSH(aeskey2, sizeof(aeskey2));
+
     char* mnemonic = NULL;
     keychain_get_new_mnemonic(&mnemonic, 24);
     JADE_ASSERT(mnemonic);
     SENSITIVE_PUSH(mnemonic, strlen(mnemonic));
     const bool test_res = keychain_derive(mnemonic, NULL, &keydata);
-    JADE_ASSERT(test_res);
     SENSITIVE_POP(mnemonic);
+    JADE_ASSERT(test_res);
     wally_free_string(mnemonic);
 
     // Create a temp process with the message type to 'auth_user' so we can send it through the
@@ -74,15 +81,23 @@ void debug_handshake(void* process_ptr)
     // A bit hacky, but hey, this is a test! ;-)
     uint8_t* process_cbor = JADE_MALLOC(256);
     fake_auth_msg_request(process, process_cbor, 256);
+    keychain_set(&keydata, process->ctx.source, false);
 
     // Test setting a new pin using the 'real' pinserver interaction code
-    if (!pinclient_savekeys(process, user_pin, sizeof(user_pin), &keydata)) {
-        JADE_LOGE("pinclient_savekeys() failed");
+    if (!pinclient_set(process, user_pin, sizeof(user_pin), aeskey1, sizeof(aeskey1))) {
+        JADE_LOGE("Server or network error");
         goto cleanup;
+    }
+    if (!keychain_store_encrypted(aeskey1, sizeof(aeskey1), &keydata)) {
+        JADE_LOGE("Failed to store key data encrypted in flash memory!");
+        jade_process_reject_message(
+            process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);
     }
 
     JADE_ASSERT(keychain_has_pin());
     JADE_ASSERT(storage_get_counter() == 3);
+
+    jade_process_reply_to_message_ok(process);
     JADE_LOGI("Set Success");
 
     // Wait for another debug message and update the type again
@@ -92,14 +107,21 @@ void debug_handshake(void* process_ptr)
     process_cbor = JADE_MALLOC(256);
     fake_auth_msg_request(process, process_cbor, 256);
 
-    // Test get pin again using the 'real' pinserver interaction code.
-    if (!pinclient_loadkeys(process, user_pin, sizeof(user_pin), &keydata_decrypted)) {
-        JADE_LOGE("pinclient_loadkeys() failed");
+    // Test get pin using the 'real' pinserver interaction code.
+    if (!pinclient_get(process, user_pin, sizeof(user_pin), aeskey2, sizeof(aeskey2))) {
+        JADE_LOGE("Server or network error");
+        goto cleanup;
+    }
+    if (!keychain_load_cleartext(aeskey2, sizeof(aeskey2), &keydata_decrypted)) {
+        JADE_LOGE("Failed to load keys - Incorrect PIN");
+        jade_process_reply_to_message_fail(process);
         goto cleanup;
     }
 
     // Check the keys match that from the 'set' steps above and the keychain
-    int res = sodium_memcmp(&keydata.xpriv, &keydata_decrypted.xpriv, sizeof(struct ext_key));
+    int res = sodium_memcmp(aeskey1, aeskey2, sizeof(aeskey1));
+    JADE_ASSERT(res == 0);
+    res = sodium_memcmp(&keydata.xpriv, &keydata_decrypted.xpriv, sizeof(struct ext_key));
     JADE_ASSERT(res == 0);
     res = crypto_verify_64(keydata.service_path, keydata_decrypted.service_path);
     JADE_ASSERT(res == 0);
@@ -108,9 +130,13 @@ void debug_handshake(void* process_ptr)
 
     JADE_ASSERT(keychain_has_pin());
     JADE_ASSERT(storage_get_counter() == 3);
+
+    jade_process_reply_to_message_ok(process);
     JADE_LOGI("Get Success");
 
 cleanup:
+    SENSITIVE_POP(aeskey2);
+    SENSITIVE_POP(aeskey1);
     SENSITIVE_POP(&keydata_decrypted);
     SENSITIVE_POP(&keydata);
 }

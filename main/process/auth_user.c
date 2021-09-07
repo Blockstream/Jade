@@ -15,8 +15,10 @@
 void initialise_with_mnemonic(bool temporary_restore);
 
 // Pinserver interaction
-bool pinclient_loadkeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, keychain_t* keydata);
-bool pinclient_savekeys(jade_process_t* process, const uint8_t* pin, size_t pin_size, const keychain_t* keydata);
+bool pinclient_get(
+    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len);
+bool pinclient_set(
+    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len);
 
 void check_pin_load_keys(jade_process_t* process)
 {
@@ -63,17 +65,37 @@ void check_pin_load_keys(jade_process_t* process)
     display_message_activity("Checking...");
 
     // Ok, have keychain and a PIN - do the pinserver 'getpin' process
-    // (This should load the mnemonic keys encrypted in the flash)
     keychain_t keydata;
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
-    if (pinclient_loadkeys(process, pin, sizeof(pin), &keydata)) {
-        // Copy temporary keychain into a new global keychain and
-        // set the current message source as the keychain userdata
-        keychain_set(&keydata, process->ctx.source, false);
-        JADE_LOGI("Success");
+    unsigned char aeskey[AES_KEY_LEN_256];
+    SENSITIVE_PUSH(aeskey, sizeof(aeskey));
+    if (!pinclient_get(process, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
+        // Server or networking/connection error
+        // NOTE: reply message will have already been sent
+        goto cleanup;
     }
 
+    // Load wallet master key from flash
+    if (!keychain_load_cleartext(aeskey, sizeof(aeskey), &keydata)) {
+        JADE_LOGE("Failed to load keys - Incorrect PIN");
+        jade_process_reply_to_message_fail(process);
+        await_error_activity("Incorrect PIN!");
+        goto cleanup;
+    }
+
+    // Set the loaded keychain as the current wallet
+    // Set the loaded keychain - this also sets the 'source'
+    // (ie interface) which we will accept receiving messages from.
+    // (This also clears any temporarily cached mnemonic entropy data)
+    keychain_set(&keydata, process->ctx.source, false);
+
+    // All good
+    jade_process_reply_to_message_ok(process);
+    JADE_LOGI("Success");
+
+cleanup:
     // Clear out pin and temporary keychain
+    SENSITIVE_POP(aeskey);
     SENSITIVE_POP(&keydata);
     SENSITIVE_POP(pin);
     SENSITIVE_POP(pin_insert);
@@ -140,15 +162,35 @@ static void set_pin_save_keys(jade_process_t* process)
     display_message_activity("Persisting PIN data...");
 
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
-    // (This should persist the mnemonic keys encrypted in the flash)
-    if (pinclient_savekeys(process, pin, sizeof(pin), keychain_get())) {
-        // Re-set the (same) keychain in order to confirm the 'source'
-        // (ie interface) which we will accept receiving messages from.
-        keychain_set(keychain_get(), process->ctx.source, false);
-        JADE_LOGI("Success");
+    unsigned char aeskey[AES_KEY_LEN_256];
+    SENSITIVE_PUSH(aeskey, sizeof(aeskey));
+    if (!pinclient_set(process, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
+        // Server or networking/connection error
+        // NOTE: reply message will have already been sent
+        goto cleanup;
     }
 
-    // Clear out pin and temporary keychain and mnemonic
+    // Persist wallet master key to flash memory
+    if (!keychain_store_encrypted(aeskey, sizeof(aeskey), keychain_get())) {
+        JADE_LOGE("Failed to store key data encrypted in flash memory!");
+        jade_process_reject_message(
+            process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);
+        await_error_activity("Failed to persist key data");
+        goto cleanup;
+    }
+
+    // Re-set the (same) keychain in order to confirm the 'source'
+    // (ie interface) which we will accept receiving messages from.
+    // (This also clears any temporarily cached mnemonic entropy data)
+    keychain_set(keychain_get(), process->ctx.source, false);
+
+    // All good
+    jade_process_reply_to_message_ok(process);
+    JADE_LOGI("Success");
+
+cleanup:
+    // Clear out pin and temporary keychain
+    SENSITIVE_POP(aeskey);
     SENSITIVE_POP(pin);
     SENSITIVE_POP(pin_insert);
 }
