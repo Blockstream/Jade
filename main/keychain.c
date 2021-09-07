@@ -12,6 +12,16 @@
 #include <wally_bip39.h>
 #include <wally_elements.h>
 
+// Size of keydata_t elements - ext-key, ga-path, master-blinding-key
+#define SERIALIZED_KEY_LEN (BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN + HMAC_SHA512_LEN)
+
+// Round 'len' up to next multiple of AES_BLOCK_LEN
+// NOTE: exact multiple are rounded up to the next multiple
+#define SERIALIZED_AES_LEN(len) (((len / AES_BLOCK_LEN) + 1) * AES_BLOCK_LEN)
+
+// iv, padded payload (un-padded length provided), hmac
+#define ENCRYPTED_AES_LEN(len) (SERIALIZED_AES_LEN(len) + AES_BLOCK_LEN + HMAC_SHA256_LEN)
+
 // GA derived key index, and fixed GA key message
 static const uint32_t GA_PATH_ROOT = BIP32_INITIAL_HARDENED_CHILD + 0x4741;
 static const unsigned char GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
@@ -235,111 +245,148 @@ void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len,
     populate_service_path(keydata);
 }
 
-static bool serialize(unsigned char* serialized, const keychain_t* keydata)
+static void serialize(unsigned char* serialized, const size_t serialized_len, const keychain_t* keydata)
 {
     JADE_ASSERT(serialized);
+    JADE_ASSERT(serialized_len == SERIALIZED_KEY_LEN);
     JADE_ASSERT(keydata);
 
+    // ext-key, ga-path, master-blinding-key
     JADE_WALLY_VERIFY(bip32_key_serialize(&keydata->xpriv, BIP32_FLAG_KEY_PRIVATE, serialized, BIP32_SERIALIZED_LEN));
     memcpy(serialized + BIP32_SERIALIZED_LEN, keydata->service_path, HMAC_SHA512_LEN);
     memcpy(serialized + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, keydata->master_unblinding_key, HMAC_SHA512_LEN);
-
-    return true;
 }
 
-static bool unserialize(const unsigned char* decrypted, keychain_t* keydata)
+static void unserialize(const unsigned char* decrypted, const size_t decrypted_len, keychain_t* keydata)
 {
     JADE_ASSERT(decrypted);
+    JADE_ASSERT(decrypted_len == SERIALIZED_KEY_LEN);
     JADE_ASSERT(keydata);
 
+    // ext-key, ga-path, master-blinding-key
     JADE_WALLY_VERIFY(bip32_key_unserialize(decrypted, BIP32_SERIALIZED_LEN, &keydata->xpriv));
-
     memcpy(keydata->service_path, decrypted + BIP32_SERIALIZED_LEN, HMAC_SHA512_LEN);
     memcpy(keydata->master_unblinding_key, decrypted + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, HMAC_SHA512_LEN);
+}
+
+static void get_encrypted_blob(const unsigned char* aeskey, const size_t aes_len, const uint8_t* bytes,
+    const size_t bytes_len, uint8_t* output, const size_t output_len)
+{
+    JADE_ASSERT(aeskey);
+    JADE_ASSERT(aes_len == AES_KEY_LEN_256);
+    JADE_ASSERT(bytes);
+    JADE_ASSERT(bytes_len > 0);
+    JADE_ASSERT(output);
+
+    const size_t payload_len = SERIALIZED_AES_LEN(bytes_len); // round up to whole number of blocks
+    JADE_ASSERT(payload_len % AES_BLOCK_LEN == 0); // whole number of blocks
+    JADE_ASSERT(output_len == AES_BLOCK_LEN + payload_len + HMAC_SHA256_LEN); // iv, payload, hmac
+
+    // 1. Generate random iv
+    get_random(output, AES_BLOCK_LEN);
+
+    // 2. Encrypt the passed bytes into the buffer (after the iv)
+    size_t written = 0;
+    const int wret = wally_aes_cbc(aeskey, aes_len, output, AES_BLOCK_LEN, bytes, bytes_len, AES_FLAG_ENCRYPT,
+        output + AES_BLOCK_LEN, payload_len, &written);
+    JADE_WALLY_VERIFY(wret);
+    JADE_ASSERT(written == payload_len);
+
+    // 3. Write the hmac into the buffer
+    JADE_WALLY_VERIFY(wally_hmac_sha256(
+        aeskey, aes_len, output, output_len - HMAC_SHA256_LEN, output + output_len - HMAC_SHA256_LEN, HMAC_SHA256_LEN));
+}
+
+static bool get_decrypted_payload(const unsigned char* aeskey, const size_t aes_len, const uint8_t* bytes,
+    const size_t bytes_len, uint8_t* output, const size_t output_len, size_t* written)
+{
+    JADE_ASSERT(aeskey);
+    JADE_ASSERT(aes_len == AES_KEY_LEN_256);
+    JADE_ASSERT(bytes);
+    JADE_ASSERT(bytes_len > AES_BLOCK_LEN + HMAC_SHA256_LEN); // iv, no-payload, hmac
+    JADE_ASSERT(output);
+
+    const size_t payload_len = bytes_len - (AES_BLOCK_LEN + HMAC_SHA256_LEN);
+    JADE_ASSERT(payload_len % AES_BLOCK_LEN == 0); // whole number of blocks
+    JADE_ASSERT(output_len >= payload_len);
+
+    // 1. Verify HMAC
+    unsigned char hmac_calculated[HMAC_SHA256_LEN];
+    JADE_WALLY_VERIFY(wally_hmac_sha256(
+        aeskey, aes_len, bytes, bytes_len - HMAC_SHA256_LEN, hmac_calculated, sizeof(hmac_calculated)));
+    if (crypto_verify_32(hmac_calculated, bytes + bytes_len - HMAC_SHA256_LEN) != 0) {
+        JADE_LOGW("hmac mismatch (bad pin)");
+        return false;
+    }
+
+    // 2. Decrypt
+    JADE_WALLY_VERIFY(wally_aes_cbc(aeskey, aes_len, bytes, AES_BLOCK_LEN, bytes + AES_BLOCK_LEN, payload_len,
+        AES_FLAG_DECRYPT, output, output_len, written));
+    JADE_ASSERT(*written <= output_len);
 
     return true;
 }
 
 bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len, const keychain_t* keydata)
 {
-    unsigned char encrypted[ENCRYPTED_SIZE_AES]; // iv, payload, hmac
-    unsigned char serialized[SERIALIZED_SIZE];
-    unsigned char iv[AES_BLOCK_LEN];
-
     if (!aeskey || aes_len != AES_KEY_LEN_256 || !keydata) {
         return false;
     }
 
+    unsigned char serialized[SERIALIZED_KEY_LEN];
+    unsigned char encrypted[ENCRYPTED_AES_LEN(sizeof(serialized))];
+    SENSITIVE_PUSH(encrypted, sizeof(encrypted));
+
+    // 1. Serialise keychain
     SENSITIVE_PUSH(serialized, sizeof(serialized));
-    SENSITIVE_PUSH(iv, sizeof(iv));
+    serialize(serialized, sizeof(serialized), keydata);
 
-    // 1. Copy initialisation vector into the buffer
-    get_random(iv, AES_BLOCK_LEN);
-    memcpy(encrypted, iv, AES_BLOCK_LEN);
-
-    // 2. Write the encrypted payload into the buffer
-    size_t written = 0;
-    const size_t writable = ENCRYPTED_SIZE_AES - (AES_BLOCK_LEN + HMAC_SHA256_LEN);
-    if (!serialize(serialized, keydata)) {
-        JADE_LOGE("Failed to serialise key data");
-        SENSITIVE_POP(iv);
-        SENSITIVE_POP(serialized);
-        return false;
-    }
-    const int wret = wally_aes_cbc(aeskey, aes_len, iv, AES_BLOCK_LEN, serialized, SERIALIZED_SIZE, AES_FLAG_ENCRYPT,
-        encrypted + AES_BLOCK_LEN, writable, &written);
-    SENSITIVE_POP(iv);
+    // 2. Get as encrypted blob
+    get_encrypted_blob(aeskey, aes_len, serialized, sizeof(serialized), encrypted, sizeof(encrypted));
     SENSITIVE_POP(serialized);
-    JADE_WALLY_VERIFY(wret);
-    JADE_ASSERT(written == writable);
 
-    // 3. Write the hmac into the buffer
-    JADE_WALLY_VERIFY(wally_hmac_sha256(aeskey, aes_len, encrypted, ENCRYPTED_SIZE_AES - HMAC_SHA256_LEN,
-        encrypted + ENCRYPTED_SIZE_AES - HMAC_SHA256_LEN, HMAC_SHA256_LEN));
+    // 3. Push into flash storage
     if (!storage_set_encrypted_blob(encrypted, sizeof(encrypted))) {
         JADE_LOGE("Failed to store encrypted key data");
+        SENSITIVE_POP(encrypted);
         return false;
     }
+    SENSITIVE_POP(encrypted);
 
-    // Clear main/test network restriction and cache that we have encrypted keys
+    // 4. Clear main/test network restriction and cache that we have encrypted keys
     keychain_clear_network_type_restriction();
     has_encrypted_blob = true;
 
     return true;
 }
 
-static bool verify_hmac(const unsigned char* aeskey, const unsigned char* encrypted)
-{
-    JADE_ASSERT(aeskey);
-    JADE_ASSERT(encrypted);
-    unsigned char hmacsha[HMAC_SHA256_LEN];
-
-    JADE_WALLY_VERIFY(wally_hmac_sha256(
-        aeskey, AES_KEY_LEN_256, encrypted, ENCRYPTED_SIZE_AES - HMAC_SHA256_LEN, hmacsha, HMAC_SHA256_LEN));
-    return crypto_verify_32(hmacsha, encrypted + ENCRYPTED_SIZE_AES - HMAC_SHA256_LEN) == 0;
-}
-
 bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, keychain_t* keydata)
 {
-    unsigned char encrypted[ENCRYPTED_SIZE_AES];
-    unsigned char decrypted[SERIALIZED_SIZE];
-
     if (!aeskey || aes_len != AES_KEY_LEN_256 || !keydata) {
         return false;
     }
 
-    if (!storage_decrement_counter()) {
+    if (!keychain_has_pin() || !storage_decrement_counter()) {
         return false;
     }
 
+    unsigned char serialized[SERIALIZED_AES_LEN(SERIALIZED_KEY_LEN)];
+    unsigned char encrypted[ENCRYPTED_AES_LEN(SERIALIZED_KEY_LEN)];
+
+    // 1. Load from flash storage
     size_t written = 0;
     if (!storage_get_encrypted_blob(encrypted, sizeof(encrypted), &written) || written != sizeof(encrypted)) {
+        JADE_LOGW("Failed to load encrypted blob from storage - ensuring fully erased");
         storage_erase_encrypted_blob();
         has_encrypted_blob = false;
         return false;
     }
 
-    if (!verify_hmac(aeskey, encrypted)) {
+    // 2. Get decrypted payload from the encrypted blob
+    written = 0;
+    SENSITIVE_PUSH(serialized, sizeof(serialized));
+    if (!get_decrypted_payload(aeskey, aes_len, encrypted, sizeof(encrypted), serialized, sizeof(serialized), &written)
+        || written != SERIALIZED_KEY_LEN) {
         JADE_LOGW("Failed to decrypt key data (bad pin)");
         if (keychain_pin_attempts_remaining() == 0) {
             JADE_LOGW("Multiple failures to decrypt key data - erasing encrypted keys");
@@ -347,20 +394,17 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
             keychain_clear_network_type_restriction();
             has_encrypted_blob = false;
         }
+        SENSITIVE_POP(serialized);
         return false;
     }
 
-    // ignore failure as it can't make things worse
+    // 3. Decrypt succeed so pin ok - reset counter
+    // (Ignore failure as it can't make things worse)
     storage_restore_counter();
 
-    written = 0;
-    SENSITIVE_PUSH(decrypted, sizeof(decrypted));
-    JADE_WALLY_VERIFY(wally_aes_cbc(aeskey, aes_len, encrypted, AES_BLOCK_LEN, encrypted + AES_BLOCK_LEN,
-        SERIALIZED_SIZE_AES, AES_FLAG_DECRYPT, decrypted, SERIALIZED_SIZE, &written));
-    JADE_ASSERT(written == SERIALIZED_SIZE);
-    const bool ret = unserialize(decrypted, keydata);
-    JADE_ASSERT(ret);
-    SENSITIVE_POP(decrypted);
+    // 4. Deserialise keychain
+    unserialize(serialized, written, keydata);
+    SENSITIVE_POP(serialized);
 
     return true;
 }
