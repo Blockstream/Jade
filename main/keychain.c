@@ -332,7 +332,8 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
         return false;
     }
 
-    if (!storage_get_encrypted_blob(encrypted, sizeof(encrypted))) {
+    size_t written = 0;
+    if (!storage_get_encrypted_blob(encrypted, sizeof(encrypted), &written) || written != sizeof(encrypted)) {
         storage_erase_encrypted_blob();
         has_encrypted_blob = false;
         return false;
@@ -352,7 +353,7 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
     // ignore failure as it can't make things worse
     storage_restore_counter();
 
-    size_t written = 0;
+    written = 0;
     SENSITIVE_PUSH(decrypted, sizeof(decrypted));
     JADE_WALLY_VERIFY(wally_aes_cbc(aeskey, aes_len, encrypted, AES_BLOCK_LEN, encrypted + AES_BLOCK_LEN,
         SERIALIZED_SIZE_AES, AES_FLAG_DECRYPT, decrypted, SERIALIZED_SIZE, &written));

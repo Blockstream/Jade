@@ -21,7 +21,7 @@ bool storage_get_pin_privatekey(unsigned char* privatekey, size_t key_len);
 bool storage_erase_pin_privatekey(void);
 
 bool storage_set_encrypted_blob(const unsigned char* encrypted, size_t encrypted_len);
-bool storage_get_encrypted_blob(unsigned char* encrypted, size_t encrypted_len);
+bool storage_get_encrypted_blob(unsigned char* encrypted, size_t encrypted_len, size_t* written);
 bool storage_decrement_counter(void);
 bool storage_restore_counter(void);
 uint8_t storage_get_counter(void);

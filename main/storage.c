@@ -315,9 +315,9 @@ bool storage_set_encrypted_blob(const unsigned char* encrypted, const size_t enc
     return store_blob(DEFAULT_NAMESPACE, BLOB_FIELD, encrypted, encrypted_len);
 }
 
-bool storage_get_encrypted_blob(unsigned char* encrypted, const size_t encrypted_len)
+bool storage_get_encrypted_blob(unsigned char* encrypted, const size_t encrypted_len, size_t* written)
 {
-    return read_blob_fixed(DEFAULT_NAMESPACE, BLOB_FIELD, encrypted, encrypted_len);
+    return read_blob(DEFAULT_NAMESPACE, BLOB_FIELD, encrypted, encrypted_len, written);
 }
 
 bool storage_erase_encrypted_blob(void)
