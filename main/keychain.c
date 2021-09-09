@@ -247,6 +247,19 @@ static bool serialize(unsigned char* serialized, const keychain_t* keydata)
     return true;
 }
 
+static bool unserialize(const unsigned char* decrypted, keychain_t* keydata)
+{
+    JADE_ASSERT(decrypted);
+    JADE_ASSERT(keydata);
+
+    JADE_WALLY_VERIFY(bip32_key_unserialize(decrypted, BIP32_SERIALIZED_LEN, &keydata->xpriv));
+
+    memcpy(keydata->service_path, decrypted + BIP32_SERIALIZED_LEN, HMAC_SHA512_LEN);
+    memcpy(keydata->master_unblinding_key, decrypted + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, HMAC_SHA512_LEN);
+
+    return true;
+}
+
 bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len, const keychain_t* keydata)
 {
     unsigned char encrypted[ENCRYPTED_SIZE_AES]; // iv, payload, hmac
@@ -291,19 +304,6 @@ bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len,
     // Clear main/test network restriction and cache that we have encrypted keys
     keychain_clear_network_type_restriction();
     has_encrypted_blob = true;
-
-    return true;
-}
-
-static bool unserialize(const unsigned char* decrypted, keychain_t* keydata)
-{
-    JADE_ASSERT(decrypted);
-    JADE_ASSERT(keydata);
-
-    JADE_WALLY_VERIFY(bip32_key_unserialize(decrypted, BIP32_SERIALIZED_LEN, &keydata->xpriv));
-
-    memcpy(keydata->service_path, decrypted + BIP32_SERIALIZED_LEN, HMAC_SHA512_LEN);
-    memcpy(keydata->master_unblinding_key, decrypted + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, HMAC_SHA512_LEN);
 
     return true;
 }
