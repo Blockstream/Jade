@@ -180,18 +180,6 @@ void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
     JADE_WALLY_VERIFY(bip39_mnemonic_validate(NULL, *mnemonic));
 }
 
-bool keychain_get_aes_key(const unsigned char* server_key, const size_t key_len, const uint8_t* pin,
-    const size_t pin_size, unsigned char* aeskey, const size_t aes_len)
-{
-
-    if (!server_key || key_len != SHA256_LEN || !pin || pin_size == 0 || !aeskey || aes_len != HMAC_SHA256_LEN) {
-        return false;
-    }
-
-    JADE_WALLY_VERIFY(wally_hmac_sha256(server_key, key_len, pin, pin_size, aeskey, aes_len));
-    return true;
-}
-
 // Derive keys from mnemonic if passed a valid mnemonic
 bool keychain_derive(const char* mnemonic, const char* passphrase, keychain_t* keydata)
 {

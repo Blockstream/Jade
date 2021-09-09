@@ -69,15 +69,9 @@ bool debug_selfcheck(void)
     }
 
     // Check encryption/decryption
-    unsigned char serversecret[SHA256_LEN];
-    unsigned char pin[6] = { 0, 1, 2, 3, 4, 5 };
-    get_random(serversecret, SHA256_LEN);
-
     unsigned char aeskey[AES_KEY_LEN_256];
-    val = keychain_get_aes_key(serversecret, sizeof(serversecret), pin, sizeof(pin), aeskey, sizeof(aeskey));
-    if (!val) {
-        FAIL();
-    }
+    get_random(aeskey, AES_KEY_LEN_256);
+    keychain_set(&keydata, 0, false);
     val = keychain_store_encrypted(aeskey, sizeof(aeskey), &keydata);
     if (!val) {
         FAIL();
@@ -120,6 +114,10 @@ bool debug_selfcheck(void)
         FAIL();
     }
 
+    // Free/erase the keychain, then reload from nvs
+    // BUT! pass the wrong aes-key (ie. wrong PIN)
+    unsigned char wrongkey[AES_KEY_LEN_256];
+    get_random(wrongkey, AES_KEY_LEN_256);
     for (size_t i = 3; i > 0; --i) {
         if (storage_get_counter() != i) {
             FAIL();
@@ -129,7 +127,7 @@ bool debug_selfcheck(void)
             FAIL();
         }
 
-        val = keychain_load_cleartext(serversecret, sizeof(serversecret), &keydata2);
+        val = keychain_load_cleartext(wrongkey, sizeof(wrongkey), &keydata2);
         if (val) {
             FAIL();
         }

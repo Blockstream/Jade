@@ -39,10 +39,6 @@ uint8_t keychain_pin_attempts_remaining(void);
 bool keychain_derive(const char* mnemonic, const char* passphrase, keychain_t* keydata);
 void keychain_derive_from_seed(const unsigned char* seed, size_t seed_len, keychain_t* keydata);
 
-// this expects a 32 byte server key, an n byte pin, that size n, and returns a 32 bytes aes key
-bool keychain_get_aes_key(const unsigned char* server_key, size_t key_len, const uint8_t* pin, size_t pin_size,
-    unsigned char* aeskey, size_t aes_len);
-
 bool keychain_store_encrypted(const unsigned char* aeskey, size_t aes_len, const keychain_t* keydata);
 bool keychain_load_cleartext(const unsigned char* aeskey, size_t aes_len, keychain_t* keydata);
 

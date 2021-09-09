@@ -645,14 +645,9 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
         goto cleanup;
     }
 
-    // Derive the final aes key
+    // Derive the final aes key by combining the server key with the pin
     JADE_LOGI("Deriving final aes-key");
-    if (!keychain_get_aes_key(serverkey, sizeof(serverkey), pin, pin_size, finalaes, finalaes_size)) {
-        retval.result = FAILURE;
-        retval.errorcode = CBOR_RPC_INTERNAL_ERROR;
-        retval.message = "Failed to derive final aes key";
-        goto cleanup;
-    }
+    JADE_WALLY_VERIFY(wally_hmac_sha256(serverkey, sizeof(serverkey), pin, pin_size, finalaes, finalaes_len));
 
     // Success - well nothing has obviously failed anyway
     JADE_ASSERT(retval.result == SUCCESS);
