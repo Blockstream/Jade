@@ -114,6 +114,13 @@ test_build_qemu:
   after_script:
     - mv build build_display_qemu
 
+test_build_qemu_psram:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_qemu_psram.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_qemu_psram
+
 test_build_display_m5fire:
   extends: .test_build_template
   before_script:
@@ -200,6 +207,18 @@ test_flash_qemu:
     - test_build_qemu
   before_script:
     - mv build_display_qemu build
+  script:
+    - ./main/qemu/make-flash-img.sh
+    - ./main/qemu/qemu_ci_flash.sh
+
+test_flash_qemu_psram:
+  stage: deploy
+  tags:
+    - ga
+  needs:
+    - test_build_qemu_psram
+  before_script:
+    - mv build_display_qemu_psram build
   script:
     - ./main/qemu/make-flash-img.sh
     - ./main/qemu/qemu_ci_flash.sh
