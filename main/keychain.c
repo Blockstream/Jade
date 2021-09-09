@@ -315,9 +315,13 @@ static bool get_decrypted_payload(const unsigned char* aeskey, const size_t aes_
     return true;
 }
 
-bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len, const keychain_t* keydata)
+bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len)
 {
-    if (!aeskey || aes_len != AES_KEY_LEN_256 || !keydata) {
+    if (!aeskey || aes_len != AES_KEY_LEN_256) {
+        return false;
+    }
+    if (!keychain_data) {
+        // No keychain data to store
         return false;
     }
 
@@ -327,7 +331,7 @@ bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len,
 
     // 1. Serialise keychain
     SENSITIVE_PUSH(serialized, sizeof(serialized));
-    serialize(serialized, sizeof(serialized), keydata);
+    serialize(serialized, sizeof(serialized), keychain_data);
 
     // 2. Get as encrypted blob
     get_encrypted_blob(aeskey, aes_len, serialized, sizeof(serialized), encrypted, sizeof(encrypted));
@@ -348,13 +352,17 @@ bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len,
     return true;
 }
 
-bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, keychain_t* keydata)
+bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len)
 {
-    if (!aeskey || aes_len != AES_KEY_LEN_256 || !keydata) {
+    if (!aeskey || aes_len != AES_KEY_LEN_256) {
         return false;
     }
-
+    if (keychain_data) {
+        // We already have loaded keychain data - do not overwrite
+        return false;
+    }
     if (!keychain_has_pin() || !storage_decrement_counter()) {
+        // No valid keychain data in storage to load
         return false;
     }
 
@@ -391,7 +399,11 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
     storage_restore_counter();
 
     // 4. Deserialise keychain
-    unserialize(serialized, written, keydata);
+    keychain_t keydata;
+    SENSITIVE_PUSH(&keydata, sizeof(keydata));
+    unserialize(serialized, written, &keydata);
+    keychain_set(&keydata, 0, false);
+    SENSITIVE_POP(&keydata);
     SENSITIVE_POP(serialized);
 
     return true;

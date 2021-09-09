@@ -58,9 +58,7 @@ void debug_handshake(void* process_ptr)
     uint8_t user_pin[] = { 0, 1, 2, 3, 4, 5 };
 
     keychain_t keydata;
-    keychain_t keydata_decrypted;
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
-    SENSITIVE_PUSH(&keydata_decrypted, sizeof(keydata_decrypted));
 
     unsigned char aeskey1[AES_KEY_LEN_256];
     unsigned char aeskey2[AES_KEY_LEN_256];
@@ -88,7 +86,7 @@ void debug_handshake(void* process_ptr)
         JADE_LOGE("Server or network error");
         goto cleanup;
     }
-    if (!keychain_store_encrypted(aeskey1, sizeof(aeskey1), &keydata)) {
+    if (!keychain_store_encrypted(aeskey1, sizeof(aeskey1))) {
         JADE_LOGE("Failed to store key data encrypted in flash memory!");
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);
@@ -99,6 +97,9 @@ void debug_handshake(void* process_ptr)
 
     jade_process_reply_to_message_ok(process);
     JADE_LOGI("Set Success");
+
+    // Free/erase the keychain, then reload from nvs
+    keychain_free();
 
     // Wait for another debug message and update the type again
     jade_process_load_in_message(process, true);
@@ -112,7 +113,7 @@ void debug_handshake(void* process_ptr)
         JADE_LOGE("Server or network error");
         goto cleanup;
     }
-    if (!keychain_load_cleartext(aeskey2, sizeof(aeskey2), &keydata_decrypted)) {
+    if (!keychain_load_cleartext(aeskey2, sizeof(aeskey2))) {
         JADE_LOGE("Failed to load keys - Incorrect PIN");
         jade_process_reply_to_message_fail(process);
         goto cleanup;
@@ -121,11 +122,11 @@ void debug_handshake(void* process_ptr)
     // Check the keys match that from the 'set' steps above and the keychain
     int res = sodium_memcmp(aeskey1, aeskey2, sizeof(aeskey1));
     JADE_ASSERT(res == 0);
-    res = sodium_memcmp(&keydata.xpriv, &keydata_decrypted.xpriv, sizeof(struct ext_key));
+    res = sodium_memcmp(&keydata.xpriv, &keychain_get()->xpriv, sizeof(keydata.xpriv));
     JADE_ASSERT(res == 0);
-    res = crypto_verify_64(keydata.service_path, keydata_decrypted.service_path);
+    res = crypto_verify_64(keydata.service_path, keychain_get()->service_path);
     JADE_ASSERT(res == 0);
-    res = crypto_verify_64(keydata.master_unblinding_key, keydata_decrypted.master_unblinding_key);
+    res = crypto_verify_64(keydata.master_unblinding_key, keychain_get()->master_unblinding_key);
     JADE_ASSERT(res == 0);
 
     JADE_ASSERT(keychain_has_pin());
@@ -135,8 +136,8 @@ void debug_handshake(void* process_ptr)
     JADE_LOGI("Get Success");
 
 cleanup:
+    keychain_free();
     SENSITIVE_POP(aeskey2);
     SENSITIVE_POP(aeskey1);
-    SENSITIVE_POP(&keydata_decrypted);
     SENSITIVE_POP(&keydata);
 }

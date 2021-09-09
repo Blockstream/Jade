@@ -71,8 +71,10 @@ bool debug_selfcheck(void)
     // Check encryption/decryption
     unsigned char aeskey[AES_KEY_LEN_256];
     get_random(aeskey, AES_KEY_LEN_256);
+
+    // Save keychain to nvs
     keychain_set(&keydata, 0, false);
-    val = keychain_store_encrypted(aeskey, sizeof(aeskey), &keydata);
+    val = keychain_store_encrypted(aeskey, sizeof(aeskey));
     if (!val) {
         FAIL();
     }
@@ -82,8 +84,10 @@ bool debug_selfcheck(void)
     if (storage_get_counter() != 3) {
         FAIL();
     }
-    keychain_t keydata2;
-    val = keychain_load_cleartext(aeskey, sizeof(aeskey), &keydata2);
+    keychain_free();
+
+    // Reload keychain from nvs
+    val = keychain_load_cleartext(aeskey, sizeof(aeskey));
     if (!val) {
         FAIL();
     }
@@ -93,10 +97,13 @@ bool debug_selfcheck(void)
     if (storage_get_counter() != 3) {
         FAIL();
     }
-    if (crypto_verify_64(keydata.service_path, keydata2.service_path) != 0) {
+    if (sodium_memcmp(&keydata.xpriv, &keychain_get()->xpriv, sizeof(keydata.xpriv)) != 0) {
         FAIL();
     }
-    if (crypto_verify_64(keydata.master_unblinding_key, keydata2.master_unblinding_key) != 0) {
+    if (crypto_verify_64(keydata.service_path, keychain_get()->service_path) != 0) {
+        FAIL();
+    }
+    if (crypto_verify_64(keydata.master_unblinding_key, keychain_get()->master_unblinding_key) != 0) {
         FAIL();
     }
     char* base58res = NULL;
@@ -105,7 +112,7 @@ bool debug_selfcheck(void)
     if (val != WALLY_OK) {
         FAIL();
     }
-    val = bip32_key_to_base58(&keydata2.xpriv, BIP32_FLAG_KEY_PRIVATE, &base58res_copy);
+    val = bip32_key_to_base58(&keychain_get()->xpriv, BIP32_FLAG_KEY_PRIVATE, &base58res_copy);
     int len = strlen(base58res);
     if (val != WALLY_OK) {
         FAIL();
@@ -113,8 +120,9 @@ bool debug_selfcheck(void)
     if (sodium_memcmp(base58res, base58res_copy, len) != 0) {
         FAIL();
     }
+    keychain_free();
 
-    // Free/erase the keychain, then reload from nvs
+    // Reload from nvs again ...
     // BUT! pass the wrong aes-key (ie. wrong PIN)
     unsigned char wrongkey[AES_KEY_LEN_256];
     get_random(wrongkey, AES_KEY_LEN_256);
@@ -127,7 +135,7 @@ bool debug_selfcheck(void)
             FAIL();
         }
 
-        val = keychain_load_cleartext(wrongkey, sizeof(wrongkey), &keydata2);
+        val = keychain_load_cleartext(wrongkey, sizeof(wrongkey));
         if (val) {
             FAIL();
         }
@@ -141,7 +149,8 @@ bool debug_selfcheck(void)
         FAIL();
     }
 
-    val = keychain_load_cleartext(aeskey, sizeof(aeskey), &keydata2);
+    // Now even the correct key/PIN should fail
+    val = keychain_load_cleartext(aeskey, sizeof(aeskey));
     if (val) {
         FAIL();
     }

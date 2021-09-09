@@ -39,7 +39,7 @@ uint8_t keychain_pin_attempts_remaining(void);
 void keychain_derive_from_seed(const unsigned char* seed, size_t seed_len, keychain_t* keydata);
 bool keychain_derive_from_mnemonic(const char* mnemonic, const char* passphrase, keychain_t* keydata);
 
-bool keychain_store_encrypted(const unsigned char* aeskey, size_t aes_len, const keychain_t* keydata);
-bool keychain_load_cleartext(const unsigned char* aeskey, size_t aes_len, keychain_t* keydata);
+bool keychain_store_encrypted(const unsigned char* aeskey, size_t aes_len);
+bool keychain_load_cleartext(const unsigned char* aeskey, size_t aes_len);
 
 #endif /* KEYCHAIN_H_ */
