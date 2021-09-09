@@ -64,7 +64,7 @@ void debug_set_mnemonic_process(void* process_ptr)
             }
         }
 
-        if (!keychain_derive(mnemonic, using_passphrase ? passphrase : NULL, &keydata)) {
+        if (!keychain_derive_from_mnemonic(mnemonic, using_passphrase ? passphrase : NULL, &keydata)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to derive keychain from mnemonic", NULL);
             goto cleanup;

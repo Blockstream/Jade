@@ -71,7 +71,7 @@ void debug_handshake(void* process_ptr)
     keychain_get_new_mnemonic(&mnemonic, 24);
     JADE_ASSERT(mnemonic);
     SENSITIVE_PUSH(mnemonic, strlen(mnemonic));
-    const bool test_res = keychain_derive(mnemonic, NULL, &keydata);
+    const bool test_res = keychain_derive_from_mnemonic(mnemonic, NULL, &keydata);
     SENSITIVE_POP(mnemonic);
     JADE_ASSERT(test_res);
     wally_free_string(mnemonic);

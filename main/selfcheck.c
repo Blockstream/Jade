@@ -34,7 +34,7 @@ bool debug_selfcheck(void)
     if (ret != WALLY_OK || written != HMAC_SHA512_LEN) {
         FAIL();
     }
-    bool val = keychain_derive(TEST_MNEMONIC, NULL, &keydata);
+    bool val = keychain_derive_from_mnemonic(TEST_MNEMONIC, NULL, &keydata);
     if (!val) {
         FAIL();
     }
@@ -45,7 +45,7 @@ bool debug_selfcheck(void)
     // Check 12-word mnemonic generation
     keychain_get_new_mnemonic(&mnemonic, 12);
     JADE_ASSERT(mnemonic);
-    val = keychain_derive(mnemonic, "passphrase12", &keydata);
+    val = keychain_derive_from_mnemonic(mnemonic, "passphrase12", &keydata);
     if (!val) {
         wally_free_string(mnemonic);
         FAIL();
@@ -58,7 +58,7 @@ bool debug_selfcheck(void)
     // Check 24-word mnemonic generation
     keychain_get_new_mnemonic(&mnemonic, 24);
     JADE_ASSERT(mnemonic);
-    val = keychain_derive(mnemonic, "passphrase24", &keydata);
+    val = keychain_derive_from_mnemonic(mnemonic, "passphrase24", &keydata);
     if (!val) {
         wally_free_string(mnemonic);
         FAIL();

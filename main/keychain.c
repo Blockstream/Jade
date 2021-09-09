@@ -180,8 +180,27 @@ void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
     JADE_WALLY_VERIFY(bip39_mnemonic_validate(NULL, *mnemonic));
 }
 
+void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len, keychain_t* keydata)
+{
+    JADE_ASSERT(seed);
+    JADE_ASSERT(seed_len);
+    JADE_ASSERT(keydata);
+
+    // Use mainnet version by default - will be overridden if key serialised for specific network
+    // (eg. in get_xpub call).
+    JADE_WALLY_VERIFY(bip32_key_from_seed(seed, seed_len, BIP32_VER_MAIN_PRIVATE, 0, &keydata->xpriv));
+
+    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
+    // the master unblinding key is only the second half of that - ie. 256 bits.
+    JADE_WALLY_VERIFY(
+        wally_asset_blinding_key_from_seed(seed, seed_len, keydata->master_unblinding_key, HMAC_SHA512_LEN));
+
+    // Compute and cache the path the GA server will use to sign
+    populate_service_path(keydata);
+}
+
 // Derive keys from mnemonic if passed a valid mnemonic
-bool keychain_derive(const char* mnemonic, const char* passphrase, keychain_t* keydata)
+bool keychain_derive_from_mnemonic(const char* mnemonic, const char* passphrase, keychain_t* keydata)
 {
     // NOTE: passphrase is optional, but if passed must fit the size limit
     if (!mnemonic || !keydata) {
@@ -212,25 +231,6 @@ bool keychain_derive(const char* mnemonic, const char* passphrase, keychain_t* k
 
     SENSITIVE_POP(seed);
     return true;
-}
-
-void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len, keychain_t* keydata)
-{
-    JADE_ASSERT(seed);
-    JADE_ASSERT(seed_len);
-    JADE_ASSERT(keydata);
-
-    // Use mainnet version by default - will be overridden if key serialised for specific network
-    // (eg. in get_xpub call).
-    JADE_WALLY_VERIFY(bip32_key_from_seed(seed, seed_len, BIP32_VER_MAIN_PRIVATE, 0, &keydata->xpriv));
-
-    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
-    // the master unblinding key is only the second half of that - ie. 256 bits.
-    JADE_WALLY_VERIFY(
-        wally_asset_blinding_key_from_seed(seed, seed_len, keydata->master_unblinding_key, HMAC_SHA512_LEN));
-
-    // Compute and cache the path the GA server will use to sign
-    populate_service_path(keydata);
 }
 
 static void serialize(unsigned char* serialized, const size_t serialized_len, const keychain_t* keydata)
