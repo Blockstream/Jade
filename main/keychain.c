@@ -80,6 +80,8 @@ void keychain_free(void)
 
 const keychain_t* keychain_get(void) { return keychain_data; }
 
+bool keychain_requires_passphrase(void) { return !keychain_data && mnemonic_entropy_len; }
+
 bool keychain_has_temporary(void)
 {
     JADE_ASSERT(!keychain_temporary || keychain_data);
@@ -180,6 +182,7 @@ void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
     JADE_WALLY_VERIFY(bip39_mnemonic_validate(NULL, *mnemonic));
 }
 
+// Derive master key from given seed
 void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len, keychain_t* keydata)
 {
     JADE_ASSERT(seed);
@@ -199,7 +202,7 @@ void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len,
     populate_service_path(keydata);
 }
 
-// Derive keys from mnemonic if passed a valid mnemonic
+// Derive master key from mnemonic if passed a valid mnemonic
 bool keychain_derive_from_mnemonic(const char* mnemonic, const char* passphrase, keychain_t* keydata)
 {
     // NOTE: passphrase is optional, but if passed must fit the size limit
@@ -231,6 +234,39 @@ bool keychain_derive_from_mnemonic(const char* mnemonic, const char* passphrase,
 
     SENSITIVE_POP(seed);
     return true;
+}
+
+// Derive keys from cached mnemonic and passed passphrase
+bool keychain_complete_derivation_with_passphrase(const char* passphrase)
+{
+    if (!passphrase || !keychain_requires_passphrase()) {
+        return false;
+    }
+
+    keychain_t keydata;
+    SENSITIVE_PUSH(&keydata, sizeof(keydata));
+
+    // Convert entropy bytes to mnemonic string
+    bool retval = false;
+    char* mnemonic = NULL;
+    if (bip39_mnemonic_from_bytes(NULL, mnemonic_entropy, mnemonic_entropy_len, &mnemonic) != WALLY_OK) {
+        JADE_LOGE("Failed to convert entropy bytes to mnemonic string");
+        goto cleanup;
+    }
+    JADE_ASSERT(mnemonic);
+
+    SENSITIVE_PUSH(mnemonic, strlen(mnemonic));
+    retval = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
+    SENSITIVE_POP(mnemonic);
+    wally_free_string(mnemonic);
+
+    if (retval) {
+        keychain_set(&keydata, 0, false);
+    }
+
+cleanup:
+    SENSITIVE_POP(&keydata);
+    return retval;
 }
 
 static void serialize(unsigned char* serialized, const size_t serialized_len, const keychain_t* keydata)
@@ -320,25 +356,46 @@ bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len)
     if (!aeskey || aes_len != AES_KEY_LEN_256) {
         return false;
     }
-    if (!keychain_data) {
+    if (!keychain_data && !mnemonic_entropy_len) {
         // No keychain data to store
         return false;
     }
 
+    // These buffers are sized for serialising the extended key structure
+    // If instead we are storing mnemonic entropy, the 'encrypted' buffer is of ample size.
     unsigned char serialized[SERIALIZED_KEY_LEN];
     unsigned char encrypted[ENCRYPTED_AES_LEN(sizeof(serialized))];
     SENSITIVE_PUSH(encrypted, sizeof(encrypted));
-
-    // 1. Serialise keychain
     SENSITIVE_PUSH(serialized, sizeof(serialized));
-    serialize(serialized, sizeof(serialized), keychain_data);
+
+    // If we have cached mnemonic entropy, we store that (as the wallet is passphrase-protected)
+    // Otherwise we store the master keychain data (classic)
+    uint8_t* p_serialized_data;
+    size_t serialized_data_len;
+
+    // 1. Get serialised data to encrypt/persist
+    if (mnemonic_entropy_len) {
+        // Use mnemonic entropy
+        // Only 12 or 24 word mnemonics are supported
+        JADE_ASSERT(mnemonic_entropy_len == BIP39_ENTROPY_LEN_128 || mnemonic_entropy_len == BIP39_ENTROPY_LEN_256);
+        JADE_ASSERT(mnemonic_entropy_len <= sizeof(mnemonic_entropy));
+        JADE_ASSERT(mnemonic_entropy_len < sizeof(serialized));
+        p_serialized_data = mnemonic_entropy;
+        serialized_data_len = mnemonic_entropy_len;
+    } else {
+        // Use serialised keychain
+        serialize(serialized, sizeof(serialized), keychain_data);
+        p_serialized_data = serialized;
+        serialized_data_len = sizeof(serialized);
+    }
 
     // 2. Get as encrypted blob
-    get_encrypted_blob(aeskey, aes_len, serialized, sizeof(serialized), encrypted, sizeof(encrypted));
+    const size_t encrypted_data_len = ENCRYPTED_AES_LEN(serialized_data_len);
+    get_encrypted_blob(aeskey, aes_len, p_serialized_data, serialized_data_len, encrypted, encrypted_data_len);
     SENSITIVE_POP(serialized);
 
     // 3. Push into flash storage
-    if (!storage_set_encrypted_blob(encrypted, sizeof(encrypted))) {
+    if (!storage_set_encrypted_blob(encrypted, encrypted_data_len)) {
         JADE_LOGE("Failed to store encrypted key data");
         SENSITIVE_POP(encrypted);
         return false;
@@ -357,7 +414,7 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len)
     if (!aeskey || aes_len != AES_KEY_LEN_256) {
         return false;
     }
-    if (keychain_data) {
+    if (keychain_data || mnemonic_entropy_len) {
         // We already have loaded keychain data - do not overwrite
         return false;
     }
@@ -366,23 +423,25 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len)
         return false;
     }
 
+    // These buffers are sized for deserialising the extended key structure
+    // If instead we are storing mnemonic entropy, the buffers are of ample size.
     unsigned char serialized[SERIALIZED_AES_LEN(SERIALIZED_KEY_LEN)];
     unsigned char encrypted[ENCRYPTED_AES_LEN(SERIALIZED_KEY_LEN)];
 
     // 1. Load from flash storage
-    size_t written = 0;
-    if (!storage_get_encrypted_blob(encrypted, sizeof(encrypted), &written) || written != sizeof(encrypted)) {
-        JADE_LOGW("Failed to load encrypted blob from storage - ensuring fully erased");
+    size_t encrypted_data_len = 0;
+    if (!storage_get_encrypted_blob(encrypted, sizeof(encrypted), &encrypted_data_len)) {
+        JADE_LOGE("Failed to load encrypted blob from storage - ensuring fully erased");
         storage_erase_encrypted_blob();
         has_encrypted_blob = false;
         return false;
     }
 
     // 2. Get decrypted payload from the encrypted blob
-    written = 0;
+    size_t serialized_data_len = 0;
     SENSITIVE_PUSH(serialized, sizeof(serialized));
-    if (!get_decrypted_payload(aeskey, aes_len, encrypted, sizeof(encrypted), serialized, sizeof(serialized), &written)
-        || written != SERIALIZED_KEY_LEN) {
+    if (!get_decrypted_payload(
+            aeskey, aes_len, encrypted, encrypted_data_len, serialized, sizeof(serialized), &serialized_data_len)) {
         JADE_LOGW("Failed to decrypt key data (bad pin)");
         if (keychain_pin_attempts_remaining() == 0) {
             JADE_LOGW("Multiple failures to decrypt key data - erasing encrypted keys");
@@ -398,12 +457,24 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len)
     // (Ignore failure as it can't make things worse)
     storage_restore_counter();
 
-    // 4. Deserialise keychain
-    keychain_t keydata;
-    SENSITIVE_PUSH(&keydata, sizeof(keydata));
-    unserialize(serialized, written, &keydata);
-    keychain_set(&keydata, 0, false);
-    SENSITIVE_POP(&keydata);
+    // 4. Cache mnemonic entropy or deserialise keychain
+    if (serialized_data_len == BIP39_ENTROPY_LEN_128 || serialized_data_len == BIP39_ENTROPY_LEN_256) {
+        // Write mnemonic entropy - only 12 or 24 word mnemonics are supported
+        memcpy(mnemonic_entropy, serialized, serialized_data_len);
+        mnemonic_entropy_len = serialized_data_len;
+    } else if (serialized_data_len == SERIALIZED_KEY_LEN) {
+        // Deserialise keychain
+        keychain_t keydata;
+        SENSITIVE_PUSH(&keydata, sizeof(keydata));
+        unserialize(serialized, serialized_data_len, &keydata);
+        keychain_set(&keydata, 0, false);
+        SENSITIVE_POP(&keydata);
+    } else {
+        JADE_LOGE("Unexpected length of decrypted serialised data: %d", serialized_data_len);
+        SENSITIVE_POP(serialized);
+        return false;
+    }
+
     SENSITIVE_POP(serialized);
 
     return true;

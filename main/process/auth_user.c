@@ -11,8 +11,9 @@
 
 #include "process_utils.h"
 
-// Wallet initialisation function
+// Wallet initialisation functions
 void initialise_with_mnemonic(bool temporary_restore);
+void get_passphrase(char* passphrase, size_t passphrase_len, bool confirm);
 
 // Pinserver interaction
 bool pinclient_get(
@@ -81,8 +82,25 @@ void check_pin_load_keys(jade_process_t* process)
         goto cleanup;
     }
 
-    // Re-set the (loaded) keychain as the current wallet
-    // Set the loaded keychain - this also sets the 'source'
+    // See if we additionally need a passphrase from the user
+    if (keychain_requires_passphrase()) {
+        // Loading from storage succeeded, but we still have no wallet keys.
+        // - Requires the input of a user passphrase also.
+        char passphrase[PASSPHRASE_MAX_LEN + 1];
+        const bool confirm_passphrase = false;
+        get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+
+        display_message_activity("Processing...");
+
+        if (!keychain_complete_derivation_with_passphrase(passphrase)) {
+            JADE_LOGE("Failed to derive wallet using passphrase");
+            jade_process_reject_message(
+                process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);
+            goto cleanup;
+        }
+    }
+
+    // Re-set the (loaded) keychain in order to confirm the 'source'
     // (ie interface) which we will accept receiving messages from.
     // (This also clears any temporarily cached mnemonic entropy data)
     keychain_set(keychain_get(), process->ctx.source, false);
@@ -167,7 +185,7 @@ static void set_pin_save_keys(jade_process_t* process)
         goto cleanup;
     }
 
-    // Persist wallet master key to flash memory
+    // Persist wallet master key (or mnemonic entropy if passphrase-protected) to flash memory
     if (!keychain_store_encrypted(aeskey, sizeof(aeskey))) {
         JADE_LOGE("Failed to store key data encrypted in flash memory!");
         jade_process_reject_message(

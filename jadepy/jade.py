@@ -186,7 +186,7 @@ class JadeAPI:
 
     # Run (debug) healthcheck on the hw
     def run_remote_selfcheck(self):
-        return self._jadeRpc('debug_selfcheck')
+        return self._jadeRpc('debug_selfcheck', long_timeout=True)
 
     # Set the (debug) mnemonic
     def set_mnemonic(self, mnemonic, passphrase=None):
