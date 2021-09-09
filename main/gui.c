@@ -1946,6 +1946,14 @@ static void switch_activities_task(void* arg_ptr)
 void gui_set_current_activity(gui_activity_t* activity)
 {
     JADE_ASSERT(activity);
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
+    // FIXME: Figure out why QEMU eventually gets stuck here and
+    // see if it points to wider issues.
+    // In QEMU the display is not present or virtualized
+    // The freeze/stuck bug could be due to racing conditions
+    // or invalid SPI usage (at least in QEMU)
+    return;
+#endif
 
     // Record the old and new 'current' switch_activities_task
     const activity_switch_info_t activities = { .old_activity = current_activity, .new_activity = activity };
