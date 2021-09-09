@@ -37,6 +37,20 @@ test_format:
     - python ./fwprep.py build/jade.bin build
     - cp sdkconfig build/
 
+test_build_qemu:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_qemu.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_qemu
+
+test_build_qemu_psram:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_qemu_psram.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_qemu_psram
+
 prod_build_jade:
   before_script:
     - cp production/sdkconfig_jade_prod.defaults sdkconfig.defaults
@@ -107,20 +121,6 @@ test_build_display:
   after_script:
     - mv build build_display
 
-test_build_qemu:
-  extends: .test_build_template
-  before_script:
-    - cp configs/sdkconfig_qemu.defaults sdkconfig.defaults
-  after_script:
-    - mv build build_display_qemu
-
-test_build_qemu_psram:
-  extends: .test_build_template
-  before_script:
-    - cp configs/sdkconfig_qemu_psram.defaults sdkconfig.defaults
-  after_script:
-    - mv build build_display_qemu_psram
-
 test_build_display_m5fire:
   extends: .test_build_template
   before_script:
@@ -177,28 +177,6 @@ test_build_jade_v1_1_noblobs_ndebug:
   after_script:
     - mv build build_jade_v1_1_noblobs_ndebug
 
-.test_flash_artifact_template:
-  stage: deploy
-  tags:
-    - esp32flasher
-  script:
-    - cp build*/sdkconfig ./
-    - ./ci_flash.sh
-
-test_flash_artifact:
-  extends: .test_flash_artifact_template
-  needs:
-    - test_build_jade_ci
-  before_script:
-    - mv build_jade_ci build
-
-test_flash_artifact_noblobs:
-  extends: .test_flash_artifact_template
-  needs:
-    - test_build_jade_noblobs_ci
-  before_script:
-    - mv build_jade_noblobs_ci build
-
 test_flash_qemu:
   stage: deploy
   tags:
@@ -222,6 +200,28 @@ test_flash_qemu_psram:
   script:
     - ./main/qemu/make-flash-img.sh
     - ./main/qemu/qemu_ci_flash.sh
+
+.test_flash_artifact_template:
+  stage: deploy
+  tags:
+    - esp32flasher
+  script:
+    - cp build*/sdkconfig ./
+    - ./ci_flash.sh
+
+test_flash_artifact:
+  extends: .test_flash_artifact_template
+  needs:
+    - test_build_jade_ci
+  before_script:
+    - mv build_jade_ci build
+
+test_flash_artifact_noblobs:
+  extends: .test_flash_artifact_template
+  needs:
+    - test_build_jade_noblobs_ci
+  before_script:
+    - mv build_jade_noblobs_ci build
 
 build_api_docs:
   tags:
