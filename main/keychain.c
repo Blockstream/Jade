@@ -75,12 +75,10 @@ void keychain_clear_network_type_restriction(void)
 // Set the network type restriction (must currently be 'none', or same as passed).
 void keychain_set_network_type_restriction(const char* network)
 {
-    JADE_ASSERT(isValidNetwork(network));
-
-    const network_type_t network_type = isTestNetwork(network) ? NETWORK_TYPE_TEST : NETWORK_TYPE_MAIN;
-    JADE_ASSERT(network_type_restriction == NETWORK_TYPE_NONE || network_type_restriction == network_type);
+    JADE_ASSERT(keychain_is_network_type_consistent(network));
 
     if (network_type_restriction == NETWORK_TYPE_NONE) {
+        const network_type_t network_type = isTestNetwork(network) ? NETWORK_TYPE_TEST : NETWORK_TYPE_MAIN;
         JADE_LOGI("Restricting to network type: %s", network_type == NETWORK_TYPE_TEST ? "TEST" : "MAIN");
         storage_set_network_type_restriction(network_type);
         network_type_restriction = network_type;
@@ -97,7 +95,7 @@ bool keychain_is_network_type_consistent(const char* network)
 
 // Helper to create the service/gait path.
 // (The below is correct for newly created wallets, verified in regtest).
-static bool populate_service_path(keychain_t* keydata)
+static void populate_service_path(keychain_t* keydata)
 {
     JADE_ASSERT(keydata);
     uint8_t extkeydata[EC_PRIVATE_KEY_LEN + EC_PUBLIC_KEY_LEN];
@@ -124,8 +122,6 @@ static bool populate_service_path(keychain_t* keydata)
     // wally_hex_from_bytes(keydata->service_path, sizeof(keydata->service_path), &logbuf);
     // JADE_LOGI("Service path: %s", logbuf);
     // wally_free_string(logbuf);
-
-    return true;
 }
 
 void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
@@ -199,9 +195,8 @@ void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len,
     JADE_WALLY_VERIFY(
         wally_asset_blinding_key_from_seed(seed, seed_len, keydata->master_unblinding_key, HMAC_SHA512_LEN));
 
-    if (!populate_service_path(keydata)) {
-        JADE_ASSERT_MSG(false, "Failed to compute GA service path");
-    }
+    // Compute and cache the path the GA server will use to sign
+    populate_service_path(keydata);
 }
 
 static bool serialize(unsigned char* serialized, const keychain_t* keydata)
@@ -309,7 +304,7 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len, 
 
     if (!verify_hmac(aeskey, encrypted)) {
         JADE_LOGW("Failed to decrypt key data (bad pin)");
-        if (storage_get_counter() == 0) {
+        if (keychain_pin_attempts_remaining() == 0) {
             JADE_LOGW("Multiple failures to decrypt key data - erasing encrypted keys");
             storage_erase_encrypted_blob();
             keychain_clear_network_type_restriction();
@@ -343,7 +338,7 @@ bool keychain_get_new_privatekey(unsigned char* privatekey, const size_t size)
         return false;
     }
 
-    for (size_t counter = 4; counter > 0; --counter) {
+    for (size_t attempts = 0; attempts < 4; ++attempts) {
         get_random(privatekey, size);
 
         if (wally_ec_private_key_verify(privatekey, size) == WALLY_OK) {
