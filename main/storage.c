@@ -423,10 +423,10 @@ bool storage_set_network_type_restriction(network_type_t networktype)
 
 network_type_t storage_get_network_type_restriction(void)
 {
-    network_type_t networktype = NONE;
+    network_type_t networktype = NETWORK_TYPE_NONE;
     return read_blob_fixed(DEFAULT_NAMESPACE, NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype))
         ? networktype
-        : NONE;
+        : NETWORK_TYPE_NONE;
 }
 
 bool storage_set_idle_timeout(uint16_t timeout)

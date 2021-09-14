@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef enum { NONE, MAIN, TEST } network_type_t;
+typedef enum { NETWORK_TYPE_NONE, NETWORK_TYPE_MAIN, NETWORK_TYPE_TEST } network_type_t;
 
 #define BLE_ENABLED 0x1
 

@@ -18,7 +18,7 @@ static const unsigned char GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
 
 // Internal variables - the single/global keychain data
 static keychain_t* keychain_data = NULL;
-static network_type_t network_type_restriction = NONE;
+static network_type_t network_type_restriction = NETWORK_TYPE_NONE;
 static bool has_encrypted_blob = false;
 static uint8_t keychain_userdata = 0;
 static bool keychain_temporary = false;
@@ -68,8 +68,8 @@ uint8_t keychain_get_userdata(void) { return keychain_userdata; }
 void keychain_clear_network_type_restriction(void)
 {
     JADE_LOGI("Clearing network type restriction");
-    storage_set_network_type_restriction(NONE);
-    network_type_restriction = NONE;
+    storage_set_network_type_restriction(NETWORK_TYPE_NONE);
+    network_type_restriction = NETWORK_TYPE_NONE;
 }
 
 // Set the network type restriction (must currently be 'none', or same as passed).
@@ -77,11 +77,11 @@ void keychain_set_network_type_restriction(const char* network)
 {
     JADE_ASSERT(isValidNetwork(network));
 
-    const network_type_t network_type = isTestNetwork(network) ? TEST : MAIN;
-    JADE_ASSERT(network_type_restriction == NONE || network_type_restriction == network_type);
+    const network_type_t network_type = isTestNetwork(network) ? NETWORK_TYPE_TEST : NETWORK_TYPE_MAIN;
+    JADE_ASSERT(network_type_restriction == NETWORK_TYPE_NONE || network_type_restriction == network_type);
 
-    if (network_type_restriction == NONE) {
-        JADE_LOGI("Restricting to network type: %s", network_type == TEST ? "TEST" : "MAIN");
+    if (network_type_restriction == NETWORK_TYPE_NONE) {
+        JADE_LOGI("Restricting to network type: %s", network_type == NETWORK_TYPE_TEST ? "TEST" : "MAIN");
         storage_set_network_type_restriction(network_type);
         network_type_restriction = network_type;
     }
@@ -91,8 +91,8 @@ void keychain_set_network_type_restriction(const char* network)
 bool keychain_is_network_type_consistent(const char* network)
 {
     JADE_ASSERT(isValidNetwork(network));
-    const network_type_t network_type = isTestNetwork(network) ? TEST : MAIN;
-    return network_type_restriction == NONE || network_type == network_type_restriction;
+    const network_type_t network_type = isTestNetwork(network) ? NETWORK_TYPE_TEST : NETWORK_TYPE_MAIN;
+    return network_type_restriction == NETWORK_TYPE_NONE || network_type == network_type_restriction;
 }
 
 // Helper to create the service/gait path.

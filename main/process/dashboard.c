@@ -162,7 +162,8 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     }
 
     const network_type_t restriction = storage_get_network_type_restriction();
-    const char* networks = restriction == MAIN ? "MAIN" : restriction == TEST ? "TEST" : "ALL";
+    const char* networks
+        = restriction == NETWORK_TYPE_MAIN ? "MAIN" : restriction == NETWORK_TYPE_TEST ? "TEST" : "ALL";
     add_string_to_map(&map_encoder, "JADE_NETWORKS", networks);
 
     // Deprecated (as of 0.1.25) - to be removed later
@@ -666,7 +667,7 @@ static void handle_device(void)
 #ifdef CONFIG_DEBUG_MODE
         // In debug only, show xpub on screen as qr-code
         case BTN_INFO_SHOW_XPUB: {
-            const char* network = storage_get_network_type_restriction() == TEST ? "testnet" : "mainnet";
+            const char* network = storage_get_network_type_restriction() == NETWORK_TYPE_TEST ? "testnet" : "mainnet";
             char* xpub = NULL;
             if (keychain_get() && wallet_get_xpub(network, NULL, 0, &xpub)) {
                 QRCode qrcode;
