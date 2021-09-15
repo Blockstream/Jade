@@ -69,7 +69,7 @@ void display_progress_bar_activity(const char* title, const char* message, progr
 void update_progress_bar(progress_bar_t* progress_bar, size_t total, size_t current);
 
 // Signing-specific screens
-void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* address);
+void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* address, const char* warning_msg);
 void make_sign_message_activity(
     gui_activity_t** activity_ptr, const char* msg_str, size_t msg_len, bool is_hash, const char* path_as_str);
 

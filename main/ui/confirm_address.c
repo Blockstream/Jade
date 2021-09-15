@@ -2,7 +2,7 @@
 #include "../ui.h"
 #include "jade_assert.h"
 
-void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* address)
+void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* address, const char* warning_msg)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(address);
@@ -12,7 +12,7 @@ void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* ad
     JADE_ASSERT(activity);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 45, 25, 30);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, activity->root_node);
 
@@ -23,7 +23,20 @@ void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* ad
     gui_set_align(text_addr, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     gui_set_margins(text_addr, GUI_MARGIN_ALL_DIFFERENT, 8, 2, 2, 2);
 
-    // second row, buttons
+    // Second row, any warning msg (scrolling)
+    if (warning_msg) {
+        gui_view_node_t* text_warning;
+        gui_make_text(&text_warning, warning_msg, TFT_RED);
+        gui_set_parent(text_warning, vsplit);
+        gui_set_align(text_warning, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_text_scroll(text_warning, TFT_BLACK);
+    } else {
+        gui_view_node_t* row2;
+        gui_make_fill(&row2, TFT_BLACK);
+        gui_set_parent(row2, vsplit);
+    }
+
+    // third row, buttons
     gui_view_node_t* hsplit_btn;
     gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
     gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
