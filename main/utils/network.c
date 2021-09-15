@@ -11,16 +11,16 @@ bool isValidNetwork(const char* network)
         return false;
     }
     return !strcmp(TAG_MAINNET, network) || !strcmp(TAG_LIQUID, network) || !strcmp(TAG_TESTNET, network)
-        || !strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_REGTEST, network) || !strcmp(TAG_LOCALTEST, network)
+        || !strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTEST, network)
         || !strcmp(TAG_LOCALTESTLIQUID, network);
 }
 
-// True for testnet and regtest/localtest type networks
+// True for testnet and localtest type networks
 bool isTestNetwork(const char* network)
 {
     JADE_ASSERT(isValidNetwork(network));
-    return !strcmp(TAG_TESTNET, network) || !strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_REGTEST, network)
-        || !strcmp(TAG_LOCALTEST, network) || !strcmp(TAG_LOCALTESTLIQUID, network);
+    return !strcmp(TAG_TESTNET, network) || !strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTEST, network)
+        || !strcmp(TAG_LOCALTESTLIQUID, network);
 }
 
 // True for liquid and localtestliquid networks
@@ -39,7 +39,7 @@ bool csvBlocksExpectedForNetwork(const char* network, const uint32_t csvBlocks)
         return csvBlocks == 25920 || csvBlocks == 51840 || csvBlocks == 65535;
     } else if (!strcmp(TAG_LIQUID, network)) {
         return csvBlocks == 65535;
-    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_REGTEST, network) || !strcmp(TAG_LOCALTEST, network)) {
+    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
         return csvBlocks == 144 || csvBlocks == 4320 || csvBlocks == 51840;
     } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
         return csvBlocks == 1440 || csvBlocks == 65535;
@@ -57,7 +57,7 @@ size_t networkToMinAllowedCsvBlocks(const char* network)
         return 25920;
     } else if (!strcmp(TAG_LIQUID, network)) {
         return 65535;
-    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_REGTEST, network) || !strcmp(TAG_LOCALTEST, network)) {
+    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
         return 144;
     } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
         return 1440;
@@ -87,7 +87,7 @@ uint8_t networkToP2PKHPrefix(const char* network)
 
     if (!strcmp(TAG_MAINNET, network)) {
         return WALLY_ADDRESS_VERSION_P2PKH_MAINNET;
-    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_REGTEST, network) || !strcmp(TAG_LOCALTEST, network)) {
+    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
         return WALLY_ADDRESS_VERSION_P2PKH_TESTNET;
     } else if (!strcmp(TAG_LIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2PKH_LIQUID;
@@ -105,7 +105,7 @@ uint8_t networkToP2SHPrefix(const char* network)
 
     if (!strcmp(TAG_MAINNET, network)) {
         return WALLY_ADDRESS_VERSION_P2SH_MAINNET;
-    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_REGTEST, network) || !strcmp(TAG_LOCALTEST, network)) {
+    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
         return WALLY_ADDRESS_VERSION_P2SH_TESTNET;
     } else if (!strcmp(TAG_LIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2SH_LIQUID;
@@ -139,7 +139,7 @@ const char* networkToBech32Hrp(const char* network)
         return "bc";
     } else if (!strcmp(TAG_TESTNET, network)) {
         return "tb";
-    } else if (!strcmp(TAG_REGTEST, network) || !strcmp(TAG_LOCALTEST, network)) {
+    } else if (!strcmp(TAG_LOCALTEST, network)) {
         return "bcrt";
     } else if (!strcmp(TAG_LIQUID, network)) {
         return "ex";

@@ -14,7 +14,6 @@
 // Test networks
 #define TAG_TESTNET "testnet"
 #define TAG_TESTNETLIQUID "testnet-liquid"
-#define TAG_REGTEST "regtest"
 #define TAG_LOCALTEST "localtest"
 #define TAG_LOCALTESTLIQUID "localtest-liquid"
 

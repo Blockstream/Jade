@@ -145,8 +145,8 @@ PigN2RkeMJL3gTWav9fCicJsC7eSyARLKi8Q3UU825cz65meRQFFfqTYfBBy3MHC6Vn'),
 3ovUH95wH5UxY1qkg7aRC7MdQD7YMauTncJMMHyWdDmkCeKMMoVwzJoK5DbZHHhinUQ'),
                  ([], 'liquid', 'xpub661MyMwAqRbcGJMgtWQnZ6b8Nk1YE4RkR2sAT9ZE3\
 ovUH95wH5UxY1qkg7aRC7MdQD7YMauTncJMMHyWdDmkCeKMMoVwzJoK5DbZHHhinUQ'),
-                 ([0], 'regtest', 'tpubD9wHvxq4yutRJBbRis4guqLvvAZqppKmMJmqDi4\
-HVtVRTRKKTMzomHx77PqcprGZf6UuzwiWn8QWbUx3ECSUStzMHFPJM2e16VUoqEGnkk7'),
+                 ([0], 'localtest', 'tpubD9wHvxq4yutRJBbRis4guqLvvAZqppKmMJmqD\
+i4HVtVRTRKKTMzomHx77PqcprGZf6UuzwiWn8QWbUx3ECSUStzMHFPJM2e16VUoqEGnkk7'),
                  ([6], 'localtest', 'tpubD9wHvxq4yutRaYSLLTxkMuSGafH6NyQMJeGhq\
 sug25o2p9KMNqZAcSV1eYcX31eVXf5vS8MYUPp5Cr2HHAkmpgAHQHa7iG4bqW6ajLq6WVk'),
                  ([12, 123], 'localtest-liquid', 'tpubDBdwuiH7nSNmLs5ffMyv3jXv\
@@ -164,8 +164,8 @@ QGEQu1tqez'),
 BkMyPec9y9VSwwVgn1AftmefpKLYTPrChSCTbHAnbXtSQTB8qEvR8H6nt3sBwNAUeYZK5oc75dWDiY\
 WBrYcMRYW2DGU1Z')]
 
-GET_GREENADDRESS_DATA = [('regtest', 0, 1, 345, None, 0, '2MyMy6Ey7a5dmWJW1D9M\
-7RFwjmXD1ECrgy4'),
+GET_GREENADDRESS_DATA = [('localtest', 0, 1, 345, None, 0, '2MyMy6Ey7a5dmWJW1D\
+9M7RFwjmXD1ECrgy4'),
                          ('testnet', 0, 1, 568, None, 51840, '2MxbBuvnRvgL3uTD\
 tTkufPTdzuwuXE9HCNj'),
                          ('mainnet', 3, 1, 88, '', 0, '36kTtrBFR5NQmzBxAuNWcmL\
@@ -181,13 +181,13 @@ xiV9gBWshuCQAfnEhy6nUU4oPcHp4sP1gUenZ1Szi5TTSduPJgJQ2U2MsrZMSbCniAU1QEj'),
 JFZ7EaJZo8rnuRi23waPVY7FwJTYxtFNrNLy6CC4VEQoKRmd5VkL2mmuo64LfZNy')]
 
 GET_SINGLE_SIG_ADDR_DATA = [  # The below were generated on core
-                            ('regtest', 'sh(wpkh(k))',
+                            ('localtest', 'sh(wpkh(k))',
                              [2147483648, 2147483648, 2147483657],
                              '2N8Yn3oXF7Pg38yBpuvoheDS7981vW4vy5b'),
-                            ('regtest', 'wpkh(k)',
+                            ('localtest', 'wpkh(k)',
                              [2147483648, 2147483648, 2147483658],
                              'bcrt1qkrkcltr7kx5s5alsvnpvkcfunlrjtwx942zmn4'),
-                            ('regtest', 'pkh(k)',
+                            ('localtest', 'pkh(k)',
                              [2147483648, 2147483648, 2147483659],
                              'mwJDHFp93fuHZysBwU7RTiFXrJZXXcPuUc'),
                             # And these on elements ...
@@ -692,7 +692,7 @@ d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a069\
     for badinput, errormsg in bad_tx_inputs:
         # Initiate a good sign-tx
         result = _test_good_params(jade, ('signTx', 'sign_tx',
-                                          {'network': 'regtest',
+                                          {'network': 'localtest',
                                            'txn': GOODTX,
                                            'num_inputs': 1}))
         assert result is True
@@ -1263,7 +1263,7 @@ def _check_msg_signature(jadeapi, testcase, actual):
 
     inputdata = testcase['input']
     host_entropy = inputdata.get('ae_host_entropy')
-    network = 'regtest'  # Network is irrelevant to sign-msg
+    network = 'localtest'  # Network is irrelevant to sign-msg
 
     if host_entropy:
         # Anti-Exfil signer_commitment and signature

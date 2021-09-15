@@ -306,7 +306,7 @@ if __name__ == '__main__':
                          action='store',
                          dest='authnetwork',
                          help='Sets a network to use if unlocking Jade with PIN',
-                         choices=['mainnet', 'liquid', 'testnet', 'regtest', 'localtest-liquid'],
+                         choices=['mainnet', 'liquid', 'testnet', 'localtest', 'localtest-liquid'],
                          default='mainnet')
 
     srcgrp = parser.add_mutually_exclusive_group()
