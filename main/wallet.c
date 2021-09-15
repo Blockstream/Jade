@@ -22,11 +22,19 @@
 #include <sodium/utils.h>
 
 // Restrictions on GA BIP32 path elements
-static const uint32_t SUBACT_ROOT = (BIP32_INITIAL_HARDENED_CHILD + 3);
+static const uint32_t SUBACT_ROOT = BIP32_INITIAL_HARDENED_CHILD + 3;
 static const uint32_t SUBACT_FLOOR = BIP32_INITIAL_HARDENED_CHILD;
-static const uint32_t SUBACT_CEILING = (BIP32_INITIAL_HARDENED_CHILD + 16384);
+static const uint32_t SUBACT_CEILING = BIP32_INITIAL_HARDENED_CHILD + 16384;
 static const uint32_t PATH_BRANCH = 1;
 static const uint32_t MAX_PATH_PTR = 10000;
+
+static const uint32_t BIP44_PATH_LEN = 5;
+static const uint32_t BIP44_COIN_BTC = BIP32_INITIAL_HARDENED_CHILD;
+static const uint32_t BIP44_COIN_TEST = BIP32_INITIAL_HARDENED_CHILD + 1;
+static const uint32_t BIP44_COIN_LBTC = BIP32_INITIAL_HARDENED_CHILD + 1776;
+static const uint32_t BIP44_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 44;
+static const uint32_t BIP49_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 49;
+static const uint32_t BIP84_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 84;
 
 // Maximum number of csv blocks allowed in csv scripts
 static const uint32_t MAX_CSV_BLOCKS_ALLOWED = 65535;
@@ -236,6 +244,46 @@ static void wallet_get_privkey(
 
     memcpy(output, derived.priv_key + 1, output_len);
     SENSITIVE_POP(&derived);
+}
+
+bool wallet_is_expected_bip44_path(const char* network, const script_variant_t script_variant, const bool is_change,
+    const uint32_t* path, const size_t path_len)
+{
+    JADE_ASSERT(network);
+    JADE_ASSERT(script_variant != GREEN);
+    JADE_ASSERT(path);
+
+    // Check path is bip44-like (bip49, bip84 etc.)
+    if (path_len != BIP44_PATH_LEN) {
+        return false;
+    }
+
+    const uint32_t expected_purpose
+        = script_variant == P2WPKH ? BIP84_PURPOSE : script_variant == P2WPKH_P2SH ? BIP49_PURPOSE : BIP44_PURPOSE;
+    if (path[0] != expected_purpose) {
+        return false;
+    }
+
+    const uint32_t expected_coin_type
+        = isTestNetwork(network) ? BIP44_COIN_TEST : isLiquidNetwork(network) ? BIP44_COIN_LBTC : BIP44_COIN_BTC;
+    if (path[1] != expected_coin_type) {
+        return false;
+    }
+
+    if (path[2] < SUBACT_FLOOR || path[2] >= SUBACT_CEILING) {
+        return false;
+    }
+
+    if (path[3] != (is_change ? 1 : 0)) {
+        return false;
+    }
+
+    if (path[4] >= MAX_PATH_PTR) {
+        return false;
+    }
+
+    // Looks good
+    return true;
 }
 
 // Build a valid/expected green address path from the subact, branch and ptr provided

@@ -29,6 +29,8 @@ bool wallet_derive_from_xpub(
 
 bool get_script_variant(const char* variant, size_t variant_len, script_variant_t* output);
 
+bool wallet_is_expected_bip44_path(
+    const char* network, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);
 void wallet_build_receive_path(uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path,
     size_t output_size, size_t* output_len);
 bool wallet_build_receive_script(const char* network, script_variant_t variant, const char* xpubrecovery,
