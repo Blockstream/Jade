@@ -43,6 +43,8 @@ void get_receive_address_process(void* process_ptr)
     uint32_t path[MAX_PATH_LEN];
     size_t path_len = 0;
     const size_t max_path_len = sizeof(path) / sizeof(path[0]);
+    char warning_msg_text[128];
+    const char* warning_msg = NULL;
 
     if (script_variant == GREEN) {
         // For green-multisig the path is constructed from subaccount, branch and pointer
@@ -62,6 +64,20 @@ void get_receive_address_process(void* process_ptr)
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
             goto cleanup;
+        }
+
+        // Include an on-screen warning if the path is unexpected (ie. not bip44-like)
+        const bool is_change = false;
+        if (!wallet_is_expected_bip44_path(network, script_variant, is_change, path, path_len)) {
+            char path_str[96];
+            if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
+                goto cleanup;
+            }
+            const int ret = snprintf(warning_msg_text, sizeof(warning_msg_text), "Warning: Unusual path: %s", path_str);
+            JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg_text));
+            warning_msg = warning_msg_text;
         }
     }
 
@@ -101,7 +117,7 @@ void get_receive_address_process(void* process_ptr)
 
     // Display to the user to confirm
     gui_activity_t* activity;
-    make_confirm_address_activity(&activity, address);
+    make_confirm_address_activity(&activity, address, warning_msg);
     JADE_ASSERT(activity);
     gui_set_current_activity(activity);
 

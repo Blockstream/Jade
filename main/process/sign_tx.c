@@ -121,6 +121,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, struct 
             // If the number of csv blocks is unexpected, show a warning message
             // and make the user confirm.  Otherwise all is fine and we don't
             // need to ask the user to manually confirm this change output.
+            const bool is_change = true;
             if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
                 JADE_LOGW("Unexpected number of csv blocks in change path output: %u", csvBlocks);
                 output_info[i].is_validated_change_address = false;
@@ -129,6 +130,16 @@ bool validate_change_paths(jade_process_t* process, const char* network, struct 
                     "This change output has a non-standard csv value (%u), so it may be difficult to find.  Proceed at "
                     "your own risk.",
                     csvBlocks);
+                JADE_ASSERT(ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
+            } else if (script_variant != GREEN
+                && !wallet_is_expected_bip44_path(network, script_variant, is_change, path, path_len)) {
+                char path_str[96];
+                if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
+                    *errmsg = "Failed to convert path to string format";
+                    return false;
+                }
+                const int ret = snprintf(
+                    output_info[i].message, sizeof(output_info[i].message), "Unusual change path: %s", path_str);
                 JADE_ASSERT(ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
             } else {
                 output_info[i].is_validated_change_address = true;
