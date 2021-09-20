@@ -135,7 +135,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                     csvBlocks);
                 JADE_ASSERT(ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
             } else if (script_variant != GREEN
-                && !wallet_is_expected_bip44_path(network, script_variant, is_change, path, path_len)) {
+                && !wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
                 char path_str[96];
                 if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
                     *errmsg = "Failed to convert path to string format";

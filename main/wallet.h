@@ -38,8 +38,9 @@ bool is_greenaddress(script_variant_t variant);
 bool is_singlesig(script_variant_t variant);
 bool is_multisig(script_variant_t variant);
 
-bool wallet_is_expected_bip44_path(
+bool wallet_is_expected_singlesig_path(
     const char* network, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);
+bool wallet_is_expected_multisig_path(size_t cosigner_index, bool is_change, const uint32_t* path, size_t path_len);
 void wallet_build_receive_path(uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path,
     size_t output_size, size_t* output_len);
 bool wallet_build_receive_script(const char* network, script_variant_t variant, const char* xpubrecovery,

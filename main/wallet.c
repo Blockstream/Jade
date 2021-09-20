@@ -28,7 +28,6 @@ static const uint32_t SUBACT_CEILING = BIP32_INITIAL_HARDENED_CHILD + 16384;
 static const uint32_t PATH_BRANCH = 1;
 static const uint32_t MAX_PATH_PTR = 10000;
 
-static const uint32_t BIP44_PATH_LEN = 5;
 static const uint32_t BIP44_COIN_BTC = BIP32_INITIAL_HARDENED_CHILD;
 static const uint32_t BIP44_COIN_TEST = BIP32_INITIAL_HARDENED_CHILD + 1;
 static const uint32_t BIP44_COIN_LBTC = BIP32_INITIAL_HARDENED_CHILD + 1776;
@@ -299,15 +298,15 @@ static void wallet_get_privkey(
     SENSITIVE_POP(&derived);
 }
 
-bool wallet_is_expected_bip44_path(const char* network, const script_variant_t script_variant, const bool is_change,
+bool wallet_is_expected_singlesig_path(const char* network, const script_variant_t script_variant, const bool is_change,
     const uint32_t* path, const size_t path_len)
 {
     JADE_ASSERT(network);
-    JADE_ASSERT(script_variant != GREEN);
+    JADE_ASSERT(is_singlesig(script_variant));
     JADE_ASSERT(path);
 
     // Check path is bip44-like (bip49, bip84 etc.)
-    if (path_len != BIP44_PATH_LEN) {
+    if (path_len != 5) {
         return false;
     }
 
@@ -333,6 +332,40 @@ bool wallet_is_expected_bip44_path(const char* network, const script_variant_t s
 
     if (path[4] >= MAX_PATH_PTR) {
         return false;
+    }
+
+    // Looks good
+    return true;
+}
+
+bool wallet_is_expected_multisig_path(
+    const size_t cosigner_index, const bool is_change, const uint32_t* path, size_t path_len)
+{
+    JADE_ASSERT(path);
+
+    // Check path is at most three unhardened elements: cosigner index, change flag, and index ptr (in range)
+    // This covers bip 45/48/87
+    // (Path prefix is verified as part of multisig descriptor)
+    if (path_len == 0 || path_len > 3) {
+        return false;
+    }
+
+    if (path_len > 0) {
+        if (path[path_len - 1] >= MAX_PATH_PTR) {
+            return false;
+        }
+    }
+
+    if (path_len > 1) {
+        if (path[path_len - 2] != (is_change ? 1 : 0)) {
+            return false;
+        }
+    }
+
+    if (path_len > 2) {
+        if (path[path_len - 3] != cosigner_index) {
+            return false;
+        }
     }
 
     // Looks good

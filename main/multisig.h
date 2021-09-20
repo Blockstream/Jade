@@ -32,6 +32,8 @@ bool multisig_data_from_bytes(const uint8_t* bytes, size_t bytes_len, multisig_d
 
 bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output, const char** errmsg);
 
+bool multisig_validate_paths(const bool is_change, CborValue* all_signer_paths, bool* all_paths_as_expected);
+
 bool multisig_get_pubkeys(const uint8_t* xpubs, size_t num_xpubs, CborValue* all_signer_paths, uint8_t* pubkeys,
     size_t pubkeys_len, size_t* written);
 

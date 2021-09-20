@@ -182,6 +182,42 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
     return true;
 }
 
+bool multisig_validate_paths(const bool is_change, CborValue* all_signer_paths, bool* all_paths_as_expected)
+{
+    JADE_ASSERT(all_signer_paths);
+    JADE_ASSERT(all_paths_as_expected);
+
+    bool seen_unusual_path = false;
+
+    size_t array_len = 0;
+    if (cbor_value_get_array_length(all_signer_paths, &array_len) != CborNoError || array_len == 0) {
+        return false;
+    }
+
+    uint32_t path[MAX_PATH_LEN];
+    const size_t max_path_len = sizeof(path) / sizeof(path[0]);
+
+    CborValue arrayItem;
+    CborError cberr = cbor_value_enter_container(all_signer_paths, &arrayItem);
+    JADE_ASSERT(cberr == CborNoError);
+    for (size_t i = 0; i < array_len; ++i) {
+        JADE_ASSERT(!cbor_value_at_end(&arrayItem));
+
+        size_t path_len = 0;
+        if (!rpc_get_bip32_path_from_value(&arrayItem, path, max_path_len, &path_len) || path_len == 0) {
+            return false;
+        }
+
+        if (!wallet_is_expected_multisig_path(i, is_change, path, path_len)) {
+            // Path is valid, but does not fit an expected pattern/format
+            seen_unusual_path = true;
+        }
+    }
+
+    *all_paths_as_expected = !seen_unusual_path;
+    return true;
+}
+
 bool multisig_get_pubkeys(const uint8_t* xpubs, const size_t num_xpubs, CborValue* all_signer_paths, uint8_t* pubkeys,
     const size_t pubkeys_len, size_t* written)
 {

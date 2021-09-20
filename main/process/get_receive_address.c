@@ -68,7 +68,7 @@ void get_receive_address_process(void* process_ptr)
 
         // Include an on-screen warning if the path is unexpected (ie. not bip44-like)
         const bool is_change = false;
-        if (!wallet_is_expected_bip44_path(network, script_variant, is_change, path, path_len)) {
+        if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
             char path_str[96];
             if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
                 jade_process_reject_message(
