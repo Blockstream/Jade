@@ -44,23 +44,30 @@ static bool add_confidential_output_info(const commitment_t* commitments, const 
     JADE_ASSERT(txoutput->value[0] != 0x01); // Don't call for unblinded outputs
     JADE_ASSERT(commitments);
 
+    if (!commitments->have_commitments) {
+        *errmsg = "Missing commitments data for blinded output";
+        return false;
+    }
+
     // 1. Copy the 'trusted' commitments into the tx so we sign over them
-    if (txoutput->asset_len != ASSET_GENERATOR_LEN) {
+    if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
         *errmsg = "Failed to update tx asset_generator from commitments data";
         return false;
     }
-    memcpy(txoutput->asset, commitments->asset_generator, ASSET_GENERATOR_LEN);
+    memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
 
-    if (txoutput->value_len != ASSET_COMMITMENT_LEN) {
+    if (txoutput->value_len != sizeof(commitments->value_commitment)) {
         *errmsg = "Failed to update tx value_commitment from commitments data";
         return false;
     }
-    memcpy(txoutput->value, commitments->value_commitment, ASSET_COMMITMENT_LEN);
+    memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
 
     // 2. Fetch the asset_id, value, and blinding_key into the info struct
-    memcpy(outinfo->asset_id, commitments->asset_id, ASSET_TAG_LEN);
+    JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
+    JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
+    memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
     outinfo->value = commitments->value;
-    memcpy(outinfo->blinding_key, commitments->blinding_key, EC_PUBLIC_KEY_LEN);
+    memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
 
     return true;
 }
@@ -209,9 +216,7 @@ void sign_liquid_tx_process(void* process_ptr)
         goto cleanup;
     }
 
-    // Detach node because we free the request up here - defer delete until later
-    // we want to create an array of trusted_commitments
-    // if the trusted_commitment key is not there fail early
+    // Copy trusted commitment data into a temporary structure (so we can free the message)
     commitment_t* commitments = NULL;
     size_t num_commitments = 0;
     rpc_get_commitments_allocate("trusted_commitments", &params, &commitments, &num_commitments);
@@ -225,8 +230,8 @@ void sign_liquid_tx_process(void* process_ptr)
     JADE_ASSERT(commitments);
     jade_process_free_on_exit(process, commitments);
 
-    // Check the trusted commitments: expect one element in the array for each output. (Can be null for unblinded
-    // outputs.)
+    // Check the trusted commitments: expect one element in the array for each output.
+    // (Can be null/zero's for unblinded outputs.)
     if (num_commitments != tx->num_outputs) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Unexpected number of trusted commitments for transaction", NULL);

@@ -461,7 +461,7 @@ void rpc_get_commitments_allocate(const char* field, const CborValue* value, com
         return;
     }
 
-    commitment_t* commitments = JADE_MALLOC(array_len * sizeof(commitment_t));
+    commitment_t* commitments = JADE_CALLOC(array_len, sizeof(commitment_t));
 
     size_t tmp = 0;
     for (size_t i = 0; i < array_len; ++i) {
@@ -532,6 +532,10 @@ void rpc_get_commitments_allocate(const char* field, const CborValue* value, com
             free(commitments);
             return;
         }
+
+        // Set flag to show struct is populated/initialised
+        commitment->have_commitments = true;
+
         CborError err = cbor_value_advance(&arrayItem);
         JADE_ASSERT(err == CborNoError);
     }

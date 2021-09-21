@@ -889,28 +889,32 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': 'notarray'}),
                    'extract trusted commitments'),
-                  (('badsignliq12', 'sign_liquid_tx',  # Wrong number of entries
+                  (('badsignliq12', 'sign_liquid_tx',  # Wrong number of commitments
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}]}),
                    'Unexpected number of trusted commitments'),
-                  (('badsignliq13', 'sign_liquid_tx',  # Wrong number of entries
+                  (('badsignliq13', 'sign_liquid_tx',  # Wrong number of commitments
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}, {}]}),
                    'Unexpected number of trusted commitments'),
-                  (('badsignliq14', 'sign_liquid_tx',  # invalid network
+                  (('badsignliq14', 'sign_liquid_tx',  # Empty commitments for blinded output
+                    {'network': 'localtest-liquid', 'txn': GOODTX,
+                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}),
+                   'Missing commitments data for blinded output'),
+                  (('badsignliq15', 'sign_liquid_tx',  # invalid network
                     {'network': 'made-up', 'txn': GOODTX, 'num_inputs': 1,
                      'trusted_commitments': [{}, {}],
                      'change': [{'path': [[1, 2, 3]]}]}), 'extract valid network'),
-                  (('badsignliq15', 'sign_liquid_tx',  # Bad change outputs
+                  (('badsignliq16', 'sign_liquid_tx',  # Bad change outputs
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
                      'change': []}), 'Unexpected number of output (change) entries'),
-                  (('badsignliq16', 'sign_liquid_tx',  # wrong network type for call
+                  (('badsignliq17', 'sign_liquid_tx',  # wrong network type for call
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
                      'trusted_commitments': [{}, {}],
                      'change': [{'path': [[1, 2, 3]]}, {}]}),
                    'only appropriate for liquid'),
-                  (('badsignliq17', 'sign_liquid_tx',  # paths missing
+                  (('badsignliq18', 'sign_liquid_tx',  # paths missing
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
                      'change': [{}, {}]}), 'extract valid change path')]
