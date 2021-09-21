@@ -18,18 +18,16 @@
 #include "process_utils.h"
 
 // From sign_tx.c
-script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len);
-void update_aggregate_scripts_flavour(
-    const script_flavour_t new_script_flvaour, script_flavour_t* aggregate_scripts_flavour);
-bool validate_change_paths(jade_process_t* process, const char* network, struct wally_tx* tx, CborValue* change,
-    output_info_t* output_info, char** errmsg);
-void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_signing_data, const uint32_t num_inputs);
-void send_ec_signature_replies(
-    const jade_msg_source_t source, signing_data_t* all_signing_data, const uint32_t num_inputs);
+script_flavour_t get_script_flavour(const uint8_t* script, size_t script_len);
+void update_aggregate_scripts_flavour(script_flavour_t new_script_flavour, script_flavour_t* aggregate_scripts_flavour);
+bool validate_change_paths(jade_process_t* process, const char* network, const struct wally_tx* tx, CborValue* change,
+    output_info_t* output_info, const char** errmsg);
+void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_signing_data, uint32_t num_inputs);
+void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_signing_data, uint32_t num_inputs);
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
-static inline void value_to_le(uint32_t val, unsigned char* buffer)
+static inline void value_to_le(const uint32_t val, unsigned char* buffer)
 {
     buffer[0] = val & 0xFF;
     buffer[1] = (val >> 8) & 0xFF;
@@ -37,8 +35,8 @@ static inline void value_to_le(uint32_t val, unsigned char* buffer)
     buffer[3] = (val >> 24) & 0xFF;
 }
 
-static bool add_confidential_output_info(
-    commitment_t* commitments, struct wally_tx_output* txoutput, output_info_t* outinfo, char** errmsg)
+static bool add_confidential_output_info(const commitment_t* commitments, const struct wally_tx_output* txoutput,
+    output_info_t* outinfo, const char** errmsg)
 {
     JADE_ASSERT(txoutput);
     JADE_ASSERT(outinfo);
@@ -67,8 +65,9 @@ static bool add_confidential_output_info(
     return true;
 }
 
-static bool check_trusted_commitment_valid(unsigned char* hash_prevouts, const size_t hash_prevouts_len, const int idx,
-    const struct wally_tx_output* txoutput, commitment_t* commitments, bool* found_odd_vbf, char** errmsg)
+static bool check_trusted_commitment_valid(const unsigned char* hash_prevouts, const size_t hash_prevouts_len,
+    const int idx, const struct wally_tx_output* txoutput, const commitment_t* commitments, bool* found_odd_vbf,
+    const char** errmsg)
 {
     JADE_ASSERT(hash_prevouts);
     JADE_ASSERT(hash_prevouts_len == SHA256_LEN);
@@ -244,7 +243,7 @@ void sign_liquid_tx_process(void* process_ptr)
     rpc_get_boolean("use_ae_signatures", &params, &use_ae_signatures);
 
     // Can optionally be passed paths for change outputs, which we verify internally
-    char* errmsg = NULL;
+    const char* errmsg = NULL;
     CborValue change;
     if (rpc_get_array("change", &params, &change)) {
         if (!validate_change_paths(process, network, tx, &change, output_info, &errmsg)) {
@@ -281,8 +280,7 @@ void sign_liquid_tx_process(void* process_ptr)
             // confidential, use the trusted_commitments
             output_info[i].is_confidential = true;
 
-            char* errmsg = NULL;
-
+            const char* errmsg = NULL;
             if (!add_confidential_output_info(&(commitments[i]), &(tx->outputs[i]), &output_info[i], &errmsg)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
@@ -501,7 +499,7 @@ void sign_liquid_tx_process(void* process_ptr)
             continue;
         }
 
-        char* errmsg = NULL;
+        const char* errmsg = NULL;
         if (!check_trusted_commitment_valid(hash_prevouts_double, sizeof(hash_prevouts_double), i, &(tx->outputs[i]),
                 &(commitments[i]), &found_odd_vbf, &errmsg)) {
             // If commitment data invalid, we'll send the 'cancelled' error response for the first input message only

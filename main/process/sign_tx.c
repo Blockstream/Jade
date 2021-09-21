@@ -46,8 +46,8 @@ void update_aggregate_scripts_flavour(
 }
 
 // Can optionally be passed paths for change outputs, which we verify internally
-bool validate_change_paths(jade_process_t* process, const char* network, struct wally_tx* tx, CborValue* change,
-    output_info_t* output_info, char** errmsg)
+bool validate_change_paths(jade_process_t* process, const char* network, const struct wally_tx* tx, CborValue* change,
+    output_info_t* output_info, const char** errmsg)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(tx);
@@ -315,7 +315,7 @@ void sign_tx_process(void* process_ptr)
     rpc_get_boolean("use_ae_signatures", &params, &use_ae_signatures);
 
     // Can optionally be passed paths for change outputs, which we verify internally
-    char* errmsg = NULL;
+    const char* errmsg = NULL;
     output_info_t* output_info = NULL;
     // we have one change
     // for each tx there may be a change field
