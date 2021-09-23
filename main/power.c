@@ -1,5 +1,6 @@
 #include "power.h"
 #include "jade_assert.h"
+#include <driver/adc_common.h>
 #include <sdkconfig.h>
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
@@ -198,6 +199,26 @@ esp_err_t power_init(void)
     power_enable_coulomb_counter();
     power_set_v_off();
 #endif
+
+#ifndef CONFIG_ESP32_NO_BLOBS
+    /**
+     * There is a bug around using GPIO36/39 with ADC/WiFi (BLE) with sleep mode.
+     * We use:
+     * PIN 36: Camera D6
+     * PIN 39: v1.0 - Camera D4, v1.1 - wheel-next, M5Stack - wheel-prev
+     *
+     * This conflict can cause 'button-release' events to be missed, and hence the fw thinks the hw button
+     * is being held pressed, when it has in fact been released.
+     *
+     * From espressif docs:
+     * Please do not use the interrupt of GPIO36 and GPIO39 when using ADC or Wi-Fi with sleep mode enabled.
+     * Please refer to the comments of adc1_get_raw. Please refer to section 3.11 of
+     * ‘ECO_and_Workarounds_for_Bugs_in_ESP32’ for the description of this issue.
+     * As a workaround, call adc_power_acquire() in the app. This will result in higher power consumption
+     * (by ~1mA), but will remove the glitches on GPIO36 and GPIO39.
+     */
+    adc_power_acquire();
+#endif // CONFIG_ESP32_NO_BLOBS
 
     return ESP_OK;
 }
