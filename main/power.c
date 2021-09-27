@@ -153,13 +153,15 @@ esp_err_t power_backlight_off(void)
 // Exported funtions
 esp_err_t power_init(void)
 {
-    i2c_config_t conf;
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = CONFIG_AXP_SDA;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_io_num = CONFIG_AXP_SCL;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = 400000;
+    const i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = CONFIG_AXP_SDA,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_io_num = CONFIG_AXP_SCL,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = 400000,
+        .clk_flags = 0,
+    };
 
     I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
     I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));

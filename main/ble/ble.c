@@ -306,12 +306,10 @@ static bool write_ble(char* msg, size_t towrite)
     size_t written = 0;
     while (written < towrite) {
         const size_t writenow = written + ble_max_write_size <= towrite ? ble_max_write_size : towrite - written;
-        int rc = 0, try
-            = 0;
+        int rc = 0, try = 0;
 
         do {
-            ++try
-                ;
+            ++try;
             // os_mbuf data is consumed by indicate_custom, regardless of the outcome
             struct os_mbuf* data = ble_hs_mbuf_from_flat(msg + written, writenow);
             JADE_ASSERT(data);

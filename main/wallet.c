@@ -310,14 +310,16 @@ bool wallet_is_expected_singlesig_path(const char* network, const script_variant
         return false;
     }
 
-    const uint32_t expected_purpose
-        = script_variant == P2WPKH ? BIP84_PURPOSE : script_variant == P2WPKH_P2SH ? BIP49_PURPOSE : BIP44_PURPOSE;
+    const uint32_t expected_purpose = script_variant == P2WPKH ? BIP84_PURPOSE
+        : script_variant == P2WPKH_P2SH                        ? BIP49_PURPOSE
+                                                               : BIP44_PURPOSE;
     if (path[0] != expected_purpose) {
         return false;
     }
 
-    const uint32_t expected_coin_type
-        = isTestNetwork(network) ? BIP44_COIN_TEST : isLiquidNetwork(network) ? BIP44_COIN_LBTC : BIP44_COIN_BTC;
+    const uint32_t expected_coin_type = isTestNetwork(network) ? BIP44_COIN_TEST
+        : isLiquidNetwork(network)                             ? BIP44_COIN_LBTC
+                                                               : BIP44_COIN_BTC;
     if (path[1] != expected_coin_type) {
         return false;
     }
