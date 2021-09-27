@@ -91,7 +91,9 @@ uint8_t networkToP2PKHPrefix(const char* network)
         return WALLY_ADDRESS_VERSION_P2PKH_TESTNET;
     } else if (!strcmp(TAG_LIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2PKH_LIQUID;
-    } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
+    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+        return 36; // FIXME: use WALLY_ADDRESS_VERSION_P2PKH_LIQUID_TESTNET (or similar) if/when available
+    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2PKH_LIQUID_REGTEST;
     } else {
         return 0;
@@ -109,7 +111,9 @@ uint8_t networkToP2SHPrefix(const char* network)
         return WALLY_ADDRESS_VERSION_P2SH_TESTNET;
     } else if (!strcmp(TAG_LIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2SH_LIQUID;
-    } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
+    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+        return 19; // FIXME: use WALLY_ADDRESS_VERSION_P2SH_LIQUID_TESTNET (or similar) if/when available
+    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2SH_LIQUID_REGTEST;
     } else {
         return 0;
@@ -123,7 +127,9 @@ uint8_t networkToCAPrefix(const char* network)
 
     if (!strcmp(TAG_LIQUID, network)) {
         return WALLY_CA_PREFIX_LIQUID;
-    } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
+    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+        return 23; // FIXME: use WALLY_CA_PREFIX_LIQUID_TESTNET (or similar) if/when available
+    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
         return WALLY_CA_PREFIX_LIQUID_REGTEST;
     } else {
         return 0;
@@ -143,7 +149,9 @@ const char* networkToBech32Hrp(const char* network)
         return "bcrt";
     } else if (!strcmp(TAG_LIQUID, network)) {
         return "ex";
-    } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
+    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+        return "tex";
+    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
         return "ert";
     } else {
         return NULL;
@@ -157,7 +165,9 @@ const char* networkToBlech32Hrp(const char* network)
 
     if (!strcmp(TAG_LIQUID, network)) {
         return "lq";
-    } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
+    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+        return "tlq";
+    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
         return "el";
     } else {
         return NULL;

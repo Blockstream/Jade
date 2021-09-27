@@ -181,8 +181,8 @@ k22WsuhRq2S'),
 QHNX', 0, '338M4PG24m1gZggrzQV1s9vr3dZZ31kLsU'),
                          ('localtest-liquid', 6, 1, 345, None, 65535, 'Azpx2UG\
 RpzEQ6pt6yCbPYGnjqNaTtxN2ZdLmMMjWMVvJdzd5uD9cysaRc4Es5auve68RAwijQqReG3AT'),
-                         ('testnet-liquid', 3, 1, 244, None, 65535, 'AzpvX2ZUa\
-xiV9gBWshuCQAfnEhy6nUU4oPcHp4sP1gUenZ1Szi5TTSduPJgJQ2U2MsrZMSbCniAU1QEj'),
+                         ('testnet-liquid', 3, 1, 244, None, 65535, 'vjU6NdME2\
+viTa8BzBA6qNG5jQKLfGfLvC93f4fRwZ9SR4pE7KBWQNbGUi2bodfxiMACFDombViiC5Vej'),
                          ('liquid', 10, 1, 122, None, 65535, 'VJLGotGqjthW3NY7\
 JFZ7EaJZo8rnuRi23waPVY7FwJTYxtFNrNLy6CC4VEQoKRmd5VkL2mmuo64LfZNy')]
 
@@ -237,8 +237,8 @@ SfzadGnGduPwvoVK1ZpthykJup8A8Eh2'),
 5a2VAgp94Gj5rSXYiD6eHmGJmVSHY5xG'),
                             ('testnet-liquid', 'wpkh(k)',
                              [2147483648, 2147483648, 2147483657],
-                             'el1qq28n8pj790vsyd6t5lr6n0puhrp7hd8wvcgrlm8knxm6\
-84lxq6pzjrvfzx2fc9gs3cecpvxj56jqkq3ckxtjcuz9nzy2lctpd'),
+                             'tlq1qq28n8pj790vsyd6t5lr6n0puhrp7hd8wvcgrlm8knxm\
+684lxq6pzjrvfzx2fc9gs3cecpvxj56jqkq3ckxtjc88gqxa6j2cv7'),
                             ('localtest-liquid', 'pkh(k)',
                              [2147483648, 2147483648, 2147483657],
                              'CTEjtdpkvj7mrGtgMTrmDfSnH9DdN9Rzi2tzsxsFNujSU8qh\
