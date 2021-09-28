@@ -476,6 +476,36 @@
         "ticker": "TRX",
         "version": 0
     },
+    "0123ef090b9aef8223c96ab0e818455e0a94830ea7578df8244e4eced50d5c39": {
+        "asset_id": "0123ef090b9aef8223c96ab0e818455e0a94830ea7578df8244e4eced50d5c39",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmV47u3KQCzTq82jDcez88CgtiPxNdLFDvv6igGmWSe4bM",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Rare Fragments",
+            "precision": 0,
+            "ticker": "CRaFr",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "7a9f0e5fa49ff5172a67062c4e64d3a84a103547483ee5eb1534de3c888566f3",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "ce473ecfcf98e6d5447e0b80a0b438fd12574780948c4c2e41de93c467374049",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Rare Fragments",
+        "precision": 0,
+        "ticker": "CRaFr",
+        "version": 0
+    },
     "01b6a8b1404588ea3e7d40c1dc202e9180553ebe06c827dd773af660f8a05d7e": {
         "asset_id": "01b6a8b1404588ea3e7d40c1dc202e9180553ebe06c827dd773af660f8a05d7e",
         "contract": {
@@ -619,6 +649,36 @@
         "name": "Gas Mask",
         "precision": 0,
         "ticker": "HGaMa",
+        "version": 0
+    },
+    "0477cfa7771387f41d4a5472bbc2614c91e70f497336cab1e10a571be3695580": {
+        "asset_id": "0477cfa7771387f41d4a5472bbc2614c91e70f497336cab1e10a571be3695580",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmZ54j1i4TNSwNFtzPySrJasw2Y1FebKhacXd2T8JEe3op",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Zombie Hands",
+            "precision": 0,
+            "ticker": "CZoHa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "21ac1cc4c53086d0f1fd8fc658c2ab3e8d23a94c16953600d3af656174b857b2",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "ff2ca881cb16874c257fa6e2306cad7ae8c02e439c8dfb401a19775597451661",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Zombie Hands",
+        "precision": 0,
+        "ticker": "CZoHa",
         "version": 0
     },
     "049ff8780e964f41b2bd8fb8b57aee31360787fe2d1ba293b4567cbef246b9b3": {
@@ -996,6 +1056,35 @@
         "name": "Hoverbike",
         "precision": 0,
         "ticker": "HHove",
+        "version": 0
+    },
+    "0a7eee13259955ff47d4ee5dadc6c95fc6932b3d5451964da23179103fb790a4": {
+        "asset_id": "0a7eee13259955ff47d4ee5dadc6c95fc6932b3d5451964da23179103fb790a4",
+        "contract": {
+            "entity": {
+                "domain": "mythographystudios.com"
+            },
+            "issuer_pubkey": "0288402db9a087bc3239a5f82f8b016f646ca9554346dd1fd1b457b9e9d5819372",
+            "name": "Myth",
+            "precision": 8,
+            "ticker": "MYTH",
+            "version": 0
+        },
+        "entity": {
+            "domain": "mythographystudios.com"
+        },
+        "issuance_prevout": {
+            "txid": "6d019ceed8c5220cd2c4a75e6f820d6e20d528a524d750cc70755dac48f1db1f",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "6a99c2ee60b26fba45447224816c2c2693588fbf77bda9dfab7dfe33fd002f83",
+            "vin": 0
+        },
+        "issuer_pubkey": "0288402db9a087bc3239a5f82f8b016f646ca9554346dd1fd1b457b9e9d5819372",
+        "name": "Myth",
+        "precision": 8,
+        "ticker": "MYTH",
         "version": 0
     },
     "0ae2448c4ddf642b90c91949a7a506841ce2a896f45e407a4ec6808035ca86a4": {
@@ -1814,6 +1903,40 @@
         "ticker": "GCL",
         "version": 0
     },
+    "16d4a7e0cc97fdd7199512fe37e37285f7fbe830affdae209093c31e3ced7bad": {
+        "asset_id": "16d4a7e0cc97fdd7199512fe37e37285f7fbe830affdae209093c31e3ced7bad",
+        "contract": {
+            "entity": {
+                "domain": "b0a7-93-56-117-56.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "Luci, il demone",
+            "nft": {
+                "cid": "QmNi9n9U3tptvsdabQrfw9hDpxx3dewxQHmML4vPUss9AJ",
+                "domain": "b0a7-93-56-117-56.ngrok.io",
+                "hash": "9e8bc4c0a47b614d953603a01641b585a18f019f0106eeb4508f39f4ae836656"
+            },
+            "precision": 0,
+            "ticker": "10001",
+            "version": 0
+        },
+        "entity": {
+            "domain": "b0a7-93-56-117-56.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "0b4534aa07f9683c363a6b5c7322820c7ba960a1a943d4ab2c6aba59fbefb97c",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "497f0aea73d96084a7522213761fc0c7232f5d22d5bd576a9552a3f0e61391e0",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "Luci, il demone",
+        "precision": 0,
+        "ticker": "10001",
+        "version": 0
+    },
     "16d9494ee5a2b82f1cf4d2f9a999a3d5d274030d888af2c4f0a532166d723bc3": {
         "asset_id": "16d9494ee5a2b82f1cf4d2f9a999a3d5d274030d888af2c4f0a532166d723bc3",
         "contract": {
@@ -1932,6 +2055,35 @@
         "name": "Parker",
         "precision": 0,
         "ticker": "CPark",
+        "version": 0
+    },
+    "183ea3fde3fe4d8d9eb771877b9d823a44b3a8d6013f9e0d5f09834ec26ea65a": {
+        "asset_id": "183ea3fde3fe4d8d9eb771877b9d823a44b3a8d6013f9e0d5f09834ec26ea65a",
+        "contract": {
+            "entity": {
+                "domain": "plantart.io"
+            },
+            "issuer_pubkey": "0382c541914123a5e667e8d141fbac6eca848eef48344a6492d13f706d480cd477",
+            "name": "Proof of Purchase",
+            "precision": 0,
+            "ticker": "POP",
+            "version": 0
+        },
+        "entity": {
+            "domain": "plantart.io"
+        },
+        "issuance_prevout": {
+            "txid": "e5a0efa3141512f48d2764d5fd0ea7d3cd1d832254d679e396b43d446c2e80b3",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "6028716dfcd9a8cd94bc3b87b83e0b5a786319a423b8720dc211ab5f9b83ebf9",
+            "vin": 0
+        },
+        "issuer_pubkey": "0382c541914123a5e667e8d141fbac6eca848eef48344a6492d13f706d480cd477",
+        "name": "Proof of Purchase",
+        "precision": 0,
+        "ticker": "POP",
         "version": 0
     },
     "183f886b6d3905e1f07fc3fbe6ad1afa1bcaf88be2c29fd0d0c38a9efd7a0ed5": {
@@ -3270,6 +3422,36 @@
         "ticker": "COlga",
         "version": 0
     },
+    "2bf950b86602d12425fcf49a066d2c07885bd47f6b76fa296574a0b138c578aa": {
+        "asset_id": "2bf950b86602d12425fcf49a066d2c07885bd47f6b76fa296574a0b138c578aa",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmWVgStpRkKwXvx82YT7RsbuHXAJCr8TB5yFnx1QN75LsD",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Premium Fragments",
+            "precision": 0,
+            "ticker": "CPrFr",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "ce473ecfcf98e6d5447e0b80a0b438fd12574780948c4c2e41de93c467374049",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "7d559c5c5b17d567253c877806952abe76260b4c1c059dfd56aec351440d702b",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Premium Fragments",
+        "precision": 0,
+        "ticker": "CPrFr",
+        "version": 0
+    },
     "2c034f229664a70001547050faba79fcf70ebf5129ae298efe71bfd04c9f5f5f": {
         "asset_id": "2c034f229664a70001547050faba79fcf70ebf5129ae298efe71bfd04c9f5f5f",
         "contract": {
@@ -3647,6 +3829,40 @@
         "ticker": "KIR",
         "version": 0
     },
+    "314f8bfa57cd5ed0baa2ee75ae80e06063399e02ab64215a02c46c6d60ecc056": {
+        "asset_id": "314f8bfa57cd5ed0baa2ee75ae80e06063399e02ab64215a02c46c6d60ecc056",
+        "contract": {
+            "entity": {
+                "domain": "b0a7-93-56-117-56.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "THENFT",
+            "nft": {
+                "cid": "QmTxj7dYCgjnijmswCp1uSiqxtmJfYxLMLpfv3gAaL9pN8",
+                "domain": "b0a7-93-56-117-56.ngrok.io",
+                "hash": "290d36e5aebc3698bee7f90c57d8328a60b235fbc390b6f2828b91ebb4841854"
+            },
+            "precision": 0,
+            "ticker": "10002",
+            "version": 0
+        },
+        "entity": {
+            "domain": "b0a7-93-56-117-56.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "0afefbd91799edaf8c60fafa75ecccbd50a4cd64b1a90bae80312a43d001dd94",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "8930932373ee65cd17fe9b85c95cb9e60c185054fe52ba854206fbc7e430440d",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "THENFT",
+        "precision": 0,
+        "ticker": "10002",
+        "version": 0
+    },
     "319a4ed2a961ded14cdf29def8e6a898ff4af3f6e61e80dd1a18a2aa80192148": {
         "asset_id": "319a4ed2a961ded14cdf29def8e6a898ff4af3f6e61e80dd1a18a2aa80192148",
         "contract": {
@@ -3819,6 +4035,35 @@
         "name": "Bitcoin Runner",
         "precision": 0,
         "ticker": "CBiRu",
+        "version": 0
+    },
+    "3422fb15e1f489e8f01a3f25bb246c846432f1e371c794ffe40b6695d18cdaa1": {
+        "asset_id": "3422fb15e1f489e8f01a3f25bb246c846432f1e371c794ffe40b6695d18cdaa1",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "03d3fb1a684fea45d10a2875a34fd3a81798774fafce144c34ccee2f6d1b5cabb8",
+            "name": "Adam's Bishop",
+            "precision": 0,
+            "ticker": "BISHP",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "3f088226b7a394b1949268182e9842d39e4012011d825daf7995538755f0f6aa",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "5221eb18850f88955214950c13fbff766bd1b33743099b6c05a504407585401a",
+            "vin": 0
+        },
+        "issuer_pubkey": "03d3fb1a684fea45d10a2875a34fd3a81798774fafce144c34ccee2f6d1b5cabb8",
+        "name": "Adam's Bishop",
+        "precision": 0,
+        "ticker": "BISHP",
         "version": 0
     },
     "3438ecb49fc45c08e687de4749ed628c511e326460ea4336794e1cf02741329e": {
@@ -4111,6 +4356,35 @@
         "ticker": "GLaBl",
         "version": 0
     },
+    "35ef3c191af42659546f8f7e441079725424c731922050a59f89ae2b7a7464d6": {
+        "asset_id": "35ef3c191af42659546f8f7e441079725424c731922050a59f89ae2b7a7464d6",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+            "name": "My New Asset",
+            "precision": 0,
+            "ticker": "MNA4",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "a45ad20dd4122a87eaefdc2de393ebde86600ebbd264bbc199900357061a16c9",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "2a3e881ad6a160d6a1fb2d3cd6b0f737a79c6cfdfed9019ea16165ec8380735a",
+            "vin": 0
+        },
+        "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+        "name": "My New Asset",
+        "precision": 0,
+        "ticker": "MNA4",
+        "version": 0
+    },
     "365cffdb767d5a8a9d2ad13ae3eb5435c9db74a6c551bc386e8ead2e9d342873": {
         "asset_id": "365cffdb767d5a8a9d2ad13ae3eb5435c9db74a6c551bc386e8ead2e9d342873",
         "contract": {
@@ -4138,6 +4412,36 @@
         "name": "Orch's Wife",
         "precision": 0,
         "ticker": "MOrWi",
+        "version": 0
+    },
+    "36bf441b7d52553d9d00506690aa74c5f32725139b8ad0be61f360f698ac27f7": {
+        "asset_id": "36bf441b7d52553d9d00506690aa74c5f32725139b8ad0be61f360f698ac27f7",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmTywuJxgrkruUJrotbbRwGaWK7qj55L1dJV6JTnhTovzm",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Mystery Egg",
+            "precision": 0,
+            "ticker": "CMyEg",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "ce1c8e12ed5e3f9c00c4e541ac3c13e27190ab93ee9e5cd5df18d4a81e7b5c0b",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "3015df1d2157d1bb5080f9b4a26c96446ecbdb82d103ec85f997b724fc558dbf",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Mystery Egg",
+        "precision": 0,
+        "ticker": "CMyEg",
         "version": 0
     },
     "374fb1356bb06cff969bffb865a05cedfdf053953af0d0c3a30b2ad1480f7d65": {
@@ -4607,6 +4911,35 @@
         "ticker": "USDME",
         "version": 0
     },
+    "3ef1c348b501f508ea5497b1f6c9d6b7e8bf8655c00f6602b41b4af12fa1d33d": {
+        "asset_id": "3ef1c348b501f508ea5497b1f6c9d6b7e8bf8655c00f6602b41b4af12fa1d33d",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "03c7365eb42d06c41b1652ce258c36dbb9b1bf5dd48521d87bcf62d4595d7e5b91",
+            "name": "Adam's Pawn",
+            "precision": 0,
+            "ticker": "PAWN",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "06ec168a5144ca1c7fdd258f3c0c4cbab3c2f41655a0a4289511a20bd8443f00",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "17523765840e0e465bd052fafb011d15cf95162792f18edc6f64b160b0fa5306",
+            "vin": 0
+        },
+        "issuer_pubkey": "03c7365eb42d06c41b1652ce258c36dbb9b1bf5dd48521d87bcf62d4595d7e5b91",
+        "name": "Adam's Pawn",
+        "precision": 0,
+        "ticker": "PAWN",
+        "version": 0
+    },
     "404f07778e8674500ae9188453db5facf593395a54d18b34a62a464dd7223964": {
         "asset_id": "404f07778e8674500ae9188453db5facf593395a54d18b34a62a464dd7223964",
         "contract": {
@@ -4692,6 +5025,35 @@
         "name": "Blood moon",
         "precision": 0,
         "ticker": "BLO",
+        "version": 0
+    },
+    "419edc24a762e6d059c065c0540a4738150a3cdb260d7ae80b3bf61a61bde4c1": {
+        "asset_id": "419edc24a762e6d059c065c0540a4738150a3cdb260d7ae80b3bf61a61bde4c1",
+        "contract": {
+            "entity": {
+                "domain": "coins.soutoshi.com"
+            },
+            "issuer_pubkey": "02119b84275860ad7c5f5f810aaaefcc47c882b6be0bce217ef8a763e47b83c3e0",
+            "name": "Alex's stuff",
+            "precision": 0,
+            "ticker": "ALEX",
+            "version": 0
+        },
+        "entity": {
+            "domain": "coins.soutoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "813a5d6176b25e5c37b2644ac805932b571ea446ddfe86a63b55026cba6b9d75",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "be4a23ef3e3723ab57806ce05e8dfa1bda3cf8bb421f4262692d3e702b8d984f",
+            "vin": 0
+        },
+        "issuer_pubkey": "02119b84275860ad7c5f5f810aaaefcc47c882b6be0bce217ef8a763e47b83c3e0",
+        "name": "Alex's stuff",
+        "precision": 0,
+        "ticker": "ALEX",
         "version": 0
     },
     "41a0db5f3fa26787da464410d9121ff8806e1c8444eb97517dec1b75f85e808c": {
@@ -4958,6 +5320,36 @@
         "ticker": "CGran",
         "version": 0
     },
+    "44a718332747ad4dd3dbf050060c0908d6064740ade0fd4a49829e3e682776c2": {
+        "asset_id": "44a718332747ad4dd3dbf050060c0908d6064740ade0fd4a49829e3e682776c2",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmdjyjezCE1RbHJ9xuP46ZqHa94xC2ecJqvStgbh93X7dF",
+            "issuer_pubkey": "02bbaf8997a4414486537983199cbcb3579845413a615ae2c538d6f5d5e28452da",
+            "name": "Cypherpunk Bag",
+            "precision": 0,
+            "ticker": "ACyBa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "8e4659af258d015fc49dc87cd3865344e0b8b0655fb6ce7140df0d6daff571c5",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "76bb1374e8370169e492f5bf951d327897cd3a7fbe513ec3deb8d78135c0b3c2",
+            "vin": 0
+        },
+        "issuer_pubkey": "02bbaf8997a4414486537983199cbcb3579845413a615ae2c538d6f5d5e28452da",
+        "name": "Cypherpunk Bag",
+        "precision": 0,
+        "ticker": "ACyBa",
+        "version": 0
+    },
     "450dd15d3b30092e1934234e1b540311487af56ec2d2ba315614aa6888a558f0": {
         "asset_id": "450dd15d3b30092e1934234e1b540311487af56ec2d2ba315614aa6888a558f0",
         "contract": {
@@ -5043,6 +5435,40 @@
         "name": "Binance Captain",
         "precision": 0,
         "ticker": "CBiCa",
+        "version": 0
+    },
+    "46b7aa450759590b2f61f6b881b9372303893ebf0a88988d3864764667179c3d": {
+        "asset_id": "46b7aa450759590b2f61f6b881b9372303893ebf0a88988d3864764667179c3d",
+        "contract": {
+            "entity": {
+                "domain": "18da-93-56-117-56.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "Gattini randagi",
+            "nft": {
+                "cid": "QmdAPXc2fDD28cb3i1PnFYLzVMa1WTNRfCS4zWTr1paXCk",
+                "domain": "18da-93-56-117-56.ngrok.io",
+                "hash": "db8e32e682436f8fd7753b41b8e5901921d5c383b87533a2c92020174f482bfa"
+            },
+            "precision": 0,
+            "ticker": "10001",
+            "version": 0
+        },
+        "entity": {
+            "domain": "18da-93-56-117-56.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "851b9967fc4d3060d0ea0565b55a5a56fef5a214a30a1d5d048e31ed72a7d6d7",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "ba6fd8f91213695ec14b489bc1dd9e07b9d3aa7b6077ca2fee0c1f9ff659b9ff",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "Gattini randagi",
+        "precision": 0,
+        "ticker": "10001",
         "version": 0
     },
     "4754849d8e19d0082fe93dbb32546ba1dd41158581b540fd76297d87bdf888fa": {
@@ -5277,6 +5703,36 @@
         "ticker": "FDK",
         "version": 0
     },
+    "49a71b1069edbd0d4e62b85f5e19250cbad09097caf089faff2f6b0e898a3ec8": {
+        "asset_id": "49a71b1069edbd0d4e62b85f5e19250cbad09097caf089faff2f6b0e898a3ec8",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmVcKyEgKuK2z1oozjQzgCLHeBpZMQSfKadmfgv3RxnBKn",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Jack The Rabbit",
+            "precision": 0,
+            "ticker": "CJTR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "ff2ca881cb16874c257fa6e2306cad7ae8c02e439c8dfb401a19775597451661",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "cf217e23ca7f53e3abacad1b7e1f160d0e056134db93c4c79949c527607f63fd",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Jack The Rabbit",
+        "precision": 0,
+        "ticker": "CJTR",
+        "version": 0
+    },
     "49c1134fb7415ceddf73f83df219997f2fda04cae73fcdb31779b205817b0f0d": {
         "asset_id": "49c1134fb7415ceddf73f83df219997f2fda04cae73fcdb31779b205817b0f0d",
         "contract": {
@@ -5304,6 +5760,35 @@
         "name": "Mary",
         "precision": 0,
         "ticker": "CMary",
+        "version": 0
+    },
+    "49ea0b95677d90a60ad0f3d6762ff9e97aecb11f9c710d3641dd4c2d035793d7": {
+        "asset_id": "49ea0b95677d90a60ad0f3d6762ff9e97aecb11f9c710d3641dd4c2d035793d7",
+        "contract": {
+            "entity": {
+                "domain": "coins.soutoshi.com"
+            },
+            "issuer_pubkey": "0396a24300002c6490865e7abe1af53a21f658ddeb402cb5cd6c4000edecb1815c",
+            "name": "Soutoshi artist badge (GEN 1)",
+            "precision": 0,
+            "ticker": "SAB1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "coins.soutoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "f72e018a62f592ce951d804d13544a4121858116b48b08a65f6a9f2ed3a5fe2b",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "08a562d321b3aecf76ded613820eb64863f70f37faadc791d502f19ab8453fa9",
+            "vin": 0
+        },
+        "issuer_pubkey": "0396a24300002c6490865e7abe1af53a21f658ddeb402cb5cd6c4000edecb1815c",
+        "name": "Soutoshi artist badge (GEN 1)",
+        "precision": 0,
+        "ticker": "SAB1",
         "version": 0
     },
     "4a4186156ad5c022e4d12cd66a83f147c981a2a7619d23e5526d2eebb5e068d1": {
@@ -5626,6 +6111,35 @@
         "ticker": "GJeBa",
         "version": 0
     },
+    "4bf9da01d6d97dc67f732a655b874843b1bc9f1f4a169de90a58e804698f56c2": {
+        "asset_id": "4bf9da01d6d97dc67f732a655b874843b1bc9f1f4a169de90a58e804698f56c2",
+        "contract": {
+            "entity": {
+                "domain": "b0a7-93-56-117-56.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "PatPat",
+            "precision": 0,
+            "ticker": "10005",
+            "version": 0
+        },
+        "entity": {
+            "domain": "b0a7-93-56-117-56.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "143e93c260c9b41c820eaa3066be82d1ea3a4a55159bc745086eddc6842b1c62",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "73d31dbb90f1648e1974d996d497523bcc90777c6d48b414a9b5106eb5725c4d",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "PatPat",
+        "precision": 0,
+        "ticker": "10005",
+        "version": 0
+    },
     "4c4ac009dfb51bf83aa76b909c2f481218ae11b03a874dbbfb80b3c2e50dcc82": {
         "asset_id": "4c4ac009dfb51bf83aa76b909c2f481218ae11b03a874dbbfb80b3c2e50dcc82",
         "contract": {
@@ -5683,6 +6197,36 @@
         "name": "Fun Coin",
         "precision": 0,
         "ticker": "FUN",
+        "version": 0
+    },
+    "4ca8d6e02824b46af87ef3962c8bd6bbb9dae77a46ece34904a4d50ea6847f04": {
+        "asset_id": "4ca8d6e02824b46af87ef3962c8bd6bbb9dae77a46ece34904a4d50ea6847f04",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmTfmbqJt72fKRyat8EZm4RPu6VYpXHW6KoLKxY8Hx13CV",
+            "issuer_pubkey": "0348a310bb656755c4c2c83e4e3e649195a65d57ba51d26dee0ac1d2709d0f2164",
+            "name": "The test Asset",
+            "precision": 8,
+            "ticker": "asN08",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "cacf75a96f562dc0b1d3c28bc1ee2db8fdfe6ab42b7fbef744f92e11a76d998e",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "a6ed7b08599387708ad0acd2fdf50159c739c7a44e48b117182aa4331c9dcb79",
+            "vin": 0
+        },
+        "issuer_pubkey": "0348a310bb656755c4c2c83e4e3e649195a65d57ba51d26dee0ac1d2709d0f2164",
+        "name": "The test Asset",
+        "precision": 8,
+        "ticker": "asN08",
         "version": 0
     },
     "4d05dd923f0b45dd7105eda00f854e154ddd1ddbe8f9c28033945b6011b17f13": {
@@ -6595,6 +7139,36 @@
         "name": "The Golden Whale Pass : 1st Edition",
         "precision": 0,
         "ticker": "TGW",
+        "version": 0
+    },
+    "583b8c54c2409ed4cc546fe11281bcd05b9221ea7b66c354363f1576ec22a72c": {
+        "asset_id": "583b8c54c2409ed4cc546fe11281bcd05b9221ea7b66c354363f1576ec22a72c",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmZYmSo2pmRK9wu6TEbSAMp7KNBsAmp9PNdgSoHBdR7ucE",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "LightNite Board",
+            "precision": 0,
+            "ticker": "HLiBo",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "6b9648e41864758baf1fb5c40c22341a133746c896bf0008dabe98f316b8b608",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "902aad333683e28f2ba796626d9031bca5d2b65f29f7cafd0856304ae2b2e70b",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "LightNite Board",
+        "precision": 0,
+        "ticker": "HLiBo",
         "version": 0
     },
     "587ae7f60a909319dec696745561346b580540d13fe1da4b1d85380c6ed169f9": {
@@ -9888,6 +10462,36 @@
         "ticker": "STRHT",
         "version": 0
     },
+    "7e3bde340c1338951438d99c14f4d74e6546062634904066ae850b31dc8a70ab": {
+        "asset_id": "7e3bde340c1338951438d99c14f4d74e6546062634904066ae850b31dc8a70ab",
+        "contract": {
+            "entity": {
+                "domain": "silhouettesthemovie.com"
+            },
+            "file": "QmdkU6rYPwHX5u3nq2omFKDUhoF3vhuaVqptWdwtAmB72d",
+            "issuer_pubkey": "03b1553717119c6117dd87e0f92db293b86dced9f4993f742176df5d92a6db5151",
+            "name": "Silhouettes Constellation Poster",
+            "precision": 0,
+            "ticker": "P100",
+            "version": 0
+        },
+        "entity": {
+            "domain": "silhouettesthemovie.com"
+        },
+        "issuance_prevout": {
+            "txid": "64c85f69903b0f3ea82760ab917e9244bbae3e60d346fea8db5c488038a6f475",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "e42a473286b65a1ab0a9823d737c453ebc1371678379b3e11aad7cc515855f69",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b1553717119c6117dd87e0f92db293b86dced9f4993f742176df5d92a6db5151",
+        "name": "Silhouettes Constellation Poster",
+        "precision": 0,
+        "ticker": "P100",
+        "version": 0
+    },
     "7eb1b14e7d7b188b540c054f3b0312aa742de1df8b9ea7cac425ea957940623e": {
         "asset_id": "7eb1b14e7d7b188b540c054f3b0312aa742de1df8b9ea7cac425ea957940623e",
         "contract": {
@@ -9944,6 +10548,36 @@
         "name": "Baird",
         "precision": 0,
         "ticker": "CBair",
+        "version": 0
+    },
+    "7f9220c0798c139912d1645b97087e0e202abaaba09d20ff58a8cabd8a887ae9": {
+        "asset_id": "7f9220c0798c139912d1645b97087e0e202abaaba09d20ff58a8cabd8a887ae9",
+        "contract": {
+            "entity": {
+                "domain": "silhouettesthemovie.com"
+            },
+            "file": "QmSmQduTPXamJBQLTxVs2nZAkVYdRWk7K1gqtQyqsBmNo8",
+            "issuer_pubkey": "03b1553717119c6117dd87e0f92db293b86dced9f4993f742176df5d92a6db5151",
+            "name": "Silhouettes Ticket Stub",
+            "precision": 0,
+            "ticker": "T100",
+            "version": 0
+        },
+        "entity": {
+            "domain": "silhouettesthemovie.com"
+        },
+        "issuance_prevout": {
+            "txid": "ca0c152d444e6c1c95fe6c79d5064efff64c0667224b0ea3188addfb3a374e5b",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "a2627396eb5d07e827316cf8034d5addd676408bd8c0a885763d1c7d9c75f73e",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b1553717119c6117dd87e0f92db293b86dced9f4993f742176df5d92a6db5151",
+        "name": "Silhouettes Ticket Stub",
+        "precision": 0,
+        "ticker": "T100",
         "version": 0
     },
     "7fa32317c12f4d31a09aa444e8b87022ab2b70ddcdb3e9560db7de88fa685287": {
@@ -10388,6 +11022,36 @@
         "ticker": "BLAB",
         "version": 0
     },
+    "84e955f7cbabe25735db16f1a0a00b3ee00f8a366e0c300184cdfdc4c76badcc": {
+        "asset_id": "84e955f7cbabe25735db16f1a0a00b3ee00f8a366e0c300184cdfdc4c76badcc",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmcWMNLup1s3zXp4eomumgaFL2n2U2uMrJy3CiMu75VLWz",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Satoshi NakaPepe",
+            "precision": 0,
+            "ticker": "CSaNa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "cf217e23ca7f53e3abacad1b7e1f160d0e056134db93c4c79949c527607f63fd",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "7a9f0e5fa49ff5172a67062c4e64d3a84a103547483ee5eb1534de3c888566f3",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Satoshi NakaPepe",
+        "precision": 0,
+        "ticker": "CSaNa",
+        "version": 0
+    },
     "84ee288d03a04043ed177b2512cf663df21a0e258adf5a188ee61d9ed41a880e": {
         "asset_id": "84ee288d03a04043ed177b2512cf663df21a0e258adf5a188ee61d9ed41a880e",
         "contract": {
@@ -10562,6 +11226,35 @@
         "ticker": "CMrCE",
         "version": 0
     },
+    "8811c67055473c679bd2d750dbe5185a38b421e8b5f5bdd32e3683f29e54d955": {
+        "asset_id": "8811c67055473c679bd2d750dbe5185a38b421e8b5f5bdd32e3683f29e54d955",
+        "contract": {
+            "entity": {
+                "domain": "stevenminnaar.com"
+            },
+            "issuer_pubkey": "030050831da114305857c5f42ad7981611fd34a59939c65f2546e3834841d6f270",
+            "name": "Minnaar Money - 00001",
+            "precision": 8,
+            "ticker": "MM1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "stevenminnaar.com"
+        },
+        "issuance_prevout": {
+            "txid": "911c9c80b87e9295dd035417b448365a522022189a38888d5e8d97a0ff003730",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "36991f71e11f72132c71025f99ea146d615f5f222bb1b8f85ed58ce1e10f32ba",
+            "vin": 0
+        },
+        "issuer_pubkey": "030050831da114305857c5f42ad7981611fd34a59939c65f2546e3834841d6f270",
+        "name": "Minnaar Money - 00001",
+        "precision": 8,
+        "ticker": "MM1",
+        "version": 0
+    },
     "883742be1721342b390e8ee11a028398f9bb5f7952bbc133ae5d2c0101da9356": {
         "asset_id": "883742be1721342b390e8ee11a028398f9bb5f7952bbc133ae5d2c0101da9356",
         "contract": {
@@ -10647,6 +11340,36 @@
         "name": "Roman",
         "precision": 0,
         "ticker": "HRoma",
+        "version": 0
+    },
+    "88f13d341d8e25df7f18e7ba842d7716c7291f9997cf2e4e6a1d42482a4dc6d3": {
+        "asset_id": "88f13d341d8e25df7f18e7ba842d7716c7291f9997cf2e4e6a1d42482a4dc6d3",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmWg1J1iDgv7ox9d3sLqEFvzP4YBSVnYYt4zTcstp4Gw8Z",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Common Fragments",
+            "precision": 0,
+            "ticker": "CCoFr",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "7d559c5c5b17d567253c877806952abe76260b4c1c059dfd56aec351440d702b",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "8e4659af258d015fc49dc87cd3865344e0b8b0655fb6ce7140df0d6daff571c5",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Common Fragments",
+        "precision": 0,
+        "ticker": "CCoFr",
         "version": 0
     },
     "8913c08a1e0b93907177035f12d7b225beee055a5c813537119dfac5463c7b80": {
@@ -11525,6 +12248,35 @@
         "ticker": "CSkWa",
         "version": 0
     },
+    "95e986b625a9b304cb82829db68644bfca55ff8be05181ee759f17c5be3fff25": {
+        "asset_id": "95e986b625a9b304cb82829db68644bfca55ff8be05181ee759f17c5be3fff25",
+        "contract": {
+            "entity": {
+                "domain": "coins.soutoshi.com"
+            },
+            "issuer_pubkey": "03b122ca11d33c315496e47e5be5a85ff145350751f22650d5fe5f864a09f661f1",
+            "name": "SEANS WATCH (test)",
+            "precision": 0,
+            "ticker": "SWTs",
+            "version": 0
+        },
+        "entity": {
+            "domain": "coins.soutoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "6260cb5921340a3d79ebbc2f6c207f70ff1c29968f25272c8545552db494ab4c",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "4a30522547e8c51de58a22599b3b8ca421ed17ddaddd19cb4b9662fd9109abbe",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b122ca11d33c315496e47e5be5a85ff145350751f22650d5fe5f864a09f661f1",
+        "name": "SEANS WATCH (test)",
+        "precision": 0,
+        "ticker": "SWTs",
+        "version": 0
+    },
     "9610bc2db30fba3c3c29043a5a8626e0c0d0232b9e3a16597327682c8525398b": {
         "asset_id": "9610bc2db30fba3c3c29043a5a8626e0c0d0232b9e3a16597327682c8525398b",
         "contract": {
@@ -11937,6 +12689,36 @@
         "ticker": "VINCE",
         "version": 0
     },
+    "9acb0d35d712650566f5cca9b11134618418fd02f5254d3c381b463b05f17d77": {
+        "asset_id": "9acb0d35d712650566f5cca9b11134618418fd02f5254d3c381b463b05f17d77",
+        "contract": {
+            "entity": {
+                "domain": "mintalio.coinos.io"
+            },
+            "file": "QmdyiEhCiQmeKJnNgSNSZ38d7U9gmZ3HeJzEHvEJUTLoTK",
+            "issuer_pubkey": "03b5b0e7c9a1cd7fbde2fc49bbc0b93f30de6fd930fca9774f815cfd553ad7bd85",
+            "name": "test",
+            "precision": 0,
+            "ticker": "TES",
+            "version": 0
+        },
+        "entity": {
+            "domain": "mintalio.coinos.io"
+        },
+        "issuance_prevout": {
+            "txid": "d9ce7f097153e05709585f20927304e787139c1de730bf141b0040598e0a4e42",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "2371cacb31f7aba0b96b2ce9f7f4bc4c3d62851099cb846083fa7cd69960712f",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b5b0e7c9a1cd7fbde2fc49bbc0b93f30de6fd930fca9774f815cfd553ad7bd85",
+        "name": "test",
+        "precision": 0,
+        "ticker": "TES",
+        "version": 0
+    },
     "9b1ed063e50791539ce170dfa12794a678a69ecfb9092d8b45c2a02e9a89e802": {
         "asset_id": "9b1ed063e50791539ce170dfa12794a678a69ecfb9092d8b45c2a02e9a89e802",
         "contract": {
@@ -11993,6 +12775,35 @@
         "name": "Ollie",
         "precision": 0,
         "ticker": "COlli",
+        "version": 0
+    },
+    "9c11715c79783d7ba09ecece1e82c652eccbb8d019aec50cf913f540310724a6": {
+        "asset_id": "9c11715c79783d7ba09ecece1e82c652eccbb8d019aec50cf913f540310724a6",
+        "contract": {
+            "entity": {
+                "domain": "exordium.co"
+            },
+            "issuer_pubkey": "025d743bc53ee8b260a65ee0ce4ac7363c8ea7feda7785db1f36cfb19f49015147",
+            "name": "EXO Token US",
+            "precision": 0,
+            "ticker": "EXOus",
+            "version": 0
+        },
+        "entity": {
+            "domain": "exordium.co"
+        },
+        "issuance_prevout": {
+            "txid": "dcb4556fedbd60ff30b643bf6e2467ae879af4dd70dddd6aeea49050c2af3d81",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "0b9f8d3e2086cf44dbc1dbe82b394288ed81fd984428743128e4546f727f9e22",
+            "vin": 0
+        },
+        "issuer_pubkey": "025d743bc53ee8b260a65ee0ce4ac7363c8ea7feda7785db1f36cfb19f49015147",
+        "name": "EXO Token US",
+        "precision": 0,
+        "ticker": "EXOus",
         "version": 0
     },
     "9c15a978858e7a3fa6708723f5d4737c8171ceac902479be7a0ccb5e4421bd03": {
@@ -12490,6 +13301,35 @@
         "ticker": "MCeHe",
         "version": 0
     },
+    "a3a4d031292878fa1f34cbed07ddbf412bafbbb81a4a73334e75ba805c31ae92": {
+        "asset_id": "a3a4d031292878fa1f34cbed07ddbf412bafbbb81a4a73334e75ba805c31ae92",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+            "name": "My New Asset",
+            "precision": 0,
+            "ticker": "MNA2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "67f08cd18d550938411fbf74f585d570c3182a10e691f5a4d6c95306423938d8",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "0656511b8e26974449d486b98ece9c37c07402839ba184edad2e0854a82748d0",
+            "vin": 0
+        },
+        "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+        "name": "My New Asset",
+        "precision": 0,
+        "ticker": "MNA2",
+        "version": 0
+    },
     "a3cdc5686dbfbaffec87abb1ace5981b1942ce7846ddbb8a665d5c3d5608a437": {
         "asset_id": "a3cdc5686dbfbaffec87abb1ace5981b1942ce7846ddbb8a665d5c3d5608a437",
         "contract": {
@@ -12546,6 +13386,36 @@
         "name": "CHFMonetaryBasis",
         "precision": 8,
         "ticker": "CHFMA",
+        "version": 0
+    },
+    "a5581e4b3834187e4a249714207b651c3ab94a3f6586ca8581e14f23ce90b980": {
+        "asset_id": "a5581e4b3834187e4a249714207b651c3ab94a3f6586ca8581e14f23ce90b980",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmTfmbqJt72fKRyat8EZm4RPu6VYpXHW6KoLKxY8Hx13CV",
+            "issuer_pubkey": "022fcf94e3727cd46c0b37db2c04df651ab531d14a9888d4ab56b003d1f2d20764",
+            "name": "The fucking test Asset",
+            "precision": 8,
+            "ticker": "FUCK2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "eca93e6bee963068d98f719205f47d7b55b4644f545541b1209c0c91000966cd",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "72a648ccaa44c088de993d6b16deaf7f0f20bd95daf489050615a27b1b35e2d7",
+            "vin": 0
+        },
+        "issuer_pubkey": "022fcf94e3727cd46c0b37db2c04df651ab531d14a9888d4ab56b003d1f2d20764",
+        "name": "The fucking test Asset",
+        "precision": 8,
+        "ticker": "FUCK2",
         "version": 0
     },
     "a6a3f270947cf351aa8aec8564b7a14e4a8b7419053dc46e4f3d445550bac07d": {
@@ -13041,6 +13911,36 @@
         "ticker": "BPony",
         "version": 0
     },
+    "ac015fc50a1ca58f6bfda9bd4924fef7a585e5ea2fc719236d946fcc6dd888ab": {
+        "asset_id": "ac015fc50a1ca58f6bfda9bd4924fef7a585e5ea2fc719236d946fcc6dd888ab",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmTfmbqJt72fKRyat8EZm4RPu6VYpXHW6KoLKxY8Hx13CV",
+            "issuer_pubkey": "034a2e9af7288c8d522d0492bca2c8c93599695518ffd960580fbc92f10f53f559",
+            "name": "The test Asset",
+            "precision": 0,
+            "ticker": "asN03",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "6e4722a3ea101307a6c454376c9940ca2454a4ac884b1ae59ad8cbd733d42f06",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "8314635d7c487d55e28d8bf2eeec70fef90c2b759e4c20ccddd608837ba4428e",
+            "vin": 0
+        },
+        "issuer_pubkey": "034a2e9af7288c8d522d0492bca2c8c93599695518ffd960580fbc92f10f53f559",
+        "name": "The test Asset",
+        "precision": 0,
+        "ticker": "asN03",
+        "version": 0
+    },
     "ac6cb4d8fe11e395950bada132a10cb089b069ab1d4f62979dc4bc6bbf6d4098": {
         "asset_id": "ac6cb4d8fe11e395950bada132a10cb089b069ab1d4f62979dc4bc6bbf6d4098",
         "contract": {
@@ -13477,6 +14377,35 @@
         "ticker": "PHP",
         "version": 0
     },
+    "b3035c4f0b1e0c15218218d14a16bc5bf778edfcc13be695e1934aa1d1d3330e": {
+        "asset_id": "b3035c4f0b1e0c15218218d14a16bc5bf778edfcc13be695e1934aa1d1d3330e",
+        "contract": {
+            "entity": {
+                "domain": "goodvibesproject.org"
+            },
+            "issuer_pubkey": "02a56ae97f74c8c19f44d9e16a78f947ba05a82f0101e109df34eb099359ab3169",
+            "name": "Good Vibes",
+            "precision": 8,
+            "ticker": "VIBES",
+            "version": 0
+        },
+        "entity": {
+            "domain": "goodvibesproject.org"
+        },
+        "issuance_prevout": {
+            "txid": "aab9bc523cc971ee1d1f1c1cc939ddb7bead92ed0b47178e64be0855758ca165",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "233d4516384138fe1e3204425734371682713f48b635a2b39d86acceac97ffdb",
+            "vin": 0
+        },
+        "issuer_pubkey": "02a56ae97f74c8c19f44d9e16a78f947ba05a82f0101e109df34eb099359ab3169",
+        "name": "Good Vibes",
+        "precision": 8,
+        "ticker": "VIBES",
+        "version": 0
+    },
     "b316575fb08ab20101512b33b84080ecbdeb1d4ef8d9bc3e60e9649553a637da": {
         "asset_id": "b316575fb08ab20101512b33b84080ecbdeb1d4ef8d9bc3e60e9649553a637da",
         "contract": {
@@ -13687,6 +14616,40 @@
         "ticker": "TESG",
         "version": 0
     },
+    "b5a4aea0ad80a58356b10e30d4fce4b79173424eeb63028ffbffa5d0a9577cae": {
+        "asset_id": "b5a4aea0ad80a58356b10e30d4fce4b79173424eeb63028ffbffa5d0a9577cae",
+        "contract": {
+            "entity": {
+                "domain": "b0a7-93-56-117-56.ngrok.io"
+            },
+            "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+            "name": "MEME cattolico",
+            "nft": {
+                "cid": "QmartqLRf3kTU7efe2BL6hVvM7xjfG5YBRtBCt7jiH7kju",
+                "domain": "b0a7-93-56-117-56.ngrok.io",
+                "hash": "c77836ab47337cc753adff3a22a01387d010dc9c8903b8c2ea7381ac787a3f22"
+            },
+            "precision": 0,
+            "ticker": "10003",
+            "version": 0
+        },
+        "entity": {
+            "domain": "b0a7-93-56-117-56.ngrok.io"
+        },
+        "issuance_prevout": {
+            "txid": "8930932373ee65cd17fe9b85c95cb9e60c185054fe52ba854206fbc7e430440d",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "dead8f5f5a76797d2871f0c50fb67f8823e4b22099d409b0ff18e9aaae558a16",
+            "vin": 0
+        },
+        "issuer_pubkey": "039b60b826594e62ea9da88f9d6f01ba15bee36335739a1b78a2e05be361d7e10c",
+        "name": "MEME cattolico",
+        "precision": 0,
+        "ticker": "10003",
+        "version": 0
+    },
     "b6d57f18f3a5ca30c42480bee6917847e5424aabf156ad7471ab030036794f3f": {
         "asset_id": "b6d57f18f3a5ca30c42480bee6917847e5424aabf156ad7471ab030036794f3f",
         "contract": {
@@ -13859,6 +14822,35 @@
         "name": "DeutscherAktienindeX",
         "precision": 8,
         "ticker": "HDAX",
+        "version": 0
+    },
+    "b8f3e0de9a68ce3f63d2b9656f9c954f8343ee7e02d688a6271d713eaf80b4fc": {
+        "asset_id": "b8f3e0de9a68ce3f63d2b9656f9c954f8343ee7e02d688a6271d713eaf80b4fc",
+        "contract": {
+            "entity": {
+                "domain": "kklm.in"
+            },
+            "issuer_pubkey": "03c06b2febc3d749ac92e071ade0019dd9bcfc0dcf4bdfd10c5c4f10e1949f4400",
+            "name": "JEGSQ",
+            "precision": 0,
+            "ticker": "JEGSQ",
+            "version": 0
+        },
+        "entity": {
+            "domain": "kklm.in"
+        },
+        "issuance_prevout": {
+            "txid": "63ffb633b28c39d6df155e99d815c1cf961eb7a98f246c3936c821b028a9d13a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "f7d65ca8a796db0fc59499a98e55e54806e84b3db6d62cc012f7640817641fab",
+            "vin": 0
+        },
+        "issuer_pubkey": "03c06b2febc3d749ac92e071ade0019dd9bcfc0dcf4bdfd10c5c4f10e1949f4400",
+        "name": "JEGSQ",
+        "precision": 0,
+        "ticker": "JEGSQ",
         "version": 0
     },
     "b8f81755d75b1fde985b0abf2a9bdc18f4069070befb10c6b8d16cb1998e35af": {
@@ -14383,6 +15375,36 @@
         "ticker": "NPRL",
         "version": 0
     },
+    "bda9a6d3716e7de887a146b33bc05785475a7ce5e5885c2178fc5d0a6609b716": {
+        "asset_id": "bda9a6d3716e7de887a146b33bc05785475a7ce5e5885c2178fc5d0a6609b716",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmRSh3DJ6KfiXPAtUALaLSQVDQ9EjzmuetTDrypCqCN22P",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Revolution Board",
+            "precision": 0,
+            "ticker": "HReBo",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "76bb1374e8370169e492f5bf951d327897cd3a7fbe513ec3deb8d78135c0b3c2",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "60565c9fa758779bd53133e4eceaccba8cca21edb196b4a754ac5bca64f72920",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Revolution Board",
+        "precision": 0,
+        "ticker": "HReBo",
+        "version": 0
+    },
     "bdd5278c3b282d163fd0ffe4351bb39e0c62cf5ec4444fc73844cd773a7d3899": {
         "asset_id": "bdd5278c3b282d163fd0ffe4351bb39e0c62cf5ec4444fc73844cd773a7d3899",
         "contract": {
@@ -14410,6 +15432,36 @@
         "name": "Fox",
         "precision": 0,
         "ticker": "HFox",
+        "version": 0
+    },
+    "be3c7dbb48fd0509b6b231ae4b5c4a39f59d4aed3e117185ff8cbfd764df1c44": {
+        "asset_id": "be3c7dbb48fd0509b6b231ae4b5c4a39f59d4aed3e117185ff8cbfd764df1c44",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmZ4h1jaAgNv2bBmJmAPScKZ4viZhudp9VhkCscdhK7iDQ",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Satoshis Games Board",
+            "precision": 0,
+            "ticker": "HSGB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "60565c9fa758779bd53133e4eceaccba8cca21edb196b4a754ac5bca64f72920",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "e4b6cfe225bb7ecd9de0623ee86274247f01ac020d9579c1a1c7a725dfa5a98e",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Satoshis Games Board",
+        "precision": 0,
+        "ticker": "HSGB",
         "version": 0
     },
     "beebee1a548fbb20280e539b697de076d87859a25c2983ebc55f2d8bec40abc3": {
@@ -14619,6 +15671,35 @@
         "name": "Cipherpunk",
         "precision": 0,
         "ticker": "CCiph",
+        "version": 0
+    },
+    "c09da251a2fefa32e82ddb179afaacd6ea5206d9dabf66270264eb090447c569": {
+        "asset_id": "c09da251a2fefa32e82ddb179afaacd6ea5206d9dabf66270264eb090447c569",
+        "contract": {
+            "entity": {
+                "domain": "plantart.io"
+            },
+            "issuer_pubkey": "02579565458d8b42c0548045c7198a4a671d8c78adcbf25fa28b7cfaac47715d01",
+            "name": "PLANTart",
+            "precision": 1,
+            "ticker": "PLANT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "plantart.io"
+        },
+        "issuance_prevout": {
+            "txid": "3562737d32426acbb4f1cc019ac5445d11cfb45f02cf4e11fbd7446cef6ea551",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "0968bd51fd4cdf52e2ee4cb8ec9d06a38eddd0663fcca0581982a58aeb9f02b6",
+            "vin": 0
+        },
+        "issuer_pubkey": "02579565458d8b42c0548045c7198a4a671d8c78adcbf25fa28b7cfaac47715d01",
+        "name": "PLANTart",
+        "precision": 1,
+        "ticker": "PLANT",
         "version": 0
     },
     "c0b51210c3192f32d9389b196ef847ff848ada7ca27efaa19e46abbe22e960a6": {
@@ -15437,6 +16518,35 @@
         "ticker": "MSlay",
         "version": 0
     },
+    "ccc769b0eee49f7e65ec742102a05047fd1d7c717047bfcd1ec3ffc4497b8756": {
+        "asset_id": "ccc769b0eee49f7e65ec742102a05047fd1d7c717047bfcd1ec3ffc4497b8756",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+            "name": "My New Asset",
+            "precision": 0,
+            "ticker": "MNA3",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "2c139a0f942926ce8d2d3acb6ee61f816219a6ae5861f6a5428a5800c6983284",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "4d817c438efa41348b93e82acae1f35dfe754bcc127685a0cb0fa794c367ee0e",
+            "vin": 0
+        },
+        "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+        "name": "My New Asset",
+        "precision": 0,
+        "ticker": "MNA3",
+        "version": 0
+    },
     "cd981781d85fa0a19b6247002680b75f4b86f01f0ea08b561ad412c9bb721489": {
         "asset_id": "cd981781d85fa0a19b6247002680b75f4b86f01f0ea08b561ad412c9bb721489",
         "contract": {
@@ -16055,6 +17165,36 @@
         "ticker": "EUROL",
         "version": 0
     },
+    "d8781c77b3d95cc38b23530734e66f2ec2df258d7af7fb1fc751ead8d2dc59ea": {
+        "asset_id": "d8781c77b3d95cc38b23530734e66f2ec2df258d7af7fb1fc751ead8d2dc59ea",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmRiuUzcFbLeWeyJ2DEGoNsDGZuq2TBZPEzhj4tBJZLAxF",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Bionic Bitcoin",
+            "precision": 0,
+            "ticker": "CBiBi",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "3015df1d2157d1bb5080f9b4a26c96446ecbdb82d103ec85f997b724fc558dbf",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "21ac1cc4c53086d0f1fd8fc658c2ab3e8d23a94c16953600d3af656174b857b2",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Bionic Bitcoin",
+        "precision": 0,
+        "ticker": "CBiBi",
+        "version": 0
+    },
     "d8a019ffa24e3112f7ac5453970d8078bdf923240506b6e12f5a885bc7de1a0b": {
         "asset_id": "d8a019ffa24e3112f7ac5453970d8078bdf923240506b6e12f5a885bc7de1a0b",
         "contract": {
@@ -16228,6 +17368,66 @@
         "name": "Sai Token",
         "precision": 8,
         "ticker": "SAI",
+        "version": 0
+    },
+    "da55de42213b2765d7e5d15bd8fd13e1c35bd2fd1386a906bdd7b91b0658126a": {
+        "asset_id": "da55de42213b2765d7e5d15bd8fd13e1c35bd2fd1386a906bdd7b91b0658126a",
+        "contract": {
+            "entity": {
+                "domain": "silhouettesthemovie.com"
+            },
+            "file": "QmPnGapuS63Vy5J7K1CupGaoUVPM493jyhqZkDRYoNY7e2",
+            "issuer_pubkey": "032830e9fb98e1abfbd3299ce2978b126d4a77d961ab3a05d5f368a29023d5f0a8",
+            "name": "Silhouettes Special Edition Artwork",
+            "precision": 0,
+            "ticker": "A164",
+            "version": 0
+        },
+        "entity": {
+            "domain": "silhouettesthemovie.com"
+        },
+        "issuance_prevout": {
+            "txid": "48ca5fdb1191dd10b8066a65e9b0e4554a67fb79b61df631645f1af08735749d",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "c62a4fb8e2f720cff0ae8543d5f8fba2f7ba46833998c37ee60728e124da59c2",
+            "vin": 0
+        },
+        "issuer_pubkey": "032830e9fb98e1abfbd3299ce2978b126d4a77d961ab3a05d5f368a29023d5f0a8",
+        "name": "Silhouettes Special Edition Artwork",
+        "precision": 0,
+        "ticker": "A164",
+        "version": 0
+    },
+    "db2918e7713b3dbd3ef151092f8e9c25fdf467023a3e905668c44d0d88c6a916": {
+        "asset_id": "db2918e7713b3dbd3ef151092f8e9c25fdf467023a3e905668c44d0d88c6a916",
+        "contract": {
+            "entity": {
+                "domain": "silhouettesthemovie.com"
+            },
+            "file": "QmPnGapuS63Vy5J7K1CupGaoUVPM493jyhqZkDRYoNY7e2",
+            "issuer_pubkey": "03b1553717119c6117dd87e0f92db293b86dced9f4993f742176df5d92a6db5151",
+            "name": "Silhouettes Special Edition Artwork",
+            "precision": 0,
+            "ticker": "A100",
+            "version": 0
+        },
+        "entity": {
+            "domain": "silhouettesthemovie.com"
+        },
+        "issuance_prevout": {
+            "txid": "c574b0962abe0e589e52bf290d7ead1bc0cd61a62ee5c95c75788723d72056c0",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "618abd20509f1e28beff24c8636dfb3fa305c0136a1322e134d70e8e54c4507d",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b1553717119c6117dd87e0f92db293b86dced9f4993f742176df5d92a6db5151",
+        "name": "Silhouettes Special Edition Artwork",
+        "precision": 0,
+        "ticker": "A100",
         "version": 0
     },
     "dbfdbb9ed191fee280f3d3f94ca82487e3231278c5a2b4f39508e1e9fcb7c318": {
@@ -16520,6 +17720,35 @@
         "ticker": "LIBR",
         "version": 0
     },
+    "e210c73369cb7b5c2ca77d1bef693627992f650ef0330da644f4e9299b5d11f6": {
+        "asset_id": "e210c73369cb7b5c2ca77d1bef693627992f650ef0330da644f4e9299b5d11f6",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+            "name": "My New Asset",
+            "precision": 0,
+            "ticker": "MNA1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "c66ca4e0a6cb560904dbabb7c6efebd764a7b2f885c997670c3c81b459021221",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "874a80ed1b428076e2e3af5f2f825b5496a897d50e25850a13a938ee1dca0c91",
+            "vin": 0
+        },
+        "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+        "name": "My New Asset",
+        "precision": 0,
+        "ticker": "MNA1",
+        "version": 0
+    },
     "e231c5ab6554cea0a684f7cfff2482c02eb0a8ab4bd6a10c8077574214d295dd": {
         "asset_id": "e231c5ab6554cea0a684f7cfff2482c02eb0a8ab4bd6a10c8077574214d295dd",
         "contract": {
@@ -16605,6 +17834,36 @@
         "name": "WonMonetaryBasis",
         "precision": 8,
         "ticker": "KRWMA",
+        "version": 0
+    },
+    "e35a1696f228530bba643b4b84e79e80a703b91110cb7a351ac1e64d230bd470": {
+        "asset_id": "e35a1696f228530bba643b4b84e79e80a703b91110cb7a351ac1e64d230bd470",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmcoCFFi5VnHtEWDzHjvunq1TxpMRAsEGWa3uYVNM8vs97",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Whitepaper Board",
+            "precision": 0,
+            "ticker": "HWhBo",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "e4b6cfe225bb7ecd9de0623ee86274247f01ac020d9579c1a1c7a725dfa5a98e",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "6b9648e41864758baf1fb5c40c22341a133746c896bf0008dabe98f316b8b608",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Whitepaper Board",
+        "precision": 0,
+        "ticker": "HWhBo",
         "version": 0
     },
     "e493365cf7c50875bfec79d0724a39b715b8d338660e431617743abf51e82696": {
@@ -17482,6 +18741,35 @@
         "ticker": "STR-R",
         "version": 0
     },
+    "eebb0b8213ba71765e4d636e3da8b2b23cceb0c363cd3d22336ff42385ecbae9": {
+        "asset_id": "eebb0b8213ba71765e4d636e3da8b2b23cceb0c363cd3d22336ff42385ecbae9",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "03b4951a6d75d43c8d67f3d83b658eda1f8acebf804e2a108b4fd17b1b7d68372c",
+            "name": "Adam's Queen",
+            "precision": 0,
+            "ticker": "QUEEN",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "5221eb18850f88955214950c13fbff766bd1b33743099b6c05a504407585401a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "302a9da2f4863b1b51b62bf31466ce35c2cf55e6267b3d5e886954fda4b571f6",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b4951a6d75d43c8d67f3d83b658eda1f8acebf804e2a108b4fd17b1b7d68372c",
+        "name": "Adam's Queen",
+        "precision": 0,
+        "ticker": "QUEEN",
+        "version": 0
+    },
     "eed703be8b3c87652863c5810b27c6ed14f87e909a4fd62dce49366a0da4fa77": {
         "asset_id": "eed703be8b3c87652863c5810b27c6ed14f87e909a4fd62dce49366a0da4fa77",
         "contract": {
@@ -17712,6 +19000,35 @@
         "name": "Issuer Tracked Demo Asset",
         "precision": 0,
         "ticker": "IT-DA",
+        "version": 0
+    },
+    "f2829eb54ffda9366d0500a52fe85ad5caa752058ffcc2071454694514478596": {
+        "asset_id": "f2829eb54ffda9366d0500a52fe85ad5caa752058ffcc2071454694514478596",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "0312b97597a608da919c038b1238d917a251f9afabd53ffdb59d3914a395cea8ed",
+            "name": "Adam's Knight",
+            "precision": 0,
+            "ticker": "KNGHT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "17523765840e0e465bd052fafb011d15cf95162792f18edc6f64b160b0fa5306",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "3f088226b7a394b1949268182e9842d39e4012011d825daf7995538755f0f6aa",
+            "vin": 0
+        },
+        "issuer_pubkey": "0312b97597a608da919c038b1238d917a251f9afabd53ffdb59d3914a395cea8ed",
+        "name": "Adam's Knight",
+        "precision": 0,
+        "ticker": "KNGHT",
         "version": 0
     },
     "f29277d759012a530c57ffec5a3afb6f4c7f40a6bcd65bab62a27695b38b65ef": {
@@ -18207,6 +19524,36 @@
         "ticker": "MBiSt",
         "version": 0
     },
+    "f6efd71de728036b5d5e8195b120e74821d189a54d22f09fccbceb67137b5c57": {
+        "asset_id": "f6efd71de728036b5d5e8195b120e74821d189a54d22f09fccbceb67137b5c57",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmcHMkhDyiVpGH8NfoZQjzduP18rNFfrLmgCPdKNZJZyoq",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Mecha B",
+            "precision": 0,
+            "ticker": "CMeB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "902aad333683e28f2ba796626d9031bca5d2b65f29f7cafd0856304ae2b2e70b",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "e1a4f8723c81bbf213b9d47f47363eb93abf905eb7733eb6aaac83326d47cf27",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Mecha B",
+        "precision": 0,
+        "ticker": "CMeB",
+        "version": 0
+    },
     "f78b68a383b4991f906bb72a9878b2850cc3634635da7abdb729473458cbac95": {
         "asset_id": "f78b68a383b4991f906bb72a9878b2850cc3634635da7abdb729473458cbac95",
         "contract": {
@@ -18350,6 +19697,35 @@
         "name": "WonMaturityDeposits",
         "precision": 8,
         "ticker": "KRWMC",
+        "version": 0
+    },
+    "fa7a05c0e42fd0d6fda2928bcee68b46bc64ca1c9d0be5e26e8eb671cf69ba72": {
+        "asset_id": "fa7a05c0e42fd0d6fda2928bcee68b46bc64ca1c9d0be5e26e8eb671cf69ba72",
+        "contract": {
+            "entity": {
+                "domain": "kklm.in"
+            },
+            "issuer_pubkey": "02683631c628ef5cef75aca8b2cc3ca3beabea4ae473da24ba33e473404e396c0e",
+            "name": "Golden Jubilee of Queen Victoria 1887",
+            "precision": 0,
+            "ticker": "GLDQV",
+            "version": 0
+        },
+        "entity": {
+            "domain": "kklm.in"
+        },
+        "issuance_prevout": {
+            "txid": "43b0bd0b3099bae795b04e1ab34d60d57dd7c65488ae7e787099c9b19df8142b",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "6f72b2b01527667fada91d5e383f7d385598788de14cdf1f5c902bb357bd1ad7",
+            "vin": 0
+        },
+        "issuer_pubkey": "02683631c628ef5cef75aca8b2cc3ca3beabea4ae473da24ba33e473404e396c0e",
+        "name": "Golden Jubilee of Queen Victoria 1887",
+        "precision": 0,
+        "ticker": "GLDQV",
         "version": 0
     },
     "fad7bfb5cc2be2595037dd93e38f7afe5d06baa575ee5bc1ca0af4b88d4d7e2a": {
