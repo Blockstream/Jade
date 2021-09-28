@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.28] - 2021-10-05
+### Added
+- Support for generic multisig, following registration/approval of the multisig descriptor
+- Support for bip39 passphrase, if selected during wallet initialisation/setup
+- On-screen warnings for unexpected bip32 paths when generating addresses and when validating change addresses
+
+### Changed
+- Update Liquid asset registry info
+- Make 'requests' module an optional dependency for the python api
+- Remove returning a root certificate for the default pinserver
+- Update policy asset and address prefixes for testnet-liquid network
+- Remove 'regtest' as a network synonym for 'localtest' in Jade API
+- Update qemu version, including adding support for spiram emulation
+
+### Fixed
+- Fix issue where Jade v1.1 jog-wheel appears to be stuck down in certain conditions when connected via Bluetooth
+- Error earlier when insufficient/incorrect commitments passed to sign-liquid-tx
+- Improve reliability of OTA, especially when running over BLE
+- Fix path in script executing qemu in docker image
+
 ## [0.1.27] - 2021-08-30
 ### Added
 - Enable creation of new 12-word recovery phrase
@@ -18,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add support for testnet-liquid network
 
 ### Changed
-- Update liquid asset info
+- Update Liquid asset registry info
 - Update libwally to 0.8.3
 - Update esp-idf base firmware to v4.2.2
 
@@ -37,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added screens to show legal certification text and icons as required
 
 ### Changed
-- Update liquid asset info
+- Update Liquid asset registry info
 - Setup screens to use 'recovery phrase' wording rather than 'mnemonic'
 - At boot, delay powering screen backlight until splash screen image ready
 
@@ -57,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add configs for M5stack basic/core, and TTGO-TDisplay boards
 
 ### Changed
-- Update liquid asset info
+- Update Liquid asset registry info
 - Update default pinserver certificate
 - Prefer 'Bluetooth' to 'BLE' in button labels, and use official bluetooth icon
 - Use larger font when entering PIN
@@ -76,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for single-sig transaction signing and address generation
 
 ### Changed
-- Update liquid asset info
+- Update Liquid asset registry info
 - Update libwally to 0.8.2 and include libsecp's S2C module
 - When several screens to scroll through, set the 'Next' button as default
 - Separate jadepy communications backends into modules
@@ -96,7 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lock Jade when serial or BLE is connected or disconnected (ie. so user must re-enter PIN)
 
 ### Changed
-- Update liquid asset info
+- Update Liquid asset registry info
 - If enter incorrect pin, 'auth_user()' call returns false rather than string
 - Minor improvements to mnemonic entry screen
 - Move pinserver out to its [own repo](https://github.com/Blockstream/blind_pin_server)
