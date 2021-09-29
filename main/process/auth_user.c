@@ -95,7 +95,8 @@ void check_pin_load_keys(jade_process_t* process)
         if (!keychain_complete_derivation_with_passphrase(passphrase)) {
             JADE_LOGE("Failed to derive wallet using passphrase");
             jade_process_reject_message(
-                process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);
+                process, CBOR_RPC_INTERNAL_ERROR, "Failed to derive wallet using passphrase", NULL);
+            await_error_activity("Failed to derive wallet");
             goto cleanup;
         }
     }
