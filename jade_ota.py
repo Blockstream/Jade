@@ -16,7 +16,6 @@ DEFAULT_SERIAL_DEVICE = '/dev/ttyUSB0'
 BLE_TEST_PASSKEYFILE = 'ble_test_passkey.txt'
 
 FWSERVER_URL_ROOT = 'https://jadefw.blockstream.com/bin'
-FWSERVER_CERTIFICATE_FILE = './jade_services_certificate.pem'
 
 DEFAULT_FIRMWARE_FILE = 'build/jade.bin'
 COMP_FW_DIR = 'build'
@@ -125,10 +124,6 @@ def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
     import base64
     import json
 
-    # We need to pass the relevant root certificate
-    with open(FWSERVER_CERTIFICATE_FILE, 'r') as cf:
-        root_cert = cf.read()
-
     gdk.init({})
     session = gdk.Session({'name': 'mainnet'})
 
@@ -136,9 +131,7 @@ def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
     # available firmwares
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{index_file}'
     logger.info(f'Downloading firmware index file {url} using gdk')
-    params = {'method': 'GET',
-              'root_certificates': [root_cert],
-              'urls': [url]}
+    params = {'method': 'GET', 'urls': [url]}
     rslt = gdk.http_request(session.session_obj, json.dumps(params))
     rslt = json.loads(rslt)
     assert 'body' in rslt, f'Cannot download index file {url}: {rslt.get("error")}'
@@ -150,9 +143,7 @@ def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
     # GET the selected firmware from the server in base64 encoding
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
     logger.info(f'Downloading firmware {url} using gdk')
-    params['urls'] = [url]
-    params['accept'] = 'base64'
-
+    params = {'method': 'GET', 'urls': [url], 'accept': 'base64'}
     rslt = gdk.http_request(session.session_obj, json.dumps(params))
     rslt = json.loads(rslt)
     assert 'body' in rslt, f'Cannot download firmware file {url}: {rslt.get("error")}'

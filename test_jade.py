@@ -112,7 +112,6 @@ PINSERVER_TEST_PUBKEY_FILE = "server_public_key.pub"
 # Pinserver prod defaults
 PINSERVER_DEFAULT_URL = "https://jadepin.blockstream.com"
 PINSERVER_DEFAULT_ONION = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion"
-PINSERVER_DEFAULT_CERTIFICATE_FILE = "jade_services_certificate.pem"
 
 # The number of values expected back in version info
 NUM_VALUES_VERINFO = 18
@@ -1328,10 +1327,8 @@ def test_handshake_bad_sig(jade):
     assert urls == [PINSERVER_DEFAULT_URL+'/start_handshake',
                     PINSERVER_DEFAULT_ONION+'/start_handshake']
 
-    with open(PINSERVER_DEFAULT_CERTIFICATE_FILE, 'r') as f:
-        default_cerificate = f.read()
-    certs = result['http_request']['params']['root_certificates']
-    assert certs == [default_cerificate]
+    # By default no certificate is returned
+    assert 'root_certificates' not in result['http_request']['params']
 
     # 3. This is where the app would call the URL returned, and pass the
     #    response (ecdh key) to jade.  We use the pinserver class directly.

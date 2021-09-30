@@ -17,7 +17,6 @@
 static const char PINSERVER_URL[] = "https://jadepin.blockstream.com";
 static const char PINSERVER_ONION[] = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion";
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
-extern const uint8_t jade_services_certificate[] asm("_binary_jade_services_certificate_pem_start");
 
 // Pinserver documents to post to
 static const char PINSERVER_DOC_INIT[] = "start_handshake";
@@ -118,32 +117,25 @@ static void add_urls(CborEncoder* encoder, const char* document)
     add_string_array_to_map(encoder, "urls", urls, 2);
 }
 
-// The certificate may be overridden in storage, otherwise use the default
-static void add_certificate(CborEncoder* encoder)
-{
-    char buf[MAX_PINSVR_CERTIFICATE_LENGTH];
-    size_t written = 0;
-    const bool overridden = storage_get_pinserver_cert(buf, sizeof(buf), &written);
-    const char* root_certificates[1] = { overridden ? buf : (char*)jade_services_certificate };
-    add_string_array_to_map(encoder, "root_certificates", root_certificates, 1);
-}
-
 // {
 //   "http_request": {
-//     // params can be passed directly to gdk.http_request
+//     // params can be passed directly to gdk.http_request()
 //     "params": {
-//       "method": "POST",
 //       "urls": [],
-//       "data": `data`
+//       "root_certificates": [`certificate`]'  ** only present if user has set an additional certificate
+//       "method": "POST",
 //       "accept": "json",
-//       "root_certificates": [`certificate`]'
+//       "data": `data`
 //     }
-//     // result of gdk.http_request should be passed to this method
-//     "on-reply": `on_reply`
+//     "on-reply": `on_reply`  ** the result of gdk.http_request(params) should be passed to this method
 //   }
 static void http_post_cbor(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
+
+    size_t cert_len = 0;
+    char user_certificate[MAX_PINSVR_CERTIFICATE_LENGTH];
+    const bool have_certificate = storage_get_pinserver_cert(user_certificate, sizeof(user_certificate), &cert_len);
 
     const handshake_reply_t* envelope_data = (const handshake_reply_t*)ctx;
     JADE_ASSERT(envelope_data->document);
@@ -165,13 +157,18 @@ static void http_post_cbor(const void* ctx, CborEncoder* container)
     JADE_ASSERT(cberr == CborNoError);
 
     CborEncoder params_encoder;
-    cberr = cbor_encoder_create_map(&http_encoder, &params_encoder, 5);
+    const size_t num_params = have_certificate ? 5 : 4;
+    cberr = cbor_encoder_create_map(&http_encoder, &params_encoder, num_params);
     JADE_ASSERT(cberr == CborNoError);
 
-    // The urls (tls and onion) and any associated root certs we may require
+    // The urls (tls and onion) and any associated root certificate we may require
     // These may be the built-in defaults, or may have been overridden (in storage)
     add_urls(&params_encoder, envelope_data->document);
-    add_certificate(&params_encoder);
+
+    if (have_certificate) {
+        const char* root_certificates[] = { user_certificate };
+        add_string_array_to_map(&params_encoder, "root_certificates", root_certificates, 1);
+    }
 
     // The method here is always POST and the payload always json
     add_string_to_map(&params_encoder, "method", "POST");
