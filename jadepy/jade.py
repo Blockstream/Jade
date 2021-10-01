@@ -4,8 +4,9 @@ import time
 import logging
 import collections
 import traceback
-import requests
 import random
+import sys
+
 
 # JadeError
 from .jade_error import JadeError
@@ -28,6 +29,41 @@ DEFAULT_BLE_SCAN_TIMEOUT = 60
 # 'jade' logger
 logger = logging.getLogger('jade')
 device_logger = logging.getLogger('jade-device')
+
+
+# Simple http request function which can be used when a Jade response
+# requires an external http call.
+# The default implementation used in JadeAPI._jadeRpc() below.
+# NOTE: Only available if the 'requests' dependency is available.
+try:
+    import requests
+
+    def _http_request(params):
+        logger.debug('_http_request: {}'.format(params))
+
+        # Use the first non-onion url
+        url = [url for url in params['urls'] if not url.endswith('.onion')][0]
+        if params['method'] == 'GET':
+            assert 'data' not in params, 'Cannot pass body to requests.get'
+            f = requests.get(url)
+        elif params['method'] == 'POST':
+            data = json.dumps(params['data'])
+            f = requests.post(url, data)
+
+        logger.debug("http_request received reply: {}".format(f.text))
+
+        if f.status_code != 200:
+            logger.error("http error {} : {}".format(f.status_code, f.text))
+            raise ValueError(f.status_code)
+
+        assert params['accept'] == 'json'
+        f = f.json()
+
+        return {'body': f}
+
+except ImportError as e:
+    logger.warn(e)
+    logger.warn('Default _http_requests() function will not be available')
 
 
 #
@@ -86,33 +122,6 @@ class JadeAPI:
     def drain(self):
         self.jade.drain()
 
-    # Simple http request function which can be used when a Jade response requires
-    # an external http call.
-    # The default implementation used in _jadeRpc() below.
-    @staticmethod
-    def _http_request(params):
-        logger.debug('_http_request: {}'.format(params))
-
-        # Use the first non-onion url
-        url = [url for url in params['urls'] if not url.endswith('.onion')][0]
-        if params['method'] == 'GET':
-            assert 'data' not in params, 'Cannot pass body to requests.get'
-            f = requests.get(url)
-        elif params['method'] == 'POST':
-            data = json.dumps(params['data'])
-            f = requests.post(url, data)
-
-        logger.debug("http_request received reply: {}".format(f.text))
-
-        if f.status_code != 200:
-            logger.error("http error {} : {}".format(f.status_code, f.text))
-            raise ValueError(f.status_code)
-
-        assert params['accept'] == 'json'
-        f = f.json()
-
-        return {'body': f}
-
     # Raise any returned error as an exception
     @staticmethod
     def _get_result_or_raise_error(reply):
@@ -134,9 +143,12 @@ class JadeAPI:
         # code below acts as a dumb proxy and simply makes the http request and
         # forwards the response back to the Jade.
         # Note: the function called to make the http-request can be passed in,
-        # or defaults to the simple _http_request() function above.
+        # or it can default to the simple _http_request() function above, if available.
         if isinstance(result, collections.Mapping) and 'http_request' in result:
-            make_http_request = http_request_fn or self._http_request
+            this_module = sys.modules[__name__]
+            make_http_request = http_request_fn or getattr(this_module, '_http_request', None)
+            assert make_http_request, 'Default _http_request() function not available'
+
             http_request = result['http_request']
             http_response = make_http_request(http_request['params'])
             return self._jadeRpc(
