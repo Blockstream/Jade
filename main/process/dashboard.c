@@ -93,9 +93,9 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     JADE_ASSERT(err == ESP_OK);
 
 #ifdef CONFIG_DEBUG_MODE
-    const uint8_t num_version_fields = 18;
+    const uint8_t num_version_fields = 19;
 #else
-    const uint8_t num_version_fields = 11;
+    const uint8_t num_version_fields = 12;
 #endif
 
     CborEncoder map_encoder;
@@ -137,6 +137,9 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     }
     add_string_to_map(&map_encoder, "EFUSEMAC", hexstr);
     wally_free_string(hexstr);
+
+    // Battery level
+    add_uint_to_map(&map_encoder, "BATTERY_STATUS", power_get_battery_status());
 
     // We have five cases:
     // 1. Ready - has keys already associated with a message source

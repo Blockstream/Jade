@@ -114,7 +114,7 @@ PINSERVER_DEFAULT_URL = "https://jadepin.blockstream.com"
 PINSERVER_DEFAULT_ONION = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion"
 
 # The number of values expected back in version info
-NUM_VALUES_VERINFO = 18
+NUM_VALUES_VERINFO = 19
 
 TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
