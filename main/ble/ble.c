@@ -425,7 +425,7 @@ bool ble_init(TaskHandle_t* ble_handle)
     const BaseType_t core_used = 1;
 #endif
     const BaseType_t retval
-        = xTaskCreatePinnedToCore(&ble_writer, "ble_writer", 4 * 1024, NULL, 5, ble_handle, core_used);
+        = xTaskCreatePinnedToCore(&ble_writer, "ble_writer", 2 * 1024, NULL, 5, ble_handle, core_used);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create ble_writer task, xTaskCreatePinnedToCore() returned %d", retval);
 

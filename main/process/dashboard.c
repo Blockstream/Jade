@@ -803,6 +803,9 @@ static void display_screen(gui_activity_t* act)
 {
     JADE_ASSERT(act);
 
+    // Print the main stack usage (high water mark)
+    JADE_LOGI("Main task stack HWM: %u free", uxTaskGetStackHighWaterMark(NULL));
+
     // Do not switch to passed activity if already the 'current', as
     // doing so makes the screen flicker and redraw unnecessarily.
     if (gui_current_activity() != act) {
