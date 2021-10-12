@@ -1351,8 +1351,8 @@ def test_handshake_bad_sig(jade):
 def check_mem_stats(startinfo, endinfo, check_frag=True, strict=True):
     # Memory stats to log/check
     breaches = []
-    for field, limit in [('JADE_FREE_HEAP', 2560),
-                         ('JADE_FREE_DRAM', 2560),
+    for field, limit in [('JADE_FREE_HEAP', 768),
+                         ('JADE_FREE_DRAM', 768),
                          ('JADE_LARGEST_DRAM', 0 if check_frag else -1),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
@@ -1360,7 +1360,7 @@ def check_mem_stats(startinfo, endinfo, check_frag=True, strict=True):
         final = int(endinfo[field])
         diff = initial - final
 
-        if limit > 0 and diff > limit:
+        if limit >= 0 and diff > limit:
             logger.warning("{} - {} to {} ({}) BREACH".format(
                 field, initial, final, diff))
             breaches.append(field)
@@ -1526,6 +1526,7 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
 
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
+    has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
 
     # Update pinserver details - just check the calls do not error
     # See test_handshake() above for more in-depth test of this functionality
@@ -1846,7 +1847,7 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
 
     time.sleep(1)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo)
+    check_mem_stats(startinfo, endinfo, check_frag=has_psram)
 
 
 # Run tests using passed interface
@@ -1863,6 +1864,7 @@ def run_interface_tests(jadeapi,
 
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
+    has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
 
     # Smoke tests
     if smoke:
@@ -1883,7 +1885,6 @@ def run_interface_tests(jadeapi,
     # run if requested (eg. ble would take a long time)
     # Note also does not work on qemu - skip for now.
     if test_overflow_input and not qemu:
-        has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
         logger.info("Buffer overflow test - PSRAM: {}".format(has_psram))
         test_too_much_input(jadeapi.jade, has_psram)
 
@@ -1901,7 +1902,7 @@ def run_interface_tests(jadeapi,
 
     time.sleep(1)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo)
+    check_mem_stats(startinfo, endinfo, check_frag=has_psram)
 
 
 # Run all selected tests over a passed JadeAPI instance.
