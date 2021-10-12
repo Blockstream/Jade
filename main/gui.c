@@ -24,18 +24,16 @@
 ESP_EVENT_DEFINE_BASE(GUI_BUTTON_EVENT);
 ESP_EVENT_DEFINE_BASE(GUI_EVENT);
 
-static const uint8_t GUI_TASK_PRIORITY = 5;
-
-typedef struct {
-    gui_activity_t* old_activity;
-    gui_activity_t* new_activity;
-} activity_switch_info_t;
-
 typedef struct _activity_holder_t activity_holder_t;
 struct _activity_holder_t {
     gui_activity_t activity;
     activity_holder_t* next;
 };
+
+typedef struct {
+    gui_activity_t* new_activity;
+    activity_holder_t* to_free;
+} activity_switch_info_t;
 
 // global mutex used to synchronize tft paint commands. global across activities
 static SemaphoreHandle_t paint_mutex = NULL;
@@ -43,17 +41,14 @@ static SemaphoreHandle_t paint_mutex = NULL;
 static gui_activity_t* current_activity = NULL;
 // stack of activities that currently exist
 static activity_holder_t* existing_activities = NULL;
-// handle to the task running to update updatable elements
-static TaskHandle_t updatables_task_handle;
+
+// handle to the task running to update the gui
+static TaskHandle_t gui_task_handle = NULL;
+// queue for gui task to receive the new activity
+static RingbufHandle_t switch_activities_queue = NULL;
 
 // Click/select event (ie. which button counts as 'click'/select)
 static gui_event_t gui_click_event = GUI_FRONT_CLICK_EVENT;
-
-// Queues and handles for activities tasks
-static RingbufHandle_t free_activities = NULL;
-static RingbufHandle_t switch_activities = NULL;
-static TaskHandle_t free_activities_task_handle;
-static TaskHandle_t switch_activities_task_handle;
 
 // status bar
 struct {
@@ -74,17 +69,12 @@ struct {
     bool updated;
 } status_bar;
 
-// Some definitions that we don't want to expose so we keep them here instead of adding them to the header
-static void free_activities_task(void* args);
-static void switch_activities_task(void* args);
-static void updatables_task(void* args);
-static void status_bar_task(void* args);
-
 typedef struct selectable_element selectable_t;
 
 // Utils
-
 static inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
+
+static void gui_task(void* args);
 
 static void make_status_bar(void)
 {
@@ -145,7 +135,6 @@ void gui_set_click_event(gui_event_t event)
     gui_click_event = event;
 }
 
-// TODO: improve error checks
 void gui_init(void)
 {
     // Create semaphore.  Note it has to be 'preloaded' so it can be taken later
@@ -169,53 +158,22 @@ void gui_init(void)
     const esp_err_t rc = esp_event_loop_create_default();
     JADE_ASSERT(rc == ESP_OK);
 
-    // Create 'switch activities' and 'free activities' input queues (ringbuffers)
-    free_activities = xRingbufferCreate(32, RINGBUF_TYPE_NOSPLIT);
-    JADE_ASSERT(free_activities);
-    switch_activities = xRingbufferCreate(32, RINGBUF_TYPE_NOSPLIT);
-    JADE_ASSERT(switch_activities);
+    // Create 'switch activities' input queue (ringbuffer)
+    switch_activities_queue = xRingbufferCreate(32, RINGBUF_TYPE_NOSPLIT);
+    JADE_ASSERT(switch_activities_queue);
 
-    // Create 'free activities' task
-    BaseType_t retval = xTaskCreatePinnedToCore(free_activities_task, "free_activities", 2 * 1024, NULL,
-        tskIDLE_PRIORITY, &free_activities_task_handle, GUI_CORE);
-    JADE_ASSERT_MSG(
-        retval == pdPASS, "Failed to create free_activities task, xTaskCreatePinnedToCore() returned %d", retval);
-
-    // Create 'switch activities' task
-    retval = xTaskCreatePinnedToCore(switch_activities_task, "switch_activities", 4 * 1024, NULL, GUI_TASK_PRIORITY,
-        &switch_activities_task_handle, GUI_CORE);
-    JADE_ASSERT_MSG(
-        retval == pdPASS, "Failed to create switch_activities task, xTaskCreatePinnedToCore() returned %d", retval);
-
-    // Create gui_updateables task
-    retval = xTaskCreatePinnedToCore(
-        updatables_task, "gui_updatables", 2 * 1024, NULL, GUI_TASK_PRIORITY, &updatables_task_handle, GUI_CORE);
-    JADE_ASSERT_MSG(
-        retval == pdPASS, "Failed to create gui_updatables task, xTaskCreatePinnedToCore() returned %d", retval);
-
+    // Create status-bar
     make_status_bar();
 
-    // Create status-bar task
-    retval = xTaskCreatePinnedToCore(
-        status_bar_task, "status_bar", 2 * 1024, NULL, GUI_TASK_PRIORITY, &status_bar.task_handle, GUI_CORE);
-    JADE_ASSERT_MSG(
-        retval == pdPASS, "Failed to create status_bar task, xTaskCreatePinnedToCore() returned %d", retval);
-
-    vTaskSuspend(status_bar.task_handle); // this will be started when necessary
+    // Create (high priority) gui task
+    BaseType_t retval = xTaskCreatePinnedToCore(gui_task, "gui", 2 * 1024, NULL, 5, &gui_task_handle, GUI_CORE);
+    JADE_ASSERT_MSG(retval == pdPASS, "Failed to create GUI task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
-bool gui_initialized(void) { return switch_activities; }
+bool gui_initialized(void) { return gui_task_handle; } // gui task started
 
 // Is this kind of node selectable?
-static inline bool is_kind_selectable(enum view_node_kind kind)
-{
-    switch (kind) {
-    case BUTTON:
-        return true;
-    default:
-        return false;
-    }
-}
+static inline bool is_kind_selectable(enum view_node_kind kind) { return kind == BUTTON; }
 
 // Is node a "before" node b on-screen? (i.e. is it above or more left?)
 static inline bool is_before(const selectable_t* a, const selectable_t* b)
@@ -648,7 +606,7 @@ static void free_activity_events(activity_event_t* tip)
 }
 
 // free an activity-holder and all of the activity contents (title, selectables/updatables etc.)
-static void gui_free_activity(activity_holder_t* holder)
+static void free_activity(activity_holder_t* holder)
 {
     JADE_ASSERT(holder);
 
@@ -666,69 +624,6 @@ static void gui_free_activity(activity_holder_t* holder)
 
     // Free the activity holder
     free(holder);
-}
-
-// Task waits on a queue - when a list of activities is received, they are freed.
-static void free_activities_task(void* unused)
-{
-    JADE_ASSERT(free_activities);
-
-    while (true) {
-        size_t item_size = 0;
-        activity_holder_t** item = xRingbufferReceive(free_activities, &item_size, portMAX_DELAY);
-
-        if (item != NULL) {
-            JADE_ASSERT(item_size == sizeof(activity_holder_t*));
-            activity_holder_t* activities = *item;
-
-            while (activities) {
-                activity_holder_t* holder = activities;
-                activities = holder->next;
-
-                // Should not be the current activity
-                JADE_ASSERT(&holder->activity != current_activity);
-                gui_free_activity(holder);
-            }
-
-            // Return the ringbuffer slot
-            vRingbufferReturnItem(free_activities, item);
-        }
-    }
-}
-
-// schedule job to free all existing activities, except the current activity
-void gui_free_noncurrent_activities(void)
-{
-    activity_holder_t* scrapheap = NULL;
-
-    // Ensure current activity not put in scrapheap
-    if (existing_activities) {
-        // If the first/latest activity is the current activity, skip it.
-        if (&existing_activities->activity == current_activity) {
-            scrapheap = existing_activities->next;
-            existing_activities->next = NULL;
-        } else {
-            // Otherwise check entire list
-            scrapheap = existing_activities;
-            for (activity_holder_t* holder = scrapheap; holder && holder->next; holder = holder->next) {
-                if (&holder->next->activity == current_activity) {
-                    // Skip the next activity (as current) and link to following
-                    existing_activities = holder->next;
-                    holder->next = holder->next->next;
-                    existing_activities->next = NULL;
-                }
-            }
-        }
-        JADE_ASSERT(
-            existing_activities && (&existing_activities->activity == current_activity) && !existing_activities->next);
-    }
-
-    // post to low-priority task to free all scrapped activities, if there are any
-    if (scrapheap) {
-        while (xRingbufferSend(free_activities, &scrapheap, sizeof(scrapheap), portMAX_DELAY) != pdTRUE) {
-            // wait for a spot in the ring
-        }
-    }
 }
 
 // Link activities eg. by prev/next buttons
@@ -1728,115 +1623,201 @@ void gui_repaint(gui_view_node_t* node, bool take_mutex)
     }
 }
 
-// updatables task, this task runs to update elements in the `updatables` list of the current activity
-void updatables_task(void* args)
+static void gui_render_activity(gui_activity_t* activity)
 {
-    const TickType_t frequency = 1000 / GUI_TARGET_FRAMERATE / portTICK_PERIOD_MS;
+    JADE_ASSERT(activity);
+    JADE_ASSERT(activity->root_node);
 
+    const bool first_time = activity->root_node->render_data.is_first_time;
+    render_node(activity->root_node, activity->win, 0);
+
+    if (first_time && activity->selectables) {
+        // If the activity has an 'initial_selection' and it appears active, select it now
+        // If not, select the first active item
+        if (activity->initial_selection && activity->initial_selection->is_active) {
+            gui_select_node(activity, activity->initial_selection);
+        } else {
+            gui_view_node_t* const node = gui_get_first_active_node(activity);
+            if (node) {
+                gui_select_node(activity, node);
+            }
+        }
+    }
+}
+
+static bool switch_activities()
+{
+    JADE_ASSERT(switch_activities_queue);
+
+    size_t item_size = 0;
+    activity_switch_info_t* const switch_info
+        = xRingbufferReceive(switch_activities_queue, &item_size, 20 / portTICK_PERIOD_MS);
+
+    if (switch_info != NULL) {
+        JADE_ASSERT(item_size == sizeof(activity_switch_info_t));
+        JADE_ASSERT(switch_info->new_activity);
+
+        if (switch_info->new_activity != current_activity) {
+            // Unregister the old activity's event handlers
+            if (current_activity) {
+                activity_event_t* l = current_activity->activity_events;
+                while (l) {
+                    esp_event_handler_unregister(l->event_base, l->event_id, l->handler);
+                    l = l->next;
+                }
+            }
+
+            // Set the current_activity to the new one, and render it
+            current_activity = switch_info->new_activity;
+            gui_render_activity(current_activity);
+
+            // Register new events
+            activity_event_t* l = current_activity->activity_events;
+            while (l) {
+                esp_event_handler_register(l->event_base, l->event_id, l->handler, l->args);
+                l = l->next;
+            }
+
+            // Update the status bar text for the new activity
+            if (current_activity->status_bar) {
+                if (current_activity->title) {
+                    gui_update_text(status_bar.title, current_activity->title);
+                }
+                status_bar.updated = true;
+            }
+        }
+
+        // If passed a 'to_free' list, free these now
+        activity_holder_t* to_free = switch_info->to_free;
+        while (to_free) {
+            JADE_ASSERT(&to_free->activity != current_activity);
+            activity_holder_t* const next = to_free->next;
+            free_activity(to_free);
+            to_free = next;
+        }
+
+        // Return the ringbuffer slot
+        vRingbufferReturnItem(switch_activities_queue, switch_info);
+
+        return true;
+    }
+
+    // No item/no new activity
+    return false;
+}
+
+// updatables task, this task runs to update elements in the `updatables` list of the current activity
+static void update_updateables()
+{
+    if (!current_activity) {
+        return;
+    }
+
+    updatable_t* current = current_activity->updatables;
+    while (current) {
+        // this shouldn't really happen but better add a check anyways
+        if (!current->callback) {
+            continue;
+        }
+
+        // let's see if we need to repaint this
+        bool result = current->callback(current->node, current->extra_args);
+        if (result) {
+            // repaint and take the mutex
+            // TODO: we are ignoring the return code here...
+            gui_repaint(current->node, true);
+        }
+        current = current->next;
+    }
+}
+
+// update the status bar
+static void update_status_bar()
+{
+    // No-op if no status bar
+    if (!current_activity || !current_activity->status_bar) {
+        return;
+    }
+
+    dispWin_t status_bar_cs = GUI_DISPLAY_WINDOW;
+    status_bar_cs.y2 = status_bar_cs.y1 + GUI_STATUS_BAR_HEIGHT;
+
+    if ((status_bar.battery_update_counter % 10) == 0) {
+
+#ifndef CONFIG_ESP32_NO_BLOBS
+        const bool new_ble = ble_enabled();
+#else
+        const bool new_ble = false;
+#endif
+
+        if (new_ble != status_bar.last_ble_val) {
+            status_bar.last_ble_val = new_ble;
+            if (new_ble) {
+                gui_update_text(status_bar.ble_text, (char[]){ 'E', '\0' });
+            } else {
+                gui_update_text(status_bar.ble_text, (char[]){ 'F', '\0' });
+            }
+            status_bar.updated = true;
+        }
+
+        const bool new_usb = usb_connected();
+        if (new_usb != status_bar.last_usb_val) {
+            status_bar.last_usb_val = new_usb;
+            if (new_usb) {
+                gui_update_text(status_bar.usb_text, (char[]){ 'C', '\0' });
+            } else {
+                gui_update_text(status_bar.usb_text, (char[]){ 'D', '\0' });
+            }
+            status_bar.updated = true;
+            status_bar.battery_update_counter = 0; // Force battery icon update
+        }
+    }
+
+    if (status_bar.battery_update_counter == 0) {
+        // Print the hwm gui stack usage
+        uint8_t new_bat = power_get_battery_status();
+        if (power_get_battery_charging()) {
+            new_bat = new_bat + 12;
+        }
+        if (new_bat != status_bar.last_battery_val) {
+            status_bar.last_battery_val = new_bat;
+            gui_update_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
+            status_bar.updated = true;
+        }
+        status_bar.battery_update_counter = 60;
+    }
+
+    status_bar.battery_update_counter--;
+
+    if (status_bar.updated) {
+        render_node(status_bar.root, status_bar_cs, 0);
+        status_bar.updated = false;
+    }
+}
+
+// gui task, for managing display/activities
+static void gui_task(void* args)
+{
+    const TickType_t period = 1000 / GUI_TARGET_FRAMERATE / portTICK_PERIOD_MS;
     TickType_t last_wake = xTaskGetTickCount();
     for (;;) {
         // Wait for the next frame
         // Note: this task is never suspended, so no need to re-fetch the tick-
         // time each loop, just let vTaskDelayUntil() track the 'last_wake' count.
-        vTaskDelayUntil(&last_wake, frequency);
+        vTaskDelayUntil(&last_wake, period);
 
-        updatable_t* current = current_activity->updatables;
-        while (current) {
-            // this shouldn't really happen but better add a check anyways
-            if (!current->callback) {
-                continue;
-            }
-
-            // let's see if we need to repaint this
-            bool result = current->callback(current->node, current->extra_args);
-            if (result) {
-                // repaint and take the mutex
-                // TODO: we are ignoring the return code here...
-                gui_repaint(current->node, true);
-            }
-
-            current = current->next;
+        // Check the current activity - set new activity if need be
+        // Note: this can also free all the old/completed activities
+        if (!switch_activities()) {
+            // Not switching activities, update any 'updatable' gui elements on this activity
+            update_updateables();
         }
+
+        // Update status bar if required
+        update_status_bar();
     }
 
     vTaskDelete(NULL);
-}
-
-// update the status bar. this task might be suspended/resumed without notice when the `current_activity` changes.
-// no "critical" checks should run in here since there's no guarantee this will be constantly running
-static void status_bar_task(void* ignore)
-{
-    const TickType_t frequency = 1000 / GUI_TARGET_FRAMERATE / portTICK_PERIOD_MS;
-
-    dispWin_t status_bar_cs = GUI_DISPLAY_WINDOW;
-    status_bar_cs.y2 = status_bar_cs.y1 + GUI_STATUS_BAR_HEIGHT;
-
-    TickType_t last_wake = xTaskGetTickCount();
-    for (;;) {
-        // NOTE: because this task can be suspended/resumed arbitrarily we re-fetch
-        // the currnet tick time each loop, and don't rely on vTaskDelayUntil() to
-        // update it (as that returns the prior value plus frequency, which can result
-        // in a 'backlog' developing when suspended, which all run in succession when
-        // the task is resumed.
-        vTaskDelayUntil(&last_wake, frequency);
-        last_wake = xTaskGetTickCount(); // required if task may have been suspended
-
-        if ((status_bar.battery_update_counter % 10) == 0) {
-
-#ifndef CONFIG_ESP32_NO_BLOBS
-            const bool new_ble = ble_enabled();
-#else
-            const bool new_ble = false;
-#endif
-
-            if (new_ble != status_bar.last_ble_val) {
-                status_bar.last_ble_val = new_ble;
-                if (new_ble) {
-                    gui_update_text(status_bar.ble_text, (char[]){ 'E', '\0' });
-                } else {
-                    gui_update_text(status_bar.ble_text, (char[]){ 'F', '\0' });
-                }
-                status_bar.updated = true;
-            }
-
-            const bool new_usb = usb_connected();
-            if (new_usb != status_bar.last_usb_val) {
-                status_bar.last_usb_val = new_usb;
-                if (new_usb) {
-                    gui_update_text(status_bar.usb_text, (char[]){ 'C', '\0' });
-                } else {
-                    gui_update_text(status_bar.usb_text, (char[]){ 'D', '\0' });
-                }
-                status_bar.updated = true;
-                status_bar.battery_update_counter = 0; // Force battery icon update
-            }
-        }
-
-        if (status_bar.battery_update_counter == 0) {
-            uint8_t new_bat = power_get_battery_status();
-            if (power_get_battery_charging()) {
-                new_bat = new_bat + 12;
-            }
-            if (new_bat != status_bar.last_battery_val) {
-                status_bar.last_battery_val = new_bat;
-                gui_update_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
-                status_bar.updated = true;
-            }
-            status_bar.battery_update_counter = 60;
-        }
-
-        status_bar.battery_update_counter--;
-
-        if (!status_bar.updated) {
-            continue;
-        }
-
-        // TODO: check the return code
-        render_node(status_bar.root, status_bar_cs, 0);
-
-        // TODO: do we need a mutex here?
-        status_bar.updated = false;
-    }
 }
 
 // TODO: different functions for different types of click
@@ -1884,100 +1865,46 @@ void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_
     activity->initial_selection = node;
 }
 
-static void gui_render_activity(gui_activity_t* activity)
+void gui_set_current_activity_ex(gui_activity_t* activity, const bool free_all_other_activities)
 {
     JADE_ASSERT(activity);
-    JADE_ASSERT(activity->root_node);
 
-    const bool first_time = activity->root_node->render_data.is_first_time;
-    render_node(activity->root_node, activity->win, 0);
+    // We will post the gui task the new activity, and the list of activities it can free
+    activity_switch_info_t activities = { .new_activity = activity, .to_free = NULL };
 
-    if (first_time && activity->selectables) {
-        // If the activity has an 'initial_selection' and it appears active, select it now
-        // If not, select the first active item
-        if (activity->initial_selection && activity->initial_selection->is_active) {
-            gui_select_node(activity, activity->initial_selection);
+    // If freeing others, build a list of all existing activities except the new current
+    if (free_all_other_activities) {
+        // If the first/latest activity is the current activity, skip it
+        if (&existing_activities->activity == activity) {
+            activities.to_free = existing_activities->next;
+            existing_activities->next = NULL;
         } else {
-            gui_view_node_t* const node = gui_get_first_active_node(activity);
-            if (node) {
-                gui_select_node(activity, node);
-            }
-        }
-    }
-}
-
-static void switch_activities_task(void* arg_ptr)
-{
-    JADE_ASSERT(switch_activities);
-
-    while (true) {
-        size_t item_size = 0;
-        activity_switch_info_t* activities = xRingbufferReceive(switch_activities, &item_size, portMAX_DELAY);
-
-        if (activities != NULL) {
-            JADE_ASSERT(item_size == sizeof(activity_switch_info_t));
-            JADE_ASSERT(activities->new_activity);
-
-            // Unregister the old activity's event handlers
-            if (activities->old_activity) {
-                activity_event_t* l = activities->old_activity->activity_events;
-                while (l) {
-                    esp_event_handler_unregister(l->event_base, l->event_id, l->handler);
-                    l = l->next;
+            // Otherwise remove the current activty from the list
+            activities.to_free = existing_activities;
+            for (activity_holder_t* holder = existing_activities; holder && holder->next; holder = holder->next) {
+                if (&holder->next->activity == activity) {
+                    // Skip the next activity (as current) and link to following
+                    existing_activities = holder->next;
+                    holder->next = holder->next->next;
+                    existing_activities->next = NULL;
                 }
             }
-
-            // Render the current activity
-            gui_render_activity(activities->new_activity);
-
-            // Register new events
-            activity_event_t* l = activities->new_activity->activity_events;
-            while (l) {
-                esp_event_handler_register(l->event_base, l->event_id, l->handler, l->args);
-                l = l->next;
-            }
-
-            // Return the ringbuffer slot
-            vRingbufferReturnItem(switch_activities, activities);
         }
+
+        // So after that operation 'existing_activities' should be the new current activity only
+        JADE_ASSERT(existing_activities && (&existing_activities->activity == activity) && !existing_activities->next);
+    }
+
+    // Post the new activity and the list to free to the gui task
+    while (xRingbufferSend(switch_activities_queue, &activities, sizeof(activities), portMAX_DELAY) != pdTRUE) {
+        // wait for a spot in the ring
     }
 }
 
 void gui_set_current_activity(gui_activity_t* activity)
 {
-    JADE_ASSERT(activity);
-#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
-    // FIXME: Figure out why QEMU eventually gets stuck here and
-    // see if it points to wider issues.
-    // In QEMU the display is not present or virtualized
-    // The freeze/stuck bug could be due to racing conditions
-    // or invalid SPI usage (at least in QEMU)
-    return;
-#endif
-
-    // Record the old and new 'current' switch_activities_task
-    const activity_switch_info_t activities = { .old_activity = current_activity, .new_activity = activity };
-
-    // set the current_activity to the new
-    current_activity = activity;
-
-    if (activity->status_bar) {
-        if (activity->title) {
-            gui_update_text(status_bar.title, activity->title);
-        }
-
-        // TODO: do we need a mutex here?
-        status_bar.updated = true;
-
-        vTaskResume(status_bar.task_handle);
-    } else {
-        vTaskSuspend(status_bar.task_handle);
-    }
-
-    // Post the activity switch to the gui task
-    while (xRingbufferSend(switch_activities, &activities, sizeof(activities), portMAX_DELAY) != pdTRUE) {
-        // wait for a spot in the ring
-    }
+    // Set a new activity without freeing any other activities
+    gui_set_current_activity_ex(activity, false);
 }
 
 static void push_activity_event(

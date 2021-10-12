@@ -806,19 +806,12 @@ static void display_screen(gui_activity_t* act)
     // Print the main stack usage (high water mark)
     JADE_LOGI("Main task stack HWM: %u free", uxTaskGetStackHighWaterMark(NULL));
 
-    // Do not switch to passed activity if already the 'current', as
-    // doing so makes the screen flicker and redraw unnecessarily.
-    if (gui_current_activity() != act) {
-        // Switch to passed screen
-        gui_set_current_activity(act);
+    // Switch to passed screen, and at that point free all other screen activities
+    // Should be no-op if we didn't switch away from this screen
+    gui_set_current_activity_ex(act, true);
 
-        // This is the point of return after any gui activities have completed
-        // Free everything except for the current activity
-        gui_free_noncurrent_activities();
-
-        // Assert all sensitive memory was zero'd
-        sensitive_assert_empty();
-    }
+    // Assert all sensitive memory was zero'd
+    sensitive_assert_empty();
 
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();
