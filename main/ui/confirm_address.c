@@ -12,7 +12,7 @@ void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* ad
     JADE_ASSERT(activity);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 45, 25, 30);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 60, 15, 25);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, activity->root_node);
 
@@ -21,7 +21,7 @@ void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* ad
     gui_make_text(&text_addr, address, TFT_WHITE);
     gui_set_parent(text_addr, vsplit);
     gui_set_align(text_addr, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_margins(text_addr, GUI_MARGIN_ALL_DIFFERENT, 8, 2, 2, 2);
+    gui_set_margins(text_addr, GUI_MARGIN_ALL_DIFFERENT, 4, 2, 2, 2);
 
     // Second row, any warning msg (scrolling)
     if (warning_msg) {
