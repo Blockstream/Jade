@@ -133,7 +133,7 @@ void get_receive_address_process(void* process_ptr)
             uint32_t csvBlocks = 0;
             rpc_get_sizet("csv_blocks", &params, &csvBlocks);
 
-            if (!csvBlocksExpectedForNetwork(network, csvBlocks)) {
+            if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
                 const int ret = snprintf(warning_msg_text, sizeof(warning_msg_text),
                     "This output has a non-standard csv value (%u), so it may be difficult to find.  Proceed at "
                     "your own risk.",
