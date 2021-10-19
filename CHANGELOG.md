@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [0.1.29] - 2021-10-15
+## [0.1.30] - 2021-10-20
 ### Added
 - Support for generic multisig, following registration/approval of the multisig descriptor
 - Support for bip39 passphrase, if selected during wallet initialisation/setup
