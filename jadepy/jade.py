@@ -1,4 +1,5 @@
 import cbor
+import hashlib
 import json
 import time
 import logging
@@ -171,19 +172,23 @@ class JadeAPI:
     # OTA new firmware
     def ota_update(self, fwcmp, fwlen, chunksize, cb):
 
-        compressed_size = len(fwcmp)
+        cmphasher = hashlib.sha256()
+        cmphasher.update(fwcmp)
+        cmphash = cmphasher.digest()
+        cmplen = len(fwcmp)
 
         # Initiate OTA
         params = {'fwsize': fwlen,
-                  'cmpsize': compressed_size}
+                  'cmpsize': cmplen,
+                  'cmphash': cmphash}
 
         result = self._jadeRpc('ota', params)
         assert result is True
 
         # Write binary chunks
         written = 0
-        while written < compressed_size:
-            remaining = compressed_size - written
+        while written < cmplen:
+            remaining = cmplen - written
             length = min(remaining, chunksize)
             chunk = bytes(fwcmp[written:written + length])
             result = self._jadeRpc('ota_data', chunk)
@@ -191,7 +196,7 @@ class JadeAPI:
             written += length
 
             if (cb):
-                cb(written, compressed_size)
+                cb(written, cmplen)
 
         # All binary data uploaded
         return self._jadeRpc('ota_complete')
