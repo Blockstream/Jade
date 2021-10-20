@@ -547,13 +547,15 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badent5', 'add_entropy', {'entropy': 'notbinary'}), 'valid entropy bytes'),
 
                   (('badota1', 'ota'), ''),
-                  (('badota2', 'ota', {'fwsize': 12345}), 'Bad parameters'),
+                  (('badota2', 'ota', {'fwsize': 12345}), 'Bad filesize parameters'),
                   (('badota3', 'ota',
-                    {'fwsize': '1234', 'cmpsize': '123'}), 'Bad parameters'),
+                    {'fwsize': '1234', 'cmpsize': '123'}), 'Bad filesize parameters'),
                   (('badota4', 'ota',
-                    {'fwsize': 'X', 'cmpsize': 'Y'}), 'Bad parameters'),
+                    {'fwsize': 'X', 'cmpsize': 'Y'}), 'Bad filesize parameters'),
                   (('badota5', 'ota',  # compsize >= fwsize rejected
-                    {'fwsize': 1234, 'cmpsize': 1234}), 'Bad parameters'),
+                    {'fwsize': 1234, 'cmpsize': 1234}), 'Bad filesize parameters'),
+                  (('badota6', 'ota',  # hash unexpected size
+                    {'fwsize': 1234, 'cmpsize': 1111, 'cmphash': b'123'}), 'extract valid fw hash'),
 
                   (('badxpub1', 'get_xpub'), 'Expecting parameters map'),
                   (('badxpub2', 'get_xpub',

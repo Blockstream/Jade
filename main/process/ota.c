@@ -5,6 +5,7 @@
 
 #include "../button_events.h"
 #include "../jade_assert.h"
+#include "../jade_wally_verify.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/malloc_ext.h"
 
@@ -14,6 +15,7 @@
 #include <esp_efuse.h>
 #include <esp_ota_ops.h>
 
+#include <mbedtls/sha256.h>
 #include <sodium/utils.h>
 #include <wally_core.h>
 
@@ -39,6 +41,7 @@ enum ota_status {
     ERROR_NODOWNGRADE,
     ERROR_INVALIDFW,
     ERROR_USER_DECLINED,
+    ERROR_BAD_HASH,
 };
 
 // status messages
@@ -56,6 +59,7 @@ static const char MESSAGES[][20] = {
     "ERROR_NODOWNGRADE",
     "ERROR_INVALIDFW",
     "ERROR_USER_DECLINED",
+    "ERROR_BAD_HASH",
 };
 
 struct bin_msg {
@@ -262,6 +266,10 @@ void ota_process(void* process_ptr)
     bool prevalidated = false;
     bool ota_end_called = false;
 
+    esp_ota_handle_t update_handle = 0;
+    esp_partition_t const* update_partition = NULL;
+    esp_err_t err = ESP_FAIL;
+
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "ota");
     GET_MSG_PARAMS(process);
@@ -272,16 +280,33 @@ void ota_process(void* process_ptr)
     size_t compressedsize = 0;
     if (!rpc_get_sizet("fwsize", &params, &firmwaresize) || !rpc_get_sizet("cmpsize", &params, &compressedsize)
         || firmwaresize <= compressedsize) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad filesize parameters", NULL);
         goto cleanup;
     }
 
-    // TODO: Populate hash from message
-    const char* const expected_hash_hexstr = NULL;
+    // TODO: make hash mandatory in a future release
+    uint8_t expected_hash[SHA256_LEN];
+    size_t expected_hash_len = 0;
+    char* expected_hash_hexstr = NULL;
+    if (rpc_has_field_data("cmphash", &params)) {
+        rpc_get_bytes("cmphash", sizeof(expected_hash), &params, expected_hash, &expected_hash_len);
+        if (expected_hash_len != HMAC_SHA256_LEN) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Cannot extract valid fw hash value", NULL);
+            goto cleanup;
+        }
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(expected_hash, expected_hash_len, &expected_hash_hexstr));
+        jade_process_wally_free_string_on_exit(process, expected_hash_hexstr);
+    }
 
-    esp_ota_handle_t update_handle = 0;
-    esp_partition_t const* update_partition = NULL;
-    esp_err_t err = ESP_FAIL;
+    // Context used to compute (compressed) firmware hash - ie. file as uploaded
+    mbedtls_sha256_context cmp_sha_ctx;
+    mbedtls_sha256_init(&cmp_sha_ctx);
+    int res = mbedtls_sha256_starts_ret(&cmp_sha_ctx, 0); // 0 = SHA256 instead of SHA224
+    if (res != 0) {
+        jade_process_reject_message(
+            process, CBOR_RPC_INTERNAL_ERROR, "Failed to initialise compressed firmware hash", NULL);
+        goto cleanup;
+    }
 
     // sizeof(tinfl_decompressor) is just over 10k, no perfs diff vs DRAM
     tinfl_decompressor* decomp = JADE_MALLOC_PREFER_SPIRAM(sizeof(tinfl_decompressor));
@@ -344,6 +369,12 @@ void ota_process(void* process_ptr)
         if (binctx.len > remaining_compressed) {
             JADE_LOGE("Received %u bytes when only needed %u", binctx.len, remaining_compressed);
             ota_return_status = ERROR_BADDATA;
+            goto cleanup;
+        }
+
+        // Add to cmp-file hasher
+        if (mbedtls_sha256_update_ret(&cmp_sha_ctx, binctx.inbound_buf, binctx.len) != 0) {
+            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to build firmware hash", NULL);
             goto cleanup;
         }
 
@@ -417,6 +448,33 @@ void ota_process(void* process_ptr)
         goto otacomplete;
     }
 
+    // Verify calculated compressed file hash matches expected
+    uint8_t calculated_hash[SHA256_LEN];
+    if (mbedtls_sha256_finish_ret(&cmp_sha_ctx, calculated_hash) != 0) {
+        JADE_LOGE("Failed to compute fw file hash");
+        ota_return_status = ERROR_BAD_HASH;
+        goto otacomplete;
+    }
+
+    // If we were provided the expected cmpfile hash, check it matches
+    // TODO: make hash mandatory in a future release
+    if (expected_hash_len) {
+        JADE_ASSERT(expected_hash_hexstr);
+
+        if (expected_hash_len != sizeof(calculated_hash)
+            || sodium_memcmp(expected_hash, calculated_hash, sizeof(calculated_hash))) {
+            char* calc_hash_hexstr = NULL;
+            JADE_WALLY_VERIFY(wally_hex_from_bytes(calculated_hash, sizeof(calculated_hash), &calc_hash_hexstr));
+
+            JADE_LOGE("Firmware hash mismatch: expected: %s, got: %s", expected_hash_hexstr, calc_hash_hexstr);
+            JADE_WALLY_VERIFY(wally_free_string(calc_hash_hexstr));
+
+            ota_return_status = ERROR_BAD_HASH;
+            goto otacomplete;
+        }
+    }
+
+    // All good, finalise the ota and set the partition to boot
     err = esp_ota_end(update_handle);
     ota_end_called = true;
     if (err != ESP_OK) {
@@ -451,6 +509,8 @@ otacomplete:
     }
 
 cleanup:
+    mbedtls_sha256_free(&cmp_sha_ctx);
+
     // If ota has been successful show message and reboot.
     // If error, show error-message and await user acknowledgement.
     if (ota_return_status == SUCCESS) {
