@@ -92,7 +92,7 @@ uint8_t networkToP2PKHPrefix(const char* network)
     } else if (!strcmp(TAG_LIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2PKH_LIQUID;
     } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
-        return 36; // FIXME: use WALLY_ADDRESS_VERSION_P2PKH_LIQUID_TESTNET (or similar) if/when available
+        return WALLY_ADDRESS_VERSION_P2PKH_LIQUID_TESTNET;
     } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2PKH_LIQUID_REGTEST;
     } else {
@@ -112,7 +112,7 @@ uint8_t networkToP2SHPrefix(const char* network)
     } else if (!strcmp(TAG_LIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2SH_LIQUID;
     } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
-        return 19; // FIXME: use WALLY_ADDRESS_VERSION_P2SH_LIQUID_TESTNET (or similar) if/when available
+        return WALLY_ADDRESS_VERSION_P2SH_LIQUID_TESTNET;
     } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
         return WALLY_ADDRESS_VERSION_P2SH_LIQUID_REGTEST;
     } else {
@@ -128,7 +128,7 @@ uint8_t networkToCAPrefix(const char* network)
     if (!strcmp(TAG_LIQUID, network)) {
         return WALLY_CA_PREFIX_LIQUID;
     } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
-        return 23; // FIXME: use WALLY_CA_PREFIX_LIQUID_TESTNET (or similar) if/when available
+        return WALLY_CA_PREFIX_LIQUID_TESTNET;
     } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
         return WALLY_CA_PREFIX_LIQUID_REGTEST;
     } else {
