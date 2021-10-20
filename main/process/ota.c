@@ -86,11 +86,15 @@ const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t cust
     = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
 
 // UI screens to confirm ota
-void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version);
+void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version,
+    const char* expected_hash_hexstr);
 
-static enum ota_status ota_init(unsigned char* uncompressed, esp_partition_t const** update_partition,
-    const size_t firmwaresize, esp_ota_handle_t* update_handle, progress_bar_t* progress_bar)
+static enum ota_status ota_init(const char* expected_hash_hexstr, unsigned char* uncompressed,
+    esp_partition_t const** update_partition, const size_t firmwaresize, esp_ota_handle_t* update_handle,
+    progress_bar_t* progress_bar)
 {
+    // TODO - uncomment when hash mandatory
+    // JADE_ASSERT(expected_hash_hexstr);
     JADE_ASSERT(uncompressed);
     JADE_ASSERT(update_partition);
     JADE_ASSERT(update_handle);
@@ -160,7 +164,7 @@ static enum ota_status ota_init(unsigned char* uncompressed, esp_partition_t con
 
     // User to confirm once new firmware version known and all checks passed
     gui_activity_t* activity;
-    make_ota_versions_activity(&activity, running_app_info.version, new_app_info->version);
+    make_ota_versions_activity(&activity, running_app_info.version, new_app_info->version, expected_hash_hexstr);
     JADE_ASSERT(activity);
 
     gui_set_current_activity(activity);
@@ -266,12 +270,14 @@ void ota_process(void* process_ptr)
 
     size_t firmwaresize = 0;
     size_t compressedsize = 0;
-
     if (!rpc_get_sizet("fwsize", &params, &firmwaresize) || !rpc_get_sizet("cmpsize", &params, &compressedsize)
         || firmwaresize <= compressedsize) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad parameters", NULL);
         goto cleanup;
     }
+
+    // TODO: Populate hash from message
+    const char* const expected_hash_hexstr = NULL;
 
     esp_ota_handle_t update_handle = 0;
     esp_partition_t const* update_partition = NULL;
@@ -360,8 +366,8 @@ void ota_process(void* process_ptr)
             const size_t towrite = nout - uncompressed;
             if ((prevalidated && status <= TINFL_STATUS_DONE) || towrite == UNCOMPRESSED_BUF_SIZE) {
                 if (!prevalidated) {
-                    const enum ota_status res
-                        = ota_init(uncompressed, &update_partition, firmwaresize, &update_handle, &progress_bar);
+                    const enum ota_status res = ota_init(expected_hash_hexstr, uncompressed, &update_partition,
+                        firmwaresize, &update_handle, &progress_bar);
                     if (res != SUCCESS) {
                         JADE_LOGE("ota_init() error, %u", res);
                         ota_return_status = res;

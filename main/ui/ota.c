@@ -2,17 +2,19 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version)
+void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version,
+    const char* expected_hash_hexstr)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(current_version);
     JADE_ASSERT(new_version);
+    // TODO: add assert here when hash made mandatory
 
     gui_make_activity(activity_ptr, true, "Firmware Upgrade");
     gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 19, 19, 19, 19, 24);
     gui_set_parent(vsplit, act->root_node);
 
     // first row, current version
@@ -49,7 +51,34 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
         gui_set_parent(version, hsplit);
     }
 
-    // third row, text
+    // third row, hash
+    if (expected_hash_hexstr) {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 30, 70);
+        gui_set_parent(hsplit, vsplit);
+
+        gui_view_node_t* label;
+        gui_make_text(&label, "Hash:", TFT_WHITE);
+        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_parent(label, hsplit);
+
+        char hashstr[96];
+        const int ret = snprintf(hashstr, sizeof(hashstr), "} %s {", expected_hash_hexstr);
+        JADE_ASSERT(ret > 0 && ret < sizeof(hashstr));
+
+        gui_view_node_t* hash;
+        gui_make_text(&hash, hashstr, TFT_WHITE);
+        gui_set_align(hash, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_parent(hash, hsplit);
+        gui_set_text_scroll(hash, TFT_BLACK);
+    } else {
+        // TODO: remove this option when hash made mandatory
+        gui_view_node_t* filler;
+        gui_make_fill(&filler, TFT_BLACK);
+        gui_set_parent(filler, vsplit);
+    }
+
+    // fourth row, text
     {
         gui_view_node_t* msg;
         gui_make_text(&msg, "Continue with Update ?", TFT_WHITE);
@@ -57,7 +86,7 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
         gui_set_parent(msg, vsplit);
     }
 
-    // 4th row, buttons
+    // fifth row, buttons
     {
         gui_view_node_t* hsplit;
         gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
