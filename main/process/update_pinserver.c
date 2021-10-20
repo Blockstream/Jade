@@ -11,8 +11,6 @@
 
 #include "process_utils.h"
 
-static void wally_free_string_wrapper(void* str) { wally_free_string((char*)str); }
-
 void update_pinserver_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
@@ -75,7 +73,7 @@ void update_pinserver_process(void* process_ptr)
         char* pubkey_hex = NULL;
         if (pubkey && pubkey_len > 0) {
             JADE_WALLY_VERIFY(wally_hex_from_bytes(pubkey, pubkey_len, &pubkey_hex));
-            jade_process_call_on_exit(process, wally_free_string_wrapper, pubkey_hex);
+            jade_process_wally_free_string_on_exit(process, pubkey_hex);
         }
 
         gui_activity_t* activity;
@@ -127,7 +125,7 @@ void update_pinserver_process(void* process_ptr)
             uint8_t cert_hash[SHA256_LEN];
             JADE_WALLY_VERIFY(wally_sha256((unsigned char*)cert, cert_len, cert_hash, sizeof(cert_hash)));
             JADE_WALLY_VERIFY(wally_hex_from_bytes(cert_hash, sizeof(cert_hash), &cert_hash_hex));
-            jade_process_call_on_exit(process, wally_free_string_wrapper, cert_hash_hex);
+            jade_process_wally_free_string_on_exit(process, cert_hash_hex);
         }
 
         gui_activity_t* activity;

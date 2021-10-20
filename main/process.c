@@ -215,6 +215,13 @@ void cleanup_jade_process(jade_process_t* process)
 
 // On-exit handlers - register functions to be called when process is freed
 
+static void wally_free_string_wrapper(void* str) { JADE_WALLY_VERIFY(wally_free_string((char*)str)); }
+
+void jade_process_wally_free_string_on_exit(jade_process_t* process, char* str)
+{
+    jade_process_call_on_exit(process, wally_free_string_wrapper, str);
+}
+
 void jade_process_free_on_exit(jade_process_t* process, void* param)
 {
     jade_process_call_on_exit(process, free, param);

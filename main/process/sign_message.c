@@ -14,8 +14,6 @@ static const uint32_t GDK_CHALLENGE_LENGTH = 32;
 static const char GDK_CHALLENGE_PREFIX[] = "greenaddress.it      login ";
 static const uint32_t GDK_CHALLENGE_PATH = 0x4741b11e;
 
-static void wally_free_string_wrapper(void* str) { wally_free_string((char*)str); }
-
 // Return true if the path and message-prefix match a gdk login challenge
 static inline bool isGdkLoginChallenge(
     const uint32_t* path, const size_t path_size, const char* message, const size_t msg_len)
@@ -104,7 +102,7 @@ void sign_message_process(void* process_ptr)
             // Overlong message - display the hash
             char* message_hex = NULL;
             JADE_WALLY_VERIFY(wally_hex_from_bytes(message_hash, sizeof(message_hash), &message_hex));
-            jade_process_call_on_exit(process, wally_free_string_wrapper, message_hex);
+            jade_process_wally_free_string_on_exit(process, message_hex);
             make_sign_message_activity(&activity, message_hex, strlen(message_hex), true, path_as_str);
         }
         JADE_ASSERT(activity);

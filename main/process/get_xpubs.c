@@ -7,8 +7,6 @@
 
 #include "process_utils.h"
 
-static void wally_free_string_wrapper(void* str) { wally_free_string((char*)str); }
-
 void get_xpubs_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
@@ -41,7 +39,8 @@ void get_xpubs_process(void* process_ptr)
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get xpub for path", NULL);
         goto cleanup;
     }
-    jade_process_call_on_exit(process, wally_free_string_wrapper, output);
+    jade_process_wally_free_string_on_exit(process, output);
+
     jade_process_reply_to_message_result(process->ctx, output, cbor_result_string_cb);
 
     JADE_LOGI("Success");

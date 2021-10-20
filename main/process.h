@@ -66,6 +66,7 @@ void cleanup_jade_process(jade_process_t* process);
 
 // On-exit handlers - register functions to be called when process is freed
 void jade_process_free_on_exit(jade_process_t* process, void* param);
+void jade_process_wally_free_string_on_exit(jade_process_t* process, char* str);
 void jade_process_call_on_exit(jade_process_t* process, void_fn_t fn, void* param);
 
 // A process can have a 'current' input message for processing
