@@ -3,7 +3,6 @@
 #include "storage.h"
 #include "utils/malloc_ext.h"
 
-#include <mbedtls/sha256.h>
 #include <sodium/utils.h>
 
 // Walks the multisig signers and validates - this wallet must have at least one xpub and it must be correct
