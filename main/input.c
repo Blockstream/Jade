@@ -2,6 +2,7 @@
 #include "gui.h"
 #include "iot_button.h"
 #include "jade_assert.h"
+#include "jade_tasks.h"
 #include "rotary_encoder.h"
 #include "utils/malloc_ext.h"
 
@@ -130,13 +131,8 @@ void wheel_init(void)
     rc = rotary_encoder_set_queue(info, event_queue);
     JADE_ASSERT(rc == ESP_OK);
 
-#ifdef CONFIG_FREERTOS_UNICORE
-    const BaseType_t core_used = 0;
-#else
-    const BaseType_t core_used = 1;
-#endif
-    const BaseType_t retval
-        = xTaskCreatePinnedToCore(&wheel_watch_task, "wheel_watcher", 2 * 1024, info, 5, NULL, core_used);
+    const BaseType_t retval = xTaskCreatePinnedToCore(
+        &wheel_watch_task, "wheel_watcher", 2 * 1024, info, JADE_TASK_PRIO_WHEEL, NULL, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create wheel_watcher task, xTaskCreatePinnedToCore() returned %d", retval);
 }

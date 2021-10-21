@@ -141,7 +141,7 @@ static void boot_process(void)
 
 static void start_dashboard(void)
 {
-    JADE_LOGI("Starting dashboard on core %u", xPortGetCoreID());
+    JADE_LOGI("Starting dashboard on core %u, with priority %u", xPortGetCoreID(), uxTaskPriorityGet(NULL));
 
     // Hand over to the main dashboard task
     jade_process_t main_process;

@@ -1,5 +1,6 @@
 #include "serial.h"
 #include "jade_assert.h"
+#include "jade_tasks.h"
 #include "process.h"
 #include "utils/malloc_ext.h"
 #include "wire.h"
@@ -108,16 +109,13 @@ bool serial_init(TaskHandle_t* serial_handle)
         return false;
     }
 
-#ifdef CONFIG_FREERTOS_UNICORE
-    const BaseType_t core_used = 0;
-#else
-    const BaseType_t core_used = 1;
-#endif
-    BaseType_t retval = xTaskCreatePinnedToCore(&serial_reader, "serial_reader", 2 * 1024, NULL, 5, NULL, core_used);
+    BaseType_t retval = xTaskCreatePinnedToCore(
+        &serial_reader, "serial_reader", 2 * 1024, NULL, JADE_TASK_PRIO_READER, NULL, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create serial_reader task, xTaskCreatePinnedToCore() returned %d", retval);
 
-    retval = xTaskCreatePinnedToCore(&serial_writer, "serial_writer", 2 * 1024, NULL, 5, serial_handle, core_used);
+    retval = xTaskCreatePinnedToCore(
+        &serial_writer, "serial_writer", 2 * 1024, NULL, JADE_TASK_PRIO_WRITER, serial_handle, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create serial_writer task, xTaskCreatePinnedToCore() returned %d", retval);
 

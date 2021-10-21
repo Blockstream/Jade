@@ -2,6 +2,7 @@
 #include "../button_events.h"
 #include "../gui.h"
 #include "../jade_assert.h"
+#include "../jade_tasks.h"
 #include "../jade_wally_verify.h"
 #include "../process.h"
 #include "../storage.h"
@@ -419,13 +420,8 @@ bool ble_init(TaskHandle_t* ble_handle)
     ble_data_in = full_ble_data_in + 1;
     ble_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
-#ifdef CONFIG_FREERTOS_UNICORE
-    const BaseType_t core_used = 0;
-#else
-    const BaseType_t core_used = 1;
-#endif
-    const BaseType_t retval
-        = xTaskCreatePinnedToCore(&ble_writer, "ble_writer", 2 * 1024, NULL, 5, ble_handle, core_used);
+    const BaseType_t retval = xTaskCreatePinnedToCore(
+        &ble_writer, "ble_writer", 2 * 1024, NULL, JADE_TASK_PRIO_WRITER, ble_handle, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create ble_writer task, xTaskCreatePinnedToCore() returned %d", retval);
 

@@ -1,5 +1,6 @@
 #include "qemu_tcp.h"
 #include "jade_assert.h"
+#include "jade_tasks.h"
 #include "process.h"
 #include "utils/malloc_ext.h"
 #include "wire.h"
@@ -233,11 +234,13 @@ bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
 
     qemu_tcp_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
-    BaseType_t retval = xTaskCreatePinnedToCore(&qemu_tcp_reader, "qemu_tcp_reader", 2 * 1024, NULL, 5, NULL, 0);
+    BaseType_t retval = xTaskCreatePinnedToCore(
+        &qemu_tcp_reader, "qemu_tcp_reader", 2 * 1024, NULL, JADE_TASK_PRIO_READER, NULL, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create qemu_tcp_reader task, xTaskCreatePinnedToCore() returned %d", retval);
 
-    retval = xTaskCreatePinnedToCore(&qemu_tcp_writer, "qemu_tcp_writer", 2 * 1024, NULL, 5, qemu_tcp_handle, 0);
+    retval = xTaskCreatePinnedToCore(&qemu_tcp_writer, "qemu_tcp_writer", 2 * 1024, NULL, JADE_TASK_PRIO_WRITER,
+        qemu_tcp_handle, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create qemu_tcp_writer task, xTaskCreatePinnedToCore() returned %d", retval);
     eth_start();

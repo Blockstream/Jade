@@ -1,6 +1,7 @@
 #include "idletimer.h"
 #include "gui.h"
 #include "jade_assert.h"
+#include "jade_tasks.h"
 #include "keychain.h"
 #include "power.h"
 #include "storage.h"
@@ -129,8 +130,8 @@ void idletimer_init(void)
     idletimer_register_activity();
 
     // Kick off the idletimer task
-    const BaseType_t retval
-        = xTaskCreatePinnedToCore(idletimer_task, "idle_timeout", 2 * 1024, NULL, tskIDLE_PRIORITY, NULL, 0);
+    const BaseType_t retval = xTaskCreatePinnedToCore(
+        idletimer_task, "idle_timeout", 2 * 1024, NULL, JADE_TASK_PRIO_IDLETIMER, NULL, JADE_CORE_PRIMARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create idle_timeout task, xTaskCreatePinnedToCore() returned %d", retval);
 }

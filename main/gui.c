@@ -10,6 +10,7 @@
 #include "gui.h"
 #include "idletimer.h"
 #include "jade_assert.h"
+#include "jade_tasks.h"
 #include "power.h"
 #include "qrcode.h"
 #include "random.h"
@@ -166,7 +167,8 @@ void gui_init(void)
     make_status_bar();
 
     // Create (high priority) gui task
-    BaseType_t retval = xTaskCreatePinnedToCore(gui_task, "gui", 2 * 1024, NULL, 5, &gui_task_handle, GUI_CORE);
+    BaseType_t retval = xTaskCreatePinnedToCore(
+        gui_task, "gui", 2 * 1024, NULL, JADE_TASK_PRIO_GUI, &gui_task_handle, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create GUI task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 

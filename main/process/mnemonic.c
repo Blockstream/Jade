@@ -4,6 +4,7 @@
 #include "../camera.h"
 #include "../gui.h"
 #include "../jade_assert.h"
+#include "../jade_tasks.h"
 #include "../keychain.h"
 #include "../process.h"
 #include "../random.h"
@@ -537,13 +538,8 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     camera_data.image_buffer = NULL;
 
     TaskHandle_t camera_task;
-#ifdef CONFIG_FREERTOS_UNICORE
-    const BaseType_t core_used = 0;
-#else
-    const BaseType_t core_used = 1;
-#endif
-    const BaseType_t retval = xTaskCreatePinnedToCore(
-        &jade_camera_task, "jade_camera", 64 * 1024, &camera_data, 5, &camera_task, core_used);
+    const BaseType_t retval = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 64 * 1024, &camera_data,
+        JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);
 
