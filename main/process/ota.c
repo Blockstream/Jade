@@ -385,8 +385,9 @@ void ota_process(void* process_ptr)
             size_t in_bytes = length;
             size_t out_bytes = uncompressed + UNCOMPRESSED_BUF_SIZE - nout;
             int flags = TINFL_FLAG_PARSE_ZLIB_HEADER;
-            if (remaining_compressed > length)
+            if (remaining_compressed > length) {
                 flags |= TINFL_FLAG_HAS_MORE_INPUT;
+            }
 
             status = tinfl_decompress(decomp, data_buf, &in_bytes, uncompressed, nout, &out_bytes, flags);
 
