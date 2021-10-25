@@ -31,11 +31,15 @@ test_format:
     - build*/bootloader/bootloader.bin
     - build*/partition_table/partition-table.bin
     - build*/sdkconfig
+    - build*/bsdiff.h
+    - build*/bsdiff.c
   script:
     - . $HOME/esp/esp-idf/export.sh
     - idf.py all size-components size
     - python ./fwprep.py build/jade.bin build
     - cp sdkconfig build/
+    - cp components/esp32_bsdiff/bsdiff.h build/
+    - cp components/esp32_bsdiff/bsdiff.c build/
 
 test_build_qemu:
   extends: .test_build_template
@@ -237,6 +241,32 @@ test_flash_artifact:
     - test_build_jade_ci
   before_script:
     - mv build_jade_ci build
+
+test_flash_artifact_ota_delta:
+  stage: deploy
+  tags:
+    - esp32flasher
+  needs:
+    - test_build_jade_ci
+    - test_build_jade_noblobs_ci
+  before_script:
+    - mv build_jade_noblobs_ci build_noblobs
+    - mv build_jade_ci build
+  script:
+    - ./ota_delta_ci.sh
+
+test_flash_artifact_ota_delta_v1_1:
+  stage: deploy
+  tags:
+    - esp32flasher_v1_1
+  needs:
+    - test_build_jade_v1_1_ci
+    - test_build_jade_v1_1_noblobs_ci
+  before_script:
+    - mv build_jade_v1_1_noblobs_ci build_noblobs
+    - mv build_jade_v1_1_ci build
+  script:
+    - ./ota_delta_ci.sh
 
 test_flash_artifact_noblobs:
   extends: .test_flash_artifact_template

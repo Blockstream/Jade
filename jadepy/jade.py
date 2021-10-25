@@ -366,21 +366,27 @@ class JadeAPI:
         params = {'entropy': entropy}
         return self._jadeRpc('add_entropy', params)
 
-    def ota_update(self, fwcmp, fwlen, chunksize, cb):
+    def ota_update(self, fwcmp, fwlen, chunksize, patchlen=None, cb=None):
         """
         RPC call to attempt to update the unit's firmware.
 
         Parameters
         ----------
         fwcmp : bytes
-            The compressed firmware image to upload to the Jade unit.
+            The compressed firmware image to upload to the Jade unit.  Can be a full firmware or
+            and incremental diff to be applied to the currently running firmware image.
         fwlen : int
-            The size of the firmware, when uncompressed.
+            The size of the new complete (uncompressed) firmware image (after any delta is applied).
         chunksize : int
             The size of the chunks used to upload the compressed firmware.  Each chunk is uploaded
             and ack'd by the hw unit.
             The maximum supported chunk size is given in the version info data, under the key
             'JADE_OTA_MAX_CHUNK'.
+        patchlen: int, optional
+            If the compressed firmware bytes are an incremental diff to be applied to the running
+            firmware image, this is the size of that patch when uncompressed.
+            Defaults to None, implying the compressed data is a full firmware image upload.
+            (Compare with fwlen - the size of the final fw image.)
         cb : function, optional
             Callback function accepting two integers - the amount of compressed firmware sent thus
             far, and the total length of the compressed firmware to send.
@@ -395,17 +401,23 @@ class JadeAPI:
             new firmware.
         """
 
+        # Compute the sha256 hash of the compressed file being uploaded
         cmphasher = hashlib.sha256()
         cmphasher.update(fwcmp)
         cmphash = cmphasher.digest()
         cmplen = len(fwcmp)
 
         # Initiate OTA
+        ota_method = 'ota'
         params = {'fwsize': fwlen,
                   'cmpsize': cmplen,
                   'cmphash': cmphash}
 
-        result = self._jadeRpc('ota', params)
+        if patchlen is not None:
+            ota_method = 'ota_delta'
+            params['patchsize'] = patchlen
+
+        result = self._jadeRpc(ota_method, params)
         assert result is True
 
         # Write binary chunks

@@ -38,5 +38,6 @@ source venv3/bin/activate
 pip install --require-hashes -r requirements.txt -r pinserver/requirements.txt
 
 python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222
+python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222 --fwdeltafile=$(ls /patch_*.bin)
 
 python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:2222

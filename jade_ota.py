@@ -12,7 +12,6 @@ TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
 slot invite sadness banana'
 
-DEFAULT_SERIAL_DEVICE = '/dev/ttyUSB0'
 BLE_TEST_PASSKEYFILE = 'ble_test_passkey.txt'
 
 FWSERVER_URL_ROOT = 'https://jadefw.blockstream.com/bin'
@@ -192,9 +191,35 @@ def get_local_fwfile(fwfilename, write_compressed):
     return fwcmp, fwlen
 
 
-# Takes the compressed firmware data, and the expected length of the
-# uncompressed firmware image.
-def ota(jade, fwcompressed, fwlength, pushmnemonic):
+# Use a local firmware file delta - uses the compressed firmware file delta
+def get_local_fwfile_delta(fwfilename):
+    # Load the compressed firmware delta file
+    assert os.path.exists(fwfilename) and os.path.isfile(
+            fwfilename), f'Compressed firmware file delta not found: {fwfilename}'
+
+    logger.info(f'Reading file: {fwfilename}')
+    with open(fwfilename, 'rb') as fwfile:
+        firmware = fwfile.read()
+
+    basename = os.path.basename(fwfilename)
+    splits = basename.split('_')
+
+    return firmware, int(splits[1]), int(splits[2].split('.')[0])
+
+
+# Returns whether we have ble and the id of the jade
+def get_bleid(jade):
+    info = jade.get_version_info()
+    has_radio = info['JADE_CONFIG'] == 'BLE'
+    id = info['EFUSEMAC'][6:]
+    return has_radio, id
+
+
+# Takes the compressed firmware data to upload, the expected length of the
+# final (uncompressed) firmware, the length of the uncompressed diff/patch
+# (if this is a patch to apply to the current running firmware), and whether
+# to apply the test mnemonic rather than using normal pinserver authentication.
+def ota(jade, fwcompressed, fwlength, patchlen=None, pushmnemonic=False):
     info = jade.get_version_info()
     logger.info(f'Running OTA on: {info}')
     has_pin = info['JADE_HAS_PIN']
@@ -238,7 +263,7 @@ def ota(jade, fwcompressed, fwlength, pushmnemonic):
         last_time = current_time
         last_written = written
 
-    result = jade.ota_update(fwcompressed, fwlength, chunksize, _log_progress)
+    result = jade.ota_update(fwcompressed, fwlength, chunksize, patchlen=patchlen, cb=_log_progress)
     assert result is True
 
     logger.info(f'Total ota time in secs: {time.time() - start_time}')
@@ -253,23 +278,27 @@ def ota(jade, fwcompressed, fwlength, pushmnemonic):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    sergrp = parser.add_mutually_exclusive_group()
-    sergrp.add_argument('--skipserial',
+    parser.add_argument('--skipserial',
                         action='store_true',
                         dest='skipserial',
                         help='Skip testing over serial connection',
                         default=False)
-    sergrp.add_argument('--serialport',
+    parser.add_argument('--serialport',
                         action='store',
                         dest='serialport',
                         help='Serial port or device',
-                        default=DEFAULT_SERIAL_DEVICE)
+                        default=None)
 
     blegrp = parser.add_mutually_exclusive_group()
     blegrp.add_argument('--skipble',
                         action='store_true',
                         dest='skipble',
                         help='Skip testing over BLE connection',
+                        default=False)
+    blegrp.add_argument('--bleidfromserial',
+                        action='store_true',
+                        dest='bleidfromserial',
+                        help='Fetch BLE id from serial connection (implied if not --skipserial)',
                         default=False)
     blegrp.add_argument('--bleid',
                         action='store',
@@ -305,6 +334,11 @@ if __name__ == '__main__':
                         dest='fwfilename',
                         help='Uncompressed local file to OTA',
                         default=DEFAULT_FIRMWARE_FILE)
+    srcgrp.add_argument('--fwdeltafile',
+                        action='store',
+                        dest='fwdeltafilename',
+                        help='Compressed local file delta to OTA',
+                        default=None)
 
     # These only apply to firmware downloading
     parser.add_argument('--hw-target',
@@ -378,12 +412,19 @@ if __name__ == '__main__':
                      'beta': 'BETA'}.get(args.release, 'LATEST')
 
     # Get the file to OTA
+    patchlen = None
     if args.downloadfw:
         fwcmp, fwlen = download_file(args.hwtarget, args.writecompressed,
                                      indexfile, args.autoselectfw)
     elif args.downloadgdk:
         fwcmp, fwlen = download_file_gdk(args.hwtarget, args.writecompressed,
                                          indexfile, args.autoselectfw)
+    elif args.fwdeltafilename:
+        if args.writecompressed:
+            logger.error('Can only supply write compressed target for full firmware ota')
+            sys.exit(1)
+
+        fwcmp, fwlen, patchlen = get_local_fwfile_delta(args.fwdeltafilename)
     else:
         fwcmp, fwlen = get_local_fwfile(args.fwfilename, args.writecompressed)
 
@@ -400,16 +441,22 @@ if __name__ == '__main__':
     try:
         has_radio = True
         bleid = args.bleid
+
         if not args.skipserial:
-            logger.info(f'Jade OTA over serial {args.serialport}')
+            logger.info(f'Jade OTA over serial')
             with JadeAPI.create_serial(device=args.serialport) as jade:
-                has_radio, bleid = ota(jade, fwcmp, fwlen, args.pushmnemonic)
+                has_radio, bleid = ota(jade, fwcmp, fwlen, patchlen, args.pushmnemonic)
 
         if not args.skipble:
+            if has_radio and bleid is None and args.bleidfromserial:
+                logger.info(f'Jade OTA getting bleid via serial connection')
+                with JadeAPI.create_serial(device=args.serialport) as jade:
+                    has_radio, bleid = get_bleid(jade)
+
             if has_radio:
                 logger.info(f'Jade OTA over BLE {bleid}')
                 with JadeAPI.create_ble(serial_number=bleid) as jade:
-                    ota(jade, fwcmp, fwlen, args.pushmnemonic)
+                    ota(jade, fwcmp, fwlen, patchlen, args.pushmnemonic)
             else:
                 msg = 'Skipping BLE tests - not enabled on the hardware'
                 logger.warning(msg)

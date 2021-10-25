@@ -675,6 +675,17 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'fwsize': 1234, 'cmpsize': 1234}), 'Bad filesize parameters'),
                   (('badota6', 'ota',  # hash unexpected size
                     {'fwsize': 1234, 'cmpsize': 1111, 'cmphash': b'123'}), 'extract valid fw hash'),
+                  (('badota_delta1', 'ota_delta'), ''),
+                  (('badota_delta2', 'ota_delta', {'fwsize': 12345}), 'Bad filesize parameters'),
+                  (('badota_delta3', 'ota_delta',
+                    {'fwsize': '1234', 'cmpsize': '123'}), 'Bad filesize parameters'),
+                  (('badota_delta4', 'ota_delta',
+                    {'fwsize': 'X', 'cmpsize': 'Y'}), 'Bad filesize parameters'),
+                  (('badota_delta5', 'ota_delta',  # compsize >= fwsize rejected
+                    {'fwsize': 1234, 'cmpsize': 1234}), 'Bad filesize parameters'),
+                  (('badota_delta6', 'ota_delta',  # hash unexpected size
+                      {'fwsize': 1234, 'cmpsize': 1111,
+                       'patchsize': 1200, 'cmphash': b'123'}), 'extract valid fw hash'),
 
                   (('badxpub1', 'get_xpub'), 'Expecting parameters map'),
                   (('badxpub2', 'get_xpub',

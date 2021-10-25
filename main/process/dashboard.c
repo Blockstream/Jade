@@ -61,6 +61,7 @@ void debug_set_mnemonic_process(void* process_ptr);
 void debug_handshake(void* process_ptr);
 #endif
 void ota_process(void* process_ptr);
+void ota_delta_process(void* process_ptr);
 void update_pinserver_process(void* process_ptr);
 void auth_user_process(void* process_ptr);
 
@@ -266,6 +267,18 @@ static void dispatch_message(jade_process_t* process)
             // Reject the message as hw locked
             jade_process_reject_message(
                 process, CBOR_RPC_HW_LOCKED, "OTA is only allowed on new or logged-in device.", NULL);
+        }
+    } else if (IS_METHOD("ota_delta")) {
+        // OTA delta is allowed if either:
+        // a) User has passed PIN screen and has unlocked Jade
+        // or
+        // b) There is no PIN set (ie. no encrypted keys set, eg. new device)
+        if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) || !keychain_has_pin()) {
+            task_function = ota_delta_process;
+        } else {
+            // Reject the message as hw locked
+            jade_process_reject_message(
+                process, CBOR_RPC_HW_LOCKED, "OTA delta is only allowed on new or logged-in device.", NULL);
         }
 #ifdef CONFIG_DEBUG_MODE
     } else if (IS_METHOD("debug_selfcheck")) {
