@@ -1,6 +1,8 @@
 #ifndef STORAGE_H_
 #define STORAGE_H_
 
+#include <nvs.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -11,11 +13,6 @@ typedef enum { NETWORK_TYPE_NONE, NETWORK_TYPE_MAIN, NETWORK_TYPE_TEST } network
 
 #define MAX_PINSVR_CERTIFICATE_LENGTH 2048
 #define MAX_PINSVR_URL_LENGTH 120
-
-// According to the latest docs should be available as NVS_KEY_NAME_MAX_SIZE in nvs.h
-// ... but doesn't appear to be present in v4.2.2.
-// TODO: remove this in favour of NVS_KEY_NAME_MAX_SIZE when available.
-#define STORAGE_MAX_KEY_SIZE 16
 
 bool storage_init(void);
 bool storage_erase(void);
@@ -60,7 +57,8 @@ bool storage_get_multisig_registration(
 
 size_t storage_get_multisig_registration_count(void);
 bool storage_multisig_name_exists(const char* multisig_name);
-bool storage_get_all_multisig_registration_names(char names[][STORAGE_MAX_KEY_SIZE], size_t names_len, size_t* written);
+bool storage_get_all_multisig_registration_names(
+    char names[][NVS_KEY_NAME_MAX_SIZE], size_t names_len, size_t* written);
 
 bool storage_erase_multisig_registration(const char* name);
 

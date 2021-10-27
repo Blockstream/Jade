@@ -457,7 +457,7 @@ static void handle_legal(void)
 
 static void handle_multisigs(void)
 {
-    char names[MAX_MULTISIG_REGISTRATIONS][STORAGE_MAX_KEY_SIZE]; // Sufficient
+    char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
     const size_t names_len = sizeof(names) / sizeof(names[0]);
     size_t num_multisigs = 0;
     bool ok = storage_get_all_multisig_registration_names(names, names_len, &num_multisigs);

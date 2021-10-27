@@ -2,7 +2,6 @@
 #include "jade_assert.h"
 #include "keychain.h"
 #include <esp_system.h>
-#include <nvs.h>
 #include <nvs_flash.h>
 #include <string.h>
 #include <wally_crypto.h>
@@ -506,7 +505,7 @@ bool storage_multisig_name_exists(const char* name)
 }
 
 bool storage_get_all_multisig_registration_names(
-    char names[][STORAGE_MAX_KEY_SIZE], const size_t names_len, size_t* written)
+    char names[][NVS_KEY_NAME_MAX_SIZE], const size_t names_len, size_t* written)
 {
     JADE_ASSERT(names);
     JADE_ASSERT(*names);
