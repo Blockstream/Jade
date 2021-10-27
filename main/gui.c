@@ -168,7 +168,7 @@ void gui_init(void)
 
     // Create (high priority) gui task
     BaseType_t retval = xTaskCreatePinnedToCore(
-        gui_task, "gui", 2 * 1024, NULL, JADE_TASK_PRIO_GUI, &gui_task_handle, JADE_CORE_SECONDARY);
+        gui_task, "gui", 3 * 1024, NULL, JADE_TASK_PRIO_GUI, &gui_task_handle, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create GUI task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
@@ -1490,7 +1490,7 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
 
             uint8_t offset = 0;
 
-            for (size_t i = 0; i < node->render_data.resolved_text_length; i++) {
+            for (size_t i = 0; i < node->render_data.resolved_text_length; ++i) {
                 char buff[2];
                 _fg = node->text->noise->background_color;
                 buff[0] = 0x61 + get_uniform_random_byte(0x7a - 0x61);
@@ -1573,7 +1573,6 @@ static void paint_borders(gui_view_node_t* node, dispWin_t cs)
 void gui_repaint(gui_view_node_t* node, bool take_mutex)
 {
     JADE_ASSERT(node);
-
     JADE_ASSERT(paint_mutex);
 
     if (take_mutex) {
@@ -1745,7 +1744,6 @@ static void update_status_bar()
     status_bar_cs.y2 = status_bar_cs.y1 + GUI_STATUS_BAR_HEIGHT;
 
     if ((status_bar.battery_update_counter % 10) == 0) {
-
 #ifndef CONFIG_ESP32_NO_BLOBS
         const bool new_ble = ble_enabled();
 #else
@@ -1776,7 +1774,6 @@ static void update_status_bar()
     }
 
     if (status_bar.battery_update_counter == 0) {
-        // Print the hwm gui stack usage
         uint8_t new_bat = power_get_battery_status();
         if (power_get_battery_charging()) {
             new_bat = new_bat + 12;
