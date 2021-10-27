@@ -13,11 +13,6 @@ bool GUI_VIEW_DEBUG = false;
 uint16_t GUI_TARGET_FRAMERATE = 15;
 uint16_t GUI_SCROLL_WAIT_END = 32;
 uint16_t GUI_SCROLL_WAIT_FRAME = 7;
-#ifdef CONFIG_FREERTOS_UNICORE
-BaseType_t GUI_CORE = 0;
-#else
-BaseType_t GUI_CORE = 1;
-#endif
 dispWin_t GUI_DISPLAY_WINDOW = { .x1 = 40, .y1 = 53, .x2 = 280, .y2 = 188 };
 uint16_t GUI_STATUS_BAR_HEIGHT = 24;
 uint32_t GUI_DEFAULT_FONT = DEFAULT_FONT;

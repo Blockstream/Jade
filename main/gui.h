@@ -31,8 +31,6 @@ extern uint16_t GUI_TARGET_FRAMERATE;
 extern uint16_t GUI_SCROLL_WAIT_END;
 // How many frames should we wait between each 1-char scroll
 extern uint16_t GUI_SCROLL_WAIT_FRAME;
-// On which core should all the GUI stuff run
-extern BaseType_t GUI_CORE;
 // Display window
 extern dispWin_t GUI_DISPLAY_WINDOW;
 // Height for the system status bar
