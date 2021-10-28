@@ -96,8 +96,10 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
     while (!mnemonic_confirmed) {
         gui_set_current_activity(first_activity);
 
+        esp_event_handler_instance_t ctx;
         wait_event_data_t* wait_data = make_wait_event_data();
-        esp_event_handler_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data);
+        esp_event_handler_instance_register(
+            GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data, &ctx);
         int32_t ev_id;
         while (true) {
             ev_id = ESP_EVENT_ANY_ID;
@@ -107,12 +109,14 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
             if (ev_id == BTN_MNEMONIC_EXIT) {
                 // User abandonded
                 JADE_LOGD("user abandoned noting mnemonic");
+                esp_event_handler_instance_unregister(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, ctx);
                 free_wait_event_data(wait_data);
                 goto cleanup;
             }
             if (ev_id == BTN_MNEMONIC_VERIFY) {
                 // User ready to verify mnemonic
                 JADE_LOGD("moving on to confirm mnemonic");
+                esp_event_handler_instance_unregister(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, ctx);
                 free_wait_event_data(wait_data);
                 break;
             }
@@ -590,7 +594,10 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
     make_enter_passphrase_screen(&passphrase_activity, textboxes, textboxes_len);
     JADE_ASSERT(passphrase_activity);
 
+    esp_event_handler_instance_t ctx;
     wait_event_data_t* wait_data = make_wait_event_data();
+    esp_event_handler_instance_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data, &ctx);
+
     passphrase[0] = '\0';
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
@@ -601,9 +608,6 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
         size_t page = 0;
         gui_set_current_activity(passphrase_activity);
         gui_update_text(textboxes[page], passphrase);
-
-        vTaskDelay(50 / portTICK_PERIOD_MS);
-        esp_event_handler_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data);
 
         while (!done) {
             ev_id = ESP_EVENT_ANY_ID;
@@ -657,6 +661,7 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
 #endif
 
     // Done
+    esp_event_handler_instance_unregister(JADE_EVENT, ESP_EVENT_ANY_ID, ctx);
     free_wait_event_data(wait_data);
 
     JADE_ASSERT(ich <= PASSPHRASE_MAX_LEN);

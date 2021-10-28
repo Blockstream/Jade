@@ -38,6 +38,8 @@ typedef struct {
 
 // global mutex used to synchronize tft paint commands. global across activities
 static SemaphoreHandle_t paint_mutex = NULL;
+// global mutex used to synchronize activity data
+static SemaphoreHandle_t activities_mutex = NULL;
 // current activity being drawn on screen
 static gui_activity_t* current_activity = NULL;
 // stack of activities that currently exist
@@ -138,10 +140,14 @@ void gui_set_click_event(gui_event_t event)
 
 void gui_init(void)
 {
-    // Create semaphore.  Note it has to be 'preloaded' so it can be taken later
+    // Create semaphores.  Note they have to be 'preloaded' so they can be taken later
     paint_mutex = xSemaphoreCreateBinary();
     JADE_ASSERT(paint_mutex);
     xSemaphoreGive(paint_mutex);
+
+    activities_mutex = xSemaphoreCreateBinary();
+    JADE_ASSERT(activities_mutex);
+    xSemaphoreGive(activities_mutex);
 
     // Which button event are we to use as a click / 'select item' - sanity checked
     const gui_event_t loaded_click_event = storage_get_click_event();
@@ -560,6 +566,8 @@ void gui_make_activity(gui_activity_t** ppact, bool has_status_bar, const char* 
 
     activity->activity_events = NULL;
 
+    activity->wait_data_items = NULL;
+
     *ppact = activity;
 }
 
@@ -595,15 +603,29 @@ static void free_updatables(gui_activity_t* activity)
 }
 
 // free a linked list of activity_event_t
-static void free_activity_events(activity_event_t* tip)
+static void free_activity_events(gui_activity_t* activity)
 {
-    if (tip) {
-        activity_event_t* current = tip;
-        while (current) {
-            activity_event_t* const next = current->next;
-            free(current);
-            current = next;
-        }
+    JADE_ASSERT(activity);
+
+    activity_event_t* current = activity->activity_events;
+    while (current) {
+        activity_event_t* const next = current->next;
+        free(current);
+        current = next;
+    }
+}
+
+// free a linked list of wait_data_t
+static void free_wait_data_items(gui_activity_t* activity)
+{
+    JADE_ASSERT(activity);
+
+    wait_data_t* current = activity->wait_data_items;
+    while (current) {
+        wait_data_t* const next = current->next;
+        free_wait_event_data(current->event_data);
+        free(current);
+        current = next;
     }
 }
 
@@ -617,7 +639,9 @@ static void free_activity(activity_holder_t* holder)
 
     free_selectables(activity);
     free_updatables(activity);
-    free_activity_events(activity->activity_events);
+    free_activity_events(activity);
+    free_wait_data_items(activity);
+
     free_view_node(activity->root_node);
 
     if (activity->title) {
@@ -1658,12 +1682,19 @@ static bool switch_activities()
         JADE_ASSERT(item_size == sizeof(activity_switch_info_t));
         JADE_ASSERT(switch_info->new_activity);
 
+        // Take the activities mutex while we swap activities
+        while (xSemaphoreTake(activities_mutex, portMAX_DELAY) != pdTRUE) {
+            // Wait to get the activities mutex
+        }
+
         if (switch_info->new_activity != current_activity) {
+
             // Unregister the old activity's event handlers
             if (current_activity) {
                 activity_event_t* l = current_activity->activity_events;
                 while (l) {
-                    esp_event_handler_unregister(l->event_base, l->event_id, l->handler);
+                    esp_event_handler_instance_unregister(l->event_base, l->event_id, l->instance);
+                    l->instance = NULL;
                     l = l->next;
                 }
             }
@@ -1675,7 +1706,8 @@ static bool switch_activities()
             // Register new events
             activity_event_t* l = current_activity->activity_events;
             while (l) {
-                esp_event_handler_register(l->event_base, l->event_id, l->handler, l->args);
+                JADE_ASSERT(!l->instance);
+                esp_event_handler_instance_register(l->event_base, l->event_id, l->handler, l->args, &(l->instance));
                 l = l->next;
             }
 
@@ -1687,6 +1719,9 @@ static bool switch_activities()
                 status_bar.updated = true;
             }
         }
+
+        // Release the activities mutex
+        xSemaphoreGive(activities_mutex);
 
         // If passed a 'to_free' list, free these now
         activity_holder_t* to_free = switch_info->to_free;
@@ -1906,15 +1941,43 @@ void gui_set_current_activity(gui_activity_t* activity)
     gui_set_current_activity_ex(activity, false);
 }
 
-static void push_activity_event(
+// Create a new event_data structure, and attach to the activity
+// (so it has the same lifetime as the parent activity)
+wait_event_data_t* gui_activity_make_wait_event_data(gui_activity_t* activity)
+{
+    JADE_ASSERT(activity);
+
+    // Create item to hold new event data object
+    wait_data_t* const item = JADE_MALLOC(sizeof(wait_data_t));
+    item->event_data = make_wait_event_data();
+
+    // Put into activity's list
+    item->next = activity->wait_data_items;
+    activity->wait_data_items = item;
+
+    // Return new wait_event_data
+    return item->event_data;
+}
+
+void gui_activity_register_event(
     gui_activity_t* activity, const char* event_base, uint32_t event_id, esp_event_handler_t handler, void* args)
 {
+    JADE_ASSERT(activity);
+    JADE_ASSERT(event_base);
+
+    // Store the event registration so we can re-apply when switching between activities
     activity_event_t* link = JADE_CALLOC(1, sizeof(activity_event_t));
 
     link->event_base = event_base;
     link->event_id = event_id;
     link->handler = handler;
     link->args = args;
+
+    // Get the activities mutex before we update the activity events
+    // or check the current activity, as can beconcurrent with 'switch_activities()'
+    while (xSemaphoreTake(activities_mutex, portMAX_DELAY) != pdTRUE) {
+        // Wait to get the activities mutex
+    }
 
     if (!activity->activity_events) {
         activity->activity_events = link;
@@ -1925,20 +1988,16 @@ static void push_activity_event(
         }
         last->next = link;
     }
-}
 
-void gui_activity_register_event(
-    gui_activity_t* activity, const char* event_base, uint32_t event_id, esp_event_handler_t handler, void* args)
-{
-    JADE_ASSERT(activity);
-
-    push_activity_event(activity, event_base, event_id, handler, args);
-
-    // this activity is already active, immediately add the event handler
+    // If this activity is already active, immediately add the event handler
     if (activity == current_activity) {
-        const esp_err_t rc = esp_event_handler_register(event_base, event_id, handler, args);
+        const esp_err_t rc
+            = esp_event_handler_instance_register(event_base, event_id, handler, args, &(link->instance));
         JADE_ASSERT(rc == ESP_OK);
     }
+
+    // Return the activities mutex
+    xSemaphoreGive(activities_mutex);
 }
 
 // Registers and event handler, then blocks waiting for it to fire.  A timeout can be passed.
@@ -1948,15 +2007,16 @@ bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, u
 {
     JADE_ASSERT(activity);
 
-    wait_event_data_t* const wait_event_data = make_wait_event_data();
+    // create a new wait-event-data structure and attach to the activity, which takes ownership
+    wait_event_data_t* const wait_event_data = gui_activity_make_wait_event_data(activity);
+    JADE_ASSERT(wait_event_data);
 
-    // push it so that it gets removed when the activity is swapped
+    // register it so that it gets removed when the activity is swapped out
     gui_activity_register_event(activity, event_base, event_id, sync_wait_event_handler, wait_event_data);
 
     // immediately start waiting
     const esp_err_t ret = sync_wait_event(
         event_base, event_id, wait_event_data, trigger_event_base, trigger_event_id, trigger_event_data, max_wait);
-    free_wait_event_data(wait_event_data);
 
     return ret == ESP_OK;
 }

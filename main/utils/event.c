@@ -22,7 +22,7 @@ struct wait_event_data_t {
 // Make a new event-data
 wait_event_data_t* make_wait_event_data(void)
 {
-    wait_event_data_t* wait_event_data = JADE_CALLOC(1, sizeof(wait_event_data_t));
+    wait_event_data_t* const wait_event_data = JADE_CALLOC(1, sizeof(wait_event_data_t));
 
     wait_event_data->triggered = xSemaphoreCreateBinary();
 
@@ -41,14 +41,7 @@ wait_event_data_t* make_wait_event_data(void)
 // Unregister the event and free the event-data structure
 void free_wait_event_data(wait_event_data_t* data)
 {
-    // Unregister the event (if set)
-    if (data->register_event_base) {
-        JADE_LOGD(
-            "Unregistering event handler for %s/%u (%p)", data->register_event_base, data->register_event_id, data);
-        const esp_err_t ret
-            = esp_event_handler_unregister(data->register_event_base, data->register_event_id, sync_wait_event_handler);
-        JADE_ASSERT(ret == ESP_OK);
-    }
+    JADE_ASSERT(data);
 
     // Free the underlying event data struct
     JADE_LOGD("Freeing event data for %s/%u (%p)", data->register_event_base, data->register_event_id, data);
@@ -84,7 +77,7 @@ esp_err_t sync_wait_event(esp_event_base_t event_base, int32_t event_id, wait_ev
 
     JADE_LOGD("Awaiting event %s/%u (%p) (timeout = %u)", event_base, event_id, wait_event_data, max_wait);
     if (!max_wait) {
-        while (xSemaphoreTake(wait_event_data->triggered, 100 / portTICK_PERIOD_MS) != pdTRUE) {
+        while (xSemaphoreTake(wait_event_data->triggered, portMAX_DELAY) != pdTRUE) {
             // wait for the event to be triggered
         }
     } else {

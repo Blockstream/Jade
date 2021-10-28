@@ -1,8 +1,8 @@
 #ifndef GUI_H_
 #define GUI_H_
 
-#include <esp_event.h>
 #include <tft.h>
+#include <utils/event.h>
 
 #include "jlocale.h"
 
@@ -159,6 +159,8 @@ typedef struct activity_event {
     esp_event_handler_t handler;
     void* args;
 
+    esp_event_handler_instance_t instance;
+
     // next element
     struct activity_event* next;
 } activity_event_t;
@@ -274,6 +276,11 @@ struct view_node_picture_data {
 // Possible types of a view_node
 enum view_node_kind { HSPLIT, VSPLIT, TEXT, FILL, BUTTON, ICON, PICTURE };
 
+typedef struct wait_data {
+    wait_event_data_t* event_data;
+    struct wait_data* next;
+} wait_data_t;
+
 // Struct that contains an "activity", basically a tree of nodes that can be rendered on screen
 struct gui_activity_t {
     // "window" used by the tft library to paint on screen
@@ -298,6 +305,9 @@ struct gui_activity_t {
 
     // linked list of event handlers that should be registered when the activity is rendered
     activity_event_t* activity_events;
+
+    // linked list of wait_event_data structures associated with this activity
+    wait_data_t* wait_data_items;
 };
 
 // Optional callback called when a view_node is destructed. Basically a custom destructor
@@ -407,6 +417,7 @@ void gui_set_current_activity_ex(gui_activity_t* activity, bool free_all_other_a
 void gui_set_current_activity(gui_activity_t* activity);
 
 void gui_connect_button_activity(gui_view_node_t* node, gui_activity_t* activity);
+wait_event_data_t* gui_activity_make_wait_event_data(gui_activity_t* activity);
 void gui_activity_register_event(
     gui_activity_t* activity, const char* event_base, uint32_t event_id, esp_event_handler_t handler, void* args);
 bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, uint32_t event_id,

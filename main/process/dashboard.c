@@ -449,8 +449,9 @@ static void handle_legal(void)
     make_legal_screen(&first_activity);
     gui_set_current_activity(first_activity);
 
+    esp_event_handler_instance_t ctx;
     wait_event_data_t* wait_data = make_wait_event_data();
-    esp_event_handler_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data);
+    esp_event_handler_instance_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data, &ctx);
     int32_t ev_id;
     while (true) {
         ev_id = ESP_EVENT_ANY_ID;
@@ -458,6 +459,7 @@ static void handle_legal(void)
             continue;
         }
         if (ev_id == BTN_INFO_EXIT) {
+            esp_event_handler_instance_unregister(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, ctx);
             free_wait_event_data(wait_data);
             return;
         }
