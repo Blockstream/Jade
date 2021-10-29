@@ -11,7 +11,7 @@
 
 bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len);
 
-// Translate a GUI button (ok/cancel) into a sign_tx_ JADE_EVENT (so the caller
+// Translate a GUI button (ok/cancel) into a multisig_ JADE_EVENT (so the caller
 // can await without worrying about which screen/activity it came from).
 static void translate_event(void* handler_arg, esp_event_base_t base, int32_t id, void* unused)
 {
