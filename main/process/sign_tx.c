@@ -435,12 +435,7 @@ void sign_tx_process(void* process_ptr)
     int32_t ev_id;
     // In a debug unattended ci build, assume buttons pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    // We manually wait for a 'JADE_EVENT' here - we can't use the normal gui wait for a
-    // button call, as we do not know which output activity the 'exit' event might come from.
-    wait_event_data_t* wait_data = make_wait_event_data();
-    esp_event_handler_register(JADE_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data);
-    const esp_err_t outputs_ret = sync_wait_event(JADE_EVENT, ESP_EVENT_ANY_ID, wait_data, NULL, &ev_id, NULL, 0);
-    free_wait_event_data(wait_data);
+    const esp_err_t outputs_ret = sync_await_single_event(JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
     vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const esp_err_t outputs_ret = ESP_OK;
