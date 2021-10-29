@@ -39,6 +39,9 @@ static int qemu_tcp_listen_sock = 0;
 
 #define QEMU_TCP_PORT 2222
 
+// esp-event registration context
+esp_event_handler_instance_t ctx_got_ip;
+
 static void qemu_tcp_reader(void* ignore)
 {
     struct sockaddr_in6 dest_addr;
@@ -159,7 +162,7 @@ static esp_netif_t* get_example_netif_from_desc(const char* desc)
 static void eth_stop(void)
 {
     esp_netif_t* eth_netif = get_example_netif_from_desc("eth");
-    ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_ETH_GOT_IP, &on_got_ip));
+    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_ETH_GOT_IP, ctx_got_ip));
     ESP_ERROR_CHECK(esp_eth_stop(s_eth_handle));
     ESP_ERROR_CHECK(esp_eth_del_netif_glue(s_eth_glue));
     ESP_ERROR_CHECK(esp_eth_clear_default_handlers(eth_netif));
@@ -185,7 +188,7 @@ static void eth_start(void)
 
     ESP_ERROR_CHECK(esp_eth_set_default_handlers(netif));
 
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &on_got_ip, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, on_got_ip, NULL, &ctx_got_ip));
 
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
