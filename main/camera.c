@@ -168,11 +168,6 @@ void cleanup_camera_data(jade_camera_data_t* camera_data)
         free(camera_data->image_buffer);
         camera_data->image_buffer = NULL;
     }
-
-    // Free event data structure
-    if (camera_data->event_data) {
-        free_wait_event_data(camera_data->event_data);
-    }
 }
 
 // Task to take picture and decode any qr code captured
@@ -195,14 +190,13 @@ void jade_camera_task(void* data)
     camera_data->image_buffer = JADE_MALLOC_DRAM(image_size);
     const Picture pic = { .width = 120, .height = 160, .bytes_per_pixel = 1, .data_8 = camera_data->image_buffer };
 
-    // Make an event-data structure to track events
-    JADE_ASSERT(camera_data->event_data == NULL);
-    camera_data->event_data = make_wait_event_data();
-    JADE_ASSERT(camera_data->event_data);
+    // Make an event-data structure to track events - attached to the camera activity
+    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(camera_data->activity);
+    JADE_ASSERT(event_data);
 
     // ... and register against the activity - we will await btn events later
     gui_activity_register_event(
-        camera_data->activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, camera_data->event_data);
+        camera_data->activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
 
     // Loop periodically refreshes screen image from camera, and waits for button event
     const TickType_t frequency = 1000 / 5 / portTICK_PERIOD_MS;
@@ -226,8 +220,7 @@ void jade_camera_task(void* data)
 
         // Await button click event
         int32_t ev_id;
-        if (sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, camera_data->event_data, NULL, &ev_id, NULL, frequency)
-            == ESP_OK) {
+        if (sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, frequency) == ESP_OK) {
 
             if (ev_id == BTN_QR_MNEMONIC_SCAN) {
                 gui_update_text(camera_data->text, "Processing...");

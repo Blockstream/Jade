@@ -19,8 +19,7 @@ typedef struct {
     bool qr_seen;
     char strdata[QR_MAX_STRING_LENGTH];
 
-    // These are 'owned' here and must be freed
-    wait_event_data_t* event_data;
+    // Image data is 'owned' here and must be freed
     void* image_buffer;
 } jade_camera_data_t;
 

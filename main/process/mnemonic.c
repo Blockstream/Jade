@@ -538,7 +538,6 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     camera_data.activity = activity;
     camera_data.qr_seen = false;
     camera_data.strdata[0] = '\0';
-    camera_data.event_data = NULL;
     camera_data.image_buffer = NULL;
 
     TaskHandle_t camera_task;

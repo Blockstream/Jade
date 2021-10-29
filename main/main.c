@@ -91,7 +91,7 @@ static void boot_process(void)
     JADE_LOGI("Showing splash screen");
     gui_activity_t* act = display_splash();
     JADE_ASSERT(act);
-    wait_event_data_t* event_data = make_wait_event_data();
+    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act); // activity takes ownership
     JADE_ASSERT(event_data);
     gui_activity_register_event(act, GUI_EVENT, GUI_FRONT_CLICK_EVENT, sync_wait_event_handler, event_data);
 
@@ -127,13 +127,8 @@ static void boot_process(void)
     const esp_err_t esp_ret
         = sync_wait_event(GUI_EVENT, GUI_FRONT_CLICK_EVENT, event_data, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS);
 
-    free_wait_event_data(event_data);
-
-    // Return whether the user clicked the front btn
-    const bool clicked = esp_ret == ESP_OK && ev_id == GUI_FRONT_CLICK_EVENT;
-
     // If clicked, offer startup/advanced menu
-    if (clicked) {
+    if (esp_ret == ESP_OK && ev_id == GUI_FRONT_CLICK_EVENT) {
         JADE_LOGI("User clicked on splash screen - showing startup/advanced options");
         offer_startup_options();
     }
