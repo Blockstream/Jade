@@ -29,6 +29,7 @@ void debug_set_mnemonic_process(void* process_ptr)
     char passphrase[PASSPHRASE_MAX_LEN + 1];
     SENSITIVE_PUSH(passphrase, sizeof(passphrase));
     bool using_passphrase = false;
+    bool temporary_wallet = false;
     size_t written = 0;
 
     keychain_t keydata;
@@ -71,9 +72,12 @@ void debug_set_mnemonic_process(void* process_ptr)
         }
     }
 
+    // Get field which can be set to test 'temporary restore' wallet
+    rpc_get_boolean("temporary_wallet", &params, &temporary_wallet);
+
     // Copy temporary keychain into a new global keychain
     // and remove the restriction on network-types.
-    keychain_set(&keydata, (uint8_t)process->ctx.source, false);
+    keychain_set(&keydata, (uint8_t)process->ctx.source, temporary_wallet);
 
     // If we are using a passphrase, we need to cache the root mnemonic entropy as it
     // is that we will persist encrypted to local flash (requiring the passphrase be

@@ -201,13 +201,14 @@ class JadeAPI:
         return self._jadeRpc('debug_selfcheck', long_timeout=True)
 
     # Set the (debug) mnemonic
-    def set_mnemonic(self, mnemonic, passphrase=None):
-        params = {'mnemonic': mnemonic, 'passphrase': passphrase}
+    def set_mnemonic(self, mnemonic, passphrase=None, temporary_wallet=False):
+        params = {'mnemonic': mnemonic, 'passphrase': passphrase,
+                  'temporary_wallet': temporary_wallet}
         return self._jadeRpc('debug_set_mnemonic', params)
 
     # Set the (debug) seed
-    def set_seed(self, seed):
-        params = {'seed': seed}
+    def set_seed(self, seed, temporary_wallet=False):
+        params = {'seed': seed, 'temporary_wallet': temporary_wallet}
         return self._jadeRpc('debug_set_mnemonic', params)
 
     # Override the pinserver details on the hww
