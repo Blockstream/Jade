@@ -536,7 +536,8 @@ void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** came
     gui_set_parent(btn2_text, btn2);
 }
 
-// enter passphrase
+// enter passphrase - note we use UBUNTU16_FONT to ensure all punctuation characters are
+// displayed as expected (no font glyphs have been overridden/changed in this font)
 static void make_enter_passphrase_page(
     link_activity_t* kb_screen_activity, const size_t page, gui_view_node_t** textbox)
 {
@@ -557,13 +558,14 @@ static void make_enter_passphrase_page(
     gui_make_fill(&text_bg, TFT_BLACK);
     gui_set_parent(text_bg, vsplit);
 
-    gui_view_node_t* text_status;
-    gui_make_text(&text_status, "", TFT_WHITE);
-    gui_set_text_noise(text_status, TFT_BLACK);
-    gui_set_parent(text_status, text_bg);
-    gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 1, 0);
-    gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    *textbox = text_status;
+    gui_view_node_t* entered_phrase;
+    gui_make_text(&entered_phrase, "", TFT_WHITE);
+    gui_set_text_font(entered_phrase, UBUNTU16_FONT);
+    gui_set_text_noise(entered_phrase, TFT_BLACK);
+    gui_set_parent(entered_phrase, text_bg);
+    gui_set_padding(entered_phrase, GUI_MARGIN_TWO_VALUES, 1, 0);
+    gui_set_align(entered_phrase, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    *textbox = entered_phrase;
 
     // second row, keyboard
     char* lines[NUM_KEYBOARD_ROWS];
@@ -677,4 +679,68 @@ void make_enter_passphrase_screen(
     gui_chain_activities(&kb_screen_act, &act_info);
 
     *activity_ptr = act_info.first_activity;
+}
+
+// confrm passphrase - note we use UBUNTU16_FONT to ensure all punctuation characters are
+// displayed as expected (no font glyphs have been overridden/changed in this font)
+void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(passphrase);
+    JADE_ASSERT(textbox);
+
+    gui_make_activity(activity_ptr, true, "Confirm Passphrase");
+    gui_activity_t* act = *activity_ptr;
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 40, 27, 33);
+    gui_set_parent(vsplit, act->root_node);
+
+    // first row, message
+    gui_view_node_t* text;
+    gui_make_text(&text, "Do you confirm the following\npassphrase:", TFT_WHITE);
+    gui_set_parent(text, vsplit);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 8, 4, 0, 0);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+
+    // second row, passphrase
+    gui_view_node_t* entered_phrase;
+    gui_make_text(&entered_phrase, passphrase, TFT_WHITE);
+    gui_set_text_font(entered_phrase, UBUNTU16_FONT);
+    gui_set_text_noise(entered_phrase, TFT_BLACK);
+    gui_set_parent(entered_phrase, vsplit);
+    gui_set_padding(entered_phrase, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 0);
+    gui_set_align(entered_phrase, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    *textbox = entered_phrase;
+
+    // third row, Yes and No buttons
+    gui_view_node_t* hsplit = NULL;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+    gui_set_parent(hsplit, vsplit);
+
+    // No
+    gui_view_node_t* btnNo;
+    gui_make_button(&btnNo, TFT_BLACK, BTN_NO, NULL);
+    gui_set_margins(btnNo, GUI_MARGIN_ALL_EQUAL, 2);
+    gui_set_borders(btnNo, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btnNo, TFT_BLOCKSTREAM_GREEN);
+    gui_set_parent(btnNo, hsplit);
+
+    gui_view_node_t* txtNo;
+    gui_make_text(&txtNo, "No", TFT_WHITE);
+    gui_set_parent(txtNo, btnNo);
+    gui_set_align(txtNo, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    // Yes
+    gui_view_node_t* btnYes;
+    gui_make_button(&btnYes, TFT_BLACK, BTN_YES, NULL);
+    gui_set_margins(btnYes, GUI_MARGIN_ALL_EQUAL, 2);
+    gui_set_borders(btnYes, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btnYes, TFT_BLOCKSTREAM_GREEN);
+    gui_set_parent(btnYes, hsplit);
+
+    gui_view_node_t* txtYes;
+    gui_make_text(&txtYes, "Yes", TFT_WHITE);
+    gui_set_parent(txtYes, btnYes);
+    gui_set_align(txtYes, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 }

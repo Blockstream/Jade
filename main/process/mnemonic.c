@@ -39,6 +39,7 @@ void make_recover_word_page_select10(
 void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** camera_node, gui_view_node_t** textbox);
 void make_enter_passphrase_screen(
     gui_activity_t** activity_ptr, gui_view_node_t* textboxes[], const size_t textboxes_len);
+void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
 // Function to change the mnemonic word separator and provide pointers to
@@ -586,6 +587,7 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
 {
     JADE_ASSERT(passphrase);
     JADE_ASSERT(passphrase_len > PASSPHRASE_MAX_LEN);
+    passphrase[0] = '\0';
 
     gui_view_node_t* textboxes[NUM_PASSPHRASE_KEYBOARD_SCREENS];
     const size_t textboxes_len = sizeof(textboxes) / sizeof(textboxes[0]);
@@ -594,11 +596,18 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
     make_enter_passphrase_screen(&passphrase_activity, textboxes, textboxes_len);
     JADE_ASSERT(passphrase_activity);
 
+    // We will need this activity later if confirming
+    gui_activity_t* confirm_passphrase_activity = NULL;
+    gui_view_node_t* text_to_confirm = NULL;
+    if (confirm) {
+        make_confirm_passphrase_screen(&confirm_passphrase_activity, passphrase, &text_to_confirm);
+        JADE_ASSERT(confirm_passphrase_activity);
+        JADE_ASSERT(text_to_confirm);
+    }
+
     esp_event_handler_instance_t ctx;
     wait_event_data_t* wait_data = make_wait_event_data();
     esp_event_handler_instance_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data, &ctx);
-
-    passphrase[0] = '\0';
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
     int32_t ev_id;
@@ -638,11 +647,12 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
                 // Perhaps ask user to confirm, before accepting passphrase
                 if (confirm) {
                     if (ich > 0) {
-                        char confirm_passphrase[128];
-                        const int ret = snprintf(confirm_passphrase, sizeof(confirm_passphrase),
-                            "Do you confirm the following\npassphrase:\n\n%s", passphrase);
-                        JADE_ASSERT(ret > 0 && ret < sizeof(confirm_passphrase));
-                        done = await_yesno_activity("Confirm Passphrase", confirm_passphrase, false);
+                        int32_t ev_id;
+                        gui_update_text(text_to_confirm, passphrase);
+                        gui_set_current_activity(confirm_passphrase_activity);
+                        gui_activity_wait_event(
+                            confirm_passphrase_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+                        done = (ev_id == BTN_YES);
                     } else {
                         done = await_yesno_activity(
                             "Confirm Passphrase", "Do you confirm the empty\npassphrase?", false);
