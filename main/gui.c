@@ -1254,7 +1254,9 @@ static void gui_resolve_text(gui_view_node_t* node)
     node->render_data.resolved_text_length = strlen(node->render_data.resolved_text);
 }
 
-void gui_update_text(gui_view_node_t* node, const char* text)
+// Helper function to just update the text node internal text data - does not repaint,
+// so several nodes can be updated then a single repaint issued - eg. the status bar
+static void gui_update_text_node_text(gui_view_node_t* node, const char* text)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
@@ -1265,12 +1267,21 @@ void gui_update_text(gui_view_node_t* node, const char* text)
     const int ret = snprintf(new_text, len, "%s", text);
     JADE_ASSERT(ret >= 0); // truncation is acceptable here, as is empty string
 
-    // free the old one and replace with the new pointer
+    // free the old text node and replace with the new pointer
     free(node->text->text);
     node->text->text = new_text;
 
     // resolve text references
     gui_resolve_text(node);
+}
+
+void gui_update_text(gui_view_node_t* node, const char* text)
+{
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == TEXT);
+
+    // Update the text node text
+    gui_update_text_node_text(node, text);
 
     // repaint the parent (so that the old string is cleared). Usually a parent should
     // be present, because it's unlikely that a root node is of type "text"
@@ -1701,6 +1712,16 @@ static bool switch_activities()
 
             // Set the current_activity to the new one, and render it
             current_activity = switch_info->new_activity;
+
+            // Update the status bar text for the new activity
+            if (current_activity->status_bar) {
+                if (current_activity->title) {
+                    gui_set_title(current_activity->title);
+                }
+                status_bar.updated = true;
+            }
+
+            // Draw the new activity
             gui_render_activity(current_activity);
 
             // Register new events
@@ -1709,14 +1730,6 @@ static bool switch_activities()
                 JADE_ASSERT(!l->instance);
                 esp_event_handler_instance_register(l->event_base, l->event_id, l->handler, l->args, &(l->instance));
                 l = l->next;
-            }
-
-            // Update the status bar text for the new activity
-            if (current_activity->status_bar) {
-                if (current_activity->title) {
-                    gui_update_text(status_bar.title, current_activity->title);
-                }
-                status_bar.updated = true;
             }
         }
 
@@ -1778,6 +1791,9 @@ static void update_status_bar()
     dispWin_t status_bar_cs = GUI_DISPLAY_WINDOW;
     status_bar_cs.y2 = status_bar_cs.y1 + GUI_STATUS_BAR_HEIGHT;
 
+    // NOTE: we use the internal 'gui_update_text_node_text()' method here
+    // since we don't want to redraw each update individually, but rather
+    // capture in a single repaint after all nodes are updated.
     if ((status_bar.battery_update_counter % 10) == 0) {
 #ifndef CONFIG_ESP32_NO_BLOBS
         const bool new_ble = ble_enabled();
@@ -1788,9 +1804,9 @@ static void update_status_bar()
         if (new_ble != status_bar.last_ble_val) {
             status_bar.last_ble_val = new_ble;
             if (new_ble) {
-                gui_update_text(status_bar.ble_text, (char[]){ 'E', '\0' });
+                gui_update_text_node_text(status_bar.ble_text, (char[]){ 'E', '\0' });
             } else {
-                gui_update_text(status_bar.ble_text, (char[]){ 'F', '\0' });
+                gui_update_text_node_text(status_bar.ble_text, (char[]){ 'F', '\0' });
             }
             status_bar.updated = true;
         }
@@ -1799,9 +1815,9 @@ static void update_status_bar()
         if (new_usb != status_bar.last_usb_val) {
             status_bar.last_usb_val = new_usb;
             if (new_usb) {
-                gui_update_text(status_bar.usb_text, (char[]){ 'C', '\0' });
+                gui_update_text_node_text(status_bar.usb_text, (char[]){ 'C', '\0' });
             } else {
-                gui_update_text(status_bar.usb_text, (char[]){ 'D', '\0' });
+                gui_update_text_node_text(status_bar.usb_text, (char[]){ 'D', '\0' });
             }
             status_bar.updated = true;
             status_bar.battery_update_counter = 0; // Force battery icon update
@@ -1815,7 +1831,7 @@ static void update_status_bar()
         }
         if (new_bat != status_bar.last_battery_val) {
             status_bar.last_battery_val = new_bat;
-            gui_update_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
+            gui_update_text_node_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
             status_bar.updated = true;
         }
         status_bar.battery_update_counter = 60;
@@ -2042,7 +2058,9 @@ void gui_connect_button_activity(gui_view_node_t* node, gui_activity_t* activity
 void gui_set_title(const char* title)
 {
     JADE_ASSERT(title);
-    gui_update_text(status_bar.title, title);
+    // Update the text then repaint the entire status bar
+    gui_update_text_node_text(status_bar.title, title);
+    gui_repaint(status_bar.root, true);
 }
 
 gui_activity_t* gui_current_activity(void) { return current_activity; }
