@@ -59,9 +59,6 @@ extern uint32_t GUI_DEFAULT_FONT;
 #define GUI_BORDER_ALL (GUI_BORDER_TOP | GUI_BORDER_RIGHT | GUI_BORDER_BOTTOM | GUI_BORDER_LEFT)
 #define GUI_BORDER_SIDES (GUI_BORDER_RIGHT | GUI_BORDER_LEFT)
 
-// How many ms should we wait to obtain a lock on the paint mutex before giving up
-#define GUI_PAINT_MUTEX_WAIT 500
-
 // How should the parameters to set_margin/set_padding be interpreted
 #define GUI_MARGIN_ALL_EQUAL 1 // one value for all
 #define GUI_MARGIN_TWO_VALUES 2 // first value for top/bottom, second for right/left
