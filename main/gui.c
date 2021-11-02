@@ -1254,6 +1254,17 @@ static void gui_resolve_text(gui_view_node_t* node)
     node->render_data.resolved_text_length = strlen(node->render_data.resolved_text);
 }
 
+// Helper to get the ultimate root node for any given node
+static inline gui_view_node_t* gui_get_root_node(gui_view_node_t* node)
+{
+    JADE_ASSERT(node);
+    gui_view_node_t* root = node;
+    while (root->parent) {
+        root = root->parent;
+    }
+    return root;
+}
+
 // Helper function to just update the text node internal text data - does not repaint,
 // so several nodes can be updated then a single repaint issued - eg. the status bar
 static void gui_update_text_node_text(gui_view_node_t* node, const char* text)
@@ -1275,30 +1286,64 @@ static void gui_update_text_node_text(gui_view_node_t* node, const char* text)
     gui_resolve_text(node);
 }
 
+// Takes the activities_mutex, updates the text node, and then only draws the
+// updated item if it is part of the 'current activity'.
 void gui_update_text(gui_view_node_t* node, const char* text)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
 
+    // Get the root node holding the passed node
+    gui_view_node_t* const root = gui_get_root_node(node);
+
+    // Get the activity mutex
+    while (xSemaphoreTake(activities_mutex, portMAX_DELAY) != pdTRUE) {
+        // Wait to get the activities mutex
+    }
+
     // Update the text node text
     gui_update_text_node_text(node, text);
 
-    // repaint the parent (so that the old string is cleared). Usually a parent should
-    // be present, because it's unlikely that a root node is of type "text"
-    if (node->parent) {
-        gui_repaint(node->parent, true);
-    } else {
-        gui_repaint(node, true);
+    // If part of current activity, draw it immediately
+    if (current_activity && current_activity->root_node && current_activity->root_node == root) {
+        // repaint the parent (so that the old string is cleared). Usually a parent should
+        // be present, because it's unlikely that a root node is of type "text"
+        if (node->parent) {
+            gui_repaint(node->parent, true);
+        } else {
+            gui_repaint(node, true);
+        }
     }
+
+    // Release the activity mutex
+    xSemaphoreGive(activities_mutex);
 }
 
+// Takes the activities_mutex, updates the picture, and then only draws the
+// updated item if it is part of the 'current activity'.
 void gui_update_picture(gui_view_node_t* node, const Picture* picture)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == PICTURE);
 
+    // Get the root node holding the passed node
+    gui_view_node_t* const root = gui_get_root_node(node);
+
+    // Get the activity mutex
+    while (xSemaphoreTake(activities_mutex, portMAX_DELAY) != pdTRUE) {
+        // Wait to get the activities mutex
+    }
+
+    // Update picture
     node->picture->picture = picture;
-    gui_repaint(node, true);
+
+    // If part of current activity, draw it immediately
+    if (current_activity && current_activity->root_node && current_activity->root_node == root) {
+        gui_repaint(node, true);
+    }
+
+    // Release the activity mutex
+    xSemaphoreGive(activities_mutex);
 }
 
 static inline color_t DEBUG_COLOR(uint8_t depth)
