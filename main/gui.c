@@ -2100,6 +2100,24 @@ void gui_connect_button_activity(gui_view_node_t* node, gui_activity_t* activity
         node->activity, GUI_BUTTON_EVENT, node->button->click_event_id, switch_activity_callback, activity);
 }
 
+// Update the title associated with the passed activity
+void gui_set_activity_title(gui_activity_t* activity, const char* title)
+{
+    JADE_ASSERT(activity);
+    JADE_ASSERT(title);
+
+    if (activity->title) {
+        free(activity->title);
+    }
+    activity->title = strdup(title);
+
+    // If setting title for the current activity, update status bar immediately
+    if (activity == current_activity) {
+        gui_set_title(title);
+    }
+}
+
+// Set status bar title on screen immediately
 void gui_set_title(const char* title)
 {
     JADE_ASSERT(title);

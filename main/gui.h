@@ -429,7 +429,9 @@ bool gui_select_next(gui_activity_t* activity);
 bool gui_select_prev(gui_activity_t* activity);
 void gui_select_node(gui_activity_t* activity, gui_view_node_t* node);
 
+void gui_set_activity_title(gui_activity_t* activity, const char* title);
 void gui_set_title(const char* title);
+
 gui_activity_t* gui_current_activity(void);
 
 void gui_wheel_click(void);

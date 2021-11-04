@@ -391,7 +391,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
         char enter_word_title[16];
         const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %u", word_index + 1);
         JADE_ASSERT(ret > 0 && ret < sizeof(enter_word_title));
-        gui_set_title(enter_word_title);
+        gui_set_activity_title(enter_word_activity, enter_word_title);
         gui_set_current_activity(enter_word_activity);
         enter->is_active = false;
 
@@ -482,7 +482,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 // Delete last character and go back to keyboard screen
                 word[--char_index] = '\0';
 
-                gui_set_title(enter_word_title);
+                gui_set_activity_title(enter_word_activity, enter_word_title);
                 gui_set_current_activity(enter_word_activity);
 
             } else { // else if possible_words >= 11
