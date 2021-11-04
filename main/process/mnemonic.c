@@ -141,7 +141,6 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
 
             make_confirm_mnemonic_screen(&confirm_act, &textbox, selected, words, nwords);
             JADE_LOGD("selected = %u", selected);
-            gui_set_current_activity(confirm_act);
 
             // Large enough for 12 and 24 word mnemonic
             bool already_picked[MNEMONIC_MAXWORDS] = { false };
@@ -166,6 +165,8 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
 
             uint8_t index = get_uniform_random_byte(num_words_options);
             gui_update_text(textbox, words[random_words[index]]); // set the first word
+
+            gui_set_current_activity(confirm_act);
 
             bool stop = false;
             while (!stop) {
@@ -387,24 +388,19 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
         int32_t ev_id;
 
         // Reset display for next word
-        gui_set_current_activity(enter_word_activity);
-        enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, btns_len, &valid_word);
-        gui_update_text(textbox, word);
-        enter->is_active = false;
-
         char enter_word_title[16];
         const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %u", word_index + 1);
         JADE_ASSERT(ret > 0 && ret < sizeof(enter_word_title));
         gui_set_title(enter_word_title);
+        gui_set_current_activity(enter_word_activity);
+        enter->is_active = false;
 
         while (char_index < 16) {
             valid_word = false;
             size_t possible_word_list[10];
             size_t possible_words = valid_words(word, wordlist, possible_word_list, 10, &valid_word);
             if (possible_words < 11) {
-                gui_set_current_activity(choose_word_activity);
                 enter->is_active = false;
-
                 char choose_word_title[16];
                 const int ret
                     = snprintf(choose_word_title, sizeof(choose_word_title), "Select word %u", word_index + 1);
@@ -418,6 +414,9 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 bip39_get_word(wordlist, possible_word_list[selected], &wordlist_extracted);
                 gui_update_text(textbox_list, wordlist_extracted);
                 wally_free_string(wordlist_extracted);
+
+                gui_set_current_activity(choose_word_activity);
+
                 while (!stop) {
                     // wait for a GUI event
                     gui_activity_wait_event(choose_word_activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
@@ -442,13 +441,16 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                         }
                     }
 
-                    if (selected == possible_words) { // delete
-                        gui_update_text(textbox_list, "|");
-                    } else {
-                        char* wordlist_extracted = NULL;
-                        bip39_get_word(wordlist, possible_word_list[selected], &wordlist_extracted);
-                        gui_update_text(textbox_list, wordlist_extracted);
-                        wally_free_string(wordlist_extracted);
+                    if (!stop) {
+                        // Selected word was changed
+                        if (selected == possible_words) { // delete
+                            gui_update_text(textbox_list, "|");
+                        } else {
+                            char* wordlist_extracted = NULL;
+                            bip39_get_word(wordlist, possible_word_list[selected], &wordlist_extracted);
+                            gui_update_text(textbox_list, wordlist_extracted);
+                            wally_free_string(wordlist_extracted);
+                        }
                     }
                 } // while stop
 
@@ -480,12 +482,14 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 // Delete last character and go back to keyboard screen
                 word[--char_index] = '\0';
 
-                gui_set_current_activity(enter_word_activity);
-                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, btns_len, &valid_word);
-                gui_update_text(textbox, word);
                 gui_set_title(enter_word_title);
+                gui_set_current_activity(enter_word_activity);
 
             } else { // else if possible_words >= 11
+                // Update the typed word
+                gui_update_text(textbox, word);
+                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, btns_len, &valid_word);
+
                 gui_activity_wait_event(enter_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
                 if (ev_id == BTN_KEYBOARD_BACKSPACE) {
@@ -509,9 +513,6 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                         word[char_index++] = tolower(letter_selected);
                     }
                 }
-
-                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, btns_len, &valid_word);
-                gui_update_text(textbox, word);
 
                 if (ev_id == BTN_KEYBOARD_BACKSPACE && char_index > 0) {
                     gui_select_node(enter_word_activity, backspace);
@@ -605,8 +606,8 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
     bool done = false;
     while (!done) {
         size_t page = 0;
-        gui_set_current_activity(passphrase_activity);
         gui_update_text(textboxes[page], passphrase);
+        gui_set_current_activity(passphrase_activity);
 
         while (!done) {
             ev_id = ESP_EVENT_ANY_ID;
