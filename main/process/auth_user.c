@@ -137,7 +137,6 @@ static void set_pin_save_keys(jade_process_t* process)
     SENSITIVE_PUSH(pin, sizeof(pin));
 
     while (true) {
-        gui_set_title("Enter New PIN");
         gui_set_current_activity(pin_insert->activity);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
