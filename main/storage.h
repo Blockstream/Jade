@@ -1,13 +1,13 @@
 #ifndef STORAGE_H_
 #define STORAGE_H_
 
-#include <nvs.h>
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-typedef enum { NETWORK_TYPE_NONE, NETWORK_TYPE_MAIN, NETWORK_TYPE_TEST } network_type_t;
+#include <nvs.h>
+
+#include <network_type.h>
 
 #define BLE_ENABLED 0x1
 

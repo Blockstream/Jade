@@ -1,6 +1,8 @@
 #ifndef KEYCHAIN_H_
 #define KEYCHAIN_H_
 
+#include <network_type.h>
+
 #include <stdbool.h>
 #include <wally_bip32.h>
 #include <wally_crypto.h>
@@ -26,9 +28,10 @@ uint8_t keychain_get_userdata(void);
 // Temporarily cache mnemonic entropy (if using passphrase)
 void keychain_cache_mnemonic_entropy(const char* mnemonic);
 
-// Set/clear/compare the pinned/restricted network type
-void keychain_set_network_type_restriction(const char* network);
+// Clear/set/get/compare the pinned/restricted network type
 void keychain_clear_network_type_restriction(void);
+void keychain_set_network_type_restriction(const char* network);
+network_type_t keychain_get_network_type_restriction(void);
 bool keychain_is_network_type_consistent(const char* network);
 
 // mnemonic returned should be freed by caller with wally_free_string

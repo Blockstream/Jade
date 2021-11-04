@@ -125,6 +125,9 @@ void keychain_set_network_type_restriction(const char* network)
     }
 }
 
+// Get the current network type restriction
+network_type_t keychain_get_network_type_restriction(void) { return network_type_restriction; }
+
 // Compare pinned/restricted network type and the type of the network passed
 bool keychain_is_network_type_consistent(const char* network)
 {
