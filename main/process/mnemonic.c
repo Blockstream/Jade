@@ -795,7 +795,9 @@ void initialise_with_mnemonic(const bool temporary_restore)
         }
 
         // All good - push temporary into main in-memory keychain
+        // and remove the restriction on network-types.
         keychain_set(&keydata, SOURCE_NONE, temporary_restore);
+        keychain_clear_network_type_restriction();
 
         // If we are using a passphrase, we need to cache the root mnemonic entropy as it
         // is that we will persist encrypted to local flash (requiring the passphrase be

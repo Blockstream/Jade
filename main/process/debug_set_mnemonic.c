@@ -78,6 +78,7 @@ void debug_set_mnemonic_process(void* process_ptr)
     // Copy temporary keychain into a new global keychain
     // and remove the restriction on network-types.
     keychain_set(&keydata, (uint8_t)process->ctx.source, temporary_wallet);
+    keychain_clear_network_type_restriction();
 
     // If we are using a passphrase, we need to cache the root mnemonic entropy as it
     // is that we will persist encrypted to local flash (requiring the passphrase be
@@ -85,9 +86,6 @@ void debug_set_mnemonic_process(void* process_ptr)
     if (using_passphrase) {
         keychain_cache_mnemonic_entropy(mnemonic);
     }
-
-    // Remove the restriction on network-types.
-    keychain_clear_network_type_restriction();
 
     jade_process_reply_to_message_ok(process);
     JADE_LOGI("Success");

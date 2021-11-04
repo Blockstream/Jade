@@ -108,7 +108,10 @@ void keychain_cache_mnemonic_entropy(const char* mnemonic)
 void keychain_clear_network_type_restriction(void)
 {
     JADE_LOGI("Clearing network type restriction");
-    storage_set_network_type_restriction(NETWORK_TYPE_NONE);
+    // If we are not currently working with temporary keys, clear the keys from storage
+    if (!keychain_has_temporary()) {
+        storage_set_network_type_restriction(NETWORK_TYPE_NONE);
+    }
     network_type_restriction = NETWORK_TYPE_NONE;
 }
 
@@ -120,8 +123,17 @@ void keychain_set_network_type_restriction(const char* network)
     if (network_type_restriction == NETWORK_TYPE_NONE) {
         const network_type_t network_type = isTestNetwork(network) ? NETWORK_TYPE_TEST : NETWORK_TYPE_MAIN;
         JADE_LOGI("Restricting to network type: %s", network_type == NETWORK_TYPE_TEST ? "TEST" : "MAIN");
-        storage_set_network_type_restriction(network_type);
-        network_type_restriction = network_type;
+
+        // If we have a persisted wallet, and we are not currently working with temporary keys
+        // then persist the network type to the storage (as it applies to the stored wallet)
+        if (keychain_has_pin() && !keychain_has_temporary()) {
+            storage_set_network_type_restriction(network_type);
+        }
+
+        // If we have keys loaded in memory, set the in-memory value also
+        if (keychain_data) {
+            network_type_restriction = network_type;
+        }
     }
 }
 
