@@ -2040,9 +2040,9 @@ def test_ble_connection_fails(info, args):
             logger.warning(msg)
 
 
-def check_stuck():
+def check_stuck(args):
     # FIXME: serial/ble reads/writes should timeout before this does
-    timeout = 10  # minutes
+    timeout = 15  # minutes
     time.sleep(60 * timeout)
     err_str = "tests got caught running longer than {} minutes, terminating"
     logger.error(err_str.format(timeout))
