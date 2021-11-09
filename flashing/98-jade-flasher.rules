@@ -1,0 +1,1 @@
+KERNEL=="ttyACM*", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d4", ACTION=="add", ENV{DEVNAME}=="*ttyACM*", RUN+="/tmp/jade/flashing/flash.sh"
