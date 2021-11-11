@@ -352,17 +352,20 @@ static void ble_on_reset(int reason) { JADE_LOGI("ble resetting state; reason=%d
 
 static void ble_on_sync(void)
 {
-    int rc = ble_hs_util_ensure_addr(0);
-    JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_util_ensure_addr(0); rc=%d", rc);
-
     // In a debug unattended ci build do not use RPA as it doesn't appear to
     // to work on the CI machine atm, but is preferred for android/ios apps.
 #ifdef CONFIG_DEBUG_UNATTENDED_CI
+    int rc = ble_hs_util_ensure_addr(0);
+    JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_util_ensure_addr(0); rc=%d", rc);
+
     // From the bleprph example main.c
     JADE_LOGI("ble sync() - Debug/CI mode using non-RPA fixed address");
     rc = ble_hs_id_infer_auto(0, &own_addr_type);
     JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_id_infer_auto(0,...); rc=%d", rc);
 #else
+    int rc = ble_hs_util_ensure_addr(1);
+    JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_util_ensure_addr(1); rc=%d", rc);
+
     // From the bleprph example README (no actual example code provided):
     // For RPA feature (currently Host based privacy feature is supported), use API
     // `ble_hs_pvcy_rpa_config` to enable/disable host based privacy, `own_addr_type`
