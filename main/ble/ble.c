@@ -297,6 +297,12 @@ void ble_start_advertising(void)
     if (rc != 0) {
         JADE_LOGE("ble_gap_adv_start() failed with error %d", rc);
     }
+
+    // Log advertised address
+    uint8_t addr_val[6] = { 0 };
+    rc = ble_hs_id_copy_addr(own_addr_type, addr_val, NULL);
+    JADE_LOGI("Advertising started, with address:");
+    print_addr(addr_val);
 }
 
 void ble_stop_advertising(void)
@@ -392,11 +398,6 @@ static void ble_on_sync(void)
     rc = ble_hs_pvcy_rpa_config(1);
     JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_pvcy_rpa_config(1); rc=%d", rc);
 #endif
-
-    // Log advertised address
-    uint8_t addr_val[6] = { 0 };
-    rc = ble_hs_id_copy_addr(own_addr_type, addr_val, NULL);
-    print_addr(addr_val);
 
     // Start advertising
     ble_start_advertising();
