@@ -245,6 +245,12 @@ void ble_start_advertising(void)
 {
     JADE_LOGI("ble_start_advertising() - Starting ble advertising with own_addr_type: %d", own_addr_type);
 
+    // 'ble_gap_adv_start()' fails if we try to 'start advertising' when BLE is not started/enabled
+    if (!ble_is_enabled) {
+        JADE_LOGW("ble_start_advertising() called but BLE is disabled/not running");
+        return;
+    }
+
     // 'ble_gap_adv_set_fields()' fails if we try to 'start advertising' when it's already running
     if (ble_gap_adv_active()) {
         JADE_LOGW("ble_start_advertising() called but already advertising!");
@@ -567,7 +573,11 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
         peer_conn_attr_handle = 0;
         ble_is_connected = false;
 
-        ble_start_advertising();
+        // Restart advertising if ble enabled
+        if (ble_is_enabled) {
+            ble_start_advertising();
+        }
+
         return 0;
 
     case BLE_GAP_EVENT_CONN_UPDATE:
@@ -587,9 +597,11 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
         break;
 
     case BLE_GAP_EVENT_ADV_COMPLETE:
-        // restart advertising
+        // restart advertising if ble enabled
         JADE_LOGI("advertise complete; reason=%d", event->adv_complete.reason);
-        ble_start_advertising();
+        if (ble_is_enabled) {
+            ble_start_advertising();
+        }
         return 0;
 
     case BLE_GAP_EVENT_ENC_CHANGE:
