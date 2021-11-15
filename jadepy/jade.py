@@ -4,6 +4,7 @@ import json
 import time
 import logging
 import collections
+import collections.abc
 import traceback
 import random
 import sys
@@ -145,7 +146,7 @@ class JadeAPI:
         # forwards the response back to the Jade.
         # Note: the function called to make the http-request can be passed in,
         # or it can default to the simple _http_request() function above, if available.
-        if isinstance(result, collections.Mapping) and 'http_request' in result:
+        if isinstance(result, collections.abc.Mapping) and 'http_request' in result:
             this_module = sys.modules[__name__]
             make_http_request = http_request_fn or getattr(this_module, '_http_request', None)
             assert make_http_request, 'Default _http_request() function not available'
