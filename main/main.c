@@ -106,12 +106,6 @@ static void boot_process(void)
     }
 #endif
 
-#ifndef CONFIG_ESP32_NO_BLOBS
-    if (!ble_init(ble_handle)) {
-        JADE_ABORT();
-    }
-#endif
-
     sensitive_init();
 
     // We spend a bit of time initialising random while the splash screen is being shown
@@ -121,6 +115,16 @@ static void boot_process(void)
     if (!keychain_init()) {
         JADE_ABORT();
     }
+
+#ifndef CONFIG_ESP32_NO_BLOBS
+    // Delay BLE initialisation as uses the hw unit key which is not initialised until
+    // the first run of keychain_init() (on a new or factory-reset unit).
+    // Should not really cause an issue as on a fresh unit BLE should be disabled anyway,
+    // but better to be safe than sorry.
+    if (!ble_init(ble_handle)) {
+        JADE_ABORT();
+    }
+#endif
 
     // Check if the user had clicked.
     int32_t ev_id;
