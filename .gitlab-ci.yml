@@ -86,6 +86,13 @@ test_build_jade_ci:
   after_script:
     - mv build build_jade_ci
 
+test_build_jade_v1_1_ci:
+  before_script:
+    - cp configs/sdkconfig_jade_v1_1_ci.defaults sdkconfig.defaults
+  extends: .test_build_template
+  after_script:
+    - mv build build_jade_v1_1_ci
+
 test_build_jade:
   extends: .test_build_template
   before_script:
@@ -148,6 +155,13 @@ test_build_jade_noblobs_ci:
     - cp configs/sdkconfig_jade_noradio_ci.defaults sdkconfig.defaults
   after_script:
     - mv build build_jade_noblobs_ci
+
+test_build_jade_v1_1_noblobs_ci:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_v1_1_noradio_ci.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_v1_1_noblobs_ci
 
 test_build_jade_noblobs:
   extends: .test_build_template
