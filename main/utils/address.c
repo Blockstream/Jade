@@ -36,6 +36,7 @@ void script_to_address(const char* network, uint8_t* script, size_t script_len, 
     switch (output_type) {
     case WALLY_SCRIPT_TYPE_P2WPKH:
     case WALLY_SCRIPT_TYPE_P2WSH:
+    case WALLY_SCRIPT_TYPE_P2TR:
         hrp = networkToBech32Hrp(network);
         JADE_ASSERT(hrp);
         JADE_WALLY_VERIFY(wally_addr_segwit_from_bytes(script, script_len, hrp, 0, &tmp_str));
@@ -86,6 +87,7 @@ void elements_script_to_address(const char* network, uint8_t* script, size_t scr
     switch (output_type) {
     case WALLY_SCRIPT_TYPE_P2WPKH:
     case WALLY_SCRIPT_TYPE_P2WSH:
+    case WALLY_SCRIPT_TYPE_P2TR:
         hrp = networkToBech32Hrp(network);
         JADE_ASSERT(hrp);
         JADE_WALLY_VERIFY(wally_addr_segwit_from_bytes(script, script_len, hrp, 0, &tmp_str));
