@@ -5,6 +5,7 @@
 #include "../jade_tasks.h"
 #include "../jade_wally_verify.h"
 #include "../process.h"
+#include "../random.h"
 #include "../storage.h"
 #include "../utils/malloc_ext.h"
 #include "../wire.h"
@@ -304,6 +305,12 @@ void ble_start_advertising(void)
     rc = ble_hs_id_copy_addr(own_addr_type, addr_val, NULL);
     JADE_LOGI("Advertising started, with address:");
     print_addr(addr_val);
+
+    // Refeed entropy - this is called whenever the advertisied address changes  - ie.
+    // when BLE enabled, and every minute or so all the time no client is connected.
+    // Called again when the client disconnects.  So frequent (if BLE enabled) but not
+    // completely predictable ...
+    refeed_entropy(addr_val, sizeof(addr_val));
 }
 
 void ble_stop_advertising(void)
