@@ -270,6 +270,10 @@ void ota_process(void* process_ptr)
     esp_partition_t const* update_partition = NULL;
     esp_err_t err = ESP_FAIL;
 
+    // Context used to compute (compressed) firmware hash - ie. file as uploaded
+    mbedtls_sha256_context cmp_sha_ctx;
+    mbedtls_sha256_init(&cmp_sha_ctx);
+
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "ota");
     GET_MSG_PARAMS(process);
@@ -298,9 +302,6 @@ void ota_process(void* process_ptr)
         jade_process_wally_free_string_on_exit(process, expected_hash_hexstr);
     }
 
-    // Context used to compute (compressed) firmware hash - ie. file as uploaded
-    mbedtls_sha256_context cmp_sha_ctx;
-    mbedtls_sha256_init(&cmp_sha_ctx);
     int res = mbedtls_sha256_starts_ret(&cmp_sha_ctx, 0); // 0 = SHA256 instead of SHA224
     if (res != 0) {
         jade_process_reject_message(
