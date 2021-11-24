@@ -49,8 +49,8 @@ bool multisig_validate_signers(const char* network, const signer_t* signers, con
     return bFound;
 }
 
-bool multisig_data_to_bytes(const script_variant_t variant, const uint8_t threshold, const signer_t* signers,
-    const size_t num_signers, uint8_t* output_bytes, const size_t output_len)
+bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, const uint8_t threshold,
+    const signer_t* signers, const size_t num_signers, uint8_t* output_bytes, const size_t output_len)
 {
     JADE_ASSERT(threshold > 0);
     JADE_ASSERT(signers);
@@ -60,7 +60,8 @@ bool multisig_data_to_bytes(const script_variant_t variant, const uint8_t thresh
     JADE_ASSERT(output_len == MULTISIG_BYTES_LEN(num_signers));
 
     // Version byte
-    const uint8_t version = 0;
+    // (1 - now that we include the 'sorted' flag)
+    const uint8_t version = 1;
     uint8_t* write_ptr = output_bytes;
     memcpy(write_ptr, &version, sizeof(version));
     write_ptr += sizeof(version);
@@ -69,6 +70,11 @@ bool multisig_data_to_bytes(const script_variant_t variant, const uint8_t thresh
     const uint8_t variant_byte = (uint8_t)variant;
     memcpy(write_ptr, &variant_byte, sizeof(variant_byte));
     write_ptr += sizeof(variant_byte);
+
+    // 'sorted' flag
+    const uint8_t sorted_byte = (uint8_t)sorted;
+    memcpy(write_ptr, &sorted_byte, sizeof(sorted_byte));
+    write_ptr += sizeof(sorted_byte);
 
     // Threshold
     memcpy(write_ptr, &threshold, sizeof(threshold));
@@ -103,7 +109,7 @@ bool multisig_data_to_bytes(const script_variant_t variant, const uint8_t thresh
 bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, multisig_data_t* output)
 {
     JADE_ASSERT(bytes);
-    JADE_ASSERT(bytes_len > 0);
+    JADE_ASSERT(bytes_len > MULTISIG_BYTES_LEN(1));
     JADE_ASSERT(output);
 
     // Check hmac first
@@ -115,9 +121,10 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
     }
 
     // Version byte
+    // (0 - before 'sorted' flag was added; 1 - includes 'sorted' flag)
     const uint8_t* read_ptr = bytes;
     const uint8_t version = *read_ptr;
-    if (version != 0) {
+    if (version > 1) {
         JADE_LOGE("Bad version byte in stored registered multisig data");
         return false;
     }
@@ -128,6 +135,15 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
     memcpy(&variant_byte, read_ptr, sizeof(variant_byte));
     output->variant = variant_byte;
     read_ptr += sizeof(variant_byte);
+
+    // Version 1 adds the 'sorted' flag (which otherwise defaults to false)
+    output->sorted = false;
+    if (version > 0) {
+        uint8_t sorted_byte;
+        memcpy(&sorted_byte, read_ptr, sizeof(sorted_byte));
+        output->sorted = (bool)sorted_byte;
+        read_ptr += sizeof(sorted_byte);
+    }
 
     // Threshold
     output->threshold = *read_ptr;
@@ -140,7 +156,7 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
         JADE_LOGE("Unexpected number of multisig signers %d", output->xpubs_len);
         return false;
     }
-    if (MULTISIG_BYTES_LEN(output->xpubs_len) != bytes_len) {
+    if (output->xpubs_len * BIP32_SERIALIZED_LEN != xpubs_bytes_len) {
         JADE_LOGE("Unexpected multisig data length %d for %d signers", bytes_len, output->xpubs_len);
         return false;
     }

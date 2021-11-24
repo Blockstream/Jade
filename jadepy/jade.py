@@ -253,9 +253,10 @@ class JadeAPI:
         return self._jadeRpc('get_registered_multisigs')
 
     # Register a multisig wallet
-    def register_multisig(self, network, multisig_name, variant, threshold, signers):
+    def register_multisig(self, network, multisig_name, variant, sorted_keys, threshold, signers):
         params = {'network': network, 'multisig_name': multisig_name,
-                  'descriptor': {'variant': variant, 'threshold': threshold, 'signers': signers}}
+                  'descriptor': {'variant': variant, 'sorted': sorted_keys,
+                                 'threshold': threshold, 'signers': signers}}
         return self._jadeRpc('register_multisig', params)
 
     # Get receive-address for parameters

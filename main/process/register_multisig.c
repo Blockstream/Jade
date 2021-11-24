@@ -14,9 +14,9 @@
 #include <ctype.h>
 #include <sodium/utils.h>
 
-void make_confirm_multisig_activity(const char* multisig_name, const size_t threshold, const signer_t* signers,
-    const size_t num_signers, const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len,
-    const bool overwriting, gui_activity_t** first_activity);
+void make_confirm_multisig_activity(const char* multisig_name, bool sorted, size_t threshold, const signer_t* signers,
+    size_t num_signers, const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, bool overwriting,
+    gui_activity_t** first_activity);
 
 static bool multisig_name_valid(const char* name)
 {
@@ -78,6 +78,15 @@ void register_multisig_process(void* process_ptr)
         goto cleanup;
     }
 
+    // Handle sorted-multisig - defaults to false if not passed
+    bool sorted = false;
+    if (rpc_has_field_data("sorted", &descriptor)) {
+        if (!rpc_get_boolean("sorted", &descriptor, &sorted)) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid sorted flag value", NULL);
+            goto cleanup;
+        }
+    }
+
     // Threshold
     written = 0;
     rpc_get_sizet("threshold", &descriptor, &written);
@@ -128,7 +137,8 @@ void register_multisig_process(void* process_ptr)
     uint8_t registration[MULTISIG_BYTES_LEN(MAX_MULTISIG_SIGNERS)]; // Sufficient
     const size_t registration_len = MULTISIG_BYTES_LEN(num_signers);
     JADE_ASSERT(registration_len <= sizeof(registration));
-    if (!multisig_data_to_bytes(script_variant, threshold, signers, num_signers, registration, registration_len)) {
+    if (!multisig_data_to_bytes(
+            script_variant, sorted, threshold, signers, num_signers, registration, registration_len)) {
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to serialise multisig registration", NULL);
         goto cleanup;
@@ -150,7 +160,7 @@ void register_multisig_process(void* process_ptr)
     }
 
     gui_activity_t* first_activity = NULL;
-    make_confirm_multisig_activity(multisig_name, threshold, signers, num_signers, wallet_fingerprint,
+    make_confirm_multisig_activity(multisig_name, sorted, threshold, signers, num_signers, wallet_fingerprint,
         sizeof(wallet_fingerprint), overwriting, &first_activity);
     JADE_ASSERT(first_activity);
     gui_set_current_activity(first_activity);

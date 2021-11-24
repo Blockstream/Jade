@@ -4,6 +4,7 @@
     "multisig_name": "matches_ga_2of2",
     "descriptor": {
       "variant": "sh(wsh(multi(k)))",
+      "sorted": false,
       "threshold": 2,
       "signers": [
         {

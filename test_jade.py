@@ -601,36 +601,40 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                    'Invalid script variant'),
                   (('badmulti8', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'signers': []}}), 'Invalid multisig threshold'),
+                      'variant': 'sh(multi(k))', 'sorted': 'Yes', 'threshold': 2, 'signers': []}}),
+                   'Invalid sorted flag value'),
                   (('badmulti9', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'signers': []}}), 'Invalid multisig threshold'),
+                  (('badmulti10', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 0, 'signers': []}}),
                    'Invalid multisig threshold'),
-                  (('badmulti10', 'register_multisig',
+                  (('badmulti11', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 12, 'signers': []}}),
                    'Invalid multisig threshold'),
-                  (('badmulti11', 'register_multisig',
+                  (('badmulti12', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 5, 'signers': GOOD_COSIGNERS}}),
                    'threshold for number of co-signers'),
-                  (('badmulti12', 'register_multisig',  # network missing or invalid
-                    {'network': 'noexist', 'multisig_name': 'test'}), 'valid network'),
                   (('badmulti13', 'register_multisig',  # network missing or invalid
+                    {'network': 'noexist', 'multisig_name': 'test'}), 'valid network'),
+                  (('badmulti14', 'register_multisig',  # network missing or invalid
                     {'network': 'liquid', 'multisig_name': 'test'}), 'not supported for liquid'),
-                  (('badmulti14', 'register_multisig',
+                  (('badmulti15', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners1}}),
                   'validate multisig co-signers'),
-                  (('badmulti15', 'register_multisig',
+                  (('badmulti16', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners2}}),
                   'validate multisig co-signers'),
-                  (('badmulti16', 'register_multisig',
+                  (('badmulti17', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners3}}),
                   'validate multisig co-signers'),
-                  (('badmulti17', 'register_multisig',
+                  (('badmulti18', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners4}}),
                   'validate multisig co-signers'),
@@ -1681,6 +1685,7 @@ aa95e1c72070b08208012144f')
         rslt = jadeapi.register_multisig(inputdata['network'],
                                          inputdata['multisig_name'],
                                          inputdata['descriptor']['variant'],
+                                         inputdata['descriptor']['sorted'],
                                          inputdata['descriptor']['threshold'],
                                          inputdata['descriptor']['signers'])
         assert rslt is True
@@ -1690,6 +1695,7 @@ aa95e1c72070b08208012144f')
         multisig_desc = registered_multisigs.get(inputdata['multisig_name'])
         assert multisig_desc is not None
         assert multisig_desc['variant'] == inputdata['descriptor']['variant']
+        assert multisig_desc['sorted'] == inputdata['descriptor']['sorted']
         assert multisig_desc['threshold'] == inputdata['descriptor']['threshold']
         assert multisig_desc['num_signers'] == len(inputdata['descriptor']['signers'])
 
@@ -1832,6 +1838,7 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
         rslt = jadeapi.register_multisig(inputdata['network'],
                                          inputdata['multisig_name'],
                                          inputdata['descriptor']['variant'],
+                                         inputdata['descriptor']['sorted'],
                                          inputdata['descriptor']['threshold'],
                                          inputdata['descriptor']['signers'])
         assert rslt is True
@@ -1841,6 +1848,7 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
         multisig_desc = registered_multisigs.get(inputdata['multisig_name'])
         assert multisig_desc is not None
         assert multisig_desc['variant'] == inputdata['descriptor']['variant']
+        assert multisig_desc['sorted'] == inputdata['descriptor']['sorted']
         assert multisig_desc['threshold'] == inputdata['descriptor']['threshold']
         assert multisig_desc['num_signers'] == len(inputdata['descriptor']['signers'])
 

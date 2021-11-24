@@ -480,8 +480,8 @@ static void handle_multisigs(void)
         }
 
         gui_activity_t* act;
-        make_view_multisig_activity(
-            &act, multisig_name, i + 1, num_multisigs, valid, multisig_data.threshold, multisig_data.xpubs_len);
+        make_view_multisig_activity(&act, multisig_name, i + 1, num_multisigs, valid, multisig_data.sorted,
+            multisig_data.threshold, multisig_data.xpubs_len);
         JADE_ASSERT(act);
 
         while (true) {

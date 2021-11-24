@@ -10,6 +10,7 @@
 typedef struct {
     const char* name;
     const char* variant;
+    bool sorted;
     uint8_t threshold;
     size_t num_signers;
 } multisig_desc_t;
@@ -37,10 +38,11 @@ static void reply_registered_multisigs(const void* ctx, CborEncoder* container)
         JADE_ASSERT(cberr == CborNoError);
 
         CborEncoder entry_encoder;
-        CborError cberr = cbor_encoder_create_map(&root_encoder, &entry_encoder, 3);
+        CborError cberr = cbor_encoder_create_map(&root_encoder, &entry_encoder, 4);
         JADE_ASSERT(cberr == CborNoError);
 
         add_string_to_map(&entry_encoder, "variant", desc->variant ? desc->variant : "");
+        add_uint_to_map(&entry_encoder, "sorted", desc->sorted);
         add_uint_to_map(&entry_encoder, "threshold", desc->threshold);
         add_uint_to_map(&entry_encoder, "num_signers", desc->num_signers);
 
@@ -79,11 +81,12 @@ void get_registered_multisigs_process(void* process_ptr)
         multisig_data_t multisig_data;
         const bool valid = multisig_load_from_storage(names[i], &multisig_data, &errmsg);
 
-        // If valid for this wallet, add description info (name, script-variant, threshold, num-signers)
+        // If valid for this wallet, add description info (name, script-variant, is-sorted, threshold, num-signers)
         if (valid) {
             multisig_desc_t* const desc = descriptions.multisigs + descriptions.multisigs_len;
             desc->name = names[i];
             desc->variant = get_script_variant_string(multisig_data.variant);
+            desc->sorted = multisig_data.sorted;
             desc->threshold = multisig_data.threshold;
             desc->num_signers = multisig_data.xpubs_len;
             ++descriptions.multisigs_len;

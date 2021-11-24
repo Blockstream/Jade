@@ -1,10 +1,10 @@
 {
   "input": {
     "network": "testnet",
-    "multisig_name": "p2sh_2of2",
+    "multisig_name": "wsh_2of2_sorted",
     "descriptor": {
-      "variant": "sh(multi(k))",
-      "sorted": false,
+      "variant": "wsh(multi(k))",
+      "sorted": true,
       "threshold": 2,
       "signers": [
         {
@@ -24,16 +24,16 @@
   },
   "address_tests": [
     {
-      "paths": [[1,2,3], [1]],
-      "expected_address": "2MsXzKqXp789oiJPth1HzcjoxCug9R5JfvP"
+      "paths": [[0, 1], [0, 16]],
+      "expected_address": "tb1qx474um8lr97sn46wz9v90u6qs49ttrhdze2cfxa5x4tajvl62avshcqval"
     },
     {
-      "paths": [[11,12], [3,4,5]],
-      "expected_address": "2N2K6xGHeEYNaKEHZSBVy33g2GfUdFwJr2A"
+      "paths": [[1, 34], [1, 87]],
+      "expected_address": "tb1qzf8rqun55uplysruppqp6stjwkwucj7cdkrjezy492scj8kxtq8qm7qkrx"
     },
     {
-      "paths": [[0,2], [0,2]],
-      "expected_address": "2MvvWr96VXAYHB4DibdZzPDviwoeLNSkMZb"
+      "paths": [[1, 2, 3], [17,108,234]],
+      "expected_address": "tb1q8jqk69auqm7alkdqavhs92f9wz7jy83s3h3nmsu7rhpu2plfwusq9sepyv"
     }
   ]
 }

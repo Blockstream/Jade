@@ -135,8 +135,8 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                 }
 
                 // Build a script pubkey for the passed parameters
-                if (!wallet_build_multisig_script(network, multisig_data.variant, multisig_data.threshold, pubkeys,
-                        written, script, sizeof(script), &script_len)) {
+                if (!wallet_build_multisig_script(network, multisig_data.variant, multisig_data.sorted,
+                        multisig_data.threshold, pubkeys, written, script, sizeof(script), &script_len)) {
                     *errmsg = "Failed to generate valid multisig script";
                     return false;
                 }

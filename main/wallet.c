@@ -499,9 +499,9 @@ static void wallet_p2sh_p2wsh_scriptpubkey_for_bytes(const unsigned char* bytes,
     JADE_ASSERT(*written == WALLY_SCRIPTPUBKEY_P2SH_LEN);
 }
 
-// Helper to build an M-of-N multisig script
-static void wallet_build_multisig(const size_t threshold, const uint8_t* pubkeys, const size_t pubkeys_len,
-    uint8_t* output, const size_t output_len, size_t* written)
+// Helper to build an M-of-N [sorted-] multisig script
+static void wallet_build_multisig(const bool sorted, const size_t threshold, const uint8_t* pubkeys,
+    const size_t pubkeys_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     const size_t nkeys = pubkeys_len / EC_PUBLIC_KEY_LEN;
     JADE_ASSERT(nkeys * EC_PUBLIC_KEY_LEN == pubkeys_len);
@@ -515,9 +515,10 @@ static void wallet_build_multisig(const size_t threshold, const uint8_t* pubkeys
     JADE_ASSERT(written);
 
     // Create m-of-n multisig script
-    JADE_LOGI("Generating %uof%u multisig script", threshold, nkeys);
+    const uint32_t flags = sorted ? WALLY_SCRIPT_MULTISIG_SORTED : 0;
+    JADE_LOGI("Generating %uof%u %s multisig script", threshold, nkeys, sorted ? "sorted" : "(unsorted)");
     JADE_WALLY_VERIFY(
-        wally_scriptpubkey_multisig_from_bytes(pubkeys, pubkeys_len, threshold, 0, output, output_len, written));
+        wally_scriptpubkey_multisig_from_bytes(pubkeys, pubkeys_len, threshold, flags, output, output_len, written));
     JADE_ASSERT(*written == MULTISIG_SCRIPT_LEN(nkeys));
 }
 
@@ -621,7 +622,9 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
         wallet_build_csv(
             network, pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, csvBlocks, script, sizeof(script), &script_size);
     } else {
-        wallet_build_multisig(2, pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, script, sizeof(script), &script_size);
+        const bool sorted = false; // GA multisig is not BIP67 sorted - the keys are provided in the expected order
+        wallet_build_multisig(
+            sorted, 2, pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, script, sizeof(script), &script_size);
     }
 
     // Get the p2sh/p2wsh script-pubkey for the script we have created
@@ -674,9 +677,10 @@ bool wallet_build_singlesig_script(const char* network, const script_variant_t s
     return true;
 }
 
-// Function to build a multi-sig script - multi-p2wsh, multi-p2sh, or multi-p2wsh-p2sh
-bool wallet_build_multisig_script(const char* network, const script_variant_t script_variant, const uint8_t threshold,
-    const uint8_t* pubkeys, const size_t pubkeys_len, unsigned char* output, const size_t output_len, size_t* written)
+// Function to build a [sorted-]multi-sig script - p2wsh, p2sh, or p2sh-p2wsh wrapped
+bool wallet_build_multisig_script(const char* network, const script_variant_t script_variant, const bool sorted,
+    const uint8_t threshold, const uint8_t* pubkeys, const size_t pubkeys_len, unsigned char* output,
+    const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
@@ -687,7 +691,7 @@ bool wallet_build_multisig_script(const char* network, const script_variant_t sc
 
     // Build a standard multisig script
     uint8_t multisig_script[MULTISIG_SCRIPT_LEN(MAX_MULTISIG_SIGNERS)]; // Sufficient
-    wallet_build_multisig(threshold, pubkeys, pubkeys_len, multisig_script, sizeof(multisig_script), written);
+    wallet_build_multisig(sorted, threshold, pubkeys, pubkeys_len, multisig_script, sizeof(multisig_script), written);
 
     // Wrap as appropriate
     if (script_variant == MULTI_P2WSH_P2SH) {

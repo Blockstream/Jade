@@ -20,7 +20,7 @@ static void translate_event(void* handler_arg, esp_event_base_t base, int32_t id
         JADE_EVENT, id == BTN_MULTISIG_CONFIRM ? MULTISIG_ACCEPT : MULTISIG_DECLINE, NULL, 0, 100 / portTICK_PERIOD_MS);
 }
 
-static void make_initial_confirm_screen(link_activity_t* link_activity, const char* multisig_name,
+static void make_initial_confirm_screen(link_activity_t* link_activity, const char* multisig_name, const bool sorted,
     const size_t threshold, const size_t num_signers, const uint8_t* wallet_fingerprint,
     const size_t wallet_fingerprint_len)
 {
@@ -86,21 +86,35 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     gui_set_parent(hsplit_text3, row3);
 
     gui_view_node_t* text3a;
-    gui_make_text(&text3a, "Wallet", TFT_WHITE);
+    gui_make_text(&text3a, "Sorted", TFT_WHITE);
     gui_set_parent(text3a, hsplit_text3);
     gui_set_align(text3a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
-    char* fingerprint_hex;
-    JADE_WALLY_VERIFY(wally_hex_from_bytes(wallet_fingerprint, wallet_fingerprint_len, &fingerprint_hex));
     gui_view_node_t* text3b;
-    gui_make_text(&text3b, fingerprint_hex, TFT_WHITE);
+    gui_make_text(&text3b, sorted ? "Y" : "N", TFT_WHITE);
     gui_set_parent(text3b, hsplit_text3);
     gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    JADE_WALLY_VERIFY(wally_free_string(fingerprint_hex));
 
     gui_view_node_t* row4;
     gui_make_fill(&row4, TFT_BLACK);
     gui_set_parent(row4, vsplit);
+
+    gui_view_node_t* hsplit_text4;
+    gui_make_hsplit(&hsplit_text4, GUI_SPLIT_RELATIVE, 2, 35, 65);
+    gui_set_parent(hsplit_text4, row4);
+
+    gui_view_node_t* text4a;
+    gui_make_text(&text4a, "Wallet", TFT_WHITE);
+    gui_set_parent(text4a, hsplit_text4);
+    gui_set_align(text4a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+
+    char* fingerprint_hex;
+    JADE_WALLY_VERIFY(wally_hex_from_bytes(wallet_fingerprint, wallet_fingerprint_len, &fingerprint_hex));
+    gui_view_node_t* text4b;
+    gui_make_text(&text4b, fingerprint_hex, TFT_WHITE);
+    gui_set_parent(text4b, hsplit_text4);
+    gui_set_align(text4b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    JADE_WALLY_VERIFY(wally_free_string(fingerprint_hex));
 
     // Buttons
     gui_view_node_t* row5;
@@ -464,9 +478,9 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
     link_activity->next_button = NULL;
 }
 
-void make_confirm_multisig_activity(const char* multisig_name, const size_t threshold, const signer_t* signers,
-    const size_t num_signers, const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len,
-    const bool overwriting, gui_activity_t** first_activity)
+void make_confirm_multisig_activity(const char* multisig_name, const bool sorted, const size_t threshold,
+    const signer_t* signers, const size_t num_signers, const uint8_t* wallet_fingerprint,
+    const size_t wallet_fingerprint_len, const bool overwriting, gui_activity_t** first_activity)
 {
     JADE_ASSERT(multisig_name);
     JADE_ASSERT(signers);
@@ -482,7 +496,7 @@ void make_confirm_multisig_activity(const char* multisig_name, const size_t thre
 
     // 1 based indices for display purposes
     make_initial_confirm_screen(
-        &link_act, multisig_name, threshold, num_signers, wallet_fingerprint, wallet_fingerprint_len);
+        &link_act, multisig_name, sorted, threshold, num_signers, wallet_fingerprint, wallet_fingerprint_len);
     gui_chain_activities(&link_act, &act_info);
 
     // Screen per signer
@@ -502,7 +516,7 @@ void make_confirm_multisig_activity(const char* multisig_name, const size_t thre
 }
 
 void make_view_multisig_activity(gui_activity_t** activity, const char* multisig_name, const size_t index,
-    const size_t total, const bool valid, const size_t threshold, const size_t num_signers)
+    const size_t total, const bool valid, const bool sorted, const size_t threshold, const size_t num_signers)
 {
     JADE_ASSERT(activity);
     JADE_ASSERT(multisig_name);
@@ -549,6 +563,10 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
     gui_make_fill(&row3, TFT_BLACK);
     gui_set_parent(row3, vsplit);
 
+    gui_view_node_t* row4;
+    gui_make_fill(&row4, TFT_BLACK);
+    gui_set_parent(row4, vsplit);
+
     if (valid) {
         gui_view_node_t* hsplit_text3;
         gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 25, 75);
@@ -567,6 +585,20 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
         gui_make_text(&text3b, type, TFT_WHITE);
         gui_set_parent(text3b, hsplit_text3);
         gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+
+        gui_view_node_t* hsplit_text4;
+        gui_make_hsplit(&hsplit_text4, GUI_SPLIT_RELATIVE, 2, 25, 75);
+        gui_set_parent(hsplit_text4, row4);
+
+        gui_view_node_t* text4a;
+        gui_make_text(&text4a, "Sorted", TFT_WHITE);
+        gui_set_parent(text4a, hsplit_text4);
+        gui_set_align(text4a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+
+        gui_view_node_t* text4b;
+        gui_make_text(&text4b, sorted ? "Y" : "N", TFT_WHITE);
+        gui_set_parent(text4b, hsplit_text4);
+        gui_set_align(text4b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     } else {
         // Not valid for this wallet - just show warning
         gui_view_node_t* text3;
@@ -574,10 +606,6 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
         gui_set_parent(text3, row3);
         gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     }
-
-    gui_view_node_t* row4;
-    gui_make_fill(&row4, TFT_BLACK);
-    gui_set_parent(row4, vsplit);
 
     // Buttons
     gui_view_node_t* row5;
