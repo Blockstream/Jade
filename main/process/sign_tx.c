@@ -130,7 +130,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                         sizeof(pubkeys), &written)
                     || written != multisig_data.xpubs_len * EC_PUBLIC_KEY_LEN) {
 
-                    *errmsg = "Unexpected number of signer paths for given multisig";
+                    *errmsg = "Unexpected number of signer paths or invalid path for multisig";
                     return false;
                 }
 

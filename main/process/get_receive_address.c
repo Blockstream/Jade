@@ -85,8 +85,8 @@ void get_receive_address_process(void* process_ptr)
         if (!multisig_get_pubkeys(
                 multisig_data.xpubs, multisig_data.xpubs_len, &all_signer_paths, pubkeys, sizeof(pubkeys), &written)
             || written != multisig_data.xpubs_len * EC_PUBLIC_KEY_LEN) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Unexpected number of signer paths for given multisig", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS,
+                "Unexpected number of signer paths or invalid path for multisig", NULL);
             goto cleanup;
         }
 
