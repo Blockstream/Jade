@@ -35,6 +35,10 @@
 // Whether during initialisation we select BLE
 static bool initialisation_via_ble = false;
 
+// The device name and running firmware info, loaded at startup
+static const char* device_name;
+static esp_app_desc_t running_app_info;
+
 // Functional actions
 void get_xpubs_process(void* process_ptr);
 void get_registered_multisigs_process(void* process_ptr);
@@ -85,12 +89,6 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx == NULL); // Unused here
     JADE_ASSERT(container);
-
-    const esp_partition_t* running = esp_ota_get_running_partition();
-    JADE_ASSERT(running);
-    esp_app_desc_t running_app_info;
-    const esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
-    JADE_ASSERT(err == ESP_OK);
 
 #ifdef CONFIG_DEBUG_MODE
     const uint8_t num_version_fields = 19;
@@ -636,12 +634,10 @@ static void handle_ble(void)
 {
     gui_activity_t* act;
 
-    const char* device_name = get_jade_id();
-    JADE_ASSERT(device_name);
-
     gui_view_node_t* ble_status_textbox;
     make_ble_screen(&act, device_name, &ble_status_textbox);
     JADE_ASSERT(act);
+
     update_ble_enabled_text(ble_status_textbox);
     gui_set_current_activity(act);
 
@@ -697,13 +693,6 @@ static void handle_device(void)
     const int rc = ble_get_mac(mac, sizeof(mac));
     JADE_ASSERT(rc == 18);
 #endif
-
-    const esp_partition_t* running = esp_ota_get_running_partition();
-    JADE_ASSERT(running);
-
-    esp_app_desc_t running_app_info;
-    const esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
-    JADE_ASSERT(err == ESP_OK);
 
     gui_activity_t* act;
     make_device_screen(&act, power_status, mac, running_app_info.version);
@@ -890,8 +879,14 @@ void dashboard_process(void* process_ptr)
     // otherwise we'd expect no keychain at this point.
     JADE_ASSERT(!keychain_get() || keychain_has_temporary());
 
-    const char* device_name = get_jade_id();
+    // Populate the static fields about the unit/fw
+    device_name = get_jade_id();
     JADE_ASSERT(device_name);
+
+    const esp_partition_t* running = esp_ota_get_running_partition();
+    JADE_ASSERT(running);
+    const esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
+    JADE_ASSERT(err == ESP_OK);
 
     wait_event_data_t* const event_data = make_wait_event_data();
     gui_activity_t* act_dashboard = NULL;
