@@ -62,8 +62,8 @@ void auth_user_process(void* process_ptr);
 
 // GUI screens
 void make_startup_options_screen(gui_activity_t** act_ptr);
-void make_setup_screen(gui_activity_t** act_ptr, const char* device_name);
-void make_connect_screen(gui_activity_t** act_ptr, const char* device_name);
+void make_setup_screen(gui_activity_t** act_ptr, const char* device_name, const char* firmware_version);
+void make_connect_screen(gui_activity_t** act_ptr, const char* device_name, const char* firmware_version);
 void make_connection_select_screen(gui_activity_t** act_ptr);
 void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, bool ble);
 void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, const char* additional);
@@ -915,10 +915,10 @@ void dashboard_process(void* process_ptr)
             make_connect_to_screen(&act_dashboard, device_name, initialisation_via_ble);
         } else if (has_pin) {
             JADE_LOGI("Wallet/keys pin set but not yet loaded - showing Connect screen");
-            make_connect_screen(&act_dashboard, device_name);
+            make_connect_screen(&act_dashboard, device_name, running_app_info.version);
         } else {
             JADE_LOGI("No wallet/keys and no pin set - showing Setup screen");
-            make_setup_screen(&act_dashboard, device_name);
+            make_setup_screen(&act_dashboard, device_name, running_app_info.version);
         }
 
         // This call loops/blocks all the time the user keychain (and related details)

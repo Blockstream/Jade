@@ -193,7 +193,7 @@ static void add_button_bar(gui_view_node_t* parent_node)
     }
 }
 
-void make_setup_screen(gui_activity_t** act_ptr, const char* device_name)
+void make_setup_screen(gui_activity_t** act_ptr, const char* device_name, const char* firmware_version)
 {
     JADE_ASSERT(act_ptr);
     JADE_ASSERT(device_name);
@@ -206,7 +206,7 @@ void make_setup_screen(gui_activity_t** act_ptr, const char* device_name)
     gui_make_activity(&act, true, title);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 35, 50, 15);
     gui_set_parent(vsplit, act->root_node);
 
     gui_view_node_t* text1;
@@ -227,13 +227,20 @@ void make_setup_screen(gui_activity_t** act_ptr, const char* device_name)
     gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(btntext, btn);
 
+    gui_view_node_t* ver;
+    gui_make_text(&ver, firmware_version, TFT_WHITE);
+    gui_set_align(ver, GUI_ALIGN_RIGHT, GUI_ALIGN_BOTTOM);
+    gui_set_padding(ver, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 4, 2);
+    gui_set_parent(ver, vsplit);
+
     *act_ptr = act;
 }
 
-void make_connect_screen(gui_activity_t** act_ptr, const char* device_name)
+void make_connect_screen(gui_activity_t** act_ptr, const char* device_name, const char* firmware_version)
 {
     JADE_ASSERT(act_ptr);
     JADE_ASSERT(device_name);
+    JADE_ASSERT(firmware_version);
 
     char title[32];
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
@@ -242,11 +249,21 @@ void make_connect_screen(gui_activity_t** act_ptr, const char* device_name)
     gui_activity_t* act;
     gui_make_activity(&act, true, title);
 
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 85, 15);
+    gui_set_parent(vsplit, act->root_node);
+
     gui_view_node_t* text;
     gui_make_text(&text, "Connect Jade to a Blockstream\nGreen companion app", TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 24, 8, 0, 8);
-    gui_set_parent(text, act->root_node);
+    gui_set_parent(text, vsplit);
+
+    gui_view_node_t* ver;
+    gui_make_text(&ver, firmware_version, TFT_WHITE);
+    gui_set_align(ver, GUI_ALIGN_RIGHT, GUI_ALIGN_BOTTOM);
+    gui_set_padding(ver, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 4, 2);
+    gui_set_parent(ver, vsplit);
 
     *act_ptr = act;
 }
