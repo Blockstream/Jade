@@ -912,17 +912,17 @@ void dashboard_process(void* process_ptr)
         const bool has_pin = keychain_has_pin();
         const keychain_t* initial_keychain = keychain_get();
         if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
-            JADE_LOGI("Connected and have keys - showing Ready screen");
+            JADE_LOGI("Connected and have wallet/keys - showing Ready screen");
             const char* additional = keychain_has_temporary() ? "(Temporary Wallet)" : NULL;
             make_ready_screen(&act_dashboard, device_name, additional);
         } else if (initial_keychain) {
-            JADE_LOGI("Have keys loaded but not connected - showing Connect-To screen");
+            JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");
             make_connect_to_screen(&act_dashboard, device_name, initialisation_via_ble);
         } else if (has_pin) {
-            JADE_LOGI("Pin set - showing Connect screen");
+            JADE_LOGI("Wallet/keys pin set but not yet loaded - showing Connect screen");
             make_connect_screen(&act_dashboard, device_name);
         } else {
-            JADE_LOGI("No Pin set - showing Setup screen");
+            JADE_LOGI("No wallet/keys and no pin set - showing Setup screen");
             make_setup_screen(&act_dashboard, device_name);
         }
 

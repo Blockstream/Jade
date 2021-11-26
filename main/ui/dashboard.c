@@ -504,6 +504,7 @@ void make_settings_screen(
 void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** ble_status_textbox)
 {
     JADE_ASSERT(act_ptr);
+    JADE_ASSERT(device_name);
     JADE_ASSERT(ble_status_textbox);
 
     gui_activity_t* act;
@@ -757,6 +758,9 @@ void make_device_screen(
     gui_activity_t** act_ptr, const char* power_status, const char* mac, const char* firmware_version)
 {
     JADE_ASSERT(act_ptr);
+    JADE_ASSERT(power_status);
+    JADE_ASSERT(mac);
+    JADE_ASSERT(firmware_version);
 
     gui_activity_t* act;
     gui_make_activity(&act, true, "Device");
@@ -918,6 +922,7 @@ void make_device_screen(
 void make_show_xpub(gui_activity_t** act_ptr, Icon* qr_icon)
 {
     JADE_ASSERT(act_ptr);
+    JADE_ASSERT(qr_icon);
 
     gui_activity_t* act;
     gui_make_activity(&act, false, "NULL");
