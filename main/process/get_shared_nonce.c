@@ -6,6 +6,32 @@
 
 #include "process_utils.h"
 
+typedef struct {
+    const uint8_t* shared_nonce;
+    const size_t shared_nonce_len;
+    const uint8_t* pubkey;
+    const size_t pubkey_len;
+} nonce_pubkey_data_t;
+
+static void reply_nonce_and_pubkey(const void* ctx, CborEncoder* container)
+{
+    JADE_ASSERT(ctx);
+
+    const nonce_pubkey_data_t* data = (const nonce_pubkey_data_t*)ctx;
+    JADE_ASSERT(data->shared_nonce_len == SHA256_LEN);
+    JADE_ASSERT(data->pubkey_len == EC_PUBLIC_KEY_LEN);
+
+    CborEncoder result_encoder;
+    CborError cberr = cbor_encoder_create_map(container, &result_encoder, 2);
+    JADE_ASSERT(cberr == CborNoError);
+
+    add_bytes_to_map(&result_encoder, "shared_nonce", data->shared_nonce, data->shared_nonce_len);
+    add_bytes_to_map(&result_encoder, "blinding_key", data->pubkey, data->pubkey_len);
+
+    cberr = cbor_encoder_close_container(container, &result_encoder);
+    JADE_ASSERT(cberr == CborNoError);
+}
+
 void get_shared_nonce_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
@@ -32,19 +58,46 @@ void get_shared_nonce_process(void* process_ptr)
         goto cleanup;
     }
 
-    // get nonce and pre-hash so we can use it directly to unblind later
+    // Optional field to additionally return the blinding public key - defaults to false
+    uint8_t blinding_pubkey[EC_PUBLIC_KEY_LEN];
+    uint8_t* p_blinding_pubkey = NULL;
+    size_t blinding_pubkey_len = 0;
+    if (rpc_has_field_data("include_pubkey", &params)) {
+        bool include_pubkey = false;
+        if (!rpc_get_boolean("include_pubkey", &params, &include_pubkey)) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid pubkey flag from parameters", NULL);
+            goto cleanup;
+        }
+
+        // If the client also wants the pubkey, setup the parameters
+        if (include_pubkey) {
+            p_blinding_pubkey = blinding_pubkey;
+            blinding_pubkey_len = sizeof(blinding_pubkey);
+        }
+    }
+
+    // Get blinding nonce - sha256(ecdh(our_prikey, their_pubkey))
     unsigned char shared_nonce[SHA256_LEN];
-    unsigned char shared_nonce_hash[SHA256_LEN];
-    if (!wallet_get_shared_nonce(script, script_len, their_pubkey, their_pubkey_len, shared_nonce, sizeof(shared_nonce))
-        || wally_sha256(shared_nonce, sizeof(shared_nonce), shared_nonce_hash, sizeof(shared_nonce_hash)) != WALLY_OK) {
+    if (!wallet_get_shared_blinding_nonce(script, script_len, their_pubkey, their_pubkey_len, shared_nonce,
+            sizeof(shared_nonce), p_blinding_pubkey, blinding_pubkey_len)) {
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to compute hashed shared nonce value for the parameters", NULL);
         goto cleanup;
     }
 
-    uint8_t buffer[256];
-    jade_process_reply_to_message_bytes(
-        process->ctx, shared_nonce_hash, sizeof(shared_nonce_hash), buffer, sizeof(buffer));
+    if (p_blinding_pubkey) {
+        // Return shared blinding nonce *and* the blinding pubkey (as it is explicitly requested)
+        const nonce_pubkey_data_t data = { .shared_nonce = shared_nonce,
+            .shared_nonce_len = sizeof(shared_nonce),
+            .pubkey = p_blinding_pubkey,
+            .pubkey_len = blinding_pubkey_len };
+        jade_process_reply_to_message_result(process->ctx, &data, reply_nonce_and_pubkey);
+    } else {
+        // Just shared blinding nonce alone (default/legacy behaviour)
+        uint8_t buffer[256];
+        jade_process_reply_to_message_bytes(process->ctx, shared_nonce, sizeof(shared_nonce), buffer, sizeof(buffer));
+    }
     JADE_LOGI("Success");
 
 cleanup:

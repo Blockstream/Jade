@@ -903,6 +903,28 @@ bool wallet_hmac_with_master_key(
         == WALLY_OK;
 }
 
+// Return script blinding privkey/pubkey pair
+static bool wallet_get_blinding_privkey(
+    const uint8_t* script, const uint32_t script_size, uint8_t* output, const uint32_t output_len)
+{
+    JADE_ASSERT(keychain_get());
+
+    JADE_ASSERT(script);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len == EC_PRIVATE_KEY_LEN);
+
+    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
+    // the master unblinding key is only the second half of that - ie. 256 bits
+    // 'wally_asset_blinding_key_to_ec_private_key()' takes this into account...
+    const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
+        sizeof(keychain_get()->master_unblinding_key), script, script_size, output, output_len);
+    if (wret != WALLY_OK) {
+        JADE_LOGE("Error building asset blinding key for script: %d", wret);
+        return false;
+    }
+    return true;
+}
+
 bool wallet_get_public_blinding_key(
     const unsigned char* script, const uint32_t script_size, unsigned char* output, const uint32_t output_len)
 {
@@ -912,22 +934,14 @@ bool wallet_get_public_blinding_key(
         return false;
     }
 
-    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
-    // the master unblinding key is only the second half of that - ie. 256 bits
-    // 'wally_asset_blinding_key_to_ec_private_key()' takes this into account...
     unsigned char privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
-    const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
-        sizeof(keychain_get()->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
-    if (wret != WALLY_OK) {
-        SENSITIVE_POP(privkey);
-        JADE_LOGE("Error building asset blinding key for script: %d", wret);
-        return false;
+    const bool retval = wallet_get_blinding_privkey(script, script_size, privkey, sizeof(privkey));
+    if (retval) {
+        JADE_WALLY_VERIFY(wally_ec_public_key_from_private_key(privkey, sizeof(privkey), output, output_len));
     }
-    JADE_WALLY_VERIFY(wally_ec_public_key_from_private_key(privkey, sizeof(privkey), output, output_len));
     SENSITIVE_POP(privkey);
-
-    return true;
+    return retval;
 }
 
 bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t hash_len, uint32_t output_index,
@@ -959,36 +973,46 @@ bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t
     return true;
 }
 
-bool wallet_get_shared_nonce(const unsigned char* script, const uint32_t script_size, const unsigned char* their_pubkey,
-    const size_t pubkey_len, unsigned char* output, const uint32_t output_len)
+// Compute the shared blinding nonce - ie. sha256(ecdh(our_privkey, their_pubkey))
+bool wallet_get_shared_blinding_nonce(const unsigned char* script, const uint32_t script_size,
+    const unsigned char* their_pubkey, const size_t their_pubkey_len, unsigned char* output_nonce,
+    const uint32_t output_nonce_len, unsigned char* output_pubkey, const uint32_t output_pubkey_len)
 {
     JADE_ASSERT(keychain_get());
 
-    if (!script || !their_pubkey || pubkey_len != EC_PUBLIC_KEY_LEN || !output || output_len != SHA256_LEN) {
+    if (!script || !their_pubkey || !output_nonce || output_nonce_len != SHA256_LEN) {
+        return false;
+    }
+    if ((output_pubkey && output_pubkey_len != EC_PUBLIC_KEY_LEN) || (!output_pubkey && output_pubkey_len != 0)) {
         return false;
     }
 
+    unsigned char ecdh_output[SHA256_LEN];
     unsigned char privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
-
-    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
-    // the master unblinding key is only the second half of that - ie. 256 bits
-    // 'wally_asset_blinding_key_to_ec_private_key()' takes this into account...
-    const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
-        sizeof(keychain_get()->master_unblinding_key), script, script_size, privkey, sizeof(privkey));
-    if (wret != WALLY_OK) {
+    if (!wallet_get_blinding_privkey(script, script_size, privkey, sizeof(privkey))) {
         SENSITIVE_POP(privkey);
-        JADE_LOGE("Error building asset blinding key for script: %d", wret);
         return false;
     }
-    const int wret2 = wally_ecdh(their_pubkey, pubkey_len, privkey, sizeof(privkey), output, output_len);
+
+    const int wret
+        = wally_ecdh(their_pubkey, their_pubkey_len, privkey, sizeof(privkey), ecdh_output, sizeof(ecdh_output));
+    if (wret != WALLY_OK) {
+        JADE_LOGE("Error building ecdh: %d", wret);
+        SENSITIVE_POP(privkey);
+        return false;
+    }
+
+    // Shared blinding nonce is the hash of this ecdh result
+    JADE_WALLY_VERIFY(wally_sha256(ecdh_output, sizeof(ecdh_output), output_nonce, output_nonce_len));
+
+    // Caller may also want our public blinding key
+    if (output_pubkey) {
+        JADE_WALLY_VERIFY(
+            wally_ec_public_key_from_private_key(privkey, sizeof(privkey), output_pubkey, output_pubkey_len));
+    }
+
     SENSITIVE_POP(privkey);
-
-    if (wret2 != WALLY_OK) {
-        JADE_LOGE("Error building ecdh: %d", wret2);
-        return false;
-    }
-
     return true;
 }
 

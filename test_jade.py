@@ -853,6 +853,9 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                     {'script': TEST_SCRIPT, 'their_pubkey': 'notbin'}), 'extract their_pubkey'),
                   (('badnonce8', 'get_shared_nonce',  # short pubkey
                     {'script': TEST_SCRIPT, 'their_pubkey': h2b('ab')}), 'extract their_pubkey'),
+                  (('badnonce9', 'get_shared_nonce',  # bad 'include_pubkey'
+                    {'script': TEST_SCRIPT, 'their_pubkey': TEST_THEIR_PK,
+                     'include_pubkey': 'True'}), 'extract valid pubkey flag'),
 
                   (('badblindfac1', 'get_blinding_factor'), 'Expecting parameters map'),
                   (('badblindfac2', 'get_blinding_factor',
@@ -1601,6 +1604,11 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
     # Get Liquid shared nonce
     rslt = jadeapi.get_shared_nonce(TEST_SCRIPT, TEST_THEIR_PK)
     assert rslt == EXPECTED_SHARED_SECRET
+
+    # Get Liquid shared nonce and public blinding key in one call
+    rslt = jadeapi.get_shared_nonce(TEST_SCRIPT, TEST_THEIR_PK, include_pubkey=True)
+    assert rslt['shared_nonce'] == EXPECTED_SHARED_SECRET
+    assert rslt['blinding_key'] == EXPECTED_BLINDING_KEY
 
     # Get Liquid blinding factor
     rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'ASSET')

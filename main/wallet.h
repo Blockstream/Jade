@@ -71,8 +71,9 @@ bool wallet_hmac_with_master_key(
     const unsigned char* data, uint32_t data_len, unsigned char* output, uint32_t output_len);
 bool wallet_get_public_blinding_key(
     const unsigned char* script, uint32_t script_size, unsigned char* output, uint32_t output_len);
-bool wallet_get_shared_nonce(const unsigned char* script, uint32_t script_size, const unsigned char* their_pubkey,
-    size_t pubkey_len, unsigned char* output, uint32_t output_len);
+bool wallet_get_shared_blinding_nonce(const unsigned char* script, const uint32_t script_size,
+    const unsigned char* their_pubkey, const size_t their_pubkey_len, unsigned char* output_nonce,
+    const uint32_t output_nonce_len, unsigned char* output_pubkey, const uint32_t output_pubkey_len);
 bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, size_t hash_len, uint32_t output_index,
     uint8_t type, unsigned char* output, uint32_t output_len);
 bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,

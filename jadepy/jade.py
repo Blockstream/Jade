@@ -304,9 +304,9 @@ class JadeAPI:
 
     # Get the shared secret to unblind a tx, given the receiving script on
     # our side and the pubkey of the sender (sometimes called "nonce" in
-    # Liquid)
-    def get_shared_nonce(self, script, their_pubkey):
-        params = {'script': script, 'their_pubkey': their_pubkey}
+    # Liquid).  Optionally fetch our blinding pubkey also.
+    def get_shared_nonce(self, script, their_pubkey, include_pubkey=False):
+        params = {'script': script, 'their_pubkey': their_pubkey, 'include_pubkey': include_pubkey}
         return self._jadeRpc('get_shared_nonce', params)
 
     # Get a "trusted" blinding factor to blind an output. Normally the blinding
