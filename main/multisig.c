@@ -151,15 +151,16 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
 
     // All signers immediate parent keys
     const size_t xpubs_bytes_len = bytes + bytes_len - HMAC_SHA256_LEN - read_ptr;
-    output->xpubs_len = xpubs_bytes_len / BIP32_SERIALIZED_LEN;
-    if (output->xpubs_len > MAX_MULTISIG_SIGNERS) {
+    const size_t num_xpubs = xpubs_bytes_len / BIP32_SERIALIZED_LEN;
+    if (num_xpubs > MAX_MULTISIG_SIGNERS) {
         JADE_LOGE("Unexpected number of multisig signers %d", output->xpubs_len);
         return false;
     }
-    if (output->xpubs_len * BIP32_SERIALIZED_LEN != xpubs_bytes_len) {
+    if (num_xpubs * BIP32_SERIALIZED_LEN != xpubs_bytes_len) {
         JADE_LOGE("Unexpected multisig data length %d for %d signers", bytes_len, output->xpubs_len);
         return false;
     }
+    output->xpubs_len = (uint8_t)num_xpubs; // ok as less than MAX_MULTISIG_SIGNERS
 
     memcpy(output->xpubs, read_ptr, xpubs_bytes_len);
     read_ptr += xpubs_bytes_len;

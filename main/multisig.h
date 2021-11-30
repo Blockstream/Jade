@@ -20,7 +20,7 @@ typedef struct {
     bool sorted;
     uint8_t threshold;
     uint8_t xpubs[MAX_MULTISIG_SIGNERS * BIP32_SERIALIZED_LEN];
-    size_t xpubs_len;
+    uint8_t xpubs_len;
 } multisig_data_t;
 
 bool multisig_validate_signers(const char* network, const signer_t* signers, size_t num_signers,

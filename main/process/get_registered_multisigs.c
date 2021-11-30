@@ -12,7 +12,7 @@ typedef struct {
     const char* variant;
     bool sorted;
     uint8_t threshold;
-    size_t num_signers;
+    uint8_t num_signers;
 } multisig_desc_t;
 
 typedef struct {
