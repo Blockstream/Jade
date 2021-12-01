@@ -12,15 +12,8 @@ if [[ -z ${JADESERIALPORT} ]]; then
 fi
 
 # Deduce a port for the pinserver and redis.  Slightly hacky.
-SUFFIX="${JADESERIALPORT: -1}"
-if [ "${SUFFIX}" -gt "0" ] 2> /dev/null
-then
-    PINSVRPORT="500${SUFFIX}"
-    REDIS_PORT="600${SUFFIX}"
-else
-    PINSVRPORT="5000"
-    REDIS_PORT="6000"
-fi
+PINSVRPORT="$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')"
+REDIS_PORT="$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')"
 
 python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip esp32 --port ${JADESERIALPORT} --baud 2000000 --before default_reset erase_flash
 

@@ -223,6 +223,14 @@ test_flash_qemu_psram:
     - cp build*/sdkconfig ./
     - ./ci_flash.sh
 
+.test_flash_artifact_template_v1_1:
+  stage: deploy
+  tags:
+    - esp32flasher_v1_1
+  script:
+    - cp build*/sdkconfig ./
+    - ./ci_flash.sh
+
 test_flash_artifact:
   extends: .test_flash_artifact_template
   needs:
@@ -236,6 +244,20 @@ test_flash_artifact_noblobs:
     - test_build_jade_noblobs_ci
   before_script:
     - mv build_jade_noblobs_ci build
+
+test_flash_artifact_v1_1:
+  extends: .test_flash_artifact_template_v1_1
+  needs:
+    - test_build_jade_v1_1_ci
+  before_script:
+    - mv build_jade_v1_1_ci build
+
+test_flash_artifact_noblobs_v1_1:
+  extends: .test_flash_artifact_template_v1_1
+  needs:
+    - test_build_jade_v1_1_noblobs_ci
+  before_script:
+    - mv build_jade_v1_1_noblobs_ci build
 
 build_api_docs:
   tags:
