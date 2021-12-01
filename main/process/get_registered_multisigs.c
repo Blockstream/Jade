@@ -42,7 +42,7 @@ static void reply_registered_multisigs(const void* ctx, CborEncoder* container)
         JADE_ASSERT(cberr == CborNoError);
 
         add_string_to_map(&entry_encoder, "variant", desc->variant ? desc->variant : "");
-        add_uint_to_map(&entry_encoder, "sorted", desc->sorted);
+        add_boolean_to_map(&entry_encoder, "sorted", desc->sorted);
         add_uint_to_map(&entry_encoder, "threshold", desc->threshold);
         add_uint_to_map(&entry_encoder, "num_signers", desc->num_signers);
 
