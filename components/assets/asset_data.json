@@ -1465,6 +1465,40 @@
         "ticker": "MXNL",
         "version": 0
     },
+    "1196d8964faf5aa091d51eedd3a4e6f4be10fc3fef3437e18bc45ad71bbdc194": {
+        "asset_id": "1196d8964faf5aa091d51eedd3a4e6f4be10fc3fef3437e18bc45ad71bbdc194",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Sacile",
+            "nft": {
+                "cid": "QmfJLkESHyd4mPyeX9u8hUpyN2CCZKWEgiN3SGjomu6hca",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "ecb9401ecb30ab65947f5eff58217948f81496cb50ede791026caa450881316b"
+            },
+            "precision": 0,
+            "ticker": "10002",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "3fba84e68dd6cbf4e21fefa3b67f4cc23917c1c7df8075b28cfb19e986cf5220",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "fa389412b57565fa5a1e7ba9271c196da7654fc0297156f859cb6b40cc814663",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Sacile",
+        "precision": 0,
+        "ticker": "10002",
+        "version": 0
+    },
     "11f91cb5edd5d0822997ad81f068ed35002daec33986da173461a8427ac857e1": {
         "asset_id": "11f91cb5edd5d0822997ad81f068ed35002daec33986da173461a8427ac857e1",
         "contract": {
@@ -3362,6 +3396,35 @@
         "name": "Giandalf",
         "precision": 0,
         "ticker": "CGian",
+        "version": 0
+    },
+    "2a7ef4499a7a40bb3896abdffbdc1cf157dcd1ac35d2a4433715d2069782e5d5": {
+        "asset_id": "2a7ef4499a7a40bb3896abdffbdc1cf157dcd1ac35d2a4433715d2069782e5d5",
+        "contract": {
+            "entity": {
+                "domain": "charruacoin.com"
+            },
+            "issuer_pubkey": "0344ae48884425e8e8a2e2d79b6c01d87f9d91f96df78e789c462ad1737c8623a6",
+            "name": "LiquidCardano",
+            "precision": 8,
+            "ticker": "LADA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "charruacoin.com"
+        },
+        "issuance_prevout": {
+            "txid": "8b572cef4f8e1ec69155f92cb4a1bcb5b57483f5f2b2a2241dbb09ae86ec0626",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "119bace56d4b56c6e78e3bc350a64d7e5cf8d1357155e5613ff18d8053ca6a95",
+            "vin": 0
+        },
+        "issuer_pubkey": "0344ae48884425e8e8a2e2d79b6c01d87f9d91f96df78e789c462ad1737c8623a6",
+        "name": "LiquidCardano",
+        "precision": 8,
+        "ticker": "LADA",
         "version": 0
     },
     "2b304200d88fc57d51c39f69bf4b2be629818c623e16348c2322f60977b6b210": {
@@ -5471,6 +5534,36 @@
         "ticker": "10001",
         "version": 0
     },
+    "46cccd0d5a667bb87caf0136386c09334227240e648da4d6a2cf045778aac835": {
+        "asset_id": "46cccd0d5a667bb87caf0136386c09334227240e648da4d6a2cf045778aac835",
+        "contract": {
+            "entity": {
+                "domain": "serpiente.coinos.io"
+            },
+            "file": "QmZAXhaQQws5koRnNSbQDP4zcxBbNC54VHoDUjGNZjpmty",
+            "issuer_pubkey": "03b5b0e7c9a1cd7fbde2fc49bbc0b93f30de6fd930fca9774f815cfd553ad7bd85",
+            "name": "test art",
+            "precision": 0,
+            "ticker": "TESA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "serpiente.coinos.io"
+        },
+        "issuance_prevout": {
+            "txid": "109e0f51ac5a18692f71ab43510a1842c099c1902ab17fc5c7a1ae6c3ab3a96b",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "5b56d2085fa80152d8337ceba0558f2ba5c9bd5235637354586e53c5d6a0ece9",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b5b0e7c9a1cd7fbde2fc49bbc0b93f30de6fd930fca9774f815cfd553ad7bd85",
+        "name": "test art",
+        "precision": 0,
+        "ticker": "TESA",
+        "version": 0
+    },
     "4754849d8e19d0082fe93dbb32546ba1dd41158581b540fd76297d87bdf888fa": {
         "asset_id": "4754849d8e19d0082fe93dbb32546ba1dd41158581b540fd76297d87bdf888fa",
         "contract": {
@@ -7082,6 +7175,35 @@
         "ticker": "HPape",
         "version": 0
     },
+    "5575278c59e200db0d0659e12919a50b6e775f4dc59f28f13d8abf940d744994": {
+        "asset_id": "5575278c59e200db0d0659e12919a50b6e775f4dc59f28f13d8abf940d744994",
+        "contract": {
+            "entity": {
+                "domain": "charruacoin.com"
+            },
+            "issuer_pubkey": "03bbccfc01f67ef016b1f163b9e8983931e7e3525ce9e8fe2cbf5a2aa2037aa979",
+            "name": "UniSwap",
+            "precision": 8,
+            "ticker": "UNI",
+            "version": 0
+        },
+        "entity": {
+            "domain": "charruacoin.com"
+        },
+        "issuance_prevout": {
+            "txid": "119bace56d4b56c6e78e3bc350a64d7e5cf8d1357155e5613ff18d8053ca6a95",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "9afc5a5c250e6d7440ff787064c952c89b7264ede32d0b20d9b62493cc128320",
+            "vin": 0
+        },
+        "issuer_pubkey": "03bbccfc01f67ef016b1f163b9e8983931e7e3525ce9e8fe2cbf5a2aa2037aa979",
+        "name": "UniSwap",
+        "precision": 8,
+        "ticker": "UNI",
+        "version": 0
+    },
     "56fdd413ec830ffa0ca404c29941530307a04ce25e2dfe1fdb3f6c569b053fe7": {
         "asset_id": "56fdd413ec830ffa0ca404c29941530307a04ce25e2dfe1fdb3f6c569b053fe7",
         "contract": {
@@ -7139,6 +7261,35 @@
         "name": "The Golden Whale Pass : 1st Edition",
         "precision": 0,
         "ticker": "TGW",
+        "version": 0
+    },
+    "582c4561fc34306661496abda13b30a254fcfeda0b3a16b3194f681ee8b17e53": {
+        "asset_id": "582c4561fc34306661496abda13b30a254fcfeda0b3a16b3194f681ee8b17e53",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "grazie",
+            "precision": 2,
+            "ticker": "NCAAD",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "ae3bef397bfbb73286421302b4eae85af44b62019a4f7fb49b5c20f4c3368a4d",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "769909c0126b0209cfb1e580d352c0da0a5ed1d4d9efc59579d346a6e6dca38a",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "grazie",
+        "precision": 2,
+        "ticker": "NCAAD",
         "version": 0
     },
     "583b8c54c2409ed4cc546fe11281bcd05b9221ea7b66c354363f1576ec22a72c": {
@@ -9214,6 +9365,35 @@
         "ticker": "HIris",
         "version": 0
     },
+    "6f3d48f38b1c967e4c2fd522bdd5f60af0dc84d34660de70f384e97e85195477": {
+        "asset_id": "6f3d48f38b1c967e4c2fd522bdd5f60af0dc84d34660de70f384e97e85195477",
+        "contract": {
+            "entity": {
+                "domain": "charruacoin.com"
+            },
+            "issuer_pubkey": "02c8d40231d90d66a0ae531f9665a5884e8bdad93954a5f04b86acc2686b3fa2a0",
+            "name": "CharruaCoin",
+            "precision": 8,
+            "ticker": "CHC",
+            "version": 0
+        },
+        "entity": {
+            "domain": "charruacoin.com"
+        },
+        "issuance_prevout": {
+            "txid": "484aa795c705db3d5c082fe8a50f4ffe8aef47070aa1a42ef67b86d43023bf53",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "e8c7c0b0508da4c0f58625545da3d72ce8125d18cb628782d353c331a71e9777",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c8d40231d90d66a0ae531f9665a5884e8bdad93954a5f04b86acc2686b3fa2a0",
+        "name": "CharruaCoin",
+        "precision": 8,
+        "ticker": "CHC",
+        "version": 0
+    },
     "6f4f6008d65cf13afa13c5618351a0eb9c669a0a150439ac2b34852296846653": {
         "asset_id": "6f4f6008d65cf13afa13c5618351a0eb9c669a0a150439ac2b34852296846653",
         "contract": {
@@ -9850,6 +10030,35 @@
         "name": "Twisted",
         "precision": 0,
         "ticker": "TWIB",
+        "version": 0
+    },
+    "778505beffbf5219e118846161f14695c26847a611b74df00ba3661ebb6a3612": {
+        "asset_id": "778505beffbf5219e118846161f14695c26847a611b74df00ba3661ebb6a3612",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+            "name": "My New Asset 2",
+            "precision": 0,
+            "ticker": "ADM12",
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "a2e1a17ccb52ac6ffea7ef8a7713b85e3c81c08f7c625bd0dbda029088299c0a",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "ebfe4cba5ed0cea14bcb1dda24a051a48a4add48b2e79cd7d124036335c88102",
+            "vin": 0
+        },
+        "issuer_pubkey": "035bf4a160c98e990827775b3b25d4f8b6ca6449b6dd17072fe11c7baa5761529a",
+        "name": "My New Asset 2",
+        "precision": 0,
+        "ticker": "ADM12",
         "version": 0
     },
     "78379b6265eab022b918776398923f4d28c67cbff0d7b6d3301a84c58699a016": {
@@ -10697,6 +10906,40 @@
         "ticker": "HAlMa",
         "version": 0
     },
+    "8049749e047d6dbce5c0def11ab37821705fef5ab328ceb766ca7a971dbd6b68": {
+        "asset_id": "8049749e047d6dbce5c0def11ab37821705fef5ab328ceb766ca7a971dbd6b68",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Gesu volante",
+            "nft": {
+                "cid": "QmNq2dYBKFpiC1YQhgjESr18FSFRapLdiZCoRXv8rNuK1j",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "b05dab9e57c89179ea71cacc05bcd8960bb86f85e9e73f5f47128937fbdd4099"
+            },
+            "precision": 0,
+            "ticker": "10001",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "be124fb5cbd9e79a3c42f65d907bd2a3b54ec1f6a0aa8393c7ce63ef4f17089e",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "3fba84e68dd6cbf4e21fefa3b67f4cc23917c1c7df8075b28cfb19e986cf5220",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Gesu volante",
+        "precision": 0,
+        "ticker": "10001",
+        "version": 0
+    },
     "80f74162481491278ba328513bb09c793ae6df7c5485f063a5033331e2ceabc8": {
         "asset_id": "80f74162481491278ba328513bb09c793ae6df7c5485f063a5033331e2ceabc8",
         "contract": {
@@ -11197,6 +11440,40 @@
         "ticker": "HUnic",
         "version": 0
     },
+    "878ed463c84e6593e324b3971d05bf3fe1144942313e7413995bd08a64649c37": {
+        "asset_id": "878ed463c84e6593e324b3971d05bf3fe1144942313e7413995bd08a64649c37",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Randagi",
+            "nft": {
+                "cid": "QmT7rij9Jei12zcpp1dPXemQwTeGBaxjJmMgteWgwZBXit",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "27e05c60f421d403cd0ff83fbe1f1614328b3b04813b7b639e19adc8cbbf04af"
+            },
+            "precision": 0,
+            "ticker": "NCAAC",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "fa389412b57565fa5a1e7ba9271c196da7654fc0297156f859cb6b40cc814663",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "ae3bef397bfbb73286421302b4eae85af44b62019a4f7fb49b5c20f4c3368a4d",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Randagi",
+        "precision": 0,
+        "ticker": "NCAAC",
+        "version": 0
+    },
     "87aa7e9cb2f38ef1d49b68dae91119be446ad8bcf1b3039e0c1af4a81e122ce0": {
         "asset_id": "87aa7e9cb2f38ef1d49b68dae91119be446ad8bcf1b3039e0c1af4a81e122ce0",
         "contract": {
@@ -11224,6 +11501,35 @@
         "name": "Mr. CEO",
         "precision": 0,
         "ticker": "CMrCE",
+        "version": 0
+    },
+    "87fc8616ee664d005bdce9645b1c4e85971b3341010c4e9078cbfa8deb7424b6": {
+        "asset_id": "87fc8616ee664d005bdce9645b1c4e85971b3341010c4e9078cbfa8deb7424b6",
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "03eccefbf369c0300ef41102eed6d23c97cfbab143569f7c51031cbad260fe6dc9",
+            "name": "Liquid SPAR",
+            "precision": 0,
+            "ticker": "L-SPR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "b41a213b12f7d8e6d8b4b5126e880cf29523fdb8485a1515cac5f627396b32d1",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "a4a0d84baa5cee4b8d87025ae6f34c2b3d8ae36fc1239c744cb394beb556426d",
+            "vin": 0
+        },
+        "issuer_pubkey": "03eccefbf369c0300ef41102eed6d23c97cfbab143569f7c51031cbad260fe6dc9",
+        "name": "Liquid SPAR",
+        "precision": 0,
+        "ticker": "L-SPR",
         "version": 0
     },
     "8811c67055473c679bd2d750dbe5185a38b421e8b5f5bdd32e3683f29e54d955": {
@@ -12950,6 +13256,64 @@
         "name": "Nigerian, Naira",
         "precision": 2,
         "ticker": "NGN",
+        "version": 0
+    },
+    "9daad2bffa56a9eb258d9d669e5fb1575f4983e1d278b177239bd7bea02ae2e8": {
+        "asset_id": "9daad2bffa56a9eb258d9d669e5fb1575f4983e1d278b177239bd7bea02ae2e8",
+        "contract": {
+            "entity": {
+                "domain": "charruacoin.com"
+            },
+            "issuer_pubkey": "023ccb58be8556110b5d17a16c426ddd91650fac94e8aa058a96f0f79602fcefe6",
+            "name": "Chainlink",
+            "precision": 8,
+            "ticker": "LINK",
+            "version": 0
+        },
+        "entity": {
+            "domain": "charruacoin.com"
+        },
+        "issuance_prevout": {
+            "txid": "9afc5a5c250e6d7440ff787064c952c89b7264ede32d0b20d9b62493cc128320",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "b3b9face3ca1fa5e5f1cfe65c3a9f1ffafebeb11099ebf2cfc01bbad68eec95b",
+            "vin": 0
+        },
+        "issuer_pubkey": "023ccb58be8556110b5d17a16c426ddd91650fac94e8aa058a96f0f79602fcefe6",
+        "name": "Chainlink",
+        "precision": 8,
+        "ticker": "LINK",
+        "version": 0
+    },
+    "9e9ed72fd5c581aa1f97a7829f48022cfe0787bef9a881fd7f3b8be6b81e36d0": {
+        "asset_id": "9e9ed72fd5c581aa1f97a7829f48022cfe0787bef9a881fd7f3b8be6b81e36d0",
+        "contract": {
+            "entity": {
+                "domain": "stevenminnaar.com"
+            },
+            "issuer_pubkey": "026086dcc4e83f61aee93cb093f0d012e5005a3a6cbedc6becc5aa57fb42abaac4",
+            "name": "Minnaar Money Redemption Tokens",
+            "precision": 8,
+            "ticker": "MMRT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "stevenminnaar.com"
+        },
+        "issuance_prevout": {
+            "txid": "357cec92485cd7adb869d4b29f74824c27866c5a2425f6d50d4e0c4d7947ef3e",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "e28f46a6e192887f54a6f8ced07825e1b844a588f76643bdd02edb36abb43ffa",
+            "vin": 0
+        },
+        "issuer_pubkey": "026086dcc4e83f61aee93cb093f0d012e5005a3a6cbedc6becc5aa57fb42abaac4",
+        "name": "Minnaar Money Redemption Tokens",
+        "precision": 8,
+        "ticker": "MMRT",
         "version": 0
     },
     "9f082ea483624a5d4384a899b0e4971bc5af18601eb8ed4abb70f32ec2920251": {
@@ -16080,6 +16444,35 @@
         "ticker": "NZDL",
         "version": 0
     },
+    "c492a40182eff6b17023b9db483e4fd5af3607fea06d994e5974cc4c7f141e2d": {
+        "asset_id": "c492a40182eff6b17023b9db483e4fd5af3607fea06d994e5974cc4c7f141e2d",
+        "contract": {
+            "entity": {
+                "domain": "charruacoin.com"
+            },
+            "issuer_pubkey": "032de6335afedea4d0e896d9d71e03ab4f63655086fa1c7f5e8e0c0bd2b27e7cbc",
+            "name": "LiquidHEX",
+            "precision": 8,
+            "ticker": "LHEX",
+            "version": 0
+        },
+        "entity": {
+            "domain": "charruacoin.com"
+        },
+        "issuance_prevout": {
+            "txid": "ef0c8e5a62225910c83519de9a02769c6aab4bfe7c5946600c08b93901fa8ada",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "8b572cef4f8e1ec69155f92cb4a1bcb5b57483f5f2b2a2241dbb09ae86ec0626",
+            "vin": 0
+        },
+        "issuer_pubkey": "032de6335afedea4d0e896d9d71e03ab4f63655086fa1c7f5e8e0c0bd2b27e7cbc",
+        "name": "LiquidHEX",
+        "precision": 8,
+        "ticker": "LHEX",
+        "version": 0
+    },
     "c4d81598b2fce8f8cb6060cf82d3d7d8d491bec8acb02dc00c013df62345385a": {
         "asset_id": "c4d81598b2fce8f8cb6060cf82d3d7d8d491bec8acb02dc00c013df62345385a",
         "contract": {
@@ -16342,6 +16735,35 @@
         "name": "DeutscherAktienindeX",
         "precision": 8,
         "ticker": "SDAX",
+        "version": 0
+    },
+    "c8eb5729359a2c4c8033487a67aac19661b0114dd49f2a89b55236a3097d0c09": {
+        "asset_id": "c8eb5729359a2c4c8033487a67aac19661b0114dd49f2a89b55236a3097d0c09",
+        "contract": {
+            "entity": {
+                "domain": "charruacoin.com"
+            },
+            "issuer_pubkey": "030546d823e98548ba2de7bff49ec0382093bb6a402f694affc1cffe80a2b9b402",
+            "name": "El Fefo",
+            "precision": 8,
+            "ticker": "FEFO",
+            "version": 0
+        },
+        "entity": {
+            "domain": "charruacoin.com"
+        },
+        "issuance_prevout": {
+            "txid": "037d02f3734a9d6b03f3797c89a5bbc1a49289b1233bdddc27cee3c5ee0aabd7",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "e53a8a4238b1c082185f0c4b091ee73fd1bac97c071add532e26cb1ac3565b51",
+            "vin": 0
+        },
+        "issuer_pubkey": "030546d823e98548ba2de7bff49ec0382093bb6a402f694affc1cffe80a2b9b402",
+        "name": "El Fefo",
+        "precision": 8,
+        "ticker": "FEFO",
         "version": 0
     },
     "ca12df2be877f27e9c663b2f1857fe471ce4e39f51340d00405bf2c16642749d": {
@@ -16777,6 +17199,35 @@
         "name": "MoscowInterbankCurrencyExchange",
         "precision": 8,
         "ticker": "MICEX",
+        "version": 0
+    },
+    "d0adda6db0c99511b97e7e089d40c546cef91164162fa82ee173f8c1337cae61": {
+        "asset_id": "d0adda6db0c99511b97e7e089d40c546cef91164162fa82ee173f8c1337cae61",
+        "contract": {
+            "entity": {
+                "domain": "charruacoin.com"
+            },
+            "issuer_pubkey": "02e85ddd05fc9c83c74d2f7afd2476f0fa6ecd1b36c425edc933805badc28d698a",
+            "name": "LiquidTorch2",
+            "precision": 0,
+            "ticker": "LTRH",
+            "version": 0
+        },
+        "entity": {
+            "domain": "charruacoin.com"
+        },
+        "issuance_prevout": {
+            "txid": "a93bbeb0e5966f72a7daa1a37efbb15dacfa162e42eb18fcc377df1957299182",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "d6a10a7ff98cb011685b299970248e8735eb43f738149e03746f0ecc171ff4fb",
+            "vin": 0
+        },
+        "issuer_pubkey": "02e85ddd05fc9c83c74d2f7afd2476f0fa6ecd1b36c425edc933805badc28d698a",
+        "name": "LiquidTorch2",
+        "precision": 0,
+        "ticker": "LTRH",
         "version": 0
     },
     "d0e5695541d70502969ac969ef2093186e5b0a618d73843d0fd99e0df36386ef": {
@@ -17225,6 +17676,35 @@
         "ticker": "MGGA",
         "version": 0
     },
+    "d8cc59e130c79a30c929b45b73f5238dd00a59239f046be800581d394d6a62e7": {
+        "asset_id": "d8cc59e130c79a30c929b45b73f5238dd00a59239f046be800581d394d6a62e7",
+        "contract": {
+            "entity": {
+                "domain": "assets.halfinlabs.com"
+            },
+            "issuer_pubkey": "02b24a11eccc137b7976c13c02f017bca7b1e4fc9e005d00e0c5b0b7f3980f6bfd",
+            "name": "Tateossian / Revix blockchian cufflinks",
+            "precision": 0,
+            "ticker": "TRBC1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "assets.halfinlabs.com"
+        },
+        "issuance_prevout": {
+            "txid": "02a8ff0e3137dbc55e5ed109be42709f35659dc9a99d288298db5b30a9f48612",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "c8b67915e607cb2d99e3c6505ea55ace70150f60fa7458ea16d4f6a33eaceb63",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b24a11eccc137b7976c13c02f017bca7b1e4fc9e005d00e0c5b0b7f3980f6bfd",
+        "name": "Tateossian / Revix blockchian cufflinks",
+        "precision": 0,
+        "ticker": "TRBC1",
+        "version": 0
+    },
     "d90878e23db92a9353fc73bc87e7f00b14d49b74221bbe9e36075d97e60f5fae": {
         "asset_id": "d90878e23db92a9353fc73bc87e7f00b14d49b74221bbe9e36075d97e60f5fae",
         "contract": {
@@ -17631,6 +18111,35 @@
         "name": "Gas Protection",
         "precision": 0,
         "ticker": "HGaPr",
+        "version": 0
+    },
+    "dfe35a0277bf954df0598ee9ea59a3c07dc53ddca8008c2d3aa961f7f6ef898d": {
+        "asset_id": "dfe35a0277bf954df0598ee9ea59a3c07dc53ddca8008c2d3aa961f7f6ef898d",
+        "contract": {
+            "entity": {
+                "domain": "coins.soutoshi.com"
+            },
+            "issuer_pubkey": "02e7e07bbc7f1cec3fad14bfaa650d6f816b6cf9f8834887ecfdfceb60681750d7",
+            "name": "VOUCHER COIN",
+            "precision": 0,
+            "ticker": "VC1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "coins.soutoshi.com"
+        },
+        "issuance_prevout": {
+            "txid": "d55a585c38c8c98eb274adfc1e30926a2dd450f63595e004fd4c393e560287f1",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "ef0c8e5a62225910c83519de9a02769c6aab4bfe7c5946600c08b93901fa8ada",
+            "vin": 0
+        },
+        "issuer_pubkey": "02e7e07bbc7f1cec3fad14bfaa650d6f816b6cf9f8834887ecfdfceb60681750d7",
+        "name": "VOUCHER COIN",
+        "precision": 0,
+        "ticker": "VC1",
         "version": 0
     },
     "e0bbcff10457bb6276ac9e7e296261786b272ca07c26cb8edefb67f2ab5c2ade": {
@@ -18216,6 +18725,35 @@
         "ticker": "CDrui",
         "version": 0
     },
+    "e8aacbe75523695d2c14233f896ad47c30048ebf57c22fa08676b5b208d5d7be": {
+        "asset_id": "e8aacbe75523695d2c14233f896ad47c30048ebf57c22fa08676b5b208d5d7be",
+        "contract": {
+            "entity": {
+                "domain": "assets.halfinlabs.com"
+            },
+            "issuer_pubkey": "02f366a3695c153e2a67ddadc810d28e62d0c346d3828d9f8051e53c47b2265e86",
+            "name": "TashCoin",
+            "precision": 2,
+            "ticker": "TASH",
+            "version": 0
+        },
+        "entity": {
+            "domain": "assets.halfinlabs.com"
+        },
+        "issuance_prevout": {
+            "txid": "0fefb69f1cfc1eb549afee72474b94f10ad04441aba72b134761713646874a1d",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "63adab725c57c84517345a386946a7c208c6da81aeceafb00c043d1b9b8c3685",
+            "vin": 0
+        },
+        "issuer_pubkey": "02f366a3695c153e2a67ddadc810d28e62d0c346d3828d9f8051e53c47b2265e86",
+        "name": "TashCoin",
+        "precision": 2,
+        "ticker": "TASH",
+        "version": 0
+    },
     "e8d8f9005258e110f43a69be001b063c6fbd9401810293b3520c00f1f582da71": {
         "asset_id": "e8d8f9005258e110f43a69be001b063c6fbd9401810293b3520c00f1f582da71",
         "contract": {
@@ -18336,6 +18874,35 @@
         "ticker": "STR",
         "version": 0
     },
+    "e9fb81813912e4698095dbda562c9ac2b52892145f3f873faab1ff802e639075": {
+        "asset_id": "e9fb81813912e4698095dbda562c9ac2b52892145f3f873faab1ff802e639075",
+        "contract": {
+            "entity": {
+                "domain": "charruacoin.com"
+            },
+            "issuer_pubkey": "03ca77bbd89e8abd7ff69286237272d4073970d7bc08936459ee7bc2f40fced7c4",
+            "name": "Shiba Inu",
+            "precision": 8,
+            "ticker": "SHIB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "charruacoin.com"
+        },
+        "issuance_prevout": {
+            "txid": "91bacac44e8594a54ef000086acbb9464f3b695ea3ec3a785b081f94ba9eead0",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "1800282ead501255ac2de9eb1f9c9547cdad365e78c76b0134689a4766c14769",
+            "vin": 0
+        },
+        "issuer_pubkey": "03ca77bbd89e8abd7ff69286237272d4073970d7bc08936459ee7bc2f40fced7c4",
+        "name": "Shiba Inu",
+        "precision": 8,
+        "ticker": "SHIB",
+        "version": 0
+    },
     "e9fe308f795e775a88f281e9a30224c97ac6e63e59cd428259501f6dd958293e": {
         "asset_id": "e9fe308f795e775a88f281e9a30224c97ac6e63e59cd428259501f6dd958293e",
         "contract": {
@@ -18392,6 +18959,35 @@
         "name": "ThisCoin",
         "precision": 0,
         "ticker": "ThiC",
+        "version": 0
+    },
+    "ea34c552a27ece72ee14cb93f1a07f26562f2292c6fa102641081d3a3b695a1c": {
+        "asset_id": "ea34c552a27ece72ee14cb93f1a07f26562f2292c6fa102641081d3a3b695a1c",
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "038f85f184a4f91d47531d1a68abbb64720af38619cc676f025201f001d865ed94",
+            "name": "Liquid EWT",
+            "precision": 0,
+            "ticker": "L-EWT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "25a5ce1e76c631b261587131313b599d6fb4608365bbb6330e0ec4fcfff6090d",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "e31b8b4383df5adcf4049ae5a4f619d8909bdbf7cba214a43086bdf7c5a127e5",
+            "vin": 0
+        },
+        "issuer_pubkey": "038f85f184a4f91d47531d1a68abbb64720af38619cc676f025201f001d865ed94",
+        "name": "Liquid EWT",
+        "precision": 0,
+        "ticker": "L-EWT",
         "version": 0
     },
     "ea45197d5925b02e1357ee04e2b3c86dcaaf6d8805d4579c8bb0298ea07b45ed": {
