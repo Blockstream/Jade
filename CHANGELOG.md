@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.31] - 2021-12-03
+### Added
+- Show current running firmware version on initial connection screens
+- Add support for BIP67 sorted-multisig
+- Add compressed file hash when uploading firmware in OTA process - currently optional but will be made mandatory in a future release
+- Add battery status in version-info data, so companion apps can display Jade's approximate charge level
+- Ensure Bech32m/P2TR transaction output addresses are displayed properly when signing
+- Add flag to 'get_shared_nonce' call to also return the public blinding key, to avoid needing to make a second roundtrip
+- Add flashing support for alternative hardware serial/USB chip CH9102
+
+### Changed
+- Update Liquid asset registry info
+- Refactor internal tasks and GUI updating and event handling
+- Update ESP-IDF base firmware to v4.3.1
+- Update Libwally to 0.8.4 and use 'minimal build' flag to reduce size of binary and static memory footprint
+
+### Fixed
+- Fix issues with Bluetooth bonding to support multiple Jade devices
+ * NOTE: THIS WILL INVALIDATE ALL CURRENTLY SAVED BLUETOOTH BONDS - DEVICES WILL NEED TO BE RE-PAIRED
+- Fix Python API compatability issues with python version 3.10
+- Fix font issues with some punctuation characters when displaying BIP39 passphrase
+- Reset network restrictions when using temporary/emergency wallet
+
 ## [0.1.30] - 2021-10-20
 ### Added
 - Support for generic multisig, following registration/approval of the multisig descriptor
