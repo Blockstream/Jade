@@ -37,6 +37,7 @@ class JadeBleImpl:
         self.inputstream = None
         self.write_task = None
         self.client = None
+        self.rx_char_handle = None
 
         if not loop:
             loop = asyncio.get_event_loop()
@@ -111,7 +112,7 @@ class JadeBleImpl:
                 logger.info('Connecting to: {} ({})'
                             .format(full_name, device_mac))
                 await client.connect()
-                connected = await client.is_connected()
+                connected = client.is_connected
                 logger.info('Connected: {}'.format(connected))
             except Exception as e:
                 logger.warn("BLE connection exception: '{}'".format(e))
@@ -120,25 +121,30 @@ class JadeBleImpl:
                     raise
 
         # Peruse services and characteristics
+        # Get the 'handle' of the receiving charactersitic
         for service in client.services:
             for char in service.characteristics:
+                if char.uuid == JadeBleImpl.IO_RX_CHAR_UUID:
+                    logger.debug('Found RX characterisitic - handle: '.format(char.handle))
+                    self.rx_char_handle = char.handle
+
                 if 'read' in char.properties:
                     await client.read_gatt_char(char.uuid)
 
                 for descriptor in char.descriptors:
                     await client.read_gatt_descriptor(descriptor.handle)
 
-        # Attach handler to be notified of new data
-        def _notification_handler(characteristic, data):
-            assert characteristic == JadeBleImpl.IO_RX_CHAR_UUID
+        # Attach handler to be notified of new data on the receiving characteristic
+        def _notification_handler(char_handle, data):
+            assert char_handle == self.rx_char_handle
             inbufs.append(data)
 
-        await client.start_notify(JadeBleImpl.IO_RX_CHAR_UUID,
+        assert self.rx_char_handle
+        await client.start_notify(self.rx_char_handle,
                                   _notification_handler)
 
-        # Attach handler to catch unexpected disconnection
+        # Attach handler called when disconnected
         def _disconnection_handler(client):
-            logger.error("Unexpected BLE disconnection")
 
             # Set the client to None - that will cause the receive
             # generator to terminate and not wait forever for data.
@@ -161,16 +167,22 @@ class JadeBleImpl:
 
     async def _disconnect_impl(self):
         try:
-            if self.client is not None and await self.client.is_connected():
-                await self.client.stop_notify(JadeBleImpl.IO_RX_CHAR_UUID)
+            if self.client is not None and self.client.is_connected:
+                # Stop listening for incoming data
+                if self.rx_char_handle:
+                    await self.client.stop_notify(self.rx_char_handle)
+
+                # Disconnect underlying client - this should trigger the _disconnection_handler()
+                # above to run before this returns from the 'await'
                 await self.client.disconnect()
         except Exception as err:
             # Sometimes get an exception when testing connection
             # if the client has already internally disconnected ...
             logger.warn("Exception when disconnecting ble: {}".format(err))
 
-        # Set the client to None - that will cause the receive
+        # Set the client to None in any case - that will cause the receive
         # generator to terminate and not wait forever for data.
+        self.rx_char_handle = None
         self.client = None
 
     def disconnect(self):
