@@ -3,7 +3,6 @@ import logging
 from jadepy import JadeAPI
 
 LOGGING = True
-NETWORK = 'testnet'
 
 # We can test with the gdk http_request() function if we have the wheel installed
 # The default is to use the simple built-in http requests client.
@@ -52,15 +51,18 @@ else:
     create_jade_fn = JadeAPI.create_serial
     kwargs = {'device': serial_device, 'timeout': 120}
 
-print("Connecting...")
+print('Connecting...')
 with create_jade_fn(**kwargs) as jade:
-    print("Connected: {}".format(jade.get_version_info()))
+    verinfo = jade.get_version_info()
+    print(f'Connected: {verinfo}')
 
     # Tell Jade to auth the user on the hw
     # Note: this requires a pinserver to be running
-    while jade.auth_user(NETWORK, http_request_fn) is not True:
-        print("Error - please try again")
+    # The network to use is deduced from the version-info
+    network = 'testnet' if verinfo.get('JADE_NETWORKS') == 'TEST' else 'mainnet'
+    while jade.auth_user(network, http_request_fn) is not True:
+        print('Error - please try again')
 
     # Just a couple of test calls that mimic what gdk-logon does
-    print(jade.get_xpub(NETWORK, []))
-    print(jade.sign_message([1195487518], "greenaddress.it      login ABCDE"))
+    print(jade.get_xpub(network, []))
+    print(jade.sign_message([1195487518], 'greenaddress.it      login ABCDE'))
