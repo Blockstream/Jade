@@ -55,7 +55,7 @@ def kill_agent(btagent):
 def get_fw_filename(fwlatest, selectfw):
     # Select firmware from list of available
     fwnames = fwlatest.split()
-    print("Available firmwares")
+    print('Available firmwares')
     for i, fwname in enumerate(fwnames):
         print(f'{i}) {fwname}')
 
@@ -194,7 +194,7 @@ def get_local_fwfile(fwfilename, write_compressed):
 
 # Takes the compressed firmware data, and the expected length of the
 # uncompressed firmware image.
-def ota(jade, fwcompressed, fwlength, pushmnemonic, authnetwork):
+def ota(jade, fwcompressed, fwlength, pushmnemonic):
     info = jade.get_version_info()
     logger.info(f'Running OTA on: {info}')
     has_pin = info['JADE_HAS_PIN']
@@ -209,7 +209,9 @@ def ota(jade, fwcompressed, fwlength, pushmnemonic, authnetwork):
         ret = jade.set_mnemonic(TEST_MNEMONIC)
         assert ret is True
     elif has_pin:
-        ret = jade.auth_user(authnetwork)
+        # The network to use is deduced from the version-info
+        network = 'testnet' if info.get('JADE_NETWORKS') == 'TEST' else 'mainnet'
+        ret = jade.auth_user(network)
         assert ret is True
 
     start_time = time.time()
@@ -287,19 +289,6 @@ if __name__ == '__main__':
                         help='Use the specified BLE passkey agent key file',
                         default=BLE_TEST_PASSKEYFILE)
 
-    authgrp = parser.add_mutually_exclusive_group()
-    authgrp.add_argument('--push-mnemonic',
-                         action='store_true',
-                         dest='pushmnemonic',
-                         help='Sets a test mnemonic - only works with debug build of Jade',
-                         default=False)
-    authgrp.add_argument('--auth-network',
-                         action='store',
-                         dest='authnetwork',
-                         help='Sets a network to use if unlocking Jade with PIN',
-                         choices=['mainnet', 'liquid', 'testnet', 'localtest', 'localtest-liquid'],
-                         default='mainnet')
-
     srcgrp = parser.add_mutually_exclusive_group()
     srcgrp.add_argument('--download-firmware',
                         action='store_true',
@@ -342,6 +331,11 @@ if __name__ == '__main__':
                         action='store_true',
                         dest='writecompressed',
                         help='Create/write copy of compressed firmware file',
+                        default=False)
+    parser.add_argument('--push-mnemonic',
+                        action='store_true',
+                        dest='pushmnemonic',
+                        help='Sets a test mnemonic - only works with debug build of Jade',
                         default=False)
     parser.add_argument('--log',
                         action='store',
@@ -410,13 +404,13 @@ if __name__ == '__main__':
         if not args.skipserial:
             logger.info(f'Jade OTA over serial {args.serialport}')
             with JadeAPI.create_serial(device=args.serialport) as jade:
-                has_radio, bleid = ota(jade, fwcmp, fwlen, args.pushmnemonic, args.authnetwork)
+                has_radio, bleid = ota(jade, fwcmp, fwlen, args.pushmnemonic)
 
         if not args.skipble:
             if has_radio:
                 logger.info(f'Jade OTA over BLE {bleid}')
                 with JadeAPI.create_ble(serial_number=bleid) as jade:
-                    ota(jade, fwcmp, fwlen, args.pushmnemonic, args.authnetwork)
+                    ota(jade, fwcmp, fwlen, args.pushmnemonic)
             else:
                 msg = 'Skipping BLE tests - not enabled on the hardware'
                 logger.warning(msg)
