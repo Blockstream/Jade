@@ -351,8 +351,7 @@ if __name__ == '__main__':
     downloading = args.downloadfw or args.downloadgdk
 
     if args.skipserial and args.skipble:
-        logger.error('Can only skip one of Serial or BLE test, not both!')
-        sys.exit(1)
+        logger.warning('The fw file will be downloaded/verified but the actual OTA will be skipped')
 
     if args.bleid and not args.skipserial:
         logger.error('Can only supply ble-id when skipping serial tests')
