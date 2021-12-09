@@ -85,6 +85,6 @@ void make_display_elements_output_activity(
     const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity);
 void make_display_final_confirmation_activity(uint64_t fee, const char* warning_msg, gui_activity_t** activity);
 void make_display_elements_final_confirmation_activity(
-    uint64_t fee, const char* warning_msg, gui_activity_t** activity);
+    const char* network, uint64_t fee, const char* warning_msg, gui_activity_t** activity);
 
 #endif /* UI_H_ */

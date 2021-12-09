@@ -511,7 +511,7 @@ void sign_liquid_tx_process(void* process_ptr)
     gui_activity_t* final_activity;
     const char* const warning_msg
         = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-    make_display_elements_final_confirmation_activity(fees, warning_msg, &final_activity);
+    make_display_elements_final_confirmation_activity(network, fees, warning_msg, &final_activity);
     JADE_ASSERT(final_activity);
     gui_set_current_activity(final_activity);
 

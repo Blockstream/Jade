@@ -1,0 +1,292 @@
+{
+    "05aa9f02a06da37f2a0a572c49ac381499a16a643ad7c70c51ac94560778c92e": {
+        "asset_id": "05aa9f02a06da37f2a0a572c49ac381499a16a643ad7c70c51ac94560778c92e",
+        "contract": {
+            "entity": {
+                "domain": "tiero.github.io"
+            },
+            "issuer_pubkey": "02a9a7399de89ec2e7de876bbe0b512f78f13d5d0a3315047e5b14109c8bac38f2",
+            "name": "Dusan Token",
+            "precision": 8,
+            "ticker": "DUSD",
+            "version": 0
+        },
+        "entity": {
+            "domain": "tiero.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "7f27ca5593a9782afd55edd7dd9c71730db828271c973adf6e0a85dcda61ed2a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "7f118ae08b9edef42994f0a822976e422dc2bc0f20aac69161d8321589722895",
+            "vin": 0
+        },
+        "issuer_pubkey": "02a9a7399de89ec2e7de876bbe0b512f78f13d5d0a3315047e5b14109c8bac38f2",
+        "name": "Dusan Token",
+        "precision": 8,
+        "ticker": "DUSD",
+        "version": 0
+    },
+    "347f1eed596fd07865967759a95222143ede1caca47399c9fa394bf3922c4dfc": {
+        "asset_id": "347f1eed596fd07865967759a95222143ede1caca47399c9fa394bf3922c4dfc",
+        "contract": {
+            "entity": {
+                "domain": "tiero.github.io"
+            },
+            "issuer_pubkey": "02a9a7399de89ec2e7de876bbe0b512f78f13d5d0a3315047e5b14109c8bac38f2",
+            "name": "Simo Token",
+            "precision": 8,
+            "ticker": "Simo",
+            "version": 0
+        },
+        "entity": {
+            "domain": "tiero.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "02dfdd7f579196250a7c5973f484be2c8dcc67af0f3975234879fda5a0a23d3b",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "58ed43e669bb868085298a1f07d9eb2492f470b5fd6ef63b0a0184ece4c23696",
+            "vin": 0
+        },
+        "issuer_pubkey": "02a9a7399de89ec2e7de876bbe0b512f78f13d5d0a3315047e5b14109c8bac38f2",
+        "name": "Simo Token",
+        "precision": 8,
+        "ticker": "Simo",
+        "version": 0
+    },
+    "58af36e1b529b42f3e4ccce812924380058cae18b2ad26c89805813a9db25980": {
+        "asset_id": "58af36e1b529b42f3e4ccce812924380058cae18b2ad26c89805813a9db25980",
+        "contract": {
+            "entity": {
+                "domain": "pegx.io"
+            },
+            "issuer_pubkey": "03df0baa843260461b20f7404fa7401fc9bdb250deef06f4e03b53e8e96d677895",
+            "name": "PEGx EUR Testnet",
+            "precision": 8,
+            "ticker": "EURx",
+            "version": 0
+        },
+        "entity": {
+            "domain": "pegx.io"
+        },
+        "issuance_prevout": {
+            "txid": "b3d76bc10483fca1e5112079032030397a250ce97605ca211865492f783dbc15",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "3d28f3a030e2a07f0fc9f8192ceaa765ebc5c1599d7a71a5905f0ac5514df4e6",
+            "vin": 0
+        },
+        "issuer_pubkey": "03df0baa843260461b20f7404fa7401fc9bdb250deef06f4e03b53e8e96d677895",
+        "name": "PEGx EUR Testnet",
+        "precision": 8,
+        "ticker": "EURx",
+        "version": 0
+    },
+    "639ed77089105bcfe434d47f7368d87f53f30a45fc3cff7463105d152bb4d3b1": {
+        "asset_id": "639ed77089105bcfe434d47f7368d87f53f30a45fc3cff7463105d152bb4d3b1",
+        "contract": {
+            "entity": {
+                "domain": "pegx.io"
+            },
+            "issuer_pubkey": "02735574c1b23e65e7638ae96cd3c6958445e21b57208f97b858558f84aa39f9b7",
+            "name": "Transfer Restricted Testnet Asset",
+            "precision": 0,
+            "ticker": "PXTR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "pegx.io"
+        },
+        "issuance_prevout": {
+            "txid": "d382bc1d19ee7810d389763fa463e2488ab7c7b6e27ed888e2aefe54dc6fe96c",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "0c50ebecca54e28c667b27416e5a1464bf79880f76b5cc489d26063cb71bf2ef",
+            "vin": 0
+        },
+        "issuer_pubkey": "02735574c1b23e65e7638ae96cd3c6958445e21b57208f97b858558f84aa39f9b7",
+        "name": "Transfer Restricted Testnet Asset",
+        "precision": 0,
+        "ticker": "PXTR",
+        "version": 0
+    },
+    "649f01bd72fbe33a70508e752044a2b0f91cf73612b70e03f337d095daa8b002": {
+        "asset_id": "649f01bd72fbe33a70508e752044a2b0f91cf73612b70e03f337d095daa8b002",
+        "contract": {
+            "entity": {
+                "domain": "pegx.io"
+            },
+            "issuer_pubkey": "02969f2588b70238230220f235e65cdce4e0e7c8d1a8b4fd14e860dab7416f3a6d",
+            "name": "PEGx Test Token Testnet",
+            "precision": 0,
+            "ticker": "PXTST",
+            "version": 0
+        },
+        "entity": {
+            "domain": "pegx.io"
+        },
+        "issuance_prevout": {
+            "txid": "06dedfdcb2a92e59e5ae15d645ae580f24d7186a62f10e75bb9530c1529c7cec",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "2b1b38e7139f922ea59b47c0fce8bae3c61875cdeea597e91da89590d40fdbdd",
+            "vin": 0
+        },
+        "issuer_pubkey": "02969f2588b70238230220f235e65cdce4e0e7c8d1a8b4fd14e860dab7416f3a6d",
+        "name": "PEGx Test Token Testnet",
+        "precision": 0,
+        "ticker": "PXTST",
+        "version": 0
+    },
+    "8363084c77fbaebce672092d301fc103495546457468b88a0830ce4797562c03": {
+        "asset_id": "8363084c77fbaebce672092d301fc103495546457468b88a0830ce4797562c03",
+        "contract": {
+            "entity": {
+                "domain": "nitramiz.github.io"
+            },
+            "issuer_pubkey": "02fd002ce3bb8bb5d626aec4b3821d100c0e2cae226f8199860767cb70b69a3305",
+            "name": "TestOps",
+            "precision": 0,
+            "ticker": "BSOPS",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nitramiz.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "ff0cbfa8d97a192a0e296451afee8028c9d414aae6dee145f4d71d35518c9962",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "08186258abed0daa9a9d2a900c5e3d189235610887e3bda70f12cde11ba38747",
+            "vin": 0
+        },
+        "issuer_pubkey": "02fd002ce3bb8bb5d626aec4b3821d100c0e2cae226f8199860767cb70b69a3305",
+        "name": "TestOps",
+        "precision": 0,
+        "ticker": "BSOPS",
+        "version": 0
+    },
+    "ac3e0ff248c5051ffd61e00155b7122e5ebc04fd397a0ecbdd4f4e4a56232926": {
+        "asset_id": "ac3e0ff248c5051ffd61e00155b7122e5ebc04fd397a0ecbdd4f4e4a56232926",
+        "contract": {
+            "entity": {
+                "domain": "tiero.github.io"
+            },
+            "issuer_pubkey": "02a9a7399de89ec2e7de876bbe0b512f78f13d5d0a3315047e5b14109c8bac38f2",
+            "name": "Liquid CAD",
+            "precision": 8,
+            "ticker": "LCAD",
+            "version": 0
+        },
+        "entity": {
+            "domain": "tiero.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "7c14f22a5ec138ad0e41f88d7d0c5be2ee666798ddfcaca07fe4cc20f9dff648",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "41fe82580c2a103a132dc01d6a2c102da80945585db14487d372e32962b77fa8",
+            "vin": 0
+        },
+        "issuer_pubkey": "02a9a7399de89ec2e7de876bbe0b512f78f13d5d0a3315047e5b14109c8bac38f2",
+        "name": "Liquid CAD",
+        "precision": 8,
+        "ticker": "LCAD",
+        "version": 0
+    },
+    "b612eb46313a2cd6ebabd8b7a8eed5696e29898b87a43bff41c94f51acef9d73": {
+        "asset_id": "b612eb46313a2cd6ebabd8b7a8eed5696e29898b87a43bff41c94f51acef9d73",
+        "contract": {
+            "entity": {
+                "domain": "pegx.io"
+            },
+            "issuer_pubkey": "0363a0b7136358637e4313df9569597dfb9a89d71cc64248619a5c403e24ec3074",
+            "name": "PEGx USDt Testnet",
+            "precision": 8,
+            "ticker": "USDt",
+            "version": 0
+        },
+        "entity": {
+            "domain": "pegx.io"
+        },
+        "issuance_prevout": {
+            "txid": "0d2a690481bf40b700b24458577f1b3ddce0d40d1f1ba013c981bec501752697",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "8e682e13fd0e345e74bbdaa0585db6f4e90b3b9aa6a0743ad4c9e64526df39a0",
+            "vin": 0
+        },
+        "issuer_pubkey": "0363a0b7136358637e4313df9569597dfb9a89d71cc64248619a5c403e24ec3074",
+        "name": "PEGx USDt Testnet",
+        "precision": 8,
+        "ticker": "USDt",
+        "version": 0
+    },
+    "be995c08d7437b1a6de1717203eec8c0951a18e2fa4b794fc4cc276008258835": {
+        "asset_id": "be995c08d7437b1a6de1717203eec8c0951a18e2fa4b794fc4cc276008258835",
+        "contract": {
+            "entity": {
+                "domain": "wintercooled.github.io"
+            },
+            "issuer_pubkey": "02bfb06a0e667f455ceba746a1e32eba9456f87591a43fb64d426111fe10f7438f",
+            "name": "Testnet Asset 04",
+            "precision": 0,
+            "ticker": "TA-04",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wintercooled.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "303b9ac1b52e25a93fe9372c88fa84b72cd39b357ecb532b4dfab5f2e90bc233",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "646e5ce679bce6bdaf4331e76cb45f3bf964b48be1b7d208fe683d56a1e49c4a",
+            "vin": 0
+        },
+        "issuer_pubkey": "02bfb06a0e667f455ceba746a1e32eba9456f87591a43fb64d426111fe10f7438f",
+        "name": "Testnet Asset 04",
+        "precision": 0,
+        "ticker": "TA-04",
+        "version": 0
+    },
+    "f3d1ec678811398cd2ae277cbe3849c6f6dbd72c74bc542f7c4b11ff0e820958": {
+        "asset_id": "f3d1ec678811398cd2ae277cbe3849c6f6dbd72c74bc542f7c4b11ff0e820958",
+        "contract": {
+            "entity": {
+                "domain": "tiero.github.io"
+            },
+            "issuer_pubkey": "02a9a7399de89ec2e7de876bbe0b512f78f13d5d0a3315047e5b14109c8bac38f2",
+            "name": "Tether USD",
+            "precision": 8,
+            "ticker": "USDt",
+            "version": 0
+        },
+        "entity": {
+            "domain": "tiero.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "e57bab4c268ab1984de630db19dca676f0a3f9b258b9da3104afdb4d003c31bc",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "60feb34e2caf055b6450ff24d92ed9c6cbbdf7e1f2786221f42ca3faecfda586",
+            "vin": 0
+        },
+        "issuer_pubkey": "02a9a7399de89ec2e7de876bbe0b512f78f13d5d0a3315047e5b14109c8bac38f2",
+        "name": "Tether USD",
+        "precision": 8,
+        "ticker": "USDt",
+        "version": 0
+    }
+}

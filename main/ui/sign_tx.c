@@ -9,6 +9,7 @@
 #include "../ui.h"
 #include "../utils/address.h"
 #include "../utils/event.h"
+#include "../utils/network.h"
 
 // A warning to display if the asset registry data is missing
 static const char MISSING_ASSET_DATA[] = "Amounts may be expressed in the wrong units. Proceed at your own risk.";
@@ -212,6 +213,8 @@ static void make_final_activity(
     gui_activity_t** activity, const char* total_fee, const char* ticker, const char* warning_msg)
 {
     JADE_ASSERT(activity);
+    JADE_ASSERT(total_fee);
+    JADE_ASSERT(ticker);
 
     gui_activity_t* act;
     gui_make_activity(&act, true, "Summary");
@@ -392,6 +395,7 @@ void make_display_elements_output_activity(
 
     // Don't show outputs which don't have a script (as these are fees)
     const bool show_scriptless = false;
+    const bool use_testnet_asset_data = networkUsesTestnetAssets(network);
 
     // Track the first and last activities created
     link_activity_t output_act;
@@ -425,7 +429,7 @@ void make_display_elements_output_activity(
         // Look up the asset-id in the canned asset-data
         const char* ticker = NULL;
         const char* issuer = NULL;
-        const asset_info_t* const pInfo = assets_get_info(asset_id_hex);
+        const asset_info_t* const pInfo = assets_get_info(asset_id_hex, use_testnet_asset_data);
         if (pInfo) {
             JADE_LOGD("Found asset data for output %u (asset-id: '%s')", i, asset_id_hex);
             JADE_ASSERT(!strcmp(asset_id_hex, pInfo->asset_id));
@@ -510,8 +514,9 @@ void make_display_final_confirmation_activity(const uint64_t fee, const char* wa
 }
 
 void make_display_elements_final_confirmation_activity(
-    const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
+    const char* network, const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
 {
+    JADE_ASSERT(network);
     JADE_ASSERT(activity);
 
     char fee_str[32];
@@ -519,6 +524,6 @@ void make_display_elements_final_confirmation_activity(
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
     // final confirmation screen
-    make_final_activity(activity, fee_str, "L-BTC", warning_msg);
+    make_final_activity(activity, fee_str, networkGetPolicyAsset(network), warning_msg);
     JADE_ASSERT(*activity);
 }

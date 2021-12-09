@@ -173,3 +173,25 @@ const char* networkToBlech32Hrp(const char* network)
         return NULL;
     }
 }
+
+bool networkUsesTestnetAssets(const char* network)
+{
+    JADE_ASSERT(isValidNetwork(network));
+
+    // TAG_LOCALTESTLIQUID appears to use mainnet assets ?
+    return !strcmp(TAG_TESTNETLIQUID, network);
+}
+
+const char* networkGetPolicyAsset(const char* network)
+{
+    JADE_ASSERT(isValidNetwork(network));
+
+    // TAG_LOCALTESTLIQUID appears to use mainnet assets ?
+    if (!strcmp(TAG_LIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
+        return "L-BTC";
+    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+        return "L-TEST";
+    } else {
+        return NULL;
+    }
+}
