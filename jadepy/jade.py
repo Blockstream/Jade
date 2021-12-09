@@ -33,6 +33,21 @@ logger = logging.getLogger('jade')
 device_logger = logging.getLogger('jade-device')
 
 
+# Helper to map bytes-like types into hex-strings
+# to make for prettier message-logging
+def _hexlify(data):
+    if data is None:
+        return None
+    elif isinstance(data, bytes) or isinstance(data, bytearray):
+        return data.hex()
+    elif isinstance(data, list):
+        return [_hexlify(item) for item in data]
+    elif isinstance(data, dict):
+        return {k: _hexlify(v) for k, v in data.items()}
+    else:
+        return data
+
+
 # Simple http request function which can be used when a Jade response
 # requires an external http call.
 # The default implementation used in JadeAPI._jadeRpc() below.
@@ -554,7 +569,7 @@ class JadeInterface:
             msg = 'Sending ota_data message {} as cbor of size {}'.format(request['id'], len_dump)
             logger.info(msg)
         else:
-            logger.info('Sending: {} as cbor of size {}'.format(request, len_dump))
+            logger.info('Sending: {} as cbor of size {}'.format(_hexlify(request), len_dump))
         return dump
 
     def write(self, bytes_):
@@ -583,7 +598,7 @@ class JadeInterface:
 
             # A message response (to a prior request)
             if 'id' in message:
-                logger.info("Received msg: {}".format(message))
+                logger.info("Received msg: {}".format(_hexlify(message)))
                 return message
 
             # A log message - handle as normal
