@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 
-static void base58_addr(uint8_t prefix, uint8_t* script, char** output)
+static void base58_addr(const uint8_t prefix, const uint8_t* script, char** output)
 {
     uint8_t decoded[21];
     decoded[0] = prefix;
@@ -15,8 +15,34 @@ static void base58_addr(uint8_t prefix, uint8_t* script, char** output)
     JADE_WALLY_VERIFY(wally_base58_from_bytes(decoded, 21, BASE58_FLAG_CHECKSUM, output));
 }
 
+static void render_op_return(const uint8_t* script, const size_t script_len, char* output, const size_t output_len)
+{
+    JADE_ASSERT(script);
+    JADE_ASSERT(script_len > 0);
+    JADE_ASSERT(script[0] == OP_RETURN);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len >= 64); // sufficient to fit error 'too long' error message
+
+    const char opdesc[] = "OP_RETURN: ";
+    char* payload_hex = NULL;
+
+    // Check data fits in output buffer, and verify push length matches data length
+    if (script_len > 3 && script_len <= (output_len - sizeof(opdesc)) && script[1] == script_len - 2) {
+        // Skip over the opcode and length, and hexlify the payload
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(script + 2, script_len - 2, &payload_hex));
+        const int ret = snprintf(output, output_len, "%s%s", opdesc, payload_hex);
+        JADE_ASSERT(ret > 0 && ret < output_len);
+        free(payload_hex);
+    } else {
+        // Too long (or short!) or inconsistent to display - show length and error message
+        const int ret = snprintf(output, output_len, "%s<script length: %u - cannot be displayed>", opdesc, script_len);
+        JADE_ASSERT(ret > 0 && ret < output_len);
+    }
+}
+
 // Convert the passed btc script into an address
-void script_to_address(const char* network, uint8_t* script, size_t script_len, char* output, size_t output_len)
+void script_to_address(
+    const char* network, const uint8_t* script, const size_t script_len, char* output, const size_t output_len)
 {
     JADE_ASSERT(!isLiquidNetwork(network));
 
@@ -52,6 +78,10 @@ void script_to_address(const char* network, uint8_t* script, size_t script_len, 
         base58_addr(prefix, script + 2, &tmp_str);
         break;
 
+    case WALLY_SCRIPT_TYPE_OP_RETURN:
+        render_op_return(script, script_len, output, output_len);
+        break;
+
     default:
         ret = snprintf(output, output_len, "Unknown Address");
         JADE_ASSERT(ret > 0 && ret < output_len);
@@ -66,8 +96,8 @@ void script_to_address(const char* network, uint8_t* script, size_t script_len, 
 }
 
 // Convert the passed liquid script into an address (confidential if blindng key passed)
-void elements_script_to_address(const char* network, uint8_t* script, size_t script_len, const uint8_t* blinding_key,
-    size_t blinding_key_len, char* output, size_t output_len)
+void elements_script_to_address(const char* network, const uint8_t* script, const size_t script_len,
+    const uint8_t* blinding_key, const size_t blinding_key_len, char* output, const size_t output_len)
 {
     JADE_ASSERT(isLiquidNetwork(network));
 
@@ -101,6 +131,10 @@ void elements_script_to_address(const char* network, uint8_t* script, size_t scr
     case WALLY_SCRIPT_TYPE_P2SH:
         prefix = networkToP2SHPrefix(network);
         base58_addr(prefix, script + 2, &tmp_str);
+        break;
+
+    case WALLY_SCRIPT_TYPE_OP_RETURN:
+        render_op_return(script, script_len, output, output_len);
         break;
 
     default:
