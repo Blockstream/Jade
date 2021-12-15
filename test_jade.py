@@ -574,10 +574,12 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'path': ['X', 'Y', 'Z'], 'network': 'testnet'}), 'extract valid path'),
                   (('badxpub9', 'get_xpub',  # path too long
                     {'path': [0, 1, 2] * 6, 'network': 'testnet'}), 'extract valid path'),
-                  (('badxpub10', 'get_xpub', {'path': [1, 2, 3]}), 'valid network'),
-                  (('badxpub11', 'get_xpub',  # network missing or invalid
-                    {'path': [], 'network': 'invalid'}), 'valid network'),
+                  (('badxpub10', 'get_xpub',  # path value too large
+                    {'path': [0xFFFFFFFF + 1], 'network': 'testnet'}), 'extract valid path'),
+                  (('badxpub11', 'get_xpub', {'path': [1, 2, 3]}), 'valid network'),
                   (('badxpub12', 'get_xpub',  # network missing or invalid
+                    {'path': [], 'network': 'invalid'}), 'valid network'),
+                  (('badxpub13', 'get_xpub',  # network missing or invalid
                     {'path': [1, 2, 3], 'network': 'invalid'}), 'valid network'),
 
                   (('badmulti1', 'register_multisig'), 'Expecting parameters map'),
@@ -677,12 +679,15 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'subaccount': 1, 'branch': 1, 'pointer': 1, 'variant': 'pkh(k)',
                      'network': 'testnet'}), 'extract valid path'),
                   (('badrecvaddr13', 'get_receive_address',
+                    {'path': [0xFFFFFFFF + 1], 'variant': 'pkh(k)',
+                     'network': 'testnet'}), 'extract valid path'),
+                  (('badrecvaddr14', 'get_receive_address',
                     {'path': [1, 2, 3], 'variant': 'p2pkh',
                      'network': 'testnet'}), 'Invalid script variant parameter'),
-                  (('badrecvaddr14', 'get_receive_address',
+                  (('badrecvaddr15', 'get_receive_address',
                     {'paths': [[1], [2, 3]], 'multisig_name': 'does not exist',
                      'network': 'testnet'}), 'Cannot find named multisig wallet'),
-                  (('badrecvaddr15', 'get_receive_address',
+                  (('badrecvaddr16', 'get_receive_address',
                     {'paths': [[1], [2, 3]], 'multisig_name': 'whatever',
                      'network': 'liquid'}), 'not supported for liquid'),
 
@@ -711,6 +716,8 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'message': 'XYZ', 'path': ['X', 'Y', 'Z']}), 'extract valid path'),
                   (('badsignmsg13', 'sign_message',  # path too long
                     {'message': 'XYZ', 'path': [0, 1, 2] * 6}), 'extract valid path'),
+                  (('badsignmsg14', 'sign_message',  # path value too large
+                    {'message': 'XYZ', 'path': [0xFFFFFFFF + 1]}), 'extract valid path'),
 
                   (('badsigntx1', 'sign_tx'), 'Expecting parameters map'),
                   (('badsigntx2', 'sign_tx',
@@ -766,6 +773,9 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                        {'is_witness': True, 'satoshi': 120, 'path': []}), 'extract valid path'),
                      (('badinput2', 'tx_input',  # path too long
                        {'is_witness': True, 'satoshi': 120, 'path': [0, 1, 2] * 6}),
+                      'extract valid path'),
+                     (('badinput2a', 'tx_input',  # path value too large
+                       {'is_witness': True, 'satoshi': 120, 'path': [0xFFFFFFFF + 1] * 6}),
                       'extract valid path'),
                      (('badinput3', 'tx_input',
                        {'is_witness': True, 'path': [0],
