@@ -671,7 +671,7 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
 #endif
 
     // Done
-    esp_event_handler_instance_unregister(JADE_EVENT, ESP_EVENT_ANY_ID, ctx);
+    esp_event_handler_instance_unregister(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, ctx);
     free_wait_event_data(wait_data);
 
     JADE_ASSERT(ich <= PASSPHRASE_MAX_LEN);
