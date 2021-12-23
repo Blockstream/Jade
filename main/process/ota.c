@@ -2,6 +2,7 @@
 #include "../process.h"
 #include "../ui.h"
 #include "ota_defines.h"
+#include "ota_util.h"
 
 #include "../button_events.h"
 #include "../jade_assert.h"
@@ -21,77 +22,8 @@
 
 #include "process_utils.h"
 
-#define UNCOMPRESSED_BUF_SIZE 32768
-
 // Timeout total 20s (40ms blocking on msg)
 #define DEFAULT_TIMEOUT_BEGIN 500
-#define VERSION_STRING_MAX_LENGTH 32
-
-enum ota_status {
-    SUCCESS,
-    ERROR_OTA_SETUP,
-    ERROR_OTA_INIT,
-    ERROR_BADPARTITION,
-    ERROR_DECOMPRESS,
-    ERROR_WRITE,
-    ERROR_FINISH,
-    ERROR_SETPARTITION,
-    ERROR_TIMEOUT,
-    ERROR_BADDATA,
-    ERROR_NODOWNGRADE,
-    ERROR_INVALIDFW,
-    ERROR_USER_DECLINED,
-    ERROR_BAD_HASH,
-};
-
-// status messages
-static const char MESSAGES[][20] = {
-    "OK",
-    "ERROR_OTA_SETUP",
-    "ERROR_OTA_INIT",
-    "ERROR_BADPARTITION",
-    "ERROR_DECOMPRESS",
-    "ERROR_WRITE",
-    "ERROR_FINISH",
-    "ERROR_SETPARTITION",
-    "ERROR_TIMEOUT",
-    "ERROR_BADDATA",
-    "ERROR_NODOWNGRADE",
-    "ERROR_INVALIDFW",
-    "ERROR_USER_DECLINED",
-    "ERROR_BAD_HASH",
-};
-
-struct bin_msg {
-    char id[MAXLEN_ID + 1];
-    const uint8_t* inbound_buf;
-    size_t len;
-    jade_msg_source_t expected_source;
-    bool loaded;
-    bool error;
-};
-
-// This structure is built into every fw, so we can check downloaded firmware
-// is appropriate for the hardware unit we are trying to flash it onto.
-// NOTE: For back compat only add to the end of the structure, and increase 'version'
-// to indicate those new fields are present.
-typedef struct {
-    // Version 1 fields
-    const uint8_t version;
-    const char board_type[32];
-    const char features[32];
-    const char config[32];
-
-    // Version 2 fields
-    // add new fields here
-} esp_custom_app_desc_t;
-
-const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t custom_app_desc
-    = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
-
-// UI screens to confirm ota
-void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version,
-    const char* expected_hash_hexstr);
 
 static enum ota_status ota_init(const char* expected_hash_hexstr, unsigned char* uncompressed,
     esp_partition_t const** update_partition, const size_t firmwaresize, esp_ota_handle_t* update_handle,
@@ -135,19 +67,7 @@ static enum ota_status ota_init(const char* expected_hash_hexstr, unsigned char*
     // (which could brick it!) but this may be needed should we need to downgrade.
     // FIXME: Remove this fudge in fw 0.1.27+
     if (strcmp(new_app_info->version, "0.1.25")) {
-        // Check our custom fields
-        const size_t custom_offset = offset + sizeof(esp_app_desc_t);
-        const esp_custom_app_desc_t* custom_info = (esp_custom_app_desc_t*)(uncompressed + custom_offset);
-
-        // 'Board Type' and 'Features' must match.
-        // 'Config' is allowed to differ.
-        if (strcmp(JADE_OTA_BOARD_TYPE, custom_info->board_type)) {
-            JADE_LOGE("Firmware board type mismatch");
-            return ERROR_INVALIDFW;
-        }
-
-        if (strcmp(JADE_OTA_FEATURES, custom_info->features)) {
-            JADE_LOGE("Firmware features mismatch");
+        if (!validate_custom_app_desc(offset, uncompressed)) {
             return ERROR_INVALIDFW;
         }
     }
@@ -200,61 +120,6 @@ static enum ota_status ota_init(const char* expected_hash_hexstr, unsigned char*
     }
 
     return SUCCESS;
-}
-
-// Helper to read a chunk of binary data
-static void reset_ctx(struct bin_msg* bctx, uint8_t* inbound_buf, const jade_msg_source_t expected_source)
-{
-    JADE_ASSERT(bctx);
-
-    bctx->id[0] = '\0';
-    bctx->inbound_buf = inbound_buf;
-    bctx->len = 0;
-    bctx->expected_source = expected_source;
-    bctx->loaded = false;
-    bctx->error = false;
-}
-
-static void handle_in_bin_data(void* ctx, unsigned char* data, size_t rawsize)
-{
-    JADE_ASSERT(ctx);
-    JADE_ASSERT(data);
-    JADE_ASSERT(rawsize >= 2);
-
-    CborParser parser;
-    CborValue value;
-    const CborError cberr = cbor_parser_init(data + 1, rawsize - 1, CborValidateBasic, &parser, &value);
-    JADE_ASSERT(cberr == CborNoError);
-    JADE_ASSERT(rpc_request_valid(&value));
-
-    struct bin_msg* bctx = ctx;
-
-    size_t written = 0;
-    rpc_get_id(&value, bctx->id, sizeof(bctx->id), &written);
-    JADE_ASSERT(written != 0);
-
-    if (!rpc_is_method(&value, "ota_data")) {
-        bctx->error = true;
-        return;
-    }
-
-    written = 0;
-    rpc_get_bytes_ptr("params", &value, &bctx->inbound_buf, &written);
-
-    if (written == 0 || data[0] != bctx->expected_source || written > JADE_OTA_BUF_SIZE) {
-        bctx->error = true;
-        return;
-    }
-
-    bctx->len = written;
-    bctx->loaded = true;
-}
-
-static void send_ok(char* id, jade_msg_source_t source)
-{
-    uint8_t ok_msg[MAXLEN_ID + 10];
-    bool ok = true;
-    jade_process_reply_to_message_result_with_id(id, ok_msg, sizeof(ok_msg), source, &ok, cbor_result_boolean_cb);
 }
 
 void ota_process(void* process_ptr)
