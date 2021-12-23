@@ -35,23 +35,23 @@
 
 #ifdef ESP_PLATFORM
 #define MODLOG_ESP_LOCAL(level, ml_msg_, ...) do { \
-    if (MYNEWT_VAL(BLE_HS_LOG_LVL) <= level) esp_log_write(level, "NimBLE", ml_msg_, ##__VA_ARGS__); \
+    if (MYNEWT_VAL(BLE_HS_LOG_LVL) <= LOG_LOCAL_LEVEL) ESP_LOG_LEVEL_LOCAL(level, "NimBLE", ml_msg_, ##__VA_ARGS__); \
 } while(0)
 
 #define MODLOG_DEBUG(ml_mod_, ml_msg_, ...) \
-    MODLOG_ESP_LOCAL(LOG_LEVEL_DEBUG, ml_msg_, ##__VA_ARGS__)
+    MODLOG_ESP_LOCAL(ESP_LOG_DEBUG, ml_msg_, ##__VA_ARGS__)
 
 #define MODLOG_INFO(ml_mod_, ml_msg_, ...) \
-    MODLOG_ESP_LOCAL(LOG_LEVEL_INFO, ml_msg_, ##__VA_ARGS__)
+    MODLOG_ESP_LOCAL(ESP_LOG_INFO, ml_msg_, ##__VA_ARGS__)
 
 #define MODLOG_WARN(ml_mod_, ml_msg_, ...) \
-    MODLOG_ESP_LOCAL(LOG_LEVEL_WARN, ml_msg_, ##__VA_ARGS__)
+    MODLOG_ESP_LOCAL(ESP_LOG_WARN, ml_msg_, ##__VA_ARGS__)
 
 #define MODLOG_ERROR(ml_mod_, ml_msg_, ...) \
-    MODLOG_ESP_LOCAL(LOG_LEVEL_ERROR, ml_msg_, ##__VA_ARGS__)
+    MODLOG_ESP_LOCAL(ESP_LOG_ERROR, ml_msg_, ##__VA_ARGS__)
 
 #define MODLOG_CRITICAL(ml_mod_, ml_msg_, ...) \
-    MODLOG_ESP_LOCAL(LOG_LEVEL_CRITICAL, ml_msg_, ##__VA_ARGS__)
+    MODLOG_ESP_LOCAL(ESP_LOG_ERROR, ml_msg_, ##__VA_ARGS__)
 
 #else
 

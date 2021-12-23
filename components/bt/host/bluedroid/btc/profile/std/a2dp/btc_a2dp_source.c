@@ -397,7 +397,7 @@ static UINT64 time_now_us(void)
 {
 #if _POSIX_TIMERS
     struct timespec ts_now;
-    clock_gettime(CLOCK_BOOTTIME, &ts_now);
+    clock_gettime(CLOCK_MONOTONIC, &ts_now);
     return ((UINT64)ts_now.tv_sec * 1000000L) + ((UINT64)ts_now.tv_nsec / 1000);
 #else
     struct timeval ts_now;
@@ -1421,7 +1421,7 @@ static void btc_a2dp_source_handle_timer(UNUSED_ATTR void *context)
     log_tstamps_us("media task tx timer");
 
 #if (BTA_AV_INCLUDED == TRUE)
-    if (btc_a2dp_source_state != BTC_A2DP_SOURCE_STATE_ON){
+    if (btc_a2dp_source_state != BTC_A2DP_SOURCE_STATE_ON || g_a2dp_source_ongoing_deinit){
         return;
     }
 

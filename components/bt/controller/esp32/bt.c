@@ -92,7 +92,7 @@ do{\
 } while(0)
 
 #define OSI_FUNCS_TIME_BLOCKING  0xffffffff
-#define OSI_VERSION              0x00010002
+#define OSI_VERSION              0x00010003
 #define OSI_MAGIC_VALUE          0xFADEBEAD
 
 /* SPIRAM Configuration */
@@ -184,6 +184,10 @@ struct osi_funcs_t {
     void *(* _coex_schm_curr_phase_get)(void);
     int (* _coex_wifi_channel_get)(uint8_t *primary, uint8_t *secondary);
     int (* _coex_register_wifi_channel_change_callback)(void *cb);
+    xt_handler (*_set_isr_l3)(int n, xt_handler f, void *arg);
+    void (*_interrupt_l3_disable)(void);
+    void (*_interrupt_l3_restore)(void);
+    void *(* _customer_queue_create)(uint32_t queue_len, uint32_t item_size);
     uint32_t _magic;
 };
 
@@ -240,6 +244,8 @@ extern uint8_t coex_schm_curr_period_get(void);
 extern void * coex_schm_curr_phase_get(void);
 extern int coex_wifi_channel_get(uint8_t *primary, uint8_t *secondary);
 extern int coex_register_wifi_channel_change_callback(void *cb);
+/* Shutdown */
+extern void esp_bt_controller_shutdown(void);
 
 extern char _bss_start_btdm;
 extern char _bss_end_btdm;
@@ -270,6 +276,7 @@ static bool btdm_queue_generic_deregister(btdm_queue_item_t *queue);
 #endif /* CONFIG_SPIRAM_USE_MALLOC */
 static void IRAM_ATTR interrupt_disable(void);
 static void IRAM_ATTR interrupt_restore(void);
+static void IRAM_ATTR task_yield(void);
 static void IRAM_ATTR task_yield_from_isr(void);
 static void *semphr_create_wrapper(uint32_t max, uint32_t init);
 static void semphr_delete_wrapper(void *semphr);
@@ -327,7 +334,7 @@ static const struct osi_funcs_t osi_funcs_ro = {
     ._ints_on = xt_ints_on,
     ._interrupt_disable = interrupt_disable,
     ._interrupt_restore = interrupt_restore,
-    ._task_yield = vPortYield,
+    ._task_yield = task_yield,
     ._task_yield_from_isr = task_yield_from_isr,
     ._semphr_create = semphr_create_wrapper,
     ._semphr_delete = semphr_delete_wrapper,
@@ -378,6 +385,10 @@ static const struct osi_funcs_t osi_funcs_ro = {
     ._coex_schm_curr_phase_get = coex_schm_curr_phase_get_wrapper,
     ._coex_wifi_channel_get = coex_wifi_channel_get_wrapper,
     ._coex_register_wifi_channel_change_callback = coex_register_wifi_channel_change_callback_wrapper,
+    ._set_isr_l3 = xt_set_interrupt_handler,
+    ._interrupt_l3_disable = interrupt_disable,
+    ._interrupt_l3_restore = interrupt_restore,
+    ._customer_queue_create = NULL,
     ._magic = OSI_MAGIC_VALUE,
 };
 
@@ -510,6 +521,11 @@ static void IRAM_ATTR interrupt_restore(void)
     } else {
         portEXIT_CRITICAL(&global_int_mux);
     }
+}
+
+static void IRAM_ATTR task_yield(void)
+{
+    vPortYield();
 }
 
 static void IRAM_ATTR task_yield_from_isr(void)
@@ -1506,9 +1522,18 @@ esp_err_t esp_bt_controller_deinit(void)
         esp_pm_lock_delete(s_light_sleep_pm_lock);
         s_light_sleep_pm_lock = NULL;
     }
-    esp_timer_stop(s_btdm_slp_tmr);
-    esp_timer_delete(s_btdm_slp_tmr);
-    s_btdm_slp_tmr = NULL;
+
+    if (s_pm_lock != NULL) {
+        esp_pm_lock_delete(s_pm_lock);
+        s_pm_lock = NULL;
+    }
+
+    if (s_btdm_slp_tmr != NULL) {
+        esp_timer_stop(s_btdm_slp_tmr);
+        esp_timer_delete(s_btdm_slp_tmr);
+        s_btdm_slp_tmr = NULL;
+    }
+
     s_pm_lock_acquired = false;
 #endif
     semphr_delete_wrapper(s_wakeup_req_sem);
@@ -1533,13 +1558,13 @@ esp_err_t esp_bt_controller_deinit(void)
 
 static void bt_shutdown(void)
 {
-    esp_err_t ret = ESP_OK;
-    ESP_LOGD(BTDM_LOG_TAG, "stop Bluetooth");
-
-    ret = esp_bt_controller_disable();
-    if (ESP_OK != ret) {
-        ESP_LOGW(BTDM_LOG_TAG, "controller disable ret=%d", ret);
+    if (btdm_controller_status != ESP_BT_CONTROLLER_STATUS_ENABLED) {
+        return;
     }
+
+    esp_bt_controller_shutdown();
+    esp_phy_disable();
+
     return;
 }
 

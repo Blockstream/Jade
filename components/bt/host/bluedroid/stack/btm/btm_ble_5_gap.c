@@ -110,8 +110,8 @@ static char *btm_ble_hci_status_to_str(tHCI_STATUS status)
         return "HCI_ERR_INVALID_LMP_PARAM";
     case HCI_ERR_UNSPECIFIED:
         return "HCI_ERR_UNSPECIFIED";
-    case HCI_ERR_UNSUPPORTED_LMP_FEATURE:
-        return "HCI_ERR_UNSUPPORTED_LMP_FEATURE";
+    case HCI_ERR_UNSUPPORTED_LMP_PARAMETERS:
+        return "HCI_ERR_UNSUPPORTED_LMP_PARAMETERS";
     case HCI_ERR_ROLE_CHANGE_NOT_ALLOWED:
         return "HCI_ERR_ROLE_CHANGE_NOT_ALLOWED";
     case HCI_ERR_LMP_RESPONSE_TIMEOUT:
@@ -523,10 +523,6 @@ tBTM_STATUS BTM_BleStartExtAdv(BOOLEAN enable, UINT8 num, tBTM_BLE_EXT_ADV *ext_
 end:
 
     if (!enable && status == BTM_SUCCESS) {
-        // Reset the configure parameters when stop extend adv.
-        for (int i = 0; i < MAX_BLE_ADV_INSTANCE; i++) {
-            extend_adv_cb.inst[i].configured = false;
-        }
         // disable all ext adv
         if(num == 0) {
 
