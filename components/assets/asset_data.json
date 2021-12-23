@@ -1232,6 +1232,40 @@
         "ticker": "ACE",
         "version": 0
     },
+    "0ccd783cbe577c5ae543228d517561e57df8e43e605420eba2c8a61033c6ae4c": {
+        "asset_id": "0ccd783cbe577c5ae543228d517561e57df8e43e605420eba2c8a61033c6ae4c",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Ofelia",
+            "nft": {
+                "cid": "QmcuFeD2oFaPsPunPJY4cRzm1V1G8sQ3ZzsmX6TJt1iTFG",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "60ebbce7a4085db964cd2a4caba22aa68be44a766e008948a5b00ecccbc7a8ad"
+            },
+            "precision": 0,
+            "ticker": "NCAAE",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "5d3a0331c10ab0e9636b0b7839d83523084b658ffadf10d1ce0bb4e1499095ff",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "2e5946fa7d2c625c3a013ce1ef72f4854dedd37bc1f93a1e635f361bc9f7d612",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Ofelia",
+        "precision": 0,
+        "ticker": "NCAAE",
+        "version": 0
+    },
     "0d34e852898e0ff6484246ff560e48c83c0096b69000239d3cbd9fe701121bb1": {
         "asset_id": "0d34e852898e0ff6484246ff560e48c83c0096b69000239d3cbd9fe701121bb1",
         "contract": {
@@ -1702,6 +1736,35 @@
         "name": "Atomic Swap Pint",
         "precision": 2,
         "ticker": "ASP",
+        "version": 0
+    },
+    "1426fe2cf3c4ebd1b0496938854100aa5509af4857502441e5ca217ba75cf4bf": {
+        "asset_id": "1426fe2cf3c4ebd1b0496938854100aa5509af4857502441e5ca217ba75cf4bf",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "caffe offerti da Martino",
+            "precision": 2,
+            "ticker": "MRCCF",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "ffd5d5e83e96ad194e2f36d474c2d2d252b6ac7ec2bf08d2ca7290bd6bb4226f",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "5d3a0331c10ab0e9636b0b7839d83523084b658ffadf10d1ce0bb4e1499095ff",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "caffe offerti da Martino",
+        "precision": 2,
+        "ticker": "MRCCF",
         "version": 0
     },
     "1461a80d2546e393882a6275a2f7f084f6556cd3fc628f4a6a9c733897338bf1": {
@@ -3425,6 +3488,34 @@
         "name": "LiquidCardano",
         "precision": 8,
         "ticker": "LADA",
+        "version": 0
+    },
+    "2a95b730fc56cb77c7b1c0ac54a5fe2324fedfc193378796a4abf34db08486fc": {
+        "asset_id": "2a95b730fc56cb77c7b1c0ac54a5fe2324fedfc193378796a4abf34db08486fc",
+        "contract": {
+            "entity": {
+                "domain": "adamsoltys.com"
+            },
+            "issuer_pubkey": "02aac091277d323fe65cea354d5232d1635473aa7ac4aefa1b42269d08e41b4d96",
+            "name": "test",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "adamsoltys.com"
+        },
+        "issuance_prevout": {
+            "txid": "956624e6300d8ca8d5f2d50b2fc2d72ebd7d4c1c527ee2297f50027d930b845e",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "44e01c23d45d35f033d0a66b16e3a4d1a661db3836ed21c407de676fdee51581",
+            "vin": 0
+        },
+        "issuer_pubkey": "02aac091277d323fe65cea354d5232d1635473aa7ac4aefa1b42269d08e41b4d96",
+        "name": "test",
+        "precision": 0,
+        "ticker": null,
         "version": 0
     },
     "2b304200d88fc57d51c39f69bf4b2be629818c623e16348c2322f60977b6b210": {
@@ -7496,6 +7587,35 @@
         "ticker": "TEST",
         "version": 0
     },
+    "5a12ad76112cadcc4e94d986da63466d834fca68e456bb9769e1f021d9e07ac3": {
+        "asset_id": "5a12ad76112cadcc4e94d986da63466d834fca68e456bb9769e1f021d9e07ac3",
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "032dbd628f1b1e741c574908e5591ea6f81f0cfa99247f47b1c0ef0f77a06157a8",
+            "name": "Liquid Riddlemint",
+            "precision": 6,
+            "ticker": "L-RMT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "a4a0d84baa5cee4b8d87025ae6f34c2b3d8ae36fc1239c744cb394beb556426d",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "a864b815f566d9b61c8b3e826fd56b21bf46021a64765f965c408a491b9a92bb",
+            "vin": 0
+        },
+        "issuer_pubkey": "032dbd628f1b1e741c574908e5591ea6f81f0cfa99247f47b1c0ef0f77a06157a8",
+        "name": "Liquid Riddlemint",
+        "precision": 6,
+        "ticker": "L-RMT",
+        "version": 0
+    },
     "5a2cf0d08685ae1e4fcfad5d5ba3728d5e8315b71e8e14657026b23c14519a94": {
         "asset_id": "5a2cf0d08685ae1e4fcfad5d5ba3728d5e8315b71e8e14657026b23c14519a94",
         "contract": {
@@ -10148,6 +10268,35 @@
         "ticker": "DJF",
         "version": 0
     },
+    "78c08f5e12a58229772e6ca4d49aa2c3131865646929249f842de5177e328327": {
+        "asset_id": "78c08f5e12a58229772e6ca4d49aa2c3131865646929249f842de5177e328327",
+        "contract": {
+            "entity": {
+                "domain": "assets.halfinlabs.com"
+            },
+            "issuer_pubkey": "02b8185767f76d15f5035d2e89a407abf9a588600edfb7ecdfe784fa88d2d0d850",
+            "name": "Proof of Whistle",
+            "precision": 2,
+            "ticker": "PoW",
+            "version": 0
+        },
+        "entity": {
+            "domain": "assets.halfinlabs.com"
+        },
+        "issuance_prevout": {
+            "txid": "9b017ab08ddf03f4f461228fcd5e7f94033f6cdcc258638ab71be1c603622410",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "665e486ad3e5dc4b324fef4507ea6f58a57c10250fdf33d50db48da5b7427359",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b8185767f76d15f5035d2e89a407abf9a588600edfb7ecdfe784fa88d2d0d850",
+        "name": "Proof of Whistle",
+        "precision": 2,
+        "ticker": "PoW",
+        "version": 0
+    },
     "79064eec882c4e0c68d670a52d48b8a9199193a7e99befa1520baa7ed9d8f234": {
         "asset_id": "79064eec882c4e0c68d670a52d48b8a9199193a7e99befa1520baa7ed9d8f234",
         "contract": {
@@ -11440,6 +11589,40 @@
         "ticker": "HUnic",
         "version": 0
     },
+    "877cbbcb8489f540da82e5119efe08ffffe119542f5e5938f26c9955b2f84c68": {
+        "asset_id": "877cbbcb8489f540da82e5119efe08ffffe119542f5e5938f26c9955b2f84c68",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "palla di pelo",
+            "nft": {
+                "cid": "QmWNp8imsj982RKo1K1U9oX5KtpVaTvxWkhcW9JR5bwesf",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "510b2a4f6466728e14cf4d6f7357a1743b1fa7a836020408bec4d61048e42d09"
+            },
+            "precision": 0,
+            "ticker": "NCAAG",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "e015ccd2574bacc4819e50be9a382be8f3f7cf68983a40e2594d32cbe7cd9744",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "cea303f2d0c2b52810f5f8a37d9e0694dc6397a8f39b007190c8deb490140c34",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "palla di pelo",
+        "precision": 0,
+        "ticker": "NCAAG",
+        "version": 0
+    },
     "878ed463c84e6593e324b3971d05bf3fe1144942313e7413995bd08a64649c37": {
         "asset_id": "878ed463c84e6593e324b3971d05bf3fe1144942313e7413995bd08a64649c37",
         "contract": {
@@ -12668,6 +12851,35 @@
         "name": "Bitcoin Wizard Socks",
         "precision": 0,
         "ticker": "SBWS",
+        "version": 0
+    },
+    "96d128e36439fc9ed010354448611ff646de60d38b8720eb614ada30bde145cf": {
+        "asset_id": "96d128e36439fc9ed010354448611ff646de60d38b8720eb614ada30bde145cf",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "SETTE",
+            "precision": 2,
+            "ticker": "SETTE",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "1251282862b04018308f96dab2826a4d6b32ebccb35cbfaa20f5145b4cbd81e1",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "a11d4762c234ffe72571efb1097e1810bf9b7758202fe17e6a173bb0e24ada83",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "SETTE",
+        "precision": 2,
+        "ticker": "SETTE",
         "version": 0
     },
     "96e70fb9b076925237f676f14f28a8feb147f07eaa8cd0882354f6feae65fd0e": {
@@ -14710,6 +14922,40 @@
         "name": "Liquid Test Token",
         "precision": 0,
         "ticker": "LTT",
+        "version": 0
+    },
+    "b2489840efd410372c0e3a782c0553e2aedea07f34cb3ae02d2331f9f78845e1": {
+        "asset_id": "b2489840efd410372c0e3a782c0553e2aedea07f34cb3ae02d2331f9f78845e1",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Rosso",
+            "nft": {
+                "cid": "QmPwdT3DLEcXKXbnvPE13bATZo88RYgkRiePkQtUCSZEqH",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "d1052af232dd2244edefa075cbbf92bcb952c8e611ee69989b42b6d47f2da5f8"
+            },
+            "precision": 0,
+            "ticker": "NCAAH",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "e11a1237c5c353ceebb205ce2645d50feb8d80657bf70ae231211283f26efec1",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "558f15dddca29d10aea1f8c10f1af5f1d1c50ad54ccfda0f7f95da4afe398438",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Rosso",
+        "precision": 0,
+        "ticker": "NCAAH",
         "version": 0
     },
     "b29d1757dcfd831731ca2677d096fd5178293cb603d6ed05cceb8f1cfb0e1f1a": {
@@ -16909,6 +17155,35 @@
         "name": "Soldier Vest",
         "precision": 0,
         "ticker": "ASoVe",
+        "version": 0
+    },
+    "cc66c15c558efa5f9e47cc459d37058095a3c3e214d95978216f0e3b37d6f64a": {
+        "asset_id": "cc66c15c558efa5f9e47cc459d37058095a3c3e214d95978216f0e3b37d6f64a",
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "02bbb375516cf1c72008cb4b2cf69efdead98bd4fab9fb2421c1f4d662ebbb6152",
+            "name": "Liquid Litebit",
+            "precision": 6,
+            "ticker": "L-BIT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "c091d10f5eee462eb3588613485b1cdd3e7ddba0155b2feebf0d67b3dc0dc245",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "dba765b251a38d3f123053d39bf36cdb731be33f5a1955b695e1df29c5697b8c",
+            "vin": 0
+        },
+        "issuer_pubkey": "02bbb375516cf1c72008cb4b2cf69efdead98bd4fab9fb2421c1f4d662ebbb6152",
+        "name": "Liquid Litebit",
+        "precision": 6,
+        "ticker": "L-BIT",
         "version": 0
     },
     "cc69e307969cbd76cb3565240dbab370805d704ec4267185df0542a1151ba6f8": {
