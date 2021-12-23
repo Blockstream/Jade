@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.32] - 2021-12-23
+### Added
+
+### Changed
+- Update Liquid asset registry info
+
+### Fixed
+- Fix crash reported after entering passphrase with v0.1.31
+
 ## [0.1.31] - 2021-12-03
 ### Added
 - Show current running firmware version on initial connection screens
