@@ -1875,7 +1875,7 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
 
     time.sleep(1)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo)
+    check_mem_stats(startinfo, endinfo, check_frag=has_psram)
 
 
 # Run tests using passed interface
@@ -1930,7 +1930,7 @@ def run_interface_tests(jadeapi,
 
     time.sleep(1)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo)
+    check_mem_stats(startinfo, endinfo, check_frag=has_psram)
 
 
 # Run all selected tests over a passed JadeAPI instance.
