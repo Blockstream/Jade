@@ -523,8 +523,8 @@ cleanup:
         JADE_LOGW("OTA error %u", ota_return_status);
         if (prevalidated && !ota_end_called) {
             // ota_begin has been called, cleanup
-            err = esp_ota_end(update_handle);
-            JADE_ASSERT(err == ESP_OK || err == ESP_ERR_OTA_VALIDATE_FAILED);
+            err = esp_ota_abort(update_handle);
+            JADE_ASSERT(err == ESP_OK);
         }
 
         // If we get here and we have not finished loading the data, send an error message
