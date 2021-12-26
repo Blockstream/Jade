@@ -21,14 +21,14 @@ set -eo pipefail
 # if you want to put qemu in a state where it can be used with idf.py flash or esptool.py
 # -global driver=esp32.gpio,property=strap_mode,value=0x0f \
 
-(cd /qemu && build/qemu-system-xtensa -nographic \
+/opt/bin/qemu-system-xtensa -nographic \
     -machine esp32 \
     -m 4M \
-    -drive file=flash_image.bin,if=mtd,format=raw \
+    -drive file=/flash_image.bin,if=mtd,format=raw \
     -nic user,model=open_eth,id=lo0,hostfwd=tcp:0.0.0.0:2222-:2222 \
-    -drive file=qemu_efuse.bin,if=none,format=raw,id=efuse \
+    -drive file=/qemu_efuse.bin,if=none,format=raw,id=efuse \
     -global driver=nvram.esp32.efuse,property=drive,value=efuse \
-    -serial pty &)
+    -serial pty &
 sleep 4
 
 # TODO: put the virtualenv in the runner homedir

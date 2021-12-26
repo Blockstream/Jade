@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-FLASH_IMAGE_FILE=/qemu/flash_image.bin
+FLASH_IMAGE_FILE=/flash_image.bin
 
 . /root/esp/esp-idf/export.sh
 
@@ -12,4 +12,4 @@ esptool.py --chip esp32 merge_bin --fill-flash-size 4MB -o ${FLASH_IMAGE_FILE} \
 0x1000 build/bootloader/bootloader.bin \
 0x10000 build/jade.bin
 
-cp main/qemu/qemu_efuse.bin /qemu/qemu_efuse.bin
+cp main/qemu/qemu_efuse.bin /qemu_efuse.bin

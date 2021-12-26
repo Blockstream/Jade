@@ -13,9 +13,36 @@ RUN cd ~/esp/esp-idf && git checkout ${ESP_IDF_COMMIT} && ./install.sh esp32
 ARG ESP_QEMU_BRANCH=esp-develop-20210826
 ARG ESP_QEMU_COMMIT=fd85235d17cd8813d6a31f5ced3c5acbf1933718
 RUN git clone --quiet --depth 1 --branch ${ESP_QEMU_BRANCH} --single-branch --recursive https://github.com/espressif/qemu.git \
-&& (cd qemu && git checkout ${ESP_QEMU_COMMIT} && ./configure --target-list=xtensa-softmmu \
+&& cd qemu && git checkout ${ESP_QEMU_COMMIT} \
+    && ./configure --target-list=xtensa-softmmu --static --prefix=/opt \
+    --enable-lto \
     --enable-gcrypt \
-    --enable-debug --enable-sanitizers \
-    --disable-strip --disable-user \
-    --disable-capstone --disable-vnc \
-    --disable-sdl --disable-gtk && ninja -C build)
+    --enable-sanitizers \
+    --disable-user \
+    --disable-opengl \
+    --disable-curses \
+    --disable-capstone \
+    --disable-vnc \
+    --disable-parallels \
+    --disable-qed \
+    --disable-vvfat \
+    --disable-vdi \
+    --disable-qcow1 \
+    --disable-dmg \
+    --disable-cloop \
+    --disable-bochs \
+    --disable-replication \
+    --disable-live-block-migration \
+    --disable-keyring \
+    --disable-containers \
+    --disable-docs \
+    --disable-libssh \
+    --disable-xen \
+    --disable-tools \
+    --disable-zlib-test \
+    --disable-sdl \
+    --disable-gtk \
+    --disable-vhost-scsi \
+    --disable-qom-cast-debug \
+    --disable-tpm \
+    && ninja -C build install && rm -fr /qemu
