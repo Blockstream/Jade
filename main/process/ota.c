@@ -332,7 +332,7 @@ void ota_process(void* process_ptr)
 
     // We will show a progress bar once the user has confirmed and the upload in progress
     // Initially just show a message screen.
-    progress_bar_t progress_bar = { .progress_bar = NULL, .pcnt_txt = NULL };
+    progress_bar_t progress_bar = { .progress_bar = NULL, .pcnt_txt = NULL, .percent_last_value = 0 };
     display_message_activity_two_lines("Preparing for firmware", "update");
 
     vTaskDelay(200 / portTICK_PERIOD_MS); // sleep a little bit

@@ -372,6 +372,7 @@ typedef struct {
 typedef struct {
     gui_view_node_t* progress_bar;
     gui_view_node_t* pcnt_txt;
+    uint8_t percent_last_value;
 } progress_bar_t;
 
 gui_event_t gui_get_click_event(void);

@@ -277,7 +277,13 @@ void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const
     JADE_ASSERT(progress_bar->pcnt_txt);
     JADE_ASSERT(current <= total);
     JADE_ASSERT(total > 0);
+    JADE_ASSERT(progress_bar->percent_last_value >= 0 && progress_bar->percent_last_value <= 100);
 
+    const uint8_t pcnt = 100 * current / total;
+    if (pcnt == progress_bar->percent_last_value) {
+        // percentage hasn't changed, skip update
+        return;
+    }
     const dispWin_t* constraints = &progress_bar->progress_bar->render_data.constraints;
     const size_t width_bar = constraints->x2 - constraints->x1;
     const size_t width_shaded = width_bar * current / total;
@@ -285,8 +291,8 @@ void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const
     gui_repaint(progress_bar->progress_bar, true);
 
     char text[8];
-    const size_t pcnt = 100 * current / total;
     const int ret = snprintf(text, sizeof(text), "%u%%", pcnt);
     JADE_ASSERT(ret > 0 && ret < sizeof(text));
     gui_update_text(progress_bar->pcnt_txt, text);
+    progress_bar->percent_last_value = pcnt;
 }
