@@ -110,16 +110,21 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                 CborValue all_signer_paths;
                 const bool is_change = true;
                 bool all_paths_as_expected;
+                bool final_elements_consistent;
                 if (!rpc_get_array("paths", &arrayItem, &all_signer_paths)
-                    || !multisig_validate_paths(is_change, &all_signer_paths, &all_paths_as_expected)) {
+                    || !multisig_validate_paths(
+                        is_change, &all_signer_paths, &all_paths_as_expected, &final_elements_consistent)) {
                     *errmsg = "Failed to extract signer paths from parameters";
                     return false;
                 }
 
                 // If paths not as expected show a warning message and ask the user to confirm
-                if (!all_paths_as_expected) {
+                if (!all_paths_as_expected || !final_elements_consistent) {
                     const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
-                        "Warning: Unusual path suffix for multisig change output");
+                        "Warning: %s%s%s  Proceed at your own risk.",
+                        !all_paths_as_expected ? "Unusual multisig change path." : "",
+                        !all_paths_as_expected && !final_elements_consistent ? " " : "",
+                        !final_elements_consistent ? "Non-standard multisig with different paths across signers." : "");
                     JADE_ASSERT(
                         ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
                 }
@@ -178,8 +183,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
 
                         const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
                             "This change output has a non-standard csv value (%u), so it may be difficult to find.  "
-                            "Proceed at "
-                            "your own risk.",
+                            "Proceed at your own risk.",
                             csvBlocks);
                         JADE_ASSERT(
                             ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui

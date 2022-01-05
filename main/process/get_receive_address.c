@@ -65,17 +65,21 @@ void get_receive_address_process(void* process_ptr)
         CborValue all_signer_paths;
         const bool is_change = false;
         bool all_paths_as_expected;
+        bool final_elements_consistent;
         if (!rpc_get_array("paths", &params, &all_signer_paths)
-            || !multisig_validate_paths(is_change, &all_signer_paths, &all_paths_as_expected)) {
+            || !multisig_validate_paths(
+                is_change, &all_signer_paths, &all_paths_as_expected, &final_elements_consistent)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract signer paths from parameters", NULL);
             goto cleanup;
         }
 
         // If paths not as expected show a warning message with the address
-        if (!all_paths_as_expected) {
-            const int ret = snprintf(
-                warning_msg_text, sizeof(warning_msg_text), "Warning: Unusual path suffix for multisig address");
+        if (!all_paths_as_expected || !final_elements_consistent) {
+            const int ret = snprintf(warning_msg_text, sizeof(warning_msg_text),
+                "Warning: %s%s%s  Proceed at your own risk.", !all_paths_as_expected ? "Unusual multisig path." : "",
+                !all_paths_as_expected && !final_elements_consistent ? " " : "",
+                !final_elements_consistent ? "Non-standard multisig with different paths across signers." : "");
             JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg_text));
             warning_msg = warning_msg_text;
         }

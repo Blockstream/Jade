@@ -198,18 +198,21 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
     return true;
 }
 
-bool multisig_validate_paths(const bool is_change, CborValue* all_signer_paths, bool* all_paths_as_expected)
+bool multisig_validate_paths(
+    const bool is_change, CborValue* all_signer_paths, bool* all_paths_as_expected, bool* final_elements_consistent)
 {
     JADE_ASSERT(all_signer_paths);
     JADE_ASSERT(all_paths_as_expected);
 
     bool seen_unusual_path = false;
+    bool seen_final_element_mismatch = false;
 
     size_t array_len = 0;
     if (cbor_value_get_array_length(all_signer_paths, &array_len) != CborNoError || array_len == 0) {
         return false;
     }
 
+    uint32_t expected_final_path_element;
     uint32_t path[MAX_PATH_LEN];
     const size_t max_path_len = sizeof(path) / sizeof(path[0]);
 
@@ -228,9 +231,17 @@ bool multisig_validate_paths(const bool is_change, CborValue* all_signer_paths, 
             // Path is valid, but does not fit an expected pattern/format
             seen_unusual_path = true;
         }
+
+        if (i == 0) {
+            expected_final_path_element = path[path_len - 1];
+        } else if (path[path_len - 1] != expected_final_path_element) {
+            // Final path element varies across signers
+            seen_final_element_mismatch = true;
+        }
     }
 
     *all_paths_as_expected = !seen_unusual_path;
+    *final_elements_consistent = !seen_final_element_mismatch;
     return true;
 }
 
