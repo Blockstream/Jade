@@ -276,7 +276,7 @@ class JadeAPI:
 
     # Get receive-address for parameters
     def get_receive_address(self, *args, recovery_xpub=None, csv_blocks=0,
-                            variant=None, multisig_name=None):
+                            variant=None, multisig_name=None, confidential=None):
         if multisig_name is not None:
             assert len(args) == 2
             keys = ['network', 'paths', 'multisig_name']
@@ -289,7 +289,12 @@ class JadeAPI:
             assert len(args) == 4
             keys = ['network', 'subaccount', 'branch', 'pointer', 'recovery_xpub', 'csv_blocks']
             args += (recovery_xpub, csv_blocks)
-        return self._jadeRpc('get_receive_address', dict(zip(keys, args)))
+
+        params = dict(zip(keys, args))
+        if confidential is not None:
+            params['confidential'] = confidential
+
+        return self._jadeRpc('get_receive_address', params)
 
     # Sign a message
     def sign_message(self, path, message, use_ae_signatures=False,

@@ -169,79 +169,101 @@ QGEQu1tqez'),
 BkMyPec9y9VSwwVgn1AftmefpKLYTPrChSCTbHAnbXtSQTB8qEvR8H6nt3sBwNAUeYZK5oc75dWDiY\
 WBrYcMRYW2DGU1Z')]
 
-GET_GREENADDRESS_DATA = [('localtest', 0, 1, 345, None, 0, '2MyMy6Ey7a5dmWJW1D\
-9M7RFwjmXD1ECrgy4'),
-                         ('testnet', 0, 1, 568, None, 51840, '2MxbBuvnRvgL3uTD\
-tTkufPTdzuwuXE9HCNj'),
-                         ('mainnet', 3, 1, 88, '', 0, '36kTtrBFR5NQmzBxAuNWcmL\
-k22WsuhRq2S'),
+GET_GREENADDRESS_DATA = [('localtest', 0, 1, 345, None, 0, None,
+                          '2MyMy6Ey7a5dmWJW1D9M7RFwjmXD1ECrgy4'),
+                         ('testnet', 0, 1, 568, None, 51840, None,
+                         '2MxbBuvnRvgL3uTDtTkufPTdzuwuXE9HCNj'),
+                         ('mainnet', 3, 1, 88, '', 0, None,
+                         '36kTtrBFR5NQmzBxAuNWcmLk22WsuhRq2S'),
                          ('mainnet', 0, 1, 568, 'xpub6BYx1MizD2XPpY6EuF5Pso8cG\
 5fVHJEWniziGqXcrrcqH96MUiPcuNQkfKSnGx9tCvBJBZx35fiZE3zBbVkZqH89TU4W6HkyE9fSUx9\
-QHNX', 0, '338M4PG24m1gZggrzQV1s9vr3dZZ31kLsU'),
-                         ('localtest-liquid', 6, 1, 345, None, 65535, 'Azpx2UG\
-RpzEQ6pt6yCbPYGnjqNaTtxN2ZdLmMMjWMVvJdzd5uD9cysaRc4Es5auve68RAwijQqReG3AT'),
-                         ('testnet-liquid', 3, 1, 244, None, 65535, 'vjU6NdME2\
-viTa8BzBA6qNG5jQKLfGfLvC93f4fRwZ9SR4pE7KBWQNbGUi2bodfxiMACFDombViiC5Vej'),
-                         ('liquid', 10, 1, 122, None, 65535, 'VJLGotGqjthW3NY7\
-JFZ7EaJZo8rnuRi23waPVY7FwJTYxtFNrNLy6CC4VEQoKRmd5VkL2mmuo64LfZNy')]
+QHNX', 0, None, '338M4PG24m1gZggrzQV1s9vr3dZZ31kLsU'),
+                         ('localtest-liquid', 6, 1, 345, None, 65535, None,
+                          'Azpx2UGRpzEQ6pt6yCbPYGnjqNaTtxN2ZdLmMMjWMVvJdzd5uD9\
+cysaRc4Es5auve68RAwijQqReG3AT'),
+                         ('testnet-liquid', 3, 1, 244, None, 65535, None,
+                          'vjU6NdME2viTa8BzBA6qNG5jQKLfGfLvC93f4fRwZ9SR4pE7KBW\
+QNbGUi2bodfxiMACFDombViiC5Vej'),
+                         ('liquid', 10, 1, 122, None, 65535, None,
+                          'VJLGotGqjthW3NY7JFZ7EaJZo8rnuRi23waPVY7FwJTYxtFNrNL\
+y6CC4VEQoKRmd5VkL2mmuo64LfZNy'),
+
+                         # Jade can generate non-confidential addresses also
+                         ('testnet-liquid', 0, 1, 9, None, 65535, None,
+                          'vjTzk5t4D8J3j73rt2QWsD9UMSs28KcNnYSGovgGBKcpfHpihSz\
+5bsMmUNAkdohYRHXPztnqgZqaLgEk'),
+                         ('testnet-liquid', 0, 1, 9, None, 65535, True,
+                          'vjTzk5t4D8J3j73rt2QWsD9UMSs28KcNnYSGovgGBKcpfHpihSz\
+5bsMmUNAkdohYRHXPztnqgZqaLgEk'),
+                         ('testnet-liquid', 0, 1, 9, None, 65535, False,
+                          '8z6YuTaMWRf4UeqAGKmQ64Bi4wPWtw7pqm')]
 
 GET_SINGLE_SIG_ADDR_DATA = [  # The below were generated on core
-                            ('localtest', 'sh(wpkh(k))',
+                            ('localtest', 'sh(wpkh(k))', None,
                              [2147483648, 2147483648, 2147483657],
                              '2N8Yn3oXF7Pg38yBpuvoheDS7981vW4vy5b'),
-                            ('localtest', 'wpkh(k)',
+                            ('localtest', 'wpkh(k)', None,
                              [2147483648, 2147483648, 2147483658],
                              'bcrt1qkrkcltr7kx5s5alsvnpvkcfunlrjtwx942zmn4'),
-                            ('localtest', 'pkh(k)',
+                            ('localtest', 'pkh(k)', None,
                              [2147483648, 2147483648, 2147483659],
                              'mwJDHFp93fuHZysBwU7RTiFXrJZXXcPuUc'),
                             # And these on elements ...
-                            ('localtest-liquid', 'sh(wpkh(k))',
+                            ('localtest-liquid', 'sh(wpkh(k))', None,
                              [2147483648, 2147483648, 2147483649],
                              'AzpnFQq17AnWm4gvL2oHLRucFawmq8VWFyaxfPX3EgrihEdw\
 DXWmb1QmA7QrRu5RCy3wDtSe8h9WxKbQ'),
-                            ('localtest-liquid', 'wpkh(k)',
+                            ('localtest-liquid', 'wpkh(k)', None,
                              [2147483648, 2147483648, 2147483650],
                              'el1qqwud2rtjxwgfxc9wrey504mtjqujrmzsc442zway65gk\
 uj2f0mm4xfv8h3sqfz223jxjrj307zyqln2dywxmsvpvs9x2tvufj'),
-                            ('localtest-liquid', 'pkh(k)',
+                            ('localtest-liquid', 'pkh(k)', None,
                              [2147483648, 2147483648, 2147483651],
                              'CTEuAWMSL94hM2PbTzoe8TGLjyVkkSgdPFas7eUMouiGk5Q2\
 SfzadGnGduPwvoVK1ZpthykJup8A8Eh2'),
 
                             # The below are 'speculative' ...
-                            ('mainnet', 'sh(wpkh(k))',
+                            ('mainnet', 'sh(wpkh(k))', None,
                              [2147483648, 2147483648, 2147483657],
                              '3GzZz4bDVwAgwBZHEoBq2GSqvmokj9e4Jx'),
-                            ('mainnet', 'wpkh(k)',
+                            ('mainnet', 'wpkh(k)', None,
                              [2147483648, 2147483648, 2147483657],
                              'bc1qpky3r9yuz5gguvuqkrf2dfqtqgutr9evgnjmq6'),
-                            ('mainnet', 'pkh(k)',
+                            ('mainnet', 'pkh(k)', None,
                              [2147483648, 2147483648, 2147483657],
                              '12EZzC9ck31rxaFYKbGwVj1gYXsUwfHuWj'),
 
-                            ('testnet', 'sh(wpkh(k))',
+                            ('testnet', 'sh(wpkh(k))', None,
                              [2147483648, 2147483648, 2147483657],
                              '2N8Yn3oXF7Pg38yBpuvoheDS7981vW4vy5b'),
-                            ('testnet', 'wpkh(k)',
+                            ('testnet', 'wpkh(k)', None,
                              [2147483648, 2147483648, 2147483657],
                              'tb1qpky3r9yuz5gguvuqkrf2dfqtqgutr9evz4fgmf'),
-                            ('testnet', 'pkh(k)',
+                            ('testnet', 'pkh(k)', None,
                              [2147483648, 2147483648, 2147483657],
                              'mgkXHFEbZ4T7jgjA3AFKKeE1QXUBrX7qQC'),
 
-                            ('liquid', 'sh(wpkh(k))',
+                            ('liquid', 'sh(wpkh(k))', None,
                              [2147483648, 2147483648, 2147483657],
                              'VJLGcUjN2q6HHuNUAQJ2LEASQnr5LkD2DgDwT2vcyQjKhA3B\
 5a2VAgp94Gj5rSXYiD6eHmGJmVSHY5xG'),
-                            ('testnet-liquid', 'wpkh(k)',
+                            ('testnet-liquid', 'wpkh(k)', None,
                              [2147483648, 2147483648, 2147483657],
                              'tlq1qq28n8pj790vsyd6t5lr6n0puhrp7hd8wvcgrlm8knxm\
 684lxq6pzjrvfzx2fc9gs3cecpvxj56jqkq3ckxtjc88gqxa6j2cv7'),
-                            ('localtest-liquid', 'pkh(k)',
+
+                            # Jade can generate non-confidential addresses also
+                            ('localtest-liquid', 'pkh(k)', None,
                              [2147483648, 2147483648, 2147483657],
                              'CTEjtdpkvj7mrGtgMTrmDfSnH9DdN9Rzi2tzsxsFNujSU8qh\
-YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi')]
+YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
+                            ('localtest-liquid', 'pkh(k)', True,
+                             [2147483648, 2147483648, 2147483657],
+                             'CTEjtdpkvj7mrGtgMTrmDfSnH9DdN9Rzi2tzsxsFNujSU8qh\
+YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
+                            ('localtest-liquid', 'pkh(k)', False,
+                             [2147483648, 2147483648, 2147483657],
+                             '2dafKNiCKbRum9S1u5BYqTByZT5R9zSqcWy')]
 
 # Hold test data in separate files as can be large
 MULTI_REG_TESTS = _get_test_cases("multisig_reg_*.json")
@@ -690,6 +712,9 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badrecvaddr16', 'get_receive_address',
                     {'paths': [[1], [2, 3]], 'multisig_name': 'whatever',
                      'network': 'liquid'}), 'not supported for liquid'),
+                  (('badrecvaddr17', 'get_receive_address',
+                    {'path': [1, 2, 3], 'variant': 'pkh(k)', 'confidential': True,
+                     'network': 'mainnet'}), 'Confidential addresses only apply to liquid'),
 
                   # Note: for signing messages the root key (empty bip32 path
                   # array) is not allowed and should return bad-param.
@@ -1557,9 +1582,9 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
     assert(rslt)
 
     # Get (receive) green-address
-    for network, subact, branch, ptr, recovxpub, csvblocks, expected in GET_GREENADDRESS_DATA:
+    for network, subact, branch, ptr, recovxpub, csvblocks, conf, expected in GET_GREENADDRESS_DATA:
         rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
-                                           csv_blocks=csvblocks)
+                                           csv_blocks=csvblocks, confidential=conf)
         assert rslt == expected
 
     # Get xpubs
@@ -1799,8 +1824,8 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
     assert rslt is True
 
     # Get receive address
-    for network, variant, path, expected in GET_SINGLE_SIG_ADDR_DATA:
-        rslt = jadeapi.get_receive_address(network, path, variant=variant)
+    for network, variant, conf, path, expected in GET_SINGLE_SIG_ADDR_DATA:
+        rslt = jadeapi.get_receive_address(network, path, variant=variant, confidential=conf)
         assert rslt == expected
 
     for txn_data in SIGN_SINGLE_SIG_TESTS:
