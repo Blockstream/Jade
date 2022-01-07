@@ -421,7 +421,7 @@ void sign_liquid_tx_process(void* process_ptr)
             JADE_LOGD("For segwit input using explicitly passed value_commitment");
 
             rpc_get_bytes_ptr("value_commitment", &params, &value_commitment, &value_len);
-            if (value_len != ASSET_COMMITMENT_LEN) {
+            if (value_len != ASSET_COMMITMENT_LEN && value_len != WALLY_TX_ASSET_CT_VALUE_UNBLIND_LEN) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value commitment from parameters", NULL);
                 goto cleanup;
