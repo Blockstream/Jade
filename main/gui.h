@@ -101,9 +101,8 @@ typedef struct {
     color_t selected_color;
     color_t inactive_color;
 
-    uint8_t thickness;
-
     uint16_t borders;
+    uint8_t thickness;
 } gui_border_t;
 
 // Horizontal align constants for text, icons and pictures
@@ -137,16 +136,16 @@ typedef struct selectable_element {
     // ref to the selectable node itself
     gui_view_node_t* node;
 
+    // double linked list
+    struct selectable_element* prev;
+    struct selectable_element* next;
+
     // coords on screen
     uint16_t x;
     uint16_t y;
 
     // is this the first of the list (top-left-most item)
     bool is_first;
-
-    // double linked list
-    struct selectable_element* prev;
-    struct selectable_element* next;
 } selectable_t;
 
 typedef struct activity_event {
@@ -170,26 +169,25 @@ struct view_node_render_data {
     // area of the node *after* margins, padding and borders have been applied
     dispWin_t padded_constraints;
 
-    // depth of the node in the tree of this activity
-    uint8_t depth;
+    // used as a cache for translated strings
+    const char* resolved_text;
+    size_t resolved_text_length;
 
     // is this the first rendering of the node?
     bool is_first_time;
 
-    // used as a cache for translated strings
-    const char* resolved_text;
-    size_t resolved_text_length;
+    // depth of the node in the tree of this activity
+    uint8_t depth;
 };
 
 // Data for a {v,h}split
 struct view_node_split_data {
     // type of split
     enum gui_split_type kind;
-
-    // how many parts
-    uint8_t parts;
     // their values
     uint8_t* values;
+    // how many parts
+    uint8_t parts;
 };
 
 // Data for a "fill" node
@@ -200,8 +198,8 @@ struct view_node_fill_data {
 
 // Data appended to a text node when it's scrolling
 struct view_node_text_scroll_data {
-    // is the text moving right?
-    bool going_back;
+    // color to repaint in background to remove the previous rendering
+    color_t background_color;
 
     // chars to skip
     uint8_t offset;
@@ -210,9 +208,8 @@ struct view_node_text_scroll_data {
     // iterations left to wait here (without moving the text)
     // used when we reach one end of the string and we want to wait a while there
     uint8_t wait;
-
-    // color to repaint in background to remove the previous rendering
-    color_t background_color;
+    // is the text moving right?
+    bool going_back;
 };
 
 // Data appended to a text node when noise is needed
@@ -285,15 +282,8 @@ struct gui_activity_t {
     // root view_node
     gui_view_node_t* root_node;
 
-    // add the status bar on top of this activity (top 24px)
-    bool status_bar;
-    // title shown in the status bar (if enabled)
-    char* title;
-
     // linked list of selectable elements
     selectable_t* selectables;
-    // should that cursor "wrap around" when you reach one end?
-    bool selectables_wrap;
     // The node intially selected when activated/switched-to
     gui_view_node_t* initial_selection;
 
@@ -305,6 +295,13 @@ struct gui_activity_t {
 
     // linked list of wait_event_data structures associated with this activity
     wait_data_t* wait_data_items;
+
+    // add the status bar on top of this activity (top 24px)
+    bool status_bar;
+    // title shown in the status bar (if enabled)
+    char* title;
+    // should that cursor "wrap around" when you reach one end?
+    bool selectables_wrap;
 };
 
 // Optional callback called when a view_node is destructed. Basically a custom destructor
@@ -312,6 +309,9 @@ typedef void (*free_callback_t)(void*);
 
 // Generic struct representing a node in the view tree
 struct gui_view_node_t {
+    // stuff set by the renderer
+    struct view_node_render_data render_data;
+
     // NULL for the root node
     gui_view_node_t* parent;
 
@@ -320,15 +320,6 @@ struct gui_view_node_t {
 
     // activity that contains this node
     gui_activity_t* activity;
-
-    // stuff set by the renderer
-    struct view_node_render_data render_data;
-
-    // is this node currently selected (highlighted)?
-    bool is_selected;
-
-    // is this node active (highlitable)?
-    bool is_active;
 
     // margin, padding values
     gui_margin_t margins;
@@ -356,6 +347,12 @@ struct gui_view_node_t {
 
     // next sibling in the linked list
     gui_view_node_t* sibling;
+
+    // is this node currently selected (highlighted)?
+    bool is_selected;
+
+    // is this node active (highlitable)?
+    bool is_active;
 };
 
 // Structs to facilitate chaining screens
