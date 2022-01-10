@@ -71,7 +71,7 @@ void handle_in_bin_data(void* ctx, unsigned char* data, size_t rawsize)
     }
 
     written = 0;
-    rpc_get_bytes_ptr("params", &value, &bctx->inbound_buf, &written);
+    rpc_get_bytes("params", JADE_OTA_BUF_SIZE, &value, bctx->inbound_buf, &written);
 
     if (written == 0 || data[0] != bctx->expected_source || written > JADE_OTA_BUF_SIZE) {
         bctx->error = true;

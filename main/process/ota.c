@@ -202,7 +202,8 @@ void ota_process(void* process_ptr)
 
     vTaskDelay(200 / portTICK_PERIOD_MS); // sleep a little bit
 
-    struct bin_msg binctx;
+    struct bin_msg binctx = { .inbound_buf = JADE_MALLOC_PREFER_SPIRAM(JADE_OTA_BUF_SIZE) };
+    jade_process_free_on_exit(process, binctx.inbound_buf);
     ota_return_status = SUCCESS;
     while (remaining_compressed) {
         if (!timeout) {
@@ -211,7 +212,7 @@ void ota_process(void* process_ptr)
             goto cleanup;
         }
 
-        reset_ctx(&binctx, NULL, source);
+        reset_ctx(&binctx, binctx.inbound_buf, source);
         jade_process_get_in_message(&binctx, &handle_in_bin_data, false); // non-blocking, we want to detect timeouts
 
         if (binctx.error) {

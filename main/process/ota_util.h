@@ -26,7 +26,7 @@ typedef struct {
 
 struct bin_msg {
     char id[MAXLEN_ID + 1];
-    const uint8_t* inbound_buf;
+    uint8_t* inbound_buf;
     size_t len;
     jade_msg_source_t expected_source;
     bool loaded;
