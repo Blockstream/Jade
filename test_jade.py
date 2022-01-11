@@ -266,14 +266,14 @@ YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
                              '2dafKNiCKbRum9S1u5BYqTByZT5R9zSqcWy')]
 
 # Hold test data in separate files as can be large
-MULTI_REG_TESTS = _get_test_cases("multisig_reg_*.json")
-MULTI_REG_SS_TESTS = _get_test_cases("multisig_reg_ss_*.json")
-SIGN_MSG_TESTS = _get_test_cases("msg_*.json")
-SIGN_TXN_TESTS = _get_test_cases("txn_*.json")
-SIGN_TXN_FAIL_CASES = _get_test_cases("badtxn_*.json")
-SIGN_LIQUID_TXN_TESTS = _get_test_cases("liquid_txn_*.json")
-SIGN_SINGLE_SIG_TESTS = _get_test_cases("singlesig_txn*.json")
-SIGN_SINGLE_SIG_LIQUID_TESTS = _get_test_cases("singlesig_liquid_txn*.json")
+MULTI_REG_TESTS = "multisig_reg_*.json"
+MULTI_REG_SS_TESTS = "multisig_reg_ss_*.json"
+SIGN_MSG_TESTS = "msg_*.json"
+SIGN_TXN_TESTS = "txn_*.json"
+SIGN_TXN_FAIL_CASES = "badtxn_*.json"
+SIGN_LIQUID_TXN_TESTS = "liquid_txn_*.json"
+SIGN_SINGLE_SIG_TESTS = "singlesig_txn*.json"
+SIGN_SINGLE_SIG_LIQUID_TESTS = "singlesig_liquid_txn*.json"
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -1593,7 +1593,7 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
         assert rslt == expected
 
     # Sign message
-    for msg_data in SIGN_MSG_TESTS:
+    for msg_data in _get_test_cases(SIGN_MSG_TESTS):
         inputdata = msg_data['input']
         rslt = jadeapi.sign_message(inputdata['path'],
                                     inputdata['message'],
@@ -1605,7 +1605,7 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
         _check_msg_signature(jadeapi, msg_data, rslt)
 
     # Sign Tx
-    for txn_data in SIGN_TXN_TESTS:
+    for txn_data in _get_test_cases(SIGN_TXN_TESTS):
         inputdata = txn_data['input']
         rslt = jadeapi.sign_tx(inputdata['network'],
                                inputdata['txn'],
@@ -1617,7 +1617,7 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
     # Sign Tx failures
-    for txn_data in SIGN_TXN_FAIL_CASES:
+    for txn_data in _get_test_cases(SIGN_TXN_FAIL_CASES):
         try:
             inputdata = txn_data['input']
             rslt = jadeapi.sign_tx(inputdata['network'],
@@ -1702,7 +1702,7 @@ aa95e1c72070b08208012144f')
     assert _dicts_eq(rslt, ledger_commitments[1])
 
     # Sign Liquid Tx
-    for txn_data in SIGN_LIQUID_TXN_TESTS:
+    for txn_data in _get_test_cases(SIGN_LIQUID_TXN_TESTS):
         inputdata = txn_data['input']
         rslt = jadeapi.sign_liquid_tx(inputdata['network'],
                                       inputdata['txn'],
@@ -1715,7 +1715,7 @@ aa95e1c72070b08208012144f')
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
     # Generic multisig - check register multisig wallets
-    for multisig_data in MULTI_REG_TESTS:
+    for multisig_data in _get_test_cases(MULTI_REG_TESTS):
         inputdata = multisig_data['input']
         rslt = jadeapi.register_multisig(inputdata['network'],
                                          inputdata['multisig_name'],
@@ -1828,7 +1828,7 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
         rslt = jadeapi.get_receive_address(network, path, variant=variant, confidential=conf)
         assert rslt == expected
 
-    for txn_data in SIGN_SINGLE_SIG_TESTS:
+    for txn_data in _get_test_cases(SIGN_SINGLE_SIG_TESTS):
         inputdata = txn_data['input']
         rslt = jadeapi.sign_tx(inputdata['network'],
                                inputdata['txn'],
@@ -1839,7 +1839,7 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
-    for txn_data in SIGN_SINGLE_SIG_LIQUID_TESTS:
+    for txn_data in _get_test_cases(SIGN_SINGLE_SIG_LIQUID_TESTS):
         inputdata = txn_data['input']
         rslt = jadeapi.sign_liquid_tx(inputdata['network'],
                                       inputdata['txn'],
@@ -1854,7 +1854,7 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
     # Register multisig wallets again - this checks that a second user from the multisig
     # gets the same receive-address.  ie. in the tests 'multisig_reg_ss' the 'single sig'
     # signer is also in the multisig, so we can check it from this wallet also.
-    for multisig_data in MULTI_REG_SS_TESTS:
+    for multisig_data in _get_test_cases(MULTI_REG_SS_TESTS):
         # Test trying to access the multisig description registered under the
         # main test mnemonic fails (as must be registered by accessing wallet)
         inputdata = multisig_data['input']
