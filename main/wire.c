@@ -12,7 +12,6 @@
 #include "idletimer.h"
 #include "jade_assert.h"
 #include "keychain.h"
-#include "process/ota.h"
 #include "random.h"
 #include "utils/cbor_rpc.h"
 

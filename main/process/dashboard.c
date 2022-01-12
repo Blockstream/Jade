@@ -25,7 +25,7 @@
 #ifndef CONFIG_ESP32_NO_BLOBS
 #include "../ble/ble.h"
 #endif
-#include "process/ota.h"
+#include "process/ota_defines.h"
 #include "process_utils.h"
 
 #include <sodium/utils.h>

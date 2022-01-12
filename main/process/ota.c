@@ -1,7 +1,7 @@
-#include "ota.h"
 #include "../keychain.h"
 #include "../process.h"
 #include "../ui.h"
+#include "ota_defines.h"
 
 #include "../button_events.h"
 #include "../jade_assert.h"
