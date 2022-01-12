@@ -608,19 +608,22 @@ class JadeInterface:
 
             # A log message - handle as normal
             if 'log' in message:
-                response = message['log'].decode("utf-8")
-                log_methods = {
-                    'E': device_logger.error,
-                    'W': device_logger.warn,
-                    'I': device_logger.info,
-                    'D': device_logger.debug,
-                    'V': device_logger.debug,
-                }
+                response = message['log']
                 log_method = device_logger.error
-                if len(response) > 1 and response[1] == ' ':
-                    lvl = response[0]
-                    log_method = log_methods.get(lvl, device_logger.error)
-
+                try:
+                    response = message['log'].decode("utf-8")
+                    log_methods = {
+                        'E': device_logger.error,
+                        'W': device_logger.warn,
+                        'I': device_logger.info,
+                        'D': device_logger.debug,
+                        'V': device_logger.debug,
+                    }
+                    if len(response) > 1 and response[1] == ' ':
+                        lvl = response[0]
+                        log_method = log_methods.get(lvl, device_logger.error)
+                except Exception as e:
+                    logger.error('Error processing log message: {}'.format(e))
                 log_method('>> {}'.format(response))
             else:
                 # Unknown/unhandled/unexpected message
