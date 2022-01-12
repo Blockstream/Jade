@@ -4,7 +4,7 @@
 #include <sdkconfig.h>
 
 // OTA chunk size - should be less that MAX_INPUT_MSG_SIZE
-#define JADE_OTA_BUF_SIZE (1024 * 4)
+#define JADE_OTA_BUF_SIZE (4096)
 
 // Some config/features compiled into the firmware
 

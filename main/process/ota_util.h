@@ -4,10 +4,17 @@
 #include "../process.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include <esp_ota_ops.h>
+#include <esp_partition.h>
+#include <mbedtls/sha256.h>
 #include <stdbool.h>
 #include <stddef.h>
+
 #define VERSION_STRING_MAX_LENGTH 32
-#define UNCOMPRESSED_BUF_SIZE 32768
+
+#define CUSTOM_HEADER_MIN_WRITE                                                                                        \
+    (sizeof(esp_app_desc_t) + sizeof(esp_custom_app_desc_t) + sizeof(esp_image_header_t)                               \
+        + sizeof(esp_image_segment_header_t))
 
 // This structure is built into every fw, so we can check downloaded firmware
 // is appropriate for the hardware unit we are trying to flash it onto.
@@ -24,17 +31,27 @@ typedef struct {
     // add new fields here
 } esp_custom_app_desc_t;
 
-struct bin_msg {
-    char id[MAXLEN_ID + 1];
-    uint8_t* inbound_buf;
-    size_t len;
-    jade_msg_source_t expected_source;
-    bool loaded;
-    bool error;
-};
+typedef struct {
+    progress_bar_t progress_bar;
+    mbedtls_sha256_context* cmp_sha_ctx;
+    char* id;
+    const uint8_t* expected_hash;
+    const char* expected_hash_hexstr;
+    const esp_partition_t* running_partition;
+    const esp_partition_t* update_partition;
+    esp_ota_handle_t* ota_handle;
+    enum ota_status* ota_return_status;
+    struct deflate_ctx* dctx;
+    const jade_msg_source_t* expected_source;
+    size_t* const remaining_uncompressed;
+    size_t remaining_compressed;
+    size_t uncompressedsize;
+    size_t compressedsize;
+    size_t firmwaresize;
+} jade_ota_ctx_t;
 
 enum ota_status {
-    SUCCESS,
+    SUCCESS = 0,
     ERROR_OTA_SETUP,
     ERROR_OTA_INIT,
     ERROR_BADPARTITION,
@@ -42,12 +59,12 @@ enum ota_status {
     ERROR_WRITE,
     ERROR_FINISH,
     ERROR_SETPARTITION,
-    ERROR_TIMEOUT,
     ERROR_BADDATA,
     ERROR_NODOWNGRADE,
     ERROR_INVALIDFW,
     ERROR_USER_DECLINED,
     ERROR_BAD_HASH,
+    ERROR_PATCH,
 };
 
 // status messages
@@ -60,21 +77,22 @@ static const char MESSAGES[][20] = {
     "ERROR_WRITE",
     "ERROR_FINISH",
     "ERROR_SETPARTITION",
-    "ERROR_TIMEOUT",
     "ERROR_BADDATA",
     "ERROR_NODOWNGRADE",
     "ERROR_INVALIDFW",
     "ERROR_USER_DECLINED",
     "ERROR_BAD_HASH",
+    "ERROR_PATCH",
 };
 
-bool validate_custom_app_desc(const size_t offset, const uint8_t* uncompressed);
-void send_ok(const char* id, const jade_msg_source_t source);
-void reset_ctx(struct bin_msg* bctx, uint8_t* const inbound_buf, const jade_msg_source_t expected_source);
 void handle_in_bin_data(void* ctx, uint8_t* data, size_t rawsize);
 
 // UI screens to confirm ota
 void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version,
     const char* expected_hash_hexstr);
+
+bool ota_init(jade_ota_ctx_t* joctx);
+enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called);
+enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompressed);
 
 #endif /* JADE_OTA_UTIL_H_ */
