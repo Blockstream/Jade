@@ -4,24 +4,57 @@
    contain the root `toctree` directive.
 
 Welcome to Jade's RPC documentation!
-========================================
+====================================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+* All Jade RPC messages are CBOR, roughly based on the format of json-rpc messges.
+* The order of named fields inside the messages is unimportant.  The order of items in array elements usually is important.
+* In most cases the flow is message-reply-message-reply... the exception is the legacy sign-tx flow where n messages are sent before n replies are recieved.
+* In some cases there may be a delay between sending a message and a reply being sent, where some physical interaction with the Jade unit is required.
+* In general, the types used are string, boolean, uint32/64, and raw byte-strings for binary data.
+* Every message contains an `id` field - an arbitrary string up to 16 characters - which is included in the reply.
+* Several calls require a `network` parameter.  Allowed values are: 'mainnet' and 'liquid'. If using a test wallet, 'testnet', 'testnet-liquid', 'localtest' and 'localtest-liquid' are allowed.
+* Successful action replies include a `result` structure, specific to each method.
+* Failed/errored/declined actions instead include a common `error` structure.
+  
+.. _common_error_reply:
 
-get_version_info request
-------------------------
+common error reply
+------------------
 
 .. code-block:: cbor
 
     {
-        "method": "get_version_info",
-        "id": "654503"
+        "id": "5",
+        "error": {
+            "code": -32603,
+            "message": "There was an error with your request"
+            "data": <bytes>
+        }
     }
 
-.. _get_version_info_req-params:
+* 'code' values are listed in `main/utils/cbor_rpc.h`.
+* 'message' should be a meaningful string describing the error encountered.
+* 'data' content is optional, and usually unused/null.
+  
+.. _get_version_info_request:
+
+get_version_info request
+------------------------
+
+Used to obtain summary fields describing this Jade hw unit.
+
+.. code-block:: cbor
+
+    {
+        "id": "90210",
+        "method": "get_version_info"
+    }
+
+.. _get_version_info_reply:
 
 get_version_info reply
 ----------------------
@@ -29,70 +62,179 @@ get_version_info reply
 .. code-block:: cbor
 
     {
+        "id": "90210",
         "result": {
-            "JADE_VERSION": "f11c4da",
+            "JADE_VERSION": "0.1.32",
             "JADE_OTA_MAX_CHUNK": 4096,
             "JADE_CONFIG": "BLE",
-            "IDF_VERSION": "9778b16",
+            "BOARD_TYPE": "JADE",
+            "JADE_FEATURES": "SB",
+            "IDF_VERSION": "v4.3.1",
             "CHIP_FEATURES": "32000000",
             "EFUSEMAC": "246F288F6364",
-            "JADE_FREE_HEAP": 1941624,
-            "JADE_HAS_PIN": True
-        },
-        "id": "654503"
+            "BATTERY_STATUS": 5,
+            "JADE_STATE": "LOCKED",
+            "JADE_NETWORKS': "MAIN",
+            "JADE_HAS_PIN": true
+        }
     }
 
-.. _get_version_info_reply-params:
+* 'BATTERY_STATUS' : positive integer value up to 5 (fully charged).
 
+* 'JADE_STATE' :
+  
+  - 'UNINIT' - no wallet set on the hw, mnemonic not entered, unit uninitialised.
+  - 'UNSAVED' - wallet mnemonic has been set on hw, but not yet persisted with blind pinserver.
+  - 'LOCKED' - wallet set, but currently locked - requires PIN entry to unlock.
+  - 'READY' - wallet set and unlocked, ready to use.
+  - 'TEMP' - hw currently set with a temporary ('Emergency Restore') wallet, ready to use.
+    
+* 'JADE_NETWORKS' :
+  
+  - 'MAIN' - wallet is locked to mainnet/production networks and cannot be used on testnet or regtest networks.
+  - 'TEST' - wallet is locked to testnet/regtest/localtest networks, and cannot be used on mainnet or liquid production networks.
+  - 'ALL' - wallet is not (yet) locked to a specific network type.
 
-auth_user request
+.. _update_pinserver_request:
+
+update_pinserver request
+------------------------
+
+Call to update the details of the blind pinserver used to authenticate Jade unlock attempts.
+
+.. code-block:: cbor
+
+    {
+        "id": "101",
+        "method": "update_pinserver"
+        "params": {
+            "reset_details": true
+            "reset_certificate": true
+            "urlA": "https://test.pinserver.com",
+            "urlB": "http://pinserveronion.com",
+            "pubkey": <33 bytes>
+            "certificate": "<certificate pem string>"
+        }
+    }
+
+* All fields are optional (although an empty message has no effect).
+* 'reset_details' - resets to default pinserver (ie. *https://jadepin.blockstream.com*)
+* 'reset_certificate' - resets any additional certificate (to none)
+* 'urlA'/'urlB' - sets up to two urls for the pinserver.  (Setting only urlA will set urlB to none).
+* 'pubkey' - 33-byte EC public key of pinserver.
+
+- Note: Jade applies some validation to parameter combinations, for example it is not possible to set only 'urlB', to set 'pubkey' without at least 'urlA', to both 'set' and 'reset' fields, etc.
+
+.. _update_pinserver_reply:
+
+update_pinserver reply
+----------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "101",
+        "result": true
+    }
+
+.. _add_entropy_request:
+
+add_entropy request
+-------------------
+
+Jade has an internal entropy pool generated by sampling several of the environmental sensors,
+but this call allows the client to contribute to that entropy pool by passing in additional
+entropy bytes.
+
+.. code-block:: cbor
+
+    {
+        "id": "925",
+        "method": "add_entropy"
+        "params": {
+            "entropy": <bytes>
+        }
+    }
+
+* 'entropy' - a byte sequence of any length is accepted, and added into the entropy pool.
+
+.. _add_entropy_reply:
+
+add_entropy reply
 -----------------
 
 .. code-block:: cbor
 
     {
-        "id": "4",
-        "method": "auth_user"
+        "id": "925",
+        "result": true
     }
 
-.. _auth_user_req-params:
+.. _auth_user_request:
 
-auth_user reply
----------------
+auth_user request
+-----------------
+
+A call to 'auth_user' is required to unlock a Jade wallet and also to complete wallet initialisation.
 
 .. code-block:: cbor
 
     {
-        "id": "4",
-        "result": True
-    }
-
-.. _auth_user_reply-params:
-
-In this case the Jade is already logged in. Continue ahead with say OTA or sign transaction.
-Otherwise if you get something like the below you will need to call the http end point (it's a post)
-
-
-auth_user reply
----------------
-
-.. code-block:: cbor
-
-    {
-        "id": "4",
-        "result": {
-            "url": "https://jadepin.blockstream.com/start_handshake"
-            "onion": "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion/start_handshake"
+        "id": "6",
+        "method": "auth_user",
+        "params": {
+            "network": "mainnet"
         }
     }
 
-.. _auth_user_reply-params:
+* If completing initialisation, the call will result in the user setting a PIN (on the device) to persist the wallet with the blind pinserver. The wallet is locked to the type of network passed (ie. locked for use on mainnet and liquid production networks, OR for use on testnet/liquid-testnet/regtest networks).
+* If unlocking an initialised unit, the network passed indicates the intended network to use - an error is returned if this is inconsistent with that set when the wallet was initialised/persisted. The user will be asked to enter the PIN on the device, and the blind pinserver will be used to unlock the wallet.
+* Calling 'auth_user' on a wallet that is already unlocked validates the passed network and returns immediately without requiring user interation.
 
-If indeed you need to authenticate the user as above you will need to forward the result of the start_handshake http post to
-Jade using the message handshake_init.
+.. _auth_user_reply:
 
-The result of that will need then be posted to get_pin and the result of that send to jade using the message handshake_complete.
-Then OTA and other functionality can proceed.
+auth_user reply
+---------------
+
+.. code-block:: cbor
+
+    {
+        "id": "6",
+        "result": true
+    }
+
+In this case the Jade is already/successfully logged in and the passed network is consistent with the wallet.
+Continue ahead with OTA, get-xpub, get-address or signing messages and transactions.
+
+Otherwise if a message like the below is received, the given http end point must be called (POST) to authenticate the user, passing the 'data' payload to the remote blind pinserver, and passing the reply into the Jade method given.
+
+NOTE: in this instance some of 'byte' data fields may actually be hexidecimal strings - this data is opaque to the client and should simply be passed between Jade and the blind pinserver.
+
+.. code-block:: cbor
+
+    {
+        "id": "6",
+        "result": {
+            "http_request": {
+                "params": {
+                    "urls": [
+                        "https://jadepin.blockstream.com/start_handshake",
+                        "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion/start_handshake"
+                    ],
+                    "method": "POST",
+                    "accept": "json",
+                    "data": ""
+                }
+                "on-reply": "handshake_init"
+            }
+        }
+    }
+
+The first step is to initiate a secure channel with the pinserver.  Either URL can be used to get a key from the pinserver.
+The response body should be json, which should be re-encoded as cbor and passed to Jade as the 'params' to the 'handshake_init' method.
+It should look similar to the below:
+
+.. _handshake_init_request:
 
 handshake_init request
 ----------------------
@@ -100,7 +242,7 @@ handshake_init request
 .. code-block:: cbor
 
     {
-        "id": "5",
+        "id": "R2D2",
         "method": "handshake_init",
         "params": {
             "sig": "8c110cb45b31a98f9be3c5125f5df839449ce959da529e1e6ef7d9402126a88e1827452182ea016f6990aaf6de32f2faa2fa6a07b1cf0015cc3c1f8eb098b59c",
@@ -108,9 +250,9 @@ handshake_init request
         }
     }
 
-.. _handshake_init_req-params:
+The result of 'handshake_init' provides the http-call to make next with the data (derived from the entered PIN) to pass.
 
-The result of that will be as follows:
+.. _handshake_init_reply:
 
 handshake_init reply
 --------------------
@@ -118,22 +260,32 @@ handshake_init reply
 .. code-block:: cbor
 
     {
-        "id": "5",
+        "id": "R2D2",
         "result": {
-            "data": {
-                "cke": "0223ef4a0214cb3ef79be0d04acd3122164d7663a571b85887ea8d44e004cda704",
-                "encrypted_data": "22a4834e167792aa2d88ed311c397b0ffb4bc0eec06096b1c26375cf104fe4c94268fd0ed6ce30a9c5a7a2aaa501aca7e09d50477c694d0ec347c578c77352540cb87f3d6581161152c5291ef59a7923019b0b68420779ac989dc49759f4c7b037d55065cd4c72885b11b6b582c7db822973cc5f28cb6f74ed9a710573a8e5cb1969804d958769e1f52d887a18367f57eedaa81c08b25af7acc74a19cd97e59e",
-                "hmac_encrypted_data": "77374b9c19ba8b34c2eb6cd97679fd8d8821b9dc7408f7d9d414c9f5a12ecb18",
-                "ske": "025b27c4ae5d0942370e66f20348b765fa910847325aa0d2b19bd12b2b090a83ba"
-            },
-            "url": "https://jadepin.blockstream.com/get_pin"
-            "onion": "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion/get_pin"
+            "http_request": {
+                "params": {
+                    "urls": [
+                        "url": "https://jadepin.blockstream.com/get_pin",
+                        "onion": "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion/get_pin"
+                    ],
+                    "method": "POST",
+                    "accept": "json",
+                    "data": {
+                        "cke": "0223ef4a0214cb3ef79be0d04acd3122164d7663a571b85887ea8d44e004cda704",
+                        "encrypted_data": "22a4834e167792aa2d88ed311c397b0ffb4bc0eec06096b1c26375cf104fe4c94268fd0ed6ce30a9c5a7a2aaa501aca7e09d50477c694d0ec347c578c77352540cb87f3d6581161152c5291ef59a7923019b0b68420779ac989dc49759f4c7b037d55065cd4c72885b11b6b582c7db822973cc5f28cb6f74ed9a710573a8e5cb1969804d958769e1f52d887a18367f57eedaa81c08b25af7acc74a19cd97e59e",
+                        "hmac_encrypted_data": "77374b9c19ba8b34c2eb6cd97679fd8d8821b9dc7408f7d9d414c9f5a12ecb18",
+                        "ske": "025b27c4ae5d0942370e66f20348b765fa910847325aa0d2b19bd12b2b090a83ba"
+                    }
+                }
+                "on-reply": "handshake_complete"
+            }
         }
     }
 
-.. _handshake_init_reply-params:
+Again the 'data' should be sent (as json) to the url provided (either is fine), and the response body forwarded to the 'handshake_complete' Jade method.
+The request should look like the below:
 
-Again we should send the data to get_pin (or set_pin) and the result to handshake_complete
+.. _handshake_complete_request:
 
 handshake_complete request
 --------------------------
@@ -141,7 +293,7 @@ handshake_complete request
 .. code-block:: cbor
 
     {
-        "id": "6",
+        "id": "C3PO",
         "method": "handshake_complete",
         "params": {
             "encrypted_key": "33bbde37c3719114e80b380106ca265c2b95efebfd4e098068ba7ada601e24e499db74ed2b60b289aca949ed64912c65766fa26de87f6950a97ab184f006387e",
@@ -149,7 +301,7 @@ handshake_complete request
         }
     }
 
-.. _handshake_complete_req-params:
+.. _handshake_complete_reply:
 
 handshake_complete reply
 ------------------------
@@ -157,28 +309,37 @@ handshake_complete reply
 .. code-block:: cbor
 
     {
-        "id": "6",
-        "result": True
+        "id": "C3PO",
+        "result": true
     }
 
-.. _handshake_complete_reply-params:
+* A result of 'true' means the PIN was correct and the Jade wallet is now unlocked and ready to use.
+* A result of 'false' here would imply the entered PIN was incorrect, authentication failed, and so the wallet is still locked.
+
+.. _ota_request:
 
 ota request
 -----------
 
+Request to initiate a firmware update.
+
 .. code-block:: cbor
 
     {
-        "id": "2",
+        "id": "13",
         "method": "ota",
         "params": {
-            "cmpsize": 579204,
             "fwsize": 926448,
-            "otachunk": 4096
+            "cmpsize": 579204,
+            "cmphash": <32 bytes>
         }
     }
 
-.. _ota_req-params:
+* 'fwsize' is the total length of the firmware when uncompressed.
+* 'cmpsize' is the length of the compressed firmware image which will be uploaded.
+* 'cmphash' is the sha256 hash of the compressed firmware image.
+
+.. _ota_reply:
 
 ota reply
 ---------
@@ -186,28 +347,52 @@ ota reply
 .. code-block:: cbor
 
     {
-        "id": "2",
-        "result": True
+        "id": "13",
+        "result": true
     }
 
-.. _ota_reply-params:
+After this reply is received, the compressed firmware is sent in chunks using 'ota_data' messages.  The chunks can be any size up to the `JADE_OTA_MAX_CHUNK` limit (see get_version_info_request_).
 
-After this message you cand send ota_data messages.
+.. _ota_data_request:
 
-Send all the compressed firmware to it and for each otachunk (please default to JADE_OTA_MAX_CHUNK) you will receive the usual cbor reply or cbor error.
-You will then be able to send the ota_complete message to verify ota was successful (before the device reboots).
+ota_data request
+----------------
 
-ota_complete_request
+.. code-block:: cbor
+
+    {
+        "id": "48",
+        "method": "ota_data",
+        "params": <bytes>
+    }
+
+.. _ota_data_reply:
+
+ota_data reply
+--------------
+
+.. code-block:: cbor
+
+    {
+        "id": "48",
+        "result": true
+    }
+
+We then send the 'ota_complete' message to verify the OTA was successful (before the device reboots).
+
+.. _ota_complete_request:
+
+ota_complete request
 --------------------
 
 .. code-block:: cbor
 
     {
-        "id": "3",
+        "id": "50",
         "method": "ota_complete"
     }
 
-.. _ota_req-params:
+.. _ota_complete_reply:
 
 ota_complete reply
 ------------------
@@ -215,12 +400,969 @@ ota_complete reply
 .. code-block:: cbor
 
     {
-        "id": "3",
-        "result": True
+        "id": "50",
+        "result": true
     }
 
-.. _ota_reply-params:
+* A 'true' response implies the firmware upload completed successfully, and the next restart will attempt to boot the new firmware.
 
+.. _register_multisig_request:
+
+register_multisig request
+-------------------------
+
+Jade can store up to 8 user-defined multisig wallet configurations, which need to be confirmed on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "6000000$",
+        "method": "register_multisig"
+        "params": {
+            "network": "mainnet",
+            "multisig_name": "small_beans",
+            "descriptor": {
+                "variant": "sh(multi(k))",
+                "sorted": true,
+                "threshold": 2,
+                "signers": [
+                    {
+                        "fingerprint": <4 bytes>,
+                        "derivation": [44, 2147483648, 2147483648],
+                        "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                        "path": [3, 1]
+                    },
+                    {
+                        "fingerprint": <4 bytes>,
+                        "derivation": [2147483651, 2147483649, 1],
+                        "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                        "path": [1]
+                    }
+                ]
+            }
+        }
+    }
+
+* 'multisig_name' is a string, and must be less than 16 characters long.  Using an existing name will overwrite the corresponding registration record.
+* 'variant' indicates the script type used, and must be one of: 'sh(multi(k))', 'wsh(multi(k))' or 'sh(wsh(multi(k)))'
+* 'fingerprint' is the 4-byte wallet origin fingerprint - at least one signer must reference the Jade signer's root xpub fingerprint.
+* 'derivation' is the path from the origin to the given xpub - atm it is only used for the Jade signer, where it is used to verify the passed xpub.
+* 'xpub' is the signer xpub, as described by the 'fingerprint' and 'derivation' (validated, in the case of this unit's signer).
+* 'path' is a path applied to the xpub, to yield the root signer for this multisig.  In most cases this is empty '[]'.
+
+.. _register_multisig_reply:
+
+register_multisig reply
+-----------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "6000000$",
+        "result": true
+    }
+
+.. _get_registered_multisigs_request:
+
+get_registered_multisigs request
+--------------------------------
+
+Call to fetch brief summary of any registered multisig wallets associated with the hw signer.
+
+.. code-block:: cbor
+
+    {
+        "id": "42",
+        "method": "get_registered_multisigs"
+    }
+
+.. _get_registered_multisigs_reply:
+
+get_registered_multisigs reply
+------------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "42",
+        "result": {
+            "work-team": {
+                "variant": "wsh(multi(k))",
+                "sorted": true,
+                "threshold": 2,
+                "num_signers": 3
+            },
+            "family": {
+                "variant": "sh(wsh(multi(k)))",
+                "sorted": false,
+                "threshold": 2,
+                "num_signers": 3
+            },
+            "small_beans": {
+                "variant": "sh(multi(k))",
+                "sorted": true,
+                "threshold": 2,
+                "num_signers": 2
+            },
+        }
+    }
+
+.. _get_xpub_request:
+
+get_xpub request
+----------------
+
+Request to fetch an xpub for the given bip32 path, expressed as an array of (uint64) integers.
+
+.. code-block:: cbor
+
+    {
+        "id": "404",
+        "method": "get_xpub",
+        "params": {
+            "network": "mainnet",
+            "path": [2147483697, 2147483648, 2147483648, 0, 143]
+        }
+    }
+
+.. _get_xpub_reply:
+
+get_xpub reply
+--------------
+
+.. code-block:: cbor
+
+    {
+        "id": "404",
+        "result": "xpub661MyMwAqRbcGJMgtWQnZ6b8Nk1YE4RkR2sAT9ZE3ovUH95wH5UxY1qkg7aRC7MdQD7YMauTncJMMHyWdDmkCeKMMoVwzJoK5DbZHHhinUQ"
+    }
+
+.. _get_receive_address_request:
+
+get_receive_address request
+---------------------------
+
+Request to fetch a Blockstream Green (multisig shield) address.
+
+.. code-block:: cbor
+
+    {
+        "id": "T-1000",
+        "method": "get_receive_address",
+        "params": {
+            "network": "mainnet",
+            "subaccount": 2,
+            "branch": 1,
+            "pointer": 114,
+            "recovery_xpub": None,
+            "csv_blocks": 65535
+        }
+    }
+
+* 'recovery_xpub' (normal string xpub) is used if the subaccount indicated is a '2of3' account (in which case 'csv_blocks' should be omitted).
+* 'recovery_xpub' should be omitted if the subaccount type is not '2of3'.
+* 'csv_blocks' should be omitted if the subaccount is not csv-enabled.
+
+or:
+
+Request to fetch a single-sig address for the given script type and bip32 path, expressed as an array of (uint64) integers.
+
+.. code-block:: cbor
+
+    {
+        "id": "T-1000",
+        "method": "get_receive_address",
+        "params": {
+            "network": "mainnet",
+            "variant": "sh(wpkh(k))",
+            "path": [2147483697, 2147483648, 2147483648, 0, 143]
+        }
+    }
+
+* 'variant' indicates the script type used, and must be one of: 'pkh(k)', 'wpkh(k)' or 'sh(wpkh(k))'
+
+or:
+
+Request to fetch a multisig-sig address for the given (previously registered) multisig record, and bip32 path suffixes.
+
+.. code-block:: cbor
+
+    {
+        "id": "T-1000",
+        "method": "get_receive_address",
+        "params": {
+            "network": "mainnet",
+            "multisig_name": "small_beans",
+            "paths": [
+                [0, 43],
+                [0, 14]
+            ]
+        }
+    }
+
+* 'multisig_name' identifies a multisig wallet previously registered on the Jade hw unit.
+* 'paths' are the path suffixes to be applied to the xpubs in the multisig, in the order in which they were in the original registration.  NOTE: usually these paths will all be identical.
+
+
+- NOTE: Addresses generated for the liquid networks are 'confidential addresses' by default.  In order to confirm a 'non-confidential address' on liquid, pass an additional boolean flag '"confidential": false' in 'params'.
+
+.. _get_receive_address_reply:
+
+get_receive_address reply
+-------------------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed the address on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "T-1000",
+        "result": "3A9HgJqKS5FZtGykWKuVBKyosFppojPPj5"
+    }
+
+.. _sign_message_legacy_request:
+
+sign_message request (legacy)
+-----------------------------
+
+Request to sign a message string the given bip32 path, using RFC6979.
+
+* This flow should be considered legacy - 'anti-exfil' signatures should be preferred.  See sign_message_ae_request_.
+
+.. code-block:: cbor
+
+    {
+        "id": "6979",
+        "method": "sign_message",
+        "params": {
+            "message": "Message to sign",
+            "path": [2147483697, 2147483648, 2147483648, 0, 143]
+        }
+    }
+
+.. _sign_message_legacy_reply:
+
+sign_message reply (legacy)
+---------------------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed signing on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "6979",
+        "result": "H/bXtGN8FhkaPkLwKCZf4+AISH+SrCRnwpBNXxMxO/W5QRMDPKqJAjJGnRMqO+RusL9fQwlG7EtMOhbITiBPxWs="
+    }
+
+* 'result' is a base64-encoded signature.
+
+.. _sign_message_ae_request:
+
+sign_message request (anti-exfil)
+---------------------------------
+
+Request to sign a message string the given bip32 path, using anti-exfil commitments (recommended).
+
+.. code-block:: cbor
+
+    {
+        "id": "57",
+        "method": "sign_message",
+        "params": {
+            "message": "Message to sign",
+            "path": [2147483697, 2147483648, 2147483648, 0, 143],
+            "ae_host_commitment": <32 bytes>
+        }
+    }
+
+.. _sign_message_ae_reply:
+
+sign_message reply (anti-exfil)
+-------------------------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed signing on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "57",
+        "result": "<32 bytes>"
+    }
+
+* In the case of Anti-Exfil signing, the inital returned data is the 'signer commitment' bytes (which the caller can use later to verify the AE signature).
+
+The caller must then send a 'get_signature' message, passing the 'host entropy'.
+
+.. _sign_message_ae_get_signature_request:
+
+get_signature request (sign-message)
+------------------------------------
+
+Request to fetch an Anti-Exfil signature, providing the 'host entropy'.
+
+.. code-block:: cbor
+
+    {
+        "id": "64",
+        "method": "get_signature",
+        "params": {
+            "ae_host_entropy": <32 bytes>
+        }
+    }
+
+.. _sign_message_ae_get_signature_reply:
+
+get_signature reply (sign_message)
+----------------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "64",
+        "result": "H/bXtGN8FhkaPkLwKCZf4+AISH+SrCRnwpBNXxMxO/W5QRMDPKqJAjJGnRMqO+RusL9fQwlG7EtMOhbITiBPxWs="
+    }
+
+* 'result' is a base64-encoded signature.
+
+.. _sign_tx_legacy_request:
+
+sign_tx request (legacy)
+------------------------
+
+Request to sign transaction inputs using RFC6979.
+
+* This flow should be considered legacy - 'anti-exfil' signatures should be preferred.  See sign_tx_ae_request_.
+
+.. code-block:: cbor
+
+    {
+        "id": "86400",
+        "method": "sign_tx",
+        "params": {
+            "network": "mainnet",
+            "txn": <bytes>,
+            "use_ae_signatures": false,
+            "change": [
+                null,
+                {
+                    "variant": "sh(wpkh(k))",
+                    "path": [2147483697, 2147483648, 2147483648, 0, 143]
+                },
+                null
+            ]
+        }
+    }
+
+* 'txn' should be the raw txn bytes.
+* 'change' is optional (or can be null) - if provided it should be an array with the same number of elements as there are tx outputs.
+* 'change' elements should be null for most outputs, and only populated for the output Jade is to automatically verify and confirm as change.
+* The populated 'change' element should contain the data used to generate the change output, as follows (see also get_receive_address_request_):
+
+Blockstream Green address (multisig-shield):
+
+.. code-block:: cbor
+
+    {
+        "path": [1, 1, 13]
+        "recovery_xpub": None
+        "csv_blocks": 65535
+    }
+
+* 'recovery_xpub' is required if the change is to a 2of3 subaccount, otherwise should be omitted.
+* 'csv_blocks' is required for csv-enabled accounts, otherwise should be omitted.
+
+single-sig:
+
+.. code-block:: cbor
+
+    {
+        "variant": "sh(wpkh(k))",
+        "path": [2147483697, 2147483648, 2147483648, 0, 143]
+    }
+
+multi-sig:
+
+.. code-block:: cbor
+
+    {
+        "multisig_name": "small_beans",
+        "paths": [ [0,1], [0,1] ]
+    }
+  
+.. _sign_tx_legacy_reply:
+
+sign_tx reply (legacy)
+----------------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed the outputs on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "86400",
+        "result": true
+    }
+
+At this point, the details of the tx-inputs must be sent to Jade for signing.
+
+.. _sign_tx_legacy_input_request:
+
+sign_tx input request (legacy)
+------------------------------
+
+A batch of 'tx_input' messages should be sent to Jade - one for each tx input.
+
+* NOTE: No replies will be sent until the entire batch has been processed and confirmed on Jade.
+
+.. code-block:: cbor
+
+    {
+        "id": "86400000000",
+        "method": "tx_input",
+        "params": {
+            "is_witness": false,
+            "input_tx": <bytes>
+            "script": <bytes>
+            "path": [2147483697, 2147483648, 2147483648, 0, 34]
+        }
+    }
+
+* 'script' and 'path' should be omitted if a signature for this input is not required.
+* If provided, 'script' should be the script-sig/redeem-script required to satisfy the input utxo.
+* 'input_tx' should be the streamed bytes of the txn which output the utxo being spent.
+* NOTE: if this is the only input, and 'is_witness' is 'true', the 'input_tx' can (optionally) be replaced with a 'satoshi' element, eg: '"satoshi": 2200000'.
+
+Once the entire batch (of 'tx_input' messages) has been sent, processed and confirmed on Jade, a batch of replies are sent.
+
+.. _sign_tx_legacy_input_reply:
+
+sign_tx input reply (legacy)
+----------------------------
+
+The batch of replies should contain the same number of messages as the number of 'tx_input' messages sent, and the order of replies corresponds to the order of input messages (order of inputs in the txn).
+
+.. code-block:: cbor
+
+    {
+        "id": "86400000000",
+        "result": <bytes>
+    }
+
+* 'result' will be the bytes for the signature for the corresponding input, in DER format with the sighash appended.
+* 'result' will be empty, if no signature was required for this input.
+
+.. _sign_tx_ae_request:
+
+sign_tx request (anti-exfil)
+----------------------------
+
+To use Anti-Exfil signatures (recommended), the the initial request is the same as in sign_tx_legacy_request_, except the 'use_ae_signatures' field should be set to 'true'.
+
+.. _sign_tx_ae_reply:
+
+sign_tx reply (anti-exfil)
+--------------------------
+
+The initial reply is the same as in sign_tx_legacy_reply_.
+
+.. code-block:: cbor
+
+    {
+        "id": "86400",
+        "result": true
+    }
+
+At this point, the details of the tx-inputs must be sent to Jade for signing.
+
+sign_tx input request (anti-exfil)
+----------------------------------
+
+As in sign_tx_legacy_input_request_, 'tx_input' messages should be sent to Jade - one for each tx input.
+However, in this case the message must include the 'ae_host_commitment'.
+
+.. code-block:: cbor
+
+    {
+        "id": "THX1138",
+        "method": "tx_input",
+        "params": {
+            "is_witness": false,
+            "input_tx": <bytes>
+            "script": <bytes>
+            "path": [2147483697, 2147483648, 2147483648, 0, 34],
+            "ae_host_commitment": <32 bytes>
+        }
+    }
+
+
+* NOTE: in the Anti-Exfil flow the reply will be sent immediately, and does not wait for all inputs to be sent.
+
+.. _sign_tx_ae_input_reply:
+
+sign_tx input reply (anti-exfil)
+--------------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "THX1138",
+        "result": <32 bytes>
+    }
+
+* In the case of Anti-Exfil signing, the inital returned data is the 'signer commitment' bytes (which the caller can use later to verify the AE signature).
+* 'result' will be empty, if no signature was required for this input.
+
+Once all 'tx_input' messages have been sent, the caller must then send a 'get_signature' message for each input, passing the 'host entropy'.
+
+.. _sign_tx_ae_get_signature_request:
+
+get_signature request (sign_tx)
+-------------------------------
+
+* NOTE: The first reply is not sent until the user has explicitly confirmed signing on the hw.
+
+Request to fetch an Anti-Exfil signature, providing the 'host entropy' (as in sign_message_ae_get_signature_request_).
+
+.. code-block:: cbor
+
+    {
+        "id": "128",
+        "method": "get_signature",
+        "params": {
+            "ae_host_entropy": <32 bytes>
+        }
+    }
+
+The reply is then sent immediately.
+
+.. _sign_tx_ae_get_signature_reply:
+
+get_signature reply (sign_tx)
+-----------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "128",
+        "result": <bytes>
+    }
+
+* 'result' will be the bytes for the signature for the corresponding input, in DER format with the sighash appended.
+* 'result' will be empty, if no signature was required for this input.
+
+
+Blockstream Liquid specific
+===========================
+
+.. _get_master_blinding_key_request:
+
+get_master_blinding_key request
+-------------------------------
+
+Used to fetch the master (SLIP-077) blinding key for the wallet.
+
+.. code-block:: cbor
+
+    {
+        "id": "66",
+        "method": "get_master_blinding_key"
+    }
+
+.. _get_master_blinding_key_reply:
+
+get_master_blinding_key reply
+-----------------------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "66",
+        "result": <32 bytes>
+    }
+
+.. _get_blinding_key_request:
+
+get_blinding_key request
+------------------------
+
+Used to fetch a script-specific public blinding key.
+
+.. code-block:: cbor
+
+    {
+        "id": "365",
+        "method": "get_blinding_key",
+        "params": {
+            "script": <bytes>
+        }
+    }
+
+* 'script' should be the raw bytes of the script for which the blinding key is required.
+ 
+.. _get_blinding_key_reply:
+
+get_blinding_key reply
+----------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "365",
+        "result": <33 bytes>
+    }
+
+.. _get_shared_nonce_request:
+
+get_shared_nonce request
+------------------------
+
+Used to fetch a script-specific blinding nonce.
+
+.. code-block:: cbor
+
+    {
+        "id": "711",
+        "method": "get_shared_nonce",
+        "params": {
+            "script": <bytes>,
+            "their_pubkey": <33 bytes>,
+            "include_pubkey": false
+        }
+    }
+
+* 'script' should be the raw bytes of the script for which the blinding key is required.
+* 'their_pubkey' needs to be the EC public key of the counterparty for the given script.
+* 'include_pubkey' is an optional boolean field.  If present and 'true' the reply will also include the public blinding key for the script (see get_blinding_key_request_).
+ 
+.. _get_shared_nonce_reply:
+
+get_blinding_nonce reply
+------------------------
+
+When 'include_pubkey' not set, or 'false':
+
+.. code-block:: cbor
+
+    {
+        "id": "711",
+        "result": <32 bytes>
+    }
+
+When 'include_pubkey' present and 'true':
+
+.. code-block:: cbor
+
+    {
+        "id": "711",
+        "result": {
+            "shared_nonce": <32 bytes>,
+            "blinding_key": <33 bytes>
+        }
+    }
+
+.. _get_blinding_factor_request:
+
+get_blinding_factor request
+---------------------------
+
+Used to fetch a deterministic output blinding factor (abf/assetblinder or vbf/valueblinder).
+
+.. code-block:: cbor
+
+    {
+        "id": "299792458",
+        "method": "get_blinding_factor",
+        "params": {
+            "hash_prevouts": <32 bytes>
+            "output_index": 1,
+            "type": "VALUE"
+        }
+    }
+
+* 'hash_prevout' should be the double sha256 of the serialization of all input outpoints, as documented in bip143.
+* 'type' must be either 'ASSET' or 'VALUE'.
+ 
+.. _get_blinding_factor_reply:
+
+get_blinding_factor reply
+-------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "299792458",
+        "result": <32 bytes>
+    }
+
+.. _get_commitments_request:
+
+get_commitments request
+-----------------------
+
+Used to fetch output commitments - ie. returns blinded output (and associated blinding factors).
+
+.. code-block:: cbor
+
+    {
+        "id": "867-5309",
+        "method": "get_commitments",
+        "params": {
+            "asset_id": <32 bytes>
+            "value": 9000000,
+            "hash_prevouts": <32 bytes>
+            "output_index": 1
+        }
+    }
+
+* 'hash_prevout' should be the double sha256 of the serialization of all input out-points, as documented in bip143.
+ 
+.. _get_commitments_reply:
+
+get_commitments reply
+---------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "867-5309",
+        "result": {
+            "abf": <32 bytes>,
+            "vbf": <32 bytes>,
+            "asset_generator": <33 bytes>,
+            "value_commitment": <33 bytes>,
+            "hmac": <32 bytes>,
+            "asset_id": <32 bytes>,
+            "value", 9000000
+        }
+    }
+
+* NOTE: These commitments must be passed back to Jade when signing the liquid txn.
+
+.. _sign_liquid_tx_legacy_request:
+
+sign_liquid_tx request (legacy)
+-------------------------------
+
+Request to sign liquid transaction inputs.
+
+* This flow should be considered legacy - 'anti-exfil' signatures should be preferred.  See sign_liquid_tx_ae_request_.
+* NOTE: The data is similar to that described in sign_tx_legacy_request_ - with the addition of a 'trusted_commitments' array.
+
+.. code-block:: cbor
+
+    {
+        "id": "911",
+        "method": "sign_liquid_tx",
+        "params": {
+            "network": "liquid",
+            "txn": <bytes>,
+            "use_ae_signatures": false,
+            "change": [
+                null,
+                {
+                    "variant": "sh(wpkh(k))",
+                    "path": [2147483697, 2147483648, 2147483648, 0, 143]
+                },
+                null
+            ],
+            "trusted_commitments": [
+                {
+                    "abf": "308fee61c9b6f6ba534abefaa0e3fef58f5dc8b8a772135f157b3f771b005164",
+                    "asset_generator": "0bacf4e230f12327ff795f8c814f80b0502e78683d067fe75ba38fd2d0be27188b",
+                    "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+                    "blinding_key": "03462d3febd7654b22c6faaf5d12a400693dbdf21f8cb9a82e18aba8457c6812d4",
+                    "hmac": "f48d257982d5ff196929e2bef889e5acca8059b432b6c92801165cee9f077b74",
+                    "value": 50000000,
+                    "value_commitment":"095f6484b5f6903ac7873b3ed43e3833d6f30af26f739afa2b46d06464b709225a",
+                    "vbf":"bdbb71ddc37d82edef0a3c6ccc9baa32ac6b528b2772b35000030fecda228ce6"
+                },
+                {
+                    "vbf": "6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+                    "abf": "a3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+                    "blinding_key": "023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+                    "asset_generator": "0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+                    "value_commitment": "0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de879a478a7",
+                    "hmac": "36b346e2248143ce24bc35c0d85f3c67fb06a7250c43336b85872b3a42d2f652",
+                    "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+                    "value": 9000000
+                },
+                null
+        }
+    }
+
+* Most fields are as described in sign_tx_legacy_request_.
+* 'trusted_commitments' must be passed in for each blinded output.  Where an output is not blinded (eg. fee output) null may be passed.
+* 'trusted_commitments' entries passed in here are those obtained from get_commitments_request_, with the relevant 'blinding_key' added (which would originally be obtained from get_blinding_key_request_).
+
+.. _sign_liquid_tx_legacy_reply:
+
+sign_liquid_tx reply (legacy)
+-----------------------------
+
+* As sign_tx_legacy_reply_
+* NOTE: The reply is not sent until the user has explicitly confirmed the outputs on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "911",
+        "result": true
+    }
+
+At this point, the details of the tx-inputs must be sent to Jade for signing.
+
+.. _sign_liquid_tx_legacy_input_request:
+
+sign_liquid_tx input request (legacy)
+-------------------------------------
+
+A batch of 'tx_input' messages should be sent to Jade - one for each tx input, as in sign_tx_legacy_input_request_.
+
+* NOTE: No replies will be sent until the entire batch has been processed and confirmed on Jade.
+
+.. code-block:: cbor
+
+    {
+        "id": "999",
+        "method": "tx_input",
+        "params": {
+            "is_witness": true,
+            "script": <bytes>,
+            "value_commitment": <33 bytes>,
+            "path": [2147483697, 2147483648, 2147483648, 0, 34]
+        }
+    }
+
+* 'script' and 'path' are as in sign_tx_legacy_input_request_.
+* In addition, if a signature is required for this input and 'is_witness' is 'true', then the input utxo 'value_commitment' must be passed.
+* NOTE: no 'input_tx' is needed.
+
+Once the entire batch (of 'tx_input' messages) has been sent, processed and confirmed on Jade, a batch of replies are sent.
+
+.. _sign_liquid_tx_legacy_input_reply:
+
+sign_liquid_tx input reply (legacy)
+-----------------------------------
+
+* As sign_tx_legacy_input_reply_
+
+The batch of replies should contain the same number of messages as the number of 'tx_input' messages sent, and the order of replies corresponds to the order of input messages (order of inputs in the txn).
+
+.. code-block:: cbor
+
+    {
+        "id": "999",
+        "result": <bytes>
+    }
+
+* 'result' will be the bytes for the signature for the corresponding input, in DER format with the sighash appended.
+* 'result' will be empty, if no signature was required for this input.
+
+.. _sign_liquid_tx_ae_request:
+
+sign_liquid_tx request (anti-exfil)
+-----------------------------------
+
+To use Anti-Exfil signatures (recommended), the the initial request is the same as in sign_liquid_tx_legacy_request_, except the 'use_ae_signatures' field should be set to 'true'.
+
+.. _sign_liquid_tx_ae_reply:
+
+sign_liquid_tx reply (anti-exfil)
+---------------------------------
+
+The initial reply is the same as in sign_liquid_tx_legacy_reply_.
+
+.. code-block:: cbor
+
+    {
+        "id": "911",
+        "result": true
+    }
+
+At this point, the details of the tx-inputs must be sent to Jade for signing.
+
+sign_liquid_tx input request (anti-exfil)
+-----------------------------------------
+
+As in sign_liquid_tx_legacy_input_request_, 'tx_input' messages should be sent to Jade - one for each tx input.
+However, in this case the message must include the 'ae_host_commitment'.
+
+.. code-block:: cbor
+
+    {
+        "id": "5040",
+        "method": "tx_input",
+        "params": {
+            "is_witness": true,
+            "script": <bytes>,
+            "value_commitment": <33 bytes>,
+            "path": [2147483697, 2147483648, 2147483648, 0, 34],
+            "ae_host_commitment": <32 bytes>
+        }
+    }
+
+
+* NOTE: in the Anti-Exfil flow the reply will be sent immediately, and does not wait for all inputs to be sent.
+
+.. _sign_liquid_tx_ae_input_reply:
+
+sign_liquid_tx input reply (anti-exfil)
+---------------------------------------
+
+* As sign_liquid_tx_legacy_input_reply_
+
+.. code-block:: cbor
+
+    {
+        "id": "5040",
+        "result": <32 bytes>
+    }
+
+* In the case of Anti-Exfil signing, the inital returned data is the 'signer commitment' bytes (which the caller can use later to verify the AE signature).
+* 'result' will be empty, if no signature was required for this input.
+
+Once all 'tx_input' messages have been sent, the caller must then send a 'get_signature' message for each input, passing the 'host entropy'.
+
+.. _sign_liquid_tx_ae_get_signature_request:
+
+get_signature request (sign_liquid_tx)
+--------------------------------------
+
+* As sign_tx_ae_get_signature_request_
+* NOTE: The first reply is not sent until the user has explicitly confirmed signing on the hw.
+
+Request to fetch an Anti-Exfil signature, providing the 'host entropy' (as in sign_message_ae_get_signature_request_).
+
+.. code-block:: cbor
+
+    {
+        "id": "256",
+        "method": "get_signature",
+        "params": {
+            "ae_host_entropy": <32 bytes>
+        }
+    }
+
+The reply is then sent immediately.
+
+.. _sign_liquid_tx_ae_get_signature_reply:
+
+get_signature reply (sign_liquid_tx)
+------------------------------------
+
+* As sign_tx_ae_get_signature_reply_
+
+.. code-block:: cbor
+
+    {
+        "id": "256",
+        "result": <bytes>
+    }
+
+* 'result' will be the bytes for the signature for the corresponding input, in DER format with the sighash appended.
+* 'result' will be empty, if no signature was required for this input.
 
 
 Indices and tables
