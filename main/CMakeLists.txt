@@ -15,7 +15,7 @@ idf_component_register(SRC_DIRS "."
         PRIV_INCLUDE_DIRS "."
                           "${bledir}"
                           "${qemudir}"
-        PRIV_REQUIRES assets libwally-core tft libsodium button esp32-rotary-encoder esp32-camera esp32-quirc bootloader_support app_update nvs_flash bt autogenlang cbor esp_netif
+        PRIV_REQUIRES assets libwally-core tft libsodium button esp32-rotary-encoder esp32-camera esp32-quirc bootloader_support app_update nvs_flash bt autogenlang cbor esp_netif esp32_bsdiff
         EMBED_FILES ${PROJECT_DIR}/pinserver_public_key.pub)
 
 target_link_libraries(${COMPONENT_TARGET} "-u custom_app_desc")

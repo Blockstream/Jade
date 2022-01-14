@@ -4,3 +4,6 @@
 [submodule "pinserver"]
 	path = pinserver
 	url = https://github.com/Blockstream/blind_pin_server
+[submodule "components/esp32_bsdiff"]
+	path = components/esp32_bsdiff
+	url = https://github.com/Blockstream/esp32_bsdiff
