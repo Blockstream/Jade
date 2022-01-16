@@ -104,7 +104,9 @@ bool serial_init(TaskHandle_t* serial_handle)
     if (err != ESP_OK) {
         return false;
     }
-    err = uart_driver_install(UART_NUM_0, 1024, 1024, 0, NULL, 0);
+
+    /* maximum OTA CHUNK + cbor overhead  for RX */
+    err = uart_driver_install(UART_NUM_0, (1024 * 4) + 46, 1024, 0, NULL, 0);
     if (err != ESP_OK) {
         return false;
     }
