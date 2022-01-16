@@ -19,6 +19,8 @@ static uint8_t* serial_data_in = NULL;
 static uint8_t* full_serial_data_in = NULL;
 static uint8_t* serial_data_out = NULL;
 
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 static void serial_reader(void* ignore)
 {
     size_t read = 0;
@@ -27,25 +29,37 @@ static void serial_reader(void* ignore)
     while (1) {
 
         // Read incoming data
-        const int len
-            = uart_read_bytes(UART_NUM_0, serial_data_in + read, MAX_INPUT_MSG_SIZE - read, 20 / portTICK_PERIOD_MS);
-        if (len == -1 || read + len >= MAX_INPUT_MSG_SIZE) {
-            JADE_LOGE("Error reading bytes from serial device - data discarded (%u bytes)", read + len);
-            read = 0;
-            vTaskDelay(20 / portTICK_PERIOD_MS);
-            continue;
-        }
+        size_t length = 0;
+        const esp_err_t rc = uart_get_buffered_data_len(UART_NUM_0, &length);
+        JADE_ASSERT(rc == ESP_OK);
 
-        if (!len) {
+        if (!length) {
             // No data available atm
-            vTaskDelay(20 / portTICK_PERIOD_MS);
-            if (timeout_counter > 50) {
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+            if (timeout_counter > 200) {
                 read = 0;
                 timeout_counter = 0;
             }
             ++timeout_counter;
             continue;
         }
+
+        if (read + length >= MAX_INPUT_MSG_SIZE) {
+            JADE_LOGE("Error reading bytes from serial device - data discarded (%u bytes)", MAX_INPUT_MSG_SIZE);
+            /* consume only as much as the buffer can fill to replicate old behavior */
+            /* FIXME: not sure old behavior is right nor that flushing is right either */
+            const int len
+                = uart_read_bytes(UART_NUM_0, serial_data_in + read, MAX_INPUT_MSG_SIZE - read, portMAX_DELAY);
+            JADE_ASSERT(len == MAX_INPUT_MSG_SIZE - read);
+            read = 0;
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+            continue;
+        }
+
+        const size_t max_read = MIN(MAX_INPUT_MSG_SIZE - read, length);
+
+        const int len = uart_read_bytes(UART_NUM_0, serial_data_in + read, max_read, portMAX_DELAY);
+        JADE_ASSERT(len == max_read);
 
         const size_t initial_offset = read;
         read += len;
@@ -71,7 +85,7 @@ static bool write_serial(char* msg, size_t length)
 static void serial_writer(void* ignore)
 {
     while (1) {
-        vTaskDelay(20 / portTICK_PERIOD_MS);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
         while (jade_process_get_out_message(&write_serial, SOURCE_SERIAL)) {
             // process messages
         }
