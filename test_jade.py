@@ -380,28 +380,48 @@ def test_too_much_input(jade, has_psram):
     # NOTE: if the hw has PSRAM it will have a 401k buffer.
     # If not, it will have a 17k buffer.  Want only 1k left.
     # Send the appropriate amount of noise. (400k or 16k)
-    for _ in range(25 if has_psram else 1):  # 25x16 is 400k
-        jade.write(cacophony)
+    if has_psram:
+        cacophony = cacophony * 25  # 25x16 is 400k
 
-    # Input buffer should now only have 1k space remaining.
-    # Send another 1k to fill/overflow the buffers, then another 128b
-    din = noise * 288         # 4x288 = 1024 + 128 = 1152
-    jade.write(din)
+    # Input buffer would now only have 1k space remaining.
+    # Add another 1k to fill/overflow the buffers, then another 64b,
+    # then a few chars to mark the end of the data (so we can test for it)
+    extra = noise * 272  # 4x272 = 1024 + 64 = 1088
+    extra += 'xyz\n'.encode()  # + another 4b = 1092 (ie. 68b too many)
+    expected_overflow_len = len(extra) - 1024
+    assert expected_overflow_len == 68
+    cacophony += extra
 
-    # No response expected
-    # Expect first 17k/401k (ie. buffer-size) to be discarded
+    # Format as a cbor message, otherwise it gets rejected early, as soon
+    # as the parser decides the bytes it has are not a valid message.
+    # See: test_very_bad_message() above.
+    # Adjust the expected_overflow_len for the cbor overhead
+    big_msg = cbor.dumps({'method': 'toobig', 'id': 'tohandle', 'params': cacophony})
+    cbor_overhead = len(big_msg) - len(cacophony)
+    expected_overflow_len += cbor_overhead
 
-    # Send eol/end-of-msg, should get error back about remainder  -
-    # 128 bytes plus the 'xyz\n' = 132bytes
-    jade.write('xyz\n'.encode())
-    reply = jade.read_response()
+    # Send the message up with 4k writes
+    # (as if trying to write too much can hit the timeout)
+    total_len = len(big_msg)
+    remaining = total_len
+    while remaining:
+        tosend = min(remaining, 4096)
+        jade.write(big_msg[total_len - remaining: (total_len - remaining) + tosend])
+        remaining -= tosend
 
-    # Expect error
-    error = reply['error']
-    assert error['code'] == JadeError.INVALID_REQUEST
-    assert error['message'] == 'Invalid RPC Request message'
-    assert len(error['data']) == 132  # the bytes not discarded
-    assert error['data'].endswith(b'longxyz\n')
+    # NOTE: we cannot be sure how many messages will be returned exactly,
+    # but we do know that Jade should reject a total of 'expected_overflow_len' bytes.
+    bad_bytes = bytes()
+    while len(bad_bytes) < expected_overflow_len:
+        # Expect error - collect bad bytes
+        reply = jade.read_response()
+        error = reply['error']
+        assert error['code'] == JadeError.INVALID_REQUEST
+        assert error['message'] == 'Invalid RPC Request message'
+        bad_bytes += error['data']
+
+    assert len(bad_bytes) == expected_overflow_len
+    assert bad_bytes.endswith(b'longxyz\n')
 
 
 def test_split_message(jade):
