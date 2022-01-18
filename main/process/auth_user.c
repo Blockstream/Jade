@@ -87,18 +87,21 @@ void check_pin_load_keys(jade_process_t* process)
         // Loading from storage succeeded, but we still have no wallet keys.
         // - Requires the input of a user passphrase also.
         char passphrase[PASSPHRASE_MAX_LEN + 1];
+        SENSITIVE_PUSH(passphrase, sizeof(passphrase));
         const bool confirm_passphrase = false;
         get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
 
         display_message_activity("Processing...");
 
         if (!keychain_complete_derivation_with_passphrase(passphrase)) {
+            SENSITIVE_POP(passphrase);
             JADE_LOGE("Failed to derive wallet using passphrase");
             jade_process_reject_message(
                 process, CBOR_RPC_INTERNAL_ERROR, "Failed to derive wallet using passphrase", NULL);
             await_error_activity("Failed to derive wallet");
             goto cleanup;
         }
+        SENSITIVE_POP(passphrase);
     }
 
     // Re-set the (loaded) keychain in order to confirm the 'source'

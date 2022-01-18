@@ -781,6 +781,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
         // Perhaps offer/get passphrase (ie. if using advanced options)
         // Retry until either a) user confirms valid passphrase, or b) user confirms does not want to use a passphrase
         char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
+        SENSITIVE_PUSH(passphrase, sizeof(passphrase));
         if (using_passphrase) {
             using_passphrase
                 = await_yesno_activity("Passphrase", "\nDo you want to protect the\nwallet with a passphrase?", false);
@@ -798,6 +799,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
         // If the mnemonic is valid derive temporary keychain from it.
         // Otherwise break/return here.
         got_mnemonic = keychain_derive_from_mnemonic(mnemonic, using_passphrase ? passphrase : NULL, &keydata);
+        SENSITIVE_POP(passphrase);
         if (!got_mnemonic) {
             JADE_LOGW("Failed to derive wallet");
             await_error_activity("Failed to derive wallet");
