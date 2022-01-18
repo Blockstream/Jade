@@ -199,6 +199,13 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     }
     JADE_LOGI("Running firmware version: %s", running_app_info.version);
 
+    // Check chip
+    const esp_image_header_t* header = (esp_image_header_t*)uncompressed;
+    if (header->chip_id != CONFIG_IDF_FIRMWARE_CHIP_ID) {
+        JADE_LOGE("Mismatch chip id, expected %d, found %d", CONFIG_IDF_FIRMWARE_CHIP_ID, header->chip_id);
+        return ERROR_INVALIDFW;
+    }
+
     const size_t app_info_offset = sizeof(esp_image_header_t) + sizeof(esp_image_segment_header_t);
     const esp_app_desc_t* new_app_info = (esp_app_desc_t*)(uncompressed + app_info_offset);
 
