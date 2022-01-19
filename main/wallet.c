@@ -1080,7 +1080,8 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, const size_t signat
         return false;
     }
     // Base64 encode
-    mbedtls_base64_encode(output, output_len, written, signature, signature_len);
+    wret = mbedtls_base64_encode(output, output_len, written, signature, signature_len);
+    JADE_ASSERT(!wret);
     JADE_ASSERT(*written < output_len);
     output[*written] = '\0';
     *written += 1;
