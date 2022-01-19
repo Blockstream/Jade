@@ -29,7 +29,8 @@ void get_blinding_key_process(void* process_ptr)
     }
 
     uint8_t buffer[256];
-    jade_process_reply_to_message_bytes(process->ctx, public_blinding_key, EC_PUBLIC_KEY_LEN, buffer, sizeof(buffer));
+    jade_process_reply_to_message_bytes(
+        process->ctx, public_blinding_key, sizeof(public_blinding_key), buffer, sizeof(buffer));
     JADE_LOGI("Success");
 
 cleanup:
