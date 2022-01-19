@@ -411,17 +411,16 @@ def test_too_much_input(jade, has_psram):
 
     # NOTE: we cannot be sure how many messages will be returned exactly,
     # but we do know that Jade should reject a total of 'expected_overflow_len' bytes.
-    bad_bytes = bytes()
-    while len(bad_bytes) < expected_overflow_len:
+    bad_bytes = 0
+    while bad_bytes < expected_overflow_len:
         # Expect error - collect bad bytes
         reply = jade.read_response()
         error = reply['error']
         assert error['code'] == JadeError.INVALID_REQUEST
         assert error['message'] == 'Invalid RPC Request message'
-        bad_bytes += error['data']
+        bad_bytes += int(error['data'])
 
-    assert len(bad_bytes) == expected_overflow_len
-    assert bad_bytes.endswith(b'longxyz\n')
+    assert bad_bytes == expected_overflow_len
 
 
 def test_split_message(jade):

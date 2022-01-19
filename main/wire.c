@@ -16,8 +16,13 @@
 #include "utils/cbor_rpc.h"
 
 // Macros for use in handle_data() as always called with fixed params
-#define SEND_REJECT_MSG(code, msg, data, datalen)                                                                      \
-    jade_process_reject_message_ex(ctx, code, msg, data, datalen, data_out, MAX_OUTPUT_MSG_SIZE)
+#define SEND_REJECT_MSG(code, msg, rejectedlen)                                                                        \
+    do {                                                                                                               \
+        char lenstr[8];                                                                                                \
+        const int ret = snprintf(lenstr, sizeof(lenstr), "%d", rejectedlen);                                           \
+        JADE_ASSERT(ret > 0 && ret < sizeof(lenstr));                                                                  \
+        jade_process_reject_message_ex(ctx, code, msg, (uint8_t*)lenstr, ret, data_out, MAX_OUTPUT_MSG_SIZE);          \
+    } while (false)
 
 // Handle bytes received
 void handle_data(
@@ -58,16 +63,12 @@ void handle_data(
         if (!rpc_request_valid(&ctx.value)) {
             // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
             JADE_LOGW("Invalid request, length %u", msg_size);
-            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", data_in, read);
+            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", read);
             break;
         } else {
             // Push to task queue for dashboard to handle
             if (!jade_process_push_in_message(full_data_in, msg_size + 1)) {
-                char read_data[5];
-                const int ret = snprintf(read_data, sizeof(read_data), "%d", msg_size);
-                JADE_ASSERT(ret > 0 && ret < sizeof(read_data));
-                SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Input message too large to handle", (uint8_t*)read_data,
-                    sizeof(read_data));
+                SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Input message too large to handle", msg_size);
             }
         }
 
