@@ -26,19 +26,19 @@
 
 // Handle bytes received
 void handle_data(
-    uint8_t* full_data_in, const size_t initial_offset, size_t* read_ptr, uint8_t* data_out, jade_msg_source_t source)
+    uint8_t* full_data_in, size_t initial_offset, size_t* read_ptr, uint8_t* data_out, jade_msg_source_t source)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
-    JADE_ASSERT(*read_ptr > initial_offset);
     JADE_ASSERT(data_out);
 
-    uint8_t* data_in = full_data_in + 1;
+    uint8_t* const data_in = full_data_in + 1;
 
     while (true) {
+        JADE_ASSERT(*read_ptr > initial_offset);
+
         cbor_msg_t ctx = { .source = source, .cbor = NULL, .cbor_len = 0 };
         const size_t read = *read_ptr;
-
         size_t msg_size = 0;
 
         // Start validating from 'initial_offset' as we can assume we have validated up to that point in a previous
@@ -52,6 +52,9 @@ void handle_data(
             }
         }
 
+        // If we could not fetch a message from the buffer, await more data.
+        // FIXME - assumes buffer not full and that we want to wait for more
+        // TODO - add flag to args, wait if set, reject if not.
         if (msg_size == 0) {
             JADE_LOGD("Got incomplete CBOR message, length %d - awaiting more data...", read);
             return;
@@ -62,9 +65,10 @@ void handle_data(
 
         if (!rpc_request_valid(&ctx.value)) {
             // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
+            // FIXME: this should not break here as that drops the entire buffer, should only send reject for 'msg_size'
             JADE_LOGW("Invalid request, length %u", msg_size);
             SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", read);
-            break;
+            break; // FIXME: remove - should not break
         } else {
             // Push to task queue for dashboard to handle
             if (!jade_process_push_in_message(full_data_in, msg_size + 1)) {
@@ -72,13 +76,18 @@ void handle_data(
             }
         }
 
+        // If we have consumed all the data, break to reset the read-ptr and return
         if (msg_size == read) {
             break;
         }
 
+        // Otherwise we have some data left in the buffer - move the unhandled data down to the start of the buffer
+        // (overwriting what we've handled) and reset the 'initial_offset' (so we start validating from the beginning).
         memmove(data_in, data_in + msg_size, read - msg_size);
         *read_ptr -= msg_size;
+        initial_offset = 0;
     }
 
+    // Discard the entire buffer by resetting the read-ptr
     *read_ptr = 0;
 }
