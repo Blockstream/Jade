@@ -60,3 +60,7 @@ set_source_files_properties(
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_CONFIG_H")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_ELEMENTS=1")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_MINIMAL=1")
+
+add_custom_command(TARGET ${COMPONENT_LIB}
+                   POST_BUILD
+                   COMMAND ${CMAKE_OBJCOPY} --strip-unneeded -W sha256_init -W sha256_done -W sha512_init -W sha512_done ${CMAKE_CURRENT_BINARY_DIR}/liblibwally-core.a)
