@@ -30,6 +30,7 @@ static void serial_reader(void* ignore)
         const int len
             = uart_read_bytes(UART_NUM_0, serial_data_in + read, MAX_INPUT_MSG_SIZE - read, 20 / portTICK_PERIOD_MS);
         if (len == -1 || read + len >= MAX_INPUT_MSG_SIZE) {
+            // FIXME: need to call handle_data() with reject_if_no_msg set to true
             JADE_LOGE("Error reading bytes from serial device - data discarded (%u bytes)", read + len);
             read = 0;
             vTaskDelay(20 / portTICK_PERIOD_MS);
@@ -49,8 +50,9 @@ static void serial_reader(void* ignore)
 
         const size_t initial_offset = read;
         read += len;
+        const bool reject_if_no_msg = (read == MAX_INPUT_MSG_SIZE); // FIXME never happens atm
         JADE_LOGD("Passing %u bytes from serial device to common handler", read);
-        handle_data(full_serial_data_in, initial_offset, &read, serial_data_out, SOURCE_SERIAL);
+        handle_data(full_serial_data_in, initial_offset, &read, reject_if_no_msg, serial_data_out, SOURCE_SERIAL);
         timeout_counter = 0;
     }
 }

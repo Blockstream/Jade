@@ -79,6 +79,7 @@ static void qemu_tcp_reader(void* ignore)
 
         const int len = recv(tmp_qemu_tcp_sock, qemu_tcp_data_in + read, MAX_INPUT_MSG_SIZE - read, 0);
         if (len <= 0 || read + len >= MAX_INPUT_MSG_SIZE) {
+            // FIXME: need to call handle_data() with full buffer,  with reject_if_no_msg set to true
             JADE_LOGE("Error reading bytes from tcp stream - data discarded (%u bytes)", read + len);
             portENTER_CRITICAL(&sockmutex);
             qemu_tcp_sock = 0;
@@ -92,8 +93,9 @@ static void qemu_tcp_reader(void* ignore)
 
         const size_t initial_offset = read;
         read += len;
+        const bool reject_if_no_msg = (read == MAX_INPUT_MSG_SIZE); // FIXME never happens atm
         JADE_LOGD("Passing %u bytes from tcp stream to common handler", read);
-        handle_data(full_qemu_tcp_data_in, initial_offset, &read, qemu_tcp_data_out, SOURCE_QEMU_TCP);
+        handle_data(full_qemu_tcp_data_in, initial_offset, &read, reject_if_no_msg, qemu_tcp_data_out, SOURCE_QEMU_TCP);
     }
 }
 

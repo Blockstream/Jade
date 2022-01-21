@@ -25,8 +25,8 @@
     } while (false)
 
 // Handle bytes received
-void handle_data(
-    uint8_t* full_data_in, size_t initial_offset, size_t* read_ptr, uint8_t* data_out, jade_msg_source_t source)
+void handle_data(uint8_t* full_data_in, size_t initial_offset, size_t* read_ptr, bool reject_if_no_msg,
+    uint8_t* data_out, jade_msg_source_t source)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
@@ -52,12 +52,19 @@ void handle_data(
             }
         }
 
-        // If we could not fetch a message from the buffer, await more data.
-        // FIXME - assumes buffer not full and that we want to wait for more
-        // TODO - add flag to args, wait if set, reject if not.
+        // If we could not fetch a message from the buffer..
         if (msg_size == 0) {
-            JADE_LOGD("Got incomplete CBOR message, length %d - awaiting more data...", read);
-            return;
+            if (!reject_if_no_msg) {
+                // Not a complete cbor message, but we are allowed to await more data to complete the message
+                JADE_LOGD("Got incomplete CBOR message, length %d - awaiting more data...", read);
+                return;
+            }
+
+            // Not a complete/valid cbor message, and we are not allowed to await more, so reject what we have.
+            // Break to reset the read-ptr to the start and lose all the data.
+            JADE_LOGW("Got incomplete CBOR message, length %d but not awaiting more data - rejecting", read);
+            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", read);
+            break;
         }
 
         // Message arrival counts as 'activity' against idle timeout
@@ -83,8 +90,10 @@ void handle_data(
 
         // Otherwise we have some data left in the buffer - move the unhandled data down to the start of the buffer
         // (overwriting what we've handled) and reset the 'initial_offset' (so we start validating from the beginning).
+        // Also set 'reject_if_no_msg' to false, as we have now read a message.
         memmove(data_in, data_in + msg_size, read - msg_size);
         *read_ptr -= msg_size;
+        reject_if_no_msg = false;
         initial_offset = 0;
     }
 
