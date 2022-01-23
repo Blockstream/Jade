@@ -4,6 +4,7 @@
 #include "keychain.h"
 #include "sensitive.h"
 #include "utils/network.h"
+#include "utils/util.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -99,14 +100,6 @@ static inline bool ishardened(const uint32_t n)
 static inline uint32_t harden(const uint32_t n) { return n | BIP32_INITIAL_HARDENED_CHILD; }
 
 static inline uint32_t unharden(const uint32_t n) { return n & ~BIP32_INITIAL_HARDENED_CHILD; }
-
-static inline void value_to_be(uint32_t val, unsigned char* buffer)
-{
-    buffer[0] = (val >> 24) & 0xFF;
-    buffer[1] = (val >> 16) & 0xFF;
-    buffer[2] = (val >> 8) & 0xFF;
-    buffer[3] = val & 0xFF;
-}
 
 void wallet_init(void)
 {
@@ -970,7 +963,7 @@ bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t
     // initialize the common part here and then replace vars down
     unsigned char msg[3 + sizeof(uint32_t)] = { type, 'B', 'F', 0x00, 0x00, 0x00, 0x00 };
 
-    value_to_be(output_index, msg + 3);
+    uint32_to_be(output_index, msg + 3);
     JADE_WALLY_VERIFY(
         wally_hmac_sha256(tx_blinding_key, sizeof(tx_blinding_key), msg, sizeof(msg), output, output_len));
 

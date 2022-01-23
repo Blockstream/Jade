@@ -9,6 +9,7 @@
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
 #include "../utils/network.h"
+#include "../utils/util.h"
 #include "../wallet.h"
 
 #include <mbedtls/sha256.h>
@@ -26,14 +27,6 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
 void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_signing_data, uint32_t num_inputs);
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
-
-static inline void value_to_le(const uint32_t val, unsigned char* buffer)
-{
-    buffer[0] = val & 0xFF;
-    buffer[1] = (val >> 8) & 0xFF;
-    buffer[2] = (val >> 16) & 0xFF;
-    buffer[3] = (val >> 24) & 0xFF;
-}
 
 static bool add_confidential_output_info(const commitment_t* commitments, const struct wally_tx_output* txoutput,
     output_info_t* outinfo, const char** errmsg)
@@ -406,7 +399,7 @@ void sign_liquid_tx_process(void* process_ptr)
 
         // update hash_prevouts with the current output being spent
         unsigned char index_little_endian[sizeof(uint32_t)] = { 0 };
-        value_to_le(tx->inputs[index].index, index_little_endian);
+        uint32_to_le(tx->inputs[index].index, index_little_endian);
 
         if (mbedtls_sha256_update_ret(&hash_prevout_sha_ctx, tx->inputs[index].txhash, WALLY_TXHASH_LEN) != 0
             || mbedtls_sha256_update_ret(&hash_prevout_sha_ctx, index_little_endian, sizeof(index_little_endian))
