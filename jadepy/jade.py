@@ -9,14 +9,25 @@ import traceback
 import random
 import sys
 
-
 # JadeError
 from .jade_error import JadeError
 
 # Low-level comms backends
 from .jade_serial import JadeSerialImpl
 from .jade_tcp import JadeTCPImpl
-from .jade_ble import JadeBleImpl
+
+# 'jade' logger
+logger = logging.getLogger('jade')
+device_logger = logging.getLogger('jade-device')
+
+# BLE comms backend is optional
+# It relies on the BLE dependencies being available
+try:
+    from .jade_ble import JadeBleImpl
+except ImportError as e:
+    logger.warn(e)
+    logger.warn('BLE scanning/connectivity will not be available')
+
 
 # Default serial connection
 DEFAULT_SERIAL_DEVICE = '/dev/ttyUSB0'
@@ -27,10 +38,6 @@ DEFAULT_SERIAL_TIMEOUT = 120
 DEFAULT_BLE_DEVICE_NAME = 'Jade'
 DEFAULT_BLE_SERIAL_NUMBER = None
 DEFAULT_BLE_SCAN_TIMEOUT = 60
-
-# 'jade' logger
-logger = logging.getLogger('jade')
-device_logger = logging.getLogger('jade-device')
 
 
 def _hexlify(data):
@@ -175,6 +182,7 @@ class JadeAPI:
                    scan_timeout=None, loop=None):
         """
         Create a JadeAPI object using the BLE interface described.
+        NOTE: raises JadeError if BLE dependencies not installed.
 
         Parameters
         ----------
@@ -202,6 +210,10 @@ class JadeAPI:
             API object configured to use given BLE parameters.
             NOTE: the api instance has not yet tried to contact the hw
             - caller must call 'connect()' before trying to use the Jade.
+
+        Raises
+        ------
+        JadeError if BLE backend not available (ie. BLE dependencies not installed)
         """
         impl = JadeInterface.create_ble(device_name, serial_number,
                                         scan_timeout, loop)
@@ -1192,6 +1204,7 @@ class JadeInterface:
                    scan_timeout=None, loop=None):
         """
         Create a JadeInterface object using the BLE interface described.
+        NOTE: raises JadeError if BLE dependencies not installed.
 
         Parameters
         ----------
@@ -1219,7 +1232,15 @@ class JadeInterface:
             Inerface object configured to use given BLE parameters.
             NOTE: the instance has not yet tried to contact the hw
             - caller must call 'connect()' before trying to use the Jade.
+
+        Raises
+        ------
+        JadeError if BLE backend not available (ie. BLE dependencies not installed)
         """
+        this_module = sys.modules[__name__]
+        if not hasattr(this_module, "JadeBleImpl"):
+            raise JadeError(1, "BLE support not installed", None)
+
         impl = JadeBleImpl(device_name or DEFAULT_BLE_DEVICE_NAME,
                            serial_number or DEFAULT_BLE_SERIAL_NUMBER,
                            scan_timeout or DEFAULT_BLE_SCAN_TIMEOUT,

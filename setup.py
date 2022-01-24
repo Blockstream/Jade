@@ -7,10 +7,16 @@ setup(
         'jadepy'
     ],
     install_requires=[
-        'cbor==1.0.0',
-        'pyserial==3.5',
-        'bleak==0.13.0',
-        'aioitertools==0.8.0',
-        'requests==2.26.0'
+        'cbor>=1.0.0,<2.0.0',
+        'pyserial>=3.5.0,<4.0.0'
     ],
+    extras_require={
+        'ble': [
+            'bleak==0.13.0',
+            'aioitertools==0.8.0'
+        ],
+        'requests': [
+            'requests>=2.26.0,<3.0.0'
+        ]
+    }
 )
