@@ -9,7 +9,12 @@
 
 // Keep this size as small as possible for memory-constrained devices
 #define SENS_STACK_SIZE 32
-#define TLS_INDEX 0
+// Use index 1+ as 0 is reserved for pthread according to esp-idf documentation
+#define TLS_INDEX 1
+
+#if TLS_INDEX >= CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS
+#error "Error, CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS should be increased"
+#endif
 
 struct sens_elem {
     const char* file;
