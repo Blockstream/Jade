@@ -1416,7 +1416,7 @@ def check_mem_stats(startinfo, endinfo, check_frag=True, strict=True):
     breaches = []
     for field, limit in [('JADE_FREE_HEAP', 1024),
                          ('JADE_FREE_DRAM', 1024),
-                         ('JADE_LARGEST_DRAM', 2048 if check_frag else -1),
+                         ('JADE_LARGEST_DRAM', 12288 if check_frag else -1),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
         initial = int(startinfo[field])

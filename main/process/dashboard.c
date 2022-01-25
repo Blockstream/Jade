@@ -21,6 +21,7 @@
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
 #include "../utils/network.h"
+#include "../utils/wally_ext.h"
 #include "../wallet.h"
 #ifndef CONFIG_ESP32_NO_BLOBS
 #include "../ble/ble.h"
@@ -320,6 +321,9 @@ static void dispatch_message(jade_process_t* process)
         jade_process_t task_process;
         init_jade_process(&task_process);
         jade_process_transfer_current_message(process, &task_process);
+
+        // re-randomize secp256k1 ctx for this task
+        jade_wally_randomize_secp_ctx();
 
         // Call the function
         task_function(&task_process);

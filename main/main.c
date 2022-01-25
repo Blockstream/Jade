@@ -15,10 +15,10 @@
 #include "keychain.h"
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
+#include "utils/wally_ext.h"
 #include <sdkconfig.h>
 
 #include "jade_assert.h"
-#include "jade_wally_verify.h"
 #include "process.h"
 #include "process/process_utils.h"
 #include "random.h"
@@ -43,17 +43,6 @@ int serial_logger(const char* message, va_list fmt);
 
 void offer_startup_options(void);
 void dashboard_process(void* process_ptr);
-
-static void crypto_init(void)
-{
-    JADE_WALLY_VERIFY(wally_init(0));
-    unsigned char ctx_rnd[WALLY_SECP_RANDOMIZE_LEN];
-    SENSITIVE_PUSH(ctx_rnd, sizeof(ctx_rnd));
-    get_random(ctx_rnd, WALLY_SECP_RANDOMIZE_LEN);
-
-    JADE_WALLY_VERIFY(wally_secp_randomize(ctx_rnd, WALLY_SECP_RANDOMIZE_LEN));
-    SENSITIVE_POP(ctx_rnd);
-}
 
 static void boot_process(void)
 {
@@ -110,7 +99,7 @@ static void boot_process(void)
 
     // We spend a bit of time initialising random while the splash screen is being shown
     random_full_initialization();
-    crypto_init();
+    jade_wally_init();
 
     if (!keychain_init()) {
         JADE_ABORT();
