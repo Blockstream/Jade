@@ -28,11 +28,54 @@ struct sens_stack {
     struct sens_elem elems[SENS_STACK_SIZE];
 };
 
+// Clear any items on the passed stack.
+// Return true if any items present and needed clearing, false if stack already empty.
+static bool sensitive_clear_stack_impl(struct sens_stack* stack)
+{
+    JADE_LOGI("sensitive_clear_stack_impl() called for stack pointer %p by task '%s'", stack, pcTaskGetTaskName(NULL));
+
+    bool had_items = false;
+    if (stack) {
+        JADE_LOGD("sensitive_clear_stack_impl() stack->top = %p, stack->elems = %p", stack->top, stack->elems);
+        while (stack->top > stack->elems) {
+            stack->top--;
+            JADE_LOGW("sensitive_clear_stack_impl() clearing %p %d bytes from %s:%d", stack->top->addr,
+                stack->top->size, stack->top->file, stack->top->line);
+            wally_bzero(stack->top->addr, stack->top->size);
+            had_items = true;
+        }
+    }
+    return had_items;
+}
+
 static inline struct sens_stack* get_sens_stack(void)
 {
     struct sens_stack* stack = pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX);
     JADE_LOGD("get_sens_stack returned %p for task '%s'", stack, pcTaskGetTaskName(NULL));
     return stack;
+}
+
+// This callback appears to be called from the IDLE task, and *NOT* from the task
+// that the callback was registered from.  Hence the use of 'sensitive_clear_stack_impl()'
+// taking an explicit pointer, as the 'current tls pointer' would not be correct in this
+// case (ie. would not be the same as 'ptr').
+// NOTE: also avoided ASSERT or ABORT calls in this callback, as causing that kind of
+// chaos in the system IDLE task would probably not go down well.
+static void sensitive_delete_cb(int index, void* ptr)
+{
+    JADE_LOGI("sensitive_delete_cb() called for pointer %p (from tls index %d) by task '%s'", ptr, index,
+        pcTaskGetTaskName(NULL));
+
+    if (ptr) {
+        if (index == TLS_INDEX) {
+            sensitive_clear_stack_impl((struct sens_stack*)ptr);
+        } else {
+            JADE_LOGE("sensitive_delete_cb() called with index <> %u - Skipping call to clear stack!", index);
+        }
+        free(ptr);
+    } else {
+        JADE_LOGE("sensitive_delete_cb() called with null ptr!  Doing nothing.");
+    }
 }
 
 void sensitive_init(void)
@@ -42,7 +85,7 @@ void sensitive_init(void)
     stack = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct sens_stack));
     stack->top = stack->elems;
     JADE_LOGI("Setting sens stack tls pointer to %p for task '%s'", stack, pcTaskGetTaskName(NULL));
-    vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX, stack);
+    vTaskSetThreadLocalStoragePointerAndDelCallback(NULL, TLS_INDEX, stack, &sensitive_delete_cb);
     JADE_ASSERT(get_sens_stack());
 }
 
@@ -82,39 +125,15 @@ void sensitive_pop(const char* file, int line, void* addr)
 
 void sensitive_clear_stack(void)
 {
-    JADE_LOGD("sensitive_clear_stack()");
-    struct sens_stack* stack = get_sens_stack();
-    if (stack) {
-        while (stack->top > stack->elems) {
-            stack->top--;
-            JADE_LOGD("sensitive_clear_stack clearing %d bytes at addr %p", stack->top->size, stack->top->addr);
-            wally_bzero(stack->top->addr, stack->top->size);
-        }
-    }
-
-    // Free the stack structure
-    JADE_LOGI("Freeing sens stack tls pointer %p for task '%s'", stack, pcTaskGetTaskName(NULL));
-    vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX, NULL);
-    free(stack);
-    JADE_ASSERT(!get_sens_stack());
+    JADE_LOGI("sensitive_clear_stack() called for task '%s'", pcTaskGetTaskName(NULL));
+    sensitive_clear_stack_impl(get_sens_stack());
 }
 
 void sensitive_assert_empty(void)
 {
-    JADE_LOGD("sensitive_assert_empty()");
-    struct sens_stack* stack = get_sens_stack();
-    if (stack) {
-        JADE_LOGD("sensitive_assert_empty() stack->top = %p, stack->elems = %p", stack->top, stack->elems);
-        if (stack->top > stack->elems) {
-            JADE_LOGE("sensitive stack not empty:");
-            struct sens_elem* top = stack->top;
-            while (top > stack->elems) {
-                top--;
-                JADE_LOGE("  %s:%d %p %d bytes", top->file, top->line, top->addr, top->size);
-            }
-
-            // JADE_ABORT will call sensitive_clear_stack before aborting
-            JADE_ABORT();
-        }
+    JADE_LOGI("sensitive_assert_empty() called for task '%s'", pcTaskGetTaskName(NULL));
+    if (sensitive_clear_stack_impl(get_sens_stack())) {
+        JADE_LOGE("Sensitive stack not empty!");
+        JADE_ABORT();
     }
 }
