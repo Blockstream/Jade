@@ -23,19 +23,20 @@ struct sens_stack {
     struct sens_elem elems[SENS_STACK_SIZE];
 };
 
+static inline struct sens_stack* get_sens_stack(void)
+{
+    struct sens_stack* stack = pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX);
+    JADE_LOGD("get_sens_stack returned %p for task '%s'", stack, pcTaskGetTaskName(NULL));
+    return stack;
+}
+
 void sensitive_init(void)
 {
     struct sens_stack* stack = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct sens_stack));
     stack->top = stack->elems;
     JADE_LOGI("Setting sens stack tls pointer to %p for task '%s'", stack, pcTaskGetTaskName(NULL));
     vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX, stack);
-}
-
-static inline struct sens_stack* get_sens_stack(void)
-{
-    struct sens_stack* stack = pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX);
-    JADE_LOGD("get_sens_stack returned %p for task '%s'", stack, pcTaskGetTaskName(NULL));
-    return stack;
+    JADE_ASSERT(get_sens_stack());
 }
 
 void sensitive_push(const char* file, int line, void* addr, size_t size)
@@ -88,6 +89,7 @@ void sensitive_clear_stack(void)
     JADE_LOGI("Freeing sens stack tls pointer %p for task '%s'", stack, pcTaskGetTaskName(NULL));
     vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX, NULL);
     free(stack);
+    JADE_ASSERT(!get_sens_stack());
 }
 
 void sensitive_assert_empty(void)
