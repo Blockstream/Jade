@@ -32,7 +32,9 @@ static inline struct sens_stack* get_sens_stack(void)
 
 void sensitive_init(void)
 {
-    struct sens_stack* stack = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct sens_stack));
+    struct sens_stack* stack = get_sens_stack();
+    JADE_ASSERT_MSG(!stack, "sensitive_init() has been called multiple times for task '%s'", pcTaskGetTaskName(NULL));
+    stack = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct sens_stack));
     stack->top = stack->elems;
     JADE_LOGI("Setting sens stack tls pointer to %p for task '%s'", stack, pcTaskGetTaskName(NULL));
     vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX, stack);
