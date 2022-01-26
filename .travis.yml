@@ -3,4 +3,4 @@ services:
     - docker
 
 script:
-    - docker run -v $PWD:/jade blockstream/verde@sha256:d52e4b7f1c9d769fe35210a6b1c27836a044e6d5fc6490c576de1f2ae8a409af /bin/bash -c "cd /jade && ./format.sh && git diff --exit-code && . $HOME/esp/esp-idf/export.sh && cp configs/sdkconfig_display.defaults sdkconfig.defaults && idf.py all size-components size"
+    - docker run -v $PWD:/jade blockstream/verde@sha256:3338e3fc877261df4017ddc8fdb173e43e26922a3551f8d2000e0935e4d250de /bin/bash -c "cd /jade && ./format.sh && git diff --exit-code && . $HOME/esp/esp-idf/export.sh && cp configs/sdkconfig_display.defaults sdkconfig.defaults && idf.py all size-components size"

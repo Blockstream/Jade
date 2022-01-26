@@ -75,7 +75,7 @@ deactivate
 Run these commands inside the jade source repo root directory, it will enter a docker container
 
 ```
-docker build . -t testjadeqemu
+DOCKER_BUILDKIT=1 docker build . -t testjadeqemu
 docker run -v ${PWD}:/jade -p 2222:2222 -it testjadeqemu bash
 ```
 
