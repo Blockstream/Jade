@@ -460,9 +460,30 @@ npl_freertos_callout_remaining_ticks(struct ble_npl_callout *co,
                                      ble_npl_time_t now)
 {
     ble_npl_time_t rt;
-    uint32_t exp;
+    uint32_t exp = 0;
 
+#if CONFIG_BT_NIMBLE_USE_ESP_TIMER
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+    uint64_t expiry = 0;
+    esp_err_t err;
+
+    //Fetch expiry time in microseconds
+    err = esp_timer_get_expiry_time((esp_timer_handle_t)(co->handle), &expiry);
+    if (err != ESP_OK) {
+        //Error. Could not fetch the expiry time
+        return 0;
+    }
+
+    //Convert microseconds to ticks
+    npl_freertos_time_ms_to_ticks((uint32_t)(expiry / 1000), &exp);
+#else
+    //esp_timer_get_expiry_time() is only available from IDF 5.0 onwards
+    //Set expiry to 0
+    exp = 0;
+#endif //ESP_IDF_VERSION
+#else
     exp = xTimerGetExpiryTime(co->handle);
+#endif
 
     if (exp > now) {
         rt = exp - now;

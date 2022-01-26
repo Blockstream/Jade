@@ -244,7 +244,7 @@ BOOLEAN BTM_SecRegister(tBTM_APPL_INFO *p_cb_info)
         BD_ADDR peer_addr = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
         BT_OCTET16 peer_irk = {0x0};
         /* add local irk to controller */
-        btsnd_hcic_ble_add_device_resolving_list (BLE_ADDR_PUBLIC, peer_addr, peer_irk, btm_cb.devcb.id_keys.irk);
+        btsnd_hcic_ble_add_device_resolving_list (0, peer_addr, peer_irk, btm_cb.devcb.id_keys.irk);
 #endif
     } else {
         BTM_TRACE_WARNING("%s p_cb_info->p_le_callback == NULL\n", __func__);
