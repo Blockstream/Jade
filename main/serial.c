@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <string.h>
 
-static uint8_t* serial_data_in = NULL;
 static uint8_t* full_serial_data_in = NULL;
 static uint8_t* serial_data_out = NULL;
 
@@ -33,39 +32,34 @@ static uint8_t* serial_data_out = NULL;
 
 static void serial_reader(void* ignore)
 {
+    uint8_t* const serial_data_in = full_serial_data_in + 1;
     size_t read = 0;
-    size_t timeout_counter = 0;
+    TickType_t last_processing_time = 0;
 
     while (1) {
-
-        // Read incoming data
+        // Read incoming data max to fill buffer
         const int len
             = uart_read_bytes(UART_NUM_0, serial_data_in + read, MAX_INPUT_MSG_SIZE - read, 20 / portTICK_PERIOD_MS);
-        if (len == -1 || read + len >= MAX_INPUT_MSG_SIZE) {
-            // FIXME: need to call handle_data() with reject_if_no_msg set to true
-            JADE_LOGE("Error reading bytes from serial device - data discarded (%u bytes)", read + len);
-            read = 0;
+
+        if (len < 0) {
+            // Pause and retry... can we do anything else here ?
+            JADE_LOGE("Error reading bytes from serial device: %u", len);
+            vTaskDelay(50 / portTICK_PERIOD_MS);
+            continue;
+        }
+
+        // If no data received, short sleep and loop.
+        // NOTE: we only call handle_data() when the next data arrives - this
+        // is to be consistent with 'notification-based' processing (eg. BLE).
+        if (len == 0) {
             vTaskDelay(20 / portTICK_PERIOD_MS);
             continue;
         }
 
-        if (!len) {
-            // No data available atm
-            vTaskDelay(20 / portTICK_PERIOD_MS);
-            if (timeout_counter > 50) {
-                read = 0;
-                timeout_counter = 0;
-            }
-            ++timeout_counter;
-            continue;
-        }
-
-        const size_t initial_offset = read;
-        read += len;
-        const bool reject_if_no_msg = (read == MAX_INPUT_MSG_SIZE); // FIXME never happens atm
-        JADE_LOGD("Passing %u bytes from serial device to common handler", read);
-        handle_data(full_serial_data_in, initial_offset, &read, reject_if_no_msg, serial_data_out);
-        timeout_counter = 0;
+        // Pass to common handler
+        JADE_LOGD("Passing %u+%u bytes from tcp stream to common handler", read, len);
+        const bool force_reject_if_no_msg = false;
+        handle_data(full_serial_data_in, &read, len, &last_processing_time, force_reject_if_no_msg, serial_data_out);
     }
 }
 
@@ -97,7 +91,6 @@ bool serial_init(TaskHandle_t* serial_handle)
 {
     JADE_ASSERT(serial_handle);
     JADE_ASSERT(!full_serial_data_in);
-    JADE_ASSERT(!serial_data_in);
     JADE_ASSERT(!serial_data_out);
 
     const uart_config_t uart_config = { .baud_rate = 115200,
@@ -109,7 +102,6 @@ bool serial_init(TaskHandle_t* serial_handle)
     // Extra byte at the start for source-id
     full_serial_data_in = JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
     full_serial_data_in[0] = SOURCE_SERIAL;
-    serial_data_in = full_serial_data_in + 1;
     serial_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
     esp_err_t err = uart_param_config(UART_NUM_0, &uart_config);

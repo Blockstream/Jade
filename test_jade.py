@@ -5,6 +5,7 @@ import cbor
 import copy
 import json
 import base64
+import random
 import logging
 import argparse
 import subprocess
@@ -409,7 +410,10 @@ def test_bad_message(jade):
                     {'method': 'x'*40, 'id': '4'}]   # method
 
     for request in bad_requests:
-        jade.write_request(request)
+        msgbytes = cbor.dumps(request)
+        jade.write(msgbytes)
+
+        # Expect one reject message for the bad (but well formed) input
         reply = jade.read_response()
 
         # Returned id should match sent and valid, or '00' if not
@@ -422,9 +426,11 @@ def test_bad_message(jade):
             assert reply['id'] == '00'           # default error id
 
         # Assert bad message response
+        assert 'result' not in reply
         error = reply['error']
         assert error['code'] == JadeError.INVALID_REQUEST
         assert error['message'] == 'Invalid RPC Request message'
+        assert int(error['data']) == len(msgbytes)
         assert 'result' not in reply
 
 
@@ -432,19 +438,75 @@ def test_very_bad_message(jade):
     empty = cbor.dumps(b"")
     text = cbor.dumps("This is not a good cbor message")
     truncated = cbor.dumps("{'id': '1', method: 'msgwillbecut'}")[1:]
+    goodmsg = jade.build_request('ent', 'add_entropy', {'entropy': 'noise'.encode()})
 
-    for msg in [empty, text, truncated]:
-        jade.write(msg)
+    for badmsg in [empty, text, truncated]:
+        # Send the bad message, and after a pause a good message
+        jade.write(badmsg)
+        time.sleep(3)
+        jade.write_request(goodmsg)
+
+        # We should receive a bag of errors
+        # NOTE: we cannot be sure how many messages will be returned exactly,
+        # but we do know that Jade should reject a total of 'len(badmsg)' bytes.
+        bad_bytes = 0
+        while bad_bytes < len(badmsg):
+            reply = jade.read_response()
+
+            # Returned id should be '00'
+            assert reply['id'] == '00'
+            assert 'result' not in reply
+
+            # Assert bad message response
+            error = reply['error']
+            assert error['code'] == JadeError.INVALID_REQUEST
+            assert error['message'] == 'Invalid RPC Request message'
+            bad_bytes += int(error['data'])
+
+        assert bad_bytes == len(badmsg)
+
+        # After the bad bytes have been rejected, we expect to see the reply to the good message
         reply = jade.read_response()
+        assert reply['id'] == 'ent'
+        assert 'error' not in reply
+        assert 'result' in reply
+        assert reply['result'] is True
 
-        # Returned id should be '00'
-        assert reply['id'] == '00'
 
-        # Assert bad message response
+def test_random_bytes(jade):
+    # Stream up 1k of random bytes, then a good message after a short pause
+    # NOTE: use fixed pseudo-random here, so test run is reproducible
+    random.seed(12345678, 2)
+    nsent = 0
+    for _ in range(8):
+        noise = random.getrandbits(128*8).to_bytes(128, 'little')
+        jade.write(noise)
+        nsent += len(noise)
+
+    time.sleep(5)
+    goodmsg = jade.build_request('goodmsg', 'add_entropy', {'entropy': 'somebytes'.encode()})
+    jade.write_request(goodmsg)
+
+    # We should receive a bag of errors
+    # NOTE: we cannot be sure how many messages will be returned exactly,
+    # but we do know that Jade should reject a total of 'nsent' bytes.
+    nreceived = 0
+    while nreceived < nsent:
+        # Expect error - count rejected bytes
+        reply = jade.read_response()
         error = reply['error']
         assert error['code'] == JadeError.INVALID_REQUEST
         assert error['message'] == 'Invalid RPC Request message'
-        assert 'result' not in reply
+        nreceived += int(error['data'])
+
+    assert nreceived == nsent
+
+    # After the bad bytes have been rejected, we expect to see the reply to the good message
+    reply = jade.read_response()
+    assert reply['id'] == 'goodmsg'
+    assert 'error' not in reply
+    assert 'result' in reply
+    assert reply['result'] is True
 
 
 def test_too_much_input(jade, has_psram):
@@ -458,12 +520,12 @@ def test_too_much_input(jade, has_psram):
         cacophony = cacophony * 25  # 25x16 is 400k
 
     # Input buffer would now only have 1k space remaining.
-    # Add another 1k to fill/overflow the buffers, then another 64b,
-    # then a few chars to mark the end of the data (so we can test for it)
-    extra = noise * 272  # 4x272 = 1024 + 64 = 1088
-    extra += 'xyz\n'.encode()  # + another 4b = 1092 (ie. 68b too many)
-    expected_overflow_len = len(extra) - 1024
-    assert expected_overflow_len == 68
+    # Add another 1k to fill the buffer
+    cacophony += noise * 256  # 1k
+    expected_buffer_size = len(cacophony)
+
+    # Then add another 64b to overflow
+    extra = noise * 16  # 64b
     cacophony += extra
 
     # Format as a cbor message, otherwise it gets rejected early, as soon
@@ -471,18 +533,31 @@ def test_too_much_input(jade, has_psram):
     # See: test_very_bad_message() above.
     # Adjust the expected_overflow_len for the cbor overhead
     big_msg = cbor.dumps({'method': 'toobig', 'id': 'tohandle', 'params': cacophony})
-    cbor_overhead = len(big_msg) - len(cacophony)
-    expected_overflow_len += cbor_overhead
 
     # Send the message up with 4k writes
     # (as if trying to write too much can hit the timeout)
     total_len = len(big_msg)
+    expected_overflow_len = total_len - expected_buffer_size
     remaining = total_len
     while remaining:
         tosend = min(remaining, 4096)
         jade.write(big_msg[total_len - remaining: (total_len - remaining) + tosend])
         remaining -= tosend
 
+    # First we expect to get a response about the buffer-overflow bytes
+    # ie. one (initial) reject message with a big number in!
+    reply = jade.read_response()
+    error = reply['error']
+    assert error['code'] == JadeError.INVALID_REQUEST
+    assert error['message'] == 'Invalid RPC Request message'
+    assert int(error['data']) == expected_buffer_size
+
+    # After a short pause send a good message
+    time.sleep(5)
+    goodmsg = jade.build_request('trailer', 'add_entropy', {'entropy': 'random'.encode()})
+    jade.write_request(goodmsg)
+
+    # We should then receive a bag of errors
     # NOTE: we cannot be sure how many messages will be returned exactly,
     # but we do know that Jade should reject a total of 'expected_overflow_len' bytes.
     bad_bytes = 0
@@ -495,6 +570,13 @@ def test_too_much_input(jade, has_psram):
         bad_bytes += int(error['data'])
 
     assert bad_bytes == expected_overflow_len
+
+    # After the bad bytes have been rejected, we expect to see the reply to the good message
+    reply = jade.read_response()
+    assert reply['id'] == 'trailer'
+    assert 'error' not in reply
+    assert 'result' in reply
+    assert reply['result'] is True
 
 
 def test_split_message(jade):
@@ -2239,16 +2321,16 @@ def run_interface_tests(jadeapi,
 
     # Too much input test - sends a lot of data so only
     # run if requested (eg. ble would take a long time)
-    # Note also does not work on qemu - skip for now.
-    if test_overflow_input and not qemu:
+    if test_overflow_input:
         logger.info("Buffer overflow test - PSRAM: {}".format(has_psram))
         test_too_much_input(jadeapi.jade, has_psram)
 
     # Negative tests
     if negative:
         logger.info("Negative tests")
-        test_bad_message(jadeapi.jade)
+        test_random_bytes(jadeapi.jade)
         test_very_bad_message(jadeapi.jade)
+        test_bad_message(jadeapi.jade)
         test_split_message(jadeapi.jade)
         test_concatenated_messages(jadeapi.jade)
         test_unknown_method(jadeapi.jade)

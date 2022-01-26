@@ -15,6 +15,9 @@
 #include "random.h"
 #include "utils/cbor_rpc.h"
 
+// 2s 'no activity' stale message timeout
+static const TickType_t TIMEOUT_TICKS = 2000 / portTICK_PERIOD_MS;
+
 // Macros for use in handle_data() as always called with fixed params
 #define SEND_REJECT_MSG(code, msg, rejectedlen)                                                                        \
     do {                                                                                                               \
@@ -24,19 +27,21 @@
         jade_process_reject_message_ex(ctx, code, msg, (uint8_t*)lenstr, ret, data_out, MAX_OUTPUT_MSG_SIZE);          \
     } while (false)
 
-// Handle bytes received
-void handle_data(
+// Handle bytes in receive buffer
+// NOTE: assumes sizes of input and output buffers - could be passed sizes if preferred
+static void handle_data_impl(
     uint8_t* full_data_in, size_t initial_offset, size_t* read_ptr, bool reject_if_no_msg, uint8_t* data_out)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
+    JADE_ASSERT(*read_ptr <= MAX_INPUT_MSG_SIZE);
     JADE_ASSERT(data_out);
 
     const jade_msg_source_t source = full_data_in[0];
     uint8_t* const data_in = full_data_in + 1;
 
     while (true) {
-        JADE_ASSERT(*read_ptr > initial_offset);
+        JADE_ASSERT(*read_ptr >= initial_offset);
 
         cbor_msg_t ctx = { .source = source, .cbor = NULL, .cbor_len = 0 };
         const size_t read = *read_ptr;
@@ -73,10 +78,8 @@ void handle_data(
 
         if (!rpc_request_valid(&ctx.value)) {
             // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
-            // FIXME: this should not break here as that drops the entire buffer, should only send reject for 'msg_size'
             JADE_LOGW("Invalid request, length %u", msg_size);
-            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", read);
-            break; // FIXME: remove - should not break
+            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", msg_size);
         } else {
             // Push to task queue for dashboard to handle
             if (!jade_process_push_in_message(full_data_in, msg_size + 1)) {
@@ -100,4 +103,44 @@ void handle_data(
 
     // Discard the entire buffer by resetting the read-ptr
     *read_ptr = 0;
+}
+
+// Handle new bytes received
+// NOTE: assumes sizes of input and output buffers - could be passed sizes if preferred
+void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_len, TickType_t* last_processing_time,
+    const bool force_reject_if_no_msg, uint8_t* data_out)
+{
+    JADE_ASSERT(full_data_in);
+    JADE_ASSERT(read_ptr);
+    JADE_ASSERT(*read_ptr + new_data_len <= MAX_INPUT_MSG_SIZE);
+    JADE_ASSERT(last_processing_time);
+    JADE_ASSERT(data_out);
+
+    // Get current message processing time
+    const TickType_t time_now = xTaskGetTickCount();
+    JADE_ASSERT(time_now >= *last_processing_time);
+
+    // Handle any stale bytes in the buffer
+    if (*read_ptr > 0 && time_now > *last_processing_time + TIMEOUT_TICKS) {
+        // Have stale bytes resting in buffer - reject them
+        const bool reject_if_no_msg = true;
+        const size_t initial_offset = *read_ptr;
+        JADE_LOGW("Timing out %u bytes in buffer", *read_ptr);
+        handle_data_impl(full_data_in, initial_offset, read_ptr, reject_if_no_msg, data_out);
+        JADE_ASSERT(*read_ptr == 0);
+
+        // Copy newly recevied bytes down to start of buffer
+        uint8_t* const data_in = full_data_in + 1;
+        memmove(data_in, data_in + initial_offset, new_data_len);
+    }
+
+    // Append new bytes, and try to parse
+    const size_t initial_offset = *read_ptr;
+    *read_ptr += new_data_len;
+    JADE_LOGD("Passing %u bytes to common handler", *read_ptr);
+    const bool reject_if_no_msg = force_reject_if_no_msg || (*read_ptr == MAX_INPUT_MSG_SIZE);
+    handle_data_impl(full_data_in, initial_offset, read_ptr, reject_if_no_msg, data_out);
+
+    // Update caller's 'last processing time'
+    *last_processing_time = time_now;
 }

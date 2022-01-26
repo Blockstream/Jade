@@ -50,8 +50,8 @@ static bool ble_is_enabled = false;
 static bool ble_is_connected = false;
 static size_t ble_read = 0;
 static uint8_t own_addr_type = BLE_OWN_ADDR_RANDOM;
-static uint8_t* ble_data_in = NULL;
 static uint8_t* full_ble_data_in = NULL;
+static TickType_t last_processing_time = 0;
 static uint8_t* ble_data_out = NULL;
 static uint16_t peer_conn_handle = 0;
 static uint16_t peer_conn_attr_handle = 0;
@@ -118,23 +118,23 @@ static int gatt_chr_event(uint16_t conn_handle, uint16_t attr_handle, struct ble
 
             // Check we won't overrun the buffer
             if (ble_read + ble_msg_len >= MAX_INPUT_MSG_SIZE) {
-                // FIXME: need to call handle_data() with full buffer,  with reject_if_no_msg set to true
-                JADE_LOGE("Error reading bytes from ble device - data discarded (%u bytes)", ble_read + ble_msg_len);
-                ble_read = 0;
-                return 0;
+                const bool force_reject_if_no_msg = true; // reject what we have in the buffer
+                const size_t new_data = 0;
+                handle_data(
+                    full_ble_data_in, &ble_read, new_data, &last_processing_time, force_reject_if_no_msg, ble_data_out);
+                JADE_ASSERT(ble_read == 0);
             }
 
             uint16_t out_copy_len;
-
+            uint8_t* const ble_data_in = full_ble_data_in + 1;
             rc = ble_hs_mbuf_to_flat(ctxt->om, ble_data_in + ble_read, ble_msg_len, &out_copy_len);
             JADE_ASSERT(rc == 0);
             JADE_ASSERT(out_copy_len == ble_msg_len);
 
-            const size_t initial_offset = ble_read;
-            ble_read += ble_msg_len;
-            const bool reject_if_no_msg = (ble_read == MAX_INPUT_MSG_SIZE); // FIXME never happens atm
-            JADE_LOGD("Passing %u bytes from ble device to common handler", ble_read);
-            handle_data(full_ble_data_in, initial_offset, &ble_read, reject_if_no_msg, ble_data_out);
+            JADE_LOGD("Passing %u+%u bytes from ble device to common handler", ble_read, ble_msg_len);
+            const bool force_reject_if_no_msg = false;
+            handle_data(
+                full_ble_data_in, &ble_read, ble_msg_len, &last_processing_time, force_reject_if_no_msg, ble_data_out);
             return 0;
 
         default:
@@ -469,7 +469,6 @@ bool ble_init(TaskHandle_t* ble_handle)
 {
     JADE_ASSERT(ble_handle);
     JADE_ASSERT(!full_ble_data_in);
-    JADE_ASSERT(!ble_data_in);
     JADE_ASSERT(!ble_data_out);
 
     // Sanity check
@@ -478,7 +477,6 @@ bool ble_init(TaskHandle_t* ble_handle)
     // Extra byte at the start for source-id
     full_ble_data_in = (uint8_t*)JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
     full_ble_data_in[0] = SOURCE_BLE;
-    ble_data_in = full_ble_data_in + 1;
     ble_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
     const BaseType_t retval = xTaskCreatePinnedToCore(

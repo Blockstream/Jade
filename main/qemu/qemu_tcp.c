@@ -23,7 +23,6 @@
 #include "lwip/sys.h"
 #include <lwip/netdb.h>
 
-static uint8_t* qemu_tcp_data_in = NULL;
 static uint8_t* full_qemu_tcp_data_in = NULL;
 static uint8_t* qemu_tcp_data_out = NULL;
 
@@ -60,7 +59,10 @@ static void qemu_tcp_reader(void* ignore)
 
     struct sockaddr_in6 source_addr;
     socklen_t addr_len = sizeof(source_addr);
+
     size_t read = 0;
+    uint8_t* const qemu_tcp_data_in = full_qemu_tcp_data_in + 1;
+    TickType_t last_processing_time = 0;
 
     while (1) {
         portENTER_CRITICAL(&sockmutex);
@@ -77,10 +79,12 @@ static void qemu_tcp_reader(void* ignore)
             portEXIT_CRITICAL(&sockmutex);
         }
 
+        // Read incoming data max to fill buffer
         const int len = recv(tmp_qemu_tcp_sock, qemu_tcp_data_in + read, MAX_INPUT_MSG_SIZE - read, 0);
-        if (len <= 0 || read + len >= MAX_INPUT_MSG_SIZE) {
-            // FIXME: need to call handle_data() with full buffer,  with reject_if_no_msg set to true
-            JADE_LOGE("Error reading bytes from tcp stream - data discarded (%u bytes)", read + len);
+
+        if (len <= 0) {
+            // Close socket, pause and retry... will be reopened by above next loop
+            JADE_LOGE("Error reading bytes from tcp stream device: %u", len);
             portENTER_CRITICAL(&sockmutex);
             qemu_tcp_sock = 0;
             portEXIT_CRITICAL(&sockmutex);
@@ -91,11 +95,11 @@ static void qemu_tcp_reader(void* ignore)
             continue;
         }
 
-        const size_t initial_offset = read;
-        read += len;
-        const bool reject_if_no_msg = (read == MAX_INPUT_MSG_SIZE); // FIXME never happens atm
-        JADE_LOGD("Passing %u bytes from tcp stream to common handler", read);
-        handle_data(full_qemu_tcp_data_in, initial_offset, &read, reject_if_no_msg, qemu_tcp_data_out);
+        // Pass to common handler
+        JADE_LOGD("Passing %u+%u bytes from tcp stream to common handler", read, len);
+        const bool force_reject_if_no_msg = false;
+        handle_data(
+            full_qemu_tcp_data_in, &read, len, &last_processing_time, force_reject_if_no_msg, qemu_tcp_data_out);
     }
 }
 
@@ -222,7 +226,6 @@ bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
 {
     JADE_ASSERT(qemu_tcp_handle);
     JADE_ASSERT(!full_qemu_tcp_data_in);
-    JADE_ASSERT(!qemu_tcp_data_in);
     JADE_ASSERT(!qemu_tcp_data_out);
 
     spinlock_initialize(&sockmutex);
@@ -232,7 +235,6 @@ bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
     // Extra byte at the start for source-id
     full_qemu_tcp_data_in = JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
     full_qemu_tcp_data_in[0] = SOURCE_QEMU_TCP;
-    qemu_tcp_data_in = full_qemu_tcp_data_in + 1;
     qemu_tcp_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
     BaseType_t retval = xTaskCreatePinnedToCore(
