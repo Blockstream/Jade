@@ -2310,11 +2310,9 @@ def run_interface_tests(jadeapi,
         rslt = jadeapi.run_remote_selfcheck()
         assert rslt is True
 
-        # This test passes on qemu locally but seems broken on CI
-        # Skip for now.
-        if not qemu:
-            test_handshake(jadeapi.jade)
-            test_handshake_bad_sig(jadeapi.jade)
+        # Test good pinserver handshake, and also 'bad sig' pinserver
+        test_handshake(jadeapi.jade)
+        test_handshake_bad_sig(jadeapi.jade)
 
         # Test mnemonic-with-passphrase
         test_passphrase(jadeapi.jade)
