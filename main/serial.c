@@ -64,7 +64,7 @@ static void serial_reader(void* ignore)
         read += len;
         const bool reject_if_no_msg = (read == MAX_INPUT_MSG_SIZE); // FIXME never happens atm
         JADE_LOGD("Passing %u bytes from serial device to common handler", read);
-        handle_data(full_serial_data_in, initial_offset, &read, reject_if_no_msg, serial_data_out, SOURCE_SERIAL);
+        handle_data(full_serial_data_in, initial_offset, &read, reject_if_no_msg, serial_data_out);
         timeout_counter = 0;
     }
 }

@@ -25,13 +25,14 @@
     } while (false)
 
 // Handle bytes received
-void handle_data(uint8_t* full_data_in, size_t initial_offset, size_t* read_ptr, bool reject_if_no_msg,
-    uint8_t* data_out, jade_msg_source_t source)
+void handle_data(
+    uint8_t* full_data_in, size_t initial_offset, size_t* read_ptr, bool reject_if_no_msg, uint8_t* data_out)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
     JADE_ASSERT(data_out);
 
+    const jade_msg_source_t source = full_data_in[0];
     uint8_t* const data_in = full_data_in + 1;
 
     while (true) {

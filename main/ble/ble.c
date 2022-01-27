@@ -134,7 +134,7 @@ static int gatt_chr_event(uint16_t conn_handle, uint16_t attr_handle, struct ble
             ble_read += ble_msg_len;
             const bool reject_if_no_msg = (ble_read == MAX_INPUT_MSG_SIZE); // FIXME never happens atm
             JADE_LOGD("Passing %u bytes from ble device to common handler", ble_read);
-            handle_data(full_ble_data_in, initial_offset, &ble_read, reject_if_no_msg, ble_data_out, SOURCE_BLE);
+            handle_data(full_ble_data_in, initial_offset, &ble_read, reject_if_no_msg, ble_data_out);
             return 0;
 
         default:

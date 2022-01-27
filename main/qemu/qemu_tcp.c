@@ -95,7 +95,7 @@ static void qemu_tcp_reader(void* ignore)
         read += len;
         const bool reject_if_no_msg = (read == MAX_INPUT_MSG_SIZE); // FIXME never happens atm
         JADE_LOGD("Passing %u bytes from tcp stream to common handler", read);
-        handle_data(full_qemu_tcp_data_in, initial_offset, &read, reject_if_no_msg, qemu_tcp_data_out, SOURCE_QEMU_TCP);
+        handle_data(full_qemu_tcp_data_in, initial_offset, &read, reject_if_no_msg, qemu_tcp_data_out);
     }
 }
 
