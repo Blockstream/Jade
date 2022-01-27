@@ -477,7 +477,6 @@ bool ble_init(TaskHandle_t* ble_handle)
 
     // Extra byte at the start for source-id
     full_ble_data_in = (uint8_t*)JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
-
     full_ble_data_in[0] = SOURCE_BLE;
     ble_data_in = full_ble_data_in + 1;
     ble_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);

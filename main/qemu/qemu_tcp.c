@@ -220,21 +220,19 @@ static void eth_start(void)
 
 bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
 {
+    JADE_ASSERT(qemu_tcp_handle);
+    JADE_ASSERT(!full_qemu_tcp_data_in);
+    JADE_ASSERT(!qemu_tcp_data_in);
+    JADE_ASSERT(!qemu_tcp_data_out);
+
     spinlock_initialize(&sockmutex);
 
     ESP_ERROR_CHECK(esp_netif_init());
 
-    if (!qemu_tcp_handle || full_qemu_tcp_data_in || qemu_tcp_data_out) {
-        return false;
-    }
-
     // Extra byte at the start for source-id
     full_qemu_tcp_data_in = JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
-
     full_qemu_tcp_data_in[0] = SOURCE_QEMU_TCP;
-
     qemu_tcp_data_in = full_qemu_tcp_data_in + 1;
-
     qemu_tcp_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
     BaseType_t retval = xTaskCreatePinnedToCore(

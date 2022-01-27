@@ -95,23 +95,21 @@ static void serial_writer(void* ignore)
 
 bool serial_init(TaskHandle_t* serial_handle)
 {
+    JADE_ASSERT(serial_handle);
+    JADE_ASSERT(!full_serial_data_in);
+    JADE_ASSERT(!serial_data_in);
+    JADE_ASSERT(!serial_data_out);
+
     const uart_config_t uart_config = { .baud_rate = 115200,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE };
 
-    if (!serial_handle || full_serial_data_in || serial_data_out) {
-        return false;
-    }
-
     // Extra byte at the start for source-id
     full_serial_data_in = JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
-
     full_serial_data_in[0] = SOURCE_SERIAL;
-
     serial_data_in = full_serial_data_in + 1;
-
     serial_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
     esp_err_t err = uart_param_config(UART_NUM_0, &uart_config);
