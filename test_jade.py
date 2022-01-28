@@ -1414,9 +1414,9 @@ def test_handshake_bad_sig(jade):
 def check_mem_stats(startinfo, endinfo, check_frag=True, strict=True):
     # Memory stats to log/check
     breaches = []
-    for field, limit in [('JADE_FREE_HEAP', 768),
-                         ('JADE_FREE_DRAM', 768),
-                         ('JADE_LARGEST_DRAM', 0 if check_frag else -1),
+    for field, limit in [('JADE_FREE_HEAP', 1024),
+                         ('JADE_FREE_DRAM', 1024),
+                         ('JADE_LARGEST_DRAM', 2048 if check_frag else -1),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
         initial = int(startinfo[field])
@@ -1917,7 +1917,7 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
 
-    time.sleep(1)  # Lets idle tasks clean up
+    time.sleep(3)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
     check_mem_stats(startinfo, endinfo, check_frag=has_psram)
 
@@ -1972,7 +1972,7 @@ def run_interface_tests(jadeapi,
         test_bad_params(jadeapi.jade)
         test_bad_params_liquid(jadeapi.jade)
 
-    time.sleep(1)  # Lets idle tasks clean up
+    time.sleep(3)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
     check_mem_stats(startinfo, endinfo, check_frag=has_psram)
 
