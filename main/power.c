@@ -338,13 +338,13 @@ uint16_t power_get_vusb(void)
     uint16_t vusb = 0;
     uint8_t buf1, buf2;
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
-    ESP_ERROR_CHECK(master_read_slave(0x34, 0x56, &buf1, 1));
+    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x56, &buf1, 1));
     vTaskDelay(20 / portTICK_PERIOD_MS);
-    ESP_ERROR_CHECK(master_read_slave(0x34, 0x57, &buf2, 1));
+    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x57, &buf2, 1));
 #else // ie. CONFIG_BOARD_TYPE_JADE
-    ESP_ERROR_CHECK(master_read_slave(0x34, 0x5a, &buf1, 1));
+    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x5a, &buf1, 1));
     vTaskDelay(20 / portTICK_PERIOD_MS);
-    ESP_ERROR_CHECK(master_read_slave(0x34, 0x5b, &buf2, 1));
+    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x5b, &buf2, 1));
 #endif
     vusb = ((buf1 << 4) + buf2) * 1.7;
     return vusb;
@@ -355,13 +355,13 @@ uint16_t power_get_iusb(void)
     uint16_t iusb = 0;
     uint8_t buf1, buf2;
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
-    ESP_ERROR_CHECK(master_read_slave(0x34, 0x58, &buf1, 1));
+    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x58, &buf1, 1));
     vTaskDelay(20 / portTICK_PERIOD_MS);
-    ESP_ERROR_CHECK(master_read_slave(0x34, 0x59, &buf2, 1));
+    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x59, &buf2, 1));
 #else // ie. CONFIG_BOARD_TYPE_JADE
-    ESP_ERROR_CHECK(master_read_slave(0x34, 0x5c, &buf1, 1));
+    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x5c, &buf1, 1));
     vTaskDelay(20 / portTICK_PERIOD_MS);
-    ESP_ERROR_CHECK(master_read_slave(0x34, 0x5d, &buf2, 1));
+    I2C_LOG_ANY_ERROR(master_read_slave(0x34, 0x5d, &buf2, 1));
 #endif
     iusb = ((buf1 << 4) + buf2) * 0.375;
     return iusb;
