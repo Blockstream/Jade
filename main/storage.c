@@ -17,6 +17,7 @@ static const char* MULTISIG_NAMESPACE = "MULTISIGS";
 static const char* PIN_PRIVATEKEY_FIELD = "privatekey";
 static const char* PIN_COUNTER_FIELD = "counter";
 static const char* BLOB_FIELD = "blob";
+static const char* KEY_FLAGS_FIELD = "keyflags";
 
 static const char* USER_PINSERVER_URL_A = "pinsvrurlA";
 static const char* USER_PINSERVER_URL_B = "pinsvrurlB";
@@ -462,6 +463,17 @@ uint8_t storage_get_ble_flags(void)
 {
     uint8_t flags = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, BLE_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;
+}
+
+bool storage_set_key_flags(uint8_t flags)
+{
+    return store_blob(DEFAULT_NAMESPACE, KEY_FLAGS_FIELD, &flags, sizeof(flags));
+}
+
+uint8_t storage_get_key_flags(void)
+{
+    uint8_t flags = 0;
+    return read_blob_fixed(DEFAULT_NAMESPACE, KEY_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;
 }
 
 bool storage_set_multisig_registration(const char* name, const uint8_t* registration, const size_t registration_len)

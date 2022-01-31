@@ -29,6 +29,9 @@ bool storage_restore_counter(void);
 uint8_t storage_get_counter(void);
 bool storage_erase_encrypted_blob(void);
 
+bool storage_set_key_flags(uint8_t flags);
+uint8_t storage_get_key_flags(void);
+
 bool storage_set_pinserver_details(const char* urlA, const char* urlB, const unsigned char* pubkey, size_t pubkey_len);
 bool storage_get_pinserver_urlA(char* url, size_t len, size_t* written);
 bool storage_get_pinserver_urlB(char* url, size_t len, size_t* written);
