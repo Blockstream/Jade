@@ -32,7 +32,7 @@ void debug_set_mnemonic_process(void* process_ptr)
     bool temporary_wallet = false;
     size_t written = 0;
 
-    keychain_t keydata;
+    keychain_t keydata = { 0 };
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     // Slightly hacky, can accept a seed or a mnemonic

@@ -57,7 +57,7 @@ void debug_handshake(void* process_ptr)
 
     uint8_t user_pin[] = { 0, 1, 2, 3, 4, 5 };
 
-    keychain_t keydata;
+    keychain_t keydata = { 0 };
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     unsigned char aeskey1[AES_KEY_LEN_256];

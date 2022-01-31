@@ -85,7 +85,7 @@ static bool test_simple_restore(void)
         FAIL();
     }
 
-    keychain_t keydata;
+    keychain_t keydata = { 0 };
     if (!keychain_derive_from_mnemonic(TEST_MNEMONIC, NULL, &keydata)) {
         FAIL();
     }
@@ -105,19 +105,19 @@ static bool test_new_wallets(const size_t nwords)
         FAIL();
     }
 
-    keychain_t keydata1;
+    keychain_t keydata1 = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, NULL, &keydata1)) {
         wally_free_string(mnemonic);
         FAIL();
     }
 
-    keychain_t keydata2;
+    keychain_t keydata2 = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, "passphrase123", &keydata2)) {
         wally_free_string(mnemonic);
         FAIL();
     }
 
-    keychain_t keydata3;
+    keychain_t keydata3 = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, "different", &keydata3)) {
         wally_free_string(mnemonic);
         FAIL();
@@ -138,7 +138,7 @@ static bool test_new_wallets(const size_t nwords)
 static bool test_storage_with_pin(void)
 {
     // Check encryption/decryption and pin attempts exhausted
-    keychain_t keydata;
+    keychain_t keydata = { 0 };
     if (!keychain_derive_from_mnemonic(TEST_MNEMONIC, NULL, &keydata)) {
         FAIL();
     }
@@ -247,7 +247,7 @@ static bool test_storage_with_passphrase(const size_t nwords)
         FAIL();
     }
 
-    keychain_t keydata;
+    keychain_t keydata = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, "test123", &keydata)) {
         wally_free_string(mnemonic);
         FAIL();

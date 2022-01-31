@@ -689,7 +689,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
     char mnemonic[MNEMONIC_BUFLEN]; // buffer should be large enough for any mnemonic
     SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
-    keychain_t keydata;
+    keychain_t keydata = { 0 };
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore

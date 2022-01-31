@@ -258,7 +258,7 @@ bool keychain_complete_derivation_with_passphrase(const char* passphrase)
         return false;
     }
 
-    keychain_t keydata;
+    keychain_t keydata = { 0 };
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     // Convert entropy bytes to mnemonic string
@@ -479,7 +479,7 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len)
         mnemonic_entropy_len = serialized_data_len;
     } else if (serialized_data_len == SERIALIZED_KEY_LEN) {
         // Deserialise keychain
-        keychain_t keydata;
+        keychain_t keydata = { 0 };
         SENSITIVE_PUSH(&keydata, sizeof(keydata));
         unserialize(serialized, serialized_data_len, &keydata);
         keychain_set(&keydata, 0, false);
