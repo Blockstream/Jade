@@ -13,6 +13,8 @@ typedef struct {
     struct ext_key xpriv;
     unsigned char service_path[HMAC_SHA512_LEN];
     unsigned char master_unblinding_key[HMAC_SHA512_LEN];
+    unsigned char seed[BIP32_ENTROPY_LEN_512];
+    size_t seed_len;
 } keychain_t;
 
 bool keychain_init(void);

@@ -39,7 +39,7 @@ static const size_t MNEMONIC_24_ENTROPY_BLOBLEN = 96;
     } while (false)
 
 // *All* fields are identical
-static bool all_fields_same(const keychain_t* keydata1, const keychain_t* keydata2)
+static bool all_fields_same(const keychain_t* keydata1, const keychain_t* keydata2, const bool strict_seeds)
 {
     JADE_ASSERT(keydata1);
     JADE_ASSERT(keydata2);
@@ -53,6 +53,20 @@ static bool all_fields_same(const keychain_t* keydata1, const keychain_t* keydat
     if (crypto_verify_64(keydata1->master_unblinding_key, keydata2->master_unblinding_key)) {
         return false;
     }
+
+    // In some cases allow a seed to be missing/blank, in which case don't compare seed data.
+    // If both present, seeds must match.  If 'strict_seeds' passed, then seeds must match.
+    const bool seed_missing = keydata1->seed_len == 0 || keydata2->seed_len == 0;
+    const bool skip_seed_check = seed_missing && !strict_seeds;
+    if (!skip_seed_check) {
+        if (keydata1->seed_len != keydata2->seed_len) {
+            return false;
+        }
+        if (sodium_memcmp(&keydata1->seed, &keydata2->seed, keydata1->seed_len)) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -71,6 +85,15 @@ static bool any_fields_same(const keychain_t* keydata1, const keychain_t* keydat
     if (!crypto_verify_64(keydata1->master_unblinding_key, keydata2->master_unblinding_key)) {
         return true;
     }
+
+    // Skip checking seeds if either is unset/blank
+    if (keydata1->seed_len && keydata2->seed_len) {
+        if (keydata1->seed_len == keydata2->seed_len
+            && !sodium_memcmp(&keydata1->seed, &keydata2->seed, keydata1->seed_len)) {
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -179,7 +202,7 @@ static bool test_storage_with_pin(void)
     if (keychain_pin_attempts_remaining() != 3) {
         FAIL();
     }
-    if (!all_fields_same(&keydata, keychain_get())) {
+    if (!all_fields_same(&keydata, keychain_get(), false)) {
         FAIL();
     }
 
@@ -288,7 +311,7 @@ static bool test_storage_with_passphrase(const size_t nwords)
     }
 
     // Check is same wallet
-    if (!all_fields_same(&keydata, keychain_get())) {
+    if (!all_fields_same(&keydata, keychain_get(), true)) {
         FAIL();
     }
     keychain_free();

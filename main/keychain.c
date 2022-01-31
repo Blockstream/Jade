@@ -203,6 +203,11 @@ void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len,
     JADE_ASSERT(seed);
     JADE_ASSERT(seed_len);
     JADE_ASSERT(keydata);
+    JADE_ASSERT(seed_len <= sizeof(keydata->seed));
+
+    // Cache the seed
+    memcpy(keydata->seed, seed, seed_len);
+    keydata->seed_len = seed_len;
 
     // Use mainnet version by default - will be overridden if key serialised for specific network
     // (eg. in get_xpub call).
