@@ -3,6 +3,7 @@
 #include "../keychain.h"
 #include "../process.h"
 #include "../sensitive.h"
+#include "../storage.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
@@ -85,19 +86,27 @@ void check_pin_load_keys(jade_process_t* process)
     // See if we additionally need a passphrase from the user
     if (keychain_requires_passphrase()) {
         // Loading from storage succeeded, but we still have no wallet keys.
-        // - Requires the input of a user passphrase also.
+        // May require the input of a user passphrase also.
         char passphrase[PASSPHRASE_MAX_LEN + 1];
         SENSITIVE_PUSH(passphrase, sizeof(passphrase));
-        const bool confirm_passphrase = false;
-        get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+
+        // See if the flag is set to auto-apply the default blank passphrase,
+        // rather than requiring the user enter one.
+        if (storage_get_key_flags() & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE) {
+            // No passphrase (the default)
+            passphrase[0] = '\0';
+        } else {
+            // Ask user to enter passphrase
+            const bool confirm_passphrase = false;
+            get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+        }
 
         display_message_activity("Processing...");
 
         if (!keychain_complete_derivation_with_passphrase(passphrase)) {
             SENSITIVE_POP(passphrase);
-            JADE_LOGE("Failed to derive wallet using passphrase");
-            jade_process_reject_message(
-                process, CBOR_RPC_INTERNAL_ERROR, "Failed to derive wallet using passphrase", NULL);
+            JADE_LOGE("Failed to derive wallet");
+            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to derive wallet", NULL);
             await_error_activity("Failed to derive wallet");
             goto cleanup;
         }

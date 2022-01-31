@@ -9,6 +9,7 @@
 #include "../process.h"
 #include "../random.h"
 #include "../sensitive.h"
+#include "../storage.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/event.h"
@@ -811,11 +812,14 @@ void initialise_with_mnemonic(const bool temporary_restore)
         keychain_set(&keydata, SOURCE_NONE, temporary_restore);
         keychain_clear_network_type_restriction();
 
-        // If we are using a passphrase, we need to cache the root mnemonic entropy as it
-        // is that we will persist encrypted to local flash (requiring the passphrase be
-        // entered every login to be able to derive the wallet master key).
-        if (using_passphrase && !temporary_restore) {
+        if (!temporary_restore) {
+            // We need to cache the root mnemonic entropy as it is this that we will persist
+            // encrypted to local flash (requiring a passphrase to derive the wallet master key).
             keychain_cache_mnemonic_entropy(mnemonic);
+
+            // If opted not to use passphrase, set a flag to auto-apply the default/blank phrase
+            const uint8_t key_flags = using_passphrase ? 0x0 : KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+            storage_set_key_flags(key_flags);
         }
     }
 
