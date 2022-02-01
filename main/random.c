@@ -261,7 +261,7 @@ void random_start_collecting(void)
     bootloader_random_disable();
 
     adc1_config_width(ADC_WIDTH_BIT_12);
-    vPortCPUInitializeMutex(&rndmutex);
+    spinlock_initialize(&rndmutex);
 }
 
 void random_full_initialization(void)

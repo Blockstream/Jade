@@ -188,8 +188,6 @@ static void eth_start(void)
     assert(netif);
     free(desc);
 
-    ESP_ERROR_CHECK(esp_eth_set_default_handlers(netif));
-
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, on_got_ip, NULL, &ctx_got_ip));
 
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
@@ -222,7 +220,7 @@ static void eth_start(void)
 
 bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
 {
-    vPortCPUInitializeMutex(&sockmutex);
+    spinlock_initialize(&sockmutex);
 
     ESP_ERROR_CHECK(esp_netif_init());
 
