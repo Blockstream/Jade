@@ -119,17 +119,11 @@ void register_multisig_process(void* process_ptr)
         goto cleanup;
     }
 
+    // Validate signers
     uint8_t wallet_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
     wallet_get_fingerprint(wallet_fingerprint, sizeof(wallet_fingerprint));
     if (!multisig_validate_signers(network, signers, num_signers, wallet_fingerprint, sizeof(wallet_fingerprint))) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to validate multisig co-signers", NULL);
-        goto cleanup;
-    }
-
-    // Check storage
-    if (storage_get_multisig_registration_count() >= MAX_MULTISIG_REGISTRATIONS) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Already have maximum number of multisig wallets", NULL);
         goto cleanup;
     }
 
@@ -156,6 +150,13 @@ void register_multisig_process(void* process_ptr)
             && written == registration_len && !sodium_memcmp(existing, registration, registration_len)) {
             JADE_LOGI("Multisig %s: identical registration exists, returning immediately", multisig_name);
             goto return_ok;
+        }
+    } else {
+        // Not overwriting an existing record - check storage slot available
+        if (storage_get_multisig_registration_count() >= MAX_MULTISIG_REGISTRATIONS) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Already have maximum number of multisig wallets", NULL);
+            goto cleanup;
         }
     }
 
