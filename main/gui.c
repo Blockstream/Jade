@@ -1731,7 +1731,7 @@ static void gui_render_activity(gui_activity_t* activity)
     }
 }
 
-static bool switch_activities()
+static bool switch_activities(void)
 {
     JADE_ASSERT(switch_activities_queue);
 
@@ -1804,7 +1804,7 @@ static bool switch_activities()
 }
 
 // updatables task, this task runs to update elements in the `updatables` list of the current activity
-static void update_updateables()
+static void update_updateables(void)
 {
     if (!current_activity) {
         return;
@@ -1829,7 +1829,7 @@ static void update_updateables()
 }
 
 // update the status bar
-static void update_status_bar()
+static void update_status_bar(void)
 {
     // No-op if no status bar
     if (!current_activity || !current_activity->status_bar) {
