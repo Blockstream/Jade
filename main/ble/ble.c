@@ -550,13 +550,14 @@ void ble_start(void)
 
     ble_store_config_init();
 
-    nimble_port_freertos_init(ble_task);
-
     ble_is_enabled = true;
+    nimble_port_freertos_init(ble_task);
 }
 
 void ble_stop(void)
 {
+    ble_is_enabled = false;
+
     int ret = nimble_port_stop();
     if (ret == 0) {
         nimble_port_deinit();
@@ -565,7 +566,6 @@ void ble_stop(void)
             JADE_LOGE("esp_nimble_hci_and_controller_deinit() failed with error: %d", ret);
         }
     }
-    ble_is_enabled = false;
 }
 
 bool ble_enabled(void)
