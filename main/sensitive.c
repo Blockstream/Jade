@@ -10,9 +10,9 @@
 // Keep this size as small as possible for memory-constrained devices
 #define SENS_STACK_SIZE 32
 // Use index 1+ as 0 is reserved for pthread according to esp-idf documentation
-#define TLS_INDEX 1
+#define TLS_INDEX_SENSITIVE 1
 
-#if TLS_INDEX >= CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS
+#if TLS_INDEX_SENSITIVE >= CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS
 #error "Error, CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS should be increased"
 #endif
 
@@ -50,7 +50,7 @@ static bool sensitive_clear_stack_impl(struct sens_stack* stack)
 
 static inline struct sens_stack* get_sens_stack(void)
 {
-    struct sens_stack* stack = pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX);
+    struct sens_stack* stack = pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX_SENSITIVE);
     JADE_LOGD("get_sens_stack returned %p for task '%s'", stack, pcTaskGetTaskName(NULL));
     return stack;
 }
@@ -66,16 +66,18 @@ static void sensitive_delete_cb(int index, void* ptr)
     JADE_LOGI("sensitive_delete_cb() called for pointer %p (from tls index %d) by task '%s'", ptr, index,
         pcTaskGetTaskName(NULL));
 
-    if (ptr) {
-        if (index == TLS_INDEX) {
-            sensitive_clear_stack_impl((struct sens_stack*)ptr);
-        } else {
-            JADE_LOGE("sensitive_delete_cb() called with index <> %u - Skipping call to clear stack!", index);
-        }
-        free(ptr);
-    } else {
+    if (!ptr) {
         JADE_LOGE("sensitive_delete_cb() called with null ptr!  Doing nothing.");
+        return;
     }
+
+    if (index == TLS_INDEX_SENSITIVE) {
+        sensitive_clear_stack_impl((struct sens_stack*)ptr);
+    } else {
+        JADE_LOGE("sensitive_delete_cb() called with index %u - Skipping call to clear stack!", index);
+    }
+
+    free(ptr);
 }
 
 void sensitive_init(void)
@@ -85,7 +87,7 @@ void sensitive_init(void)
     stack = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct sens_stack));
     stack->top = stack->elems;
     JADE_LOGI("Setting sens stack tls pointer to %p for task '%s'", stack, pcTaskGetTaskName(NULL));
-    vTaskSetThreadLocalStoragePointerAndDelCallback(NULL, TLS_INDEX, stack, &sensitive_delete_cb);
+    vTaskSetThreadLocalStoragePointerAndDelCallback(NULL, TLS_INDEX_SENSITIVE, stack, &sensitive_delete_cb);
     JADE_ASSERT(get_sens_stack());
 }
 
