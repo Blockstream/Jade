@@ -279,6 +279,9 @@ bool rpc_get_sizet(const char* field, const CborValue* value, size_t* res)
     uint64_t tmp = 0;
     const CborError cberr = cbor_value_get_uint64(&result, &tmp);
     JADE_ASSERT(cberr == CborNoError);
+    if (tmp > 0xFFFFFFFF) {
+        return false;
+    }
     *res = tmp & 0xFFFFFFFF;
     return true;
 }
