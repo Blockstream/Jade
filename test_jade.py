@@ -74,6 +74,16 @@ def _h2b_test_case(testcase):
         if 'expected_output' in testcase and len(testcase['expected_output']) == 2:
             testcase['expected_output'][0] = h2b(testcase['expected_output'][0])
 
+    elif 'identity' in testcase['input']:
+        # sign-identity test data
+        testcase['input']['challenge'] = h2b(testcase['input']['challenge'])
+
+        expected_output = testcase['expected_output']
+        expected_output['slip-0013'] = h2b(expected_output['slip-0013'])
+        expected_output['signature'] = h2b(expected_output['signature'])
+        expected_output['slip-0017'] = h2b(expected_output['slip-0017'])
+        expected_output['ecdh_with_trezor'] = h2b(expected_output['ecdh_with_trezor'])
+
     if 'multisig_name' in testcase['input']:
         # multisig data
         for signer in testcase['input']['descriptor']['signers']:
@@ -122,6 +132,9 @@ slot invite sadness banana'
 
 TEST_MNEMONIC_12 = 'retire verb human ecology best member fiction measure \
 demand stereo wedding olive'
+
+TEST_MNEMONIC_12_IDENTITY = 'alcohol woman abuse must during monitor noble \
+actual mixed trade anger aisle'
 
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
@@ -269,6 +282,7 @@ YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
 MULTI_REG_TESTS = "multisig_reg_*.json"
 MULTI_REG_SS_TESTS = "multisig_reg_ss_*.json"
 SIGN_MSG_TESTS = "msg_*.json"
+SIGN_IDENTITY_TESTS = "identity_*.json"
 SIGN_TXN_TESTS = "txn_*.json"
 SIGN_TXN_FAIL_CASES = "badtxn_*.json"
 SIGN_LIQUID_TXN_TESTS = "liquid_txn_*.json"
@@ -324,6 +338,66 @@ c9c188310d4c43353cc319886ee4d9f439389d8f43'),
                              'asset_id': h2b('5ac9f65c0efcc4775e0baec4ec03abdd\
 e22473cd3cf33c0419ca290e0751b225'),
                              'value': 9000000}
+
+SIGN_IDENTITY_DATA = [
+    # challenge, identity, index, curve, slip13 pubkey, signature prefixed 0x00, slip17 pubkey
+    # First test case copied from:
+    # https://github.com/trezor/trezor-firmware/blob/a3c79bf4f7393386d23fe92210c7bce4d1049280
+    # /tests/device_tests/misc/test_msg_signidentity.py#L75
+    # NOTE: slight differnece as we return the *uncompressed* pubkey
+    # THIS IS THE ONE TRUE TEST (except the ecdh pubkey, which is unverified)
+    ('cd8552569d6e4509266ef137584d1e62c7579b5b8ed69bbafa4b864c6521e7c2',
+     'ssh://satoshi@bitcoin.org', 47, 'nist256p1',
+     '0473f21a3da3d0e96fc2189f81dd826658c3d76b2d55bd1da349bc6c3573b13ae4d56471\
+0ca0bf84b81c6850e916cb94ae9c397b550589da476ace7aee39ebcb37',
+     '005122cebabb852cdd32103b602662afa88e54c0c0c1b38d7099c64dcd49efe908288114\
+e66ed2d8c82f23a70b769a4db723173ec53840c08aafb840d3f09a18d3',
+     '04248befa95e9dbcf0a2ef7cf6957651ee25a168355590c4c84a6a8601758ca230d397bc\
+ba67b4676c3f2711b59083fff9157c16899da6d4ed76f8eaf57a100fa8'
+     ),
+
+    # These are 'speculative', just to cover a few more cases for regressions
+
+    # ssh
+    ('c16e1456df150491c50722a9d02fa04c74ef065a94f1936f7db029f71138c239',
+     'ssh://jade@jadepin.blockstream.com', 112, 'nist256p1',
+     '04a88f160249fd794bdb12fc56896e8dac6bf5e72e33960e2a7d11252f6a93ef28fa183f\
+3eca7ac84aa0d2e1488f281dbe4af394fcbeda3ab368e7fe98fc25f16f',
+     '00d0472ffa6a6b0075b71a60c7abd3faf9f6d49b7bb86bace344e23c68b888ebc273d48b\
+62b4af70f2ad1ca213f6886e26d74d31cfbbd7f4ac917af4d243939813',
+     '04ae7218d72039060c69cf50a17698cfe157905e859d7570663c57099e6cf2946be4f6a3\
+11f4c3f349b70edea7a8e18b2c2d354811bc5836c713784f72d4d4c201'
+     ),
+    ('ff732d6499071333f13170d2184054b6dffc1296ca43cb1599a68cea65071e6f',
+     'ssh://someuser@github.com', 3754, 'nist256p1',
+     '0434e451e9bc1bdba24654822277f5960f42cf6d0375629813d41476c499d62f7d971174\
+0406834034958b7782ef743b295530e580bd68a1a1ad3de8b6a141c4c0',
+     '00ce030c73249ac7b53184c7987917f00c290ad3b5617c1c0f0465ff150035a46b288766\
+c8594e7f574778402c4df5085bfc0642240200ddbe01c0ec9cd2b46a55',
+     '04d0ea80cef5fc83d7ac73ae7f33deff8d3b46641d021145cd0d51acf535daa212541315\
+630d9e3f99f3adbb652f2178ed7b8190503a3df57dac03c0f9c0ad1d88'
+     ),
+
+    # gpg
+    ('bcfc224438bd07742c4a3ad6db530e3f071f93645728e9f69eaee21c2f4ed54a',
+     'gpg://GreenAddress <greenaddress@blockstream.io>', 0, 'nist256p1',
+     '04741f65f95543b6de0ccfcdc13016e573df52fca14b2b15fd3142930bc4d871cc6375a5\
+5e402911d873332b8610f73a4020676462c498268a94434a00bca9691e',
+     '00010f560db262ee2d82b0032a858d72bb5d927563743af55b3c8514f4c3e353e233e363\
+7c172b60b40a48f0c19117ddbd6fc15dcb936430087a86c4db139caa97',
+     '0425d63b5f4c41af1d8bee7f6419c28e3d39ec637aef1d5694b008cbc03509c8349f290b\
+5937e53105f1aaf613bcf6c72b486015546ee08e7d83412f51f94a6e2a'
+     ),
+    ('fa94545d4f18e4cc4655c87869fc8a790a07eb58a3e5b599ab9f7da6d8ab5061',
+     'gpg://Jade <jade@blockstream.com>', 0, 'nist256p1',
+     '041127ef35e4690ff035e13ebab340ab3fa2327c0409bbed3dbf03b8932777d929bd8ade\
+43e3ebceb9fc74c23a32cd0e380d9b529a70ee0e83763e0c7af5f0bb1f',
+     '000118565f7363337ad72a1c497a1e1de5d336a99b09af8c49b36518e925a0ca517dafff\
+b2e95dc777c4d7df504ced12fd668f81a11d14d30033831df1434b59d7',
+     '043ede5aad3f3171b495b68da5c36d35eb724e4cb3beafa08b529830bf7679b955730684\
+7b8f392c6288ce45565c3133301811f5dcfa6e216e4ae2397e22603e52'
+     )
+]
 
 
 # The tests
@@ -528,9 +602,9 @@ def test_bad_params(jade):
     pubkey2, sig2 = PINServerECDH().get_signed_public_key()
 
     GOODTX = h2b(
-             '02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60\
-d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a069\
-1f59dffae18852bbd7300000000')
+             '02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee\
+7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59d\
+ffae18852bbd7300000000')
 
     GOOD_COSIGNERS = [
         {
@@ -556,6 +630,10 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
     bad_cosigners3[1]['derivation'] = [1, 2, 3, 4]
     bad_cosigners4 = copy.deepcopy(GOOD_COSIGNERS)
     bad_cosigners4[1]['path'] = [2147483648]
+
+    trezor_id_test = list(_get_test_cases('identity_ssh_nist_matches_trezor.json'))
+    assert len(trezor_id_test) == 1
+    GOOD_ECDH_PUBKEY = trezor_id_test[0]['expected_output']['slip-0017']
 
     bad_params = [(('badauth1', 'auth_user'), 'Expecting parameters map'),
                   (('badauth2', 'auth_user', {'network': None}), 'extract valid network'),
@@ -734,6 +812,158 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badrecvaddr17', 'get_receive_address',
                     {'path': [1, 2, 3], 'variant': 'pkh(k)', 'confidential': True,
                      'network': 'mainnet'}), 'Confidential addresses only apply to liquid'),
+
+                  (('badidpk1', 'get_identity_pubkey'), 'Expecting parameters map'),
+                  (('badidpk2', 'sign_identity', {'curve': 'nist256p1'}), 'extract valid identity'),
+                  (('badidpk3', 'get_identity_pubkey', {'identity': 'xxx', 'curve': 'nist256p1'}),
+                   'extract valid identity'),
+                  (('badidpk4', 'get_identity_pubkey',
+                    {'identity': 'ssh://', 'curve': 'nist256p1'}),
+                   'extract valid identity'),
+                  (('badidpk5', 'get_identity_pubkey',
+                    {'identity': 'ftp://some.xyz.com', 'curve': 'nist256p1', 'index': 7}),
+                   'extract valid identity'),
+                  (('badidpk6', 'get_identity_pubkey',
+                    {'identity': 'ssh://user@some.xyz.com', 'index': 0}),
+                   'extract valid curve name'),
+                  (('badidpk7', 'get_identity_pubkey',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': None, 'index': 1}),
+                   'extract valid curve name'),
+                  (('badidpk8', 'get_identity_pubkey',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 256, 'index': 17}),
+                   'extract valid curve name'),
+                  (('badidpk9', 'get_identity_pubkey',  # unsupported curve
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'ed25519', 'index': 0}),
+                   'extract valid curve name'),
+                  (('badidpk10', 'get_identity_pubkey',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1'}),
+                   'extract valid key type'),
+                  (('badidpk11', 'get_identity_pubkey',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1', 'type': None}),
+                   'extract valid key type'),
+                  (('badidpk12', 'get_identity_pubkey',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1', 'type': 13}),
+                   'extract valid key type'),
+                  (('badidpk13', 'get_identity_pubkey',  # unsupported key type
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'type': 'slip-0014'}),
+                   'extract valid key type'),
+                  (('badidpk14', 'get_identity_pubkey',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'type': 'slip-0013', 'index': 'bad'}),
+                   'extract valid index'),
+                  (('badidpk15', 'get_identity_pubkey',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'type': 'slip-0017', 'index': 0xFFFFFFFF + 1}),
+                   'extract valid index'),
+
+                  (('badidshared1', 'get_identity_shared_key'), 'Expecting parameters map'),
+                  (('badidshared2', 'get_identity_shared_key',
+                    {'curve': 'nist256p1', 'their_pubkey': GOOD_ECDH_PUBKEY}),
+                   'extract valid identity'),
+                  (('badidshared3', 'get_identity_shared_key',
+                    {'identity': 'xxxxxxx', 'curve': 'nist256p1',
+                     'their_pubkey': GOOD_ECDH_PUBKEY}),
+                   'extract valid identity'),
+                  (('badidshared4', 'get_identity_shared_key',
+                    {'identity': 'ssh://', 'curve': 'nist256p1',
+                     'their_pubkey': GOOD_ECDH_PUBKEY}),
+                   'extract valid identity'),
+                  (('badidshared5', 'get_identity_shared_key',
+                    {'identity': 'ftp://some.xyz.com', 'curve': 'nist256p1',
+                     'their_pubkey': GOOD_ECDH_PUBKEY}),
+                   'extract valid identity'),
+                  (('badidshared6', 'get_identity_shared_key',
+                    {'identity': 'ssh://user@some.xyz.com', 'their_pubkey': GOOD_ECDH_PUBKEY}),
+                   'extract valid curve name'),
+                  (('badidshared7', 'get_identity_shared_key',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': None,
+                     'their_pubkey': GOOD_ECDH_PUBKEY}),
+                   'extract valid curve name'),
+                  (('badidshared8', 'get_identity_shared_key',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 3,
+                     'their_pubkey': GOOD_ECDH_PUBKEY}),
+                   'extract valid curve name'),
+                  (('badidshared9', 'get_identity_shared_key',  # unsupported curve
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'ed25519',
+                     'their_pubkey': GOOD_ECDH_PUBKEY}),
+                   'extract valid curve name'),
+                  (('badidshared10', 'get_identity_shared_key',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'their_pubkey': None,
+                     'index': 2}),
+                   'extract valid pubkey'),
+                  (('badidshared11', 'get_identity_shared_key',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'their_pubkey': 'not-bytes',
+                     'index': 0}), 'extract valid pubkey'),
+                  (('badidshared12', 'get_identity_shared_key',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'their_pubkey': 12345, 'index': 0}),
+                   'extract valid pubkey'),
+                  (('badidshared13', 'get_identity_shared_key',  # bad pubkey length
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'their_pubkey': GOOD_ECDH_PUBKEY[:-1],
+                     'index': 0}), 'extract valid pubkey'),
+                  (('badidshared14', 'get_identity_shared_key',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'their_pubkey': GOOD_ECDH_PUBKEY,
+                     'index': 'bad'}), 'extract valid index'),
+                  (('badidshared15', 'get_identity_shared_key',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'their_pubkey': GOOD_ECDH_PUBKEY,
+                     'index': 0xFFFFFFFF + 1}), 'extract valid index'),
+
+                  (('badsignid1', 'sign_identity'), 'Expecting parameters map'),
+                  (('badsignid2', 'sign_identity',
+                    {'curve': 'nist256p1', 'challenge': b'abcdef'}), 'extract valid identity'),
+                  (('badsignid3', 'sign_identity',
+                    {'identity': 'xxxxxxx', 'curve': 'nist256p1', 'challenge': b'abcdef'}),
+                   'extract valid identity'),
+                  (('badsignid4', 'sign_identity',
+                    {'identity': 'ssh://', 'curve': 'nist256p1', 'challenge': b'abcdef'}),
+                   'extract valid identity'),
+                  (('badsignid5', 'sign_identity',
+                    {'identity': 'ftp://some.xyz.com', 'challenge': b'abcdef'}),
+                   'extract valid identity'),
+                  (('badsignid6', 'sign_identity', {'identity': 'ftp://some.xyz.com',
+                    'curve': 'nist256p1'}),
+                   'extract valid identity'),
+                  (('badsignid7', 'sign_identity',
+                    {'identity': 'ssh://user@some.xyz.com', 'challenge': b'abcdef', 'index': 12}),
+                   'extract valid curve name'),
+                  (('badsignid8', 'sign_identity',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': None,
+                     'challenge': b'abcdef', 'index': 12}),
+                   'extract valid curve name'),
+                  (('badsignid9', 'sign_identity',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 12,
+                     'challenge': b'abcdef', 'index': 12}),
+                   'extract valid curve name'),
+                  (('badsignid10', 'sign_identity',  # unsupported curve
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'ed25519',
+                     'challenge': b'abcdef', 'index': 12}),
+                   'extract valid curve name'),
+                  (('badsignid11', 'sign_identity',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'challenge': None, 'index': 12}),
+                   'extract valid challenge'),
+                  (('badsignid12', 'sign_identity',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'challenge': 'not-bytes', 'index': 0}),
+                   'extract valid challenge'),
+                  (('badsignid13', 'sign_identity',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'challenge': 12345, 'index': 0}),
+                   'extract valid challenge'),
+                  (('badsignid14', 'sign_identity',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'challenge': b'12345', 'index': 'bad'}),
+                   'extract valid index'),
+                  (('badsignid15', 'sign_identity',
+                    {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
+                     'challenge': b'12345', 'index': 0xFFFFFFFF + 1}),
+                   'extract valid index'),
 
                   # Note: for signing messages the root key (empty bip32 path
                   # array) is not allowed and should return bad-param.
@@ -1916,6 +2146,46 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
                                                multisig_name=inputdata['multisig_name'])
             assert rslt == addr_test['expected_address']
 
+    # ssh sign identity tests
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12_IDENTITY)
+    assert rslt is True
+
+    ecdh_nist_cpty = list(_get_test_cases('identity_ssh_nist_matches_trezor.json'))[0]
+    for identity_data in _get_test_cases(SIGN_IDENTITY_TESTS):
+        inputdata = identity_data['input']
+        expected = identity_data['expected_output']
+
+        # Check get-pubkey call for slip-0013 and slip-0017
+        for pubkey_type in ['slip-0013', 'slip-0017']:
+            rslt = jadeapi.get_identity_pubkey(inputdata['identity'],
+                                               inputdata['curve'],
+                                               pubkey_type,
+                                               inputdata['index'])
+            assert rslt == expected[pubkey_type]
+
+        # Sign for an identity using a given curve (slip-0013)
+        rslt = jadeapi.sign_identity(inputdata['identity'],
+                                     inputdata['curve'],
+                                     inputdata['challenge'],
+                                     inputdata['index'])
+        assert rslt['pubkey'] == expected['slip-0013']
+        assert rslt['signature'] == expected['signature']
+
+        # Symmetry test for ecdh 'shared key'
+        # Note the 3rd param is the 'other party public key' (slip-0017)
+        assert ecdh_nist_cpty['input']['curve'] == inputdata['curve']
+        ecdhA = jadeapi.get_identity_shared_key(inputdata['identity'],
+                                                inputdata['curve'],
+                                                ecdh_nist_cpty['expected_output']['slip-0017'],
+                                                index=inputdata['index'])
+        ecdhB = jadeapi.get_identity_shared_key(ecdh_nist_cpty['input']['identity'],
+                                                ecdh_nist_cpty['input']['curve'],
+                                                expected['slip-0017'],
+                                                index=ecdh_nist_cpty['input']['index'])
+        # Assert symmetry
+        assert ecdhA == expected['ecdh_with_trezor']
+        assert ecdhA == ecdhB
+
     # restore the mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
@@ -2025,7 +2295,7 @@ def mixed_sources_test(jade1, jade2):
 
     try:
         rslt = jade1.get_xpub(network, path)
-        assert False, "Excepted exception from mixed sources test"
+        assert False, "Expected exception from mixed sources test"
     except JadeError as err:
         assert err.code == JadeError.HW_LOCKED
 

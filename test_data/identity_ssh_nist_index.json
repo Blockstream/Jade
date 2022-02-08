@@ -1,0 +1,14 @@
+{
+  "input": {
+    "challenge": "c16e1456df150491c50722a9d02fa04c74ef065a94f1936f7db029f71138c239",
+    "identity": "ssh://jade@jadepin.blockstream.com",
+    "curve": "nist256p1",
+    "index": 112
+  },
+  "expected_output": {
+    "slip-0013": "04a88f160249fd794bdb12fc56896e8dac6bf5e72e33960e2a7d11252f6a93ef28fa183f3eca7ac84aa0d2e1488f281dbe4af394fcbeda3ab368e7fe98fc25f16f",
+    "signature": "00d0472ffa6a6b0075b71a60c7abd3faf9f6d49b7bb86bace344e23c68b888ebc273d48b62b4af70f2ad1ca213f6886e26d74d31cfbbd7f4ac917af4d243939813",
+    "slip-0017": "04ae7218d72039060c69cf50a17698cfe157905e859d7570663c57099e6cf2946be4f6a311f4c3f349b70edea7a8e18b2c2d354811bc5836c713784f72d4d4c201",
+    "ecdh_with_trezor": "a75f3c873a32c16fdd12c47d0ad96de4f510d681864f0b948d48c14b8ade2e80"
+  }
+}

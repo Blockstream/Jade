@@ -1,0 +1,14 @@
+{
+  "input": {
+    "challenge": "fa94545d4f18e4cc4655c87869fc8a790a07eb58a3e5b599ab9f7da6d8ab5061",
+    "identity": "gpg://Jade <jade@blockstream.com>",
+    "curve": "nist256p1",
+    "index": 0
+  },
+  "expected_output": {
+    "slip-0013": "041127ef35e4690ff035e13ebab340ab3fa2327c0409bbed3dbf03b8932777d929bd8ade43e3ebceb9fc74c23a32cd0e380d9b529a70ee0e83763e0c7af5f0bb1f",
+    "signature": "000118565f7363337ad72a1c497a1e1de5d336a99b09af8c49b36518e925a0ca517dafffb2e95dc777c4d7df504ced12fd668f81a11d14d30033831df1434b59d7",
+    "slip-0017": "043ede5aad3f3171b495b68da5c36d35eb724e4cb3beafa08b529830bf7679b9557306847b8f392c6288ce45565c3133301811f5dcfa6e216e4ae2397e22603e52",
+    "ecdh_with_trezor": "2458d4e819acabeda21bd49ec885ce794fbecd40e98149cdd863428bb664e8a6"
+  }
+}

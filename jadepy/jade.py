@@ -752,6 +752,100 @@ class JadeAPI:
             params = {'path': path, 'message': message}
             return self._jadeRpc('sign_message', params)
 
+    def get_identity_pubkey(self, identity, curve, type, index=0):
+        """
+        RPC call to fetch a pubkey for the given identity (slip13/slip17).
+        NOTE: this api returns an uncompressed public key
+
+        Parameters
+        ----------
+        identity : str
+            Identity string to format and sign. For example ssh://satoshi@bitcoin.org
+
+        curve : str
+            Name of curve to use - currently only 'nist256p1' is supported
+
+        type : str
+            Key derivation type - must be either 'slip-0013' for an identity pubkey, or 'slip-0017'
+            for an ecdh pubkey.
+
+        index : int, optional
+            Index number (if require multiple keys/sigs per identity)
+            Defaults to 0
+
+        Returns
+        -------
+        65-bytes
+            Uncompressed public key for the given identity and index.
+            Consistent with 'sign_identity' or 'get_identity_shared_key', depending on the 'type'.
+
+        """
+        params = {'identity': identity, 'curve': curve, 'type': type, 'index': index}
+        return self._jadeRpc('get_identity_pubkey', params)
+
+    def get_identity_shared_key(self, identity, curve, their_pubkey, index=0):
+        """
+        RPC call to fetch a SLIP-0017 shared ecdh key for the identity and counterparty public key.
+        NOTE: this api takes an uncompressed public key
+
+        Parameters
+        ----------
+        identity : str
+            Identity string to format and sign. For example ssh://satoshi@bitcoin.org
+
+        curve : str
+            Name of curve to use - currently only 'nist256p1' is supported
+
+        their_pubkey : 65-bytes
+            The counterparty's uncompressed public key
+
+        index : int, optional
+            Index number (if require multiple keys/sigs per identity)
+            Defaults to 0
+
+        Returns
+        -------
+        32-bytes
+            The shared ecdh key for the given identity and cpty public key
+            Consistent with 'get_identity_pubkey' with 'type=slip-0017'
+        """
+        params = {'identity': identity, 'curve': curve, 'index': index,
+                  'their_pubkey': their_pubkey}
+        return self._jadeRpc('get_identity_shared_key', params)
+
+    def sign_identity(self, identity, curve, challenge, index=0):
+        """
+        RPC call to authenticate the given identity through a challenge.
+        Supports RFC6979.
+        Returns the signature and the associated SLIP-0013 pubkey
+        NOTE: this api returns an uncompressed public key
+
+        Parameters
+        ----------
+        identity : str
+            Identity string to format and sign. For example ssh://satoshi@bitcoin.org
+
+        curve : str
+            Name of curve to use - currently only 'nist256p1' is supported
+
+        challenge : bytes
+            Challenge bytes to sign
+
+        index : int, optional
+            Index number (if require multiple keys/sigs per identity)
+            Defaults to 0
+
+        Returns
+        -------
+        dict
+            Contains keys:
+            pubkey - 65-bytes, the uncompressed SLIP-0013 public key, consistent with
+            'get_identity_pubkey' with 'type=slip-0013'
+            signature - 65-bytes, RFC6979 deterministic signature, prefixed with 0x00
+        """
+        params = {'identity': identity, 'curve': curve, 'index': index, 'challenge': challenge}
+        return self._jadeRpc('sign_identity', params)
+
     def get_master_blinding_key(self):
         """
         RPC call to fetch the master (SLIP-077) blinding key for the hw signer.

@@ -1,0 +1,14 @@
+{
+  "input": {
+    "challenge": "bcfc224438bd07742c4a3ad6db530e3f071f93645728e9f69eaee21c2f4ed54a",
+    "identity": "gpg://GreenAddress <greenaddress@blockstream.io>",
+    "curve": "nist256p1",
+    "index": 16
+  },
+  "expected_output": {
+    "slip-0013": "045158eadf95d518871eb8b1ca5e363d389ba2af83a4b26d66259399ab7da7ed73facfd38891624126075573294e5bedc9fc8909df88c2a78ec1c153eeeb709bc1",
+    "signature": "007a9e6f1d2b4f14185b1046d70a1b56ecde775b3fc0ad3f9d6f408eb0c6d9f320510ffeff560ba8a0ae9d7bb1c8ddd14f84cf58ceca62803a813e9ab7f30f9765",
+    "slip-0017": "047b3ac8b31938344d656f7c7de2d443874128134b9574db509acab98f7eef8a3b601eda149c1bc1695d5081b4cde515fa001cd012bce1ff677d7d822b096f9f75",
+    "ecdh_with_trezor": "96af982cc7f7a28f0a2697e95eec0a04b9ce383003fa34f8c3d6f7dcffeb4da0"
+  }
+}

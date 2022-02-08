@@ -1,0 +1,14 @@
+{
+  "input": {
+    "challenge": "ff732d6499071333f13170d2184054b6dffc1296ca43cb1599a68cea65071e6f",
+    "identity": "ssh://someuser@github.com",
+    "curve": "nist256p1",
+    "index": 0
+  },
+  "expected_output": {
+    "slip-0013": "04406cebcd21fe37c081c4c3a17df7d238e6ce93272d39d792f08f2651a511ec79760593520019b224f7784e648296d8762804b6937aded7ab807690177e4c8f7e",
+    "signature": "0013372b354ff22cbc2d5d1731d7764567bac1ee99fb92eada9c190b7a4e6b47a42ef117610a85995d9c94bb537e6ca03b3692202de949ee2b69238a20dd1440c2",
+    "slip-0017": "04abe5a8ddd30b6c0cdd16d1f05e16e36f37e14cf26a48d874ccf89acce9075f910ee31b0a82c374edd52203c5ec03ba3a5acc9873bb11f441b55abf75b12f585c",
+    "ecdh_with_trezor": "be0ce769d238be5cd6ce21f412bdd0a1849795df25c7985e41e235c6bd712a79"
+  }
+}

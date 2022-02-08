@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='jadepy',
-    version='0.1',
+    version='0.2.0',
     packages=[
         'jadepy'
     ],

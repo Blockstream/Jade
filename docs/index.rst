@@ -446,7 +446,7 @@ Jade can store up to 8 user-defined multisig wallet configurations, which need t
 * 'multisig_name' is a string, and must be less than 16 characters long.  Using an existing name will overwrite the corresponding registration record.
 * 'variant' indicates the script type used, and must be one of: 'sh(multi(k))', 'wsh(multi(k))' or 'sh(wsh(multi(k)))'
 * 'fingerprint' is the 4-byte wallet origin fingerprint - at least one signer must reference the Jade signer's root xpub fingerprint.
-* 'derivation' is the path from the origin to the given xpub - atm it is only used for the Jade signer, where it is used to verify the passed xpub.
+* 'derivation' is the path from the origin to the given xpub - currently it is only used for the Jade signer, where it is used to verify the passed xpub.
 * 'xpub' is the signer xpub, as described by the 'fingerprint' and 'derivation' (validated, in the case of this unit's signer).
 * 'path' is a path applied to the xpub, to yield the root signer for this multisig.  In most cases this is empty '[]'.
 
@@ -619,6 +619,142 @@ get_receive_address reply
         "id": "T-1000",
         "result": "3A9HgJqKS5FZtGykWKuVBKyosFppojPPj5"
     }
+
+.. _get_identity_pubkey_request:
+
+get_identity_pubkey request
+---------------------------
+
+Request to fetch a pubkey for a given identity and index (see SLIP-0013).
+
+NOTE: currently this call only supports 'ssh://' and 'gpg://' using nist256p1 (secp256r1)
+
+.. code-block:: cbor
+
+    {
+        "id": "31415916",
+        "method": "get_identity_pubkey",
+        "params": {
+            "identity": "ssh://jade@blockstream.com",
+            "curve": "nist256p1",
+            "index": 12,
+            "type": "slip-0013"
+        }
+    }
+
+* 'identity' should be an ssh:// or gpg:// uri
+* 'curve' must be 'nist256p1'.
+* 'index' is optional, and defaults to zero.
+* 'index' can be supplied, to generate multiple keys for the same identity string.
+* 'type' is a string which defines how the key will be derived, and must be 'slip-0013' for an identity pubkey, or 'slip-0017' for an ecdh pubkey.
+
+
+.. _get_identity_pubkey_reply:
+
+get_identity_pubkey reply
+-------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "31415916",
+        "result": <65 bytes>
+    }
+
+* 'result' is an uncompressed EC public key point
+* If 'type' is 'slip-0013', the returned key should be consistent with sign_identity_reply_ below.
+* If 'type' is 'slip-0017', the returned key should be consistent with get_identity_shared_key_reply_ below.
+
+.. _get_identity_shared_key_request:
+
+get_identity_shared_key request
+-------------------------------
+
+Request to fetch a shared secret for an identity and a counterparty public key (see SLIP-0017).
+
+NOTE: currently this call only supports 'ssh://' and 'gpg://' using nist256p1 (secp256r1)
+
+.. code-block:: cbor
+
+    {
+        "id": "52",
+        "method": "get_identity_shared_key",
+        "params": {
+            "identity": "gpg://Jade <jade@blockstream.com>",
+            "curve": "nist256p1",
+            "their_pubkey": <65 bytes>
+            "index": 13
+        }
+    }
+
+* 'identity' should be an ssh:// or gpg:// uri
+* 'curve' must be 'nist256p1'.
+* 'their_pubkey' is an uncompressed EC public key point
+* 'index' is optional, and defaults to zero.
+* 'index' can be supplied, to generate multiple keys for the same identity string.
+
+.. _get_identity_shared_key_reply:
+
+get_identity_shared_key reply
+-----------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "52",
+        "result": <32 bytes>
+    }
+
+* 'result' is an ecdh shared secret for the passed identity and counterparty public key
+* This should be consistent with get_identity_pubkey_reply_ (with a 'type' of 'slip-0017') above.
+
+.. _sign_identity_request:
+
+sign_identity request
+---------------------
+
+Request to sign to confirm identity, using RFC6979 (see SLIP-0013).
+
+NOTE: currently this call only supports 'ssh://' and 'gpg://' using nist256p1 (secp256r1)
+
+.. code-block:: cbor
+
+    {
+        "id": "50wtlyl",
+        "method": "sign_identity",
+        "params": {
+            "identity": "ssh://jade@blockstream.com",
+            "curve": "nist256p1",
+            "challenge": <bytes>
+            "index": 0
+        }
+    }
+
+* 'identity' should be an ssh:// or gpg:// uri
+* 'curve' must be 'nist256p1'.
+* 'index' is optional, and defaults to zero.
+* 'index' can be supplied, to generate multiple keys for the same identity string.
+
+.. _sign_identity_reply:
+
+sign_identity reply
+-------------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed signing on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "50wtlyl",
+        "result": {
+            "signature": <65 bytes>
+            "pubkey": <65 bytes>
+        }
+    }
+
+* 'signature' is the low-s signature, prefixed with 0x00
+* 'pubkey' is an uncompressed EC public key point
+* This should be consistent with get_identity_pubkey_reply_ (with a 'type' of 'slip-0013') above.
 
 .. _sign_message_legacy_request:
 
