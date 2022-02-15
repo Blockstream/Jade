@@ -465,28 +465,23 @@ class JadeAPI:
                   'temporary_wallet': temporary_wallet}
         return self._jadeRpc('debug_set_mnemonic', params)
 
-    def set_seed(self, seed, temporary_wallet=False):
+    def set_seed(self, seed):
         """
         RPC call to set the wallet seed.
         NOTE: Only available in a DEBUG build of the firmware.
+        NOTE: Setting a seed always sets a 'temporary' wallet.
 
         Parameters
         ----------
         seed : bytes
-            The wallet seed to set.
-
-        temporary_wallet : bool, optional
-            Whether to treat this wallet/mnemonic as an 'Emergency Restore' temporary wallet, as
-            opposed to one successfully loaded from the flash storage.
-            NOTE: in either case the wallet is only set in RAM, and flash storage is not affected.
-            Defaults to False.
+            The wallet seed to set as a temporary wallet (cannot be persisted in flash).
 
         Returns
         -------
         bool
             True on success.
         """
-        params = {'seed': seed, 'temporary_wallet': temporary_wallet}
+        params = {'seed': seed}
         return self._jadeRpc('debug_set_mnemonic', params)
 
     def set_pinserver(self, urlA=None, urlB=None, pubkey=None, cert=None):

@@ -28,22 +28,29 @@ void debug_set_mnemonic_process(void* process_ptr)
     SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
     char passphrase[PASSPHRASE_MAX_LEN + 1];
     SENSITIVE_PUSH(passphrase, sizeof(passphrase));
-    bool using_passphrase = false;
+    const char* p_passphrase = NULL;
     bool temporary_wallet = false;
+    const uint8_t* seed = NULL;
     size_t written = 0;
 
     keychain_t keydata = { 0 };
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
+    // Get field which can be set to test 'temporary restore' wallet
+    rpc_get_boolean("temporary_wallet", &params, &temporary_wallet);
+
     // Slightly hacky, can accept a seed or a mnemonic
     if (rpc_has_field_data("seed", &params)) {
-        const uint8_t* seed;
         rpc_get_bytes_ptr("seed", &params, &seed, &written);
         if (written != 32 && written != 64) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid seed length", NULL);
             goto cleanup;
         }
         keychain_derive_from_seed(seed, written, &keydata);
+
+        // A 'seed' wallet is implicitly always a 'temporary' wallet
+        // (as we have no mnemonic entropy to persist)
+        temporary_wallet = true;
     } else {
         // Cannot use rpc_get_string_ptr here unfortunately because the resulting string
         // is not null-terminated and we need a null terminated string to pass to wally
@@ -54,8 +61,7 @@ void debug_set_mnemonic_process(void* process_ptr)
             goto cleanup;
         }
 
-        using_passphrase = rpc_has_field_data("passphrase", &params);
-        if (using_passphrase) {
+        if (rpc_has_field_data("passphrase", &params)) {
             written = 0;
             rpc_get_string("passphrase", sizeof(passphrase), &params, passphrase, &written);
             if (written == 0 || written > PASSPHRASE_MAX_LEN) {
@@ -63,27 +69,27 @@ void debug_set_mnemonic_process(void* process_ptr)
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid passphrase from parameters", NULL);
                 goto cleanup;
             }
+            p_passphrase = passphrase;
         }
 
-        if (!keychain_derive_from_mnemonic(mnemonic, using_passphrase ? passphrase : NULL, &keydata)) {
+        if (!keychain_derive_from_mnemonic(mnemonic, p_passphrase, &keydata)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to derive keychain from mnemonic", NULL);
             goto cleanup;
         }
     }
 
-    // Get field which can be set to test 'temporary restore' wallet
-    rpc_get_boolean("temporary_wallet", &params, &temporary_wallet);
-
     // Copy temporary keychain into a new global keychain
     // and remove the restriction on network-types.
     keychain_set(&keydata, (uint8_t)process->ctx.source, temporary_wallet);
     keychain_clear_network_type_restriction();
 
-    // If we are using a passphrase, we need to cache the root mnemonic entropy as it
-    // is that we will persist encrypted to local flash (requiring the passphrase be
-    // entered every login to be able to derive the wallet master key).
-    if (using_passphrase) {
+    // To be consistent with normal wallet setup in mnemonic.c ...
+    if (!temporary_wallet) {
+        JADE_ASSERT(!seed);
+
+        // We need to cache the root mnemonic entropy as it is this that we will persist
+        // encrypted to local flash (requiring a passphrase to derive the wallet master key).
         keychain_cache_mnemonic_entropy(mnemonic);
     }
 
