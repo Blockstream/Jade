@@ -70,7 +70,11 @@ static const char* BLE_FLAGS_FIELD = "bleflags";
         *pw = l;                                                                                                       \
         const esp_err_t err = nvs_get_blob(h, k, v, pw);                                                               \
         if (err != ESP_OK) {                                                                                           \
-            JADE_LOGE("nvs_get_blob() for %s failed: %u", k, err);                                                     \
+            if (err == ESP_ERR_NVS_NOT_FOUND) {                                                                        \
+                JADE_LOGI("nvs_get_blob() for %s - not found", k);                                                     \
+            } else {                                                                                                   \
+                JADE_LOGE("nvs_get_blob() for %s failed: %u", k, err);                                                 \
+            }                                                                                                          \
             nvs_close(h);                                                                                              \
             return false;                                                                                              \
         }                                                                                                              \
@@ -82,7 +86,11 @@ static const char* BLE_FLAGS_FIELD = "bleflags";
         *pw = l;                                                                                                       \
         const esp_err_t err = nvs_get_str(h, k, v, pw);                                                                \
         if (err != ESP_OK) {                                                                                           \
-            JADE_LOGE("nvs_get_str() for %s failed: %u", k, err);                                                      \
+            if (err == ESP_ERR_NVS_NOT_FOUND) {                                                                        \
+                JADE_LOGI("nvs_get_str() for %s - not found", k);                                                      \
+            } else {                                                                                                   \
+                JADE_LOGE("nvs_get_str() for %s failed: %u", k, err);                                                  \
+            }                                                                                                          \
             nvs_close(h);                                                                                              \
             return false;                                                                                              \
         }                                                                                                              \
