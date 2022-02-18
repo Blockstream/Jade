@@ -499,7 +499,6 @@ static void wallet_build_multisig(const bool sorted, const size_t threshold, con
     const size_t nkeys = pubkeys_len / EC_PUBLIC_KEY_LEN;
     JADE_ASSERT(nkeys * EC_PUBLIC_KEY_LEN == pubkeys_len);
 
-    JADE_ASSERT(nkeys > 1);
     JADE_ASSERT(threshold > 0);
     JADE_ASSERT(threshold <= nkeys);
 

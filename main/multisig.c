@@ -9,7 +9,7 @@
 bool multisig_validate_signers(const char* network, const signer_t* signers, const size_t num_signers,
     const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len)
 {
-    if (!signers || num_signers < 2 || num_signers > MAX_MULTISIG_SIGNERS || !wallet_fingerprint
+    if (!signers || !num_signers || num_signers > MAX_MULTISIG_SIGNERS || !wallet_fingerprint
         || wallet_fingerprint_len != BIP32_KEY_FINGERPRINT_LEN) {
         return false;
     }
@@ -54,7 +54,7 @@ bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, c
 {
     JADE_ASSERT(threshold > 0);
     JADE_ASSERT(signers);
-    JADE_ASSERT(num_signers > 1);
+    JADE_ASSERT(num_signers >= threshold);
     JADE_ASSERT(num_signers <= MAX_MULTISIG_SIGNERS);
     JADE_ASSERT(output_bytes);
     JADE_ASSERT(output_len == MULTISIG_BYTES_LEN(num_signers));
@@ -109,7 +109,7 @@ bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, c
 bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, multisig_data_t* output)
 {
     JADE_ASSERT(bytes);
-    JADE_ASSERT(bytes_len > MULTISIG_BYTES_LEN(1));
+    JADE_ASSERT(bytes_len >= MULTISIG_BYTES_LEN(1));
     JADE_ASSERT(output);
 
     // Check hmac first
@@ -191,7 +191,7 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
 
     // Sanity check data we are have loaded
     if (!is_multisig(output->variant) || output->threshold == 0 || output->threshold > output->xpubs_len
-        || output->xpubs_len < 2 || output->xpubs_len > MAX_MULTISIG_SIGNERS) {
+        || !output->xpubs_len || output->xpubs_len > MAX_MULTISIG_SIGNERS) {
         *errmsg = "Multisig wallet data invalid";
     }
 
@@ -249,7 +249,7 @@ bool multisig_get_pubkeys(const uint8_t* xpubs, const size_t num_xpubs, CborValu
     const size_t pubkeys_len, size_t* written)
 {
     JADE_ASSERT(xpubs);
-    JADE_ASSERT(num_xpubs > 1);
+    JADE_ASSERT(num_xpubs >= 1);
     JADE_ASSERT(all_signer_paths);
     JADE_ASSERT(pubkeys);
     JADE_ASSERT(pubkeys_len >= num_xpubs * EC_PUBLIC_KEY_LEN);

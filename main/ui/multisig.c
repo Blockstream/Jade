@@ -483,8 +483,9 @@ void make_confirm_multisig_activity(const char* multisig_name, const bool sorted
     const size_t wallet_fingerprint_len, const bool overwriting, gui_activity_t** first_activity)
 {
     JADE_ASSERT(multisig_name);
+    JADE_ASSERT(threshold > 0);
     JADE_ASSERT(signers);
-    JADE_ASSERT(num_signers > 1);
+    JADE_ASSERT(num_signers >= threshold);
     JADE_ASSERT(wallet_fingerprint);
     JADE_ASSERT(wallet_fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);
     JADE_ASSERT(first_activity);
