@@ -29,6 +29,12 @@ static const char* IDLE_TIMEOUT_FIELD = "idletimeout";
 static const char* CLICK_EVENT_FIELD = "clickevent";
 static const char* BLE_FLAGS_FIELD = "bleflags";
 
+// NOTE: esp-idf reserve the final page of nvs entries for internal use (for defrag/consolidation)
+// See: https://github.com/espressif/esp-idf/issues/5247#issuecomment-1048604221
+// If the 'free entries' appears to include these entries, deduct them from the value returned.
+static const size_t NUM_ALL_NVS_ENTRIES = 504;
+static const size_t NUM_ESP_RESERVED_ENTRIES = 126;
+
 // Building block macros for the store/read/erase functions.
 // They all close the storage and return false on any error.
 
@@ -280,7 +286,17 @@ bool storage_get_stats(size_t* entries_used, size_t* entries_free)
     }
 
     *entries_used = stats.used_entries;
-    *entries_free = stats.free_entries;
+
+    // NOTE: esp-idf reserve the final page of nvs entries for internal use (for defrag/consolidation)
+    // See: https://github.com/espressif/esp-idf/issues/5247#issuecomment-1048604221
+    // If the 'free entries' appears to include these entries, deduct them from the value returned.
+    if (stats.free_entries >= NUM_ESP_RESERVED_ENTRIES
+        && stats.used_entries + stats.free_entries == NUM_ALL_NVS_ENTRIES) {
+        *entries_free = stats.free_entries - NUM_ESP_RESERVED_ENTRIES;
+    } else {
+        JADE_LOGW("Fewer (free?) NVS entries than expected - is the 'reserved' page now not reported?");
+        *entries_free = stats.free_entries;
+    }
     return true;
 }
 

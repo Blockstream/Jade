@@ -74,6 +74,7 @@ typedef enum {
 
     BTN_INFO_SHOW_XPUB,
     BTN_INFO_LEGAL,
+    BTN_INFO_STORAGE,
     BTN_INFO_EXIT,
 
     BTN_LEGAL_NEXT,

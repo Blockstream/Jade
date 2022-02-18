@@ -71,11 +71,12 @@ void make_connection_select_screen(gui_activity_t** act_ptr);
 void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, bool ble);
 void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, const char* additional);
 void make_settings_screen(
-    gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, const size_t nBtns);
+    gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, size_t nBtns);
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 void make_legal_screen(gui_activity_t** act_ptr);
 #endif
+void make_storage_stats_screen(gui_activity_t** act_ptr, size_t entries_used, size_t entries_free);
 
 void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** ble_status_textbox);
 void make_device_screen(
@@ -706,6 +707,22 @@ static void handle_ble(void)
 static void handle_ble(void) { await_message_activity("BLE disabled in this firmware"); }
 #endif // CONFIG_ESP32_NO_BLOBS
 
+static void handle_storage(void)
+{
+    size_t entries_used, entries_free;
+    const bool ok = storage_get_stats(&entries_used, &entries_free);
+    if (ok) {
+        gui_activity_t* act = NULL;
+        make_storage_stats_screen(&act, entries_used, entries_free);
+        JADE_ASSERT(act);
+
+        gui_set_current_activity(act);
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_INFO_EXIT, NULL, NULL, NULL, 0);
+    } else {
+        await_error_activity("Error accessing storage!");
+    }
+}
+
 #ifdef CONFIG_DEBUG_MODE
 static void handle_xpub(void)
 {
@@ -764,6 +781,10 @@ static void handle_device(void)
         switch (ev_id) {
         case BTN_INFO_EXIT:
             loop = false;
+            break;
+
+        case BTN_INFO_STORAGE:
+            handle_storage();
             break;
 
 #ifdef CONFIG_DEBUG_MODE
