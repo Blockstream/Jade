@@ -31,8 +31,6 @@
 
 #include <sodium/utils.h>
 
-#define NULLSTRING 1
-
 // Whether during initialisation we select BLE
 static bool initialisation_via_ble = false;
 
@@ -708,6 +706,36 @@ static void handle_ble(void)
 static void handle_ble(void) { await_message_activity("BLE disabled in this firmware"); }
 #endif // CONFIG_ESP32_NO_BLOBS
 
+#ifdef CONFIG_DEBUG_MODE
+static void handle_xpub(void)
+{
+    const char* network = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? "testnet" : "mainnet";
+    char* xpub = NULL;
+    if (keychain_get() && wallet_get_xpub(network, NULL, 0, &xpub)) {
+        QRCode qrcode;
+        Icon qr_icon;
+
+        uint8_t* qrcodeBytes = JADE_CALLOC(qrcode_getBufferSize(4), sizeof(uint8_t));
+        const int qret = qrcode_initText(&qrcode, qrcodeBytes, 4, ECC_LOW, xpub);
+        JADE_ASSERT(qret == 0);
+        qrcode_toIcon(&qrcode, &qr_icon, 3);
+
+        gui_activity_t* xpub_act;
+        make_show_xpub(&xpub_act, &qr_icon);
+        JADE_ASSERT(xpub_act);
+        gui_set_current_activity(xpub_act);
+        gui_activity_wait_event(xpub_act, GUI_BUTTON_EVENT, BTN_INFO_EXIT, NULL, NULL, NULL, 0);
+
+        wally_free_string(xpub);
+        qrcode_freeIcon(&qr_icon);
+        free(qrcodeBytes);
+    } else {
+        JADE_LOGE("Failed to get root xpub for display");
+        await_error_activity("Failed to get root xpub");
+    }
+}
+#endif
+
 // Device info
 static void handle_device(void)
 {
@@ -726,11 +754,11 @@ static void handle_device(void)
     gui_activity_t* act;
     make_device_screen(&act, power_status, mac, running_app_info.version);
     JADE_ASSERT(act);
-    gui_set_current_activity(act);
 
     bool loop = true;
     while (loop) {
         int32_t ev_id;
+        gui_set_current_activity(act);
         gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
         switch (ev_id) {
@@ -740,45 +768,17 @@ static void handle_device(void)
 
 #ifdef CONFIG_DEBUG_MODE
         // In debug only, show xpub on screen as qr-code
-        case BTN_INFO_SHOW_XPUB: {
-            const char* network = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? "testnet" : "mainnet";
-            char* xpub = NULL;
-            if (keychain_get() && wallet_get_xpub(network, NULL, 0, &xpub)) {
-                QRCode qrcode;
-                Icon qr_icon;
-
-                uint8_t* qrcodeBytes = JADE_CALLOC(qrcode_getBufferSize(4), sizeof(uint8_t));
-                const int qret = qrcode_initText(&qrcode, qrcodeBytes, 4, ECC_LOW, xpub);
-                JADE_ASSERT(qret == 0);
-                qrcode_toIcon(&qrcode, &qr_icon, 3);
-
-                gui_activity_t* xpub_act;
-                make_show_xpub(&xpub_act, &qr_icon);
-                JADE_ASSERT(xpub_act);
-                gui_set_current_activity(xpub_act);
-                gui_activity_wait_event(xpub_act, GUI_BUTTON_EVENT, BTN_INFO_EXIT, NULL, NULL, NULL, 0);
-
-                wally_free_string(xpub);
-                qrcode_freeIcon(&qr_icon);
-                free(qrcodeBytes);
-            } else {
-                JADE_LOGW("Failed to get root xpub for display");
-                await_error_activity("Failed to get root xpub");
-            }
-            gui_set_current_activity(act);
+        case BTN_INFO_SHOW_XPUB:
+            handle_xpub();
             break;
-        }
 #endif // CONFIG_DEBUG_MODE
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-        case BTN_INFO_LEGAL: {
+        // For genuine Jade hw, show legal info
+        case BTN_INFO_LEGAL:
             handle_legal();
-            gui_set_current_activity(act);
             break;
-        }
-
 #endif
-
         default:
             break;
         }
