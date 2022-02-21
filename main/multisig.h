@@ -10,7 +10,7 @@
 #define MAX_MULTISIG_NAME_SIZE 16
 
 // The maximum number of concurrent multisig registrations supported
-#define MAX_MULTISIG_REGISTRATIONS 8
+#define MAX_MULTISIG_REGISTRATIONS 16
 
 // The size of the byte-string required to store a multisig registration
 #define MULTISIG_BYTES_LEN(num_signers) ((4 * sizeof(uint8_t)) + (num_signers * BIP32_SERIALIZED_LEN) + HMAC_SHA256_LEN)

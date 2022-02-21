@@ -68,7 +68,7 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     gui_set_parent(text2a, hsplit_text2);
     gui_set_align(text2a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
-    char type[8];
+    char type[16];
     int ret = snprintf(type, sizeof(type), "%uof%u", threshold, num_signers);
     JADE_ASSERT(ret > 0 && ret < sizeof(type));
 
@@ -392,7 +392,7 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
     gui_set_parent(text3a, hsplit_text3);
     gui_set_align(text3a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
-    char type[8];
+    char type[16];
     int ret = snprintf(type, sizeof(type), "%uof%u", threshold, num_signers);
     JADE_ASSERT(ret > 0 && ret < sizeof(type));
 
@@ -523,7 +523,7 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
     JADE_ASSERT(multisig_name);
 
     gui_activity_t* act;
-    char header[16];
+    char header[24];
     const int ret = snprintf(header, sizeof(header), "Multisig %d/%d", index, total);
     JADE_ASSERT(ret > 0 && ret < sizeof(header));
     gui_make_activity(&act, true, header);
@@ -573,7 +573,7 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
         gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 25, 75);
         gui_set_parent(hsplit_text3, row3);
 
-        char type[8];
+        char type[16];
         int ret = snprintf(type, sizeof(type), "%uof%u", threshold, num_signers);
         JADE_ASSERT(ret > 0 && ret < sizeof(type));
 

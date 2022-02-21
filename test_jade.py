@@ -733,7 +733,7 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                    'Invalid multisig threshold'),
                   (('badmulti11', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'threshold': 12, 'signers': []}}),
+                      'variant': 'sh(multi(k))', 'threshold': 16, 'signers': []}}),
                    'Invalid multisig threshold'),
                   (('badmulti12', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
