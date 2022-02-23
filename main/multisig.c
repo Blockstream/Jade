@@ -5,6 +5,15 @@
 
 #include <sodium/utils.h>
 
+// 0 - 0.1.30 - variant, threshold, signers, hmac
+// 1 - 0.1.31 - include the 'sorted' flag
+// 2 - 0.1.34 - include any liquid master blinding key
+static const uint8_t CURRENT_RECORD_VERSION = 2;
+
+// The smallest valid multisig record, for sanity checking
+// version 1, 1of1  (moving to v1 predated allowing just 1 signer)
+#define MIN_MULTISIG_BYTES_LEN (4 + 78 + 32)
+
 // Walks the multisig signers and validates - this wallet must have at least one xpub and it must be correct
 bool multisig_validate_signers(const char* network, const signer_t* signers, const size_t num_signers,
     const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len)
@@ -50,28 +59,28 @@ bool multisig_validate_signers(const char* network, const signer_t* signers, con
 }
 
 bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, const uint8_t threshold,
-    const signer_t* signers, const size_t num_signers, uint8_t* output_bytes, const size_t output_len)
+    const signer_t* signers, const size_t num_signers, const uint8_t* master_blinding_key,
+    const size_t master_blinding_key_len, uint8_t* output_bytes, const size_t output_len)
 {
     JADE_ASSERT(threshold > 0);
     JADE_ASSERT(signers);
     JADE_ASSERT(num_signers >= threshold);
     JADE_ASSERT(num_signers <= MAX_MULTISIG_SIGNERS);
+    JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
     JADE_ASSERT(output_bytes);
-    JADE_ASSERT(output_len == MULTISIG_BYTES_LEN(num_signers));
+    JADE_ASSERT(output_len == MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers));
 
     // Version byte
-    // (1 - now that we include the 'sorted' flag)
-    const uint8_t version = 1;
     uint8_t* write_ptr = output_bytes;
-    memcpy(write_ptr, &version, sizeof(version));
-    write_ptr += sizeof(version);
+    memcpy(write_ptr, &CURRENT_RECORD_VERSION, sizeof(CURRENT_RECORD_VERSION));
+    write_ptr += sizeof(CURRENT_RECORD_VERSION);
 
     // Script variant
     const uint8_t variant_byte = (uint8_t)variant;
     memcpy(write_ptr, &variant_byte, sizeof(variant_byte));
     write_ptr += sizeof(variant_byte);
 
-    // 'sorted' flag
+    // 'sorted' flag (new to version 1)
     const uint8_t sorted_byte = (uint8_t)sorted;
     memcpy(write_ptr, &sorted_byte, sizeof(sorted_byte));
     write_ptr += sizeof(sorted_byte);
@@ -79,6 +88,16 @@ bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, c
     // Threshold
     memcpy(write_ptr, &threshold, sizeof(threshold));
     write_ptr += sizeof(threshold);
+
+    // Blinding key len, and data (new to version 2)
+    const uint8_t keylen = (uint8_t)master_blinding_key_len;
+    memcpy(write_ptr, &keylen, sizeof(keylen));
+    write_ptr += sizeof(keylen);
+
+    if (master_blinding_key_len) {
+        memcpy(write_ptr, master_blinding_key, master_blinding_key_len);
+        write_ptr += master_blinding_key_len;
+    }
 
     // All signers immediate parent keys
     for (size_t i = 0; i < num_signers; ++i) {
@@ -109,7 +128,7 @@ bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, c
 bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, multisig_data_t* output)
 {
     JADE_ASSERT(bytes);
-    JADE_ASSERT(bytes_len >= MULTISIG_BYTES_LEN(1));
+    JADE_ASSERT(bytes_len >= MIN_MULTISIG_BYTES_LEN);
     JADE_ASSERT(output);
 
     // Check hmac first
@@ -121,10 +140,9 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
     }
 
     // Version byte
-    // (0 - before 'sorted' flag was added; 1 - includes 'sorted' flag)
     const uint8_t* read_ptr = bytes;
     const uint8_t version = *read_ptr;
-    if (version > 1) {
+    if (version > CURRENT_RECORD_VERSION) {
         JADE_LOGE("Bad version byte in stored registered multisig data");
         return false;
     }
@@ -149,10 +167,28 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
     output->threshold = *read_ptr;
     read_ptr += sizeof(uint8_t);
 
+    // Version 2 adds the 'blinding key' data, which otherwise defaults to null/none
+    output->master_blinding_key_len = 0;
+    if (version > 1) {
+        const uint8_t keylen = *read_ptr;
+        read_ptr += sizeof(keylen);
+
+        if (keylen) {
+            if (keylen != sizeof(output->master_blinding_key)) {
+                JADE_LOGE("Unexpected blinding key length %d", keylen);
+                return false;
+            }
+
+            output->master_blinding_key_len = keylen;
+            memcpy(output->master_blinding_key, read_ptr, keylen);
+            read_ptr += keylen;
+        }
+    }
+
     // All signers immediate parent keys
     const size_t xpubs_len = bytes + bytes_len - HMAC_SHA256_LEN - read_ptr;
     const size_t num_xpubs = xpubs_len / BIP32_SERIALIZED_LEN;
-    if (num_xpubs > MAX_MULTISIG_SIGNERS) {
+    if (!num_xpubs || num_xpubs > MAX_MULTISIG_SIGNERS) {
         JADE_LOGE("Unexpected number of multisig signers %d", output->num_xpubs);
         return false;
     }
@@ -178,8 +214,7 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
     JADE_INIT_OUT_PPTR(errmsg);
 
     size_t written = 0;
-
-    uint8_t registration[MULTISIG_BYTES_LEN(MAX_MULTISIG_SIGNERS)]; // Sufficient
+    uint8_t registration[MAX_MULTISIG_BYTES_LEN]; // Sufficient
     if (!storage_get_multisig_registration(multisig_name, registration, sizeof(registration), &written)) {
         *errmsg = "Cannot find named multisig wallet";
         return false;
@@ -192,7 +227,8 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
 
     // Sanity check data we are have loaded
     if (!is_multisig(output->variant) || output->threshold == 0 || output->threshold > output->num_xpubs
-        || !output->num_xpubs || output->num_xpubs > MAX_MULTISIG_SIGNERS) {
+        || !output->num_xpubs || output->num_xpubs > MAX_MULTISIG_SIGNERS
+        || (output->master_blinding_key_len && output->master_blinding_key_len != MULTISIG_MASTER_BLINDING_KEY_SIZE)) {
         *errmsg = "Multisig wallet data invalid";
     }
 

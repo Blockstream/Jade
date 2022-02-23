@@ -443,7 +443,7 @@ ota_complete reply
 register_multisig request
 -------------------------
 
-Jade can store up to 8 user-defined multisig wallet configurations, which need to be confirmed on the hw.
+Jade can store up to 16 user-defined multisig wallet configurations, which need to be confirmed on the hw.
 
 .. code-block:: cbor
 
@@ -457,6 +457,7 @@ Jade can store up to 8 user-defined multisig wallet configurations, which need t
                 "variant": "sh(multi(k))",
                 "sorted": true,
                 "threshold": 2,
+                "master_blinding_key": <32-bytes>
                 "signers": [
                     {
                         "fingerprint": <4 bytes>,
@@ -477,6 +478,7 @@ Jade can store up to 8 user-defined multisig wallet configurations, which need t
 
 * 'multisig_name' is a string, and must be less than 16 characters long.  Using an existing name will overwrite the corresponding registration record.
 * 'variant' indicates the script type used, and must be one of: 'sh(multi(k))', 'wsh(multi(k))' or 'sh(wsh(multi(k)))'
+* 'master_blinding_key' should be set for multisigs to be used on a Liquid network if the Jade is to provide confidential addresses, blinding keys, blinding nonces, asset blinding factors or output commitments.  Otherwise it can be omitted.
 * 'fingerprint' is the 4-byte wallet origin fingerprint - at least one signer must reference the Jade signer's root xpub fingerprint.
 * 'derivation' is the path from the origin to the given xpub - currently it is only used for the Jade signer, where it is used to verify the passed xpub.
 * 'xpub' is the signer xpub, as described by the 'fingerprint' and 'derivation' (validated, in the case of this unit's signer).
@@ -523,18 +525,21 @@ get_registered_multisigs reply
                 "sorted": true,
                 "threshold": 2,
                 "num_signers": 3
+                "master_blinding_key": <32-bytes>
             },
             "family": {
                 "variant": "sh(wsh(multi(k)))",
                 "sorted": false,
                 "threshold": 2,
                 "num_signers": 3
+                "master_blinding_key": null
             },
             "small_beans": {
                 "variant": "sh(multi(k))",
                 "sorted": true,
                 "threshold": 2,
                 "num_signers": 2
+                "master_blinding_key": <32-bytes>
             },
         }
     }

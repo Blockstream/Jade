@@ -11,8 +11,10 @@ typedef struct {
     const char* name;
     const char* variant;
     bool sorted;
+    bool has_master_blinding_key;
     uint8_t threshold;
     uint8_t num_signers;
+    uint8_t master_blinding_key[MULTISIG_MASTER_BLINDING_KEY_SIZE];
 } multisig_desc_t;
 
 typedef struct {
@@ -38,13 +40,20 @@ static void reply_registered_multisigs(const void* ctx, CborEncoder* container)
         JADE_ASSERT(cberr == CborNoError);
 
         CborEncoder entry_encoder;
-        CborError cberr = cbor_encoder_create_map(&root_encoder, &entry_encoder, 4);
+        CborError cberr = cbor_encoder_create_map(&root_encoder, &entry_encoder, 5);
         JADE_ASSERT(cberr == CborNoError);
 
         add_string_to_map(&entry_encoder, "variant", desc->variant ? desc->variant : "");
         add_boolean_to_map(&entry_encoder, "sorted", desc->sorted);
         add_uint_to_map(&entry_encoder, "threshold", desc->threshold);
         add_uint_to_map(&entry_encoder, "num_signers", desc->num_signers);
+
+        if (desc->has_master_blinding_key) {
+            add_bytes_to_map(
+                &entry_encoder, "master_blinding_key", desc->master_blinding_key, sizeof(desc->master_blinding_key));
+        } else {
+            add_bytes_to_map(&entry_encoder, "master_blinding_key", NULL, 0);
+        }
 
         cberr = cbor_encoder_close_container(&root_encoder, &entry_encoder);
         JADE_ASSERT(cberr == CborNoError);
@@ -76,13 +85,12 @@ void get_registered_multisigs_process(void* process_ptr)
     multisig_descriptions_t descriptions;
     descriptions.num_multisigs = 0;
     JADE_ASSERT(num_multisigs <= sizeof(descriptions.multisigs) / sizeof(descriptions.multisigs[0]));
-
     for (int i = 0; i < num_multisigs; ++i) {
         const char* errmsg = NULL;
         multisig_data_t multisig_data;
         const bool valid = multisig_load_from_storage(names[i], &multisig_data, &errmsg);
 
-        // If valid for this wallet, add description info (name, script-variant, is-sorted, threshold, num-signers)
+        // If valid for this wallet, add description/summary info
         if (valid) {
             multisig_desc_t* const desc = descriptions.multisigs + descriptions.num_multisigs;
             desc->name = names[i];
@@ -90,6 +98,17 @@ void get_registered_multisigs_process(void* process_ptr)
             desc->sorted = multisig_data.sorted;
             desc->threshold = multisig_data.threshold;
             desc->num_signers = multisig_data.num_xpubs;
+
+            // Optional liquid master blinding key
+            if (multisig_data.master_blinding_key_len) {
+                JADE_ASSERT(multisig_data.master_blinding_key_len == sizeof(desc->master_blinding_key));
+                memcpy(desc->master_blinding_key, multisig_data.master_blinding_key,
+                    multisig_data.master_blinding_key_len);
+                desc->has_master_blinding_key = true;
+            } else {
+                desc->has_master_blinding_key = false;
+            }
+
             ++descriptions.num_multisigs;
         } else if (errmsg) {
             // Corrupt or for another wallet - just log and skip
@@ -99,6 +118,8 @@ void get_registered_multisigs_process(void* process_ptr)
 
     // Reply with this info
     jade_process_reply_to_message_result(process->ctx, &descriptions, reply_registered_multisigs);
+
+    JADE_LOGI("Success");
 
 cleanup:
     return;

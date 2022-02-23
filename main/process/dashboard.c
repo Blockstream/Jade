@@ -508,9 +508,12 @@ static void handle_multisigs(void)
             JADE_LOGW("%s", errmsg);
         }
 
-        gui_activity_t* act;
+        gui_activity_t* act = NULL;
+        uint8_t* const master_blinding_key
+            = multisig_data.master_blinding_key_len ? multisig_data.master_blinding_key : NULL;
         make_view_multisig_activity(&act, multisig_name, i + 1, num_multisigs, valid, multisig_data.sorted,
-            multisig_data.threshold, multisig_data.num_xpubs);
+            multisig_data.threshold, multisig_data.num_xpubs, master_blinding_key,
+            multisig_data.master_blinding_key_len);
         JADE_ASSERT(act);
 
         while (true) {

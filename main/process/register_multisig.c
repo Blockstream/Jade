@@ -16,7 +16,8 @@
 #include <sodium/utils.h>
 
 void make_confirm_multisig_activity(const char* multisig_name, bool sorted, size_t threshold, const signer_t* signers,
-    size_t num_signers, const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, bool overwriting,
+    size_t num_signers, const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len,
+    const uint8_t* master_blinding_key, size_t master_blinding_key_len, bool overwriting,
     gui_activity_t** first_activity);
 
 static bool multisig_name_valid(const char* name)
@@ -126,8 +127,9 @@ void register_multisig_process(void* process_ptr)
     size_t written = 0;
     rpc_get_string("network", sizeof(network), &params, network, &written);
     CHECK_NETWORK_CONSISTENT(process, network, written);
+    const bool isLiquid = isLiquidNetwork(network);
 
-    if (isLiquidNetwork(network)) {
+    if (isLiquid) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Multisig is not supported for liquid networks", NULL);
         goto cleanup;
@@ -162,6 +164,17 @@ void register_multisig_process(void* process_ptr)
     if (rpc_has_field_data("sorted", &descriptor)) {
         if (!rpc_get_boolean("sorted", &descriptor, &sorted)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid sorted flag value", NULL);
+            goto cleanup;
+        }
+    }
+
+    // Liquid master blinding key for this multisig wallet
+    const uint8_t* master_blinding_key = NULL;
+    size_t master_blinding_key_len = 0;
+    if (rpc_has_field_data("master_blinding_key", &descriptor)) {
+        rpc_get_bytes_ptr("master_blinding_key", &descriptor, &master_blinding_key, &master_blinding_key_len);
+        if (!master_blinding_key || master_blinding_key_len != MULTISIG_MASTER_BLINDING_KEY_SIZE) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid blinding key value", NULL);
             goto cleanup;
         }
     }
@@ -206,12 +219,11 @@ void register_multisig_process(void* process_ptr)
         goto cleanup;
     }
 
-    // Serialise as bytes
-    uint8_t registration[MULTISIG_BYTES_LEN(MAX_MULTISIG_SIGNERS)]; // Sufficient
-    const size_t registration_len = MULTISIG_BYTES_LEN(num_signers);
+    uint8_t registration[MAX_MULTISIG_BYTES_LEN]; // Sufficient
+    const size_t registration_len = MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers);
     JADE_ASSERT(registration_len <= sizeof(registration));
-    if (!multisig_data_to_bytes(
-            script_variant, sorted, threshold, signers, num_signers, registration, registration_len)) {
+    if (!multisig_data_to_bytes(script_variant, sorted, threshold, signers, num_signers, master_blinding_key,
+            master_blinding_key_len, registration, registration_len)) {
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to serialise multisig registration", NULL);
         goto cleanup;
@@ -224,7 +236,7 @@ void register_multisig_process(void* process_ptr)
     // - if so, just return true immediately.
     if (overwriting) {
         written = 0;
-        uint8_t existing[MULTISIG_BYTES_LEN(MAX_MULTISIG_SIGNERS)]; // Sufficient
+        uint8_t existing[MAX_MULTISIG_BYTES_LEN]; // Sufficient
         if (storage_get_multisig_registration(multisig_name, existing, sizeof(existing), &written)
             && written == registration_len && !sodium_memcmp(existing, registration, registration_len)) {
             JADE_LOGI("Multisig %s: identical registration exists, returning immediately", multisig_name);
@@ -241,7 +253,7 @@ void register_multisig_process(void* process_ptr)
 
     gui_activity_t* first_activity = NULL;
     make_confirm_multisig_activity(multisig_name, sorted, threshold, signers, num_signers, wallet_fingerprint,
-        sizeof(wallet_fingerprint), overwriting, &first_activity);
+        sizeof(wallet_fingerprint), master_blinding_key, master_blinding_key_len, overwriting, &first_activity);
     JADE_ASSERT(first_activity);
     gui_set_current_activity(first_activity);
 

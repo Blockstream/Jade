@@ -1,0 +1,79 @@
+{
+  "input": {
+    "network": "testnet",
+    "multisig_name": "wsh_liquid_1of2",
+    "descriptor": {
+      "variant": "wsh(multi(k))",
+      "sorted": true,
+      "threshold": 1,
+      "master_blinding_key": "3172ae4169b206645a52df2ef79dff7a8c23412e6c0f129ef92e3ec570c5e2d1",
+      "signers": [
+        {
+          "fingerprint": "1273da33",
+          "derivation": [
+            44,
+            2147483648,
+            2147483648
+          ],
+          "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+          "path": [
+            3,
+            1
+          ]
+        },
+        {
+          "fingerprint": "e3ebcc79",
+          "derivation": [
+            2147483651,
+            2147483649,
+            1
+          ],
+          "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+          "path": [
+            1
+          ]
+        }
+      ]
+    }
+  },
+  "address_tests": [
+    {
+      "paths": [
+        [
+          1,
+          2
+        ],
+        [
+          1
+        ]
+      ],
+      "expected_address": "tb1qetn5604tnhd97k23mpqddyx8ksu255j895apr5ktzh5q8x4aac4qz6u9xn"
+    },
+    {
+      "paths": [
+        [
+          0
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected_address": "tb1qjgx89rxxsc2q725dc86vatm0tnyxyast9pxd2zduwwx2pwdzeafshq98pf"
+    },
+    {
+      "paths": [
+        [
+          1,
+          13
+        ],
+        [
+          1,
+          13
+        ]
+      ],
+      "expected_address": "tb1qzvx7kk2hu0kyptxjtvjn8z0hw5qgtphy0cjq7ya8rg7ls8fr9kjqpvgq4a"
+    }
+  ]
+}

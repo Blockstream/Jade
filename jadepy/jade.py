@@ -615,10 +615,17 @@ class JadeAPI:
         -------
         dict
             Brief description of registered multisigs, keyed by registration name.
+            Each entry contains keys:
+                variant - str, script type, eg. 'sh(wsh(multi(k)))'
+                sorted - boolean, whether bip67 key sorting is applied
+                threshold - int, number of signers required,N
+                num_signers - total number of signatories, M
+                master_blinding_key - 32-bytes, any liquid master blinding key for this wallet
         """
         return self._jadeRpc('get_registered_multisigs')
 
-    def register_multisig(self, network, multisig_name, variant, sorted_keys, threshold, signers):
+    def register_multisig(self, network, multisig_name, variant, sorted_keys, threshold, signers,
+                          master_blinding_key=None):
         """
         RPC call to register a new multisig wallet, which must contain the hw signer.
         A registration name is provided - if it already exists that record is overwritten.
@@ -649,6 +656,13 @@ class JadeAPI:
                 - 'xpub' - str, base58 xpub of signer - will be verified for hw unit signer
                 - 'path' - [int], any fixed path to always apply after the xpub - usually empty.
 
+        master_blinding_key : 32-bytes, optional
+            The master blinding key to use for this multisig wallet on liquid.
+            Optional, defaults to None.
+            Logically mandatory when 'network' indicates a liquid network and the Jade is to be
+            used to generate confidential addresses, blinding keys, blinding nonces, asset blinding
+            factors or output commitments.
+
         Returns
         -------
         bool
@@ -656,7 +670,8 @@ class JadeAPI:
         """
         params = {'network': network, 'multisig_name': multisig_name,
                   'descriptor': {'variant': variant, 'sorted': sorted_keys,
-                                 'threshold': threshold, 'signers': signers}}
+                                 'threshold': threshold, 'signers': signers,
+                                 'master_blinding_key': master_blinding_key}}
         return self._jadeRpc('register_multisig', params)
 
     def get_receive_address(self, *args, recovery_xpub=None, csv_blocks=0,
@@ -873,6 +888,8 @@ class JadeAPI:
     def get_master_blinding_key(self):
         """
         RPC call to fetch the master (SLIP-077) blinding key for the hw signer.
+        NOTE: the master blinding key of any registered multisig wallets can be obtained from
+        the result of `get_registered_multisigs()`.
 
         Returns
         -------

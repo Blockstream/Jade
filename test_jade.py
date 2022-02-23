@@ -89,6 +89,10 @@ def _h2b_test_case(testcase):
 
     if 'multisig_name' in testcase['input']:
         # multisig data
+        descriptor = testcase['input']['descriptor']
+        if 'master_blinding_key' in descriptor:
+            descriptor['master_blinding_key'] = h2b(descriptor['master_blinding_key'])
+
         for signer in testcase['input']['descriptor']['signers']:
             signer['fingerprint'] = h2b(signer['fingerprint'])
 
@@ -813,22 +817,22 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                    'Invalid script variant'),
                   (('badmulti8', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'sorted': 'Yes', 'threshold': 2, 'signers': []}}),
+                      'variant': 'wsh(multi(k))', 'sorted': 'Yes', 'threshold': 2, 'signers': []}}),
                    'Invalid sorted flag value'),
                   (('badmulti9', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'signers': []}}), 'Invalid multisig threshold'),
+                      'variant': 'wsh(multi(k))', 'signers': []}}), 'Invalid multisig threshold'),
                   (('badmulti10', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'threshold': 0, 'signers': []}}),
+                      'variant': 'wsh(multi(k))', 'threshold': 0, 'signers': []}}),
                    'Invalid multisig threshold'),
                   (('badmulti11', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'threshold': 16, 'signers': []}}),
+                      'variant': 'wsh(multi(k))', 'threshold': 16, 'signers': []}}),
                    'Invalid multisig threshold'),
                   (('badmulti12', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'threshold': 5, 'signers': GOOD_COSIGNERS}}),
+                      'variant': 'sh(wsh(multi(k)))', 'threshold': 5, 'signers': GOOD_COSIGNERS}}),
                    'threshold for number of co-signers'),
                   (('badmulti13', 'register_multisig',  # network missing or invalid
                     {'network': 'noexist', 'multisig_name': 'test'}), 'valid network'),
@@ -836,20 +840,35 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'network': 'liquid', 'multisig_name': 'test'}), 'not supported for liquid'),
                   (('badmulti15', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners1}}),
-                  'validate multisig co-signers'),
+                      'variant': 'sh(wsh(multi(k)))', 'threshold': 2, 'signers': bad_cosigners1}}),
+                   'validate multisig co-signers'),
                   (('badmulti16', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners2}}),
-                  'validate multisig co-signers'),
+                      'variant': 'wsh(multi(k))', 'threshold': 2, 'signers': bad_cosigners2}}),
+                   'validate multisig co-signers'),
                   (('badmulti17', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners3}}),
-                  'validate multisig co-signers'),
+                   'validate multisig co-signers'),
                   (('badmulti18', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners4}}),
-                  'validate multisig co-signers'),
+                   'validate multisig co-signers'),
+                  (('badmulti19', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(wsh(multi(k)))', 'threshold': 1, 'signers': GOOD_COSIGNERS,
+                      'master_blinding_key': 1234}}),
+                   'Invalid blinding key'),
+                  (('badmulti20', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'wsh(multi(k))', 'threshold': 1, 'signers': GOOD_COSIGNERS,
+                      'master_blinding_key': 'abcdef'}}),
+                   'Invalid blinding key'),
+                  (('badmulti21', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(wsh(multi(k)))', 'threshold': 1, 'signers': GOOD_COSIGNERS,
+                      'master_blinding_key': EXPECTED_MASTER_BLINDING_KEY[:-1]}}),
+                   'Invalid blinding key'),
 
                   (('badrecvaddr1', 'get_receive_address'), 'Expecting parameters map'),
                   (('badrecvaddr2', 'get_receive_address',
@@ -2046,7 +2065,8 @@ def _check_multisig_registration(jadeapi, multisig_data):
                                      descriptor['variant'],
                                      descriptor['sorted'],
                                      descriptor['threshold'],
-                                     descriptor['signers'])
+                                     descriptor['signers'],
+                                     master_blinding_key=descriptor.get('master_blinding_key'))
     assert rslt is True
 
     # Check present and correct in 'get_registered_multisigs'
@@ -2057,6 +2077,7 @@ def _check_multisig_registration(jadeapi, multisig_data):
     assert multisig_desc['sorted'] == descriptor['sorted']
     assert multisig_desc['threshold'] == descriptor['threshold']
     assert multisig_desc['num_signers'] == len(descriptor['signers'])
+    assert multisig_desc['master_blinding_key'] == descriptor.get('master_blinding_key', b'')
 
     # This includes 'get receive address' tests
     for addr_test in multisig_data['address_tests']:
@@ -2150,6 +2171,7 @@ def test_generic_multisig_ss_signer(jadeapi):
         # Test trying to access the multisig description registered under the
         # main test mnemonic fails (as must be registered by accessing wallet)
         inputdata = multisig_data['input']
+        descriptor = inputdata['descriptor']
         try:
             for addr_test in multisig_data['address_tests']:
                 rslt = jadeapi.get_receive_address(inputdata['network'],
