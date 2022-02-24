@@ -65,9 +65,8 @@ static bool add_confidential_output_info(const commitment_t* commitments, const 
     return true;
 }
 
-static bool check_trusted_commitment_valid(const unsigned char* hash_prevouts, const size_t hash_prevouts_len,
-    const int idx, const struct wally_tx_output* txoutput, const commitment_t* commitments, bool* found_odd_vbf,
-    const char** errmsg)
+static bool check_trusted_commitment_valid(const uint8_t* hash_prevouts, const size_t hash_prevouts_len, const int idx,
+    const struct wally_tx_output* txoutput, const commitment_t* commitments, bool* found_odd_vbf, const char** errmsg)
 {
     JADE_ASSERT(hash_prevouts);
     JADE_ASSERT(hash_prevouts_len == SHA256_LEN);
@@ -78,9 +77,9 @@ static bool check_trusted_commitment_valid(const unsigned char* hash_prevouts, c
     JADE_ASSERT(txoutput->value[0] != 0x01); // Don't call for unblinded outputs
     JADE_ASSERT(commitments);
 
-    unsigned char bf_tmp_buffer[HMAC_SHA256_LEN];
-    unsigned char generator_tmp[ASSET_GENERATOR_LEN];
-    unsigned char commitment_tmp[ASSET_COMMITMENT_LEN];
+    uint8_t bf_tmp_buffer[HMAC_SHA256_LEN];
+    uint8_t generator_tmp[ASSET_GENERATOR_LEN];
+    uint8_t commitment_tmp[ASSET_COMMITMENT_LEN];
 
     // Check the abf. if the host lied about hash_prevouts in get_blinding_factor/get_commitments we will detect it here
     // ALL abfs MUST be correct.
@@ -120,8 +119,8 @@ static bool check_trusted_commitment_valid(const unsigned char* hash_prevouts, c
     }
 
     // re-compute and check hmac of the provided trusted commitment
-    unsigned char signed_blob[ASSET_GENERATOR_LEN + ASSET_COMMITMENT_LEN + ASSET_TAG_LEN + sizeof(uint64_t)];
-    unsigned char* p = signed_blob;
+    uint8_t signed_blob[ASSET_GENERATOR_LEN + ASSET_COMMITMENT_LEN + ASSET_TAG_LEN + sizeof(uint64_t)];
+    uint8_t* p = signed_blob;
     memcpy(p, commitments->asset_generator, ASSET_GENERATOR_LEN);
     p += ASSET_GENERATOR_LEN;
     memcpy(p, commitments->value_commitment, ASSET_COMMITMENT_LEN);
@@ -130,7 +129,7 @@ static bool check_trusted_commitment_valid(const unsigned char* hash_prevouts, c
     p += ASSET_TAG_LEN;
     memcpy(p, &commitments->value, sizeof(uint64_t));
 
-    unsigned char our_hmac[HMAC_SHA256_LEN];
+    uint8_t our_hmac[HMAC_SHA256_LEN];
     if (!wallet_hmac_with_master_key(signed_blob, sizeof(signed_blob), our_hmac, sizeof(our_hmac))
         || sodium_memcmp(our_hmac, commitments->hmac, HMAC_SHA256_LEN) != 0) {
         *errmsg = "Failed to verify hmac from commitments data";
@@ -398,7 +397,7 @@ void sign_liquid_tx_process(void* process_ptr)
         }
 
         // update hash_prevouts with the current output being spent
-        unsigned char index_little_endian[sizeof(uint32_t)] = { 0 };
+        uint8_t index_little_endian[sizeof(uint32_t)] = { 0 };
         uint32_to_le(tx->inputs[index].index, index_little_endian);
 
         if (mbedtls_sha256_update_ret(&hash_prevout_sha_ctx, tx->inputs[index].txhash, WALLY_TXHASH_LEN) != 0
@@ -465,7 +464,7 @@ void sign_liquid_tx_process(void* process_ptr)
     }
 
     // Finalize the hash_prevout hash
-    unsigned char hash_prevouts_single[SHA256_LEN];
+    uint8_t hash_prevouts_single[SHA256_LEN];
     res = mbedtls_sha256_finish_ret(&hash_prevout_sha_ctx, hash_prevouts_single);
     if (res != 0) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to compute prevout hash", NULL);
@@ -473,7 +472,7 @@ void sign_liquid_tx_process(void* process_ptr)
     }
 
     // BIP143 says to do a double sha
-    unsigned char hash_prevouts_double[SHA256_LEN];
+    uint8_t hash_prevouts_double[SHA256_LEN];
     JADE_WALLY_VERIFY(wally_sha256(hash_prevouts_single, SHA256_LEN, hash_prevouts_double, SHA256_LEN));
 
     // char *hex_prevouts = NULL;

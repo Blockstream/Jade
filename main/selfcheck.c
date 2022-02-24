@@ -168,7 +168,7 @@ static bool test_storage_with_pin(void)
         FAIL();
     }
 
-    unsigned char aeskey[AES_KEY_LEN_256];
+    uint8_t aeskey[AES_KEY_LEN_256];
     get_random(aeskey, AES_KEY_LEN_256);
 
     // Save keychain to nvs
@@ -228,7 +228,7 @@ static bool test_storage_with_pin(void)
 
     // Reload from nvs again ...
     // BUT! pass the wrong aes-key (ie. wrong PIN) 3 times
-    unsigned char wrongkey[AES_KEY_LEN_256];
+    uint8_t wrongkey[AES_KEY_LEN_256];
     get_random(wrongkey, AES_KEY_LEN_256);
     for (size_t i = 3; i > 0; --i) {
         if (keychain_pin_attempts_remaining() != i) {
@@ -263,7 +263,7 @@ static bool test_storage_with_pin(void)
 // NOTE: only 12- and 24- words supported
 static bool test_storage_with_passphrase(const size_t nwords)
 {
-    unsigned char aeskey[AES_KEY_LEN_256];
+    uint8_t aeskey[AES_KEY_LEN_256];
     get_random(aeskey, AES_KEY_LEN_256);
 
     char* mnemonic;

@@ -233,7 +233,7 @@ void jade_process_call_on_exit(jade_process_t* process, void_fn_t fn, void* para
     add_deferred_function(&process->on_exit, fn, param);
 }
 
-bool jade_process_push_in_message(const unsigned char* data, const size_t size)
+bool jade_process_push_in_message(const uint8_t* data, const size_t size)
 {
     JADE_ASSERT(data);
 
@@ -249,7 +249,7 @@ bool jade_process_push_in_message(const unsigned char* data, const size_t size)
     return true;
 }
 
-void jade_process_push_out_message(const unsigned char* data, const size_t size, const jade_msg_source_t source)
+void jade_process_push_out_message(const uint8_t* data, const size_t size, const jade_msg_source_t source)
 {
 #if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
     JADE_ASSERT(source == SOURCE_QEMU_TCP || source == SOURCE_SERIAL);
@@ -337,7 +337,7 @@ static void dump_mem_report(void)
 static inline bool ble_connected(void) { return false; }
 #endif
 
-void jade_process_get_in_message(void* ctx, void (*writer)(void*, unsigned char*, size_t), bool blocking)
+void jade_process_get_in_message(void* ctx, void (*writer)(void*, uint8_t*, size_t), bool blocking)
 {
     const TickType_t delay = 40 / portTICK_PERIOD_MS;
     uint8_t counter = 0;
@@ -348,7 +348,7 @@ void jade_process_get_in_message(void* ctx, void (*writer)(void*, unsigned char*
         if (item != NULL) {
             // Got item from queue
             if (writer) {
-                writer(ctx, (unsigned char*)item, item_size);
+                writer(ctx, (uint8_t*)item, item_size);
             }
             vRingbufferReturnItem(shared_in, item);
             return;
@@ -370,7 +370,7 @@ void jade_process_get_in_message(void* ctx, void (*writer)(void*, unsigned char*
     } while (blocking);
 }
 
-static void process_cbor_msg(void* ctx, unsigned char* data, size_t size)
+static void process_cbor_msg(void* ctx, uint8_t* data, size_t size)
 {
     JADE_ASSERT(size > 2); // 1 for source and 1 for data
     cbor_msg_t* cbor_msg = ctx;

@@ -67,7 +67,7 @@ void get_commitments_process(void* process_ptr)
     }
 
     // generate the abf
-    unsigned char abf[HMAC_SHA256_LEN];
+    uint8_t abf[HMAC_SHA256_LEN];
     if (!wallet_get_blinding_factor(
             hash_prevouts, hash_prevouts_len, output_index, ASSET_BLINDING_FACTOR, abf, sizeof(abf))) {
         jade_process_reject_message(
@@ -97,9 +97,9 @@ void get_commitments_process(void* process_ptr)
 
     // compute asset generator and value commitment and place them into the signed blob
     // signed_blob = <asset_generator> + <value_commitment> + <plaintext asset id> + <plaintext value>
-    unsigned char signed_blob[ASSET_GENERATOR_LEN + ASSET_COMMITMENT_LEN + ASSET_TAG_LEN + sizeof(uint64_t)];
+    uint8_t signed_blob[ASSET_GENERATOR_LEN + ASSET_COMMITMENT_LEN + ASSET_TAG_LEN + sizeof(uint64_t)];
 
-    unsigned char* asset_generator = signed_blob;
+    uint8_t* asset_generator = signed_blob;
     if (wally_asset_generator_from_bytes(
             asset_id, asset_id_len, abf, HMAC_SHA256_LEN, asset_generator, ASSET_GENERATOR_LEN)
         != WALLY_OK) {
@@ -108,7 +108,7 @@ void get_commitments_process(void* process_ptr)
         goto cleanup;
     }
 
-    unsigned char* value_commitment = asset_generator + ASSET_GENERATOR_LEN;
+    uint8_t* value_commitment = asset_generator + ASSET_GENERATOR_LEN;
     if (wally_asset_value_commitment(
             value, vbf, HMAC_SHA256_LEN, asset_generator, ASSET_GENERATOR_LEN, value_commitment, ASSET_COMMITMENT_LEN)
         != WALLY_OK) {
@@ -118,15 +118,15 @@ void get_commitments_process(void* process_ptr)
     }
 
     // copy value and asset_id into the signed blob
-    unsigned char* signed_asset_id_copy = value_commitment + ASSET_COMMITMENT_LEN;
+    uint8_t* signed_asset_id_copy = value_commitment + ASSET_COMMITMENT_LEN;
     memcpy(signed_asset_id_copy, asset_id, ASSET_TAG_LEN);
 
-    unsigned char* signed_value_copy = signed_asset_id_copy + ASSET_TAG_LEN;
+    uint8_t* signed_value_copy = signed_asset_id_copy + ASSET_TAG_LEN;
     memcpy(signed_value_copy, &value,
         sizeof(uint64_t)); // TODO endianness? should be fine as long as we encode/decode always on the same platform
 
     // hmac the result
-    unsigned char hmac[HMAC_SHA256_LEN];
+    uint8_t hmac[HMAC_SHA256_LEN];
     if (!wallet_hmac_with_master_key(signed_blob, sizeof(signed_blob), hmac, sizeof(hmac))) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to compute hmac", NULL);
         goto cleanup;

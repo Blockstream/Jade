@@ -78,7 +78,7 @@ void get_shared_nonce_process(void* process_ptr)
     }
 
     // Get blinding nonce - sha256(ecdh(our_prikey, their_pubkey))
-    unsigned char shared_nonce[SHA256_LEN];
+    uint8_t shared_nonce[SHA256_LEN];
     if (!wallet_get_shared_blinding_nonce(script, script_len, their_pubkey, their_pubkey_len, shared_nonce,
             sizeof(shared_nonce), p_blinding_pubkey, blinding_pubkey_len)) {
         jade_process_reject_message(

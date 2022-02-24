@@ -22,7 +22,7 @@ void get_blinding_key_process(void* process_ptr)
         goto cleanup;
     }
 
-    unsigned char public_blinding_key[EC_PUBLIC_KEY_LEN];
+    uint8_t public_blinding_key[EC_PUBLIC_KEY_LEN];
     if (!wallet_get_public_blinding_key(script, script_len, public_blinding_key, sizeof(public_blinding_key))) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding key for script", NULL);
         goto cleanup;

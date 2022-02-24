@@ -417,7 +417,7 @@ void make_display_elements_output_activity(
         }
 
         // Get the asset-id display hex string
-        unsigned char flipped_asset_id[32];
+        uint8_t flipped_asset_id[32];
         for (size_t x = 0; x < 32; x++) {
             flipped_asset_id[x] = output_info[i].asset_id[32 - x - 1];
         }

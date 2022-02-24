@@ -35,7 +35,7 @@ void get_receive_address_process(void* process_ptr)
     // Handle single-sig and generic multisig script variants
     // (Green-multisig is the default for backwards compatibility)
     size_t script_len = 0;
-    unsigned char script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient for all scripts
+    uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient for all scripts
 
     char warning_msg_text[128];
     const char* warning_msg = NULL;
@@ -200,7 +200,7 @@ void get_receive_address_process(void* process_ptr)
 
         if (confidential) {
             // Blind address
-            unsigned char blinding_key[EC_PUBLIC_KEY_LEN];
+            uint8_t blinding_key[EC_PUBLIC_KEY_LEN];
             if (!wallet_get_public_blinding_key(script, script_len, blinding_key, sizeof(blinding_key))) {
                 jade_process_reject_message(
                     process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding key for script", NULL);

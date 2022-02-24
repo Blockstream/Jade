@@ -81,7 +81,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
 
             uint32_t csvBlocks = 0;
             size_t script_len = 0;
-            unsigned char script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
+            uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
             size_t written = 0;
 
             // If multisig change, need to verify against the registered multisig wallets
@@ -546,7 +546,7 @@ void sign_tx_process(void* process_ptr)
 
         // Full input tx can be omitted for transactions with only one single witness
         // input, otherwise it must be present to validate the input utxo amounts.
-        const unsigned char* txbuf = NULL;
+        const uint8_t* txbuf = NULL;
         size_t txsize = 0;
         rpc_get_bytes_ptr("input_tx", &params, &txbuf, &txsize);
 

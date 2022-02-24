@@ -130,7 +130,7 @@ static const size_t NUM_ESP_RESERVED_ENTRIES = 126;
         nvs_close(h);                                                                                                  \
     } while (false)
 
-static bool store_blob(const char* ns, const char* name, const unsigned char* data, const size_t len)
+static bool store_blob(const char* ns, const char* name, const uint8_t* data, const size_t len)
 {
     JADE_ASSERT(ns);
     JADE_ASSERT(name);
@@ -145,7 +145,7 @@ static bool store_blob(const char* ns, const char* name, const unsigned char* da
     return true;
 }
 
-static bool read_blob(const char* ns, const char* name, unsigned char* data, const size_t len, size_t* written)
+static bool read_blob(const char* ns, const char* name, uint8_t* data, const size_t len, size_t* written)
 {
     JADE_ASSERT(ns);
     JADE_ASSERT(name);
@@ -159,7 +159,7 @@ static bool read_blob(const char* ns, const char* name, unsigned char* data, con
     return true;
 }
 
-static bool read_blob_fixed(const char* ns, const char* name, unsigned char* data, const size_t len)
+static bool read_blob_fixed(const char* ns, const char* name, uint8_t* data, const size_t len)
 {
     size_t written;
     if (!read_blob(ns, name, data, len, &written)) {
@@ -300,7 +300,7 @@ bool storage_get_stats(size_t* entries_used, size_t* entries_free)
     return true;
 }
 
-bool storage_get_pin_privatekey(unsigned char* privatekey, const size_t key_len)
+bool storage_get_pin_privatekey(uint8_t* privatekey, const size_t key_len)
 {
     JADE_ASSERT(privatekey);
     JADE_ASSERT(key_len == EC_PRIVATE_KEY_LEN);
@@ -317,7 +317,7 @@ bool storage_get_pin_privatekey(unsigned char* privatekey, const size_t key_len)
     return true;
 }
 
-bool storage_set_pin_privatekey(const unsigned char* privatekey, const size_t key_len)
+bool storage_set_pin_privatekey(const uint8_t* privatekey, const size_t key_len)
 {
     JADE_ASSERT(privatekey);
     JADE_ASSERT(key_len == EC_PRIVATE_KEY_LEN);
@@ -332,7 +332,7 @@ bool storage_set_pin_privatekey(const unsigned char* privatekey, const size_t ke
 
 bool storage_erase_pin_privatekey(void) { return erase_key(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD); }
 
-bool storage_set_encrypted_blob(const unsigned char* encrypted, const size_t encrypted_len)
+bool storage_set_encrypted_blob(const uint8_t* encrypted, const size_t encrypted_len)
 {
     JADE_ASSERT(encrypted);
     if (!storage_restore_counter()) {
@@ -341,7 +341,7 @@ bool storage_set_encrypted_blob(const unsigned char* encrypted, const size_t enc
     return store_blob(DEFAULT_NAMESPACE, BLOB_FIELD, encrypted, encrypted_len);
 }
 
-bool storage_get_encrypted_blob(unsigned char* encrypted, const size_t encrypted_len, size_t* written)
+bool storage_get_encrypted_blob(uint8_t* encrypted, const size_t encrypted_len, size_t* written)
 {
     return read_blob(DEFAULT_NAMESPACE, BLOB_FIELD, encrypted, encrypted_len, written);
 }
@@ -384,8 +384,7 @@ uint8_t storage_get_counter(void)
     return read_blob_fixed(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD, &counter, sizeof(counter)) ? counter : 0;
 }
 
-bool storage_set_pinserver_details(
-    const char* urlA, const char* urlB, const unsigned char* pubkey, const size_t pubkey_len)
+bool storage_set_pinserver_details(const char* urlA, const char* urlB, const uint8_t* pubkey, const size_t pubkey_len)
 {
     JADE_ASSERT(urlA);
     JADE_ASSERT(urlB);
@@ -415,7 +414,7 @@ bool storage_get_pinserver_urlB(char* url, const size_t len, size_t* written)
     return read_string(DEFAULT_NAMESPACE, USER_PINSERVER_URL_B, url, len, written);
 }
 
-bool storage_get_pinserver_pubkey(unsigned char* pubkey, const size_t pubkey_len)
+bool storage_get_pinserver_pubkey(uint8_t* pubkey, const size_t pubkey_len)
 {
     return read_blob_fixed(DEFAULT_NAMESPACE, USER_PINSERVER_PUBKEY, pubkey, pubkey_len);
 }
@@ -444,27 +443,26 @@ bool storage_erase_pinserver_cert(void) { return erase_key(DEFAULT_NAMESPACE, US
 
 bool storage_set_network_type_restriction(network_type_t networktype)
 {
-    return store_blob(DEFAULT_NAMESPACE, NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype));
+    return store_blob(DEFAULT_NAMESPACE, NETWORK_TYPE_FIELD, (uint8_t*)&networktype, sizeof(networktype));
 }
 
 network_type_t storage_get_network_type_restriction(void)
 {
     network_type_t networktype = NETWORK_TYPE_NONE;
-    return read_blob_fixed(DEFAULT_NAMESPACE, NETWORK_TYPE_FIELD, (unsigned char*)&networktype, sizeof(networktype))
+    return read_blob_fixed(DEFAULT_NAMESPACE, NETWORK_TYPE_FIELD, (uint8_t*)&networktype, sizeof(networktype))
         ? networktype
         : NETWORK_TYPE_NONE;
 }
 
 bool storage_set_idle_timeout(uint16_t timeout)
 {
-    return store_blob(DEFAULT_NAMESPACE, IDLE_TIMEOUT_FIELD, (const unsigned char*)&timeout, sizeof(timeout));
+    return store_blob(DEFAULT_NAMESPACE, IDLE_TIMEOUT_FIELD, (const uint8_t*)&timeout, sizeof(timeout));
 }
 
 uint16_t storage_get_idle_timeout(void)
 {
     uint16_t timeout = 0;
-    return read_blob_fixed(DEFAULT_NAMESPACE, IDLE_TIMEOUT_FIELD, (unsigned char*)&timeout, sizeof(timeout)) ? timeout
-                                                                                                             : 0;
+    return read_blob_fixed(DEFAULT_NAMESPACE, IDLE_TIMEOUT_FIELD, (uint8_t*)&timeout, sizeof(timeout)) ? timeout : 0;
 }
 
 bool storage_set_click_event(uint8_t event)

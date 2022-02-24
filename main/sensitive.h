@@ -5,7 +5,7 @@
  * be zeroed after use. A stack of sensitive memory areas is maintained, callers
  * must push and pop items from the stack in order. Example:
  *
- * unsigned char private_key[PRIVATE_KEY_SIZE];
+ * uint8_t private_key[PRIVATE_KEY_SIZE];
  * SENSITIVE_PUSH(private_key, sizeof(private_key));
  *
  * get_private_key(private_key);
@@ -25,7 +25,7 @@
  * -- leaky
  * void leaky(void)
  * {
- *     unsigned char buf[1024];
+ *     uint8_t buf[1024];
  *     SENSITIVE_PUSH(buf, sizeof(buf));
  * }
  *
@@ -38,8 +38,8 @@
  * -- wrong order
  * void wrong_order(void)
  * {
- *     unsigned char buf[1024];
- *     unsigned char buf2[1024];
+ *     uint8_t buf[1024];
+ *     uint8_t buf2[1024];
  *     SENSITIVE_PUSH(buf, sizeof(buf));
  *     SENSITIVE_PUSH(buf2, sizeof(buf2));
  *     SENSITIVE_POP(buf); // this will abort (after zeroing both buffers)

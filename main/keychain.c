@@ -24,7 +24,7 @@
 
 // GA derived key index, and fixed GA key message
 static const uint32_t GA_PATH_ROOT = BIP32_INITIAL_HARDENED_CHILD + 0x4741;
-static const unsigned char GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
+static const uint8_t GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
 
 // Internal variables - the single/global keychain data
 static keychain_t* keychain_data = NULL;
@@ -186,7 +186,7 @@ void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
     JADE_ASSERT(mnemonic);
 
     // Large enough for 12 and 24 word mnemonic
-    unsigned char entropy[BIP39_ENTROPY_LEN_256];
+    uint8_t entropy[BIP39_ENTROPY_LEN_256];
     SENSITIVE_PUSH(entropy, sizeof(entropy));
 
     const size_t entropy_len = nwords == 12 ? BIP39_ENTROPY_LEN_128 : BIP39_ENTROPY_LEN_256;
@@ -198,7 +198,7 @@ void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
 }
 
 // Derive master key from given seed
-void keychain_derive_from_seed(const unsigned char* seed, const size_t seed_len, keychain_t* keydata)
+void keychain_derive_from_seed(const uint8_t* seed, const size_t seed_len, keychain_t* keydata)
 {
     JADE_ASSERT(seed);
     JADE_ASSERT(seed_len);
@@ -243,7 +243,7 @@ bool keychain_derive_from_mnemonic(const char* mnemonic, const char* passphrase,
         return false;
     }
 
-    unsigned char seed[BIP32_ENTROPY_LEN_512];
+    uint8_t seed[BIP32_ENTROPY_LEN_512];
     SENSITIVE_PUSH(seed, sizeof(seed));
 
     size_t written = 0;
@@ -289,7 +289,7 @@ cleanup:
     return retval;
 }
 
-static void serialize(unsigned char* serialized, const size_t serialized_len, const keychain_t* keydata)
+static void serialize(uint8_t* serialized, const size_t serialized_len, const keychain_t* keydata)
 {
     JADE_ASSERT(serialized);
     JADE_ASSERT(serialized_len == SERIALIZED_KEY_LEN);
@@ -301,7 +301,7 @@ static void serialize(unsigned char* serialized, const size_t serialized_len, co
     memcpy(serialized + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, keydata->master_unblinding_key, HMAC_SHA512_LEN);
 }
 
-static void unserialize(const unsigned char* decrypted, const size_t decrypted_len, keychain_t* keydata)
+static void unserialize(const uint8_t* decrypted, const size_t decrypted_len, keychain_t* keydata)
 {
     JADE_ASSERT(decrypted);
     JADE_ASSERT(decrypted_len == SERIALIZED_KEY_LEN);
@@ -313,7 +313,7 @@ static void unserialize(const unsigned char* decrypted, const size_t decrypted_l
     memcpy(keydata->master_unblinding_key, decrypted + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, HMAC_SHA512_LEN);
 }
 
-static void get_encrypted_blob(const unsigned char* aeskey, const size_t aes_len, const uint8_t* bytes,
+static void get_encrypted_blob(const uint8_t* aeskey, const size_t aes_len, const uint8_t* bytes,
     const size_t bytes_len, uint8_t* output, const size_t output_len)
 {
     JADE_ASSERT(aeskey);
@@ -341,7 +341,7 @@ static void get_encrypted_blob(const unsigned char* aeskey, const size_t aes_len
         aeskey, aes_len, output, output_len - HMAC_SHA256_LEN, output + output_len - HMAC_SHA256_LEN, HMAC_SHA256_LEN));
 }
 
-static bool get_decrypted_payload(const unsigned char* aeskey, const size_t aes_len, const uint8_t* bytes,
+static bool get_decrypted_payload(const uint8_t* aeskey, const size_t aes_len, const uint8_t* bytes,
     const size_t bytes_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(aeskey);
@@ -355,7 +355,7 @@ static bool get_decrypted_payload(const unsigned char* aeskey, const size_t aes_
     JADE_ASSERT(output_len >= payload_len);
 
     // 1. Verify HMAC
-    unsigned char hmac_calculated[HMAC_SHA256_LEN];
+    uint8_t hmac_calculated[HMAC_SHA256_LEN];
     JADE_WALLY_VERIFY(wally_hmac_sha256(
         aeskey, aes_len, bytes, bytes_len - HMAC_SHA256_LEN, hmac_calculated, sizeof(hmac_calculated)));
     if (crypto_verify_32(hmac_calculated, bytes + bytes_len - HMAC_SHA256_LEN) != 0) {
@@ -371,7 +371,7 @@ static bool get_decrypted_payload(const unsigned char* aeskey, const size_t aes_
     return true;
 }
 
-bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len)
+bool keychain_store_encrypted(const uint8_t* aeskey, const size_t aes_len)
 {
     if (!aeskey || aes_len != AES_KEY_LEN_256) {
         return false;
@@ -383,8 +383,8 @@ bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len)
 
     // These buffers are sized for serialising the extended key structure
     // If instead we are storing mnemonic entropy, the 'encrypted' buffer is of ample size.
-    unsigned char serialized[SERIALIZED_KEY_LEN];
-    unsigned char encrypted[ENCRYPTED_AES_LEN(sizeof(serialized))];
+    uint8_t serialized[SERIALIZED_KEY_LEN];
+    uint8_t encrypted[ENCRYPTED_AES_LEN(sizeof(serialized))];
     SENSITIVE_PUSH(encrypted, sizeof(encrypted));
     SENSITIVE_PUSH(serialized, sizeof(serialized));
 
@@ -429,7 +429,7 @@ bool keychain_store_encrypted(const unsigned char* aeskey, const size_t aes_len)
     return true;
 }
 
-bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len)
+bool keychain_load_cleartext(const uint8_t* aeskey, const size_t aes_len)
 {
     if (!aeskey || aes_len != AES_KEY_LEN_256) {
         return false;
@@ -445,8 +445,8 @@ bool keychain_load_cleartext(const unsigned char* aeskey, const size_t aes_len)
 
     // These buffers are sized for deserialising the extended key structure
     // If instead we are storing mnemonic entropy, the buffers are of ample size.
-    unsigned char serialized[SERIALIZED_AES_LEN(SERIALIZED_KEY_LEN)];
-    unsigned char encrypted[ENCRYPTED_AES_LEN(SERIALIZED_KEY_LEN)];
+    uint8_t serialized[SERIALIZED_AES_LEN(SERIALIZED_KEY_LEN)];
+    uint8_t encrypted[ENCRYPTED_AES_LEN(SERIALIZED_KEY_LEN)];
 
     // 1. Load from flash storage
     size_t encrypted_data_len = 0;
@@ -504,7 +504,7 @@ bool keychain_has_pin(void) { return has_encrypted_blob; }
 
 uint8_t keychain_pin_attempts_remaining(void) { return storage_get_counter(); }
 
-bool keychain_get_new_privatekey(unsigned char* privatekey, const size_t size)
+bool keychain_get_new_privatekey(uint8_t* privatekey, const size_t size)
 {
     if (!privatekey || size != EC_PRIVATE_KEY_LEN) {
         return false;
@@ -526,7 +526,7 @@ bool keychain_get_new_privatekey(unsigned char* privatekey, const size_t size)
 
 bool keychain_init(void)
 {
-    unsigned char privatekey[EC_PRIVATE_KEY_LEN];
+    uint8_t privatekey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privatekey, sizeof(privatekey));
 
     bool res = storage_get_pin_privatekey(privatekey, sizeof(privatekey));

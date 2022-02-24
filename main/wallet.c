@@ -271,8 +271,7 @@ bool wallet_derive_from_xpub(
 }
 
 // Internal helper to get a derived private key - note 'output' should point to a buffer of size EC_PRIVATE_KEY_LEN
-static void wallet_get_privkey(
-    const uint32_t* path, const size_t path_len, unsigned char* output, const size_t output_len)
+static void wallet_get_privkey(const uint32_t* path, const size_t path_len, uint8_t* output, const size_t output_len)
 {
     JADE_ASSERT(keychain_get());
     JADE_ASSERT(path);
@@ -467,8 +466,8 @@ static bool wallet_get_gaservice_key(
 // Helper to wrap a given script or pubkey in p2wsh/p2wpkh (redeem) and p2sh scripts - note 'output' should point to a
 // buffer at least WALLY_SCRIPTPUBKEY_P2SH_LEN in length. bytes can be either a pubkey (p2wpkh) or a script (p2wsh) and
 // flags should then be either WALLY_SCRIPT_HASH160 (for p2wpkh) or WALLY_SCRIPT_SHA256 (for p2wsh)
-static void wallet_p2sh_p2wsh_scriptpubkey_for_bytes(const unsigned char* bytes, const size_t bytes_len, uint32_t flags,
-    unsigned char* output, const size_t output_len, size_t* written)
+static void wallet_p2sh_p2wsh_scriptpubkey_for_bytes(const uint8_t* bytes, const size_t bytes_len, uint32_t flags,
+    uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(bytes);
     JADE_ASSERT(bytes_len > 0);
@@ -477,7 +476,7 @@ static void wallet_p2sh_p2wsh_scriptpubkey_for_bytes(const unsigned char* bytes,
     JADE_ASSERT(flags == WALLY_SCRIPT_SHA256 || flags == WALLY_SCRIPT_HASH160);
     JADE_ASSERT(written);
 
-    unsigned char redeem_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient for p2wsh and p2wpkh
+    uint8_t redeem_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient for p2wsh and p2wpkh
 
     // 1. Get redeem script for the passed script
     JADE_WALLY_VERIFY(
@@ -545,7 +544,7 @@ static void wallet_build_csv(const char* network, const uint8_t* pubkeys, const 
 
 // Function to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
 bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const uint32_t csvBlocks,
-    const uint32_t* path, const size_t path_len, unsigned char* output, const size_t output_len, size_t* written)
+    const uint32_t* path, const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
@@ -568,13 +567,13 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
 
     // The multisig or csv script we generate
     size_t script_len = 0;
-    unsigned char script[MULTISIG_SCRIPT_LEN(3)]; // The largest script we might generate
+    uint8_t script[MULTISIG_SCRIPT_LEN(3)]; // The largest script we might generate
 
     // The GA and user pubkeys
-    unsigned char user_privkey[EC_PRIVATE_KEY_LEN];
-    unsigned char pubkeys[3 * EC_PUBLIC_KEY_LEN]; // In case of 2of3
+    uint8_t user_privkey[EC_PRIVATE_KEY_LEN];
+    uint8_t pubkeys[3 * EC_PUBLIC_KEY_LEN]; // In case of 2of3
     const size_t num_pubkeys = xpubrecovery ? 3 : 2; // 2of3 if recovery-xpub
-    unsigned char* next_pubkey = pubkeys;
+    uint8_t* next_pubkey = pubkeys;
 
     // Get the GA key if this is a green-multisig script
     struct ext_key gakey;
@@ -625,7 +624,7 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
 
 // Function to build a single-sig script - legacy-p2pkh, native segwit p2wpkh, or a p2sh-wrapped p2wpkh
 bool wallet_build_singlesig_script(const char* network, const script_variant_t script_variant, const uint32_t* path,
-    const size_t path_len, unsigned char* output, const size_t output_len, size_t* written)
+    const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
@@ -635,8 +634,8 @@ bool wallet_build_singlesig_script(const char* network, const script_variant_t s
     }
 
     // The user pubkeys
-    unsigned char user_privkey[EC_PRIVATE_KEY_LEN];
-    unsigned char pubkey[EC_PUBLIC_KEY_LEN];
+    uint8_t user_privkey[EC_PRIVATE_KEY_LEN];
+    uint8_t pubkey[EC_PUBLIC_KEY_LEN];
 
     // Derive user pubkey from the path
     SENSITIVE_PUSH(user_privkey, sizeof(user_privkey));
@@ -670,8 +669,8 @@ bool wallet_build_singlesig_script(const char* network, const script_variant_t s
 
 // Function to build a [sorted-]multi-sig script - p2wsh, p2sh, or p2sh-p2wsh wrapped
 bool wallet_build_multisig_script(const char* network, const script_variant_t script_variant, const bool sorted,
-    const uint8_t threshold, const uint8_t* pubkeys, const size_t pubkeys_len, unsigned char* output,
-    const size_t output_len, size_t* written)
+    const uint8_t threshold, const uint8_t* pubkeys, const size_t pubkeys_len, uint8_t* output, const size_t output_len,
+    size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
@@ -722,7 +721,7 @@ bool wallet_get_signer_commitment(const uint8_t* signature_hash, const size_t si
     }
 
     // Derive the child key
-    unsigned char privkey[EC_PRIVATE_KEY_LEN];
+    uint8_t privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
     wallet_get_privkey(path, path_len, privkey, sizeof(privkey));
 
@@ -757,8 +756,8 @@ bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signa
         return false;
     }
 
-    unsigned char privkey[EC_PRIVATE_KEY_LEN];
-    unsigned char signature[EC_SIGNATURE_LEN];
+    uint8_t privkey[EC_PRIVATE_KEY_LEN];
+    uint8_t signature[EC_SIGNATURE_LEN];
 
     // Derive the child key
     SENSITIVE_PUSH(privkey, sizeof(privkey));
@@ -794,7 +793,7 @@ bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signa
 
 // Function to fetch a hash for a transaction input - output buffer should be of size SHA256_LEN
 bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, const bool is_witness, const uint8_t* script,
-    const size_t script_len, const uint64_t satoshi, unsigned char* output, const size_t output_len)
+    const size_t script_len, const uint64_t satoshi, uint8_t* output, const size_t output_len)
 {
     if (!tx || !script || script_len == 0 || !output || output_len != SHA256_LEN) {
         return false;
@@ -813,8 +812,8 @@ bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, const boo
 
 // Function to fetch a hash for an elements input - output buffer should be of size SHA256_LEN
 bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, const bool is_witness,
-    const uint8_t* script, const size_t script_len, const unsigned char* satoshi, const size_t satoshi_len,
-    unsigned char* output, const size_t output_len)
+    const uint8_t* script, const size_t script_len, const uint8_t* satoshi, const size_t satoshi_len, uint8_t* output,
+    const size_t output_len)
 {
     if (!tx || !script || script_len == 0 || !output || output_len != SHA256_LEN) {
         return false;
@@ -884,7 +883,7 @@ bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t p
 }
 
 bool wallet_hmac_with_master_key(
-    const unsigned char* data, const uint32_t data_len, unsigned char* output, const uint32_t output_len)
+    const uint8_t* data, const uint32_t data_len, uint8_t* output, const uint32_t output_len)
 {
     JADE_ASSERT(keychain_get());
 
@@ -922,7 +921,7 @@ static bool wallet_get_blinding_privkey(
 }
 
 bool wallet_get_public_blinding_key(
-    const unsigned char* script, const uint32_t script_len, unsigned char* output, const uint32_t output_len)
+    const uint8_t* script, const uint32_t script_len, uint8_t* output, const uint32_t output_len)
 {
     JADE_ASSERT(keychain_get());
 
@@ -930,7 +929,7 @@ bool wallet_get_public_blinding_key(
         return false;
     }
 
-    unsigned char privkey[EC_PRIVATE_KEY_LEN];
+    uint8_t privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
     const bool retval = wallet_get_blinding_privkey(script, script_len, privkey, sizeof(privkey));
     if (retval) {
@@ -940,8 +939,8 @@ bool wallet_get_public_blinding_key(
     return retval;
 }
 
-bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t hash_len, uint32_t output_index,
-    uint8_t type, unsigned char* output, const uint32_t output_len)
+bool wallet_get_blinding_factor(const uint8_t* hash_prevouts, const size_t hash_len, uint32_t output_index,
+    uint8_t type, uint8_t* output, const uint32_t output_len)
 {
     JADE_ASSERT(keychain_get());
 
@@ -954,13 +953,13 @@ bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t
     // the master unblinding key is only the second half of that - ie. 256 bits
     // So we only use the relevant slice of the data for this derivation (consistent with ledger).
     JADE_ASSERT(sizeof(keychain_get()->master_unblinding_key) == HMAC_SHA512_LEN);
-    unsigned char tx_blinding_key[HMAC_SHA256_LEN];
+    uint8_t tx_blinding_key[HMAC_SHA256_LEN];
     JADE_WALLY_VERIFY(wally_hmac_sha256(keychain_get()->master_unblinding_key + HMAC_SHA256_LEN, HMAC_SHA256_LEN,
         hash_prevouts, SHA256_LEN, tx_blinding_key, sizeof(tx_blinding_key)));
 
     // msg is either "ABF" or "VBF" with the output index appended at the end.
     // initialize the common part here and then replace vars down
-    unsigned char msg[3 + sizeof(uint32_t)] = { type, 'B', 'F', 0x00, 0x00, 0x00, 0x00 };
+    uint8_t msg[3 + sizeof(uint32_t)] = { type, 'B', 'F', 0x00, 0x00, 0x00, 0x00 };
 
     uint32_to_be(output_index, msg + 3);
     JADE_WALLY_VERIFY(
@@ -970,9 +969,9 @@ bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, const size_t
 }
 
 // Compute the shared blinding nonce - ie. sha256(ecdh(our_privkey, their_pubkey))
-bool wallet_get_shared_blinding_nonce(const unsigned char* script, const uint32_t script_len,
-    const unsigned char* their_pubkey, const size_t their_pubkey_len, unsigned char* output_nonce,
-    const uint32_t output_nonce_len, unsigned char* output_pubkey, const uint32_t output_pubkey_len)
+bool wallet_get_shared_blinding_nonce(const uint8_t* script, const uint32_t script_len, const uint8_t* their_pubkey,
+    const size_t their_pubkey_len, uint8_t* output_nonce, const uint32_t output_nonce_len, uint8_t* output_pubkey,
+    const uint32_t output_pubkey_len)
 {
     JADE_ASSERT(keychain_get());
 
@@ -983,8 +982,8 @@ bool wallet_get_shared_blinding_nonce(const unsigned char* script, const uint32_
         return false;
     }
 
-    unsigned char ecdh_output[SHA256_LEN];
-    unsigned char privkey[EC_PRIVATE_KEY_LEN];
+    uint8_t ecdh_output[SHA256_LEN];
+    uint8_t privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
     if (!wallet_get_blinding_privkey(script, script_len, privkey, sizeof(privkey))) {
         SENSITIVE_POP(privkey);
@@ -1046,7 +1045,7 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, const size_t signat
     }
 
     // Derive the child key
-    unsigned char privkey[EC_PRIVATE_KEY_LEN];
+    uint8_t privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
     wallet_get_privkey(path, path_len, privkey, sizeof(privkey));
 

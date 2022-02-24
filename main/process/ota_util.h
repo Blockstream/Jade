@@ -68,10 +68,10 @@ static const char MESSAGES[][20] = {
     "ERROR_BAD_HASH",
 };
 
-bool validate_custom_app_desc(const size_t offset, const unsigned char* uncompressed);
+bool validate_custom_app_desc(const size_t offset, const uint8_t* uncompressed);
 void send_ok(const char* id, const jade_msg_source_t source);
 void reset_ctx(struct bin_msg* bctx, uint8_t* const inbound_buf, const jade_msg_source_t expected_source);
-void handle_in_bin_data(void* ctx, unsigned char* data, size_t rawsize);
+void handle_in_bin_data(void* ctx, uint8_t* data, size_t rawsize);
 
 // UI screens to confirm ota
 void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version,

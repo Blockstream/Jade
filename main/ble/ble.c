@@ -401,7 +401,7 @@ void ble_hs_pvcy_get_default_irk(uint8_t* new_irk_out, const size_t new_irk_len)
     /* before we call into wally re-randomize secp256k1 ctx for this task */
     jade_wally_randomize_secp_ctx();
 
-    unsigned char privatekey[EC_PRIVATE_KEY_LEN];
+    uint8_t privatekey[EC_PRIVATE_KEY_LEN];
     const bool ret = storage_get_pin_privatekey(privatekey, sizeof(privatekey));
     JADE_ASSERT(ret);
 

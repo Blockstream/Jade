@@ -123,7 +123,7 @@ void update_pinserver_process(void* process_ptr)
         char* cert_hash_hex = NULL;
         if (cert_len > 0) {
             uint8_t cert_hash[SHA256_LEN];
-            JADE_WALLY_VERIFY(wally_sha256((unsigned char*)cert, cert_len, cert_hash, sizeof(cert_hash)));
+            JADE_WALLY_VERIFY(wally_sha256((uint8_t*)cert, cert_len, cert_hash, sizeof(cert_hash)));
             JADE_WALLY_VERIFY(wally_hex_from_bytes(cert_hash, sizeof(cert_hash), &cert_hash_hex));
             jade_process_wally_free_string_on_exit(process, cert_hash_hex);
         }

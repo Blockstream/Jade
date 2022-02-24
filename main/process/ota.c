@@ -25,7 +25,7 @@
 // Timeout total 20s (40ms blocking on msg)
 #define DEFAULT_TIMEOUT_BEGIN 500
 
-static enum ota_status ota_init(const char* expected_hash_hexstr, unsigned char* uncompressed,
+static enum ota_status ota_init(const char* expected_hash_hexstr, const uint8_t* uncompressed,
     esp_partition_t const** update_partition, const size_t firmwaresize, esp_ota_handle_t* update_handle,
     progress_bar_t* progress_bar)
 {
@@ -48,7 +48,7 @@ static enum ota_status ota_init(const char* expected_hash_hexstr, unsigned char*
     JADE_LOGI("Running firmware version: %s", running_app_info.version);
 
     const size_t offset = sizeof(esp_image_header_t) + sizeof(esp_image_segment_header_t);
-    const esp_app_desc_t* new_app_info = (esp_app_desc_t*)(uncompressed + offset);
+    const esp_app_desc_t* new_app_info = (const esp_app_desc_t*)(uncompressed + offset);
 
     // Sanity check that the version string is reasonable (ie. length)
     if (strnlen(new_app_info->version, VERSION_STRING_MAX_LENGTH + 1) > VERSION_STRING_MAX_LENGTH) {
@@ -396,7 +396,7 @@ cleanup:
 
         // If we get here and we have not finished loading the data, send an error message
         if (uploading) {
-            unsigned char buf[256];
+            uint8_t buf[256];
             jade_process_reject_message_with_id(binctx.id, CBOR_RPC_INTERNAL_ERROR, "Error uploading OTA data",
                 (const uint8_t*)MESSAGES[ota_return_status], strlen(MESSAGES[ota_return_status]), buf, sizeof(buf),
                 source);

@@ -20,12 +20,12 @@ bool storage_init(void);
 bool storage_erase(void);
 bool storage_get_stats(size_t* entries_used, size_t* entries_free);
 
-bool storage_set_pin_privatekey(const unsigned char* privatekey, size_t key_len);
-bool storage_get_pin_privatekey(unsigned char* privatekey, size_t key_len);
+bool storage_set_pin_privatekey(const uint8_t* privatekey, size_t key_len);
+bool storage_get_pin_privatekey(uint8_t* privatekey, size_t key_len);
 bool storage_erase_pin_privatekey(void);
 
-bool storage_set_encrypted_blob(const unsigned char* encrypted, size_t encrypted_len);
-bool storage_get_encrypted_blob(unsigned char* encrypted, size_t encrypted_len, size_t* written);
+bool storage_set_encrypted_blob(const uint8_t* encrypted, size_t encrypted_len);
+bool storage_get_encrypted_blob(uint8_t* encrypted, size_t encrypted_len, size_t* written);
 bool storage_decrement_counter(void);
 bool storage_restore_counter(void);
 uint8_t storage_get_counter(void);
@@ -34,10 +34,10 @@ bool storage_erase_encrypted_blob(void);
 bool storage_set_key_flags(uint8_t flags);
 uint8_t storage_get_key_flags(void);
 
-bool storage_set_pinserver_details(const char* urlA, const char* urlB, const unsigned char* pubkey, size_t pubkey_len);
+bool storage_set_pinserver_details(const char* urlA, const char* urlB, const uint8_t* pubkey, size_t pubkey_len);
 bool storage_get_pinserver_urlA(char* url, size_t len, size_t* written);
 bool storage_get_pinserver_urlB(char* url, size_t len, size_t* written);
-bool storage_get_pinserver_pubkey(unsigned char* pubkey, size_t pubkey_len);
+bool storage_get_pinserver_pubkey(uint8_t* pubkey, size_t pubkey_len);
 bool storage_erase_pinserver_details(void);
 
 bool storage_set_pinserver_cert(const char* cert);

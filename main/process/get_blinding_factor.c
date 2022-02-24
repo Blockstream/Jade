@@ -55,7 +55,7 @@ void get_blinding_factor_process(void* process_ptr)
         goto cleanup;
     }
 
-    unsigned char result_bytes[HMAC_SHA256_LEN];
+    uint8_t result_bytes[HMAC_SHA256_LEN];
     if (!wallet_get_blinding_factor(
             hash_prevouts, hash_prevouts_len, output_index, type, result_bytes, sizeof(result_bytes))) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding factor for output", NULL);

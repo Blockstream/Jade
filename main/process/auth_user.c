@@ -67,7 +67,7 @@ void check_pin_load_keys(jade_process_t* process)
     display_message_activity("Checking...");
 
     // Ok, have keychain and a PIN - do the pinserver 'getpin' process
-    unsigned char aeskey[AES_KEY_LEN_256];
+    uint8_t aeskey[AES_KEY_LEN_256];
     SENSITIVE_PUSH(aeskey, sizeof(aeskey));
     if (!pinclient_get(process, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
         // Server or networking/connection error
@@ -189,7 +189,7 @@ static void set_pin_save_keys(jade_process_t* process)
     display_message_activity("Persisting PIN data...");
 
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
-    unsigned char aeskey[AES_KEY_LEN_256];
+    uint8_t aeskey[AES_KEY_LEN_256];
     SENSITIVE_PUSH(aeskey, sizeof(aeskey));
     if (!pinclient_set(process, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
         // Server or networking/connection error

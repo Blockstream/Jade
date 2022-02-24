@@ -42,8 +42,8 @@ typedef struct {
     char id[MAXLEN_ID + 1];
     uint32_t path[MAX_PATH_LEN];
     size_t path_len;
-    unsigned char signature_hash[SHA256_LEN];
-    unsigned char sig[EC_SIGNATURE_DER_MAX_LEN + 1];
+    uint8_t signature_hash[SHA256_LEN];
+    uint8_t sig[EC_SIGNATURE_DER_MAX_LEN + 1];
     size_t sig_len;
 } signing_data_t;
 

@@ -209,7 +209,7 @@ void jade_camera_task(void* data)
 
         // Copy from camera output to screen image
         uint8_t(*scale_rotated)[120] = camera_data->image_buffer;
-        uint8_t(*buf_as_matrix)[320] = (unsigned char(*)[320])fb->buf;
+        uint8_t(*buf_as_matrix)[320] = (uint8_t(*)[320])fb->buf;
         for (size_t x = 0; x < 160; x++) {
             for (size_t y = 0; y < 120; y++) {
                 scale_rotated[x][y] = buf_as_matrix[240 - y * 2][x * 2];

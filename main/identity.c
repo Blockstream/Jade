@@ -25,7 +25,7 @@ static const uint8_t SSH_NIST_HMAC_KEY[] = { 'N', 'i', 's', 't', '2', '5', '6', 
 #define HARDENED_PATH_ELEMENT(bytes) (BIP32_INITIAL_HARDENED_CHILD | *((uint32_t*)(bytes)))
 
 // Adapter between Jade's 'get_random()', and the mbedtls RNG function interface
-static int jade_get_random_cb(void* ctx, unsigned char* buf, const size_t len)
+static int jade_get_random_cb(void* ctx, uint8_t* buf, const size_t len)
 {
     // ctx is ignored (should be NULL)
     get_random(buf, len);

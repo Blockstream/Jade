@@ -7,7 +7,7 @@
 const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t custom_app_desc
     = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
 
-bool validate_custom_app_desc(const size_t offset, const unsigned char* uncompressed)
+bool validate_custom_app_desc(const size_t offset, const uint8_t* uncompressed)
 {
     // Check our custom fields
     const size_t custom_offset = offset + sizeof(esp_app_desc_t);
@@ -47,7 +47,7 @@ void reset_ctx(struct bin_msg* bctx, uint8_t* const inbound_buf, const jade_msg_
     bctx->error = false;
 }
 
-void handle_in_bin_data(void* ctx, unsigned char* data, size_t rawsize)
+void handle_in_bin_data(void* ctx, uint8_t* data, size_t rawsize)
 {
     JADE_ASSERT(ctx);
     JADE_ASSERT(data);

@@ -126,7 +126,7 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     esp_chip_info(&info);
 
     char* hexstr = NULL;
-    JADE_WALLY_VERIFY(wally_hex_from_bytes((unsigned char*)&info.features, 4, &hexstr));
+    JADE_WALLY_VERIFY(wally_hex_from_bytes((uint8_t*)&info.features, 4, &hexstr));
     add_string_to_map(&map_encoder, "CHIP_FEATURES", hexstr);
 
     wally_free_string(hexstr);
@@ -841,7 +841,7 @@ static void display_screen(gui_activity_t* act)
 
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();
-    refeed_entropy((const unsigned char*)&tick_count, sizeof(tick_count));
+    refeed_entropy((const uint8_t*)&tick_count, sizeof(tick_count));
 }
 
 #ifdef CONFIG_ESP32_NO_BLOBS

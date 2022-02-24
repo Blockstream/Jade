@@ -26,20 +26,20 @@
     } while (false)
 #define hasherfinish(ctx, _data)                                                                                       \
     do {                                                                                                               \
-        const int _ret = mbedtls_sha512_finish_ret(&ctx, (unsigned char*)_data);                                       \
+        const int _ret = mbedtls_sha512_finish_ret(&ctx, (uint8_t*)_data);                                             \
         JADE_ASSERT(_ret == 0);                                                                                        \
     } while (false)
 
 #define call_uint16_t_func_to_hasher(ctx, _func)                                                                       \
     do {                                                                                                               \
         const uint16_t _tmp = _func();                                                                                 \
-        const int _ret = mbedtls_sha512_update_ret(&ctx, (const unsigned char*)&_tmp, sizeof(_tmp));                   \
+        const int _ret = mbedtls_sha512_update_ret(&ctx, (const uint8_t*)&_tmp, sizeof(_tmp));                         \
         JADE_ASSERT(_ret == 0);                                                                                        \
     } while (false)
 
 #define add_bytes_to_hasher(ctx, _bytes, _len)                                                                         \
     do {                                                                                                               \
-        const int _ret = mbedtls_sha512_update_ret(&ctx, (const unsigned char*)_bytes, _len);                          \
+        const int _ret = mbedtls_sha512_update_ret(&ctx, (const uint8_t*)_bytes, _len);                                \
         JADE_ASSERT(_ret == 0);                                                                                        \
     } while (false)
 
@@ -63,7 +63,7 @@ static uint16_t esp32_get_temperature(void)
 }
 
 // returns up to 32 bytes of randomness (optional), takes optionallly extra entropy
-static void get_random_internal(uint8_t* bytes_out, size_t len, const uint8_t* additional, size_t addlen)
+static void get_random_internal(uint8_t* bytes_out, const size_t len, const uint8_t* additional, const size_t addlen)
 {
     JADE_ASSERT(len <= SHA256_LEN);
     JADE_ASSERT((bytes_out && len) || (!bytes_out && !len));
@@ -127,14 +127,14 @@ static void get_random_internal(uint8_t* bytes_out, size_t len, const uint8_t* a
     wally_bzero(buf, sizeof(buf));
 }
 
-void refeed_entropy(const unsigned char* additional, size_t len)
+void refeed_entropy(const uint8_t* additional, const size_t len)
 {
     JADE_ASSERT(additional);
     JADE_ASSERT(len);
     get_random_internal(NULL, 0, additional, len);
 }
 
-void get_random(unsigned char* bytes_out, size_t len)
+void get_random(uint8_t* bytes_out, const size_t len)
 {
     JADE_ASSERT(bytes_out);
     JADE_ASSERT(len);
@@ -147,12 +147,12 @@ void get_random(unsigned char* bytes_out, size_t len)
     }
 }
 
-unsigned char get_uniform_random_byte(const unsigned char upper_bound)
+uint8_t get_uniform_random_byte(const uint8_t upper_bound)
 {
     // Algorithm from GDK / from the PCG family of random generators
-    const unsigned char lower_threshold = (unsigned char)-upper_bound % upper_bound;
+    const uint8_t lower_threshold = (uint8_t)-upper_bound % upper_bound;
     while (true) {
-        unsigned char rnd;
+        uint8_t rnd;
         get_random(&rnd, 1);
         if (rnd >= lower_threshold) {
             return rnd % upper_bound;

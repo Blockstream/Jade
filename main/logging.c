@@ -38,9 +38,9 @@ int serial_logger(const char* message, va_list fmt)
 
     const size_t towrite = cbor_encoder_get_buffer_size(&root_encoder, cbor_buff);
 
-    jade_process_push_out_message((unsigned char*)cbor_buff, towrite, SOURCE_SERIAL);
+    jade_process_push_out_message((uint8_t*)cbor_buff, towrite, SOURCE_SERIAL);
 #if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
-    jade_process_push_out_message((unsigned char*)cbor_buff, towrite, SOURCE_QEMU_TCP);
+    jade_process_push_out_message((uint8_t*)cbor_buff, towrite, SOURCE_QEMU_TCP);
 #endif
 
     return written;

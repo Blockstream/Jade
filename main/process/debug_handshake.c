@@ -60,8 +60,8 @@ void debug_handshake(void* process_ptr)
     keychain_t keydata = { 0 };
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
-    unsigned char aeskey1[AES_KEY_LEN_256];
-    unsigned char aeskey2[AES_KEY_LEN_256];
+    uint8_t aeskey1[AES_KEY_LEN_256];
+    uint8_t aeskey2[AES_KEY_LEN_256];
     SENSITIVE_PUSH(aeskey1, sizeof(aeskey1));
     SENSITIVE_PUSH(aeskey2, sizeof(aeskey2));
 

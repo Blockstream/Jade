@@ -53,7 +53,7 @@ typedef struct {
 } jade_process_t;
 
 typedef struct {
-    const unsigned char* data;
+    const uint8_t* data;
     size_t size;
 } bytes_info_t;
 
@@ -75,8 +75,8 @@ void jade_process_transfer_current_message(jade_process_t* process, jade_process
 void jade_process_free_current_message(jade_process_t* process);
 
 // Push messages to/from a process
-bool jade_process_push_in_message(const unsigned char* data, size_t size);
-void jade_process_push_out_message(const unsigned char* data, size_t length, jade_msg_source_t source);
+bool jade_process_push_in_message(const uint8_t* data, size_t size);
+void jade_process_push_out_message(const uint8_t* data, size_t length, jade_msg_source_t source);
 
 // Send message replies
 void jade_process_reply_to_message_result_with_id(const char* id, uint8_t* output, size_t output_size,
@@ -92,7 +92,7 @@ void jade_process_reject_message_ex(cbor_msg_t ctx, int code, const char* messag
     uint8_t* buffer, size_t buffer_len);
 
 // Get in/out messages from the queues/ring-buffers
-void jade_process_get_in_message(void* ctx, void (*writer)(void*, unsigned char*, size_t), bool blocking);
+void jade_process_get_in_message(void* ctx, void (*writer)(void*, uint8_t*, size_t), bool blocking);
 bool jade_process_get_out_message(bool (*)(char*, size_t), jade_msg_source_t source);
 
 // The inbound message mode
