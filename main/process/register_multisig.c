@@ -190,6 +190,7 @@ void register_multisig_process(void* process_ptr)
     // Persist multisig registration in nvs
     if (!storage_set_multisig_registration(multisig_name, registration, registration_len)) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to persist multisig registration", NULL);
+        await_error_activity("Error saving multisig data");
         goto cleanup;
     }
 

@@ -79,11 +79,12 @@ void sign_identity_process(void* process_ptr)
         }
     }
 
-    // Check keychain has seed data
+    // Check keychain has seed data - old wallets may not
+    // Reinitialising the wallet would address that, as seed is cached after mnemonic entry
     if (keychain_get()->seed_len == 0) {
         JADE_LOGE("No wallet seed available.  Wallet must be re-initialised from mnemonic.");
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Feature requires resetting Jade", NULL);
-        await_error_activity("Feature requires resetting Jade.");
+        await_error_activity("Feature requires Jade reset");
         goto cleanup;
     }
 
