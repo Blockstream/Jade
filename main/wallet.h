@@ -41,13 +41,13 @@ bool is_multisig(script_variant_t variant);
 bool wallet_is_expected_singlesig_path(
     const char* network, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);
 bool wallet_is_expected_multisig_path(size_t cosigner_index, bool is_change, const uint32_t* path, size_t path_len);
-void wallet_build_receive_path(uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path,
-    size_t output_size, size_t* output_len);
+void wallet_build_receive_path(
+    uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path, size_t output_len, size_t* written);
 
 bool wallet_build_ga_script(const char* network, const char* xpubrecovery, uint32_t csvBlocks, const uint32_t* path,
-    size_t path_size, unsigned char* output, size_t output_len, size_t* written);
+    size_t path_len, unsigned char* output, size_t output_len, size_t* written);
 bool wallet_build_singlesig_script(const char* network, script_variant_t script_variant, const uint32_t* path,
-    size_t path_size, unsigned char* output, size_t output_len, size_t* written);
+    size_t path_len, unsigned char* output, size_t output_len, size_t* written);
 bool wallet_build_multisig_script(const char* network, script_variant_t script_variant, bool sorted, uint8_t threshold,
     const uint8_t* pubkeys, size_t pubkeys_len, unsigned char* output, size_t output_len, size_t* written);
 
@@ -56,22 +56,22 @@ bool wallet_get_xpub(const char* network, const uint32_t* path, uint32_t path_le
 
 bool wallet_get_message_hash(const uint8_t* bytes, size_t bytes_len, uint8_t* output, size_t output_len);
 bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
-    size_t path_size, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output, size_t output_len,
+    size_t path_len, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output, size_t output_len,
     size_t* written);
 
 bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,
     size_t script_len, uint64_t satoshi, unsigned char* output, size_t output_len);
 bool wallet_get_signer_commitment(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
-    size_t path_size, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
+    size_t path_len, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
 bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
-    size_t path_size, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output, size_t output_len,
+    size_t path_len, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output, size_t output_len,
     size_t* written);
 
 bool wallet_hmac_with_master_key(
     const unsigned char* data, uint32_t data_len, unsigned char* output, uint32_t output_len);
 bool wallet_get_public_blinding_key(
-    const unsigned char* script, uint32_t script_size, unsigned char* output, uint32_t output_len);
-bool wallet_get_shared_blinding_nonce(const unsigned char* script, const uint32_t script_size,
+    const unsigned char* script, uint32_t script_len, unsigned char* output, uint32_t output_len);
+bool wallet_get_shared_blinding_nonce(const unsigned char* script, const uint32_t script_len,
     const unsigned char* their_pubkey, const size_t their_pubkey_len, unsigned char* output_nonce,
     const uint32_t output_nonce_len, unsigned char* output_pubkey, const uint32_t output_pubkey_len);
 bool wallet_get_blinding_factor(const unsigned char* hash_prevouts, size_t hash_len, uint32_t output_index,

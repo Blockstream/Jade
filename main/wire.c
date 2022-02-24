@@ -45,7 +45,7 @@ static void handle_data_impl(
 
         cbor_msg_t ctx = { .source = source, .cbor = NULL, .cbor_len = 0 };
         const size_t read = *read_ptr;
-        size_t msg_size = 0;
+        size_t msg_len = 0;
 
         // Start validating from 'initial_offset' as we can assume we have validated up to that point in a previous
         // call (ie. with the previous data chunk).  Validating one byte at a time is painful enough, without repeating
@@ -53,13 +53,13 @@ static void handle_data_impl(
         for (size_t i = initial_offset; i <= read; ++i) {
             const CborError cberr = cbor_parser_init(data_in, i, CborValidateCompleteData, &ctx.parser, &ctx.value);
             if (cberr == CborNoError && cbor_value_validate_basic(&ctx.value) == CborNoError) {
-                msg_size = i;
+                msg_len = i;
                 break;
             }
         }
 
         // If we could not fetch a message from the buffer..
-        if (msg_size == 0) {
+        if (msg_len == 0) {
             if (!reject_if_no_msg) {
                 // Not a complete cbor message, but we are allowed to await more data to complete the message
                 JADE_LOGD("Got incomplete CBOR message, length %d - awaiting more data...", read);
@@ -78,25 +78,25 @@ static void handle_data_impl(
 
         if (!rpc_request_valid(&ctx.value)) {
             // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
-            JADE_LOGW("Invalid request, length %u", msg_size);
-            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", msg_size);
+            JADE_LOGW("Invalid request, length %u", msg_len);
+            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", msg_len);
         } else {
             // Push to task queue for dashboard to handle
-            if (!jade_process_push_in_message(full_data_in, msg_size + 1)) {
-                SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Input message too large to handle", msg_size);
+            if (!jade_process_push_in_message(full_data_in, msg_len + 1)) {
+                SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Input message too large to handle", msg_len);
             }
         }
 
         // If we have consumed all the data, break to reset the read-ptr and return
-        if (msg_size == read) {
+        if (msg_len == read) {
             break;
         }
 
         // Otherwise we have some data left in the buffer - move the unhandled data down to the start of the buffer
         // (overwriting what we've handled) and reset the 'initial_offset' (so we start validating from the beginning).
         // Also set 'reject_if_no_msg' to false, as we have now read a message.
-        memmove(data_in, data_in + msg_size, read - msg_size);
-        *read_ptr -= msg_size;
+        memmove(data_in, data_in + msg_len, read - msg_len);
+        *read_ptr -= msg_len;
         reject_if_no_msg = false;
         initial_offset = 0;
     }

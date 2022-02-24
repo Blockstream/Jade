@@ -516,10 +516,10 @@ static pinserver_result_t complete_handshake(
 
 // Helper to hmac an n-digit pin into a 256bit secret
 static bool get_pin_secret(
-    const uint8_t* pin, const size_t pin_size, const unsigned char* pin_privatekey, unsigned char* pin_secret)
+    const uint8_t* pin, const size_t pin_len, const unsigned char* pin_privatekey, unsigned char* pin_secret)
 {
     JADE_ASSERT(pin);
-    JADE_ASSERT(pin_size > 0);
+    JADE_ASSERT(pin_len > 0);
     JADE_ASSERT(pin_privatekey);
     JADE_ASSERT(pin_secret);
 
@@ -529,7 +529,7 @@ static bool get_pin_secret(
 
     const bool retval
         = wally_hmac_sha256(pin_privatekey, EC_PRIVATE_KEY_LEN, &subkey, 1, hmac_key, HMAC_SHA256_LEN) == WALLY_OK
-        && wally_hmac_sha256(hmac_key, sizeof(hmac_key), pin, pin_size, pin_secret, HMAC_SHA256_LEN) == WALLY_OK;
+        && wally_hmac_sha256(hmac_key, sizeof(hmac_key), pin, pin_len, pin_secret, HMAC_SHA256_LEN) == WALLY_OK;
 
     SENSITIVE_POP(hmac_key);
     return retval;
@@ -582,12 +582,12 @@ static bool hmac_ckepayload(const pin_keys_t* pinkeys, const unsigned char* payl
 
 // Dance with the pinserver to obtain the final aes-key - start handshake,
 // compute shared secrets, fetch server key, and then compute final aes key.
-static pinserver_result_t pinserver_interaction(jade_process_t* process, const uint8_t* pin, const size_t pin_size,
+static pinserver_result_t pinserver_interaction(jade_process_t* process, const uint8_t* pin, const size_t pin_len,
     const char* document, unsigned char* finalaes, const size_t finalaes_len)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(pin);
-    JADE_ASSERT(pin_size > 0);
+    JADE_ASSERT(pin_len > 0);
     JADE_ASSERT(document);
     JADE_ASSERT(finalaes);
     JADE_ASSERT(finalaes_len == AES_KEY_LEN_256);
@@ -618,7 +618,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     get_random(entropy, sizeof(entropy));
 
     if (!storage_get_pin_privatekey(pin_privatekey, sizeof(pin_privatekey))
-        || !get_pin_secret(pin, pin_size, pin_privatekey, pinsecret)
+        || !get_pin_secret(pin, pin_len, pin_privatekey, pinsecret)
         || !sign_payload(pin_privatekey, pinkeys.cke, pinsecret, entropy, sig)
         || !encrypt_payload(pinkeys.encrypt_key, pinsecret, entropy, sig, payload, sizeof(payload))
         || !hmac_ckepayload(&pinkeys, payload, hmac_payload)) {
@@ -645,7 +645,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
 
     // Derive the final aes key by combining the server key with the pin
     JADE_LOGI("Deriving final aes-key");
-    JADE_WALLY_VERIFY(wally_hmac_sha256(serverkey, sizeof(serverkey), pin, pin_size, finalaes, finalaes_len));
+    JADE_WALLY_VERIFY(wally_hmac_sha256(serverkey, sizeof(serverkey), pin, pin_len, finalaes, finalaes_len));
 
     // Success - well nothing has obviously failed anyway
     JADE_ASSERT(retval.result == SUCCESS);
@@ -662,7 +662,7 @@ cleanup:
 
 // Dance with the pinserver to obtain the final aes-key.  Wraps pinserver interaction
 // with retry logic in-case there are http/network issues.
-static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, const size_t pin_size,
+static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, const size_t pin_len,
     const char* document, unsigned char* finalaes, const size_t finalaes_len)
 {
     // pinserver interaction only happens atm as a result of a call to 'auth_user'
@@ -670,7 +670,7 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
 
     while (true) {
         // Do the pinserver interaction dance, and get the resulting aes-key
-        const pinserver_result_t pir = pinserver_interaction(process, pin, pin_size, document, finalaes, finalaes_len);
+        const pinserver_result_t pir = pinserver_interaction(process, pin, pin_len, document, finalaes, finalaes_len);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         // If a) the error is 'retry-able' and b) the user elects to retry, then loop and try again
@@ -697,18 +697,18 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
 // Interact with the pinserver to get the server's key
 // Then return the final aes key.
 bool pinclient_get(
-    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len)
+    jade_process_t* process, const uint8_t* pin, const size_t pin_len, uint8_t* finalaes, const size_t finalaes_len)
 {
     JADE_LOGI("Fetching pinserver data");
-    return get_pinserver_aeskey(process, pin, pin_size, PINSERVER_DOC_GET_PIN, finalaes, finalaes_len);
+    return get_pinserver_aeskey(process, pin, pin_len, PINSERVER_DOC_GET_PIN, finalaes, finalaes_len);
 }
 
 // Interact with the pinserver to get a new server key
 // Then return the (new) final aes key.
 bool pinclient_set(
-    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len)
+    jade_process_t* process, const uint8_t* pin, const size_t pin_len, uint8_t* finalaes, const size_t finalaes_len)
 {
     // Dance with the pin-server 'set_pin' address
     JADE_LOGI("Setting new pinserver data");
-    return get_pinserver_aeskey(process, pin, pin_size, PINSERVER_DOC_SET_PIN, finalaes, finalaes_len);
+    return get_pinserver_aeskey(process, pin, pin_len, PINSERVER_DOC_SET_PIN, finalaes, finalaes_len);
 }

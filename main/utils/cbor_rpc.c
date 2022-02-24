@@ -63,19 +63,19 @@ static void rpc_get_string_len(const char* field, const CborValue* value, size_t
         return;
     }
 
-    size_t tmp_size = 0;
+    size_t tmp_len = 0;
     CborError cberr;
     if (cbor_value_is_length_known(&result)) {
-        cberr = cbor_value_get_string_length(&result, &tmp_size);
+        cberr = cbor_value_get_string_length(&result, &tmp_len);
     } else {
-        cberr = cbor_value_calculate_string_length(&result, &tmp_size);
+        cberr = cbor_value_calculate_string_length(&result, &tmp_len);
     }
 
     if (cberr != CborNoError) {
         return;
     }
 
-    *written = tmp_size;
+    *written = tmp_len;
 }
 
 bool rpc_request_valid(const CborValue* request)
@@ -172,20 +172,20 @@ void rpc_get_bytes(const char* field, const size_t max, const CborValue* value, 
         return;
     }
 
-    size_t tmp_size = 0;
+    size_t tmp_len = 0;
 
     CborError cberr;
     if (cbor_value_is_length_known(&result)) {
-        cberr = cbor_value_get_string_length(&result, &tmp_size);
+        cberr = cbor_value_get_string_length(&result, &tmp_len);
     } else {
-        cberr = cbor_value_calculate_string_length(&result, &tmp_size);
+        cberr = cbor_value_calculate_string_length(&result, &tmp_len);
     }
 
     if (cberr != CborNoError) {
         return;
     }
 
-    if (tmp_size > max) {
+    if (tmp_len > max) {
         return;
     }
 
@@ -215,21 +215,21 @@ void rpc_get_string(const char* field, const size_t max, const CborValue* value,
         return;
     }
 
-    size_t tmp_size = 0;
+    size_t tmp_len = 0;
     CborError cberr;
     if (cbor_value_is_length_known(&result)) {
-        cberr = cbor_value_get_string_length(&result, &tmp_size);
+        cberr = cbor_value_get_string_length(&result, &tmp_len);
     } else {
-        cberr = cbor_value_calculate_string_length(&result, &tmp_size);
+        cberr = cbor_value_calculate_string_length(&result, &tmp_len);
     }
 
     if (cberr != CborNoError) {
         return;
     }
 
-    // If tmp_size == max, the cbor_value_copy_text_string() function skips writing a NULL terminator.
+    // If tmp_len == max, the cbor_value_copy_text_string() function skips writing a NULL terminator.
     // Simpler to always ensure there is space, then the returned string is always null-terminated.
-    if (tmp_size >= max) {
+    if (tmp_len >= max) {
         return;
     }
 

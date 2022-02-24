@@ -18,9 +18,9 @@ void get_passphrase(char* passphrase, size_t passphrase_len, bool confirm);
 
 // Pinserver interaction
 bool pinclient_get(
-    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len);
+    jade_process_t* process, const uint8_t* pin, const size_t pin_len, uint8_t* finalaes, const size_t finalaes_len);
 bool pinclient_set(
-    jade_process_t* process, const uint8_t* pin, const size_t pin_size, uint8_t* finalaes, const size_t finalaes_len);
+    jade_process_t* process, const uint8_t* pin, const size_t pin_len, uint8_t* finalaes, const size_t finalaes_len);
 
 void check_pin_load_keys(jade_process_t* process)
 {

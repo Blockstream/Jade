@@ -289,15 +289,15 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
             // Generate Anti-Exfil signature
             if (!wallet_sign_tx_input_hash(sig_data->signature_hash, sizeof(sig_data->signature_hash), sig_data->path,
                     sig_data->path_len, ae_host_entropy, ae_host_entropy_len, sig_data->sig, sizeof(sig_data->sig),
-                    &sig_data->sig_size)) {
+                    &sig_data->sig_len)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input", NULL);
                 goto cleanup;
             }
-            JADE_ASSERT(sig_data->sig_size > 0);
+            JADE_ASSERT(sig_data->sig_len > 0);
         }
 
         // Send signature reply - will be empty for any inputs we are not signing
-        const bytes_info_t bytes_info = { .data = sig_data->sig, .size = sig_data->sig_size };
+        const bytes_info_t bytes_info = { .data = sig_data->sig, .size = sig_data->sig_len };
         jade_process_reply_to_message_result(process->ctx, &bytes_info, cbor_result_bytes_cb);
     }
 
@@ -320,12 +320,12 @@ void send_ec_signature_replies(
         if (sig_data->path_len > 0) {
             // Generate EC signature
             if (!wallet_sign_tx_input_hash(sig_data->signature_hash, sizeof(sig_data->signature_hash), sig_data->path,
-                    sig_data->path_len, NULL, 0, sig_data->sig, sizeof(sig_data->sig), &sig_data->sig_size)) {
+                    sig_data->path_len, NULL, 0, sig_data->sig, sizeof(sig_data->sig), &sig_data->sig_len)) {
                 jade_process_reject_message_with_id(sig_data->id, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input",
                     NULL, 0, msgbuf, sizeof(msgbuf), source);
                 goto cleanup;
             }
-            JADE_ASSERT(sig_data->sig_size > 0);
+            JADE_ASSERT(sig_data->sig_len > 0);
         }
     }
 
@@ -333,7 +333,7 @@ void send_ec_signature_replies(
     // Will be empty for any inputs we are not signing
     for (size_t i = 0; i < num_inputs; ++i) {
         const signing_data_t* const sig_data = all_signing_data + i;
-        const bytes_info_t bytes_info = { .data = sig_data->sig, .size = sig_data->sig_size };
+        const bytes_info_t bytes_info = { .data = sig_data->sig, .size = sig_data->sig_len };
         jade_process_reply_to_message_result_with_id(
             sig_data->id, msgbuf, sizeof(msgbuf), source, &bytes_info, cbor_result_bytes_cb);
     }

@@ -16,10 +16,10 @@ static const uint32_t GDK_CHALLENGE_PATH = 0x4741b11e;
 
 // Return true if the path and message-prefix match a gdk login challenge
 static inline bool isGdkLoginChallenge(
-    const uint32_t* path, const size_t path_size, const char* message, const size_t msg_len)
+    const uint32_t* path, const size_t path_len, const char* message, const size_t msg_len)
 {
     JADE_ASSERT(message);
-    return path_size == 1 && path[0] == GDK_CHALLENGE_PATH && msg_len == GDK_CHALLENGE_LENGTH
+    return path_len == 1 && path[0] == GDK_CHALLENGE_PATH && msg_len == GDK_CHALLENGE_LENGTH
         && !strncmp(message, GDK_CHALLENGE_PREFIX, sizeof(GDK_CHALLENGE_PREFIX) - 1);
 }
 
