@@ -543,8 +543,8 @@ static void wallet_build_csv(const char* network, const uint8_t* pubkeys, const 
 }
 
 // Function to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
-bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const uint32_t csvBlocks,
-    const uint32_t* path, const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
+bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const size_t csvBlocks, const uint32_t* path,
+    const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
@@ -840,7 +840,7 @@ void wallet_get_fingerprint(uint8_t* output, const size_t output_len)
     memcpy(output, keychain_get()->xpriv.hash160, output_len);
 }
 
-bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t path_len, char** output)
+bool wallet_get_xpub(const char* network, const uint32_t* path, const size_t path_len, char** output)
 {
     JADE_ASSERT(keychain_get());
     JADE_ASSERT(path_len == 0 || path);
@@ -882,8 +882,7 @@ bool wallet_get_xpub(const char* network, const uint32_t* path, const uint32_t p
     return true;
 }
 
-bool wallet_hmac_with_master_key(
-    const uint8_t* data, const uint32_t data_len, uint8_t* output, const uint32_t output_len)
+bool wallet_hmac_with_master_key(const uint8_t* data, const size_t data_len, uint8_t* output, const size_t output_len)
 {
     JADE_ASSERT(keychain_get());
 
@@ -899,7 +898,7 @@ bool wallet_hmac_with_master_key(
 
 // Return script blinding privkey/pubkey pair
 static bool wallet_get_blinding_privkey(
-    const uint8_t* script, const uint32_t script_len, uint8_t* output, const uint32_t output_len)
+    const uint8_t* script, const size_t script_len, uint8_t* output, const size_t output_len)
 {
     JADE_ASSERT(keychain_get());
 
@@ -921,7 +920,7 @@ static bool wallet_get_blinding_privkey(
 }
 
 bool wallet_get_public_blinding_key(
-    const uint8_t* script, const uint32_t script_len, uint8_t* output, const uint32_t output_len)
+    const uint8_t* script, const size_t script_len, uint8_t* output, const size_t output_len)
 {
     JADE_ASSERT(keychain_get());
 
@@ -939,8 +938,8 @@ bool wallet_get_public_blinding_key(
     return retval;
 }
 
-bool wallet_get_blinding_factor(const uint8_t* hash_prevouts, const size_t hash_len, uint32_t output_index,
-    uint8_t type, uint8_t* output, const uint32_t output_len)
+bool wallet_get_blinding_factor(const uint8_t* hash_prevouts, const size_t hash_len, const size_t output_index,
+    uint8_t type, uint8_t* output, const size_t output_len)
 {
     JADE_ASSERT(keychain_get());
 
@@ -969,9 +968,9 @@ bool wallet_get_blinding_factor(const uint8_t* hash_prevouts, const size_t hash_
 }
 
 // Compute the shared blinding nonce - ie. sha256(ecdh(our_privkey, their_pubkey))
-bool wallet_get_shared_blinding_nonce(const uint8_t* script, const uint32_t script_len, const uint8_t* their_pubkey,
-    const size_t their_pubkey_len, uint8_t* output_nonce, const uint32_t output_nonce_len, uint8_t* output_pubkey,
-    const uint32_t output_pubkey_len)
+bool wallet_get_shared_blinding_nonce(const uint8_t* script, const size_t script_len, const uint8_t* their_pubkey,
+    const size_t their_pubkey_len, uint8_t* output_nonce, const size_t output_nonce_len, uint8_t* output_pubkey,
+    const size_t output_pubkey_len)
 {
     JADE_ASSERT(keychain_get());
 
