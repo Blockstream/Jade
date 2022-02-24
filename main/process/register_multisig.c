@@ -127,13 +127,6 @@ void register_multisig_process(void* process_ptr)
     size_t written = 0;
     rpc_get_string("network", sizeof(network), &params, network, &written);
     CHECK_NETWORK_CONSISTENT(process, network, written);
-    const bool isLiquid = isLiquidNetwork(network);
-
-    if (isLiquid) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Multisig is not supported for liquid networks", NULL);
-        goto cleanup;
-    }
 
     // Get name of multisig wallet
     written = 0;

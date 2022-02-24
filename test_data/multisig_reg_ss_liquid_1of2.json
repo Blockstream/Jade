@@ -1,6 +1,6 @@
 {
   "input": {
-    "network": "testnet",
+    "network": "testnet-liquid",
     "multisig_name": "wsh_liquid_1of2",
     "descriptor": {
       "variant": "wsh(multi(k))",
@@ -47,7 +47,7 @@
           1
         ]
       ],
-      "expected_address": "tb1qetn5604tnhd97k23mpqddyx8ksu255j895apr5ktzh5q8x4aac4qz6u9xn"
+      "expected_address": "tlq1qq294z89t2ts2rv84maarj34439e88uvgjd9fxy28qqyurygj5nf4rjh8f5l2h8w6tav4rkzq66gv0dpc4ffywtf6z8fvk90gqwdtmm32vt2zyfatf483"
     },
     {
       "paths": [
@@ -60,7 +60,7 @@
           3
         ]
       ],
-      "expected_address": "tb1qjgx89rxxsc2q725dc86vatm0tnyxyast9pxd2zduwwx2pwdzeafshq98pf"
+      "expected_address": "tlq1qq2qweq69hnfre4d4dvu55j8lstjqn507h7upk67z9vvnfys76as33ysvw2xvdps5pu4gms05e6hk7hxgvfmqk2zv65ymcuuv5zu69n6nl3npnc7ywfyh"
     },
     {
       "paths": [
@@ -73,7 +73,21 @@
           13
         ]
       ],
-      "expected_address": "tb1qzvx7kk2hu0kyptxjtvjn8z0hw5qgtphy0cjq7ya8rg7ls8fr9kjqpvgq4a"
+      "expected_address": "tlq1qqfe7uvucqx47sydlaesu355wwnxqcpm6wcy58a8z9qv622yxkra3wycdadv40clvgzkdyke9xwylwagqskrwgl3ypuf6wx3alqwjxtdyate3cn2p0tlc"
+    }
+  ],
+  "blinding_key_tests": [
+    {
+      "script": "02d99b0422d53f8d54acfbd38e069b830d536a98ce42ccf9b29bffc2798503f898",
+      "their_pubkey": "03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9251f2904c",
+      "expected_blinding_key": "032b44ca6c7034492be668a9c1fbacc8364db894e3922d247f9469a1bce7319f71",
+      "expected_shared_nonce": "2c5b800f26d7ee9e20deba9340276fbd99f4469169ad784dee3bfef265bf2f75"
+    },
+    {
+      "script": "748c6321035df68631449c3f5b0f0c29212b866096239267d0608caa709b71edd85f76bbcead6703ffff00b2756821026d317cd38337a908816c63b712c22c03a67551cae4f16ee4dde729686f5cc4eeac",
+      "their_pubkey": "031127ef35e4690ff035e13ebab340ab3fa2327c0409bbed3dbf03b8932777d929",
+      "expected_blinding_key": "031e2b1fb58e46895fd1cc4bb2cb1e9f8b48a7ee8ab44f5f9c6c233bd75a4ff8f8",
+      "expected_shared_nonce": "d3f920b036b0695df3450339cbf7c14451e47005ac97378291c854d178c9f605"
     }
   ]
 }

@@ -96,6 +96,13 @@ def _h2b_test_case(testcase):
         for signer in testcase['input']['descriptor']['signers']:
             signer['fingerprint'] = h2b(signer['fingerprint'])
 
+        if 'blinding_key_tests' in testcase:
+            for blinding_test in testcase['blinding_key_tests']:
+                blinding_test['script'] = h2b(blinding_test['script'])
+                blinding_test['their_pubkey'] = h2b(blinding_test['their_pubkey'])
+                blinding_test['expected_blinding_key'] = h2b(blinding_test['expected_blinding_key'])
+                blinding_test['expected_shared_nonce'] = h2b(blinding_test['expected_shared_nonce'])
+
     return testcase
 
 
@@ -836,8 +843,6 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                    'threshold for number of co-signers'),
                   (('badmulti13', 'register_multisig',  # network missing or invalid
                     {'network': 'noexist', 'multisig_name': 'test'}), 'valid network'),
-                  (('badmulti14', 'register_multisig',  # network missing or invalid
-                    {'network': 'liquid', 'multisig_name': 'test'}), 'not supported for liquid'),
                   (('badmulti15', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(wsh(multi(k)))', 'threshold': 2, 'signers': bad_cosigners1}}),
@@ -917,9 +922,6 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'paths': [[1], [2, 3]], 'multisig_name': 'does not exist',
                      'network': 'testnet'}), 'Cannot find named multisig wallet'),
                   (('badrecvaddr16', 'get_receive_address',
-                    {'paths': [[1], [2, 3]], 'multisig_name': 'whatever',
-                     'network': 'liquid'}), 'not supported for liquid'),
-                  (('badrecvaddr17', 'get_receive_address',
                     {'path': [1, 2, 3], 'variant': 'pkh(k)', 'confidential': True,
                      'network': 'mainnet'}), 'Confidential addresses only apply to liquid'),
 
@@ -2079,12 +2081,30 @@ def _check_multisig_registration(jadeapi, multisig_data):
     assert multisig_desc['num_signers'] == len(descriptor['signers'])
     assert multisig_desc['master_blinding_key'] == descriptor.get('master_blinding_key', b'')
 
-    # This includes 'get receive address' tests
+    # This includes 'get receive address' tests ...
     for addr_test in multisig_data['address_tests']:
         rslt = jadeapi.get_receive_address(inputdata['network'],
                                            addr_test['paths'],
                                            multisig_name=inputdata['multisig_name'])
         assert rslt == addr_test['expected_address']
+
+    # ... and maybe blinding key tests ...
+    for blinding_test in multisig_data.get('blinding_key_tests', []):
+        rslt = jadeapi.get_blinding_key(blinding_test['script'],
+                                        multisig_name=inputdata['multisig_name'])
+        assert rslt == blinding_test['expected_blinding_key']
+
+        rslt = jadeapi.get_shared_nonce(blinding_test['script'],
+                                        blinding_test['their_pubkey'],
+                                        multisig_name=inputdata['multisig_name'])
+        assert rslt == blinding_test['expected_shared_nonce']
+
+        rslt = jadeapi.get_shared_nonce(blinding_test['script'],
+                                        blinding_test['their_pubkey'],
+                                        include_pubkey=True,
+                                        multisig_name=inputdata['multisig_name'])
+        assert rslt['blinding_key'] == blinding_test['expected_blinding_key']
+        assert rslt['shared_nonce'] == blinding_test['expected_shared_nonce']
 
 
 def test_generic_multisig_registration(jadeapi):

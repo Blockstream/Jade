@@ -76,4 +76,7 @@ bool multisig_validate_paths(
 bool multisig_get_pubkeys(const uint8_t* xpubs, size_t num_xpubs, CborValue* all_signer_paths, uint8_t* pubkeys,
     size_t pubkeys_len, size_t* written);
 
+bool multisig_get_master_blinding_key(
+    multisig_data_t* multisig_data, uint8_t* master_blinding_key, size_t master_blinding_key_len, const char** errmsg);
+
 #endif /* MULTISIG_H_ */

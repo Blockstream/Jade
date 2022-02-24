@@ -95,5 +95,7 @@ bool params_load_multisig(CborValue* params, char* multisig_name, size_t multisi
     multisig_data_t* multisig_data, const char** errmsg);
 bool params_multisig_pubkeys(bool is_change, CborValue* params, multisig_data_t* multisig_data, uint8_t* pubkeys,
     size_t pubkeys_len, size_t* pubkeys_written, char* warningmsg, size_t warningmsg_len, const char** errmsg);
+bool params_get_master_blindingkey(
+    CborValue* params, uint8_t* master_blinding_key, size_t master_blinding_key_len, const char** errmsg);
 
 #endif /* PROCESS_UTILS_H_ */

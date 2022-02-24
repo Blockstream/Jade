@@ -31,6 +31,7 @@ void get_receive_address_process(void* process_ptr)
     size_t written = 0;
     rpc_get_string("network", sizeof(network), &params, network, &written);
     CHECK_NETWORK_CONSISTENT(process, network, written);
+    const bool isLiquid = isLiquidNetwork(network);
 
     // Handle single-sig and generic multisig script variants
     // (Green-multisig is the default for backwards compatibility)
@@ -41,13 +42,19 @@ void get_receive_address_process(void* process_ptr)
     warning_msg[0] = '\0';
     const char* errmsg = NULL;
 
-    if (rpc_has_field_data("multisig_name", &params)) {
-        if (isLiquidNetwork(network)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Multisig is not supported for liquid networks", NULL);
-            goto cleanup;
-        }
+    uint8_t multisig_master_blinding_key[HMAC_SHA512_LEN];
+    const uint8_t* p_master_blinding_key = NULL;
+    size_t master_blinding_key_len = 0;
 
+    bool confidential = isLiquid; // default to confidential addresses for liquid
+    rpc_get_boolean("confidential", &params, &confidential);
+    if (confidential && !isLiquid) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Confidential addresses only apply to liquid networks", NULL);
+        goto cleanup;
+    }
+
+    if (rpc_has_field_data("multisig_name", &params)) {
         // Load multisig data record
         multisig_data_t multisig_data;
         char multisig_name[MAX_MULTISIG_NAME_SIZE];
@@ -71,6 +78,16 @@ void get_receive_address_process(void* process_ptr)
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid multisig script", NULL);
             goto cleanup;
+        }
+
+        if (confidential) {
+            if (!multisig_get_master_blinding_key(
+                    &multisig_data, multisig_master_blinding_key, sizeof(multisig_master_blinding_key), &errmsg)) {
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+                goto cleanup;
+            }
+            p_master_blinding_key = multisig_master_blinding_key;
+            master_blinding_key_len = sizeof(multisig_master_blinding_key);
         }
     } else {
         uint32_t path[MAX_PATH_LEN];
@@ -157,19 +174,24 @@ void get_receive_address_process(void* process_ptr)
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unhandled script variant", NULL);
             goto cleanup;
         }
+
+        if (confidential) {
+            // Standard
+            p_master_blinding_key = keychain_get()->master_unblinding_key;
+            master_blinding_key_len = sizeof(keychain_get()->master_unblinding_key);
+        }
     }
 
     // Convert that into an address string
     JADE_ASSERT(script_len > 0);
     char address[MAX_ADDRESS_LEN];
-    if (isLiquidNetwork(network)) {
-        bool confidential = true; // default to confidential addresses for liquid
-        rpc_get_boolean("confidential", &params, &confidential);
-
+    if (isLiquid) {
         if (confidential) {
             // Blind address
+            JADE_ASSERT(p_master_blinding_key && master_blinding_key_len == HMAC_SHA512_LEN);
             uint8_t blinding_key[EC_PUBLIC_KEY_LEN];
-            if (!wallet_get_public_blinding_key(script, script_len, blinding_key, sizeof(blinding_key))) {
+            if (!wallet_get_public_blinding_key(p_master_blinding_key, master_blinding_key_len, script, script_len,
+                    blinding_key, sizeof(blinding_key))) {
                 jade_process_reject_message(
                     process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding key for script", NULL);
                 goto cleanup;
@@ -177,16 +199,11 @@ void get_receive_address_process(void* process_ptr)
             elements_script_to_address(
                 network, script, script_len, blinding_key, sizeof(blinding_key), address, sizeof(address));
         } else {
+            JADE_ASSERT(!p_master_blinding_key && !master_blinding_key_len);
             elements_script_to_address(network, script, script_len, NULL, 0, address, sizeof(address));
         }
     } else {
-        bool confidential = false;
-        rpc_get_boolean("confidential", &params, &confidential);
-        if (confidential) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Confidential addresses only apply to liquid network", NULL);
-            goto cleanup;
-        }
+        JADE_ASSERT(!confidential && !p_master_blinding_key && !master_blinding_key_len);
         script_to_address(network, script, script_len, address, sizeof(address));
     }
 

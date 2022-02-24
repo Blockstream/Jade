@@ -896,22 +896,22 @@ bool wallet_hmac_with_master_key(const uint8_t* data, const size_t data_len, uin
         == WALLY_OK;
 }
 
-// Return script blinding privkey/pubkey pair
-static bool wallet_get_blinding_privkey(
+// Return script blinding privkey given master blinding key (slip-0077)
+static bool wallet_get_blinding_privkey(const uint8_t* master_blinding_key, const size_t master_blinding_key_len,
     const uint8_t* script, const size_t script_len, uint8_t* output, const size_t output_len)
 {
-    JADE_ASSERT(keychain_get());
-
+    JADE_ASSERT(master_blinding_key);
+    JADE_ASSERT(master_blinding_key_len == HMAC_SHA512_LEN);
     JADE_ASSERT(script);
     JADE_ASSERT(script_len);
     JADE_ASSERT(output);
     JADE_ASSERT(output_len == EC_PRIVATE_KEY_LEN);
 
-    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
+    // NOTE: 'master_unblinding_key' passed here as the full output of hmac512, when according to slip-0077
     // the master unblinding key is only the second half of that - ie. 256 bits
     // 'wally_asset_blinding_key_to_ec_private_key()' takes this into account...
-    const int wret = wally_asset_blinding_key_to_ec_private_key(keychain_get()->master_unblinding_key,
-        sizeof(keychain_get()->master_unblinding_key), script, script_len, output, output_len);
+    const int wret = wally_asset_blinding_key_to_ec_private_key(
+        master_blinding_key, master_blinding_key_len, script, script_len, output, output_len);
     if (wret != WALLY_OK) {
         JADE_LOGE("Error building asset blinding key for script: %d", wret);
         return false;
@@ -919,18 +919,18 @@ static bool wallet_get_blinding_privkey(
     return true;
 }
 
-bool wallet_get_public_blinding_key(
+bool wallet_get_public_blinding_key(const uint8_t* master_blinding_key, const size_t master_blinding_key_len,
     const uint8_t* script, const size_t script_len, uint8_t* output, const size_t output_len)
 {
-    JADE_ASSERT(keychain_get());
-
-    if (!script || !script_len || !output || output_len != EC_PUBLIC_KEY_LEN) {
+    if (!master_blinding_key || master_blinding_key_len != HMAC_SHA512_LEN || !script || !script_len || !output
+        || output_len != EC_PUBLIC_KEY_LEN) {
         return false;
     }
 
     uint8_t privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
-    const bool ret = wallet_get_blinding_privkey(script, script_len, privkey, sizeof(privkey));
+    const bool ret = wallet_get_blinding_privkey(
+        master_blinding_key, master_blinding_key_len, script, script_len, privkey, sizeof(privkey));
     if (ret) {
         JADE_WALLY_VERIFY(wally_ec_public_key_from_private_key(privkey, sizeof(privkey), output, output_len));
     }
@@ -968,13 +968,14 @@ bool wallet_get_blinding_factor(const uint8_t* hash_prevouts, const size_t hash_
 }
 
 // Compute the shared blinding nonce - ie. sha256(ecdh(our_privkey, their_pubkey))
-bool wallet_get_shared_blinding_nonce(const uint8_t* script, const size_t script_len, const uint8_t* their_pubkey,
-    const size_t their_pubkey_len, uint8_t* output_nonce, const size_t output_nonce_len, uint8_t* output_pubkey,
-    const size_t output_pubkey_len)
+bool wallet_get_shared_blinding_nonce(const uint8_t* master_blinding_key, const size_t master_blinding_key_len,
+    const uint8_t* script, const size_t script_len, const uint8_t* their_pubkey, const size_t their_pubkey_len,
+    uint8_t* output_nonce, const size_t output_nonce_len, uint8_t* output_pubkey, const size_t output_pubkey_len)
 {
     JADE_ASSERT(keychain_get());
 
-    if (!script || !script_len || !their_pubkey || !output_nonce || output_nonce_len != SHA256_LEN) {
+    if (!master_blinding_key || master_blinding_key_len != HMAC_SHA512_LEN || !script || !script_len || !their_pubkey
+        || !output_nonce || output_nonce_len != SHA256_LEN) {
         return false;
     }
     if ((output_pubkey && output_pubkey_len != EC_PUBLIC_KEY_LEN) || (!output_pubkey && output_pubkey_len != 0)) {
@@ -984,7 +985,8 @@ bool wallet_get_shared_blinding_nonce(const uint8_t* script, const size_t script
     uint8_t ecdh_output[SHA256_LEN];
     uint8_t privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
-    if (!wallet_get_blinding_privkey(script, script_len, privkey, sizeof(privkey))) {
+    if (!wallet_get_blinding_privkey(
+            master_blinding_key, master_blinding_key_len, script, script_len, privkey, sizeof(privkey))) {
         SENSITIVE_POP(privkey);
         return false;
     }

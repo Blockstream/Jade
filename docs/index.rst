@@ -1169,11 +1169,13 @@ Used to fetch a script-specific public blinding key.
         "method": "get_blinding_key",
         "params": {
             "script": <bytes>
+            "multisig_name": "small_beans"
         }
     }
 
 * 'script' should be the raw bytes of the script for which the blinding key is required.
- 
+* 'multisig_name' is optional and defaults to null.  It is only used for registered multisig wallets.
+
 .. _get_blinding_key_reply:
 
 get_blinding_key reply
@@ -1202,12 +1204,14 @@ Used to fetch a script-specific blinding nonce.
             "script": <bytes>,
             "their_pubkey": <33 bytes>,
             "include_pubkey": false
+            "multisig_name": "small_beans"
         }
     }
 
 * 'script' should be the raw bytes of the script for which the blinding key is required.
 * 'their_pubkey' needs to be the EC public key of the counterparty for the given script.
 * 'include_pubkey' is an optional boolean field.  If present and 'true' the reply will also include the public blinding key for the script (see get_blinding_key_request_).
+* 'multisig_name' is optional and defaults to null.  It is only used for registered multisig wallets.
  
 .. _get_shared_nonce_reply:
 

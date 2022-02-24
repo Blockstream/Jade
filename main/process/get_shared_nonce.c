@@ -1,4 +1,6 @@
 #include "../jade_assert.h"
+#include "../keychain.h"
+#include "../multisig.h"
 #include "../process.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
@@ -78,10 +80,18 @@ void get_shared_nonce_process(void* process_ptr)
         }
     }
 
-    // Get blinding nonce - sha256(ecdh(our_prikey, their_pubkey))
+    const char* errmsg = NULL;
+    uint8_t master_blinding_key[HMAC_SHA512_LEN];
+    if (!params_get_master_blindingkey(&params, master_blinding_key, sizeof(master_blinding_key), &errmsg)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        goto cleanup;
+    }
+
+    // Get blinding nonce - sha256(ecdh(our_privkey, their_pubkey))
     uint8_t shared_nonce[SHA256_LEN];
-    if (!wallet_get_shared_blinding_nonce(script, script_len, their_pubkey, their_pubkey_len, shared_nonce,
-            sizeof(shared_nonce), p_blinding_pubkey, blinding_pubkey_len)) {
+    if (!wallet_get_shared_blinding_nonce(master_blinding_key, sizeof(master_blinding_key), script, script_len,
+            their_pubkey, their_pubkey_len, shared_nonce, sizeof(shared_nonce), p_blinding_pubkey,
+            blinding_pubkey_len)) {
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to compute hashed shared nonce value for the parameters", NULL);
         goto cleanup;

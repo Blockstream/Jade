@@ -1,5 +1,6 @@
 #include "../identity.h"
 #include "../jade_assert.h"
+#include "../keychain.h"
 #include "../multisig.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
@@ -91,7 +92,7 @@ bool params_load_multisig(CborValue* params, char* multisig_name, const size_t m
     return true;
 }
 
-// Load a multisig record as above, then read out the signer path suffixes and derive the relevant pubkeys.
+// Take a multisig record as above, then read out the signer path suffixes and derive the relevant pubkeys.
 // Output any warning messages associated with the signer paths (eg. if they are non-standard, mismatch, etc)
 // Required for generating multisig receive addresses and also change addresses (when auto-validating change).
 bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_data_t* multisig_data, uint8_t* pubkeys,
@@ -133,6 +134,46 @@ bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_d
             multisig_data->xpubs, multisig_data->num_xpubs, &all_signer_paths, pubkeys, pubkeys_len, pubkeys_written)
         || *pubkeys_written != multisig_data->num_xpubs * EC_PUBLIC_KEY_LEN) {
         *errmsg = "Unexpected number of signer paths or invalid path for multisig";
+        return false;
+    }
+
+    return true;
+}
+
+// Get the relevant master blinding key (padded to 64-bytes for low-level calls).
+// This may be the master key with a multisig registration (if indicated in the parameters).
+// Otherwise, defaults to the master blinding key directly associated with this wallet/signer.
+bool params_get_master_blindingkey(
+    CborValue* params, uint8_t* master_blinding_key, const size_t master_blinding_key_len, const char** errmsg)
+{
+    JADE_ASSERT(params);
+    JADE_ASSERT(master_blinding_key);
+    JADE_ASSERT(master_blinding_key_len == HMAC_SHA512_LEN);
+    JADE_ASSERT(errmsg);
+
+    // If no 'multisig_name' parameter, default to the signer's own master blinding key
+    if (!rpc_has_field_data("multisig_name", params)) {
+        memcpy(master_blinding_key, keychain_get()->master_unblinding_key, master_blinding_key_len);
+        return true;
+    }
+
+    // If is multisig, extract master key from multisig record
+    size_t written = 0;
+    char multisig_name[MAX_MULTISIG_NAME_SIZE];
+    rpc_get_string("multisig_name", sizeof(multisig_name), params, multisig_name, &written);
+    if (written == 0) {
+        *errmsg = "Invalid multisig name parameter";
+        return false;
+    }
+
+    multisig_data_t multisig_data = { 0 };
+    if (!multisig_load_from_storage(multisig_name, &multisig_data, errmsg)) {
+        // 'errmsg' populated by above call
+        return false;
+    }
+
+    if (!multisig_get_master_blinding_key(&multisig_data, master_blinding_key, master_blinding_key_len, errmsg)) {
+        // 'errmsg' populated by above call
         return false;
     }
 

@@ -898,7 +898,7 @@ class JadeAPI:
         """
         return self._jadeRpc('get_master_blinding_key')
 
-    def get_blinding_key(self, script):
+    def get_blinding_key(self, script, multisig_name=None):
         """
         RPC call to fetch the public blinding key for the hw signer.
 
@@ -907,15 +907,19 @@ class JadeAPI:
         script : bytes
             The script for which the public blinding key is required.
 
+        multisig_name : str, optional
+            The name of any registered multisig wallet for which to fetch the blinding key.
+            Defaults to None
+
         Returns
         -------
         33-bytes
             Public blinding key for the passed script.
         """
-        params = {'script': script}
+        params = {'script': script, 'multisig_name': multisig_name}
         return self._jadeRpc('get_blinding_key', params)
 
-    def get_shared_nonce(self, script, their_pubkey, include_pubkey=False):
+    def get_shared_nonce(self, script, their_pubkey, include_pubkey=False, multisig_name=None):
         """
         RPC call to get the shared secret to unblind a tx, given the receiving script and
         the pubkey of the sender (sometimes called "blinding nonce" in Liquid).
@@ -930,8 +934,12 @@ class JadeAPI:
             The counterparty public key.
 
         include_pubkey : bool, optional
-            Whether to also return the hw signer's public blinding key.
+            Whether to also return the wallet's public blinding key.
             Defaults to False.
+
+        multisig_name : str, optional
+            The name of any registered multisig wallet for which to fetch the blinding nonce.
+            Defaults to None
 
         Returns
         -------
@@ -943,9 +951,10 @@ class JadeAPI:
         dict
             Contains keys:
             shared_nonce - 32-bytes, public blinding nonce for the passed script as above.
-            blinding_key - 33-bytes, public blinding key for the passed script for the hw signer.
+            blinding_key - 33-bytes, public blinding key for the passed script.
         """
-        params = {'script': script, 'their_pubkey': their_pubkey, 'include_pubkey': include_pubkey}
+        params = {'script': script, 'their_pubkey': their_pubkey,
+                  'include_pubkey': include_pubkey, 'multisig_name': multisig_name}
         return self._jadeRpc('get_shared_nonce', params)
 
     def get_blinding_factor(self, hash_prevouts, output_index, type):

@@ -329,3 +329,24 @@ bool multisig_get_pubkeys(const uint8_t* xpubs, const size_t num_xpubs, CborValu
 
     return true;
 }
+
+bool multisig_get_master_blinding_key(multisig_data_t* multisig_data, uint8_t* master_blinding_key,
+    const size_t master_blinding_key_len, const char** errmsg)
+{
+    JADE_ASSERT(multisig_data);
+    JADE_ASSERT(master_blinding_key);
+    JADE_ASSERT(master_blinding_key_len == HMAC_SHA512_LEN);
+    JADE_ASSERT(errmsg);
+
+    if (multisig_data->master_blinding_key_len != sizeof(multisig_data->master_blinding_key)) {
+        *errmsg = "No blinding key for multisig record";
+        return false;
+    }
+
+    // Need full SHA512 for low-level calls - pad front with 0's
+    memset(master_blinding_key, 0, master_blinding_key_len - multisig_data->master_blinding_key_len);
+    memcpy(master_blinding_key + master_blinding_key_len - multisig_data->master_blinding_key_len,
+        multisig_data->master_blinding_key, multisig_data->master_blinding_key_len);
+
+    return true;
+}

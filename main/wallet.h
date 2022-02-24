@@ -68,10 +68,11 @@ bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, size_t signature_h
     size_t* written);
 
 bool wallet_hmac_with_master_key(const uint8_t* data, size_t data_len, uint8_t* output, size_t output_len);
-bool wallet_get_public_blinding_key(const uint8_t* script, size_t script_len, uint8_t* output, size_t output_len);
-bool wallet_get_shared_blinding_nonce(const uint8_t* script, size_t script_len, const uint8_t* their_pubkey,
-    size_t their_pubkey_len, uint8_t* output_nonce, size_t output_nonce_len, uint8_t* output_pubkey,
-    size_t output_pubkey_len);
+bool wallet_get_public_blinding_key(const uint8_t* master_blinding_key, size_t master_blinding_key_len,
+    const uint8_t* script, size_t script_len, uint8_t* output, size_t output_len);
+bool wallet_get_shared_blinding_nonce(const uint8_t* master_blinding_key, size_t master_blinding_key_len,
+    const uint8_t* script, size_t script_len, const uint8_t* their_pubkey, size_t their_pubkey_len,
+    uint8_t* output_nonce, size_t output_nonce_len, uint8_t* output_pubkey, size_t output_pubkey_len);
 bool wallet_get_blinding_factor(const uint8_t* hash_prevouts, size_t hash_len, size_t output_index, uint8_t type,
     uint8_t* output, size_t output_len);
 bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,
