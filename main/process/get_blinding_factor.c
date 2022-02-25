@@ -16,22 +16,14 @@ void get_blinding_factor_process(void* process_ptr)
     ASSERT_CURRENT_MESSAGE(process, "get_blinding_factor");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
+    const char* errmsg = NULL;
 
-    // needed to generate the blinding factors deterministically
-    uint32_t hash_prevouts_len = 0;
+    // hash-prevouts and output index are needed to generate deterministic blinding factors
+    size_t hash_prevouts_len = 0;
     const uint8_t* hash_prevouts = NULL;
-    rpc_get_bytes_ptr("hash_prevouts", &params, &hash_prevouts, &hash_prevouts_len);
-    if (hash_prevouts_len != SHA256_LEN) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract hash_prevouts from parameters", NULL);
-        goto cleanup;
-    }
-
-    uint32_t output_index = 0;
-    bool retval = rpc_get_sizet("output_index", &params, &output_index);
-    if (!retval) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract output index from parameters", NULL);
+    size_t output_index = 0;
+    if (!params_hashprevouts_outputindex(&params, &hash_prevouts, &hash_prevouts_len, &output_index, &errmsg)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
         goto cleanup;
     }
 

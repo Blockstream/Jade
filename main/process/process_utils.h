@@ -67,4 +67,7 @@ typedef enum {
 bool params_identity_curve_index(CborValue* params, const char** identity, size_t* identity_len, const char** curve,
     size_t* curve_len, size_t* index, const char** errmsg);
 
+bool params_hashprevouts_outputindex(CborValue* params, const uint8_t** hash_prevouts, size_t* hash_prevouts_len,
+    size_t* output_index, const char** errmsg);
+
 #endif /* PROCESS_UTILS_H_ */

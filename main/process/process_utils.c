@@ -40,3 +40,27 @@ bool params_identity_curve_index(CborValue* params, const char** identity, size_
 
     return true;
 }
+
+// Hash-prevouts and output index are needed to generate deterministic blinding factors.
+bool params_hashprevouts_outputindex(CborValue* params, const uint8_t** hash_prevouts, size_t* hash_prevouts_len,
+    size_t* output_index, const char** errmsg)
+{
+    JADE_ASSERT(params);
+    JADE_ASSERT(hash_prevouts);
+    JADE_ASSERT(hash_prevouts_len);
+    JADE_ASSERT(output_index);
+    JADE_ASSERT(errmsg);
+
+    rpc_get_bytes_ptr("hash_prevouts", params, hash_prevouts, hash_prevouts_len);
+    if (*hash_prevouts_len != SHA256_LEN) {
+        *errmsg = "Failed to extract hash_prevouts from parameters";
+        return false;
+    }
+
+    if (!rpc_get_sizet("output_index", params, output_index)) {
+        *errmsg = "Failed to extract output index from parameters";
+        return false;
+    }
+
+    return true;
+}
