@@ -42,22 +42,15 @@ void sign_identity_process(void* process_ptr)
     ASSERT_CURRENT_MESSAGE(process, "sign_identity");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
+    const char* errmsg = NULL;
 
     const char* identity = NULL;
     size_t identity_len = 0;
-    rpc_get_string_ptr("identity", &params, &identity, &identity_len);
-    if (!identity || identity_len >= MAX_DISPLAY_MESSAGE_LEN || !is_identity_protocol_valid(identity, identity_len)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid identity from parameters", NULL);
-        goto cleanup;
-    }
-
     const char* curve = NULL;
     size_t curve_len = 0;
-    rpc_get_string_ptr("curve", &params, &curve, &curve_len);
-    if (!curve || !is_identity_curve_valid(curve, curve_len)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid curve name from parameters", NULL);
+    size_t index = 0;
+    if (!params_identity_curve_index(&params, &identity, &identity_len, &curve, &curve_len, &index, &errmsg)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
         goto cleanup;
     }
 
@@ -68,16 +61,6 @@ void sign_identity_process(void* process_ptr)
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid challenge from parameters", NULL);
         goto cleanup;
-    }
-
-    // Index is optional
-    size_t index = 0;
-    if (rpc_has_field_data("index", &params)) {
-        if (!rpc_get_sizet("index", &params, &index)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid index from parameters", NULL);
-            goto cleanup;
-        }
     }
 
     // Check keychain has seed data - old wallets may not
