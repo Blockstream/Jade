@@ -70,4 +70,10 @@ bool params_identity_curve_index(CborValue* params, const char** identity, size_
 bool params_hashprevouts_outputindex(CborValue* params, const uint8_t** hash_prevouts, size_t* hash_prevouts_len,
     size_t* output_index, const char** errmsg);
 
+typedef struct _multisig_data multisig_data_t;
+bool params_load_multisig(CborValue* params, char* multisig_name, size_t multisig_name_len,
+    multisig_data_t* multisig_data, const char** errmsg);
+bool params_multisig_pubkeys(bool is_change, CborValue* params, multisig_data_t* multisig_data, uint8_t* pubkeys,
+    size_t pubkeys_len, size_t* pubkeys_written, char* warningmsg, size_t warningmsg_len, const char** errmsg);
+
 #endif /* PROCESS_UTILS_H_ */

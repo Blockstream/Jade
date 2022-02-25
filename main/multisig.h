@@ -15,7 +15,7 @@
 // The size of the byte-string required to store a multisig registration
 #define MULTISIG_BYTES_LEN(num_signers) ((4 * sizeof(uint8_t)) + (num_signers * BIP32_SERIALIZED_LEN) + HMAC_SHA256_LEN)
 
-typedef struct {
+typedef struct _multisig_data {
     script_variant_t variant;
     bool sorted;
     uint8_t threshold;

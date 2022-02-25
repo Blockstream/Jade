@@ -91,51 +91,22 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                     return false;
                 }
 
-                char multisig_name[MAX_MULTISIG_NAME_SIZE];
-                written = 0;
-                rpc_get_string("multisig_name", sizeof(multisig_name), &arrayItem, multisig_name, &written);
-                if (written == 0) {
-                    *errmsg = "Invalid multisig name parameter";
-                    return false;
-                }
-
+                // Load multisig data record
                 multisig_data_t multisig_data;
-                if (!multisig_load_from_storage(multisig_name, &multisig_data, errmsg)) {
+                char multisig_name[MAX_MULTISIG_NAME_SIZE];
+                if (!params_load_multisig(&arrayItem, multisig_name, sizeof(multisig_name), &multisig_data, errmsg)) {
                     // 'errmsg' populated by above call
                     return false;
                 }
                 JADE_LOGI("Change is to %uof%u multisig: '%s'", multisig_data.threshold, multisig_data.xpubs_len,
                     multisig_name);
 
-                CborValue all_signer_paths;
+                // Get the paths (suffixes) and derive pubkeys
                 const bool is_change = true;
-                bool all_paths_as_expected;
-                bool final_elements_consistent;
-                if (!rpc_get_array("paths", &arrayItem, &all_signer_paths)
-                    || !multisig_validate_paths(
-                        is_change, &all_signer_paths, &all_paths_as_expected, &final_elements_consistent)) {
-                    *errmsg = "Failed to extract signer paths from parameters";
-                    return false;
-                }
-
-                // If paths not as expected show a warning message and ask the user to confirm
-                if (!all_paths_as_expected || !final_elements_consistent) {
-                    const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
-                        "Warning: %s%s%s  Proceed at your own risk.",
-                        !all_paths_as_expected ? "Unusual multisig change path." : "",
-                        !all_paths_as_expected && !final_elements_consistent ? " " : "",
-                        !final_elements_consistent ? "Non-standard multisig with different paths across signers." : "");
-                    JADE_ASSERT(
-                        ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
-                }
-
-                written = 0;
                 uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
-                if (!multisig_get_pubkeys(multisig_data.xpubs, multisig_data.xpubs_len, &all_signer_paths, pubkeys,
-                        sizeof(pubkeys), &written)
-                    || written != multisig_data.xpubs_len * EC_PUBLIC_KEY_LEN) {
-
-                    *errmsg = "Unexpected number of signer paths or invalid path for multisig";
+                if (!params_multisig_pubkeys(is_change, &arrayItem, &multisig_data, pubkeys, sizeof(pubkeys), &written,
+                        output_info[i].message, sizeof(output_info[i].message), errmsg)) {
+                    // 'errmsg' populated by above call
                     return false;
                 }
 

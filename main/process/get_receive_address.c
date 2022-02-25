@@ -21,7 +21,6 @@ void get_receive_address_process(void* process_ptr)
     jade_process_t* process = process_ptr;
 
     char network[MAX_NETWORK_NAME_LEN];
-    char multisig_name[MAX_MULTISIG_NAME_SIZE];
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_receive_address");
@@ -38,8 +37,9 @@ void get_receive_address_process(void* process_ptr)
     size_t script_len = 0;
     uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient for all scripts
 
-    char warning_msg_text[128];
-    const char* warning_msg = NULL;
+    char warning_msg[128];
+    warning_msg[0] = '\0';
+    const char* errmsg = NULL;
 
     if (rpc_has_field_data("multisig_name", &params)) {
         if (isLiquidNetwork(network)) {
@@ -48,50 +48,20 @@ void get_receive_address_process(void* process_ptr)
             goto cleanup;
         }
 
-        written = 0;
-        rpc_get_string("multisig_name", sizeof(multisig_name), &params, multisig_name, &written);
-        if (written == 0) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Missing or invalid multisig name parameter", NULL);
-            goto cleanup;
-        }
-
-        multisig_data_t multisig_data = { 0 };
-        const char* errmsg = NULL;
-        if (!multisig_load_from_storage(multisig_name, &multisig_data, &errmsg)) {
+        // Load multisig data record
+        multisig_data_t multisig_data;
+        char multisig_name[MAX_MULTISIG_NAME_SIZE];
+        if (!params_load_multisig(&params, multisig_name, sizeof(multisig_name), &multisig_data, &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
         }
 
-        CborValue all_signer_paths;
+        // Get the paths (suffixes) and derive pubkeys
         const bool is_change = false;
-        bool all_paths_as_expected;
-        bool final_elements_consistent;
-        if (!rpc_get_array("paths", &params, &all_signer_paths)
-            || !multisig_validate_paths(
-                is_change, &all_signer_paths, &all_paths_as_expected, &final_elements_consistent)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract signer paths from parameters", NULL);
-            goto cleanup;
-        }
-
-        // If paths not as expected show a warning message with the address
-        if (!all_paths_as_expected || !final_elements_consistent) {
-            const int ret = snprintf(warning_msg_text, sizeof(warning_msg_text),
-                "Warning: %s%s%s  Proceed at your own risk.", !all_paths_as_expected ? "Unusual multisig path." : "",
-                !all_paths_as_expected && !final_elements_consistent ? " " : "",
-                !final_elements_consistent ? "Non-standard multisig with different paths across signers." : "");
-            JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg_text));
-            warning_msg = warning_msg_text;
-        }
-
-        written = 0;
         uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
-        if (!multisig_get_pubkeys(
-                multisig_data.xpubs, multisig_data.xpubs_len, &all_signer_paths, pubkeys, sizeof(pubkeys), &written)
-            || written != multisig_data.xpubs_len * EC_PUBLIC_KEY_LEN) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS,
-                "Unexpected number of signer paths or invalid path for multisig", NULL);
+        if (!params_multisig_pubkeys(is_change, &params, &multisig_data, pubkeys, sizeof(pubkeys), &written,
+                warning_msg, sizeof(warning_msg), &errmsg)) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
         }
 
@@ -139,12 +109,11 @@ void get_receive_address_process(void* process_ptr)
             rpc_get_sizet("csv_blocks", &params, &csvBlocks);
 
             if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
-                const int ret = snprintf(warning_msg_text, sizeof(warning_msg_text),
-                    "This output has a non-standard csv value (%u), so it may be difficult to find.  Proceed at "
-                    "your own risk.",
+                const int ret = snprintf(warning_msg, sizeof(warning_msg),
+                    "Warning: Output has non-standard csv value (%u), so may be difficult to find. "
+                    "Proceed at your own risk.",
                     csvBlocks);
-                JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg_text));
-                warning_msg = warning_msg_text;
+                JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
             }
 
             // Build a script pubkey for the passed parameters
@@ -172,10 +141,8 @@ void get_receive_address_process(void* process_ptr)
                         process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
                     goto cleanup;
                 }
-                const int ret
-                    = snprintf(warning_msg_text, sizeof(warning_msg_text), "Warning: Unusual path: %s", path_str);
-                JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg_text));
-                warning_msg = warning_msg_text;
+                const int ret = snprintf(warning_msg, sizeof(warning_msg), "Warning: Unusual path: %s", path_str);
+                JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
             }
 
             // Build a script pubkey for the passed parameters

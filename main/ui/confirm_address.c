@@ -6,6 +6,7 @@ void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* ad
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(address);
+    JADE_ASSERT(warning_msg);
 
     gui_make_activity(activity_ptr, true, "Confirm Address");
     gui_activity_t* activity = *activity_ptr;
@@ -24,7 +25,7 @@ void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* ad
     gui_set_margins(text_addr, GUI_MARGIN_ALL_DIFFERENT, 4, 2, 2, 2);
 
     // Second row, any warning msg (scrolling)
-    if (warning_msg) {
+    if (*warning_msg != '\0') {
         gui_view_node_t* text_warning;
         gui_make_text(&text_warning, warning_msg, TFT_RED);
         gui_set_parent(text_warning, vsplit);
