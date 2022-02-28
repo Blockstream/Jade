@@ -957,7 +957,7 @@ class JadeAPI:
                   'include_pubkey': include_pubkey, 'multisig_name': multisig_name}
         return self._jadeRpc('get_shared_nonce', params)
 
-    def get_blinding_factor(self, hash_prevouts, output_index, type):
+    def get_blinding_factor(self, hash_prevouts, output_index, bftype, multisig_name=None):
         """
         RPC call to get a deterministic "trusted" blinding factor to blind an output.
         Normally the blinding factors are generated and returned in the `get_commitments` call,
@@ -977,8 +977,12 @@ class JadeAPI:
         output_index : int
             The index of the output we are trying to blind
 
-        type : str
+        bftype : str
             Can be eitehr "ASSET" or "VALUE", to generate abfs or vbfs.
+
+        multisig_name : str, optional
+            The name of any registered multisig wallet for which to fetch the blinding factor.
+            Defaults to None
 
         Returns
         -------
@@ -987,7 +991,8 @@ class JadeAPI:
         """
         params = {'hash_prevouts': hash_prevouts,
                   'output_index': output_index,
-                  'type': type}
+                  'type': bftype,
+                  'multisig_name': multisig_name}
         return self._jadeRpc('get_blinding_factor', params)
 
     def get_commitments(self,
@@ -995,7 +1000,8 @@ class JadeAPI:
                         value,
                         hash_prevouts,
                         output_index,
-                        vbf=None):
+                        vbf=None,
+                        multisig_name=None):
         """
         RPC call to generate deterministic blinding factors and commitments for a given output.
         Can optionally get a "custom" VBF, normally used for the last input where the vbf is not
@@ -1021,6 +1027,10 @@ class JadeAPI:
         vbf : 32-bytes, optional
             The vbf to use, in preference to deterministically generating one in this call.
 
+        multisig_name : str, optional
+            The name of any registered multisig wallet for which to fetch the blinding factor.
+            Defaults to None
+
         Returns
         -------
         dict
@@ -1029,9 +1039,9 @@ class JadeAPI:
         params = {'asset_id': asset_id,
                   'value': value,
                   'hash_prevouts': hash_prevouts,
-                  'output_index': output_index}
-        if vbf is not None:
-            params['vbf'] = vbf
+                  'output_index': output_index,
+                  'vbf': vbf,
+                  'multisig_name': multisig_name}
         return self._jadeRpc('get_commitments', params)
 
     def _send_tx_inputs(self, base_id, inputs, use_ae_signatures):

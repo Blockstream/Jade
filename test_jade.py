@@ -103,6 +103,15 @@ def _h2b_test_case(testcase):
                 blinding_test['expected_blinding_key'] = h2b(blinding_test['expected_blinding_key'])
                 blinding_test['expected_shared_nonce'] = h2b(blinding_test['expected_shared_nonce'])
 
+        if 'commitments_tests' in testcase:
+            for blinding_test in testcase['commitments_tests']:
+                blinding_test['hash_prevouts'] = h2b(blinding_test['hash_prevouts'])
+                blinding_test['asset_id'] = h2b(blinding_test['asset_id'])
+                blinding_test['abf'] = h2b(blinding_test['abf'])
+                blinding_test['vbf'] = h2b(blinding_test['vbf'])
+                blinding_test['asset_generator'] = h2b(blinding_test['asset_generator'])
+                blinding_test['value_commitment'] = h2b(blinding_test['value_commitment'])
+
     return testcase
 
 
@@ -2105,6 +2114,25 @@ def _check_multisig_registration(jadeapi, multisig_data):
                                         multisig_name=inputdata['multisig_name'])
         assert rslt['blinding_key'] == blinding_test['expected_blinding_key']
         assert rslt['shared_nonce'] == blinding_test['expected_shared_nonce']
+
+    # ... and blinding/commitments tests!
+    for blinding_test in multisig_data.get('commitments_tests', []):
+        for bf_type, rslt_key in [('ASSET', 'abf'), ('VALUE', 'vbf')]:
+            rslt = jadeapi.get_blinding_factor(blinding_test['hash_prevouts'],
+                                               blinding_test['output_index'],
+                                               bf_type,
+                                               multisig_name=inputdata['multisig_name'])
+            assert rslt == blinding_test[rslt_key]
+
+        rslt = jadeapi.get_commitments(blinding_test['asset_id'],
+                                       blinding_test['value'],
+                                       blinding_test['hash_prevouts'],
+                                       blinding_test['output_index'],
+                                       multisig_name=inputdata['multisig_name'])
+        assert rslt['abf'] == blinding_test['abf']
+        assert rslt['vbf'] == blinding_test['vbf']
+        assert rslt['asset_generator'] == blinding_test['asset_generator']
+        assert rslt['value_commitment'] == blinding_test['value_commitment']
 
 
 def test_generic_multisig_registration(jadeapi):

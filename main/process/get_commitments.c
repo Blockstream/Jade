@@ -67,26 +67,32 @@ void get_commitments_process(void* process_ptr)
         goto cleanup;
     }
 
-    // generate the abf
-    if (!wallet_get_blinding_factor(hash_prevouts, hash_prevouts_len, output_index, ASSET_BLINDING_FACTOR,
-            commitments.abf, sizeof(commitments.abf))) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf from the parameters", NULL);
+    // optional vbf provided to balance the blinded amounts
+    size_t vbf_len = 0;
+    rpc_get_bytes("vbf", sizeof(commitments.vbf), &params, commitments.vbf, &vbf_len);
+    if (vbf_len && vbf_len != sizeof(commitments.vbf)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract vbf from parameters", NULL);
+        goto cleanup;
     }
 
-    // optional vbf provided by use to balance the blinded amounts
-    size_t written = 0;
-    rpc_get_bytes("vbf", sizeof(commitments.vbf), &params, commitments.vbf, &written);
-    if (written) {
-        if (written != sizeof(commitments.vbf)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract vbf from parameters", NULL);
-            goto cleanup;
-        }
-    } else {
-        // Otherwise compute vbf
-        if (!wallet_get_blinding_factor(hash_prevouts, hash_prevouts_len, output_index, VALUE_BLINDING_FACTOR,
-                commitments.vbf, sizeof(commitments.vbf))) {
+    // generate the abf (and vbf if necessary)
+    uint8_t master_blinding_key[HMAC_SHA512_LEN];
+    if (!params_get_master_blindingkey(&params, master_blinding_key, sizeof(master_blinding_key), &errmsg)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        goto cleanup;
+    }
+
+    if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts, hash_prevouts_len,
+            output_index, ASSET_BLINDING_FACTOR, commitments.abf, sizeof(commitments.abf))) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf from the parameters", NULL);
+        goto cleanup;
+    }
+
+    if (!vbf_len) {
+        // Compute vbf
+        if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts,
+                hash_prevouts_len, output_index, VALUE_BLINDING_FACTOR, commitments.vbf, sizeof(commitments.vbf))) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute vbf from the parameters", NULL);
             goto cleanup;

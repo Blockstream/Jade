@@ -1,4 +1,5 @@
 #include "../jade_assert.h"
+#include "../keychain.h"
 #include "../process.h"
 #include "../utils/cbor_rpc.h"
 #include "../wallet.h"
@@ -48,15 +49,21 @@ void get_blinding_factor_process(void* process_ptr)
         goto cleanup;
     }
 
-    uint8_t result_bytes[HMAC_SHA256_LEN];
-    if (!wallet_get_blinding_factor(
-            hash_prevouts, hash_prevouts_len, output_index, type, result_bytes, sizeof(result_bytes))) {
+    uint8_t master_blinding_key[HMAC_SHA512_LEN];
+    if (!params_get_master_blindingkey(&params, master_blinding_key, sizeof(master_blinding_key), &errmsg)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        goto cleanup;
+    }
+
+    uint8_t blinding_factor[HMAC_SHA256_LEN];
+    if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts, hash_prevouts_len,
+            output_index, type, blinding_factor, sizeof(blinding_factor))) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding factor for output", NULL);
         goto cleanup;
     }
 
     uint8_t buffer[256];
-    jade_process_reply_to_message_bytes(process->ctx, result_bytes, sizeof(result_bytes), buffer, sizeof(buffer));
+    jade_process_reply_to_message_bytes(process->ctx, blinding_factor, sizeof(blinding_factor), buffer, sizeof(buffer));
     JADE_LOGI("Success");
 
 cleanup:

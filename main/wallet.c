@@ -938,28 +938,26 @@ bool wallet_get_public_blinding_key(const uint8_t* master_blinding_key, const si
     return ret;
 }
 
-bool wallet_get_blinding_factor(const uint8_t* hash_prevouts, const size_t hash_len, const size_t output_index,
-    uint8_t type, uint8_t* output, const size_t output_len)
+bool wallet_get_blinding_factor(const uint8_t* master_blinding_key, const size_t master_blinding_key_len,
+    const uint8_t* hash_prevouts, const size_t hash_len, const size_t output_index, uint8_t type, uint8_t* output,
+    const size_t output_len)
 {
-    JADE_ASSERT(keychain_get());
-
-    if (!hash_prevouts || hash_len != SHA256_LEN || !output || output_len != HMAC_SHA256_LEN
+    if (!master_blinding_key || master_blinding_key_len != HMAC_SHA512_LEN || !hash_prevouts || hash_len != SHA256_LEN
+        || !output || output_len != HMAC_SHA256_LEN
         || (type != ASSET_BLINDING_FACTOR && type != VALUE_BLINDING_FACTOR)) {
         return false;
     }
 
-    // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
+    // NOTE: 'master_unblinding_key' is here as the full output of hmac512, when according to slip-0077
     // the master unblinding key is only the second half of that - ie. 256 bits
     // So we only use the relevant slice of the data for this derivation (consistent with ledger).
-    JADE_ASSERT(sizeof(keychain_get()->master_unblinding_key) == HMAC_SHA512_LEN);
     uint8_t tx_blinding_key[HMAC_SHA256_LEN];
-    JADE_WALLY_VERIFY(wally_hmac_sha256(keychain_get()->master_unblinding_key + HMAC_SHA256_LEN, HMAC_SHA256_LEN,
-        hash_prevouts, SHA256_LEN, tx_blinding_key, sizeof(tx_blinding_key)));
+    JADE_WALLY_VERIFY(wally_hmac_sha256(master_blinding_key + HMAC_SHA512_LEN / 2, HMAC_SHA512_LEN / 2, hash_prevouts,
+        SHA256_LEN, tx_blinding_key, sizeof(tx_blinding_key)));
 
     // msg is either "ABF" or "VBF" with the output index appended at the end.
     // initialize the common part here and then replace vars down
     uint8_t msg[3 + sizeof(uint32_t)] = { type, 'B', 'F', 0x00, 0x00, 0x00, 0x00 };
-
     uint32_to_be(output_index, msg + 3);
     JADE_WALLY_VERIFY(
         wally_hmac_sha256(tx_blinding_key, sizeof(tx_blinding_key), msg, sizeof(msg), output, output_len));
@@ -972,8 +970,6 @@ bool wallet_get_shared_blinding_nonce(const uint8_t* master_blinding_key, const 
     const uint8_t* script, const size_t script_len, const uint8_t* their_pubkey, const size_t their_pubkey_len,
     uint8_t* output_nonce, const size_t output_nonce_len, uint8_t* output_pubkey, const size_t output_pubkey_len)
 {
-    JADE_ASSERT(keychain_get());
-
     if (!master_blinding_key || master_blinding_key_len != HMAC_SHA512_LEN || !script || !script_len || !their_pubkey
         || !output_nonce || output_nonce_len != SHA256_LEN) {
         return false;

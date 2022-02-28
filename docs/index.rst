@@ -1254,12 +1254,14 @@ Used to fetch a deterministic output blinding factor (abf/assetblinder or vbf/va
         "params": {
             "hash_prevouts": <32 bytes>
             "output_index": 1,
-            "type": "VALUE"
+            "type": "VALUE",
+            "multisig_name": "small_beans"
         }
     }
 
 * 'hash_prevout' should be the double sha256 of the serialization of all input outpoints, as documented in bip143.
 * 'type' must be either 'ASSET' or 'VALUE'.
+* 'multisig_name' is optional and defaults to null.  It is only used for registered multisig wallets.
  
 .. _get_blinding_factor_reply:
 
@@ -1289,11 +1291,16 @@ Used to fetch output commitments - ie. returns blinded output (and associated bl
             "asset_id": <32 bytes>
             "value": 9000000,
             "hash_prevouts": <32 bytes>
-            "output_index": 1
+            "output_index": 1,
+            "vbf": <32 bytes>,
+            "multisig_name": "small_beans"
         }
     }
 
 * 'hash_prevout' should be the double sha256 of the serialization of all input out-points, as documented in bip143.
+* 'vbf' is an optional override, and defaults to null, in which case the value is calculated.
+* 'vbf' is provided for one output, so the tx commitment values sum correctly.
+* 'multisig_name' is optional and defaults to null.  It is only used for registered multisig wallets.
  
 .. _get_commitments_reply:
 
@@ -1345,22 +1352,22 @@ Request to sign liquid transaction inputs.
             ],
             "trusted_commitments": [
                 {
-                    "abf": "308fee61c9b6f6ba534abefaa0e3fef58f5dc8b8a772135f157b3f771b005164",
-                    "asset_generator": "0bacf4e230f12327ff795f8c814f80b0502e78683d067fe75ba38fd2d0be27188b",
-                    "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
-                    "blinding_key": "03462d3febd7654b22c6faaf5d12a400693dbdf21f8cb9a82e18aba8457c6812d4",
+                    "abf": <32 bytes>
+                    "asset_generator": <33 bytes>
+                    "asset_id": <32 bytes>
+                    "blinding_key": <32 bytes>
                     "value": 50000000,
-                    "value_commitment":"095f6484b5f6903ac7873b3ed43e3833d6f30af26f739afa2b46d06464b709225a",
-                    "vbf":"bdbb71ddc37d82edef0a3c6ccc9baa32ac6b528b2772b35000030fecda228ce6"
+                    "value_commitment": <33 bytes>
+                    "vbf": <32 bytes>
                 },
                 {
-                    "vbf": "6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
-                    "abf": "a3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
-                    "blinding_key": "023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
-                    "asset_generator": "0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
-                    "value_commitment": "0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de879a478a7",
-                    "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+                    "abf": <32 bytes>
+                    "asset_generator": <33 bytes>
+                    "asset_id": <32 bytes>
+                    "blinding_key": <32 bytes>
                     "value": 9000000
+                    "value_commitment": <33 bytes>
+                    "vbf": <32 bytes>
                 },
                 null
         }

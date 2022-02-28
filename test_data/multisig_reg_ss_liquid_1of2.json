@@ -89,5 +89,27 @@
       "expected_blinding_key": "031e2b1fb58e46895fd1cc4bb2cb1e9f8b48a7ee8ab44f5f9c6c233bd75a4ff8f8",
       "expected_shared_nonce": "d3f920b036b0695df3450339cbf7c14451e47005ac97378291c854d178c9f605"
     }
+  ],
+  "commitments_tests": [
+    {
+      "hash_prevouts": "bd911e94000753ef3d03b9cf1628622932acd98f6599d8687ee70376615236ff",
+      "output_index": 0,
+      "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+      "value": 100000000,
+      "abf": "56b55d7604c6eace7c763648f5412fa8688550a57586b21ddcc0cbc77728c351",
+      "vbf": "8648994470f45d8bc6f1f0b7bb3927e1a2aa79abc8ccd38b22ef9d5676b11a98",
+      "asset_generator": "0b3d74ffe9fccf2d562867c670214c39245e9c7d97dbbbc3c3567e84bf39e8f97f",
+      "value_commitment": "09ca90f20ddfe9c60f956a71dbb0d8caedd389aba391bf43d6af41c27fdd9ab037"
+    },
+    {
+      "hash_prevouts": "e68e7a4f5259c57155bc15e90a3009ab77d77256c991c071ecb4164729d81c87",
+      "output_index": 2,
+      "asset_id": "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49",
+      "value": 1899993973,
+      "abf": "5deae09a7ab346a6dd52e28bda68785142c031de2b94c3e21c8b9f1bf2036e53",
+      "vbf": "6d99a3025d92d7b40b98a440e585c02f789c0e3be3ec6a42c152b02e4c801012",
+      "asset_generator": "0b9a2560ae19962f22dc9ade093380028eefe4afffa9a7668944e9dd5071d233ab",
+      "value_commitment": "0986c7a01885a372ee1a20604ecb15785f3cf5fe17909ae6a00e50f9fcd57e718b"
+    }
   ]
 }
