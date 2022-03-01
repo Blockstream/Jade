@@ -358,6 +358,7 @@ void sign_tx_process(void* process_ptr)
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "sign_tx");
+    ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
     const jade_msg_source_t source = process->ctx.source;
 

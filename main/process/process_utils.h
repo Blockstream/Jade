@@ -1,6 +1,11 @@
 #ifndef PROCESS_UTILS_H_
 #define PROCESS_UTILS_H_
 
+#include "../keychain.h"
+#include "../process.h"
+#include "../utils/cbor_rpc.h"
+#include "../utils/network.h"
+
 #define HAS_NO_CURRENT_MESSAGE(process)                                                                                \
     (process && !process->ctx.cbor && !process->ctx.cbor_len && process->ctx.source == SOURCE_NONE)
 
@@ -44,6 +49,8 @@
 // as initially unlocked the key material.
 #define KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)                                                                   \
     (keychain_get() && keychain_get_userdata() == (uint8_t)process->ctx.source)
+
+#define ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) JADE_ASSERT(KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process))
 
 // For tracking input types
 typedef enum {

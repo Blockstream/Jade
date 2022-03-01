@@ -61,6 +61,7 @@ void get_registered_multisigs_process(void* process_ptr)
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_registered_multisigs");
+    ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
 
     // Get registered multisig names
     char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient

@@ -40,6 +40,7 @@ void sign_identity_process(void* process_ptr)
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "sign_identity");
+    ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
 
     const char* identity = NULL;

@@ -27,6 +27,7 @@ void get_commitments_process(void* process_ptr)
     // We expect a current message to be present
     const char* reqid = NULL;
     ASSERT_CURRENT_MESSAGE(process, "get_commitments");
+    ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
 
     uint8_t asset_id[ASSET_TAG_LEN];

@@ -13,7 +13,7 @@ void get_master_blinding_key_process(void* process_ptr)
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_master_blinding_key");
-    JADE_ASSERT(keychain_get());
+    ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
 
     if (!await_yesno_activity("Export Blinding Key",
             "Export master blinding key?\nChoose yes to allow the\ncompanion app to unblind all\nyour data without "
