@@ -15,7 +15,7 @@ import _thread
 from pinserver.server import PINServerECDH
 from pinserver.pindb import PINDb
 import wallycore as wally
-from jadepy.jade import JadeAPI, JadeInterface, JadeError
+from jadepy.jade import JadeAPI, JadeError
 
 # Enable jade logging
 jadehandler = logging.StreamHandler()
@@ -287,8 +287,8 @@ SIGN_IDENTITY_TESTS = "identity_*.json"
 SIGN_TXN_TESTS = "txn_*.json"
 SIGN_TXN_FAIL_CASES = "badtxn_*.json"
 SIGN_LIQUID_TXN_TESTS = "liquid_txn_*.json"
-SIGN_SINGLE_SIG_TESTS = "singlesig_txn*.json"
-SIGN_SINGLE_SIG_LIQUID_TESTS = "singlesig_liquid_txn*.json"
+SIGN_TXN_SINGLE_SIG_TESTS = "singlesig_txn*.json"
+SIGN_LIQUID_TXN_SINGLE_SIG_TESTS = "singlesig_liquid_txn*.json"
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -1890,33 +1890,7 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
                               host_entropy, signer_commitment, rawsig)
 
 
-def run_api_tests(jadeapi, qemu=False, authuser=False):
-
-    # On connection, a companion app should:
-    # a) get the version info and check is compatible, needs update, etc.
-    # b) if firmware ok, optionally send in some entropy for the rng
-    # c) tell the jade to authenticate the user (eg. pin entry)
-    #    - here we use 'set_mnemonic' instead to replace hw authentication
-    rslt = jadeapi.get_version_info()
-    assert len(rslt) == NUM_VALUES_VERINFO
-
-    noise = os.urandom(64)
-    rslt = jadeapi.add_entropy(bytes(noise))
-    assert rslt is True
-
-    if authuser:
-        # Full user authentication with jade and pinserver (must be running)
-        rslt = jadeapi.auth_user('testnet')
-        assert rslt is True
-
-    # Set mnemonic here instead of (or to override the result of) 'auth_user'
-    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
-    assert rslt is True
-
-    startinfo = jadeapi.get_version_info()
-    assert len(startinfo) == NUM_VALUES_VERINFO
-    has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
-
+def test_set_pinserver(jadeapi):
     # Update pinserver details - just check the calls do not error
     # See test_handshake() above for more in-depth test of this functionality
     with open(PINSERVER_TEST_PUBKEY_FILE, 'rb') as f:
@@ -1926,18 +1900,27 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
     rslt = jadeapi.reset_pinserver(True, True)
     assert(rslt)
 
-    # Get (receive) green-address
+
+def test_get_greenaddress_receive_address(jadeapi):
     for network, subact, branch, ptr, recovxpub, csvblocks, conf, expected in GET_GREENADDRESS_DATA:
         rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
                                            csv_blocks=csvblocks, confidential=conf)
         assert rslt == expected
 
-    # Get xpubs
+
+def test_get_singlesig_receive_address(jadeapi):
+    for network, variant, conf, path, expected in GET_SINGLE_SIG_ADDR_DATA:
+        rslt = jadeapi.get_receive_address(network, path, variant=variant, confidential=conf)
+        assert rslt == expected
+
+
+def test_get_xpubs(jadeapi):
     for path, network, expected in GET_XPUB_DATA:
         rslt = jadeapi.get_xpub(network, path)
         assert rslt == expected
 
-    # Sign message
+
+def test_sign_message(jadeapi):
     for msg_data in _get_test_cases(SIGN_MSG_TESTS):
         inputdata = msg_data['input']
         rslt = jadeapi.sign_message(inputdata['path'],
@@ -1949,8 +1932,9 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
         # Check returned signature
         _check_msg_signature(jadeapi, msg_data, rslt)
 
-    # Sign Tx
-    for txn_data in _get_test_cases(SIGN_TXN_TESTS):
+
+def test_sign_tx(jadeapi, pattern):
+    for txn_data in _get_test_cases(pattern):
         inputdata = txn_data['input']
         rslt = jadeapi.sign_tx(inputdata['network'],
                                inputdata['txn'],
@@ -1961,8 +1945,10 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
+
+def test_sign_tx_error_cases(jadeapi, pattern):
     # Sign Tx failures
-    for txn_data in _get_test_cases(SIGN_TXN_FAIL_CASES):
+    for txn_data in _get_test_cases(pattern):
         try:
             inputdata = txn_data['input']
             rslt = jadeapi.sign_tx(inputdata['network'],
@@ -1977,6 +1963,8 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
         for i in range(txn_data["extra_responses"]):
             logger.debug(jadeapi.jade.read_response())
 
+
+def test_liquid_blinding_keys(jadeapi):
     # Get Liquid master blinding key
     rslt = jadeapi.get_master_blinding_key()
     assert rslt == EXPECTED_MASTER_BLINDING_KEY
@@ -1994,6 +1982,8 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
     assert rslt['shared_nonce'] == EXPECTED_SHARED_SECRET
     assert rslt['blinding_key'] == EXPECTED_BLINDING_KEY
 
+
+def test_liquid_blinded_commitments(jadeapi):
     # Get Liquid blinding factor
     rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'ASSET')
     assert rslt == EXPECTED_LIQ_COMMITMENT_1['abf']
@@ -2046,8 +2036,9 @@ aa95e1c72070b08208012144f')
     del ledger_commitments[1]['blinding_key']
     assert _dicts_eq(rslt, ledger_commitments[1])
 
-    # Sign Liquid Tx
-    for txn_data in _get_test_cases(SIGN_LIQUID_TXN_TESTS):
+
+def test_sign_liquid_tx(jadeapi, pattern):
+    for txn_data in _get_test_cases(pattern):
         inputdata = txn_data['input']
         rslt = jadeapi.sign_liquid_tx(inputdata['network'],
                                       inputdata['txn'],
@@ -2059,33 +2050,44 @@ aa95e1c72070b08208012144f')
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
-    # Generic multisig - check register multisig wallets
+
+# Helper to check a multisig registration
+def _check_multisig_registration(jadeapi, multisig_data):
+    # Register the multisig
+    inputdata = multisig_data['input']
+    descriptor = inputdata['descriptor']
+    rslt = jadeapi.register_multisig(inputdata['network'],
+                                     inputdata['multisig_name'],
+                                     descriptor['variant'],
+                                     descriptor['sorted'],
+                                     descriptor['threshold'],
+                                     descriptor['signers'])
+    assert rslt is True
+
+    # Check present and correct in 'get_registered_multisigs'
+    registered_multisigs = jadeapi.get_registered_multisigs()
+    multisig_desc = registered_multisigs.get(inputdata['multisig_name'])
+    assert multisig_desc is not None
+    assert multisig_desc['variant'] == descriptor['variant']
+    assert multisig_desc['sorted'] == descriptor['sorted']
+    assert multisig_desc['threshold'] == descriptor['threshold']
+    assert multisig_desc['num_signers'] == len(descriptor['signers'])
+
+    # This includes 'get receive address' tests
+    for addr_test in multisig_data['address_tests']:
+        rslt = jadeapi.get_receive_address(inputdata['network'],
+                                           addr_test['paths'],
+                                           multisig_name=inputdata['multisig_name'])
+        assert rslt == addr_test['expected_address']
+
+
+def test_generic_multisig_registration(jadeapi):
+    # Generic multisig - check register multisig wallets and get receive addresses
     for multisig_data in _get_test_cases(MULTI_REG_TESTS):
-        inputdata = multisig_data['input']
-        rslt = jadeapi.register_multisig(inputdata['network'],
-                                         inputdata['multisig_name'],
-                                         inputdata['descriptor']['variant'],
-                                         inputdata['descriptor']['sorted'],
-                                         inputdata['descriptor']['threshold'],
-                                         inputdata['descriptor']['signers'])
-        assert rslt is True
+        _check_multisig_registration(jadeapi, multisig_data)
 
-        # Check present and correct in 'get_registered_multisigs'
-        registered_multisigs = jadeapi.get_registered_multisigs()
-        multisig_desc = registered_multisigs.get(inputdata['multisig_name'])
-        assert multisig_desc is not None
-        assert multisig_desc['variant'] == inputdata['descriptor']['variant']
-        assert multisig_desc['sorted'] == inputdata['descriptor']['sorted']
-        assert multisig_desc['threshold'] == inputdata['descriptor']['threshold']
-        assert multisig_desc['num_signers'] == len(inputdata['descriptor']['signers'])
 
-        # This includes 'get receive address' tests
-        for addr_test in multisig_data['address_tests']:
-            rslt = jadeapi.get_receive_address(inputdata['network'],
-                                               addr_test['paths'],
-                                               multisig_name=inputdata['multisig_name'])
-            assert rslt == addr_test['expected_address']
-
+def test_generic_multisig_matches_ga(jadeapi):
     # This test checks that the generic multisig wallets 'matches_ga', do...
     # ie. if I use the standard ga receive-address, I get the same result as
     # that using 'generic multisig' (as the co-signers are set-up to match green)
@@ -2154,51 +2156,11 @@ aa95e1c72070b08208012144f')
         # Check returned signatures
         _check_tx_signatures(jadeapi, ga_msig, rslt)
 
-    # Short sanity-test of 12-word mnemonic
-    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12)
-    assert rslt is True
-    rslt = jadeapi.get_xpub('mainnet', [1, 12])
-    assert rslt == 'xpub6BETMaQnyXi1gqFdL5FX8A3YEtRCEvBPijmr7EL42rGeEc6pvjYv25\
-ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
-    rslt = jadeapi.get_receive_address('mainnet', 1, 1, 231)
-    assert rslt == '38SBTKLCNKVvQh1jPpbkAbXa3gtRJEh9Ud'
 
-    # Sign single sig
-    # Single sig requires a different seed for the tests
-    rslt = jadeapi.set_seed(bytes.fromhex(TEST_SEED_SINGLE_SIG))
-    assert rslt is True
-
-    # Get receive address
-    for network, variant, conf, path, expected in GET_SINGLE_SIG_ADDR_DATA:
-        rslt = jadeapi.get_receive_address(network, path, variant=variant, confidential=conf)
-        assert rslt == expected
-
-    for txn_data in _get_test_cases(SIGN_SINGLE_SIG_TESTS):
-        inputdata = txn_data['input']
-        rslt = jadeapi.sign_tx(inputdata['network'],
-                               inputdata['txn'],
-                               inputdata['inputs'],
-                               inputdata['change'],
-                               inputdata.get('use_ae_signatures'))
-
-        # Check returned signatures
-        _check_tx_signatures(jadeapi, txn_data, rslt)
-
-    for txn_data in _get_test_cases(SIGN_SINGLE_SIG_LIQUID_TESTS):
-        inputdata = txn_data['input']
-        rslt = jadeapi.sign_liquid_tx(inputdata['network'],
-                                      inputdata['txn'],
-                                      inputdata['inputs'],
-                                      inputdata['trusted_commitments'],
-                                      inputdata['change'],
-                                      inputdata.get('use_ae_signatures'))
-
-        # Check returned signatures
-        _check_tx_signatures(jadeapi, txn_data, rslt)
-
+def test_generic_multisig_ss_signer(jadeapi):
     # Register multisig wallets again - this checks that a second user from the multisig
     # gets the same receive-address.  ie. in the tests 'multisig_reg_ss' the 'single sig'
-    # signer is also in the multisig, so we can check it from this wallet also.
+    # signer is also in the multisig, so we can check it from this signer also.
     for multisig_data in _get_test_cases(MULTI_REG_SS_TESTS):
         # Test trying to access the multisig description registered under the
         # main test mnemonic fails (as must be registered by accessing wallet)
@@ -2215,34 +2177,21 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
 
         # If we register the same multisig description to this wallet, it should produce
         # the same addresses as it did previously (for the other signatory)
-        rslt = jadeapi.register_multisig(inputdata['network'],
-                                         inputdata['multisig_name'],
-                                         inputdata['descriptor']['variant'],
-                                         inputdata['descriptor']['sorted'],
-                                         inputdata['descriptor']['threshold'],
-                                         inputdata['descriptor']['signers'])
-        assert rslt is True
+        _check_multisig_registration(jadeapi, multisig_data)
 
-        # Check present and correct in 'get_registered_multisigs'
-        registered_multisigs = jadeapi.get_registered_multisigs()
-        multisig_desc = registered_multisigs.get(inputdata['multisig_name'])
-        assert multisig_desc is not None
-        assert multisig_desc['variant'] == inputdata['descriptor']['variant']
-        assert multisig_desc['sorted'] == inputdata['descriptor']['sorted']
-        assert multisig_desc['threshold'] == inputdata['descriptor']['threshold']
-        assert multisig_desc['num_signers'] == len(inputdata['descriptor']['signers'])
 
-        # This includes 'get receive address' tests
-        for addr_test in multisig_data['address_tests']:
-            rslt = jadeapi.get_receive_address(inputdata['network'],
-                                               addr_test['paths'],
-                                               multisig_name=inputdata['multisig_name'])
-            assert rslt == addr_test['expected_address']
-
-    # ssh sign identity tests
-    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12_IDENTITY)
+def test_12word_mnemonic(jadeapi):
+    # Short sanity-test of 12-word mnemonic
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12)
     assert rslt is True
+    rslt = jadeapi.get_xpub('mainnet', [1, 12])
+    assert rslt == 'xpub6BETMaQnyXi1gqFdL5FX8A3YEtRCEvBPijmr7EL42rGeEc6pvjYv25\
+ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
+    rslt = jadeapi.get_receive_address('mainnet', 1, 1, 231)
+    assert rslt == '38SBTKLCNKVvQh1jPpbkAbXa3gtRJEh9Ud'
 
+
+def test_sign_identity(jadeapi):
     ecdh_nist_cpty = list(_get_test_cases('identity_ssh_nist_matches_trezor.json'))[0]
     for identity_data in _get_test_cases(SIGN_IDENTITY_TESTS):
         inputdata = identity_data['input']
@@ -2278,6 +2227,78 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
         # Assert symmetry
         assert ecdhA == expected['ecdh_with_trezor']
         assert ecdhA == ecdhB
+
+
+def run_api_tests(jadeapi, qemu=False, authuser=False):
+
+    # On connection, a companion app should:
+    # a) get the version info and check is compatible, needs update, etc.
+    # b) if firmware ok, optionally send in some entropy for the rng
+    # c) tell the jade to authenticate the user (eg. pin entry)
+    #    - here we use 'set_mnemonic' instead to replace hw authentication
+    rslt = jadeapi.get_version_info()
+    assert len(rslt) == NUM_VALUES_VERINFO
+
+    noise = os.urandom(64)
+    rslt = jadeapi.add_entropy(bytes(noise))
+    assert rslt is True
+
+    if authuser:
+        # Full user authentication with jade and pinserver (must be running)
+        rslt = jadeapi.auth_user('testnet')
+        assert rslt is True
+
+    # Set mnemonic here instead of (or to override the result of) 'auth_user'
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
+    assert rslt is True
+
+    startinfo = jadeapi.get_version_info()
+    assert len(startinfo) == NUM_VALUES_VERINFO
+    has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
+
+    # Test update pinserver details
+    test_set_pinserver(jadeapi)
+
+    # Get (receive) green-addresses, get-xpub, and sign-message
+    test_get_greenaddress_receive_address(jadeapi)
+    test_get_xpubs(jadeapi)
+    test_sign_message(jadeapi)
+
+    # Sign Tx - includes some failure cases
+    test_sign_tx(jadeapi, SIGN_TXN_TESTS)
+    test_sign_tx_error_cases(jadeapi, SIGN_TXN_FAIL_CASES)
+
+    # Test liuid blinding keys/nonce, blinded commitments and sign-tx
+    test_liquid_blinding_keys(jadeapi)
+    test_liquid_blinded_commitments(jadeapi)
+    test_sign_liquid_tx(jadeapi, SIGN_LIQUID_TXN_TESTS)
+
+    # Test generic multisig
+    test_generic_multisig_registration(jadeapi)
+    test_generic_multisig_matches_ga(jadeapi)
+
+    # Short sanity-test of 12-word mnemonic
+    test_12word_mnemonic(jadeapi)
+
+    # Sign single sig
+    # Single sig requires a different seed for the tests
+    rslt = jadeapi.set_seed(bytes.fromhex(TEST_SEED_SINGLE_SIG))
+    assert rslt is True
+
+    test_get_singlesig_receive_address(jadeapi)
+    test_sign_tx(jadeapi, SIGN_TXN_SINGLE_SIG_TESTS)
+    test_sign_liquid_tx(jadeapi, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
+
+    # Test the generic multisigs again, using a second signer
+    # NOTE: some of these tests assume 'test_generic_multisig_registration()' test
+    # has already been run, to register the multisigs for the test mnemonic signer
+    test_generic_multisig_ss_signer(jadeapi)
+
+    # Sign identity (ssh & gpg) tests require a specific mnemonic
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12_IDENTITY)
+    assert rslt is True
+
+    test_sign_identity(jadeapi)
 
     # restore the mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
@@ -2578,11 +2599,11 @@ if __name__ == '__main__':
     manage_agents = args.agentkeyfile and not args.skipble and not args.noagent
 
     if args.skipserial and args.skipble:
-        logging.error("Can only skip one of Serial or BLE tests, not both!")
+        logger.error("Can only skip one of Serial or BLE tests, not both!")
         os.exit(1)
 
     if args.bleid and not args.skipserial:
-        logging.error("Can only supply ble-id when skipping serial tests")
+        logger.error("Can only supply ble-id when skipping serial tests")
         os.exit(1)
 
     # Run the thread that forces exit if we're too long running
@@ -2611,7 +2632,7 @@ if __name__ == '__main__':
             #    stop_all_agents()
             #    if btagent:
             #        kill_agent(btagent)
-            #    logging.info("Testing BLE fails with incorrect passkey")
+            #    logger.info("Testing BLE fails with incorrect passkey")
             #    btgent = start_agent(BLE_TEST_BADKEYFILE)
             #    test_ble_connection_fails(info, args)
         else:
