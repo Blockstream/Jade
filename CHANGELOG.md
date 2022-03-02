@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.33] - 2022-03-03
+### Added
+- Add testnet-liquid assets
+- Display of OP_RETURN outputs
+- Generate non-confidential liquid addresess, and support signing non-confidential inputs
+- Display warning if multisig path suffixes differ
+- Add info screen showing storage usage
+- Add support for ssh and gpg keys and signing, for curve nist256p1/secp256r1
+- Support for OTA by delta, rather than uploading entire firmware image
+- Add rpc/cbor message documentation, and add docstrings to jadepy client
+
+### Changed
+- Update Liquid asset registry info
+- Update ESP-IDF base firmware to v4.4.0
+- Increase allowed multisig configurations to include from 1of1 to nof15
+- Increase number of allowed multisig registrations from 8 to 16
+- Improve 'out of storage space' reply and on-screen message when saving multisig record
+- Make Python API BLE dependencies an optional/extra in setup.py
+- Change wallet initialisation to store entropy rather than wallet master key
+
+### Fixed
+- Fix progress-bar screen flicker
+- Reliability improvements reading input messages, esp. over serial
+- Do not error on number of persisted multisig records when updating an existing record
+
 ## [0.1.32] - 2021-12-23
 ### Added
 
