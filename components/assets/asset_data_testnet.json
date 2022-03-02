@@ -28,6 +28,36 @@
         "ticker": "DUSD",
         "version": 0
     },
+    "0671737d2f6e83afaeb2667bc6298e69788681caad303e751479802e439a5f7f": {
+        "asset_id": "0671737d2f6e83afaeb2667bc6298e69788681caad303e751479802e439a5f7f",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "tiero.github.io"
+            },
+            "issuer_pubkey": "02baf65b6addd4c22e91164f4376c7d88a056682d36c18682018f1b8f067438e36",
+            "name": "Vulpem EUR",
+            "precision": 8,
+            "ticker": "vEUR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "tiero.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "1319d2563db8d9db26928765a2b8d3afa388f0a7ea895c8207b8db35f55be1ce",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "79e60d691c93ee76b0f6152c3ed6d1d7c08a64b8ccdc281fb30c438053ff69f7",
+            "vin": 0
+        },
+        "issuer_pubkey": "02baf65b6addd4c22e91164f4376c7d88a056682d36c18682018f1b8f067438e36",
+        "name": "Vulpem EUR",
+        "precision": 8,
+        "ticker": "vEUR",
+        "version": 0
+    },
     "347f1eed596fd07865967759a95222143ede1caca47399c9fa394bf3922c4dfc": {
         "asset_id": "347f1eed596fd07865967759a95222143ede1caca47399c9fa394bf3922c4dfc",
         "contract": {
@@ -57,6 +87,35 @@
         "ticker": "Simo",
         "version": 0
     },
+    "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5": {
+        "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
+        "contract": {
+            "entity": {
+                "domain": "liquidtestnet.com"
+            },
+            "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+            "name": "Testnet Asset",
+            "precision": 3,
+            "ticker": "TEST",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquidtestnet.com"
+        },
+        "issuance_prevout": {
+            "txid": "0e19e938c74378ae83b549213a12be88ede6e32e1407bfdf50c4ec3f927408ec",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "8be4123cca8e77ff960f9ff64e66cae40d05105b86c49ccc1a9d7f4475f5f793",
+            "vin": 0
+        },
+        "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+        "name": "Testnet Asset",
+        "precision": 3,
+        "ticker": "TEST",
+        "version": 0
+    },
     "58af36e1b529b42f3e4ccce812924380058cae18b2ad26c89805813a9db25980": {
         "asset_id": "58af36e1b529b42f3e4ccce812924380058cae18b2ad26c89805813a9db25980",
         "contract": {
@@ -84,6 +143,36 @@
         "name": "PEGx EUR Testnet",
         "precision": 8,
         "ticker": "EURx",
+        "version": 0
+    },
+    "59cdffc2ea0bfb641c19b714e955a00fa0534cca334ed676681d46a050ab948a": {
+        "asset_id": "59cdffc2ea0bfb641c19b714e955a00fa0534cca334ed676681d46a050ab948a",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "tiero.github.io"
+            },
+            "issuer_pubkey": "037cbbd68037721e0608b42c1f733de1289248daffa5f74045e1af10c969885d2e",
+            "name": "Vulpem USD",
+            "precision": 8,
+            "ticker": "vUSD",
+            "version": 0
+        },
+        "entity": {
+            "domain": "tiero.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "630c6843f0611f577639f919bb403986c2cc8152239e4c96c2b92361323bd1d2",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "5289e911f877023594e8078d11fdc4348369650f19d12eb458bce096fc214b9a",
+            "vin": 0
+        },
+        "issuer_pubkey": "037cbbd68037721e0608b42c1f733de1289248daffa5f74045e1af10c969885d2e",
+        "name": "Vulpem USD",
+        "precision": 8,
+        "ticker": "vUSD",
         "version": 0
     },
     "639ed77089105bcfe434d47f7368d87f53f30a45fc3cff7463105d152bb4d3b1": {
@@ -202,6 +291,37 @@
         "ticker": "LCAD",
         "version": 0
     },
+    "b1b5d7561e9977867dec7f63ca164c4daccfd854619d6420d783c2f6380be54f": {
+        "asset_id": "b1b5d7561e9977867dec7f63ca164c4daccfd854619d6420d783c2f6380be54f",
+        "collection": "Top level Collection 01/Sub Collection 02",
+        "contract": {
+            "collection": "Top level Collection 01/Sub Collection 02",
+            "entity": {
+                "domain": "wintercooled.github.io"
+            },
+            "issuer_pubkey": "02d1e35711e4ce15474cbdb6f98e702a8f6ddc4762f7e1fe0371bf5612bf831bd5",
+            "name": "collection_test_02",
+            "precision": 0,
+            "ticker": "COLT2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wintercooled.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "047a5082500e9cca10bffc5d99adb06aa6280914c72f6bca1b01f679bf94f99e",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "bc070f51b30a7b87b9e13f607e053810f4991b1448806c0b32984cb8980de4ac",
+            "vin": 0
+        },
+        "issuer_pubkey": "02d1e35711e4ce15474cbdb6f98e702a8f6ddc4762f7e1fe0371bf5612bf831bd5",
+        "name": "collection_test_02",
+        "precision": 0,
+        "ticker": "COLT2",
+        "version": 0
+    },
     "b612eb46313a2cd6ebabd8b7a8eed5696e29898b87a43bff41c94f51acef9d73": {
         "asset_id": "b612eb46313a2cd6ebabd8b7a8eed5696e29898b87a43bff41c94f51acef9d73",
         "contract": {
@@ -233,6 +353,7 @@
     },
     "be995c08d7437b1a6de1717203eec8c0951a18e2fa4b794fc4cc276008258835": {
         "asset_id": "be995c08d7437b1a6de1717203eec8c0951a18e2fa4b794fc4cc276008258835",
+        "collection": null,
         "contract": {
             "entity": {
                 "domain": "wintercooled.github.io"
@@ -258,6 +379,35 @@
         "name": "Testnet Asset 04",
         "precision": 0,
         "ticker": "TA-04",
+        "version": 0
+    },
+    "e7af57b566c7555b246719109a4355a614e0c1112f9706abd50dae01ecdcd3e3": {
+        "asset_id": "e7af57b566c7555b246719109a4355a614e0c1112f9706abd50dae01ecdcd3e3",
+        "contract": {
+            "entity": {
+                "domain": "pegx.io"
+            },
+            "issuer_pubkey": "02735574c1b23e65e7638ae96cd3c6958445e21b57208f97b858558f84aa39f9b7",
+            "name": "Transfer Restricted Testnet Asset 2",
+            "precision": 2,
+            "ticker": "PXTR2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "pegx.io"
+        },
+        "issuance_prevout": {
+            "txid": "0c50ebecca54e28c667b27416e5a1464bf79880f76b5cc489d26063cb71bf2ef",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "5aac4acaaa67539d343ac894ec3f76c6d22172ad63f2d64627714bd6b8021425",
+            "vin": 0
+        },
+        "issuer_pubkey": "02735574c1b23e65e7638ae96cd3c6958445e21b57208f97b858558f84aa39f9b7",
+        "name": "Transfer Restricted Testnet Asset 2",
+        "precision": 2,
+        "ticker": "PXTR2",
         "version": 0
     },
     "f3d1ec678811398cd2ae277cbe3849c6f6dbd72c74bc542f7c4b11ff0e820958": {

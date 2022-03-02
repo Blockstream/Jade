@@ -884,6 +884,41 @@
         "ticker": "L-ETH",
         "version": 0
     },
+    "078826939104fd9a30aaf7cbd715055bcf799037adf0f008ed257240586a662c": {
+        "asset_id": "078826939104fd9a30aaf7cbd715055bcf799037adf0f008ed257240586a662c",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmSBt7nJMbHN6ndYGBbXj8FLCqdffnNRPbSu4oXLqV2p9E",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #22",
+            "nft": {
+                "cid": "QmSpGmZqL9HHcDtT6xHBev6Uwj8hf2DfFJWJQAT2GTAT2p",
+                "domain": "nft.siliconlake.it",
+                "hash": "38db66f3a5b7308fa06dc8396f4edc7dd0cf3c79f462eae2dca68e07b925d20c"
+            },
+            "precision": 0,
+            "ticker": "OIE22",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "14bacc579f83957d27ba67aad3576384c764367f162d03b9e1c31a33b084afb7",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "8adab2d2d298edb61d6a40aaecbb5736e71756b3d5057ca19254077c771d6c46",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #22",
+        "precision": 0,
+        "ticker": "OIE22",
+        "version": 0
+    },
     "0792796835e021b87e88ad212f3a162dfd2ae4b493e690a4c9f7bb8b83493bbc": {
         "asset_id": "0792796835e021b87e88ad212f3a162dfd2ae4b493e690a4c9f7bb8b83493bbc",
         "contract": {
@@ -1409,6 +1444,36 @@
         "name": "Liquid CAD",
         "precision": 8,
         "ticker": "LCAD",
+        "version": 0
+    },
+    "0eaca760a89fb64851be233ce7181725d9813625452ccfde6627c9d5d6798b5a": {
+        "asset_id": "0eaca760a89fb64851be233ce7181725d9813625452ccfde6627c9d5d6798b5a",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmNikAqkWrQcKSY5UdtBDHAbXYFHfEVuQnm2V4zBgo4sA9",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Eli's Guitar",
+            "precision": 0,
+            "ticker": "CElGu",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "3ad19f6a60eca542e445672d424af11979f5648d8ad3ffea9d61d29b2ab9a28f",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "75cc7a97e8fb69d670316671895764fb3d70a1cfa07b9b2ad792444c8b1e56e7",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Eli's Guitar",
+        "precision": 0,
+        "ticker": "CElGu",
         "version": 0
     },
     "0fdb7e96b7dc36511bed437d0b9260b4e1f1e29e4ee779bebf56d41aa7a5e436": {
@@ -2000,6 +2065,41 @@
         "ticker": "GCL",
         "version": 0
     },
+    "1668fb5b9cd93544b8e0462a72b642b719f5cdbdcb787bf924e3417dab3a8303": {
+        "asset_id": "1668fb5b9cd93544b8e0462a72b642b719f5cdbdcb787bf924e3417dab3a8303",
+        "contract": {
+            "entity": {
+                "domain": "test.bfungible.bcademy.xyz"
+            },
+            "file": "QmZzgzHuRTo4ZUJdYRsUw9KpZq4E8iz3DD6KRpZa32Wshg",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "TEST1",
+            "nft": {
+                "cid": "QmachM3wu83H8FEetPTTCMaNuLcpUgXw8nGAjef74FiMxE",
+                "domain": "test.bfungible.bcademy.xyz",
+                "hash": "a90026ce307e3d02e1f41dab9b2699ac991e28b4769bdc905897e2a701f87ebb"
+            },
+            "precision": 0,
+            "ticker": "TEST1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "test.bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "9996f7d1d496e9a168ef36049ae740b0db21aae24b267e93d08e2f627ec7966e",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "61dde8f0844babc2f9494df25715285ae77d849cf6e42590c99c4a41c803ca09",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "TEST1",
+        "precision": 0,
+        "ticker": "TEST1",
+        "version": 0
+    },
     "16d4a7e0cc97fdd7199512fe37e37285f7fbe830affdae209093c31e3ced7bad": {
         "asset_id": "16d4a7e0cc97fdd7199512fe37e37285f7fbe830affdae209093c31e3ced7bad",
         "contract": {
@@ -2299,6 +2399,41 @@
         "ticker": "EURMA",
         "version": 0
     },
+    "190d8b0e5ec899a551b2f2a4f965bb4b19ae565ed46337c57a1ef8c42ee0eb62": {
+        "asset_id": "190d8b0e5ec899a551b2f2a4f965bb4b19ae565ed46337c57a1ef8c42ee0eb62",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmXcuZ4yHXYCQmbXn5Ph2nS7PegDUuCmo9R6KRYqvzEVsG",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #29",
+            "nft": {
+                "cid": "QmY7t8eeEQTKcaUHYQzMBP4XcxLyi1xM14wgq97EhCAEjq",
+                "domain": "nft.siliconlake.it",
+                "hash": "6b341cfafd647ecda6addc96f38ecf275ff4f72e27fe94e749893722e2159206"
+            },
+            "precision": 0,
+            "ticker": "OIE29",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "36c516a0f61444a0b42b6d075affe6eaaa5bb7288723d5bb47148dad4fd15f45",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "08229b67b00149c123451c3472f44f2bd8f26eec049aee7a85781430d018f5ee",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #29",
+        "precision": 0,
+        "ticker": "OIE29",
+        "version": 0
+    },
     "192adaa0809a008a7cbf8ea83c6bb16996562bd930592801437362e693a1f448": {
         "asset_id": "192adaa0809a008a7cbf8ea83c6bb16996562bd930592801437362e693a1f448",
         "contract": {
@@ -2560,6 +2695,36 @@
         "ticker": "SHC",
         "version": 0
     },
+    "1c7d10dfb3af858aab093f409411580199b8350a6beb0f4e90274d58e3aeefd4": {
+        "asset_id": "1c7d10dfb3af858aab093f409411580199b8350a6beb0f4e90274d58e3aeefd4",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmeGKQ6wwer7qCmYuw92jNCtMd2yKLwzCVFVnDM4J7PHUs",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Auto Turret",
+            "precision": 0,
+            "ticker": "GAuTu",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "6ebd7278016283d5d33c0ecb9eecd48322e40056a9dffa66f49868a3837cd05e",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "25a9711e927a93854ca9062a768bf5a214f6fb37d9431584e2e9abbf90ed19c6",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Auto Turret",
+        "precision": 0,
+        "ticker": "GAuTu",
+        "version": 0
+    },
     "1d1623ef467603cc802edfe53a3d1d8904d04fc47fe86a037717b36323344aa6": {
         "asset_id": "1d1623ef467603cc802edfe53a3d1d8904d04fc47fe86a037717b36323344aa6",
         "contract": {
@@ -2705,6 +2870,76 @@
         "ticker": "KRWMD",
         "version": 0
     },
+    "1e2c2193e2e1b573b05955616d4aea9494058acaf3505c6339dff2c44793c693": {
+        "asset_id": "1e2c2193e2e1b573b05955616d4aea9494058acaf3505c6339dff2c44793c693",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmecEZnahgUjj5VCLPMU86v4wYxXXQBQbwT8oQzVG7Y3Xn",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #31",
+            "nft": {
+                "cid": "QmR64KPuY257v15wW3un8dF2Unid922DHxULTE2AhLAYeJ",
+                "domain": "nft.siliconlake.it",
+                "hash": "8e3f358c7304c049f6985cddf5be3afe64a7bb02ae1751e918f6243c0469dd66"
+            },
+            "precision": 0,
+            "ticker": "OIE31",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "cf20bf0207e4a71f4ecbfdea2b100087882c9c484a42c078355c484ab1c70ad8",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "3c7346552b7f4691da9ed3468b9ab317471de6c413de7e09cfa880e99f094011",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #31",
+        "precision": 0,
+        "ticker": "OIE31",
+        "version": 0
+    },
+    "1f6d4e0452b9c511464ea8aeaf76dfb2d1a9dc24672d88c098cd6c3f1c2c14ee": {
+        "asset_id": "1f6d4e0452b9c511464ea8aeaf76dfb2d1a9dc24672d88c098cd6c3f1c2c14ee",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmYq1nNuxRk4jCemfBeePRHvAZJpCj97sccCARVmrAAqUK",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #18",
+            "nft": {
+                "cid": "QmR6qwEFokjbSUGQVNaRkiYPPFVcYpMAdzrheaS767uVJc",
+                "domain": "nft.siliconlake.it",
+                "hash": "33eb43cb1d6397dcc6e3b6e144ab766ba7e1420298704c40da313e18c6330845"
+            },
+            "precision": 0,
+            "ticker": "OIE18",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "5dfb8fa3cd0dd7788be9f052a941a12c3091d54d9a736aada5b7400e91ca433d",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "e4b6679672ee85f7b477ce042acbc966609958b6e8fdd721cb0ea59544e12aba",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #18",
+        "precision": 0,
+        "ticker": "OIE18",
+        "version": 0
+    },
     "1fc2500297154608ae7cf80f473567a847c490cab3a59aba29bb6e5e9d19800c": {
         "asset_id": "1fc2500297154608ae7cf80f473567a847c490cab3a59aba29bb6e5e9d19800c",
         "contract": {
@@ -2761,6 +2996,36 @@
         "name": "Worker",
         "precision": 0,
         "ticker": "HWork",
+        "version": 0
+    },
+    "204f10f4b22b0901840abbe4a1056209e54e78dc2e6a8ba888f510effc729762": {
+        "asset_id": "204f10f4b22b0901840abbe4a1056209e54e78dc2e6a8ba888f510effc729762",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmPuqTNhpkYCYZMAKASzcdj7UiM8NCo1Jya8xUCZ3xKsAN",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Mushroom Cap",
+            "precision": 0,
+            "ticker": "HMuCa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "b542d6a746362f468f594ca61c8c3a94c3d78c6b4d1811dd16e6e6956e091ae4",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "3ad19f6a60eca542e445672d424af11979f5648d8ad3ffea9d61d29b2ab9a28f",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Mushroom Cap",
+        "precision": 0,
+        "ticker": "HMuCa",
         "version": 0
     },
     "2100c26dc2d586230a2520916c275fb8345426d9471ae0c035adf93db5388c9e": {
@@ -2878,6 +3143,41 @@
         "name": "Maria",
         "precision": 0,
         "ticker": "CMari",
+        "version": 0
+    },
+    "21f9a48d64e76e6173fb8396041c978f39d3dccd78e1279cdbbe195df4f62f66": {
+        "asset_id": "21f9a48d64e76e6173fb8396041c978f39d3dccd78e1279cdbbe195df4f62f66",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "Qmdm51QTKkdVntzfKyeRLH9k1T62qagTtGw6fMBSR7aJof",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #5",
+            "nft": {
+                "cid": "QmaxrySLrRJKm3m2MNe8FdbXJtuyy9p14XFM8meVZm7172",
+                "domain": "nft.siliconlake.it",
+                "hash": "56d13bfb3c153ff5471f0f966114dc6000a28927d27f35881d74377348fb81f5"
+            },
+            "precision": 0,
+            "ticker": "OIE5",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "acb8975a9b71f1302c1593f5e48e97b962ca490814d997f3efb23fa58d7ab6c6",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "27463713877caa3eeccf464d6a0ebefddbaa9744efb44b5ba8d28d4d45ab929b",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #5",
+        "precision": 0,
+        "ticker": "OIE5",
         "version": 0
     },
     "222600dafbae8f28da279f3cd8108cdc3d82de02ba9d8d74ba3fdf5b5ab59efe": {
@@ -3401,6 +3701,35 @@
         "name": "USDSightDeposits",
         "precision": 8,
         "ticker": "USDMB",
+        "version": 0
+    },
+    "28ec0070ba066994c0681050d581cf2e7b371fae6b44b6703dd2818b2700523f": {
+        "asset_id": "28ec0070ba066994c0681050d581cf2e7b371fae6b44b6703dd2818b2700523f",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "TOKEN",
+            "precision": 2,
+            "ticker": "TKN",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "e003755e2b6d641e406b3825bdcb05aaded52aa9eb7ec0ecde932151ab29540c",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "18e9a1c1b2203f91dfbac3be201258050237c76d5aa107a412c2605f6c5c51cb",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "TOKEN",
+        "precision": 2,
+        "ticker": "TKN",
         "version": 0
     },
     "291ef29e499e965e8474b5aa475098a5c3fc209f1d6958ce6f7a7a40426e0cd6": {
@@ -4745,6 +5074,41 @@
         "ticker": "CSuRu",
         "version": 0
     },
+    "38bf598b11393366e90ab51bd4f5f410997635d8eeb45fd5ccce638517962a43": {
+        "asset_id": "38bf598b11393366e90ab51bd4f5f410997635d8eeb45fd5ccce638517962a43",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "Qmf97wRk6tUhqarPK2vnKq7vLu6ePcrr2pHzFZ281THwfM",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #19",
+            "nft": {
+                "cid": "QmVLwUwqyimUWRRDfvr7t1DTKDS7tJmGqZA5RSW2jBn5KQ",
+                "domain": "nft.siliconlake.it",
+                "hash": "239f041717c0e36faccb8cea7247f8b827ded99d5a19a36026804ca60f9b6428"
+            },
+            "precision": 0,
+            "ticker": "OIE19",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "e4b6679672ee85f7b477ce042acbc966609958b6e8fdd721cb0ea59544e12aba",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "1ca2d4e686541fac19b95826674261092b82bcd433491ed295c3170fea6c8f0e",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #19",
+        "precision": 0,
+        "ticker": "OIE19",
+        "version": 0
+    },
     "38d9c93e45a44ced3ca3df21db5683eba507102299642d027c3073d31f659b05": {
         "asset_id": "38d9c93e45a44ced3ca3df21db5683eba507102299642d027c3073d31f659b05",
         "contract": {
@@ -4889,6 +5253,41 @@
         "name": "Strikepack",
         "precision": 0,
         "ticker": "BStri",
+        "version": 0
+    },
+    "3bf5ac179ef917236c290fb6ff0db9a3f19afc1851e591e66ed961951e7e29c2": {
+        "asset_id": "3bf5ac179ef917236c290fb6ff0db9a3f19afc1851e591e66ed961951e7e29c2",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmZ3K8o1sTCKM3EHqzfodtDZvcoAMPwLDZu1Lyc92pGkGM",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #7",
+            "nft": {
+                "cid": "QmcEAx7U9ZuAmiqiPXrNkKnFfZMDXpfBPAmWRV6s4Zaywy",
+                "domain": "nft.siliconlake.it",
+                "hash": "a31d1463249e3342142b9c53497b1258eda926ba64078681b956e14190b64944"
+            },
+            "precision": 0,
+            "ticker": "OIE7",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "914414b0095d462086366be2f3b16ddad344d30605c31b09ed78a443973954e7",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "7475e797e2ac1addb9fd62a23c2aae94b567ece6d896292f63fcefc9d66b5e86",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #7",
+        "precision": 0,
+        "ticker": "OIE7",
         "version": 0
     },
     "3c68cd29bf36bf38c15e26583fdfb0af4af38a0a93945ee5d5b001b0e481098a": {
@@ -5065,6 +5464,35 @@
         "ticker": "USDME",
         "version": 0
     },
+    "3e7f0fb4d3e2e481135b63d5fada63334c282a23bbb0722e733ab2116bf94355": {
+        "asset_id": "3e7f0fb4d3e2e481135b63d5fada63334c282a23bbb0722e733ab2116bf94355",
+        "contract": {
+            "entity": {
+                "domain": "test.bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "TOKEN7",
+            "precision": 2,
+            "ticker": "TKN7",
+            "version": 0
+        },
+        "entity": {
+            "domain": "test.bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "61dde8f0844babc2f9494df25715285ae77d849cf6e42590c99c4a41c803ca09",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "93ebf6b6f3235515611d60fb53e72575b61c631b607e5e053e8366b5bb3f2b5b",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "TOKEN7",
+        "precision": 2,
+        "ticker": "TKN7",
+        "version": 0
+    },
     "3ef1c348b501f508ea5497b1f6c9d6b7e8bf8655c00f6602b41b4af12fa1d33d": {
         "asset_id": "3ef1c348b501f508ea5497b1f6c9d6b7e8bf8655c00f6602b41b4af12fa1d33d",
         "contract": {
@@ -5179,6 +5607,41 @@
         "name": "Blood moon",
         "precision": 0,
         "ticker": "BLO",
+        "version": 0
+    },
+    "415695cc1ff585174d60b4884328c3779380e51ea1610d96ac1db68cb422afee": {
+        "asset_id": "415695cc1ff585174d60b4884328c3779380e51ea1610d96ac1db68cb422afee",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmQ1NmZdVcdHAwwfDKPMrEJy5Dc6ALTCcZzafeR4R7LYiS",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #2",
+            "nft": {
+                "cid": "QmermWYeTgQfDhqvk7ohCMBGsZzrEAukwBMbaz5fZ7DMXB",
+                "domain": "nft.siliconlake.it",
+                "hash": "4aa25a5d9ee0511531a7e2af3ccf98a563796cf7a1a7ef9ac3df86f4e5a47e34"
+            },
+            "precision": 0,
+            "ticker": "OIE2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "467c7031ba01a8eb62f71ed6304863aeefe864aefa1c212ead5605bc079b095a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "acb8975a9b71f1302c1593f5e48e97b962ca490814d997f3efb23fa58d7ab6c6",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #2",
+        "precision": 0,
+        "ticker": "OIE2",
         "version": 0
     },
     "419edc24a762e6d059c065c0540a4738150a3cdb260d7ae80b3bf61a61bde4c1": {
@@ -5502,6 +5965,36 @@
         "name": "Cypherpunk Bag",
         "precision": 0,
         "ticker": "ACyBa",
+        "version": 0
+    },
+    "4502bb499197c079b6c78c500700309aaec12429cd3c9c91d1406c1afcc3674b": {
+        "asset_id": "4502bb499197c079b6c78c500700309aaec12429cd3c9c91d1406c1afcc3674b",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmYLj88K3x5PgKBRrPPPS4GpKg2e4FwtnNyKCrB2xzECZR",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Skull Double Sided Axe",
+            "precision": 0,
+            "ticker": "MSDSA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "ab15330998d93f2f95598d1caed11a72500aabfcb05013f71cb38fc44050b6a2",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "a1adade75213d678ee35cfcdf12f2c8b516e2d21602a1c01b70bdcfa8610387e",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Skull Double Sided Axe",
+        "precision": 0,
+        "ticker": "MSDSA",
         "version": 0
     },
     "450dd15d3b30092e1934234e1b540311487af56ec2d2ba315614aa6888a558f0": {
@@ -5915,6 +6408,36 @@
         "name": "Jack The Rabbit",
         "precision": 0,
         "ticker": "CJTR",
+        "version": 0
+    },
+    "49a925408f47250258c8003b06104697afa73985e2866384d2b42baa60ece386": {
+        "asset_id": "49a925408f47250258c8003b06104697afa73985e2866384d2b42baa60ece386",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmddSTfkHwFHNnEbtcXXBqyBYFHvqVSJgLqfpf5TjtawLx",
+            "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+            "name": "Santa Hat",
+            "precision": 0,
+            "ticker": "HSaHa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "e4e34ef5b4611fab23c64429c34cb70104579a91ca0284a560c08f2a72ad6c13",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "de474d7c5139d04a902d647388280f778d80eb8faab96af8e6b4dfa767273443",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eafa3e7951335d57652999dd079b9559f42acc03c42fc0880f7c1f581bbee923",
+        "name": "Santa Hat",
+        "precision": 0,
+        "ticker": "HSaHa",
         "version": 0
     },
     "49c1134fb7415ceddf73f83df219997f2fda04cae73fcdb31779b205817b0f0d": {
@@ -6383,6 +6906,41 @@
         "ticker": "FUN",
         "version": 0
     },
+    "4ca5fa8f90fb88f7d1afb7e8ff199f4f06258ebb640f4e7032315ae3679939f6": {
+        "asset_id": "4ca5fa8f90fb88f7d1afb7e8ff199f4f06258ebb640f4e7032315ae3679939f6",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmPq49JdJw7SwbFweKKikk5RGQQHxf3gGG6yB93BLuCv6x",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #33",
+            "nft": {
+                "cid": "QmRQead5hdYwfypNKVqWYH7VugAaQGbybPt9R4n6jphwD4",
+                "domain": "nft.siliconlake.it",
+                "hash": "32e4c6f27fac9581b99deb3331043fd6885e4be61ae0ad00f855e3c9cb4bff92"
+            },
+            "precision": 0,
+            "ticker": "OIE33",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "1aa2f4557b72c097773e523a10968c01056bdf3fdfd006e37ed10cb893fa3ba0",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "3ac4bcdb3313933efe68ae6b53793d792840c922726b4be3e0ffadaf35ffacbe",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #33",
+        "precision": 0,
+        "ticker": "OIE33",
+        "version": 0
+    },
     "4ca8d6e02824b46af87ef3962c8bd6bbb9dae77a46ece34904a4d50ea6847f04": {
         "asset_id": "4ca8d6e02824b46af87ef3962c8bd6bbb9dae77a46ece34904a4d50ea6847f04",
         "contract": {
@@ -6528,6 +7086,36 @@
         "name": "Magical Crypto Token",
         "precision": 0,
         "ticker": "MCT",
+        "version": 0
+    },
+    "4dfb3deb17915eee4be281e10d1f69910e637416a17b31e200979826c6c29aa0": {
+        "asset_id": "4dfb3deb17915eee4be281e10d1f69910e637416a17b31e200979826c6c29aa0",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/Qmen1MkrVrdPwYTFUx5Gs9AyT6awQS2nUz68xZNgU2QK1h",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Skull Scythe",
+            "precision": 0,
+            "ticker": "MSkSc",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "bcad63e90f1b03b5b53b08070a9db6b0c04fdc112973a5a0430e229162ad2d77",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "38487f677262b1719bcbeb6025ff7a9e75272e4ddd8a7522f091bfb98f0d86e5",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Skull Scythe",
+        "precision": 0,
+        "ticker": "MSkSc",
         "version": 0
     },
     "4e181233a74d7ac006f16eee7c6a7ab34f07b2e3245d0a8088fedda48c9967b5": {
@@ -6973,6 +7561,36 @@
         "ticker": "EXOeu",
         "version": 0
     },
+    "531c645f9af640cf2012a5bd2a114ba3c4efbc807f5872db7136eef697a0ea9a": {
+        "asset_id": "531c645f9af640cf2012a5bd2a114ba3c4efbc807f5872db7136eef697a0ea9a",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmSbjkSPkc9GQY67ZGgGWukqYuvFLUKMR2XWkpfdbdW7H5",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Udyr's Helm",
+            "precision": 0,
+            "ticker": "HUdHe",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "de474d7c5139d04a902d647388280f778d80eb8faab96af8e6b4dfa767273443",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "6ebd7278016283d5d33c0ecb9eecd48322e40056a9dffa66f49868a3837cd05e",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Udyr's Helm",
+        "precision": 0,
+        "ticker": "HUdHe",
+        "version": 0
+    },
     "53b2b87d7546f9e94bf55fc17270c3cf26a92c9ec0d0fcd03e264d78233354ec": {
         "asset_id": "53b2b87d7546f9e94bf55fc17270c3cf26a92c9ec0d0fcd03e264d78233354ec",
         "contract": {
@@ -7176,6 +7794,41 @@
         "name": "Lambrusco",
         "precision": 0,
         "ticker": "LAMBO",
+        "version": 0
+    },
+    "54ef111c7558ce5a379f543d8fb00f429acf2b7685ee64ccc9256f79d83cd90a": {
+        "asset_id": "54ef111c7558ce5a379f543d8fb00f429acf2b7685ee64ccc9256f79d83cd90a",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "Qmbgb4RaHn4tsFqkfrhcyc2YpY6Lq4VxpWd9YwyBsudwgp",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #10",
+            "nft": {
+                "cid": "QmaTsQcw4NubFc2XAH4JbgzgjdRrX3ZR6mQ15Rp4tBNzB1",
+                "domain": "nft.siliconlake.it",
+                "hash": "1c790e3411363c2dee009d08ff902fdb0aff5a23b8cfa0a1957e42e283247e37"
+            },
+            "precision": 0,
+            "ticker": "OIE10",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "310e67eb219f6490e1851d31155827f1a073ec5b0fcc1566a93e7cccf0995631",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "57d4c8d39766cfc9ebaf3042fb3f138173330119786351bf23e73d69aba69622",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #10",
+        "precision": 0,
+        "ticker": "OIE10",
         "version": 0
     },
     "550486961ca34da3279c7d29a01f7354626094c1d095c20fc56fa1f16a6c8384": {
@@ -7703,6 +8356,41 @@
         "ticker": "GUnUz",
         "version": 0
     },
+    "5b9f00b6fa63683e6e44667cd77b8935bcfeb3c2e6e621a8794fdaac56cdd9f4": {
+        "asset_id": "5b9f00b6fa63683e6e44667cd77b8935bcfeb3c2e6e621a8794fdaac56cdd9f4",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmWeWxCrPGVdHoEWscEiBRiv7i6E1jpJFgHHJKjxbzEhxj",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #6",
+            "nft": {
+                "cid": "QmVAM77hBmKSuZXgmh7L3owpC9MJqN4ahi6cksRf1sNYoN",
+                "domain": "nft.siliconlake.it",
+                "hash": "2b784fb0e61604bad6e911b134c276265bf9e8d5953137c2e9291e9aa99e9208"
+            },
+            "precision": 0,
+            "ticker": "OIE6",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "239805f22676259cd2833912a41cf9e6dc0b929df657747b10ce69c547d7dd28",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "310e67eb219f6490e1851d31155827f1a073ec5b0fcc1566a93e7cccf0995631",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #6",
+        "precision": 0,
+        "ticker": "OIE6",
+        "version": 0
+    },
     "5ce042ca10688961a9d30d75d1055d3261eb435d6d8c257bf439d9ac8da1735f": {
         "asset_id": "5ce042ca10688961a9d30d75d1055d3261eb435d6d8c257bf439d9ac8da1735f",
         "contract": {
@@ -8049,6 +8737,35 @@
         "name": "Pinot",
         "precision": 0,
         "ticker": "P-i.N",
+        "version": 0
+    },
+    "616a14ae2d199a483b03085357f5cba2bbc19d4d05b60a2cd8b00d863274b489": {
+        "asset_id": "616a14ae2d199a483b03085357f5cba2bbc19d4d05b60a2cd8b00d863274b489",
+        "contract": {
+            "entity": {
+                "domain": "spawnmc.net"
+            },
+            "issuer_pubkey": "02c2aa92884dc91c344b9b19637efc17d9ab24cf966026176ce03ef67508df47d7",
+            "name": "LiNianNian",
+            "precision": 0,
+            "ticker": "LNN",
+            "version": 0
+        },
+        "entity": {
+            "domain": "spawnmc.net"
+        },
+        "issuance_prevout": {
+            "txid": "40e823b801312f429d7fb5d5bab6d8237d6a3586bbdcd6998af09eb5e618ae08",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "1bdb09dffdda81e868e46a061547e2a332160d5ab481b3e215cf1c73892aab10",
+            "vin": 0
+        },
+        "issuer_pubkey": "02c2aa92884dc91c344b9b19637efc17d9ab24cf966026176ce03ef67508df47d7",
+        "name": "LiNianNian",
+        "precision": 0,
+        "ticker": "LNN",
         "version": 0
     },
     "6171bd03476a315f05a85d7203d1be36264c1670ef663cb452039f28f290a8e1": {
@@ -8553,6 +9270,41 @@
         "ticker": "CNinj",
         "version": 0
     },
+    "62e2e5c7329c8ca9166ff61365a776846ec8e0c83ec8494abe675b480b7d8696": {
+        "asset_id": "62e2e5c7329c8ca9166ff61365a776846ec8e0c83ec8494abe675b480b7d8696",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmQTDHcVdCySkqQuPz65BYVSwVSZtSE2aUv67JJjedSHpe",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #26",
+            "nft": {
+                "cid": "QmRvakSeYrBqqc2bbM2wC5RdbSyy3LQ3M7omw6vQc71jsM",
+                "domain": "nft.siliconlake.it",
+                "hash": "aca6bb332bc446c67123b33ed1eb4f409a9cd51c8e89b95517652d0b23cad3b8"
+            },
+            "precision": 0,
+            "ticker": "OIE26",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "3c7346552b7f4691da9ed3468b9ab317471de6c413de7e09cfa880e99f094011",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "24db5344ff4b31a81bc441bbba5d125b15afb8febcf6170ca30a65fd34ab4055",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #26",
+        "precision": 0,
+        "ticker": "OIE26",
+        "version": 0
+    },
     "6345cb2228ea49ad9f320a75c61f392f0f196e8f6e254a470b15b10581a1a832": {
         "asset_id": "6345cb2228ea49ad9f320a75c61f392f0f196e8f6e254a470b15b10581a1a832",
         "contract": {
@@ -8843,6 +9595,41 @@
         "name": "Bureaucrat Blaster",
         "precision": 0,
         "ticker": "GBuBl",
+        "version": 0
+    },
+    "66935218b2766d21f9fd104ba3567567dd2f32516e50ce49f8730dad47efd902": {
+        "asset_id": "66935218b2766d21f9fd104ba3567567dd2f32516e50ce49f8730dad47efd902",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmdS6KST29XVpcgawnVqfbZzRNQLZs5LXKGnF8m77H8ivs",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #4",
+            "nft": {
+                "cid": "QmTnEtdWrh5jfCRJjSH1auJ4JtK9csaQHpRDZgtVF8QpeV",
+                "domain": "nft.siliconlake.it",
+                "hash": "bf29d9ad1e6eb17fb2195723107f551bda70bd130b1a4ef614b195843ade3baa"
+            },
+            "precision": 0,
+            "ticker": "OIE4",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "f4613f222ef93427b82cfd4af9bdee934892d664bed11aae43523d552f5abb3e",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "239805f22676259cd2833912a41cf9e6dc0b929df657747b10ce69c547d7dd28",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #4",
+        "precision": 0,
+        "ticker": "OIE4",
         "version": 0
     },
     "677dfe0de39c5da20cf1f41ea94494cfd30dbd04daed3ba4ab143b1ce740da97": {
@@ -9688,6 +10475,71 @@
         "ticker": "EUROB",
         "version": 0
     },
+    "704841a11bf28d924ea465c32d5e2e82040ef51b9bf9afb0326ac72c0fec8c67": {
+        "asset_id": "704841a11bf28d924ea465c32d5e2e82040ef51b9bf9afb0326ac72c0fec8c67",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmSvc2WPEFSr9g9AiaJE9RgCT2Qmv5qWajPezQiBNDZRGJ",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #17",
+            "nft": {
+                "cid": "QmUXAkUAGVvHCFziNiQNbxznGFmX65wCzUGiuRoE3CBwsC",
+                "domain": "nft.siliconlake.it",
+                "hash": "a83ee34d3cece07dc118c9a45876905cc5f2cb9757ce93083c67c33f69dcee59"
+            },
+            "precision": 0,
+            "ticker": "OIE17",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "5655eb6b8db1d3815a6326d99111f8b951ed31537018b568588aacdf49535bad",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "5dfb8fa3cd0dd7788be9f052a941a12c3091d54d9a736aada5b7400e91ca433d",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #17",
+        "precision": 0,
+        "ticker": "OIE17",
+        "version": 0
+    },
+    "71158137928609e9937dbbf43035441c52dac284dddc2462988a5614bb75456a": {
+        "asset_id": "71158137928609e9937dbbf43035441c52dac284dddc2462988a5614bb75456a",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmVxRaRDG5XyLbpkoWcgyMSbEdnq1fWnKyCrNKUmttLrE5",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Steam Punk Topper",
+            "precision": 0,
+            "ticker": "HSPT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "c8000d16ea8731393e2db98d8ef1e6b00410ad11e9326165e93628c732e3e8ce",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "2678e7ffdcf6333117d973cb1fdc875fa74b54f276706fbfa5d0daf769a0d097",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Steam Punk Topper",
+        "precision": 0,
+        "ticker": "HSPT",
+        "version": 0
+    },
     "723dfe05838d599b41b614d27809fbe7668907c56ae51c941ccecb38f14d9d16": {
         "asset_id": "723dfe05838d599b41b614d27809fbe7668907c56ae51c941ccecb38f14d9d16",
         "contract": {
@@ -9831,6 +10683,41 @@
         "name": "HighYield",
         "precision": 8,
         "ticker": "HYG",
+        "version": 0
+    },
+    "749584354ee22ed0c45aea8138f6e9473ef3027c5bbaec443007e4cca6064575": {
+        "asset_id": "749584354ee22ed0c45aea8138f6e9473ef3027c5bbaec443007e4cca6064575",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmXsj1JC7bSLDvPLpr1APMyUDydPjT5tRBXUKQVr38nRUT",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #27",
+            "nft": {
+                "cid": "QmfBrGG8orks6XiaQun9Z9gRgy9PomX24GGCpH2v5d2nk3",
+                "domain": "nft.siliconlake.it",
+                "hash": "ff3578cfb0e123323c5a591f1b7bb1dcfb3073a5f9de2ae3fa5e0d5e125450d2"
+            },
+            "precision": 0,
+            "ticker": "OIE27",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "1f98b6dac3ffeecda1d20689462bdffafec6cd3674e3fab2b2d9173c31de71e8",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "cf20bf0207e4a71f4ecbfdea2b100087882c9c484a42c078355c484ab1c70ad8",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #27",
+        "precision": 0,
+        "ticker": "OIE27",
         "version": 0
     },
     "74c300c0bb0a296f97f41faf2934a866b010303f29c888a44c2cd7e2e291df76": {
@@ -10498,6 +11385,36 @@
         "name": "Sheriff",
         "precision": 0,
         "ticker": "HSher",
+        "version": 0
+    },
+    "7a1bb4d3b3828a27159c05c0756d3d939c9b2fc0bad9349160c9caf1890f7e3b": {
+        "asset_id": "7a1bb4d3b3828a27159c05c0756d3d939c9b2fc0bad9349160c9caf1890f7e3b",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmNPdQ8xJzCHsx3JxrrPtYwnHCL4XsAjvA4FisLZYKPm4V",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Heli Hat",
+            "precision": 0,
+            "ticker": "HHeHa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "89e4651fb82130eac46ca0e3b940ce64377475834058fc16420c58696b3b884b",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "2de5a87cd306b7d9dc4844b1d4ffd67cf9554a0f50aa689d93a6066596ebdd8e",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Heli Hat",
+        "precision": 0,
+        "ticker": "HHeHa",
         "version": 0
     },
     "7a8a62f285550896231152b560f00f710e561ac0a4287c8f1c79d4ff48225427": {
@@ -11531,6 +12448,41 @@
         "ticker": "MTiSu",
         "version": 0
     },
+    "8589a3d53bcb07e4b58733ed28ca005c4355a3e81fe8e418537f0867359cdce3": {
+        "asset_id": "8589a3d53bcb07e4b58733ed28ca005c4355a3e81fe8e418537f0867359cdce3",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmQRe42akeVMzpL3DfKzuaFuFt5Li3nqu2hfNgqyRY4iAt",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #3",
+            "nft": {
+                "cid": "QmQDZvQiXkcy7dB3zgfBJvYvecbYuZNHhZNMFk82BQ9iBD",
+                "domain": "nft.siliconlake.it",
+                "hash": "1b13beb6424c52d576bcfd29673f0c897e401f82709ac97206e517c5bce2feac"
+            },
+            "precision": 0,
+            "ticker": "OIE3",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "27463713877caa3eeccf464d6a0ebefddbaa9744efb44b5ba8d28d4d45ab929b",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "f4613f222ef93427b82cfd4af9bdee934892d664bed11aae43523d552f5abb3e",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #3",
+        "precision": 0,
+        "ticker": "OIE3",
+        "version": 0
+    },
     "86b9e84af591a54099564e3dd371ed50e12d117149775651c9e818ed1171a09d": {
         "asset_id": "86b9e84af591a54099564e3dd371ed50e12d117149775651c9e818ed1171a09d",
         "contract": {
@@ -11802,6 +12754,35 @@
         "ticker": "CThIn",
         "version": 0
     },
+    "885a09caa85b537c301a7e749524a34a3f1256a2c450e475fd80d7972e1d1ed2": {
+        "asset_id": "885a09caa85b537c301a7e749524a34a3f1256a2c450e475fd80d7972e1d1ed2",
+        "contract": {
+            "entity": {
+                "domain": "assets.halfinlabs.com"
+            },
+            "issuer_pubkey": "0281f36e363a30b19ebd02cc3847d7eb0b251e7483ec8cf0cc38736be68e9b53b4",
+            "name": "Olive Coin",
+            "precision": 8,
+            "ticker": "OCN",
+            "version": 0
+        },
+        "entity": {
+            "domain": "assets.halfinlabs.com"
+        },
+        "issuance_prevout": {
+            "txid": "9c4da35029bed058228967802064388d846d88105964542f8537217d276022e4",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "50c07a0c24dcebc504a908e76bbacfb6015ddae00ed91159e895db22a28340a2",
+            "vin": 0
+        },
+        "issuer_pubkey": "0281f36e363a30b19ebd02cc3847d7eb0b251e7483ec8cf0cc38736be68e9b53b4",
+        "name": "Olive Coin",
+        "precision": 8,
+        "ticker": "OCN",
+        "version": 0
+    },
     "88a1636d2bc9cdc2dfc5246d70f2936ed5335f5b2f2ab41435bd377f5b789227": {
         "asset_id": "88a1636d2bc9cdc2dfc5246d70f2936ed5335f5b2f2ab41435bd377f5b789227",
         "contract": {
@@ -11947,6 +12928,35 @@
         "name": "new new black swan",
         "precision": 0,
         "ticker": "NNB",
+        "version": 0
+    },
+    "8b54f3ba89fd3acf579c6df6d3dd130fe165d4266f83bf6a8ad29af63db2bfb7": {
+        "asset_id": "8b54f3ba89fd3acf579c6df6d3dd130fe165d4266f83bf6a8ad29af63db2bfb7",
+        "contract": {
+            "entity": {
+                "domain": "spawnmc.net"
+            },
+            "issuer_pubkey": "025a7d585ff60e994b3b3c27f560b43fe97da1fefb123500e704d2953b09446862",
+            "name": "SpawnMC Memento 2022",
+            "precision": 0,
+            "ticker": "SPMCA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "spawnmc.net"
+        },
+        "issuance_prevout": {
+            "txid": "04e11fb694218951ec00a1edea617ba7385de94f80e96019c3aaf501445eaa4b",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "f9453cc4d488e94bc0a15cf09caf2c7e6c20d8ccd12a620732e419988a2953bc",
+            "vin": 0
+        },
+        "issuer_pubkey": "025a7d585ff60e994b3b3c27f560b43fe97da1fefb123500e704d2953b09446862",
+        "name": "SpawnMC Memento 2022",
+        "precision": 0,
+        "ticker": "SPMCA",
         "version": 0
     },
     "8c44e2428926103c0bbd9570a5c59c1995475686fb33cbb476dac312cb46271c": {
@@ -12098,6 +13108,36 @@
         "ticker": "USDMD",
         "version": 0
     },
+    "8ecc865b65d76c1f46380e73d79a393b7289fef1b20be5d83fc702951169eb7f": {
+        "asset_id": "8ecc865b65d76c1f46380e73d79a393b7289fef1b20be5d83fc702951169eb7f",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmUz4utAkC1MgnbauPbYAKVFbyuoZDikxVs84P4wcqe6cd",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Skull Sword",
+            "precision": 0,
+            "ticker": "MSkSw",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "425ec052d1367c212b2a1cdff6bf58338cdf4218c5e7f076b944ef629005eff7",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "029f05e75c6337bc30895a34ce368b4ea87a0da4c8d95308580db7488c622a56",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Skull Sword",
+        "precision": 0,
+        "ticker": "MSkSw",
+        "version": 0
+    },
     "8f181f7e4d761ace65c102a01686fda561ab7034c39e0f8d23b8b926f2a620c2": {
         "asset_id": "8f181f7e4d761ace65c102a01686fda561ab7034c39e0f8d23b8b926f2a620c2",
         "contract": {
@@ -12125,6 +13165,41 @@
         "name": "Blockstream Hat Token",
         "precision": 0,
         "ticker": "B-HAT",
+        "version": 0
+    },
+    "8f1d2a118f883a451aef4d4352c6a6d2c155679e554f46acf9cde68d11171a44": {
+        "asset_id": "8f1d2a118f883a451aef4d4352c6a6d2c155679e554f46acf9cde68d11171a44",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "Qmb4YU5gKxoqt5fAdwEzwCYbDRjUf3Ansc4ye3xsSvEMU4",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #34",
+            "nft": {
+                "cid": "QmU5GD9BCJ6T9gbWQfmLNuQ6Gwj6fqBfQkdQRc8ZF3envP",
+                "domain": "nft.siliconlake.it",
+                "hash": "33b6c502ebe50eff830772a227f522bfcbc1f3b9e223be7f05f6f4557a4f82f9"
+            },
+            "precision": 0,
+            "ticker": "OIE34",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "eb47adf9568b4bbcfe042344bf0fc50815f2a6ffedc869d53f093289f8f93525",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "fdb14fee6bc2614ef02f3ef31e2aded58c76bc112e1c937d6649914bfc42c98f",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #34",
+        "precision": 0,
+        "ticker": "OIE34",
         "version": 0
     },
     "901e504f32408e266e716b4a01176e21f84871e03f544da6924602d0c9439970": {
@@ -12504,6 +13579,41 @@
         "ticker": "VTI",
         "version": 0
     },
+    "94081090aace5405fa7ba6a9d68386ebb324f71390c97d39897152a9bdeda0e8": {
+        "asset_id": "94081090aace5405fa7ba6a9d68386ebb324f71390c97d39897152a9bdeda0e8",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmWQ13sNxfxpVBm8MPtmcidJAt9ELkGobTbHHd4C2bRwf5",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #13",
+            "nft": {
+                "cid": "QmUmFtqNEc8G7evsV5Njuk1ohC2YfvJeaymk7qmb5FpWFc",
+                "domain": "nft.siliconlake.it",
+                "hash": "ff58d20af59d77f1be3b3ffd9a0b332ceb1fb5ca6d9c66181dc2c2117f06bad5"
+            },
+            "precision": 0,
+            "ticker": "OIE13",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "465f0335071ffddb85947c8fe6a25fb4c4efac8c6bc403d54379b449b29c4157",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "0553bd281d4eed5dcf260aa4fba01974aa259b041420e63572ae0097300e4103",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #13",
+        "precision": 0,
+        "ticker": "OIE13",
+        "version": 0
+    },
     "944dc279b77e4fb7b154a45687f78cb873b093fb23c0a9dbedf782b77a41e440": {
         "asset_id": "944dc279b77e4fb7b154a45687f78cb873b093fb23c0a9dbedf782b77a41e440",
         "contract": {
@@ -12822,6 +13932,41 @@
         "name": "Shorty",
         "precision": 0,
         "ticker": "FShor",
+        "version": 0
+    },
+    "96a0cf66ff9c59a8b91287988eca19a1d82f74218fdb3006e2f4af2634d957d4": {
+        "asset_id": "96a0cf66ff9c59a8b91287988eca19a1d82f74218fdb3006e2f4af2634d957d4",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmZBsTrg5wbLVmQFWxae5GN3V93fULXN5SiBGQUTarH1Mu",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #21",
+            "nft": {
+                "cid": "QmQXBs6ZM4D3zEWeA9fyCnwPhCiw2L68uLLR9VAgSXsEnp",
+                "domain": "nft.siliconlake.it",
+                "hash": "ffb558eb0bf1cee7096c2535f6101a700408b9c38aafac72c822a1e9309a4afc"
+            },
+            "precision": 0,
+            "ticker": "OIE21",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "b0b5da16fb202a27b24ad3ad921fc417bf527e8a9ec6122f43096d93b4b500aa",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "5f85fc6bfd924b3bed7a0635806561cfd6e34201a1e255a36c44a012be6beae9",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #21",
+        "precision": 0,
+        "ticker": "OIE21",
         "version": 0
     },
     "96c11110256f8459b99b9e6abbaa8ff53a5a1f81ac0bcc37113f610d49af10cd": {
@@ -13143,6 +14288,41 @@
         "name": "RGB token",
         "precision": 8,
         "ticker": "L-RGB",
+        "version": 0
+    },
+    "99686a1c7570e3aff60d900b566f412b3c0026eddc12a0c581498541da081178": {
+        "asset_id": "99686a1c7570e3aff60d900b566f412b3c0026eddc12a0c581498541da081178",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmXCSDXb2CAk3CEnUexRc2V22EYvojmcJZYHWaf34WajQ2",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #15",
+            "nft": {
+                "cid": "QmaCcxMC7VZox4wAXq7YncgjWY4Hz9WoMYwpemmPwPmAJS",
+                "domain": "nft.siliconlake.it",
+                "hash": "4948a27dbf3f518cf3b4aa4ddfc53f20930d2a785a045ebfc6263ef5eaa65656"
+            },
+            "precision": 0,
+            "ticker": "OIE15",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "65120410d25f53f05407e6333197ccde597a12b79ed2b9479dcf85f029ce3bb2",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "83227be2c44252cf80a568f05d8ecbf821a02e21bf96eb873834e191e8d712da",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #15",
+        "precision": 0,
+        "ticker": "OIE15",
         "version": 0
     },
     "998abdc4ccc60b3cdadea37647f055d0308aa060c54edfee80a3b9bbf1e84b95": {
@@ -13470,6 +14650,41 @@
         "ticker": "NGN",
         "version": 0
     },
+    "9d93d66feebb58fbdff39102ebf7014c6084f249a25fc51f92686cd110cffe62": {
+        "asset_id": "9d93d66feebb58fbdff39102ebf7014c6084f249a25fc51f92686cd110cffe62",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmRXRqrZ3jr5cUBUFz9HB2GejzUQpGK5PXe4WF3iWQUDRg",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #23",
+            "nft": {
+                "cid": "QmcS52sus7DmqyhqvYnim5Jmtcpngghp28nkQEjAV4VJcm",
+                "domain": "nft.siliconlake.it",
+                "hash": "7630c4e49d63f0a652d0a033db60af25d13d015b98b41e244ba814acffcd437c"
+            },
+            "precision": 0,
+            "ticker": "OIE23",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "8adab2d2d298edb61d6a40aaecbb5736e71756b3d5057ca19254077c771d6c46",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "0f4529547392bcf9e11fdeadc5f14cac2ff66e8b14e0c38775203f190a93af2b",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #23",
+        "precision": 0,
+        "ticker": "OIE23",
+        "version": 0
+    },
     "9daad2bffa56a9eb258d9d669e5fb1575f4983e1d278b177239bd7bea02ae2e8": {
         "asset_id": "9daad2bffa56a9eb258d9d669e5fb1575f4983e1d278b177239bd7bea02ae2e8",
         "contract": {
@@ -13526,6 +14741,41 @@
         "name": "Minnaar Money Redemption Tokens",
         "precision": 8,
         "ticker": "MMRT",
+        "version": 0
+    },
+    "9ee5d1f1a903c93af571aa9b5d123e74913d56428f340829b3f9ac843fc599af": {
+        "asset_id": "9ee5d1f1a903c93af571aa9b5d123e74913d56428f340829b3f9ac843fc599af",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "Qmf17wvmfrNkcBxdPsBBLs387QUAsmms4eRzfSFSNAhNeM",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #28",
+            "nft": {
+                "cid": "QmdwAe6vYAJvBPX8GRLYniwUQDqGVhs4g2UFdC5Gag7ku2",
+                "domain": "nft.siliconlake.it",
+                "hash": "25f343baf1cc70f4f33e514b1d4ff43b757315320b2d7b462b9701d74f8b47be"
+            },
+            "precision": 0,
+            "ticker": "OIE28",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "24db5344ff4b31a81bc441bbba5d125b15afb8febcf6170ca30a65fd34ab4055",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "eb47adf9568b4bbcfe042344bf0fc50815f2a6ffedc869d53f093289f8f93525",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #28",
+        "precision": 0,
+        "ticker": "OIE28",
         "version": 0
     },
     "9f082ea483624a5d4384a899b0e4971bc5af18601eb8ed4abb70f32ec2920251": {
@@ -13643,6 +14893,36 @@
         "name": "Tiger",
         "precision": 0,
         "ticker": "HTige",
+        "version": 0
+    },
+    "a087b55a96e91e0b8753159c796c36ea28e7c5746f96887f78b0f9c727a57a24": {
+        "asset_id": "a087b55a96e91e0b8753159c796c36ea28e7c5746f96887f78b0f9c727a57a24",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmWSW4BktevywdsJmhyHAmRg1eX3AiYf8zdkiZTBnHjRfM",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Skull Cleaver",
+            "precision": 0,
+            "ticker": "MSkCl",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "75cc7a97e8fb69d670316671895764fb3d70a1cfa07b9b2ad792444c8b1e56e7",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "bcad63e90f1b03b5b53b08070a9db6b0c04fdc112973a5a0430e229162ad2d77",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Skull Cleaver",
+        "precision": 0,
+        "ticker": "MSkCl",
         "version": 0
     },
     "a0c358a0f6947864af3a06f3f6a2aeb304df7fd95c922f2f22d7412399ce7691": {
@@ -13790,6 +15070,36 @@
         "ticker": "SDG",
         "version": 0
     },
+    "a2671f3419cb6b80f63f5d6347f858c65cc852d0de016d6a1418159239b1d89e": {
+        "asset_id": "a2671f3419cb6b80f63f5d6347f858c65cc852d0de016d6a1418159239b1d89e",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmX6BBvNQxuWjWW9RCeKHYVyR39i9Y3Ra9umJEaW5aDkSb",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Skull Dagger",
+            "precision": 0,
+            "ticker": "CSkDa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "029f05e75c6337bc30895a34ce368b4ea87a0da4c8d95308580db7488c622a56",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "3c95f2aa380e603bab8aee01b8df5b919d7ba2f99cce508b667fd6533d811e95",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Skull Dagger",
+        "precision": 0,
+        "ticker": "CSkDa",
+        "version": 0
+    },
     "a28d04f3e243a9a187f4a8b797be2f19a9c01b6ef4e1d65bfb6abbd6a2042097": {
         "asset_id": "a28d04f3e243a9a187f4a8b797be2f19a9c01b6ef4e1d65bfb6abbd6a2042097",
         "contract": {
@@ -13935,6 +15245,41 @@
         "ticker": "BLion",
         "version": 0
     },
+    "a44ab4ee631ab467ffcc76d1cb4d9a9787a14ac1520c48b9a0ce0eb86e3f0cff": {
+        "asset_id": "a44ab4ee631ab467ffcc76d1cb4d9a9787a14ac1520c48b9a0ce0eb86e3f0cff",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmVEbxW9GoeCU27bkhEv15ZouE6h5XqvhdFRCYH2tA1Wou",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #25",
+            "nft": {
+                "cid": "QmboXb37wmYAuqxU49ZSyUUEWmodpT8vJBH21duvgTEAky",
+                "domain": "nft.siliconlake.it",
+                "hash": "f3105162292fdb26eeec1c8f7606806fe152f364879f4de46011fc9efb0bce6a"
+            },
+            "precision": 0,
+            "ticker": "OIE25",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "5f85fc6bfd924b3bed7a0635806561cfd6e34201a1e255a36c44a012be6beae9",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "36c516a0f61444a0b42b6d075affe6eaaa5bb7288723d5bb47148dad4fd15f45",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #25",
+        "precision": 0,
+        "ticker": "OIE25",
+        "version": 0
+    },
     "a4a2197c7045cac16f8df7fc2c9263276ae82cc62c00d188dd4e1c7ac6a4ac59": {
         "asset_id": "a4a2197c7045cac16f8df7fc2c9263276ae82cc62c00d188dd4e1c7ac6a4ac59",
         "contract": {
@@ -13962,6 +15307,36 @@
         "name": "CHFMonetaryBasis",
         "precision": 8,
         "ticker": "CHFMA",
+        "version": 0
+    },
+    "a4d750a64f514bb2325a44a569dbf180ec074bda58724283ae3893a313d097b9": {
+        "asset_id": "a4d750a64f514bb2325a44a569dbf180ec074bda58724283ae3893a313d097b9",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmQAzMNjQVPiPTtS1UZa1GRfgA1hdYiAKhngipPCfqoqPY",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Skull Hammer",
+            "precision": 0,
+            "ticker": "MSkHa",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "38487f677262b1719bcbeb6025ff7a9e75272e4ddd8a7522f091bfb98f0d86e5",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "ab15330998d93f2f95598d1caed11a72500aabfcb05013f71cb38fc44050b6a2",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Skull Hammer",
+        "precision": 0,
+        "ticker": "MSkHa",
         "version": 0
     },
     "a5581e4b3834187e4a249714207b651c3ab94a3f6586ca8581e14f23ce90b980": {
@@ -14284,6 +15659,35 @@
         "ticker": "EMP",
         "version": 0
     },
+    "a99880b7067027c355588dc79f2f38ca4845d36f6650c7f63ed0e3bab330cc8a": {
+        "asset_id": "a99880b7067027c355588dc79f2f38ca4845d36f6650c7f63ed0e3bab330cc8a",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Early Adopter",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "a088e0f26914d13827c1ab84e6947b15d8bdd270081829e24d58a365be8a111b",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "bd4b9b01246e1f7937dc9805a40a29f336b4e41fe6aa15ae3b0bfb3585be9c4e",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Early Adopter",
+        "precision": 0,
+        "ticker": null,
+        "version": 0
+    },
     "aa07fba8fea7d7be5fb5894753c2808db81c347d63f4b6a5b601e9066aaba3e9": {
         "asset_id": "aa07fba8fea7d7be5fb5894753c2808db81c347d63f4b6a5b601e9066aaba3e9",
         "contract": {
@@ -14602,6 +16006,71 @@
         "name": "S4d0",
         "precision": 0,
         "ticker": "HSd",
+        "version": 0
+    },
+    "acf19a3f68fabd5b18968f703705e83ef84b0aff368ceeb515fb95c0bd24625f": {
+        "asset_id": "acf19a3f68fabd5b18968f703705e83ef84b0aff368ceeb515fb95c0bd24625f",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmXD3MvQYGWPUm3tKA3DSiy2phaxXiwwwWTMTS6K4fyH5A",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Uncle Sam Topper",
+            "precision": 0,
+            "ticker": "HUST",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "25a9711e927a93854ca9062a768bf5a214f6fb37d9431584e2e9abbf90ed19c6",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "b542d6a746362f468f594ca61c8c3a94c3d78c6b4d1811dd16e6e6956e091ae4",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Uncle Sam Topper",
+        "precision": 0,
+        "ticker": "HUST",
+        "version": 0
+    },
+    "adb8385fba84d152950007d4de4635cebdce52c65a80f40dcde6a225ba48e018": {
+        "asset_id": "adb8385fba84d152950007d4de4635cebdce52c65a80f40dcde6a225ba48e018",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmXSgU88NaUcyHzeKkEETz4rYXAX3c1xbdRiVd2xcUqhWU",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #24",
+            "nft": {
+                "cid": "QmctUTxiV43vFvpinujhg2cxu6zrtFWxFqkgEnrwrveHyY",
+                "domain": "nft.siliconlake.it",
+                "hash": "b2e7a6a4c854ff95f84477b1700dcc158b5c52cc0740bb074dbecd00b3ed0cf9"
+            },
+            "precision": 0,
+            "ticker": "OIE24",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "0f4529547392bcf9e11fdeadc5f14cac2ff66e8b14e0c38775203f190a93af2b",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "b0b5da16fb202a27b24ad3ad921fc417bf527e8a9ec6122f43096d93b4b500aa",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #24",
+        "precision": 0,
+        "ticker": "OIE24",
         "version": 0
     },
     "af04005b05d09ba79c88b606e27bd7ec312fb8ed75807ed426dd9cfbebb770c9": {
@@ -15016,6 +16485,41 @@
         "ticker": "VIBES",
         "version": 0
     },
+    "b30b8faa38c502937a4d15fc489192f6958be403c71d6c743d273156b565d72e": {
+        "asset_id": "b30b8faa38c502937a4d15fc489192f6958be403c71d6c743d273156b565d72e",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmeT2yzdyFCW9r8XAsRDVpGihQovtPrxSmsgSTr7A3QDiG",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #11",
+            "nft": {
+                "cid": "QmUJ3MwEnSYUfuJMXyc4fy7gVfwUjintEtcbh4FHPT8DPF",
+                "domain": "nft.siliconlake.it",
+                "hash": "e7d4464d6bc20fcad30020340de9dbfca0257d3317b9b3f4669385af74907b47"
+            },
+            "precision": 0,
+            "ticker": "OIE11",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "3c9c7b50efa2428ea40ba18d0c6c9d47cf8fe179d337a75aff1878d8ae929d0c",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "7430341215d0e3ee35db91b9746597a4c5d643dad66f482141119e002a10fcf1",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #11",
+        "precision": 0,
+        "ticker": "OIE11",
+        "version": 0
+    },
     "b316575fb08ab20101512b33b84080ecbdeb1d4ef8d9bc3e60e9649553a637da": {
         "asset_id": "b316575fb08ab20101512b33b84080ecbdeb1d4ef8d9bc3e60e9649553a637da",
         "contract": {
@@ -15345,6 +16849,41 @@
         "name": "The Rarest Pepe",
         "precision": 0,
         "ticker": "RARE",
+        "version": 0
+    },
+    "b756d3bd942a95a9ce8f4de23d06c59d01fb7df5823865014c9f89a40f85d4a3": {
+        "asset_id": "b756d3bd942a95a9ce8f4de23d06c59d01fb7df5823865014c9f89a40f85d4a3",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmVsLFAfhhJMWvVfDXFPnXiaBEz9uGmPrQJWMXKGkBiZM9",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #1",
+            "nft": {
+                "cid": "QmVpqoFtkswv5ERaxXWMBa9TV1aK9iJQQySQJqVfen7V2o",
+                "domain": "nft.siliconlake.it",
+                "hash": "34b4ed7758ae124e768f814c4f22d00863e9906b66b0e7a7ea6d36c81ddae585"
+            },
+            "precision": 0,
+            "ticker": "OIE1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "5ea2fd9849b80e9a50724b9f62c9627da5871b42d29fee5544eff49cc282cc2b",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "467c7031ba01a8eb62f71ed6304863aeefe864aefa1c212ead5605bc079b095a",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #1",
+        "precision": 0,
+        "ticker": "OIE1",
         "version": 0
     },
     "b8611264ec20eeaf1ed24751d933881d8b803c5b9daea2b28c9461b972dd155a": {
@@ -15869,6 +17408,40 @@
         "ticker": "COlJo",
         "version": 0
     },
+    "bbc8cb7924a9e7fe0ef6318c28bf86584dcb587e668215acd14be1944ceca809": {
+        "asset_id": "bbc8cb7924a9e7fe0ef6318c28bf86584dcb587e668215acd14be1944ceca809",
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Ancora rosso",
+            "nft": {
+                "cid": "QmWg8ukrsjhMUkLqndrEcMc9CUzmLKMMhhaJNqqSPEFBa5",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "5ca1ee03c58ae761573ccc9f8ccb6ed2c86474990e0e5e29972e1e746f991781"
+            },
+            "precision": 0,
+            "ticker": "NCAAI",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "a11d4762c234ffe72571efb1097e1810bf9b7758202fe17e6a173bb0e24ada83",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "e003755e2b6d641e406b3825bdcb05aaded52aa9eb7ec0ecde932151ab29540c",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Ancora rosso",
+        "precision": 0,
+        "ticker": "NCAAI",
+        "version": 0
+    },
     "bc8ea281525a971185eee32da05a9d57e5117336a1660c7a0ac7870acdc6bb08": {
         "asset_id": "bc8ea281525a971185eee32da05a9d57e5117336a1660c7a0ac7870acdc6bb08",
         "contract": {
@@ -15925,6 +17498,41 @@
         "name": "Squid",
         "precision": 0,
         "ticker": "HSqui",
+        "version": 0
+    },
+    "bcfb8a3a0fcadef24efeff835f0101381fc7dcaf098b887d49637d7b3b818b0d": {
+        "asset_id": "bcfb8a3a0fcadef24efeff835f0101381fc7dcaf098b887d49637d7b3b818b0d",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmZWDbr83bYMwXKjApsuLrfeAy4qKnKxYDpGsmxz9zP73J",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #30",
+            "nft": {
+                "cid": "QmWrvLt24jtXd5nM1Fan651bQvH7y7j7N8rTk52ePse45h",
+                "domain": "nft.siliconlake.it",
+                "hash": "ce1336f1b1e95bb84133cb5c3261f961e75bb84457cea9adf5054a35ca787124"
+            },
+            "precision": 0,
+            "ticker": "OIE30",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "08229b67b00149c123451c3472f44f2bd8f26eec049aee7a85781430d018f5ee",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "1f98b6dac3ffeecda1d20689462bdffafec6cd3674e3fab2b2d9173c31de71e8",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #30",
+        "precision": 0,
+        "ticker": "OIE30",
         "version": 0
     },
     "bd1055512499a554f132e93768276ddd210490c60ab9289be6fb6e09a748e785": {
@@ -16574,6 +18182,41 @@
         "ticker": "L-XTZ",
         "version": 0
     },
+    "c30820f5fe90d7a77d5657b10854679746407a64af6b71b3d1ced8c915c30310": {
+        "asset_id": "c30820f5fe90d7a77d5657b10854679746407a64af6b71b3d1ced8c915c30310",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmTNWj6iGbHF4RuHPGUeXYwGegmUG7k41CUSqXguMUdrra",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #9",
+            "nft": {
+                "cid": "QmeJGoi3zKEaQwckq3uMH99n5PrWd652t317nw4ewjUawg",
+                "domain": "nft.siliconlake.it",
+                "hash": "a94537e0c4ba3757d6513dec80d7da92b2889e3d281dd30d3ee8bb398c76fbe9"
+            },
+            "precision": 0,
+            "ticker": "OIE9",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "7475e797e2ac1addb9fd62a23c2aae94b567ece6d896292f63fcefc9d66b5e86",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "3c9c7b50efa2428ea40ba18d0c6c9d47cf8fe179d337a75aff1878d8ae929d0c",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #9",
+        "precision": 0,
+        "ticker": "OIE9",
+        "version": 0
+    },
     "c30ab06f8e0ec201a6a9543dd2b0be7e3a772afd4146991f5b4a7569f13faa53": {
         "asset_id": "c30ab06f8e0ec201a6a9543dd2b0be7e3a772afd4146991f5b4a7569f13faa53",
         "contract": {
@@ -16952,6 +18595,36 @@
         "name": "Infinity Hitman",
         "precision": 0,
         "ticker": "CInHi",
+        "version": 0
+    },
+    "c887c6823c326fbc68e9830d04ee00ba5c0552608e0c8dc7a5515fd8f4e21a55": {
+        "asset_id": "c887c6823c326fbc68e9830d04ee00ba5c0552608e0c8dc7a5515fd8f4e21a55",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmaMh5GCzu6yZMBJqLymoMeMYNqNaT4LaRcd9FrejsjufK",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Antlers",
+            "precision": 0,
+            "ticker": "CAntl",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "52789a60b0405c384502339b39c25285b1394926352c14923bdab4867e93e940",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "425ec052d1367c212b2a1cdff6bf58338cdf4218c5e7f076b944ef629005eff7",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Antlers",
+        "precision": 0,
+        "ticker": "CAntl",
         "version": 0
     },
     "c8c4f025309b58e0cd2f68b60ae32e0dab7eaca5b494288d11b857ff8767fb9d": {
@@ -17532,6 +19205,35 @@
         "name": "Knight Helmet",
         "precision": 0,
         "ticker": "HKnHe",
+        "version": 0
+    },
+    "d18a65e2a997e8a87f9065ce105a4f87cd9b8112e70c76880a488c6c51d41ad6": {
+        "asset_id": "d18a65e2a997e8a87f9065ce105a4f87cd9b8112e70c76880a488c6c51d41ad6",
+        "contract": {
+            "entity": {
+                "domain": "dtt.desolator.xyz"
+            },
+            "issuer_pubkey": "024e874a8d4460c6f3e97f52cbcbb93a79bd964858575793872286914f107c349b",
+            "name": "Des Test Token",
+            "precision": 8,
+            "ticker": "L-DTT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "dtt.desolator.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "92a7dfffbf371a946778af45e6ef28cc656f5391da493ce61e4c901c48699f71",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "33d6184e3daadb5bd508bcff5700f107370bcf54a6b8a074f52c86e807b28a35",
+            "vin": 0
+        },
+        "issuer_pubkey": "024e874a8d4460c6f3e97f52cbcbb93a79bd964858575793872286914f107c349b",
+        "name": "Des Test Token",
+        "precision": 8,
+        "ticker": "L-DTT",
         "version": 0
     },
     "d1c377ad9fba8979f2bf6756e4cfcedfc190f4a27023bfebaa4c56441e0cb029": {
@@ -18214,6 +19916,41 @@
         "ticker": "NDX",
         "version": 0
     },
+    "dd7765ae0143505608748f9a44b5624d4e0b9bcb632ba03a0e3c53f5a42f832a": {
+        "asset_id": "dd7765ae0143505608748f9a44b5624d4e0b9bcb632ba03a0e3c53f5a42f832a",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmXbqb8SmnKgihyx5kSf8tNXYmP6zvcGfo1PJdVPTo7qNb",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #8",
+            "nft": {
+                "cid": "QmWVUjkHj8HdCGwcCPUU6tMzSiuejjc17xRTAh4HCW8XU2",
+                "domain": "nft.siliconlake.it",
+                "hash": "fc4cbe621ba59f599095bc2e8989b8f643b1d92e85444a09d0102a9b8a774007"
+            },
+            "precision": 0,
+            "ticker": "OIE8",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "57d4c8d39766cfc9ebaf3042fb3f138173330119786351bf23e73d69aba69622",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "914414b0095d462086366be2f3b16ddad344d30605c31b09ed78a443973954e7",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #8",
+        "precision": 0,
+        "ticker": "OIE8",
+        "version": 0
+    },
     "dd87c59f106e70c21ec5b56410b7a3498c1ec272e37c24b930576d2a9c24e6a2": {
         "asset_id": "dd87c59f106e70c21ec5b56410b7a3498c1ec272e37c24b930576d2a9c24e6a2",
         "contract": {
@@ -18270,6 +20007,41 @@
         "name": "Watermelon Margarita Token",
         "precision": 0,
         "ticker": "WMT",
+        "version": 0
+    },
+    "de58701bccac4b9a730a9e65be023fbe3b1085ecde35eebcec9b0aef8a946807": {
+        "asset_id": "de58701bccac4b9a730a9e65be023fbe3b1085ecde35eebcec9b0aef8a946807",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "Qmf4xCHQeVEuFpHkDUocAQEsVazsHtjrdwCotysGUyqFWt",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #32",
+            "nft": {
+                "cid": "QmS2YkCgd6Ttcv2SSQq7zCcm2zGAQs6gpNymLGqZRD2abw",
+                "domain": "nft.siliconlake.it",
+                "hash": "d797d79762c27df871180439beb1fb73cddf90a7996435cd9a8f674d8feb3922"
+            },
+            "precision": 0,
+            "ticker": "OIE32",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "fdb14fee6bc2614ef02f3ef31e2aded58c76bc112e1c937d6649914bfc42c98f",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "1aa2f4557b72c097773e523a10968c01056bdf3fdfd006e37ed10cb893fa3ba0",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #32",
+        "precision": 0,
+        "ticker": "OIE32",
         "version": 0
     },
     "df1c4324fba52a555ec60327a11b2cf6de4620d9df7355c098c8ebdbcec8b25c": {
@@ -18533,6 +20305,35 @@
         "ticker": "MNA1",
         "version": 0
     },
+    "e22a642a18153df7839865cdc93668a3e1937585eeaf2b1ceb66a183790ffaa2": {
+        "asset_id": "e22a642a18153df7839865cdc93668a3e1937585eeaf2b1ceb66a183790ffaa2",
+        "contract": {
+            "entity": {
+                "domain": "spawnmc.net"
+            },
+            "issuer_pubkey": "020974329a1ad8a0e17b779e72f5fc638823f151c6349f65c2214318956751f12d",
+            "name": "SpawnMCCoin",
+            "precision": 8,
+            "ticker": "SPMC0",
+            "version": 0
+        },
+        "entity": {
+            "domain": "spawnmc.net"
+        },
+        "issuance_prevout": {
+            "txid": "cd2875bb4a933444fa6c5c5fb572ca8dfe7b24babdf7aa68c76daf3b56f6692c",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "280aaa58897e43a5d005788d6035a59715f3ad76a2fe96bcbfc1cd3aca7d6320",
+            "vin": 0
+        },
+        "issuer_pubkey": "020974329a1ad8a0e17b779e72f5fc638823f151c6349f65c2214318956751f12d",
+        "name": "SpawnMCCoin",
+        "precision": 8,
+        "ticker": "SPMC0",
+        "version": 0
+    },
     "e231c5ab6554cea0a684f7cfff2482c02eb0a8ab4bd6a10c8077574214d295dd": {
         "asset_id": "e231c5ab6554cea0a684f7cfff2482c02eb0a8ab4bd6a10c8077574214d295dd",
         "contract": {
@@ -18765,6 +20566,41 @@
         "name": "Lightning Socks",
         "precision": 0,
         "ticker": "SLiSo",
+        "version": 0
+    },
+    "e5ef62b07e575ff4f723433049d528cd4df7b10f8a9b2f0bc70c5cf99a6b87da": {
+        "asset_id": "e5ef62b07e575ff4f723433049d528cd4df7b10f8a9b2f0bc70c5cf99a6b87da",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmcvDhQE4pHPf5qQLP9G8ZKuneCGoqmjSXHY9cgxSSeaEN",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #16",
+            "nft": {
+                "cid": "QmQux9cfPbvdoy2UGWLw3Pg4LxB2JAynoGQuUiRJMhUVku",
+                "domain": "nft.siliconlake.it",
+                "hash": "7d699e60c2089d2d792099815aad3777cd997eb2e21b87e0f5313eb10b24de6c"
+            },
+            "precision": 0,
+            "ticker": "OIE16",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "83227be2c44252cf80a568f05d8ecbf821a02e21bf96eb873834e191e8d712da",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "5655eb6b8db1d3815a6326d99111f8b951ed31537018b568588aacdf49535bad",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #16",
+        "precision": 0,
+        "ticker": "OIE16",
         "version": 0
     },
     "e604d92d008a86e4c45efa8436922c6a8bd001b329c2f8f1bb4ac787ca5e57a4": {
@@ -19786,6 +21622,41 @@
         "ticker": "IAL",
         "version": 0
     },
+    "f1648e26e63f9440940ee76806cde09c1f3c865c8e0abce0e8599322e18387f9": {
+        "asset_id": "f1648e26e63f9440940ee76806cde09c1f3c865c8e0abce0e8599322e18387f9",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmZ4tzMujnvoKQ7GNcGoXi1XkYo7ZDRiEc4xGisJ2bNxGW",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #14",
+            "nft": {
+                "cid": "QmP1zXeUcYjfK3RybwktLMXsfasnpK39x6wFWJkVR9R7PH",
+                "domain": "nft.siliconlake.it",
+                "hash": "0cf8d7080b629ef1dba19b58f380213722d0da0b32b23768112e472f9c334b3f"
+            },
+            "precision": 0,
+            "ticker": "OIE14",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "0553bd281d4eed5dcf260aa4fba01974aa259b041420e63572ae0097300e4103",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "65120410d25f53f05407e6333197ccde597a12b79ed2b9479dcf85f029ce3bb2",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #14",
+        "precision": 0,
+        "ticker": "OIE14",
+        "version": 0
+    },
     "f1781cc6a7d94469f0c5a9d1993551d3c1d4c60a93b0e388ccc4883d0e12d20f": {
         "asset_id": "f1781cc6a7d94469f0c5a9d1993551d3c1d4c60a93b0e388ccc4883d0e12d20f",
         "contract": {
@@ -20221,6 +22092,35 @@
         "ticker": "HEA",
         "version": 0
     },
+    "f55cb5604e414c7cba394c688d100ae8e1633a9a31144b3d865e4738633fec05": {
+        "asset_id": "f55cb5604e414c7cba394c688d100ae8e1633a9a31144b3d865e4738633fec05",
+        "contract": {
+            "entity": {
+                "domain": "btc.montelibero.org"
+            },
+            "issuer_pubkey": "03d8f8fef604a33174b887aba5f09817316dcc454eac638e90f1244951d487ece6",
+            "name": "Montelibero Foundation Token",
+            "precision": 8,
+            "ticker": "L-MTL",
+            "version": 0
+        },
+        "entity": {
+            "domain": "btc.montelibero.org"
+        },
+        "issuance_prevout": {
+            "txid": "3ab28157d4e28add414605c206ababc01593e73bcda9285fdbee29db444ea660",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "6861734db2fad461d13904b43aaff157e65b8a09a6a7dd4fdb2142512d4d20a2",
+            "vin": 0
+        },
+        "issuer_pubkey": "03d8f8fef604a33174b887aba5f09817316dcc454eac638e90f1244951d487ece6",
+        "name": "Montelibero Foundation Token",
+        "precision": 8,
+        "ticker": "L-MTL",
+        "version": 0
+    },
     "f58463ded725ed6bd6b1298467b9a67e50dd020cd0dc84a3f49a8ea13adc1707": {
         "asset_id": "f58463ded725ed6bd6b1298467b9a67e50dd020cd0dc84a3f49a8ea13adc1707",
         "contract": {
@@ -20248,6 +22148,41 @@
         "name": "Baseball Cap",
         "precision": 0,
         "ticker": "HBaCa",
+        "version": 0
+    },
+    "f598f73604674b143c88142b7515efe42f7cce2f5f3e1ecfadf57176e4a50cff": {
+        "asset_id": "f598f73604674b143c88142b7515efe42f7cce2f5f3e1ecfadf57176e4a50cff",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmSNEqYHiC9xxz1aMmhGWzvGfbDpkhgZ1toT4S2DpKWGUX",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #12",
+            "nft": {
+                "cid": "QmYC5Yw6KuS6VGhSj87rAAaCh38C25PaHgdMaSe5STofVG",
+                "domain": "nft.siliconlake.it",
+                "hash": "63b389f83347448d3f0d16944d695514167dbba087c23eea0584ac060702adb3"
+            },
+            "precision": 0,
+            "ticker": "OIE12",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "7430341215d0e3ee35db91b9746597a4c5d643dad66f482141119e002a10fcf1",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "465f0335071ffddb85947c8fe6a25fb4c4efac8c6bc403d54379b449b29c4157",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #12",
+        "precision": 0,
+        "ticker": "OIE12",
         "version": 0
     },
     "f59c5f3e8141f322276daa63ed5f307085808aea6d4ef9ba61e28154533fdec7": {
@@ -20570,6 +22505,41 @@
         "ticker": "KRWMC",
         "version": 0
     },
+    "fa07a672f9900df5ed09cf3d1fd099009a2916b585b2d2de86a5d94d04404da5": {
+        "asset_id": "fa07a672f9900df5ed09cf3d1fd099009a2916b585b2d2de86a5d94d04404da5",
+        "contract": {
+            "entity": {
+                "domain": "nft.siliconlake.it"
+            },
+            "file": "QmbbB6yF1FgFAdHJzpGtqSYSuAtAimGJ77y56SJxjLTSnR",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Attestato OIES #20",
+            "nft": {
+                "cid": "QmPkycJ3jwpLukbTwEX66UNam3wAJEZBwpFau855PQeD36",
+                "domain": "nft.siliconlake.it",
+                "hash": "1ea4a4603d5d35ff32e8d9150bea3748cdfae4aab36c7822ad7dd42c1d49af07"
+            },
+            "precision": 0,
+            "ticker": "OIE20",
+            "version": 0
+        },
+        "entity": {
+            "domain": "nft.siliconlake.it"
+        },
+        "issuance_prevout": {
+            "txid": "1ca2d4e686541fac19b95826674261092b82bcd433491ed295c3170fea6c8f0e",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "14bacc579f83957d27ba67aad3576384c764367f162d03b9e1c31a33b084afb7",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Attestato OIES #20",
+        "precision": 0,
+        "ticker": "OIE20",
+        "version": 0
+    },
     "fa7a05c0e42fd0d6fda2928bcee68b46bc64ca1c9d0be5e26e8eb671cf69ba72": {
         "asset_id": "fa7a05c0e42fd0d6fda2928bcee68b46bc64ca1c9d0be5e26e8eb671cf69ba72",
         "contract": {
@@ -20720,6 +22690,36 @@
         "ticker": "NOK",
         "version": 0
     },
+    "fbdb3edc0e803b7e6bff912a86de445ff406a740f26cf105455a5fcec2572566": {
+        "asset_id": "fbdb3edc0e803b7e6bff912a86de445ff406a740f26cf105455a5fcec2572566",
+        "contract": {
+            "entity": {
+                "domain": "explorer.lightnite.io"
+            },
+            "file": "https://ipfs.io/ipfs/QmcPbFkVFbwryCsqKvwy91bbrwwevpN4E9QaoSYGCUmvYJ",
+            "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+            "name": "Plasma Turret",
+            "precision": 0,
+            "ticker": "WPlTu",
+            "version": 0
+        },
+        "entity": {
+            "domain": "explorer.lightnite.io"
+        },
+        "issuance_prevout": {
+            "txid": "de2a30501aa3c25649ec995e9a6dcab44dabfe4a432b2ac03520cda01f349925",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "0464b45f0a45ebfcd0dc96a1b61fd94ebb9898aa23d10335caebead3e9093f31",
+            "vin": 0
+        },
+        "issuer_pubkey": "036d966bdcf567384d1f3d6f2f8d37e01ba96cbffed785f9626b1b1535e907f421",
+        "name": "Plasma Turret",
+        "precision": 0,
+        "ticker": "WPlTu",
+        "version": 0
+    },
     "fc22e742d1ac3d664794be5271cb9983727bcd7a955dc13f62a51e0b5d109adc": {
         "asset_id": "fc22e742d1ac3d664794be5271cb9983727bcd7a955dc13f62a51e0b5d109adc",
         "contract": {
@@ -20747,6 +22747,41 @@
         "name": "Liquid Oil Futures",
         "precision": 2,
         "ticker": "CLL",
+        "version": 0
+    },
+    "fc987f72ea27065c4d9b8040afdc7d3d4371fbed256b4a4b91dc2ea320a85c23": {
+        "asset_id": "fc987f72ea27065c4d9b8040afdc7d3d4371fbed256b4a4b91dc2ea320a85c23",
+        "contract": {
+            "entity": {
+                "domain": "test.bfungible.bcademy.xyz"
+            },
+            "file": "QmREiQKWVq1GX8PDz5AFy6BG89D3ATdF5iY4s8SVUkbAz2",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Rotolacampo",
+            "nft": {
+                "cid": "QmXxxG8jHySPHprjn65MKsPHAtEgPWbyyep9nfyfAtXFUw",
+                "domain": "test.bfungible.bcademy.xyz",
+                "hash": "cba8297cba439e17475ecd54b0cfa67055c13537beb3dfb6bba32fc8fabf86aa"
+            },
+            "precision": 0,
+            "ticker": "ROTOL",
+            "version": 0
+        },
+        "entity": {
+            "domain": "test.bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "18e9a1c1b2203f91dfbac3be201258050237c76d5aa107a412c2605f6c5c51cb",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "aa1cff214a35ad9ae0a83e2732f9612f353a3364bf840e420adf7a7e6d9b46eb",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Rotolacampo",
+        "precision": 0,
+        "ticker": "ROTOL",
         "version": 0
     },
     "fe4146a76442c9b0108fc4fb1bad4688871adf4064beea3760f924ceb04e5b7c": {
