@@ -13,14 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.33] - 2022-03-03
 ### Added
+- Support for OTA by delta, rather than uploading entire firmware image
+- Add RPC/CBOR message documentation, and add docstrings to jadepy client
+- Add support for SSH and GPG keys and signing, for curve nist256p1/secp256r1
 - Add testnet-liquid assets
 - Display of OP_RETURN outputs
 - Generate non-confidential liquid addresess, and support signing non-confidential inputs
 - Display warning if multisig path suffixes differ
 - Add info screen showing storage usage
-- Add support for ssh and gpg keys and signing, for curve nist256p1/secp256r1
-- Support for OTA by delta, rather than uploading entire firmware image
-- Add rpc/cbor message documentation, and add docstrings to jadepy client
 
 ### Changed
 - Update Liquid asset registry info
