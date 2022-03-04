@@ -1987,6 +1987,8 @@ def test_liquid_blinded_commitments(jadeapi):
     # Get Liquid blinding factor
     rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'ASSET')
     assert rslt == EXPECTED_LIQ_COMMITMENT_1['abf']
+    rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'VALUE')
+    assert rslt == EXPECTED_LIQ_COMMITMENT_1['vbf']
 
     # Get Liquid commitments without custom VBF
     rslt = jadeapi.get_commitments(TEST_REGTEST_BITCOIN,
