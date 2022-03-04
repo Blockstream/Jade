@@ -8,5 +8,5 @@ if [ -f /.dockerenv ]; then
 fi
 
 if [ -x "$(command -v pycodestyle)" ]; then
-    pycodestyle --max-line-length=100 *.py pinserver/*.py pinserver/test/*.py jadepy/*.py
+    pycodestyle --max-line-length=100 *.py pinserver/*.py pinserver/test/*.py jadepy/*.py tools/*.py
 fi

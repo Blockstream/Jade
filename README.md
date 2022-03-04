@@ -98,7 +98,7 @@ apt-get update -qq && apt-get install virtualenv -yqq
 virtualenv -p python3 ./venv3
 source ./venv3/bin/activate
 pip install -r requirements.txt
-python ./fwprep.py build/jade.bin build
+./tools/fwprep.py build/jade.bin build
 ./main/qemu/make-flash-img.sh
 
 # To run the CI tests

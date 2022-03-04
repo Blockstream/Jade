@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import time
@@ -6,7 +8,7 @@ import argparse
 import subprocess
 
 from jadepy import JadeAPI
-import fwprep
+from tools import fwtools
 
 TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
@@ -76,15 +78,6 @@ def get_expected_fw_length(fwname):
     return int(fwlen)
 
 
-# Write compressed fw file (eg. one we downloaded)
-def write_cmpfwfile(fwname, fwcmpdata):
-    cmpfilename = f'{COMP_FW_DIR}/{fwname}'
-    logger.info(f'Writing compressed firmware file {cmpfilename}')
-    with open(cmpfilename, 'wb') as fwfile:
-        fw = fwfile.write(fwcmpdata)
-    logger.info(f'Written file {cmpfilename}')
-
-
 # Download firmware file from Firmware Server
 def download_file(hw_target, write_compressed, index_file, auto_select_fw):
     import requests
@@ -111,7 +104,8 @@ def download_file(hw_target, write_compressed, index_file, auto_select_fw):
 
     # If passed --write-compressed we write a copy of the compressed file
     if write_compressed:
-        write_cmpfwfile(fwname, fwcmp)
+        cmpfilename = f'{COMP_FW_DIR}/{fwname}'
+        fwtools.write(fwcmp, cmpfilename)
 
     # Return
     return fwcmp, fwlen
@@ -149,11 +143,12 @@ def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
 
     fw_b64 = rslt['body']
     fwcmp = base64.b64decode(fw_b64)
-    logger.info('Downloaded {len(fwcmp)} byte firmware')
+    logger.info(f'Downloaded {len(fwcmp)} byte firmware')
 
     # If passed --write-compressed we write a copy of the compressed file
     if write_compressed:
-        write_cmpfwfile(fwname, fwcmp)
+        cmpfilename = f'{COMP_FW_DIR}/{fwname}'
+        fwtools.write(fwcmp, cmpfilename)
 
     # Return
     return fwcmp, fwlen
@@ -166,27 +161,23 @@ def get_local_fwfile(fwfilename, write_compressed):
     assert os.path.exists(fwfilename) and os.path.isfile(
             fwfilename), f'Uncompressed firmware file not found: {fwfilename}'
 
-    logger.info(f'Reading file: {fwfilename}')
-    with open(fwfilename, 'rb') as fwfile:
-        firmware = fwfile.read()
+    firmware = fwtools.read(fwfilename)
     fwlen = len(firmware)
 
-    # Use fwprep to deduce the filename used for the compressed firmware
-    cmpfilename = fwprep.get_compressed_filepath(firmware, COMP_FW_DIR)
+    # Use fwtools to deduce the filename used for the compressed firmware
+    cmpfilename = fwtools.get_firmware_compressed_filepath(firmware, COMP_FW_DIR)
     expected_suffix = f'_{fwlen}_fw.bin'
     assert cmpfilename.endswith(expected_suffix)
 
     # If passed --write-compressed we create the compressed file now
     if write_compressed:
         logger.info('Writing compressed firmware file')
-        fwprep.create_compressed_firmware_image(firmware, COMP_FW_DIR)
+        compressed = fwtools.compress(firmware)
+        fwtools.write(compressed, cmpfilename)
 
     assert os.path.exists(cmpfilename) and os.path.isfile(cmpfilename), \
         f'Compressed firmware file not found: {cmpfilename}'
-
-    logger.info(f'Reading file: {cmpfilename}')
-    with open(cmpfilename, 'rb') as cmpfile:
-        fwcmp = cmpfile.read()
+    fwcmp = fwtools.read(cmpfilename)
 
     return fwcmp, fwlen
 
@@ -197,10 +188,7 @@ def get_local_fwfile_delta(fwfilename):
     assert os.path.exists(fwfilename) and os.path.isfile(
             fwfilename), f'Compressed firmware file delta not found: {fwfilename}'
 
-    logger.info(f'Reading file: {fwfilename}')
-    with open(fwfilename, 'rb') as fwfile:
-        firmware = fwfile.read()
-
+    firmware = fwtools.read(fwfilename)
     basename = os.path.basename(fwfilename)
     splits = basename.split('_')
 

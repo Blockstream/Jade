@@ -36,7 +36,7 @@ test_format:
   script:
     - . $HOME/esp/esp-idf/export.sh
     - idf.py all size-components size
-    - python ./fwprep.py build/jade.bin build
+    - ./tools/fwprep.py build/jade.bin build
     - cp sdkconfig build/
     - cp components/esp32_bsdiff/bsdiff.h build/
     - cp components/esp32_bsdiff/bsdiff.c build/
