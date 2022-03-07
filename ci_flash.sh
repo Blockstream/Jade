@@ -35,6 +35,8 @@ then
     redis-cli -p ${REDIS_PORT} shutdown
 fi
 
-python jade_ota.py --push-mnemonic --log=INFO --serialport=${JADESERIALPORT}
+# NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware file
+FW_FULL=$(ls build/*_fw.bin)
+python jade_ota.py --push-mnemonic --log=INFO --serialport=${JADESERIALPORT} --fwfile=${FW_FULL}
 
 python test_jade.py --log=INFO --serialport=${JADESERIALPORT}

@@ -67,18 +67,7 @@ def get_fw_filename(fwlatest, selectfw):
     return fwnames[selectfw]
 
 
-# Parse a fw filename and get the expected uncompressed length
-def get_expected_fw_length(fwname):
-    # Parse info encoded in the filename
-    fwversion, fwtype, fwlen, suffix = fwname.split('_')
-    assert suffix == 'fw.bin'
-    logger.info(f'firmware version: {fwversion}')
-    logger.info(f'firmware type: {fwtype}')
-    logger.info(f'firmware length: {fwlen}')
-    return int(fwlen)
-
-
-# Download firmware file from Firmware Server
+# Download compressed firmware file from Firmware Server using 'requests'
 def download_file(hw_target, write_compressed, index_file, auto_select_fw):
     import requests
 
@@ -91,7 +80,7 @@ def download_file(hw_target, write_compressed, index_file, auto_select_fw):
 
     # Get the filename of the firmware to download
     fwname = get_fw_filename(rslt.text, auto_select_fw)
-    fwlen = get_expected_fw_length(fwname)
+    fwtype, fwinfo, fwinfo2 = fwtools.parse_compressed_filename(fwname)
 
     # GET the selected firmware from the server
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -108,10 +97,10 @@ def download_file(hw_target, write_compressed, index_file, auto_select_fw):
         fwtools.write(fwcmp, cmpfilename)
 
     # Return
-    return fwcmp, fwlen
+    return fwtype, fwinfo, fwinfo2, fwcmp
 
 
-# Download firmware file from Firmware Server using GDK
+# Download compressed firmware file from Firmware Server using GDK
 def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
     import greenaddress as gdk
     import base64
@@ -131,7 +120,7 @@ def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
 
     # Get the filename of the firmware to download
     fwname = get_fw_filename(rslt['body'], auto_select_fw)
-    fwlen = get_expected_fw_length(fwname)
+    fwtype, fwinfo, fwinfo2 = fwtools.parse_compressed_filename(fwname)
 
     # GET the selected firmware from the server in base64 encoding
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -151,48 +140,52 @@ def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
         fwtools.write(fwcmp, cmpfilename)
 
     # Return
-    return fwcmp, fwlen
+    return fwtype, fwinfo, fwinfo2, fwcmp
 
 
-# Use a local firmware file - uses the uncompressed firmware file and can
-# either deduce the compressed firmware filename to use, or can create it.
-def get_local_fwfile(fwfilename, write_compressed):
+# Use a local uncompressed full firmware file - can deduce the compressed firmware
+# filename to use, and can write a copy of that file if requested.
+# NOTE: only handles full firmwares - does not support patches (which are always compressed)
+def get_local_uncompressed_fwfile(fwfilename, write_compressed):
     # Load the uncompressed firmware file
     assert os.path.exists(fwfilename) and os.path.isfile(
             fwfilename), f'Uncompressed firmware file not found: {fwfilename}'
 
+    # Read the fw file
     firmware = fwtools.read(fwfilename)
     fwlen = len(firmware)
 
+    # Compress the firmware for upload
+    fwcmp = fwtools.compress(firmware)
+
     # Use fwtools to deduce the filename used for the compressed firmware
     cmpfilename = fwtools.get_firmware_compressed_filepath(firmware, COMP_FW_DIR)
-    expected_suffix = f'_{fwlen}_fw.bin'
-    assert cmpfilename.endswith(expected_suffix)
+    fwtype, fwinfo, fwinfo2 = fwtools.parse_compressed_filename(cmpfilename)
+    assert fwtype == fwtools.FWFILE_TYPE_FULL and fwinfo2 is None and fwinfo.fwsize == fwlen
 
     # If passed --write-compressed we create the compressed file now
     if write_compressed:
         logger.info('Writing compressed firmware file')
-        compressed = fwtools.compress(firmware)
-        fwtools.write(compressed, cmpfilename)
+        fwtools.write(fwcmp, cmpfilename)
 
-    assert os.path.exists(cmpfilename) and os.path.isfile(cmpfilename), \
-        f'Compressed firmware file not found: {cmpfilename}'
-    fwcmp = fwtools.read(cmpfilename)
-
-    return fwcmp, fwlen
+    return fwtype, fwinfo, fwinfo2, fwcmp
 
 
-# Use a local firmware file delta - uses the compressed firmware file delta
-def get_local_fwfile_delta(fwfilename):
-    # Load the compressed firmware delta file
+# Use a local firmware file - the compressed firmware file.
+# Handles full firmwares and also compressed firmware patches.
+def get_local_compressed_fwfile(fwfilename):
+    # Load the uncompressed firmware file
     assert os.path.exists(fwfilename) and os.path.isfile(
-            fwfilename), f'Compressed firmware file delta not found: {fwfilename}'
+            fwfilename), f'Compressed firmware file not found: {fwfilename}'
 
-    firmware = fwtools.read(fwfilename)
-    basename = os.path.basename(fwfilename)
-    splits = basename.split('_')
+    # Read the fw file
+    fwcmp = fwtools.read(fwfilename)
 
-    return firmware, int(splits[1]), int(splits[2].split('.')[0])
+    # Use fwtools to parse the filename and deduce whether this is
+    # a full firmware file or a firmware delta/patch.
+    fwtype, fwinfo, fwinfo2 = fwtools.parse_compressed_filename(fwfilename)
+
+    return fwtype, fwinfo, fwinfo2, fwcmp
 
 
 # Returns whether we have ble and the id of the jade
@@ -317,15 +310,15 @@ if __name__ == '__main__':
                         dest='downloadgdk',
                         help='Download the firmware from the firmware server using gdk',
                         default=False)
+    srcgrp.add_argument('--fwfile-uncompressed',
+                        action='store',
+                        dest='fwfile_uncompressed',
+                        help='Uncompressed local file to OTA - full fw only',
+                        default=DEFAULT_FIRMWARE_FILE)
     srcgrp.add_argument('--fwfile',
                         action='store',
-                        dest='fwfilename',
-                        help='Uncompressed local file to OTA',
-                        default=DEFAULT_FIRMWARE_FILE)
-    srcgrp.add_argument('--fwdeltafile',
-                        action='store',
-                        dest='fwdeltafilename',
-                        help='Compressed local file delta to OTA',
+                        dest='fwfile',
+                        help='Compressed local file to OTA - full or patch',
                         default=None)
 
     # These only apply to firmware downloading
@@ -379,6 +372,10 @@ if __name__ == '__main__':
         logger.error('Can only supply ble-id when skipping serial tests')
         sys.exit(1)
 
+    if args.fwfile and args.writecompressed:
+        logger.error('Cannot write compressed fw file when reading from compressed fw file')
+        sys.exit(1)
+
     if args.autoselectfw and not downloading:
         logger.error('Can only provide auto-select index when downloading fw from server')
         sys.exit(1)
@@ -400,23 +397,24 @@ if __name__ == '__main__':
                      'beta': 'BETA'}.get(args.release, 'LATEST')
 
     # Get the file to OTA
-    patchlen = None
     if args.downloadfw:
-        fwcmp, fwlen = download_file(args.hwtarget, args.writecompressed,
-                                     indexfile, args.autoselectfw)
+        fwtype, fwinfo, fwinfo2, fwcmp = download_file(args.hwtarget, args.writecompressed,
+                                                       indexfile, args.autoselectfw)
     elif args.downloadgdk:
-        fwcmp, fwlen = download_file_gdk(args.hwtarget, args.writecompressed,
-                                         indexfile, args.autoselectfw)
-    elif args.fwdeltafilename:
-        if args.writecompressed:
-            logger.error('Can only supply write compressed target for full firmware ota')
-            sys.exit(1)
-
-        fwcmp, fwlen, patchlen = get_local_fwfile_delta(args.fwdeltafilename)
+        fwtype, fwinfo, fwinfo2, fwcmp = download_file_gdk(args.hwtarget, args.writecompressed,
+                                                           indexfile, args.autoselectfw)
+    elif args.fwfile:
+        assert not args.writecompressed
+        fwtype, fwinfo, fwinfo2, fwcmp = get_local_compressed_fwfile(args.fwfile)
     else:
-        fwcmp, fwlen = get_local_fwfile(args.fwfilename, args.writecompressed)
+        # Default case, as 'uncompressed fw file' has a default value if not passed explicitly
+        fwtype, fwinfo, fwinfo2, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
+                                                                       args.writecompressed)
 
-    logger.info(f'Got fw file of length {len(fwcmp)} with expected uncompressed length {fwlen}')
+    fwlen = fwinfo.fwsize
+    patchlen = fwinfo2.fwsize if fwinfo2 else None
+    logger.info(f'Got fw {"patch" if patchlen else "file"} of length {len(fwcmp)} '
+                f'with expected uncompressed final fw length {fwlen}')
 
     # If ble, start the agent to supply the required passkey for authentication
     # and encryption - don't bother if not.

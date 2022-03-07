@@ -37,7 +37,18 @@ virtualenv -p python3 venv3
 source venv3/bin/activate
 pip install --require-hashes -r requirements.txt -r pinserver/requirements.txt
 
-python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222
-python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222 --fwdeltafile=$(ls /patch_*.bin)
+# Build the bsdiff tool in the 'tools' directory (source file in the build dir)
+gcc -O2 -DBSDIFF_EXECUTABLE -o ./tools/bsdiff components/esp32_bsdiff/bsdiff.c
 
+# OTA the build firmware
+# NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware file
+FW_FULL=$(ls build/*_fw.bin)
+python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222 --fwfile=${FW_FULL}
+
+# Flash a simple patch-to-self, just to smoke test ota-delta
+./tools/mkpatch.py ${FW_FULL} ${FW_FULL} build/
+FW_PATCH=$(ls ./build/*_patch.bin)
+python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222 --fwfile=${FW_PATCH}
+
+# Run the tests
 python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:2222

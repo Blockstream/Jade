@@ -17,46 +17,47 @@ python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip esp32 --port 
 # then we flash the noblob variant
 python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip esp32 --port ${JADESERIALPORT} --baud 2000000 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect 0xE000 build_noblobs/ota_data_initial.bin 0x1000 build_noblobs/bootloader/bootloader.bin 0x10000 build_noblobs/jade.bin 0x9000 build_noblobs/partition_table/partition-table.bin
 
+# Setup the python environment
 source ~/venv3/bin/activate
 pip install --require-hashes -r requirements.txt
-gcc -O2 -DBSDIFF_EXECUTABLE -o bsdiff build_noblobs/bsdiff.c
+
+# Build the bsdiff tool in the 'tools' directory (source file in the build dir)
+gcc -O2 -DBSDIFF_EXECUTABLE -o ./tools/bsdiff build/bsdiff.c
+
+# NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware files
+FW_BLE=$(ls build/*_ble_*_fw.bin)
+FW_NORADIO=$(ls build_noblobs/*_noradio_*_fw.bin)
+
+# Make four patches between radio and ble firmware variants
+PATCHDIR=patches
+mkdir -p ${PATCHDIR}
+
+./tools/mkpatch.py ${FW_NORADIO} ${FW_NORADIO} ${PATCHDIR}
+./tools/mkpatch.py ${FW_BLE} ${FW_BLE} ${PATCHDIR}
+./tools/mkpatch.py ${FW_NORADIO} ${FW_BLE} ${PATCHDIR}  # makes both directions
 
 sleep 2
 
 # first we test the same exact firmware noblobs via serial
-./bsdiff build_noblobs/jade.bin build_noblobs/jade.bin patch.bin
-SIZE_TARGET_FILE=$(stat --printf="%s" build_noblobs/jade.bin)
-SIZE_PATCH=$(stat --printf="%s" patch.bin)
-python -c "import zlib; import sys; open(sys.argv[2], 'wb').write(zlib.compress(open(sys.argv[1], 'rb').read(), 9))" patch.bin patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
-python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwdeltafile=patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
-rm patch.bin patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
+FW_PATCH=$(ls ${PATCHDIR}/*_noradio_*_noradio*_patch.bin)
+python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
 
 sleep 2
 
 # now we test from noblob to ble via serial
-./bsdiff build_noblobs/jade.bin build/jade.bin patch.bin
-SIZE_TARGET_FILE=$(stat --printf="%s" build/jade.bin)
-SIZE_PATCH=$(stat --printf="%s" patch.bin)
-python -c "import zlib; import sys; open(sys.argv[2], 'wb').write(zlib.compress(open(sys.argv[1], 'rb').read(), 9))" patch.bin patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
-python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwdeltafile=patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
-rm patch.bin patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
+# NOTE: the filename is of the pattern: 'final-from-base' - hence ble*noradio*patch.bin
+FW_PATCH=$(ls ${PATCHDIR}/*_ble_*_noradio*_patch.bin)
+python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
 
 sleep 2
 
 # now we test the same exact firmware ble via ble
-./bsdiff build/jade.bin build/jade.bin patch.bin
-SIZE_TARGET_FILE=$(stat --printf="%s" build/jade.bin)
-SIZE_PATCH=$(stat --printf="%s" patch.bin)
-python -c "import zlib; import sys; open(sys.argv[2], 'wb').write(zlib.compress(open(sys.argv[1], 'rb').read(), 9))" patch.bin patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
-python jade_ota.py --log=INFO --skipserial --serialport=${JADESERIALPORT} --bleidfromserial --fwdeltafile=patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
-rm patch.bin patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
+FW_PATCH=$(ls ${PATCHDIR}/*_ble_*_ble*_patch.bin)
+python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
 
 sleep 2
 
 # now we go back to noblob via ble
-./bsdiff build/jade.bin build_noblobs/jade.bin patch.bin
-SIZE_TARGET_FILE=$(stat --printf="%s" build_noblobs/jade.bin)
-SIZE_PATCH=$(stat --printf="%s" patch.bin)
-python -c "import zlib; import sys; open(sys.argv[2], 'wb').write(zlib.compress(open(sys.argv[1], 'rb').read(), 9))" patch.bin patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
-python jade_ota.py --log=INFO --skipserial --serialport=${JADESERIALPORT} --bleidfromserial --fwdeltafile=patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
-rm patch.bin patch_${SIZE_TARGET_FILE}_${SIZE_PATCH}.bin
+# NOTE: the filename is of the pattern: 'final-from-base' - hence noradio*ble*patch.bin
+FW_PATCH=$(ls ${PATCHDIR}/*_noradio_*_ble*_patch.bin)
+python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
