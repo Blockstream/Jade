@@ -27,6 +27,7 @@ test_format:
     paths:
     - build*/jade.bin
     - build*/*_fw.bin
+    - build*/index.json
     - build*/ota_data_initial.bin
     - build*/bootloader/bootloader.bin
     - build*/partition_table/partition-table.bin
@@ -37,6 +38,7 @@ test_format:
     - . $HOME/esp/esp-idf/export.sh
     - idf.py all size-components size
     - ./tools/fwprep.py build/jade.bin build
+    - ./tools/mkindex.py build $(basename $(ls build/*_fw.bin) | cut -d'_' -f1)
     - cp sdkconfig build/
     - cp components/esp32_bsdiff/bsdiff.h build/
     - cp components/esp32_bsdiff/bsdiff.c build/

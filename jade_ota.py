@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import json
 import logging
 import argparse
 import subprocess
@@ -17,6 +18,7 @@ slot invite sadness banana'
 BLE_TEST_PASSKEYFILE = 'ble_test_passkey.txt'
 
 FWSERVER_URL_ROOT = 'https://jadefw.blockstream.com/bin'
+FWSERVER_INDEX_FILE = 'index.json'
 
 DEFAULT_FIRMWARE_FILE = 'build/jade.bin'
 COMP_FW_DIR = 'build'
@@ -53,34 +55,53 @@ def kill_agent(btagent):
 
 
 # Parse the latest file and select firmware to download
-def get_fw_filename(fwlatest, selectfw):
+def get_fw_metadata(release_data):
     # Select firmware from list of available
-    fwnames = fwlatest.split()
-    print('Available firmwares')
-    for i, fwname in enumerate(fwnames):
-        print(f'{i}) {fwname}')
+    def _full_fw_label(fw):
+        return f'{fw["version"]} - {fw["config"]}'
 
-    if selectfw is None:
-        selectfw = int(input('Select firmware: '))
+    def _delta_fw_label(fw):
+        return _full_fw_label(fw).ljust(18) + f'FROM  {fw["from_version"]} - {fw["from_config"]}'
 
-    assert selectfw < len(fwnames), f'Selected firmware not valid: {selectfw}'
-    return fwnames[selectfw]
+    print('Full firmwares')
+    fullfws = release_data.get('full', {})
+    for i, label in enumerate((_full_fw_label(fw) for fw in fullfws), 1):  # 1 based index
+        print(f'{i})'.ljust(3), label)
+    print('-')
+
+    print('Delta patches')
+    deltas = release_data.get('delta', {})
+    for i, label in enumerate((_delta_fw_label(fw) for fw in deltas), i + 1):  # continue numbering
+        print(f'{i})'.ljust(3), label)
+    print('-')
+
+    selectedfw = int(input('Select firmware: '))
+    assert selectedfw > 0 and selectedfw <= i, f'Selected firmware not valid: {selectedfw}'
+    selectedfw -= 1  # zero-based index
+
+    numfullfws = len(fullfws)
+    selectedfw = fullfws[selectedfw] if selectedfw < numfullfws else deltas[selectedfw - numfullfws]
+    return selectedfw
 
 
 # Download compressed firmware file from Firmware Server using 'requests'
-def download_file(hw_target, write_compressed, index_file, auto_select_fw):
+def download_file(hw_target, write_compressed, release):
     import requests
 
     # GET the index file from the firmware server which lists the
     # available firmwares
-    url = f'{FWSERVER_URL_ROOT}/{hw_target}/{index_file}'
+    url = f'{FWSERVER_URL_ROOT}/{hw_target}/{FWSERVER_INDEX_FILE}'
     logger.info(f'Downloading firmware index file {url}')
     rslt = requests.get(url)
     assert rslt.status_code == 200, f'Cannot download index file {url}: {rslt.status_code}'
 
     # Get the filename of the firmware to download
-    fwname = get_fw_filename(rslt.text, auto_select_fw)
-    fwtype, fwinfo, fwinfo2 = fwtools.parse_compressed_filename(fwname)
+    release_data = json.loads(rslt.text)[release]
+    if not release_data:
+        return None
+
+    fwdata = get_fw_metadata(release_data)
+    fwname = fwdata['filename']
 
     # GET the selected firmware from the server
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -97,21 +118,20 @@ def download_file(hw_target, write_compressed, index_file, auto_select_fw):
         fwtools.write(fwcmp, cmpfilename)
 
     # Return
-    return fwtype, fwinfo, fwinfo2, fwcmp
+    return fwdata['fwsize'], fwdata.get('patch_size'), fwcmp
 
 
 # Download compressed firmware file from Firmware Server using GDK
-def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
+def download_file_gdk(hw_target, write_compressed, release):
     import greenaddress as gdk
     import base64
-    import json
 
     gdk.init({})
     session = gdk.Session({'name': 'mainnet'})
 
     # GET the index file from the firmware server which lists the
     # available firmwares
-    url = f'{FWSERVER_URL_ROOT}/{hw_target}/{index_file}'
+    url = f'{FWSERVER_URL_ROOT}/{hw_target}/{FWSERVER_INDEX_FILE}'
     logger.info(f'Downloading firmware index file {url} using gdk')
     params = {'method': 'GET', 'urls': [url]}
     rslt = gdk.http_request(session.session_obj, json.dumps(params))
@@ -119,8 +139,12 @@ def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
     assert 'body' in rslt, f'Cannot download index file {url}: {rslt.get("error")}'
 
     # Get the filename of the firmware to download
-    fwname = get_fw_filename(rslt['body'], auto_select_fw)
-    fwtype, fwinfo, fwinfo2 = fwtools.parse_compressed_filename(fwname)
+    release_data = json.loads(rslt['body'])[release]
+    if not release_data:
+        return None
+
+    fwdata = get_fw_metadata(release_data)
+    fwname = fwdata['filename']
 
     # GET the selected firmware from the server in base64 encoding
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -140,7 +164,7 @@ def download_file_gdk(hw_target, write_compressed, index_file, auto_select_fw):
         fwtools.write(fwcmp, cmpfilename)
 
     # Return
-    return fwtype, fwinfo, fwinfo2, fwcmp
+    return fwdata['fwsize'], fwdata.get('patch_size'), fwcmp
 
 
 # Use a local uncompressed full firmware file - can deduce the compressed firmware
@@ -168,7 +192,7 @@ def get_local_uncompressed_fwfile(fwfilename, write_compressed):
         logger.info('Writing compressed firmware file')
         fwtools.write(fwcmp, cmpfilename)
 
-    return fwtype, fwinfo, fwinfo2, fwcmp
+    return fwlen, None, fwcmp
 
 
 # Use a local firmware file - the compressed firmware file.
@@ -184,8 +208,9 @@ def get_local_compressed_fwfile(fwfilename):
     # Use fwtools to parse the filename and deduce whether this is
     # a full firmware file or a firmware delta/patch.
     fwtype, fwinfo, fwinfo2 = fwtools.parse_compressed_filename(fwfilename)
+    assert (fwtype == fwtools.FWFILE_TYPE_PATCH) == (fwinfo2 is not None)
 
-    return fwtype, fwinfo, fwinfo2, fwcmp
+    return fwinfo.fwsize, fwinfo2.fwsize if fwinfo2 else None, fwcmp
 
 
 # Returns whether we have ble and the id of the jade
@@ -328,12 +353,6 @@ if __name__ == '__main__':
                         help='Hardware target for downloading firmware.  Defaults to jade',
                         choices=['jade', 'jadedev', 'jade1.1', 'jade1.1dev'],
                         default=None)
-    parser.add_argument('--auto-select-fw',
-                        action='store',
-                        type=int,
-                        dest='autoselectfw',
-                        help='Index of firmware to download (skips interactive prompt)',
-                        default=None)
     parser.add_argument('--release',
                         action='store',
                         dest='release',
@@ -376,10 +395,6 @@ if __name__ == '__main__':
         logger.error('Cannot write compressed fw file when reading from compressed fw file')
         sys.exit(1)
 
-    if args.autoselectfw and not downloading:
-        logger.error('Can only provide auto-select index when downloading fw from server')
-        sys.exit(1)
-
     if args.release and not downloading:
         logger.error('Can only specify release when downloading fw from server')
         sys.exit(1)
@@ -389,30 +404,26 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if downloading and not args.hwtarget:
-        args.hwtarget = 'jade'  # default to prod jade
+        args.hwtarget = 'jade'   # default to prod jade
 
-    if downloading:
-        # default to stable versions
-        indexfile = {'previous': 'PREVIOUS',
-                     'beta': 'BETA'}.get(args.release, 'LATEST')
+    if downloading and not args.release:
+        args.release = 'stable'  # default to latest/stable
 
     # Get the file to OTA
     if args.downloadfw:
-        fwtype, fwinfo, fwinfo2, fwcmp = download_file(args.hwtarget, args.writecompressed,
-                                                       indexfile, args.autoselectfw)
+        fwlen, patchlen, fwcmp = download_file(args.hwtarget, args.writecompressed,
+                                               args.release)
     elif args.downloadgdk:
-        fwtype, fwinfo, fwinfo2, fwcmp = download_file_gdk(args.hwtarget, args.writecompressed,
-                                                           indexfile, args.autoselectfw)
+        fwlen, patchlen, fwcmp = download_file_gdk(args.hwtarget, args.writecompressed,
+                                                   args.release)
     elif args.fwfile:
         assert not args.writecompressed
-        fwtype, fwinfo, fwinfo2, fwcmp = get_local_compressed_fwfile(args.fwfile)
+        fwlen, patchlen, fwcmp = get_local_compressed_fwfile(args.fwfile)
     else:
         # Default case, as 'uncompressed fw file' has a default value if not passed explicitly
-        fwtype, fwinfo, fwinfo2, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
-                                                                       args.writecompressed)
+        fwlen, patchlen, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
+                                                               args.writecompressed)
 
-    fwlen = fwinfo.fwsize
-    patchlen = fwinfo2.fwsize if fwinfo2 else None
     logger.info(f'Got fw {"patch" if patchlen else "file"} of length {len(fwcmp)} '
                 f'with expected uncompressed final fw length {fwlen}')
 
