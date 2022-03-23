@@ -109,6 +109,11 @@ void ota_process(void* process_ptr)
     JADE_WALLY_VERIFY(wally_hex_from_bytes(expected_hash, expected_hash_len, &expected_hash_hexstr));
     jade_process_wally_free_string_on_exit(process, expected_hash_hexstr);
 
+    // We will show a progress bar once the user has confirmed and the upload in progress
+    // Initially just show a message screen.
+    display_message_activity_two_lines("Preparing for firmware", "update");
+    vTaskDelay(100 / portTICK_PERIOD_MS); // sleep a little bit to redraw screen
+
     struct deflate_ctx* dctx = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct deflate_ctx));
     jade_process_free_on_exit(process, dctx);
 
@@ -148,12 +153,8 @@ void ota_process(void* process_ptr)
 
     // Send the ok response, which implies now we will get ota_data messages
     jade_process_reply_to_message_ok(process);
-
-    // We will show a progress bar once the user has confirmed and the upload in progress
-    // Initially just show a message screen.
-    display_message_activity_two_lines("Preparing for firmware", "update");
-
     uploading = true;
+
     ota_return_status = SUCCESS;
     while (joctx.remaining_compressed) {
         jade_process_get_in_message(&joctx, &handle_in_bin_data, true);
