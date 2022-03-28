@@ -904,7 +904,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         if (initial_has_pin && initial_keychain && !keychain_has_temporary()) {
             if (ble_connected() != initial_ble || usb_connected() != initial_usb) {
                 JADE_LOGI("Connection status changed - clearing keychain");
-                keychain_free();
+                keychain_clear();
             }
         }
 

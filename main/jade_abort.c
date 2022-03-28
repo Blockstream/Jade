@@ -12,7 +12,7 @@
 void jade_abort(const char* file, const int line_n)
 {
     // Clear senstitive data
-    keychain_free();
+    keychain_clear();
     sensitive_clear_stack();
 
     if (gui_initialized()) {

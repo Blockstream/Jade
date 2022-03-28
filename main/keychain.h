@@ -19,8 +19,7 @@ typedef struct {
 
 bool keychain_init(void);
 void keychain_set(const keychain_t* src, uint8_t userdata, bool temporary);
-
-void keychain_free(void);
+void keychain_clear(void);
 
 const keychain_t* keychain_get(void);
 bool keychain_requires_passphrase(void);

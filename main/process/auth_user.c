@@ -281,7 +281,7 @@ void auth_user_process(void* process_ptr)
             jade_process_reply_to_message_ok(process);
         } else {
             JADE_LOGI("keychain locked for this source, requesting pin");
-            keychain_free();
+            keychain_clear();
             check_pin_load_keys(process);
         }
     } else {

@@ -99,7 +99,7 @@ void debug_handshake(void* process_ptr)
     JADE_LOGI("Set Success");
 
     // Free/erase the keychain, then reload from nvs
-    keychain_free();
+    keychain_clear();
 
     // Wait for another debug message and update the type again
     jade_process_load_in_message(process, true);
@@ -136,7 +136,7 @@ void debug_handshake(void* process_ptr)
     JADE_LOGI("Get Success");
 
 cleanup:
-    keychain_free();
+    keychain_clear();
     SENSITIVE_POP(aeskey2);
     SENSITIVE_POP(aeskey1);
     SENSITIVE_POP(&keydata);

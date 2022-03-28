@@ -182,7 +182,7 @@ static bool test_storage_with_pin(void)
     if (storage_get_counter() != 3) {
         FAIL();
     }
-    keychain_free();
+    keychain_clear();
 
     // At this point we should just have stored the full keychain in the blob
     uint8_t blob[FULL_KEY_BLOBLEN];
@@ -221,7 +221,7 @@ static bool test_storage_with_pin(void)
     if (sodium_memcmp(base58res, base58res_copy, strlen(base58res)) != 0) {
         FAIL();
     }
-    keychain_free();
+    keychain_clear();
 
     WALLY_FREE_STR(base58res);
     WALLY_FREE_STR(base58res_copy);
@@ -288,7 +288,7 @@ static bool test_storage_with_passphrase(const size_t nwords)
     if (!keychain_has_pin()) {
         FAIL();
     }
-    keychain_free();
+    keychain_clear();
 
     // At this point we should just have stored a small entropy blob
     uint8_t blob[MNEMONIC_24_ENTROPY_BLOBLEN];
@@ -316,7 +316,7 @@ static bool test_storage_with_passphrase(const size_t nwords)
     if (!all_fields_same(&keydata, keychain_get(), true)) {
         FAIL();
     }
-    keychain_free();
+    keychain_clear();
 
     // Check different passphrase leads to different wallet
     if (!keychain_load_cleartext(aeskey, sizeof(aeskey))) {
@@ -333,7 +333,7 @@ static bool test_storage_with_passphrase(const size_t nwords)
     if (any_fields_same(&keydata, keychain_get())) {
         FAIL();
     }
-    keychain_free();
+    keychain_clear();
 
     return true;
 }

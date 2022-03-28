@@ -42,12 +42,14 @@ void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temp
 {
     JADE_ASSERT(src);
 
+    // We will hold any loaded keychain here - saves malloc'ing a struct which
+    // can fragment DRAM (as will be persistent once allocated).
+    static keychain_t internal_keychain = { 0 };
+
     // Copy-from-self is no-op for keys (but we may override 'userdata' below)
     if (src != keychain_data) {
-        // Maybe freeing and re-allocing is unnecessary, but shouldn't happen very
-        // often, and ensures it is definitely in dram.  Better safe ...
-        keychain_free();
-        keychain_data = JADE_MALLOC_DRAM(sizeof(keychain_t));
+        keychain_clear();
+        keychain_data = &internal_keychain;
         memcpy(keychain_data, src, sizeof(keychain_t));
     }
 
@@ -62,11 +64,10 @@ void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temp
     keychain_temporary = temporary;
 }
 
-void keychain_free(void)
+void keychain_clear(void)
 {
     if (keychain_data) {
         wally_bzero(keychain_data, sizeof(keychain_t));
-        free(keychain_data);
         keychain_data = NULL;
     }
 
