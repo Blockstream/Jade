@@ -563,7 +563,7 @@ static void make_enter_passphrase_page(
     gui_set_text_font(entered_phrase, UBUNTU16_FONT);
     gui_set_text_noise(entered_phrase, TFT_BLACK);
     gui_set_parent(entered_phrase, text_bg);
-    gui_set_padding(entered_phrase, GUI_MARGIN_TWO_VALUES, 1, 0);
+    gui_set_padding(entered_phrase, GUI_MARGIN_TWO_VALUES, 1, 4);
     gui_set_align(entered_phrase, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     *textbox = entered_phrase;
 
@@ -709,7 +709,8 @@ void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* p
     gui_set_text_font(entered_phrase, UBUNTU16_FONT);
     gui_set_text_noise(entered_phrase, TFT_BLACK);
     gui_set_parent(entered_phrase, vsplit);
-    gui_set_padding(entered_phrase, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 0);
+    gui_set_padding(entered_phrase, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);
+    gui_set_text_scroll(entered_phrase, TFT_BLACK);
     gui_set_align(entered_phrase, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     *textbox = entered_phrase;
 

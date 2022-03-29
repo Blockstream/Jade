@@ -23,6 +23,8 @@
 #define MNEMONIC_MAXWORDS 24
 #define MNEMONIC_BUFLEN 256
 
+#define PASSPHRASE_MAX_DISPLAY_LEN 16
+
 // main/ui/mnemonic.c
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr);
 void make_new_mnemonic_screen(gui_activity_t** activity_ptr);
@@ -584,6 +586,14 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
 
 static inline bool ascii_sane(const int32_t c) { return c >= 32 && c < 128; }
 
+// Show the last n characters of the passphrase (ie. only display last n chars of a long phrase)
+#define GUI_UPDATE_PASSPHRASE()                                                                                        \
+    do {                                                                                                               \
+        const char* passphrase_tail                                                                                    \
+            = ich < PASSPHRASE_MAX_DISPLAY_LEN ? passphrase : passphrase + ich - PASSPHRASE_MAX_DISPLAY_LEN;           \
+        gui_update_text(textboxes[page], passphrase_tail);                                                             \
+    } while (false)
+
 void get_passphrase(char* passphrase, const size_t passphrase_len, const bool confirm)
 {
     JADE_ASSERT(passphrase);
@@ -616,7 +626,7 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
     bool done = false;
     while (!done) {
         size_t page = 0;
-        gui_update_text(textboxes[page], passphrase);
+        GUI_UPDATE_PASSPHRASE();
         gui_set_current_activity(passphrase_activity);
 
         while (!done) {
@@ -630,19 +640,19 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
                 if (ascii_sane(chr)) {
                     passphrase[ich] = (char)chr;
                     passphrase[++ich] = '\0';
-                    gui_update_text(textboxes[page], passphrase);
+                    GUI_UPDATE_PASSPHRASE();
                 }
 
             } else if (ev_id == BTN_KEYBOARD_BACKSPACE) {
                 if (ich > 0) {
                     passphrase[--ich] = '\0';
-                    gui_update_text(textboxes[page], passphrase);
+                    GUI_UPDATE_PASSPHRASE();
                 }
 
             } else if (ev_id == BTN_KEYBOARD_SHIFT) {
                 // Switch to new keyboard page - ensure new screen textbox up to date
                 page = (page + 1) % NUM_PASSPHRASE_KEYBOARD_SCREENS;
-                gui_update_text(textboxes[page], passphrase);
+                GUI_UPDATE_PASSPHRASE();
 
             } else if (ev_id == BTN_KEYBOARD_ENTER) {
                 // Perhaps ask user to confirm, before accepting passphrase

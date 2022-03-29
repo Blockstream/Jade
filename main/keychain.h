@@ -7,7 +7,7 @@
 #include <wally_bip32.h>
 #include <wally_crypto.h>
 
-#define PASSPHRASE_MAX_LEN 28
+#define PASSPHRASE_MAX_LEN 100
 
 typedef struct {
     struct ext_key xpriv;
