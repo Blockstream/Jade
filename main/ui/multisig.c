@@ -37,13 +37,9 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, act->root_node);
 
-    gui_view_node_t* row1;
-    gui_make_fill(&row1, TFT_BLACK);
-    gui_set_parent(row1, vsplit);
-
     gui_view_node_t* hsplit_text1;
     gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text1, row1);
+    gui_set_parent(hsplit_text1, vsplit);
 
     gui_view_node_t* text1a;
     gui_make_text(&text1a, "Name", TFT_WHITE);
@@ -55,13 +51,9 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     gui_set_parent(text1b, hsplit_text1);
     gui_set_align(text1b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
 
-    gui_view_node_t* row2;
-    gui_make_fill(&row2, TFT_BLACK);
-    gui_set_parent(row2, vsplit);
-
     gui_view_node_t* hsplit_text2;
     gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text2, row2);
+    gui_set_parent(hsplit_text2, vsplit);
 
     gui_view_node_t* text2a;
     gui_make_text(&text2a, "Type", TFT_WHITE);
@@ -77,13 +69,9 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     gui_set_parent(text2b, hsplit_text2);
     gui_set_align(text2b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
 
-    gui_view_node_t* row3;
-    gui_make_fill(&row3, TFT_BLACK);
-    gui_set_parent(row3, vsplit);
-
     gui_view_node_t* hsplit_text3;
     gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 35, 65);
-    gui_set_parent(hsplit_text3, row3);
+    gui_set_parent(hsplit_text3, vsplit);
 
     gui_view_node_t* text3a;
     gui_make_text(&text3a, "Sorted", TFT_WHITE);
@@ -95,13 +83,9 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     gui_set_parent(text3b, hsplit_text3);
     gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
 
-    gui_view_node_t* row4;
-    gui_make_fill(&row4, TFT_BLACK);
-    gui_set_parent(row4, vsplit);
-
     gui_view_node_t* hsplit_text4;
     gui_make_hsplit(&hsplit_text4, GUI_SPLIT_RELATIVE, 2, 35, 65);
-    gui_set_parent(hsplit_text4, row4);
+    gui_set_parent(hsplit_text4, vsplit);
 
     gui_view_node_t* text4a;
     gui_make_text(&text4a, "Wallet", TFT_WHITE);
@@ -117,14 +101,10 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     JADE_WALLY_VERIFY(wally_free_string(fingerprint_hex));
 
     // Buttons
-    gui_view_node_t* row5;
-    gui_make_fill(&row5, TFT_BLACK);
-    gui_set_parent(row5, vsplit);
-
     gui_view_node_t* hsplit_btn;
     gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 2, 50, 50);
     gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, row5);
+    gui_set_parent(hsplit_btn, vsplit);
 
     gui_view_node_t* btn2;
     gui_make_button(&btn2, TFT_BLACK, BTN_MULTISIG_EXIT, NULL);
@@ -181,13 +161,9 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, act->root_node);
 
-    gui_view_node_t* row1;
-    gui_make_fill(&row1, TFT_BLACK);
-    gui_set_parent(row1, vsplit);
-
     gui_view_node_t* hsplit_text1;
     gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 35, 65);
-    gui_set_parent(hsplit_text1, row1);
+    gui_set_parent(hsplit_text1, vsplit);
 
     gui_view_node_t* text1a;
     gui_make_text(&text1a, "Fingerprint", TFT_WHITE);
@@ -202,13 +178,9 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     gui_set_align(text1b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     JADE_WALLY_VERIFY(wally_free_string(fingerprint_hex));
 
-    gui_view_node_t* row2;
-    gui_make_fill(&row2, TFT_BLACK);
-    gui_set_parent(row2, vsplit);
-
     gui_view_node_t* hsplit_text2;
     gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 35, 65);
-    gui_set_parent(hsplit_text2, row2);
+    gui_set_parent(hsplit_text2, vsplit);
 
     gui_view_node_t* text2a;
     gui_make_text(&text2a, "Derivation", TFT_WHITE);
@@ -230,13 +202,9 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
         gui_set_text_scroll(text2b, TFT_BLACK);
     }
 
-    gui_view_node_t* row3;
-    gui_make_fill(&row3, TFT_BLACK);
-    gui_set_parent(row3, vsplit);
-
     gui_view_node_t* hsplit_text3;
     gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text3, row3);
+    gui_set_parent(hsplit_text3, vsplit);
 
     gui_view_node_t* text3a;
     gui_make_text(&text3a, "Xpub", TFT_WHITE);
@@ -249,13 +217,9 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     gui_set_text_scroll(text3b, TFT_BLACK);
 
-    gui_view_node_t* row4;
-    gui_make_fill(&row4, TFT_BLACK);
-    gui_set_parent(row4, vsplit);
-
     gui_view_node_t* hsplit_text4;
     gui_make_hsplit(&hsplit_text4, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text4, row4);
+    gui_set_parent(hsplit_text4, vsplit);
 
     gui_view_node_t* text4a;
     gui_make_text(&text4a, "Path", TFT_WHITE);
@@ -278,14 +242,10 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     }
 
     // Buttons
-    gui_view_node_t* row5;
-    gui_make_fill(&row5, TFT_BLACK);
-    gui_set_parent(row5, vsplit);
-
     gui_view_node_t* hsplit_btn;
     gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
     gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, row5);
+    gui_set_parent(hsplit_btn, vsplit);
 
     // [<-] [X] [->]  (Prev, cancel, next)
     gui_view_node_t* btn1 = NULL;
@@ -352,22 +312,14 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, act->root_node);
 
-    gui_view_node_t* row1;
-    gui_make_fill(&row1, TFT_BLACK);
-    gui_set_parent(row1, vsplit);
-
     gui_view_node_t* text1;
     gui_make_text(&text1, "Register this multisig?", TFT_WHITE);
-    gui_set_parent(text1, row1);
+    gui_set_parent(text1, vsplit);
     gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* row2;
-    gui_make_fill(&row2, TFT_BLACK);
-    gui_set_parent(row2, vsplit);
 
     gui_view_node_t* hsplit_text2;
     gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text2, row2);
+    gui_set_parent(hsplit_text2, vsplit);
 
     gui_view_node_t* text2a;
     gui_make_text(&text2a, "Name", TFT_WHITE);
@@ -379,13 +331,9 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
     gui_set_parent(text2b, hsplit_text2);
     gui_set_align(text2b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
 
-    gui_view_node_t* row3;
-    gui_make_fill(&row3, TFT_BLACK);
-    gui_set_parent(row3, vsplit);
-
     gui_view_node_t* hsplit_text3;
     gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text3, row3);
+    gui_set_parent(hsplit_text3, vsplit);
 
     gui_view_node_t* text3a;
     gui_make_text(&text3a, "Type", TFT_WHITE);
@@ -401,28 +349,24 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
     gui_set_parent(text3b, hsplit_text3);
     gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
 
-    gui_view_node_t* row4;
-    gui_make_fill(&row4, TFT_BLACK);
-    gui_set_parent(row4, vsplit);
-
     // Show warning if overwriting
     if (overwriting) {
         gui_view_node_t* text4;
         gui_make_text(&text4, "Warning: overwriting existing registration", TFT_RED);
-        gui_set_parent(text4, row4);
+        gui_set_parent(text4, vsplit);
         gui_set_align(text4, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_text_scroll(text4, TFT_BLACK);
+    } else {
+        gui_view_node_t* row4;
+        gui_make_fill(&row4, TFT_BLACK);
+        gui_set_parent(row4, vsplit);
     }
 
     // Buttons
-    gui_view_node_t* row5;
-    gui_make_fill(&row5, TFT_BLACK);
-    gui_set_parent(row5, vsplit);
-
     gui_view_node_t* hsplit_btn;
     gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
     gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, row5);
+    gui_set_parent(hsplit_btn, vsplit);
 
     // [<-] [X] [V]  (Prev, cancel, confirm)
     gui_view_node_t* btn1 = NULL;
@@ -533,22 +477,14 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, act->root_node);
 
-    gui_view_node_t* row1;
-    gui_make_fill(&row1, TFT_BLACK);
-    gui_set_parent(row1, vsplit);
-
     gui_view_node_t* text1;
     gui_make_text(&text1, "Mustisig Registration:", TFT_WHITE);
-    gui_set_parent(text1, row1);
+    gui_set_parent(text1, vsplit);
     gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* row2;
-    gui_make_fill(&row2, TFT_BLACK);
-    gui_set_parent(row2, vsplit);
 
     gui_view_node_t* hsplit_text2;
     gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text2, row2);
+    gui_set_parent(hsplit_text2, vsplit);
 
     gui_view_node_t* text2a;
     gui_make_text(&text2a, "Name", TFT_WHITE);
@@ -560,18 +496,10 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
     gui_set_parent(text2b, hsplit_text2);
     gui_set_align(text2b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
 
-    gui_view_node_t* row3;
-    gui_make_fill(&row3, TFT_BLACK);
-    gui_set_parent(row3, vsplit);
-
-    gui_view_node_t* row4;
-    gui_make_fill(&row4, TFT_BLACK);
-    gui_set_parent(row4, vsplit);
-
     if (valid) {
         gui_view_node_t* hsplit_text3;
         gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 25, 75);
-        gui_set_parent(hsplit_text3, row3);
+        gui_set_parent(hsplit_text3, vsplit);
 
         char type[16];
         int ret = snprintf(type, sizeof(type), "%uof%u", threshold, num_signers);
@@ -589,7 +517,7 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
 
         gui_view_node_t* hsplit_text4;
         gui_make_hsplit(&hsplit_text4, GUI_SPLIT_RELATIVE, 2, 25, 75);
-        gui_set_parent(hsplit_text4, row4);
+        gui_set_parent(hsplit_text4, vsplit);
 
         gui_view_node_t* text4a;
         gui_make_text(&text4a, "Sorted", TFT_WHITE);
@@ -604,19 +532,19 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
         // Not valid for this wallet - just show warning
         gui_view_node_t* text3;
         gui_make_text(&text3, "Not valid for this wallet", TFT_RED);
-        gui_set_parent(text3, row3);
+        gui_set_parent(text3, vsplit);
         gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+
+        gui_view_node_t* row4;
+        gui_make_fill(&row4, TFT_BLACK);
+        gui_set_parent(row4, vsplit);
     }
 
     // Buttons
-    gui_view_node_t* row5;
-    gui_make_fill(&row5, TFT_BLACK);
-    gui_set_parent(row5, vsplit);
-
     gui_view_node_t* hsplit_btn;
     gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 2, 50, 50);
     gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, row5);
+    gui_set_parent(hsplit_btn, vsplit);
 
     // Delete/Next
     gui_view_node_t* btn1 = NULL;

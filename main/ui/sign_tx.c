@@ -58,13 +58,9 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, act->root_node);
 
-    gui_view_node_t* row1;
-    gui_make_fill(&row1, TFT_BLACK);
-    gui_set_parent(row1, vsplit);
-
     gui_view_node_t* hsplit_text1;
     gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 15, 85);
-    gui_set_parent(hsplit_text1, row1);
+    gui_set_parent(hsplit_text1, vsplit);
 
     gui_view_node_t* text1a;
     gui_make_text(&text1a, "To", TFT_WHITE);
@@ -78,13 +74,9 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
     gui_set_align(text1b, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_text_scroll(text1b, TFT_BLACK);
 
-    gui_view_node_t* row2;
-    gui_make_fill(&row2, TFT_BLACK);
-    gui_set_parent(row2, vsplit);
-
     gui_view_node_t* hsplit_text2;
     gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 70, 30);
-    gui_set_parent(hsplit_text2, row2);
+    gui_set_parent(hsplit_text2, vsplit);
 
     gui_view_node_t* text2a;
     gui_make_text(&text2a, amount, TFT_WHITE);
@@ -99,14 +91,6 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
         gui_set_borders(text2b, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
     }
 
-    gui_view_node_t* row3;
-    gui_make_fill(&row3, TFT_BLACK);
-    gui_set_parent(row3, vsplit);
-
-    gui_view_node_t* row4;
-    gui_make_fill(&row4, TFT_BLACK);
-    gui_set_parent(row4, vsplit);
-
     // If 'warning_msg' - then show the message.
     // Otherwise show the asset string (issuer, id, etc)
     if (warning_msg) {
@@ -114,19 +98,19 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
 
         gui_view_node_t* text3;
         gui_make_text(&text3, "Warning:", TFT_RED);
-        gui_set_parent(text3, row3);
+        gui_set_parent(text3, vsplit);
         gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_text_scroll(text3, TFT_BLACK);
 
         gui_view_node_t* text4;
         gui_make_text(&text4, warning_msg, TFT_RED);
-        gui_set_parent(text4, row4);
+        gui_set_parent(text4, vsplit);
         gui_set_align(text4, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_text_scroll(text4, TFT_BLACK);
     } else if (asset_str) {
         gui_view_node_t* hsplit_text3;
         gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 30, 70);
-        gui_set_parent(hsplit_text3, row3);
+        gui_set_parent(hsplit_text3, vsplit);
 
         gui_view_node_t* text3a;
         gui_make_text(&text3a, "Asset", TFT_WHITE);
@@ -140,17 +124,25 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
         gui_set_text_scroll(text3b, TFT_BLACK);
 
         // row4 is blank
+        gui_view_node_t* row4;
+        gui_make_fill(&row4, TFT_BLACK);
+        gui_set_parent(row4, vsplit);
+    } else {
+        // Two blank rows
+        gui_view_node_t* row3;
+        gui_make_fill(&row3, TFT_BLACK);
+        gui_set_parent(row3, vsplit);
+
+        gui_view_node_t* row4;
+        gui_make_fill(&row4, TFT_BLACK);
+        gui_set_parent(row4, vsplit);
     }
 
     // Buttons
-    gui_view_node_t* row5;
-    gui_make_fill(&row5, TFT_BLACK);
-    gui_set_parent(row5, vsplit);
-
     gui_view_node_t* hsplit_btn;
     gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
     gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, row5);
+    gui_set_parent(hsplit_btn, vsplit);
 
     // If we want a prev btn, add it here.  If not just add filler.
     gui_view_node_t* btn1 = NULL;
