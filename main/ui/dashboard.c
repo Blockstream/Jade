@@ -364,7 +364,7 @@ void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, c
     *act_ptr = act;
 }
 
-void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, const char* additional)
+void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** txt_extra)
 {
     JADE_ASSERT(act_ptr);
     JADE_ASSERT(device_name);
@@ -382,16 +382,11 @@ void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, const 
     gui_set_align(ready_text, GUI_ALIGN_CENTER, GUI_ALIGN_BOTTOM);
     gui_set_parent(ready_text, vsplit);
 
-    if (additional) {
-        gui_view_node_t* ready_text;
-        gui_make_text(&ready_text, additional, TFT_WHITE);
-        gui_set_align(ready_text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-        gui_set_parent(ready_text, vsplit);
-    } else {
-        gui_view_node_t* filler;
-        gui_make_fill(&filler, TFT_BLACK);
-        gui_set_parent(filler, vsplit);
-    }
+    gui_view_node_t* extra_text;
+    gui_make_text(&extra_text, "", TFT_WHITE);
+    gui_set_align(extra_text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+    gui_set_parent(extra_text, vsplit);
+    *txt_extra = extra_text;
 
     add_button_bar(vsplit);
     *act_ptr = act;

@@ -408,8 +408,8 @@ void gui_update_text(gui_view_node_t* node, const char* text);
 void gui_update_picture(gui_view_node_t* node, const Picture* picture);
 void gui_repaint(gui_view_node_t* node, bool take_mutex);
 
-void gui_set_current_activity_ex(gui_activity_t* activity, bool free_all_other_activities);
-void gui_set_current_activity(gui_activity_t* activity);
+void gui_set_current_activity_ex(gui_activity_t* new_current, bool free_all_other_activities, gui_activity_t* retain);
+void gui_set_current_activity(gui_activity_t* new_current);
 
 void gui_connect_button_activity(gui_view_node_t* node, gui_activity_t* activity);
 wait_event_data_t* gui_activity_make_wait_event_data(gui_activity_t* activity);

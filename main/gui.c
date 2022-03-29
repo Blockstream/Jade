@@ -1963,46 +1963,64 @@ void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_
     activity->initial_selection = node;
 }
 
-void gui_set_current_activity_ex(gui_activity_t* activity, const bool free_all_other_activities)
+// Call to initiate a change of current activity - optionally freeing other activities.
+// Can also pass a 'retain' activity which is not made current, but is retained and not freed.
+void gui_set_current_activity_ex(gui_activity_t* new_current, const bool free_other_activities, gui_activity_t* retain)
 {
-    JADE_ASSERT(activity);
+    JADE_ASSERT(new_current);
+    JADE_ASSERT(!retain || free_other_activities);
+
+    JADE_ASSERT(existing_activities);
 
     // We will post the gui task the new activity, and the list of activities it can free
-    activity_switch_info_t activities = { .new_activity = activity, .to_free = NULL };
+    activity_switch_info_t switch_info = { .new_activity = new_current, .to_free = NULL };
 
-    // If freeing others, build a list of all existing activities except the new current
-    if (free_all_other_activities) {
-        // If the first/latest activity is the current activity, skip it
-        if (&existing_activities->activity == activity) {
-            activities.to_free = existing_activities->next;
-            existing_activities->next = NULL;
-        } else {
-            // Otherwise remove the current activty from the list
-            activities.to_free = existing_activities;
-            for (activity_holder_t* holder = existing_activities; holder && holder->next; holder = holder->next) {
-                if (&holder->next->activity == activity) {
-                    // Skip the next activity (as current) and link to following
-                    existing_activities = holder->next;
-                    holder->next = holder->next->next;
-                    existing_activities->next = NULL;
-                }
+    // If freeing others, partition existing activities into those to keep (new current and the
+    //  passed 'retain' activity) and those to free (all others).
+    if (free_other_activities) {
+        activity_holder_t* holder = existing_activities;
+        existing_activities = NULL;
+
+        while (holder) {
+            activity_holder_t* const next = holder->next;
+
+            if (&holder->activity == new_current || &holder->activity == retain) {
+                // Retain this activity
+                holder->next = existing_activities;
+                existing_activities = holder;
+            } else {
+                // Discard this activity
+                holder->next = switch_info.to_free;
+                switch_info.to_free = holder;
             }
+            holder = next;
         }
 
-        // So after that operation 'existing_activities' should be the new current activity only
-        JADE_ASSERT(existing_activities && (&existing_activities->activity == activity) && !existing_activities->next);
+        // Sanity check
+        if (retain && retain != new_current) {
+            // 'existing_activities' should be the new current activity and the retained activity only
+            JADE_ASSERT(existing_activities && existing_activities->next && !existing_activities->next->next);
+            JADE_ASSERT(
+                &existing_activities->activity == new_current || &existing_activities->next->activity == new_current);
+            JADE_ASSERT(&existing_activities->activity == retain || &existing_activities->next->activity == retain);
+        } else {
+            // 'existing_activities' should be the new current activity only
+            JADE_ASSERT(
+                existing_activities && (&existing_activities->activity == new_current) && !existing_activities->next);
+        }
     }
 
     // Post the new activity and the list to free to the gui task
-    while (xRingbufferSend(switch_activities_queue, &activities, sizeof(activities), portMAX_DELAY) != pdTRUE) {
+    while (xRingbufferSend(switch_activities_queue, &switch_info, sizeof(switch_info), portMAX_DELAY) != pdTRUE) {
         // wait for a spot in the ring
     }
 }
 
-void gui_set_current_activity(gui_activity_t* activity)
+// Initiate change of 'current' activity
+void gui_set_current_activity(gui_activity_t* new_current)
 {
     // Set a new activity without freeing any other activities
-    gui_set_current_activity_ex(activity, false);
+    gui_set_current_activity_ex(new_current, false, NULL);
 }
 
 // Create a new event_data structure, and attach to the activity

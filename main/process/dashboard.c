@@ -69,7 +69,7 @@ void make_setup_screen(gui_activity_t** act_ptr, const char* device_name, const 
 void make_connect_screen(gui_activity_t** act_ptr, const char* device_name, const char* firmware_version);
 void make_connection_select_screen(gui_activity_t** act_ptr);
 void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, bool ble);
-void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, const char* additional);
+void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** txt_extra);
 void make_settings_screen(
     gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, size_t nBtns);
 
@@ -828,16 +828,17 @@ static void handle_btn(jade_process_t* process, int32_t btn)
 }
 
 // Display the passed dashboard screen
-static void display_screen(gui_activity_t* act)
+static void display_screen(gui_activity_t* activity, gui_activity_t* act_ready)
 {
-    JADE_ASSERT(act);
+    JADE_ASSERT(activity);
+    JADE_ASSERT(act_ready);
 
     // Print the main stack usage (high water mark)
     JADE_LOGI("Main task stack HWM: %u free", uxTaskGetStackHighWaterMark(NULL));
 
     // Switch to passed screen, and at that point free all other screen activities
     // Should be no-op if we didn't switch away from this screen
-    gui_set_current_activity_ex(act, true);
+    gui_set_current_activity_ex(activity, true, act_ready);
 
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();
@@ -850,15 +851,12 @@ static inline bool ble_connected(void) { return false; }
 
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.
 static void do_dashboard(jade_process_t* process, const keychain_t* const initial_keychain, const bool initial_has_pin,
-    gui_activity_t* act_dashboard, wait_event_data_t* event_data)
+    gui_activity_t* act_dashboard, gui_activity_t* act_ready, wait_event_data_t* event_data)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(act_dashboard);
+    JADE_ASSERT(act_ready);
     JADE_ASSERT(event_data);
-
-    // Register the button event handler which we check if there are no
-    // external messages to handle.
-    gui_activity_register_event(act_dashboard, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
 
     // Loop all the time the keychain is unchanged, awaiting either a message
     // from companion app or a GUI interaction from the user
@@ -875,7 +873,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         // screen flicker or can cause the dashboard to overwrite other screens
         // eg. BLE pairing/bonding confirm screen.)
         if (acted) {
-            display_screen(act_dashboard);
+            display_screen(act_dashboard, act_ready);
         }
 
         // 1. Process any message if available (do not block if no message available)
@@ -914,6 +912,16 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
     }
 }
 
+// Helper to create a dashboard activity using the function passed, and then register
+// the button event handler which we check if there are no external messages to handle.
+#define MAKE_DASHBOARD_SCREEN(fn_make_activity, activity, extra_arg)                                                   \
+    do {                                                                                                               \
+        fn_make_activity(&activity, device_name, extra_arg);                                                           \
+        JADE_ASSERT(activity);                                                                                         \
+        gui_activity_register_event(                                                                                   \
+            activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);                        \
+    } while (false)
+
 // Main/default screen/process when ready for user interaction
 void dashboard_process(void* process_ptr)
 {
@@ -938,13 +946,19 @@ void dashboard_process(void* process_ptr)
     wait_event_data_t* const event_data = make_wait_event_data();
     gui_activity_t* act_dashboard = NULL;
 
-    while (true) {
-        // Create current 'dashboard' screen, then process all events until that
-        // dashboard is no longer appropriate - ie. until the keychain is set (or unset).
+    // NOTE: Create 'Ready' screen for when Jade is unlocked and ready to use early, so that
+    // it does not fragment the RAM (since it is long-lived once unit is unlocked with PIN).
+    gui_activity_t* act_ready = NULL;
+    gui_view_node_t* txt_extra = NULL;
+    MAKE_DASHBOARD_SCREEN(make_ready_screen, act_ready, &txt_extra);
+    JADE_ASSERT(txt_extra);
 
+    while (true) {
+        // Create/set current 'dashboard' screen, then process all events until that
+        // dashboard is no longer appropriate - ie. until the keychain is set (or unset).
         // We have four cases:
         // 1. Ready - has keys already associated with a message source
-        //    - ready screen
+        //    - ready screen  (created early and persistent, see above)
         // 2. Unused keys - has keys in memory, but not yet connected to an app
         //    - connect-to screen
         // 3. Locked - has persisted/encrypted keys, but no keys in memory
@@ -955,24 +969,25 @@ void dashboard_process(void* process_ptr)
         const keychain_t* initial_keychain = keychain_get();
         if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
             JADE_LOGI("Connected and have wallet/keys - showing Ready screen");
-            const char* additional = keychain_has_temporary() ? "(Temporary Wallet)" : NULL;
-            make_ready_screen(&act_dashboard, device_name, additional);
+            const char* additional = keychain_has_temporary() ? "(Temporary Wallet)" : "";
+            gui_update_text(txt_extra, additional);
+            act_dashboard = act_ready;
         } else if (initial_keychain) {
             JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");
-            make_connect_to_screen(&act_dashboard, device_name, initialisation_via_ble);
+            MAKE_DASHBOARD_SCREEN(make_connect_to_screen, act_dashboard, initialisation_via_ble);
         } else if (has_pin) {
             JADE_LOGI("Wallet/keys pin set but not yet loaded - showing Connect screen");
-            make_connect_screen(&act_dashboard, device_name, running_app_info.version);
+            MAKE_DASHBOARD_SCREEN(make_connect_screen, act_dashboard, running_app_info.version);
         } else {
             JADE_LOGI("No wallet/keys and no pin set - showing Setup screen");
-            make_setup_screen(&act_dashboard, device_name, running_app_info.version);
+            MAKE_DASHBOARD_SCREEN(make_setup_screen, act_dashboard, running_app_info.version);
         }
 
         // This call loops/blocks all the time the user keychain (and related details)
-        // remains unchanged.  When it changes we go back round this loop making
+        // remains unchanged.  When it changes we go back round this loop setting
         // a new 'dashboard' screen and re-running the dashboard processing loop.
         // NOTE: connecting or disconnecting serial or ble will cause any keys to
         // be cleared (and bzero'd).
-        do_dashboard(process, initial_keychain, has_pin, act_dashboard, event_data);
+        do_dashboard(process, initial_keychain, has_pin, act_dashboard, act_ready, event_data);
     }
 }
