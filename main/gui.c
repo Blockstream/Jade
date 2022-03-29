@@ -1140,7 +1140,7 @@ static inline bool can_text_fit(const char* text, uint32_t font, dispWin_t cs)
 }
 
 // move to the next frame of a scrolling text node
-bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
+static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
 {
     // no node, invalid node, not yet renreded...
     if (!node || node->kind != TEXT || node->render_data.is_first_time) {
@@ -1761,6 +1761,19 @@ static bool switch_activities(void)
             // Set the current_activity to the new one, and render it
             current_activity = switch_info->new_activity;
 
+            // If passed a 'to_free' list, free these activities now.
+            // This does not really need to be protected by the semaphore - however we want to
+            // free the old activities *before* the code below runs, as it makes allocations.
+            // If we defer the 'frees' until later, we end up fragmenting the memory, which is
+            // particularly detrimental to no-psram devices.
+            activity_holder_t* to_free = switch_info->to_free;
+            while (to_free) {
+                JADE_ASSERT(&to_free->activity != current_activity);
+                activity_holder_t* const next = to_free->next;
+                free_activity(to_free);
+                to_free = next;
+            }
+
             // Update the status bar text for the new activity
             if (current_activity->status_bar) {
                 if (current_activity->title) {
@@ -1783,15 +1796,6 @@ static bool switch_activities(void)
 
         // Release the activities mutex
         GUI_SEMAPHORE_GIVE(activities_mutex);
-
-        // If passed a 'to_free' list, free these now
-        activity_holder_t* to_free = switch_info->to_free;
-        while (to_free) {
-            JADE_ASSERT(&to_free->activity != current_activity);
-            activity_holder_t* const next = to_free->next;
-            free_activity(to_free);
-            to_free = next;
-        }
 
         // Return the ringbuffer slot
         vRingbufferReturnItem(switch_activities_queue, switch_info);
