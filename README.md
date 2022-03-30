@@ -118,6 +118,10 @@ pip install -r requirements.txt
 ```
 At this point the Jade fw running in the qemu emulator should be available on 'tcp:localhost:2222' from inside and outside the docker container.
 
+# Reproducible Build
+
+See REPRODUCIBLE.md for instructions on locally reproducing the official Blockstream Jade firmware images (minus the Blockstream signature block).
+
 # License
 
 The collection is subject to gpl3 but individual source components can be used under their specific licenses.
