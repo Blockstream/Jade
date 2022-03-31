@@ -1920,6 +1920,36 @@
         "ticker": "TESI",
         "version": 0
     },
+    "14f34169c688aa15db097c693b35eceafd0f9b451e4feaaea3990e29c13a95b8": {
+        "asset_id": "14f34169c688aa15db097c693b35eceafd0f9b451e4feaaea3990e29c13a95b8",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "03444e96f923fc3d04d90d233467a056adab264a98a024b16bcda0a5c4c68f3103",
+            "name": "Liquid CAN",
+            "precision": 0,
+            "ticker": "L-CAN",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "4835767e2bad537f4624007019b760dcf9ebe35940aa2dea4162644b922406fb",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "f97401ac507ae8580d720cd118e0869bb6f9c8ab0f09f21804cd385b4e46d334",
+            "vin": 0
+        },
+        "issuer_pubkey": "03444e96f923fc3d04d90d233467a056adab264a98a024b16bcda0a5c4c68f3103",
+        "name": "Liquid CAN",
+        "precision": 0,
+        "ticker": "L-CAN",
+        "version": 0
+    },
     "15bdb0bf557ede38156440a4850e42b71621265859b8ccf928219e5ce5e10a71": {
         "asset_id": "15bdb0bf557ede38156440a4850e42b71621265859b8ccf928219e5ce5e10a71",
         "contract": {
@@ -2065,41 +2095,6 @@
         "ticker": "GCL",
         "version": 0
     },
-    "1668fb5b9cd93544b8e0462a72b642b719f5cdbdcb787bf924e3417dab3a8303": {
-        "asset_id": "1668fb5b9cd93544b8e0462a72b642b719f5cdbdcb787bf924e3417dab3a8303",
-        "contract": {
-            "entity": {
-                "domain": "test.bfungible.bcademy.xyz"
-            },
-            "file": "QmZzgzHuRTo4ZUJdYRsUw9KpZq4E8iz3DD6KRpZa32Wshg",
-            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
-            "name": "TEST1",
-            "nft": {
-                "cid": "QmachM3wu83H8FEetPTTCMaNuLcpUgXw8nGAjef74FiMxE",
-                "domain": "test.bfungible.bcademy.xyz",
-                "hash": "a90026ce307e3d02e1f41dab9b2699ac991e28b4769bdc905897e2a701f87ebb"
-            },
-            "precision": 0,
-            "ticker": "TEST1",
-            "version": 0
-        },
-        "entity": {
-            "domain": "test.bfungible.bcademy.xyz"
-        },
-        "issuance_prevout": {
-            "txid": "9996f7d1d496e9a168ef36049ae740b0db21aae24b267e93d08e2f627ec7966e",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "61dde8f0844babc2f9494df25715285ae77d849cf6e42590c99c4a41c803ca09",
-            "vin": 0
-        },
-        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
-        "name": "TEST1",
-        "precision": 0,
-        "ticker": "TEST1",
-        "version": 0
-    },
     "16d4a7e0cc97fdd7199512fe37e37285f7fbe830affdae209093c31e3ced7bad": {
         "asset_id": "16d4a7e0cc97fdd7199512fe37e37285f7fbe830affdae209093c31e3ced7bad",
         "contract": {
@@ -2194,6 +2189,41 @@
         "name": "Keisatsu-Gun",
         "precision": 0,
         "ticker": "GKeis",
+        "version": 0
+    },
+    "177682cabf37373c365475620adf5b393519a35b3e78163a9679f6dcd83c6f85": {
+        "asset_id": "177682cabf37373c365475620adf5b393519a35b3e78163a9679f6dcd83c6f85",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "icon": {
+                "cid": "QmTnz8T3qYrj2sAb1So5vQtDeJNGu5PQUrfKdBU2xL9r2T",
+                "content_type": "image/png",
+                "hash": "eb477ef3bf3d54634703187a1ddac73fb9e17c762d49c7b450222b0605950316"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Tribeke Token",
+            "precision": 6,
+            "ticker": "TRBK",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "de813e74271f9abd9e0faee464d088f181448c321abd29b9083d37326beef5a3",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "6d0a3a536a5bc6cc5c9b3ec5fb15e5fad3b6dd4bcbedc74541dd12c4b2849cd0",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Tribeke Token",
+        "precision": 6,
+        "ticker": "TRBK",
         "version": 0
     },
     "179327503cf4485f7836f95c6a06c0533d0f182761fc33187b02f9c07dc3494a": {
@@ -2397,6 +2427,36 @@
         "name": "Panda face collision EURMA test token",
         "precision": 2,
         "ticker": "EURMA",
+        "version": 0
+    },
+    "189b1fb102170bf9c15e1f649f18c1adcc75da25a448701175cbe9e29aa87df7": {
+        "asset_id": "189b1fb102170bf9c15e1f649f18c1adcc75da25a448701175cbe9e29aa87df7",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "embit.tech"
+            },
+            "issuer_pubkey": "02b6b83333d3a5eefc82404aa5a90637356fa9824d086e164255c57c4766f7cb88",
+            "name": "GRSDF token",
+            "precision": 0,
+            "ticker": "GRSDF",
+            "version": 0
+        },
+        "entity": {
+            "domain": "embit.tech"
+        },
+        "issuance_prevout": {
+            "txid": "680f23754bcd89064be023a2ae1fc2af2b3e5131de6262099dbf7eedf84ba5cb",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "6c8e23cfc82a2365efe233111af5cb20014a479720a47c53d63765601289adf0",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b6b83333d3a5eefc82404aa5a90637356fa9824d086e164255c57c4766f7cb88",
+        "name": "GRSDF token",
+        "precision": 0,
+        "ticker": "GRSDF",
         "version": 0
     },
     "190d8b0e5ec899a551b2f2a4f965bb4b19ae565ed46337c57a1ef8c42ee0eb62": {
@@ -5462,35 +5522,6 @@
         "name": "USDBonds",
         "precision": 8,
         "ticker": "USDME",
-        "version": 0
-    },
-    "3e7f0fb4d3e2e481135b63d5fada63334c282a23bbb0722e733ab2116bf94355": {
-        "asset_id": "3e7f0fb4d3e2e481135b63d5fada63334c282a23bbb0722e733ab2116bf94355",
-        "contract": {
-            "entity": {
-                "domain": "test.bfungible.bcademy.xyz"
-            },
-            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
-            "name": "TOKEN7",
-            "precision": 2,
-            "ticker": "TKN7",
-            "version": 0
-        },
-        "entity": {
-            "domain": "test.bfungible.bcademy.xyz"
-        },
-        "issuance_prevout": {
-            "txid": "61dde8f0844babc2f9494df25715285ae77d849cf6e42590c99c4a41c803ca09",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "93ebf6b6f3235515611d60fb53e72575b61c631b607e5e053e8366b5bb3f2b5b",
-            "vin": 0
-        },
-        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
-        "name": "TOKEN7",
-        "precision": 2,
-        "ticker": "TKN7",
         "version": 0
     },
     "3ef1c348b501f508ea5497b1f6c9d6b7e8bf8655c00f6602b41b4af12fa1d33d": {
@@ -17234,6 +17265,36 @@
         "ticker": "MBitr",
         "version": 0
     },
+    "bac499716a43edb4bfd43c31c9cbe06f50921c57164866ea07549ed9b5aa2da3": {
+        "asset_id": "bac499716a43edb4bfd43c31c9cbe06f50921c57164866ea07549ed9b5aa2da3",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "la-boulangerie.stokr.io"
+            },
+            "issuer_pubkey": "02796a253d2130ec78967af82707528c8babccba248f0d61e69c1344352d38cdce",
+            "name": "la Boulangerie",
+            "precision": 0,
+            "ticker": "BAKER",
+            "version": 0
+        },
+        "entity": {
+            "domain": "la-boulangerie.stokr.io"
+        },
+        "issuance_prevout": {
+            "txid": "48234f5b885f243cc8c5956e16c2eb575536c9da93451e0d0be34d11e7605455",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "e44d5e6582f09998080a90c5a06b45ab34b05883f3b47c6783754cb700c544ca",
+            "vin": 0
+        },
+        "issuer_pubkey": "02796a253d2130ec78967af82707528c8babccba248f0d61e69c1344352d38cdce",
+        "name": "la Boulangerie",
+        "precision": 0,
+        "ticker": "BAKER",
+        "version": 0
+    },
     "bacb83fe057db74b66b095ddf23e075a91a091f56b924e5da7efbc68197b59f7": {
         "asset_id": "bacb83fe057db74b66b095ddf23e075a91a091f56b924e5da7efbc68197b59f7",
         "contract": {
@@ -19680,6 +19741,47 @@
         "name": "Tateossian / Revix blockchian cufflinks",
         "precision": 0,
         "ticker": "TRBC1",
+        "version": 0
+    },
+    "d8f6cbfa18294451ea73b3e1d91c3c77c8f7211b888e92373acd4baca566b302": {
+        "asset_id": "d8f6cbfa18294451ea73b3e1d91c3c77c8f7211b888e92373acd4baca566b302",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "file": "QmYcD3mmZPdLZJFvd5VqtMBhBShK1cteLz5NasTvJ7XZoM",
+            "icon": {
+                "cid": "QmWgXuHD2V3KUpEWzm7raiFB9Vm3YZMiHXx7cjRbJYLrzJ",
+                "content_type": "image/png",
+                "hash": "ede6b881d5728b6726c7680d1b103c33e75001cdd0832ed1955e966a7f9da79f"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "test()",
+            "nft": {
+                "cid": "QmR9xffBmaoBZZHip8rZQgc5rJgogcLuZjLsJcav2qbTA7",
+                "domain": "bfungible.network",
+                "hash": "d2865a6860a485390313e26c3d01535a996c0e6b585a8b58b10b27285e03d0b7"
+            },
+            "precision": 0,
+            "ticker": "NCAAC",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "fbf33cc17665663a5288f69a0822d6a25d8f140036360a7d2f3321135865c0a1",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "de813e74271f9abd9e0faee464d088f181448c321abd29b9083d37326beef5a3",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "test()",
+        "precision": 0,
+        "ticker": "NCAAC",
         "version": 0
     },
     "d90878e23db92a9353fc73bc87e7f00b14d49b74221bbe9e36075d97e60f5fae": {
@@ -22747,41 +22849,6 @@
         "name": "Liquid Oil Futures",
         "precision": 2,
         "ticker": "CLL",
-        "version": 0
-    },
-    "fc987f72ea27065c4d9b8040afdc7d3d4371fbed256b4a4b91dc2ea320a85c23": {
-        "asset_id": "fc987f72ea27065c4d9b8040afdc7d3d4371fbed256b4a4b91dc2ea320a85c23",
-        "contract": {
-            "entity": {
-                "domain": "test.bfungible.bcademy.xyz"
-            },
-            "file": "QmREiQKWVq1GX8PDz5AFy6BG89D3ATdF5iY4s8SVUkbAz2",
-            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
-            "name": "Rotolacampo",
-            "nft": {
-                "cid": "QmXxxG8jHySPHprjn65MKsPHAtEgPWbyyep9nfyfAtXFUw",
-                "domain": "test.bfungible.bcademy.xyz",
-                "hash": "cba8297cba439e17475ecd54b0cfa67055c13537beb3dfb6bba32fc8fabf86aa"
-            },
-            "precision": 0,
-            "ticker": "ROTOL",
-            "version": 0
-        },
-        "entity": {
-            "domain": "test.bfungible.bcademy.xyz"
-        },
-        "issuance_prevout": {
-            "txid": "18e9a1c1b2203f91dfbac3be201258050237c76d5aa107a412c2605f6c5c51cb",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "aa1cff214a35ad9ae0a83e2732f9612f353a3364bf840e420adf7a7e6d9b46eb",
-            "vin": 0
-        },
-        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
-        "name": "Rotolacampo",
-        "precision": 0,
-        "ticker": "ROTOL",
         "version": 0
     },
     "fe4146a76442c9b0108fc4fb1bad4688871adf4064beea3760f924ceb04e5b7c": {
