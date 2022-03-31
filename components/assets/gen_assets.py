@@ -82,7 +82,5 @@ if __name__ == '__main__':
     skipped = len(assets) - written
 
     logger.info(f'Written {written} assets')
-    if skipped > 0:
-        logger.warning('Skipped {skipped} assets')
 
-    assert skipped == 0
+    assert skipped == 0, f'Skipped {skipped} assets'
