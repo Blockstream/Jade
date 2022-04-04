@@ -4,6 +4,7 @@
     "txn": "02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
     "change": null,
     "inputs": [{"is_witness": true,
+                "input_tx": null,
                 "satoshi": 999400,
                 "script": "76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
                 "path": [2147483651, 2147483651]}

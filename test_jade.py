@@ -34,6 +34,8 @@ def h2b(hexdata):
         return None
     elif isinstance(hexdata, list):
         return list(map(h2b, hexdata))
+    elif isinstance(hexdata, dict):
+        return {k: h2b(v) for k, v in hexdata.items()}
     else:
         return bytes.fromhex(hexdata)
 
@@ -1869,7 +1871,7 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
                     txn, i, inputdata['script'], inputdata.get('value_commitment'),
                     wally.WALLY_SIGHASH_ALL, tx_flags)
             else:
-                if 'input_tx' in inputdata:
+                if inputdata.get('input_tx'):
                     # Get satoshi amount from input tx if we have one
                     utxo_index = wally.tx_get_input_index(txn, i)
                     input_txn = wally.tx_from_bytes(inputdata['input_tx'], 0)
