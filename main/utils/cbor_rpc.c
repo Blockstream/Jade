@@ -509,31 +509,35 @@ void rpc_get_commitments_allocate(const char* field, const CborValue* value, com
         tmp = 0;
         rpc_get_bytes(
             "value_commitment", sizeof(commitment->value_commitment), &arrayItem, commitment->value_commitment, &tmp);
-
         if (tmp != sizeof(commitment->value_commitment)) {
             free(commitments);
             return;
         }
 
         tmp = 0;
-        rpc_get_bytes("hmac", sizeof(commitment->hmac), &arrayItem, commitment->hmac, &tmp);
-
-        if (tmp != sizeof(commitment->hmac)) {
+        rpc_get_bytes("abf", sizeof(commitment->abf), &arrayItem, commitment->abf, &tmp);
+        if (tmp != sizeof(commitment->abf)) {
             free(commitments);
             return;
         }
+
+        tmp = 0;
+        rpc_get_bytes("vbf", sizeof(commitment->vbf), &arrayItem, commitment->vbf, &tmp);
+        if (tmp != sizeof(commitment->vbf)) {
+            free(commitments);
+            return;
+        }
+
         tmp = 0;
         rpc_get_bytes("asset_id", sizeof(commitment->asset_id), &arrayItem, commitment->asset_id, &tmp);
-        reverse(commitment->asset_id, sizeof(commitment->asset_id));
-
         if (tmp != sizeof(commitment->asset_id)) {
             free(commitments);
             return;
         }
+        reverse(commitment->asset_id, sizeof(commitment->asset_id));
 
         tmp = 0;
         rpc_get_bytes("blinding_key", sizeof(commitment->blinding_key), &arrayItem, commitment->blinding_key, &tmp);
-
         if (tmp != sizeof(commitment->blinding_key)) {
             free(commitments);
             return;

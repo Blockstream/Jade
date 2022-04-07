@@ -12,7 +12,6 @@
 #include "../utils/util.h"
 #include "../wallet.h"
 
-#include <mbedtls/sha256.h>
 #include <sodium/utils.h>
 #include <wally_elements.h>
 
@@ -28,21 +27,42 @@ void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_sig
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
-static bool add_confidential_output_info(const commitment_t* commitments, const struct wally_tx_output* txoutput,
-    output_info_t* outinfo, const char** errmsg)
+static bool add_validated_confidential_output_info(const commitment_t* commitments,
+    const struct wally_tx_output* txoutput, output_info_t* outinfo, const char** errmsg)
 {
+    JADE_ASSERT(commitments);
     JADE_ASSERT(txoutput);
     JADE_ASSERT(outinfo);
     JADE_ASSERT(errmsg);
     JADE_ASSERT(txoutput->value[0] != 0x01); // Don't call for unblinded outputs
-    JADE_ASSERT(commitments);
+
+    uint8_t generator_tmp[ASSET_GENERATOR_LEN];
+    uint8_t commitment_tmp[ASSET_COMMITMENT_LEN];
 
     if (!commitments->have_commitments) {
         *errmsg = "Missing commitments data for blinded output";
         return false;
     }
 
-    // 1. Copy the 'trusted' commitments into the tx so we sign over them
+    // 1. Check the asset_generator can be rebuilt from the given asset_id and abf
+    if (wally_asset_generator_from_bytes(commitments->asset_id, sizeof(commitments->asset_id), commitments->abf,
+            sizeof(commitments->abf), generator_tmp, sizeof(generator_tmp))
+            != WALLY_OK
+        || sodium_memcmp(commitments->asset_generator, generator_tmp, sizeof(generator_tmp)) != 0) {
+        *errmsg = "Failed to verify asset_generator from commitments data";
+        return false;
+    }
+
+    // 2. Check the value_commitment can be rebuilt from the given value, vbf, and asset_generator
+    if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf),
+            commitments->asset_generator, sizeof(commitments->asset_generator), commitment_tmp, sizeof(commitment_tmp))
+            != WALLY_OK
+        || sodium_memcmp(commitments->value_commitment, commitment_tmp, sizeof(commitment_tmp)) != 0) {
+        *errmsg = "Failed to verify value_commitment from commitments data";
+        return false;
+    }
+
+    // 3. Copy the 'trusted' commitments into the tx so we sign over them
     if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
         *errmsg = "Failed to update tx asset_generator from commitments data";
         return false;
@@ -55,88 +75,13 @@ static bool add_confidential_output_info(const commitment_t* commitments, const 
     }
     memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
 
-    // 2. Fetch the asset_id, value, and blinding_key into the info struct
+    // 4. Fetch the asset_id, value, and blinding_key into the info struct
     JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
     JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
     memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
     outinfo->value = commitments->value;
     memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
 
-    return true;
-}
-
-static bool check_trusted_commitment_valid(const uint8_t* hash_prevouts, const size_t hash_prevouts_len, const int idx,
-    const struct wally_tx_output* txoutput, const commitment_t* commitments, bool* found_odd_vbf, const char** errmsg)
-{
-    JADE_ASSERT(hash_prevouts);
-    JADE_ASSERT(hash_prevouts_len == SHA256_LEN);
-    JADE_ASSERT(idx >= 0);
-    JADE_ASSERT(txoutput);
-    JADE_ASSERT(found_odd_vbf);
-    JADE_ASSERT(errmsg);
-    JADE_ASSERT(txoutput->value[0] != 0x01); // Don't call for unblinded outputs
-    JADE_ASSERT(commitments);
-
-    uint8_t bf_tmp_buffer[HMAC_SHA256_LEN];
-    uint8_t generator_tmp[ASSET_GENERATOR_LEN];
-    uint8_t commitment_tmp[ASSET_COMMITMENT_LEN];
-
-    // Check the abf. if the host lied about hash_prevouts in get_blinding_factor/get_commitments we will detect it here
-    // ALL abfs MUST be correct.
-    if (!wallet_get_blinding_factor(
-            hash_prevouts, hash_prevouts_len, idx, ASSET_BLINDING_FACTOR, bf_tmp_buffer, sizeof(bf_tmp_buffer))
-        || wally_asset_generator_from_bytes(commitments->asset_id, sizeof(commitments->asset_id), bf_tmp_buffer,
-               sizeof(bf_tmp_buffer), generator_tmp, sizeof(generator_tmp))
-            != WALLY_OK
-        || sodium_memcmp(commitments->asset_generator, generator_tmp, ASSET_GENERATOR_LEN) != 0
-        || sodium_memcmp(txoutput->asset, generator_tmp, ASSET_GENERATOR_LEN) != 0) {
-        *errmsg = "Failed to verify asset_generator from commitments data";
-        return false;
-    }
-
-    // check the vbf.
-    if (!wallet_get_blinding_factor(
-            hash_prevouts, hash_prevouts_len, idx, VALUE_BLINDING_FACTOR, bf_tmp_buffer, sizeof(bf_tmp_buffer))
-        || wally_asset_value_commitment(commitments->value, bf_tmp_buffer, sizeof(bf_tmp_buffer), generator_tmp,
-               sizeof(generator_tmp), commitment_tmp, sizeof(commitment_tmp))
-            != WALLY_OK) {
-        *errmsg = "Failed to verify value_commitment from commitments data";
-        return false;
-    }
-
-    // here we allow AT MOST one vbf/value-commitment to be "unexpected"
-    if (sodium_memcmp(commitments->value_commitment, commitment_tmp, ASSET_COMMITMENT_LEN) != 0
-        || sodium_memcmp(txoutput->value, commitment_tmp, ASSET_COMMITMENT_LEN) != 0) {
-        JADE_LOGI("Found mismatching vbf/value_commitment at index %u (one is expected per tx)", idx);
-        if (!(*found_odd_vbf)) {
-            // Record seeing odd vbf
-            *found_odd_vbf = true;
-        } else {
-            // Error on subsequent
-            *errmsg = "Failed to verify value_commitment from commitments data";
-            return false;
-        }
-    }
-
-    // re-compute and check hmac of the provided trusted commitment
-    uint8_t signed_blob[ASSET_GENERATOR_LEN + ASSET_COMMITMENT_LEN + ASSET_TAG_LEN + sizeof(uint64_t)];
-    uint8_t* p = signed_blob;
-    memcpy(p, commitments->asset_generator, ASSET_GENERATOR_LEN);
-    p += ASSET_GENERATOR_LEN;
-    memcpy(p, commitments->value_commitment, ASSET_COMMITMENT_LEN);
-    p += ASSET_COMMITMENT_LEN;
-    memcpy(p, commitments->asset_id, ASSET_TAG_LEN);
-    p += ASSET_TAG_LEN;
-    memcpy(p, &commitments->value, sizeof(uint64_t));
-
-    uint8_t our_hmac[HMAC_SHA256_LEN];
-    if (!wallet_hmac_with_master_key(signed_blob, sizeof(signed_blob), our_hmac, sizeof(our_hmac))
-        || sodium_memcmp(our_hmac, commitments->hmac, HMAC_SHA256_LEN) != 0) {
-        *errmsg = "Failed to verify hmac from commitments data";
-        return false;
-    }
-
-    // All good
     return true;
 }
 
@@ -153,10 +98,6 @@ void sign_liquid_tx_process(void* process_ptr)
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
     char network[MAX_NETWORK_NAME_LEN];
-
-    // Context used to compute hash_prevout (hash of all the input scriptpubkeys)
-    mbedtls_sha256_context hash_prevout_sha_ctx;
-    mbedtls_sha256_init(&hash_prevout_sha_ctx);
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "sign_liquid_tx");
@@ -250,23 +191,18 @@ void sign_liquid_tx_process(void* process_ptr)
         }
     }
 
-    // Prepare a hash to compute hash_prevout (hash of all the input scriptpubkeys)
-    res = mbedtls_sha256_starts_ret(&hash_prevout_sha_ctx, 0); // 0 = SHA256 instead of SHA224
-    if (res != 0) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to initialise prevout hash", NULL);
-        goto cleanup;
-    }
-
     // save fees for the final confirmation screen
     uint64_t fees = 0;
 
-    // populate an `output_index` -> (blinding_key, asset, value) map
+    // Check the trusted commitments: expect one element in the array for each output.
+    // Can be null for unblinded outputs as we will skip them.
+    // Populate an `output_index` -> (blinding_key, asset, value) map
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         if (tx->outputs[i].value[0] == 0x01) {
             // unconfidential, take directly from the tx
             output_info[i].is_confidential = false;
 
-            memcpy(output_info[i].asset_id, tx->outputs[i].asset + 1, 32);
+            memcpy(output_info[i].asset_id, tx->outputs[i].asset + 1, sizeof(output_info[i].asset_id));
             wally_tx_confidential_value_to_satoshi(
                 tx->outputs[i].value, tx->outputs[i].value_len, &output_info[i].value);
 
@@ -279,7 +215,7 @@ void sign_liquid_tx_process(void* process_ptr)
             output_info[i].is_confidential = true;
 
             const char* errmsg = NULL;
-            if (!add_confidential_output_info(&(commitments[i]), &(tx->outputs[i]), &output_info[i], &errmsg)) {
+            if (!add_validated_confidential_output_info(&commitments[i], &tx->outputs[i], &output_info[i], &errmsg)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
@@ -397,17 +333,6 @@ void sign_liquid_tx_process(void* process_ptr)
             update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
         }
 
-        // update hash_prevouts with the current output being spent
-        uint8_t index_little_endian[sizeof(uint32_t)] = { 0 };
-        uint32_to_le(tx->inputs[index].index, index_little_endian);
-
-        if (mbedtls_sha256_update_ret(&hash_prevout_sha_ctx, tx->inputs[index].txhash, WALLY_TXHASH_LEN) != 0
-            || mbedtls_sha256_update_ret(&hash_prevout_sha_ctx, index_little_endian, sizeof(index_little_endian))
-                != 0) {
-            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to build prevout hash", NULL);
-            goto cleanup;
-        }
-
         uint32_t value_len = 0;
         const uint8_t* value_commitment = NULL;
         if (has_path && is_witness) {
@@ -464,43 +389,6 @@ void sign_liquid_tx_process(void* process_ptr)
         }
     }
 
-    // Finalize the hash_prevout hash
-    uint8_t hash_prevouts_single[SHA256_LEN];
-    res = mbedtls_sha256_finish_ret(&hash_prevout_sha_ctx, hash_prevouts_single);
-    if (res != 0) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to compute prevout hash", NULL);
-        goto cleanup;
-    }
-
-    // BIP143 says to do a double sha
-    uint8_t hash_prevouts_double[SHA256_LEN];
-    JADE_WALLY_VERIFY(wally_sha256(hash_prevouts_single, SHA256_LEN, hash_prevouts_double, SHA256_LEN));
-
-    // char *hex_prevouts = NULL;
-    // wally_hex_from_bytes(hash_prevouts_double, SHA256_LEN, &hex_prevouts);
-    // JADE_LOGI("prevouts_hash calculated: %s", hex_str);
-    // wally_free_string(hex_str);
-
-    // Check the trusted commitments: expect one element in the array for each output.
-    // Can be null for unblinded outputs as will skip them.
-    // Allow at most one unexpeced vbf/value_commitment (as one is not the usual
-    // randomish value, but is calculated so the commitments add up correctly.)
-    bool found_odd_vbf = false;
-    for (size_t i = 0; i < tx->num_outputs; ++i) {
-        // unblinded prefix, continue
-        if (tx->outputs[i].value[0] == 0x01) {
-            continue;
-        }
-
-        const char* errmsg = NULL;
-        if (!check_trusted_commitment_valid(hash_prevouts_double, sizeof(hash_prevouts_double), i, &(tx->outputs[i]),
-                &(commitments[i]), &found_odd_vbf, &errmsg)) {
-            // If commitment data invalid, we'll send the 'cancelled' error response for the first input message only
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
-            goto cleanup;
-        }
-    }
-
     gui_activity_t* final_activity;
     const char* const warning_msg
         = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
@@ -549,5 +437,5 @@ void sign_liquid_tx_process(void* process_ptr)
     JADE_LOGI("Success");
 
 cleanup:
-    mbedtls_sha256_free(&hash_prevout_sha_ctx);
+    return;
 }

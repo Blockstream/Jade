@@ -33,7 +33,8 @@ typedef struct {
     uint8_t blinding_key[EC_PUBLIC_KEY_LEN];
     uint8_t asset_generator[ASSET_GENERATOR_LEN];
     uint8_t value_commitment[ASSET_COMMITMENT_LEN];
-    uint8_t hmac[HMAC_SHA256_LEN];
+    uint8_t abf[HMAC_SHA256_LEN];
+    uint8_t vbf[HMAC_SHA256_LEN];
     uint8_t asset_id[ASSET_TAG_LEN];
     uint64_t value;
 } commitment_t;

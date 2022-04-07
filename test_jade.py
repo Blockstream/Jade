@@ -1197,14 +1197,11 @@ e79700b15562a20834fb0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de8\
 142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2\
 ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
 
-    GOODTX_INPUT = ('goodinput', 'tx_input',
-                    {'is_witness': False, 'path': [0], 'script': h2b('ABCD')})
-
     GOOD_COMMITMENT = EXPECTED_LIQ_COMMITMENT_2.copy()
     GOOD_COMMITMENT['blinding_key'] = EXPECTED_BLINDING_KEY
 
-    BAD_SHA256_VAL = EXPECTED_LIQ_COMMITMENT_1['hmac']
-    BAD_COMMIT_VAL = EXPECTED_LIQ_COMMITMENT_1['value_commitment']
+    BADVAL32 = EXPECTED_LIQ_COMMITMENT_1['hmac']
+    BADVAL33 = EXPECTED_LIQ_COMMITMENT_1['value_commitment']
 
     def _commitsMinus(key):
         commits = GOOD_COMMITMENT.copy()
@@ -1435,35 +1432,49 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
 
     # Some bad commitment data is detected immediately... esp if it is
     # missing or not syntactically valid, unparseable etc.
-    bad_early_commits = [_commitsMinus('asset_id'),
-                         _commitsMinus('value'),
-                         _commitsMinus('asset_generator'),
-                         _commitsMinus('value_commitment'),
-                         _commitsMinus('blinding_key'),
-                         _commitsUpdate('asset_id', 'notbin'),
-                         _commitsUpdate('asset_id', '123abc'),
-                         _commitsUpdate('value', 'notint'),
-                         _commitsUpdate('asset_generator', 'notbin'),
-                         _commitsUpdate('asset_generator', '123abc'),
-                         _commitsUpdate('value_commitment', 'notbin'),
-                         _commitsUpdate('value_commitment', '123abc'),
-                         _commitsUpdate('blinding_key', 'notbin'),
-                         _commitsUpdate('blinding_key', '123abc'),
-                         _commitsMinus('hmac'),
-                         _commitsUpdate('hmac', 'notbin'),
-                         _commitsUpdate('hmac', '123abc')]
-
-    # ... other bad commitment data is not detected until after the inputs are
-    # received and processed (bad values that mean hmac not correct)
-
-    bad_late_commits = [_commitsUpdate('asset_id', BAD_SHA256_VAL),
-                        _commitsUpdate('asset_generator', BAD_COMMIT_VAL),
-                        _commitsUpdate('hmac', BAD_SHA256_VAL),
-                        _commitsUpdate('value_commitment', BAD_COMMIT_VAL)]
+    bad_commitments = [  # Field missing
+                        (_commitsMinus('asset_id'), 'extract trusted commitments'),
+                        (_commitsMinus('value'), 'extract trusted commitments'),
+                        (_commitsMinus('abf'), 'extract trusted commitments'),
+                        (_commitsMinus('vbf'), 'extract trusted commitments'),
+                        (_commitsMinus('asset_generator'), 'extract trusted commitments'),
+                        (_commitsMinus('value_commitment'), 'extract trusted commitments'),
+                        (_commitsMinus('blinding_key'), 'extract trusted commitments'),
+                        # Field bad type/length etc.
+                        (_commitsUpdate('asset_id', 'notbin'), 'extract trusted commitments'),
+                        (_commitsUpdate('asset_id', '123abc'), 'extract trusted commitments'),
+                        (_commitsUpdate('value', 'notint'), 'extract trusted commitments'),
+                        (_commitsUpdate('abf', 'notbin'), 'extract trusted commitments'),
+                        (_commitsUpdate('abf', '123abc'), 'extract trusted commitments'),
+                        (_commitsUpdate('vbf', 'notbin'), 'extract trusted commitments'),
+                        (_commitsUpdate('vbf', '123abc'), 'extract trusted commitments'),
+                        (_commitsUpdate('asset_generator', 'notbin'), 'extract trusted commit'),
+                        (_commitsUpdate('asset_generator', '123abc'), 'extract trusted commit'),
+                        (_commitsUpdate('value_commitment', 'notbin'), 'extract trusted commit'),
+                        (_commitsUpdate('value_commitment', '123abc'), 'extract trusted commit'),
+                        (_commitsUpdate('blinding_key', 'notbin'), 'extract trusted commitments'),
+                        (_commitsUpdate('blinding_key', '123abc'), 'extract trusted commitments'),
+                        # Field bad value
+                        (_commitsUpdate('asset_id', BADVAL32), 'verify asset_generator'),
+                        (_commitsUpdate('abf', BADVAL32), 'verify asset_generator'),
+                        (_commitsUpdate('vbf', BADVAL32), 'verify value_commitment'),
+                        (_commitsUpdate('asset_generator', BADVAL33), 'verify asset_generator'),
+                        (_commitsUpdate('value_commitment', BADVAL33), 'verify value_commitment')]
 
     # Test all the simple cases
     for badmsg, errormsg in bad_params:
         _test_bad_params(jade, badmsg, errormsg)
+
+    # Test all the bad tx commitments
+    for badcommitment, errormsg in bad_commitments:
+        badcommits = [badcommitment, {}]  # add a null for the unblind output
+        _test_bad_params(jade,
+                         ('signLiquid', 'sign_liquid_tx',
+                          {'network': 'localtest-liquid',
+                           'txn': GOODTX,
+                           'num_inputs': 1,
+                           'trusted_commitments': badcommits}),
+                         errormsg)
 
     # Test all the bad tx inputs
     for badinput, errormsg in bad_liq_inputs:
@@ -1479,32 +1490,6 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
 
         # test a bad input
         _test_bad_params(jade, badinput, errormsg)
-
-    # Test all the bad tx commitments
-    for badcommitment in bad_early_commits:
-        badcommits = [badcommitment, {}]  # add a null for the unblind output
-        _test_bad_params(jade,
-                         ('signLiquid', 'sign_liquid_tx',
-                          {'network': 'localtest-liquid',
-                           'txn': GOODTX,
-                           'num_inputs': 1,
-                           'trusted_commitments': badcommits}),
-                         'trusted commitments from parameters')
-
-    for badcommitment in bad_late_commits:
-        # Message should be accepted as commitments element is well formed
-        # but should be seen to be invalid later.
-        badcommits = [badcommitment, None]  # add a null for the unblind output
-        result = _test_good_params(jade,
-                                   ('signLiquid', 'sign_liquid_tx',
-                                    {'network': 'localtest-liquid',
-                                     'txn': GOODTX,
-                                     'num_inputs': 1,
-                                     'trusted_commitments': badcommits}))
-        assert result is True
-
-        # Send in a valid input but should get a bad-params from the commitment
-        _test_bad_params(jade, GOODTX_INPUT, 'from commitments data')
 
 
 def test_passphrase(jade):

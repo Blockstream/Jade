@@ -9,7 +9,6 @@
         "asset_generator": "0b8fc9899c18e41f1e14bf4e543d6ca9415329eeb7caed4ade44ede34a7613b7cd",
         "asset_id": "9a473c0d9b171af110688cdacd47666387fcd4b916e27d36783dddbd6e9ead2d",
         "blinding_key": "02c604dcc83af1ec3169a882ca2f78d93bb36ebb37c6cff4dbaa40a088428a2c5e",
-        "hmac": "a8348c2a7b09da8bb3dc5be37570fa52f8af1c8ddc72c473a638a783836f8fd2",
         "value": 160000000000000,
         "value_commitment": "0846d1eaa04774842f1639e7c98bdc9f54e3c22e5b983ed023545efbaeb7321ac9",
         "vbf": "a0f026c85346d448870e207205525d03aeaa3eea4a28ab76a36d500737b45ffd"
@@ -19,7 +18,6 @@
         "asset_generator": "0accc6cb066bfac38da864d4b92104b10d3d52b276a03b6b024f321184e90986f2",
         "asset_id": "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d",
         "blinding_key": "02e1c139addd4004f38264582aca6d093850bdcb6834edf2df1e7b25044538d9b1",
-        "hmac": "c123dc175743b80d9a35970b40d09a84537a1da76114fc324bdbd3783a700e23",
         "value": 2791,
         "value_commitment": "0865355c1491e03318a5cbad2232989b18da7e0bdd21522a2b840340ce295a2ee0",
         "vbf": "209cfd0d1c098ad2912664af21f65c1f4df6516820af0ec3ca0f78a19abd1298"

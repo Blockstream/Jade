@@ -10,7 +10,6 @@
         "blinding_key": "023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
         "asset_generator": "0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
         "value_commitment": "094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
-        "hmac": "73c9e1134ee72d667972ac7eeb97c535f318885589acd4ba7577f65ac4c80c52",
         "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
         "value": 9000000
       },

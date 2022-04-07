@@ -1341,7 +1341,6 @@ Request to sign liquid transaction inputs.
                     "asset_generator": "0bacf4e230f12327ff795f8c814f80b0502e78683d067fe75ba38fd2d0be27188b",
                     "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
                     "blinding_key": "03462d3febd7654b22c6faaf5d12a400693dbdf21f8cb9a82e18aba8457c6812d4",
-                    "hmac": "f48d257982d5ff196929e2bef889e5acca8059b432b6c92801165cee9f077b74",
                     "value": 50000000,
                     "value_commitment":"095f6484b5f6903ac7873b3ed43e3833d6f30af26f739afa2b46d06464b709225a",
                     "vbf":"bdbb71ddc37d82edef0a3c6ccc9baa32ac6b528b2772b35000030fecda228ce6"
@@ -1352,7 +1351,6 @@ Request to sign liquid transaction inputs.
                     "blinding_key": "023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
                     "asset_generator": "0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
                     "value_commitment": "0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de879a478a7",
-                    "hmac": "36b346e2248143ce24bc35c0d85f3c67fb06a7250c43336b85872b3a42d2f652",
                     "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
                     "value": 9000000
                 },
@@ -1362,7 +1360,8 @@ Request to sign liquid transaction inputs.
 
 * Most fields are as described in sign_tx_legacy_request_.
 * 'trusted_commitments' must be passed in for each blinded output.  Where an output is not blinded (eg. fee output) null may be passed.
-* 'trusted_commitments' entries passed in here are those obtained from get_commitments_request_, with the relevant 'blinding_key' added (which would originally be obtained from get_blinding_key_request_).
+* 'trusted_commitments' entries passed in here can be obtained using the get_commitments_request_, with the relevant 'blinding_key' added (which would originally be obtained from get_blinding_key_request_).
+* NOTE: as of Jade fw v0.1.34, external blinding is supported, in which case the 'trusted_commitments' can be constructed by the host application.  Note the 'asset_id' byte-order is that consistent with the registry data, but the 'abf' and 'vbf' fields need to be in the byte-order in which they would be used in the blinding (which may be reversed).
 
 .. _sign_liquid_tx_legacy_reply:
 
