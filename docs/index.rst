@@ -321,7 +321,7 @@ handshake_complete reply
 ota request
 -----------
 
-Request to initiate a firmware update.
+Request to initiate a firmware update passing the full firmware image.
 
 .. code-block:: cbor
 
@@ -335,7 +335,7 @@ Request to initiate a firmware update.
         }
     }
 
-* 'fwsize' is the total length of the firmware when uncompressed.
+* 'fwsize' is the total length of the final firmware when uncompressed.
 * 'cmpsize' is the length of the compressed firmware image which will be uploaded.
 * 'cmphash' is the sha256 hash of the compressed firmware image.
 
@@ -352,6 +352,38 @@ ota reply
     }
 
 After this reply is received, the compressed firmware is sent in chunks using 'ota_data' messages.  The chunks can be any size up to the `JADE_OTA_MAX_CHUNK` limit (see get_version_info_request_).
+
+.. _ota_delta_request:
+
+ota_delta request
+-----------------
+
+Request to initiate a firmware update using a binary diff/patch to be applied onto the current running firmware.
+
+.. code-block:: cbor
+
+    {
+        "id": "7",
+        "method": "ota",
+        "params": {
+            "fwsize": 926448,
+            "patchsize": 987291,
+            "cmpsize": 14006,
+            "cmphash": <32 bytes>
+        }
+    }
+
+* 'fwsize' is the total length of the final firmware when uncompressed.
+* 'patchsize' is the length of the patch when uncompressed.
+* 'cmpsize' is the length of the compressed firmware patch which will be uploaded.
+* 'cmphash' is the sha256 hash of the compressed firmware patch.
+
+.. _ota_delta_reply:
+
+ota delta reply
+---------------
+
+See ota_reply_
 
 .. _ota_data_request:
 
