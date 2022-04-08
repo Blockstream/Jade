@@ -15,9 +15,9 @@
                              "asset_generator":"0bc30feda0306f3e02b63416ec94e83b2bba63642aa012f13fbe1caab263ae6302",
                              "asset_id":"6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d",
                              "blinding_key":"022bec55b3eda80c76174debebfa9a95999f11078c959bb7601d416c1989693fc1",
-                             "hmac":"e0a9dfdabd2a6e6638c361668cc84675bc1bc6e851936073abad93970cb820e6",
+                             "hmac":"8a2bbc4997b2d73bd2e38ce50ee03b11a7f353b010d8f8e908e1fa64346a10f8",
                              "value": 2518,
-                             "value_commitment":"09be047101ab9e66f0520b0f8fe9e3687c7f238c0576c3d78c91f08a961efca298",
+                             "value_commitment":"0816a76110dfa00495876ab82c5dd1a9fc8b4e55522d086005892da9bb5776cf2a",
                              "vbf":"699044db161da2271c154ea223782d925fecb7826e54b847c7a9098ba9f6397b"},
                             null
     ],
@@ -32,6 +32,6 @@
                  "path": [1, 30]}
       ]
   },
-    "expected_output":["3044022063be70bf135c885901e9c3dafc91e031c1a87ae40bf416a4b7c8ed1c1873ff40022046ed1a80383276408cc11e33c76de9f3b8a441d49196883153fc6c2f4ad8d9d701",
-     "304402206d1b2f13834824898874b66c4212faf3cb13f7d23edaf3182dab7282cbf7ea2502200ef507af823e2c9aeea5a654068483c6c1691e3a7411a956819d791359f61bb801"]
+    "expected_output":["304402202b491d2ca4c60934904c6ec5544e1070206dce6addf572276cd5c5f5d6c3842b02200dfe8f36b416fab4bcdd3fd7d66a2771ebe922ba14f81b2bb806d2b7f02f8de201",
+     "304402207cf7263ee560fb1877ac0816e8763699842da879853b2635f79e01797630a1f70220401c7054a95856c486dd8b03c046beb71cdc829b6f983b00c99c99526aad821401"]
 }

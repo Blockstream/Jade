@@ -14,9 +14,9 @@
                              "asset_generator":"0be9189c14da19476a0c941be27cbac99f741a057a8f2c40652a19043b52aebb98",
                              "asset_id":"5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
                              "blinding_key":"0229d5ca9044dba77f5c9b1dade0a2f3d919c0df89a10994842e1c2e9c1649736d",
-                             "hmac":"09ed1e7157105196a73e5e1895ef217f663a0a310362c560c9b611a9c68f3837",
+                             "hmac":"6ed881e4a6e9dfb1eed2b79e36cc5f53f1959a16556bb9a75a6cf58f4fc90a9b",
                              "value":1999999949950000,
-                             "value_commitment":"095f6484b5f6903ac7873b3ed43e3833d6f30af26f739afa2b46d06464b709225a",
+                             "value_commitment":"09585748c4653af3b4878197ab69dc5ef5c05b1b4c5434638941411fe81f75d27c",
                              "vbf":"99ec3afae412a21724176dc152cb4e43ddc43707f4d00d425babbd818f8c2ef5"},
                             null],
     "change": [null, {"variant": "sh(wpkh(k))", "path": [2147483648, 2147483649, 2147483648]}, null],
@@ -26,5 +26,5 @@
                  "path": [2147483648, 2147483648, 2147483649]}
     ]
   },
-  "expected_output": ["3044022015007a64cc76c4665ef89fb9a758a8cf550764da4a8fa6352aaeb5d9eb261ccf02203c5cf12669a49eeb4177bd92b38cafd63957b8817a1d0b458e80e0e1c2cd75e501"]
+  "expected_output": ["304402203473339e0595dd282ca1c1fcb61df931d30bb46c85d965f93f2119b4b0e5570d022007c592f46ea4f2bfa2b58b9004f9129ed7b1774561c5aa873ca84b5f51040a7101"]
 }
