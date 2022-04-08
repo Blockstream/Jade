@@ -9,14 +9,28 @@
 
 #include "process_utils.h"
 
-static void reverse(uint8_t* buf, size_t len)
+static void reply_commitments(const void* ctx, CborEncoder* container)
 {
-    // flip the order of the bytes in-place
-    for (uint8_t *c1 = buf, *c2 = buf + len - 1; c1 < c2; ++c1, --c2) {
-        const uint8_t tmp = *c1;
-        *c1 = *c2;
-        *c2 = tmp;
-    }
+    JADE_ASSERT(ctx);
+
+    const commitment_t* commitments = (const commitment_t*)ctx;
+    JADE_ASSERT(commitments->have_commitments);
+
+    CborEncoder map_encoder; // result data
+    CborError cberr = cbor_encoder_create_map(container, &map_encoder, 6);
+    JADE_ASSERT(cberr == CborNoError);
+
+    add_bytes_to_map(&map_encoder, "abf", commitments->abf, sizeof(commitments->abf));
+    add_bytes_to_map(&map_encoder, "vbf", commitments->vbf, sizeof(commitments->vbf));
+    add_bytes_to_map(
+        &map_encoder, "asset_generator", commitments->asset_generator, sizeof(commitments->asset_generator));
+    add_bytes_to_map(
+        &map_encoder, "value_commitment", commitments->value_commitment, sizeof(commitments->value_commitment));
+    add_bytes_to_map(&map_encoder, "asset_id", commitments->asset_id, sizeof(commitments->asset_id));
+    add_uint_to_map(&map_encoder, "value", commitments->value);
+
+    cberr = cbor_encoder_close_container(container, &map_encoder);
+    JADE_ASSERT(cberr == CborNoError);
 }
 
 void get_commitments_process(void* process_ptr)
@@ -25,25 +39,21 @@ void get_commitments_process(void* process_ptr)
     jade_process_t* process = process_ptr;
 
     // We expect a current message to be present
-    const char* reqid = NULL;
     ASSERT_CURRENT_MESSAGE(process, "get_commitments");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
 
-    uint8_t asset_id[ASSET_TAG_LEN];
+    commitment_t commitments = { .have_commitments = false };
+
     size_t asset_id_len = 0;
-    rpc_get_bytes("asset_id", ASSET_TAG_LEN, &params, asset_id, &asset_id_len);
-    if (asset_id_len != ASSET_TAG_LEN) {
+    rpc_get_bytes("asset_id", sizeof(commitments.asset_id), &params, commitments.asset_id, &asset_id_len);
+    if (asset_id_len != sizeof(commitments.asset_id)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract asset_id from parameters", NULL);
         goto cleanup;
     }
 
-    // flip the asset_id
-    reverse(asset_id, sizeof(asset_id));
-
-    uint64_t value = 0;
-    bool retval = rpc_get_uint64_t("value", &params, &value);
+    bool retval = rpc_get_uint64_t("value", &params, &commitments.value);
     if (!retval) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value from parameters", NULL);
         goto cleanup;
@@ -68,19 +78,17 @@ void get_commitments_process(void* process_ptr)
     }
 
     // generate the abf
-    uint8_t abf[HMAC_SHA256_LEN];
-    if (!wallet_get_blinding_factor(
-            hash_prevouts, hash_prevouts_len, output_index, ASSET_BLINDING_FACTOR, abf, sizeof(abf))) {
+    if (!wallet_get_blinding_factor(hash_prevouts, hash_prevouts_len, output_index, ASSET_BLINDING_FACTOR,
+            commitments.abf, sizeof(commitments.abf))) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf from the parameters", NULL);
     }
 
     // optional vbf provided by use to balance the blinded amounts
-    uint8_t vbf[HMAC_SHA256_LEN];
     size_t written = 0;
-    rpc_get_bytes("vbf", HMAC_SHA256_LEN, &params, vbf, &written);
+    rpc_get_bytes("vbf", sizeof(commitments.vbf), &params, commitments.vbf, &written);
     if (written > 0) {
-        if (written != HMAC_SHA256_LEN) {
+        if (written != sizeof(commitments.vbf)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract vbf from parameters", NULL);
             goto cleanup;
@@ -88,67 +96,40 @@ void get_commitments_process(void* process_ptr)
     } else {
         JADE_ASSERT(written == 0);
         // Otherwise compute vbf
-        if (!wallet_get_blinding_factor(
-                hash_prevouts, hash_prevouts_len, output_index, VALUE_BLINDING_FACTOR, vbf, sizeof(vbf))) {
+        if (!wallet_get_blinding_factor(hash_prevouts, hash_prevouts_len, output_index, VALUE_BLINDING_FACTOR,
+                commitments.vbf, sizeof(commitments.vbf))) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute vbf from the parameters", NULL);
             goto cleanup;
         }
     }
 
-    uint8_t asset_generator[ASSET_GENERATOR_LEN];
-    if (wally_asset_generator_from_bytes(
-            asset_id, asset_id_len, abf, HMAC_SHA256_LEN, asset_generator, ASSET_GENERATOR_LEN)
+    // flip the asset_id for computing asset-generator
+    uint8_t reversed_asset_id[sizeof(commitments.asset_id)];
+    for (size_t i = 0; i < sizeof(commitments.asset_id); ++i) {
+        reversed_asset_id[i] = commitments.asset_id[sizeof(commitments.asset_id) - 1 - i];
+    }
+
+    if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitments.abf,
+            sizeof(commitments.abf), commitments.asset_generator, sizeof(commitments.asset_generator))
         != WALLY_OK) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to build asset generator from the parameters", NULL);
         goto cleanup;
     }
 
-    uint8_t value_commitment[ASSET_COMMITMENT_LEN];
-    if (wally_asset_value_commitment(
-            value, vbf, HMAC_SHA256_LEN, asset_generator, ASSET_GENERATOR_LEN, value_commitment, ASSET_COMMITMENT_LEN)
+    if (wally_asset_value_commitment(commitments.value, commitments.vbf, sizeof(commitments.vbf),
+            commitments.asset_generator, sizeof(commitments.asset_generator), commitments.value_commitment,
+            sizeof(commitments.value_commitment))
         != WALLY_OK) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to build value commitment from the parameters", NULL);
         goto cleanup;
     }
 
-    uint8_t buf[512];
-    // create output
-    CborEncoder root_encoder;
+    commitments.have_commitments = true;
+    jade_process_reply_to_message_result(process->ctx, &commitments, reply_commitments);
 
-    cbor_encoder_init(&root_encoder, buf, sizeof(buf), 0);
-
-    CborEncoder root_map_encoder; // id, result
-    CborEncoder map_encoder; // result data
-
-    CborError cberr = cbor_encoder_create_map(&root_encoder, &root_map_encoder, 2);
-    JADE_ASSERT(cberr == CborNoError);
-
-    written = 0;
-    rpc_get_id_ptr(&process->ctx.value, &reqid, &written);
-    JADE_ASSERT(written != 0);
-    rpc_init_cbor(&root_map_encoder, reqid, written);
-
-    cberr = cbor_encoder_create_map(&root_map_encoder, &map_encoder, 6);
-    JADE_ASSERT(cberr == CborNoError);
-
-    add_bytes_to_map(&map_encoder, "abf", abf, HMAC_SHA256_LEN);
-    add_bytes_to_map(&map_encoder, "vbf", vbf, HMAC_SHA256_LEN);
-    add_bytes_to_map(&map_encoder, "asset_generator", asset_generator, ASSET_GENERATOR_LEN);
-    add_bytes_to_map(&map_encoder, "value_commitment", value_commitment, ASSET_COMMITMENT_LEN);
-    reverse(asset_id, sizeof(asset_id));
-    add_bytes_to_map(&map_encoder, "asset_id", asset_id, ASSET_TAG_LEN);
-    add_uint_to_map(&map_encoder, "value", value);
-
-    cberr = cbor_encoder_close_container(&root_map_encoder, &map_encoder);
-    JADE_ASSERT(cberr == CborNoError);
-    cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
-    JADE_ASSERT(cberr == CborNoError);
-
-    const size_t towrite = cbor_encoder_get_buffer_size(&root_encoder, buf);
-    jade_process_push_out_message(buf, towrite, process->ctx.source);
     JADE_LOGI("Success");
 
 cleanup:
