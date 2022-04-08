@@ -322,8 +322,6 @@ f7e8743b7d772924f0426c5efe6'),
 a36d0e5cb4895b0ee386da4cd1008ffc8cb464501'),
                              'value_commitment': h2b('082d8de9b7f66994abf789b2\
 591738331f88a7ddbef4e553bbf123e47677d60099'),
-                             'hmac': h2b('385af94c60ce6395b7aae2b09eef73d46ac5\
-7a209674101e295c0b8129a60672'),
                              'asset_id': h2b('5ac9f65c0efcc4775e0baec4ec03abdd\
 e22473cd3cf33c0419ca290e0751b225'),
                              'value': 9000000}
@@ -336,8 +334,6 @@ ba02fbb343a237c847e4d2fbf53'),
 a7c7e269a464f53017cab0f9f53ed9d64b2849713'),
                              'value_commitment': h2b('094d9a00f1661a2a805a8afe\
 c9c188310d4c43353cc319886ee4d9f439389d8f43'),
-                             'hmac': h2b('73c9e1134ee72d667972ac7eeb97c535f318\
-885589acd4ba7577f65ac4c80c52'),
                              'asset_id': h2b('5ac9f65c0efcc4775e0baec4ec03abdd\
 e22473cd3cf33c0419ca290e0751b225'),
                              'value': 9000000}
@@ -1200,7 +1196,7 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     GOOD_COMMITMENT = EXPECTED_LIQ_COMMITMENT_2.copy()
     GOOD_COMMITMENT['blinding_key'] = EXPECTED_BLINDING_KEY
 
-    BADVAL32 = EXPECTED_LIQ_COMMITMENT_1['hmac']
+    BADVAL32 = EXPECTED_LIQ_COMMITMENT_1['abf']
     BADVAL33 = EXPECTED_LIQ_COMMITMENT_1['value_commitment']
 
     def _commitsMinus(key):

@@ -1300,7 +1300,6 @@ get_commitments reply
             "vbf": <32 bytes>,
             "asset_generator": <33 bytes>,
             "value_commitment": <33 bytes>,
-            "hmac": <32 bytes>,
             "asset_id": <32 bytes>,
             "value", 9000000
         }

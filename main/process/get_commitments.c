@@ -96,11 +96,7 @@ void get_commitments_process(void* process_ptr)
         }
     }
 
-    // compute asset generator and value commitment and place them into the signed blob
-    // signed_blob = <asset_generator> + <value_commitment> + <plaintext asset id> + <plaintext value>
-    uint8_t signed_blob[ASSET_GENERATOR_LEN + ASSET_COMMITMENT_LEN + ASSET_TAG_LEN + sizeof(uint64_t)];
-
-    uint8_t* asset_generator = signed_blob;
+    uint8_t asset_generator[ASSET_GENERATOR_LEN];
     if (wally_asset_generator_from_bytes(
             asset_id, asset_id_len, abf, HMAC_SHA256_LEN, asset_generator, ASSET_GENERATOR_LEN)
         != WALLY_OK) {
@@ -109,27 +105,12 @@ void get_commitments_process(void* process_ptr)
         goto cleanup;
     }
 
-    uint8_t* value_commitment = asset_generator + ASSET_GENERATOR_LEN;
+    uint8_t value_commitment[ASSET_COMMITMENT_LEN];
     if (wally_asset_value_commitment(
             value, vbf, HMAC_SHA256_LEN, asset_generator, ASSET_GENERATOR_LEN, value_commitment, ASSET_COMMITMENT_LEN)
         != WALLY_OK) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to build value commitment from the parameters", NULL);
-        goto cleanup;
-    }
-
-    // copy value and asset_id into the signed blob
-    uint8_t* signed_asset_id_copy = value_commitment + ASSET_COMMITMENT_LEN;
-    memcpy(signed_asset_id_copy, asset_id, ASSET_TAG_LEN);
-
-    uint8_t* signed_value_copy = signed_asset_id_copy + ASSET_TAG_LEN;
-    memcpy(signed_value_copy, &value,
-        sizeof(uint64_t)); // TODO endianness? should be fine as long as we encode/decode always on the same platform
-
-    // hmac the result
-    uint8_t hmac[HMAC_SHA256_LEN];
-    if (!wallet_hmac_with_master_key(signed_blob, sizeof(signed_blob), hmac, sizeof(hmac))) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to compute hmac", NULL);
         goto cleanup;
     }
 
@@ -150,14 +131,13 @@ void get_commitments_process(void* process_ptr)
     JADE_ASSERT(written != 0);
     rpc_init_cbor(&root_map_encoder, reqid, written);
 
-    cberr = cbor_encoder_create_map(&root_map_encoder, &map_encoder, 7);
+    cberr = cbor_encoder_create_map(&root_map_encoder, &map_encoder, 6);
     JADE_ASSERT(cberr == CborNoError);
 
     add_bytes_to_map(&map_encoder, "abf", abf, HMAC_SHA256_LEN);
     add_bytes_to_map(&map_encoder, "vbf", vbf, HMAC_SHA256_LEN);
     add_bytes_to_map(&map_encoder, "asset_generator", asset_generator, ASSET_GENERATOR_LEN);
     add_bytes_to_map(&map_encoder, "value_commitment", value_commitment, ASSET_COMMITMENT_LEN);
-    add_bytes_to_map(&map_encoder, "hmac", hmac, HMAC_SHA256_LEN);
     reverse(asset_id, sizeof(asset_id));
     add_bytes_to_map(&map_encoder, "asset_id", asset_id, ASSET_TAG_LEN);
     add_uint_to_map(&map_encoder, "value", value);

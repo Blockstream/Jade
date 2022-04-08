@@ -9,7 +9,6 @@
         "blinding_key": "03697c93fd9ca3a7602f06e87a40768a385bf0d8633e133fddd570c2d26dc63499",
         "asset_generator": "0b92bb689a080e8ad8c5d975ab1c78ec177c4c41e0d76a78c375e87c606959fd08",
         "value_commitment": "0808ad5efc9bda420878dea3ed97c5e91fad4a7f436c19d3eb968324e7c8ef6457",
-        "hmac": "40b025c0a7f83dcb4d831913b0f4caf313ce92297b1aa5ae0f0c087a63ec5883",
         "asset_id": "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d",
         "value": 1650
       },
@@ -19,7 +18,6 @@
         "blinding_key": "026f8a1e390ada0b9f6bb7a28b668f0db8a7004322a357d763335bcb469a9bf765",
         "asset_generator": "0a5d42491ca1414d2adafa2420d8dbfe8212ab35bff674d38516866bb89d11f803",
         "value_commitment": "08b4b01d98460bdc7ccf5412400832eb3a4280849ecd07187ff6bffea7e45e4ab9",
-        "hmac": "e5b42708d608cabb2c9019e1eb8e265c85c7a2e0e72267728700e17f8f4a9278",
         "asset_id": "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d",
         "value": 1427
       },
