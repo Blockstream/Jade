@@ -9,19 +9,27 @@
       "signers": [
         {
           "fingerprint": "b5281696",
-          "derivation": [3],
+          "derivation": [
+            3
+          ],
           "xpub": "tpubECMbgHMZm4QymrFbuEntaWbSsaaKvJVpoR6rhVwxGUrT9qf6WLfC88piWYVsQDV86PUKx3QsXYiCqugWX1oz8ekucUdFUdupuNCgjf17EYK",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [2147483651, 2147483650, 1],
+          "derivation": [
+            2147483651,
+            2147483650,
+            1
+          ],
           "xpub": "tpubDD8fpYqWy6DEvbqdj9CVWptA3gd3xqarNN6wCAjfDs1sFnd8zfb9SeDzRAXA3S4eeeYvo2sz6mbyS3KaXuDe5PcWy94PqShTpBjiJN198A6",
           "path": []
         },
         {
           "fingerprint": "1273da33",
-          "derivation": [1],
+          "derivation": [
+            1
+          ],
           "xpub": "tpubD8PzcLmm1rVeUpEjmd2kQD6a9DXy6dwVVgE14mrh1zc6L98nmNqmDaApAbEcbrJ1iPBpo2gnEniSpVXHgovU8ecWwfHVP113DK2bWEMPpEs",
           "path": []
         }
@@ -30,15 +38,45 @@
   },
   "address_tests": [
     {
-      "paths": [[1], [1], [1]],
+      "paths": [
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ]
+      ],
       "expected_address": "2NDkhxmpwKwUkQ4C4J6Th1SJBCDn4TWpb4j"
     },
     {
-      "paths": [[13], [13], [13]],
+      "paths": [
+        [
+          13
+        ],
+        [
+          13
+        ],
+        [
+          13
+        ]
+      ],
       "expected_address": "2NFgE1k4EpyiBTN4SBkGamFU9E1DwLLajLo"
     },
     {
-      "paths": [[377], [377], [377]],
+      "paths": [
+        [
+          377
+        ],
+        [
+          377
+        ],
+        [
+          377
+        ]
+      ],
       "expected_address": "2NDqRSb2hZPLn5B6sufEZdYro9LySNrvyQ7"
     }
   ]

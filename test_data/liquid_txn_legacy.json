@@ -2,21 +2,31 @@
   "input": {
     "network": "localtest-liquid",
     "txn": "0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020a2b712848b6f14697590b06622266e8d82cb06030896de79700b15562a20834fb0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de879a478a7033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
-    "trusted_commitments": [{"vbf": "6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
-                             "abf": "a3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
-                             "blinding_key": "023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
-                             "asset_generator": "0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
-                             "value_commitment": "094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
-                             "hmac": "73c9e1134ee72d667972ac7eeb97c535f318885589acd4ba7577f65ac4c80c52",
-                             "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
-                             "value": 9000000},
-                             null
+    "trusted_commitments": [
+      {
+        "vbf": "6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "abf": "a3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "blinding_key": "023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "asset_generator": "0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "hmac": "73c9e1134ee72d667972ac7eeb97c535f318885589acd4ba7577f65ac4c80c52",
+        "asset_id": "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000
+      },
+      null
     ],
     "change": null,
-    "inputs": [{"is_witness": false,
-                "script": "76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
-                "path": [0]}
+    "inputs": [
+      {
+        "is_witness": false,
+        "script": "76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+        "path": [
+          0
+        ]
+      }
     ]
   },
-  "expected_output": ["304402204b6df90b50307f26e8098c67c6836aeaadb0228fbf8ea8a1918d9caa319835d202207eca73476f632fe20444760875a4efc4c6e787ebbaf88477b1e2c5e16deb26d801"]
+  "expected_output": [
+    "304402204b6df90b50307f26e8098c67c6836aeaadb0228fbf8ea8a1918d9caa319835d202207eca73476f632fe20444760875a4efc4c6e787ebbaf88477b1e2c5e16deb26d801"
+  ]
 }

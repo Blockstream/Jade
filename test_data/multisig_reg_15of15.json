@@ -9,108 +9,321 @@
       "signers": [
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [1],
+          "derivation": [
+            1
+          ],
           "xpub": "tpubD9wHvxq4yutRMa2nmuFG1V56vbfT5o1vvQCNBwGLwCimjnKyTYTWUXAdVYEjqDhJ67Ass4bLupZcuuPwtMJLzdDiGeASdprQDtp9WF4E9po",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [2],
+          "derivation": [
+            2
+          ],
           "xpub": "tpubD9wHvxq4yutRNzrVaW7GGUQqHXCehqZB7eKxsi7cS9dWEZS28QQDSjxdrP8WXyMjRMLVPDccStkUTGon14mC1KTfS1xjkKCiw99w5yVnq7v",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [3],
+          "derivation": [
+            3
+          ],
           "xpub": "tpubD9wHvxq4yutRTiMDtBSnjcXvaFSzcWcf7AhwXj1wpQujGxUYUxCYcayxrgNAM6jgeeqi5Jww7jnaSHnQnqAhkEWTrY79kR9rVB91ozjDeyX",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [4],
+          "derivation": [
+            4
+          ],
           "xpub": "tpubD9wHvxq4yutRW5G11rXgZGJxVYxWK274XqXqMbxvj5nLbMrB7bEZWyNKcxxSy5yc8astSfzxA83M1D1C7ygXsuZKhH26qWfzJK1cTP4J44U",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [5],
+          "derivation": [
+            5
+          ],
           "xpub": "tpubD9wHvxq4yutRYkHhxXUvzxdUfZDSz29FfsHeqCjBi4PM7GVzX2CVrdoHH1E1PjpBQW6Ry5eoezYvq5AUTS8ChV5AjT4DRUpkUQpK8i3rx9B",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [6],
+          "derivation": [
+            6
+          ],
           "xpub": "tpubD9wHvxq4yutRaYSLLTxkMuSGafH6NyQMJeGhqsug25o2p9KMNqZAcSV1eYcX31eVXf5vS8MYUPp5Cr2HHAkmpgAHQHa7iG4bqW6ajLq6WVk",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [7],
+          "derivation": [
+            7
+          ],
           "xpub": "tpubD9wHvxq4yutRdcZmN6V4PPtQ5JwYfWPQzS38BqzR71ApcxNR34ZZ3snA6gYLyoaXAWMhBvQUK2hXLGpgcfdELGn5cRfgXm4vXWpu1SwZ2Ei",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [8],
+          "derivation": [
+            8
+          ],
           "xpub": "tpubD9wHvxq4yutRfj84ykuiUivBTsURBVeevqM9TTfuxJtDoe8yQynSVSD5mXoJX5RVrCcuV9i7vJjTFt2yhSDTuFwGoZnyQnRzS9haZG64JwH",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [9],
+          "derivation": [
+            9
+          ],
           "xpub": "tpubD9wHvxq4yutRiZB4ZzbewJVyDeMfdUdvoh4rj4pLbDQwLzSNFhvH8ZJU6gV1XjALj7bq9XVEx5ErBGAa26vrQJ8qJqsxKPFjKvtBf9paGUm",
           "path": []
         },
         {
           "fingerprint": "e3ebcc79",
-          "derivation": [10],
+          "derivation": [
+            10
+          ],
           "xpub": "tpubD9wHvxq4yutRjN2hsSaQwNGhfJDZpg5kG42PWfFpVBW5eKayNsyPagQwCq9rbyYMYm1JQg3mspo6MfRRVbvxtBaUPGLmyuAB1ShTQStQapV",
           "path": []
         },
         {
-            "fingerprint": "e3ebcc79",
-            "derivation": [11],
-            "xpub": "tpubD9wHvxq4yutRovyjNTpKzEXQNofxLUk2Rm2ApTdjYVgg9AGgXb455h7kfBM2tyxEL4Eqs3qU55dk6Go7zdGrAi6wrT4PaLeDZR73at6dwZh",
-            "path": []
-          },
-          {
-            "fingerprint": "e3ebcc79",
-            "derivation": [12],
-            "xpub": "tpubD9wHvxq4yutRpR8ThUyXpkM4PZaDaC6HWgUizZJT8Uf3aLd3BL1yvkAaWYR777G37MkikaNndqJ8gEsiJwukphx1fLqgS7FG8PUtRbrFXAh",
-            "path": []
-          },
-          {
-            "fingerprint": "e3ebcc79",
-            "derivation": [13],
-            "xpub": "tpubD9wHvxq4yutRtjqSuGii53GjhfEc77Tj4unaGnnxchNtL6bP7v6v4hSHbNZ3ZKDGhZCpofdhM8Gi1cPeKebL1DeQHw5J9CDyq2cpqUkNc28",
-            "path": []
-          },
-          {
-            "fingerprint": "e3ebcc79",
-            "derivation": [14],
-            "xpub": "tpubD9wHvxq4yutRuX8pzQwyHKuYqWHiBdnZ8FAYLYmna4rh3QtoNzT4agqUKeBWcQWHf3nqTygW4xvazfxhFH1tB8wATjjYM3hknDvE4MemY1J",
-            "path": []
-          },
-          {
-            "fingerprint": "e3ebcc79",
-            "derivation": [15],
-            "xpub": "tpubD9wHvxq4yutRx3H71svxg1ufNGX9UFDCMvvwaTZHVDzKFtu8644vUVDY6oArDBF5tAXKuN45DUjdkqwWeMaxSaJFWbSsjiwuC4Bt98r9WtC",
-            "path": []
-          }
+          "fingerprint": "e3ebcc79",
+          "derivation": [
+            11
+          ],
+          "xpub": "tpubD9wHvxq4yutRovyjNTpKzEXQNofxLUk2Rm2ApTdjYVgg9AGgXb455h7kfBM2tyxEL4Eqs3qU55dk6Go7zdGrAi6wrT4PaLeDZR73at6dwZh",
+          "path": []
+        },
+        {
+          "fingerprint": "e3ebcc79",
+          "derivation": [
+            12
+          ],
+          "xpub": "tpubD9wHvxq4yutRpR8ThUyXpkM4PZaDaC6HWgUizZJT8Uf3aLd3BL1yvkAaWYR777G37MkikaNndqJ8gEsiJwukphx1fLqgS7FG8PUtRbrFXAh",
+          "path": []
+        },
+        {
+          "fingerprint": "e3ebcc79",
+          "derivation": [
+            13
+          ],
+          "xpub": "tpubD9wHvxq4yutRtjqSuGii53GjhfEc77Tj4unaGnnxchNtL6bP7v6v4hSHbNZ3ZKDGhZCpofdhM8Gi1cPeKebL1DeQHw5J9CDyq2cpqUkNc28",
+          "path": []
+        },
+        {
+          "fingerprint": "e3ebcc79",
+          "derivation": [
+            14
+          ],
+          "xpub": "tpubD9wHvxq4yutRuX8pzQwyHKuYqWHiBdnZ8FAYLYmna4rh3QtoNzT4agqUKeBWcQWHf3nqTygW4xvazfxhFH1tB8wATjjYM3hknDvE4MemY1J",
+          "path": []
+        },
+        {
+          "fingerprint": "e3ebcc79",
+          "derivation": [
+            15
+          ],
+          "xpub": "tpubD9wHvxq4yutRx3H71svxg1ufNGX9UFDCMvvwaTZHVDzKFtu8644vUVDY6oArDBF5tAXKuN45DUjdkqwWeMaxSaJFWbSsjiwuC4Bt98r9WtC",
+          "path": []
+        }
       ]
     }
   },
   "address_tests": [
     {
-      "paths": [[1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12]],
+      "paths": [
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          12
+        ]
+      ],
       "expected_address": "tb1qa403yh7y82d4zulerkssk8atr298sf559z3ygu8w5zmszgl4zs7s5l0why"
     },
     {
-      "paths": [[0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121], [0, 121]],
+      "paths": [
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ],
+        [
+          0,
+          121
+        ]
+      ],
       "expected_address": "tb1q2ga3aeakyjdzkrqgpqyd69z7xh82h8rrggv985va7wwstpkte60q53tcts"
     },
     {
-      "paths": [[0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385], [0, 385]],
+      "paths": [
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ],
+        [
+          0,
+          385
+        ]
+      ],
       "expected_address": "tb1qrn5f6e20qdza0hveg8kj884texraxgj4cs2ja8f5dzms9yfjyu3qd2t0jn"
     }
   ]

@@ -1,13 +1,22 @@
 {
-    "input": {
-        "network": "testnet",
-        "txn": "02000000010693764309fab68ef33bf6426530474c37ef3dd58e26cfc2f76e1e1ce700cfb10000000000ffffffff0140420f000000000017a914a7dbb893fb9cec80d65afc38f1e06f50db3eddf78700000000",
-        "change": null,
-        "inputs": [{"is_witness": true,
-                    "satoshi": 10000000,
-                    "script": "76a9149307fa8fd90433a2aef656e05808cb10bf035a4788ac",
-                    "path": [2147483648, 2147483648, 2147483656]}
+  "input": {
+    "network": "testnet",
+    "txn": "02000000010693764309fab68ef33bf6426530474c37ef3dd58e26cfc2f76e1e1ce700cfb10000000000ffffffff0140420f000000000017a914a7dbb893fb9cec80d65afc38f1e06f50db3eddf78700000000",
+    "change": null,
+    "inputs": [
+      {
+        "is_witness": true,
+        "satoshi": 10000000,
+        "script": "76a9149307fa8fd90433a2aef656e05808cb10bf035a4788ac",
+        "path": [
+          2147483648,
+          2147483648,
+          2147483656
         ]
-    },
-    "expected_output": ["304402201b614139aa4b8c18ec4fa61a1ce8dc6e4b409a42b097d0033fa8b0b62a75a20e02207528854d4bcd33a1b072b686cf99a9c2d9612fa2eaeddeeaf041941f2fc72fce01"]
+      }
+    ]
+  },
+  "expected_output": [
+    "304402201b614139aa4b8c18ec4fa61a1ce8dc6e4b409a42b097d0033fa8b0b62a75a20e02207528854d4bcd33a1b072b686cf99a9c2d9612fa2eaeddeeaf041941f2fc72fce01"
+  ]
 }

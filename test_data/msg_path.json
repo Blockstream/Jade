@@ -1,6 +1,9 @@
 {
   "input": {
-    "path": [2147483651, 2147483648],
+    "path": [
+      2147483651,
+      2147483648
+    ],
     "message": "The above path initially failed with Jade, this proves it now works."
   },
   "expected_output": "IKS4r0mTB21NqFv57yxphyD69zBT2yMXVXmseLJh9mZGB8qoMeeK8bAmcplMRvWAY9DuXmbqEIcQsDZRhRhFLAU="

@@ -1,6 +1,8 @@
 {
   "input": {
-    "path": [0],
+    "path": [
+      0
+    ],
     "message": "Jade is cool",
     "use_ae_signatures": false
   },

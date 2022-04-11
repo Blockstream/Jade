@@ -1,10 +1,17 @@
 {
   "input": {
-    "path": [1,2,3],
+    "path": [
+      1,
+      2,
+      3
+    ],
     "message": "Message to test Anti-Exfil signatures work as expected.",
     "use_ae_signatures": true,
     "ae_host_commitment": "953c84f6fc33c14938899b1ecca09c6a3848951fbd48b472004d4377b73b7046",
     "ae_host_entropy": "c2e58dc572a47c579f539cfb8dc09501c128d193919fef8945199b12ce778c89"
   },
-  "expected_output": ["020a5522522ffa999669e140095d40eb6e7fd047375654ce589ce83b6786c3eea7", "ewh7wY10jyK3C5xyqtedw6zOKM3wYp5PDo6s6jLvFos+pMD7pdnFekTCBC9jnvLOnFd58JGw85MuXUvMcb3IbA=="]
+  "expected_output": [
+    "020a5522522ffa999669e140095d40eb6e7fd047375654ce589ce83b6786c3eea7",
+    "ewh7wY10jyK3C5xyqtedw6zOKM3wYp5PDo6s6jLvFos+pMD7pdnFekTCBC9jnvLOnFd58JGw85MuXUvMcb3IbA=="
+  ]
 }
