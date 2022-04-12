@@ -87,11 +87,6 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
 
             // If multisig change, need to verify against the registered multisig wallets
             if (rpc_has_field_data("multisig_name", &arrayItem)) {
-                if (isLiquidNetwork(network)) {
-                    *errmsg = "Multisig is not supported for liquid networks";
-                    return false;
-                }
-
                 // Load multisig data record
                 multisig_data_t multisig_data;
                 char multisig_name[MAX_MULTISIG_NAME_SIZE];

@@ -1425,16 +1425,11 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                      'trusted_commitments': [{}, {}],
                      'change': [{'path': [1, 2, 3]}, {}]}),
                    'only appropriate for liquid'),
-                  (('badsignliq17', 'sign_liquid_tx',
-                    {'network': 'localtest-liquid', 'txn': GOODTX, 'num_inputs': 1,
-                     'trusted_commitments': [{}, {}],
-                     'change': [{'multisig_name': 'not-allowed', 'paths': [[1, 2, 3]]}, {}]}),
-                   'Multisig is not supported for liquid'),
-                  (('badsignliq18', 'sign_liquid_tx',  # Bad change outputs
+                  (('badsignliq17', 'sign_liquid_tx',  # Bad change outputs
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
                      'change': []}), 'Unexpected number of output (change) entries'),
-                  (('badsignliq19', 'sign_liquid_tx',  # paths missing
+                  (('badsignliq18', 'sign_liquid_tx',  # paths missing
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
                      'change': [{}, {}]}), 'extract valid change path')]
@@ -2141,7 +2136,7 @@ def test_generic_multisig_registration(jadeapi):
         _check_multisig_registration(jadeapi, multisig_data)
 
 
-def test_generic_multisig_matches_ga(jadeapi):
+def test_generic_multisig_matches_ga_addresses(jadeapi):
     # This test checks that the generic multisig wallets 'matches_ga', do...
     # ie. if I use the standard ga receive-address, I get the same result as
     # that using 'generic multisig' (as the co-signers are set-up to match green)
@@ -2181,7 +2176,42 @@ def test_generic_multisig_matches_ga(jadeapi):
                                                recovery_xpub=recovery_xpub)
             assert rslt == addr_test['expected_address']
 
-    # Sign txns using generic multisig registration
+    # ... and maybe blinding key tests ...
+    for blinding_test in ga_msig.get('blinding_key_tests', []):
+        rslt = jadeapi.get_blinding_key(blinding_test['script'])
+        assert rslt == blinding_test['expected_blinding_key']
+
+        rslt = jadeapi.get_shared_nonce(blinding_test['script'],
+                                        blinding_test['their_pubkey'])
+        assert rslt == blinding_test['expected_shared_nonce']
+
+        rslt = jadeapi.get_shared_nonce(blinding_test['script'],
+                                        blinding_test['their_pubkey'],
+                                        include_pubkey=True)
+        assert rslt['blinding_key'] == blinding_test['expected_blinding_key']
+        assert rslt['shared_nonce'] == blinding_test['expected_shared_nonce']
+
+    # ... and blinding/commitments tests!
+    for blinding_test in ga_msig.get('commitments_tests', []):
+        for bf_type, rslt_key in [('ASSET', 'abf'), ('VALUE', 'vbf')]:
+            rslt = jadeapi.get_blinding_factor(blinding_test['hash_prevouts'],
+                                               blinding_test['output_index'],
+                                               bf_type)
+            assert rslt == blinding_test[rslt_key]
+
+        rslt = jadeapi.get_commitments(blinding_test['asset_id'],
+                                       blinding_test['value'],
+                                       blinding_test['hash_prevouts'],
+                                       blinding_test['output_index'],
+                                       multisig_name=inputdata['multisig_name'])
+        assert rslt['abf'] == blinding_test['abf']
+        assert rslt['vbf'] == blinding_test['vbf']
+        assert rslt['asset_generator'] == blinding_test['asset_generator']
+        assert rslt['value_commitment'] == blinding_test['value_commitment']
+
+
+def test_generic_multisig_matches_ga_signatures(jadeapi):
+    # Sign txns using generic multisig registration - should get same sigs as ga
     ga_2of2_multisig_data = list(_get_test_cases("multisig_reg_matches_ga_2of2.json"))
     assert len(ga_2of2_multisig_data) == 1
     ga_2of2_multisig_name = ga_2of2_multisig_data[0]['input']['multisig_name']
@@ -2194,7 +2224,7 @@ def test_generic_multisig_matches_ga(jadeapi):
         # Doctor the change paths to include the registered multisig name, but not
         # the multisig xpub root (ie. to only contain the final 'ptr' part)
         # (as the subact/branch is part of the multisig registration)
-        for change in inputdata.get('change'):
+        for change in inputdata['change'] or []:
             if change is not None:
                 path = change.pop('path')
                 change['paths'] = [path[-1:]] * 2
@@ -2206,6 +2236,38 @@ def test_generic_multisig_matches_ga(jadeapi):
                                inputdata.get('change'),
                                inputdata.get('use_ae_signatures'),
                                )
+
+        # Check returned signatures
+        _check_tx_signatures(jadeapi, ga_msig, rslt)
+
+
+def test_generic_multisig_matches_ga_signatures_liquid(jadeapi):
+    # Sign liquid txns using generic multisig registration - should get same sigs as ga
+    ga_2of2_multisig_data = list(_get_test_cases("multisig_reg_liquid_matches_ga_2of2.json"))
+    assert len(ga_2of2_multisig_data) == 1
+    ga_2of2_multisig_name = ga_2of2_multisig_data[0]['input']['multisig_name']
+
+    MULTISIG_SIGN_TXS = ['liquid_txn_lowr_nochange.json', 'liquid_txn_noncsv.json']
+    ga_2of2_multisig_txns = (list(_get_test_cases(testcase))[0] for testcase in MULTISIG_SIGN_TXS)
+    for ga_msig in ga_2of2_multisig_txns:
+        inputdata = ga_msig['input']
+
+        # Doctor the change paths to include the registered multisig name, but not
+        # the multisig xpub root (ie. to only contain the final 'ptr' part)
+        # (as the subact/branch is part of the multisig registration)
+        for change in inputdata['change'] or []:
+            if change is not None:
+                path = change.pop('path')
+                change['paths'] = [path[-1:]] * 2
+                change['multisig_name'] = ga_2of2_multisig_name
+
+        rslt = jadeapi.sign_liquid_tx(inputdata['network'],
+                                      inputdata['txn'],
+                                      inputdata.get('inputs'),
+                                      inputdata['trusted_commitments'],
+                                      inputdata.get('change'),
+                                      inputdata.get('use_ae_signatures'),
+                                      )
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, ga_msig, rslt)
@@ -2334,7 +2396,9 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     # Test generic multisig
     test_generic_multisig_registration(jadeapi)
-    test_generic_multisig_matches_ga(jadeapi)
+    test_generic_multisig_matches_ga_addresses(jadeapi)
+    test_generic_multisig_matches_ga_signatures(jadeapi)
+    test_generic_multisig_matches_ga_signatures_liquid(jadeapi)
 
     # Short sanity-test of 12-word mnemonic
     test_12word_mnemonic(jadeapi)
