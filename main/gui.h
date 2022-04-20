@@ -398,7 +398,7 @@ void gui_set_padding(gui_view_node_t* node, uint8_t sides, ...);
 void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, uint16_t borders);
 void gui_set_borders_selected_color(gui_view_node_t* node, color_t selected_color);
 void gui_set_borders_inactive_color(gui_view_node_t* node, color_t inactive_color);
-void gui_set_selected_color(gui_view_node_t* node, color_t selected_color);
+void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color);
 void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum gui_vertical_align valign);
 void gui_set_text_scroll(gui_view_node_t* node, color_t background_color);
 void gui_set_text_noise(gui_view_node_t* node, color_t background_color);

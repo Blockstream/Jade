@@ -1080,29 +1080,30 @@ void gui_set_borders_inactive_color(gui_view_node_t* node, color_t inactive_colo
     node->borders.inactive_color = inactive_color;
 }
 
-void gui_set_selected_color(gui_view_node_t* node, color_t selected_color)
+void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color)
 {
     JADE_ASSERT(node);
 
-    color_t* color_ptr;
     switch (node->kind) {
     case TEXT:
-        color_ptr = &node->text->selected_color;
+        node->text->color = color;
+        node->text->selected_color = selected_color;
         break;
     case FILL:
-        color_ptr = &node->fill->selected_color;
+        node->fill->color = color;
+        node->fill->selected_color = selected_color;
         break;
     case BUTTON:
-        color_ptr = &node->fill->selected_color;
+        node->button->color = color;
+        node->button->selected_color = selected_color;
         break;
     case ICON:
-        color_ptr = &node->icon->selected_color;
+        node->icon->color = color;
+        node->icon->selected_color = selected_color;
         break;
     default:
-        JADE_ASSERT_MSG(false, "gui_set_selected_color() - Unexpected node kind: %u", node->kind);
+        JADE_ASSERT_MSG(false, "gui_set_colors() - Unexpected node kind: %u", node->kind);
     }
-
-    *color_ptr = selected_color;
 }
 
 void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum gui_vertical_align valign)
@@ -1878,11 +1879,13 @@ static void update_status_bar(void)
 
     if (status_bar.battery_update_counter == 0) {
         uint8_t new_bat = power_get_battery_status();
+        color_t color = new_bat == 0 ? TFT_RED : new_bat == 1 ? TFT_ORANGE : TFT_WHITE;
         if (power_get_battery_charging()) {
             new_bat = new_bat + 12;
         }
         if (new_bat != status_bar.last_battery_val) {
             status_bar.last_battery_val = new_bat;
+            gui_set_colors(status_bar.battery_text, color, color);
             gui_update_text_node_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
             status_bar.updated = true;
         }
