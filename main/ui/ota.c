@@ -117,8 +117,7 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
             gui_set_parent(btn, hsplit);
 
             gui_view_node_t* textbtn;
-            gui_make_text(&textbtn, "S", TFT_WHITE);
-            gui_set_text_font(textbtn, VARIOUS_SYMBOLS_FONT);
+            gui_make_text_font(&textbtn, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
             gui_set_parent(textbtn, btn);
             gui_set_align(textbtn, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         }

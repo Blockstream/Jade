@@ -254,8 +254,7 @@ static void make_confirm_mnemonic_page(
     gui_set_parent(words_hsplit, vsplit);
 
     gui_view_node_t* text_left;
-    gui_make_text(&text_left, "=", TFT_WHITE);
-    gui_set_text_font(text_left, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&text_left, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(text_left, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text_left, words_hsplit);
 
@@ -272,8 +271,7 @@ static void make_confirm_mnemonic_page(
     *text_box = text_select;
 
     gui_view_node_t* text_right;
-    gui_make_text(&text_right, ">", TFT_WHITE);
-    gui_set_text_font(text_right, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&text_right, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(text_right, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text_right, words_hsplit);
 
@@ -436,8 +434,7 @@ void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_nod
     gui_set_parent(words_hsplit, vsplit);
 
     gui_view_node_t* text_left;
-    gui_make_text(&text_left, "=", TFT_WHITE);
-    gui_set_text_font(text_left, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&text_left, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(text_left, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text_left, words_hsplit);
 
@@ -454,8 +451,7 @@ void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_nod
     *textbox = text_select;
 
     gui_view_node_t* text_right;
-    gui_make_text(&text_right, ">", TFT_WHITE);
-    gui_set_text_font(text_right, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&text_right, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(text_right, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text_right, words_hsplit);
 
@@ -559,8 +555,7 @@ static void make_enter_passphrase_page(
     gui_set_parent(text_bg, vsplit);
 
     gui_view_node_t* entered_phrase;
-    gui_make_text(&entered_phrase, "", TFT_WHITE);
-    gui_set_text_font(entered_phrase, UBUNTU16_FONT);
+    gui_make_text_font(&entered_phrase, "", TFT_WHITE, UBUNTU16_FONT);
     gui_set_text_noise(entered_phrase, TFT_BLACK);
     gui_set_parent(entered_phrase, text_bg);
     gui_set_padding(entered_phrase, GUI_MARGIN_TWO_VALUES, 1, 4);
@@ -639,8 +634,7 @@ static void make_enter_passphrase_page(
 
             gui_view_node_t* label;
             const char str[2] = { lines[l][c], 0 };
-            gui_make_text(&label, str, TFT_WHITE);
-            gui_set_text_font(label, font);
+            gui_make_text_font(&label, str, TFT_WHITE, font);
             gui_set_parent(label, btn);
             gui_set_align(label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
@@ -705,8 +699,7 @@ void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* p
 
     // second row, passphrase
     gui_view_node_t* entered_phrase;
-    gui_make_text(&entered_phrase, passphrase, TFT_WHITE);
-    gui_set_text_font(entered_phrase, UBUNTU16_FONT);
+    gui_make_text_font(&entered_phrase, passphrase, TFT_WHITE, UBUNTU16_FONT);
     gui_set_text_noise(entered_phrase, TFT_BLACK);
     gui_set_parent(entered_phrase, vsplit);
     gui_set_padding(entered_phrase, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);

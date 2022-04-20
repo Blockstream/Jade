@@ -92,8 +92,7 @@ void make_sign_message_activity(gui_activity_t** activity_ptr, const char* msg_s
     gui_set_parent(btn3, hsplit_btn);
 
     gui_view_node_t* textbtn3;
-    gui_make_text(&textbtn3, "S", TFT_WHITE);
-    gui_set_text_font(textbtn3, VARIOUS_SYMBOLS_FONT);
+    gui_make_text_font(&textbtn3, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 }

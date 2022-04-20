@@ -154,8 +154,7 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
         gui_set_parent(btn1, hsplit_btn);
 
         gui_view_node_t* textbtn1;
-        gui_make_text(&textbtn1, "=", TFT_WHITE);
-        gui_set_text_font(textbtn1, JADE_SYMBOLS_16x16_FONT);
+        gui_make_text_font(&textbtn1, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
         gui_set_parent(textbtn1, btn1);
         gui_set_align(textbtn1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     } else {
@@ -184,8 +183,7 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
     gui_set_parent(btn3, hsplit_btn);
 
     gui_view_node_t* textbtn3;
-    gui_make_text(&textbtn3, "S", TFT_WHITE);
-    gui_set_text_font(textbtn3, VARIOUS_SYMBOLS_FONT);
+    gui_make_text_font(&textbtn3, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
@@ -293,8 +291,7 @@ static void make_final_activity(
     gui_set_parent(btn3, hsplit_btn);
 
     gui_view_node_t* textbtn3;
-    gui_make_text(&textbtn3, "S", TFT_WHITE);
-    gui_set_text_font(textbtn3, VARIOUS_SYMBOLS_FONT);
+    gui_make_text_font(&textbtn3, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 

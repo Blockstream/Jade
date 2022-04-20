@@ -114,20 +114,17 @@ static void make_status_bar(void)
     gui_set_padding(title_text, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
 
     gui_view_node_t* usb_text;
-    gui_make_text(&usb_text, "D", TFT_WHITE);
-    gui_set_text_font(usb_text, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&usb_text, "D", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_parent(usb_text, hsplit);
     gui_set_align(usb_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
     gui_view_node_t* ble_text;
-    gui_make_text(&ble_text, "F", TFT_WHITE);
-    gui_set_text_font(ble_text, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&ble_text, "F", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_parent(ble_text, hsplit);
     gui_set_align(ble_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
     gui_view_node_t* battery_text;
-    gui_make_text(&battery_text, "0", TFT_WHITE);
-    gui_set_text_font(battery_text, JADE_SYMBOLS_16x32_FONT);
+    gui_make_text_font(&battery_text, "0", TFT_WHITE, JADE_SYMBOLS_16x32_FONT);
     gui_set_parent(battery_text, hsplit);
     gui_set_align(battery_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 

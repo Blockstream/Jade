@@ -90,8 +90,7 @@ void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char
         gui_make_fill(&fill, TFT_BLACK);
         gui_set_parent(fill, hsplit);
 
-        gui_make_text(&pin_insert->pin_digit_nodes[i], "", TFT_WHITE);
-        gui_set_text_font(pin_insert->pin_digit_nodes[i], DEJAVU24_FONT);
+        gui_make_text_font(&pin_insert->pin_digit_nodes[i], "", TFT_WHITE, DEJAVU24_FONT);
         gui_set_align(pin_insert->pin_digit_nodes[i], GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(pin_insert->pin_digit_nodes[i], fill);
 

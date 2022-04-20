@@ -54,10 +54,7 @@ void gen_btns(gui_view_node_t* parent, const size_t num_buttons, const char* msg
         }
 
         gui_view_node_t* textbtn;
-        gui_make_text(&textbtn, msgs[i], TFT_WHITE);
-        if (fonts) {
-            gui_set_text_font(textbtn, fonts[i]);
-        }
+        gui_make_text_font(&textbtn, msgs[i], TFT_WHITE, fonts ? fonts[i] : DEFAULT_FONT);
         gui_set_parent(textbtn, btn);
         gui_set_align(textbtn, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     }
@@ -355,8 +352,7 @@ void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, c
     gui_set_parent(btn, vsplit);
 
     gui_view_node_t* btntext;
-    gui_make_text(&btntext, "=", TFT_WHITE);
-    gui_set_text_font(btntext, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&btntext, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(btntext, btn);
 #endif

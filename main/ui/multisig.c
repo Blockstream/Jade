@@ -126,8 +126,7 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     gui_set_parent(btn3, hsplit_btn);
 
     gui_view_node_t* textbtn3;
-    gui_make_text(&textbtn3, ">", TFT_WHITE);
-    gui_set_text_font(textbtn3, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&textbtn3, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
@@ -256,8 +255,7 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     gui_set_parent(btn1, hsplit_btn);
 
     gui_view_node_t* textbtn1;
-    gui_make_text(&textbtn1, "=", TFT_WHITE);
-    gui_set_text_font(textbtn1, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&textbtn1, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_parent(textbtn1, btn1);
     gui_set_align(textbtn1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
@@ -281,8 +279,7 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     gui_set_parent(btn3, hsplit_btn);
 
     gui_view_node_t* textbtn3;
-    gui_make_text(&textbtn3, ">", TFT_WHITE);
-    gui_set_text_font(textbtn3, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&textbtn3, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
@@ -377,8 +374,7 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
     gui_set_parent(btn1, hsplit_btn);
 
     gui_view_node_t* textbtn1;
-    gui_make_text(&textbtn1, "=", TFT_WHITE);
-    gui_set_text_font(textbtn1, JADE_SYMBOLS_16x16_FONT);
+    gui_make_text_font(&textbtn1, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_parent(textbtn1, btn1);
     gui_set_align(textbtn1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
@@ -402,8 +398,7 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
     gui_set_parent(btn3, hsplit_btn);
 
     gui_view_node_t* textbtn3;
-    gui_make_text(&textbtn3, "S", TFT_WHITE);
-    gui_set_text_font(textbtn3, VARIOUS_SYMBOLS_FONT);
+    gui_make_text_font(&textbtn3, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
@@ -569,8 +564,7 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
 
     gui_view_node_t* textbtn2;
     if (has_next) {
-        gui_make_text(&textbtn2, ">", TFT_WHITE);
-        gui_set_text_font(textbtn2, JADE_SYMBOLS_16x16_FONT);
+        gui_make_text_font(&textbtn2, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     } else {
         gui_make_text(&textbtn2, "Exit", TFT_WHITE);
     }
