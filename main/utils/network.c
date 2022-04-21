@@ -120,22 +120,6 @@ uint8_t networkToP2SHPrefix(const char* network)
     }
 }
 
-// 'liquid' like string to relevant confidential address prefix
-uint8_t networkToCAPrefix(const char* network)
-{
-    JADE_ASSERT(isValidNetwork(network));
-
-    if (!strcmp(TAG_LIQUID, network)) {
-        return WALLY_CA_PREFIX_LIQUID;
-    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
-        return WALLY_CA_PREFIX_LIQUID_TESTNET;
-    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
-        return WALLY_CA_PREFIX_LIQUID_REGTEST;
-    } else {
-        return 0;
-    }
-}
-
 // 'mainnet' like string to relevant bech32 hrp
 const char* networkToBech32Hrp(const char* network)
 {
@@ -158,10 +142,26 @@ const char* networkToBech32Hrp(const char* network)
     }
 }
 
+// 'liquid' like string to relevant confidential address prefix
+uint8_t networkToCAPrefix(const char* network)
+{
+    JADE_ASSERT(isLiquidNetwork(network));
+
+    if (!strcmp(TAG_LIQUID, network)) {
+        return WALLY_CA_PREFIX_LIQUID;
+    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+        return WALLY_CA_PREFIX_LIQUID_TESTNET;
+    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
+        return WALLY_CA_PREFIX_LIQUID_REGTEST;
+    } else {
+        return 0;
+    }
+}
+
 // 'liquid' like string to relevant confidential blech32 hrp
 const char* networkToBlech32Hrp(const char* network)
 {
-    JADE_ASSERT(isValidNetwork(network));
+    JADE_ASSERT(isLiquidNetwork(network));
 
     if (!strcmp(TAG_LIQUID, network)) {
         return "lq";
@@ -174,23 +174,28 @@ const char* networkToBlech32Hrp(const char* network)
     }
 }
 
+/* FIXME: Remove this if/when TAG_LOCALTESTLIQUID uses testnet assets */
 bool networkUsesTestnetAssets(const char* network)
 {
-    JADE_ASSERT(isValidNetwork(network));
+    JADE_ASSERT(isLiquidNetwork(network));
 
     // TAG_LOCALTESTLIQUID appears to use mainnet assets ?
     return !strcmp(TAG_TESTNETLIQUID, network);
 }
 
+// 'liquid' like string to relevant policy-asset (lower-case hex id)
 const char* networkGetPolicyAsset(const char* network)
 {
-    JADE_ASSERT(isValidNetwork(network));
+    JADE_ASSERT(isLiquidNetwork(network));
 
-    // TAG_LOCALTESTLIQUID appears to use mainnet assets ?
-    if (!strcmp(TAG_LIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
-        return "L-BTC";
+    // These are the policy assets for the liquid networks.
+    // NOTE: 'rich' information should be present in the h/coded data in assets.c
+    if (!strcmp(TAG_LIQUID, network)) {
+        return "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d";
     } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
-        return "L-TEST";
+        return "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49";
+    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
+        return "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225";
     } else {
         return NULL;
     }

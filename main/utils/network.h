@@ -28,9 +28,10 @@ uint32_t networkToVersion(const char* network);
 
 uint8_t networkToP2PKHPrefix(const char* network);
 uint8_t networkToP2SHPrefix(const char* network);
-uint8_t networkToCAPrefix(const char* network);
-
 const char* networkToBech32Hrp(const char* network);
+
+// Liquid-specific
+uint8_t networkToCAPrefix(const char* network);
 const char* networkToBlech32Hrp(const char* network);
 
 bool networkUsesTestnetAssets(const char* network);

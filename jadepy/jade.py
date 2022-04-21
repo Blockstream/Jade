@@ -1137,7 +1137,8 @@ class JadeAPI:
             assert len(signatures) == len(inputs)
             return signatures
 
-    def sign_liquid_tx(self, network, txn, inputs, commitments, change, use_ae_signatures=False):
+    def sign_liquid_tx(self, network, txn, inputs, commitments, change, use_ae_signatures=False,
+                       asset_info=None):
         """
         RPC call to sign a liquid transaction.
 
@@ -1176,8 +1177,17 @@ class JadeAPI:
             Populated elements should contain sufficient data to generate the change address.
             See `get_receive_address()`
 
-        use_ae_signatures : bool
-            Whether to use the anti-exfil protocol to generate the signatures
+        use_ae_signatures : bool, optional
+            Whether to use the anti-exfil protocol to generate the signatures.
+            Defaults to False.
+
+        asset_info : [dict]
+            Any asset-registry data relevant to the assets being transacted, such that Jade can
+            display a meaningful name, issuer, ticker etc. rather than just asset-id.
+            At the very least must contain 'asset_id', 'contract' and 'issuance_prevout' items,
+            exactly as in the registry data.  NOTE: asset_info for the network policy-asset is
+            not required.
+            Defaults to None.
 
         Returns
         -------
@@ -1201,7 +1211,8 @@ class JadeAPI:
                   'num_inputs': len(inputs),
                   'trusted_commitments': commitments,
                   'use_ae_signatures': use_ae_signatures,
-                  'change': change}
+                  'change': change,
+                  'asset_info': asset_info}
 
         reply = self._jadeRpc('sign_liquid_tx', params, str(base_id))
         assert reply

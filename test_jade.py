@@ -1237,9 +1237,46 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
 
     GOOD_COMMITMENT = EXPECTED_LIQ_COMMITMENT_2.copy()
     GOOD_COMMITMENT['blinding_key'] = EXPECTED_BLINDING_KEY
+    GOOD_COMMITMENTS = [GOOD_COMMITMENT, {}]  # add a null for the unblind output
 
     BADVAL32 = EXPECTED_LIQ_COMMITMENT_1['abf']
     BADVAL33 = EXPECTED_LIQ_COMMITMENT_1['value_commitment']
+
+    GOOD_ASSET = {
+        "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
+        "contract": {
+            "entity": {
+                "domain": "liquidtestnet.com"
+            },
+            "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+            "name": "Testnet Asset",
+            "precision": 3,
+            "ticker": "TEST",
+            "version": 0
+        },
+        "issuance_prevout": {
+            "txid": "0e19e938c74378ae83b549213a12be88ede6e32e1407bfdf50c4ec3f927408ec",
+            "vout": 0
+        }
+    }
+
+    BAD_ASSET1 = GOOD_ASSET.copy()
+    del BAD_ASSET1['contract']
+
+    BAD_ASSET2 = GOOD_ASSET.copy()
+    del BAD_ASSET2['contract']['entity']
+
+    BAD_ASSET3 = GOOD_ASSET.copy()
+    del BAD_ASSET3['issuance_prevout']
+
+    BAD_ASSET3 = GOOD_ASSET.copy()
+    del BAD_ASSET3['issuance_prevout']['txid']
+
+    BAD_ASSET4 = GOOD_ASSET.copy()
+    del BAD_ASSET4['asset_id']
+
+    BAD_ASSET5 = GOOD_ASSET.copy()
+    BAD_ASSET5['asset_id'] = BADVAL32
 
     def _commitsMinus(key):
         commits = GOOD_COMMITMENT.copy()
@@ -1444,7 +1481,28 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                   (('badsignliq18', 'sign_liquid_tx',  # paths missing
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
-                     'change': [{}, {}]}), 'extract valid change path')]
+                     'change': [{}, {}]}), 'extract valid change path'),
+
+                  (('badsignliq19', 'sign_liquid_tx',
+                    {'network': 'localtest-liquid', 'txn': GOODTX,
+                     'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
+                     'change': None, 'asset_info': [BAD_ASSET1]}), 'Invalid asset info passed'),
+                  (('badsignliq20', 'sign_liquid_tx',
+                    {'network': 'localtest-liquid', 'txn': GOODTX,
+                     'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
+                     'change': None, 'asset_info': [BAD_ASSET2]}), 'Invalid asset info passed'),
+                  (('badsignliq21', 'sign_liquid_tx',
+                    {'network': 'localtest-liquid', 'txn': GOODTX,
+                     'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
+                     'change': None, 'asset_info': [BAD_ASSET3]}), 'Invalid asset info passed'),
+                  (('badsignliq22', 'sign_liquid_tx',
+                    {'network': 'localtest-liquid', 'txn': GOODTX,
+                     'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
+                     'change': None, 'asset_info': [BAD_ASSET4]}), 'Invalid asset info passed'),
+                  (('badsignliq23', 'sign_liquid_tx',
+                    {'network': 'localtest-liquid', 'txn': GOODTX,
+                     'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
+                     'change': None, 'asset_info': [BAD_ASSET5]}), 'Invalid asset info passed')]
 
     bad_liq_inputs = [(('badliqin1', 'tx_input'), 'Expecting parameters map'),
                       (('badliqin2', 'tx_input',
@@ -1512,13 +1570,12 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     # Test all the bad tx inputs
     for badinput, errormsg in bad_liq_inputs:
         # Initiate a good sign-liquid-tx
-        commits = [GOOD_COMMITMENT, {}]  # add a null for the unblind output
         result = _test_good_params(jade,
                                    ('signLiquid', 'sign_liquid_tx',
                                     {'network': 'localtest-liquid',
                                      'txn': GOODTX,
                                      'num_inputs': 1,
-                                     'trusted_commitments': commits}))
+                                     'trusted_commitments': GOOD_COMMITMENTS}))
         assert result is True
 
         # test a bad input
@@ -2091,12 +2148,14 @@ aa95e1c72070b08208012144f')
 def test_sign_liquid_tx(jadeapi, pattern):
     for txn_data in _get_test_cases(pattern):
         inputdata = txn_data['input']
+
         rslt = jadeapi.sign_liquid_tx(inputdata['network'],
                                       inputdata['txn'],
                                       inputdata['inputs'],
                                       inputdata['trusted_commitments'],
                                       inputdata['change'],
-                                      inputdata.get('use_ae_signatures'))
+                                      inputdata.get('use_ae_signatures'),
+                                      inputdata.get('asset_info'))
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)

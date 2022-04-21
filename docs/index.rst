@@ -1331,7 +1331,7 @@ sign_liquid_tx request (legacy)
 Request to sign liquid transaction inputs.
 
 * This flow should be considered legacy - 'anti-exfil' signatures should be preferred.  See sign_liquid_tx_ae_request_.
-* NOTE: The data is similar to that described in sign_tx_legacy_request_ - with the addition of a 'trusted_commitments' array.
+* NOTE: The data is similar to that described in sign_tx_legacy_request_ - with the addition of a 'trusted_commitments' array and an optional array of asset data.
 
 .. code-block:: cbor
 
@@ -1339,7 +1339,7 @@ Request to sign liquid transaction inputs.
         "id": "911",
         "method": "sign_liquid_tx",
         "params": {
-            "network": "liquid",
+            "network": "testnet-liquid",
             "txn": <bytes>,
             "use_ae_signatures": false,
             "change": [
@@ -1350,30 +1350,51 @@ Request to sign liquid transaction inputs.
                 },
                 null
             ],
+            asset_info": [
+                {
+                    "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
+                    "contract": {
+                        "entity": {
+                            "domain": "liquidtestnet.com"
+                        },
+                        "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+                        "name": "Testnet Asset",
+                        "precision": 3,
+                        "ticker": "TEST",
+                        "version": 0
+                    },
+                    "issuance_prevout": {
+                        "txid": "0e19e938c74378ae83b549213a12be88ede6e32e1407bfdf50c4ec3f927408ec",
+                        "vout": 0
+                    }
+                }
+            ],
             "trusted_commitments": [
                 {
-                    "abf": <32 bytes>
-                    "asset_generator": <33 bytes>
-                    "asset_id": <32 bytes>
-                    "blinding_key": <32 bytes>
+                    "abf": "308fee61c9b6f6ba534abefaa0e3fef58f5dc8b8a772135f157b3f771b005164",
+                    "asset_generator": "0bacf4e230f12327ff795f8c814f80b0502e78683d067fe75ba38fd2d0be27188b",
+                    "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
+                    "blinding_key": "03462d3febd7654b22c6faaf5d12a400693dbdf21f8cb9a82e18aba8457c6812d4",
                     "value": 50000000,
                     "value_commitment": <33 bytes>
                     "vbf": <32 bytes>
                 },
                 {
-                    "abf": <32 bytes>
-                    "asset_generator": <33 bytes>
-                    "asset_id": <32 bytes>
-                    "blinding_key": <32 bytes>
-                    "value": 9000000
-                    "value_commitment": <33 bytes>
-                    "vbf": <32 bytes>
+                    "abf": "a3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+                    "asset_generator": "0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+                    "asset_id": "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49",
+                    "blinding_key": "023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+                    "value": 9000000,
+                    "value_commitment": "0881e4ace4be80524bcc4f566e46a452ab5f43a49929cbf5743d9e1de879a478a7",
+                    "vbf": "6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53"
                 },
                 null
+            ]
         }
     }
 
 * Most fields are as described in sign_tx_legacy_request_.
+* 'asset_info' is optional, but if passed should be the asset-id, contract and issuance-prevout sections of the asset registry data pertinent to the assets being transacted.  If present, this allows the transaction details displayed on Jade to include assets' name, issuer and ticker fields, rather than just asset-id alone.  NOTE: if passed, this data must be accurate as obtained from the asset registry json, and the fields in the expected (ie. alphabetical) order.  'asset_info' for the network policy-asset is not required.
 * 'trusted_commitments' must be passed in for each blinded output.  Where an output is not blinded (eg. fee output) null may be passed.
 * 'trusted_commitments' entries passed in here can be obtained using the get_commitments_request_, with the relevant 'blinding_key' added (which would originally be obtained from get_blinding_key_request_).
 * NOTE: as of Jade fw v0.1.34, external blinding is supported, in which case the 'trusted_commitments' can be constructed by the host application.  Note the 'asset_id' byte-order is that consistent with the registry data, but the 'abf' and 'vbf' fields need to be in the byte-order in which they would be used in the blinding (which may be reversed).

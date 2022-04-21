@@ -1,3 +1,4 @@
+#include "../assets.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
@@ -305,6 +306,18 @@ void sign_liquid_tx_process(void* process_ptr)
         }
     }
 
+    // Can optionally be passed asset info data (registry json)
+    // NOTE: these asset-info structs point at fields in the current message
+    // IE. THIS DATA IS NOT VALID AFTER THE INITIAL MESSAGE HAS BEEN PROCESSED
+    asset_info_t* assets = NULL;
+    size_t num_assets = 0;
+    if (!assets_get_allocate("asset_info", &params, &assets, &num_assets)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid asset info passed", NULL);
+        goto cleanup;
+    }
+    jade_process_free_on_exit(process, assets);
+    JADE_LOGI("Read %d assets from message", num_assets);
+
     // save fees for the final confirmation screen
     uint64_t fees = 0;
 
@@ -337,7 +350,7 @@ void sign_liquid_tx_process(void* process_ptr)
     }
 
     gui_activity_t* first_activity = NULL;
-    make_display_elements_output_activity(network, tx, output_info, &first_activity);
+    make_display_elements_output_activity(network, tx, output_info, assets, num_assets, &first_activity);
     JADE_ASSERT(first_activity);
     gui_set_current_activity(first_activity);
 

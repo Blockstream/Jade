@@ -1,6 +1,7 @@
 #ifndef UI_H_
 #define UI_H_
 
+#include "assets.h"
 #include "gui.h"
 #include "process.h"
 
@@ -82,8 +83,9 @@ void make_sign_identity_activity(gui_activity_t** activity_ptr, const char* iden
 
 void make_display_output_activity(
     const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity);
-void make_display_elements_output_activity(
-    const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity);
+void make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
+    const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets,
+    gui_activity_t** first_activity);
 void make_display_final_confirmation_activity(uint64_t fee, const char* warning_msg, gui_activity_t** activity);
 void make_display_elements_final_confirmation_activity(
     const char* network, uint64_t fee, const char* warning_msg, gui_activity_t** activity);

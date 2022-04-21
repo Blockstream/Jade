@@ -1,6 +1,7 @@
 #include <assets_snapshot.h>
 #include <inttypes.h>
 #include <math.h>
+#include <wally_elements.h>
 #include <wally_transaction.h>
 
 #include "../button_events.h"
@@ -373,16 +374,17 @@ void make_display_output_activity(
     *first_activity = act_info.first_activity;
 }
 
-void make_display_elements_output_activity(
-    const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity)
+void make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
+    const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets,
+    gui_activity_t** first_activity)
 {
     JADE_ASSERT(tx);
     JADE_ASSERT(output_info);
     JADE_ASSERT(first_activity);
+    JADE_ASSERT(assets || !num_assets);
 
     // Don't show outputs which don't have a script (as these are fees)
     const bool show_scriptless = false;
-    const bool use_testnet_asset_data = networkUsesTestnetAssets(network);
 
     // Track the first and last activities created
     link_activity_t output_act;
@@ -404,47 +406,54 @@ void make_display_elements_output_activity(
         }
 
         // Get the asset-id display hex string
-        uint8_t flipped_asset_id[32];
-        for (size_t x = 0; x < 32; x++) {
-            flipped_asset_id[x] = output_info[i].asset_id[32 - x - 1];
+        uint8_t flipped_asset_id[ASSET_TAG_LEN];
+        for (size_t x = 0; x < sizeof(flipped_asset_id); ++x) {
+            flipped_asset_id[x] = output_info[i].asset_id[sizeof(flipped_asset_id) - x - 1];
         }
 
         char* asset_id_hex = NULL;
-        JADE_WALLY_VERIFY(wally_hex_from_bytes(flipped_asset_id, 32, &asset_id_hex));
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(flipped_asset_id, sizeof(flipped_asset_id), &asset_id_hex));
         JADE_ASSERT(asset_id_hex);
 
         // Look up the asset-id in the canned asset-data
-        const char* ticker = NULL;
-        const char* issuer = NULL;
-        const snapshot_asset_info_t* const pInfo = assets_snapshot_get_info(asset_id_hex, use_testnet_asset_data);
-        if (pInfo) {
-            JADE_LOGD("Found asset data for output %u (asset-id: '%s')", i, asset_id_hex);
-            JADE_ASSERT(!strcmp(asset_id_hex, pInfo->asset_id));
-            ticker = pInfo->ticker;
-            issuer = pInfo->issuer_domain;
+        char asset_str[128];
+        char amount[32];
+        char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
+        asset_info_t asset_info = {};
+        const bool have_asset_info = assets_get_info(network, assets, num_assets, asset_id_hex, &asset_info);
+        if (have_asset_info) {
+            JADE_LOGI("Found asset data for output %u (asset-id: '%s')", i, asset_id_hex);
+
+            // Issuer and asset-id concatenated
+            int ret = snprintf(asset_str, sizeof(asset_str), "} %.*s - %s {", asset_info.issuer_domain_len,
+                asset_info.issuer_domain, asset_id_hex);
+            JADE_ASSERT(ret > 0 && ret <= sizeof(asset_str));
+            asset_str[sizeof(asset_str) - 1] = '\0'; // Truncate/terminate if necessary
+
+            // Amount scaled and displayed at relevant precision
+            const uint32_t scale_factor = pow(10, asset_info.precision);
+            ret = snprintf(
+                amount, sizeof(amount), "%.*f", asset_info.precision, 1.0 * output_info[i].value / scale_factor);
+            JADE_ASSERT(ret > 0 && ret < sizeof(amount));
+
+            // Ticker
+            ret = snprintf(ticker, sizeof(ticker), "%.*s", asset_info.ticker_len, asset_info.ticker);
+            JADE_ASSERT(ret > 0 && ret < sizeof(ticker));
         } else {
             JADE_LOGW("Asset data for output %u (asset-id: '%s') not found!", i, asset_id_hex);
-        }
 
-        if (!issuer || strlen(issuer) == 0) {
-            issuer = "issuer unknown";
-        }
+            // Issuer unknown
+            int ret = snprintf(asset_str, sizeof(asset_str), "} issuer unknown - %s {", asset_id_hex);
+            JADE_ASSERT(ret > 0 && ret < sizeof(asset_str));
 
-        char asset_str[128];
-        int ret = snprintf(asset_str, sizeof(asset_str), "} %s - %s {", issuer, asset_id_hex);
-        JADE_ASSERT(ret > 0 && ret < sizeof(asset_str));
+            // sats precision
+            ret = snprintf(amount, sizeof(amount), "%.00f", 1.0 * output_info[i].value);
+            JADE_ASSERT(ret > 0 && ret < sizeof(amount));
+
+            // No ticker
+            ticker[0] = '\0';
+        }
         wally_free_string(asset_id_hex);
-
-        char amount[32];
-        const int precision = pInfo ? pInfo->precision : 0;
-        JADE_ASSERT(precision < 10);
-        const uint32_t scale_factor = pow(10, precision);
-
-        char fmt[8];
-        ret = snprintf(fmt, sizeof(fmt), "%%.%02uf", precision);
-        JADE_ASSERT(ret > 0 && ret < sizeof(fmt));
-        ret = snprintf(amount, sizeof(amount), fmt, 1.0 * output_info[i].value / scale_factor);
-        JADE_ASSERT(ret > 0 && ret < sizeof(amount));
 
         char address[MAX_ADDRESS_LEN];
         elements_script_to_address(network, out->script, out->script_len,
@@ -452,7 +461,7 @@ void make_display_elements_output_activity(
             address, sizeof(address));
 
         char display_address[MAX_ADDRESS_LEN + 4];
-        ret = snprintf(display_address, sizeof(display_address), "} %s {", address);
+        const int ret = snprintf(display_address, sizeof(display_address), "} %s {", address);
         JADE_ASSERT(ret > 0 && ret < sizeof(display_address));
 
         ++nDisplayedOutput;
@@ -466,7 +475,7 @@ void make_display_elements_output_activity(
         }
 
         // Insert extra screen to display warning if the asset registry information is missing
-        if (!pInfo) {
+        if (!have_asset_info) {
             // Make activity with no asset-id but with the warning message
             make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed,
                 display_address, amount, ticker, NULL, MISSING_ASSET_DATA);
@@ -505,10 +514,28 @@ void make_display_elements_final_confirmation_activity(
     JADE_ASSERT(network);
     JADE_ASSERT(activity);
 
+    // final confirmation screen
+
+    // Policy asset must be present in h/coded asset data, and it must have a 'ticker'
+    const char* asset_id_hex = networkGetPolicyAsset(network);
+    JADE_ASSERT(asset_id_hex);
+    asset_info_t asset_info = {};
+    const bool have_asset_info = assets_get_info(network, NULL, 0, asset_id_hex, &asset_info);
+    JADE_ASSERT(have_asset_info);
+    JADE_ASSERT(asset_info.ticker);
+    JADE_ASSERT(asset_info.ticker_len);
+
+    // Ticker
+    char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
+    int ret = snprintf(ticker, sizeof(ticker), "%.*s", asset_info.ticker_len, asset_info.ticker);
+    JADE_ASSERT(ret > 0 && ret < sizeof(ticker));
+
+    // Fee amount scaled and displayed at relevant precision
     char fee_str[32];
-    const int ret = snprintf(fee_str, sizeof(fee_str), "%.08f", 1.0 * fee / 1e8);
+    const uint32_t scale_factor = pow(10, asset_info.precision);
+    ret = snprintf(fee_str, sizeof(fee_str), "%.*f", asset_info.precision, 1.0 * fee / scale_factor);
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
     // final confirmation screen
-    make_final_activity(activity, fee_str, networkGetPolicyAsset(network), warning_msg);
+    make_final_activity(activity, fee_str, ticker, warning_msg);
 }
