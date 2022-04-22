@@ -620,7 +620,7 @@ void rpc_get_signers_allocate(const char* field, const CborValue* value, signer_
 
         signer->xpub_len = 0;
         rpc_get_string("xpub", sizeof(signer->xpub), &arrayItem, signer->xpub, &signer->xpub_len);
-        if (tmp == 0 || signer->xpub_len >= sizeof(signer->xpub)) {
+        if (signer->xpub_len == 0 || signer->xpub_len >= sizeof(signer->xpub)) {
             free(signers);
             return;
         }
