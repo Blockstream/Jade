@@ -1725,7 +1725,7 @@ def check_mem_stats(startinfo, endinfo, check_frag=True, strict=True):
     breaches = []
     for field, limit in [('JADE_FREE_HEAP', 1024),
                          ('JADE_FREE_DRAM', 1024),
-                         ('JADE_LARGEST_DRAM', 12288 if check_frag else -1),
+                         ('JADE_LARGEST_DRAM', 4096 if check_frag else -1),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
         initial = int(startinfo[field])
@@ -2214,7 +2214,10 @@ def test_sign_identity(jadeapi):
         assert ecdhA == ecdhB
 
 
-def run_api_tests(jadeapi, qemu=False, authuser=False):
+def run_api_tests(jadeapi, isble, qemu, authuser=False):
+
+    rslt = jadeapi.clean_reset()
+    assert rslt is True
 
     # On connection, a companion app should:
     # a) get the version info and check is compatible, needs update, etc.
@@ -2240,6 +2243,7 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
+    has_ble = startinfo['JADE_CONFIG'] == 'BLE'
 
     # Test update pinserver details
     test_set_pinserver(jadeapi)
@@ -2291,17 +2295,25 @@ def run_api_tests(jadeapi, qemu=False, authuser=False):
 
     time.sleep(3)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo, check_frag=has_psram)
+
+    # NOTE: skip the fragmentation check when we have BLE enabled
+    # as there is too much memory allocation outside of our control.
+    # Also skip for no-psram (qemu) devices.
+    check_frag = has_psram and not has_ble
+    check_mem_stats(startinfo, endinfo, check_frag=check_frag)
 
 
 # Run tests using passed interface
 def run_interface_tests(jadeapi,
-                        qemu=False,
+                        isble,
+                        qemu,
                         authuser=False,
                         smoke=True,
-                        negative=True,
-                        test_overflow_input=False):
+                        negative=True):
     assert jadeapi is not None
+
+    rslt = jadeapi.clean_reset()
+    assert rslt is True
 
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
@@ -2323,9 +2335,9 @@ def run_interface_tests(jadeapi,
         # Test mnemonic-with-passphrase
         test_passphrase(jadeapi.jade)
 
-    # Too much input test - sends a lot of data so only
-    # run if requested (eg. ble would take a long time)
-    if test_overflow_input:
+    # Too much input test - sends a lot of data so only run
+    # if not running over BLE (as would take a long time)
+    if not isble:
         logger.info("Buffer overflow test - PSRAM: {}".format(has_psram))
         test_too_much_input(jadeapi.jade, has_psram)
 
@@ -2344,21 +2356,20 @@ def run_interface_tests(jadeapi,
 
     time.sleep(3)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo, check_frag=has_psram)
+    check_mem_stats(startinfo, endinfo, check_frag=True)
 
 
 # Run all selected tests over a passed JadeAPI instance.
-def run_jade_tests(jadeapi, args, extended_tests):
-    logger.info("Running selected Jade tests over passed connection")
+def run_jade_tests(jadeapi, args, isble):
+    logger.info(f"Running selected Jade tests over passed connection, is_ble={isble}")
 
     # Low-level JadeInterface tests
     if not args.skiplow:
-        run_interface_tests(jadeapi, qemu=args.qemu, authuser=args.authuser,
-                            test_overflow_input=extended_tests)
+        run_interface_tests(jadeapi, isble, args.qemu, authuser=args.authuser)
 
     # High-level JadeAPI tests
     if not args.skiphigh:
-        run_api_tests(jadeapi, qemu=args.qemu, authuser=args.authuser)
+        run_api_tests(jadeapi, isble, args.qemu, authuser=args.authuser)
 
 
 # This test should be passed 2 different connections to the same jade hw
@@ -2410,7 +2421,7 @@ def run_all_jade_tests(info, args):
         logger.info("Testing Serial ({})".format(args.serialport))
         with JadeAPI.create_serial(args.serialport,
                                    timeout=SRTIMEOUT) as jade:
-            run_jade_tests(jade, args, True)  # include extended tests
+            run_jade_tests(jade, args, isble=False)
 
     # 2. Test over BLE connection
     if not args.skipble:
@@ -2418,7 +2429,7 @@ def run_all_jade_tests(info, args):
             bleid = info['EFUSEMAC'][6:]
             logger.info("Testing BLE ({})".format(bleid))
             with JadeAPI.create_ble(serial_number=bleid) as jade:
-                run_jade_tests(jade, args, False)  # skip long tests over ble
+                run_jade_tests(jade, args, isble=True)
 
                 # 3. If also testing over serial, run the 'mixed sources' tests
                 if not args.skipserial:

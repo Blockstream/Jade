@@ -56,6 +56,7 @@ void get_blinding_factor_process(void* process_ptr);
 void sign_liquid_tx_process(void* process_ptr);
 #ifdef CONFIG_DEBUG_MODE
 void debug_set_mnemonic_process(void* process_ptr);
+void debug_clean_reset_process(void* process_ptr);
 void debug_handshake(void* process_ptr);
 #endif
 void ota_process(void* process_ptr);
@@ -286,6 +287,8 @@ static void dispatch_message(jade_process_t* process)
         } else {
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "ERROR", NULL);
         }
+    } else if (IS_METHOD("debug_clean_reset")) {
+        task_function = debug_clean_reset_process;
     } else if (IS_METHOD("debug_set_mnemonic")) {
         task_function = debug_set_mnemonic_process;
     } else if (IS_METHOD("debug_handshake")) {

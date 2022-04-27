@@ -448,6 +448,18 @@ class JadeAPI:
         """
         return self._jadeRpc('debug_selfcheck', long_timeout=True)
 
+    def clean_reset(self):
+        """
+        RPC call to clean/reset memory and storage, as much as is practical.
+        NOTE: Only available in a DEBUG build of the firmware.
+
+        Returns
+        -------
+        bool
+            True on success.
+        """
+        return self._jadeRpc('debug_clean_reset')
+
     def set_mnemonic(self, mnemonic, passphrase=None, temporary_wallet=False):
         """
         RPC call to set the wallet mnemonic (in RAM only - flash storage is untouched).
