@@ -6,6 +6,26 @@
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
 
+typedef struct {
+    uint8_t asset_id[ASSET_TAG_LEN];
+    uint8_t abf[BLINDING_FACTOR_LEN];
+    uint8_t vbf[BLINDING_FACTOR_LEN];
+    uint8_t blinding_key[EC_PUBLIC_KEY_LEN];
+    uint64_t value;
+    uint8_t asset_generator[ASSET_GENERATOR_LEN];
+    uint8_t value_commitment[ASSET_COMMITMENT_LEN];
+    bool have_commitments;
+} commitment_t;
+
+typedef struct {
+    uint32_t path[MAX_PATH_LEN];
+    size_t path_len;
+    uint8_t signature_hash[SHA256_LEN];
+    uint8_t sig[EC_SIGNATURE_DER_MAX_LEN + 1]; /* +1 for sighash byte */
+    size_t sig_len;
+    char id[MAXLEN_ID + 1];
+} signing_data_t;
+
 #define HAS_NO_CURRENT_MESSAGE(process)                                                                                \
     (process && !process->ctx.cbor && !process->ctx.cbor_len && process->ctx.source == SOURCE_NONE)
 

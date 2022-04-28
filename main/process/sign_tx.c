@@ -141,7 +141,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                 if (is_greenaddress(script_variant)) {
                     // Optional recovery xpub for 2of3 accounts
                     written = 0;
-                    char xpubrecovery[120];
+                    char xpubrecovery[120]; // Should be sufficient as all xpubs should be <= 112
                     rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &arrayItem, xpubrecovery, &written);
 
                     // Optional 'blocks' for csv outputs

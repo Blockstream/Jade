@@ -3,8 +3,8 @@
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
+#include "../multisig.h"
 #include "../ui.h"
-#include "../utils/cbor_rpc.h"
 #include "../utils/event.h"
 
 #include <sodium/utils.h>

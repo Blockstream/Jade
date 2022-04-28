@@ -28,36 +28,6 @@
 // Plenty for green wallets, bip44 etc. with plenty to spare.
 #define MAX_PATH_LEN 16
 
-typedef struct {
-    bool have_commitments;
-    uint8_t blinding_key[EC_PUBLIC_KEY_LEN];
-    uint8_t asset_generator[ASSET_GENERATOR_LEN];
-    uint8_t value_commitment[ASSET_COMMITMENT_LEN];
-    uint8_t abf[HMAC_SHA256_LEN];
-    uint8_t vbf[HMAC_SHA256_LEN];
-    uint8_t asset_id[ASSET_TAG_LEN];
-    uint64_t value;
-} commitment_t;
-
-typedef struct {
-    char id[MAXLEN_ID + 1];
-    uint32_t path[MAX_PATH_LEN];
-    size_t path_len;
-    uint8_t signature_hash[SHA256_LEN];
-    uint8_t sig[EC_SIGNATURE_DER_MAX_LEN + 1];
-    size_t sig_len;
-} signing_data_t;
-
-typedef struct {
-    uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
-    uint32_t derivation[MAX_PATH_LEN];
-    size_t derivation_len;
-    char xpub[120];
-    size_t xpub_len;
-    uint32_t path[MAX_PATH_LEN];
-    size_t path_len;
-} signer_t;
-
 bool cbor_print_error_for(const char* id, int code, const char* message, const uint8_t* data, size_t datalen,
     uint8_t* buffer, size_t buffer_len, size_t* towrite);
 

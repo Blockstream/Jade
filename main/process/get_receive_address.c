@@ -101,7 +101,7 @@ void get_receive_address_process(void* process_ptr)
 
             // Optional xpub for 2of3 accounts
             written = 0;
-            char xpubrecovery[120];
+            char xpubrecovery[120]; // Should be sufficient as all xpubs should be <= 112
             rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &params, xpubrecovery, &written);
 
             // Optional 'blocks' for csv outputs
