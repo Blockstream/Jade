@@ -27,6 +27,135 @@ void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_sig
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
+static inline void reverse(uint8_t* buf, size_t len)
+{
+    // flip the order of the bytes in-place
+    for (uint8_t *c1 = buf, *c2 = buf + len - 1; c1 < c2; ++c1, --c2) {
+        const uint8_t tmp = *c1;
+        *c1 = *c2;
+        *c2 = tmp;
+    }
+}
+
+static void get_commitments_allocate(const char* field, const CborValue* value, commitment_t** data, size_t* written)
+{
+    JADE_ASSERT(field);
+    JADE_ASSERT(value);
+    JADE_ASSERT(data);
+    JADE_ASSERT(written);
+
+    *data = NULL;
+    *written = 0;
+
+    CborValue result;
+    if (!rpc_get_array(field, value, &result)) {
+        return;
+    }
+
+    size_t array_len = 0;
+    CborError cberr = cbor_value_get_array_length(&result, &array_len);
+    if (cberr != CborNoError || !array_len) {
+        return;
+    }
+
+    CborValue arrayItem;
+    cberr = cbor_value_enter_container(&result, &arrayItem);
+    if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
+        return;
+    }
+
+    commitment_t* const commitments = JADE_CALLOC(array_len, sizeof(commitment_t));
+
+    size_t tmp = 0;
+    for (size_t i = 0; i < array_len; ++i) {
+        JADE_ASSERT(!cbor_value_at_end(&arrayItem));
+        commitment_t* const commitment = commitments + i;
+
+        if (cbor_value_is_null(&arrayItem)) {
+            CborError err = cbor_value_advance(&arrayItem);
+            JADE_ASSERT(err == CborNoError);
+            continue;
+        }
+
+        if (!cbor_value_is_map(&arrayItem)) {
+            free(commitments);
+            return;
+        }
+
+        tmp = 0;
+        if (cbor_value_get_map_length(&arrayItem, &tmp) == CborNoError && tmp == 0) {
+            CborError err = cbor_value_advance(&arrayItem);
+            JADE_ASSERT(err == CborNoError);
+            continue;
+        }
+
+        tmp = 0;
+        rpc_get_bytes(
+            "asset_generator", sizeof(commitment->asset_generator), &arrayItem, commitment->asset_generator, &tmp);
+        if (tmp != sizeof(commitment->asset_generator)) {
+            free(commitments);
+            return;
+        }
+
+        tmp = 0;
+        rpc_get_bytes(
+            "value_commitment", sizeof(commitment->value_commitment), &arrayItem, commitment->value_commitment, &tmp);
+        if (tmp != sizeof(commitment->value_commitment)) {
+            free(commitments);
+            return;
+        }
+
+        tmp = 0;
+        rpc_get_bytes("abf", sizeof(commitment->abf), &arrayItem, commitment->abf, &tmp);
+        if (tmp != sizeof(commitment->abf)) {
+            free(commitments);
+            return;
+        }
+
+        tmp = 0;
+        rpc_get_bytes("vbf", sizeof(commitment->vbf), &arrayItem, commitment->vbf, &tmp);
+        if (tmp != sizeof(commitment->vbf)) {
+            free(commitments);
+            return;
+        }
+
+        tmp = 0;
+        rpc_get_bytes("asset_id", sizeof(commitment->asset_id), &arrayItem, commitment->asset_id, &tmp);
+        if (tmp != sizeof(commitment->asset_id)) {
+            free(commitments);
+            return;
+        }
+        reverse(commitment->asset_id, sizeof(commitment->asset_id));
+
+        tmp = 0;
+        rpc_get_bytes("blinding_key", sizeof(commitment->blinding_key), &arrayItem, commitment->blinding_key, &tmp);
+        if (tmp != sizeof(commitment->blinding_key)) {
+            free(commitments);
+            return;
+        }
+
+        if (!rpc_get_uint64_t("value", &arrayItem, &commitment->value)) {
+            free(commitments);
+            return;
+        }
+
+        // Set flag to show struct is populated/initialised
+        commitment->have_commitments = true;
+
+        CborError err = cbor_value_advance(&arrayItem);
+        JADE_ASSERT(err == CborNoError);
+    }
+
+    cberr = cbor_value_leave_container(&result, &arrayItem);
+    if (cberr != CborNoError) {
+        free(commitments);
+        return;
+    }
+
+    *written = array_len;
+    *data = commitments;
+}
+
 static bool add_validated_confidential_output_info(const commitment_t* commitments,
     const struct wally_tx_output* txoutput, output_info_t* outinfo, const char** errmsg)
 {
@@ -153,7 +282,7 @@ void sign_liquid_tx_process(void* process_ptr)
     // Copy trusted commitment data into a temporary structure (so we can free the message)
     commitment_t* commitments = NULL;
     size_t num_commitments = 0;
-    rpc_get_commitments_allocate("trusted_commitments", &params, &commitments, &num_commitments);
+    get_commitments_allocate("trusted_commitments", &params, &commitments, &num_commitments);
 
     if (num_commitments == 0) {
         jade_process_reject_message(

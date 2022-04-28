@@ -6,6 +6,7 @@
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/event.h"
+#include "../utils/malloc_ext.h"
 #include "../utils/network.h"
 #include "../wallet.h"
 
@@ -28,6 +29,89 @@ static bool multisig_name_valid(const char* name)
         }
     }
     return true;
+}
+
+static void get_signers_allocate(const char* field, const CborValue* value, signer_t** data, size_t* written)
+{
+    JADE_ASSERT(field);
+    JADE_ASSERT(value);
+    JADE_ASSERT(data);
+    JADE_ASSERT(written);
+
+    *data = NULL;
+    *written = 0;
+
+    CborValue result;
+    if (!rpc_get_array(field, value, &result)) {
+        return;
+    }
+
+    size_t array_len = 0;
+    CborError cberr = cbor_value_get_array_length(&result, &array_len);
+    if (cberr != CborNoError || !array_len) {
+        return;
+    }
+
+    CborValue arrayItem;
+    cberr = cbor_value_enter_container(&result, &arrayItem);
+    if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
+        return;
+    }
+
+    signer_t* const signers = JADE_CALLOC(array_len, sizeof(signer_t));
+
+    size_t tmp = 0;
+    for (size_t i = 0; i < array_len; ++i) {
+        JADE_ASSERT(!cbor_value_at_end(&arrayItem));
+        signer_t* const signer = signers + i;
+
+        if (!cbor_value_is_map(&arrayItem)) {
+            free(signers);
+            return;
+        }
+
+        tmp = 0;
+        if (cbor_value_get_map_length(&arrayItem, &tmp) == CborNoError && tmp == 0) {
+            CborError err = cbor_value_advance(&arrayItem);
+            JADE_ASSERT(err == CborNoError);
+            continue;
+        }
+
+        tmp = 0;
+        rpc_get_bytes("fingerprint", sizeof(signer->fingerprint), &arrayItem, signer->fingerprint, &tmp);
+        if (tmp != sizeof(signer->fingerprint)) {
+            free(signers);
+            return;
+        }
+
+        if (!rpc_get_bip32_path("derivation", &arrayItem, signer->derivation, MAX_PATH_LEN, &signer->derivation_len)) {
+            free(signers);
+            return;
+        }
+
+        rpc_get_string("xpub", sizeof(signer->xpub), &arrayItem, signer->xpub, &signer->xpub_len);
+        if (signer->xpub_len == 0 || signer->xpub_len >= sizeof(signer->xpub)) {
+            free(signers);
+            return;
+        }
+
+        if (!rpc_get_bip32_path("path", &arrayItem, signer->path, MAX_PATH_LEN, &signer->path_len)) {
+            free(signers);
+            return;
+        }
+
+        CborError err = cbor_value_advance(&arrayItem);
+        JADE_ASSERT(err == CborNoError);
+    }
+
+    cberr = cbor_value_leave_container(&result, &arrayItem);
+    if (cberr != CborNoError) {
+        free(signers);
+        return;
+    }
+
+    *written = array_len;
+    *data = signers;
 }
 
 void register_multisig_process(void* process_ptr)
@@ -100,7 +184,7 @@ void register_multisig_process(void* process_ptr)
     // Co-Signers
     signer_t* signers = NULL;
     size_t num_signers = 0;
-    rpc_get_signers_allocate("signers", &descriptor, &signers, &num_signers);
+    get_signers_allocate("signers", &descriptor, &signers, &num_signers);
     if (num_signers == 0) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid co-signers from parameters", NULL);

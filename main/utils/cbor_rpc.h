@@ -74,8 +74,6 @@ void rpc_get_string(const char* field, size_t max, const CborValue* value, char*
 void rpc_get_string_ptr(const char* field, const CborValue* value, const char** data, size_t* size);
 void rpc_get_bytes(const char* field, size_t max, const CborValue* value, uint8_t* data, size_t* written);
 void rpc_get_bytes_ptr(const char* field, const CborValue* value, const uint8_t** data, size_t* size);
-void rpc_get_commitments_allocate(const char* field, const CborValue* value, commitment_t** data, size_t* written);
-void rpc_get_signers_allocate(const char* field, const CborValue* value, signer_t** data, size_t* written);
 bool rpc_get_sizet(const char* field, const CborValue* value, size_t* res);
 bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res);
 bool rpc_get_boolean(const char* field, const CborValue* value, bool* res);
