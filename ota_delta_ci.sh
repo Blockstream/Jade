@@ -53,11 +53,11 @@ sleep 2
 
 # now we test the same exact firmware ble via ble
 FW_PATCH=$(ls ${PATCHDIR}/*_ble_*_ble*_patch.bin)
-python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
+python jade_ota.py --log=INFO --skipserial --bleidfromserial --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
 
 sleep 2
 
 # now we go back to noblob via ble
 # NOTE: the filename is of the pattern: 'final-from-base' - hence noradio*ble*patch.bin
 FW_PATCH=$(ls ${PATCHDIR}/*_noradio_*_ble*_patch.bin)
-python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
+python jade_ota.py --log=INFO --skipserial --bleidfromserial --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
