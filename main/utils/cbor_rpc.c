@@ -55,8 +55,11 @@ static bool rpc_get_data(const char* field, const CborValue* value, CborValue* r
 
 static void rpc_get_string_len(const char* field, const CborValue* value, size_t* written)
 {
+    JADE_ASSERT(field);
+    JADE_ASSERT(value);
+    JADE_INIT_OUT_SIZE(written);
+
     CborValue result;
-    JADE_ASSERT(*written == 0);
     const bool ok = rpc_get_data(field, value, &result);
 
     if (!ok || !cbor_value_is_text_string(&result)) {
@@ -131,19 +134,18 @@ static void rpc_get_type_ptr(
 {
     JADE_ASSERT(field);
     JADE_ASSERT(value);
-    JADE_ASSERT(data);
-    JADE_ASSERT(*size == 0);
+    JADE_INIT_OUT_PPTR(data);
+    JADE_INIT_OUT_SIZE(size);
+
     CborValue result;
     CborError cberr = cbor_value_map_find_value(value, field, &result);
     if (cberr != CborNoError || cbor_value_get_type(&result) == CborInvalidType || !cbor_value_is_valid(&result)) {
-        *data = NULL;
         return;
     }
 
     const uint8_t* next_byte = cbor_value_get_next_byte(&result);
     const uint8_t typecode = *next_byte & CBOR_TYPE_MASK;
     if (typecode != masktype) {
-        *data = NULL;
         return;
     }
 
@@ -164,7 +166,8 @@ void rpc_get_bytes(const char* field, const size_t max, const CborValue* value, 
     JADE_ASSERT(value);
     JADE_ASSERT(max > 0);
     JADE_ASSERT(data);
-    JADE_ASSERT(*written == 0);
+    JADE_INIT_OUT_SIZE(written);
+
     CborValue result;
     const bool ok = rpc_get_data(field, value, &result);
 
@@ -207,8 +210,9 @@ void rpc_get_string(const char* field, const size_t max, const CborValue* value,
 {
     JADE_ASSERT(max > 0);
     JADE_ASSERT(data);
+    JADE_INIT_OUT_SIZE(written);
+
     CborValue result;
-    JADE_ASSERT(*written == 0);
     const bool ok = rpc_get_data(field, value, &result);
 
     if (!ok || !cbor_value_is_text_string(&result)) {
@@ -289,8 +293,9 @@ bool rpc_get_sizet(const char* field, const CborValue* value, size_t* res)
 void rpc_get_method(const CborValue* value, const char** data, size_t* written)
 {
     JADE_ASSERT(value);
-    JADE_ASSERT(data);
-    JADE_ASSERT(written);
+    JADE_INIT_OUT_PPTR(data);
+    JADE_INIT_OUT_SIZE(written);
+
     JADE_ASSERT(cbor_value_is_valid(value));
     JADE_ASSERT(cbor_value_is_map(value));
     rpc_get_string_ptr(CBOR_RPC_TAG_METHOD, value, data, written);
@@ -306,16 +311,13 @@ static bool rpc_key_equals(const CborValue* value, const char* key, const char* 
     JADE_ASSERT(cbor_value_is_map(value));
 
     CborValue result_value;
-
     CborError cberr = cbor_value_map_find_value(value, key, &result_value);
-
     JADE_ASSERT(cberr == CborNoError);
 
     const CborType restype = cbor_value_get_type(&result_value);
 
     JADE_ASSERT(restype != CborInvalidType);
     JADE_ASSERT(cbor_value_is_valid(&result_value));
-
     JADE_ASSERT(cbor_value_is_text_string(&result_value));
 
     bool result = false;
@@ -331,8 +333,9 @@ bool rpc_is_method(const CborValue* value, const char* method)
 
 void rpc_get_id_ptr(const CborValue* value, const char** data, size_t* written)
 {
-    JADE_ASSERT(data);
-    JADE_ASSERT(written);
+    JADE_INIT_OUT_PPTR(data);
+    JADE_INIT_OUT_SIZE(written);
+
     if (!value) {
         return;
     }
@@ -343,7 +346,8 @@ void rpc_get_id(const CborValue* value, char* data, const size_t datalen, size_t
 {
     JADE_ASSERT(data);
     JADE_ASSERT(datalen);
-    JADE_ASSERT(written);
+    JADE_INIT_OUT_SIZE(written);
+
     if (!value) {
         return;
     }
@@ -455,12 +459,12 @@ bool rpc_get_bip32_path_from_value(CborValue* value, uint32_t* path_ptr, const s
     JADE_ASSERT(value);
     JADE_ASSERT(path_ptr);
     JADE_ASSERT(max_path_len > 0);
-    JADE_ASSERT(written);
-    JADE_ASSERT(*written == 0);
+    JADE_INIT_OUT_SIZE(written);
 
     if (!cbor_value_is_array(value)) {
         return false;
     }
+
     size_t num_array_items = 0;
     CborError cberr = cbor_value_get_array_length(value, &num_array_items);
 

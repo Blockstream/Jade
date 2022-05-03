@@ -32,9 +32,9 @@ static enum ota_status ota_init(const char* expected_hash_hexstr, const uint8_t*
     // TODO - uncomment when hash mandatory
     // JADE_ASSERT(expected_hash_hexstr);
     JADE_ASSERT(uncompressed);
-    JADE_ASSERT(update_partition);
     JADE_ASSERT(update_handle);
     JADE_ASSERT(progress_bar);
+    JADE_INIT_OUT_PPTR(update_partition);
 
     const esp_partition_t* running = esp_ota_get_running_partition();
     JADE_LOGI("Running partition ptr: %p", running);

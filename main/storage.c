@@ -151,6 +151,7 @@ static bool read_blob(const char* ns, const char* name, uint8_t* data, const siz
     JADE_ASSERT(name);
     JADE_ASSERT(data);
     JADE_ASSERT(len > 0);
+    JADE_INIT_OUT_SIZE(written);
 
     nvs_handle handle;
     STORAGE_OPEN(handle, ns, NVS_READONLY);
@@ -192,8 +193,7 @@ static bool read_string(const char* ns, const char* name, char* str, const size_
     JADE_ASSERT(name);
     JADE_ASSERT(str);
     JADE_ASSERT(len > 0);
-    JADE_ASSERT(written);
-    JADE_ASSERT(*written == 0);
+    JADE_INIT_OUT_SIZE(written);
 
     nvs_handle handle;
     STORAGE_OPEN(handle, ns, NVS_READONLY);
@@ -544,7 +544,7 @@ bool storage_get_all_multisig_registration_names(
     JADE_ASSERT(names);
     JADE_ASSERT(*names);
     JADE_ASSERT(num_names > 0);
-    JADE_ASSERT(num_written);
+    JADE_INIT_OUT_SIZE(num_written);
 
     size_t count = 0;
     nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, MULTISIG_NAMESPACE, NVS_TYPE_BLOB);

@@ -11,12 +11,12 @@ bool params_identity_curve_index(CborValue* params, const char** identity, size_
     size_t* curve_len, size_t* index, const char** errmsg)
 {
     JADE_ASSERT(params);
-    JADE_ASSERT(identity);
-    JADE_ASSERT(identity_len);
-    JADE_ASSERT(curve);
-    JADE_ASSERT(curve_len);
-    JADE_ASSERT(index);
-    JADE_ASSERT(errmsg);
+    JADE_INIT_OUT_PPTR(identity);
+    JADE_INIT_OUT_SIZE(identity_len);
+    JADE_INIT_OUT_PPTR(curve);
+    JADE_INIT_OUT_SIZE(curve_len);
+    JADE_INIT_OUT_SIZE(index);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     rpc_get_string_ptr("identity", params, identity, identity_len);
     if (!*identity || *identity_len >= MAX_DISPLAY_MESSAGE_LEN
@@ -47,10 +47,10 @@ bool params_hashprevouts_outputindex(CborValue* params, const uint8_t** hash_pre
     size_t* output_index, const char** errmsg)
 {
     JADE_ASSERT(params);
-    JADE_ASSERT(hash_prevouts);
-    JADE_ASSERT(hash_prevouts_len);
-    JADE_ASSERT(output_index);
-    JADE_ASSERT(errmsg);
+    JADE_INIT_OUT_PPTR(hash_prevouts);
+    JADE_INIT_OUT_SIZE(hash_prevouts_len);
+    JADE_INIT_OUT_SIZE(output_index);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     rpc_get_bytes_ptr("hash_prevouts", params, hash_prevouts, hash_prevouts_len);
     if (*hash_prevouts_len != SHA256_LEN) {
@@ -74,7 +74,7 @@ bool params_load_multisig(CborValue* params, char* multisig_name, const size_t m
     JADE_ASSERT(multisig_name);
     JADE_ASSERT(multisig_name_len);
     JADE_ASSERT(multisig_data);
-    JADE_ASSERT(errmsg);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     size_t written = 0;
     rpc_get_string("multisig_name", multisig_name_len, params, multisig_name, &written);
@@ -101,10 +101,10 @@ bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_d
     JADE_ASSERT(multisig_data);
     JADE_ASSERT(pubkeys);
     JADE_ASSERT(pubkeys_len == MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN);
-    JADE_ASSERT(pubkeys_written);
+    JADE_INIT_OUT_SIZE(pubkeys_written);
     JADE_ASSERT(warningmsg);
     JADE_ASSERT(warningmsg_len);
-    JADE_ASSERT(errmsg);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     // Validate paths
     CborValue all_signer_paths;

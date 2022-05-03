@@ -33,4 +33,18 @@ void jade_abort(const char* file, const int line_n);
         }                                                                                                              \
     } while (false)
 
+// Assert pointer-to-pointer is non-null, then set pointee to zero
+#define JADE_INIT_OUT_PPTR(pptr)                                                                                       \
+    do {                                                                                                               \
+        JADE_ASSERT(pptr);                                                                                             \
+        *pptr = NULL;                                                                                                  \
+    } while (false)
+
+// Assert pointer-to-numeric is non-null, then set pointee to zero
+#define JADE_INIT_OUT_SIZE(psize)                                                                                      \
+    do {                                                                                                               \
+        JADE_ASSERT(psize);                                                                                            \
+        *psize = 0;                                                                                                    \
+    } while (false)
+
 #endif

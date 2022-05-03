@@ -41,11 +41,8 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
 {
     JADE_ASSERT(field);
     JADE_ASSERT(value);
-    JADE_ASSERT(data);
-    JADE_ASSERT(written);
-
-    *data = NULL;
-    *written = 0;
+    JADE_INIT_OUT_PPTR(data);
+    JADE_INIT_OUT_SIZE(written);
 
     CborValue result;
     if (!rpc_get_array(field, value, &result)) {
@@ -162,7 +159,7 @@ static bool add_validated_confidential_output_info(const commitment_t* commitmen
     JADE_ASSERT(commitments);
     JADE_ASSERT(txoutput);
     JADE_ASSERT(outinfo);
-    JADE_ASSERT(errmsg);
+    JADE_INIT_OUT_PPTR(errmsg);
     JADE_ASSERT(txoutput->value[0] != 0x01); // Don't call for unblinded outputs
 
     uint8_t generator_tmp[ASSET_GENERATOR_LEN];

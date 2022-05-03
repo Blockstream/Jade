@@ -128,6 +128,10 @@ const char* get_jade_id(void) { return jade_id; }
 
 bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle_t** qemu_tcp_h)
 {
+    JADE_INIT_OUT_PPTR(serial_h);
+    JADE_INIT_OUT_PPTR(ble_h);
+    JADE_INIT_OUT_PPTR(qemu_tcp_h);
+
     if (shared_in || serial_out || ble_out || qemu_tcp_out) {
         return false;
     }

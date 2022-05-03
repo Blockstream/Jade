@@ -60,6 +60,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
     JADE_ASSERT(output_info);
     JADE_ASSERT(errmsg);
 
+    *errmsg = NULL;
     size_t num_array_items = 0;
     if (!cbor_value_is_array(change) || cbor_value_get_array_length(change, &num_array_items) != CborNoError
         || num_array_items != tx->num_outputs) {
