@@ -43,9 +43,9 @@ static void get_signers_allocate(const char* field, const CborValue* value, sign
         return;
     }
 
-    size_t array_len = 0;
-    CborError cberr = cbor_value_get_array_length(&result, &array_len);
-    if (cberr != CborNoError || !array_len) {
+    size_t num_array_items = 0;
+    CborError cberr = cbor_value_get_array_length(&result, &num_array_items);
+    if (cberr != CborNoError || !num_array_items) {
         return;
     }
 
@@ -55,10 +55,9 @@ static void get_signers_allocate(const char* field, const CborValue* value, sign
         return;
     }
 
-    signer_t* const signers = JADE_CALLOC(array_len, sizeof(signer_t));
+    signer_t* const signers = JADE_CALLOC(num_array_items, sizeof(signer_t));
 
-    size_t tmp = 0;
-    for (size_t i = 0; i < array_len; ++i) {
+    for (size_t i = 0; i < num_array_items; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
         signer_t* const signer = signers + i;
 
@@ -67,16 +66,14 @@ static void get_signers_allocate(const char* field, const CborValue* value, sign
             return;
         }
 
-        tmp = 0;
-        if (cbor_value_get_map_length(&arrayItem, &tmp) == CborNoError && tmp == 0) {
+        size_t num_map_items = 0;
+        if (cbor_value_get_map_length(&arrayItem, &num_map_items) == CborNoError && num_map_items == 0) {
             CborError err = cbor_value_advance(&arrayItem);
             JADE_ASSERT(err == CborNoError);
             continue;
         }
 
-        tmp = 0;
-        rpc_get_bytes("fingerprint", sizeof(signer->fingerprint), &arrayItem, signer->fingerprint, &tmp);
-        if (tmp != sizeof(signer->fingerprint)) {
+        if (!rpc_get_n_bytes("fingerprint", &arrayItem, sizeof(signer->fingerprint), signer->fingerprint)) {
             free(signers);
             return;
         }
@@ -107,7 +104,7 @@ static void get_signers_allocate(const char* field, const CborValue* value, sign
         return;
     }
 
-    *written = array_len;
+    *written = num_array_items;
     *data = signers;
 }
 

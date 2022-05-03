@@ -40,10 +40,11 @@ bool rpc_is_method(const CborValue* value, const char* method);
 
 // Some typed/checked getters for various nodes/data-types
 bool rpc_has_field_data(const char* field, const CborValue* value);
-void rpc_get_string(const char* field, size_t max, const CborValue* value, char* data, size_t* written);
 void rpc_get_string_ptr(const char* field, const CborValue* value, const char** data, size_t* size);
-void rpc_get_bytes(const char* field, size_t max, const CborValue* value, uint8_t* data, size_t* written);
+void rpc_get_string(const char* field, size_t max, const CborValue* value, char* data, size_t* written);
 void rpc_get_bytes_ptr(const char* field, const CborValue* value, const uint8_t** data, size_t* size);
+void rpc_get_bytes(const char* field, size_t max, const CborValue* value, uint8_t* data, size_t* written);
+bool rpc_get_n_bytes(const char* field, const CborValue* value, size_t expected_size, uint8_t* data);
 bool rpc_get_sizet(const char* field, const CborValue* value, size_t* res);
 bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res);
 bool rpc_get_boolean(const char* field, const CborValue* value, bool* res);

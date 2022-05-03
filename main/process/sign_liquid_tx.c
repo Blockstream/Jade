@@ -49,9 +49,9 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
         return;
     }
 
-    size_t array_len = 0;
-    CborError cberr = cbor_value_get_array_length(&result, &array_len);
-    if (cberr != CborNoError || !array_len) {
+    size_t num_array_items = 0;
+    CborError cberr = cbor_value_get_array_length(&result, &num_array_items);
+    if (cberr != CborNoError || !num_array_items) {
         return;
     }
 
@@ -61,10 +61,9 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
         return;
     }
 
-    commitment_t* const commitments = JADE_CALLOC(array_len, sizeof(commitment_t));
+    commitment_t* const commitments = JADE_CALLOC(num_array_items, sizeof(commitment_t));
 
-    size_t tmp = 0;
-    for (size_t i = 0; i < array_len; ++i) {
+    for (size_t i = 0; i < num_array_items; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
         commitment_t* const commitment = commitments + i;
 
@@ -79,54 +78,42 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
             return;
         }
 
-        tmp = 0;
-        if (cbor_value_get_map_length(&arrayItem, &tmp) == CborNoError && tmp == 0) {
+        size_t num_map_items = 0;
+        if (cbor_value_get_map_length(&arrayItem, &num_map_items) == CborNoError && num_map_items == 0) {
             CborError err = cbor_value_advance(&arrayItem);
             JADE_ASSERT(err == CborNoError);
             continue;
         }
 
-        tmp = 0;
-        rpc_get_bytes(
-            "asset_generator", sizeof(commitment->asset_generator), &arrayItem, commitment->asset_generator, &tmp);
-        if (tmp != sizeof(commitment->asset_generator)) {
+        if (!rpc_get_n_bytes(
+                "asset_generator", &arrayItem, sizeof(commitment->asset_generator), commitment->asset_generator)) {
             free(commitments);
             return;
         }
 
-        tmp = 0;
-        rpc_get_bytes(
-            "value_commitment", sizeof(commitment->value_commitment), &arrayItem, commitment->value_commitment, &tmp);
-        if (tmp != sizeof(commitment->value_commitment)) {
+        if (!rpc_get_n_bytes(
+                "value_commitment", &arrayItem, sizeof(commitment->value_commitment), commitment->value_commitment)) {
             free(commitments);
             return;
         }
 
-        tmp = 0;
-        rpc_get_bytes("abf", sizeof(commitment->abf), &arrayItem, commitment->abf, &tmp);
-        if (tmp != sizeof(commitment->abf)) {
+        if (!rpc_get_n_bytes("abf", &arrayItem, sizeof(commitment->abf), commitment->abf)) {
             free(commitments);
             return;
         }
 
-        tmp = 0;
-        rpc_get_bytes("vbf", sizeof(commitment->vbf), &arrayItem, commitment->vbf, &tmp);
-        if (tmp != sizeof(commitment->vbf)) {
+        if (!rpc_get_n_bytes("vbf", &arrayItem, sizeof(commitment->vbf), commitment->vbf)) {
             free(commitments);
             return;
         }
 
-        tmp = 0;
-        rpc_get_bytes("asset_id", sizeof(commitment->asset_id), &arrayItem, commitment->asset_id, &tmp);
-        if (tmp != sizeof(commitment->asset_id)) {
+        if (!rpc_get_n_bytes("asset_id", &arrayItem, sizeof(commitment->asset_id), commitment->asset_id)) {
             free(commitments);
             return;
         }
         reverse(commitment->asset_id, sizeof(commitment->asset_id));
 
-        tmp = 0;
-        rpc_get_bytes("blinding_key", sizeof(commitment->blinding_key), &arrayItem, commitment->blinding_key, &tmp);
-        if (tmp != sizeof(commitment->blinding_key)) {
+        if (!rpc_get_n_bytes("blinding_key", &arrayItem, sizeof(commitment->blinding_key), commitment->blinding_key)) {
             free(commitments);
             return;
         }
@@ -149,7 +136,7 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
         return;
     }
 
-    *written = array_len;
+    *written = num_array_items;
     *data = commitments;
 }
 

@@ -201,6 +201,15 @@ void rpc_get_bytes(const char* field, const size_t max, const CborValue* value, 
     *written = local_written;
 }
 
+bool rpc_get_n_bytes(const char* field, const CborValue* value, const size_t expected_size, uint8_t* data)
+{
+    JADE_ASSERT(expected_size);
+
+    size_t written = 0;
+    rpc_get_bytes(field, expected_size, value, data, &written);
+    return written == expected_size;
+}
+
 void rpc_get_string_ptr(const char* field, const CborValue* value, const char** data, size_t* size)
 {
     rpc_get_type_ptr(field, value, (const uint8_t**)data, size, CBOR_TEXT_MASK);
