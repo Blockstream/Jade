@@ -487,9 +487,9 @@ static void handle_legal(void)
 static void handle_multisigs(void)
 {
     char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
-    const size_t names_len = sizeof(names) / sizeof(names[0]);
+    const size_t num_names = sizeof(names) / sizeof(names[0]);
     size_t num_multisigs = 0;
-    bool ok = storage_get_all_multisig_registration_names(names, names_len, &num_multisigs);
+    bool ok = storage_get_all_multisig_registration_names(names, num_names, &num_multisigs);
     JADE_ASSERT(ok);
 
     if (num_multisigs == 0) {
@@ -510,7 +510,7 @@ static void handle_multisigs(void)
 
         gui_activity_t* act;
         make_view_multisig_activity(&act, multisig_name, i + 1, num_multisigs, valid, multisig_data.sorted,
-            multisig_data.threshold, multisig_data.xpubs_len);
+            multisig_data.threshold, multisig_data.num_xpubs);
         JADE_ASSERT(act);
 
         while (true) {

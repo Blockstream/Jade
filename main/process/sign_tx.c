@@ -60,9 +60,9 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
     JADE_ASSERT(output_info);
     JADE_ASSERT(errmsg);
 
-    size_t length = 0;
-    if (!cbor_value_is_array(change) || cbor_value_get_array_length(change, &length) != CborNoError
-        || length != tx->num_outputs) {
+    size_t num_array_items = 0;
+    if (!cbor_value_is_array(change) || cbor_value_get_array_length(change, &num_array_items) != CborNoError
+        || num_array_items != tx->num_outputs) {
         *errmsg = "Unexpected number of output (change) entries for transaction";
         return false;
     }
@@ -98,7 +98,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                     // 'errmsg' populated by above call
                     return false;
                 }
-                JADE_LOGI("Change is to %uof%u multisig: '%s'", multisig_data.threshold, multisig_data.xpubs_len,
+                JADE_LOGI("Change is to %uof%u multisig: '%s'", multisig_data.threshold, multisig_data.num_xpubs,
                     multisig_name);
 
                 // Get the paths (suffixes) and derive pubkeys

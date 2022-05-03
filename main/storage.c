@@ -539,16 +539,16 @@ bool storage_multisig_name_exists(const char* name)
 }
 
 bool storage_get_all_multisig_registration_names(
-    char names[][NVS_KEY_NAME_MAX_SIZE], const size_t names_len, size_t* written)
+    char names[][NVS_KEY_NAME_MAX_SIZE], const size_t num_names, size_t* num_written)
 {
     JADE_ASSERT(names);
     JADE_ASSERT(*names);
-    JADE_ASSERT(names_len > 0);
-    JADE_ASSERT(written);
+    JADE_ASSERT(num_names > 0);
+    JADE_ASSERT(num_written);
 
     size_t count = 0;
     nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, MULTISIG_NAMESPACE, NVS_TYPE_BLOB);
-    while (it != NULL && count < names_len) {
+    while (it != NULL && count < num_names) {
         nvs_entry_info_t info;
         nvs_entry_info(it, &info);
         strcpy(names[count], info.key);
@@ -560,8 +560,8 @@ bool storage_get_all_multisig_registration_names(
         nvs_release_iterator(it);
     }
 
-    *written = count;
-    return count <= names_len;
+    *num_written = count;
+    return count <= num_names;
 }
 
 bool storage_erase_multisig_registration(const char* name) { return erase_key(MULTISIG_NAMESPACE, name); }

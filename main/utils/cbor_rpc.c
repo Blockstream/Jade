@@ -461,10 +461,10 @@ bool rpc_get_bip32_path_from_value(CborValue* value, uint32_t* path_ptr, const s
     if (!cbor_value_is_array(value)) {
         return false;
     }
-    size_t array_len = 0;
-    CborError cberr = cbor_value_get_array_length(value, &array_len);
+    size_t num_array_items = 0;
+    CborError cberr = cbor_value_get_array_length(value, &num_array_items);
 
-    if (cberr != CborNoError || array_len > max_path_len) {
+    if (cberr != CborNoError || num_array_items > max_path_len) {
         return false;
     }
 
@@ -475,7 +475,7 @@ bool rpc_get_bip32_path_from_value(CborValue* value, uint32_t* path_ptr, const s
     }
 
     uint64_t tmp = 0;
-    for (size_t counter = 0; counter < array_len; ++counter) {
+    for (size_t counter = 0; counter < num_array_items; ++counter) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
         if (!cbor_value_is_unsigned_integer(&arrayItem)) {
             return false;
@@ -498,7 +498,7 @@ bool rpc_get_bip32_path_from_value(CborValue* value, uint32_t* path_ptr, const s
     if (cberr != CborNoError) {
         return false;
     }
-    *written = array_len;
+    *written = num_array_items;
     return true;
 }
 

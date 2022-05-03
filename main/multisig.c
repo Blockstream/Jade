@@ -150,20 +150,20 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
     read_ptr += sizeof(uint8_t);
 
     // All signers immediate parent keys
-    const size_t xpubs_bytes_len = bytes + bytes_len - HMAC_SHA256_LEN - read_ptr;
-    const size_t num_xpubs = xpubs_bytes_len / BIP32_SERIALIZED_LEN;
+    const size_t xpubs_len = bytes + bytes_len - HMAC_SHA256_LEN - read_ptr;
+    const size_t num_xpubs = xpubs_len / BIP32_SERIALIZED_LEN;
     if (num_xpubs > MAX_MULTISIG_SIGNERS) {
-        JADE_LOGE("Unexpected number of multisig signers %d", output->xpubs_len);
+        JADE_LOGE("Unexpected number of multisig signers %d", output->num_xpubs);
         return false;
     }
-    if (num_xpubs * BIP32_SERIALIZED_LEN != xpubs_bytes_len) {
-        JADE_LOGE("Unexpected multisig data length %d for %d signers", bytes_len, output->xpubs_len);
+    if (num_xpubs * BIP32_SERIALIZED_LEN != xpubs_len) {
+        JADE_LOGE("Unexpected multisig data length %d for %d signers", bytes_len, output->num_xpubs);
         return false;
     }
-    output->xpubs_len = (uint8_t)num_xpubs; // ok as less than MAX_MULTISIG_SIGNERS
+    output->num_xpubs = (uint8_t)num_xpubs; // ok as less than MAX_MULTISIG_SIGNERS
 
-    memcpy(output->xpubs, read_ptr, xpubs_bytes_len);
-    read_ptr += xpubs_bytes_len;
+    memcpy(output->xpubs, read_ptr, xpubs_len);
+    read_ptr += xpubs_len;
 
     // Check just got the hmac (checked first, above) left in the buffer
     JADE_ASSERT(read_ptr + HMAC_SHA256_LEN == bytes + bytes_len);
@@ -190,8 +190,8 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
     }
 
     // Sanity check data we are have loaded
-    if (!is_multisig(output->variant) || output->threshold == 0 || output->threshold > output->xpubs_len
-        || !output->xpubs_len || output->xpubs_len > MAX_MULTISIG_SIGNERS) {
+    if (!is_multisig(output->variant) || output->threshold == 0 || output->threshold > output->num_xpubs
+        || !output->num_xpubs || output->num_xpubs > MAX_MULTISIG_SIGNERS) {
         *errmsg = "Multisig wallet data invalid";
     }
 
@@ -207,8 +207,8 @@ bool multisig_validate_paths(
     bool seen_unusual_path = false;
     bool seen_final_element_mismatch = false;
 
-    size_t array_len = 0;
-    if (cbor_value_get_array_length(all_signer_paths, &array_len) != CborNoError || array_len == 0) {
+    size_t num_array_items = 0;
+    if (cbor_value_get_array_length(all_signer_paths, &num_array_items) != CborNoError || num_array_items == 0) {
         return false;
     }
 
@@ -219,7 +219,7 @@ bool multisig_validate_paths(
     CborValue arrayItem;
     CborError cberr = cbor_value_enter_container(all_signer_paths, &arrayItem);
     JADE_ASSERT(cberr == CborNoError);
-    for (size_t i = 0; i < array_len; ++i) {
+    for (size_t i = 0; i < num_array_items; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
 
         size_t path_len = 0;

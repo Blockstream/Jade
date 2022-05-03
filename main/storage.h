@@ -63,7 +63,7 @@ bool storage_get_multisig_registration(
 size_t storage_get_multisig_registration_count(void);
 bool storage_multisig_name_exists(const char* multisig_name);
 bool storage_get_all_multisig_registration_names(
-    char names[][NVS_KEY_NAME_MAX_SIZE], size_t names_len, size_t* written);
+    char names[][NVS_KEY_NAME_MAX_SIZE], size_t num_names, size_t* num_written);
 
 bool storage_erase_multisig_registration(const char* name);
 

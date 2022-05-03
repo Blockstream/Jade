@@ -495,22 +495,22 @@ static void wallet_p2sh_p2wsh_scriptpubkey_for_bytes(const uint8_t* bytes, const
 static void wallet_build_multisig(const bool sorted, const size_t threshold, const uint8_t* pubkeys,
     const size_t pubkeys_len, uint8_t* output, const size_t output_len, size_t* written)
 {
-    const size_t nkeys = pubkeys_len / EC_PUBLIC_KEY_LEN;
-    JADE_ASSERT(nkeys * EC_PUBLIC_KEY_LEN == pubkeys_len);
+    const size_t num_pubkeys = pubkeys_len / EC_PUBLIC_KEY_LEN;
+    JADE_ASSERT(num_pubkeys * EC_PUBLIC_KEY_LEN == pubkeys_len);
 
     JADE_ASSERT(threshold > 0);
-    JADE_ASSERT(threshold <= nkeys);
+    JADE_ASSERT(threshold <= num_pubkeys);
 
     JADE_ASSERT(output);
-    JADE_ASSERT(output_len >= MULTISIG_SCRIPT_LEN(nkeys)); // Sufficient
+    JADE_ASSERT(output_len >= MULTISIG_SCRIPT_LEN(num_pubkeys)); // Sufficient
     JADE_ASSERT(written);
 
     // Create m-of-n multisig script
     const uint32_t flags = sorted ? WALLY_SCRIPT_MULTISIG_SORTED : 0;
-    JADE_LOGI("Generating %uof%u %s multisig script", threshold, nkeys, sorted ? "sorted" : "(unsorted)");
+    JADE_LOGI("Generating %uof%u %s multisig script", threshold, num_pubkeys, sorted ? "sorted" : "(unsorted)");
     JADE_WALLY_VERIFY(
         wally_scriptpubkey_multisig_from_bytes(pubkeys, pubkeys_len, threshold, flags, output, output_len, written));
-    JADE_ASSERT(*written == MULTISIG_SCRIPT_LEN(nkeys));
+    JADE_ASSERT(*written == MULTISIG_SCRIPT_LEN(num_pubkeys));
 }
 
 // Helper to build a 2of2 CSV multisig script

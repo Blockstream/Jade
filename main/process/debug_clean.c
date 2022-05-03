@@ -25,9 +25,9 @@ void debug_clean_reset_process(void* process_ptr)
 
     // Clean multisig registrations from storage
     char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
-    const size_t names_len = sizeof(names) / sizeof(names[0]);
+    const size_t num_names = sizeof(names) / sizeof(names[0]);
     size_t num_multisigs = 0;
-    bool ok = storage_get_all_multisig_registration_names(names, names_len, &num_multisigs);
+    bool ok = storage_get_all_multisig_registration_names(names, num_names, &num_multisigs);
     JADE_ASSERT(ok);
 
     for (int i = 0; i < num_multisigs; ++i) {

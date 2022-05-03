@@ -130,8 +130,8 @@ bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_d
     }
 
     if (!multisig_get_pubkeys(
-            multisig_data->xpubs, multisig_data->xpubs_len, &all_signer_paths, pubkeys, pubkeys_len, pubkeys_written)
-        || *pubkeys_written != multisig_data->xpubs_len * EC_PUBLIC_KEY_LEN) {
+            multisig_data->xpubs, multisig_data->num_xpubs, &all_signer_paths, pubkeys, pubkeys_len, pubkeys_written)
+        || *pubkeys_written != multisig_data->num_xpubs * EC_PUBLIC_KEY_LEN) {
         *errmsg = "Unexpected number of signer paths or invalid path for multisig";
         return false;
     }

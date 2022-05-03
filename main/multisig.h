@@ -21,7 +21,7 @@ typedef struct _multisig_data {
     bool sorted;
     uint8_t threshold;
     uint8_t xpubs[MAX_MULTISIG_SIGNERS * BIP32_SERIALIZED_LEN];
-    uint8_t xpubs_len;
+    uint8_t num_xpubs;
 } multisig_data_t;
 
 // Signer details passed in during multisig registration

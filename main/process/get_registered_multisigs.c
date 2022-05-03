@@ -17,7 +17,7 @@ typedef struct {
 
 typedef struct {
     multisig_desc_t multisigs[MAX_MULTISIG_REGISTRATIONS];
-    size_t multisigs_len;
+    size_t num_multisigs;
 } multisig_descriptions_t;
 
 static void reply_registered_multisigs(const void* ctx, CborEncoder* container)
@@ -25,13 +25,13 @@ static void reply_registered_multisigs(const void* ctx, CborEncoder* container)
     JADE_ASSERT(ctx);
 
     const multisig_descriptions_t* descriptions = (const multisig_descriptions_t*)ctx;
-    JADE_ASSERT(descriptions->multisigs_len <= sizeof(descriptions->multisigs) / sizeof(descriptions->multisigs[0]));
+    JADE_ASSERT(descriptions->num_multisigs <= sizeof(descriptions->multisigs) / sizeof(descriptions->multisigs[0]));
 
     CborEncoder root_encoder;
-    CborError cberr = cbor_encoder_create_map(container, &root_encoder, descriptions->multisigs_len);
+    CborError cberr = cbor_encoder_create_map(container, &root_encoder, descriptions->num_multisigs);
     JADE_ASSERT(cberr == CborNoError);
 
-    for (int i = 0; i < descriptions->multisigs_len; ++i) {
+    for (int i = 0; i < descriptions->num_multisigs; ++i) {
         const multisig_desc_t* const desc = descriptions->multisigs + i;
 
         cberr = cbor_encode_text_stringz(&root_encoder, desc->name);
@@ -65,16 +65,16 @@ void get_registered_multisigs_process(void* process_ptr)
 
     // Get registered multisig names
     char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
-    const size_t names_len = sizeof(names) / sizeof(names[0]);
+    const size_t num_names = sizeof(names) / sizeof(names[0]);
     size_t num_multisigs = 0;
-    if (!storage_get_all_multisig_registration_names(names, names_len, &num_multisigs)) {
+    if (!storage_get_all_multisig_registration_names(names, num_names, &num_multisigs)) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to load multisig registrations", NULL);
         goto cleanup;
     }
 
     // Load description of each
     multisig_descriptions_t descriptions;
-    descriptions.multisigs_len = 0;
+    descriptions.num_multisigs = 0;
     JADE_ASSERT(num_multisigs <= sizeof(descriptions.multisigs) / sizeof(descriptions.multisigs[0]));
 
     for (int i = 0; i < num_multisigs; ++i) {
@@ -84,13 +84,13 @@ void get_registered_multisigs_process(void* process_ptr)
 
         // If valid for this wallet, add description info (name, script-variant, is-sorted, threshold, num-signers)
         if (valid) {
-            multisig_desc_t* const desc = descriptions.multisigs + descriptions.multisigs_len;
+            multisig_desc_t* const desc = descriptions.multisigs + descriptions.num_multisigs;
             desc->name = names[i];
             desc->variant = get_script_variant_string(multisig_data.variant);
             desc->sorted = multisig_data.sorted;
             desc->threshold = multisig_data.threshold;
-            desc->num_signers = multisig_data.xpubs_len;
-            ++descriptions.multisigs_len;
+            desc->num_signers = multisig_data.num_xpubs;
+            ++descriptions.num_multisigs;
         } else if (errmsg) {
             // Corrupt or for another wallet - just log and skip
             JADE_LOGD("%s", errmsg);
