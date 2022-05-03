@@ -265,9 +265,9 @@ bool wallet_derive_from_xpub(
         SENSITIVE_POP(bytes);
         return false;
     }
-    const bool retval = wallet_derive_pubkey(bytes, written, path, path_len, flags, hdkey);
+    const bool ret = wallet_derive_pubkey(bytes, written, path, path_len, flags, hdkey);
     SENSITIVE_POP(bytes);
-    return retval;
+    return ret;
 }
 
 // Internal helper to get a derived private key - note 'output' should point to a buffer of size EC_PRIVATE_KEY_LEN
@@ -930,12 +930,12 @@ bool wallet_get_public_blinding_key(
 
     uint8_t privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
-    const bool retval = wallet_get_blinding_privkey(script, script_len, privkey, sizeof(privkey));
-    if (retval) {
+    const bool ret = wallet_get_blinding_privkey(script, script_len, privkey, sizeof(privkey));
+    if (ret) {
         JADE_WALLY_VERIFY(wally_ec_public_key_from_private_key(privkey, sizeof(privkey), output, output_len));
     }
     SENSITIVE_POP(privkey);
-    return retval;
+    return ret;
 }
 
 bool wallet_get_blinding_factor(const uint8_t* hash_prevouts, const size_t hash_len, const size_t output_index,

@@ -122,8 +122,8 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                 const size_t max_path_len = sizeof(path) / sizeof(path[0]);
 
                 // NOTE: for receiving change the root (empty bip32 path) is not allowed.
-                bool retval = rpc_get_bip32_path("path", &arrayItem, path, max_path_len, &path_len);
-                if (!retval || path_len == 0) {
+                const bool ret = rpc_get_bip32_path("path", &arrayItem, path, max_path_len, &path_len);
+                if (!ret || path_len == 0) {
                     *errmsg = "Failed to extract valid change path from parameters";
                     return false;
                 }
@@ -363,8 +363,8 @@ void sign_tx_process(void* process_ptr)
 
     // copy the amount
     uint32_t num_inputs = 0;
-    bool retval = rpc_get_sizet("num_inputs", &params, &num_inputs);
-    if (!retval || num_inputs == 0) {
+    bool ret = rpc_get_sizet("num_inputs", &params, &num_inputs);
+    if (!ret || num_inputs == 0) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid number of inputs from parameters", NULL);
         goto cleanup;
@@ -474,8 +474,8 @@ void sign_tx_process(void* process_ptr)
         JADE_ASSERT(written != 0);
 
         bool is_witness = false;
-        retval = rpc_get_boolean("is_witness", &params, &is_witness);
-        if (!retval) {
+        ret = rpc_get_boolean("is_witness", &params, &is_witness);
+        if (!ret) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract is_witness from parameters", NULL);
             goto cleanup;
@@ -572,8 +572,8 @@ void sign_tx_process(void* process_ptr)
             JADE_LOGD("Single witness input - using explicitly passed amount");
 
             // Get the amount
-            retval = rpc_get_uint64_t("satoshi", &params, &input_satoshi);
-            if (!retval) {
+            ret = rpc_get_uint64_t("satoshi", &params, &input_satoshi);
+            if (!ret) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract satoshi from parameters", NULL);
                 goto cleanup;

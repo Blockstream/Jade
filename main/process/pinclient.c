@@ -524,12 +524,12 @@ static bool get_pin_secret(const uint8_t* pin, const size_t pin_len, const uint8
     uint8_t hmac_key[HMAC_SHA256_LEN];
     SENSITIVE_PUSH(hmac_key, sizeof(hmac_key));
 
-    const bool retval
+    const bool ret
         = wally_hmac_sha256(pin_privatekey, EC_PRIVATE_KEY_LEN, &subkey, 1, hmac_key, HMAC_SHA256_LEN) == WALLY_OK
         && wally_hmac_sha256(hmac_key, sizeof(hmac_key), pin, pin_len, pin_secret, HMAC_SHA256_LEN) == WALLY_OK;
 
     SENSITIVE_POP(hmac_key);
-    return retval;
+    return ret;
 }
 
 // Sign the payload with the private key
@@ -551,14 +551,14 @@ static bool sign_payload(
     memcpy(&shadata[EC_PUBLIC_KEY_LEN], pinsecret, PIN_SECRET_LEN);
     memcpy(&shadata[EC_PUBLIC_KEY_LEN + PIN_SECRET_LEN], entropy, ENTROPY_LEN);
 
-    const bool retval = wally_sha256(shadata, sizeof(shadata), shahash, sizeof(shahash)) == WALLY_OK
+    const bool ret = wally_sha256(shadata, sizeof(shadata), shahash, sizeof(shahash)) == WALLY_OK
         && wally_ec_sig_from_bytes(pin_privatekey, EC_PRIVATE_KEY_LEN, shahash, sizeof(shahash),
                EC_FLAG_ECDSA | EC_FLAG_RECOVERABLE, sig, EC_SIGNATURE_RECOVERABLE_LEN)
             == WALLY_OK;
 
     SENSITIVE_POP(shadata);
     SENSITIVE_POP(shahash);
-    return retval;
+    return ret;
 }
 
 // Calculate the hmac of the cke + (encrypted) payload

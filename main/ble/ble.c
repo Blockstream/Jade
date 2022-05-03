@@ -717,15 +717,15 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
 
 // In a debug unattended ci build, assume 'confirm' button clicked after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-            const bool retval = gui_activity_wait_event(
+            const bool ret = gui_activity_wait_event(
                 activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 30000 / portTICK_PERIOD_MS);
 #else
             vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-            const bool retval = true;
+            const bool ret = true;
             ev_id = BTN_BLE_CONFIRM;
 #endif
 
-            if (retval && ev_id == BTN_BLE_CONFIRM) {
+            if (ret && ev_id == BTN_BLE_CONFIRM) {
                 // Confirmed
                 JADE_LOGI("User pressed confirm");
                 pkey.numcmp_accept = 1;
@@ -735,7 +735,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
                     JADE_LOGE("ble_sm_inject_io errored: %d", rc);
                 }
             } else {
-                if (retval) {
+                if (ret) {
                     // Denied
                     JADE_LOGI("User pressed deny");
                 } else {

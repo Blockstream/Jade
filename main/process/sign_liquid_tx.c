@@ -264,8 +264,8 @@ void sign_liquid_tx_process(void* process_ptr)
 
     // copy the amount
     uint32_t num_inputs = 0;
-    bool retval = rpc_get_sizet("num_inputs", &params, &num_inputs);
-    if (!retval || num_inputs == 0) {
+    bool ret = rpc_get_sizet("num_inputs", &params, &num_inputs);
+    if (!ret || num_inputs == 0) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid number of inputs from parameters", NULL);
         goto cleanup;
@@ -420,8 +420,8 @@ void sign_liquid_tx_process(void* process_ptr)
         JADE_ASSERT(written != 0);
 
         bool is_witness = false;
-        retval = rpc_get_boolean("is_witness", &params, &is_witness);
-        if (!retval) {
+        ret = rpc_get_boolean("is_witness", &params, &is_witness);
+        if (!ret) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract is_witness from parameters", NULL);
             goto cleanup;

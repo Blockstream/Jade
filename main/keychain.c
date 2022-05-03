@@ -268,7 +268,7 @@ bool keychain_complete_derivation_with_passphrase(const char* passphrase)
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     // Convert entropy bytes to mnemonic string
-    bool retval = false;
+    bool ret = false;
     char* mnemonic = NULL;
     if (bip39_mnemonic_from_bytes(NULL, mnemonic_entropy, mnemonic_entropy_len, &mnemonic) != WALLY_OK) {
         JADE_LOGE("Failed to convert entropy bytes to mnemonic string");
@@ -277,17 +277,17 @@ bool keychain_complete_derivation_with_passphrase(const char* passphrase)
     JADE_ASSERT(mnemonic);
 
     SENSITIVE_PUSH(mnemonic, strlen(mnemonic));
-    retval = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
+    ret = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
     SENSITIVE_POP(mnemonic);
     wally_free_string(mnemonic);
 
-    if (retval) {
+    if (ret) {
         keychain_set(&keydata, 0, false);
     }
 
 cleanup:
     SENSITIVE_POP(&keydata);
-    return retval;
+    return ret;
 }
 
 static void serialize(uint8_t* serialized, const size_t serialized_len, const keychain_t* keydata)
