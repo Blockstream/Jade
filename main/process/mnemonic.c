@@ -221,8 +221,8 @@ cleanup:
     return mnemonic_confirmed;
 }
 
-static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_activity_t* act, gui_view_node_t* backspace,
-    gui_view_node_t** btns, const size_t btns_len, bool* valid_word)
+static void enable_relevant_chars(const char* word, const size_t word_len, const struct words* wordlist,
+    gui_activity_t* act, gui_view_node_t* backspace, gui_view_node_t** btns, const size_t btns_len)
 {
     JADE_ASSERT(word);
     JADE_ASSERT(wordlist);
@@ -230,9 +230,7 @@ static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_acti
     JADE_ASSERT(backspace);
     JADE_ASSERT(btns);
     JADE_ASSERT(btns_len == 26); // ie A->Z
-    JADE_ASSERT(valid_word);
 
-    const size_t word_len = strlen(word);
     JADE_LOGD("word = %s, word_len = %u", word, word_len);
 
     // Enable backspace in all cases
@@ -258,12 +256,8 @@ static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_acti
             gui_set_active(act, btns[i], true);
         }
 
-        return 0;
+        return;
     }
-
-    size_t num_possible_words = 0;
-
-    *valid_word = false;
 
     bool enabled[26] = { false };
     for (size_t wordlist_index = 0; wordlist_index < 2048; wordlist_index++) {
@@ -279,14 +273,7 @@ static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_acti
             break;
         }
 
-        // compare the entire word now, not just the prefix
-        if (strcmp(word, wordlist_extracted) == 0) {
-            *valid_word = true;
-        }
-
-        num_possible_words++;
-
-        size_t char_index = wordlist_extracted[word_len] - 'a';
+        const size_t char_index = wordlist_extracted[word_len] - 'a';
         enabled[char_index] = true;
 
         wally_free_string(wordlist_extracted);
@@ -311,26 +298,21 @@ static size_t enable_relevant_chars(char* word, struct words* wordlist, gui_acti
             selectNext = false;
         }
     }
-
-    return num_possible_words;
 }
 
-static size_t valid_words(char* word, struct words* wordlist, size_t* possible_word_list,
-    const size_t possible_word_list_len, bool* valid_word)
+static size_t valid_words(const char* word, const size_t word_len, const struct words* wordlist,
+    size_t* possible_word_list, const size_t possible_word_list_len)
 {
     JADE_ASSERT(word);
     JADE_ASSERT(wordlist);
     JADE_ASSERT(possible_word_list);
-    JADE_ASSERT(valid_word);
 
-    const size_t word_len = strlen(word);
     JADE_LOGD("word = %s, word_len = %u", word, word_len);
 
     size_t num_possible_words = 0;
     for (size_t i = 0; i < possible_word_list_len; i++) {
         possible_word_list[i] = 0;
     }
-    *valid_word = false;
 
     for (size_t wordlist_index = 0; wordlist_index < 2048; wordlist_index++) {
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
@@ -344,11 +326,6 @@ static size_t valid_words(char* word, struct words* wordlist, size_t* possible_w
         } else if (res > 0) {
             wally_free_string(wordlist_extracted);
             break;
-        }
-
-        // compare the entire word now, not just the prefix
-        if (strcmp(word, wordlist_extracted) == 0) {
-            *valid_word = true;
         }
 
         // return first possible_word_list_len compatible words
@@ -387,7 +364,6 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
 
     for (size_t word_index = 0; word_index < nwords; ++word_index) {
         char word[16] = { 0 };
-        bool valid_word = false;
         size_t char_index = 0;
         int32_t ev_id;
 
@@ -400,9 +376,8 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
         enter->is_active = false;
 
         while (char_index < 16) {
-            valid_word = false;
             size_t possible_word_list[10];
-            size_t possible_words = valid_words(word, wordlist, possible_word_list, 10, &valid_word);
+            const size_t possible_words = valid_words(word, char_index, wordlist, possible_word_list, 10);
             if (possible_words < 11) {
                 enter->is_active = false;
                 char choose_word_title[16];
@@ -492,7 +467,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
             } else { // else if possible_words >= 11
                 // Update the typed word
                 gui_update_text(textbox, word);
-                enable_relevant_chars(word, wordlist, enter_word_activity, backspace, btns, btns_len, &valid_word);
+                enable_relevant_chars(word, char_index, wordlist, enter_word_activity, backspace, btns, btns_len);
 
                 gui_activity_wait_event(enter_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
