@@ -19,6 +19,8 @@
 
 #include <ctype.h>
 
+// NOTE: Jade only supports the bip39 English wordlist
+
 // Should be large enough for all 12 and 24 word mnemonics
 #define MNEMONIC_MAXWORDS 24
 #define MNEMONIC_BUFLEN 256
@@ -73,7 +75,7 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
     JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
-    // generate and show the mnemonic
+    // Generate and show the mnemonic - NOTE: only the English wordlist is supported.
     char* new_mnemonic = NULL;
     keychain_get_new_mnemonic(&new_mnemonic, nwords);
     JADE_ASSERT(new_mnemonic);
@@ -347,6 +349,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
     JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
+    // NOTE: only the English wordlist is supported.
     struct words* wordlist;
     bip39_get_wordlist(NULL, &wordlist);
     size_t mnemonic_offset = 0;
@@ -503,6 +506,65 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
     return true;
 }
 
+// Take a nul terminated string of space-separated mnemonic-word prefixes, and populate a string of
+// space-separated full mnemonic words (also nul terminated).
+// Returns true if it works!  Returns false if any of the prefixes are not a prefix for exactly one
+// valid mnemonic word, or if the expanded string is too large for the provided buffer.
+static bool expand_words(
+    char* mnemonic, const size_t mnemonic_len, const struct words* wordlist, const char* mnemonic_word_prefixes)
+{
+    JADE_ASSERT(mnemonic);
+    JADE_ASSERT(mnemonic_len);
+    JADE_ASSERT(wordlist);
+    JADE_ASSERT(mnemonic_word_prefixes);
+
+    size_t write_pos = 0;
+    const char* read_ptr = mnemonic_word_prefixes;
+    const char* end_ptr = read_ptr;
+
+    while (*end_ptr != '\0' && write_pos < mnemonic_len) {
+        // Find the next prefix
+        end_ptr = strchr(read_ptr, ' ');
+        if (!end_ptr) {
+            end_ptr = strchr(read_ptr, '\0');
+        }
+        JADE_ASSERT(end_ptr);
+        JADE_ASSERT(end_ptr > mnemonic_word_prefixes);
+
+        // Lookup prefix in the passed wordlist, ensuring exactly one match
+        size_t possible_match;
+        const size_t nmatches = valid_words(read_ptr, (end_ptr - read_ptr), wordlist, &possible_match, 1);
+        if (nmatches != 1) {
+            JADE_LOGW("%d matches for prefix: %.*s", nmatches, (end_ptr - read_ptr), read_ptr);
+            mnemonic[0] = '\0';
+            return false;
+        }
+
+        char* wordlist_extracted = NULL;
+        bip39_get_word(wordlist, possible_match, &wordlist_extracted);
+        const size_t word_len = strlen(wordlist_extracted);
+        if (write_pos + word_len >= mnemonic_len) {
+            JADE_LOGW("Expanded mnemonic too long");
+            wally_free_string(wordlist_extracted);
+            mnemonic[0] = '\0';
+            return false;
+        }
+
+        // Copy the expanded word into the mnemonic
+        strcpy(mnemonic + write_pos, wordlist_extracted);
+        wally_free_string(wordlist_extracted);
+        write_pos += word_len;
+        mnemonic[write_pos++] = *end_ptr; // ie. space separator or nul terminator
+
+        // Update read pointer to be after the whitespace
+        read_ptr = end_ptr + 1;
+    }
+
+    // Return true if we have successfully consumed all input
+    JADE_ASSERT(write_pos <= mnemonic_len);
+    return *end_ptr == '\0';
+}
+
 static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
 {
     JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
@@ -540,10 +602,16 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
         const size_t len = strnlen(camera_data.strdata, sizeof(camera_data.strdata));
         JADE_ASSERT(len < sizeof(camera_data.strdata));
 
-        if (len < MNEMONIC_BUFLEN) {
-            strcpy(mnemonic, camera_data.strdata);
-        } else {
+        if (len >= MNEMONIC_BUFLEN) {
             JADE_LOGW("String data from qr unexpectedly long - ignored: %u", len);
+            mnemonic[0] = '\0';
+        }
+
+        // NOTE: only the English wordlist is supported.
+        struct words* wordlist;
+        bip39_get_wordlist(NULL, &wordlist);
+        if (!expand_words(mnemonic, mnemonic_len, wordlist, camera_data.strdata)) {
+            JADE_LOGW("Failed to expand given word prefixes into valid mnemonic words");
             mnemonic[0] = '\0';
         }
     }
