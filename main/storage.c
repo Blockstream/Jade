@@ -59,7 +59,7 @@ static const size_t NUM_ESP_RESERVED_ENTRIES = 126;
         }                                                                                                              \
     } while (false)
 
-// Macro to persist a null-terminated string to nvs
+// Macro to persist a nul terminated string to nvs
 #define STORAGE_SET_STRING(h, k, v)                                                                                    \
     do {                                                                                                               \
         const esp_err_t err = nvs_set_str(h, k, v);                                                                    \

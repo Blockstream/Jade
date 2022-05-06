@@ -53,7 +53,7 @@ void debug_set_mnemonic_process(void* process_ptr)
         temporary_wallet = true;
     } else {
         // Cannot use rpc_get_string_ptr here unfortunately because the resulting string
-        // is not null-terminated and we need a null terminated string to pass to wally
+        // is not nul terminated and we need a nul terminated string to pass to wally
         rpc_get_string("mnemonic", sizeof(mnemonic), &params, mnemonic, &written);
         if (written == 0) {
             jade_process_reject_message(

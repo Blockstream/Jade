@@ -241,7 +241,7 @@ void rpc_get_string(const char* field, const size_t max, const CborValue* value,
     }
 
     // If tmp_len == max, the cbor_value_copy_text_string() function skips writing a NULL terminator.
-    // Simpler to always ensure there is space, then the returned string is always null-terminated.
+    // Simpler to always ensure there is space, then the returned string is always nul terminated.
     if (tmp_len >= max) {
         return;
     }
@@ -250,7 +250,7 @@ void rpc_get_string(const char* field, const size_t max, const CborValue* value,
 
     cberr = cbor_value_copy_text_string(&result, data, &local_written, NULL);
     JADE_ASSERT(cberr == CborNoError);
-    JADE_ASSERT(local_written < max); // local_written does not include null-terminator
+    JADE_ASSERT(local_written < max); // local_written does not include nul terminator
     JADE_ASSERT(data[local_written] == '\0');
     *written = local_written;
 }
