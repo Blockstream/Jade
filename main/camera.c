@@ -113,11 +113,11 @@ static void extract_payload(struct quirc* q, jade_camera_data_t* camera_data)
             JADE_LOGW("QUIRC data too long to handle: %u", data.payload_len);
             JADE_ASSERT(data.payload_len <= sizeof(data.payload));
         } else {
-            // The payload appears to be a null-terminated string, but the
+            // The payload appears to be a nul terminated string, but the
             // 'payload_len'seems to be the string length not including that
             // terminator.
             // To avoid any confusion or grey areas, we copy the bytes,
-            // and then explicitly add the null terminator ourselves.
+            // and then explicitly add the nul terminator ourselves.
             memcpy(camera_data->strdata, data.payload, data.payload_len);
             camera_data->strdata[data.payload_len] = '\0';
             SENSITIVE_POP(&data);

@@ -224,7 +224,7 @@ cleanup:
     return;
 }
 
-// method_name should be a string literal - or at least non-null and null-terminated
+// method_name should be a string literal - or at least non-null and nul terminated
 #define IS_METHOD(method_name) (!strncmp(method, method_name, method_len) && strlen(method_name) == method_len)
 
 // Message dispatcher - expects valid cbor messages, routed by 'method'

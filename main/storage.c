@@ -86,7 +86,7 @@ static const size_t NUM_ESP_RESERVED_ENTRIES = 126;
         }                                                                                                              \
     } while (false)
 
-// Macro to fetch a null-terminated string from nvs
+// Macro to fetch a nul terminated string from nvs
 #define STORAGE_GET_STRING(h, k, v, l, pw)                                                                             \
     do {                                                                                                               \
         *pw = l;                                                                                                       \
