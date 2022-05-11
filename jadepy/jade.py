@@ -791,7 +791,7 @@ class JadeAPI:
             params = {'path': path, 'message': message}
             return self._jadeRpc('sign_message', params)
 
-    def get_identity_pubkey(self, identity, curve, type, index=0):
+    def get_identity_pubkey(self, identity, curve, key_type, index=0):
         """
         RPC call to fetch a pubkey for the given identity (slip13/slip17).
         NOTE: this api returns an uncompressed public key
@@ -804,7 +804,7 @@ class JadeAPI:
         curve : str
             Name of curve to use - currently only 'nist256p1' is supported
 
-        type : str
+        key_type : str
             Key derivation type - must be either 'slip-0013' for an identity pubkey, or 'slip-0017'
             for an ecdh pubkey.
 
@@ -816,10 +816,11 @@ class JadeAPI:
         -------
         65-bytes
             Uncompressed public key for the given identity and index.
-            Consistent with 'sign_identity' or 'get_identity_shared_key', depending on the 'type'.
+            Consistent with 'sign_identity' or 'get_identity_shared_key', depending on the
+            'key_type'.
 
         """
-        params = {'identity': identity, 'curve': curve, 'type': type, 'index': index}
+        params = {'identity': identity, 'curve': curve, 'type': key_type, 'index': index}
         return self._jadeRpc('get_identity_pubkey', params)
 
     def get_identity_shared_key(self, identity, curve, their_pubkey, index=0):
@@ -846,7 +847,7 @@ class JadeAPI:
         -------
         32-bytes
             The shared ecdh key for the given identity and cpty public key
-            Consistent with 'get_identity_pubkey' with 'type=slip-0017'
+            Consistent with 'get_identity_pubkey' with 'key_type=slip-0017'
         """
         params = {'identity': identity, 'curve': curve, 'index': index,
                   'their_pubkey': their_pubkey}
@@ -879,7 +880,7 @@ class JadeAPI:
         dict
             Contains keys:
             pubkey - 65-bytes, the uncompressed SLIP-0013 public key, consistent with
-            'get_identity_pubkey' with 'type=slip-0013'
+            'get_identity_pubkey' with 'key_type=slip-0013'
             signature - 65-bytes, RFC6979 deterministic signature, prefixed with 0x00
         """
         params = {'identity': identity, 'curve': curve, 'index': index, 'challenge': challenge}
