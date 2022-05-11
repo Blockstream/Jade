@@ -707,19 +707,19 @@ class JadeAPI:
                 Defaults to 0 (ie. does not apply/not a csv-enabled account.)
 
         2. Generic single-sig addresses
-            variant: str
-                The script type - one of 'pkh(k)', 'wpkh(k)', 'sh(wpkh(k))'
-
             path: [int]
                 bip32 path for which the xpub should be generated.
 
-        3. Generic multisig addresses
-            multisig_name : str
-                The name of the registered multisig wallet record used to generate the address.
+            variant: str
+                The script type - one of 'pkh(k)', 'wpkh(k)', 'sh(wpkh(k))'
 
+        3. Generic multisig addresses
             paths: [[int]]
                 bip32 path suffixes, one for each signer, applied as a suffix to the registered
                 signer path. Usually these path suffixes will all be identical.
+
+            multisig_name : str
+                The name of the registered multisig wallet record used to generate the address.
 
         Returns
         -------
@@ -964,7 +964,7 @@ class JadeAPI:
         Normally the blinding factors are generated and returned in the `get_commitments` call,
         but for the last output the vbf must be generated on the host, so this call allows the
         host to get a valid abf to compute the generator and then the "final" vbf.
-        Nonetheless, this call is kept generic, and can also generate vbfs, hence the "type"
+        Nonetheless, this call is kept generic, and can also generate vbfs, hence the "bftype"
         parameter.
 
         Parameters
