@@ -14,8 +14,8 @@ RUN cd ~/esp/esp-idf && git checkout ${ESP_IDF_COMMIT} && ./install.sh esp32
 FROM base AS esp-qemu
 
 # These ARGs are easily parseable (eg by HWI)
-ARG ESP_QEMU_BRANCH=esp-develop-20210826
-ARG ESP_QEMU_COMMIT=fd85235d17cd8813d6a31f5ced3c5acbf1933718
+ARG ESP_QEMU_BRANCH=esp-develop-20220203
+ARG ESP_QEMU_COMMIT=440ff71648f0a6682ad59cf34929c0172c7f27af
 RUN git clone --quiet --depth 1 --branch ${ESP_QEMU_BRANCH} --single-branch --recursive https://github.com/espressif/qemu.git \
 && cd qemu && git checkout ${ESP_QEMU_COMMIT} \
     && ./configure --target-list=xtensa-softmmu --static --prefix=/opt \
