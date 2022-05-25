@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.34] - 2022-05-27
+### Added
+- Add support for generic multisig on liquid and remove requirement on deterministic blinders and commitments hmac
+- Show battery icon in orange/red when charge level low/very-low
+
+### Changed
+- Update Liquid asset registry info
+- Update ESP-IDF base firmware to v4.4.1
+- Increase max supported BIP39 passphrase length to 100 characters
+- QR mnemonic scan accepts unambiguous word prefixes
+- Refactor OTA and OTA-delta to use a common submodule to wrap the fw decompress
+
+### Fixed
+- Fixed occasional ephemeral 'low battery' icon when battery charged/charging
+- Fixed rare/intermittent failure to start camera
+- Always send rejection message when receive buffers stale or overflowed
+- Reduce memory usage and memory fragmentation
+- Internal code-consistency improvements
+
 ## [0.1.33] - 2022-03-03
 ### Added
 - Support for OTA by delta, rather than uploading entire firmware image
