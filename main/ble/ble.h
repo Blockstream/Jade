@@ -13,9 +13,6 @@ bool ble_connected(void);
 void ble_start(void);
 void ble_stop(void);
 
-void ble_start_advertising(void);
-void ble_stop_advertising(void);
-
 bool ble_remove_all_devices(void);
 
 #endif /* BLE_H_ */

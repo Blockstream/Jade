@@ -59,7 +59,8 @@ static uint16_t peer_conn_attr_handle = 0;
 static const size_t ATT_OVERHEAD = 3;
 static const size_t MAX_BLE_ATTR_SIZE = 512;
 static size_t ble_max_write_size = 0;
-static TaskHandle_t* ble_writer_handle = NULL;
+static TaskHandle_t* p_ble_writer_handle = NULL;
+static SemaphoreHandle_t writer_shutdown_done = NULL;
 
 gui_activity_t* make_ble_confirmation_activity(uint32_t numcmp);
 
@@ -227,7 +228,7 @@ static void ble_print_conn_desc(struct ble_gap_conn_desc* desc)
         desc->sec_state.authenticated, desc->sec_state.bonded);
 }
 
-void ble_start_advertising(void)
+static void ble_start_advertising(void)
 {
     JADE_LOGI("ble_start_advertising() - Starting ble advertising with own_addr_type: %d", own_addr_type);
 
@@ -299,12 +300,6 @@ void ble_start_advertising(void)
     refeed_entropy(addr_val, sizeof(addr_val));
 }
 
-void ble_stop_advertising(void)
-{
-    JADE_LOGI("ble_stop_advertising() - Stopping ble advertising");
-    ble_gap_adv_stop();
-}
-
 static bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
 {
     JADE_ASSERT(msg);
@@ -348,11 +343,17 @@ static bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
 
 static void ble_writer(void* ignore)
 {
-    while (1) {
+    while (ble_is_enabled) {
         while (jade_process_get_out_message(&write_ble, SOURCE_BLE, NULL)) {
             // process messages
         }
-        xTaskNotifyWait(0x00, ULONG_MAX, NULL, portMAX_DELAY);
+        xTaskNotifyWait(0x00, ULONG_MAX, NULL, 100 / portTICK_PERIOD_MS);
+    }
+
+    // Post 'exit' event and wait to be killed
+    xSemaphoreGive(writer_shutdown_done);
+    for (;;) {
+        vTaskDelay(portMAX_DELAY);
     }
 }
 
@@ -447,6 +448,7 @@ static void ble_task(void* param)
     // Returns when nimble_port_stop() runs
     nimble_port_run();
 
+    // This call will kill this task and so never return
     nimble_port_freertos_deinit();
 }
 
@@ -465,13 +467,10 @@ bool ble_init(TaskHandle_t* ble_handle)
     full_ble_data_in = (uint8_t*)JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
     full_ble_data_in[0] = SOURCE_BLE;
     ble_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
+    p_ble_writer_handle = ble_handle;
 
-    const BaseType_t retval = xTaskCreatePinnedToCore(
-        &ble_writer, "ble_writer", 2 * 1024 + 512, NULL, JADE_TASK_PRIO_WRITER, ble_handle, JADE_CORE_SECONDARY);
-    JADE_ASSERT_MSG(
-        retval == pdPASS, "Failed to create ble_writer task, xTaskCreatePinnedToCore() returned %d", retval);
-
-    ble_writer_handle = ble_handle;
+    writer_shutdown_done = xSemaphoreCreateBinary();
+    JADE_ASSERT(writer_shutdown_done);
 
     // Start automatically only if persisted flag set
     // (This won't start automatically on first boot - only once user has explicitly enabled)
@@ -494,6 +493,11 @@ bool ble_init(TaskHandle_t* ble_handle)
 
 void ble_start(void)
 {
+    if (ble_is_enabled) {
+        // Already started
+        return;
+    }
+
     /*
      * FIXME: should be able to free more memory
        esp_bt_controller_disable();
@@ -534,23 +538,38 @@ void ble_start(void)
 
     ble_is_enabled = true;
     nimble_port_freertos_init(ble_task);
+
+    // Start the writer task
+    JADE_ASSERT(p_ble_writer_handle);
+    const BaseType_t retval = xTaskCreatePinnedToCore(&ble_writer, "ble_writer", 2 * 1024 + 512, NULL,
+        JADE_TASK_PRIO_WRITER, p_ble_writer_handle, JADE_CORE_SECONDARY);
+    JADE_ASSERT_MSG(
+        retval == pdPASS, "Failed to create ble_writer task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
 void ble_stop(void)
 {
+    if (!ble_is_enabled) {
+        // Already stopped
+        return;
+    }
+
+    // flag tasks to die
     ble_is_enabled = false;
 
     int ret = nimble_port_stop();
     if (ret == 0) {
         nimble_port_deinit();
     }
+
+    // The above kills the main BLE task
+    // Kill our writer task
+    xSemaphoreTake(writer_shutdown_done, portMAX_DELAY);
+    vTaskDelete(*p_ble_writer_handle);
+    *p_ble_writer_handle = NULL;
 }
 
-bool ble_enabled(void)
-{
-    // FIXME: get from NIMBLE
-    return ble_is_enabled;
-}
+bool ble_enabled(void) { return ble_is_enabled; }
 
 bool ble_connected(void) { return ble_is_connected; }
 
@@ -622,8 +641,8 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
     case BLE_GAP_EVENT_NOTIFY_TX:
         // ble device got our notification, we can send the next msg
         JADE_LOGI("notify tx received, notifying writer");
-        if (ble_writer_handle != NULL) {
-            xTaskNotify(*ble_writer_handle, 0, eNoAction);
+        if (p_ble_writer_handle != NULL) {
+            xTaskNotify(*p_ble_writer_handle, 0, eNoAction);
         }
         break;
 
