@@ -48,3 +48,16 @@ void jade_abort(const char* file, const int line_n);
     } while (false)
 
 #endif
+
+// Macro to try to take what should be an available/low-contention mutex
+// Warns if taking longer than expected, eventually asserts
+#define JADE_SEMAPHORE_TAKE(s)                                                                                         \
+    do {                                                                                                               \
+        int attempt = 0;                                                                                               \
+        while (xSemaphoreTake(s, 500 / portTICK_PERIOD_MS) != pdTRUE) {                                                \
+            JADE_LOGW("Failed to acquire mutex, attempt %u", ++attempt);                                               \
+            JADE_ASSERT_MSG(attempt < 10, "Fatal failure to acquire mutex, exhausted retries");                        \
+        }                                                                                                              \
+    } while (false)
+
+#define JADE_SEMAPHORE_GIVE(s) xSemaphoreGive(s)

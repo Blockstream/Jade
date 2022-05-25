@@ -25,19 +25,6 @@
 ESP_EVENT_DEFINE_BASE(GUI_BUTTON_EVENT);
 ESP_EVENT_DEFINE_BASE(GUI_EVENT);
 
-// Macro to try to take what should be an available/low-contention mutex
-// Warns if taking longer than expected, eventually aborts
-#define GUI_SEMAPHORE_TAKE(s)                                                                                          \
-    do {                                                                                                               \
-        int attempt = 0;                                                                                               \
-        while (xSemaphoreTake(s, 500 / portTICK_PERIOD_MS) != pdTRUE) {                                                \
-            JADE_LOGW("Failed to acquire mutex, attempt %u", ++attempt);                                               \
-            JADE_ASSERT_MSG(attempt < 10, "Fatal failure to acquire mutex, exhausted retries");                        \
-        }                                                                                                              \
-    } while (false)
-
-#define GUI_SEMAPHORE_GIVE(s) xSemaphoreGive(s)
-
 typedef struct _activity_holder_t activity_holder_t;
 struct _activity_holder_t {
     gui_activity_t activity;
@@ -1308,7 +1295,7 @@ void gui_update_text(gui_view_node_t* node, const char* text)
     gui_view_node_t* const root = gui_get_root_node(node);
 
     // Get the activity mutex
-    GUI_SEMAPHORE_TAKE(activities_mutex);
+    JADE_SEMAPHORE_TAKE(activities_mutex);
 
     // Update the text node text
     gui_update_text_node_text(node, text);
@@ -1325,7 +1312,7 @@ void gui_update_text(gui_view_node_t* node, const char* text)
     }
 
     // Release the activity mutex
-    GUI_SEMAPHORE_GIVE(activities_mutex);
+    JADE_SEMAPHORE_GIVE(activities_mutex);
 }
 
 // Takes the activities_mutex, updates the picture, and then only draws the
@@ -1339,7 +1326,7 @@ void gui_update_picture(gui_view_node_t* node, const Picture* picture)
     gui_view_node_t* const root = gui_get_root_node(node);
 
     // Get the activity mutex
-    GUI_SEMAPHORE_TAKE(activities_mutex);
+    JADE_SEMAPHORE_TAKE(activities_mutex);
 
     // Update picture
     node->picture->picture = picture;
@@ -1350,7 +1337,7 @@ void gui_update_picture(gui_view_node_t* node, const Picture* picture)
     }
 
     // Release the activity mutex
-    GUI_SEMAPHORE_GIVE(activities_mutex);
+    JADE_SEMAPHORE_GIVE(activities_mutex);
 }
 
 static inline color_t DEBUG_COLOR(uint8_t depth)
@@ -1664,7 +1651,7 @@ void gui_repaint(gui_view_node_t* node, bool take_mutex)
 
     if (take_mutex) {
         // obtain a lock on the paint mutex
-        GUI_SEMAPHORE_TAKE(paint_mutex);
+        JADE_SEMAPHORE_TAKE(paint_mutex);
     }
 
     // borders use the un-padded constraints
@@ -1703,7 +1690,7 @@ void gui_repaint(gui_view_node_t* node, bool take_mutex)
     }
 
     if (take_mutex) {
-        GUI_SEMAPHORE_GIVE(paint_mutex);
+        JADE_SEMAPHORE_GIVE(paint_mutex);
     }
 }
 
@@ -1742,7 +1729,7 @@ static bool switch_activities(void)
         JADE_ASSERT(switch_info->new_activity);
 
         // Take the activities mutex while we swap activities
-        GUI_SEMAPHORE_TAKE(activities_mutex);
+        JADE_SEMAPHORE_TAKE(activities_mutex);
 
         if (switch_info->new_activity != current_activity) {
 
@@ -1793,7 +1780,7 @@ static bool switch_activities(void)
         }
 
         // Release the activities mutex
-        GUI_SEMAPHORE_GIVE(activities_mutex);
+        JADE_SEMAPHORE_GIVE(activities_mutex);
 
         // Return the ringbuffer slot
         vRingbufferReturnItem(switch_activities_queue, switch_info);
@@ -2061,7 +2048,7 @@ void gui_activity_register_event(
 
     // Get the activities mutex before we update the activity events
     // or check the current activity, as can be concurrent with 'switch_activities()'
-    GUI_SEMAPHORE_TAKE(activities_mutex);
+    JADE_SEMAPHORE_TAKE(activities_mutex);
 
     if (!activity->activity_events) {
         activity->activity_events = link;
@@ -2081,7 +2068,7 @@ void gui_activity_register_event(
     }
 
     // Return the activities mutex
-    GUI_SEMAPHORE_GIVE(activities_mutex);
+    JADE_SEMAPHORE_GIVE(activities_mutex);
 }
 
 // Registers and event handler, then blocks waiting for it to fire.  A timeout can be passed.
