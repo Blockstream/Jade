@@ -34,16 +34,25 @@ static void post_exit_event_and_await_death(void)
 
 static void camera_reset(void)
 {
-    power_camera_off();
+    esp_err_t ret = power_camera_off();
+    if (ret != ESP_OK) {
+        JADE_LOGE("Failed to reset/power camera off: %u", ret);
+    }
     vTaskDelay(20 / portTICK_PERIOD_MS);
-    power_camera_on();
+    ret = power_camera_on();
+    if (ret != ESP_OK) {
+        JADE_LOGE("Failed to reset/power camera on: %u", ret);
+    }
 }
 
 static void jade_camera_init(void)
 {
-    power_camera_on();
-    const camera_config_t camera_config = {
-        .pin_d0 = CONFIG_CAMERA_D0,
+    const esp_err_t ret = power_camera_on();
+    if (ret != ESP_OK) {
+        JADE_LOGE("Failed to inititialise/power camera on: %u", ret);
+    }
+
+    const camera_config_t camera_config = { .pin_d0 = CONFIG_CAMERA_D0,
         .pin_d1 = CONFIG_CAMERA_D1,
         .pin_d2 = CONFIG_CAMERA_D2,
         .pin_d3 = CONFIG_CAMERA_D3,
@@ -69,7 +78,7 @@ static void jade_camera_init(void)
         .frame_size = FRAMESIZE_QVGA,
 
         .fb_count = 1,
-    };
+        .jpeg_quality = 0 };
     const esp_err_t err = esp_camera_init(&camera_config);
     JADE_LOGI("Camera init done");
     if (err != ESP_OK) {
