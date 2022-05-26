@@ -1006,6 +1006,36 @@
         "ticker": "CSuit",
         "version": 0
     },
+    "0849c38fe8ea1f31b358d7df2c53b51d9c4dc52bf0e19386865d83f79457cfd6": {
+        "asset_id": "0849c38fe8ea1f31b358d7df2c53b51d9c4dc52bf0e19386865d83f79457cfd6",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project d284c3c5",
+            "precision": 2,
+            "ticker": "t6O7j",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "fd4cdac259c6897f3f8a98c633245fbe9fd652065c8487ce76e6886631b0d8ac",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "db0da1e72ea446a746b577e0ce00a1fe041da23c22388c9d427aa12cb7459545",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project d284c3c5",
+        "precision": 2,
+        "ticker": "t6O7j",
+        "version": 0
+    },
     "096dfb4c4ab1ad723b707536fcd3b09ed332b41dbe65356bed0cbd16cf505495": {
         "asset_id": "096dfb4c4ab1ad723b707536fcd3b09ed332b41dbe65356bed0cbd16cf505495",
         "contract": {
@@ -1207,6 +1237,78 @@
         "name": "EurosCentral",
         "precision": 8,
         "ticker": "EURC",
+        "version": 0
+    },
+    "0b43aebbcc6f11a998ffbe6caf2718258ae92c7a0fc7f899b6f6dc318663fb88": {
+        "asset_id": "0b43aebbcc6f11a998ffbe6caf2718258ae92c7a0fc7f899b6f6dc318663fb88",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmWgXuHD2V3KUpEWzm7raiFB9Vm3YZMiHXx7cjRbJYLrzJ",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Elepaio",
+            "nft": {
+                "cid": "QmU5asGdv1NcNUm6uBPVmTrN9v7nx6jukGm4x27cfp3DPt",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "4debfdfa4c4565377684e9ab5528ab6d6c4f08bb0bc61de444c1ded57540c259"
+            },
+            "precision": 0,
+            "ticker": "nMiW.",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "2e78c52a3002ccd63aba109c3218d0a7a99b6821208ff19d9fd0963def9bf919",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "bddba218d02986ef7ecdc4d1306e9e54a935d15259020b7178ac6fc3fa1e74ce",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Elepaio",
+        "precision": 0,
+        "ticker": "nMiW.",
+        "version": 0
+    },
+    "0b47199902771f62cc88e0ad62a93b6b470173e6ec65a83477f6992810112adf": {
+        "asset_id": "0b47199902771f62cc88e0ad62a93b6b470173e6ec65a83477f6992810112adf",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmagWC1ok97P2UkRMizuMadigibmkWVQdQuRnRmugMtda5",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Waxwing",
+            "nft": {
+                "cid": "QmfFkq85tE2vS4v96viVzZM1jhhw7hyAv42bAtzNeJGbRC",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "5307e1c31b5292f99ef4bbc099f30b391f8c3c51edcde6095e8604250f32bd08"
+            },
+            "precision": 0,
+            "ticker": "nZmW6",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "bddba218d02986ef7ecdc4d1306e9e54a935d15259020b7178ac6fc3fa1e74ce",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "031072e6708ca396c5b03352292e45723e6dbfe3585d0d71025b4a946725d591",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Waxwing",
+        "precision": 0,
+        "ticker": "nZmW6",
         "version": 0
     },
     "0b56aa56b036360695979de935f2f3954da6fb31ba8c1bed58d8c1414c1f4fb2": {
@@ -1505,6 +1607,37 @@
         "ticker": "CJoFy",
         "version": 0
     },
+    "1050230566d695c55c141f49eb6058100ea73e8382f3bc5724e79450e5918e06": {
+        "asset_id": "1050230566d695c55c141f49eb6058100ea73e8382f3bc5724e79450e5918e06",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bid.nftglee.com"
+            },
+            "file": "Qma95jzzRbfUVU9Z3ZQDfqBFYM8urCaiGPpoYwJdpc4U9w",
+            "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+            "name": "Bitcoin Bob - #001 Edition ",
+            "precision": 0,
+            "ticker": "BB1X",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bid.nftglee.com"
+        },
+        "issuance_prevout": {
+            "txid": "393741e1b39aa0b53758aab3c87befbe19c4e6bf3e336c5f67ef567a5f2eb9b0",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "264e392ce26114992b24cb444dc04da203a01b098d514ef46399b4f2b7d80e19",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+        "name": "Bitcoin Bob - #001 Edition ",
+        "precision": 0,
+        "ticker": "BB1X",
+        "version": 0
+    },
     "10759ec5c40953c966a660a63991ca972f5a09f3ffdfd7393e39503546500ad7": {
         "asset_id": "10759ec5c40953c966a660a63991ca972f5a09f3ffdfd7393e39503546500ad7",
         "contract": {
@@ -1562,6 +1695,36 @@
         "name": "Liquid MXN",
         "precision": 2,
         "ticker": "MXNL",
+        "version": 0
+    },
+    "116f29be023445a6fa2db5ccbee1943546b1f23f291f21a328825bd9e2250e54": {
+        "asset_id": "116f29be023445a6fa2db5ccbee1943546b1f23f291f21a328825bd9e2250e54",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "evliu.org"
+            },
+            "issuer_pubkey": "023253ddd2cae7d455db9464b51272d75057b30b44be08a58d0c442519b35cf17b",
+            "name": "EvCoin",
+            "precision": 2,
+            "ticker": "-EV",
+            "version": 0
+        },
+        "entity": {
+            "domain": "evliu.org"
+        },
+        "issuance_prevout": {
+            "txid": "724523785bf37e1d526349cbacaedf45abc6a0a0ef2fa601259cc6e785e9c65c",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "3907dbaa85e38c2fe9d48b35d3467333f20782568b2514bef8d4cb000724f7d2",
+            "vin": 0
+        },
+        "issuer_pubkey": "023253ddd2cae7d455db9464b51272d75057b30b44be08a58d0c442519b35cf17b",
+        "name": "EvCoin",
+        "precision": 2,
+        "ticker": "-EV",
         "version": 0
     },
     "1196d8964faf5aa091d51eedd3a4e6f4be10fc3fef3437e18bc45ad71bbdc194": {
@@ -2284,6 +2447,36 @@
         "ticker": "CPark",
         "version": 0
     },
+    "17e13f01b6db76dc5b43bcf8f96fc660dbb531f133218a017917a1a44e0c2f8b": {
+        "asset_id": "17e13f01b6db76dc5b43bcf8f96fc660dbb531f133218a017917a1a44e0c2f8b",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project 290ea3cf",
+            "precision": 2,
+            "ticker": "tEM-i",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "7d57e5d9015de8f7faf865842c91bec3b5478241c55dc854162281bce3392292",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "6478a6a60956c1f82c58b505683be40dcdcf7d5274f09ec678cb026115ecfc98",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project 290ea3cf",
+        "precision": 2,
+        "ticker": "tEM-i",
+        "version": 0
+    },
     "183ea3fde3fe4d8d9eb771877b9d823a44b3a8d6013f9e0d5f09834ec26ea65a": {
         "asset_id": "183ea3fde3fe4d8d9eb771877b9d823a44b3a8d6013f9e0d5f09834ec26ea65a",
         "contract": {
@@ -2429,6 +2622,36 @@
         "ticker": "EURMA",
         "version": 0
     },
+    "1893cce2167d22d2108a5f22853bd7cd5991c541ebd81692e3f7cd4fdf063dad": {
+        "asset_id": "1893cce2167d22d2108a5f22853bd7cd5991c541ebd81692e3f7cd4fdf063dad",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project 3014fd5a",
+            "precision": 2,
+            "ticker": "tIkes",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "326e417b69eb5ea56ba8499c92a1c8889b48bded24c160503fdd101c10602256",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "abca9a04a09131087c67f6462fcbc01b4477967fdf5b03374398b4750b314fd5",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project 3014fd5a",
+        "precision": 2,
+        "ticker": "tIkes",
+        "version": 0
+    },
     "189b1fb102170bf9c15e1f649f18c1adcc75da25a448701175cbe9e29aa87df7": {
         "asset_id": "189b1fb102170bf9c15e1f649f18c1adcc75da25a448701175cbe9e29aa87df7",
         "collection": null,
@@ -2550,6 +2773,36 @@
         "name": "Medusa",
         "precision": 0,
         "ticker": "MMedu",
+        "version": 0
+    },
+    "19c41870f4528e9382b2cc8abd81416fbb0f09e064a9224c50b45a67de13cb77": {
+        "asset_id": "19c41870f4528e9382b2cc8abd81416fbb0f09e064a9224c50b45a67de13cb77",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "ziguratme.github.io"
+            },
+            "issuer_pubkey": "024aca6027013b1d697c9e475d04265ecd48c0ec57807069f1074fd8b0029219c5",
+            "name": "TestPlantToken",
+            "precision": 0,
+            "ticker": "T-TPT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "ziguratme.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "1ea2dd1e273c8b2c7a7b08af6b9e10a2fcf5ece698134e482be2fab2f6b61a22",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "845e988c5c3b043a759a2bf0b0d90213d84bd118373d38bd21dc0aaeb0a9325e",
+            "vin": 0
+        },
+        "issuer_pubkey": "024aca6027013b1d697c9e475d04265ecd48c0ec57807069f1074fd8b0029219c5",
+        "name": "TestPlantToken",
+        "precision": 0,
+        "ticker": "T-TPT",
         "version": 0
     },
     "19eff666711d465d9ac9d629589d9d126209752e4b1add414a54d909acadbc51": {
@@ -3763,6 +4016,42 @@
         "ticker": "USDMB",
         "version": 0
     },
+    "28c6cb42ef185631691b404948331307d47995427e79038ad5ef1b010130f622": {
+        "asset_id": "28c6cb42ef185631691b404948331307d47995427e79038ad5ef1b010130f622",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmWgXuHD2V3KUpEWzm7raiFB9Vm3YZMiHXx7cjRbJYLrzJ",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Argee Computer",
+            "nft": {
+                "cid": "QmeTRRxKAvkFmiWjPmo32LdF9wAnL2iWtprRPpqFiqjDCL",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "9ec0f9e47ebd4e566f72e0c1325fbcc87c55af17897285090f4152a5e75fa254"
+            },
+            "precision": 0,
+            "ticker": "n7tn3",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "072a48161b8b551be2564c7ebe29656cfeed7a19ce571f6c0fb6e5e1591f4388",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "fc623b7d48a70a275d4ab9916426b02f660c0962c0c11bd20df7ebb540e668a9",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Argee Computer",
+        "precision": 0,
+        "ticker": "n7tn3",
+        "version": 0
+    },
     "28ec0070ba066994c0681050d581cf2e7b371fae6b44b6703dd2818b2700523f": {
         "asset_id": "28ec0070ba066994c0681050d581cf2e7b371fae6b44b6703dd2818b2700523f",
         "contract": {
@@ -3819,6 +4108,36 @@
         "name": "Scout Bag",
         "precision": 0,
         "ticker": "AScBa",
+        "version": 0
+    },
+    "2953bce80bf102359b8dc1f716171b643e934da87e348764242968e60a39b25c": {
+        "asset_id": "2953bce80bf102359b8dc1f716171b643e934da87e348764242968e60a39b25c",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.wine"
+            },
+            "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+            "name": "Sangiovese2",
+            "precision": 0,
+            "ticker": "Sangiovese2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.wine"
+        },
+        "issuance_prevout": {
+            "txid": "1c5a6dbaf7775415f54af42abc81ec4f023ef2ccaec74b63b3c9306366e3012b",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "cb8130fd9c13106608080f2f31180811d9ab7d700e6339ad62b21881007778cf",
+            "vin": 0
+        },
+        "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+        "name": "Sangiovese2",
+        "precision": 0,
+        "ticker": "Sangiovese2",
         "version": 0
     },
     "2a593e14a054d1d4d2726bd53f4cedaaf3c8ded0e5cb62ef01a0ff08a484141c": {
@@ -4051,6 +4370,36 @@
         "name": "Hard Sword",
         "precision": 0,
         "ticker": "MHaSw",
+        "version": 0
+    },
+    "2c5f214863a8eea148daa94155321927d83b0104985d539cc14c8e95ea52116f": {
+        "asset_id": "2c5f214863a8eea148daa94155321927d83b0104985d539cc14c8e95ea52116f",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project df8da634",
+            "precision": 2,
+            "ticker": "tkLBq",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "f36dd4d54cf389d665d5247487a4fc21668ea066d95cfc844a682aba0090880a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "fd4cdac259c6897f3f8a98c633245fbe9fd652065c8487ce76e6886631b0d8ac",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project df8da634",
+        "precision": 2,
+        "ticker": "tkLBq",
         "version": 0
     },
     "2c8ec853ac7821d51f48c055dab6448a7a6ab566549bf664d36fe5e3d3a97f56": {
@@ -4549,6 +4898,37 @@
         "name": "Laser Gun",
         "precision": 0,
         "ticker": "GLaGu",
+        "version": 0
+    },
+    "33633acd8dde02d11584730504513d90f599934e70d3301a4b2e1306db527144": {
+        "asset_id": "33633acd8dde02d11584730504513d90f599934e70d3301a4b2e1306db527144",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bid.nftglee.com"
+            },
+            "file": "Qma95jzzRbfUVU9Z3ZQDfqBFYM8urCaiGPpoYwJdpc4U9w",
+            "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+            "name": "Bitcoin Bob - #001 Edition ",
+            "precision": 0,
+            "ticker": "BB1R",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bid.nftglee.com"
+        },
+        "issuance_prevout": {
+            "txid": "395fc9934a59be529bdd00fb057fe00b357f3454452c9d9f8d111e16c0fa61cc",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "f703c9ae91bf02ca387a6e341f2e225c54097950610527b5f9f8b1bc5341048d",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+        "name": "Bitcoin Bob - #001 Edition ",
+        "precision": 0,
+        "ticker": "BB1R",
         "version": 0
     },
     "33dce33cef9337b8568e462fd81c71ef272fb127f54d3e006cca017717b97563": {
@@ -5553,6 +5933,37 @@
         "ticker": "PAWN",
         "version": 0
     },
+    "3fe30f79c16bf93e8f943c364130a8aa69d3886a1f3bbbca5da8cff869582c1d": {
+        "asset_id": "3fe30f79c16bf93e8f943c364130a8aa69d3886a1f3bbbca5da8cff869582c1d",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bid.nftglee.com"
+            },
+            "file": "Qma95jzzRbfUVU9Z3ZQDfqBFYM8urCaiGPpoYwJdpc4U9w",
+            "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+            "name": "Bitcoin Bob - #001 Edition ",
+            "precision": 0,
+            "ticker": "BB1M",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bid.nftglee.com"
+        },
+        "issuance_prevout": {
+            "txid": "2107185e2cff8741d3ab14ca16deacf68f6aaae2a044eadbb6593649d944562c",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "2cc0a59d0fef71299c09e61b48efa7025f699357098c73f713396d9bf4bda9d9",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+        "name": "Bitcoin Bob - #001 Edition ",
+        "precision": 0,
+        "ticker": "BB1M",
+        "version": 0
+    },
     "404f07778e8674500ae9188453db5facf593395a54d18b34a62a464dd7223964": {
         "asset_id": "404f07778e8674500ae9188453db5facf593395a54d18b34a62a464dd7223964",
         "contract": {
@@ -5792,6 +6203,42 @@
         "name": "Liquid SP500 ETF2",
         "precision": 2,
         "ticker": "IVV",
+        "version": 0
+    },
+    "423e70789ec9e447a148059cd63bd4fb85466aae0fdb21584969b0824c5520a0": {
+        "asset_id": "423e70789ec9e447a148059cd63bd4fb85466aae0fdb21584969b0824c5520a0",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmWgXuHD2V3KUpEWzm7raiFB9Vm3YZMiHXx7cjRbJYLrzJ",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Mallard",
+            "nft": {
+                "cid": "QmRffrVfsnFozBdgCw1ykde9k4PxSFNWWSforSBPtHuSKV",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "99b4f8bf1c4f78878e55149a38a151b8ebe1be205bb767208c34c964b5c7785f"
+            },
+            "precision": 0,
+            "ticker": "n7Jbm",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "abca9a04a09131087c67f6462fcbc01b4477967fdf5b03374398b4750b314fd5",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "19cc2687bf8b8cebbd0bcfc09bc5e37691d6e4767ef9f8d1708bffabb60b0b61",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Mallard",
+        "precision": 0,
+        "ticker": "n7Jbm",
         "version": 0
     },
     "423fab482c17c32a44514a8bac4228914ec93e60869133db087a42584b6665b9": {
@@ -6293,6 +6740,42 @@
         "name": "Liquid SEK",
         "precision": 2,
         "ticker": "SEKL",
+        "version": 0
+    },
+    "480d4b344efdc6dbf0a3b279f1e73f25bba92f20fafad3f8420c4f1c0d2f8a44": {
+        "asset_id": "480d4b344efdc6dbf0a3b279f1e73f25bba92f20fafad3f8420c4f1c0d2f8a44",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmWgXuHD2V3KUpEWzm7raiFB9Vm3YZMiHXx7cjRbJYLrzJ",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Buzzard",
+            "nft": {
+                "cid": "QmdvRG2m1iFXcAMCJv8o5wJKK5UTDRWSEwt1mKM6rTXyuh",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "4710c7c521dc95286197a8da1a13e0aadc932398cb33c77b58f98031c9cf4d49"
+            },
+            "precision": 0,
+            "ticker": "nNkdR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "4f4cbaf22df4e0dff32dd00ad43bdfb56beb96da4f1a1ed7dea96bbfb4e3766e",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "a274614a43118f962c2cb14aa3a02f487b11b21c9c4c2250a17f68e9ae7b9bfd",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Buzzard",
+        "precision": 0,
+        "ticker": "nNkdR",
         "version": 0
     },
     "488670d41f4896978ae16e6aff3edb4ca640d40ad38d855d7cf050c231406ab3": {
@@ -7321,6 +7804,36 @@
         "name": "Beercap",
         "precision": 0,
         "ticker": "HBeer",
+        "version": 0
+    },
+    "508b56d5047cd0d4e9623e6cbd03b2a47227c3e81214b9b89be88ca836d59db2": {
+        "asset_id": "508b56d5047cd0d4e9623e6cbd03b2a47227c3e81214b9b89be88ca836d59db2",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project 98e710ed",
+            "precision": 2,
+            "ticker": "tNnid",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "db0da1e72ea446a746b577e0ce00a1fe041da23c22388c9d427aa12cb7459545",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "3f03c7d2d34daa7bb7e0fbfe9de2c37614f53b71dbc5fdcadf6c1432ab56a125",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project 98e710ed",
+        "precision": 2,
+        "ticker": "tNnid",
         "version": 0
     },
     "50cc8dade8eab7710f8927296c6acbb9e0aa9339e8b310c7f594a15a1b03d6b1": {
@@ -8538,6 +9051,37 @@
         "ticker": "ACaBa",
         "version": 0
     },
+    "5f40c16cd1c8b02033c1e13f76d82395339f98c974375d49cd631c5e295964fa": {
+        "asset_id": "5f40c16cd1c8b02033c1e13f76d82395339f98c974375d49cd631c5e295964fa",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bid.nftglee.com"
+            },
+            "file": "Qma95jzzRbfUVU9Z3ZQDfqBFYM8urCaiGPpoYwJdpc4U9w",
+            "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+            "name": "Bitcoin Bob - #001 Edition ",
+            "precision": 0,
+            "ticker": "BB1AL",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bid.nftglee.com"
+        },
+        "issuance_prevout": {
+            "txid": "e7930673d635d890c6e17736dfa085390332fea1706161b8b56140c3c563b1f6",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "f4e56a2a0c75ac284459643df1dca67f2f96ea4003b970d0b569aa5a243d2f60",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+        "name": "Bitcoin Bob - #001 Edition ",
+        "precision": 0,
+        "ticker": "BB1AL",
+        "version": 0
+    },
     "5f5109be19c618088228622c02e97d11e1347f1032cb9b6658cc359196a931bd": {
         "asset_id": "5f5109be19c618088228622c02e97d11e1347f1032cb9b6658cc359196a931bd",
         "contract": {
@@ -9031,6 +9575,36 @@
         "name": "Trezor Detective",
         "precision": 0,
         "ticker": "CTrDe",
+        "version": 0
+    },
+    "6257316c50a7f98adb9efbf4caa13e930082aa46b5021784db07c2eba00b2468": {
+        "asset_id": "6257316c50a7f98adb9efbf4caa13e930082aa46b5021784db07c2eba00b2468",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project ea235dd0",
+            "precision": 2,
+            "ticker": "tmDUL",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "227613ade1cd9ac4b43f705ecbc874934f4fc5bd418651b2b7a1e4c643b8717e",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "9fb8d6cf4717eb69104cbfcf208c7fe664e76364ee19ae2772d8a02af4936429",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project ea235dd0",
+        "precision": 2,
+        "ticker": "tmDUL",
         "version": 0
     },
     "62730d1919b31c37c345940fb8e656da61698af109da001fe248b46fd68584b9": {
@@ -9808,6 +10382,36 @@
         "ticker": "EURT",
         "version": 0
     },
+    "68b635a6d86f335c636ee284925db09b71076bc87afe4b283aba43f469a87038": {
+        "asset_id": "68b635a6d86f335c636ee284925db09b71076bc87afe4b283aba43f469a87038",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project 9ee4e17a",
+            "precision": 2,
+            "ticker": "txBNq",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "4b20f28211153f23c9466bbb0ad9b220a059b2837341f3480b14422ba2bbc364",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "e2953b87ec91cc614e02dd8ffb3d9173c408a9ad75aa9181807d55b0c3b8220b",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project 9ee4e17a",
+        "precision": 2,
+        "ticker": "txBNq",
+        "version": 0
+    },
     "68b9401cfceb1397c3943a6ecb485ab6124e560996ab1db9ee785a45b2f2ef24": {
         "asset_id": "68b9401cfceb1397c3943a6ecb485ab6124e560996ab1db9ee785a45b2f2ef24",
         "contract": {
@@ -10245,6 +10849,36 @@
         "ticker": "CDrMo",
         "version": 0
     },
+    "6dcc0c9c5dc4fe1c12572608925d220a282c699293cd0b600e56ae81eb0d6c79": {
+        "asset_id": "6dcc0c9c5dc4fe1c12572608925d220a282c699293cd0b600e56ae81eb0d6c79",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project f8ac4f70",
+            "precision": 2,
+            "ticker": "t2vn0",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "9fb8d6cf4717eb69104cbfcf208c7fe664e76364ee19ae2772d8a02af4936429",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "caf0a7857e61aaa230350b71068c4840360398f6f30f8a14e4fc9b490be9b319",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project f8ac4f70",
+        "precision": 2,
+        "ticker": "t2vn0",
+        "version": 0
+    },
     "6df9691195530fde0b929adbad8df96f6617bb9bd25a3bb033b77131d86bd2c1": {
         "asset_id": "6df9691195530fde0b929adbad8df96f6617bb9bd25a3bb033b77131d86bd2c1",
         "contract": {
@@ -10541,6 +11175,36 @@
         "ticker": "OIE17",
         "version": 0
     },
+    "7072af2429df8bbfe7163080a147923079994ea594691cb9ecf6cc2879901227": {
+        "asset_id": "7072af2429df8bbfe7163080a147923079994ea594691cb9ecf6cc2879901227",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project 64ef8f50",
+            "precision": 2,
+            "ticker": "tHeL7",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "6a593031f3bf848f8693a98fe271db78776be961b6bf76f6a84efbc79bd30bcd",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "2e78c52a3002ccd63aba109c3218d0a7a99b6821208ff19d9fd0963def9bf919",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project 64ef8f50",
+        "precision": 2,
+        "ticker": "tHeL7",
+        "version": 0
+    },
     "71158137928609e9937dbbf43035441c52dac284dddc2462988a5614bb75456a": {
         "asset_id": "71158137928609e9937dbbf43035441c52dac284dddc2462988a5614bb75456a",
         "contract": {
@@ -10569,6 +11233,42 @@
         "name": "Steam Punk Topper",
         "precision": 0,
         "ticker": "HSPT",
+        "version": 0
+    },
+    "718d22431166306f17c3383f08cc6a6b5217fca0e38b377523d6b6735a156a77": {
+        "asset_id": "718d22431166306f17c3383f08cc6a6b5217fca0e38b377523d6b6735a156a77",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmagWC1ok97P2UkRMizuMadigibmkWVQdQuRnRmugMtda5",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Cirque Corporation",
+            "nft": {
+                "cid": "QmVuazuQybETVDKesRTEWGbngF4SByq1Q8LvYS4fsZe92n",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "48fcdcbc0497964372b10769cb21a65f49fa8b911e63948d3e6bda5806defb33"
+            },
+            "precision": 0,
+            "ticker": "nBQE.",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "e2953b87ec91cc614e02dd8ffb3d9173c408a9ad75aa9181807d55b0c3b8220b",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "072a48161b8b551be2564c7ebe29656cfeed7a19ce571f6c0fb6e5e1591f4388",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Cirque Corporation",
+        "precision": 0,
+        "ticker": "nBQE.",
         "version": 0
     },
     "723dfe05838d599b41b614d27809fbe7668907c56ae51c941ccecb38f14d9d16": {
@@ -11533,6 +12233,41 @@
         "name": "Blue Motion",
         "precision": 0,
         "ticker": "BBlMo",
+        "version": 0
+    },
+    "7b75e3ed5b4d05b528189cc1ec05a3ecaa359c53b8f9abedeac9e333b21d15f8": {
+        "asset_id": "7b75e3ed5b4d05b528189cc1ec05a3ecaa359c53b8f9abedeac9e333b21d15f8",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "newfinancialtechnology.bfungible.network"
+            },
+            "icon": {
+                "cid": "QmZm6PQXNDyAof93Qve6Z7b4Hq7yFLfxHcnbsrH7pG7FhA",
+                "content_type": "image/png",
+                "hash": "94c324d205dc39e5b84291387fcc1d62ebc87f2c3317e8b804b49ab235ddae33"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "New Financial Technology Coin",
+            "precision": 6,
+            "ticker": "NFTC",
+            "version": 0
+        },
+        "entity": {
+            "domain": "newfinancialtechnology.bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "6d25492e1e4dc2b20120a72d4c934a6dfca9867b26c128253338ce991ae3a73f",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "ec3dc9f930252998a82f0ee282c143023a5f0cd4d32b70cdcace7470da972fec",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "New Financial Technology Coin",
+        "precision": 6,
+        "ticker": "NFTC",
         "version": 0
     },
     "7c18b554ced2c7469d75f94e21dcc5089b3baa2cba85e6b1adcc22283187ace1": {
@@ -13233,6 +13968,36 @@
         "ticker": "OIE34",
         "version": 0
     },
+    "8fc2ea5ea0f581ae5888fa5821230f20a778061e25f5acfe490e64c95d0e4046": {
+        "asset_id": "8fc2ea5ea0f581ae5888fa5821230f20a778061e25f5acfe490e64c95d0e4046",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project 9bcfec06",
+            "precision": 2,
+            "ticker": "tQAyB",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "c9cde680d9a7509769d24198221ede8488c3147b5dc4407d8b1687ba65ea6c4a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "6bd915838712318967fd81f5e8d62660835e8d2ccd75dd9d467a6c5218a94cef",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project 9bcfec06",
+        "precision": 2,
+        "ticker": "tQAyB",
+        "version": 0
+    },
     "901e504f32408e266e716b4a01176e21f84871e03f544da6924602d0c9439970": {
         "asset_id": "901e504f32408e266e716b4a01176e21f84871e03f544da6924602d0c9439970",
         "contract": {
@@ -14289,6 +15054,42 @@
         "name": "Test Local",
         "precision": 0,
         "ticker": "GTeLo",
+        "version": 0
+    },
+    "988b10c7f5d49ac562fcddda67c1cb2e41f05942e11540d7b1e36b5ccf8851c5": {
+        "asset_id": "988b10c7f5d49ac562fcddda67c1cb2e41f05942e11540d7b1e36b5ccf8851c5",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmWgXuHD2V3KUpEWzm7raiFB9Vm3YZMiHXx7cjRbJYLrzJ",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Currawong",
+            "nft": {
+                "cid": "QmepnryCLgJ9uvnuy5JoA28YzQm8Gnj1EA5NyXfo3yxWmb",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "13d618aee4c3e43ecbd1848e99b671dc331ae17a72d89098b7079c65677dc644"
+            },
+            "precision": 0,
+            "ticker": "n.W.c",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "62a574a380448e780889cb32e6408b4dd7e6e16461477882ef47a5d89a5519c3",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "4f4cbaf22df4e0dff32dd00ad43bdfb56beb96da4f1a1ed7dea96bbfb4e3766e",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Currawong",
+        "precision": 0,
+        "ticker": "n.W.c",
         "version": 0
     },
     "99304fc0b68ab7622b36fbe6462f4fc38443c6e9057a8a5a8fd0140b94cfa325": {
@@ -15719,6 +16520,66 @@
         "ticker": null,
         "version": 0
     },
+    "a9de47656faad706da835daeeed7ce84e5794c86dd6728a0a0b4ce7dfd94a6e8": {
+        "asset_id": "a9de47656faad706da835daeeed7ce84e5794c86dd6728a0a0b4ce7dfd94a6e8",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "evliu.org"
+            },
+            "issuer_pubkey": "037d33516125e44d6e28e81db22c7bd03c6fb679a93ce948b3cdd24abaee2705e3",
+            "name": "Boardgames Coin",
+            "precision": 3,
+            "ticker": "BOARD",
+            "version": 0
+        },
+        "entity": {
+            "domain": "evliu.org"
+        },
+        "issuance_prevout": {
+            "txid": "32f34e2fe171729001c0289df179b3aca4457206c232a3c6fe4d8a3300f62d92",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "5a65c14c7af35e18befd475ebcbd58e44671aca23d3a8b2683897ffd824770a0",
+            "vin": 0
+        },
+        "issuer_pubkey": "037d33516125e44d6e28e81db22c7bd03c6fb679a93ce948b3cdd24abaee2705e3",
+        "name": "Boardgames Coin",
+        "precision": 3,
+        "ticker": "BOARD",
+        "version": 0
+    },
+    "aa0211549e4b9dfcfd14c94ad346e2fee317db687d31dd7a6736ffa60760812f": {
+        "asset_id": "aa0211549e4b9dfcfd14c94ad346e2fee317db687d31dd7a6736ffa60760812f",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "ziguratme.github.io"
+            },
+            "issuer_pubkey": "035def1f8da9985d2257a5bca1964cdfcfb018f62084fba0c02fdb8bcb9d808274",
+            "name": "TestBerry",
+            "precision": 0,
+            "ticker": "T-BRY",
+            "version": 0
+        },
+        "entity": {
+            "domain": "ziguratme.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "ac5b8bd6ebe6df5c70160bcdd960bbfca9b951def93edba6321bec0eef0e28e8",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "2b283850d994e8efdcb3835f9634f163db323e0db5c18fae6969ae46b9fea5b3",
+            "vin": 0
+        },
+        "issuer_pubkey": "035def1f8da9985d2257a5bca1964cdfcfb018f62084fba0c02fdb8bcb9d808274",
+        "name": "TestBerry",
+        "precision": 0,
+        "ticker": "T-BRY",
+        "version": 0
+    },
     "aa07fba8fea7d7be5fb5894753c2808db81c347d63f4b6a5b601e9066aaba3e9": {
         "asset_id": "aa07fba8fea7d7be5fb5894753c2808db81c347d63f4b6a5b601e9066aaba3e9",
         "contract": {
@@ -16067,6 +16928,37 @@
         "name": "Uncle Sam Topper",
         "precision": 0,
         "ticker": "HUST",
+        "version": 0
+    },
+    "adabe8f30b41abf6b18e0e41b19fb8d56102e595c3b1dad55c886cfb679ee631": {
+        "asset_id": "adabe8f30b41abf6b18e0e41b19fb8d56102e595c3b1dad55c886cfb679ee631",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bid.nftglee.com"
+            },
+            "file": "Qma95jzzRbfUVU9Z3ZQDfqBFYM8urCaiGPpoYwJdpc4U9w",
+            "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+            "name": "Bitcoin Bob - #001 Edition ",
+            "precision": 0,
+            "ticker": "BB1AG",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bid.nftglee.com"
+        },
+        "issuance_prevout": {
+            "txid": "65bd367a1b9e9897d69aa58b32e1ef7e1181c92a9d428756bafc99d1937e3222",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "e79120e9e442e409573fc6f60803abac157f462ecd152d685edbba29949657b9",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+        "name": "Bitcoin Bob - #001 Edition ",
+        "precision": 0,
+        "ticker": "BB1AG",
         "version": 0
     },
     "adb8385fba84d152950007d4de4635cebdce52c65a80f40dcde6a225ba48e018": {
@@ -16822,6 +17714,36 @@
         "name": "stream-dc1-t",
         "precision": 0,
         "ticker": "STRBT",
+        "version": 0
+    },
+    "b6df014acd7f214dfe8350db96eb2b9c1ad091df9258ae6f928ed52a3cc8e7c6": {
+        "asset_id": "b6df014acd7f214dfe8350db96eb2b9c1ad091df9258ae6f928ed52a3cc8e7c6",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project 931c6591",
+            "precision": 2,
+            "ticker": "tlr1.",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "fc623b7d48a70a275d4ab9916426b02f660c0962c0c11bd20df7ebb540e668a9",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "1d0c8cf3f15d8a25974abfc9916425368bac0165bd495cc89d12d6db5c38b7dd",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project 931c6591",
+        "precision": 2,
+        "ticker": "tlr1.",
         "version": 0
     },
     "b7115fa67a3131fa946660ef3090ad0cd8c2329efd9045b523113f31fd3adf53": {
@@ -19326,6 +20248,47 @@
         "ticker": "MInfe",
         "version": 0
     },
+    "d218c45c7ea0519840c46732aa27dd48bbda3ddc1b33af6cf02e448470a02ed6": {
+        "asset_id": "d218c45c7ea0519840c46732aa27dd48bbda3ddc1b33af6cf02e448470a02ed6",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "newfinancialtechnology.bfungible.network"
+            },
+            "file": "QmSDAruCg293TV8Fi6D3EH7noca2Nz2BR79sh2mcW3y2m2",
+            "icon": {
+                "cid": "QmQT98sycgPwWf6w1b5ueKWEb7AkKs9adFNbc3U3bAAvZo",
+                "content_type": "image/png",
+                "hash": "1293aacc395583c5f17a4fb1f40e07816c6b4b86875f266bdd37af3e03c5deb5"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "New Financial Technology Coin 1",
+            "nft": {
+                "cid": "QmWAY9dn8CvSHTCH5jdoNn7wjfXuP59Pwg8rDmy4SuED4k",
+                "domain": "newfinancialtechnology.bfungible.network",
+                "hash": "0da7284def86d1b987acdde0102c2fd65ffc529f327e7e0ea0bdb02b268021f9"
+            },
+            "precision": 0,
+            "ticker": "NFTC1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "newfinancialtechnology.bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "4ab2f3aea7dc7d2587dd6597aa1df04d7fff610f19c3f0ed2a8f1f03a20cc66b",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "326e417b69eb5ea56ba8499c92a1c8889b48bded24c160503fdd101c10602256",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "New Financial Technology Coin 1",
+        "precision": 0,
+        "ticker": "NFTC1",
+        "version": 0
+    },
     "d24a45eeaa9734428082d69e66adca7f133e23aaf2e3cda62a1bd9667af2f2a0": {
         "asset_id": "d24a45eeaa9734428082d69e66adca7f133e23aaf2e3cda62a1bd9667af2f2a0",
         "contract": {
@@ -19445,6 +20408,42 @@
         "name": "Black Swan",
         "precision": 0,
         "ticker": "BLAD",
+        "version": 0
+    },
+    "d4075c5be4d27cef4ae57708ee24d51661131cfe26f3a4ea0c7fd6fded773d4e": {
+        "asset_id": "d4075c5be4d27cef4ae57708ee24d51661131cfe26f3a4ea0c7fd6fded773d4e",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmT3UJDSd2yuLsZu9wdkY4tMKqZ5Baar1NAancPhkLvtDy",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Delicious Monster",
+            "nft": {
+                "cid": "QmRddB54bT8p7nS2QnubdqZMTVVmnpBox4s2oYcD871uT8",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "40581b2da8de7c4b5f231c0910bb5c6a0dd9dc89de7e8b6375fe3a91199df077"
+            },
+            "precision": 0,
+            "ticker": "n5cfC",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "ef368547b0fda4877bfadfdde9c093b3b5f37e58c03a777a89bdb0f0933c934e",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "1c38e215bba7c94b798293523f20a7afe4275e922ab1e399386539bc171e34ba",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Delicious Monster",
+        "precision": 0,
+        "ticker": "n5cfC",
         "version": 0
     },
     "d42261343a91ea3f758dbe2d734feae1692dce70003c4d66e270dad208fd9db8": {
@@ -20553,6 +21552,36 @@
         "ticker": "HWhBo",
         "version": 0
     },
+    "e35cd00816c44f3043fec2778e8a6f9bda3931ae0db42ff8fd4bc693c96eeae0": {
+        "asset_id": "e35cd00816c44f3043fec2778e8a6f9bda3931ae0db42ff8fd4bc693c96eeae0",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "inpharmaticist.keybase.pub"
+            },
+            "issuer_pubkey": "02d2123c52b9c7ed452cfa1a4bdf908bce0d2734b6d3fd1dbe9d7c22e624252841",
+            "name": "Larry Coin",
+            "precision": 1,
+            "ticker": "LRYCN",
+            "version": 0
+        },
+        "entity": {
+            "domain": "inpharmaticist.keybase.pub"
+        },
+        "issuance_prevout": {
+            "txid": "4875d65624d91813b8de2acfac611d56e27523c8e00cda3974ee308f4f8b8dc6",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "2c6e8b176bf0c8c575a80eb6e5b7ce57f4e6c0b5f3641364b774d9fd055e099b",
+            "vin": 0
+        },
+        "issuer_pubkey": "02d2123c52b9c7ed452cfa1a4bdf908bce0d2734b6d3fd1dbe9d7c22e624252841",
+        "name": "Larry Coin",
+        "precision": 1,
+        "ticker": "LRYCN",
+        "version": 0
+    },
     "e493365cf7c50875bfec79d0724a39b715b8d338660e431617743abf51e82696": {
         "asset_id": "e493365cf7c50875bfec79d0724a39b715b8d338660e431617743abf51e82696",
         "contract": {
@@ -20880,6 +21909,42 @@
         "ticker": "TESN",
         "version": 0
     },
+    "e7d719445de5246e408e35e7c3184538d34004208bebcaddbd992fb5db255983": {
+        "asset_id": "e7d719445de5246e408e35e7c3184538d34004208bebcaddbd992fb5db255983",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmWgXuHD2V3KUpEWzm7raiFB9Vm3YZMiHXx7cjRbJYLrzJ",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Crossbill",
+            "nft": {
+                "cid": "QmP2LnRELLztCmH9q9UFb9J6L9bkf6cMGhWCdxbGCJfUFz",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "91c5d15ac240a10257afe4b9b24471c5b7f9dbf866fb6ee7e0434c9566e5e984"
+            },
+            "precision": 0,
+            "ticker": "nENW1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "9de0c9469a79081eb1c1607e7811c80ce07bd9e27ceda081e77dfe4087083dd4",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "7d84f3b12f63d358924c40308063fd5131a75f2bed26205e14869593b2b971db",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Crossbill",
+        "precision": 0,
+        "ticker": "nENW1",
+        "version": 0
+    },
     "e7d870d0c8942782a00f1ed17cec50c1b3e087221bf6666cc0ff29691904ef29": {
         "asset_id": "e7d870d0c8942782a00f1ed17cec50c1b3e087221bf6666cc0ff29691904ef29",
         "contract": {
@@ -20907,6 +21972,36 @@
         "name": "Warlock",
         "precision": 0,
         "ticker": "CWarl",
+        "version": 0
+    },
+    "e7f831a9202017c0be5375011636c1d4d456aac1c17e26d30017a6c35e2f6169": {
+        "asset_id": "e7f831a9202017c0be5375011636c1d4d456aac1c17e26d30017a6c35e2f6169",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project d5a45772",
+            "precision": 2,
+            "ticker": "t1J2l",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "6478a6a60956c1f82c58b505683be40dcdcf7d5274f09ec678cb026115ecfc98",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "4b20f28211153f23c9466bbb0ad9b220a059b2837341f3480b14422ba2bbc364",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project d5a45772",
+        "precision": 2,
+        "ticker": "t1J2l",
         "version": 0
     },
     "e88a8e9247477f7f0cfa2e0824fd915255f8c027bbaf553af456e7fba983e0cd": {
@@ -21933,6 +23028,36 @@
         "ticker": "APrVe",
         "version": 0
     },
+    "f2efdc5aebf93653a8c96adaa6783f7e90fbcffa27337e554c3cb19af28ae2b1": {
+        "asset_id": "f2efdc5aebf93653a8c96adaa6783f7e90fbcffa27337e554c3cb19af28ae2b1",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "rduck.bitcoindev.de"
+            },
+            "issuer_pubkey": "02e4489497f6b47e25ffb071619524685cb082ebcf1f5ece3efb73f0da9ba7105d",
+            "name": "Rubber Ducks for nothing",
+            "precision": 0,
+            "ticker": "RDUCK",
+            "version": 0
+        },
+        "entity": {
+            "domain": "rduck.bitcoindev.de"
+        },
+        "issuance_prevout": {
+            "txid": "be71c1b19ad82cda686ff545a8ce1da569d0df26764006a7943e4991d0199649",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "357d0b8e14f95ec2e3a2b4323152579d8359a76a5fc9b4696fe7590773e0ff92",
+            "vin": 0
+        },
+        "issuer_pubkey": "02e4489497f6b47e25ffb071619524685cb082ebcf1f5ece3efb73f0da9ba7105d",
+        "name": "Rubber Ducks for nothing",
+        "precision": 0,
+        "ticker": "RDUCK",
+        "version": 0
+    },
     "f321fea00c3a8dfcbdd8ec245677c6510f8f8d763fe39dd4407e20a708454fb7": {
         "asset_id": "f321fea00c3a8dfcbdd8ec245677c6510f8f8d763fe39dd4407e20a708454fb7",
         "contract": {
@@ -22520,6 +23645,36 @@
         "ticker": "BEgTr",
         "version": 0
     },
+    "f8433d3faac8615880fca46199ea4d5053b6e754a2eea34f8bcaaeaab64e794d": {
+        "asset_id": "f8433d3faac8615880fca46199ea4d5053b6e754a2eea34f8bcaaeaab64e794d",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "i token gialli",
+            "precision": 2,
+            "ticker": "giall",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "009a35a9a74240b0a172d65a5c3bbc1c8fc061bbe68f43ab996770149d2a7242",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "f36dd4d54cf389d665d5247487a4fc21668ea066d95cfc844a682aba0090880a",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "i token gialli",
+        "precision": 2,
+        "ticker": "giall",
+        "version": 0
+    },
     "f915f5e15fd478cb1f2c10888e10a81a011fa4762158d937f4ea6ef22703fd36": {
         "asset_id": "f915f5e15fd478cb1f2c10888e10a81a011fa4762158d937f4ea6ef22703fd36",
         "contract": {
@@ -22669,6 +23824,36 @@
         "name": "Golden Jubilee of Queen Victoria 1887",
         "precision": 0,
         "ticker": "GLDQV",
+        "version": 0
+    },
+    "fac2f1d1e15d806e2dd8dc7c8df8e499a8ae4f6ec68549c2a8d5b0c8775ad938": {
+        "asset_id": "fac2f1d1e15d806e2dd8dc7c8df8e499a8ae4f6ec68549c2a8d5b0c8775ad938",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.network"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Taxkredit project e827e5db",
+            "precision": 2,
+            "ticker": "tzGWX",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.network"
+        },
+        "issuance_prevout": {
+            "txid": "caf0a7857e61aaa230350b71068c4840360398f6f30f8a14e4fc9b490be9b319",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "c9cde680d9a7509769d24198221ede8488c3147b5dc4407d8b1687ba65ea6c4a",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Taxkredit project e827e5db",
+        "precision": 2,
+        "ticker": "tzGWX",
         "version": 0
     },
     "fad7bfb5cc2be2595037dd93e38f7afe5d06baa575ee5bc1ca0af4b88d4d7e2a": {
