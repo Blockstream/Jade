@@ -938,7 +938,10 @@ esp_err_t camera_probe(const camera_config_t* config, camera_model_t* out_camera
     }
 
     ESP_LOGD(TAG, "Enabling XCLK output");
-    camera_enable_out_clock(config);
+    const esp_err_t res = camera_enable_out_clock(config);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "camera_enable_out_clock() failed with: 0x%x", res);
+    }
 
     ESP_LOGD(TAG, "Initializing SSCB");
     SCCB_Init(config->pin_sscb_sda, config->pin_sscb_scl);

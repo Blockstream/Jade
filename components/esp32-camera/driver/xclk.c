@@ -15,7 +15,7 @@ esp_err_t camera_enable_out_clock(camera_config_t* config)
 {
     periph_module_enable(PERIPH_LEDC_MODULE);
 
-    ledc_timer_config_t timer_conf;
+    ledc_timer_config_t timer_conf = {};
     timer_conf.duty_resolution = 2;
     timer_conf.freq_hz = config->xclk_freq_hz;
     timer_conf.speed_mode = LEDC_HIGH_SPEED_MODE;
@@ -26,7 +26,7 @@ esp_err_t camera_enable_out_clock(camera_config_t* config)
         return err;
     }
 
-    ledc_channel_config_t ch_conf;
+    ledc_channel_config_t ch_conf = {};
     ch_conf.gpio_num = config->pin_xclk;
     ch_conf.speed_mode = LEDC_HIGH_SPEED_MODE;
     ch_conf.channel = config->ledc_channel;
