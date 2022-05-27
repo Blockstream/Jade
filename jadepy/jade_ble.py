@@ -104,7 +104,7 @@ class JadeBleImpl:
 
         # Connect - seems pretty flaky so allow retries
         connected = False
-        attempts_remaining = 3
+        attempts_remaining = 5
         while not connected:
             try:
                 attempts_remaining -= 1
@@ -118,7 +118,9 @@ class JadeBleImpl:
                 logger.warning("BLE connection exception: '{}'".format(e))
                 if not attempts_remaining:
                     logger.warning("Exhausted retries - BLE connection failed")
-                    raise
+                    raise JadeError(2, "Unable to connect to BLE device",
+                                    "Device name: {}, Serial number: {}".format(
+                                        self.device_name, self.serial_number or '<any>'))
 
         # Peruse services and characteristics
         # Get the 'handle' of the receiving charactersitic

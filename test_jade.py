@@ -3394,6 +3394,9 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     check_frag = has_psram and not has_ble
     check_mem_stats(startinfo, endinfo, check_frag=check_frag)
 
+    rslt = jadeapi.clean_reset()
+    assert rslt is True
+
 
 # Run tests using passed interface
 def run_interface_tests(jadeapi,
@@ -3434,9 +3437,11 @@ def run_interface_tests(jadeapi,
 
         # Sanity check selfcheck time on Jade hw (skip for qemu)
         # May need updating if more tests added to selfcheck.c
-        time_ms = jadeapi.run_remote_selfcheck()
-        logger.info('selfcheck time: ' + str(time_ms) + 'ms')
-        assert qemu or time_ms < 82500
+        # Don't need to run internal tests more than once (so skip for ble)
+        if not isble:
+            time_ms = jadeapi.run_remote_selfcheck()
+            logger.info('selfcheck time: ' + str(time_ms) + 'ms')
+            assert qemu or time_ms < 82500
 
         # Test good pinserver handshake, and also 'bad sig' pinserver
         test_handshake(jadeapi.jade)
@@ -3484,6 +3489,9 @@ def run_interface_tests(jadeapi,
     check_frag = has_psram and not has_ble
     check_mem_stats(startinfo, endinfo, check_frag=check_frag)
 
+    rslt = jadeapi.clean_reset()
+    assert rslt is True
+
 
 # Run all selected tests over a passed JadeAPI instance.
 def run_jade_tests(jadeapi, args, isble):
@@ -3498,44 +3506,83 @@ def run_jade_tests(jadeapi, args, isble):
         run_api_tests(jadeapi, isble, args.qemu, authuser=args.authuser)
 
 
-# This test should be passed 2 different connections to the same jade hw
-# - both serial and ble connected at the same time.
-# Test that is we auth over one, we can't do sensitive calls over the other.
-def mixed_sources_test(jade1, jade2):
+# This test should be passed 2 different connection details to the same jade hw
+# Test that is we auth over one, we can't connect with the other.
+def mixed_sources_test(serialport, bleid):
+    logger.info("Running 'mixed sources' Tests")
+    SRTIMEOUT = 3  # Use a short timeout
+    SCAN_TIMEOUT = 6
 
     # Example of a 'sensitve' call
     path, network, expected = GET_XPUB_DATA[0]
 
-    # jade1 can unlock jade, then get xpub fine
-    jade1.set_mnemonic(TEST_MNEMONIC)
-    rslt = jade1.get_xpub(network, path)
-    assert rslt == expected
+    # 1. Authorise over serial, check BLE connection fails
+    with JadeAPI.create_serial(serialport, timeout=SRTIMEOUT) as jade_serial:
+        jade_serial.set_mnemonic(TEST_MNEMONIC)
+        time.sleep(1)
 
-    # jade2 gets an error about jade being locked (for them)
-    try:
-        rslt = jade2.get_xpub(network, path)
-        assert False, "Excepted exception from mixed sources test"
-    except JadeError as err:
-        assert err.code == JadeError.HW_LOCKED
+        rslt = jade_serial.get_xpub(network, path)
+        assert rslt == expected
 
-    # jade1 is still fine
-    rslt = jade1.get_xpub(network, path)
-    assert rslt == expected
+        try:
+            # With BLE we shouldn't even be able to scan/connect the device
+            with JadeAPI.create_ble(serial_number=bleid, scan_timeout=SCAN_TIMEOUT) as jade_ble:
+                assert False, "Expected BLE connection to fail as authorised over serial!"
 
-    # Now jade2 unlocks jade - they can get xpub but jade1 now cannot
-    jade2.set_mnemonic(TEST_MNEMONIC)
-    rslt = jade2.get_xpub(network, path)
-    assert rslt == expected
+        except JadeError as err:
+            assert err.code == 1 and "Unable to locate BLE device" in err.message
 
-    try:
-        rslt = jade1.get_xpub(network, path)
-        assert False, "Expected exception from mixed sources test"
-    except JadeError as err:
-        assert err.code == JadeError.HW_LOCKED
+        rslt = jade_serial.logout()
+        assert rslt is True
 
-    # jade2 is still fine
-    rslt = jade2.get_xpub(network, path)
-    assert rslt == expected
+    # 2. Authorise over BLE, check serial connection can be made, but is limited
+    with JadeAPI.create_ble(serial_number=bleid) as jade_ble:
+        rslt = jade_ble.set_mnemonic(TEST_MNEMONIC)
+        assert rslt
+
+        rslt = jade_ble.get_xpub(network, path)
+        assert rslt == expected
+
+        # With serial it can connect but can't make any 'wallet-sensitive' calls
+        # expect 'HW_LOCKED' error over un-authenticated connection
+        with JadeAPI.create_serial(serialport, timeout=SRTIMEOUT) as jade_serial:
+            # Can, for example, get info
+            info = jade_serial.get_version_info()
+            assert len(info) == NUM_VALUES_VERINFO
+
+            try:
+                rslt = jade_serial.get_xpub(network, path)
+                assert False, "Expected exception from mixed sources test"
+            except JadeError as err:
+                assert err.code == JadeError.HW_LOCKED
+
+            # Can unlock with serial, but that will break BLE connection
+            rslt = jade_serial.set_mnemonic(TEST_MNEMONIC)
+            assert rslt
+
+            rslt = jade_serial.get_xpub(network, path)
+            assert rslt == expected
+
+            # BLE connection should now be broken
+            try:
+                rslt = jade_ble.get_xpub(network, path)
+                assert False, "Expected exception from mixed sources test"
+            except AssertionError as err:
+                assert jade_ble.jade.impl.client is None
+
+            rslt = jade_serial.logout()
+            assert rslt is True
+
+    # 3. Check BLE re-enabled, and both interfces can be used when user not authenticated
+    time.sleep(1)
+    with JadeAPI.create_serial(serialport, timeout=SRTIMEOUT) as jade_serial:
+        info1 = jade_serial.get_version_info()
+        with JadeAPI.create_ble(serial_number=bleid) as jade_ble:
+            info2 = jade_ble.get_version_info()
+            info1 = jade_serial.get_version_info()
+
+        rslt = jade_serial.clean_reset()
+        assert rslt is True
 
 
 # Run all selected tests over all selected backends (serial/ble)
@@ -3557,12 +3604,9 @@ def run_all_jade_tests(info, args):
             with JadeAPI.create_ble(serial_number=bleid) as jade:
                 run_jade_tests(jade, args, isble=True)
 
-                # 3. If also testing over serial, run the 'mixed sources' tests
-                if not args.skipserial:
-                    logger.info("Running 'mixed sources' Tests")
-                    with JadeAPI.create_serial(args.serialport,
-                                               timeout=args.serialtimeout) as jadeserial:
-                        mixed_sources_test(jadeserial, jade)
+            # 3. If testing both interfaces, test cannot connect 'other' when one in use
+            if not args.skipserial:
+                mixed_sources_test(args.serialport, bleid)
         else:
             msg = "Skipping BLE tests - not enabled on the hardware"
             logger.warning(msg)

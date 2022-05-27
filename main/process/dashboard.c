@@ -29,6 +29,7 @@
 static inline bool ble_enabled(void) { return false; }
 static inline bool ble_connected(void) { return false; }
 static inline void ble_start(void) { JADE_ASSERT(false); }
+static inline void ble_stop(void) { return; }
 #endif
 #include "process/ota_defines.h"
 #include "process_utils.h"
@@ -227,6 +228,53 @@ void build_version_info_reply(const void* ctx, CborEncoder* container);
 // Set flag to change PIN on next successful unlock
 void set_request_change_pin(bool change_pin);
 
+static void process_get_version_info_request(jade_process_t* process)
+{
+    ASSERT_CURRENT_MESSAGE(process, "get_version_info");
+    jade_process_reply_to_message_result(process->ctx, &process->ctx.source, build_version_info_reply);
+}
+
+// If the user has successfully authenticated over a given connection interface,
+// we stop/close the 'other' interface for security and performance/stability reasons.
+// If the user is not authenticated or tied to a given interface, enable all.
+static void enable_connection_interfaces(const jade_msg_source_t source)
+{
+    JADE_LOGD("enable_connection_interfaces(%u)", source);
+
+    if (source == SOURCE_SERIAL || (source == SOURCE_NONE && internal_relogin_source == SOURCE_SERIAL)) {
+        // serial_start();
+        ble_stop();
+    } else if (source == SOURCE_BLE || (source == SOURCE_NONE && internal_relogin_source == SOURCE_BLE)) {
+        ble_start();
+#ifdef CONFIG_LOG_DEFAULT_LEVEL_NONE // Leave serial up if used for logging
+        // serial_stop();
+#endif
+    } else if (source == SOURCE_INTERNAL || (source == SOURCE_NONE && internal_relogin_source == SOURCE_INTERNAL)) {
+        ble_stop();
+#ifdef CONFIG_LOG_DEFAULT_LEVEL_NONE // Leave serial up if used for logging
+        // serial_stop();
+#endif
+    } else { // ie. SOURCE_NONE
+        JADE_ASSERT(internal_relogin_source == SOURCE_NONE);
+
+        // Ensure serial running, and start BLE if configured but not running
+        // serial_start();
+
+#ifdef CONFIG_BT_ENABLED
+        if (!ble_enabled()) {
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+            const uint8_t ble_flags = storage_get_ble_flags();
+#else
+            const uint8_t ble_flags = BLE_ENABLED;
+#endif
+            if (ble_flags & BLE_ENABLED) {
+                ble_start();
+            }
+        }
+#endif
+    }
+}
+
 // Home screen/menu update
 static void update_home_screen(gui_view_node_t* status_light, gui_view_node_t* status_text, gui_view_node_t* label)
 {
@@ -297,12 +345,6 @@ static void format_pin(char* buf, const uint8_t buf_len, const uint8_t* pin, con
         const int ret = snprintf(buf++, buf_len - i, "%d", pin[i]);
         JADE_ASSERT(ret == 1);
     }
-}
-
-static void process_get_version_info_request(jade_process_t* process)
-{
-    ASSERT_CURRENT_MESSAGE(process, "get_version_info");
-    jade_process_reply_to_message_result(process->ctx, &process->ctx.source, build_version_info_reply);
 }
 
 // Unpack entropy bytes from message and add to random generator
@@ -404,6 +446,9 @@ static void dispatch_message(jade_process_t* process)
         // or
         // b) There is no PIN set (ie. no encrypted keys set, eg. new device)
         if ((KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) && !keychain_has_temporary()) || !keychain_has_pin()) {
+            // If we are about to start an OTA we stop the other/unused connection
+            // interface for performance, stabililty and security reasons.
+            enable_connection_interfaces(process->ctx.source);
             task_function = ota_process;
         } else {
             // Reject the message as hw locked
@@ -822,19 +867,30 @@ static void handle_ble_reset(void)
     }
 }
 
+static inline void update_ble_status_item(gui_view_node_t* ble_status_item, const bool enabled)
+{
+    gui_update_text(ble_status_item, enabled ? "Status: Enabled" : "Status: Disabled");
+}
+
+static inline void update_ble_carousel_label(gui_view_node_t* status_textbox, const bool enabled)
+{
+    gui_update_text(status_textbox, enabled ? "Enabled" : "Disabled");
+}
+
 // BLE properties screen
 static void handle_ble(void)
 {
     uint8_t ble_flags = storage_get_ble_flags();
+    bool enabled = (ble_flags & BLE_ENABLED);
 
     gui_view_node_t* ble_status_item = NULL;
     gui_activity_t* const act = make_ble_activity(&ble_status_item);
-    gui_update_text(ble_status_item, ble_enabled() ? "Status: Enabled" : "Status: Disabled");
+    update_ble_status_item(ble_status_item, enabled);
     gui_set_current_activity(act);
 
     gui_view_node_t* status_textbox = NULL;
     gui_activity_t* const act_status = make_carousel_activity("Bluetooth Status", NULL, &status_textbox);
-    gui_update_text(status_textbox, ble_enabled() ? "Enabled" : "Disabled");
+    update_ble_carousel_label(status_textbox, enabled);
 
     int32_t ev_id;
     while (true) {
@@ -852,12 +908,11 @@ static void handle_ble(void)
         if (ret) {
             if (ev_id == BTN_BLE_STATUS) {
                 gui_set_current_activity(act_status);
-                bool enable_ble = ble_enabled();
                 while (true) {
-                    gui_update_text(status_textbox, enable_ble ? "Enabled" : "Disabled");
+                    update_ble_carousel_label(status_textbox, enabled);
                     if (gui_activity_wait_event(act_status, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
                         if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            enable_ble = !enable_ble; // Just toggle label at this point
+                            enabled = !enabled; // Just toggle label at this point
                         } else if (ev_id == gui_get_click_event()) {
                             // Done - apply ble change
                             break;
@@ -866,9 +921,15 @@ static void handle_ble(void)
                 }
 
                 // Start/stop BLE and persist pref/flags
-                if (enable_ble) {
+                if (enabled) {
                     if (!ble_enabled()) {
-                        ble_start();
+                        // Only start BLE immediately if not using some other interface
+                        if (keychain_get_userdata() == SOURCE_NONE) {
+                            ble_start();
+                        } else {
+                            const char* message[] = { "Bluetooth will be", "started on logout", "or disconnection" };
+                            await_message_activity(message, 3);
+                        }
                     }
                     ble_flags |= BLE_ENABLED;
                     storage_set_ble_flags(ble_flags);
@@ -879,7 +940,7 @@ static void handle_ble(void)
                     ble_flags &= ~BLE_ENABLED;
                     storage_set_ble_flags(ble_flags);
                 }
-                gui_update_text(ble_status_item, ble_enabled() ? "Status: Enabled" : "Status: Disabled");
+                update_ble_status_item(ble_status_item, enabled);
             } else if (ev_id == BTN_BLE_RESET_PAIRING) {
                 handle_ble_reset();
             } else if (ev_id == BTN_BLE_HELP) {
@@ -2365,6 +2426,10 @@ static void display_screen(jade_process_t* process, gui_activity_t* act)
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();
     refeed_entropy(&tick_count, sizeof(tick_count));
+
+    // Ensure the correct/expected connection interface(s) are enabled
+    // depending on whether the user is authenticated and on which interface.
+    enable_connection_interfaces(keychain_get_userdata());
 }
 
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.
