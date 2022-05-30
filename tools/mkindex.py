@@ -51,7 +51,7 @@ def process_current_directory(vstable, vbeta):
 
     previous = _new_release_dict()
     stable = _new_release_dict()
-    beta = _new_release_dict() if vbeta else None
+    beta = _new_release_dict() if vbeta else {}
 
     # Add description dict to the 'full' or 'delta' list under the relevant
     # release label (beta, stable, previous)
@@ -73,7 +73,7 @@ def process_current_directory(vstable, vbeta):
         except Exception as e:
             logger.error(f'Skipping "{fwname}":- {e}')
 
-    return {'beta': _sort_release_dict(beta) if beta else None,
+    return {'beta': _sort_release_dict(beta),
             'stable': _sort_release_dict(stable),
             'previous': _sort_release_dict(previous)}
 

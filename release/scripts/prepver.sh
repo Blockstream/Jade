@@ -34,6 +34,21 @@ else
   echo "Created directory ${VER_DIR}"
 fi
 
+# Ensure each subdirectory exists
+pushd "${VER_DIR}"
+for hwdir in ${HWDIRS}
+do
+  if [ -d "${hwdir}" ]
+  then
+    echo "Warning: ${hwdir} directory exists"
+  else
+    mkdir -p "${hwdir}"
+    echo "Created directory ${hwdir}"
+  fi
+done
+
+popd
+
 echo "Refreshing fwsvr mirror and creating upload area"
 "${CHECKSVR}"
 

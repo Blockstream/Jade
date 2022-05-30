@@ -25,7 +25,7 @@ pushd "${WORKING_DIR}"
 for proddir in ${PRODDIRS}
 do
   pushd "${proddir}"
-  for dir in ${INNERDIRS}
+  for dir in ${BUILDDIRS}
   do
     pushd "${dir}"
     "${FWPREP}" "${SIGNED_BINARY}" ..
