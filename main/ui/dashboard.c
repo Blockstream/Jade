@@ -73,6 +73,7 @@ void make_startup_options_screen(gui_activity_t** act_ptr)
 #else
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
 #endif
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 25, 2, 25);
     gui_set_parent(vsplit, act->root_node);
 
     // Buttons: Reset, One-time wallet, and Continue
@@ -80,7 +81,6 @@ void make_startup_options_screen(gui_activity_t** act_ptr)
     gui_make_button(&btn1, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
     gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
     gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(btn1, GUI_MARGIN_ALL_DIFFERENT, 4, 25, 0, 25);
     gui_set_parent(btn1, vsplit);
 
     gui_view_node_t* text1;
@@ -92,7 +92,6 @@ void make_startup_options_screen(gui_activity_t** act_ptr)
     gui_make_button(&btn2, TFT_BLACK, BTN_SETTINGS_EMERGENCY_RESTORE, NULL);
     gui_set_borders(btn2, TFT_BLACK, 2, GUI_BORDER_ALL);
     gui_set_borders_selected_color(btn2, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(btn2, GUI_MARGIN_ALL_DIFFERENT, 4, 25, 0, 25);
     gui_set_parent(btn2, vsplit);
 
     gui_view_node_t* text2;
@@ -105,7 +104,6 @@ void make_startup_options_screen(gui_activity_t** act_ptr)
     gui_make_button(&btn3, TFT_BLACK, BTN_SETTINGS_LEGAL, NULL);
     gui_set_borders(btn3, TFT_BLACK, 2, GUI_BORDER_ALL);
     gui_set_borders_selected_color(btn3, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(btn3, GUI_MARGIN_ALL_DIFFERENT, 4, 25, 0, 25);
     gui_set_parent(btn3, vsplit);
 
     gui_view_node_t* text3;
@@ -118,7 +116,6 @@ void make_startup_options_screen(gui_activity_t** act_ptr)
     gui_make_button(&btn4, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
     gui_set_borders(btn4, TFT_BLACK, 2, GUI_BORDER_ALL);
     gui_set_borders_selected_color(btn4, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(btn4, GUI_MARGIN_ALL_DIFFERENT, 4, 25, 0, 25);
     gui_set_parent(btn4, vsplit);
 
     gui_view_node_t* text4;
@@ -459,51 +456,80 @@ void make_settings_screen(
     }
 
     {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_parent(hsplit, vsplit);
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_MULTISIG, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_RED);
-            gui_set_parent(btn, hsplit);
-            gui_view_node_t* text;
-            gui_make_text(&text, "Multisig", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_RED);
-            gui_set_parent(btn, hsplit);
-            gui_view_node_t* text;
-            gui_make_text(&text, "Factory Reset", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_ADVANCED, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Advanced", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
     }
 
     {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 1, 100);
-        gui_set_parent(hsplit, vsplit);
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Exit", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
 
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-            gui_view_node_t* text;
-            gui_make_text(&text, "Exit", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
+    *act_ptr = act;
+}
+
+void make_advanced_options_screen(gui_activity_t** act_ptr)
+{
+    JADE_ASSERT(act_ptr);
+
+    gui_activity_t* act;
+    gui_make_activity(&act, true, "Advanced");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 25, 2, 25);
+    gui_set_parent(vsplit, act->root_node);
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_MULTISIG, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "M-of-N Multisig", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Factory Reset", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    // Insert more advanced options here
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Exit", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
     }
 
     *act_ptr = act;

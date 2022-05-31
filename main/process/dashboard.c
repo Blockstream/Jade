@@ -73,6 +73,7 @@ void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, b
 void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** txt_extra);
 void make_settings_screen(
     gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, size_t nBtns);
+void make_advanced_options_screen(gui_activity_t** act_ptr);
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 void make_legal_screen(gui_activity_t** act_ptr);
@@ -493,7 +494,7 @@ static void handle_multisigs(void)
     JADE_ASSERT(ok);
 
     if (num_multisigs == 0) {
-        await_message_activity("No multisigs registered");
+        await_message_activity("No m-of-n multisigs registered");
         return;
     }
 
@@ -534,6 +535,34 @@ static void handle_multisigs(void)
             }
             break;
         };
+    }
+}
+
+static void handle_settings_advanced(void)
+{
+    gui_activity_t* act;
+    make_advanced_options_screen(&act);
+    gui_set_current_activity(act);
+
+    bool loop = true;
+    while (loop) {
+        int32_t ev_id;
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        switch (ev_id) {
+        case BTN_SETTINGS_MULTISIG:
+            handle_multisigs();
+            gui_set_current_activity(act);
+            break;
+        case BTN_SETTINGS_RESET:
+            offer_jade_reset();
+            gui_set_current_activity(act);
+            break;
+        case BTN_SETTINGS_EXIT:
+            loop = false;
+            break;
+        default:
+            break;
+        }
     }
 }
 
@@ -610,13 +639,9 @@ static void handle_settings(jade_process_t* process)
                         gui_set_current_activity(act);  // Causes redraw in new orientation
                         break;
              */
-        case BTN_SETTINGS_RESET:
-            offer_jade_reset();
-            gui_set_current_activity(act);
-            break;
 
-        case BTN_SETTINGS_MULTISIG:
-            handle_multisigs();
+        case BTN_SETTINGS_ADVANCED:
+            handle_settings_advanced();
             gui_set_current_activity(act);
             break;
 
