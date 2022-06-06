@@ -99,14 +99,12 @@ void ota_process(void* process_ptr)
     }
 
     uint8_t expected_hash[SHA256_LEN];
-    size_t expected_hash_len = 0;
     char* expected_hash_hexstr = NULL;
-    rpc_get_bytes("cmphash", sizeof(expected_hash), &params, expected_hash, &expected_hash_len);
-    if (expected_hash_len != HMAC_SHA256_LEN) {
+    if (!rpc_get_n_bytes("cmphash", &params, sizeof(expected_hash), expected_hash)) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Cannot extract valid fw hash value", NULL);
         goto cleanup;
     }
-    JADE_WALLY_VERIFY(wally_hex_from_bytes(expected_hash, expected_hash_len, &expected_hash_hexstr));
+    JADE_WALLY_VERIFY(wally_hex_from_bytes(expected_hash, sizeof(expected_hash), &expected_hash_hexstr));
     jade_process_wally_free_string_on_exit(process, expected_hash_hexstr);
 
     // We will show a progress bar once the user has confirmed and the upload in progress
