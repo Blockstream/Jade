@@ -708,8 +708,9 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
 
             // Display passkey on Jade GUI and get confirm/deny response - assume deny after timeout
             gui_activity_t* prior_activity = gui_current_activity();
-            gui_activity_t* activity;
+            gui_activity_t* activity = NULL;
             make_ble_confirmation_activity(&activity, event->passkey.params.numcmp);
+            JADE_ASSERT(activity);
 
             JADE_LOGI("Showing BLE confirm screen");
             int32_t ev_id;

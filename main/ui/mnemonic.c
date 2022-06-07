@@ -16,11 +16,10 @@ static void make_mnemonic_screen(gui_activity_t** activity_ptr, const char* head
     JADE_ASSERT(activity_ptr);
 
     gui_make_activity(activity_ptr, true, header);
-    gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, message
     gui_view_node_t* text_status;
@@ -95,11 +94,10 @@ static void make_mnemonic_page(gui_activity_t** activity_ptr, const size_t nword
     JADE_ASSERT(first_index % 4 == 0);
 
     gui_make_activity(activity_ptr, true, "Recovery Phrase");
-    gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 30, 30, 34);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first four rows: the words prefixed by their index, e.g. "1: river"
     char msg[64];
@@ -205,11 +203,10 @@ static void make_confirm_mnemonic_page(
     JADE_LOGD("Confirm page index %u, prev %s, next %s", confirm_index, word_prev, word_next);
 
     gui_make_activity(activity_ptr, true, "Backup check");
-    gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, hint index
     char hint_str[32];
@@ -323,12 +320,11 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
     JADE_ASSERT(keys_len == 26); // ie. A->Z
 
     gui_make_activity(activity_ptr, true, "Enter Word");
-    gui_activity_t* act = *activity_ptr;
-    act->selectables_wrap = true; // allow the button cursor to wrap
+    (*activity_ptr)->selectables_wrap = true; // allow the button cursor to wrap
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, message
     gui_view_node_t* text_bg;
@@ -402,12 +398,11 @@ void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_nod
     JADE_ASSERT(textbox);
 
     gui_make_activity(activity_ptr, true, "Recover Wallet");
-    gui_activity_t* act = *activity_ptr;
-    act->selectables_wrap = true; // allow the button cursor to wrap
+    (*activity_ptr)->selectables_wrap = true; // allow the button cursor to wrap
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, message
     gui_view_node_t* text_bg;
@@ -471,11 +466,10 @@ void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** came
     // this is a weird activity and we need the full screen height for the camera, so we disable the status bar and
     // re-do it ourselves
     gui_make_activity(activity_ptr, false, NULL);
-    gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(hsplit, act->root_node);
+    gui_set_parent(hsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 38, 23, 23);
@@ -541,7 +535,7 @@ static void make_enter_passphrase_page(
     JADE_ASSERT(page < NUM_PASSPHRASE_KEYBOARD_SCREENS);
     JADE_ASSERT(textbox);
 
-    gui_activity_t* act;
+    gui_activity_t* act = NULL;
     gui_make_activity(&act, true, "Enter Passphrase");
     act->selectables_wrap = true; // allow the button cursor to wrap
 
@@ -684,11 +678,10 @@ void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* p
     JADE_ASSERT(textbox);
 
     gui_make_activity(activity_ptr, true, "Confirm Passphrase");
-    gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 40, 27, 33);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, message
     gui_view_node_t* text;

@@ -95,7 +95,7 @@ void sign_message_process(void* process_ptr)
     if (auto_sign) {
         JADE_LOGI("Auto-signing GDK login challenge message");
     } else {
-        gui_activity_t* activity;
+        gui_activity_t* activity = NULL;
         if (msg_len < MAX_DISPLAY_MESSAGE_LEN) {
             // Sufficiently short message - display the message
             make_sign_message_activity(&activity, message, msg_len, false, path_as_str);

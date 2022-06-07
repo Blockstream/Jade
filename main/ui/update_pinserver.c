@@ -10,15 +10,13 @@ void make_confirm_pinserver_details_activity(
     JADE_ASSERT(urlB);
 
     gui_make_activity(activity_ptr, true, "Confirm PinServer");
-    gui_activity_t* activity = *activity_ptr;
-    JADE_ASSERT(activity);
 
     char buf[128];
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, activity->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, url
     gui_view_node_t* hsplit_text1;
@@ -135,13 +133,11 @@ void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, 
     JADE_ASSERT(activity_ptr);
 
     gui_make_activity(activity_ptr, true, "Confirm PinServer");
-    gui_activity_t* activity = *activity_ptr;
-    JADE_ASSERT(activity);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, activity->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, text
     gui_view_node_t* text1;

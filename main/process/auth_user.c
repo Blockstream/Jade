@@ -46,7 +46,7 @@ void check_pin_load_keys(jade_process_t* process)
     }
     JADE_ASSERT(msg);
 
-    pin_insert_activity_t* pin_insert;
+    pin_insert_activity_t* pin_insert = NULL;
     make_pin_insert_activity(&pin_insert, "Unlock Jade", msg);
     JADE_ASSERT(pin_insert);
     jade_process_free_on_exit(process, pin_insert);
@@ -139,7 +139,7 @@ static void set_pin_save_keys(jade_process_t* process)
 
     // Enter PIN to lock mnemonic/key material.
     // In a debug unattended ci build, use hardcoded pin after a short delay
-    pin_insert_activity_t* pin_insert;
+    pin_insert_activity_t* pin_insert = NULL;
     make_pin_insert_activity(&pin_insert, "Enter New PIN", "\nNew PIN:");
     JADE_ASSERT(pin_insert);
     jade_process_free_on_exit(process, pin_insert);

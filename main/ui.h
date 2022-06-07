@@ -60,7 +60,7 @@ void make_confirm_pinserver_details_activity(
 void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, const char* cert_hash_hex);
 
 // View/delete multisig registration
-void make_view_multisig_activity(gui_activity_t** activity, const char* multisig_name, size_t index, size_t total,
+void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* multisig_name, size_t index, size_t total,
     bool valid, bool sorted, size_t threshold, size_t num_signers, const uint8_t* master_blinding_key,
     size_t master_blinding_key_len);
 

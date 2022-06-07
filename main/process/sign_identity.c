@@ -73,9 +73,8 @@ void sign_identity_process(void* process_ptr)
     }
 
     // User to confirm identity
-    gui_activity_t* activity;
+    gui_activity_t* activity = NULL;
     make_sign_identity_activity(&activity, identity, identity_len);
-
     JADE_ASSERT(activity);
     gui_set_current_activity(activity);
 

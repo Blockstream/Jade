@@ -78,8 +78,10 @@ static void boot_process(void)
     // user clicked the front button.  If they did, we offer to reset the jade
     // (one-time passkey required).
     JADE_LOGI("Showing splash screen");
-    gui_activity_t* act = display_splash();
+    gui_activity_t* act = NULL;
+    display_splash(&act);
     JADE_ASSERT(act);
+
     wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act); // activity takes ownership
     JADE_ASSERT(event_data);
     gui_activity_register_event(act, GUI_EVENT, GUI_FRONT_CLICK_EVENT, sync_wait_event_handler, event_data);

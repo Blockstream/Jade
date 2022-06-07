@@ -11,13 +11,11 @@ void make_sign_message_activity(gui_activity_t** activity_ptr, const char* msg_s
     JADE_ASSERT(path_as_str);
 
     gui_make_activity(activity_ptr, true, "Sign Message");
-    gui_activity_t* activity = *activity_ptr;
-    JADE_ASSERT(activity);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, activity->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, hash value
     gui_view_node_t* hsplit_text2;

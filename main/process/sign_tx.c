@@ -640,7 +640,7 @@ void sign_tx_process(void* process_ptr)
         goto cleanup;
     }
 
-    gui_activity_t* final_activity;
+    gui_activity_t* final_activity = NULL;
     const uint64_t fees = input_amount - output_amount;
     const char* const warning_msg
         = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;

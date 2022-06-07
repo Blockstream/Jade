@@ -237,7 +237,7 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     }
 
     // User to confirm once new firmware version known and all checks passed
-    gui_activity_t* activity;
+    gui_activity_t* activity = NULL;
     make_ota_versions_activity(&activity, running_app_info.version, new_app_info->version, joctx->expected_hash_hexstr);
     JADE_ASSERT(activity);
 

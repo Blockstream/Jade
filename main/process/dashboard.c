@@ -65,27 +65,27 @@ void update_pinserver_process(void* process_ptr);
 void auth_user_process(void* process_ptr);
 
 // GUI screens
-void make_startup_options_screen(gui_activity_t** act_ptr);
-void make_setup_screen(gui_activity_t** act_ptr, const char* device_name, const char* firmware_version);
-void make_connect_screen(gui_activity_t** act_ptr, const char* device_name, const char* firmware_version);
-void make_connection_select_screen(gui_activity_t** act_ptr);
-void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, bool ble);
-void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** txt_extra);
+void make_startup_options_screen(gui_activity_t** activity_ptr);
+void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
+void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
+void make_connection_select_screen(gui_activity_t** activity_ptr);
+void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, bool ble);
+void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra);
 void make_settings_screen(
-    gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, size_t nBtns);
-void make_advanced_options_screen(gui_activity_t** act_ptr);
+    gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, size_t nBtns);
+void make_advanced_options_screen(gui_activity_t** activity_ptr);
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-void make_legal_screen(gui_activity_t** act_ptr);
+void make_legal_screen(gui_activity_t** activity_ptr);
 #endif
-void make_storage_stats_screen(gui_activity_t** act_ptr, size_t entries_used, size_t entries_free);
+void make_storage_stats_screen(gui_activity_t** activity_ptr, size_t entries_used, size_t entries_free);
 
-void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** ble_status_textbox);
+void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** ble_status_textbox);
 void make_device_screen(
-    gui_activity_t** act_ptr, const char* power_status, const char* mac, const char* firmware_version);
+    gui_activity_t** activity_ptr, const char* power_status, const char* mac, const char* firmware_version);
 
 #ifdef CONFIG_DEBUG_MODE
-void make_show_xpub(gui_activity_t** act_ptr, Icon* qr_icon);
+void make_show_xpub(gui_activity_t** activity_ptr, Icon* qr_icon);
 #endif
 
 // Wallet initialisation function
@@ -386,8 +386,9 @@ void offer_jade_reset(void)
         const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm value to wipe all data:\n%20s\n", numstr);
         JADE_ASSERT(ret > 0 && ret < sizeof(confirm_msg));
 
-        pin_insert_activity_t* pin_insert;
+        pin_insert_activity_t* pin_insert = NULL;
         make_pin_insert_activity(&pin_insert, "Reset Jade", confirm_msg);
+        JADE_ASSERT(pin_insert);
         JADE_ASSERT(sizeof(num) == sizeof(pin_insert->pin));
 
         gui_set_current_activity(pin_insert->activity);
@@ -421,7 +422,7 @@ void offer_jade_reset(void)
 static void select_initial_connection(void)
 {
 #ifndef CONFIG_ESP32_NO_BLOBS
-    gui_activity_t* activity;
+    gui_activity_t* activity = NULL;
     make_connection_select_screen(&activity);
     JADE_ASSERT(activity);
     gui_set_current_activity(activity);
@@ -477,6 +478,7 @@ static void handle_legal(void)
 {
     gui_activity_t* first_activity = NULL;
     make_legal_screen(&first_activity);
+    JADE_ASSERT(first_activity);
     gui_set_current_activity(first_activity);
 
     while (sync_await_single_event(GUI_BUTTON_EVENT, BTN_INFO_EXIT, NULL, NULL, NULL, 0) != ESP_OK) {
@@ -540,8 +542,10 @@ static void handle_multisigs(void)
 
 static void handle_settings_advanced(void)
 {
-    gui_activity_t* act;
+    gui_activity_t* act = NULL;
     make_advanced_options_screen(&act);
+    JADE_ASSERT(act);
+
     gui_set_current_activity(act);
 
     bool loop = true;
@@ -568,8 +572,9 @@ static void handle_settings_advanced(void)
 
 void offer_startup_options(void)
 {
-    gui_activity_t* act;
+    gui_activity_t* act = NULL;
     make_startup_options_screen(&act);
+    JADE_ASSERT(act);
     gui_set_current_activity(act);
 
     int32_t ev_id;
@@ -612,8 +617,8 @@ static void handle_settings(jade_process_t* process)
         { .val = 600, .txt = "10", .btn = NULL }, { .val = 900, .txt = "15", .btn = NULL } };
     const size_t nBtns = sizeof(timeout_btn) / sizeof(btn_data_t);
 
-    gui_activity_t* act;
-    gui_view_node_t* orientation_textbox;
+    gui_activity_t* act = NULL;
+    gui_view_node_t* orientation_textbox = NULL;
     make_settings_screen(&act, &orientation_textbox, timeout_btn, nBtns);
     JADE_ASSERT(act);
     // update_orientation_text(orientation_textbox);
@@ -691,9 +696,8 @@ static inline void update_ble_enabled_text(gui_view_node_t* ble_status_textbox)
 
 static void handle_ble(void)
 {
-    gui_activity_t* act;
-
-    gui_view_node_t* ble_status_textbox;
+    gui_activity_t* act = NULL;
+    gui_view_node_t* ble_status_textbox = NULL;
     make_ble_screen(&act, device_name, &ble_status_textbox);
     JADE_ASSERT(act);
 
@@ -768,7 +772,7 @@ static void handle_xpub(void)
         JADE_ASSERT(qret == 0);
         qrcode_toIcon(&qrcode, &qr_icon, 3);
 
-        gui_activity_t* xpub_act;
+        gui_activity_t* xpub_act = NULL;
         make_show_xpub(&xpub_act, &qr_icon);
         JADE_ASSERT(xpub_act);
         gui_set_current_activity(xpub_act);
@@ -799,7 +803,7 @@ static void handle_device(void)
     JADE_ASSERT(rc == 18);
 #endif
 
-    gui_activity_t* act;
+    gui_activity_t* act = NULL;
     make_device_screen(&act, power_status, mac, running_app_info.version);
     JADE_ASSERT(act);
 
@@ -996,6 +1000,7 @@ void dashboard_process(void* process_ptr)
         //    - connect screen
         // 4. Uninitialised - has no persisted/encrypted keys and no keys in memory
         //    - setup screen
+        act_dashboard = NULL;
         const bool has_pin = keychain_has_pin();
         const keychain_t* initial_keychain = keychain_get();
         if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {

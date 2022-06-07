@@ -513,6 +513,7 @@ static void push_updatable(
 static void create_activity(gui_activity_t** ppact)
 {
     JADE_ASSERT(ppact);
+    JADE_ASSERT(!*ppact);
 
     activity_holder_t* holder = JADE_MALLOC(sizeof(activity_holder_t));
 
@@ -525,12 +526,10 @@ static void create_activity(gui_activity_t** ppact)
 }
 
 // Create a new/initialised activity (and add to the stack of existing activities)
-void gui_make_activity(gui_activity_t** ppact, bool has_status_bar, const char* title)
+void gui_make_activity(gui_activity_t** ppact, const bool has_status_bar, const char* title)
 {
-    JADE_ASSERT(ppact);
-
-    gui_activity_t* activity = NULL;
-    create_activity(&activity);
+    create_activity(ppact);
+    gui_activity_t* const activity = *ppact;
     JADE_ASSERT(activity);
 
     // Initialise the activity
@@ -564,8 +563,6 @@ void gui_make_activity(gui_activity_t** ppact, bool has_status_bar, const char* 
     activity->activity_events = NULL;
 
     activity->wait_data_items = NULL;
-
-    *ppact = activity;
 }
 
 // free a linked list of selectable_t

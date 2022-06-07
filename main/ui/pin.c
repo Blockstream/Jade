@@ -59,13 +59,11 @@ void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char
     *pin_insert_ptr = JADE_CALLOC(1, sizeof(pin_insert_activity_t));
     pin_insert_activity_t* pin_insert = *pin_insert_ptr;
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, title);
-    pin_insert->activity = act;
+    gui_make_activity(&pin_insert->activity, true, title);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, pin_insert->activity->root_node);
 
     // first row, message
     gui_view_node_t* text_status;

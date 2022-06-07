@@ -60,12 +60,11 @@ void gen_btns(gui_view_node_t* parent, const size_t num_buttons, const char* msg
     }
 }
 
-void make_startup_options_screen(gui_activity_t** act_ptr)
+void make_startup_options_screen(gui_activity_t** activity_ptr)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, "Advanced Options");
+    gui_make_activity(activity_ptr, true, "Advanced Options");
 
     gui_view_node_t* vsplit;
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
@@ -74,7 +73,7 @@ void make_startup_options_screen(gui_activity_t** act_ptr)
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
 #endif
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 25, 2, 25);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // Buttons: Reset, One-time wallet, and Continue
     gui_view_node_t* btn1;
@@ -122,8 +121,6 @@ void make_startup_options_screen(gui_activity_t** act_ptr)
     gui_make_text(&text4, "Exit", TFT_WHITE);
     gui_set_align(text4, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text4, btn4);
-
-    *act_ptr = act;
 }
 
 // The button bar along the bottom of the dashboard
@@ -187,21 +184,20 @@ static void add_button_bar(gui_view_node_t* parent_node)
     }
 }
 
-void make_setup_screen(gui_activity_t** act_ptr, const char* device_name, const char* firmware_version)
+void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
 
     char title[32];
     const int ret = snprintf(title, sizeof(title), "Setup %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, title);
+    gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 35, 50, 15);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text1;
     gui_make_text(&text1, "For setup instructions visit\nblockstream.com/jade", TFT_WHITE);
@@ -226,13 +222,11 @@ void make_setup_screen(gui_activity_t** act_ptr, const char* device_name, const 
     gui_set_align(ver, GUI_ALIGN_RIGHT, GUI_ALIGN_BOTTOM);
     gui_set_padding(ver, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 4, 2);
     gui_set_parent(ver, vsplit);
-
-    *act_ptr = act;
 }
 
-void make_connect_screen(gui_activity_t** act_ptr, const char* device_name, const char* firmware_version)
+void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
     JADE_ASSERT(firmware_version);
 
@@ -240,12 +234,11 @@ void make_connect_screen(gui_activity_t** act_ptr, const char* device_name, cons
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, title);
+    gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 85, 15);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text;
     gui_make_text(&text, "Connect Jade to a Blockstream\nGreen companion app", TFT_WHITE);
@@ -258,21 +251,18 @@ void make_connect_screen(gui_activity_t** act_ptr, const char* device_name, cons
     gui_set_align(ver, GUI_ALIGN_RIGHT, GUI_ALIGN_BOTTOM);
     gui_set_padding(ver, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 4, 2);
     gui_set_parent(ver, vsplit);
-
-    *act_ptr = act;
 }
 
 #ifndef CONFIG_ESP32_NO_BLOBS
-void make_connection_select_screen(gui_activity_t** act_ptr)
+void make_connection_select_screen(gui_activity_t** activity_ptr)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, "Select Connection");
+    gui_make_activity(activity_ptr, true, "Select Connection");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text;
     gui_make_text(&text, "How do you want to connect\nyour Jade to Green?", TFT_WHITE);
@@ -309,26 +299,23 @@ void make_connection_select_screen(gui_activity_t** act_ptr)
     gui_make_text(&bletext, "Bluetooth", TFT_WHITE);
     gui_set_align(bletext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(bletext, blebtn);
-
-    *act_ptr = act;
 }
 #endif // CONFIG_ESP32_NO_BLOBS
 
-void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, const bool ble)
+void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, const bool ble)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
 
     char title[32];
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, title);
+    gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // Text
     const char* message = ble ? "Select your Jade on the Green\ncompanion app to pair it"
@@ -353,22 +340,19 @@ void make_connect_to_screen(gui_activity_t** act_ptr, const char* device_name, c
     gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(btntext, btn);
 #endif
-
-    *act_ptr = act;
 }
 
-void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** txt_extra)
+void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, device_name);
+    gui_make_activity(activity_ptr, true, device_name);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_ABSOLUTE, 3, 40, 35, 36);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* ready_text;
     gui_make_text(&ready_text, "Ready!", TFT_WHITE);
@@ -382,24 +366,22 @@ void make_ready_screen(gui_activity_t** act_ptr, const char* device_name, gui_vi
     *txt_extra = extra_text;
 
     add_button_bar(vsplit);
-    *act_ptr = act;
 }
 
 void make_settings_screen(
-    gui_activity_t** act_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btn, const size_t nBtns)
+    gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btn, const size_t nBtns)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(orientation_textbox);
     JADE_ASSERT(timeout_btn);
     JADE_ASSERT(nBtns == 6);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, "Settings");
+    gui_make_activity(activity_ptr, true, "Settings");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
     /*
         {
             gui_view_node_t *hsplit;
@@ -478,21 +460,18 @@ void make_settings_screen(
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
-
-    *act_ptr = act;
 }
 
-void make_advanced_options_screen(gui_activity_t** act_ptr)
+void make_advanced_options_screen(gui_activity_t** activity_ptr)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, "Advanced");
+    gui_make_activity(activity_ptr, true, "Advanced");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 25, 2, 25);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     {
         gui_view_node_t* btn;
@@ -531,23 +510,20 @@ void make_advanced_options_screen(gui_activity_t** act_ptr)
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
-
-    *act_ptr = act;
 }
 
-void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view_node_t** ble_status_textbox)
+void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** ble_status_textbox)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
     JADE_ASSERT(ble_status_textbox);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, "Bluetooth");
+    gui_make_activity(activity_ptr, true, "Bluetooth");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -627,8 +603,6 @@ void make_ble_screen(gui_activity_t** act_ptr, const char* device_name, gui_view
             gui_set_parent(text, btn);
         }
     }
-
-    *act_ptr = act;
 }
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
@@ -647,12 +621,11 @@ static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_v
     JADE_ASSERT(out_btns);
 
     gui_make_activity(activity_ptr, true, "Certifications");
-    gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 63, 37);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     switch (legal_page) {
     case 0: {
@@ -789,20 +762,19 @@ void make_legal_screen(gui_activity_t** first_activity_ptr)
 #endif
 
 void make_device_screen(
-    gui_activity_t** act_ptr, const char* power_status, const char* mac, const char* firmware_version)
+    gui_activity_t** activity_ptr, const char* power_status, const char* mac, const char* firmware_version)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(power_status);
     JADE_ASSERT(mac);
     JADE_ASSERT(firmware_version);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, "Device");
+    gui_make_activity(activity_ptr, true, "Device");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 21, 21, 21, 37);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -900,16 +872,13 @@ void make_device_screen(
             gui_set_parent(text, btn);
         }
     }
-
-    *act_ptr = act;
 }
 
-void make_storage_stats_screen(gui_activity_t** act_ptr, const size_t entries_used, const size_t entries_free)
+void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entries_used, const size_t entries_free)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, "Storage");
+    gui_make_activity(activity_ptr, true, "Storage");
 
     const size_t entries_total = entries_used + entries_free;
     char buf[16];
@@ -917,7 +886,7 @@ void make_storage_stats_screen(gui_activity_t** act_ptr, const size_t entries_us
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 20, 20, 40);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -994,23 +963,20 @@ void make_storage_stats_screen(gui_activity_t** act_ptr, const size_t entries_us
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
-
-    *act_ptr = act;
 }
 
 #ifdef CONFIG_DEBUG_MODE
-void make_show_xpub(gui_activity_t** act_ptr, Icon* qr_icon)
+void make_show_xpub(gui_activity_t** activity_ptr, Icon* qr_icon)
 {
-    JADE_ASSERT(act_ptr);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(qr_icon);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, false, "NULL");
+    gui_make_activity(activity_ptr, false, "NULL");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_ABSOLUTE, 2, 107, GUI_SPLIT_FILL_REMAINING);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     {
         gui_view_node_t* qr_node;
@@ -1029,7 +995,5 @@ void make_show_xpub(gui_activity_t** act_ptr, Icon* qr_icon)
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
-
-    *act_ptr = act;
 }
 #endif // CONFIG_DEBUG_MODE

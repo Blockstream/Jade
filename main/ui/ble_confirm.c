@@ -7,11 +7,10 @@ void make_ble_confirmation_activity(gui_activity_t** activity_ptr, const uint32_
     JADE_ASSERT(activity_ptr);
 
     gui_make_activity(activity_ptr, true, "Confirm BLE Pairing");
-    gui_activity_t* act = *activity_ptr;
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, message
     char confirm_msg[64];

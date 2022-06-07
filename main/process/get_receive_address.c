@@ -208,7 +208,7 @@ void get_receive_address_process(void* process_ptr)
     }
 
     // Display to the user to confirm
-    gui_activity_t* activity;
+    gui_activity_t* activity = NULL;
     make_confirm_address_activity(&activity, address, warning_msg);
     JADE_ASSERT(activity);
     gui_set_current_activity(activity);

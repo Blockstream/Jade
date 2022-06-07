@@ -76,7 +76,7 @@ void update_pinserver_process(void* process_ptr)
             jade_process_wally_free_string_on_exit(process, pubkey_hex);
         }
 
-        gui_activity_t* activity;
+        gui_activity_t* activity = NULL;
         make_confirm_pinserver_details_activity(&activity, urlA, urlB, pubkey_hex);
         JADE_ASSERT(activity);
         gui_set_current_activity(activity);
@@ -128,7 +128,7 @@ void update_pinserver_process(void* process_ptr)
             jade_process_wally_free_string_on_exit(process, cert_hash_hex);
         }
 
-        gui_activity_t* activity;
+        gui_activity_t* activity = NULL;
         make_confirm_pinserver_certificate_activity(&activity, cert_hash_hex);
         JADE_ASSERT(activity);
         gui_set_current_activity(activity);

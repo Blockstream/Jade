@@ -502,7 +502,7 @@ void sign_liquid_tx_process(void* process_ptr)
         }
     }
 
-    gui_activity_t* final_activity;
+    gui_activity_t* final_activity = NULL;
     const char* const warning_msg
         = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
     make_display_elements_final_confirmation_activity(network, fees, warning_msg, &final_activity);

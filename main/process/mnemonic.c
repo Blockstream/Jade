@@ -96,8 +96,9 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
     // create the "show mnemonic" only once and then reuse it
     gui_activity_t* first_activity = NULL;
     gui_activity_t* last_activity = NULL;
-
     make_show_mnemonic(&first_activity, &last_activity, words, nwords);
+    JADE_ASSERT(first_activity);
+    JADE_ASSERT(last_activity);
 
     while (!mnemonic_confirmed) {
         gui_set_current_activity(first_activity);
@@ -136,16 +137,16 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
         const size_t num_words_confirm = nwords == MNEMONIC_MAXWORDS ? 6 : 4;
         const size_t num_words_options = nwords == MNEMONIC_MAXWORDS ? 8 : 6;
         for (size_t i = 0; i < num_words_confirm; i++) {
-            gui_activity_t* confirm_act;
-            gui_view_node_t* textbox;
-
             size_t selected;
             do {
                 selected = 1 + get_uniform_random_byte(nwords - 2); // never select the first or last word
             } while (already_confirmed[selected]);
             already_confirmed[selected] = true;
 
+            gui_activity_t* confirm_act = NULL;
+            gui_view_node_t* textbox = NULL;
             make_confirm_mnemonic_screen(&confirm_act, &textbox, selected, words, nwords);
+            JADE_ASSERT(confirm_act);
             JADE_LOGD("selected = %u", selected);
 
             // Large enough for 12 and 24 word mnemonic
@@ -359,11 +360,13 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
     gui_view_node_t *textbox = NULL, *backspace = NULL, *enter = NULL;
     gui_activity_t* enter_word_activity = NULL;
     make_recover_word_page(&enter_word_activity, &textbox, &backspace, &enter, btns, btns_len);
+    JADE_ASSERT(enter_word_activity);
 
     gui_view_node_t* textbox_list = NULL;
     gui_view_node_t* status = NULL;
     gui_activity_t* choose_word_activity = NULL;
     make_recover_word_page_select10(&choose_word_activity, &textbox_list, &status);
+    JADE_ASSERT(choose_word_activity);
 
     for (size_t word_index = 0; word_index < nwords; ++word_index) {
         char word[16] = { 0 };
@@ -571,11 +574,13 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
 
 // At the moment camera/qr-scan only supported by Jade devices
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    gui_activity_t* activity;
     jade_camera_data_t camera_data;
     SENSITIVE_PUSH(&camera_data, sizeof(jade_camera_data_t));
 
+    gui_activity_t* activity = NULL;
     make_mnemonic_qr_scan(&activity, &camera_data.camera, &camera_data.text);
+    JADE_ASSERT(activity);
+
     gui_set_current_activity(activity);
     camera_data.activity = activity;
     camera_data.qr_seen = false;
@@ -747,12 +752,13 @@ void initialise_with_mnemonic(const bool temporary_restore)
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
-    gui_activity_t* activity;
+    gui_activity_t* activity = NULL;
     if (temporary_restore) {
         make_mnemonic_recovery_screen(&activity);
     } else {
         make_mnemonic_welcome_screen(&activity);
     }
+    JADE_ASSERT(activity);
 
     bool got_mnemonic = false;
     bool using_passphrase = false;
@@ -772,20 +778,28 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
         // Change screens and continue to await button events
         case BTN_NEW_MNEMONIC:
+            activity = NULL;
             make_new_mnemonic_screen(&activity);
+            JADE_ASSERT(activity);
             continue;
 
         case BTN_NEW_MNEMONIC_ADVANCED:
+            activity = NULL;
             make_new_mnemonic_screen_advanced(&activity);
+            JADE_ASSERT(activity);
             using_passphrase = true;
             continue;
 
         case BTN_RECOVER_MNEMONIC:
+            activity = NULL;
             make_mnemonic_recovery_screen(&activity);
+            JADE_ASSERT(activity);
             continue;
 
         case BTN_RECOVER_MNEMONIC_ADVANCED:
+            activity = NULL;
             make_mnemonic_recovery_screen_advanced(&activity);
+            JADE_ASSERT(activity);
             using_passphrase = true;
             continue;
 

@@ -8,13 +8,11 @@ static void make_msg_activity(gui_activity_t** activity_ptr, const char* msg, co
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(msg);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, false, NULL);
-    JADE_ASSERT(act);
+    gui_make_activity(activity_ptr, false, NULL);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text;
     gui_make_text(&text, msg, error ? TFT_RED : TFT_WHITE);
@@ -35,8 +33,6 @@ static void make_msg_activity(gui_activity_t** activity_ptr, const char* msg, co
         gui_set_parent(txt, btn);
         gui_set_align(txt, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     }
-
-    *activity_ptr = act;
 }
 
 // Generic activity that displays a message on two lines, optionally with an 'ok' button
@@ -47,13 +43,11 @@ static void make_msg_activity_two_lines(
     JADE_ASSERT(msg_first);
     JADE_ASSERT(msg_second);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, false, NULL);
-    JADE_ASSERT(act);
+    gui_make_activity(activity_ptr, false, NULL);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 35, 35, 30);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text_first;
     gui_make_text(&text_first, msg_first, error ? TFT_RED : TFT_WHITE);
@@ -80,22 +74,21 @@ static void make_msg_activity_two_lines(
         gui_set_parent(txt, btn);
         gui_set_align(txt, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     }
-
-    *activity_ptr = act;
 }
 
 // Run generic activity that displays a message and awaits a button click
 static void await_msg_activity(const char* msg, const bool error)
 {
-    gui_activity_t* msg_activity;
-    make_msg_activity(&msg_activity, msg, error, true);
-    gui_set_current_activity(msg_activity);
+    gui_activity_t* activity = NULL;
+    make_msg_activity(&activity, msg, error, true);
+    JADE_ASSERT(activity);
+
+    gui_set_current_activity(activity);
 
     // Display the message and wait for the user to press the button
     // In a debug unatteneded ci build, assume button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret
-        = gui_activity_wait_event(msg_activity, GUI_BUTTON_EVENT, BTN_EXIT_MESSAGE_SCREEN, NULL, NULL, NULL, 0);
+    const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_EXIT_MESSAGE_SCREEN, NULL, NULL, NULL, 0);
 #else
     vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS);
     const bool ret = true;
@@ -107,20 +100,24 @@ static void await_msg_activity(const char* msg, const bool error)
 // Returns the activity to the caller.
 gui_activity_t* display_message_activity(const char* message)
 {
-    gui_activity_t* msg_activity;
-    make_msg_activity(&msg_activity, message, false, false);
-    gui_set_current_activity(msg_activity);
-    return msg_activity;
+    gui_activity_t* activity = NULL;
+    make_msg_activity(&activity, message, false, false);
+    JADE_ASSERT(activity);
+
+    gui_set_current_activity(activity);
+    return activity;
 }
 
 // Run generic activity that displays a message on two lines (no button or awaiting click)
 // Returns the activity to the caller.
 gui_activity_t* display_message_activity_two_lines(const char* msg_first, const char* msg_second)
 {
-    gui_activity_t* msg_activity;
-    make_msg_activity_two_lines(&msg_activity, msg_first, msg_second, false, false);
-    gui_set_current_activity(msg_activity);
-    return msg_activity;
+    gui_activity_t* activity = NULL;
+    make_msg_activity_two_lines(&activity, msg_first, msg_second, false, false);
+    JADE_ASSERT(activity);
+
+    gui_set_current_activity(activity);
+    return activity;
 }
 
 // Run generic activity that displays a message and awaits a button click
@@ -138,7 +135,6 @@ static void make_yesno_activity(
     // title is optional
 
     gui_make_activity(activity_ptr, title, title);
-    JADE_ASSERT(*activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
@@ -193,8 +189,9 @@ bool await_yesno_activity(const char* title, const char* message, const bool def
     JADE_ASSERT(message);
     // title is optional
 
-    gui_activity_t* activity;
+    gui_activity_t* activity = NULL;
     make_yesno_activity(&activity, title, message, default_selection);
+    JADE_ASSERT(activity);
 
     // Display and wait for button press
     gui_set_current_activity(activity);
@@ -223,9 +220,8 @@ void display_progress_bar_activity(const char* title, const char* message, progr
     JADE_ASSERT(message);
     // title is optional
 
-    gui_activity_t* act;
+    gui_activity_t* act = NULL;
     gui_make_activity(&act, title, title);
-    JADE_ASSERT(act);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 26, 44, 30);

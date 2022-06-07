@@ -30,7 +30,7 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
     JADE_ASSERT(wallet_fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);
 
-    gui_activity_t* act;
+    gui_activity_t* act = NULL;
     gui_make_activity(&act, true, "Confirm Multisig");
 
     gui_view_node_t* vsplit;
@@ -170,10 +170,11 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     JADE_ASSERT(index <= num_signers);
     JADE_ASSERT(signer);
 
-    gui_activity_t* act;
     char header[24];
     const int ret = snprintf(header, sizeof(header), "Signer %d/%d%s", index, num_signers, is_this_wallet ? " *" : "");
     JADE_ASSERT(ret > 0 && ret < sizeof(header));
+
+    gui_activity_t* act = NULL;
     gui_make_activity(&act, true, header);
 
     gui_view_node_t* vsplit;
@@ -322,7 +323,7 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
     JADE_ASSERT(link_activity);
     JADE_ASSERT(multisig_name);
 
-    gui_activity_t* act;
+    gui_activity_t* act = NULL;
     gui_make_activity(&act, true, "Confirm Multisig");
 
     gui_view_node_t* vsplit;
@@ -478,24 +479,23 @@ void make_confirm_multisig_activity(const char* multisig_name, const bool sorted
     *first_activity = act_info.first_activity;
 }
 
-void make_view_multisig_activity(gui_activity_t** activity, const char* multisig_name, const size_t index,
+void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* multisig_name, const size_t index,
     const size_t total, const bool valid, const bool sorted, const size_t threshold, const size_t num_signers,
     const uint8_t* master_blinding_key, const size_t master_blinding_key_len)
 {
-    JADE_ASSERT(activity);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(multisig_name);
     JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
 
-    gui_activity_t* act;
     char header[24];
     const int ret = snprintf(header, sizeof(header), "Multisig %d/%d", index, total);
     JADE_ASSERT(ret > 0 && ret < sizeof(header));
-    gui_make_activity(&act, true, header);
+    gui_make_activity(activity_ptr, true, header);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* hsplit_text1;
     gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 25, 75);
@@ -626,7 +626,5 @@ void make_view_multisig_activity(gui_activity_t** activity, const char* multisig
     gui_set_align(textbtn2, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
     // Set the intially selected item to the 'Next' button (ie. btn2)
-    gui_set_activity_initial_selection(act, btn2);
-
-    *activity = act;
+    gui_set_activity_initial_selection(*activity_ptr, btn2);
 }

@@ -47,10 +47,11 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
     JADE_ASSERT(amount);
     JADE_ASSERT(!asset_str || !warning_msg);
 
-    gui_activity_t* act;
     char header[16];
     const int ret = snprintf(header, sizeof(header), "Output %d/%d", index, total);
     JADE_ASSERT(ret > 0 && ret < sizeof(header));
+
+    gui_activity_t* act = NULL;
     gui_make_activity(&act, true, header);
 
     gui_view_node_t* vsplit;
@@ -200,19 +201,18 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
 }
 
 static void make_final_activity(
-    gui_activity_t** activity, const char* total_fee, const char* ticker, const char* warning_msg)
+    gui_activity_t** activity_ptr, const char* total_fee, const char* ticker, const char* warning_msg)
 {
-    JADE_ASSERT(activity);
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(total_fee);
     JADE_ASSERT(ticker);
 
-    gui_activity_t* act;
-    gui_make_activity(&act, true, "Summary");
+    gui_make_activity(activity_ptr, true, "Summary");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* bg1;
     gui_make_fill(&bg1, TFT_BLACK);
@@ -294,8 +294,6 @@ static void make_final_activity(
     gui_make_text_font(&textbtn3, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
     gui_set_parent(textbtn3, btn3);
     gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    *activity = act;
 }
 
 // Don't display pre-validated (eg. change) outputs (if provided)
@@ -499,7 +497,6 @@ void make_display_final_confirmation_activity(const uint64_t fee, const char* wa
 
     // final confirmation screen
     make_final_activity(activity, fee_str, "BTC", warning_msg);
-    JADE_ASSERT(*activity);
 }
 
 void make_display_elements_final_confirmation_activity(
@@ -514,5 +511,4 @@ void make_display_elements_final_confirmation_activity(
 
     // final confirmation screen
     make_final_activity(activity, fee_str, networkGetPolicyAsset(network), warning_msg);
-    JADE_ASSERT(*activity);
 }
