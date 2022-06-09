@@ -157,7 +157,7 @@ static bool test_new_wallets(const size_t nwords)
 }
 
 // Check can write key data to storage, and read it back with correct PIN
-// Check 3 incorrect PIN attempts wipes stored key data
+// Check 3 incorrect PIN attempts erases stored key data
 // NOTE: also tests loading legacy wallets
 // (master keys rather than mnemonic entropy)
 static bool test_storage_with_pin(void)

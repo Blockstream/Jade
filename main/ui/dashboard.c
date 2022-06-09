@@ -488,6 +488,129 @@ void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout
     }
 }
 
+void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr)
+{
+    JADE_ASSERT(activity_ptr);
+
+    gui_make_activity(activity_ptr, true, "Wallet-Erase PIN");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 75, 25);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    {
+        const char* msg = "A wallet-erase PIN will erase the\nrecovery phrase and show\n\"Internal Error\".\nMake sure "
+                          "your recovery\nphrase is backed up.";
+
+        gui_view_node_t* text;
+        gui_make_text(&text, msg, TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+        gui_set_parent(text, vsplit);
+    }
+
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+        gui_set_parent(hsplit, vsplit);
+
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_EXIT, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+
+            gui_view_node_t* text;
+            gui_make_text(&text, "Cancel", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_SET, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+
+            gui_view_node_t* text;
+            gui_make_text(&text, "I understand", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+    }
+}
+
+void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(pinstr);
+
+    gui_make_activity(activity_ptr, true, "Wallet-Erase PIN");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 75, 25);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    {
+        char msg[64];
+        const int ret = snprintf(msg, sizeof(msg), "\nA wallet-erase PIN is enabled:\n%20s", pinstr);
+        JADE_ASSERT(ret > 0 && ret < sizeof(msg));
+
+        gui_view_node_t* text;
+        gui_make_text(&text, msg, TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+        gui_set_parent(text, vsplit);
+    }
+
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
+        gui_set_parent(hsplit, vsplit);
+
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_EXIT, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+
+            gui_view_node_t* text;
+            gui_make_text_font(&text, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_SET, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+
+            gui_view_node_t* text;
+            gui_make_text(&text, "Change", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_DISABLE, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+
+            gui_view_node_t* text;
+            gui_make_text(&text, "Disable", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+    }
+}
+
 void make_advanced_options_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
@@ -513,6 +636,18 @@ void make_advanced_options_screen(gui_activity_t** activity_ptr)
 
     {
         gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_WALLET_ERASE_PIN, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Wallet-Erase PIN", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    {
+        gui_view_node_t* btn;
         gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
@@ -522,8 +657,6 @@ void make_advanced_options_screen(gui_activity_t** activity_ptr)
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
-
-    // Insert more advanced options here
 
     {
         gui_view_node_t* btn;

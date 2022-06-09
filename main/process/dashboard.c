@@ -74,6 +74,8 @@ void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, g
 void make_settings_screen(
     gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, gui_view_node_t** timeout_btn_text);
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btn, const size_t nBtns);
+void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr);
+void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr);
 void make_advanced_options_screen(gui_activity_t** activity_ptr);
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
@@ -91,6 +93,22 @@ void make_show_xpub(gui_activity_t** activity_ptr, Icon* qr_icon);
 
 // Wallet initialisation function
 void initialise_with_mnemonic(bool temporary_restore);
+
+// Function to print a pin into a char buffer.
+// Assumes each pin component value is a single digit.
+// NOTE: the passed buffer must be large enough.
+// (In normal circumstances that should be PIN_SIZE digits)
+static void format_pin(char* buf, const uint8_t buf_len, const uint8_t* pin, const size_t pin_len)
+{
+    JADE_ASSERT(pin_len == PIN_SIZE);
+    JADE_ASSERT(buf_len > pin_len);
+
+    for (int i = 0; i < pin_len; ++i) {
+        JADE_ASSERT(pin[i] < 10);
+        const int ret = snprintf(buf++, buf_len - i, "%d", pin[i]);
+        JADE_ASSERT(ret == 1);
+    }
+}
 
 static void reply_version_info(const void* ctx, CborEncoder* container)
 {
@@ -362,7 +380,7 @@ static void dispatch_message(jade_process_t* process)
     }
 }
 
-// Function to get user confirmation, then wipe all flash memory.
+// Function to get user confirmation, then erase all flash memory.
 void offer_jade_reset(void)
 {
     // Run 'Reset Jade?'  confirmation screen and wait for yes/no response
@@ -370,53 +388,54 @@ void offer_jade_reset(void)
     const bool bReset = await_yesno_activity("Reset Jade",
         "Do you want to reset Jade and\nclear all PIN and key data?\nThis action cannot be undone!", false);
 
-    if (bReset) {
-        JADE_LOGI("Yes - requesting numeric confirmation");
-
-        // Force user to confirm a random number
-        uint8_t num[PIN_SIZE];
-        for (int i = 0; i < PIN_SIZE; ++i) {
-            num[i] = get_uniform_random_byte(10);
-        }
-        char numstr[8];
-        format_pin(numstr, sizeof(numstr), num);
-
-        JADE_LOGI("User must enter: %s to reset all data", numstr);
-
-        char confirm_msg[64];
-        const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm value to wipe all data:\n%20s\n", numstr);
-        JADE_ASSERT(ret > 0 && ret < sizeof(confirm_msg));
-
-        pin_insert_activity_t* pin_insert = NULL;
-        make_pin_insert_activity(&pin_insert, "Reset Jade", confirm_msg);
-        JADE_ASSERT(pin_insert);
-        JADE_ASSERT(sizeof(num) == sizeof(pin_insert->pin));
-
-        gui_set_current_activity(pin_insert->activity);
-        run_pin_entry_loop(pin_insert);
-
-        char pinstr[8];
-        format_pin(pinstr, sizeof(pinstr), pin_insert->pin);
-        JADE_LOGI("User entered: %s", pinstr);
-
-        if (!sodium_memcmp(num, pin_insert->pin, sizeof(num))) {
-            // Correct - erase all jade non-volatile storage
-            JADE_LOGI("User confirmed - erasing Jade data");
-            if (storage_erase()) {
-                // Erase succeeded, better reboot to re-initialise
-                esp_restart();
-            } else {
-                // Erase failed ?    What can we do other than alert the user ?
-                JADE_LOGE("Factory reset failed!");
-                await_error_activity("Unable to completely reset Jade.");
-            }
-        } else {
-            // Incorrect - continue to boot screen
-            JADE_LOGI("User confirmation number incorrect, not wiping data.");
-            await_error_activity("Confirmation number incorrect");
-        }
-        free(pin_insert);
+    if (!bReset) {
+        return;
     }
+
+    JADE_LOGI("Yes - requesting numeric confirmation");
+
+    // Force user to confirm a random number
+    uint8_t num[PIN_SIZE];
+    for (int i = 0; i < PIN_SIZE; ++i) {
+        num[i] = get_uniform_random_byte(10);
+    }
+    char pinstr[sizeof(num) + 1];
+    format_pin(pinstr, sizeof(pinstr), num, sizeof(num));
+
+    JADE_LOGI("User must enter: %s to reset all data", pinstr);
+
+    char confirm_msg[64];
+    const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm value to erase all data:\n%20s\n", pinstr);
+    JADE_ASSERT(ret > 0 && ret < sizeof(confirm_msg));
+
+    pin_insert_activity_t* pin_insert = NULL;
+    make_pin_insert_activity(&pin_insert, "Reset Jade", confirm_msg);
+    JADE_ASSERT(pin_insert);
+    JADE_ASSERT(sizeof(num) == sizeof(pin_insert->pin));
+
+    gui_set_current_activity(pin_insert->activity);
+    run_pin_entry_loop(pin_insert);
+
+    format_pin(pinstr, sizeof(pinstr), pin_insert->pin, sizeof(pin_insert->pin));
+    JADE_LOGI("User entered: %s", pinstr);
+
+    if (!sodium_memcmp(num, pin_insert->pin, sizeof(num))) {
+        // Correct - erase all jade non-volatile storage
+        JADE_LOGI("User confirmed - erasing Jade data");
+        if (storage_erase()) {
+            // Erase succeeded, better reboot to re-initialise
+            esp_restart();
+        } else {
+            // Erase failed ?    What can we do other than alert the user ?
+            JADE_LOGE("Factory reset failed!");
+            await_error_activity("Unable to completely reset Jade.");
+        }
+    } else {
+        // Incorrect - continue to boot screen
+        JADE_LOGI("User confirmation number incorrect, not wiping data.");
+        await_error_activity("Confirmation number incorrect");
+    }
+    free(pin_insert);
 }
 
 // Screen to select whether the initial connection is via USB or BLE
@@ -488,6 +507,29 @@ static void handle_legal(void)
 }
 #endif
 
+void offer_startup_options(void)
+{
+    gui_activity_t* act = NULL;
+    make_startup_options_screen(&act);
+    JADE_ASSERT(act);
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+    switch (ev_id) {
+    case BTN_SETTINGS_RESET:
+        return offer_jade_reset();
+    case BTN_SETTINGS_EMERGENCY_RESTORE:
+        return offer_emergency_restore();
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    case BTN_SETTINGS_LEGAL:
+        return handle_legal();
+#endif
+    default:
+        break;
+    }
+}
+
 static void handle_multisigs(void)
 {
     char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
@@ -541,6 +583,76 @@ static void handle_multisigs(void)
     }
 }
 
+static void set_wallet_erase_pin(void)
+{
+    JADE_LOGI("Requesting wallet-erase PIN");
+
+    // Ask user to enter a wallet-erase pin
+    pin_insert_activity_t* pin_insert = NULL;
+    make_pin_insert_activity(&pin_insert, "Wallet-Erase PIN", "\nEnter Wallet-Erase PIN");
+    JADE_ASSERT(pin_insert);
+
+    while (true) {
+        gui_set_current_activity(pin_insert->activity);
+        run_pin_entry_loop(pin_insert);
+
+        // This is the first pin, copy it and clear screen fields
+        uint8_t pin[sizeof(pin_insert->pin)];
+        memcpy(pin, pin_insert->pin, sizeof(pin));
+        clear_current_pin(pin_insert);
+
+        // Ask user to re-enter PIN
+        gui_set_title("Confirm Erase PIN");
+        run_pin_entry_loop(pin_insert);
+
+        // Check that the two pins are the same
+        JADE_LOGD("Checking pins match");
+        if (!sodium_memcmp(pin, pin_insert->pin, sizeof(pin))) {
+            JADE_LOGI("Setting Wallet-Erase PIN");
+            storage_set_wallet_erase_pin(pin_insert->pin, sizeof(pin_insert->pin));
+            break;
+        } else {
+            // Pins mismatch - try again
+            await_error_activity("Pin mismatch, please try again");
+            clear_current_pin(pin_insert);
+        }
+    }
+    free(pin_insert);
+}
+
+static void handle_wallet_erase_pin(void)
+{
+    while (true) {
+        // Add wallet erase pin confirmation screens
+        uint8_t pin_erase[PIN_SIZE];
+        gui_activity_t* act = NULL;
+        if (storage_get_wallet_erase_pin(pin_erase, sizeof(pin_erase))) {
+            char pinstr[sizeof(pin_erase) + 1];
+            format_pin(pinstr, sizeof(pinstr), pin_erase, sizeof(pin_erase));
+            make_wallet_erase_pin_options_activity(&act, pinstr);
+        } else {
+            make_wallet_erase_pin_info_activity(&act);
+        }
+        JADE_ASSERT(act);
+        gui_set_current_activity(act);
+
+        int32_t ev_id;
+        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            if (ev_id == BTN_WALLET_ERASE_PIN_SET) {
+                // User opted to set a new wallet-erasing PIN
+                set_wallet_erase_pin();
+                continue;
+            } else if (ev_id == BTN_WALLET_ERASE_PIN_DISABLE) {
+                // User opted to disable/erase wallet-erasing PIN
+                JADE_LOGI("Erasing Wallet-Erase PIN");
+                storage_erase_wallet_erase_pin();
+                await_message_activity("Wallet-Erase PIN disabled");
+            }
+        }
+        break;
+    }
+}
+
 static void handle_settings_advanced(void)
 {
     gui_activity_t* act = NULL;
@@ -558,6 +670,10 @@ static void handle_settings_advanced(void)
             handle_multisigs();
             gui_set_current_activity(act);
             break;
+        case BTN_SETTINGS_WALLET_ERASE_PIN:
+            handle_wallet_erase_pin();
+            gui_set_current_activity(act);
+            break;
         case BTN_SETTINGS_RESET:
             offer_jade_reset();
             gui_set_current_activity(act);
@@ -568,29 +684,6 @@ static void handle_settings_advanced(void)
         default:
             break;
         }
-    }
-}
-
-void offer_startup_options(void)
-{
-    gui_activity_t* act = NULL;
-    make_startup_options_screen(&act);
-    JADE_ASSERT(act);
-    gui_set_current_activity(act);
-
-    int32_t ev_id;
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-    switch (ev_id) {
-    case BTN_SETTINGS_RESET:
-        return offer_jade_reset();
-    case BTN_SETTINGS_EMERGENCY_RESTORE:
-        return offer_emergency_restore();
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    case BTN_SETTINGS_LEGAL:
-        return handle_legal();
-#endif
-    default:
-        break;
     }
 }
 

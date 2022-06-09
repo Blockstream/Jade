@@ -49,7 +49,6 @@ typedef struct {
 } btn_data_t;
 
 // Functions for pin entry
-void format_pin(char* buf, uint8_t len, uint8_t pin[PIN_SIZE]);
 void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char* title, const char* message);
 void run_pin_entry_loop(pin_insert_activity_t* pin_insert);
 void clear_current_pin(pin_insert_activity_t* pin_insert);

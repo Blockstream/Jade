@@ -38,20 +38,6 @@ static void update_digit_node(pin_insert_activity_t* pin_insert, uint8_t i)
     gui_update_text(pin_insert->pin_digit_nodes[i], str);
 }
 
-// Function to print a pin into a char buffer.
-// Assumes each pin component value is a single digit.
-// NOTE: the passed buffer must be large enough.
-// (In normal circumstances that should be PIN_SIZE digits)
-void format_pin(char* buf, const uint8_t len, uint8_t pin[PIN_SIZE])
-{
-    JADE_ASSERT(len > PIN_SIZE);
-    for (int i = 0; i < PIN_SIZE; ++i) {
-        JADE_ASSERT(pin[i] < 10);
-        const int ret = snprintf(buf++, len - i, "%d", pin[i]);
-        JADE_ASSERT(ret == 1);
-    }
-}
-
 void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char* title, const char* message)
 {
     JADE_ASSERT(pin_insert_ptr);
