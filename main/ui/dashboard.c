@@ -369,12 +369,11 @@ void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, g
 }
 
 void make_settings_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btn, const size_t nBtns)
+    gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(orientation_textbox);
-    JADE_ASSERT(timeout_btn);
-    JADE_ASSERT(nBtns == 6);
+    JADE_ASSERT(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Settings");
 
@@ -403,38 +402,21 @@ void make_settings_screen(
             gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
             gui_set_parent(text, btn);
 
-     * orientation_textbox = text;
+            *orientation_textbox = text;
         }
      */
     {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 1, 100);
-        gui_set_parent(hsplit, vsplit);
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_IDLE_TIMEOUT, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Power-off Timeout", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
 
-        gui_view_node_t* key;
-        gui_make_text(&key, "Power-off Timeout (mins)", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    }
-
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 6, 16, 16, 16, 16, 18, 18);
-        gui_set_parent(hsplit, vsplit);
-
-        for (int i = 0; i < nBtns; ++i) {
-            JADE_ASSERT(timeout_btn[i].txt);
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_TIMEOUT_0 + i, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-            gui_view_node_t* text;
-            gui_make_text(&text, timeout_btn[i].txt, TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-            timeout_btn[i].btn = btn;
-        }
+        *timeout_btn_text = text;
     }
 
     {
@@ -459,6 +441,50 @@ void make_settings_screen(
         gui_make_text(&text, "Exit", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
+    }
+}
+
+void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btn, const size_t nBtns)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(timeout_btn);
+    JADE_ASSERT(nBtns == 6);
+
+    gui_make_activity(activity_ptr, true, "Power-off Timeout");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    {
+        gui_view_node_t* text;
+        gui_make_text(&text, "Power-off Timeout (mins)", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, vsplit);
+    }
+
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 6, 16, 16, 16, 16, 18, 18);
+        gui_set_parent(hsplit, vsplit);
+
+        for (int i = 0; i < nBtns; ++i) {
+            JADE_ASSERT(timeout_btn[i].txt);
+
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_TIMEOUT_0 + i, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+
+            gui_view_node_t* text;
+            gui_make_text(&text, timeout_btn[i].txt, TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+
+            timeout_btn[i].btn = btn;
+        }
     }
 }
 

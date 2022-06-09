@@ -72,7 +72,8 @@ void make_connection_select_screen(gui_activity_t** activity_ptr);
 void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, bool ble);
 void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra);
 void make_settings_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, btn_data_t* timeout_btns, size_t nBtns);
+    gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, gui_view_node_t** timeout_btn_text);
+void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btn, const size_t nBtns);
 void make_advanced_options_screen(gui_activity_t** activity_ptr);
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
@@ -596,11 +597,15 @@ void offer_startup_options(void)
 // General settings handler
 static inline void update_orientation_text(gui_view_node_t* orientation_textbox)
 {
+    JADE_ASSERT(orientation_textbox);
+
     gui_update_text(orientation_textbox, display_is_orientation_flipped() ? "B" : "A");
 }
 
 static void update_idle_timeout_btns(btn_data_t* timeout_btn, const size_t nBtns, uint16_t timeout)
 {
+    JADE_ASSERT(timeout_btn);
+
     for (int i = 0; i < nBtns; ++i) {
         JADE_ASSERT(timeout_btn[i].btn);
         gui_set_borders(timeout_btn[i].btn, timeout_btn[i].val == timeout ? TFT_BLUE : TFT_BLACK, 2, GUI_BORDER_ALL);
@@ -609,8 +614,10 @@ static void update_idle_timeout_btns(btn_data_t* timeout_btn, const size_t nBtns
     }
 }
 
-static void handle_settings(jade_process_t* process)
+static void handle_idle_timeout(uint16_t* const timeout)
 {
+    JADE_ASSERT(timeout);
+
     // The idle timeout buttons (1,2,3,5,10,15 mins).
     btn_data_t timeout_btn[] = { { .val = 60, .txt = "1", .btn = NULL }, { .val = 120, .txt = "2", .btn = NULL },
         { .val = 180, .txt = "3", .btn = NULL }, { .val = 300, .txt = "5", .btn = NULL },
@@ -618,12 +625,53 @@ static void handle_settings(jade_process_t* process)
     const size_t nBtns = sizeof(timeout_btn) / sizeof(btn_data_t);
 
     gui_activity_t* act = NULL;
-    gui_view_node_t* orientation_textbox = NULL;
-    make_settings_screen(&act, &orientation_textbox, timeout_btn, nBtns);
+    make_idle_timeout_screen(&act, timeout_btn, nBtns);
     JADE_ASSERT(act);
-    // update_orientation_text(orientation_textbox);
-    update_idle_timeout_btns(timeout_btn, nBtns, storage_get_idle_timeout());
 
+    update_idle_timeout_btns(timeout_btn, nBtns, *timeout);
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    const bool res = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+
+    if (res && ev_id >= BTN_SETTINGS_TIMEOUT_0 && ev_id < BTN_SETTINGS_TIMEOUT_0 + nBtns) {
+        const uint32_t idx = ev_id - BTN_SETTINGS_TIMEOUT_0;
+
+        // Return the updated timeout value
+        *timeout = timeout_btn[idx].val;
+        storage_set_idle_timeout(*timeout);
+    }
+}
+
+static void update_idle_timeout_btn_text(gui_view_node_t* timeout_btn_text, const uint16_t timeout)
+{
+    JADE_ASSERT(timeout_btn_text);
+    char txt[32];
+
+    // Prefer to display in minutes
+    if (timeout % 60 == 0) {
+        const int ret = snprintf(txt, sizeof(txt), "Power-off Timeout (%um)", timeout / 60);
+        JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+    } else {
+        const int ret = snprintf(txt, sizeof(txt), "Power-off Timeout (%us)", timeout);
+        JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+    }
+    gui_update_text(timeout_btn_text, txt);
+}
+
+static void handle_settings(void)
+{
+    gui_activity_t* act = NULL;
+    gui_view_node_t* orientation_textbox = NULL;
+    gui_view_node_t* timeout_btn_text = NULL;
+    make_settings_screen(&act, &orientation_textbox, &timeout_btn_text);
+    JADE_ASSERT(act);
+
+    // Get/track the idle timeout
+    uint16_t timeout = storage_get_idle_timeout();
+    update_idle_timeout_btn_text(timeout_btn_text, timeout);
+
+    // update_orientation_text(orientation_textbox);
     gui_set_current_activity(act);
 
     bool loop = true;
@@ -645,18 +693,18 @@ static void handle_settings(jade_process_t* process)
                         break;
              */
 
+        case BTN_SETTINGS_IDLE_TIMEOUT:
+            handle_idle_timeout(&timeout);
+            update_idle_timeout_btn_text(timeout_btn_text, timeout);
+            gui_set_current_activity(act);
+            break;
+
         case BTN_SETTINGS_ADVANCED:
             handle_settings_advanced();
             gui_set_current_activity(act);
             break;
 
         default:
-            // Might be an idle-timeout button
-            if (ev_id >= BTN_SETTINGS_TIMEOUT_0 && ev_id < BTN_SETTINGS_TIMEOUT_0 + nBtns) {
-                const uint32_t idx = ev_id - BTN_SETTINGS_TIMEOUT_0;
-                storage_set_idle_timeout(timeout_btn[idx].val);
-                update_idle_timeout_btns(timeout_btn, nBtns, timeout_btn[idx].val);
-            }
             break;
         }
     }
@@ -842,7 +890,7 @@ static void handle_device(void)
 }
 
 // Process buttons on the dashboard screen
-static void handle_btn(jade_process_t* process, int32_t btn)
+static void handle_btn(const int32_t btn)
 {
     switch (btn) {
     case BTN_INITIALIZE:
@@ -852,7 +900,7 @@ static void handle_btn(jade_process_t* process, int32_t btn)
     case BTN_SLEEP:
         return handle_sleep();
     case BTN_SETTINGS:
-        return handle_settings(process);
+        return handle_settings();
     case BTN_BLE:
         return handle_ble();
     case BTN_INFO:
@@ -924,7 +972,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         if (sync_wait_event(
                 GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)
             == ESP_OK) {
-            handle_btn(process, ev_id);
+            handle_btn(ev_id);
             acted = true;
             continue;
         }
