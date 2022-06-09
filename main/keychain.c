@@ -466,9 +466,7 @@ bool keychain_load_cleartext(const uint8_t* aeskey, const size_t aes_len)
         JADE_LOGW("Failed to decrypt key data (bad pin)");
         if (keychain_pin_attempts_remaining() == 0) {
             JADE_LOGW("Multiple failures to decrypt key data - erasing encrypted keys");
-            storage_erase_encrypted_blob();
-            keychain_clear_network_type_restriction();
-            has_encrypted_blob = false;
+            keychain_erase_encrypted();
         }
         SENSITIVE_POP(serialized);
         return false;
@@ -504,6 +502,13 @@ bool keychain_load_cleartext(const uint8_t* aeskey, const size_t aes_len)
 bool keychain_has_pin(void) { return has_encrypted_blob; }
 
 uint8_t keychain_pin_attempts_remaining(void) { return storage_get_counter(); }
+
+void keychain_erase_encrypted(void)
+{
+    storage_erase_encrypted_blob();
+    keychain_clear_network_type_restriction();
+    has_encrypted_blob = false;
+}
 
 bool keychain_get_new_privatekey(uint8_t* privatekey, const size_t size)
 {

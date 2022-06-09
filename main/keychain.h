@@ -41,6 +41,7 @@ bool keychain_get_new_privatekey(uint8_t* privatekey, size_t size);
 
 bool keychain_has_pin(void);
 uint8_t keychain_pin_attempts_remaining(void);
+void keychain_erase_encrypted(void);
 
 void keychain_derive_from_seed(const uint8_t* seed, size_t seed_len, keychain_t* keydata);
 bool keychain_derive_from_mnemonic(const char* mnemonic, const char* passphrase, keychain_t* keydata);

@@ -34,6 +34,10 @@ bool storage_erase_encrypted_blob(void);
 bool storage_set_key_flags(uint8_t flags);
 uint8_t storage_get_key_flags(void);
 
+bool storage_set_wallet_erase_pin(const uint8_t* pin, size_t pin_len);
+bool storage_get_wallet_erase_pin(uint8_t* pin, size_t pin_len);
+bool storage_erase_wallet_erase_pin(void);
+
 bool storage_set_pinserver_details(const char* urlA, const char* urlB, const uint8_t* pubkey, size_t pubkey_len);
 bool storage_get_pinserver_urlA(char* url, size_t len, size_t* written);
 bool storage_get_pinserver_urlB(char* url, size_t len, size_t* written);
