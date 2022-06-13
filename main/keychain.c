@@ -38,6 +38,9 @@ static bool keychain_temporary = false;
 static uint8_t mnemonic_entropy[BIP39_ENTROPY_LEN_256]; // Maximum supported entropy is 24 words
 static size_t mnemonic_entropy_len = 0;
 
+// If the user wants to enter a passphrase at the next login
+static bool keychain_user_to_enter_passphrase = false;
+
 void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temporary)
 {
     JADE_ASSERT(src);
@@ -56,6 +59,7 @@ void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temp
     // Clear any mnemonic entropy we may have been holding
     wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy));
     mnemonic_entropy_len = 0;
+    keychain_user_to_enter_passphrase = false;
 
     // Hold the associated userdata
     keychain_userdata = userdata;
@@ -74,6 +78,7 @@ void keychain_clear(void)
     // Clear any mnemonic entropy we may have been holding
     wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy));
     mnemonic_entropy_len = 0;
+    keychain_user_to_enter_passphrase = false;
 
     keychain_userdata = 0;
     keychain_temporary = false;
@@ -81,7 +86,40 @@ void keychain_clear(void)
 
 const keychain_t* keychain_get(void) { return keychain_data; }
 
-bool keychain_requires_passphrase(void) { return !keychain_data && mnemonic_entropy_len; }
+bool keychain_requires_passphrase(void)
+{
+    // We require a passphrase when we have mnemonic entropy but no key data as yet
+    // ie. the final wallet derivation step has yet to occur.
+    // (This may be an explicitly user-entered phrase, or may be the default/blank phrase)
+    return !keychain_data && mnemonic_entropy_len;
+}
+
+void keychain_set_user_to_enter_passphrase(const bool use_passphrase)
+{
+    keychain_user_to_enter_passphrase = use_passphrase;
+}
+
+void keychain_set_user_to_enter_passphrase_by_default(const bool use_passphrase)
+{
+    // If user opted to use passphrase, clear the flag to auto-apply the default/blank passphrase.
+    // If they opted to not use a passphrase by default, set that flag.
+    uint8_t key_flags = storage_get_key_flags();
+    if (use_passphrase) {
+        key_flags &= ~KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+    } else {
+        key_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+    }
+    storage_set_key_flags(key_flags);
+}
+
+bool keychain_get_user_to_enter_passphrase()
+{
+    // True if either:
+    // a) the user has elected to enter a passphrase for this login, or
+    // b) they have elected to enter the always enter a passphrase at every login
+    // (ie. *not* persisted the flag to automatically use the default/blank passphrase)
+    return keychain_user_to_enter_passphrase || !(storage_get_key_flags() & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE);
+}
 
 bool keychain_has_temporary(void)
 {

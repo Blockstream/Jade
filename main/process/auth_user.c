@@ -110,15 +110,14 @@ void check_pin_load_keys(jade_process_t* process)
         char passphrase[PASSPHRASE_MAX_LEN + 1];
         SENSITIVE_PUSH(passphrase, sizeof(passphrase));
 
-        // See if the flag is set to auto-apply the default blank passphrase,
-        // rather than requiring the user enter one.
-        if (storage_get_key_flags() & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE) {
-            // No passphrase (the default)
-            passphrase[0] = '\0';
-        } else {
+        // See if the user has opted to enter a passphrase - if not apply the default/blank phrase
+        if (keychain_get_user_to_enter_passphrase()) {
             // Ask user to enter passphrase
             const bool confirm_passphrase = false;
             get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+        } else {
+            // No passphrase (the default)
+            passphrase[0] = '\0';
         }
 
         display_message_activity("Processing...");
@@ -301,7 +300,9 @@ void auth_user_process(void* process_ptr)
             jade_process_reply_to_message_ok(process);
         } else {
             JADE_LOGI("keychain locked for this source, requesting pin");
-            keychain_clear();
+            if (keychain_get()) {
+                keychain_clear();
+            }
             check_pin_load_keys(process);
         }
     } else {

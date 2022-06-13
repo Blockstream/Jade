@@ -23,6 +23,11 @@ void keychain_clear(void);
 
 const keychain_t* keychain_get(void);
 bool keychain_requires_passphrase(void);
+
+void keychain_set_user_to_enter_passphrase(const bool use_passphrase);
+void keychain_set_user_to_enter_passphrase_by_default(const bool use_passphrase);
+bool keychain_get_user_to_enter_passphrase();
+
 bool keychain_has_temporary(void);
 uint8_t keychain_get_userdata(void);
 

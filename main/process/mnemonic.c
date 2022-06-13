@@ -884,9 +884,8 @@ void initialise_with_mnemonic(const bool temporary_restore)
             // encrypted to local flash (requiring a passphrase to derive the wallet master key).
             keychain_cache_mnemonic_entropy(mnemonic);
 
-            // If opted not to use passphrase, set a flag to auto-apply the default/blank phrase
-            const uint8_t key_flags = using_passphrase ? 0x0 : KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
-            storage_set_key_flags(key_flags);
+            // Set persisted wallet 'use passphrase by default' flag
+            keychain_set_user_to_enter_passphrase_by_default(using_passphrase);
         }
     }
 
