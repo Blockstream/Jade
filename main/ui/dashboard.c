@@ -237,14 +237,26 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 85, 15);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 35, 50, 15);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text;
     gui_make_text(&text, "Connect Jade to a Blockstream\nGreen companion app", TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 24, 8, 0, 8);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
     gui_set_parent(text, vsplit);
+
+    gui_view_node_t* btn;
+    gui_make_button(&btn, TFT_BLACK, BTN_PREPIN_SETTINGS, NULL);
+    gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 15, 50);
+    gui_set_parent(btn, vsplit);
+
+    gui_view_node_t* btntext;
+    gui_make_text(&btntext, "Settings", TFT_WHITE);
+    gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(btntext, btn);
 
     gui_view_node_t* ver;
     gui_make_text(&ver, firmware_version, TFT_WHITE);
@@ -366,6 +378,133 @@ void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, g
     *txt_extra = extra_text;
 
     add_button_bar(vsplit);
+}
+
+void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option)
+{
+    JADE_ASSERT(activity_ptr);
+
+    gui_make_activity(activity_ptr, true, "Passphrase");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 16, 2, 2, 2);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    {
+        gui_view_node_t* text;
+        gui_make_text(&text, "Do you want to login with a\nBIP39 passphrase? ", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+        gui_set_parent(text, vsplit);
+    }
+
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
+        gui_set_parent(hsplit, vsplit);
+
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_USE_PASSPHRASE_NO, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+
+            gui_view_node_t* text;
+            gui_make_text(&text, "No", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+
+        {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_USE_PASSPHRASE_ONCE, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+
+            gui_view_node_t* text;
+            gui_make_text(&text, "Once", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+
+        if (offer_always_option) {
+            gui_view_node_t* btn;
+            gui_make_button(&btn, TFT_BLACK, BTN_USE_PASSPHRASE_ALWAYS, NULL);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn, hsplit);
+
+            gui_view_node_t* text;
+            gui_make_text(&text, "Always", TFT_WHITE);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(text, btn);
+        }
+    }
+}
+
+void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(timeout_btn_text);
+
+    gui_make_activity(activity_ptr, true, "Settings");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_IDLE_TIMEOUT, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Power-off Timeout", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+
+        *timeout_btn_text = text;
+    }
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_USE_PASSPHRASE, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Passphrase Login", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Factory Reset", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Exit", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
 }
 
 void make_settings_screen(

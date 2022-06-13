@@ -42,6 +42,8 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
 void make_recover_word_page_select10(
     gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status);
 void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** camera_node, gui_view_node_t** textbox);
+void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
+
 void make_enter_passphrase_screen(
     gui_activity_t** activity_ptr, gui_view_node_t* textboxes[], const size_t textboxes_len);
 void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
@@ -847,15 +849,32 @@ void initialise_with_mnemonic(const bool temporary_restore)
         }
 
         // Perhaps offer/get passphrase (ie. if using advanced options)
-        // Retry until either a) user confirms valid passphrase, or b) user confirms does not want to use a passphrase
         char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
         SENSITIVE_PUSH(passphrase, sizeof(passphrase));
+        bool always_using_passphrase = false;
         if (using_passphrase) {
-            using_passphrase
-                = await_yesno_activity("Passphrase", "\nDo you want to protect the\nwallet with a passphrase?", false);
+            gui_activity_t* act = NULL;
+            const bool offer_always_option = !temporary_restore;
+            make_using_passphrase_screen(&act, offer_always_option);
+            JADE_ASSERT(act);
+
+            gui_set_current_activity(act);
+
+            int32_t ev_id;
+            using_passphrase = false;
+            if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                if (ev_id == BTN_USE_PASSPHRASE_ALWAYS) {
+                    JADE_ASSERT(!temporary_restore);
+                    always_using_passphrase = true;
+                    using_passphrase = true;
+                } else if (ev_id == BTN_USE_PASSPHRASE_ONCE) {
+                    using_passphrase = true;
+                }
+                // Effectively defaults to BTN_USE_PASSPHRASE_NO ie. not using passphrase
+            }
+
             if (using_passphrase) {
-                // Ask user to set passphrase for this session
-                await_message_activity("Note: different passphrases\nlead to different wallets,\nso don't lose yours!");
+                // Ask user to set and confirm the passphrase for this session
                 const bool confirm_passphrase = true;
                 get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
                 JADE_ASSERT(strnlen(passphrase, sizeof(passphrase)) < sizeof(passphrase));
@@ -885,7 +904,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
             keychain_cache_mnemonic_entropy(mnemonic);
 
             // Set persisted wallet 'use passphrase by default' flag
-            keychain_set_user_to_enter_passphrase_by_default(using_passphrase);
+            keychain_set_user_to_enter_passphrase_by_default(always_using_passphrase);
         }
     }
 

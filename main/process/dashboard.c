@@ -71,6 +71,8 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
 void make_connection_select_screen(gui_activity_t** activity_ptr);
 void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, bool ble);
 void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra);
+void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
+void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_settings_screen(
     gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, gui_view_node_t** timeout_btn_text);
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btn, const size_t nBtns);
@@ -687,7 +689,6 @@ static void handle_settings_advanced(void)
     }
 }
 
-// General settings handler
 static inline void update_orientation_text(gui_view_node_t* orientation_textbox)
 {
     JADE_ASSERT(orientation_textbox);
@@ -750,6 +751,74 @@ static void update_idle_timeout_btn_text(gui_view_node_t* timeout_btn_text, cons
         JADE_ASSERT(ret > 0 && ret < sizeof(txt));
     }
     gui_update_text(timeout_btn_text, txt);
+}
+
+static void handle_use_passphrase(void)
+{
+    gui_activity_t* act = NULL;
+    const bool offer_always_option = true;
+    make_using_passphrase_screen(&act, offer_always_option);
+    JADE_ASSERT(act);
+
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+    if (ev_id == BTN_USE_PASSPHRASE_ALWAYS) {
+        keychain_set_user_to_enter_passphrase(true);
+        keychain_set_user_to_enter_passphrase_by_default(true);
+    } else if (ev_id == BTN_USE_PASSPHRASE_ONCE) {
+        keychain_set_user_to_enter_passphrase(true);
+        keychain_set_user_to_enter_passphrase_by_default(false);
+    } else if (ev_id == BTN_USE_PASSPHRASE_NO) {
+        keychain_set_user_to_enter_passphrase(false);
+        keychain_set_user_to_enter_passphrase_by_default(false);
+    }
+}
+
+static void handle_prepin_settings(void)
+{
+    gui_activity_t* act = NULL;
+    gui_view_node_t* timeout_btn_text = NULL;
+    make_prepin_settings_screen(&act, &timeout_btn_text);
+    JADE_ASSERT(act);
+
+    // Get/track the idle timeout
+    uint16_t timeout = storage_get_idle_timeout();
+    update_idle_timeout_btn_text(timeout_btn_text, timeout);
+
+    gui_set_current_activity(act);
+
+    bool loop = true;
+    while (loop) {
+        int32_t ev_id;
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+
+        switch (ev_id) {
+        case BTN_SETTINGS_EXIT:
+            loop = false;
+            break;
+
+        case BTN_SETTINGS_IDLE_TIMEOUT:
+            handle_idle_timeout(&timeout);
+            update_idle_timeout_btn_text(timeout_btn_text, timeout);
+            gui_set_current_activity(act);
+            break;
+
+        case BTN_SETTINGS_USE_PASSPHRASE:
+            handle_use_passphrase();
+            gui_set_current_activity(act);
+            break;
+
+        case BTN_SETTINGS_RESET:
+            offer_jade_reset();
+            gui_set_current_activity(act);
+            break;
+
+        default:
+            break;
+        }
+    }
 }
 
 static void handle_settings(void)
@@ -990,6 +1059,8 @@ static void handle_btn(const int32_t btn)
         return initialise_wallet(false);
     case BTN_CONNECT_BACK:
         return select_initial_connection();
+    case BTN_PREPIN_SETTINGS:
+        return handle_prepin_settings();
     case BTN_SLEEP:
         return handle_sleep();
     case BTN_SETTINGS:
