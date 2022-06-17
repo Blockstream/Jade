@@ -1,4 +1,4 @@
-#include <assets.h>
+#include <assets_snapshot.h>
 #include <inttypes.h>
 #include <math.h>
 #include <wally_transaction.h>
@@ -416,7 +416,7 @@ void make_display_elements_output_activity(
         // Look up the asset-id in the canned asset-data
         const char* ticker = NULL;
         const char* issuer = NULL;
-        const asset_info_t* const pInfo = assets_get_info(asset_id_hex, use_testnet_asset_data);
+        const snapshot_asset_info_t* const pInfo = assets_snapshot_get_info(asset_id_hex, use_testnet_asset_data);
         if (pInfo) {
             JADE_LOGD("Found asset data for output %u (asset-id: '%s')", i, asset_id_hex);
             JADE_ASSERT(!strcmp(asset_id_hex, pInfo->asset_id));
