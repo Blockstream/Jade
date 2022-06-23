@@ -1295,11 +1295,24 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                        {'is_witness': False, 'path': [0],
                         'satoshi': 9, 'script': h2b('AB')}), 'extract input_tx'),
                      (('badinput9', 'tx_input',
-                       {'is_witness': False, 'input_tx': ''}), 'extract input_tx'),
+                       {'is_witness': False, 'input_tx': None}), 'extract input_tx'),
                      (('badinput10', 'tx_input',
                        {'is_witness': False, 'input_tx': 'notbin'}), 'extract input_tx'),
-                     (('badinput11', 'tx_input',  # odd number of hex chars
-                       {'is_witness': False, 'input_tx': 'abc'}), 'extract input_tx')]
+                     (('badinput11', 'tx_input',
+                       {'is_witness': True, 'path': [0], 'satoshi': 12345,
+                        'script': TEST_SCRIPT, 'sighash': 'SIGHASH_ALL'}), 'fetch valid sighash'),
+                     (('badinput12', 'tx_input',
+                       {'is_witness': True, 'path': [0], 'satoshi': 12345,
+                        'script': TEST_SCRIPT, 'sighash': h2b('02')}), 'fetch valid sighash'),
+                     (('badinput13', 'tx_input',
+                       {'is_witness': True, 'path': [0], 'satoshi': 12345,
+                        'script': TEST_SCRIPT, 'sighash': 300}), 'fetch valid sighash'),
+                     (('badinput14', 'tx_input',
+                       {'is_witness': True, 'path': [0], 'satoshi': 12345,
+                        'script': TEST_SCRIPT, 'sighash': 0}), 'Unsupported sighash value'),
+                     (('badinput15', 'tx_input',
+                       {'is_witness': True, 'path': [0], 'satoshi': 12345,
+                        'script': TEST_SCRIPT, 'sighash': 2}), 'Unsupported sighash value')]
 
     # Test all the simple cases
     for badmsg, errormsg in bad_params:
@@ -1612,12 +1625,32 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                       (('badliqin5', 'tx_input',
                         {'is_witness': True, 'path': [0], 'script': h2b('abcd12')}),
                        'extract value commitment'),
-                      (('badliqin5', 'tx_input',
+                      (('badliqin6', 'tx_input',
                         {'is_witness': True, 'path': [0], 'script': h2b('abcd12'),
                          'value commitment': 15200}), 'extract value commitment'),
-                      (('badliqin5', 'tx_input',
+                      (('badliqin7', 'tx_input',
                         {'is_witness': True, 'path': [0], 'script': h2b('abcd12'),
-                         'value commitment': 'notbin'}), 'extract value commitment')]
+                         'value commitment': 'notbin'}), 'extract value commitment'),
+                      (('badliqin8', 'tx_input',
+                        {'is_witness': True, 'path': [0], 'script': h2b('abcd12'),
+                         'value commitment': GOOD_COMMITMENT, 'sighash': 'SIGHASH_ALL'}),
+                       'fetch valid sighash'),
+                      (('badliqin9', 'tx_input',
+                        {'is_witness': True, 'path': [0], 'script': h2b('abcd12'),
+                         'value commitment': GOOD_COMMITMENT, 'sighash': h2b('03')}),
+                       'fetch valid sighash'),
+                      (('badliqin10', 'tx_input',
+                        {'is_witness': True, 'path': [0], 'script': h2b('abcd12'),
+                         'value commitment': GOOD_COMMITMENT, 'sighash': 300}),
+                       'fetch valid sighash'),
+                      (('badliqin11', 'tx_input',
+                        {'is_witness': True, 'path': [0], 'script': h2b('abcd12'),
+                         'value commitment': GOOD_COMMITMENT, 'sighash': 0}),
+                       'Unsupported sighash value'),
+                      (('badliqin12', 'tx_input',
+                        {'is_witness': True, 'path': [0], 'script': h2b('abcd12'),
+                         'value commitment': GOOD_COMMITMENT, 'sighash': 2}),
+                       'Unsupported sighash value')]
 
     # Some bad commitment data is detected immediately... esp if it is
     # missing or not syntactically valid, unparseable etc.
@@ -2116,13 +2149,14 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
         # Verify signature (if we signed this input)
         if len(signature):
             inputdata = test_input['inputs'][i]
+            sighash = inputdata.get('sighash', wally.WALLY_SIGHASH_ALL)
 
             # Get the signature message hash (ie. the hash value that was signed)
             tx_flags = wally.WALLY_TX_FLAG_USE_WITNESS if inputdata['is_witness'] else 0
             if is_liquid:
                 msghash = wally.tx_get_elements_signature_hash(
                     txn, i, inputdata['script'], inputdata.get('value_commitment'),
-                    wally.WALLY_SIGHASH_ALL, tx_flags)
+                    sighash, tx_flags)
             else:
                 if inputdata.get('input_tx'):
                     # Get satoshi amount from input tx if we have one
@@ -2136,9 +2170,10 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
                     satoshi = inputdata['satoshi']
 
                 msghash = wally.tx_get_btc_signature_hash(
-                    txn, i, inputdata['script'], satoshi, wally.WALLY_SIGHASH_ALL, tx_flags)
+                    txn, i, inputdata['script'], satoshi, sighash, tx_flags)
 
-            # Verify signature!
+            # Check trailing sighash byte and verify signature!
+            assert int.from_bytes(signature[-1:], 'little') == sighash
             rawsig = wally.ec_sig_from_der(signature[:-1])  # truncate sighash byte
             host_entropy = inputdata.get('ae_host_entropy') if use_ae_signatures else None
             _verify_signature(jadeapi, network, msghash, inputdata['path'],

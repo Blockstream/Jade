@@ -1337,6 +1337,9 @@ class JadeAPI:
                 path, [int] - the bip32 path to sign with
                 value_commitment, 33-bytes - The value commitment of ths input
 
+                This is optional if signing this input:
+                sighash, int - The sighash to use, defaults to 0x01 (SIGHASH_ALL)
+
                 These are only required for Anti-Exfil signatures:
                 ae_host_commitment, 32-bytes - The host-commitment for Anti-Exfil signatures
                 ae_host_entropy, 32-bytes - The host-entropy for Anti-Exfil signatures
@@ -1425,6 +1428,9 @@ class JadeAPI:
                 is_witness, bool - whether this is a segwit input
                 script, bytes- the redeem script
                 path, [int] - the bip32 path to sign with
+
+                This is optional if signing this input:
+                sighash, int - The sighash to use, defaults to 0x01 (SIGHASH_ALL)
 
                 These are only required for Anti-Exfil signatures:
                 ae_host_commitment, 32-bytes - The host-commitment for Anti-Exfil signatures

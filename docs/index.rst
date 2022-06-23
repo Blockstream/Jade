@@ -1189,13 +1189,15 @@ A batch of 'tx_input' messages should be sent to Jade - one for each tx input.
         "method": "tx_input",
         "params": {
             "is_witness": false,
-            "input_tx": <bytes>
-            "script": <bytes>
-            "path": [2147483697, 2147483648, 2147483648, 0, 34]
+            "input_tx": <bytes>,
+            "script": <bytes>,
+            "path": [2147483697, 2147483648, 2147483648, 0, 34],
+            "sighash": 2
         }
     }
 
-* 'is_witness', 'script' and 'path' should be omitted if a signature for this input is not required.
+* 'is_witness', 'script', 'path' and 'sighash' should be omitted if a signature for this input is not required.
+* 'sighash' is optional, and defaults to 1 (SIGHASH_ALL)
 * If provided, 'script' should be the script-sig/redeem-script required to satisfy the input utxo.
 * 'input_tx' should be the streamed bytes of the txn which output the utxo being spent.
 * NOTE: if this is the only input, and 'is_witness' is 'true', the 'input_tx' can (optionally) be replaced with a 'satoshi' element, eg: '"satoshi": 2200000'.
@@ -1255,9 +1257,10 @@ However, in this case the message must include the 'ae_host_commitment'.
         "method": "tx_input",
         "params": {
             "is_witness": false,
-            "input_tx": <bytes>
-            "script": <bytes>
+            "input_tx": <bytes>,
+            "script": <bytes>,
             "path": [2147483697, 2147483648, 2147483648, 0, 34],
+            "sighash": 3,
             "ae_host_commitment": <32 bytes>
         }
     }
@@ -1633,11 +1636,12 @@ A batch of 'tx_input' messages should be sent to Jade - one for each tx input, a
             "is_witness": true,
             "script": <bytes>,
             "value_commitment": <33 bytes>,
-            "path": [2147483697, 2147483648, 2147483648, 0, 34]
+            "path": [2147483697, 2147483648, 2147483648, 0, 34],
+            "sighash": 3
         }
     }
 
-* 'is_witness', 'script' and 'path' are as in sign_tx_legacy_input_request_.
+* 'is_witness', 'script', 'path' and 'sighash' are as in sign_tx_legacy_input_request_.
 * In addition, if a signature is required for this input and 'is_witness' is 'true', then the input utxo 'value_commitment' must be passed.
 * NOTE: no 'input_tx' is needed.
 
@@ -1701,6 +1705,7 @@ However, in this case the message must include the 'ae_host_commitment'.
             "script": <bytes>,
             "value_commitment": <33 bytes>,
             "path": [2147483697, 2147483648, 2147483648, 0, 34],
+            "sighash": 2,
             "ae_host_commitment": <32 bytes>
         }
     }

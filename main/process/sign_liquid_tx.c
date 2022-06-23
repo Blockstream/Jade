@@ -527,7 +527,9 @@ void sign_liquid_tx_process(void* process_ptr)
     // green/multisig/other) so we can show a warning to the user if so.
     script_flavour_t aggregate_inputs_scripts_flavour = SCRIPT_FLAVOUR_NONE;
 
-    // Run through each input message and generate a signature for each one
+    // Run through each input message and generate a signature-hash for each one
+    // NOTE: atm we only accept 'SIGHASH_ALL' for inputs we are signing
+    const uint8_t expected_sighash = WALLY_SIGHASH_ALL;
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
         if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
@@ -558,6 +560,7 @@ void sign_liquid_tx_process(void* process_ptr)
 
         // Path node can be omitted if we don't want to sign this input
         // (But if passed must be valid - empty/root path is not allowed for signing)
+        // Make signature-hash (should have a prevout script in hand)
         const bool has_path = rpc_has_field_data("path", &params);
         if (has_path) {
             // Get all common tx-signing input fields which must be present if a path is given
@@ -566,30 +569,28 @@ void sign_liquid_tx_process(void* process_ptr)
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
-        }
 
-        size_t value_len = 0;
-        const uint8_t* value_commitment = NULL;
-        if (has_path && is_witness) {
-            JADE_LOGD("For segwit input using explicitly passed value_commitment");
-
-            rpc_get_bytes_ptr("value_commitment", &params, &value_commitment, &value_len);
-            if (value_len != ASSET_COMMITMENT_LEN && value_len != WALLY_TX_ASSET_CT_VALUE_UNBLIND_LEN) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value commitment from parameters", NULL);
+            // NOTE: atm we only accept 'SIGHASH_ALL'
+            if (sig_data->sighash != expected_sighash) {
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
             }
-        }
 
-        // Make signature if given a path (should have a script in hand)
-        if (has_path) {
-            JADE_ASSERT(script);
-            JADE_ASSERT(script_len > 0);
-            JADE_ASSERT(sig_data->path_len > 0);
+            size_t value_len = 0;
+            const uint8_t* value_commitment = NULL;
+            if (is_witness) {
+                JADE_LOGD("For segwit input using explicitly passed value_commitment");
+                rpc_get_bytes_ptr("value_commitment", &params, &value_commitment, &value_len);
+                if (value_len != ASSET_COMMITMENT_LEN && value_len != WALLY_TX_ASSET_CT_VALUE_UNBLIND_LEN) {
+                    jade_process_reject_message(
+                        process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value commitment from parameters", NULL);
+                    goto cleanup;
+                }
+            }
 
             // Generate hash of this input which we will sign later
             if (!wallet_get_elements_tx_input_hash(tx, index, is_witness, script, script_len,
-                    value_len == 0 ? NULL : value_commitment, value_len, sig_data->signature_hash,
+                    value_len == 0 ? NULL : value_commitment, value_len, sig_data->sighash, sig_data->signature_hash,
                     sizeof(sig_data->signature_hash))) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
                 goto cleanup;

@@ -71,12 +71,12 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_ha
     size_t* written);
 
 bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,
-    size_t script_len, uint64_t satoshi, uint8_t* output, size_t output_len);
+    size_t script_len, uint64_t satoshi, uint8_t sighash, uint8_t* output, size_t output_len);
 bool wallet_get_signer_commitment(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
     size_t path_len, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
 bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
-    size_t path_len, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output, size_t output_len,
-    size_t* written);
+    size_t path_len, uint8_t sighash, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output,
+    size_t output_len, size_t* written);
 
 bool wallet_hmac_with_master_key(const uint8_t* data, size_t data_len, uint8_t* output, size_t output_len);
 bool wallet_get_public_blinding_key(const uint8_t* master_blinding_key, size_t master_blinding_key_len,
@@ -88,6 +88,6 @@ bool wallet_get_blinding_factor(const uint8_t* master_blinding_key, size_t maste
     const uint8_t* hash_prevouts, size_t hash_len, size_t output_index, BlindingFactorType_t type, uint8_t* output,
     size_t output_len);
 bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,
-    size_t script_len, const uint8_t* satoshi, size_t satoshi_len, uint8_t* output, size_t output_len);
+    size_t script_len, const uint8_t* satoshi, size_t satoshi_len, uint8_t sighash, uint8_t* output, size_t output_len);
 
 #endif /* WALLET_H_ */

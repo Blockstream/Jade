@@ -234,8 +234,8 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
 
             // Generate Anti-Exfil signature
             if (!wallet_sign_tx_input_hash(sig_data->signature_hash, sizeof(sig_data->signature_hash), sig_data->path,
-                    sig_data->path_len, ae_host_entropy, ae_host_entropy_len, sig_data->sig, sizeof(sig_data->sig),
-                    &sig_data->sig_len)) {
+                    sig_data->path_len, sig_data->sighash, ae_host_entropy, ae_host_entropy_len, sig_data->sig,
+                    sizeof(sig_data->sig), &sig_data->sig_len)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input", NULL);
                 goto cleanup;
             }
@@ -266,7 +266,8 @@ void send_ec_signature_replies(
         if (sig_data->path_len > 0) {
             // Generate EC signature
             if (!wallet_sign_tx_input_hash(sig_data->signature_hash, sizeof(sig_data->signature_hash), sig_data->path,
-                    sig_data->path_len, NULL, 0, sig_data->sig, sizeof(sig_data->sig), &sig_data->sig_len)) {
+                    sig_data->path_len, sig_data->sighash, NULL, 0, sig_data->sig, sizeof(sig_data->sig),
+                    &sig_data->sig_len)) {
                 jade_process_reject_message_with_id(sig_data->id, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input",
                     NULL, 0, msgbuf, sizeof(msgbuf), source);
                 goto cleanup;
@@ -416,8 +417,11 @@ void sign_tx_process(void* process_ptr)
     // green/multisig/other) so we can show a warning to the user if so.
     script_flavour_t aggregate_inputs_scripts_flavour = SCRIPT_FLAVOUR_NONE;
 
-    // Run through each input message and generate a signature for each one
+    // Run through each input message and generate a signature-hash for each one
     uint64_t input_amount = 0;
+
+    // NOTE: atm we only accept 'SIGHASH_ALL' for inputs we are signing
+    const uint8_t expected_sighash = WALLY_SIGHASH_ALL;
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
         if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
@@ -457,6 +461,12 @@ void sign_tx_process(void* process_ptr)
             if (!params_tx_input_signing_data(use_ae_signatures, &params, &is_witness, sig_data, &ae_host_commitment,
                     &ae_host_commitment_len, &script, &script_len, &aggregate_inputs_scripts_flavour, &errmsg)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+                goto cleanup;
+            }
+
+            // NOTE: atm we only accept 'SIGHASH_ALL'
+            if (sig_data->sighash != expected_sighash) {
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
             }
         }
@@ -527,12 +537,9 @@ void sign_tx_process(void* process_ptr)
 
         // Make signature if given a path (should have a prevout script in hand)
         if (has_path) {
-            JADE_ASSERT(script);
-            JADE_ASSERT(script_len > 0);
-            JADE_ASSERT(sig_data->path_len > 0);
-
             // Generate hash of this input which we will sign later
-            if (!wallet_get_tx_input_hash(tx, index, is_witness, script, script_len, input_satoshi,
+            JADE_ASSERT(sig_data->sighash == WALLY_SIGHASH_ALL);
+            if (!wallet_get_tx_input_hash(tx, index, is_witness, script, script_len, input_satoshi, sig_data->sighash,
                     sig_data->signature_hash, sizeof(sig_data->signature_hash))) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
                 goto cleanup;

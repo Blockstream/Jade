@@ -284,6 +284,19 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
         return false;
     }
 
+    // Get any explicit sighash byte (defaults to SIGHASH_ALL)
+    if (rpc_has_field_data("sighash", params)) {
+        size_t sighash = 0;
+        if (!rpc_get_sizet("sighash", params, &sighash) || sighash > UINT8_MAX) {
+            *errmsg = "Failed to fetch valid sighash from parameters";
+            return false;
+        }
+        sig_data->sighash = (uint8_t)sighash;
+    } else {
+        // Default to SIGHASH_ALL if not passed
+        sig_data->sighash = WALLY_SIGHASH_ALL;
+    }
+
     // If required, read anti-exfil host commitment data
     if (use_ae_signatures) {
         rpc_get_bytes_ptr("ae_host_commitment", params, ae_host_commitment, ae_host_commitment_len);

@@ -880,15 +880,16 @@ bool wallet_get_signer_commitment(const uint8_t* signature_hash, const size_t si
 }
 
 // Function to sign an input hash with a derived key - cannot be the root key, and value must be a sha256 hash.
-// If 'ae_host_entropy' is passed it is used to generate an 'anti-exfil' signature, otherwise a standard EC
-// signature (ie. using rfc6979) is created.  The output signature is returned in DER format, with a SIGHASH_ALL
-// postfix. Output buffer size must be EC_SIGNATURE_DER_MAX_LEN. NOTE: the standard EC signature will 'grind-r' to
-// produce a 'low-r' signature, the anti-exfil case cannot (as the entropy is provided explicitly).
+// If 'ae_host_entropy' is passed it is used to generate an 'anti-exfil' signature, otherwise a standard EC signature
+// (ie. using rfc6979) is created.  The output signature is returned in DER format, with a SIGHASH_<xxx> postfix.
+// Output buffer size must be EC_SIGNATURE_DER_MAX_LEN.
+// NOTE: the standard EC signature will 'grind-r' to produce a 'low-r' signature, the anti-exfil case
+// cannot (as the entropy is provided explicitly).
 bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signature_hash_len, const uint32_t* path,
-    const size_t path_len, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len, uint8_t* output,
-    const size_t output_len, size_t* written)
+    const size_t path_len, const uint8_t sighash, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len,
+    uint8_t* output, const size_t output_len, size_t* written)
 {
-    if (!signature_hash || signature_hash_len != SHA256_LEN || !path || path_len == 0 || !output
+    if (!signature_hash || signature_hash_len != SHA256_LEN || !path || path_len == 0 || sighash == 0 || !output
         || output_len < EC_SIGNATURE_DER_MAX_LEN + 1 || !written) {
         return false;
     }
@@ -926,8 +927,8 @@ bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signa
     JADE_WALLY_VERIFY(wally_ec_sig_to_der(signature, sizeof(signature), output, output_len - 1, written));
     JADE_ASSERT(*written <= output_len - 1);
 
-    // Append the sighash - TODO: make configurable
-    output[*written] = WALLY_SIGHASH_ALL & 0xff;
+    // Append the sighash used
+    output[*written] = sighash;
     *written += 1;
 
     return true;
@@ -935,16 +936,16 @@ bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signa
 
 // Function to fetch a hash for a transaction input - output buffer should be of size SHA256_LEN
 bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, const bool is_witness, const uint8_t* script,
-    const size_t script_len, const uint64_t satoshi, uint8_t* output, const size_t output_len)
+    const size_t script_len, const uint64_t satoshi, const uint8_t sighash, uint8_t* output, const size_t output_len)
 {
-    if (!tx || !script || script_len == 0 || !output || output_len != SHA256_LEN) {
+    if (!tx || !script || script_len == 0 || sighash == 0 || !output || output_len != SHA256_LEN) {
         return false;
     }
 
     // Generate the btc signature hash to sign
     const size_t hash_flags = is_witness ? WALLY_TX_FLAG_USE_WITNESS : 0;
     const int wret = wally_tx_get_btc_signature_hash(
-        tx, index, script, script_len, satoshi, WALLY_SIGHASH_ALL, hash_flags, output, output_len);
+        tx, index, script, script_len, satoshi, sighash, hash_flags, output, output_len);
     if (wret != WALLY_OK) {
         JADE_LOGE("Failed to get btc signature hash, error %d", wret);
         return false;
@@ -954,17 +955,17 @@ bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, const boo
 
 // Function to fetch a hash for an elements input - output buffer should be of size SHA256_LEN
 bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, const bool is_witness,
-    const uint8_t* script, const size_t script_len, const uint8_t* satoshi, const size_t satoshi_len, uint8_t* output,
-    const size_t output_len)
+    const uint8_t* script, const size_t script_len, const uint8_t* satoshi, const size_t satoshi_len,
+    const uint8_t sighash, uint8_t* output, const size_t output_len)
 {
-    if (!tx || !script || script_len == 0 || !output || output_len != SHA256_LEN) {
+    if (!tx || !script || script_len == 0 || sighash == 0 || !output || output_len != SHA256_LEN) {
         return false;
     }
 
     // Generate the elements signature hash to sign
     const size_t hash_flags = is_witness ? WALLY_TX_FLAG_USE_WITNESS : 0;
     const int wret = wally_tx_get_elements_signature_hash(
-        tx, index, script, script_len, satoshi, satoshi_len, WALLY_SIGHASH_ALL, hash_flags, output, output_len);
+        tx, index, script, script_len, satoshi, satoshi_len, sighash, hash_flags, output, output_len);
     if (wret != WALLY_OK) {
         JADE_LOGE("Failed to get elements signature hash, error %d", wret);
         return false;

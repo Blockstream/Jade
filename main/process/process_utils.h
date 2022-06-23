@@ -26,12 +26,13 @@ typedef struct {
 } commitment_t;
 
 typedef struct {
-    uint32_t path[MAX_PATH_LEN];
-    size_t path_len;
-    uint8_t signature_hash[SHA256_LEN];
     uint8_t sig[EC_SIGNATURE_DER_MAX_LEN + 1]; /* +1 for sighash byte */
-    size_t sig_len;
+    uint32_t path[MAX_PATH_LEN];
+    uint8_t signature_hash[SHA256_LEN];
     char id[MAXLEN_ID + 1];
+    size_t path_len;
+    size_t sig_len;
+    uint8_t sighash;
 } signing_data_t;
 
 #define HAS_NO_CURRENT_MESSAGE(process)                                                                                \
