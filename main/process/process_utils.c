@@ -7,6 +7,7 @@
 #include "../utils/cbor_rpc.h"
 
 #include <sys/time.h>
+#include <wally_anti_exfil.h>
 #include <wally_script.h>
 
 #include "process_utils.h"
@@ -252,6 +253,56 @@ bool params_get_master_blindingkey(
         // 'errmsg' populated by above call
         return false;
     }
+
+    return true;
+}
+
+// Get the common parameters required when signing an tx input
+bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, bool* is_witness,
+    signing_data_t* sig_data, const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len,
+    const uint8_t** script, size_t* script_len, script_flavour_t* aggregate_script_flavour, const char** errmsg)
+{
+    JADE_ASSERT(params);
+    JADE_ASSERT(is_witness);
+    JADE_ASSERT(sig_data);
+    JADE_INIT_OUT_PPTR(ae_host_commitment);
+    JADE_INIT_OUT_SIZE(ae_host_commitment_len);
+    JADE_INIT_OUT_PPTR(script);
+    JADE_INIT_OUT_SIZE(script_len);
+    JADE_ASSERT(aggregate_script_flavour);
+    JADE_ASSERT(errmsg);
+
+    if (!rpc_get_boolean("is_witness", params, is_witness)) {
+        *errmsg = "Failed to extract is_witness from parameters";
+        return false;
+    }
+
+    const size_t max_path_len = sizeof(sig_data->path) / sizeof(sig_data->path[0]);
+    if (!rpc_get_bip32_path("path", params, sig_data->path, max_path_len, &sig_data->path_len)
+        || sig_data->path_len == 0) {
+        *errmsg = "Failed to extract valid path from parameters";
+        return false;
+    }
+
+    // If required, read anti-exfil host commitment data
+    if (use_ae_signatures) {
+        rpc_get_bytes_ptr("ae_host_commitment", params, ae_host_commitment, ae_host_commitment_len);
+        if (!*ae_host_commitment || *ae_host_commitment_len != WALLY_HOST_COMMITMENT_LEN) {
+            *errmsg = "Failed to extract valid host commitment from parameters";
+            return false;
+        }
+    }
+
+    // Get prevout script - required for signing inputs
+    rpc_get_bytes_ptr("script", params, script, script_len);
+    if (!*script || *script_len == 0) {
+        *errmsg = "Failed to extract script from parameters";
+        return false;
+    }
+
+    // Track the types of the input prevout scripts
+    const script_flavour_t script_flavour = get_script_flavour(*script, *script_len);
+    update_aggregate_scripts_flavour(script_flavour, aggregate_script_flavour);
 
     return true;
 }

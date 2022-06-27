@@ -112,6 +112,10 @@ bool params_multisig_pubkeys(bool is_change, CborValue* params, multisig_data_t*
 bool params_get_master_blindingkey(
     CborValue* params, uint8_t* master_blinding_key, size_t master_blinding_key_len, const char** errmsg);
 
+bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, bool* is_witness,
+    signing_data_t* sig_data, const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len,
+    const uint8_t** script, size_t* script_len, script_flavour_t* aggregate_script_flavour, const char** errmsg);
+
 // Track the types of the input prevout scripts
 script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len);
 void update_aggregate_scripts_flavour(script_flavour_t new_script_flavour, script_flavour_t* aggregate_scripts_flavour);

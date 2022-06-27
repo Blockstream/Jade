@@ -430,6 +430,7 @@ void sign_tx_process(void* process_ptr)
         // txn input as expected - get input parameters
         GET_MSG_PARAMS(process);
 
+        bool is_witness = false;
         size_t script_len = 0;
         const uint8_t* script = NULL;
         uint64_t input_satoshi = 0;
@@ -448,47 +449,16 @@ void sign_tx_process(void* process_ptr)
         rpc_get_id(&process->ctx.value, sig_data->id, sizeof(sig_data->id), &written);
         JADE_ASSERT(written != 0);
 
-        bool is_witness = false;
-        ret = rpc_get_boolean("is_witness", &params, &is_witness);
-        if (!ret) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract is_witness from parameters", NULL);
-            goto cleanup;
-        }
-
         // Path node can be omitted if we don't want to sign this input
         // (But if passed must be valid - empty/root path is not allowed for signing)
         const bool has_path = rpc_has_field_data("path", &params);
         if (has_path) {
-            const size_t max_path_len = sizeof(sig_data->path) / sizeof(sig_data->path[0]);
-            if (!rpc_get_bip32_path("path", &params, sig_data->path, max_path_len, &sig_data->path_len)
-                || sig_data->path_len == 0) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
+            // Get all common tx-signing input fields which must be present if a path is given
+            if (!params_tx_input_signing_data(use_ae_signatures, &params, &is_witness, sig_data, &ae_host_commitment,
+                    &ae_host_commitment_len, &script, &script_len, &aggregate_inputs_scripts_flavour, &errmsg)) {
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
-
-            // If required, read anti-exfil host commitment data
-            if (use_ae_signatures) {
-                rpc_get_bytes_ptr("ae_host_commitment", &params, &ae_host_commitment, &ae_host_commitment_len);
-                if (!ae_host_commitment || ae_host_commitment_len != WALLY_HOST_COMMITMENT_LEN) {
-                    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS,
-                        "Failed to extract valid host commitment from parameters", NULL);
-                    goto cleanup;
-                }
-            }
-
-            // Get prevout script - required for signing inputs
-            rpc_get_bytes_ptr("script", &params, &script, &script_len);
-            if (!script || script_len == 0) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
-                goto cleanup;
-            }
-
-            // Track the types of the input prevout scripts
-            const script_flavour_t script_flavour = get_script_flavour(script, script_len);
-            update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
         }
 
         // Full input tx can be omitted for transactions with only one single witness

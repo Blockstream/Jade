@@ -1330,17 +1330,18 @@ class JadeAPI:
             The transaction to sign
 
         inputs : [dict]
-            The tx inputs.   Should contain keys:
+            The tx inputs.
+                If signing this input, should contain keys:
                 is_witness, bool - whether this is a segwit input
-                value_commitment, 33-bytes - The value commitment of ths input
-
-                These are only required if signing this input:
                 script, bytes- the redeem script
                 path, [int] - the bip32 path to sign with
+                value_commitment, 33-bytes - The value commitment of ths input
 
                 These are only required for Anti-Exfil signatures:
                 ae_host_commitment, 32-bytes - The host-commitment for Anti-Exfil signatures
                 ae_host_entropy, 32-bytes - The host-entropy for Anti-Exfil signatures
+
+                If not signing this input a null or an empty dict can be passed.
 
         commitments : [dict]
             An array sized for the number of outputs.
@@ -1415,16 +1416,15 @@ class JadeAPI:
 
         inputs : [dict]
             The tx inputs.   Should contain keys:
-                is_witness, bool - whether this is a segwit input
-
-                These are only required if signing this input:
-                script, bytes- the redeem script
-                path, [int] - the bip32 path to sign with
-
                 One of these is required:
                 input_tx, bytes - The prior transaction which created the utxo of this input
                 satoshi, int - The satoshi amount of this input - can be used in place of
                     'input_tx' for a tx with a single segwit input
+
+                These are only required if signing this input:
+                is_witness, bool - whether this is a segwit input
+                script, bytes- the redeem script
+                path, [int] - the bip32 path to sign with
 
                 These are only required for Anti-Exfil signatures:
                 ae_host_commitment, 32-bytes - The host-commitment for Anti-Exfil signatures

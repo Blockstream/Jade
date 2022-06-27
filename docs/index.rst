@@ -1195,7 +1195,7 @@ A batch of 'tx_input' messages should be sent to Jade - one for each tx input.
         }
     }
 
-* 'script' and 'path' should be omitted if a signature for this input is not required.
+* 'is_witness', 'script' and 'path' should be omitted if a signature for this input is not required.
 * If provided, 'script' should be the script-sig/redeem-script required to satisfy the input utxo.
 * 'input_tx' should be the streamed bytes of the txn which output the utxo being spent.
 * NOTE: if this is the only input, and 'is_witness' is 'true', the 'input_tx' can (optionally) be replaced with a 'satoshi' element, eg: '"satoshi": 2200000'.
@@ -1637,7 +1637,7 @@ A batch of 'tx_input' messages should be sent to Jade - one for each tx input, a
         }
     }
 
-* 'script' and 'path' are as in sign_tx_legacy_input_request_.
+* 'is_witness', 'script' and 'path' are as in sign_tx_legacy_input_request_.
 * In addition, if a signature is required for this input and 'is_witness' is 'true', then the input utxo 'value_commitment' must be passed.
 * NOTE: no 'input_tx' is needed.
 
