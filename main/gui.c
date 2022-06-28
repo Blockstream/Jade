@@ -72,8 +72,6 @@ struct {
     bool updated;
 } status_bar;
 
-typedef struct selectable_element selectable_t;
-
 // Utils
 static inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
 
