@@ -752,6 +752,10 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badauth3', 'auth_user', {'network': 1234512345}), 'extract valid network'),
                   (('badauth4', 'auth_user', {'network': ''}), 'extract valid network'),
                   (('badauth5', 'auth_user', {'network': 'notanetwork'}), 'extract valid network'),
+                  (('badauth6', 'auth_user', {'network': 'testnet', 'epoch': None}), 'valid epoch value'),
+                  (('badauth7', 'auth_user', {'network': 'testnet', 'epoch': ''}), 'valid epoch value'),
+                  (('badauth8', 'auth_user', {'network': 'testnet', 'epoch': 'notanumber'}), 'valid epoch value'),
+                  (('badauth9', 'auth_user', {'network': 'testnet', 'epoch': 12345.6789'}), 'valid epoch value'),
 
                   (('badpin1', 'update_pinserver'), 'Expecting parameters map'),
                   (('badpin2', 'update_pinserver',
@@ -776,6 +780,12 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badent3', 'add_entropy', {'entropy': 1234512345}), 'valid entropy bytes'),
                   (('badent4', 'add_entropy', {'entropy': ''}), 'valid entropy bytes'),
                   (('badent5', 'add_entropy', {'entropy': 'notbinary'}), 'valid entropy bytes'),
+
+                  (('badepoch1', 'set_epoch'), 'Expecting parameters map'),
+                  (('badepoch2', 'set_epoch', {'epoch': None}), 'valid epoch value'),
+                  (('badepoch3', 'set_epoch', {'epoch': ''}), 'valid epoch value'),
+                  (('badepoch4', 'set_epoch', {'epoch': 'notinteger'}), 'valid epoch value'),
+                  (('badepoch5', 'set_epoch', {'epoch': 12345.6789}), 'valid epoch value'),
 
                   (('badota1', 'ota'), ''),
                   (('badota2', 'ota', {'fwsize': 12345}), 'Bad filesize parameters'),
@@ -2454,7 +2464,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # On connection, a companion app should:
     # a) get the version info and check is compatible, needs update, etc.
     # b) if firmware ok, optionally send in some entropy for the rng
-    # c) tell the jade to authenticate the user (eg. pin entry)
+    # c) optionally set the epcoh time (required to use TOTP)
+    # d) tell the jade to authenticate the user (eg. pin entry)
     #    - here we use 'set_mnemonic' instead to replace hw authentication
     rslt = jadeapi.get_version_info()
     assert len(rslt) == NUM_VALUES_VERINFO
@@ -2463,9 +2474,12 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.add_entropy(bytes(noise))
     assert rslt is True
 
+    rslt = jadeapi.set_epoch(int(time.time()))
+    assert rslt is True
+
     if authuser:
         # Full user authentication with jade and pinserver (must be running)
-        rslt = jadeapi.auth_user('testnet')
+        rslt = jadeapi.auth_user('testnet', int(time.time()))
         assert rslt is True
 
     # Set mnemonic here instead of (or to override the result of) 'auth_user'

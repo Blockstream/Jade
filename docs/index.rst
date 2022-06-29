@@ -137,6 +137,39 @@ update_pinserver reply
         "result": true
     }
 
+.. _set_epoch_request:
+
+set_epoch request
+-----------------
+
+Jade has an internal clock/oscillator, but no absolute time is retained over power-cycles.
+This call allows setting the current epoch time, to initialise the internal clock.
+NOTE: this is required to use the TOTP authentication feature.
+
+.. code-block:: cbor
+
+    {
+        "id": "926",
+        "method": "set_epoch"
+        "params": {
+            "epoch": 1654086434
+        }
+    }
+
+* 'epoch' - unix epoch time, in seconds.
+
+.. _set_epoch_reply:
+
+set_epoch reply
+---------------
+
+.. code-block:: cbor
+
+    {
+        "id": "926",
+        "result": true
+    }
+
 .. _add_entropy_request:
 
 add_entropy request
@@ -184,12 +217,14 @@ A call to 'auth_user' is required to unlock a Jade wallet and also to complete w
         "method": "auth_user",
         "params": {
             "network": "mainnet"
+            "epoch": 1654086434
         }
     }
 
 * If completing initialisation, the call will result in the user setting a PIN (on the device) to persist the wallet with the blind pinserver. The wallet is locked to the type of network passed (ie. locked for use on mainnet and liquid production networks, OR for use on testnet/liquid-testnet/regtest networks).
 * If unlocking an initialised unit, the network passed indicates the intended network to use - an error is returned if this is inconsistent with that set when the wallet was initialised/persisted. The user will be asked to enter the PIN on the device, and the blind pinserver will be used to unlock the wallet.
-* Calling 'auth_user' on a wallet that is already unlocked validates the passed network and returns immediately without requiring user interation.
+* 'epoch' is optional, and if passed sets the value of the internal clock - see set_epoch_request_ above.
+* Calling 'auth_user' on a wallet that is already unlocked validates the passed network and sets any epoch value, and returns immediately without requiring user interation.
 
 .. _auth_user_reply:
 

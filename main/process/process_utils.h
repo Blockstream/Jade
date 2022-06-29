@@ -84,6 +84,8 @@ typedef enum {
 #define WARN_MSG_MIXED_INPUTS "Your inputs in this transaction are of varying types."
 
 // Common parameter extraction/handling
+int params_set_epoch_time(CborValue* params, const char** errmsg);
+
 bool params_identity_curve_index(CborValue* params, const char** identity, size_t* identity_len, const char** curve,
     size_t* curve_len, size_t* index, const char** errmsg);
 

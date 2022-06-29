@@ -5,7 +5,34 @@
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 
+#include <sys/time.h>
+
 #include "process_utils.h"
+
+// Extract 'epoch' field from message and use to set internal clock
+int params_set_epoch_time(CborValue* params, const char** errmsg)
+{
+    JADE_ASSERT(params);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    uint64_t epoch = 0;
+    if (!rpc_get_uint64_t("epoch", params, &epoch)) {
+        *errmsg = "Failed to extract valid epoch value from parameters";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
+
+    // Set the epoch time
+    const struct timeval tv = { .tv_sec = epoch, .tv_usec = 0 };
+    const int res = settimeofday(&tv, NULL);
+    if (res) {
+        JADE_LOGE("settimeofday() failed error: %d", res);
+        *errmsg = "Failed to set time";
+        return CBOR_RPC_INTERNAL_ERROR;
+    }
+
+    // Return no-error
+    return 0;
+}
 
 // Identity, curve and index are always needed by the 'identity' functions.
 bool params_identity_curve_index(CborValue* params, const char** identity, size_t* identity_len, const char** curve,

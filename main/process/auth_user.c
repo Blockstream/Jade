@@ -259,6 +259,16 @@ void auth_user_process(void* process_ptr)
 
     CHECK_NETWORK_CONSISTENT(process, network, written);
 
+    // Can optionally include epoch time to set internal clock
+    if (rpc_has_field_data("epoch", &params)) {
+        const char* errmsg = NULL;
+        const int errcode = params_set_epoch_time(&params, &errmsg);
+        if (errcode) {
+            jade_process_reject_message(process, errcode, errmsg, NULL);
+            goto cleanup;
+        }
+    }
+
     // We have five cases:
     // 1. Temporary - has a temporary keys in memory
     //    - nothing to do here, just return ok  (having checked message source)

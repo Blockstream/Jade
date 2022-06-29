@@ -356,7 +356,7 @@ class JadeAPI:
         Parameters
         ----------
         entropy : bytes
-            bytes to fold into the hw entropy pool.
+            Bytes to fold into the hw entropy pool.
 
         Returns
         -------
@@ -365,6 +365,25 @@ class JadeAPI:
         """
         params = {'entropy': entropy}
         return self._jadeRpc('add_entropy', params)
+
+    def set_epoch(self, epoch):
+        """
+        RPC call to set the current time epoch value, required for TOTP use.
+        NOTE: The time is lost on each power-down and must be reset on restart/reconnect before
+        TOTP can be used.
+
+        Parameters
+        ----------
+        epoch : int
+            Current epoch value, in seconds.
+
+        Returns
+        -------
+        bool
+            True on success
+        """
+        params = {'epoch': epoch}
+        return self._jadeRpc('set_epoch', params)
 
     def ota_update(self, fwcmp, fwlen, chunksize, patchlen=None, cb=None):
         """
@@ -565,7 +584,7 @@ class JadeAPI:
                   'reset_certificate': reset_certificate}
         return self._jadeRpc('update_pinserver', params)
 
-    def auth_user(self, network, http_request_fn=None):
+    def auth_user(self, network, epoch=None, http_request_fn=None):
         """
         RPC call to authenticate the user on the hw device, for using with the network provided.
 
@@ -575,6 +594,16 @@ class JadeAPI:
             The name of the network intended for use - eg. 'mainnet', 'liquid', 'testnet' etc.
             This is verified against the networks allowed on the hardware.
 
+        epoch : int
+            Current epoch value, in seconds.
+
+        http_request_fn : function
+            Optional http-request function to pass http requests to the Jade pinserver.
+            Default behaviour is to use the '_http_request()' function which defers to the
+            'requests' module.
+            If the 'reqests' module is not available, no default http-request function is created,
+            and one must be supplied here.
+
         Returns
         -------
         bool
@@ -582,7 +611,7 @@ class JadeAPI:
             True if the PIN is entered and verified with the remote blind pinserver.
             False if the PIN entered was incorrect.
         """
-        params = {'network': network}
+        params = {'network': network, 'epoch': epoch}
         return self._jadeRpc('auth_user', params,
                              http_request_fn=http_request_fn,
                              long_timeout=True)

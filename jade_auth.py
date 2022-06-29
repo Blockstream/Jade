@@ -1,4 +1,5 @@
 import sys
+import time
 import logging
 from jadepy import JadeAPI
 
@@ -47,7 +48,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'ble':
     kwargs = {'serial_number': serial_number}
 else:
     print('Fetching jade version info over serial')
-    serial_device = sys.argv[2] if len(sys.argv) > 2 else None
+    serial_device = sys.argv[1] if len(sys.argv) > 1 else None
     create_jade_fn = JadeAPI.create_serial
     kwargs = {'device': serial_device, 'timeout': 120}
 
@@ -60,7 +61,7 @@ with create_jade_fn(**kwargs) as jade:
     # Note: this requires a pinserver to be running
     # The network to use is deduced from the version-info
     network = 'testnet' if verinfo.get('JADE_NETWORKS') == 'TEST' else 'mainnet'
-    while jade.auth_user(network, http_request_fn) is not True:
+    while jade.auth_user(network, int(time.time()), http_request_fn) is not True:
         print('Error - please try again')
 
     # Just a couple of test calls that mimic what gdk-logon does

@@ -246,6 +246,25 @@ cleanup:
     return;
 }
 
+// Set the current time epoch value
+static void process_set_epoch_request(jade_process_t* process)
+{
+    ASSERT_CURRENT_MESSAGE(process, "set_epoch");
+    GET_MSG_PARAMS(process);
+
+    const char* errmsg = NULL;
+    const int errcode = params_set_epoch_time(&params, &errmsg);
+    if (errcode) {
+        jade_process_reject_message(process, errcode, errmsg, NULL);
+        goto cleanup;
+    }
+
+    jade_process_reply_to_message_ok(process);
+
+cleanup:
+    return;
+}
+
 // method_name should be a string literal - or at least non-null and nul terminated
 #define IS_METHOD(method_name) (!strncmp(method, method_name, method_len) && strlen(method_name) == method_len)
 
@@ -272,6 +291,9 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("add_entropy")) {
         JADE_LOGD("Received external entropy message");
         process_add_entropy_request(process);
+    } else if (IS_METHOD("set_epoch")) {
+        JADE_LOGD("Received set-epoch message");
+        process_set_epoch_request(process);
     } else if (IS_METHOD("update_pinserver")) {
         JADE_LOGD("Received update to pinserver details");
         task_function = update_pinserver_process;
