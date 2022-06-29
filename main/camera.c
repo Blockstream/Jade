@@ -89,7 +89,7 @@ static void jade_camera_init(void)
 
 // Inspect qrcodes and try to extract payload - whether any were seen and any
 // string data extracted are stored in the camera_data passed.
-static void extract_payload(struct quirc* q, jade_camera_data_t* camera_data)
+static void extract_payload(const struct quirc* q, jade_camera_data_t* camera_data)
 {
     JADE_ASSERT(q);
     JADE_ASSERT(camera_data);
@@ -137,12 +137,10 @@ static void extract_payload(struct quirc* q, jade_camera_data_t* camera_data)
 }
 
 // Look for qr-codes, and if found extract any string data into the camera_data passed
-static void qr_recoginze(void* pdata, jade_camera_data_t* camera_data)
+static void qr_recoginze(const camera_fb_t* camera_config, jade_camera_data_t* camera_data)
 {
-    JADE_ASSERT(pdata);
+    JADE_ASSERT(camera_config);
     JADE_ASSERT(camera_data);
-
-    camera_fb_t* camera_config = pdata;
 
     struct quirc* q = quirc_new();
     JADE_ASSERT(q);
