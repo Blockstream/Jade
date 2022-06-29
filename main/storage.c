@@ -15,6 +15,8 @@ static const char* NVS_KEYS_PARTITION_LABEL = "nvs_key";
 
 static const char* DEFAULT_NAMESPACE = "PIN";
 static const char* MULTISIG_NAMESPACE = "MULTISIGS";
+static const char* OTP_NAMESPACE = "OTP";
+static const char* HOTP_COUNTERS_NAMESPACE = "HOTPC";
 
 static const char* PIN_PRIVATEKEY_FIELD = "privatekey";
 static const char* PIN_COUNTER_FIELD = "counter";
@@ -589,6 +591,7 @@ bool storage_get_wallet_erase_pin(uint8_t* pin, const size_t pin_len)
 
 bool storage_erase_wallet_erase_pin(void) { return erase_key(DEFAULT_NAMESPACE, WALLET_ERASE_PIN); }
 
+// Generic multisig
 bool storage_set_multisig_registration(const char* name, const uint8_t* registration, const size_t registration_len)
 {
     return store_blob(MULTISIG_NAMESPACE, name, registration, registration_len);
@@ -611,3 +614,41 @@ bool storage_get_all_multisig_registration_names(
 }
 
 bool storage_erase_multisig_registration(const char* name) { return erase_key(MULTISIG_NAMESPACE, name); }
+
+// HOTP / TOTP
+bool storage_set_otp_data(const char* name, const uint8_t* data, const size_t data_len)
+{
+    return store_blob(OTP_NAMESPACE, name, data, data_len);
+}
+
+bool storage_get_otp_data(const char* name, uint8_t* data, const size_t data_len, size_t* written)
+{
+    return read_blob(OTP_NAMESPACE, name, data, data_len, written);
+}
+
+bool storage_set_otp_hotp_counter(const char* name, const uint64_t counter)
+{
+    return store_blob(HOTP_COUNTERS_NAMESPACE, name, (uint8_t*)&counter, sizeof(counter));
+}
+
+uint64_t storage_get_otp_hotp_counter(const char* name)
+{
+    uint64_t counter = 0;
+    return read_blob_fixed(HOTP_COUNTERS_NAMESPACE, name, (uint8_t*)&counter, sizeof(counter)) ? counter : 0;
+}
+
+size_t storage_get_otp_count(void) { return get_entry_count(OTP_NAMESPACE, NVS_TYPE_BLOB); }
+
+bool storage_otp_exists(const char* name) { return key_name_exists(name, OTP_NAMESPACE, NVS_TYPE_BLOB); }
+
+bool storage_get_all_otp_names(char names[][NVS_KEY_NAME_MAX_SIZE], const size_t num_names, size_t* num_written)
+{
+    return get_all_key_names(OTP_NAMESPACE, NVS_TYPE_BLOB, names, num_names, num_written);
+}
+
+bool storage_erase_otp(const char* name)
+{
+    // Erase any hotp counter, then erase the uri record
+    erase_key(HOTP_COUNTERS_NAMESPACE, name);
+    return erase_key(OTP_NAMESPACE, name);
+}
