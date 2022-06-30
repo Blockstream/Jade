@@ -1,6 +1,8 @@
 #include "storage.h"
 #include "jade_assert.h"
 #include "keychain.h"
+
+#include <ctype.h>
 #include <esp_system.h>
 #include <nvs_flash.h>
 #include <string.h>
@@ -216,6 +218,64 @@ static bool erase_key(const char* ns, const char* name)
     return true;
 }
 
+// NOTE: 'namespace' is optional (NULL implies all namespaces)
+size_t get_entry_count(const char* namespace, const nvs_type_t type)
+{
+    size_t count = 0;
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, type);
+    while (it != NULL) {
+        it = nvs_entry_next(it);
+        ++count;
+    };
+    return count;
+}
+
+// NOTE: 'namespace' is optional (NULL implies all namespaces)
+static bool key_name_exists(const char* name, const char* namespace, const nvs_type_t type)
+{
+    JADE_ASSERT(name);
+
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, type);
+    while (it != NULL) {
+        nvs_entry_info_t info;
+        nvs_entry_info(it, &info);
+        if (strcmp(name, info.key) == 0) {
+            nvs_release_iterator(it);
+            return true;
+        }
+        it = nvs_entry_next(it);
+    };
+
+    return false;
+}
+
+// NOTE: 'namespace' is optional (NULL implies all namespaces)
+static bool get_all_key_names(const char* namespace, const nvs_type_t type, char names[][NVS_KEY_NAME_MAX_SIZE],
+    const size_t num_names, size_t* num_written)
+{
+    JADE_ASSERT(names);
+    JADE_ASSERT(*names);
+    JADE_ASSERT(num_names > 0);
+    JADE_INIT_OUT_SIZE(num_written);
+
+    size_t count = 0;
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, type);
+    while (it != NULL && count < num_names) {
+        nvs_entry_info_t info;
+        nvs_entry_info(it, &info);
+        strcpy(names[count], info.key);
+        it = nvs_entry_next(it);
+        ++count;
+    };
+
+    if (it) {
+        nvs_release_iterator(it);
+    }
+
+    *num_written = count;
+    return count <= num_names;
+}
+
 static esp_err_t init_nvs_flash(void)
 {
     esp_err_t err;
@@ -299,6 +359,24 @@ bool storage_get_stats(size_t* entries_used, size_t* entries_free)
         *entries_free = stats.free_entries;
     }
     return true;
+}
+
+bool storage_key_name_valid(const char* name)
+{
+    // Allow ascii 33-126 incl - ie. letters, numbers and other printable/punctuation characters
+    // NOTE: space and \n are disllowed.
+    // Also check length.
+    const char* pch = name;
+    while (*pch != '\0') {
+        if ((pch - name) >= NVS_KEY_NAME_MAX_SIZE) {
+            return false;
+        }
+        if (!isgraph(*pch)) {
+            return false;
+        }
+        ++pch;
+    }
+    return pch > name;
 }
 
 bool storage_get_pin_privatekey(uint8_t* privatekey, const size_t key_len)
@@ -522,59 +600,14 @@ bool storage_get_multisig_registration(
     return read_blob(MULTISIG_NAMESPACE, name, registration, registration_len, written);
 }
 
-size_t storage_get_multisig_registration_count(void)
-{
-    size_t count = 0;
-    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, MULTISIG_NAMESPACE, NVS_TYPE_BLOB);
-    while (it != NULL) {
-        it = nvs_entry_next(it);
-        ++count;
-    };
-    return count;
-}
+size_t storage_get_multisig_registration_count(void) { return get_entry_count(MULTISIG_NAMESPACE, NVS_TYPE_BLOB); }
 
-bool storage_multisig_name_exists(const char* name)
-{
-    JADE_ASSERT(name);
-
-    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, MULTISIG_NAMESPACE, NVS_TYPE_BLOB);
-    while (it != NULL) {
-        nvs_entry_info_t info;
-        nvs_entry_info(it, &info);
-        if (strcmp(name, info.key) == 0) {
-            nvs_release_iterator(it);
-            return true;
-        }
-        it = nvs_entry_next(it);
-    };
-
-    return false;
-}
+bool storage_multisig_name_exists(const char* name) { return key_name_exists(name, MULTISIG_NAMESPACE, NVS_TYPE_BLOB); }
 
 bool storage_get_all_multisig_registration_names(
     char names[][NVS_KEY_NAME_MAX_SIZE], const size_t num_names, size_t* num_written)
 {
-    JADE_ASSERT(names);
-    JADE_ASSERT(*names);
-    JADE_ASSERT(num_names > 0);
-    JADE_INIT_OUT_SIZE(num_written);
-
-    size_t count = 0;
-    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, MULTISIG_NAMESPACE, NVS_TYPE_BLOB);
-    while (it != NULL && count < num_names) {
-        nvs_entry_info_t info;
-        nvs_entry_info(it, &info);
-        strcpy(names[count], info.key);
-        it = nvs_entry_next(it);
-        ++count;
-    };
-
-    if (it) {
-        nvs_release_iterator(it);
-    }
-
-    *num_written = count;
-    return count <= num_names;
+    return get_all_key_names(MULTISIG_NAMESPACE, NVS_TYPE_BLOB, names, num_names, num_written);
 }
 
 bool storage_erase_multisig_registration(const char* name) { return erase_key(MULTISIG_NAMESPACE, name); }

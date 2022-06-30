@@ -12,25 +12,12 @@
 
 #include "process_utils.h"
 
-#include <ctype.h>
 #include <sodium/utils.h>
 
 void make_confirm_multisig_activity(const char* multisig_name, bool sorted, size_t threshold, const signer_t* signers,
     size_t num_signers, const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len,
     const uint8_t* master_blinding_key, size_t master_blinding_key_len, bool overwriting,
     gui_activity_t** first_activity);
-
-static bool multisig_name_valid(const char* name)
-{
-    // Allow ascii 33-126 incl - ie. letters, numbers and other printable/punctuation characters
-    // NOTE: space and \n are not allowed.
-    for (const char* pch = name; *pch != '\0'; ++pch) {
-        if (!isgraph(*pch)) {
-            return false;
-        }
-    }
-    return true;
-}
 
 static void get_signers_allocate(const char* field, const CborValue* value, signer_t** data, size_t* written)
 {
@@ -131,7 +118,7 @@ void register_multisig_process(void* process_ptr)
     // Get name of multisig wallet
     written = 0;
     rpc_get_string("multisig_name", sizeof(multisig_name), &params, multisig_name, &written);
-    if (written == 0 || !multisig_name_valid(multisig_name)) {
+    if (written == 0 || !storage_key_name_valid(multisig_name)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Missing or invalid multisig name parameter", NULL);
         goto cleanup;

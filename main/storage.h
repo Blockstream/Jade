@@ -19,6 +19,7 @@
 bool storage_init(void);
 bool storage_erase(void);
 bool storage_get_stats(size_t* entries_used, size_t* entries_free);
+bool storage_key_name_valid(const char* name);
 
 bool storage_set_pin_privatekey(const uint8_t* privatekey, size_t key_len);
 bool storage_get_pin_privatekey(uint8_t* privatekey, size_t key_len);
