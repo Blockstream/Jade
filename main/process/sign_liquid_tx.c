@@ -13,6 +13,7 @@
 #include "../wallet.h"
 
 #include <sodium/utils.h>
+#include <wally_anti_exfil.h>
 #include <wally_elements.h>
 
 #include "process_utils.h"

@@ -9,6 +9,8 @@
 
 #include "process_utils.h"
 
+#include <wally_anti_exfil.h>
+
 // GDK logon parameters
 static const uint32_t GDK_CHALLENGE_LENGTH = 32;
 static const char GDK_CHALLENGE_PREFIX[] = "greenaddress.it      login ";

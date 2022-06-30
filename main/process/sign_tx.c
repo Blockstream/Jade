@@ -15,6 +15,9 @@
 #include <inttypes.h>
 #include <sodium/utils.h>
 
+#include <wally_anti_exfil.h>
+#include <wally_script.h>
+
 #include "process_utils.h"
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }

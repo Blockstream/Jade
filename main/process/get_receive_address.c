@@ -12,6 +12,7 @@
 #include "../button_events.h"
 
 #include <esp_event.h>
+#include <wally_script.h>
 
 #include "process_utils.h"
 
