@@ -41,6 +41,8 @@ static const char* device_name;
 static esp_app_desc_t running_app_info;
 
 // Functional actions
+void register_otp_process(void* process_ptr);
+void get_otp_code_process(void* process_ptr);
 void get_xpubs_process(void* process_ptr);
 void get_registered_multisigs_process(void* process_ptr);
 void register_multisig_process(void* process_ptr);
@@ -357,6 +359,10 @@ static void dispatch_message(jade_process_t* process)
             // Reject the message as hw locked
             jade_process_reject_message(
                 process, CBOR_RPC_HW_LOCKED, "Cannot process message - hardware locked or uninitialised", NULL);
+        } else if (IS_METHOD("register_otp")) {
+            task_function = register_otp_process;
+        } else if (IS_METHOD("get_otp_code")) {
+            task_function = get_otp_code_process;
         } else if (IS_METHOD("get_xpub")) {
             task_function = get_xpubs_process;
         } else if (IS_METHOD("get_registered_multisigs")) {

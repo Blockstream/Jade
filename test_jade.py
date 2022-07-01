@@ -752,10 +752,10 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badauth3', 'auth_user', {'network': 1234512345}), 'extract valid network'),
                   (('badauth4', 'auth_user', {'network': ''}), 'extract valid network'),
                   (('badauth5', 'auth_user', {'network': 'notanetwork'}), 'extract valid network'),
-                  (('badauth6', 'auth_user', {'network': 'testnet', 'epoch': None}), 'valid epoch value'),
-                  (('badauth7', 'auth_user', {'network': 'testnet', 'epoch': ''}), 'valid epoch value'),
-                  (('badauth8', 'auth_user', {'network': 'testnet', 'epoch': 'notanumber'}), 'valid epoch value'),
-                  (('badauth9', 'auth_user', {'network': 'testnet', 'epoch': 12345.6789'}), 'valid epoch value'),
+                  (('badauth6', 'auth_user', {'network': 'testnet', 'epoch': 'notanumber'}),
+                   'valid epoch value'),
+                  (('badauth7', 'auth_user', {'network': 'testnet', 'epoch': 12345.6789}),
+                   'valid epoch value'),
 
                   (('badpin1', 'update_pinserver'), 'Expecting parameters map'),
                   (('badpin2', 'update_pinserver',
@@ -1856,8 +1856,8 @@ def test_handshake_bad_sig(jade):
 def check_mem_stats(startinfo, endinfo, check_frag=True, strict=True):
     # Memory stats to log/check
     breaches = []
-    for field, limit in [('JADE_FREE_HEAP', 1024),
-                         ('JADE_FREE_DRAM', 1024),
+    for field, limit in [('JADE_FREE_HEAP', 1280),
+                         ('JADE_FREE_DRAM', 1280),
                          ('JADE_LARGEST_DRAM', 4096 if check_frag else -1),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
@@ -2456,6 +2456,73 @@ def test_sign_identity(jadeapi):
         assert ecdhA == ecdhB
 
 
+def test_hotp(jadeapi):
+    hotp_name = 'test_otp'
+    hotp_uri = 'otpauth://hotp/ACME%20Co:john.doe@email.com\
+?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=ACME%20Co&counter={}'
+
+    # Register HOTP record
+    rslt = jadeapi.register_otp(hotp_name, hotp_uri.format(0))
+    assert rslt
+
+    expected_results = ['755224', '287082', '359152', '969429', '338314',
+                        '254676', '287922', '162583', '399871', '520489']
+
+    # Fetch repeated codes 'naturally'
+    for expected in expected_results:
+        rslt = jadeapi.get_otp_code(hotp_name)
+        assert rslt == expected
+
+    # Fetch repeated codes explicitly passing the counter
+    for i, expected in enumerate(expected_results):
+        rslt = jadeapi.get_otp_code(hotp_name, value_override=i)
+        assert rslt == expected
+
+    # Check can register with an 'initial counter' - eg. starting from 5
+    startfrom = 5
+    rslt = jadeapi.register_otp(hotp_name, hotp_uri.format(startfrom))
+    assert rslt
+
+    # Fetch repeated codes 'naturally' from the explicit start point
+    for expected in expected_results[startfrom:]:
+        rslt = jadeapi.get_otp_code(hotp_name)
+        assert rslt == expected
+
+
+def test_totp(jadeapi):
+    totp_name = 'test_otp'
+    totp_uri = 'otpauth://totp/ACME%20Co:john.doe@email.com\
+?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=ACME%20Co&digits=8&algorithm={}'
+
+    timestamps = [59, 1111111109, 1111111111,
+                  1234567890, 2000000000, 20000000000]
+
+    expected_results = [
+      ('SHA1',
+       ('94287082', '07081804', '14050471',
+        '89005924', '69279037', '65353130')),
+      ('SHA256',
+       ('46119246', '68084774', '67062674',
+        '91819424', '90698825', '77737706')),
+      ('SHA512',
+       ('90693936', '25091201', '99943326',
+        '93441116', '38618901', '47863826'))
+    ]
+
+    for algo, expected in expected_results:
+        rslt = jadeapi.register_otp(totp_name, totp_uri.format(algo))
+        assert rslt
+
+        # Fetch code 'naturally' - can't verify result but just see that it works
+        rslt = jadeapi.get_otp_code(totp_name)
+        assert len(rslt) == 8
+
+        # Fetch repeated codes explicitly passing the timestamp
+        for i, timestamp in enumerate(timestamps):
+            rslt = jadeapi.get_otp_code(totp_name, value_override=timestamp)
+            assert rslt == expected[i]
+
+
 def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     rslt = jadeapi.clean_reset()
@@ -2536,6 +2603,11 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     assert rslt is True
 
     test_sign_identity(jadeapi)
+
+    # Test OTP (hotp and totp)
+    # (These don't depend on the wallet/mnemonic, just that the hw is unlocked)
+    test_hotp(jadeapi)
+    test_totp(jadeapi)
 
     # restore the mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
@@ -2747,7 +2819,7 @@ def test_ble_connection_fails(info, args):
 
 def check_stuck():
     # FIXME: serial/ble reads/writes should timeout before this does
-    timeout = 20  # minutes
+    timeout = 25  # minutes
     time.sleep(60 * timeout)
     err_str = "tests got caught running longer than {} minutes, terminating"
     logger.error(err_str.format(timeout))

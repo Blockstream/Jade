@@ -616,6 +616,49 @@ class JadeAPI:
                              http_request_fn=http_request_fn,
                              long_timeout=True)
 
+    def register_otp(self, otp_name, otp_uri):
+        """
+        RPC call to register a new OTP record on the hw device.
+
+        Parameters
+        ----------
+        otp_name : str
+            An identifying name for this OTP record
+
+        otp_uri : str
+            The uri of this OTP record - must begin 'otpauth://'
+
+        Returns
+        -------
+        bool
+            True if the OTP uri was validated and persisted on the hw
+        """
+        params = {'name': otp_name, 'uri': otp_uri}
+        return self._jadeRpc('register_otp', params)
+
+    def get_otp_code(self, otp_name, value_override=None):
+        """
+        RPC call to fetch a new OTP code from the hw device.
+
+        Parameters
+        ----------
+        otp_name : str
+            An identifying name for the OTP record to use
+
+        value_override : int
+            An overriding HOTP counter or TOTP timestamp to use.
+            NOTE: Only available in a DEBUG build of the firmware.
+
+        Returns
+        -------
+        bool
+            True if the OTP uri was validated and persisted on the hw
+        """
+        params = {'name': otp_name}
+        if value_override is not None:
+            params['override'] = value_override
+        return self._jadeRpc('get_otp_code', params)
+
     def get_xpub(self, network, path):
         """
         RPC call to fetch an xpub for the given bip32 path for the given network.

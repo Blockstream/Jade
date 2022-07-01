@@ -579,6 +579,65 @@ get_registered_multisigs reply
         }
     }
 
+.. _register_otp_request:
+
+register_otp request
+--------------------
+
+Request to register an OTP secret and its associated parameters, for subsequent fetching of OTP codes.
+
+.. code-block:: cbor
+
+    {
+        "id": "405",
+        "method": "register_otp",
+        "params": {
+            "name": "test_otp",
+            "uri": "otpauth://totp/Green:jade@blockstream.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GreenWallet&digits=8&algorithm=SHA256"
+        }
+    }
+
+.. _register_otp_reply:
+
+register_otp reply
+------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "405",
+        "result": true
+    }
+
+.. _get_otp_code:
+
+get_otp_code request
+--------------------
+
+Request to geta new OTP code for a previously registered OTP record.
+
+.. code-block:: cbor
+
+    {
+        "id": "406",
+        "method": "get_otp_code",
+        "params": {
+            "name": "test_otp"
+        }
+    }
+
+.. _get_otp_code_reply:
+
+get_otp_code reply
+------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "406",
+        "result": 74935634
+    }
+
 .. _get_xpub_request:
 
 get_xpub request
