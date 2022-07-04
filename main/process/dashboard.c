@@ -9,6 +9,7 @@
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../multisig.h"
+#include "../otpauth.h"
 #include "../power.h"
 #include "../process.h"
 #include "../qrcode.h"
@@ -30,6 +31,7 @@
 #include "process_utils.h"
 
 #include <sodium/utils.h>
+#include <time.h>
 
 // Whether during initialisation we select BLE
 static bool initialisation_via_ble = false;
@@ -71,14 +73,25 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
 void make_connection_select_screen(gui_activity_t** activity_ptr);
 void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, bool ble);
 void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra);
-void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
+
 void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_settings_screen(
     gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, gui_view_node_t** timeout_btn_text);
+void make_advanced_options_screen(gui_activity_t** activity_ptr);
+
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btn, const size_t nBtns);
+void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
+
 void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr);
 void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr);
-void make_advanced_options_screen(gui_activity_t** activity_ptr);
+
+void make_view_otp_activity(
+    gui_activity_t** activity_ptr, size_t index, size_t total, bool valid, const otpauth_ctx_t* ctx);
+void make_show_hotp_code_activity(
+    gui_activity_t** activity_ptr, const char* name, const char* codestr, bool cancel_button);
+void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* name, const char* timestamp,
+    const char* codestr, const bool cancel_button, progress_bar_t* progress_bar, gui_view_node_t** txt_ts,
+    gui_view_node_t** txt_code);
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 void make_legal_screen(gui_activity_t** activity_ptr);
@@ -672,6 +685,210 @@ static void handle_wallet_erase_pin(void)
             }
         }
         break;
+    }
+}
+
+// HOTP token-code fixed
+static bool display_hotp_screen(const char* name, const char* token, const bool show_cancel_button)
+{
+    JADE_ASSERT(name);
+    JADE_ASSERT(token);
+
+    gui_activity_t* act = NULL;
+    make_show_hotp_code_activity(&act, name, token, show_cancel_button);
+    JADE_ASSERT(act);
+
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+
+// In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    const bool btn_pressed = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    const bool btn_pressed = true;
+    ev_id = BTN_OTP_CONFIRM;
+#endif
+
+    return btn_pressed && ev_id == BTN_OTP_CONFIRM;
+}
+
+// TOTP token-code display updates with passage of time (unless flagged not to)
+static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, char* token, const size_t token_len,
+    const bool show_cancel_button, const bool auto_update)
+{
+    JADE_ASSERT(otp_is_valid(otp_ctx));
+    JADE_ASSERT(otp_ctx->otp_type == OTPTYPE_TOTP);
+    JADE_ASSERT(token);
+
+    char timestr[32];
+    ctime_r((time_t*)&epoch_value, timestr);
+
+    gui_activity_t* act = NULL;
+    gui_view_node_t* txt_ts = NULL;
+    gui_view_node_t* txt_code = NULL;
+    progress_bar_t time_left = {};
+    make_show_totp_code_activity(
+        &act, otp_ctx->name, timestr, token, show_cancel_button, &time_left, &txt_ts, &txt_code);
+    JADE_ASSERT(act);
+    JADE_ASSERT(txt_ts);
+    JADE_ASSERT(txt_code);
+
+    gui_set_current_activity(act);
+
+    // Make an event-data structure to track events - attached to the activity
+    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act);
+    JADE_ASSERT(event_data);
+
+    // Register for button events
+    gui_activity_register_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+
+    // Token code updates with time (unless explicitly specified otherwise - eg. test fixed value)
+    TickType_t timeout = 100 / portTICK_PERIOD_MS;
+    uint8_t count = epoch_value % otp_ctx->period;
+    uint8_t last_count = count;
+    while (true) {
+        int32_t ev_id;
+
+        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool btn_pressed
+            = sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, timeout) == ESP_OK;
+        timeout = 1000 / portTICK_PERIOD_MS; // After initial update, update every 1s
+#else
+        vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool btn_pressed = true;
+        ev_id = BTN_OTP_CONFIRM;
+#endif
+        // Return if button clicked
+        if (btn_pressed) {
+            return ev_id == BTN_OTP_CONFIRM;
+        }
+
+        // Otherwise update values
+        if (auto_update) {
+            if (!otp_set_default_value(otp_ctx, &epoch_value)) {
+                await_error_activity("Failed to fetch time/counter!");
+                return false;
+            }
+            ctime_r((time_t*)&epoch_value, timestr);
+            gui_update_text(txt_ts, timestr);
+
+            count = epoch_value % otp_ctx->period;
+            if (count < last_count) {
+                // Wrapped - token code should have changed
+                if (!otp_get_auth_code(otp_ctx, token, token_len)) {
+                    await_error_activity("Failed to calculate OTP!");
+                    return false;
+                }
+                gui_update_text(txt_code, token);
+            }
+            last_count = count;
+        }
+
+        // NOTE: this is outside the 'auto-update' check as the
+        // progress-bar needs to be updated at least once.
+        update_progress_bar(&time_left, otp_ctx->period, count);
+    }
+}
+
+bool display_otp_screen(otpauth_ctx_t* otp_ctx, const uint64_t value, char* token, const size_t token_len,
+    const bool show_cancel_button, const bool auto_update)
+{
+    JADE_ASSERT(otp_is_valid(otp_ctx));
+    JADE_ASSERT(token);
+
+    if (otp_ctx->otp_type == OTPTYPE_TOTP) {
+        // Token code updates with time (unless explicitly specified otherwise - eg. test fixed value)
+        return display_totp_screen(otp_ctx, value, token, token_len, show_cancel_button, auto_update);
+    } else {
+        // NOTE: the 'auto_update' flag is ignored as the hotp counter does not change without
+        // the caller making an entirely new 'get token code' request - so the value is fixed.
+        // Also, ignore counter value as not displayed.
+        return display_hotp_screen(otp_ctx->name, token, show_cancel_button);
+    }
+}
+
+static void show_otp_code(otpauth_ctx_t* otp_ctx)
+{
+    JADE_ASSERT(otp_is_valid(otp_ctx));
+
+    // Update context with current default 'moving' element
+    uint64_t value = 0;
+    if (!otp_set_default_value(otp_ctx, &value)) {
+        await_error_activity("Failed to fetch time/counter!");
+        return;
+    }
+
+    // Calculate token
+    char token[OTP_MAX_TOKEN_LEN];
+    if (!otp_get_auth_code(otp_ctx, token, sizeof(token))) {
+        await_error_activity("Failed to calculate OTP!");
+        return;
+    }
+
+    // totp token/code updates with time
+    const bool auto_update = true;
+    const bool show_cancel_button = false;
+    display_otp_screen(otp_ctx, value, token, sizeof(token), show_cancel_button, auto_update);
+}
+
+static void handle_view_otps(void)
+{
+    char names[OTP_MAX_RECORDS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
+    const size_t num_names = sizeof(names) / sizeof(names[0]);
+    size_t num_otp_records = 0;
+    bool ok = storage_get_all_otp_names(names, num_names, &num_otp_records);
+    JADE_ASSERT(ok);
+
+    if (num_otp_records == 0) {
+        await_message_activity("No OTP records registered");
+        return;
+    }
+
+    for (int i = 0; i < num_otp_records; ++i) {
+        const char* otp_name = names[i];
+
+        // Load OTP record from storage given the name
+        size_t written = 0;
+        char otp_uri[OTP_MAX_URI_LEN];
+        SENSITIVE_PUSH(otp_uri, sizeof(otp_uri));
+        otpauth_ctx_t otp_ctx = { .name = otp_name };
+        const bool valid = otp_load_uri(otp_name, otp_uri, sizeof(otp_uri), &written) && written
+            && otp_uri_to_ctx(otp_uri, written, &otp_ctx) && otp_is_valid(&otp_ctx);
+
+        // We will display the names of invalid entries, just log any message
+        if (!valid) {
+            JADE_LOGE("Error loading otp record: %s", otp_name);
+        }
+
+        gui_activity_t* act = NULL;
+        make_view_otp_activity(&act, i + 1, num_otp_records, valid, &otp_ctx);
+        JADE_ASSERT(act);
+
+        while (true) {
+            gui_set_current_activity(act);
+
+            int32_t ev_id;
+            ok = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+            if (ok && ev_id == BTN_OTP_DELETE) {
+                char message[128];
+                const int ret = snprintf(message, sizeof(message), "Delete OTP record?\n\n%s", otp_name);
+                JADE_ASSERT(ret > 0 && ret < sizeof(message));
+                if (!await_yesno_activity("Delete OTP", message, false)) {
+                    continue;
+                }
+
+                ok = storage_erase_otp(otp_name);
+                JADE_ASSERT(ok);
+            } else if (ok && ev_id == BTN_OTP_GENERATE) {
+                show_otp_code(&otp_ctx);
+                continue;
+            }
+            break;
+        };
+        SENSITIVE_POP(otp_uri);
     }
 }
 

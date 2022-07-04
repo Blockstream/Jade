@@ -104,6 +104,12 @@ typedef enum {
     BTN_MULTISIG_DELETE,
     BTN_MULTISIG_EXIT,
 
+    BTN_OTP_NEXT,
+    BTN_OTP_CONFIRM,
+    BTN_OTP_GENERATE,
+    BTN_OTP_DELETE,
+    BTN_OTP_EXIT,
+
     // NOTE: Always leave these ones last as keyboard buttons use
     // BTN_KEYBOARD_ASCII_OFFSET + <ascii-value>
     BTN_KEYBOARD_BACKSPACE,
