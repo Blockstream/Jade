@@ -247,7 +247,7 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     gui_set_parent(text, vsplit);
 
     gui_view_node_t* btn;
-    gui_make_button(&btn, TFT_BLACK, BTN_PREPIN_SETTINGS, NULL);
+    gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS, NULL);
     gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
     gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
     gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 15, 50);
@@ -572,6 +572,18 @@ void make_settings_screen(
 
     {
         gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Factory Reset", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    {
+        gui_view_node_t* btn;
         gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
@@ -787,12 +799,72 @@ void make_advanced_options_screen(gui_activity_t** activity_ptr)
 
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_OTP, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, vsplit);
         gui_view_node_t* text;
-        gui_make_text(&text, "Factory Reset", TFT_WHITE);
+        gui_make_text(&text, "OTP", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Exit", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+}
+
+void make_otp_screen(gui_activity_t** activity_ptr)
+{
+    JADE_ASSERT(activity_ptr);
+
+    gui_make_activity(activity_ptr, true, "OTP");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 25, 2, 25);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_OTP_VIEW, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "View OTPs", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_OTP_NEW_QR, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Scan New OTP QR", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_OTP_NEW_KB, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Enter New OTP URI", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }

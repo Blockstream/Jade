@@ -87,6 +87,7 @@ void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offe
 void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr);
 void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr);
 
+void make_otp_screen(gui_activity_t** activity_ptr);
 void make_view_otp_activity(
     gui_activity_t** activity_ptr, size_t index, size_t total, bool valid, const otpauth_ctx_t* ctx);
 void make_show_hotp_code_activity(
@@ -110,6 +111,10 @@ void make_show_xpub(gui_activity_t** activity_ptr, Icon* qr_icon);
 
 // Wallet initialisation function
 void initialise_with_mnemonic(bool temporary_restore);
+
+// Register a new otp code
+bool register_otp_qr(void);
+bool register_otp_kb_entry(void);
 
 // Function to print a pin into a char buffer.
 // Assumes each pin component value is a single digit.
@@ -898,40 +903,6 @@ static void handle_view_otps(void)
     }
 }
 
-static void handle_settings_advanced(void)
-{
-    gui_activity_t* act = NULL;
-    make_advanced_options_screen(&act);
-    JADE_ASSERT(act);
-
-    gui_set_current_activity(act);
-
-    bool loop = true;
-    while (loop) {
-        int32_t ev_id;
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-        switch (ev_id) {
-        case BTN_SETTINGS_MULTISIG:
-            handle_multisigs();
-            gui_set_current_activity(act);
-            break;
-        case BTN_SETTINGS_WALLET_ERASE_PIN:
-            handle_wallet_erase_pin();
-            gui_set_current_activity(act);
-            break;
-        case BTN_SETTINGS_RESET:
-            offer_jade_reset();
-            gui_set_current_activity(act);
-            break;
-        case BTN_SETTINGS_EXIT:
-            loop = false;
-            break;
-        default:
-            break;
-        }
-    }
-}
-
 static inline void update_orientation_text(gui_view_node_t* orientation_textbox)
 {
     JADE_ASSERT(orientation_textbox);
@@ -1019,57 +990,19 @@ static void handle_use_passphrase(void)
     }
 }
 
-static void handle_prepin_settings(void)
-{
-    gui_activity_t* act = NULL;
-    gui_view_node_t* timeout_btn_text = NULL;
-    make_prepin_settings_screen(&act, &timeout_btn_text);
-    JADE_ASSERT(act);
-
-    // Get/track the idle timeout
-    uint16_t timeout = storage_get_idle_timeout();
-    update_idle_timeout_btn_text(timeout_btn_text, timeout);
-
-    gui_set_current_activity(act);
-
-    bool loop = true;
-    while (loop) {
-        int32_t ev_id;
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-
-        switch (ev_id) {
-        case BTN_SETTINGS_EXIT:
-            loop = false;
-            break;
-
-        case BTN_SETTINGS_IDLE_TIMEOUT:
-            handle_idle_timeout(&timeout);
-            update_idle_timeout_btn_text(timeout_btn_text, timeout);
-            gui_set_current_activity(act);
-            break;
-
-        case BTN_SETTINGS_USE_PASSPHRASE:
-            handle_use_passphrase();
-            gui_set_current_activity(act);
-            break;
-
-        case BTN_SETTINGS_RESET:
-            offer_jade_reset();
-            gui_set_current_activity(act);
-            break;
-
-        default:
-            break;
-        }
-    }
-}
-
-static void handle_settings(void)
+static void handle_settings()
 {
     gui_activity_t* act = NULL;
     gui_view_node_t* orientation_textbox = NULL;
     gui_view_node_t* timeout_btn_text = NULL;
-    make_settings_screen(&act, &orientation_textbox, &timeout_btn_text);
+
+    if (keychain_get()) {
+        // Unlocked Jade - main settings
+        make_settings_screen(&act, &orientation_textbox, &timeout_btn_text);
+    } else {
+        // Before pin entry - restricted/different settings
+        make_prepin_settings_screen(&act, &timeout_btn_text);
+    }
     JADE_ASSERT(act);
 
     // Get/track the idle timeout
@@ -1079,39 +1012,73 @@ static void handle_settings(void)
     // update_orientation_text(orientation_textbox);
     gui_set_current_activity(act);
 
-    bool loop = true;
-    while (loop) {
+    bool done = false;
+    while (!done) {
         int32_t ev_id;
         gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
         switch (ev_id) {
-        case BTN_SETTINGS_EXIT:
-            loop = false;
-            break;
+
+        case BTN_SETTINGS_ADVANCED:
+            // Change to 'Advanced' menu
+            act = NULL;
+            make_advanced_options_screen(&act);
+            JADE_ASSERT(act);
+            gui_set_current_activity(act);
+            continue;
+
+        case BTN_SETTINGS_OTP:
+            // Change to 'OTP' menu
+            act = NULL;
+            make_otp_screen(&act);
+            JADE_ASSERT(act);
+            gui_set_current_activity(act);
+            continue;
 
             /*
                     case BTN_SETTINGS_TOGGLE_ORIENTATION:
                         display_toggle_orientation();
                         set_invert_wheel(display_is_orientation_flipped());
                         update_orientation_text(orientation_textbox);
-                        gui_set_current_activity(act);  // Causes redraw in new orientation
                         break;
              */
 
         case BTN_SETTINGS_IDLE_TIMEOUT:
             handle_idle_timeout(&timeout);
-            update_idle_timeout_btn_text(timeout_btn_text, timeout);
-            gui_set_current_activity(act);
             break;
 
-        case BTN_SETTINGS_ADVANCED:
-            handle_settings_advanced();
-            gui_set_current_activity(act);
+        case BTN_SETTINGS_USE_PASSPHRASE:
+            handle_use_passphrase();
+            break;
+
+        case BTN_SETTINGS_MULTISIG:
+            handle_multisigs();
+            break;
+
+        case BTN_SETTINGS_WALLET_ERASE_PIN:
+            handle_wallet_erase_pin();
+            break;
+
+        case BTN_SETTINGS_RESET:
+            offer_jade_reset();
+            break;
+
+        case BTN_SETTINGS_OTP_VIEW:
+            handle_view_otps();
+            break;
+
+        case BTN_SETTINGS_OTP_NEW_QR:
+            register_otp_qr();
+            break;
+
+        case BTN_SETTINGS_OTP_NEW_KB:
+            register_otp_kb_entry();
             break;
 
         default:
             break;
         }
+        done = true;
     }
 }
 
@@ -1302,8 +1269,6 @@ static void handle_btn(const int32_t btn)
         return initialise_wallet(false);
     case BTN_CONNECT_BACK:
         return select_initial_connection();
-    case BTN_PREPIN_SETTINGS:
-        return handle_prepin_settings();
     case BTN_SLEEP:
         return handle_sleep();
     case BTN_SETTINGS:
