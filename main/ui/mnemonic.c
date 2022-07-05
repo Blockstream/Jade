@@ -74,7 +74,8 @@ void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr)
 void make_mnemonic_recovery_screen_advanced(gui_activity_t** activity_ptr)
 {
     const char* btn_msg[] = { "12 words", "24 words", "Scan QR" };
-    const int32_t btn_ev_id[] = { BTN_RECOVER_MNEMONIC_12_BEGIN, BTN_RECOVER_MNEMONIC_24_BEGIN, BTN_QR_MNEMONIC_BEGIN };
+    const int32_t btn_ev_id[]
+        = { BTN_RECOVER_MNEMONIC_12_BEGIN, BTN_RECOVER_MNEMONIC_24_BEGIN, BTN_RECOVER_MNEMONIC_QR_BEGIN };
     make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length\nor to scan a QR code", 3,
         btn_msg, NULL, btn_ev_id, NULL);
 }
@@ -455,75 +456,6 @@ void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_nod
     gui_make_hsplit(&buttons_hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
     gui_set_margins(buttons_hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);
     gui_set_parent(buttons_hsplit, vsplit);
-}
-
-void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** camera_node, gui_view_node_t** textbox)
-{
-    JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(camera_node);
-    JADE_ASSERT(textbox);
-
-    // this is a weird activity and we need the full screen height for the camera, so we disable the status bar and
-    // re-do it ourselves
-    gui_make_activity(activity_ptr, false, NULL);
-
-    gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(hsplit, (*activity_ptr)->root_node);
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 38, 23, 23);
-    gui_set_parent(vsplit, hsplit);
-
-    gui_view_node_t* camera_fill;
-    gui_make_picture(&camera_fill, NULL);
-    gui_set_parent(camera_fill, hsplit);
-    *camera_node = camera_fill;
-
-    // first row, header
-    gui_view_node_t* text1;
-    gui_make_text(&text1, "Scan a QR", TFT_WHITE);
-    gui_set_parent(text1, vsplit);
-    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text1, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
-
-    // second row, message
-    gui_view_node_t* text_bg;
-    gui_make_fill(&text_bg, TFT_BLACK);
-    gui_set_parent(text_bg, vsplit);
-
-    gui_view_node_t* text_status;
-    gui_make_text(&text_status, "", TFT_WHITE);
-    gui_set_parent(text_status, text_bg);
-    gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 4);
-    gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    *textbox = text_status;
-
-    // third row: scan button
-    gui_view_node_t* btn1;
-    gui_make_button(&btn1, TFT_BLACK, BTN_QR_MNEMONIC_SCAN, NULL);
-    gui_set_margins(btn1, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn1, vsplit);
-
-    gui_view_node_t* btn1_text;
-    gui_make_text(&btn1_text, "Scan", TFT_WHITE);
-    gui_set_align(btn1_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(btn1_text, btn1);
-
-    // fourth row: exit button
-    gui_view_node_t* btn2;
-    gui_make_button(&btn2, TFT_BLACK, BTN_QR_MNEMONIC_EXIT, NULL);
-    gui_set_margins(btn2, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn2, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn2, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn2, vsplit);
-
-    gui_view_node_t* btn2_text;
-    gui_make_text(&btn2_text, "Exit", TFT_WHITE);
-    gui_set_align(btn2_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(btn2_text, btn2);
 }
 
 // enter passphrase - note we use UBUNTU16_FONT to ensure all punctuation characters are

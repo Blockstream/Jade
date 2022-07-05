@@ -2,20 +2,37 @@
 
 #include <esp_camera.h>
 #include <quirc_internal.h>
-#include <tft.h>
 
 #include "button_events.h"
 #include "camera.h"
-#include "gui.h"
 #include "jade_assert.h"
+#include "jade_tasks.h"
 #include "power.h"
 #include "sensitive.h"
+#include "ui.h"
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
 
-#include <wally_core.h>
+void make_camera_activity(
+    gui_activity_t** activity_ptr, const char* btnText, gui_view_node_t** image_node, gui_view_node_t** label_node);
 
-static const char POINT_TO_QR[] = "Point to a QR\ncode and Scan";
+#define CAM_IMG_WIDTH 120
+#define CAM_IMG_HEIGHT 160
+
+// Camera-task config data
+typedef bool (*camera_process_fn_t)(const camera_fb_t* fb, void* ctx);
+
+typedef struct {
+    // Text to display on camera screen
+    const char* text_label;
+    const char* text_button;
+
+    // Function to call when button clicked
+    camera_process_fn_t fn_process;
+
+    // Context info passed to that function
+    void* ctx;
+} camera_task_config_t;
 
 // Signal to the caller that we are done, and await our death
 static void post_exit_event_and_await_death(void)
@@ -90,24 +107,138 @@ static void jade_camera_init(void)
     }
 }
 
-// Inspect qrcodes and try to extract payload - whether any were seen and any
-// string data extracted are stored in the camera_data passed.
-static void extract_payload(const struct quirc* q, jade_camera_data_t* camera_data)
+// release the fb
+static void jade_camera_stop(void)
 {
-    JADE_ASSERT(q);
-    JADE_ASSERT(camera_data);
+    esp_camera_deinit();
+    power_camera_off();
+}
 
-    const int count = quirc_count(q);
-    JADE_LOGD("Detected %d QR codes in image.", count);
-    if (count <= 0) {
-        camera_data->qr_seen = false;
-        return;
+// Task to take picture and pass the image captured to a processing callback
+static void jade_camera_task(void* data)
+{
+    JADE_ASSERT(data);
+
+    camera_task_config_t* const camera_config = (camera_task_config_t*)data;
+    JADE_ASSERT(camera_config->text_label);
+    JADE_ASSERT(camera_config->fn_process);
+    // camera_config->text_button is optional
+    // camera_config->ctx is optional
+
+    // Create camera screen
+    gui_activity_t* act = NULL;
+    gui_view_node_t* image_node = NULL;
+    gui_view_node_t* label_node = NULL;
+    make_camera_activity(&act, camera_config->text_button, &image_node, &label_node);
+    JADE_ASSERT(act);
+    gui_set_current_activity(act);
+
+    // Initailise the camera
+    sensitive_init();
+    jade_camera_init();
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+    // Update the text label to indicate readiness
+    gui_update_text(label_node, camera_config->text_label);
+
+    // Image from camera to display on screen.
+    // 50% scale down - still a 20k image buffer.
+    // Keep image in spiram but make sure to zero it after use in case it
+    // captures potentially sensitive data eg. a valid mnemonic qrcode.
+    const size_t image_size = sizeof(uint8_t[CAM_IMG_HEIGHT][CAM_IMG_WIDTH]);
+    void* const image_buffer = JADE_MALLOC_PREFER_SPIRAM(image_size);
+    SENSITIVE_PUSH(image_buffer, image_size);
+    const Picture pic
+        = { .width = CAM_IMG_WIDTH, .height = CAM_IMG_HEIGHT, .bytes_per_pixel = 1, .data_8 = image_buffer };
+
+    // Make an event-data structure to track events - attached to the camera activity
+    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act);
+    JADE_ASSERT(event_data);
+
+    // ... and register against the activity - we will await btn events later
+    gui_activity_register_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+
+    // Loop periodically refreshes screen image from camera, and waits for button event
+    bool done = false;
+    while (!done) {
+        // Capture camera output
+        camera_fb_t* fb = esp_camera_fb_get();
+        if (!fb) {
+            JADE_LOGW("esp_camera_fb_get() failed");
+            continue;
+        }
+
+        // Copy from camera output to screen image
+        uint8_t(*scale_rotated)[CAM_IMG_WIDTH] = image_buffer;
+        uint8_t(*buf_as_matrix)[CAM_IMG_HEIGHT * 2] = (uint8_t(*)[CAM_IMG_HEIGHT * 2]) fb->buf;
+        for (size_t x = 0; x < CAM_IMG_HEIGHT; ++x) {
+            for (size_t y = 0; y < CAM_IMG_WIDTH; ++y) {
+                scale_rotated[x][y] = buf_as_matrix[(CAM_IMG_WIDTH * 2) - y * 2][x * 2];
+            }
+        }
+        gui_update_picture(image_node, &pic);
+
+        // Ensure showing camera activity/captured image
+        if (gui_current_activity() != act) {
+            gui_set_current_activity(act);
+        }
+
+        // If we have no 'click' button, we run the processing callback on every frame
+        // (We still test to see if the 'Exit' button is pressed though)
+        if (!camera_config->text_button) {
+            done = camera_config->fn_process(fb, camera_config->ctx)
+                || (sync_wait_event(
+                        GUI_BUTTON_EVENT, BTN_CAMERA_EXIT, event_data, NULL, NULL, NULL, 10 / portTICK_PERIOD_MS)
+                    == ESP_OK);
+        } else {
+            // Await button click event before we do anything
+            int32_t ev_id;
+            if (sync_wait_event(
+                    GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 50 / portTICK_PERIOD_MS)
+                == ESP_OK) {
+                if (ev_id == BTN_CAMERA_CLICK) {
+                    // Button clicked - invoke passed processing callback
+                    gui_update_text(label_node, "Processing...");
+                    done = camera_config->fn_process(fb, camera_config->ctx);
+
+                    // If not done, will loop and continue to capture images
+                    if (!done) {
+                        gui_update_text(label_node, camera_config->text_label);
+                    }
+                } else if (ev_id == BTN_CAMERA_EXIT) {
+                    // Done with camera
+                    done = true;
+                }
+            }
+        }
+        esp_camera_fb_return(fb);
     }
 
-    // Store the first string we manage to extract - initialise to empty string.
-    camera_data->qr_seen = true;
-    camera_data->strdata[0] = '\0';
+    // Finished with camera - free everything and kill task
+    SENSITIVE_POP(image_buffer);
+    free(image_buffer);
+    post_exit_event_and_await_death();
+}
 
+// QR Processing
+
+// Inspect qrcodes and try to extract payload - whether any were seen and any
+// string data extracted are stored in the qr_data struct passed.
+static bool qr_extract_payload(const struct quirc* q, qr_data_t* qr_data)
+{
+    JADE_ASSERT(q);
+    JADE_ASSERT(qr_data);
+
+    qr_data->strdata[0] = '\0';
+    qr_data->len = 0;
+
+    const int count = quirc_count(q);
+    if (count <= 0) {
+        return false;
+    }
+    JADE_LOGI("Detected %d QR codes in image.", count);
+
+    // Store the first string we manage to extract - initialise to empty string.
     struct quirc_data data;
     SENSITIVE_PUSH(&data, sizeof(data));
 
@@ -121,138 +252,88 @@ static void extract_payload(const struct quirc* q, jade_camera_data_t* camera_da
             JADE_LOGW("QUIRC error %s", quirc_strerror(error_status));
         } else if (data.data_type == QUIRC_DATA_TYPE_KANJI) {
             JADE_LOGW("QUIRC unexpected data type: %d", data.data_type);
-        } else if (data.payload_len >= sizeof(camera_data->strdata)) {
+        } else if (!data.payload_len) {
+            JADE_LOGW("QUIRC empty string");
+        } else if (data.payload_len >= sizeof(qr_data->strdata)) {
             JADE_LOGW("QUIRC data too long to handle: %u", data.payload_len);
             JADE_ASSERT(data.payload_len <= sizeof(data.payload));
         } else {
             // The payload appears to be a nul terminated string, but the
-            // 'payload_len'seems to be the string length not including that
+            // 'payload_len' seems to be the string length not including that
             // terminator.
             // To avoid any confusion or grey areas, we copy the bytes,
             // and then explicitly add the nul terminator ourselves.
-            memcpy(camera_data->strdata, data.payload, data.payload_len);
-            camera_data->strdata[data.payload_len] = '\0';
+            memcpy(qr_data->strdata, data.payload, data.payload_len);
+            qr_data->strdata[data.payload_len] = '\0';
+            qr_data->len = data.payload_len;
             SENSITIVE_POP(&data);
-            return;
+            return true;
         }
     }
     SENSITIVE_POP(&data);
+    return false;
 }
 
 // Look for qr-codes, and if found extract any string data into the camera_data passed
-static void qr_recoginze(const camera_fb_t* camera_config, jade_camera_data_t* camera_data)
+static bool qr_recoginze(const camera_fb_t* fb, void* ctx_qr_data)
 {
-    JADE_ASSERT(camera_config);
-    JADE_ASSERT(camera_data);
+    JADE_ASSERT(fb);
+    JADE_ASSERT(ctx_qr_data);
+    qr_data_t* const qr_data = (qr_data_t*)ctx_qr_data;
 
     struct quirc* q = quirc_new();
     JADE_ASSERT(q);
 
-    const int qret = quirc_resize(q, camera_config->width, camera_config->height);
+    const int qret = quirc_resize(q, fb->width, fb->height);
     JADE_ASSERT(qret == 0);
 
     // Try to interpret camera image as QR-code
     uint8_t* image = quirc_begin(q, NULL, NULL);
-    memcpy(image, camera_config->buf, camera_config->len);
+    memcpy(image, fb->buf, fb->len);
     quirc_end(q);
 
-    extract_payload(q, camera_data);
+    bool extracted = qr_extract_payload(q, qr_data);
     quirc_destroy(q);
-}
 
-// release the fb
-void jade_camera_stop(void)
-{
-    esp_camera_deinit();
-    power_camera_off();
-}
-
-// Free all the memory structures we may have allocated
-void cleanup_camera_data(jade_camera_data_t* camera_data)
-{
-    JADE_ASSERT(camera_data);
-
-    // Ensure (potentially large) image buffer is freed
-    if (camera_data->image_buffer) {
-        free(camera_data->image_buffer);
-        camera_data->image_buffer = NULL;
+    // If we have extracted a string and we have an additional validation
+    // function, run that function now and only return true if it passes.
+    if (extracted && qr_data->is_valid) {
+        extracted = qr_data->is_valid(qr_data);
     }
+
+    return extracted;
 }
 
-// Task to take picture and decode any qr code captured
-void jade_camera_task(void* data)
+bool jade_camera_scan_qr(qr_data_t* qr_data)
 {
-    jade_camera_data_t* const camera_data = data;
+    JADE_ASSERT(qr_data);
 
-    gui_update_text(camera_data->text, "Initializing the\ncamera...");
-    sensitive_init();
-    jade_camera_init();
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-    gui_update_text(camera_data->text, POINT_TO_QR);
+// At the moment camera/qr-scan only supported by Jade devices
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    // Config for the camera task
+    qr_data->len = 0;
+    camera_task_config_t camera_config = { .text_label = "Point to a QR\ncode and hold\nsteady",
+        .text_button = NULL,
+        .fn_process = qr_recoginze,
+        .ctx = qr_data };
 
-    // Image from camera to display on screen.
-    // 50% scale down - still a 20k image buffer.  Attach to jade_camera_data
-    // structure so we keep track of it and it can be freed later.
-    // Keep in dram in case it captures a valid mnemonic qrcode.
-    const size_t image_size = sizeof(uint8_t[160][120]);
-    JADE_ASSERT(camera_data->image_buffer == NULL);
-    camera_data->image_buffer = JADE_MALLOC_DRAM(image_size);
-    const Picture pic = { .width = 120, .height = 160, .bytes_per_pixel = 1, .data_8 = camera_data->image_buffer };
+    TaskHandle_t camera_task;
+    const BaseType_t retval = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 16 * 1024, &camera_config,
+        JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY);
+    JADE_ASSERT_MSG(
+        retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);
 
-    // Make an event-data structure to track events - attached to the camera activity
-    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(camera_data->activity);
-    JADE_ASSERT(event_data);
+    // Await camera exit event
+    sync_await_single_event(JADE_EVENT, CAMERA_EXIT, NULL, NULL, NULL, 0);
+    vTaskDelete(camera_task);
+    jade_camera_stop();
 
-    // ... and register against the activity - we will await btn events later
-    gui_activity_register_event(
-        camera_data->activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+    // Any scanned qr code will be in the qr_data passed
+    return qr_data->len > 0;
 
-    // Loop periodically refreshes screen image from camera, and waits for button event
-    const TickType_t frequency = 1000 / 5 / portTICK_PERIOD_MS;
-    TickType_t last_wake = xTaskGetTickCount();
-    for (;;) {
-        // Capture camera output
-        camera_fb_t* fb = esp_camera_fb_get();
-        if (!fb) {
-            continue;
-        }
-
-        // Copy from camera output to screen image
-        uint8_t(*scale_rotated)[120] = camera_data->image_buffer;
-        uint8_t(*buf_as_matrix)[320] = (uint8_t(*)[320])fb->buf;
-        for (size_t x = 0; x < 160; x++) {
-            for (size_t y = 0; y < 120; y++) {
-                scale_rotated[x][y] = buf_as_matrix[240 - y * 2][x * 2];
-            }
-        }
-        gui_update_picture(camera_data->camera, &pic);
-
-        // Await button click event
-        int32_t ev_id;
-        if (sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, frequency) == ESP_OK) {
-
-            if (ev_id == BTN_QR_MNEMONIC_SCAN) {
-                gui_update_text(camera_data->text, "Processing...");
-                qr_recoginze(fb, camera_data);
-
-                // If we saw a qr-code, we return the the caller here.
-                // Any string data will have been populated in the camera_data struct
-                if (camera_data->qr_seen) {
-                    // We have captured a string - fall back to the calling task
-                    esp_camera_fb_return(fb);
-                    post_exit_event_and_await_death();
-                }
-                gui_update_text(camera_data->text, POINT_TO_QR);
-            } else if (ev_id == BTN_QR_MNEMONIC_EXIT) {
-                // Exit btn
-                camera_data->qr_seen = false;
-                esp_camera_fb_return(fb);
-                post_exit_event_and_await_death();
-            }
-        }
-        esp_camera_fb_return(fb);
-
-        // Sleep, then loop to capture image again
-        vTaskDelayUntil(&last_wake, frequency);
-    }
+#else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+    JADE_LOGW("No camera supported for this device");
+    await_error_activity("No camera detected");
+    return false;
+#endif
 }

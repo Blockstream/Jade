@@ -2,9 +2,7 @@
 
 #include "../button_events.h"
 #include "../camera.h"
-#include "../gui.h"
 #include "../jade_assert.h"
-#include "../jade_tasks.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
@@ -13,7 +11,6 @@
 #include "../storage.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
-#include "../utils/event.h"
 #include "../utils/network.h"
 
 #include "process_utils.h"
@@ -42,7 +39,6 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
     gui_view_node_t** enter, gui_view_node_t** keys, size_t keys_len);
 void make_recover_word_page_select10(
     gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status);
-void make_mnemonic_qr_scan(gui_activity_t** activity_ptr, gui_view_node_t** camera_node, gui_view_node_t** textbox);
 void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
 
 void make_enter_passphrase_screen(
@@ -591,67 +587,76 @@ bool expand_words(
     return *end_ptr == '\0';
 }
 
-static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
+// Function to validate qr scanned is (or expands to) a valid mnemonic
+// (Passed to the qr-scanner so scanning only stops when this is satisfied)
+static bool expand_and_validate(qr_data_t* qr_data)
 {
-    JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
+    JADE_ASSERT(qr_data);
+    JADE_ASSERT(qr_data->len <= sizeof(qr_data->strdata));
+    JADE_ASSERT(qr_data->strdata[qr_data->len] == '\0');
 
-// At the moment camera/qr-scan only supported by Jade devices
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    jade_camera_data_t camera_data;
-    SENSITIVE_PUSH(&camera_data, sizeof(jade_camera_data_t));
-
-    gui_activity_t* activity = NULL;
-    make_mnemonic_qr_scan(&activity, &camera_data.camera, &camera_data.text);
-    JADE_ASSERT(activity);
-
-    gui_set_current_activity(activity);
-    camera_data.activity = activity;
-    camera_data.qr_seen = false;
-    camera_data.strdata[0] = '\0';
-    camera_data.image_buffer = NULL;
-
-    TaskHandle_t camera_task;
-    const BaseType_t retval = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 64 * 1024, &camera_data,
-        JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY);
-    JADE_ASSERT_MSG(
-        retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);
-
-    int32_t ev_id = 0;
-    gui_activity_wait_event(activity, JADE_EVENT, CAMERA_EXIT, NULL, &ev_id, NULL, 0);
-
-    vTaskDelete(camera_task);
-    jade_camera_stop();
-
-    // If we scanned a qr-code, return any string payload as a potential mnemonic
-    const bool scanned_qr = camera_data.qr_seen;
-    if (scanned_qr) {
-        // Check the amount of data in the camera-structure fits in the mnemonic buffer.
-        // If not, set to emtpty string, as not a valid mnemonic in either case.
-        const size_t len = strnlen(camera_data.strdata, sizeof(camera_data.strdata));
-        JADE_ASSERT(len < sizeof(camera_data.strdata));
-
-        if (len >= MNEMONIC_BUFLEN) {
-            JADE_LOGW("String data from qr unexpectedly long - ignored: %u", len);
-            mnemonic[0] = '\0';
-        }
-
-        // NOTE: only the English wordlist is supported.
-        struct words* wordlist = NULL;
-        JADE_WALLY_VERIFY(bip39_get_wordlist(NULL, &wordlist));
-        if (!expand_words(mnemonic, mnemonic_len, wordlist, camera_data.strdata)) {
-            JADE_LOGW("Failed to expand given word prefixes into valid mnemonic words");
-            mnemonic[0] = '\0';
-        }
+    char buf[MNEMONIC_BUFLEN];
+    if (qr_data->len > sizeof(buf)) {
+        JADE_LOGW("Scanned string too long for mnemonic");
+        goto invalid_qr;
     }
 
-    cleanup_camera_data(&camera_data);
-    SENSITIVE_POP(&camera_data);
-    return scanned_qr;
-#else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
-    JADE_LOGW("No camera supported for this device");
-    await_error_activity("No camera detected");
+    // Attempt to recognise bip39 words, expanding from unambiguous prefixes if necessary.
+    // NOTE: only the English wordlist is supported.
+    // Then we check the expanded string constitutes a valid bip39 mnemonic.
+    struct words* wordlist = NULL;
+    JADE_WALLY_VERIFY(bip39_get_wordlist(NULL, &wordlist));
+    if (expand_words(buf, sizeof(buf), wordlist, qr_data->strdata) && bip39_mnemonic_validate(NULL, buf) == WALLY_OK) {
+        const size_t bufstrlen = strlen(buf);
+        if (bufstrlen != qr_data->len) {
+            // String was expanded - sanity check then copy expanded into scan result
+            JADE_ASSERT(bufstrlen > qr_data->len);
+            if (bufstrlen >= sizeof(qr_data->strdata)) {
+                JADE_LOGW("Expanded string too long for scan buffer");
+                goto invalid_qr;
+            }
+            strcpy(qr_data->strdata, buf);
+            qr_data->len = bufstrlen;
+        }
+        return true;
+    }
+
+invalid_qr:
+    // Show the user that a valid qr was scanned, but the string data
+    // did not constitute (or expand to) a valid bip39 mnemonic string.
+    await_error_activity("Invalid recovery phrase");
     return false;
-#endif
+}
+
+static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
+{
+    JADE_ASSERT(mnemonic);
+    JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
+
+    // Pass validation callback above to qr scanner
+    qr_data_t qr_data = { .len = 0, .is_valid = expand_and_validate };
+    SENSITIVE_PUSH(&qr_data, sizeof(qr_data));
+    mnemonic[0] = '\0';
+
+    // we return 'true' if we scanned any string data at all
+    const bool qr_scanned = jade_camera_scan_qr(&qr_data) && qr_data.len > 0;
+    if (!qr_scanned) {
+        JADE_LOGW("No qr code scanned");
+        goto cleanup;
+    }
+
+    if (qr_data.len >= mnemonic_len) {
+        JADE_LOGW("String data from qr unexpectedly long - ignored: %u", qr_data.len);
+        goto cleanup;
+    }
+
+    // Result looks good, copy into mnemonic buffer
+    JADE_ASSERT(qr_data.strdata[qr_data.len] == '\0');
+    strcpy(mnemonic, qr_data.strdata);
+
+cleanup:
+    SENSITIVE_POP(&qr_data);
+    return qr_scanned;
 }
 
 static inline bool ascii_sane(const int32_t c) { return c >= 32 && c < 128; }
@@ -842,7 +847,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
             got_mnemonic = mnemonic_recover(24, mnemonic, sizeof(mnemonic));
             break;
 
-        case BTN_QR_MNEMONIC_BEGIN:
+        case BTN_RECOVER_MNEMONIC_QR_BEGIN:
         default:
             got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
             break;

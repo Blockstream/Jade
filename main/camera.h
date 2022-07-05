@@ -2,29 +2,30 @@
 #define CAMERA_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 
-typedef struct gui_activity_t gui_activity_t;
-typedef struct gui_view_node_t gui_view_node_t;
-typedef struct wait_event_data_t wait_event_data_t;
-
+// An extracted QR code string
 #define QR_MAX_STRING_LENGTH 256
 
-typedef struct {
+typedef struct _qr_data_t qr_data_t;
+
+// Function to tell whether the extracted qr data is valid for the callers purposes
+typedef bool (*qr_valid_fn_t)(qr_data_t* qr_data);
+
+struct _qr_data_t {
     char strdata[QR_MAX_STRING_LENGTH];
+    size_t len;
 
-    // These indicate existing structures
-    gui_activity_t* activity;
-    gui_view_node_t* camera;
-    gui_view_node_t* text;
+    // An optional validation function - if included, scanning will only stop
+    // and populate the string fields if the validation returns true.
+    // If NULL, any successfully extracted string is sufficient.
+    qr_valid_fn_t is_valid;
+};
 
-    // Image data is 'owned' here and must be freed
-    void* image_buffer;
-    // Whether we have seen a qr code, and any string data extracted
-    bool qr_seen;
-} jade_camera_data_t;
-
-void cleanup_camera_data(jade_camera_data_t* camera_data);
-void jade_camera_task(void* ignore);
-void jade_camera_stop(void);
+// Function to scan a qr code with the camera.
+// Any scanned/extracted string (which passes any additional validity check)
+// is written to the passed qr_data struct, and the function returns true.
+// The fucntion returns false if scanning is aborted, and no string is returned.
+bool jade_camera_scan_qr(qr_data_t* qr_data);
 
 #endif /* CAMERA_H_ */
