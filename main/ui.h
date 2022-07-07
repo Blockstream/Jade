@@ -7,12 +7,36 @@
 
 struct wally_tx;
 
-#define NUM_PASSPHRASE_KEYBOARD_SCREENS 4
-
 // Maximum length of message which can be fully displayed on
 // 'sign-message' screen - longer messages display the hash
 #define MAX_DISPLAY_MESSAGE_LEN 192
 
+// Keyboard entry screens
+#define MAX_KB_ENTRY_LEN 128
+
+// NOTE: final value is a sentinel/count, not a valid enum value
+typedef enum {
+    KB_LOWER_CASE_CHARS = 0,
+    KB_UPPER_CASE_CHARS,
+    KB_NUMBERS_SYMBOLS,
+    KB_REMAINING_SYMBOLS,
+    NUM_KBS
+} keyboard_type_t;
+
+typedef struct {
+    char strdata[MAX_KB_ENTRY_LEN];
+    size_t max_allowed_len;
+    size_t len;
+
+    keyboard_type_t keyboards[NUM_KBS];
+    size_t num_kbs;
+    size_t current_kb;
+
+    gui_activity_t* activity;
+    gui_view_node_t* textbox_nodes[NUM_KBS];
+} keyboard_entry_t;
+
+// PIN entry
 #define PIN_SIZE 6
 
 enum pin_digit_status {
@@ -46,6 +70,10 @@ typedef struct {
     const char* txt;
     gui_view_node_t* btn;
 } btn_data_t;
+
+// Functions for keyboard entry
+void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title);
+void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
 
 // Functions for pin entry
 void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message);

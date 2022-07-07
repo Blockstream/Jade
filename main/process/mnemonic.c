@@ -40,9 +40,6 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
 void make_recover_word_page_select10(
     gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status);
 void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
-
-void make_enter_passphrase_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t* textboxes[], const size_t textboxes_len);
 void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
 
 // Function to change the mnemonic word separator and provide pointers to
@@ -659,28 +656,11 @@ cleanup:
     return qr_scanned;
 }
 
-static inline bool ascii_sane(const int32_t c) { return c >= 32 && c < 128; }
-
-// Show the last n characters of the passphrase (ie. only display last n chars of a long phrase)
-#define GUI_UPDATE_PASSPHRASE()                                                                                        \
-    do {                                                                                                               \
-        const char* passphrase_tail                                                                                    \
-            = ich < PASSPHRASE_MAX_DISPLAY_LEN ? passphrase : passphrase + ich - PASSPHRASE_MAX_DISPLAY_LEN;           \
-        gui_update_text(textboxes[page], passphrase_tail);                                                             \
-    } while (false)
-
 void get_passphrase(char* passphrase, const size_t passphrase_len, const bool confirm)
 {
     JADE_ASSERT(passphrase);
-    JADE_ASSERT(passphrase_len > PASSPHRASE_MAX_LEN);
+    JADE_ASSERT(passphrase_len);
     passphrase[0] = '\0';
-
-    gui_view_node_t* textboxes[NUM_PASSPHRASE_KEYBOARD_SCREENS];
-    const size_t textboxes_len = sizeof(textboxes) / sizeof(textboxes[0]);
-
-    gui_activity_t* passphrase_activity = NULL;
-    make_enter_passphrase_screen(&passphrase_activity, textboxes, textboxes_len);
-    JADE_ASSERT(passphrase_activity);
 
     // We will need this activity later if confirming
     gui_activity_t* confirm_passphrase_activity = NULL;
@@ -691,77 +671,42 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
         JADE_ASSERT(text_to_confirm);
     }
 
-    esp_event_handler_instance_t ctx;
-    wait_event_data_t* wait_data = make_wait_event_data();
-    esp_event_handler_instance_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data, &ctx);
+    // For passphrase we want all 4 keyboards
+    keyboard_entry_t kb_entry = { .max_allowed_len = passphrase_len - 1 };
+    kb_entry.keyboards[0] = KB_LOWER_CASE_CHARS;
+    kb_entry.keyboards[1] = KB_UPPER_CASE_CHARS;
+    kb_entry.keyboards[2] = KB_NUMBERS_SYMBOLS;
+    kb_entry.keyboards[3] = KB_REMAINING_SYMBOLS;
+    kb_entry.num_kbs = 4;
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    int32_t ev_id;
-    size_t ich = 0;
+    make_keyboard_entry_activity(&kb_entry, "Enter Passphrase");
+    JADE_ASSERT(kb_entry.activity);
+
     bool done = false;
     while (!done) {
-        size_t page = 0;
-        GUI_UPDATE_PASSPHRASE();
-        gui_set_current_activity(passphrase_activity);
+        // Run the keyboard entry loop to get a typed passphrase
+        run_keyboard_entry_loop(&kb_entry);
 
-        while (!done) {
-            ev_id = ESP_EVENT_ANY_ID;
-            if (sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, wait_data, NULL, &ev_id, NULL, 0) != ESP_OK) {
-                continue;
+        // Perhaps ask user to confirm, before accepting passphrase
+        if (confirm) {
+            if (kb_entry.len > 0) {
+                int32_t ev_id;
+                gui_update_text(text_to_confirm, kb_entry.strdata);
+                gui_set_current_activity(confirm_passphrase_activity);
+                gui_activity_wait_event(
+                    confirm_passphrase_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+                done = (ev_id == BTN_YES);
+            } else {
+                done = await_yesno_activity("Confirm Passphrase", "Do you confirm the empty\npassphrase?", false);
             }
-
-            if (ich < PASSPHRASE_MAX_LEN && ev_id > BTN_KEYBOARD_ASCII_OFFSET) {
-                const size_t chr = ev_id - BTN_KEYBOARD_ASCII_OFFSET;
-                if (ascii_sane(chr)) {
-                    passphrase[ich] = (char)chr;
-                    passphrase[++ich] = '\0';
-                    GUI_UPDATE_PASSPHRASE();
-                }
-
-            } else if (ev_id == BTN_KEYBOARD_BACKSPACE) {
-                if (ich > 0) {
-                    passphrase[--ich] = '\0';
-                    GUI_UPDATE_PASSPHRASE();
-                }
-
-            } else if (ev_id == BTN_KEYBOARD_SHIFT) {
-                // Switch to new keyboard page - ensure new screen textbox up to date
-                page = (page + 1) % NUM_PASSPHRASE_KEYBOARD_SCREENS;
-                GUI_UPDATE_PASSPHRASE();
-
-            } else if (ev_id == BTN_KEYBOARD_ENTER) {
-                // Perhaps ask user to confirm, before accepting passphrase
-                if (confirm) {
-                    if (ich > 0) {
-                        int32_t ev_id;
-                        gui_update_text(text_to_confirm, passphrase);
-                        gui_set_current_activity(confirm_passphrase_activity);
-                        gui_activity_wait_event(
-                            confirm_passphrase_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-                        done = (ev_id == BTN_YES);
-                    } else {
-                        done = await_yesno_activity(
-                            "Confirm Passphrase", "Do you confirm the empty\npassphrase?", false);
-                    }
-                } else {
-                    done = true;
-                }
-                break;
-            }
+        } else {
+            // Not explicitly confirming passphrase, so done
+            done = true;
         }
     }
-#else
-    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    strcpy(passphrase, "abcdef");
-    const size_t ich = strlen(passphrase);
-#endif
 
-    // Done
-    esp_event_handler_instance_unregister(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, ctx);
-    free_wait_event_data(wait_data);
-
-    JADE_ASSERT(ich <= PASSPHRASE_MAX_LEN);
-    JADE_ASSERT(passphrase[ich] == '\0' && strlen(passphrase) == ich);
+    JADE_ASSERT(kb_entry.len < passphrase_len);
+    strcpy(passphrase, kb_entry.strdata);
 }
 
 void initialise_with_mnemonic(const bool temporary_restore)
