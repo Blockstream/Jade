@@ -25,14 +25,12 @@ typedef struct {
     uint8_t pin[PIN_SIZE];
     enum pin_digit_status digit_status[PIN_SIZE];
 
-    uint8_t selected_digit;
-    uint8_t current_selected_value;
-
     gui_activity_t* activity;
     gui_view_node_t* pin_digit_nodes[PIN_SIZE];
 
-    gui_view_node_t* message_node;
-} pin_insert_activity_t;
+    uint8_t selected_digit;
+    uint8_t current_selected_value;
+} pin_insert_t;
 
 typedef struct {
     bool is_validated_change_address;
@@ -50,9 +48,9 @@ typedef struct {
 } btn_data_t;
 
 // Functions for pin entry
-void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char* title, const char* message);
-void run_pin_entry_loop(pin_insert_activity_t* pin_insert);
-void clear_current_pin(pin_insert_activity_t* pin_insert);
+void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message);
+void run_pin_entry_loop(pin_insert_t* pin_insert);
+void clear_current_pin(pin_insert_t* pin_insert);
 
 // Functions for pinserver details
 void make_confirm_pinserver_details_activity(

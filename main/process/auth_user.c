@@ -62,19 +62,18 @@ void check_pin_load_keys(jade_process_t* process)
     }
     JADE_ASSERT(msg);
 
-    pin_insert_activity_t* pin_insert = NULL;
+    pin_insert_t pin_insert = {};
     make_pin_insert_activity(&pin_insert, "Unlock Jade", msg);
-    JADE_ASSERT(pin_insert);
-    jade_process_free_on_exit(process, pin_insert);
-    SENSITIVE_PUSH(pin_insert, sizeof(pin_insert_activity_t));
+    JADE_ASSERT(pin_insert.activity);
+    SENSITIVE_PUSH(&pin_insert, sizeof(pin_insert_t));
 
-    gui_set_current_activity(pin_insert->activity);
+    gui_set_current_activity(pin_insert.activity);
 
 // In a debug unattended ci build, use hardcoded pin after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    run_pin_entry_loop(pin_insert);
-    uint8_t pin[sizeof(pin_insert->pin)];
-    memcpy(pin, pin_insert->pin, sizeof(pin));
+    run_pin_entry_loop(&pin_insert);
+    uint8_t pin[sizeof(pin_insert.pin)];
+    memcpy(pin, pin_insert.pin, sizeof(pin));
 #else
     vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     uint8_t pin[] = { 0, 1, 2, 3, 4, 5 };
@@ -145,7 +144,7 @@ cleanup:
     // Clear out pin and temporary keychain
     SENSITIVE_POP(aeskey);
     SENSITIVE_POP(pin);
-    SENSITIVE_POP(pin_insert);
+    SENSITIVE_POP(&pin_insert);
 }
 
 static void set_pin_save_keys(jade_process_t* process)
@@ -158,50 +157,49 @@ static void set_pin_save_keys(jade_process_t* process)
 
     // Enter PIN to lock mnemonic/key material.
     // In a debug unattended ci build, use hardcoded pin after a short delay
-    pin_insert_activity_t* pin_insert = NULL;
+    pin_insert_t pin_insert = {};
     make_pin_insert_activity(&pin_insert, "Enter New PIN", "\nNew PIN:");
-    JADE_ASSERT(pin_insert);
-    jade_process_free_on_exit(process, pin_insert);
-    SENSITIVE_PUSH(pin_insert, sizeof(pin_insert_activity_t));
+    JADE_ASSERT(pin_insert.activity);
+    SENSITIVE_PUSH(&pin_insert, sizeof(pin_insert_t));
 
-    uint8_t pin[sizeof(pin_insert->pin)];
+    uint8_t pin[sizeof(pin_insert.pin)];
     SENSITIVE_PUSH(pin, sizeof(pin));
 
     while (true) {
-        gui_set_current_activity(pin_insert->activity);
+        gui_set_current_activity(pin_insert.activity);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        run_pin_entry_loop(pin_insert);
+        run_pin_entry_loop(&pin_insert);
 #else
-        const uint8_t testpin[sizeof(pin_insert->pin)] = { 0, 1, 2, 3, 4, 5 };
+        const uint8_t testpin[sizeof(pin_insert.pin)] = { 0, 1, 2, 3, 4, 5 };
 
         vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        memcpy(pin_insert->pin, testpin, sizeof(testpin));
+        memcpy(pin_insert.pin, testpin, sizeof(testpin));
 #endif
 
         // this is the first pin, copy it and clear screen fields
-        memcpy(pin, pin_insert->pin, sizeof(pin));
-        clear_current_pin(pin_insert);
+        memcpy(pin, pin_insert.pin, sizeof(pin));
+        clear_current_pin(&pin_insert);
 
         // have user confirm it
         gui_set_title("Confirm New PIN");
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        run_pin_entry_loop(pin_insert);
+        run_pin_entry_loop(&pin_insert);
 #else
         vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        memcpy(pin_insert->pin, testpin, sizeof(testpin));
+        memcpy(pin_insert.pin, testpin, sizeof(testpin));
 #endif
 
         // check that the two pins are the same
         JADE_LOGD("Checking pins match");
-        if (!sodium_memcmp(pin, pin_insert->pin, sizeof(pin))) {
+        if (!sodium_memcmp(pin, pin_insert.pin, sizeof(pin))) {
             // Pins match
             JADE_LOGI("New pin confirmed");
             break;
         } else {
             // Pins mismatch - try again
             await_error_activity("Pin mismatch, please try again");
-            clear_current_pin(pin_insert);
+            clear_current_pin(&pin_insert);
         }
     }
 
@@ -238,7 +236,7 @@ cleanup:
     // Clear out pin and temporary keychain
     SENSITIVE_POP(aeskey);
     SENSITIVE_POP(pin);
-    SENSITIVE_POP(pin_insert);
+    SENSITIVE_POP(&pin_insert);
 }
 
 void auth_user_process(void* process_ptr)

@@ -17,8 +17,10 @@ static inline char get_pin_value(size_t index)
 
 static inline uint8_t get_random_pin_digit(void) { return get_uniform_random_byte(NUM_PIN_VALUES); }
 
-static void update_digit_node(pin_insert_activity_t* pin_insert, uint8_t i)
+static void update_digit_node(pin_insert_t* pin_insert, uint8_t i)
 {
+    JADE_ASSERT(pin_insert);
+
     char str[] = { '\0', '\0' };
 
     switch (pin_insert->digit_status[i]) {
@@ -38,12 +40,9 @@ static void update_digit_node(pin_insert_activity_t* pin_insert, uint8_t i)
     gui_update_text(pin_insert->pin_digit_nodes[i], str);
 }
 
-void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char* title, const char* message)
+void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message)
 {
-    JADE_ASSERT(pin_insert_ptr);
-
-    *pin_insert_ptr = JADE_CALLOC(1, sizeof(pin_insert_activity_t));
-    pin_insert_activity_t* pin_insert = *pin_insert_ptr;
+    JADE_ASSERT(pin_insert);
 
     gui_make_activity(&pin_insert->activity, true, title);
 
@@ -82,8 +81,10 @@ void make_pin_insert_activity(pin_insert_activity_t** pin_insert_ptr, const char
     }
 }
 
-static bool next_selected_digit(pin_insert_activity_t* pin_insert)
+static bool next_selected_digit(pin_insert_t* pin_insert)
 {
+    JADE_ASSERT(pin_insert);
+
     // make sure the '<' is not selected
     JADE_ASSERT(pin_insert->current_selected_value < 10);
 
@@ -109,8 +110,10 @@ static bool next_selected_digit(pin_insert_activity_t* pin_insert)
     return false;
 }
 
-static void prev_selected_digit(pin_insert_activity_t* pin_insert)
+static void prev_selected_digit(pin_insert_t* pin_insert)
 {
+    JADE_ASSERT(pin_insert);
+
     if (pin_insert->selected_digit == 0) {
         return;
     }
@@ -127,8 +130,10 @@ static void prev_selected_digit(pin_insert_activity_t* pin_insert)
     update_digit_node(pin_insert, pin_insert->selected_digit);
 }
 
-static void next_value(pin_insert_activity_t* pin_insert)
+static void next_value(pin_insert_t* pin_insert)
 {
+    JADE_ASSERT(pin_insert);
+
     // Do not show '<' on first pin digit
     const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? NUM_PIN_VALUES : NUM_PIN_CHARS;
     pin_insert->current_selected_value = (pin_insert->current_selected_value + 1) % digit_value_ceiling;
@@ -137,8 +142,10 @@ static void next_value(pin_insert_activity_t* pin_insert)
     update_digit_node(pin_insert, pin_insert->selected_digit);
 }
 
-static void prev_value(pin_insert_activity_t* pin_insert)
+static void prev_value(pin_insert_t* pin_insert)
 {
+    JADE_ASSERT(pin_insert);
+
     // Do not show '<' on first pin digit
     const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? NUM_PIN_VALUES : NUM_PIN_CHARS;
     pin_insert->current_selected_value
@@ -148,8 +155,11 @@ static void prev_value(pin_insert_activity_t* pin_insert)
     update_digit_node(pin_insert, pin_insert->selected_digit);
 }
 
-void run_pin_entry_loop(pin_insert_activity_t* pin_insert)
+void run_pin_entry_loop(pin_insert_t* pin_insert)
 {
+    JADE_ASSERT(pin_insert);
+    JADE_ASSERT(pin_insert->activity);
+
     int ev_id;
     while (true) {
         // wait for a GUI event
@@ -179,7 +189,7 @@ void run_pin_entry_loop(pin_insert_activity_t* pin_insert)
     }
 }
 
-void clear_current_pin(pin_insert_activity_t* pin_insert)
+void clear_current_pin(pin_insert_t* pin_insert)
 {
     pin_insert->selected_digit = 0;
     pin_insert->current_selected_value = get_random_pin_digit();
