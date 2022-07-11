@@ -153,6 +153,18 @@ TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
 slot invite sadness banana'
 
+TEST_MNEMONIC_PREFIXES = 'fish inne face gin orc perm usef meth fen kidn chuc \
+part fav suns draw limb scie cran ova let slot invi sadn bana'
+
+# 'can' and 'net' are ambiguous prefixes, but are an exact match to words in
+# the bip39-wordlist, so should be recognised/allowed.
+TEST_MNEMONIC_PREFIXES_EXACT_MATCH = 'recy wear club hurr indu floa cust gua \
+ae plan scan carr elec reco acco stoc insp net ups can opt brie guid priv'
+
+# One word (met) prefix is not unambiguous: met => metal, method
+TEST_MNEMONIC_PREFIXES_AMBIGUOUS = 'fish inne face gin orc perm usef met fen \
+kidn chuc part fav suns draw limb scie cran ova let slot invi sadn bana'
+
 TEST_MNEMONIC_12 = 'retire verb human ecology best member fiction measure \
 demand stereo wedding olive'
 
@@ -1513,40 +1525,69 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
         _test_bad_params(jade, badinput, errormsg)
 
 
+def _set_wallet(jade, mnemonic=TEST_MNEMONIC, passphrase=None):
+    # Set mnemonic
+    request = jade.build_request("id_mnem", "debug_set_mnemonic",
+                                 {"mnemonic": mnemonic, "passphrase": passphrase})
+    reply = jade.make_rpc_call(request)
+    assert reply['id'] == request['id']
+    assert 'error' not in reply
+    assert reply['result'] is True
+
+    # Get and return root xpub
+    request = jade.build_request("id_xpub", "get_xpub",
+                                 {"network": "mainnet", "path": []})
+    reply = jade.make_rpc_call(request)
+    assert reply['id'] == request['id']
+    assert 'error' not in reply
+    assert reply['result'].startswith('xpub')
+    return reply['result']
+
+
+def test_mnemonic_prefixes(jade):
+
+    # Check the mnemonic unique prefixes expands to the same mnemonic/wallet
+    # as when giving the full mnemonic words (test for qr-scanning prefixes)
+    # as the unambiguous prefixes are expanded to the full words.  orc -> orchard
+    xpub_root0 = _set_wallet(jade, mnemonic=TEST_MNEMONIC)
+    xpub_root1 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_PREFIXES)
+    assert xpub_root1 == xpub_root0
+
+    # Check that mnemonic-prefixes are accepted even if they are prefixes to multiple
+    # words, provided one of them is an exact/full match for the entire word.
+    # eg. 'pen' is a prefix to 'pen', 'penalty' and 'pencil' - but is accepted as it
+    # is an exact full match for 'pen', so no 'expansion' is carried out.  pen -> pen.
+    xpub_root2 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_PREFIXES_EXACT_MATCH)
+    assert xpub_root2 != xpub_root0
+
+
+def test_mnemonic_prefixes_bad(jade):
+    # Check that mnemonic-prefixes are rejected if the prefixes match multiple words
+    # (but none of them exactly/full-match).  ie. prefix is ambiguous.  met -> metal, method
+    for bad_prefixes in [TEST_MNEMONIC_PREFIXES_AMBIGUOUS]:
+        request = jade.build_request("badprefix_" + bad_prefixes[0:4], "debug_set_mnemonic",
+                                     {"mnemonic": bad_prefixes})
+        reply = jade.make_rpc_call(request)
+        assert reply['id'] == request['id']
+        assert 'result' not in reply
+        assert reply['error']['code'] == JadeError.BAD_PARAMETERS
+        assert reply['error']['message'].startswith('Failed to expand mnemonic prefixes')
+
+
 def test_passphrase(jade):
-    def _set_wallet(passphrase=None):
-        # Set mnemonic
-        request = jade.build_request("id_mnem", "debug_set_mnemonic",
-                                     {"mnemonic": TEST_MNEMONIC,
-                                      "passphrase": passphrase})
-        reply = jade.make_rpc_call(request)
-        assert reply['id'] == request['id']
-        assert 'error' not in reply
-        assert reply['result'] is True
-
-        # Get root xpub
-        request = jade.build_request("id_xpub", "get_xpub",
-                                     {"network": "mainnet",
-                                      "path": []})
-        reply = jade.make_rpc_call(request)
-        assert reply['id'] == request['id']
-        assert 'error' not in reply
-        assert reply['result'].startswith('xpub')
-        return reply['result']
-
     # Set mnemonic with/without a passphrase, and get root xpub
-    xpub0 = _set_wallet(passphrase=None)
-    xpub1 = _set_wallet(passphrase="Passphrase1")
-    xpub2 = _set_wallet(passphrase="Passphrase2")
+    xpub0 = _set_wallet(jade, passphrase=None)
+    xpub1 = _set_wallet(jade, passphrase="Passphrase1")
+    xpub2 = _set_wallet(jade, passphrase="Passphrase2")
 
     # Check root xpubs are not the same
     # ie. that the passphrase leads to a different wallet
     assert xpub0 != xpub1 and xpub1 != xpub2 and xpub2 != xpub0
 
     # Check that using the same passphrase does get the same wallet
-    xpub0_again = _set_wallet(passphrase=None)
-    xpub1_again = _set_wallet(passphrase="Passphrase1")
-    xpub2_again = _set_wallet(passphrase="Passphrase2")
+    xpub0_again = _set_wallet(jade, passphrase=None)
+    xpub1_again = _set_wallet(jade, passphrase="Passphrase1")
+    xpub2_again = _set_wallet(jade, passphrase="Passphrase2")
 
     assert xpub0_again == xpub0 and xpub1_again == xpub1 and xpub2_again == xpub2
 
@@ -2465,6 +2506,10 @@ def run_interface_tests(jadeapi,
         # Test good pinserver handshake, and also 'bad sig' pinserver
         test_handshake(jadeapi.jade)
         test_handshake_bad_sig(jadeapi.jade)
+
+        # Test expanding mnemonic words from unique prefixes
+        test_mnemonic_prefixes(jadeapi.jade)
+        test_mnemonic_prefixes_bad(jadeapi.jade)
 
         # Test mnemonic-with-passphrase
         test_passphrase(jadeapi.jade)

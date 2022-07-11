@@ -49,7 +49,6 @@ void make_enter_passphrase_screen(
     gui_activity_t** activity_ptr, gui_view_node_t* textboxes[], const size_t textboxes_len);
 void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
 // Function to change the mnemonic word separator and provide pointers to
 // the start of the words.  USed when confirming one word at a time.
 static void change_mnemonic_word_separator(char* mnemonic, const size_t len, const char old_separator,
@@ -307,14 +306,17 @@ static void enable_relevant_chars(const char* word, const size_t word_len, const
 }
 
 static size_t valid_words(const char* word, const size_t word_len, const struct words* wordlist,
-    size_t* possible_word_list, const size_t possible_word_list_len)
+    size_t* possible_word_list, const size_t possible_word_list_len, bool* exact_match)
 {
     JADE_ASSERT(word);
     JADE_ASSERT(wordlist);
     JADE_ASSERT(possible_word_list);
+    JADE_ASSERT(possible_word_list_len);
+    JADE_ASSERT(exact_match);
 
     JADE_LOGD("word = %s, word_len = %u", word, word_len);
 
+    *exact_match = false;
     size_t num_possible_words = 0;
     for (size_t i = 0; i < possible_word_list_len; ++i) {
         possible_word_list[i] = 0;
@@ -324,17 +326,28 @@ static size_t valid_words(const char* word, const size_t word_len, const struct 
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
         JADE_WALLY_VERIFY(bip39_get_word(wordlist, wordlist_index, &wordlist_extracted));
 
+        // Test if passed 'word' is a valid prefix of the wordlist word
         const int32_t res = strncmp(wordlist_extracted, word, word_len);
 
         if (res < 0) {
+            // No there yet, continue to next work
             wally_free_string(wordlist_extracted);
             continue;
         } else if (res > 0) {
+            // Too late - gone past word - may as well abandon
             wally_free_string(wordlist_extracted);
             break;
         }
 
-        // return first possible_word_list_len compatible words
+        // If prefix matches, see if it is an exact match for the entire word
+        // (ie. word lengths are also same)
+        if (wordlist_extracted[word_len] == '\0') {
+            JADE_ASSERT(!num_possible_words); // should only happen on first match ...
+            JADE_ASSERT(!*exact_match); // and so should only happen at most once!
+            *exact_match = true;
+        }
+
+        // Return first possible_word_list_len compatible words
         if (num_possible_words < possible_word_list_len) {
             possible_word_list[num_possible_words] = wordlist_index;
         }
@@ -385,8 +398,9 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
         enter->is_active = false;
 
         while (char_index < 16) {
+            bool exact_match = false;
             size_t possible_word_list[10];
-            const size_t possible_words = valid_words(word, char_index, wordlist, possible_word_list, 10);
+            const size_t possible_words = valid_words(word, char_index, wordlist, possible_word_list, 10, &exact_match);
             if (possible_words < 11) {
                 enter->is_active = false;
                 char choose_word_title[16];
@@ -517,7 +531,11 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
 // space-separated full mnemonic words (also nul terminated).
 // Returns true if it works!  Returns false if any of the prefixes are not a prefix for exactly one
 // valid mnemonic word, or if the expanded string is too large for the provided buffer.
-static bool expand_words(
+// NOTE: There are a load of three-letter words in the bip39 list that are a) valid words in their
+// own right, and also b) prefixes to other words.
+// eg: bar, barely, bargain, barrel; pen, penalty, pencil; ski, skill, skin, skirt
+// In this case we allow/prefer an exact match even when the word is an prefix of other words.
+bool expand_words(
     char* mnemonic, const size_t mnemonic_len, const struct words* wordlist, const char* mnemonic_word_prefixes)
 {
     JADE_ASSERT(mnemonic);
@@ -540,8 +558,9 @@ static bool expand_words(
 
         // Lookup prefix in the passed wordlist, ensuring exactly one match
         size_t possible_match;
-        const size_t nmatches = valid_words(read_ptr, (end_ptr - read_ptr), wordlist, &possible_match, 1);
-        if (nmatches != 1) {
+        bool exact_match = false;
+        const size_t nmatches = valid_words(read_ptr, (end_ptr - read_ptr), wordlist, &possible_match, 1, &exact_match);
+        if (nmatches != 1 && !exact_match) {
             JADE_LOGW("%d matches for prefix: %.*s", nmatches, (end_ptr - read_ptr), read_ptr);
             mnemonic[0] = '\0';
             return false;
@@ -634,7 +653,6 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     return false;
 #endif
 }
-#endif // CONFIG_DEBUG_UNATTENDED_CI
 
 static inline bool ascii_sane(const int32_t c) { return c >= 32 && c < 128; }
 
