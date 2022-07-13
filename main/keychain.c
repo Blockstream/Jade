@@ -1,4 +1,5 @@
 #include "keychain.h"
+#include "aes.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "random.h"
@@ -15,12 +16,8 @@
 // Size of keydata_t elements - ext-key, ga-path, master-blinding-key
 #define SERIALIZED_KEY_LEN (BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN + HMAC_SHA512_LEN)
 
-// Round 'len' up to next multiple of AES_BLOCK_LEN
-// NOTE: exact multiple are rounded up to the next multiple
-#define SERIALIZED_AES_LEN(len) (((len / AES_BLOCK_LEN) + 1) * AES_BLOCK_LEN)
-
-// iv, padded payload (un-padded length provided), hmac
-#define ENCRYPTED_AES_LEN(len) (SERIALIZED_AES_LEN(len) + AES_BLOCK_LEN + HMAC_SHA256_LEN)
+// Encrypted length plus hmac (input length given)
+#define ENCRYPTED_DATA_LEN(len) (AES_ENCRYPTED_LEN(len) + HMAC_SHA256_LEN)
 
 // GA derived key index, and fixed GA key message
 static const uint32_t GA_PATH_ROOT = BIP32_INITIAL_HARDENED_CHILD + 0x4741;
@@ -352,48 +349,41 @@ static void unserialize(const uint8_t* decrypted, const size_t decrypted_len, ke
     memcpy(keydata->master_unblinding_key, decrypted + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, HMAC_SHA512_LEN);
 }
 
-static void get_encrypted_blob(const uint8_t* aeskey, const size_t aes_len, const uint8_t* bytes,
+// AES encrypt passed bytes with passed key (uses new random iv).  Also appends HMAC of the encrypted bytes.
+static bool get_encrypted_blob(const uint8_t* aeskey, const size_t aes_len, const uint8_t* bytes,
     const size_t bytes_len, uint8_t* output, const size_t output_len)
 {
     JADE_ASSERT(aeskey);
-    JADE_ASSERT(aes_len == AES_KEY_LEN_256);
+    JADE_ASSERT(aes_len);
     JADE_ASSERT(bytes);
-    JADE_ASSERT(bytes_len > 0);
+    JADE_ASSERT(bytes_len);
     JADE_ASSERT(output);
+    JADE_ASSERT(output_len == AES_ENCRYPTED_LEN(bytes_len) + HMAC_SHA256_LEN); // hmac appended
 
-    const size_t payload_len = SERIALIZED_AES_LEN(bytes_len); // round up to whole number of blocks
-    JADE_ASSERT(payload_len % AES_BLOCK_LEN == 0); // whole number of blocks
-    JADE_ASSERT(output_len == AES_BLOCK_LEN + payload_len + HMAC_SHA256_LEN); // iv, payload, hmac
+    // 1. Encrypt the passed data into the start of the buffer
+    if (!aes_encrypt_bytes(aeskey, aes_len, bytes, bytes_len, output, output_len - HMAC_SHA256_LEN)) {
+        JADE_LOGW("Failed to encrypt wallet!");
+        return false;
+    }
 
-    // 1. Generate random iv
-    get_random(output, AES_BLOCK_LEN);
-
-    // 2. Encrypt the passed bytes into the buffer (after the iv)
-    size_t written = 0;
-    const int wret = wally_aes_cbc(aeskey, aes_len, output, AES_BLOCK_LEN, bytes, bytes_len, AES_FLAG_ENCRYPT,
-        output + AES_BLOCK_LEN, payload_len, &written);
-    JADE_WALLY_VERIFY(wret);
-    JADE_ASSERT(written == payload_len);
-
-    // 3. Write the hmac into the buffer
+    // 2. Write the hmac into the buffer after the encrypted data
     JADE_WALLY_VERIFY(wally_hmac_sha256(
         aeskey, aes_len, output, output_len - HMAC_SHA256_LEN, output + output_len - HMAC_SHA256_LEN, HMAC_SHA256_LEN));
+
+    return true;
 }
 
 static bool get_decrypted_payload(const uint8_t* aeskey, const size_t aes_len, const uint8_t* bytes,
     const size_t bytes_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(aeskey);
-    JADE_ASSERT(aes_len == AES_KEY_LEN_256);
+    JADE_ASSERT(aes_len);
     JADE_ASSERT(bytes);
-    JADE_ASSERT(bytes_len > AES_BLOCK_LEN + HMAC_SHA256_LEN); // iv, no-payload, hmac
+    JADE_ASSERT(bytes_len > HMAC_SHA256_LEN); // hmac appended
     JADE_ASSERT(output);
+    JADE_ASSERT(output_len);
 
-    const size_t payload_len = bytes_len - (AES_BLOCK_LEN + HMAC_SHA256_LEN);
-    JADE_ASSERT(payload_len % AES_BLOCK_LEN == 0); // whole number of blocks
-    JADE_ASSERT(output_len >= payload_len);
-
-    // 1. Verify HMAC
+    // 1. Verify HMAC at the tail of the input buffer
     uint8_t hmac_calculated[HMAC_SHA256_LEN];
     JADE_WALLY_VERIFY(wally_hmac_sha256(
         aeskey, aes_len, bytes, bytes_len - HMAC_SHA256_LEN, hmac_calculated, sizeof(hmac_calculated)));
@@ -402,10 +392,11 @@ static bool get_decrypted_payload(const uint8_t* aeskey, const size_t aes_len, c
         return false;
     }
 
-    // 2. Decrypt
-    JADE_WALLY_VERIFY(wally_aes_cbc(aeskey, aes_len, bytes, AES_BLOCK_LEN, bytes + AES_BLOCK_LEN, payload_len,
-        AES_FLAG_DECRYPT, output, output_len, written));
-    JADE_ASSERT(*written <= output_len);
+    // 2. Decrypt bytes at front of buffer
+    if (!aes_decrypt_bytes(aeskey, aes_len, bytes, bytes_len - HMAC_SHA256_LEN, output, output_len, written)) {
+        JADE_LOGW("Failed to decrypt wallet!");
+        return false;
+    }
 
     return true;
 }
@@ -423,7 +414,7 @@ bool keychain_store_encrypted(const uint8_t* aeskey, const size_t aes_len)
     // These buffers are sized for serialising the extended key structure
     // If instead we are storing mnemonic entropy, the 'encrypted' buffer is of ample size.
     uint8_t serialized[SERIALIZED_KEY_LEN];
-    uint8_t encrypted[ENCRYPTED_AES_LEN(sizeof(serialized))];
+    uint8_t encrypted[ENCRYPTED_DATA_LEN(sizeof(serialized))];
     SENSITIVE_PUSH(encrypted, sizeof(encrypted));
     SENSITIVE_PUSH(serialized, sizeof(serialized));
 
@@ -449,9 +440,15 @@ bool keychain_store_encrypted(const uint8_t* aeskey, const size_t aes_len)
     }
 
     // 2. Get as encrypted blob
-    const size_t encrypted_data_len = ENCRYPTED_AES_LEN(serialized_data_len);
-    get_encrypted_blob(aeskey, aes_len, p_serialized_data, serialized_data_len, encrypted, encrypted_data_len);
+    const size_t encrypted_data_len = ENCRYPTED_DATA_LEN(serialized_data_len);
+    const bool ret
+        = get_encrypted_blob(aeskey, aes_len, p_serialized_data, serialized_data_len, encrypted, encrypted_data_len);
     SENSITIVE_POP(serialized);
+    if (!ret) {
+        JADE_LOGE("Failed to encrypt key data");
+        SENSITIVE_POP(encrypted);
+        return false;
+    }
 
     // 3. Push into flash storage
     if (!storage_set_encrypted_blob(encrypted, encrypted_data_len)) {
@@ -484,8 +481,8 @@ bool keychain_load_cleartext(const uint8_t* aeskey, const size_t aes_len)
 
     // These buffers are sized for deserialising the extended key structure
     // If instead we are storing mnemonic entropy, the buffers are of ample size.
-    uint8_t serialized[SERIALIZED_AES_LEN(SERIALIZED_KEY_LEN)];
-    uint8_t encrypted[ENCRYPTED_AES_LEN(SERIALIZED_KEY_LEN)];
+    uint8_t serialized[AES_PADDED_LEN(SERIALIZED_KEY_LEN)];
+    uint8_t encrypted[ENCRYPTED_DATA_LEN(SERIALIZED_KEY_LEN)];
 
     // 1. Load from flash storage
     size_t encrypted_data_len = 0;

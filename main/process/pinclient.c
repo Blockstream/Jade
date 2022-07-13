@@ -1,3 +1,4 @@
+#include "../aes.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
@@ -26,9 +27,8 @@ static const char PINSERVER_DOC_SET_PIN[] = "set_pin";
 #define PIN_SECRET_LEN HMAC_SHA256_LEN
 #define ENTROPY_LEN HMAC_SHA256_LEN
 #define CLIENT_CLEARTEXT_LEN (PIN_SECRET_LEN + ENTROPY_LEN + EC_SIGNATURE_RECOVERABLE_LEN)
-#define IV_LEN AES_BLOCK_LEN
-#define CLIENT_REQUEST_PAYLOAD_LEN (IV_LEN + ((CLIENT_CLEARTEXT_LEN / AES_BLOCK_LEN + 1) * AES_BLOCK_LEN))
-#define SERVER_REPLY_PAYLOAD_LEN (IV_LEN + ((AES_KEY_LEN_256 / AES_BLOCK_LEN + 1) * AES_BLOCK_LEN))
+#define CLIENT_REQUEST_PAYLOAD_LEN AES_ENCRYPTED_LEN(CLIENT_CLEARTEXT_LEN)
+#define SERVER_REPLY_PAYLOAD_LEN AES_ENCRYPTED_LEN(AES_KEY_LEN_256)
 
 // Helper macro to return pinserver_result_t
 #define RETURN_RESULT(rslt, errcode, msg)                                                                              \
@@ -319,19 +319,9 @@ static bool encrypt_payload(const uint8_t* aeskey, const uint8_t* pin_secret, co
     memcpy(&buf[PIN_SECRET_LEN], entropy, ENTROPY_LEN);
     memcpy(&buf[PIN_SECRET_LEN + ENTROPY_LEN], sig, EC_SIGNATURE_RECOVERABLE_LEN);
 
-    uint8_t iv[IV_LEN];
-    get_random(iv, IV_LEN);
-    size_t written = 0;
-    const int res = wally_aes_cbc(aeskey, AES_KEY_LEN_256, iv, IV_LEN, buf, CLIENT_CLEARTEXT_LEN, AES_FLAG_ENCRYPT,
-        &encrypted[IV_LEN], CLIENT_REQUEST_PAYLOAD_LEN - IV_LEN, &written);
+    const bool ret = aes_encrypt_bytes(aeskey, AES_KEY_LEN_256, buf, sizeof(buf), encrypted, encrypted_len);
     SENSITIVE_POP(buf);
-
-    if (res != WALLY_OK) {
-        return false;
-    }
-
-    memcpy(encrypted, iv, IV_LEN);
-    return true;
+    return ret;
 }
 
 // Helper to decrypt the aes-encrypted reply - which should be an aes-key (with hmac).
@@ -348,7 +338,8 @@ static bool decrypt_reply(const uint8_t* aeskey, const uint8_t* encrypted, const
     JADE_ASSERT(decryptedaes_len == AES_KEY_LEN_256);
 
     uint8_t hmac_calculated[HMAC_SHA256_LEN];
-    int res = wally_hmac_sha256(hmac_key, HMAC_SHA256_LEN, encrypted, encrypted_len, hmac_calculated, HMAC_SHA256_LEN);
+    const int res
+        = wally_hmac_sha256(hmac_key, HMAC_SHA256_LEN, encrypted, encrypted_len, hmac_calculated, HMAC_SHA256_LEN);
     if (res != WALLY_OK) {
         return false;
     }
@@ -358,9 +349,9 @@ static bool decrypt_reply(const uint8_t* aeskey, const uint8_t* encrypted, const
     }
 
     size_t written = 0;
-    res = wally_aes_cbc(aeskey, AES_KEY_LEN_256, encrypted, IV_LEN, &encrypted[IV_LEN], encrypted_len - IV_LEN,
-        AES_FLAG_DECRYPT, decryptedaes, decryptedaes_len, &written);
-    return res == WALLY_OK && written == AES_KEY_LEN_256;
+    return aes_decrypt_bytes(
+               aeskey, AES_KEY_LEN_256, encrypted, encrypted_len, decryptedaes, decryptedaes_len, &written)
+        && written == AES_KEY_LEN_256;
 }
 
 // Trigger, and then parse, handshake_init message
