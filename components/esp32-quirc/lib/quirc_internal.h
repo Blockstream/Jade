@@ -17,7 +17,12 @@
 #ifndef QUIRC_INTERNAL_H_
 #define QUIRC_INTERNAL_H_
 
+#include <assert.h>
+#include <stdlib.h>
+
 #include "quirc.h"
+
+#define QUIRC_ASSERT(a)	assert(a)
 
 #define QUIRC_PIXEL_WHITE	0
 #define QUIRC_PIXEL_BLACK	1
@@ -27,13 +32,15 @@
 #define QUIRC_MAX_REGIONS	254
 #endif
 #define QUIRC_MAX_CAPSTONES	32
-#define QUIRC_MAX_GRIDS		8
+#define QUIRC_MAX_GRIDS		(QUIRC_MAX_CAPSTONES * 2)
 
 #define QUIRC_PERSPECTIVE_PARAMS	8
 
 #if QUIRC_MAX_REGIONS < UINT8_MAX
+#define QUIRC_PIXEL_ALIAS_IMAGE	1
 typedef uint8_t quirc_pixel_t;
 #elif QUIRC_MAX_REGIONS < UINT16_MAX
+#define QUIRC_PIXEL_ALIAS_IMAGE	0
 typedef uint16_t quirc_pixel_t;
 #else
 #error "QUIRC_MAX_REGIONS > 65534 is not supported"
@@ -66,18 +73,22 @@ struct quirc_grid {
 
 	/* Timing pattern endpoints */
 	struct quirc_point	tpep[3];
-	int			hscan;
-	int			vscan;
 
 	/* Grid size and perspective transform */
 	int			grid_size;
 	double			c[QUIRC_PERSPECTIVE_PARAMS];
 };
 
+struct quirc_flood_fill_vars {
+	int y;
+	int right;
+	int left_up;
+	int left_down;
+};
+
 struct quirc {
 	uint8_t			*image;
 	quirc_pixel_t		*pixels;
-	int			*row_average; /* used by threshold() */
 	int			w;
 	int			h;
 
@@ -89,6 +100,9 @@ struct quirc {
 
 	int			num_grids;
 	struct quirc_grid	grids[QUIRC_MAX_GRIDS];
+
+	size_t      		num_flood_fill_vars;
+	struct quirc_flood_fill_vars *flood_fill_vars;
 };
 
 /************************************************************************
