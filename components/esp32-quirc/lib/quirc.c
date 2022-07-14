@@ -18,6 +18,9 @@
 #include <string.h>
 #include "quirc_internal.h"
 
+/* NOTE: TWEAK FOR ESP32 TO PREFER SPIRAM FOR IMAGE BUFFER */
+#include "esp_heap_caps.h"
+
 const char *quirc_version(void)
 {
 	return "1.0";
@@ -66,9 +69,12 @@ int quirc_resize(struct quirc *q, int w, int h)
 	 * alloc a new buffer for q->image. We avoid realloc(3) because we want
 	 * on failure to be leave `q` in a consistant, unmodified state.
 	 */
-	image = calloc(w, h);
+	/* NOTE: TWEAK FOR ESP32 TO PREFER SPIRAM FOR IMAGE BUFFER */
+	//image = calloc(w, h);
+	image = heap_caps_malloc(w * h, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 	if (!image)
 		goto fail;
+        memset(image, 0, w * h);
 
 	/* compute the "old" (i.e. currently allocated) and the "new"
 	   (i.e. requested) image dimensions */
@@ -85,9 +91,12 @@ int quirc_resize(struct quirc *q, int w, int h)
 
 	/* alloc a new buffer for q->pixels if needed */
 	if (!QUIRC_PIXEL_ALIAS_IMAGE) {
-		pixels = calloc(newdim, sizeof(quirc_pixel_t));
+	        /* NOTE: TWEAK FOR ESP32 TO PREFER SPIRAM FOR IMAGE BUFFER */
+		//pixels = calloc(newdim, sizeof(quirc_pixel_t));
+		pixels = heap_caps_malloc(newdim * sizeof(quirc_pixel_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 		if (!pixels)
 			goto fail;
+                memset(pixels, 0, newdim * sizeof(quirc_pixel_t));
 	}
 
 	/*
