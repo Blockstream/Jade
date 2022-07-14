@@ -23,6 +23,9 @@ static void post_exit_event_and_await_death(void)
     // Ensure we have cleaned up sensitive data
     sensitive_assert_empty();
 
+    // Log the task stack HWM so we can estimate ideal stack size
+    JADE_LOGI("Camera task complete - task stack HWM: %u free", uxTaskGetStackHighWaterMark(NULL));
+
     // Post 'camera-exit' event
     esp_event_post(JADE_EVENT, CAMERA_EXIT, NULL, 0, portMAX_DELAY);
 
