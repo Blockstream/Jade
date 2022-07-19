@@ -81,7 +81,7 @@ void make_settings_screen(
     gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, gui_view_node_t** timeout_btn_text);
 void make_advanced_options_screen(gui_activity_t** activity_ptr);
 
-void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btn, const size_t nBtns);
+void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns);
 void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
 
 void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr);
@@ -927,16 +927,22 @@ static void handle_idle_timeout(uint16_t* const timeout)
     JADE_ASSERT(timeout);
 
     // The idle timeout buttons (1,2,3,5,10,15 mins).
-    btn_data_t timeout_btn[] = { { .val = 60, .txt = "1", .btn = NULL }, { .val = 120, .txt = "2", .btn = NULL },
-        { .val = 180, .txt = "3", .btn = NULL }, { .val = 300, .txt = "5", .btn = NULL },
-        { .val = 600, .txt = "10", .btn = NULL }, { .val = 900, .txt = "15", .btn = NULL } };
-    const size_t nBtns = sizeof(timeout_btn) / sizeof(btn_data_t);
+    btn_data_t timeout_btns[] = { { .txt = "1", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0, .val = 60 },
+        { .txt = "2", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 1, .val = 120 },
+        { .txt = "3", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 2, .val = 180 },
+        { .txt = "5", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 3, .val = 300 },
+        { .txt = "10", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 4, .val = 600 },
+        { .txt = "15", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 5, .val = 900 } };
+    const size_t nBtns = sizeof(timeout_btns) / sizeof(btn_data_t);
+
+    // Timeout button ids must be available/contiguous
+    JADE_ASSERT(BTN_SETTINGS_TIMEOUT_0 + 5 == BTN_SETTINGS_TIMEOUT_5);
 
     gui_activity_t* act = NULL;
-    make_idle_timeout_screen(&act, timeout_btn, nBtns);
+    make_idle_timeout_screen(&act, timeout_btns, nBtns);
     JADE_ASSERT(act);
 
-    update_idle_timeout_btns(timeout_btn, nBtns, *timeout);
+    update_idle_timeout_btns(timeout_btns, nBtns, *timeout);
     gui_set_current_activity(act);
 
     int32_t ev_id;
@@ -946,7 +952,7 @@ static void handle_idle_timeout(uint16_t* const timeout)
         const uint32_t idx = ev_id - BTN_SETTINGS_TIMEOUT_0;
 
         // Return the updated timeout value
-        *timeout = timeout_btn[idx].val;
+        *timeout = timeout_btns[idx].val;
         storage_set_idle_timeout(*timeout);
     }
 }

@@ -73,8 +73,10 @@ typedef struct {
 } progress_bar_t;
 
 typedef struct {
-    const uint16_t val;
     const char* txt;
+    uint32_t font;
+    uint32_t ev_id;
+    uint32_t val;
     gui_view_node_t* btn;
 } btn_data_t;
 

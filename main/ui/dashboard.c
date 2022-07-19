@@ -595,10 +595,10 @@ void make_settings_screen(
     }
 }
 
-void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btn, const size_t nBtns)
+void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(timeout_btn);
+    JADE_ASSERT(timeout_btns);
     JADE_ASSERT(nBtns == 6);
 
     gui_make_activity(activity_ptr, true, "Power-off Timeout");
@@ -621,20 +621,22 @@ void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout
         gui_set_parent(hsplit, vsplit);
 
         for (int i = 0; i < nBtns; ++i) {
-            JADE_ASSERT(timeout_btn[i].txt);
+            btn_data_t* const btn_info = timeout_btns + i;
+            JADE_ASSERT(btn_info->txt);
 
             gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_TIMEOUT_0 + i, NULL);
+            gui_make_button(&btn, TFT_BLACK, btn_info->ev_id, NULL);
             gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
             gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
             gui_set_parent(btn, hsplit);
 
             gui_view_node_t* text;
-            gui_make_text(&text, timeout_btn[i].txt, TFT_WHITE);
+            gui_make_text_font(&text, btn_info->txt, TFT_WHITE, btn_info->font);
             gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
             gui_set_parent(text, btn);
 
-            timeout_btn[i].btn = btn;
+            // Set the button back in the info struct
+            btn_info->btn = btn;
         }
     }
 }
