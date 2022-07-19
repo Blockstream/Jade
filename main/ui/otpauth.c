@@ -146,38 +146,9 @@ void make_confirm_otp_activity(gui_activity_t** activity_ptr, const otpauth_ctx_
     JADE_ASSERT(valid);
 
     // Buttons - Cancel/Confirm
-    gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit, vsplit);
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_OTP_EXIT, NULL);
-        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "X", TFT_WHITE);
-        gui_set_parent(text, btn);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_OTP_CONFIRM, NULL);
-        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text_font(&text, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-        gui_set_parent(text, btn);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    }
+    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTP_CONFIRM } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
 void make_view_otp_activity(
@@ -200,63 +171,27 @@ void make_view_otp_activity(
     populate_otp_screen(vsplit, ctx, valid);
 
     // Buttons - Delete, Generate (if record valid), Next[Exit]
-    gui_view_node_t* hsplit;
-    if (valid) {
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-    } else {
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    }
-    gui_set_parent(hsplit, vsplit);
+    btn_data_t btns[] = { { .txt = "Delete", .font = DEFAULT_FONT, .ev_id = BTN_OTP_DELETE },
+        { .txt = "Generate", .font = DEFAULT_FONT, .ev_id = BTN_OTP_GENERATE },
+        { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_OTP_NEXT } };
 
-    {
-        gui_view_node_t* btn = NULL;
-        gui_make_button(&btn, TFT_BLACK, BTN_OTP_DELETE, NULL);
-        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "Delete", TFT_WHITE);
-        gui_set_parent(text, btn);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    // Remove 'Generate' if not valid
+    if (!valid) {
+        btns[1].txt = NULL;
+        btns[1].ev_id = GUI_BUTTON_EVENT_NONE;
     }
 
-    if (valid) {
-        gui_view_node_t* btn = NULL;
-        gui_make_button(&btn, TFT_BLACK, BTN_OTP_GENERATE, NULL);
-        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "Generate", TFT_WHITE);
-        gui_set_parent(text, btn);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    // Change 'Next' to 'Exit' for last entry
+    if (index >= total) {
+        btns[2].txt = "Exit";
+        btns[2].font = DEFAULT_FONT;
+        btns[2].ev_id = BTN_OTP_EXIT;
     }
 
-    {
-        const bool has_next = index < total;
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, has_next ? BTN_OTP_NEXT : BTN_OTP_EXIT, NULL);
-        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
+    add_buttons(vsplit, UI_ROW, btns, 3);
 
-        gui_view_node_t* text;
-        if (has_next) {
-            gui_make_text_font(&text, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-        } else {
-            gui_make_text(&text, "Exit", TFT_WHITE);
-        }
-        gui_set_parent(text, btn);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-        // Set the intially selected item to the 'Next' button (ie. this btn)
-        gui_set_activity_initial_selection(*activity_ptr, btn);
-    }
+    // Set the intially selected item to the 'Next' button (ie. btn[2])
+    gui_set_activity_initial_selection(*activity_ptr, btns[2].btn);
 }
 
 void make_show_hotp_code_activity(
@@ -281,38 +216,9 @@ void make_show_hotp_code_activity(
 
     if (cancel_button) {
         // Two buttons - Cancel/Confirm
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-        gui_set_parent(hsplit, vsplit);
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_OTP_EXIT, NULL);
-            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text(&text, "X", TFT_WHITE);
-            gui_set_parent(text, btn);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        }
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_OTP_CONFIRM, NULL);
-            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text_font(&text, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-            gui_set_parent(text, btn);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        }
+        btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTP_CONFIRM } };
+        add_buttons(vsplit, UI_ROW, btns, 2);
     } else {
         // Single 'ok' button
         gui_view_node_t* btn;
@@ -387,50 +293,14 @@ void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* nam
 
     if (cancel_button) {
         // Two buttons - Cancel/Confirm
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-        gui_set_parent(hsplit, vsplit);
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_OTP_EXIT, NULL);
-            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text(&text, "X", TFT_WHITE);
-            gui_set_parent(text, btn);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        }
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_OTP_CONFIRM, NULL);
-            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text_font(&text, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-            gui_set_parent(text, btn);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        }
+        btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTP_CONFIRM } };
+        add_buttons(vsplit, UI_ROW, btns, 2);
     } else {
         // Single 'ok' button
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_OTP_CONFIRM, NULL);
-        gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 4, 50);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-
-        gui_view_node_t* text;
-        gui_make_text_font(&text, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-        gui_set_parent(text, btn);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        btn_data_t btns[] = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTP_CONFIRM },
+            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } }; // spacer
+        add_buttons(vsplit, UI_ROW, btns, 3);
     }
 }

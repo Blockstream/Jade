@@ -141,64 +141,28 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
     }
 
     // Buttons
-    gui_view_node_t* hsplit_btn;
-    gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-    gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, vsplit);
+    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_TX_SCREEN_PREV },
+        { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_TX_SCREEN_EXIT }, // spacer
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_TX_SCREEN_NEXT } };
 
-    // If we want a prev btn, add it here.  If not just add filler.
-    gui_view_node_t* btn1 = NULL;
-    if (want_prev_btn) {
-        gui_make_button(&btn1, TFT_BLACK, BTN_TX_SCREEN_PREV, NULL);
-        gui_set_margins(btn1, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn1, hsplit_btn);
-
-        gui_view_node_t* textbtn1;
-        gui_make_text_font(&textbtn1, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-        gui_set_parent(textbtn1, btn1);
-        gui_set_align(textbtn1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    } else {
-        gui_view_node_t* filler;
-        gui_make_fill(&filler, TFT_BLACK);
-        gui_set_parent(filler, hsplit_btn);
+    // Remove 'Previous' button if not valid
+    if (!want_prev_btn) {
+        btns[0].txt = NULL;
+        btns[0].ev_id = GUI_BUTTON_EVENT_NONE;
     }
 
-    gui_view_node_t* btn2;
-    gui_make_button(&btn2, TFT_BLACK, BTN_TX_SCREEN_EXIT, NULL);
-    gui_set_margins(btn2, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn2, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn2, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn2, hsplit_btn);
-
-    gui_view_node_t* textbtn2;
-    gui_make_text(&textbtn2, "X", TFT_WHITE);
-    gui_set_parent(textbtn2, btn2);
-    gui_set_align(textbtn2, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* btn3;
-    gui_make_button(&btn3, TFT_BLACK, BTN_TX_SCREEN_NEXT, NULL);
-    gui_set_margins(btn3, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn3, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn3, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn3, hsplit_btn);
-
-    gui_view_node_t* textbtn3;
-    gui_make_text_font(&textbtn3, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-    gui_set_parent(textbtn3, btn3);
-    gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    add_buttons(vsplit, UI_ROW, btns, 3);
 
     // Connect every screen's 'exit' button to the 'translate' handler above
     gui_activity_register_event(act, GUI_BUTTON_EVENT, BTN_TX_SCREEN_EXIT, translate_event, NULL);
 
-    // Set the intially selected item to the 'Next' button (ie. btn3)
-    gui_set_activity_initial_selection(act, btn3);
+    // Set the intially selected item to the 'Next' button (ie. btns[2])
+    gui_set_activity_initial_selection(act, btns[2].btn);
 
     // Push details into the output structure
     output_activity->activity = act;
-    output_activity->prev_button = btn1;
-    output_activity->next_button = btn3;
+    output_activity->prev_button = btns[0].btn;
+    output_activity->next_button = btns[2].btn;
 }
 
 static void make_final_activity(
@@ -215,17 +179,13 @@ static void make_final_activity(
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
-    gui_view_node_t* bg1;
-    gui_make_fill(&bg1, TFT_BLACK);
-    gui_set_parent(bg1, vsplit);
-
-    gui_view_node_t* hsplit_text1;
-    gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 20, 80);
-    gui_set_parent(hsplit_text1, bg1);
+    gui_view_node_t* hsplit1;
+    gui_make_hsplit(&hsplit1, GUI_SPLIT_RELATIVE, 2, 20, 80);
+    gui_set_parent(hsplit1, vsplit);
 
     gui_view_node_t* text1;
     gui_make_text(&text1, "Fee", TFT_WHITE);
-    gui_set_parent(text1, hsplit_text1);
+    gui_set_parent(text1, hsplit1);
     gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_borders(text1, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
 
@@ -234,67 +194,38 @@ static void make_final_activity(
     const int ret = snprintf(tx_fees, sizeof(tx_fees), "%s %s", total_fee, ticker);
     JADE_ASSERT(ret > 0 && ret < sizeof(tx_fees));
     gui_make_text(&text1b, tx_fees, TFT_WHITE);
-    gui_set_parent(text1b, hsplit_text1);
+    gui_set_parent(text1b, hsplit1);
     gui_set_align(text1b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
 
     // Show any warning message
-    gui_view_node_t* bg2;
-    gui_make_fill(&bg2, TFT_BLACK);
-    gui_set_parent(bg2, vsplit);
-    gui_view_node_t* bg3;
-    gui_make_fill(&bg3, TFT_BLACK);
-    gui_set_parent(bg3, vsplit);
-
     if (warning_msg) {
         gui_view_node_t* text2;
         gui_make_text(&text2, "Warning:", TFT_RED);
-        gui_set_parent(text2, bg2);
+        gui_set_parent(text2, vsplit);
         gui_set_align(text2, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_text_scroll(text2, TFT_BLACK);
 
         gui_view_node_t* text3;
         gui_make_text(&text3, warning_msg, TFT_RED);
-        gui_set_parent(text3, bg3);
+        gui_set_parent(text3, vsplit);
         gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_text_scroll(text3, TFT_BLACK);
+    } else {
+        // Two blank rows
+        gui_view_node_t* row2;
+        gui_make_fill(&row2, TFT_BLACK);
+        gui_set_parent(row2, vsplit);
+
+        gui_view_node_t* row3;
+        gui_make_fill(&row3, TFT_BLACK);
+        gui_set_parent(row3, vsplit);
     }
 
-    gui_view_node_t* bg4;
-    gui_make_fill(&bg4, TFT_BLACK);
-    gui_set_parent(bg4, vsplit);
-
-    gui_view_node_t* hsplit_btn;
-    gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-    gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, bg4);
-
-    gui_view_node_t* btn1;
-    gui_make_button(&btn1, TFT_BLACK, BTN_CANCEL_SIGNATURE, NULL);
-    gui_set_margins(btn1, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn1, hsplit_btn);
-
-    gui_view_node_t* textbtn1;
-    gui_make_text(&textbtn1, "X", TFT_WHITE);
-    gui_set_parent(textbtn1, btn1);
-    gui_set_align(textbtn1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* black_fill;
-    gui_make_fill(&black_fill, TFT_BLACK);
-    gui_set_parent(black_fill, hsplit_btn);
-
-    gui_view_node_t* btn3;
-    gui_make_button(&btn3, TFT_BLACK, BTN_ACCEPT_SIGNATURE, NULL);
-    gui_set_margins(btn3, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn3, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn3, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn3, hsplit_btn);
-
-    gui_view_node_t* textbtn3;
-    gui_make_text_font(&textbtn3, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-    gui_set_parent(textbtn3, btn3);
-    gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    // Buttons
+    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_CANCEL_SIGNATURE },
+        { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_ACCEPT_SIGNATURE } };
+    add_buttons(vsplit, UI_ROW, btns, 3);
 }
 
 // Don't display pre-validated (eg. change) outputs (if provided)

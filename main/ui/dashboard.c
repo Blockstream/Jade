@@ -18,122 +18,17 @@ void make_startup_options_screen(gui_activity_t** activity_ptr)
 
     gui_make_activity(activity_ptr, true, "Advanced Options");
 
-    gui_view_node_t* vsplit;
+    btn_data_t btns[]
+        = { { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
+              { .txt = "Emergency Restore", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EMERGENCY_RESTORE },
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+              { .txt = "Legal", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL },
+              { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
 #else
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
+              { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT },
+              { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } }; // spacer
 #endif
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 25, 2, 25);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    // Buttons: Reset, One-time wallet, and Continue
-    gui_view_node_t* btn1;
-    gui_make_button(&btn1, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
-    gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn1, vsplit);
-
-    gui_view_node_t* text1;
-    gui_make_text(&text1, "Factory Reset", TFT_WHITE);
-    gui_set_align(text1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text1, btn1);
-
-    gui_view_node_t* btn2;
-    gui_make_button(&btn2, TFT_BLACK, BTN_SETTINGS_EMERGENCY_RESTORE, NULL);
-    gui_set_borders(btn2, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn2, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn2, vsplit);
-
-    gui_view_node_t* text2;
-    gui_make_text(&text2, "Emergency Restore", TFT_WHITE);
-    gui_set_align(text2, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text2, btn2);
-
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    gui_view_node_t* btn3;
-    gui_make_button(&btn3, TFT_BLACK, BTN_SETTINGS_LEGAL, NULL);
-    gui_set_borders(btn3, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn3, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn3, vsplit);
-
-    gui_view_node_t* text3;
-    gui_make_text(&text3, "Legal", TFT_WHITE);
-    gui_set_align(text3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text3, btn3);
-#endif
-
-    gui_view_node_t* btn4;
-    gui_make_button(&btn4, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
-    gui_set_borders(btn4, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn4, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn4, vsplit);
-
-    gui_view_node_t* text4;
-    gui_make_text(&text4, "Exit", TFT_WHITE);
-    gui_set_align(text4, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text4, btn4);
-}
-
-// The button bar along the bottom of the dashboard
-static void add_button_bar(gui_view_node_t* parent_node)
-{
-    // Make the button bar under the passed node, and add all the buttons
-    gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 34, 16);
-    gui_set_parent(hsplit, parent_node);
-
-    // sleep btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SLEEP, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Sleep", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    // settings btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Settings", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    // ble btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_BLE, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Bluetooth", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    // info btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_INFO, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Info", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
 void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
@@ -235,34 +130,9 @@ void make_connection_select_screen(gui_activity_t** activity_ptr)
     gui_set_parent(text, vsplit);
 
     // Two buttons, USB and BLE
-    gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(hsplit, vsplit);
-
-    // USB
-    gui_view_node_t* usbbtn;
-    gui_make_button(&usbbtn, TFT_BLACK, BTN_CONNECT_USB, NULL);
-    gui_set_borders(usbbtn, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(usbbtn, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(usbbtn, GUI_MARGIN_ALL_DIFFERENT, 15, 8, 0, 8);
-    gui_set_parent(usbbtn, hsplit);
-
-    gui_view_node_t* usbtext;
-    gui_make_text(&usbtext, "USB", TFT_WHITE);
-    gui_set_align(usbtext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(usbtext, usbbtn);
-
-    gui_view_node_t* blebtn;
-    gui_make_button(&blebtn, TFT_BLACK, BTN_CONNECT_BLE, NULL);
-    gui_set_borders(blebtn, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(blebtn, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(blebtn, GUI_MARGIN_ALL_DIFFERENT, 15, 8, 0, 8);
-    gui_set_parent(blebtn, hsplit);
-
-    gui_view_node_t* bletext;
-    gui_make_text(&bletext, "Bluetooth", TFT_WHITE);
-    gui_set_align(bletext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(bletext, blebtn);
+    btn_data_t btns[] = { { .txt = "USB", .font = DEFAULT_FONT, .ev_id = BTN_CONNECT_USB },
+        { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_CONNECT_BLE } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
 }
 #endif // CONFIG_ESP32_NO_BLOBS
 
@@ -329,7 +199,62 @@ void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, g
     gui_set_parent(extra_text, vsplit);
     *txt_extra = extra_text;
 
-    add_button_bar(vsplit);
+    // Make the button bar under the passed node, and add all the buttons
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 34, 16);
+    gui_set_parent(hsplit, vsplit);
+
+    // sleep btn
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SLEEP, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, hsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Sleep", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    // settings btn
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, hsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Settings", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    // ble btn
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_BLE, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, hsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Bluetooth", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
+
+    // info btn
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_INFO, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, hsplit);
+        gui_view_node_t* text;
+        gui_make_text(&text, "Info", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+    }
 }
 
 void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option)
@@ -343,120 +268,61 @@ void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offe
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 16, 2, 2, 2);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
-    {
-        gui_view_node_t* text;
-        gui_make_text(&text, "Do you want to login with a\nBIP39 passphrase? ", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-        gui_set_parent(text, vsplit);
+    gui_view_node_t* text;
+    gui_make_text(&text, "Do you want to login with a\nBIP39 passphrase? ", TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+    gui_set_parent(text, vsplit);
+
+    // Buttons: 'No', 'Once', 'Always' or 'No, 'Yes'
+    if (offer_always_option) {
+        btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
+            { .txt = "Once", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE },
+            { .txt = "Always", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ALWAYS } };
+        add_buttons(vsplit, UI_ROW, btns, 3);
+    } else {
+        btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
+            { .txt = "Yes", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE } };
+        add_buttons(vsplit, UI_ROW, btns, 2);
     }
+}
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-        gui_set_parent(hsplit, vsplit);
+static void add_poweroff_timeout_btn(gui_view_node_t* parent, gui_view_node_t** timeout_btn_text)
+{
+    JADE_ASSERT(parent);
+    JADE_ASSERT(timeout_btn_text);
 
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_USE_PASSPHRASE_NO, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
+    gui_view_node_t* btn;
+    gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_IDLE_TIMEOUT, NULL);
+    gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
+    gui_set_parent(btn, parent);
 
-            gui_view_node_t* text;
-            gui_make_text(&text, "No", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
+    gui_view_node_t* text;
+    gui_make_text(&text, "Power-off Timeout", TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(text, btn);
 
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_USE_PASSPHRASE_ONCE, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text(&text, "Once", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-
-        if (offer_always_option) {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_USE_PASSPHRASE_ALWAYS, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text(&text, "Always", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-    }
+    *timeout_btn_text = text;
 }
 
 void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Settings");
 
+    // Do Timeout button separately as it's a bit special
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 25, 75);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    add_poweroff_timeout_btn(vsplit, timeout_btn_text);
 
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_IDLE_TIMEOUT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Power-off Timeout", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-
-        *timeout_btn_text = text;
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_USE_PASSPHRASE, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Passphrase Login", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Factory Reset", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Exit", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    // Other buttons
+    btn_data_t btns[] = { { .txt = "Passphrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_USE_PASSPHRASE },
+        { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
+        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    add_buttons(vsplit, UI_COLUMN, btns, 3);
 }
 
 void make_settings_screen(
@@ -468,10 +334,12 @@ void make_settings_screen(
 
     gui_make_activity(activity_ptr, true, "Settings");
 
+    // Do Timeout button separately as it's a bit special
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 25, 75);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    add_poweroff_timeout_btn(vsplit, timeout_btn_text);
+
     /*
         {
             gui_view_node_t *hsplit;
@@ -496,55 +364,12 @@ void make_settings_screen(
             *orientation_textbox = text;
         }
      */
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_IDLE_TIMEOUT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Power-off Timeout", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
 
-        *timeout_btn_text = text;
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_ADVANCED, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Advanced", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_RESET, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Factory Reset", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Exit", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    // Other buttons
+    btn_data_t btns[] = { { .txt = "Advanced", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED },
+        { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
+        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    add_buttons(vsplit, UI_COLUMN, btns, 3);
 }
 
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns)
@@ -600,51 +425,22 @@ void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr)
     gui_make_activity(activity_ptr, true, "Wallet-Erase PIN");
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 75, 25);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
-    {
-        const char* msg = "A wallet-erase PIN will erase the\nrecovery phrase and show\n\"Internal Error\".\nMake sure "
-                          "your recovery\nphrase is backed up.";
+    const char* msg = "A wallet-erase PIN will erase the\nrecovery phrase and show\n\"Internal Error\".\nMake sure "
+                      "your recovery\nphrase is backed up.";
 
-        gui_view_node_t* text;
-        gui_make_text(&text, msg, TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-        gui_set_parent(text, vsplit);
-    }
+    gui_view_node_t* text;
+    gui_make_text(&text, msg, TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+    gui_set_parent(text, vsplit);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_parent(hsplit, vsplit);
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_EXIT, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text(&text, "Cancel", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_SET, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text(&text, "I understand", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-    }
+    // Buttons
+    btn_data_t btns[] = { { .txt = "Cancel", .font = DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_EXIT },
+        { .txt = "I understand", .font = DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_SET } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
 void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr)
@@ -655,65 +451,24 @@ void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const
     gui_make_activity(activity_ptr, true, "Wallet-Erase PIN");
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 75, 25);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
-    {
-        char msg[64];
-        const int ret = snprintf(msg, sizeof(msg), "\nA wallet-erase PIN is enabled:\n%20s", pinstr);
-        JADE_ASSERT(ret > 0 && ret < sizeof(msg));
+    char msg[64];
+    const int ret = snprintf(msg, sizeof(msg), "\nA wallet-erase PIN is enabled:\n%20s", pinstr);
+    JADE_ASSERT(ret > 0 && ret < sizeof(msg));
 
-        gui_view_node_t* text;
-        gui_make_text(&text, msg, TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-        gui_set_parent(text, vsplit);
-    }
+    gui_view_node_t* text;
+    gui_make_text(&text, msg, TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+    gui_set_parent(text, vsplit);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-        gui_set_parent(hsplit, vsplit);
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_EXIT, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text_font(&text, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_SET, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text(&text, "Change", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_WALLET_ERASE_PIN_DISABLE, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text(&text, "Disable", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-    }
+    // Buttons
+    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_WALLET_ERASE_PIN_EXIT },
+        { .txt = "Change", .font = DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_SET },
+        { .txt = "Disable", .font = DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_DISABLE } };
+    add_buttons(vsplit, UI_ROW, btns, 3);
 }
 
 void make_advanced_options_screen(gui_activity_t** activity_ptr)
@@ -722,58 +477,11 @@ void make_advanced_options_screen(gui_activity_t** activity_ptr)
 
     gui_make_activity(activity_ptr, true, "Advanced");
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 25, 2, 25);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_MULTISIG, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "M-of-N Multisig", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_WALLET_ERASE_PIN, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Wallet-Erase PIN", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_OTP, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "OTP", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Exit", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    btn_data_t btns[] = { { .txt = "M-of-N Multisig", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
+        { .txt = "Wallet-Erase PIN", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
+        { .txt = "OTP", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
+        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
 void make_otp_screen(gui_activity_t** activity_ptr)
@@ -782,58 +490,11 @@ void make_otp_screen(gui_activity_t** activity_ptr)
 
     gui_make_activity(activity_ptr, true, "OTP");
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 25, 2, 25);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_OTP_VIEW, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "View OTPs", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_OTP_NEW_QR, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Scan New OTP QR", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_OTP_NEW_KB, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Enter New OTP URI", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Exit", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    btn_data_t btns[] = { { .txt = "View OTPs", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_VIEW },
+        { .txt = "Scan New OTP QR", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
+        { .txt = "Enter New OTP URI", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_KB },
+        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
 void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** ble_status_textbox)
@@ -881,6 +542,7 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);
+
         gui_view_node_t* text;
         gui_make_text(&text, "---", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
@@ -904,6 +566,7 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);
+
         gui_view_node_t* text;
         gui_make_text(&text, "Reset", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
@@ -911,21 +574,16 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
     }
 
     {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 1, 100);
-        gui_set_parent(hsplit, vsplit);
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_BLE_EXIT, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, vsplit);
 
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_BLE_EXIT, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-            gui_view_node_t* text;
-            gui_make_text(&text, "Exit", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
+        gui_view_node_t* text;
+        gui_make_text(&text, "Exit", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
     }
 }
 
@@ -1152,53 +810,16 @@ void make_device_screen(
     }
 
     // 'Legal' (for genuine Jade v1.0 and v1.1), 'Storage' and 'Exit'
-    {
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 30, 40, 30);
-        gui_set_parent(hsplit, vsplit);
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_INFO_LEGAL, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-            gui_view_node_t* text;
-            gui_make_text(&text, "Legal", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
+    btn_data_t btns[] = { { .txt = "Legal", .font = DEFAULT_FONT, .ev_id = BTN_INFO_LEGAL },
+        { .txt = "Storage", .font = DEFAULT_FONT, .ev_id = BTN_INFO_STORAGE },
+        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_INFO_EXIT } };
+    add_buttons(vsplit, UI_ROW, btns, 3);
 #else
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_parent(hsplit, vsplit);
+    btn_data_t btns[] = { { .txt = "Storage", .font = DEFAULT_FONT, .ev_id = BTN_INFO_STORAGE },
+        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_INFO_EXIT } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
 #endif
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_INFO_STORAGE, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-            gui_view_node_t* text;
-            gui_make_text(&text, "Storage", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_INFO_EXIT, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-            gui_view_node_t* text;
-            gui_make_text(&text, "Exit", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-        }
-    }
 }
 
 void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entries_used, const size_t entries_free)

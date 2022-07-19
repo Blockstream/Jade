@@ -24,33 +24,7 @@ void make_ble_confirmation_activity(gui_activity_t** activity_ptr, const uint32_
     gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
     // second row, buttons
-    gui_view_node_t* hsplit = NULL;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(hsplit, vsplit);
-
-    // Deny
-    gui_view_node_t* btnDeny;
-    gui_make_button(&btnDeny, TFT_BLACK, BTN_BLE_DENY, NULL);
-    gui_set_margins(btnDeny, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btnDeny, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btnDeny, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btnDeny, hsplit);
-
-    gui_view_node_t* txtDeny;
-    gui_make_text(&txtDeny, "Deny", TFT_WHITE);
-    gui_set_parent(txtDeny, btnDeny);
-    gui_set_align(txtDeny, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    // Confirm
-    gui_view_node_t* btnConfirm;
-    gui_make_button(&btnConfirm, TFT_BLACK, BTN_BLE_CONFIRM, NULL);
-    gui_set_margins(btnConfirm, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btnConfirm, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btnConfirm, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btnConfirm, hsplit);
-
-    gui_view_node_t* txtConfirm;
-    gui_make_text(&txtConfirm, "Confirm", TFT_WHITE);
-    gui_set_parent(txtConfirm, btnConfirm);
-    gui_set_align(txtConfirm, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    btn_data_t btns[] = { { .txt = "Deny", .font = DEFAULT_FONT, .ev_id = BTN_BLE_DENY },
+        { .txt = "Confirm", .font = DEFAULT_FONT, .ev_id = BTN_BLE_CONFIRM } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
 }

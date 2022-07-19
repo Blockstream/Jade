@@ -486,33 +486,7 @@ void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* p
     *textbox = entered_phrase;
 
     // third row, Yes and No buttons
-    gui_view_node_t* hsplit = NULL;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(hsplit, vsplit);
-
-    // No
-    gui_view_node_t* btnNo;
-    gui_make_button(&btnNo, TFT_BLACK, BTN_NO, NULL);
-    gui_set_margins(btnNo, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btnNo, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btnNo, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btnNo, hsplit);
-
-    gui_view_node_t* txtNo;
-    gui_make_text(&txtNo, "No", TFT_WHITE);
-    gui_set_parent(txtNo, btnNo);
-    gui_set_align(txtNo, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    // Yes
-    gui_view_node_t* btnYes;
-    gui_make_button(&btnYes, TFT_BLACK, BTN_YES, NULL);
-    gui_set_margins(btnYes, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btnYes, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btnYes, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btnYes, hsplit);
-
-    gui_view_node_t* txtYes;
-    gui_make_text(&txtYes, "Yes", TFT_WHITE);
-    gui_set_parent(txtYes, btnYes);
-    gui_set_align(txtYes, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_NO },
+        { .txt = "Yes", .font = DEFAULT_FONT, .ev_id = BTN_YES } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
 }

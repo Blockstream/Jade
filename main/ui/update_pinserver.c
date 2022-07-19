@@ -94,38 +94,10 @@ void make_confirm_pinserver_details_activity(
     gui_set_text_scroll(text_pubkey, TFT_BLACK);
 
     // fourth row, buttons
-    gui_view_node_t* hsplit_btn;
-    gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-    gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, vsplit);
-
-    gui_view_node_t* btn1;
-    gui_make_button(&btn1, TFT_BLACK, BTN_PINSERVER_DETAILS_DENY, NULL);
-    gui_set_margins(btn1, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn1, hsplit_btn);
-
-    gui_view_node_t* textbtn1;
-    gui_make_text(&textbtn1, "X", TFT_WHITE);
-    gui_set_parent(textbtn1, btn1);
-    gui_set_align(textbtn1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* black_fill;
-    gui_make_fill(&black_fill, TFT_BLACK);
-    gui_set_parent(black_fill, hsplit_btn);
-
-    gui_view_node_t* btn3;
-    gui_make_button(&btn3, TFT_BLACK, BTN_PINSERVER_DETAILS_CONFIRM, NULL);
-    gui_set_margins(btn3, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn3, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn3, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn3, hsplit_btn);
-
-    gui_view_node_t* textbtn3;
-    gui_make_text_font(&textbtn3, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-    gui_set_parent(textbtn3, btn3);
-    gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
+        { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
+    add_buttons(vsplit, UI_ROW, btns, 3);
 }
 
 void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, const char* cert_hash_hex)
@@ -177,36 +149,8 @@ void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, 
     gui_set_parent(dummy_bg3, vsplit);
 
     // fourth row, buttons
-    gui_view_node_t* hsplit_btn;
-    gui_make_hsplit(&hsplit_btn, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-    gui_set_margins(hsplit_btn, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
-    gui_set_parent(hsplit_btn, vsplit);
-
-    gui_view_node_t* btn1;
-    gui_make_button(&btn1, TFT_BLACK, BTN_PINSERVER_DETAILS_DENY, NULL);
-    gui_set_margins(btn1, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn1, hsplit_btn);
-
-    gui_view_node_t* textbtn1;
-    gui_make_text(&textbtn1, "X", TFT_WHITE);
-    gui_set_parent(textbtn1, btn1);
-    gui_set_align(textbtn1, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* black_fill;
-    gui_make_fill(&black_fill, TFT_BLACK);
-    gui_set_parent(black_fill, hsplit_btn);
-
-    gui_view_node_t* btn3;
-    gui_make_button(&btn3, TFT_BLACK, BTN_PINSERVER_DETAILS_CONFIRM, NULL);
-    gui_set_margins(btn3, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn3, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn3, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn3, hsplit_btn);
-
-    gui_view_node_t* textbtn3;
-    gui_make_text_font(&textbtn3, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-    gui_set_parent(textbtn3, btn3);
-    gui_set_align(textbtn3, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
+        { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
+    add_buttons(vsplit, UI_ROW, btns, 3);
 }

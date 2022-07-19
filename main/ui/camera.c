@@ -1,8 +1,8 @@
 #include <string.h>
 
 #include "../button_events.h"
-#include "../gui.h"
 #include "../jade_assert.h"
+#include "../ui.h"
 
 void make_camera_activity(
     gui_activity_t** activity_ptr, const char* btnText, gui_view_node_t** image_node, gui_view_node_t** label_node)
@@ -20,7 +20,7 @@ void make_camera_activity(
 
     gui_view_node_t* vsplit;
     if (btnText) {
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 38, 23, 23);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 16, 38, 46);
     } else {
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 16, 54, 30);
     }
@@ -50,31 +50,15 @@ void make_camera_activity(
     gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
     *label_node = text_status;
 
-    // third row: click button if wanted
+    // buttons
     if (btnText) {
-        gui_view_node_t* btn1;
-        gui_make_button(&btn1, TFT_BLACK, BTN_CAMERA_CLICK, NULL);
-        gui_set_margins(btn1, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn1, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn1, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn1, vsplit);
-
-        gui_view_node_t* btn1_text;
-        gui_make_text(&btn1_text, btnText, TFT_WHITE);
-        gui_set_align(btn1_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(btn1_text, btn1);
+        // A 'click' and an 'exit' button
+        btn_data_t btns[] = { { .txt = btnText, .font = DEFAULT_FONT, .ev_id = BTN_CAMERA_CLICK },
+            { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_CAMERA_EXIT } };
+        add_buttons(vsplit, UI_COLUMN, btns, 2);
+    } else {
+        // Just an 'exit' button
+        btn_data_t btn = { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_CAMERA_EXIT };
+        add_buttons(vsplit, UI_COLUMN, &btn, 1);
     }
-
-    // last row: exit button
-    gui_view_node_t* btn2;
-    gui_make_button(&btn2, TFT_BLACK, BTN_CAMERA_EXIT, NULL);
-    gui_set_margins(btn2, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(btn2, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn2, TFT_BLOCKSTREAM_GREEN);
-    gui_set_parent(btn2, vsplit);
-
-    gui_view_node_t* btn2_text;
-    gui_make_text(&btn2_text, "Exit", TFT_WHITE);
-    gui_set_align(btn2_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(btn2_text, btn2);
 }

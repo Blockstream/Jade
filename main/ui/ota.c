@@ -86,39 +86,7 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
     }
 
     // fifth row, buttons
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_parent(hsplit, vsplit);
-
-        // Cancel
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_CANCEL_OTA, NULL);
-            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* textbtn;
-            gui_make_text(&textbtn, "X", TFT_WHITE);
-            gui_set_parent(textbtn, btn);
-            gui_set_align(textbtn, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        }
-
-        // Ok
-        {
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_ACCEPT_OTA, NULL);
-            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* textbtn;
-            gui_make_text_font(&textbtn, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-            gui_set_parent(textbtn, btn);
-            gui_set_align(textbtn, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        }
-    }
+    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_CANCEL_OTA },
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_ACCEPT_OTA } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
 }
