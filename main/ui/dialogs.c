@@ -2,6 +2,64 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
+// Helper to create up to four buttons in a row or column
+void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_data_t* btns, const size_t num_btns)
+{
+    JADE_ASSERT(parent);
+    JADE_ASSERT(layout == UI_ROW || layout == UI_COLUMN);
+    JADE_ASSERT(btns);
+    JADE_ASSERT(num_btns <= 4);
+
+    // Make the split relevant for the number of buttons
+    typedef void (*make_split_fn)(gui_view_node_t * *ptr, enum gui_split_type kind, uint8_t parts, ...);
+    make_split_fn make_split = layout == UI_COLUMN ? gui_make_vsplit : gui_make_hsplit;
+    gui_view_node_t* split = NULL;
+    // Make hsplit for the number of buttons
+    switch (num_btns) {
+    case 1:
+        make_split(&split, GUI_SPLIT_RELATIVE, 1, 100);
+        break;
+    case 2:
+        make_split(&split, GUI_SPLIT_RELATIVE, 2, 50, 50);
+        break;
+    case 3:
+        make_split(&split, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
+        break;
+    case 4:
+        make_split(&split, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+        break;
+    default:
+        JADE_ASSERT_MSG(false, "Unsupported number of buttons");
+    }
+    gui_set_parent(split, parent);
+
+    for (size_t i = 0; i < num_btns; ++i) {
+        btn_data_t* const btn_info = btns + i;
+
+        gui_view_node_t* btn;
+        // No event implies no 'pressable' button in this position
+        if (btn_info->ev_id == GUI_BUTTON_EVENT_NONE) {
+            gui_make_fill(&btn, TFT_BLACK);
+        } else {
+            gui_make_button(&btn, TFT_BLACK, btn_info->ev_id, NULL);
+        }
+        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_parent(btn, split);
+
+        if (btn_info->txt) {
+            gui_view_node_t* text;
+            gui_make_text_font(&text, btn_info->txt, TFT_WHITE, btn_info->font);
+            gui_set_parent(text, btn);
+            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        }
+
+        // Set the button back in the info struct
+        btn_info->btn = btn;
+    }
+}
+
 // Generic activity that displays a message, optionally with an 'ok' button
 static void make_msg_activity(gui_activity_t** activity_ptr, const char* msg, const bool error, const bool button)
 {

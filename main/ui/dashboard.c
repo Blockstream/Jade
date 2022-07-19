@@ -12,54 +12,6 @@
 #include "../logo/telec.c"
 #endif
 
-void gen_btns(gui_view_node_t* parent, const size_t num_buttons, const char* msgs[], const uint32_t fonts[],
-    const int32_t ev_ids[], gui_view_node_t* out_btns[])
-{
-    JADE_ASSERT(parent);
-    JADE_ASSERT(msgs);
-    JADE_ASSERT(ev_ids);
-    // NOTE: fonts can be NULL if all GUI_DEFAULT_FONT
-
-    gui_view_node_t* hsplit = NULL;
-    switch (num_buttons) {
-    case 1:
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 1, 100);
-        break;
-    case 2:
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        break;
-    case 3:
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-        break;
-    default:
-        JADE_ASSERT_MSG(false, "Unsupported number of buttons on screen");
-    }
-
-    gui_set_parent(hsplit, parent);
-
-    for (size_t i = 0; i < num_buttons; ++i) {
-        gui_view_node_t* btn;
-        if (ev_ids[i] == GUI_BUTTON_EVENT_NONE) {
-            gui_make_fill(&btn, TFT_BLACK);
-        } else {
-            gui_make_button(&btn, TFT_BLACK, ev_ids[i], NULL);
-        }
-        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-
-        if (out_btns) {
-            out_btns[i] = btn;
-        }
-
-        gui_view_node_t* textbtn;
-        gui_make_text_font(&textbtn, msgs[i], TFT_WHITE, fonts ? fonts[i] : DEFAULT_FONT);
-        gui_set_parent(textbtn, btn);
-        gui_set_align(textbtn, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    }
-}
-
 void make_startup_options_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
@@ -996,7 +948,7 @@ static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_v
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 63, 37);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 0);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     switch (legal_page) {
@@ -1080,29 +1032,32 @@ static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_v
 
     } // switch-case
 
+    // Assume 'prev' and 'next' buttons (ok in most cases)
+    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_LEGAL_PREV },
+        { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_LEGAL_NEXT } };
+
+    // Change first button to 'exit' if on first page
     if (legal_page == 0) {
-        // First page, the 'back' button raises 'exit' event
-        const char* btn_msg[2] = { "Exit", ">" };
-        const uint32_t btn_fonts[2] = { GUI_DEFAULT_FONT, JADE_SYMBOLS_16x16_FONT };
-        const int32_t btn_ev_id[2] = { BTN_INFO_EXIT, BTN_LEGAL_NEXT };
-        gen_btns(vsplit, 2, btn_msg, btn_fonts, btn_ev_id, out_btns);
-    } else if (legal_page == MAX_LEGAL_PAGE) {
-        // Last page, the tick button raises 'exit' event
-        const char* btn_msg[2] = { "=", "Exit" };
-        const uint32_t btn_fonts[2] = { JADE_SYMBOLS_16x16_FONT, GUI_DEFAULT_FONT };
-        const int32_t btn_ev_id[2] = { BTN_LEGAL_PREV, BTN_INFO_EXIT };
-        gen_btns(vsplit, 2, btn_msg, btn_fonts, btn_ev_id, out_btns);
-    } else {
-        // Otherwise 'prev' and 'next' events
-        const char* btn_msg[2] = { "=", ">" };
-        const uint32_t btn_fonts[2] = { JADE_SYMBOLS_16x16_FONT, JADE_SYMBOLS_16x16_FONT };
-        const int32_t btn_ev_id[2] = { BTN_LEGAL_PREV, BTN_LEGAL_NEXT };
-        gen_btns(vsplit, 2, btn_msg, btn_fonts, btn_ev_id, out_btns);
+        btns[0].txt = "Exit";
+        btns[0].font = DEFAULT_FONT;
+        btns[0].ev_id = BTN_INFO_EXIT;
     }
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 0);
+
+    // Change last button to 'exit' if on last page
+    if (legal_page == MAX_LEGAL_PAGE) {
+        btns[1].txt = "Exit";
+        btns[1].font = DEFAULT_FONT;
+        btns[1].ev_id = BTN_INFO_EXIT;
+    }
+
+    add_buttons(vsplit, UI_ROW, btns, 2);
 
     // Set the intially selected item to the next/verify (ie. the last) button
-    gui_set_activity_initial_selection(*activity_ptr, out_btns[1]);
+    gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+
+    // Copy prev and next buttons to output params
+    out_btns[0] = btns[0].btn;
+    out_btns[1] = btns[1].btn;
 }
 
 void make_legal_screen(gui_activity_t** first_activity_ptr)
@@ -1110,25 +1065,25 @@ void make_legal_screen(gui_activity_t** first_activity_ptr)
     JADE_ASSERT(first_activity_ptr);
 
     gui_activity_t* prev_act = NULL;
-    gui_view_node_t* prev_btn = NULL;
+    gui_view_node_t* prev_next_btn = NULL;
 
     for (size_t j = 0; j <= MAX_LEGAL_PAGE; j++) {
-        gui_view_node_t* btns[2];
-        gui_activity_t* this = NULL;
+        gui_view_node_t* btns[2] = {};
+        gui_activity_t* this_page = NULL;
 
-        make_legal_page(&this, j, btns);
+        make_legal_page(&this_page, j, btns);
 
         if (prev_act) {
             gui_connect_button_activity(btns[0], prev_act);
-            gui_connect_button_activity(prev_btn, this);
+            gui_connect_button_activity(prev_next_btn, this_page);
         }
 
         if (!*first_activity_ptr) {
-            *first_activity_ptr = this;
+            *first_activity_ptr = this_page;
         }
 
-        prev_act = this;
-        prev_btn = btns[1];
+        prev_act = this_page;
+        prev_next_btn = btns[1];
     }
 }
 #endif

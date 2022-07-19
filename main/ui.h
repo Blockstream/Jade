@@ -80,6 +80,10 @@ typedef struct {
     gui_view_node_t* btn;
 } btn_data_t;
 
+// Helper to create up to four buttons in a row or column
+typedef enum { UI_ROW, UI_COLUMN } ui_button_layout_t;
+void add_buttons(gui_view_node_t* parent, ui_button_layout_t layout, btn_data_t* btns, size_t num_btns);
+
 // Functions for keyboard entry
 void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title);
 void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
