@@ -325,8 +325,8 @@ struct gui_view_node_t {
     gui_margin_t margins;
     gui_margin_t padding;
 
-    // borders
-    gui_border_t borders;
+    // borders if set/applicable
+    gui_border_t* borders;
 
     // all the possible data-types
     union {

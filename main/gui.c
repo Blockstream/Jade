@@ -730,6 +730,9 @@ void free_view_node(gui_view_node_t* node)
         node->free_callback(node->data);
     }
 
+    // free any borders
+    free(node->borders);
+
     // free the extra data struct
     free(node->data);
 
@@ -973,7 +976,7 @@ static void set_vals_with_varargs(gui_margin_t* margins, uint8_t sides, va_list 
 static inline uint8_t get_border_thickness(gui_border_t* const borders, const uint8_t border_bit)
 {
     // thickness is either "border->thickness" if that specific border is enabled or 0
-    return borders->thickness * ((borders->borders >> border_bit) & 1);
+    return borders ? borders->thickness * ((borders->borders >> border_bit) & 1) : 0;
 }
 
 static void calc_render_data(gui_view_node_t* node)
@@ -997,10 +1000,10 @@ static void calc_render_data(gui_view_node_t* node)
     node->render_data.constraints = constraints;
 
     // remove the border + padding area from constraints
-    constraints.y1 += node->padding.top + get_border_thickness(&node->borders, GUI_BORDER_TOP_BIT);
-    constraints.x2 -= node->padding.right + get_border_thickness(&node->borders, GUI_BORDER_RIGHT_BIT);
-    constraints.y2 -= node->padding.bottom + get_border_thickness(&node->borders, GUI_BORDER_BOTTOM_BIT);
-    constraints.x1 += node->padding.left + get_border_thickness(&node->borders, GUI_BORDER_LEFT_BIT);
+    constraints.y1 += node->padding.top + get_border_thickness(node->borders, GUI_BORDER_TOP_BIT);
+    constraints.x2 -= node->padding.right + get_border_thickness(node->borders, GUI_BORDER_RIGHT_BIT);
+    constraints.y2 -= node->padding.bottom + get_border_thickness(node->borders, GUI_BORDER_BOTTOM_BIT);
+    constraints.x1 += node->padding.left + get_border_thickness(node->borders, GUI_BORDER_LEFT_BIT);
 
     node->render_data.padded_constraints = constraints;
 }
@@ -1035,13 +1038,16 @@ void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, ui
 {
     JADE_ASSERT(node);
 
+    if (!node->borders) {
+        node->borders = JADE_MALLOC(sizeof(gui_border_t));
+    }
     // by default same color
-    node->borders.color = color;
-    node->borders.selected_color = color;
-    node->borders.inactive_color = color;
+    node->borders->color = color;
+    node->borders->selected_color = color;
+    node->borders->inactive_color = color;
 
-    node->borders.thickness = thickness;
-    node->borders.borders = borders;
+    node->borders->thickness = thickness;
+    node->borders->borders = borders;
 
     // update constraints
     calc_render_data(node);
@@ -1050,13 +1056,15 @@ void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, ui
 void gui_set_borders_selected_color(gui_view_node_t* node, color_t selected_color)
 {
     JADE_ASSERT(node);
-    node->borders.selected_color = selected_color;
+    JADE_ASSERT(node->borders);
+    node->borders->selected_color = selected_color;
 }
 
 void gui_set_borders_inactive_color(gui_view_node_t* node, color_t inactive_color)
 {
     JADE_ASSERT(node);
-    node->borders.inactive_color = inactive_color;
+    JADE_ASSERT(node->borders);
+    node->borders->inactive_color = inactive_color;
 }
 
 void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color)
@@ -1608,32 +1616,39 @@ static void render_picture(gui_view_node_t* node, dispWin_t cs)
 // paint the borders for a view_node
 static void paint_borders(gui_view_node_t* node, dispWin_t cs)
 {
-    uint16_t width = cs.x2 - cs.x1;
-    uint16_t height = cs.y2 - cs.y1;
+    JADE_ASSERT(node);
+
+    if (!node->borders) {
+        // Node does not have borders
+        return;
+    }
+
+    const uint16_t width = cs.x2 - cs.x1;
+    const uint16_t height = cs.y2 - cs.y1;
 
     color_t* color = NULL;
     if (node->is_selected) {
-        color = &node->borders.selected_color;
+        color = &node->borders->selected_color;
     } else if (!node->is_active) {
-        color = &node->borders.inactive_color;
+        color = &node->borders->inactive_color;
     } else {
-        color = &node->borders.color;
+        color = &node->borders->color;
     }
 
     JADE_ASSERT(color);
 
     uint8_t thickness;
 
-    if ((thickness = get_border_thickness(&node->borders, GUI_BORDER_TOP_BIT))) {
+    if ((thickness = get_border_thickness(node->borders, GUI_BORDER_TOP_BIT))) {
         TFT_fillRect(cs.x1, cs.y1, width, thickness, *color); // top
     }
-    if ((thickness = get_border_thickness(&node->borders, GUI_BORDER_RIGHT_BIT))) {
+    if ((thickness = get_border_thickness(node->borders, GUI_BORDER_RIGHT_BIT))) {
         TFT_fillRect(cs.x2 - thickness, cs.y1, thickness, height, *color); // right
     }
-    if ((thickness = get_border_thickness(&node->borders, GUI_BORDER_BOTTOM_BIT))) {
+    if ((thickness = get_border_thickness(node->borders, GUI_BORDER_BOTTOM_BIT))) {
         TFT_fillRect(cs.x1, cs.y2 - thickness, width, thickness, *color); // bottom
     }
-    if ((thickness = get_border_thickness(&node->borders, GUI_BORDER_LEFT_BIT))) {
+    if ((thickness = get_border_thickness(node->borders, GUI_BORDER_LEFT_BIT))) {
         TFT_fillRect(cs.x1, cs.y1, thickness, height, *color); // left
     }
 }
