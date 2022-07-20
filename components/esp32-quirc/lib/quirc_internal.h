@@ -40,6 +40,12 @@ typedef uint16_t quirc_pixel_t;
 #error "QUIRC_MAX_REGIONS > 65534 is not supported"
 #endif
 
+#include <esp_heap_caps.h>
+static inline void* ps_malloc(const size_t size)
+{
+  return heap_caps_malloc_prefer(size, MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT);
+}
+
 struct quirc_region
 {
   struct quirc_point seed;
