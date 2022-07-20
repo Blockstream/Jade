@@ -84,7 +84,7 @@ typedef enum {
 } gui_event_t;
 
 // How should split values be interpreted
-enum gui_split_type { GUI_SPLIT_RELATIVE, GUI_SPLIT_ABSOLUTE };
+enum __attribute__((__packed__)) gui_split_type { GUI_SPLIT_RELATIVE, GUI_SPLIT_ABSOLUTE };
 
 // Struct used for margins and padding. Contains four values applied on the four edges of a node
 typedef struct {
@@ -106,10 +106,10 @@ typedef struct {
 } gui_border_t;
 
 // Horizontal align constants for text, icons and pictures
-enum gui_horizontal_align { GUI_ALIGN_LEFT, GUI_ALIGN_CENTER, GUI_ALIGN_RIGHT };
+enum __attribute__((__packed__)) gui_horizontal_align { GUI_ALIGN_LEFT, GUI_ALIGN_CENTER, GUI_ALIGN_RIGHT };
 
 // Vertical align constants for text, icons and pictures
-enum gui_vertical_align { GUI_ALIGN_TOP, GUI_ALIGN_MIDDLE, GUI_ALIGN_BOTTOM };
+enum __attribute__((__packed__)) gui_vertical_align { GUI_ALIGN_TOP, GUI_ALIGN_MIDDLE, GUI_ALIGN_BOTTOM };
 
 typedef struct gui_view_node_t gui_view_node_t;
 typedef struct gui_activity_t gui_activity_t;
@@ -162,7 +162,7 @@ typedef struct activity_event {
 } activity_event_t;
 
 // Values calculated by the render that can be useful later
-struct view_node_render_data {
+struct __attribute__((__packed__)) view_node_render_data {
     dispWin_t original_constraints;
 
     // area of the node *after* margins, padding and borders have been applied
@@ -218,7 +218,7 @@ struct view_node_text_noise_data {
 };
 
 // Data for a text node
-struct view_node_text_data {
+struct __attribute__((__packed__)) view_node_text_data {
     char* text;
 
     color_t color;
@@ -267,7 +267,7 @@ struct view_node_picture_data {
 };
 
 // Possible types of a view_node
-enum view_node_kind { HSPLIT, VSPLIT, TEXT, FILL, BUTTON, ICON, PICTURE };
+enum __attribute__((__packed__)) view_node_kind { HSPLIT, VSPLIT, TEXT, FILL, BUTTON, ICON, PICTURE };
 
 typedef struct wait_data {
     wait_event_data_t* event_data;
@@ -275,7 +275,7 @@ typedef struct wait_data {
 } wait_data_t;
 
 // Struct that contains an "activity", basically a tree of nodes that can be rendered on screen
-struct gui_activity_t {
+struct __attribute__((__packed__)) gui_activity_t {
     // "window" used by the tft library to paint on screen
     dispWin_t win;
     // root view_node
@@ -307,7 +307,7 @@ struct gui_activity_t {
 typedef void (*free_callback_t)(void*);
 
 // Generic struct representing a node in the view tree
-struct gui_view_node_t {
+struct __attribute__((__packed__)) gui_view_node_t {
     // stuff set by the renderer
     struct view_node_render_data render_data;
 
