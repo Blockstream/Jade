@@ -21,22 +21,22 @@ extern uint8_t gray_scale;
 
 // -------------- Configuration -----------------
 
+// Display window
+extern dispWin_t GUI_DISPLAY_WINDOW;
 // Locale used to translate strings
 extern jlocale_t GUI_LOCALE;
 // If true, adds some borders to show nodes' boundaries
 extern bool GUI_VIEW_DEBUG;
 // Set the "target" framerate for updatables nodes
-extern uint16_t GUI_TARGET_FRAMERATE;
+extern uint8_t GUI_TARGET_FRAMERATE;
 // How many frames should a scroll wait when an end is reached
-extern uint16_t GUI_SCROLL_WAIT_END;
+extern uint8_t GUI_SCROLL_WAIT_END;
 // How many frames should we wait between each 1-char scroll
-extern uint16_t GUI_SCROLL_WAIT_FRAME;
-// Display window
-extern dispWin_t GUI_DISPLAY_WINDOW;
+extern uint8_t GUI_SCROLL_WAIT_FRAME;
 // Height for the system status bar
-extern uint16_t GUI_STATUS_BAR_HEIGHT;
+extern uint8_t GUI_STATUS_BAR_HEIGHT;
 // Default font
-extern uint32_t GUI_DEFAULT_FONT;
+extern uint8_t GUI_DEFAULT_FONT;
 
 // -------------- Constants -----------------
 
@@ -88,10 +88,10 @@ enum gui_split_type { GUI_SPLIT_RELATIVE, GUI_SPLIT_ABSOLUTE };
 
 // Struct used for margins and padding. Contains four values applied on the four edges of a node
 typedef struct {
-    uint16_t top;
-    uint16_t right;
-    uint16_t bottom;
-    uint16_t left;
+    uint8_t top;
+    uint8_t right;
+    uint8_t bottom;
+    uint8_t left;
 } gui_margin_t;
 
 // Definition of borders. The `borders` can be used to enable/disable one side of the border using the
@@ -101,7 +101,7 @@ typedef struct {
     color_t selected_color;
     color_t inactive_color;
 
-    uint16_t borders;
+    uint8_t borders;
     uint8_t thickness;
 } gui_border_t;
 
@@ -395,7 +395,7 @@ void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color);
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture);
 void gui_set_margins(gui_view_node_t* node, uint8_t sides, ...);
 void gui_set_padding(gui_view_node_t* node, uint8_t sides, ...);
-void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, uint16_t borders);
+void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, uint8_t borders);
 void gui_set_borders_selected_color(gui_view_node_t* node, color_t selected_color);
 void gui_set_borders_inactive_color(gui_view_node_t* node, color_t inactive_color);
 void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color);

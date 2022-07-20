@@ -8,14 +8,14 @@
 #include "power.h"
 
 // GUI configuration, see gui.h for more details
+dispWin_t GUI_DISPLAY_WINDOW = { .x1 = 40, .y1 = 53, .x2 = 280, .y2 = 188 };
 jlocale_t GUI_LOCALE = LOCALE_EN;
 bool GUI_VIEW_DEBUG = false;
-uint16_t GUI_TARGET_FRAMERATE = 15;
-uint16_t GUI_SCROLL_WAIT_END = 32;
-uint16_t GUI_SCROLL_WAIT_FRAME = 7;
-dispWin_t GUI_DISPLAY_WINDOW = { .x1 = 40, .y1 = 53, .x2 = 280, .y2 = 188 };
-uint16_t GUI_STATUS_BAR_HEIGHT = 24;
-uint32_t GUI_DEFAULT_FONT = DEFAULT_FONT;
+uint8_t GUI_TARGET_FRAMERATE = 15;
+uint8_t GUI_SCROLL_WAIT_END = 32;
+uint8_t GUI_SCROLL_WAIT_FRAME = 7;
+uint8_t GUI_STATUS_BAR_HEIGHT = 24;
+uint8_t GUI_DEFAULT_FONT = DEFAULT_FONT;
 
 #define SPI_BUS TFT_HSPI_HOST
 

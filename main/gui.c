@@ -933,7 +933,7 @@ void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)
 
 static void set_vals_with_varargs(gui_margin_t* margins, uint8_t sides, va_list args)
 {
-    uint16_t val;
+    uint8_t val;
 
     switch (sides) {
     case GUI_MARGIN_ALL_EQUAL:
@@ -970,7 +970,7 @@ static void set_vals_with_varargs(gui_margin_t* margins, uint8_t sides, va_list 
 }
 
 // get the thickness for border "border_bit" (which should have the value of one of the BIT constants)
-static inline uint8_t get_border_thickness(gui_border_t* borders, uint16_t border_bit)
+static inline uint8_t get_border_thickness(gui_border_t* const borders, const uint8_t border_bit)
 {
     // thickness is either "border->thickness" if that specific border is enabled or 0
     return borders->thickness * ((borders->borders >> border_bit) & 1);
@@ -1031,7 +1031,7 @@ void gui_set_padding(gui_view_node_t* node, uint8_t sides, ...)
     calc_render_data(node);
 }
 
-void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, uint16_t borders)
+void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, uint8_t borders)
 {
     JADE_ASSERT(node);
 
