@@ -164,8 +164,7 @@ typedef struct activity_event {
 // Values calculated by the render that can be useful later
 struct view_node_render_data {
     dispWin_t original_constraints;
-    // area of the node *after* margins are applied but *before* padding and borders
-    dispWin_t constraints;
+
     // area of the node *after* margins, padding and borders have been applied
     dispWin_t padded_constraints;
 

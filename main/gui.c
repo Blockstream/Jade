@@ -990,21 +990,27 @@ static void calc_render_data(gui_view_node_t* node)
 
     dispWin_t constraints = node->render_data.original_constraints;
 
-    // margins affect borders
+    // margins affect borders and all contents
     constraints.y1 += node->margins.top;
     constraints.x2 -= node->margins.right;
     constraints.y2 -= node->margins.bottom;
     constraints.x1 += node->margins.left;
 
-    // constrains without padding (used for borders)
-    node->render_data.constraints = constraints;
+    // if we have borders, remove the border thickness
+    if (node->borders) {
+        constraints.y1 += get_border_thickness(node->borders, GUI_BORDER_TOP_BIT);
+        constraints.x2 -= get_border_thickness(node->borders, GUI_BORDER_RIGHT_BIT);
+        constraints.y2 -= get_border_thickness(node->borders, GUI_BORDER_BOTTOM_BIT);
+        constraints.x1 += get_border_thickness(node->borders, GUI_BORDER_LEFT_BIT);
+    }
 
-    // remove the border + padding area from constraints
-    constraints.y1 += node->padding.top + get_border_thickness(node->borders, GUI_BORDER_TOP_BIT);
-    constraints.x2 -= node->padding.right + get_border_thickness(node->borders, GUI_BORDER_RIGHT_BIT);
-    constraints.y2 -= node->padding.bottom + get_border_thickness(node->borders, GUI_BORDER_BOTTOM_BIT);
-    constraints.x1 += node->padding.left + get_border_thickness(node->borders, GUI_BORDER_LEFT_BIT);
+    // apply padding
+    constraints.y1 += node->padding.top;
+    constraints.x2 -= node->padding.right;
+    constraints.y2 -= node->padding.bottom;
+    constraints.x1 += node->padding.left;
 
+    // cache these padded constraints
     node->render_data.padded_constraints = constraints;
 }
 
@@ -1617,11 +1623,7 @@ static void render_picture(gui_view_node_t* node, dispWin_t cs)
 static void paint_borders(gui_view_node_t* node, dispWin_t cs)
 {
     JADE_ASSERT(node);
-
-    if (!node->borders) {
-        // Node does not have borders
-        return;
-    }
+    JADE_ASSERT(node->borders);
 
     const uint16_t width = cs.x2 - cs.x1;
     const uint16_t height = cs.y2 - cs.y1;
@@ -1665,7 +1667,17 @@ void gui_repaint(gui_view_node_t* node, bool take_mutex)
     }
 
     // borders use the un-padded constraints
-    paint_borders(node, node->render_data.constraints);
+    if (node->borders) {
+        dispWin_t constraints = node->render_data.original_constraints;
+
+        // margins affect borders
+        constraints.y1 += node->margins.top;
+        constraints.x2 -= node->margins.right;
+        constraints.y2 -= node->margins.bottom;
+        constraints.x1 += node->margins.left;
+
+        paint_borders(node, constraints);
+    }
 
     switch (node->kind) {
     case HSPLIT:
