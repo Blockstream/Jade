@@ -963,7 +963,7 @@ quirc_decode_error_t quirc_decode(const struct quirc_code *code,
     return err;
   }
 
-  ds = ps_malloc(sizeof(struct datastream));
+  ds = d_malloc(sizeof(struct datastream));
   memset(ds, 0, sizeof(*ds));
 
   read_data(code, data, ds);

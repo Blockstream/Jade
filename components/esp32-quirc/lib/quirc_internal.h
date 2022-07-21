@@ -45,6 +45,10 @@ static inline void* ps_malloc(const size_t size)
 {
   return heap_caps_malloc_prefer(size, MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT);
 }
+static inline void* d_malloc(const size_t size)
+{
+  return heap_caps_malloc(size, MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
+}
 
 struct quirc_region
 {

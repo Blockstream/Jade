@@ -26,7 +26,7 @@ const char *quirc_version(void)
 //static struct quirc _q;
 struct quirc *quirc_new(void)
 {
-  struct quirc *q = ps_malloc(sizeof(*q));
+  struct quirc *q = d_malloc(sizeof(*q));
 
   if (!q)
     return NULL;
@@ -55,7 +55,7 @@ int quirc_resize(struct quirc *q, int w, int h)
   {
     free(q->image);
   }
-  uint8_t *new_image = ps_malloc(w * h);
+  uint8_t *new_image = d_malloc(w * h);
 
   if (!new_image)
     return -1;
@@ -65,7 +65,7 @@ int quirc_resize(struct quirc *q, int w, int h)
     size_t new_size = w * h * sizeof(quirc_pixel_t);
     if (q->pixels)
       free(q->pixels);
-    quirc_pixel_t *new_pixels = ps_malloc(new_size);
+    quirc_pixel_t *new_pixels = d_malloc(new_size);
     if (!new_pixels)
     {
       free(new_image);
