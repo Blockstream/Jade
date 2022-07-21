@@ -933,23 +933,24 @@ quirc_decode_error_t quirc_decode(const struct quirc_code *code,
                                   struct quirc_data *data)
 {
   quirc_decode_error_t err;
-  struct datastream *ds = ps_malloc(sizeof(struct datastream));
+  struct datastream *ds;
+
+  if (code->size > QUIRC_MAX_GRID_SIZE)
+  {
+    return QUIRC_ERROR_INVALID_GRID_SIZE;
+  }
 
   if ((code->size - 17) % 4)
   {
-    free(ds);
     return QUIRC_ERROR_INVALID_GRID_SIZE;
   }
 
   memset(data, 0, sizeof(*data));
-  memset(ds, 0, sizeof(*ds));
-
   data->version = (code->size - 17) / 4;
 
   if (data->version < 1 ||
       data->version > QUIRC_MAX_VERSION)
   {
-    free(ds);
     return QUIRC_ERROR_INVALID_VERSION;
   }
 
@@ -959,9 +960,11 @@ quirc_decode_error_t quirc_decode(const struct quirc_code *code,
     err = read_format(code, data, 1);
   if (err)
   {
-    free(ds);
     return err;
   }
+
+  ds = ps_malloc(sizeof(struct datastream));
+  memset(ds, 0, sizeof(*ds));
 
   read_data(code, data, ds);
   err = codestream_ecc(data, ds);
