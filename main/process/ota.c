@@ -122,7 +122,7 @@ void ota_process(void* process_ptr)
     size_t remaining_uncompressed = firmwaresize;
 
     jade_ota_ctx_t joctx = {
-        .progress_bar = { .progress_bar = NULL, .pcnt_txt = NULL, .percent_last_value = 0 },
+        .progress_bar = {},
         .cmp_sha_ctx = &cmp_sha_ctx,
         .dctx = dctx,
         .id = id,

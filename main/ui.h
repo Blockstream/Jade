@@ -65,6 +65,13 @@ typedef struct {
     char message[128];
 } output_info_t;
 
+// Progress bar
+typedef struct {
+    gui_view_node_t* progress_bar;
+    gui_view_node_t* pcnt_txt;
+    uint8_t percent_last_value;
+} progress_bar_t;
+
 typedef struct {
     const uint16_t val;
     const char* txt;
@@ -97,7 +104,8 @@ void await_message_activity(const char* message);
 void await_error_activity(const char* errormessage);
 bool await_yesno_activity(const char* title, const char* message, bool default_selection);
 
-// Generic progress-bar screen
+// Generic progress-bar
+void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);
 void display_progress_bar_activity(const char* title, const char* message, progress_bar_t* progress_bar);
 void update_progress_bar(progress_bar_t* progress_bar, size_t total, size_t current);
 

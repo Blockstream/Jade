@@ -1,6 +1,6 @@
 #include "../button_events.h"
-#include "../gui.h"
 #include "../jade_assert.h"
+#include "../ui.h"
 
 // Generic activity that displays a message, optionally with an 'ok' button
 static void make_msg_activity(gui_activity_t** activity_ptr, const char* msg, const bool error, const bool button)
@@ -211,6 +211,25 @@ bool await_yesno_activity(const char* title, const char* message, const bool def
     return ev_id == BTN_YES;
 }
 
+// The progress-bar structure indicated is populated, and should be used to update the progress
+// using the update_progress_bar() function below.
+void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar)
+{
+    gui_view_node_t* container;
+    gui_make_fill(&container, TFT_BLACK);
+    gui_set_borders(container, TFT_WHITE, 2, GUI_BORDER_ALL);
+    gui_set_margins(container, GUI_MARGIN_TWO_VALUES, 4, 16);
+    gui_set_parent(container, parent);
+
+    gui_view_node_t* progress;
+    gui_make_fill(&progress, TFT_BLACK);
+    gui_set_margins(progress, GUI_MARGIN_ALL_EQUAL, 2);
+    gui_set_borders(progress, TFT_BLOCKSTREAM_GREEN, 0, GUI_BORDER_LEFT);
+    gui_set_parent(progress, container);
+
+    progress_bar->progress_bar = progress;
+}
+
 // Show a progress bar screen, with the given title.
 // The progress-bar structure indicated is populated, and should be used to update the progress
 // using the update_progress_bar() function below.
@@ -235,17 +254,7 @@ void display_progress_bar_activity(const char* title, const char* message, progr
     gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
     // second row, progress bar
-    gui_view_node_t* container;
-    gui_make_fill(&container, TFT_BLACK);
-    gui_set_borders(container, TFT_WHITE, 2, GUI_BORDER_ALL);
-    gui_set_margins(container, GUI_MARGIN_TWO_VALUES, 4, 16);
-    gui_set_parent(container, vsplit);
-
-    gui_view_node_t* progress;
-    gui_make_fill(&progress, TFT_BLACK);
-    gui_set_margins(progress, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(progress, TFT_BLOCKSTREAM_GREEN, 0, GUI_BORDER_LEFT);
-    gui_set_parent(progress, container);
+    make_progress_bar(vsplit, progress_bar);
 
     // third row, percentage text
     gui_view_node_t* background;
@@ -257,20 +266,18 @@ void display_progress_bar_activity(const char* title, const char* message, progr
     gui_set_parent(pcnt, background);
     gui_set_padding(pcnt, GUI_MARGIN_TWO_VALUES, 8, 4);
     gui_set_align(pcnt, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+    progress_bar->pcnt_txt = pcnt;
 
     // Display the progress bar
     gui_set_current_activity(act);
-
-    // Populate the struct for the caller to pass into the update function below
-    progress_bar->progress_bar = progress;
-    progress_bar->pcnt_txt = pcnt;
 }
 
 void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const size_t current)
 {
     JADE_ASSERT(progress_bar);
     JADE_ASSERT(progress_bar->progress_bar);
-    JADE_ASSERT(progress_bar->pcnt_txt);
+    // progress_bar->pcnt_txt is optional
+
     JADE_ASSERT(current <= total);
     JADE_ASSERT(total > 0);
     JADE_ASSERT(progress_bar->percent_last_value >= 0 && progress_bar->percent_last_value <= 100);
@@ -282,7 +289,7 @@ void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const
     }
 
     if (!progress_bar->progress_bar->render_data.is_first_time) {
-        // Can only reliably update the progress bar after it's initial rendering
+        // Can only reliably update the progress bar after its initial rendering
         const dispWin_t* constraints = &progress_bar->progress_bar->render_data.original_constraints;
         const gui_margin_t* margins = &progress_bar->progress_bar->margins;
         const uint16_t width_bar = constraints->x2 - constraints->x1 - margins->left - margins->right;
@@ -291,9 +298,13 @@ void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const
         gui_repaint(progress_bar->progress_bar, true);
     }
 
-    char text[8];
-    const int ret = snprintf(text, sizeof(text), "%u%%", pcnt);
-    JADE_ASSERT(ret > 0 && ret < sizeof(text));
-    gui_update_text(progress_bar->pcnt_txt, text);
+    // Update the % progress text label if present
+    if (progress_bar->pcnt_txt) {
+        char text[8];
+        const int ret = snprintf(text, sizeof(text), "%u%%", pcnt);
+        JADE_ASSERT(ret > 0 && ret < sizeof(text));
+        gui_update_text(progress_bar->pcnt_txt, text);
+    }
+
     progress_bar->percent_last_value = pcnt;
 }
