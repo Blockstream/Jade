@@ -20,3 +20,5 @@ idf_component_register(SRC_DIRS "."
 
 target_link_libraries(${COMPONENT_TARGET} "-u custom_app_desc")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_ELEMENTS=1")
+list(APPEND link_options "-Wl,--wrap=abort")
+idf_build_set_property(LINK_OPTIONS "${link_options}" APPEND)
