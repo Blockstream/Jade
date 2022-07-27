@@ -721,7 +721,8 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             const bool ret = gui_activity_wait_event(
                 activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 30000 / portTICK_PERIOD_MS);
 #else
-            vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+            gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+                CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
             const bool ret = true;
             ev_id = BTN_BLE_CONFIRM;
 #endif

@@ -148,7 +148,8 @@ static void await_msg_activity(const char* msg, const bool error)
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
     const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_EXIT_MESSAGE_SCREEN, NULL, NULL, NULL, 0);
 #else
-    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS);
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_EXIT_MESSAGE_SCREEN, NULL, NULL, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const bool ret = true;
 #endif
     JADE_ASSERT_MSG(ret, "gui_activity_wait_event returned %d", ret);
@@ -233,7 +234,8 @@ bool await_yesno_activity(const char* title, const char* message, const bool def
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
     const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS);
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const bool ret = true;
     ev_id = BTN_YES;
 #endif

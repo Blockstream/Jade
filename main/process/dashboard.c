@@ -497,13 +497,15 @@ static void select_initial_connection(void)
     int32_t ev_id;
     // In a debug unattended ci build, assume 'USB' button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+    const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    const bool ret = true;
     ev_id = BTN_CONNECT_USB;
 #endif
 
-    if (ev_id == BTN_CONNECT_BLE) {
+    if (ret && ev_id == BTN_CONNECT_BLE) {
         initialisation_via_ble = true;
         if (!ble_enabled()) {
             // Enable BLE by default, and start it now
@@ -717,7 +719,8 @@ static bool display_hotp_screen(const char* name, const char* token, const bool 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
     const bool btn_pressed = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const bool btn_pressed = true;
     ev_id = BTN_OTP_CONFIRM;
 #endif
@@ -768,7 +771,8 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
             = sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, timeout) == ESP_OK;
         timeout = 1000 / portTICK_PERIOD_MS; // After initial update, update every 1s
 #else
-        vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool btn_pressed = true;
         ev_id = BTN_OTP_CONFIRM;
 #endif

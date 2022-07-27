@@ -195,9 +195,8 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry)
     wait_event_data_t* wait_data = make_wait_event_data();
     esp_event_handler_instance_register(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data, &ctx);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
     int32_t ev_id;
-
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
     // Place initial activity - ensure 'current-kb' counter is reset
     kb_entry->current_kb = 0;
     GUI_UPDATE_TEXTBOX();
@@ -234,7 +233,8 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry)
         }
     }
 #else
-    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, wait_data, NULL, &ev_id, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     strcpy(kb_entry->strdata, "abcdef");
     kb_entry->len = strlen(kb_entry->strdata);
 #endif

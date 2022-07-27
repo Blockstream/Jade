@@ -737,9 +737,9 @@ void initialise_with_mnemonic(const bool temporary_restore)
     while (!got_mnemonic) {
         gui_set_current_activity(activity);
 
-// In a debug unattended ci build, use hardcoded mnemonic after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        // In a debug unattended ci build, use hardcoded mnemonic after a short delay
         int32_t ev_id;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
         const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
         JADE_ASSERT(ret);
 
@@ -798,7 +798,8 @@ void initialise_with_mnemonic(const bool temporary_restore)
             break;
         }
 #else
-        vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         strcpy(mnemonic,
             "fish inner face ginger orchard permit useful method fence kidney chuckle party favorite sunset draw limb "
             "science crane oval letter slot invite sadness banana");

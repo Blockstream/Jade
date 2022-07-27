@@ -133,7 +133,7 @@ static void jade_camera_task(void* data)
     JADE_ASSERT(act);
     gui_set_current_activity(act);
 
-    // Initailise the camera
+    // Initialise the camera
     sensitive_init();
     jade_camera_init();
     vTaskDelay(500 / portTICK_PERIOD_MS);

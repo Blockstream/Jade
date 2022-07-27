@@ -86,7 +86,8 @@ void update_pinserver_process(void* process_ptr)
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_PINSERVER_DETAILS_CONFIRM;
 #endif
@@ -138,7 +139,8 @@ void update_pinserver_process(void* process_ptr)
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_PINSERVER_DETAILS_CONFIRM;
 #endif

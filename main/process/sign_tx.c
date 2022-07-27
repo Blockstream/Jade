@@ -412,7 +412,8 @@ void sign_tx_process(void* process_ptr)
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
     const esp_err_t outputs_ret = sync_await_single_event(JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    sync_await_single_event(
+        JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const esp_err_t outputs_ret = ESP_OK;
     ev_id = SIGN_TX_ACCEPT_OUTPUTS;
 #endif
@@ -658,7 +659,8 @@ void sign_tx_process(void* process_ptr)
     const bool fee_ret
         = gui_activity_wait_event(final_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    gui_activity_wait_event(final_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const bool fee_ret = true;
     ev_id = BTN_ACCEPT_SIGNATURE;
 #endif
