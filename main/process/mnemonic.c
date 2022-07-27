@@ -1,5 +1,6 @@
 #include <wally_bip39.h>
 
+#include "../bcur.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
@@ -16,6 +17,7 @@
 
 #include "process_utils.h"
 
+#include <cdecoder.h>
 #include <ctype.h>
 
 // NOTE: Jade only supports the bip39 English wordlist
@@ -738,6 +740,23 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
     return *end_ptr == '\0';
 }
 
+static bool import_bcur_bip39(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+{
+    JADE_ASSERT(qr_data);
+    JADE_ASSERT(buf);
+    JADE_ASSERT(buf_len);
+    JADE_INIT_OUT_SIZE(written);
+
+    // Quick check to see if it looks like a bcur bip39 string
+    const char bcqrtag[] = "UR:CRYPTO-BIP39";
+    if (qr_data->len <= sizeof(bcqrtag) || strncasecmp(bcqrtag, (const char*)qr_data->data, sizeof(bcqrtag) - 1)) {
+        return false;
+    }
+
+    // Decode bcur string
+    return bcur_parse_bip39((const char*)qr_data->data, qr_data->len, buf, buf_len, written);
+}
+
 // SeedSigner SeedQR support (ie string of 4-digit word indices).
 // NOTE: only the English wordlist is supported.
 static bool import_seedqr(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
@@ -830,10 +849,10 @@ static bool import_mnemonic(const qr_data_t* qr_data, char* buf, const size_t bu
 {
     // 1. Try seedsigner compact format (ie. raw 128bit or 256bit entropy)
     // 2. Try seedsigner standard format (string of 4-digit indicies, no spaces)
-    // 3. Try to read word prefixes or whole words (space separated)
-    // TODO: add bc-ur format?
+    // 3. Try bcur bip39 format (starts with a specific string prefix)
+    // 4. Try to read word prefixes or whole words (space separated)
     return import_compactseedqr(qr_data, buf, buf_len, written) || import_seedqr(qr_data, buf, buf_len, written)
-        || expand_words(qr_data, buf, buf_len, written);
+        || import_bcur_bip39(qr_data, buf, buf_len, written) || expand_words(qr_data, buf, buf_len, written);
 }
 
 // Function to validate qr scanned is (or expands to) a valid mnemonic

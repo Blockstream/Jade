@@ -171,6 +171,17 @@ TEST_MNEMONIC_SEEDSIGNER = '0701093106520784124813051919112106800979032412840\
 TEST_MNEMONIC_SEEDSIGNER_COMPACT = b'W\xae\x8dF1\t\xc1F{\xfcaU\x0fL\xa2PEA\xb3\
 \x10\x9c\x0e\xc0\xe6Jv\xc0L\xc0\xec/x'
 
+# bcur bip39 style for our test mnemonic
+TEST_MNEMONIC_BCUR_BIP39_LOWER = 'ur:crypto-bip39/oeadlkiyjkisinihjzieihiojpjl\
+kpjoihihjpjlieihihhskthsjeihiejzjliajeiojkhskpjkhsioihieiahsjkisihiojzhsjpihie\
+kthskoihieiajpihktihiyjzhsjnihihiojzjlkoihaoidihjtrkkndede'
+TEST_MNEMONIC_BCUR_BIP39_UPPER = 'UR:CRYPTO-BIP39/OEADLKIYJKISINIHJZIEIHIOJPJL\
+KPJOIHIHJPJLIEIHIHHSKTHSJEIHIEJZJLIAJEIOJKHSKPJKHSIOIHIEIAHSJKISIHIOJZHSJPIHIE\
+KTHSKOIHIEIAJPIHKTIHIYJZHSJNIHIHIOJZJLKOIHAOIDIHJTRKKNDEDE'
+
+TEST_MNEMONIC_BCUR_BIP39_STRING = 'shield group erode awake lock sausage \
+cash glare wave crew flame glove'
+
 TEST_MNEMONIC_12 = 'retire verb human ecology best member fiction measure \
 demand stereo wedding olive'
 
@@ -1689,6 +1700,13 @@ def test_mnemonic_import(jade):
         xpub_root2 = _set_wallet(jade, mnemonic=compact_bin)
         assert xpub_root1 == xpub_root0
         assert xpub_root2 == xpub_root0
+
+    # bcur's bip39 own test case (12-words)
+    xpub_root0 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_BCUR_BIP39_STRING)
+    xpub_root1 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_BCUR_BIP39_LOWER)
+    xpub_root2 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_BCUR_BIP39_UPPER)
+    assert xpub_root1 == xpub_root0
+    assert xpub_root2 == xpub_root0
 
 
 def test_mnemonic_import_bad(jade):
