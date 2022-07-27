@@ -7,7 +7,7 @@
 
 static size_t BUFFER_SIZE = 256;
 static size_t CBOR_OVERHEAD = 8;
-static const char* TRUNCATE_TAIL = "...";
+static const char* TRUNCATE_TAIL = "...\n";
 
 // Writes logging messages to the serial interface output buffer, ensuring
 // that logging messages are not interleaved on the serial interface with
