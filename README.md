@@ -1,5 +1,10 @@
 # Jade Firmware
 
+NOTE: the below instructions are for Jade developers with access to Jade development boards or for those wanting to build and flash their own esp32 consumer devices - eg. M5Stack or TTGO T-Display boards.
+They are not for updating the firmware of an official Blockstream Jade hw unit - these can only be updated in-app, or using the 'update_jade_fw.py' script - see FWUPDATE.md
+
+* DO NOT ATTEMPT THE BELOW WITH BLOCKSTREAM OFFICIAL BLOCKSTREAM JADE HW UNITS
+
 To build you can use the docker image (see Dockerfile) or install the esp-idf toolchain and repo following the commands in this readme.
 
 # Use docker
