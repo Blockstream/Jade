@@ -64,13 +64,13 @@ def get_fw_metadata(release_data):
         return _full_fw_label(fw).ljust(18) + f'FROM  {fw["from_version"]} - {fw["from_config"]}'
 
     print('Full firmwares')
-    fullfws = release_data.get('full', {})
+    fullfws = release_data.get('full', [])
     for i, label in enumerate((_full_fw_label(fw) for fw in fullfws), 1):  # 1 based index
         print(f'{i})'.ljust(3), label)
     print('-')
 
     print('Delta patches')
-    deltas = release_data.get('delta', {})
+    deltas = release_data.get('delta', [])
     for i, label in enumerate((_delta_fw_label(fw) for fw in deltas), i + 1):  # continue numbering
         print(f'{i})'.ljust(3), label)
     print('-')
@@ -96,9 +96,9 @@ def download_file(hw_target, write_compressed, release):
     assert rslt.status_code == 200, f'Cannot download index file {url}: {rslt.status_code}'
 
     # Get the filename of the firmware to download
-    release_data = json.loads(rslt.text)[release]
+    release_data = json.loads(rslt.text).get(release)
     if not release_data:
-        return None
+        return None, None, None
 
     fwdata = get_fw_metadata(release_data)
     fwname = fwdata['filename']
@@ -114,7 +114,7 @@ def download_file(hw_target, write_compressed, release):
 
     # If passed --write-compressed we write a copy of the compressed file
     if write_compressed:
-        cmpfilename = f'{COMP_FW_DIR}/{fwname}'
+        cmpfilename = f'{COMP_FW_DIR}/{os.path.basename(fwname)}'
         fwtools.write(fwcmp, cmpfilename)
 
     # Return
@@ -139,9 +139,9 @@ def download_file_gdk(hw_target, write_compressed, release):
     assert 'body' in rslt, f'Cannot download index file {url}: {rslt.get("error")}'
 
     # Get the filename of the firmware to download
-    release_data = json.loads(rslt['body'])[release]
+    release_data = json.loads(rslt['body']).get(release)
     if not release_data:
-        return None
+        return None, None, None
 
     fwdata = get_fw_metadata(release_data)
     fwname = fwdata['filename']
@@ -160,7 +160,7 @@ def download_file_gdk(hw_target, write_compressed, release):
 
     # If passed --write-compressed we write a copy of the compressed file
     if write_compressed:
-        cmpfilename = f'{COMP_FW_DIR}/{fwname}'
+        cmpfilename = f'{COMP_FW_DIR}/{os.path.basename(fwname)}'
         fwtools.write(fwcmp, cmpfilename)
 
     # Return
@@ -423,6 +423,10 @@ if __name__ == '__main__':
         # Default case, as 'uncompressed fw file' has a default value if not passed explicitly
         fwlen, patchlen, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
                                                                args.writecompressed)
+
+    if fwcmp is None:
+        logger.error('No firmware available')
+        sys.exit(2)
 
     logger.info(f'Got fw {"patch" if patchlen else "file"} of length {len(fwcmp)} '
                 f'with expected uncompressed final fw length {fwlen}')
