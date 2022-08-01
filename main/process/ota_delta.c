@@ -269,8 +269,11 @@ cleanup:
 
         // If we get here and we have not finished loading the data, send an error message
         if (uploading) {
+            const int error_code
+                = ota_return_status == ERROR_USER_DECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
+
             uint8_t buf[256];
-            jade_process_reject_message_with_id(id, CBOR_RPC_INTERNAL_ERROR, "Error uploading OTA delta data",
+            jade_process_reject_message_with_id(id, error_code, "Error uploading OTA delta data",
                 (const uint8_t*)MESSAGES[ota_return_status], strlen(MESSAGES[ota_return_status]), buf, sizeof(buf),
                 process->ctx.source);
         }
