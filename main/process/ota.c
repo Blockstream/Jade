@@ -80,6 +80,7 @@ void ota_process(void* process_ptr)
     bool ota_end_called = false;
 
     char id[MAXLEN_ID + 1];
+    id[0] = '\0';
 
     // Context used to compute (compressed) firmware hash - ie. file as uploaded
     mbedtls_sha256_context cmp_sha_ctx;
@@ -225,6 +226,7 @@ cleanup:
 
         // If we get here and we have not finished loading the data, send an error message
         if (uploading) {
+            JADE_ASSERT(id[0] != '\0');
             const int error_code
                 = ota_return_status == ERROR_USER_DECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
 

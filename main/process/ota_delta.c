@@ -30,19 +30,46 @@ typedef struct {
     bool header_validated;
 } bsdiff_ctx_t;
 
+// Error reply in ota_delta is complicated by the fact that we reply 'ok' when we push the received patch data
+// into the decompressor, but we carry on copying the base firmware and inflating/applying patch data.
+// If an error occurs at this stage - we have no message id to reply to so must cache the error until we do receive
+// the next patch-data packet, when we can return the error.
+
+// Cache any error in the context and return immediately.
+// If we have an outstanding message we have not yet replied to, return the error now so it is messaged.
+// If we do not have a message in hand at this time, just cache the error and return ok - it will be sent
+// the next time we receive a message and have the opportunity to reply.
+#define HANDLE_NEW_ERROR(joctx, error)                                                                                 \
+    do {                                                                                                               \
+        *joctx->ota_return_status = error;                                                                             \
+        return (joctx->id[0] != '\0') ? error : SUCCESS;                                                               \
+    } while (false)
+
+// If carrying an error, return ok immediately
+// If we have an outstanding message we have not yet replied to, return the error now so it is messaged.
+// If we do not have a message in hand at this time, return ok - the cached error will be sent
+// the next time we receive a message and have the opportunity to reply.
+#define HANDLE_ANY_CACHED_ERROR(joctx)                                                                                 \
+    do {                                                                                                               \
+        if (*joctx->ota_return_status != SUCCESS) {                                                                    \
+            return (joctx->id[0] != '\0') ? *joctx->ota_return_status : SUCCESS;                                       \
+        }                                                                                                              \
+    } while (false)
+
+// NOTE: uses macros above so may return error immediately, or may just cache it for later return
 static int patch_stream_reader(const struct bspatch_stream* stream, void* buffer, int length)
 {
     bsdiff_ctx_t* bctx = (bsdiff_ctx_t*)stream->opaque;
     JADE_ASSERT(bctx);
 
     if (length <= 0) {
-        return ERROR_PATCH;
+        HANDLE_NEW_ERROR(bctx->joctx, ERROR_PATCH);
     }
 
     // Return any non-zero error code from the read routine
     const int ret = read_uncompressed(bctx->dctx, buffer, length);
     if (ret) {
-        return ret;
+        HANDLE_NEW_ERROR(bctx->joctx, ret);
     }
 
     *bctx->joctx->remaining_uncompressed -= length;
@@ -50,32 +77,40 @@ static int patch_stream_reader(const struct bspatch_stream* stream, void* buffer
     return SUCCESS;
 }
 
+// NOTE: uses macros above so may return error immediately, or may just cache it for later return
 static int base_firmware_stream_reader(const struct bspatch_stream_i* stream, void* buffer, int pos, int length)
 {
     bsdiff_ctx_t* bctx = (bsdiff_ctx_t*)stream->opaque;
     JADE_ASSERT(bctx);
 
+    // If currently in error, return immediately without reading anything
+    HANDLE_ANY_CACHED_ERROR(bctx->joctx);
+
     if (length <= 0 || pos + length >= bctx->joctx->running_partition->size
         || esp_partition_read(bctx->joctx->running_partition, pos, buffer, length) != ESP_OK) {
-        return ERROR_PATCH;
+        HANDLE_NEW_ERROR(bctx->joctx, ERROR_PATCH);
     }
 
     return SUCCESS;
 }
 
+// NOTE: uses macros above so may return error immediately, or may just cache it for later return
 static int ota_stream_writer(const struct bspatch_stream_n* stream, const void* buffer, int length)
 {
     bsdiff_ctx_t* bctx = (bsdiff_ctx_t*)stream->opaque;
     JADE_ASSERT(bctx);
 
+    // If currently in error, return immediately without writing anything
+    HANDLE_ANY_CACHED_ERROR(bctx->joctx);
+
     if (length <= 0 || esp_ota_write(*bctx->joctx->ota_handle, buffer, length) != ESP_OK) {
-        return ERROR_PATCH;
+        HANDLE_NEW_ERROR(bctx->joctx, ERROR_PATCH);
     }
 
     if (!bctx->header_validated && length >= CUSTOM_HEADER_MIN_WRITE) {
         const enum ota_status validation = ota_user_validation(bctx->joctx, (uint8_t*)buffer);
         if (validation != SUCCESS) {
-            return validation;
+            HANDLE_NEW_ERROR(bctx->joctx, validation);
         }
         bctx->header_validated = true;
     }
@@ -83,7 +118,7 @@ static int ota_stream_writer(const struct bspatch_stream_n* stream, const void* 
     bctx->written += length;
 
     if (bctx->written > CUSTOM_HEADER_MIN_WRITE && !bctx->header_validated) {
-        return ERROR_PATCH;
+        HANDLE_NEW_ERROR(bctx->joctx, ERROR_PATCH);
     }
 
     if (bctx->header_validated) {
@@ -101,6 +136,7 @@ static int compressed_stream_reader(void* ctx)
     JADE_ASSERT(bctx->joctx);
 
     // NOTE: the ota_return_status can be set via ptr in joctx
+    // Return any error here as it can be returned to the caller in the message reply
     jade_process_get_in_message(bctx->joctx, &handle_in_bin_data, true);
     return *bctx->joctx->ota_return_status;
 }
@@ -113,6 +149,8 @@ void ota_delta_process(void* process_ptr)
     bool ota_end_called = false;
     bool ota_begin_called = false;
     char id[MAXLEN_ID + 1];
+    id[0] = '\0';
+
     mbedtls_sha256_context cmp_sha_ctx;
 
     esp_ota_handle_t ota_handle = 0;
@@ -269,6 +307,7 @@ cleanup:
 
         // If we get here and we have not finished loading the data, send an error message
         if (uploading) {
+            JADE_ASSERT(id[0] != '\0');
             const int error_code
                 = ota_return_status == ERROR_USER_DECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
 

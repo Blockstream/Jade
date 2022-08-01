@@ -35,9 +35,15 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     jade_ota_ctx_t* joctx = (jade_ota_ctx_t*)ctx;
 
     size_t written = 0;
-    joctx->id[0] = '\0';
+    JADE_ASSERT(joctx->id[0] == '\0');
     rpc_get_id(&value, joctx->id, MAXLEN_ID + 1, &written);
     JADE_ASSERT(written != 0);
+
+    // If we are carrying a cached error abandon immediately
+    // (the error will be returned with this id)
+    if (*joctx->ota_return_status != SUCCESS) {
+        return;
+    }
 
     if (!rpc_is_method(&value, "ota_data")) {
         *joctx->ota_return_status = ERROR_BADDATA;
@@ -89,6 +95,9 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     // Send ack after all processing - see comment above.
     JADE_LOGI("Sending ok for %s", joctx->id);
     send_ok(joctx->id, *joctx->expected_source);
+
+    // Blank out the current msg id once 'ok' is sent for it
+    joctx->id[0] = '\0';
 }
 
 bool ota_init(jade_ota_ctx_t* joctx)
@@ -132,6 +141,11 @@ enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
 {
     JADE_ASSERT(joctx);
     JADE_ASSERT(ota_end_called);
+
+    // Ensure no cached error - if so return it now
+    if (*joctx->ota_return_status != SUCCESS) {
+        return *joctx->ota_return_status;
+    }
 
     if (joctx->remaining_compressed || *joctx->remaining_uncompressed || !joctx->compressedsize
         || !joctx->uncompressedsize) {
