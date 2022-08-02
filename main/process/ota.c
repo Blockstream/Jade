@@ -163,6 +163,7 @@ void ota_process(void* process_ptr)
             goto cleanup;
         }
     }
+    JADE_ASSERT(prevalidated);
 
     // Uploading complete
     uploading = false;
@@ -171,31 +172,33 @@ void ota_process(void* process_ptr)
     if (remaining_uncompressed != 0) {
         JADE_LOGE("Expected uncompressed size: %u, got %u", firmwaresize, firmwaresize - remaining_uncompressed);
         ota_return_status = ERROR_DECOMPRESS;
-        goto otacomplete;
     }
 
-    ota_return_status = post_ota_check(&joctx, &ota_end_called);
-    if (ota_return_status != SUCCESS) {
-        goto otacomplete;
-    }
-
-    JADE_ASSERT(prevalidated);
-    JADE_LOGI("Success");
-
-otacomplete:
     // Expect a complete/request for status
     jade_process_load_in_message(process, true);
-
     if (!IS_CURRENT_MESSAGE(process, "ota_complete")) {
         // Protocol error
         jade_process_reject_message(
             process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'ota_complete'", NULL);
-    } else if (ota_return_status != SUCCESS) {
+        goto cleanup;
+    }
+
+    // If all good with the upload do all final checks and then finalise the ota
+    // and set the new boot partition, etc.
+    if (ota_return_status == SUCCESS) {
+        ota_return_status = post_ota_check(&joctx, &ota_end_called);
+    }
+
+    // Send final message reply with final status
+    if (ota_return_status != SUCCESS) {
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Error completing OTA", MESSAGES[ota_return_status]);
-    } else {
-        jade_process_reply_to_message_ok(process);
+        goto cleanup;
     }
+
+    JADE_ASSERT(ota_end_called);
+    jade_process_reply_to_message_ok(process);
+    JADE_LOGI("Success");
 
 cleanup:
     mbedtls_sha256_free(&cmp_sha_ctx);
