@@ -322,10 +322,10 @@ static void dispatch_message(jade_process_t* process)
         task_function = auth_user_process;
     } else if (IS_METHOD("ota")) {
         // OTA is allowed if either:
-        // a) User has passed PIN screen and has unlocked Jade
+        // a) User has passed PIN screen and has unlocked Jade saved wallet
         // or
         // b) There is no PIN set (ie. no encrypted keys set, eg. new device)
-        if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) || !keychain_has_pin()) {
+        if ((KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) && !keychain_has_temporary()) || !keychain_has_pin()) {
             task_function = ota_process;
         } else {
             // Reject the message as hw locked
@@ -334,10 +334,10 @@ static void dispatch_message(jade_process_t* process)
         }
     } else if (IS_METHOD("ota_delta")) {
         // OTA delta is allowed if either:
-        // a) User has passed PIN screen and has unlocked Jade
+        // a) User has passed PIN screen and has unlocked Jade saved wallet
         // or
         // b) There is no PIN set (ie. no encrypted keys set, eg. new device)
-        if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) || !keychain_has_pin()) {
+        if ((KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) && !keychain_has_temporary()) || !keychain_has_pin()) {
             task_function = ota_delta_process;
         } else {
             // Reject the message as hw locked

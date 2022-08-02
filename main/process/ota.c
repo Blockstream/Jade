@@ -72,6 +72,7 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t t
 void ota_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+
     jade_process_t* process = process_ptr;
     bool uploading = false;
     enum ota_status ota_return_status = ERROR_OTA_SETUP;
@@ -87,6 +88,10 @@ void ota_process(void* process_ptr)
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "ota");
     GET_MSG_PARAMS(process);
+    if (keychain_has_pin()) {
+        ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
+        JADE_ASSERT(!keychain_has_temporary());
+    }
 
     const jade_msg_source_t source = process->ctx.source;
 
