@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.35] - 2022-08-11
+### Added
+- Add 'wallet-erase' duress pin
+- Add support for HOTP and TOTP code generation, including passing current UTC time to Jade
+- Support scan and import/recovery of SeedSigner QR codes
+- Added message fields to be able to pass asset registry data when signing a Liquid transaction
+
+### Changed
+- Update Liquid asset registry info
+- Changed how to specify when to enter a BIP39 passphrase
+- Updated QR scanning - much faster and no need to press front button to scan
+- Settings menu items rearranged, and added pre-PIN Settings menu
+
+### Fixed
+- Fixed issue when scanning QR of mnemonic that contains valid words which are prefixes of other valid words
+- Reduce memory usage in UI screens
+- Fixed incorrect error code/id returned if firmware update fails
+- Internal code improvements
+
 ## [0.1.34] - 2022-05-27
 ### Added
 - Add support for generic multisig on liquid and remove requirement on deterministic blinders and commitments hmac
