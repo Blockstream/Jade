@@ -256,7 +256,7 @@ void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* nam
     // Display timestamp string
     {
         gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 20, 80);
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 15, 85);
         gui_set_parent(hsplit, vsplit);
 
         gui_view_node_t* txtlabel;
