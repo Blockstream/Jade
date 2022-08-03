@@ -1,5 +1,6 @@
+#!/usr/bin/env python
+
 import sys
-import time
 import logging
 from jadepy import JadeAPI
 
@@ -61,7 +62,7 @@ with create_jade_fn(**kwargs) as jade:
     # Note: this requires a pinserver to be running
     # The network to use is deduced from the version-info
     network = 'testnet' if verinfo.get('JADE_NETWORKS') == 'TEST' else 'mainnet'
-    while jade.auth_user(network, int(time.time()), http_request_fn) is not True:
+    while jade.auth_user(network, http_request_fn) is not True:
         print('Error - please try again')
 
     # Just a couple of test calls that mimic what gdk-logon does

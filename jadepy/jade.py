@@ -366,7 +366,7 @@ class JadeAPI:
         params = {'entropy': entropy}
         return self._jadeRpc('add_entropy', params)
 
-    def set_epoch(self, epoch):
+    def set_epoch(self, epoch=None):
         """
         RPC call to set the current time epoch value, required for TOTP use.
         NOTE: The time is lost on each power-down and must be reset on restart/reconnect before
@@ -374,15 +374,15 @@ class JadeAPI:
 
         Parameters
         ----------
-        epoch : int
-            Current epoch value, in seconds.
+        epoch : int, optional
+            Current epoch value, in seconds.  Defaults to int(time.time()) value.
 
         Returns
         -------
         bool
             True on success
         """
-        params = {'epoch': epoch}
+        params = {'epoch': epoch if epoch is not None else int(time.time())}
         return self._jadeRpc('set_epoch', params)
 
     def ota_update(self, fwcmp, fwlen, chunksize, patchlen=None, cb=None):
@@ -584,7 +584,7 @@ class JadeAPI:
                   'reset_certificate': reset_certificate}
         return self._jadeRpc('update_pinserver', params)
 
-    def auth_user(self, network, epoch=None, http_request_fn=None):
+    def auth_user(self, network, http_request_fn=None, epoch=None):
         """
         RPC call to authenticate the user on the hw device, for using with the network provided.
 
@@ -594,15 +594,15 @@ class JadeAPI:
             The name of the network intended for use - eg. 'mainnet', 'liquid', 'testnet' etc.
             This is verified against the networks allowed on the hardware.
 
-        epoch : int
-            Current epoch value, in seconds.
-
-        http_request_fn : function
+        http_request_fn : function, optional
             Optional http-request function to pass http requests to the Jade pinserver.
             Default behaviour is to use the '_http_request()' function which defers to the
             'requests' module.
             If the 'reqests' module is not available, no default http-request function is created,
             and one must be supplied here.
+
+        epoch : int, optional
+            Current epoch value, in seconds.  Defaults to int(time.time()) value.
 
         Returns
         -------
@@ -611,7 +611,7 @@ class JadeAPI:
             True if the PIN is entered and verified with the remote blind pinserver.
             False if the PIN entered was incorrect.
         """
-        params = {'network': network, 'epoch': epoch}
+        params = {'network': network, 'epoch': epoch if epoch is not None else int(time.time())}
         return self._jadeRpc('auth_user', params,
                              http_request_fn=http_request_fn,
                              long_timeout=True)
