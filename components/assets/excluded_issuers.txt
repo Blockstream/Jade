@@ -1,2 +1,5 @@
+reusable-asset-domain.herokuapp.com
+bfungible.network
 artmirable.bfungible.network
 test.bfungible.bcademy.xyz
+nft.siliconlake.it

@@ -1,2 +1,3 @@
+reusable-asset-domain.herokuapp.com
 test.bfungible.bcademy.xyz
 .*.ngrok.io

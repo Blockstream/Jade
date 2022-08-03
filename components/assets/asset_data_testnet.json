@@ -88,6 +88,36 @@
         "ticker": "vEUR",
         "version": 0
     },
+    "0d86b2f6a8c3b02a8c7c8836b83a081e68b7e2b4bcdfc58981fc5486f59f7518": {
+        "asset_id": "0d86b2f6a8c3b02a8c7c8836b83a081e68b7e2b4bcdfc58981fc5486f59f7518",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "fuji.money"
+            },
+            "issuer_pubkey": "0246b7d989f110e1f168c8b259003f6edec3f8fafce53d188ccd8ce5f25698b7bf",
+            "name": "Fuji USD",
+            "precision": 8,
+            "ticker": "FUSD",
+            "version": 0
+        },
+        "entity": {
+            "domain": "fuji.money"
+        },
+        "issuance_prevout": {
+            "txid": "036d57c1aa9b44d7aef2ae45b371071c946a862c4c74d57c70864540e745b2b6",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "0ed71a657f41c01a4b7b5e7b3c898268fe1417d014f80d9bd8411a891cf2d049",
+            "vin": 0
+        },
+        "issuer_pubkey": "0246b7d989f110e1f168c8b259003f6edec3f8fafce53d188ccd8ce5f25698b7bf",
+        "name": "Fuji USD",
+        "precision": 8,
+        "ticker": "FUSD",
+        "version": 0
+    },
     "0f466e42df38b8fc4e5374eae36a1d57c0f5ce1528376ec534cc4a007ebcd7c0": {
         "asset_id": "0f466e42df38b8fc4e5374eae36a1d57c0f5ce1528376ec534cc4a007ebcd7c0",
         "collection": null,
@@ -116,6 +146,36 @@
         "name": "Prrrrr token",
         "precision": 2,
         "ticker": "PRRRR",
+        "version": 0
+    },
+    "11ac6101e40f3f31c89ddd151905cf1b47854b4ca3697896ee203b75fdef133a": {
+        "asset_id": "11ac6101e40f3f31c89ddd151905cf1b47854b4ca3697896ee203b75fdef133a",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "testnet.pegx.io"
+            },
+            "issuer_pubkey": "02735574c1b23e65e7638ae96cd3c6958445e21b57208f97b858558f84aa39f9b7",
+            "name": "Layer2Labs",
+            "precision": 2,
+            "ticker": "L2B",
+            "version": 0
+        },
+        "entity": {
+            "domain": "testnet.pegx.io"
+        },
+        "issuance_prevout": {
+            "txid": "e5028b63d2da15d6d711be869b5b716f6ecf0ab8195849497274a5448499dae6",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "889f154bab343010d6654e7a6551e950d27ed6f6f12e9a9abe0a937a703ab152",
+            "vin": 0
+        },
+        "issuer_pubkey": "02735574c1b23e65e7638ae96cd3c6958445e21b57208f97b858558f84aa39f9b7",
+        "name": "Layer2Labs",
+        "precision": 2,
+        "ticker": "L2B",
         "version": 0
     },
     "223cebdfe6f50541b42abe53378494f7a0139ebd047237f516884e13f0b40c9e": {
@@ -148,36 +208,6 @@
         "ticker": "BIT5",
         "version": 0
     },
-    "2388387ef4af8eb6823e352a1f4f0085a8f89f4df80f5470f9040fc217ad994a": {
-        "asset_id": "2388387ef4af8eb6823e352a1f4f0085a8f89f4df80f5470f9040fc217ad994a",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "035b06a33815ab4dc81305104e23f50bd7b5f3b8751c1cb32926550bdf822bf515",
-            "name": "RandyTest",
-            "precision": 0,
-            "ticker": "RTEST",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "bb943fa48b9356700e19f54e70ac0610c629f84bdeeeca470a474ea3e0d5656e",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "7c8f6ecde7387589ebbfdebaf4b6d7f55b939d707fef8910cf564d5fe66a3945",
-            "vin": 0
-        },
-        "issuer_pubkey": "035b06a33815ab4dc81305104e23f50bd7b5f3b8751c1cb32926550bdf822bf515",
-        "name": "RandyTest",
-        "precision": 0,
-        "ticker": "RTEST",
-        "version": 0
-    },
     "2669154649fe26190875470cec31c4494fee9032592135efd57d3e22837fca29": {
         "asset_id": "2669154649fe26190875470cec31c4494fee9032592135efd57d3e22837fca29",
         "collection": null,
@@ -206,66 +236,6 @@
         "name": "bitbitbit",
         "precision": 2,
         "ticker": "bit",
-        "version": 0
-    },
-    "282fdd339da72db6add62d9a374fe4a3d68d3a9f9c46306dbe327ec0e2132fe1": {
-        "asset_id": "282fdd339da72db6add62d9a374fe4a3d68d3a9f9c46306dbe327ec0e2132fe1",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "022b5359abe9dfba37420d2d00467654859280e863f4dd59fc5e3caf3c7c871109",
-            "name": "NAME2",
-            "precision": 1,
-            "ticker": "NAME2",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "f5ff0963d6e12e4f4833260c8815d88d208541f9e0708cc350ac6daf69bdf220",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "53b58b4109d1512d167b842c2e7c0f1f7db4b08c8a9ad8b6c9637014e33e63d4",
-            "vin": 0
-        },
-        "issuer_pubkey": "022b5359abe9dfba37420d2d00467654859280e863f4dd59fc5e3caf3c7c871109",
-        "name": "NAME2",
-        "precision": 1,
-        "ticker": "NAME2",
-        "version": 0
-    },
-    "2f06394c8d8f0dfc74312b52d4bbcad4070546e11207a941f45318caefbf411b": {
-        "asset_id": "2f06394c8d8f0dfc74312b52d4bbcad4070546e11207a941f45318caefbf411b",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "02b39db5dbc4eb0e8187d5b03500fbb7730346f3253dcb1c84a47495a28129a68e",
-            "name": "plm20220429-01",
-            "precision": 2,
-            "ticker": "plm01",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "ca9a14ee5a6f5e9e1459a871010b9e1b8cc50ef0df98f4a92642991856459627",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "084feb82e3a4aa0f1333d52a53fa544251fd258cae6cbfb9bd757607c168e3f3",
-            "vin": 0
-        },
-        "issuer_pubkey": "02b39db5dbc4eb0e8187d5b03500fbb7730346f3253dcb1c84a47495a28129a68e",
-        "name": "plm20220429-01",
-        "precision": 2,
-        "ticker": "plm01",
         "version": 0
     },
     "347f1eed596fd07865967759a95222143ede1caca47399c9fa394bf3922c4dfc": {
@@ -326,34 +296,34 @@
         "ticker": "TEST",
         "version": 0
     },
-    "3d6c4cf04d7421dcc7861a4aa884e54e3f05a04dfdbb1647e5aea41819471ccc": {
-        "asset_id": "3d6c4cf04d7421dcc7861a4aa884e54e3f05a04dfdbb1647e5aea41819471ccc",
+    "3c57caf429181ca170aa741188fc4184ee146d4b00ed1782cca783c293d33c05": {
+        "asset_id": "3c57caf429181ca170aa741188fc4184ee146d4b00ed1782cca783c293d33c05",
         "collection": null,
         "contract": {
             "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
+                "domain": "nitramiz.github.io"
             },
-            "issuer_pubkey": "02cfeea2c0f82a51f86e29aa3c8ea60d962ed18845271abe282a17a690300c1fd6",
-            "name": "Fort Worth Muni Series 1",
+            "issuer_pubkey": "0386a37fc0c9246c2c84d55e958c5313d362acb2dd3d76a686e1dc636ac00e354d",
+            "name": "nitramiz",
             "precision": 0,
-            "ticker": "FWM",
+            "ticker": "niz",
             "version": 0
         },
         "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
+            "domain": "nitramiz.github.io"
         },
         "issuance_prevout": {
-            "txid": "62ea5d0aa7c9f4339b16a6d8e6ff4437ffb244de658222841c74d335324e4219",
-            "vout": 0
+            "txid": "5761e7be80eda36e0fba1bfadc457cbb74170243aaf590617fde2b583bd36da6",
+            "vout": 2
         },
         "issuance_txin": {
-            "txid": "d10678f27857dca15189de4ef90be0b57fc1f072694729a4ccd5c3e76175817f",
+            "txid": "53ebdf0d99598afa50b17aca0df971b7c91b655ae8bd664e1d947d43319c1d3b",
             "vin": 0
         },
-        "issuer_pubkey": "02cfeea2c0f82a51f86e29aa3c8ea60d962ed18845271abe282a17a690300c1fd6",
-        "name": "Fort Worth Muni Series 1",
+        "issuer_pubkey": "0386a37fc0c9246c2c84d55e958c5313d362acb2dd3d76a686e1dc636ac00e354d",
+        "name": "nitramiz",
         "precision": 0,
-        "ticker": "FWM",
+        "ticker": "niz",
         "version": 0
     },
     "42ff6accd9de664815279e139f7c181eed532269d3fa69b603ab3476d62dbe36": {
@@ -386,66 +356,6 @@
         "ticker": "SMRND",
         "version": 0
     },
-    "4316e5f27a2a58139efd1568ba67e0e2d919ff59d6951fe0d06c09abd3f46e83": {
-        "asset_id": "4316e5f27a2a58139efd1568ba67e0e2d919ff59d6951fe0d06c09abd3f46e83",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "0231012a8b375ac38c6ba6272342dccb6bc5e9f2797dcea3a01466b229baea5f44",
-            "name": "NEWTON3",
-            "precision": 0,
-            "ticker": "NEWT3",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "06b8bf301370ce0e9fd81c13fcb1e2b72aba6677c3ceaed1f4e6cec740869d5a",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "62b4b83f65bbccad37216c2f848a76c73d1d486c237369d1dbf00412b68f6b53",
-            "vin": 0
-        },
-        "issuer_pubkey": "0231012a8b375ac38c6ba6272342dccb6bc5e9f2797dcea3a01466b229baea5f44",
-        "name": "NEWTON3",
-        "precision": 0,
-        "ticker": "NEWT3",
-        "version": 0
-    },
-    "4533d4c00c8bec526e9404bfd637d0e5655b70b0ac0251a24df8fe832bb271b9": {
-        "asset_id": "4533d4c00c8bec526e9404bfd637d0e5655b70b0ac0251a24df8fe832bb271b9",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "0398d7524d9ae7196f674f7b4241291716619544dbf69342c586ae89b43994bec1",
-            "name": "RANDY",
-            "precision": 0,
-            "ticker": "RANDY",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "d6af19f9079dbf725dd769b8a6e139cd5a27d21caa4ab56a87040b6a97c003d7",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "84144aa04cb8567339b0ef4290f81ae095bcb09d1e0b327f6830ce1f2fa47021",
-            "vin": 0
-        },
-        "issuer_pubkey": "0398d7524d9ae7196f674f7b4241291716619544dbf69342c586ae89b43994bec1",
-        "name": "RANDY",
-        "precision": 0,
-        "ticker": "RANDY",
-        "version": 0
-    },
     "4799d8ec0f64b97ab7b64668c27f5f6452586192a4e2ba73b20b345dc80a82f7": {
         "asset_id": "4799d8ec0f64b97ab7b64668c27f5f6452586192a4e2ba73b20b345dc80a82f7",
         "collection": null,
@@ -474,36 +384,6 @@
         "name": "Marco USD",
         "precision": 8,
         "ticker": "USDm",
-        "version": 0
-    },
-    "484661663d01c5b7056183de53215c7ac52f4d3c1b607b9f44decc68d4aeaf4a": {
-        "asset_id": "484661663d01c5b7056183de53215c7ac52f4d3c1b607b9f44decc68d4aeaf4a",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "0248aee852263fc2806918335df694d863f8b1bf7821e483bdd85f2f21a7e8016a",
-            "name": "Hello",
-            "precision": 0,
-            "ticker": "TEST",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "685f5bec51ae7fd78ebf948ecf8bc548ab757c805e189b585c194e36c78d997f",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "71cf7a2f46ba7e18516db9e96313a93a146bc98cbcc7bab3b14ef77852354a2d",
-            "vin": 0
-        },
-        "issuer_pubkey": "0248aee852263fc2806918335df694d863f8b1bf7821e483bdd85f2f21a7e8016a",
-        "name": "Hello",
-        "precision": 0,
-        "ticker": "TEST",
         "version": 0
     },
     "51de8e90e36ea8f08c7c4829f87837a82dcb764f78fd75cf077637f06da08c75": {
@@ -683,36 +563,6 @@
         "ticker": "PXTST",
         "version": 0
     },
-    "6aa05b6be317231368059bb1948232fc6b85b996d14f162633be7f04e02b806b": {
-        "asset_id": "6aa05b6be317231368059bb1948232fc6b85b996d14f162633be7f04e02b806b",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "03f85b60b42e7fe2f59dc1f6fa6578dc5761341777738b4a2532fcfa842e7c9493",
-            "name": "Address test",
-            "precision": 0,
-            "ticker": "atest",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "62b4b83f65bbccad37216c2f848a76c73d1d486c237369d1dbf00412b68f6b53",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "685f5bec51ae7fd78ebf948ecf8bc548ab757c805e189b585c194e36c78d997f",
-            "vin": 0
-        },
-        "issuer_pubkey": "03f85b60b42e7fe2f59dc1f6fa6578dc5761341777738b4a2532fcfa842e7c9493",
-        "name": "Address test",
-        "precision": 0,
-        "ticker": "atest",
-        "version": 0
-    },
     "6d0a0d7171538d10ddaed1cec2c44f99b7b7607ffd247290240bb2b702e253f9": {
         "asset_id": "6d0a0d7171538d10ddaed1cec2c44f99b7b7607ffd247290240bb2b702e253f9",
         "collection": null,
@@ -743,124 +593,34 @@
         "ticker": "LOOT3",
         "version": 0
     },
-    "71aba14535beded7753ba1f3a0ff3d47a166363fa06a27eb65559abc92b4bc09": {
-        "asset_id": "71aba14535beded7753ba1f3a0ff3d47a166363fa06a27eb65559abc92b4bc09",
+    "765cbc249f9c19161f35e320edf2d709394a17f3c423713a1752bb81cef57adb": {
+        "asset_id": "765cbc249f9c19161f35e320edf2d709394a17f3c423713a1752bb81cef57adb",
         "collection": null,
         "contract": {
             "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
+                "domain": "wintercooled.github.io"
             },
-            "issuer_pubkey": "02dd0a23473c03374c1bf3b537c55fef0e28d1996096c7660a26c141fd8f890907",
-            "name": "Block Equity",
+            "issuer_pubkey": "03f9a91d8fa5c63ae79730d1735e95f7e90f59fed6a1668b7a6eb321c9af4373d3",
+            "name": "AMT_T_MH_01",
             "precision": 2,
-            "ticker": "BLOCK",
+            "ticker": "AMTT1",
             "version": 0
         },
         "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
+            "domain": "wintercooled.github.io"
         },
         "issuance_prevout": {
-            "txid": "14383331c843182e079b227f2df168916063af13cec6d002d37d5a1d2b1a62ef",
+            "txid": "c212947d113a6e652026b4c3b7f6cf1213beba1dc99ced92e2c604e34d4cd92a",
             "vout": 0
         },
         "issuance_txin": {
-            "txid": "62ea5d0aa7c9f4339b16a6d8e6ff4437ffb244de658222841c74d335324e4219",
+            "txid": "eca9529086542d67a8a32de247c298d47591d6e27dc588f6719f02086e69c70a",
             "vin": 0
         },
-        "issuer_pubkey": "02dd0a23473c03374c1bf3b537c55fef0e28d1996096c7660a26c141fd8f890907",
-        "name": "Block Equity",
+        "issuer_pubkey": "03f9a91d8fa5c63ae79730d1735e95f7e90f59fed6a1668b7a6eb321c9af4373d3",
+        "name": "AMT_T_MH_01",
         "precision": 2,
-        "ticker": "BLOCK",
-        "version": 0
-    },
-    "78b7e472308da022cdafa0bd1248b3e1f4f8baad6754a39fbbcf866af233a833": {
-        "asset_id": "78b7e472308da022cdafa0bd1248b3e1f4f8baad6754a39fbbcf866af233a833",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "0226ede2e4bfc5dd2c97b8b53c6a1b46dab6bfebb900c8daa9c35772157ed1f869",
-            "name": "BBond Pearl",
-            "precision": 2,
-            "ticker": "BBPRL",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "ca9a14ee5a6f5e9e1459a871010b9e1b8cc50ef0df98f4a92642991856459627",
-            "vout": 0
-        },
-        "issuance_txin": {
-            "txid": "3b455f28ea3e46e8b7eefa3a636ebf3b269cb8a230761150c82e3a022fbc4dbc",
-            "vin": 0
-        },
-        "issuer_pubkey": "0226ede2e4bfc5dd2c97b8b53c6a1b46dab6bfebb900c8daa9c35772157ed1f869",
-        "name": "BBond Pearl",
-        "precision": 2,
-        "ticker": "BBPRL",
-        "version": 0
-    },
-    "7ab87edbc485da599dfd405966564f6ccda41bc2371d43683c29388e92527551": {
-        "asset_id": "7ab87edbc485da599dfd405966564f6ccda41bc2371d43683c29388e92527551",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "03ed9c7594377396227058df23ed21641ab3a47245448cfd0b2adf394a38932ce0",
-            "name": "EXAMPLE",
-            "precision": 0,
-            "ticker": "EXAMP",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "3b455f28ea3e46e8b7eefa3a636ebf3b269cb8a230761150c82e3a022fbc4dbc",
-            "vout": 0
-        },
-        "issuance_txin": {
-            "txid": "5e3145b932924009c539d6c9dc2c663b5979866e37e054deb751a70a3d3474cb",
-            "vin": 0
-        },
-        "issuer_pubkey": "03ed9c7594377396227058df23ed21641ab3a47245448cfd0b2adf394a38932ce0",
-        "name": "EXAMPLE",
-        "precision": 0,
-        "ticker": "EXAMP",
-        "version": 0
-    },
-    "7f7c9c259719eab9b1b6808e0c4ed5521b2803bec3ce605b9b4bab0cbd3f325d": {
-        "asset_id": "7f7c9c259719eab9b1b6808e0c4ed5521b2803bec3ce605b9b4bab0cbd3f325d",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "035c1be0c65e1f41ab6b1bbf14900eb3a0e63d4e15b88c602459c54c9ab9cc97c0",
-            "name": "NEWTON2",
-            "precision": 0,
-            "ticker": "NEWT2",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "be986ca47f8ccc045d323092206fb3caebaeef0ae056bef51784d374603a63b3",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "c8817c23df4a169ec52ea7f4b065902a0dd3b23b3e4fb1f3b8406d3e5833bf9f",
-            "vin": 0
-        },
-        "issuer_pubkey": "035c1be0c65e1f41ab6b1bbf14900eb3a0e63d4e15b88c602459c54c9ab9cc97c0",
-        "name": "NEWTON2",
-        "precision": 0,
-        "ticker": "NEWT2",
+        "ticker": "AMTT1",
         "version": 0
     },
     "8363084c77fbaebce672092d301fc103495546457468b88a0830ce4797562c03": {
@@ -890,36 +650,6 @@
         "name": "TestOps",
         "precision": 0,
         "ticker": "BSOPS",
-        "version": 0
-    },
-    "8d87d44346cb16a773f4a0cb8766ac18cc82630601df7977ea6e776410b77c8a": {
-        "asset_id": "8d87d44346cb16a773f4a0cb8766ac18cc82630601df7977ea6e776410b77c8a",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "038b87ce94656238d5406f9c6ac8e3aefe24726bce48995aa9a2bc158a27538c34",
-            "name": "aaaaa",
-            "precision": 0,
-            "ticker": "aaa",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "bdb210caff293e768fecf297e6be44f67f92e25ad7fc84a223315e70a51bd98b",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "ae7c474b8511f956cecdd61b41760173213a1f61389997144b87dec5a5a9cdbe",
-            "vin": 0
-        },
-        "issuer_pubkey": "038b87ce94656238d5406f9c6ac8e3aefe24726bce48995aa9a2bc158a27538c34",
-        "name": "aaaaa",
-        "precision": 0,
-        "ticker": "aaa",
         "version": 0
     },
     "8f1bef7e7204e1d3387ba011fe74569a5ddff28802d6aa736a3f2133df48a404": {
@@ -983,96 +713,6 @@
         "ticker": "L-NRN",
         "version": 0
     },
-    "9e14f7b4227b726ce4cc069f6917f7f7b02e3403dfa5e3a7f7621417977ab5c3": {
-        "asset_id": "9e14f7b4227b726ce4cc069f6917f7f7b02e3403dfa5e3a7f7621417977ab5c3",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "02d1f0c56940f7c8e25c0898067b81e8ccdee3edb09cb53422bb6b8bac4c52ff01",
-            "name": "LUNA2",
-            "precision": 2,
-            "ticker": "LUNA",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "256d2293830e6aef18ecb59e5d90e0cf911e76109802258c84800e650aa37a2d",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "3de76f9ca62af1dfe828443060da2afc78c3a63dda683861c1e91a830c5b4327",
-            "vin": 0
-        },
-        "issuer_pubkey": "02d1f0c56940f7c8e25c0898067b81e8ccdee3edb09cb53422bb6b8bac4c52ff01",
-        "name": "LUNA2",
-        "precision": 2,
-        "ticker": "LUNA",
-        "version": 0
-    },
-    "9f56b8da03d5216af74581c2b1f353a2ffbbba7ab1bf2b0d5818ba16ea299c40": {
-        "asset_id": "9f56b8da03d5216af74581c2b1f353a2ffbbba7ab1bf2b0d5818ba16ea299c40",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "026ad6c15bbd6f6e6ff38cc3916984cd613bf50f159b035388aa3862c30a9c3fad",
-            "name": "test4",
-            "precision": 0,
-            "ticker": "TESTT",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "01ac5c20a1e14a1f0ec3d55a0832e75877814970d4d8f7aaf74a2c859ce5be03",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "7e617180e2109717ab6f9312efb6860776c4dadaea6005481426df74e4bec5c3",
-            "vin": 0
-        },
-        "issuer_pubkey": "026ad6c15bbd6f6e6ff38cc3916984cd613bf50f159b035388aa3862c30a9c3fad",
-        "name": "test4",
-        "precision": 0,
-        "ticker": "TESTT",
-        "version": 0
-    },
-    "a1e7f14d0fba1e7fadc68bbc3901d22cfd759974b71959d5d0bce46aa8e3ff4a": {
-        "asset_id": "a1e7f14d0fba1e7fadc68bbc3901d22cfd759974b71959d5d0bce46aa8e3ff4a",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "02288703f44b6298c35e8bb42c1a5fac250cdb213d1ddb7c7b0d20071a9e1cd715",
-            "name": "test2",
-            "precision": 0,
-            "ticker": "test2",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "7c8f6ecde7387589ebbfdebaf4b6d7f55b939d707fef8910cf564d5fe66a3945",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "bb4b825e492bdb48ce268d89f567bd9427b44dfd8ea3e5c6cd8ce710297e07e4",
-            "vin": 0
-        },
-        "issuer_pubkey": "02288703f44b6298c35e8bb42c1a5fac250cdb213d1ddb7c7b0d20071a9e1cd715",
-        "name": "test2",
-        "precision": 0,
-        "ticker": "test2",
-        "version": 0
-    },
     "a32d60bdf55dd81be0fc18cbb65ead020199eb544e0d410a302d66aa9e3393be": {
         "asset_id": "a32d60bdf55dd81be0fc18cbb65ead020199eb544e0d410a302d66aa9e3393be",
         "collection": null,
@@ -1103,6 +743,36 @@
         "ticker": "PLM0",
         "version": 0
     },
+    "a406c8c47a867636a03f1d1c951d369ddb4c0bb5b48138dc2391f724e2aa06b4": {
+        "asset_id": "a406c8c47a867636a03f1d1c951d369ddb4c0bb5b48138dc2391f724e2aa06b4",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "036579a38a3eabc0b0a023fd43eee2d9ead295f1b3daa305664942f5520e6b4eb8",
+            "name": "Buerger Solar Kraftwerk",
+            "precision": 0,
+            "ticker": "BSK2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "f5e9152b01c74fad81dc1301a13e687418e5569f127309026b94f16e4f8a2f02",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "494b18f5f771dcf9def7a039441e399f7a59896da8c40e17bad9a6c7c282a919",
+            "vin": 0
+        },
+        "issuer_pubkey": "036579a38a3eabc0b0a023fd43eee2d9ead295f1b3daa305664942f5520e6b4eb8",
+        "name": "Buerger Solar Kraftwerk",
+        "precision": 0,
+        "ticker": "BSK2",
+        "version": 0
+    },
     "ac3e0ff248c5051ffd61e00155b7122e5ebc04fd397a0ecbdd4f4e4a56232926": {
         "asset_id": "ac3e0ff248c5051ffd61e00155b7122e5ebc04fd397a0ecbdd4f4e4a56232926",
         "contract": {
@@ -1130,66 +800,6 @@
         "name": "Liquid CAD",
         "precision": 8,
         "ticker": "LCAD",
-        "version": 0
-    },
-    "af2397dcb395e247bc197ee15187d6af9b6d0bfe7c2b32d1510630850f3efd8e": {
-        "asset_id": "af2397dcb395e247bc197ee15187d6af9b6d0bfe7c2b32d1510630850f3efd8e",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "029602c6f8110555305d04ad54fec838cdfdcc81609367b3ee040943e263518bf1",
-            "name": "TEST2",
-            "precision": 0,
-            "ticker": "00000",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "71cf7a2f46ba7e18516db9e96313a93a146bc98cbcc7bab3b14ef77852354a2d",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "ca9a14ee5a6f5e9e1459a871010b9e1b8cc50ef0df98f4a92642991856459627",
-            "vin": 0
-        },
-        "issuer_pubkey": "029602c6f8110555305d04ad54fec838cdfdcc81609367b3ee040943e263518bf1",
-        "name": "TEST2",
-        "precision": 0,
-        "ticker": "00000",
-        "version": 0
-    },
-    "afb937168b603f2a58dbf8e16cff8d797cee6b6c62f07cafe9c884affcd7e4e9": {
-        "asset_id": "afb937168b603f2a58dbf8e16cff8d797cee6b6c62f07cafe9c884affcd7e4e9",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "034e9a162e2da93bcc38551408671ce10cd44811de766518c8de2477813340c0fd",
-            "name": "L-BTC2",
-            "precision": 2,
-            "ticker": "2BTC",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "bb943fa48b9356700e19f54e70ac0610c629f84bdeeeca470a474ea3e0d5656e",
-            "vout": 0
-        },
-        "issuance_txin": {
-            "txid": "049c3ff7853047893b35e11fbe41fc6d168d3dbcb3b4ca9a40d120b105f39e91",
-            "vin": 0
-        },
-        "issuer_pubkey": "034e9a162e2da93bcc38551408671ce10cd44811de766518c8de2477813340c0fd",
-        "name": "L-BTC2",
-        "precision": 2,
-        "ticker": "2BTC",
         "version": 0
     },
     "b01e4d029b4f1fe487a865d8f04fdffe2bd335b0b7f8700092109e6f042f0609": {
@@ -1310,66 +920,6 @@
         "name": "PEGx USDt Testnet",
         "precision": 8,
         "ticker": "USDt",
-        "version": 0
-    },
-    "b7ad03307a7b810353dc8cfe6d114bfe1edf04ca8ba533d5aa3421accc8443ca": {
-        "asset_id": "b7ad03307a7b810353dc8cfe6d114bfe1edf04ca8ba533d5aa3421accc8443ca",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "0317ea17f011d4ed81f5a23054f5b4f6ce42b06e8797fd38b63e1a225a2d119b7b",
-            "name": "XTEST",
-            "precision": 0,
-            "ticker": "XYZZ",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "2af73a980db464190665083095a12fba03c9878a6331a8d6561e2daf38fb9b59",
-            "vout": 0
-        },
-        "issuance_txin": {
-            "txid": "2e672ba23e7c39cf5f331d46ae24ad931dac6a7d528f9deb5383e87ccfcf1a90",
-            "vin": 0
-        },
-        "issuer_pubkey": "0317ea17f011d4ed81f5a23054f5b4f6ce42b06e8797fd38b63e1a225a2d119b7b",
-        "name": "XTEST",
-        "precision": 0,
-        "ticker": "XYZZ",
-        "version": 0
-    },
-    "b7c3f35a13c8cdb5c0a6c36d385c8b8f7ca040dceb01da950bdd97f70ddabb92": {
-        "asset_id": "b7c3f35a13c8cdb5c0a6c36d385c8b8f7ca040dceb01da950bdd97f70ddabb92",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "02efa2e6b7a0d514fb6d1d638a06869296093a20d0c710fb5a0d4e34c8be7de040",
-            "name": "NEWTON",
-            "precision": 0,
-            "ticker": "NEWT",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "be986ca47f8ccc045d323092206fb3caebaeef0ae056bef51784d374603a63b3",
-            "vout": 0
-        },
-        "issuance_txin": {
-            "txid": "06b8bf301370ce0e9fd81c13fcb1e2b72aba6677c3ceaed1f4e6cec740869d5a",
-            "vin": 0
-        },
-        "issuer_pubkey": "02efa2e6b7a0d514fb6d1d638a06869296093a20d0c710fb5a0d4e34c8be7de040",
-        "name": "NEWTON",
-        "precision": 0,
-        "ticker": "NEWT",
         "version": 0
     },
     "be995c08d7437b1a6de1717203eec8c0951a18e2fa4b794fc4cc276008258835": {
@@ -1552,34 +1102,35 @@
         "ticker": "OAK",
         "version": 0
     },
-    "e249c9dc4d6ef4ab332869bd8c3bfc6a9b9c9ba5ef26e6c2400802f3bfd75540": {
-        "asset_id": "e249c9dc4d6ef4ab332869bd8c3bfc6a9b9c9ba5ef26e6c2400802f3bfd75540",
+    "ddf8c4c47b19b4cc99f421d4ac826a41a3f8de153f78ae43a6bd1e26df0d6f94": {
+        "asset_id": "ddf8c4c47b19b4cc99f421d4ac826a41a3f8de153f78ae43a6bd1e26df0d6f94",
         "collection": null,
         "contract": {
             "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
+                "domain": "lab.r3c.network"
             },
-            "issuer_pubkey": "03e94684c2c9577fd88641b4d16b77ac5e2404cd22e28d2d8a4dcdad2e4bdc5fc8",
-            "name": "NewBitcoin",
-            "precision": 8,
-            "ticker": "NBTC",
+            "issuer_pubkey": "030240546a3e1740bf0f09df174bccbb7f69798e753c43368485d0dcec19038aa1",
+            "name": "Multihash Asset NFT",
+            "nft": "QmUHfFDdy8RpHJM5s7fTJTNyjRCkkdQqNRp7arUhsBRreP",
+            "precision": 0,
+            "ticker": "MANFT",
             "version": 0
         },
         "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
+            "domain": "lab.r3c.network"
         },
         "issuance_prevout": {
-            "txid": "084feb82e3a4aa0f1333d52a53fa544251fd258cae6cbfb9bd757607c168e3f3",
+            "txid": "3c164a2d2005913a1c6f1756cfcc0edb04cba6736510788bab3fc7ecfc59ced5",
             "vout": 1
         },
         "issuance_txin": {
-            "txid": "e7ce9c1a57b7b4c4eea5a50b048a61ba790f7911fc6f483c42132e36caea670b",
+            "txid": "570b2de1f912cf18df54e0ea749d9a7f17fe01b38be10978f89c88f3af1d449a",
             "vin": 0
         },
-        "issuer_pubkey": "03e94684c2c9577fd88641b4d16b77ac5e2404cd22e28d2d8a4dcdad2e4bdc5fc8",
-        "name": "NewBitcoin",
-        "precision": 8,
-        "ticker": "NBTC",
+        "issuer_pubkey": "030240546a3e1740bf0f09df174bccbb7f69798e753c43368485d0dcec19038aa1",
+        "name": "Multihash Asset NFT",
+        "precision": 0,
+        "ticker": "MANFT",
         "version": 0
     },
     "e7af57b566c7555b246719109a4355a614e0c1112f9706abd50dae01ecdcd3e3": {
@@ -1611,64 +1162,34 @@
         "ticker": "PXTR2",
         "version": 0
     },
-    "f0ea8c9297cffb890c04baa80f8c735fca11c9ad452ae22aa2e4b07b810abe80": {
-        "asset_id": "f0ea8c9297cffb890c04baa80f8c735fca11c9ad452ae22aa2e4b07b810abe80",
+    "e7b24ecb45f09f58738151e3fd70ab3b2aa4830f57c153919e249f54a13ed732": {
+        "asset_id": "e7b24ecb45f09f58738151e3fd70ab3b2aa4830f57c153919e249f54a13ed732",
         "collection": null,
         "contract": {
             "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
+                "domain": "lab.r3c.network"
             },
-            "issuer_pubkey": "03930153d6623c6b49671f7894da5a388b7c102b2cc9235f6710320dd5118b6fcd",
-            "name": "ASSET",
+            "issuer_pubkey": "024e541d76f19c6eebc2eaa4d875a7e5819eed8d796e3735c8350261a9ebcbe3e5",
+            "name": "Monte dos Dados",
             "precision": 0,
-            "ticker": "ASSET",
+            "ticker": "L-MDD",
             "version": 0
         },
         "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
+            "domain": "lab.r3c.network"
         },
         "issuance_prevout": {
-            "txid": "152d6b5d35e1e2737e323da713daaffbee85d7e2a09439af012b12c3453631d6",
-            "vout": 0
+            "txid": "3bd60dda003aa887392f4e1ce2abdef06fd3b917104269277f3b811bf640f92c",
+            "vout": 3
         },
         "issuance_txin": {
-            "txid": "be986ca47f8ccc045d323092206fb3caebaeef0ae056bef51784d374603a63b3",
+            "txid": "fa84759b5b91f5251a7eb5013f0363ebb79388cf3fe372621b1c196e773a62c2",
             "vin": 0
         },
-        "issuer_pubkey": "03930153d6623c6b49671f7894da5a388b7c102b2cc9235f6710320dd5118b6fcd",
-        "name": "ASSET",
+        "issuer_pubkey": "024e541d76f19c6eebc2eaa4d875a7e5819eed8d796e3735c8350261a9ebcbe3e5",
+        "name": "Monte dos Dados",
         "precision": 0,
-        "ticker": "ASSET",
-        "version": 0
-    },
-    "f2e63d9344874312dd8e6b731119f0f447cf9eec1225618547383ad4cb25e99e": {
-        "asset_id": "f2e63d9344874312dd8e6b731119f0f447cf9eec1225618547383ad4cb25e99e",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "reusable-asset-domain.herokuapp.com"
-            },
-            "issuer_pubkey": "03f15e57497fd9bc7589ed472b54812306581efc67c865d4c87c514225fff242d7",
-            "name": "POKEMON",
-            "precision": 0,
-            "ticker": "POKE",
-            "version": 0
-        },
-        "entity": {
-            "domain": "reusable-asset-domain.herokuapp.com"
-        },
-        "issuance_prevout": {
-            "txid": "14383331c843182e079b227f2df168916063af13cec6d002d37d5a1d2b1a62ef",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "35f2c3038dee6fb9a84be9524260bc0bd9512831ec5427dc7494572f1d779540",
-            "vin": 0
-        },
-        "issuer_pubkey": "03f15e57497fd9bc7589ed472b54812306581efc67c865d4c87c514225fff242d7",
-        "name": "POKEMON",
-        "precision": 0,
-        "ticker": "POKE",
+        "ticker": "L-MDD",
         "version": 0
     },
     "f3d1ec678811398cd2ae277cbe3849c6f6dbd72c74bc542f7c4b11ff0e820958": {
@@ -1698,6 +1219,36 @@
         "name": "Tether USD",
         "precision": 8,
         "ticker": "USDt",
+        "version": 0
+    },
+    "f506e153b62d224cc247e9d34985c17f515489e1ee05f75578396acd002379d7": {
+        "asset_id": "f506e153b62d224cc247e9d34985c17f515489e1ee05f75578396acd002379d7",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "wymp.tech"
+            },
+            "issuer_pubkey": "031682fd181f5c5aab06a4738628335830c15ffd96d8de2192eafcbda492b863c7",
+            "name": "INX Test Asset 2",
+            "precision": 0,
+            "ticker": "INXTST2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wymp.tech"
+        },
+        "issuance_prevout": {
+            "txid": "64c570f1ac9a7eced318074c7f0894042e032e7f7a5b36dcfe7740b40bb60004",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "d483fc1a8f728c978295c8470f4001ceee48ad6ff6abf75a0b535d143eb842fa",
+            "vin": 0
+        },
+        "issuer_pubkey": "031682fd181f5c5aab06a4738628335830c15ffd96d8de2192eafcbda492b863c7",
+        "name": "INX Test Asset 2",
+        "precision": 0,
+        "ticker": "INXTST2",
         "version": 0
     },
     "f98338818be784b53de894c991c69013b9f39b9cbb3f81f292aa6a5e7d2a5231": {
