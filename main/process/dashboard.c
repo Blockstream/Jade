@@ -759,7 +759,9 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
     gui_activity_register_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
 
     // Token code updates with time (unless explicitly specified otherwise - eg. test fixed value)
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
     TickType_t timeout = 100 / portTICK_PERIOD_MS;
+#endif
     uint8_t count = epoch_value % otp_ctx->period;
     uint8_t last_count = count;
     while (true) {
