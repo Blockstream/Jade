@@ -2012,9 +2012,9 @@ def test_set_pinserver(jadeapi):
     with open(PINSERVER_TEST_PUBKEY_FILE, 'rb') as f:
         pubkey = f.read()
     rslt = jadeapi.set_pinserver('testurl', 'testonion', pubkey, 'testcert')
-    assert(rslt)
+    assert rslt
     rslt = jadeapi.reset_pinserver(True, True)
-    assert(rslt)
+    assert rslt
 
 
 def test_get_greenaddress_receive_address(jadeapi):
@@ -2281,7 +2281,7 @@ def test_generic_multisig_matches_ga_addresses(jadeapi):
         for addr_test in ga_msig['address_tests']:
             ptr = addr_test['paths'][0][0]
             # check all signers have same single-entry path (ie. 'ptr')
-            assert(all(p == [ptr] for p in addr_test['paths']))
+            assert all(p == [ptr] for p in addr_test['paths'])
             rslt = jadeapi.get_receive_address(inputdata['network'], subaccount, branch, ptr,
                                                recovery_xpub=recovery_xpub)
             assert rslt == addr_test['expected_address']
