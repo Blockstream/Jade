@@ -10,3 +10,6 @@
 [submodule "components/esp32_deflate"]
 	path = components/esp32_deflate
 	url = https://github.com/Blockstream/esp32_deflate
+[submodule "components/esp32_bc-ur"]
+	path = components/esp32_bc-ur
+	url = https://github.com/Blockstream/esp32_bc-ur
