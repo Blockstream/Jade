@@ -165,11 +165,20 @@ ae plan scan carr elec reco acco stoc insp net ups can opt brie guid priv'
 TEST_MNEMONIC_PREFIXES_AMBIGUOUS = 'fish inne face gin orc perm usef met fen \
 kidn chuc part fav suns draw limb scie cran ova let slot invi sadn bana'
 
+# Seedsigner style for our test mnemonic
+TEST_MNEMONIC_SEEDSIGNER = '0701093106520784124813051919112106800979032412840\
+67217400531103815430402126110281632094415190145'
+
 TEST_MNEMONIC_12 = 'retire verb human ecology best member fiction measure \
 demand stereo wedding olive'
 
 TEST_MNEMONIC_12_IDENTITY = 'alcohol woman abuse must during monitor noble \
 actual mixed trade anger aisle'
+
+# Seedsigner's example https://github.com/SeedSigner/seedsigner/blob/dev/docs/seed_qr/README.md
+SEEDSIGNER_MNEMONIC_STRING = 'vacuum bridge buddy supreme exclude milk consider \
+tail expand wasp pattern nuclear'
+SEEDSIGNER_MNEMONIC_NUMERIC = '192402220235174306311124037817700641198012901210'
 
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
@@ -1611,14 +1620,16 @@ def _set_wallet(jade, mnemonic=TEST_MNEMONIC, passphrase=None):
     return reply['result']
 
 
-def test_mnemonic_prefixes(jade):
+def test_mnemonic_import(jade):
 
     # Check the mnemonic unique prefixes expands to the same mnemonic/wallet
     # as when giving the full mnemonic words (test for qr-scanning prefixes)
     # as the unambiguous prefixes are expanded to the full words.  orc -> orchard
     xpub_root0 = _set_wallet(jade, mnemonic=TEST_MNEMONIC)
     xpub_root1 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_PREFIXES)
+    xpub_root2 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_SEEDSIGNER)
     assert xpub_root1 == xpub_root0
+    assert xpub_root2 == xpub_root0
 
     # Check that mnemonic-prefixes are accepted even if they are prefixes to multiple
     # words, provided one of them is an exact/full match for the entire word.
@@ -1627,11 +1638,21 @@ def test_mnemonic_prefixes(jade):
     xpub_root2 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_PREFIXES_EXACT_MATCH)
     assert xpub_root2 != xpub_root0
 
+    # Seedsigner's own test case (12-words)
+    xpub_root0 = _set_wallet(jade, mnemonic=SEEDSIGNER_MNEMONIC_STRING)
+    xpub_root1 = _set_wallet(jade, mnemonic=SEEDSIGNER_MNEMONIC_NUMERIC)
+    assert xpub_root1 == xpub_root0
 
-def test_mnemonic_prefixes_bad(jade):
+
+def test_mnemonic_import_bad(jade):
     # Check that mnemonic-prefixes are rejected if the prefixes match multiple words
     # (but none of them exactly/full-match).  ie. prefix is ambiguous.  met -> metal, method
-    for bad_prefixes in [TEST_MNEMONIC_PREFIXES_AMBIGUOUS]:
+    for bad_prefixes in [TEST_MNEMONIC_PREFIXES_AMBIGUOUS,
+                         TEST_MNEMONIC_SEEDSIGNER[:-1],  # bad length
+                         TEST_MNEMONIC_SEEDSIGNER + '1234',  # bad length
+                         TEST_MNEMONIC_SEEDSIGNER[:-4] + '2048',  # out of range
+                         TEST_MNEMONIC_SEEDSIGNER[:-4] + '0000',  # mnemonic wouldn't be valid
+                         ]:
         request = jade.build_request("badprefix_" + bad_prefixes[0:4], "debug_set_mnemonic",
                                      {"mnemonic": bad_prefixes})
         reply = jade.make_rpc_call(request)
@@ -2709,9 +2730,9 @@ def run_interface_tests(jadeapi,
         test_handshake(jadeapi.jade)
         test_handshake_bad_sig(jadeapi.jade)
 
-        # Test expanding mnemonic words from unique prefixes
-        test_mnemonic_prefixes(jadeapi.jade)
-        test_mnemonic_prefixes_bad(jadeapi.jade)
+        # Test importing mnemonic words eg. from qr scan
+        test_mnemonic_import(jadeapi.jade)
+        test_mnemonic_import_bad(jadeapi.jade)
 
         # Test mnemonic-with-passphrase
         test_passphrase(jadeapi.jade)

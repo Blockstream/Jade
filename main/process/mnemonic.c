@@ -526,24 +526,25 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
 // eg: bar, barely, bargain, barrel; pen, penalty, pencil; ski, skill, skin, skirt
 // In this case we allow/prefer an exact match even when the word is an prefix of other words.
 // NOTE: only the English wordlist is supported.
-static bool expand_words(char* mnemonic, const size_t mnemonic_len, const char* mnemonic_word_prefixes)
+static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
 {
-    JADE_ASSERT(mnemonic);
-    JADE_ASSERT(mnemonic_len);
-    JADE_ASSERT(mnemonic_word_prefixes);
+    JADE_ASSERT(qr_data);
+    JADE_ASSERT(buf);
+    JADE_ASSERT(buf_len);
+    JADE_INIT_OUT_SIZE(written);
 
     size_t write_pos = 0;
-    const char* read_ptr = mnemonic_word_prefixes;
+    const char* read_ptr = qr_data->strdata;
     const char* end_ptr = read_ptr;
 
-    while (*end_ptr != '\0' && write_pos < mnemonic_len) {
+    while (*end_ptr != '\0' && write_pos < buf_len) {
         // Find the next prefix
         end_ptr = strchr(read_ptr, ' ');
         if (!end_ptr) {
-            end_ptr = strchr(read_ptr, '\0');
+            // Not found, point to end of string
+            end_ptr = qr_data->strdata + qr_data->len;
+            JADE_ASSERT(*end_ptr == '\0');
         }
-        JADE_ASSERT(end_ptr);
-        JADE_ASSERT(end_ptr > mnemonic_word_prefixes);
 
         // Lookup prefix in the default (English) wordlist, ensuring exactly one match
         size_t possible_match;
@@ -551,72 +552,142 @@ static bool expand_words(char* mnemonic, const size_t mnemonic_len, const char* 
         const size_t nmatches = valid_words(read_ptr, (end_ptr - read_ptr), &possible_match, 1, &exact_match);
         if (nmatches != 1 && !exact_match) {
             JADE_LOGW("%d matches for prefix: %.*s", nmatches, (end_ptr - read_ptr), read_ptr);
-            mnemonic[0] = '\0';
             return false;
         }
 
         char* wordlist_extracted = NULL;
         JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_match, &wordlist_extracted));
         const size_t word_len = strlen(wordlist_extracted);
-        if (write_pos + word_len >= mnemonic_len) {
+        if (write_pos + word_len >= buf_len) {
             JADE_LOGW("Expanded mnemonic too long");
             wally_free_string(wordlist_extracted);
-            mnemonic[0] = '\0';
             return false;
         }
 
-        // Copy the expanded word into the mnemonic
-        strcpy(mnemonic + write_pos, wordlist_extracted);
+        // Copy the expanded word into the output buffer
+        memcpy(buf + write_pos, wordlist_extracted, word_len);
         wally_free_string(wordlist_extracted);
         write_pos += word_len;
-        mnemonic[write_pos++] = *end_ptr; // ie. space separator or nul terminator
+
+        // Copy space separator or nul terminator
+        JADE_ASSERT(*end_ptr == ' ' || *end_ptr == '\0');
+        buf[write_pos++] = *end_ptr;
 
         // Update read pointer to be after the whitespace
         read_ptr = end_ptr + 1;
     }
 
     // Return true if we have successfully consumed all input
-    JADE_ASSERT(write_pos <= mnemonic_len);
+    JADE_ASSERT(write_pos <= buf_len);
+    *written = write_pos;
     return *end_ptr == '\0';
+}
+
+static bool string_digits_only(const char* digits)
+{
+    while (*digits) {
+        if (!isdigit(*digits++)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool import_seedsigner(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+{
+    JADE_ASSERT(qr_data);
+    JADE_ASSERT(buf);
+    JADE_ASSERT(buf_len);
+    JADE_INIT_OUT_SIZE(written);
+
+    if ((qr_data->len == 48 || qr_data->len == 96) && string_digits_only(qr_data->strdata)) {
+        // SeedSigner qr support (ie string of word indices).
+        // NOTE: only the English wordlist is supported.
+        char index_code[5];
+        SENSITIVE_PUSH(index_code, sizeof(index_code));
+        index_code[4] = '\0';
+
+        size_t write_pos = 0;
+        const size_t num_words = qr_data->len == 48 ? 12 : 24;
+        for (size_t i = 0; i < num_words; ++i) {
+            memcpy(index_code, qr_data->strdata + (i * 4), 4);
+            const size_t index = strtol(index_code, NULL, 10);
+            if (index > 2047) {
+                JADE_LOGE("Error, provided a bip39 word out of range");
+                SENSITIVE_POP(index_code);
+                return false;
+            }
+
+            char* wally_word = NULL;
+            JADE_WALLY_VERIFY(bip39_get_word(NULL, index, &wally_word));
+            const size_t wordlen = strlen(wally_word);
+            if (write_pos + 1 + wordlen + 1 >= buf_len) {
+                // Not enough remaining for space, word, nul
+                JADE_LOGE("Error, expanded mnemonic string too large for buffer");
+                SENSITIVE_POP(index_code);
+                return false;
+            }
+
+            if (i > 0) {
+                // Add space separator
+                buf[write_pos++] = ' ';
+            }
+
+            // Copy word
+            memcpy(buf + write_pos, wally_word, wordlen);
+            write_pos += wordlen;
+            wally_free_string(wally_word);
+        }
+
+        SENSITIVE_POP(index_code);
+        buf[write_pos++] = '\0';
+        *written = write_pos;
+        return true;
+    }
+    return false;
+}
+
+// Attempt to import mnemonic from supported formats
+static bool import_mnemonic(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+{
+    // 1. Try seedsigner format (string of 4-digit indicies, no spaces)
+    // 2. Try to read word prefixes or whole words (space separated)
+    // TODO: add bc-ur format?
+    return import_seedsigner(qr_data, buf, buf_len, written) || expand_words(qr_data, buf, buf_len, written);
 }
 
 // Function to validate qr scanned is (or expands to) a valid mnemonic
 // (Passed to the qr-scanner so scanning only stops when this is satisfied)
 // NOTE: not 'static' here as also called from debug/test code.
-bool expand_and_validate(qr_data_t* qr_data)
+bool import_and_validate_mnemonic(qr_data_t* qr_data)
 {
     JADE_ASSERT(qr_data);
     JADE_ASSERT(qr_data->len < sizeof(qr_data->strdata));
     JADE_ASSERT(qr_data->strdata[qr_data->len] == '\0');
 
-    char buf[MNEMONIC_BUFLEN];
-    if (qr_data->len > sizeof(buf)) {
-        JADE_LOGW("Scanned string too long for mnemonic");
-        goto invalid_qr;
-    }
+    char buf[sizeof(qr_data->strdata)];
+    SENSITIVE_PUSH(buf, sizeof(buf));
 
-    // Attempt to recognise bip39 words, expanding from unambiguous prefixes if necessary.
-    // NOTE: only the English wordlist is supported.
-    // Then we check the expanded string constitutes a valid bip39 mnemonic.
-    if (expand_words(buf, sizeof(buf), qr_data->strdata) && bip39_mnemonic_validate(NULL, buf) == WALLY_OK) {
-        const size_t bufstrlen = strlen(buf);
-        if (bufstrlen != qr_data->len) {
-            // String was expanded - sanity check then copy expanded into scan result
-            JADE_ASSERT(bufstrlen > qr_data->len);
-            if (bufstrlen >= sizeof(qr_data->strdata)) {
-                JADE_LOGW("Expanded string too long for scan buffer");
-                goto invalid_qr;
-            }
-            strcpy(qr_data->strdata, buf);
-            qr_data->len = bufstrlen;
-        }
+    // Try to import mnemonic, validate, and if all good copy over into the qr_data
+    size_t written = 0;
+    if (import_mnemonic(qr_data, buf, sizeof(buf), &written) && bip39_mnemonic_validate(NULL, buf) == WALLY_OK) {
+        JADE_ASSERT(written);
+        JADE_ASSERT(written <= sizeof(buf));
+        JADE_ASSERT(buf[written - 1] == '\0');
+
+        memcpy(qr_data->strdata, buf, written);
+        qr_data->len = written - 1; // Do not include nul-terminator
+
+        SENSITIVE_POP(buf);
         return true;
     }
 
-invalid_qr:
     // Show the user that a valid qr was scanned, but the string data
     // did not constitute (or expand to) a valid bip39 mnemonic string.
+    SENSITIVE_POP(buf);
     await_error_activity("Invalid recovery phrase");
+    qr_data->len = 0;
     return false;
 }
 
@@ -626,7 +697,7 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
     // Pass validation callback above to qr scanner
-    qr_data_t qr_data = { .len = 0, .is_valid = expand_and_validate };
+    qr_data_t qr_data = { .len = 0, .is_valid = import_and_validate_mnemonic };
     SENSITIVE_PUSH(&qr_data, sizeof(qr_data));
     mnemonic[0] = '\0';
 

@@ -18,7 +18,7 @@
 
 // Function to interpret scanned qr code string.
 // Called in this code to test it separately from camera or qr interpretation.
-bool expand_and_validate(qr_data_t* qr_data);
+bool import_and_validate_mnemonic(qr_data_t* qr_data);
 
 void debug_set_mnemonic_process(void* process_ptr)
 {
@@ -30,7 +30,7 @@ void debug_set_mnemonic_process(void* process_ptr)
 
     GET_MSG_PARAMS(process);
 
-    qr_data_t qr_data = { .len = 0, .is_valid = expand_and_validate };
+    qr_data_t qr_data = { .len = 0, .is_valid = import_and_validate_mnemonic };
     SENSITIVE_PUSH(&qr_data, sizeof(qr_data));
     char passphrase[PASSPHRASE_MAX_LEN + 1];
     SENSITIVE_PUSH(passphrase, sizeof(passphrase));
@@ -71,7 +71,7 @@ void debug_set_mnemonic_process(void* process_ptr)
         // Here we call into the code used when scanning a qr code, as this facilitates testing
         // the various supported formats separately from qr recognition/interpretation.
         // NOTE: only the English wordlist is supported.
-        if (!expand_and_validate(&qr_data)) {
+        if (!import_and_validate_mnemonic(&qr_data)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to expand mnemonic prefixes into full mnemonic words", NULL);
             goto cleanup;
