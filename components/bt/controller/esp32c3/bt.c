@@ -234,11 +234,13 @@ extern int ble_txpwr_get(int power_type);
 
 extern uint16_t l2c_ble_link_get_tx_buf_num(void);
 extern int coex_core_ble_conn_dyn_prio_get(bool *low, bool *high);
+extern void coex_pti_v2(void);
 
 extern bool btdm_deep_sleep_mem_init(void);
 extern void btdm_deep_sleep_mem_deinit(void);
 extern void btdm_ble_power_down_dma_copy(bool copy);
 extern uint8_t btdm_sleep_clock_sync(void);
+extern void sdk_config_extend_set_pll_track(bool enable);
 
 #if CONFIG_MAC_BB_PD
 extern void esp_mac_bb_power_down(void);
@@ -903,25 +905,21 @@ void esp_release_wifi_and_coex_mem(void)
     ESP_ERROR_CHECK(try_heap_caps_add_region((intptr_t)ets_rom_layout_p->data_start_interface_coexist,(intptr_t)ets_rom_layout_p->bss_end_interface_pp));
 }
 
-#if CONFIG_FREERTOS_USE_TICKLESS_IDLE
+#if CONFIG_MAC_BB_PD
 static void IRAM_ATTR btdm_mac_bb_power_down_cb(void)
 {
     if (s_lp_cntl.mac_bb_pd && s_lp_stat.mac_bb_pd == 0) {
-#if (CONFIG_MAC_BB_PD)
         btdm_ble_power_down_dma_copy(true);
-#endif
         s_lp_stat.mac_bb_pd = 1;
     }
 }
 
 static void IRAM_ATTR btdm_mac_bb_power_up_cb(void)
 {
-#if (CONFIG_MAC_BB_PD)
     if (s_lp_cntl.mac_bb_pd && s_lp_stat.mac_bb_pd) {
         btdm_ble_power_down_dma_copy(false);
         s_lp_stat.mac_bb_pd = 0;
     }
-#endif
 }
 #endif
 
@@ -965,9 +963,12 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     // overwrite some parameters
     cfg->magic = ESP_BT_CTRL_CONFIG_MAGIC_VAL;
 
+    sdk_config_extend_set_pll_track(false);
+
 #if CONFIG_MAC_BB_PD
     esp_mac_bb_pd_mem_init();
 #endif
+    esp_phy_pd_mem_init();
     esp_bt_power_domain_on();
 
     btdm_controller_mem_init();
@@ -1009,7 +1010,7 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
         s_lp_cntl.no_light_sleep = 1;
 
         if (s_lp_cntl.enable) {
-#if (CONFIG_MAC_BB_PD)
+#if CONFIG_MAC_BB_PD
             if (!btdm_deep_sleep_mem_init()) {
                 err = ESP_ERR_NO_MEM;
                 goto error;
@@ -1054,7 +1055,7 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
             ESP_LOGW(BTDM_LOG_TAG, "32.768kHz XTAL not detected, fall back to main XTAL as Bluetooth sleep clock\n"
                  "light sleep mode will not be able to apply when bluetooth is enabled");
         }
-#elif (CONFIG_BT_CTRL_LPCLK_SEL_RTC_SLOW)
+#elif CONFIG_BT_CTRL_LPCLK_SEL_RTC_SLOW
         // check whether or not EXT_CRYS is working
         if (rtc_clk_slow_freq_get() == RTC_SLOW_FREQ_RTC) {
             s_lp_cntl.lpclk_sel = BTDM_LPCLK_SEL_RTC_SLOW; // Internal 150 kHz RC oscillator
@@ -1116,6 +1117,7 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
 #endif
 
     periph_module_enable(PERIPH_BT_MODULE);
+    periph_module_reset(PERIPH_BT_MODULE);
 
     esp_phy_enable();
     s_lp_stat.phy_enabled = 1;
@@ -1124,6 +1126,7 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
         err = ESP_ERR_NO_MEM;
         goto error;
     }
+    coex_pti_v2();
 
     btdm_controller_status = ESP_BT_CONTROLLER_STATUS_INITED;
 
@@ -1156,7 +1159,7 @@ error:
             s_btdm_slp_tmr = NULL;
         }
 
-#if (CONFIG_MAC_BB_PD)
+#if CONFIG_MAC_BB_PD
         if (s_lp_cntl.mac_bb_pd) {
             btdm_deep_sleep_mem_deinit();
             s_lp_cntl.mac_bb_pd = 0;
@@ -1202,7 +1205,7 @@ esp_err_t esp_bt_controller_deinit(void)
 
     // deinit low power control resources
     do {
-#if (CONFIG_MAC_BB_PD)
+#if CONFIG_MAC_BB_PD
         btdm_deep_sleep_mem_deinit();
 #endif
 
@@ -1244,6 +1247,10 @@ esp_err_t esp_bt_controller_deinit(void)
     phy_init_flag();
 
     esp_bt_power_domain_off();
+#if CONFIG_MAC_BB_PD
+    esp_mac_bb_pd_mem_deinit();
+#endif
+    esp_phy_pd_mem_deinit();
 
     free(osi_funcs_p);
     osi_funcs_p = NULL;
