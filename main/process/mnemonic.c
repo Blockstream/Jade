@@ -219,11 +219,11 @@ cleanup:
     return mnemonic_confirmed;
 }
 
-static void enable_relevant_chars(const char* word, const size_t word_len, const struct words* wordlist,
-    gui_activity_t* act, gui_view_node_t* backspace, gui_view_node_t** btns, const size_t btns_len)
+// NOTE: only the English wordlist is supported.
+static void enable_relevant_chars(const char* word, const size_t word_len, gui_activity_t* act,
+    gui_view_node_t* backspace, gui_view_node_t** btns, const size_t btns_len)
 {
     JADE_ASSERT(word);
-    JADE_ASSERT(wordlist);
     JADE_ASSERT(act);
     JADE_ASSERT(backspace);
     JADE_ASSERT(btns);
@@ -260,7 +260,7 @@ static void enable_relevant_chars(const char* word, const size_t word_len, const
     bool enabled[26] = { false };
     for (size_t wordlist_index = 0; wordlist_index < 2048; ++wordlist_index) {
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
-        JADE_WALLY_VERIFY(bip39_get_word(wordlist, wordlist_index, &wordlist_extracted));
+        JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
 
         const int32_t res = strncmp(wordlist_extracted, word, word_len);
         if (res < 0) {
@@ -298,11 +298,11 @@ static void enable_relevant_chars(const char* word, const size_t word_len, const
     }
 }
 
-static size_t valid_words(const char* word, const size_t word_len, const struct words* wordlist,
-    size_t* possible_word_list, const size_t possible_word_list_len, bool* exact_match)
+// NOTE: only the English wordlist is supported.
+static size_t valid_words(const char* word, const size_t word_len, size_t* possible_word_list,
+    const size_t possible_word_list_len, bool* exact_match)
 {
     JADE_ASSERT(word);
-    JADE_ASSERT(wordlist);
     JADE_ASSERT(possible_word_list);
     JADE_ASSERT(possible_word_list_len);
     JADE_ASSERT(exact_match);
@@ -317,7 +317,7 @@ static size_t valid_words(const char* word, const size_t word_len, const struct 
 
     for (size_t wordlist_index = 0; wordlist_index < 2048; ++wordlist_index) {
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
-        JADE_WALLY_VERIFY(bip39_get_word(wordlist, wordlist_index, &wordlist_extracted));
+        JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
 
         // Test if passed 'word' is a valid prefix of the wordlist word
         const int32_t res = strncmp(wordlist_extracted, word, word_len);
@@ -360,8 +360,6 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
     JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
     // NOTE: only the English wordlist is supported.
-    struct words* wordlist = NULL;
-    JADE_WALLY_VERIFY(bip39_get_wordlist(NULL, &wordlist));
     size_t mnemonic_offset = 0;
 
     gui_view_node_t* btns[26];
@@ -393,7 +391,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
         while (char_index < 16) {
             bool exact_match = false;
             size_t possible_word_list[10];
-            const size_t possible_words = valid_words(word, char_index, wordlist, possible_word_list, 10, &exact_match);
+            const size_t possible_words = valid_words(word, char_index, possible_word_list, 10, &exact_match);
             if (possible_words < 11) {
                 enter->is_active = false;
                 char choose_word_title[16];
@@ -406,7 +404,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 int32_t ev_id = ESP_EVENT_ANY_ID;
                 uint8_t selected = 0;
                 char* wordlist_extracted = NULL;
-                JADE_WALLY_VERIFY(bip39_get_word(wordlist, possible_word_list[selected], &wordlist_extracted));
+                JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_word_list[selected], &wordlist_extracted));
                 gui_update_text(textbox_list, wordlist_extracted);
                 wally_free_string(wordlist_extracted);
 
@@ -442,8 +440,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                             gui_update_text(textbox_list, "|");
                         } else {
                             char* wordlist_extracted = NULL;
-                            JADE_WALLY_VERIFY(
-                                bip39_get_word(wordlist, possible_word_list[selected], &wordlist_extracted));
+                            JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_word_list[selected], &wordlist_extracted));
                             gui_update_text(textbox_list, wordlist_extracted);
                             wally_free_string(wordlist_extracted);
                         }
@@ -452,7 +449,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
 
                 if (selected < possible_words) { // ie. a word was chosen
                     char* wordlist_extracted = NULL;
-                    JADE_WALLY_VERIFY(bip39_get_word(wordlist, possible_word_list[selected], &wordlist_extracted));
+                    JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_word_list[selected], &wordlist_extracted));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
                     strncpy(word, wordlist_extracted, 16);
@@ -484,7 +481,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
             } else { // else if possible_words >= 11
                 // Update the typed word
                 gui_update_text(textbox, word);
-                enable_relevant_chars(word, char_index, wordlist, enter_word_activity, backspace, btns, btns_len);
+                enable_relevant_chars(word, char_index, enter_word_activity, backspace, btns, btns_len);
 
                 gui_activity_wait_event(enter_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
@@ -528,12 +525,11 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
 // own right, and also b) prefixes to other words.
 // eg: bar, barely, bargain, barrel; pen, penalty, pencil; ski, skill, skin, skirt
 // In this case we allow/prefer an exact match even when the word is an prefix of other words.
-static bool expand_words(
-    char* mnemonic, const size_t mnemonic_len, const struct words* wordlist, const char* mnemonic_word_prefixes)
+// NOTE: only the English wordlist is supported.
+static bool expand_words(char* mnemonic, const size_t mnemonic_len, const char* mnemonic_word_prefixes)
 {
     JADE_ASSERT(mnemonic);
     JADE_ASSERT(mnemonic_len);
-    JADE_ASSERT(wordlist);
     JADE_ASSERT(mnemonic_word_prefixes);
 
     size_t write_pos = 0;
@@ -549,10 +545,10 @@ static bool expand_words(
         JADE_ASSERT(end_ptr);
         JADE_ASSERT(end_ptr > mnemonic_word_prefixes);
 
-        // Lookup prefix in the passed wordlist, ensuring exactly one match
+        // Lookup prefix in the default (English) wordlist, ensuring exactly one match
         size_t possible_match;
         bool exact_match = false;
-        const size_t nmatches = valid_words(read_ptr, (end_ptr - read_ptr), wordlist, &possible_match, 1, &exact_match);
+        const size_t nmatches = valid_words(read_ptr, (end_ptr - read_ptr), &possible_match, 1, &exact_match);
         if (nmatches != 1 && !exact_match) {
             JADE_LOGW("%d matches for prefix: %.*s", nmatches, (end_ptr - read_ptr), read_ptr);
             mnemonic[0] = '\0';
@@ -560,7 +556,7 @@ static bool expand_words(
         }
 
         char* wordlist_extracted = NULL;
-        JADE_WALLY_VERIFY(bip39_get_word(wordlist, possible_match, &wordlist_extracted));
+        JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_match, &wordlist_extracted));
         const size_t word_len = strlen(wordlist_extracted);
         if (write_pos + word_len >= mnemonic_len) {
             JADE_LOGW("Expanded mnemonic too long");
@@ -602,9 +598,7 @@ bool expand_and_validate(qr_data_t* qr_data)
     // Attempt to recognise bip39 words, expanding from unambiguous prefixes if necessary.
     // NOTE: only the English wordlist is supported.
     // Then we check the expanded string constitutes a valid bip39 mnemonic.
-    struct words* wordlist = NULL;
-    JADE_WALLY_VERIFY(bip39_get_wordlist(NULL, &wordlist));
-    if (expand_words(buf, sizeof(buf), wordlist, qr_data->strdata) && bip39_mnemonic_validate(NULL, buf) == WALLY_OK) {
+    if (expand_words(buf, sizeof(buf), qr_data->strdata) && bip39_mnemonic_validate(NULL, buf) == WALLY_OK) {
         const size_t bufstrlen = strlen(buf);
         if (bufstrlen != qr_data->len) {
             // String was expanded - sanity check then copy expanded into scan result
@@ -814,6 +808,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
         }
 
         // Check mnemonic valid before entering passphrase
+        // NOTE: only the English wordlist is supported.
         if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
             JADE_LOGW("Invalid mnemonic");
             await_error_activity("Invalid recovery phrase");
