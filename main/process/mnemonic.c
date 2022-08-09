@@ -586,7 +586,7 @@ static bool expand_words(char* mnemonic, const size_t mnemonic_len, const char* 
 bool expand_and_validate(qr_data_t* qr_data)
 {
     JADE_ASSERT(qr_data);
-    JADE_ASSERT(qr_data->len <= sizeof(qr_data->strdata));
+    JADE_ASSERT(qr_data->len < sizeof(qr_data->strdata));
     JADE_ASSERT(qr_data->strdata[qr_data->len] == '\0');
 
     char buf[MNEMONIC_BUFLEN];
