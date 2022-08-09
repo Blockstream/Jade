@@ -6,8 +6,8 @@ RUN python -m pip install --user pycodestyle
 FROM base AS esp-idf
 
 # These ARGs are easily parseable (eg by HWI)
-ARG ESP_IDF_BRANCH=v4.4.1
-ARG ESP_IDF_COMMIT=1329b19fe494500aeb79d19b27cfd99b40c37aec
+ARG ESP_IDF_BRANCH=v4.4.2
+ARG ESP_IDF_COMMIT=1b16ef6cfc2479a08136782f9dc57effefa86f66
 RUN mkdir ~/esp && cd ~/esp && git clone --quiet --depth=1 --branch ${ESP_IDF_BRANCH} --single-branch --recursive https://github.com/espressif/esp-idf.git
 RUN cd ~/esp/esp-idf && git checkout ${ESP_IDF_COMMIT} && ./install.sh esp32
 
