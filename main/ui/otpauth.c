@@ -5,6 +5,7 @@
 #include "../otpauth.h"
 #include "../ui.h"
 #include "../utils/event.h"
+#include "../utils/urldecode.h"
 
 #include <time.h>
 
@@ -63,10 +64,9 @@ static bool populate_otp_screen(gui_view_node_t* parent, const otpauth_ctx_t* ct
 
         gui_view_node_t* txtvalue;
         if (ctx->label && ctx->label_len) {
-            const int ret = snprintf(display_str, sizeof(display_str), "%.*s", ctx->label_len, ctx->label);
-            JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-
-            gui_make_text(&txtvalue, display_str, TFT_WHITE);
+            // urldecode the label string - use font with no messed-with characters
+            urldecode(ctx->label, ctx->label_len, display_str, sizeof(display_str));
+            gui_make_text_font(&txtvalue, display_str, TFT_WHITE, UBUNTU16_FONT);
             gui_set_parent(txtvalue, hsplit);
             gui_set_align(txtvalue, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
             gui_set_text_scroll(txtvalue, TFT_BLACK);
@@ -89,10 +89,9 @@ static bool populate_otp_screen(gui_view_node_t* parent, const otpauth_ctx_t* ct
 
         gui_view_node_t* txtvalue;
         if (ctx->issuer && ctx->issuer_len) {
-            const int ret = snprintf(display_str, sizeof(display_str), "%.*s", ctx->issuer_len, ctx->issuer);
-            JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-
-            gui_make_text(&txtvalue, display_str, TFT_WHITE);
+            // urldecode the issuer string - use font with no messed-with characters
+            urldecode(ctx->issuer, ctx->issuer_len, display_str, sizeof(display_str));
+            gui_make_text_font(&txtvalue, display_str, TFT_WHITE, UBUNTU16_FONT);
             gui_set_parent(txtvalue, hsplit);
             gui_set_align(txtvalue, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
             gui_set_text_scroll(txtvalue, TFT_BLACK);
