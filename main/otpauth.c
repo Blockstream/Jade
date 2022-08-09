@@ -17,6 +17,7 @@
 #include <time.h>
 
 #define MBEDTLS_SHA512_HMAC_LEN 64
+#define SECRET_BUFSIZE 256
 
 static const uint8_t OTP_HMAC_KEY[] = { 'O', 'T', 'P', 's', 'e', 'e', 'd' };
 
@@ -260,6 +261,77 @@ static inline mbedtls_md_type_t get_md_type(const otpauth_ctx_t* otp_ctx)
     }
 }
 
+static bool base32_to_bin(
+    const char* b32_str, const size_t b32_str_len, uint8_t* b32_dec, const size_t b32_dec_len, size_t* done)
+{
+    JADE_ASSERT(b32_str);
+    JADE_ASSERT(b32_str_len);
+    JADE_ASSERT(b32_dec);
+    JADE_ASSERT(b32_dec_len);
+    JADE_ASSERT(done);
+
+    int tmp = 0;
+    uint8_t count = 0;
+    *done = 0;
+    const char* b32_str_end = b32_str + b32_str_len;
+    while (b32_str < b32_str_end && *b32_str) {
+        char ch = *b32_str++;
+
+        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+            ch = (ch & 0x1F) - 1;
+        } else if (ch >= '2' && ch <= '7') {
+            ch -= 24;
+        } else {
+            // Bad character
+            return false;
+        }
+
+        tmp <<= 5;
+        tmp |= ch;
+        count += 5;
+        if (count >= 8) {
+            if (*done < b32_dec_len) {
+                b32_dec[(*done)++] = tmp >> (count - 8);
+                count -= 8;
+            } else {
+                // Destination size insufficient
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
+
+static void pad_secret(uint8_t* secret, size_t* secret_len, const size_t min_size)
+{
+    JADE_ASSERT(secret);
+    JADE_ASSERT(secret_len);
+    JADE_ASSERT(*secret_len);
+    JADE_ASSERT(min_size);
+
+    const size_t actual_len = *secret_len;
+    while (*secret_len < min_size) {
+        const size_t reminder = min_size - *secret_len;
+        const size_t max = min(reminder, actual_len);
+
+        memcpy(secret + *secret_len, secret, max);
+        *secret_len += max;
+    }
+}
+
+/*
+ * NOTE:
+ * There is some uncertainty around secrets padding when shorter than the hash size.
+ * rfc6238 test vectors appear to suggest the secrets should be lengthened by repetition to the
+ * length of the hash, although gauth-like implementations do not appear to do this - rather
+ * they just use the short secret as is.
+ * To maintain maximum compatibility we do not lengthen the secret for SHA1 *only*, and we do
+ * lengthen short secrets for other hash digest algorithms.
+ * This provides compatability with gauth-like services, and should also remain compatible with
+ * HOTP/SHA1 which does not extend the secrets.
+ */
 static bool prepare_md_ctx(const otpauth_ctx_t* otp_ctx, mbedtls_md_context_t* md_ctx)
 {
     JADE_ASSERT(otp_is_valid(otp_ctx));
@@ -269,43 +341,32 @@ static bool prepare_md_ctx(const otpauth_ctx_t* otp_ctx, mbedtls_md_context_t* m
     OTP_CHECK_BOOL_RETURN(mbedtls_md_setup(md_ctx, mbedtls_md_info_from_type(md_type), 1) == 0);
     const size_t hmac_size = mbedtls_md_get_size(md_ctx->md_info);
 
-    int tmp = 0;
-    size_t done = 0;
-    uint8_t count = 0;
     const char* ptr = otp_ctx->secret;
 
-    uint8_t b32_dec[64];
-    while (done < 20 && *ptr && (ptr - otp_ctx->secret) < otp_ctx->secret_len) {
-        char ch = *ptr++;
-
-        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-            ch = (ch & 0x1F) - 1;
-        } else if (ch >= '2' && ch <= '7') {
-            ch -= 24;
-        } else {
-            JADE_LOGE("Bad Base32 secret decode - secret: %.*s", otp_ctx->secret_len, otp_ctx->secret);
-            return false;
-        }
-
-        tmp <<= 5;
-        tmp |= ch;
-        count += 5;
-        if (count >= 8) {
-            b32_dec[done++] = tmp >> (count - 8);
-            count -= 8;
-        }
+    // Sanity check - can't really happen atm as entire URI length is limited
+    if (otp_ctx->secret_len / 1.6 > SECRET_BUFSIZE) {
+        JADE_LOGE("Bad Base32 secret decode - secret length: %.*s", otp_ctx->secret_len, otp_ctx->secret);
+        return false;
     }
 
-    if (hmac_size >= 32) {
-        memcpy(b32_dec + 20, b32_dec, 12);
+    size_t done = 0;
+    uint8_t b32_dec[SECRET_BUFSIZE];
+    const bool base32_decode_result = base32_to_bin(ptr, otp_ctx->secret_len, b32_dec, sizeof(b32_dec), &done);
+
+    if (!base32_decode_result || !done) {
+        JADE_LOGE("Bad Base32 secret decode - secret: %.*s", otp_ctx->secret_len, otp_ctx->secret);
+        return false;
     }
 
-    if (hmac_size == 64) {
-        memcpy(b32_dec + 32, b32_dec + 12, 8);
-        memcpy(b32_dec + 40, b32_dec, 24);
+    // Do not lengthen/pad the secret for SHA1 *only* - for gauth compatibility.
+    // Extend secret (by repetition) to at least the size of the hash in all other cases,
+    // as appears necessary to match the test vectors in rfc6238.
+    // (See also https://github.com/Daegalus/dart-otp#global-settings)
+    if (md_type != MBEDTLS_MD_SHA1) {
+        pad_secret(b32_dec, &done, hmac_size);
     }
 
-    return mbedtls_md_hmac_starts(md_ctx, b32_dec, hmac_size) == 0;
+    return mbedtls_md_hmac_starts(md_ctx, b32_dec, done) == 0;
 }
 
 bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t token_len)

@@ -2456,8 +2456,9 @@ def test_sign_identity(jadeapi):
         assert ecdhA == ecdhB
 
 
+# Test according to otp spec (rfc6238)
 def test_hotp(jadeapi):
-    hotp_name = 'test_otp'
+    hotp_name = 'test_hotp'
     hotp_uri = 'otpauth://hotp/ACME%20Co:john.doe@email.com\
 ?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=ACME%20Co&counter={}'
 
@@ -2489,8 +2490,9 @@ def test_hotp(jadeapi):
         assert rslt == expected
 
 
+# Test according to otp spec (rfc6238)
 def test_totp(jadeapi):
-    totp_name = 'test_otp'
+    totp_name = 'test_totp'
     totp_uri = 'otpauth://totp/ACME%20Co:john.doe@email.com\
 ?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=ACME%20Co&digits=8&algorithm={}'
 
@@ -2521,6 +2523,60 @@ def test_totp(jadeapi):
         for i, timestamp in enumerate(timestamps):
             rslt = jadeapi.get_otp_code(totp_name, value_override=timestamp)
             assert rslt == expected[i]
+
+
+# NOTE:
+# There is some uncertainty around secrets padding when shorter than the hash size.
+# rfc6238 test vectors appear to suggest the secrets should be lengthened by repetition to the
+# length of the hash, although gauth-like implementations do not appear to do this - rather
+# they just use the short secret as is.
+# To maintain maximum compatibility we do not lengthen the secret for SHA1 *only*, and we do
+# lengthen short secrets for other hash digest algorithms.
+# This provides compatability with gauth-like services, and should also remain compatible with
+# HOTP/SHA1 which does not extend the secrets.
+def test_totp_ex(jadeapi):
+    # Short secret - not padded/lengthened for SHA1 for maximum gauth compatibility
+    totp_name = 'test_totp_ex_1'
+    totp_uri = 'otpauth://totp/ACM?secret=VMR466AB62ZBOKHE&digits=6&algorithm=SHA1'
+    rslt = jadeapi.register_otp(totp_name, totp_uri)
+    assert rslt
+
+    # Fetch repeated codes explicitly passing the timestamp
+    ts_rslt = [(0, '538532'), (1426847216, '543160')]
+    for timestamp, expected in ts_rslt:
+        rslt = jadeapi.get_otp_code(totp_name, value_override=timestamp)
+        assert rslt == expected
+
+    # Short secret - not padded for gauth/SHA1
+    totp_name = 'test_totp_ex_2'
+    totp_uri = 'otpauth://totp/Foo?secret=VM'
+    rslt = jadeapi.register_otp(totp_name, totp_uri)
+    assert rslt
+
+    # Fetch repeated codes explicitly passing the timestamp
+    ts_rslt = [(1659641526, '468828'), (1659641674, '550073'), (1659641710, '222948')]
+    for timestamp, expected in ts_rslt:
+        rslt = jadeapi.get_otp_code(totp_name, value_override=timestamp)
+        assert rslt == expected
+
+    # Long secret for SHA512 - padded if required
+    totp_name = 'test_totp_ex_3'
+    totp_uri = 'otpauth://totp/Foo\
+?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDG\
+NBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNA&digits=8&algorithm=SHA512'
+    rslt = jadeapi.register_otp(totp_name, totp_uri)
+    assert rslt
+
+    # Fetch repeated codes explicitly passing the timestamp
+    ts_rslt = [(59, '90693936'),
+               (1111111109, '25091201'),
+               (1111111111, '99943326'),
+               (1234567890, '93441116'),
+               (2000000000, '38618901'),
+               (20000000000, '47863826')]
+    for timestamp, expected in ts_rslt:
+        rslt = jadeapi.get_otp_code(totp_name, value_override=timestamp)
+        assert rslt == expected
 
 
 def run_api_tests(jadeapi, isble, qemu, authuser=False):
@@ -2608,6 +2664,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # (These don't depend on the wallet/mnemonic, just that the hw is unlocked)
     test_hotp(jadeapi)
     test_totp(jadeapi)
+    test_totp_ex(jadeapi)
 
     # restore the mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
