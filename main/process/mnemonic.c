@@ -528,7 +528,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
 // own right, and also b) prefixes to other words.
 // eg: bar, barely, bargain, barrel; pen, penalty, pencil; ski, skill, skin, skirt
 // In this case we allow/prefer an exact match even when the word is an prefix of other words.
-bool expand_words(
+static bool expand_words(
     char* mnemonic, const size_t mnemonic_len, const struct words* wordlist, const char* mnemonic_word_prefixes)
 {
     JADE_ASSERT(mnemonic);
@@ -586,7 +586,8 @@ bool expand_words(
 
 // Function to validate qr scanned is (or expands to) a valid mnemonic
 // (Passed to the qr-scanner so scanning only stops when this is satisfied)
-static bool expand_and_validate(qr_data_t* qr_data)
+// NOTE: not 'static' here as also called from debug/test code.
+bool expand_and_validate(qr_data_t* qr_data)
 {
     JADE_ASSERT(qr_data);
     JADE_ASSERT(qr_data->len <= sizeof(qr_data->strdata));

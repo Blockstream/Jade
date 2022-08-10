@@ -1,3 +1,4 @@
+#include "../camera.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
@@ -15,10 +16,9 @@
 #define NULLSTRING 1
 #define MAX_MNEMONIC_LEN (LONGEST_WORD * NUM_OF_WORDS + NULLSTRING)
 
-// Function to expand word prefixes into full words used when qr-scanning mnemonic.
-// Called in this code purely to test it (as qr-scanning is not covered by the unit tests).
-bool expand_words(
-    char* mnemonic, size_t mnemonic_len, const struct words* wordlist, const char* mnemonic_word_prefixes);
+// Function to interpret scanned qr code string.
+// Called in this code to test it separately from camera or qr interpretation.
+bool expand_and_validate(qr_data_t* qr_data);
 
 void debug_set_mnemonic_process(void* process_ptr)
 {
@@ -30,10 +30,8 @@ void debug_set_mnemonic_process(void* process_ptr)
 
     GET_MSG_PARAMS(process);
 
-    char mnemonic_passed[MAX_MNEMONIC_LEN];
-    SENSITIVE_PUSH(mnemonic_passed, sizeof(mnemonic_passed));
-    char mnemonic_expanded[MAX_MNEMONIC_LEN];
-    SENSITIVE_PUSH(mnemonic_expanded, sizeof(mnemonic_expanded));
+    qr_data_t qr_data = { .len = 0, .is_valid = expand_and_validate };
+    SENSITIVE_PUSH(&qr_data, sizeof(qr_data));
     char passphrase[PASSPHRASE_MAX_LEN + 1];
     SENSITIVE_PUSH(passphrase, sizeof(passphrase));
     const char* p_passphrase = NULL;
@@ -61,21 +59,19 @@ void debug_set_mnemonic_process(void* process_ptr)
         // (as we have no mnemonic entropy to persist)
         temporary_wallet = true;
     } else {
-        // Cannot use rpc_get_string_ptr here unfortunately because the resulting string
-        // is not nul terminated and we need a nul terminated string to pass to wally
-        rpc_get_string("mnemonic", sizeof(mnemonic_passed), &params, mnemonic_passed, &written);
-        if (written == 0) {
+        // Extract the mnemonic data from the message into the qr_data structure
+        // (ie. as if we had just scanned this string from a qr code)
+        rpc_get_string("mnemonic", sizeof(qr_data.strdata), &params, qr_data.strdata, &qr_data.len);
+        if (qr_data.len == 0) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract mnemonic prefixes from parameters", NULL);
             goto cleanup;
         }
 
-        // Expand word prefixes into full words, as used when qr-scanning mnemonic.
-        // Called in this code purely to test it (as qr-scanning is not covered by the unit tests).
+        // Here we call into the code used when scanning a qr code, as this facilitates testing
+        // the various supported formats separately from qr recognition/interpretation.
         // NOTE: only the English wordlist is supported.
-        struct words* wordlist = NULL;
-        JADE_WALLY_VERIFY(bip39_get_wordlist(NULL, &wordlist));
-        if (!expand_words(mnemonic_expanded, sizeof(mnemonic_expanded), wordlist, mnemonic_passed)) {
+        if (!expand_and_validate(&qr_data)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to expand mnemonic prefixes into full mnemonic words", NULL);
             goto cleanup;
@@ -94,7 +90,7 @@ void debug_set_mnemonic_process(void* process_ptr)
         }
 
         // Derive a keychain from the passed mnemonic and passphrase
-        if (!keychain_derive_from_mnemonic(mnemonic_expanded, p_passphrase, &keydata)) {
+        if (!keychain_derive_from_mnemonic(qr_data.strdata, p_passphrase, &keydata)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to derive keychain from mnemonic", NULL);
             goto cleanup;
@@ -112,7 +108,7 @@ void debug_set_mnemonic_process(void* process_ptr)
 
         // We need to cache the root mnemonic entropy as it is this that we will persist
         // encrypted to local flash (requiring a passphrase to derive the wallet master key).
-        keychain_cache_mnemonic_entropy(mnemonic_expanded);
+        keychain_cache_mnemonic_entropy(qr_data.strdata);
     }
 
     jade_process_reply_to_message_ok(process);
@@ -121,7 +117,6 @@ void debug_set_mnemonic_process(void* process_ptr)
 cleanup:
     SENSITIVE_POP(&keydata);
     SENSITIVE_POP(passphrase);
-    SENSITIVE_POP(mnemonic_expanded);
-    SENSITIVE_POP(mnemonic_passed);
+    SENSITIVE_POP(&qr_data);
     return;
 }
