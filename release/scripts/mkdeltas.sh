@@ -30,8 +30,7 @@ for hwdir in ${HWDIRS}
 do
   pushd "${hwdir}"
   echo "Generating new deltas for $(pwd)"
-  rm -rf "${DELTA_OUTPUT_DIR}"
-  mkdir "${DELTA_OUTPUT_DIR}"
+  mkdir -p "${DELTA_OUTPUT_DIR}"
 
   # Upgrade & downgrade deltas
   for pattern in "${PATTERN_BLE}" "${PATTERN_NORADIO}"
