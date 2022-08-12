@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Update Liquid asset registry info
+- Update ESP-IDF base firmware to v4.4.2
 - Changed how to specify when to enter a BIP39 passphrase
 - Updated QR scanning - much faster and no need to press front button to scan
 - Settings menu items rearranged, and added pre-PIN Settings menu
