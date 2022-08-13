@@ -18,6 +18,14 @@ test_format:
     - ./format.sh
     - git diff --exit-code
 
+test_configs:
+  tags:
+    - ga
+  stage: format
+  script:
+    - ./tools/check_default_configs.sh
+    - git diff --exit-code
+
 .test_build_template:
   tags:
     - ga
