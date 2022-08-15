@@ -88,7 +88,7 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text;
-    gui_make_text(&text, "Connect Jade to a Blockstream\nGreen companion app", TFT_WHITE);
+    gui_make_text(&text, "Connect Jade to a compatible\nwallet app", TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
     gui_set_parent(text, vsplit);
@@ -124,7 +124,7 @@ void make_connection_select_screen(gui_activity_t** activity_ptr)
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text;
-    gui_make_text(&text, "How do you want to connect\nyour Jade to Green?", TFT_WHITE);
+    gui_make_text(&text, "How do you want to connect\nto your Jade?", TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 24, 8, 0, 8);
     gui_set_parent(text, vsplit);
@@ -152,8 +152,8 @@ void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_na
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // Text
-    const char* message = ble ? "Select your Jade on the Green\ncompanion app to pair it"
-                              : "Attach your Jade to a device\nwith Green installed";
+    const char* message = ble ? "Select your Jade on the \ncompanion app to pair it"
+                              : "Attach your Jade to a device\nwith a compatible wallet\ninstalled";
     gui_view_node_t* text;
     gui_make_text(&text, message, TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
