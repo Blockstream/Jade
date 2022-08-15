@@ -7,6 +7,7 @@
 // An extracted QR code string
 #define QR_MAX_STRING_LENGTH 256
 
+struct quirc;
 typedef struct _qr_data_t qr_data_t;
 
 // Function to tell whether the extracted qr data is valid for the callers purposes
@@ -20,6 +21,9 @@ struct _qr_data_t {
     // and populate the string fields if the validation returns true.
     // If NULL, any successfully extracted string is sufficient.
     qr_valid_fn_t is_valid;
+
+    // Cached internal quirc struct - caller should set to NULL
+    struct quirc* q;
 };
 
 // Function to scan a qr code with the camera.

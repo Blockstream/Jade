@@ -16,8 +16,9 @@
 void make_camera_activity(
     gui_activity_t** activity_ptr, const char* btnText, gui_view_node_t** image_node, gui_view_node_t** label_node);
 
-#define CAM_IMG_WIDTH 120
-#define CAM_IMG_HEIGHT 160
+// Size of the image as provided by the camera lib
+#define CAMERA_IMAGE_WIDTH 320
+#define CAMERA_IMAGE_HEIGHT 240
 
 // Camera-task config data
 typedef bool (*camera_process_fn_t)(const camera_fb_t* fb, void* ctx);
@@ -142,14 +143,17 @@ static void jade_camera_task(void* data)
     gui_update_text(label_node, camera_config->text_label);
 
     // Image from camera to display on screen.
-    // 50% scale down - still a 20k image buffer.
+    // 50% scale down and rotated - still a 20k image buffer.
     // Keep image in spiram but make sure to zero it after use in case it
     // captures potentially sensitive data eg. a valid mnemonic qrcode.
-    const size_t image_size = sizeof(uint8_t[CAM_IMG_HEIGHT][CAM_IMG_WIDTH]);
+    const size_t image_size = sizeof(uint8_t[CAMERA_IMAGE_WIDTH / 2][CAMERA_IMAGE_HEIGHT / 2]);
     void* const image_buffer = JADE_MALLOC_PREFER_SPIRAM(image_size);
     SENSITIVE_PUSH(image_buffer, image_size);
-    const Picture pic
-        = { .width = CAM_IMG_WIDTH, .height = CAM_IMG_HEIGHT, .bytes_per_pixel = 1, .data_8 = image_buffer };
+    const Picture pic // NOTE rotated so height <-> width
+        = { .width = CAMERA_IMAGE_HEIGHT / 2,
+              .height = CAMERA_IMAGE_WIDTH / 2,
+              .bytes_per_pixel = 1,
+              .data_8 = image_buffer };
 
     // Make an event-data structure to track events - attached to the camera activity
     wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act);
@@ -167,13 +171,16 @@ static void jade_camera_task(void* data)
             JADE_LOGW("esp_camera_fb_get() failed");
             continue;
         }
+        JADE_ASSERT(fb->width == CAMERA_IMAGE_WIDTH);
+        JADE_ASSERT(fb->height == CAMERA_IMAGE_HEIGHT);
+        JADE_ASSERT(fb->len == 4 * image_size); // twice width and twice height
 
         // Copy from camera output to screen image
-        uint8_t(*scale_rotated)[CAM_IMG_WIDTH] = image_buffer;
-        uint8_t(*buf_as_matrix)[CAM_IMG_HEIGHT * 2] = (uint8_t(*)[CAM_IMG_HEIGHT * 2]) fb->buf;
-        for (size_t x = 0; x < CAM_IMG_HEIGHT; ++x) {
-            for (size_t y = 0; y < CAM_IMG_WIDTH; ++y) {
-                scale_rotated[x][y] = buf_as_matrix[(CAM_IMG_WIDTH * 2) - y * 2][x * 2];
+        uint8_t(*scale_rotated)[CAMERA_IMAGE_HEIGHT / 2] = image_buffer;
+        uint8_t(*buf_as_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
+        for (size_t x = 0; x < CAMERA_IMAGE_WIDTH / 2; ++x) {
+            for (size_t y = 0; y < CAMERA_IMAGE_HEIGHT / 2; ++y) {
+                scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_HEIGHT)-y * 2][x * 2];
             }
         }
         gui_update_picture(image_node, &pic);
@@ -224,15 +231,15 @@ static void jade_camera_task(void* data)
 
 // Inspect qrcodes and try to extract payload - whether any were seen and any
 // string data extracted are stored in the qr_data struct passed.
-static bool qr_extract_payload(const struct quirc* q, qr_data_t* qr_data)
+static bool qr_extract_payload(qr_data_t* qr_data)
 {
-    JADE_ASSERT(q);
     JADE_ASSERT(qr_data);
+    JADE_ASSERT(qr_data->q);
 
     qr_data->strdata[0] = '\0';
     qr_data->len = 0;
 
-    const int count = quirc_count(q);
+    const int count = quirc_count(qr_data->q);
     if (count <= 0) {
         return false;
     }
@@ -245,7 +252,7 @@ static bool qr_extract_payload(const struct quirc* q, qr_data_t* qr_data)
     // Look for a string
     for (int i = 0; i < count; ++i) {
         struct quirc_code code;
-        quirc_extract(q, i, &code);
+        quirc_extract(qr_data->q, i, &code);
 
         const quirc_decode_error_t error_status = quirc_decode(&code, &data);
         if (error_status != QUIRC_SUCCESS) {
@@ -281,19 +288,20 @@ static bool qr_recoginze(const camera_fb_t* fb, void* ctx_qr_data)
     JADE_ASSERT(ctx_qr_data);
     qr_data_t* const qr_data = (qr_data_t*)ctx_qr_data;
 
-    struct quirc* q = quirc_new();
-    JADE_ASSERT(q);
+    JADE_ASSERT(qr_data->q);
+    JADE_ASSERT(qr_data->q->image);
+    JADE_ASSERT(qr_data->q->w == fb->width);
+    JADE_ASSERT(qr_data->q->h == fb->height);
 
-    const int qret = quirc_resize(q, fb->width, fb->height);
-    JADE_ASSERT(qret == 0);
+    // Checked cached image - create once and reuse for subsequent frames
+    uint8_t* const image = quirc_begin(qr_data->q, NULL, NULL);
+    JADE_ASSERT(image == qr_data->q->image);
 
     // Try to interpret camera image as QR-code
-    uint8_t* image = quirc_begin(q, NULL, NULL);
     memcpy(image, fb->buf, fb->len);
-    quirc_end(q);
+    quirc_end(qr_data->q);
 
-    bool extracted = qr_extract_payload(q, qr_data);
-    quirc_destroy(q);
+    bool extracted = qr_extract_payload(qr_data);
 
     // If we have extracted a string and we have an additional validation
     // function, run that function now and only return true if it passes.
@@ -307,11 +315,21 @@ static bool qr_recoginze(const camera_fb_t* fb, void* ctx_qr_data)
 bool jade_camera_scan_qr(qr_data_t* qr_data)
 {
     JADE_ASSERT(qr_data);
+    JADE_ASSERT(!qr_data->q);
 
 // At the moment camera/qr-scan only supported by Jade devices
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    // Config for the camera task
+    // Create the quirc struct (reused for each frame) - destroyed below
+    qr_data->q = quirc_new();
+    JADE_ASSERT(qr_data->q);
+
+    // Also correctly size the internal image buffer since we know the size of the camera images
+    const int qret = quirc_resize(qr_data->q, CAMERA_IMAGE_WIDTH, CAMERA_IMAGE_HEIGHT);
+    JADE_ASSERT(qret == 0);
+
     qr_data->len = 0;
+
+    // Config for the camera task
     camera_task_config_t camera_config = { .text_label = "Point to a QR\ncode and hold\nsteady",
         .text_button = NULL,
         .fn_process = qr_recoginze,
@@ -327,6 +345,10 @@ bool jade_camera_scan_qr(qr_data_t* qr_data)
     sync_await_single_event(JADE_EVENT, CAMERA_EXIT, NULL, NULL, NULL, 0);
     vTaskDelete(camera_task);
     jade_camera_stop();
+
+    // Destroy the quirc struct created above
+    quirc_destroy(qr_data->q);
+    qr_data->q = NULL;
 
     // Any scanned qr code will be in the qr_data passed
     return qr_data->len > 0;
