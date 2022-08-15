@@ -21,14 +21,14 @@ void make_camera_activity(
 #define CAMERA_IMAGE_HEIGHT 240
 
 // Camera-task config data
-typedef bool (*camera_process_fn_t)(const camera_fb_t* fb, void* ctx);
-
 typedef struct {
     // Text to display on camera screen
+    // NOTE: no text_btn means no button is shown, and all images are processed
+    // NOTE: no text_label implies no ui is shown at all (and all images are processed)
     const char* text_label;
     const char* text_button;
 
-    // Function to call when button clicked
+    // Function to call to process captured image
     camera_process_fn_t fn_process;
 
     // Context info passed to that function
@@ -121,46 +121,58 @@ static void jade_camera_task(void* data)
     JADE_ASSERT(data);
 
     camera_task_config_t* const camera_config = (camera_task_config_t*)data;
-    JADE_ASSERT(camera_config->text_label);
     JADE_ASSERT(camera_config->fn_process);
-    // camera_config->text_button is optional
+    JADE_ASSERT(camera_config->text_label || !camera_config->text_button);
     // camera_config->ctx is optional
+    // camera_config->text_label is optional - indicates we want the images shown on screen/ui
+    // camera_config->text_button is optional - indicates we want the user to select the images presented
+    // (otherwise all images are presented) to the given callback function ctx.fn_process()
+    // NOTE: not valid to have a button[label] if no screen[label]
 
-    // Create camera screen
+    const bool has_gui = camera_config->text_label;
+
     gui_activity_t* act = NULL;
     gui_view_node_t* image_node = NULL;
     gui_view_node_t* label_node = NULL;
-    make_camera_activity(&act, camera_config->text_button, &image_node, &label_node);
-    JADE_ASSERT(act);
-    gui_set_current_activity(act);
+
+    if (has_gui) {
+        // Create camera screen
+        make_camera_activity(&act, camera_config->text_button, &image_node, &label_node);
+        JADE_ASSERT(act);
+        gui_set_current_activity(act);
+    }
 
     // Initialise the camera
     sensitive_init();
     jade_camera_init();
     vTaskDelay(500 / portTICK_PERIOD_MS);
-
-    // Update the text label to indicate readiness
-    gui_update_text(label_node, camera_config->text_label);
-
-    // Image from camera to display on screen.
-    // 50% scale down and rotated - still a 20k image buffer.
-    // Keep image in spiram but make sure to zero it after use in case it
-    // captures potentially sensitive data eg. a valid mnemonic qrcode.
+    void* image_buffer = NULL;
+    Picture pic = {};
     const size_t image_size = sizeof(uint8_t[CAMERA_IMAGE_WIDTH / 2][CAMERA_IMAGE_HEIGHT / 2]);
-    void* const image_buffer = JADE_MALLOC_PREFER_SPIRAM(image_size);
-    SENSITIVE_PUSH(image_buffer, image_size);
-    const Picture pic // NOTE rotated so height <-> width
-        = { .width = CAMERA_IMAGE_HEIGHT / 2,
-              .height = CAMERA_IMAGE_WIDTH / 2,
-              .bytes_per_pixel = 1,
-              .data_8 = image_buffer };
+    wait_event_data_t* event_data = NULL;
+    if (has_gui) {
+        // Update the text label to indicate readiness
+        gui_update_text(label_node, camera_config->text_label);
 
-    // Make an event-data structure to track events - attached to the camera activity
-    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act);
-    JADE_ASSERT(event_data);
+        // Image from camera to display on screen.
+        // 50% scale down and rotated - still a 20k image buffer.
+        // Keep image in spiram but make sure to zero it after use in case it
+        // captures potentially sensitive data eg. a valid mnemonic qrcode.
+        image_buffer = JADE_MALLOC_PREFER_SPIRAM(image_size);
+        SENSITIVE_PUSH(image_buffer, image_size);
+        // NOTE rotated so height <-> width
+        pic.width = CAMERA_IMAGE_HEIGHT / 2;
+        pic.height = CAMERA_IMAGE_WIDTH / 2;
+        pic.bytes_per_pixel = 1;
+        pic.data_8 = image_buffer;
 
-    // ... and register against the activity - we will await btn events later
-    gui_activity_register_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+        // Make an event-data structure to track events - attached to the camera activity
+        event_data = gui_activity_make_wait_event_data(act);
+        JADE_ASSERT(event_data);
+
+        // ... and register against the activity - we will await btn events later
+        gui_activity_register_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+    }
 
     // Loop periodically refreshes screen image from camera, and waits for button event
     bool done = false;
@@ -171,50 +183,55 @@ static void jade_camera_task(void* data)
             JADE_LOGW("esp_camera_fb_get() failed");
             continue;
         }
+        JADE_ASSERT(fb->format == PIXFORMAT_GRAYSCALE); // 1BPP/GRAYSCALE
         JADE_ASSERT(fb->width == CAMERA_IMAGE_WIDTH);
         JADE_ASSERT(fb->height == CAMERA_IMAGE_HEIGHT);
-        JADE_ASSERT(fb->len == 4 * image_size); // twice width and twice height
 
-        // Copy from camera output to screen image
-        uint8_t(*scale_rotated)[CAMERA_IMAGE_HEIGHT / 2] = image_buffer;
-        uint8_t(*buf_as_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
-        for (size_t x = 0; x < CAMERA_IMAGE_WIDTH / 2; ++x) {
-            for (size_t y = 0; y < CAMERA_IMAGE_HEIGHT / 2; ++y) {
-                scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_HEIGHT)-y * 2][x * 2];
-            }
-        }
-        gui_update_picture(image_node, &pic, false);
-
-        // Ensure showing camera activity/captured image
-        if (gui_current_activity() != act) {
-            gui_set_current_activity(act);
-        }
-
-        // If we have no 'click' button, we run the processing callback on every frame
-        // (We still test to see if the 'Exit' button is pressed though)
-        if (!camera_config->text_button) {
-            done = camera_config->fn_process(fb, camera_config->ctx)
-                || (sync_wait_event(
-                        GUI_BUTTON_EVENT, BTN_CAMERA_EXIT, event_data, NULL, NULL, NULL, 10 / portTICK_PERIOD_MS)
-                    == ESP_OK);
+        if (!has_gui) {
+            done = camera_config->fn_process(fb->width, fb->height, fb->buf, fb->len, camera_config->ctx);
         } else {
-            // Await button click event before we do anything
-            int32_t ev_id;
-            if (sync_wait_event(
-                    GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 50 / portTICK_PERIOD_MS)
-                == ESP_OK) {
-                if (ev_id == BTN_CAMERA_CLICK) {
-                    // Button clicked - invoke passed processing callback
-                    gui_update_text(label_node, "Processing...");
-                    done = camera_config->fn_process(fb, camera_config->ctx);
+            // Copy from camera output to screen image
+            JADE_ASSERT(fb->len == 4 * image_size); // twice width and twice height
+            uint8_t(*scale_rotated)[CAMERA_IMAGE_HEIGHT / 2] = image_buffer;
+            uint8_t(*buf_as_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
+            for (size_t x = 0; x < CAMERA_IMAGE_WIDTH / 2; ++x) {
+                for (size_t y = 0; y < CAMERA_IMAGE_HEIGHT / 2; ++y) {
+                    scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_HEIGHT)-y * 2][x * 2];
+                }
+            }
+            gui_update_picture(image_node, &pic, false);
 
-                    // If not done, will loop and continue to capture images
-                    if (!done) {
-                        gui_update_text(label_node, camera_config->text_label);
+            // Ensure showing camera activity/captured image
+            if (gui_current_activity() != act) {
+                gui_set_current_activity(act);
+            }
+
+            // If we have no 'click' button, we run the processing callback on every frame
+            // (We still test to see if the 'Exit' button is pressed though)
+            if (!camera_config->text_button) {
+                done = camera_config->fn_process(fb->width, fb->height, fb->buf, fb->len, camera_config->ctx)
+                    || (sync_wait_event(
+                            GUI_BUTTON_EVENT, BTN_CAMERA_EXIT, event_data, NULL, NULL, NULL, 10 / portTICK_PERIOD_MS)
+                        == ESP_OK);
+            } else {
+                // Await button click event before we do anything
+                int32_t ev_id;
+                if (sync_wait_event(
+                        GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 50 / portTICK_PERIOD_MS)
+                    == ESP_OK) {
+                    if (ev_id == BTN_CAMERA_CLICK) {
+                        // Button clicked - invoke passed processing callback
+                        gui_update_text(label_node, "Processing...");
+                        done = camera_config->fn_process(fb->width, fb->height, fb->buf, fb->len, camera_config->ctx);
+
+                        // If not done, will loop and continue to capture images
+                        if (!done) {
+                            gui_update_text(label_node, camera_config->text_label);
+                        }
+                    } else if (ev_id == BTN_CAMERA_EXIT) {
+                        // Done with camera
+                        done = true;
                     }
-                } else if (ev_id == BTN_CAMERA_EXIT) {
-                    // Done with camera
-                    done = true;
                 }
             }
         }
@@ -222,8 +239,10 @@ static void jade_camera_task(void* data)
     }
 
     // Finished with camera - free everything and kill task
-    SENSITIVE_POP(image_buffer);
-    free(image_buffer);
+    if (has_gui) {
+        SENSITIVE_POP(image_buffer);
+        free(image_buffer);
+    }
     post_exit_event_and_await_death();
 }
 
@@ -282,23 +301,24 @@ static bool qr_extract_payload(qr_data_t* qr_data)
 }
 
 // Look for qr-codes, and if found extract any string data into the camera_data passed
-static bool qr_recognize(const camera_fb_t* fb, void* ctx_qr_data)
+static bool qr_recognize(
+    const size_t width, const size_t height, const uint8_t* data, const size_t len, void* ctx_qr_data)
 {
-    JADE_ASSERT(fb);
+    JADE_ASSERT(data);
     JADE_ASSERT(ctx_qr_data);
     qr_data_t* const qr_data = (qr_data_t*)ctx_qr_data;
 
     JADE_ASSERT(qr_data->q);
     JADE_ASSERT(qr_data->q->image);
-    JADE_ASSERT(qr_data->q->w == fb->width);
-    JADE_ASSERT(qr_data->q->h == fb->height);
+    JADE_ASSERT(qr_data->q->w == width);
+    JADE_ASSERT(qr_data->q->h == height);
 
     // Checked cached image - create once and reuse for subsequent frames
     uint8_t* const image = quirc_begin(qr_data->q, NULL, NULL);
     JADE_ASSERT(image == qr_data->q->image);
 
     // Try to interpret camera image as QR-code
-    memcpy(image, fb->buf, fb->len);
+    memcpy(image, data, len);
     quirc_end(qr_data->q);
 
     bool extracted = qr_extract_payload(qr_data);
@@ -310,6 +330,20 @@ static bool qr_recognize(const camera_fb_t* fb, void* ctx_qr_data)
     }
 
     return extracted;
+}
+
+static void run_camera_task(camera_task_config_t* camera_config)
+{
+    TaskHandle_t camera_task;
+    const BaseType_t retval = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 16 * 1024, camera_config,
+        JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY);
+    JADE_ASSERT_MSG(
+        retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);
+
+    // Await camera exit event
+    sync_await_single_event(JADE_EVENT, CAMERA_EXIT, NULL, NULL, NULL, 0);
+    vTaskDelete(camera_task);
+    jade_camera_stop();
 }
 
 bool jade_camera_scan_qr(qr_data_t* qr_data)
@@ -335,16 +369,7 @@ bool jade_camera_scan_qr(qr_data_t* qr_data)
         .fn_process = qr_recognize,
         .ctx = qr_data };
 
-    TaskHandle_t camera_task;
-    const BaseType_t retval = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 16 * 1024, &camera_config,
-        JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY);
-    JADE_ASSERT_MSG(
-        retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);
-
-    // Await camera exit event
-    sync_await_single_event(JADE_EVENT, CAMERA_EXIT, NULL, NULL, NULL, 0);
-    vTaskDelete(camera_task);
-    jade_camera_stop();
+    run_camera_task(&camera_config);
 
     // Destroy the quirc struct created above
     quirc_destroy(qr_data->q);
@@ -357,5 +382,23 @@ bool jade_camera_scan_qr(qr_data_t* qr_data)
     JADE_LOGW("No camera supported for this device");
     await_error_activity("No camera detected");
     return false;
+#endif
+}
+
+void jade_camera_process_images(camera_process_fn_t fn, void* ctx)
+{
+    JADE_ASSERT(fn);
+    // ctx is optional
+
+// At the moment camera only supported by Jade devices
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    // Config for the camera task
+    camera_task_config_t camera_config = { .fn_process = fn, .ctx = ctx };
+
+    run_camera_task(&camera_config);
+
+#else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+    JADE_LOGW("No camera supported for this device");
+    await_error_activity("No camera detected");
 #endif
 }
