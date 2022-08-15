@@ -1877,8 +1877,8 @@ def test_handshake_bad_sig(jade):
 def check_mem_stats(startinfo, endinfo, check_frag=True, strict=True):
     # Memory stats to log/check
     breaches = []
-    for field, limit in [('JADE_FREE_HEAP', 1280),
-                         ('JADE_FREE_DRAM', 1280),
+    for field, limit in [('JADE_FREE_HEAP', 1536),
+                         ('JADE_FREE_DRAM', 1536),
                          ('JADE_LARGEST_DRAM', 4096 if check_frag else -1),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
@@ -2691,7 +2691,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
 
-    time.sleep(3)  # Lets idle tasks clean up
+    time.sleep(5))  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
 
     # NOTE: skip the fragmentation check when we have BLE enabled
@@ -2756,7 +2756,7 @@ def run_interface_tests(jadeapi,
         test_bad_params(jadeapi.jade)
         test_bad_params_liquid(jadeapi.jade)
 
-    time.sleep(3)  # Lets idle tasks clean up
+    time.sleep(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
     check_mem_stats(startinfo, endinfo, check_frag=True)
 
