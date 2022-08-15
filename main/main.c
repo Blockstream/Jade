@@ -18,6 +18,7 @@
 #include "utils/wally_ext.h"
 #include <sdkconfig.h>
 
+#include "camera.h"
 #include "jade_assert.h"
 #include "process.h"
 #include "process/process_utils.h"
@@ -43,6 +44,17 @@ int serial_logger(const char* message, va_list fmt);
 
 void offer_startup_options(void);
 void dashboard_process(void* process_ptr);
+
+static bool rnd_camera_feed(
+    const size_t width, const size_t height, const uint8_t* data, const size_t len, void* ctx_data)
+{
+    JADE_ASSERT(data);
+    JADE_ASSERT(len);
+    JADE_ASSERT(ctx_data);
+    size_t* counter = (size_t*)ctx_data;
+    refeed_entropy(data, len);
+    return ++*counter > 10;
+}
 
 static void boot_process(void)
 {
@@ -101,6 +113,12 @@ static void boot_process(void)
 
     // We spend a bit of time initialising random while the splash screen is being shown
     random_full_initialization();
+
+    size_t counter = 0;
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    jade_camera_process_images(&rnd_camera_feed, &counter);
+#endif
+
     jade_wally_init();
 
     if (!keychain_init()) {
