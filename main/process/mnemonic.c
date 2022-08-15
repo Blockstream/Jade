@@ -362,7 +362,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
     // NOTE: only the English wordlist is supported.
     size_t mnemonic_offset = 0;
 
-    gui_view_node_t* btns[26];
+    gui_view_node_t* btns[26] = {};
     const size_t btns_len = sizeof(btns) / sizeof(btns[0]);
     gui_view_node_t *textbox = NULL, *backspace = NULL, *enter = NULL;
     gui_activity_t* enter_word_activity = NULL;
