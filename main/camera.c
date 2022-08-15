@@ -282,7 +282,7 @@ static bool qr_extract_payload(qr_data_t* qr_data)
 }
 
 // Look for qr-codes, and if found extract any string data into the camera_data passed
-static bool qr_recoginze(const camera_fb_t* fb, void* ctx_qr_data)
+static bool qr_recognize(const camera_fb_t* fb, void* ctx_qr_data)
 {
     JADE_ASSERT(fb);
     JADE_ASSERT(ctx_qr_data);
@@ -332,7 +332,7 @@ bool jade_camera_scan_qr(qr_data_t* qr_data)
     // Config for the camera task
     camera_task_config_t camera_config = { .text_label = "Point to a QR\ncode and hold\nsteady",
         .text_button = NULL,
-        .fn_process = qr_recoginze,
+        .fn_process = qr_recognize,
         .ctx = qr_data };
 
     TaskHandle_t camera_task;
