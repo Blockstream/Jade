@@ -2691,7 +2691,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
 
-    time.sleep(5))  # Lets idle tasks clean up
+    time.sleep(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
 
     # NOTE: skip the fragmentation check when we have BLE enabled
