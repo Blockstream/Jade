@@ -12,7 +12,7 @@ struct wally_tx;
 #define MAX_DISPLAY_MESSAGE_LEN 192
 
 // Keyboard entry screens
-#define MAX_KB_ENTRY_LEN 128
+#define MAX_KB_ENTRY_LEN 256
 
 // NOTE: final value is a sentinel/count, not a valid enum value
 typedef enum {
