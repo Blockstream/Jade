@@ -257,6 +257,9 @@ void ota_delta_process(void* process_ptr)
     }
     JADE_ASSERT(ota_begin_called);
 
+    // Uploading complete
+    uploading = false;
+
     if (bctx.written != firmwaresize) {
         ota_return_status = ERROR_PATCH;
     }
@@ -307,7 +310,12 @@ cleanup:
 
         // If we get here and we have not finished loading the data, send an error message
         if (uploading) {
-            JADE_ASSERT(id[0] != '\0');
+            if (id[0] == '\0') {
+                // This should not happen under normal circumstances, but it could occur if the delta
+                // uploaded is not appropriate for the base/running firmware (or perhaps is corrupted).
+                // In that case bspatch() can fail unexpectedly - default the id.
+                strcpy(id, "00");
+            }
             const int error_code
                 = ota_return_status == ERROR_USER_DECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
 
