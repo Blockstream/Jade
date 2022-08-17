@@ -6223,6 +6223,36 @@
         "ticker": "GAsRi",
         "version": 0
     },
+    "43406c43ec8fc9c1f081dff32cc76fab4e97fd647670501b332e897d91d24382": {
+        "asset_id": "43406c43ec8fc9c1f081dff32cc76fab4e97fd647670501b332e897d91d24382",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bitcoindca.com.br"
+            },
+            "issuer_pubkey": "03b02624886a291eb1776c04b378d16ce503edc883ddbce67ed2589acf739100c9",
+            "name": "BITCOIN DCA TOKEN ",
+            "precision": 2,
+            "ticker": "BTCDCAT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bitcoindca.com.br"
+        },
+        "issuance_prevout": {
+            "txid": "09abfe68961573ef857ff9eaf775fabf7a87e659cb4ef04189d2e0725bfc6935",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "28f6d615a1039295e454bdb9d62c205aeb21e902f1dea0361091d8b9309bd78c",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b02624886a291eb1776c04b378d16ce503edc883ddbce67ed2589acf739100c9",
+        "name": "BITCOIN DCA TOKEN ",
+        "precision": 2,
+        "ticker": "BTCDCAT",
+        "version": 0
+    },
     "445b2ba62643da818b4a598a843d80ebe50122fe3886e213f585bafd26f63251": {
         "asset_id": "445b2ba62643da818b4a598a843d80ebe50122fe3886e213f585bafd26f63251",
         "contract": {
