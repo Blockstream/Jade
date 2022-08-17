@@ -638,7 +638,7 @@ static void set_wallet_erase_pin(void)
 
     // Ask user to enter a wallet-erase pin
     pin_insert_t pin_insert = {};
-    make_pin_insert_activity(&pin_insert, "Wallet-Erase PIN", "\nEnter Wallet-Erase PIN");
+    make_pin_insert_activity(&pin_insert, "Wallet-Erase PIN", "Enter Wallet-Erase PIN,\ndifferent from unlock PIN");
     JADE_ASSERT(pin_insert.activity);
 
     while (true) {
