@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.36] - 2022-08-17
+### Added
+
+### Changed
+- Update Liquid asset registry info
+- Display new mnemonic words in a column rather than a grid
+- Updated some UI strings
+
+### Fixed
+- Fixed issue when entering OTP URI via the on-screen keyboard
+- Fixed issue when OTA-delta fails patching
+
 ## [0.1.35] - 2022-08-11
 ### Added
 - Add 'wallet-erase' duress pin
