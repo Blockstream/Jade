@@ -490,15 +490,15 @@ void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* mult
         gui_set_parent(row4, vsplit);
     }
 
-    // Buttons - Delete and Nexy
+    // Buttons - Delete and Next
     btn_data_t btns[] = { { .txt = "Delete", .font = DEFAULT_FONT, .ev_id = BTN_MULTISIG_DELETE },
         { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_NEXT } };
 
     // Change 'Next' to 'Exit' for last entry
     if (index >= total) {
-        btns[1].txt = "Delete";
+        btns[1].txt = "Exit";
         btns[1].font = DEFAULT_FONT;
-        btns[1].ev_id = BTN_MULTISIG_DELETE;
+        btns[1].ev_id = BTN_MULTISIG_EXIT;
     }
 
     add_buttons(vsplit, UI_ROW, btns, 2);
