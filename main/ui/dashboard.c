@@ -309,6 +309,7 @@ static void add_poweroff_timeout_btn(gui_view_node_t* parent, gui_view_node_t** 
 void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Settings");
 
@@ -325,11 +326,9 @@ void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     add_buttons(vsplit, UI_COLUMN, btns, 3);
 }
 
-void make_settings_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, gui_view_node_t** timeout_btn_text)
+void make_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(orientation_textbox);
     JADE_ASSERT(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Settings");
@@ -339,31 +338,6 @@ void make_settings_screen(
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 25, 75);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
     add_poweroff_timeout_btn(vsplit, timeout_btn_text);
-
-    /*
-        {
-            gui_view_node_t *hsplit;
-            gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-            gui_set_parent(hsplit, vsplit);
-
-            gui_view_node_t *key;
-            gui_make_text(&key, "Orientation", TFT_WHITE);
-            gui_set_parent(key, hsplit);
-            gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-            gui_view_node_t *btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_TOGGLE_ORIENTATION, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-            gui_view_node_t *text;
-            gui_make_text(&text, "A", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-
-            *orientation_textbox = text;
-        }
-     */
 
     // Other buttons
     btn_data_t btns[] = { { .txt = "Advanced", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED },

@@ -77,8 +77,7 @@ void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_na
 void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra);
 
 void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
-void make_settings_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t** orientation_textbox, gui_view_node_t** timeout_btn_text);
+void make_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_advanced_options_screen(gui_activity_t** activity_ptr);
 
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns);
@@ -909,13 +908,6 @@ static void handle_view_otps(void)
     }
 }
 
-static inline void update_orientation_text(gui_view_node_t* orientation_textbox)
-{
-    JADE_ASSERT(orientation_textbox);
-
-    gui_update_text(orientation_textbox, display_is_orientation_flipped() ? "B" : "A");
-}
-
 static void update_idle_timeout_btns(btn_data_t* timeout_btn, const size_t nBtns, uint16_t timeout)
 {
     JADE_ASSERT(timeout_btn);
@@ -1005,12 +997,11 @@ static void handle_use_passphrase(void)
 static void handle_settings()
 {
     gui_activity_t* act = NULL;
-    gui_view_node_t* orientation_textbox = NULL;
     gui_view_node_t* timeout_btn_text = NULL;
 
     if (keychain_get()) {
         // Unlocked Jade - main settings
-        make_settings_screen(&act, &orientation_textbox, &timeout_btn_text);
+        make_settings_screen(&act, &timeout_btn_text);
     } else {
         // Before pin entry - restricted/different settings
         make_prepin_settings_screen(&act, &timeout_btn_text);
@@ -1021,7 +1012,6 @@ static void handle_settings()
     uint16_t timeout = storage_get_idle_timeout();
     update_idle_timeout_btn_text(timeout_btn_text, timeout);
 
-    // update_orientation_text(orientation_textbox);
     gui_set_current_activity(act);
 
     bool done = false;
@@ -1046,14 +1036,6 @@ static void handle_settings()
             JADE_ASSERT(act);
             gui_set_current_activity(act);
             continue;
-
-            /*
-                    case BTN_SETTINGS_TOGGLE_ORIENTATION:
-                        display_toggle_orientation();
-                        set_invert_wheel(display_is_orientation_flipped());
-                        update_orientation_text(orientation_textbox);
-                        break;
-             */
 
         case BTN_SETTINGS_IDLE_TIMEOUT:
             handle_idle_timeout(&timeout);
