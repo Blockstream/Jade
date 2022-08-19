@@ -11,7 +11,7 @@ void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_d
     JADE_ASSERT(num_btns <= 4);
 
     // Make the split relevant for the number of buttons
-    typedef void (*make_split_fn)(gui_view_node_t * *ptr, enum gui_split_type kind, uint8_t parts, ...);
+    typedef void (*make_split_fn)(gui_view_node_t * *ptr, enum gui_split_type kind, uint32_t parts, ...);
     make_split_fn make_split = layout == UI_COLUMN ? gui_make_vsplit : gui_make_hsplit;
     gui_view_node_t* split = NULL;
     // Make hsplit for the number of buttons

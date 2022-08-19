@@ -809,14 +809,14 @@ static void make_split_node(
     data->values = JADE_CALLOC(1, sizeof(uint8_t) * parts);
 
     for (uint8_t i = 0; i < parts; i++) {
-        data->values[i] = va_arg(values, int);
+        data->values[i] = va_arg(values, uint32_t);
     };
 
     // ... and also set a destructor to free them later
     make_view_node(ptr, split_kind, data, free_view_node_split_data);
 }
 
-void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...)
+void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...)
 {
     va_list args;
     va_start(args, parts);
@@ -824,7 +824,7 @@ void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t pa
     va_end(args);
 }
 
-void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...)
+void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...)
 {
     va_list args;
     va_start(args, parts);
@@ -934,14 +934,15 @@ void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)
     make_view_node(ptr, PICTURE, data, NULL);
 }
 
-static void set_vals_with_varargs(gui_margin_t* margins, uint8_t sides, va_list args)
+static void set_vals_with_varargs(gui_margin_t* margins, const uint8_t sides, va_list args)
 {
-    uint8_t val;
+    int val;
 
     switch (sides) {
     case GUI_MARGIN_ALL_EQUAL:
         // we only pop one value
         val = va_arg(args, int);
+        JADE_ASSERT(val <= UINT8_MAX);
         margins->top = val;
         margins->right = val;
         margins->bottom = val;
@@ -951,20 +952,33 @@ static void set_vals_with_varargs(gui_margin_t* margins, uint8_t sides, va_list 
     case GUI_MARGIN_TWO_VALUES:
         // two values, top/bottom and right/left
         val = va_arg(args, int);
+        JADE_ASSERT(val <= UINT8_MAX);
         margins->top = val;
         margins->bottom = val;
 
         val = va_arg(args, int);
+        JADE_ASSERT(val <= UINT8_MAX);
         margins->right = val;
         margins->left = val;
         break;
 
     case GUI_MARGIN_ALL_DIFFERENT:
         // four different values
-        margins->top = va_arg(args, int);
-        margins->right = va_arg(args, int);
-        margins->bottom = va_arg(args, int);
-        margins->left = va_arg(args, int);
+        val = va_arg(args, int);
+        JADE_ASSERT(val <= UINT8_MAX);
+        margins->top = val;
+
+        val = va_arg(args, int);
+        JADE_ASSERT(val <= UINT8_MAX);
+        margins->right = val;
+
+        val = va_arg(args, int);
+        JADE_ASSERT(val <= UINT8_MAX);
+        margins->bottom = val;
+
+        val = va_arg(args, int);
+        JADE_ASSERT(val <= UINT8_MAX);
+        margins->left = val;
         break;
 
     default:
@@ -1014,7 +1028,7 @@ static void calc_render_data(gui_view_node_t* node)
     node->render_data.padded_constraints = constraints;
 }
 
-void gui_set_margins(gui_view_node_t* node, uint8_t sides, ...)
+void gui_set_margins(gui_view_node_t* node, uint32_t sides, ...)
 {
     JADE_ASSERT(node);
 
@@ -1027,7 +1041,7 @@ void gui_set_margins(gui_view_node_t* node, uint8_t sides, ...)
     calc_render_data(node);
 }
 
-void gui_set_padding(gui_view_node_t* node, uint8_t sides, ...)
+void gui_set_padding(gui_view_node_t* node, uint32_t sides, ...)
 {
     JADE_ASSERT(node);
 
