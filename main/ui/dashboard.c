@@ -619,7 +619,7 @@ static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_v
         gui_view_node_t* logo_node;
         gui_make_picture(&logo_node, &fcc);
         gui_set_parent(logo_node, hsplit);
-        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
         gui_view_node_t* subvsplit;
         gui_make_vsplit(&subvsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
@@ -628,12 +628,12 @@ static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_v
         gui_view_node_t* title;
         gui_make_text(&title, "FCC ID", TFT_WHITE);
         gui_set_parent(title, subvsplit);
-        gui_set_align(title, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        gui_set_align(title, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
         gui_view_node_t* key;
         gui_make_text(&key, JADE_FCC_ID, TFT_WHITE);
         gui_set_parent(key, subvsplit);
-        gui_set_align(key, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        gui_set_align(key, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         break;
     }
     case 1: {
@@ -665,14 +665,14 @@ static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_v
         gui_view_node_t* logo_node;
         gui_make_picture(&logo_node, &ce);
         gui_set_parent(logo_node, vsplit);
-        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         break;
     }
     case 4: {
         gui_view_node_t* logo_node;
         gui_make_picture(&logo_node, &weee);
         gui_set_parent(logo_node, vsplit);
-        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         break;
     }
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
@@ -680,7 +680,7 @@ static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_v
         gui_view_node_t* logo_node;
         gui_make_picture(&logo_node, &telec);
         gui_set_parent(logo_node, vsplit);
-        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_CENTER);
+        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         break;
     }
 #endif
