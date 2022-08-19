@@ -544,9 +544,9 @@ void gui_make_activity(gui_activity_t** ppact, const bool has_status_bar, const 
         JADE_ASSERT(activity->title);
     }
 
-    activity->root_node = NULL;
-    gui_make_fill(&(activity->root_node), TFT_BLACK);
-
+    gui_view_node_t* bg;
+    gui_make_fill(&bg, TFT_BLACK);
+    activity->root_node = bg;
     activity->root_node->activity = activity;
 
     activity->selectables = NULL;
