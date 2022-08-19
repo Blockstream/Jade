@@ -43,32 +43,36 @@ void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, c
     gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 35, 50, 15);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 32, 52, 16);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
-    gui_view_node_t* text1;
-    gui_make_text(&text1, "For setup instructions visit\nblockstream.com/jade", TFT_WHITE);
-    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text1, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
-    gui_set_parent(text1, vsplit);
+    {
+        gui_view_node_t* text;
+        gui_make_text(&text, "For setup instructions visit\nblockstream.com/jade", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 6, 8, 0, 8);
+        gui_set_parent(text, vsplit);
+    }
 
-    gui_view_node_t* btn;
-    gui_make_button(&btn, TFT_BLACK, BTN_INITIALIZE, NULL);
-    gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 15, 50);
-    gui_set_parent(btn, vsplit);
+    {
+        gui_view_node_t* row;
+        gui_make_fill(&row, TFT_BLACK);
+        gui_set_padding(row, GUI_MARGIN_TWO_VALUES, 0, 50);
+        gui_set_parent(row, vsplit);
 
-    gui_view_node_t* btntext;
-    gui_make_text(&btntext, "Initialize", TFT_WHITE);
-    gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(btntext, btn);
+        btn_data_t btns[] = { { .txt = "Initialize", .font = DEFAULT_FONT, .ev_id = BTN_INITIALIZE },
+            { .txt = "Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS } };
 
-    gui_view_node_t* ver;
-    gui_make_text(&ver, firmware_version, TFT_WHITE);
-    gui_set_align(ver, GUI_ALIGN_RIGHT, GUI_ALIGN_BOTTOM);
-    gui_set_padding(ver, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 4, 2);
-    gui_set_parent(ver, vsplit);
+        add_buttons(row, UI_COLUMN, btns, 2);
+    }
+
+    {
+        gui_view_node_t* ver;
+        gui_make_text(&ver, firmware_version, TFT_WHITE);
+        gui_set_align(ver, GUI_ALIGN_RIGHT, GUI_ALIGN_BOTTOM);
+        gui_set_padding(ver, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 2, 2);
+        gui_set_parent(ver, vsplit);
+    }
 }
 
 void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
