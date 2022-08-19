@@ -170,7 +170,7 @@ static void make_show_new_mnemonic_page(gui_activity_t** activity_ptr, const siz
     }
 
     // Set the intially selected item to the next/verify (ie. the last) button
-    // gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+    gui_set_activity_initial_selection(*activity_ptr, out_btns[1]);
 }
 
 void make_show_mnemonic(
