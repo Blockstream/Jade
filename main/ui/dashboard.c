@@ -306,7 +306,27 @@ static void add_poweroff_timeout_btn(gui_view_node_t* parent, gui_view_node_t** 
     *timeout_btn_text = text;
 }
 
-void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(timeout_btn_text);
+
+    gui_make_activity(activity_ptr, true, "Settings");
+
+    // Do Timeout button separately as it's a bit special
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 25, 75);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    add_poweroff_timeout_btn(vsplit, timeout_btn_text);
+
+    // Other buttons
+    btn_data_t btns[] = { { .txt = "Emergency Restore", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EMERGENCY_RESTORE },
+        { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_BLE },
+        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    add_buttons(vsplit, UI_COLUMN, btns, 3);
+}
+
+void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(timeout_btn_text);
@@ -326,7 +346,7 @@ void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     add_buttons(vsplit, UI_COLUMN, btns, 3);
 }
 
-void make_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(timeout_btn_text);

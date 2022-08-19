@@ -76,8 +76,9 @@ void make_connection_select_screen(gui_activity_t** activity_ptr);
 void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, bool ble);
 void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra);
 
-void make_prepin_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
-void make_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
+void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
+void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
+void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_advanced_options_screen(gui_activity_t** activity_ptr);
 
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns);
@@ -578,6 +579,77 @@ void offer_startup_options(void)
     }
 }
 
+#ifndef CONFIG_ESP32_NO_BLOBS
+// Reset BLE pairing data
+static void handle_ble_reset(void)
+{
+    if (!ble_enabled()) {
+        await_message_activity("You must enable Bluetooth\nbefore accessing the pairing\ninformation.");
+        return;
+    }
+
+    const bool bReset = await_yesno_activity("BLE Reset", "\nDo you want to reset all\nbonded devices?", false);
+    if (bReset) {
+        if (!ble_remove_all_devices()) {
+            await_error_activity("Failed to remove all BLE devices");
+        }
+    }
+}
+
+// BLE properties screen
+static inline void update_ble_enabled_text(gui_view_node_t* ble_status_textbox)
+{
+    gui_update_text(ble_status_textbox, ble_enabled() ? "Enabled" : "Disabled");
+}
+
+static void handle_ble(void)
+{
+    gui_activity_t* act = NULL;
+    gui_view_node_t* ble_status_textbox = NULL;
+    make_ble_screen(&act, device_name, &ble_status_textbox);
+    JADE_ASSERT(act);
+
+    update_ble_enabled_text(ble_status_textbox);
+    gui_set_current_activity(act);
+
+    bool loop = true;
+    while (loop) {
+        int32_t ev_id;
+        uint8_t ble_flags;
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+
+        switch (ev_id) {
+        case BTN_BLE_EXIT:
+            loop = false;
+            break;
+
+        case BTN_BLE_TOGGLE_ENABLE:
+            ble_flags = storage_get_ble_flags();
+            if (ble_enabled()) {
+                ble_stop();
+                ble_flags &= ~BLE_ENABLED;
+            } else {
+                ble_start();
+                ble_flags |= BLE_ENABLED;
+            }
+            storage_set_ble_flags(ble_flags);
+            update_ble_enabled_text(ble_status_textbox);
+            break;
+
+        case BTN_BLE_RESET_PAIRING:
+            handle_ble_reset();
+            gui_set_current_activity(act);
+            break;
+
+        default:
+            break;
+        }
+    }
+}
+#else
+static void handle_ble(void) { await_message_activity("BLE disabled in this firmware"); }
+#endif // CONFIG_ESP32_NO_BLOBS
+
 static void handle_multisigs(void)
 {
     char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
@@ -1001,10 +1073,13 @@ static void handle_settings()
 
     if (keychain_get()) {
         // Unlocked Jade - main settings
-        make_settings_screen(&act, &timeout_btn_text);
+        make_unlocked_settings_screen(&act, &timeout_btn_text);
+    } else if (keychain_has_pin()) {
+        // Locked Jade - before pin entry when saved wallet exists
+        make_locked_settings_screen(&act, &timeout_btn_text);
     } else {
-        // Before pin entry - restricted/different settings
-        make_prepin_settings_screen(&act, &timeout_btn_text);
+        // Uninitilised Jade - no wallet set
+        make_uninitialised_settings_screen(&act, &timeout_btn_text);
     }
     JADE_ASSERT(act);
 
@@ -1037,6 +1112,10 @@ static void handle_settings()
             gui_set_current_activity(act);
             continue;
 
+        case BTN_BLE:
+            handle_ble();
+            break;
+
         case BTN_SETTINGS_IDLE_TIMEOUT:
             handle_idle_timeout(&timeout);
             break;
@@ -1055,6 +1134,10 @@ static void handle_settings()
 
         case BTN_SETTINGS_RESET:
             offer_jade_reset();
+            break;
+
+        case BTN_SETTINGS_EMERGENCY_RESTORE:
+            offer_emergency_restore();
             break;
 
         case BTN_SETTINGS_OTP_VIEW:
@@ -1084,78 +1167,6 @@ static void handle_sleep(void)
         power_shutdown();
     }
 }
-
-#ifndef CONFIG_ESP32_NO_BLOBS
-// Reset BLE pairing data
-static void handle_ble_reset(void)
-{
-    if (!ble_enabled()) {
-        await_message_activity("You must enable Bluetooth\nbefore accessing the pairing\ninformation.");
-        return;
-    }
-
-    const bool bReset = await_yesno_activity("BLE Reset", "\nDo you want to reset all\nbonded devices?", false);
-    if (bReset) {
-        if (!ble_remove_all_devices()) {
-            await_error_activity("Failed to remove all BLE devices");
-        }
-    }
-}
-
-// BLE properties screen
-static inline void update_ble_enabled_text(gui_view_node_t* ble_status_textbox)
-{
-    gui_update_text(ble_status_textbox, ble_enabled() ? "Enabled" : "Disabled");
-}
-
-static void handle_ble(void)
-{
-    gui_activity_t* act = NULL;
-    gui_view_node_t* ble_status_textbox = NULL;
-    make_ble_screen(&act, device_name, &ble_status_textbox);
-    JADE_ASSERT(act);
-
-    update_ble_enabled_text(ble_status_textbox);
-    gui_set_current_activity(act);
-
-    bool loop = true;
-    while (loop) {
-        int32_t ev_id;
-        uint8_t ble_flags;
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-
-        switch (ev_id) {
-        case BTN_BLE_EXIT:
-            loop = false;
-            break;
-
-        case BTN_BLE_TOGGLE_ENABLE:
-            ble_flags = storage_get_ble_flags();
-            if (ble_enabled()) {
-                ble_stop();
-                ble_flags &= ~BLE_ENABLED;
-            } else {
-                ble_start();
-                ble_flags |= BLE_ENABLED;
-            }
-            storage_set_ble_flags(ble_flags);
-            update_ble_enabled_text(ble_status_textbox);
-            break;
-
-        case BTN_BLE_RESET_PAIRING:
-            handle_ble_reset();
-            gui_set_current_activity(act);
-            break;
-
-        default:
-            break;
-        }
-    }
-}
-#else
-static void handle_ble(void) { await_message_activity("BLE disabled in this firmware"); }
-#endif // CONFIG_ESP32_NO_BLOBS
-
 static void handle_storage(void)
 {
     size_t entries_used, entries_free;
