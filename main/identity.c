@@ -279,6 +279,7 @@ static bool sign_challenge(mbedtls_ecp_keypair* keypair, const uint8_t* challeng
     mbedtls_mpi_init(&tmp);
 
     ret = mbedtls_mpi_copy(&tmp, &keypair->grp.N);
+    JADE_ASSERT(!ret);
     mbedtls_mpi_shift_r(&tmp, 1);
 
     if (mbedtls_mpi_cmp_mpi(ps, &tmp) > 0) {
