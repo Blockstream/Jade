@@ -345,9 +345,10 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     add_poweroff_timeout_btn(vsplit, timeout_btn_text);
 
     // Other buttons
-    btn_data_t btns[] = { { .txt = "Passphrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_USE_PASSPHRASE },
-        { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
-        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    btn_data_t btns[]
+        = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
+              { .txt = "Use Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_USE_PASSPHRASE },
+              { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons(vsplit, UI_COLUMN, btns, 3);
 }
 
