@@ -20,7 +20,7 @@ void make_startup_options_screen(gui_activity_t** activity_ptr)
 
     btn_data_t btns[]
         = { { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
-              { .txt = "Emergency Restore", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EMERGENCY_RESTORE },
+              { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
               { .txt = "Legal", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL },
               { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
@@ -324,9 +324,10 @@ void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_
     add_poweroff_timeout_btn(vsplit, timeout_btn_text);
 
     // Other buttons
-    btn_data_t btns[] = { { .txt = "Emergency Restore", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EMERGENCY_RESTORE },
-        { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_BLE },
-        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    btn_data_t btns[]
+        = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
+              { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_BLE },
+              { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons(vsplit, UI_COLUMN, btns, 3);
 }
 

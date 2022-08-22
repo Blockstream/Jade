@@ -532,10 +532,12 @@ static void initialise_wallet(const bool emergency_restore)
     }
 }
 
-void offer_emergency_restore(void)
+static void offer_temporary_wallet_login(void)
 {
-    const bool bRestore = await_yesno_activity("Emergency Restore",
-        "Do you want to temporarily\nrestore a wallet?\nThis doesn't affect your PIN\nsaved wallet, if any.", true);
+    const bool bRestore = await_yesno_activity("Temporary Login",
+        "Do you want to temporarily\nlogin using a recovery phrase?\nThis doesn't affect your PIN\nsaved wallet, if "
+        "any.",
+        true);
 
     if (bRestore) {
         initialise_wallet(true);
@@ -568,8 +570,8 @@ void offer_startup_options(void)
     switch (ev_id) {
     case BTN_SETTINGS_RESET:
         return offer_jade_reset();
-    case BTN_SETTINGS_EMERGENCY_RESTORE:
-        return offer_emergency_restore();
+    case BTN_SETTINGS_TEMPORARY_WALLET_LOGIN:
+        return offer_temporary_wallet_login();
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     case BTN_SETTINGS_LEGAL:
         return handle_legal();
@@ -1136,8 +1138,8 @@ static void handle_settings()
             offer_jade_reset();
             break;
 
-        case BTN_SETTINGS_EMERGENCY_RESTORE:
-            offer_emergency_restore();
+        case BTN_SETTINGS_TEMPORARY_WALLET_LOGIN:
+            offer_temporary_wallet_login();
             break;
 
         case BTN_SETTINGS_OTP_VIEW:
