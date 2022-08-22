@@ -20449,6 +20449,36 @@
         "ticker": "AFuVe",
         "version": 0
     },
+    "e0df9dbc79e899481aae6c6c52fb84268f442c18bf39ebbbf0a86d040cdd6910": {
+        "asset_id": "e0df9dbc79e899481aae6c6c52fb84268f442c18bf39ebbbf0a86d040cdd6910",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "mediatex.id"
+            },
+            "issuer_pubkey": "03b84b23cec3c341017e509331c1e77c910fb894826b372282b2e6301ed900069f",
+            "name": "Ekuitas Mediatex Corporate 2022",
+            "precision": 6,
+            "ticker": "MDTX",
+            "version": 0
+        },
+        "entity": {
+            "domain": "mediatex.id"
+        },
+        "issuance_prevout": {
+            "txid": "eb7af12371fb98c9740a7d759150982d00a25b1c4ed95e6b9af77649b5e2427d",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "e2e7e77bab70048914cc721ea8c6b9887c5cf97dd625d7e8bb572a84a75a489f",
+            "vin": 0
+        },
+        "issuer_pubkey": "03b84b23cec3c341017e509331c1e77c910fb894826b372282b2e6301ed900069f",
+        "name": "Ekuitas Mediatex Corporate 2022",
+        "precision": 6,
+        "ticker": "MDTX",
+        "version": 0
+    },
     "e153ab549223145a67e42053333c07bf7844272cf33664c9f8ebaf1d4d662f40": {
         "asset_id": "e153ab549223145a67e42053333c07bf7844272cf33664c9f8ebaf1d4d662f40",
         "contract": {

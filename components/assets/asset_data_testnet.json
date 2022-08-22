@@ -773,6 +773,36 @@
         "ticker": "BSK2",
         "version": 0
     },
+    "a42bf2b24810d285a91a1c3f69a41421e2e4250698d972cdce8c9da7dff7c780": {
+        "asset_id": "a42bf2b24810d285a91a1c3f69a41421e2e4250698d972cdce8c9da7dff7c780",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "aldin-sxr.dev"
+            },
+            "issuer_pubkey": "02fd2ce05d2e54e71153662a51b4e7b645f4ec33eb00f31b2e5678eaec7cec75e8",
+            "name": "Testy McToken",
+            "precision": 2,
+            "ticker": "TSTMT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "aldin-sxr.dev"
+        },
+        "issuance_prevout": {
+            "txid": "889f154bab343010d6654e7a6551e950d27ed6f6f12e9a9abe0a937a703ab152",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "5b15a54d0374d6903047d2b0720c8eb53624f4e443ab6a426efd1c54eee0bfde",
+            "vin": 0
+        },
+        "issuer_pubkey": "02fd2ce05d2e54e71153662a51b4e7b645f4ec33eb00f31b2e5678eaec7cec75e8",
+        "name": "Testy McToken",
+        "precision": 2,
+        "ticker": "TSTMT",
+        "version": 0
+    },
     "ac3e0ff248c5051ffd61e00155b7122e5ebc04fd397a0ecbdd4f4e4a56232926": {
         "asset_id": "ac3e0ff248c5051ffd61e00155b7122e5ebc04fd397a0ecbdd4f4e4a56232926",
         "contract": {
