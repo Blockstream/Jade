@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.37] - 2022-08-23
+### Added
+- Added 'Settings' menu for uninitialised Jade units
+
+### Changed
+- Update Liquid asset registry info
+- Renamed 'Emergency Restore' to 'Recovery Phrase Login'
+- Updated some UI strings and menu options
+
+### Fixed
+- Fix issue viewing multisig records introduced in v0.1.35
+- Internal code-quality improvements
+
 ## [0.1.36] - 2022-08-17
 ### Added
 
