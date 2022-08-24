@@ -61,7 +61,11 @@ void debug_set_mnemonic_process(void* process_ptr)
     } else {
         // Extract the mnemonic data from the message into the qr_data structure
         // (ie. as if we had just scanned this string from a qr code)
+        // If fetching as a string fails, try fetching as bytes
         rpc_get_string("mnemonic", sizeof(qr_data.strdata), &params, qr_data.strdata, &qr_data.len);
+        if (qr_data.len == 0) {
+            rpc_get_bytes("mnemonic", sizeof(qr_data.strdata), &params, (uint8_t*)qr_data.strdata, &qr_data.len);
+        }
         if (qr_data.len == 0) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract mnemonic prefixes from parameters", NULL);

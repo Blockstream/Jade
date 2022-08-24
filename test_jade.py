@@ -165,9 +165,11 @@ ae plan scan carr elec reco acco stoc insp net ups can opt brie guid priv'
 TEST_MNEMONIC_PREFIXES_AMBIGUOUS = 'fish inne face gin orc perm usef met fen \
 kidn chuc part fav suns draw limb scie cran ova let slot invi sadn bana'
 
-# Seedsigner style for our test mnemonic
+# Seedsigner styles for our test mnemonic
 TEST_MNEMONIC_SEEDSIGNER = '0701093106520784124813051919112106800979032412840\
 67217400531103815430402126110281632094415190145'
+TEST_MNEMONIC_SEEDSIGNER_COMPACT = b'W\xae\x8dF1\t\xc1F{\xfcaU\x0fL\xa2PEA\xb3\
+\x10\x9c\x0e\xc0\xe6Jv\xc0L\xc0\xec/x'
 
 TEST_MNEMONIC_12 = 'retire verb human ecology best member fiction measure \
 demand stereo wedding olive'
@@ -176,9 +178,11 @@ TEST_MNEMONIC_12_IDENTITY = 'alcohol woman abuse must during monitor noble \
 actual mixed trade anger aisle'
 
 # Seedsigner's example https://github.com/SeedSigner/seedsigner/blob/dev/docs/seed_qr/README.md
-SEEDSIGNER_MNEMONIC_STRING = 'vacuum bridge buddy supreme exclude milk consider \
-tail expand wasp pattern nuclear'
-SEEDSIGNER_MNEMONIC_NUMERIC = '192402220235174306311124037817700641198012901210'
+# (Test Vector 6)
+SEEDSIGNER_MNEMONIC_STRING = 'approve fruit lens brass ring actual stool coin \
+doll boss strong rate'
+SEEDSIGNER_MNEMONIC_NUMERIC = '008607501025021714880023171503630517020917211425'
+SEEDSIGNER_MNEMONIC_COMPACT = b'\n\xcb\xba\x00\x8d\x9b\xa0\x05\xf5\x99k@\xa3G\\\xd9'
 
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
@@ -1625,11 +1629,14 @@ def test_mnemonic_import(jade):
     # Check the mnemonic unique prefixes expands to the same mnemonic/wallet
     # as when giving the full mnemonic words (test for qr-scanning prefixes)
     # as the unambiguous prefixes are expanded to the full words.  orc -> orchard
+    # Also check the SeedSigner formats also (SeeqQR and CompactSeedQR)
     xpub_root0 = _set_wallet(jade, mnemonic=TEST_MNEMONIC)
     xpub_root1 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_PREFIXES)
     xpub_root2 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_SEEDSIGNER)
+    xpub_root3 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_SEEDSIGNER_COMPACT)
     assert xpub_root1 == xpub_root0
     assert xpub_root2 == xpub_root0
+    assert xpub_root3 == xpub_root0
 
     # Check that mnemonic-prefixes are accepted even if they are prefixes to multiple
     # words, provided one of them is an exact/full match for the entire word.
@@ -1638,23 +1645,27 @@ def test_mnemonic_import(jade):
     xpub_root2 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_PREFIXES_EXACT_MATCH)
     assert xpub_root2 != xpub_root0
 
-    # Seedsigner's own test case (12-words)
+    # Seedsigner's own test case (Test Vector 6 - 12-words)
+    # See: https://github.com/SeedSigner/seedsigner/blob/dev/docs/seed_qr/README.md
     xpub_root0 = _set_wallet(jade, mnemonic=SEEDSIGNER_MNEMONIC_STRING)
     xpub_root1 = _set_wallet(jade, mnemonic=SEEDSIGNER_MNEMONIC_NUMERIC)
+    xpub_root2 = _set_wallet(jade, mnemonic=SEEDSIGNER_MNEMONIC_COMPACT)
     assert xpub_root1 == xpub_root0
+    assert xpub_root2 == xpub_root0
 
 
 def test_mnemonic_import_bad(jade):
     # Check that mnemonic-prefixes are rejected if the prefixes match multiple words
     # (but none of them exactly/full-match).  ie. prefix is ambiguous.  met -> metal, method
-    for bad_prefixes in [TEST_MNEMONIC_PREFIXES_AMBIGUOUS,
-                         TEST_MNEMONIC_SEEDSIGNER[:-1],  # bad length
-                         TEST_MNEMONIC_SEEDSIGNER + '1234',  # bad length
-                         TEST_MNEMONIC_SEEDSIGNER[:-4] + '2048',  # out of range
-                         TEST_MNEMONIC_SEEDSIGNER[:-4] + '0000',  # mnemonic wouldn't be valid
-                         ]:
-        request = jade.build_request("badprefix_" + bad_prefixes[0:4], "debug_set_mnemonic",
-                                     {"mnemonic": bad_prefixes})
+    for i, bad_mnemonic in enumerate([TEST_MNEMONIC_PREFIXES_AMBIGUOUS,
+                                      TEST_MNEMONIC_SEEDSIGNER[:-1],  # bad length
+                                      TEST_MNEMONIC_SEEDSIGNER + '1234',  # bad length
+                                      TEST_MNEMONIC_SEEDSIGNER[:-4] + '2048',  # out of range
+                                      TEST_MNEMONIC_SEEDSIGNER[:-4] + '0000',  # invalid mnemonic
+                                      TEST_MNEMONIC_SEEDSIGNER_COMPACT[:-1],  # bad length
+                                      ]):
+        request = jade.build_request("badmnemonic_" + str(i), "debug_set_mnemonic",
+                                     {"mnemonic": bad_mnemonic})
         reply = jade.make_rpc_call(request)
         assert reply['id'] == request['id']
         assert 'result' not in reply

@@ -599,7 +599,9 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
     return *end_ptr == '\0';
 }
 
-static bool import_seedsigner(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+// SeedSigner SeedQR support (ie string of 4-digit word indices).
+// NOTE: only the English wordlist is supported.
+static bool import_seedqr(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
 {
     JADE_ASSERT(qr_data);
     JADE_ASSERT(buf);
@@ -611,8 +613,7 @@ static bool import_seedsigner(const qr_data_t* qr_data, char* buf, const size_t 
         return false;
     }
 
-    // SeedSigner qr support (ie string of word indices).
-    // NOTE: only the English wordlist is supported.
+    // Read out 4-digit (ie. 0-padded) indices, and lookup word
     char index_code[5];
     SENSITIVE_PUSH(index_code, sizeof(index_code));
     index_code[4] = '\0';
@@ -655,13 +656,45 @@ static bool import_seedsigner(const qr_data_t* qr_data, char* buf, const size_t 
     return true;
 }
 
+// SeedSigner CompactSeedQR support (ie raw entropy).
+// NOTE: only the English wordlist is supported.
+static bool import_compactseedqr(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+{
+    JADE_ASSERT(qr_data);
+    JADE_ASSERT(buf);
+    JADE_ASSERT(buf_len);
+    JADE_INIT_OUT_SIZE(written);
+
+    // Any buffer of appropriate length will work as a compactseedqr as it's just raw entropy
+    if ((qr_data->len != 16 && qr_data->len != 32)) {
+        return false;
+    }
+
+    // Convert binary entropy to mnemonic string
+    char* mnemonic = NULL;
+    JADE_WALLY_VERIFY(bip39_mnemonic_from_bytes(NULL, (uint8_t*)qr_data->strdata, qr_data->len, &mnemonic));
+    JADE_ASSERT(mnemonic);
+    const size_t mnemonic_len = strnlen(mnemonic, buf_len);
+    JADE_ASSERT(mnemonic_len < buf_len); // buffer should be large enough for any mnemonic
+
+    // Copy into output buffer and zero and free wally string
+    strcpy(buf, mnemonic);
+    *written = mnemonic_len + 1; // Report actual number of bytes written including the nul-terminator
+
+    wally_bzero(mnemonic, mnemonic_len);
+    wally_free_string(mnemonic);
+    return true;
+}
+
 // Attempt to import mnemonic from supported formats
 static bool import_mnemonic(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
 {
-    // 1. Try seedsigner format (string of 4-digit indicies, no spaces)
-    // 2. Try to read word prefixes or whole words (space separated)
+    // 1. Try seedsigner compact format (ie. raw 128bit or 256bit entropy)
+    // 2. Try seedsigner standard format (string of 4-digit indicies, no spaces)
+    // 3. Try to read word prefixes or whole words (space separated)
     // TODO: add bc-ur format?
-    return import_seedsigner(qr_data, buf, buf_len, written) || expand_words(qr_data, buf, buf_len, written);
+    return import_compactseedqr(qr_data, buf, buf_len, written) || import_seedqr(qr_data, buf, buf_len, written)
+        || expand_words(qr_data, buf, buf_len, written);
 }
 
 // Function to validate qr scanned is (or expands to) a valid mnemonic
