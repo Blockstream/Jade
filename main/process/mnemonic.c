@@ -517,6 +517,16 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
     return true;
 }
 
+static bool string_all(const char* s, int (*fntest)(int))
+{
+    while (*s) {
+        if (!fntest(*s++)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Take a nul terminated string of space-separated mnemonic-word prefixes, and populate a string of
 // space-separated full mnemonic words (also nul terminated).
 // Returns true if it works!  Returns false if any of the prefixes are not a prefix for exactly one
@@ -537,14 +547,20 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
     const char* read_ptr = qr_data->strdata;
     const char* end_ptr = read_ptr;
 
+    // Must be a string of printable characters
+    if (!string_all(qr_data->strdata, isprint)) {
+        return false;
+    }
+
     while (*end_ptr != '\0' && write_pos < buf_len) {
-        // Find the next prefix
+        // Find the end of this word/prefix
         end_ptr = strchr(read_ptr, ' ');
         if (!end_ptr) {
             // Not found, point to end of string
             end_ptr = qr_data->strdata + qr_data->len;
             JADE_ASSERT(*end_ptr == '\0');
         }
+        JADE_ASSERT(end_ptr <= qr_data->strdata + qr_data->len);
 
         // Lookup prefix in the default (English) wordlist, ensuring exactly one match
         size_t possible_match;
@@ -583,17 +599,6 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
     return *end_ptr == '\0';
 }
 
-static bool string_digits_only(const char* digits)
-{
-    while (*digits) {
-        if (!isdigit(*digits++)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 static bool import_seedsigner(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
 {
     JADE_ASSERT(qr_data);
@@ -601,51 +606,53 @@ static bool import_seedsigner(const qr_data_t* qr_data, char* buf, const size_t 
     JADE_ASSERT(buf_len);
     JADE_INIT_OUT_SIZE(written);
 
-    if ((qr_data->len == 48 || qr_data->len == 96) && string_digits_only(qr_data->strdata)) {
-        // SeedSigner qr support (ie string of word indices).
-        // NOTE: only the English wordlist is supported.
-        char index_code[5];
-        SENSITIVE_PUSH(index_code, sizeof(index_code));
-        index_code[4] = '\0';
+    // Must be a string of appropriate length and all digits
+    if ((qr_data->len != 48 && qr_data->len != 96) || !string_all(qr_data->strdata, isdigit)) {
+        return false;
+    }
 
-        size_t write_pos = 0;
-        const size_t num_words = qr_data->len == 48 ? 12 : 24;
-        for (size_t i = 0; i < num_words; ++i) {
-            memcpy(index_code, qr_data->strdata + (i * 4), 4);
-            const size_t index = strtol(index_code, NULL, 10);
-            if (index > 2047) {
-                JADE_LOGE("Error, provided a bip39 word out of range");
-                SENSITIVE_POP(index_code);
-                return false;
-            }
+    // SeedSigner qr support (ie string of word indices).
+    // NOTE: only the English wordlist is supported.
+    char index_code[5];
+    SENSITIVE_PUSH(index_code, sizeof(index_code));
+    index_code[4] = '\0';
 
-            char* wally_word = NULL;
-            JADE_WALLY_VERIFY(bip39_get_word(NULL, index, &wally_word));
-            const size_t wordlen = strlen(wally_word);
-            if (write_pos + 1 + wordlen + 1 >= buf_len) {
-                // Not enough remaining for space, word, nul
-                JADE_LOGE("Error, expanded mnemonic string too large for buffer");
-                SENSITIVE_POP(index_code);
-                return false;
-            }
-
-            if (i > 0) {
-                // Add space separator
-                buf[write_pos++] = ' ';
-            }
-
-            // Copy word
-            memcpy(buf + write_pos, wally_word, wordlen);
-            write_pos += wordlen;
-            wally_free_string(wally_word);
+    size_t write_pos = 0;
+    const size_t num_words = qr_data->len == 48 ? 12 : 24;
+    for (size_t i = 0; i < num_words; ++i) {
+        memcpy(index_code, qr_data->strdata + (i * 4), 4);
+        const size_t index = strtol(index_code, NULL, 10);
+        if (index > 2047) {
+            JADE_LOGE("Error, provided a bip39 word out of range");
+            SENSITIVE_POP(index_code);
+            return false;
         }
 
-        SENSITIVE_POP(index_code);
-        buf[write_pos++] = '\0';
-        *written = write_pos;
-        return true;
+        char* wally_word = NULL;
+        JADE_WALLY_VERIFY(bip39_get_word(NULL, index, &wally_word));
+        const size_t wordlen = strlen(wally_word);
+        if (write_pos + 1 + wordlen + 1 >= buf_len) {
+            // Not enough remaining for space, word, nul
+            JADE_LOGE("Error, expanded mnemonic string too large for buffer");
+            SENSITIVE_POP(index_code);
+            return false;
+        }
+
+        if (i > 0) {
+            // Add space separator
+            buf[write_pos++] = ' ';
+        }
+
+        // Copy word
+        memcpy(buf + write_pos, wally_word, wordlen);
+        write_pos += wordlen;
+        wally_free_string(wally_word);
     }
-    return false;
+
+    SENSITIVE_POP(index_code);
+    buf[write_pos++] = '\0';
+    *written = write_pos;
+    return true;
 }
 
 // Attempt to import mnemonic from supported formats
