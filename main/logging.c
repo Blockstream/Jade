@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
-static size_t BUFFER_SIZE = 256;
-static size_t CBOR_OVERHEAD = 8;
+static const size_t BUFFER_SIZE = 256;
+static const size_t CBOR_OVERHEAD = 8;
 static const char* TRUNCATE_TAIL = "...\n";
 
 // Writes logging messages to the serial interface output buffer, ensuring
