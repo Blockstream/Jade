@@ -88,20 +88,20 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 35, 50, 15);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 45, 40, 15);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text;
-    gui_make_text(&text, "Connect Jade to a compatible\nwallet app", TFT_WHITE);
+    gui_make_text(&text, "Connect Jade to a compatible\nwallet app\nblockstream.com/jadewallets", TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 6, 8, 0, 8);
     gui_set_parent(text, vsplit);
 
     gui_view_node_t* btn;
     gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS, NULL);
     gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
     gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 15, 50);
+    gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 8, 50);
     gui_set_parent(btn, vsplit);
 
     gui_view_node_t* btntext;
@@ -130,7 +130,7 @@ void make_connection_select_screen(gui_activity_t** activity_ptr)
     gui_view_node_t* text;
     gui_make_text(&text, "How do you want to connect\nto your Jade?", TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 24, 8, 0, 8);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
     gui_set_parent(text, vsplit);
 
     // Two buttons, USB and BLE
@@ -157,11 +157,11 @@ void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_na
 
     // Text
     const char* message = ble ? "Select your Jade on the \ncompanion app to pair it"
-                              : "Attach your Jade to a device\nwith a compatible wallet\ninstalled";
+                              : "Connect Jade to a compatible\nwallet app\nblockstream.com/jadewallets";
     gui_view_node_t* text;
     gui_make_text(&text, message, TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 24, 8, 0, 8);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
     gui_set_parent(text, vsplit);
 
 #ifndef CONFIG_ESP32_NO_BLOBS
