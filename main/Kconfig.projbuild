@@ -52,6 +52,13 @@ config DISP_INVERT_COLORS
   help
     Invert the colors in the dipslay. Some M5 devices have inverted colors depending on revision.
 
+config RETURN_CAMERA_IMAGES
+  bool "Enable return camera images, larger outbound message buffer"
+  depends on DEBUG_MODE && (BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1)
+  default n
+  help
+    Enables call to return camera images - allocates larger outbound message buffer
+
 config HAS_AXP
   bool "Use the AXP192 power controller"
   depends on !BOARD_TYPE_M5_FIRE && !BOARD_TYPE_M5_BLACK_GRAY && !BOARD_TYPE_TTGO_TDISPLAY

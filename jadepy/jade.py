@@ -467,6 +467,26 @@ class JadeAPI:
         """
         return self._jadeRpc('debug_selfcheck', long_timeout=True)
 
+    def capture_image_data(self, check_qr=False):
+        """
+        RPC call to capture raw image data from the camera.
+        NOTE: Only available in a DEBUG build of the firmware.
+
+        Parameters
+        ----------
+        check_qr : bool, optional
+            If True only images which contain a valid qr code are captured and returned.
+            If False, any image is considered valid and is returned.
+            Defaults to False
+
+        Returns
+        -------
+        bytes
+            Raw image data from the camera framebuffer
+        """
+        params = {'check_qr': check_qr}
+        return self._jadeRpc('debug_capture_image_data', params)
+
     def clean_reset(self):
         """
         RPC call to clean/reset memory and storage, as much as is practical.

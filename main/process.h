@@ -23,7 +23,14 @@
 
 // This should be the size of the largest valid output message.
 // Used by ble and serial when sending messages. (pinserver handshake)
-#define MAX_OUTPUT_MSG_SIZE (1024 * 3)
+// NOTE: if CONFIG_RETURN_CAMERA_IMAGES is defined we allocate a larger
+// buffer as image sizes are much larger than standard messges.
+#define MAX_STANDARD_OUTPUT_MSG_SIZE (1024 * 3)
+#ifndef CONFIG_RETURN_CAMERA_IMAGES
+#define MAX_OUTPUT_MSG_SIZE MAX_STANDARD_OUTPUT_MSG_SIZE
+#else
+#define MAX_OUTPUT_MSG_SIZE (MAX_STANDARD_OUTPUT_MSG_SIZE * 30)
+#endif
 
 // Cbor encoding function prototype
 typedef void (*cbor_encoder_fn_t)(const void*, CborEncoder*);

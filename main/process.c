@@ -509,7 +509,7 @@ void jade_process_reply_to_message_result(const cbor_msg_t ctx, const void* cbct
     rpc_get_id(&ctx.value, id, sizeof(id), &written);
     JADE_ASSERT(written != 0);
 
-    uint8_t buf[MAX_OUTPUT_MSG_SIZE];
+    uint8_t buf[MAX_STANDARD_OUTPUT_MSG_SIZE];
     jade_process_reply_to_message_result_with_id(id, buf, sizeof(buf), ctx.source, cbctx, cb);
 }
 
@@ -558,9 +558,9 @@ void jade_process_reject_message_ex(const cbor_msg_t ctx, int code, const char* 
 void jade_process_reject_message(jade_process_t* process, int code, const char* message, const char* data)
 {
     if (HAS_CURRENT_MESSAGE(process)) {
-        uint8_t buffer[MAX_OUTPUT_MSG_SIZE];
+        uint8_t buf[MAX_STANDARD_OUTPUT_MSG_SIZE];
         jade_process_reject_message_ex(
-            process->ctx, code, message, (const uint8_t*)data, data ? strlen(data) : 0, buffer, sizeof(buffer));
+            process->ctx, code, message, (const uint8_t*)data, data ? strlen(data) : 0, buf, sizeof(buf));
     } else {
         JADE_LOGW("Ignoring attempt to reject 'no-message'");
     }

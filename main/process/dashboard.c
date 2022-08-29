@@ -59,6 +59,7 @@ void get_commitments_process(void* process_ptr);
 void get_blinding_factor_process(void* process_ptr);
 void sign_liquid_tx_process(void* process_ptr);
 #ifdef CONFIG_DEBUG_MODE
+void debug_capture_image_data_process(void* process_ptr);
 void debug_set_mnemonic_process(void* process_ptr);
 void debug_clean_reset_process(void* process_ptr);
 void debug_handshake(void* process_ptr);
@@ -353,6 +354,10 @@ static void dispatch_message(jade_process_t* process)
         task_function = debug_set_mnemonic_process;
     } else if (IS_METHOD("debug_handshake")) {
         task_function = debug_handshake;
+#ifdef CONFIG_RETURN_CAMERA_IMAGES
+    } else if (IS_METHOD("debug_capture_image_data")) {
+        task_function = debug_capture_image_data_process;
+#endif // CONFIG_RETURN_CAMERA_IMAGES
 #endif // CONFIG_DEBUG_MODE
     } else {
         // Methods only available after user authorised
