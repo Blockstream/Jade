@@ -63,7 +63,7 @@ static void serial_reader(void* ignore)
     }
 }
 
-static bool write_serial(char* msg, size_t length)
+static bool write_serial(const uint8_t* msg, const size_t length)
 {
     int written = 0;
     while (written != length) {

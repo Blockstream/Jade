@@ -395,7 +395,7 @@ void jade_process_load_in_message(jade_process_t* process, bool blocking)
     jade_process_get_in_message(&process->ctx, process_cbor_msg, blocking);
 }
 
-bool jade_process_get_out_message(bool (*writer)(char*, size_t), jade_msg_source_t source)
+bool jade_process_get_out_message(bool (*writer)(const uint8_t*, size_t), const jade_msg_source_t source)
 {
     RingbufHandle_t ring = NULL;
     switch (source) {
@@ -421,7 +421,7 @@ bool jade_process_get_out_message(bool (*writer)(char*, size_t), jade_msg_source
     bool res = true;
     if (item != NULL) {
         if (writer) {
-            res = writer((char*)item, item_size);
+            res = writer((const uint8_t*)item, item_size);
         }
         vRingbufferReturnItem(ring, item);
         // FIXME: currently false signals that there isn't anything on the buffer

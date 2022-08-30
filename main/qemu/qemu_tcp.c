@@ -103,7 +103,7 @@ static void qemu_tcp_reader(void* ignore)
     }
 }
 
-static bool write_qemu_tcp(char* msg, size_t length)
+static bool write_qemu_tcp(const uint8_t* msg, const size_t length)
 {
     portENTER_CRITICAL(&sockmutex);
     const int tmp_qemu_tcp_sock = qemu_tcp_sock;

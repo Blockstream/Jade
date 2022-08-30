@@ -322,7 +322,7 @@ void ble_stop_advertising(void)
     ble_gap_adv_stop();
 }
 
-static bool write_ble(char* msg, size_t towrite)
+static bool write_ble(const uint8_t* msg, const size_t towrite)
 {
 
     JADE_LOGD("Request to write %u bytes", towrite);

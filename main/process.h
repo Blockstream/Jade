@@ -93,7 +93,7 @@ void jade_process_reject_message_ex(cbor_msg_t ctx, int code, const char* messag
 
 // Get in/out messages from the queues/ring-buffers
 void jade_process_get_in_message(void* ctx, void (*writer)(void*, uint8_t*, size_t), bool blocking);
-bool jade_process_get_out_message(bool (*)(char*, size_t), jade_msg_source_t source);
+bool jade_process_get_out_message(bool (*)(const uint8_t*, size_t), jade_msg_source_t source);
 
 // The inbound message mode
 void cbor_result_bytes_cb(const void* ctx, CborEncoder* container);
