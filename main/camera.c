@@ -246,6 +246,41 @@ static void jade_camera_task(void* data)
     post_exit_event_and_await_death();
 }
 
+void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* text_label, const char* text_button)
+{
+    JADE_ASSERT(fn);
+    // ctx is optional
+
+    // text_label is optional - indicates we want the images shown on screen/ui
+    // text_button is optional - indicates we want the user to select the images presented
+    // (otherwise all images are presented) to the given callback function ctx.fn_process()
+    // NOTE: not valid to have a button[label] if no screen[label]
+    JADE_ASSERT(text_label || !text_button);
+
+// At the moment camera only supported by Jade devices
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    // Config for the camera task
+    camera_task_config_t camera_config
+        = { .text_label = text_label, .text_button = text_button, .fn_process = fn, .ctx = ctx };
+
+    // Run the camera task
+    TaskHandle_t camera_task;
+    const BaseType_t retval = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 16 * 1024, &camera_config,
+        JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY);
+    JADE_ASSERT_MSG(
+        retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);
+
+    // Await camera exit event
+    sync_await_single_event(JADE_EVENT, CAMERA_EXIT, NULL, NULL, NULL, 0);
+    vTaskDelete(camera_task);
+    jade_camera_stop();
+
+#else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+    JADE_LOGW("No camera supported for this device");
+    await_error_activity("No camera detected");
+#endif
+}
+
 // QR Processing
 
 // Inspect qrcodes and try to extract payload - whether any were seen and any
@@ -332,27 +367,11 @@ static bool qr_recognize(
     return extracted;
 }
 
-static void run_camera_task(camera_task_config_t* camera_config)
-{
-    TaskHandle_t camera_task;
-    const BaseType_t retval = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 16 * 1024, camera_config,
-        JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY);
-    JADE_ASSERT_MSG(
-        retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);
-
-    // Await camera exit event
-    sync_await_single_event(JADE_EVENT, CAMERA_EXIT, NULL, NULL, NULL, 0);
-    vTaskDelete(camera_task);
-    jade_camera_stop();
-}
-
 bool jade_camera_scan_qr(qr_data_t* qr_data)
 {
     JADE_ASSERT(qr_data);
     JADE_ASSERT(!qr_data->q);
 
-// At the moment camera/qr-scan only supported by Jade devices
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     // Create the quirc struct (reused for each frame) - destroyed below
     qr_data->q = quirc_new();
     JADE_ASSERT(qr_data->q);
@@ -360,16 +379,10 @@ bool jade_camera_scan_qr(qr_data_t* qr_data)
     // Also correctly size the internal image buffer since we know the size of the camera images
     const int qret = quirc_resize(qr_data->q, CAMERA_IMAGE_WIDTH, CAMERA_IMAGE_HEIGHT);
     JADE_ASSERT(qret == 0);
-
     qr_data->len = 0;
 
-    // Config for the camera task
-    camera_task_config_t camera_config = { .text_label = "Point to a QR\ncode and hold\nsteady",
-        .text_button = NULL,
-        .fn_process = qr_recognize,
-        .ctx = qr_data };
-
-    run_camera_task(&camera_config);
+    // Run the camera task trying to interpet frames as qr-codes
+    jade_camera_process_images(qr_recognize, qr_data, "Point to a QR\ncode and hold\nsteady", NULL);
 
     // Destroy the quirc struct created above
     quirc_destroy(qr_data->q);
@@ -377,28 +390,4 @@ bool jade_camera_scan_qr(qr_data_t* qr_data)
 
     // Any scanned qr code will be in the qr_data passed
     return qr_data->len > 0;
-
-#else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
-    JADE_LOGW("No camera supported for this device");
-    await_error_activity("No camera detected");
-    return false;
-#endif
-}
-
-void jade_camera_process_images(camera_process_fn_t fn, void* ctx)
-{
-    JADE_ASSERT(fn);
-    // ctx is optional
-
-// At the moment camera only supported by Jade devices
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    // Config for the camera task
-    camera_task_config_t camera_config = { .fn_process = fn, .ctx = ctx };
-
-    run_camera_task(&camera_config);
-
-#else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
-    JADE_LOGW("No camera supported for this device");
-    await_error_activity("No camera detected");
-#endif
 }

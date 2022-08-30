@@ -44,6 +44,9 @@ bool jade_camera_scan_qr(qr_data_t* qr_data);
 // Function to process images from the camera.
 // Consecutive image frames will be passed to the given callback until
 // that function returns true, at which point this function will return.
-void jade_camera_process_images(camera_process_fn_t fn, void* ctx);
+// If a 'text_label' is passed, a GUI screen is shown, if not, not ...
+// If a 'text_button' is passed, the user must click to process an image, otherwise
+// every frame captured is passed to the processing function.
+void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* text_label, const char* text_button);
 
 #endif /* CAMERA_H_ */
