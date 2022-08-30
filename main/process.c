@@ -23,6 +23,8 @@ static TaskHandle_t serial_handle;
 static RingbufHandle_t serial_out = NULL;
 static RingbufHandle_t ble_out = NULL;
 static RingbufHandle_t qemu_tcp_out = NULL;
+static TaskHandle_t qr_handle;
+static RingbufHandle_t qr_out = NULL;
 
 #ifndef CONFIG_ESP32_NO_BLOBS
 static TaskHandle_t ble_handle;
@@ -132,7 +134,7 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
     JADE_INIT_OUT_PPTR(ble_h);
     JADE_INIT_OUT_PPTR(qemu_tcp_h);
 
-    if (shared_in || serial_out || ble_out || qemu_tcp_out) {
+    if (shared_in || serial_out || ble_out || qemu_tcp_out || qr_out) {
         return false;
     }
 
@@ -164,6 +166,12 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
     *ble_h = &ble_handle;
     ble_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
     JADE_ASSERT(ble_out);
+#endif
+
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    qr_handle = xTaskGetCurrentTaskHandle();
+    qr_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
+    JADE_ASSERT(qr_out);
 #endif
 
 #ifdef CONFIG_HEAP_TRACING
@@ -258,9 +266,9 @@ void jade_process_push_out_message(const uint8_t* data, const size_t size, const
 #if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
     JADE_ASSERT(source == SOURCE_QEMU_TCP || source == SOURCE_SERIAL);
 #elif defined(CONFIG_ESP32_NO_BLOBS)
-    JADE_ASSERT(source == SOURCE_SERIAL);
+    JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_QR);
 #else
-    JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_BLE);
+    JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_BLE || source == SOURCE_QR);
 #endif
     RingbufHandle_t ring = NULL;
     TaskHandle_t handle = NULL;
@@ -268,6 +276,10 @@ void jade_process_push_out_message(const uint8_t* data, const size_t size, const
     case SOURCE_SERIAL:
         ring = serial_out;
         handle = serial_handle;
+        break;
+    case SOURCE_QR:
+        ring = qr_out;
+        handle = qr_handle;
         break;
 #ifndef CONFIG_ESP32_NO_BLOBS
     case SOURCE_BLE:
@@ -412,6 +424,9 @@ bool jade_process_get_out_message(outbound_message_writer_fn_t writer, const jad
     switch (source) {
     case SOURCE_SERIAL:
         ring = serial_out;
+        break;
+    case SOURCE_QR:
+        ring = qr_out;
         break;
 #ifndef CONFIG_ESP32_NO_BLOBS
     case SOURCE_BLE:

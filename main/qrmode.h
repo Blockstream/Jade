@@ -18,4 +18,7 @@ void await_single_qr_activity(const char* title, const char* label, const uint8_
 // Display screen with help url and qr code
 void await_qr_help_activity(const char* url);
 
+// Start pinserver authentication via qr codes
+void handle_qr_auth(void);
+
 #endif /* QRMODE_H_ */

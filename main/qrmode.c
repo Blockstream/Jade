@@ -5,10 +5,12 @@
 #include "gui.h"
 #include "idletimer.h"
 #include "jade_assert.h"
+#include "jade_tasks.h"
 #include "jade_wally_verify.h"
 #include "keychain.h"
 #include "multisig.h"
 #include "otpauth.h"
+#include "process.h"
 #include "qrcode.h"
 #include "sensitive.h"
 #include "storage.h"
@@ -980,4 +982,280 @@ void await_qr_help_activity(const char* url)
     gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_EXIT_QR_HELP, NULL, NULL, NULL,
         CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
 #endif
+}
+
+// QR-Mode PinServer interaction
+
+// Post a message onto Jade's input queue
+static bool post_in_message(const uint8_t* msg, const size_t msg_len, const jade_msg_source_t source)
+{
+    JADE_ASSERT(msg);
+    JADE_ASSERT(msg_len);
+
+    // Post as message into Jade with msg-source prefix
+    const size_t fullmsg_len = msg_len + 1;
+    uint8_t* const fullmsg = JADE_MALLOC(fullmsg_len);
+    fullmsg[0] = source;
+    memcpy(fullmsg + 1, msg, msg_len);
+    const bool ret = jade_process_push_in_message(fullmsg, fullmsg_len);
+    free(fullmsg);
+    return ret;
+}
+
+// Create and post a 'cancel' message
+static bool post_cancel_message(const jade_msg_source_t source)
+{
+    uint8_t cbor_buf[32];
+    CborEncoder root_encoder;
+    cbor_encoder_init(&root_encoder, cbor_buf, sizeof(cbor_buf), 0);
+
+    CborEncoder root_map_encoder; // id, method
+    CborError cberr = cbor_encoder_create_map(&root_encoder, &root_map_encoder, 2);
+    JADE_ASSERT(cberr == CborNoError);
+    add_string_to_map(&root_map_encoder, "id", "qrcancel");
+    add_string_to_map(&root_map_encoder, "method", "cancel");
+    cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
+    JADE_ASSERT(cberr == CborNoError);
+
+    const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
+    return post_in_message(cbor_buf, cbor_len, source);
+}
+
+// Locally create and post an 'auth_user' request
+static bool post_auth_msg_request(const jade_msg_source_t source)
+{
+    uint8_t cbor_buf[64];
+    CborEncoder root_encoder;
+    cbor_encoder_init(&root_encoder, cbor_buf, sizeof(cbor_buf), 0);
+
+    CborEncoder root_map_encoder; // id, method, params
+    CborError cberr = cbor_encoder_create_map(&root_encoder, &root_map_encoder, 3);
+    JADE_ASSERT(cberr == CborNoError);
+    add_string_to_map(&root_map_encoder, "id", "qrauth");
+    add_string_to_map(&root_map_encoder, "method", "auth_user");
+
+    // Add parameters (ie. network)
+    cberr = cbor_encode_text_stringz(&root_map_encoder, "params");
+    JADE_ASSERT(cberr == CborNoError);
+
+    CborEncoder params_encoder; // network
+    cberr = cbor_encoder_create_map(&root_map_encoder, &params_encoder, 1);
+    JADE_ASSERT(cberr == CborNoError);
+    const network_type_t restriction = keychain_get_network_type_restriction();
+    const char* networks = restriction == NETWORK_TYPE_TEST ? "testnet" : "mainnet";
+    add_string_to_map(&params_encoder, "network", networks);
+    cberr = cbor_encoder_close_container(&root_map_encoder, &params_encoder);
+    JADE_ASSERT(cberr == CborNoError);
+
+    cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
+    JADE_ASSERT(cberr == CborNoError);
+
+    const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
+    return post_in_message(cbor_buf, cbor_len, source);
+}
+
+// Scan a bcur QR code, and post it into Jade with SOURCE_QR
+static bool scan_qr_post_in_message(const char* title, const char* expected_type)
+{
+    JADE_ASSERT(title);
+    JADE_ASSERT(expected_type);
+
+    char* output_type = NULL;
+    uint8_t* output = NULL;
+    size_t output_len = 0;
+    bool ret = false;
+
+    // NOTE: we take ownership of 'output_type' and 'output'
+    if (!bcur_scan_qr(title, "Scan QR on\nwebpage", &output_type, &output, &output_len)) {
+        JADE_LOGI("QR scanning failed or abandoned");
+        return false;
+    }
+
+    // Check if a non-bc-ur code frame was scanned
+    if (!output_type) {
+        JADE_LOGW("Scanning encountered a non-BC-UR QR code, when expecting BC-UR type %s", expected_type);
+        await_error_activity("Unexpected QR payload");
+        goto cleanup;
+    }
+
+    // Check the type is as expected
+    if (strcasecmp(expected_type, output_type)) {
+        JADE_LOGW("Scanning returned unexpected type %s when expecting %s", output_type, expected_type);
+        await_error_activity("Unexpected QR payload type");
+        goto cleanup;
+    }
+
+    // Post as message into Jade with source-qr prefix
+    ret = post_in_message(output, output_len, SOURCE_QR);
+
+cleanup:
+    free(output);
+    free(output_type);
+    return ret;
+}
+
+// NOTE: this 'writer' callback must return true to indicate that it has taken the message
+// (whether valid/expected or not), and it does not want to wait to be presented with another message.
+// ie. the return indicates processing has finished, not that processing was necessarily successful.
+// (That information is returned in the context object.)
+// NOTE: the presence of a 'title' indicates we want to display the message payload as a QR
+static bool handle_pinserver_reply(const char* title, const uint8_t* msg, const size_t len, void* ctx)
+{
+    // title is optional
+    JADE_ASSERT(msg);
+    JADE_ASSERT(len);
+    JADE_ASSERT(ctx);
+
+    bool* const ok = (bool*)ctx;
+    *ok = false;
+
+    // Parse the received message
+    CborParser parser;
+    CborValue message;
+    const CborError cberr = cbor_parser_init(msg, len, CborValidateBasic, &parser, &message);
+    if (cberr != CborNoError || !rpc_message_valid(&message)) {
+        JADE_LOGE("Invalid cbor message");
+        goto cleanup;
+    }
+
+    // Ultimate response is boolean
+    bool bool_result = false;
+    if (rpc_get_boolean("result", &message, &bool_result)) {
+        JADE_LOGI("PIN QR result: %u", bool_result);
+        goto cleanup;
+    }
+
+    CborValue result;
+    CborValue http_request;
+    if (!rpc_get_map("result", &message, &result) || !rpc_get_map("http_request", &result, &http_request)) {
+        JADE_LOGE("Unexpected cbor message - no 'http_request' result payload");
+        goto cleanup;
+    }
+
+    // Display message as bcur qr if a screen title was passed
+    if (title) {
+        display_bcur_qr(title, "Scan QR with\nwebpage", BCUR_TYPE_JADE_PIN, msg, len);
+    }
+
+    // Message received and QR displayed successfully
+    *ok = true;
+
+cleanup:
+    // We return true in all cases to indicate that a message was received
+    // and we should stop waiting - whether the message was processed 'successfully'
+    // is indicated by the 'ok' flag in the passed context object.
+    return true;
+}
+
+static bool handle_first_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
+{
+    return handle_pinserver_reply("Step 1 of 4", msg, len, ctx);
+}
+
+static bool handle_second_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
+{
+    return handle_pinserver_reply("Step 3 of 4", msg, len, ctx);
+}
+
+static bool handle_third_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
+{
+    // No QR to display with final reply
+    return handle_pinserver_reply(NULL, msg, len, ctx);
+}
+
+static bool get_outbound_reply_show_qr(outbound_message_writer_fn_t handler)
+{
+    JADE_ASSERT(handler);
+
+    // Await message from Jade to pinserver
+    bool ok = false;
+    while (!jade_process_get_out_message(handler, SOURCE_QR, &ok)) {
+        // Await outbound message
+    }
+    return ok;
+}
+
+// This task is run to act as a client to Jade's normal 'auth-user' processing
+static void auth_qr_client_task(void* unused)
+{
+    JADE_LOGI("Starting Auth QR client task: %u", xPortGetFreeHeapSize());
+
+    // Drain any old messages sitting on the QR queue
+    while (jade_process_get_out_message(NULL, SOURCE_QR, NULL)) {
+        JADE_LOGW("Discarded stale message from QR queue");
+    }
+
+    // Post in a synthesized 'auth_user' message
+    JADE_LOGI("Posting initial auth_user message");
+    if (!post_auth_msg_request(SOURCE_QR)) {
+        JADE_LOGW("Failed to post initial auth_user message");
+        goto cleanup;
+    }
+
+    // Wait for message (from synthesized auth_user/pinclient processing)
+    // and display the message payload as bcur QR code on screen.
+    JADE_LOGI("Awaiting auth_user reply data to display as qr");
+    if (!get_outbound_reply_show_qr(handle_first_pinserver_reply)) {
+        // For a temporary wallet this call is expected to 'fail' as we don't need
+        // any pinserver interaction (but still have to 'auth' to some degree).
+        if (keychain_has_temporary()) {
+            JADE_LOGI("Temporary wallet, QR Mode, skipping pinserver interaction");
+        } else {
+            JADE_LOGW("Failed to receive auth_user reply data");
+        }
+        goto cleanup;
+    }
+
+    // Scan qr code and post back to auth_user/pinclient task
+    // 'start_handshake'
+    JADE_LOGI("Scanning/posting start_handshake data");
+    if (!scan_qr_post_in_message("Step 2 of 4", BCUR_TYPE_JADE_PIN)) {
+        JADE_LOGW("Failed to scan start_handshake message");
+        goto cleanup;
+    }
+
+    // Wait for message from auth_user/pinclient processing
+    // and display as bcur QR code on screen
+    JADE_LOGI("Awaiting start_handshake reply data to display as qr");
+    if (!get_outbound_reply_show_qr(handle_second_pinserver_reply)) {
+        JADE_LOGW("Failed to receive start_handshake reply data");
+        goto cleanup;
+    }
+
+    // Scan qr code and post back to auth_user/pinclient task
+    // 'handshake_complete'
+    JADE_LOGI("Scanning/posting handshake_complete data");
+    if (!scan_qr_post_in_message("Step 4 of 4", BCUR_TYPE_JADE_PIN)) {
+        JADE_LOGW("Failed to scan handshake_complete message");
+        goto cleanup;
+    }
+
+    // Process (discard) the final message
+    JADE_LOGI("Awaiting (discarding) handshake_complete reply data");
+    get_outbound_reply_show_qr(handle_third_pinserver_reply);
+
+    JADE_LOGI("Success");
+
+cleanup:
+    // Post a cancel message which should ensure the main dashboard task returns
+    // (it will be ignored if not required)
+    post_cancel_message(SOURCE_QR);
+
+    // Log the task stack HWM so we can estimate ideal stack size
+    JADE_LOGI("Auth QR client task complete - task stack HWM: %u free", uxTaskGetStackHighWaterMark(NULL));
+
+    // Delete this task
+    vTaskDelete(NULL);
+}
+
+void handle_qr_auth(void)
+{
+    // Start a task to run the qr client side
+    TaskHandle_t auth_qr_client_task_handle;
+    const BaseType_t retval = xTaskCreatePinnedToCore(&auth_qr_client_task, "auth_qr_client_task", 4 * 1024, NULL,
+        JADE_TASK_PRIO_GUI, &auth_qr_client_task_handle, JADE_CORE_SECONDARY);
+    JADE_ASSERT_MSG(
+        retval == pdPASS, "Failed to create auth_qr_client_task, xTaskCreatePinnedToCore() returned %d", retval);
+
+    // Then we return to the dispatcher to handle messages as sent by the task we have just started
 }
