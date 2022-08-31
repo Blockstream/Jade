@@ -420,9 +420,6 @@ static void dispatch_message(jade_process_t* process)
         // Call the function
         task_function(&task_process);
 
-        // Assert all sensitive memory was zero'd
-        sensitive_assert_empty();
-
         // Then clean up after the process has finished
         cleanup_jade_process(&task_process);
     }
@@ -1290,8 +1287,9 @@ static void handle_btn(const int32_t btn)
 }
 
 // Display the passed dashboard screen
-static void display_screen(gui_activity_t* activity, gui_activity_t* act_ready)
+static void display_screen(jade_process_t* process, gui_activity_t* activity, gui_activity_t* act_ready)
 {
+    JADE_ASSERT(process);
     JADE_ASSERT(activity);
     JADE_ASSERT(act_ready);
 
@@ -1305,6 +1303,12 @@ static void display_screen(gui_activity_t* activity, gui_activity_t* act_ready)
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();
     refeed_entropy((const uint8_t*)&tick_count, sizeof(tick_count));
+
+    // Also, cleanup anything attached to the dashboard process
+    cleanup_jade_process(process);
+
+    // Assert all sensitive memory was zero'd
+    sensitive_assert_empty();
 }
 
 #ifdef CONFIG_ESP32_NO_BLOBS
@@ -1335,7 +1339,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         // screen flicker or can cause the dashboard to overwrite other screens
         // eg. BLE pairing/bonding confirm screen.)
         if (acted) {
-            display_screen(act_dashboard, act_ready);
+            display_screen(process, act_dashboard, act_ready);
         }
 
         // 1. Process any message if available (do not block if no message available)
