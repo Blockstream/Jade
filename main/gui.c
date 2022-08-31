@@ -900,9 +900,10 @@ void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, 
     make_view_node(ptr, TEXT, data, free_view_node_text_data);
 }
 
-void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color)
+void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const color_t* bg_color)
 {
     JADE_ASSERT(ptr);
+    JADE_ASSERT(icon);
 
     struct view_node_icon_data* data = JADE_CALLOC(1, sizeof(struct view_node_icon_data));
 
@@ -911,6 +912,9 @@ void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color)
     // by default same color
     data->color = color;
     data->selected_color = color;
+
+    // background color is set to foreground color to imply transparency
+    data->bg_color = bg_color ? *bg_color : color;
 
     // and top-left
     data->halign = GUI_ALIGN_LEFT;
@@ -1139,6 +1143,11 @@ void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum
 
     *halign_ptr = halign;
     *valign_ptr = valign;
+}
+
+static inline bool same_color(const color_t c1, const color_t c2)
+{
+    return c1.r == c2.r && c1.g == c2.g && c1.b == c2.b;
 }
 
 static inline bool can_text_fit(const char* text, uint32_t font, dispWin_t cs)
@@ -1616,8 +1625,9 @@ static void render_icon(gui_view_node_t* node, dispWin_t cs)
 
     if (node->icon) {
         color_t* color = node->is_selected ? &node->icon->selected_color : &node->icon->color;
+        const bool transparent = same_color(node->icon->bg_color, node->icon->color);
         TFT_icon(&node->icon->icon, resolve_halign(0, node->icon->halign), resolve_valign(0, node->icon->valign),
-            *color, cs);
+            *color, cs, transparent ? NULL : &node->icon->bg_color);
     }
 }
 

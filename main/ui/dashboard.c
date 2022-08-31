@@ -928,7 +928,7 @@ void make_show_xpub(gui_activity_t** activity_ptr, Icon* qr_icon)
 
     {
         gui_view_node_t* qr_node;
-        gui_make_icon(&qr_node, qr_icon, TFT_WHITE);
+        gui_make_icon(&qr_node, qr_icon, TFT_WHITE, NULL);
         gui_set_parent(qr_node, vsplit);
         gui_set_margins(qr_node, GUI_MARGIN_ALL_DIFFERENT, 8, 0, 0, 0);
         gui_set_padding(qr_node, GUI_MARGIN_TWO_VALUES, 0, 70);

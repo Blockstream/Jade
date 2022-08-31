@@ -254,6 +254,9 @@ struct view_node_icon_data {
     color_t color;
     color_t selected_color;
 
+    // background color is set to foreground color to imply transparency
+    color_t bg_color;
+
     enum gui_horizontal_align halign;
     enum gui_vertical_align valign;
 };
@@ -383,7 +386,7 @@ void gui_make_button(gui_view_node_t** ptr, color_t color, uint32_t event_id, vo
 void gui_make_fill(gui_view_node_t** ptr, color_t color);
 void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color);
 void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, uint32_t font);
-void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color);
+void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const color_t* bg_color);
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture);
 void gui_set_margins(gui_view_node_t* node, uint32_t sides, ...);
 void gui_set_padding(gui_view_node_t* node, uint32_t sides, ...);

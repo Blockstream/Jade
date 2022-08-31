@@ -2894,7 +2894,7 @@ static inline bool get_pixel(uint16_t x, uint16_t y, uint16_t width, const Icon 
     return (icon->data[elem] >> bit) & 1;
 }
 
-int TFT_icon(const Icon *imgbuf, int x, int y, color_t color, dispWin_t area) {
+int TFT_icon(const Icon *imgbuf, int x, int y, color_t color, dispWin_t area, const color_t* bg_color) {
     assert(imgbuf);
 
     uint16_t width = imgbuf->width;
@@ -2929,6 +2929,8 @@ int TFT_icon(const Icon *imgbuf, int x, int y, color_t color, dispWin_t area) {
         for (uint16_t loop_x = 0; loop_x < draw_width; loop_x++) {
             if (get_pixel(loop_x + start_x, loop_y + start_y, width, imgbuf)) {
                 _drawPixel(x + loop_x, y + loop_y, color, false);
+            } else if (bg_color) {
+                _drawPixel(x + loop_x, y + loop_y, *bg_color, false);
             }
         }
 

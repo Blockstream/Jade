@@ -665,7 +665,7 @@ void TFT_jpg_image(int x, int y, uint8_t scale, char *fname, uint8_t *buf, int s
 //-------------------------------------------------------------------------------------
 int TFT_bmp_image(int x, int y, uint8_t scale, char *fname, uint8_t *imgbuf, int size);
 
-int TFT_icon(const Icon *imgbuf, int x, int y, color_t color, dispWin_t area);
+int TFT_icon(const Icon *imgbuf, int x, int y, color_t color, dispWin_t area, const color_t* bg_color);
 int TFT_picture(const Picture *imgbuf, int x, int y, dispWin_t area);
 
 /*
