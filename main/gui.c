@@ -1347,9 +1347,42 @@ void gui_update_text(gui_view_node_t* node, const char* text)
     JADE_SEMAPHORE_GIVE(activities_mutex);
 }
 
+// Takes the activities_mutex, updates the icon, and then only draws the
+// updated item if it is part of the 'current activity'.
+void gui_update_icon(gui_view_node_t* node, const Icon icon, const bool repaint_parent)
+{
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == ICON);
+
+    // Get the root node holding the passed node
+    gui_view_node_t* const root = gui_get_root_node(node);
+
+    // Get the activity mutex
+    JADE_SEMAPHORE_TAKE(activities_mutex);
+
+    // Update icon
+    node->icon->icon = icon;
+
+    // If part of current activity, draw it immediately
+    if (current_activity && current_activity->root_node && current_activity->root_node == root) {
+        // Maybe repaint the parent (so that the old icon is cleared). Usually a parent should
+        // be present, because it's unlikely that a root node is of type "icon"
+        if (repaint_parent && node->parent) {
+            // Redraw parent (ie. background), then children
+            gui_repaint(node->parent, true);
+        } else {
+            // Simply redraw over the top - eg. if icon same size or larger and not transparent
+            gui_repaint(node, true);
+        }
+    }
+
+    // Release the activity mutex
+    JADE_SEMAPHORE_GIVE(activities_mutex);
+}
+
 // Takes the activities_mutex, updates the picture, and then only draws the
 // updated item if it is part of the 'current activity'.
-void gui_update_picture(gui_view_node_t* node, const Picture* picture)
+void gui_update_picture(gui_view_node_t* node, const Picture* picture, const bool repaint_parent)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == PICTURE);
@@ -1365,7 +1398,15 @@ void gui_update_picture(gui_view_node_t* node, const Picture* picture)
 
     // If part of current activity, draw it immediately
     if (current_activity && current_activity->root_node && current_activity->root_node == root) {
-        gui_repaint(node, true);
+        // Maybe repaint the parent (so that the old picture is cleared). Usually a parent should
+        // be present, because it's unlikely that a root node is of type "icon"
+        if (repaint_parent && node->parent) {
+            // Redraw parent (ie. background), then children
+            gui_repaint(node->parent, true);
+        } else {
+            // Simply redraw over the top - eg. if picture same size or larger
+            gui_repaint(node, true);
+        }
     }
 
     // Release the activity mutex

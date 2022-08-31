@@ -183,7 +183,7 @@ static void jade_camera_task(void* data)
                 scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_HEIGHT)-y * 2][x * 2];
             }
         }
-        gui_update_picture(image_node, &pic);
+        gui_update_picture(image_node, &pic, false);
 
         // Ensure showing camera activity/captured image
         if (gui_current_activity() != act) {

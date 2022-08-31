@@ -400,7 +400,8 @@ void gui_set_text_noise(gui_view_node_t* node, color_t background_color);
 void gui_set_text_font(gui_view_node_t* node, uint32_t font);
 void gui_set_text_default_font(gui_view_node_t* node);
 void gui_update_text(gui_view_node_t* node, const char* text);
-void gui_update_picture(gui_view_node_t* node, const Picture* picture);
+void gui_update_icon(gui_view_node_t* node, const Icon icon, bool repaint_parent);
+void gui_update_picture(gui_view_node_t* node, const Picture* picture, bool repaint_parent);
 void gui_repaint(gui_view_node_t* node, bool take_mutex);
 
 void gui_set_current_activity_ex(gui_activity_t* new_current, bool free_all_other_activities, gui_activity_t* retain);
