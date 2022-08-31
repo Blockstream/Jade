@@ -22,6 +22,9 @@ struct _qr_data_t {
     // If NULL, any successfully extracted string is sufficient.
     qr_valid_fn_t is_valid;
 
+    // Arbitrary context that may be required by the validation function.
+    void* ctx;
+
     // Cached internal quirc struct - caller should set to NULL
     struct quirc* q;
 };
