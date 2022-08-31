@@ -32,7 +32,7 @@ struct sens_stack {
 // Return true if any items present and needed clearing, false if stack already empty.
 static bool sensitive_clear_stack_impl(struct sens_stack* stack)
 {
-    JADE_LOGI("sensitive_clear_stack_impl() called for stack pointer %p by task '%s'", stack, pcTaskGetTaskName(NULL));
+    JADE_LOGD("sensitive_clear_stack_impl() called for stack pointer %p by task '%s'", stack, pcTaskGetTaskName(NULL));
 
     bool had_items = false;
     if (stack) {
@@ -133,7 +133,7 @@ void sensitive_clear_stack(void)
 
 void sensitive_assert_empty(void)
 {
-    JADE_LOGI("sensitive_assert_empty() called for task '%s'", pcTaskGetTaskName(NULL));
+    JADE_LOGD("sensitive_assert_empty() called for task '%s'", pcTaskGetTaskName(NULL));
     if (sensitive_clear_stack_impl(get_sens_stack())) {
         JADE_LOGE("Sensitive stack not empty!");
         JADE_ABORT();
