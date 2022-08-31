@@ -245,6 +245,27 @@ bool await_yesno_activity(const char* title, const char* message, const bool def
     return ev_id == BTN_YES;
 }
 
+void display_icon_activity(const Icon* icon, color_t color, const color_t* bg_color, gui_view_node_t** icon_node_out)
+{
+    JADE_ASSERT(icon);
+    // icon_node_out is optional
+    // bg_color is optional - NULL implies transparent
+
+    gui_activity_t* activity = NULL;
+    gui_make_activity(&activity, false, NULL);
+
+    gui_view_node_t* icon_node;
+    gui_make_icon(&icon_node, icon, color, bg_color);
+    gui_set_align(icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(icon_node, activity->root_node);
+
+    gui_set_current_activity(activity);
+
+    if (icon_node_out) {
+        *icon_node_out = icon_node;
+    }
+}
+
 // The progress-bar structure indicated is populated, and should be used to update the progress
 // using the update_progress_bar() function below.
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar)

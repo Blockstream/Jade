@@ -912,36 +912,3 @@ void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entri
         gui_set_parent(text, btn);
     }
 }
-
-#ifdef CONFIG_DEBUG_MODE
-void make_show_xpub(gui_activity_t** activity_ptr, Icon* qr_icon)
-{
-    JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(qr_icon);
-
-    gui_make_activity(activity_ptr, false, "NULL");
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_ABSOLUTE, 2, 107, GUI_SPLIT_FILL_REMAINING);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    {
-        gui_view_node_t* qr_node;
-        gui_make_icon(&qr_node, qr_icon, TFT_WHITE, NULL);
-        gui_set_parent(qr_node, vsplit);
-        gui_set_margins(qr_node, GUI_MARGIN_ALL_DIFFERENT, 8, 0, 0, 0);
-        gui_set_padding(qr_node, GUI_MARGIN_TWO_VALUES, 0, 70);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_INFO_EXIT, NULL);
-        gui_set_parent(btn, vsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Click to exit", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-}
-#endif // CONFIG_DEBUG_MODE

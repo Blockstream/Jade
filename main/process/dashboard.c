@@ -105,10 +105,6 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
 void make_device_screen(
     gui_activity_t** activity_ptr, const char* power_status, const char* mac, const char* firmware_version);
 
-#ifdef CONFIG_DEBUG_MODE
-void make_show_xpub(gui_activity_t** activity_ptr, Icon* qr_icon);
-#endif
-
 // Wallet initialisation function
 void initialise_with_mnemonic(bool temporary_restore);
 
@@ -1195,16 +1191,12 @@ static void handle_xpub(void)
         const int qret = qrcode_initText(&qrcode, qrcodeBytes, 4, ECC_LOW, xpub);
         JADE_ASSERT(qret == 0);
         qrcode_toIcon(&qrcode, &qr_icon, 3);
-
-        gui_activity_t* xpub_act = NULL;
-        make_show_xpub(&xpub_act, &qr_icon);
-        JADE_ASSERT(xpub_act);
-        gui_set_current_activity(xpub_act);
-        gui_activity_wait_event(xpub_act, GUI_BUTTON_EVENT, BTN_INFO_EXIT, NULL, NULL, NULL, 0);
-
         wally_free_string(xpub);
-        qrcode_freeIcon(&qr_icon);
         free(qrcodeBytes);
+
+        display_icon_activity(&qr_icon, TFT_LIGHTGREY, NULL, NULL);
+        sync_await_single_event(GUI_EVENT, GUI_FRONT_CLICK_EVENT, NULL, NULL, NULL, 0);
+        qrcode_freeIcon(&qr_icon);
     } else {
         JADE_LOGE("Failed to get root xpub for display");
         await_error_activity("Failed to get root xpub");
