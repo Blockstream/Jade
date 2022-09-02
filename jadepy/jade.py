@@ -470,6 +470,7 @@ class JadeAPI:
     def capture_image_data(self, check_qr=False):
         """
         RPC call to capture raw image data from the camera.
+        See also scan_qr() below.
         NOTE: Only available in a DEBUG build of the firmware.
 
         Parameters
@@ -486,6 +487,26 @@ class JadeAPI:
         """
         params = {'check_qr': check_qr}
         return self._jadeRpc('debug_capture_image_data', params)
+
+    def scan_qr(self, image):
+        """
+        RPC call to scan a passed image and return any data extracted from any qr image.
+        Exercises the camera image capture, but ignores result and uses passed image instead.
+        See also capture_image_data() above.
+        NOTE: Only available in a DEBUG build of the firmware.
+
+        Parameters
+        ----------
+        image : bytes
+            The image data (as obtained from capture_image_data() above).
+
+        Returns
+        -------
+        bytes
+            String or byte data obtained from the image (via qr code)
+        """
+        params = {'image': image}
+        return self._jadeRpc('debug_scan_qr', params)
 
     def clean_reset(self):
         """

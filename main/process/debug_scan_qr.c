@@ -135,4 +135,54 @@ void debug_capture_image_data_process(void* process_ptr)
 cleanup:
     return;
 }
+
+void debug_scan_qr_process(void* process_ptr)
+{
+    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    jade_process_t* process = process_ptr;
+
+    // We expect a current message to be present
+    ASSERT_CURRENT_MESSAGE(process, "debug_scan_qr");
+    GET_MSG_PARAMS(process);
+
+    // Get image data
+    size_t len = 0;
+    const uint8_t* data = NULL;
+    rpc_get_bytes_ptr("image", &params, &data, &len);
+    if (!data || !len) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract image data from parameters", NULL);
+        goto cleanup;
+    }
+
+    // Decompress the image data
+    const size_t decompressed_buflen = CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT;
+    uint8_t* const decompressed = JADE_MALLOC_PREFER_SPIRAM(decompressed_buflen);
+    jade_process_free_on_exit(process, decompressed);
+    const size_t decompressed_len = decompress(data, len, decompressed, decompressed_buflen);
+    if (!decompressed_len || decompressed_len != decompressed_buflen) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to decompress image data", NULL);
+        goto cleanup;
+    }
+
+    // Poke image into camera debug fixed image, and run camera qr scan
+    // which will then be presented with the passed/fixed image.
+    camera_set_debug_image(decompressed, decompressed_buflen);
+
+    // Attempt to scan a qr
+    qr_data_t qr_data = { .len = 0 };
+    if (!jade_camera_scan_qr(&qr_data, "Test Scan\n(fixed image)")) {
+        JADE_LOGW("QR scanning failed!");
+    }
+
+    // Reply with the decoded data (empty if failed)
+    const bytes_info_t bytes_info = { .data = (const uint8_t*)qr_data.strdata, .size = qr_data.len };
+    jade_process_reply_to_message_result(process->ctx, &bytes_info, cbor_result_bytes_cb);
+    JADE_LOGI("Success");
+
+cleanup:
+    // Ensure to remove the debug fixed image from the camera
+    camera_set_debug_image(NULL, 0);
+    return;
+}
 #endif // CONFIG_DEBUG_MODE
