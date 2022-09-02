@@ -29,6 +29,20 @@ typedef struct {
     void* ctx;
 } camera_task_config_t;
 
+#ifdef CONFIG_DEBUG_MODE
+// Debug/testing function to cache an image - the next time the camera is called
+// a frame is captured but is ignored/discarded and this image presented instead.
+// Call with NULL/0 to remove debug image.
+// NOTE: the image is not owned here.
+static const uint8_t* debug_image_data = NULL;
+void camera_set_debug_image(const uint8_t* data, const size_t len)
+{
+    JADE_ASSERT(!data == !len);
+    JADE_ASSERT(!len || len == CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT);
+    debug_image_data = data;
+}
+#endif
+
 // Signal to the caller that we are done, and await our death
 static void post_exit_event_and_await_death(void)
 {
@@ -102,11 +116,27 @@ static void jade_camera_init(void)
     }
 }
 
-// release the fb
+// Stop the camera
 static void jade_camera_stop(void)
 {
     esp_camera_deinit();
     power_camera_off();
+}
+
+static inline bool invoke_user_cb_fn(const camera_task_config_t* camera_config, const camera_fb_t* fb)
+{
+#ifdef CONFIG_DEBUG_MODE
+    // If we have a fixed debug image, we call the user callback on that instead of on the actual captured frame.
+    // We then return true (to quit the camera task) regardless (no point reprocessing same image).
+    if (debug_image_data) {
+        if (!camera_config->fn_process(CAMERA_IMAGE_WIDTH, CAMERA_IMAGE_HEIGHT, debug_image_data,
+                CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT, camera_config->ctx)) {
+            JADE_LOGW("User callback returned false for fixed debug image - exiting camera regardless");
+        }
+        return true;
+    }
+#endif
+    return camera_config->fn_process(fb->width, fb->height, fb->buf, fb->len, camera_config->ctx);
 }
 
 // Task to take picture and pass the image captured to a processing callback
@@ -174,7 +204,7 @@ static void jade_camera_task(void* data)
     bool done = false;
     while (!done) {
         // Capture camera output
-        camera_fb_t* fb = esp_camera_fb_get();
+        camera_fb_t* const fb = esp_camera_fb_get();
         if (!fb) {
             JADE_LOGW("esp_camera_fb_get() failed");
             continue;
@@ -184,7 +214,7 @@ static void jade_camera_task(void* data)
         JADE_ASSERT(fb->height == CAMERA_IMAGE_HEIGHT);
 
         if (!has_gui) {
-            done = camera_config->fn_process(fb->width, fb->height, fb->buf, fb->len, camera_config->ctx);
+            done = invoke_user_cb_fn(camera_config, fb);
         } else {
             // Copy from camera output to screen image
             JADE_ASSERT(fb->len == 4 * image_size); // twice width and twice height
@@ -205,7 +235,7 @@ static void jade_camera_task(void* data)
             // If we have no 'click' button, we run the processing callback on every frame
             // (We still test to see if the 'Exit' button is pressed though)
             if (!camera_config->text_button) {
-                done = camera_config->fn_process(fb->width, fb->height, fb->buf, fb->len, camera_config->ctx)
+                done = invoke_user_cb_fn(camera_config, fb)
                     || (sync_wait_event(
                             GUI_BUTTON_EVENT, BTN_CAMERA_EXIT, event_data, NULL, NULL, NULL, 10 / portTICK_PERIOD_MS)
                         == ESP_OK);
@@ -218,7 +248,7 @@ static void jade_camera_task(void* data)
                     if (ev_id == BTN_CAMERA_CLICK) {
                         // Button clicked - invoke passed processing callback
                         gui_update_text(label_node, "Processing...");
-                        done = camera_config->fn_process(fb->width, fb->height, fb->buf, fb->len, camera_config->ctx);
+                        done = invoke_user_cb_fn(camera_config, fb);
 
                         // If not done, will loop and continue to capture images
                         if (!done) {

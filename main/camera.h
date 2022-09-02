@@ -1,6 +1,7 @@
 #ifndef CAMERA_H_
 #define CAMERA_H_
 
+#include <sdkconfig.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -13,6 +14,14 @@
 // Should return false if processing incomplete (and so should be called again with the next frame)
 // Should return true when processing complete (and the image capture loop/task should exit)
 typedef bool (*camera_process_fn_t)(size_t width, size_t height, const uint8_t* data, size_t len, void* ctx);
+
+#ifdef CONFIG_DEBUG_MODE
+// Debug/testing function to cache an image - the next time the camera is called
+// a frame is captured but is ignored/discarded and this image presented instead.
+// Call with NULL/0 to remove debug image.
+// NOTE: the image is not owned here.
+void camera_set_debug_image(const uint8_t* data, size_t len);
+#endif
 
 // Function to process images from the camera.
 // Consecutive image frames will be passed to the given callback until
