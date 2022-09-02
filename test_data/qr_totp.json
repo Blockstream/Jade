@@ -1,0 +1,8 @@
+{
+  "input": {
+    "image": "qr_totp.dat"
+  },
+  "expected_output": {
+    "text": "otpauth://totp/ACME%20Co:john.doe@email.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=ACME%20Co&digits=8&algorithm=SHA256"
+  }
+}

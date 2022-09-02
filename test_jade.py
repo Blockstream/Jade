@@ -362,6 +362,7 @@ YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
                              '2dafKNiCKbRum9S1u5BYqTByZT5R9zSqcWy')]
 
 # Hold test data in separate files as can be large
+QR_SCAN_TESTS = "qr_*.json"
 MULTI_REG_TESTS = "multisig_reg_*.json"
 MULTI_REG_SS_TESTS = "multisig_reg_ss_*.json"
 SIGN_MSG_TESTS = "msg_*.json"
@@ -1727,6 +1728,24 @@ def test_passphrase(jade):
     assert xpub0_again == xpub0 and xpub1_again == xpub1 and xpub2_again == xpub2
 
 
+# Test qr scanning - can be slow as image data large (slow to upload) and
+# tests involve starting the camera (and associated tasks).
+def test_scan_qr(jadeapi):
+    for qr_data in _get_test_cases(QR_SCAN_TESTS):
+        expected = qr_data['expected_output']
+        image_filename = qr_data['input']['image']
+        with open('./test_data/' + image_filename, 'rb') as f:
+            image_data = f.read()
+
+        rslt = jadeapi.scan_qr(image_data)
+        assert rslt
+
+        if expected.get("text") is not None:
+            assert rslt.decode() == expected["text"]
+        else:
+            assert rslt == h2b(expected["hex"])
+
+
 # Pinserver handshake test - note this is tightly coupled to the dedicated
 # test handler in the hardware code (main/process/debug_handshake.c)
 def test_handshake(jade):
@@ -2784,6 +2803,10 @@ def run_interface_tests(jadeapi,
         # Test mnemonic-with-passphrase
         test_passphrase(jadeapi.jade)
 
+        # Only run QR scan/camera tests a) over serial, and b) on proper Jade hw
+        if not qemu and not isble and startinfo['BOARD_TYPE'] in ['JADE', 'JADE_V1.1']:
+            test_scan_qr(jadeapi)
+
     # Too much input test - sends a lot of data so only run
     # if not running over BLE (as would take a long time)
     if not isble:
@@ -2944,7 +2967,7 @@ def test_ble_connection_fails(info, args):
 
 def check_stuck():
     # FIXME: serial/ble reads/writes should timeout before this does
-    timeout = 25  # minutes
+    timeout = 30  # minutes
     time.sleep(60 * timeout)
     err_str = "tests got caught running longer than {} minutes, terminating"
     logger.error(err_str.format(timeout))
