@@ -177,12 +177,47 @@ demand stereo wedding olive'
 TEST_MNEMONIC_12_IDENTITY = 'alcohol woman abuse must during monitor noble \
 actual mixed trade anger aisle'
 
-# Seedsigner's example https://github.com/SeedSigner/seedsigner/blob/dev/docs/seed_qr/README.md
-# (Test Vector 6)
-SEEDSIGNER_MNEMONIC_STRING = 'approve fruit lens brass ring actual stool coin \
-doll boss strong rate'
-SEEDSIGNER_MNEMONIC_NUMERIC = '008607501025021714880023171503630517020917211425'
-SEEDSIGNER_MNEMONIC_COMPACT = b'\n\xcb\xba\x00\x8d\x9b\xa0\x05\xf5\x99k@\xa3G\\\xd9'
+# Seedsigner's own test vectors
+# See: https://github.com/SeedSigner/seedsigner/blob/dev/docs/seed_qr/README.md
+SEEDSIGNER_MNEMONIC_TEST_VECTORS = [
+  # 24-word
+  ('attack pizza motion avocado network gather crop fresh patrol unusual wild holiday candy pony \
+ranch winter theme error hybrid van cereal salon goddess expire',
+   '0115132511540127119007710415074212891906200808700266134314202016179206140896192903001524080\
+10643',
+   b'\x0et\xb6A\x07\xf9L\xc0\xcc\xfa\xe6\xa1=\xcb\xec6b\x15O\xecg\xe0\xe0\t\x99\xc0x\x92Y}\x19\n'),
+  ('atom solve joy ugly ankle message setup typical bean era cactus various odor refuse element \
+afraid meadow quick medal plate wisdom swap noble shallow',
+   '0114165509641888007311191572188701560610025619321225144305730036110114051106132920181754119\
+71576',
+   b"\x0eY\xdd\xe2v\x00\x93\x17\xf1'_\x13\x89\x88\x80x\xc9\x93h\xd1\xe8$\x89\xb5\xf6)S\x1f\xc5\
+\xb6\xa5n"),
+  ('sound federal bonus bleak light raise false engage round stock update render quote truck \
+quality fringe palace foot recipe labor glow tortoise potato still',
+   '1662067502030188103614170658059415071712190814561408186514010744127307271437099407981836135\
+01710',
+   b'\xcf\xca\x8ce\x8b\xc8\x19bT\x92R\xbcz\xc3\xba[\x0b\x01\xd2k\xca\xe8\x9f+^\xce\xbe&=\xcb*6'),
+  # 12-word
+  ('forum undo fragile fade shy sign arrest garment culture tube off merit',
+   '073318950739065415961602009907670428187212261116',
+   b'[\xbd\x9dq\xa8\xecy\x90\x83\x1a\xff5\x9dBeE'),
+  ('good battle boil exact add seed angle hurry success glad carbon whisper',
+   '080301540200062600251559007008931730078802752004',
+   b"dbhd' 3\x85\xc23}\xd8LP\x89\xfd"),
+  ('approve fruit lens brass ring actual stool coin doll boss strong rate',
+   '008607501025021714880023171503630517020917211425',
+   b'\n\xcb\xba\x00\x8d\x9b\xa0\x05\xf5\x99k@\xa3G\\\xd9'),
+  # Potentially Problematic
+  ('dignity utility vacant shiver thought canoe feel multiply item youth actor coyote',
+   '049619221923158517990268067811630950204300210397',
+   b'>\x1e\x0b\xc1\xe3\x1e\x0eC\x154\x8bv\xdf\xec\n\x98'),
+  ('corn voice scrap arrow original diamond trial property benefit choose junk lock',
+   '038719631547010112530489185713790169032209701051',
+   b'0~\xaf\x05\x86Y\xcazz\rc\x15%\t\xe5A'),
+  ('vocal tray giggle tool duck letter category pattern train magnet excite swamp',
+   '196218530783182905421028028912901848107106301753',
+   b'\xf5\\\xf5\x87\xf2T=\x01\t\r\n\xe7\x10\xbd;m'),
+]
 
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
@@ -1645,13 +1680,14 @@ def test_mnemonic_import(jade):
     xpub_root2 = _set_wallet(jade, mnemonic=TEST_MNEMONIC_PREFIXES_EXACT_MATCH)
     assert xpub_root2 != xpub_root0
 
-    # Seedsigner's own test case (Test Vector 6 - 12-words)
+    # Seedsigner's own test vectors
     # See: https://github.com/SeedSigner/seedsigner/blob/dev/docs/seed_qr/README.md
-    xpub_root0 = _set_wallet(jade, mnemonic=SEEDSIGNER_MNEMONIC_STRING)
-    xpub_root1 = _set_wallet(jade, mnemonic=SEEDSIGNER_MNEMONIC_NUMERIC)
-    xpub_root2 = _set_wallet(jade, mnemonic=SEEDSIGNER_MNEMONIC_COMPACT)
-    assert xpub_root1 == xpub_root0
-    assert xpub_root2 == xpub_root0
+    for mnem_string, seeqr_numeric, compact_bin in SEEDSIGNER_MNEMONIC_TEST_VECTORS:
+        xpub_root0 = _set_wallet(jade, mnemonic=mnem_string)
+        xpub_root1 = _set_wallet(jade, mnemonic=seeqr_numeric)
+        xpub_root2 = _set_wallet(jade, mnemonic=compact_bin)
+        assert xpub_root1 == xpub_root0
+        assert xpub_root2 == xpub_root0
 
 
 def test_mnemonic_import_bad(jade):
