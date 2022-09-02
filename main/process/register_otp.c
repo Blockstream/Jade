@@ -1,7 +1,7 @@
-#include "../camera.h"
 #include "../jade_assert.h"
 #include "../otpauth.h"
 #include "../process.h"
+#include "../qrscan.h"
 #include "../sensitive.h"
 #include "../storage.h"
 #include "../ui.h"

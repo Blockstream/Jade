@@ -1,7 +1,4 @@
-#include <string.h>
-
 #include <esp_camera.h>
-#include <quirc_internal.h>
 
 #include "button_events.h"
 #include "camera.h"
@@ -15,10 +12,6 @@
 
 void make_camera_activity(
     gui_activity_t** activity_ptr, const char* btnText, gui_view_node_t** image_node, gui_view_node_t** label_node);
-
-// Size of the image as provided by the camera lib
-#define CAMERA_IMAGE_WIDTH 320
-#define CAMERA_IMAGE_HEIGHT 240
 
 // Camera-task config data
 typedef struct {
@@ -279,115 +272,4 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* t
     JADE_LOGW("No camera supported for this device");
     await_error_activity("No camera detected");
 #endif
-}
-
-// QR Processing
-
-// Inspect qrcodes and try to extract payload - whether any were seen and any
-// string data extracted are stored in the qr_data struct passed.
-static bool qr_extract_payload(qr_data_t* qr_data)
-{
-    JADE_ASSERT(qr_data);
-    JADE_ASSERT(qr_data->q);
-
-    qr_data->strdata[0] = '\0';
-    qr_data->len = 0;
-
-    const int count = quirc_count(qr_data->q);
-    if (count <= 0) {
-        return false;
-    }
-    JADE_LOGI("Detected %d QR codes in image.", count);
-
-    // Store the first string we manage to extract - initialise to empty string.
-    struct quirc_data data;
-    SENSITIVE_PUSH(&data, sizeof(data));
-
-    // Look for a string
-    for (int i = 0; i < count; ++i) {
-        struct quirc_code code;
-        quirc_extract(qr_data->q, i, &code);
-
-        const quirc_decode_error_t error_status = quirc_decode(&code, &data);
-        if (error_status != QUIRC_SUCCESS) {
-            JADE_LOGW("QUIRC error %s", quirc_strerror(error_status));
-        } else if (data.data_type == QUIRC_DATA_TYPE_KANJI) {
-            JADE_LOGW("QUIRC unexpected data type: %d", data.data_type);
-        } else if (!data.payload_len) {
-            JADE_LOGW("QUIRC empty string");
-        } else if (data.payload_len >= sizeof(qr_data->strdata)) {
-            JADE_LOGW("QUIRC data too long to handle: %u", data.payload_len);
-            JADE_ASSERT(data.payload_len <= sizeof(data.payload));
-        } else {
-            // The payload appears to be a nul terminated string, but the
-            // 'payload_len' seems to be the string length not including that
-            // terminator.
-            // To avoid any confusion or grey areas, we copy the bytes,
-            // and then explicitly add the nul terminator ourselves.
-            memcpy(qr_data->strdata, data.payload, data.payload_len);
-            qr_data->strdata[data.payload_len] = '\0';
-            qr_data->len = data.payload_len;
-            SENSITIVE_POP(&data);
-            return true;
-        }
-    }
-    SENSITIVE_POP(&data);
-    return false;
-}
-
-// Look for qr-codes, and if found extract any string data into the camera_data passed
-static bool qr_recognize(
-    const size_t width, const size_t height, const uint8_t* data, const size_t len, void* ctx_qr_data)
-{
-    JADE_ASSERT(data);
-    JADE_ASSERT(ctx_qr_data);
-    qr_data_t* const qr_data = (qr_data_t*)ctx_qr_data;
-
-    JADE_ASSERT(qr_data->q);
-    JADE_ASSERT(qr_data->q->image);
-    JADE_ASSERT(qr_data->q->w == width);
-    JADE_ASSERT(qr_data->q->h == height);
-
-    // Checked cached image - create once and reuse for subsequent frames
-    uint8_t* const image = quirc_begin(qr_data->q, NULL, NULL);
-    JADE_ASSERT(image == qr_data->q->image);
-
-    // Try to interpret camera image as QR-code
-    memcpy(image, data, len);
-    quirc_end(qr_data->q);
-
-    bool extracted = qr_extract_payload(qr_data);
-
-    // If we have extracted a string and we have an additional validation
-    // function, run that function now and only return true if it passes.
-    if (extracted && qr_data->is_valid) {
-        extracted = qr_data->is_valid(qr_data);
-    }
-
-    return extracted;
-}
-
-bool jade_camera_scan_qr(qr_data_t* qr_data)
-{
-    JADE_ASSERT(qr_data);
-    JADE_ASSERT(!qr_data->q);
-
-    // Create the quirc struct (reused for each frame) - destroyed below
-    qr_data->q = quirc_new();
-    JADE_ASSERT(qr_data->q);
-
-    // Also correctly size the internal image buffer since we know the size of the camera images
-    const int qret = quirc_resize(qr_data->q, CAMERA_IMAGE_WIDTH, CAMERA_IMAGE_HEIGHT);
-    JADE_ASSERT(qret == 0);
-    qr_data->len = 0;
-
-    // Run the camera task trying to interpet frames as qr-codes
-    jade_camera_process_images(qr_recognize, qr_data, "Point to a QR\ncode and hold\nsteady", NULL);
-
-    // Destroy the quirc struct created above
-    quirc_destroy(qr_data->q);
-    qr_data->q = NULL;
-
-    // Any scanned qr code will be in the qr_data passed
-    return qr_data->len > 0;
 }

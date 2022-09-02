@@ -1,8 +1,8 @@
-#include "../camera.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
+#include "../qrscan.h"
 #include "../sensitive.h"
 #include "../utils/cbor_rpc.h"
 

@@ -1,11 +1,11 @@
 #include <wally_bip39.h>
 
 #include "../button_events.h"
-#include "../camera.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
+#include "../qrscan.h"
 #include "../random.h"
 #include "../sensitive.h"
 #include "../storage.h"
