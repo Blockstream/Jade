@@ -19,6 +19,7 @@ bool pinclient_get(
 bool pinclient_set(
     jade_process_t* process, const uint8_t* pin, const size_t pin_len, uint8_t* finalaes, const size_t finalaes_len);
 
+#ifdef CONFIG_DEBUG_MODE
 static void fake_auth_msg_request(jade_process_t* process, uint8_t* process_cbor, size_t process_cbor_len)
 {
     CborEncoder root_encoder;
@@ -141,3 +142,4 @@ cleanup:
     SENSITIVE_POP(aeskey1);
     SENSITIVE_POP(&keydata);
 }
+#endif // CONFIG_DEBUG_MODE

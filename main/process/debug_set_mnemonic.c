@@ -20,6 +20,7 @@
 // Called in this code to test it separately from camera or qr interpretation.
 bool import_and_validate_mnemonic(qr_data_t* qr_data);
 
+#ifdef CONFIG_DEBUG_MODE
 void debug_set_mnemonic_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
@@ -124,3 +125,4 @@ cleanup:
     SENSITIVE_POP(&qr_data);
     return;
 }
+#endif // CONFIG_DEBUG_MODE

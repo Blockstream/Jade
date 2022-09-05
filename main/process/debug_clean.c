@@ -7,6 +7,7 @@
 
 #include "process_utils.h"
 
+#ifdef CONFIG_DEBUG_MODE
 void debug_clean_reset_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
@@ -52,3 +53,4 @@ void debug_clean_reset_process(void* process_ptr)
 
     return;
 }
+#endif // CONFIG_DEBUG_MODE
