@@ -81,24 +81,33 @@ static void rpc_get_string_len(const char* field, const CborValue* value, size_t
     *written = tmp_len;
 }
 
-bool rpc_request_valid(const CborValue* request)
+bool rpc_message_valid(const CborValue* message)
 {
-    if (!request) {
+    if (!message) {
         return false;
     }
-    if (!cbor_value_is_valid(request)) {
+    if (!cbor_value_is_valid(message)) {
         return false;
     }
-    if (!cbor_value_is_map(request)) {
+    if (!cbor_value_is_map(message)) {
         return false;
     }
 
     size_t written = 0;
-    rpc_get_string_len(CBOR_RPC_TAG_ID, request, &written);
+    rpc_get_string_len(CBOR_RPC_TAG_ID, message, &written);
     if (written == 0 || written > MAXLEN_ID) {
         return false;
     }
-    written = 0;
+    return true;
+}
+
+bool rpc_request_valid(const CborValue* request)
+{
+    if (!rpc_message_valid(request)) {
+        return false;
+    }
+
+    size_t written = 0;
     rpc_get_string_len(CBOR_RPC_TAG_METHOD, request, &written);
     if (written == 0 || written > MAXLEN_METHOD) {
         return false;

@@ -32,6 +32,7 @@ bool cbor_print_error_for(const char* id, int code, const char* message, const u
     uint8_t* buffer, size_t buffer_len, size_t* towrite);
 
 // Parse input
+bool rpc_message_valid(const CborValue* message);
 bool rpc_request_valid(const CborValue* request);
 void rpc_get_id(const CborValue* value, char* data, size_t datalen, size_t* written);
 void rpc_get_id_ptr(const CborValue* value, const char** data, size_t* written);
