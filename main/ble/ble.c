@@ -322,8 +322,10 @@ void ble_stop_advertising(void)
     ble_gap_adv_stop();
 }
 
-static bool write_ble(const uint8_t* msg, const size_t towrite)
+static bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
 {
+    JADE_ASSERT(msg);
+    JADE_ASSERT(towrite);
 
     JADE_LOGD("Request to write %u bytes", towrite);
 
@@ -364,7 +366,7 @@ static bool write_ble(const uint8_t* msg, const size_t towrite)
 static void ble_writer(void* ignore)
 {
     while (1) {
-        while (jade_process_get_out_message(&write_ble, SOURCE_BLE)) {
+        while (jade_process_get_out_message(&write_ble, SOURCE_BLE, NULL)) {
             // process messages
         }
         xTaskNotifyWait(0x00, ULONG_MAX, NULL, portMAX_DELAY);

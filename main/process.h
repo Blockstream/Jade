@@ -32,6 +32,12 @@ typedef void (*cbor_encoder_fn_t)(const void*, CborEncoder*);
 typedef void (*void_fn_t)(void*);
 typedef struct _jade_deferred_fn_t jade_deferred_fn_t;
 
+// Callback to read inbound messages from the inbound queue
+typedef void (*inbound_message_reader_fn_t)(void*, uint8_t*, size_t);
+
+// Callback to write messages to the outbound destination
+typedef bool (*outbound_message_writer_fn_t)(const uint8_t*, size_t, void*);
+
 typedef enum {
     SOURCE_NONE,
     SOURCE_SERIAL,
@@ -92,8 +98,8 @@ void jade_process_reject_message_ex(cbor_msg_t ctx, int code, const char* messag
     uint8_t* buffer, size_t buffer_len);
 
 // Get in/out messages from the queues/ring-buffers
-void jade_process_get_in_message(void* ctx, void (*writer)(void*, uint8_t*, size_t), bool blocking);
-bool jade_process_get_out_message(bool (*)(const uint8_t*, size_t), jade_msg_source_t source);
+void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, bool blocking);
+bool jade_process_get_out_message(outbound_message_writer_fn_t writer, jade_msg_source_t source, void* ctx);
 
 // The inbound message mode
 void cbor_result_bytes_cb(const void* ctx, CborEncoder* container);

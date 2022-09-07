@@ -103,8 +103,11 @@ static void qemu_tcp_reader(void* ignore)
     }
 }
 
-static bool write_qemu_tcp(const uint8_t* msg, const size_t length)
+static bool write_qemu_tcp(const uint8_t* msg, const size_t length, void* ignore)
 {
+    JADE_ASSERT(msg);
+    JADE_ASSERT(length);
+
     portENTER_CRITICAL(&sockmutex);
     const int tmp_qemu_tcp_sock = qemu_tcp_sock;
     portEXIT_CRITICAL(&sockmutex);
@@ -127,7 +130,7 @@ static void qemu_tcp_writer(void* ignore)
 {
     while (1) {
         vTaskDelay(20 / portTICK_PERIOD_MS);
-        while (jade_process_get_out_message(&write_qemu_tcp, SOURCE_QEMU_TCP)) {
+        while (jade_process_get_out_message(&write_qemu_tcp, SOURCE_QEMU_TCP, NULL)) {
             // process messages
         }
         xTaskNotifyWait(0x00, ULONG_MAX, NULL, portMAX_DELAY);

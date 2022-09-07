@@ -341,8 +341,12 @@ static void dump_mem_report(void)
 static inline bool ble_connected(void) { return false; }
 #endif
 
-void jade_process_get_in_message(void* ctx, void (*writer)(void*, uint8_t*, size_t), bool blocking)
+void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, bool blocking)
 {
+    // reader can be null to just discard messages
+    // ctx is optional (but must be null if no reader callback)
+    JADE_ASSERT(!ctx || reader);
+
     const TickType_t delay = 40 / portTICK_PERIOD_MS;
     uint8_t counter = 0;
     do {
@@ -351,8 +355,8 @@ void jade_process_get_in_message(void* ctx, void (*writer)(void*, uint8_t*, size
 
         if (item != NULL) {
             // Got item from queue
-            if (writer) {
-                writer(ctx, (uint8_t*)item, item_size);
+            if (reader) {
+                reader(ctx, (uint8_t*)item, item_size);
             }
             vRingbufferReturnItem(shared_in, item);
             return;
@@ -395,8 +399,15 @@ void jade_process_load_in_message(jade_process_t* process, bool blocking)
     jade_process_get_in_message(&process->ctx, process_cbor_msg, blocking);
 }
 
-bool jade_process_get_out_message(bool (*writer)(const uint8_t*, size_t), const jade_msg_source_t source)
+// NOTE: the return here indicates whether a message was taken and passed to the writer callback
+// which could handle it in some way - *NOT* that the processing was logically 'successful' - if
+// this needs or other data needs to be returned to the caller the opaque context 'ctx' should be used.
+bool jade_process_get_out_message(outbound_message_writer_fn_t writer, const jade_msg_source_t source, void* ctx)
 {
+    // writer can be null to just discard messages
+    // ctx is optional (but must be null if no writer callback)
+    JADE_ASSERT(!ctx || writer);
+
     RingbufHandle_t ring = NULL;
     switch (source) {
     case SOURCE_SERIAL:
@@ -416,20 +427,26 @@ bool jade_process_get_out_message(bool (*writer)(const uint8_t*, size_t), const 
         JADE_ABORT();
     }
     JADE_ASSERT(ring);
+
     size_t item_size = 0;
     void* item = xRingbufferReceive(ring, &item_size, 20 / portTICK_PERIOD_MS);
-    bool res = true;
-    if (item != NULL) {
-        if (writer) {
-            res = writer((const uint8_t*)item, item_size);
-        }
-        vRingbufferReturnItem(ring, item);
-        // FIXME: currently false signals that there isn't anything on the buffer
-        // to process but this is not distinguished from a failure to write.
-        // If there is a failure to write we currently drop the message
-        return res;
+    if (!item) {
+        // No message available
+        return false;
     }
-    return false;
+
+    bool res = true; // default for simple discard
+    if (writer) {
+        res = writer((const uint8_t*)item, item_size, ctx);
+    }
+    vRingbufferReturnItem(ring, item);
+
+    // FIXME: currently false signals that there isn't anything on the buffer
+    // to process but this is not distinguished from a failure to write.
+    // If there is a failure to write we currently drop the message
+    // NOTE: the passed context object should be used by the writer to return
+    // any richer information regards message processing.
+    return res; // message was handled, whether 'successfully' or not
 }
 
 void jade_process_reply_to_message_ex(jade_msg_source_t source, const uint8_t* reply_payload, const size_t payload_len)

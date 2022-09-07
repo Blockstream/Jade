@@ -63,8 +63,11 @@ static void serial_reader(void* ignore)
     }
 }
 
-static bool write_serial(const uint8_t* msg, const size_t length)
+static bool write_serial(const uint8_t* msg, const size_t length, void* ignore)
 {
+    JADE_ASSERT(msg);
+    JADE_ASSERT(length);
+
     int written = 0;
     while (written != length) {
         const int wrote = uart_write_bytes(UART_NUM_0, msg + written, length - written);
@@ -80,7 +83,7 @@ static void serial_writer(void* ignore)
 {
     while (1) {
         vTaskDelay(20 / portTICK_PERIOD_MS);
-        while (jade_process_get_out_message(&write_serial, SOURCE_SERIAL)) {
+        while (jade_process_get_out_message(&write_serial, SOURCE_SERIAL, NULL)) {
             // process messages
         }
         xTaskNotifyWait(0x00, ULONG_MAX, NULL, portMAX_DELAY);
