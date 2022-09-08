@@ -206,7 +206,7 @@ void jade_process_free_current_message(jade_process_t* process)
         free(process->ctx.cbor);
         process->ctx.cbor = NULL;
     }
-
+    process->ctx.cbor_len = 0;
     process->ctx.source = SOURCE_NONE;
 }
 
