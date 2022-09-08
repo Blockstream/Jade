@@ -245,25 +245,83 @@ bool await_yesno_activity(const char* title, const char* message, const bool def
     return ev_id == BTN_YES;
 }
 
-void display_icon_activity(const Icon* icon, color_t color, const color_t* bg_color, gui_view_node_t** icon_node_out)
+static void make_icon_activity(gui_activity_t** activity_ptr, const Icon* icon, color_t color, const color_t* bg_color,
+    gui_view_node_t** icon_node_out)
 {
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(icon);
+    // bg_color is optional
     // icon_node_out is optional
-    // bg_color is optional - NULL implies transparent
 
-    gui_activity_t* activity = NULL;
-    gui_make_activity(&activity, false, NULL);
+    gui_make_activity(activity_ptr, false, NULL);
+    gui_view_node_t* parent_node = (*activity_ptr)->root_node;
 
+    // Background fill colour, if specified
+    if (bg_color) {
+        gui_view_node_t* bg_fill_node;
+        gui_make_fill(&bg_fill_node, *bg_color);
+        gui_set_parent(bg_fill_node, parent_node);
+        parent_node = bg_fill_node;
+    }
+
+    // The icon proper
     gui_view_node_t* icon_node;
     gui_make_icon(&icon_node, icon, color, bg_color);
     gui_set_align(icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(icon_node, activity->root_node);
-
-    gui_set_current_activity(activity);
+    gui_set_parent(icon_node, parent_node);
 
     if (icon_node_out) {
         *icon_node_out = icon_node;
     }
+}
+
+// activity DOES NOT take ownership of passed icon
+void await_single_icon_activity(const Icon* icon, const color_t color, const color_t* bg_color)
+{
+    JADE_ASSERT(icon);
+    // bg_color is optional
+
+    gui_activity_t* activity = NULL;
+    make_icon_activity(&activity, icon, color, bg_color, NULL);
+    JADE_ASSERT(activity);
+
+    // Show, and await front button click
+    gui_set_current_activity(activity);
+
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    gui_activity_wait_event(activity, GUI_EVENT, GUI_FRONT_CLICK_EVENT, NULL, NULL, NULL, 0);
+#else
+    gui_activity_wait_event(activity, GUI_EVENT, GUI_FRONT_CLICK_EVENT, NULL, NULL, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+#endif
+}
+
+// NOTE: activity takes ownership of passed icons
+void await_animated_icon_activity(
+    Icon* icons, const size_t num_icons, const color_t color, const color_t* bg_color, const size_t frames_per_icon)
+{
+    JADE_ASSERT(icons);
+    JADE_ASSERT(num_icons > 1);
+    JADE_ASSERT(frames_per_icon);
+    // bg_color is optional - NULL implies transparent
+
+    gui_activity_t* activity = NULL;
+    gui_view_node_t* icon_node = NULL;
+    make_icon_activity(&activity, icons, color, bg_color, &icon_node);
+    JADE_ASSERT(activity);
+
+    // Set the animation data
+    gui_set_icon_animation(icon_node, icons, num_icons, frames_per_icon);
+
+    // Show, and await front button click
+    gui_set_current_activity(activity);
+
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    gui_activity_wait_event(activity, GUI_EVENT, GUI_FRONT_CLICK_EVENT, NULL, NULL, NULL, 0);
+#else
+    gui_activity_wait_event(activity, GUI_EVENT, GUI_FRONT_CLICK_EVENT, NULL, NULL, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+#endif
 }
 
 // The progress-bar structure indicated is populated, and should be used to update the progress

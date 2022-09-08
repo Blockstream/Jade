@@ -1195,7 +1195,7 @@ static void handle_xpub(void)
     const uint8_t qrcode_version = 6;
 
     // A v6 qrcode is 41x41 - we can scale this by 3 and it still (just) fits on the display
-    const size_t scale_factor = 3;
+    const uint8_t scale_factor = 3;
 
     const char* network = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? "testnet" : "mainnet";
     char* xpub = NULL;
@@ -1210,8 +1210,8 @@ static void handle_xpub(void)
         qrcode_toIcon(&qrcode, &qr_icon, scale_factor);
         wally_free_string(xpub);
 
-        display_icon_activity(&qr_icon, TFT_LIGHTGREY, NULL, NULL);
-        sync_await_single_event(GUI_EVENT, GUI_FRONT_CLICK_EVENT, NULL, NULL, NULL, 0);
+        // NOTE: activity does not take ownership of icon
+        await_single_icon_activity(&qr_icon, TFT_BLACK, &TFT_DARKGREY);
         qrcode_freeIcon(&qr_icon);
     } else {
         JADE_LOGE("Failed to get root xpub for display");
