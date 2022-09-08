@@ -939,29 +939,35 @@ bool qrcode_getModule(QRCode* qrcode, uint8_t x, uint8_t y)
     return (qrcode->modules[offset >> 3] & (1 << (7 - (offset & 0x07)))) != 0;
 }
 
-void qrcode_toIcon(QRCode* qrcode, Icon* icon, uint8_t scale)
+void qrcode_toIcon(QRCode* qrcode, Icon* icon, const uint8_t scale)
 {
     JADE_ASSERT(qrcode);
     JADE_ASSERT(icon);
+    JADE_ASSERT(scale);
 
     icon->width = qrcode->size * scale;
     icon->height = qrcode->size * scale;
 
-    icon->data = JADE_MALLOC(icon->width * icon->height);
-    memset(icon->data, 0, icon->width * icon->height);
+    // Icon data is stored one bit per pixel, in uint32's
+    // Note: we add one for any final partially filled uint32
+    const size_t bits_per_uint = sizeof(uint32_t) * 8;
+    const size_t num_pixels = icon->width * icon->height;
+    const size_t num_uints = (num_pixels / bits_per_uint) + 1;
+    icon->data = JADE_CALLOC(num_uints, sizeof(uint32_t));
 
     uint64_t val = 0;
     for (uint8_t y = 0; y < qrcode->size; y++) {
         // scaling
         for (uint8_t j = 0; j < scale; j++) {
             for (uint8_t x = 0; x < qrcode->size; x++) {
-                bool paint = qrcode_getModule(qrcode, x, y);
+                const bool paint = qrcode_getModule(qrcode, x, y);
 
                 // scaling
                 for (uint8_t i = 0; i < scale; i++) {
-                    uint32_t elem = val / 32;
-                    uint32_t bit = val % 32;
+                    const uint32_t elem = val / bits_per_uint;
+                    const uint32_t bit = val % bits_per_uint;
 
+                    JADE_ASSERT(elem < num_uints);
                     icon->data[elem] |= paint << bit;
 
                     val++;
