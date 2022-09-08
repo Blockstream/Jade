@@ -775,6 +775,24 @@ static void free_view_node_text_data(void* vdata)
     }
 }
 
+// destructor for text nodes
+static void free_view_node_icon_data(void* vdata)
+{
+    JADE_ASSERT(vdata);
+    struct view_node_icon_data* data = vdata;
+
+    // free the animation struct if present
+    if (data->animation) {
+        // NOTE: we owned the animation frames
+        for (int i = 0; i < data->animation->num_icons; ++i) {
+            // Free the icon data
+            free(data->animation->icons[i].data);
+        }
+        free(data->animation->icons);
+        free(data->animation);
+    }
+}
+
 // make the underlying view node, common across all the gui_make_* functions
 static void make_view_node(gui_view_node_t** ptr, enum view_node_kind kind, void* data, free_callback_t free_callback)
 {
@@ -920,7 +938,64 @@ void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const
     data->halign = GUI_ALIGN_LEFT;
     data->valign = GUI_ALIGN_TOP;
 
-    make_view_node(ptr, ICON, data, NULL);
+    // without animation
+    data->animation = NULL;
+
+    // also set free_view_node_icon_data as destructor to free any animation data
+    make_view_node(ptr, ICON, data, free_view_node_icon_data);
+}
+
+static bool icon_animation_frame_callback(gui_view_node_t* node, void* extra_args)
+{
+    // no node, invalid node, not yet renreded...
+    if (!node || node->kind != ICON || node->render_data.is_first_time) {
+        return false;
+    }
+
+    struct view_node_icon_animation_data* animation_data = node->icon->animation;
+    if (!animation_data || animation_data->num_icons <= 1) {
+        return false;
+    }
+
+    // do nothing this frame
+    if (animation_data->current_frame > 0) {
+        --animation_data->current_frame;
+        return false;
+    }
+
+    // Update main icon
+    animation_data->current_icon = (animation_data->current_icon + 1) % animation_data->num_icons;
+    node->icon->icon = animation_data->icons[animation_data->current_icon];
+
+    // Reset frame counter
+    animation_data->current_frame = animation_data->frames_per_icon;
+
+    // Redraw icon
+    return true;
+}
+
+// NOTE: takes ownership of icons
+void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, const size_t num_icons, const size_t frames_per_icon)
+{
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == ICON);
+    JADE_ASSERT(icons);
+    JADE_ASSERT(num_icons > 1);
+    JADE_ASSERT(frames_per_icon);
+
+    struct view_node_icon_animation_data* animation_data = JADE_CALLOC(1, sizeof(struct view_node_icon_animation_data));
+
+    animation_data->icons = icons;
+    animation_data->num_icons = num_icons;
+    animation_data->current_icon = 0;
+
+    animation_data->frames_per_icon = frames_per_icon;
+    animation_data->current_frame = 0;
+
+    node->icon->animation = animation_data;
+
+    // now push this to the list of updatable elements so that it gets updated every frame
+    push_updatable(node->activity, node, icon_animation_frame_callback, NULL);
 }
 
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)
@@ -1353,6 +1428,7 @@ void gui_update_icon(gui_view_node_t* node, const Icon icon, const bool repaint_
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == ICON);
+    JADE_ASSERT(!node->icon->animation); // animated
 
     // Get the root node holding the passed node
     gui_view_node_t* const root = gui_get_root_node(node);
@@ -1665,7 +1741,7 @@ static void render_icon(gui_view_node_t* node, dispWin_t cs)
     JADE_ASSERT(node->kind == ICON);
 
     if (node->icon) {
-        color_t* color = node->is_selected ? &node->icon->selected_color : &node->icon->color;
+        const color_t* color = node->is_selected ? &node->icon->selected_color : &node->icon->color;
         const bool transparent = same_color(node->icon->bg_color, node->icon->color);
         TFT_icon(&node->icon->icon, resolve_halign(0, node->icon->halign), resolve_valign(0, node->icon->valign),
             *color, cs, transparent ? NULL : &node->icon->bg_color);

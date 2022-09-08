@@ -248,6 +248,17 @@ struct view_node_button_data {
 };
 
 // Data for an icon node
+// NOTE: animated icons ARE owned here
+struct view_node_icon_animation_data {
+    Icon* icons;
+    size_t num_icons;
+    size_t current_icon;
+
+    size_t frames_per_icon;
+    size_t current_frame;
+};
+
+// NOTE: underlying icon data is not owned here
 struct view_node_icon_data {
     Icon icon;
 
@@ -259,9 +270,13 @@ struct view_node_icon_data {
 
     enum gui_horizontal_align halign;
     enum gui_vertical_align valign;
+
+    // if != NULL the icon will be regularly updated and so appear animated
+    struct view_node_icon_animation_data* animation;
 };
 
 // Data for a picture node
+// NOTE: picture data is not owned here
 struct view_node_picture_data {
     const Picture* picture;
 
@@ -395,12 +410,13 @@ void gui_set_borders_selected_color(gui_view_node_t* node, color_t selected_colo
 void gui_set_borders_inactive_color(gui_view_node_t* node, color_t inactive_color);
 void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color);
 void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum gui_vertical_align valign);
+void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, size_t num_icons, size_t frames_per_icon);
 void gui_set_text_scroll(gui_view_node_t* node, color_t background_color);
 void gui_set_text_noise(gui_view_node_t* node, color_t background_color);
 void gui_set_text_font(gui_view_node_t* node, uint32_t font);
 void gui_set_text_default_font(gui_view_node_t* node);
 void gui_update_text(gui_view_node_t* node, const char* text);
-void gui_update_icon(gui_view_node_t* node, const Icon icon, bool repaint_parent);
+void gui_update_icon(gui_view_node_t* node, Icon icon, bool repaint_parent);
 void gui_update_picture(gui_view_node_t* node, const Picture* picture, bool repaint_parent);
 void gui_repaint(gui_view_node_t* node, bool take_mutex);
 
