@@ -507,3 +507,140 @@ void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* p
         { .txt = "Yes", .font = DEFAULT_FONT, .ev_id = BTN_YES } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
+
+void make_confirm_qr_export_activity(gui_activity_t** activity_ptr)
+{
+    JADE_ASSERT(activity_ptr);
+
+    gui_make_activity(activity_ptr, true, "QR Export");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    gui_view_node_t* text;
+    gui_make_text(&text, "\nDraw the CompactSeedQR for\nuse with QR Mode and\nRecovery Phrase Login.", TFT_WHITE);
+    gui_set_parent(text, vsplit);
+    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 6, 4);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+
+    // third row, Yes and No buttons
+    btn_data_t btns[] = { { .txt = "Skip", .font = DEFAULT_FONT, .ev_id = BTN_NO },
+        { .txt = "Next", .font = DEFAULT_FONT, .ev_id = BTN_YES } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
+
+    // Select 'Next' button by default
+    gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+}
+
+void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon* icon)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(icon);
+
+    gui_make_activity(activity_ptr, false, NULL);
+
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+    gui_set_parent(hsplit, (*activity_ptr)->root_node);
+
+    // lhs - text
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 54, 30);
+    gui_set_parent(vsplit, hsplit);
+
+    // rhs - icon
+    gui_view_node_t* icon_bg;
+    gui_make_fill(&icon_bg, TFT_DARKGREY);
+    gui_set_parent(icon_bg, hsplit);
+
+    gui_view_node_t* qr_icon_node;
+    gui_make_icon(&qr_icon_node, icon, TFT_BLACK, &TFT_LIGHTGREY);
+    gui_set_align(qr_icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(qr_icon_node, icon_bg);
+
+    // first row, header
+    gui_view_node_t* title;
+    gui_make_text(&title, "QR Export", TFT_WHITE);
+    gui_set_parent(title, vsplit);
+    gui_set_align(title, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_borders(title, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+
+    // second row, message
+    gui_view_node_t* text;
+    gui_make_text(&text, "\nCompactSeedQR\n     Overview", TFT_WHITE);
+    gui_set_parent(text, vsplit);
+    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 8, 1);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+
+    // Just a 'begin' button
+    btn_data_t btn = { .txt = "Begin", .font = DEFAULT_FONT, .ev_id = BTN_QR_EXPORT_BEGIN };
+    add_buttons(vsplit, UI_COLUMN, &btn, 1);
+}
+
+void make_export_qr_fragment_activity(
+    gui_activity_t** activity_ptr, const Icon* icon, gui_view_node_t** icon_node, gui_view_node_t** label_node)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(icon);
+    JADE_ASSERT(icon_node);
+    JADE_ASSERT(label_node);
+
+    gui_make_activity(activity_ptr, false, NULL);
+
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+    gui_set_parent(hsplit, (*activity_ptr)->root_node);
+
+    // lhs - text
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 38, 18, 28);
+    gui_set_parent(vsplit, hsplit);
+
+    // rhs - icon
+    gui_view_node_t* icon_bg;
+    gui_make_fill(&icon_bg, TFT_DARKGREY);
+    gui_set_parent(icon_bg, hsplit);
+
+    gui_view_node_t* qr_icon_node;
+    gui_make_icon(&qr_icon_node, icon, TFT_BLACK, &TFT_LIGHTGREY);
+    gui_set_align(qr_icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(qr_icon_node, icon_bg);
+    *icon_node = qr_icon_node;
+
+    // first row, header
+    gui_view_node_t* title;
+    gui_make_text(&title, "Draw QR", TFT_WHITE);
+    gui_set_parent(title, vsplit);
+    gui_set_align(title, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_borders(title, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+
+    // second row, message - tweaked for hw revision
+#if defined(CONFIG_BOARD_TYPE_JADE)
+    const char* msg = "Scroll through\nQR using the\nwheel";
+#elif defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    const char* msg = "Scroll through\nQR using the\njog-wheel";
+#else
+    const char* msg = "Scroll through\nQR using left &\nright buttons";
+#endif
+    gui_view_node_t* text;
+    gui_make_text(&text, msg, TFT_WHITE);
+    gui_set_parent(text, vsplit);
+    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 6, 4);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+
+    // third row, message
+    gui_view_node_t* text_bg;
+    gui_make_fill(&text_bg, TFT_BLACK);
+    gui_set_parent(text_bg, vsplit);
+
+    gui_view_node_t* icon_label;
+    gui_make_text(&icon_label, "", TFT_WHITE);
+    gui_set_parent(icon_label, text_bg);
+    gui_set_align(icon_label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    *label_node = icon_label;
+
+    // Just a 'done' button
+    btn_data_t btn = { .txt = "Done", .font = DEFAULT_FONT, .ev_id = BTN_QR_EXPORT_DONE };
+    add_buttons(vsplit, UI_COLUMN, &btn, 1);
+}
