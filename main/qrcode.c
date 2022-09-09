@@ -977,6 +977,93 @@ void qrcode_toIcon(QRCode* qrcode, Icon* icon, const uint8_t scale)
     }
 }
 
+// Blockstream added function
+// NOTE: only supports v1 and v2 qrcodes atm.
+// fyi: target_size of 105 works well for 'full screen' icons of v1 and v2 qrcodes
+bool qrcode_toFragmentsIcons(
+    QRCode* qrcode, const uint8_t target_size, const bool show_grid, Icon** icons_out, size_t* num_icons_out)
+{
+    JADE_ASSERT(qrcode);
+    JADE_ASSERT(target_size);
+    JADE_INIT_OUT_PPTR(icons_out);
+    JADE_INIT_OUT_SIZE(num_icons_out);
+
+    // Only versions 1 and 2 are supported atm (sizes 21 and 25)
+    if (qrcode->version < 1 || qrcode->version > 2) {
+        JADE_LOGE("qr version unsupported for fragmenting: %u", qrcode->version);
+        return false;
+    }
+
+    // For v1 (21x21) we use a 3x3 grid of 7x7 icons (ie. 9 icons)
+    // For v2 (25x25) we use a 5x5 grid of 5x5 icons (ie. 25 icons)
+    const uint8_t num_fragments_per_side = qrcode->version == 1 ? 3 : 5;
+    const uint8_t fragment_size = qrcode->version == 1 ? 7 : 5;
+    JADE_ASSERT(num_fragments_per_side * fragment_size == qrcode->size);
+    if (target_size < fragment_size) {
+        JADE_LOGE("Target size too small for version %u code - min size %u", qrcode->version, fragment_size);
+        return false;
+    }
+
+    // Create the icon wrappers
+    const uint8_t scale = target_size / fragment_size;
+    const uint16_t icon_size = fragment_size * scale;
+    JADE_ASSERT(icon_size >= fragment_size);
+
+    *num_icons_out = num_fragments_per_side * num_fragments_per_side;
+    *icons_out = JADE_CALLOC(*num_icons_out, sizeof(Icon));
+    JADE_LOGI("Mapping version %u (%ux%u) into %u %ux%u fragments", qrcode->version, qrcode->size, qrcode->size,
+        *num_icons_out, icon_size, icon_size);
+
+    // Icon data is stored one bit per pixel, in uint32's
+    // Note: we add one for any final partially filled uint32
+    const uint8_t bits_per_uint = sizeof(uint32_t) * 8;
+    const uint16_t num_pixels = icon_size * icon_size;
+    const uint16_t num_uints = (num_pixels / bits_per_uint) + 1;
+
+    for (uint16_t i = 0; i < *num_icons_out; ++i) {
+        // Create fragment icon
+        Icon* const icon = (*icons_out) + i;
+        icon->width = icon_size;
+        icon->height = icon_size;
+        icon->data = JADE_CALLOC(num_uints, sizeof(uint32_t));
+
+        const uint8_t fragment_orig_y = (i / num_fragments_per_side) * fragment_size;
+        const uint8_t fragment_orig_x = (i % num_fragments_per_side) * fragment_size;
+        JADE_LOGD("Fragment icon %u, origin maps to (%u, %u)", i, fragment_orig_x, fragment_orig_y);
+
+        // Iterate over the destination, copying the source data across
+        for (uint16_t dest_y = 0; dest_y < icon->height; ++dest_y) {
+            const uint32_t dest_y_pixel_offset = dest_y * icon->width;
+            const uint8_t src_y = (dest_y / scale) + fragment_orig_y;
+            JADE_ASSERT(src_y < qrcode->size);
+
+            for (uint16_t dest_x = 0; dest_x < icon->width; ++dest_x) {
+                const uint8_t src_x = (dest_x / scale) + fragment_orig_x;
+                JADE_ASSERT(src_x < qrcode->size);
+
+                const uint32_t dest_pixel = dest_y_pixel_offset + dest_x;
+                JADE_ASSERT(dest_pixel < num_pixels);
+
+                // Copy single module->pixel ie. single bit
+                const uint32_t dest_elem = dest_pixel / bits_per_uint;
+                const uint8_t dest_bit = dest_pixel % bits_per_uint;
+                JADE_ASSERT(dest_elem < num_uints);
+
+                bool paint = qrcode_getModule(qrcode, src_x, src_y);
+                if (show_grid) {
+                    // Invert if on a grid-line
+                    const bool gridline = (dest_x == icon->width - 1) || (dest_x % scale == 0)
+                        || (dest_y == icon->height - 1) || (dest_y % scale == 0);
+                    paint = (paint != gridline);
+                }
+                icon->data[dest_elem] |= paint << dest_bit;
+            }
+        }
+    }
+    return true;
+}
+// End Blockstream added function
+
 void qrcode_freeIcon(Icon* icon)
 {
     JADE_ASSERT(icon);

@@ -82,6 +82,11 @@ bool qrcode_getModule(QRCode* qrcode, uint8_t x, uint8_t y);
 void qrcode_toIcon(QRCode* qrcode, Icon* icon, uint8_t scale);
 void qrcode_freeIcon(Icon* icon);
 
+// Blockstream added function
+// NOTE: only supports v1 and v2 qrcodes atm.
+bool qrcode_toFragmentsIcons(
+    QRCode* qrcode, uint8_t target_size, bool show_grid, Icon** icons_out, size_t* num_icons_out);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
