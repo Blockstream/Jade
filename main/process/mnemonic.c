@@ -5,6 +5,7 @@
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
+#include "../qrcode.h"
 #include "../qrscan.h"
 #include "../random.h"
 #include "../sensitive.h"
@@ -41,9 +42,150 @@ void make_recover_word_page_select10(
     gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status);
 void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
 void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
+void make_confirm_qr_export_activity(gui_activity_t** activity_ptr);
+void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon* icon);
+void make_export_qr_fragment_activity(
+    gui_activity_t** activity_ptr, const Icon* icon, gui_view_node_t** icon_node, gui_view_node_t** label_node);
+
+// Export a mnemonic by asking the user to transcribe it to hard copy, then
+// scanning that hard copy back in and verifying the data matches.
+// NOTE: the SeedSigner 'CompactSeedQR' format is used (raw entropy).
+static void mnemonic_export_qr(const char* mnemonic)
+{
+    JADE_ASSERT(mnemonic);
+
+    int32_t ev_id = 0;
+    gui_activity_t* act_confirm = NULL;
+    make_confirm_qr_export_activity(&act_confirm);
+
+    // Free all gui screen activities thus far, as those used to show or enter a mnemonic
+    // are memory intensive, and are there is no navigation now back to those screens.
+    // The QR export and scanning screens which may follow (if exporting QR) are also memory intensive,
+    // and DRAM would be exhausted unless we free those we have finished with.
+    gui_set_current_activity_ex(act_confirm, true);
+    if (!gui_activity_wait_event(act_confirm, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)
+        || ev_id != BTN_YES) {
+        // User decided against it at this time
+        return;
+    }
+
+    // CompactSeedQR is simply the mnemonic entropy
+    // Only 12 or 24 word mnemonics are supported (ie. 128 & 256 bit entropy)
+    size_t entropy_len = 0;
+    uint8_t entropy[BIP32_ENTROPY_LEN_256]; // Sufficient for 12 and 24 words
+    JADE_WALLY_VERIFY(bip39_mnemonic_to_bytes(NULL, mnemonic, entropy, sizeof(entropy), &entropy_len));
+    JADE_ASSERT(entropy_len == BIP32_ENTROPY_LEN_128 || entropy_len == BIP32_ENTROPY_LEN_256);
+
+    // Convert the entropy into a small (v1 or v2) qr-code
+    QRCode qrcode;
+    const uint8_t qrcode_version = entropy_len == BIP32_ENTROPY_LEN_128 ? 1 : 2;
+    uint8_t qrbuffer[96]; // underlying qrcode data/work area - opaque
+    JADE_ASSERT(sizeof(qrbuffer) > qrcode_getBufferSize(qrcode_version));
+    const int qret = qrcode_initBytes(&qrcode, qrbuffer, qrcode_version, ECC_LOW, entropy, entropy_len);
+    JADE_ASSERT(qret == 0);
+
+    // Make and show a qr code icon as an overview image
+    Icon qr_overview;
+    const uint8_t overview_scale = qrcode_version == 1 ? 5 : 4;
+    qrcode_toIcon(&qrcode, &qr_overview, overview_scale);
+
+    gui_activity_t* act_overview_qr = NULL;
+    make_export_qr_overview_activity(&act_overview_qr, &qr_overview);
+    JADE_ASSERT(act_overview_qr);
+    gui_set_current_activity(act_overview_qr);
+
+    // Now make a bag of qrcodes for square fragments of the qr
+    Icon* icons = NULL;
+    size_t num_icons = 0;
+    const uint8_t target_size = 105;
+    const bool show_grid = true;
+    const uint8_t expected_grid_size = qrcode_version == 1 ? 3 : 5;
+    qrcode_toFragmentsIcons(&qrcode, target_size, show_grid, &icons, &num_icons);
+    JADE_ASSERT(num_icons == expected_grid_size * expected_grid_size);
+
+    // Show the overview and magnified fragments, and when the user
+    // is done try to scan the qr code they have made and verify it
+    // scans and the data imported matches the expected entropy.
+    gui_view_node_t* icon_node = NULL;
+    gui_view_node_t* text_node = NULL;
+    gui_activity_t* act_qr_part = NULL;
+    make_export_qr_fragment_activity(&act_qr_part, &icons[0], &icon_node, &text_node);
+    JADE_ASSERT(act_qr_part);
+    JADE_ASSERT(icon_node);
+    JADE_ASSERT(text_node);
+
+    while (true) {
+        gui_set_current_activity(act_overview_qr);
+        while (!gui_activity_wait_event(act_overview_qr, GUI_BUTTON_EVENT, BTN_QR_EXPORT_BEGIN, NULL, NULL, NULL, 0)) {
+            // Wait for 'Begin' button to be pressed
+        }
+
+        // Show QR parts
+        uint8_t ipart = 0;
+        bool done = false;
+        while (!done) {
+            // Update display - ipart == num_icons implies the 'overview' of the entire qr-code
+            if (ipart < num_icons) {
+                char label[12];
+                const int ret = snprintf(label, sizeof(label), "Grid: %c%u", 'A' + (ipart / expected_grid_size),
+                    1 + (ipart % expected_grid_size));
+                JADE_ASSERT(ret > 0 && ret < sizeof(label));
+                gui_update_icon(icon_node, icons[ipart], false);
+                gui_update_text(text_node, label);
+            } else {
+                // Show the entire qr overview image
+                gui_update_icon(icon_node, qr_overview, true);
+                gui_update_text(text_node, "Overview");
+            }
+            gui_set_current_activity(act_qr_part);
+
+            if (gui_activity_wait_event(act_qr_part, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                switch (ev_id) {
+                case GUI_FRONT_CLICK_EVENT:
+                    done = true;
+                    break;
+                case GUI_WHEEL_LEFT_EVENT:
+                    ipart = (ipart + num_icons) % (num_icons + 1);
+                    break;
+                case GUI_WHEEL_RIGHT_EVENT:
+                    ipart = (ipart + 1) % (num_icons + 1);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+
+        // Verify QR by scanning it back
+        qr_data_t qr_data = { .len = 0 };
+        jade_camera_scan_qr(&qr_data, "\nScan created\nQR to verify");
+        if (qr_data.len == entropy_len && !memcmp((uint8_t*)qr_data.strdata, entropy, entropy_len)) {
+            // QR Code scanned, and it matched expected entropy
+            await_message_activity("QR Code Verified");
+        } else {
+            const char* retry_message
+                = qr_data.len ? "\nQR scan does not match\n\nRetry?" : "\nNo QR code captured\n\nRetry?";
+            if (await_yesno_activity("Error", retry_message, true)) {
+                // Retry from the top
+                continue;
+            }
+
+            // Either qr code mismatched and user not retrying, or no qr code scanned (abandoned)
+            await_error_activity("QR Code NOT Verified!");
+        }
+        break;
+    }
+
+    // Free the icons
+    for (int i = 0; i < num_icons; ++i) {
+        free(icons[i].data);
+    }
+    free(icons);
+    qrcode_freeIcon(&qr_overview);
+}
 
 // Function to change the mnemonic word separator and provide pointers to
-// the start of the words.  USed when confirming one word at a time.
+// the start of the words.  Used when confirming one word at a time.
 static void change_mnemonic_word_separator(char* mnemonic, const size_t len, const char old_separator,
     const char new_separator, char* words[], const size_t nwords)
 {
@@ -841,6 +983,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
     bool got_mnemonic = false;
     bool using_passphrase = false;
+    bool offer_export_qr = false;
     while (!got_mnemonic) {
         gui_set_current_activity(activity);
 
@@ -867,6 +1010,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
             make_new_mnemonic_screen_advanced(&activity);
             JADE_ASSERT(activity);
             using_passphrase = true;
+            offer_export_qr = true;
             continue;
 
         case BTN_RECOVER_MNEMONIC:
@@ -880,6 +1024,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
             make_mnemonic_recovery_screen_advanced(&activity);
             JADE_ASSERT(activity);
             using_passphrase = true;
+            offer_export_qr = true;
             continue;
 
         // Await user mnemonic entry/confirmation
@@ -902,6 +1047,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
         case BTN_RECOVER_MNEMONIC_QR_BEGIN:
         default:
             got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
+            offer_export_qr = false;
             break;
         }
 #else
@@ -927,6 +1073,18 @@ void initialise_with_mnemonic(const bool temporary_restore)
             break;
         }
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+        // Offer export via qr for true Jade hw's (ie. with camera) and the flag is set
+        // ie. a) if 'Advanced' setup was used, and b) we did not already scan a QR
+        if (offer_export_qr
+            && await_yesno_activity("QR Export",
+                "Do you want to export your\nrecovery phrase as a Compact\nSeedQR? For more info "
+                "vist:\nblockstream.com/jadeqr",
+                false)) {
+            mnemonic_export_qr(mnemonic);
+        }
+#endif
+
         // Perhaps offer/get passphrase (ie. if using advanced options)
         char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
         SENSITIVE_PUSH(passphrase, sizeof(passphrase));
@@ -937,7 +1095,12 @@ void initialise_with_mnemonic(const bool temporary_restore)
             make_using_passphrase_screen(&act, offer_always_option);
             JADE_ASSERT(act);
 
-            gui_set_current_activity(act);
+            // Free all gui screen activities thus far, as those used to show or enter a mnemonic and those
+            // used to export and scan/verify are memory intensive, and are there is no navigation now back
+            // to those screens.
+            // The keyboard screens which may follow (if entering passphrase) are also memory intensive,
+            // and DRAM would be exhausted unless we free those we have finished with.
+            gui_set_current_activity_ex(act, true);
 
             int32_t ev_id;
             using_passphrase = false;
