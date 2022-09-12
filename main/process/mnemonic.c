@@ -742,7 +742,8 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     mnemonic[0] = '\0';
 
     // we return 'true' if we scanned any string data at all
-    const bool qr_scanned = jade_camera_scan_qr(&qr_data) && qr_data.len > 0;
+    const bool qr_scanned
+        = jade_camera_scan_qr(&qr_data, "Scan supported\nwallet recovery\nQR code") && qr_data.len > 0;
     if (!qr_scanned) {
         JADE_LOGW("No qr code scanned");
         goto cleanup;

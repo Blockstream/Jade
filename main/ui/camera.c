@@ -4,10 +4,11 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-void make_camera_activity(
-    gui_activity_t** activity_ptr, const char* btnText, gui_view_node_t** image_node, gui_view_node_t** label_node)
+void make_camera_activity(gui_activity_t** activity_ptr, const char* title, const char* btnText,
+    gui_view_node_t** image_node, gui_view_node_t** label_node)
 {
     JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(title);
     // btnText is only needed if a 'click' button is wanted
     JADE_ASSERT(image_node);
     JADE_ASSERT(label_node);
@@ -33,7 +34,7 @@ void make_camera_activity(
 
     // first row, header
     gui_view_node_t* text1;
-    gui_make_text(&text1, "Camera", TFT_WHITE);
+    gui_make_text(&text1, title, TFT_WHITE);
     gui_set_parent(text1, vsplit);
     gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_borders(text1, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
@@ -46,7 +47,7 @@ void make_camera_activity(
     gui_view_node_t* text_status;
     gui_make_text(&text_status, "Initializing the\ncamera...", TFT_WHITE);
     gui_set_parent(text_status, text_bg);
-    gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 4);
+    gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 2);
     gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
     *label_node = text_status;
 

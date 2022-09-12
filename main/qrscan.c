@@ -121,12 +121,13 @@ bool scan_qr(const size_t width, const size_t height, const uint8_t* data, const
 
 // Main entry point to run camera task to capture frames and scan each
 // image until a valid qr-code is found ('valid' as defined by the caller).
-bool jade_camera_scan_qr(qr_data_t* qr_data)
+bool jade_camera_scan_qr(qr_data_t* qr_data, const char* text_label)
 {
     JADE_ASSERT(qr_data);
-    JADE_ASSERT(!qr_data->q);
+    JADE_ASSERT(text_label);
 
     // Create the quirc struct (reused for each frame) - destroyed below
+    JADE_ASSERT(!qr_data->q);
     qr_data->q = quirc_new();
     JADE_ASSERT(qr_data->q);
 
@@ -137,7 +138,7 @@ bool jade_camera_scan_qr(qr_data_t* qr_data)
     qr_data->len = 0;
 
     // Run the camera task trying to interpet frames as qr-codes
-    jade_camera_process_images(qr_recognize, qr_data, "Point to a QR\ncode and hold\nsteady", NULL);
+    jade_camera_process_images(qr_recognize, qr_data, "Scan QR", text_label, NULL);
 
     // Destroy the quirc struct created above
     quirc_destroy(qr_data->q);

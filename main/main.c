@@ -116,7 +116,7 @@ static void boot_process(void)
 
     size_t counter = 0;
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    jade_camera_process_images(&rnd_camera_feed, &counter, NULL, NULL);
+    jade_camera_process_images(&rnd_camera_feed, &counter, NULL, NULL, NULL);
 #endif
 
     jade_wally_init();

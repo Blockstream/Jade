@@ -10,14 +10,15 @@
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
 
-void make_camera_activity(
-    gui_activity_t** activity_ptr, const char* btnText, gui_view_node_t** image_node, gui_view_node_t** label_node);
+void make_camera_activity(gui_activity_t** activity_ptr, const char* title, const char* btnText,
+    gui_view_node_t** image_node, gui_view_node_t** label_node);
 
 // Camera-task config data
 typedef struct {
     // Text to display on camera screen
     // NOTE: no text_btn means no button is shown, and all images are processed
-    // NOTE: no text_label implies no ui is shown at all (and all images are processed)
+    // NOTE: no title and no text_label implies no ui is shown at all (and all images are processed)
+    const char* title;
     const char* text_label;
     const char* text_button;
 
@@ -115,12 +116,14 @@ static void jade_camera_task(void* data)
 
     camera_task_config_t* const camera_config = (camera_task_config_t*)data;
     JADE_ASSERT(camera_config->fn_process);
+    JADE_ASSERT(!camera_config->title == !camera_config->text_label);
     JADE_ASSERT(camera_config->text_label || !camera_config->text_button);
     // camera_config->ctx is optional
-    // camera_config->text_label is optional - indicates we want the images shown on screen/ui
+    // camera_config->title and camera_config->text_label are optional (but must be both or neither)
+    //   - the presence of these indicate we want the images shown on screen/ui - if they are NULL no GUI is shown
     // camera_config->text_button is optional - indicates we want the user to select the images presented
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
-    // NOTE: not valid to have a button[label] if no screen[label]
+    // NOTE: not valid to have a button[label] if no screen[title/label]
 
     const bool has_gui = camera_config->text_label;
 
@@ -130,7 +133,7 @@ static void jade_camera_task(void* data)
 
     if (has_gui) {
         // Create camera screen
-        make_camera_activity(&act, camera_config->text_button, &image_node, &label_node);
+        make_camera_activity(&act, camera_config->title, camera_config->text_button, &image_node, &label_node);
         JADE_ASSERT(act);
         gui_set_current_activity(act);
     }
@@ -239,22 +242,25 @@ static void jade_camera_task(void* data)
     post_exit_event_and_await_death();
 }
 
-void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* text_label, const char* text_button)
+void jade_camera_process_images(
+    camera_process_fn_t fn, void* ctx, const char* title, const char* text_label, const char* text_button)
 {
     JADE_ASSERT(fn);
     // ctx is optional
 
-    // text_label is optional - indicates we want the images shown on screen/ui
+    // title and text_label are optional (but must be both or neither)
+    //   - the presence of these indicate we want the images shown on screen/ui - if they are NULL no GUI is shown
     // text_button is optional - indicates we want the user to select the images presented
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
-    // NOTE: not valid to have a button[label] if no screen[label]
+    // NOTE: not valid to have a button[label] if no screen[title/label]
+    JADE_ASSERT(!title == !text_label);
     JADE_ASSERT(text_label || !text_button);
 
 // At the moment camera only supported by Jade devices
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     // Config for the camera task
     camera_task_config_t camera_config
-        = { .text_label = text_label, .text_button = text_button, .fn_process = fn, .ctx = ctx };
+        = { .title = title, .text_label = text_label, .text_button = text_button, .fn_process = fn, .ctx = ctx };
 
     // Run the camera task
     TaskHandle_t camera_task;

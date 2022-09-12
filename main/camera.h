@@ -20,6 +20,7 @@ typedef bool (*camera_process_fn_t)(size_t width, size_t height, const uint8_t* 
 // If a 'text_label' is passed, a GUI screen is shown, if not, not ...
 // If a 'text_button' is passed, the user must click to process an image, otherwise
 // every frame captured is passed to the processing function.
-void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* text_label, const char* text_button);
+void jade_camera_process_images(
+    camera_process_fn_t fn, void* ctx, const char* title, const char* text_label, const char* text_button);
 
 #endif /* CAMERA_H_ */
