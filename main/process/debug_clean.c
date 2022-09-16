@@ -4,6 +4,7 @@
 #include "../otpauth.h"
 #include "../process.h"
 #include "../storage.h"
+#include "../ui.h"
 
 #include "process_utils.h"
 
@@ -15,6 +16,10 @@ void debug_clean_reset_process(void* process_ptr)
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "debug_clean_reset");
+
+    // Pop up a notification that the wallet is being wiped
+    await_message_activity("Warning: debug wipe wallet");
+    vTaskDelay(250 / portTICK_PERIOD_MS);
 
     // Clean keychain from memory and storage
     keychain_erase_encrypted();

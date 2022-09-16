@@ -4,6 +4,7 @@
 #include "../process.h"
 #include "../qrscan.h"
 #include "../sensitive.h"
+#include "../ui.h"
 #include "../utils/cbor_rpc.h"
 
 #include <cbor.h>
@@ -101,6 +102,11 @@ void debug_set_mnemonic_process(void* process_ptr)
             goto cleanup;
         }
     }
+
+    // Pop up a notification that the wallet has been injected
+    // (In a 'real' scenario the wallet is not set without some gui activity)
+    await_message_activity("Warning: debug set wallet");
+    vTaskDelay(250 / portTICK_PERIOD_MS);
 
     // Copy temporary keychain into a new global keychain
     // and remove the restriction on network-types.
