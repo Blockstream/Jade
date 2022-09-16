@@ -239,29 +239,20 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
 
     while (!mnemonic_confirmed) {
         gui_set_current_activity(first_activity);
-
-        esp_event_handler_instance_t ctx;
-        wait_event_data_t* wait_data = make_wait_event_data();
-        esp_event_handler_instance_register(
-            GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_data, &ctx);
         int32_t ev_id;
         while (true) {
             ev_id = ESP_EVENT_ANY_ID;
-            if (sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, wait_data, NULL, &ev_id, NULL, 0) != ESP_OK) {
+            if (sync_await_single_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0) != ESP_OK) {
                 continue;
             }
             if (ev_id == BTN_MNEMONIC_EXIT) {
                 // User abandonded
                 JADE_LOGD("user abandoned noting mnemonic");
-                esp_event_handler_instance_unregister(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, ctx);
-                free_wait_event_data(wait_data);
                 goto cleanup;
             }
             if (ev_id == BTN_MNEMONIC_VERIFY) {
                 // User ready to verify mnemonic
                 JADE_LOGD("moving on to confirm mnemonic");
-                esp_event_handler_instance_unregister(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, ctx);
-                free_wait_event_data(wait_data);
                 break;
             }
         }
