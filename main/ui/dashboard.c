@@ -185,7 +185,10 @@ void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, g
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
 
-    gui_make_activity(activity_ptr, true, device_name);
+    // NOTE: The main 'Ready' screen is created as an 'unmanaged' activity, so it is not placed
+    // in the list of activities to be freed by 'set_current_activity_ex()' calls.
+    // This is becase the 'Ready' screen is never freed and lives as long as the application itself.
+    gui_make_activity_ex(activity_ptr, true, device_name, false);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_ABSOLUTE, 3, 40, 35, 36);

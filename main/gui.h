@@ -391,7 +391,10 @@ void gui_set_click_event(gui_event_t event);
 void gui_init(void);
 bool gui_initialized(void);
 
+void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, const char* title, const bool managed);
 void gui_make_activity(gui_activity_t** ppact, bool has_status_bar, const char* title);
+void free_unmanaged_activity(gui_activity_t* activity);
+
 void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent);
 void gui_chain_activities(const link_activity_t* link_act, linked_activities_info_t* pActInfo);
 void free_view_node(gui_view_node_t* node);
@@ -420,7 +423,7 @@ void gui_update_icon(gui_view_node_t* node, Icon icon, bool repaint_parent);
 void gui_update_picture(gui_view_node_t* node, const Picture* picture, bool repaint_parent);
 void gui_repaint(gui_view_node_t* node, bool take_mutex);
 
-void gui_set_current_activity_ex(gui_activity_t* new_current, bool free_all_other_activities, gui_activity_t* retain);
+void gui_set_current_activity_ex(gui_activity_t* new_current, bool free_managed_activities);
 void gui_set_current_activity(gui_activity_t* new_current);
 
 void gui_connect_button_activity(gui_view_node_t* node, gui_activity_t* activity);

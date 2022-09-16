@@ -1295,18 +1295,17 @@ static void handle_btn(const int32_t btn)
 }
 
 // Display the passed dashboard screen
-static void display_screen(jade_process_t* process, gui_activity_t* activity, gui_activity_t* act_ready)
+static void display_screen(jade_process_t* process, gui_activity_t* activity)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(activity);
-    JADE_ASSERT(act_ready);
 
     // Print the main stack usage (high water mark)
     JADE_LOGI("Main task stack HWM: %u free", uxTaskGetStackHighWaterMark(NULL));
 
-    // Switch to passed screen, and at that point free all other screen activities
+    // Switch to passed screen, and at that point free all other managed activities
     // Should be no-op if we didn't switch away from this screen
-    gui_set_current_activity_ex(activity, true, act_ready);
+    gui_set_current_activity_ex(activity, true);
 
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();
@@ -1325,11 +1324,10 @@ static inline bool ble_connected(void) { return false; }
 
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.
 static void do_dashboard(jade_process_t* process, const keychain_t* const initial_keychain, const bool initial_has_pin,
-    gui_activity_t* act_dashboard, gui_activity_t* act_ready, wait_event_data_t* event_data)
+    gui_activity_t* act_dashboard, wait_event_data_t* event_data)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(act_dashboard);
-    JADE_ASSERT(act_ready);
     JADE_ASSERT(event_data);
 
     // Loop all the time the keychain is unchanged, awaiting either a message
@@ -1347,7 +1345,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         // screen flicker or can cause the dashboard to overwrite other screens
         // eg. BLE pairing/bonding confirm screen.)
         if (acted) {
-            display_screen(process, act_dashboard, act_ready);
+            display_screen(process, act_dashboard);
         }
 
         // 1. Process any message if available (do not block if no message available)
@@ -1422,6 +1420,9 @@ void dashboard_process(void* process_ptr)
 
     // NOTE: Create 'Ready' screen for when Jade is unlocked and ready to use early, so that
     // it does not fragment the RAM (since it is long-lived once unit is unlocked with PIN).
+    // NOTE: The main 'Ready' screen is created as an 'unmanaged' activity, so it is not placed
+    // in the list of activities to be freed by 'set_current_activity_ex()' calls.
+    // This is ok as the 'Ready' screen is never freed and lives as long as the application itself.
     gui_activity_t* act_ready = NULL;
     gui_view_node_t* txt_extra = NULL;
     MAKE_DASHBOARD_SCREEN(make_ready_screen, act_ready, &txt_extra);
@@ -1463,6 +1464,6 @@ void dashboard_process(void* process_ptr)
         // a new 'dashboard' screen and re-running the dashboard processing loop.
         // NOTE: connecting or disconnecting serial or ble will cause any keys to
         // be cleared (and bzero'd).
-        do_dashboard(process, initial_keychain, has_pin, act_dashboard, act_ready, event_data);
+        do_dashboard(process, initial_keychain, has_pin, act_dashboard, event_data);
     }
 }

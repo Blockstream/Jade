@@ -39,6 +39,7 @@ typedef struct {
 // global mutex used to synchronize tft paint commands. global across activities
 static SemaphoreHandle_t paint_mutex = NULL;
 // global mutex used to synchronize activity data
+// notably the current activity and the list of managed activities
 static SemaphoreHandle_t activities_mutex = NULL;
 // current activity being drawn on screen
 static gui_activity_t* current_activity = NULL;
@@ -507,38 +508,48 @@ static void push_updatable(
     }
 }
 
-// Create a new empty/placeholder activity, and add to the stack of existing activities
-static void create_activity(gui_activity_t** ppact)
+// Create a new/initialised activity
+// If 'managed' (the preferred/default), add to the stack of existing activities - these
+// activities must not be explicitly freed by the caller but are freed by a subsequent
+// call to 'gui_set_current_activity_ex()' passing 'free_other_activities' as true.
+// eg. when the main loop reaches some known point (eg. getting back to the main dashboard
+// screen between actions) it can call this to 'garbage collect' all outstanding gui elements.
+// If not 'managed', just create and return the activity - the caller must free by calling
+// free_unmanaged_activity() explicitly - this may be required for long-lived activities
+// (eg. the main dashboard screen) or for particularly large activities which need freeing asap.
+void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, const char* title, const bool managed)
 {
     JADE_ASSERT(ppact);
     JADE_ASSERT(!*ppact);
+    JADE_ASSERT(!title || has_status_bar);
 
-    activity_holder_t* holder = JADE_MALLOC(sizeof(activity_holder_t));
+    if (managed) {
+        // Managed activity - add to activities list
+        activity_holder_t* holder = JADE_CALLOC(1, sizeof(activity_holder_t));
 
-    // Add to the stack of existing activities
-    holder->next = existing_activities;
-    existing_activities = holder;
+        // Add to the stack of existing activities
+        JADE_SEMAPHORE_TAKE(activities_mutex);
+        holder->next = existing_activities;
+        existing_activities = holder;
+        JADE_SEMAPHORE_GIVE(activities_mutex);
 
-    // Return the activity from within this holder
-    *ppact = &holder->activity;
-}
-
-// Create a new/initialised activity (and add to the stack of existing activities)
-void gui_make_activity(gui_activity_t** ppact, const bool has_status_bar, const char* title)
-{
-    create_activity(ppact);
+        // Return the activity from within this holder
+        *ppact = &holder->activity;
+    } else {
+        // Unmanaged - just create the activity to return
+        *ppact = JADE_CALLOC(1, sizeof(gui_activity_t));
+        JADE_LOGW("Created unmanaged gui activity at %p", *ppact);
+    }
     gui_activity_t* const activity = *ppact;
-    JADE_ASSERT(activity);
 
-    // Initialise the activity
+    // Initialise any non-NULL activity fields
     activity->win = GUI_DISPLAY_WINDOW;
     if (has_status_bar) {
         // offset the display window since the top-part will contain the status bar
         activity->win.y1 += GUI_STATUS_BAR_HEIGHT;
     }
-
     activity->status_bar = has_status_bar;
-    activity->title = NULL;
+
     if (title) {
         activity->title = strdup(title);
         JADE_ASSERT(activity->title);
@@ -548,19 +559,12 @@ void gui_make_activity(gui_activity_t** ppact, const bool has_status_bar, const 
     gui_make_fill(&bg, TFT_BLACK);
     activity->root_node = bg;
     activity->root_node->activity = activity;
+}
 
-    activity->selectables = NULL;
-    activity->selectables_wrap = false; // normally we don't wrap around
-
-    // Nothing explicitly selected (so will default to first selectable item)
-    // Can be set with gui_set_activity_initial_selection()
-    activity->initial_selection = NULL;
-
-    activity->updatables = NULL;
-
-    activity->activity_events = NULL;
-
-    activity->wait_data_items = NULL;
+// Create a new/initialised activity, and add to the stack of existing activities
+void gui_make_activity(gui_activity_t** ppact, const bool has_status_bar, const char* title)
+{
+    gui_make_activity_ex(ppact, has_status_bar, title, true);
 }
 
 // free a linked list of selectable_t
@@ -621,12 +625,11 @@ static void free_wait_data_items(gui_activity_t* activity)
     }
 }
 
-// free an activity-holder and all of the activity contents (title, selectables/updatables etc.)
-static void free_activity(activity_holder_t* holder)
+// Free all of the activity contents (title, selectables/updatables etc.)
+// (but note, not the 'activity' itself)
+static void free_activity_internals(gui_activity_t* activity)
 {
-    JADE_ASSERT(holder);
-
-    gui_activity_t* activity = &holder->activity;
+    JADE_ASSERT(activity);
     JADE_ASSERT(activity != current_activity);
 
     free_selectables(activity);
@@ -639,9 +642,34 @@ static void free_activity(activity_holder_t* holder)
     if (activity->title) {
         free(activity->title);
     }
+}
 
-    // Free the activity holder
+// Free an activity-holder and all of the activity contents (title, selectables/updatables etc.)
+static void free_managed_activity(activity_holder_t* holder)
+{
+    JADE_ASSERT(holder);
+    free_activity_internals(&holder->activity);
     free(holder);
+}
+
+// Free an activity-holder and all of the activity contents (title, selectables/updatables etc.)
+void free_unmanaged_activity(gui_activity_t* activity)
+{
+    JADE_ASSERT(activity);
+
+#ifdef CONFIG_DEBUG_MODE
+    // Assert this is indeed an 'unmanaged' activity
+    // ie. is not in the list of managed activities
+    JADE_SEMAPHORE_TAKE(activities_mutex);
+    for (activity_holder_t* managed = existing_activities; managed; managed = managed->next) {
+        JADE_ASSERT(&managed->activity != activity);
+    }
+    JADE_SEMAPHORE_GIVE(activities_mutex);
+#endif
+
+    JADE_LOGW("Freeing unmanaged gui activity at %p", activity);
+    free_activity_internals(activity);
+    free(activity);
 }
 
 // Link activities eg. by prev/next buttons
@@ -1918,7 +1946,7 @@ static bool switch_activities(void)
             while (to_free) {
                 JADE_ASSERT(&to_free->activity != current_activity);
                 activity_holder_t* const next = to_free->next;
-                free_activity(to_free);
+                free_managed_activity(to_free);
                 to_free = next;
             }
 
@@ -2117,28 +2145,26 @@ void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_
     activity->initial_selection = node;
 }
 
-// Call to initiate a change of current activity - optionally freeing other activities.
+// Call to initiate a change of current activity - optionally freeing other managed activities.
 // Can also pass a 'retain' activity which is not made current, but is retained and not freed.
-void gui_set_current_activity_ex(gui_activity_t* new_current, const bool free_other_activities, gui_activity_t* retain)
+void gui_set_current_activity_ex(gui_activity_t* new_current, const bool free_managed_activities)
 {
     JADE_ASSERT(new_current);
-    JADE_ASSERT(!retain || free_other_activities);
-
-    JADE_ASSERT(existing_activities);
 
     // We will post the gui task the new activity, and the list of activities it can free
     activity_switch_info_t switch_info = { .new_activity = new_current, .to_free = NULL };
 
     // If freeing others, partition existing activities into those to keep (new current and the
     //  passed 'retain' activity) and those to free (all others).
-    if (free_other_activities) {
+    if (free_managed_activities) {
+        JADE_SEMAPHORE_TAKE(activities_mutex);
         activity_holder_t* holder = existing_activities;
         existing_activities = NULL;
 
         while (holder) {
             activity_holder_t* const next = holder->next;
 
-            if (&holder->activity == new_current || &holder->activity == retain) {
+            if (&holder->activity == new_current) {
                 // Retain this activity
                 holder->next = existing_activities;
                 existing_activities = holder;
@@ -2151,17 +2177,12 @@ void gui_set_current_activity_ex(gui_activity_t* new_current, const bool free_ot
         }
 
         // Sanity check
-        if (retain && retain != new_current) {
-            // 'existing_activities' should be the new current activity and the retained activity only
-            JADE_ASSERT(existing_activities && existing_activities->next && !existing_activities->next->next);
-            JADE_ASSERT(
-                &existing_activities->activity == new_current || &existing_activities->next->activity == new_current);
-            JADE_ASSERT(&existing_activities->activity == retain || &existing_activities->next->activity == retain);
-        } else {
-            // 'existing_activities' should be the new current activity only
-            JADE_ASSERT(
-                existing_activities && (&existing_activities->activity == new_current) && !existing_activities->next);
-        }
+        // 'existing_activities' should be the new current activity only, or be completely empty
+        // (if current activity is an "unmanaged" activity)
+        JADE_ASSERT(
+            !existing_activities || ((&existing_activities->activity == new_current) && !existing_activities->next));
+
+        JADE_SEMAPHORE_GIVE(activities_mutex);
     }
 
     // Post the new activity and the list to free to the gui task
@@ -2174,7 +2195,7 @@ void gui_set_current_activity_ex(gui_activity_t* new_current, const bool free_ot
 void gui_set_current_activity(gui_activity_t* new_current)
 {
     // Set a new activity without freeing any other activities
-    gui_set_current_activity_ex(new_current, false, NULL);
+    gui_set_current_activity_ex(new_current, false);
 }
 
 // Create a new event_data structure, and attach to the activity
