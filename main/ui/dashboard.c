@@ -31,6 +31,9 @@ void make_startup_options_screen(gui_activity_t** activity_ptr)
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
+// NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
+// in the list of activities to be freed by 'set_current_activity_ex()' calls.
+// It must be freed by the caller.
 void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
 {
     JADE_ASSERT(activity_ptr);
@@ -40,7 +43,8 @@ void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, c
     const int ret = snprintf(title, sizeof(title), "Setup %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_make_activity(activity_ptr, true, title);
+    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
+    gui_make_activity_ex(activity_ptr, true, title, false);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 32, 52, 16);
@@ -75,6 +79,9 @@ void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, c
     }
 }
 
+// NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
+// in the list of activities to be freed by 'set_current_activity_ex()' calls.
+// It must be freed by the caller.
 void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
 {
     JADE_ASSERT(activity_ptr);
@@ -85,7 +92,8 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_make_activity(activity_ptr, true, title);
+    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
+    gui_make_activity_ex(activity_ptr, true, title, false);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 45, 40, 15);
@@ -140,6 +148,9 @@ void make_connection_select_screen(gui_activity_t** activity_ptr)
 }
 #endif // CONFIG_ESP32_NO_BLOBS
 
+// NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
+// in the list of activities to be freed by 'set_current_activity_ex()' calls.
+// It must be freed by the caller.
 void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, const bool ble)
 {
     JADE_ASSERT(activity_ptr);
@@ -149,7 +160,8 @@ void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_na
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_make_activity(activity_ptr, true, title);
+    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
+    gui_make_activity_ex(activity_ptr, true, title, false);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
@@ -180,14 +192,15 @@ void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_na
 #endif
 }
 
+// NOTE: The main 'Ready' screen is created as an 'unmanaged' activity, so it is not placed
+// in the list of activities to be freed by 'set_current_activity_ex()' calls.
+// This is becase the 'Ready' screen is never freed and lives as long as the application itself.
 void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
 
-    // NOTE: The main 'Ready' screen is created as an 'unmanaged' activity, so it is not placed
-    // in the list of activities to be freed by 'set_current_activity_ex()' calls.
-    // This is becase the 'Ready' screen is never freed and lives as long as the application itself.
+    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
     gui_make_activity_ex(activity_ptr, true, device_name, false);
 
     gui_view_node_t* vsplit;

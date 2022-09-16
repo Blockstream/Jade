@@ -1414,9 +1414,8 @@ void dashboard_process(void* process_ptr)
     JADE_ASSERT(running);
     const esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
     JADE_ASSERT(err == ESP_OK);
-
     wait_event_data_t* const event_data = make_wait_event_data();
-    gui_activity_t* act_dashboard = NULL;
+    JADE_ASSERT(event_data);
 
     // NOTE: Create 'Ready' screen for when Jade is unlocked and ready to use early, so that
     // it does not fragment the RAM (since it is long-lived once unit is unlocked with PIN).
@@ -1440,7 +1439,10 @@ void dashboard_process(void* process_ptr)
         //    - connect screen
         // 4. Uninitialised - has no persisted/encrypted keys and no keys in memory
         //    - setup screen
-        act_dashboard = NULL;
+        // NOTE: All dashboard screens are created as 'unmanaged' activities, so are not placed
+        // in the list of activities to be freed by 'set_current_activity_ex()' calls, so any
+        // 'act_dashboard' created here must be explicitly freed when no longer relevant.
+        gui_activity_t* act_dashboard = NULL;
         const bool has_pin = keychain_has_pin();
         const keychain_t* initial_keychain = keychain_get();
         if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
@@ -1465,5 +1467,10 @@ void dashboard_process(void* process_ptr)
         // NOTE: connecting or disconnecting serial or ble will cause any keys to
         // be cleared (and bzero'd).
         do_dashboard(process, initial_keychain, has_pin, act_dashboard, event_data);
+
+        // Free the dashboard (assuming it isn't the 'Ready' screen)
+        if (act_dashboard != act_ready) {
+            free_unmanaged_activity(act_dashboard);
+        }
     }
 }
