@@ -666,7 +666,7 @@ static bool import_compactseedqr(const qr_data_t* qr_data, char* buf, const size
     JADE_INIT_OUT_SIZE(written);
 
     // Any buffer of appropriate length will work as a compactseedqr as it's just raw entropy
-    if ((qr_data->len != 16 && qr_data->len != 32)) {
+    if ((qr_data->len != BIP32_ENTROPY_LEN_128 && qr_data->len != BIP32_ENTROPY_LEN_256)) {
         return false;
     }
 
