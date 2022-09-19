@@ -1433,9 +1433,9 @@ class JadeInterface:
 
     def __exit__(self, exc_type, exc, tb):
         if (exc_type):
-            logger.error("Exception causing JadeInterface context exit.")
-            logger.error(exc_type)
-            logger.error(exc)
+            logger.info("Exception causing JadeInterface context exit.")
+            logger.info(exc_type)
+            logger.info(exc)
             traceback.print_tb(tb)
         self.disconnect(exc_type is not None)
 
