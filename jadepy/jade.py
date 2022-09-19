@@ -1466,7 +1466,7 @@ class JadeInterface:
             - caller must call 'connect()' before trying to use the Jade.
         """
         if device and JadeTCPImpl.isSupportedDevice(device):
-            impl = JadeTCPImpl(device)
+            impl = JadeTCPImpl(device, timeout or DEFAULT_SERIAL_TIMEOUT)
         else:
             impl = JadeSerialImpl(device or DEFAULT_SERIAL_DEVICE,
                                   baud or DEFAULT_BAUD_RATE,
