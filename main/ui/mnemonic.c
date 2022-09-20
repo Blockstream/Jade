@@ -519,7 +519,7 @@ void make_confirm_qr_export_activity(gui_activity_t** activity_ptr)
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text;
-    gui_make_text(&text, "\nDraw the CompactSeedQR for\nuse with QR Mode and\nRecovery Phrase Login.", TFT_WHITE);
+    gui_make_text(&text, "\nDraw the CompactSeedQR for\nuse with Recovery Phrase\nLogin.", TFT_WHITE);
     gui_set_parent(text, vsplit);
     gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 6, 4);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
