@@ -386,6 +386,36 @@
         "ticker": "USDm",
         "version": 0
     },
+    "4b30ebe523d8d9e68034f022794784fd141eb0c304ec00869b0e6e2ba4d91140": {
+        "asset_id": "4b30ebe523d8d9e68034f022794784fd141eb0c304ec00869b0e6e2ba4d91140",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "www.erikdesmedt.be"
+            },
+            "issuer_pubkey": "03a42643a253c7a98223771110abc371b1ca37ca440672d6de1b65017bf2b3aad0",
+            "name": "TRACK_THIS_COIN",
+            "precision": 0,
+            "ticker": "TRACK",
+            "version": 0
+        },
+        "entity": {
+            "domain": "www.erikdesmedt.be"
+        },
+        "issuance_prevout": {
+            "txid": "74a145caef2c4bf4caf060e3dd28a911defd8252c79ecf41d327de742272cd9f",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "7d1aa1082f3aff00c38bcd0e0a6a5defc6ae6eab3e3cf044783fe982a1edb435",
+            "vin": 0
+        },
+        "issuer_pubkey": "03a42643a253c7a98223771110abc371b1ca37ca440672d6de1b65017bf2b3aad0",
+        "name": "TRACK_THIS_COIN",
+        "precision": 0,
+        "ticker": "TRACK",
+        "version": 0
+    },
     "51de8e90e36ea8f08c7c4829f87837a82dcb764f78fd75cf077637f06da08c75": {
         "asset_id": "51de8e90e36ea8f08c7c4829f87837a82dcb764f78fd75cf077637f06da08c75",
         "collection": null,
@@ -621,6 +651,37 @@
         "name": "AMT_T_MH_01",
         "precision": 2,
         "ticker": "AMTT1",
+        "version": 0
+    },
+    "7c058e4609ae941e6d126bfbf43c0fa3c5ace6f2ddb178263d9b696c83ccd2ec": {
+        "asset_id": "7c058e4609ae941e6d126bfbf43c0fa3c5ace6f2ddb178263d9b696c83ccd2ec",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "02611c755bf60b0b99d69d9488bd2db853924231c105bdc1f1a6406905d7803193",
+            "name": "Tofucoin",
+            "nft": "QmQqNpuRGrdB1EBV2qj4Di6DKzRyukwwPCXXCtfyRwkVxW",
+            "precision": 8,
+            "ticker": "TOFU",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "16c68620b87f9c92c5d2741dd4ccd82f187f336995ae3f53d11b4a77d1ac7322",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "1c3ebfc1c4469bf3d418b1e4155c0e47e39e3a7b43dbeb32ffc2f6251fc10caf",
+            "vin": 0
+        },
+        "issuer_pubkey": "02611c755bf60b0b99d69d9488bd2db853924231c105bdc1f1a6406905d7803193",
+        "name": "Tofucoin",
+        "precision": 8,
+        "ticker": "TOFU",
         "version": 0
     },
     "8363084c77fbaebce672092d301fc103495546457468b88a0830ce4797562c03": {

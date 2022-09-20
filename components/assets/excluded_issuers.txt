@@ -1,3 +1,4 @@
+assets.equitasfoundation.com
 reusable-asset-domain.herokuapp.com
 bfungible.network
 artmirable.bfungible.network
