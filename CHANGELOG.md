@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.38] - 2022-09-21
+### Added
+- Support scan and import/recovery of SeedSigner 'CompactSeedQR' codes
+- Added screens to facilitate export (ie manual copy) of CompactSeedQR code
+- Use camera when booting to feed image entropy into RNG
+
+### Changed
+- Update Liquid asset registry info
+- Updated some UI strings
+- Reduced some log levels in jadepy api
+
+### Fixed
+- Fix jadepy api issue where connection to qemu simulator did not respect passed timeout
+- Internal code-quality improvements
+
 ## [0.1.37] - 2022-08-23
 ### Added
 - Added 'Settings' menu for uninitialised Jade units
@@ -40,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add 'wallet-erase' duress pin
 - Add support for HOTP and TOTP code generation, including passing current UTC time to Jade
-- Support scan and import/recovery of SeedSigner QR codes
+- Support scan and import/recovery of SeedSigner 'SeedQR' codes
 - Added message fields to be able to pass asset registry data when signing a Liquid transaction
 
 ### Changed
