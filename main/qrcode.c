@@ -950,10 +950,10 @@ void qrcode_toIcon(QRCode* qrcode, Icon* icon, const uint8_t scale)
 
     // Icon data is stored one bit per pixel, in uint32's
     // Note: we add one for any final partially filled uint32
-    const size_t bits_per_uint = sizeof(uint32_t) * 8;
+    const uint8_t bits_per_uint = sizeof(uint32_t) * 8;
     const size_t num_pixels = icon->width * icon->height;
     const size_t num_uints = (num_pixels / bits_per_uint) + 1;
-    icon->data = JADE_CALLOC(num_uints, sizeof(uint32_t));
+    icon->data = JADE_CALLOC_PREFER_SPIRAM(num_uints, sizeof(uint32_t));
 
     uint64_t val = 0;
     for (uint8_t y = 0; y < qrcode->size; y++) {
@@ -1011,21 +1011,21 @@ bool qrcode_toFragmentsIcons(
 
     *num_icons_out = num_fragments_per_side * num_fragments_per_side;
     *icons_out = JADE_CALLOC(*num_icons_out, sizeof(Icon));
-    JADE_LOGI("Mapping version %u (%ux%u) into %u %ux%u fragments", qrcode->version, qrcode->size, qrcode->size,
+    JADE_LOGI("Mapping QR version %u (%ux%u) into %u %ux%u fragments", qrcode->version, qrcode->size, qrcode->size,
         *num_icons_out, icon_size, icon_size);
 
     // Icon data is stored one bit per pixel, in uint32's
     // Note: we add one for any final partially filled uint32
     const uint8_t bits_per_uint = sizeof(uint32_t) * 8;
-    const uint16_t num_pixels = icon_size * icon_size;
-    const uint16_t num_uints = (num_pixels / bits_per_uint) + 1;
+    const size_t num_pixels = icon_size * icon_size;
+    const size_t num_uints = (num_pixels / bits_per_uint) + 1;
 
-    for (uint16_t i = 0; i < *num_icons_out; ++i) {
+    for (size_t i = 0; i < *num_icons_out; ++i) {
         // Create fragment icon
         Icon* const icon = (*icons_out) + i;
         icon->width = icon_size;
         icon->height = icon_size;
-        icon->data = JADE_CALLOC(num_uints, sizeof(uint32_t));
+        icon->data = JADE_CALLOC_PREFER_SPIRAM(num_uints, sizeof(uint32_t));
 
         const uint8_t fragment_orig_y = (i / num_fragments_per_side) * fragment_size;
         const uint8_t fragment_orig_x = (i % num_fragments_per_side) * fragment_size;
