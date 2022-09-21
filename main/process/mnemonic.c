@@ -84,43 +84,49 @@ static void mnemonic_export_qr(const char* mnemonic)
     const int qret = qrcode_initBytes(&qrcode, qrbuffer, qrcode_version, ECC_LOW, entropy, entropy_len);
     JADE_ASSERT(qret == 0);
 
-    // Make and show a qr code icon as an overview image
+    // Make qr code icon as an overview image
     Icon qr_overview;
     const uint8_t overview_scale = qrcode_version == 1 ? 5 : 4;
     qrcode_toIcon(&qrcode, &qr_overview, overview_scale);
 
-    gui_activity_t* act_overview_qr = NULL;
-    make_export_qr_overview_activity(&act_overview_qr, &qr_overview);
-    JADE_ASSERT(act_overview_qr);
-    gui_set_current_activity(act_overview_qr);
-
-    // Now make a bag of qrcodes for square fragments of the qr
+    // Make a bag of icons for square fragments of the qr
     Icon* icons = NULL;
     size_t num_icons = 0;
     const uint8_t target_size = 105;
     const bool show_grid = true;
-    const uint8_t expected_grid_size = qrcode_version == 1 ? 3 : 5;
+    const uint8_t expected_grid_size = (qrcode_version == 1) ? 3 : 5;
     qrcode_toFragmentsIcons(&qrcode, target_size, show_grid, &icons, &num_icons);
     JADE_ASSERT(num_icons == expected_grid_size * expected_grid_size);
 
     // Show the overview and magnified fragments, and when the user
     // is done try to scan the qr code they have made and verify it
     // scans and the data imported matches the expected entropy.
-    gui_view_node_t* icon_node = NULL;
-    gui_view_node_t* text_node = NULL;
-    gui_activity_t* act_qr_part = NULL;
-    make_export_qr_fragment_activity(&act_qr_part, &icons[0], &icon_node, &text_node);
-    JADE_ASSERT(act_qr_part);
-    JADE_ASSERT(icon_node);
-    JADE_ASSERT(text_node);
-
+    // NOTE: the gui activities are created and freed (by frequent calls to
+    // gui_set_current_activity_ex()) inside the loop - this is less efficient
+    // but keeps the maximum amout of free DRAM available at all times.
+    // This is vital to prevent fragmentation occuring which then causes the large
+    // allocations made by the qr-scanner to fail (even if there appears to be
+    // sufficient DRAM available).
     while (true) {
-        gui_set_current_activity(act_overview_qr);
+        // Show the overview QR
+        gui_activity_t* act_overview_qr = NULL;
+        make_export_qr_overview_activity(&act_overview_qr, &qr_overview);
+        JADE_ASSERT(act_overview_qr);
+        gui_set_current_activity_ex(act_overview_qr, true);
         while (!gui_activity_wait_event(act_overview_qr, GUI_BUTTON_EVENT, BTN_QR_EXPORT_BEGIN, NULL, NULL, NULL, 0)) {
-            // Wait for 'Begin' button to be pressed
+            // Wait for the 'Begin' button to be pressed
         }
 
-        // Show QR parts
+        // Make a screen to display qr-code fragment icons
+        gui_view_node_t* icon_node = NULL;
+        gui_view_node_t* text_node = NULL;
+        gui_activity_t* act_qr_part = NULL;
+        make_export_qr_fragment_activity(&act_qr_part, &qr_overview, &icon_node, &text_node);
+        JADE_ASSERT(act_qr_part);
+        JADE_ASSERT(icon_node);
+        JADE_ASSERT(text_node);
+
+        // Show QR parts, using the wheel to navigate to previous/next fragment
         uint8_t ipart = 0;
         bool done = false;
         while (!done) {
@@ -137,7 +143,7 @@ static void mnemonic_export_qr(const char* mnemonic)
                 gui_update_icon(icon_node, qr_overview, true);
                 gui_update_text(text_node, "Overview");
             }
-            gui_set_current_activity(act_qr_part);
+            gui_set_current_activity_ex(act_qr_part, true);
 
             if (gui_activity_wait_event(act_qr_part, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
                 switch (ev_id) {
