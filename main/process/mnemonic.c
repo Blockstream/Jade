@@ -982,7 +982,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
     bool using_passphrase = false;
     bool offer_export_qr = false;
     while (!got_mnemonic) {
-        gui_set_current_activity(activity);
+        gui_set_current_activity_ex(activity, true);
 
         // In a debug unattended ci build, use hardcoded mnemonic after a short delay
         int32_t ev_id;
