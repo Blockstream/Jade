@@ -492,7 +492,7 @@ void make_advanced_options_screen(gui_activity_t** activity_ptr)
     btn_data_t btns[] = { { .txt = "M-of-N Multisig", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
         { .txt = "Wallet-Erase PIN", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
         { .txt = "OTP", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
-        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
@@ -505,7 +505,7 @@ void make_otp_screen(gui_activity_t** activity_ptr)
     btn_data_t btns[] = { { .txt = "View OTPs", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_VIEW },
         { .txt = "Scan New OTP QR", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
         { .txt = "Enter New OTP URI", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_KB },
-        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
