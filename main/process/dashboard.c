@@ -983,7 +983,7 @@ static void handle_view_otps(void)
     }
 }
 
-static void update_idle_timeout_btns(btn_data_t* timeout_btn, const size_t nBtns, uint16_t timeout)
+static void update_idle_timeout_btns(btn_data_t* timeout_btn, const size_t nBtns, const uint16_t timeout)
 {
     JADE_ASSERT(timeout_btn);
 
@@ -1100,30 +1100,41 @@ static void handle_settings()
     uint16_t timeout = storage_get_idle_timeout();
     update_idle_timeout_btn_text(timeout_btn_text, timeout);
 
-    gui_set_current_activity(act);
-
     bool done = false;
     while (!done) {
+        JADE_ASSERT(act);
+        gui_set_current_activity_ex(act, true);
+
         int32_t ev_id;
         gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
         switch (ev_id) {
 
+        case BTN_SETTINGS_EXIT:
+            done = true;
+            break;
+
+        case BTN_SETTINGS_ADVANCED_EXIT:
+            // Change to base 'Settings' menu
+            act = NULL;
+            timeout_btn_text = NULL;
+            create_settings_menu(&act, &timeout_btn_text);
+            break;
+
         case BTN_SETTINGS_ADVANCED:
+        case BTN_SETTINGS_OTP_EXIT:
             // Change to 'Advanced' menu
             act = NULL;
+            timeout_btn_text = NULL;
             make_advanced_options_screen(&act);
-            JADE_ASSERT(act);
-            gui_set_current_activity(act);
-            continue;
+            break;
 
         case BTN_SETTINGS_OTP:
             // Change to 'OTP' menu
             act = NULL;
+            timeout_btn_text = NULL;
             make_otp_screen(&act);
-            JADE_ASSERT(act);
-            gui_set_current_activity(act);
-            continue;
+            break;
 
         case BTN_BLE:
             handle_ble();
@@ -1131,6 +1142,7 @@ static void handle_settings()
 
         case BTN_SETTINGS_IDLE_TIMEOUT:
             handle_idle_timeout(&timeout);
+            update_idle_timeout_btn_text(timeout_btn_text, timeout);
             break;
 
         case BTN_SETTINGS_USE_PASSPHRASE:
@@ -1166,9 +1178,9 @@ static void handle_settings()
             break;
 
         default:
+            // Unexpected event, just ignore
             break;
         }
-        done = true;
     }
 }
 
