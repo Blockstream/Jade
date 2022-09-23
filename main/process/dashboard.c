@@ -1300,8 +1300,10 @@ static void display_screen(jade_process_t* process, gui_activity_t* activity)
     JADE_ASSERT(process);
     JADE_ASSERT(activity);
 
-    // Print the main stack usage (high water mark)
+    // Print the main stack usage (high water mark), and the DRAM usage
     JADE_LOGI("Main task stack HWM: %u free", uxTaskGetStackHighWaterMark(NULL));
+    JADE_LOGI("DRAM block / free: %u / %u", heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL),
+        heap_caps_get_free_size(MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL));
 
     // Switch to passed screen, and at that point free all other managed activities
     // Should be no-op if we didn't switch away from this screen
