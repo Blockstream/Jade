@@ -1069,22 +1069,32 @@ static void handle_use_passphrase(void)
     }
 }
 
-static void handle_settings()
+// Create the appropriate 'Settings' menu
+static void create_settings_menu(gui_activity_t** activity, gui_view_node_t** timeout_btn_text)
 {
-    gui_activity_t* act = NULL;
-    gui_view_node_t* timeout_btn_text = NULL;
+    JADE_ASSERT(activity);
+    JADE_ASSERT(timeout_btn_text);
 
     if (keychain_get()) {
         // Unlocked Jade - main settings
-        make_unlocked_settings_screen(&act, &timeout_btn_text);
+        make_unlocked_settings_screen(activity, timeout_btn_text);
     } else if (keychain_has_pin()) {
         // Locked Jade - before pin entry when saved wallet exists
-        make_locked_settings_screen(&act, &timeout_btn_text);
+        make_locked_settings_screen(activity, timeout_btn_text);
     } else {
         // Uninitilised Jade - no wallet set
-        make_uninitialised_settings_screen(&act, &timeout_btn_text);
+        make_uninitialised_settings_screen(activity, timeout_btn_text);
     }
-    JADE_ASSERT(act);
+    JADE_ASSERT(*activity);
+    JADE_ASSERT(*timeout_btn_text);
+}
+
+static void handle_settings()
+{
+    // Create the appropriate 'Settings' menu
+    gui_activity_t* act = NULL;
+    gui_view_node_t* timeout_btn_text = NULL;
+    create_settings_menu(&act, &timeout_btn_text);
 
     // Get/track the idle timeout
     uint16_t timeout = storage_get_idle_timeout();
