@@ -1242,7 +1242,7 @@ static void handle_device(void)
     bool loop = true;
     while (loop) {
         int32_t ev_id;
-        gui_set_current_activity(act);
+        gui_set_current_activity_ex(act, true);
         gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
         switch (ev_id) {
