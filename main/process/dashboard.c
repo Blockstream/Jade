@@ -559,29 +559,6 @@ static void handle_legal(void)
 }
 #endif
 
-void offer_startup_options(void)
-{
-    gui_activity_t* act = NULL;
-    make_startup_options_screen(&act);
-    JADE_ASSERT(act);
-    gui_set_current_activity(act);
-
-    int32_t ev_id;
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-    switch (ev_id) {
-    case BTN_SETTINGS_RESET:
-        return offer_jade_reset();
-    case BTN_SETTINGS_TEMPORARY_WALLET_LOGIN:
-        return offer_temporary_wallet_login();
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    case BTN_SETTINGS_LEGAL:
-        return handle_legal();
-#endif
-    default:
-        break;
-    }
-}
-
 #ifndef CONFIG_ESP32_NO_BLOBS
 // Reset BLE pairing data
 static void handle_ble_reset(void)
@@ -1070,35 +1047,42 @@ static void handle_use_passphrase(void)
 }
 
 // Create the appropriate 'Settings' menu
-static void create_settings_menu(gui_activity_t** activity, gui_view_node_t** timeout_btn_text)
+static void create_settings_menu(
+    gui_activity_t** activity, const bool startup_menu, const uint16_t timeout, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity);
     JADE_ASSERT(timeout_btn_text);
 
-    if (keychain_get()) {
-        // Unlocked Jade - main settings
-        make_unlocked_settings_screen(activity, timeout_btn_text);
-    } else if (keychain_has_pin()) {
-        // Locked Jade - before pin entry when saved wallet exists
-        make_locked_settings_screen(activity, timeout_btn_text);
+    if (startup_menu) {
+        // Startup (click on spalsh screen) menu
+        make_startup_options_screen(activity);
+        *timeout_btn_text = NULL; // doesn't apply to this menu
     } else {
-        // Uninitilised Jade - no wallet set
-        make_uninitialised_settings_screen(activity, timeout_btn_text);
+        // Normal 'Settings' menu - depends on wallet state (unlocked, locked, uninitialised)
+        if (keychain_get()) {
+            // Unlocked Jade - main settings
+            make_unlocked_settings_screen(activity, timeout_btn_text);
+        } else if (keychain_has_pin()) {
+            // Locked Jade - before pin entry when saved wallet exists
+            make_locked_settings_screen(activity, timeout_btn_text);
+        } else {
+            // Uninitilised Jade - no wallet set
+            make_uninitialised_settings_screen(activity, timeout_btn_text);
+        }
+        update_idle_timeout_btn_text(*timeout_btn_text, timeout);
     }
     JADE_ASSERT(*activity);
-    JADE_ASSERT(*timeout_btn_text);
 }
 
-static void handle_settings()
+static void handle_settings(const bool startup_menu)
 {
+    // Get/track the idle timeout
+    uint16_t timeout = storage_get_idle_timeout();
+
     // Create the appropriate 'Settings' menu
     gui_activity_t* act = NULL;
     gui_view_node_t* timeout_btn_text = NULL;
-    create_settings_menu(&act, &timeout_btn_text);
-
-    // Get/track the idle timeout
-    uint16_t timeout = storage_get_idle_timeout();
-    update_idle_timeout_btn_text(timeout_btn_text, timeout);
+    create_settings_menu(&act, startup_menu, timeout, &timeout_btn_text);
 
     bool done = false;
     while (!done) {
@@ -1118,7 +1102,7 @@ static void handle_settings()
             // Change to base 'Settings' menu
             act = NULL;
             timeout_btn_text = NULL;
-            create_settings_menu(&act, &timeout_btn_text);
+            create_settings_menu(&act, startup_menu, timeout, &timeout_btn_text);
             break;
 
         case BTN_SETTINGS_ADVANCED:
@@ -1177,11 +1161,23 @@ static void handle_settings()
             register_otp_kb_entry();
             break;
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+        case BTN_SETTINGS_LEGAL:
+            handle_legal();
+            break;
+#endif
+
         default:
             // Unexpected event, just ignore
             break;
         }
     }
+}
+
+void offer_startup_options(void)
+{
+    const bool is_startup_menu = true;
+    handle_settings(is_startup_menu);
 }
 
 // Sleep/power-down
@@ -1306,7 +1302,7 @@ static void handle_btn(const int32_t btn)
     case BTN_SLEEP:
         return handle_sleep();
     case BTN_SETTINGS:
-        return handle_settings();
+        return handle_settings(false);
     case BTN_BLE:
         return handle_ble();
     case BTN_INFO:
