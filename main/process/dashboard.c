@@ -12,7 +12,7 @@
 #include "../otpauth.h"
 #include "../power.h"
 #include "../process.h"
-#include "../qrcode.h"
+#include "../qrmode.h"
 #include "../random.h"
 #include "../selfcheck.h"
 #include "../sensitive.h"
@@ -1206,40 +1206,6 @@ static void handle_storage(void)
     }
 }
 
-#ifdef CONFIG_DEBUG_MODE
-static void handle_xpub(void)
-{
-    // Version 6 is required as xpubs strings are mixed case and up to 112 chars long.
-    // Version 6 is up to 134 characters ('binary' mode, as 'alphanumeric' mode only supports uppercase)
-    // See: https://www.qrcode.com/en/about/version.html
-    const uint8_t qrcode_version = 6;
-
-    // A v6 qrcode is 41x41 - we can scale this by 3 and it still (just) fits on the display
-    const uint8_t scale_factor = 3;
-
-    const char* network = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? "testnet" : "mainnet";
-    char* xpub = NULL;
-    if (keychain_get() && wallet_get_xpub(network, NULL, 0, &xpub)) {
-        Icon qr_icon;
-        QRCode qrcode;
-        uint8_t qrbuffer[256]; // underlying qrcode data/work area - opaque
-        JADE_ASSERT(sizeof(qrbuffer) > qrcode_getBufferSize(qrcode_version));
-
-        const int qret = qrcode_initText(&qrcode, qrbuffer, qrcode_version, ECC_LOW, xpub);
-        JADE_ASSERT(qret == 0);
-        qrcode_toIcon(&qrcode, &qr_icon, scale_factor);
-        wally_free_string(xpub);
-
-        // NOTE: activity does not take ownership of icon
-        await_single_icon_activity(&qr_icon, TFT_BLACK, &TFT_DARKGREY);
-        qrcode_freeIcon(&qr_icon);
-    } else {
-        JADE_LOGE("Failed to get root xpub for display");
-        await_error_activity("Failed to get root xpub");
-    }
-}
-#endif
-
 // Device info
 static void handle_device(void)
 {
@@ -1274,12 +1240,10 @@ static void handle_device(void)
             handle_storage();
             break;
 
-#ifdef CONFIG_DEBUG_MODE
-        // In debug only, show xpub on screen as qr-code
         case BTN_INFO_SHOW_XPUB:
-            handle_xpub();
+            // Show xpub as a QR code, potentially animated
+            display_xpub_qr();
             break;
-#endif // CONFIG_DEBUG_MODE
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
         // For genuine Jade hw, show legal info
