@@ -570,15 +570,12 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
     uint8_t script[MULTISIG_SCRIPT_LEN(3)]; // The largest script we might generate
 
     // The GA and user pubkeys
-    uint8_t user_privkey[EC_PRIVATE_KEY_LEN];
     uint8_t pubkeys[3 * EC_PUBLIC_KEY_LEN]; // In case of 2of3
     const size_t num_pubkeys = xpubrecovery ? 3 : 2; // 2of3 if recovery-xpub
     uint8_t* next_pubkey = pubkeys;
 
-    // Get the GA key if this is a green-multisig script
-    struct ext_key gakey;
-
     // Get the GA-key for the passed path (if valid)
+    struct ext_key gakey;
     if (!wallet_get_gaservice_key(network, path, path_len, &gakey)) {
         JADE_LOGE("Failed to derive valid ga key for path");
         return false;
@@ -588,11 +585,12 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
     next_pubkey += sizeof(gakey.pub_key);
 
     // Derive user pubkey from the path
-    SENSITIVE_PUSH(user_privkey, sizeof(user_privkey));
-    wallet_get_privkey(path, path_len, user_privkey, sizeof(user_privkey));
-    JADE_WALLY_VERIFY(
-        wally_ec_public_key_from_private_key(user_privkey, sizeof(user_privkey), next_pubkey, EC_PUBLIC_KEY_LEN));
-    SENSITIVE_POP(user_privkey);
+    struct ext_key derived;
+    if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived)) {
+        return false;
+    }
+    memcpy(next_pubkey, derived.pub_key, sizeof(derived.pub_key));
+    JADE_ASSERT(sizeof(derived.pub_key) == EC_PUBLIC_KEY_LEN);
     next_pubkey += EC_PUBLIC_KEY_LEN;
 
     // Add recovery key also, if one passed
@@ -633,36 +631,31 @@ bool wallet_build_singlesig_script(const script_variant_t script_variant, const 
         return false;
     }
 
-    // The user pubkeys
-    uint8_t user_privkey[EC_PRIVATE_KEY_LEN];
-    uint8_t pubkey[EC_PUBLIC_KEY_LEN];
-
     // Derive user pubkey from the path
-    SENSITIVE_PUSH(user_privkey, sizeof(user_privkey));
-    wallet_get_privkey(path, path_len, user_privkey, sizeof(user_privkey));
-    JADE_WALLY_VERIFY(wally_ec_public_key_from_private_key(user_privkey, sizeof(user_privkey), pubkey, sizeof(pubkey)));
-    SENSITIVE_POP(user_privkey);
+    struct ext_key derived;
+    if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived)) {
+        return false;
+    }
 
     if (script_variant == P2WPKH_P2SH) {
         // Get the p2sh/p2wsh script-pubkey for the passed pubkey
         JADE_LOGI("Generating singlesig p2sh_p2wpkh script");
         wallet_p2sh_p2wsh_scriptpubkey_for_bytes(
-            pubkey, sizeof(pubkey), WALLY_SCRIPT_HASH160, output, output_len, written);
+            derived.pub_key, sizeof(derived.pub_key), WALLY_SCRIPT_HASH160, output, output_len, written);
     } else if (script_variant == P2WPKH) {
         // Get a redeem script for the passed pubkey
         JADE_LOGI("Generating singlesig p2wpkh script");
         JADE_WALLY_VERIFY(wally_witness_program_from_bytes(
-            pubkey, sizeof(pubkey), WALLY_SCRIPT_HASH160, output, output_len, written));
+            derived.pub_key, sizeof(derived.pub_key), WALLY_SCRIPT_HASH160, output, output_len, written));
     } else if (script_variant == P2PKH) {
         // Get a legacy p2pkh script-pubkey for the passed pubkey
         JADE_LOGI("Generating singlesig p2pkh script");
         JADE_WALLY_VERIFY(wally_scriptpubkey_p2pkh_from_bytes(
-            pubkey, sizeof(pubkey), WALLY_SCRIPT_HASH160, output, output_len, written));
+            derived.pub_key, sizeof(derived.pub_key), WALLY_SCRIPT_HASH160, output, output_len, written));
     } else {
         JADE_LOGE("Unrecognised script variant: %u", script_variant);
         return false;
     }
-
     JADE_ASSERT(*written == script_length_for_variant(script_variant));
     return true;
 }
@@ -839,6 +832,37 @@ void wallet_get_fingerprint(uint8_t* output, const size_t output_len)
     memcpy(output, keychain_get()->xpriv.hash160, output_len);
 }
 
+bool wallet_get_hdkey(const uint32_t* path, const size_t path_len, const uint32_t flags, struct ext_key* output)
+{
+    JADE_ASSERT(keychain_get());
+    JADE_ASSERT(path_len == 0 || path);
+
+    if (!output) {
+        return false;
+    }
+
+    if (path_len == 0) {
+        // Just copy root ext key
+        memcpy(output, &(keychain_get()->xpriv), sizeof(struct ext_key));
+    } else {
+        // Derive child from root and path - handle stripping the pubkey ourselves as wally does
+        // not handle: parent-privkey + hardened-path -> child-pubkey
+        const uint32_t derivation_flags = (flags & ~BIP32_FLAG_KEY_PUBLIC) | BIP32_FLAG_KEY_PRIVATE;
+        const int wret = bip32_key_from_parent_path(&(keychain_get()->xpriv), path, path_len, derivation_flags, output);
+        if (wret != WALLY_OK) {
+            JADE_LOGE("Failed to derive key from path (size %u): %d", path_len, wret);
+            return false;
+        }
+    }
+
+    // If the caller wanted only a pubkey, strip the private key info now
+    if (flags & BIP32_FLAG_KEY_PUBLIC) {
+        JADE_WALLY_VERIFY(bip32_key_strip_private_key(output));
+    }
+
+    return true;
+}
+
 bool wallet_get_xpub(const char* network, const uint32_t* path, const size_t path_len, char** output)
 {
     JADE_ASSERT(keychain_get());
@@ -855,28 +879,15 @@ bool wallet_get_xpub(const char* network, const uint32_t* path, const size_t pat
         return false;
     }
 
+    // NOTE: we do not SKIP_HASH in this case, as it is included in the xpub
     struct ext_key derived;
-    SENSITIVE_PUSH(&derived, sizeof(derived));
-
-    if (path_len == 0) {
-        // Just copy root ext key
-        memcpy(&derived, &(keychain_get()->xpriv), sizeof(derived));
-    } else {
-        // Derive child from root and path - Note: we do NOT pass BIP32_FLAG_SKIP_HASH here
-        const int wret
-            = bip32_key_from_parent_path(&(keychain_get()->xpriv), path, path_len, BIP32_FLAG_KEY_PRIVATE, &derived);
-        if (wret != WALLY_OK) {
-            SENSITIVE_POP(&derived);
-            JADE_LOGE("Failed to derive key from path (size %u): %d", path_len, wret);
-            return false;
-        }
+    if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC, &derived)) {
+        return false;
     }
 
     // Override network/version to yield the correct prefix for the passed network
     derived.version = version;
     JADE_WALLY_VERIFY(bip32_key_to_base58(&derived, BIP32_FLAG_KEY_PUBLIC, output));
-    SENSITIVE_POP(&derived);
-
     JADE_LOGD("bip32_key_to_base58: %s", *output);
     return true;
 }
