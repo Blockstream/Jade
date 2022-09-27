@@ -81,15 +81,22 @@ static bool qr_recognize(
     memcpy(quirc_image, data, len);
     quirc_end(qr_data->q);
 
-    bool extracted = qr_extract_payload(qr_data);
-
-    // If we have extracted a string and we have an additional validation
-    // function, run that function now and only return true if it passes.
-    if (extracted && qr_data->is_valid) {
-        extracted = qr_data->is_valid(qr_data);
+    // If no QR data can be recognised/extracted, return false
+    if (!qr_extract_payload(qr_data) || !qr_data->len) {
+        qr_data->len = 0;
+        return false;
     }
 
-    return extracted;
+    // If we have extracted data and we have an additional validation
+    // function, run that function now - clear the data and return false
+    // if it fails.  Otherwise all good.
+    if (qr_data->is_valid && !qr_data->is_valid(qr_data)) {
+        qr_data->len = 0;
+        return false;
+    }
+
+    // QR data was extracted and validated - return true
+    return true;
 }
 
 #ifdef CONFIG_DEBUG_MODE
