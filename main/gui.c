@@ -983,13 +983,14 @@ static bool icon_animation_frame_callback(gui_view_node_t* node, void* extra_arg
         return false;
     }
 
+    // animation not applicable
     struct view_node_icon_animation_data* animation_data = node->icon->animation;
-    if (!animation_data || animation_data->num_icons <= 1) {
+    if (!animation_data || !animation_data->frames_per_icon || animation_data->num_icons <= 1) {
         return false;
     }
 
-    // do nothing this frame
     if (animation_data->current_frame > 0) {
+        // do nothing this frame, just count
         --animation_data->current_frame;
         return false;
     }
@@ -1011,8 +1012,8 @@ void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, const size_t num
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == ICON);
     JADE_ASSERT(icons);
-    JADE_ASSERT(num_icons > 1);
-    JADE_ASSERT(frames_per_icon);
+    JADE_ASSERT(num_icons);
+    JADE_ASSERT(frames_per_icon || num_icons == 1);
 
     struct view_node_icon_animation_data* animation_data = JADE_CALLOC(1, sizeof(struct view_node_icon_animation_data));
 
@@ -1025,8 +1026,11 @@ void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, const size_t num
 
     node->icon->animation = animation_data;
 
-    // now push this to the list of updatable elements so that it gets updated every frame
-    push_updatable(node->activity, node, icon_animation_frame_callback, NULL);
+    // If there are multiple icons, push this to the list of updatable elements so
+    // that the image gets periodically updated.
+    if (num_icons > 1) {
+        push_updatable(node->activity, node, icon_animation_frame_callback, NULL);
+    }
 }
 
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)

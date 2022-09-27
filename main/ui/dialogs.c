@@ -302,7 +302,7 @@ void await_animated_icon_activity(
     Icon* icons, const size_t num_icons, const color_t color, const color_t* bg_color, const size_t frames_per_icon)
 {
     JADE_ASSERT(icons);
-    JADE_ASSERT(num_icons > 1);
+    JADE_ASSERT(num_icons);
     JADE_ASSERT(frames_per_icon);
     // bg_color is optional - NULL implies transparent
 
