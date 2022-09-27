@@ -50,5 +50,5 @@ python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222 --fwfile
 FW_PATCH=$(ls ./build/*_patch.bin)
 python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222 --fwfile=${FW_PATCH}
 
-# Run the tests
-python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:2222
+# Run the tests - long timeout fior bcur-fragment iteration test in 'run_remote_selfcheck()/selfcheck.c'
+python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:2222 --serialtimeout=600

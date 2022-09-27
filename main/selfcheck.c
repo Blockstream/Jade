@@ -4,12 +4,14 @@
 #include <string.h>
 #include <wally_bip32.h>
 
+#include "bcur.h"
 #include "jade_assert.h"
 #include "keychain.h"
 #include "random.h"
 #include "storage.h"
 #include <sodium/crypto_verify_64.h>
 #include <sodium/utils.h>
+#include <utils/malloc_ext.h>
 
 #include <cdecoder.h>
 #include <cencoder.h>
@@ -675,6 +677,50 @@ bool test_bcur_decode_bad_cases(void)
     return true;
 }
 
+// Test we can render a small sequence of bcur qr-code icons
+// Cover all handled versions - use more data for larger versions.
+// ('ver * ver * 8' seems to give 6 icons, which seems reasonable)
+static bool test_bcur_icons(void)
+{
+    const uint8_t payload[12 * 12 * 8];
+    for (uint8_t ver = 4; ver <= 12; ++ver) {
+        const size_t payload_len = ver * ver * 8;
+        Icon* icons = NULL;
+        size_t num_icons = 0;
+        bcur_create_qr_icons(payload, payload_len, "test-type", ver, &icons, &num_icons);
+        if (!icons || !num_icons) {
+            FAIL();
+        }
+        for (size_t i = 0; i < num_icons; ++i) {
+            JADE_ASSERT(icons[i].data);
+            free(icons[i].data);
+        }
+        free(icons);
+    }
+    return true;
+}
+
+// Test we can render a sequence of up to 1000 bcur fragments
+static bool test_bcur_large_payload_many_icons(void)
+{
+    const int qr_version = 4; // smallest supported
+    const int payload_len = 24 * 1024; // 24k, should result ~1000 fragments
+    uint8_t* payload = JADE_MALLOC_PREFER_SPIRAM(payload_len);
+    Icon* icons = NULL;
+    size_t num_icons = 0;
+    bcur_create_qr_icons(payload, payload_len, "test-type", qr_version, &icons, &num_icons);
+    if (!icons || !num_icons) {
+        FAIL();
+    }
+    for (size_t i = 0; i < num_icons; ++i) {
+        JADE_ASSERT(icons[i].data);
+        free(icons[i].data);
+    }
+    free(icons);
+    free(payload);
+    return true;
+}
+
 bool debug_selfcheck(void)
 {
     // Test can restore known mnemonic and service path is computed as expected
@@ -713,6 +759,27 @@ bool debug_selfcheck(void)
     if (!test_bcur_decode_bad_cases()) {
         FAIL();
     }
+
+    // Test we can render a small sequence of bcur qr-code icons in all supported qr versions
+    if (!test_bcur_icons()) {
+        FAIL();
+    }
+
+#ifdef CONFIG_ESP32_SPIRAM_SUPPORT
+    // Test we can render a large sequence of bcur fragments (smallest supported qr version)
+    if (!test_bcur_large_payload_many_icons()) {
+        FAIL();
+    }
+#endif
+
+    // Iterative check of bcur sizing macro.
+    // Run under qemu only as takes too long on esp32 hw.
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH) && defined(CONFIG_DEBUG_MODE)
+    bool bcur_check_fragment_sizes(void);
+    if (!bcur_check_fragment_sizes()) {
+        FAIL();
+    }
+#endif
 
     // PASS !
     return true;

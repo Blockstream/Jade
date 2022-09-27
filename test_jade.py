@@ -137,7 +137,7 @@ BLE_TEST_BADKEYFILE = "ble_test_badkey.txt"
 
 # The default serial device, and the serial read timeout
 DEFAULT_SERIAL_DEVICE = "/dev/ttyUSB0"
-SRTIMEOUT = 30
+DEFAULT_SERIAL_TIMEOUT = 120
 
 # The pubkey for the test (in-proc) pinserver
 PINSERVER_TEST_PUBKEY_FILE = "server_public_key.pub"
@@ -2916,7 +2916,7 @@ def run_all_jade_tests(info, args):
     if not args.skipserial:
         logger.info("Testing Serial ({})".format(args.serialport))
         with JadeAPI.create_serial(args.serialport,
-                                   timeout=SRTIMEOUT) as jade:
+                                   timeout=args.serialtimeout) as jade:
             run_jade_tests(jade, args, isble=False)
 
     # 2. Test over BLE connection
@@ -2931,7 +2931,7 @@ def run_all_jade_tests(info, args):
                 if not args.skipserial:
                     logger.info("Running 'mixed sources' Tests")
                     with JadeAPI.create_serial(args.serialport,
-                                               timeout=SRTIMEOUT) as jadeserial:
+                                               timeout=args.serialtimeout) as jadeserial:
                         mixed_sources_test(jadeserial, jade)
         else:
             msg = "Skipping BLE tests - not enabled on the hardware"
@@ -2943,7 +2943,7 @@ def get_jade_info(args):
     if not args.skipserial:
         logger.info("Getting info via Serial ({})".format(args.serialport))
         with JadeAPI.create_serial(device=args.serialport,
-                                   timeout=SRTIMEOUT) as jade:
+                                   timeout=args.serialtimeout) as jade:
             return jade.get_version_info()
 
     if not args.skipble:
@@ -3045,13 +3045,13 @@ if __name__ == '__main__':
                         help="BLE device serial number or id",
                         default=None)
 
-    blegrp = parser.add_mutually_exclusive_group()
-    blegrp.add_argument("--skiplow",
+    skpgrp = parser.add_mutually_exclusive_group()
+    skpgrp.add_argument("--skiplow",
                         action="store_true",
                         dest="skiplow",
                         help="Skip low-level JadeInterface (negative) tests",
                         default=False)
-    blegrp.add_argument("--skiphigh",
+    skpgrp.add_argument("--skiphigh",
                         action="store_true",
                         dest="skiphigh",
                         help="Skip high-level JadeAPI (happy-path) tests",
@@ -3069,6 +3069,12 @@ if __name__ == '__main__':
                         help="Use the specified BLE passkey agent key file",
                         default=BLE_TEST_PASSKEYFILE)
 
+    parser.add_argument("--serialtimeout",
+                        action="store",
+                        dest="serialtimeout",
+                        type=int,
+                        help="Serial port timeout",
+                        default=DEFAULT_SERIAL_TIMEOUT)
     parser.add_argument("--authuser",
                         action="store_true",
                         dest="authuser",
