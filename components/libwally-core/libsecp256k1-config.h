@@ -17,6 +17,9 @@
 /* Define this symbol to enable the ECDH module */
 #define ENABLE_MODULE_ECDH 1
 
+/* Define this symbol to enable the ECDSA adaptor module */
+/* #undef ENABLE_MODULE_ECDSA_ADAPTOR */
+
 /* Define this symbol to enable the ECDSA sign-to-contract module */
 #define ENABLE_MODULE_ECDSA_S2C 1
 
@@ -60,12 +63,6 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
-/* Define this symbol if libcrypto is installed */
-/* #undef HAVE_LIBCRYPTO */
-
-/* Define this symbol if libgmp is installed */
-/* #undef HAVE_LIBGMP */
-
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
 
@@ -89,6 +86,10 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
+
+/* Define this symbol if valgrind is installed, and it supports the host
+   platform */
+/* #undef HAVE_VALGRIND */
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
@@ -120,9 +121,6 @@
 /* Define this symbol to enable x86_64 assembly optimizations */
 /* #undef USE_ASM_X86_64 */
 
-/* Define this symbol to use a statically generated ecmult table */
-#define USE_ECMULT_STATIC_PRECOMPUTATION 1
-
 /* Define this symbol if an external (non-inline) assembly implementation is
    used */
 /* #undef USE_EXTERNAL_ASM */
@@ -130,12 +128,6 @@
 /* Define this symbol if an external implementation of the default callbacks
    is used */
 /* #undef USE_EXTERNAL_DEFAULT_CALLBACKS */
-
-/* Define this symbol to use the native field inverse implementation */
-#define USE_FIELD_INV_BUILTIN 1
-
-/* Define this symbol to use the num-based field inverse implementation */
-/* #undef USE_FIELD_INV_NUM */
 
 /* Define this symbol to force the use of the (unsigned) __int128 based wide
    multiplication implementation */
@@ -145,21 +137,9 @@
    multiplication implementation */
 /* #undef USE_FORCE_WIDEMUL_INT64 */
 
-/* Define this symbol to use the gmp implementation for num */
-/* #undef USE_NUM_GMP */
-
-/* Define this symbol to use no num implementation */
-#define USE_NUM_NONE 1
-
 /* Define this symbol to reduce SECP256K1_SURJECTIONPROOF_MAX_N_INPUTS to 16,
    disabling parsing and verification */
 /* #undef USE_REDUCED_SURJECTION_PROOF_SIZE */
-
-/* Define this symbol to use the native scalar inverse implementation */
-#define USE_SCALAR_INV_BUILTIN 1
-
-/* Define this symbol to use the num-based scalar inverse implementation */
-/* #undef USE_SCALAR_INV_NUM */
 
 /* Version number of package */
 #define VERSION "0.1"

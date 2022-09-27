@@ -14,6 +14,7 @@ idf_component_register(SRCS
                        "upstream/src/hex.c"
                        "upstream/src/hmac.c"
                        "upstream/src/internal.c"
+                       "upstream/src/map.c"
                        "upstream/src/mnemonic.c"
                        "upstream/src/pbkdf2.c"
                        "upstream/src/psbt.c"
@@ -31,6 +32,8 @@ idf_component_register(SRCS
                        "upstream/src/ccan/ccan/crypto/sha512/sha512.c"
                        "upstream/src/ccan/ccan/str/hex/hex.c"
                        "upstream/src/secp256k1/src/secp256k1.c"
+                       "upstream/src/secp256k1/src/precomputed_ecmult.c"
+                       "upstream/src/secp256k1/src/precomputed_ecmult_gen.c"
                        INCLUDE_DIRS
                        "upstream/include"
                        PRIV_INCLUDE_DIRS
@@ -41,17 +44,22 @@ idf_component_register(SRCS
                        "upstream/src/secp256k1"
                        "upstream/src/secp256k1/src"
                        "upstream/src/secp256k1/src/modules/ecdh"
+                       "upstream/src/secp256k1/src/modules/ecdsa_adaptor"
                        "upstream/src/secp256k1/src/modules/ecdsa_s2c"
+                       "upstream/src/secp256k1/src/modules/extrakeys"
                        "upstream/src/secp256k1/src/modules/generator"
                        "upstream/src/secp256k1/src/modules/musig"
                        "upstream/src/secp256k1/src/modules/rangeproof"
                        "upstream/src/secp256k1/src/modules/recovery"
+                       "upstream/src/secp256k1/src/modules/schnorrsig"
                        "upstream/src/secp256k1/src/modules/surjection"
                        "upstream/src/secp256k1/src/modules/whitelist"
                        )
 
 set_source_files_properties(
     upstream/src/secp256k1/src/secp256k1.c
+    upstream/src/secp256k1/src/precomputed_ecmult.c
+    upstream/src/secp256k1/src/precomputed_ecmult_gen.c
     upstream/src/secp256k1/src/modules/rangeproof/rangeproof_impl.h
     upstream/src/bip32.c
     upstream/src/bip38.c
