@@ -351,6 +351,9 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("auth_user")) {
         JADE_LOGD("Received auth-user request");
         task_function = auth_user_process;
+    } else if (IS_METHOD("cancel")) {
+        // 'cancel' is completely ignored (as nothing is 'in-progress' to cancel)
+        JADE_LOGD("Received 'cancel' request - no-op");
     } else if (IS_METHOD("ota")) {
         // OTA is allowed if either:
         // a) User has passed PIN screen and has unlocked Jade saved wallet

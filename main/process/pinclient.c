@@ -39,7 +39,7 @@ static const char PINSERVER_DOC_SET_PIN[] = "set_pin";
 
 // Success or failure, and any error data to send in reply message
 typedef struct {
-    enum { SUCCESS = 0, CAN_RETRY, FAILURE } result;
+    enum { SUCCESS = 0, CAN_RETRY, FAILURE, CANCELLED } result;
 
     uint32_t errorcode;
     const char* message;
@@ -375,7 +375,10 @@ static pinserver_result_t start_handshake(jade_process_t* process, pin_keys_t* p
     // Await a 'handshake_init' message
     jade_process_load_in_message(process, true);
 
-    if (!IS_CURRENT_MESSAGE(process, "handshake_init")) {
+    if (IS_CURRENT_MESSAGE(process, "cancel")) {
+        // Cancelled
+        RETURN_RESULT(CANCELLED, 0, NULL);
+    } else if (!IS_CURRENT_MESSAGE(process, "handshake_init")) {
         // Protocol error
         RETURN_RESULT(FAILURE, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'handshake_init'");
     }
@@ -450,7 +453,10 @@ static pinserver_result_t complete_handshake(
     // Await a 'complete_handshake' message
     jade_process_load_in_message(process, true);
 
-    if (!IS_CURRENT_MESSAGE(process, "handshake_complete")) {
+    if (IS_CURRENT_MESSAGE(process, "cancel")) {
+        // Cancelled
+        RETURN_RESULT(CANCELLED, 0, NULL);
+    } else if (!IS_CURRENT_MESSAGE(process, "handshake_complete")) {
         // Protocol error
         RETURN_RESULT(FAILURE, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'handshake_complete'");
     }
@@ -666,16 +672,16 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
             continue;
         }
 #endif
-        if (pir.result != SUCCESS) {
-            // If failed, send reject message
+        // If failed, send reject message
+        if (pir.result == FAILURE) {
             JADE_LOGE("Failed to complete pinserver interaction");
             jade_process_reject_message(process, pir.errorcode, pir.message, NULL);
             await_error_activity("Network or server error");
             return false;
         }
 
-        // Otherwise all good, return true
-        return true;
+        // Otherwise if all good, return true
+        return pir.result == SUCCESS;
     }
 }
 
