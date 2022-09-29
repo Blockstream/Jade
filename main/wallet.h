@@ -33,6 +33,7 @@ bool is_greenaddress(script_variant_t variant);
 bool is_singlesig(script_variant_t variant);
 bool is_multisig(script_variant_t variant);
 
+void wallet_get_default_xpub_export_path(script_variant_t variant, uint32_t* path, size_t path_len, size_t* written);
 bool wallet_is_expected_singlesig_path(
     const char* network, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);
 bool wallet_is_expected_multisig_path(size_t cosigner_index, bool is_change, const uint32_t* path, size_t path_len);

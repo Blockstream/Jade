@@ -33,6 +33,7 @@ static const uint32_t BIP44_COIN_BTC = BIP32_INITIAL_HARDENED_CHILD;
 static const uint32_t BIP44_COIN_TEST = BIP32_INITIAL_HARDENED_CHILD + 1;
 static const uint32_t BIP44_COIN_LBTC = BIP32_INITIAL_HARDENED_CHILD + 1776;
 static const uint32_t BIP44_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 44;
+static const uint32_t BIP48_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 48;
 static const uint32_t BIP49_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 49;
 static const uint32_t BIP84_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 84;
 
@@ -268,6 +269,38 @@ bool wallet_derive_from_xpub(
     const bool ret = wallet_derive_pubkey(bytes, written, path, path_len, flags, hdkey);
     SENSITIVE_POP(bytes);
     return ret;
+}
+
+// Fucntion to get the path used when we are asked to export an xpub
+void wallet_get_default_xpub_export_path(
+    const script_variant_t variant, uint32_t* path, const size_t path_len, size_t* written)
+{
+    JADE_ASSERT(!is_greenaddress(variant));
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len > 3);
+    JADE_INIT_OUT_SIZE(written);
+
+    // 'Purpose' depends on script variant unless bip48 multisig
+    const bool multisig = is_multisig(variant);
+    path[0] = multisig           ? BIP48_PURPOSE
+        : variant == P2WPKH      ? BIP84_PURPOSE
+        : variant == P2WPKH_P2SH ? BIP49_PURPOSE
+                                 : BIP44_PURPOSE;
+
+    // 'Coin-type' depends on network
+    // FIXME: Handle liquid
+    path[1] = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? BIP44_COIN_TEST : BIP44_COIN_BTC;
+
+    // 'Account' is just zero atm
+    path[2] = BIP32_INITIAL_HARDENED_CHILD; // 0'
+
+    if (multisig) {
+        // bip48 script type flag
+        const uint8_t bip48_script_type = variant == MULTI_P2WSH ? 2 : variant == MULTI_P2WSH_P2SH ? 1 : 0;
+        path[3] = BIP32_INITIAL_HARDENED_CHILD + bip48_script_type;
+    }
+
+    *written = multisig ? 4 : 3;
 }
 
 // Internal helper to get a derived private key - note 'output' should point to a buffer of size EC_PRIVATE_KEY_LEN
