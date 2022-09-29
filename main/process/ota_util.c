@@ -3,6 +3,8 @@
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "ota_defines.h"
+
+#include <ctype.h>
 #include <deflate.h>
 #include <esp_efuse.h>
 #include <sodium/utils.h>
@@ -194,6 +196,15 @@ enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
     return SUCCESS;
 }
 
+// NOTE: 'dest' is assumed to be at least as long as 'strlen(src)'
+static void to_lower(char* dest, const char* src)
+{
+    while (*src) {
+        *dest++ = tolower(*src++);
+    }
+    *dest = '\0';
+}
+
 enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
 {
     JADE_ASSERT(joctx);
@@ -251,8 +262,20 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     }
 
     // User to confirm once new firmware version known and all checks passed
+    char current_config[sizeof(JADE_OTA_CONFIG)];
+    to_lower(current_config, JADE_OTA_CONFIG);
+    char current_version[sizeof(running_app_info.version) + sizeof(current_config)];
+    int rc = snprintf(current_version, sizeof(current_version), "%s %s", running_app_info.version, current_config);
+    JADE_ASSERT(rc > 0 && rc < sizeof(current_version));
+
+    char new_config[sizeof(custom_info->config)];
+    to_lower(new_config, custom_info->config);
+    char new_version[sizeof(new_app_info->version) + sizeof(new_config)];
+    rc = snprintf(new_version, sizeof(new_version), "%s %s", new_app_info->version, new_config);
+    JADE_ASSERT(rc > 0 && rc < sizeof(new_version));
+
     gui_activity_t* activity = NULL;
-    make_ota_versions_activity(&activity, running_app_info.version, new_app_info->version, joctx->expected_hash_hexstr);
+    make_ota_versions_activity(&activity, current_version, new_version, joctx->expected_hash_hexstr);
     JADE_ASSERT(activity);
 
     gui_set_current_activity(activity);
