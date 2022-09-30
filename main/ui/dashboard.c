@@ -148,9 +148,6 @@ void make_connection_select_screen(gui_activity_t** activity_ptr)
 }
 #endif // CONFIG_ESP32_NO_BLOBS
 
-// NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
-// in the list of activities to be freed by 'set_current_activity_ex()' calls.
-// It must be freed by the caller.
 void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, const bool ble)
 {
     JADE_ASSERT(activity_ptr);
@@ -160,8 +157,7 @@ void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_na
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
-    gui_make_activity_ex(activity_ptr, true, title, false);
+    gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);

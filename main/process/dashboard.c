@@ -1439,9 +1439,11 @@ void dashboard_process(void* process_ptr)
         //    - connect screen
         // 4. Uninitialised - has no persisted/encrypted keys and no keys in memory
         //    - setup screen
-        // NOTE: All dashboard screens are created as 'unmanaged' activities, so are not placed
+        // NOTE: Some dashboard screens are created as 'unmanaged' activities, so are not placed
         // in the list of activities to be freed by 'set_current_activity_ex()' calls, so any
         // 'act_dashboard' created here must be explicitly freed when no longer relevant.
+        // 'free_dashboard' is set when this is the case.
+        bool free_dashboard = false;
         gui_activity_t* act_dashboard = NULL;
         const bool has_pin = keychain_has_pin();
         const keychain_t* initial_keychain = keychain_get();
@@ -1450,15 +1452,19 @@ void dashboard_process(void* process_ptr)
             const char* additional = keychain_has_temporary() ? "(Temporary Wallet)" : "";
             gui_update_text(txt_extra, additional);
             act_dashboard = act_ready;
+            // free_dashboard is not required as this screen lives for the lifetime of the application
         } else if (initial_keychain) {
             JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");
             MAKE_DASHBOARD_SCREEN(make_connect_to_screen, act_dashboard, initialisation_via_ble);
+            // free_dashboard is not required as this is a standard 'managed' activity
         } else if (has_pin) {
             JADE_LOGI("Wallet/keys pin set but not yet loaded - showing Connect screen");
             MAKE_DASHBOARD_SCREEN(make_connect_screen, act_dashboard, running_app_info.version);
+            free_dashboard = true;
         } else {
             JADE_LOGI("No wallet/keys and no pin set - showing Setup screen");
             MAKE_DASHBOARD_SCREEN(make_setup_screen, act_dashboard, running_app_info.version);
+            free_dashboard = true;
         }
 
         // This call loops/blocks all the time the user keychain (and related details)
@@ -1468,8 +1474,8 @@ void dashboard_process(void* process_ptr)
         // be cleared (and bzero'd).
         do_dashboard(process, initial_keychain, has_pin, act_dashboard, event_data);
 
-        // Free the dashboard (assuming it isn't the 'Ready' screen)
-        if (act_dashboard != act_ready) {
+        // Free any dashboard screen if flagged as needing explicit free
+        if (free_dashboard) {
             free_unmanaged_activity(act_dashboard);
         }
     }
