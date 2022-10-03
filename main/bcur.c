@@ -4,6 +4,7 @@
 #include "qrscan.h"
 #include "ui.h"
 #include "utils/malloc_ext.h"
+#include "utils/util.h"
 
 #include <cbor.h>
 #include <cdecoder.h>
@@ -181,6 +182,218 @@ bool bcur_parse_bip39(
 cleanup:
     urfree_placement_decoder(decoder);
     return ret;
+}
+
+static void encode_script_variant_tag(CborEncoder* encoder, const script_variant_t script_variant)
+{
+    JADE_ASSERT(encoder);
+
+    CborError cberr = CborNoError;
+    switch (script_variant) {
+    // Singlesig
+    case P2PKH:
+        cberr = cbor_encode_tag(encoder, 403);
+        JADE_ASSERT(cberr == CborNoError);
+        break;
+    case P2WPKH:
+        cberr = cbor_encode_tag(encoder, 404);
+        JADE_ASSERT(cberr == CborNoError);
+        break;
+    case P2WPKH_P2SH:
+        cberr = cbor_encode_tag(encoder, 400);
+        JADE_ASSERT(cberr == CborNoError);
+        cberr = cbor_encode_tag(encoder, 404);
+        JADE_ASSERT(cberr == CborNoError);
+        break;
+    // Generic multisig
+    case MULTI_P2SH:
+        cberr = cbor_encode_tag(encoder, 400);
+        JADE_ASSERT(cberr == CborNoError);
+        break;
+    case MULTI_P2WSH:
+        cberr = cbor_encode_tag(encoder, 401);
+        JADE_ASSERT(cberr == CborNoError);
+        break;
+    case MULTI_P2WSH_P2SH:
+        cberr = cbor_encode_tag(encoder, 400);
+        JADE_ASSERT(cberr == CborNoError);
+        cberr = cbor_encode_tag(encoder, 401);
+        JADE_ASSERT(cberr == CborNoError);
+        break;
+    default:
+        JADE_ASSERT_MSG(false, "Unhandled script variant");
+    }
+}
+
+static void encode_hdkey(CborEncoder* encoder, const uint32_t fingerprint, const uint32_t* path, const size_t path_len)
+{
+    JADE_ASSERT(encoder);
+    JADE_ASSERT(fingerprint);
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len);
+
+    // The hdkey for the passed path
+    struct ext_key hdkey;
+    const bool ret = wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &hdkey);
+    JADE_ASSERT(ret);
+
+    // hdkey
+    CborEncoder key_map_encoder;
+    CborError cberr = cbor_encoder_create_map(encoder, &key_map_encoder, 4);
+    JADE_ASSERT(cberr == CborNoError);
+
+    // pubkey
+    cberr = cbor_encode_uint(&key_map_encoder, 3);
+    JADE_ASSERT(cberr == CborNoError);
+    cberr = cbor_encode_byte_string(&key_map_encoder, hdkey.pub_key, sizeof(hdkey.pub_key));
+    JADE_ASSERT(cberr == CborNoError);
+
+    // chaincode
+    cberr = cbor_encode_uint(&key_map_encoder, 4);
+    JADE_ASSERT(cberr == CborNoError);
+    cberr = cbor_encode_byte_string(&key_map_encoder, hdkey.chain_code, sizeof(hdkey.chain_code));
+    JADE_ASSERT(cberr == CborNoError);
+
+    cberr = cbor_encode_uint(&key_map_encoder, 6);
+    JADE_ASSERT(cberr == CborNoError);
+    {
+        // key path
+        cbor_encode_tag(&key_map_encoder, 304);
+        CborEncoder key_path_map_encoder;
+        cberr = cbor_encoder_create_map(&key_map_encoder, &key_path_map_encoder, 3);
+        JADE_ASSERT(cberr == CborNoError);
+
+        {
+            cberr = cbor_encode_uint(&key_path_map_encoder, 1);
+            CborEncoder key_path_array_encoder;
+            cberr = cbor_encoder_create_array(&key_path_map_encoder, &key_path_array_encoder, 2 * path_len);
+            JADE_ASSERT(cberr == CborNoError);
+            for (int i = 0; i < path_len; ++i) {
+                cberr = cbor_encode_uint(&key_path_array_encoder, unharden(path[i]));
+                JADE_ASSERT(cberr == CborNoError);
+                cberr = cbor_encode_boolean(&key_path_array_encoder, ishardened(path[i]));
+                JADE_ASSERT(cberr == CborNoError);
+            }
+
+            // Close the path array
+            cberr = cbor_encoder_close_container(&key_path_map_encoder, &key_path_array_encoder);
+            JADE_ASSERT(cberr == CborNoError);
+        }
+
+        // parent fingerprint - immediate parent, or root parent of the path given ?
+        cberr = cbor_encode_uint(&key_path_map_encoder, 2);
+        JADE_ASSERT(cberr == CborNoError);
+        cberr = cbor_encode_uint(&key_path_map_encoder, fingerprint);
+        JADE_ASSERT(cberr == CborNoError);
+
+        cberr = cbor_encode_uint(&key_path_map_encoder, 3);
+        JADE_ASSERT(cberr == CborNoError);
+        cberr = cbor_encode_uint(&key_path_map_encoder, 3);
+        JADE_ASSERT(cberr == CborNoError);
+
+        // Close the path map
+        cberr = cbor_encoder_close_container(&key_map_encoder, &key_path_map_encoder);
+        JADE_ASSERT(cberr == CborNoError);
+    }
+
+    // parent fingerprint - immediate parent, or root parent of the path given ?
+    cberr = cbor_encode_uint(&key_map_encoder, 8);
+    JADE_ASSERT(cberr == CborNoError);
+    cberr = cbor_encode_uint(&key_map_encoder, fingerprint);
+    JADE_ASSERT(cberr == CborNoError);
+
+    // Close the key map
+    cberr = cbor_encoder_close_container(encoder, &key_map_encoder);
+    JADE_ASSERT(cberr == CborNoError);
+}
+
+// Encode an wallet path/key as a bcur cbor 'crypto-hdkey'
+// See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-007-hdkey.md
+void bcur_build_cbor_crypto_hdkey(
+    const uint32_t* path, const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
+{
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len >= 128);
+    JADE_INIT_OUT_SIZE(written);
+
+    // Wallet fingerprint
+    uint8_t fingerprint_bytes[BIP32_KEY_FINGERPRINT_LEN];
+    wallet_get_fingerprint(fingerprint_bytes, sizeof(fingerprint_bytes));
+    uint32_t fingerprint = 0;
+    uint32_to_be(*(uint32_t*)fingerprint_bytes, (uint8_t*)(&fingerprint));
+
+    CborEncoder root_encoder;
+    cbor_encoder_init(&root_encoder, output, output_len, 0);
+
+    // hdkey
+    encode_hdkey(&root_encoder, fingerprint, path, path_len);
+
+    *written = cbor_encoder_get_buffer_size(&root_encoder, output);
+    JADE_ASSERT(*written);
+}
+
+// Encode an wallet path/key as a bcur cbor 'crypto-account'
+// See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-015-account.md
+void bcur_build_cbor_crypto_account(const script_variant_t script_variant, const uint32_t* path, const size_t path_len,
+    uint8_t* output, const size_t output_len, size_t* written)
+{
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len >= 128);
+    JADE_INIT_OUT_SIZE(written);
+
+    // Green multisig-shield not supported
+    JADE_ASSERT(!is_greenaddress(script_variant));
+
+    // Wallet fingerprint
+    uint8_t fingerprint_bytes[BIP32_KEY_FINGERPRINT_LEN];
+    wallet_get_fingerprint(fingerprint_bytes, sizeof(fingerprint_bytes));
+    uint32_t fingerprint = 0;
+    uint32_to_be(*(uint32_t*)fingerprint_bytes, (uint8_t*)(&fingerprint));
+
+    CborEncoder root_encoder;
+    cbor_encoder_init(&root_encoder, output, output_len, 0);
+    {
+        // Fingerprint and list of output descriptors
+        CborEncoder root_map_encoder;
+        CborError cberr = cbor_encoder_create_map(&root_encoder, &root_map_encoder, 2);
+        JADE_ASSERT(cberr == CborNoError);
+
+        // fingerprint - immediate parent, or root parent of the path given ?
+        cberr = cbor_encode_uint(&root_map_encoder, 1);
+        JADE_ASSERT(cberr == CborNoError);
+        cberr = cbor_encode_uint(&root_map_encoder, fingerprint);
+        JADE_ASSERT(cberr == CborNoError);
+
+        cberr = cbor_encode_uint(&root_map_encoder, 2);
+        JADE_ASSERT(cberr == CborNoError);
+        {
+            // Just one output descriptor
+            CborEncoder key_array_encoder;
+            cberr = cbor_encoder_create_array(&root_map_encoder, &key_array_encoder, 1);
+            JADE_ASSERT(cberr == CborNoError);
+
+            // script-type tag(s)
+            encode_script_variant_tag(&key_array_encoder, script_variant);
+
+            // Single hdkey
+            cbor_encode_tag(&key_array_encoder, 303);
+            encode_hdkey(&key_array_encoder, fingerprint, path, path_len);
+
+            // Close the array
+            cberr = cbor_encoder_close_container(&root_map_encoder, &key_array_encoder);
+            JADE_ASSERT(cberr == CborNoError);
+        }
+
+        // Close the root map
+        cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
+        JADE_ASSERT(cberr == CborNoError);
+    }
+    *written = cbor_encoder_get_buffer_size(&root_encoder, output);
+    JADE_ASSERT(*written);
 }
 
 // Support scanning a bc-ur qr-code - single-frame or animated/multi-frame.
