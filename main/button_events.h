@@ -119,6 +119,14 @@ typedef enum {
 
     BTN_EXIT_QR_HELP,
 
+    BTN_XPUB_OPTIONS,
+    BTN_XPUB_TOGGLE_SCRIPT,
+    BTN_XPUB_TOGGLE_MULTISIG,
+    BTN_XPUB_TOGGLE_BCUR_TYPE,
+    BTN_XPUB_OPTIONS_HELP,
+    BTN_XPUB_OPTIONS_EXIT,
+    BTN_XPUB_EXIT,
+
     // NOTE: Always leave these ones last as keyboard buttons use
     // BTN_KEYBOARD_ASCII_OFFSET + <ascii-value>
     BTN_KEYBOARD_BACKSPACE,
