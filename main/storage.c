@@ -33,6 +33,7 @@ static const char* NETWORK_TYPE_FIELD = "networktype";
 static const char* IDLE_TIMEOUT_FIELD = "idletimeout";
 static const char* CLICK_EVENT_FIELD = "clickevent";
 static const char* BLE_FLAGS_FIELD = "bleflags";
+static const char* QR_FLAGS_FIELD = "qrflags";
 
 // NOTE: esp-idf reserve the final page of nvs entries for internal use (for defrag/consolidation)
 // See: https://github.com/espressif/esp-idf/issues/5247#issuecomment-1048604221
@@ -566,6 +567,17 @@ uint8_t storage_get_ble_flags(void)
 {
     uint8_t flags = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, BLE_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;
+}
+
+bool storage_set_qr_flags(uint16_t flags)
+{
+    return store_blob(DEFAULT_NAMESPACE, QR_FLAGS_FIELD, (const uint8_t*)&flags, sizeof(flags));
+}
+
+uint16_t storage_get_qr_flags(void)
+{
+    uint16_t flags = 0;
+    return read_blob_fixed(DEFAULT_NAMESPACE, QR_FLAGS_FIELD, (uint8_t*)&flags, sizeof(flags)) ? flags : 0;
 }
 
 bool storage_set_key_flags(uint8_t flags)

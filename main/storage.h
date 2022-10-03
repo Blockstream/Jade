@@ -11,6 +11,15 @@
 
 #define BLE_ENABLED 0x1
 
+#define QR_DENSITY_LOW 0x1
+#define QR_DENSITY_HIGH 0x2
+#define QR_SPEED_LOW 0x4
+#define QR_SPEED_HIGH 0x8
+
+#define QR_XPUB_P2SH_WRAPPED 0x100
+#define QR_XPUB_MULTISIG 0x200
+#define QR_XPUB_HDKEY 0x400
+
 #define KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE 0x1
 
 #define MAX_PINSVR_CERTIFICATE_LENGTH 2048
@@ -60,6 +69,9 @@ uint8_t storage_get_click_event(void);
 
 bool storage_set_ble_flags(uint8_t flags);
 uint8_t storage_get_ble_flags(void);
+
+bool storage_set_qr_flags(uint16_t flags);
+uint16_t storage_get_qr_flags(void);
 
 // Generic multisig
 bool storage_set_multisig_registration(const char* name, const uint8_t* registration, size_t registration_len);
