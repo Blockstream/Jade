@@ -339,7 +339,7 @@ void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_
     btn_data_t btns[]
         = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
               { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_BLE },
-              { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+              { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons(vsplit, UI_COLUMN, btns, 3);
 }
 
@@ -360,7 +360,7 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     btn_data_t btns[]
         = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
               { .txt = "Use Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_USE_PASSPHRASE },
-              { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+              { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons(vsplit, UI_COLUMN, btns, 3);
 }
 
@@ -380,7 +380,7 @@ void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_
     // Other buttons
     btn_data_t btns[] = { { .txt = "Advanced", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED },
         { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
-        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons(vsplit, UI_COLUMN, btns, 3);
 }
 
@@ -492,7 +492,7 @@ void make_advanced_options_screen(gui_activity_t** activity_ptr)
     btn_data_t btns[] = { { .txt = "M-of-N Multisig", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
         { .txt = "Wallet-Erase PIN", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
         { .txt = "OTP", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
-        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED_EXIT } };
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_ADVANCED_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
@@ -505,7 +505,7 @@ void make_otp_screen(gui_activity_t** activity_ptr)
     btn_data_t btns[] = { { .txt = "View OTPs", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_VIEW },
         { .txt = "Scan New OTP QR", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
         { .txt = "Enter New OTP URI", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_KB },
-        { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_EXIT } };
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_OTP_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
