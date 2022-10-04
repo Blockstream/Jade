@@ -127,6 +127,9 @@ typedef enum {
     BTN_XPUB_OPTIONS_EXIT,
     BTN_XPUB_EXIT,
 
+    BTN_SCAN_ADDRESS_SKIP_ADDRESSES,
+    BTN_SCAN_ADDRESS_EXIT,
+
     // NOTE: Always leave these ones last as keyboard buttons use
     // BTN_KEYBOARD_ASCII_OFFSET + <ascii-value>
     BTN_KEYBOARD_BACKSPACE,

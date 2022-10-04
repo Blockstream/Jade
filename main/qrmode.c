@@ -4,8 +4,16 @@
 #include "button_events.h"
 #include "gui.h"
 #include "jade_assert.h"
+#include "keychain.h"
 #include "qrcode.h"
+#include "qrscan.h"
+#include "sensitive.h"
 #include "storage.h"
+#include "ui.h"
+#include "utils/address.h"
+#include "wallet.h"
+
+#include <wally_script.h>
 
 #include <string.h>
 
@@ -16,7 +24,13 @@ void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label
 void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_t** script_textbox,
     gui_view_node_t** multisig_textbox, gui_view_node_t** urtype_textbox);
 
+void make_search_verify_address_activity(
+    gui_activity_t** activity_ptr, const char* pathstr, progress_bar_t* progress_bar, gui_view_node_t** index_text);
+
 #define EXPORT_XPUB_PATH_LEN 4
+
+static const uint8_t ADDRESS_SEARCH_BATCH_SIZE = 20;
+static const uint16_t ADDRESS_NUM_INDEXES_TO_CHECK = 25 * ADDRESS_SEARCH_BATCH_SIZE;
 
 // Test whether 'flags' contains the entirety of the 'test_flags'
 // (ie. maybe compound/multiple bits set)
@@ -188,6 +202,149 @@ void display_xpub_qr(void)
             }
         }
     }
+}
+
+static bool is_address(qr_data_t* qr_data)
+{
+    JADE_ASSERT(qr_data);
+    JADE_ASSERT(qr_data->ctx);
+    JADE_ASSERT(qr_data->data[qr_data->len] == '\0');
+    address_data_t* const addr_data = (address_data_t*)qr_data->ctx;
+    return qr_data->len > 0 && parse_address((const char*)qr_data->data, addr_data);
+}
+
+// Scan an address qr and verify by brute-forcing
+bool scan_verify_address_qr(void)
+{
+    address_data_t addr_data;
+    qr_data_t qr_data = { .len = 0, .is_valid = is_address, .ctx = &addr_data };
+    if (!jade_camera_scan_qr(&qr_data, "Scan and verify\nour address")) {
+        return false;
+    }
+
+    char buf[160];
+    int rc = snprintf(buf, sizeof(buf), "Attempt to verify address?\n\n%s", addr_data.address);
+    JADE_ASSERT(rc > 0 && rc < sizeof(buf));
+    if (!await_yesno_activity("Verify Address", buf, true)) {
+        return false;
+    }
+
+    // check network - eg. testnet address, but this jade is setup for mainnet only
+    if (!keychain_is_network_type_consistent(addr_data.network)) {
+        await_error_activity("Network type inconsistent");
+        return false;
+    }
+
+    // Map the script type
+    size_t script_type = 0;
+    if (wally_scriptpubkey_get_type(addr_data.script, addr_data.script_len, &script_type) != WALLY_OK) {
+        await_error_activity("Failed to parse scriptpubkey");
+        return false;
+    }
+    script_variant_t variant;
+    if (!get_singlesig_variant_from_script_type(script_type, &variant)) {
+        await_error_activity("Address scriptpubkey unsupported");
+        return false;
+    }
+
+    // Get the path to search
+    uint32_t path[EXPORT_XPUB_PATH_LEN];
+    size_t path_len = 0;
+    wallet_get_default_xpub_export_path(variant, path, EXPORT_XPUB_PATH_LEN, &path_len);
+    JADE_ASSERT(path_len == EXPORT_XPUB_PATH_LEN - 1);
+    path[path_len++] = 0; // 'external' (ie. not internal change) address
+
+    // Get as hdkey
+    bool verified = false;
+    struct ext_key search_root;
+    bool ret = wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &search_root);
+    JADE_ASSERT(ret);
+
+    // Search for the path that finds the given script
+    char root_path[32];
+    ret = bip32_path_as_str(path, path_len, root_path, sizeof(root_path));
+    JADE_ASSERT(ret);
+    gui_activity_t* activity = NULL;
+    gui_view_node_t* index_text = NULL;
+    progress_bar_t progress_bar = {};
+    make_search_verify_address_activity(&activity, root_path, &progress_bar, &index_text);
+    JADE_ASSERT(activity);
+    JADE_ASSERT(index_text);
+
+    // Make an event-data structure to track events - attached to the activity
+    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(activity);
+    JADE_ASSERT(event_data);
+
+    // ... and register against the activity - we will await btn events later
+    gui_activity_register_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+
+    size_t index = 0;
+    size_t confirmed_at_index = index;
+    while (true) {
+        gui_set_current_activity(activity);
+
+        // Update the progress bar and text label
+        char idx_txt[12];
+        rc = snprintf(idx_txt, sizeof(idx_txt), "%u", index);
+        JADE_ASSERT(rc > 0 && rc < sizeof(idx_txt));
+        update_progress_bar(&progress_bar, ADDRESS_NUM_INDEXES_TO_CHECK, index - confirmed_at_index);
+        gui_update_text(index_text, idx_txt);
+
+        // Search a small batch of paths for the address script
+        // NOTE: 'index' is updated as we go along
+        if (wallet_search_for_singlesig_script(
+                variant, &search_root, &index, ADDRESS_SEARCH_BATCH_SIZE, addr_data.script, addr_data.script_len)) {
+            // Address script found and matched - verified
+            // NOTE: 'index' will hold the relevant value
+            verified = true;
+            break;
+        }
+
+        // Every so often suggest to user that they might want to abandon the search
+        if (index >= confirmed_at_index + ADDRESS_NUM_INDEXES_TO_CHECK) {
+            rc = snprintf(buf, sizeof(buf), "Failed to verify address.\n\nCheck next %u addresses?",
+                ADDRESS_NUM_INDEXES_TO_CHECK);
+            JADE_ASSERT(rc > 0 && rc < sizeof(buf));
+            if (!await_yesno_activity("Verify Address", buf, true)) {
+                // Abandon - exit loop
+                break;
+            }
+            confirmed_at_index = index;
+        } else {
+            // Giver user a chance to exit or to skip this batch of addresses
+            int32_t ev_id = 0;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+            ret = sync_wait_event(
+                      GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 10 / portTICK_PERIOD_MS)
+                == ESP_OK;
+#else
+            sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, NULL, NULL,
+                CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+            ret = index > 4 * ADDRESS_NUM_INDEXES_TO_CHECK; // let it run for a few batches, then exit
+            ev_id = BTN_SCAN_ADDRESS_EXIT;
+#endif
+            if (ret) {
+                if (ev_id == BTN_SCAN_ADDRESS_SKIP_ADDRESSES) {
+                    // Jump to end of this batch
+                    index = confirmed_at_index + ADDRESS_NUM_INDEXES_TO_CHECK;
+                    confirmed_at_index = index;
+                } else if (ev_id == BTN_SCAN_ADDRESS_EXIT) {
+                    // Abandon - exit loop
+                    break;
+                }
+            }
+        }
+    }
+
+    if (verified) {
+        rc = snprintf(buf, sizeof(buf), "Address verified at path:\n\n%s/%u", root_path, index);
+        JADE_ASSERT(rc > 0 && rc < sizeof(buf));
+        await_message_activity(buf);
+    } else {
+        await_error_activity("Address NOT verified!");
+    }
+
+    return verified;
 }
 
 // Display screen with help url and qr code

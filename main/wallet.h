@@ -48,6 +48,9 @@ bool wallet_build_singlesig_script(script_variant_t script_variant, const uint32
 bool wallet_build_multisig_script(script_variant_t script_variant, bool sorted, uint8_t threshold,
     const uint8_t* pubkeys, size_t pubkeys_len, uint8_t* output, size_t output_len, size_t* written);
 
+bool wallet_search_for_singlesig_script(script_variant_t script_variant, const struct ext_key* search_root,
+    size_t* index, size_t search_depth, const uint8_t* script, size_t script_len);
+
 void wallet_get_fingerprint(uint8_t* output, size_t output_len);
 bool wallet_get_hdkey(const uint32_t* path, const size_t path_len, uint32_t flags, struct ext_key* output);
 bool wallet_get_xpub(const char* network, const uint32_t* path, size_t path_len, char** output);

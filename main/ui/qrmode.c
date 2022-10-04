@@ -157,6 +157,70 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
+void make_search_verify_address_activity(
+    gui_activity_t** activity_ptr, const char* pathstr, progress_bar_t* progress_bar, gui_view_node_t** index_text)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(progress_bar);
+    JADE_ASSERT(index_text);
+
+    gui_make_activity(activity_ptr, true, "Verify Address");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 35, 65);
+        gui_set_parent(hsplit, vsplit);
+
+        gui_view_node_t* label;
+        gui_make_text(&label, "Root Path:", TFT_WHITE);
+        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_padding(label, GUI_MARGIN_TWO_VALUES, 0, 4);
+        gui_set_parent(label, hsplit);
+
+        gui_view_node_t* text;
+        gui_make_text(&text, pathstr, TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, hsplit);
+    }
+
+    // Progress bar
+    make_progress_bar(vsplit, progress_bar);
+
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+        gui_set_parent(hsplit, vsplit);
+
+        gui_view_node_t* label;
+        gui_make_text(&label, "Current Index:", TFT_WHITE);
+        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_padding(label, GUI_MARGIN_TWO_VALUES, 0, 4);
+        gui_set_parent(label, hsplit);
+
+        gui_view_node_t* bg_fill;
+        gui_make_fill(&bg_fill, TFT_BLACK);
+        gui_set_parent(bg_fill, hsplit);
+
+        gui_view_node_t* text;
+        gui_make_text(&text, "", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, bg_fill);
+        *index_text = text;
+    }
+
+    // buttons
+    btn_data_t btns[] = { { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_EXIT },
+        { .txt = "Skip", .font = DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_SKIP_ADDRESSES } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
+
+    // Select 'Skip' button by default
+    gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+}
+
 void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, const Icon* qr_icon)
 {
     JADE_ASSERT(activity_ptr);

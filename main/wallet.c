@@ -707,6 +707,52 @@ bool wallet_build_singlesig_script(const script_variant_t script_variant, const 
     return true;
 }
 
+bool wallet_search_for_singlesig_script(const script_variant_t script_variant, const struct ext_key* search_root,
+    size_t* index, const size_t search_depth, const uint8_t* script, const size_t script_len)
+{
+    JADE_ASSERT(keychain_get());
+
+    if (!is_singlesig(script_variant) || !search_root || !index || !search_depth || !script
+        || script_len != script_length_for_variant(script_variant)) {
+        return false;
+    }
+
+    bool found = false;
+    struct ext_key derived;
+    uint8_t generated[WALLY_SCRIPTPUBKEY_P2WSH_LEN];
+    for (const size_t end = *index + search_depth; *index < end; ++*index) {
+        // Try next leaf
+        JADE_WALLY_VERIFY(
+            bip32_key_from_parent_path(search_root, index, 1, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived));
+
+        size_t written = 0;
+        if (script_variant == P2WPKH_P2SH) {
+            // Get the p2sh/p2wsh script-pubkey for the passed pubkey
+            wallet_p2sh_p2wsh_scriptpubkey_for_bytes(
+                derived.pub_key, sizeof(derived.pub_key), WALLY_SCRIPT_HASH160, generated, sizeof(generated), &written);
+        } else if (script_variant == P2WPKH) {
+            // Get a redeem script for the passed pubkey
+            JADE_WALLY_VERIFY(wally_witness_program_from_bytes(derived.pub_key, sizeof(derived.pub_key),
+                WALLY_SCRIPT_HASH160, generated, sizeof(generated), &written));
+        } else if (script_variant == P2PKH) {
+            // Get a legacy p2pkh script-pubkey for the passed pubkey
+            JADE_WALLY_VERIFY(wally_scriptpubkey_p2pkh_from_bytes(derived.pub_key, sizeof(derived.pub_key),
+                WALLY_SCRIPT_HASH160, generated, sizeof(generated), &written));
+        } else {
+            JADE_ASSERT_MSG(false, "Unrecognised script variant: %u", script_variant);
+        }
+        JADE_ASSERT(written == script_length_for_variant(script_variant));
+
+        if (written == script_len && !memcmp(generated, script, script_len)) {
+            // Found!  Update the path to reflect the index
+            JADE_LOGI("Found script at index: %u", *index);
+            found = true;
+            break;
+        }
+    }
+    return found;
+}
+
 // Function to build a [sorted-]multi-sig script - p2wsh, p2sh, or p2sh-p2wsh wrapped
 bool wallet_build_multisig_script(const script_variant_t script_variant, const bool sorted, const uint8_t threshold,
     const uint8_t* pubkeys, const size_t pubkeys_len, uint8_t* output, const size_t output_len, size_t* written)
@@ -777,11 +823,10 @@ bool wallet_get_signer_commitment(const uint8_t* signature_hash, const size_t si
 }
 
 // Function to sign an input hash with a derived key - cannot be the root key, and value must be a sha256 hash.
-// If 'ae_host_entropy' is passed it is used to generate an 'anti-exfil' signature, otherwise a standard EC signature
-// (ie. using rfc6979) is created.  The output signature is returned in DER format, with a SIGHASH_ALL postfix.
-// Output buffer size must be EC_SIGNATURE_DER_MAX_LEN.
-// NOTE: the standard EC signature will 'grind-r' to produce a 'low-r' signature, the anti-exfil case
-// cannot (as the entropy is provided explicitly).
+// If 'ae_host_entropy' is passed it is used to generate an 'anti-exfil' signature, otherwise a standard EC
+// signature (ie. using rfc6979) is created.  The output signature is returned in DER format, with a SIGHASH_ALL
+// postfix. Output buffer size must be EC_SIGNATURE_DER_MAX_LEN. NOTE: the standard EC signature will 'grind-r' to
+// produce a 'low-r' signature, the anti-exfil case cannot (as the entropy is provided explicitly).
 bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signature_hash_len, const uint32_t* path,
     const size_t path_len, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len, uint8_t* output,
     const size_t output_len, size_t* written)
@@ -1082,9 +1127,9 @@ bool wallet_get_message_hash(const uint8_t* bytes, const size_t bytes_len, uint8
 }
 
 // Function to sign a message hash with a derived key - cannot be the root key, and value must be a sha256 hash.
-// If 'ae_host_entropy' is passed it is used to generate an 'anti-exfil' signature, otherwise a standard EC signature
-// (ie. using rfc6979) is created.  The output signature is returned base64 encoded.
-// The output buffer should be of size at least EC_SIGNATURE_LEN * 2 (which should be ample).
+// If 'ae_host_entropy' is passed it is used to generate an 'anti-exfil' signature, otherwise a standard EC
+// signature (ie. using rfc6979) is created.  The output signature is returned base64 encoded. The output buffer
+// should be of size at least EC_SIGNATURE_LEN * 2 (which should be ample).
 bool wallet_sign_message_hash(const uint8_t* signature_hash, const size_t signature_hash_len, const uint32_t* path,
     const size_t path_len, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len, uint8_t* output,
     const size_t output_len, size_t* written)
