@@ -29,6 +29,36 @@
         "ticker": "tdst",
         "version": 0
     },
+    "052e401158c1057d1a420ed1392e18779dbacf76af724810f1bd15903659f411": {
+        "asset_id": "052e401158c1057d1a420ed1392e18779dbacf76af724810f1bd15903659f411",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "www.erikdesmedt.be"
+            },
+            "issuer_pubkey": "031c7305fed3f5bac640506366ff4412fe3f5c2b9c7535ff0e577b3c10211d1a13",
+            "name": "Willow Coin",
+            "precision": 2,
+            "ticker": "WILLOW",
+            "version": 0
+        },
+        "entity": {
+            "domain": "www.erikdesmedt.be"
+        },
+        "issuance_prevout": {
+            "txid": "8354591ae9a44f3546ac163bf993b4782f2251db9eb4d8c685aace49b45b1577",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "6c8c4cec2c033bcd67b99c6601770e9986768052b1ba8bdfbc0e54c71f18e4b8",
+            "vin": 0
+        },
+        "issuer_pubkey": "031c7305fed3f5bac640506366ff4412fe3f5c2b9c7535ff0e577b3c10211d1a13",
+        "name": "Willow Coin",
+        "precision": 2,
+        "ticker": "WILLOW",
+        "version": 0
+    },
     "05aa9f02a06da37f2a0a572c49ac381499a16a643ad7c70c51ac94560778c92e": {
         "asset_id": "05aa9f02a06da37f2a0a572c49ac381499a16a643ad7c70c51ac94560778c92e",
         "contract": {
@@ -176,6 +206,36 @@
         "name": "Layer2Labs",
         "precision": 2,
         "ticker": "L2B",
+        "version": 0
+    },
+    "1d0d9d4a7502608f6726dda7c6b7c97333a23316bb47c3e42ab41399a8c85a14": {
+        "asset_id": "1d0d9d4a7502608f6726dda7c6b7c97333a23316bb47c3e42ab41399a8c85a14",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "www.erikdesmedt.be"
+            },
+            "issuer_pubkey": "02523c664345e98503e139772c5258855c09677f30d5ddab62fd360ded445ee73b",
+            "name": "ELM Tree",
+            "precision": 2,
+            "ticker": "ELM",
+            "version": 0
+        },
+        "entity": {
+            "domain": "www.erikdesmedt.be"
+        },
+        "issuance_prevout": {
+            "txid": "dc938470ad8a2becb21862268ba7e17420051b99a0a767d7210adff2bbb005c1",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "8354591ae9a44f3546ac163bf993b4782f2251db9eb4d8c685aace49b45b1577",
+            "vin": 0
+        },
+        "issuer_pubkey": "02523c664345e98503e139772c5258855c09677f30d5ddab62fd360ded445ee73b",
+        "name": "ELM Tree",
+        "precision": 2,
+        "ticker": "ELM",
         "version": 0
     },
     "223cebdfe6f50541b42abe53378494f7a0139ebd047237f516884e13f0b40c9e": {
@@ -356,6 +416,36 @@
         "ticker": "SMRND",
         "version": 0
     },
+    "4470f7fd9a893e5d5038eac82bf1b87019f2fae4034ac7eb403da416900af2ff": {
+        "asset_id": "4470f7fd9a893e5d5038eac82bf1b87019f2fae4034ac7eb403da416900af2ff",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "aldin-sxr.dev"
+            },
+            "issuer_pubkey": "02fd2ce05d2e54e71153662a51b4e7b645f4ec33eb00f31b2e5678eaec7cec75e8",
+            "name": "Testy McToken",
+            "precision": 0,
+            "ticker": "ALD2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "aldin-sxr.dev"
+        },
+        "issuance_prevout": {
+            "txid": "025eea41de3d561052848d644d8ad7cba8e692687bd3e63dc6a4c232b9d001a1",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "edd7df63aeb824921720157db6f47580dba3f06a3d11c557266a89e805062e7e",
+            "vin": 0
+        },
+        "issuer_pubkey": "02fd2ce05d2e54e71153662a51b4e7b645f4ec33eb00f31b2e5678eaec7cec75e8",
+        "name": "Testy McToken",
+        "precision": 0,
+        "ticker": "ALD2",
+        "version": 0
+    },
     "4799d8ec0f64b97ab7b64668c27f5f6452586192a4e2ba73b20b345dc80a82f7": {
         "asset_id": "4799d8ec0f64b97ab7b64668c27f5f6452586192a4e2ba73b20b345dc80a82f7",
         "collection": null,
@@ -444,6 +534,36 @@
         "name": "GRSDF token",
         "precision": 0,
         "ticker": "GRSDF",
+        "version": 0
+    },
+    "57be20177b97cb9b64edb742f36379b27b38462d55dbf09fbef2ac0099009ac4": {
+        "asset_id": "57be20177b97cb9b64edb742f36379b27b38462d55dbf09fbef2ac0099009ac4",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "aldin-sxr.dev"
+            },
+            "issuer_pubkey": "02fd2ce05d2e54e71153662a51b4e7b645f4ec33eb00f31b2e5678eaec7cec75e8",
+            "name": "Testy McToken",
+            "precision": 0,
+            "ticker": "ALD1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "aldin-sxr.dev"
+        },
+        "issuance_prevout": {
+            "txid": "0886f4530a84322e9c959a7599b8efc88bda2b7e04d17f66ad394d9b36d53464",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "e478eec4186ba0dc1da0ce500602a89690d65921d6ac32e7acba729845ae610d",
+            "vin": 0
+        },
+        "issuer_pubkey": "02fd2ce05d2e54e71153662a51b4e7b645f4ec33eb00f31b2e5678eaec7cec75e8",
+        "name": "Testy McToken",
+        "precision": 0,
+        "ticker": "ALD1",
         "version": 0
     },
     "58af36e1b529b42f3e4ccce812924380058cae18b2ad26c89805813a9db25980": {
@@ -862,6 +982,37 @@
         "name": "Testy McToken",
         "precision": 2,
         "ticker": "TSTMT",
+        "version": 0
+    },
+    "a59a97127667799310d9bfbdf69402b65a73c3e8b18a303df4018896eacafc9c": {
+        "asset_id": "a59a97127667799310d9bfbdf69402b65a73c3e8b18a303df4018896eacafc9c",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "lab.r3c.network"
+            },
+            "issuer_pubkey": "03abdff9c83b343b5c70309c4fad84f38137c4267c4fcd1bad0b9765e9cf3bf71b",
+            "name": "Tofutoken2",
+            "nft": "QmQqNpuRGrdB1EBV2qj4Di6DKzRyukwwPCXXCtfyRwkVxW",
+            "precision": 0,
+            "ticker": "TOF2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "lab.r3c.network"
+        },
+        "issuance_prevout": {
+            "txid": "202a1ba493cc848d2d24bf739b4a6cb23074bd0054aa4c93c5e3aa5bde2813a0",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "0694795ea33cb4a62c36d137ef057b573bc82d5ce6968066dc07c1e42d76e306",
+            "vin": 0
+        },
+        "issuer_pubkey": "03abdff9c83b343b5c70309c4fad84f38137c4267c4fcd1bad0b9765e9cf3bf71b",
+        "name": "Tofutoken2",
+        "precision": 0,
+        "ticker": "TOF2",
         "version": 0
     },
     "ac3e0ff248c5051ffd61e00155b7122e5ebc04fd397a0ecbdd4f4e4a56232926": {

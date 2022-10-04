@@ -4780,36 +4780,6 @@
         "ticker": "GLaGu",
         "version": 0
     },
-    "335eb2da7d8de461b8d0a1e19f5f67b053e14728faeb298fa241ea7edde661ed": {
-        "asset_id": "335eb2da7d8de461b8d0a1e19f5f67b053e14728faeb298fa241ea7edde661ed",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "stevenminnaar.com"
-            },
-            "issuer_pubkey": "03ac7b73e216aa98bb6504aec828b3e19388d0ce03bf50e7ae92270323ccd3cad9",
-            "name": "MM-01415",
-            "precision": 0,
-            "ticker": "MM-01415",
-            "version": 0
-        },
-        "entity": {
-            "domain": "stevenminnaar.com"
-        },
-        "issuance_prevout": {
-            "txid": "d724463dd3722807e6d8b042bb93a3e0af32b7c29154dac4112551e010dd2b5a",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "e56fe437c6cd8d7edb0e301321e7e8a15c5a20940cf121449fe88b9c28615347",
-            "vin": 0
-        },
-        "issuer_pubkey": "03ac7b73e216aa98bb6504aec828b3e19388d0ce03bf50e7ae92270323ccd3cad9",
-        "name": "MM-01415",
-        "precision": 0,
-        "ticker": "MM-01415",
-        "version": 0
-    },
     "33633acd8dde02d11584730504513d90f599934e70d3301a4b2e1306db527144": {
         "asset_id": "33633acd8dde02d11584730504513d90f599934e70d3301a4b2e1306db527144",
         "collection": null,
@@ -4868,6 +4838,36 @@
         "name": "Bitcoin Runner",
         "precision": 0,
         "ticker": "CBiRu",
+        "version": 0
+    },
+    "3418024748c99a3cb54477fd7619d3a73c2c76ee58df8dd34fea3a04f3fa2e4e": {
+        "asset_id": "3418024748c99a3cb54477fd7619d3a73c2c76ee58df8dd34fea3a04f3fa2e4e",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "store.blockstream.com"
+            },
+            "issuer_pubkey": "020731c70db3f8bcad24068f995694bcf15ba0eadb3f8d3063422041d9c1c8128b",
+            "name": "Blockstream Supercharged Shirt Token",
+            "precision": 0,
+            "ticker": "B-SCH",
+            "version": 0
+        },
+        "entity": {
+            "domain": "store.blockstream.com"
+        },
+        "issuance_prevout": {
+            "txid": "49a6e42ad37ab3e5ed0cdcd9a5f51560274817008e7d1c709526ca0792c7db17",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "8b6ee887a6188f987734167e179db80afb023d85349e920225437283d88a0edd",
+            "vin": 0
+        },
+        "issuer_pubkey": "020731c70db3f8bcad24068f995694bcf15ba0eadb3f8d3063422041d9c1c8128b",
+        "name": "Blockstream Supercharged Shirt Token",
+        "precision": 0,
+        "ticker": "B-SCH",
         "version": 0
     },
     "3422fb15e1f489e8f01a3f25bb246c846432f1e371c794ffe40b6695d18cdaa1": {
@@ -7639,36 +7639,6 @@
         "ticker": "ZAR",
         "version": 0
     },
-    "4ffafd45c51ac7cebb5dc9eab8a2b01617fbc4e3e4791a60e399e2fc3742d833": {
-        "asset_id": "4ffafd45c51ac7cebb5dc9eab8a2b01617fbc4e3e4791a60e399e2fc3742d833",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "stevenminnaar.com"
-            },
-            "issuer_pubkey": "0291d928b05c1f804796f2f9c03d237519996aff4e917f5e12f164027ff102b441",
-            "name": "MM-01403",
-            "precision": 0,
-            "ticker": "MM-01403",
-            "version": 0
-        },
-        "entity": {
-            "domain": "stevenminnaar.com"
-        },
-        "issuance_prevout": {
-            "txid": "1e1f978fd0b314e3b2b9da58e79ca830243cf5cfb9b5a7ed8293e78e461e092b",
-            "vout": 0
-        },
-        "issuance_txin": {
-            "txid": "a4cc6e1adb561121cd5a0478d74231db4574e45f6c8834975685478dbbef3689",
-            "vin": 0
-        },
-        "issuer_pubkey": "0291d928b05c1f804796f2f9c03d237519996aff4e917f5e12f164027ff102b441",
-        "name": "MM-01403",
-        "precision": 0,
-        "ticker": "MM-01403",
-        "version": 0
-    },
     "505b46ce7a60f3bb0377468aa7edcf138c3d6441344ddd71da72c1b3dc9de6f5": {
         "asset_id": "505b46ce7a60f3bb0377468aa7edcf138c3d6441344ddd71da72c1b3dc9de6f5",
         "contract": {
@@ -8841,6 +8811,36 @@
         "name": "Anadromidtoken",
         "precision": 0,
         "ticker": "ANAT",
+        "version": 0
+    },
+    "5f0334ada492bcc7da294d25b6c2e4b131cde183be60aa99d6b596ac946b4c80": {
+        "asset_id": "5f0334ada492bcc7da294d25b6c2e4b131cde183be60aa99d6b596ac946b4c80",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "store.blockstream.com"
+            },
+            "issuer_pubkey": "034d3928827d55cee2f348f00b73295c2a7adf8fd5ea20957ef79364d3d25a2fa8",
+            "name": "Blockstream Satellite Shirt Token",
+            "precision": 0,
+            "ticker": "B-SAT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "store.blockstream.com"
+        },
+        "issuance_prevout": {
+            "txid": "2ae51b6944903ce573740f5439f90785f8ea1b2bcc9c614f3e4d98e10fd8536b",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "51013c59f57ef63c0fef92b9c7685a0f1633ccd00f21d9246032ebf1e253de65",
+            "vin": 0
+        },
+        "issuer_pubkey": "034d3928827d55cee2f348f00b73295c2a7adf8fd5ea20957ef79364d3d25a2fa8",
+        "name": "Blockstream Satellite Shirt Token",
+        "precision": 0,
+        "ticker": "B-SAT",
         "version": 0
     },
     "5f3567ecec038ecc0703de975a5738be823916cffda0cff8a276f5f0b0142f19": {
@@ -12954,35 +12954,6 @@
         "ticker": "L-SPR",
         "version": 0
     },
-    "8811c67055473c679bd2d750dbe5185a38b421e8b5f5bdd32e3683f29e54d955": {
-        "asset_id": "8811c67055473c679bd2d750dbe5185a38b421e8b5f5bdd32e3683f29e54d955",
-        "contract": {
-            "entity": {
-                "domain": "stevenminnaar.com"
-            },
-            "issuer_pubkey": "030050831da114305857c5f42ad7981611fd34a59939c65f2546e3834841d6f270",
-            "name": "Minnaar Money - 00001",
-            "precision": 8,
-            "ticker": "MM1",
-            "version": 0
-        },
-        "entity": {
-            "domain": "stevenminnaar.com"
-        },
-        "issuance_prevout": {
-            "txid": "911c9c80b87e9295dd035417b448365a522022189a38888d5e8d97a0ff003730",
-            "vout": 0
-        },
-        "issuance_txin": {
-            "txid": "36991f71e11f72132c71025f99ea146d615f5f222bb1b8f85ed58ce1e10f32ba",
-            "vin": 0
-        },
-        "issuer_pubkey": "030050831da114305857c5f42ad7981611fd34a59939c65f2546e3834841d6f270",
-        "name": "Minnaar Money - 00001",
-        "precision": 8,
-        "ticker": "MM1",
-        "version": 0
-    },
     "883742be1721342b390e8ee11a028398f9bb5f7952bbc133ae5d2c0101da9356": {
         "asset_id": "883742be1721342b390e8ee11a028398f9bb5f7952bbc133ae5d2c0101da9356",
         "contract": {
@@ -13303,36 +13274,6 @@
         "name": "Businessman",
         "precision": 0,
         "ticker": "CBusi",
-        "version": 0
-    },
-    "8c6686a66f7242f8a7a53c919fe68819e27e424a70f8f5923cd7ba7d00fa20e6": {
-        "asset_id": "8c6686a66f7242f8a7a53c919fe68819e27e424a70f8f5923cd7ba7d00fa20e6",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "stevenminnaar.com"
-            },
-            "issuer_pubkey": "030e8b8a3ad257006aa95c0d17b866e6891dfe3aafa5144c607c2080f2a09d902c",
-            "name": "MM-01414",
-            "precision": 0,
-            "ticker": "MM-01414",
-            "version": 0
-        },
-        "entity": {
-            "domain": "stevenminnaar.com"
-        },
-        "issuance_prevout": {
-            "txid": "98b075da5b9cf84244500409e27b9c8d1ec3a0f88a33fab0362f76161daafaca",
-            "vout": 2
-        },
-        "issuance_txin": {
-            "txid": "d724463dd3722807e6d8b042bb93a3e0af32b7c29154dac4112551e010dd2b5a",
-            "vin": 0
-        },
-        "issuer_pubkey": "030e8b8a3ad257006aa95c0d17b866e6891dfe3aafa5144c607c2080f2a09d902c",
-        "name": "MM-01414",
-        "precision": 0,
-        "ticker": "MM-01414",
         "version": 0
     },
     "8ce460536b8c711be395bb7af0f6b61eedcdced511f99949f9b731bad7a75801": {
@@ -13803,6 +13744,36 @@
         "name": "DeutscherAktienindeX",
         "precision": 8,
         "ticker": "DAX",
+        "version": 0
+    },
+    "92dbe401135617326d09b2f0ba8ae35b2282d86cc8b8bbe38c057b1b3d8433cd": {
+        "asset_id": "92dbe401135617326d09b2f0ba8ae35b2282d86cc8b8bbe38c057b1b3d8433cd",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "affectonline.com"
+            },
+            "issuer_pubkey": "039e6086a97874571f9edb4a670c64faf9179cdfad9f49a68db77dcdcd1592fefc",
+            "name": "Vote Token",
+            "precision": 0,
+            "ticker": "Vote",
+            "version": 0
+        },
+        "entity": {
+            "domain": "affectonline.com"
+        },
+        "issuance_prevout": {
+            "txid": "2a90e55f7db01da2ffb08ea2e11da1aa0e40d09fd376d1a1024308e7e2916d2e",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "02bff82d7ddb798e108e7840df9b49f7479d7e0835b764558dce904ce9fb3f45",
+            "vin": 0
+        },
+        "issuer_pubkey": "039e6086a97874571f9edb4a670c64faf9179cdfad9f49a68db77dcdcd1592fefc",
+        "name": "Vote Token",
+        "precision": 0,
+        "ticker": "Vote",
         "version": 0
     },
     "9308771507f3034cbadc488ee3a99a1d1e0fa4e28198cba549521ab4da60efb1": {
@@ -14894,36 +14865,6 @@
         "ticker": "TESH",
         "version": 0
     },
-    "9d2460b57cde59900b8c3527f0aab379e09903e577ecbbc3f02573b4f13170fc": {
-        "asset_id": "9d2460b57cde59900b8c3527f0aab379e09903e577ecbbc3f02573b4f13170fc",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "stevenminnaar.com"
-            },
-            "issuer_pubkey": "03f2706bb048940b91c39dfcd12246d75a7d7bf8d38f60b8e0020b312dc6b2e13f",
-            "name": "MM-01413",
-            "precision": 0,
-            "ticker": "MM-01413",
-            "version": 0
-        },
-        "entity": {
-            "domain": "stevenminnaar.com"
-        },
-        "issuance_prevout": {
-            "txid": "d724463dd3722807e6d8b042bb93a3e0af32b7c29154dac4112551e010dd2b5a",
-            "vout": 0
-        },
-        "issuance_txin": {
-            "txid": "397ea2bc4d6cd02fc359166be4a8e78da5fecd3f5a3738e9b6fc0b7e190bc1b8",
-            "vin": 0
-        },
-        "issuer_pubkey": "03f2706bb048940b91c39dfcd12246d75a7d7bf8d38f60b8e0020b312dc6b2e13f",
-        "name": "MM-01413",
-        "precision": 0,
-        "ticker": "MM-01413",
-        "version": 0
-    },
     "9d84d41daa77056731ad558d82e0e5409eea74d648fd5947caef5587fe19de61": {
         "asset_id": "9d84d41daa77056731ad558d82e0e5409eea74d648fd5947caef5587fe19de61",
         "contract": {
@@ -14980,35 +14921,6 @@
         "name": "Chainlink",
         "precision": 8,
         "ticker": "LINK",
-        "version": 0
-    },
-    "9e9ed72fd5c581aa1f97a7829f48022cfe0787bef9a881fd7f3b8be6b81e36d0": {
-        "asset_id": "9e9ed72fd5c581aa1f97a7829f48022cfe0787bef9a881fd7f3b8be6b81e36d0",
-        "contract": {
-            "entity": {
-                "domain": "stevenminnaar.com"
-            },
-            "issuer_pubkey": "026086dcc4e83f61aee93cb093f0d012e5005a3a6cbedc6becc5aa57fb42abaac4",
-            "name": "Minnaar Money Redemption Tokens",
-            "precision": 8,
-            "ticker": "MMRT",
-            "version": 0
-        },
-        "entity": {
-            "domain": "stevenminnaar.com"
-        },
-        "issuance_prevout": {
-            "txid": "357cec92485cd7adb869d4b29f74824c27866c5a2425f6d50d4e0c4d7947ef3e",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "e28f46a6e192887f54a6f8ced07825e1b844a588f76643bdd02edb36abb43ffa",
-            "vin": 0
-        },
-        "issuer_pubkey": "026086dcc4e83f61aee93cb093f0d012e5005a3a6cbedc6becc5aa57fb42abaac4",
-        "name": "Minnaar Money Redemption Tokens",
-        "precision": 8,
-        "ticker": "MMRT",
         "version": 0
     },
     "9f082ea483624a5d4384a899b0e4971bc5af18601eb8ed4abb70f32ec2920251": {
@@ -15652,36 +15564,6 @@
         "name": "Silk",
         "precision": 0,
         "ticker": "SILA",
-        "version": 0
-    },
-    "a756021d7792d940c4687ebf400871f84ea557ce9457e48a89fc497d060aeda9": {
-        "asset_id": "a756021d7792d940c4687ebf400871f84ea557ce9457e48a89fc497d060aeda9",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "stevenminnaar.com"
-            },
-            "issuer_pubkey": "03639f074b9214224c86c22a63d1dc485ff50cef8c0563a1e57c96272a5ff4b727",
-            "name": "MM-01412",
-            "precision": 0,
-            "ticker": "MM-01412",
-            "version": 0
-        },
-        "entity": {
-            "domain": "stevenminnaar.com"
-        },
-        "issuance_prevout": {
-            "txid": "e56fe437c6cd8d7edb0e301321e7e8a15c5a20940cf121449fe88b9c28615347",
-            "vout": 1
-        },
-        "issuance_txin": {
-            "txid": "dd1baea0db2db87eec9b05c85761f2f669cf27340e30d6589ca9c41b4785e976",
-            "vin": 0
-        },
-        "issuer_pubkey": "03639f074b9214224c86c22a63d1dc485ff50cef8c0563a1e57c96272a5ff4b727",
-        "name": "MM-01412",
-        "precision": 0,
-        "ticker": "MM-01412",
         "version": 0
     },
     "a777ac6b5b3df92dc965a8f0c05eea7dddee2197a5ad2f095a942abe05d63f3f": {
@@ -17303,6 +17185,36 @@
         "name": "Wintercoin",
         "precision": 0,
         "ticker": "WTX",
+        "version": 0
+    },
+    "b8fb564cea1e44509c5d67a69734b0b255f89a08a76d3884b4d5553f08115763": {
+        "asset_id": "b8fb564cea1e44509c5d67a69734b0b255f89a08a76d3884b4d5553f08115763",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "store.blockstream.com"
+            },
+            "issuer_pubkey": "03e62e087e65d33e6945cd07813f19b128e4f16173562e68426850ce4f6e0eea8e",
+            "name": "Blockstream RSA Shirt Token",
+            "precision": 0,
+            "ticker": "B-RSA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "store.blockstream.com"
+        },
+        "issuance_prevout": {
+            "txid": "2ae51b6944903ce573740f5439f90785f8ea1b2bcc9c614f3e4d98e10fd8536b",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "49a6e42ad37ab3e5ed0cdcd9a5f51560274817008e7d1c709526ca0792c7db17",
+            "vin": 0
+        },
+        "issuer_pubkey": "03e62e087e65d33e6945cd07813f19b128e4f16173562e68426850ce4f6e0eea8e",
+        "name": "Blockstream RSA Shirt Token",
+        "precision": 0,
+        "ticker": "B-RSA",
         "version": 0
     },
     "b8ffc900f6c7a6612b2d57d4f0f3aa7fc84e06f7f337cbd44e9df8099e828778": {
@@ -18977,6 +18889,37 @@
         "name": "El Fefo",
         "precision": 8,
         "ticker": "FEFO",
+        "version": 0
+    },
+    "c9bb032202855fc324eb147e3f81ace9d90951fc9494022afee06c4a5a02a5b8": {
+        "asset_id": "c9bb032202855fc324eb147e3f81ace9d90951fc9494022afee06c4a5a02a5b8",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bid.nftglee.com"
+            },
+            "file": "Qma95jzzRbfUVU9Z3ZQDfqBFYM8urCaiGPpoYwJdpc4U9w",
+            "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+            "name": "Bitcoin Bob - #001 Edition ",
+            "precision": 0,
+            "ticker": "BB1U",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bid.nftglee.com"
+        },
+        "issuance_prevout": {
+            "txid": "6ae4cdeec10d406bbe456cbc211217626028c9e2c6050fdfe78cf55fc4d48847",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "74389501c3b12e26bbd1944a540c7e6b58dd89b20ee3171f97073f81b8b9c2f1",
+            "vin": 0
+        },
+        "issuer_pubkey": "02b396b45a0835ef625fe2e798387535cbf85491d938083f7c5c05a102c6620d9f",
+        "name": "Bitcoin Bob - #001 Edition ",
+        "precision": 0,
+        "ticker": "BB1U",
         "version": 0
     },
     "ca12df2be877f27e9c663b2f1857fe471ce4e39f51340d00405bf2c16642749d": {
@@ -22852,6 +22795,36 @@
         "ticker": "DA-T",
         "version": 0
     },
+    "f79d5ff48b78baab44c70b6a8b876785d8aea981ca33e4b600d60d418563ffe7": {
+        "asset_id": "f79d5ff48b78baab44c70b6a8b876785d8aea981ca33e4b600d60d418563ffe7",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "digtl.co"
+            },
+            "issuer_pubkey": "031057f450794ca757c1afe44909af878fc81a89e65a8b8174ec91fe371bb744e9",
+            "name": "Insider Portfolio",
+            "precision": 8,
+            "ticker": "INSDR",
+            "version": 0
+        },
+        "entity": {
+            "domain": "digtl.co"
+        },
+        "issuance_prevout": {
+            "txid": "22dfa76f28dc5fbe3d31a8d5028ca04c76e9cfc310e6760d1a87bb82e585a6e4",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "008a2251982554e3540961c1265a7d8e4e564edb86044e78bcfcd27152092087",
+            "vin": 0
+        },
+        "issuer_pubkey": "031057f450794ca757c1afe44909af878fc81a89e65a8b8174ec91fe371bb744e9",
+        "name": "Insider Portfolio",
+        "precision": 8,
+        "ticker": "INSDR",
+        "version": 0
+    },
     "f7bd527986cb22e630a7c93aa734607c073b19c865bc8fe9abd0bfc259c94c7c": {
         "asset_id": "f7bd527986cb22e630a7c93aa734607c073b19c865bc8fe9abd0bfc259c94c7c",
         "contract": {
@@ -22879,36 +22852,6 @@
         "name": "Egamers Trooper",
         "precision": 0,
         "ticker": "BEgTr",
-        "version": 0
-    },
-    "f8351b19d34eda0696972a7e00aa745e7630936eeb8645fcd34b3bc3a6cd827c": {
-        "asset_id": "f8351b19d34eda0696972a7e00aa745e7630936eeb8645fcd34b3bc3a6cd827c",
-        "collection": null,
-        "contract": {
-            "entity": {
-                "domain": "stevenminnaar.com"
-            },
-            "issuer_pubkey": "032610645bf6df8c1606ead0186b15b9a1957ad3525027e6f7090619bddfd89c48",
-            "name": "MM-00545",
-            "precision": 0,
-            "ticker": "MM-00545",
-            "version": 0
-        },
-        "entity": {
-            "domain": "stevenminnaar.com"
-        },
-        "issuance_prevout": {
-            "txid": "28a358dab22c42d103a3767c718e6d0a799ff1fffdc0ebc1fa812bd51f9ef76e",
-            "vout": 0
-        },
-        "issuance_txin": {
-            "txid": "98b075da5b9cf84244500409e27b9c8d1ec3a0f88a33fab0362f76161daafaca",
-            "vin": 0
-        },
-        "issuer_pubkey": "032610645bf6df8c1606ead0186b15b9a1957ad3525027e6f7090619bddfd89c48",
-        "name": "MM-00545",
-        "precision": 0,
-        "ticker": "MM-00545",
         "version": 0
     },
     "f8433d3faac8615880fca46199ea4d5053b6e754a2eea34f8bcaaeaab64e794d": {
