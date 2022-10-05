@@ -533,16 +533,19 @@ static void initialise_wallet(const bool emergency_restore)
     }
 }
 
-static void offer_temporary_wallet_login(void)
+static bool offer_temporary_wallet_login(void)
 {
-    const bool bRestore = await_yesno_activity("Temporary Login",
-        "Do you want to temporarily\nlogin using a recovery phrase?\nThis doesn't affect your PIN\nsaved wallet, if "
-        "any.",
-        true);
-
-    if (bRestore) {
-        initialise_wallet(true);
+    if (!await_yesno_activity("Temporary Login",
+            "Do you want to temporarily\nlogin using a recovery phrase?\nThis doesn't affect your PIN\nsaved wallet, "
+            "if any.",
+            true)) {
+        // User decided against it
+        return false;
     }
+
+    // Initialise 'temporary' wallet
+    initialise_wallet(true);
+    return true;
 }
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
@@ -1146,7 +1149,11 @@ static void handle_settings(const bool startup_menu)
             break;
 
         case BTN_SETTINGS_TEMPORARY_WALLET_LOGIN:
-            offer_temporary_wallet_login();
+            // If the user starts the process of creating a temporary wallet, we must break out here and not
+            // go back to the menu, as a) the 'auth_user' message probably needs to be handled asap, and b) the
+            // setup process may have invalidated the menu screens/activities we are using in this loop.
+            // ofc if the user declines starting the process, staying in the loop is fine/correct.
+            done = offer_temporary_wallet_login();
             break;
 
         case BTN_SETTINGS_OTP_VIEW:
