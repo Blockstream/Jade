@@ -117,6 +117,8 @@ typedef enum {
     BTN_OTP_DELETE,
     BTN_OTP_EXIT,
 
+    BTN_EXIT_QR_HELP,
+
     // NOTE: Always leave these ones last as keyboard buttons use
     // BTN_KEYBOARD_ASCII_OFFSET + <ascii-value>
     BTN_KEYBOARD_BACKSPACE,
