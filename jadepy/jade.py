@@ -1401,6 +1401,23 @@ class JadeAPI:
         # Send inputs and receive signatures
         return self._send_tx_inputs(base_id, inputs, use_ae_signatures)
 
+    def sign_psbt(self, psbt):
+        """
+        RPC call to sign a passed psbt as required
+
+        Parameters
+        ----------
+        psbt : bytes
+            The psbt formatted as bytes
+
+        Returns
+        -------
+        bytes
+            The psbt, updated with any signatures required from the hw signer
+        """
+        params = {'psbt': psbt}
+        return self._jadeRpc('sign_psbt', params)
+
 
 class JadeInterface:
     """

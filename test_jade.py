@@ -67,6 +67,10 @@ def _h2b_test_case(testcase):
         if 'expected_output' in testcase:
             testcase['expected_output'] = h2b(testcase['expected_output'])
 
+    elif 'psbt' in testcase['input']:
+        testcase['input']['psbt'] = base64.b64decode(testcase['input']['psbt'])
+        testcase['expected_output'] = base64.b64decode(testcase['expected_output'])
+
     elif 'message' in testcase['input']:
         # sign-msg test data
         if 'ae_host_commitment' in testcase['input']:
@@ -383,6 +387,7 @@ SIGN_TXN_FAIL_CASES = "badtxn_*.json"
 SIGN_LIQUID_TXN_TESTS = "liquid_txn_*.json"
 SIGN_TXN_SINGLE_SIG_TESTS = "singlesig_txn*.json"
 SIGN_LIQUID_TXN_SINGLE_SIG_TESTS = "singlesig_liquid_txn*.json"
+SIGN_PSBT_TESTS = "psbt_*.json"
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -1195,6 +1200,14 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'message': 'XYZ', 'path': [0, 1, 2] * 6}), 'extract valid path'),
                   (('badsignmsg14', 'sign_message',  # path value too large
                     {'message': 'XYZ', 'path': [0xFFFFFFFF + 1]}), 'extract valid path'),
+
+                  (('badsignpsbt1', 'sign_psbt'), 'Expecting parameters map'),
+                  (('badsignpsbt2', 'sign_psbt', {'psbt': None}), 'extract psbt bytes'),
+                  (('badsignpsbt3', 'sign_psbt', {'psbt': 'bad type'}), 'extract psbt bytes'),
+                  (('badsignpsbt4', 'sign_psbt',
+                    {'psbt': bytes(4096)}), 'will be too large to transmit'),
+                  (('badsignpsbt5', 'sign_psbt',
+                    {'psbt': bytes(256)}), 'extract psbt from passed bytes'),
 
                   (('badsigntx1', 'sign_tx'), 'Expecting parameters map'),
                   (('badsigntx2', 'sign_tx',
@@ -2276,6 +2289,12 @@ def test_sign_liquid_tx(jadeapi, pattern):
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
 
+def test_sign_psbt(jadeapi):
+    for txn_data in _get_test_cases(SIGN_PSBT_TESTS):
+        rslt = jadeapi.sign_psbt(txn_data['input']['psbt'])
+        assert rslt == txn_data['expected_output'], base64.b64encode(rslt).decode()
+
+
 # Helper to check a multisig registration
 def _check_multisig_registration(jadeapi, multisig_data):
     # Register the multisig
@@ -2753,6 +2772,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_get_singlesig_receive_address(jadeapi)
     test_sign_tx(jadeapi, SIGN_TXN_SINGLE_SIG_TESTS)
     test_sign_liquid_tx(jadeapi, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
+
+    test_sign_psbt(jadeapi)
 
     # Test the generic multisigs again, using a second signer
     # NOTE: some of these tests assume 'test_generic_multisig_registration()' test

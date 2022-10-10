@@ -1661,6 +1661,41 @@ get_signature reply (sign_liquid_tx)
 * 'result' will be the bytes for the signature for the corresponding input, in DER format with the sighash appended.
 * 'result' will be empty, if no signature was required for this input.
 
+.. _sign_psbt_request:
+
+sign_psbt request
+-----------------
+
+Request to append signatures to a passed psbt, using RFC6979.
+
+.. code-block:: cbor
+
+    {
+        "id": "6979",
+        "method": "sign_psbt",
+        "params": {
+            "psbt": <psbt bytes>
+        }
+    }
+
+* Any inputs requiring signatures from this wallet (as identified by fingerprint) are generated and appended to the passed psbt.
+
+.. _sign_psbt_reply:
+
+sign_psbt
+---------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed signing on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "6979",
+        "result": <psbt bytes>
+    }
+
+* 'result' is the input psbt updated with any generated signatures.
+
 
 Indices and tables
 ==================

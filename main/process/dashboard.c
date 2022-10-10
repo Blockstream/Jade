@@ -51,6 +51,7 @@ void get_identity_pubkey_process(void* process_ptr);
 void get_identity_shared_key_process(void* process_ptr);
 void sign_identity_process(void* process_ptr);
 void sign_message_process(void* process_ptr);
+void sign_psbt_process(void* process_ptr);
 void sign_tx_process(void* process_ptr);
 void get_master_blinding_key_process(void* process_ptr);
 void get_blinding_key_process(void* process_ptr);
@@ -388,6 +389,8 @@ static void dispatch_message(jade_process_t* process)
             task_function = sign_identity_process;
         } else if (IS_METHOD("sign_message")) {
             task_function = sign_message_process;
+        } else if (IS_METHOD("sign_psbt")) {
+            task_function = sign_psbt_process;
         } else if (IS_METHOD("sign_tx")) {
             task_function = sign_tx_process;
         } else if (IS_METHOD("sign_liquid_tx")) {
