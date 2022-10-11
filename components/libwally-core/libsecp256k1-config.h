@@ -24,7 +24,7 @@
 #define ENABLE_MODULE_ECDSA_S2C 1
 
 /* Define this symbol to enable the extrakeys module */
-/* #undef ENABLE_MODULE_EXTRAKEYS */
+#define ENABLE_MODULE_EXTRAKEYS 1
 
 /* Define this symbol to enable the NUMS generator module */
 #define ENABLE_MODULE_GENERATOR 1
