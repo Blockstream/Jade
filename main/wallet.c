@@ -623,12 +623,12 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
 }
 
 // Function to build a single-sig script - legacy-p2pkh, native segwit p2wpkh, or a p2sh-wrapped p2wpkh
-bool wallet_build_singlesig_script(const char* network, const script_variant_t script_variant, const uint32_t* path,
-    const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
+bool wallet_build_singlesig_script(const script_variant_t script_variant, const uint32_t* path, const size_t path_len,
+    uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
-    if (!network || !is_singlesig(script_variant) || !path || path_len == 0 || !output
+    if (!is_singlesig(script_variant) || !path || path_len == 0 || !output
         || output_len < script_length_for_variant(script_variant) || !written) {
         return false;
     }
@@ -668,13 +668,12 @@ bool wallet_build_singlesig_script(const char* network, const script_variant_t s
 }
 
 // Function to build a [sorted-]multi-sig script - p2wsh, p2sh, or p2sh-p2wsh wrapped
-bool wallet_build_multisig_script(const char* network, const script_variant_t script_variant, const bool sorted,
-    const uint8_t threshold, const uint8_t* pubkeys, const size_t pubkeys_len, uint8_t* output, const size_t output_len,
-    size_t* written)
+bool wallet_build_multisig_script(const script_variant_t script_variant, const bool sorted, const uint8_t threshold,
+    const uint8_t* pubkeys, const size_t pubkeys_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
-    if (!network || !is_multisig(script_variant) || !pubkeys || pubkeys_len == 0 || !output
+    if (!is_multisig(script_variant) || !pubkeys || pubkeys_len == 0 || !output
         || output_len < script_length_for_variant(script_variant) || !written) {
         return false;
     }

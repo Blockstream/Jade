@@ -41,9 +41,9 @@ void wallet_build_receive_path(
 
 bool wallet_build_ga_script(const char* network, const char* xpubrecovery, size_t csvBlocks, const uint32_t* path,
     size_t path_len, uint8_t* output, size_t output_len, size_t* written);
-bool wallet_build_singlesig_script(const char* network, script_variant_t script_variant, const uint32_t* path,
-    size_t path_len, uint8_t* output, size_t output_len, size_t* written);
-bool wallet_build_multisig_script(const char* network, script_variant_t script_variant, bool sorted, uint8_t threshold,
+bool wallet_build_singlesig_script(script_variant_t script_variant, const uint32_t* path, size_t path_len,
+    uint8_t* output, size_t output_len, size_t* written);
+bool wallet_build_multisig_script(script_variant_t script_variant, bool sorted, uint8_t threshold,
     const uint8_t* pubkeys, size_t pubkeys_len, uint8_t* output, size_t output_len, size_t* written);
 
 void wallet_get_fingerprint(uint8_t* output, size_t output_len);

@@ -74,8 +74,8 @@ void get_receive_address_process(void* process_ptr)
         }
 
         // Build a script pubkey for the passed parameters
-        if (!wallet_build_multisig_script(network, multisig_data.variant, multisig_data.sorted, multisig_data.threshold,
-                pubkeys, written, script, sizeof(script), &script_len)) {
+        if (!wallet_build_multisig_script(multisig_data.variant, multisig_data.sorted, multisig_data.threshold, pubkeys,
+                written, script, sizeof(script), &script_len)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid multisig script", NULL);
             goto cleanup;
@@ -164,8 +164,7 @@ void get_receive_address_process(void* process_ptr)
             }
 
             // Build a script pubkey for the passed parameters
-            if (!wallet_build_singlesig_script(
-                    network, script_variant, path, path_len, script, sizeof(script), &script_len)) {
+            if (!wallet_build_singlesig_script(script_variant, path, path_len, script, sizeof(script), &script_len)) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid singlesig script", NULL);
                 goto cleanup;
