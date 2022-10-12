@@ -13,7 +13,7 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
 {
     JADE_ASSERT(kb_screen_activity);
     // title is optional
-    JADE_ASSERT(textbox);
+    JADE_INIT_OUT_PPTR(textbox);
 
     gui_activity_t* act = NULL;
     gui_make_activity(&act, true, title);

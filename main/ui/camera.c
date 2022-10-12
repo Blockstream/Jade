@@ -10,8 +10,8 @@ void make_camera_activity(gui_activity_t** activity_ptr, const char* title, cons
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     // btnText is only needed if a 'click' button is wanted
-    JADE_ASSERT(image_node);
-    JADE_ASSERT(label_node);
+    JADE_INIT_OUT_PPTR(image_node);
+    JADE_INIT_OUT_PPTR(label_node);
 
     gui_make_activity(activity_ptr, false, NULL);
 

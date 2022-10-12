@@ -1089,7 +1089,6 @@ static void handle_settings(const bool startup_menu)
 
     bool done = false;
     while (!done) {
-        JADE_ASSERT(act);
         gui_set_current_activity_ex(act, true);
 
         int32_t ev_id;
@@ -1103,24 +1102,20 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_ADVANCED_EXIT:
             // Change to base 'Settings' menu
-            act = NULL;
-            timeout_btn_text = NULL;
             create_settings_menu(&act, startup_menu, timeout, &timeout_btn_text);
             break;
 
         case BTN_SETTINGS_ADVANCED:
         case BTN_SETTINGS_OTP_EXIT:
             // Change to 'Advanced' menu
-            act = NULL;
-            timeout_btn_text = NULL;
             make_advanced_options_screen(&act);
+            timeout_btn_text = NULL;
             break;
 
         case BTN_SETTINGS_OTP:
             // Change to 'OTP' menu
-            act = NULL;
-            timeout_btn_text = NULL;
             make_otp_screen(&act);
+            timeout_btn_text = NULL;
             break;
 
         case BTN_BLE:

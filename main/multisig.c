@@ -336,7 +336,7 @@ bool multisig_get_master_blinding_key(multisig_data_t* multisig_data, uint8_t* m
     JADE_ASSERT(multisig_data);
     JADE_ASSERT(master_blinding_key);
     JADE_ASSERT(master_blinding_key_len == HMAC_SHA512_LEN);
-    JADE_ASSERT(errmsg);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     if (multisig_data->master_blinding_key_len != sizeof(multisig_data->master_blinding_key)) {
         *errmsg = "No blinding key for multisig record";

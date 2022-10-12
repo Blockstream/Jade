@@ -75,11 +75,12 @@ static inline struct jade_wally_ctx* get_jade_wally_ctx(void)
 
 static void set_jade_wally_ctx(struct jade_wally_ctx** ptr, struct secp256k1_context_struct* secp_ctx)
 {
+    JADE_INIT_OUT_PPTR(ptr);
+
     JADE_LOGI("set_jade_wally_ctx() called by task '%s' with context %p", pcTaskGetTaskName(NULL), secp_ctx);
 
-    JADE_ASSERT(!*ptr);
     *ptr = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct jade_wally_ctx));
-    struct jade_wally_ctx* ctx = *ptr;
+    struct jade_wally_ctx* const ctx = *ptr;
 
     /* Flag an existing context as not requiring freeing, and that a new context does */
     if (secp_ctx) {

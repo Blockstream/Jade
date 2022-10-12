@@ -253,8 +253,9 @@ static uint32_t displayable_outputs(
 void make_display_output_activity(
     const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity)
 {
-    // Note: outputs_validated is optional and can be null
+    JADE_ASSERT(network);
     JADE_ASSERT(tx);
+    // Note: output_info is optional and can be null
     JADE_ASSERT(first_activity);
 
     // Show outputs which don't have a script
@@ -309,10 +310,11 @@ void make_display_elements_output_activity(const char* network, const struct wal
     const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets,
     gui_activity_t** first_activity)
 {
+    JADE_ASSERT(network);
     JADE_ASSERT(tx);
     JADE_ASSERT(output_info);
-    JADE_ASSERT(first_activity);
     JADE_ASSERT(assets || !num_assets);
+    JADE_ASSERT(first_activity);
 
     // Don't show outputs which don't have a script (as these are fees)
     const bool show_scriptless = false;

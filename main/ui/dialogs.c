@@ -252,6 +252,7 @@ static void make_icon_activity(gui_activity_t** activity_ptr, const Icon* icon, 
     JADE_ASSERT(icon);
     // bg_color is optional
     // icon_node_out is optional
+    JADE_ASSERT(!icon_node_out || !*icon_node_out);
 
     gui_make_activity(activity_ptr, false, NULL);
     gui_view_node_t* parent_node = (*activity_ptr)->root_node;

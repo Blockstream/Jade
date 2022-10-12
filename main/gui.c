@@ -519,8 +519,7 @@ static void push_updatable(
 // (eg. the main dashboard screen) or for particularly large activities which need freeing asap.
 void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, const char* title, const bool managed)
 {
-    JADE_ASSERT(ppact);
-    JADE_ASSERT(!*ppact);
+    JADE_INIT_OUT_PPTR(ppact);
     JADE_ASSERT(!title || has_status_bar);
 
     if (managed) {
@@ -824,7 +823,7 @@ static void free_view_node_icon_data(void* vdata)
 // make the underlying view node, common across all the gui_make_* functions
 static void make_view_node(gui_view_node_t** ptr, enum view_node_kind kind, void* data, free_callback_t free_callback)
 {
-    JADE_ASSERT(ptr);
+    JADE_INIT_OUT_PPTR(ptr);
 
     *ptr = JADE_CALLOC(1, sizeof(gui_view_node_t));
 
@@ -843,7 +842,7 @@ static void make_view_node(gui_view_node_t** ptr, enum view_node_kind kind, void
 static void make_split_node(
     gui_view_node_t** ptr, enum view_node_kind split_kind, enum gui_split_type kind, uint8_t parts, va_list values)
 {
-    JADE_ASSERT(ptr);
+    JADE_INIT_OUT_PPTR(ptr);
     JADE_ASSERT(split_kind == HSPLIT || split_kind == VSPLIT);
 
     struct view_node_split_data* data = JADE_CALLOC(1, sizeof(struct view_node_split_data));
@@ -864,6 +863,8 @@ static void make_split_node(
 
 void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...)
 {
+    JADE_INIT_OUT_PPTR(ptr);
+
     va_list args;
     va_start(args, parts);
     make_split_node(ptr, HSPLIT, kind, parts, args);
@@ -872,6 +873,8 @@ void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t p
 
 void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...)
 {
+    JADE_INIT_OUT_PPTR(ptr);
+
     va_list args;
     va_start(args, parts);
     make_split_node(ptr, VSPLIT, kind, parts, args);
@@ -880,7 +883,7 @@ void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t p
 
 void gui_make_button(gui_view_node_t** ptr, color_t color, uint32_t event_id, void* args)
 {
-    JADE_ASSERT(ptr);
+    JADE_INIT_OUT_PPTR(ptr);
 
     struct view_node_button_data* data = JADE_CALLOC(1, sizeof(struct view_node_button_data));
 
@@ -896,7 +899,7 @@ void gui_make_button(gui_view_node_t** ptr, color_t color, uint32_t event_id, vo
 
 void gui_make_fill(gui_view_node_t** ptr, color_t color)
 {
-    JADE_ASSERT(ptr);
+    JADE_INIT_OUT_PPTR(ptr);
 
     struct view_node_fill_data* data = JADE_CALLOC(1, sizeof(struct view_node_fill_data));
 
@@ -914,7 +917,7 @@ void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color)
 
 void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, uint32_t font)
 {
-    JADE_ASSERT(ptr);
+    JADE_INIT_OUT_PPTR(ptr);
     JADE_ASSERT(text);
 
     struct view_node_text_data* data = JADE_CALLOC(1, sizeof(struct view_node_text_data));
@@ -948,7 +951,7 @@ void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, 
 
 void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const color_t* bg_color)
 {
-    JADE_ASSERT(ptr);
+    JADE_INIT_OUT_PPTR(ptr);
     JADE_ASSERT(icon);
 
     struct view_node_icon_data* data = JADE_CALLOC(1, sizeof(struct view_node_icon_data));
@@ -1028,7 +1031,7 @@ void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, const size_t num
 
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)
 {
-    JADE_ASSERT(ptr);
+    JADE_INIT_OUT_PPTR(ptr);
 
     struct view_node_picture_data* data = JADE_CALLOC(1, sizeof(struct view_node_picture_data));
 

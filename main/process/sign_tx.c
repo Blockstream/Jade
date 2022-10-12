@@ -61,7 +61,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
     JADE_ASSERT(tx);
     JADE_ASSERT(change);
     JADE_ASSERT(output_info);
-    JADE_ASSERT(errmsg);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     *errmsg = NULL;
     size_t num_array_items = 0;

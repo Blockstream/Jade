@@ -217,9 +217,10 @@ static void populate_service_path(keychain_t* keydata)
 
 void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
 {
+    JADE_INIT_OUT_PPTR(mnemonic);
+
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
-    JADE_ASSERT(mnemonic);
 
     // Large enough for 12 and 24 word mnemonic
     uint8_t entropy[BIP39_ENTROPY_LEN_256];

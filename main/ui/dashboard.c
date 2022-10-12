@@ -195,6 +195,7 @@ void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, g
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
+    JADE_INIT_OUT_PPTR(txt_extra);
 
     // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
     gui_make_activity_ex(activity_ptr, true, device_name, false);
@@ -305,7 +306,7 @@ void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offe
 static void add_poweroff_timeout_btn(gui_view_node_t* parent, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(parent);
-    JADE_ASSERT(timeout_btn_text);
+    JADE_INIT_OUT_PPTR(timeout_btn_text);
 
     gui_view_node_t* btn;
     gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_IDLE_TIMEOUT, NULL);
@@ -513,7 +514,7 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
-    JADE_ASSERT(ble_status_textbox);
+    JADE_INIT_OUT_PPTR(ble_status_textbox);
 
     gui_make_activity(activity_ptr, true, "Bluetooth");
 

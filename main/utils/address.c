@@ -9,6 +9,9 @@
 
 static void base58_addr(const uint8_t prefix, const uint8_t* script, char** output)
 {
+    JADE_ASSERT(script);
+    JADE_INIT_OUT_PPTR(output);
+
     uint8_t decoded[21];
     decoded[0] = prefix;
     memcpy(decoded + 1, script, 20);

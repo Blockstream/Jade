@@ -243,7 +243,8 @@ void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* nam
     JADE_ASSERT(timestr);
     JADE_ASSERT(codestr);
     JADE_ASSERT(progress_bar);
-    JADE_ASSERT(txt_code);
+    JADE_INIT_OUT_PPTR(txt_ts);
+    JADE_INIT_OUT_PPTR(txt_code);
 
     gui_make_activity(activity_ptr, true, name);
 

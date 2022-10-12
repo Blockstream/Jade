@@ -997,29 +997,21 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
         // Change screens and continue to await button events
         case BTN_NEW_MNEMONIC:
-            activity = NULL;
             make_new_mnemonic_screen(&activity);
-            JADE_ASSERT(activity);
             continue;
 
         case BTN_NEW_MNEMONIC_ADVANCED:
-            activity = NULL;
             make_new_mnemonic_screen_advanced(&activity);
-            JADE_ASSERT(activity);
             using_passphrase = true;
             offer_export_qr = true;
             continue;
 
         case BTN_RECOVER_MNEMONIC:
-            activity = NULL;
             make_mnemonic_recovery_screen(&activity);
-            JADE_ASSERT(activity);
             continue;
 
         case BTN_RECOVER_MNEMONIC_ADVANCED:
-            activity = NULL;
             make_mnemonic_recovery_screen_advanced(&activity);
-            JADE_ASSERT(activity);
             using_passphrase = true;
             offer_export_qr = true;
             continue;

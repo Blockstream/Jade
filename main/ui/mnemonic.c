@@ -176,10 +176,12 @@ static void make_show_new_mnemonic_page(gui_activity_t** activity_ptr, const siz
 void make_show_mnemonic(
     gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], const size_t nwords)
 {
-    // Support 12-word and 24-word mnemonics only
-    JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(first_activity_ptr);
     JADE_ASSERT(last_activity_ptr);
+    JADE_ASSERT(words);
+
+    // Support 12-word and 24-word mnemonics only
+    JADE_ASSERT(nwords == 12 || nwords == 24);
 
     gui_activity_t* prev_act = NULL;
     gui_view_node_t* prev_btn = NULL;
@@ -212,7 +214,7 @@ static void make_confirm_mnemonic_page(
     gui_activity_t** activity_ptr, gui_view_node_t** text_box, size_t confirm_index, char* word_prev, char* word_next)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(text_box);
+    JADE_INIT_OUT_PPTR(text_box);
 
     JADE_LOGD("Confirm page index %u, prev %s, next %s", confirm_index, word_prev, word_next);
 
@@ -316,8 +318,6 @@ static void make_confirm_mnemonic_page(
 void make_confirm_mnemonic_screen(gui_activity_t** activity_ptr, gui_view_node_t** text_box_ptr, const size_t confirm,
     char* words[], const size_t nwords)
 {
-    JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(text_box_ptr);
     JADE_ASSERT(confirm > 0 && confirm < nwords - 1); // Must be able to access next and previous entries
     make_confirm_mnemonic_page(activity_ptr, text_box_ptr, confirm, words[confirm - 1], words[confirm + 1]);
 }
@@ -327,9 +327,9 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
     gui_view_node_t** enter, gui_view_node_t** keys, const size_t keys_len)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(textbox);
-    JADE_ASSERT(backspace);
-    JADE_ASSERT(enter);
+    JADE_INIT_OUT_PPTR(textbox);
+    JADE_INIT_OUT_PPTR(backspace);
+    JADE_INIT_OUT_PPTR(enter);
     JADE_ASSERT(keys);
     JADE_ASSERT(keys_len == 26); // ie. A->Z
 
@@ -409,7 +409,8 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
 void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(textbox);
+    JADE_INIT_OUT_PPTR(textbox);
+    JADE_INIT_OUT_PPTR(status);
 
     gui_make_activity(activity_ptr, true, "Recover Wallet");
     (*activity_ptr)->selectables_wrap = true; // allow the button cursor to wrap
@@ -477,7 +478,7 @@ void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* p
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(passphrase);
-    JADE_ASSERT(textbox);
+    JADE_INIT_OUT_PPTR(textbox);
 
     gui_make_activity(activity_ptr, true, "Confirm Passphrase");
 
@@ -583,8 +584,8 @@ void make_export_qr_fragment_activity(
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(icon);
-    JADE_ASSERT(icon_node);
-    JADE_ASSERT(label_node);
+    JADE_INIT_OUT_PPTR(icon_node);
+    JADE_INIT_OUT_PPTR(label_node);
 
     gui_make_activity(activity_ptr, false, NULL);
 

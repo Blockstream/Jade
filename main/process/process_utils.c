@@ -176,7 +176,7 @@ bool params_get_master_blindingkey(
     JADE_ASSERT(params);
     JADE_ASSERT(master_blinding_key);
     JADE_ASSERT(master_blinding_key_len == HMAC_SHA512_LEN);
-    JADE_ASSERT(errmsg);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     // If no 'multisig_name' parameter, default to the signer's own master blinding key
     if (!rpc_has_field_data("multisig_name", params)) {
