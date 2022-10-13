@@ -4,6 +4,7 @@
 #include "button_events.h"
 #include "gui.h"
 #include "jade_assert.h"
+#include "jade_wally_verify.h"
 #include "keychain.h"
 #include "qrcode.h"
 #include "qrscan.h"
@@ -27,6 +28,16 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
 void make_search_verify_address_activity(
     gui_activity_t** activity_ptr, const char* pathstr, progress_bar_t* progress_bar, gui_view_node_t** index_text);
 
+void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, const char* label, Icon* icons,
+    const size_t num_icons, const size_t frames_per_qr_icon);
+void make_qr_options_activity(
+    gui_activity_t** activity_ptr, gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox);
+
+// PSBT struct and functions
+struct wally_psbt;
+int sign_psbt(struct wally_psbt* psbt, const char** errmsg);
+int wally_psbt_free(struct wally_psbt* psbt);
+
 #define EXPORT_XPUB_PATH_LEN 4
 
 static const uint8_t ADDRESS_SEARCH_BATCH_SIZE = 20;
@@ -39,12 +50,36 @@ static inline bool contains_flags(const uint16_t flags, const uint16_t test_flag
     return (flags & test_flags) == test_flags;
 }
 
+// Rotate through: low -> high -> high|low -> low -> high ...
+// 'unset' treated as 'high' (ie. the middle value)
+static void rotate_flags(uint16_t* flags, const uint16_t high, const uint16_t low)
+{
+    JADE_ASSERT(flags);
+
+    if (contains_flags(*flags, high | low)) {
+        *flags &= ~high;
+    } else if (contains_flags(*flags, high)) {
+        *flags |= low;
+    } else if (contains_flags(*flags, low)) {
+        *flags ^= (high | low);
+    } else { // ie. currently 0/default/uninitialised - treat as 'high'
+        *flags |= (high | low);
+    }
+}
+
 static uint8_t qr_animation_speed_from_flags(const uint16_t qr_flags)
 {
     // Frame periods around 800ms, 450ms, 270ms  (see GUI_TARGET_FRAMERATE)
     // Frame rates: HIGH|LOW > HIGH > LOW ...
     // unset/default is treated as 'high' (ie. the middle value)
     return contains_flags(qr_flags, QR_SPEED_HIGH | QR_SPEED_LOW) ? 4 : contains_flags(qr_flags, QR_SPEED_LOW) ? 12 : 7;
+}
+static const char* qr_animation_speed_desc_from_flags(const uint16_t qr_flags)
+{
+    // unset/default is treated as 'high' (ie. the middle value)
+    return contains_flags(qr_flags, QR_SPEED_HIGH | QR_SPEED_LOW) ? "High"
+        : contains_flags(qr_flags, QR_SPEED_LOW)                  ? "Low"
+                                                                  : "Medium";
 }
 
 static uint8_t qr_version_from_flags(const uint16_t qr_flags)
@@ -57,6 +92,13 @@ static uint8_t qr_version_from_flags(const uint16_t qr_flags)
         : contains_flags(qr_flags, QR_DENSITY_LOW)                    ? 4
                                                                       : 6;
 }
+static const char* qr_density_desc_from_flags(const uint16_t qr_flags)
+{
+    // unset/default is treated as 'high' (ie. the middle value)
+    return contains_flags(qr_flags, QR_DENSITY_HIGH | QR_DENSITY_LOW) ? "High"
+        : contains_flags(qr_flags, QR_DENSITY_LOW)                    ? "Low"
+                                                                      : "Medium";
+}
 
 // We support native segwit and p2sh-wrapped segwit, siglesig and multisig
 static script_variant_t xpub_script_variant_from_flags(const uint16_t qr_flags)
@@ -68,7 +110,7 @@ static script_variant_t xpub_script_variant_from_flags(const uint16_t qr_flags)
     return wrapped_segwit ? MULTI_P2WSH_P2SH : MULTI_P2WSH;
 }
 
-static bool create_display_xpub_qr_activity(gui_activity_t** activity_ptr, const uint16_t qr_flags)
+static void create_display_xpub_qr_activity(gui_activity_t** activity_ptr, const uint16_t qr_flags)
 {
     JADE_ASSERT(activity_ptr);
 
@@ -104,8 +146,6 @@ static bool create_display_xpub_qr_activity(gui_activity_t** activity_ptr, const
     const uint8_t frames_per_qr = qr_animation_speed_from_flags(qr_flags);
     make_show_xpub_qr_activity(activity_ptr, label, pathstr, icons, num_icons, frames_per_qr);
     JADE_ASSERT(*activity_ptr);
-
-    return true;
 }
 
 static bool handle_xpub_options(uint16_t* qr_flags)
@@ -345,6 +385,182 @@ bool scan_verify_address_qr(void)
     }
 
     return verified;
+}
+
+// Handle QR Options dialog - ie. QR size and frame-rate
+static bool handle_qr_options(uint16_t* qr_flags)
+{
+    JADE_ASSERT(qr_flags);
+
+    gui_activity_t* activity = NULL;
+    gui_view_node_t* density_textbox = NULL;
+    gui_view_node_t* speed_textbox = NULL;
+    make_qr_options_activity(&activity, &density_textbox, &speed_textbox);
+    JADE_ASSERT(activity);
+    JADE_ASSERT(density_textbox);
+    JADE_ASSERT(speed_textbox);
+
+    const uint16_t initial_flags = *qr_flags;
+    while (true) {
+        // Update options
+        gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
+        gui_update_text(speed_textbox, qr_animation_speed_desc_from_flags(*qr_flags));
+
+        // Show, and await button click
+        gui_set_current_activity(activity);
+
+        int32_t ev_id;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_XPUB_EXIT;
+#endif
+        if (ret) {
+            // NOTE: For Density and Speed :- HIGH|LOW > HIGH > LOW
+            // Rotate through: LOW -> HIGH -> HIGH|LOW -> LOW -> ...
+            // unset/default is treated as HIGH ie. the middle value
+            if (ev_id == BTN_QR_TOGGLE_DENSITY) {
+                rotate_flags(qr_flags, QR_DENSITY_HIGH, QR_DENSITY_LOW);
+            } else if (ev_id == BTN_QR_TOGGLE_SPEED) {
+                rotate_flags(qr_flags, QR_SPEED_HIGH, QR_SPEED_LOW);
+            } else if (ev_id == BTN_QR_OPTIONS_HELP) {
+                display_qr_help_screen("blockstream.com/scan");
+            } else if (ev_id == BTN_QR_OPTIONS_EXIT) {
+                // Done
+                break;
+            }
+        }
+    }
+
+    // If nothing was updated, return false
+    if (initial_flags == *qr_flags) {
+        return false;
+    }
+
+    // Persist prefereces and return true to indicate they were changed
+    storage_set_qr_flags(*qr_flags);
+    return true;
+}
+
+// Create activity to display (potentially multi-frame/animated) qr
+static void create_display_bcur_qr_activity(gui_activity_t** activity_ptr, const char* title, const char* label,
+    const char* bcur_type, const uint8_t* cbor, const size_t cbor_len, const uint16_t qr_flags)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(title);
+    JADE_ASSERT(label);
+    JADE_ASSERT(bcur_type);
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
+
+    // Map BCUR cbor into a series of QR-code icons
+    Icon* icons = NULL;
+    size_t num_icons = 0;
+    const uint8_t qrcode_version = qr_version_from_flags(qr_flags);
+    bcur_create_qr_icons(cbor, cbor_len, bcur_type, qrcode_version, &icons, &num_icons);
+
+    // Create qr activity for those icons
+    const uint8_t frames_per_qr = qr_animation_speed_from_flags(qr_flags);
+    make_show_qr_activity(activity_ptr, title, label, icons, num_icons, frames_per_qr);
+    JADE_ASSERT(*activity_ptr);
+}
+
+// Display a QR code, with access to size_speed options
+static void display_bcur_qr(
+    const char* title, const char* label, const char* bcur_type, const uint8_t* cbor, const size_t cbor_len)
+{
+    JADE_ASSERT(title);
+    JADE_ASSERT(label);
+    JADE_ASSERT(bcur_type);
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
+
+    uint16_t qr_flags = storage_get_qr_flags();
+
+    // Create show psbt activity for those icons
+    gui_activity_t* activity = NULL;
+    create_display_bcur_qr_activity(&activity, title, label, bcur_type, cbor, cbor_len, qr_flags);
+    JADE_ASSERT(activity);
+
+    while (true) {
+        // Show, and await button click
+        gui_set_current_activity(activity);
+
+        int32_t ev_id;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_QR_DISPLAY_EXIT;
+#endif
+        if (ret) {
+            if (ev_id == BTN_QR_OPTIONS) {
+                if (handle_qr_options(&qr_flags)) {
+                    // Options were updated - re-create psbt qr screen
+                    display_message_activity("Processing...");
+                    create_display_bcur_qr_activity(&activity, title, label, bcur_type, cbor, cbor_len, qr_flags);
+                }
+            } else if (ev_id == BTN_QR_DISPLAY_EXIT) {
+                // Done
+                break;
+            }
+        }
+    }
+}
+
+// Scan a psbt qr and attempt to parse and sign
+bool scan_sign_display_psbt_qr(void)
+{
+    char* type = NULL;
+    uint8_t* data = NULL;
+    size_t data_len = 0;
+    if (!bcur_scan_qr("Scan PSBT\nto sign", &type, &data, &data_len)) {
+        // Scan aborted
+        return false;
+    }
+
+    // Parse scanned QR data
+    struct wally_psbt* psbt = NULL;
+    bool ret = !strcasecmp(type, BCUR_TYPE_CRYPTO_PSBT) && parse_bcur_psbt_cbor(data, data_len, &psbt);
+    free(data);
+    free(type);
+
+    if (!ret) {
+        // Unexpected type
+        await_error_activity("Unsupported QR/PSBT format");
+        goto cleanup;
+    }
+
+    // Try to sign extracted PSBT
+    const char* errmsg = NULL;
+    const int errcode = sign_psbt(psbt, &errmsg);
+    if (errcode) {
+        if (errcode != CBOR_RPC_USER_CANCELLED) {
+            await_error_activity(errmsg);
+        }
+        ret = false;
+        goto cleanup;
+    }
+
+    // Build BCUR message holding the signed PSBT
+    uint8_t* cbor = NULL;
+    size_t cbor_len = 0;
+    if (!bcur_build_cbor_crypto_psbt(psbt, &cbor, &cbor_len)) {
+        JADE_LOGW("Failed to build bcur/cbor for psbt");
+        return false;
+    }
+
+    // Now display bcur QR
+    display_bcur_qr("PSBT Export", "Scan using\nwallet app", BCUR_TYPE_CRYPTO_PSBT, cbor, cbor_len);
+
+cleanup:
+    JADE_WALLY_VERIFY(wally_psbt_free(psbt));
+    return ret;
 }
 
 // Display screen with help url and qr code

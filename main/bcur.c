@@ -10,6 +10,10 @@
 #include <cdecoder.h>
 #include <cencoder.h>
 
+// PSBT serialisation functions
+bool deserialise_psbt(const uint8_t* bytes, size_t bytes_len, struct wally_psbt** psbt_out);
+bool serialise_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len);
+
 const char BCUR_TYPE_CRYPTO_ACCOUNT[] = "crypto-account";
 const char BCUR_TYPE_CRYPTO_HDKEY[] = "crypto-hdkey";
 const char BCUR_TYPE_CRYPTO_PSBT[] = "crypto-psbt";
@@ -182,6 +186,71 @@ bool bcur_parse_bip39(
 cleanup:
     urfree_placement_decoder(decoder);
     return ret;
+}
+
+// Parse the bcur cbor for a PSBT (crypto-psbt) - just bytes
+// See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md
+bool parse_bcur_psbt_cbor(const uint8_t* cbor, const size_t cbor_len, struct wally_psbt** psbt_out)
+{
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
+    JADE_INIT_OUT_PPTR(psbt_out);
+
+    // Parse cbor
+    CborValue value;
+    CborParser parser;
+    const CborError cberr = cbor_parser_init(cbor, cbor_len, CborValidateCompleteData, &parser, &value);
+    if (cberr != CborNoError || !cbor_value_is_valid(&value)) {
+        return false;
+    }
+
+    const uint8_t* data = NULL;
+    size_t data_len = 0;
+    rpc_get_raw_bytes_ptr(&value, &data, &data_len);
+    if (!data || !data_len) {
+        return false;
+    }
+
+    // Convert to wally psbt structure
+    if (!deserialise_psbt(data, data_len, psbt_out)) {
+        JADE_LOGW("wally_psbt_from_bytes() failed for %u bytes", data_len);
+        return false;
+    }
+
+    return true;
+}
+
+// Encode a txn psbt as a bcur cbor 'crypto-psbt' - just bytes
+// See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md
+bool bcur_build_cbor_crypto_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len)
+{
+    JADE_ASSERT(psbt);
+    JADE_INIT_OUT_PPTR(output);
+    JADE_INIT_OUT_SIZE(output_len);
+
+    // Serialise updated psbt
+    uint8_t* psbt_bytes_out = NULL;
+    size_t psbt_len_out = 0;
+    if (!serialise_psbt(psbt, &psbt_bytes_out, &psbt_len_out)) {
+        return false;
+    }
+
+    // Format as simple cbor message
+    const size_t buflen = psbt_len_out + 8; // sufficent for cbor overhead
+    uint8_t* buf = JADE_MALLOC_PREFER_SPIRAM(buflen);
+    CborEncoder root_encoder;
+    cbor_encoder_init(&root_encoder, buf, buflen, 0);
+    const CborError cberr = cbor_encode_byte_string(&root_encoder, psbt_bytes_out, psbt_len_out);
+    JADE_ASSERT(cberr == CborNoError);
+    free(psbt_bytes_out);
+
+    const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, buf);
+    JADE_ASSERT(cbor_len > psbt_len_out && cbor_len <= buflen);
+
+    // Copy cbor buffer to output
+    *output = buf;
+    *output_len = cbor_len;
+    return true;
 }
 
 static void encode_script_variant_tag(CborEncoder* encoder, const script_variant_t script_variant)

@@ -8,6 +8,8 @@
 
 #include "wallet.h"
 
+struct wally_psbt;
+
 // Some BC-UR 'type' strings
 extern const char BCUR_TYPE_CRYPTO_ACCOUNT[];
 extern const char BCUR_TYPE_CRYPTO_HDKEY[];
@@ -16,12 +18,14 @@ extern const char BCUR_TYPE_JADE_PIN[];
 
 // Parse BC-UR messages - decodes BC-UR and parses nested CBOR
 bool bcur_parse_bip39(const char* bcur, size_t bcur_len, char* mnemonic, size_t mnemonic_len, size_t* written);
+bool parse_bcur_psbt_cbor(const uint8_t* cbor, size_t cbor_len, struct wally_psbt** psbt_out);
 
 // Build BC-UR CBOR messages
 void bcur_build_cbor_crypto_hdkey(
     const uint32_t* path, size_t path_len, uint8_t* output, size_t output_len, size_t* written);
 void bcur_build_cbor_crypto_account(script_variant_t script_variant, const uint32_t* path, size_t path_len,
     uint8_t* output, size_t output_len, size_t* written);
+bool bcur_build_cbor_crypto_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len);
 
 // Scan a QR code that may be a BC-UR code/fragment - ie. single-frame or animated/multi-frame.
 // Returns true if a complete (ie. potentially multi-frame) bc-ur code is scanned, or if a single

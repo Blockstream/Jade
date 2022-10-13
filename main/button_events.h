@@ -130,6 +130,13 @@ typedef enum {
     BTN_SCAN_ADDRESS_SKIP_ADDRESSES,
     BTN_SCAN_ADDRESS_EXIT,
 
+    BTN_QR_OPTIONS,
+    BTN_QR_TOGGLE_DENSITY,
+    BTN_QR_TOGGLE_SPEED,
+    BTN_QR_OPTIONS_HELP,
+    BTN_QR_OPTIONS_EXIT,
+    BTN_QR_DISPLAY_EXIT,
+
     // NOTE: Always leave these ones last as keyboard buttons use
     // BTN_KEYBOARD_ASCII_OFFSET + <ascii-value>
     BTN_KEYBOARD_BACKSPACE,
