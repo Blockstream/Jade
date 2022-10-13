@@ -171,6 +171,8 @@ const char* get_script_variant_string(const script_variant_t variant)
 // Map a script-variant string into the corresponding enum value
 bool get_script_variant(const char* variant, const size_t variant_len, script_variant_t* output)
 {
+    JADE_ASSERT(output);
+
     // Default to Green multisig/csv
     if (variant == NULL || variant_len == 0) {
         *output = GREEN;
@@ -194,6 +196,27 @@ bool get_script_variant(const char* variant, const size_t variant_len, script_va
         return false;
     }
     return true;
+}
+
+// Assumes p2sh script is wrapping p2wpkh.
+// multisig not handled atm.
+bool get_singlesig_variant_from_script_type(const size_t script_type, script_variant_t* variant)
+{
+    JADE_ASSERT(variant);
+
+    switch (script_type) {
+    case WALLY_SCRIPT_TYPE_P2WPKH:
+        *variant = P2WPKH;
+        return true;
+    case WALLY_SCRIPT_TYPE_P2PKH:
+        *variant = P2PKH;
+        return true;
+    case WALLY_SCRIPT_TYPE_P2SH:
+        *variant = P2WPKH_P2SH; // assumed
+        return true;
+    default:
+        return false;
+    }
 }
 
 bool is_greenaddress(const script_variant_t variant) { return variant == GREEN; }

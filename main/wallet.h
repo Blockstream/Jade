@@ -29,6 +29,7 @@ bool wallet_derive_from_xpub(
 
 const char* get_script_variant_string(script_variant_t variant);
 bool get_script_variant(const char* variant, size_t variant_len, script_variant_t* output);
+bool get_singlesig_variant_from_script_type(size_t script_type, script_variant_t* variant);
 bool is_greenaddress(script_variant_t variant);
 bool is_singlesig(script_variant_t variant);
 bool is_multisig(script_variant_t variant);
