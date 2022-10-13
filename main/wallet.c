@@ -93,15 +93,6 @@ static inline struct ext_key* networkToGaService(const char* network)
     }
 }
 
-static inline bool ishardened(const uint32_t n)
-{
-    return (n & BIP32_INITIAL_HARDENED_CHILD) == BIP32_INITIAL_HARDENED_CHILD;
-}
-
-static inline uint32_t harden(const uint32_t n) { return n | BIP32_INITIAL_HARDENED_CHILD; }
-
-static inline uint32_t unharden(const uint32_t n) { return n & ~BIP32_INITIAL_HARDENED_CHILD; }
-
 void wallet_init(void)
 {
     JADE_WALLY_VERIFY(bip32_key_from_base58(MAINNET_SERVICE_XPUB, &MAINNET_SERVICE));
