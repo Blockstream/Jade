@@ -305,8 +305,8 @@ cleanup:
 static bool validate_scanned_otp_uri(qr_data_t* qr_data)
 {
     JADE_ASSERT(qr_data);
-    JADE_ASSERT(qr_data->len <= sizeof(qr_data->strdata));
-    JADE_ASSERT(qr_data->strdata[qr_data->len] == '\0');
+    JADE_ASSERT(qr_data->len <= sizeof(qr_data->data));
+    JADE_ASSERT(qr_data->data[qr_data->len] == '\0');
 
     if (qr_data->len >= OTP_MAX_URI_LEN) {
         JADE_LOGW("String data from qr unexpectedly long: %u", qr_data->len);
@@ -314,8 +314,8 @@ static bool validate_scanned_otp_uri(qr_data_t* qr_data)
     }
 
     otpauth_ctx_t otp_ctx = { .name = "otp_scanning" };
-    if (!otp_uri_to_ctx(qr_data->strdata, qr_data->len, &otp_ctx)) {
-        JADE_LOGW("Invalid otp uri string: %s", qr_data->strdata);
+    if (!otp_uri_to_ctx((const char*)qr_data->data, qr_data->len, &otp_ctx)) {
+        JADE_LOGW("Invalid otp uri string: %s", (const char*)qr_data->data);
         goto invalid_qr;
     }
 
@@ -362,7 +362,7 @@ bool register_otp_qr(void)
     }
 
     // Validate and persist the new otp uri
-    const int errcode = handle_new_otp_uri(otp_name, qr_data.strdata, qr_data.len, &errmsg);
+    const int errcode = handle_new_otp_uri(otp_name, (const char*)qr_data.data, qr_data.len, &errmsg);
     if (errcode && errcode != CBOR_RPC_USER_CANCELLED) {
         // Display any error (ignoring explicit user cancel)
         await_error_activity(errmsg);

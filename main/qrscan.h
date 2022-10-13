@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 // An extracted QR code string
-#define QR_MAX_STRING_LENGTH 256
+#define QR_MAX_PAYLOAD_LENGTH 1024
 
 struct quirc;
 typedef struct _qr_data_t qr_data_t;
@@ -14,7 +14,7 @@ typedef struct _qr_data_t qr_data_t;
 typedef bool (*qr_valid_fn_t)(qr_data_t* qr_data);
 
 struct _qr_data_t {
-    char strdata[QR_MAX_STRING_LENGTH];
+    uint8_t data[QR_MAX_PAYLOAD_LENGTH];
     size_t len;
 
     // An optional validation function - if included, scanning will only stop

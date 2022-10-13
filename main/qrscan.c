@@ -13,7 +13,7 @@ static bool qr_extract_payload(qr_data_t* qr_data)
     JADE_ASSERT(qr_data);
     JADE_ASSERT(qr_data->q);
 
-    qr_data->strdata[0] = '\0';
+    qr_data->data[0] = '\0';
     qr_data->len = 0;
 
     const int count = quirc_count(qr_data->q);
@@ -38,7 +38,7 @@ static bool qr_extract_payload(qr_data_t* qr_data)
             JADE_LOGW("QUIRC unexpected data type: %d", data.data_type);
         } else if (!data.payload_len) {
             JADE_LOGW("QUIRC empty string");
-        } else if (data.payload_len >= sizeof(qr_data->strdata)) {
+        } else if (data.payload_len >= sizeof(qr_data->data)) {
             JADE_LOGW("QUIRC data too long to handle: %u", data.payload_len);
             JADE_ASSERT(data.payload_len <= sizeof(data.payload));
         } else {
@@ -47,8 +47,8 @@ static bool qr_extract_payload(qr_data_t* qr_data)
             // terminator.
             // To avoid any confusion or grey areas, we copy the bytes,
             // and then explicitly add the nul terminator ourselves.
-            memcpy(qr_data->strdata, data.payload, data.payload_len);
-            qr_data->strdata[data.payload_len] = '\0';
+            memcpy(qr_data->data, data.payload, data.payload_len);
+            qr_data->data[data.payload_len] = '\0';
             qr_data->len = data.payload_len;
             SENSITIVE_POP(&data);
             return true;

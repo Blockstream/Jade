@@ -165,7 +165,7 @@ static void mnemonic_export_qr(const char* mnemonic)
         // Verify QR by scanning it back
         qr_data_t qr_data = { .len = 0 };
         jade_camera_scan_qr(&qr_data, "\nScan created\nQR to verify");
-        if (qr_data.len == entropy_len && !memcmp((uint8_t*)qr_data.strdata, entropy, entropy_len)) {
+        if (qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
             // QR Code scanned, and it matched expected entropy
             await_message_activity("QR Code Verified");
         } else {
@@ -683,11 +683,11 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
     JADE_INIT_OUT_SIZE(written);
 
     size_t write_pos = 0;
-    const char* read_ptr = qr_data->strdata;
+    const char* read_ptr = (const char*)qr_data->data;
     const char* end_ptr = read_ptr;
 
     // Must be a string of printable characters
-    if (!string_all(qr_data->strdata, isprint)) {
+    if (!string_all((const char*)qr_data->data, isprint)) {
         return false;
     }
 
@@ -696,10 +696,10 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
         end_ptr = strchr(read_ptr, ' ');
         if (!end_ptr) {
             // Not found, point to end of string
-            end_ptr = qr_data->strdata + qr_data->len;
+            end_ptr = (const char*)qr_data->data + qr_data->len;
             JADE_ASSERT(*end_ptr == '\0');
         }
-        JADE_ASSERT(end_ptr <= qr_data->strdata + qr_data->len);
+        JADE_ASSERT(end_ptr <= (const char*)qr_data->data + qr_data->len);
 
         // Lookup prefix in the default (English) wordlist, ensuring exactly one match
         size_t possible_match;
@@ -748,7 +748,7 @@ static bool import_seedqr(const qr_data_t* qr_data, char* buf, const size_t buf_
     JADE_INIT_OUT_SIZE(written);
 
     // Must be a string of appropriate length and all digits
-    if ((qr_data->len != 48 && qr_data->len != 96) || !string_all(qr_data->strdata, isdigit)) {
+    if ((qr_data->len != 48 && qr_data->len != 96) || !string_all((const char*)qr_data->data, isdigit)) {
         return false;
     }
 
@@ -760,7 +760,7 @@ static bool import_seedqr(const qr_data_t* qr_data, char* buf, const size_t buf_
     size_t write_pos = 0;
     const size_t num_words = qr_data->len == 48 ? 12 : 24;
     for (size_t i = 0; i < num_words; ++i) {
-        memcpy(index_code, qr_data->strdata + (i * 4), 4);
+        memcpy(index_code, qr_data->data + (i * 4), 4);
         const size_t index = strtol(index_code, NULL, 10);
         if (index > 2047) {
             JADE_LOGE("Error, provided a bip39 word out of range");
@@ -811,7 +811,7 @@ static bool import_compactseedqr(const qr_data_t* qr_data, char* buf, const size
 
     // Convert binary entropy to mnemonic string
     char* mnemonic = NULL;
-    JADE_WALLY_VERIFY(bip39_mnemonic_from_bytes(NULL, (uint8_t*)qr_data->strdata, qr_data->len, &mnemonic));
+    JADE_WALLY_VERIFY(bip39_mnemonic_from_bytes(NULL, qr_data->data, qr_data->len, &mnemonic));
     JADE_ASSERT(mnemonic);
     const size_t mnemonic_len = strnlen(mnemonic, buf_len);
     JADE_ASSERT(mnemonic_len < buf_len); // buffer should be large enough for any mnemonic
@@ -842,10 +842,10 @@ static bool import_mnemonic(const qr_data_t* qr_data, char* buf, const size_t bu
 bool import_and_validate_mnemonic(qr_data_t* qr_data)
 {
     JADE_ASSERT(qr_data);
-    JADE_ASSERT(qr_data->len < sizeof(qr_data->strdata));
-    JADE_ASSERT(qr_data->strdata[qr_data->len] == '\0');
+    JADE_ASSERT(qr_data->len < sizeof(qr_data->data));
+    JADE_ASSERT(qr_data->data[qr_data->len] == '\0');
 
-    char buf[sizeof(qr_data->strdata)];
+    char buf[sizeof(qr_data->data)];
     SENSITIVE_PUSH(buf, sizeof(buf));
 
     // Try to import mnemonic, validate, and if all good copy over into the qr_data
@@ -855,7 +855,7 @@ bool import_and_validate_mnemonic(qr_data_t* qr_data)
         JADE_ASSERT(written <= sizeof(buf));
         JADE_ASSERT(buf[written - 1] == '\0');
 
-        memcpy(qr_data->strdata, buf, written);
+        memcpy(qr_data->data, buf, written);
         qr_data->len = written - 1; // Do not include nul-terminator
 
         SENSITIVE_POP(buf);
@@ -894,8 +894,8 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     }
 
     // Result looks good, copy into mnemonic buffer
-    JADE_ASSERT(qr_data.strdata[qr_data.len] == '\0');
-    strcpy(mnemonic, qr_data.strdata);
+    JADE_ASSERT(qr_data.data[qr_data.len] == '\0');
+    strcpy(mnemonic, (const char*)qr_data.data);
 
 cleanup:
     SENSITIVE_POP(&qr_data);

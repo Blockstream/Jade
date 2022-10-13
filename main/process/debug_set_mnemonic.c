@@ -64,9 +64,9 @@ void debug_set_mnemonic_process(void* process_ptr)
         // Extract the mnemonic data from the message into the qr_data structure
         // (ie. as if we had just scanned this string from a qr code)
         // If fetching as a string fails, try fetching as bytes
-        rpc_get_string("mnemonic", sizeof(qr_data.strdata), &params, qr_data.strdata, &qr_data.len);
+        rpc_get_string("mnemonic", sizeof(qr_data.data), &params, (char*)qr_data.data, &qr_data.len);
         if (qr_data.len == 0) {
-            rpc_get_bytes("mnemonic", sizeof(qr_data.strdata), &params, (uint8_t*)qr_data.strdata, &qr_data.len);
+            rpc_get_bytes("mnemonic", sizeof(qr_data.data), &params, qr_data.data, &qr_data.len);
         }
         if (qr_data.len == 0) {
             jade_process_reject_message(
@@ -96,7 +96,7 @@ void debug_set_mnemonic_process(void* process_ptr)
         }
 
         // Derive a keychain from the passed mnemonic and passphrase
-        if (!keychain_derive_from_mnemonic(qr_data.strdata, p_passphrase, &keydata)) {
+        if (!keychain_derive_from_mnemonic((const char*)qr_data.data, p_passphrase, &keydata)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to derive keychain from mnemonic", NULL);
             goto cleanup;
@@ -119,7 +119,7 @@ void debug_set_mnemonic_process(void* process_ptr)
 
         // We need to cache the root mnemonic entropy as it is this that we will persist
         // encrypted to local flash (requiring a passphrase to derive the wallet master key).
-        keychain_cache_mnemonic_entropy(qr_data.strdata);
+        keychain_cache_mnemonic_entropy((const char*)qr_data.data);
     }
 
     jade_process_reply_to_message_ok(process);
