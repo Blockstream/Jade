@@ -138,8 +138,34 @@ static uint8_t get_skip(const uint8_t lencode)
     return 0;
 }
 
+static void rpc_get_raw_type_ptr(const CborValue* value, const uint8_t** data, size_t* size, const uint8_t masktype)
+{
+    JADE_ASSERT(value);
+    JADE_INIT_OUT_PPTR(data);
+    JADE_INIT_OUT_SIZE(size);
+
+    const uint8_t* next_byte = cbor_value_get_next_byte(value);
+    const uint8_t typecode = *next_byte & CBOR_TYPE_MASK;
+    if (typecode != masktype) {
+        return;
+    }
+
+    const CborError cberr = cbor_value_get_string_length(value, size);
+    if (cberr != CborNoError) {
+        return;
+    }
+
+    const uint8_t lencode = *next_byte & CBOR_LEN_MASK;
+    *data = next_byte + get_skip(lencode);
+}
+
+void rpc_get_raw_bytes_ptr(const CborValue* value, const uint8_t** data, size_t* size)
+{
+    rpc_get_raw_type_ptr(value, data, size, CBOR_BINARY_MASK);
+}
+
 static void rpc_get_type_ptr(
-    const char* field, const CborValue* value, const uint8_t** data, size_t* size, uint8_t masktype)
+    const char* field, const CborValue* value, const uint8_t** data, size_t* size, const uint8_t masktype)
 {
     JADE_ASSERT(field);
     JADE_ASSERT(value);
@@ -147,22 +173,12 @@ static void rpc_get_type_ptr(
     JADE_INIT_OUT_SIZE(size);
 
     CborValue result;
-    CborError cberr = cbor_value_map_find_value(value, field, &result);
+    const CborError cberr = cbor_value_map_find_value(value, field, &result);
     if (cberr != CborNoError || cbor_value_get_type(&result) == CborInvalidType || !cbor_value_is_valid(&result)) {
         return;
     }
 
-    const uint8_t* next_byte = cbor_value_get_next_byte(&result);
-    const uint8_t typecode = *next_byte & CBOR_TYPE_MASK;
-    if (typecode != masktype) {
-        return;
-    }
-
-    const uint8_t lencode = *next_byte & CBOR_LEN_MASK;
-
-    *data = next_byte + get_skip(lencode);
-    cberr = cbor_value_get_string_length(&result, size);
-    JADE_ASSERT(cberr == CborNoError);
+    rpc_get_raw_type_ptr(&result, data, size, masktype);
 }
 
 void rpc_get_bytes_ptr(const char* field, const CborValue* value, const uint8_t** data, size_t* size)
