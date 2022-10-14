@@ -321,7 +321,8 @@ void auth_user_process(void* process_ptr)
             // (This is not ideal as can take a long time and host app is
             // waiting for a message reply and may time out.)
             JADE_LOGI("no wallet data, requesting mnemonic");
-            initialise_with_mnemonic(false);
+            const bool temporary_restore = false;
+            initialise_with_mnemonic(temporary_restore);
         }
 
         if (!keychain_get()) {

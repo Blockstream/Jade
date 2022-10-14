@@ -528,9 +528,9 @@ static void select_initial_connection(void)
 
 // Helper to initialise with mnemonic, and (if successful) request whether the
 // initial conenction will be over USB or BLE.
-static void initialise_wallet(const bool emergency_restore)
+static void initialise_wallet(const bool temporary_restore)
 {
-    initialise_with_mnemonic(emergency_restore);
+    initialise_with_mnemonic(temporary_restore);
     if (keychain_get()) {
         select_initial_connection();
     }
@@ -547,7 +547,8 @@ static bool offer_temporary_wallet_login(void)
     }
 
     // Initialise 'temporary' wallet
-    initialise_wallet(true);
+    const bool temporary_restore = true;
+    initialise_wallet(temporary_restore);
     return true;
 }
 

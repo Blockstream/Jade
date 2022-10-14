@@ -59,10 +59,17 @@ void make_new_mnemonic_screen_advanced(gui_activity_t** activity_ptr)
     make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length", btns, 2);
 }
 
-void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr)
+void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr, const bool temporary_restore)
 {
     btn_data_t btns[] = { { .txt = "12 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC_12_BEGIN },
         { .txt = "Advanced", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC_ADVANCED } };
+
+    // If temporary-restore, change the default from '12 words' to 'Scan QR'
+    if (temporary_restore) {
+        btns[0].txt = "Scan QR";
+        btns[0].ev_id = BTN_RECOVER_MNEMONIC_QR_BEGIN;
+    }
+
     make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nHow would you like to\nrecover the wallet?", btns, 2);
 }
 

@@ -32,7 +32,7 @@
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr);
 void make_new_mnemonic_screen(gui_activity_t** activity_ptr);
 void make_new_mnemonic_screen_advanced(gui_activity_t** activity_ptr);
-void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr);
+void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr, bool temporary_restore);
 void make_mnemonic_recovery_screen_advanced(gui_activity_t** activity_ptr);
 void make_show_mnemonic(
     gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], size_t nwords);
@@ -991,7 +991,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
     // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
     gui_activity_t* activity = NULL;
     if (temporary_restore) {
-        make_mnemonic_recovery_screen(&activity);
+        make_mnemonic_recovery_screen(&activity, temporary_restore);
     } else {
         make_mnemonic_welcome_screen(&activity);
     }
@@ -1026,7 +1026,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
             continue;
 
         case BTN_RECOVER_MNEMONIC:
-            make_mnemonic_recovery_screen(&activity);
+            make_mnemonic_recovery_screen(&activity, temporary_restore);
             continue;
 
         case BTN_RECOVER_MNEMONIC_ADVANCED:
