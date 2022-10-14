@@ -16,7 +16,7 @@ void make_startup_options_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Advanced Options");
+    gui_make_activity(activity_ptr, true, "Advanced");
 
     btn_data_t btns[]
         = { { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
@@ -65,7 +65,7 @@ void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, c
         gui_set_parent(row, vsplit);
 
         btn_data_t btns[] = { { .txt = "Initialize", .font = DEFAULT_FONT, .ev_id = BTN_INITIALIZE },
-            { .txt = "Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS } };
+            { .txt = "Advanced", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS } };
 
         add_buttons(row, UI_COLUMN, btns, 2);
     }
@@ -113,7 +113,7 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     gui_set_parent(btn, vsplit);
 
     gui_view_node_t* btntext;
-    gui_make_text(&btntext, "Settings", TFT_WHITE);
+    gui_make_text(&btntext, "Advanced", TFT_WHITE);
     gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(btntext, btn);
 
@@ -328,20 +328,18 @@ void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(timeout_btn_text);
 
-    gui_make_activity(activity_ptr, true, "Settings");
+    gui_make_activity(activity_ptr, true, "Advanced");
 
-    // Do Timeout button separately as it's a bit special
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-    add_poweroff_timeout_btn(vsplit, timeout_btn_text);
-
-    // Other buttons
+    // Note: placeholder in second position - timeout button set into this slot below
     btn_data_t btns[]
         = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
+              { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
               { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_BLE },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
-    add_buttons(vsplit, UI_COLUMN, btns, 3);
+    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+
+    // Put special timeout button in the 2nd position
+    add_poweroff_timeout_btn(btns[1].btn, timeout_btn_text);
 }
 
 void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
@@ -349,20 +347,18 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(timeout_btn_text);
 
-    gui_make_activity(activity_ptr, true, "Settings");
+    gui_make_activity(activity_ptr, true, "Advanced");
 
-    // Do Timeout button separately as it's a bit special
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-    add_poweroff_timeout_btn(vsplit, timeout_btn_text);
-
-    // Other buttons
+    // Note: placeholder in second position - timeout button set into this slot below
     btn_data_t btns[]
         = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
+              { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
               { .txt = "Use Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_USE_PASSPHRASE },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
-    add_buttons(vsplit, UI_COLUMN, btns, 3);
+    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+
+    // Put special timeout button in the 2nd position
+    add_poweroff_timeout_btn(btns[1].btn, timeout_btn_text);
 }
 
 void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
@@ -372,17 +368,15 @@ void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_
 
     gui_make_activity(activity_ptr, true, "Settings");
 
-    // Do Timeout button separately as it's a bit special
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-    add_poweroff_timeout_btn(vsplit, timeout_btn_text);
-
-    // Other buttons
+    // Note: placeholder in second position - timeout button set into this slot below
     btn_data_t btns[] = { { .txt = "Advanced", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED },
+        { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
         { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
-    add_buttons(vsplit, UI_COLUMN, btns, 3);
+    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+
+    // Put special timeout button in the 2nd position
+    add_poweroff_timeout_btn(btns[1].btn, timeout_btn_text);
 }
 
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns)

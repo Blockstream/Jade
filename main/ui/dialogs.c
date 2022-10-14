@@ -42,10 +42,10 @@ void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_d
             gui_make_fill(&btn, TFT_BLACK);
         } else {
             gui_make_button(&btn, TFT_BLACK, btn_info->ev_id, NULL);
+            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
+            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         }
-        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, split);
 
         if (btn_info->txt) {
