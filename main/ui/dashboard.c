@@ -12,9 +12,10 @@
 #include "../logo/telec.c"
 #endif
 
-void make_startup_options_screen(gui_activity_t** activity_ptr)
+void make_startup_options_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity_ptr);
+    JADE_INIT_OUT_PPTR(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Advanced");
 
@@ -364,19 +365,34 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
 void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity_ptr);
+    JADE_INIT_OUT_PPTR(timeout_btn_text);
+
+    gui_make_activity(activity_ptr, true, "Settings");
+
+    btn_data_t btns[] = { { .txt = "Device", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
+        { .txt = "Xpub Export", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_XPUB_EXPORT },
+        { .txt = "Advanced", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED },
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+}
+
+void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+{
+    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Settings");
 
-    // Note: placeholder in second position - timeout button set into this slot below
-    btn_data_t btns[] = { { .txt = "Advanced", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED },
-        { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
-        { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    // Note: placeholder in first position - timeout button set into this slot below
+    btn_data_t btns[]
+        = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
+              { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_BLE },
+              { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
+              { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DEVICE_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 
-    // Put special timeout button in the 2nd position
-    add_poweroff_timeout_btn(btns[1].btn, timeout_btn_text);
+    // Put special timeout button in the 1st position
+    add_poweroff_timeout_btn(btns[0].btn, timeout_btn_text);
 }
 
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns)

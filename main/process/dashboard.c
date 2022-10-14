@@ -72,18 +72,19 @@ void update_pinserver_process(void* process_ptr);
 void auth_user_process(void* process_ptr);
 
 // GUI screens
-void make_startup_options_screen(gui_activity_t** activity_ptr);
 void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
 void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
 void make_connection_select_screen(gui_activity_t** activity_ptr);
 void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, bool ble);
 void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra);
 
+void make_startup_options_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
-void make_advanced_options_screen(gui_activity_t** activity_ptr);
+void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 
+void make_advanced_options_screen(gui_activity_t** activity_ptr);
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns);
 void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
 
@@ -433,7 +434,7 @@ static void dispatch_message(jade_process_t* process)
 }
 
 // Function to get user confirmation, then erase all flash memory.
-void offer_jade_reset(void)
+static void offer_jade_reset(void)
 {
     // Run 'Reset Jade?'  confirmation screen and wait for yes/no response
     JADE_LOGI("Offering Jade reset");
@@ -1058,12 +1059,11 @@ static void create_settings_menu(
     gui_activity_t** activity, const bool startup_menu, const uint16_t timeout, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity);
-    JADE_ASSERT(timeout_btn_text);
+    JADE_INIT_OUT_PPTR(timeout_btn_text);
 
     if (startup_menu) {
         // Startup (click on spalsh screen) menu
-        make_startup_options_screen(activity);
-        *timeout_btn_text = NULL; // doesn't apply to this menu
+        make_startup_options_screen(activity, timeout_btn_text);
     } else {
         // Normal 'Settings' menu - depends on wallet state (unlocked, locked, uninitialised)
         if (keychain_get()) {
@@ -1076,9 +1076,12 @@ static void create_settings_menu(
             // Uninitilised Jade - no wallet set
             make_uninitialised_settings_screen(activity, timeout_btn_text);
         }
-        update_idle_timeout_btn_text(*timeout_btn_text, timeout);
     }
     JADE_ASSERT(*activity);
+
+    if (*timeout_btn_text) {
+        update_idle_timeout_btn_text(*timeout_btn_text, timeout);
+    }
 }
 
 static void handle_settings(const bool startup_menu)
@@ -1105,6 +1108,7 @@ static void handle_settings(const bool startup_menu)
             break;
 
         case BTN_SETTINGS_ADVANCED_EXIT:
+        case BTN_SETTINGS_DEVICE_EXIT:
             // Change to base 'Settings' menu
             create_settings_menu(&act, startup_menu, timeout, &timeout_btn_text);
             break;
@@ -1114,6 +1118,11 @@ static void handle_settings(const bool startup_menu)
             // Change to 'Advanced' menu
             make_advanced_options_screen(&act);
             timeout_btn_text = NULL;
+            break;
+
+        case BTN_SETTINGS_DEVICE:
+            // Change to 'Device' menu
+            make_device_settings_screen(&act, &timeout_btn_text);
             break;
 
         case BTN_SETTINGS_OTP:
@@ -1145,6 +1154,10 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_RESET:
             offer_jade_reset();
+            break;
+
+        case BTN_SETTINGS_XPUB_EXPORT:
+            display_xpub_qr();
             break;
 
         case BTN_SETTINGS_TEMPORARY_WALLET_LOGIN:
@@ -1242,11 +1255,6 @@ static void handle_device(void)
 
         case BTN_INFO_STORAGE:
             handle_storage();
-            break;
-
-        case BTN_INFO_SHOW_XPUB:
-            // Show xpub as a QR code, potentially animated
-            display_xpub_qr();
             break;
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
