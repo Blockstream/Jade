@@ -3,7 +3,6 @@
 
 #include "assets.h"
 #include "gui.h"
-#include "process.h"
 
 struct wally_tx;
 

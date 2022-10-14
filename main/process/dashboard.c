@@ -26,6 +26,11 @@
 #include "../wallet.h"
 #ifndef CONFIG_ESP32_NO_BLOBS
 #include "../ble/ble.h"
+#else
+// Stubs
+static inline bool ble_enabled(void) { return false; }
+static inline bool ble_connected(void) { return false; }
+static inline void ble_start(void) { JADE_ASSERT(false); }
 #endif
 #include "process/ota_defines.h"
 #include "process_utils.h"
@@ -33,8 +38,8 @@
 #include <sodium/utils.h>
 #include <time.h>
 
-// Whether during initialisation we select BLE
-static bool initialisation_via_ble = false;
+// Whether during initialisation we select USB, BLE QR etc.
+static jade_msg_source_t initialisation_source = SOURCE_NONE;
 
 // The device name and running firmware info, loaded at startup
 static const char* device_name;
@@ -74,8 +79,9 @@ void auth_user_process(void* process_ptr);
 // GUI screens
 void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
 void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
-void make_connection_select_screen(gui_activity_t** activity_ptr);
-void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, bool ble);
+void make_connection_select_screen(gui_activity_t** activity_ptr, bool ble_available, bool temporary_restore);
+void make_connect_to_screen(
+    gui_activity_t** activity_ptr, const char* device_name, jade_msg_source_t initialisation_source);
 void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra);
 
 void make_startup_options_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
@@ -491,40 +497,53 @@ static void offer_jade_reset(void)
 }
 
 // Screen to select whether the initial connection is via USB or BLE
-static void select_initial_connection(void)
+static void select_initial_connection(const bool temporary_restore)
 {
-#ifndef CONFIG_ESP32_NO_BLOBS
-    gui_activity_t* activity = NULL;
-    make_connection_select_screen(&activity);
-    JADE_ASSERT(activity);
-    gui_set_current_activity(activity);
-
-    int32_t ev_id;
-    // In a debug unattended ci build, assume 'USB' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#ifdef CONFIG_ESP32_NO_BLOBS
+    const bool ble_available = false;
 #else
-    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-    ev_id = BTN_CONNECT_USB;
+    const bool ble_available = true;
 #endif
 
-    if (ret && ev_id == BTN_CONNECT_BLE) {
-        initialisation_via_ble = true;
-        if (!ble_enabled()) {
-            // Enable BLE by default, and start it now
-            const uint8_t ble_flags = storage_get_ble_flags() | BLE_ENABLED;
-            storage_set_ble_flags(ble_flags);
-            ble_start();
-        }
-    } else {
-        initialisation_via_ble = false;
-    }
+    // If we have connection options, the user must choose one - defaults to serial/usb
+    initialisation_source = SOURCE_SERIAL;
+    if (ble_available || temporary_restore) {
+        gui_activity_t* activity = NULL;
+        make_connection_select_screen(&activity, ble_available, temporary_restore);
+        JADE_ASSERT(activity);
+        gui_set_current_activity(activity);
+
+        int32_t ev_id;
+        // In a debug unattended ci build, assume 'USB' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    // No BLE support
-    initialisation_via_ble = false;
-#endif // CONFIG_ESP32_NO_BLOBS
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_CONNECT_USB;
+#endif
+
+        if (ret) {
+            if (ev_id == BTN_CONNECT_BLE) {
+                JADE_ASSERT(ble_available);
+                initialisation_source = SOURCE_BLE;
+                if (!ble_enabled()) {
+                    // Enable BLE by default, and start it now
+                    const uint8_t ble_flags = storage_get_ble_flags() | BLE_ENABLED;
+                    storage_set_ble_flags(ble_flags);
+                    ble_start();
+                }
+            } else if (ev_id == BTN_CONNECT_QR) {
+                // Only available for temporary restore atm.
+                // Just set the keychain source to QR - this should mean that any
+                // messages received over USB or BLE are rejected with 'hw locked'.
+                JADE_ASSERT(temporary_restore);
+                keychain_set(keychain_get(), SOURCE_QR, temporary_restore);
+                initialisation_source = SOURCE_QR;
+            }
+        }
+    }
 }
 
 // Helper to initialise with mnemonic, and (if successful) request whether the
@@ -533,7 +552,7 @@ static void initialise_wallet(const bool temporary_restore)
 {
     initialise_with_mnemonic(temporary_restore);
     if (keychain_get()) {
-        select_initial_connection();
+        select_initial_connection(temporary_restore);
     }
 }
 
@@ -1276,7 +1295,7 @@ static void handle_btn(const int32_t btn)
     case BTN_INITIALIZE:
         return initialise_wallet(false);
     case BTN_CONNECT_BACK:
-        return select_initial_connection();
+        return select_initial_connection(keychain_has_temporary());
     case BTN_SLEEP:
         return handle_sleep();
     case BTN_SETTINGS:
@@ -1316,10 +1335,6 @@ static void display_screen(jade_process_t* process, gui_activity_t* activity)
     sensitive_assert_empty();
 }
 
-#ifdef CONFIG_ESP32_NO_BLOBS
-static inline bool ble_connected(void) { return false; }
-#endif
-
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.
 static void do_dashboard(jade_process_t* process, const keychain_t* const initial_keychain, const bool initial_has_pin,
     gui_activity_t* act_dashboard, wait_event_data_t* event_data)
@@ -1334,10 +1349,10 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
     const bool initial_ble = ble_connected();
     const bool initial_usb = usb_connected();
     const uint8_t initial_userdata = keychain_get_userdata();
-    const bool initial_connection_selection = initialisation_via_ble;
+    const jade_msg_source_t initial_connection_selection = initialisation_source;
 
     while (keychain_get() == initial_keychain && keychain_has_pin() == initial_has_pin
-        && keychain_get_userdata() == initial_userdata && initialisation_via_ble == initial_connection_selection) {
+        && keychain_get_userdata() == initial_userdata && initialisation_source == initial_connection_selection) {
         // If the last loop did something, ensure the current dashboard screen
         // is displayed. (Doing this too eagerly can either cause unnecessary
         // screen flicker or can cause the dashboard to overwrite other screens
@@ -1391,6 +1406,11 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         gui_activity_register_event(                                                                                   \
             activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);                        \
     } while (false)
+
+static inline const char* get_additional_ready_screen_text()
+{
+    return keychain_get_userdata() == SOURCE_QR ? "(QR Mode)" : keychain_has_temporary() ? "(Temporary Wallet)" : "";
+}
 
 // Main/default screen/process when ready for user interaction
 void dashboard_process(void* process_ptr)
@@ -1447,13 +1467,12 @@ void dashboard_process(void* process_ptr)
         const keychain_t* initial_keychain = keychain_get();
         if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
             JADE_LOGI("Connected and have wallet/keys - showing Ready screen");
-            const char* additional = keychain_has_temporary() ? "(Temporary Wallet)" : "";
-            gui_update_text(txt_extra, additional);
+            gui_update_text(txt_extra, get_additional_ready_screen_text());
             act_dashboard = act_ready;
             // free_dashboard is not required as this screen lives for the lifetime of the application
         } else if (initial_keychain) {
             JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");
-            MAKE_DASHBOARD_SCREEN(make_connect_to_screen, act_dashboard, initialisation_via_ble);
+            MAKE_DASHBOARD_SCREEN(make_connect_to_screen, act_dashboard, initialisation_source);
             // free_dashboard is not required as this is a standard 'managed' activity
         } else if (has_pin) {
             JADE_LOGI("Wallet/keys pin set but not yet loaded - showing Connect screen");

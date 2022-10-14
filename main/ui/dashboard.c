@@ -1,6 +1,7 @@
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../ui.h"
+#include "process.h"
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 #include "../logo/ce.c"
@@ -125,10 +126,13 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     gui_set_parent(ver, vsplit);
 }
 
-#ifndef CONFIG_ESP32_NO_BLOBS
-void make_connection_select_screen(gui_activity_t** activity_ptr)
+void make_connection_select_screen(
+    gui_activity_t** activity_ptr, const bool ble_available, const bool temporary_restore)
 {
     JADE_ASSERT(activity_ptr);
+
+    // Serial connection (usb or tcp[qemu]) is always available
+    const bool serial_available = true;
 
     gui_make_activity(activity_ptr, true, "Select Connection");
 
@@ -137,19 +141,37 @@ void make_connection_select_screen(gui_activity_t** activity_ptr)
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* text;
-    gui_make_text(&text, "How do you want to connect\nto your Jade?", TFT_WHITE);
+    gui_make_text(&text, "How do you want to interact\nwith your Jade?", TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
     gui_set_parent(text, vsplit);
 
-    // Two buttons, USB and BLE
-    btn_data_t btns[] = { { .txt = "USB", .font = DEFAULT_FONT, .ev_id = BTN_CONNECT_USB },
-        { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_CONNECT_BLE } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
+    // Up to three buttons: QR (if temporary restore), USB (always), BLE (if available in fw build)
+    size_t nbtns = 0;
+    btn_data_t btns[3] = {};
+    if (temporary_restore) {
+        btns[nbtns].txt = "QR";
+        btns[nbtns].font = DEFAULT_FONT;
+        btns[nbtns].ev_id = BTN_CONNECT_QR;
+        ++nbtns;
+    }
+    if (serial_available) {
+        btns[nbtns].txt = "USB";
+        btns[nbtns].font = DEFAULT_FONT;
+        btns[nbtns].ev_id = BTN_CONNECT_USB;
+        ++nbtns;
+    }
+    if (ble_available) {
+        btns[nbtns].txt = "Bluetooth";
+        btns[nbtns].font = DEFAULT_FONT;
+        btns[nbtns].ev_id = BTN_CONNECT_BLE;
+        ++nbtns;
+    }
+    add_buttons(vsplit, UI_ROW, btns, nbtns);
 }
-#endif // CONFIG_ESP32_NO_BLOBS
 
-void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_name, const bool ble)
+void make_connect_to_screen(
+    gui_activity_t** activity_ptr, const char* device_name, const jade_msg_source_t initialisation_source)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
@@ -165,8 +187,9 @@ void make_connect_to_screen(gui_activity_t** activity_ptr, const char* device_na
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // Text
-    const char* message = ble ? "Select your Jade on the \ncompanion app to pair it"
-                              : "Connect Jade to a compatible\nwallet app\nblockstream.com/jadewallets";
+    const char* message = initialisation_source == SOURCE_BLE
+        ? "Select your Jade on the \ncompanion app to pair it"
+        : "Connect Jade to a compatible\nwallet app\nblockstream.com/jadewallets";
     gui_view_node_t* text;
     gui_make_text(&text, message, TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
