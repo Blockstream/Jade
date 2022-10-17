@@ -1150,7 +1150,7 @@ static void handle_settings(const bool startup_menu)
             timeout_btn_text = NULL;
             break;
 
-        case BTN_BLE:
+        case BTN_SETTINGS_BLE:
             handle_ble();
             break;
 
@@ -1300,8 +1300,8 @@ static void handle_btn(const int32_t btn)
         return handle_sleep();
     case BTN_SETTINGS:
         return handle_settings(false);
-    case BTN_BLE:
-        return handle_ble();
+    case BTN_SCAN_QR:
+        return handle_scan_qr();
     case BTN_INFO:
         return handle_device();
     default:

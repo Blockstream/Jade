@@ -40,6 +40,7 @@ void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, c
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
+    JADE_ASSERT(firmware_version);
 
     char title[32];
     const int ret = snprintf(title, sizeof(title), "Setup %s", device_name);
@@ -242,7 +243,7 @@ void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, g
 
     // Make the button bar under the passed node, and add all the buttons
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 34, 16);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 24, 34, 22, 20);
     gui_set_parent(hsplit, vsplit);
 
     // sleep btn
@@ -271,15 +272,15 @@ void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, g
         gui_set_parent(text, btn);
     }
 
-    // ble btn
+    // scan btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_BLE, NULL);
+        gui_make_button(&btn, TFT_BLACK, BTN_SCAN_QR, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
         gui_view_node_t* text;
-        gui_make_text(&text, "Bluetooth", TFT_WHITE);
+        gui_make_text(&text, "Scan", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
@@ -358,7 +359,7 @@ void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_
     btn_data_t btns[]
         = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
               { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
-              { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_BLE },
+              { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 
@@ -409,7 +410,7 @@ void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     // Note: placeholder in first position - timeout button set into this slot below
     btn_data_t btns[]
         = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
-              { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_BLE },
+              { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
               { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DEVICE_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);

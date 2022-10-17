@@ -244,21 +244,14 @@ void display_xpub_qr(void)
     }
 }
 
-static bool is_address(qr_data_t* qr_data)
+// Verify an address string by brute-forcing
+static bool verify_address(const char* address)
 {
-    JADE_ASSERT(qr_data);
-    JADE_ASSERT(qr_data->ctx);
-    JADE_ASSERT(qr_data->data[qr_data->len] == '\0');
-    address_data_t* const addr_data = (address_data_t*)qr_data->ctx;
-    return qr_data->len > 0 && parse_address((const char*)qr_data->data, addr_data);
-}
+    JADE_ASSERT(address);
 
-// Scan an address qr and verify by brute-forcing
-bool scan_verify_address_qr(void)
-{
     address_data_t addr_data;
-    qr_data_t qr_data = { .len = 0, .is_valid = is_address, .ctx = &addr_data };
-    if (!jade_camera_scan_qr(&qr_data, "Scan and verify\nour address")) {
+    if (!parse_address(address, &addr_data)) {
+        await_error_activity("Failed to parse address");
         return false;
     }
 
@@ -513,37 +506,29 @@ static void display_bcur_qr(
     }
 }
 
-// Scan a psbt qr and attempt to parse and sign
-bool scan_sign_display_psbt_qr(void)
+// Parse a BC-UR PSBT and attempt to sign and display as BC-UR QR
+static bool parse_sign_display_bcur_psbt_qr(const char* type, const uint8_t* data, const size_t data_len)
 {
-    char* type = NULL;
-    uint8_t* data = NULL;
-    size_t data_len = 0;
-    if (!bcur_scan_qr("Scan PSBT\nto sign", &type, &data, &data_len)) {
-        // Scan aborted
-        return false;
-    }
+    JADE_ASSERT(type);
+    JADE_ASSERT(data);
+    JADE_ASSERT(data_len);
 
     // Parse scanned QR data
     struct wally_psbt* psbt = NULL;
-    bool ret = !strcasecmp(type, BCUR_TYPE_CRYPTO_PSBT) && parse_bcur_psbt_cbor(data, data_len, &psbt);
-    free(data);
-    free(type);
-
-    if (!ret) {
-        // Unexpected type
+    if (strcasecmp(type, BCUR_TYPE_CRYPTO_PSBT) || !parse_bcur_psbt_cbor(data, data_len, &psbt)) {
+        // Unexpected type/format
         await_error_activity("Unsupported QR/PSBT format");
-        goto cleanup;
+        return false;
     }
 
     // Try to sign extracted PSBT
+    bool ret = false;
     const char* errmsg = NULL;
     const int errcode = sign_psbt(psbt, &errmsg);
     if (errcode) {
         if (errcode != CBOR_RPC_USER_CANCELLED) {
             await_error_activity(errmsg);
         }
-        ret = false;
         goto cleanup;
     }
 
@@ -561,6 +546,36 @@ bool scan_sign_display_psbt_qr(void)
 cleanup:
     JADE_WALLY_VERIFY(wally_psbt_free(psbt));
     return ret;
+}
+
+// Handle scanning a QR - supports addresses and PSBTs
+void handle_scan_qr(void)
+{
+    // Scan QR - potentially a BC-UR/multi-frame QR
+    char* type = NULL;
+    uint8_t* data = NULL;
+    size_t data_len = 0;
+    if (!bcur_scan_qr("Scan address\nor PSBT", &type, &data, &data_len) || !data) {
+        // Scan aborted
+        return;
+    }
+
+    if (type) {
+        // BC-UR scanned - try to process as PSBT
+        if (!parse_sign_display_bcur_psbt_qr(type, data, data_len)) {
+            JADE_LOGE("Processing BC-UR as PSBT failed: %s", type);
+        }
+    } else {
+        // Non-BC-UR (single frame) data - try to process as address
+        JADE_ASSERT(data[data_len] == '\0');
+        if (!verify_address((const char*)data)) {
+            JADE_LOGE("Processing QR as address failed: %s", (const char*)data);
+        }
+    }
+
+    // In either case we need to free the scanned data
+    free(type);
+    free(data);
 }
 
 // Display screen with help url and qr code
