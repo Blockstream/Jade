@@ -24,6 +24,7 @@ bool isLiquidNetwork(const char* network);
 bool csvBlocksExpectedForNetwork(const char* network, uint32_t csvBlocks);
 size_t networkToMinAllowedCsvBlocks(const char* network);
 
+uint8_t networkToId(const char* network);
 uint32_t networkToVersion(const char* network);
 
 uint8_t networkToP2PKHPrefix(const char* network);

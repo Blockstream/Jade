@@ -66,6 +66,26 @@ size_t networkToMinAllowedCsvBlocks(const char* network)
     }
 }
 
+// Network string to wally's network id value
+uint8_t networkToId(const char* network)
+{
+    JADE_ASSERT(isValidNetwork(network));
+
+    if (!strcmp(TAG_MAINNET, network)) {
+        return WALLY_NETWORK_BITCOIN_MAINNET;
+    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
+        return WALLY_NETWORK_BITCOIN_TESTNET;
+    } else if (!strcmp(TAG_LIQUID, network)) {
+        return WALLY_NETWORK_LIQUID;
+    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+        return WALLY_NETWORK_LIQUID_TESTNET;
+    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
+        return WALLY_NETWORK_LIQUID_REGTEST;
+    } else {
+        return 0;
+    }
+}
+
 // 'mainnet' and 'liquid' map to VER_MAIN_PRIVATE, others to VER_TEST_PRIVATE
 uint32_t networkToVersion(const char* network)
 {

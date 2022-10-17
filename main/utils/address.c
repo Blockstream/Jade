@@ -1,3 +1,4 @@
+#include "address.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "network.h"
@@ -6,6 +7,8 @@
 #include <wally_script.h>
 
 #include <stdio.h>
+
+static const char BITCOIN_ADDRESS_URI_SCHEME[] = "bitcoin";
 
 static void base58_addr(const uint8_t prefix, const uint8_t* script, char** output)
 {
@@ -179,4 +182,101 @@ void elements_script_to_address(const char* network, const uint8_t* script, cons
         JADE_ASSERT(ret > 0 && ret < output_len);
         JADE_WALLY_VERIFY(wally_free_string(tmp_str));
     }
+}
+
+// Convert potential uri form into raw base58 address string
+static bool address_from_uri(const char* address, address_data_t* addr_data)
+{
+    JADE_ASSERT(address);
+    JADE_ASSERT(addr_data);
+
+    // Look for ':' and uri scheme
+    const char* start = strchr(address, ':');
+    const char* end = NULL;
+    if (start) {
+        // Check URI scheme
+        if (start - address != sizeof(BITCOIN_ADDRESS_URI_SCHEME) - 1
+            || strncasecmp(address, BITCOIN_ADDRESS_URI_SCHEME, sizeof(BITCOIN_ADDRESS_URI_SCHEME) - 1)) {
+            // Bad URI scheme
+            return false;
+        }
+        ++start; // after the ':'
+        end = strchr(start, '?');
+    } else {
+        // No URI prefix, don't even look for '?' params
+        start = address;
+    }
+    if (!end) {
+        end = start + strlen(start);
+    }
+    JADE_ASSERT(end >= start);
+
+    const size_t len = end - start;
+    if (len >= sizeof(addr_data->address)) {
+        // Address too long
+        return false;
+    }
+
+    // Copy the raw address string
+    strncpy(addr_data->address, start, len);
+    addr_data->address[len] = '\0';
+    return true;
+}
+
+static bool try_parse_address(const char* trial_network, address_data_t* addr_data)
+{
+    JADE_ASSERT(trial_network);
+    JADE_ASSERT(addr_data);
+
+    // 1. Try non- (or wrapped-) segwit
+    if (wally_address_to_scriptpubkey(addr_data->address, networkToId(trial_network), addr_data->script,
+            sizeof(addr_data->script), &addr_data->script_len)
+        == WALLY_OK) {
+        JADE_LOGI("Address %s, non-segwit-native for %s", addr_data->address, trial_network);
+        addr_data->network = trial_network;
+        return true;
+    }
+
+    // 2. Try native segwit
+    if (wally_addr_segwit_to_bytes(addr_data->address, networkToBech32Hrp(trial_network), 0, addr_data->script,
+            sizeof(addr_data->script), &addr_data->script_len)
+        == WALLY_OK) {
+        JADE_LOGI("Address %s, segwit-native for %s", addr_data->address, trial_network);
+        addr_data->network = trial_network;
+        return true;
+    }
+
+    // Return false if neither attempt succeeded
+    return false;
+}
+
+// Try to parse a BTC address and extract the scriptpubkey or witness program
+// NOTE: elements is not supported atm
+bool parse_address(const char* address, address_data_t* addr_data)
+{
+    JADE_ASSERT(address);
+    JADE_ASSERT(addr_data);
+
+    addr_data->address[0] = '\0';
+    addr_data->network = NULL;
+    addr_data->script_len = 0;
+
+    // Convert potential uri form into raw base58 address string
+    if (!address_from_uri(address, addr_data)) {
+        // Bad address uri format
+        return false;
+    }
+
+    // Try to parse the passed address for mainnet, testnet and localtest/regtest
+    if (try_parse_address(TAG_MAINNET, addr_data) || try_parse_address(TAG_TESTNET, addr_data)
+        || try_parse_address(TAG_LOCALTEST, addr_data)) {
+        // Script parsed
+        const size_t len = strnlen(addr_data->address, sizeof(addr_data->address));
+        JADE_ASSERT(len > 0 && len < sizeof(addr_data->address));
+        JADE_ASSERT(addr_data->network);
+        JADE_ASSERT(addr_data->script_len);
+        return true;
+    }
+
+    return false;
 }
