@@ -10,6 +10,10 @@
 #include <sodium/utils.h>
 #include <string.h>
 
+// UI screens to confirm ota
+void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version,
+    const char* expected_hash_hexstr);
+
 const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t custom_app_desc
     = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
 

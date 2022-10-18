@@ -87,10 +87,6 @@ static const char MESSAGES[][20] = {
 
 void handle_in_bin_data(void* ctx, uint8_t* data, size_t rawsize);
 
-// UI screens to confirm ota
-void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version,
-    const char* expected_hash_hexstr);
-
 bool ota_init(jade_ota_ctx_t* joctx);
 enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called);
 enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompressed);
