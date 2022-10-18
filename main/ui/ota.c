@@ -8,7 +8,7 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(current_version);
     JADE_ASSERT(new_version);
-    // TODO: add assert here when hash made mandatory
+    JADE_ASSERT(expected_hash_hexstr);
 
     gui_make_activity(activity_ptr, true, "Firmware Upgrade");
 
@@ -51,31 +51,24 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
     }
 
     // third row, hash
-    if (expected_hash_hexstr) {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 30, 70);
-        gui_set_parent(hsplit, vsplit);
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 30, 70);
+    gui_set_parent(hsplit, vsplit);
 
-        gui_view_node_t* label;
-        gui_make_text(&label, "Hash:", TFT_WHITE);
-        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(label, hsplit);
+    gui_view_node_t* label;
+    gui_make_text(&label, "Hash:", TFT_WHITE);
+    gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(label, hsplit);
 
-        char hashstr[96];
-        const int ret = snprintf(hashstr, sizeof(hashstr), "} %s {", expected_hash_hexstr);
-        JADE_ASSERT(ret > 0 && ret < sizeof(hashstr));
+    char hashstr[96];
+    const int ret = snprintf(hashstr, sizeof(hashstr), "} %s {", expected_hash_hexstr);
+    JADE_ASSERT(ret > 0 && ret < sizeof(hashstr));
 
-        gui_view_node_t* hash;
-        gui_make_text(&hash, hashstr, TFT_WHITE);
-        gui_set_align(hash, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(hash, hsplit);
-        gui_set_text_scroll(hash, TFT_BLACK);
-    } else {
-        // TODO: remove this option when hash made mandatory
-        gui_view_node_t* filler;
-        gui_make_fill(&filler, TFT_BLACK);
-        gui_set_parent(filler, vsplit);
-    }
+    gui_view_node_t* hash;
+    gui_make_text(&hash, hashstr, TFT_WHITE);
+    gui_set_align(hash, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(hash, hsplit);
+    gui_set_text_scroll(hash, TFT_BLACK);
 
     // fourth row, text
     {
