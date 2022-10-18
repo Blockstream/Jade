@@ -2785,6 +2785,7 @@ def run_interface_tests(jadeapi,
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
+    has_ble = startinfo['JADE_CONFIG'] == 'BLE'
 
     # Smoke tests
     if smoke:
@@ -2828,7 +2829,12 @@ def run_interface_tests(jadeapi,
 
     time.sleep(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo, check_frag=True)
+
+    # NOTE: skip the fragmentation check when we have BLE enabled
+    # as there is too much memory allocation outside of our control.
+    # Also skip for no-psram (qemu) devices.
+    check_frag = has_psram and not has_ble
+    check_mem_stats(startinfo, endinfo, check_frag=check_frag)
 
 
 # Run all selected tests over a passed JadeAPI instance.
