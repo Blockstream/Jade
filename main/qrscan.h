@@ -1,6 +1,8 @@
 #ifndef QRSCAN_H_
 #define QRSCAN_H_
 
+#include <ui.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -24,6 +26,9 @@ struct _qr_data_t {
 
     // Arbitrary context that may be required by the validation function.
     void* ctx;
+
+    // Any progress-bar associated with this (potentially multi-frame) scanning
+    progress_bar_t* progress_bar;
 
     // Cached internal quirc struct - caller should set to NULL
     struct quirc* q;

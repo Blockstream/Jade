@@ -5,11 +5,12 @@
 #include "../ui.h"
 
 void make_camera_activity(gui_activity_t** activity_ptr, const char* title, const char* btnText,
-    gui_view_node_t** image_node, gui_view_node_t** label_node)
+    progress_bar_t* progress_bar, gui_view_node_t** image_node, gui_view_node_t** label_node)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     // btnText is only needed if a 'click' button is wanted
+    // progress bar is optional
     JADE_INIT_OUT_PPTR(image_node);
     JADE_INIT_OUT_PPTR(label_node);
 
@@ -20,7 +21,11 @@ void make_camera_activity(gui_activity_t** activity_ptr, const char* title, cons
     gui_set_parent(hsplit, (*activity_ptr)->root_node);
 
     gui_view_node_t* vsplit;
-    if (btnText) {
+    if (btnText && progress_bar) {
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 22, 16, 46);
+    } else if (progress_bar) {
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 38, 16, 30);
+    } else if (btnText) {
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 16, 38, 46);
     } else {
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 16, 54, 30);
@@ -50,6 +55,11 @@ void make_camera_activity(gui_activity_t** activity_ptr, const char* title, cons
     gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 2);
     gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
     *label_node = text_status;
+
+    // Any progress bar, if applicable
+    if (progress_bar) {
+        make_progress_bar(vsplit, progress_bar);
+    }
 
     // buttons
     if (btnText) {

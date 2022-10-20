@@ -145,7 +145,7 @@ bool jade_camera_scan_qr(qr_data_t* qr_data, const char* text_label)
     qr_data->len = 0;
 
     // Run the camera task trying to interpet frames as qr-codes
-    jade_camera_process_images(qr_recognize, qr_data, "Scan QR", text_label, NULL);
+    jade_camera_process_images(qr_recognize, qr_data, "Scan QR", text_label, NULL, qr_data->progress_bar);
 
     // Destroy the quirc struct created above
     quirc_destroy(qr_data->q);

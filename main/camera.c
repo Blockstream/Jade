@@ -11,7 +11,7 @@
 #include "utils/malloc_ext.h"
 
 void make_camera_activity(gui_activity_t** activity_ptr, const char* title, const char* btnText,
-    gui_view_node_t** image_node, gui_view_node_t** label_node);
+    progress_bar_t* progress_bar, gui_view_node_t** image_node, gui_view_node_t** label_node);
 
 // Camera-task config data
 typedef struct {
@@ -21,6 +21,9 @@ typedef struct {
     const char* title;
     const char* text_label;
     const char* text_button;
+
+    // Any progress bar (feedback for multi-frame scanning)
+    progress_bar_t* progress_bar;
 
     // Function to call to process captured image
     camera_process_fn_t fn_process;
@@ -163,7 +166,8 @@ static void jade_camera_task(void* data)
 
     if (has_gui) {
         // Create camera screen
-        make_camera_activity(&act, camera_config->title, camera_config->text_button, &image_node, &label_node);
+        make_camera_activity(&act, camera_config->title, camera_config->text_button, camera_config->progress_bar,
+            &image_node, &label_node);
         JADE_ASSERT(act);
         gui_set_current_activity(act);
     }
@@ -272,8 +276,8 @@ static void jade_camera_task(void* data)
     post_exit_event_and_await_death();
 }
 
-void jade_camera_process_images(
-    camera_process_fn_t fn, void* ctx, const char* title, const char* text_label, const char* text_button)
+void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* title, const char* text_label,
+    const char* text_button, progress_bar_t* progress_bar)
 {
     JADE_ASSERT(fn);
     // ctx is optional
@@ -282,15 +286,21 @@ void jade_camera_process_images(
     //   - the presence of these indicate we want the images shown on screen/ui - if they are NULL no GUI is shown
     // text_button is optional - indicates we want the user to select the images presented
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
-    // NOTE: not valid to have a button[label] if no screen[title/label]
+    // progress_bar is optional, and is for providing feedback for multi-frame scanning
+    // NOTE: not valid to have a button[label] or progress_bar if no gui screen[title/label]
     JADE_ASSERT(!title == !text_label);
     JADE_ASSERT(text_label || !text_button);
+    JADE_ASSERT(text_label || !progress_bar);
 
 // At the moment camera only supported by Jade devices
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     // Config for the camera task
-    camera_task_config_t camera_config
-        = { .title = title, .text_label = text_label, .text_button = text_button, .fn_process = fn, .ctx = ctx };
+    camera_task_config_t camera_config = { .title = title,
+        .text_label = text_label,
+        .text_button = text_button,
+        .progress_bar = progress_bar,
+        .fn_process = fn,
+        .ctx = ctx };
 
     // Run the camera task
     TaskHandle_t camera_task;
