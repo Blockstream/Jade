@@ -20,8 +20,6 @@
 #include "process_utils.h"
 
 // From sign_tx.c
-script_flavour_t get_script_flavour(const uint8_t* script, size_t script_len);
-void update_aggregate_scripts_flavour(script_flavour_t new_script_flavour, script_flavour_t* aggregate_scripts_flavour);
 bool validate_change_paths(jade_process_t* process, const char* network, const struct wally_tx* tx, CborValue* change,
     output_info_t* output_info, const char** errmsg);
 void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_signing_data, uint32_t num_inputs);

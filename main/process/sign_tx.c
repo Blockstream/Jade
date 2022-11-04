@@ -22,36 +22,6 @@
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
-// For now just return 'single-sig' or 'other'.
-// In future may extend to inlcude eg. 'green', 'other-multisig', etc.
-script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len)
-{
-    size_t script_type;
-    JADE_WALLY_VERIFY(wally_scriptpubkey_get_type(script, script_len, &script_type));
-    if (script_type == WALLY_SCRIPT_TYPE_P2PKH || script_type == WALLY_SCRIPT_TYPE_P2WPKH) {
-        return SCRIPT_FLAVOUR_SINGLESIG;
-    } else if (script_type == WALLY_SCRIPT_TYPE_MULTISIG) {
-        return SCRIPT_FLAVOUR_MULTISIG;
-    } else {
-        // eg. ga-csv script
-        return SCRIPT_FLAVOUR_OTHER;
-    }
-}
-
-// Track the types of the input prevout scripts
-void update_aggregate_scripts_flavour(
-    const script_flavour_t new_script_flavour, script_flavour_t* aggregate_scripts_flavour)
-{
-    JADE_ASSERT(aggregate_scripts_flavour);
-    if (*aggregate_scripts_flavour == SCRIPT_FLAVOUR_NONE) {
-        // First script sets the 'aggregate_scripts_flavour'
-        *aggregate_scripts_flavour = new_script_flavour;
-    } else if (*aggregate_scripts_flavour != new_script_flavour) {
-        // As soon as we see something differet, set to 'mixed'
-        *aggregate_scripts_flavour = SCRIPT_FLAVOUR_MIXED;
-    }
-}
-
 // Can optionally be passed paths for change outputs, which we verify internally
 bool validate_change_paths(jade_process_t* process, const char* network, const struct wally_tx* tx, CborValue* change,
     output_info_t* output_info, const char** errmsg)
