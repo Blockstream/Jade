@@ -108,9 +108,6 @@ gui_activity_t* display_message_activity_two_lines(const char* msg_first, const 
 void await_message_activity(const char* message);
 void await_error_activity(const char* errormessage);
 bool await_yesno_activity(const char* title, const char* message, bool default_selection);
-void await_single_icon_activity(const Icon* icon, color_t color, const color_t* bg_color);
-void await_animated_icon_activity(
-    Icon* icons, size_t num_icons, color_t color, const color_t* bg_color, size_t frames_per_icon);
 
 // Generic progress-bar
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);
