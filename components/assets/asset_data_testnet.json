@@ -148,6 +148,36 @@
         "ticker": "FUSD",
         "version": 0
     },
+    "0d914e51bb294c99afd56b2d24e54aecfc1c51a75270ee53d868873f68e3c7e6": {
+        "asset_id": "0d914e51bb294c99afd56b2d24e54aecfc1c51a75270ee53d868873f68e3c7e6",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "raspitor.one"
+            },
+            "issuer_pubkey": "020a54cbb517c9be8943eaa28b8a55db3e4a2155edd89e50dd2500da9befb0272c",
+            "name": "AMP Juan",
+            "precision": 2,
+            "ticker": "AMP-J",
+            "version": 0
+        },
+        "entity": {
+            "domain": "raspitor.one"
+        },
+        "issuance_prevout": {
+            "txid": "93e54f0e12c6afe9686e9a5dfc5a5b879e143f63a29074881625d8066b941b0a",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "7a48bc7a0c23342a034d806fdc3228d3304866f7137b7de90b032c97880a4d03",
+            "vin": 0
+        },
+        "issuer_pubkey": "020a54cbb517c9be8943eaa28b8a55db3e4a2155edd89e50dd2500da9befb0272c",
+        "name": "AMP Juan",
+        "precision": 2,
+        "ticker": "AMP-J",
+        "version": 0
+    },
     "0f466e42df38b8fc4e5374eae36a1d57c0f5ce1528376ec534cc4a007ebcd7c0": {
         "asset_id": "0f466e42df38b8fc4e5374eae36a1d57c0f5ce1528376ec534cc4a007ebcd7c0",
         "collection": null,
@@ -296,6 +326,36 @@
         "name": "bitbitbit",
         "precision": 2,
         "ticker": "bit",
+        "version": 0
+    },
+    "2da5e144f687d40795d9133fc7db79ccf8b44c2b94cae1dd34c1472bf2b50da1": {
+        "asset_id": "2da5e144f687d40795d9133fc7db79ccf8b44c2b94cae1dd34c1472bf2b50da1",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "exordium.co"
+            },
+            "issuer_pubkey": "02eb91c0f461aeafc4f51083e652595d352115fe7400ace6343abb70c70e0fe4eb",
+            "name": "INF",
+            "precision": 2,
+            "ticker": "tINF",
+            "version": 0
+        },
+        "entity": {
+            "domain": "exordium.co"
+        },
+        "issuance_prevout": {
+            "txid": "2f5f78ae9a984875b8224240a8a33a7787feb1199e09f3e9ab2600ec8437a930",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "ed702f0402a8f2fdfbb6cac9ba33051833eda56575036e81cf86b27bf0c53d58",
+            "vin": 0
+        },
+        "issuer_pubkey": "02eb91c0f461aeafc4f51083e652595d352115fe7400ace6343abb70c70e0fe4eb",
+        "name": "INF",
+        "precision": 2,
+        "ticker": "tINF",
         "version": 0
     },
     "347f1eed596fd07865967759a95222143ede1caca47399c9fa394bf3922c4dfc": {
@@ -1312,6 +1372,36 @@
         "name": "VFSLJ test asset",
         "precision": 2,
         "ticker": "VFSLJ",
+        "version": 0
+    },
+    "d8aadfbca144731aa66c86edc4df185e44e86dece3b2347e2401928068b412c8": {
+        "asset_id": "d8aadfbca144731aa66c86edc4df185e44e86dece3b2347e2401928068b412c8",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "raspitor.one"
+            },
+            "issuer_pubkey": "02f26b4f79a7518ad25d78ef779f694fff836d62d46f5608b1de26b00cb81e72a0",
+            "name": "JuanR2",
+            "precision": 1,
+            "ticker": "JR2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "raspitor.one"
+        },
+        "issuance_prevout": {
+            "txid": "8bd23cd36a4dd4b7bd6d30b921d6893160aa70d141aba179a06320a8ddba2bcb",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "b4eba9ee561ddf72718fe6f7c883df39ccc085195a4a943555499d99a154ec99",
+            "vin": 0
+        },
+        "issuer_pubkey": "02f26b4f79a7518ad25d78ef779f694fff836d62d46f5608b1de26b00cb81e72a0",
+        "name": "JuanR2",
+        "precision": 1,
+        "ticker": "JR2",
         "version": 0
     },
     "db3dde66270489f98733fb4d5bf8c712de113793d5915a8b3df6f70610aec18e": {

@@ -13863,6 +13863,42 @@
         "ticker": "CEd",
         "version": 0
     },
+    "93c111b8d914d9d83f30075eba09ec03d51b7e9a690d48995af8811caac21aed": {
+        "asset_id": "93c111b8d914d9d83f30075eba09ec03d51b7e9a690d48995af8811caac21aed",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmazTVaab34tHvTVQ2jHEFETWB7Eo5bkwiYBzK9WjkYYSN",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Ofelia sospesa",
+            "nft": {
+                "cid": "QmSN55wVExkDzaNfcChwjVTzc74HZznHKBv4ffThQpB51Y",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "e7dbed2b259b8a54b586083298200d615d4feaeb27887d82ed2a04c64279b3f1"
+            },
+            "precision": 0,
+            "ticker": "Ofina",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "a155d5486c1ca863736c500281f4e7b61a54c220a8f9fae21cf03b1b0b2899a0",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "43c4d73dd4f2f85532af13c6c1456049ba69fbef65daf748c5c4315902ae789d",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Ofelia sospesa",
+        "precision": 0,
+        "ticker": "Ofina",
+        "version": 0
+    },
     "93fd95031e64f9154a1b49243923cfccbe7349610d58cf7ed3631302153d6ef0": {
         "asset_id": "93fd95031e64f9154a1b49243923cfccbe7349610d58cf7ed3631302153d6ef0",
         "contract": {
@@ -15858,6 +15894,42 @@
         "ticker": "BOARD",
         "version": 0
     },
+    "a9fc7ae1947021bf4b206cc17f77e1728a59eb948d9e3b7daa3e78e24cbf30c1": {
+        "asset_id": "a9fc7ae1947021bf4b206cc17f77e1728a59eb948d9e3b7daa3e78e24cbf30c1",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmWgXuHD2V3KUpEWzm7raiFB9Vm3YZMiHXx7cjRbJYLrzJ",
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "Mouse",
+            "nft": {
+                "cid": "QmNtP2SSUxS8j4nYp1YWHsd2FZvkwsNGSjNAB6yEfz3vaG",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "7062d713536ad57445baf85ff0fb98ed60fc1cafb16867c1934e4f4e08ebf944"
+            },
+            "precision": 0,
+            "ticker": "Mouse",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "7f49076efba6e5df52b339265a1c5e53c82360ce3551cdd2f061529df841f884",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "39faaca36355680b443d384c70ecd9564e30bd8308295df70998ec78494d3cd4",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "Mouse",
+        "precision": 0,
+        "ticker": "Mouse",
+        "version": 0
+    },
     "aa0211549e4b9dfcfd14c94ad346e2fee317db687d31dd7a6736ffa60760812f": {
         "asset_id": "aa0211549e4b9dfcfd14c94ad346e2fee317db687d31dd7a6736ffa60760812f",
         "collection": null,
@@ -17745,6 +17817,36 @@
         "ticker": "KRWME",
         "version": 0
     },
+    "bd1d3b1f10a3e1eb5ac2d332f118005f126f8c37fab490f8c8d84ddbd8c763c7": {
+        "asset_id": "bd1d3b1f10a3e1eb5ac2d332f118005f126f8c37fab490f8c8d84ddbd8c763c7",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "www.600000000000.org"
+            },
+            "issuer_pubkey": "02dd05deffc8e5df11e233da8a03113cabd6bbb05bbba2c8696d3a56d32bbf882d",
+            "name": "600000000000",
+            "precision": 8,
+            "ticker": "600",
+            "version": 0
+        },
+        "entity": {
+            "domain": "www.600000000000.org"
+        },
+        "issuance_prevout": {
+            "txid": "cd4782449f82858e9cc8ae54425a540b82762a8f0fb960172fb376b83cda030e",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "9a80f127d0db9a95644a4f76dd1e4f82a0657291440f6098154308c6c68d368e",
+            "vin": 0
+        },
+        "issuer_pubkey": "02dd05deffc8e5df11e233da8a03113cabd6bbb05bbba2c8696d3a56d32bbf882d",
+        "name": "600000000000",
+        "precision": 8,
+        "ticker": "600",
+        "version": 0
+    },
     "bda8ebb64fad42cb8cb7b89ef1ccab2c9aba74b2563e5e3bab0a0a85e4938e47": {
         "asset_id": "bda8ebb64fad42cb8cb7b89ef1ccab2c9aba74b2563e5e3bab0a0a85e4938e47",
         "contract": {
@@ -18594,6 +18696,36 @@
         "name": "Skull",
         "precision": 0,
         "ticker": "HSkul",
+        "version": 0
+    },
+    "c5a8dfd177ad2d604cb86194b434904b4bbc55de4908e0beab104267a01cfb97": {
+        "asset_id": "c5a8dfd177ad2d604cb86194b434904b4bbc55de4908e0beab104267a01cfb97",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "raspitor.one"
+            },
+            "issuer_pubkey": "036f54e3488e2503df0e9b0ab554bafc5b13e46719838a8c0b8aff0388928ce11a",
+            "name": "One Two Coin",
+            "precision": 2,
+            "ticker": "1-2Coin",
+            "version": 0
+        },
+        "entity": {
+            "domain": "raspitor.one"
+        },
+        "issuance_prevout": {
+            "txid": "3c396b4d99040f1fcd463ae6cfe97825b56f6474dfea4dfe972cb895485b00e0",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "256f32b54f364c35a8b71cc66a4241ad2fbe1d8e5fd34313fbc0ebfedcbc1460",
+            "vin": 0
+        },
+        "issuer_pubkey": "036f54e3488e2503df0e9b0ab554bafc5b13e46719838a8c0b8aff0388928ce11a",
+        "name": "One Two Coin",
+        "precision": 2,
+        "ticker": "1-2Coin",
         "version": 0
     },
     "c5f6a3ec66a4310a5da4f1054136c47d23da1f2bd849d445a1e522ae1b23b42f": {
@@ -19623,6 +19755,47 @@
         "name": "Bible NFT",
         "precision": 0,
         "ticker": "BIBLE",
+        "version": 0
+    },
+    "d26c32dfc9ecc8bbd68de3439c17bacf118fca26ed2933ce121f98221329382b": {
+        "asset_id": "d26c32dfc9ecc8bbd68de3439c17bacf118fca26ed2933ce121f98221329382b",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "bfungible.bcademy.xyz"
+            },
+            "file": "QmZZHm6FEGCvtPWtLr8yj6hNuefC1N2VALdQKka4tFXDUe",
+            "icon": {
+                "cid": "QmWgXuHD2V3KUpEWzm7raiFB9Vm3YZMiHXx7cjRbJYLrzJ",
+                "content_type": "image/png",
+                "hash": "ede6b881d5728b6726c7680d1b103c33e75001cdd0832ed1955e966a7f9da79f"
+            },
+            "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+            "name": "la DROGA",
+            "nft": {
+                "cid": "QmabJ7qwyvNoQhRyTdKJgzz3YZxmv8znbJR91gGSk9ZkXi",
+                "domain": "bfungible.bcademy.xyz",
+                "hash": "ae9d884595d8fd60e532b1d4b1921d7f0b4b1cce624cecb24affae8cb0b8892c"
+            },
+            "precision": 0,
+            "ticker": "DROGA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "bfungible.bcademy.xyz"
+        },
+        "issuance_prevout": {
+            "txid": "7ae26bc29b69d81f2161122380f4807d4782b6eb16e7ef5e136bf5316f1ad041",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "a155d5486c1ca863736c500281f4e7b61a54c220a8f9fae21cf03b1b0b2899a0",
+            "vin": 0
+        },
+        "issuer_pubkey": "032707d05b6aa5e823956b5a0d83e5d1d2acd80e8d8d5a2833f3157f3604b0ef8d",
+        "name": "la DROGA",
+        "precision": 0,
+        "ticker": "DROGA",
         "version": 0
     },
     "d2872f9cfd905e647b86158ac3c40453a947b8d343cb05ba05a0a8cb1c538582": {
@@ -21689,6 +21862,36 @@
         "ticker": "PGEMN",
         "version": 0
     },
+    "ec68371c71980da8257996086524ac35e7eba56c5e494662200ab3d5f4fbee02": {
+        "asset_id": "ec68371c71980da8257996086524ac35e7eba56c5e494662200ab3d5f4fbee02",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "swap-helper.herokuapp.com"
+            },
+            "issuer_pubkey": "02d53790f5d079e4e6857de839ca24c98c56412981f2917c757aa1c5fb5b1447c6",
+            "name": "asset X",
+            "precision": 2,
+            "ticker": "ASSX",
+            "version": 0
+        },
+        "entity": {
+            "domain": "swap-helper.herokuapp.com"
+        },
+        "issuance_prevout": {
+            "txid": "55f513ad46a9817685683aaa7b4235c12b7e2531f8b0c4be175c806c26315e96",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "b6632d7176b19c8245635cc82dbab642cf517ad0d0e2250e6ce28ef2b3a7d7c6",
+            "vin": 0
+        },
+        "issuer_pubkey": "02d53790f5d079e4e6857de839ca24c98c56412981f2917c757aa1c5fb5b1447c6",
+        "name": "asset X",
+        "precision": 2,
+        "ticker": "ASSX",
+        "version": 0
+    },
     "ed636d5014b8d008db94f76bd9129ab1f4ebb56d00c6803a94627f0bf9bca81a": {
         "asset_id": "ed636d5014b8d008db94f76bd9129ab1f4ebb56d00c6803a94627f0bf9bca81a",
         "contract": {
@@ -23238,6 +23441,36 @@
         "name": "bongos",
         "precision": 0,
         "ticker": "BON",
+        "version": 0
+    },
+    "fe8065b1c196b414d2e21edb4b5a9075e8165a37734bfaeadbb52ee8e91012b1": {
+        "asset_id": "fe8065b1c196b414d2e21edb4b5a9075e8165a37734bfaeadbb52ee8e91012b1",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "opcaoverde.org"
+            },
+            "issuer_pubkey": "0314c9598dd164ee98220ec948bcba0c88297e2101bf32d08a1e3b5e885b14daf3",
+            "name": "treetest",
+            "precision": 0,
+            "ticker": "TREETEST",
+            "version": 0
+        },
+        "entity": {
+            "domain": "opcaoverde.org"
+        },
+        "issuance_prevout": {
+            "txid": "660abc809931a175e92cf1f3035f05d66dbcd3c0b42160952308b65bb5b29ca1",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "0baa49f02da2f47e7238093e462f58f528cc2bb185ff96424370d5a2a58e5b4e",
+            "vin": 0
+        },
+        "issuer_pubkey": "0314c9598dd164ee98220ec948bcba0c88297e2101bf32d08a1e3b5e885b14daf3",
+        "name": "treetest",
+        "precision": 0,
+        "ticker": "TREETEST",
         "version": 0
     },
     "ff6a820d6ff4966eba0ac58ba6ba9da5186a31f673399266bd40e5f0d3ad28ab": {
