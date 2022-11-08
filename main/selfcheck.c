@@ -528,7 +528,7 @@ static bool test_bcur_decode_encode(void)
             // additional/missing data parts.  If we receive a fountain-code part first it can't generate
             // any data parts on its own - so does not initially bump the 'received parts' count.
             // (It is cached in the decoder, and may generate one or more parts later when further parts
-            // are recieved - so 'received parts' can jump by more than 1 when a subsequent message is received.)
+            // are received - so 'received parts' can jump by more than 1 when a subsequent message is received.)
             const size_t initial_expected_received = i == 2 ? 0 : 1;
 
             for (size_t j = 0; j < 3; ++j) {

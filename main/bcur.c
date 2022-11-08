@@ -31,7 +31,7 @@ static const uint32_t QR_ALPHANUMERIC_CAPACITY[] = { 0, 25, 47, 77, 114, 154, 19
 // used to get an image as large as sensibly fits the Jade screen.
 static const uint32_t QR_SCALE_FACTOR[] = { 0, 6, 5, 4, 4, 3, 3, 3, 2, 2, 2, 2, 2 };
 
-// NOTE: educated-guesswork/reverse-engineered - pass this value into bcur decoder
+// NOTE: educated-guesswork/reverse-engineered - pass this value into bcur encoder
 // to get a series of text fragments which are within 'capacity' - ie. within the
 // capacity of the qr code version we are intending to use.
 // max_frag_size = target-capacity - length of the type label - 12 for 'UR:' and
