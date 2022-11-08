@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.40] - 2022-11-08
+### Added
+- Support scanning and signing txns using PSBTs and QR codes (ur:crypto-psbt)
+- Support scanning and verifying a singlesig receive address QR
+- Export a BIP44-like xpub using QR codes (ur:crypto-account)
+- Support importing mnemonic in ur:crypto-bip39 format (vi QR)
+
+### Changed
+- Update Liquid asset registry info
+- Update 'Settings' menus
+- Update libwally to 0.8.6
+
+### Fixed
+
 ## [0.1.39] - 2022-10-05
 ### Added
 - Show BLE config of firmware during OTA
@@ -161,8 +175,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.30] - 2021-10-20
 ### Added
 - Support for generic multisig, following registration/approval of the multisig descriptor
-- Support for bip39 passphrase, if selected during wallet initialisation/setup
-- On-screen warnings for unexpected bip32 paths when generating addresses and when validating change addresses
+- Support for BIP39 passphrase, if selected during wallet initialisation/setup
+- On-screen warnings for unexpected BIP32 paths when generating addresses and when validating change addresses
 
 ### Changed
 - Update Liquid asset registry info
