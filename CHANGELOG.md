@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.41] - 2022-11-09
+### Added
+
+### Changed
+
+### Fixed
+- Corrected path and script type in singlesig xpub export QR
+
 ## [0.1.40] - 2022-11-08
 ### Added
 - Support scanning and signing txns using PSBTs and QR codes (ur:crypto-psbt)

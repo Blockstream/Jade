@@ -107,7 +107,7 @@ static script_variant_t xpub_script_variant_from_flags(const uint16_t qr_flags)
     if (contains_flags(qr_flags, QR_XPUB_MULTISIG)) {
         return wrapped_segwit ? MULTI_P2WSH_P2SH : MULTI_P2WSH;
     }
-    return wrapped_segwit ? MULTI_P2WSH_P2SH : MULTI_P2WSH;
+    return wrapped_segwit ? P2WPKH_P2SH : P2WPKH;
 }
 
 static void create_display_xpub_qr_activity(gui_activity_t** activity_ptr, const uint16_t qr_flags)
