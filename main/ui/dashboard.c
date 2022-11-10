@@ -13,10 +13,9 @@
 #include "../logo/telec.c"
 #endif
 
-void make_startup_options_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+void make_startup_options_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_INIT_OUT_PPTR(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Advanced");
 
@@ -127,13 +126,9 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     gui_set_parent(ver, vsplit);
 }
 
-void make_connection_select_screen(
-    gui_activity_t** activity_ptr, const bool ble_available, const bool temporary_restore)
+void make_connection_select_screen(gui_activity_t** activity_ptr, const bool temporary_restore)
 {
     JADE_ASSERT(activity_ptr);
-
-    // Serial connection (usb or tcp[qemu]) is always available
-    const bool serial_available = true;
 
     gui_make_activity(activity_ptr, true, "Select Connection");
 
@@ -147,28 +142,37 @@ void make_connection_select_screen(
     gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
     gui_set_parent(text, vsplit);
 
-    // Up to three buttons: QR (if temporary restore), USB (always), BLE (if available in fw build)
-    size_t nbtns = 0;
-    btn_data_t btns[3] = {};
+    // One, two or three buttons, depending on whether QR and/or Bluetooth are available in the build
+    // Also, a 'recovery phrase login' puts 'QR'(mode) first, whereas a standard initialisation puts QR last!
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    const char* qr_label = "QR";
+    const uint32_t qr_ev_id = BTN_CONNECT_QR;
+#else
+    const char* qr_label = NULL;
+    const uint32_t qr_ev_id = GUI_BUTTON_EVENT_NONE;
+#endif
+
+#ifndef CONFIG_ESP32_NO_BLOBS
+    const char* ble_label = "Bluetooth";
+    const uint32_t ble_ev_id = BTN_CONNECT_BLE;
+#else
+    const char* ble_label = NULL;
+    const uint32_t ble_ev_id = GUI_BUTTON_EVENT_NONE;
+#endif
+
     if (temporary_restore) {
-        btns[nbtns].txt = "QR";
-        btns[nbtns].font = DEFAULT_FONT;
-        btns[nbtns].ev_id = BTN_CONNECT_QR;
-        ++nbtns;
+        // QR, USB, BLE
+        btn_data_t btns[] = { { .txt = qr_label, .font = DEFAULT_FONT, .ev_id = qr_ev_id },
+            { .txt = "USB", .font = DEFAULT_FONT, .ev_id = BTN_CONNECT_USB },
+            { .txt = ble_label, .font = DEFAULT_FONT, .ev_id = ble_ev_id } };
+        add_buttons(vsplit, UI_ROW, btns, 3);
+    } else {
+        // USB, BLE, QR
+        btn_data_t btns[] = { { .txt = "USB", .font = DEFAULT_FONT, .ev_id = BTN_CONNECT_USB },
+            { .txt = ble_label, .font = DEFAULT_FONT, .ev_id = ble_ev_id },
+            { .txt = qr_label, .font = DEFAULT_FONT, .ev_id = qr_ev_id } };
+        add_buttons(vsplit, UI_ROW, btns, 3);
     }
-    if (serial_available) {
-        btns[nbtns].txt = "USB";
-        btns[nbtns].font = DEFAULT_FONT;
-        btns[nbtns].ev_id = BTN_CONNECT_USB;
-        ++nbtns;
-    }
-    if (ble_available) {
-        btns[nbtns].txt = "Bluetooth";
-        btns[nbtns].font = DEFAULT_FONT;
-        btns[nbtns].ev_id = BTN_CONNECT_BLE;
-        ++nbtns;
-    }
-    add_buttons(vsplit, UI_ROW, btns, nbtns);
 }
 
 void make_connect_to_screen(
@@ -198,18 +202,20 @@ void make_connect_to_screen(
     gui_set_parent(text, vsplit);
 
 #ifndef CONFIG_ESP32_NO_BLOBS
-    // Back button
-    gui_view_node_t* btn;
-    gui_make_button(&btn, TFT_BLACK, BTN_CONNECT_BACK, NULL);
-    gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(btn, GUI_MARGIN_ALL_DIFFERENT, 15, 150, 0, 8);
-    gui_set_parent(btn, vsplit);
+    if (initialisation_source != SOURCE_QR) {
+        // Back button
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_CONNECT_BACK, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+        gui_set_margins(btn, GUI_MARGIN_ALL_DIFFERENT, 15, 150, 0, 8);
+        gui_set_parent(btn, vsplit);
 
-    gui_view_node_t* btntext;
-    gui_make_text_font(&btntext, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(btntext, btn);
+        gui_view_node_t* btntext;
+        gui_make_text_font(&btntext, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+        gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(btntext, btn);
+    }
 #endif
 }
 
@@ -381,30 +387,9 @@ void make_passphrase_prefs_screen(
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
-static void add_poweroff_timeout_btn(gui_view_node_t* parent, gui_view_node_t** timeout_btn_text)
-{
-    JADE_ASSERT(parent);
-    JADE_INIT_OUT_PPTR(timeout_btn_text);
-
-    gui_view_node_t* btn;
-    gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_IDLE_TIMEOUT, NULL);
-    gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_parent(btn, parent);
-
-    gui_view_node_t* text;
-    gui_make_text(&text, "Power-off Timeout", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text, btn);
-
-    *timeout_btn_text = text;
-}
-
-void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+void make_uninitialised_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_INIT_OUT_PPTR(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Advanced");
 
@@ -417,29 +402,22 @@ void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
-void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+void make_locked_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Advanced");
 
-    // Note: placeholder in second position - timeout button set into this slot below
-    btn_data_t btns[]
-        = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
-              { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
-              { .txt = "Passphrase Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PASSPHRASE },
-              { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    btn_data_t btns[] = { { .txt = "QR PIN Unlock", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_QR_PINSERVER },
+        { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
+        { .txt = "Passphrase Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PASSPHRASE },
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
-
-    // Put special timeout button in the 2nd position
-    add_poweroff_timeout_btn(btns[1].btn, timeout_btn_text);
 }
 
-void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+void make_unlocked_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_INIT_OUT_PPTR(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Settings");
 
@@ -479,7 +457,19 @@ void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 
     // Put special timeout button in the 1st position
-    add_poweroff_timeout_btn(btns[0].btn, timeout_btn_text);
+    gui_view_node_t* btn;
+    gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_IDLE_TIMEOUT, NULL);
+    gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+    gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+    gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
+    gui_set_parent(btn, btns[0].btn);
+
+    gui_view_node_t* text;
+    gui_make_text(&text, "Power-off Timeout", TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(text, btn);
+
+    *timeout_btn_text = text;
 }
 
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns)

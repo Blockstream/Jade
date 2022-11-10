@@ -81,16 +81,16 @@ void auth_user_process(void* process_ptr);
 // GUI screens
 void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
 void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
-void make_connection_select_screen(gui_activity_t** activity_ptr, bool ble_available, bool temporary_restore);
+void make_connection_select_screen(gui_activity_t** activity_ptr, bool temporary_restore);
 void make_connect_to_screen(
     gui_activity_t** activity_ptr, const char* device_name, jade_msg_source_t initialisation_source);
 void make_ready_screen(
     gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_label, gui_view_node_t** txt_extra);
 
-void make_startup_options_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
-void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
-void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
-void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
+void make_startup_options_screen(gui_activity_t** activity_ptr);
+void make_uninitialised_settings_screen(gui_activity_t** activity_ptr);
+void make_locked_settings_screen(gui_activity_t** activity_ptr);
+void make_unlocked_settings_screen(gui_activity_t** activity_ptr);
 
 void make_wallet_settings_screen(gui_activity_t** activity_ptr);
 void make_advanced_options_screen(gui_activity_t** activity_ptr);
@@ -468,6 +468,11 @@ static void dispatch_message(jade_process_t* process)
 
         // Then clean up after the process has finished
         cleanup_jade_process(&task_process);
+
+        // When the authentication process exits, wipe the cached 'initialistion source'
+        if (task_function == auth_user_process) {
+            initialisation_source = SOURCE_NONE;
+        }
     }
 }
 
@@ -528,21 +533,51 @@ static void offer_jade_reset(void)
     }
 }
 
+// Offer to communicate with pinserver via QRs
+static bool offer_pinserver_via_qr(const bool temporary_restore)
+{
+    // User to confirm pinserver-via-QR
+    if (!temporary_restore) {
+        if (keychain_has_pin()) {
+            if (!await_qr_yesno_activity(
+                    "QR PIN Unlock", "Visit webpage to\nunlock using QRs", "blockstream.com/pinQR", true)) {
+                // User decided against it
+                return false;
+            }
+        } else {
+            if (!await_qr_yesno_activity(
+                    "QR PIN Setup", "Visit webpage to\nsecure using QRs", "blockstream.com/pinQR", true)) {
+                // User decided against it
+                return false;
+            }
+        }
+    }
+
+    // Start pinserver/qr handshake process
+    initialisation_source = SOURCE_QR;
+    handle_qr_auth();
+    return true;
+}
+
+// Unlock jade using qr-codes to effect communication with the pinserver
+static bool offer_pinserver_qr_unlock()
+{
+    JADE_ASSERT(keychain_has_pin());
+    const bool temporary_restore = keychain_has_temporary();
+    JADE_ASSERT(!temporary_restore);
+    return offer_pinserver_via_qr(temporary_restore);
+}
+
 // Screen to select whether the initial connection is via USB or BLE
 static void select_initial_connection(const bool temporary_restore)
 {
-#ifdef CONFIG_ESP32_NO_BLOBS
-    const bool ble_available = false;
-#else
-    const bool ble_available = true;
-#endif
+    // Since we have connection options, the user must choose one
+    gui_activity_t* activity = NULL;
+    make_connection_select_screen(&activity, temporary_restore);
+    JADE_ASSERT(activity);
 
-    // If we have connection options, the user must choose one - defaults to serial/usb
-    initialisation_source = SOURCE_SERIAL;
-    if (ble_available || temporary_restore) {
-        gui_activity_t* activity = NULL;
-        make_connection_select_screen(&activity, ble_available, temporary_restore);
-        JADE_ASSERT(activity);
+    initialisation_source = SOURCE_NONE;
+    do {
         gui_set_current_activity(activity);
 
         int32_t ev_id;
@@ -557,25 +592,25 @@ static void select_initial_connection(const bool temporary_restore)
 #endif
 
         if (ret) {
-            if (ev_id == BTN_CONNECT_BLE) {
-                JADE_ASSERT(ble_available);
+            if (ev_id == BTN_CONNECT_USB) {
+                // Set USB/SERIAL source
+                initialisation_source = SOURCE_SERIAL;
+            } else if (ev_id == BTN_CONNECT_BLE) {
+                // Set BLE source and ensure ble enabled now and by default
                 initialisation_source = SOURCE_BLE;
                 if (!ble_enabled()) {
-                    // Enable BLE by default, and start it now
                     const uint8_t ble_flags = storage_get_ble_flags() | BLE_ENABLED;
                     storage_set_ble_flags(ble_flags);
                     ble_start();
                 }
             } else if (ev_id == BTN_CONNECT_QR) {
-                // Only available for temporary restore atm.
-                // Just set the keychain source to QR - this should mean that any
-                // messages received over USB or BLE are rejected with 'hw locked'.
-                JADE_ASSERT(temporary_restore);
-                keychain_set(keychain_get(), SOURCE_QR, temporary_restore);
-                initialisation_source = SOURCE_QR;
+                // Offer pinserver via qr with urls etc
+                if (offer_pinserver_via_qr(temporary_restore)) {
+                    JADE_ASSERT(initialisation_source == SOURCE_QR);
+                }
             }
         }
-    }
+    } while (initialisation_source == SOURCE_NONE);
 }
 
 // Helper to initialise with mnemonic, and (if successful) request whether the
@@ -1196,33 +1231,27 @@ static void handle_pinserver_reset(void)
 }
 
 // Create the appropriate 'Settings' menu
-static void create_settings_menu(
-    gui_activity_t** activity, const bool startup_menu, const uint16_t timeout, gui_view_node_t** timeout_btn_text)
+static void create_settings_menu(gui_activity_t** activity, const bool startup_menu)
 {
     JADE_ASSERT(activity);
-    JADE_INIT_OUT_PPTR(timeout_btn_text);
 
     if (startup_menu) {
         // Startup (click on spalsh screen) menu
-        make_startup_options_screen(activity, timeout_btn_text);
+        make_startup_options_screen(activity);
     } else {
         // Normal 'Settings' menu - depends on wallet state (unlocked, locked, uninitialised)
         if (keychain_get()) {
             // Unlocked Jade - main settings
-            make_unlocked_settings_screen(activity, timeout_btn_text);
+            make_unlocked_settings_screen(activity);
         } else if (keychain_has_pin()) {
             // Locked Jade - before pin entry when saved wallet exists
-            make_locked_settings_screen(activity, timeout_btn_text);
+            make_locked_settings_screen(activity);
         } else {
             // Uninitilised Jade - no wallet set
-            make_uninitialised_settings_screen(activity, timeout_btn_text);
+            make_uninitialised_settings_screen(activity);
         }
     }
     JADE_ASSERT(*activity);
-
-    if (*timeout_btn_text) {
-        update_idle_timeout_btn_text(*timeout_btn_text, timeout);
-    }
 }
 
 static void handle_settings(const bool startup_menu)
@@ -1233,7 +1262,7 @@ static void handle_settings(const bool startup_menu)
     // Create the appropriate 'Settings' menu
     gui_activity_t* act = NULL;
     gui_view_node_t* timeout_btn_text = NULL;
-    create_settings_menu(&act, startup_menu, timeout, &timeout_btn_text);
+    create_settings_menu(&act, startup_menu);
 
     bool done = false;
     while (!done) {
@@ -1253,7 +1282,8 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_WALLET_EXIT:
         case BTN_SETTINGS_PINSERVER_EXIT:
             // Change to base 'Settings' menu
-            create_settings_menu(&act, startup_menu, timeout, &timeout_btn_text);
+            create_settings_menu(&act, startup_menu);
+            timeout_btn_text = NULL;
             break;
 
         case BTN_SETTINGS_ADVANCED:
@@ -1319,6 +1349,14 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_BIP85:
             handle_bip85_mnemonic();
+            break;
+
+        case BTN_SETTINGS_QR_PINSERVER:
+            // If the user starts the process of interacting with the pinserver via QR codes we must break out
+            // here and not go back to the menu, as a) the 'auth_user' and pinserver messages need to be handled
+            // asap, and b) the process may have invalidated the menu screens/activities we are using here.
+            // ofc if the user declines starting the process, staying in the loop is fine/correct.
+            done = offer_pinserver_qr_unlock();
             break;
 
         case BTN_SETTINGS_TEMPORARY_WALLET_LOGIN:
@@ -1650,11 +1688,13 @@ void dashboard_process(void* process_ptr)
         // We have four cases:
         // 1. Ready - has keys already associated with a message source
         //    - ready screen  (created early and persistent, see above)
-        // 2. Unused keys - has keys in memory, but not yet connected to an app
+        // 2. Awaiting QR intialisation - this is a special case of either 3. or 4. below
+        //    - just show 'Processing...' screen while we await QR client task
+        // 3. Unused keys - has keys in memory, but not yet connected to an app
         //    - connect-to screen
-        // 3. Locked - has persisted/encrypted keys, but no keys in memory
+        // 4. Locked - has persisted/encrypted keys, but no keys in memory
         //    - connect screen
-        // 4. Uninitialised - has no persisted/encrypted keys and no keys in memory
+        // 5. Uninitialised - has no persisted/encrypted keys and no keys in memory
         //    - setup screen
         // NOTE: Some dashboard screens are created as 'unmanaged' activities, so are not placed
         // in the list of activities to be freed by 'set_current_activity_ex()' calls, so any
@@ -1669,6 +1709,10 @@ void dashboard_process(void* process_ptr)
             update_ready_screen_text(txt_label, txt_extra);
             act_dashboard = act_ready;
             // free_dashboard is not required as this screen lives for the lifetime of the application
+        } else if (initialisation_source == SOURCE_QR) {
+            JADE_LOGI("Awaiting QR initialisation");
+            act_dashboard = display_message_activity("Processing...");
+            // free_dashboard is not required as this is a standard 'managed' activity
         } else if (initial_keychain) {
             JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");
             MAKE_DASHBOARD_SCREEN(make_connect_to_screen, act_dashboard, initialisation_source);
