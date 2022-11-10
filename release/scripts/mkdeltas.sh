@@ -3,8 +3,8 @@
 INDEX="DELTAS"
 HWDIRS="jade jade1.1 jadedev jade1.1dev"
 
-PATTERN_BLE="*_ble_*_fw.bin"
-PATTERN_NORADIO="*_noradio_*_fw.bin"
+PATTERN_BLE="_ble_*_fw.bin"
+PATTERN_NORADIO="_noradio_*_fw.bin"
 PATTERN_DELTA="*_from_*_sizes_*_patch.bin"
 DELTA_OUTPUT_DIR="deltas"
 
