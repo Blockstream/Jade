@@ -36,7 +36,7 @@ static portMUX_TYPE sockmutex;
 static int qemu_tcp_sock = 0;
 static int qemu_tcp_listen_sock = 0;
 
-#define QEMU_TCP_PORT 2222
+#define QEMU_TCP_PORT 30121
 
 // esp-event registration context
 esp_event_handler_instance_t ctx_got_ip;

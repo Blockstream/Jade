@@ -25,7 +25,7 @@ set -eo pipefail
     -machine esp32 \
     -m 4M \
     -drive file=/flash_image.bin,if=mtd,format=raw \
-    -nic user,model=open_eth,id=lo0,hostfwd=tcp:0.0.0.0:2222-:2222 \
+    -nic user,model=open_eth,id=lo0,hostfwd=tcp:0.0.0.0:30121-:30121 \
     -drive file=/qemu_efuse.bin,if=none,format=raw,id=efuse \
     -global driver=nvram.esp32.efuse,property=drive,value=efuse \
     -serial pty &
@@ -43,12 +43,12 @@ gcc -O2 -DBSDIFF_EXECUTABLE -o ./tools/bsdiff components/esp32_bsdiff/bsdiff.c
 # OTA the build firmware
 # NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware file
 FW_FULL=$(ls build/*_fw.bin)
-python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222 --fwfile=${FW_FULL}
+python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:30121 --fwfile=${FW_FULL}
 
 # Flash a simple patch-to-self, just to smoke test ota-delta
 ./tools/mkpatch.py ${FW_FULL} ${FW_FULL} build/
 FW_PATCH=$(ls ./build/*_patch.bin)
-python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:2222 --fwfile=${FW_PATCH}
+python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:30121 --fwfile=${FW_PATCH}
 
 # Run the tests - long timeout fior bcur-fragment iteration test in 'run_remote_selfcheck()/selfcheck.c'
-python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:2222 --serialtimeout=600
+python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:30121 --serialtimeout=600
