@@ -1142,6 +1142,7 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_DEVICE:
             // Change to 'Device' menu
             make_device_settings_screen(&act, &timeout_btn_text);
+            update_idle_timeout_btn_text(timeout_btn_text, timeout);
             break;
 
         case BTN_SETTINGS_OTP:
