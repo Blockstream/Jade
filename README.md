@@ -81,14 +81,14 @@ Run these commands inside the jade source repo root directory, it will enter a d
 
 ```
 DOCKER_BUILDKIT=1 docker build . -t testjadeqemu
-docker run -v ${PWD}:/jade -p 2222:2222 -it testjadeqemu bash
+docker run -v ${PWD}:/jade -p 30121:30121 -it testjadeqemu bash
 ```
 
 Note: You can skip the build step if you want by fetching the prebuilt image and running with
 
 ```
 docker pull blockstream/verde
-docker run -v ${PWD}:/jade -p 2222:2222 -it blockstream/verde bash
+docker run -v ${PWD}:/jade -p 30121:30121 -it blockstream/verde bash
 ```
 
 Now inside the container
@@ -116,7 +116,7 @@ pip install -r requirements.txt
 ./main/qemu/qemu_gdb.sh
 
 ```
-At this point the Jade fw running in the qemu emulator should be available on 'tcp:localhost:2222' from inside and outside the docker container.
+At this point the Jade fw running in the qemu emulator should be available on 'tcp:localhost:30121' from inside and outside the docker container.
 
 # Reproducible Build
 
