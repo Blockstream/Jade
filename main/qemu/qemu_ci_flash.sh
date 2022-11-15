@@ -31,10 +31,7 @@ set -eo pipefail
     -serial pty &
 sleep 4
 
-# TODO: put the virtualenv in the runner homedir
-virtualenv -p python3 venv3
-
-source venv3/bin/activate
+source /venv/bin/activate
 pip install --require-hashes -r requirements.txt -r pinserver/requirements.txt
 
 # Build the bsdiff tool in the 'tools' directory (source file in the build dir)
