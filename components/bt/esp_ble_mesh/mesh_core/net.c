@@ -1220,6 +1220,7 @@ static void bt_mesh_net_relay(struct net_buf_simple *sbuf,
     }
 
     if (rx->net_if == BLE_MESH_NET_IF_ADV &&
+            !rx->friend_cred &&
             bt_mesh_relay_get() != BLE_MESH_RELAY_ENABLED &&
             bt_mesh_gatt_proxy_get() != BLE_MESH_GATT_PROXY_ENABLED) {
         return;
@@ -1232,7 +1233,7 @@ static void bt_mesh_net_relay(struct net_buf_simple *sbuf,
      * Anything else (like GATT to adv, or locally originated packets)
      * use the Network Transmit state.
      */
-    if (rx->net_if == BLE_MESH_NET_IF_ADV) {
+    if (rx->net_if == BLE_MESH_NET_IF_ADV && !rx->friend_cred) {
         transmit = bt_mesh_relay_retransmit_get();
     } else {
         transmit = bt_mesh_net_transmit_get();
@@ -1302,6 +1303,7 @@ static void bt_mesh_net_relay(struct net_buf_simple *sbuf,
      */
     if (IS_ENABLED(CONFIG_BLE_MESH_GATT_PROXY_SERVER) &&
             (bt_mesh_gatt_proxy_get() == BLE_MESH_GATT_PROXY_ENABLED ||
+             rx->friend_cred ||
              rx->net_if == BLE_MESH_NET_IF_LOCAL)) {
         if (bt_mesh_proxy_server_relay(&buf->b, rx->ctx.recv_dst) &&
                 BLE_MESH_ADDR_IS_UNICAST(rx->ctx.recv_dst)) {
@@ -1309,7 +1311,7 @@ static void bt_mesh_net_relay(struct net_buf_simple *sbuf,
         }
     }
 
-    if (relay_to_adv(rx->net_if)) {
+    if (relay_to_adv(rx->net_if) || rx->friend_cred) {
 #if !defined(CONFIG_BLE_MESH_RELAY_ADV_BUF)
         bt_mesh_adv_send(buf, NULL, NULL);
 #else
@@ -1378,8 +1380,9 @@ int bt_mesh_net_decode(struct net_buf_simple *data, enum bt_mesh_net_if net_if,
         return -EBADMSG;
     }
 
+    /* For case MESH/NODE/RLY/BV-01-C, even the DST is RFU, it needs to be forwarded. */
     if (BLE_MESH_ADDR_IS_RFU(rx->ctx.recv_dst)) {
-        BT_ERR("Destination address is RFU; dropping packet");
+        BT_ERR("Destination address is RFU; dropping packet 0x%02x", rx->ctx.recv_dst);
         return -EBADMSG;
     }
 
