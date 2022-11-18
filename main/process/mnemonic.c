@@ -1094,8 +1094,6 @@ void initialise_with_mnemonic(const bool temporary_restore)
 #endif
 
         // Perhaps offer/get passphrase (ie. if using advanced options)
-        char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
-        SENSITIVE_PUSH(passphrase, sizeof(passphrase));
         bool always_using_passphrase = false;
         if (using_passphrase) {
             gui_activity_t* act = NULL;
@@ -1122,13 +1120,20 @@ void initialise_with_mnemonic(const bool temporary_restore)
                 }
                 // Effectively defaults to BTN_USE_PASSPHRASE_NO ie. not using passphrase
             }
+        } else if (temporary_restore) {
+            // Ok, if *not* via 'Advanced' restore option (ie. not requesting whether to use a passphrase), but
+            // the user is entering a temporary restore wallet, then we instead respect whatever passphrase setting
+            // was set in the 'Advanced' menu/settings screen.
+            using_passphrase = keychain_get_user_to_enter_passphrase();
+        }
 
-            if (using_passphrase) {
-                // Ask user to set and confirm the passphrase for this session
-                const bool confirm_passphrase = true;
-                get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
-                JADE_ASSERT(strnlen(passphrase, sizeof(passphrase)) < sizeof(passphrase));
-            }
+        char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
+        SENSITIVE_PUSH(passphrase, sizeof(passphrase));
+        if (using_passphrase) {
+            // Ask user to set and confirm the passphrase for this session
+            const bool confirm_passphrase = true;
+            get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+            JADE_ASSERT(strnlen(passphrase, sizeof(passphrase)) < sizeof(passphrase));
         }
 
         display_message_activity("Processing...");
