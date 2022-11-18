@@ -19,6 +19,107 @@ void make_confirm_multisig_activity(const char* multisig_name, bool sorted, size
     const uint8_t* master_blinding_key, size_t master_blinding_key_len, bool overwriting,
     gui_activity_t** first_activity);
 
+// Function to validate multsig parameters and persist the record
+static int register_multisig(const char* multisig_name, const char* network, const script_variant_t script_variant,
+    const bool sorted, const size_t threshold, signer_t* signers, const size_t num_signers,
+    const uint8_t* master_blinding_key, const size_t master_blinding_key_len, const char** errmsg)
+{
+    JADE_ASSERT(multisig_name);
+    JADE_ASSERT(isValidNetwork(network));
+    JADE_ASSERT(is_multisig(script_variant));
+    JADE_ASSERT(threshold);
+    JADE_ASSERT(signers);
+    JADE_ASSERT(num_signers);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    if (num_signers > MAX_MULTISIG_SIGNERS) {
+        *errmsg = "Failed to extract co-signers";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
+
+    if (threshold > num_signers) {
+        *errmsg = "Invalid multisig threshold";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
+
+    // Validate signers
+    uint8_t wallet_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+    wallet_get_fingerprint(wallet_fingerprint, sizeof(wallet_fingerprint));
+    if (!multisig_validate_signers(network, signers, num_signers, wallet_fingerprint, sizeof(wallet_fingerprint))) {
+        *errmsg = "Failed to validate co-signers";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
+
+    uint8_t registration[MAX_MULTISIG_BYTES_LEN]; // Sufficient
+    const size_t registration_len = MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers);
+    JADE_ASSERT(registration_len <= sizeof(registration));
+    if (!multisig_data_to_bytes(script_variant, sorted, threshold, signers, num_signers, master_blinding_key,
+            master_blinding_key_len, registration, registration_len)) {
+        *errmsg = "Failed to serialise multisig";
+        return CBOR_RPC_INTERNAL_ERROR;
+    }
+
+    // See if a record for this name exists already
+    const bool overwriting = storage_multisig_name_exists(multisig_name);
+
+    // If so, see if it is identical to the record we are trying to persist
+    // - if so, just return true immediately.
+    if (overwriting) {
+        size_t written = 0;
+        uint8_t existing[MAX_MULTISIG_BYTES_LEN]; // Sufficient
+        if (storage_get_multisig_registration(multisig_name, existing, sizeof(existing), &written)
+            && written == registration_len && !sodium_memcmp(existing, registration, registration_len)) {
+            JADE_LOGI("Multisig %s: identical registration exists, returning immediately", multisig_name);
+            return 0; // success
+        }
+    } else {
+        // Not overwriting an existing record - check storage slot available
+        if (storage_get_multisig_registration_count() >= MAX_MULTISIG_REGISTRATIONS) {
+            *errmsg = "Already have maximum number of multisig wallets";
+            return CBOR_RPC_BAD_PARAMETERS;
+        }
+    }
+
+    gui_activity_t* first_activity = NULL;
+    make_confirm_multisig_activity(multisig_name, sorted, threshold, signers, num_signers, wallet_fingerprint,
+        sizeof(wallet_fingerprint), master_blinding_key, master_blinding_key_len, overwriting, &first_activity);
+    JADE_ASSERT(first_activity);
+    gui_set_current_activity(first_activity);
+
+    // ----------------------------------
+    // wait for the last "next" (proceed with the protocol and then final confirmation)
+    int32_t ev_id;
+    // In a debug unattended ci build, assume buttons pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    const esp_err_t gui_ret = sync_await_single_event(JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+    sync_await_single_event(
+        JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    const esp_err_t gui_ret = ESP_OK;
+    ev_id = MULTISIG_ACCEPT;
+#endif
+
+    // Check to see whether user accepted or declined
+    if (gui_ret != ESP_OK || ev_id != MULTISIG_ACCEPT) {
+        JADE_LOGW("User declined to register multisig");
+        *errmsg = "User declined to register multisig";
+        return CBOR_RPC_USER_CANCELLED;
+    }
+
+    JADE_LOGD("User accepted multisig");
+
+    // Persist multisig registration in nvs
+    if (!storage_set_multisig_registration(multisig_name, registration, registration_len)) {
+        *errmsg = "Failed to persist multisig data";
+        await_error_activity("Error saving multisig");
+        return CBOR_RPC_INTERNAL_ERROR;
+    }
+
+    // All good - return 0
+    return 0;
+}
+
+// Helper to collect signers' details from input cbor message
 static void get_signers_allocate(const char* field, const CborValue* value, signer_t** data, size_t* written)
 {
     JADE_ASSERT(field);
@@ -179,94 +280,14 @@ void register_multisig_process(void* process_ptr)
     }
     jade_process_free_on_exit(process, signers);
 
-    if (num_signers > MAX_MULTISIG_SIGNERS) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid co-signers from parameters", NULL);
+    const char* errmsg = NULL;
+    const int errcode = register_multisig(multisig_name, network, script_variant, sorted, threshold, signers,
+        num_signers, master_blinding_key, master_blinding_key_len, &errmsg);
+    if (errcode) {
+        jade_process_reject_message(process, errcode, errmsg, NULL);
         goto cleanup;
     }
 
-    if (threshold > num_signers) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Invalid multisig threshold for number of co-signers", NULL);
-        goto cleanup;
-    }
-
-    // Validate signers
-    uint8_t wallet_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
-    wallet_get_fingerprint(wallet_fingerprint, sizeof(wallet_fingerprint));
-    if (!multisig_validate_signers(network, signers, num_signers, wallet_fingerprint, sizeof(wallet_fingerprint))) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to validate multisig co-signers", NULL);
-        goto cleanup;
-    }
-
-    uint8_t registration[MAX_MULTISIG_BYTES_LEN]; // Sufficient
-    const size_t registration_len = MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers);
-    JADE_ASSERT(registration_len <= sizeof(registration));
-    if (!multisig_data_to_bytes(script_variant, sorted, threshold, signers, num_signers, master_blinding_key,
-            master_blinding_key_len, registration, registration_len)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_INTERNAL_ERROR, "Failed to serialise multisig registration", NULL);
-        goto cleanup;
-    }
-
-    // See if a record for this name exists already
-    const bool overwriting = storage_multisig_name_exists(multisig_name);
-
-    // If so, see if it is identical to the record we are trying to persist
-    // - if so, just return true immediately.
-    if (overwriting) {
-        written = 0;
-        uint8_t existing[MAX_MULTISIG_BYTES_LEN]; // Sufficient
-        if (storage_get_multisig_registration(multisig_name, existing, sizeof(existing), &written)
-            && written == registration_len && !sodium_memcmp(existing, registration, registration_len)) {
-            JADE_LOGI("Multisig %s: identical registration exists, returning immediately", multisig_name);
-            goto return_ok;
-        }
-    } else {
-        // Not overwriting an existing record - check storage slot available
-        if (storage_get_multisig_registration_count() >= MAX_MULTISIG_REGISTRATIONS) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Already have maximum number of multisig wallets", NULL);
-            goto cleanup;
-        }
-    }
-
-    gui_activity_t* first_activity = NULL;
-    make_confirm_multisig_activity(multisig_name, sorted, threshold, signers, num_signers, wallet_fingerprint,
-        sizeof(wallet_fingerprint), master_blinding_key, master_blinding_key_len, overwriting, &first_activity);
-    JADE_ASSERT(first_activity);
-    gui_set_current_activity(first_activity);
-
-    // ----------------------------------
-    // wait for the last "next" (proceed with the protocol and then final confirmation)
-    int32_t ev_id;
-    // In a debug unattended ci build, assume buttons pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const esp_err_t gui_ret = sync_await_single_event(JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    sync_await_single_event(
-        JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const esp_err_t gui_ret = ESP_OK;
-    ev_id = MULTISIG_ACCEPT;
-#endif
-
-    // Check to see whether user accepted or declined
-    if (gui_ret != ESP_OK || ev_id != MULTISIG_ACCEPT) {
-        JADE_LOGW("User declined to register multisig");
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to register multisig", NULL);
-        goto cleanup;
-    }
-
-    JADE_LOGD("User accepted multisig");
-
-    // Persist multisig registration in nvs
-    if (!storage_set_multisig_registration(multisig_name, registration, registration_len)) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to persist multisig registration", NULL);
-        await_error_activity("Error saving multisig data");
-        goto cleanup;
-    }
-
-return_ok:
     // Ok, all verified and persisted
     jade_process_reply_to_message_ok(process);
     JADE_LOGI("Success");

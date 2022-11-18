@@ -936,25 +936,25 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badmulti12', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(wsh(multi(k)))', 'threshold': 5, 'signers': GOOD_COSIGNERS}}),
-                   'threshold for number of co-signers'),
+                   'Invalid multisig threshold'),
                   (('badmulti13', 'register_multisig',  # network missing or invalid
                     {'network': 'noexist', 'multisig_name': 'test'}), 'valid network'),
                   (('badmulti15', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(wsh(multi(k)))', 'threshold': 2, 'signers': bad_cosigners1}}),
-                   'validate multisig co-signers'),
+                   'Failed to validate co-signers'),
                   (('badmulti16', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'wsh(multi(k))', 'threshold': 2, 'signers': bad_cosigners2}}),
-                   'validate multisig co-signers'),
+                   'Failed to validate co-signers'),
                   (('badmulti17', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners3}}),
-                   'validate multisig co-signers'),
+                   'Failed to validate co-signers'),
                   (('badmulti18', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners4}}),
-                   'validate multisig co-signers'),
+                   'Failed to validate co-signers'),
                   (('badmulti19', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(wsh(multi(k)))', 'threshold': 1, 'signers': GOOD_COSIGNERS,
