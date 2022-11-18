@@ -351,20 +351,17 @@ static void add_poweroff_timeout_btn(gui_view_node_t* parent, gui_view_node_t** 
 void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(timeout_btn_text);
+    JADE_INIT_OUT_PPTR(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Advanced");
 
     // Note: placeholder in second position - timeout button set into this slot below
     btn_data_t btns[]
         = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
-              { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
+              { .txt = "Use Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_USE_PASSPHRASE },
               { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
-
-    // Put special timeout button in the 2nd position
-    add_poweroff_timeout_btn(btns[1].btn, timeout_btn_text);
 }
 
 void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
