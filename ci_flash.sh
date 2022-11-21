@@ -15,6 +15,9 @@ fi
 PINSVRPORT="$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')"
 REDIS_PORT="$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')"
 
+# Pinserver tests use a short session lifetime (for session-timeout tests)
+PINSVR_SESSION_TIMEOUT=3
+
 python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip esp32 --port ${JADESERIALPORT} --baud 2000000 --before default_reset erase_flash
 
 python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip esp32 --port ${JADESERIALPORT} --baud 2000000 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect 0xE000 build/ota_data_initial.bin 0x1000 build/bootloader/bootloader.bin 0x10000 build/jade.bin 0x9000 build/partition_table/partition-table.bin
@@ -25,13 +28,13 @@ source ~/venv3/bin/activate
 
 pip install --require-hashes -r requirements.txt -r pinserver/requirements.txt
 
-PINSERVER_PORT="${PINSVRPORT}" python -m unittest -v
+SESSION_LIFETIME="${PINSVR_SESSION_TIMEOUT}" PINSERVER_PORT="${PINSVRPORT}" python -m unittest -v
 
 if command -v redis-server &> /dev/null
 then
     echo "Redis found, running tests on localhost:${REDIS_PORT}"
     redis-server --port ${REDIS_PORT}  &
-    REDIS_HEALTH_CHECK_INTERVAL=0 REDIS_SLEEP=0 REDIS_PORT=${REDIS_PORT} REDIS_HOST='localhost' PINSERVER_PORT="${PINSVRPORT}" python -m unittest -v
+    REDIS_HEALTH_CHECK_INTERVAL=0 REDIS_SLEEP=0 REDIS_PORT=${REDIS_PORT} REDIS_HOST='localhost' SESSION_LIFETIME="${PINSVR_SESSION_TIMEOUT}" PINSERVER_PORT="${PINSVRPORT}" python -m unittest -v
     redis-cli -p ${REDIS_PORT} shutdown
 fi
 
