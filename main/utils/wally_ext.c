@@ -122,6 +122,9 @@ static struct secp256k1_context_struct* jade_wally_get_secp_ctx(void)
 void jade_wally_init(void)
 {
     JADE_WALLY_VERIFY(wally_init(0));
+    size_t is_elements_build = 0;
+    JADE_WALLY_VERIFY(wally_is_elements_build(&is_elements_build));
+    JADE_ASSERT(is_elements_build == 1);
 
     struct wally_operations ops = {
         .struct_size = sizeof(struct wally_operations),
