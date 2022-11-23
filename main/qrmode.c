@@ -33,6 +33,8 @@ void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, con
 void make_qr_options_activity(
     gui_activity_t** activity_ptr, gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox);
 
+int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg);
+
 // PSBT struct and functions
 struct wally_psbt;
 int sign_psbt(struct wally_psbt* psbt, const char** errmsg);
@@ -245,32 +247,29 @@ void display_xpub_qr(void)
 }
 
 // Verify an address string by brute-forcing
-static bool verify_address(const char* address)
+static bool verify_address(const address_data_t* const addr_data)
 {
-    JADE_ASSERT(address);
+    JADE_ASSERT(addr_data);
 
-    address_data_t addr_data;
-    if (!parse_address(address, &addr_data)) {
-        await_error_activity("Failed to parse address");
-        return false;
-    }
+    JADE_ASSERT(addr_data->network);
+    JADE_ASSERT(addr_data->script_len);
 
     char buf[160];
-    int rc = snprintf(buf, sizeof(buf), "Attempt to verify address?\n\n%s", addr_data.address);
+    int rc = snprintf(buf, sizeof(buf), "Attempt to verify address?\n\n%s", addr_data->address);
     JADE_ASSERT(rc > 0 && rc < sizeof(buf));
     if (!await_yesno_activity("Verify Address", buf, true)) {
         return false;
     }
 
     // check network - eg. testnet address, but this jade is setup for mainnet only
-    if (!keychain_is_network_type_consistent(addr_data.network)) {
+    if (!keychain_is_network_type_consistent(addr_data->network)) {
         await_error_activity("Network type inconsistent");
         return false;
     }
 
     // Map the script type
     size_t script_type = 0;
-    if (wally_scriptpubkey_get_type(addr_data.script, addr_data.script_len, &script_type) != WALLY_OK) {
+    if (wally_scriptpubkey_get_type(addr_data->script, addr_data->script_len, &script_type) != WALLY_OK) {
         await_error_activity("Failed to parse scriptpubkey");
         return false;
     }
@@ -326,7 +325,7 @@ static bool verify_address(const char* address)
         // Search a small batch of paths for the address script
         // NOTE: 'index' is updated as we go along
         if (wallet_search_for_singlesig_script(
-                variant, &search_root, &index, ADDRESS_SEARCH_BATCH_SIZE, addr_data.script, addr_data.script_len)) {
+                variant, &search_root, &index, ADDRESS_SEARCH_BATCH_SIZE, addr_data->script, addr_data->script_len)) {
             // Address script found and matched - verified
             // NOTE: 'index' will hold the relevant value
             verified = true;
@@ -506,16 +505,60 @@ static void display_bcur_qr(
     }
 }
 
-// Parse a BC-UR PSBT and attempt to sign and display as BC-UR QR
-static bool parse_sign_display_bcur_psbt_qr(const char* type, const uint8_t* data, const size_t data_len)
+// Handle undifferentiated byte string friom QR code
+// ie. raw data (not BC-UR wrapped), OR the payload of a UR:BYTES message
+static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
 {
-    JADE_ASSERT(type);
-    JADE_ASSERT(data);
-    JADE_ASSERT(data_len);
+    JADE_ASSERT(bytes);
+    JADE_ASSERT(bytes_len);
+
+    const char* strbytes = (const char*)bytes;
+
+    // Try to handle as multisig file
+    if (strcasestr(strbytes, "Name") && strcasestr(strbytes, "Format") && strcasestr(strbytes, "Policy")
+        && strcasestr(strbytes, "Derivation")) {
+        // Looks like a multisig registration file
+        const char* errmsg = NULL;
+        const int errcode = register_multisig_file(strbytes, bytes_len, &errmsg);
+        if (errcode) {
+            JADE_LOGE("Processing multisig file failed: %s", errmsg);
+            if (errcode != CBOR_RPC_USER_CANCELLED) {
+                await_error_activity(errmsg);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    JADE_LOGW("Unhandled BC-UR BYTES message");
+    await_error_activity("Unhandled QR payload");
+    return false;
+}
+
+// Unwrap UR:BYTES message and pass payload bytes to above handler
+static bool handle_bcur_bytes(const uint8_t* cbor, const size_t cbor_len)
+{
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
+
+    const uint8_t* bytes = NULL;
+    size_t bytes_len = 0;
+    if (!bcur_parse_bytes(cbor, cbor_len, &bytes, &bytes_len)) {
+        await_error_activity("Invalid QR/BYTES format");
+        return false;
+    }
+    return handle_qr_bytes(bytes, bytes_len);
+}
+
+// Parse a BC-UR PSBT and attempt to sign and display as BC-UR QR
+static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cbor_len)
+{
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
 
     // Parse scanned QR data
     struct wally_psbt* psbt = NULL;
-    if (strcasecmp(type, BCUR_TYPE_CRYPTO_PSBT) || !bcur_parse_psbt(data, data_len, &psbt)) {
+    if (!bcur_parse_psbt(cbor, cbor_len, &psbt)) {
         // Unexpected type/format
         await_error_activity("Unsupported QR/PSBT format");
         return false;
@@ -533,15 +576,15 @@ static bool parse_sign_display_bcur_psbt_qr(const char* type, const uint8_t* dat
     }
 
     // Build BCUR message holding the signed PSBT
-    uint8_t* cbor = NULL;
-    size_t cbor_len = 0;
-    if (!bcur_build_cbor_crypto_psbt(psbt, &cbor, &cbor_len)) {
+    uint8_t* cbor_signed = NULL;
+    size_t cbor_signed_len = 0;
+    if (!bcur_build_cbor_crypto_psbt(psbt, &cbor_signed, &cbor_signed_len)) {
         JADE_LOGW("Failed to build bcur/cbor for psbt");
         return false;
     }
 
     // Now display bcur QR
-    display_bcur_qr("PSBT Export", "Scan using\nwallet app", BCUR_TYPE_CRYPTO_PSBT, cbor, cbor_len);
+    display_bcur_qr("PSBT Export", "Scan using\nwallet app", BCUR_TYPE_CRYPTO_PSBT, cbor_signed, cbor_signed_len);
 
 cleanup:
     JADE_WALLY_VERIFY(wally_psbt_free(psbt));
@@ -555,21 +598,43 @@ void handle_scan_qr(void)
     char* type = NULL;
     uint8_t* data = NULL;
     size_t data_len = 0;
-    if (!bcur_scan_qr("Scan address\nor PSBT", &type, &data, &data_len) || !data) {
+    if (!bcur_scan_qr("Scan supported\nQR code", &type, &data, &data_len) || !data) {
         // Scan aborted
+        JADE_ASSERT(!type);
+        JADE_ASSERT(!data);
         return;
     }
 
     if (type) {
-        // BC-UR scanned - try to process as PSBT
-        if (!parse_sign_display_bcur_psbt_qr(type, data, data_len)) {
-            JADE_LOGE("Processing BC-UR as PSBT failed: %s", type);
+        // BC-UR scanned - check type string
+        if (!strcasecmp(type, BCUR_TYPE_CRYPTO_PSBT)) {
+            // PSBT
+            if (!parse_sign_display_bcur_psbt_qr(data, data_len)) {
+                JADE_LOGE("Processing BC-UR as PSBT failed");
+            }
+        } else if (!strcasecmp(type, BCUR_TYPE_BYTES)) {
+            // Opaque bytes
+            if (!handle_bcur_bytes(data, data_len)) {
+                JADE_LOGE("Processing BC-UR BYTES failed");
+            }
+        } else {
+            // Other - unhandled
+            JADE_LOGW("Unhandled BC-UR type: %s", type);
+            await_error_activity("Unhandled UR message");
         }
     } else {
-        // Non-BC-UR (single frame) data - try to process as address
+        // Non-BC-UR (single frame) undifferentiated bytes
         JADE_ASSERT(data[data_len] == '\0');
-        if (!verify_address((const char*)data)) {
-            JADE_LOGE("Processing QR as address failed: %s", (const char*)data);
+
+        // Try address first, otherwise pass to undifferentiated bytes handler
+        address_data_t addr_data;
+        if (parse_address((const char*)data, &addr_data)) {
+            if (!verify_address(&addr_data)) {
+                JADE_LOGW("Verifying address failed: %s", (const char*)data);
+            }
+        } else if (!handle_qr_bytes(data, data_len)) {
+            JADE_LOGW("Unhandled QR message");
+            await_error_activity("Failed to process QR code");
         }
     }
 
