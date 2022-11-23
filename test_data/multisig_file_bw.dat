@@ -1,0 +1,16 @@
+# BlueWallet Multisig setup file
+# this file contains only public keys and is safe to
+# distribute among cosigners
+#
+Name: Jade File Test
+Policy: 2 of 3
+Derivation: m/48'/0'/0'/2'
+Format: P2WSH
+
+B237FE9D: Zpub73XMvHZfpJ9CF85L8MPDMpFEBLUbYFoJuwaoiqaPaxiM63bz4UbHkupFaPckzVc7rSNnDqpkAR1NBnvCuqhKq9cRL97ao5qoYnreX4D9XZ8
+
+249192D2: Zpub75A9iMaNq4BkAnQEcGwzLaXFaZYTtkxzxJd44pzov8ANAfMU9hEij2UzwavF3toNgyt7YBV7D14Je5Resqv1HdH39kPdLHAVuhBwqf7EJQm
+
+E3EBCC79: Zpub73tYrs7quETG9dFvPU76eTCwEz34g68rByS7WnkiipwKQnmBzyzfJRg2ppWxyXvXnkpKnbiHacFZZDSFr8zPg3J657ZEc3gyVzZXCNV5bnR
+
+

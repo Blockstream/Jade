@@ -1,4 +1,5 @@
 #include "../jade_assert.h"
+#include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../multisig.h"
 #include "../process.h"
@@ -8,11 +9,19 @@
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
 #include "../utils/network.h"
+#include "../utils/util.h"
 #include "../wallet.h"
 
 #include "process_utils.h"
 
+#include <ctype.h>
 #include <sodium/utils.h>
+
+// Multisig registration file, field names
+static const char MSIG_FILE_NAME[] = "Name";
+static const char MSIG_FILE_FORMAT[] = "Format";
+static const char MSIG_FILE_POLICY[] = "Policy";
+static const char MSIG_FILE_DERIVATION[] = "Derivation";
 
 void make_confirm_multisig_activity(const char* multisig_name, bool sorted, size_t threshold, const signer_t* signers,
     size_t num_signers, const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len,
@@ -31,6 +40,11 @@ static int register_multisig(const char* multisig_name, const char* network, con
     JADE_ASSERT(signers);
     JADE_ASSERT(num_signers);
     JADE_INIT_OUT_PPTR(errmsg);
+
+    if (!storage_key_name_valid(multisig_name)) {
+        *errmsg = "Invalid multisig name";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
 
     if (num_signers > MAX_MULTISIG_SIGNERS) {
         *errmsg = "Failed to extract co-signers";
@@ -119,6 +133,374 @@ static int register_multisig(const char* multisig_name, const char* network, con
     return 0;
 }
 
+// Helper to get next line from a file/string
+// State kept externally in ptr/eol so should repeatedly pass in same parameters
+// which are updated to indicate new/next line limits.
+static bool get_next_line(const char** ptr, const char** eol, const char* const eof)
+{
+    JADE_ASSERT(ptr);
+    JADE_ASSERT(*ptr);
+    JADE_ASSERT(eol);
+    JADE_ASSERT(eof);
+
+    while (true) {
+        if (*eol) {
+            if (*eol >= eof) {
+                // Exhausted file
+                JADE_LOGD("Exhausted file");
+                return false;
+            }
+            *ptr = *eol + 1;
+        }
+
+        // Find line end
+        *eol = memchr(*ptr, '\n', eof - *ptr);
+        if (!*eol) {
+            *eol = eof;
+        }
+        JADE_ASSERT(*eol <= eof);
+
+        // Skip if line empty or a comment
+        if (*ptr >= *eol || **ptr == '#') {
+            continue;
+        }
+
+        JADE_ASSERT(*ptr < *eol);
+        JADE_ASSERT(*ptr < eof);
+        return true;
+    }
+}
+
+// Helper to split 'name: value' line from multisig registration file.
+// ptr and eol are line limits as above.  name_end indicates the end of the 'name' part.
+// The value part is copied into the passed output buffer.
+static bool split_line(
+    const char* ptr, const char* eol, size_t* name_len, char* output, const size_t output_len, size_t* written)
+{
+    JADE_ASSERT(ptr);
+    JADE_ASSERT(eol);
+    JADE_INIT_OUT_SIZE(name_len);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len);
+    JADE_INIT_OUT_SIZE(written);
+
+    JADE_ASSERT(ptr < eol);
+
+    // Split into name/value
+    const char* p = memchr(ptr, ':', eol - ptr);
+    if (!p || p <= ptr) {
+        JADE_LOGW("Mising delimiter in multisig file line: %.*s", eol - ptr, ptr);
+        return false;
+    }
+    *name_len = p - ptr;
+
+    // Skip delimiter and any white space
+    while (p < eol && isspace(*++p)) {
+        // Skip
+    }
+
+    // Fail if value too long
+    *written = eol - p;
+    if (!*written || *written >= output_len) {
+        JADE_LOGW("Item value missing or too long in multisig file line: %.*s", eol - ptr, ptr);
+        return false;
+    }
+
+    // Copy and nul-terminate value string
+    memcpy(output, p, *written);
+    output[*written] = '\0';
+    return true;
+}
+
+// Flags to cache which records we have seen
+#define FIELD_NAME 0x1
+#define FIELD_POLICY 0x2
+#define FIELD_FORMAT 0x4
+#define FIELD_DERIVATION 0x8
+
+// Match the current line to a specific trial field, passed as a char[]
+#define IS_FIELD(field) (name_len == sizeof(field) - 1 && !strncasecmp(field, read_ptr, name_len))
+
+// Function to read a multisig file, and if possible register the multisig
+int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg)
+{
+    JADE_ASSERT(multisig_file);
+    JADE_ASSERT(multisig_file_len);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    // Work out network and appropriate xpub version bytes
+    const char* network = NULL;
+    uint8_t xpub_version[4];
+    if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
+        network = TAG_TESTNET;
+        uint32_to_be(BIP32_VER_TEST_PUBLIC, xpub_version);
+    } else {
+        network = TAG_MAINNET;
+        uint32_to_be(BIP32_VER_MAIN_PUBLIC, xpub_version);
+    }
+
+    // The values we need to populate
+    char multisig_name[MAX_MULTISIG_NAME_SIZE];
+    script_variant_t script_variant = GREEN; // invalid for this case
+    size_t threshold = 0;
+    size_t nsigners = 0; // total number of signers
+    size_t isigner = 0; // signers so far populated
+    signer_t* signers = NULL;
+
+    // Not supported by the file format ?
+    const bool sorted = true; // appears to be implied/default
+    const uint8_t* blinding_key = NULL;
+    const size_t blinding_key_len = 0;
+
+    // Current signer's derivation path
+    // (Can be global, or set per signer)
+    uint32_t path[MAX_PATH_LEN];
+    size_t path_len = 0;
+
+    // Keep track of which fields we've read thus far
+    uint8_t fields_read = 0;
+    int retval = CBOR_RPC_BAD_PARAMETERS;
+
+    // These hold the state of the file/string reader and are updated by the loop
+    const char* read_ptr = multisig_file;
+    const char* eol = NULL;
+    const char* const eof = multisig_file + multisig_file_len;
+
+    while (get_next_line(&read_ptr, &eol, eof)) {
+        JADE_LOGI("Processing line: %.*s", eol - read_ptr, read_ptr);
+
+        size_t name_len = 0;
+        size_t value_len = 0;
+        char value[128]; // should be sufficent for all valid values - eg. xpub
+        if (!split_line(read_ptr, eol, &name_len, value, sizeof(value), &value_len) || !value_len) {
+            JADE_LOGE("Failed to process multisig file line: %.*s", eol - read_ptr, read_ptr);
+            *errmsg = "Invalid multisig file";
+            goto cleanup;
+        }
+        const char* value_end = value + value_len;
+        JADE_ASSERT(*value_end == '\0');
+
+        // Handle lines
+        if (IS_FIELD(MSIG_FILE_NAME)) {
+            // Multisig name
+            // Attempt to sanitize name string
+            for (size_t i = 0; i < value_len; ++i) {
+                if (i >= MAX_MULTISIG_NAME_SIZE) {
+                    value[i] = '\0';
+                    break;
+                }
+                if isspace (value[i]) {
+                    value[i] = '_';
+                }
+            }
+            if (fields_read & FIELD_NAME || value_len >= MAX_MULTISIG_NAME_SIZE || !storage_key_name_valid(value)) {
+                JADE_LOGE("Invalid multisig name: %s", value);
+                *errmsg = "Invalid multisig name";
+                goto cleanup;
+            }
+            strcpy(multisig_name, value);
+            fields_read |= FIELD_NAME;
+        } else if (IS_FIELD(MSIG_FILE_POLICY)) {
+            // "N of M"
+            char* space1 = memchr(value, ' ', value_len);
+            char* space2 = space1 ? memchr(space1 + 1, ' ', value_end - (space1 + 1)) : NULL;
+            if (fields_read & FIELD_POLICY || !space1 || !space2 || space1 > value_end || space2 > value_end) {
+                JADE_LOGE("Invalid multisig policy: %s", value);
+                *errmsg = "Invalid multisig policy";
+                goto cleanup;
+            }
+
+            // Overwrite the spaces with '\0's to split into 3 strings - N, 'of', M
+            *space1 = '\0';
+            *space2 = '\0';
+
+            // Read numeric values
+            char* end1 = NULL;
+            threshold = strtoul(value, &end1, 10);
+            char* end2 = NULL;
+            nsigners = strtoul(space2 + 1, &end2, 10);
+            if (!threshold || !nsigners || threshold > nsigners || nsigners > MAX_MULTISIG_SIGNERS || end1 != space1
+                || end2 != value_end || strcasecmp(space1 + 1, "of")) {
+                JADE_LOGE("Invalid multisig policy %s %s %s", value, space1, space2);
+                *errmsg = "Invalid multisig policy";
+                goto cleanup;
+            }
+
+            // Allocate the signers block for that many signers
+            JADE_ASSERT(!signers);
+            signers = JADE_CALLOC(nsigners, sizeof(signer_t));
+            fields_read |= FIELD_POLICY;
+        } else if (IS_FIELD(MSIG_FILE_FORMAT)) {
+            if (fields_read & FIELD_FORMAT) {
+                JADE_LOGE("Invalid multisig format: %s", value);
+                *errmsg = "Invalid multisig format";
+                goto cleanup;
+            }
+            // Script type
+            if (!strcasecmp(value, "P2WSH")) {
+                script_variant = MULTI_P2WSH;
+            } else if (!strcasecmp(value, "P2WSH-P2SH") || !strcasecmp(value, "P2SH-P2WSH")) {
+                script_variant = MULTI_P2WSH_P2SH;
+            } else if (!strcasecmp(value, "P2SH")) {
+                script_variant = MULTI_P2SH;
+            } else {
+                JADE_LOGE("Invalid multisig format: %s", value);
+                *errmsg = "Invalid multisig format";
+                goto cleanup;
+            }
+            fields_read |= FIELD_FORMAT;
+        } else if (IS_FIELD(MSIG_FILE_DERIVATION)) {
+            // "m/a/b/c/d" - accepts m/ or M/ as master, and h, H or ' as hardened indicators
+            // NOTE: allowed to see derivation element multiple times (eg once per signer)
+            const char* ptr = value;
+            if ((*ptr != 'm' && *ptr != 'M') || *++ptr != '/') {
+                JADE_LOGE("Unexpected derivation path: %s", value);
+                *errmsg = "Invalid derivation path";
+                goto cleanup;
+            }
+
+            // Iterate over string of path elements
+            path_len = 0;
+            while (++ptr < value_end) {
+                const size_t path_len_bytes = path_len * sizeof(uint32_t);
+                if (path_len_bytes >= sizeof(path)) {
+                    JADE_LOGE("Unexpected derivation path size: %s", value);
+                    *errmsg = "Derivation path too long";
+                    goto cleanup;
+                }
+
+                // Isolate current path element
+                const char* element_end = memchr(ptr, '/', value_end - ptr);
+                if (!element_end) {
+                    element_end = value_end;
+                }
+                const char* last_char = element_end - 1;
+                const bool hardened = *last_char == '\'' || *last_char == 'h' || *last_char == 'H';
+
+                // Read numeric value into path array
+                char* end = NULL;
+                path[path_len] = strtoul(ptr, &end, 10);
+                if (end != (hardened ? last_char : element_end)) {
+                    JADE_LOGE("Unexpected derivation path: %s", value);
+                    *errmsg = "Invalid derivation path";
+                    goto cleanup;
+                }
+                if (hardened) {
+                    path[path_len] = harden(path[path_len]);
+                }
+
+                // Path element populated
+                ++path_len;
+
+                // Jump past this value
+                ptr = element_end;
+            }
+            fields_read |= FIELD_DERIVATION;
+        } else if (name_len == BIP32_KEY_FINGERPRINT_LEN * 2) {
+            // Assume <fingerprint>: <xpub>
+            // Must have all other fields before we get to signers
+            if (fields_read != (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION)) {
+                JADE_LOGE("Insufficient information read from multisig file when signers reached: %u", fields_read);
+                *errmsg = "Insufficient information records";
+                goto cleanup;
+            }
+            if (isigner >= nsigners || !nsigners) {
+                JADE_LOGE("Unexpected number of signers for %u-of-%u policy", threshold, nsigners);
+                *errmsg = "Invalid number of signers";
+                goto cleanup;
+            }
+            JADE_ASSERT(signers);
+
+            // Fingerprint
+            size_t written = 0;
+            if (wally_hex_n_to_bytes(
+                    read_ptr, name_len, signers[isigner].fingerprint, sizeof(signers[isigner].fingerprint), &written)
+                    != WALLY_OK
+                || written != BIP32_KEY_FINGERPRINT_LEN) {
+                JADE_LOGE("Error in fingerprint hex: %.*s", name_len, read_ptr);
+                *errmsg = "Invalid signer fingerprint";
+                goto cleanup;
+            }
+
+            // Derivation
+            const size_t path_len_bytes = path_len * sizeof(uint32_t);
+            if (!path_len || path_len_bytes > sizeof(signers[isigner].derivation)) {
+                JADE_LOGE("Unexpected derivation path size: %u", path_len);
+                *errmsg = "Derivation path too long";
+                goto cleanup;
+            }
+            memcpy(signers[isigner].derivation, path, path_len_bytes);
+            signers[isigner].derivation_len = path_len;
+            signers[isigner].path_len = 0; // unused
+
+            // Xpub
+            uint8_t serialised[BIP32_SERIALIZED_LEN + BASE58_CHECKSUM_LEN];
+            if (value_len < sizeof(xpub_version) || value_len >= sizeof(signers[isigner].xpub)
+                || wally_base58_to_bytes(value, BASE58_FLAG_CHECKSUM, serialised, sizeof(serialised), &written)
+                    != WALLY_OK
+                || written != BIP32_SERIALIZED_LEN) {
+                JADE_LOGE("Invalid xpub: %s", value);
+                *errmsg = "Invalid signer xpub";
+                goto cleanup;
+            }
+
+            // Wally only supports xpub and tpub prefixes, so force these prefix bytes
+            // if the file xpub has some other prefix - eg. Ypub or Zpub etc.
+            if (!memcmp(serialised, &xpub_version, sizeof(xpub_version))) {
+                // Version bytes as expected
+                strcpy(signers[isigner].xpub, value);
+            } else {
+                JADE_LOGI("Overwriting xpub version bytes");
+
+                char* xpub = NULL;
+                memcpy(serialised, xpub_version, sizeof(xpub_version));
+                if (wally_base58_from_bytes(serialised, written, BASE58_FLAG_CHECKSUM, &xpub) != WALLY_OK || !xpub) {
+                    JADE_LOGE("Problem overwriting xpub version: %s", value);
+                    *errmsg = "Invalid signer xpub";
+                    goto cleanup;
+                }
+                JADE_LOGI("new xpub: %s", xpub);
+
+                JADE_ASSERT(strlen(xpub) < sizeof(signers[isigner].xpub));
+                strcpy(signers[isigner].xpub, xpub);
+                JADE_WALLY_VERIFY(wally_free_string(xpub));
+            }
+
+            // Done - this signer complete
+            ++isigner;
+        } else {
+            JADE_LOGE("Unexpected line in multisig file: %.*s", eol - read_ptr, read_ptr);
+            *errmsg = "Invalid multisig file";
+            goto cleanup;
+        }
+    };
+    JADE_LOGD("Processing multisig file complete: %u", fields_read);
+
+    // File exhausted - did we read all required data
+    if (fields_read != (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION)) {
+        JADE_LOGE("Insufficient information read from multisig file: %u", fields_read);
+        *errmsg = "Insufficient information records";
+        goto cleanup;
+    }
+    if (isigner != nsigners || !nsigners) {
+        JADE_LOGE("Unexpected number of signers for %u-of-%u policy", threshold, nsigners);
+        *errmsg = "Invalid number of signers";
+        goto cleanup;
+    }
+
+    // Try to register multisig!
+    retval = register_multisig(multisig_name, network, script_variant, sorted, threshold, signers, nsigners,
+        blinding_key, blinding_key_len, errmsg);
+    if (retval) {
+        JADE_LOGE("Failed to register multisig record: %s", *errmsg);
+        goto cleanup;
+    }
+
+cleanup:
+    free(signers);
+    return retval;
+}
+
 // Helper to collect signers' details from input cbor message
 static void get_signers_allocate(const char* field, const CborValue* value, signer_t** data, size_t* written)
 {
@@ -205,11 +587,36 @@ void register_multisig_process(void* process_ptr)
     char network[MAX_NETWORK_NAME_LEN];
     char multisig_name[MAX_MULTISIG_NAME_SIZE];
     char variant[MAX_VARIANT_LEN];
+    const char* errmsg = NULL;
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "register_multisig");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
+
+    // We accept a multisig file, as produced by several wallet apps
+    if (rpc_has_field_data("multisig_file", &params)) {
+        const char* multisig_file = NULL;
+        size_t multisig_file_len = 0;
+        rpc_get_string_ptr("multisig_file", &params, &multisig_file, &multisig_file_len);
+        if (!multisig_file || !multisig_file_len) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid multisig file data", NULL);
+            goto cleanup;
+        }
+
+        const int errcode = register_multisig_file(multisig_file, multisig_file_len, &errmsg);
+        if (errcode) {
+            jade_process_reject_message(process, errcode, errmsg, NULL);
+            goto cleanup;
+        }
+
+        // Ok, all verified and persisted
+        jade_process_reply_to_message_ok(process);
+        JADE_LOGI("Success");
+        return;
+    }
+
+    // Otherwise expect our original message fields
 
     // Check network is valid and consistent with prior usage
     size_t written = 0;
@@ -280,7 +687,6 @@ void register_multisig_process(void* process_ptr)
     }
     jade_process_free_on_exit(process, signers);
 
-    const char* errmsg = NULL;
     const int errcode = register_multisig(multisig_name, network, script_variant, sorted, threshold, signers,
         num_signers, master_blinding_key, master_blinding_key_len, &errmsg);
     if (errcode) {

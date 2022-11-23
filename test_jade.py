@@ -380,6 +380,8 @@ YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
 QR_SCAN_TESTS = "qr_*.json"
 MULTI_REG_TESTS = "multisig_reg_*.json"
 MULTI_REG_SS_TESTS = "multisig_reg_ss_*.json"
+MULTI_REG_FILE_TESTS = "multisig_file_*.json"
+MULTI_REG_BAD_FILE_TESTS = "multisig_bad_file_*.json"
 SIGN_MSG_TESTS = "msg_*.json"
 SIGN_IDENTITY_TESTS = "identity_*.json"
 SIGN_TXN_TESTS = "txn_*.json"
@@ -2370,6 +2372,29 @@ def test_generic_multisig_registration(jadeapi):
         _check_multisig_registration(jadeapi, multisig_data)
 
 
+def test_generic_multisig_files(jadeapi):
+    # Check these multisig files load ok
+    for multisig_file_test in _get_test_cases(MULTI_REG_FILE_TESTS):
+        multisig_filename = multisig_file_test['input']['multisig_file']
+        with open('./test_data/' + multisig_filename, 'r') as f:
+            multisig_file = f.read()
+            rslt = jadeapi.register_multisig_file(multisig_file)
+            assert rslt
+
+    # Check these multisig files *do not* load
+    for multisig_file_test in _get_test_cases(MULTI_REG_BAD_FILE_TESTS):
+        expected_error = multisig_file_test['expected_error']
+        multisig_filename = multisig_file_test['input']['multisig_file']
+        with open('./test_data/' + multisig_filename, 'r') as f:
+            multisig_file = f.read()
+
+        try:
+            jadeapi.register_multisig_file(multisig_file)
+            assert False, 'Expected error: ' + expected_error
+        except JadeError as e:
+            assert e.message == expected_error, "Expected: " + expected_error
+
+
 def test_generic_multisig_matches_ga_addresses(jadeapi):
     # This test checks that the generic multisig wallets 'matches_ga', do...
     # ie. if I use the standard ga receive-address, I get the same result as
@@ -2760,6 +2785,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_generic_multisig_matches_ga_addresses(jadeapi)
     test_generic_multisig_matches_ga_signatures(jadeapi)
     test_generic_multisig_matches_ga_signatures_liquid(jadeapi)
+    test_generic_multisig_files(jadeapi)
 
     # Short sanity-test of 12-word mnemonic
     test_12word_mnemonic(jadeapi)

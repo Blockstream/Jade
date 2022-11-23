@@ -1,0 +1,12 @@
+# Passport Multisig setup file (created by Sparrow)
+#
+Name: Jade File Test
+Policy: 2 of 2
+Format: P2WSH
+Derivation: m/48'/0'/0'/2'
+Format: P2WSH
+
+B237FE9D: xpub6CxkBiVPwyVs7xXiWyLz7ZiR7c9SSf8imSthEnX5TB8BMfQcnkstRfe3jGk7SF5Noh5BrJdWMsumJ45KBDiM6C8YkzcLDrjq7cTV9z2gWVG
+249192D2: xpub6EbXynW6xjYR3crcztum6KzSWqDJoAJQoovwamwVnLaCSHA6syXKPnJo6U3bVeGdeEaXAeHsQTxhkLam9Dw2YfoAabtNm44XUWnnUZfHJRq
+67F90FFC: xpub6EHuWWrYd8bp5FS1XAZsMPkmCqLSjpULmygWqAqWRCCjSWQwz6ntq5KnuQnL23No2Jo8qdp48PrL8SVyf14uBrynurgPxonvnX6R5pbit3w
+

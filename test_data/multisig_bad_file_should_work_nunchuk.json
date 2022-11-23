@@ -1,0 +1,6 @@
+{
+  "input": {
+    "multisig_file": "multisig_file_nunchuk.dat"
+  },
+  "expected_error": "Failed to validate co-signers"
+}

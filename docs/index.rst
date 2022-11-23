@@ -511,6 +511,18 @@ Jade can store up to 16 user-defined multisig wallet configurations, which need 
         }
     }
 
+or:
+
+.. code-block:: cbor
+
+    {
+        "id": "6000000$",
+        "method": "register_multisig"
+        "params": {
+            "multisig_file": "Name: MainWallet\nPolicy: 2 of 3\nFormat: P2WSH\nDerivation: m/48'/0'/0'/2\n\nB237FE9D: xpub6E8C7BX4c7qfTsX7urnXggcAyFuhDmYLQhwRwZGLD9maUGWPinuc9k96ejhEQ1DCk..."
+        }
+    }
+
 * 'multisig_name' is a string, and must be less than 16 characters long.  Using an existing name will overwrite the corresponding registration record.
 * 'variant' indicates the script type used, and must be one of: 'sh(multi(k))', 'wsh(multi(k))' or 'sh(wsh(multi(k)))'
 * 'master_blinding_key' should be set for multisigs to be used on a Liquid network if the Jade is to provide confidential addresses, blinding keys, blinding nonces, asset blinding factors or output commitments.  Otherwise it can be omitted.
@@ -518,6 +530,8 @@ Jade can store up to 16 user-defined multisig wallet configurations, which need 
 * 'derivation' is the path from the origin to the given xpub - currently it is only used for the Jade signer, where it is used to verify the passed xpub.
 * 'xpub' is the signer xpub, as described by the 'fingerprint' and 'derivation' (validated, in the case of this unit's signer).
 * 'path' is a path applied to the xpub, to yield the root signer for this multisig.  In most cases this is empty '[]'.
+* Alternatively, the contents of the multisig wallet file as produced by several wallet apps (BluwWallet, Sparrow, Nunchuk etc.) can be passed.
+
 
 .. _register_multisig_reply:
 

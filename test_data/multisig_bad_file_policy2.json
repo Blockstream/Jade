@@ -1,0 +1,6 @@
+{
+  "input": {
+    "multisig_file": "multisig_bad_file_policy2.dat"
+  },
+  "expected_error": "Invalid multisig policy"
+}

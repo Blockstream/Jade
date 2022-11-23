@@ -787,6 +787,33 @@ class JadeAPI:
                                  'master_blinding_key': master_blinding_key}}
         return self._jadeRpc('register_multisig', params)
 
+    def register_multisig_file(self, multisig_file):
+        """
+        RPC call to register a new multisig wallet, which must contain the hw signer.
+        A registration file is provided - as produced my several wallet apps.
+
+        Parameters
+        ----------
+        multisig_file : string
+            The multisig file as produced by several wallet apps.
+            eg:
+                Name: MainWallet
+                Policy: 2 of 3
+                Format: P2WSH
+                Derivation: m/48'/0'/0'/2'
+
+                B237FE9D: xpub6E8C7BX4c7qfTsX7urnXggcAyFuhDmYLQhwRwZGLD9maUGWPinuc9k96ejhEQ1DCk...
+                249192D2: xpub6EbXynW6xjYR3crcztum6KzSWqDJoAJQoovwamwVnLaCSHA6syXKPnJo6U3bVeGde...
+                67F90FFC: xpub6EHuWWrYd8bp5FS1XAZsMPkmCqLSjpULmygWqAqWRCCjSWQwz6ntq5KnuQnL23No2...
+
+    Returns
+    -------
+    bool
+        True on success, implying the mutisig wallet can now be used.
+    """
+        params = {'multisig_file': multisig_file}
+        return self._jadeRpc('register_multisig', params)
+
     def get_receive_address(self, *args, recovery_xpub=None, csv_blocks=0,
                             variant=None, multisig_name=None, confidential=None):
         """
