@@ -15,10 +15,12 @@ extern const char BCUR_TYPE_CRYPTO_ACCOUNT[];
 extern const char BCUR_TYPE_CRYPTO_HDKEY[];
 extern const char BCUR_TYPE_CRYPTO_PSBT[];
 extern const char BCUR_TYPE_JADE_PIN[];
+extern const char BCUR_TYPE_BYTES[];
 
 // Parse BC-UR messages - decodes BC-UR and parses nested CBOR
 bool bcur_parse_bip39(const char* bcur, size_t bcur_len, char* mnemonic, size_t mnemonic_len, size_t* written);
-bool parse_bcur_psbt_cbor(const uint8_t* cbor, size_t cbor_len, struct wally_psbt** psbt_out);
+bool bcur_parse_bytes(const uint8_t* cbor, size_t cbor_len, const uint8_t** bytes, size_t* bytes_len);
+bool bcur_parse_psbt(const uint8_t* cbor, size_t cbor_len, struct wally_psbt** psbt_out);
 
 // Build BC-UR CBOR messages
 void bcur_build_cbor_crypto_hdkey(

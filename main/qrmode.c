@@ -515,7 +515,7 @@ static bool parse_sign_display_bcur_psbt_qr(const char* type, const uint8_t* dat
 
     // Parse scanned QR data
     struct wally_psbt* psbt = NULL;
-    if (strcasecmp(type, BCUR_TYPE_CRYPTO_PSBT) || !parse_bcur_psbt_cbor(data, data_len, &psbt)) {
+    if (strcasecmp(type, BCUR_TYPE_CRYPTO_PSBT) || !bcur_parse_psbt(data, data_len, &psbt)) {
         // Unexpected type/format
         await_error_activity("Unsupported QR/PSBT format");
         return false;

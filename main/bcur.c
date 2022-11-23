@@ -18,6 +18,7 @@ const char BCUR_TYPE_CRYPTO_ACCOUNT[] = "crypto-account";
 const char BCUR_TYPE_CRYPTO_HDKEY[] = "crypto-hdkey";
 const char BCUR_TYPE_CRYPTO_PSBT[] = "crypto-psbt";
 const char BCUR_TYPE_JADE_PIN[] = "jade-pin";
+const char BCUR_TYPE_BYTES[] = "bytes";
 
 static const char BCUR_PREFIX[] = "ur:";
 
@@ -188,13 +189,16 @@ cleanup:
     return ret;
 }
 
-// Parse the bcur cbor for a PSBT (crypto-psbt) - just bytes
+// Parse the bcur cbor for raw undifferentiated bytes (bytes) - just bytes.
+// NOTE: this returns a pointer to the buye buffer allocate in the existing cbor input
+// *AND NOT* a freshly allocated or copied range.
 // See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md
-bool parse_bcur_psbt_cbor(const uint8_t* cbor, const size_t cbor_len, struct wally_psbt** psbt_out)
+bool bcur_parse_bytes(const uint8_t* cbor, size_t cbor_len, const uint8_t** bytes, size_t* bytes_len)
 {
     JADE_ASSERT(cbor);
     JADE_ASSERT(cbor_len);
-    JADE_INIT_OUT_PPTR(psbt_out);
+    JADE_INIT_OUT_PPTR(bytes);
+    JADE_INIT_OUT_SIZE(bytes_len);
 
     // Parse cbor
     CborValue value;
@@ -204,10 +208,22 @@ bool parse_bcur_psbt_cbor(const uint8_t* cbor, const size_t cbor_len, struct wal
         return false;
     }
 
+    rpc_get_raw_bytes_ptr(&value, bytes, bytes_len);
+    return *bytes && *bytes_len;
+}
+
+// Parse the bcur cbor for a PSBT (crypto-psbt) - just bytes
+// See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md
+bool bcur_parse_psbt(const uint8_t* cbor, const size_t cbor_len, struct wally_psbt** psbt_out)
+{
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
+    JADE_INIT_OUT_PPTR(psbt_out);
+
+    // Parse cbor, get pointer to existing bytes
     const uint8_t* data = NULL;
     size_t data_len = 0;
-    rpc_get_raw_bytes_ptr(&value, &data, &data_len);
-    if (!data || !data_len) {
+    if (!bcur_parse_bytes(cbor, cbor_len, &data, &data_len)) {
         return false;
     }
 
