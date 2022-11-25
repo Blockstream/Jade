@@ -236,6 +236,49 @@ bool bcur_parse_psbt(const uint8_t* cbor, const size_t cbor_len, struct wally_ps
     return true;
 }
 
+// Helper to initiate parsing a Jade message
+bool bcur_parse_jade_message(const uint8_t* cbor, size_t cbor_len, CborParser* parser, CborValue* root,
+    const char* expected_method, CborValue* params)
+{
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
+    JADE_ASSERT(parser);
+    JADE_ASSERT(root);
+    // expected_method is optional
+    // params is optional
+
+    // Parse cbor
+    CborError cberr = cbor_parser_init(cbor, cbor_len, CborValidateCompleteData, parser, root);
+    if (cberr != CborNoError || !cbor_value_is_valid(root) || !cbor_value_is_map(root)) {
+        JADE_LOGE("Failed to parse bcur cbor message");
+        return false;
+    }
+
+    // Caller can optionally pass the expected method name - if so this is verified.
+    if (expected_method) {
+        size_t method_len = 0;
+        const char* method = NULL;
+        rpc_get_method(root, &method, &method_len);
+        if (!method || !method_len || strncmp(expected_method, method, method_len)
+            || method_len != strlen(expected_method)) {
+            JADE_LOGE("Failed to read expected method name");
+            return false;
+        }
+    }
+
+    // If caller also wants params, the params map must be present
+    // If caller hasn't asked for params, they are allowed to not be present.
+    if (params) {
+        cberr = cbor_value_map_find_value(root, CBOR_RPC_TAG_PARAMS, params);
+        if (cberr != CborNoError || !cbor_value_is_valid(params) || cbor_value_get_type(params) == CborInvalidType
+            || !cbor_value_is_map(params)) {
+            JADE_LOGE("Failed to fetch parameters map");
+            return false;
+        }
+    }
+    return true;
+}
+
 // Encode a txn psbt as a bcur cbor 'crypto-psbt' - just bytes
 // See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md
 bool bcur_build_cbor_crypto_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len)

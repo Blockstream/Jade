@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <tft.h>
 
+#include "utils/cbor_rpc.h"
 #include "wallet.h"
 
 struct wally_psbt;
@@ -21,6 +22,8 @@ extern const char BCUR_TYPE_BYTES[];
 bool bcur_parse_bip39(const char* bcur, size_t bcur_len, char* mnemonic, size_t mnemonic_len, size_t* written);
 bool bcur_parse_bytes(const uint8_t* cbor, size_t cbor_len, const uint8_t** bytes, size_t* bytes_len);
 bool bcur_parse_psbt(const uint8_t* cbor, size_t cbor_len, struct wally_psbt** psbt_out);
+bool bcur_parse_jade_message(const uint8_t* cbor, size_t cbor_len, CborParser* parser, CborValue* root,
+    const char* expected_method, CborValue* params);
 
 // Build BC-UR CBOR messages
 void bcur_build_cbor_crypto_hdkey(
