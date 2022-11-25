@@ -18,6 +18,7 @@ const char BCUR_TYPE_CRYPTO_ACCOUNT[] = "crypto-account";
 const char BCUR_TYPE_CRYPTO_HDKEY[] = "crypto-hdkey";
 const char BCUR_TYPE_CRYPTO_PSBT[] = "crypto-psbt";
 const char BCUR_TYPE_JADE_PIN[] = "jade-pin";
+const char BCUR_TYPE_JADE_EPOCH[] = "jade-epoch";
 const char BCUR_TYPE_BYTES[] = "bytes";
 
 static const char BCUR_PREFIX[] = "ur:";

@@ -18,6 +18,7 @@
 #include <wally_script.h>
 
 #include <string.h>
+#include <time.h>
 
 void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, Icon* qr_icon);
 
@@ -35,6 +36,8 @@ void make_qr_options_activity(
     gui_activity_t** activity_ptr, gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox);
 
 int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg);
+
+int params_set_epoch_time(CborValue* params, const char** errmsg);
 
 // PSBT struct and functions
 struct wally_psbt;
@@ -716,6 +719,46 @@ cleanup:
     return ret;
 }
 
+// Accept an epoch (time) message via qr code
+static bool handle_epoch_qr(const uint8_t* cbor, const size_t cbor_len)
+{
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
+
+    // Parse cbor
+    CborValue root;
+    CborValue params;
+    CborParser parser;
+    if (!bcur_parse_jade_message(cbor, cbor_len, &parser, &root, "set_epoch", &params)) {
+        JADE_LOGE("Failed to parse Jade epoch message");
+        await_error_activity("Error parsing epoch data");
+        return false;
+    }
+
+    const char* errmsg = NULL;
+    const int errcode = params_set_epoch_time(&params, &errmsg);
+    if (errcode) {
+        if (errcode != CBOR_RPC_USER_CANCELLED) {
+            JADE_LOGE("Error setting epoch time: %s", errmsg);
+            char buf[128];
+            const int ret = snprintf(buf, sizeof(buf), "Error setting epoch time\n%s", errmsg);
+            JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+            await_error_activity(buf);
+        }
+        return false;
+    }
+
+    char msg[128];
+    char timestr[32];
+    const uint64_t epoch_value = time(NULL);
+    ctime_r((const time_t*)&epoch_value, timestr);
+    const int ret = snprintf(msg, sizeof(msg), "Time set successfully\n\n %s", timestr);
+    JADE_ASSERT(ret > 0 && ret < sizeof(msg));
+    await_message_activity(msg);
+
+    return true;
+}
+
 // Handle scanning a QR - supports addresses and PSBTs
 void handle_scan_qr(void)
 {
@@ -736,6 +779,11 @@ void handle_scan_qr(void)
             // PSBT
             if (!parse_sign_display_bcur_psbt_qr(data, data_len)) {
                 JADE_LOGE("Processing BC-UR as PSBT failed");
+            }
+        } else if (!strcasecmp(type, BCUR_TYPE_JADE_EPOCH)) {
+            // Epoch value
+            if (!handle_epoch_qr(data, data_len)) {
+                JADE_LOGE("Processing BC-UR as epoch failed");
             }
         } else if (!strcasecmp(type, BCUR_TYPE_BYTES)) {
             // Opaque bytes
