@@ -11,14 +11,11 @@
 
 #include "process_utils.h"
 
-void update_pinserver_process(void* process_ptr)
+// Update the pinserver details from the passed message parameters
+int update_pinserver(const CborValue* const params, const char** errmsg)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
-    jade_process_t* process = process_ptr;
-
-    // We expect a current message to be present
-    ASSERT_CURRENT_MESSAGE(process, "update_pinserver");
-    GET_MSG_PARAMS(process);
+    JADE_ASSERT(params);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     char urlA[MAX_PINSVR_URL_LENGTH] = { 0 };
     char urlB[MAX_PINSVR_URL_LENGTH] = { 0 };
@@ -27,43 +24,41 @@ void update_pinserver_process(void* process_ptr)
     const uint8_t* pubkey;
     size_t pubkey_len = 0;
 
+    int retval = CBOR_RPC_BAD_PARAMETERS;
+
     // 1. update or erase the pinserver details
     bool reset_details = false;
-    rpc_get_boolean("reset_details", &params, &reset_details);
+    rpc_get_boolean("reset_details", params, &reset_details);
 
     size_t urlA_len = 0, urlB_len = 0;
-    rpc_get_string("urlA", sizeof(urlA), &params, urlA, &urlA_len);
-    rpc_get_string("urlB", sizeof(urlB), &params, urlB, &urlB_len);
-    rpc_get_bytes_ptr("pubkey", &params, &pubkey, &pubkey_len);
+    rpc_get_string("urlA", sizeof(urlA), params, urlA, &urlA_len);
+    rpc_get_string("urlB", sizeof(urlB), params, urlB, &urlB_len);
+    rpc_get_bytes_ptr("pubkey", params, &pubkey, &pubkey_len);
 
-    if (urlA_len == 0 && rpc_has_field_data("urlA", &params)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Cannot set empty URL", NULL);
+    if (urlA_len == 0 && rpc_has_field_data("urlA", params)) {
+        *errmsg = "Cannot set empty URL";
         goto cleanup;
     }
     if (urlB_len && !urlA_len) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Can only set second URL if also setting first URL", NULL);
+        *errmsg = "Cannot set only second URL";
         goto cleanup;
     }
     if ((urlA_len || pubkey) && reset_details) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Cannot both set and reset pinserver details", NULL);
+        *errmsg = "Cannot set and reset details";
         goto cleanup;
     }
     if (pubkey) {
         if (!urlA_len) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Cannot set pinserver pubkey without setting URL", NULL);
+            *errmsg = "Cannot set pubkey without URL";
             goto cleanup;
         }
         if (pubkey_len != EC_PUBLIC_KEY_LEN || wally_ec_public_key_verify(pubkey, pubkey_len) != WALLY_OK) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid pubkey", NULL);
+            *errmsg = "Invalid PinServer pubkey";
             goto cleanup;
         }
 #ifndef CONFIG_DEBUG_MODE
         if (keychain_has_pin()) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Cannot change pinserver pubkey on initialised unit", NULL);
+            *errmsg = "Cannot set pubkey on initialised unit";
             goto cleanup;
         }
 #endif // CONFIG_DEBUG_MODE
@@ -73,7 +68,6 @@ void update_pinserver_process(void* process_ptr)
         char* pubkey_hex = NULL;
         if (pubkey && pubkey_len > 0) {
             JADE_WALLY_VERIFY(wally_hex_from_bytes(pubkey, pubkey_len, &pubkey_hex));
-            jade_process_wally_free_string_on_exit(process, pubkey_hex);
         }
 
         gui_activity_t* activity = NULL;
@@ -91,42 +85,42 @@ void update_pinserver_process(void* process_ptr)
         const bool ret = true;
         ev_id = BTN_PINSERVER_DETAILS_CONFIRM;
 #endif
+        JADE_WALLY_VERIFY(wally_free_string(pubkey_hex));
+
         if (!ret || ev_id != BTN_PINSERVER_DETAILS_CONFIRM) {
             JADE_LOGW("User declined to confirm pinserver details");
-            jade_process_reject_message(
-                process, CBOR_RPC_USER_CANCELLED, "User did not confirm PinServer details", NULL);
+            *errmsg = "User declined to confirm PinServer details";
+            retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;
         }
     } else if (reset_details) {
         if (!await_yesno_activity("Reset PinServer", "Reset pin-server details?", false)) {
             JADE_LOGW("User declined to confirm resetting pinserver details");
-            jade_process_reject_message(
-                process, CBOR_RPC_USER_CANCELLED, "User did not confirm resetting PinServer details", NULL);
+            *errmsg = "User declined to confirm resetting PinServer details";
+            retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;
         }
     }
 
     // 2. update or erase the certificate
     bool reset_certificate = false;
-    rpc_get_boolean("reset_certificate", &params, &reset_certificate);
-    const bool set_certificate = rpc_has_field_data("certificate", &params);
+    rpc_get_boolean("reset_certificate", params, &reset_certificate);
+    const bool set_certificate = rpc_has_field_data("certificate", params);
 
     if (set_certificate && reset_certificate) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Cannot both set and reset pinserver certificate", NULL);
+        *errmsg = "Cannot set and reset certificate";
         goto cleanup;
     }
 
     if (set_certificate) {
         size_t cert_len = 0;
-        rpc_get_string("certificate", sizeof(cert), &params, cert, &cert_len);
+        rpc_get_string("certificate", sizeof(cert), params, cert, &cert_len);
 
         char* cert_hash_hex = NULL;
         if (cert_len > 0) {
             uint8_t cert_hash[SHA256_LEN];
             JADE_WALLY_VERIFY(wally_sha256((uint8_t*)cert, cert_len, cert_hash, sizeof(cert_hash)));
             JADE_WALLY_VERIFY(wally_hex_from_bytes(cert_hash, sizeof(cert_hash), &cert_hash_hex));
-            jade_process_wally_free_string_on_exit(process, cert_hash_hex);
         }
 
         gui_activity_t* activity = NULL;
@@ -144,17 +138,19 @@ void update_pinserver_process(void* process_ptr)
         const bool ret = true;
         ev_id = BTN_PINSERVER_DETAILS_CONFIRM;
 #endif
+        JADE_WALLY_VERIFY(wally_free_string(cert_hash_hex));
+
         if (!ret || ev_id != BTN_PINSERVER_DETAILS_CONFIRM) {
             JADE_LOGW("User declined to confirm pinserver certificate");
-            jade_process_reject_message(
-                process, CBOR_RPC_USER_CANCELLED, "User did not confirm PinServer certificate", NULL);
+            *errmsg = "User declined to confirm PinServer certificate";
+            retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;
         }
     } else if (reset_certificate) {
         if (!await_yesno_activity("Certificate", "Reset pin-server certificate?", false)) {
             JADE_LOGW("User declined to confirm resetting pinserver certificate");
-            jade_process_reject_message(
-                process, CBOR_RPC_USER_CANCELLED, "User did not confirm resetting PinServer certificate", NULL);
+            *errmsg = "User declined to confirm resetting PinServer certificate";
+            retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;
         }
     }
@@ -163,13 +159,17 @@ void update_pinserver_process(void* process_ptr)
     if (urlA_len) {
         JADE_LOGI("Setting user pinserver details");
         if (!storage_set_pinserver_details(urlA, urlB, pubkey, pubkey_len)) {
-            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to persist pinserver details", NULL);
+            JADE_LOGE("Failed to persist pinserver details");
+            *errmsg = "Failed to persist PinServer details";
+            retval = CBOR_RPC_INTERNAL_ERROR;
             goto cleanup;
         }
     } else if (reset_details) {
         JADE_LOGI("Erasing user pinserver details - resetting to default");
         if (!storage_erase_pinserver_details()) {
-            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to erase pinserver details", NULL);
+            JADE_LOGE("Failed to erase pinserver details");
+            *errmsg = "Failed to erase PinServer details";
+            retval = CBOR_RPC_INTERNAL_ERROR;
             goto cleanup;
         }
     }
@@ -177,17 +177,42 @@ void update_pinserver_process(void* process_ptr)
     if (set_certificate) {
         JADE_LOGI("Setting user pinserver certificate");
         if (!storage_set_pinserver_cert(cert)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_INTERNAL_ERROR, "Failed to persist pinserver certificate", NULL);
+            JADE_LOGE("Failed to persist pinserver certificate");
+            *errmsg = "Failed to persist PinServer certificate";
+            retval = CBOR_RPC_INTERNAL_ERROR;
             goto cleanup;
         }
     } else if (reset_certificate) {
         JADE_LOGI("Erasing user pinserver certificate - resetting to default");
         if (!storage_erase_pinserver_cert()) {
-            jade_process_reject_message(
-                process, CBOR_RPC_INTERNAL_ERROR, "Failed to erase pinserver certificate", NULL);
+            JADE_LOGE("Failed to erase pinserver certificate");
+            *errmsg = "Failed to erase PinServer certificate";
+            retval = CBOR_RPC_INTERNAL_ERROR;
             goto cleanup;
         }
+    }
+
+    // ok - all good
+    retval = 0;
+
+cleanup:
+    return retval;
+}
+
+void update_pinserver_process(void* process_ptr)
+{
+    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    jade_process_t* process = process_ptr;
+
+    // We expect a current message to be present
+    ASSERT_CURRENT_MESSAGE(process, "update_pinserver");
+    GET_MSG_PARAMS(process);
+
+    const char* errmsg = NULL;
+    const int errcode = update_pinserver(&params, &errmsg);
+    if (errcode) {
+        jade_process_reject_message(process, errcode, errmsg, NULL);
+        goto cleanup;
     }
 
     // Reply ok
