@@ -120,7 +120,7 @@ static void deduce_jade_id(void)
     jade_id[10] = toupper((int)hexout[11]);
     jade_id[11] = '\0';
 
-    wally_free_string(hexout);
+    JADE_WALLY_VERIFY(wally_free_string(hexout));
 }
 
 // Get the Jade's serial number - eg: 'Jade ABCDEF'

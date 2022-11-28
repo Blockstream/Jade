@@ -386,7 +386,7 @@ void make_display_elements_output_activity(const char* network, const struct wal
             // No ticker
             ticker[0] = '\0';
         }
-        wally_free_string(asset_id_hex);
+        JADE_WALLY_VERIFY(wally_free_string(asset_id_hex));
 
         char address[MAX_ADDRESS_LEN];
         elements_script_to_address(network, out->script, out->script_len,

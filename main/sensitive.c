@@ -1,5 +1,5 @@
 #include "jade_assert.h"
-#include "jade_log.h"
+#include "jade_wally_verify.h"
 #include "utils/malloc_ext.h"
 
 #include <wally_crypto.h>
@@ -41,7 +41,7 @@ static bool sensitive_clear_stack_impl(struct sens_stack* stack)
             stack->top--;
             JADE_LOGW("sensitive_clear_stack_impl() clearing %p %d bytes from %s:%d", stack->top->addr,
                 stack->top->size, stack->top->file, stack->top->line);
-            wally_bzero(stack->top->addr, stack->top->size);
+            JADE_WALLY_VERIFY(wally_bzero(stack->top->addr, stack->top->size));
             had_items = true;
         }
     }
@@ -115,7 +115,7 @@ void sensitive_pop(const char* file, int line, void* addr)
 
     JADE_ASSERT(stack->top > stack->elems);
     stack->top--;
-    wally_bzero(stack->top->addr, stack->top->size);
+    JADE_WALLY_VERIFY(wally_bzero(stack->top->addr, stack->top->size));
 
     if (addr != stack->top->addr) {
         JADE_LOGE("sensitive_pop %s:%d unexpectedly popping addr %p", file, line, addr);

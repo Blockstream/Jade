@@ -6,6 +6,7 @@
 
 #include "bcur.h"
 #include "jade_assert.h"
+#include "jade_wally_verify.h"
 #include "keychain.h"
 #include "random.h"
 #include "storage.h"
@@ -136,19 +137,19 @@ static bool test_new_wallets(const size_t nwords)
 
     keychain_t keydata1 = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, NULL, &keydata1)) {
-        wally_free_string(mnemonic);
+        JADE_WALLY_VERIFY(wally_free_string(mnemonic));
         FAIL();
     }
 
     keychain_t keydata2 = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, "passphrase123", &keydata2)) {
-        wally_free_string(mnemonic);
+        JADE_WALLY_VERIFY(wally_free_string(mnemonic));
         FAIL();
     }
 
     keychain_t keydata3 = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, "different", &keydata3)) {
-        wally_free_string(mnemonic);
+        JADE_WALLY_VERIFY(wally_free_string(mnemonic));
         FAIL();
     }
 
@@ -280,7 +281,7 @@ static bool test_storage_with_passphrase(const size_t nwords)
 
     keychain_t keydata = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, "test123", &keydata)) {
-        wally_free_string(mnemonic);
+        JADE_WALLY_VERIFY(wally_free_string(mnemonic));
         FAIL();
     }
 

@@ -54,7 +54,7 @@ void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temp
     }
 
     // Clear any mnemonic entropy we may have been holding
-    wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy));
+    JADE_WALLY_VERIFY(wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy)));
     mnemonic_entropy_len = 0;
     keychain_user_to_enter_passphrase = false;
 
@@ -68,12 +68,12 @@ void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temp
 void keychain_clear(void)
 {
     if (keychain_data) {
-        wally_bzero(keychain_data, sizeof(keychain_t));
+        JADE_WALLY_VERIFY(wally_bzero(keychain_data, sizeof(keychain_t)));
         keychain_data = NULL;
     }
 
     // Clear any mnemonic entropy we may have been holding
-    wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy));
+    JADE_WALLY_VERIFY(wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy)));
     mnemonic_entropy_len = 0;
     keychain_user_to_enter_passphrase = false;
 
@@ -315,7 +315,7 @@ bool keychain_complete_derivation_with_passphrase(const char* passphrase)
     SENSITIVE_PUSH(mnemonic, strlen(mnemonic));
     ret = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
     SENSITIVE_POP(mnemonic);
-    wally_free_string(mnemonic);
+    JADE_WALLY_VERIFY(wally_free_string(mnemonic));
 
     if (ret) {
         keychain_set(&keydata, 0, false);

@@ -32,7 +32,7 @@ void jade_wally_randomize_secp_ctx(void)
     /* Note: we can't use sensitive as this may get called from threads
      * that haven't called sensitive_init, such as the one that calls into
      * ble_hs_pvcy_get_default_irk */
-    wally_bzero(rnd, sizeof(rnd));
+    JADE_WALLY_VERIFY(wally_bzero(rnd, sizeof(rnd)));
 }
 
 /* This callback appears to be called from the IDLE task, and *NOT* from the task

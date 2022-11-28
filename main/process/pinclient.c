@@ -80,7 +80,7 @@ static void add_hex_bytes_to_map(CborEncoder* container, const char* name, const
     char* tmpstr;
     JADE_WALLY_VERIFY(wally_hex_from_bytes(bytes, size, &tmpstr));
     add_string_to_map(container, name, tmpstr);
-    wally_free_string(tmpstr);
+    JADE_WALLY_VERIFY(wally_free_string(tmpstr));
 }
 
 // The urls may be overridden in storage, otherwise use the default

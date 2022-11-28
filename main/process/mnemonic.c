@@ -356,7 +356,7 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
 cleanup:
     SENSITIVE_POP(words);
     SENSITIVE_POP(new_mnemonic);
-    wally_free_string(new_mnemonic);
+    JADE_WALLY_VERIFY(wally_free_string(new_mnemonic));
     return mnemonic_confirmed;
 }
 
@@ -405,17 +405,17 @@ static void enable_relevant_chars(const char* word, const size_t word_len, gui_a
 
         const int32_t res = strncmp(wordlist_extracted, word, word_len);
         if (res < 0) {
-            wally_free_string(wordlist_extracted);
+            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
             continue;
         } else if (res > 0) {
-            wally_free_string(wordlist_extracted);
+            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
             break;
         }
 
         const size_t char_index = wordlist_extracted[word_len] - 'a';
         enabled[char_index] = true;
 
-        wally_free_string(wordlist_extracted);
+        JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
     }
 
     // As above, first mark the new selected item as active and selected,
@@ -465,11 +465,11 @@ static size_t valid_words(const char* word, const size_t word_len, size_t* possi
 
         if (res < 0) {
             // No there yet, continue to next work
-            wally_free_string(wordlist_extracted);
+            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
             continue;
         } else if (res > 0) {
             // Too late - gone past word - may as well abandon
-            wally_free_string(wordlist_extracted);
+            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
             break;
         }
 
@@ -488,7 +488,7 @@ static size_t valid_words(const char* word, const size_t word_len, size_t* possi
 
         ++num_possible_words;
 
-        wally_free_string(wordlist_extracted);
+        JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
     }
 
     return num_possible_words;
@@ -547,7 +547,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 char* wordlist_extracted = NULL;
                 JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_word_list[selected], &wordlist_extracted));
                 gui_update_text(textbox_list, wordlist_extracted);
-                wally_free_string(wordlist_extracted);
+                JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
 
                 gui_set_current_activity(choose_word_activity);
 
@@ -583,7 +583,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                             char* wordlist_extracted = NULL;
                             JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_word_list[selected], &wordlist_extracted));
                             gui_update_text(textbox_list, wordlist_extracted);
-                            wally_free_string(wordlist_extracted);
+                            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
                         }
                     }
                 } // while stop
@@ -596,7 +596,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                     strncpy(word, wordlist_extracted, 16);
 #pragma GCC diagnostic pop
                     char_index = strlen(wordlist_extracted);
-                    wally_free_string(wordlist_extracted);
+                    JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
 
                     // TODO: maybe check the word one last time?
                     const size_t wordlen = strlen(word);
@@ -717,13 +717,13 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
         const size_t word_len = strlen(wordlist_extracted);
         if (write_pos + word_len >= buf_len) {
             JADE_LOGW("Expanded mnemonic too long");
-            wally_free_string(wordlist_extracted);
+            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
             return false;
         }
 
         // Copy the expanded word into the output buffer
         memcpy(buf + write_pos, wordlist_extracted, word_len);
-        wally_free_string(wordlist_extracted);
+        JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
         write_pos += word_len;
 
         // Copy space separator or nul terminator
@@ -805,7 +805,7 @@ static bool import_seedqr(const qr_data_t* qr_data, char* buf, const size_t buf_
         // Copy word
         memcpy(buf + write_pos, wally_word, wordlen);
         write_pos += wordlen;
-        wally_free_string(wally_word);
+        JADE_WALLY_VERIFY(wally_free_string(wally_word));
     }
 
     SENSITIVE_POP(index_code);
@@ -839,8 +839,8 @@ static bool import_compactseedqr(const qr_data_t* qr_data, char* buf, const size
     strcpy(buf, mnemonic);
     *written = mnemonic_len + 1; // Report actual number of bytes written including the nul-terminator
 
-    wally_bzero(mnemonic, mnemonic_len);
-    wally_free_string(mnemonic);
+    JADE_WALLY_VERIFY(wally_bzero(mnemonic, mnemonic_len));
+    JADE_WALLY_VERIFY(wally_free_string(mnemonic));
     return true;
 }
 

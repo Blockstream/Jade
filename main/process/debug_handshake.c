@@ -1,4 +1,5 @@
 #include "../jade_assert.h"
+#include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
 #include "../sensitive.h"
@@ -73,7 +74,7 @@ void debug_handshake(void* process_ptr)
     const bool test_res = keychain_derive_from_mnemonic(mnemonic, NULL, &keydata);
     SENSITIVE_POP(mnemonic);
     JADE_ASSERT(test_res);
-    wally_free_string(mnemonic);
+    JADE_WALLY_VERIFY(wally_free_string(mnemonic));
 
     // Create a temp process with the message type to 'auth_user' so we can send it through the
     // proper codepath which is expecting to be triggered by one of those.

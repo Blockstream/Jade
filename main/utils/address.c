@@ -159,14 +159,15 @@ void elements_script_to_address(const char* network, const uint8_t* script, cons
         case WALLY_SCRIPT_TYPE_P2WSH:
             hrpConfidential = networkToBlech32Hrp(network);
             JADE_ASSERT(hrpConfidential);
-            wally_confidential_addr_from_addr_segwit(
-                tmp_str, hrp, hrpConfidential, blinding_key, blinding_key_len, &conf_tmp_str);
+            JADE_WALLY_VERIFY(wally_confidential_addr_from_addr_segwit(
+                tmp_str, hrp, hrpConfidential, blinding_key, blinding_key_len, &conf_tmp_str));
             break;
 
         case WALLY_SCRIPT_TYPE_P2PKH:
         case WALLY_SCRIPT_TYPE_P2SH:
             prefix = networkToCAPrefix(network);
-            wally_confidential_addr_from_addr(tmp_str, prefix, blinding_key, blinding_key_len, &conf_tmp_str);
+            JADE_WALLY_VERIFY(
+                wally_confidential_addr_from_addr(tmp_str, prefix, blinding_key, blinding_key_len, &conf_tmp_str));
             break;
         }
 

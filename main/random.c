@@ -1,5 +1,6 @@
 #include "random.h"
 #include "jade_assert.h"
+#include "jade_wally_verify.h"
 #include "power.h"
 #include "sensitive.h"
 #include <bootloader_random.h>
@@ -124,7 +125,7 @@ static void get_random_internal(uint8_t* bytes_out, const size_t len, const uint
     // Since refeeding can be called from any task (including internal rtos tasks),
     // we cannot be sure the 'sensitive_stack' is set up, so use wally_bzero()
     // explicitly in this case.
-    wally_bzero(buf, sizeof(buf));
+    JADE_WALLY_VERIFY(wally_bzero(buf, sizeof(buf)));
 }
 
 void refeed_entropy(const uint8_t* additional, const size_t len)

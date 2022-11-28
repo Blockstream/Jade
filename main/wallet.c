@@ -499,7 +499,7 @@ static bool wallet_get_gaservice_key(
         char *logbuf;
         JADE_WALLY_VERIFY(bip32_key_to_base58(&garoot, BIP32_FLAG_KEY_PUBLIC, &logbuf));
         JADE_LOGI("service xpub: %s", logbuf);
-        wally_free_string(logbuf);
+        JADE_WALLY_VERIFY(wally_free_string(logbuf));
 
         // Derive final part of the path into the output
         JADE_WALLY_VERIFY(bip32_key_from_parent_path(&garoot, &ga_path[ga_path_len-1], 1, BIP32_FLAG_KEY_PUBLIC |

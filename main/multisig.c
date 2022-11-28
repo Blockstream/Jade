@@ -1,5 +1,6 @@
 #include "multisig.h"
 #include "jade_assert.h"
+#include "jade_wally_verify.h"
 #include "storage.h"
 #include "utils/malloc_ext.h"
 
@@ -45,10 +46,10 @@ bool multisig_validate_signers(const char* network, const signer_t* signers, con
             }
             if (strcmp(wallet_xpub, signer->xpub) != 0) {
                 JADE_LOGE("xpub mismatch (signer %d) - this wallet: %s - param: %s", i, wallet_xpub, signer->xpub);
-                wally_free_string(wallet_xpub);
+                JADE_WALLY_VERIFY(wally_free_string(wallet_xpub));
                 return false;
             }
-            wally_free_string(wallet_xpub);
+            JADE_WALLY_VERIFY(wally_free_string(wallet_xpub));
 
             // All good - we have found our signer in the multisig
             bFound = true;

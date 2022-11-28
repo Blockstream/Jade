@@ -177,8 +177,7 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     char* hexstr = NULL;
     JADE_WALLY_VERIFY(wally_hex_from_bytes((uint8_t*)&info.features, 4, &hexstr));
     add_string_to_map(&map_encoder, "CHIP_FEATURES", hexstr);
-
-    wally_free_string(hexstr);
+    JADE_WALLY_VERIFY(wally_free_string(hexstr));
 
     uint8_t macid[6];
     esp_efuse_mac_get_default(macid);
@@ -187,7 +186,7 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
         hexstr[i] = toupper((int)hexstr[i]);
     }
     add_string_to_map(&map_encoder, "EFUSEMAC", hexstr);
-    wally_free_string(hexstr);
+    JADE_WALLY_VERIFY(wally_free_string(hexstr));
 
     // Battery level
     add_uint_to_map(&map_encoder, "BATTERY_STATUS", power_get_battery_status());

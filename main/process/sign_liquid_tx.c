@@ -328,8 +328,8 @@ void sign_liquid_tx_process(void* process_ptr)
             output_info[i].is_confidential = false;
 
             memcpy(output_info[i].asset_id, tx->outputs[i].asset + 1, sizeof(output_info[i].asset_id));
-            wally_tx_confidential_value_to_satoshi(
-                tx->outputs[i].value, tx->outputs[i].value_len, &output_info[i].value);
+            JADE_WALLY_VERIFY(wally_tx_confidential_value_to_satoshi(
+                tx->outputs[i].value, tx->outputs[i].value_len, &output_info[i].value));
 
             // fees can only be unconfidential
             if (!tx->outputs[i].script) {

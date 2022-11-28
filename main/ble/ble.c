@@ -89,7 +89,7 @@ int ble_get_mac(char* mac, size_t length)
     mac[16] = toupper((int)hexout[11]);
     mac[17] = '\0';
 
-    wally_free_string(hexout);
+    JADE_WALLY_VERIFY(wally_free_string(hexout));
 
     return 18;
 }
@@ -408,7 +408,7 @@ void ble_hs_pvcy_get_default_irk(uint8_t* new_irk_out, const size_t new_irk_len)
     JADE_ASSERT(ret);
 
     const int wret = wally_hmac_sha256(privatekey, sizeof(privatekey), mac, sizeof(mac), output, sizeof(output));
-    wally_bzero(privatekey, sizeof(privatekey));
+    JADE_WALLY_VERIFY(wally_bzero(privatekey, sizeof(privatekey)));
     JADE_ASSERT(wret == WALLY_OK);
 
     memcpy(new_irk_out, output, new_irk_len);
