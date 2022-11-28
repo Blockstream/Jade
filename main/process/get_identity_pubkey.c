@@ -1,5 +1,4 @@
 #include "../jade_assert.h"
-#include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
 #include "../ui.h"

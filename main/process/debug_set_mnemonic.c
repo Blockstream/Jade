@@ -1,5 +1,4 @@
 #include "../jade_assert.h"
-#include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
 #include "../qrscan.h"
@@ -8,7 +7,6 @@
 #include "../utils/cbor_rpc.h"
 
 #include <cbor.h>
-#include <wally_bip39.h>
 
 #include "process_utils.h"
 

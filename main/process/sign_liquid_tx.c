@@ -148,6 +148,7 @@ static bool add_validated_confidential_output_info(const commitment_t* commitmen
     JADE_ASSERT(outinfo);
     JADE_INIT_OUT_PPTR(errmsg);
     JADE_ASSERT(txoutput->value[0] != 0x01); // Don't call for unblinded outputs
+    JADE_ASSERT(txoutput->asset[0] != 0x01); // FIXME: use wally constants when available
 
     uint8_t generator_tmp[ASSET_GENERATOR_LEN];
     uint8_t commitment_tmp[ASSET_COMMITMENT_LEN];
@@ -239,7 +240,7 @@ void sign_liquid_tx_process(void* process_ptr)
     JADE_ASSERT(txbytes);
 
     struct wally_tx* tx = NULL;
-    int res = wally_tx_from_bytes(txbytes, written, WALLY_TX_FLAG_USE_ELEMENTS, &tx); // elements, without witness
+    const int res = wally_tx_from_bytes(txbytes, written, WALLY_TX_FLAG_USE_ELEMENTS, &tx); // elements, without witness
     if (res != WALLY_OK || !tx) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract tx from passed bytes", NULL);
         goto cleanup;
@@ -323,10 +324,18 @@ void sign_liquid_tx_process(void* process_ptr)
     // Can be null for unblinded outputs as we will skip them.
     // Populate an `output_index` -> (blinding_key, asset, value) map
     for (size_t i = 0; i < tx->num_outputs; ++i) {
-        if (tx->outputs[i].value[0] == 0x01) {
+        // FIXME: use wally constants when available
+        if ((tx->outputs[i].asset[0] == 0x01) != (tx->outputs[i].value[0] == 0x01)) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Output asset and value blinding inconsistent", NULL);
+            goto cleanup;
+        }
+
+        if (tx->outputs[i].asset[0] == 0x01) {
             // unconfidential, take directly from the tx
             output_info[i].is_confidential = false;
 
+            // Copy the asset ID without the leading unconfidential tag byte
             memcpy(output_info[i].asset_id, tx->outputs[i].asset + 1, sizeof(output_info[i].asset_id));
             JADE_WALLY_VERIFY(wally_tx_confidential_value_to_satoshi(
                 tx->outputs[i].value, tx->outputs[i].value_len, &output_info[i].value));

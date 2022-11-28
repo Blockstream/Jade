@@ -7,8 +7,6 @@
 #include <esp_ota_ops.h>
 #include <esp_system.h>
 
-#include <wally_core.h>
-
 #include "idletimer.h"
 #include "jade_assert.h"
 #include "keychain.h"

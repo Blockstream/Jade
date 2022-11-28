@@ -230,21 +230,19 @@ static bool verify_server_signature(const uint8_t* ske, const size_t ske_len, co
         pubkey = user_pubkey;
     }
 
-    int res = wally_ec_public_key_verify(pubkey, EC_PUBLIC_KEY_LEN);
-    if (res != WALLY_OK) {
+    if (wally_ec_public_key_verify(pubkey, EC_PUBLIC_KEY_LEN) != WALLY_OK) {
         JADE_LOGE("Invalid pinserver pubkey!");
         return false;
     }
 
     uint8_t skehash[SHA256_LEN];
-    res = wally_sha256(ske, ske_len, skehash, sizeof(skehash));
-    if (res != WALLY_OK) {
+    if (wally_sha256(ske, ske_len, skehash, sizeof(skehash)) != WALLY_OK) {
         JADE_LOGE("Failed to hash pubkey!");
         return false;
     }
 
-    res = wally_ec_sig_verify(pubkey, EC_PUBLIC_KEY_LEN, skehash, sizeof(skehash), EC_FLAG_ECDSA, sig, sig_len);
-    return res == WALLY_OK;
+    return wally_ec_sig_verify(pubkey, EC_PUBLIC_KEY_LEN, skehash, sizeof(skehash), EC_FLAG_ECDSA, sig, sig_len)
+        == WALLY_OK;
 }
 
 // Helper to derive a pin-key entry from the shared secret and an index.
@@ -338,9 +336,8 @@ static bool decrypt_reply(const uint8_t* aeskey, const uint8_t* encrypted, const
     JADE_ASSERT(decryptedaes_len == AES_KEY_LEN_256);
 
     uint8_t hmac_calculated[HMAC_SHA256_LEN];
-    const int res
-        = wally_hmac_sha256(hmac_key, HMAC_SHA256_LEN, encrypted, encrypted_len, hmac_calculated, HMAC_SHA256_LEN);
-    if (res != WALLY_OK) {
+    if (wally_hmac_sha256(hmac_key, HMAC_SHA256_LEN, encrypted, encrypted_len, hmac_calculated, HMAC_SHA256_LEN)
+        != WALLY_OK) {
         return false;
     }
 
