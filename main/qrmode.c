@@ -36,7 +36,7 @@ void make_qr_options_activity(
     gui_activity_t** activity_ptr, gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox);
 
 int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg);
-
+int update_pinserver(const CborValue* const params, const char** errmsg);
 int params_set_epoch_time(CborValue* params, const char** errmsg);
 
 // PSBT struct and functions
@@ -759,6 +759,37 @@ static bool handle_epoch_qr(const uint8_t* cbor, const size_t cbor_len)
     return true;
 }
 
+// Accept an update-pinserver message via qr code
+static bool handle_update_pinserver_qr(const uint8_t* cbor, const size_t cbor_len)
+{
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
+
+    // Parse cbor
+    CborValue root;
+    CborValue params;
+    CborParser parser;
+    if (!bcur_parse_jade_message(cbor, cbor_len, &parser, &root, "update_pinserver", &params)) {
+        JADE_LOGE("Failed to parse Jade pinserver message");
+        await_error_activity("Error parsing PinServer data");
+        return false;
+    }
+
+    const char* errmsg = NULL;
+    const int errcode = update_pinserver(&params, &errmsg);
+    if (errcode) {
+        if (errcode != CBOR_RPC_USER_CANCELLED) {
+            JADE_LOGE("Error updating pinserver details: %s", errmsg);
+            char buf[128];
+            const int ret = snprintf(buf, sizeof(buf), "Error updating PinServer\n%s", errmsg);
+            JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+            await_error_activity(buf);
+        }
+        return false;
+    }
+    return true;
+}
+
 // Handle scanning a QR - supports addresses and PSBTs
 void handle_scan_qr(void)
 {
@@ -784,6 +815,11 @@ void handle_scan_qr(void)
             // Epoch value
             if (!handle_epoch_qr(data, data_len)) {
                 JADE_LOGE("Processing BC-UR as epoch failed");
+            }
+        } else if (!strcasecmp(type, BCUR_TYPE_JADE_UPDPS)) {
+            // Pinserver details
+            if (!handle_update_pinserver_qr(data, data_len)) {
+                JADE_LOGE("Processing BC-UR as pinserver details failed");
             }
         } else if (!strcasecmp(type, BCUR_TYPE_BYTES)) {
             // Opaque bytes
