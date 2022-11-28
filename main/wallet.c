@@ -867,6 +867,7 @@ bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signa
 
     // Make the signature in DER format
     JADE_WALLY_VERIFY(wally_ec_sig_to_der(signature, sizeof(signature), output, output_len - 1, written));
+    JADE_ASSERT(*written <= output_len - 1);
 
     // Append the sighash - TODO: make configurable
     output[*written] = WALLY_SIGHASH_ALL & 0xff;
@@ -1119,7 +1120,7 @@ bool wallet_get_message_hash(const uint8_t* bytes, const size_t bytes_len, uint8
     size_t written = 0;
     const int wret
         = wally_format_bitcoin_message(bytes, bytes_len, BITCOIN_MESSAGE_FLAG_HASH, output, output_len, &written);
-    if (wret != WALLY_OK) {
+    if (wret != WALLY_OK || written != output_len) {
         JADE_LOGE("Error trying to format btc message: %d", wret);
         return false;
     }

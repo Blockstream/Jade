@@ -5,13 +5,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// TODO: Confirm maximum address length
 #define MAX_ADDRESS_LEN 128
 
 typedef struct {
     char address[MAX_ADDRESS_LEN];
     const char* network;
-    uint8_t script[64];
+    uint8_t script[MAX_ADDRESS_LEN]; // script should always be shorter than the address
     size_t script_len;
 } address_data_t;
 

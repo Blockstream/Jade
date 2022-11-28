@@ -232,6 +232,7 @@ static bool try_parse_address(const char* trial_network, address_data_t* addr_da
     if (wally_address_to_scriptpubkey(addr_data->address, networkToId(trial_network), addr_data->script,
             sizeof(addr_data->script), &addr_data->script_len)
         == WALLY_OK) {
+        JADE_ASSERT(addr_data->script_len <= sizeof(addr_data->script));
         JADE_LOGI("Address %s, non-segwit-native for %s", addr_data->address, trial_network);
         addr_data->network = trial_network;
         return true;
@@ -241,6 +242,7 @@ static bool try_parse_address(const char* trial_network, address_data_t* addr_da
     if (wally_addr_segwit_to_bytes(addr_data->address, networkToBech32Hrp(trial_network), 0, addr_data->script,
             sizeof(addr_data->script), &addr_data->script_len)
         == WALLY_OK) {
+        JADE_ASSERT(addr_data->script_len <= sizeof(addr_data->script));
         JADE_LOGI("Address %s, segwit-native for %s", addr_data->address, trial_network);
         addr_data->network = trial_network;
         return true;

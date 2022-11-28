@@ -53,7 +53,7 @@ bool aes_decrypt_bytes(const uint8_t* aeskey, const size_t aeskey_len, const uin
     // Decrypt - output length must be sufficient or call fails
     const int wret = wally_aes_cbc(aeskey, aeskey_len, bytes, AES_BLOCK_LEN, bytes + AES_BLOCK_LEN, payload_len,
         AES_FLAG_DECRYPT, output, output_len, written);
-    if (wret != WALLY_OK) {
+    if (wret != WALLY_OK || *written > output_len) {
         JADE_LOGE("Failed to decrypt payload: %d - is output buffer (%u) sufficient for data (%u)?", wret, output_len,
             *written);
         return false;
