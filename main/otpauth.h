@@ -11,6 +11,9 @@
 
 #define OTP_MAX_RECORDS 16
 
+#define OTP_SCHEMA "otpauth"
+#define OTP_SCHEMA_FULL "otpauth://"
+
 typedef struct otpauth_ctx {
     uint64_t counter;
     enum { MDTYPE_NONE = 0, MDTYPE_SHA1, MDTYPE_SHA256, MDTYPE_SHA512 } md_type;

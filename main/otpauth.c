@@ -111,8 +111,8 @@ bool otp_uri_to_ctx(const char* uri, size_t uri_len, otpauth_ctx_t* otp_ctx)
     OTP_CHECK_BOOL_RETURN(http_parser_parse_url(uri, uri_len, 0, &u) == 0);
 
     if (u.field_data[UF_SCHEMA].len != 7
-        || strncmp("otpauth", uri + u.field_data[UF_SCHEMA].off, u.field_data[UF_SCHEMA].len)) {
-        JADE_LOGE("otp uri missing expected 'otpauth://' schema");
+        || strncmp(OTP_SCHEMA, uri + u.field_data[UF_SCHEMA].off, u.field_data[UF_SCHEMA].len)) {
+        JADE_LOGE("otp uri missing expected %s schema", OTP_SCHEMA_FULL);
         return false;
     }
 

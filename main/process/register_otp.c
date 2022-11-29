@@ -221,7 +221,7 @@ static bool get_otp_data_from_kb(
         kb_entry.max_allowed_len = uri_len - 1;
 
         // Pre-enter correct uri protocol
-        strcpy(kb_entry.strdata, "otpauth://");
+        strcpy(kb_entry.strdata, OTP_SCHEMA_FULL);
         kb_entry.len = strlen(kb_entry.strdata);
         done = false;
 
@@ -375,4 +375,39 @@ bool register_otp_qr(void)
 cleanup:
     SENSITIVE_POP(&qr_data);
     return ret;
+}
+
+bool register_otp_string(const char* otp_uri, const size_t uri_len, const char** errmsg)
+{
+    JADE_ASSERT(otp_uri);
+    JADE_ASSERT(uri_len);
+    JADE_INIT_OUT_PPTR(errmsg);
+    JADE_ASSERT(keychain_get());
+
+    // Parse uri
+    otpauth_ctx_t otp_ctx = { .name = "otp_string" };
+    if (!otp_uri_to_ctx(otp_uri, uri_len, &otp_ctx)) {
+        *errmsg = "Failed to parse otp record";
+        return false;
+    }
+
+    // Check keychain has seed data
+    if (keychain_get()->seed_len == 0) {
+        JADE_LOGE("No wallet seed available.  Wallet must be re-initialised from mnemonic.");
+        *errmsg = "Failed to parse otp record";
+        await_error_activity("Feature requires Jade reset");
+        return false;
+    }
+
+    // Get OTP Name (only) from kb
+    char otp_name[OTP_MAX_NAME_LEN];
+    if (!get_otp_data_from_kb(otp_name, sizeof(otp_name), NULL, 0, NULL)) {
+        // User abandoned
+        JADE_LOGW("User abandoned (entering otp name)");
+        *errmsg = "User abandoned entering otp name";
+        return false;
+    }
+
+    // Validate and persist the new otp uri
+    return handle_new_otp_uri(otp_name, otp_uri, uri_len, errmsg);
 }
