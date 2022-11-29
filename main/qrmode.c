@@ -7,6 +7,7 @@
 #include "jade_wally_verify.h"
 #include "keychain.h"
 #include "multisig.h"
+#include "otpauth.h"
 #include "qrcode.h"
 #include "sensitive.h"
 #include "storage.h"
@@ -35,6 +36,7 @@ void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, con
 void make_qr_options_activity(
     gui_activity_t** activity_ptr, gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox);
 
+bool register_otp_string(const char* otp_uri, const size_t uri_len, const char** errmsg);
 int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg);
 int update_pinserver(const CborValue* const params, const char** errmsg);
 int params_set_epoch_time(CborValue* params, const char** errmsg);
@@ -641,6 +643,18 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
     JADE_ASSERT(bytes_len);
 
     const char* strbytes = (const char*)bytes;
+
+    // Try to handle as otp string
+    if (bytes_len > sizeof(OTP_SCHEMA_FULL) && !strncasecmp(strbytes, OTP_SCHEMA_FULL, sizeof(OTP_SCHEMA_FULL) - 1)) {
+        // Looks like an OTP URI
+        const char* errmsg = NULL;
+        const int errcode = register_otp_string(strbytes, bytes_len, &errmsg);
+        if (errcode) {
+            JADE_LOGE("Processing OTP URI failed: %s", errmsg);
+            return false;
+        }
+        return true;
+    }
 
     // Try to handle as multisig file
     if (strcasestr(strbytes, "Name") && strcasestr(strbytes, "Format") && strcasestr(strbytes, "Policy")
