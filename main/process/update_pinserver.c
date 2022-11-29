@@ -11,6 +11,9 @@
 
 #include "process_utils.h"
 
+// Default pinserver public key
+extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
+
 // Update the pinserver details from the passed message parameters
 int update_pinserver(const CborValue* const params, const char** errmsg)
 {
@@ -56,13 +59,31 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             *errmsg = "Invalid PinServer pubkey";
             goto cleanup;
         }
+    }
+
 #ifndef CONFIG_DEBUG_MODE
-        if (keychain_has_pin()) {
-            *errmsg = "Cannot set pubkey on initialised unit";
+    if (keychain_has_pin()) {
+        // Check that we are not trying to update the pinserver pubkey on a Jade unit
+        // that already has a wallet set up/persisted in flash.
+        // NOTE: we do allow an update of just the url/certs, as this may be a url change
+        // that still connects to the same backend pinserver instance.
+        uint8_t user_pubkey[EC_PUBLIC_KEY_LEN];
+        const bool have_user_pubkey = storage_get_pinserver_pubkey(user_pubkey, sizeof(user_pubkey));
+
+        // Cannot reset a non-default pubkey to the default value
+        if (reset_details && have_user_pubkey && memcmp(server_public_key_start, user_pubkey, sizeof(user_pubkey))) {
+            *errmsg = "Cannot update initialised unit";
             goto cleanup;
         }
-#endif // CONFIG_DEBUG_MODE
+
+        // Cannot set new pubkey unless effectively unchanged
+        const uint8_t* effective_pubkey = have_user_pubkey ? user_pubkey : server_public_key_start;
+        if (pubkey && memcmp(effective_pubkey, pubkey, pubkey_len)) {
+            *errmsg = "Cannot update initialised unit";
+            goto cleanup;
+        }
     }
+#endif // CONFIG_DEBUG_MODE
 
     if (urlA_len) {
         char* pubkey_hex = NULL;
