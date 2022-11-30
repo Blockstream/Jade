@@ -760,7 +760,7 @@ static bool handle_epoch_qr(const uint8_t* cbor, const size_t cbor_len)
 }
 
 // Accept an update-pinserver message via qr code
-static bool handle_update_pinserver_qr(const uint8_t* cbor, const size_t cbor_len)
+bool handle_update_pinserver_qr(const uint8_t* cbor, const size_t cbor_len)
 {
     JADE_ASSERT(cbor);
     JADE_ASSERT(cbor_len);

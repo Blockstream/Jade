@@ -93,9 +93,10 @@ void run_pin_entry_loop(pin_insert_t* pin_insert);
 void clear_current_pin(pin_insert_t* pin_insert);
 
 // Functions for pinserver details
-void make_confirm_pinserver_details_activity(
-    gui_activity_t** activity_ptr, const char* urlA, const char* urlB, const char* pubkeyhex);
-void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, const char* cert_hash_hex);
+void make_show_pinserver_details_activity(
+    gui_activity_t** activity_ptr, const char* urlA, const char* urlB, const char* pubkeyhex, bool confirming_details);
+void make_show_pinserver_certificate_activity(
+    gui_activity_t** activity_ptr, const char* cert_hash_hex, bool confirming_details);
 
 // View/delete multisig registration
 void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* multisig_name, size_t index, size_t total,

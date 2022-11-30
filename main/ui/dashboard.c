@@ -22,7 +22,7 @@ void make_startup_options_screen(gui_activity_t** activity_ptr, gui_view_node_t*
 
     btn_data_t btns[]
         = { { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
-              { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
+              { .txt = "PinServer", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER },
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
               { .txt = "Legal", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL },
               { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
@@ -543,6 +543,20 @@ void make_otp_screen(gui_activity_t** activity_ptr)
         { .txt = "Scan New OTP QR", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
         { .txt = "Enter New OTP URI", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_KB },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_OTP_EXIT } };
+    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+}
+
+void make_pinserver_screen(gui_activity_t** activity_ptr)
+{
+    JADE_ASSERT(activity_ptr);
+
+    gui_make_activity(activity_ptr, true, "PinServer");
+
+    btn_data_t btns[]
+        = { { .txt = "View PinServer Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SHOW },
+              { .txt = "Scan Custom PinServer", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SCAN_QR },
+              { .txt = "Reset PinServer Defaults ", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_RESET },
+              { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PINSERVER_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 

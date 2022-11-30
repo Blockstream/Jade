@@ -3,6 +3,7 @@
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
+#include "../qrmode.h"
 #include "../storage.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
@@ -13,6 +14,74 @@
 
 // Default pinserver public key
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
+
+void show_pinserver_details(void)
+{
+    // Load custom pinserver details from storage
+    uint8_t pubkey[EC_PUBLIC_KEY_LEN];
+    char urlA[MAX_PINSVR_URL_LENGTH] = { 0 };
+    char urlB[MAX_PINSVR_URL_LENGTH] = { 0 };
+    char cert[MAX_PINSVR_CERTIFICATE_LENGTH] = { 0 };
+    size_t urlA_len = 0, urlB_len = 0, cert_len = 0;
+    const bool have_pubkey = storage_get_pinserver_pubkey(pubkey, sizeof(pubkey));
+    const bool have_urlA = storage_get_pinserver_urlA(urlA, sizeof(urlA), &urlA_len) && urlA_len;
+    const bool have_urlB = storage_get_pinserver_urlB(urlB, sizeof(urlB), &urlB_len) && urlB_len;
+    const bool have_cert = storage_get_pinserver_cert(cert, sizeof(cert), &cert_len) && cert_len;
+
+    // If no pinserver set, show the help screen
+    if (!have_pubkey && !have_urlA && !have_urlB && !have_cert) {
+        await_message_activity("Custom PinServer not set");
+        display_qr_help_screen("blockstream.com/pinserver");
+        return;
+    }
+
+    // Show Pinserver details if present
+    if (have_pubkey || have_urlA || have_urlB) {
+
+        char* pubkey_hex = NULL;
+        if (have_pubkey) {
+            JADE_WALLY_VERIFY(wally_hex_from_bytes(pubkey, sizeof(pubkey), &pubkey_hex));
+        }
+
+        gui_activity_t* activity = NULL;
+        const bool confirming_details = false;
+        make_show_pinserver_details_activity(&activity, urlA, urlB, pubkey_hex, confirming_details);
+        JADE_ASSERT(activity);
+        gui_set_current_activity(activity);
+
+        // In a debug unattended ci build, assume button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, 0);
+#else
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+#endif
+        JADE_WALLY_VERIFY(wally_free_string(pubkey_hex));
+    }
+
+    // Show certificate details if present
+    if (have_cert) {
+        char* cert_hash_hex = NULL;
+        uint8_t cert_hash[SHA256_LEN];
+        JADE_WALLY_VERIFY(wally_sha256((uint8_t*)cert, cert_len, cert_hash, sizeof(cert_hash)));
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(cert_hash, sizeof(cert_hash), &cert_hash_hex));
+
+        gui_activity_t* activity = NULL;
+        const bool confirming_details = false;
+        make_show_pinserver_certificate_activity(&activity, cert_hash_hex, confirming_details);
+        JADE_ASSERT(activity);
+        gui_set_current_activity(activity);
+
+        // In a debug unattended ci build, assume button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, 0);
+#else
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+#endif
+        JADE_WALLY_VERIFY(wally_free_string(cert_hash_hex));
+    }
+}
 
 // Update the pinserver details from the passed message parameters
 int update_pinserver(const CborValue* const params, const char** errmsg)
@@ -92,7 +161,8 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
         }
 
         gui_activity_t* activity = NULL;
-        make_confirm_pinserver_details_activity(&activity, urlA, urlB, pubkey_hex);
+        const bool confirming_details = true;
+        make_show_pinserver_details_activity(&activity, urlA, urlB, pubkey_hex, confirming_details);
         JADE_ASSERT(activity);
         gui_set_current_activity(activity);
 
@@ -145,7 +215,8 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
         }
 
         gui_activity_t* activity = NULL;
-        make_confirm_pinserver_certificate_activity(&activity, cert_hash_hex);
+        const bool confirming_details = true;
+        make_show_pinserver_certificate_activity(&activity, cert_hash_hex, confirming_details);
         JADE_ASSERT(activity);
         gui_set_current_activity(activity);
 
@@ -217,6 +288,24 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
     retval = 0;
 
 cleanup:
+    return retval;
+}
+
+bool reset_pinserver(void)
+{
+    JADE_ASSERT(!keychain_has_pin());
+
+    JADE_LOGI("Erasing user pinserver details and certificate - resetting to default");
+    bool retval = true;
+
+    if (!storage_erase_pinserver_details()) {
+        JADE_LOGE("Failed to erase pinserver details");
+        retval = false;
+    }
+    if (!storage_erase_pinserver_cert()) {
+        JADE_LOGE("Failed to erase pinserver certificate");
+        retval = false;
+    }
     return retval;
 }
 

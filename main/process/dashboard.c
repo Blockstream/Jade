@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 
+#include "../bcur.h"
 #include "../button_events.h"
 #include "../display.h"
 #include "../input.h"
@@ -108,6 +109,8 @@ void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* nam
     const char* codestr, const bool cancel_button, progress_bar_t* progress_bar, gui_view_node_t** txt_ts,
     gui_view_node_t** txt_code);
 
+void make_pinserver_screen(gui_activity_t** activity_ptr);
+
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 void make_legal_screen(gui_activity_t** activity_ptr);
 #endif
@@ -123,6 +126,11 @@ void initialise_with_mnemonic(bool temporary_restore);
 // Register a new otp code
 bool register_otp_qr(void);
 bool register_otp_kb_entry(void);
+
+// Updating Pinserver settings
+void show_pinserver_details(void);
+bool handle_update_pinserver_qr(const uint8_t* cbor, const size_t cbor_len);
+bool reset_pinserver(void);
 
 // Function to print a pin into a char buffer.
 // Assumes each pin component value is a single digit.
@@ -1064,6 +1072,55 @@ static void handle_use_passphrase(void)
     }
 }
 
+static void handle_pinserver_scan(void)
+{
+    if (keychain_has_pin()) {
+        // Not allowed if wallet initialised
+        await_error_activity("Set PinServer not permitted\nonce wallet initialised");
+        return;
+    }
+
+    char* type;
+    uint8_t* data = NULL;
+    size_t data_len = 0;
+    if (!bcur_scan_qr("Scan PinServer\ndetails QR", &type, &data, &data_len)) {
+        // Scan aborted
+        JADE_ASSERT(!type);
+        JADE_ASSERT(!data);
+        return;
+    }
+
+    if (!type || strcasecmp(type, BCUR_TYPE_JADE_UPDPS) || !data || !data_len) {
+        await_error_activity("Failed to parse PinServer data");
+        goto cleanup;
+    }
+
+    if (!handle_update_pinserver_qr(data, data_len)) {
+        JADE_LOGD("Failed to persist pinserver details");
+        goto cleanup;
+    }
+    await_message_activity("PinServer details updated!");
+
+cleanup:
+    free(type);
+    free(data);
+}
+
+static void handle_pinserver_reset(void)
+{
+    if (keychain_has_pin()) {
+        // Not allowed if wallet initialised
+        await_error_activity("Reset PinServer not permitted\nonce wallet initialised");
+        return;
+    }
+
+    if (await_yesno_activity("Reset PinServer", "Reset PinServer details\nand certificate?", false)) {
+        if (!reset_pinserver()) {
+            await_error_activity("Error resetting PinServer");
+        }
+    }
+}
+
 // Create the appropriate 'Settings' menu
 static void create_settings_menu(
     gui_activity_t** activity, const bool startup_menu, const uint16_t timeout, gui_view_node_t** timeout_btn_text)
@@ -1119,6 +1176,7 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_ADVANCED_EXIT:
         case BTN_SETTINGS_DEVICE_EXIT:
+        case BTN_SETTINGS_PINSERVER_EXIT:
             // Change to base 'Settings' menu
             create_settings_menu(&act, startup_menu, timeout, &timeout_btn_text);
             break;
@@ -1139,6 +1197,12 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_OTP:
             // Change to 'OTP' menu
             make_otp_screen(&act);
+            timeout_btn_text = NULL;
+            break;
+
+        case BTN_SETTINGS_PINSERVER:
+            // Change to 'PinServer' menu
+            make_pinserver_screen(&act);
             timeout_btn_text = NULL;
             break;
 
@@ -1189,6 +1253,18 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_OTP_NEW_KB:
             register_otp_kb_entry();
+            break;
+
+        case BTN_SETTINGS_PINSERVER_SHOW:
+            show_pinserver_details();
+            break;
+
+        case BTN_SETTINGS_PINSERVER_SCAN_QR:
+            handle_pinserver_scan();
+            break;
+
+        case BTN_SETTINGS_PINSERVER_RESET:
+            handle_pinserver_reset();
             break;
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)

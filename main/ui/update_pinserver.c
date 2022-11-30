@@ -2,14 +2,14 @@
 #include "../ui.h"
 #include "jade_assert.h"
 
-void make_confirm_pinserver_details_activity(
-    gui_activity_t** activity_ptr, const char* urlA, const char* urlB, const char* pubkey_hex)
+void make_show_pinserver_details_activity(gui_activity_t** activity_ptr, const char* urlA, const char* urlB,
+    const char* pubkey_hex, const bool confirming_details)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(urlA);
     JADE_ASSERT(urlB);
 
-    gui_make_activity(activity_ptr, true, "Confirm PinServer");
+    gui_make_activity(activity_ptr, true, confirming_details ? "Confirm PinServer" : "Custom PinServer");
 
     char buf[128];
 
@@ -94,17 +94,27 @@ void make_confirm_pinserver_details_activity(
     gui_set_text_scroll(text_pubkey, TFT_BLACK);
 
     // fourth row, buttons
-    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
-        { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
+    if (confirming_details) {
+        // 'Deny' and 'Confirm' buttons
+        btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
+            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
+        add_buttons(vsplit, UI_ROW, btns, 3);
+    } else {
+        // Just a central 'ok' button
+        btn_data_t btns[] = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+            { .txt = "Ok", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM },
+            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+        add_buttons(vsplit, UI_ROW, btns, 3);
+    }
 }
 
-void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, const char* cert_hash_hex)
+void make_show_pinserver_certificate_activity(
+    gui_activity_t** activity_ptr, const char* cert_hash_hex, const bool confirming_details)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Confirm PinServer");
+    gui_make_activity(activity_ptr, true, confirming_details ? "Confirm PinServer" : "Custom PinServer");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
@@ -113,7 +123,8 @@ void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, 
 
     // first row, text
     gui_view_node_t* text1;
-    gui_make_text(&text1, "Confirm hash of certificate", TFT_WHITE);
+    const char* message = confirming_details ? "Confirm hash of certificate" : "Additional root certificate";
+    gui_make_text(&text1, message, TFT_WHITE);
     gui_set_parent(text1, vsplit);
     gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
@@ -149,8 +160,17 @@ void make_confirm_pinserver_certificate_activity(gui_activity_t** activity_ptr, 
     gui_set_parent(dummy_bg3, vsplit);
 
     // fourth row, buttons
-    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
-        { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
+    if (confirming_details) {
+        // 'Deny' and 'Confirm' buttons
+        btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
+            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
+        add_buttons(vsplit, UI_ROW, btns, 3);
+    } else {
+        // Just a central 'ok' button
+        btn_data_t btns[] = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+            { .txt = "Ok", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM },
+            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+        add_buttons(vsplit, UI_ROW, btns, 3);
+    }
 }
