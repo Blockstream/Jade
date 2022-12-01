@@ -386,7 +386,7 @@ static pinserver_result_t start_handshake(jade_process_t* process, pin_keys_t* p
     if (cberr != CborNoError || !cbor_value_is_valid(&params) || cbor_value_get_type(&params) == CborInvalidType
         || !cbor_value_is_map(&params)) {
         // We provide the error details in case the user opts not to retry
-        RETURN_RESULT(CAN_RETRY, CBOR_RPC_BAD_PARAMETERS, "Failed to read parameters from pinserver");
+        RETURN_RESULT(CAN_RETRY, CBOR_RPC_BAD_PARAMETERS, "Failed to read parameters from PinServer");
     }
 
     // ske
@@ -461,7 +461,7 @@ static pinserver_result_t complete_handshake(
     if (cberr != CborNoError || !cbor_value_is_valid(&params) || cbor_value_get_type(&params) == CborInvalidType
         || !cbor_value_is_map(&params)) {
         // We provide the error details in case the user opts not to retry
-        RETURN_RESULT(CAN_RETRY, CBOR_RPC_BAD_PARAMETERS, "Failed to read parameters from pinserver");
+        RETURN_RESULT(CAN_RETRY, CBOR_RPC_BAD_PARAMETERS, "Failed to read parameters from PinServer");
     }
 
     // encrypted key
@@ -610,7 +610,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
         // Internal failure
         retval.result = FAILURE;
         retval.errorcode = CBOR_RPC_INTERNAL_ERROR;
-        retval.message = "Failed to create pinserver message content";
+        retval.message = "Failed to create PinServer message content";
         goto cleanup;
     }
 
@@ -661,7 +661,7 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
         // If a) the error is 'retry-able' and b) the user elects to retry, then loop and try again
         // (In a CI build no GUI, so assume 'no' and return the error immediately.)
         if (pir.result == CAN_RETRY
-            && await_yesno_activity("Network Error", "\nFailed communicating with\npin-server - retry ?", true)) {
+            && await_yesno_activity("Network Error", "\nFailed communicating with\nPinServer - retry ?", true)) {
             display_message_activity("Retrying ...");
             continue;
         }
@@ -693,7 +693,6 @@ bool pinclient_get(
 bool pinclient_set(
     jade_process_t* process, const uint8_t* pin, const size_t pin_len, uint8_t* finalaes, const size_t finalaes_len)
 {
-    // Dance with the pin-server 'set_pin' address
     JADE_LOGI("Setting new pinserver data");
     return get_pinserver_aeskey(process, pin, pin_len, PINSERVER_DOC_SET_PIN, finalaes, finalaes_len);
 }

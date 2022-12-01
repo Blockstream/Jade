@@ -185,7 +185,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             goto cleanup;
         }
     } else if (reset_details) {
-        if (!await_yesno_activity("Reset PinServer", "Reset pin-server details?", false)) {
+        if (!await_yesno_activity("Reset PinServer", "Reset PinServer details?", false)) {
             JADE_LOGW("User declined to confirm resetting pinserver details");
             *errmsg = "User declined to confirm resetting PinServer details";
             retval = CBOR_RPC_USER_CANCELLED;
@@ -239,7 +239,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             goto cleanup;
         }
     } else if (reset_certificate) {
-        if (!await_yesno_activity("Certificate", "Reset pin-server certificate?", false)) {
+        if (!await_yesno_activity("Certificate", "Reset PinServer certificate?", false)) {
             JADE_LOGW("User declined to confirm resetting pinserver certificate");
             *errmsg = "User declined to confirm resetting PinServer certificate";
             retval = CBOR_RPC_USER_CANCELLED;
