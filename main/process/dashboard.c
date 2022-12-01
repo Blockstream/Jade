@@ -382,7 +382,7 @@ static void dispatch_message(jade_process_t* process)
         if (!KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
             // Reject the message as hw locked
             jade_process_reject_message(
-                process, CBOR_RPC_HW_LOCKED, "Cannot process message - hardware locked or uninitialised", NULL);
+                process, CBOR_RPC_HW_LOCKED, "Cannot process message - hardware locked or uninitialized", NULL);
         } else if (IS_METHOD("register_otp")) {
             task_function = register_otp_process;
         } else if (IS_METHOD("get_otp_code")) {
@@ -1076,7 +1076,7 @@ static void handle_pinserver_scan(void)
 {
     if (keychain_has_pin()) {
         // Not allowed if wallet initialised
-        await_error_activity("Set PinServer not permitted\nonce wallet initialised");
+        await_error_activity("Set PinServer not permitted\nonce wallet initialized");
         return;
     }
 
@@ -1110,7 +1110,7 @@ static void handle_pinserver_reset(void)
 {
     if (keychain_has_pin()) {
         // Not allowed if wallet initialised
-        await_error_activity("Reset PinServer not permitted\nonce wallet initialised");
+        await_error_activity("Reset PinServer not permitted\nonce wallet initialized");
         return;
     }
 

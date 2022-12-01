@@ -223,7 +223,7 @@ void ota_delta_process(void* process_ptr)
     JADE_ASSERT(!ret);
 
     if (!ota_init(&joctx)) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to initialise OTA", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to initialize OTA", NULL);
         goto cleanup;
     }
 

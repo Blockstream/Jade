@@ -141,14 +141,14 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
 
         // Cannot reset a non-default pubkey to the default value
         if (reset_details && have_user_pubkey && memcmp(server_public_key_start, user_pubkey, sizeof(user_pubkey))) {
-            *errmsg = "Cannot update initialised unit";
+            *errmsg = "Cannot update initialized unit";
             goto cleanup;
         }
 
         // Cannot set new pubkey unless effectively unchanged
         const uint8_t* effective_pubkey = have_user_pubkey ? user_pubkey : server_public_key_start;
         if (pubkey && memcmp(effective_pubkey, pubkey, pubkey_len)) {
-            *errmsg = "Cannot update initialised unit";
+            *errmsg = "Cannot update initialized unit";
             goto cleanup;
         }
     }
