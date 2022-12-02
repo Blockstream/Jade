@@ -152,8 +152,11 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                     }
 
                     // Build a script pubkey for the passed parameters
-                    if (!wallet_build_singlesig_script(
-                            script_variant, path, path_len, script, sizeof(script), &script_len)) {
+                    // Derive user pubkey from the path
+                    struct ext_key derived;
+                    if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived)
+                        || !wallet_build_singlesig_script(script_variant, derived.pub_key, sizeof(derived.pub_key),
+                            script, sizeof(script), &script_len)) {
                         JADE_LOGE("Output %u change path/script failed to construct", i);
                         *errmsg = "Change script cannot be constructed";
                         return false;

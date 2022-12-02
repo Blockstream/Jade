@@ -231,7 +231,8 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
             // Build our script
             uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
             size_t script_len = 0;
-            if (!wallet_build_singlesig_script(script_variant, path, path_len, script, sizeof(script), &script_len)) {
+            if (!wallet_build_singlesig_script(
+                    script_variant, hdkey.pub_key, sizeof(hdkey.pub_key), script, sizeof(script), &script_len)) {
                 // Failed to build script
                 JADE_LOGE("Receive script cannot be constructed");
                 *errmsg = "Change script cannot be constructed";

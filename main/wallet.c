@@ -554,7 +554,7 @@ static void wallet_build_multisig(const bool sorted, const size_t threshold, con
 
     // Create m-of-n multisig script
     const uint32_t flags = sorted ? WALLY_SCRIPT_MULTISIG_SORTED : 0;
-    JADE_LOGI("Generating %uof%u %s multisig script", threshold, num_pubkeys, sorted ? "sorted" : "(unsorted)");
+    JADE_LOGD("Generating %uof%u %s multisig script", threshold, num_pubkeys, sorted ? "sorted" : "(unsorted)");
     JADE_WALLY_VERIFY(
         wally_scriptpubkey_multisig_from_bytes(pubkeys, pubkeys_len, threshold, flags, output, output_len, written));
     JADE_ASSERT(*written == MULTISIG_SCRIPT_LEN(num_pubkeys));
@@ -668,39 +668,32 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
 }
 
 // Function to build a single-sig script - legacy-p2pkh, native segwit p2wpkh, or a p2sh-wrapped p2wpkh
-bool wallet_build_singlesig_script(const script_variant_t script_variant, const uint32_t* path, const size_t path_len,
-    uint8_t* output, const size_t output_len, size_t* written)
+bool wallet_build_singlesig_script(const script_variant_t script_variant, const uint8_t* pubkey,
+    const size_t pubkey_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
-    if (!is_singlesig(script_variant) || !path || path_len == 0 || !output
+    if (!is_singlesig(script_variant) || !pubkey || pubkey_len != EC_PUBLIC_KEY_LEN || !output
         || output_len < script_length_for_variant(script_variant) || !written) {
-        return false;
-    }
-
-    // Derive user pubkey from the path
-    struct ext_key derived;
-    if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived)) {
         return false;
     }
 
     if (script_variant == P2WPKH_P2SH) {
         // Get the p2sh/p2wsh script-pubkey for the passed pubkey
-        JADE_LOGI("Generating singlesig p2sh_p2wpkh script");
-        wallet_p2sh_p2wsh_scriptpubkey_for_bytes(
-            derived.pub_key, sizeof(derived.pub_key), WALLY_SCRIPT_HASH160, output, output_len, written);
+        JADE_LOGD("Generating singlesig p2sh_p2wpkh script");
+        wallet_p2sh_p2wsh_scriptpubkey_for_bytes(pubkey, pubkey_len, WALLY_SCRIPT_HASH160, output, output_len, written);
     } else if (script_variant == P2WPKH) {
         // Get a redeem script for the passed pubkey
-        JADE_LOGI("Generating singlesig p2wpkh script");
-        JADE_WALLY_VERIFY(wally_witness_program_from_bytes(
-            derived.pub_key, sizeof(derived.pub_key), WALLY_SCRIPT_HASH160, output, output_len, written));
+        JADE_LOGD("Generating singlesig p2wpkh script");
+        JADE_WALLY_VERIFY(
+            wally_witness_program_from_bytes(pubkey, pubkey_len, WALLY_SCRIPT_HASH160, output, output_len, written));
     } else if (script_variant == P2PKH) {
         // Get a legacy p2pkh script-pubkey for the passed pubkey
-        JADE_LOGI("Generating singlesig p2pkh script");
-        JADE_WALLY_VERIFY(wally_scriptpubkey_p2pkh_from_bytes(
-            derived.pub_key, sizeof(derived.pub_key), WALLY_SCRIPT_HASH160, output, output_len, written));
+        JADE_LOGD("Generating singlesig p2pkh script");
+        JADE_WALLY_VERIFY(
+            wally_scriptpubkey_p2pkh_from_bytes(pubkey, pubkey_len, WALLY_SCRIPT_HASH160, output, output_len, written));
     } else {
-        JADE_LOGE("Unrecognised script variant: %u", script_variant);
+        JADE_ASSERT_MSG(false, "Unrecognised script variant: %u", script_variant);
         return false;
     }
     JADE_ASSERT(*written == script_length_for_variant(script_variant));
@@ -719,33 +712,21 @@ bool wallet_search_for_singlesig_script(const script_variant_t script_variant, c
 
     bool found = false;
     struct ext_key derived;
-    uint8_t generated[WALLY_SCRIPTPUBKEY_P2WSH_LEN];
+    uint8_t generated[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
     for (const size_t end = *index + search_depth; *index < end; ++*index) {
         // Try next leaf
         JADE_WALLY_VERIFY(
-            bip32_key_from_parent_path(search_root, index, 1, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived));
+            bip32_key_from_parent(search_root, *index, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived));
 
         size_t written = 0;
-        if (script_variant == P2WPKH_P2SH) {
-            // Get the p2sh/p2wsh script-pubkey for the passed pubkey
-            wallet_p2sh_p2wsh_scriptpubkey_for_bytes(
-                derived.pub_key, sizeof(derived.pub_key), WALLY_SCRIPT_HASH160, generated, sizeof(generated), &written);
-        } else if (script_variant == P2WPKH) {
-            // Get a redeem script for the passed pubkey
-            JADE_WALLY_VERIFY(wally_witness_program_from_bytes(derived.pub_key, sizeof(derived.pub_key),
-                WALLY_SCRIPT_HASH160, generated, sizeof(generated), &written));
-        } else if (script_variant == P2PKH) {
-            // Get a legacy p2pkh script-pubkey for the passed pubkey
-            JADE_WALLY_VERIFY(wally_scriptpubkey_p2pkh_from_bytes(derived.pub_key, sizeof(derived.pub_key),
-                WALLY_SCRIPT_HASH160, generated, sizeof(generated), &written));
-        } else {
-            JADE_ASSERT_MSG(false, "Unrecognised script variant: %u", script_variant);
+        if (!wallet_build_singlesig_script(
+                script_variant, derived.pub_key, sizeof(derived.pub_key), generated, sizeof(generated), &written)) {
+            JADE_LOGE("Error generating singlesig script");
+            return false;
         }
-        JADE_ASSERT(written == script_length_for_variant(script_variant));
 
+        // See if generated is identical to the script passed in
         if (written == script_len && !memcmp(generated, script, script_len)) {
-            // Found!  Update the path to reflect the index
-            JADE_LOGI("Found script at index: %u", *index);
             found = true;
             break;
         }
@@ -759,7 +740,7 @@ bool wallet_build_multisig_script(const script_variant_t script_variant, const b
 {
     JADE_ASSERT(keychain_get());
 
-    if (!is_multisig(script_variant) || !pubkeys || pubkeys_len == 0 || !output
+    if (!is_multisig(script_variant) || !threshold || !pubkeys || !pubkeys_len || !output
         || output_len < script_length_for_variant(script_variant) || !written) {
         return false;
     }
@@ -771,26 +752,70 @@ bool wallet_build_multisig_script(const script_variant_t script_variant, const b
     // Wrap as appropriate
     if (script_variant == MULTI_P2WSH_P2SH) {
         // Get the p2sh/p2wsh script-pubkey for the passed pubkey
-        JADE_LOGI("Generating multisig p2sh_p2wsh script");
+        JADE_LOGD("Generating multisig p2sh_p2wsh script");
         wallet_p2sh_p2wsh_scriptpubkey_for_bytes(
             multisig_script, *written, WALLY_SCRIPT_SHA256, output, output_len, written);
     } else if (script_variant == MULTI_P2WSH) {
         // Get a redeem script for the passed pubkey
-        JADE_LOGI("Generating multisig p2wsh script");
+        JADE_LOGD("Generating multisig p2wsh script");
         JADE_WALLY_VERIFY(wally_witness_program_from_bytes(
             multisig_script, *written, WALLY_SCRIPT_SHA256, output, output_len, written));
     } else if (script_variant == MULTI_P2SH) {
         // Get a multisig-p2sh script-pubkey for the passed pubkey
-        JADE_LOGI("Generating multisig p2sh script");
+        JADE_LOGD("Generating multisig p2sh script");
         JADE_WALLY_VERIFY(wally_scriptpubkey_p2sh_from_bytes(
             multisig_script, *written, WALLY_SCRIPT_HASH160, output, output_len, written));
     } else {
-        JADE_LOGE("Unrecognised script variant: %u", script_variant);
+        JADE_ASSERT_MSG(false, "Unrecognised script variant: %u", script_variant);
         return false;
     }
 
     JADE_ASSERT(*written == script_length_for_variant(script_variant));
     return true;
+}
+
+bool wallet_search_for_multisig_script(const script_variant_t script_variant, const bool sorted,
+    const uint8_t threshold, const struct ext_key* search_roots, const size_t search_roots_len, size_t* index,
+    const size_t search_depth, const uint8_t* script, const size_t script_len)
+{
+    JADE_ASSERT(keychain_get());
+
+    if (!is_multisig(script_variant) || !threshold || !search_roots || !search_roots_len
+        || search_roots_len > MAX_MULTISIG_SIGNERS || !index || !search_depth || !script
+        || script_len != script_length_for_variant(script_variant)) {
+        return false;
+    }
+
+    bool found = false;
+    uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
+    const size_t pubkeys_len = search_roots_len * EC_PUBLIC_KEY_LEN;
+    uint8_t generated[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
+    for (const size_t end = *index + search_depth; *index < end; ++*index) {
+        // Try next leaf (derive all keys)
+        for (int i = 0; i < search_roots_len; ++i) {
+            struct ext_key derived;
+            JADE_WALLY_VERIFY(bip32_key_from_parent(
+                &search_roots[i], *index, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived));
+
+            uint8_t* const pubkey = pubkeys + (i * EC_PUBLIC_KEY_LEN);
+            memcpy(pubkey, derived.pub_key, sizeof(derived.pub_key));
+        }
+
+        // Build a standard multisig script
+        size_t written = 0;
+        if (!wallet_build_multisig_script(
+                script_variant, sorted, threshold, pubkeys, pubkeys_len, generated, sizeof(generated), &written)) {
+            JADE_LOGE("Error generating multisig script");
+            return false;
+        }
+
+        // See if generated is identical to the script passed in
+        if (written == script_len && !memcmp(generated, script, script_len)) {
+            found = true;
+            break;
+        }
+    }
+    return found;
 }
 
 // Function to compute an anti-exfil signer commitment with a derived key for a given
