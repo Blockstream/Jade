@@ -5,6 +5,7 @@
 #include "utils/malloc_ext.h"
 
 #include <sodium/utils.h>
+#include <wally_script.h>
 
 // 0 - 0.1.30 - variant, threshold, signers, hmac
 // 1 - 0.1.31 - include the 'sorted' flag
@@ -361,4 +362,45 @@ bool multisig_get_master_blinding_key(const multisig_data_t* multisig_data, uint
         multisig_data->master_blinding_key, multisig_data->master_blinding_key_len);
 
     return true;
+}
+
+// Are the Jade script variant and the wally script type consistent
+static inline bool variant_matches_script_type(const script_variant_t variant, const size_t* script_type)
+{
+    return !script_type || (*script_type == WALLY_SCRIPT_TYPE_P2WSH && variant == MULTI_P2WSH)
+        || (*script_type == WALLY_SCRIPT_TYPE_P2SH && (variant == MULTI_P2SH || variant == MULTI_P2WSH_P2SH));
+}
+
+// Get the registered multisig record names
+// Filtered to those valid for this signer, and optionally for the given script type
+void multisig_get_valid_record_names(
+    const size_t* script_type, char names[][NVS_KEY_NAME_MAX_SIZE], const size_t num_names, size_t* num_written)
+{
+    // script_type filter is optional
+    JADE_ASSERT(names);
+    JADE_ASSERT(num_names);
+    JADE_INIT_OUT_SIZE(num_written);
+
+    // Get registered multisig names
+    size_t num_multisigs = 0;
+    if (!storage_get_all_multisig_registration_names(names, num_names, &num_multisigs) || !num_multisigs) {
+        // No registered multisig records
+        return;
+    }
+
+    // Load description of each - remove ones that are not valid for this wallet or passed script type
+    size_t written = 0;
+    for (int i = 0; i < num_multisigs; ++i) {
+        const char* errmsg = NULL;
+        multisig_data_t multisig_data;
+        if (multisig_load_from_storage(names[i], &multisig_data, &errmsg)
+            && variant_matches_script_type(multisig_data.variant, script_type)) {
+            // If any previous records were not valid, move subsequent valid record names down
+            if (written != i) {
+                strcpy(names[written], names[i]);
+            }
+            ++written;
+        }
+    }
+    *num_written = written;
 }

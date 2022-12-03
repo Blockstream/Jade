@@ -6,12 +6,13 @@
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "keychain.h"
+#include "multisig.h"
 #include "qrcode.h"
-#include "qrscan.h"
 #include "sensitive.h"
 #include "storage.h"
 #include "ui.h"
 #include "utils/address.h"
+#include "utils/malloc_ext.h"
 #include "wallet.h"
 
 #include <wally_script.h>
@@ -42,8 +43,9 @@ int wally_psbt_free(struct wally_psbt* psbt);
 
 #define EXPORT_XPUB_PATH_LEN 4
 
-static const uint8_t ADDRESS_SEARCH_BATCH_SIZE = 20;
-static const uint16_t ADDRESS_NUM_INDEXES_TO_CHECK = 25 * ADDRESS_SEARCH_BATCH_SIZE;
+#define ADDRESS_SEARCH_BATCH_SIZE(multisig) (multisig ? 10 : 20)
+#define NUM_BATCHES_TO_RECONFIRM(multisig) (multisig ? 20 : 25)
+#define NUM_INDEXES_TO_RECONFIRM(multisig) (NUM_BATCHES_TO_RECONFIRM(multisig) * ADDRESS_SEARCH_BATCH_SIZE(multisig))
 
 // Test whether 'flags' contains the entirety of the 'test_flags'
 // (ie. maybe compound/multiple bits set)
@@ -246,6 +248,51 @@ void display_xpub_qr(void)
     }
 }
 
+// Helper to get user to select multisig record to use
+static bool select_multisig_record(char names[][MAX_MULTISIG_NAME_SIZE], const size_t num_names, size_t* selected)
+{
+    JADE_ASSERT(names);
+    JADE_ASSERT(num_names);
+    JADE_INIT_OUT_SIZE(selected);
+
+    // Otherwise offer choice of multisig names
+    gui_activity_t* activity = NULL;
+    gui_view_node_t* item_text = NULL;
+    make_show_label_activity(&activity, "Multisig Address", "Select multisig wallet:", &item_text);
+    JADE_ASSERT(activity);
+    JADE_ASSERT(item_text);
+    gui_set_current_activity(activity);
+
+    const size_t limit = num_names + 1;
+    while (true) {
+        JADE_ASSERT(*selected < limit);
+        if (*selected < num_names) {
+            gui_update_text(item_text, names[*selected]);
+        } else {
+            gui_update_text(item_text, "< Cancel >");
+        }
+
+        // wait for a GUI event
+        int32_t ev_id = 0;
+        gui_activity_wait_event(activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+
+        switch (ev_id) {
+        case GUI_WHEEL_LEFT_EVENT:
+            *selected = (*selected + limit - 1) % limit;
+            break;
+
+        case GUI_WHEEL_RIGHT_EVENT:
+            *selected = (*selected + 1) % limit;
+            break;
+
+        default:
+            if (ev_id == gui_get_click_event()) {
+                return *selected < num_names;
+            }
+        }
+    }
+}
+
 // Verify an address string by brute-forcing
 static bool verify_address(const address_data_t* const addr_data)
 {
@@ -267,39 +314,104 @@ static bool verify_address(const address_data_t* const addr_data)
         return false;
     }
 
-    // Map the script type
+    // Get the script type
     size_t script_type = 0;
     if (wally_scriptpubkey_get_type(addr_data->script, addr_data->script_len, &script_type) != WALLY_OK) {
         await_error_activity("Failed to parse scriptpubkey");
         return false;
     }
+
+    char label[32];
     script_variant_t variant;
-    if (!get_singlesig_variant_from_script_type(script_type, &variant)) {
-        await_error_activity("Address scriptpubkey unsupported");
-        return false;
+    bool is_multisig = false;
+    uint8_t threshold = 0;
+    bool sorted = false;
+    struct ext_key* search_roots = NULL;
+    size_t search_roots_len = 0;
+
+    // If it is (or might be) multisig, ask the user to select one, and load details
+    if (script_type == WALLY_SCRIPT_TYPE_P2SH || script_type == WALLY_SCRIPT_TYPE_P2WSH) {
+        // Could be multisig - offer choice of multisig records
+        char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
+        const size_t num_names = sizeof(names) / sizeof(names[0]);
+        size_t num_multisigs = 0;
+        multisig_get_valid_record_names(&script_type, names, num_names, &num_multisigs);
+
+        // p2sh-wrapped could be multi- or single- sig.  User to select which.
+        if (script_type != WALLY_SCRIPT_TYPE_P2SH
+            || await_yesno_activity("Multisig Address", "\nIs this a multisig address?", false)) {
+            // Must have a multisig record - user to select
+            size_t selected = 0;
+            if (!num_multisigs || !select_multisig_record(names, num_multisigs, &selected)) {
+                JADE_LOGE("No relevant multisig records found/selected for multisig address");
+                await_error_activity("Register multisig record\nbefore attempting to\nverify multisig addresses");
+                return false;
+            }
+            JADE_ASSERT(selected < num_multisigs);
+
+            const char* errmsg = NULL;
+            multisig_data_t multisig_data;
+            if (!multisig_load_from_storage(names[selected], &multisig_data, &errmsg)) {
+                await_error_activity("Failed to load multisig record");
+                return false;
+            }
+
+            // 'multisig_data' is populated - copy key fields
+            is_multisig = true;
+            variant = multisig_data.variant;
+            sorted = multisig_data.sorted;
+            threshold = multisig_data.threshold;
+            search_roots_len = multisig_data.num_xpubs;
+            search_roots = JADE_CALLOC(search_roots_len, sizeof(struct ext_key));
+
+            // Derive set of multisig parent keys
+            const uint32_t path[] = { 0 }; // 'external' (ie. not internal change) address
+            for (int i = 0; i < search_roots_len; ++i) {
+                const uint8_t* xpub = multisig_data.xpubs + (i * BIP32_SERIALIZED_LEN);
+                const bool ret = wallet_derive_pubkey(xpub, BIP32_SERIALIZED_LEN, path, 1,
+                    BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &search_roots[i]);
+                JADE_ASSERT(ret);
+            }
+
+            // Use multisig name as ui label.
+            rc = snprintf(label, sizeof(label), "<%s>/0", names[selected]);
+            JADE_ASSERT(rc > 0 && rc < sizeof(label));
+        }
     }
 
-    // Get the path to search
-    uint32_t path[EXPORT_XPUB_PATH_LEN];
-    size_t path_len = 0;
-    wallet_get_default_xpub_export_path(variant, path, EXPORT_XPUB_PATH_LEN, &path_len);
-    JADE_ASSERT(path_len == EXPORT_XPUB_PATH_LEN - 1);
-    path[path_len++] = 0; // 'external' (ie. not internal change) address
+    // If not multisig, must be singlesig
+    if (!is_multisig) {
+        JADE_ASSERT(!search_roots);
+        JADE_ASSERT(!search_roots_len);
+        JADE_ASSERT(!threshold);
 
-    // Get as hdkey
-    bool verified = false;
-    struct ext_key search_root;
-    bool ret = wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &search_root);
-    JADE_ASSERT(ret);
+        if (!get_singlesig_variant_from_script_type(script_type, &variant)) {
+            await_error_activity("Address scriptpubkey unsupported");
+            return false;
+        }
 
-    // Search for the path that finds the given script
-    char root_path[32];
-    ret = bip32_path_as_str(path, path_len, root_path, sizeof(root_path));
-    JADE_ASSERT(ret);
+        // Get the path to search
+        uint32_t path[EXPORT_XPUB_PATH_LEN];
+        size_t path_len = 0;
+        wallet_get_default_xpub_export_path(variant, path, EXPORT_XPUB_PATH_LEN, &path_len);
+        JADE_ASSERT(path_len == EXPORT_XPUB_PATH_LEN - 1);
+        path[path_len++] = 0; // 'external' (ie. not internal change) address
+
+        // Get as hdkey
+        search_roots_len = 1;
+        search_roots = JADE_CALLOC(search_roots_len, sizeof(struct ext_key));
+        bool ret = wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, search_roots);
+        JADE_ASSERT(ret);
+
+        // Use the root bip32 path as the label
+        ret = bip32_path_as_str(path, path_len, label, sizeof(label));
+        JADE_ASSERT(ret);
+    }
+
     gui_activity_t* activity = NULL;
     gui_view_node_t* index_text = NULL;
     progress_bar_t progress_bar = {};
-    make_search_verify_address_activity(&activity, root_path, &progress_bar, &index_text);
+    make_search_verify_address_activity(&activity, label, &progress_bar, &index_text);
     JADE_ASSERT(activity);
     JADE_ASSERT(index_text);
 
@@ -312,30 +424,42 @@ static bool verify_address(const address_data_t* const addr_data)
 
     size_t index = 0;
     size_t confirmed_at_index = index;
-    while (true) {
+    bool verified = false;
+    const size_t address_search_batch_size = ADDRESS_SEARCH_BATCH_SIZE(is_multisig);
+    const size_t num_indexes_to_reconfirm = NUM_INDEXES_TO_RECONFIRM(is_multisig);
+    while (!verified) {
         gui_set_current_activity(activity);
 
         // Update the progress bar and text label
         char idx_txt[12];
         rc = snprintf(idx_txt, sizeof(idx_txt), "%u", index);
         JADE_ASSERT(rc > 0 && rc < sizeof(idx_txt));
-        update_progress_bar(&progress_bar, ADDRESS_NUM_INDEXES_TO_CHECK, index - confirmed_at_index);
+        update_progress_bar(&progress_bar, num_indexes_to_reconfirm, index - confirmed_at_index);
         gui_update_text(index_text, idx_txt);
 
         // Search a small batch of paths for the address script
         // NOTE: 'index' is updated as we go along
-        if (wallet_search_for_singlesig_script(
-                variant, &search_root, &index, ADDRESS_SEARCH_BATCH_SIZE, addr_data->script, addr_data->script_len)) {
+        JADE_ASSERT(search_roots);
+        if (is_multisig) {
+            verified = wallet_search_for_multisig_script(variant, sorted, threshold, search_roots, search_roots_len,
+                &index, address_search_batch_size, addr_data->script, addr_data->script_len);
+        } else {
+            JADE_ASSERT(search_roots_len == 1);
+            verified = wallet_search_for_singlesig_script(
+                variant, &search_roots[0], &index, address_search_batch_size, addr_data->script, addr_data->script_len);
+        }
+
+        if (verified) {
             // Address script found and matched - verified
             // NOTE: 'index' will hold the relevant value
-            verified = true;
+            JADE_LOGI("Found script at index: %u", index);
             break;
         }
 
         // Every so often suggest to user that they might want to abandon the search
-        if (index >= confirmed_at_index + ADDRESS_NUM_INDEXES_TO_CHECK) {
-            rc = snprintf(buf, sizeof(buf), "Failed to verify address.\n\nCheck next %u addresses?",
-                ADDRESS_NUM_INDEXES_TO_CHECK);
+        if (index >= confirmed_at_index + num_indexes_to_reconfirm) {
+            rc = snprintf(
+                buf, sizeof(buf), "Failed to verify address.\n\nCheck next %u addresses?", num_indexes_to_reconfirm);
             JADE_ASSERT(rc > 0 && rc < sizeof(buf));
             if (!await_yesno_activity("Verify Address", buf, true)) {
                 // Abandon - exit loop
@@ -346,19 +470,19 @@ static bool verify_address(const address_data_t* const addr_data)
             // Giver user a chance to exit or to skip this batch of addresses
             int32_t ev_id = 0;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-            ret = sync_wait_event(
-                      GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 10 / portTICK_PERIOD_MS)
+            const bool ret = sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL,
+                                 10 / portTICK_PERIOD_MS)
                 == ESP_OK;
 #else
             sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, NULL, NULL,
                 CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-            ret = index > 4 * ADDRESS_NUM_INDEXES_TO_CHECK; // let it run for a few batches, then exit
+            const bool ret = index > 4 * num_indexes_to_reconfirm; // let it run for a few batches, then exit
             ev_id = BTN_SCAN_ADDRESS_EXIT;
 #endif
             if (ret) {
                 if (ev_id == BTN_SCAN_ADDRESS_SKIP_ADDRESSES) {
                     // Jump to end of this batch
-                    index = confirmed_at_index + ADDRESS_NUM_INDEXES_TO_CHECK;
+                    index = confirmed_at_index + num_indexes_to_reconfirm;
                     confirmed_at_index = index;
                 } else if (ev_id == BTN_SCAN_ADDRESS_EXIT) {
                     // Abandon - exit loop
@@ -369,13 +493,14 @@ static bool verify_address(const address_data_t* const addr_data)
     }
 
     if (verified) {
-        rc = snprintf(buf, sizeof(buf), "Address verified at path:\n\n%s/%u", root_path, index);
+        rc = snprintf(buf, sizeof(buf), "Address verified for:\n\n%s/%u", label, index);
         JADE_ASSERT(rc > 0 && rc < sizeof(buf));
         await_message_activity(buf);
     } else {
         await_error_activity("Address NOT verified!");
     }
 
+    free(search_roots);
     return verified;
 }
 

@@ -103,6 +103,8 @@ void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* mult
     size_t master_blinding_key_len);
 
 // Generic message screens which may await a button click
+void make_show_label_activity(
+    gui_activity_t** activity, const char* title, const char* message, gui_view_node_t** item_text);
 gui_activity_t* display_message_activity(const char* message);
 gui_activity_t* display_message_activity_two_lines(const char* msg_first, const char* msg_second);
 void await_message_activity(const char* message);

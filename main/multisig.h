@@ -79,4 +79,7 @@ bool multisig_get_pubkeys(const uint8_t* xpubs, size_t num_xpubs, CborValue* all
 bool multisig_get_master_blinding_key(const multisig_data_t* multisig_data, uint8_t* master_blinding_key,
     size_t master_blinding_key_len, const char** errmsg);
 
+void multisig_get_valid_record_names(
+    const size_t* script_type, char names[][MAX_MULTISIG_NAME_SIZE], size_t num_names, size_t* num_written);
+
 #endif /* MULTISIG_H_ */

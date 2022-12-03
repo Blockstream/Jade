@@ -60,6 +60,56 @@ void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_d
     }
 }
 
+// activity to show a single central label, which can be updated by the caller
+void make_show_label_activity(
+    gui_activity_t** activity_ptr, const char* title, const char* message, gui_view_node_t** item_text)
+{
+    JADE_ASSERT(activity_ptr);
+    // title is optional
+    JADE_ASSERT(message);
+    JADE_INIT_OUT_PPTR(item_text);
+
+    gui_make_activity(activity_ptr, title, title);
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    gui_view_node_t* text_message;
+    gui_make_text(&text_message, message, TFT_WHITE);
+    gui_set_padding(text_message, GUI_MARGIN_TWO_VALUES, 4, 4);
+    gui_set_align(text_message, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(text_message, vsplit);
+
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 12, 76, 12);
+    gui_set_padding(hsplit, GUI_MARGIN_TWO_VALUES, 8, 0);
+    gui_set_parent(hsplit, vsplit);
+
+    // Left arrow
+    gui_view_node_t* text_left;
+    gui_make_text_font(&text_left, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(text_left, GUI_ALIGN_RIGHT, GUI_ALIGN_TOP);
+    gui_set_parent(text_left, hsplit);
+
+    // Updateable label
+    gui_view_node_t* bg_fill;
+    gui_make_fill(&bg_fill, TFT_BLACK);
+    gui_set_parent(bg_fill, hsplit);
+
+    gui_view_node_t* text_label;
+    gui_make_text(&text_label, message, TFT_WHITE);
+    gui_set_align(text_label, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+    gui_set_parent(text_label, bg_fill);
+    *item_text = text_label;
+
+    // Right arrow
+    gui_view_node_t* text_right;
+    gui_make_text_font(&text_right, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(text_right, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_parent(text_right, hsplit);
+}
+
 // Generic activity that displays a message, optionally with an 'ok' button
 static void make_msg_activity(gui_activity_t** activity_ptr, const char* msg, const bool error, const bool button)
 {

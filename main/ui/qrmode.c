@@ -158,7 +158,7 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
 }
 
 void make_search_verify_address_activity(
-    gui_activity_t** activity_ptr, const char* pathstr, progress_bar_t* progress_bar, gui_view_node_t** index_text)
+    gui_activity_t** activity_ptr, const char* root_label, progress_bar_t* progress_bar, gui_view_node_t** index_text)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(progress_bar);
@@ -172,17 +172,17 @@ void make_search_verify_address_activity(
 
     {
         gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 35, 65);
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 20, 80);
         gui_set_parent(hsplit, vsplit);
 
         gui_view_node_t* label;
-        gui_make_text(&label, "Root Path:", TFT_WHITE);
+        gui_make_text(&label, "Root:", TFT_WHITE);
         gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_padding(label, GUI_MARGIN_TWO_VALUES, 0, 4);
         gui_set_parent(label, hsplit);
 
         gui_view_node_t* text;
-        gui_make_text(&text, pathstr, TFT_WHITE);
+        gui_make_text(&text, root_label, TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, hsplit);
     }
