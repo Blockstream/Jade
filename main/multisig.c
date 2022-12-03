@@ -331,7 +331,7 @@ bool multisig_get_pubkeys(const uint8_t* xpubs, const size_t num_xpubs, CborValu
     return true;
 }
 
-bool multisig_get_master_blinding_key(multisig_data_t* multisig_data, uint8_t* master_blinding_key,
+bool multisig_get_master_blinding_key(const multisig_data_t* multisig_data, uint8_t* master_blinding_key,
     const size_t master_blinding_key_len, const char** errmsg)
 {
     JADE_ASSERT(multisig_data);

@@ -386,7 +386,7 @@ void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* mult
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(multisig_name);
-    JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
+    // master blinding key is optional
 
     char header[24];
     const int ret = snprintf(header, sizeof(header), "Multisig %d/%d", index, total);
@@ -413,6 +413,8 @@ void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* mult
     gui_set_align(text1b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
 
     if (valid) {
+        JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
+
         gui_view_node_t* hsplit_text2;
         gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 25, 75);
         gui_set_parent(hsplit_text2, vsplit);
