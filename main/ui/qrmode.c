@@ -46,8 +46,11 @@ void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label
 
     // buttons
     btn_data_t btns[] = { { .txt = "Options", .font = DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_EXIT } };
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_XPUB_EXIT } };
     add_buttons(vsplit, UI_COLUMN, btns, 2);
+
+    // Select 'exit' as the default button
+    gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
 
     // RHS - QR icons
     gui_view_node_t* bg_fill_node;
@@ -332,11 +335,14 @@ void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, con
     // Buttons - 'options' and  back/exit, or just back/exit
     if (show_options_button) {
         btn_data_t btns[] = { { .txt = "Options", .font = DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS },
-            { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
         add_buttons(vsplit, UI_COLUMN, btns, 2);
+
+        // Select 'exit' as the default button
+        gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
     } else {
         btn_data_t btns[] = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-            { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
         add_buttons(vsplit, UI_COLUMN, btns, 2);
     }
 
@@ -395,8 +401,8 @@ void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, 
         gui_set_padding(text_url, GUI_MARGIN_TWO_VALUES, 2, 2);
         gui_set_align(text_url, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
-        // buttons, back
-        btn_data_t btn = { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_EXIT_QR_HELP };
+        // buttons, done
+        btn_data_t btn = { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_EXIT_QR_HELP };
         add_buttons(vsplit, UI_COLUMN, &btn, 1);
     }
 
