@@ -216,29 +216,46 @@ void make_connect_to_screen(
 // NOTE: The main 'Ready' screen is created as an 'unmanaged' activity, so it is not placed
 // in the list of activities to be freed by 'set_current_activity_ex()' calls.
 // This is becase the 'Ready' screen is never freed and lives as long as the application itself.
-void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra)
+void make_ready_screen(
+    gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra, gui_view_node_t** txt_topright)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
     JADE_INIT_OUT_PPTR(txt_extra);
+    JADE_INIT_OUT_PPTR(txt_topright);
 
     // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
     gui_make_activity_ex(activity_ptr, true, device_name, false);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_ABSOLUTE, 3, 40, 35, 36);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_ABSOLUTE, 4, 25, 15, 36, 35);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    gui_view_node_t* row1;
+    gui_make_fill(&row1, TFT_BLACK);
+    gui_set_parent(row1, vsplit);
+
+    gui_view_node_t* fingerprint_text;
+    gui_make_text(&fingerprint_text, "", TFT_WHITE);
+    gui_set_padding(fingerprint_text, GUI_MARGIN_TWO_VALUES, 2, 2);
+    gui_set_align(fingerprint_text, GUI_ALIGN_RIGHT, GUI_ALIGN_TOP);
+    gui_set_parent(fingerprint_text, row1);
+    *txt_topright = fingerprint_text;
 
     gui_view_node_t* ready_text;
     gui_make_text(&ready_text, "Ready!", TFT_WHITE);
     gui_set_align(ready_text, GUI_ALIGN_CENTER, GUI_ALIGN_BOTTOM);
     gui_set_parent(ready_text, vsplit);
 
+    gui_view_node_t* row3;
+    gui_make_fill(&row3, TFT_BLACK);
+    gui_set_parent(row3, vsplit);
+
     gui_view_node_t* extra_text;
     gui_make_text(&extra_text, "", TFT_WHITE);
     gui_set_align(extra_text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    gui_set_parent(extra_text, vsplit);
+    gui_set_parent(extra_text, row3);
     *txt_extra = extra_text;
 
     // Make the button bar under the passed node, and add all the buttons
