@@ -361,7 +361,7 @@ bool deserialise_psbt(const uint8_t* psbt_bytes, const size_t psbt_len, struct w
 {
     JADE_ASSERT(psbt_bytes);
     JADE_INIT_OUT_PPTR(psbt_out);
-    return wally_psbt_from_bytes(psbt_bytes, psbt_len, 0, psbt_out) == WALLY_OK && *psbt_out;
+    return wally_psbt_from_bytes(psbt_bytes, psbt_len, WALLY_PSBT_PARSE_FLAG_STRICT, psbt_out) == WALLY_OK && *psbt_out;
 }
 
 // PSBT wally struct -> bytes
