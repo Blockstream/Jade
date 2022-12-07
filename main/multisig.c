@@ -39,17 +39,28 @@ bool multisig_validate_signers(const char* network, const signer_t* signers, con
         // See if signer that matches this wallet (by fingerprint)
         if (sodium_memcmp(wallet_fingerprint, signer->fingerprint, wallet_fingerprint_len) == 0) {
             // This signer has our fingerprint - check xpub provided
-            char* wallet_xpub = NULL;
-            if (!wallet_get_xpub(network, signer->derivation, signer->derivation_len, &wallet_xpub)) {
-                JADE_LOGE("Cannot get xpub for derivation path (signer %d)", i);
+            // NOTE: because some 3rd-party apps provide xpubs which are slightly incorrect in their ancilliary
+            // metadata fields, we can't strictly compare xpub strings without affecting compatabililty.
+            // Instead we deserialise the provided xpub string and compare pubkey and chaincode only.
+            const uint32_t flags = BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH;
+            struct ext_key hdkey_provided;
+            if (!wallet_derive_from_xpub(signer->xpub, NULL, 0, flags, &hdkey_provided)) {
+                JADE_LOGE("Cannot deserialise xpub for derivation path (signer %d)", i);
                 return false;
             }
-            if (strcmp(wallet_xpub, signer->xpub) != 0) {
-                JADE_LOGE("xpub mismatch (signer %d) - this wallet: %s - param: %s", i, wallet_xpub, signer->xpub);
-                JADE_WALLY_VERIFY(wally_free_string(wallet_xpub));
+            struct ext_key hdkey_calculated;
+            if (!wallet_get_hdkey(signer->derivation, signer->derivation_len, flags, &hdkey_calculated)) {
+                JADE_LOGE("Cannot derive key for derivation path (signer %d)", i);
                 return false;
             }
-            JADE_WALLY_VERIFY(wally_free_string(wallet_xpub));
+
+            // Compare vital fields 'pub_key' and 'chain_code'
+            if (memcmp(hdkey_provided.pub_key, hdkey_calculated.pub_key, sizeof(hdkey_calculated.pub_key))
+                || memcmp(
+                    hdkey_provided.chain_code, hdkey_calculated.chain_code, sizeof(hdkey_calculated.chain_code))) {
+                JADE_LOGE("Failed to validate xpub provided (signer %d): %s", i, signer->xpub);
+                return false;
+            }
 
             // All good - we have found our signer in the multisig
             bFound = true;

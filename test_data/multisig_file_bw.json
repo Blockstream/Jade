@@ -1,6 +1,5 @@
 {
   "input": {
     "multisig_file": "multisig_file_bw.dat"
-  },
-  "expected_error": "Failed to validate co-signers"
+  }
 }
