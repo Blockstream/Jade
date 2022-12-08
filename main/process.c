@@ -25,6 +25,7 @@ static RingbufHandle_t ble_out = NULL;
 static RingbufHandle_t qemu_tcp_out = NULL;
 static TaskHandle_t qr_handle;
 static RingbufHandle_t qr_out = NULL;
+static jade_msg_source_t last_message_source = SOURCE_NONE;
 
 #ifndef CONFIG_ESP32_NO_BLOBS
 static TaskHandle_t ble_handle;
@@ -360,7 +361,6 @@ void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, 
     JADE_ASSERT(!ctx || reader);
 
     const TickType_t delay = 40 / portTICK_PERIOD_MS;
-    uint8_t counter = 0;
     do {
         size_t item_size = 0;
         void* item = xRingbufferReceive(shared_in, &item_size, delay);
@@ -374,18 +374,16 @@ void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, 
             return;
         }
 
-        // Check connection - if all connections appear consistently 'down'
-        // then return with 'no message'.
-        // NOTE: the testing of pins via i2c can timeout and give sporadic false
-        // results, hence only acting after some consecutive 'false' returns.
-        if (!usb_connected() && !ble_connected()) {
-            if (++counter >= 3) {
-                // Lost connection ?
-                JADE_LOGE("Lost connection, returning without fetching message");
-                return;
-            }
-        } else {
-            counter = 0;
+        // Check connection - if the last used source is disconnected then return with 'no message'.
+        // (NOTE: we can't detect the QR source as 'disconnected' - so only consider this when
+        // the last message was over serial or ble, and now that interface is not connected.
+        // NOTE: this check only really affects 'blocking' calls, as a non-blocking call is going
+        // to return 'no message' here in any case.
+        const bool lost_usb_connection = (last_message_source == SOURCE_SERIAL) && !usb_connected();
+        const bool lost_ble_connection = (last_message_source == SOURCE_BLE) && !ble_connected();
+        if (lost_usb_connection || lost_ble_connection) {
+            JADE_LOGE("Lost connection, returning without fetching message");
+            return;
         }
     } while (blocking);
 }
@@ -401,6 +399,9 @@ static void process_cbor_msg(void* ctx, uint8_t* data, size_t size)
     CborError cberr
         = cbor_parser_init(cbor_msg->cbor, cbor_msg->cbor_len, CborValidateBasic, &cbor_msg->parser, &cbor_msg->value);
     JADE_ASSERT(cberr == CborNoError);
+
+    // Set a flag to cache the last received message source
+    last_message_source = (jade_msg_source_t)data[0];
 }
 
 // Fetch the next input cbor message into the process 'current message'
