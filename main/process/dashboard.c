@@ -83,8 +83,8 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
 void make_connection_select_screen(gui_activity_t** activity_ptr, bool ble_available, bool temporary_restore);
 void make_connect_to_screen(
     gui_activity_t** activity_ptr, const char* device_name, jade_msg_source_t initialisation_source);
-void make_ready_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_extra,
-    gui_view_node_t** txt_topright);
+void make_ready_screen(
+    gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_label, gui_view_node_t** txt_extra);
 
 void make_startup_options_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
@@ -1407,22 +1407,26 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
             activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);                        \
     } while (false)
 
-// Small helper to update additional info labels on the 'Ready!' dashboard screen
-static void update_ready_screen_text(gui_view_node_t* txt_extra, gui_view_node_t* txt_topright)
+// Small helper to update additional info labels on the 'Ready' dashboard screen
+static void update_ready_screen_text(gui_view_node_t* txt_label, gui_view_node_t* txt_extra)
 {
+    JADE_ASSERT(txt_label);
     JADE_ASSERT(txt_extra);
-    JADE_ASSERT(txt_topright);
 
-    // Wallet fingerprint in the top right
+    // Wallet fingerprint in uppercase hex
     char* fphex = NULL;
     uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
     wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
     JADE_WALLY_VERIFY(wally_hex_from_bytes(fingerprint, sizeof(fingerprint), &fphex));
-    JADE_ASSERT(fphex);
-    gui_update_text(txt_topright, fphex);
-    JADE_WALLY_VERIFY(wally_free_string(fphex));
+    map_string(fphex, toupper);
 
-    // Extra info under the 'Ready!' label
+    char label[20];
+    const int ret = snprintf(label, sizeof(label), "Wallet: %s", fphex);
+    JADE_ASSERT(ret > 0 && ret <= sizeof(label));
+    JADE_WALLY_VERIFY(wally_free_string(fphex));
+    gui_update_text(txt_label, label);
+
+    // Extra info under the main wallet label
     const char* const extra = (keychain_get_userdata() == SOURCE_QR ? "(QR Mode)"
             : keychain_has_temporary()                              ? "(Temporary Wallet)"
                                                                     : "");
@@ -1458,12 +1462,12 @@ void dashboard_process(void* process_ptr)
     // in the list of activities to be freed by 'set_current_activity_ex()' calls.
     // This is ok as the 'Ready' screen is never freed and lives as long as the application itself.
     gui_activity_t* act_ready = NULL;
+    gui_view_node_t* txt_label = NULL;
     gui_view_node_t* txt_extra = NULL;
-    gui_view_node_t* txt_topright = NULL;
-    make_ready_screen(&act_ready, device_name, &txt_extra, &txt_topright);
+    make_ready_screen(&act_ready, device_name, &txt_label, &txt_extra);
     JADE_ASSERT(act_ready);
+    JADE_ASSERT(txt_label);
     JADE_ASSERT(txt_extra);
-    JADE_ASSERT(txt_topright);
     gui_activity_register_event(act_ready, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
 
     while (true) {
@@ -1488,7 +1492,7 @@ void dashboard_process(void* process_ptr)
         const keychain_t* initial_keychain = keychain_get();
         if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
             JADE_LOGI("Connected and have wallet/keys - showing Ready screen");
-            update_ready_screen_text(txt_extra, txt_topright);
+            update_ready_screen_text(txt_label, txt_extra);
             act_dashboard = act_ready;
             // free_dashboard is not required as this screen lives for the lifetime of the application
         } else if (initial_keychain) {
