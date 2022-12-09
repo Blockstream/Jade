@@ -29,6 +29,8 @@
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
 
 void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, Icon* qr_icon);
+void make_show_qr_yesno_activity(gui_activity_t** activity_ptr, const char* title, const char* label, const char* url,
+    const Icon* qr_icon, bool default_selection);
 
 void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label, const char* pathstr, Icon* icons,
     size_t num_icons, size_t frames_per_qr_icon);
@@ -982,6 +984,40 @@ void await_qr_help_activity(const char* url)
     gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_EXIT_QR_HELP, NULL, NULL, NULL,
         CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
 #endif
+}
+
+// Display screen with help url and qr code
+bool await_qr_yesno_activity(const char* title, const char* label, const char* url, bool default_selection)
+{
+    JADE_ASSERT(title);
+    JADE_ASSERT(label);
+    JADE_ASSERT(url);
+
+    const size_t url_len = strlen(url);
+    JADE_ASSERT(url_len < 78); // v4, binary
+
+    const bool large_icons = false;
+    Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
+    bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
+
+    // Show, and await button click
+    gui_activity_t* activity = NULL;
+    make_show_qr_yesno_activity(&activity, title, label, url, qr_icon, default_selection);
+    JADE_ASSERT(activity);
+    gui_set_current_activity(activity);
+
+    int32_t ev_id = 0;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    const bool ret = true;
+    ev_id = BTN_YES;
+#endif
+
+    // Return whether 'Yes' was cicked
+    return ret && ev_id == BTN_YES;
 }
 
 // QR-Mode PinServer interaction
