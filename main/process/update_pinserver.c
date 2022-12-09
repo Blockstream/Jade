@@ -31,7 +31,7 @@ void show_pinserver_details(void)
     // If no pinserver set, show the help screen
     if (!have_pubkey && !have_urlA && !have_urlB && !have_cert) {
         await_message_activity("Custom PinServer not set");
-        display_qr_help_screen("blockstream.com/pinserver");
+        await_qr_help_activity("blockstream.com/pinserver");
         return;
     }
 

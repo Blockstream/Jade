@@ -29,7 +29,7 @@
 void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, Icon* qr_icon);
 
 void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label, const char* pathstr, Icon* icons,
-    const size_t num_icons, const size_t frames_per_qr_icon);
+    size_t num_icons, size_t frames_per_qr_icon);
 void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_t** script_textbox,
     gui_view_node_t** multisig_textbox, gui_view_node_t** urtype_textbox);
 
@@ -37,7 +37,7 @@ void make_search_verify_address_activity(
     gui_activity_t** activity_ptr, const char* pathstr, progress_bar_t* progress_bar, gui_view_node_t** index_text);
 
 void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, const char* label, Icon* icons,
-    const size_t num_icons, const size_t frames_per_qr_icon);
+    size_t num_icons, size_t frames_per_qr_icon, bool show_options_button);
 void make_qr_options_activity(
     gui_activity_t** activity_ptr, gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox);
 
@@ -203,7 +203,7 @@ static bool handle_xpub_options(uint16_t* qr_flags)
                 //} else if (ev_id == BTN_XPUB_TOGGLE_BCUR_TYPE) {
                 //    *qr_flags ^= QR_XPUB_HDKEY;
             } else if (ev_id == BTN_XPUB_OPTIONS_HELP) {
-                display_qr_help_screen("blockstream.com/xpub");
+                await_qr_help_activity("blockstream.com/xpub");
             } else if (ev_id == BTN_XPUB_OPTIONS_EXIT) {
                 // Done
                 break;
@@ -554,7 +554,7 @@ static bool handle_qr_options(uint16_t* qr_flags)
             } else if (ev_id == BTN_QR_TOGGLE_SPEED) {
                 rotate_flags(qr_flags, QR_SPEED_HIGH, QR_SPEED_LOW);
             } else if (ev_id == BTN_QR_OPTIONS_HELP) {
-                display_qr_help_screen("blockstream.com/scan");
+                await_qr_help_activity("blockstream.com/scan");
             } else if (ev_id == BTN_QR_OPTIONS_EXIT) {
                 // Done
                 break;
@@ -590,8 +590,9 @@ static void create_display_bcur_qr_activity(gui_activity_t** activity_ptr, const
     bcur_create_qr_icons(cbor, cbor_len, bcur_type, qrcode_version, &icons, &num_icons);
 
     // Create qr activity for those icons
+    const bool show_options_button = true;
     const uint8_t frames_per_qr = qr_animation_speed_from_flags(qr_flags);
-    make_show_qr_activity(activity_ptr, title, label, icons, num_icons, frames_per_qr);
+    make_show_qr_activity(activity_ptr, title, label, icons, num_icons, frames_per_qr, show_options_button);
     JADE_ASSERT(*activity_ptr);
 }
 
@@ -878,32 +879,74 @@ void handle_scan_qr(void)
     free(data);
 }
 
+// Populate an Icon with a QR code of text
+// Handles up to v6 codes - ie. text up to 134 bytes
+// Caller takes ownership of Icon data and must free
+static void bytes_to_qr_icon(const uint8_t* bytes, const size_t bytes_len, const bool large_icons, Icon* const qr_icon)
+{
+    JADE_ASSERT(bytes);
+    JADE_ASSERT(bytes_len);
+    JADE_ASSERT(bytes_len < 134); // v6, binary
+    JADE_ASSERT(qr_icon);
+
+    // Create icon for url
+    // For sizes, see: https://www.qrcode.com/en/about/version.html - 'Binary'
+    const uint8_t qr_version = bytes_len < 32 ? 2 : bytes_len < 78 ? 4 : 6;
+    const uint8_t scale_factor = (qr_version == 2 ? 4 : qr_version == 4 ? 3 : 2) + (large_icons ? 1 : 0);
+
+    // Convert url to qr code, then to Icon
+    QRCode qrcode;
+    uint8_t qrbuffer[256]; // opaque work area
+    JADE_ASSERT(qrcode_getBufferSize(qr_version) <= sizeof(qrbuffer));
+    const int qret = qrcode_initBytes(&qrcode, qrbuffer, qr_version, ECC_LOW, (uint8_t*)bytes, bytes_len);
+    JADE_ASSERT(qret == 0);
+
+    qrcode_toIcon(&qrcode, qr_icon, scale_factor);
+}
+
 // Display screen with help url and qr code
-void display_qr_help_screen(const char* url)
+// Handles up to v6. codes - ie text up to 134 bytes
+void await_single_qr_activity(const char* title, const char* label, const uint8_t* data, const size_t data_len)
+{
+    JADE_ASSERT(title);
+    JADE_ASSERT(label);
+    JADE_ASSERT(data);
+    JADE_ASSERT(data_len);
+
+    const bool large_icons = true;
+    Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
+    bytes_to_qr_icon(data, data_len, large_icons, qr_icon);
+
+    // Show, and await button click - note gui takes ownership of icon
+    gui_activity_t* activity = NULL;
+    make_show_qr_activity(&activity, title, label, qr_icon, 1, 0, false);
+    JADE_ASSERT(activity);
+    gui_set_current_activity(activity);
+
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL, 0);
+#else
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+#endif
+}
+
+// Display screen with help url and qr code
+// Handles up to v4 codes - ie text up to 78 bytes
+void await_qr_help_activity(const char* url)
 {
     JADE_ASSERT(url);
 
     const size_t url_len = strlen(url);
-    JADE_ASSERT(url_len < 78);
+    JADE_ASSERT(url_len < 78); // v4, binary
 
-    // Create icon for url
-    // For sizes, see: https://www.qrcode.com/en/about/version.html - 'Binary'
-    const uint8_t qr_version = url_len < 32 ? 2 : 4;
-    const uint8_t scale_factor = qr_version == 2 ? 4 : 3;
+    const bool large_icons = false;
+    Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
+    bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
 
-    // Convert url to qr code, then to Icon
-    QRCode qrcode;
-    uint8_t qrbuffer[140]; // opaque work area
-    JADE_ASSERT(qrcode_getBufferSize(qr_version) <= sizeof(qrbuffer));
-    const int qret = qrcode_initText(&qrcode, qrbuffer, qr_version, ECC_LOW, url);
-    JADE_ASSERT(qret == 0);
-
-    Icon qr_icon;
-    qrcode_toIcon(&qrcode, &qr_icon, scale_factor);
-
-    // Show, and await button click
+    // Show, and await button click - note gui takes ownership of icon
     gui_activity_t* activity = NULL;
-    make_show_qr_help_activity(&activity, url, &qr_icon);
+    make_show_qr_help_activity(&activity, url, qr_icon);
     JADE_ASSERT(activity);
     gui_set_current_activity(activity);
 
@@ -913,7 +956,4 @@ void display_qr_help_screen(const char* url)
     gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_EXIT_QR_HELP, NULL, NULL, NULL,
         CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
 #endif
-
-    // Free the qr code icon
-    qrcode_freeIcon(&qr_icon);
 }

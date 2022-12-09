@@ -292,14 +292,16 @@ void make_qr_options_activity(
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
+// NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
 void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, const char* label, Icon* icons,
-    const size_t num_icons, const size_t frames_per_qr_icon)
+    const size_t num_icons, const size_t frames_per_qr_icon, const bool show_options_button)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(icons);
     JADE_ASSERT(num_icons);
+    JADE_ASSERT(frames_per_qr_icon || num_icons == 1);
 
     gui_make_activity(activity_ptr, false, NULL);
 
@@ -327,10 +329,16 @@ void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, con
     gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 0, 2);
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
-    // buttons - 'options' and 'exit'
-    btn_data_t btns[] = { { .txt = "Options", .font = DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
-    add_buttons(vsplit, UI_COLUMN, btns, 2);
+    // Buttons - 'options' and  back/exit, or just back/exit
+    if (show_options_button) {
+        btn_data_t btns[] = { { .txt = "Options", .font = DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS },
+            { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
+        add_buttons(vsplit, UI_COLUMN, btns, 2);
+    } else {
+        btn_data_t btns[] = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+            { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
+        add_buttons(vsplit, UI_COLUMN, btns, 2);
+    }
 
     // RHS - QR icons
     gui_view_node_t* bg_fill_node;
@@ -344,7 +352,8 @@ void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, con
     gui_set_icon_animation(icon_node, icons, num_icons, frames_per_qr_icon);
 }
 
-void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, const Icon* qr_icon)
+// NOTE: 'qr_icon' passed in here must be heap-allocated as the gui element takes ownership
+void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, Icon* qr_icon)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(url);
@@ -409,6 +418,7 @@ void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, 
         gui_make_icon(&icon_node, qr_icon, TFT_BLACK, &TFT_DARKGREY);
         gui_set_align(icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(icon_node, bg_fill_node);
+        gui_set_icon_animation(icon_node, qr_icon, 1, 0); // takes ownership of icon
 
         gui_view_node_t* lower;
         gui_make_fill(&lower, TFT_BLACK);
