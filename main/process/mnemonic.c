@@ -14,6 +14,7 @@
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
+#include "../utils/util.h"
 
 #include "process_utils.h"
 
@@ -655,16 +656,6 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
         } // cycle on characters
     } // cycle on words
 
-    return true;
-}
-
-static bool string_all(const char* s, int (*fntest)(int))
-{
-    while (*s) {
-        if (!fntest(*s++)) {
-            return false;
-        }
-    }
     return true;
 }
 

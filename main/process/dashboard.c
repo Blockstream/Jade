@@ -22,6 +22,7 @@
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
 #include "../utils/network.h"
+#include "../utils/util.h"
 #include "../utils/wally_ext.h"
 #include "../wallet.h"
 #ifndef CONFIG_ESP32_NO_BLOBS
@@ -183,9 +184,7 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     uint8_t macid[6];
     esp_efuse_mac_get_default(macid);
     JADE_WALLY_VERIFY(wally_hex_from_bytes(macid, 6, &hexstr));
-    for (size_t i = 0; i < strlen(hexstr); ++i) {
-        hexstr[i] = toupper((int)hexstr[i]);
-    }
+    map_string(hexstr, toupper);
     add_string_to_map(&map_encoder, "EFUSEMAC", hexstr);
     JADE_WALLY_VERIFY(wally_free_string(hexstr));
 
