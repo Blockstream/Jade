@@ -43,7 +43,7 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
     gui_view_node_t** enter, gui_view_node_t** keys, size_t keys_len);
 void make_recover_word_page_select10(
     gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status);
-void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
+void make_using_passphrase_screen(gui_activity_t** activity_ptr);
 void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
 void make_confirm_qr_export_activity(gui_activity_t** activity_ptr);
 void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon* icon);
@@ -989,7 +989,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
     JADE_ASSERT(activity);
 
     bool got_mnemonic = false;
-    bool using_passphrase = false;
+    bool update_passphrase_prefs = false;
     bool offer_export_qr = false;
     while (!got_mnemonic) {
         gui_set_current_activity_ex(activity, true);
@@ -1012,7 +1012,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
         case BTN_NEW_MNEMONIC_ADVANCED:
             make_new_mnemonic_screen_advanced(&activity);
-            using_passphrase = true;
+            update_passphrase_prefs = true;
             offer_export_qr = true;
             continue;
 
@@ -1022,7 +1022,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
         case BTN_RECOVER_MNEMONIC_ADVANCED:
             make_mnemonic_recovery_screen_advanced(&activity);
-            using_passphrase = true;
+            update_passphrase_prefs = true;
             offer_export_qr = true;
             continue;
 
@@ -1085,11 +1085,11 @@ void initialise_with_mnemonic(const bool temporary_restore)
 #endif
 
         // Perhaps offer/get passphrase (ie. if using advanced options)
+        bool using_passphrase = false;
         bool always_using_passphrase = false;
-        if (using_passphrase) {
+        if (update_passphrase_prefs) {
             gui_activity_t* act = NULL;
-            const bool offer_always_option = !temporary_restore;
-            make_using_passphrase_screen(&act, offer_always_option);
+            make_using_passphrase_screen(&act);
             JADE_ASSERT(act);
 
             // Free all gui screen activities thus far, as those used to show or enter a mnemonic and those
@@ -1100,16 +1100,9 @@ void initialise_with_mnemonic(const bool temporary_restore)
             gui_set_current_activity_ex(act, true);
 
             int32_t ev_id;
-            using_passphrase = false;
             if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                if (ev_id == BTN_USE_PASSPHRASE_ALWAYS) {
-                    JADE_ASSERT(!temporary_restore);
-                    always_using_passphrase = true;
-                    using_passphrase = true;
-                } else if (ev_id == BTN_USE_PASSPHRASE_ONCE) {
-                    using_passphrase = true;
-                }
-                // Effectively defaults to BTN_USE_PASSPHRASE_NO ie. not using passphrase
+                always_using_passphrase = (ev_id == BTN_USE_PASSPHRASE_ALWAYS);
+                using_passphrase = (ev_id == BTN_USE_PASSPHRASE_ALWAYS || ev_id == BTN_USE_PASSPHRASE_ONCE);
             }
         } else if (temporary_restore) {
             // Ok, if *not* via 'Advanced' restore option (ie. not requesting whether to use a passphrase), but

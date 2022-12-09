@@ -310,7 +310,7 @@ void make_ready_screen(
     }
 }
 
-void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option)
+void make_using_passphrase_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
@@ -326,17 +326,11 @@ void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offe
     gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
     gui_set_parent(text, vsplit);
 
-    // Buttons: 'No', 'Once', 'Always' or 'No, 'Yes'
-    if (offer_always_option) {
-        btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
-            { .txt = "Once", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE },
-            { .txt = "Always", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ALWAYS } };
-        add_buttons(vsplit, UI_ROW, btns, 3);
-    } else {
-        btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
-            { .txt = "Yes", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE } };
-        add_buttons(vsplit, UI_ROW, btns, 2);
-    }
+    // Buttons: 'No', 'Once', 'Always'
+    btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
+        { .txt = "Once", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE },
+        { .txt = "Always", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ALWAYS } };
+    add_buttons(vsplit, UI_ROW, btns, 3);
 }
 
 static void add_poweroff_timeout_btn(gui_view_node_t* parent, gui_view_node_t** timeout_btn_text)

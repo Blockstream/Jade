@@ -94,7 +94,7 @@ void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
 
 void make_advanced_options_screen(gui_activity_t** activity_ptr);
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns);
-void make_using_passphrase_screen(gui_activity_t** activity_ptr, const bool offer_always_option);
+void make_using_passphrase_screen(gui_activity_t** activity_ptr);
 
 void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr);
 void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr);
@@ -1052,23 +1052,15 @@ static void update_idle_timeout_btn_text(gui_view_node_t* timeout_btn_text, cons
 static void handle_use_passphrase(void)
 {
     gui_activity_t* act = NULL;
-    const bool offer_always_option = true;
-    make_using_passphrase_screen(&act, offer_always_option);
+    make_using_passphrase_screen(&act);
     JADE_ASSERT(act);
 
     gui_set_current_activity(act);
 
     int32_t ev_id;
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-    if (ev_id == BTN_USE_PASSPHRASE_ALWAYS) {
-        keychain_set_user_to_enter_passphrase(true);
-        keychain_set_user_to_enter_passphrase_by_default(true);
-    } else if (ev_id == BTN_USE_PASSPHRASE_ONCE) {
-        keychain_set_user_to_enter_passphrase(true);
-        keychain_set_user_to_enter_passphrase_by_default(false);
-    } else if (ev_id == BTN_USE_PASSPHRASE_NO) {
-        keychain_set_user_to_enter_passphrase(false);
-        keychain_set_user_to_enter_passphrase_by_default(false);
+    if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+        keychain_set_user_to_enter_passphrase_by_default(ev_id == BTN_USE_PASSPHRASE_ALWAYS);
+        keychain_set_user_to_enter_passphrase(ev_id == BTN_USE_PASSPHRASE_ALWAYS || ev_id == BTN_USE_PASSPHRASE_ONCE);
     }
 }
 

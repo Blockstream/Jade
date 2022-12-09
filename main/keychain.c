@@ -98,12 +98,14 @@ void keychain_set_user_to_enter_passphrase(const bool use_passphrase)
 
 void keychain_set_user_to_enter_passphrase_by_default(const bool use_passphrase)
 {
-    // If user opted to use passphrase, clear the flag to auto-apply the default/blank passphrase.
-    // If they opted to not use a passphrase by default, set that flag.
+    // Always set a 'auto empty passphrase' or 'user to set passphrase' flag.
+    // (No flags set means the value is uninitialised/the user has not been asked).
     uint8_t key_flags = storage_get_key_flags();
     if (use_passphrase) {
         key_flags &= ~KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+        key_flags |= KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
     } else {
+        key_flags &= ~KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
         key_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
     }
     storage_set_key_flags(key_flags);
@@ -113,9 +115,8 @@ bool keychain_get_user_to_enter_passphrase()
 {
     // True if either:
     // a) the user has elected to enter a passphrase for this login, or
-    // b) they have elected to enter the always enter a passphrase at every login
-    // (ie. *not* persisted the flag to automatically use the default/blank passphrase)
-    return keychain_user_to_enter_passphrase || !(storage_get_key_flags() & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE);
+    // b) they have elected to always enter a passphrase at every login
+    return keychain_user_to_enter_passphrase || (storage_get_key_flags() & KEY_FLAGS_USER_TO_ENTER_PASSPHRASE);
 }
 
 bool keychain_has_temporary(void)
