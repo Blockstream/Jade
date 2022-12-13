@@ -68,8 +68,12 @@ def _h2b_test_case(testcase):
             testcase['expected_output'] = h2b(testcase['expected_output'])
 
     elif 'psbt' in testcase['input']:
+        # sign-psbt data
         testcase['input']['psbt'] = base64.b64decode(testcase['input']['psbt'])
-        testcase['expected_output'] = base64.b64decode(testcase['expected_output'])
+        testcase['expected_output']['psbt'] = base64.b64decode(testcase['expected_output']['psbt'])
+
+        if 'txn' in testcase['expected_output']:
+            testcase['expected_output']['txn'] = h2b(testcase['expected_output']['txn'])
 
     elif 'message' in testcase['input']:
         # sign-msg test data
@@ -389,7 +393,8 @@ SIGN_TXN_FAIL_CASES = "badtxn_*.json"
 SIGN_LIQUID_TXN_TESTS = "liquid_txn_*.json"
 SIGN_TXN_SINGLE_SIG_TESTS = "singlesig_txn*.json"
 SIGN_LIQUID_TXN_SINGLE_SIG_TESTS = "singlesig_liquid_txn*.json"
-SIGN_PSBT_TESTS = "psbt_*.json"
+SIGN_PSBT_TESTS = "psbt_tm_*.json"
+SIGN_PSBT_SS_TESTS = "psbt_ss_*.json"
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -2291,10 +2296,20 @@ def test_sign_liquid_tx(jadeapi, pattern):
         _check_tx_signatures(jadeapi, txn_data, rslt)
 
 
-def test_sign_psbt(jadeapi):
-    for txn_data in _get_test_cases(SIGN_PSBT_TESTS):
+def test_sign_psbt(jadeapi, cases):
+    for txn_data in _get_test_cases(cases):
         rslt = jadeapi.sign_psbt(txn_data['input']['psbt'])
-        assert rslt == txn_data['expected_output'], base64.b64encode(rslt).decode()
+        assert rslt == txn_data['expected_output']['psbt'], base64.b64encode(rslt).decode()
+
+        # Optionally test extracted tx
+        expected_txn = txn_data['expected_output'].get('txn')
+        if expected_txn:
+            psbt = wally.psbt_from_bytes(rslt)
+            wally.psbt_finalize(psbt)
+            assert wally.psbt_is_finalized(psbt)
+            txn = wally.psbt_extract(psbt)
+            txn = wally.tx_to_bytes(txn, wally.WALLY_TX_FLAG_USE_WITNESS)
+            assert txn == expected_txn, wally.hex_from_bytes(txn)
 
 
 # Helper to check a multisig registration
@@ -2780,6 +2795,9 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_liquid_blinded_commitments(jadeapi)
     test_sign_liquid_tx(jadeapi, SIGN_LIQUID_TXN_TESTS)
 
+    # Test sign psbts (app-generated cases)
+    test_sign_psbt(jadeapi, SIGN_PSBT_TESTS)
+
     # Test generic multisig
     test_generic_multisig_registration(jadeapi)
     test_generic_multisig_matches_ga_addresses(jadeapi)
@@ -2799,7 +2817,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_sign_tx(jadeapi, SIGN_TXN_SINGLE_SIG_TESTS)
     test_sign_liquid_tx(jadeapi, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
 
-    test_sign_psbt(jadeapi)
+    # Test sign psbts (HWI-generated cases)
+    test_sign_psbt(jadeapi, SIGN_PSBT_SS_TESTS)
 
     # Test the generic multisigs again, using a second signer
     # NOTE: some of these tests assume 'test_generic_multisig_registration()' test
@@ -3038,7 +3057,7 @@ def test_ble_connection_fails(info, args):
 
 def check_stuck():
     # FIXME: serial/ble reads/writes should timeout before this does
-    timeout = 30  # minutes
+    timeout = 45  # minutes
     time.sleep(60 * timeout)
     err_str = "tests got caught running longer than {} minutes, terminating"
     logger.error(err_str.format(timeout))
