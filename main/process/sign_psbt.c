@@ -22,45 +22,34 @@
 
 static void wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
 
-static bool get_our_key(const uint8_t* fingerprint, const size_t fingerprint_len, const struct wally_map* keypaths,
-    const size_t ikey, uint8_t* key_data_out, const size_t key_data_out_len, size_t* written, struct ext_key* hdkey)
+// Helper to get next key derived from the signer master key in the passed keypath map.
+// NOTE: Both start_index and found_index are zero-based.
+// The return indicates whether any key was found - and if so hdkey and index will be populated.
+static bool get_our_next_key(
+    const struct wally_map* keypaths, const size_t start_index, struct ext_key* hdkey, size_t* index)
 {
-    JADE_ASSERT(fingerprint);
-    JADE_ASSERT(fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);
     JADE_ASSERT(keypaths);
-    JADE_ASSERT(key_data_out);
-    JADE_INIT_OUT_SIZE(written);
     JADE_ASSERT(hdkey);
+    JADE_ASSERT(index);
+    JADE_ASSERT(keychain_get());
 
-    if (wally_map_get_item(keypaths, ikey, key_data_out, key_data_out_len, written) != WALLY_OK
-        || *written < BIP32_KEY_FINGERPRINT_LEN || *written > key_data_out_len
-        || (*written - BIP32_KEY_FINGERPRINT_LEN) % sizeof(uint32_t) != 0) {
-        JADE_LOGE("Unable to process keydata for key %u", ikey);
+    struct ext_key* nextkey = NULL;
+    JADE_WALLY_VERIFY(
+        wally_map_keypath_get_bip32_key_from_alloc(keypaths, start_index, &keychain_get()->xpriv, &nextkey));
+    if (!nextkey) {
+        // No key of ours here
         return false;
     }
 
-    // Check fingerprint matches
-    if (memcmp(fingerprint, key_data_out, fingerprint_len)) {
-        JADE_LOGD("Key %u not this signer", ikey);
-        return false;
-    }
+    // Copy and free the allocated key
+    memcpy(hdkey, nextkey, sizeof(struct ext_key));
+    JADE_WALLY_VERIFY(bip32_key_free(nextkey));
 
-    // Derive child key
-    const uint32_t* path = (uint32_t*)(key_data_out + BIP32_KEY_FINGERPRINT_LEN);
-    const size_t path_len = (*written - BIP32_KEY_FINGERPRINT_LEN) / sizeof(uint32_t);
-    if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PRIVATE, hdkey)) {
-        JADE_LOGE("Unable to derive child for key %u", ikey);
-        return false;
-    }
+    // Find the pubkey in the map and return the (0-based) index
+    JADE_WALLY_VERIFY(wally_map_find_bip32_public_key_from(keypaths, start_index, hdkey, index));
+    JADE_ASSERT(index); // 1-based - should def be found!
+    --*index; // reduce to 0-based
 
-    // Check derived pubkey key matches map key - may not as fingerprints not unique
-    size_t index = 0; // 1-based key index
-    if (wally_map_find(keypaths, hdkey->pub_key, sizeof(hdkey->pub_key), &index) != WALLY_OK || index != ikey + 1) {
-        JADE_LOGW("Unable to find derived pubkey in keypaths map - fingerprint collision?");
-        return false;
-    }
-
-    // Our key
     return true;
 }
 
@@ -90,9 +79,7 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
     }
     JADE_ASSERT(tx->num_inputs == psbt->num_inputs && tx->num_outputs == psbt->num_outputs);
 
-    // This signer's fingerprint and any private key in use
-    uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
-    wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
+    // Any private key in use
     struct ext_key hdkey;
     SENSITIVE_PUSH(&hdkey, sizeof(hdkey));
     int retval = 0;
@@ -122,23 +109,12 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
         }
         input_amount += utxo->satoshi;
 
-        // If we are signing this input, look at the script type
-        size_t num_keys = 0;
-        JADE_WALLY_VERIFY(wally_map_get_num_items(&input->keypaths, &num_keys));
-        for (size_t ikey = 0; ikey < num_keys; ++ikey) {
-            JADE_LOGD("Considering key %u", ikey);
-
-            // See if this is our key
-            size_t written = 0;
-            uint8_t key_data[BIP32_KEY_FINGERPRINT_LEN + (MAX_PATH_LEN * sizeof(uint32_t))];
-            if (!get_our_key(fingerprint, sizeof(fingerprint), &input->keypaths, ikey, key_data, sizeof(key_data),
-                    &written, &hdkey)) {
-                // This is not a valid key we can derive
-                continue;
-            }
-
+        // If we are signing this input, look at the script type, sighash, etc.
+        const size_t start_index_zero = 0;
+        size_t our_key_index = 0;
+        if (get_our_next_key(&input->keypaths, start_index_zero, &hdkey, &our_key_index)) {
             // Found our key - we are signing this input
-            JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", ikey, index);
+            JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", our_key_index, index);
             signing_inputs[index] = true;
 
             // Only support SIGHASH_ALL atm.
@@ -155,9 +131,6 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
                 const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len);
                 update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
             }
-
-            // No need to check further keys
-            break;
         }
         JADE_WALLY_VERIFY(wally_tx_output_free(utxo));
     }
@@ -200,17 +173,22 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
             }
 
             // See if this is our key
-            size_t written = 0;
-            uint8_t key_data[BIP32_KEY_FINGERPRINT_LEN + (MAX_PATH_LEN * sizeof(uint32_t))];
-            if (!get_our_key(fingerprint, sizeof(fingerprint), &output->keypaths, 0, key_data, sizeof(key_data),
-                    &written, &hdkey)) {
-                // This is not a valid key we can derive
+            const size_t start_index_zero = 0;
+            size_t our_key_index = 0;
+            if (!get_our_next_key(&output->keypaths, start_index_zero, &hdkey, &our_key_index)) {
+                // No key in this output belongs to this signer
+                JADE_LOGD("No key in input %u, ignoring", index);
                 continue;
             }
+            JADE_ASSERT(our_key_index == 0); // should only be one key present
+
+            // Get the key path, and check the penultimate element
+            size_t path_len = 0;
+            uint32_t path[MAX_PATH_LEN];
+            JADE_WALLY_VERIFY(
+                wally_map_keypath_get_item_path(&output->keypaths, our_key_index, path, MAX_PATH_LEN, &path_len));
 
             // Check the path
-            const uint32_t* path = (uint32_t*)(key_data + BIP32_KEY_FINGERPRINT_LEN);
-            const size_t path_len = (written - BIP32_KEY_FINGERPRINT_LEN) / sizeof(uint32_t);
             const bool is_change = true;
             bool change_path_as_expected = false;
             if (keychain_get_network_type_restriction() != NETWORK_TYPE_TEST) {
@@ -327,20 +305,8 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
 
         JADE_LOGD("Signing input %u", index);
         struct wally_psbt_input* input = &psbt->inputs[index];
-        size_t num_keys = 0;
-        JADE_WALLY_VERIFY(wally_map_get_num_items(&input->keypaths, &num_keys));
-        for (size_t ikey = 0; ikey < num_keys; ++ikey) {
-            JADE_LOGD("Considering key %u", ikey);
-
-            // See if this is our key
-            size_t written = 0;
-            uint8_t key_data[BIP32_KEY_FINGERPRINT_LEN + (MAX_PATH_LEN * sizeof(uint32_t))];
-            if (!get_our_key(fingerprint, sizeof(fingerprint), &input->keypaths, ikey, key_data, sizeof(key_data),
-                    &written, &hdkey)) {
-                // This is not a valid key we can derive
-                continue;
-            }
-
+        size_t key_index = 0; // Counter updated as we search for our key(s)
+        while (get_our_next_key(&input->keypaths, key_index, &hdkey, &key_index)) {
             // Try to sign the psbt for this key
             // NOTE: this will again search through all the signers on all the inputs looking for where
             // this key is needed, so not ideal by any stretch, but will do for an initial implementation.
@@ -349,6 +315,10 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
                 retval = CBOR_RPC_INTERNAL_ERROR;
                 goto cleanup;
             }
+
+            // Loop in case we need sign again - ie. we are multiple signers in a multisig
+            // Continue search from next key index position
+            ++key_index;
         }
     }
 
