@@ -82,11 +82,13 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    // Txn data must be present
-    if (!psbt->tx || psbt->tx->num_inputs != psbt->num_inputs || psbt->tx->num_outputs != psbt->num_outputs) {
+    // Txn data must be available
+    struct wally_tx* tx = NULL;
+    if (wally_psbt_extract(psbt, WALLY_PSBT_EXTRACT_NON_FINAL, &tx) != WALLY_OK || !tx) {
         *errmsg = "Failed to extract valid txn from passed psbt";
         return CBOR_RPC_BAD_PARAMETERS;
     }
+    JADE_ASSERT(tx->num_inputs == psbt->num_inputs && tx->num_outputs == psbt->num_outputs);
 
     // This signer's fingerprint and any private key in use
     uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
@@ -162,7 +164,7 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
 
     // Sanity check amounts
     uint64_t output_amount;
-    JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(psbt->tx, &output_amount));
+    JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &output_amount));
     if (output_amount > input_amount) {
         *errmsg = "Invalid input/output amounts";
         retval = CBOR_RPC_BAD_PARAMETERS;
@@ -257,7 +259,7 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
 
     // User to verify outputs and fee amount
     gui_activity_t* first_activity = NULL;
-    make_display_output_activity(TAG_MAINNET, psbt->tx, output_info, &first_activity);
+    make_display_output_activity(TAG_MAINNET, tx, output_info, &first_activity);
     JADE_ASSERT(first_activity);
     gui_set_current_activity(first_activity);
 
@@ -355,6 +357,7 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
 
 cleanup:
     SENSITIVE_POP(&hdkey);
+    JADE_WALLY_VERIFY(wally_tx_free(tx));
     free(signing_inputs);
     free(output_info);
     return retval;
