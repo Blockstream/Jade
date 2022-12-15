@@ -27,6 +27,7 @@ bool wallet_derive_pubkey(const uint8_t* serialised_key, size_t key_len, const u
 bool wallet_derive_from_xpub(
     const char* xpub, const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* hdkey);
 
+size_t script_length_for_variant(const script_variant_t variant);
 const char* get_script_variant_string(script_variant_t variant);
 bool get_script_variant(const char* variant, size_t variant_len, script_variant_t* output);
 bool get_singlesig_variant_from_script_type(size_t script_type, script_variant_t* variant);

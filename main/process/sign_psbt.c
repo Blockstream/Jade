@@ -22,6 +22,10 @@
 
 static void wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
 
+// Cache what type of inputs we are signing
+#define PSBT_SIGNING_SINGLESIG 0x1
+#define PSBT_SIGNING_MULTISIG 0x2
+
 // Helper to get next key derived from the signer master key in the passed keypath map.
 // NOTE: Both start_index and found_index are zero-based.
 // The return indicates whether any key was found - and if so hdkey and index will be populated.
@@ -51,6 +55,139 @@ static bool get_our_next_key(
     --*index; // reduce to 0-based
 
     return true;
+}
+
+// Helper to generate a singlesig script of the given type with the pubkey given, and
+// compare it to the target script provided.
+// Returns true if then generated script matches the target script.
+static bool verify_singlesig_script_matches(const script_variant_t script_variant, const struct ext_key* hdkey,
+    const uint8_t* target_script, const size_t target_script_len)
+{
+    JADE_ASSERT(is_singlesig(script_variant));
+    JADE_ASSERT(hdkey);
+    JADE_ASSERT(target_script);
+
+    // Check expected script length
+    if (script_length_for_variant(script_variant) != target_script_len) {
+        JADE_LOGE("Receive script unexpected size");
+        return false;
+    }
+
+    // Build our script
+    size_t trial_script_len = 0;
+    uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
+    if (!wallet_build_singlesig_script(script_variant, hdkey->pub_key, sizeof(hdkey->pub_key), trial_script,
+            sizeof(trial_script), &trial_script_len)) {
+        // Failed to build script
+        JADE_LOGE("Receive script cannot be constructed");
+        return false;
+    }
+
+    // Compare generated script to that expected/in the txn
+    if (trial_script_len != target_script_len || sodium_memcmp(target_script, trial_script, trial_script_len) != 0) {
+        JADE_LOGW("Receive script failed validation");
+        return false;
+    }
+
+    // Script matches
+    return true;
+}
+
+// Examine outputs for change we can automatically validate
+static void validate_any_change_outputs(
+    struct wally_psbt* psbt, const uint8_t signing_flags, output_info_t* output_info, struct ext_key* hdkey)
+{
+    JADE_ASSERT(psbt);
+    JADE_ASSERT(signing_flags);
+    JADE_ASSERT(output_info);
+    JADE_ASSERT(hdkey);
+
+    // Check each output in turn
+    for (size_t index = 0; index < psbt->num_outputs; ++index) {
+        struct wally_psbt_output* const output = &psbt->outputs[index];
+        JADE_LOGD("Considering output %u for change", index);
+
+        // Find the first key belonging to this signer
+        const size_t start_index_zero = 0;
+        size_t our_key_index = 0;
+        if (!get_our_next_key(&output->keypaths, start_index_zero, hdkey, &our_key_index)) {
+            // No key in this output belongs to this signer
+            JADE_LOGD("No key in input %u, ignoring", index);
+            continue;
+        }
+
+        // Get the key path, and check the penultimate element
+        size_t path_len = 0;
+        uint32_t path[MAX_PATH_LEN];
+        JADE_WALLY_VERIFY(
+            wally_map_keypath_get_item_path(&output->keypaths, our_key_index, path, MAX_PATH_LEN, &path_len));
+        if (path_len < 2 || path[path_len - 2] != 1) {
+            // Does not look like a change output, from the path
+            JADE_LOGD("Not the expected penultimate change path element for output %u", index);
+            continue;
+        }
+
+        // Get the output scriptpubkey
+        uint8_t tx_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
+        size_t tx_script_len = 0;
+        if (wally_psbt_get_output_script(psbt, index, tx_script, sizeof(tx_script), &tx_script_len) != WALLY_OK
+            || tx_script_len > sizeof(tx_script)) {
+            JADE_LOGE("Failed to get output script for output %u", index);
+            continue;
+        }
+
+        size_t num_keys = 0;
+        JADE_WALLY_VERIFY(wally_map_get_num_items(&output->keypaths, &num_keys));
+        if (num_keys == 1) {
+            JADE_ASSERT(our_key_index == 0); // only key present
+
+            // Skip if we did not sign any singlesig inputs
+            if (!(signing_flags & PSBT_SIGNING_SINGLESIG)) {
+                JADE_LOGD("Ignoring singlesig output %u as not signing singlesig inputs", index);
+                continue;
+            }
+
+            // Get our script 'variant'
+            size_t script_type;
+            script_variant_t script_variant;
+            if (wally_scriptpubkey_get_type(tx_script, tx_script_len, &script_type) != WALLY_OK
+                || !get_singlesig_variant_from_script_type(script_type, &script_variant)) {
+                JADE_LOGE("Failed to get valid script variant type");
+                continue;
+            }
+
+            // Check that we can generate a script that matches the tx
+            if (!verify_singlesig_script_matches(script_variant, hdkey, tx_script, tx_script_len)) {
+                JADE_LOGW("Receive script failed validation");
+                continue;
+            }
+
+            // Change path valid and matches tx output script
+            JADE_LOGI("Output %u singlesig change path/script validated", index);
+            output_info[index].is_validated_change_address = true;
+
+            // Check the path is as expected
+            const bool is_change = true;
+            bool change_path_as_expected = false;
+            if (keychain_get_network_type_restriction() != NETWORK_TYPE_TEST) {
+                change_path_as_expected
+                    |= wallet_is_expected_singlesig_path(TAG_MAINNET, script_variant, is_change, path, path_len);
+            }
+            if (!change_path_as_expected && keychain_get_network_type_restriction() != NETWORK_TYPE_MAIN) {
+                change_path_as_expected
+                    |= wallet_is_expected_singlesig_path(TAG_TESTNET, script_variant, is_change, path, path_len);
+            }
+            if (!change_path_as_expected) {
+                // Not our standard change path - add warning
+                char path_str[96];
+                const bool have_path_str = bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
+                const int ret = snprintf(output_info[index].message, sizeof(output_info[index].message),
+                    "Unusual change path: %s", have_path_str ? path_str : "too long");
+                JADE_ASSERT(ret > 0 && ret < sizeof(output_info[index].message));
+            }
+        }
+        // TODO: handle testing multisig outputs
+    }
 }
 
 // Sign a psbt - the passed wally psbt struct is updated with any signatures.
@@ -96,6 +233,7 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
     // Record which inputs we are interested in signing
     bool* const signing_inputs = JADE_CALLOC(psbt->num_inputs, sizeof(bool));
     uint64_t input_amount = 0;
+    uint8_t signing_flags = 0;
     for (size_t index = 0; index < psbt->num_inputs; ++index) {
         struct wally_psbt_input* input = &psbt->inputs[index];
 
@@ -116,6 +254,10 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
             // Found our key - we are signing this input
             JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", our_key_index, index);
             signing_inputs[index] = true;
+
+            size_t num_keys = 0;
+            JADE_WALLY_VERIFY(wally_map_get_num_items(&input->keypaths, &num_keys));
+            signing_flags |= (num_keys > 1 ? PSBT_SIGNING_MULTISIG : PSBT_SIGNING_SINGLESIG);
 
             // Only support SIGHASH_ALL atm.
             if (input->sighash && input->sighash != WALLY_SIGHASH_ALL) {
@@ -145,94 +287,8 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
     }
 
     // Examine outputs for change we can automatically validate
-    // We only handle singlesig change atm, so skip if signing only multisig inputs
-    if (aggregate_inputs_scripts_flavour != SCRIPT_FLAVOUR_MULTISIG) {
-        for (size_t index = 0; index < psbt->num_outputs; ++index) {
-            struct wally_psbt_output* const output = &psbt->outputs[index];
-            JADE_LOGD("Considering output %u for change", index);
-
-            // Ignore multisig outputs for initial release
-            size_t num_keys = 0;
-            JADE_WALLY_VERIFY(wally_map_get_num_items(&output->keypaths, &num_keys));
-            if (num_keys != 1) {
-                continue;
-            }
-
-            size_t script_type;
-            script_variant_t script_variant;
-            uint8_t tx_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
-            size_t tx_script_len = 0;
-            if (wally_psbt_get_output_script(psbt, index, tx_script, sizeof(tx_script), &tx_script_len) != WALLY_OK
-                || tx_script_len > sizeof(tx_script)) {
-                JADE_LOGE("Failed to get output script for output %u", index);
-                continue;
-            }
-            if (wally_scriptpubkey_get_type(tx_script, tx_script_len, &script_type) != WALLY_OK
-                || !get_singlesig_variant_from_script_type(script_type, &script_variant)) {
-                continue;
-            }
-
-            // See if this is our key
-            const size_t start_index_zero = 0;
-            size_t our_key_index = 0;
-            if (!get_our_next_key(&output->keypaths, start_index_zero, &hdkey, &our_key_index)) {
-                // No key in this output belongs to this signer
-                JADE_LOGD("No key in input %u, ignoring", index);
-                continue;
-            }
-            JADE_ASSERT(our_key_index == 0); // should only be one key present
-
-            // Get the key path, and check the penultimate element
-            size_t path_len = 0;
-            uint32_t path[MAX_PATH_LEN];
-            JADE_WALLY_VERIFY(
-                wally_map_keypath_get_item_path(&output->keypaths, our_key_index, path, MAX_PATH_LEN, &path_len));
-
-            // Check the path
-            const bool is_change = true;
-            bool change_path_as_expected = false;
-            if (keychain_get_network_type_restriction() != NETWORK_TYPE_TEST) {
-                change_path_as_expected
-                    |= wallet_is_expected_singlesig_path(TAG_MAINNET, script_variant, is_change, path, path_len);
-            }
-            if (!change_path_as_expected && keychain_get_network_type_restriction() != NETWORK_TYPE_MAIN) {
-                change_path_as_expected
-                    |= wallet_is_expected_singlesig_path(TAG_TESTNET, script_variant, is_change, path, path_len);
-            }
-            if (!change_path_as_expected) {
-                // Not our standard change path - add warning
-                char path_str[96];
-                const bool have_path_str = bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
-                const int ret = snprintf(output_info[index].message, sizeof(output_info[index].message),
-                    "Unusual change path: %s", have_path_str ? path_str : "too long");
-                JADE_ASSERT(ret > 0 && ret < sizeof(output_info[index].message));
-                continue;
-            }
-
-            // Build our script
-            uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
-            size_t trial_script_len = 0;
-            if (!wallet_build_singlesig_script(script_variant, hdkey.pub_key, sizeof(hdkey.pub_key), trial_script,
-                    sizeof(trial_script), &trial_script_len)) {
-                // Failed to build script
-                JADE_LOGE("Receive script cannot be constructed");
-                *errmsg = "Change script cannot be constructed";
-                retval = CBOR_RPC_BAD_PARAMETERS;
-                goto cleanup;
-            }
-
-            // Compare generated script to that expected/in the txn
-            if (trial_script_len != tx_script_len || sodium_memcmp(tx_script, trial_script, trial_script_len) != 0) {
-                JADE_LOGE("Receive script failed validation");
-                *errmsg = "Change script cannot be validated";
-                retval = CBOR_RPC_BAD_PARAMETERS;
-                goto cleanup;
-            }
-
-            // Change path valid and matches tx output script
-            JADE_LOGI("Output %u change path/script validated", index);
-            output_info[index].is_validated_change_address = true;
-        }
+    if (signing_flags) {
+        validate_any_change_outputs(psbt, signing_flags, output_info, &hdkey);
     }
 
     // User to verify outputs and fee amount

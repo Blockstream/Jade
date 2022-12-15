@@ -128,9 +128,10 @@ bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, c
     return true;
 }
 
-static size_t script_length_for_variant(const script_variant_t script_variant)
+// Get expected length of script for passed variant
+size_t script_length_for_variant(const script_variant_t variant)
 {
-    switch (script_variant) {
+    switch (variant) {
     case P2PKH:
         return WALLY_SCRIPTPUBKEY_P2PKH_LEN;
     case P2WPKH:
@@ -143,7 +144,7 @@ static size_t script_length_for_variant(const script_variant_t script_variant)
     case MULTI_P2WSH:
         return WALLY_SCRIPTPUBKEY_P2WSH_LEN;
     default:
-        JADE_ASSERT_MSG(false, "Unknown script type %d", script_variant);
+        return 0;
     }
 }
 
