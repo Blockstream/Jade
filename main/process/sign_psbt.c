@@ -121,7 +121,8 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
         input_amount += utxo->satoshi;
 
         // If we are signing this input, look at the script type
-        const size_t num_keys = input->keypaths.num_items;
+        size_t num_keys = 0;
+        JADE_WALLY_VERIFY(wally_map_get_num_items(&input->keypaths, &num_keys));
         for (size_t ikey = 0; ikey < num_keys; ++ikey) {
             JADE_LOGD("Considering key %u", ikey);
 
@@ -176,7 +177,9 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
             JADE_LOGD("Considering output %u for change", index);
 
             // Ignore multisig outputs for initial release
-            if (output->keypaths.num_items != 1) {
+            size_t num_keys = 0;
+            JADE_WALLY_VERIFY(wally_map_get_num_items(&output->keypaths, &num_keys));
+            if (num_keys != 1) {
                 continue;
             }
 
@@ -316,7 +319,8 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
 
         JADE_LOGD("Signing input %u", index);
         struct wally_psbt_input* input = &psbt->inputs[index];
-        const size_t num_keys = input->keypaths.num_items;
+        size_t num_keys = 0;
+        JADE_WALLY_VERIFY(wally_map_get_num_items(&input->keypaths, &num_keys));
         for (size_t ikey = 0; ikey < num_keys; ++ikey) {
             JADE_LOGD("Considering key %u", ikey);
 
