@@ -305,13 +305,34 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
 
         JADE_LOGD("Signing input %u", index);
         struct wally_psbt_input* input = &psbt->inputs[index];
+
+        // Get the scriptpubkey or redeemscript, then the actual signing script, then the txhash
+        uint8_t script[WALLY_SCRIPTSIG_MAX_LEN]; // Sufficient
+        uint8_t scriptcode[WALLY_SCRIPTSIG_MAX_LEN]; // Sufficient
+        uint8_t txhash[WALLY_TXHASH_LEN];
+        size_t script_len = 0;
+        size_t scriptcode_len = 0;
+        if (wally_psbt_get_input_signing_script(psbt, index, script, sizeof(script), &script_len) != WALLY_OK
+            || script_len > sizeof(script)
+            || wally_psbt_get_input_scriptcode(
+                   psbt, index, script, script_len, scriptcode, sizeof(scriptcode), &scriptcode_len)
+                != WALLY_OK
+            || scriptcode_len > sizeof(scriptcode)
+            || wally_psbt_get_input_signature_hash(
+                   psbt, index, tx, scriptcode, scriptcode_len, 0, txhash, sizeof(txhash))
+                != WALLY_OK) {
+            JADE_LOGE("Failed to generate tx input hash");
+            *errmsg = "Failed to generate tx input hash";
+            retval = CBOR_RPC_INTERNAL_ERROR;
+            goto cleanup;
+        }
+
         size_t key_index = 0; // Counter updated as we search for our key(s)
         while (get_our_next_key(&input->keypaths, key_index, &hdkey, &key_index)) {
-            // Try to sign the psbt for this key
-            // NOTE: this will again search through all the signers on all the inputs looking for where
-            // this key is needed, so not ideal by any stretch, but will do for an initial implementation.
-            if (wally_psbt_sign(psbt, hdkey.priv_key + 1, sizeof(hdkey.priv_key) - 1, EC_FLAG_GRIND_R) != WALLY_OK) {
-                *errmsg = "Failed to sign psbt";
+            // Sign the input with this key
+            if (wally_psbt_sign_input_bip32(psbt, index, key_index, txhash, sizeof(txhash), &hdkey, EC_FLAG_GRIND_R)
+                != WALLY_OK) {
+                *errmsg = "Failed to generate signature";
                 retval = CBOR_RPC_INTERNAL_ERROR;
                 goto cleanup;
             }
