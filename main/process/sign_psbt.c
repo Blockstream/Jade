@@ -185,8 +185,14 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
 
             size_t script_type;
             script_variant_t script_variant;
-            struct wally_tx_output* const txoutput = &psbt->tx->outputs[index];
-            if (wally_scriptpubkey_get_type(txoutput->script, txoutput->script_len, &script_type) != WALLY_OK
+            uint8_t tx_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
+            size_t tx_script_len = 0;
+            if (wally_psbt_get_output_script(psbt, index, tx_script, sizeof(tx_script), &tx_script_len) != WALLY_OK
+                || tx_script_len > sizeof(tx_script)) {
+                JADE_LOGE("Failed to get output script for output %u", index);
+                continue;
+            }
+            if (wally_scriptpubkey_get_type(tx_script, tx_script_len, &script_type) != WALLY_OK
                 || !get_singlesig_variant_from_script_type(script_type, &script_variant)) {
                 continue;
             }
@@ -224,10 +230,10 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
             }
 
             // Build our script
-            uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
-            size_t script_len = 0;
-            if (!wallet_build_singlesig_script(
-                    script_variant, hdkey.pub_key, sizeof(hdkey.pub_key), script, sizeof(script), &script_len)) {
+            uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
+            size_t trial_script_len = 0;
+            if (!wallet_build_singlesig_script(script_variant, hdkey.pub_key, sizeof(hdkey.pub_key), trial_script,
+                    sizeof(trial_script), &trial_script_len)) {
                 // Failed to build script
                 JADE_LOGE("Receive script cannot be constructed");
                 *errmsg = "Change script cannot be constructed";
@@ -236,7 +242,7 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
             }
 
             // Compare generated script to that expected/in the txn
-            if (script_len != txoutput->script_len || sodium_memcmp(txoutput->script, script, script_len) != 0) {
+            if (trial_script_len != tx_script_len || sodium_memcmp(tx_script, trial_script, trial_script_len) != 0) {
                 JADE_LOGE("Receive script failed validation");
                 *errmsg = "Change script cannot be validated";
                 retval = CBOR_RPC_BAD_PARAMETERS;
