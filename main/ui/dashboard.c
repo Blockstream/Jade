@@ -1107,3 +1107,97 @@ void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entri
         gui_set_parent(text, btn);
     }
 }
+
+void make_mining_screen(gui_activity_t** activity_ptr, const size_t block_count, const char* address,
+    const uint64_t coinbasevalue, gui_view_node_t** hashrate_textbox)
+{
+    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(address);
+    JADE_INIT_OUT_PPTR(hashrate_textbox);
+
+    char title[32];
+    int ret = snprintf(title, sizeof(title), "Mining block %u", block_count);
+    JADE_ASSERT(ret > 0 && ret < sizeof(title));
+    gui_make_activity(activity_ptr, true, title);
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 30, 25, 45);
+    gui_set_padding(vsplit, GUI_MARGIN_TWO_VALUES, 4, 4);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    // Row 1 - hash rate
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 45, 40, 15);
+        gui_set_parent(hsplit, vsplit);
+
+        gui_view_node_t* txtRateTitle;
+        gui_make_text_font(&txtRateTitle, "Hash Rate:", TFT_WHITE, GUI_DEFAULT_FONT);
+        gui_set_align(txtRateTitle, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_parent(txtRateTitle, hsplit);
+
+        gui_view_node_t* bckgrnd;
+        gui_make_fill(&bckgrnd, TFT_BLACK);
+        gui_set_parent(bckgrnd, hsplit);
+
+        gui_view_node_t* txtRate;
+        gui_make_text_font(&txtRate, "--", TFT_WHITE, GUI_DEFAULT_FONT);
+        gui_set_align(txtRate, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+        gui_set_parent(txtRate, bckgrnd);
+        *hashrate_textbox = txtRate;
+
+        gui_view_node_t* txths;
+        gui_make_text_font(&txths, "h/s", TFT_WHITE, GUI_DEFAULT_FONT);
+        gui_set_align(txths, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(txths, hsplit);
+    }
+
+    // Row 2 - block reward
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 45, 40, 15);
+        gui_set_parent(hsplit, vsplit);
+
+        gui_view_node_t* txtRewardTitle;
+        gui_make_text_font(&txtRewardTitle, "Block Reward:", TFT_WHITE, GUI_DEFAULT_FONT);
+        gui_set_align(txtRewardTitle, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_parent(txtRewardTitle, hsplit);
+
+        char rewardstr[128];
+        const uint32_t high = coinbasevalue / 1000000000;
+        const uint32_t low = coinbasevalue % 1000000000;
+        if (high > 0) {
+            ret = snprintf(rewardstr, sizeof(rewardstr), "%lu%09lu", high, low);
+        } else {
+            ret = snprintf(rewardstr, sizeof(rewardstr), "%lu", low);
+        }
+        JADE_ASSERT(ret > 0 && ret < sizeof(rewardstr));
+
+        gui_view_node_t* txtReward;
+        gui_make_text_font(&txtReward, rewardstr, TFT_WHITE, GUI_DEFAULT_FONT);
+        gui_set_align(txtReward, GUI_ALIGN_RIGHT, GUI_ALIGN_TOP);
+        gui_set_parent(txtReward, hsplit);
+
+        gui_view_node_t* txsats;
+        gui_make_text_font(&txsats, "sats", TFT_WHITE, GUI_DEFAULT_FONT);
+        gui_set_align(txsats, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+        gui_set_parent(txsats, hsplit);
+    }
+
+    // Row 3 - address
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 15, 85);
+        gui_set_parent(hsplit, vsplit);
+
+        gui_view_node_t* txtTo;
+        gui_make_text_font(&txtTo, "To:", TFT_WHITE, GUI_DEFAULT_FONT);
+        gui_set_align(txtTo, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_parent(txtTo, hsplit);
+
+        gui_view_node_t* txtAddress;
+        gui_make_text_font(&txtAddress, address, TFT_WHITE, GUI_DEFAULT_FONT);
+        gui_set_align(txtAddress, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_parent(txtAddress, hsplit);
+    }
+}

@@ -348,6 +348,49 @@ class JadeAPI:
         """
         return self._jadeRpc('get_version_info')
 
+    def mine(self, version, previousblockhash, target, curtime, bits, height, address):
+        """
+        RPC call to start mining.
+        Parameters
+        ----------
+        version : uint32_t
+        previousblockhash : bytes
+        target : bytes
+        curtime : uint32_t
+        bits : uint32_t
+        height : uint32_t
+        address: string
+
+        Returns
+        -------
+        bool
+            If mining started correctly
+
+        """
+        params = {'version': version,
+                  'previousblockhash': previousblockhash,
+                  'target': target,
+                  'curtime': curtime,
+                  'bits': bits,
+                  'height': height,
+                  'address': address}
+        return self._jadeRpc('mine', params)
+
+    def mine_check(self):
+        """
+        RPC call to get mining results.
+        Parameters
+        ----------
+
+        Returns
+        -------
+        bytes
+            Contains block header and the coinbase transaction or a bool set to
+            True if no block was found
+
+        """
+        return self._jadeRpc('mine_check')
+
     def add_entropy(self, entropy):
         """
         RPC call to add client entropy into the unit RNG entropy pool.

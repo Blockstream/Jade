@@ -39,6 +39,8 @@ static inline void ble_start(void) { JADE_ASSERT(false); }
 
 #include <esp_chip_info.h>
 #include <esp_mac.h>
+#include <esp_timer.h>
+#include <miner.h>
 #include <sodium/utils.h>
 #include <time.h>
 
@@ -128,6 +130,9 @@ void make_session_screen(gui_activity_t** activity_ptr);
 void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** ble_status_textbox);
 void make_device_screen(
     gui_activity_t** activity_ptr, const char* power_status, const char* mac, const char* firmware_version);
+
+void make_mining_screen(gui_activity_t** activity_ptr, size_t block_count, const char* address, uint64_t coinbasevalue,
+    gui_view_node_t** hashrate_textbox);
 
 // Wallet initialisation function
 void initialise_with_mnemonic(bool temporary_restore, bool force_qr_scan);
@@ -318,6 +323,131 @@ static void process_logout_request(jade_process_t* process)
     jade_process_reply_to_message_ok(process);
 }
 
+static void on_new_solution(void* ctx, const uint8_t* data, uint32_t length)
+{
+    bytes_info_t r = { .data = data, .size = length };
+
+    uint8_t buf[MAX_STANDARD_OUTPUT_MSG_SIZE];
+    /* FIXME: retain the source and pass it rather than hardcode it */
+    jade_process_reply_to_message_result_with_id("1337", buf, sizeof(buf), SOURCE_SERIAL, &r, cbor_result_bytes_cb);
+}
+
+static void update_hash_rate(void* mctx, gui_view_node_t* txthashrate)
+{
+    JADE_ASSERT(mctx);
+    JADE_ASSERT(txthashrate);
+
+    uint32_t hashrate = 0;
+    check_speed(mctx, &hashrate);
+
+    char ratestr[16]; // let's be optimistic!
+    const int ret = snprintf(ratestr, sizeof(ratestr), "%lu", hashrate);
+    JADE_ASSERT(ret < sizeof(ratestr));
+    gui_update_text(txthashrate, ratestr);
+}
+
+static void mining_process(void* process_ptr)
+{
+#if ESP_IDF_VERSION_MAJOR > 4
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
+#else
+    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+#endif
+    jade_process_t* process = process_ptr;
+    void* mctx = NULL;
+    while (true) {
+
+        ASSERT_CURRENT_MESSAGE(process, "mine");
+        GET_MSG_PARAMS(process);
+        size_t version = 0;
+        size_t height = 0;
+        size_t bits = 0;
+        size_t curtime = 0;
+        const uint8_t* previousblockhash = NULL;
+        const uint8_t* target = NULL;
+
+        if (!rpc_get_sizet("version", &params, &version) || !rpc_get_sizet("height", &params, &height)
+            || !rpc_get_sizet("bits", &params, &bits) || !rpc_get_sizet("curtime", &params, &curtime) || !curtime
+            || !height) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad mine parameters", NULL);
+            goto cleanup;
+        }
+
+        size_t written = 0;
+
+        rpc_get_bytes_ptr("previousblockhash", &params, &previousblockhash, &written);
+        if (!previousblockhash || written != 32) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad mine parameters", NULL);
+            goto cleanup;
+        }
+        written = 0;
+        rpc_get_bytes_ptr("target", &params, &target, &written);
+        if (!target || written != 32) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad mine parameters", NULL);
+            goto cleanup;
+        }
+        written = 0;
+        /* FIXME: put max address length */
+        char address[80];
+        rpc_get_string("address", sizeof(address), &params, address, &written);
+        /* FIXME: put smallest address */
+        if (written < 20) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad mine parameters", NULL);
+            goto cleanup;
+        }
+
+        if (mctx == NULL) {
+            start_miners(&mctx, on_new_solution, process);
+        }
+        const uint64_t coinbasevalue
+            = on_new_target(mctx, version, previousblockhash, target, curtime, bits, height, address);
+
+        jade_process_reply_to_message_ok(process);
+
+        gui_activity_t* act = NULL;
+        gui_view_node_t* txthashrate = NULL;
+        make_mining_screen(&act, height, address, coinbasevalue, &txthashrate);
+        JADE_ASSERT(act);
+        JADE_ASSERT(txthashrate);
+
+        update_hash_rate(mctx, txthashrate);
+        gui_set_current_activity(act);
+
+        uint64_t start = esp_timer_get_time();
+        while (true) {
+            jade_process_load_in_message(process, false);
+            if (process->ctx.cbor) {
+                if (IS_CURRENT_MESSAGE(process, "mine")) {
+                    /* time to update the template */
+                    break;
+                } else if (IS_CURRENT_MESSAGE(process, "stop")) {
+                    stop_miners(mctx);
+                    jade_process_reply_to_message_ok(process);
+                    goto cleanup;
+                } else {
+                    /* we received a stop message or something else so we stop */
+                    stop_miners(mctx);
+                    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad mine parameters", NULL);
+                    goto cleanup;
+                }
+            }
+            if (!check_solutions(mctx)) {
+                const uint64_t now = esp_timer_get_time();
+                if ((now - start) > 2000000) {
+                    /* update gui every 2 second */
+                    /* FIXME: disable display after 5 mins of not touching buttons if mining */
+                    update_hash_rate(mctx, txthashrate);
+                    start = now;
+                }
+                vTaskDelay(50 / portTICK_PERIOD_MS);
+            }
+        }
+    }
+
+cleanup:
+    JADE_LOGI("miner cleanup reached");
+}
+
 // method_name should be a string literal - or at least non-null and nul terminated
 #define IS_METHOD(method_name) (!strncmp(method, method_name, method_len) && strlen(method_name) == method_len)
 
@@ -359,6 +489,9 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("cancel")) {
         // 'cancel' is completely ignored (as nothing is 'in-progress' to cancel)
         JADE_LOGD("Received 'cancel' request - no-op");
+    } else if (IS_METHOD("mine")) {
+        JADE_LOGD("Received mine request");
+        task_function = mining_process;
     } else if (IS_METHOD("ota")) {
         // OTA is allowed if either:
         // a) User has passed PIN screen and has unlocked Jade saved wallet
