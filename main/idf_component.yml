@@ -1,0 +1,4 @@
+dependencies:
+  espressif/esp32-camera: "==2.0.3"
+  idf:
+    version: "==4.4.4"
