@@ -319,8 +319,9 @@ static void encode_hdkey(CborEncoder* encoder, const uint32_t fingerprint, const
 
     // The hdkey for the passed path
     struct ext_key hdkey;
-    const bool ret = wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &hdkey);
+    const bool ret = wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC, &hdkey);
     JADE_ASSERT(ret);
+    JADE_ASSERT(hdkey.depth == path_len);
 
     // hdkey
     CborEncoder key_map_encoder;
@@ -339,6 +340,7 @@ static void encode_hdkey(CborEncoder* encoder, const uint32_t fingerprint, const
     cberr = cbor_encode_byte_string(&key_map_encoder, hdkey.chain_code, sizeof(hdkey.chain_code));
     JADE_ASSERT(cberr == CborNoError);
 
+    // origin information
     cberr = cbor_encode_uint(&key_map_encoder, 6);
     JADE_ASSERT(cberr == CborNoError);
     {
@@ -365,15 +367,16 @@ static void encode_hdkey(CborEncoder* encoder, const uint32_t fingerprint, const
             JADE_ASSERT(cberr == CborNoError);
         }
 
-        // parent fingerprint - immediate parent, or root parent of the path given ?
+        // origin fingerprint - ie. master key fingerprint
         cberr = cbor_encode_uint(&key_path_map_encoder, 2);
         JADE_ASSERT(cberr == CborNoError);
         cberr = cbor_encode_uint(&key_path_map_encoder, fingerprint);
         JADE_ASSERT(cberr == CborNoError);
 
+        // path length / depth
         cberr = cbor_encode_uint(&key_path_map_encoder, 3);
         JADE_ASSERT(cberr == CborNoError);
-        cberr = cbor_encode_uint(&key_path_map_encoder, 3);
+        cberr = cbor_encode_uint(&key_path_map_encoder, hdkey.depth);
         JADE_ASSERT(cberr == CborNoError);
 
         // Close the path map
@@ -381,10 +384,13 @@ static void encode_hdkey(CborEncoder* encoder, const uint32_t fingerprint, const
         JADE_ASSERT(cberr == CborNoError);
     }
 
-    // parent fingerprint - immediate parent, or root parent of the path given ?
+    // parent fingerprint - immediate parent
+    uint32_t parentfp = 0;
+    uint32_to_be(*(uint32_t*)hdkey.parent160, (uint8_t*)(&parentfp));
+
     cberr = cbor_encode_uint(&key_map_encoder, 8);
     JADE_ASSERT(cberr == CborNoError);
-    cberr = cbor_encode_uint(&key_map_encoder, fingerprint);
+    cberr = cbor_encode_uint(&key_map_encoder, parentfp);
     JADE_ASSERT(cberr == CborNoError);
 
     // Close the key map
