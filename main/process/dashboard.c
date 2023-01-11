@@ -1157,7 +1157,7 @@ static void handle_pinserver_scan(void)
     char* type;
     uint8_t* data = NULL;
     size_t data_len = 0;
-    if (!bcur_scan_qr("Scan PinServer\ndetails QR", &type, &data, &data_len)) {
+    if (!bcur_scan_qr("Scan QR", "Scan PinServer\ndetails QR", &type, &data, &data_len)) {
         // Scan aborted
         JADE_ASSERT(!type);
         JADE_ASSERT(!data);

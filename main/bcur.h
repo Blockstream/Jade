@@ -42,7 +42,7 @@ bool bcur_build_cbor_crypto_psbt(const struct wally_psbt* psbt, uint8_t** output
 // If not BC-UR, the scanned payload is returned with a type of NULL.
 // In either case the caller takes ownership, and must free the output data bytes and any type string.
 // Returns false if scanning fails or is abandoned - in which case there is nothing to free.
-bool bcur_scan_qr(const char* prompt_text, char** output_type, uint8_t** output, size_t* output_len);
+bool bcur_scan_qr(const char* title, const char* prompt_text, char** output_type, uint8_t** output, size_t* output_len);
 
 // Encodes the passed payload into a set of one or more BC-UR fragments with the given 'type'.
 // These are then rendered as a set of QR codes of the passed version/size.

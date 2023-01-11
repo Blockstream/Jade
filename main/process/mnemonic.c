@@ -178,7 +178,7 @@ static void mnemonic_export_qr(const char* mnemonic)
 
         // Verify QR by scanning it back
         qr_data_t qr_data = { .len = 0 };
-        jade_camera_scan_qr(&qr_data, "\nScan created\nQR to verify");
+        jade_camera_scan_qr(&qr_data, "Scan QR", "\nScan created\nQR to verify");
         if (qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
             // QR Code scanned, and it matched expected entropy
             await_message_activity("QR Code Verified");
@@ -1083,9 +1083,9 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     SENSITIVE_PUSH(&qr_data, sizeof(qr_data));
     mnemonic[0] = '\0';
 
-    // we return 'true' if we scanned any string data at all
+    // We return 'true' if we scanned any string data at all
     const bool qr_scanned
-        = jade_camera_scan_qr(&qr_data, "Scan supported\nwallet recovery\nQR code") && qr_data.len > 0;
+        = jade_camera_scan_qr(&qr_data, "Scan QR", "Scan supported\nwallet recovery\nQR code") && qr_data.len > 0;
     if (!qr_scanned) {
         JADE_LOGW("No qr code scanned");
         goto cleanup;

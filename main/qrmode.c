@@ -849,7 +849,7 @@ void handle_scan_qr(void)
     char* type = NULL;
     uint8_t* data = NULL;
     size_t data_len = 0;
-    if (!bcur_scan_qr("Scan supported\nQR code", &type, &data, &data_len) || !data) {
+    if (!bcur_scan_qr("Scan QR", "Scan supported\nQR code", &type, &data, &data_len) || !data) {
         // Scan aborted
         JADE_ASSERT(!type);
         JADE_ASSERT(!data);

@@ -171,7 +171,7 @@ void debug_scan_qr_process(void* process_ptr)
 
     // Attempt to scan a qr
     qr_data_t qr_data = { .len = 0 };
-    if (!jade_camera_scan_qr(&qr_data, "Test Scan\n(fixed image)")) {
+    if (!jade_camera_scan_qr(&qr_data, "Test Scan QR", "Test Scan\n(fixed image)")) {
         JADE_LOGW("QR scanning failed!");
     }
 
