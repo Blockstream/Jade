@@ -209,7 +209,7 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     // 4. Locked - has persisted/encrypted keys, but no keys in memory
     //    - LOCKED
     // 5. Uninitialised - has no persisted/encrypted keys and no keys in memory
-    //    - UNINT
+    //    - UNINIT
 
     const bool has_pin = keychain_has_pin();
     const bool has_keys = keychain_get() != NULL;

@@ -180,7 +180,7 @@ def ota(jade, verinfo, fwcompressed, fwlength, patchlen=None):
         print(f'Total OTA time: {time.time() - start_time}s')
     except JadeError as err:
         logger.error(f'OTA failed or abandoned: {err}')
-        print('OTA incompelte')
+        print('OTA incomplete')
 
 
 if __name__ == '__main__':
