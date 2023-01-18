@@ -13,3 +13,4 @@ esptool.py --chip esp32 merge_bin --fill-flash-size 4MB -o ${FLASH_IMAGE_FILE} \
 0x10000 build/jade.bin
 
 cp main/qemu/qemu_efuse.bin /qemu_efuse.bin
+chmod 777 /qemu_efuse.bin ${FLASH_IMAGE_FILE}

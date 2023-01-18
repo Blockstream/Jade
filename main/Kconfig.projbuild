@@ -179,7 +179,8 @@ menu "Blockstream Jade"
         bool "Enable Camera Functions"
         help
             Enables camera functionality
-            default n
+            select HTTPD_WS_SUPPORT if ETH_USE_OPENETH
+            default y if BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE || (ETH_USE_OPENETH && HTTPD_WS_SUPPORT)
 
     menu "Camera Rotation"
         visible if HAS_CAMERA && BOARD_TYPE_CUSTOM
@@ -349,7 +350,7 @@ menu "Blockstream Jade"
         config DISP_ORIENTATION_DEFAULT
             int "Set orientation default"
             range 0 3
-            default 3 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY || BOARD_TYPE_M5_STICKC_PLUS
+            default 3 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY || BOARD_TYPE_M5_STICKC_PLUS || ETH_USE_OPENETH
             default 1 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
             default 0 if BOARD_TYPE_DEV
         config DISP_RGB_BGR

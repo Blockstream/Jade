@@ -268,7 +268,7 @@ bool jade_process_push_in_message(const uint8_t* data, const size_t size)
 void jade_process_push_out_message(const uint8_t* data, const size_t size, const jade_msg_source_t source)
 {
 #if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
-    JADE_ASSERT(source == SOURCE_QEMU_TCP || source == SOURCE_SERIAL);
+    JADE_ASSERT(source == SOURCE_QEMU_TCP || source == SOURCE_SERIAL || source == SOURCE_QR);
 #elif !defined(CONFIG_BT_ENABLED)
     JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_QR);
 #else

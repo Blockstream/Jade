@@ -28,7 +28,10 @@
 #include "random.h"
 #include "sensitive.h"
 #include "serial.h"
-#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
+#ifdef CONFIG_ETH_USE_OPENETH
+#ifdef CONFIG_HAS_CAMERA
+#include "qemu_display.h"
+#endif
 #include "qemu_tcp.h"
 #endif
 
@@ -62,7 +65,7 @@ static void ensure_boot_flags(void)
 #endif
 }
 
-#ifdef CONFIG_HAS_CAMERA
+#if defined(CONFIG_HAS_CAMERA) && !defined(CONFIG_ETH_USE_OPENETH)
 static bool rnd_camera_feed(
     const size_t width, const size_t height, const uint8_t* data, const size_t len, void* ctx_data)
 {
@@ -73,7 +76,7 @@ static bool rnd_camera_feed(
     refeed_entropy(data, len);
     return ++*counter > 10;
 }
-#endif // CONFIG_HAS_CAMERA
+#endif // CONFIG_HAS_CAMERA && !CONFIG_ETH_USE_OPENETH
 
 static void boot_process(void)
 {
@@ -123,11 +126,17 @@ static void boot_process(void)
         JADE_ABORT();
     }
 
-#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
+#ifdef CONFIG_ETH_USE_OPENETH
     if (!qemu_tcp_init(qemu_tcp_handle)) {
         JADE_LOGI("Failed to start qemu tcp handler");
         JADE_ABORT();
     }
+#ifdef CONFIG_HAS_CAMERA
+    if (!qemu_start_display_webserver()) {
+        JADE_LOGI("Failed to start qemu web display");
+        JADE_ABORT();
+    }
+#endif
 #endif
 
     sensitive_init();
@@ -136,7 +145,7 @@ static void boot_process(void)
     // We spend a bit of time initialising random while the splash screen is being shown
     random_full_initialization();
 
-#ifdef CONFIG_HAS_CAMERA
+#if defined(CONFIG_HAS_CAMERA) && !defined(CONFIG_ETH_USE_OPENETH)
     size_t counter = 0;
     jade_camera_process_images(&rnd_camera_feed, &counter, NULL, NULL, NULL, NULL);
 #endif

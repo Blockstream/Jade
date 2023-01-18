@@ -73,6 +73,7 @@ static void post_exit_event_and_await_death(void)
     }
 }
 
+#ifndef CONFIG_ETH_USE_OPENETH
 static void jade_camera_init(void)
 {
     const esp_err_t ret = power_camera_on();
@@ -136,6 +137,7 @@ static void jade_camera_init(void)
         }
     }
 }
+#endif
 
 // Stop the camera
 static void jade_camera_stop(void)
@@ -193,7 +195,9 @@ static void jade_camera_task(void* data)
 
     // Initialise the camera
     sensitive_init();
+#ifndef CONFIG_ETH_USE_OPENETH
     jade_camera_init();
+#endif
     vTaskDelay(500 / portTICK_PERIOD_MS);
     void* image_buffer = NULL;
     Picture pic = {};
@@ -320,7 +324,6 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* t
     JADE_ASSERT(text_label || !help_url);
     JADE_ASSERT(text_label || !progress_bar);
 
-// At the moment camera only supported by Jade devices
 #ifdef CONFIG_HAS_CAMERA
     // Config for the camera task
     camera_task_config_t camera_config = { .text_label = text_label,
