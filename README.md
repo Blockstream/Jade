@@ -12,6 +12,8 @@ To build you can use the docker image (see Dockerfile) or install the esp-idf to
 Note the supplied docker-compose.yml assumes the Jade device is at
 dev/ttyUSB0.
 
+Note the below instructions assume an original Jade v1.0 hardware with a true wheel.
+When using the later Jade v1.1 hw revision with a rocker/jog-wheel, use 'configs/sdkconfig_jade_v1_1.defaults' in place of 'configs/sdkconfig_jade.defaults'.
 ```
 (local)$ docker-compose up -d
 (local)$ docker-compose exec dev bash
