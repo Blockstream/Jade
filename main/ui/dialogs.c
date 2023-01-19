@@ -246,14 +246,14 @@ static void make_yesno_activity(
     gui_make_activity(activity_ptr, title, title);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // First row, message text
     gui_view_node_t* text;
     gui_make_text(&text, message, TFT_WHITE);
     gui_set_parent(text, vsplit);
-    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 8, 8);
+    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 4, 8);
     gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
     // second row, Yes and No buttons
