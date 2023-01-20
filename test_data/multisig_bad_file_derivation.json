@@ -2,5 +2,5 @@
   "input": {
     "multisig_file": "multisig_bad_file_derivation.dat"
   },
-  "expected_error": "Derivation path too long"
+  "expected_error": "Invalid derivation path"
 }

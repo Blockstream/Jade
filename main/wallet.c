@@ -101,6 +101,7 @@ void wallet_init(void)
     JADE_WALLY_VERIFY(bip32_key_from_base58(TESTNETLIQUID_SERVICE_XPUB, &TESTNETLIQUID_SERVICE));
 }
 
+// Outputs eg. "m/a'/b'/c/d" - ie. uses m/ as mnaster, and ' as hardened indicator
 bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len)
 {
     JADE_ASSERT(output);
@@ -124,6 +125,58 @@ bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, c
             return false;
         }
         pos += nchars;
+    }
+    return true;
+}
+
+// Accepts "m/a/b/c/d" - accepts m/ or M/ as master, and h, H or ' as hardened indicators
+bool bip32_path_from_str(
+    const char* pathstr, const size_t str_len, uint32_t* path, const size_t path_len, size_t* written)
+{
+    JADE_ASSERT(pathstr);
+    JADE_ASSERT(str_len);
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len);
+    JADE_INIT_OUT_SIZE(written);
+
+    const char* ptr = pathstr;
+    const char* const str_end = pathstr + str_len;
+    if ((*ptr != 'm' && *ptr != 'M') || *++ptr != '/') {
+        JADE_LOGE("Unexpected bip32 path prefix: %s", pathstr);
+        return false;
+    }
+
+    // Iterate over string of path elements
+    while (++ptr < str_end) {
+        if (*written >= path_len) {
+            JADE_LOGE("Unexpected bip32 path length: %s", pathstr);
+            return false;
+        }
+
+        // Isolate current path element
+        const char* element_end = memchr(ptr, '/', str_end - ptr);
+        if (!element_end) {
+            element_end = str_end;
+        }
+        const char* last_char = element_end - 1;
+        const bool hardened = *last_char == '\'' || *last_char == 'h' || *last_char == 'H';
+
+        // Read numeric value into path array
+        char* end = NULL;
+        path[*written] = strtoul(ptr, &end, 10);
+        if (end != (hardened ? last_char : element_end)) {
+            JADE_LOGE("Unexpected bip32 path element: %.*s in %s", element_end - ptr, ptr, pathstr);
+            return false;
+        }
+        if (hardened) {
+            path[*written] = harden(path[*written]);
+        }
+
+        // Path element populated
+        ++*written;
+
+        // Jump past this value
+        ptr = element_end;
     }
     return true;
 }

@@ -367,48 +367,11 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
         } else if (IS_FIELD(MSIG_FILE_DERIVATION)) {
             // "m/a/b/c/d" - accepts m/ or M/ as master, and h, H or ' as hardened indicators
             // NOTE: allowed to see derivation element multiple times (eg once per signer)
-            const char* ptr = value;
-            if ((*ptr != 'm' && *ptr != 'M') || *++ptr != '/') {
-                JADE_LOGE("Unexpected derivation path: %s", value);
+            if (!bip32_path_from_str(value, value_end - value, path, sizeof(path) / sizeof(path[0]), &path_len)
+                || !path_len) {
+                JADE_LOGE("Invalid derivation path: %s", value);
                 *errmsg = "Invalid derivation path";
                 goto cleanup;
-            }
-
-            // Iterate over string of path elements
-            path_len = 0;
-            while (++ptr < value_end) {
-                const size_t path_len_bytes = path_len * sizeof(uint32_t);
-                if (path_len_bytes >= sizeof(path)) {
-                    JADE_LOGE("Unexpected derivation path size: %s", value);
-                    *errmsg = "Derivation path too long";
-                    goto cleanup;
-                }
-
-                // Isolate current path element
-                const char* element_end = memchr(ptr, '/', value_end - ptr);
-                if (!element_end) {
-                    element_end = value_end;
-                }
-                const char* last_char = element_end - 1;
-                const bool hardened = *last_char == '\'' || *last_char == 'h' || *last_char == 'H';
-
-                // Read numeric value into path array
-                char* end = NULL;
-                path[path_len] = strtoul(ptr, &end, 10);
-                if (end != (hardened ? last_char : element_end)) {
-                    JADE_LOGE("Unexpected derivation path: %s", value);
-                    *errmsg = "Invalid derivation path";
-                    goto cleanup;
-                }
-                if (hardened) {
-                    path[path_len] = harden(path[path_len]);
-                }
-
-                // Path element populated
-                ++path_len;
-
-                // Jump past this value
-                ptr = element_end;
             }
             fields_read |= FIELD_DERIVATION;
         } else if (name_len == BIP32_KEY_FINGERPRINT_LEN * 2) {
