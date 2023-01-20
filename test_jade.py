@@ -143,8 +143,7 @@ def _dicts_eq(lhs, rhs):
 BLE_TEST_PASSKEYFILE = "ble_test_passkey.txt"
 BLE_TEST_BADKEYFILE = "ble_test_badkey.txt"
 
-# The default serial device, and the serial read timeout
-DEFAULT_SERIAL_DEVICE = "/dev/ttyUSB0"
+# The default serial read timeout
 DEFAULT_SERIAL_TIMEOUT = 120
 
 # The pubkey for the test (in-proc) pinserver
@@ -3103,7 +3102,7 @@ if __name__ == '__main__':
                         action="store",
                         dest="serialport",
                         help="Serial port or device",
-                        default=DEFAULT_SERIAL_DEVICE)
+                        default=None)
 
     blegrp = parser.add_mutually_exclusive_group()
     blegrp.add_argument("--skipble",
