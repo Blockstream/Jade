@@ -293,7 +293,17 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
                     value[i] = '_';
                 }
             }
-            if (fields_read & FIELD_NAME || value_len >= MAX_MULTISIG_NAME_SIZE || !storage_key_name_valid(value)) {
+            if (fields_read & FIELD_NAME) {
+                JADE_LOGE("Repeated multisig name");
+                *errmsg = "Invalid multisig file";
+                goto cleanup;
+            }
+            if (value_len >= MAX_MULTISIG_NAME_SIZE) {
+                JADE_LOGE("Invalid multisig name: %s", value);
+                *errmsg = "Multisig name too long";
+                goto cleanup;
+            }
+            if (!storage_key_name_valid(value)) {
                 JADE_LOGE("Invalid multisig name: %s", value);
                 *errmsg = "Invalid multisig name";
                 goto cleanup;
@@ -304,7 +314,12 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
             // "N of M"
             char* space1 = memchr(value, ' ', value_len);
             char* space2 = space1 ? memchr(space1 + 1, ' ', value_end - (space1 + 1)) : NULL;
-            if (fields_read & FIELD_POLICY || !space1 || !space2 || space1 > value_end || space2 > value_end) {
+            if (fields_read & FIELD_POLICY) {
+                JADE_LOGE("Repeated multisig policy");
+                *errmsg = "Invalid multisig file";
+                goto cleanup;
+            }
+            if (!space1 || !space2 || space1 > value_end || space2 > value_end) {
                 JADE_LOGE("Invalid multisig policy: %s", value);
                 *errmsg = "Invalid multisig policy";
                 goto cleanup;
@@ -332,8 +347,8 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
             fields_read |= FIELD_POLICY;
         } else if (IS_FIELD(MSIG_FILE_FORMAT)) {
             if (fields_read & FIELD_FORMAT) {
-                JADE_LOGE("Invalid multisig format: %s", value);
-                *errmsg = "Invalid multisig format";
+                JADE_LOGE("Repeated multisig format");
+                *errmsg = "Invalid multisig file";
                 goto cleanup;
             }
             // Script type

@@ -2,5 +2,5 @@
   "input": {
     "multisig_file": "multisig_bad_file_duplicate_field1.dat"
   },
-  "expected_error": "Invalid multisig name"
+  "expected_error": "Invalid multisig file"
 }
