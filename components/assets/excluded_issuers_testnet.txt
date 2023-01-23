@@ -2,3 +2,4 @@ nft.dev.infinitefleet.net
 reusable-asset-domain.herokuapp.com
 test.bfungible.bcademy.xyz
 .*.ngrok.io
+thetiltedbitcoinfaucet.github.io

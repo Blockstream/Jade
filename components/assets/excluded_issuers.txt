@@ -5,3 +5,4 @@ artmirable.bfungible.network
 test.bfungible.bcademy.xyz
 nft.siliconlake.it
 stevenminnaar.com
+explorer.lightnite.io
