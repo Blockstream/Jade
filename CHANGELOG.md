@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.42] - 2022-01-22
+### Added
+- Support QR import of multisig wallet via common format
+- Support scanning and verifying registered multisig receive address QR
+- Support change output detection and verification for registered multisig wallets
+- Support scanning pinserver setup details via QR
+- Support scanning current epoch time QR (for TOTP)
+- Support scanning OTP setup QR directly from main 'Scan' page
+- Show signer/wallet fingerprint on main 'Ready' screen
+
+### Changed
+- Update Liquid asset registry info
+- Update libwally to 0.8.7, and to candidate 0.8.8 master commit
+- Update ESP-IDF base firmware to v4.4.2
+- qemu emulator port number changed from 2222 to 30121
+- Update python tools to default to first detected unit, rather than ttyUSB0
+
+### Fixed
+- Show timeout value on button label in Settings->Device menu
+- Respect any 'Use Passphrase' setting when using 'Recovery Phrase Login'
+
 ## [0.1.41] - 2022-11-09
 ### Added
 
