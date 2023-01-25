@@ -948,6 +948,19 @@ Request to sign a message string the given bip32 path, using RFC6979.
         }
     }
 
+ or:
+
+.. code-block:: cbor
+
+    {
+        "id": "6979",
+        "method": "sign_message"
+        "params": {
+            "message_file": "signmessage m/84h/0h/0h/0/0 ascii:this is a test message"
+        }
+    }
+
+
 .. _sign_message_legacy_reply:
 
 sign_message reply (legacy)

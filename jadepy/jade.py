@@ -943,6 +943,26 @@ class JadeAPI:
             params = {'path': path, 'message': message}
             return self._jadeRpc('sign_message', params)
 
+    def sign_message_file(self, message_file):
+        """
+        RPC call to format and sign the given message, using the given bip32 path.
+        A message file is provided - as produced by eg. Specter wallet.
+        Supports RFC6979 only.
+
+        Parameters
+        ----------
+        message_file : str
+            Message file to parse and produce signature for.
+            eg:  'signmessage m/84h/0h/0h/0/0 ascii:this is a test message'
+
+        Returns
+        -------
+        str
+            base64-encoded RFC6979 signature
+        """
+        params = {'message_file': message_file}
+        return self._jadeRpc('sign_message', params)
+
     def get_identity_pubkey(self, identity, curve, key_type, index=0):
         """
         RPC call to fetch a pubkey for the given identity (slip13/slip17).

@@ -1,0 +1,6 @@
+{
+  "input": {
+    "filedata": "m/0 ascii:missing prefix"
+  },
+  "expected_error": "Invalid prefix"
+}

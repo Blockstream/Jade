@@ -1,0 +1,6 @@
+{
+  "input": {
+    "filedata": "signmessage m/0 ascii:"
+  },
+  "expected_error": "Invalid message bytes"
+}

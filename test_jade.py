@@ -386,6 +386,7 @@ MULTI_REG_SS_TESTS = "multisig_reg_ss_*.json"
 MULTI_REG_FILE_TESTS = "multisig_file_*.json"
 MULTI_REG_BAD_FILE_TESTS = "multisig_bad_file_*.json"
 SIGN_MSG_TESTS = "msg_*.json"
+SIGN_MSG_FILE_TESTS = "msgfile_*.json"
 SIGN_IDENTITY_TESTS = "identity_*.json"
 SIGN_TXN_TESTS = "txn_*.json"
 SIGN_TXN_FAIL_CASES = "badtxn_*.json"
@@ -2172,6 +2173,22 @@ def test_sign_message(jadeapi):
         _check_msg_signature(jadeapi, msg_data, rslt)
 
 
+def test_sign_message_file(jadeapi):
+    for msg_data in _get_test_cases(SIGN_MSG_FILE_TESTS):
+        inputdata = msg_data['input']
+        expected_output = msg_data.get('expected_output')
+        expected_error = msg_data.get('expected_error')
+        assert expected_output or expected_error
+
+        try:
+            rslt = jadeapi.sign_message_file(inputdata['filedata'])
+            assert expected_error is None, 'Expected error: ' + expected_error
+            assert rslt == expected_output, 'Expected output: ' + expected_output
+        except JadeError as e:
+            assert expected_output is None, 'Expected output: ' + expected_output
+            assert e.message == expected_error, 'Expected error: ' + expected_error
+
+
 def test_sign_tx(jadeapi, pattern):
     for txn_data in _get_test_cases(pattern):
         inputdata = txn_data['input']
@@ -2391,8 +2408,9 @@ def test_generic_multisig_files(jadeapi):
         multisig_filename = multisig_file_test['input']['multisig_file']
         with open('./test_data/' + multisig_filename, 'r') as f:
             multisig_file = f.read()
-            rslt = jadeapi.register_multisig_file(multisig_file)
-            assert rslt
+
+        rslt = jadeapi.register_multisig_file(multisig_file)
+        assert rslt
 
     # Check these multisig files *do not* load
     for multisig_file_test in _get_test_cases(MULTI_REG_BAD_FILE_TESTS):
@@ -2790,6 +2808,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_get_greenaddress_receive_address(jadeapi)
     test_get_xpubs(jadeapi)
     test_sign_message(jadeapi)
+    test_sign_message_file(jadeapi)
 
     # Sign Tx - includes some failure cases
     test_sign_tx(jadeapi, SIGN_TXN_TESTS)

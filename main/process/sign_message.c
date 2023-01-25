@@ -11,6 +11,9 @@
 
 #include <wally_anti_exfil.h>
 
+static const char SIGN_MESSAGE_FILE_PREFIX[] = "signmessage";
+static const char SIGN_MESSAGE_FILE_LABEL_ASCII[] = "ascii";
+
 // GDK logon parameters
 static const uint32_t GDK_CHALLENGE_LENGTH = 32;
 static const char GDK_CHALLENGE_PREFIX[] = "greenaddress.it      login ";
@@ -23,6 +26,120 @@ static inline bool isGdkLoginChallenge(
     JADE_ASSERT(message);
     return path_len == 1 && path[0] == GDK_CHALLENGE_PATH && msg_len == GDK_CHALLENGE_LENGTH
         && !strncmp(message, GDK_CHALLENGE_PREFIX, sizeof(GDK_CHALLENGE_PREFIX) - 1);
+}
+
+// Ask the user to confirm signing the message
+static bool confirm_sign_message(
+    const char* message, const size_t msg_len, const uint8_t* message_hash, const size_t hash_len, const char* pathstr)
+{
+    char* message_hex = NULL;
+    gui_activity_t* activity = NULL;
+    if (msg_len < MAX_DISPLAY_MESSAGE_LEN) {
+        // Sufficiently short message - display the message
+        make_sign_message_activity(&activity, message, msg_len, false, pathstr);
+    } else {
+        // Overlong message - display the hash
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(message_hash, sizeof(message_hash), &message_hex));
+        make_sign_message_activity(&activity, message_hex, strlen(message_hex), true, pathstr);
+    }
+    JADE_ASSERT(activity);
+    gui_set_current_activity(activity);
+
+    int32_t ev_id;
+    // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    const bool ret = true;
+    ev_id = BTN_ACCEPT_SIGNATURE;
+#endif
+    if (message_hex) {
+        JADE_WALLY_VERIFY(wally_free_string(message_hex));
+    }
+
+    // Return whether user accepted signing
+    return ret && ev_id == BTN_ACCEPT_SIGNATURE;
+}
+
+int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output, const size_t sig_len, size_t* written,
+    const char** errmsg)
+{
+    JADE_ASSERT(str);
+    JADE_ASSERT(str_len);
+    JADE_ASSERT(sig_output);
+    JADE_ASSERT(sig_len >= EC_SIGNATURE_LEN * 2); // Should be len * 4/3 plus any padding, so * 2 is plenty.
+    JADE_INIT_OUT_SIZE(written);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    const char* ptr = str;
+    const char* const str_end = str + str_len;
+
+    // Parse file - 3 fields on one line expected
+    // signmessage <bip32 path> ascii:<message text>
+
+    // 'signmessage' prefix
+    const char* end = memchr(ptr, ' ', str_len);
+    if (!end || end - ptr != sizeof(SIGN_MESSAGE_FILE_PREFIX) - 1
+        || strncasecmp(ptr, SIGN_MESSAGE_FILE_PREFIX, end - ptr)) {
+        *errmsg = "Invalid prefix";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
+
+    // bip32 path - parse, then print back as standardised nul-terminated string
+    ptr = end + 1;
+    end = memchr(ptr, ' ', str_end - ptr);
+    uint32_t path[MAX_PATH_LEN];
+    size_t path_len = 0;
+    if (!bip32_path_from_str(ptr, end - ptr, path, sizeof(path) / sizeof(path[0]), &path_len) || !path_len) {
+        *errmsg = "Invalid bip32 path";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
+
+    char pathstr[64];
+    if (!bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr))) {
+        *errmsg = "Invalid bip32 path";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
+
+    // 'ascii:' prefix
+    ptr = end + 1;
+    end = memchr(ptr, ':', str_end - ptr);
+    if (!end || end - ptr != sizeof(SIGN_MESSAGE_FILE_LABEL_ASCII) - 1
+        || strncasecmp(ptr, SIGN_MESSAGE_FILE_LABEL_ASCII, end - ptr)) {
+        *errmsg = "Invalid message prefix";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
+
+    // Get the message string and compute the hash
+    ptr = end + 1;
+    if (ptr >= str_end || *ptr == '\0') {
+        *errmsg = "Invalid message bytes";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
+
+    const size_t len = str_end - ptr;
+    uint8_t message_hash[SHA256_LEN];
+    if (!wallet_get_message_hash((const uint8_t*)ptr, len, message_hash, sizeof(message_hash))) {
+        *errmsg = "Failed to get message hash";
+        return CBOR_RPC_INTERNAL_ERROR;
+    }
+
+    // Ask the user to confirm signing the message
+    if (!confirm_sign_message(ptr, len, message_hash, sizeof(message_hash), pathstr)) {
+        JADE_LOGW("User declined to sign message");
+        *errmsg = "User declined to sign message";
+        return CBOR_RPC_USER_CANCELLED;
+    }
+
+    // Compute the signature and send back to caller
+    if (!wallet_sign_message_hash(
+            message_hash, sizeof(message_hash), path, path_len, NULL, 0, sig_output, sig_len, written)) {
+        *errmsg = "Failed to sign message";
+        return CBOR_RPC_INTERNAL_ERROR;
+    }
+    return 0;
 }
 
 /*
@@ -42,6 +159,33 @@ void sign_message_process(void* process_ptr)
     ASSERT_CURRENT_MESSAGE(process, "sign_message");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
+
+    // We accept a signing file, as produced by Specter wallet app (at least)
+    if (rpc_has_field_data("message_file", &params)) {
+        const char* message_file = NULL;
+        size_t message_file_len = 0;
+        rpc_get_string_ptr("message_file", &params, &message_file, &message_file_len);
+        if (!message_file || !message_file_len) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid sign message file data", NULL);
+            goto cleanup;
+        }
+
+        uint8_t signature[EC_SIGNATURE_LEN * 2]; // Sufficient
+        size_t written = 0;
+        const char* errmsg = NULL;
+        const int errcode
+            = sign_message_file(message_file, message_file_len, signature, sizeof(signature), &written, &errmsg);
+        if (errcode) {
+            jade_process_reject_message(process, errcode, errmsg, NULL);
+            goto cleanup;
+        }
+
+        JADE_ASSERT(written);
+        JADE_ASSERT(written < sizeof(signature));
+        JADE_ASSERT(signature[written - 1] == '\0');
+        jade_process_reply_to_message_result(process->ctx, (const char*)signature, cbor_result_string_cb);
+        return;
+    }
 
     const char* message = NULL;
     size_t msg_len = 0;
@@ -70,8 +214,8 @@ void sign_message_process(void* process_ptr)
         goto cleanup;
     }
 
-    char path_as_str[64];
-    if (!bip32_path_as_str(path, path_len, path_as_str, sizeof(path_as_str))) {
+    char pathstr[64];
+    if (!bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr))) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
         goto cleanup;
     }
@@ -97,38 +241,12 @@ void sign_message_process(void* process_ptr)
     if (auto_sign) {
         JADE_LOGI("Auto-signing GDK login challenge message");
     } else {
-        gui_activity_t* activity = NULL;
-        if (msg_len < MAX_DISPLAY_MESSAGE_LEN) {
-            // Sufficiently short message - display the message
-            make_sign_message_activity(&activity, message, msg_len, false, path_as_str);
-        } else {
-            // Overlong message - display the hash
-            char* message_hex = NULL;
-            JADE_WALLY_VERIFY(wally_hex_from_bytes(message_hash, sizeof(message_hash), &message_hex));
-            jade_process_wally_free_string_on_exit(process, message_hex);
-            make_sign_message_activity(&activity, message_hex, strlen(message_hex), true, path_as_str);
-        }
-        JADE_ASSERT(activity);
-        gui_set_current_activity(activity);
-
-        int32_t ev_id;
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_ACCEPT_SIGNATURE;
-#endif
-
-        // Check to see whether user accepted or declined
-        if (!ret || ev_id != BTN_ACCEPT_SIGNATURE) {
+        // Ask the user to confirm signing the message
+        if (!confirm_sign_message(message, msg_len, message_hash, sizeof(message_hash), pathstr)) {
             JADE_LOGW("User declined to sign message");
             jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign message", NULL);
             goto cleanup;
         }
-
         JADE_LOGD("User pressed accept");
     }
 
@@ -182,12 +300,13 @@ void sign_message_process(void* process_ptr)
     size_t written = 0;
     uint8_t sig_output[EC_SIGNATURE_LEN * 2]; // Should be len * 4/3 plus any padding, so * 2 is plenty.
     if (!wallet_sign_message_hash(message_hash, sizeof(message_hash), path, path_len, ae_host_entropy,
-            ae_host_entropy_len, sig_output, sizeof(sig_output), &written)) {
+            ae_host_entropy_len, sig_output, sizeof(sig_output), &written)
+        || !written) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign message", NULL);
         goto cleanup;
     }
-    JADE_ASSERT(written < EC_SIGNATURE_LEN * 2);
-    JADE_ASSERT(strnlen((const char*)sig_output, EC_SIGNATURE_LEN * 2) + 1 == written);
+    JADE_ASSERT(written < sizeof(sig_output));
+    JADE_ASSERT(sig_output[written - 1] == '\0');
 
     jade_process_reply_to_message_result(process->ctx, (const char*)sig_output, cbor_result_string_cb);
 

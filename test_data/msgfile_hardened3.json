@@ -1,0 +1,6 @@
+{
+  "input": {
+    "filedata": "signmessage m/84H/0H/0/0 ascii:test hardened indicators"
+  },
+  "expected_output": "IMfZgjj9GtcZ8Ryh/WILwkwGDIgCxal85kZ/o7cIGa8JMb1g5yj3pMS3NEEHVCkEV5G6qIG5TGvWZmYgAk/oXoU="
+}

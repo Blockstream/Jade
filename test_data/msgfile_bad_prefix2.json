@@ -1,0 +1,6 @@
+{
+  "input": {
+    "filedata": "singmessage m/0 ascii:bad prefix"
+  },
+  "expected_error": "Invalid prefix"
+}

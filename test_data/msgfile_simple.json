@@ -1,0 +1,6 @@
+{
+  "input": {
+    "filedata": "signmessage M/0 ascii:Jade is cool"
+  },
+  "expected_output": "IHd2/Y65d1P7Gq6I6gTDoRql9eEsFEh7B8RtAJm+g+AdHuxT5hbMKN28Jlotxfp0LO3WLxPlJh61BQYPYL1uikw="
+}
