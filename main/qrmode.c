@@ -45,6 +45,8 @@ bool register_otp_string(const char* otp_uri, const size_t uri_len, const char**
 int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg);
 int update_pinserver(const CborValue* const params, const char** errmsg);
 int params_set_epoch_time(CborValue* params, const char** errmsg);
+int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output, const size_t sig_len, size_t* written,
+    const char** errmsg);
 
 // PSBT struct and functions
 struct wally_psbt;
@@ -657,6 +659,29 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
 
     const char* strbytes = (const char*)bytes;
 
+    // Try to handle as 'sign message' (specter format)
+    if (bytes_len > sizeof("signmessage") && !strncasecmp(strbytes, "signmessage", sizeof("signmessage") - 1)) {
+        // Looks like a 'signmessage' qr
+
+        uint8_t sig[EC_SIGNATURE_LEN * 2]; // Sufficient
+        size_t written = 0;
+        const char* errmsg = NULL;
+        const int errcode = sign_message_file(strbytes, bytes_len, sig, sizeof(sig), &written, &errmsg);
+        if (errcode) {
+            if (errcode != CBOR_RPC_USER_CANCELLED) {
+                JADE_LOGE("Processing 'signmessage' QR failed: %d, %s", errcode, errmsg);
+                await_error_activity(errmsg);
+            }
+            return false;
+        }
+        JADE_ASSERT(written);
+        JADE_ASSERT(written < sizeof(sig));
+        JADE_ASSERT(sig[written - 1] == '\0');
+
+        await_single_qr_activity("Signature", "Scan QR\nsignature", sig, written - 1);
+        return true;
+    }
+
     // Try to handle as otp string
     if (bytes_len > sizeof(OTP_SCHEMA_FULL) && !strncasecmp(strbytes, OTP_SCHEMA_FULL, sizeof(OTP_SCHEMA_FULL) - 1)) {
         // Looks like an OTP URI
@@ -676,8 +701,8 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         const char* errmsg = NULL;
         const int errcode = register_multisig_file(strbytes, bytes_len, &errmsg);
         if (errcode) {
-            JADE_LOGE("Processing multisig file failed: %s", errmsg);
             if (errcode != CBOR_RPC_USER_CANCELLED) {
+                JADE_LOGE("Processing multisig file failed: %s", errmsg);
                 await_error_activity(errmsg);
             }
             return false;
@@ -685,7 +710,7 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         return true;
     }
 
-    JADE_LOGW("Unhandled BC-UR BYTES message");
+    JADE_LOGW("Unhandled QR (bytes) message");
     await_error_activity("Unhandled QR payload");
     return false;
 }
@@ -869,8 +894,7 @@ void handle_scan_qr(void)
                 JADE_LOGW("Verifying address failed: %s", (const char*)data);
             }
         } else if (!handle_qr_bytes(data, data_len)) {
-            JADE_LOGW("Unhandled QR message");
-            await_error_activity("Failed to process QR code");
+            JADE_LOGW("Unhandled QR (as bytes) message");
         }
     }
 
