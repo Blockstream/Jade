@@ -219,6 +219,7 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
 {
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(mnemonic);
     JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
     // Generate and show the mnemonic - NOTE: only the English wordlist is supported.
@@ -400,7 +401,7 @@ static void enable_relevant_chars(const char* word, const size_t word_len, gui_a
     }
 
     bool enabled[26] = { false };
-    for (size_t wordlist_index = 0; wordlist_index < 2048; ++wordlist_index) {
+    for (size_t wordlist_index = 0; wordlist_index < BIP39_WORDLIST_LEN; ++wordlist_index) {
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
         JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
 
@@ -457,7 +458,7 @@ static size_t valid_words(const char* word, const size_t word_len, size_t* possi
         possible_word_list[i] = 0;
     }
 
-    for (size_t wordlist_index = 0; wordlist_index < 2048; ++wordlist_index) {
+    for (size_t wordlist_index = 0; wordlist_index < BIP39_WORDLIST_LEN; ++wordlist_index) {
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
         JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
 
@@ -499,6 +500,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
 {
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(mnemonic);
     JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
     // NOTE: only the English wordlist is supported.
