@@ -508,6 +508,47 @@ static size_t valid_words(const char* word, const size_t word_len, const size_t*
 }
 
 // NOTE: only the English wordlist is supported.
+static size_t valid_final_words(char** mnemonic_words, const size_t num_mnemonic_words, size_t* possible_word_list,
+    const size_t possible_word_list_len)
+{
+    JADE_ASSERT(mnemonic_words);
+    JADE_ASSERT(num_mnemonic_words == 11 || num_mnemonic_words == 23);
+    JADE_ASSERT(possible_word_list);
+    JADE_ASSERT(possible_word_list_len);
+
+    // Copy the mnemonic-thus-far into a work area
+    char buf[MNEMONIC_BUFLEN];
+    size_t offset = 0;
+    for (size_t i = 0; i < num_mnemonic_words; ++i) {
+        const size_t remaining = sizeof(buf) - offset;
+        const int ret = snprintf(buf + offset, remaining, mnemonic_words[i]);
+        JADE_ASSERT(ret > 0 && ret < remaining);
+        offset += ret;
+        buf[offset++] = ' ';
+    }
+
+    size_t num_possible_words = 0;
+    for (size_t wordlist_index = 0; wordlist_index < BIP39_WORDLIST_LEN; ++wordlist_index) {
+        char* wordlist_extracted = NULL;
+        JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
+        const size_t remaining = sizeof(buf) - offset;
+        const int ret = snprintf(buf + offset, remaining, wordlist_extracted);
+        JADE_ASSERT(ret >= 3 && ret < remaining && buf[offset + ret] == '\0');
+
+        if (bip39_mnemonic_validate(NULL, buf) == WALLY_OK) {
+            // Return first possible_word_list_len valid words
+            if (num_possible_words < possible_word_list_len) {
+                possible_word_list[num_possible_words] = wordlist_index;
+            }
+            ++num_possible_words;
+        }
+        JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
+    }
+
+    return num_possible_words;
+}
+
+// NOTE: only the English wordlist is supported.
 static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
 {
     // Support 12-word and 24-word mnemonics only
