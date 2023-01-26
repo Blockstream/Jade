@@ -329,9 +329,8 @@ void make_confirm_mnemonic_screen(gui_activity_t** activity_ptr, gui_view_node_t
     make_confirm_mnemonic_page(activity_ptr, text_box_ptr, confirm, words[confirm - 1], words[confirm + 1]);
 }
 
-// recover
-void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** backspace,
-    gui_view_node_t** enter, gui_view_node_t** keys, const size_t keys_len)
+void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, gui_view_node_t** textbox,
+    gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys, const size_t keys_len)
 {
     JADE_ASSERT(activity_ptr);
     JADE_INIT_OUT_PPTR(textbox);
@@ -413,41 +412,37 @@ void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** tex
     }
 }
 
-void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status)
+void make_select_word_page(gui_activity_t** activity_ptr, const char* title, const char* initial_label,
+    gui_view_node_t** textbox, gui_view_node_t** label)
 {
     JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(title);
+    JADE_ASSERT(initial_label);
     JADE_INIT_OUT_PPTR(textbox);
-    JADE_INIT_OUT_PPTR(status);
+    JADE_INIT_OUT_PPTR(label);
 
-    gui_make_activity(activity_ptr, true, "Recover Wallet");
-    (*activity_ptr)->selectables_wrap = true; // allow the button cursor to wrap
+    gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 45, 25, 30);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
-    // first row, message
+    // first row, label
     gui_view_node_t* text_bg;
     gui_make_fill(&text_bg, TFT_BLACK);
     gui_set_parent(text_bg, vsplit);
 
-    gui_view_node_t* text_status;
-    gui_make_text(&text_status, "", TFT_WHITE);
-    gui_set_parent(text_status, text_bg);
-    gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 1, 0);
-    gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    *status = text_status;
+    gui_view_node_t* text_label;
+    gui_make_text(&text_label, initial_label, TFT_WHITE);
+    gui_set_parent(text_label, text_bg);
+    gui_set_padding(text_label, GUI_MARGIN_TWO_VALUES, 1, 0);
+    gui_set_align(text_label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    *label = text_label;
 
-    // second row,
-    gui_view_node_t* padding_hsplit;
-    gui_make_hsplit(&padding_hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-    gui_set_margins(padding_hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);
-    gui_set_parent(padding_hsplit, vsplit);
-
-    // Third row, words
+    // second row, words
     gui_view_node_t* words_hsplit;
     gui_make_hsplit(&words_hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-    gui_set_margins(words_hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);
+    gui_set_margins(words_hsplit, GUI_MARGIN_TWO_VALUES, 0, 4);
     gui_set_parent(words_hsplit, vsplit);
 
     gui_view_node_t* text_left;
@@ -459,6 +454,7 @@ void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_nod
     gui_view_node_t* black_bg;
     gui_make_fill(&black_bg, TFT_BLACK);
     gui_set_parent(black_bg, words_hsplit);
+
     gui_view_node_t* text_select;
     gui_make_text(&text_select, "", TFT_WHITE);
     gui_set_text_noise(text_select, TFT_BLACK);
@@ -471,12 +467,6 @@ void make_recover_word_page_select10(gui_activity_t** activity_ptr, gui_view_nod
     gui_make_text_font(&text_right, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(text_right, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text_right, words_hsplit);
-
-    // Fourth row
-    gui_view_node_t* buttons_hsplit;
-    gui_make_hsplit(&buttons_hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-    gui_set_margins(buttons_hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);
-    gui_set_parent(buttons_hsplit, vsplit);
 }
 
 // confrm passphrase - note we use UBUNTU16_FONT to ensure all punctuation characters are

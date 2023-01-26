@@ -41,10 +41,10 @@ void make_show_mnemonic(
     gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], size_t nwords);
 void make_confirm_mnemonic_screen(
     gui_activity_t** activity_ptr, gui_view_node_t** text_box_ptr, size_t confirm, char* words[], size_t nwords);
-void make_recover_word_page(gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** backspace,
-    gui_view_node_t** enter, gui_view_node_t** keys, size_t keys_len);
-void make_recover_word_page_select10(
-    gui_activity_t** activity_ptr, gui_view_node_t** textbox, gui_view_node_t** status);
+void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, gui_view_node_t** textbox,
+    gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys, size_t keys_len);
+void make_select_word_page(gui_activity_t** activity_ptr, const char* title, const char* initial_label,
+    gui_view_node_t** textbox, gui_view_node_t** label);
 void make_using_passphrase_screen(gui_activity_t** activity_ptr);
 void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
 void make_confirm_qr_export_activity(gui_activity_t** activity_ptr);
@@ -501,13 +501,13 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
     const size_t btns_len = sizeof(btns) / sizeof(btns[0]);
     gui_view_node_t *textbox = NULL, *backspace = NULL, *enter = NULL;
     gui_activity_t* enter_word_activity = NULL;
-    make_recover_word_page(&enter_word_activity, &textbox, &backspace, &enter, btns, btns_len);
+    make_enter_wordlist_word_page(&enter_word_activity, &textbox, &backspace, &enter, btns, btns_len);
     JADE_ASSERT(enter_word_activity);
 
-    gui_view_node_t* textbox_list = NULL;
-    gui_view_node_t* status = NULL;
+    gui_view_node_t* text_selection = NULL;
+    gui_view_node_t* label = NULL;
     gui_activity_t* choose_word_activity = NULL;
-    make_recover_word_page_select10(&choose_word_activity, &textbox_list, &status);
+    make_select_word_page(&choose_word_activity, "Recover Wallet", "", &text_selection, &label);
     JADE_ASSERT(choose_word_activity);
 
     for (size_t word_index = 0; word_index < nwords; ++word_index) {
@@ -534,14 +534,14 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 const int ret
                     = snprintf(choose_word_title, sizeof(choose_word_title), "Select word %u", word_index + 1);
                 JADE_ASSERT(ret > 0 && ret < sizeof(choose_word_title));
-                gui_update_text(status, choose_word_title);
+                gui_update_text(label, choose_word_title);
 
                 bool stop = false;
                 int32_t ev_id = ESP_EVENT_ANY_ID;
                 uint8_t selected = 0;
                 char* wordlist_extracted = NULL;
                 JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_word_list[selected], &wordlist_extracted));
-                gui_update_text(textbox_list, wordlist_extracted);
+                gui_update_text(text_selection, wordlist_extracted);
                 JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
 
                 gui_set_current_activity(choose_word_activity);
@@ -573,11 +573,11 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                     if (!stop) {
                         // Selected word was changed
                         if (selected == possible_words) { // delete
-                            gui_update_text(textbox_list, "|");
+                            gui_update_text(text_selection, "|");
                         } else {
                             char* wordlist_extracted = NULL;
                             JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_word_list[selected], &wordlist_extracted));
-                            gui_update_text(textbox_list, wordlist_extracted);
+                            gui_update_text(text_selection, wordlist_extracted);
                             JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
                         }
                     }
