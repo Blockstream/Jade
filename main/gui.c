@@ -329,9 +329,18 @@ bool gui_select_prev(gui_activity_t* activity)
 void gui_select_node(gui_activity_t* activity, gui_view_node_t* node)
 {
     JADE_ASSERT(activity);
-    JADE_ASSERT(activity->selectables);
     JADE_ASSERT(node);
     JADE_ASSERT(node->is_active);
+
+    // If there are no selectables, it (probably) means the gui element
+    // has not been fully initialised/rendered yet.
+    // In this case we mark the node as the one to initially select when
+    // the activity is drawn for the first time, rather than trying to
+    // set the selection immediately.
+    if (!activity->selectables) {
+        gui_set_activity_initial_selection(activity, node);
+        return;
+    }
 
     selectable_t* const begin = activity->selectables;
     selectable_t* current = begin;
