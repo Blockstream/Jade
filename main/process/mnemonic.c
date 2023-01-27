@@ -365,10 +365,14 @@ cleanup:
 }
 
 // NOTE: only the English wordlist is supported.
-static void enable_relevant_chars(const char* word, const size_t word_len, gui_activity_t* act,
-    gui_view_node_t* backspace, gui_view_node_t** btns, const size_t btns_len)
+static void enable_relevant_chars(const char* word, const size_t word_len, const size_t* filter_word_list,
+    const size_t filter_word_list_size, gui_activity_t* act, gui_view_node_t* backspace, gui_view_node_t** btns,
+    const size_t btns_len)
 {
     JADE_ASSERT(word);
+    // word_len may be zero if no word entered as yet
+    // input_wordlist is optional
+    JADE_ASSERT(filter_word_list || !filter_word_list_size);
     JADE_ASSERT(act);
     JADE_ASSERT(backspace);
     JADE_ASSERT(btns);
@@ -384,7 +388,14 @@ static void enable_relevant_chars(const char* word, const size_t word_len, gui_a
     // No characters currently selected (ie. no word stem)
     bool enabled[26] = { false };
     uint8_t num_enabled = 0;
-    for (size_t wordlist_index = 0; wordlist_index < BIP39_WORDLIST_LEN; ++wordlist_index) {
+
+    // If an 'filter_word_list' is passed, we iterate that and use the entries as a lookup
+    // into the bip39 wordlist - if not passed we iterate the entire bip39 wordlist directly.
+    const size_t limit = filter_word_list ? filter_word_list_size : BIP39_WORDLIST_LEN;
+    for (size_t index = 0; index < limit; ++index) {
+        const size_t wordlist_index = filter_word_list ? filter_word_list[index] : index;
+        JADE_ASSERT(wordlist_index < BIP39_WORDLIST_LEN);
+
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
         JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
 
@@ -429,27 +440,36 @@ static void enable_relevant_chars(const char* word, const size_t word_len, gui_a
 }
 
 // NOTE: only the English wordlist is supported.
-static size_t valid_words(const char* word, const size_t word_len, size_t* possible_word_list,
-    const size_t possible_word_list_len, bool* exact_match)
+static size_t valid_words(const char* word, const size_t word_len, const size_t* filter_word_list,
+    const size_t filter_word_list_size, size_t* output_word_list, const size_t output_word_list_len, bool* exact_match)
 {
     JADE_ASSERT(word);
-    JADE_ASSERT(possible_word_list);
-    JADE_ASSERT(possible_word_list_len);
+    // word_len may be zero if no word entered as yet
+    // input_wordlist is optional
+    JADE_ASSERT(filter_word_list || !filter_word_list_size);
+    JADE_ASSERT(output_word_list);
+    JADE_ASSERT(output_word_list_len);
     JADE_ASSERT(exact_match);
 
     *exact_match = false;
     size_t num_possible_words = 0;
 
-    // If no word stem is given we can trivially return 'the whole wordlist'
-    if (!word_len) {
-        for (size_t i = 0; i < possible_word_list_len; ++i) {
-            possible_word_list[i] = i;
+    // If no word stem or filter_word_list is given we can trivially return 'the whole wordlist'
+    if (!word_len && !filter_word_list) {
+        for (size_t i = 0; i < output_word_list_len; ++i) {
+            output_word_list[i] = i;
         }
         return BIP39_WORDLIST_LEN;
     }
 
     // Otherwise we need to check the word prefixes match
-    for (size_t wordlist_index = 0; wordlist_index < BIP39_WORDLIST_LEN; ++wordlist_index) {
+    // If an 'filter_word_list' is passed, we iterate that and use the entries as a lookup
+    // into the bip39 wordlist - if not passed we iterate the entire bip39 wordlist directly.
+    const size_t limit = filter_word_list ? filter_word_list_size : BIP39_WORDLIST_LEN;
+    for (size_t index = 0; index < limit; ++index) {
+        const size_t wordlist_index = filter_word_list ? filter_word_list[index] : index;
+        JADE_ASSERT(wordlist_index < BIP39_WORDLIST_LEN);
+
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
         JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
 
@@ -474,9 +494,9 @@ static size_t valid_words(const char* word, const size_t word_len, size_t* possi
             *exact_match = true;
         }
 
-        // Return first possible_word_list_len compatible words
-        if (num_possible_words < possible_word_list_len) {
-            possible_word_list[num_possible_words] = wordlist_index;
+        // Return at most first output_word_list_len compatible words
+        if (num_possible_words < output_word_list_len) {
+            output_word_list[num_possible_words] = wordlist_index;
         }
 
         ++num_possible_words;
@@ -532,7 +552,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
             size_t possible_word_list[NUM_WORDS_SELECT];
             bool exact_match = false; // not interested in any case
             const size_t possible_words
-                = valid_words(word, char_index, possible_word_list, NUM_WORDS_SELECT, &exact_match);
+                = valid_words(word, char_index, NULL, 0, possible_word_list, NUM_WORDS_SELECT, &exact_match);
             JADE_ASSERT(possible_words > 0);
             JADE_ASSERT(char_index || possible_words == BIP39_WORDLIST_LEN);
 
@@ -612,7 +632,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 gui_set_current_activity(enter_word_activity);
 
                 // Update which letters are active/available
-                enable_relevant_chars(word, char_index, enter_word_activity, backspace, btns, btns_len);
+                enable_relevant_chars(word, char_index, NULL, 0, enter_word_activity, backspace, btns, btns_len);
 
                 // Wait for kb button click
                 int32_t ev_id;
@@ -707,9 +727,9 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
         JADE_ASSERT(end_ptr <= (const char*)qr_data->data + qr_data->len);
 
         // Lookup prefix in the default (English) wordlist, ensuring exactly one match
-        size_t possible_match;
+        size_t possible_match = 0;
         bool exact_match = false;
-        const size_t nmatches = valid_words(read_ptr, (end_ptr - read_ptr), &possible_match, 1, &exact_match);
+        const size_t nmatches = valid_words(read_ptr, (end_ptr - read_ptr), NULL, 0, &possible_match, 1, &exact_match);
         if (nmatches != 1 && !exact_match) {
             JADE_LOGW("%d matches for prefix: %.*s", nmatches, (end_ptr - read_ptr), read_ptr);
             return false;
