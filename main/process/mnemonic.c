@@ -450,14 +450,18 @@ static size_t valid_words(const char* word, const size_t word_len, size_t* possi
     JADE_ASSERT(possible_word_list_len);
     JADE_ASSERT(exact_match);
 
-    JADE_LOGD("word = %s, word_len = %u", word, word_len);
-
     *exact_match = false;
     size_t num_possible_words = 0;
-    for (size_t i = 0; i < possible_word_list_len; ++i) {
-        possible_word_list[i] = 0;
+
+    // If no word stem is given we can trivially return 'the whole wordlist'
+    if (!word_len) {
+        for (size_t i = 0; i < possible_word_list_len; ++i) {
+            possible_word_list[i] = i;
+        }
+        return BIP39_WORDLIST_LEN;
     }
 
+    // Otherwise we need to check the word prefixes match
     for (size_t wordlist_index = 0; wordlist_index < BIP39_WORDLIST_LEN; ++wordlist_index) {
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
         JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
@@ -466,7 +470,7 @@ static size_t valid_words(const char* word, const size_t word_len, size_t* possi
         const int32_t res = strncmp(wordlist_extracted, word, word_len);
 
         if (res < 0) {
-            // No there yet, continue to next work
+            // No there yet, continue to next word
             JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
             continue;
         } else if (res > 0) {
