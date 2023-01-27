@@ -380,63 +380,48 @@ static void enable_relevant_chars(const char* word, const size_t word_len, gui_a
     // TODO: are there any invalid characters to start the word?
 
     // No characters currently selected (ie. no word stem)
-    if (word_len == 0) {
-        // NOTE: Doing the below in this order appears to reduce drawing flicker.
-        // If we enable all buttons first, the previously selected button is drawn enabled
-        // and selected, then the selection switches to the new/randomly-chosen item.
-        // This can look a bit messy - so we activate and select the new button first,
-        // then enable the rest.
-
-        // First select a character button at random
-        const uint8_t initial = get_uniform_random_byte(btns_len);
-        gui_set_active(act, btns[initial], true);
-        gui_select_node(act, btns[initial]);
-
-        // Then enable all the (other) buttons
-        for (size_t i = 0; i < btns_len; ++i) {
-            gui_set_active(act, btns[i], true);
-        }
-
-        return;
-    }
-
     bool enabled[26] = { false };
+    uint8_t num_enabled = 0;
     for (size_t wordlist_index = 0; wordlist_index < BIP39_WORDLIST_LEN; ++wordlist_index) {
         char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
         JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
 
-        const int32_t res = strncmp(wordlist_extracted, word, word_len);
-        if (res < 0) {
-            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
-            continue;
-        } else if (res > 0) {
-            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
-            break;
+        // If we have the first letter(s) typed, we can a) skip all preceding words
+        // and also b) exit once we have passed beyond the relevant words.
+        if (word_len > 0) {
+            const int32_t res = strncmp(wordlist_extracted, word, word_len);
+            if (res < 0) {
+                // Not yet reached words with 'word' stem - loop to next word
+                JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
+                continue;
+            } else if (res > 0) {
+                // Gone past words with 'word' stem - may as well break
+                JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
+                break;
+            }
         }
 
+        // Wordlist word starts with given 'word' stem
+        // See what the next letter is, and ensure that character is enabled
+        // (Consider first letter of word if no given stem).
         const size_t char_index = wordlist_extracted[word_len] - 'a';
-        enabled[char_index] = true;
+        if (!enabled[char_index]) {
+            enabled[char_index] = true;
+            ++num_enabled;
+        }
 
         JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
     }
+    JADE_ASSERT(num_enabled > 0);
 
-    // As above, first mark the new selected item as active and selected,
-    // and then go through the other letters marking them as active (or not).
-    // NOTE: Doing this appears to reduce drawing flicker around selected item.
-    bool selectNext = true;
-    const size_t inserted_char_index = word[word_len - 1] - 'a';
-    if (enabled[inserted_char_index]) {
-        gui_set_active(act, btns[inserted_char_index], true);
-        gui_select_node(act, btns[inserted_char_index]);
-        selectNext = false;
-    }
-
+    // Select a random active letter as the selected one
+    uint8_t selected = get_uniform_random_byte(num_enabled);
     for (size_t i = 0; i < btns_len; ++i) {
         gui_set_active(act, btns[i], enabled[i]);
 
-        if (selectNext && enabled[i]) {
+        // If we haven't set a selected item yet, set it now
+        if (enabled[i] && !selected--) {
             gui_select_node(act, btns[i]);
-            selectNext = false;
         }
     }
 }
