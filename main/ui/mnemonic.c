@@ -469,6 +469,14 @@ void make_select_word_page(gui_activity_t** activity_ptr, const char* title, con
     gui_set_parent(text_right, words_hsplit);
 }
 
+void make_calculate_final_word_page(gui_activity_t** activity_ptr)
+{
+    btn_data_t btns[] = { { .txt = "Existing", .font = DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_EXISTING },
+        { .txt = "Calculate", .font = DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_CALCULATE } };
+    make_mnemonic_screen(activity_ptr, "Final Word",
+        "Enter final word from existing\nrecovery phrase or calculate\nvalid ones?", btns, 2);
+}
+
 // confrm passphrase - note we use UBUNTU16_FONT to ensure all punctuation characters are
 // displayed as expected (no font glyphs have been overridden/changed in this font)
 void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox)

@@ -27,6 +27,7 @@
 #define MNEMONIC_MAXWORDS 24
 #define MNEMONIC_BUFLEN 256
 
+#define MAX_NUM_FINAL_WORDS 128
 #define NUM_WORDS_SELECT 10
 
 #define PASSPHRASE_MAX_DISPLAY_LEN 16
@@ -45,6 +46,7 @@ void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, gui_view_node_
     gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys, size_t keys_len);
 void make_select_word_page(gui_activity_t** activity_ptr, const char* title, const char* initial_label,
     gui_view_node_t** textbox, gui_view_node_t** label);
+void make_calculate_final_word_page(gui_activity_t** activity_ptr);
 void make_using_passphrase_screen(gui_activity_t** activity_ptr);
 void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
 void make_confirm_qr_export_activity(gui_activity_t** activity_ptr);
@@ -549,7 +551,7 @@ static size_t valid_final_words(char** mnemonic_words, const size_t num_mnemonic
 }
 
 // NOTE: only the English wordlist is supported.
-static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
+static bool mnemonic_recover(const size_t nwords, const bool advanced_mode, char* mnemonic, const size_t mnemonic_len)
 {
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
@@ -577,6 +579,32 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
     while (word_index < nwords) {
         JADE_ASSERT(!mnemonic_words[word_index]);
 
+        // When in 'Advanced' mode, if this is the final mnemonic word, have the option to additionally
+        // filter to valid final words - ie. ones where the checksum is correct for the mnemonic as a whole.
+        const size_t* p_filter_words = NULL;
+        size_t num_filter_words = 0;
+        size_t final_words[MAX_NUM_FINAL_WORDS];
+        bool random_first_selection_word = false;
+        if (advanced_mode && word_index == nwords - 1) {
+            gui_activity_t* final_word_activity = NULL;
+            make_calculate_final_word_page(&final_word_activity);
+            JADE_ASSERT(final_word_activity);
+            gui_set_current_activity(final_word_activity);
+
+            int32_t ev_id;
+            if (gui_activity_wait_event(final_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)
+                && ev_id == BTN_MNEMONIC_FINAL_WORD_CALCULATE) {
+                // Fetch valid final words to use as additional filter
+                display_message_activity("Processing...");
+                num_filter_words = valid_final_words(mnemonic_words, word_index, final_words, MAX_NUM_FINAL_WORDS);
+                p_filter_words = final_words;
+                JADE_ASSERT(num_filter_words == (nwords == 12 ? 128 : 8)); // expected due to checksum bits
+            }
+
+            // When we select from the valid words, randomise the initally selected word
+            random_first_selection_word = true;
+        }
+
         // Reset keyboard title for next word
         char enter_word_title[16];
         const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %u", word_index + 1);
@@ -592,10 +620,9 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
 
             size_t possible_word_list[NUM_WORDS_SELECT];
             bool exact_match = false; // not interested in any case
-            const size_t possible_words
-                = valid_words(word, char_index, NULL, 0, possible_word_list, NUM_WORDS_SELECT, &exact_match);
+            const size_t possible_words = valid_words(
+                word, char_index, p_filter_words, num_filter_words, possible_word_list, NUM_WORDS_SELECT, &exact_match);
             JADE_ASSERT(possible_words > 0);
-            JADE_ASSERT(char_index || possible_words == BIP39_WORDLIST_LEN);
 
             bool selected_backspace = false;
             if (possible_words && possible_words <= NUM_WORDS_SELECT) {
@@ -607,7 +634,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 gui_update_text(label, choose_word_title);
 
                 bool stop = false;
-                uint8_t selected = 0;
+                uint8_t selected = random_first_selection_word ? get_uniform_random_byte(possible_words) : 0;
                 char* wordlist_extracted = NULL;
                 while (!stop) {
                     JADE_ASSERT(selected <= possible_words);
@@ -673,7 +700,8 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 gui_set_current_activity(enter_word_activity);
 
                 // Update which letters are active/available
-                enable_relevant_chars(word, char_index, NULL, 0, enter_word_activity, backspace, btns, btns_len);
+                enable_relevant_chars(
+                    word, char_index, p_filter_words, num_filter_words, enter_word_activity, backspace, btns, btns_len);
 
                 // Wait for kb button click
                 int32_t ev_id;
@@ -1062,7 +1090,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
     JADE_ASSERT(activity);
 
     bool got_mnemonic = false;
-    bool update_passphrase_prefs = false;
+    bool advanced_mode = false;
     bool offer_export_qr = false;
     while (!got_mnemonic) {
         gui_set_current_activity_ex(activity, true);
@@ -1085,8 +1113,8 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
         case BTN_NEW_MNEMONIC_ADVANCED:
             make_new_mnemonic_screen_advanced(&activity);
-            update_passphrase_prefs = true;
             offer_export_qr = true;
+            advanced_mode = true;
             continue;
 
         case BTN_RECOVER_MNEMONIC:
@@ -1095,8 +1123,8 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
         case BTN_RECOVER_MNEMONIC_ADVANCED:
             make_mnemonic_recovery_screen_advanced(&activity);
-            update_passphrase_prefs = true;
             offer_export_qr = true;
+            advanced_mode = true;
             continue;
 
         // Await user mnemonic entry/confirmation
@@ -1109,11 +1137,11 @@ void initialise_with_mnemonic(const bool temporary_restore)
             break;
 
         case BTN_RECOVER_MNEMONIC_12_BEGIN:
-            got_mnemonic = mnemonic_recover(12, mnemonic, sizeof(mnemonic));
+            got_mnemonic = mnemonic_recover(12, advanced_mode, mnemonic, sizeof(mnemonic));
             break;
 
         case BTN_RECOVER_MNEMONIC_24_BEGIN:
-            got_mnemonic = mnemonic_recover(24, mnemonic, sizeof(mnemonic));
+            got_mnemonic = mnemonic_recover(24, advanced_mode, mnemonic, sizeof(mnemonic));
             break;
 
         case BTN_RECOVER_MNEMONIC_QR_BEGIN:
@@ -1160,7 +1188,7 @@ void initialise_with_mnemonic(const bool temporary_restore)
         // Perhaps offer/get passphrase (ie. if using advanced options)
         bool using_passphrase = false;
         bool always_using_passphrase = false;
-        if (update_passphrase_prefs) {
+        if (advanced_mode) {
             gui_activity_t* act = NULL;
             make_using_passphrase_screen(&act);
             JADE_ASSERT(act);
