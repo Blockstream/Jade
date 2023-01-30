@@ -329,9 +329,11 @@ void make_confirm_mnemonic_screen(gui_activity_t** activity_ptr, gui_view_node_t
     make_confirm_mnemonic_page(activity_ptr, text_box_ptr, confirm, words[confirm - 1], words[confirm + 1]);
 }
 
-void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, gui_view_node_t** textbox,
-    gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys, const size_t keys_len)
+void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, const char* title, const bool show_enter_btn,
+    gui_view_node_t** textbox, gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys,
+    const size_t keys_len)
 {
+    // title is optional
     JADE_ASSERT(activity_ptr);
     JADE_INIT_OUT_PPTR(textbox);
     JADE_INIT_OUT_PPTR(backspace);
@@ -339,7 +341,7 @@ void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, gui_view_node_
     JADE_ASSERT(keys);
     JADE_ASSERT(keys_len == 26); // ie. A->Z
 
-    gui_make_activity(activity_ptr, true, "Enter Word");
+    gui_make_activity(activity_ptr, true, title ? title : "Enter Word");
     (*activity_ptr)->selectables_wrap = true; // allow the button cursor to wrap
 
     gui_view_node_t* vsplit;
@@ -373,6 +375,7 @@ void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, gui_view_node_
         gui_set_parent(hsplit, vsplit);
 
         for (size_t c = 0; c < sizes[l]; ++c) {
+            size_t font = DEFAULT_FONT;
             size_t btn_ev_id;
             if (lines[l][c] >= 'A' && lines[l][c] <= 'Z') {
                 btn_ev_id = BTN_KEYBOARD_ASCII_OFFSET + lines[l][c];
@@ -399,13 +402,16 @@ void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, gui_view_node_
             } else if (lines[l][c] == '|') {
                 *backspace = btn;
             } else if (lines[l][c] == ' ') {
-                gui_set_borders(btn, TFT_DARKGREY, 2, 0);
+                if (show_enter_btn) {
+                    lines[l][c] = 'S';
+                    font = VARIOUS_SYMBOLS_FONT; // 'S' becomes <tick>
+                }
                 *enter = btn;
             }
 
             gui_view_node_t* label;
             const char str[2] = { lines[l][c], 0 };
-            gui_make_text(&label, str, TFT_WHITE);
+            gui_make_text_font(&label, str, TFT_WHITE, font);
             gui_set_parent(label, btn);
             gui_set_align(label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         }
