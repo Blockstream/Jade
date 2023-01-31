@@ -57,7 +57,7 @@ static void serial_reader(void* ignore)
         }
 
         // Pass to common handler
-        JADE_LOGD("Passing %u+%u bytes from tcp stream to common handler", read, len);
+        JADE_LOGD("Passing %u+%u bytes from serial device to common handler", read, len);
         const bool force_reject_if_no_msg = false;
         handle_data(full_serial_data_in, &read, len, &last_processing_time, force_reject_if_no_msg, serial_data_out);
     }

@@ -20,7 +20,7 @@ static const TickType_t TIMEOUT_TICKS = 2000 / portTICK_PERIOD_MS;
 #define SEND_REJECT_MSG(code, msg, rejectedlen)                                                                        \
     do {                                                                                                               \
         char lenstr[8];                                                                                                \
-        const int ret = snprintf(lenstr, sizeof(lenstr), "%d", rejectedlen);                                           \
+        const int ret = snprintf(lenstr, sizeof(lenstr), "%u", rejectedlen);                                           \
         JADE_ASSERT(ret > 0 && ret < sizeof(lenstr));                                                                  \
         jade_process_reject_message_ex(ctx, code, msg, (uint8_t*)lenstr, ret, data_out, MAX_OUTPUT_MSG_SIZE);          \
     } while (false)
@@ -60,13 +60,13 @@ static void handle_data_impl(
         if (msg_len == 0) {
             if (!reject_if_no_msg) {
                 // Not a complete cbor message, but we are allowed to await more data to complete the message
-                JADE_LOGD("Got incomplete CBOR message, length %d - awaiting more data...", read);
+                JADE_LOGD("Got incomplete CBOR message, length %u - awaiting more data...", read);
                 return;
             }
 
             // Not a complete/valid cbor message, and we are not allowed to await more, so reject what we have.
             // Break to reset the read-ptr to the start and lose all the data.
-            JADE_LOGW("Got incomplete CBOR message, length %d but not awaiting more data - rejecting", read);
+            JADE_LOGW("Got incomplete CBOR message, length %u but not awaiting more data - rejecting", read);
             SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", read);
             break;
         }
