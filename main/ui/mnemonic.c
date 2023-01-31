@@ -17,7 +17,7 @@ static void make_mnemonic_screen(
     gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
     // first row, message
@@ -481,6 +481,23 @@ void make_calculate_final_word_page(gui_activity_t** activity_ptr)
         { .txt = "Calculate", .font = DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_CALCULATE } };
     make_mnemonic_screen(activity_ptr, "Final Word",
         "Enter final word from existing\nrecovery phrase or calculate\nvalid ones?", btns, 2);
+}
+
+void make_using_passphrase_screen(
+    gui_activity_t** activity_ptr, const bool use_passphrase_once, const bool use_passphrase_always)
+{
+    JADE_ASSERT(!(use_passphrase_once && use_passphrase_always));
+
+    btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
+        { .txt = "Once", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE },
+        { .txt = "Always", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ALWAYS } };
+    make_mnemonic_screen(activity_ptr, "Passphrase", "\nDo you want to login with a\nBIP39 passphrase?", btns, 3);
+
+    // Set default button
+    gui_view_node_t* default_btn = use_passphrase_once ? btns[1].btn
+        : use_passphrase_always                        ? btns[2].btn
+                                                       : btns[0].btn;
+    gui_set_activity_initial_selection(*activity_ptr, default_btn);
 }
 
 // confrm passphrase - note we use UBUNTU16_FONT to ensure all punctuation characters are

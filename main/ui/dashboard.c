@@ -310,27 +310,75 @@ void make_ready_screen(
     }
 }
 
-void make_using_passphrase_screen(gui_activity_t** activity_ptr)
+void make_passphrase_prefs_screen(
+    gui_activity_t** activity_ptr, gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox)
 {
     JADE_ASSERT(activity_ptr);
+    JADE_INIT_OUT_PPTR(frequency_textbox);
+    JADE_INIT_OUT_PPTR(method_textbox);
 
-    gui_make_activity(activity_ptr, true, "Passphrase");
+    gui_make_activity(activity_ptr, true, "Passphrase Settings");
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 16, 2, 2, 2);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
-    gui_view_node_t* text;
-    gui_make_text(&text, "Do you want to login with a\nBIP39 passphrase? ", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    gui_set_parent(text, vsplit);
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
+        gui_set_parent(hsplit, vsplit);
 
-    // Buttons: 'No', 'Once', 'Always'
-    btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
-        { .txt = "Once", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE },
-        { .txt = "Always", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ALWAYS } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
+        gui_view_node_t* key;
+        gui_make_text(&key, "Frequency", TFT_WHITE);
+        gui_set_parent(key, hsplit);
+        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_PASSPHRASE_TOGGLE_FREQUENCY, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_RED);
+        gui_set_parent(btn, hsplit);
+
+        gui_view_node_t* text;
+        gui_make_text(&text, "", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+        *frequency_textbox = text;
+    }
+
+    {
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
+        gui_set_parent(hsplit, vsplit);
+
+        gui_view_node_t* key;
+        gui_make_text(&key, "Method", TFT_WHITE);
+        gui_set_parent(key, hsplit);
+        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_PASSPHRASE_TOGGLE_METHOD, NULL);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_RED);
+        gui_set_parent(btn, hsplit);
+
+        gui_view_node_t* text;
+        gui_make_text(&text, "", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, btn);
+        *method_textbox = text;
+    }
+
+    {
+        gui_view_node_t* filler;
+        gui_make_fill(&filler, TFT_BLACK);
+        gui_set_parent(filler, vsplit);
+    }
+
+    // buttons
+    btn_data_t btns[] = { { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PASSPHRASE_OPTIONS_EXIT },
+        { .txt = "?", .font = DEFAULT_FONT, .ev_id = BTN_PASSPHRASE_OPTIONS_HELP } };
+    add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
 static void add_poweroff_timeout_btn(gui_view_node_t* parent, gui_view_node_t** timeout_btn_text)
@@ -363,7 +411,7 @@ void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_
     // Note: placeholder in second position - timeout button set into this slot below
     btn_data_t btns[]
         = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
-              { .txt = "Use Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_USE_PASSPHRASE },
+              { .txt = "Passphrase Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PASSPHRASE },
               { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
@@ -380,7 +428,7 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     btn_data_t btns[]
         = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
               { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
-              { .txt = "Use Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_USE_PASSPHRASE },
+              { .txt = "Passphrase Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PASSPHRASE },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 

@@ -7,10 +7,10 @@
 #include "../keychain.h"
 #include "../process.h"
 #include "../qrcode.h"
+#include "../qrmode.h"
 #include "../qrscan.h"
 #include "../random.h"
 #include "../sensitive.h"
-#include "../storage.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
@@ -30,9 +30,9 @@
 #define MAX_NUM_FINAL_WORDS 128
 #define NUM_WORDS_SELECT 10
 
-#define PASSPHRASE_MAX_DISPLAY_LEN 16
+#define WORDLIST_PASSPHRASE_MAX_WORDS 10
 
-typedef enum { MNEMONIC_SIMPLE, MNEMONIC_ADVANCED } wordlist_purpose_t;
+typedef enum { MNEMONIC_SIMPLE, MNEMONIC_ADVANCED, WORDLIST_PASSPHRASE } wordlist_purpose_t;
 
 // main/ui/mnemonic.c
 void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr);
@@ -50,7 +50,8 @@ void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, const char* ti
 void make_select_word_page(gui_activity_t** activity_ptr, const char* title, const char* initial_label,
     gui_view_node_t** textbox, gui_view_node_t** label);
 void make_calculate_final_word_page(gui_activity_t** activity_ptr);
-void make_using_passphrase_screen(gui_activity_t** activity_ptr);
+void make_using_passphrase_screen(
+    gui_activity_t** activity_ptr, const bool use_passphrase_once, const bool use_passphrase_always);
 void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
 void make_confirm_qr_export_activity(gui_activity_t** activity_ptr);
 void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon* icon);
@@ -571,7 +572,7 @@ static size_t get_wordlist_words(
 
     gui_view_node_t* btns[26] = {};
     const size_t btns_len = sizeof(btns) / sizeof(btns[0]);
-    const char* fixed_kb_title = NULL;
+    const char* fixed_kb_title = ((purpose == WORDLIST_PASSPHRASE) ? "Enter Passphrase" : NULL);
     gui_view_node_t *textbox = NULL, *backspace = NULL, *enter = NULL;
     gui_activity_t* enter_word_activity = NULL;
     const bool show_enter_btn = !is_mnemonic; // Don't show 'done' button when entering mnemonic words
@@ -584,7 +585,8 @@ static size_t get_wordlist_words(
     gui_view_node_t* text_selection = NULL;
     gui_view_node_t* label = NULL;
     gui_activity_t* choose_word_activity = NULL;
-    make_select_word_page(&choose_word_activity, "Recover Wallet", "", &text_selection, &label);
+    const char* select_word_title = ((purpose == WORDLIST_PASSPHRASE) ? "Enter Passphrase" : "Recover Wallet");
+    make_select_word_page(&choose_word_activity, select_word_title, "", &text_selection, &label);
     JADE_ASSERT(choose_word_activity);
 
     // For each word
@@ -1086,7 +1088,7 @@ cleanup:
     return qr_scanned;
 }
 
-void get_passphrase(char* passphrase, const size_t passphrase_len, const bool confirm)
+static void get_freetext_passphrase(char* passphrase, const size_t passphrase_len, const bool confirm)
 {
     JADE_ASSERT(passphrase);
     JADE_ASSERT(passphrase_len);
@@ -1137,6 +1139,29 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
 
     JADE_ASSERT(kb_entry.len < passphrase_len);
     strcpy(passphrase, kb_entry.strdata);
+}
+
+void get_passphrase(char* passphrase, const size_t passphrase_len, const bool confirm)
+{
+    JADE_ASSERT(passphrase);
+    JADE_ASSERT(passphrase_len);
+    passphrase[0] = '\0';
+
+    if (keychain_get_passphrase_freq() == PASSPHRASE_NO) {
+        // Auto apply the empty passphrase - return empty immediately
+        return;
+    }
+
+    // Ask user to enter passphrase
+    if (keychain_get_passphrase_type() == PASSPHRASE_WORDLIST) {
+        // Passphrase made up only of bip39 wordlist words
+        const size_t nwords
+            = get_wordlist_words(WORDLIST_PASSPHRASE, WORDLIST_PASSPHRASE_MAX_WORDS, passphrase, passphrase_len);
+        JADE_LOGI("%u wordlist words used for passphrase", nwords);
+    } else {
+        // Free-text passphrase
+        get_freetext_passphrase(passphrase, passphrase_len, confirm);
+    }
 }
 
 void initialise_with_mnemonic(const bool temporary_restore)
@@ -1259,11 +1284,13 @@ void initialise_with_mnemonic(const bool temporary_restore)
 #endif
 
         // Perhaps offer/get passphrase (ie. if using advanced options)
-        bool using_passphrase = false;
-        bool always_using_passphrase = false;
         if (advanced_mode) {
             gui_activity_t* act = NULL;
-            make_using_passphrase_screen(&act);
+
+            // Get current state to select default button - NOTE: both flags set impliles
+            // just using a passphrase once, for the next login only.
+            const passphrase_freq_t freq = keychain_get_passphrase_freq();
+            make_using_passphrase_screen(&act, freq == PASSPHRASE_ONCE, freq == PASSPHRASE_ALWAYS);
             JADE_ASSERT(act);
 
             // Free all gui screen activities thus far, as those used to show or enter a mnemonic and those
@@ -1275,30 +1302,43 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
             int32_t ev_id;
             if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                always_using_passphrase = (ev_id == BTN_USE_PASSPHRASE_ALWAYS);
-                using_passphrase = (ev_id == BTN_USE_PASSPHRASE_ALWAYS || ev_id == BTN_USE_PASSPHRASE_ONCE);
+                // NOTE: these are always persisted in storage for a full initialisation
+                // for a temporary restore, we only persist if the user sets the 'always' option.
+                switch (ev_id) {
+                case BTN_USE_PASSPHRASE_NO:
+                    keychain_set_passphrase_frequency(PASSPHRASE_NO);
+                    break;
+
+                case BTN_USE_PASSPHRASE_ONCE:
+                    keychain_set_passphrase_frequency(PASSPHRASE_ONCE);
+                    break;
+
+                case BTN_USE_PASSPHRASE_ALWAYS:
+                    keychain_set_passphrase_frequency(PASSPHRASE_ALWAYS);
+                    break;
+                }
+
+                // NOTE: these are always persisted in storage for a full initialisation.
+                // For a temporary restore, we only persist if the user sets the 'always' option.
+                if (!temporary_restore || ev_id == BTN_USE_PASSPHRASE_ALWAYS) {
+                    keychain_persist_passphrase_prefs();
+                }
             }
-        } else if (temporary_restore) {
-            // Ok, if *not* via 'Advanced' restore option (ie. not requesting whether to use a passphrase), but
-            // the user is entering a temporary restore wallet, then we instead respect whatever passphrase setting
-            // was set in the 'Advanced' menu/settings screen.
-            using_passphrase = keychain_get_user_to_enter_passphrase();
         }
 
+        // Get any passphrase, if relevant
         char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
         SENSITIVE_PUSH(passphrase, sizeof(passphrase));
-        if (using_passphrase) {
-            // Ask user to set and confirm the passphrase for this session
-            const bool confirm_passphrase = true;
-            get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
-            JADE_ASSERT(strnlen(passphrase, sizeof(passphrase)) < sizeof(passphrase));
-        }
+        const bool confirm_passphrase = true;
+        get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+        const size_t passphrase_len = strnlen(passphrase, sizeof(passphrase));
+        JADE_ASSERT(passphrase_len < sizeof(passphrase));
 
         display_message_activity("Processing...");
 
         // If the mnemonic is valid derive temporary keychain from it.
         // Otherwise break/return here.
-        got_mnemonic = keychain_derive_from_mnemonic(mnemonic, using_passphrase ? passphrase : NULL, &keydata);
+        got_mnemonic = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
         SENSITIVE_POP(passphrase);
         if (!got_mnemonic) {
             JADE_LOGW("Failed to derive wallet");
@@ -1315,9 +1355,6 @@ void initialise_with_mnemonic(const bool temporary_restore)
             // We need to cache the root mnemonic entropy as it is this that we will persist
             // encrypted to local flash (requiring a passphrase to derive the wallet master key).
             keychain_cache_mnemonic_entropy(mnemonic);
-
-            // Set persisted wallet 'use passphrase by default' flag
-            keychain_set_user_to_enter_passphrase_by_default(always_using_passphrase);
         }
     }
 

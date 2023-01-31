@@ -17,6 +17,9 @@ typedef struct {
     size_t seed_len;
 } keychain_t;
 
+typedef enum { PASSPHRASE_NO, PASSPHRASE_ONCE, PASSPHRASE_ALWAYS } passphrase_freq_t;
+typedef enum { PASSPHRASE_WORDLIST, PASSPHRASE_FREETEXT } passphrase_type_t;
+
 bool keychain_init(void);
 void keychain_set(const keychain_t* src, uint8_t userdata, bool temporary);
 void keychain_clear(void);
@@ -24,9 +27,11 @@ void keychain_clear(void);
 const keychain_t* keychain_get(void);
 bool keychain_requires_passphrase(void);
 
-void keychain_set_user_to_enter_passphrase(const bool use_passphrase);
-void keychain_set_user_to_enter_passphrase_by_default(const bool use_passphrase);
-bool keychain_get_user_to_enter_passphrase();
+void keychain_set_passphrase_frequency(passphrase_freq_t freq);
+passphrase_freq_t keychain_get_passphrase_freq();
+void keychain_set_passphrase_type(passphrase_type_t type);
+passphrase_type_t keychain_get_passphrase_type();
+void keychain_persist_passphrase_prefs();
 
 bool keychain_has_temporary(void);
 uint8_t keychain_get_userdata(void);

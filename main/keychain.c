@@ -35,8 +35,8 @@ static bool keychain_temporary = false;
 static uint8_t mnemonic_entropy[BIP39_ENTROPY_LEN_256]; // Maximum supported entropy is 24 words
 static size_t mnemonic_entropy_len = 0;
 
-// If the user wants to enter a passphrase at the next login
-static bool keychain_user_to_enter_passphrase = false;
+// Cached passphrase flags
+static uint8_t passphrase_flags = 0;
 
 void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temporary)
 {
@@ -56,7 +56,9 @@ void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temp
     // Clear any mnemonic entropy we may have been holding
     JADE_WALLY_VERIFY(wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy)));
     mnemonic_entropy_len = 0;
-    keychain_user_to_enter_passphrase = false;
+
+    // Reload passphrase flags
+    passphrase_flags = storage_get_key_flags();
 
     // Hold the associated userdata
     keychain_userdata = userdata;
@@ -75,7 +77,9 @@ void keychain_clear(void)
     // Clear any mnemonic entropy we may have been holding
     JADE_WALLY_VERIFY(wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy)));
     mnemonic_entropy_len = 0;
-    keychain_user_to_enter_passphrase = false;
+
+    // Reload passphrase flags
+    passphrase_flags = storage_get_key_flags();
 
     keychain_userdata = 0;
     keychain_temporary = false;
@@ -87,36 +91,69 @@ bool keychain_requires_passphrase(void)
 {
     // We require a passphrase when we have mnemonic entropy but no key data as yet
     // ie. the final wallet derivation step has yet to occur.
-    // (This may be an explicitly user-entered phrase, or may be the default/blank phrase)
+    // (This may be an explicitly user-provided phrase, or may be the default/blank phrase)
     return !keychain_data && mnemonic_entropy_len;
 }
 
-void keychain_set_user_to_enter_passphrase(const bool use_passphrase)
+void keychain_set_passphrase_frequency(const passphrase_freq_t freq)
 {
-    keychain_user_to_enter_passphrase = use_passphrase;
-}
-
-void keychain_set_user_to_enter_passphrase_by_default(const bool use_passphrase)
-{
-    // Always set a 'auto empty passphrase' or 'user to set passphrase' flag.
-    // (No flags set means the value is uninitialised/the user has not been asked).
-    uint8_t key_flags = storage_get_key_flags();
-    if (use_passphrase) {
-        key_flags &= ~KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
-        key_flags |= KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
-    } else {
-        key_flags &= ~KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
-        key_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+    switch (freq) {
+    case PASSPHRASE_NO:
+        passphrase_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+        passphrase_flags &= ~KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
+        break;
+    case PASSPHRASE_ALWAYS:
+        passphrase_flags &= ~KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+        passphrase_flags |= KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
+        break;
+    case PASSPHRASE_ONCE:
+        // Set both 'auto default' and 'user to set' to imply
+        // 'user to enter just this once, but usually auto-default'
+        passphrase_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+        passphrase_flags |= KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
+        break;
+    default:
+        JADE_LOGE("Unexpected passphrase frequency flag ignored: %u", freq);
     }
-    storage_set_key_flags(key_flags);
 }
 
-bool keychain_get_user_to_enter_passphrase()
+passphrase_freq_t keychain_get_passphrase_freq()
 {
-    // True if either:
-    // a) the user has elected to enter a passphrase for this login, or
-    // b) they have elected to always enter a passphrase at every login
-    return keychain_user_to_enter_passphrase || (storage_get_key_flags() & KEY_FLAGS_USER_TO_ENTER_PASSPHRASE);
+    // NOTE: Both flags set implies 'once only'
+    return (passphrase_flags & KEY_FLAGS_USER_TO_ENTER_PASSPHRASE)
+        ? ((passphrase_flags & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE) ? PASSPHRASE_ONCE : PASSPHRASE_ALWAYS)
+        : PASSPHRASE_NO;
+}
+
+void keychain_set_passphrase_type(const passphrase_type_t type)
+{
+    if (type == PASSPHRASE_WORDLIST) {
+        passphrase_flags |= KEY_FLAGS_WORDLIST_PASSPHRASE;
+    } else {
+        passphrase_flags &= ~KEY_FLAGS_WORDLIST_PASSPHRASE;
+    }
+}
+
+passphrase_type_t keychain_get_passphrase_type()
+{
+    return (passphrase_flags & KEY_FLAGS_WORDLIST_PASSPHRASE) ? PASSPHRASE_WORDLIST : PASSPHRASE_FREETEXT;
+}
+
+void keychain_persist_passphrase_prefs()
+{
+    // If both the 'auto-default (ie. empty) passphrase' flag and the 'ask user for passphrase'
+    // flags are set, then we ask the user for a passphrase *just for the
+    // current session/next-login*.
+    // ie. We cache the 'user to enter passphrase' flag in memory, but we persist the
+    // 'auto-apply empty passphrase' flag into flash nvs.
+    // NOTE: the flags use is a bit clumsy because of the way they evolved over time, and we
+    // always want to maintain backward-compatibility with the previous meanings of these flags.
+    if ((passphrase_flags & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE)
+        && (passphrase_flags & KEY_FLAGS_USER_TO_ENTER_PASSPHRASE)) {
+        storage_set_key_flags(passphrase_flags & ~KEY_FLAGS_USER_TO_ENTER_PASSPHRASE);
+    } else {
+        storage_set_key_flags(passphrase_flags);
+    }
 }
 
 bool keychain_has_temporary(void)
@@ -591,6 +628,9 @@ bool keychain_init(void)
     // Cache whether we are restricted to main/test networks and whether we have an encrypted blob
     network_type_restriction = storage_get_network_type_restriction();
     has_encrypted_blob = keychain_pin_attempts_remaining() > 0;
+
+    // Cache the user passphrase preferences
+    passphrase_flags = storage_get_key_flags();
 
     return res;
 }

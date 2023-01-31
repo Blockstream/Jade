@@ -108,16 +108,11 @@ void check_pin_load_keys(jade_process_t* process)
         // May require the input of a user passphrase also.
         char passphrase[PASSPHRASE_MAX_LEN + 1];
         SENSITIVE_PUSH(passphrase, sizeof(passphrase));
+        passphrase[0] = '\0';
 
-        // See if the user has opted to enter a passphrase - if not apply the default/blank phrase
-        if (keychain_get_user_to_enter_passphrase()) {
-            // Ask user to enter passphrase
-            const bool confirm_passphrase = false;
-            get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
-        } else {
-            // No passphrase (the default)
-            passphrase[0] = '\0';
-        }
+        // Get any passphrase that may be required
+        const bool confirm_passphrase = false;
+        get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
 
         display_message_activity("Processing...");
 
