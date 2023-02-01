@@ -2,6 +2,7 @@
 
 #include "button_events.h"
 #include "camera.h"
+#include "idletimer.h"
 #include "jade_assert.h"
 #include "jade_tasks.h"
 #include "power.h"
@@ -9,6 +10,10 @@
 #include "ui.h"
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
+
+// When the camera is running we ensure the timeout is at least this value
+// as we don't want the unit to shut down because of apparent inactivity.
+#define CAMERA_MIN_TIMEOUT_SECS 300
 
 void make_camera_activity(gui_activity_t** activity_ptr, const char* title, const char* btnText,
     progress_bar_t* progress_bar, gui_view_node_t** image_node, gui_view_node_t** label_node);
@@ -302,6 +307,10 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* t
         .fn_process = fn,
         .ctx = ctx };
 
+    // When running the camera task we set the minimum idle timeout to keep the hw from sleeping too quickly
+    // (If the user has set a longer timeout value that is respected)
+    idletimer_set_min_timeout_secs(CAMERA_MIN_TIMEOUT_SECS);
+
     // Run the camera task
     TaskHandle_t camera_task;
     const BaseType_t retval = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 16 * 1024, &camera_config,
@@ -313,6 +322,10 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* t
     sync_await_single_event(JADE_EVENT, CAMERA_EXIT, NULL, NULL, NULL, 0);
     vTaskDelete(camera_task);
     jade_camera_stop();
+
+    // Remove the minimum idle timeout - make the completed image capture count as 'activity'
+    idletimer_register_activity();
+    idletimer_set_min_timeout_secs(0);
 
 #else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
     JADE_LOGW("No camera supported for this device");

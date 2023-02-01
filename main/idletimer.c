@@ -17,6 +17,13 @@
 // The 'last activity' counter, protected by a mutex
 static TickType_t last_activity_registered = 0;
 static SemaphoreHandle_t last_activity_mutex = NULL;
+static uint16_t min_timeout_override_secs = 0;
+
+// Function to (temporarily?) set a minimum timeout value
+// eg. to set temporarilty while doing a 'slow' operation where
+// you don't want the hw hitting the idle timeout and shutting down.
+// eg. using the camera to scan large qrs or similar.
+void idletimer_set_min_timeout_secs(const uint16_t min_timeout_secs) { min_timeout_override_secs = min_timeout_secs; }
 
 // Function to register activity
 void idletimer_register_activity(void)
@@ -53,7 +60,10 @@ static void idletimer_task(void* ignore)
     const TickType_t period = SECS_TO_TICKS(TIMEOUT_SLEEP_PERIOD_SECS);
     while (true) {
         // Always fetch the timeout period, in case the user has changed it
-        const uint16_t timeout_secs = storage_get_idle_timeout();
+        uint16_t timeout_secs = storage_get_idle_timeout();
+        if (timeout_secs < min_timeout_override_secs) {
+            timeout_secs = min_timeout_override_secs;
+        }
         const TickType_t timeout = SECS_TO_TICKS(timeout_secs);
 
         const TickType_t last_activity = get_last_registered_activity();

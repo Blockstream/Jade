@@ -3,6 +3,7 @@
 #include "bcur.h"
 #include "button_events.h"
 #include "gui.h"
+#include "idletimer.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "keychain.h"
@@ -20,6 +21,10 @@
 
 #include <string.h>
 #include <time.h>
+
+// When we are displaying a BCUR QR code we ensure the timeout is at least this value
+// as we don't want the unit to shut down because of apparent inactivity.
+#define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
 
 void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, Icon* qr_icon);
 
@@ -602,6 +607,10 @@ static void display_bcur_qr(
 
     uint16_t qr_flags = storage_get_qr_flags();
 
+    // When displaying a bcur qr code we set the minimum idle timeout to keep the hw from sleeping too quickly
+    // (If the user has set a longer timeout value that is respected)
+    idletimer_set_min_timeout_secs(BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS);
+
     // Create show psbt activity for those icons
     gui_activity_t* activity = NULL;
     create_display_bcur_qr_activity(&activity, title, label, bcur_type, cbor, cbor_len, qr_flags);
@@ -633,6 +642,9 @@ static void display_bcur_qr(
             }
         }
     }
+
+    // Remove the minimum idle timeout
+    idletimer_set_min_timeout_secs(0);
 }
 
 // Handle undifferentiated byte string friom QR code
