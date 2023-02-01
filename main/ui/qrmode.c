@@ -44,7 +44,7 @@ void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label
     gui_set_padding(path, GUI_MARGIN_TWO_VALUES, 0, 2);
     gui_set_align(path, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
-    // buttons - 'options' and 'exit'
+    // buttons
     btn_data_t btns[] = { { .txt = "Options", .font = DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_EXIT } };
     add_buttons(vsplit, UI_COLUMN, btns, 2);
@@ -151,7 +151,7 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
         gui_set_parent(filler, vsplit);
     }
 
-    // buttons - 'Save' and 'Cancel'
+    // buttons
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_OPTIONS_EXIT },
         { .txt = "?", .font = DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP } };
     add_buttons(vsplit, UI_ROW, btns, 2);
@@ -286,7 +286,7 @@ void make_qr_options_activity(
         gui_set_parent(filler, vsplit);
     }
 
-    // buttons - 'Save' and 'Cancel'
+    // buttons
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_OPTIONS_EXIT },
         { .txt = "?", .font = DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS_HELP } };
     add_buttons(vsplit, UI_ROW, btns, 2);
