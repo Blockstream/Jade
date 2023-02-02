@@ -384,6 +384,19 @@ class JadeAPI:
         params = {'epoch': epoch if epoch is not None else int(time.time())}
         return self._jadeRpc('set_epoch', params)
 
+    def logout(self):
+        """
+        RPC call to logout of any wallet loaded on the Jade unit.
+        Any key material is freed and zero'd.
+        Call always returns true.
+
+        Returns
+        -------
+        bool
+            True
+        """
+        return self._jadeRpc('logout')
+
     def ota_update(self, fwcmp, fwlen, chunksize, patchlen=None, cb=None):
         """
         RPC call to attempt to update the unit's firmware.

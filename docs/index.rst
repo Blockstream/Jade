@@ -203,6 +203,33 @@ add_entropy reply
         "result": true
     }
 
+.. _logout_request:
+
+logout request
+--------------
+
+Logout of any wallet loaded on Jade.  Key material is freed and zero'd.
+Jade is returned to a 'locked' state, with no keys/wallet loaded.
+
+.. code-block:: cbor
+
+    {
+        "id": "14159",
+        "method": "logout"
+    }
+
+.. _logout_reply:
+
+logout reply
+------------
+
+.. code-block:: cbor
+
+    {
+        "id": "14159",
+        "result": true
+    }
+
 .. _auth_user_request:
 
 auth_user request

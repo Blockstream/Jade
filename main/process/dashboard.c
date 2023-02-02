@@ -116,6 +116,7 @@ void make_legal_screen(gui_activity_t** activity_ptr);
 #endif
 void make_storage_stats_screen(gui_activity_t** activity_ptr, size_t entries_used, size_t entries_free);
 
+void make_session_screen(gui_activity_t** activity_ptr);
 void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** ble_status_textbox);
 void make_device_screen(
     gui_activity_t** activity_ptr, const char* power_status, const char* mac, const char* firmware_version);
@@ -298,6 +299,14 @@ cleanup:
     return;
 }
 
+// Logout of jade hww, clear all key material
+static void process_logout_request(jade_process_t* process)
+{
+    ASSERT_CURRENT_MESSAGE(process, "logout");
+    keychain_clear();
+    jade_process_reply_to_message_ok(process);
+}
+
 // method_name should be a string literal - or at least non-null and nul terminated
 #define IS_METHOD(method_name) (!strncmp(method, method_name, method_len) && strlen(method_name) == method_len)
 
@@ -327,6 +336,9 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("set_epoch")) {
         JADE_LOGD("Received set-epoch message");
         process_set_epoch_request(process);
+    } else if (IS_METHOD("logout")) {
+        JADE_LOGD("Received logout message");
+        process_logout_request(process);
     } else if (IS_METHOD("update_pinserver")) {
         JADE_LOGD("Received update to pinserver details");
         task_function = update_pinserver_process;
@@ -1286,14 +1298,34 @@ void offer_startup_options(void)
     handle_settings(is_startup_menu);
 }
 
-// Sleep/power-down
-static void handle_sleep(void)
+// Session logout or sleep/power-off
+static void handle_session(void)
 {
-    const bool bSleep = await_yesno_activity("Sleep", "\nDo you want to put Jade\ninto sleep mode?", true);
-    if (bSleep) {
-        power_shutdown();
+    gui_activity_t* act = NULL;
+    make_session_screen(&act);
+    JADE_ASSERT(act);
+
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+        switch (ev_id) {
+        case BTN_SESSION_LOGOUT:
+            // Logout of current wallet, delete keychain
+            keychain_clear();
+            break;
+
+        case BTN_SESSION_SLEEP:
+            // Shutdown Jade
+            power_shutdown();
+            break;
+
+        default:
+            break;
+        }
     }
 }
+
 static void handle_storage(void)
 {
     size_t entries_used, entries_free;
@@ -1364,8 +1396,8 @@ static void handle_btn(const int32_t btn)
         return initialise_wallet(false);
     case BTN_CONNECT_BACK:
         return select_initial_connection(keychain_has_temporary());
-    case BTN_SLEEP:
-        return handle_sleep();
+    case BTN_SESSION:
+        return handle_session();
     case BTN_SETTINGS:
         return handle_settings(false);
     case BTN_SCAN_QR:

@@ -2777,6 +2777,13 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
     has_ble = startinfo['JADE_CONFIG'] == 'BLE'
 
+    # Test logout
+    assert startinfo['JADE_STATE'] == 'READY'
+    jadeapi.logout()
+    assert jadeapi.get_version_info()['JADE_STATE'] in ['LOCKED', 'UNINIT']
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
+    assert jadeapi.get_version_info()['JADE_STATE'] == "READY"
+
     # Test update pinserver details
     test_set_pinserver(jadeapi)
 

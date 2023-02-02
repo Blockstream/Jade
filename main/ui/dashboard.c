@@ -254,18 +254,18 @@ void make_ready_screen(
 
     // Make the button bar under the passed node, and add all the buttons
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 24, 34, 22, 20);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 31, 31, 21, 17);
     gui_set_parent(hsplit, vsplit);
 
-    // sleep btn
+    // session btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SLEEP, NULL);
+        gui_make_button(&btn, TFT_BLACK, BTN_SESSION, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
         gui_view_node_t* text;
-        gui_make_text(&text, "Sleep", TFT_WHITE);
+        gui_make_text(&text, "Session", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
@@ -558,6 +558,29 @@ void make_pinserver_screen(gui_activity_t** activity_ptr)
               { .txt = "Reset PinServer Defaults ", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_RESET },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PINSERVER_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+}
+
+void make_session_screen(gui_activity_t** activity_ptr)
+{
+    JADE_ASSERT(activity_ptr);
+
+    gui_make_activity(activity_ptr, true, "Wallet Session");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    gui_view_node_t* text;
+    gui_make_text(&text, "\nLogout of current wallet or \nput Jade into sleep mode?", TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 8, 8);
+    gui_set_parent(text, vsplit);
+
+    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SESSION_EXIT },
+        { .txt = "Logout", .font = DEFAULT_FONT, .ev_id = BTN_SESSION_LOGOUT },
+        { .txt = "Sleep", .font = DEFAULT_FONT, .ev_id = BTN_SESSION_SLEEP } };
+    add_buttons(vsplit, UI_ROW, btns, 3);
 }
 
 void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** ble_status_textbox)
