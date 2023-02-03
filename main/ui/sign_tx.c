@@ -55,26 +55,63 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
     gui_activity_t* act = NULL;
     gui_make_activity(&act, true, header);
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_view_node_t* vsplit = NULL;
+    const bool have_additional_info = asset_str || warning_msg;
+    if (!have_additional_info) {
+        // Just showing amount and ticker - eg. simple BTC tx/output, no warnings etc.
+        // In this case wrap address over multiple lines as required.
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 44, 24, 32);
+        gui_set_margins(vsplit, GUI_MARGIN_TWO_VALUES, 8, 4);
+        gui_set_parent(vsplit, act->root_node);
 
-    gui_view_node_t* hsplit_text1;
-    gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 15, 85);
-    gui_set_parent(hsplit_text1, vsplit);
+        gui_view_node_t* hsplit_text1;
+        gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 12, 88);
+        gui_set_parent(hsplit_text1, vsplit);
 
-    gui_view_node_t* text1a;
-    gui_make_text(&text1a, "To", TFT_WHITE);
-    gui_set_parent(text1a, hsplit_text1);
-    gui_set_align(text1a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text1a, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+        gui_view_node_t* vsplit1a;
+        gui_make_vsplit(&vsplit1a, GUI_SPLIT_RELATIVE, 2, 35, 65);
+        gui_set_parent(vsplit1a, hsplit_text1);
 
-    gui_view_node_t* text1b;
-    gui_make_text(&text1b, address, TFT_WHITE);
-    gui_set_parent(text1b, hsplit_text1);
-    gui_set_align(text1b, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_text_scroll(text1b, TFT_BLACK);
+        gui_view_node_t* text1a;
+        gui_make_text(&text1a, "To", TFT_WHITE);
+        gui_set_parent(text1a, vsplit1a);
+        gui_set_align(text1a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_margins(text1a, GUI_MARGIN_TWO_VALUES, 0, 4);
+        gui_set_borders(text1a, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+
+        gui_view_node_t* text1b;
+        gui_make_text(&text1b, address, TFT_WHITE);
+        gui_set_parent(text1b, hsplit_text1);
+        gui_set_padding(text1b, GUI_MARGIN_TWO_VALUES, 0, 4);
+        gui_set_align(text1b, GUI_ALIGN_RIGHT, GUI_ALIGN_TOP);
+    } else {
+        // More data to show - liquid asset info or maybe a text warning
+        // In that case the address is scrolling on a single line.
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
+        gui_set_padding(vsplit, GUI_MARGIN_TWO_VALUES, 2, 2);
+        gui_set_parent(vsplit, act->root_node);
+
+        gui_view_node_t* hsplit_text1;
+        gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 15, 85);
+        gui_set_parent(hsplit_text1, vsplit);
+
+        gui_view_node_t* text1a;
+        gui_make_text(&text1a, "To", TFT_WHITE);
+        gui_set_parent(text1a, hsplit_text1);
+        gui_set_align(text1a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_borders(text1a, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+
+        // Constrained to scrolling on one line
+        char display_address[MAX_ADDRESS_LEN + 4];
+        const int ret = snprintf(display_address, sizeof(display_address), "} %s {", address);
+        JADE_ASSERT(ret > 0 && ret < sizeof(display_address));
+
+        gui_view_node_t* text1b;
+        gui_make_text(&text1b, display_address, TFT_WHITE);
+        gui_set_parent(text1b, hsplit_text1);
+        gui_set_align(text1b, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_text_scroll(text1b, TFT_BLACK);
+    }
 
     gui_view_node_t* hsplit_text2;
     gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 70, 30);
@@ -130,14 +167,7 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
         gui_make_fill(&row4, TFT_BLACK);
         gui_set_parent(row4, vsplit);
     } else {
-        // Two blank rows
-        gui_view_node_t* row3;
-        gui_make_fill(&row3, TFT_BLACK);
-        gui_set_parent(row3, vsplit);
-
-        gui_view_node_t* row4;
-        gui_make_fill(&row4, TFT_BLACK);
-        gui_set_parent(row4, vsplit);
+        JADE_ASSERT(!have_additional_info);
     }
 
     // Buttons
@@ -286,16 +316,12 @@ void make_display_output_activity(
         char address[MAX_ADDRESS_LEN];
         script_to_address(network, out->script, out->script_len, address, sizeof(address));
 
-        char display_address[MAX_ADDRESS_LEN + 4];
-        ret = snprintf(display_address, sizeof(display_address), "} %s {", address);
-        JADE_ASSERT(ret > 0 && ret < sizeof(display_address));
-
         const char* msg = output_info && strlen(output_info[i].message) > 0 ? output_info[i].message : NULL;
 
         ++nDisplayedOutput;
 
-        make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed,
-            display_address, amount, "BTC", NULL, msg);
+        make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed, address,
+            amount, "BTC", NULL, msg);
         gui_chain_activities(&output_act, &act_info);
     }
     JADE_ASSERT(nDisplayedOutput == nTotalOutputsDisplayed);
@@ -393,31 +419,27 @@ void make_display_elements_output_activity(const char* network, const struct wal
             output_info[i].is_confidential ? output_info[i].blinding_key : NULL, sizeof(output_info[i].blinding_key),
             address, sizeof(address));
 
-        char display_address[MAX_ADDRESS_LEN + 4];
-        const int ret = snprintf(display_address, sizeof(display_address), "} %s {", address);
-        JADE_ASSERT(ret > 0 && ret < sizeof(display_address));
-
         ++nDisplayedOutput;
 
         // Insert extra screen to display warning message for this output, if one is passed
         if (strlen(output_info[i].message) > 0) {
             // Make activity with no asset-id but with the warning message
-            make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed,
-                display_address, amount, ticker, NULL, output_info[i].message);
+            make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed, address,
+                amount, ticker, NULL, output_info[i].message);
             gui_chain_activities(&output_act, &act_info);
         }
 
         // Insert extra screen to display warning if the asset registry information is missing
         if (!have_asset_info) {
             // Make activity with no asset-id but with the warning message
-            make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed,
-                display_address, amount, ticker, NULL, MISSING_ASSET_DATA);
+            make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed, address,
+                amount, ticker, NULL, MISSING_ASSET_DATA);
             gui_chain_activities(&output_act, &act_info);
         }
 
         // Normal output screen - with issuer and asset-id but no warning message
-        make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed,
-            display_address, amount, ticker, asset_str, NULL);
+        make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed, address,
+            amount, ticker, asset_str, NULL);
         gui_chain_activities(&output_act, &act_info);
     }
     JADE_ASSERT(nDisplayedOutput == nTotalOutputsDisplayed);
