@@ -32,6 +32,8 @@
 
 #define WORDLIST_PASSPHRASE_MAX_WORDS 10
 
+#define BIP85_INDEX_MAX 65536
+
 typedef enum { MNEMONIC_SIMPLE, MNEMONIC_ADVANCED, WORDLIST_PASSPHRASE } wordlist_purpose_t;
 
 // main/ui/mnemonic.c
@@ -1374,4 +1376,25 @@ void initialise_with_mnemonic(const bool temporary_restore)
 
     SENSITIVE_POP(&keydata);
     SENSITIVE_POP(mnemonic);
+}
+
+// Function to calculate a bip85 bip39 mnemonic phrase
+// Caller must free with 'wally_free_string()
+// NOTE: only the English wordlist is supported.
+void get_bip85_mnemonic(const uint32_t nwords, const uint32_t index, char** new_mnemonic)
+{
+    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(index < BIP85_INDEX_MAX);
+    JADE_INIT_OUT_PPTR(new_mnemonic);
+    JADE_ASSERT(keychain_get());
+
+    uint8_t entropy[HMAC_SHA512_LEN];
+    SENSITIVE_PUSH(entropy, sizeof(entropy));
+    wallet_get_bip85_bip39_entropy(nwords, index, entropy, sizeof(entropy));
+
+    const size_t entropy_len = nwords == 12 ? BIP39_ENTROPY_LEN_128 : BIP39_ENTROPY_LEN_256;
+    JADE_ASSERT(entropy_len < sizeof(entropy));
+    JADE_WALLY_VERIFY(bip39_mnemonic_from_bytes(NULL, entropy, entropy_len, new_mnemonic));
+    JADE_ASSERT(new_mnemonic);
+    SENSITIVE_POP(entropy);
 }

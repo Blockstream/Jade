@@ -18,6 +18,8 @@
 #include <cencoder.h>
 #include <ctype.h>
 
+void get_bip85_mnemonic(const uint32_t nwords, const uint32_t index, char** new_mnemonic);
+
 static const char TEST_MNEMONIC[] = "fish inner face ginger orchard permit useful method fence kidney chuckle party "
                                     "favorite sunset draw limb science crane oval letter slot invite sadness banana";
 static const char SERVICE_PATH_HEX[] = "00c9678fbd9d9f6a96bd43221d56733b5aba8f528487602b894e72d0f56e380f7d145b65639db7e"
@@ -137,19 +139,19 @@ static bool test_new_wallets(const size_t nwords)
 
     keychain_t keydata1 = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, NULL, &keydata1)) {
-        JADE_WALLY_VERIFY(wally_free_string(mnemonic));
+        WALLY_FREE_STR(mnemonic);
         FAIL();
     }
 
     keychain_t keydata2 = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, "passphrase123", &keydata2)) {
-        JADE_WALLY_VERIFY(wally_free_string(mnemonic));
+        WALLY_FREE_STR(mnemonic);
         FAIL();
     }
 
     keychain_t keydata3 = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, "different", &keydata3)) {
-        JADE_WALLY_VERIFY(wally_free_string(mnemonic));
+        WALLY_FREE_STR(mnemonic);
         FAIL();
     }
 
@@ -281,7 +283,7 @@ static bool test_storage_with_passphrase(const size_t nwords)
 
     keychain_t keydata = { 0 };
     if (!keychain_derive_from_mnemonic(mnemonic, "test123", &keydata)) {
-        JADE_WALLY_VERIFY(wally_free_string(mnemonic));
+        WALLY_FREE_STR(mnemonic);
         FAIL();
     }
 
@@ -341,6 +343,50 @@ static bool test_storage_with_passphrase(const size_t nwords)
         FAIL();
     }
     keychain_clear();
+
+    return true;
+}
+
+#define TEST_BIP85_BIP39(nwords, index, expected)                                                                      \
+    do {                                                                                                               \
+        char* generated = NULL;                                                                                        \
+        get_bip85_mnemonic(nwords, index, &generated);                                                                 \
+        JADE_ASSERT(generated);                                                                                        \
+        if (strcmp(generated, expected)) {                                                                             \
+            WALLY_FREE_STR(generated);                                                                                 \
+            FAIL();                                                                                                    \
+        }                                                                                                              \
+        WALLY_FREE_STR(generated);                                                                                     \
+    } while (false)
+
+bool test_bip85_mnemonic()
+{
+    // Set standard test wallet
+    keychain_t keydata = { 0 };
+    if (!keychain_derive_from_mnemonic(TEST_MNEMONIC, NULL, &keydata)) {
+        FAIL();
+    }
+    keychain_set(&keydata, 0, true);
+
+    // Test some bip85 derived mnemonics are as expected
+    // Test cases generated with: https://github.com/ethankosakovsky/bip85
+    TEST_BIP85_BIP39(12, 0, "elephant this puppy lucky fatigue skate aerobic emotion peanut outer clinic casino");
+    TEST_BIP85_BIP39(12, 12, "prevent marriage menu outside total tone prison few sword coffee print salad");
+    TEST_BIP85_BIP39(12, 100, "lottery divert goat drink tackle picture youth text stem marriage call tip");
+    TEST_BIP85_BIP39(12, 65535, "curtain angle fatigue siren involve bleak detail frame name spare size cycle");
+
+    TEST_BIP85_BIP39(24, 0,
+        "certain act palace ball plug they divide fold climb hand tuition inside choose sponsor grass scheme choose "
+        "split top twenty always vendor fit thank");
+    TEST_BIP85_BIP39(24, 24,
+        "flip meat face wood hammer crack fat topple admit canvas bid capital leopard angry fan gate domain exile "
+        "patient recipe nut honey resist inner");
+    TEST_BIP85_BIP39(24, 1024,
+        "phone goat wheel unique local maximum sand reflect scissors one have spin weasel dignity antenna acid pulp "
+        "increase fitness typical bacon strike spy festival");
+    TEST_BIP85_BIP39(24, 65535,
+        "humble museum grab fitness wrap window front job quarter update rich grape gap daring blame cricket traffic "
+        "sad trade easily genius boost lumber rhythm");
 
     return true;
 }
@@ -748,6 +794,11 @@ bool debug_selfcheck(void)
         FAIL();
     }
     if (!test_storage_with_passphrase(24)) {
+        FAIL();
+    }
+
+    // Test Bip85 child bip39 mnemonic generation
+    if (!test_bip85_mnemonic()) {
         FAIL();
     }
 

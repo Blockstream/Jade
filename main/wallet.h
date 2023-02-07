@@ -36,6 +36,10 @@ bool is_greenaddress(script_variant_t variant);
 bool is_singlesig(script_variant_t variant);
 bool is_multisig(script_variant_t variant);
 
+void wallet_get_bip85_wordlist_path(
+    uint32_t nwords, uint32_t index, uint32_t* path, const size_t path_len, size_t* written);
+void wallet_get_bip85_bip39_entropy(size_t nwords, size_t index, uint8_t* entropy, const size_t entropy_len);
+
 void wallet_get_default_xpub_export_path(script_variant_t variant, uint32_t* path, size_t path_len, size_t* written);
 bool wallet_is_expected_singlesig_path(
     const char* network, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);
