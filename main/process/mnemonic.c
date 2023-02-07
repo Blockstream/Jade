@@ -223,29 +223,18 @@ static void change_mnemonic_word_separator(char* mnemonic, const size_t len, con
     JADE_ASSERT(i == len + 1);
 }
 
-static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
+// Helper to display mnemonic words, and then have the user confirm some
+// NOTE: this function replaces spaces with \0's in the passed mnemonic!
+static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
 {
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(mnemonic);
-    JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
-
-    // Generate and show the mnemonic - NOTE: only the English wordlist is supported.
-    char* new_mnemonic = NULL;
-    keychain_get_new_mnemonic(&new_mnemonic, nwords);
-    JADE_ASSERT(new_mnemonic);
-    const size_t new_mnemonic_len = strnlen(new_mnemonic, MNEMONIC_BUFLEN);
-    JADE_ASSERT(new_mnemonic_len < MNEMONIC_BUFLEN); // buffer should be large enough for any mnemonic
-    SENSITIVE_PUSH(new_mnemonic, new_mnemonic_len);
-
-    // Copy into output buffer
-    strcpy(mnemonic, new_mnemonic);
 
     // Change the word separator to a null so we can treat each word as a terminated string.
     // Large enough for 12 and 24 word mnemonic
     char* words[MNEMONIC_MAXWORDS];
-    SENSITIVE_PUSH(words, sizeof(words));
-    change_mnemonic_word_separator(new_mnemonic, new_mnemonic_len, ' ', '\0', words, nwords);
+    change_mnemonic_word_separator(mnemonic, mnemonic_len, ' ', '\0', words, nwords);
     bool mnemonic_confirmed = false;
 
     // create the "show mnemonic" only once and then reuse it
@@ -364,9 +353,34 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
     JADE_LOGD("mnemonic confirmed");
 
 cleanup:
-    SENSITIVE_POP(words);
+    return mnemonic_confirmed;
+}
+
+// NOTE: only the English wordlist is supported.
+static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
+{
+    // Support 12-word and 24-word mnemonics only
+    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(mnemonic);
+    JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
+
+    // Generate and show the mnemonic - NOTE: only the English wordlist is supported.
+    char* new_mnemonic = NULL;
+    keychain_get_new_mnemonic(&new_mnemonic, nwords);
+    JADE_ASSERT(new_mnemonic);
+    const size_t new_mnemonic_len = strnlen(new_mnemonic, MNEMONIC_BUFLEN);
+    JADE_ASSERT(new_mnemonic_len < MNEMONIC_BUFLEN); // buffer should be large enough for any mnemonic
+    SENSITIVE_PUSH(new_mnemonic, new_mnemonic_len);
+
+    // Copy into output buffer
+    strcpy(mnemonic, new_mnemonic);
+
+    // Have user view and confirm mnemonic words
+    const bool mnemonic_confirmed = display_confirm_mnemonic(nwords, new_mnemonic, new_mnemonic_len);
+
     SENSITIVE_POP(new_mnemonic);
     JADE_WALLY_VERIFY(wally_free_string(new_mnemonic));
+
     return mnemonic_confirmed;
 }
 
