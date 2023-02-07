@@ -27,6 +27,8 @@
 #define MNEMONIC_MAXWORDS 24
 #define MNEMONIC_BUFLEN 256
 
+#define NUM_WORDS_SELECT 10
+
 #define PASSPHRASE_MAX_DISPLAY_LEN 16
 
 // main/ui/mnemonic.c
@@ -523,9 +525,10 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
 
         while (char_index < 16) {
             bool exact_match = false;
-            size_t possible_word_list[10];
-            const size_t possible_words = valid_words(word, char_index, possible_word_list, 10, &exact_match);
-            if (possible_words < 11) {
+            size_t possible_word_list[NUM_WORDS_SELECT];
+            const size_t possible_words
+                = valid_words(word, char_index, possible_word_list, NUM_WORDS_SELECT, &exact_match);
+            if (possible_words <= NUM_WORDS_SELECT) {
                 enter->is_active = false;
                 char choose_word_title[16];
                 const int ret
@@ -611,7 +614,7 @@ static bool mnemonic_recover(const size_t nwords, char* mnemonic, const size_t m
                 gui_set_activity_title(enter_word_activity, enter_word_title);
                 gui_set_current_activity(enter_word_activity);
 
-            } else { // else if possible_words >= 11
+            } else { // else if possible_words > NUM_WORDS_SELECT
                 // Update the typed word
                 gui_update_text(textbox, word);
                 enable_relevant_chars(word, char_index, enter_word_activity, backspace, btns, btns_len);
