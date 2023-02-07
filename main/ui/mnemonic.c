@@ -49,14 +49,14 @@ void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
     btn_data_t btns[] = { { .txt = "12 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_12_BEGIN },
         { .txt = "Advanced", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_ADVANCED } };
     make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
-        "A new recovery phrase will be\ngenerated.\nWrite these words down and\nstore them somewhere safe", btns, 2);
+        "A new recovery phrase will be\ngenerated.\nWrite these words down and\nstore them somewhere safe.", btns, 2);
 }
 
 void make_new_mnemonic_screen_advanced(gui_activity_t** activity_ptr)
 {
     btn_data_t btns[] = { { .txt = "12 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_12_BEGIN },
         { .txt = "24 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_24_BEGIN } };
-    make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length", btns, 2);
+    make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length.", btns, 2);
 }
 
 void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr, const bool temporary_restore)
@@ -79,7 +79,16 @@ void make_mnemonic_recovery_screen_advanced(gui_activity_t** activity_ptr)
         { .txt = "24 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC_24_BEGIN },
         { .txt = "Scan QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC_QR_BEGIN } };
     make_mnemonic_screen(
-        activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length\nor to scan a QR code", btns, 3);
+        activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length\nor to scan a QR code.", btns, 3);
+}
+
+void make_bip85_mnemonic_screen(gui_activity_t** activity_ptr)
+{
+    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BIP85_EXIT },
+        { .txt = "12 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BIP85_12_WORDS },
+        { .txt = "24 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BIP85_24_WORDS } };
+    make_mnemonic_screen(activity_ptr, "BIP85",
+        "\nCreate a new recovery phrase\nderived from the current wallet\nand selected index number.", btns, 3);
 }
 
 static void make_show_new_mnemonic_page(gui_activity_t** activity_ptr, const size_t nwords, const size_t first_index,
@@ -225,7 +234,7 @@ static void make_confirm_mnemonic_page(
 
     JADE_LOGD("Confirm page index %u, prev %s, next %s", confirm_index, word_prev, word_next);
 
-    gui_make_activity(activity_ptr, true, "Backup check");
+    gui_make_activity(activity_ptr, true, "Backup Check");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);

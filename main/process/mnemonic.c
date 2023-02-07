@@ -59,6 +59,7 @@ void make_confirm_qr_export_activity(gui_activity_t** activity_ptr);
 void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon* icon);
 void make_export_qr_fragment_activity(
     gui_activity_t** activity_ptr, const Icon* icon, gui_view_node_t** icon_node, gui_view_node_t** label_node);
+void make_bip85_mnemonic_screen(gui_activity_t** activity_ptr);
 
 // Export a mnemonic by asking the user to transcribe it to hard copy, then
 // scanning that hard copy back in and verifying the data matches.
@@ -1397,4 +1398,92 @@ void get_bip85_mnemonic(const uint32_t nwords, const uint32_t index, char** new_
     JADE_WALLY_VERIFY(bip39_mnemonic_from_bytes(NULL, entropy, entropy_len, new_mnemonic));
     JADE_ASSERT(new_mnemonic);
     SENSITIVE_POP(entropy);
+}
+
+// Offer the user the option to generate a bip39 recovery phrase using entropy
+// calculated as per bip85.  User provides number of words and also path index.
+// NOTE: only the English wordlist is supported.
+void handle_bip85_mnemonic()
+{
+    JADE_ASSERT(keychain_get());
+
+    // Fetch number of words to generate
+    gui_activity_t* activity = NULL;
+    make_bip85_mnemonic_screen(&activity);
+    JADE_ASSERT(activity);
+    gui_set_current_activity(activity);
+
+    int32_t ev_id;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    const bool ret = true;
+    ev_id = BTN_BIP85_EXIT;
+#endif
+
+    if (!ret || (ev_id != BTN_BIP85_12_WORDS && ev_id != BTN_BIP85_24_WORDS)) {
+        // User declined
+        return;
+    }
+    const size_t nwords = (ev_id == BTN_BIP85_24_WORDS) ? 24 : 12;
+
+    // Fetch index
+    gui_activity_t* select_index_activity = NULL;
+    gui_view_node_t* textbox = NULL;
+    gui_view_node_t* label = NULL;
+    make_select_word_page(&select_index_activity, "BIP85", "Index #", &textbox, &label);
+    JADE_ASSERT(select_index_activity);
+    JADE_ASSERT(textbox);
+    gui_set_current_activity(select_index_activity);
+
+    size_t index = 0;
+    char buf[8];
+    bool stop = false;
+    while (!stop) {
+        JADE_ASSERT(index < BIP85_INDEX_MAX);
+
+        // Update current selection
+        const int ret = snprintf(buf, sizeof(buf), "%u", index);
+        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+        gui_update_text(textbox, buf);
+
+        // wait for a GUI event
+        int32_t ev_id;
+        gui_activity_wait_event(select_index_activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+
+        switch (ev_id) {
+        case GUI_WHEEL_LEFT_EVENT:
+            // Avoid unsigned wrapping below zero
+            index = (index + BIP85_INDEX_MAX - 1) % BIP85_INDEX_MAX;
+            break;
+
+        case GUI_WHEEL_RIGHT_EVENT:
+            index = (index + 1) % BIP85_INDEX_MAX;
+            break;
+
+        default:
+            // Stop the loop on a 'click' event
+            stop = (ev_id == gui_get_click_event());
+        }
+    } // while !stop
+    JADE_ASSERT(index < BIP85_INDEX_MAX);
+
+    // Generate bip39 mnemonic phrase from bip85 entropy
+    char* new_mnemonic = NULL;
+    get_bip85_mnemonic(nwords, index, &new_mnemonic);
+    JADE_ASSERT(new_mnemonic);
+    const size_t mnemonic_len = strnlen(new_mnemonic, MNEMONIC_BUFLEN);
+    JADE_ASSERT(mnemonic_len < MNEMONIC_BUFLEN);
+    SENSITIVE_PUSH(new_mnemonic, mnemonic_len);
+
+    // Display and confirm mnemonic phrase
+    if (display_confirm_mnemonic(nwords, new_mnemonic, mnemonic_len)) {
+        await_message_activity("Recovery Phrase Confirmed");
+    }
+
+    // Cleanup
+    SENSITIVE_POP(new_mnemonic);
+    JADE_WALLY_VERIFY(wally_free_string(new_mnemonic));
 }
