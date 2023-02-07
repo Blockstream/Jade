@@ -91,9 +91,10 @@ void make_startup_options_screen(gui_activity_t** activity_ptr, gui_view_node_t*
 void make_uninitialised_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_locked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
-void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 
+void make_wallet_settings_screen(gui_activity_t** activity_ptr);
 void make_advanced_options_screen(gui_activity_t** activity_ptr);
+void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
 void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns);
 
 void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr);
@@ -134,6 +135,9 @@ bool register_otp_kb_entry(void);
 void show_pinserver_details(void);
 bool handle_update_pinserver_qr(const uint8_t* cbor, const size_t cbor_len);
 bool reset_pinserver(void);
+
+// Bip85
+void handle_bip85_mnemonic();
 
 // Function to print a pin into a char buffer.
 // Assumes each pin component value is a single digit.
@@ -1243,6 +1247,7 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_ADVANCED_EXIT:
         case BTN_SETTINGS_DEVICE_EXIT:
+        case BTN_SETTINGS_WALLET_EXIT:
         case BTN_SETTINGS_PINSERVER_EXIT:
             // Change to base 'Settings' menu
             create_settings_menu(&act, startup_menu, timeout, &timeout_btn_text);
@@ -1259,6 +1264,12 @@ static void handle_settings(const bool startup_menu)
             // Change to 'Device' menu
             make_device_settings_screen(&act, &timeout_btn_text);
             update_idle_timeout_btn_text(timeout_btn_text, timeout);
+            break;
+
+        case BTN_SETTINGS_WALLET:
+            // Change to 'Device' menu
+            make_wallet_settings_screen(&act);
+            timeout_btn_text = NULL;
             break;
 
         case BTN_SETTINGS_OTP:
@@ -1301,6 +1312,10 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_XPUB_EXPORT:
             display_xpub_qr();
+            break;
+
+        case BTN_SETTINGS_BIP85:
+            handle_bip85_mnemonic();
             break;
 
         case BTN_SETTINGS_TEMPORARY_WALLET_LOGIN:

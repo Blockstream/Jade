@@ -443,10 +443,23 @@ void make_unlocked_settings_screen(gui_activity_t** activity_ptr, gui_view_node_
 
     gui_make_activity(activity_ptr, true, "Settings");
 
-    btn_data_t btns[] = { { .txt = "Device", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
-        { .txt = "Xpub Export", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_XPUB_EXPORT },
+    btn_data_t btns[] = { { .txt = "Wallet", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET },
+        { .txt = "Device", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
         { .txt = "Advanced", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
+    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+}
+
+void make_wallet_settings_screen(gui_activity_t** activity_ptr)
+{
+    JADE_ASSERT(activity_ptr);
+
+    gui_make_activity(activity_ptr, true, "Wallet");
+
+    btn_data_t btns[] = { { .txt = "Xpub Export", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_XPUB_EXPORT },
+        { .txt = "Registered Multisigs", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
+        { .txt = "BIP85 Recovery Phrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP85 },
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_WALLET_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
@@ -455,7 +468,7 @@ void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(timeout_btn_text);
 
-    gui_make_activity(activity_ptr, true, "Settings");
+    gui_make_activity(activity_ptr, true, "Device");
 
     // Note: placeholder in first position - timeout button set into this slot below
     btn_data_t btns[]
@@ -574,10 +587,11 @@ void make_advanced_options_screen(gui_activity_t** activity_ptr)
 
     gui_make_activity(activity_ptr, true, "Advanced");
 
-    btn_data_t btns[] = { { .txt = "M-of-N Multisig", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
+    btn_data_t btns[] = { { .txt = "OTP", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
         { .txt = "Wallet-Erase PIN", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
-        { .txt = "OTP", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_ADVANCED_EXIT } };
+        //{ .txt = "Nostr", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_NOSTR },  ??
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_ADVANCED_EXIT },
+        { .txt = NULL, .font = JADE_SYMBOLS_16x16_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
