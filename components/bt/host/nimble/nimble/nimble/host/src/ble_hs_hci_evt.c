@@ -189,49 +189,51 @@ ble_hs_hci_evt_disconn_complete(uint8_t event_code, const void *data,
     ble_hs_unlock();
 
 #if CONFIG_BT_NIMBLE_ENABLE_CONN_REATTEMPT
-    int rc, i, idx;
+    if (ev->reason == BLE_ERR_CONN_ESTABLISHMENT) {
+        int rc, i, idx;
 
-    idx = ble_gap_find_reattempt_conn_idx(conn);
+        idx = ble_gap_find_reattempt_conn_idx(conn);
 
-    if (idx == MYNEWT_VAL(BLE_MAX_CONNECTIONS)) {
-        /* This means, no matching addr exists in databse. So create a new one */
-	for (i = 0; i < MYNEWT_VAL(BLE_MAX_CONNECTIONS); i++) {
-            if (reattempt_conn[i].count == 0) {
-                idx = i;
-		break;
-	    }
+        if (idx == MYNEWT_VAL(BLE_MAX_CONNECTIONS)) {
+            /* This means, no matching addr exists in databse. So create a new one */
+	        for (i = 0; i < MYNEWT_VAL(BLE_MAX_CONNECTIONS); i++) {
+                    if (reattempt_conn[i].count == 0) {
+	                    idx = i;
+		                break;
+	                }
+	        }
         }
-    }
 
-    if (idx == MYNEWT_VAL(BLE_MAX_CONNECTIONS)) {
-       BLE_HS_LOG(DEBUG, "No space left in array ");
-       goto done;
-    }
+        if (idx == MYNEWT_VAL(BLE_MAX_CONNECTIONS)) {
+            BLE_HS_LOG(DEBUG, "No space left in array ");
+            goto done;
+        }
 
-    if (ev->reason == BLE_ERR_CONN_ESTABLISHMENT && (conn != NULL)) {
-        BLE_HS_LOG(DEBUG, "Reattempt connection; reason = 0x%x, status = %d,"
-                          "reattempt count = %d ", ev->reason, ev->status,
-                           reattempt_conn[idx].count);
-        if (conn->bhc_flags & BLE_HS_CONN_F_MASTER) {
-            if (reattempt_conn[idx].count < MAX_REATTEMPT_ALLOWED) {
-                reattempt_conn[idx].count += 1;
-		memcpy(&reattempt_conn[idx].peer_addr, &conn->bhc_peer_addr, BLE_DEV_ADDR_LEN);
+        if (conn != NULL) {
+            BLE_HS_LOG(DEBUG, "Reattempt connection; reason = 0x%x, status = %d,"
+                              "reattempt count = %d ", ev->reason, ev->status,
+                               reattempt_conn[idx].count);
+            if (conn->bhc_flags & BLE_HS_CONN_F_MASTER) {
+                if (reattempt_conn[idx].count < MAX_REATTEMPT_ALLOWED) {
+                    reattempt_conn[idx].count += 1;
+                    memcpy(&reattempt_conn[idx].peer_addr, &conn->bhc_peer_addr, BLE_DEV_ADDR_LEN);
 
-                rc = ble_gap_master_connect_reattempt(ev->conn_handle);
-                if (rc != 0) {
-                    BLE_HS_LOG(DEBUG, "Master reconnect attempt failed; rc = %d", rc);
+                    rc = ble_gap_master_connect_reattempt(ev->conn_handle);
+                    if (rc != 0) {
+                        BLE_HS_LOG(DEBUG, "Master reconnect attempt failed; rc = %d", rc);
+                    }
+                } else {
+                    memset(&reattempt_conn[idx].peer_addr, 0x0, BLE_DEV_ADDR_LEN);
+                    reattempt_conn[idx].count = 0;
                 }
-            } else {
-                memset(&reattempt_conn[idx].peer_addr, 0x0, BLE_DEV_ADDR_LEN);
-                reattempt_conn[idx].count = 0;
             }
+        } else {
+            /* Disconnect completed with some other reason than
+            * BLE_ERR_CONN_ESTABLISHMENT, reset the corresponding reattempt count
+            * */
+            memset(&reattempt_conn[idx].peer_addr, 0x0, BLE_DEV_ADDR_LEN);
+            reattempt_conn[idx].count = 0;
         }
-    } else {
-        /* Disconnect completed with some other reason than
-         * BLE_ERR_CONN_ESTABLISHMENT, reset the corresponding reattempt count
-         * */
-        memset(&reattempt_conn[idx].peer_addr, 0x0, BLE_DEV_ADDR_LEN);
-        reattempt_conn[idx].count = 0;
     }
 done:
 
