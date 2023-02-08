@@ -28,14 +28,14 @@ origin of the repo in the docker.
 
 Jade requires the esp-idf sdk.
 
-More information is available in the [Espressif official guide](https://docs.espressif.com/projects/esp-idf/en/v4.4.3/esp32/get-started/index.html).
+More information is available in the [Espressif official guide](https://docs.espressif.com/projects/esp-idf/en/v4.4.4/esp32/get-started/index.html).
 
 Get the esp-idf sdk and required tools:
 
 ```
 cd ~/esp
-git clone -b v4.4.3 --recursive https://github.com/espressif/esp-idf.git
-cd ~/esp/esp-idf && git checkout 6407ecb3f8d2cc07c4c230e7e64f2046af5c86f7 && ./install.sh esp32
+git clone -b v4.4.4 --recursive https://github.com/espressif/esp-idf.git
+cd ~/esp/esp-idf && git checkout e8bdaf91986a41678adc6be13888fc037b1acb68 && ./install.sh esp32
 ```
 
 Set up the environmental variables:
