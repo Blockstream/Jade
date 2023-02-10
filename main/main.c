@@ -1,3 +1,4 @@
+#include <esp_efuse.h>
 #include <esp_event.h>
 #include <esp_ota_ops.h>
 
@@ -44,6 +45,14 @@ int serial_logger(const char* message, va_list fmt);
 
 void offer_startup_options(void);
 void dashboard_process(void* process_ptr);
+
+static void ensure_boot_flags()
+{
+#ifdef CONFIG_SECURE_BOOT
+    esp_efuse_disable_basic_rom_console();
+    esp_efuse_disable_rom_download_mode();
+#endif
+}
 
 static bool rnd_camera_feed(
     const size_t width, const size_t height, const uint8_t* data, const size_t len, void* ctx_data)
@@ -199,6 +208,7 @@ static void validate_running_image(void)
 
 void app_main(void)
 {
+    ensure_boot_flags();
     random_start_collecting();
     boot_process();
     sensitive_assert_empty();
