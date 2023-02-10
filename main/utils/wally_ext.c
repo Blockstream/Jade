@@ -42,7 +42,7 @@ void jade_wally_randomize_secp_ctx(void)
 static void jade_wally_delete_cb(int index, void* ptr)
 {
     JADE_LOGI("jade_wally_delete_cb() called for pointer %p (from tls index %d) by task '%s'", ptr, index,
-        pcTaskGetTaskName(NULL));
+        pcTaskGetName(NULL));
 
     if (!ptr) {
         JADE_LOGE("jade_wally_delete_cb() called with null ptr!  Doing nothing.");
@@ -69,7 +69,7 @@ static void jade_wally_delete_cb(int index, void* ptr)
 static inline struct jade_wally_ctx* get_jade_wally_ctx(void)
 {
     struct jade_wally_ctx* ctx = pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX_WALLY);
-    JADE_LOGD("get_ctx returned %p for task '%s'", ctx, pcTaskGetTaskName(NULL));
+    JADE_LOGD("get_ctx returned %p for task '%s'", ctx, pcTaskGetName(NULL));
     return ctx;
 }
 
@@ -77,7 +77,7 @@ static void set_jade_wally_ctx(struct jade_wally_ctx** ptr, struct secp256k1_con
 {
     JADE_INIT_OUT_PPTR(ptr);
 
-    JADE_LOGI("set_jade_wally_ctx() called by task '%s' with context %p", pcTaskGetTaskName(NULL), secp_ctx);
+    JADE_LOGI("set_jade_wally_ctx() called by task '%s' with context %p", pcTaskGetName(NULL), secp_ctx);
 
     *ptr = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct jade_wally_ctx));
     struct jade_wally_ctx* const ctx = *ptr;
@@ -103,7 +103,7 @@ static void set_jade_wally_ctx(struct jade_wally_ctx** ptr, struct secp256k1_con
      * won't recurse forever */
     jade_wally_randomize_secp_ctx();
 
-    JADE_LOGI("set_jade_wally_ctx() set context %p (%p) for task '%s'", ctx, ctx->secp_ctx, pcTaskGetTaskName(NULL));
+    JADE_LOGI("set_jade_wally_ctx() set context %p (%p) for task '%s'", ctx, ctx->secp_ctx, pcTaskGetName(NULL));
 }
 
 /* This function will be set in wally as the function to fetch the secp context*/
