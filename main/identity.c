@@ -66,14 +66,10 @@ static void get_identity_hash(
 
     mbedtls_sha256_context ctx;
     mbedtls_sha256_init(&ctx);
-    int res = mbedtls_sha256_starts_ret(&ctx, 0);
-    JADE_ASSERT(!res);
-    res = mbedtls_sha256_update_ret(&ctx, (uint8_t*)&index, sizeof(index));
-    JADE_ASSERT(!res);
-    res = mbedtls_sha256_update_ret(&ctx, (uint8_t*)identity, identity_len);
-    JADE_ASSERT(!res);
-    res = mbedtls_sha256_finish_ret(&ctx, output);
-    JADE_ASSERT(!res);
+    mbedtls_sha256_starts(&ctx, 0);
+    mbedtls_sha256_update(&ctx, (uint8_t*)&index, sizeof(index));
+    mbedtls_sha256_update(&ctx, (uint8_t*)identity, identity_len);
+    mbedtls_sha256_finish(&ctx, output);
     mbedtls_sha256_free(&ctx);
 }
 

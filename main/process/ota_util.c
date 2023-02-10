@@ -84,10 +84,7 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     }
 
     // Add to cmp-file hasher
-    if (mbedtls_sha256_update_ret(joctx->cmp_sha_ctx, inbound_buf, written) != 0) {
-        *joctx->ota_return_status = ERROR_BADDATA;
-        return;
-    }
+    mbedtls_sha256_update(joctx->cmp_sha_ctx, inbound_buf, written);
 
     joctx->remaining_compressed -= written;
 
@@ -129,10 +126,7 @@ bool ota_init(jade_ota_ctx_t* joctx)
         return false;
     }
 
-    if (mbedtls_sha256_starts_ret(joctx->cmp_sha_ctx, 0)) {
-        JADE_LOGE("Failed to initialize mbedtls_sha256");
-        return false;
-    }
+    mbedtls_sha256_starts(joctx->cmp_sha_ctx, 0);
 
     const esp_err_t err = esp_ota_begin(joctx->update_partition, joctx->firmwaresize, joctx->ota_handle);
     if (err != ESP_OK) {
@@ -164,10 +158,7 @@ enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
 
     // Verify calculated compressed file hash matches expected
     uint8_t calculated_hash[SHA256_LEN];
-    if (mbedtls_sha256_finish_ret(joctx->cmp_sha_ctx, calculated_hash) != 0) {
-        JADE_LOGE("Failed to compute fw file hash");
-        return ERROR_BAD_HASH;
-    }
+    mbedtls_sha256_finish(joctx->cmp_sha_ctx, calculated_hash);
 
     JADE_ASSERT(joctx->expected_hash);
     JADE_ASSERT(joctx->expected_hash_hexstr);

@@ -22,26 +22,22 @@
 // these functions rely on cleanup being available
 #define hasherstart(ctx)                                                                                               \
     do {                                                                                                               \
-        const int _ret = mbedtls_sha512_starts_ret(&ctx, 0);                                                           \
-        JADE_ASSERT(_ret == 0);                                                                                        \
+        mbedtls_sha512_starts(&ctx, 0);                                                                                \
     } while (false)
 #define hasherfinish(ctx, _data)                                                                                       \
     do {                                                                                                               \
-        const int _ret = mbedtls_sha512_finish_ret(&ctx, (uint8_t*)_data);                                             \
-        JADE_ASSERT(_ret == 0);                                                                                        \
+        mbedtls_sha512_finish(&ctx, (uint8_t*)_data);                                                                  \
     } while (false)
 
 #define call_uint16_t_func_to_hasher(ctx, _func)                                                                       \
     do {                                                                                                               \
         const uint16_t _tmp = _func();                                                                                 \
-        const int _ret = mbedtls_sha512_update_ret(&ctx, (const uint8_t*)&_tmp, sizeof(_tmp));                         \
-        JADE_ASSERT(_ret == 0);                                                                                        \
+        mbedtls_sha512_update(&ctx, (const uint8_t*)&_tmp, sizeof(_tmp));                                              \
     } while (false)
 
 #define add_bytes_to_hasher(ctx, _bytes, _len)                                                                         \
     do {                                                                                                               \
-        const int _ret = mbedtls_sha512_update_ret(&ctx, (const uint8_t*)_bytes, _len);                                \
-        JADE_ASSERT(_ret == 0);                                                                                        \
+        mbedtls_sha512_update(&ctx, (const uint8_t*)_bytes, _len);                                                     \
     } while (false)
 
 static uint8_t entropy_state[SHA256_LEN];
