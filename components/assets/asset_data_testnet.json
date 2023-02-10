@@ -89,6 +89,37 @@
         "ticker": "TST4",
         "version": 0
     },
+    "0439b8586cd9a2281854f8ac6b1e481cbfd70675c4be33b4113263a6de618e06": {
+        "asset_id": "0439b8586cd9a2281854f8ac6b1e481cbfd70675c4be33b4113263a6de618e06",
+        "collection": "COLLECTION",
+        "contract": {
+            "collection": "COLLECTION",
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "026bb453a54672b7e91c8bfcb68a83f8af8db261a0a1d2b966f4fc0329d60224cd",
+            "name": "TEST_COLLECTION3",
+            "precision": 0,
+            "ticker": "TEST-COLLECTION3",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "b02bacb46cc3a9860a92f1c9d0ca271652fc8254368ed1edf527c9f591bf1000",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "62d82f1d71c3bceba19d28097372b575a3fbf9fa3ace7542e113c0201bc42dc6",
+            "vin": 0
+        },
+        "issuer_pubkey": "026bb453a54672b7e91c8bfcb68a83f8af8db261a0a1d2b966f4fc0329d60224cd",
+        "name": "TEST_COLLECTION3",
+        "precision": 0,
+        "ticker": "TEST-COLLECTION3",
+        "version": 0
+    },
     "052e401158c1057d1a420ed1392e18779dbacf76af724810f1bd15903659f411": {
         "asset_id": "052e401158c1057d1a420ed1392e18779dbacf76af724810f1bd15903659f411",
         "collection": null,
@@ -448,6 +479,36 @@
         "ticker": "011122-1",
         "version": 0
     },
+    "264478068b48ff5c4f5fa9e08a8a1862fc8a43ecf339aea874466adc25a2ff49": {
+        "asset_id": "264478068b48ff5c4f5fa9e08a8a1862fc8a43ecf339aea874466adc25a2ff49",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "03f5bb84fc6b712c5cb4d1cfc8ab78c445af088ee6f589fcdfec02a8fbf1fd885b",
+            "name": "Lukas Test Asset",
+            "precision": 2,
+            "ticker": "LTAs",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "8eda0ea4fde5b62b3f8ed995c8febb2d915b291f9e7183f9d53177a04f691ce9",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "e22400adeb19e809ac643d287c48c1f88a18c7c17d69a0e5c1d158d7c9535c97",
+            "vin": 0
+        },
+        "issuer_pubkey": "03f5bb84fc6b712c5cb4d1cfc8ab78c445af088ee6f589fcdfec02a8fbf1fd885b",
+        "name": "Lukas Test Asset",
+        "precision": 2,
+        "ticker": "LTAs",
+        "version": 0
+    },
     "2da5e144f687d40795d9133fc7db79ccf8b44c2b94cae1dd34c1472bf2b50da1": {
         "asset_id": "2da5e144f687d40795d9133fc7db79ccf8b44c2b94cae1dd34c1472bf2b50da1",
         "collection": null,
@@ -537,6 +598,36 @@
         "ticker": "Simo",
         "version": 0
     },
+    "36f9d5c80d8ba825fc43472220984a58db23a1e10368b7c81b654880c7ca5496": {
+        "asset_id": "36f9d5c80d8ba825fc43472220984a58db23a1e10368b7c81b654880c7ca5496",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "tiero.github.io"
+            },
+            "issuer_pubkey": "03d5837e1135b1d3adb50654ab9ffaa6f2a9ae2b91672b081b97d4a48fcc81ec84",
+            "name": "Tiero Token",
+            "precision": 0,
+            "ticker": "TIERO",
+            "version": 0
+        },
+        "entity": {
+            "domain": "tiero.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "7e136fdd1e746d4f0597db5b2705fd8c890cba1fbb84662e73b272087b36b88d",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "706f82d30de1ce3a384a96cff94cb74d892ad80ca68a8fd425ba24d375f5e6df",
+            "vin": 0
+        },
+        "issuer_pubkey": "03d5837e1135b1d3adb50654ab9ffaa6f2a9ae2b91672b081b97d4a48fcc81ec84",
+        "name": "Tiero Token",
+        "precision": 0,
+        "ticker": "TIERO",
+        "version": 0
+    },
     "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5": {
         "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
         "contract": {
@@ -594,6 +685,36 @@
         "name": "nitramiz",
         "precision": 0,
         "ticker": "niz",
+        "version": 0
+    },
+    "40e86242108db84ca26b3e06615d950831a8b7f09e934dd617ec4bff7f1b5e5f": {
+        "asset_id": "40e86242108db84ca26b3e06615d950831a8b7f09e934dd617ec4bff7f1b5e5f",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "raspitor.one"
+            },
+            "issuer_pubkey": "03ef0e6e6406c404b2ac8cc85a7016c7295e1fb1d7adb4a73cfaa0d300a97b376d",
+            "name": "UAT Coin",
+            "precision": 1,
+            "ticker": "UATC",
+            "version": 0
+        },
+        "entity": {
+            "domain": "raspitor.one"
+        },
+        "issuance_prevout": {
+            "txid": "d4ca676e319d931d34472f48024900df96b54471a5cee4bc33f4da282c0a3820",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "d439e8bb253bab7482517e89ca626f555c6807a1b3b1a75a2ab77402fafe47e1",
+            "vin": 0
+        },
+        "issuer_pubkey": "03ef0e6e6406c404b2ac8cc85a7016c7295e1fb1d7adb4a73cfaa0d300a97b376d",
+        "name": "UAT Coin",
+        "precision": 1,
+        "ticker": "UATC",
         "version": 0
     },
     "4225e33704a1f2d3c5ede39ebc0e8be1ec36e8d8f4c96aa2abc5e7e75a4808f3": {
@@ -686,6 +807,36 @@
         "ticker": "ALD2",
         "version": 0
     },
+    "44d2f6a3a499f82dc01ff8abeb3331205e35ddef0497958a1b9043c40d40eca7": {
+        "asset_id": "44d2f6a3a499f82dc01ff8abeb3331205e35ddef0497958a1b9043c40d40eca7",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "raspitor.one"
+            },
+            "issuer_pubkey": "03521aae40f13727e82e53377b58e3ea226177c0620897561b4d6640798208cf70",
+            "name": "AMP-01",
+            "precision": 1,
+            "ticker": "A01",
+            "version": 0
+        },
+        "entity": {
+            "domain": "raspitor.one"
+        },
+        "issuance_prevout": {
+            "txid": "66ca3813fee89fa64f2fa76a2891ce2086e115c5fae0217ef3c86e29039283f8",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "ed2b881bf2e517b929a1459f26729c312ccef064c65d1248c210636e733da4a7",
+            "vin": 0
+        },
+        "issuer_pubkey": "03521aae40f13727e82e53377b58e3ea226177c0620897561b4d6640798208cf70",
+        "name": "AMP-01",
+        "precision": 1,
+        "ticker": "A01",
+        "version": 0
+    },
     "4799d8ec0f64b97ab7b64668c27f5f6452586192a4e2ba73b20b345dc80a82f7": {
         "asset_id": "4799d8ec0f64b97ab7b64668c27f5f6452586192a4e2ba73b20b345dc80a82f7",
         "collection": null,
@@ -714,6 +865,36 @@
         "name": "Marco USD",
         "precision": 8,
         "ticker": "USDm",
+        "version": 0
+    },
+    "4801a83fdabb9f695e3e776127155f730ab268e74b8b1c9280024f633cf4132d": {
+        "asset_id": "4801a83fdabb9f695e3e776127155f730ab268e74b8b1c9280024f633cf4132d",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "0346a49a6ba07ea40dfd2f2ed0e6efe8504cb7280d1dffcd8466bd283aec74a2d7",
+            "name": "First Token Asset ",
+            "precision": 2,
+            "ticker": "FTA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "cc884857c39f75e87c904f34ca716ac96c634a89e195a9a15686a1900a35340f",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "c4818e7f485d65daf978736cbdb46595b2a3eeb25b5a10bd6676f7734f8f7ad4",
+            "vin": 0
+        },
+        "issuer_pubkey": "0346a49a6ba07ea40dfd2f2ed0e6efe8504cb7280d1dffcd8466bd283aec74a2d7",
+        "name": "First Token Asset ",
+        "precision": 2,
+        "ticker": "FTA",
         "version": 0
     },
     "490aa7e95ebadaa72ceaa7a899088358a9dcf565eb166dcf85757a9eaf86bfc9": {
@@ -896,6 +1077,36 @@
         "ticker": "ALD1",
         "version": 0
     },
+    "582984cddbda54d85d3606fda2fc08ffa66e1fa4ff4d7478fe9046e6ecccd743": {
+        "asset_id": "582984cddbda54d85d3606fda2fc08ffa66e1fa4ff4d7478fe9046e6ecccd743",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "wintercooled.github.io"
+            },
+            "issuer_pubkey": "02e1b75deb55bdf8f4ba6c3a18c5b6dea8399a7506b1dba0a7cb21987af15e0efa",
+            "name": "EAT_DEMO_01",
+            "precision": 0,
+            "ticker": "EAT-01",
+            "version": 0
+        },
+        "entity": {
+            "domain": "wintercooled.github.io"
+        },
+        "issuance_prevout": {
+            "txid": "3f616219bcfc5ad6213105dfd97669b44c1ab79cd0ce1e32380bfed02d25e478",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "8b1ba57a21c9c641219f43986a950e3207714ca9c701814cb8280515c7481031",
+            "vin": 0
+        },
+        "issuer_pubkey": "02e1b75deb55bdf8f4ba6c3a18c5b6dea8399a7506b1dba0a7cb21987af15e0efa",
+        "name": "EAT_DEMO_01",
+        "precision": 0,
+        "ticker": "EAT-01",
+        "version": 0
+    },
     "58af36e1b529b42f3e4ccce812924380058cae18b2ad26c89805813a9db25980": {
         "asset_id": "58af36e1b529b42f3e4ccce812924380058cae18b2ad26c89805813a9db25980",
         "contract": {
@@ -923,6 +1134,36 @@
         "name": "PEGx EUR Testnet",
         "precision": 8,
         "ticker": "EURx",
+        "version": 0
+    },
+    "5952dc083e2938d937f24a041b8fa977483be0c20ec93de22c71a59a946e02bc": {
+        "asset_id": "5952dc083e2938d937f24a041b8fa977483be0c20ec93de22c71a59a946e02bc",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "03dbdaa5025c363d07e33b23a30a6441444e326f62402befbd37f1f222855d4051",
+            "name": "Test Demo",
+            "precision": 2,
+            "ticker": "TDA",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "2f388731fce52658a3e822929e9b5aa56876b594625179129f4188a9c4ca747b",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "7e136fdd1e746d4f0597db5b2705fd8c890cba1fbb84662e73b272087b36b88d",
+            "vin": 0
+        },
+        "issuer_pubkey": "03dbdaa5025c363d07e33b23a30a6441444e326f62402befbd37f1f222855d4051",
+        "name": "Test Demo",
+        "precision": 2,
+        "ticker": "TDA",
         "version": 0
     },
     "59cdffc2ea0bfb641c19b714e955a00fa0534cca334ed676681d46a050ab948a": {
@@ -953,6 +1194,67 @@
         "name": "Vulpem USD",
         "precision": 8,
         "ticker": "vUSD",
+        "version": 0
+    },
+    "5a1d5b6e0a75002466d9b4ce317fad2175157f5f68cd21f40786d479d55985b9": {
+        "asset_id": "5a1d5b6e0a75002466d9b4ce317fad2175157f5f68cd21f40786d479d55985b9",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "031b91bc810862607fd34a69b0337d69971c8f2e6a507abe2129dd2ae941d3c5a4",
+            "name": "TESTASSET020723-1",
+            "precision": 0,
+            "ticker": "TESTASSET020723-1",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "f475e11507b0afc43ce4a32fd93a5c0ebfb73c264641d7dc314feedb641a60e1",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "103acbd0d1fe6e536ca928ec2392c6956253cf7777d066578a4debdd94991891",
+            "vin": 0
+        },
+        "issuer_pubkey": "031b91bc810862607fd34a69b0337d69971c8f2e6a507abe2129dd2ae941d3c5a4",
+        "name": "TESTASSET020723-1",
+        "precision": 0,
+        "ticker": "TESTASSET020723-1",
+        "version": 0
+    },
+    "5c9ef0ff69869edfa707603f2de03b93302484539240e44656e807a1272a55d8": {
+        "asset_id": "5c9ef0ff69869edfa707603f2de03b93302484539240e44656e807a1272a55d8",
+        "collection": "COLLECTION",
+        "contract": {
+            "collection": "COLLECTION",
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "03542c723711b470a68a14e31919426568ee004e15bf9500a0f46a18deea9b2871",
+            "name": "TEST_COLLECTION5",
+            "precision": 0,
+            "ticker": "TEST-COLLECTION5",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "34c310b14d765d34da3b4efc483dab30779dbafea470d342ac7854e9436b59b0",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "243b8c25376637f29f0b2a9ed95fd970b75b2e72b25db86324a83418a8c96885",
+            "vin": 0
+        },
+        "issuer_pubkey": "03542c723711b470a68a14e31919426568ee004e15bf9500a0f46a18deea9b2871",
+        "name": "TEST_COLLECTION5",
+        "precision": 0,
+        "ticker": "TEST-COLLECTION5",
         "version": 0
     },
     "639ed77089105bcfe434d47f7368d87f53f30a45fc3cff7463105d152bb4d3b1": {
@@ -1073,6 +1375,36 @@
         "ticker": "MRJTS",
         "version": 0
     },
+    "70bbe55416b2d34599968734a0424d22305610cbaac7f735bbfdcd57a8af8696": {
+        "asset_id": "70bbe55416b2d34599968734a0424d22305610cbaac7f735bbfdcd57a8af8696",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "029ff38873ce3262ae03778f426ef846729776a041b1bcbc22598db4aec6be0692",
+            "name": "TEST_COLLECTION2",
+            "precision": 0,
+            "ticker": "TEST-COLLECTION2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "6d20fa1197facfb3e9866df722e02a08fb6bae98c5170007e383b9692f9703da",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "b02bacb46cc3a9860a92f1c9d0ca271652fc8254368ed1edf527c9f591bf1000",
+            "vin": 0
+        },
+        "issuer_pubkey": "029ff38873ce3262ae03778f426ef846729776a041b1bcbc22598db4aec6be0692",
+        "name": "TEST_COLLECTION2",
+        "precision": 0,
+        "ticker": "TEST-COLLECTION2",
+        "version": 0
+    },
     "765cbc249f9c19161f35e320edf2d709394a17f3c423713a1752bb81cef57adb": {
         "asset_id": "765cbc249f9c19161f35e320edf2d709394a17f3c423713a1752bb81cef57adb",
         "collection": null,
@@ -1101,6 +1433,36 @@
         "name": "AMT_T_MH_01",
         "precision": 2,
         "ticker": "AMTT1",
+        "version": 0
+    },
+    "79cb698405437ec2f411342da01e9ed9162ffae7537e68d7851a7b83f146beb3": {
+        "asset_id": "79cb698405437ec2f411342da01e9ed9162ffae7537e68d7851a7b83f146beb3",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "www.erikdesmedt.be"
+            },
+            "issuer_pubkey": "030e6371a4814f52c3422208eaa609438326d1a61ab61819b9740acb5b9fa4c3da",
+            "name": "erik_amp_coin_2",
+            "precision": 2,
+            "ticker": "PRIK7",
+            "version": 0
+        },
+        "entity": {
+            "domain": "www.erikdesmedt.be"
+        },
+        "issuance_prevout": {
+            "txid": "fe66ca6f8ae35d4d55af9b1a0f368e8272a65d5141224e42305a9261aec8fe7a",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "e22fd6050c98f94abb17950eb94dd92fea302b3431068f3508854ab9889a8e0a",
+            "vin": 0
+        },
+        "issuer_pubkey": "030e6371a4814f52c3422208eaa609438326d1a61ab61819b9740acb5b9fa4c3da",
+        "name": "erik_amp_coin_2",
+        "precision": 2,
+        "ticker": "PRIK7",
         "version": 0
     },
     "7c058e4609ae941e6d126bfbf43c0fa3c5ace6f2ddb178263d9b696c83ccd2ec": {
@@ -1191,6 +1553,36 @@
         "name": "Test5",
         "precision": 8,
         "ticker": "TST5",
+        "version": 0
+    },
+    "8c7097a795965083f609d6b3edc912342591fb589a1eea4ceb7c3ff56c01b966": {
+        "asset_id": "8c7097a795965083f609d6b3edc912342591fb589a1eea4ceb7c3ff56c01b966",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "www.erikdesmedt.be"
+            },
+            "issuer_pubkey": "030e6371a4814f52c3422208eaa609438326d1a61ab61819b9740acb5b9fa4c3da",
+            "name": "erik_amp_coin_2",
+            "precision": 2,
+            "ticker": "PRIK10",
+            "version": 0
+        },
+        "entity": {
+            "domain": "www.erikdesmedt.be"
+        },
+        "issuance_prevout": {
+            "txid": "fada0eac994523d550a9540ef6580de0cc5c31f3bee0e41bc7e1db1f1166264d",
+            "vout": 3
+        },
+        "issuance_txin": {
+            "txid": "b3eb56906c20ad0f5f33588485d94af7d482ea004e885fcdd50ca315e0e8b063",
+            "vin": 0
+        },
+        "issuer_pubkey": "030e6371a4814f52c3422208eaa609438326d1a61ab61819b9740acb5b9fa4c3da",
+        "name": "erik_amp_coin_2",
+        "precision": 2,
+        "ticker": "PRIK10",
         "version": 0
     },
     "8eca97f4ed8c894905ae82eadf8b6e5ff10adfcea150250cf9889bc4eb8fac5c": {
@@ -1495,6 +1887,36 @@
         "ticker": "LCAD",
         "version": 0
     },
+    "ac8648b7539ef169f9ba90c9d91a4315b152ded7194dc2c988f3da667eaf2711": {
+        "asset_id": "ac8648b7539ef169f9ba90c9d91a4315b152ded7194dc2c988f3da667eaf2711",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "raspitor.one"
+            },
+            "issuer_pubkey": "03e0c46f06cea390ed0fbee1bfcb30cc54d0907256b8a9c0fc18beb0fbb325ffde",
+            "name": "One-NFT",
+            "precision": 0,
+            "ticker": "1NFT",
+            "version": 0
+        },
+        "entity": {
+            "domain": "raspitor.one"
+        },
+        "issuance_prevout": {
+            "txid": "706f82d30de1ce3a384a96cff94cb74d892ad80ca68a8fd425ba24d375f5e6df",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "03a4997319ec3586b397ff10fdb41f09ff6aee6878c4884f5daa8482b73b93b5",
+            "vin": 0
+        },
+        "issuer_pubkey": "03e0c46f06cea390ed0fbee1bfcb30cc54d0907256b8a9c0fc18beb0fbb325ffde",
+        "name": "One-NFT",
+        "precision": 0,
+        "ticker": "1NFT",
+        "version": 0
+    },
     "b01e4d029b4f1fe487a865d8f04fdffe2bd335b0b7f8700092109e6f042f0609": {
         "asset_id": "b01e4d029b4f1fe487a865d8f04fdffe2bd335b0b7f8700092109e6f042f0609",
         "collection": null,
@@ -1553,6 +1975,36 @@
         "name": "TESTING",
         "precision": 0,
         "ticker": "JYIS",
+        "version": 0
+    },
+    "b14d0d3737078a0499985226d7e3e215fefc4b89af14482d9d681691001b220b": {
+        "asset_id": "b14d0d3737078a0499985226d7e3e215fefc4b89af14482d9d681691001b220b",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "0322cffc281433ffb3cdaa96cfba43a54d4fbb772a61ca91a6e09652b65cb8ddd7",
+            "name": "TEST_COLLECTION",
+            "precision": 0,
+            "ticker": "TEST-COLLECTION",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "fc41de60557952a212365af5292f7aa2a0482fbd8c9558a9be86740869ca3092",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "1241c6dfc13c05f65716e8862b849a5764fe0ff7c4ebf57a17e275548d5f07e1",
+            "vin": 0
+        },
+        "issuer_pubkey": "0322cffc281433ffb3cdaa96cfba43a54d4fbb772a61ca91a6e09652b65cb8ddd7",
+        "name": "TEST_COLLECTION",
+        "precision": 0,
+        "ticker": "TEST-COLLECTION",
         "version": 0
     },
     "b1b5d7561e9977867dec7f63ca164c4daccfd854619d6420d783c2f6380be54f": {
@@ -1705,6 +2157,36 @@
         "ticker": "TA-04",
         "version": 0
     },
+    "beaf39115912fb6920ca4ce0d8e363ac91ac5cb4d2a597b907cbffad64d6acbc": {
+        "asset_id": "beaf39115912fb6920ca4ce0d8e363ac91ac5cb4d2a597b907cbffad64d6acbc",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "033a5ba930b25c5e97905e7eea0a4f6d4c0fe4472b54434e5f50bf0509411ec47b",
+            "name": "020723-2",
+            "precision": 0,
+            "ticker": "020723-2",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "307fdc9d7dae98e181910c52653e4ed0338312f4b8f33a692240e3694b185375",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "6d20fa1197facfb3e9866df722e02a08fb6bae98c5170007e383b9692f9703da",
+            "vin": 0
+        },
+        "issuer_pubkey": "033a5ba930b25c5e97905e7eea0a4f6d4c0fe4472b54434e5f50bf0509411ec47b",
+        "name": "020723-2",
+        "precision": 0,
+        "ticker": "020723-2",
+        "version": 0
+    },
     "ca51fdb3ec43567b5d0d12e4eab5731d018f3542c368cd2f4a8ee168f7672992": {
         "asset_id": "ca51fdb3ec43567b5d0d12e4eab5731d018f3542c368cd2f4a8ee168f7672992",
         "collection": null,
@@ -1796,6 +2278,36 @@
         "ticker": "Sangiovese",
         "version": 0
     },
+    "d355edc35b13886876c8903898e6743c1ea53aac5851aa5e4334b570f49a713b": {
+        "asset_id": "d355edc35b13886876c8903898e6743c1ea53aac5851aa5e4334b570f49a713b",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid-testnet.scriptpubkey.com"
+            },
+            "issuer_pubkey": "0370f356587c7f300864e75256912358228166ffd220fd4091317e01a0888faec2",
+            "name": "020723-0",
+            "precision": 0,
+            "ticker": "020723-0",
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid-testnet.scriptpubkey.com"
+        },
+        "issuance_prevout": {
+            "txid": "307fdc9d7dae98e181910c52653e4ed0338312f4b8f33a692240e3694b185375",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "fc41de60557952a212365af5292f7aa2a0482fbd8c9558a9be86740869ca3092",
+            "vin": 0
+        },
+        "issuer_pubkey": "0370f356587c7f300864e75256912358228166ffd220fd4091317e01a0888faec2",
+        "name": "020723-0",
+        "precision": 0,
+        "ticker": "020723-0",
+        "version": 0
+    },
     "d5d8da774db28ff9e227ebcc883455d40c1854c6f1cc598c0f5a2cc3f0aa42c8": {
         "asset_id": "d5d8da774db28ff9e227ebcc883455d40c1854c6f1cc598c0f5a2cc3f0aa42c8",
         "collection": null,
@@ -1884,6 +2396,36 @@
         "name": "Oak Tree",
         "precision": 0,
         "ticker": "OAK",
+        "version": 0
+    },
+    "dccb8bcf31cb55492085636782865291a1f029ee63c21b190fe88beebdd51870": {
+        "asset_id": "dccb8bcf31cb55492085636782865291a1f029ee63c21b190fe88beebdd51870",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "raspitor.one"
+            },
+            "issuer_pubkey": "03749408673347f4006d080ce1ba1346f0a0a36e37bebbdf80f4e887d4303e2a89",
+            "name": "Juan-R8",
+            "precision": 1,
+            "ticker": "JR8",
+            "version": 0
+        },
+        "entity": {
+            "domain": "raspitor.one"
+        },
+        "issuance_prevout": {
+            "txid": "7e136fdd1e746d4f0597db5b2705fd8c890cba1fbb84662e73b272087b36b88d",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "8d740eb6b6105f7fd90d0c0411752af4a2a23409ed37f75e4c10f71cf077ad02",
+            "vin": 0
+        },
+        "issuer_pubkey": "03749408673347f4006d080ce1ba1346f0a0a36e37bebbdf80f4e887d4303e2a89",
+        "name": "Juan-R8",
+        "precision": 1,
+        "ticker": "JR8",
         "version": 0
     },
     "ddf8c4c47b19b4cc99f421d4ac826a41a3f8de153f78ae43a6bd1e26df0d6f94": {

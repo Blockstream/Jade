@@ -2939,6 +2939,35 @@
         "ticker": "RWF",
         "version": 0
     },
+    "2575dfab2667f33b28fec717e6022d95a3abd32d23f74648d1678eda1459719c": {
+        "asset_id": "2575dfab2667f33b28fec717e6022d95a3abd32d23f74648d1678eda1459719c",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Big Spender",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "914b41a249e0dc17aa7da18cba9cd58ee7f607d4d7e440f06bcee638ae8cbe75",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "5bbfd0b0c618aeef7c035de95d2520191e503604ff6acd4deed4866d5896f455",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Big Spender",
+        "precision": 0,
+        "ticker": null,
+        "version": 0
+    },
     "2586731040ef33bed3a7901205c3ad14ee557234e789bebef5aae73175b6234c": {
         "asset_id": "2586731040ef33bed3a7901205c3ad14ee557234e789bebef5aae73175b6234c",
         "contract": {
@@ -6749,6 +6778,65 @@
         "ticker": "BDT",
         "version": 0
     },
+    "5d0561a2aae58bc850e95e489717d21274590740e7f002f8bda22d5345df4661": {
+        "asset_id": "5d0561a2aae58bc850e95e489717d21274590740e7f002f8bda22d5345df4661",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "digtl.co"
+            },
+            "issuer_pubkey": "03333c6e72892c4ef63c6a5c8f4524acc1f68abec26266520a7fe482d44d4a0f51",
+            "name": "CB Test",
+            "precision": 8,
+            "ticker": "CBTST",
+            "version": 0
+        },
+        "entity": {
+            "domain": "digtl.co"
+        },
+        "issuance_prevout": {
+            "txid": "01802fcd12b437d7a26173c751fc261da97c78e3b397c8305a515ec630c6b5b6",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "7a8a51e4572b31716ea4061fbe08c3461aa6118a1796f9cfc9a77d1dcc20345e",
+            "vin": 0
+        },
+        "issuer_pubkey": "03333c6e72892c4ef63c6a5c8f4524acc1f68abec26266520a7fe482d44d4a0f51",
+        "name": "CB Test",
+        "precision": 8,
+        "ticker": "CBTST",
+        "version": 0
+    },
+    "5ddacd70b0b8029ee55c9393fb01bd98b21dcf65388002cb2debc8ae00998bd8": {
+        "asset_id": "5ddacd70b0b8029ee55c9393fb01bd98b21dcf65388002cb2debc8ae00998bd8",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Tobi_Test_2",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "2cdbdea38ee756769e7756c76048c76ef6ff50df9c0cf99158df092a1980dd4c",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "bca7722ad07d71ba69ddc267b256409869ee5ef5996dfaf0e57ea3a6fee6915a",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Tobi_Test_2",
+        "precision": 0,
+        "ticker": null,
+        "version": 0
+    },
     "5e5d6f88edd549e31aa975a79dc38ae01b1c5ccbf2d7b66ae32041fb0e614c1c": {
         "asset_id": "5e5d6f88edd549e31aa975a79dc38ae01b1c5ccbf2d7b66ae32041fb0e614c1c",
         "contract": {
@@ -7546,6 +7634,35 @@
         "ticker": "AEX",
         "version": 0
     },
+    "662497da5821c3d281c3acb600fc7f2bc76c3da05a0af0b85a7f1cb5507e387e": {
+        "asset_id": "662497da5821c3d281c3acb600fc7f2bc76c3da05a0af0b85a7f1cb5507e387e",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Big Earner",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "38540650892737f905916a4f5a944f23d4727fb9353349b596985e04341813ba",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "2ec4803735b62e60c9aab92cf1374f700ec8f4488ff8c535b9d57750d30b0bf6",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Big Earner",
+        "precision": 0,
+        "ticker": null,
+        "version": 0
+    },
     "6693763c4e77b73189597f6989c0fdd4af9afd92531a1995e3a31523c3a3a0b8": {
         "asset_id": "6693763c4e77b73189597f6989c0fdd4af9afd92531a1995e3a31523c3a3a0b8",
         "collection": null,
@@ -7872,6 +7989,35 @@
         "name": "Webinar beer",
         "precision": 0,
         "ticker": "WBeer",
+        "version": 0
+    },
+    "6caea923c7d9be45e2823fa4a00c210f53eac674f4fa005280952132900282c8": {
+        "asset_id": "6caea923c7d9be45e2823fa4a00c210f53eac674f4fa005280952132900282c8",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Testing directly",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "bca7722ad07d71ba69ddc267b256409869ee5ef5996dfaf0e57ea3a6fee6915a",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "b3a85a4ce8de661674102cd467636fa0d5dcbbe21d8715a2f9d0be99e4f4a0c5",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Testing directly",
+        "precision": 0,
+        "ticker": null,
         "version": 0
     },
     "6cce040a499d0a027b808138bcddc2d8dbf263ea5f415b91717ec7cab8995d7e": {
@@ -8677,6 +8823,35 @@
         "name": "My New Asset 2",
         "precision": 0,
         "ticker": "ADM12",
+        "version": 0
+    },
+    "779c1cd464885698a3ba01dbfb3081079e9bf2e19ee0ef4087dd5aaf18e41636": {
+        "asset_id": "779c1cd464885698a3ba01dbfb3081079e9bf2e19ee0ef4087dd5aaf18e41636",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Jim Test",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "cf9c6441e89fa03a1793a5c308f2ce530e57b3529e7e75d7963958d5977df42b",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "6dc5cb36977da3594f4277ad2b191854a3c0a211218e9635fd3c8679cdf66f68",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Jim Test",
+        "precision": 0,
+        "ticker": null,
         "version": 0
     },
     "78379b6265eab022b918776398923f4d28c67cbff0d7b6d3301a84c58699a016": {
@@ -11793,6 +11968,35 @@
         "ticker": "STRTT",
         "version": 0
     },
+    "abf289416d02d250e44441edada2564ebe32c2f760c676cffd058d0c4fbd89ad": {
+        "asset_id": "abf289416d02d250e44441edada2564ebe32c2f760c676cffd058d0c4fbd89ad",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Big Spender",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "c5ce395de0608833d32da362176cd3e2df414382461b0fc70fa54a42a20d6657",
+            "vout": 0
+        },
+        "issuance_txin": {
+            "txid": "52b79598e81bdebbdbbb651d8427b10c9e0b751072a5356ac06047403f761c1a",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Big Spender",
+        "precision": 0,
+        "ticker": null,
+        "version": 0
+    },
     "adabe8f30b41abf6b18e0e41b19fb8d56102e595c3b1dad55c886cfb679ee631": {
         "asset_id": "adabe8f30b41abf6b18e0e41b19fb8d56102e595c3b1dad55c886cfb679ee631",
         "collection": null,
@@ -13871,6 +14075,35 @@
         "ticker": "FEFO",
         "version": 0
     },
+    "c9a1209d4721fad6749893e0dd66a990f535b7ed294580dd243353b9caad59e9": {
+        "asset_id": "c9a1209d4721fad6749893e0dd66a990f535b7ed294580dd243353b9caad59e9",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Big Spender",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "ababcae5f8060f745dae930117535024e43e1edae0ea86ce3cb0a9cab74e4a2f",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "914b41a249e0dc17aa7da18cba9cd58ee7f607d4d7e440f06bcee638ae8cbe75",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Big Spender",
+        "precision": 0,
+        "ticker": null,
+        "version": 0
+    },
     "c9bb032202855fc324eb147e3f81ace9d90951fc9494022afee06c4a5a02a5b8": {
         "asset_id": "c9bb032202855fc324eb147e3f81ace9d90951fc9494022afee06c4a5a02a5b8",
         "collection": null,
@@ -15595,6 +15828,35 @@
         "ticker": null,
         "version": 0
     },
+    "e744ebc5175ba88de1f57f7838f70553ebcbc45dc6656a5c2bb87353adbb875c": {
+        "asset_id": "e744ebc5175ba88de1f57f7838f70553ebcbc45dc6656a5c2bb87353adbb875c",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Tobi_Test_2",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "595e32f80915bd4fc881d329832cf503a852c48582fce317be6d3599a5c750a8",
+            "vout": 2
+        },
+        "issuance_txin": {
+            "txid": "3cf96640d55543cd2dc5c151f2813f5305b06bd074be124ba493c4f8ef2eae52",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Tobi_Test_2",
+        "precision": 0,
+        "ticker": null,
+        "version": 0
+    },
     "e7cd2a11b6eb64c0a907a4ea1e3ef6fff7f480df590649f366a095d98464631d": {
         "asset_id": "e7cd2a11b6eb64c0a907a4ea1e3ef6fff7f480df590649f366a095d98464631d",
         "contract": {
@@ -16011,6 +16273,35 @@
         "name": "asset X",
         "precision": 2,
         "ticker": "ASSX",
+        "version": 0
+    },
+    "ed238afe1ea62a413e8fce41bd3e19029f723ac9c2eefa9c74f9bbe33226286b": {
+        "asset_id": "ed238afe1ea62a413e8fce41bd3e19029f723ac9c2eefa9c74f9bbe33226286b",
+        "collection": null,
+        "contract": {
+            "entity": {
+                "domain": "liquid.sphinx.chat"
+            },
+            "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+            "name": "Sphinx Big Earner",
+            "precision": 0,
+            "version": 0
+        },
+        "entity": {
+            "domain": "liquid.sphinx.chat"
+        },
+        "issuance_prevout": {
+            "txid": "7c7a6f9bc8b04450a936481f5a09b2b97e1cc05f6bc89e0e9f862ea910371aaa",
+            "vout": 1
+        },
+        "issuance_txin": {
+            "txid": "4a0187afaadb254405d90bb8615828b6eadd5170807d37f202cfec190c299a56",
+            "vin": 0
+        },
+        "issuer_pubkey": "039331ac5ad2cb35b535c7850600b738498ea54c5a31cb2867e81aab8a8118223c",
+        "name": "Sphinx Big Earner",
+        "precision": 0,
+        "ticker": null,
         "version": 0
     },
     "ed529f544631e21b690cb66146c1269649b268940819bb524c4b6aedd3de095f": {
