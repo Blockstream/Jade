@@ -11,7 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [0.1.42] - 2022-01-22
+## [0.1.43] - 2022-02-10
+### Added
+- Facilitate bip39 passphrases made up only of wordlist words
+- Add option to calculate the final bip39 mnemonic word
+- Support sign-message via QR (eg. Specter)
+- Add wallet 'logout' option to lock hw unit
+
+### Changed
+- Improved display of BTC output to avoid scrolling address string
+- Update Liquid asset registry info
+- Update ESP-IDF base firmware to v4.4.4
+- Update esp32-camera library to v2.0.3
+
+### Fixed
+- Apply a minimum 'idle-off time' when scanning or displaying qr codes
+- Fix pressing 'Scan' on a 'diy' esp32 device without a camera
+- Fix display of multisig bech32 addresses in 'verify address' screen
+
+## [0.1.42] - 2023-01-22
 ### Added
 - Support QR import of multisig wallet via common format
 - Support scanning and verifying registered multisig receive address QR
