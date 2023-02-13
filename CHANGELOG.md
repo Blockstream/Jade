@@ -11,7 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [0.1.43] - 2022-02-10
+## [0.1.44] - 2023-02-13
+### Added
+
+### Changed
+- Removed unused camera support from build configs
+
+### Fixed
+
+## [0.1.43] - 2023-02-10
 ### Added
 - Facilitate bip39 passphrases made up only of wordlist words
 - Add option to calculate the final bip39 mnemonic word
