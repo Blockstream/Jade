@@ -107,6 +107,7 @@ bool jade_process_get_out_message(outbound_message_writer_fn_t writer, jade_msg_
 void cbor_result_bytes_cb(const void* ctx, CborEncoder* container);
 void cbor_result_string_cb(const void* ctx, CborEncoder* container);
 void cbor_result_boolean_cb(const void* ctx, CborEncoder* container);
+void cbor_result_uint64_cb(const void* ctx, CborEncoder* container);
 
 void jade_process_reply_to_message_bytes(
     cbor_msg_t ctx, const uint8_t* data, size_t datalen, uint8_t* buffer, size_t buflen);

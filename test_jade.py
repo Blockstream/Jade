@@ -2898,8 +2898,12 @@ def run_interface_tests(jadeapi,
     # Smoke tests
     if smoke:
         logger.info("Smoke tests")
-        rslt = jadeapi.run_remote_selfcheck()
-        assert rslt is True
+
+        # Sanity check selfcheck time on Jade hw (skip for qemu)
+        # May need updating if more tests added to selfcheck.c
+        time_ms = jadeapi.run_remote_selfcheck()
+        logger.info('selfcheck time: ' + str(time_ms) + 'ms')
+        assert qemu or time_ms < 82500
 
         # Test good pinserver handshake, and also 'bad sig' pinserver
         test_handshake(jadeapi.jade)

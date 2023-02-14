@@ -474,8 +474,9 @@ class JadeAPI:
 
         Returns
         -------
-        bool
-            True on success.
+        int
+            Time in ms for the internal tests to run, as measured on the hw.
+            ie. excluding any messaging overhead
         """
         return self._jadeRpc('debug_selfcheck', long_timeout=True)
 

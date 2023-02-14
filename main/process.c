@@ -500,6 +500,13 @@ void cbor_result_boolean_cb(const void* ctx, CborEncoder* container)
     JADE_ASSERT(cberr == CborNoError);
 }
 
+void cbor_result_uint64_cb(const void* ctx, CborEncoder* container)
+{
+    const uint64_t val = *(const uint64_t*)ctx;
+    const CborError cberr = cbor_encode_uint(container, val);
+    JADE_ASSERT(cberr == CborNoError);
+}
+
 void jade_process_reply_to_message_result(const cbor_msg_t ctx, const void* cbctx, cbor_encoder_fn_t cb)
 {
     JADE_ASSERT(cb);

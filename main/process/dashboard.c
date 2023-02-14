@@ -373,8 +373,12 @@ static void dispatch_message(jade_process_t* process)
         }
 #ifdef CONFIG_DEBUG_MODE
     } else if (IS_METHOD("debug_selfcheck")) {
+        // Time test run and return to caller
+        const TickType_t start_time = xTaskGetTickCount();
         if (debug_selfcheck()) {
-            jade_process_reply_to_message_ok(process);
+            const TickType_t end_time = xTaskGetTickCount();
+            const uint64_t elapsed_time_ms = (end_time - start_time) * portTICK_PERIOD_MS;
+            jade_process_reply_to_message_result(process->ctx, &elapsed_time_ms, cbor_result_uint64_cb);
         } else {
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "ERROR", NULL);
         }
