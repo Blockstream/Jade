@@ -30,8 +30,8 @@ def get_fw_metadata(verinfo, release_data):
     def _full_fw_label(fw):
         return f'{fw["version"]} - {fw["config"]}'
 
-    def _delta_fw_label(fw):
-        return _full_fw_label(fw).ljust(18) + f'FROM  {fw["from_version"]} - {fw["from_config"]}'
+    def _delta_fw_label(fw, width):
+        return _full_fw_label(fw).ljust(width) + f'FROM  {fw["from_version"]} - {fw["from_config"]}'
 
     def _delta_appropriate(fw):
         return fw['from_version'] == verinfo['JADE_VERSION'] and \
@@ -43,14 +43,15 @@ def get_fw_metadata(verinfo, release_data):
     i = 0
     print('Delta patches (faster)')
     deltas = list(filter(_delta_appropriate, release_data.get('delta', [])))
-    for i, label in enumerate((_delta_fw_label(fw) for fw in deltas), i + 1):  # 1 based index
-        print(f'{i})'.ljust(3), label)
+    just = max(len(name) for name in map(_full_fw_label, deltas)) + 2
+    for i, label in enumerate((_delta_fw_label(fw, just) for fw in deltas), i + 1):  # 1 based index
+        print(f'{i})'.ljust(4), label)
     print('-')
 
     print('Full firmware images')
     fullfws = release_data.get('full', [])
     for i, label in enumerate((_full_fw_label(fw) for fw in fullfws), i + 1):  # continue numbering
-        print(f'{i})'.ljust(3), label)
+        print(f'{i})'.ljust(4), label)
     print('-')
 
     numdeltas = len(deltas)
