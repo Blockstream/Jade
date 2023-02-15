@@ -488,10 +488,40 @@ void make_using_passphrase_screen(
 {
     JADE_ASSERT(!(use_passphrase_once && use_passphrase_always));
 
+    gui_make_activity(activity_ptr, true, "Passphrase");
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 34, 34, 32);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    // first row, question
+    gui_view_node_t* txt_question;
+    gui_make_text(&txt_question, "Do you want to login with a\nBIP39 passphrase?", TFT_WHITE);
+    gui_set_parent(txt_question, vsplit);
+    gui_set_padding(txt_question, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 4);
+    gui_set_align(txt_question, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+
+    // Second row, warning
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 15, 85);
+    gui_set_parent(hsplit, vsplit);
+
+    gui_view_node_t* hazard_symbol;
+    gui_make_text_font(&hazard_symbol, "G", TFT_YELLOW, JADE_SYMBOLS_16x16_FONT);
+    gui_set_parent(hazard_symbol, hsplit);
+    gui_set_padding(hazard_symbol, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 0);
+    gui_set_align(hazard_symbol, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+
+    gui_view_node_t* txt_warning;
+    gui_make_text(&txt_warning, "A lost passphrase will lead\nto a loss of funds!", TFT_WHITE);
+    gui_set_parent(txt_warning, hsplit);
+    gui_set_align(txt_warning, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+
+    // third row, buttons
     btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
-        { .txt = "Once", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE },
-        { .txt = "Always", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ALWAYS } };
-    make_mnemonic_screen(activity_ptr, "Passphrase", "\nDo you want to login with a\nBIP39 passphrase?", btns, 3);
+        { .txt = "Always", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ALWAYS },
+        { .txt = "Once", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE } };
+    add_buttons(vsplit, UI_ROW, btns, 3);
 
     // Set default button
     gui_view_node_t* default_btn = use_passphrase_once ? btns[1].btn
