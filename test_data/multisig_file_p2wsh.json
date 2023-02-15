@@ -1,9 +1,9 @@
 {
   "input": {
-    "multisig_file": "multisig_file_specter.dat"
+    "multisig_file": "multisig_file_p2wsh.dat"
   },
   "expected_result": {
-    "multisig_name": "Jade_File_Test",
+    "multisig_name": "Test_of_15chars",
     "variant": "wsh(multi(k))",
     "threshold": 1,
     "num_signers": 2

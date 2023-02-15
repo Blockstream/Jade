@@ -1,0 +1,11 @@
+{
+  "input": {
+    "multisig_file": "multisig_file_p2sh.dat"
+  },
+  "expected_result": {
+    "multisig_name": "Test_p2sh_with_",
+    "variant": "sh(multi(k))",
+    "threshold": 2,
+    "num_signers": 2
+  }
+}

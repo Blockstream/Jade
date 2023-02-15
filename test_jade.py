@@ -2405,12 +2405,23 @@ def test_generic_multisig_registration(jadeapi):
 def test_generic_multisig_files(jadeapi):
     # Check these multisig files load ok
     for multisig_file_test in _get_test_cases(MULTI_REG_FILE_TESTS):
+        expected_result = multisig_file_test['expected_result']
         multisig_filename = multisig_file_test['input']['multisig_file']
         with open('./test_data/' + multisig_filename, 'r') as f:
             multisig_file = f.read()
 
         rslt = jadeapi.register_multisig_file(multisig_file)
         assert rslt
+
+        # Check registered as expected
+        registered_multisigs = jadeapi.get_registered_multisigs()
+        multisig_desc = registered_multisigs.get(expected_result['multisig_name'])
+        assert multisig_desc is not None
+        assert multisig_desc['sorted']  # File load always implies sorted multi
+        assert multisig_desc['variant'] == expected_result['variant']
+        assert multisig_desc['threshold'] == expected_result['threshold']
+        assert multisig_desc['num_signers'] == expected_result['num_signers']
+        assert multisig_desc['master_blinding_key'] == b''
 
     # Check these multisig files *do not* load
     for multisig_file_test in _get_test_cases(MULTI_REG_BAD_FILE_TESTS):

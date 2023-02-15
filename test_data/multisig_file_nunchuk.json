@@ -1,5 +1,11 @@
 {
   "input": {
     "multisig_file": "multisig_file_nunchuk.dat"
+  },
+  "expected_result": {
+    "multisig_name": "Jade_File_Test",
+    "variant": "wsh(multi(k))",
+    "threshold": 2,
+    "num_signers": 3
   }
 }

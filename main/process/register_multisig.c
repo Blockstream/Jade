@@ -241,6 +241,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
 
     // The values we need to populate
     char multisig_name[MAX_MULTISIG_NAME_SIZE];
+    bool name_truncated = false;
     script_variant_t script_variant = GREEN; // invalid for this case
     size_t threshold = 0;
     size_t nsigners = 0; // total number of signers
@@ -277,48 +278,47 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
             *errmsg = "Invalid multisig file";
             goto cleanup;
         }
-        const char* value_end = value + value_len;
+        const char* const value_end = value + value_len;
         JADE_ASSERT(*value_end == '\0');
 
         // Handle lines
         if (IS_FIELD(MSIG_FILE_NAME)) {
-            // Multisig name
-            // Attempt to sanitize name string
-            for (size_t i = 0; i < value_len; ++i) {
-                if (i >= MAX_MULTISIG_NAME_SIZE) {
-                    value[i] = '\0';
-                    break;
-                }
-                if isspace (value[i]) {
-                    value[i] = '_';
-                }
-            }
             if (fields_read & FIELD_NAME) {
                 JADE_LOGE("Repeated multisig name");
                 *errmsg = "Invalid multisig file";
                 goto cleanup;
             }
+            // Multisig name - check length
+            strncpy(multisig_name, value, sizeof(multisig_name));
             if (value_len >= MAX_MULTISIG_NAME_SIZE) {
-                JADE_LOGE("Invalid multisig name: %s", value);
-                *errmsg = "Multisig name too long";
-                goto cleanup;
+                multisig_name[sizeof(multisig_name) - 1] = '\0';
+                name_truncated = true;
+                JADE_LOGW("Multisig name too long - truncating: '%s' to '%s'", value, multisig_name);
             }
-            if (!storage_key_name_valid(value)) {
-                JADE_LOGE("Invalid multisig name: %s", value);
+            // Attempt to sanitize name string
+            for (char* pch = multisig_name; *pch; ++pch) {
+                JADE_ASSERT(pch < multisig_name + sizeof(multisig_name));
+                // Change spaces to underscores
+                if (isspace(*pch)) {
+                    *pch = '_';
+                }
+            }
+            if (!storage_key_name_valid(multisig_name)) {
+                JADE_LOGE("Invalid multisig name: %s", multisig_name);
                 *errmsg = "Invalid multisig name";
                 goto cleanup;
             }
-            strcpy(multisig_name, value);
             fields_read |= FIELD_NAME;
         } else if (IS_FIELD(MSIG_FILE_POLICY)) {
-            // "N of M"
-            char* space1 = memchr(value, ' ', value_len);
-            char* space2 = space1 ? memchr(space1 + 1, ' ', value_end - (space1 + 1)) : NULL;
             if (fields_read & FIELD_POLICY) {
                 JADE_LOGE("Repeated multisig policy");
                 *errmsg = "Invalid multisig file";
                 goto cleanup;
             }
+
+            // "N of M"
+            char* space1 = memchr(value, ' ', value_len);
+            char* space2 = space1 ? memchr(space1 + 1, ' ', value_end - (space1 + 1)) : NULL;
             if (!space1 || !space2 || space1 > value_end || space2 > value_end) {
                 JADE_LOGE("Invalid multisig policy: %s", value);
                 *errmsg = "Invalid multisig policy";
@@ -351,6 +351,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
                 *errmsg = "Invalid multisig file";
                 goto cleanup;
             }
+
             // Script type
             if (!strcasecmp(value, "P2WSH")) {
                 script_variant = MULTI_P2WSH;
@@ -464,6 +465,20 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
         JADE_LOGE("Unexpected number of signers for %u-of-%u policy", threshold, nsigners);
         *errmsg = "Invalid number of signers";
         goto cleanup;
+    }
+
+    // If 'name' was truncated, ask user to confirm
+    if (name_truncated) {
+        JADE_ASSERT(strlen(multisig_name) == sizeof(multisig_name) - 1);
+        char buf[128];
+        const int ret = snprintf(
+            buf, sizeof(buf), "Multisig record name too long!\nTruncate to 15 characters?\n\n%s", multisig_name);
+        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+        if (!await_yesno_activity("Confirm Multisig", buf, false)) {
+            JADE_LOGW("User declined truncating multisig record name to: %s", multisig_name);
+            *errmsg = "Invalid multisig name";
+            goto cleanup;
+        }
     }
 
     // Try to register multisig!
