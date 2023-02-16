@@ -14,7 +14,7 @@
 #include "process_utils.h"
 
 // Wallet initialisation functions
-void initialise_with_mnemonic(bool temporary_restore);
+void initialise_with_mnemonic(bool temporary_restore, bool force_qr_scan);
 void get_passphrase(char* passphrase, size_t passphrase_len, bool confirm);
 
 // Pinserver interaction
@@ -317,7 +317,8 @@ void auth_user_process(void* process_ptr)
             // waiting for a message reply and may time out.)
             JADE_LOGI("no wallet data, requesting mnemonic");
             const bool temporary_restore = false;
-            initialise_with_mnemonic(temporary_restore);
+            const bool force_qr_scan = false;
+            initialise_with_mnemonic(temporary_restore, force_qr_scan);
         }
 
         if (!keychain_get()) {

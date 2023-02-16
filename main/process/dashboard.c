@@ -125,7 +125,7 @@ void make_device_screen(
     gui_activity_t** activity_ptr, const char* power_status, const char* mac, const char* firmware_version);
 
 // Wallet initialisation function
-void initialise_with_mnemonic(bool temporary_restore);
+void initialise_with_mnemonic(bool temporary_restore, bool force_qr_scan);
 
 // Register a new otp code
 bool register_otp_qr(void);
@@ -617,7 +617,8 @@ static void select_initial_connection(const bool temporary_restore)
 // initial conenction will be over USB or BLE.
 static void initialise_wallet(const bool temporary_restore)
 {
-    initialise_with_mnemonic(temporary_restore);
+    const bool force_qr_scan = false;
+    initialise_with_mnemonic(temporary_restore, force_qr_scan);
     if (keychain_get()) {
         select_initial_connection(temporary_restore);
     }

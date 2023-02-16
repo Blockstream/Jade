@@ -1181,7 +1181,7 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
     }
 }
 
-void initialise_with_mnemonic(const bool temporary_restore)
+void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_scan)
 {
     // At this point we should not have any keys in-memory
     JADE_ASSERT(!keychain_get());
@@ -1195,186 +1195,198 @@ void initialise_with_mnemonic(const bool temporary_restore)
     keychain_t keydata = { 0 };
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
-    // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
-    gui_activity_t* activity = NULL;
-    if (temporary_restore) {
-        make_mnemonic_recovery_screen(&activity, temporary_restore);
-    } else {
-        make_mnemonic_welcome_screen(&activity);
-    }
-    JADE_ASSERT(activity);
-
-    bool got_mnemonic = false;
     bool advanced_mode = false;
     bool offer_export_qr = false;
-    while (!got_mnemonic) {
-        gui_set_current_activity_ex(activity, true);
-
-        // In a debug unattended ci build, use hardcoded mnemonic after a short delay
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-        JADE_ASSERT(ret);
-
-        switch (ev_id) {
-        case BTN_MNEMONIC_EXIT:
-            // Abandon setting up mnemonic
-            break;
-
-        // Change screens and continue to await button events
-        case BTN_NEW_MNEMONIC:
-            make_new_mnemonic_screen(&activity);
-            continue;
-
-        case BTN_NEW_MNEMONIC_ADVANCED:
-            make_new_mnemonic_screen_advanced(&activity);
-            offer_export_qr = true;
-            advanced_mode = true;
-            continue;
-
-        case BTN_RECOVER_MNEMONIC:
+    bool got_mnemonic = false;
+    if (force_qr_scan) {
+        // Jump directly to scan-qr
+        got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
+    } else {
+        // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
+        gui_activity_t* activity = NULL;
+        if (temporary_restore) {
             make_mnemonic_recovery_screen(&activity, temporary_restore);
-            continue;
-
-        case BTN_RECOVER_MNEMONIC_ADVANCED:
-            make_mnemonic_recovery_screen_advanced(&activity);
-            offer_export_qr = true;
-            advanced_mode = true;
-            continue;
-
-        // Await user mnemonic entry/confirmation
-        case BTN_NEW_MNEMONIC_12_BEGIN:
-            got_mnemonic = mnemonic_new(12, mnemonic, sizeof(mnemonic));
-            break;
-
-        case BTN_NEW_MNEMONIC_24_BEGIN:
-            got_mnemonic = mnemonic_new(24, mnemonic, sizeof(mnemonic));
-            break;
-
-        case BTN_RECOVER_MNEMONIC_12_BEGIN:
-            got_mnemonic = mnemonic_recover(12, advanced_mode, mnemonic, sizeof(mnemonic));
-            break;
-
-        case BTN_RECOVER_MNEMONIC_24_BEGIN:
-            got_mnemonic = mnemonic_recover(24, advanced_mode, mnemonic, sizeof(mnemonic));
-            break;
-
-        case BTN_RECOVER_MNEMONIC_QR_BEGIN:
-        default:
-            got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
-            offer_export_qr = false;
-            break;
+        } else {
+            make_mnemonic_welcome_screen(&activity);
         }
-#else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        strcpy(mnemonic,
-            "fish inner face ginger orchard permit useful method fence kidney chuckle party favorite sunset draw limb "
-            "science crane oval letter slot invite sadness banana");
-        got_mnemonic = true;
-#endif
+        JADE_ASSERT(activity);
 
-        // If we failed to get a mnemonic break/return here
-        if (!got_mnemonic) {
-            JADE_LOGW("No mnemonic entered");
-            break;
-        }
+        while (true) {
+            gui_set_current_activity_ex(activity, true);
 
-        // Check mnemonic valid before entering passphrase
-        // NOTE: only the English wordlist is supported.
-        if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
-            JADE_LOGW("Invalid mnemonic");
-            await_error_activity("Invalid recovery phrase");
-            break;
-        }
-
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-        // Offer export via qr for true Jade hw's (ie. with camera) and the flag is set
-        // ie. a) if 'Advanced' setup was used, and b) we did not already scan a QR
-        if (offer_export_qr
-            && await_yesno_activity("QR Export",
-                "Do you want to export your\nrecovery phrase as a Compact\nSeedQR? For more info "
-                "vist:\nblockstream.com/jadeqr",
-                false)) {
-            mnemonic_export_qr(mnemonic);
-        }
-#endif
-
-        // Perhaps offer/get passphrase (ie. if using advanced options)
-        if (advanced_mode) {
-            gui_activity_t* act = NULL;
-
-            // Get current state to select default button - NOTE: both flags set impliles
-            // just using a passphrase once, for the next login only.
-            const passphrase_freq_t freq = keychain_get_passphrase_freq();
-            make_using_passphrase_screen(&act, freq == PASSPHRASE_ONCE, freq == PASSPHRASE_ALWAYS);
-            JADE_ASSERT(act);
-
-            // Free all gui screen activities thus far, as those used to show or enter a mnemonic and those
-            // used to export and scan/verify are memory intensive, and are there is no navigation now back
-            // to those screens.
-            // The keyboard screens which may follow (if entering passphrase) are also memory intensive,
-            // and DRAM would be exhausted unless we free those we have finished with.
-            gui_set_current_activity_ex(act, true);
-
+            // In a debug unattended ci build, use hardcoded mnemonic after a short delay
             int32_t ev_id;
-            if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                // NOTE: these are always persisted in storage for a full initialisation
-                // for a temporary restore, we only persist if the user sets the 'always' option.
-                switch (ev_id) {
-                case BTN_USE_PASSPHRASE_NO:
-                    keychain_set_passphrase_frequency(PASSPHRASE_NO);
-                    break;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+            const bool ret
+                = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+            JADE_ASSERT(ret);
 
-                case BTN_USE_PASSPHRASE_ONCE:
-                    keychain_set_passphrase_frequency(PASSPHRASE_ONCE);
-                    break;
+            switch (ev_id) {
+            case BTN_MNEMONIC_EXIT:
+                // Abandon setting up mnemonic
+                break;
 
-                case BTN_USE_PASSPHRASE_ALWAYS:
-                    keychain_set_passphrase_frequency(PASSPHRASE_ALWAYS);
-                    break;
-                }
+            // Change screens and continue to await button events
+            case BTN_NEW_MNEMONIC:
+                make_new_mnemonic_screen(&activity);
+                continue;
 
-                // NOTE: these are always persisted in storage for a full initialisation.
-                // For a temporary restore, we only persist if the user sets the 'always' option.
-                if (!temporary_restore || ev_id == BTN_USE_PASSPHRASE_ALWAYS) {
-                    keychain_persist_passphrase_prefs();
-                }
+            case BTN_NEW_MNEMONIC_ADVANCED:
+                make_new_mnemonic_screen_advanced(&activity);
+                offer_export_qr = true;
+                advanced_mode = true;
+                continue;
+
+            case BTN_RECOVER_MNEMONIC:
+                make_mnemonic_recovery_screen(&activity, temporary_restore);
+                continue;
+
+            case BTN_RECOVER_MNEMONIC_ADVANCED:
+                make_mnemonic_recovery_screen_advanced(&activity);
+                offer_export_qr = true;
+                advanced_mode = true;
+                continue;
+
+            // Await user mnemonic entry/confirmation
+            case BTN_NEW_MNEMONIC_12_BEGIN:
+                got_mnemonic = mnemonic_new(12, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_NEW_MNEMONIC_24_BEGIN:
+                got_mnemonic = mnemonic_new(24, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_RECOVER_MNEMONIC_12_BEGIN:
+                got_mnemonic = mnemonic_recover(12, advanced_mode, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_RECOVER_MNEMONIC_24_BEGIN:
+                got_mnemonic = mnemonic_recover(24, advanced_mode, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_RECOVER_MNEMONIC_QR_BEGIN:
+            default:
+                got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
+                offer_export_qr = false;
+                break;
             }
-        }
+#else
+            gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+                CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+            strcpy(mnemonic,
+                "fish inner face ginger orchard permit useful method fence kidney chuckle party favorite sunset draw "
+                "limb "
+                "science crane oval letter slot invite sadness banana");
+            got_mnemonic = true;
+#endif
 
-        // Get any passphrase, if relevant
-        char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
-        SENSITIVE_PUSH(passphrase, sizeof(passphrase));
-        const bool confirm_passphrase = true;
-        get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
-        const size_t passphrase_len = strnlen(passphrase, sizeof(passphrase));
-        JADE_ASSERT(passphrase_len < sizeof(passphrase));
-
-        display_message_activity("Processing...");
-
-        // If the mnemonic is valid derive temporary keychain from it.
-        // Otherwise break/return here.
-        got_mnemonic = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
-        SENSITIVE_POP(passphrase);
-        if (!got_mnemonic) {
-            JADE_LOGW("Failed to derive wallet");
-            await_error_activity("Failed to derive wallet");
+            // Exit once mnemonic requested, even if abandoned.
+            // 'got_mnemonic' indicates whether one was retrieved.
             break;
-        }
-
-        // All good - push temporary into main in-memory keychain
-        // and remove the restriction on network-types.
-        keychain_set(&keydata, SOURCE_NONE, temporary_restore);
-        keychain_clear_network_type_restriction();
-
-        if (!temporary_restore) {
-            // We need to cache the root mnemonic entropy as it is this that we will persist
-            // encrypted to local flash (requiring a passphrase to derive the wallet master key).
-            keychain_cache_mnemonic_entropy(mnemonic);
         }
     }
 
+    // If we failed to get a mnemonic break/return here
+    if (!got_mnemonic) {
+        JADE_LOGW("No mnemonic entered");
+        goto cleanup;
+    }
+
+    // Check mnemonic valid before entering passphrase
+    // NOTE: only the English wordlist is supported.
+    if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
+        JADE_LOGW("Invalid mnemonic");
+        await_error_activity("Invalid recovery phrase");
+        goto cleanup;
+    }
+
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    // Offer export via qr for true Jade hw's (ie. with camera) and the flag is set
+    // ie. a) if 'Advanced' setup was used, and b) we did not already scan a QR
+    if (offer_export_qr
+        && await_yesno_activity("QR Export",
+            "Do you want to export your\nrecovery phrase as a Compact\nSeedQR? For more info "
+            "vist:\nblockstream.com/jadeqr",
+            false)) {
+        mnemonic_export_qr(mnemonic);
+    }
+#endif
+
+    // Perhaps offer/get passphrase (ie. if using advanced options)
+    if (advanced_mode) {
+        gui_activity_t* act = NULL;
+
+        // Get current state to select default button - NOTE: both flags set impliles
+        // just using a passphrase once, for the next login only.
+        const passphrase_freq_t freq = keychain_get_passphrase_freq();
+        make_using_passphrase_screen(&act, freq == PASSPHRASE_ONCE, freq == PASSPHRASE_ALWAYS);
+        JADE_ASSERT(act);
+
+        // Free all gui screen activities thus far, as those used to show or enter a mnemonic and those
+        // used to export and scan/verify are memory intensive, and are there is no navigation now back
+        // to those screens.
+        // The keyboard screens which may follow (if entering passphrase) are also memory intensive,
+        // and DRAM would be exhausted unless we free those we have finished with.
+        gui_set_current_activity_ex(act, true);
+
+        int32_t ev_id;
+        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            // NOTE: these are always persisted in storage for a full initialisation
+            // for a temporary restore, we only persist if the user sets the 'always' option.
+            switch (ev_id) {
+            case BTN_USE_PASSPHRASE_NO:
+                keychain_set_passphrase_frequency(PASSPHRASE_NO);
+                break;
+
+            case BTN_USE_PASSPHRASE_ONCE:
+                keychain_set_passphrase_frequency(PASSPHRASE_ONCE);
+                break;
+
+            case BTN_USE_PASSPHRASE_ALWAYS:
+                keychain_set_passphrase_frequency(PASSPHRASE_ALWAYS);
+                break;
+            }
+
+            // NOTE: these are always persisted in storage for a full initialisation.
+            // For a temporary restore, we only persist if the user sets the 'always' option.
+            if (!temporary_restore || ev_id == BTN_USE_PASSPHRASE_ALWAYS) {
+                keychain_persist_passphrase_prefs();
+            }
+        }
+    }
+
+    // Get any passphrase, if relevant
+    char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
+    SENSITIVE_PUSH(passphrase, sizeof(passphrase));
+    const bool confirm_passphrase = true;
+    get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+    const size_t passphrase_len = strnlen(passphrase, sizeof(passphrase));
+    JADE_ASSERT(passphrase_len < sizeof(passphrase));
+
+    display_message_activity("Processing...");
+
+    // If the mnemonic is valid derive temporary keychain from it.
+    // Otherwise break/return here.
+    got_mnemonic = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
+    SENSITIVE_POP(passphrase);
+    if (!got_mnemonic) {
+        JADE_LOGW("Failed to derive wallet");
+        await_error_activity("Failed to derive wallet");
+        goto cleanup;
+    }
+
+    // All good - push temporary into main in-memory keychain
+    // and remove the restriction on network-types.
+    keychain_set(&keydata, SOURCE_NONE, temporary_restore);
+    keychain_clear_network_type_restriction();
+
+    if (!temporary_restore) {
+        // We need to cache the root mnemonic entropy as it is this that we will persist
+        // encrypted to local flash (requiring a passphrase to derive the wallet master key).
+        keychain_cache_mnemonic_entropy(mnemonic);
+    }
+
+cleanup:
     SENSITIVE_POP(&keydata);
     SENSITIVE_POP(mnemonic);
 }
