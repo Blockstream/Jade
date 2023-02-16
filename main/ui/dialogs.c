@@ -364,7 +364,7 @@ void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const
 
     JADE_ASSERT(current <= total);
     JADE_ASSERT(total > 0);
-    JADE_ASSERT(progress_bar->percent_last_value >= 0 && progress_bar->percent_last_value <= 100);
+    JADE_ASSERT(progress_bar->percent_last_value <= 100);
 
     const uint8_t pcnt = 100 * current / total;
     if (pcnt == progress_bar->percent_last_value) {
