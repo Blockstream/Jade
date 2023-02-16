@@ -398,7 +398,7 @@ void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, 
         gui_view_node_t* text_url;
         gui_make_text(&text_url, url, TFT_WHITE);
         gui_set_parent(text_url, vsplit);
-        gui_set_padding(text_url, GUI_MARGIN_TWO_VALUES, 2, 2);
+        gui_set_padding(text_url, GUI_MARGIN_ALL_DIFFERENT, 2, 4, 0, 2);
         gui_set_align(text_url, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
         // buttons, done
