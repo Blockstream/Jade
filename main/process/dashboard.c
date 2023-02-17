@@ -1539,12 +1539,6 @@ static void display_screen(jade_process_t* process, gui_activity_t* activity)
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();
     refeed_entropy((const uint8_t*)&tick_count, sizeof(tick_count));
-
-    // Also, cleanup anything attached to the dashboard process
-    cleanup_jade_process(process);
-
-    // Assert all sensitive memory was zero'd
-    sensitive_assert_empty();
 }
 
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.
@@ -1573,22 +1567,33 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
             display_screen(process, act_dashboard);
         }
 
+        // Fresh iteration
+        acted = false;
+
         // 1. Process any message if available (do not block if no message available)
         jade_process_load_in_message(process, false);
         if (process->ctx.cbor) {
             dispatch_message(process);
             acted = true;
-            continue;
         }
 
         // 2. Process any GUI event (again, don't block)
         int32_t ev_id;
-        if (sync_wait_event(
-                GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)
-            == ESP_OK) {
+        if (!acted
+            && sync_wait_event(
+                   GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)
+                == ESP_OK) {
             handle_btn(ev_id);
             acted = true;
-            continue;
+        }
+
+        // If we did some action this loop, run housekeeping
+        if (acted) {
+            // Cleanup anything attached to the dashboard process
+            cleanup_jade_process(process);
+
+            // Assert all sensitive memory was zero'd
+            sensitive_assert_empty();
         }
 
         // Ensure to clear any decrypted keychain if ble- or usb- connection status changes.
@@ -1602,10 +1607,6 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
                 keychain_clear();
             }
         }
-
-        // Looping without having done anything this iteration
-        // Set flag to false so we don't set the screen back to dashboard
-        acted = false;
     }
 }
 
@@ -1643,6 +1644,13 @@ static void update_ready_screen_text(gui_view_node_t* txt_label, gui_view_node_t
             : keychain_has_temporary()                              ? "(Temporary Wallet)"
                                                                     : "");
     gui_update_text(txt_extra, extra);
+}
+
+// Wrapper to put calls to free activities onto the process
+static void free_unmanaged_activity_wrapper(void* activity_to_free)
+{
+    gui_activity_t* activity = (gui_activity_t*)activity_to_free;
+    free_unmanaged_activity(activity);
 }
 
 // Main/default screen/process when ready for user interaction
@@ -1734,9 +1742,9 @@ void dashboard_process(void* process_ptr)
         // be cleared (and bzero'd).
         do_dashboard(process, initial_keychain, has_pin, act_dashboard, event_data);
 
-        // Free any dashboard screen if flagged as needing explicit free
+        // Free (defered slightly) any dashboard screen if flagged as needing explicit free
         if (free_dashboard) {
-            free_unmanaged_activity(act_dashboard);
+            jade_process_call_on_exit(process, free_unmanaged_activity_wrapper, act_dashboard);
         }
     }
 }
