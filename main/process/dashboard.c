@@ -42,6 +42,7 @@ static inline void ble_start(void) { JADE_ASSERT(false); }
 
 // Whether during initialisation we select USB, BLE QR etc.
 static jade_msg_source_t initialisation_source = SOURCE_NONE;
+static bool show_connect_screen = false;
 
 // The device name and running firmware info, loaded at startup
 static const char* device_name;
@@ -80,10 +81,12 @@ void auth_user_process(void* process_ptr);
 
 // GUI screens
 void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
-void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
 void make_connection_select_screen(gui_activity_t** activity_ptr, bool temporary_restore);
 void make_connect_to_screen(
     gui_activity_t** activity_ptr, const char* device_name, jade_msg_source_t initialisation_source);
+void make_welcome_back_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
+void make_connect_qrmode_screen(gui_activity_t** activity_ptr, const char* device_name);
+void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, void* unused);
 void make_ready_screen(
     gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_label, gui_view_node_t** txt_extra);
 
@@ -588,14 +591,14 @@ static void select_initial_connection(const bool temporary_restore)
         gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
-        ev_id = BTN_CONNECT_USB;
+        ev_id = BTN_CONNECT_VIA_USB;
 #endif
 
         if (ret) {
-            if (ev_id == BTN_CONNECT_USB) {
+            if (ev_id == BTN_CONNECT_VIA_USB) {
                 // Set USB/SERIAL source
                 initialisation_source = SOURCE_SERIAL;
-            } else if (ev_id == BTN_CONNECT_BLE) {
+            } else if (ev_id == BTN_CONNECT_VIA_BLE) {
                 // Set BLE source and ensure ble enabled now and by default
                 initialisation_source = SOURCE_BLE;
                 if (!ble_enabled()) {
@@ -603,7 +606,7 @@ static void select_initial_connection(const bool temporary_restore)
                     storage_set_ble_flags(ble_flags);
                     ble_start();
                 }
-            } else if (ev_id == BTN_CONNECT_QR) {
+            } else if (ev_id == BTN_CONNECT_VIA_QR) {
                 // Offer pinserver via qr with urls etc
                 if (offer_pinserver_via_qr(temporary_restore)) {
                     JADE_ASSERT(initialisation_source == SOURCE_QR);
@@ -1168,18 +1171,18 @@ static void handle_idle_timeout(uint16_t* const timeout)
 
 static void update_idle_timeout_btn_text(gui_view_node_t* timeout_btn_text, const uint16_t timeout)
 {
-    JADE_ASSERT(timeout_btn_text);
-    char txt[32];
-
-    // Prefer to display in minutes
-    if (timeout % 60 == 0) {
-        const int ret = snprintf(txt, sizeof(txt), "Power-off Timeout (%um)", timeout / 60);
-        JADE_ASSERT(ret > 0 && ret < sizeof(txt));
-    } else {
-        const int ret = snprintf(txt, sizeof(txt), "Power-off Timeout (%us)", timeout);
-        JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+    if (timeout_btn_text) {
+        // Prefer to display in minutes
+        char txt[32];
+        if (timeout % 60 == 0) {
+            const int ret = snprintf(txt, sizeof(txt), "Power-off Timeout (%um)", timeout / 60);
+            JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+        } else {
+            const int ret = snprintf(txt, sizeof(txt), "Power-off Timeout (%us)", timeout);
+            JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+        }
+        gui_update_text(timeout_btn_text, txt);
     }
-    gui_update_text(timeout_btn_text, txt);
 }
 
 static void handle_pinserver_scan(void)
@@ -1501,22 +1504,90 @@ static void handle_device(void)
     }
 }
 
+// Scan seedqr and log in for qr (only) mode
+static bool qr_mode_scan_seedqr(void)
+{
+    const bool temporary_restore = true;
+    const bool force_qr_scan = true;
+    initialise_with_mnemonic(temporary_restore, force_qr_scan);
+    if (keychain_get()) {
+        offer_pinserver_via_qr(temporary_restore);
+    }
+    return true;
+}
+
+static void handle_qr_mode(void)
+{
+    gui_activity_t* act = NULL;
+    make_connect_qrmode_screen(&act, device_name);
+
+    bool done = false;
+    while (!done) {
+        gui_set_current_activity(act);
+
+        int32_t ev_id;
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        switch (ev_id) {
+        case BTN_CONNECT_QR_PIN:
+            done = offer_pinserver_qr_unlock();
+            break;
+
+        case BTN_CONNECT_QR_SCAN:
+            done = qr_mode_scan_seedqr();
+            break;
+
+        case BTN_CONNECT_BACK:
+            done = true;
+            break;
+        }
+    }
+}
+
 // Process buttons on the dashboard screen
 static void handle_btn(const int32_t btn)
 {
     switch (btn) {
     case BTN_INITIALIZE:
-        return initialise_wallet(false);
-    case BTN_CONNECT_BACK:
-        return select_initial_connection(keychain_has_temporary());
+        initialise_wallet(false);
+        break;
+
+    case BTN_CONNECT_TO_BACK:
+        select_initial_connection(keychain_has_temporary());
+        break;
+
+    case BTN_QR_MODE:
+        handle_qr_mode();
+        break;
+
     case BTN_SESSION:
-        return handle_session();
+        handle_session();
+        break;
+
     case BTN_SETTINGS:
-        return handle_settings(false);
+        handle_settings(false);
+        break;
+
     case BTN_SCAN_QR:
-        return handle_scan_qr();
+        handle_scan_qr();
+        break;
+
     case BTN_INFO:
-        return handle_device();
+        handle_device();
+        break;
+
+    // The 'connect' screen
+    case BTN_CONNECT:
+        show_connect_screen = true;
+        break;
+
+    case BTN_CONNECT_BACK:
+        show_connect_screen = false;
+        break;
+
+    case BTN_CONNECT_HELP:
+        await_qr_help_activity("blockstream.com/jadewallets");
+        break;
+
     default:
         break;
     }
@@ -1557,9 +1628,11 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
     const bool initial_usb = usb_connected();
     const uint8_t initial_userdata = keychain_get_userdata();
     const jade_msg_source_t initial_connection_selection = initialisation_source;
+    const bool initial_show_connect_screen = show_connect_screen;
 
     while (keychain_get() == initial_keychain && keychain_has_pin() == initial_has_pin
-        && keychain_get_userdata() == initial_userdata && initialisation_source == initial_connection_selection) {
+        && keychain_get_userdata() == initial_userdata && initial_show_connect_screen == show_connect_screen
+        && initialisation_source == initial_connection_selection) {
         // If the last loop did something, ensure the current dashboard screen
         // is displayed. (Doing this too eagerly can either cause unnecessary
         // screen flicker or can cause the dashboard to overwrite other screens
@@ -1694,7 +1767,7 @@ void dashboard_process(void* process_ptr)
     while (true) {
         // Create/set current 'dashboard' screen, then process all events until that
         // dashboard is no longer appropriate - ie. until the keychain is set (or unset).
-        // We have four cases:
+        // We have six cases:
         // 1. Ready - has keys already associated with a message source
         //    - ready screen  (created early and persistent, see above)
         // 2. Awaiting QR intialisation - this is a special case of either 3. or 4. below
@@ -1702,8 +1775,10 @@ void dashboard_process(void* process_ptr)
         // 3. Unused keys - has keys in memory, but not yet connected to an app
         //    - connect-to screen
         // 4. Locked - has persisted/encrypted keys, but no keys in memory
+        //    - welcome-back screen
+        // 5. Connect - as above, but user has clicked into the explanatory 'connect' screen
         //    - connect screen
-        // 5. Uninitialised - has no persisted/encrypted keys and no keys in memory
+        // 6. Uninitialised - has no persisted/encrypted keys and no keys in memory
         //    - setup screen
         // NOTE: Some dashboard screens are created as 'unmanaged' activities, so are not placed
         // in the list of activities to be freed by 'set_current_activity_ex()' calls, so any
@@ -1716,6 +1791,7 @@ void dashboard_process(void* process_ptr)
         if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
             JADE_LOGI("Connected and have wallet/keys - showing Ready screen");
             update_ready_screen_text(txt_label, txt_extra);
+            show_connect_screen = false;
             act_dashboard = act_ready;
             // free_dashboard is not required as this screen lives for the lifetime of the application
         } else if (initialisation_source == SOURCE_QR) {
@@ -1726,9 +1802,13 @@ void dashboard_process(void* process_ptr)
             JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");
             MAKE_DASHBOARD_SCREEN(make_connect_to_screen, act_dashboard, initialisation_source);
             // free_dashboard is not required as this is a standard 'managed' activity
+        } else if (show_connect_screen) {
+            JADE_LOGI("User navigated to 'connect' screen");
+            MAKE_DASHBOARD_SCREEN(make_connect_screen, act_dashboard, NULL);
+            // free_dashboard is not required as this is a standard 'managed' activity
         } else if (has_pin) {
-            JADE_LOGI("Wallet/keys pin set but not yet loaded - showing Connect screen");
-            MAKE_DASHBOARD_SCREEN(make_connect_screen, act_dashboard, running_app_info.version);
+            JADE_LOGI("Wallet/keys pin set but not yet loaded - showing Welcome-Back screen");
+            MAKE_DASHBOARD_SCREEN(make_welcome_back_screen, act_dashboard, running_app_info.version);
             free_dashboard = true;
         } else {
             JADE_LOGI("No wallet/keys and no pin set - showing Setup screen");
