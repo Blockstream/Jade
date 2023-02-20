@@ -317,7 +317,7 @@ void make_ready_screen(
 
     // Make the button bar under the passed node, and add all the buttons
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 31, 31, 21, 17);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 28, 27, 29, 16);
     gui_set_parent(hsplit, vsplit);
 
     // session btn
@@ -333,7 +333,7 @@ void make_ready_screen(
         gui_set_parent(text, btn);
     }
 
-    // settings btn
+    // options btn
     {
         gui_view_node_t* btn;
         gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS, NULL);
@@ -341,7 +341,7 @@ void make_ready_screen(
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
         gui_view_node_t* text;
-        gui_make_text(&text, "Settings", TFT_WHITE);
+        gui_make_text(&text, "Options", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
@@ -354,7 +354,7 @@ void make_ready_screen(
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
         gui_view_node_t* text;
-        gui_make_text(&text, "Scan", TFT_WHITE);
+        gui_make_text(&text, "QR Scan", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
@@ -476,7 +476,7 @@ void make_unlocked_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Settings");
+    gui_make_activity(activity_ptr, true, "Options");
 
     btn_data_t btns[] = { { .txt = "Wallet", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET },
         { .txt = "Device", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
