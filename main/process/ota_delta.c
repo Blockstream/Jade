@@ -115,6 +115,11 @@ static int ota_stream_writer(const struct bspatch_stream_n* stream, const void* 
         bctx->header_validated = true;
     }
 
+    if (bctx->joctx->hash_type == HASHTYPE_FULLFWDATA) {
+        // Add written to hash calculation
+        mbedtls_sha256_update(bctx->joctx->sha_ctx, buffer, length);
+    }
+
     bctx->written += length;
 
     if (bctx->written > CUSTOM_HEADER_MIN_WRITE && !bctx->header_validated) {
@@ -151,7 +156,7 @@ void ota_delta_process(void* process_ptr)
     char id[MAXLEN_ID + 1];
     id[0] = '\0';
 
-    mbedtls_sha256_context cmp_sha_ctx;
+    mbedtls_sha256_context sha_ctx;
 
     esp_ota_handle_t ota_handle = 0;
     // Context used to compute (compressed) firmware hash - ie. file as uploaded
@@ -176,9 +181,15 @@ void ota_delta_process(void* process_ptr)
         goto cleanup;
     }
 
+    // Can accept either uploaded file data hash (legacy) or hash of the full/final firmware image (preferred)
     uint8_t expected_hash[SHA256_LEN];
     char* expected_hash_hexstr = NULL;
-    if (!rpc_get_n_bytes("cmphash", &params, sizeof(expected_hash), expected_hash)) {
+    hash_type_t hash_type;
+    if (rpc_get_n_bytes("fwhash", &params, sizeof(expected_hash), expected_hash)) {
+        hash_type = HASHTYPE_FULLFWDATA;
+    } else if (rpc_get_n_bytes("cmphash", &params, sizeof(expected_hash), expected_hash)) {
+        hash_type = HASHTYPE_FILEDATA;
+    } else {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Cannot extract valid fw hash value", NULL);
         goto cleanup;
     }
@@ -201,7 +212,8 @@ void ota_delta_process(void* process_ptr)
 
     jade_ota_ctx_t joctx = {
         .progress_bar = {},
-        .cmp_sha_ctx = &cmp_sha_ctx,
+        .sha_ctx = &sha_ctx,
+        .hash_type = hash_type,
         .ota_handle = &ota_handle,
         .dctx = dctx,
         .id = id,
@@ -291,7 +303,7 @@ void ota_delta_process(void* process_ptr)
     JADE_LOGI("Success");
 
 cleanup:
-    mbedtls_sha256_free(&cmp_sha_ctx);
+    mbedtls_sha256_free(&sha_ctx);
 
     // If ota has been successful show message and reboot.
     // If error, show error-message and await user acknowledgement.

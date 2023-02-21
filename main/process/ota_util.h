@@ -31,9 +31,12 @@ typedef struct {
     // add new fields here
 } esp_custom_app_desc_t;
 
+typedef enum { HASHTYPE_FILEDATA, HASHTYPE_FULLFWDATA } hash_type_t;
+
 typedef struct {
     progress_bar_t progress_bar;
-    mbedtls_sha256_context* cmp_sha_ctx;
+    mbedtls_sha256_context* sha_ctx;
+    hash_type_t hash_type;
     char* id;
     const uint8_t* expected_hash;
     const char* expected_hash_hexstr;

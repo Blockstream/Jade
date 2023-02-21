@@ -53,6 +53,11 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t t
         return DEFLATE_ERROR;
     }
 
+    if (octx->joctx->hash_type == HASHTYPE_FULLFWDATA) {
+        // Add written to hash calculation
+        mbedtls_sha256_update(octx->joctx->sha_ctx, uncompressed, towrite);
+    }
+
     *octx->joctx->remaining_uncompressed -= towrite;
     const size_t written = octx->joctx->uncompressedsize - *octx->joctx->remaining_uncompressed;
 
@@ -83,7 +88,7 @@ void ota_process(void* process_ptr)
     id[0] = '\0';
 
     // Context used to compute (compressed) firmware hash - ie. file as uploaded
-    mbedtls_sha256_context cmp_sha_ctx;
+    mbedtls_sha256_context sha_ctx;
     esp_ota_handle_t ota_handle = 0;
 
     // We expect a current message to be present
@@ -104,9 +109,15 @@ void ota_process(void* process_ptr)
         goto cleanup;
     }
 
+    // Can accept either uploaded file data hash (legacy) or hash of the full/final firmware image (preferred)
     uint8_t expected_hash[SHA256_LEN];
     char* expected_hash_hexstr = NULL;
-    if (!rpc_get_n_bytes("cmphash", &params, sizeof(expected_hash), expected_hash)) {
+    hash_type_t hash_type;
+    if (rpc_get_n_bytes("fwhash", &params, sizeof(expected_hash), expected_hash)) {
+        hash_type = HASHTYPE_FULLFWDATA;
+    } else if (rpc_get_n_bytes("cmphash", &params, sizeof(expected_hash), expected_hash)) {
+        hash_type = HASHTYPE_FILEDATA;
+    } else {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Cannot extract valid fw hash value", NULL);
         goto cleanup;
     }
@@ -129,7 +140,8 @@ void ota_process(void* process_ptr)
 
     jade_ota_ctx_t joctx = {
         .progress_bar = {},
-        .cmp_sha_ctx = &cmp_sha_ctx,
+        .sha_ctx = &sha_ctx,
+        .hash_type = hash_type,
         .dctx = dctx,
         .id = id,
         .uncompressedsize = firmwaresize,
@@ -207,7 +219,7 @@ void ota_process(void* process_ptr)
     JADE_LOGI("Success");
 
 cleanup:
-    mbedtls_sha256_free(&cmp_sha_ctx);
+    mbedtls_sha256_free(&sha_ctx);
 
     // If ota has been successful show message and reboot.
     // If error, show error-message and await user acknowledgement.

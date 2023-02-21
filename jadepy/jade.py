@@ -397,7 +397,7 @@ class JadeAPI:
         """
         return self._jadeRpc('logout')
 
-    def ota_update(self, fwcmp, fwlen, chunksize, patchlen=None, cb=None):
+    def ota_update(self, fwcmp, fwlen, chunksize, fwhash=None, patchlen=None, cb=None):
         """
         RPC call to attempt to update the unit's firmware.
 
@@ -413,6 +413,12 @@ class JadeAPI:
             and ack'd by the hw unit.
             The maximum supported chunk size is given in the version info data, under the key
             'JADE_OTA_MAX_CHUNK'.
+        fwhash: 32-bytes, optional
+            The sha256 hash of the full uncompressed final firmware image.  In the case of a full
+            firmware upload this should be the hash of the uncompressed file.  In the case of a
+            delta update this is the hash of the expected final image - ie. the existing firmware
+            with the uploaded delta applied.  ie. it is a verification of the fw image Jade will try
+            to boot. Optional for backward-compatibility - may become mandatory in a future release.
         patchlen: int, optional
             If the compressed firmware bytes are an incremental diff to be applied to the running
             firmware image, this is the size of that patch when uncompressed.
@@ -443,6 +449,9 @@ class JadeAPI:
         params = {'fwsize': fwlen,
                   'cmpsize': cmplen,
                   'cmphash': cmphash}
+
+        if fwhash is not None:
+            params['fwhash'] = fwhash
 
         if patchlen is not None:
             ota_method = 'ota_delta'

@@ -83,8 +83,10 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
         return;
     }
 
-    // Add to cmp-file hasher
-    mbedtls_sha256_update(joctx->cmp_sha_ctx, inbound_buf, written);
+    if (joctx->hash_type == HASHTYPE_FILEDATA) {
+        // Add received file data to hasher
+        mbedtls_sha256_update(joctx->sha_ctx, inbound_buf, written);
+    }
 
     joctx->remaining_compressed -= written;
 
@@ -107,7 +109,7 @@ bool ota_init(jade_ota_ctx_t* joctx)
 {
     JADE_ASSERT(joctx);
 
-    mbedtls_sha256_init(joctx->cmp_sha_ctx);
+    mbedtls_sha256_init(joctx->sha_ctx);
     joctx->running_partition = esp_ota_get_running_partition();
     JADE_ASSERT(joctx->running_partition);
     JADE_LOGI("Running partition ptr: %p", joctx->running_partition);
@@ -126,7 +128,7 @@ bool ota_init(jade_ota_ctx_t* joctx)
         return false;
     }
 
-    mbedtls_sha256_starts(joctx->cmp_sha_ctx, 0);
+    mbedtls_sha256_starts(joctx->sha_ctx, 0);
 
     const esp_err_t err = esp_ota_begin(joctx->update_partition, joctx->firmwaresize, joctx->ota_handle);
     if (err != ESP_OK) {
@@ -158,7 +160,7 @@ enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
 
     // Verify calculated compressed file hash matches expected
     uint8_t calculated_hash[SHA256_LEN];
-    mbedtls_sha256_finish(joctx->cmp_sha_ctx, calculated_hash);
+    mbedtls_sha256_finish(joctx->sha_ctx, calculated_hash);
 
     JADE_ASSERT(joctx->expected_hash);
     JADE_ASSERT(joctx->expected_hash_hexstr);
