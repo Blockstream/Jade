@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.45] - 2023-02-22
+### Added
+- Added option to unlock Jade with PIN using only QR codes (ie. airgapped)
+- Added bip85 creation of bip39 mnemonic phrase
+
+### Changed
+- Reworked initial screens and settings/options menus
+- Handle truncating long multisig wallet names when scanning QR multisig setup
+- Added more visible warning when offering bip39 passphrase use
+- Update libwally to 0.8.8
+
+### Fixed
+- Fixed text widths in update_jade_fw.py script when loading alpha or beta fw
+
 ## [0.1.44] - 2023-02-13
 ### Added
 
