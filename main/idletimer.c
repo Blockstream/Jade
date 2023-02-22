@@ -71,7 +71,8 @@ static void idletimer_task(void* ignore)
 
         // See if the last activity was sufficiently long ago
         const TickType_t projected_timeout_time = last_activity + timeout;
-        JADE_LOGI("Idle-timeout check - last-activity: %u, timeout period: %u, projected-timeout: %u, checktime: %u",
+        JADE_LOGI(
+            "Idle-timeout check - last-activity: %lu, timeout period: %lu, projected-timeout: %lu, checktime: %lu",
             last_activity, timeout, projected_timeout_time, checktime);
 
         if (projected_timeout_time <= checktime) {
@@ -94,7 +95,7 @@ static void idletimer_task(void* ignore)
             // Check the activity time again, if it was recent we can cancel the power-off
             if (ret || get_last_registered_activity() > checktime) {
                 // User pressed something or message arrived, cancel power-off
-                JADE_LOGI("Cancelling idle-timeout power-off, next check in %u", period);
+                JADE_LOGI("Cancelling idle-timeout power-off, next check in %lu", period);
 
                 // Replace prior activity if we're still current
                 if (gui_current_activity() == activity) {
@@ -118,7 +119,7 @@ static void idletimer_task(void* ignore)
         // reduces the timeout period of the device in the interim.)
         const TickType_t delay
             = checktime + period > projected_timeout_time ? projected_timeout_time - checktime : period;
-        JADE_LOGI("Unit not idle, next check in %u", delay);
+        JADE_LOGI("Unit not idle, next check in %lu", delay);
         vTaskDelay(delay);
     }
 }

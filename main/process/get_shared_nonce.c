@@ -36,7 +36,7 @@ static void reply_nonce_and_pubkey(const void* ctx, CborEncoder* container)
 
 void get_shared_nonce_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     // We expect a current message to be present

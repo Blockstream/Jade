@@ -9,6 +9,7 @@
 #include "../ble/ble.h"
 #endif
 
+#include <esp_mac.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/ringbuf.h>
 #include <freertos/semphr.h>

@@ -11,6 +11,7 @@
 #include "../utils/wally_ext.h"
 #include "../wire.h"
 #include <ctype.h>
+#include <esp_mac.h>
 #include <esp_nimble_hci.h>
 #include <esp_system.h>
 #include <freertos/event_groups.h>
@@ -515,8 +516,6 @@ void ble_start(void)
        esp_bt_controller_deinit();
        esp_bt_mem_release(ESP_BT_MODE_BTDM);
      */
-    const esp_err_t hci_init = esp_nimble_hci_and_controller_init();
-    JADE_ASSERT(hci_init == ESP_OK);
     nimble_port_init();
 
     ble_hs_cfg.reset_cb = ble_on_reset;
@@ -560,10 +559,6 @@ void ble_stop(void)
     int ret = nimble_port_stop();
     if (ret == 0) {
         nimble_port_deinit();
-        ret = esp_nimble_hci_and_controller_deinit();
-        if (ret != ESP_OK) {
-            JADE_LOGE("esp_nimble_hci_and_controller_deinit() failed with error: %d", ret);
-        }
     }
 }
 
@@ -706,7 +701,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             // (Eg. when both are DisplayYesNo).  This is the supported option.
             JADE_LOGI("PASSKEY_ACTION_EVENT: NUMCMP");
             pkey.action = event->passkey.params.action;
-            JADE_LOGI("Passkey on device's display: %d", event->passkey.params.numcmp);
+            JADE_LOGI("Passkey on device's display: %ld", event->passkey.params.numcmp);
 
             // Display passkey on Jade GUI and get confirm/deny response - assume deny after timeout
             gui_activity_t* prior_activity = gui_current_activity();

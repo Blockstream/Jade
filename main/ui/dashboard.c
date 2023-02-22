@@ -1042,7 +1042,7 @@ void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entri
         gui_set_parent(text, hsplit);
 
         const int32_t pcnt_used = 100 * entries_used / entries_total;
-        const int ret = snprintf(buf, sizeof(buf), "%d%%", pcnt_used);
+        const int ret = snprintf(buf, sizeof(buf), "%ld%%", pcnt_used);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
 
         gui_view_node_t* pct;

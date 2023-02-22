@@ -32,7 +32,7 @@ bool multisig_validate_signers(const char* network, const signer_t* signers, con
         // Check additional 'path' (after the xpub) contains no hardened elements
         for (size_t j = 0; j < signer->path_len; ++j) {
             if (signer->path[j] & BIP32_INITIAL_HARDENED_CHILD) {
-                JADE_LOGE("Found hardened path %d at pos %d in signer %d", signer->path[j], j, i);
+                JADE_LOGE("Found hardened path %lu at pos %d in signer %d", signer->path[j], j, i);
                 return false;
             }
         }

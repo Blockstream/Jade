@@ -195,7 +195,7 @@ static bool split_line(
     *name_len = p - ptr;
 
     // Skip delimiter and any white space
-    while (p < eol && isspace(*++p)) {
+    while (p < eol && isspace((unsigned char)*++p)) {
         // Skip
     }
 
@@ -299,7 +299,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
             for (char* pch = multisig_name; *pch; ++pch) {
                 JADE_ASSERT(pch < multisig_name + sizeof(multisig_name));
                 // Change spaces to underscores
-                if (isspace(*pch)) {
+                if (isspace((unsigned char)*pch)) {
                     *pch = '_';
                 }
             }
@@ -574,7 +574,7 @@ static void get_signers_allocate(const char* field, const CborValue* value, sign
 
 void register_multisig_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     char network[MAX_NETWORK_NAME_LEN];

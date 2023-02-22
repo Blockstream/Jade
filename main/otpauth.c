@@ -339,7 +339,8 @@ static bool prepare_md_ctx(const otpauth_ctx_t* otp_ctx, mbedtls_md_context_t* m
 
     mbedtls_md_type_t md_type = get_md_type(otp_ctx);
     OTP_CHECK_BOOL_RETURN(mbedtls_md_setup(md_ctx, mbedtls_md_info_from_type(md_type), 1) == 0);
-    const size_t hmac_size = mbedtls_md_get_size(md_ctx->md_info);
+    // FIXME: use getters instead of MBEDTLS_PRIVATE MACRO
+    const size_t hmac_size = mbedtls_md_get_size(md_ctx->MBEDTLS_PRIVATE(md_info));
 
     const char* ptr = otp_ctx->secret;
 
@@ -381,7 +382,7 @@ bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t t
     mbedtls_md_init(&md_ctx);
     OTP_CHECK_BOOL_RETURN(prepare_md_ctx(otp_ctx, &md_ctx));
 
-    const size_t hmac_last_index = mbedtls_md_get_size(md_ctx.md_info) - 1;
+    const size_t hmac_last_index = mbedtls_md_get_size(md_ctx.MBEDTLS_PRIVATE(md_info)) - 1;
     JADE_ASSERT(hmac_last_index < MBEDTLS_SHA512_HMAC_LEN);
 
     // Counter to BE bytes
@@ -403,7 +404,7 @@ bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t t
     const int32_t trunc_code = full_code % (int32_t)pow(10, otp_ctx->digits);
 
     // Format as a string with leading 0's
-    const int ret = snprintf(token, token_len, "%0*d", otp_ctx->digits, trunc_code);
+    const int ret = snprintf(token, token_len, "%0*ld", otp_ctx->digits, trunc_code);
     JADE_ASSERT(ret > 0 && ret < token_len);
 
     return true;

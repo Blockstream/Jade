@@ -76,7 +76,7 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t t
 
 void ota_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
 
     jade_process_t* process = process_ptr;
     bool uploading = false;

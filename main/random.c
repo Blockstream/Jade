@@ -4,7 +4,10 @@
 #include "power.h"
 #include "sensitive.h"
 #include <bootloader_random.h>
+#include <esp_random.h>
 #include <esp_system.h>
+#include <esp_timer.h>
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <mbedtls/sha512.h>

@@ -148,7 +148,7 @@ static int compressed_stream_reader(void* ctx)
 
 void ota_delta_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
     bool uploading = false;
     bool ota_end_called = false;

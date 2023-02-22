@@ -1214,7 +1214,7 @@ static bool get_outbound_reply_show_qr(outbound_message_writer_fn_t handler)
 // This task is run to act as a client to Jade's normal 'auth-user' processing
 static void auth_qr_client_task(void* unused)
 {
-    JADE_LOGI("Starting Auth QR client task: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting Auth QR client task: %lu", xPortGetFreeHeapSize());
 
     // Drain any old messages sitting on the QR queue
     while (jade_process_get_out_message(NULL, SOURCE_QR, NULL)) {

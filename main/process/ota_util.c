@@ -232,11 +232,6 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     const size_t app_info_offset = sizeof(esp_image_header_t) + sizeof(esp_image_segment_header_t);
     const esp_app_desc_t* new_app_info = (esp_app_desc_t*)(uncompressed + app_info_offset);
 
-    // Sanity check that the version string is reasonable (ie. length)
-    if (strnlen(new_app_info->version, VERSION_STRING_MAX_LENGTH + 1) > VERSION_STRING_MAX_LENGTH) {
-        JADE_LOGE("Firmware version string appears invalid - longer than %u characters", VERSION_STRING_MAX_LENGTH);
-        return ERROR_INVALIDFW;
-    }
     JADE_LOGI("New firmware version: %s", new_app_info->version);
 
     if (esp_efuse_check_secure_version(new_app_info->secure_version) == false) {

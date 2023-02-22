@@ -52,7 +52,7 @@ static void fake_auth_msg_request(jade_process_t* process, uint8_t* process_cbor
 // It is tightly coupled with the test case: test_handshake() in test_jade.py
 void debug_handshake(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
 
     jade_process_t* process = process_ptr;
     ASSERT_CURRENT_MESSAGE(process, "debug_handshake");

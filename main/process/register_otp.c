@@ -111,7 +111,7 @@ static int handle_new_otp_uri(const char* otp_name, const char* otp_uri, const s
 
 void register_otp_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     // We expect a current message to be present

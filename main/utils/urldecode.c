@@ -43,9 +43,12 @@ bool urldecode(const char* src, const size_t src_len, char* dest, const size_t d
             return false;
         }
 
-        if ((*src == '%') && (src < src_end - 2) && isxdigit(src[1]) && isxdigit(src[2])) {
+        const unsigned char c1 = src[1];
+        const unsigned char c2 = src[2];
+
+        if ((*src == '%') && (src < src_end - 2) && isxdigit(c1) && isxdigit(c2)) {
             // Encoded hex character
-            *dest++ = (16 * map_char(src[1])) + map_char(src[2]);
+            *dest++ = (16 * map_char(c1)) + map_char(c2);
             src += 3;
         } else if (*src == '+') {
             // Encoded <space>

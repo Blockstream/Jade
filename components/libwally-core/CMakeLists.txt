@@ -68,7 +68,7 @@ set_source_files_properties(
     upstream/src/sign.c
     upstream/src/transaction.c
     PROPERTIES COMPILE_FLAGS
-    "-Wno-nonnull-compare -Wno-unused-function -Wno-error=maybe-uninitialized -Wno-type-limits"
+    "-Wno-nonnull-compare -Wno-unused-function -Wno-error=maybe-uninitialized -Wno-type-limits -Wno-error=array-parameter"
     )
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_CONFIG_H")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_ELEMENTS=1")

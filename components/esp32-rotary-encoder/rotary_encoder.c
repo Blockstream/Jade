@@ -220,12 +220,12 @@ esp_err_t rotary_encoder_init(rotary_encoder_info_t * info, gpio_num_t pin_a, gp
         info->state.direction = ROTARY_ENCODER_DIRECTION_NOT_SET;
 
         // configure GPIOs
-        gpio_pad_select_gpio(info->pin_a);
+        esp_rom_gpio_pad_select_gpio(info->pin_a);
         gpio_set_pull_mode(info->pin_a, GPIO_PULLUP_ONLY);
         gpio_set_direction(info->pin_a, GPIO_MODE_INPUT);
         gpio_set_intr_type(info->pin_a, GPIO_INTR_ANYEDGE);
 
-        gpio_pad_select_gpio(info->pin_b);
+        esp_rom_gpio_pad_select_gpio(info->pin_b);
         gpio_set_pull_mode(info->pin_b, GPIO_PULLUP_ONLY);
         gpio_set_direction(info->pin_b, GPIO_MODE_INPUT);
         gpio_set_intr_type(info->pin_b, GPIO_INTR_ANYEDGE);

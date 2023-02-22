@@ -14,7 +14,7 @@ void make_ble_confirmation_activity(gui_activity_t** activity_ptr, const uint32_
 
     // first row, message
     char confirm_msg[64];
-    const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm Authentication Value\n\n%24.6d", numcmp);
+    const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm Authentication Value\n\n%24.6ld", numcmp);
     JADE_ASSERT(ret > 0 && ret < sizeof(confirm_msg));
 
     gui_view_node_t* text_status;

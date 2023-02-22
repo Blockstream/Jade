@@ -204,7 +204,8 @@ static bool get_internal_keypair(const size_t slip_prefix, const char* identity,
         JADE_LOGE("Unsupported curve '%.*s'", curve_name_len, curve_name);
         return false;
     }
-    int ret = mbedtls_ecp_group_load(&keypair->grp, curve_group_id);
+    // FIXME: use getters instead of MBEDTLS_PRIVATE MACRO
+    int ret = mbedtls_ecp_group_load(&keypair->MBEDTLS_PRIVATE(grp), curve_group_id);
     JADE_ASSERT(!ret);
 
     // Get the hash of the identity and index
@@ -226,25 +227,26 @@ static bool get_internal_keypair(const size_t slip_prefix, const char* identity,
         SSH_NIST_HMAC_KEY, sizeof(SSH_NIST_HMAC_KEY), 0, &root));
 
     // Use local function to run (a restricted) bip32 derivation for this curve
-    get_bip32_hardened_child_from_path(&keypair->grp, &root, path, IDENTITY_PATH_LEN, &derived);
+    get_bip32_hardened_child_from_path(&keypair->MBEDTLS_PRIVATE(grp), &root, path, IDENTITY_PATH_LEN, &derived);
     SENSITIVE_POP(&root);
 
     // Read the private key into the output keypair
     // NOTE: need to skip the leading 0 byte
-    ret = mbedtls_mpi_read_binary(&keypair->d, &derived.priv_key[1], sizeof(derived.priv_key) - 1);
+    ret = mbedtls_mpi_read_binary(&keypair->MBEDTLS_PRIVATE(d), &derived.priv_key[1], sizeof(derived.priv_key) - 1);
     JADE_ASSERT(!ret);
-    ret = mbedtls_ecp_check_privkey(&keypair->grp, &keypair->d);
+    ret = mbedtls_ecp_check_privkey(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(d));
     JADE_ASSERT(!ret);
     SENSITIVE_POP(&derived);
 
     // Generate the public key from the private key + curve settings
-    ret = mbedtls_ecp_mul(&keypair->grp, &keypair->Q, &keypair->d, &keypair->grp.G, NULL, 0);
+    ret = mbedtls_ecp_mul(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(Q), &keypair->MBEDTLS_PRIVATE(d),
+        &keypair->MBEDTLS_PRIVATE(grp).G, jade_get_random_cb, NULL);
     JADE_ASSERT(!ret);
-    ret = mbedtls_ecp_check_pubkey(&keypair->grp, &keypair->Q);
+    ret = mbedtls_ecp_check_pubkey(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(Q));
     JADE_ASSERT(!ret);
 
     // Sanity check
-    ret = mbedtls_ecp_check_pub_priv(keypair, keypair);
+    ret = mbedtls_ecp_check_pub_priv(keypair, keypair, jade_get_random_cb, NULL);
     JADE_ASSERT(!ret);
 
     return true;
@@ -262,9 +264,10 @@ static bool sign_challenge(mbedtls_ecp_keypair* keypair, const uint8_t* challeng
     JADE_ASSERT(ps);
 
     // Use RFC6979 deterministic signatures
-    int ret = mbedtls_ecdsa_sign_det(&keypair->grp, pr, ps, &keypair->d, challenge, challenge_len, MBEDTLS_MD_SHA256);
+    int ret = mbedtls_ecdsa_sign_det_ext(&keypair->MBEDTLS_PRIVATE(grp), pr, ps, &keypair->MBEDTLS_PRIVATE(d),
+        challenge, challenge_len, MBEDTLS_MD_SHA256, jade_get_random_cb, NULL);
     if (ret) {
-        JADE_LOGE("mbedtls_ecdsa_sign_det() failed, returned %d", ret);
+        JADE_LOGE("mbedtls_ecdsa_sign_det_ext() failed, returned %d", ret);
         return false;
     }
 
@@ -274,13 +277,13 @@ static bool sign_challenge(mbedtls_ecp_keypair* keypair, const uint8_t* challeng
     mbedtls_mpi tmp = { 0 };
     mbedtls_mpi_init(&tmp);
 
-    ret = mbedtls_mpi_copy(&tmp, &keypair->grp.N);
+    ret = mbedtls_mpi_copy(&tmp, &keypair->MBEDTLS_PRIVATE(grp).N);
     JADE_ASSERT(!ret);
     mbedtls_mpi_shift_r(&tmp, 1);
 
     if (mbedtls_mpi_cmp_mpi(ps, &tmp) > 0) {
         // Generated 'high' S.  Flip to low-s.
-        ret = mbedtls_mpi_sub_mpi(&tmp, &keypair->grp.N, ps);
+        ret = mbedtls_mpi_sub_mpi(&tmp, &keypair->MBEDTLS_PRIVATE(grp).N, ps);
         JADE_ASSERT(!ret);
         ret = mbedtls_mpi_copy(ps, &tmp);
         JADE_ASSERT(!ret);
@@ -288,7 +291,8 @@ static bool sign_challenge(mbedtls_ecp_keypair* keypair, const uint8_t* challeng
     mbedtls_mpi_free(&tmp);
 
     // Sanity check
-    ret = mbedtls_ecdsa_verify(&keypair->grp, challenge, challenge_len, &keypair->Q, pr, ps);
+    ret = mbedtls_ecdsa_verify(
+        &keypair->MBEDTLS_PRIVATE(grp), challenge, challenge_len, &keypair->MBEDTLS_PRIVATE(Q), pr, ps);
     JADE_ASSERT(!ret);
 
     return true;
@@ -325,8 +329,8 @@ bool get_identity_pubkey(const char* identity, const size_t identity_len, const 
     } else {
         // Return the pubkey assoiciated with this identity/signature
         size_t pubkeylen = 0;
-        int ret = mbedtls_ecp_point_write_binary(
-            &keypair.grp, &keypair.Q, MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len);
+        int ret = mbedtls_ecp_point_write_binary(&keypair.MBEDTLS_PRIVATE(grp), &keypair.MBEDTLS_PRIVATE(Q),
+            MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len);
         JADE_ASSERT(!ret);
         JADE_ASSERT(pubkeylen == pubkey_out_len);
         result = true;
@@ -364,17 +368,17 @@ bool get_identity_shared_key(const char* identity, const size_t identity_len, co
         mbedtls_ecp_point pubk = { 0 };
         mbedtls_ecp_point_init(&pubk);
 
-        if (mbedtls_ecp_point_read_binary(&keypair.grp, &pubk, their_pubkey, their_pubkey_len) != 0
-            || mbedtls_ecp_check_pubkey(&keypair.grp, &pubk) != 0) {
-            JADE_LOGE(
-                "get_identity_shared_key() failed to read/validate public key point for curve id %d", keypair.grp.id);
+        if (mbedtls_ecp_point_read_binary(&keypair.MBEDTLS_PRIVATE(grp), &pubk, their_pubkey, their_pubkey_len) != 0
+            || mbedtls_ecp_check_pubkey(&keypair.MBEDTLS_PRIVATE(grp), &pubk) != 0) {
+            JADE_LOGE("get_identity_shared_key() failed to read/validate public key point for curve id %d",
+                keypair.MBEDTLS_PRIVATE(grp).id);
         } else {
             // Pubkey valid for deduced curve/group
             mbedtls_mpi shared_secret = { 0 };
             mbedtls_mpi_init(&shared_secret);
 
-            int ret = mbedtls_ecdh_compute_shared(
-                &keypair.grp, &shared_secret, &pubk, &keypair.d, jade_get_random_cb, NULL);
+            int ret = mbedtls_ecdh_compute_shared(&keypair.MBEDTLS_PRIVATE(grp), &shared_secret, &pubk,
+                &keypair.MBEDTLS_PRIVATE(d), jade_get_random_cb, NULL);
             if (ret != 0) {
                 JADE_LOGE("ecdh_compute_shared failed with %d", ret);
             } else {
@@ -417,8 +421,8 @@ bool sign_identity(const char* identity, const size_t identity_len, const size_t
     if (get_internal_keypair(SLIP13_PATH_PREFIX, identity, identity_len, index, curve_name, curve_name_len, &keypair)) {
         // Return the pubkey assoiciated with this identity/signature
         size_t pubkeylen = 0;
-        int ret = mbedtls_ecp_point_write_binary(
-            &keypair.grp, &keypair.Q, MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len);
+        int ret = mbedtls_ecp_point_write_binary(&keypair.MBEDTLS_PRIVATE(grp), &keypair.MBEDTLS_PRIVATE(Q),
+            MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len);
         JADE_ASSERT(!ret);
         JADE_ASSERT(pubkeylen == pubkey_out_len);
 
@@ -429,7 +433,8 @@ bool sign_identity(const char* identity, const size_t identity_len, const size_t
 
         // For ssh with SECP256R1 we need to sign a hash of the challenge passed
         // Otherwise we sign the passed challenge directly
-        if (keypair.grp.id == MBEDTLS_ECP_DP_SECP256R1 && is_identity_protocol_ssh(identity, identity_len)) {
+        if (keypair.MBEDTLS_PRIVATE(grp).id == MBEDTLS_ECP_DP_SECP256R1
+            && is_identity_protocol_ssh(identity, identity_len)) {
             uint8_t challenge_hash[SHA256_LEN];
             JADE_WALLY_VERIFY(wally_sha256(challenge, challenge_len, challenge_hash, sizeof(challenge_hash)));
             result = sign_challenge(&keypair, challenge_hash, sizeof(challenge_hash), &r, &s);

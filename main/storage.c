@@ -225,11 +225,12 @@ static bool erase_key(const char* ns, const char* name)
 size_t get_entry_count(const char* namespace, const nvs_type_t type)
 {
     size_t count = 0;
-    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, type);
-    while (it != NULL) {
-        it = nvs_entry_next(it);
+    nvs_iterator_t it = NULL;
+    esp_err_t res = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, type, &it);
+    while (res == ESP_OK && it != NULL) {
+        res = nvs_entry_next(&it);
         ++count;
-    };
+    }
     return count;
 }
 
@@ -238,16 +239,17 @@ static bool key_name_exists(const char* name, const char* namespace, const nvs_t
 {
     JADE_ASSERT(name);
 
-    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, type);
-    while (it != NULL) {
+    nvs_iterator_t it = NULL;
+    esp_err_t res = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, type, &it);
+    while (res == ESP_OK && it != NULL) {
         nvs_entry_info_t info;
         nvs_entry_info(it, &info);
         if (strcmp(name, info.key) == 0) {
             nvs_release_iterator(it);
             return true;
         }
-        it = nvs_entry_next(it);
-    };
+        res = nvs_entry_next(&it);
+    }
 
     return false;
 }
@@ -262,14 +264,15 @@ static bool get_all_key_names(const char* namespace, const nvs_type_t type, char
     JADE_INIT_OUT_SIZE(num_written);
 
     size_t count = 0;
-    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, type);
-    while (it != NULL && count < num_names) {
+    nvs_iterator_t it = NULL;
+    esp_err_t res = nvs_entry_find(NVS_DEFAULT_PART_NAME, namespace, type, &it);
+    while (res == ESP_OK && it != NULL && count < num_names) {
         nvs_entry_info_t info;
         nvs_entry_info(it, &info);
         strcpy(names[count], info.key);
-        it = nvs_entry_next(it);
+        res = nvs_entry_next(&it);
         ++count;
-    };
+    }
 
     if (it) {
         nvs_release_iterator(it);
@@ -374,7 +377,8 @@ bool storage_key_name_valid(const char* name)
         if ((pch - name) >= NVS_KEY_NAME_MAX_SIZE) {
             return false;
         }
-        if (!isgraph(*pch)) {
+        const unsigned char c = *pch;
+        if (!isgraph(c)) {
             return false;
         }
         ++pch;

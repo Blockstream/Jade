@@ -174,7 +174,6 @@ static void eth_stop(void)
     ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_ETH_GOT_IP, ctx_got_ip));
     ESP_ERROR_CHECK(esp_eth_stop(s_eth_handle));
     ESP_ERROR_CHECK(esp_eth_del_netif_glue(s_eth_glue));
-    ESP_ERROR_CHECK(esp_eth_clear_default_handlers(eth_netif));
     ESP_ERROR_CHECK(esp_eth_driver_uninstall(s_eth_handle));
     ESP_ERROR_CHECK(s_phy->del(s_phy));
     ESP_ERROR_CHECK(s_mac->del(s_mac));

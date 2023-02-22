@@ -62,6 +62,7 @@ Main driver's function is 'spi_lobo_transfer_data()'
 #include <string.h>
 #include <stdio.h>
 #include "soc/gpio_sig_map.h"
+#include "soc/io_mux_reg.h"
 #include "soc/spi_reg.h"
 #include "soc/dport_reg.h"
 #include "soc/rtc_cntl_reg.h"
@@ -76,12 +77,14 @@ Main driver's function is 'spi_lobo_transfer_data()'
 #include "freertos/ringbuf.h"
 #include "soc/soc.h"
 #include "soc/dport_reg.h"
+
+#include "hal/gpio_ll.h"
 #include "soc/uart_struct.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
-#include "driver/periph_ctrl.h"
+#include "rom/gpio.h"
+#include "esp_private/periph_ctrl.h"
 #include "esp_heap_caps.h"
-#include "driver/periph_ctrl.h"
 #include "spi_master_lobo.h"
 
 

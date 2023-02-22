@@ -227,7 +227,7 @@ static bool add_validated_confidential_output_info(const commitment_t* commitmen
  */
 void sign_liquid_tx_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
     char network[MAX_NETWORK_NAME_LEN];
 

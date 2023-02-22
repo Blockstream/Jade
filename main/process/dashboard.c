@@ -37,6 +37,8 @@ static inline void ble_start(void) { JADE_ASSERT(false); }
 #include "process/ota_defines.h"
 #include "process_utils.h"
 
+#include <esp_chip_info.h>
+#include <esp_mac.h>
 #include <sodium/utils.h>
 #include <time.h>
 
@@ -1730,7 +1732,7 @@ static void free_unmanaged_activity_wrapper(void* activity_to_free)
 // Main/default screen/process when ready for user interaction
 void dashboard_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
 
     jade_process_t* process = process_ptr;
     ASSERT_NO_CURRENT_MESSAGE(process);

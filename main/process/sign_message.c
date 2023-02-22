@@ -152,7 +152,7 @@ int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output
  */
 void sign_message_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     // We expect a current message to be present

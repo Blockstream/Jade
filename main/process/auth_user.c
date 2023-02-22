@@ -236,7 +236,7 @@ cleanup:
 
 void auth_user_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %u", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     char network[MAX_NETWORK_NAME_LEN];

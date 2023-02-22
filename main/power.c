@@ -1,11 +1,11 @@
 #include "power.h"
 #include "jade_assert.h"
-#include <driver/adc_common.h>
 #include <sdkconfig.h>
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 // Code common to JADE v1 and v1.1 - ie. using AXP
 #include <driver/i2c.h>
+#include <esp_private/adc_share_hw_ctrl.h>
 
 static SemaphoreHandle_t i2c_mutex = NULL;
 

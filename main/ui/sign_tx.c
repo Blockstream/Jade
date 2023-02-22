@@ -49,7 +49,7 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
     JADE_ASSERT(!asset_str || !warning_msg);
 
     char header[16];
-    const int ret = snprintf(header, sizeof(header), "Output %d/%d", index, total);
+    const int ret = snprintf(header, sizeof(header), "Output %ld/%ld", index, total);
     JADE_ASSERT(ret > 0 && ret < sizeof(header));
 
     gui_activity_t* act = NULL;

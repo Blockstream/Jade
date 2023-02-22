@@ -2,6 +2,7 @@
 #define JADE_ASSERT_H_
 
 #include "jade_log.h"
+#include <stdlib.h>
 
 void jade_abort(const char* file, const int line_n);
 
