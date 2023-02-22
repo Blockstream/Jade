@@ -1,16 +1,8 @@
-// Copyright 2018 Espressif Systems (Shanghai) PTE LTD
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * SPDX-FileCopyrightText: 2015-2021 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 /******************************************************************************
  **
@@ -608,6 +600,41 @@ static bt_status_t btc_hf_client_send_dtmf(char code)
 
 /*******************************************************************************
 **
+** Function         btc_hf_client_send_xapl
+**
+** Description      send xapl
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+static bt_status_t btc_hf_client_send_xapl(char *buf, UINT32 features)
+{
+    CHECK_HF_CLIENT_SLC_CONNECTED();
+
+    BTA_HfClientSendAT(hf_client_local_param.btc_hf_client_cb.handle, BTA_HF_CLIENT_AT_CMD_XAPL, features, 0, buf);
+
+    return BT_STATUS_SUCCESS;
+}
+
+/*******************************************************************************
+**
+** Function         btc_hf_client_send_iphoneaccev
+**
+** Description      send IPHONEACCEV
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+static bt_status_t btc_hf_client_send_iphoneaccev(uint32_t bat_level, BOOLEAN docked)
+{
+    CHECK_HF_CLIENT_SLC_CONNECTED();
+
+    BTA_HfClientSendAT(hf_client_local_param.btc_hf_client_cb.handle, BTA_HF_CLIENT_AT_CMD_IPHONEACCEV, bat_level, (UINT32)docked, NULL);
+
+    return BT_STATUS_SUCCESS;
+}
+/*******************************************************************************
+**
 ** Function         btc_hf_client_request_last_voice_tag_number
 **
 ** Description      Request number from AG for VR purposes
@@ -1098,6 +1125,12 @@ void btc_hf_client_call_handler(btc_msg_t *msg)
         break;
     case BTC_HF_CLIENT_SEND_NREC_EVT:
         btc_hf_client_send_nrec();
+        break;
+    case BTC_HF_CLIENT_SEND_XAPL_EVT:
+        btc_hf_client_send_xapl(arg->send_xapl.information, arg->send_xapl.features);
+        break;
+    case BTC_HF_CLIENT_SEND_IPHONEACCEV_EVT:
+        btc_hf_client_send_iphoneaccev(arg->send_iphoneaccev.bat_level, arg->send_iphoneaccev.docked);
         break;
     default:
         BTC_TRACE_WARNING("%s : unhandled event: %d\n", __FUNCTION__, msg->act);

@@ -1,16 +1,8 @@
-// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * SPDX-FileCopyrightText: 2015-2021 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #include <string.h>
 
@@ -43,15 +35,35 @@ esp_err_t esp_spp_register_callback(esp_spp_cb_t callback)
 
 esp_err_t esp_spp_init(esp_spp_mode_t mode)
 {
+    esp_spp_cfg_t bt_spp_cfg = {
+        .mode = mode,
+        .enable_l2cap_ertm = true,
+        .tx_buffer_size = ESP_SPP_MAX_TX_BUFFER_SIZE,
+    };
+
+    return esp_spp_enhanced_init(&bt_spp_cfg);
+}
+
+esp_err_t esp_spp_enhanced_init(const esp_spp_cfg_t *cfg)
+{
     btc_msg_t msg;
     btc_spp_args_t arg;
     ESP_BLUEDROID_STATUS_CHECK(ESP_BLUEDROID_STATUS_ENABLED);
+
+    if (cfg->mode == ESP_SPP_MODE_VFS && (cfg->tx_buffer_size < ESP_SPP_MIN_TX_BUFFER_SIZE ||
+            cfg->tx_buffer_size > ESP_SPP_MAX_TX_BUFFER_SIZE)) {
+        LOG_WARN("Invalid tx buffer size");
+        return ESP_ERR_INVALID_ARG;
+    }
 
     msg.sig = BTC_SIG_API_CALL;
     msg.pid = BTC_PID_SPP;
     msg.act = BTC_SPP_ACT_INIT;
 
-    arg.init.mode = mode;
+    arg.init.mode = cfg->mode;
+    arg.init.enable_l2cap_ertm = cfg->enable_l2cap_ertm;
+    arg.init.tx_buffer_size = cfg->tx_buffer_size;
+
     return (btc_transfer_context(&msg, &arg, sizeof(btc_spp_args_t), NULL, NULL) == BT_STATUS_SUCCESS ? ESP_OK : ESP_FAIL);
 }
 

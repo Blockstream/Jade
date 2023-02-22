@@ -21,39 +21,61 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nimble/nimble_port.h"
+#include "esp_bt.h"
 
-#if NIMBLE_CFG_CONTROLLER
-static TaskHandle_t ll_task_h;
-#endif
-static TaskHandle_t host_task_h;
+static TaskHandle_t host_task_h = NULL;
 
-void
-nimble_port_freertos_init(TaskFunction_t host_task_fn)
+/**
+ * @brief esp_nimble_enable - Initialize the NimBLE host
+ * 
+ * @param host_task 
+ * @return esp_err_t 
+ */
+esp_err_t esp_nimble_enable(void *host_task)
 {
-#if NIMBLE_CFG_CONTROLLER
-    /*
-     * Create task where NimBLE LL will run. This one is required as LL has its
-     * own event queue and should have highest priority. The task function is
-     * provided by NimBLE and in case of FreeRTOS it does not need to be wrapped
-     * since it has compatible prototype.
-     */
-    xTaskCreate(nimble_port_ll_task_func, "ll", configMINIMAL_STACK_SIZE + 400,
-                NULL, configMAX_PRIORITIES - 1, &ll_task_h);
-#endif
-
     /*
      * Create task where NimBLE host will run. It is not strictly necessary to
      * have separate task for NimBLE host, but since something needs to handle
      * default queue it is just easier to make separate task which does this.
      */
-    xTaskCreatePinnedToCore(host_task_fn, "ble", NIMBLE_STACK_SIZE,
-                NULL, (configMAX_PRIORITIES - 4), &host_task_h, NIMBLE_CORE);
+    xTaskCreatePinnedToCore(host_task, "nimble_host", NIMBLE_HS_STACK_SIZE,
+                            NULL, (configMAX_PRIORITIES - 4), &host_task_h, NIMBLE_CORE);
+    return ESP_OK;
+
 }
 
-void
-nimble_port_freertos_deinit(void)
+/**
+ * @brief esp_nimble_disable - Disable the NimBLE host
+ * 
+ * @return esp_err_t 
+ */
+esp_err_t esp_nimble_disable(void)
 {
     if (host_task_h) {
         vTaskDelete(host_task_h);
+        host_task_h = NULL;
     }
+    return ESP_OK;
+}
+
+
+/**
+ * @brief nimble_port_freertos_init - Adapt to native nimble api
+ * 
+ * @param host_task_fn 
+ */
+void
+nimble_port_freertos_init(TaskFunction_t host_task_fn)
+{
+    esp_nimble_enable(host_task_fn);
+}
+
+/**
+ * @brief nimble_port_freertos_deinit - Adapt to native nimble api
+ * 
+ */
+void
+nimble_port_freertos_deinit(void)
+{
+    esp_nimble_disable();
 }

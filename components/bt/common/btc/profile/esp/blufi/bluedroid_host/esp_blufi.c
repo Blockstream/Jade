@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2015-2022 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -28,12 +34,6 @@
 #include "esp_blufi.h"
 
 #if (BLUFI_INCLUDED == TRUE)
-
-#if GATT_DYNAMIC_MEMORY == FALSE
-tBLUFI_ENV blufi_env;
-#else
-tBLUFI_ENV *blufi_env_ptr;
-#endif
 
 static uint8_t server_if;
 static uint16_t conn_id;

@@ -415,7 +415,6 @@ typedef struct {
 typedef struct {
     tGATT_DISCONN_REASON reason;
     UINT16              conn_id;
-    UINT8               link_role;
     tBTA_GATTC_IF       client_if;
     BD_ADDR             remote_bda;
 } tBTA_GATTC_DISCONNECT;

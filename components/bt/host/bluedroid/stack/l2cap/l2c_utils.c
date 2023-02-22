@@ -288,37 +288,6 @@ void l2cu_release_lcb (tL2C_LCB *p_lcb)
 #endif  ///BLE_INCLUDED == TRUE
 }
 
-/*******************************************************************************
-**
-** Function         l2cu_find_link_role_by_bd_addr
-**
-** Description      Look through all active Link Role for a match based on the
-**                  remote BD address.
-**
-** Returns          Link Role, or HCI_ROLE_UNKNOWN if no match
-**
-*******************************************************************************/
-UINT8  l2cu_find_link_role_by_bd_addr (BD_ADDR p_bd_addr, tBT_TRANSPORT transport)
-{
-    list_node_t *p_node = NULL;
-    tL2C_LCB    *p_lcb  = NULL;
-    UINT8        link_role = HCI_ROLE_UNKNOWN;
-
-    for (p_node = list_begin(l2cb.p_lcb_pool); p_node; p_node = list_next(p_node)) {
-        p_lcb = list_node(p_node);
-        if ((p_lcb) &&
-#if BLE_INCLUDED == TRUE
-                p_lcb->transport == transport &&
-#endif
-                (!memcmp (p_lcb->remote_bd_addr, p_bd_addr, BD_ADDR_LEN))) {
-            link_role = p_lcb->link_role;
-        }
-    }
-
-    /* If here, no match found */
-    return link_role;
-}
-
 
 /*******************************************************************************
 **
@@ -1590,7 +1559,7 @@ tL2C_CCB *l2cu_allocate_ccb (tL2C_LCB *p_lcb, UINT16 cid)
     l2c_fcr_free_timer (p_ccb);
 #endif  ///CLASSIC_BT_INCLUDED == TRUE
     p_ccb->ertm_info.preferred_mode  = L2CAP_FCR_BASIC_MODE;        /* Default mode for channel is basic mode */
-    p_ccb->ertm_info.allowed_modes   = L2CAP_FCR_CHAN_OPT_BASIC;    /* Default mode for channel is basic mode */
+    p_ccb->ertm_info.allowed_modes   = L2CAP_FCR_CHAN_OPT_BASIC|L2CAP_FCR_CHAN_OPT_ERTM;
     p_ccb->ertm_info.fcr_rx_buf_size = L2CAP_FCR_RX_BUF_SIZE;
     p_ccb->ertm_info.fcr_tx_buf_size = L2CAP_FCR_TX_BUF_SIZE;
     p_ccb->ertm_info.user_rx_buf_size = L2CAP_USER_RX_BUF_SIZE;
@@ -3644,6 +3613,9 @@ void l2cu_set_acl_hci_header (BT_HDR *p_buf, tL2C_CCB *p_ccb)
 void l2cu_check_channel_congestion (tL2C_CCB *p_ccb)
 {
     size_t q_count = fixed_queue_length(p_ccb->xmit_hold_q);
+#if (CLASSIC_BT_INCLUDED == TRUE)
+    size_t q_waiting_ack_count = fixed_queue_length(p_ccb->fcrb.waiting_for_ack_q);
+#endif
 
 #if (L2CAP_UCD_INCLUDED == TRUE)
     if ( p_ccb->local_cid == L2CAP_CONNECTIONLESS_CID ) {
@@ -3656,7 +3628,11 @@ void l2cu_check_channel_congestion (tL2C_CCB *p_ccb)
         /* If this channel was congested */
         if ( p_ccb->cong_sent ) {
             /* If the channel is not congested now, tell the app */
-            if (q_count <= (p_ccb->buff_quota / 2)) {
+            if (q_count <= (p_ccb->buff_quota / 2)
+#if (CLASSIC_BT_INCLUDED == TRUE)
+                        && (p_ccb->peer_cfg.fcr.mode == L2CAP_FCR_BASIC_MODE || q_waiting_ack_count < p_ccb->our_cfg.fcr.tx_win_sz)
+#endif
+                    ) {
                 p_ccb->cong_sent = FALSE;
                 if (p_ccb->p_rcb && p_ccb->p_rcb->api.pL2CA_CongestionStatus_Cb) {
                     L2CAP_TRACE_DEBUG ("L2CAP - Calling CongestionStatus_Cb (FALSE), CID: 0x%04x  xmit_hold_q.count: %u  buff_quota: %u",
@@ -3695,7 +3671,11 @@ void l2cu_check_channel_congestion (tL2C_CCB *p_ccb)
         } else {
             tL2C_LCB *p_lcb = p_ccb->p_lcb;
             /* If this channel was not congested but it is congested now, tell the app */
-            if (q_count > p_ccb->buff_quota || (p_lcb && (p_lcb->link_xmit_data_q) && (list_length(p_lcb->link_xmit_data_q) + q_count) > p_ccb->buff_quota)) {
+            if (q_count > p_ccb->buff_quota || (p_lcb && (p_lcb->link_xmit_data_q) && (list_length(p_lcb->link_xmit_data_q) + q_count) > p_ccb->buff_quota)
+#if (CLASSIC_BT_INCLUDED == TRUE)
+                    || (p_ccb->peer_cfg.fcr.mode != L2CAP_FCR_BASIC_MODE && q_waiting_ack_count >= p_ccb->our_cfg.fcr.tx_win_sz)
+#endif
+                    ) {
                 p_ccb->cong_sent = TRUE;
                 if (p_ccb->p_rcb && p_ccb->p_rcb->api.pL2CA_CongestionStatus_Cb) {
                     L2CAP_TRACE_DEBUG ("L2CAP - Calling CongestionStatus_Cb (TRUE),CID:0x%04x,XmitQ:%u,Quota:%u",

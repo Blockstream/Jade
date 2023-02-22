@@ -1,22 +1,7 @@
 /*
- * Copyright 2020 Espressif Systems (Shanghai) PTE LTD
+ * SPDX-FileCopyrightText: 2015-2021 Espressif Systems (Shanghai) CO LTD
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 #ifndef __ESP_NIMBLE_MEM_H__
@@ -28,9 +13,12 @@
 extern "C" {
 #endif
 
-void *nimble_platform_mem_malloc(size_t size);
-void *nimble_platform_mem_calloc(size_t n, size_t size);
-void nimble_platform_mem_free(void *ptr);
+// #pragma message "This file should be replaced with bt_osi_mem.h, used here for compatibility"
+
+#include "bt_osi_mem.h"
+#define nimble_platform_mem_malloc bt_osi_mem_malloc
+#define nimble_platform_mem_calloc bt_osi_mem_calloc
+#define nimble_platform_mem_free bt_osi_mem_free
 
 #ifdef __cplusplus
 }

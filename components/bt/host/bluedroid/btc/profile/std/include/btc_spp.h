@@ -1,16 +1,8 @@
-// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * SPDX-FileCopyrightText: 2015-2021 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #ifndef __BTC_SPP_H__
 #define __BTC_SPP_H__
@@ -25,8 +17,6 @@
 
 #define ESP_SPP_MAX_SESSION     BTA_JV_MAX_RFC_SR_SESSION
 #define ESP_SPP_SERVER_NAME_MAX 32
-
-#define ESP_SPP_RINGBUF_SIZE 1000
 
 #define BTC_SPP_INVALID_SCN 0x00
 
@@ -48,6 +38,8 @@ typedef union {
     //BTC_SPP_ACT_INIT
     struct init_arg {
         esp_spp_mode_t mode;
+        bool enable_l2cap_ertm;
+        UINT16 tx_buffer_size;
     } init;
     //BTC_SPP_ACT_UNINIT
     struct uninit_arg {

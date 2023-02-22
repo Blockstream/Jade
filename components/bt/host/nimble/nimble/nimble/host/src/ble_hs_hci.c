@@ -41,11 +41,20 @@ static uint32_t ble_hs_hci_sup_feat;
 
 static uint8_t ble_hs_hci_version;
 
+#if CONFIG_BT_NIMBLE_LEGACY_VHCI_ENABLE
 #define BLE_HS_HCI_FRAG_DATABUF_SIZE    \
     (BLE_ACL_MAX_PKT_SIZE +             \
      BLE_HCI_DATA_HDR_SZ +              \
      sizeof (struct os_mbuf_pkthdr) +   \
      sizeof (struct os_mbuf))
+#else
+#define BLE_HS_HCI_FRAG_DATABUF_SIZE    \
+     (BLE_ACL_MAX_PKT_SIZE +            \
+      BLE_HCI_DATA_HDR_SZ +             \
+      BLE_HS_CTRL_DATA_HDR_SZ +         \
+      sizeof (struct os_mbuf_pkthdr) +  \
+      sizeof (struct os_mbuf))
+#endif
 
 #define BLE_HS_HCI_FRAG_MEMBLOCK_SIZE   \
     (OS_ALIGN(BLE_HS_HCI_FRAG_DATABUF_SIZE, 4))
@@ -423,7 +432,11 @@ ble_hs_hci_frag_alloc(uint16_t frag_size, void *arg)
     /* Prefer the dedicated one-element fragment pool. */
     om = os_mbuf_get_pkthdr(&ble_hs_hci_frag_mbuf_pool, 0);
     if (om != NULL) {
+#if CONFIG_BT_NIMBLE_LEGACY_VHCI_ENABLE
         om->om_data += BLE_HCI_DATA_HDR_SZ;
+#else
+        om->om_data += BLE_HCI_DATA_HDR_SZ + BLE_HS_CTRL_DATA_HDR_SZ;
+#endif
         return om;
     }
 
@@ -461,8 +474,8 @@ ble_hs_hci_acl_hdr_prepend(struct os_mbuf *om, uint16_t handle,
     struct hci_data_hdr hci_hdr;
     struct os_mbuf *om2;
 
-    hci_hdr.hdh_handle_pb_bc =
-        ble_hs_hci_util_handle_pb_bc_join(handle, pb_flag, 0);
+    put_le16(&hci_hdr.hdh_handle_pb_bc,
+             ble_hs_hci_util_handle_pb_bc_join(handle, pb_flag, 0));
     put_le16(&hci_hdr.hdh_len, OS_MBUF_PKTHDR(om)->omp_len);
 
     om2 = os_mbuf_prepend(om, sizeof hci_hdr);
@@ -635,10 +648,13 @@ ble_hs_hci_init(void)
     BLE_HS_DBG_ASSERT_EVAL(rc == 0);
 }
 
-void
-ble_hs_hci_deinit(void)
+void ble_hs_hci_deinit(void)
 {
-    ble_npl_mutex_deinit(&ble_hs_hci_mutex);
+    int rc;
 
-    ble_npl_sem_deinit(&ble_hs_hci_sem);
+    rc = ble_npl_mutex_deinit(&ble_hs_hci_mutex);
+    BLE_HS_DBG_ASSERT_EVAL(rc == 0);
+
+    rc = ble_npl_sem_deinit(&ble_hs_hci_sem);
+    BLE_HS_DBG_ASSERT_EVAL(rc == 0);
 }

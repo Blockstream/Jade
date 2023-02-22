@@ -99,22 +99,26 @@ parse_dev_addr(const char *prefix, const struct kv_pair *addr_types,
     char name[32];
     int rc;
 
-    /* XXX string operations below are not quite safe, but do we care? */
-
     if (!prefix) {
         name[0] = '\0';
     } else {
-        strcpy(name, prefix);
+        if (strlcpy(name, prefix, sizeof(name)) >= sizeof(name)) {
+            return EINVAL;
+        }
     }
 
-    strcat(name, "addr");
+    if (strlcat(name, "addr", sizeof(name)) >= sizeof(name)) {
+        return EINVAL;
+    }
     rc = parse_arg_addr(name, addr);
     if (rc == ENOENT) {
         /* not found */
         return rc;
     } else if (rc == EAGAIN) {
         /* address found, but no type provided */
-        strcat(name, "_type");
+        if (strlcat(name, "_type", sizeof(name)) >= sizeof(name)) {
+            return EINVAL;
+        }
         addr->type = parse_arg_kv(name, addr_types, &rc);
         if (rc == ENOENT) {
             addr->type = BLE_ADDR_PUBLIC;
@@ -126,7 +130,9 @@ parse_dev_addr(const char *prefix, const struct kv_pair *addr_types,
         return rc;
     } else {
         /* full address found, but let's just make sure there is no type arg */
-        strcat(name, "_type");
+        if (strlcat(name, "_type", sizeof(name)) >= sizeof(name)) {
+            return EINVAL;
+        }
         if (parse_arg_extract(name)) {
             return E2BIG;
         }
@@ -2691,15 +2697,28 @@ cmd_security_unpair(int argc, char **argv)
 {
     ble_addr_t peer;
     int rc;
+    int oldest;
 
     rc = parse_arg_all(argc - 1, argv + 1);
     if (rc != 0) {
         return rc;
     }
 
+    rc = parse_arg_bool_dflt("oldest", 0, &oldest);
+    if (rc != 0) {
+        console_printf("invalid 'oldest' parameter\n");
+        return rc;
+    }
+
+    if (oldest) {
+        rc = ble_gap_unpair_oldest_peer();
+        console_printf("Unpair oldest status: 0x%02x\n", rc);
+        return 0;
+    }
+
     rc = parse_dev_addr("peer_", cmd_peer_addr_types, &peer);
     if (rc != 0) {
-        console_printf("invalid 'peer_addr' parameter\n");
+        console_printf("invalid peer address\n");
         return rc;
     }
 
@@ -2714,6 +2733,7 @@ cmd_security_unpair(int argc, char **argv)
 
 #if MYNEWT_VAL(SHELL_CMD_HELP)
 static const struct shell_param security_unpair_params[] = {
+    {"oldest", "usage: =[true|false], default: false"},
     {"peer_addr_type", "usage: =[public|random|public_id|random_id], default: public"},
     {"peer_addr", "usage: =[XX:XX:XX:XX:XX:XX]"},
     {NULL, NULL}

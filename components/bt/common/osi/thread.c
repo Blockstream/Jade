@@ -36,7 +36,7 @@ struct work_queue {
 };
 
 struct osi_thread {
-  void *thread_handle;                  /*!< Store the thread object */
+  TaskHandle_t thread_handle;           /*!< Store the thread object */
   int  thread_id;                       /*!< May for some OS, such as Linux */
   bool stop;
   uint8_t work_queue_num;               /*!< Work queue number */
@@ -362,7 +362,7 @@ const char *osi_thread_name(osi_thread_t *thread)
 {
     assert(thread != NULL);
 
-    return pcTaskGetTaskName(thread->thread_handle);
+    return pcTaskGetName(thread->thread_handle);
 }
 
 int osi_thread_queue_wait_size(osi_thread_t *thread, int wq_idx)

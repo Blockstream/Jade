@@ -1,35 +1,24 @@
 /*
- * Copyright 2019 Espressif Systems (Shanghai) PTE LTD
+ * SPDX-FileCopyrightText: 2015-2022 Espressif Systems (Shanghai) CO LTD
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 #include <assert.h>
 #include "sysinit/sysinit.h"
 #include "nimble/hci_common.h"
+#if CONFIG_BT_NIMBLE_ENABLED
 #include "host/ble_hs.h"
+#endif //CONFIG_BT_NIMBLE_ENABLED
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "esp_nimble_hci.h"
 #include "esp_nimble_mem.h"
+#include "bt_osi_mem.h"
 #include "esp_bt.h"
 #include "freertos/semphr.h"
 #include "esp_compiler.h"
+#include "soc/soc_caps.h"
 
 #define NIMBLE_VHCI_TIMEOUT_MS  2000
 #define BLE_HCI_EVENT_HDR_LEN               (2)
@@ -361,7 +350,8 @@ static int host_rcv_pkt(uint8_t *data, uint16_t len)
         }
 
         /* Allocate LE Advertising Report Event from lo pool only */
-        if ((data[1] == BLE_HCI_EVCODE_LE_META) && (data[3] == BLE_HCI_LE_SUBEV_ADV_RPT)) {
+        if ((data[1] == BLE_HCI_EVCODE_LE_META) &&
+            (data[3] == BLE_HCI_LE_SUBEV_ADV_RPT || data[3] == BLE_HCI_LE_SUBEV_EXT_ADV_RPT)) {
             evbuf = ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_EVT_LO);
             /* Skip advertising report if we're out of memory */
             if (!evbuf) {
@@ -458,24 +448,6 @@ err:
 
 }
 
-esp_err_t esp_nimble_hci_and_controller_init(void)
-{
-    esp_err_t ret;
-
-    esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
-
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-
-    if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) {
-        return ret;
-    }
-
-    if ((ret = esp_bt_controller_enable(ESP_BT_MODE_BLE)) != ESP_OK) {
-        return ret;
-    }
-    return esp_nimble_hci_init();
-}
-
 static esp_err_t ble_hci_transport_deinit(void)
 {
     int ret = 0;
@@ -510,27 +482,6 @@ esp_err_t esp_nimble_hci_deinit(void)
     }
 
     ble_buf_free();
-
-    return ESP_OK;
-}
-
-esp_err_t esp_nimble_hci_and_controller_deinit(void)
-{
-    int ret;
-    ret = esp_nimble_hci_deinit();
-    if (ret != ESP_OK) {
-        return ret;
-    }
-
-    ret = esp_bt_controller_disable();
-    if (ret != ESP_OK) {
-        return ret;
-    }
-
-    ret = esp_bt_controller_deinit();
-    if (ret != ESP_OK) {
-        return ret;
-    }
 
     return ESP_OK;
 }

@@ -1,16 +1,8 @@
-// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * SPDX-FileCopyrightText: 2015-2021 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #ifndef __BLUEDROID_USER_CONFIG_H__
 #define __BLUEDROID_USER_CONFIG_H__
@@ -51,6 +43,13 @@
 #define UC_BT_SPP_ENABLED                   CONFIG_BT_SPP_ENABLED
 #else
 #define UC_BT_SPP_ENABLED                   FALSE
+#endif
+
+//L2CAP
+#ifdef CONFIG_BT_L2CAP_ENABLED
+#define UC_BT_L2CAP_ENABLED                   CONFIG_BT_L2CAP_ENABLED
+#else
+#define UC_BT_L2CAP_ENABLED                   FALSE
 #endif
 
 //HFP(AG)
@@ -176,13 +175,6 @@
 #endif
 
 #if CONFIG_IDF_TARGET_ESP32
-
-//Device Nane Maximum Length
-#ifdef CONFIG_BT_MAX_DEVICE_NAME_LEN
-#define UC_MAX_LOC_BD_NAME_LEN  CONFIG_BT_MAX_DEVICE_NAME_LEN
-#else
-#define UC_MAX_LOC_BD_NAME_LEN 64
-#endif
 
 //BTDM_BLE_ADV_REPORT_FLOW_CTRL_SUPP
 #ifdef CONFIG_BTDM_BLE_ADV_REPORT_FLOW_CTRL_SUPP

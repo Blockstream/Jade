@@ -20,10 +20,16 @@
 #ifndef _NIMBLE_PORT_H
 #define _NIMBLE_PORT_H
 
+#include "esp_err.h"
 #include "nimble/nimble_npl.h"
 
 #define NIMBLE_CORE (CONFIG_BT_NIMBLE_PINNED_TO_CORE < portNUM_PROCESSORS ? CONFIG_BT_NIMBLE_PINNED_TO_CORE : tskNO_AFFINITY)
-#define NIMBLE_STACK_SIZE CONFIG_BT_NIMBLE_TASK_STACK_SIZE
+
+#define NIMBLE_HS_STACK_SIZE CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE
+
+#if (CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32C2)
+#define NIMBLE_LL_STACK_SIZE CONFIG_BT_LE_CONTROLLER_TASK_STACK_SIZE
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +40,22 @@ void nimble_port_deinit(void);
 
 void nimble_port_run(void);
 int nimble_port_stop(void);
+
+
+/**
+ * @brief esp_nimble_init - Initialize the NimBLE host stack
+ * 
+ * @return esp_err_t 
+ */
+esp_err_t esp_nimble_init(void);
+
+/**
+ * @brief esp_nimble_deinit - Deinitialize the NimBLE host stack
+ * 
+ * @return esp_err_t 
+ */
+esp_err_t esp_nimble_deinit(void);
+
 
 struct ble_npl_eventq *nimble_port_get_dflt_eventq(void);
 
