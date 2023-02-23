@@ -111,6 +111,26 @@ static void jade_camera_init(void)
         JADE_LOGE("Camera init failed with error 0x%x", err);
         post_exit_event_and_await_death();
     }
+
+    sensor_t* camera_sensor = esp_camera_sensor_get();
+    JADE_ASSERT(camera_sensor);
+    JADE_ASSERT(camera_sensor->set_hmirror);
+
+    camera_sensor_info_t* camera_info = esp_camera_sensor_get_info(&camera_sensor->id);
+    JADE_ASSERT(camera_info);
+    JADE_ASSERT(camera_info->name);
+    JADE_ASSERT(camera_info->model);
+
+    JADE_LOGI("The camera in use is: %s (%u)", camera_info->name, camera_info->model);
+
+    // GC0308 appears to need image flipping on both axes
+    if (camera_info->model == CAMERA_GC0308) {
+        const int hret = camera_sensor->set_hmirror(camera_sensor, 1);
+        const int vret = camera_sensor->set_vflip(camera_sensor, 1);
+        if (hret || vret) {
+            JADE_LOGE("Failed to set camera hmirror/vflip, returned: %d/%d", hret, vret);
+        }
+    }
 }
 
 // Stop the camera
