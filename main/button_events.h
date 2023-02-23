@@ -22,6 +22,8 @@ typedef enum {
 
     BTN_CANCEL_OTA,
     BTN_ACCEPT_OTA,
+    BTN_OTA_VIEW_FW_HASH,
+    BTN_OTA_HASH_CONFIRMED,
 
     BTN_BLE_CONFIRM,
     BTN_BLE_DENY,
