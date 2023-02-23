@@ -95,6 +95,7 @@ def download_file(verinfo, release):
 
     fwdata = get_fw_metadata(verinfo, release_data)
     fwname = fwdata['filename']
+    fwhash = fwdata.get('fwhash')
 
     # GET the selected firmware from the server
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -109,9 +110,11 @@ def download_file(verinfo, release):
     write_file = input('Save local copy of downloaded firmware? [y/N]').strip()
     if write_file == 'y' or write_file == 'Y':
         fwtools.write(fwcmp, os.path.basename(fwname))
+        if fwhash:
+            fwtools.write(fwhash, os.path.basename(fwname) + ".hash", text=True)
 
     # Return
-    return fwdata['fwsize'], fwdata.get('patch_size'), fwcmp
+    return fwdata['fwsize'], fwdata.get('patch_size'), fwhash, fwcmp
 
 
 # Use a local (previously downloaded) firmware file.
@@ -124,20 +127,25 @@ def get_local_fwfile(fwfilename):
 
     # Read the fw file
     fwcmp = fwtools.read(fwfilename)
+    fwhash = None
+    try:
+        fwhash = fwtools.read(fwfilename + ".hash", text=True)
+    except Exception as e:
+        logger.warning('Hash file no present or not valid')
 
     # Use fwtools to parse the filename and deduce whether this is
     # a full firmware file or a firmware delta/patch.
     fwtype, fwinfo, fwinfo2 = fwtools.parse_compressed_filename(fwfilename)
     assert (fwtype == fwtools.FWFILE_TYPE_PATCH) == (fwinfo2 is not None)
 
-    return fwinfo.fwsize, fwinfo2.fwsize if fwinfo2 else None, fwcmp
+    return fwinfo.fwsize, fwinfo2.fwsize if fwinfo2 else None, fwhash, fwcmp
 
 
 # Takes the compressed firmware data to upload, the expected length of the
 # final (uncompressed) firmware, the length of the uncompressed diff/patch
 # (if this is a patch to apply to the current running firmware), and whether
 # to apply the test mnemonic rather than using normal pinserver authentication.
-def ota(jade, verinfo, fwcompressed, fwlength, patchlen=None):
+def ota(jade, verinfo, fwcompressed, fwlength, fwhash, patchlen=None):
     logger.info(f'Running OTA on: {verinfo}')
     chunksize = int(verinfo['JADE_OTA_MAX_CHUNK'])
     assert chunksize > 0
@@ -175,7 +183,7 @@ def ota(jade, verinfo, fwcompressed, fwlength, patchlen=None):
 
     print('Please approve the firmware update on the Jade device')
     try:
-        result = jade.ota_update(fwcompressed, fwlength, chunksize,
+        result = jade.ota_update(fwcompressed, fwlength, chunksize, fwhash,
                                  patchlen=patchlen, cb=_log_progress)
         assert result is True
         print(f'Total OTA time: {time.time() - start_time}s')
@@ -228,16 +236,20 @@ if __name__ == '__main__':
         # Can't check that local file is appropriate for connected hw
         # OTA should reject/fail if not appropriate.
         # File must have the name unchanged from download.
-        fwlen, patchlen, fwcmp = get_local_fwfile(args.fwfile)
+        fwlen, patchlen, fwhash, fwcmp = get_local_fwfile(args.fwfile)
     else:
         # File download should only offer appropriate fw
         # OTA should reject/fail if not appropriate.
         release = args.release or 'stable'  # defaults to latest/stable
-        fwlen, patchlen, fwcmp = download_file(verinfo, release)
+        fwlen, patchlen, fwhash, fwcmp = download_file(verinfo, release)
 
     if fwcmp is None:
         print('No firmware available')
         sys.exit(2)
+
+    if fwhash is not None:
+        logger.info(f'Final fw hash: {fwhash}')
+        fwhash = bytes.fromhex(fwhash)
 
     print(f'Got fw {"patch" if patchlen else "file"} of length {len(fwcmp)} '
           f'with expected uncompressed final fw length {fwlen}')
@@ -247,6 +259,6 @@ if __name__ == '__main__':
     if upload == 'y' or upload == 'Y' or upload == '':
         logger.info('Jade OTA over serial')
         with JadeAPI.create_serial(device=args.serialport) as jade:
-            ota(jade, verinfo, fwcmp, fwlen, patchlen)
+            ota(jade, verinfo, fwcmp, fwlen, fwhash, patchlen)
     else:
         logger.info('Skipping upload')

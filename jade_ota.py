@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import json
+import hashlib
 import logging
 import argparse
 import subprocess
@@ -54,7 +55,7 @@ def kill_agent(btagent):
     logger.info(f'Killed bt-agent {btagent.pid}')
 
 
-# Parse the latest file and select firmware to download
+# Parse the index file and select firmware to download
 def get_fw_metadata(release_data):
     # Select firmware from list of available
     def _full_fw_label(fw):
@@ -103,6 +104,7 @@ def download_file(hw_target, write_compressed, release):
 
     fwdata = get_fw_metadata(release_data)
     fwname = fwdata['filename']
+    fwhash = fwdata.get('fwhash')
 
     # GET the selected firmware from the server
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -117,9 +119,11 @@ def download_file(hw_target, write_compressed, release):
     if write_compressed:
         cmpfilename = f'{COMP_FW_DIR}/{os.path.basename(fwname)}'
         fwtools.write(fwcmp, cmpfilename)
+        if fwhash:
+            fwtools.write(fwhash, cmpfilename + ".hash", text=True)
 
     # Return
-    return fwdata['fwsize'], fwdata.get('patch_size'), fwcmp
+    return fwdata['fwsize'], fwdata.get('patch_size'), fwhash, fwcmp
 
 
 # Download compressed firmware file from Firmware Server using GDK
@@ -146,6 +150,7 @@ def download_file_gdk(hw_target, write_compressed, release):
 
     fwdata = get_fw_metadata(release_data)
     fwname = fwdata['filename']
+    fwhash = fwdata.get('fwhash')
 
     # GET the selected firmware from the server in base64 encoding
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -163,9 +168,11 @@ def download_file_gdk(hw_target, write_compressed, release):
     if write_compressed:
         cmpfilename = f'{COMP_FW_DIR}/{os.path.basename(fwname)}'
         fwtools.write(fwcmp, cmpfilename)
+        if fwhash:
+            fwtools.write(fwhash, cmpfilename + ".hash", text=True)
 
     # Return
-    return fwdata['fwsize'], fwdata.get('patch_size'), fwcmp
+    return fwdata['fwsize'], fwdata.get('patch_size'), fwhash, fwcmp
 
 
 # Use a local uncompressed full firmware file - can deduce the compressed firmware
@@ -176,9 +183,10 @@ def get_local_uncompressed_fwfile(fwfilename, write_compressed):
     assert os.path.exists(fwfilename) and os.path.isfile(
             fwfilename), f'Uncompressed firmware file not found: {fwfilename}'
 
-    # Read the fw file
+    # Read the fw file and get the hash
     firmware = fwtools.read(fwfilename)
     fwlen = len(firmware)
+    fwhash = hashlib.sha256(firmware).hexdigest()
 
     # Compress the firmware for upload
     fwcmp = fwtools.compress(firmware)
@@ -193,7 +201,7 @@ def get_local_uncompressed_fwfile(fwfilename, write_compressed):
         logger.info('Writing compressed firmware file')
         fwtools.write(fwcmp, cmpfilename)
 
-    return fwlen, None, fwcmp
+    return fwlen, None, fwhash, fwcmp
 
 
 # Use a local firmware file - the compressed firmware file.
@@ -205,13 +213,18 @@ def get_local_compressed_fwfile(fwfilename):
 
     # Read the fw file
     fwcmp = fwtools.read(fwfilename)
+    fwhash = None
+    try:
+        fwhash = fwtools.read(fwfilename + ".hash", text=True)
+    except Exception as e:
+        logger.warning('Hash file no present or not valid')
 
     # Use fwtools to parse the filename and deduce whether this is
     # a full firmware file or a firmware delta/patch.
     fwtype, fwinfo, fwinfo2 = fwtools.parse_compressed_filename(fwfilename)
     assert (fwtype == fwtools.FWFILE_TYPE_PATCH) == (fwinfo2 is not None)
 
-    return fwinfo.fwsize, fwinfo2.fwsize if fwinfo2 else None, fwcmp
+    return fwinfo.fwsize, fwinfo2.fwsize if fwinfo2 else None, fwhash, fwcmp
 
 
 # Returns whether we have ble and the id of the jade
@@ -226,7 +239,7 @@ def get_bleid(jade):
 # final (uncompressed) firmware, the length of the uncompressed diff/patch
 # (if this is a patch to apply to the current running firmware), and whether
 # to apply the test mnemonic rather than using normal pinserver authentication.
-def ota(jade, fwcompressed, fwlength, patchlen=None, pushmnemonic=False):
+def ota(jade, fwcompressed, fwlength, fwhash, patchlen=None, pushmnemonic=False):
     info = jade.get_version_info()
     logger.info(f'Running OTA on: {info}')
     has_pin = info['JADE_HAS_PIN']
@@ -270,7 +283,8 @@ def ota(jade, fwcompressed, fwlength, patchlen=None, pushmnemonic=False):
         last_time = current_time
         last_written = written
 
-    result = jade.ota_update(fwcompressed, fwlength, chunksize, patchlen=patchlen, cb=_log_progress)
+    result = jade.ota_update(fwcompressed, fwlength, chunksize, fwhash,
+                             patchlen=patchlen, cb=_log_progress)
     assert result is True
 
     logger.info(f'Total ota time in secs: {time.time() - start_time}')
@@ -412,18 +426,18 @@ if __name__ == '__main__':
 
     # Get the file to OTA
     if args.downloadfw:
-        fwlen, patchlen, fwcmp = download_file(args.hwtarget, args.writecompressed,
-                                               args.release)
+        fwlen, patchlen, fwhash, fwcmp = download_file(args.hwtarget, args.writecompressed,
+                                                       args.release)
     elif args.downloadgdk:
-        fwlen, patchlen, fwcmp = download_file_gdk(args.hwtarget, args.writecompressed,
-                                                   args.release)
+        fwlen, patchlen, fwhash, fwcmp = download_file_gdk(args.hwtarget, args.writecompressed,
+                                                           args.release)
     elif args.fwfile:
         assert not args.writecompressed
-        fwlen, patchlen, fwcmp = get_local_compressed_fwfile(args.fwfile)
+        fwlen, patchlen, fwhash, fwcmp = get_local_compressed_fwfile(args.fwfile)
     else:
         # Default case, as 'uncompressed fw file' has a default value if not passed explicitly
-        fwlen, patchlen, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
-                                                               args.writecompressed)
+        fwlen, patchlen, fwhash, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
+                                                                       args.writecompressed)
 
     if fwcmp is None:
         logger.error('No firmware available')
@@ -431,6 +445,10 @@ if __name__ == '__main__':
 
     logger.info(f'Got fw {"patch" if patchlen else "file"} of length {len(fwcmp)} '
                 f'with expected uncompressed final fw length {fwlen}')
+
+    if fwhash is not None:
+        logger.info(f'Final fw hash: {fwhash}')
+        fwhash = bytes.fromhex(fwhash)
 
     # If ble, start the agent to supply the required passkey for authentication
     # and encryption - don't bother if not.
@@ -447,7 +465,7 @@ if __name__ == '__main__':
         if not args.skipserial:
             logger.info(f'Jade OTA over serial')
             with JadeAPI.create_serial(device=args.serialport) as jade:
-                has_radio, bleid = ota(jade, fwcmp, fwlen, patchlen, args.pushmnemonic)
+                has_radio, bleid = ota(jade, fwcmp, fwlen, fwhash, patchlen, args.pushmnemonic)
 
         if not args.skipble:
             if has_radio and bleid is None and args.bleidfromserial:
@@ -458,7 +476,7 @@ if __name__ == '__main__':
             if has_radio:
                 logger.info(f'Jade OTA over BLE {bleid}')
                 with JadeAPI.create_ble(serial_number=bleid) as jade:
-                    ota(jade, fwcmp, fwlen, patchlen, args.pushmnemonic)
+                    ota(jade, fwcmp, fwlen, fwhash, patchlen, args.pushmnemonic)
             else:
                 msg = 'Skipping BLE tests - not enabled on the hardware'
                 logger.warning(msg)
