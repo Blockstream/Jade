@@ -28,6 +28,7 @@ test_format:
     paths:
     - build*/jade.bin
     - build*/*_fw.bin
+    - build*/*_fw.bin.hash
     - build*/index.json
     - build*/ota_data_initial.bin
     - build*/bootloader/bootloader.bin

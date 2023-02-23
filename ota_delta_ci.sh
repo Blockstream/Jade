@@ -35,29 +35,27 @@ mkdir -p ${PATCHDIR}
 ./tools/mkpatch.py ${FW_NORADIO} ${FW_NORADIO} ${PATCHDIR}
 ./tools/mkpatch.py ${FW_BLE} ${FW_BLE} ${PATCHDIR}
 ./tools/mkpatch.py ${FW_NORADIO} ${FW_BLE} ${PATCHDIR}  # makes both directions
-
 sleep 2
 
-# first we test the same exact firmware noblobs via serial
+# first we test the same exact firmware noblobs via serial without the hash file being present
 FW_PATCH=$(ls ${PATCHDIR}/*_noradio_*_noradio*_patch.bin)
 python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
-
 sleep 2
 
-# now we test from noblob to ble via serial
+# now we test from noblob to ble via serial with the hash file in place
 # NOTE: the filename is of the pattern: 'final-from-base' - hence ble*noradio*patch.bin
 FW_PATCH=$(ls ${PATCHDIR}/*_ble_*_noradio*_patch.bin)
+cp "${FW_BLE}.hash" "${FW_PATCH}.hash"
 python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
-
 sleep 2
 
-# now we test the same exact firmware ble via ble
+# now we test the same exact firmware ble via ble without the hash file being present
 FW_PATCH=$(ls ${PATCHDIR}/*_ble_*_ble*_patch.bin)
 python jade_ota.py --log=INFO --skipserial --bleidfromserial --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
-
 sleep 2
 
-# now we go back to noblob via ble
+# now we go back to noblob via ble with the hash file in place
 # NOTE: the filename is of the pattern: 'final-from-base' - hence noradio*ble*patch.bin
 FW_PATCH=$(ls ${PATCHDIR}/*_noradio_*_ble*_patch.bin)
+cp "${FW_NORADIO}.hash" "${FW_PATCH}.hash"
 python jade_ota.py --log=INFO --skipserial --bleidfromserial --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}

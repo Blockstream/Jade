@@ -45,7 +45,8 @@ python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:30121 --fwfil
 # Flash a simple patch-to-self, just to smoke test ota-delta
 ./tools/mkpatch.py ${FW_FULL} ${FW_FULL} build/
 FW_PATCH=$(ls ./build/*_patch.bin)
+cp "${FW_FULL}.hash" "${FW_PATCH}.hash"
 python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:30121 --fwfile=${FW_PATCH}
 
-# Run the tests - long timeout fior bcur-fragment iteration test in 'run_remote_selfcheck()/selfcheck.c'
-python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:30121 --serialtimeout=600
+# Run the tests - long timeout for bcur-fragment iteration test in 'run_remote_selfcheck()/selfcheck.c'
+python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:30121 --serialtimeout=300
