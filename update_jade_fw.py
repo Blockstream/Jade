@@ -43,7 +43,7 @@ def get_fw_metadata(verinfo, release_data):
     i = 0
     print('Delta patches (faster)')
     deltas = list(filter(_delta_appropriate, release_data.get('delta', [])))
-    just = max(len(name) for name in map(_full_fw_label, deltas)) + 2
+    just = max(len(name) for name in map(_full_fw_label, deltas)) + 2 if deltas else 0
     for i, label in enumerate((_delta_fw_label(fw, just) for fw in deltas), i + 1):  # 1 based index
         print(f'{i})'.ljust(4), label)
     print('-')

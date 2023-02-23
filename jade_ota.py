@@ -60,8 +60,8 @@ def get_fw_metadata(release_data):
     def _full_fw_label(fw):
         return f'{fw["version"]} - {fw["config"]}'
 
-    def _delta_fw_label(fw):
-        return _full_fw_label(fw).ljust(18) + f'FROM  {fw["from_version"]} - {fw["from_config"]}'
+    def _delta_fw_label(fw, width):
+        return _full_fw_label(fw).ljust(width) + f'FROM  {fw["from_version"]} - {fw["from_config"]}'
 
     print('Full firmwares')
     fullfws = release_data.get('full', [])
@@ -71,8 +71,9 @@ def get_fw_metadata(release_data):
 
     print('Delta patches')
     deltas = release_data.get('delta', [])
-    for i, label in enumerate((_delta_fw_label(fw) for fw in deltas), i + 1):  # continue numbering
-        print(f'{i})'.ljust(3), label)
+    just = max(len(name) for name in map(_full_fw_label, deltas)) + 2 if deltas else 0
+    for i, label in enumerate((_delta_fw_label(fw, just) for fw in deltas), i + 1):  # continue
+        print(f'{i})'.ljust(4), label)
     print('-')
 
     selectedfw = int(input('Select firmware: '))
