@@ -38,11 +38,13 @@ As above - run the script and select the firmware to fetch.
 ./update_jade_fw.py
 ```
 
-When asked whether to save a local copy of the firmware file, answer 'y' - a copy of the firmware will be written to the current directory.
+When asked whether to save a local copy of the firmware file, answer 'y' - a copy of the firmware will be written to the current directory.  A .hash file containing the hex hash of the final firmware may also be written.
 
 When asked whether to upload this file to the connected Jade unit - answer 'n' - the script should exit.
 
 The sha256 hash of the file can then be checked, and is desired the downloaded file can be verified against the source code in this repo (given the appropriate tag/config) - see REPRODUCIBLE.md.
+
+NOTE: if a .hash file is also written, this contains the hash of the final uncompressed firmware - in the case of a delta this hash refers to the complete firmware image obtained by applying the delta to the firmware currently running in the Jade unit.
 
 This local file can then be uploaded to the Jade hardware as follows:
 ```

@@ -86,7 +86,7 @@ Select the full firmware image as appropriate (BLE-enabled or no-radio) - NOTE: 
 2)  0.1.33 - ble
 ```
 
-This should write the compressed firmware image to the build/ directory, eg `./build/0.1.33_ble_1118208_fw.bin`
+This should write the compressed firmware image to the build/ directory, eg `./build/0.1.33_ble_1118208_fw.bin`   A `.hash` file may also be written.  If so, this contains the hex hash of the firmware image when uncompresed.
 
 NOTE: Ensure no Jade is connected, and that `--skipserial --skipble` are definitely present on the command line - otherwise `jade_ota.py` may attempt to upload the firmware onto the connected Jade!
 
@@ -98,6 +98,8 @@ apt update && apt install pigz
 mv build/0.1.33_ble_1118208_fw.bin build/0.1.33_ble_1118208_fw.bin.gz && pigz -z -d build/0.1.33_ble_1118208_fw.bin.gz
 ```
 This should write the uncompressed firmware to the build directory, eg: `./build/0.1.33_ble_1118208_fw.bin`
+
+NOTE: the sha25sum hash of this uncompressed file should match the value in the associated .hash file, if present.
 
 3. Compare
 

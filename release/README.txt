@@ -46,10 +46,12 @@ eg. './scripts/devfw.sh 0.1.33'
   scripts dir.  Validates with the pubkey.  Creates 'jade_signed.bin'.
 - Runs 'jade/tools/fwprep.py' on the signed binary 'jade_signed.bin'.  This
   compresses the firmware file and generates the descriptive name using the
-  standard/agreed format (<ver>_<cfg>_<decompressed_size>)_fw.bin).
+  standard/agreed format (<ver>_<cfg>_<decompressed_size>)_fw.bin).  Also writes
+  the hash of un-compressed firmware into a file with the same name with a .hash
+  postfix.
 - Lists the firmware files in (legacy) index file 'BETA'.
-- Copies fw files and 'BETA' index files to the relevant directories under
-  'staging/upload'.
+- Copies fw files, hash files, and 'BETA' index files to the relevant directories
+  under 'staging/upload'.
 
 
 * scripts/prodfw.sh <new version>
@@ -57,10 +59,12 @@ eg. './scripts/prodfw.sh 0.1.33'
 - For each prod build dir (ie. jade and jade1.1, ble and noradio variants),
   runs 'jade/tools/fwprep.py' on the signed binary 'jade_signed.bin'.  This
   compresses the firmware file and generates the descriptive name using the
-  standard/agreed format (<ver>_<cfg>_<decompressed_size>)_fw.bin).
+  standard/agreed format (<ver>_<cfg>_<decompressed_size>)_fw.bin).  Also writes
+  the hash of un-compressed firmware into a file with the same name with a .hash
+  postfix.
 - Lists the firmware files in (legacy) index file 'BETA'.
-- Copies fw files and 'BETA' index files to the relevant directories under
-  'staging/upload'.
+- Copies fw files, hash files,  and 'BETA' index files to the relevant directoriess
+  under 'staging/upload'.
 - **NOTE: production firmware should be supplied already signed.
 
 
@@ -104,4 +108,16 @@ eg: './scripts/mkindexes.sh 0.1.33' or './scripts/mkindexes.sh 0.1.32 0.1.33'
 - If a <beta version> is given, those files are listed under 'beta', otherwise
   'beta' is null.
 - All other versions are listed under 'previous'.
+- NOTE: reads the .hash files to populate the 'fwhash' data element, if available.
 
+* scripts/mkhashes.sh <version> [ <version> ... ]
+eg: './scripts/mkhashes.sh 0.1.33' or './scripts/mkhashes.sh 0.1.32 0.1.33 0.1.34'
+- For each subdir (ie. jade, jade1.1, jadedev, jade1.1dev) in 'staging/upload',
+  uncompresses each compressed firmware file into a temporary directory, and then
+  runs 'jade/tools/fwprep.py' on the file.  This re-compresses the firmware file
+  and writes the hash of ithe un-compressed firmware into a file with the appropriate
+  name.  If the newly-compresse file is identical to the original, the hash file is
+  copied into the original subdirectory.
+- NOTE: Should not be needed in normal operation, as the hash files are produced at
+  the same times as the compressed firmware file.
+  Needed to generate hash files for older fw files, or to regenerate hash files.

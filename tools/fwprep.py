@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import hashlib
 import logging
 import os
 
@@ -17,6 +18,11 @@ def create_compressed_firmware_image(fwfilename, outputdir):
     # Load uncompressed firmware and deduce the appropriate compressed firmware filename
     firmware = fwtools.read(fwfilename)
     outfile = fwtools.get_firmware_compressed_filepath(firmware, outputdir)
+
+    # Write the full firmware image hash
+    hashfile = outfile + ".hash"
+    hash = hashlib.sha256(firmware).hexdigest()
+    fwtools.write(hash, hashfile, text=True)
 
     # Compress and write
     compressed = fwtools.compress(firmware)

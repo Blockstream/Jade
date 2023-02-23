@@ -14,9 +14,21 @@ logger.setLevel(logging.INFO)
 
 INDEX_FILENAME = 'index.json'
 PATTERN_FW = '**/*.bin'
+PATTERN_HASH = './*_fw.bin.hash'
 
 
-def process_fw_filename(fwname):
+def load_hash_file(filename, fwhashes):
+    fwtype, info, info2 = fwtools.parse_compressed_filename(filename)
+    if fwtype == fwtools.FWFILE_TYPE_HASH:
+        assert info is not None and info2 is None
+        fwhash = fwtools.read(filename, text=True)
+        assert len(fwhash) == 64
+        fwhashes[info] = fwhash
+    else:
+        logger.error(f'Skipping non-hash file "{filename}":- {e}')
+
+
+def process_fw_filename(fwname, fwhashes):
     fwtype, info, info2 = fwtools.parse_compressed_filename(fwname)
     assert info is not None
     desc = {'filename': fwname,
@@ -31,6 +43,14 @@ def process_fw_filename(fwname):
         desc['from_version'] = info2.version
         desc['from_config'] = info2.config
         desc['patch_size'] = info2.fwsize
+    else:
+        # Skip unknown file
+        logger.warning('Unknown file type: {fwname}')
+        return None
+
+    fwhash = fwhashes.get(info)
+    if fwhash:
+        desc['fwhash'] = fwhash
 
     return desc
 
@@ -64,12 +84,23 @@ def process_current_directory(vstable, vbeta):
         else:
             previous[subkey].append(desc)
 
+    # Load all hash files into a dict
+    full_fw_hashes = {}
+    for filename in glob.iglob(PATTERN_HASH):
+        try:
+            load_hash_file(filename, full_fw_hashes)
+        except Exception as e:
+            logger.error(f'Skipping "{filename}":- {e}')
+
     # Iterate through firmware files, collating the summary info about each one
     # in dictionaries for each release label (beta, stable, previous)
     for fwname in glob.iglob(PATTERN_FW, recursive=True):
         try:
-            desc = process_fw_filename(fwname)
-            _add_to_release(desc)
+            desc = process_fw_filename(fwname, full_fw_hashes)
+            if desc:
+                _add_to_release(desc)
+            else:
+                logging.error(f'Skipping unhandled file: {fwname}')
         except Exception as e:
             logger.error(f'Skipping "{fwname}":- {e}')
 

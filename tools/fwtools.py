@@ -7,6 +7,7 @@ from collections import namedtuple
 FwInfo = namedtuple('FwInfo', 'version config fwsize')
 
 FWFILE_TYPE_FULL = 'fw.bin'
+FWFILE_TYPE_HASH = 'fw.bin.hash'
 FWFILE_TYPE_PATCH = 'patch.bin'
 
 logger = logging.getLogger('jade')
@@ -64,12 +65,13 @@ def parse_compressed_filename(filepath):
     filename = os.path.basename(filepath)
     parts = filename.split('_')
 
-    if len(parts) == 4 and parts[-1] == FWFILE_TYPE_FULL:
+    if len(parts) == 4 and parts[-1] in (FWFILE_TYPE_FULL, FWFILE_TYPE_HASH):
         # File name is:
-        # <ver>_<config>_<uncompressed-size>_fw.bin[.uncompressed]
-        logger.info(f'Filename suggests full firmware: {filename}')
+        # <ver>_<config>_<uncompressed-size>_fw.bin[.hash]
+        filetype = 'firmware hash' if parts[-1] == FWFILE_TYPE_HASH else 'full firmware'
+        logger.info(f'Filename suggests {filetype} : {filename}')
         fwinfo = FwInfo(parts[0], parts[1], int(parts[2]))
-        return (FWFILE_TYPE_FULL, fwinfo, None)
+        return (parts[-1], fwinfo, None)
 
     elif len(parts) == 9 and parts[-1] == FWFILE_TYPE_PATCH:
         # File name is:
@@ -77,7 +79,7 @@ def parse_compressed_filename(filepath):
         logger.info(f'Filename suggests firmware patch: {filename}')
         toinfo = FwInfo(parts[0], parts[1], int(parts[6]))
         frominfo = FwInfo(parts[3], parts[4], int(parts[7]))  # store patch len in frominfo size
-        return (FWFILE_TYPE_PATCH, toinfo, frominfo)
+        return (parts[-1], toinfo, frominfo)
 
     else:
         raise Exception(f'Unknown filename format: {filename}')
@@ -103,9 +105,9 @@ def decompress(compressed):
 
 # Read data bytes from file
 # Returns data read
-def read(filepath):
+def read(filepath, text=False):
     logger.info(f'Reading file {filepath}')
-    with open(filepath, 'rb') as f:
+    with open(filepath, 'r' if text else 'rb') as f:
         data = f.read()
     logger.info(f'Read {len(data)} bytes')
     return data
@@ -113,9 +115,9 @@ def read(filepath):
 
 # Write data bytes to file
 # Returns data written
-def write(data, filepath):
+def write(data, filepath, text=False):
     # Write the bytes
-    with open(filepath, 'wb') as f:
+    with open(filepath, 'w' if text else 'wb') as f:
         data = f.write(data)
     logger.info(f'Written file {filepath}')
     return data

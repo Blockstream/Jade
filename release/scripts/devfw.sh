@@ -4,6 +4,7 @@ INDEX="BETA"
 DEVDIRS="jadedev jade1.1dev"
 BUILDDIRS="./build_jade*_ndebug"
 FW_PATTERN="*_fw.bin"
+HASH_PATTERN="*_fw.bin.hash"
 
 UNSIGNED_BINARY="./jade.bin"
 SIGNED_BINARY="./jade_signed.bin"
@@ -39,7 +40,7 @@ do
   done
 
   ls ${FW_PATTERN} > "${INDEX}"
-  cp ${FW_PATTERN} "${INDEX}" "../../${UPLOAD}/${devdir}"
+  cp ${FW_PATTERN} ${HASH_PATTERN} "${INDEX}" "../../${UPLOAD}/${devdir}"
   popd
 done
 popd
