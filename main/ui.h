@@ -135,6 +135,6 @@ void make_display_elements_output_activity(const char* network, const struct wal
     gui_activity_t** first_activity);
 void make_display_final_confirmation_activity(uint64_t fee, const char* warning_msg, gui_activity_t** activity);
 void make_display_elements_final_confirmation_activity(
-    const char* network, uint64_t fee, const char* warning_msg, gui_activity_t** activity);
+    const char* network, const char* title, uint64_t fee, const char* warning_msg, gui_activity_t** activity);
 
 #endif /* UI_H_ */

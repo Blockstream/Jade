@@ -198,14 +198,15 @@ static void make_output_activity(link_activity_t* output_activity, const bool wa
     output_activity->next_button = btns[2].btn;
 }
 
-static void make_final_activity(
-    gui_activity_t** activity_ptr, const char* total_fee, const char* ticker, const char* warning_msg)
+static void make_final_activity(gui_activity_t** activity_ptr, const char* title, const char* total_fee,
+    const char* ticker, const char* warning_msg)
 {
     JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(title);
     JADE_ASSERT(total_fee);
     JADE_ASSERT(ticker);
 
-    gui_make_activity(activity_ptr, true, "Summary");
+    gui_make_activity(activity_ptr, true, title);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
@@ -475,6 +476,7 @@ void make_display_elements_output_activity(const char* network, const struct wal
     *first_activity = act_info.first_activity;
 }
 
+// Screens to confirm the fee / signing the tx
 void make_display_final_confirmation_activity(const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
 {
     JADE_ASSERT(activity);
@@ -484,13 +486,14 @@ void make_display_final_confirmation_activity(const uint64_t fee, const char* wa
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
     // final confirmation screen
-    make_final_activity(activity, fee_str, "BTC", warning_msg);
+    make_final_activity(activity, "Summary", fee_str, "BTC", warning_msg);
 }
 
 void make_display_elements_final_confirmation_activity(
-    const char* network, const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
+    const char* network, const char* title, const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
 {
     JADE_ASSERT(network);
+    JADE_ASSERT(title);
     JADE_ASSERT(activity);
 
     // final confirmation screen
@@ -516,5 +519,5 @@ void make_display_elements_final_confirmation_activity(
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
     // final confirmation screen
-    make_final_activity(activity, fee_str, ticker, warning_msg);
+    make_final_activity(activity, title, fee_str, ticker, warning_msg);
 }
