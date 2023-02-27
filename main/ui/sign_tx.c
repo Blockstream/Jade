@@ -380,6 +380,62 @@ void make_display_output_activity(
     *first_activity = act_info.first_activity;
 }
 
+static bool get_asset_display_info(const char* network, const asset_info_t* assets, const size_t num_assets,
+    const uint8_t* asset_id, const size_t asset_id_len, const uint64_t value, char* asset_str,
+    const size_t asset_str_len, char* amount, const size_t amount_len, char* ticker, const size_t ticker_len)
+{
+    JADE_ASSERT(network);
+    JADE_ASSERT(assets || !num_assets);
+    JADE_ASSERT(asset_id);
+    JADE_ASSERT(asset_id_len);
+    JADE_ASSERT(asset_str);
+    JADE_ASSERT(amount);
+    JADE_ASSERT(ticker);
+
+    // Get the asset-id display hex string
+    char* asset_id_hex = NULL;
+    JADE_WALLY_VERIFY(wally_hex_from_bytes(asset_id, asset_id_len, &asset_id_hex));
+    JADE_ASSERT(asset_id_hex);
+
+    // Look up the asset-id in the canned asset-data
+    asset_info_t asset_info = {};
+    const bool have_asset_info = assets_get_info(network, assets, num_assets, asset_id_hex, &asset_info);
+    if (have_asset_info) {
+        JADE_LOGI("Found asset data for asset-id: '%s'", asset_id_hex);
+
+        // Issuer and asset-id concatenated
+        int ret = snprintf(asset_str, asset_str_len, "} %.*s - %s {", asset_info.issuer_domain_len,
+            asset_info.issuer_domain, asset_id_hex);
+        JADE_ASSERT(ret > 0);
+        asset_str[asset_str_len - 1] = '\0'; // Truncate/terminate if necessary
+
+        // Amount scaled and displayed at relevant precision
+        const uint32_t scale_factor = pow(10, asset_info.precision);
+        ret = snprintf(amount, amount_len, "%.*f", asset_info.precision, 1.0 * value / scale_factor);
+        JADE_ASSERT(ret > 0 && ret < amount_len);
+
+        // Ticker
+        ret = snprintf(ticker, ticker_len, "%.*s", asset_info.ticker_len, asset_info.ticker);
+        JADE_ASSERT(ret > 0 && ret < ticker_len);
+    } else {
+        JADE_LOGW("Asset data for asset-id: '%s' not found!", asset_id_hex);
+
+        // Issuer unknown
+        int ret = snprintf(asset_str, asset_str_len, "} issuer unknown - %s {", asset_id_hex);
+        JADE_ASSERT(ret > 0 && ret < asset_str_len);
+
+        // sats precision
+        ret = snprintf(amount, amount_len, "%.00f", 1.0 * value);
+        JADE_ASSERT(ret > 0 && ret < amount_len);
+
+        // No ticker
+        ticker[0] = '\0';
+    }
+    JADE_WALLY_VERIFY(wally_free_string(asset_id_hex));
+
+    return have_asset_info;
+}
+
 void make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
     const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets,
     gui_activity_t** first_activity)
@@ -416,12 +472,6 @@ void make_display_elements_output_activity(const char* network, const struct wal
         const int ret = snprintf(title, sizeof(title), "Output %ld/%ld", nDisplayedOutput, nTotalOutputsDisplayed);
         JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-        // Get the asset-id display hex string
-        char* asset_id_hex = NULL;
-        JADE_WALLY_VERIFY(
-            wally_hex_from_bytes(output_info[i].asset_id, sizeof(output_info[i].asset_id), &asset_id_hex));
-        JADE_ASSERT(asset_id_hex);
-
         // Get the address
         char address[MAX_ADDRESS_LEN];
         elements_script_to_address(network, out->script, out->script_len,
@@ -442,41 +492,9 @@ void make_display_elements_output_activity(const char* network, const struct wal
         char asset_str[128];
         char amount[32];
         char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
-        asset_info_t asset_info = {};
-        const bool have_asset_info = assets_get_info(network, assets, num_assets, asset_id_hex, &asset_info);
-        if (have_asset_info) {
-            JADE_LOGI("Found asset data for output %u (asset-id: '%s')", i, asset_id_hex);
-
-            // Issuer and asset-id concatenated
-            int ret = snprintf(asset_str, sizeof(asset_str), "} %.*s - %s {", asset_info.issuer_domain_len,
-                asset_info.issuer_domain, asset_id_hex);
-            JADE_ASSERT(ret > 0 && ret <= sizeof(asset_str));
-            asset_str[sizeof(asset_str) - 1] = '\0'; // Truncate/terminate if necessary
-
-            // Amount scaled and displayed at relevant precision
-            const uint32_t scale_factor = pow(10, asset_info.precision);
-            ret = snprintf(
-                amount, sizeof(amount), "%.*f", asset_info.precision, 1.0 * output_info[i].value / scale_factor);
-            JADE_ASSERT(ret > 0 && ret < sizeof(amount));
-
-            // Ticker
-            ret = snprintf(ticker, sizeof(ticker), "%.*s", asset_info.ticker_len, asset_info.ticker);
-            JADE_ASSERT(ret > 0 && ret < sizeof(ticker));
-        } else {
-            JADE_LOGW("Asset data for output %u (asset-id: '%s') not found!", i, asset_id_hex);
-
-            // Issuer unknown
-            int ret = snprintf(asset_str, sizeof(asset_str), "} issuer unknown - %s {", asset_id_hex);
-            JADE_ASSERT(ret > 0 && ret < sizeof(asset_str));
-
-            // sats precision
-            ret = snprintf(amount, sizeof(amount), "%.00f", 1.0 * output_info[i].value);
-            JADE_ASSERT(ret > 0 && ret < sizeof(amount));
-
-            // No ticker
-            ticker[0] = '\0';
-        }
-        JADE_WALLY_VERIFY(wally_free_string(asset_id_hex));
+        const bool have_asset_info = get_asset_display_info(network, assets, num_assets, output_info[i].asset_id,
+            sizeof(output_info[i].asset_id), output_info[i].value, asset_str, sizeof(asset_str), amount, sizeof(amount),
+            ticker, sizeof(ticker));
 
         // Insert extra screen to display warning message for this output, if one is passed
         if (strlen(output_info[i].message) > 0) {
