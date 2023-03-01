@@ -147,8 +147,10 @@ static bool add_validated_confidential_output_info(const commitment_t* commitmen
     JADE_ASSERT(txoutput);
     JADE_ASSERT(outinfo);
     JADE_INIT_OUT_PPTR(errmsg);
-    JADE_ASSERT(txoutput->value[0] != 0x01); // Don't call for unblinded outputs
-    JADE_ASSERT(txoutput->asset[0] != 0x01); // FIXME: use wally constants when available
+
+    // Don't call for unblinded outputs
+    JADE_ASSERT(txoutput->value[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX);
+    JADE_ASSERT(txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX);
 
     uint8_t generator_tmp[ASSET_GENERATOR_LEN];
     uint8_t commitment_tmp[ASSET_COMMITMENT_LEN];
@@ -324,14 +326,14 @@ void sign_liquid_tx_process(void* process_ptr)
     // Can be null for unblinded outputs as we will skip them.
     // Populate an `output_index` -> (blinding_key, asset, value) map
     for (size_t i = 0; i < tx->num_outputs; ++i) {
-        // FIXME: use wally constants when available
-        if ((tx->outputs[i].asset[0] == 0x01) != (tx->outputs[i].value[0] == 0x01)) {
+        if ((tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX)
+            != (tx->outputs[i].value[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Output asset and value blinding inconsistent", NULL);
             goto cleanup;
         }
 
-        if (tx->outputs[i].asset[0] == 0x01) {
+        if (tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX) {
             // unconfidential, take directly from the tx
             output_info[i].is_confidential = false;
 
