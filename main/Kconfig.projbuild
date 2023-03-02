@@ -1,352 +1,344 @@
 menu "Blockstream Jade"
 
-config DEBUG_MODE
-  bool "Enable debug mode"
-  default n
-  help
-    Enable debug mode.
-  menu "Advanced Jade debug options"
-    visible if DEBUG_MODE
-    config DEBUG_UNATTENDED_CI
-    bool "Build for unattended testing (workflows proceed without user intervention)"
-    help
-      Automatically approve actions to enable unattended testing.
-    config DEBUG_UNATTENDED_CI_TIMEOUT_MS
-    int "Timeout after which actions confirmed and workflows proceed (ms)"
-    depends on DEBUG_UNATTENDED_CI
-    default 100 if DEBUG_UNATTENDED_CI
-    default 0
-    help
-      Time in milliseconds after which actions are automatically approved and workflows proceed.
-  endmenu
+    config DEBUG_MODE
+        bool "Enable debug mode"
+        default n
+        help
+            Enable debug mode.
+    menu "Advanced Jade debug options"
+        visible if DEBUG_MODE
+        config DEBUG_UNATTENDED_CI
+            bool "Build for unattended testing (workflows proceed without user intervention)"
+            help
+                Automatically approve actions to enable unattended testing.
+        config DEBUG_UNATTENDED_CI_TIMEOUT_MS
+            int "Timeout after which actions confirmed and workflows proceed (ms)"
+            depends on DEBUG_UNATTENDED_CI
+            default 100 if DEBUG_UNATTENDED_CI
+            default 0
+            help
+                Time in milliseconds after which actions are automatically approved and workflows proceed.
+    endmenu
 
-choice
-  prompt "Board type"
-  default BOARD_TYPE_JADE
-config BOARD_TYPE_JADE
-  bool "Blockstream Jade v1 (wheel)"
-  select HAS_AXP
-config BOARD_TYPE_JADE_V1_1
-  bool "Blockstream Jade v1.1 (rocker)"
-  select HAS_AXP
-config BOARD_TYPE_M5_FIRE
-  bool "M5Stack Fire"
-  depends on ESP32_SPIRAM_SUPPORT
-config BOARD_TYPE_M5_BLACK_GRAY
-  bool "M5Stack Black/Gray"
-  depends on !ESP32_SPIRAM_SUPPORT
-config BOARD_TYPE_TTGO_TDISPLAY
-  bool "TTGO T-DISPLAY"
-  depends on !ESP32_SPIRAM_SUPPORT
-config BOARD_TYPE_DEV
-  bool "Dev board"
-config BOARD_TYPE_CUSTOM
-  bool "Custom board"
-  select CUSTOM_PINS
-endchoice
+    choice
+        prompt "Board type"
+        default BOARD_TYPE_JADE
+        config BOARD_TYPE_JADE
+            bool "Blockstream Jade v1 (wheel)"
+            select HAS_AXP
+        config BOARD_TYPE_JADE_V1_1
+            bool "Blockstream Jade v1.1 (rocker)"
+            select HAS_AXP
+        config BOARD_TYPE_M5_FIRE
+            bool "M5Stack Fire"
+            depends on ESP32_SPIRAM_SUPPORT
+        config BOARD_TYPE_M5_BLACK_GRAY
+            bool "M5Stack Black/Gray"
+            depends on !ESP32_SPIRAM_SUPPORT
+        config BOARD_TYPE_TTGO_TDISPLAY
+            bool "TTGO T-DISPLAY"
+            depends on !ESP32_SPIRAM_SUPPORT
+        config BOARD_TYPE_DEV
+            bool "Dev board"
+        config BOARD_TYPE_CUSTOM
+            bool "Custom board"
+            select CUSTOM_PINS
+    endchoice
 
-config DISP_INVERT_COLORS
-  bool "Invert Display Colors"
-  depends on BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_GRAY
-  default n
-  help
-    Invert the colors in the dipslay. Some M5 devices have inverted colors depending on revision.
+    config DISP_INVERT_COLORS
+        bool "Invert Display Colors"
+        depends on BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_GRAY
+        default n
+        help
+            Invert the colors in the dipslay. Some M5 devices have inverted colors depending on revision.
 
-config RETURN_CAMERA_IMAGES
-  bool "Enable return camera images, larger outbound message buffer"
-  depends on DEBUG_MODE && (BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1)
-  default n
-  help
-    Enables call to return camera images - allocates larger outbound message buffer
+    config RETURN_CAMERA_IMAGES
+        bool "Enable return camera images, larger outbound message buffer"
+        depends on DEBUG_MODE && (BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1)
+        default n
+        help
+            Enables call to return camera images - allocates larger outbound message buffer
 
-config HAS_AXP
-  bool "Use the AXP192 power controller"
-  depends on !BOARD_TYPE_M5_FIRE && !BOARD_TYPE_M5_BLACK_GRAY && !BOARD_TYPE_TTGO_TDISPLAY
-  help
-      Jade (and some devices) come with the AXP192 to manage power to ESP, display, camera
-  default n
+    config HAS_AXP
+        bool "Use the AXP192 power controller"
+        depends on !BOARD_TYPE_M5_FIRE && !BOARD_TYPE_M5_BLACK_GRAY && !BOARD_TYPE_TTGO_TDISPLAY
+        help
+            Jade (and some devices) come with the AXP192 to manage power to ESP, display, camera
+            default n
 
-menu "AXP configuration"
-  visible if HAS_AXP && BOARD_TYPE_CUSTOM
+    menu "AXP configuration"
+        visible if HAS_AXP && BOARD_TYPE_CUSTOM
 
-  config AXP_SDA
-    int "AXP SDA Pin"
-    range -1 40
-    default 4 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1
-  config AXP_SCL
-    int "AXP SCL Pin"
-    range -1 40
-    default 2 if BOARD_TYPE_JADE
-    default 14 if BOARD_TYPE_JADE_V1_1
-endmenu
+        config AXP_SDA
+            int "AXP SDA Pin"
+            range -1 40
+            default 4 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1
+        config AXP_SCL
+            int "AXP SCL Pin"
+            range -1 40
+            default 2 if BOARD_TYPE_JADE
+            default 14 if BOARD_TYPE_JADE_V1_1
+    endmenu
 
-menu "Input configuration"
-  visible if BOARD_TYPE_CUSTOM
+    menu "Input configuration"
+        visible if BOARD_TYPE_CUSTOM
 
-  config INPUT_WHEEL_A
-    int "Wheel A"
-    range -1 40
-    default 37 if BOARD_TYPE_JADE
-  config INPUT_WHEEL_B
-    int "Wheel B"
-    range -1 40
-    default 38 if BOARD_TYPE_JADE
-  config INPUT_BTN_A
-    int "BTN A"
-    range -1 40
-    default 37 if BOARD_TYPE_JADE_V1_1
-    default 39 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-    default 0 if BOARD_TYPE_TTGO_TDISPLAY
-    default 25 if BOARD_TYPE_DEV
-  config INPUT_BTN_B
-    int "BTN B"
-    range -1 40
-    default 39 if BOARD_TYPE_JADE_V1_1
-    default 37 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-    default 35 if BOARD_TYPE_TTGO_TDISPLAY
-    default 32 if BOARD_TYPE_DEV
-  config INPUT_WHEEL_SW
-    int "Wheel SW"
-    range -1 40
-    default 33 if BOARD_TYPE_JADE
-    default 38 if BOARD_TYPE_JADE_V1_1
-    default 27 if BOARD_TYPE_DEV
-  config INPUT_INVERT_WHEEL
-    bool "Invert wheel"
-    default n
+        config INPUT_WHEEL_A
+            int "Wheel A"
+            range -1 40
+            default 37 if BOARD_TYPE_JADE
+        config INPUT_WHEEL_B
+            int "Wheel B"
+            range -1 40
+            default 38 if BOARD_TYPE_JADE
+        config INPUT_BTN_A
+            int "BTN A"
+            range -1 40
+            default 37 if BOARD_TYPE_JADE_V1_1
+            default 39 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+            default 0 if BOARD_TYPE_TTGO_TDISPLAY
+            default 25 if BOARD_TYPE_DEV
+        config INPUT_BTN_B
+            int "BTN B"
+            range -1 40
+            default 39 if BOARD_TYPE_JADE_V1_1
+            default 37 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+            default 35 if BOARD_TYPE_TTGO_TDISPLAY
+            default 32 if BOARD_TYPE_DEV
+        config INPUT_WHEEL_SW
+            int "Wheel SW"
+            range -1 40
+            default 33 if BOARD_TYPE_JADE
+            default 38 if BOARD_TYPE_JADE_V1_1
+            default 27 if BOARD_TYPE_DEV
+        config INPUT_INVERT_WHEEL
+            bool "Invert wheel"
+            default n
 
-  config INPUT_FRONT_SW
-    int "Front switch"
-    range -1 40
-    default 21 if BOARD_TYPE_JADE
-    default 33 if BOARD_TYPE_JADE_V1_1
-    default 38 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-    default 35 if BOARD_TYPE_DEV
-endmenu
+        config INPUT_FRONT_SW
+            int "Front switch"
+            range -1 40
+            default 21 if BOARD_TYPE_JADE
+            default 33 if BOARD_TYPE_JADE_V1_1
+            default 38 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+            default 35 if BOARD_TYPE_DEV
+    endmenu
 
-menu "Camera configuration"
-  visible if BOARD_TYPE_CUSTOM
+    menu "Camera configuration"
+        visible if BOARD_TYPE_CUSTOM
 
-  config CAMERA_D0
-    int "Camera pin D0"
-    range -1 40
-    default 32
-  config CAMERA_D1
-    int "Camera pin D1"
-    range -1 40
-    default 35
-  config CAMERA_D2
-    int "Camera pin D2"
-    range -1 40
-    default 34
-  config CAMERA_D3
-    int "Camera pin D3"
-    range -1 40
-    default 5
-  config CAMERA_D4
-    int "Camera pin D4"
-    range -1 40
-    default 39 if BOARD_TYPE_JADE
-    default 15 if BOARD_TYPE_JADE_V1_1
-    default -1
-  config CAMERA_D5
-    int "Camera pin D5"
-    range -1 40
-    default 18
-  config CAMERA_D6
-    int "Camera pin D6"
-    range -1 40
-    default 36
-  config CAMERA_D7
-    int "Camera pin D7"
-    range -1 40
-    default 19
+        config CAMERA_D0
+            int "Camera pin D0"
+            range -1 40
+            default 32
+        config CAMERA_D1
+            int "Camera pin D1"
+            range -1 40
+            default 35
+        config CAMERA_D2
+            int "Camera pin D2"
+            range -1 40
+            default 34
+        config CAMERA_D3
+            int "Camera pin D3"
+            range -1 40
+            default 5
+        config CAMERA_D4
+            int "Camera pin D4"
+            range -1 40
+            default 39 if BOARD_TYPE_JADE
+            default 15 if BOARD_TYPE_JADE_V1_1
+            default -1
+        config CAMERA_D5
+            int "Camera pin D5"
+            range -1 40
+            default 18
+        config CAMERA_D6
+            int "Camera pin D6"
+            range -1 40
+            default 36
+        config CAMERA_D7
+            int "Camera pin D7"
+            range -1 40
+            default 19
 
-  config CAMERA_XCLK
-    int "Camera XCLK"
-    range -1 40
-    default 27
-  config CAMERA_XCLK_FREQ
-    int "Camera XCLK frequency"
-    default "20000000"
+        config CAMERA_XCLK
+            int "Camera XCLK"
+            range -1 40
+            default 27
+        config CAMERA_XCLK_FREQ
+            int "Camera XCLK frequency"
+            default "20000000"
 
-  config CAMERA_PCLK
-    int "Camera PCLK"
-    range -1 40
-    default 0 if BOARD_TYPE_JADE
-    default 21 if BOARD_TYPE_JADE_V1_1
-    default -1
+        config CAMERA_PCLK
+            int "Camera PCLK"
+            range -1 40
+            default 0 if BOARD_TYPE_JADE
+            default 21 if BOARD_TYPE_JADE_V1_1
+            default -1
 
-  config CAMERA_VSYNC
-    int "Camera VSYNC"
-    range -1 40
-    default 22
+        config CAMERA_VSYNC
+            int "Camera VSYNC"
+            range -1 40
+            default 22
 
-  config CAMERA_HREF
-    int "Camera HREF"
-    range -1 40
-    default 26
+        config CAMERA_HREF
+            int "Camera HREF"
+            range -1 40
+            default 26
 
-  config CAMERA_SDA
-    int "Camera SDA"
-    range -1 40
-    default 25
-  config CAMERA_SCL
-    int "Camera SCL"
-    range -1 40
-    default 23
+        config CAMERA_SDA
+            int "Camera SDA"
+            range -1 40
+            default 25
+        config CAMERA_SCL
+            int "Camera SCL"
+            range -1 40
+            default 23
 
-  config CAMERA_RESET
-    int "Camera RESET"
-    range -1 40
-    default -1
+        config CAMERA_RESET
+            int "Camera RESET"
+            range -1 40
+            default -1
 
-  config CAMERA_PWDN
-    int "Camera PWDN"
-    range -1 40
-    default -1
-endmenu
+        config CAMERA_PWDN
+            int "Camera PWDN"
+            range -1 40
+            default -1
+    endmenu
 
-menu "TFT Display"
-  visible if BOARD_TYPE_CUSTOM
+    menu "TFT Display"
+        visible if BOARD_TYPE_CUSTOM
 
-  choice
-    prompt "Display driver"
-    config DISP_DRIVER_ILI9341
-      bool "ILI9341"
-    config DISP_DRIVER_ILI9488
-      bool "ILI9488"
-    config DISP_DRIVER_ST7789V
-      bool "ST7789V"
-    config DISP_DRIVER_ST7735
-      bool "ST7735"
-    config DISP_DRIVER_ST7735R
-      bool "ST7735R"
-    config DISP_DRIVER_ST7735B
-      bool "ST7735B"
-    config DISP_DRIVER_MAX
-      bool "MAX"
-  endchoice
+        choice
+            prompt "Display driver"
+            config DISP_DRIVER_ILI9341
+                bool "ILI9341"
+            config DISP_DRIVER_ILI9488
+                bool "ILI9488"
+            config DISP_DRIVER_ST7789V
+                bool "ST7789V"
+            config DISP_DRIVER_ST7735
+                bool "ST7735"
+            config DISP_DRIVER_ST7735R
+                bool "ST7735R"
+            config DISP_DRIVER_ST7735B
+                bool "ST7735B"
+            config DISP_DRIVER_MAX
+                bool "MAX"
+        endchoice
 
-  # hidden option, used to transform the choice into a single int value
-  config DISP_TYPE
-    int
-    default 0 if DISP_DRIVER_ILI9341 || BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-    default 1 if DISP_DRIVER_ILI9488
-    default 2 if DISP_DRIVER_ST7789V || BOARD_TYPE_DEV || BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY
-    default 3 if DISP_DRIVER_ST7735
-    default 4 if DISP_DRIVER_ST7735R
-    default 5 if DISP_DRIVER_ST7735B
-    default 6 if DISP_DRIVER_MAX
+        # hidden option, used to transform the choice into a single int value
+        config DISP_TYPE
+            int
+            default 0 if DISP_DRIVER_ILI9341 || BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+            default 1 if DISP_DRIVER_ILI9488
+            default 2 if DISP_DRIVER_ST7789V || BOARD_TYPE_DEV || BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY
+            default 3 if DISP_DRIVER_ST7735
+            default 4 if DISP_DRIVER_ST7735R
+            default 5 if DISP_DRIVER_ST7735B
+            default 6 if DISP_DRIVER_MAX
 
-  config DISP_TFT_WIDTH
-    int "TFT display width"
-    range 0 640
-    default 240
-  config DISP_TFT_HEIGHT
-    int "TFT display height"
-    range 0 640
-    default 320
-  config DISP_COLOR_BITS_24
-    int "TFT color bits"
-    default 102
-  config DISP_GAMMA_CURVE
-    int "Gamma curve"
-    default 0
-  config DISP_SPI_CLOCK
-    int "SPI bus clock"
-    default 32000000
-  config DISP_INVERT_ROTATION
-    int "Invert rotation"
-    range 0 1
-    default 0
-  config DISP_INVERT_ROTATION1
-    int "Invert rotation 1"
-    range 0 1
-    default 1 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY
-    default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-    default 1 if BOARD_TYPE_DEV
-  config DISP_INVERT_ROTATION2
-    int "Invert rotation 2"
-    range 0 1
-    default 0 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY
-    default 1 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-    default 0 if BOARD_TYPE_DEV
-  config DISP_ORIENTATION_DEFAULT
-    int "Set orientation default"
-    range 0 3
-    default 3 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY
-    default 1 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-    default 0 if BOARD_TYPE_DEV
-  config DISP_RGB_BGR
-    int "RGB-BGR"
-    default 0
+        config DISP_TFT_WIDTH
+            int "TFT display width"
+            range 0 640
+            default 240
+        config DISP_TFT_HEIGHT
+            int "TFT display height"
+            range 0 640
+            default 320
+        config DISP_COLOR_BITS_24
+            int "TFT color bits"
+            default 102
+        config DISP_GAMMA_CURVE
+            int "Gamma curve"
+            default 0
+        config DISP_SPI_CLOCK
+            int "SPI bus clock"
+            default 32000000
+        config DISP_INVERT_ROTATION
+            int "Invert rotation"
+            range 0 1
+            default 0
+        config DISP_INVERT_ROTATION1
+            int "Invert rotation 1"
+            range 0 1
+            default 1 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY
+            default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+            default 1 if BOARD_TYPE_DEV
+        config DISP_INVERT_ROTATION2
+            int "Invert rotation 2"
+            range 0 1
+            default 0 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY
+            default 1 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+            default 0 if BOARD_TYPE_DEV
+        config DISP_ORIENTATION_DEFAULT
+            int "Set orientation default"
+            range 0 3
+            default 3 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_TTGO_TDISPLAY
+            default 1 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+            default 0 if BOARD_TYPE_DEV
+        config DISP_RGB_BGR
+            int "RGB-BGR"
+            default 0
 
-  menu "Pin mapping"
-    config DISP_PIN_NUM_MISO
-      int "PIN_NUM_MISO"
-      range -1 40
-      default -1 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1
-      default 19 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-      default 25 if BOARD_TYPE_DEV
-      default 2 if BOARD_TYPE_TTGO_TDISPLAY
-    config DISP_PIN_NUM_MOSI
-      int "PIN_NUM_MOSI"
-      range -1 40
-      default 15 if BOARD_TYPE_JADE
-      default 2 if BOARD_TYPE_JADE_V1_1
-      default 23 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-      default 23 if BOARD_TYPE_DEV
-      default 19 if BOARD_TYPE_TTGO_TDISPLAY
-    config DISP_PIN_NUM_CLK
-      int "PIN_NUM_CLK"
-      range -1 40
-      default 14 if BOARD_TYPE_JADE
-      default 12 if BOARD_TYPE_JADE_V1_1
-      default 18 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_TTGO_TDISPLAY
-      default 19 if BOARD_TYPE_DEV
-    config DISP_PIN_NUM_CS
-      int "PIN_NUM_CS"
-      range -1 40
-      default 13 if BOARD_TYPE_JADE
-      default 0 if BOARD_TYPE_JADE_V1_1
-      default 14 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-      default 22 if BOARD_TYPE_DEV
-      default 5 if BOARD_TYPE_TTGO_TDISPLAY
-    config DISP_PIN_NUM_DC
-      int "PIN_NUM_DC"
-      range -1 40
-      default 12 if BOARD_TYPE_JADE
-      default 13 if BOARD_TYPE_JADE_V1_1
-      default 27 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-      default 21 if BOARD_TYPE_DEV
-      default 16 if BOARD_TYPE_TTGO_TDISPLAY
-    config DISP_PIN_NUM_TCS
-      int "PIN_NUM_TCS"
-      range -1 40
-      default -1
-    config DISP_PIN_NUM_RST
-      int "PIN_NUM_RST"
-      range -1 40
-      default 21 if BOARD_TYPE_JADE
-      default -1 if BOARD_TYPE_JADE_V1_1
-      default 33 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-      default 18 if BOARD_TYPE_DEV
-      default 23 if BOARD_TYPE_TTGO_TDISPLAY
-    config DISP_PIN_NUM_BCKL
-      int "PIN_NUM_BCKL"
-      range -1 40
-      default 32 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
-      default 4 if BOARD_TYPE_TTGO_TDISPLAY
-      default -1
-    config DISP_INVERT_BKCL_SIGNAL
-      bool "Invert backlight signal (on/off)"
-      default n
-  endmenu
-endmenu
-
-config EXAMPLE_DISPLAY_TYPE
-  int
-  default 1
-
+        menu "Pin mapping"
+            config DISP_PIN_NUM_MISO
+                int "PIN_NUM_MISO"
+                range -1 40
+                default -1 if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1
+                default 19 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+                default 25 if BOARD_TYPE_DEV
+                default 2 if BOARD_TYPE_TTGO_TDISPLAY
+            config DISP_PIN_NUM_MOSI
+                int "PIN_NUM_MOSI"
+                range -1 40
+                default 15 if BOARD_TYPE_JADE
+                default 2 if BOARD_TYPE_JADE_V1_1
+                default 23 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+                default 23 if BOARD_TYPE_DEV
+                default 19 if BOARD_TYPE_TTGO_TDISPLAY
+            config DISP_PIN_NUM_CLK
+                int "PIN_NUM_CLK"
+                range -1 40
+                default 14 if BOARD_TYPE_JADE
+                default 12 if BOARD_TYPE_JADE_V1_1
+                default 18 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_TTGO_TDISPLAY
+                default 19 if BOARD_TYPE_DEV
+            config DISP_PIN_NUM_CS
+                int "PIN_NUM_CS"
+                range -1 40
+                default 13 if BOARD_TYPE_JADE
+                default 0 if BOARD_TYPE_JADE_V1_1
+                default 14 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+                default 22 if BOARD_TYPE_DEV
+                default 5 if BOARD_TYPE_TTGO_TDISPLAY
+            config DISP_PIN_NUM_DC
+                int "PIN_NUM_DC"
+                range -1 40
+                default 12 if BOARD_TYPE_JADE
+                default 13 if BOARD_TYPE_JADE_V1_1
+                default 27 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+                default 21 if BOARD_TYPE_DEV
+                default 16 if BOARD_TYPE_TTGO_TDISPLAY
+            config DISP_PIN_NUM_TCS
+                int "PIN_NUM_TCS"
+                range -1 40
+                default -1
+            config DISP_PIN_NUM_RST
+                int "PIN_NUM_RST"
+                range -1 40
+                default 21 if BOARD_TYPE_JADE
+                default -1 if BOARD_TYPE_JADE_V1_1
+                default 33 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+                default 18 if BOARD_TYPE_DEV
+                default 23 if BOARD_TYPE_TTGO_TDISPLAY
+            config DISP_PIN_NUM_BCKL
+                int "PIN_NUM_BCKL"
+                range -1 40
+                default 32 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+                default 4 if BOARD_TYPE_TTGO_TDISPLAY
+                default -1
+        endmenu
+    endmenu
 endmenu
