@@ -160,6 +160,15 @@ extern "C"
     uint32_t eci;
   } __attribute__((aligned(8)));
 
+  struct datastream
+  {
+    uint8_t raw[QUIRC_MAX_PAYLOAD];
+    int data_bits;
+    int ptr;
+
+    uint8_t data[QUIRC_MAX_PAYLOAD];
+  } __attribute__((aligned(8)));
+
   /* Return the number of QR-codes identified in the last processed
  * image.
  */
@@ -171,7 +180,8 @@ extern "C"
 
   /* Decode a QR-code, returning the payload data. */
   quirc_decode_error_t quirc_decode(const struct quirc_code *code,
-                                    struct quirc_data *data);
+                                    struct quirc_data *data,
+                                    struct datastream *ds);
 
 #ifdef __cplusplus
 }

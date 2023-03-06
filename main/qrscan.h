@@ -30,8 +30,9 @@ struct _qr_data_t {
     // Any progress-bar associated with this (potentially multi-frame) scanning
     progress_bar_t* progress_bar;
 
-    // Cached internal quirc struct - caller should set to NULL
+    // Cached internal quirc structs - caller should set to NULL
     struct quirc* q;
+    struct datastream* ds;
 };
 
 #ifdef CONFIG_DEBUG_MODE

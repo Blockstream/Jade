@@ -411,15 +411,6 @@ static quirc_decode_error_t correct_format(uint16_t *f_ret)
  * Decoder algorithm
  */
 
-struct datastream
-{
-  uint8_t raw[QUIRC_MAX_PAYLOAD];
-  int data_bits;
-  int ptr;
-
-  uint8_t data[QUIRC_MAX_PAYLOAD];
-} __attribute__((aligned(8)));
-
 static inline int grid_bit(const struct quirc_code *code, int x, int y)
 {
   int p = y * code->size + x;
@@ -930,10 +921,10 @@ done:
 }
 
 quirc_decode_error_t quirc_decode(const struct quirc_code *code,
-                                  struct quirc_data *data)
+                                  struct quirc_data *data,
+                                  struct datastream* ds)
 {
   quirc_decode_error_t err;
-  struct datastream *ds;
 
   if (code->size > QUIRC_MAX_GRID_SIZE)
   {
@@ -963,24 +954,20 @@ quirc_decode_error_t quirc_decode(const struct quirc_code *code,
     return err;
   }
 
-  ds = d_malloc(sizeof(struct datastream));
   memset(ds, 0, sizeof(*ds));
 
   read_data(code, data, ds);
   err = codestream_ecc(data, ds);
   if (err)
   {
-    free(ds);
     return err;
   }
 
   err = decode_payload(data, ds);
   if (err)
   {
-    free(ds);
     return err;
   }
 
-  free(ds);
   return QUIRC_SUCCESS;
 }

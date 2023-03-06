@@ -5,6 +5,7 @@
 #include "jade_assert.h"
 #include "qrscan.h"
 #include "sensitive.h"
+#include "utils/malloc_ext.h"
 
 // Inspect qrcodes and try to extract payload - whether any were seen and any
 // string data extracted are stored in the qr_data struct passed.
@@ -12,6 +13,7 @@ static bool qr_extract_payload(qr_data_t* qr_data)
 {
     JADE_ASSERT(qr_data);
     JADE_ASSERT(qr_data->q);
+    JADE_ASSERT(qr_data->ds);
 
     qr_data->data[0] = '\0';
     qr_data->len = 0;
@@ -31,7 +33,7 @@ static bool qr_extract_payload(qr_data_t* qr_data)
         struct quirc_code code;
         quirc_extract(qr_data->q, i, &code);
 
-        const quirc_decode_error_t error_status = quirc_decode(&code, &data);
+        const quirc_decode_error_t error_status = quirc_decode(&code, &data, qr_data->ds);
         if (error_status != QUIRC_SUCCESS) {
             JADE_LOGW("QUIRC error %s", quirc_strerror(error_status));
         } else if (data.data_type == QUIRC_DATA_TYPE_KANJI) {
@@ -106,9 +108,11 @@ bool scan_qr(const size_t width, const size_t height, const uint8_t* data, const
     JADE_ASSERT(qr_data);
     JADE_ASSERT(!qr_data->q);
 
-    // Create the quirc struct
+    // Create the quirc structs
     qr_data->q = quirc_new();
     JADE_ASSERT(qr_data->q);
+    qr_data->ds = JADE_MALLOC_DRAM(sizeof(struct datastream));
+    JADE_ASSERT(qr_data->ds);
 
     // Also correctly size the internal image buffer
     const int qret = quirc_resize(qr_data->q, width, height);
@@ -117,9 +121,11 @@ bool scan_qr(const size_t width, const size_t height, const uint8_t* data, const
 
     const bool ret = qr_recognize(width, height, data, len, qr_data);
 
-    // Destroy the quirc struct created above
+    // Destroy the quirc structs created above
     quirc_destroy(qr_data->q);
     qr_data->q = NULL;
+    free(qr_data->ds);
+    qr_data->ds = NULL;
 
     // Any scanned qr code will be in the qr_data passed
     return ret && qr_data->len > 0;
@@ -136,10 +142,12 @@ bool jade_camera_scan_qr(qr_data_t* qr_data, const char* title, const char* text
 
 // At the moment camera only supported by Jade devices
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    // Create the quirc struct (reused for each frame) - destroyed below
+    // Create the quirc structs (reused for each frame) - destroyed below
     JADE_ASSERT(!qr_data->q);
     qr_data->q = quirc_new();
     JADE_ASSERT(qr_data->q);
+    qr_data->ds = JADE_MALLOC_DRAM(sizeof(struct datastream));
+    JADE_ASSERT(qr_data->ds);
 
     // Also correctly size the internal image buffer since we know the size of the camera images
     // This image buffer is then reused for every camera image frame processed.
@@ -150,9 +158,11 @@ bool jade_camera_scan_qr(qr_data_t* qr_data, const char* title, const char* text
     // Run the camera task trying to interpet frames as qr-codes
     jade_camera_process_images(qr_recognize, qr_data, title, text_label, NULL, qr_data->progress_bar);
 
-    // Destroy the quirc struct created above
+    // Destroy the quirc structs created above
     quirc_destroy(qr_data->q);
     qr_data->q = NULL;
+    free(qr_data->ds);
+    qr_data->ds = NULL;
 
     // Any scanned qr code will be in the qr_data passed
     return qr_data->len > 0;
