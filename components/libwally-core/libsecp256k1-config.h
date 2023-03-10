@@ -46,7 +46,7 @@
 #define ENABLE_MODULE_SURJECTIONPROOF 1
 
 /* Define this symbol to enable the key whitelisting module */
-#define ENABLE_MODULE_WHITELIST 1
+/* #define ENABLE_MODULE_WHITELIST 1 */
 
 /* Define this symbol if OpenSSL EC functions are available */
 /* #undef ENABLE_OPENSSL_TESTS */
@@ -56,6 +56,8 @@
 
 /* Define this symbol if __builtin_popcount is available */
 /* #undef HAVE_BUILTIN_POPCOUNT */
+
+#define HAVE_BUILTIN_POPCOUNT 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 /* #undef HAVE_DLFCN_H */

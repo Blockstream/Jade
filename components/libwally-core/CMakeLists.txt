@@ -54,7 +54,7 @@ idf_component_register(SRCS
                        "upstream/src/secp256k1/src/modules/schnorrsig"
                        "upstream/src/secp256k1/src/modules/surjection"
                        "upstream/src/secp256k1/src/modules/whitelist"
-                       )
+                       PRIV_REQUIRES mbedtls)
 
 set_source_files_properties(
     upstream/src/secp256k1/src/secp256k1.c
@@ -64,6 +64,7 @@ set_source_files_properties(
     upstream/src/bip32.c
     upstream/src/bip38.c
     upstream/src/ccan/ccan/base64/base64.c
+    upstream/src/psbt.c
     upstream/src/sign.c
     upstream/src/transaction.c
     PROPERTIES COMPILE_FLAGS
@@ -72,6 +73,8 @@ set_source_files_properties(
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_CONFIG_H")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_ELEMENTS=1")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_MINIMAL=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_MBEDTLS_SHA256_H")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_MBEDTLS_SHA512_H")
 
 add_custom_command(TARGET ${COMPONENT_LIB}
                    POST_BUILD
