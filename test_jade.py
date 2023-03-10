@@ -1612,13 +1612,11 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
 
     # Some bad commitment data is detected immediately... esp if it is
     # missing or not syntactically valid, unparseable etc.
-    bad_commitments = [  # Field missing
+    bad_commitments = [  # Field missing - note commitments are optional so not an error to omit
                         (_commitsMinus('asset_id'), 'extract trusted commitments'),
                         (_commitsMinus('value'), 'extract trusted commitments'),
                         (_commitsMinus('abf'), 'extract trusted commitments'),
                         (_commitsMinus('vbf'), 'extract trusted commitments'),
-                        (_commitsMinus('asset_generator'), 'extract trusted commitments'),
-                        (_commitsMinus('value_commitment'), 'extract trusted commitments'),
                         (_commitsMinus('blinding_key'), 'extract trusted commitments'),
                         # Field bad type/length etc.
                         (_commitsUpdate('asset_id', 'notbin'), 'extract trusted commitments'),
@@ -1635,11 +1633,11 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                         (_commitsUpdate('blinding_key', 'notbin'), 'extract trusted commitments'),
                         (_commitsUpdate('blinding_key', '123abc'), 'extract trusted commitments'),
                         # Field bad value
-                        (_commitsUpdate('asset_id', BADVAL32), 'verify asset_generator'),
-                        (_commitsUpdate('abf', BADVAL32), 'verify asset_generator'),
-                        (_commitsUpdate('vbf', BADVAL32), 'verify value_commitment'),
-                        (_commitsUpdate('asset_generator', BADVAL33), 'verify asset_generator'),
-                        (_commitsUpdate('value_commitment', BADVAL33), 'verify value_commitment')]
+                        (_commitsUpdate('asset_id', BADVAL32), 'verify blinded asset commitment'),
+                        (_commitsUpdate('abf', BADVAL32), 'verify blinded asset commitment'),
+                        (_commitsUpdate('vbf', BADVAL32), 'verify blinded value_commitment'),
+                        (_commitsUpdate('asset_generator', BADVAL33), 'blinded asset commitment'),
+                        (_commitsUpdate('value_commitment', BADVAL33), 'blinded value_commitment')]
 
     # Test all the simple cases
     for badmsg, errormsg in bad_params:
@@ -2078,7 +2076,8 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
 
         # Poke any commitment data into tx outputs
         for i, commitments in enumerate(test_input['trusted_commitments']):
-            if commitments:
+            if commitments \
+              and 'asset_generator' in commitments and 'value_commitment' in commitments:
                 wally.tx_set_output_asset(txn, i, commitments['asset_generator'])
                 wally.tx_set_output_value(txn, i, commitments['value_commitment'])
     else:

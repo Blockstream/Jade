@@ -66,6 +66,7 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
     for (size_t i = 0; i < num_array_items; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
         commitment_t* const commitment = commitments + i;
+        commitment->content = BLINDERS_NONE;
 
         if (cbor_value_is_null(&arrayItem)) {
             CborError err = cbor_value_advance(&arrayItem);
@@ -85,14 +86,7 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
             continue;
         }
 
-        if (!rpc_get_n_bytes(
-                "asset_generator", &arrayItem, sizeof(commitment->asset_generator), commitment->asset_generator)) {
-            free(commitments);
-            return;
-        }
-
-        if (!rpc_get_n_bytes(
-                "value_commitment", &arrayItem, sizeof(commitment->value_commitment), commitment->value_commitment)) {
+        if (!rpc_get_n_bytes("blinding_key", &arrayItem, sizeof(commitment->blinding_key), commitment->blinding_key)) {
             free(commitments);
             return;
         }
@@ -113,18 +107,35 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
         }
         reverse(commitment->asset_id, sizeof(commitment->asset_id));
 
-        if (!rpc_get_n_bytes("blinding_key", &arrayItem, sizeof(commitment->blinding_key), commitment->blinding_key)) {
-            free(commitments);
-            return;
-        }
-
         if (!rpc_get_uint64_t("value", &arrayItem, &commitment->value)) {
             free(commitments);
             return;
         }
 
-        // Set flag to show struct is populated/initialised
-        commitment->have_commitments = true;
+        // Actual commitments are optional - but must be both commitments or neither.
+        // If both are passed these will be copied into the tx and signed.
+        // If not passed, the above blinding factors must match what is already present in the transaction output.
+        // If just one commitment is passed it will be ignored.
+        if (rpc_has_field_data("asset_generator", &arrayItem) || rpc_has_field_data("value_commitment", &arrayItem)) {
+            if (!rpc_get_n_bytes(
+                    "asset_generator", &arrayItem, sizeof(commitment->asset_generator), commitment->asset_generator)) {
+                free(commitments);
+                return;
+            }
+
+            if (!rpc_get_n_bytes("value_commitment", &arrayItem, sizeof(commitment->value_commitment),
+                    commitment->value_commitment)) {
+                free(commitments);
+                return;
+            }
+
+            // Set flag to show struct is fully populated/initialised, including commitments to sign.
+            commitment->content = BLINDERS_AND_COMMITMENTS;
+        } else {
+            // Set flag to show struct is partially populated/initialised - no commitment overrides.
+            // Passed blinders/unblinded values refer to commitments already present in the transaction outputs.
+            commitment->content = BLINDERS_ONLY;
+        }
 
         CborError err = cbor_value_advance(&arrayItem);
         JADE_ASSERT(err == CborNoError);
@@ -152,51 +163,56 @@ static bool add_validated_confidential_output_info(const commitment_t* commitmen
     JADE_ASSERT(txoutput->value[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX);
     JADE_ASSERT(txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX);
 
-    uint8_t generator_tmp[ASSET_GENERATOR_LEN];
-    uint8_t commitment_tmp[ASSET_COMMITMENT_LEN];
-
-    if (!commitments->have_commitments) {
+    if (commitments->content != BLINDERS_ONLY && commitments->content != BLINDERS_AND_COMMITMENTS) {
         *errmsg = "Missing commitments data for blinded output";
         return false;
     }
 
-    // 1. Check the asset_generator can be rebuilt from the given asset_id and abf
+    // 1. If passed explicit commitments copy them into the transaction output ready for signing
+    if (commitments->content == BLINDERS_AND_COMMITMENTS) {
+        if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
+            *errmsg = "Failed to update tx asset_generator from commitments data";
+            return false;
+        }
+        memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
+
+        if (txoutput->value_len != sizeof(commitments->value_commitment)) {
+            *errmsg = "Failed to update tx value_commitment from commitments data";
+            return false;
+        }
+        memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
+    }
+
+    // 2. Check the tx blinded asset commitment can be reconstructed
+    // (ie. from the given asset_id and abf)
+    uint8_t generator_tmp[ASSET_GENERATOR_LEN];
     if (wally_asset_generator_from_bytes(commitments->asset_id, sizeof(commitments->asset_id), commitments->abf,
             sizeof(commitments->abf), generator_tmp, sizeof(generator_tmp))
             != WALLY_OK
-        || sodium_memcmp(commitments->asset_generator, generator_tmp, sizeof(generator_tmp)) != 0) {
-        *errmsg = "Failed to verify asset_generator from commitments data";
+        || txoutput->asset_len != sizeof(generator_tmp)
+        || sodium_memcmp(txoutput->asset, generator_tmp, sizeof(generator_tmp)) != 0) {
+        *errmsg = "Failed to verify blinded asset commitment from commitments data";
         return false;
     }
 
-    // 2. Check the value_commitment can be rebuilt from the given value, vbf, and asset_generator
-    if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf),
-            commitments->asset_generator, sizeof(commitments->asset_generator), commitment_tmp, sizeof(commitment_tmp))
+    // 3. Check the tx blinded value commitment can be reconstructed
+    // (ie. from the given value, vbf, and the asset generator)
+    uint8_t commitment_tmp[ASSET_COMMITMENT_LEN];
+    if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf), txoutput->asset,
+            txoutput->asset_len, commitment_tmp, sizeof(commitment_tmp))
             != WALLY_OK
-        || sodium_memcmp(commitments->value_commitment, commitment_tmp, sizeof(commitment_tmp)) != 0) {
-        *errmsg = "Failed to verify value_commitment from commitments data";
+        || txoutput->value_len != sizeof(commitment_tmp)
+        || sodium_memcmp(txoutput->value, commitment_tmp, sizeof(commitment_tmp)) != 0) {
+        *errmsg = "Failed to verify blinded value_commitment from commitments data";
         return false;
     }
-
-    // 3. Copy the 'trusted' commitments into the tx so we sign over them
-    if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
-        *errmsg = "Failed to update tx asset_generator from commitments data";
-        return false;
-    }
-    memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
-
-    if (txoutput->value_len != sizeof(commitments->value_commitment)) {
-        *errmsg = "Failed to update tx value_commitment from commitments data";
-        return false;
-    }
-    memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
 
     // 4. Fetch the asset_id, value, and blinding_key into the info struct
-    JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
     JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
+    JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
+    memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
     memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
     outinfo->value = commitments->value;
-    memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
 
     return true;
 }

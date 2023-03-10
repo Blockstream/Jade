@@ -14,7 +14,7 @@ static void reply_commitments(const void* ctx, CborEncoder* container)
     JADE_ASSERT(ctx);
 
     const commitment_t* commitments = (const commitment_t*)ctx;
-    JADE_ASSERT(commitments->have_commitments);
+    JADE_ASSERT(commitments->content == BLINDERS_AND_COMMITMENTS);
 
     CborEncoder map_encoder; // result data
     CborError cberr = cbor_encoder_create_map(container, &map_encoder, 6);
@@ -44,7 +44,7 @@ void get_commitments_process(void* process_ptr)
     GET_MSG_PARAMS(process);
     const char* errmsg = NULL;
 
-    commitment_t commitments = { .have_commitments = false };
+    commitment_t commitments = { .content = BLINDERS_NONE };
 
     if (!rpc_get_n_bytes("asset_id", &params, sizeof(commitments.asset_id), commitments.asset_id)) {
         jade_process_reject_message(
@@ -122,7 +122,7 @@ void get_commitments_process(void* process_ptr)
         goto cleanup;
     }
 
-    commitments.have_commitments = true;
+    commitments.content = BLINDERS_AND_COMMITMENTS;
     jade_process_reply_to_message_result(process->ctx, &commitments, reply_commitments);
 
     JADE_LOGI("Success");

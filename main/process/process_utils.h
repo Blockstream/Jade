@@ -14,7 +14,7 @@ typedef struct {
     uint64_t value;
     uint8_t asset_generator[ASSET_GENERATOR_LEN];
     uint8_t value_commitment[ASSET_COMMITMENT_LEN];
-    bool have_commitments;
+    enum { BLINDERS_NONE, BLINDERS_ONLY, BLINDERS_AND_COMMITMENTS } content;
 } commitment_t;
 
 typedef struct {
