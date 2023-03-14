@@ -497,7 +497,7 @@ void make_using_passphrase_screen(
 {
     JADE_ASSERT(!(use_passphrase_once && use_passphrase_always));
 
-    gui_make_activity(activity_ptr, true, "Passphrase");
+    gui_make_activity(activity_ptr, true, "BIP39 Passphrase");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 34, 34, 32);

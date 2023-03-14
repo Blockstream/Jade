@@ -103,7 +103,7 @@ void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout
 void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr);
 void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr);
 
-void make_passphrase_prefs_screen(
+void make_bip39_passphrase_prefs_screen(
     gui_activity_t** activity_ptr, gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox);
 
 void make_otp_screen(gui_activity_t** activity_ptr);
@@ -865,7 +865,7 @@ static void handle_passphrase_prefs()
     gui_activity_t* activity = NULL;
     gui_view_node_t* frequency_textbox = NULL;
     gui_view_node_t* method_textbox = NULL;
-    make_passphrase_prefs_screen(&activity, &frequency_textbox, &method_textbox);
+    make_bip39_passphrase_prefs_screen(&activity, &frequency_textbox, &method_textbox);
     JADE_ASSERT(activity);
     JADE_ASSERT(frequency_textbox);
     JADE_ASSERT(method_textbox);
@@ -1330,7 +1330,7 @@ static void handle_settings(const bool startup_menu)
             update_idle_timeout_btn_text(timeout_btn_text, timeout);
             break;
 
-        case BTN_SETTINGS_PASSPHRASE:
+        case BTN_SETTINGS_BIP39_PASSPHRASE:
             // persist settings in storage
             handle_passphrase_prefs();
             break;

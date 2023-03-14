@@ -373,14 +373,14 @@ void make_ready_screen(
     }
 }
 
-void make_passphrase_prefs_screen(
+void make_bip39_passphrase_prefs_screen(
     gui_activity_t** activity_ptr, gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox)
 {
     JADE_ASSERT(activity_ptr);
     JADE_INIT_OUT_PPTR(frequency_textbox);
     JADE_INIT_OUT_PPTR(method_textbox);
 
-    gui_make_activity(activity_ptr, true, "Passphrase Settings");
+    gui_make_activity(activity_ptr, true, "BIP39 Passphrase");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
@@ -453,7 +453,7 @@ void make_uninitialised_settings_screen(gui_activity_t** activity_ptr)
     // Note: placeholder in second position - timeout button set into this slot below
     btn_data_t btns[]
         = { { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
-              { .txt = "Passphrase Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PASSPHRASE },
+              { .txt = "BIP39 Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
               { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
@@ -465,7 +465,7 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr)
 
     gui_make_activity(activity_ptr, true, "Options");
 
-    btn_data_t btns[] = { { .txt = "Passphrase Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_PASSPHRASE },
+    btn_data_t btns[] = { { .txt = "BIP39 Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
         { .txt = "Power-off Timeout", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
         { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
