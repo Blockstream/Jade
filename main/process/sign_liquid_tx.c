@@ -20,8 +20,8 @@
 #include "process_utils.h"
 
 // From sign_tx.c
-bool validate_change_paths(jade_process_t* process, const char* network, const struct wally_tx* tx, CborValue* change,
-    output_info_t* output_info, const char** errmsg);
+bool validate_wallet_outputs(jade_process_t* process, const char* network, const struct wally_tx* tx,
+    CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg);
 void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_signing_data, uint32_t num_inputs);
 void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_signing_data, uint32_t num_inputs);
 
@@ -313,11 +313,12 @@ void sign_liquid_tx_process(void* process_ptr)
     bool use_ae_signatures = false;
     rpc_get_boolean("use_ae_signatures", &params, &use_ae_signatures);
 
-    // Can optionally be passed paths for change outputs, which we verify internally
+    // Can optionally be passed info for wallet outputs, which we verify internally
+    // NOTE: Element named 'change' for backward-compatibility reasons
     const char* errmsg = NULL;
-    CborValue change;
-    if (rpc_get_array("change", &params, &change)) {
-        if (!validate_change_paths(process, network, tx, &change, output_info, &errmsg)) {
+    CborValue wallet_outputs;
+    if (rpc_get_array("change", &params, &wallet_outputs)) {
+        if (!validate_wallet_outputs(process, network, tx, &wallet_outputs, output_info, &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
         }

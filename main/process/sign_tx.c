@@ -23,26 +23,27 @@
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
 // Can optionally be passed paths for change outputs, which we verify internally
-bool validate_change_paths(jade_process_t* process, const char* network, const struct wally_tx* tx, CborValue* change,
-    output_info_t* output_info, const char** errmsg)
+bool validate_wallet_outputs(jade_process_t* process, const char* network, const struct wally_tx* tx,
+    CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(network);
     JADE_ASSERT(tx);
-    JADE_ASSERT(change);
+    JADE_ASSERT(wallet_outputs);
     JADE_ASSERT(output_info);
     JADE_INIT_OUT_PPTR(errmsg);
 
     *errmsg = NULL;
     size_t num_array_items = 0;
-    if (!cbor_value_is_array(change) || cbor_value_get_array_length(change, &num_array_items) != CborNoError
+    if (!cbor_value_is_array(wallet_outputs)
+        || cbor_value_get_array_length(wallet_outputs, &num_array_items) != CborNoError
         || num_array_items != tx->num_outputs) {
-        *errmsg = "Unexpected number of output (change) entries for transaction";
+        *errmsg = "Unexpected number of output entries for transaction";
         return false;
     }
 
     CborValue arrayItem;
-    CborError cberr = cbor_value_enter_container(change, &arrayItem);
+    CborError cberr = cbor_value_enter_container(wallet_outputs, &arrayItem);
     JADE_ASSERT(cberr == CborNoError);
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
@@ -50,15 +51,20 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
         // By default, assume not a validated or change output, and so user must verify
         JADE_ASSERT(!(output_info[i].flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
         if (cbor_value_is_map(&arrayItem)) {
-            // Change info passed, try to verify output
-            JADE_LOGD("Output %u has change-path passed", i);
+            // Output path info passed, try to verify output
+            JADE_LOGD("Output %u has output/change data passed", i);
+
+            // For backward-compatibility reasons we assume all populated items
+            // are change unless told otherwise (ie. explcit is_change: false)
+            bool is_change = true;
+            rpc_get_boolean("is_change", &arrayItem, &is_change);
 
             size_t csvBlocks = 0;
             size_t script_len = 0;
             uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
             size_t written = 0;
 
-            // If multisig change, need to verify against the registered multisig wallets
+            // If multisig, need to verify against the registered multisig wallets
             if (rpc_has_field_data("multisig_name", &arrayItem)) {
                 // Load multisig data record
                 multisig_data_t multisig_data;
@@ -71,7 +77,6 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                     multisig_name);
 
                 // Get the paths (suffixes) and derive pubkeys
-                const bool is_change = true;
                 uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
                 if (!params_multisig_pubkeys(is_change, &arrayItem, &multisig_data, pubkeys, sizeof(pubkeys), &written,
                         output_info[i].message, sizeof(output_info[i].message), errmsg)) {
@@ -90,10 +95,10 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                 uint32_t path[MAX_PATH_LEN];
                 const size_t max_path_len = sizeof(path) / sizeof(path[0]);
 
-                // NOTE: for receiving change the root (empty bip32 path) is not allowed.
+                // NOTE: for receiving [change] the root (empty bip32 path) is not allowed.
                 const bool ret = rpc_get_bip32_path("path", &arrayItem, path, max_path_len, &path_len);
                 if (!ret || path_len == 0) {
-                    *errmsg = "Failed to extract valid change path from parameters";
+                    *errmsg = "Failed to extract valid receive path from parameters";
                     return false;
                 }
 
@@ -118,9 +123,9 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
 
                     // If number of csv blocks unexpected show a warning message and ask the user to confirm
                     if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
-                        JADE_LOGW("Unexpected number of csv blocks in change path output: %u", csvBlocks);
+                        JADE_LOGW("Unexpected number of csv blocks in path for output: %u", csvBlocks);
                         const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
-                            "This change output has a non-standard csv value (%u), so it may be difficult to find.  "
+                            "This wallet output has a non-standard csv value (%u), so it may be difficult to find.  "
                             "Proceed at your own risk.",
                             csvBlocks);
                         JADE_ASSERT(
@@ -130,13 +135,12 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                     // Build a script pubkey for the passed parameters
                     if (!wallet_build_ga_script(network, written ? xpubrecovery : NULL, csvBlocks, path, path_len,
                             script, sizeof(script), &script_len)) {
-                        JADE_LOGE("Output %u change path/script failed to construct", i);
-                        *errmsg = "Change script cannot be constructed";
+                        JADE_LOGE("Output %u path/script failed to construct", i);
+                        *errmsg = "Receive script cannot be constructed";
                         return false;
                     }
                 } else if (is_singlesig(script_variant)) {
                     // If paths not as expected show a warning message and ask the user to confirm
-                    const bool is_change = true;
                     if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
                         char path_str[96];
                         if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
@@ -144,7 +148,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                             return false;
                         }
                         const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
-                            "Unusual change path: %s", path_str);
+                            "Unusual %s path: %s", is_change ? "change" : "receive", path_str);
                         JADE_ASSERT(
                             ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
                     }
@@ -155,14 +159,14 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                     if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived)
                         || !wallet_build_singlesig_script(script_variant, derived.pub_key, sizeof(derived.pub_key),
                             script, sizeof(script), &script_len)) {
-                        JADE_LOGE("Output %u change path/script failed to construct", i);
-                        *errmsg = "Change script cannot be constructed";
+                        JADE_LOGE("Output %u path/script failed to construct", i);
+                        *errmsg = "Receive script cannot be constructed";
                         return false;
                     }
                 } else {
                     // Multisig handled above, so should be nothing left
-                    JADE_LOGE("Output %u change path/script unknown variant %d", i, script_variant);
-                    *errmsg = "Change script variant not handled";
+                    JADE_LOGE("Output %u unknown script variant %d", i, script_variant);
+                    *errmsg = "Receive script variant not handled";
                     return false;
                 }
             }
@@ -171,20 +175,23 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
             if (script_len != tx->outputs[i].script_len
                 || sodium_memcmp(tx->outputs[i].script, script, script_len) != 0) {
                 JADE_LOGE("Receive script failed validation");
-                *errmsg = "Change script cannot be validated";
+                *errmsg = "Receive script cannot be validated";
                 return false;
             }
 
             // Change path valid and matches tx output script
-            JADE_LOGI("Output %u change path/script validated", i);
+            JADE_LOGI("Output %u receive path/script validated", i);
 
             // Set appropriate flags
-            output_info[i].flags |= (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE);
+            output_info[i].flags |= OUTPUT_FLAG_VALIDATED;
+            if (is_change) {
+                output_info[i].flags |= OUTPUT_FLAG_CHANGE;
+            }
         }
         const CborError err = cbor_value_advance(&arrayItem);
         JADE_ASSERT(err == CborNoError);
     }
-    cberr = cbor_value_leave_container(change, &arrayItem);
+    cberr = cbor_value_leave_container(wallet_outputs, &arrayItem);
     JADE_ASSERT(cberr == CborNoError);
 
     // All paths checked
@@ -354,16 +361,15 @@ void sign_tx_process(void* process_ptr)
     // Can optionally be passed paths for change outputs, which we verify internally
     const char* errmsg = NULL;
     output_info_t* output_info = NULL;
-    // we have one change
-    // for each tx there may be a change field
-    // if it's there it's an array of length n_inputs
-    // that contains a map or null. The map has  "csv_blocks": 65535,"path":[1,5], "recovery_xpub":null
-    CborValue change;
-    if (rpc_get_array("change", &params, &change)) {
+
+    // Can optionally be passed info for wallet outputs, which we verify internally
+    // NOTE: Element named 'change' for backward-compatibility reasons
+    CborValue wallet_outputs;
+    if (rpc_get_array("change", &params, &wallet_outputs)) {
         output_info = JADE_CALLOC(tx->num_outputs, sizeof(output_info_t));
         jade_process_free_on_exit(process, output_info);
 
-        if (!validate_change_paths(process, network, tx, &change, output_info, &errmsg)) {
+        if (!validate_wallet_outputs(process, network, tx, &wallet_outputs, output_info, &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
         }

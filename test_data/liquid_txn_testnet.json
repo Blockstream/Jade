@@ -32,7 +32,8 @@
           2
         ],
         "recovery_xpub": null,
-        "csv_blocks": 65535
+        "csv_blocks": 65535,
+        "is_change": true
       },
       null
     ],

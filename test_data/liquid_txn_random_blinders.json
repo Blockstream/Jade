@@ -50,6 +50,7 @@
           1,
           71
         ],
+        "is_change": false,
         "csv_blocks": 65535
       },
       null

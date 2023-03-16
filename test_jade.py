@@ -1242,7 +1242,7 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                    'valid number of inputs'),
                   (('badsigntx11', 'sign_tx',  # Bad change outputs
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
-                     'change': []}), 'Unexpected number of output (change) entries'),
+                     'change': []}), 'Unexpected number of output entries'),
                   (('badsigntx12', 'sign_tx',  # invalid network
                     {'network': 'made-up', 'txn': GOODTX, 'num_inputs': 1,
                      'change': [{'path': [1, 2, 3]}, {}]}), 'extract valid network'),
@@ -1253,16 +1253,18 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
                      'change': [{'multisig_name': '',
                                  'paths': [[1, 2, 3]]}]}), 'Invalid multisig name'),
-                  (('badsigntx14', 'sign_tx',  # bad multisig name
+                  (('badsigntx15', 'sign_tx',  # bad multisig name
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
-                     'change': [{'multisig_name': 'bad',
-                                 'paths': [[1, 2, 3]]}]}), 'Cannot find named multisig wallet'),
-                  (('badsigntx15', 'sign_tx',
+                     'change': [{'multisig_name': 'bad', 'is_change': True,
+                                 'paths': [[1, 2, 3]]}]}),
+                   'Cannot find named multisig wallet'),
+                  (('badsigntx16', 'sign_tx',
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
-                     'change': [{'not_path': [1, 2, 3]}]}), 'extract valid change path'),
-                  (('badsigntx16', 'sign_tx',  # wrong number of outputs
+                     'change': [{'is_change': False, 'not_path': [1, 2, 3]}]}),
+                   'extract valid receive path'),
+                  (('badsigntx17', 'sign_tx',  # wrong number of outputs
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
-                     'change': [None, None]}), 'Unexpected number of output (change) entries')]
+                     'change': [None, None]}), 'Unexpected number of output entries')]
 
     bad_tx_inputs = [(('badinput0', 'tx_input'), 'Expecting parameters map'),
                      (('badinput1', 'tx_input',
@@ -1566,11 +1568,11 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                   (('badsignliq17', 'sign_liquid_tx',  # Bad change outputs
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
-                     'change': []}), 'Unexpected number of output (change) entries'),
+                     'change': []}), 'Unexpected number of output entries'),
                   (('badsignliq18', 'sign_liquid_tx',  # paths missing
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
-                     'change': [{}, {}]}), 'extract valid change path'),
+                     'change': [{}, {}]}), 'Failed to extract valid receive path'),
 
                   (('badsignliq19', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
@@ -2297,7 +2299,6 @@ aa95e1c72070b08208012144f')
 def test_sign_liquid_tx(jadeapi, pattern):
     for txn_data in _get_test_cases(pattern):
         inputdata = txn_data['input']
-
         rslt = jadeapi.sign_liquid_tx(inputdata['network'],
                                       inputdata['txn'],
                                       inputdata['inputs'],
@@ -2533,7 +2534,7 @@ def test_generic_multisig_matches_ga_signatures(jadeapi):
         rslt = jadeapi.sign_tx(inputdata['network'],
                                inputdata['txn'],
                                inputdata.get('inputs'),
-                               inputdata.get('change'),
+                               inputdata['change'],
                                inputdata.get('use_ae_signatures'),
                                )
 
@@ -2565,7 +2566,7 @@ def test_generic_multisig_matches_ga_signatures_liquid(jadeapi):
                                       inputdata['txn'],
                                       inputdata.get('inputs'),
                                       inputdata['trusted_commitments'],
-                                      inputdata.get('change'),
+                                      inputdata['change'],
                                       inputdata.get('use_ae_signatures'),
                                       )
 

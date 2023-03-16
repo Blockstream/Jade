@@ -1076,8 +1076,9 @@ Request to sign transaction inputs using RFC6979.
 
 * 'txn' should be the raw txn bytes.
 * 'change' is optional (or can be null) - if provided it should be an array with the same number of elements as there are tx outputs.
-* 'change' elements should be null for most outputs, and only populated for the output Jade is to automatically verify and confirm as change.
-* The populated 'change' element should contain the data used to generate the change output, as follows (see also get_receive_address_request_):
+* 'change' elements should be null for most outputs, and only populated for the outputs Jade is to automatically verify belong to its wallet.
+* If 'is_change' is set (or missing - if so it is assumed to be true) this output will not be shown to the user to verify.
+* The populated 'change' element should contain the data used to generate the output script (see also get_receive_address_request_):
 
 Blockstream Green address (multisig-shield):
 
@@ -1494,7 +1495,8 @@ Request to sign liquid transaction inputs.
                 null,
                 {
                     "variant": "sh(wpkh(k))",
-                    "path": [2147483697, 2147483648, 2147483648, 0, 143]
+                    "path": [2147483697, 2147483648, 2147483648, 0, 143],
+                    "is_change": true
                 },
                 null
             ],

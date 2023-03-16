@@ -272,11 +272,7 @@ static void validate_any_change_outputs(struct wally_psbt* psbt, const uint8_t s
         uint32_t path[MAX_PATH_LEN];
         JADE_WALLY_VERIFY(
             wally_map_keypath_get_item_path(&output->keypaths, our_key_index, path, MAX_PATH_LEN, &path_len));
-        if (path_len < 2 || path[path_len - 2] != 1) {
-            // Does not look like a change output, from the path
-            JADE_LOGD("Not the expected penultimate change path element for output %u", index);
-            continue;
-        }
+        const bool is_change = path_len >= 2 && path[path_len - 2] == 1;
 
         // Get the output scriptpubkey
         uint8_t tx_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
@@ -314,28 +310,30 @@ static void validate_any_change_outputs(struct wally_psbt* psbt, const uint8_t s
             }
 
             // Change path valid and matches tx output script
-            JADE_LOGI("Output %u singlesig change path/script validated", index);
+            JADE_LOGI("Output %u singlesig %s path/script validated", index, is_change ? "change" : "receive");
 
             // Set appropriate flags
-            output_info[index].flags |= (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE);
+            output_info[index].flags |= OUTPUT_FLAG_VALIDATED;
+            if (is_change) {
+                output_info[index].flags |= OUTPUT_FLAG_CHANGE;
+            }
 
             // Check the path is as expected
-            const bool is_change = true;
-            bool change_path_as_expected = false;
+            bool receive_path_as_expected = false;
             if (keychain_get_network_type_restriction() != NETWORK_TYPE_TEST) {
-                change_path_as_expected
+                receive_path_as_expected
                     |= wallet_is_expected_singlesig_path(TAG_MAINNET, script_variant, is_change, path, path_len);
             }
-            if (!change_path_as_expected && keychain_get_network_type_restriction() != NETWORK_TYPE_MAIN) {
-                change_path_as_expected
+            if (!receive_path_as_expected && keychain_get_network_type_restriction() != NETWORK_TYPE_MAIN) {
+                receive_path_as_expected
                     |= wallet_is_expected_singlesig_path(TAG_TESTNET, script_variant, is_change, path, path_len);
             }
-            if (!change_path_as_expected) {
+            if (!receive_path_as_expected) {
                 // Not our standard change path - add warning
                 char path_str[96];
                 const bool have_path_str = bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
                 const int ret = snprintf(output_info[index].message, sizeof(output_info[index].message),
-                    "Unusual change path: %s", have_path_str ? path_str : "too long");
+                    "Unusual receive path: %s", have_path_str ? path_str : "too long");
                 JADE_ASSERT(ret > 0 && ret < sizeof(output_info[index].message));
             }
         } else if (num_keys > 1) {
@@ -360,13 +358,15 @@ static void validate_any_change_outputs(struct wally_psbt* psbt, const uint8_t s
             }
 
             // Change path valid and matches expected output script
-            JADE_LOGI("Output %u multisig change path/script validated", index);
+            JADE_LOGI("Output %u multisig %s path/script validated", index, is_change ? "change" : "receive");
 
             // Set appropriate flags
-            output_info[index].flags |= (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE);
+            output_info[index].flags |= OUTPUT_FLAG_VALIDATED;
+            if (is_change) {
+                output_info[index].flags |= OUTPUT_FLAG_CHANGE;
+            }
 
             // Check path tail looks as expected
-            const bool is_change = true;
             if (!wallet_is_expected_multisig_path(our_key_index, is_change, &path[path_tail_start], path_tail_len)) {
                 // Not our standard change path - add warning
                 char path_str[64];

@@ -1354,9 +1354,11 @@ class JadeAPI:
 
         change : [dict]
             An array sized for the number of outputs.
-            Outputs which are not change should have a 'null' placeholder element.
-            Change elements with data will be automatically verified by Jade, and not by the user.
-            Populated elements should contain sufficient data to generate the change address.
+            Outputs which are not to this wallet should have a 'null' placeholder element.
+            The output scripts for the elements with data will be verified by Jade.
+            Unless the element also contains 'is_change': False, these outputs will automatically
+            be approved and not be verified by the user.
+            Populated elements should contain sufficient data to generate the wallet address.
             See `get_receive_address()`
 
         use_ae_signatures : bool, optional
@@ -1433,9 +1435,11 @@ class JadeAPI:
 
         change : [dict]
             An array sized for the number of outputs.
-            Outputs which are not change should have a 'null' placeholder element.
-            Change elements with data will be automatically verified by Jade, and not by the user.
-            Populated elements should contain sufficient data to generate the change address.
+            Outputs which are not to this wallet should have a 'null' placeholder element.
+            The output scripts for the elements with data will be verified by Jade.
+            Unless the element also contains 'is_change': False, these outputs will automatically
+            be approved and not be verified by the user.
+            Populated elements should contain sufficient data to generate the wallet address.
             See `get_receive_address()`
 
         use_ae_signatures : bool

@@ -8,7 +8,8 @@
           1,
           2
         ],
-        "csv_blocks": 51840
+        "csv_blocks": 51840,
+        "is_change": true
       },
       null
     ],
@@ -24,6 +25,6 @@
       }
     ]
   },
-  "expected_error": "Change script cannot be validated",
+  "expected_error": "Receive script cannot be validated",
   "extra_responses": 0
 }

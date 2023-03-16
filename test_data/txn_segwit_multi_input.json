@@ -10,7 +10,8 @@
           31
         ],
         "recovery_xpub": null,
-        "csv_blocks": "0"
+        "csv_blocks": "0",
+        "is_change": false
       }
     ],
     "inputs": [
