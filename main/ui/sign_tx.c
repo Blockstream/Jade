@@ -15,6 +15,9 @@
 // A warning to display if the asset registry data is missing
 static const char MISSING_ASSET_DATA[] = "Amounts may be expressed in the wrong units. Proceed at your own risk.";
 
+// A warning to display if the unblinding data is missing
+static const char BLINDED_OUTPUT[] = "Output cannot be unblinded!";
+
 // Translate a GUI button (ok/cancel) into a sign_tx_ JADE_EVENT (so the caller
 // can await without worrying about which screen/activity it came from).
 static void translate_event(void* handler_arg, esp_event_base_t base, int32_t id, void* unused)
@@ -325,6 +328,7 @@ void make_display_output_activity(
         if (hiddenOutputs && !display_output(tx->outputs, output_info, i, show_scriptless)) {
             continue;
         }
+        ++nDisplayedOutput;
 
         char amount[32];
         int ret = snprintf(amount, sizeof(amount), "%.08f", 1.0 * out->satoshi / 1e8);
@@ -334,8 +338,6 @@ void make_display_output_activity(
         script_to_address(network, out->script, out->script_len, address, sizeof(address));
 
         const char* msg = output_info && strlen(output_info[i].message) > 0 ? output_info[i].message : NULL;
-
-        ++nDisplayedOutput;
 
         make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed, address,
             amount, "BTC", NULL, msg);
@@ -379,12 +381,29 @@ void make_display_elements_output_activity(const char* network, const struct wal
         if (hiddenOutputs && !display_output(tx->outputs, output_info, i, show_scriptless)) {
             continue;
         }
+        ++nDisplayedOutput;
 
         // Get the asset-id display hex string
         char* asset_id_hex = NULL;
         JADE_WALLY_VERIFY(
             wally_hex_from_bytes(output_info[i].asset_id, sizeof(output_info[i].asset_id), &asset_id_hex));
         JADE_ASSERT(asset_id_hex);
+
+        // Get the address
+        char address[MAX_ADDRESS_LEN];
+        elements_script_to_address(network, out->script, out->script_len,
+            (output_info[i].flags & OUTPUT_FLAG_HAS_BLINDING_KEY) ? output_info[i].blinding_key : NULL,
+            sizeof(output_info[i].blinding_key), address, sizeof(address));
+
+        // If there is no unblinded info, make warning/placeholder screen
+        // ATM assert that we always have unblinded info when displaying an output
+        JADE_ASSERT(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED);
+        if (!(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED)) {
+            make_output_activity(&output_act, act_info.last_activity, nDisplayedOutput, nTotalOutputsDisplayed, address,
+                "????", "????", "????????????", BLINDED_OUTPUT);
+            gui_chain_activities(&output_act, &act_info);
+            continue;
+        }
 
         // Look up the asset-id in the canned asset-data
         char asset_str[128];
@@ -425,13 +444,6 @@ void make_display_elements_output_activity(const char* network, const struct wal
             ticker[0] = '\0';
         }
         JADE_WALLY_VERIFY(wally_free_string(asset_id_hex));
-
-        char address[MAX_ADDRESS_LEN];
-        elements_script_to_address(network, out->script, out->script_len,
-            (output_info[i].flags & OUTPUT_FLAG_CONFIDENTIAL) ? output_info[i].blinding_key : NULL,
-            sizeof(output_info[i].blinding_key), address, sizeof(address));
-
-        ++nDisplayedOutput;
 
         // Insert extra screen to display warning message for this output, if one is passed
         if (strlen(output_info[i].message) > 0) {

@@ -56,8 +56,10 @@ typedef struct {
 } pin_insert_t;
 
 #define OUTPUT_FLAG_CONFIDENTIAL 1
-#define OUTPUT_FLAG_VALIDATED 2
-#define OUTPUT_FLAG_CHANGE 4
+#define OUTPUT_FLAG_HAS_BLINDING_KEY 2
+#define OUTPUT_FLAG_VALIDATED 4
+#define OUTPUT_FLAG_CHANGE 8
+#define OUTPUT_FLAG_HAS_UNBLINDED 16
 
 typedef struct {
     char message[128];

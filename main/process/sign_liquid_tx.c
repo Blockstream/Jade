@@ -35,10 +35,6 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
 
     commitment->content = COMMITMENTS_NONE;
 
-    if (!rpc_get_n_bytes("blinding_key", item, sizeof(commitment->blinding_key), commitment->blinding_key)) {
-        return false;
-    }
-
     if (!rpc_get_n_bytes("abf", item, sizeof(commitment->abf), commitment->abf)) {
         return false;
     }
@@ -66,6 +62,11 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
     // Set flag to show struct is partially populated/initialised - no commitment overrides (yet).
     // Passed blinders/unblinded values refer to commitments already present in the transaction outputs.
     commitment->content |= COMMITMENTS_BLINDERS;
+
+    // Blinding key is optional in some scenarios
+    if (rpc_get_n_bytes("blinding_key", item, sizeof(commitment->blinding_key), commitment->blinding_key)) {
+        commitment->content |= COMMITMENTS_BLINDING_KEY;
+    }
 
     // Actual commitments are optional - but must be both commitments or neither.
     // If both are passed these will be copied into the tx and signed.
@@ -242,9 +243,10 @@ static bool add_output_info(
     JADE_ASSERT(outinfo);
     JADE_INIT_OUT_PPTR(errmsg);
 
+    JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED)));
     if (commitments->content & COMMITMENTS_BLINDERS) {
         // Output to be confidential/blinded, use the commitments data
-        outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
+        outinfo->flags |= (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED);
 
         // 1. Sanity checks
         if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
@@ -274,23 +276,30 @@ static bool add_output_info(
             return false;
         }
 
-        // 4. Fetch the asset_id, value, and blinding_key into the info struct
-        JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
+        // 4. Fetch the asset_id, value, and optional blinding_key into the info struct
         JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
-        memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
         memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
         outinfo->value = commitments->value;
-    } else {
-        // No blinding info, should be unblinded output, remaining unblinded/unconfidential/explicit
-        if (txoutput->asset_len != sizeof(outinfo->asset_id) + 1
-            || txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX
-            || txoutput->value[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX) {
-            *errmsg = "Missing commitments data for blinded output";
+
+        if (commitments->content & COMMITMENTS_BLINDING_KEY) {
+            JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
+            memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
+            outinfo->flags |= OUTPUT_FLAG_HAS_BLINDING_KEY;
+        }
+    } else if (txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX
+        || txoutput->value[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX) {
+        // No blinding info for blinded output - may not be an issue if we're
+        // not interested in this output.  Just set flags appropriately.
+        outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
+
+        // NOTE: This is not valid if this output has been validated as belonging to this wallet
+        if (outinfo->flags & OUTPUT_FLAG_VALIDATED) {
+            *errmsg = "Missing blinding information for wallet output";
             return false;
         }
-
+    } else {
         // unconfidential, take directly from the tx
-        outinfo->flags &= ~OUTPUT_FLAG_CONFIDENTIAL;
+        outinfo->flags |= OUTPUT_FLAG_HAS_UNBLINDED;
 
         // Copy the asset ID without the leading unconfidential tag byte
         // NOTE: we reverse the asset-id bytes to the 'display' order
@@ -422,9 +431,6 @@ void sign_liquid_tx_process(void* process_ptr)
     jade_process_free_on_exit(process, assets);
     JADE_LOGI("Read %d assets from message", num_assets);
 
-    // save fees for the final confirmation screen
-    uint64_t fees = 0;
-
     // Check the trusted commitments: expect one element in the array for each output.
     // Can be null for unblinded outputs as we will skip them.
     // Populate an `output_index` -> (blinding_key, asset, value) map
@@ -433,6 +439,11 @@ void sign_liquid_tx_process(void* process_ptr)
     JADE_WALLY_VERIFY(wally_hex_to_bytes(policy_asset_hex, policy_asset, sizeof(policy_asset), &written));
     JADE_ASSERT(written == sizeof(policy_asset));
 
+    // At the moment do not allow any blinded outputs to be missing the unblinding/unblinded info
+    const bool allow_blind_outputs = false;
+
+    // Save fees for the final confirmation screen
+    uint64_t fees = 0;
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         if ((tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX)
             != (tx->outputs[i].value[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX)) {
@@ -446,6 +457,16 @@ void sign_liquid_tx_process(void* process_ptr)
         if (!add_output_info(&commitments[i], &tx->outputs[i], &output_info[i], &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
+        }
+
+        // If are not allowing blinded outputs, check each confidential output has unblinding info
+        if (!allow_blind_outputs && output_info[i].flags & OUTPUT_FLAG_CONFIDENTIAL) {
+            if (!(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED)
+                || !(output_info[i].flags & OUTPUT_FLAG_HAS_BLINDING_KEY)) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Missing commitments data for blinded output", NULL);
+                goto cleanup;
+            }
         }
 
         // Collect fees (ie. outputs with no script)

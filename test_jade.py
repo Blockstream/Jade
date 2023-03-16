@@ -1626,7 +1626,7 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                         (_commitsMinus('value'), 'extract trusted commitments'),
                         (_commitsMinus('abf'), 'extract trusted commitments'),
                         (_commitsMinus('vbf'), 'extract trusted commitments'),
-                        (_commitsMinus('blinding_key'), 'extract trusted commitments'),
+                        (_commitsMinus('blinding_key'), 'Missing commitments data'),
                         # Field bad type/length etc.
                         (_commitsUpdate('asset_id', 'notbin'), 'extract trusted commitments'),
                         (_commitsUpdate('asset_id', '123abc'), 'extract trusted commitments'),
@@ -1639,8 +1639,8 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                         (_commitsUpdate('asset_generator', '123abc'), 'extract trusted commit'),
                         (_commitsUpdate('value_commitment', 'notbin'), 'extract trusted commit'),
                         (_commitsUpdate('value_commitment', '123abc'), 'extract trusted commit'),
-                        (_commitsUpdate('blinding_key', 'notbin'), 'extract trusted commitments'),
-                        (_commitsUpdate('blinding_key', '123abc'), 'extract trusted commitments'),
+                        (_commitsUpdate('blinding_key', 'notbin'), 'Missing commitments data'),
+                        (_commitsUpdate('blinding_key', '123abc'), 'Missing commitments data'),
                         # Field bad value
                         (_commitsUpdate('asset_id', BADVAL32), 'verify blinded asset generator'),
                         (_commitsUpdate('abf', BADVAL32), 'verify blinded asset generator'),
