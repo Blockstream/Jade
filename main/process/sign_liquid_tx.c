@@ -186,7 +186,7 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
     return true;
 }
 
-static bool add_validated_confidential_output_info(
+static bool add_output_info(
     commitment_t* commitments, const struct wally_tx_output* txoutput, output_info_t* outinfo, const char** errmsg)
 {
     JADE_ASSERT(commitments);
@@ -194,48 +194,63 @@ static bool add_validated_confidential_output_info(
     JADE_ASSERT(outinfo);
     JADE_INIT_OUT_PPTR(errmsg);
 
-    // Don't call for unblinded outputs
-    JADE_ASSERT(txoutput->value[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX);
-    JADE_ASSERT(txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX);
-
-    // 1. Sanity checks
     if (commitments->content != BLINDERS_ONLY && commitments->content != BLINDERS_AND_COMMITMENTS) {
-        *errmsg = "Missing commitments data for blinded output";
-        return false;
-    }
-    if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
-        *errmsg = "Invalid asset generator in tx output";
-        return false;
-    }
-    if (txoutput->value_len != sizeof(commitments->value_commitment)) {
-        *errmsg = "Invalid value commitment in tx output";
-        return false;
-    }
+        // No blinding info, should be unblinded output, remaining unblinded/unconfidential/explicit
+        if (txoutput->asset_len != sizeof(outinfo->asset_id) + 1
+            || txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX
+            || txoutput->value[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX) {
+            *errmsg = "Missing commitments data for blinded output";
+            return false;
+        }
 
-    // 2. If passed explicit commitments copy them into the transaction output ready for signing
-    // If not, copy the values from the tx into the commitment structure.
-    // ie. so in any case commitment struct is complete, and reflects what is in the tx output
-    if (commitments->content == BLINDERS_AND_COMMITMENTS) {
-        memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
-        memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
+        // unconfidential, take directly from the tx
+        outinfo->flags &= ~OUTPUT_FLAG_CONFIDENTIAL;
+
+        // Copy the asset ID without the leading unconfidential tag byte
+        // NOTE: we reverse the asset-id bytes to the 'display' order
+        reverse(outinfo->asset_id, txoutput->asset + 1, sizeof(outinfo->asset_id));
+
+        JADE_WALLY_VERIFY(
+            wally_tx_confidential_value_to_satoshi(txoutput->value, txoutput->value_len, &outinfo->value));
     } else {
-        memcpy(commitments->asset_generator, txoutput->asset, sizeof(commitments->asset_generator));
-        memcpy(commitments->value_commitment, txoutput->value, sizeof(commitments->value_commitment));
-        commitments->content = BLINDERS_AND_COMMITMENTS;
-    }
+        // Output to be confidential/blinded, use the commitments data
+        outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
 
-    // 3. Check the asset generator and value commitment can be reconstructed
-    if (!verify_commitment_consistent(commitments, errmsg)) {
-        // errmsg populated by call if failure
-        return false;
-    }
+        // 1. Sanity checks
+        if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
+            *errmsg = "Invalid asset generator in tx output";
+            return false;
+        }
+        if (txoutput->value_len != sizeof(commitments->value_commitment)) {
+            *errmsg = "Invalid value commitment in tx output";
+            return false;
+        }
 
-    // 4. Fetch the asset_id, value, and blinding_key into the info struct
-    JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
-    JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
-    memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
-    memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
-    outinfo->value = commitments->value;
+        // 2. If passed explicit commitments copy them into the transaction output ready for signing
+        // If not, copy the values from the tx into the commitment structure.
+        // ie. so in any case commitment struct is complete, and reflects what is in the tx output
+        if (commitments->content == BLINDERS_AND_COMMITMENTS) {
+            memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
+            memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
+        } else {
+            memcpy(commitments->asset_generator, txoutput->asset, sizeof(commitments->asset_generator));
+            memcpy(commitments->value_commitment, txoutput->value, sizeof(commitments->value_commitment));
+            commitments->content = BLINDERS_AND_COMMITMENTS;
+        }
+
+        // 3. Check the asset generator and value commitment can be reconstructed
+        if (!verify_commitment_consistent(commitments, errmsg)) {
+            // errmsg populated by call if failure
+            return false;
+        }
+
+        // 4. Fetch the asset_id, value, and blinding_key into the info struct
+        JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
+        JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
+        memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
+        memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
+        outinfo->value = commitments->value;
+    }
 
     return true;
 }
@@ -373,29 +388,16 @@ void sign_liquid_tx_process(void* process_ptr)
             goto cleanup;
         }
 
-        if (tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX) {
-            // unconfidential, take directly from the tx
-            output_info[i].flags &= ~OUTPUT_FLAG_CONFIDENTIAL;
+        // Gather the (unblinded) output info for user confirmation
+        const char* errmsg = NULL;
+        if (!add_output_info(&commitments[i], &tx->outputs[i], &output_info[i], &errmsg)) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+            goto cleanup;
+        }
 
-            // Copy the asset ID without the leading unconfidential tag byte
-            // NOTE: we reverse the asset-id bytes to the 'display' order
-            reverse(output_info[i].asset_id, tx->outputs[i].asset + 1, sizeof(output_info[i].asset_id));
-            JADE_WALLY_VERIFY(wally_tx_confidential_value_to_satoshi(
-                tx->outputs[i].value, tx->outputs[i].value_len, &output_info[i].value));
-
-            // fees can only be unconfidential
-            if (!tx->outputs[i].script) {
-                fees += output_info[i].value;
-            }
-        } else {
-            // confidential, use the trusted_commitments
-            output_info[i].flags |= OUTPUT_FLAG_CONFIDENTIAL;
-
-            const char* errmsg = NULL;
-            if (!add_validated_confidential_output_info(&commitments[i], &tx->outputs[i], &output_info[i], &errmsg)) {
-                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
-                goto cleanup;
-            }
+        // Collect fees (ie. outputs with no script)
+        if (!tx->outputs[i].script) {
+            fees += output_info[i].value;
         }
     }
 
