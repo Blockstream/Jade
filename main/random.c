@@ -4,7 +4,6 @@
 #include "power.h"
 #include "sensitive.h"
 #include <bootloader_random.h>
-#include <driver/adc.h>
 #include <esp_system.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -257,7 +256,6 @@ void random_start_collecting(void)
     esp_fill_random(entropy_state, sizeof(entropy_state));
     bootloader_random_disable();
 
-    adc1_config_width(ADC_WIDTH_BIT_12);
     spinlock_initialize(&rndmutex);
 }
 
