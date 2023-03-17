@@ -204,7 +204,7 @@ void sign_message_process(void* process_ptr)
     }
 
     // NOTE: for signing the root key (empty bip32 path) is not allowed.
-    uint32_t path_len = 0;
+    size_t path_len = 0;
     uint32_t path[MAX_PATH_LEN];
     const size_t max_path_len = sizeof(path) / sizeof(path[0]);
     const bool has_path = rpc_get_bip32_path("path", &params, path, max_path_len, &path_len);

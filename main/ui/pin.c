@@ -160,7 +160,7 @@ void run_pin_entry_loop(pin_insert_t* pin_insert)
     JADE_ASSERT(pin_insert);
     JADE_ASSERT(pin_insert->activity);
 
-    int ev_id;
+    int32_t ev_id;
     while (true) {
         // wait for a GUI event
         gui_activity_wait_event(pin_insert->activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);

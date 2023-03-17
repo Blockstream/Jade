@@ -108,7 +108,7 @@ void get_receive_address_process(void* process_ptr)
 
         if (is_greenaddress(script_variant)) {
             // For green-multisig the path is constructed from subaccount, branch and pointer
-            uint32_t subaccount = 0, branch = 0, pointer = 0;
+            size_t subaccount = 0, branch = 0, pointer = 0;
             if (!rpc_get_sizet("subaccount", &params, &subaccount) || !rpc_get_sizet("branch", &params, &branch)
                 || !rpc_get_sizet("pointer", &params, &pointer)) {
                 jade_process_reject_message(
@@ -123,7 +123,7 @@ void get_receive_address_process(void* process_ptr)
             rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &params, xpubrecovery, &written);
 
             // Optional 'blocks' for csv outputs
-            uint32_t csvBlocks = 0;
+            size_t csvBlocks = 0;
             rpc_get_sizet("csv_blocks", &params, &csvBlocks);
 
             if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {

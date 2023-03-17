@@ -53,7 +53,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
             // Change info passed, try to verify output
             JADE_LOGD("Output %u has change-path passed", i);
 
-            uint32_t csvBlocks = 0;
+            size_t csvBlocks = 0;
             size_t script_len = 0;
             uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
             size_t written = 0;
@@ -86,7 +86,7 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                     return false;
                 }
             } else {
-                uint32_t path_len = 0;
+                size_t path_len = 0;
                 uint32_t path[MAX_PATH_LEN];
                 const size_t max_path_len = sizeof(path) / sizeof(path[0]);
 
@@ -334,7 +334,7 @@ void sign_tx_process(void* process_ptr)
     jade_process_call_on_exit(process, wally_free_tx_wrapper, tx);
 
     // copy the amount
-    uint32_t num_inputs = 0;
+    size_t num_inputs = 0;
     bool ret = rpc_get_sizet("num_inputs", &params, &num_inputs);
     if (!ret || num_inputs == 0) {
         jade_process_reject_message(

@@ -266,7 +266,7 @@ void sign_liquid_tx_process(void* process_ptr)
     jade_process_call_on_exit(process, wally_free_tx_wrapper, tx);
 
     // copy the amount
-    uint32_t num_inputs = 0;
+    size_t num_inputs = 0;
     bool ret = rpc_get_sizet("num_inputs", &params, &num_inputs);
     if (!ret || num_inputs == 0) {
         jade_process_reject_message(
@@ -486,7 +486,7 @@ void sign_liquid_tx_process(void* process_ptr)
             update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
         }
 
-        uint32_t value_len = 0;
+        size_t value_len = 0;
         const uint8_t* value_commitment = NULL;
         if (has_path && is_witness) {
             JADE_LOGD("For segwit input using explicitly passed value_commitment");
