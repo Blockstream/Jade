@@ -1424,7 +1424,7 @@ static void getMaxWidthHeight()
 
 // Return the Glyph data for an individual character in the proportional font
 //------------------------------------
-static uint8_t getCharPtr(uint8_t c) {
+static uint8_t getCharPtr(const uint8_t c) {
   uint16_t tempPtr = 4; // point at first char data
 
   do {
@@ -1803,7 +1803,7 @@ int TFT_getStringWidth(const char* str)
 	else if (cfont.x_size != 0) strWidth = strlen(str) * cfont.x_size;			// fixed width font
 	else {
 		// calculate the width of the string of proportional characters
-		char* tempStrptr = str;
+		const char* tempStrptr = str;
 		while (*tempStrptr != 0) {
 			if (getCharPtr(*tempStrptr++)) {
 				strWidth += (((fontChar.width > fontChar.xDelta) ? fontChar.width : fontChar.xDelta) + 1);
