@@ -32,7 +32,7 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
     JADE_ASSERT(item);
     JADE_ASSERT(commitment);
 
-    commitment->content = BLINDERS_NONE;
+    commitment->content = COMMITMENTS_NONE;
 
     if (!rpc_get_n_bytes("blinding_key", item, sizeof(commitment->blinding_key), commitment->blinding_key)) {
         return false;
@@ -54,6 +54,10 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
         return false;
     }
 
+    // Set flag to show struct is partially populated/initialised - no commitment overrides (yet).
+    // Passed blinders/unblinded values refer to commitments already present in the transaction outputs.
+    commitment->content |= COMMITMENTS_BLINDERS;
+
     // Actual commitments are optional - but must be both commitments or neither.
     // If both are passed these will be copied into the tx and signed.
     // If not passed, the above blinding factors must match what is already present in the transaction output.
@@ -70,11 +74,7 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
         }
 
         // Set flag to show struct is fully populated/initialised, including commitments to sign.
-        commitment->content = BLINDERS_AND_COMMITMENTS;
-    } else {
-        // Set flag to show struct is partially populated/initialised - no commitment overrides.
-        // Passed blinders/unblinded values refer to commitments already present in the transaction outputs.
-        commitment->content = BLINDERS_ONLY;
+        commitment->content |= COMMITMENTS_INCLUDES_COMMITMENTS;
     }
 
     return true;
@@ -108,7 +108,7 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
 
     for (size_t i = 0; i < num_array_items; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
-        commitments[i].content = BLINDERS_NONE;
+        commitments[i].content = COMMITMENTS_NONE;
 
         if (cbor_value_is_null(&arrayItem)) {
             CborError err = cbor_value_advance(&arrayItem);
@@ -153,7 +153,7 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
     JADE_ASSERT(commitments);
     JADE_INIT_OUT_PPTR(errmsg);
 
-    if (commitments->content != BLINDERS_AND_COMMITMENTS) {
+    if (!(commitments->content & COMMITMENTS_INCLUDES_COMMITMENTS)) {
         *errmsg = "Failed to extract final commitment values from commitments data";
         return false;
     }
@@ -194,7 +194,45 @@ static bool add_output_info(
     JADE_ASSERT(outinfo);
     JADE_INIT_OUT_PPTR(errmsg);
 
-    if (commitments->content != BLINDERS_ONLY && commitments->content != BLINDERS_AND_COMMITMENTS) {
+    if (commitments->content & COMMITMENTS_BLINDERS) {
+        // Output to be confidential/blinded, use the commitments data
+        outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
+
+        // 1. Sanity checks
+        if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
+            *errmsg = "Invalid asset generator in tx output";
+            return false;
+        }
+        if (txoutput->value_len != sizeof(commitments->value_commitment)) {
+            *errmsg = "Invalid value commitment in tx output";
+            return false;
+        }
+
+        // 2. If passed explicit commitments copy them into the transaction output ready for signing
+        // If not, copy the values from the tx into the commitment structure.
+        // ie. so in any case commitment struct is complete, and reflects what is in the tx output
+        if (commitments->content & COMMITMENTS_INCLUDES_COMMITMENTS) {
+            memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
+            memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
+        } else {
+            memcpy(commitments->asset_generator, txoutput->asset, sizeof(commitments->asset_generator));
+            memcpy(commitments->value_commitment, txoutput->value, sizeof(commitments->value_commitment));
+            commitments->content |= COMMITMENTS_INCLUDES_COMMITMENTS;
+        }
+
+        // 3. Check the asset generator and value commitment can be reconstructed
+        if (!verify_commitment_consistent(commitments, errmsg)) {
+            // errmsg populated by call if failure
+            return false;
+        }
+
+        // 4. Fetch the asset_id, value, and blinding_key into the info struct
+        JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
+        JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
+        memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
+        memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
+        outinfo->value = commitments->value;
+    } else {
         // No blinding info, should be unblinded output, remaining unblinded/unconfidential/explicit
         if (txoutput->asset_len != sizeof(outinfo->asset_id) + 1
             || txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX
@@ -212,44 +250,6 @@ static bool add_output_info(
 
         JADE_WALLY_VERIFY(
             wally_tx_confidential_value_to_satoshi(txoutput->value, txoutput->value_len, &outinfo->value));
-    } else {
-        // Output to be confidential/blinded, use the commitments data
-        outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
-
-        // 1. Sanity checks
-        if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
-            *errmsg = "Invalid asset generator in tx output";
-            return false;
-        }
-        if (txoutput->value_len != sizeof(commitments->value_commitment)) {
-            *errmsg = "Invalid value commitment in tx output";
-            return false;
-        }
-
-        // 2. If passed explicit commitments copy them into the transaction output ready for signing
-        // If not, copy the values from the tx into the commitment structure.
-        // ie. so in any case commitment struct is complete, and reflects what is in the tx output
-        if (commitments->content == BLINDERS_AND_COMMITMENTS) {
-            memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
-            memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
-        } else {
-            memcpy(commitments->asset_generator, txoutput->asset, sizeof(commitments->asset_generator));
-            memcpy(commitments->value_commitment, txoutput->value, sizeof(commitments->value_commitment));
-            commitments->content = BLINDERS_AND_COMMITMENTS;
-        }
-
-        // 3. Check the asset generator and value commitment can be reconstructed
-        if (!verify_commitment_consistent(commitments, errmsg)) {
-            // errmsg populated by call if failure
-            return false;
-        }
-
-        // 4. Fetch the asset_id, value, and blinding_key into the info struct
-        JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
-        JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
-        memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
-        memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
-        outinfo->value = commitments->value;
     }
 
     return true;

@@ -6,6 +6,10 @@
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
 
+#define COMMITMENTS_NONE 0
+#define COMMITMENTS_BLINDERS 1
+#define COMMITMENTS_INCLUDES_COMMITMENTS 2
+
 typedef struct {
     uint8_t asset_id[ASSET_TAG_LEN];
     uint8_t abf[BLINDING_FACTOR_LEN];
@@ -14,7 +18,7 @@ typedef struct {
     uint64_t value;
     uint8_t asset_generator[ASSET_GENERATOR_LEN];
     uint8_t value_commitment[ASSET_COMMITMENT_LEN];
-    enum { BLINDERS_NONE, BLINDERS_ONLY, BLINDERS_AND_COMMITMENTS } content;
+    uint8_t content;
 } commitment_t;
 
 typedef struct {
