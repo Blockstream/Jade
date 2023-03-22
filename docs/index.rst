@@ -436,13 +436,16 @@ Request to initiate a firmware update passing the full firmware image.
         "params": {
             "fwsize": 926448,
             "cmpsize": 579204,
-            "cmphash": <32 bytes>
+            "cmphash": <32 bytes>,
+            "fwhash": <32 bytes>
         }
     }
 
 * 'fwsize' is the total length of the final firmware when uncompressed.
 * 'cmpsize' is the length of the compressed firmware image which will be uploaded.
 * 'cmphash' is the sha256 hash of the compressed firmware image.
+* 'fwhash' is the sha256 hash of the final firmware image to be booted.
+* NOTE: 'fwhash' is a new addition and is optional at this time, although it will become mandatory in a future release.
 
 .. _ota_reply:
 
