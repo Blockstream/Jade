@@ -47,8 +47,8 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
 
-        // By default, assume not a change output, user must verify
-        output_info[i].is_validated_change_address = false;
+        // By default, assume not a validated or change output, and so user must verify
+        JADE_ASSERT(!(output_info[i].flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
         if (cbor_value_is_map(&arrayItem)) {
             // Change info passed, try to verify output
             JADE_LOGD("Output %u has change-path passed", i);
@@ -119,8 +119,6 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
                     // If number of csv blocks unexpected show a warning message and ask the user to confirm
                     if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
                         JADE_LOGW("Unexpected number of csv blocks in change path output: %u", csvBlocks);
-                        output_info[i].is_validated_change_address = false;
-
                         const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
                             "This change output has a non-standard csv value (%u), so it may be difficult to find.  "
                             "Proceed at your own risk.",
@@ -180,10 +178,8 @@ bool validate_change_paths(jade_process_t* process, const char* network, const s
             // Change path valid and matches tx output script
             JADE_LOGI("Output %u change path/script validated", i);
 
-            // If no warning messages consider change output automatically validated
-            if (output_info[i].message[0] == '\0') {
-                output_info[i].is_validated_change_address = true;
-            }
+            // Set appropriate flags
+            output_info[i].flags |= (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE);
         }
         const CborError err = cbor_value_advance(&arrayItem);
         JADE_ASSERT(err == CborNoError);

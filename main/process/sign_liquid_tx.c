@@ -351,7 +351,7 @@ void sign_liquid_tx_process(void* process_ptr)
 
         if (tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX) {
             // unconfidential, take directly from the tx
-            output_info[i].is_confidential = false;
+            output_info[i].flags &= ~OUTPUT_FLAG_CONFIDENTIAL;
 
             // Copy the asset ID without the leading unconfidential tag byte
             memcpy(output_info[i].asset_id, tx->outputs[i].asset + 1, sizeof(output_info[i].asset_id));
@@ -364,7 +364,7 @@ void sign_liquid_tx_process(void* process_ptr)
             }
         } else {
             // confidential, use the trusted_commitments
-            output_info[i].is_confidential = true;
+            output_info[i].flags |= OUTPUT_FLAG_CONFIDENTIAL;
 
             const char* errmsg = NULL;
             if (!add_validated_confidential_output_info(&commitments[i], &tx->outputs[i], &output_info[i], &errmsg)) {

@@ -255,6 +255,9 @@ static void validate_any_change_outputs(struct wally_psbt* psbt, const uint8_t s
         struct wally_psbt_output* const output = &psbt->outputs[index];
         JADE_LOGD("Considering output %u for change", index);
 
+        // By default, assume not a validated or change output, and so user must verify
+        JADE_ASSERT(!(output_info[index].flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
+
         // Find the first key belonging to this signer
         const size_t start_index_zero = 0;
         size_t our_key_index = 0;
@@ -312,7 +315,9 @@ static void validate_any_change_outputs(struct wally_psbt* psbt, const uint8_t s
 
             // Change path valid and matches tx output script
             JADE_LOGI("Output %u singlesig change path/script validated", index);
-            output_info[index].is_validated_change_address = true;
+
+            // Set appropriate flags
+            output_info[index].flags |= (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE);
 
             // Check the path is as expected
             const bool is_change = true;
@@ -356,7 +361,9 @@ static void validate_any_change_outputs(struct wally_psbt* psbt, const uint8_t s
 
             // Change path valid and matches expected output script
             JADE_LOGI("Output %u multisig change path/script validated", index);
-            output_info[index].is_validated_change_address = true;
+
+            // Set appropriate flags
+            output_info[index].flags |= (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE);
 
             // Check path tail looks as expected
             const bool is_change = true;

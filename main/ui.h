@@ -55,13 +55,16 @@ typedef struct {
     uint8_t current_selected_value;
 } pin_insert_t;
 
+#define OUTPUT_FLAG_CONFIDENTIAL 1
+#define OUTPUT_FLAG_VALIDATED 2
+#define OUTPUT_FLAG_CHANGE 4
+
 typedef struct {
-    bool is_validated_change_address;
-    bool is_confidential;
-    uint8_t asset_id[32];
-    uint8_t blinding_key[33];
-    uint64_t value;
     char message[128];
+    uint8_t blinding_key[33];
+    uint8_t asset_id[32];
+    uint64_t value;
+    uint8_t flags;
 } output_info_t;
 
 // Progress bar

@@ -258,12 +258,30 @@ static void make_final_activity(
     add_buttons(vsplit, UI_ROW, btns, 3);
 }
 
-// Don't display pre-validated (eg. change) outputs (if provided)
+// Don't display pre-validated (eg. change) outputs (if provided) unless they have an associated warning message.
 // Should work for elements and standard btc, but liquid hides scriptless outputs (fees)
-static inline bool display_output(
+static bool display_output(
     const struct wally_tx_output* outputs, const output_info_t* output_info, const size_t i, const bool show_scriptless)
 {
-    return (show_scriptless || outputs[i].script) && !(output_info && output_info[i].is_validated_change_address);
+    if (!show_scriptless && !outputs[i].script) {
+        // Hide outputs with no script
+        return false;
+    }
+
+    if (output_info) {
+        if (output_info[i].message[0] != '\0') {
+            // Show outputs that have an associated warning message
+            return true;
+        }
+
+        if (output_info[i].flags & OUTPUT_FLAG_VALIDATED && output_info[i].flags & OUTPUT_FLAG_CHANGE) {
+            // Hide change outputs which have already been internally validated
+            return false;
+        }
+    }
+
+    // No reason to hide this output
+    return true;
 }
 
 static uint32_t displayable_outputs(
@@ -416,8 +434,8 @@ void make_display_elements_output_activity(const char* network, const struct wal
 
         char address[MAX_ADDRESS_LEN];
         elements_script_to_address(network, out->script, out->script_len,
-            output_info[i].is_confidential ? output_info[i].blinding_key : NULL, sizeof(output_info[i].blinding_key),
-            address, sizeof(address));
+            (output_info[i].flags & OUTPUT_FLAG_CONFIDENTIAL) ? output_info[i].blinding_key : NULL,
+            sizeof(output_info[i].blinding_key), address, sizeof(address));
 
         ++nDisplayedOutput;
 
