@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.46] - 2023-03-23
+### Added
+- Allow the hash of the final firmware image to displayed and verified during OTA
+- Allow the signing of non-trivial PSBTs passed over the CBOR messaging interface by splitting the reply over multiple messages
+
+### Changed
+- Performance improvements, notably around scanning a Recovery Phrase and unlocking Jade with a PIN
+- Change the way the hash hex is displayed during OTA
+- Rename 'Passphrase Settings' button and screen to 'BIP39 Passphrase'
+- Make final commitments optional in sign_liquid_tx message, if they are already present in the txn data
+- Extend existing change validation to be able to run on any wallet output
+- Update ESP-IDF base firmware to v5.0.1
+- Update libwally to a master commit which supports using mbedtls for sha calculations
+- Changes to remove some dependencies to reduce fw binary size
+- Update jade_ota.py in line with update_jade_fw.py
+
+### Fixed
+- Addressed out-of-memory issue when scanning large PSBTs consisting of many QR frames
+- Improved internal type consistency strictness
+
 ## [0.1.45] - 2023-02-22
 ### Added
 - Added option to unlock Jade with PIN using only QR codes (ie. airgapped)
