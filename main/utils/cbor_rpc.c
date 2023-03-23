@@ -10,7 +10,8 @@
 
 static const char* CBOR_RPC_TAG_METHOD = "method";
 static const char* CBOR_RPC_TAG_ID = "id";
-
+static const char* CBOR_RPC_TAG_SEQNUM = "seqnum";
+static const char* CBOR_RPC_TAG_SEQLEN = "seqlen";
 static const char* CBOR_RPC_TAG_RESULT = "result";
 static const char* CBOR_RPC_TAG_ERROR = "error";
 static const char* CBOR_RPC_TAG_CODE = "code";
@@ -546,6 +547,22 @@ void rpc_init_cbor(CborEncoder* map_container, const char* id, size_t id_len)
     JADE_ASSERT(id);
     JADE_ASSERT(id_len);
     add_string_sized_to_map(map_container, CBOR_RPC_TAG_ID, id, id_len);
+    const CborError cberr = cbor_encode_text_stringz(map_container, CBOR_RPC_TAG_RESULT);
+    JADE_ASSERT(cberr == CborNoError);
+}
+
+void rpc_init_cbor_with_sequence(
+    CborEncoder* map_container, const char* id, size_t id_len, const size_t seqnum, const size_t seqlen)
+{
+    JADE_ASSERT(map_container);
+    JADE_ASSERT(id);
+    JADE_ASSERT(id_len);
+    JADE_ASSERT(seqnum <= seqlen);
+
+    add_string_sized_to_map(map_container, CBOR_RPC_TAG_ID, id, id_len);
+    add_uint_to_map(map_container, CBOR_RPC_TAG_SEQNUM, seqnum);
+    add_uint_to_map(map_container, CBOR_RPC_TAG_SEQLEN, seqlen);
+
     const CborError cberr = cbor_encode_text_stringz(map_container, CBOR_RPC_TAG_RESULT);
     JADE_ASSERT(cberr == CborNoError);
 }

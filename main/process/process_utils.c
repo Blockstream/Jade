@@ -11,6 +11,40 @@
 
 #include "process_utils.h"
 
+// Sanity check extended-data payload fields
+bool check_extended_data_fields(CborValue* params, const char* expected_origid, const char* expected_orig,
+    const size_t expected_seqnum, const size_t expected_seqlen)
+{
+    JADE_ASSERT(params);
+    JADE_ASSERT(expected_origid);
+    JADE_ASSERT(expected_orig);
+
+    const char* orig = NULL;
+    size_t origlen = 0;
+    rpc_get_string_ptr("orig", params, &orig, &origlen);
+
+    char origid[MAXLEN_ID];
+    size_t origidlen = 0;
+    rpc_get_string("origid", sizeof(origid), params, origid, &origidlen);
+
+    const size_t len = strlen(expected_orig);
+    if (origlen != len || strncmp(orig, expected_orig, len) || strcmp(origid, expected_origid)) {
+        JADE_LOGE("Extended data origin fields mismatch");
+        return false;
+    }
+
+    size_t nextseq = 0;
+    size_t seqlen = 0;
+    if (!rpc_get_sizet("seqlen", params, &seqlen) || seqlen != expected_seqlen
+        || !rpc_get_sizet("seqnum", params, &nextseq) || nextseq != expected_seqnum) {
+        JADE_LOGE("Extended data sequence fields mismatch");
+        return false;
+    }
+
+    // Appears consistent and as expected
+    return true;
+}
+
 // Extract 'epoch' field from message and use to set internal clock
 int params_set_epoch_time(CborValue* params, const char** errmsg)
 {

@@ -612,3 +612,27 @@ void jade_process_reply_to_message_bytes(
     JADE_ASSERT(cberr == CborNoError);
     jade_process_push_out_message(buffer, cbor_encoder_get_buffer_size(&root_encoder, buffer), ctx.source);
 }
+
+void jade_process_reply_to_message_bytes_sequence(cbor_msg_t ctx, const size_t seqnum, const size_t seqlen,
+    const uint8_t* data, const size_t datalen, uint8_t* buffer, const size_t buflen)
+{
+    CborEncoder root_encoder;
+    cbor_encoder_init(&root_encoder, buffer, buflen, 0);
+
+    CborEncoder root_map_encoder; // id, result
+
+    // NOTE: bytes additional sequence numbers in the message header
+    CborError cberr = cbor_encoder_create_map(&root_encoder, &root_map_encoder, 4);
+
+    JADE_ASSERT(cberr == CborNoError);
+    const char* id = NULL;
+    size_t written = 0;
+    rpc_get_id_ptr(&ctx.value, &id, &written);
+    JADE_ASSERT(written != 0);
+    rpc_init_cbor_with_sequence(&root_map_encoder, id, written, seqnum, seqlen);
+    cberr = cbor_encode_byte_string(&root_map_encoder, data, datalen);
+    JADE_ASSERT(cberr == CborNoError);
+    cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
+    JADE_ASSERT(cberr == CborNoError);
+    jade_process_push_out_message(buffer, cbor_encoder_get_buffer_size(&root_encoder, buffer), ctx.source);
+}

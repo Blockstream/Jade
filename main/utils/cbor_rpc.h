@@ -53,13 +53,15 @@ bool rpc_get_boolean(const char* field, const CborValue* value, bool* res);
 
 bool rpc_get_bip32_path(
     const char* field, const CborValue* value, uint32_t* path_ptr, size_t max_path_len, size_t* written);
-bool rpc_get_bip32_path_from_value(CborValue* value, uint32_t* path_ptr, const size_t max_path_len, size_t* written);
+bool rpc_get_bip32_path_from_value(CborValue* value, uint32_t* path_ptr, size_t max_path_len, size_t* written);
 
 bool rpc_get_array(const char* field, const CborValue* value, CborValue* result);
 bool rpc_get_map(const char* field, const CborValue* value, CborValue* result);
 
 // Build response objects
 void rpc_init_cbor(CborEncoder* container, const char* id, size_t id_len);
+void rpc_init_cbor_with_sequence(
+    CborEncoder* map_container, const char* id, size_t id_len, size_t seqnum, size_t seqlen);
 
 void add_int_to_map(CborEncoder* container, const char* name, int64_t value);
 void add_uint_to_map(CborEncoder* container, const char* name, uint64_t value);

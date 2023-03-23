@@ -741,7 +741,8 @@ def test_unexpected_method(jade):
                   ('protocol3', 'ota_data', h2b('abcdef')),
                   ('protocol4', 'ota_complete'),
                   ('protocol5', 'tx_input'),
-                  ('protocol6', 'get_signature')]
+                  ('protocol6', 'get_signature'),
+                  ('protocol7', 'get_extended_data')]
 
     for args in unexpected:
         request = jade.build_request(*args)
@@ -1210,10 +1211,8 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badsignpsbt1', 'sign_psbt'), 'Expecting parameters map'),
                   (('badsignpsbt2', 'sign_psbt', {'psbt': None}), 'extract psbt bytes'),
                   (('badsignpsbt3', 'sign_psbt', {'psbt': 'bad type'}), 'extract psbt bytes'),
-                  (('badsignpsbt4', 'sign_psbt',
-                    {'psbt': bytes(4096)}), 'will be too large to transmit'),
-                  (('badsignpsbt5', 'sign_psbt',
-                    {'psbt': bytes(256)}), 'extract psbt from passed bytes'),
+                  (('badsignpsbt4', 'sign_psbt', {'psbt': bytes(256)}),
+                   'extract psbt from passed bytes'),
 
                   (('badsigntx1', 'sign_tx'), 'Expecting parameters map'),
                   (('badsigntx2', 'sign_tx',

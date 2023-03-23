@@ -32,6 +32,8 @@ static void wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_f
 #define PSBT_SIGNING_SINGLE_MULTISIG_RECORD 0x10
 #define PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED 0x20
 
+#define PSBT_OUT_CHUNK_SIZE (MAX_OUTPUT_MSG_SIZE - 64)
+
 // Helper to get next key derived from the signer master key in the passed keypath map.
 // NOTE: Both start_index and found_index are zero-based.
 // The return indicates whether any key was found - and if so hdkey and index will be populated.
@@ -697,14 +699,6 @@ void sign_psbt_process(void* process_ptr)
         goto cleanup;
     }
 
-    // At the moment there is maximum size we can send as output - if the input psbt is larger
-    // than that before we potentially add signatures, we may as well reject it now.
-    if (psbt_len_in > MAX_STANDARD_OUTPUT_MSG_SIZE) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Signed psbt will be too large to transmit", NULL);
-        goto cleanup;
-    }
-
     // Parse to wally structure
     struct wally_psbt* psbt = NULL;
     if (!deserialise_psbt(psbt_bytes_in, psbt_len_in, &psbt)) {
@@ -728,19 +722,44 @@ void sign_psbt_process(void* process_ptr)
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to serialise sign psbt", NULL);
         goto cleanup;
     }
+    jade_process_free_on_exit(process, psbt_bytes_out);
 
-    // At the moment there is maximum size we can send as output
-    const size_t buflen = psbt_len_out + 32; // sufficent for cbor overhead
-    if (buflen > MAX_STANDARD_OUTPUT_MSG_SIZE) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Signed psbt too large to transmit", NULL);
-        goto cleanup;
+    // Send as cbor message - maybe split over N messages if the result is large
+    char original_id[MAXLEN_ID];
+    size_t original_id_len = 0;
+    rpc_get_id(&process->ctx.value, original_id, sizeof(original_id), &original_id_len);
+
+    const int nmsgs = (psbt_len_out / PSBT_OUT_CHUNK_SIZE) + 1;
+    uint8_t buf[MAX_OUTPUT_MSG_SIZE];
+    uint8_t* chunk = psbt_bytes_out;
+    for (size_t imsg = 0; imsg < nmsgs; ++imsg) {
+        JADE_ASSERT(chunk < psbt_bytes_out + psbt_len_out);
+        const size_t remaining = psbt_bytes_out + psbt_len_out - chunk;
+        const size_t chunk_len = remaining < PSBT_OUT_CHUNK_SIZE ? remaining : PSBT_OUT_CHUNK_SIZE;
+        const size_t seqnum = imsg + 1;
+        jade_process_reply_to_message_bytes_sequence(process->ctx, seqnum, nmsgs, chunk, chunk_len, buf, sizeof(buf));
+        chunk += chunk_len;
+
+        if (seqnum < nmsgs) {
+            // Await a 'get_extended_data' message
+            jade_process_load_in_message(process, true);
+            if (!IS_CURRENT_MESSAGE(process, "get_extended_data")) {
+                // Protocol error
+                jade_process_reject_message(
+                    process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'get_extended_data'", NULL);
+                goto cleanup;
+            }
+
+            // Sanity check extended-data payload fields
+            GET_MSG_PARAMS(process);
+            if (!check_extended_data_fields(&params, original_id, "sign_psbt", seqnum + 1, nmsgs)) {
+                // Protocol error
+                jade_process_reject_message(
+                    process, CBOR_RPC_PROTOCOL_ERROR, "Mismatched fields in 'get_extended_data' message", NULL);
+                goto cleanup;
+            }
+        }
     }
-
-    // Send as cbor message
-    uint8_t* buf = JADE_MALLOC_PREFER_SPIRAM(buflen);
-    jade_process_reply_to_message_bytes(process->ctx, psbt_bytes_out, psbt_len_out, buf, buflen);
-    free(psbt_bytes_out);
-    free(buf);
 
     JADE_LOGI("Success");
 

@@ -1488,8 +1488,32 @@ class JadeAPI:
         bytes
             The psbt, updated with any signatures required from the hw signer
         """
+        # Send PSBT message
         params = {'psbt': psbt}
-        return self._jadeRpc('sign_psbt', params)
+        msgid = str(random.randint(100000, 999999))
+        request = self.jade.build_request(msgid, 'sign_psbt', params)
+        self.jade.write_request(request)
+
+        # Read replies until we have them all, collate data and return.
+        # NOTE: we send 'get_extended_data' messages to request more 'chunks' of the reply data.
+        psbt_out = bytearray()
+        while True:
+            reply = self.jade.read_response()
+            self.jade.validate_reply(request, reply)
+            psbt_out.extend(self._get_result_or_raise_error(reply))
+
+            if 'seqnum' not in reply or reply['seqnum'] == reply['seqlen']:
+                break
+
+            newid = str(random.randint(100000, 999999))
+            params = {'origid': msgid,
+                      'orig': 'sign_psbt',
+                      'seqnum': reply['seqnum'] + 1,
+                      'seqlen': reply['seqlen']}
+            request = self.jade.build_request(newid, 'get_extended_data', params)
+            self.jade.write_request(request)
+
+        return psbt_out
 
 
 class JadeInterface:

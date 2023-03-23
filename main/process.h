@@ -111,5 +111,7 @@ void cbor_result_uint64_cb(const void* ctx, CborEncoder* container);
 
 void jade_process_reply_to_message_bytes(
     cbor_msg_t ctx, const uint8_t* data, size_t datalen, uint8_t* buffer, size_t buflen);
+void jade_process_reply_to_message_bytes_sequence(cbor_msg_t ctx, const size_t seqnum, const size_t seqlen,
+    const uint8_t* data, const size_t datalen, uint8_t* buffer, const size_t buflen);
 
 #endif /* PROCESS_H_ */

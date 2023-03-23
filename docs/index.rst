@@ -40,6 +40,49 @@ common error reply
 * 'message' should be a meaningful string describing the error encountered.
 * 'data' content is optional, and usually unused/null.
   
+.. _get_extended_data_request:
+
+get_extended_data request
+-------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "11",
+        "method": "get_extended_data"
+        "params": {
+            "origid": "1234",
+            "orig": "sign_psbt",
+            "seqnum": 3,
+            "seqlen": 6
+        }
+    }
+
+* 'get_extended_data' is to be used where a prior reply has included 'seqnum' and 'seqlen' fields which indicate incomplete data
+* 'origid' should be the id of the original request message and initial reply
+* 'orig' should be the 'method' of the original request message
+* 'seqlen' should be the 'seqlen' in the replies - indicating the total number of message replies which will be required
+* 'seqnum' should indicate the next fragment required - it should always be less-than or equal-to the 'seqlen'
+* NOTE: atm 'seqnum' *MUST* indicate the next fragement.  ie. ie must be the last received seqnum + 1.
+* NOTE: at the moment these messages are only used for 'sign_psbt' replies, where the full psbt binary may be sufficiently large that it needs to be split over multiple messages.  See sign_psbt_request_.
+* Use of these messages may increase in future firmware releases.
+
+.. _get_extended_data_reply:
+
+get_extended_data reply
+-----------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "11",
+        "result": {
+            <as appropriate for parent message>
+        }
+    }
+
+* The content of the message will be dependent on the original message whose reply data is being split over multiple messages.
+
 .. _get_version_info_request:
 
 get_version_info request
@@ -108,11 +151,11 @@ Call to update the details of the blind pinserver used to authenticate Jade unlo
         "id": "101",
         "method": "update_pinserver"
         "params": {
-            "reset_details": true
-            "reset_certificate": true
+            "reset_details": true,
+            "reset_certificate": true,
             "urlA": "https://test.pinserver.com",
             "urlB": "http://pinserveronion.com",
-            "pubkey": <33 bytes>
+            "pubkey": <33 bytes>,
             "certificate": "<certificate pem string>"
         }
     }
@@ -1747,11 +1790,14 @@ sign_psbt
 
     {
         "id": "6979",
+        "seqnum": 1
+        "seqlen": 4
         "result": <psbt bytes>
     }
 
+* NOTE: 'seqnum' and 'seqlen' indicate if the data is complete.  If 'seqlen' is greater than 1, the caller will have to send 'get_extended_data' messages to fetch the complete data.  See get_extended_data_request_.
 * 'result' is the input psbt updated with any generated signatures.
-
+* NOTE: if 'get_extended_data' calls are needed, the bytes payload of the messages must be concatenated to yield the complete psbt.
 
 Indices and tables
 ==================
