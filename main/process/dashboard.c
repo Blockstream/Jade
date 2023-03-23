@@ -1465,6 +1465,14 @@ static void handle_storage(void)
 static void handle_device(void)
 {
     char power_status[32] = "NO BAT";
+
+#if defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) || defined(CONFIG_BOARD_TYPE_M5_FIRE)
+    float approx_voltage;
+    approx_voltage = power_get_vbat() / 1000.0;
+    const int ret = snprintf(power_status, sizeof(power_status), "Approx %.1fv", approx_voltage);
+    JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
+#endif
+
 #ifdef CONFIG_HAS_AXP
     const int ret = snprintf(power_status, sizeof(power_status), "%umv", power_get_vbat());
     JADE_ASSERT(ret > 0 && ret < sizeof(power_status));

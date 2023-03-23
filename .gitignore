@@ -8,3 +8,5 @@ sdkconfig.old
 *.swp
 __pycache__
 main/autogen_lang.*
+.idea/
+managed_components/

@@ -2,10 +2,11 @@
 #include "jade_assert.h"
 #include <sdkconfig.h>
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-// Code common to JADE v1 and v1.1 - ie. using AXP
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)                                            \
+    || defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS) || defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)                           \
+    || defined(CONFIG_BOARD_TYPE_M5_FIRE)
+// Code common to all devices that communicate with a PMU via i2c
 #include <driver/i2c.h>
-#include <esp_private/adc_share_hw_ctrl.h>
 
 static SemaphoreHandle_t i2c_mutex = NULL;
 
@@ -76,6 +77,10 @@ static esp_err_t _power_master_read_slave(uint8_t address, uint8_t register_addr
     return ret;
 }
 
+#endif
+
+#if defined(CONFIG_HAS_AXP)
+// Some common functions used when AXP192 is present
 static esp_err_t _power_write_command(uint8_t reg, uint8_t val)
 {
     uint8_t arr[] = { reg, val };
@@ -83,6 +88,11 @@ static esp_err_t _power_write_command(uint8_t reg, uint8_t val)
     vTaskDelay(20 / portTICK_PERIOD_MS);
     return ESP_OK;
 }
+#endif
+
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+// Code common to JADE v1 and v1.1 - ie. using AXP
+#include <esp_private/adc_share_hw_ctrl.h>
 
 // Logical commands - some differ between Jade_v1 and Jade_v1.1
 static esp_err_t _power_enable_adcs(void) { return _power_write_command(0x82, 0xff); }
@@ -428,9 +438,320 @@ bool usb_connected(void)
 #endif
     return is_usb_connected;
 }
+#elif defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS) // M5StickC-Plus has AXP192, but configured differently to the Jade
 
-#else // ie. not CONFIG_BOARD_TYPE_JADE or CONFIG_BOARD_TYPE_JADE_V1_1
-// Stubs for non-Jade hw boards (ie. no AXP)
+static esp_err_t _power_enable_coulomb_counter(void) { return _power_write_command(0xb8, 0x80); }
+
+esp_err_t power_init(void)
+{
+
+    const i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = CONFIG_AXP_SDA,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_io_num = CONFIG_AXP_SCL,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = 400000,
+        .clk_flags = 0,
+    };
+
+    I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
+    I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
+
+    // Create and load the i2c mutex
+    i2c_mutex = xSemaphoreCreateBinary();
+    JADE_ASSERT(i2c_mutex);
+    xSemaphoreGive(i2c_mutex);
+
+    _power_enable_coulomb_counter();
+
+    return ESP_OK;
+}
+
+esp_err_t power_shutdown(void)
+{
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    const esp_err_t ret = _power_write_command(0x32, 0x80);
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+    return ret;
+}
+
+static esp_err_t _power_display_on(void)
+{
+    uint8_t buf1;
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x96, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return _power_write_command(0x96, buf1 | 0x02);
+}
+
+static esp_err_t _power_display_off(void)
+{
+    uint8_t buf1;
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x96, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return _power_write_command(0x96, buf1 & (~0x02));
+}
+
+esp_err_t power_screen_on(void)
+{
+    uint8_t buf1;
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x12, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return _power_write_command(0x12, buf1 | 0x08);
+}
+
+esp_err_t power_screen_off(void)
+{
+    uint8_t buf1;
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x12, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return _power_write_command(0x12, buf1 & (~0x08));
+}
+
+esp_err_t power_backlight_on(void)
+{
+    uint8_t buf1;
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x12, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return _power_write_command(0x12, buf1 | 0x04);
+}
+
+esp_err_t power_backlight_off(void)
+{
+    uint8_t buf1;
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x12, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    return _power_write_command(0x12, buf1 & (~0x04));
+}
+
+esp_err_t power_camera_on(void) { return ESP_OK; }
+esp_err_t power_camera_off(void) { return ESP_OK; }
+
+uint16_t power_get_vbat(void)
+{
+    uint8_t buf1, buf2;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x78, &buf1, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x79, &buf2, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+
+    const uint16_t vbat = ((buf1 << 4) + buf2) * 1.1;
+    return vbat;
+}
+
+uint8_t power_get_battery_status(void)
+{
+    const uint16_t vbat = power_get_vbat();
+    if (vbat > 4000) {
+        return 5;
+    } else if (vbat > 3850) {
+        return 4;
+    } else if (vbat > 3700) {
+        return 3;
+    } else if (vbat > 3550) {
+        return 2;
+    } else if (vbat > 3400) {
+        return 1;
+    }
+    return 0;
+}
+
+uint16_t power_get_ibat_charge(void)
+{
+    uint8_t buf1, buf2;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x7A, &buf1, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x7B, &buf2, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+
+    const uint16_t ibat = (buf1 << 5) + buf2;
+    return ibat;
+}
+
+uint16_t power_get_ibat_discharge(void)
+{
+    uint8_t buf1, buf2;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x7C, &buf1, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x7D, &buf2, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+
+    const uint16_t ibat = (buf1 << 5) + buf2;
+    return ibat;
+}
+
+bool power_get_battery_charging(void)
+{
+    uint8_t buf;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x01, &buf, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+
+    const bool charging = (buf & 0b01000000) >> 6;
+    return charging;
+}
+
+uint16_t power_get_vusb(void)
+{
+    uint8_t buf1, buf2;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x5a, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x5b, &buf2, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+
+    const uint16_t vusb = ((buf1 << 4) + buf2) * 1.7;
+    return vusb;
+}
+
+uint16_t power_get_iusb(void)
+{
+    uint8_t buf1, buf2;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x5c, &buf1, 1));
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x5d, &buf2, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+
+    const uint16_t iusb = ((buf1 << 4) + buf2) * 0.375;
+    return iusb;
+}
+
+uint16_t power_get_temp(void)
+{
+    uint8_t buf1, buf2;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x5e, &buf1, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x5f, &buf2, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+
+    const uint16_t temp = ((buf1 << 4) + buf2) * 0.1 - 144.7;
+    return temp;
+}
+
+bool usb_connected(void)
+{
+    uint8_t buf;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x00, &buf, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+    const bool is_usb_connected = buf & 0b00100000;
+    return is_usb_connected;
+}
+
+#elif defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)                                                                         \
+    || defined(CONFIG_BOARD_TYPE_M5_FIRE) // M5Stack Basic with IP5303 Power PMU
+#include <esp_sleep.h>
+
+esp_err_t power_init(void)
+{
+
+    const i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = 21,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_io_num = 22,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = 400000,
+        .clk_flags = 0,
+    };
+
+    I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
+    I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
+
+    // Create and load the i2c mutex
+    i2c_mutex = xSemaphoreCreateBinary();
+    JADE_ASSERT(i2c_mutex);
+    xSemaphoreGive(i2c_mutex);
+    return ESP_OK;
+}
+
+esp_err_t power_shutdown(void)
+{
+    // If we don't have a PMU, use esp_deep_sleep
+    esp_deep_sleep_start();
+    return ESP_OK;
+}
+
+esp_err_t power_screen_on(void) { return ESP_OK; }
+esp_err_t power_screen_off(void) { return ESP_OK; }
+
+esp_err_t power_backlight_on(void) { return ESP_OK; }
+esp_err_t power_backlight_off(void) { return ESP_OK; }
+
+esp_err_t power_camera_on(void) { return ESP_OK; }
+esp_err_t power_camera_off(void) { return ESP_OK; }
+
+uint16_t power_get_vbat(void)
+{
+    uint8_t buf;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x75, 0x78, &buf, 1));
+    ;
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+    switch (buf & 0xF0) {
+    case 0x00:
+        return 4150;
+    case 0x80:
+        return 3900;
+    case 0xC0:
+        return 3700;
+    case 0xE0:
+        return 3500;
+    default:
+        return 3400;
+    }
+}
+
+uint8_t power_get_battery_status(void)
+{
+    uint8_t buf;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x75, 0x78, &buf, 1));
+    ;
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+    // IP5306 only offers battery level in 25% increments, as opposed to the Jade's UI which displays it in 20%. (So
+    // skip just 2)
+    switch (buf & 0xF0) {
+    case 0x00:
+        return 5;
+    case 0x80:
+        return 4;
+    case 0xC0:
+        return 3;
+    case 0xE0:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+bool power_get_battery_charging(void)
+{
+    uint8_t chargedata;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x75, 0x70, &chargedata, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+    return (chargedata & 0x08) && power_get_battery_status() != 5;
+}
+uint16_t power_get_ibat_charge(void) { return 0; }
+uint16_t power_get_ibat_discharge(void) { return 0; }
+uint16_t power_get_vusb(void) { return 0; }
+uint16_t power_get_iusb(void) { return 0; }
+uint16_t power_get_temp(void) { return 0; }
+
+bool usb_connected(void)
+{
+    uint8_t chargedata, chargedata2;
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x75, 0x70, &chargedata, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(0x75, 0x71, &chargedata2, 1));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+    return ((chargedata & 0x08) || (chargedata2 & 0x08));
+}
+
+#else // ie. not CONFIG_BOARD_TYPE_JADE or CONFIG_BOARD_TYPE_JADE_V1_1, M5Stack or M5Stick
+// Stubs for other hw boards (ie. no power management)
 #include <esp_sleep.h>
 
 esp_err_t power_init(void) { return ESP_OK; }

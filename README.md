@@ -7,6 +7,10 @@ They are not for updating the firmware of an official Blockstream Jade hw unit -
 
 To build you can use the docker image (see Dockerfile) or install the esp-idf toolchain and repo following the commands in this readme.
 
+# DIY Hardware & Programming Notes
+For information about suitable DIY hardware, as well as suggested configuration profiles and notes on secure boot.
+[DIY Guide](./diy/readme.md)
+
 # Use docker
 
 Note the supplied docker-compose.yml assumes the Jade device is at
@@ -51,6 +55,13 @@ git clone --recursive https://github.com/Blockstream/Jade.git $HOME/jade
 cd $HOME/jade
 cp configs/sdkconfig_jade.defaults sdkconfig.defaults
 idf.py flash monitor
+```
+
+_Some hardware configurations (eg: M5StickC-Plus) may not support the default baud rate and won't be detected, so you can force a specific baud rate for flash/monitor by using the `-b` argument.
+
+_For example, the last line of the above code block would change be:_
+```
+idf.py -b 115200 flash monitor
 ```
 
 # Build configurations
