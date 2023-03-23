@@ -188,10 +188,16 @@ void wheel_init(void)
 {
     button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_PUSH, button_A_pressed, NULL);
-    iot_button_set_serial_cb(btn_handle_prev, 1, 100 / portTICK_PERIOD_MS, button_A_pressed, NULL);
 
     button_handle_t btn_handle_next = iot_button_create(CONFIG_INPUT_BTN_B, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_B_pressed, NULL);
+
+    // M5Stack-Basic/Fire hw has three buttons, but the A button behaves behaves badly when Bluetooth is active.
+    // In this case the A button generates constant input if serial input is enabled, so the simplest fix is to remove
+    // the ability to hold the button down (ie. do not add serial event handlers).
+#if defined(CONFIG_ESP32_NO_BLOBS) || (!defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) && !defined(CONFIG_BOARD_TYPE_M5_FIRE))
+    iot_button_set_serial_cb(btn_handle_prev, 1, 100 / portTICK_PERIOD_MS, button_A_pressed, NULL);
     iot_button_set_serial_cb(btn_handle_next, 1, 100 / portTICK_PERIOD_MS, button_B_pressed, NULL);
+#endif
 }
 #endif // CONFIG_BOARD_TYPE_xxx
