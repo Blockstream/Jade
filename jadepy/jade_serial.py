@@ -21,7 +21,7 @@ logger = logging.getLogger('jade.serial')
 #
 class JadeSerialImpl:
     # Used when searching for devices that might be a Jade/compatible hw
-    JADE_DEVICE_IDS = [(0x10c4, 0xea60), (0x1a86, 0x55d4)]
+    JADE_DEVICE_IDS = [(0x10c4, 0xea60), (0x1a86, 0x55d4), (0x0403, 0x6001)]
 
     @classmethod
     def _get_first_compatible_device(cls):

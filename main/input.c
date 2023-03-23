@@ -177,6 +177,66 @@ void wheel_init(void)
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_pressed, &button_B_pressed);
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_released, &button_B_pressed);
 }
+#elif defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS)
+/*
+M5StickC-Plus is similar to the TTGO T-Display in that it is two buttons,
+but one of the buttons behaves badly when Bluetooth is active.
+*/
+
+// In the case of the M5StickC-Plus, the A button stops giving a "Released" event.
+// As such, the A button simply looks for input when the button is pressed and calls "Prev"
+
+static void button_A_pressed(void* arg) { wheel_prev(); }
+
+// The B button works fine, so it makes sense to have the "Front Click" as long click on the "B" Button
+// (On the front face of the device) and also have the short click be "Next"
+
+static uint64_t button_B_pressed_time = 0;
+static void button_B_pressed(void* arg)
+{
+    uint64_t current = xTaskGetTickCount();
+    button_B_pressed_time = current;
+}
+
+static void button_B_released(void* arg)
+{
+    uint64_t current = xTaskGetTickCount();
+    if ((current - button_B_pressed_time) > 50)
+    {
+        gui_front_click();
+    } else {
+        wheel_next();
+    }
+}
+
+void wheel_init(void)
+{
+    button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
+    iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_PUSH, button_A_pressed, NULL);
+
+    button_handle_t btn_handle_next = iot_button_create(CONFIG_INPUT_BTN_B, BUTTON_ACTIVE_LOW);
+    iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_B_pressed, NULL);
+    iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_B_released, NULL);
+}
+#elif(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)
+/*
+M5Stack-Basic has three buttons, but the A button behaves behaves badly when Bluetooth is active.
+*/
+// In the case of the M5Stack-Basic, the A button generates constant input if serial input is enabled,
+// so the simplest fix is to remove the ability to hold the button down. (So remove serial event handler)
+
+static void button_A_pressed(void* arg) { wheel_prev(); }
+
+static void button_B_pressed(void* arg) { wheel_next(); }
+
+void wheel_init(void)
+{
+    button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
+    iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_PUSH, button_A_pressed, NULL);
+
+    button_handle_t btn_handle_next = iot_button_create(CONFIG_INPUT_BTN_B, BUTTON_ACTIVE_LOW);
+    iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_B_pressed, NULL);
+}
 #else
 // wheel_init() to mock wheel with buttons
 // Long press buttons mocks wheel spin (multiple events)
