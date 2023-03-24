@@ -12,9 +12,9 @@ STAGING="staging"
 UPLOAD="upload"
 WORKING_DIR="${STAGING}/${UPLOAD}"
 
-if [ -z "${1}" -o -z "${2}" ]
+if [ -z "${1}" ]
 then
-  echo "Usage ${0} <target-version> <prior version> [ <prior version> ... ]"
+  echo "Usage ${0} <target-version> [ <prior version> [ <prior version> ... ]]"
   exit 1
 fi
 VER_DEST="${1}"
@@ -32,22 +32,25 @@ do
   echo "Generating new deltas for $(pwd)"
   mkdir -p "${DELTA_OUTPUT_DIR}"
 
-  # Upgrade & downgrade deltas
-  for pattern in "${PATTERN_BLE}" "${PATTERN_NORADIO}"
-  do
-    fw_dest=$(ls ${VER_DEST}${pattern})
-    if [ -r "${fw_dest}" ]
-    then
-      for ver_prior in ${VER_PRIORS}
-      do
-        fw_prior=$(ls ${ver_prior}${pattern})
-        if [ -r "${fw_prior}" ]
-        then
-          "${MKPATCH}" "${fw_prior}" "${fw_dest}" "${DELTA_OUTPUT_DIR}"
-        fi
-      done
-    fi
-  done
+  if [ -z "${VER_PRIORS}" ]
+  then
+    # Upgrade & downgrade deltas
+    for pattern in "${PATTERN_BLE}" "${PATTERN_NORADIO}"
+    do
+      fw_dest=$(ls ${VER_DEST}${pattern})
+      if [ -r "${fw_dest}" ]
+      then
+        for ver_prior in ${VER_PRIORS}
+        do
+          fw_prior=$(ls ${ver_prior}${pattern})
+          if [ -r "${fw_prior}" ]
+          then
+            "${MKPATCH}" "${fw_prior}" "${fw_dest}" "${DELTA_OUTPUT_DIR}"
+          fi
+        done
+      fi
+    done
+  fi
 
   # BLE<->NORADIO deltas for target fw
   fw_ble=$(ls ${VER_DEST}${PATTERN_BLE})

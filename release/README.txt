@@ -76,7 +76,7 @@ eg. './scripts/promotebeta.sh'
 - Copies 'BETA' to 'LATEST'
 
 
-* scripts/mkdeltas.sh <target ver> <prior ver> [ <prior ver> ... ]
+* scripts/mkdeltas.sh <target ver> [ <prior ver> [ <prior ver> ... ]]
 eg: './scripts/mkdeltas.sh 0.1.33 0.1.32 0.1.31 0.1.30'
 - For each subdir (ie. jade, jade1.1, jadedev, jade1.1dev) in 'staging/upload',
   creates deltas between the target firmware and all listed prior firmwares.
@@ -98,7 +98,8 @@ eg: './scripts/mkdeltas.sh 0.1.33 0.1.32 0.1.31 0.1.30'
 - All patches are created compressed, and with the standard format name
   (<ver>_<cfg>_from_<basever>_<basecfg>_sizes_<uncompressed_fw_size>_<uncompressed_patch_size>_patch.bin)
 - Lists the patch files in index file 'DELTAS'.
-
+- If no prior versions are provided, only makes the ble<->noradio patches for the
+  given target version.
 
 * scripts/mkindexes.sh <stable version> [ <beta version> ]
 eg: './scripts/mkindexes.sh 0.1.33' or './scripts/mkindexes.sh 0.1.32 0.1.33'
