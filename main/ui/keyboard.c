@@ -37,62 +37,60 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
     *textbox = entered_phrase;
 
     // second row, keyboard
-    char* lines[NUM_KEYBOARD_ROWS];
-    size_t sizes[NUM_KEYBOARD_ROWS] = { 10, 9, 10 };
+    const char* lines[NUM_KEYBOARD_ROWS];
     // NOTE: final three characters ('|', '>', 'S') are rendered in different symbols fonts
     // and are buttons for 'backspace', 'shift/next kb', and 'enter/done'  (see below)
     if (kb_type == KB_LOWER_CASE_CHARS) {
-        lines[0] = (char[]){ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j' };
-        lines[1] = (char[]){ 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's' };
-        lines[2] = (char[]){ 't', 'u', 'v', 'w', 'x', 'y', 'z', '|', '>', 'S' };
+        lines[0] = "abcdefghij";
+        lines[1] = "klmnopqrs";
+        lines[2] = "tuvwxyz|>S";
         // 'sizes' ok
     } else if (kb_type == KB_UPPER_CASE_CHARS) {
-        lines[0] = (char[]){ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J' };
-        lines[1] = (char[]){ 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S' };
-        lines[2] = (char[]){ 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '|', '>', 'S' };
+        lines[0] = "ABCDEFGHIJ";
+        lines[1] = "KLMNOPQRS";
+        lines[2] = "TUVWXYZ|>S";
         // 'sizes' ok
     } else if (kb_type == KB_NUMBERS_SYMBOLS) {
-        lines[0] = (char[]){ '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' };
-        lines[1] = (char[]){ '!', '"', '#', '$', '%', '&', '\'', '(', ')' };
-        lines[2] = (char[]){ '*', '+', ',', '-', '.', '/', '|', '>', 'S' };
-        sizes[2] = 9;
+        lines[0] = "1234567890";
+        lines[1] = "!\"#$%&'()";
+        lines[2] = "*+,-./|>S";
     } else if (kb_type == KB_REMAINING_SYMBOLS) {
-        lines[0] = (char[]){ ':', ';', '<', '=', '>', '?', '@' };
-        lines[1] = (char[]){ '[', '\\', ']', '^', '_', '`', '~' };
-        lines[2] = (char[]){ '{', '|', '}', ' ', '|', '>', 'S' };
-        sizes[0] = 7;
-        sizes[1] = 7;
-        sizes[2] = 7;
+        lines[0] = ":;<=>?@";
+        lines[1] = "[\\]^_`~";
+        lines[2] = "{|} |>S";
     } else {
         JADE_ASSERT_MSG(false, "Unhandled keyboard type: %d", kb_type);
     }
 
     gui_view_node_t* btnShift = NULL;
     for (size_t l = 0; l < NUM_KEYBOARD_ROWS; ++l) {
+        const char* line = lines[l];
+        const size_t linelen = strlen(line);
+
         gui_view_node_t* hsplit;
         gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 10, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24);
         gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0,
-            ((10 - sizes[l]) * 10)); // offset each row depending on row length
+            ((10 - linelen) * 10)); // offset each row depending on row length
         gui_set_parent(hsplit, vsplit);
 
         // Create 'keys'
-        for (size_t c = 0; c < sizes[l]; ++c) {
+        for (size_t c = 0; c < linelen; ++c) {
             // By default the 'event' is based on the ascii character displayed
-            size_t btn_ev_id = BTN_KEYBOARD_ASCII_OFFSET + lines[l][c];
+            size_t btn_ev_id = BTN_KEYBOARD_ASCII_OFFSET + line[c];
             size_t font = UBUNTU16_FONT;
 
             // The last three buttons on the last row are exceptions
             // These are buttons for 'backspace', 'shift/next kb', and 'enter/done'
             // They are rendered in different fonts to display bespoke symbols,
             // and raise events specific to these actions.
-            if (l == NUM_KEYBOARD_ROWS - 1 && c >= sizes[l] - 3) {
-                if (c == sizes[l] - 3) {
+            if (l == NUM_KEYBOARD_ROWS - 1 && c >= linelen - 3) {
+                if (c == linelen - 3) {
                     btn_ev_id = BTN_KEYBOARD_BACKSPACE;
                     font = DEFAULT_FONT; // '|' becomes <backspace>
-                } else if (c == sizes[l] - 2) {
+                } else if (c == linelen - 2) {
                     btn_ev_id = BTN_KEYBOARD_SHIFT;
                     font = JADE_SYMBOLS_16x16_FONT; // '>' becomes <right arrow>
-                } else if (c == sizes[l] - 1) {
+                } else if (c == linelen - 1) {
                     btn_ev_id = BTN_KEYBOARD_ENTER;
                     font = VARIOUS_SYMBOLS_FONT; // 'S' becomes <tick>
                 }
@@ -114,7 +112,7 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
                 gui_set_parent(btn, hsplit);
 
                 gui_view_node_t* label;
-                const char str[2] = { lines[l][c], 0 };
+                const char str[2] = { line[c], 0 };
                 gui_make_text_font(&label, str, TFT_WHITE, font);
                 gui_set_parent(label, btn);
                 gui_set_align(label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
