@@ -2,7 +2,18 @@
 #define UTIL_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+
+static inline void reverse(uint8_t* dest, const uint8_t* src, const size_t len)
+{
+    JADE_ASSERT(dest);
+    JADE_ASSERT(src);
+
+    for (size_t i = 0; i < len; ++i) {
+        dest[i] = src[len - 1 - i];
+    }
+}
 
 static inline void uint32_to_be(const uint32_t val, uint8_t* buffer)
 {

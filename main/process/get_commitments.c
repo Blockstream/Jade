@@ -3,6 +3,7 @@
 #include "../sensitive.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/util.h"
 #include "../wallet.h"
 
 #include <wally_elements.h>
@@ -106,9 +107,7 @@ void get_commitments_process(void* process_ptr)
 
     // flip the asset_id for computing asset-generator
     uint8_t reversed_asset_id[sizeof(commitments.asset_id)];
-    for (size_t i = 0; i < sizeof(commitments.asset_id); ++i) {
-        reversed_asset_id[i] = commitments.asset_id[sizeof(commitments.asset_id) - 1 - i];
-    }
+    reverse(reversed_asset_id, commitments.asset_id, sizeof(commitments.asset_id));
 
     if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitments.abf,
             sizeof(commitments.abf), commitments.asset_generator, sizeof(commitments.asset_generator))

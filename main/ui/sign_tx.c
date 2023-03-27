@@ -381,13 +381,9 @@ void make_display_elements_output_activity(const char* network, const struct wal
         }
 
         // Get the asset-id display hex string
-        uint8_t flipped_asset_id[ASSET_TAG_LEN];
-        for (size_t x = 0; x < sizeof(flipped_asset_id); ++x) {
-            flipped_asset_id[x] = output_info[i].asset_id[sizeof(flipped_asset_id) - x - 1];
-        }
-
         char* asset_id_hex = NULL;
-        JADE_WALLY_VERIFY(wally_hex_from_bytes(flipped_asset_id, sizeof(flipped_asset_id), &asset_id_hex));
+        JADE_WALLY_VERIFY(
+            wally_hex_from_bytes(output_info[i].asset_id, sizeof(output_info[i].asset_id), &asset_id_hex));
         JADE_ASSERT(asset_id_hex);
 
         // Look up the asset-id in the canned asset-data

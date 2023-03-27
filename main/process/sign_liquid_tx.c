@@ -27,16 +27,6 @@ void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_sig
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
-static inline void reverse(uint8_t* buf, size_t len)
-{
-    // flip the order of the bytes in-place
-    for (uint8_t *c1 = buf, *c2 = buf + len - 1; c1 < c2; ++c1, --c2) {
-        const uint8_t tmp = *c1;
-        *c1 = *c2;
-        *c2 = tmp;
-    }
-}
-
 static void get_commitments_allocate(const char* field, const CborValue* value, commitment_t** data, size_t* written)
 {
     JADE_ASSERT(field);
@@ -105,7 +95,6 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
             free(commitments);
             return;
         }
-        reverse(commitment->asset_id, sizeof(commitment->asset_id));
 
         if (!rpc_get_uint64_t("value", &arrayItem, &commitment->value)) {
             free(commitments);
@@ -184,9 +173,12 @@ static bool add_validated_confidential_output_info(const commitment_t* commitmen
     }
 
     // 2. Check the tx blinded asset commitment can be reconstructed
-    // (ie. from the given asset_id and abf)
+    // (ie. from the given reversed asset_id and abf)
+    uint8_t reversed_asset_id[sizeof(commitments->asset_id)];
+    reverse(reversed_asset_id, commitments->asset_id, sizeof(commitments->asset_id));
+
     uint8_t generator_tmp[ASSET_GENERATOR_LEN];
-    if (wally_asset_generator_from_bytes(commitments->asset_id, sizeof(commitments->asset_id), commitments->abf,
+    if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitments->abf,
             sizeof(commitments->abf), generator_tmp, sizeof(generator_tmp))
             != WALLY_OK
         || txoutput->asset_len != sizeof(generator_tmp)
@@ -355,7 +347,8 @@ void sign_liquid_tx_process(void* process_ptr)
             output_info[i].flags &= ~OUTPUT_FLAG_CONFIDENTIAL;
 
             // Copy the asset ID without the leading unconfidential tag byte
-            memcpy(output_info[i].asset_id, tx->outputs[i].asset + 1, sizeof(output_info[i].asset_id));
+            // NOTE: we reverse the asset-id bytes to the 'display' order
+            reverse(output_info[i].asset_id, tx->outputs[i].asset + 1, sizeof(output_info[i].asset_id));
             JADE_WALLY_VERIFY(wally_tx_confidential_value_to_satoshi(
                 tx->outputs[i].value, tx->outputs[i].value_len, &output_info[i].value));
 
