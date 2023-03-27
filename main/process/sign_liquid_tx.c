@@ -380,6 +380,11 @@ void sign_liquid_tx_process(void* process_ptr)
     // Check the trusted commitments: expect one element in the array for each output.
     // Can be null for unblinded outputs as we will skip them.
     // Populate an `output_index` -> (blinding_key, asset, value) map
+    uint8_t policy_asset[ASSET_TAG_LEN];
+    const char* policy_asset_hex = networkGetPolicyAsset(network);
+    JADE_WALLY_VERIFY(wally_hex_to_bytes(policy_asset_hex, policy_asset, sizeof(policy_asset), &written));
+    JADE_ASSERT(written == sizeof(policy_asset));
+
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         if ((tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX)
             != (tx->outputs[i].value[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX)) {
@@ -396,7 +401,18 @@ void sign_liquid_tx_process(void* process_ptr)
         }
 
         // Collect fees (ie. outputs with no script)
+        // NOTE: fees must be unconfidential, and must be denominated in the policy asset
         if (!tx->outputs[i].script) {
+            if (output_info[i].flags & OUTPUT_FLAG_CONFIDENTIAL) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Fee output (without script) cannot be blinded", NULL);
+                goto cleanup;
+            }
+            if (memcmp(output_info[i].asset_id, policy_asset, sizeof(policy_asset))) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Unexpected fee output (without script) asset-id", NULL);
+                goto cleanup;
+            }
             fees += output_info[i].value;
         }
     }

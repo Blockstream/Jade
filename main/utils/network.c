@@ -203,7 +203,7 @@ bool networkUsesTestnetAssets(const char* network)
     return !strcmp(TAG_TESTNETLIQUID, network);
 }
 
-// 'liquid' like string to relevant policy-asset (lower-case hex id)
+// hexadecimal string to relevant policy-asset (lower-case hex id)
 const char* networkGetPolicyAsset(const char* network)
 {
     JADE_ASSERT(isLiquidNetwork(network));
