@@ -27,6 +27,59 @@ void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_sig
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
+static bool get_commitment_data(CborValue* item, commitment_t* commitment)
+{
+    JADE_ASSERT(item);
+    JADE_ASSERT(commitment);
+
+    commitment->content = BLINDERS_NONE;
+
+    if (!rpc_get_n_bytes("blinding_key", item, sizeof(commitment->blinding_key), commitment->blinding_key)) {
+        return false;
+    }
+
+    if (!rpc_get_n_bytes("abf", item, sizeof(commitment->abf), commitment->abf)) {
+        return false;
+    }
+
+    if (!rpc_get_n_bytes("vbf", item, sizeof(commitment->vbf), commitment->vbf)) {
+        return false;
+    }
+
+    if (!rpc_get_n_bytes("asset_id", item, sizeof(commitment->asset_id), commitment->asset_id)) {
+        return false;
+    }
+
+    if (!rpc_get_uint64_t("value", item, &commitment->value)) {
+        return false;
+    }
+
+    // Actual commitments are optional - but must be both commitments or neither.
+    // If both are passed these will be copied into the tx and signed.
+    // If not passed, the above blinding factors must match what is already present in the transaction output.
+    // If just one commitment is passed it will be ignored.
+    if (rpc_has_field_data("asset_generator", item) || rpc_has_field_data("value_commitment", item)) {
+        if (!rpc_get_n_bytes(
+                "asset_generator", item, sizeof(commitment->asset_generator), commitment->asset_generator)) {
+            return false;
+        }
+
+        if (!rpc_get_n_bytes(
+                "value_commitment", item, sizeof(commitment->value_commitment), commitment->value_commitment)) {
+            return false;
+        }
+
+        // Set flag to show struct is fully populated/initialised, including commitments to sign.
+        commitment->content = BLINDERS_AND_COMMITMENTS;
+    } else {
+        // Set flag to show struct is partially populated/initialised - no commitment overrides.
+        // Passed blinders/unblinded values refer to commitments already present in the transaction outputs.
+        commitment->content = BLINDERS_ONLY;
+    }
+
+    return true;
+}
+
 static void get_commitments_allocate(const char* field, const CborValue* value, commitment_t** data, size_t* written)
 {
     JADE_ASSERT(field);
@@ -55,8 +108,7 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
 
     for (size_t i = 0; i < num_array_items; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
-        commitment_t* const commitment = commitments + i;
-        commitment->content = BLINDERS_NONE;
+        commitments[i].content = BLINDERS_NONE;
 
         if (cbor_value_is_null(&arrayItem)) {
             CborError err = cbor_value_advance(&arrayItem);
@@ -76,54 +128,10 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
             continue;
         }
 
-        if (!rpc_get_n_bytes("blinding_key", &arrayItem, sizeof(commitment->blinding_key), commitment->blinding_key)) {
+        // Populate commitments data
+        if (!get_commitment_data(&arrayItem, &commitments[i])) {
             free(commitments);
             return;
-        }
-
-        if (!rpc_get_n_bytes("abf", &arrayItem, sizeof(commitment->abf), commitment->abf)) {
-            free(commitments);
-            return;
-        }
-
-        if (!rpc_get_n_bytes("vbf", &arrayItem, sizeof(commitment->vbf), commitment->vbf)) {
-            free(commitments);
-            return;
-        }
-
-        if (!rpc_get_n_bytes("asset_id", &arrayItem, sizeof(commitment->asset_id), commitment->asset_id)) {
-            free(commitments);
-            return;
-        }
-
-        if (!rpc_get_uint64_t("value", &arrayItem, &commitment->value)) {
-            free(commitments);
-            return;
-        }
-
-        // Actual commitments are optional - but must be both commitments or neither.
-        // If both are passed these will be copied into the tx and signed.
-        // If not passed, the above blinding factors must match what is already present in the transaction output.
-        // If just one commitment is passed it will be ignored.
-        if (rpc_has_field_data("asset_generator", &arrayItem) || rpc_has_field_data("value_commitment", &arrayItem)) {
-            if (!rpc_get_n_bytes(
-                    "asset_generator", &arrayItem, sizeof(commitment->asset_generator), commitment->asset_generator)) {
-                free(commitments);
-                return;
-            }
-
-            if (!rpc_get_n_bytes("value_commitment", &arrayItem, sizeof(commitment->value_commitment),
-                    commitment->value_commitment)) {
-                free(commitments);
-                return;
-            }
-
-            // Set flag to show struct is fully populated/initialised, including commitments to sign.
-            commitment->content = BLINDERS_AND_COMMITMENTS;
-        } else {
-            // Set flag to show struct is partially populated/initialised - no commitment overrides.
-            // Passed blinders/unblinded values refer to commitments already present in the transaction outputs.
-            commitment->content = BLINDERS_ONLY;
         }
 
         CborError err = cbor_value_advance(&arrayItem);
