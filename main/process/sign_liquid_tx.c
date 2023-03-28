@@ -148,8 +148,46 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
     *data = commitments;
 }
 
-static bool add_validated_confidential_output_info(const commitment_t* commitments,
-    const struct wally_tx_output* txoutput, output_info_t* outinfo, const char** errmsg)
+static bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg)
+{
+    JADE_ASSERT(commitments);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    if (commitments->content != BLINDERS_AND_COMMITMENTS) {
+        *errmsg = "Failed to extract final commitment values from commitments data";
+        return false;
+    }
+
+    // 1. Check the blinded asset commitment can be reconstructed
+    // (ie. from the given reversed asset_id and abf)
+    uint8_t reversed_asset_id[sizeof(commitments->asset_id)];
+    reverse(reversed_asset_id, commitments->asset_id, sizeof(commitments->asset_id));
+
+    uint8_t generator_tmp[sizeof(commitments->asset_generator)];
+    if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitments->abf,
+            sizeof(commitments->abf), generator_tmp, sizeof(generator_tmp))
+            != WALLY_OK
+        || sodium_memcmp(commitments->asset_generator, generator_tmp, sizeof(generator_tmp)) != 0) {
+        *errmsg = "Failed to verify blinded asset generator from commitments data";
+        return false;
+    }
+
+    // 2. Check the blinded value commitment can be reconstructed
+    // (ie. from value, vbf, and asset generator)
+    uint8_t commitment_tmp[sizeof(commitments->value_commitment)];
+    if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf), generator_tmp,
+            sizeof(generator_tmp), commitment_tmp, sizeof(commitment_tmp))
+            != WALLY_OK
+        || sodium_memcmp(commitments->value_commitment, commitment_tmp, sizeof(commitment_tmp)) != 0) {
+        *errmsg = "Failed to verify blinded value commitment from commitments data";
+        return false;
+    }
+
+    return true;
+}
+
+static bool add_validated_confidential_output_info(
+    commitment_t* commitments, const struct wally_tx_output* txoutput, output_info_t* outinfo, const char** errmsg)
 {
     JADE_ASSERT(commitments);
     JADE_ASSERT(txoutput);
@@ -160,50 +198,35 @@ static bool add_validated_confidential_output_info(const commitment_t* commitmen
     JADE_ASSERT(txoutput->value[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX);
     JADE_ASSERT(txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX);
 
+    // 1. Sanity checks
     if (commitments->content != BLINDERS_ONLY && commitments->content != BLINDERS_AND_COMMITMENTS) {
         *errmsg = "Missing commitments data for blinded output";
         return false;
     }
-
-    // 1. If passed explicit commitments copy them into the transaction output ready for signing
-    if (commitments->content == BLINDERS_AND_COMMITMENTS) {
-        if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
-            *errmsg = "Failed to update tx asset_generator from commitments data";
-            return false;
-        }
-        memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
-
-        if (txoutput->value_len != sizeof(commitments->value_commitment)) {
-            *errmsg = "Failed to update tx value_commitment from commitments data";
-            return false;
-        }
-        memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
+    if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
+        *errmsg = "Invalid asset generator in tx output";
+        return false;
     }
-
-    // 2. Check the tx blinded asset commitment can be reconstructed
-    // (ie. from the given reversed asset_id and abf)
-    uint8_t reversed_asset_id[sizeof(commitments->asset_id)];
-    reverse(reversed_asset_id, commitments->asset_id, sizeof(commitments->asset_id));
-
-    uint8_t generator_tmp[ASSET_GENERATOR_LEN];
-    if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitments->abf,
-            sizeof(commitments->abf), generator_tmp, sizeof(generator_tmp))
-            != WALLY_OK
-        || txoutput->asset_len != sizeof(generator_tmp)
-        || sodium_memcmp(txoutput->asset, generator_tmp, sizeof(generator_tmp)) != 0) {
-        *errmsg = "Failed to verify blinded asset commitment from commitments data";
+    if (txoutput->value_len != sizeof(commitments->value_commitment)) {
+        *errmsg = "Invalid value commitment in tx output";
         return false;
     }
 
-    // 3. Check the tx blinded value commitment can be reconstructed
-    // (ie. from the given value, vbf, and the asset generator)
-    uint8_t commitment_tmp[ASSET_COMMITMENT_LEN];
-    if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf), txoutput->asset,
-            txoutput->asset_len, commitment_tmp, sizeof(commitment_tmp))
-            != WALLY_OK
-        || txoutput->value_len != sizeof(commitment_tmp)
-        || sodium_memcmp(txoutput->value, commitment_tmp, sizeof(commitment_tmp)) != 0) {
-        *errmsg = "Failed to verify blinded value_commitment from commitments data";
+    // 2. If passed explicit commitments copy them into the transaction output ready for signing
+    // If not, copy the values from the tx into the commitment structure.
+    // ie. so in any case commitment struct is complete, and reflects what is in the tx output
+    if (commitments->content == BLINDERS_AND_COMMITMENTS) {
+        memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
+        memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
+    } else {
+        memcpy(commitments->asset_generator, txoutput->asset, sizeof(commitments->asset_generator));
+        memcpy(commitments->value_commitment, txoutput->value, sizeof(commitments->value_commitment));
+        commitments->content = BLINDERS_AND_COMMITMENTS;
+    }
+
+    // 3. Check the asset generator and value commitment can be reconstructed
+    if (!verify_commitment_consistent(commitments, errmsg)) {
+        // errmsg populated by call if failure
         return false;
     }
 

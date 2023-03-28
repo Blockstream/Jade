@@ -1637,11 +1637,11 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                         (_commitsUpdate('blinding_key', 'notbin'), 'extract trusted commitments'),
                         (_commitsUpdate('blinding_key', '123abc'), 'extract trusted commitments'),
                         # Field bad value
-                        (_commitsUpdate('asset_id', BADVAL32), 'verify blinded asset commitment'),
-                        (_commitsUpdate('abf', BADVAL32), 'verify blinded asset commitment'),
-                        (_commitsUpdate('vbf', BADVAL32), 'verify blinded value_commitment'),
-                        (_commitsUpdate('asset_generator', BADVAL33), 'blinded asset commitment'),
-                        (_commitsUpdate('value_commitment', BADVAL33), 'blinded value_commitment')]
+                        (_commitsUpdate('asset_id', BADVAL32), 'verify blinded asset generator'),
+                        (_commitsUpdate('abf', BADVAL32), 'verify blinded asset generator'),
+                        (_commitsUpdate('vbf', BADVAL32), 'verify blinded value commitment'),
+                        (_commitsUpdate('asset_generator', BADVAL33), 'blinded asset generator'),
+                        (_commitsUpdate('value_commitment', BADVAL33), 'blinded value commitment')]
 
     # Test all the simple cases
     for badmsg, errormsg in bad_params:
