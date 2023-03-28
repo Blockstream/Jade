@@ -8,16 +8,19 @@
 
 #define COMMITMENTS_NONE 0
 #define COMMITMENTS_BLINDERS 1
-#define COMMITMENTS_INCLUDES_COMMITMENTS 2
+#define COMMITMENTS_VALUE_BLIND_PROOF 2
+#define COMMITMENTS_INCLUDES_COMMITMENTS 4
 
 typedef struct {
+    uint8_t value_blind_proof[ASSET_EXPLICIT_RANGEPROOF_MAX_LEN];
+    uint8_t asset_generator[ASSET_GENERATOR_LEN];
+    uint8_t value_commitment[ASSET_COMMITMENT_LEN];
     uint8_t asset_id[ASSET_TAG_LEN];
     uint8_t abf[BLINDING_FACTOR_LEN];
     uint8_t vbf[BLINDING_FACTOR_LEN];
     uint8_t blinding_key[EC_PUBLIC_KEY_LEN];
     uint64_t value;
-    uint8_t asset_generator[ASSET_GENERATOR_LEN];
-    uint8_t value_commitment[ASSET_COMMITMENT_LEN];
+    size_t value_blind_proof_len;
     uint8_t content;
 } commitment_t;
 

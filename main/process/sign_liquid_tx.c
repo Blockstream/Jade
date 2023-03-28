@@ -10,6 +10,7 @@
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
 #include "../utils/network.h"
+#include "../utils/temporary_stack.h"
 #include "../utils/util.h"
 #include "../wallet.h"
 
@@ -42,8 +43,16 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
         return false;
     }
 
+    // Need a vbf *or* a value_blind_proof
     if (!rpc_get_n_bytes("vbf", item, sizeof(commitment->vbf), commitment->vbf)) {
-        return false;
+        size_t written = 0;
+        rpc_get_bytes(
+            "value_blind_proof", sizeof(commitment->value_blind_proof), item, commitment->value_blind_proof, &written);
+        if (!written) {
+            return false;
+        }
+        commitment->value_blind_proof_len = written;
+        commitment->content |= COMMITMENTS_VALUE_BLIND_PROOF;
     }
 
     if (!rpc_get_n_bytes("asset_id", item, sizeof(commitment->asset_id), commitment->asset_id)) {
@@ -148,6 +157,27 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
     *data = commitments;
 }
 
+#if defined(CONFIG_ESP32_SPIRAM_SUPPORT) || defined(CONFIG_ESP32_NO_BLOBS)
+// Workaround to run 'wally_explicit_rangeproof_verify()' on a temporary stack, as the
+// underlying libsecp call 'secp256k1_rangeproof_verify()' requires ~40kb of stack space.
+// NOTE: a device with BLE compiled in but without SPIRAM does not have sufficient free
+// memory to be able to do this verification, so atm we exclude it for those devices.
+static bool explicit_rangeproof_verify(void* ctx)
+{
+    JADE_ASSERT(ctx);
+
+    const commitment_t* commitments = (const commitment_t*)ctx;
+    JADE_ASSERT(commitments->content & COMMITMENTS_BLINDERS);
+    JADE_ASSERT(commitments->content & COMMITMENTS_INCLUDES_COMMITMENTS);
+    JADE_ASSERT(commitments->content & COMMITMENTS_VALUE_BLIND_PROOF);
+
+    return wally_explicit_rangeproof_verify(commitments->value_blind_proof, commitments->value_blind_proof_len,
+               commitments->value, commitments->value_commitment, sizeof(commitments->value_commitment),
+               commitments->asset_generator, sizeof(commitments->asset_generator))
+        == WALLY_OK;
+}
+#endif // CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32_NO_BLOBS
+
 static bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg)
 {
     JADE_ASSERT(commitments);
@@ -172,15 +202,33 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
         return false;
     }
 
-    // 2. Check the blinded value commitment can be reconstructed
-    // (ie. from value, vbf, and asset generator)
-    uint8_t commitment_tmp[sizeof(commitments->value_commitment)];
-    if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf), generator_tmp,
-            sizeof(generator_tmp), commitment_tmp, sizeof(commitment_tmp))
-            != WALLY_OK
-        || sodium_memcmp(commitments->value_commitment, commitment_tmp, sizeof(commitment_tmp)) != 0) {
-        *errmsg = "Failed to verify blinded value commitment from commitments data";
+    // 2. Check the blinded value commitment
+    // Either:
+    // a) satisfies the provided 'value_blind_proof', or
+    // b) can be reconstructed (ie. from value, vbf, and asset generator)
+    // NOTE: only a device with SPIRAM has sufficient memory to be able to do this verification.
+    if (commitments->content & COMMITMENTS_VALUE_BLIND_PROOF) {
+#if defined(CONFIG_ESP32_SPIRAM_SUPPORT) || defined(CONFIG_ESP32_NO_BLOBS)
+        // Because the underlying libsecp call 'secp256k1_rangeproof_verify()' requires more stack
+        // space than is available to the main task, we run that function with a temporary stack.
+        const size_t stack_size = 40 * 1024; // 40kb seems sufficient
+        if (!run_on_temporary_stack(stack_size, explicit_rangeproof_verify, (void*)commitments)) {
+            *errmsg = "Failed to verify blinded value commitment using explicit rangeproof";
+            return false;
+        }
+#else
+        *errmsg = "Devices with radio enabled but without external SPIRAM are unable to verify rangeproof data";
         return false;
+#endif // CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32_NO_BLOBS
+    } else {
+        uint8_t commitment_tmp[sizeof(commitments->value_commitment)];
+        if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf), generator_tmp,
+                sizeof(generator_tmp), commitment_tmp, sizeof(commitment_tmp))
+                != WALLY_OK
+            || sodium_memcmp(commitments->value_commitment, commitment_tmp, sizeof(commitment_tmp)) != 0) {
+            *errmsg = "Failed to verify blinded value commitment from commitments data";
+            return false;
+        }
     }
 
     return true;

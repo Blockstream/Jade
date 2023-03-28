@@ -1318,7 +1318,7 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
         _test_bad_params(jade, badinput, errormsg)
 
 
-def test_bad_params_liquid(jade):
+def test_bad_params_liquid(jade, has_psram, has_ble):
 
     GOODTX = h2b(
              '0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ed\
@@ -1379,6 +1379,11 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     def _commitsUpdate(key, val):
         commits = GOOD_COMMITMENT.copy()
         commits[key] = val
+        return commits
+
+    def _commitsValueBlindProof(val):
+        commits = _commitsMinus('vbf')
+        commits['value_blind_proof'] = val
         return commits
 
     bad_params = [(('badblindkey1', 'get_blinding_key'), 'Expecting parameters map'),
@@ -1641,7 +1646,14 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                         (_commitsUpdate('abf', BADVAL32), 'verify blinded asset generator'),
                         (_commitsUpdate('vbf', BADVAL32), 'verify blinded value commitment'),
                         (_commitsUpdate('asset_generator', BADVAL33), 'blinded asset generator'),
-                        (_commitsUpdate('value_commitment', BADVAL33), 'blinded value commitment')]
+                        (_commitsUpdate('value_commitment', BADVAL33), 'blinded value commitment'),
+                        # Value blind proof in place of vbf
+                        (_commitsValueBlindProof(''), 'extract trusted commitments'),
+                        (_commitsValueBlindProof('notbin'), 'extract trusted commitments'),
+                        (_commitsValueBlindProof('123abc'), 'extract trusted commitments')]
+    if has_psram or not has_ble:
+        bad_commitments.append((_commitsValueBlindProof(BADVAL32),
+                               'blinded value commitment using explicit rangeproof'))
 
     # Test all the simple cases
     for badmsg, errormsg in bad_params:
@@ -2303,9 +2315,21 @@ def test_liquid_blinded_commitments(jadeapi):
     assert _dicts_eq(rslt, ledger_commitments[1])
 
 
-def test_sign_liquid_tx(jadeapi, pattern):
+def test_sign_liquid_tx(jadeapi, has_psram, has_ble, pattern):
     for txn_data in _get_test_cases(pattern):
         inputdata = txn_data['input']
+        if not has_psram:
+            # Skip any liquid txns too large for reduced message buffer on no-psram devices
+            if len(inputdata['txn']) > (15 * 1024):  # esitimate 1k for rest of message fields
+                logger.warn("Skipping test case - tx too large for non-psram device configuration")
+                continue
+
+            # Skip any rangeproof tests which cannot be handled by ble-enabled no-psram devices
+            if has_ble and \
+               any(tcs and 'value_blind_proof' in tcs for tcs in inputdata['trusted_commitments']):
+                logger.warn("Skipping test case - value_blind_proof too large for non-psram device")
+                continue
+
         rslt = jadeapi.sign_liquid_tx(inputdata['network'],
                                       inputdata['txn'],
                                       inputdata['inputs'],
@@ -2835,7 +2859,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # Test liuid blinding keys/nonce, blinded commitments and sign-tx
     test_liquid_blinding_keys(jadeapi)
     test_liquid_blinded_commitments(jadeapi)
-    test_sign_liquid_tx(jadeapi, SIGN_LIQUID_TXN_TESTS)
+    test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_TESTS)
 
     # Test sign psbts (app-generated cases)
     test_sign_psbt(jadeapi, SIGN_PSBT_TESTS)
@@ -2857,7 +2881,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     test_get_singlesig_receive_address(jadeapi)
     test_sign_tx(jadeapi, SIGN_TXN_SINGLE_SIG_TESTS)
-    test_sign_liquid_tx(jadeapi, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
+    test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
 
     # Test sign psbts (HWI-generated cases)
     test_sign_psbt(jadeapi, SIGN_PSBT_SS_TESTS)
@@ -2955,7 +2979,7 @@ def run_interface_tests(jadeapi,
         test_unknown_method(jadeapi.jade)
         test_unexpected_method(jadeapi.jade)
         test_bad_params(jadeapi.jade)
-        test_bad_params_liquid(jadeapi.jade)
+        test_bad_params_liquid(jadeapi.jade, has_psram, has_ble)
 
     time.sleep(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
