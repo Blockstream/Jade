@@ -36,24 +36,24 @@
       {
         "asset_id": "2a95b730fc56cb77c7b1c0ac54a5fe2324fedfc193378796a4abf34db08486fc",
         "contract": {
-            "entity": {
-                "domain": "adamsoltys.com"
-            },
-            "issuer_pubkey": "02aac091277d323fe65cea354d5232d1635473aa7ac4aefa1b42269d08e41b4d96",
-            "name": "test",
-            "precision": 0,
-            "version": 0
+          "entity": {
+            "domain": "adamsoltys.com"
+          },
+          "issuer_pubkey": "02aac091277d323fe65cea354d5232d1635473aa7ac4aefa1b42269d08e41b4d96",
+          "name": "test",
+          "precision": 0,
+          "version": 0
         },
         "entity": {
-            "domain": "adamsoltys.com"
+          "domain": "adamsoltys.com"
         },
         "issuance_prevout": {
-            "txid": "956624e6300d8ca8d5f2d50b2fc2d72ebd7d4c1c527ee2297f50027d930b845e",
-            "vout": 2
+          "txid": "956624e6300d8ca8d5f2d50b2fc2d72ebd7d4c1c527ee2297f50027d930b845e",
+          "vout": 2
         },
         "issuance_txin": {
-            "txid": "44e01c23d45d35f033d0a66b16e3a4d1a661db3836ed21c407de676fdee51581",
-            "vin": 0
+          "txid": "44e01c23d45d35f033d0a66b16e3a4d1a661db3836ed21c407de676fdee51581",
+          "vin": 0
         },
         "issuer_pubkey": "02aac091277d323fe65cea354d5232d1635473aa7ac4aefa1b42269d08e41b4d96",
         "name": "test",
