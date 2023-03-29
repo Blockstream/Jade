@@ -1327,7 +1327,7 @@ class JadeAPI:
         Parameters
         ----------
         network : str
-            Network to which the address should apply - eg. 'liquid', 'liquid-testnet', etc.
+            Network to which the txn should apply - eg. 'liquid', 'liquid-testnet', etc.
 
         txn : bytes
             The transaction to sign
@@ -1411,7 +1411,7 @@ class JadeAPI:
         Parameters
         ----------
         network : str
-            Network to which the address should apply - eg. 'mainnet', 'testnet', etc.
+            Network to which the txn should apply - eg. 'mainnet', 'testnet', etc.
 
         txn : bytes
             The transaction to sign
@@ -1474,12 +1474,15 @@ class JadeAPI:
         # Send inputs and receive signatures
         return self._send_tx_inputs(base_id, inputs, use_ae_signatures)
 
-    def sign_psbt(self, psbt):
+    def sign_psbt(self, network, psbt):
         """
         RPC call to sign a passed psbt as required
 
         Parameters
         ----------
+        network : str
+            Network to which the txn should apply - eg. 'mainnet', 'testnet', etc.
+
         psbt : bytes
             The psbt formatted as bytes
 
@@ -1489,7 +1492,7 @@ class JadeAPI:
             The psbt, updated with any signatures required from the hw signer
         """
         # Send PSBT message
-        params = {'psbt': psbt}
+        params = {'network': network, 'psbt': psbt}
         msgid = str(random.randint(100000, 999999))
         request = self.jade.build_request(msgid, 'sign_psbt', params)
         self.jade.write_request(request)

@@ -17,6 +17,7 @@
 #include "ui.h"
 #include "utils/address.h"
 #include "utils/malloc_ext.h"
+#include "utils/network.h"
 #include "wallet.h"
 
 #include <wally_script.h>
@@ -54,7 +55,7 @@ int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output
 
 // PSBT struct and functions
 struct wally_psbt;
-int sign_psbt(struct wally_psbt* psbt, const char** errmsg);
+int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg);
 int wally_psbt_free(struct wally_psbt* psbt);
 
 #define EXPORT_XPUB_PATH_LEN 4
@@ -751,7 +752,8 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     // Try to sign extracted PSBT
     bool ret = false;
     const char* errmsg = NULL;
-    const int errcode = sign_psbt(psbt, &errmsg);
+    const char* network = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? TAG_TESTNET : TAG_MAINNET;
+    const int errcode = sign_psbt(network, psbt, &errmsg);
     if (errcode) {
         if (errcode != CBOR_RPC_USER_CANCELLED) {
             await_error_activity(errmsg);

@@ -243,9 +243,10 @@ static bool get_suitable_multisig_record(const struct wally_map* keypaths, const
 }
 
 // Examine outputs for change we can automatically validate
-static void validate_any_change_outputs(struct wally_psbt* psbt, const uint8_t signing_flags,
+static void validate_any_change_outputs(const char* network, struct wally_psbt* psbt, const uint8_t signing_flags,
     const multisig_data_t* multisig_data, output_info_t* output_info, struct ext_key* hdkey)
 {
+    JADE_ASSERT(network);
     JADE_ASSERT(psbt);
     JADE_ASSERT(signing_flags);
     JADE_ASSERT(multisig_data);
@@ -321,16 +322,7 @@ static void validate_any_change_outputs(struct wally_psbt* psbt, const uint8_t s
             }
 
             // Check the path is as expected
-            bool receive_path_as_expected = false;
-            if (keychain_get_network_type_restriction() != NETWORK_TYPE_TEST) {
-                receive_path_as_expected
-                    |= wallet_is_expected_singlesig_path(TAG_MAINNET, script_variant, is_change, path, path_len);
-            }
-            if (!receive_path_as_expected && keychain_get_network_type_restriction() != NETWORK_TYPE_MAIN) {
-                receive_path_as_expected
-                    |= wallet_is_expected_singlesig_path(TAG_TESTNET, script_variant, is_change, path, path_len);
-            }
-            if (!receive_path_as_expected) {
+            if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
                 // Not our standard change path - add warning
                 char path_str[96];
                 const bool have_path_str = bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
@@ -384,11 +376,9 @@ static void validate_any_change_outputs(struct wally_psbt* psbt, const uint8_t s
 // Sign a psbt - the passed wally psbt struct is updated with any signatures.
 // Returns 0 if no errors occurred - does not necessarily indicate that signatures were added.
 // Returns an rpc/message error code on error, and the error string should be populated.
-// NOTE: this function needs further refactoring:
-// a) to handle multisig change, and
-// b) to incorporate upcoming wally PSBT interface changes
-int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
+int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 {
+    JADE_ASSERT(network);
     JADE_ASSERT(psbt);
     JADE_INIT_OUT_PPTR(errmsg);
 
@@ -519,12 +509,12 @@ int sign_psbt(struct wally_psbt* psbt, const char** errmsg)
 
     // Examine outputs for change we can automatically validate
     if (signing_flags) {
-        validate_any_change_outputs(psbt, signing_flags, &multisig_data, output_info, &hdkey);
+        validate_any_change_outputs(network, psbt, signing_flags, &multisig_data, output_info, &hdkey);
     }
 
     // User to verify outputs and fee amount
     gui_activity_t* first_activity = NULL;
-    make_display_output_activity(TAG_MAINNET, tx, output_info, &first_activity);
+    make_display_output_activity(network, tx, output_info, &first_activity);
     JADE_ASSERT(first_activity);
     gui_set_current_activity(first_activity);
 
@@ -683,11 +673,22 @@ void sign_psbt_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
+    char network[MAX_NETWORK_NAME_LEN];
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "sign_psbt");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
+
+    // Check network is valid and consistent with prior usage
+    size_t written = 0;
+    rpc_get_string("network", sizeof(network), &params, network, &written);
+    CHECK_NETWORK_CONSISTENT(process, network, written);
+    if (isLiquidNetwork(network)) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "sign_tx call not appropriate for liquid network", NULL);
+        goto cleanup;
+    }
 
     // psbt must be sent as bytes
     size_t psbt_len_in = 0;
@@ -709,7 +710,7 @@ void sign_psbt_process(void* process_ptr)
 
     // Sign the psbt - parameter updated with any signatures
     const char* errmsg = NULL;
-    const int errcode = sign_psbt(psbt, &errmsg);
+    const int errcode = sign_psbt(network, psbt, &errmsg);
     if (errcode) {
         jade_process_reject_message(process, errcode, errmsg, NULL);
         goto cleanup;

@@ -1209,9 +1209,12 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'message': 'XYZ', 'path': [0xFFFFFFFF + 1]}), 'extract valid path'),
 
                   (('badsignpsbt1', 'sign_psbt'), 'Expecting parameters map'),
-                  (('badsignpsbt2', 'sign_psbt', {'psbt': None}), 'extract psbt bytes'),
-                  (('badsignpsbt3', 'sign_psbt', {'psbt': 'bad type'}), 'extract psbt bytes'),
-                  (('badsignpsbt4', 'sign_psbt', {'psbt': bytes(256)}),
+                  (('badsignpsbt2', 'sign_psbt', {'psbt': None}), 'extract valid network'),
+                  (('badsignpsbt3', 'sign_psbt', {'network': 'testnet', 'psbt': None}),
+                   'extract psbt bytes'),
+                  (('badsignpsbt4', 'sign_psbt', {'network': 'testnet', 'psbt': 'bad type'}),
+                   'extract psbt bytes'),
+                  (('badsignpsbt5', 'sign_psbt', {'network': 'mainnet', 'psbt': bytes(256)}),
                    'extract psbt from passed bytes'),
 
                   (('badsigntx1', 'sign_tx'), 'Expecting parameters map'),
@@ -2312,7 +2315,7 @@ def test_sign_liquid_tx(jadeapi, pattern):
 
 def test_sign_psbt(jadeapi, cases):
     for txn_data in _get_test_cases(cases):
-        rslt = jadeapi.sign_psbt(txn_data['input']['psbt'])
+        rslt = jadeapi.sign_psbt(txn_data['input']['network'], txn_data['input']['psbt'])
         assert rslt == txn_data['expected_output']['psbt'], base64.b64encode(rslt).decode()
 
         # Optionally test extracted tx

@@ -1776,6 +1776,7 @@ Request to append signatures to a passed psbt, using RFC6979.
         "id": "6979",
         "method": "sign_psbt",
         "params": {
+            "network": "mainnet",
             "psbt": <psbt bytes>
         }
     }
