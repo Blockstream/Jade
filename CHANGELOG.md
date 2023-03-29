@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.47] - 2023-02-29
+### Added
+
+### Changed
+- Change sign_psbt api call to take 'network', consistent with other signing calls
+
+### Fixed
+- Corrected the config flag which controls persisting BLE pairings in NVS
+
 ## [0.1.46] - 2023-03-23
 ### Added
 - Allow the hash of the final firmware image to displayed and verified during OTA
