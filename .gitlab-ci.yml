@@ -16,6 +16,7 @@ test_format:
   script:
     - . $HOME/esp/esp-idf/export.sh
     - ./format.sh
+    - idf.py reconfigure
     - git diff --exit-code
 
 test_configs:

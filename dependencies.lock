@@ -1,0 +1,33 @@
+dependencies:
+  espressif/cbor:
+    component_hash: 440f4ee4504841cc9b4f3a8ef755776a612ac9dace355514c68b999868f990ff
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 0.6.0~1
+  espressif/esp32-camera:
+    component_hash: bf6c6f29710c79228988cf91c18a31b40178f42086b39a3157a4d15df201978b
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 2.0.3
+  espressif/libsodium:
+    component_hash: 36e9832f40c909c0a9135a3e775fcbdd7a2a13d47a1c052ee5b21499eb3eddb5
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 1.0.20
+  espressif/nghttp:
+    component_hash: 49bb73e281ed773a44cc4a71a6af64a29f822b881967917f634929a7c0ffc79b
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 1.50.0
+  idf:
+    component_hash: null
+    source:
+      type: idf
+    version: 5.0.1
+manifest_hash: 698b77e4996b8147ab26bc00a3a1a255a594ecf65eaa7b47d3ed5141de9dfe53
+target: esp32
+version: 1.0.0
