@@ -1591,7 +1591,22 @@ Request to sign liquid transaction inputs.
                     "vbf": "6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53"
                 },
                 null
-            ]
+            ],
+            "additional_info": {
+                "tx_type": "swap",
+                "wallet_input_summary": [
+                    {
+                        "asset_id": "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49",
+                        "satoshi": 1000000,
+                    }
+                ],
+                "wallet_output_summary": [
+                    {
+                        "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
+                        "satoshi": 50000000
+                    }
+                ]
+            }
         }
     }
 
@@ -1600,6 +1615,7 @@ Request to sign liquid transaction inputs.
 * 'trusted_commitments' must be passed in for each blinded output.  Where an output is not blinded (eg. fee output) null may be passed.
 * 'trusted_commitments' entries passed in here can be obtained using the get_commitments_request_, with the relevant 'blinding_key' added (which would originally be obtained from get_blinding_key_request_).
 * NOTE: as of Jade fw v0.1.34, external blinding is supported, in which case the 'trusted_commitments' can be constructed by the host application.  Note the 'asset_id' byte-order is that consistent with the registry data, but the 'abf' and 'vbf' fields need to be in the byte-order in which they would be used in the blinding (which may be reversed).
+* 'additional_info' is only required for advanced transaction types such as asset swaps, and can be omitted for vanilla 'send payment' type transactions.  If included, it contains the net movements of assets into and out of the wallet (ie. sum of inputs minus change outputs, and sum of non-change outputs per asset)
 
 .. _sign_liquid_tx_legacy_reply:
 
@@ -1644,7 +1660,7 @@ A batch of 'tx_input' messages should be sent to Jade - one for each tx input, a
 * 'is_witness', 'script', 'path' and 'sighash' are as in sign_tx_legacy_input_request_.
 * In addition, if a signature is required for this input and 'is_witness' is 'true', then the input utxo 'value_commitment' must be passed.
 * NOTE: no 'input_tx' is needed.
-
+* For advanced tx types, eg swaps, with blinded inputs, we pass the unblinding info here.  ie. asset_id, abf, asset_generator, value and vbf - these are as in the 'commitments' data in sign_liquid_tx_legacy_request_.
 Once the entire batch (of 'tx_input' messages) has been sent, processed and confirmed on Jade, a batch of replies are sent.
 
 .. _sign_liquid_tx_legacy_input_reply:

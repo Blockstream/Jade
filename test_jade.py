@@ -46,23 +46,24 @@ def _h2b_test_case(testcase):
         # sign-tx data
         testcase['input']['txn'] = h2b(testcase['input']['txn'])
 
-        for inputdata in testcase['input']['inputs']:
-            if 'input_tx' in inputdata:
-                inputdata['input_tx'] = h2b(inputdata['input_tx'])
-            if 'script' in inputdata:
-                inputdata['script'] = h2b(inputdata['script'])
-            if 'value_commitment' in inputdata:
-                inputdata['value_commitment'] = h2b(inputdata['value_commitment'])
-            if 'ae_host_commitment' in inputdata:
-                inputdata['ae_host_commitment'] = h2b(inputdata['ae_host_commitment'])
-            if 'ae_host_entropy' in inputdata:
-                inputdata['ae_host_entropy'] = h2b(inputdata['ae_host_entropy'])
+        for input in testcase['input']['inputs']:
+            if input:
+                for k, v in input.items():
+                    if k not in ['is_witness', 'path', 'sighash', 'satoshi', 'value']:
+                        input[k] = h2b(v)
 
         if 'trusted_commitments' in testcase['input']:
             for commitment in testcase['input']['trusted_commitments']:
                 if commitment:
                     for k, v in commitment.items():
                         commitment[k] = v if k == 'value' else h2b(v)
+
+        if 'additional_info' in testcase['input']:
+            additional_info = testcase['input']['additional_info']
+            for summary_item in additional_info['wallet_input_summary']:
+                summary_item['asset_id'] = h2b(summary_item['asset_id'])
+            for summary_item in additional_info['wallet_output_summary']:
+                summary_item['asset_id'] = h2b(summary_item['asset_id'])
 
         if 'expected_output' in testcase:
             testcase['expected_output'] = h2b(testcase['expected_output'])
@@ -2371,7 +2372,8 @@ def test_sign_liquid_tx(jadeapi, has_psram, has_ble, pattern):
                                       inputdata['trusted_commitments'],
                                       inputdata['change'],
                                       inputdata.get('use_ae_signatures'),
-                                      inputdata.get('asset_info'))
+                                      inputdata.get('asset_info'),
+                                      inputdata.get('additional_info'))
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
@@ -2634,7 +2636,8 @@ def test_generic_multisig_matches_ga_signatures_liquid(jadeapi):
                                       inputdata['trusted_commitments'],
                                       inputdata['change'],
                                       inputdata.get('use_ae_signatures'),
-                                      )
+                                      inputdata.get('asset_info'),
+                                      inputdata.get('additional_info'))
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, ga_msig, rslt)

@@ -28,6 +28,155 @@ void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_sig
 
 static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
+static const char TX_TYPE_STR_SWAP[] = "swap";
+static const char TX_TYPE_STR_SEND_PAYMENT[] = "send_payment";
+typedef enum { TXTYPE_UNKNOWN, TXTYPE_SEND_PAYMENT, TXTYPE_SWAP } TxType_t;
+
+// Map a txtype string to an enum value
+#define TX_TYPE_STR_MATCH(typestr) ((len == sizeof(typestr) - 1 && !strncmp(type, typestr, sizeof(typestr) - 1)))
+static TxType_t get_txtype(const char* type, const size_t len)
+{
+    if (type && len) {
+        if (TX_TYPE_STR_MATCH(TX_TYPE_STR_SWAP)) {
+            return TXTYPE_SWAP;
+        }
+        if (TX_TYPE_STR_MATCH(TX_TYPE_STR_SEND_PAYMENT)) {
+            return TXTYPE_SEND_PAYMENT;
+        }
+    }
+    return TXTYPE_UNKNOWN;
+}
+
+static void get_wallet_summary_allocate(
+    const char* field, const CborValue* value, movement_summary_info_t** data, size_t* written)
+{
+    JADE_ASSERT(field);
+    JADE_ASSERT(value);
+    JADE_INIT_OUT_PPTR(data);
+    JADE_INIT_OUT_SIZE(written);
+
+    CborValue result;
+    if (!rpc_get_array(field, value, &result)) {
+        return;
+    }
+
+    size_t num_array_items = 0;
+    CborError cberr = cbor_value_get_array_length(&result, &num_array_items);
+    if (cberr != CborNoError || !num_array_items) {
+        return;
+    }
+
+    CborValue arrayItem;
+    cberr = cbor_value_enter_container(&result, &arrayItem);
+    if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
+        return;
+    }
+
+    movement_summary_info_t* const summary = JADE_CALLOC(num_array_items, sizeof(movement_summary_info_t));
+
+    for (size_t i = 0; i < num_array_items; ++i) {
+        JADE_ASSERT(!cbor_value_at_end(&arrayItem));
+        movement_summary_info_t* const item = summary + i;
+
+        if (cbor_value_is_null(&arrayItem) || !cbor_value_is_map(&arrayItem)) {
+            free(summary);
+            return;
+        }
+
+        if (!rpc_get_n_bytes("asset_id", &arrayItem, sizeof(item->asset_id), item->asset_id)) {
+            free(summary);
+            return;
+        }
+
+        if (!rpc_get_uint64_t("satoshi", &arrayItem, &item->value)) {
+            free(summary);
+            return;
+        }
+
+        CborError err = cbor_value_advance(&arrayItem);
+        JADE_ASSERT(err == CborNoError);
+    }
+
+    cberr = cbor_value_leave_container(&result, &arrayItem);
+    if (cberr != CborNoError) {
+        free(summary);
+        return;
+    }
+
+    *written = num_array_items;
+    *data = summary;
+}
+
+static TxType_t get_additional_info_allocate(const char* field, CborValue* params, bool* is_partial,
+    movement_summary_info_t** wallet_input_summary, size_t* wallet_input_summary_size,
+    movement_summary_info_t** wallet_output_summary, size_t* wallet_output_summary_size)
+{
+    JADE_ASSERT(field);
+    JADE_ASSERT(params);
+    JADE_ASSERT(is_partial);
+    JADE_INIT_OUT_PPTR(wallet_input_summary);
+    JADE_INIT_OUT_SIZE(wallet_input_summary_size);
+    JADE_INIT_OUT_PPTR(wallet_output_summary);
+    JADE_INIT_OUT_SIZE(wallet_output_summary_size);
+
+    // If no 'additional_data' passed, assume this is a a simple send-payment 'classic' tx
+    CborValue additional_info;
+    if (!rpc_get_map(field, params, &additional_info)) {
+        return TXTYPE_SEND_PAYMENT;
+    }
+
+    // input/output summaries required for some complex txn types, eg. swaps
+    get_wallet_summary_allocate(
+        "wallet_input_summary", &additional_info, wallet_input_summary, wallet_input_summary_size);
+    get_wallet_summary_allocate(
+        "wallet_output_summary", &additional_info, wallet_output_summary, wallet_output_summary_size);
+
+    // 'partial' flag (defaults to false)
+    if (!rpc_get_boolean("is_partial", &additional_info, is_partial)) {
+        *is_partial = false;
+    }
+
+    // Tx Type
+    const char* ptype = NULL;
+    size_t typelen = 0;
+    rpc_get_string_ptr("tx_type", &additional_info, &ptype, &typelen);
+    return get_txtype(ptype, typelen);
+}
+
+static bool validate_summary_asset_amount(movement_summary_info_t* summary, const size_t summary_size,
+    const uint8_t* asset_id, const size_t asset_id_len, const uint64_t value)
+{
+    JADE_ASSERT(summary);
+    JADE_ASSERT(asset_id);
+    JADE_ASSERT(asset_id_len == sizeof(summary->asset_id));
+
+    // Add passed sats amount to the first record found with matching asset_id
+    for (size_t i = 0; i < summary_size; ++i) {
+        if (!memcmp(asset_id, summary[i].asset_id, sizeof(summary[i].asset_id))) {
+            summary[i].validated_value += value;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool check_summary_validated(movement_summary_info_t* summary, const size_t summary_size)
+{
+    JADE_ASSERT(summary);
+
+    // Check every asset record has been fully validated
+    for (size_t i = 0; i < summary_size; ++i) {
+        if (summary[i].value != summary[i].validated_value) {
+            char* asset_id_hex = NULL;
+            wally_hex_from_bytes(summary[i].asset_id, sizeof(summary[i].asset_id), &asset_id_hex);
+            JADE_LOGW("Failed to validate input/output summary for %s", asset_id_hex);
+            JADE_WALLY_VERIFY(wally_free_string(asset_id_hex));
+            return false;
+        }
+    }
+    return true;
+}
+
 static bool get_commitment_data(CborValue* item, commitment_t* commitment)
 {
     JADE_ASSERT(item);
@@ -411,11 +560,13 @@ void sign_liquid_tx_process(void* process_ptr)
     // Can optionally be passed info for wallet outputs, which we verify internally
     // NOTE: Element named 'change' for backward-compatibility reasons
     const char* errmsg = NULL;
-    CborValue wallet_outputs;
-    if (rpc_get_array("change", &params, &wallet_outputs)) {
-        if (!validate_wallet_outputs(process, network, tx, &wallet_outputs, output_info, &errmsg)) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
-            goto cleanup;
+    if (rpc_has_field_data("change", &params)) {
+        CborValue wallet_outputs;
+        if (rpc_get_array("change", &params, &wallet_outputs)) {
+            if (!validate_wallet_outputs(process, network, tx, &wallet_outputs, output_info, &errmsg)) {
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+                goto cleanup;
+            }
         }
     }
 
@@ -431,6 +582,55 @@ void sign_liquid_tx_process(void* process_ptr)
     jade_process_free_on_exit(process, assets);
     JADE_LOGI("Read %d assets from message", num_assets);
 
+    // Get any data from the option 'additional_info' section
+    movement_summary_info_t* wallet_input_summary = NULL;
+    size_t wallet_input_summary_size = 0;
+    movement_summary_info_t* wallet_output_summary = NULL;
+    size_t wallet_output_summary_size = 0;
+    bool tx_is_partial = false;
+    const TxType_t txtype = get_additional_info_allocate("additional_info", &params, &tx_is_partial,
+        &wallet_input_summary, &wallet_input_summary_size, &wallet_output_summary, &wallet_output_summary_size);
+    jade_process_free_on_exit(process, wallet_input_summary);
+    jade_process_free_on_exit(process, wallet_output_summary);
+
+    // Shouldn't have pointers to empty arrays
+    JADE_ASSERT(!wallet_input_summary == !wallet_input_summary_size);
+    JADE_ASSERT(!wallet_output_summary == !wallet_output_summary_size);
+
+    // Validate tx type data
+    if (txtype == TXTYPE_SWAP) {
+        // Input and output summary must be present - they will be fully validated later
+        if (!wallet_input_summary || !wallet_output_summary) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Swap tx missing input/output summary information", NULL);
+            goto cleanup;
+        }
+
+        // Validate swap or proposal appears to have expected inputs and outputs
+        if (tx_is_partial) {
+            // At this time the only 'partial swap' we accept is an initial proposal with exactly one
+            // input and exactly one output which is to self, and in a different asset to the input
+            if (tx->num_inputs != 1 || tx->num_outputs != 1 || wallet_input_summary_size != 1
+                || wallet_output_summary_size != 1
+                || !memcmp(wallet_input_summary->asset_id, wallet_output_summary->asset_id,
+                    sizeof(wallet_output_summary->asset_id))) {
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS,
+                    "Initial swap proposal must have single wallet input and output in different assets", NULL);
+                goto cleanup;
+            }
+        } else {
+            // TODO: Ideally check total number of assets in our inputs and outputs
+            if (tx->num_inputs < 2 || tx->num_outputs < 2) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Insufficient inputs/outputs for a swap tx", NULL);
+                goto cleanup;
+            }
+        }
+    } else if (txtype != TXTYPE_SEND_PAYMENT) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported tx-type in additional info", NULL);
+        goto cleanup;
+    }
+
     // Check the trusted commitments: expect one element in the array for each output.
     // Can be null for unblinded outputs as we will skip them.
     // Populate an `output_index` -> (blinding_key, asset, value) map
@@ -439,8 +639,9 @@ void sign_liquid_tx_process(void* process_ptr)
     JADE_WALLY_VERIFY(wally_hex_to_bytes(policy_asset_hex, policy_asset, sizeof(policy_asset), &written));
     JADE_ASSERT(written == sizeof(policy_asset));
 
-    // At the moment do not allow any blinded outputs to be missing the unblinding/unblinded info
-    const bool allow_blind_outputs = false;
+    // NOTE: some advanced tx types permit some outputs to be blind (ie blinded, without unblinding info/proofs)
+    // By default/in the basic 'send payment' case all outputs must have unconfidential/unblinded.
+    const bool allow_blind_outputs = txtype == TXTYPE_SWAP; // swaps allow 'other wallets' blind outputs
 
     // Save fees for the final confirmation screen
     uint64_t fees = 0;
@@ -484,12 +685,34 @@ void sign_liquid_tx_process(void* process_ptr)
             }
             fees += output_info[i].value;
         }
+
+        // If the output has been verified as belonging to this wallet, we can
+        // use it to validate some part of any passed input- or output- summary.
+        if (output_info[i].flags & OUTPUT_FLAG_VALIDATED) {
+            JADE_ASSERT(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED);
+
+            // NOTE: change outputs are subtracted from the relevant 'input summary'.
+            if (wallet_input_summary && (output_info[i].flags & OUTPUT_FLAG_CHANGE)) {
+                validate_summary_asset_amount(wallet_input_summary, wallet_input_summary_size, output_info[i].asset_id,
+                    sizeof(output_info[i].asset_id), (0 - output_info[i].value));
+            } else if (wallet_output_summary) {
+                validate_summary_asset_amount(wallet_output_summary, wallet_output_summary_size,
+                    output_info[i].asset_id, sizeof(output_info[i].asset_id), output_info[i].value);
+            }
+        }
     }
 
-    gui_activity_t* first_activity = NULL;
-    make_display_elements_output_activity(network, tx, output_info, assets, num_assets, &first_activity);
-    JADE_ASSERT(first_activity);
-    gui_set_current_activity(first_activity);
+    gui_activity_t* activity = NULL;
+    if (txtype == TXTYPE_SWAP) {
+        // Confirm wallet-summary info (ie. net inputs and outputs)
+        make_display_elements_swap_activity(network, tx_is_partial, wallet_input_summary, wallet_input_summary_size,
+            wallet_output_summary, wallet_output_summary_size, assets, num_assets, &activity);
+    } else {
+        // Confirm all non-change outputs
+        make_display_elements_output_activity(network, tx, output_info, assets, num_assets, &activity);
+    }
+    JADE_ASSERT(activity);
+    gui_set_current_activity(activity);
 
     // ----------------------------------
     // wait for the last "next" (proceed with the protocol and then final confirmation)
@@ -528,8 +751,11 @@ void sign_liquid_tx_process(void* process_ptr)
     script_flavour_t aggregate_inputs_scripts_flavour = SCRIPT_FLAVOUR_NONE;
 
     // Run through each input message and generate a signature-hash for each one
-    // NOTE: atm we only accept 'SIGHASH_ALL' for inputs we are signing
-    const uint8_t expected_sighash = WALLY_SIGHASH_ALL;
+    // NOTE: atm we only usually accept 'SIGHASH_ALL' for inputs we are signing - the exception
+    // being an initial swap proposal when we expect WALLY_SIGHASH_SINGLE | WALLY_SIGHASH_ANYONECANPAY
+    const uint8_t expected_sighash = (txtype == TXTYPE_SWAP && tx_is_partial)
+        ? (WALLY_SIGHASH_SINGLE | WALLY_SIGHASH_ANYONECANPAY)
+        : WALLY_SIGHASH_ALL;
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
         if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
@@ -570,10 +796,31 @@ void sign_liquid_tx_process(void* process_ptr)
                 goto cleanup;
             }
 
-            // NOTE: atm we only accept 'SIGHASH_ALL'
+            // NOTE: Check the sighash is as expected
             if (sig_data->sighash != expected_sighash) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
+            }
+
+            // As we are signing this input, use it to validate some part of any passed 'input summary'
+            if (wallet_input_summary) {
+                // We can only verify input amounts with segwit inputs which have an explicit commitment to sign
+                if (!is_witness) {
+                    jade_process_reject_message(
+                        process, CBOR_RPC_BAD_PARAMETERS, "Non-segwit input cannot be used as verified amount", NULL);
+                    goto cleanup;
+                }
+
+                // Verify any blinding info for this input - note can only use blinded inputs
+                commitment_t commitment;
+                if (get_commitment_data(&params, &commitment)) {
+                    if (!verify_commitment_consistent(&commitment, &errmsg)) {
+                        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+                        goto cleanup;
+                    }
+                    validate_summary_asset_amount(wallet_input_summary, wallet_input_summary_size, commitment.asset_id,
+                        sizeof(commitment.asset_id), commitment.value);
+                }
             }
 
             size_t value_len = 0;
@@ -625,38 +872,61 @@ void sign_liquid_tx_process(void* process_ptr)
         }
     }
 
-    gui_activity_t* final_activity = NULL;
-    const char* const warning_msg
-        = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-    make_display_elements_final_confirmation_activity(network, "Summary", fees, warning_msg, &final_activity);
-    JADE_ASSERT(final_activity);
-    gui_set_current_activity(final_activity);
-
-    // ----------------------------------
-    // Wait for the confirmation btn
-    // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool fee_ret
-        = gui_activity_wait_event(final_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    gui_activity_wait_event(final_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool fee_ret = true;
-    ev_id = BTN_ACCEPT_SIGNATURE;
-#endif
-
-    // If user cancels we'll send the 'cancelled' error response for the last input message only
-    if (!fee_ret || ev_id != BTN_ACCEPT_SIGNATURE) {
-        // If using ae-signatures, we need to load the message to send the error back on
-        if (use_ae_signatures) {
-            jade_process_load_in_message(process, true);
+    // Check the summary information for each asset as previously confirmed
+    // by the user is consistent with the verified input and outputs.
+    if (wallet_input_summary && wallet_output_summary) {
+        if (!check_summary_validated(wallet_input_summary, wallet_input_summary_size)
+            || !check_summary_validated(wallet_output_summary, wallet_output_summary_size)) {
+            JADE_LOGW("Failed to fully validate input and output summary information");
+            // If using ae-signatures, we need to load the message to send the error back on
+            if (use_ae_signatures) {
+                jade_process_load_in_message(process, true);
+            }
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to validate input/output summary information", NULL);
+            goto cleanup;
         }
-        JADE_LOGW("User declined to sign transaction");
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
-        goto cleanup;
+        JADE_LOGI("Input and output summary information validated");
     }
 
-    JADE_LOGD("User accepted fee");
+    if (tx_is_partial && !fees) {
+        // Partial tx without fees - can skip the fee screen ?
+        JADE_LOGI("No fees for partial tx, so skipping fee confirmation screen");
+    } else {
+        const char* const warning_msg
+            = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
+
+        const char* title = (txtype == TXTYPE_SWAP) ? (tx_is_partial ? "Swap Proposal" : "Complete Swap") : "Summary";
+        make_display_elements_final_confirmation_activity(network, title, fees, warning_msg, &activity);
+        JADE_ASSERT(activity);
+        gui_set_current_activity(activity);
+
+        // ----------------------------------
+        // Wait for the confirmation btn
+        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool fee_ret
+            = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool fee_ret = true;
+        ev_id = BTN_ACCEPT_SIGNATURE;
+#endif
+
+        // If user cancels we'll send the 'cancelled' error response for the last input message only
+        if (!fee_ret || ev_id != BTN_ACCEPT_SIGNATURE) {
+            // If using ae-signatures, we need to load the message to send the error back on
+            if (use_ae_signatures) {
+                jade_process_load_in_message(process, true);
+            }
+            JADE_LOGW("User declined to sign transaction");
+            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
+            goto cleanup;
+        }
+
+        JADE_LOGD("User accepted fee");
+    }
     display_message_activity("Processing...");
 
     // Send signature replies.

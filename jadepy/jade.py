@@ -1266,7 +1266,7 @@ class JadeAPI:
             host_ae_entropy_values = []
             for txinput in inputs:
                 # ae-protocol - do not send the host entropy immediately
-                txinput = txinput.copy()  # shallow copy
+                txinput = txinput.copy() if txinput else {}  # shallow copy
                 host_ae_entropy_values.append(txinput.pop('ae_host_entropy', None))
 
                 base_id += 1
@@ -1298,6 +1298,9 @@ class JadeAPI:
             # Send all n inputs
             requests = []
             for txinput in inputs:
+                if txinput is None:
+                    txinput = {}
+
                 base_id += 1
                 msg_id = str(base_id)
                 request = self.jade.build_request(msg_id, 'tx_input', txinput)
@@ -1317,7 +1320,7 @@ class JadeAPI:
             return signatures
 
     def sign_liquid_tx(self, network, txn, inputs, commitments, change, use_ae_signatures=False,
-                       asset_info=None):
+                       asset_info=None, additional_info=None):
         """
         RPC call to sign a liquid transaction.
 
@@ -1344,6 +1347,15 @@ class JadeAPI:
                 ae_host_commitment, 32-bytes - The host-commitment for Anti-Exfil signatures
                 ae_host_entropy, 32-bytes - The host-entropy for Anti-Exfil signatures
 
+                These are only required for advanced transactions, eg. swaps, and only when the
+                inputs need unblinding.
+                Not needed for vanilla send-payment/redeposit etc:
+                abf, 32-bytes - asset blinding factor
+                asset_id, 32-bytes - the unblinded asset-id
+                asset_generator, 33-bytes - the (blinded) asset-generator
+                vbf, 32-bytes - the value blinding factor
+                value, int - the unblinded sats value of the input
+
                 If not signing this input a null or an empty dict can be passed.
 
         commitments : [dict]
@@ -1366,13 +1378,24 @@ class JadeAPI:
             Whether to use the anti-exfil protocol to generate the signatures.
             Defaults to False.
 
-        asset_info : [dict]
+        asset_info : [dict], optional
             Any asset-registry data relevant to the assets being transacted, such that Jade can
             display a meaningful name, issuer, ticker etc. rather than just asset-id.
             At the very least must contain 'asset_id', 'contract' and 'issuance_prevout' items,
             exactly as in the registry data.  NOTE: asset_info for the network policy-asset is
             not required.
             Defaults to None.
+
+        additional_info: dict, optional
+            Extra data about the transaction.  Only required for advanced transactions, eg. swaps.
+            Not needed for vanilla send-payment/redeposit etc:
+            tx_type, str: 'swap' indicates the tx represents an asset-swap proposal or transaction.
+            wallet_input_summary, dict:  a list of entries containing 'asset_id' (32-bytes) and
+            'satoshi' (int) showing net movement of assets out of the wallet (ie. sum of wallet
+            inputs per asset, minus any change outputs).
+            wallet_output_summary, dict:  a list of entries containing 'asset_id' (32-bytes) and
+            'satoshi' (int) showing net movement of assets into the wallet (ie. sum of wallet
+            outputs per asset, excluding any change outputs).
 
         Returns
         -------
@@ -1397,7 +1420,8 @@ class JadeAPI:
                   'trusted_commitments': commitments,
                   'use_ae_signatures': use_ae_signatures,
                   'change': change,
-                  'asset_info': asset_info}
+                  'asset_info': asset_info,
+                  'additional_info': additional_info}
 
         reply = self._jadeRpc('sign_liquid_tx', params, str(base_id))
         assert reply
