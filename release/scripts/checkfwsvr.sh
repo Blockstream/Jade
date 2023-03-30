@@ -56,6 +56,7 @@ do
           then
             echo "Missing: ${hwdir} - ${index} - ${fwfile}" >> ../"${MISSING}"
           fi
+          wget -O "${fwfile}" "${FWLOCATION}/${fwfile}.hash"
         fi
       done
     fi
