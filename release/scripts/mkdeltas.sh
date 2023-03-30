@@ -32,7 +32,7 @@ do
   echo "Generating new deltas for $(pwd)"
   mkdir -p "${DELTA_OUTPUT_DIR}"
 
-  if [ -z "${VER_PRIORS}" ]
+  if [ -n "${VER_PRIORS}" ]
   then
     # Upgrade & downgrade deltas
     for pattern in "${PATTERN_BLE}" "${PATTERN_NORADIO}"
