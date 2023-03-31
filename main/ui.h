@@ -69,6 +69,11 @@ typedef struct {
     uint8_t flags;
 } output_info_t;
 
+typedef struct {
+    uint8_t asset_id[32];
+    uint64_t value;
+} movement_summary_info_t;
+
 // Progress bar
 typedef struct {
     gui_view_node_t* progress_bar;
@@ -131,8 +136,11 @@ void make_sign_identity_activity(gui_activity_t** activity_ptr, const char* iden
 void make_display_output_activity(
     const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity);
 void make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
-    const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets,
-    gui_activity_t** first_activity);
+    const output_info_t* output_info, const asset_info_t* assets, size_t num_assets, gui_activity_t** first_activity);
+void make_display_elements_swap_activity(const char* network, bool initial_proposal,
+    const movement_summary_info_t* wallet_input_summary, size_t wallet_input_summary_size,
+    const movement_summary_info_t* wallet_output_summary, size_t wallet_output_summary_size, const asset_info_t* assets,
+    size_t num_assets, gui_activity_t** first_activity);
 void make_display_final_confirmation_activity(uint64_t fee, const char* warning_msg, gui_activity_t** activity);
 void make_display_elements_final_confirmation_activity(
     const char* network, const char* title, uint64_t fee, const char* warning_msg, gui_activity_t** activity);

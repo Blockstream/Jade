@@ -526,6 +526,88 @@ void make_display_elements_output_activity(const char* network, const struct wal
     *first_activity = act_info.first_activity;
 }
 
+static void make_elements_asset_summary_screens(linked_activities_info_t* act_info, const char* title,
+    const char* direction, const char* network, const asset_info_t* assets, const size_t num_assets,
+    const movement_summary_info_t* summary, const size_t summary_len)
+{
+    JADE_ASSERT(act_info);
+    JADE_ASSERT(title);
+    JADE_ASSERT(direction);
+    JADE_ASSERT(network);
+    JADE_ASSERT(assets || !num_assets);
+    JADE_ASSERT(summary);
+    JADE_ASSERT(summary_len);
+
+    link_activity_t output_act;
+    for (size_t i = 0; i < summary_len; ++i) {
+        char label[16];
+        if (summary_len == 1) {
+            // Omit counter if just one intput/output
+            const int ret = snprintf(label, sizeof(label), "%s", direction);
+            JADE_ASSERT(ret > 0 && ret < sizeof(label));
+        } else {
+            // 1 based indices for display purposes
+            const int ret = snprintf(label, sizeof(label), "%s  (%d/%d)", direction, i + 1, summary_len);
+            JADE_ASSERT(ret > 0 && ret < sizeof(label));
+        }
+
+        // Look up the asset-id in the canned asset-data
+        char asset_str[128];
+        char amount[32];
+        char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
+        const bool have_asset_info
+            = get_asset_display_info(network, assets, num_assets, summary[i].asset_id, sizeof(summary[i].asset_id),
+                summary[i].value, asset_str, sizeof(asset_str), amount, sizeof(amount), ticker, sizeof(ticker));
+
+        // Insert extra screen to display warning if the asset registry information is missing
+        if (!have_asset_info) {
+            // Make activity with no asset-id but with the warning message
+            make_input_output_activity(
+                &output_act, title, act_info->last_activity, NULL, label, amount, ticker, NULL, MISSING_ASSET_DATA);
+            gui_chain_activities(&output_act, act_info);
+        }
+
+        // Normal output screen - with issuer and asset-id but no warning message
+        make_input_output_activity(
+            &output_act, title, act_info->last_activity, NULL, label, amount, ticker, asset_str, NULL);
+        gui_chain_activities(&output_act, act_info);
+    }
+}
+
+void make_display_elements_swap_activity(const char* network, const bool initial_proposal,
+    const movement_summary_info_t* wallet_input_summary, const size_t wallet_input_summary_size,
+    const movement_summary_info_t* wallet_output_summary, const size_t wallet_output_summary_size,
+    const asset_info_t* assets, const size_t num_assets, gui_activity_t** first_activity)
+{
+    JADE_ASSERT(network);
+    JADE_ASSERT(wallet_input_summary);
+    JADE_ASSERT(wallet_input_summary_size);
+    JADE_ASSERT(wallet_output_summary);
+    JADE_ASSERT(wallet_output_summary_size);
+    JADE_ASSERT(assets || !num_assets);
+    JADE_ASSERT(first_activity);
+
+    // Track the first and last activities created
+    linked_activities_info_t act_info
+        = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
+
+    const char* title = initial_proposal ? "Swap Proposal" : "Complete Swap";
+
+    // Screens for what we are receiving from the swap (ie. our outputs, summarised)
+    make_elements_asset_summary_screens(
+        &act_info, title, "Receive", network, assets, num_assets, wallet_output_summary, wallet_output_summary_size);
+
+    // Screens for what we are sending into the swap (ie. our inputs, summarised)
+    make_elements_asset_summary_screens(
+        &act_info, title, "Send", network, assets, num_assets, wallet_input_summary, wallet_input_summary_size);
+
+    // Connect the final screen's 'next' button to the 'translate' handler above
+    gui_activity_register_event(act_info.last_activity, GUI_BUTTON_EVENT, BTN_TX_SCREEN_NEXT, translate_event, NULL);
+
+    // Set output parameters
+    *first_activity = act_info.first_activity;
+}
+
 // Screens to confirm the fee / signing the tx
 void make_display_final_confirmation_activity(const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
 {
