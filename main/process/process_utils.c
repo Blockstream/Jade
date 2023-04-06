@@ -180,10 +180,23 @@ bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_d
         return false;
     }
 
+    // If paths are not as expected, see if we have a valid change/non-change path (when expecting the other)
+    bool flipped_change_element = false;
+    if (!all_paths_as_expected) {
+        bool unused;
+        multisig_validate_paths(!is_change, &all_signer_paths, &flipped_change_element, &unused);
+    }
+
     // If paths not as expected show a warning message and ask the user to confirm
     if (!all_paths_as_expected || !final_elements_consistent) {
-        const char* msg1
-            = !all_paths_as_expected ? (is_change ? "Unusual multisig change path." : "Unusual multisig path.") : "";
+        const char* msg1 = "";
+        if (!all_paths_as_expected) {
+            if (flipped_change_element) {
+                msg1 = is_change ? "Non-change multisig path." : "Multisig change path.";
+            } else {
+                msg1 = is_change ? "Unusual multisig change path." : "Unusual multisig path.";
+            }
+        }
         const char* msg2
             = !final_elements_consistent ? "Non-standard multisig with different paths across signers." : "";
         const char* maybe_space = !all_paths_as_expected && !final_elements_consistent ? " " : "";

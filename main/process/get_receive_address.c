@@ -151,15 +151,19 @@ void get_receive_address_process(void* process_ptr)
             }
 
             // If paths not as expected show a warning message with the address
-            const bool is_change = false;
+            bool is_change = false;
             if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
+                is_change = true;
+                is_change = wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len);
+
                 char path_str[96];
                 if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
                     jade_process_reject_message(
                         process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
                     goto cleanup;
                 }
-                const int ret = snprintf(warning_msg, sizeof(warning_msg), "Warning: Unusual path: %s", path_str);
+                const char* path_desc = is_change ? "Change" : "Unusual";
+                const int ret = snprintf(warning_msg, sizeof(warning_msg), "Warning: %s path: %s", path_desc, path_str);
                 JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
             }
 
