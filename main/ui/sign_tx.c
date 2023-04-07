@@ -310,9 +310,8 @@ void make_display_output_activity(
     const bool show_scriptless = true;
 
     // Chain the output activities
-    link_activity_t output_act;
-    linked_activities_info_t act_info
-        = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
+    link_activity_t output_act = {};
+    linked_activities_info_t act_info = {};
 
     // 1 based indices for display purposes
     uint32_t nDisplayedOutput = 0;
@@ -364,9 +363,8 @@ void make_display_elements_output_activity(const char* network, const struct wal
     const bool show_scriptless = false;
 
     // Track the first and last activities created
-    link_activity_t output_act;
-    linked_activities_info_t act_info
-        = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
+    link_activity_t output_act = {};
+    linked_activities_info_t act_info = {};
 
     // 1 based indices for display purposes
     uint32_t nDisplayedOutput = 0;

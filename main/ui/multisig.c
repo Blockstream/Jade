@@ -355,9 +355,8 @@ void make_confirm_multisig_activity(const char* multisig_name, const bool sorted
     JADE_ASSERT(first_activity);
 
     // Track the first and last activities created
-    link_activity_t link_act;
-    linked_activities_info_t act_info
-        = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
+    link_activity_t link_act = {};
+    linked_activities_info_t act_info = {};
 
     // 1 based indices for display purposes
     make_initial_confirm_screen(&link_act, multisig_name, sorted, threshold, num_signers, master_blinding_key,

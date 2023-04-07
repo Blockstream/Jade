@@ -148,8 +148,7 @@ void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title)
     } else {
         // Chain the loop of kb screen activities
         link_activity_t kb_screen_act = {};
-        linked_activities_info_t act_info
-            = { .first_activity = NULL, .last_activity = NULL, .last_activity_next_button = NULL };
+        linked_activities_info_t act_info = {};
 
         const bool has_next_kb_btn = true;
         for (size_t i = 0; i < kb_entry->num_kbs; ++i) {
