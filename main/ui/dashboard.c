@@ -792,17 +792,17 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
 #define MAX_LEGAL_PAGE 4
 #endif
 
-static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_view_node_t* out_btns[])
+static void make_legal_page(link_activity_t* page_act, int legal_page)
 {
-    JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(out_btns);
+    JADE_ASSERT(page_act);
 
-    gui_make_activity(activity_ptr, true, "Certifications");
+    gui_activity_t* act = NULL;
+    gui_make_activity(&act, true, "Certifications");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 63, 37);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 0);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     switch (legal_page) {
     case 0: {
@@ -906,38 +906,28 @@ static void make_legal_page(gui_activity_t** activity_ptr, int legal_page, gui_v
     add_buttons(vsplit, UI_ROW, btns, 2);
 
     // Set the intially selected item to the next/verify (ie. the last) button
-    gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+    gui_set_activity_initial_selection(act, btns[1].btn);
 
-    // Copy prev and next buttons to output params
-    out_btns[0] = btns[0].btn;
-    out_btns[1] = btns[1].btn;
+    // Copy activity and prev and next buttons into output struct
+    page_act->activity = act;
+    page_act->prev_button = (legal_page == 0) ? NULL : btns[0].btn;
+    page_act->next_button = (legal_page == MAX_LEGAL_PAGE) ? NULL : btns[1].btn;
 }
 
 void make_legal_screen(gui_activity_t** first_activity_ptr)
 {
     JADE_ASSERT(first_activity_ptr);
 
-    gui_activity_t* prev_act = NULL;
-    gui_view_node_t* prev_next_btn = NULL;
+    // Chain the legal screen activities
+    link_activity_t page_act = {};
+    linked_activities_info_t act_info = {};
 
     for (size_t j = 0; j <= MAX_LEGAL_PAGE; j++) {
-        gui_view_node_t* btns[2] = {};
-        gui_activity_t* this_page = NULL;
-
-        make_legal_page(&this_page, j, btns);
-
-        if (prev_act) {
-            gui_connect_button_activity(btns[0], prev_act);
-            gui_connect_button_activity(prev_next_btn, this_page);
-        }
-
-        if (!*first_activity_ptr) {
-            *first_activity_ptr = this_page;
-        }
-
-        prev_act = this_page;
-        prev_next_btn = btns[1];
+        make_legal_page(&page_act, j);
+        gui_chain_activities(&page_act, &act_info);
     }
+
+    *first_activity_ptr = act_info.first_activity;
 }
 #endif
 
