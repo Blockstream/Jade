@@ -91,29 +91,35 @@ void make_bip85_mnemonic_screen(gui_activity_t** activity_ptr)
         "\nCreate a new recovery phrase\nderived from the current wallet\nand selected index number.", btns, 3);
 }
 
-static void make_show_new_mnemonic_page(gui_activity_t** activity_ptr, const size_t nwords, const size_t first_index,
-    char* word1, char* word2, char* word3, char* word4, gui_view_node_t* out_btns[])
+static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t nwords, const size_t first_index,
+    char* word1, char* word2, char* word3, char* word4)
 {
-    JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(page_act);
     JADE_ASSERT(word1);
     JADE_ASSERT(word2);
     JADE_ASSERT(word3);
     JADE_ASSERT(word4);
-    JADE_ASSERT(out_btns);
 
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(first_index < nwords);
     JADE_ASSERT(first_index % 4 == 0);
 
-    gui_make_activity(activity_ptr, true, "Recovery Phrase");
+    const bool first_page = first_index == 0;
+    const bool last_page = first_index == nwords - 4;
+
+    gui_activity_t* act = NULL;
+    gui_make_activity(&act, true, "Recovery Phrase");
 
     // Display 4 words per page, in a column
     // NOTE: the words prefixed by their index, eg. "1: river"
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 0);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
+
+    gui_view_node_t* btn_back = NULL;
+    gui_view_node_t* btn_next = NULL;
 
     // First three rows are just the words (in a central column)
     // Final row also has the back/fwd buttons
@@ -126,21 +132,16 @@ static void make_show_new_mnemonic_page(gui_activity_t** activity_ptr, const siz
 
         // Padding/back-button - first page is 'exit', otherwise 'previous page'
         if (irow == 3) {
-            const bool first_page = first_index == 0;
-
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, first_page ? BTN_MNEMONIC_EXIT : BTN_MNEMONIC_PREV, NULL);
-            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
+            gui_make_button(&btn_back, TFT_BLACK, first_page ? BTN_MNEMONIC_EXIT : BTN_MNEMONIC_PREV, NULL);
+            gui_set_margins(btn_back, GUI_MARGIN_ALL_EQUAL, 2);
+            gui_set_borders(btn_back, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn_back, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn_back, hsplit);
 
             gui_view_node_t* text;
             gui_make_text_font(&text, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-            gui_set_parent(text, btn);
+            gui_set_parent(text, btn_back);
             gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-            out_btns[0] = btn;
         } else {
             gui_view_node_t* filler;
             gui_make_fill(&filler, TFT_BLACK);
@@ -159,14 +160,11 @@ static void make_show_new_mnemonic_page(gui_activity_t** activity_ptr, const siz
 
         // Padding/fwd-button - last page is 'verify', otherwise 'next page'
         if (irow == 3) {
-            const bool last_page = first_index == nwords - 4;
-
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, last_page ? BTN_MNEMONIC_VERIFY : BTN_MNEMONIC_NEXT, NULL);
-            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
+            gui_make_button(&btn_next, TFT_BLACK, last_page ? BTN_MNEMONIC_VERIFY : BTN_MNEMONIC_NEXT, NULL);
+            gui_set_margins(btn_next, GUI_MARGIN_ALL_EQUAL, 2);
+            gui_set_borders(btn_next, TFT_BLACK, 2, GUI_BORDER_ALL);
+            gui_set_borders_selected_color(btn_next, TFT_BLOCKSTREAM_GREEN);
+            gui_set_parent(btn_next, hsplit);
 
             gui_view_node_t* text;
             if (last_page) {
@@ -174,19 +172,24 @@ static void make_show_new_mnemonic_page(gui_activity_t** activity_ptr, const siz
             } else {
                 gui_make_text_font(&text, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
             }
-            gui_set_parent(text, btn);
+            gui_set_parent(text, btn_next);
             gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-            out_btns[1] = btn;
         } else {
             gui_view_node_t* filler;
             gui_make_fill(&filler, TFT_BLACK);
             gui_set_parent(filler, hsplit);
         }
     }
+    JADE_ASSERT(btn_back);
+    JADE_ASSERT(btn_next);
 
     // Set the intially selected item to the next/verify (ie. the last) button
-    gui_set_activity_initial_selection(*activity_ptr, out_btns[1]);
+    gui_set_activity_initial_selection(act, btn_next);
+
+    // Copy activity and prev and next buttons into output struct
+    page_act->activity = act;
+    page_act->prev_button = first_page ? NULL : btn_back;
+    page_act->next_button = last_page ? NULL : btn_next;
 }
 
 void make_show_mnemonic(
@@ -199,31 +202,19 @@ void make_show_mnemonic(
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
 
-    gui_activity_t* prev_act = NULL;
-    gui_view_node_t* prev_btn = NULL;
+    // Chain the legal screen activities
+    link_activity_t page_act = {};
+    linked_activities_info_t act_info = {};
 
     const size_t npages = nwords / 4; // 4 words per page
     for (size_t j = 0; j < npages; j++) {
-        gui_view_node_t* btns[2] = {};
-        gui_activity_t* this = NULL;
-
         make_show_new_mnemonic_page(
-            &this, nwords, j * 4, words[j * 4], words[j * 4 + 1], words[j * 4 + 2], words[j * 4 + 3], btns);
-
-        if (prev_act) {
-            gui_connect_button_activity(btns[0], prev_act);
-            gui_connect_button_activity(prev_btn, this);
-        }
-
-        if (!*first_activity_ptr) {
-            *first_activity_ptr = this;
-        }
-
-        prev_act = this;
-        prev_btn = btns[1];
+            &page_act, nwords, j * 4, words[j * 4], words[j * 4 + 1], words[j * 4 + 2], words[j * 4 + 3]);
+        gui_chain_activities(&page_act, &act_info);
     }
 
-    *last_activity_ptr = prev_act;
+    *first_activity_ptr = act_info.first_activity;
+    *last_activity_ptr = act_info.last_activity;
 }
 
 static void make_confirm_mnemonic_page(
