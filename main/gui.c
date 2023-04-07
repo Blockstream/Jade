@@ -272,7 +272,7 @@ static gui_view_node_t* gui_get_first_active_node(gui_activity_t* activity)
 // select the previous item in the selectables list
 // Returns true if the selection is 'moved' to a prior item, or false if not (and selection left unchanged)
 // eg. no current item selected, no other selectable items, no prior selectable items [and not wrapping] etc.
-bool gui_select_prev(gui_activity_t* activity)
+static bool gui_select_prev(gui_activity_t* activity)
 {
     JADE_ASSERT(activity);
 
@@ -378,7 +378,7 @@ void gui_select_node(gui_activity_t* activity, gui_view_node_t* node)
 // select the next item in the selectables list
 // Returns true if the selection is 'moved' to a subsequent item, or false if not (and selection left unchanged)
 // eg. no current item selected, no other selectable items, no later selectable items [and not wrapping] etc.
-bool gui_select_next(gui_activity_t* activity)
+static bool gui_select_next(gui_activity_t* activity)
 {
     JADE_ASSERT(activity);
 
@@ -678,6 +678,24 @@ void free_unmanaged_activity(gui_activity_t* activity)
     JADE_LOGW("Freeing unmanaged gui activity at %p", activity);
     free_activity_internals(activity);
     free(activity);
+}
+
+static void switch_activity_callback(void* handler_arg, esp_event_base_t base, int32_t id, void* event_data)
+{
+    JADE_ASSERT(handler_arg);
+    gui_activity_t* activity = (gui_activity_t*)handler_arg;
+    gui_set_current_activity(activity);
+}
+
+static void gui_connect_button_activity(gui_view_node_t* node, gui_activity_t* activity)
+{
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->activity);
+    JADE_ASSERT(node->kind == BUTTON);
+    JADE_ASSERT(activity);
+
+    gui_activity_register_event(
+        node->activity, GUI_BUTTON_EVENT, node->button->click_event_id, switch_activity_callback, activity);
 }
 
 // Link activities eg. by prev/next buttons
@@ -2290,24 +2308,6 @@ bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, u
         event_base, event_id, wait_event_data, trigger_event_base, trigger_event_id, trigger_event_data, max_wait);
 
     return ret == ESP_OK;
-}
-
-static void switch_activity_callback(void* handler_arg, esp_event_base_t base, int32_t id, void* event_data)
-{
-    JADE_ASSERT(handler_arg);
-    gui_activity_t* activity = (gui_activity_t*)handler_arg;
-    gui_set_current_activity(activity);
-}
-
-void gui_connect_button_activity(gui_view_node_t* node, gui_activity_t* activity)
-{
-    JADE_ASSERT(node);
-    JADE_ASSERT(node->activity);
-    JADE_ASSERT(node->kind == BUTTON);
-    JADE_ASSERT(activity);
-
-    gui_activity_register_event(
-        node->activity, GUI_BUTTON_EVENT, node->button->click_event_id, switch_activity_callback, activity);
 }
 
 // Update the title associated with the passed activity
