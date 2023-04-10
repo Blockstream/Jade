@@ -44,7 +44,7 @@ menu "Blockstream Jade"
 
     config DISP_INVERT_COLORS
         bool "Invert Display Colors"
-        depends on BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_GRAY
+        depends on BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
         default n
         help
             Invert the colors in the dipslay. Some M5 devices have inverted colors depending on revision.
