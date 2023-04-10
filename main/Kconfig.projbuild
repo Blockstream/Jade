@@ -31,13 +31,10 @@ menu "Blockstream Jade"
             select HAS_AXP
         config BOARD_TYPE_M5_FIRE
             bool "M5Stack Fire"
-            depends on ESP32_SPIRAM_SUPPORT
         config BOARD_TYPE_M5_BLACK_GRAY
             bool "M5Stack Black/Gray"
-            depends on !ESP32_SPIRAM_SUPPORT
         config BOARD_TYPE_TTGO_TDISPLAY
             bool "TTGO T-DISPLAY"
-            depends on !ESP32_SPIRAM_SUPPORT
         config BOARD_TYPE_DEV
             bool "Dev board"
         config BOARD_TYPE_CUSTOM
