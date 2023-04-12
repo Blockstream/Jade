@@ -51,6 +51,9 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 # Modifying Configuration Files for Use
 Once you are familiar with the process of flashing the firmware using the sdkconfig templates that are included in the /config folder of this repository, there are some additional changes that you should make to these files before using the device with actual funds.
 
+There is also a helper script `tools/mkdefaults.py` to assist, which reads a given sdkconfig defaults file, makes appropriate changes, and writes the results as the top-level `sdkconfig.defaults` file.
+(NOTE: this script should be passed a base file and one or more directives - it reads the changes it is going to make for each directive from the `mkdefaults.dat.json` file.)
+
 ## Disabling Debug Features
 If editing the default development configuration template...
 
@@ -62,8 +65,11 @@ If editing the default development configuration template...
 
     CONFIG_DEBUG_MODE=y
 
+This can be accompished with, for example:
+`./tools/mkdefaults.py ./configs/sdkconfig_display.defaults NDEBUG`
+
 ## Enabling Secure Boot
-If you want to maximise the physical security of your device and prevent it from running firmware that you haven't signed with your signing key, you can also enable Secure Boot.  This is designed to mimic the settings found on a retail Jade device.
+If you want to maximise the physical security of your device and prevent it from running firmware that you haven't signed with your signing key, you can also enable Secure Boot.  If applied together with removing the debug features, this is designed to mimic the settings found on a retail Jade device.
 
 _Warning: Doing this cannot be un-done, nor can the signing key that the device will accept be changed._
 
@@ -85,6 +91,9 @@ _Depending on the hardare you have selected, you may need to remove the last lin
 
     CONFIG_EFUSE_VIRTUAL=y
     CONFIG_ESP32_REV_MIN_1=y
+
+This can be accompished with, for example:
+`./tools/mkdefaults.py ./configs/sdkconfig_display.defaults NDEBUG SECURE`
 
 # Disabling Bluetooth
 If you would prefer to completely disable Bluetooth, you can also make the following modifications to your configuration template.
@@ -112,6 +121,9 @@ If you would prefer to completely disable Bluetooth, you can also make the follo
     CONFIG_BTDM_CTRL_BLE_MAX_CONN=1
     # CONFIG_BTDM_CTRL_FULL_SCAN_SUPPORTED is not set
     # CONFIG_ESP32_WIFI_SW_COEXIST_ENABLE is not set
+
+This can be accompished with, for example:
+`./tools/mkdefaults.py ./configs/sdkconfig_display.defaults NORADIO`
 
 # Upgrading firmware via OTA
 If you have enabled secure boot with the settings suggested above you will need to do firmware updates via OTA.
