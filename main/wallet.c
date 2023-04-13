@@ -109,7 +109,7 @@ void wallet_init(void)
 }
 
 // Outputs eg. "m/a'/b'/c/d" - ie. uses m/ as mnaster, and ' as hardened indicator
-bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len)
+bool wallet_bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len)
 {
     JADE_ASSERT(output);
     JADE_ASSERT(output_len > 16);
@@ -137,7 +137,7 @@ bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, c
 }
 
 // Accepts "m/a/b/c/d" - accepts m/ or M/ as master, and h, H or ' as hardened indicators
-bool bip32_path_from_str(
+bool wallet_bip32_path_from_str(
     const char* pathstr, const size_t str_len, uint32_t* path, const size_t path_len, size_t* written)
 {
     JADE_ASSERT(pathstr);

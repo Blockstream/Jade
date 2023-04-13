@@ -143,7 +143,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                     // If paths not as expected show a warning message and ask the user to confirm
                     if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
                         char path_str[96];
-                        if (!bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
+                        if (!wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
                             *errmsg = "Failed to convert path to string format";
                             return false;
                         }

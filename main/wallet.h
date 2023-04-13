@@ -20,8 +20,8 @@ typedef enum { GREEN, P2PKH, P2WPKH, P2WPKH_P2SH, MULTI_P2WSH, MULTI_P2SH, MULTI
 
 void wallet_init(void);
 
-bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, size_t output_len);
-bool bip32_path_from_str(const char* pathstr, size_t str_len, uint32_t* path, size_t path_len, size_t* written);
+bool wallet_bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, size_t output_len);
+bool wallet_bip32_path_from_str(const char* pathstr, size_t str_len, uint32_t* path, size_t path_len, size_t* written);
 
 bool wallet_derive_pubkey(const uint8_t* serialised_key, size_t key_len, const uint32_t* path, size_t path_len,
     uint32_t flags, struct ext_key* hdkey);

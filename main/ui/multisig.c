@@ -9,7 +9,7 @@
 
 #include <sodium/utils.h>
 
-bool bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len);
+bool wallet_bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len);
 
 // Translate a GUI button (ok/cancel) into a multisig_ JADE_EVENT (so the caller
 // can await without worrying about which screen/activity it came from).
@@ -186,7 +186,7 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     char derivation[128];
     if (signer->derivation_len == 0) {
         strcpy(derivation, "[none provided]");
-    } else if (!bip32_path_as_str(signer->derivation, signer->derivation_len, derivation, sizeof(derivation))) {
+    } else if (!wallet_bip32_path_as_str(signer->derivation, signer->derivation_len, derivation, sizeof(derivation))) {
         strcpy(derivation, "[too long]");
     }
 
@@ -225,7 +225,7 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     char path[128];
     if (signer->path_len == 0) {
         strcpy(path, "None");
-    } else if (!bip32_path_as_str(signer->path, signer->path_len, path, sizeof(path))) {
+    } else if (!wallet_bip32_path_as_str(signer->path, signer->path_len, path, sizeof(path))) {
         strcpy(path, "[too long]");
     }
 

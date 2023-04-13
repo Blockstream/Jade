@@ -368,7 +368,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
         } else if (IS_FIELD(MSIG_FILE_DERIVATION)) {
             // "m/a/b/c/d" - accepts m/ or M/ as master, and h, H or ' as hardened indicators
             // NOTE: allowed to see derivation element multiple times (eg once per signer)
-            if (!bip32_path_from_str(value, value_end - value, path, sizeof(path) / sizeof(path[0]), &path_len)
+            if (!wallet_bip32_path_from_str(value, value_end - value, path, sizeof(path) / sizeof(path[0]), &path_len)
                 || !path_len) {
                 JADE_LOGE("Invalid derivation path: %s", value);
                 *errmsg = "Invalid derivation path";
