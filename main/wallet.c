@@ -1108,20 +1108,13 @@ bool wallet_get_blinding_factor(const uint8_t* master_blinding_key, const size_t
         return false;
     }
 
-    // NOTE: 'master_unblinding_key' is here as the full output of hmac512, when according to slip-0077
-    // the master unblinding key is only the second half of that - ie. 256 bits
-    // So we only use the relevant slice of the data for this derivation (consistent with ledger).
-    uint8_t tx_blinding_key[HMAC_SHA256_LEN];
-    JADE_WALLY_VERIFY(wally_hmac_sha256(master_blinding_key + HMAC_SHA512_LEN / 2, HMAC_SHA512_LEN / 2, hash_prevouts,
-        SHA256_LEN, tx_blinding_key, sizeof(tx_blinding_key)));
-
-    // msg is either "ABF" or "VBF" with the output index appended at the end.
-    // initialize the common part here and then replace vars down
-    uint8_t msg[3 + sizeof(uint32_t)] = { type, 'B', 'F', 0x00, 0x00, 0x00, 0x00 };
-    uint32_to_be(output_index, msg + 3);
-    JADE_WALLY_VERIFY(
-        wally_hmac_sha256(tx_blinding_key, sizeof(tx_blinding_key), msg, sizeof(msg), output, output_len));
-
+    if (type == ASSET_BLINDING_FACTOR) {
+        JADE_WALLY_VERIFY(wally_asset_blinding_key_to_abf(
+            master_blinding_key, master_blinding_key_len, hash_prevouts, hash_len, output_index, output, output_len));
+    } else {
+        JADE_WALLY_VERIFY(wally_asset_blinding_key_to_vbf(
+            master_blinding_key, master_blinding_key_len, hash_prevouts, hash_len, output_index, output, output_len));
+    }
     return true;
 }
 

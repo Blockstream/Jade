@@ -2270,20 +2270,23 @@ def test_liquid_blinded_commitments(jadeapi):
     # 4b4a27e482eff9dbaa52e7bada4cd7115c299c8e6ac8ebbd20e8d923ad2dad00
     # - and gets the same blinders and the same final signatures.
 
-    # This is the hash-prevout for that transaction
-    LEDGER_COMPARE_HASH_PREVOUT = h2b('7e78263a58236ffd160ee5a2c58c18b71637974\
-aa95e1c72070b08208012144f')
-
     ledger_txs = list(_get_test_cases("liquid_txn_ledger_compare.json"))
     assert len(ledger_txs) == 1
     ledger_commitments = ledger_txs[0]['input']['trusted_commitments']
     assert len(ledger_commitments) == 3
     assert ledger_commitments[2] is None
 
+    # Get the hash-prevout for that transaction
+    txn = wally.tx_from_bytes(ledger_txs[0]['input']['txn'], wally.WALLY_TX_FLAG_USE_ELEMENTS)
+    hash_prevouts = bytes(wally.tx_get_hash_prevouts(txn, 0, 0xffffffff))
+
+    # Sanity check it, since we know what it should be ...
+    assert hash_prevouts == h2b('7e78263a58236ffd160ee5a2c58c18b71637974aa95e1c72070b08208012144f')
+
     # First output commitments, no custom vbf
     rslt = jadeapi.get_commitments(ledger_commitments[0]['asset_id'],
                                    ledger_commitments[0]['value'],
-                                   LEDGER_COMPARE_HASH_PREVOUT,
+                                   hash_prevouts,
                                    0)
     del ledger_commitments[0]['blinding_key']
     assert _dicts_eq(rslt, ledger_commitments[0])
@@ -2291,7 +2294,7 @@ aa95e1c72070b08208012144f')
     # Second output commitments, including custom vbf
     rslt = jadeapi.get_commitments(ledger_commitments[1]['asset_id'],
                                    ledger_commitments[1]['value'],
-                                   LEDGER_COMPARE_HASH_PREVOUT,
+                                   hash_prevouts,
                                    1,
                                    ledger_commitments[1]['vbf'],)
     del ledger_commitments[1]['blinding_key']
