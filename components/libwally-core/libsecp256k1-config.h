@@ -40,7 +40,7 @@
 #define ENABLE_MODULE_RECOVERY 1
 
 /* Define this symbol to enable the schnorrsig module */
-/* #undef ENABLE_MODULE_SCHNORRSIG */
+#define ENABLE_MODULE_SCHNORRSIG
 
 /* Define this symbol to enable the surjection proof module */
 #define ENABLE_MODULE_SURJECTIONPROOF 1
