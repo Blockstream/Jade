@@ -108,9 +108,10 @@ void wallet_init(void)
     JADE_WALLY_VERIFY(bip32_key_from_base58(TESTNETLIQUID_SERVICE_XPUB, &TESTNETLIQUID_SERVICE));
 }
 
-// Outputs eg. "m/a'/b'/c/d" - ie. uses m/ as mnaster, and ' as hardened indicator
-bool wallet_bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len)
+// Outputs eg. "m/a'/b'/c/d" - ie. uses m/ as master, and ' as hardened indicator
+bool wallet_bip32_path_as_str(const uint32_t* parts, const size_t num_parts, char* output, const size_t output_len)
 {
+    JADE_ASSERT(parts);
     JADE_ASSERT(output);
     JADE_ASSERT(output_len > 16);
 
@@ -146,44 +147,14 @@ bool wallet_bip32_path_from_str(
     JADE_ASSERT(path_len);
     JADE_INIT_OUT_SIZE(written);
 
-    const char* ptr = pathstr;
-    const char* const str_end = pathstr + str_len;
-    if ((*ptr != 'm' && *ptr != 'M') || *++ptr != '/') {
-        JADE_LOGE("Unexpected bip32 path prefix: %s", pathstr);
+    // Defer to wally impl
+    if (bip32_path_from_str_n(pathstr, str_len, 0, 0, BIP32_FLAG_ALLOW_UPPER, path, path_len, written) != WALLY_OK) {
+        JADE_LOGE("Error parsing path string: %.*s", str_len, pathstr);
         return false;
     }
-
-    // Iterate over string of path elements
-    while (++ptr < str_end) {
-        if (*written >= path_len) {
-            JADE_LOGE("Unexpected bip32 path length: %s", pathstr);
-            return false;
-        }
-
-        // Isolate current path element
-        const char* element_end = memchr(ptr, '/', str_end - ptr);
-        if (!element_end) {
-            element_end = str_end;
-        }
-        const char* last_char = element_end - 1;
-        const bool hardened = *last_char == '\'' || *last_char == 'h' || *last_char == 'H';
-
-        // Read numeric value into path array
-        char* end = NULL;
-        path[*written] = strtoul(ptr, &end, 10);
-        if (end != (hardened ? last_char : element_end)) {
-            JADE_LOGE("Unexpected bip32 path element: %.*s in %s", element_end - ptr, ptr, pathstr);
-            return false;
-        }
-        if (hardened) {
-            path[*written] = harden(path[*written]);
-        }
-
-        // Path element populated
-        ++*written;
-
-        // Jump past this value
-        ptr = element_end;
+    if (*written > path_len) {
+        JADE_LOGE("bip32 path too long (max length: %u): %.*s", path_len, str_len, pathstr);
+        return false;
     }
     return true;
 }

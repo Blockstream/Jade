@@ -9,7 +9,7 @@
 
 #include <sodium/utils.h>
 
-bool wallet_bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, const size_t output_len);
+bool wallet_bip32_path_as_str(const uint32_t* parts, size_t num_parts, char* output, const size_t output_len);
 
 // Translate a GUI button (ok/cancel) into a multisig_ JADE_EVENT (so the caller
 // can await without worrying about which screen/activity it came from).
