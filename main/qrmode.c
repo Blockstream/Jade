@@ -160,7 +160,7 @@ static void create_display_xpub_qr_activity(gui_activity_t** activity_ptr, const
     bcur_create_qr_icons(cbor, written, xpub_qr_format, qrcode_version, &icons, &num_icons);
 
     // Create xpub activity for those icons
-    char pathstr[32];
+    char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
     const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr));
     JADE_ASSERT(ret);
     const char* label = qr_flags & QR_XPUB_MULTISIG ? "Multisig" : "Singlesig";
@@ -338,7 +338,7 @@ static bool verify_address(const address_data_t* const addr_data)
         return false;
     }
 
-    char label[32];
+    char label[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
     script_variant_t variant;
     bool is_multisig = false;
     uint8_t threshold = 0;

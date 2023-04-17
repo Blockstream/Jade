@@ -97,7 +97,7 @@ int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    char pathstr[64];
+    char pathstr[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
     if (!wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr))) {
         *errmsg = "Invalid bip32 path";
         return CBOR_RPC_BAD_PARAMETERS;
@@ -214,7 +214,7 @@ void sign_message_process(void* process_ptr)
         goto cleanup;
     }
 
-    char pathstr[64];
+    char pathstr[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
     if (!wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr))) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
         goto cleanup;

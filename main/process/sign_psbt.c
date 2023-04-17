@@ -324,7 +324,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             // Check the path is as expected
             if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
                 // Not our standard change path - add warning
-                char path_str[96];
+                char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                 const bool have_path_str = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
                 const int ret = snprintf(output_info[index].message, sizeof(output_info[index].message),
                     "Unusual receive path: %s", have_path_str ? path_str : "too long");
@@ -363,7 +363,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             // Check path tail looks as expected
             if (!wallet_is_expected_multisig_path(our_key_index, is_change, &path[path_tail_start], path_tail_len)) {
                 // Not our standard change path - add warning
-                char path_str[64];
+                char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                 const bool have_path_str = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
                 const int ret = snprintf(output_info[index].message, sizeof(output_info[index].message),
                     "Unusual change path suffix: %s", have_path_str ? path_str : "too long");

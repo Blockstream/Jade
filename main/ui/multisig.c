@@ -183,7 +183,7 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     gui_set_parent(text2a, hsplit_text2);
     gui_set_align(text2a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
-    char derivation[128];
+    char derivation[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
     if (signer->derivation_len == 0) {
         strcpy(derivation, "[none provided]");
     } else if (!wallet_bip32_path_as_str(signer->derivation, signer->derivation_len, derivation, sizeof(derivation))) {
@@ -222,7 +222,7 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     gui_set_parent(text4a, hsplit_text4);
     gui_set_align(text4a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
-    char path[128];
+    char path[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
     if (signer->path_len == 0) {
         strcpy(path, "None");
     } else if (!wallet_bip32_path_as_str(signer->path, signer->path_len, path, sizeof(path))) {
