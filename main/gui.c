@@ -1639,7 +1639,7 @@ static inline uint16_t get_step(enum gui_split_type kind, uint16_t total, uint16
 }
 
 // Fully render a node, meaning that it also re-calculates the constraints, push elements to the selectables list, etc
-static void render_node(gui_view_node_t* node, dispWin_t constraints, uint8_t depth)
+static void render_node(gui_view_node_t* node, const dispWin_t constraints, const uint8_t depth)
 {
     JADE_ASSERT(node);
 
@@ -1667,24 +1667,26 @@ static void render_node(gui_view_node_t* node, dispWin_t constraints, uint8_t de
     repaint_node(node);
 }
 
-static void render_button(gui_view_node_t* node, dispWin_t cs, uint8_t depth)
+static void render_button(gui_view_node_t* node, const dispWin_t cs, const uint8_t depth)
 {
     TFT_fillRect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1,
         node->is_selected ? node->button->selected_color : node->button->color);
 
+    // Draw any children directly over the current node
     gui_view_node_t* ptr = node->child;
     if (ptr) {
         render_node(ptr, cs, depth + 1);
     }
 }
 
-static void render_vsplit(gui_view_node_t* node, dispWin_t constraints, uint8_t depth)
+static void render_vsplit(gui_view_node_t* node, const dispWin_t constraints, const uint8_t depth)
 {
     uint16_t count = 0;
     uint16_t y = constraints.y1;
     uint16_t max_y = constraints.y2;
     uint16_t width = max_y - y;
 
+    // Draw children in the divided area parts
     gui_view_node_t* ptr = node->child;
     while (ptr && count < node->split->parts) {
         uint16_t step;
@@ -1710,13 +1712,14 @@ static void render_vsplit(gui_view_node_t* node, dispWin_t constraints, uint8_t 
     }
 }
 
-static void render_hsplit(gui_view_node_t* node, dispWin_t constraints, uint8_t depth)
+static void render_hsplit(gui_view_node_t* node, const dispWin_t constraints, const uint8_t depth)
 {
     uint16_t count = 0;
     uint16_t x = constraints.x1;
     uint16_t max_x = constraints.x2;
     uint16_t width = max_x - x;
 
+    // Draw children in the divided area parts
     gui_view_node_t* ptr = node->child;
     while (ptr && count < node->split->parts) {
         uint16_t step;
@@ -1737,12 +1740,13 @@ static void render_hsplit(gui_view_node_t* node, dispWin_t constraints, uint8_t 
     }
 }
 
-static void render_fill(gui_view_node_t* node, dispWin_t cs, uint8_t depth)
+static void render_fill(gui_view_node_t* node, const dispWin_t cs, const uint8_t depth)
 {
     color_t* color = node->is_selected ? &node->fill->selected_color : &node->fill->color;
 
     TFT_fillRect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1, *color);
 
+    // Draw any children directly over the current node
     gui_view_node_t* ptr = node->child;
     if (ptr) {
         render_node(ptr, cs, depth + 1);
@@ -1852,7 +1856,7 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
 }
 
 // render an icon to screen
-static void render_icon(gui_view_node_t* node, dispWin_t cs)
+static void render_icon(gui_view_node_t* node, const dispWin_t cs, const uint8_t depth)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == ICON);
@@ -1863,10 +1867,16 @@ static void render_icon(gui_view_node_t* node, dispWin_t cs)
         TFT_icon(&node->icon->icon, resolve_halign(0, node->icon->halign), resolve_valign(0, node->icon->valign),
             *color, cs, transparent ? NULL : &node->icon->bg_color);
     }
+
+    // Draw any children directly over the current node
+    gui_view_node_t* ptr = node->child;
+    if (ptr) {
+        render_node(ptr, cs, depth + 1);
+    }
 }
 
 // render a picture to screen
-static void render_picture(gui_view_node_t* node, dispWin_t cs)
+static void render_picture(gui_view_node_t* node, const dispWin_t cs, const uint8_t depth)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == PICTURE);
@@ -1875,10 +1885,16 @@ static void render_picture(gui_view_node_t* node, dispWin_t cs)
         TFT_picture(node->picture->picture, resolve_halign(0, node->picture->halign),
             resolve_valign(0, node->picture->valign), cs);
     }
+
+    // Draw any children directly over the current node
+    gui_view_node_t* ptr = node->child;
+    if (ptr) {
+        render_node(ptr, cs, depth + 1);
+    }
 }
 
 // paint the borders for a view_node
-static void paint_borders(gui_view_node_t* node, dispWin_t cs)
+static void paint_borders(gui_view_node_t* node, const dispWin_t cs)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->borders);
@@ -1943,7 +1959,7 @@ static void repaint_node(gui_view_node_t* node)
         render_vsplit(node, node->render_data.padded_constraints, node->render_data.depth);
         break;
     case TEXT:
-        render_text(node, node->render_data.padded_constraints);
+        render_text(node, node->render_data.padded_constraints); // text does not have child nodes
         break;
     case FILL:
         render_fill(node, node->render_data.padded_constraints, node->render_data.depth);
@@ -1952,10 +1968,10 @@ static void repaint_node(gui_view_node_t* node)
         render_button(node, node->render_data.padded_constraints, node->render_data.depth);
         break;
     case ICON:
-        render_icon(node, node->render_data.padded_constraints);
+        render_icon(node, node->render_data.padded_constraints, node->render_data.depth);
         break;
     case PICTURE:
-        render_picture(node, node->render_data.padded_constraints);
+        render_picture(node, node->render_data.padded_constraints, node->render_data.depth);
         break;
     }
 
