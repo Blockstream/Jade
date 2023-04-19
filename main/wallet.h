@@ -15,8 +15,8 @@
 
 #define MAX_VARIANT_LEN 24
 
-// 'm/' + ( (<10 digit number>[+ '] + '/') * n)
-#define MAX_PATH_STR_LEN(max_path_elems) (2 + ((10 + 1 + 1) * max_path_elems))
+// 'm' + ( ('/' + <10 digit number>[+ ']) * n) + '\0'
+#define MAX_PATH_STR_LEN(max_path_elems) (1 + ((1 + 10 + 1) * max_path_elems) + 1)
 
 // Supported script variants (singlesig and multisig versions)
 typedef enum { GREEN, P2PKH, P2WPKH, P2WPKH_P2SH, MULTI_P2WSH, MULTI_P2SH, MULTI_P2WSH_P2SH } script_variant_t;
