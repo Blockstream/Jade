@@ -1099,22 +1099,32 @@ bool wallet_get_public_blinding_key(const uint8_t* master_blinding_key, const si
 }
 
 bool wallet_get_blinding_factor(const uint8_t* master_blinding_key, const size_t master_blinding_key_len,
-    const uint8_t* hash_prevouts, const size_t hash_len, const size_t output_index, uint8_t type, uint8_t* output,
-    const size_t output_len)
+    const uint8_t* hash_prevouts, const size_t hash_len, const size_t output_index, const BlindingFactorType_t type,
+    uint8_t* output, const size_t output_len)
 {
     if (!master_blinding_key || master_blinding_key_len != HMAC_SHA512_LEN || !hash_prevouts || hash_len != SHA256_LEN
-        || !output || output_len != HMAC_SHA256_LEN
-        || (type != ASSET_BLINDING_FACTOR && type != VALUE_BLINDING_FACTOR)) {
+        || !output) {
         return false;
     }
 
-    if (type == ASSET_BLINDING_FACTOR) {
-        JADE_WALLY_VERIFY(wally_asset_blinding_key_to_abf(
-            master_blinding_key, master_blinding_key_len, hash_prevouts, hash_len, output_index, output, output_len));
+    // Map to appropriate wally function
+    typedef int (*fn_get_blinding_factor_t)(const uint8_t*, size_t, const uint8_t*, size_t, uint32_t, uint8_t*, size_t);
+    fn_get_blinding_factor_t get_blinding_factor = NULL;
+    if (type == BF_ASSET && output_len == BLINDING_FACTOR_LEN) {
+        get_blinding_factor = wally_asset_blinding_key_to_abf;
+    } else if (type == BF_VALUE && output_len == BLINDING_FACTOR_LEN) {
+        get_blinding_factor = wally_asset_blinding_key_to_vbf;
+    } else if (type == BF_ASSET_VALUE && output_len == WALLY_ABF_VBF_LEN) {
+        get_blinding_factor = wally_asset_blinding_key_to_abf_vbf;
     } else {
-        JADE_WALLY_VERIFY(wally_asset_blinding_key_to_vbf(
-            master_blinding_key, master_blinding_key_len, hash_prevouts, hash_len, output_index, output, output_len));
+        return false;
     }
+
+    // Get the blinding factor(s)
+    JADE_ASSERT(get_blinding_factor);
+    JADE_WALLY_VERIFY(get_blinding_factor(
+        master_blinding_key, master_blinding_key_len, hash_prevouts, hash_len, output_index, output, output_len));
+
     return true;
 }
 

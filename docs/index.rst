@@ -1455,7 +1455,7 @@ Used to fetch a deterministic output blinding factor (abf/assetblinder or vbf/va
     }
 
 * 'hash_prevout' should be the double sha256 of the serialization of all input outpoints, as documented in bip143.
-* 'type' must be either 'ASSET' or 'VALUE'.
+* 'type' must be either 'ASSET', 'VALUE', or 'ASSET_AND_VALUE'.
 * 'multisig_name' is optional and defaults to null.  It is only used for registered multisig wallets.
  
 .. _get_blinding_factor_reply:
@@ -1467,8 +1467,11 @@ get_blinding_factor reply
 
     {
         "id": "299792458",
-        "result": <32 bytes>
+        "result": <32 or 64 bytes>
     }
+
+* For 'ASSET' and 'VALUE' requests a 32-byte blinding factor is returned.
+* For 'ASSET_AND_VALUE' requests a 64-byte abf|vbf value is returned - ie. the first 32 bytes are the abf, the second 32 bytes are the vbf.
 
 .. _get_commitments_request:
 

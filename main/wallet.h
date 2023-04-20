@@ -6,9 +6,8 @@
 #include <wally_bip32.h>
 #include <wally_transaction.h>
 
-// Blinding factor type prefixes
-#define ASSET_BLINDING_FACTOR 'A'
-#define VALUE_BLINDING_FACTOR 'V'
+// Blinding factors
+typedef enum { BF_ASSET, BF_VALUE, BF_ASSET_VALUE } BlindingFactorType_t;
 
 // The maximum number of multisig signers supported
 #define MAX_MULTISIG_SIGNERS 15
@@ -86,7 +85,7 @@ bool wallet_get_shared_blinding_nonce(const uint8_t* master_blinding_key, size_t
     const uint8_t* script, size_t script_len, const uint8_t* their_pubkey, size_t their_pubkey_len,
     uint8_t* output_nonce, size_t output_nonce_len, uint8_t* output_pubkey, size_t output_pubkey_len);
 bool wallet_get_blinding_factor(const uint8_t* master_blinding_key, size_t master_blinding_key_len,
-    const uint8_t* hash_prevouts, size_t hash_len, size_t output_index, uint8_t type, uint8_t* output,
+    const uint8_t* hash_prevouts, size_t hash_len, size_t output_index, BlindingFactorType_t type, uint8_t* output,
     size_t output_len);
 bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,
     size_t script_len, const uint8_t* satoshi, size_t satoshi_len, uint8_t* output, size_t output_len);

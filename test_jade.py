@@ -1434,10 +1434,10 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                      'type': 'BAD'}), 'Invalid blinding factor type'),
                   (('badblindfac10', 'get_blinding_factor',
                     {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': 0,
-                     'type': 'ASSETXYZ'}), 'extract blinding factor type'),
+                     'type': 'ASSETXYZ'}), 'Invalid blinding factor type'),
                   (('badblindfac11', 'get_blinding_factor',
                     {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': 0,
-                     'type': 'VALUEVERYBAD'}), 'extract blinding factor type'),
+                     'type': 'VALUEISMUCHTOOLONG'}), 'extract blinding factor type'),
 
                   (('badcommit1', 'get_commitments'), 'Expecting parameters map'),
                   (('badcommit2', 'get_commitments',
@@ -2248,6 +2248,8 @@ def test_liquid_blinded_commitments(jadeapi):
     assert rslt == EXPECTED_LIQ_COMMITMENT_1['abf']
     rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'VALUE')
     assert rslt == EXPECTED_LIQ_COMMITMENT_1['vbf']
+    rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'ASSET_AND_VALUE')
+    assert rslt == EXPECTED_LIQ_COMMITMENT_1['abf'] + EXPECTED_LIQ_COMMITMENT_1['vbf']
 
     # Get Liquid commitments without custom VBF
     rslt = jadeapi.get_commitments(TEST_REGTEST_BITCOIN,

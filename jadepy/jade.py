@@ -1142,26 +1142,22 @@ class JadeAPI:
 
     def get_blinding_factor(self, hash_prevouts, output_index, bftype, multisig_name=None):
         """
-        RPC call to get a deterministic "trusted" blinding factor to blind an output.
-        Normally the blinding factors are generated and returned in the `get_commitments` call,
-        but for the last output the vbf must be generated on the host, so this call allows the
-        host to get a valid abf to compute the generator and then the "final" vbf.
-        Nonetheless, this call is kept generic, and can also generate vbfs, hence the "bftype"
-        parameter.
+        RPC call to get deterministic blinding factors to blind an output.
+        Predicated on the host calculating the 'hash_prevouts' value correctly.
+        Can fetch abf, vbf, or both together.
 
         Parameters
         ----------
 
         hash_prevouts : 32-bytes
-            This value is computed as specified in bip143.
-            It is verified immediately since at this point Jade doesn't have the tx in question.
-            It will be checked later during `sign_liquid_tx()`.
+            This value should be computed by the host as specified in bip143.
+            It is not verified by Jade, since at this point Jade does not have the tx in question.
 
         output_index : int
             The index of the output we are trying to blind
 
         bftype : str
-            Can be eitehr "ASSET" or "VALUE", to generate abfs or vbfs.
+            Can be "ASSET", "VALUE", or "ASSET_AND_VALUE", to generate abf, vbf, or both.
 
         multisig_name : str, optional
             The name of any registered multisig wallet for which to fetch the blinding factor.
@@ -1169,8 +1165,9 @@ class JadeAPI:
 
         Returns
         -------
-        32-bytes
-            The requested blinding factor
+        32-bytes or 64-bytes
+            The blinding factor for "ASSET" and "VALUE" requests, or both concatenated abf|vbf
+            ie. the first 32 bytes being abf, the second 32 bytes being vbf.
         """
         params = {'hash_prevouts': hash_prevouts,
                   'output_index': output_index,

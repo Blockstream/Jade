@@ -82,19 +82,24 @@ void get_commitments_process(void* process_ptr)
         goto cleanup;
     }
 
-    if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts, hash_prevouts_len,
-            output_index, ASSET_BLINDING_FACTOR, commitments.abf, sizeof(commitments.abf))) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf from the parameters", NULL);
-        goto cleanup;
-    }
-
     if (!vbf_len) {
-        // Compute vbf
+        // Compute both abf and vbf
+        JADE_ASSERT(sizeof(commitments.abf) + sizeof(commitments.vbf) == WALLY_ABF_VBF_LEN);
+        uint8_t tmp_abf_vbf[sizeof(commitments.abf) + sizeof(commitments.vbf)];
         if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts,
-                hash_prevouts_len, output_index, VALUE_BLINDING_FACTOR, commitments.vbf, sizeof(commitments.vbf))) {
+                hash_prevouts_len, output_index, BF_ASSET_VALUE, tmp_abf_vbf, sizeof(tmp_abf_vbf))) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute vbf from the parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf/vbf from the parameters", NULL);
+            goto cleanup;
+        }
+        memcpy(commitments.abf, tmp_abf_vbf, sizeof(commitments.abf));
+        memcpy(commitments.vbf, tmp_abf_vbf + sizeof(commitments.abf), sizeof(commitments.vbf));
+    } else {
+        // Compute abf only
+        if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts,
+                hash_prevouts_len, output_index, BF_ASSET, commitments.abf, sizeof(commitments.abf))) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf from the parameters", NULL);
             goto cleanup;
         }
     }
