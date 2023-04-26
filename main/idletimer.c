@@ -52,6 +52,28 @@ static TickType_t get_last_registered_activity(void)
     return last_activity;
 }
 
+static bool show_timeout_warning_screen(void)
+{
+    gui_activity_t* const prior_activity = gui_current_activity();
+    gui_activity_t* const activity
+        = display_message_activity_two_lines("Jade preparing to sleep", "Press button to keep awake.");
+    bool ret = gui_activity_wait_event(
+        activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, SECS_TO_TICKS(KEEP_AWAKE_WARNING_SECS));
+
+#ifdef CONFIG_DEBUG_UNATTENDED_CI
+    // Debug ci build should never idle out - mock button press
+    JADE_LOGW("Idle-timeout elapsed - no-display/CI/test build - preventing timeout.");
+    ret = true;
+#endif
+
+    // Replace prior activity if we're still current
+    if (gui_current_activity() == activity) {
+        gui_set_current_activity(prior_activity);
+    }
+
+    return ret;
+}
+
 // The idle timer task - loops, waking periodically to check the time since
 // the last registered user activity.  If sufficiently long ago, deactivates
 // the device, after having diplayed a warning/cancel screen for a few seconds.
@@ -79,30 +101,12 @@ static void idletimer_task(void* ignore)
             // Timeout elapsed, prepare to power-off device
             // Give user last chance ...
             JADE_LOGW("Idle-timeout elapsed - showing warning screen");
-
-            gui_activity_t* prior_activity = gui_current_activity();
-            gui_activity_t* activity
-                = display_message_activity_two_lines("Jade preparing to power-off!", "Press button to keep awake.");
-            bool ret = gui_activity_wait_event(
-                activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, SECS_TO_TICKS(KEEP_AWAKE_WARNING_SECS));
-
-#ifdef CONFIG_DEBUG_UNATTENDED_CI
-            // Debug ci build should never idle out - mock button press
-            JADE_LOGW("Idle-timeout elapsed - no-display/CI/test build - preventing timeout.");
-            ret = true;
-#endif
+            const bool acted = show_timeout_warning_screen();
 
             // Check the activity time again, if it was recent we can cancel the power-off
-            if (ret || get_last_registered_activity() > checktime) {
-                // User pressed something or message arrived, cancel power-off
-                JADE_LOGI("Cancelling idle-timeout power-off, next check in %lu", period);
-
-                // Replace prior activity if we're still current
-                if (gui_current_activity() == activity) {
-                    gui_set_current_activity(prior_activity);
-                }
-
-                // Sleep until the next check
+            if (acted || get_last_registered_activity() > checktime) {
+                // User pressed something or message arrived - sleep until the next check
+                JADE_LOGI("Cancelling idle-timeout, next check in %lu", period);
                 vTaskDelay(period);
                 continue;
             }
