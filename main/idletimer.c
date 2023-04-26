@@ -8,7 +8,7 @@
 #include "ui.h"
 #include "utils/event.h"
 
-#define DEFAULT_IDLE_TIMEOUT_SECS 300
+#define DEFAULT_IDLE_TIMEOUT_SECS 600
 #define TIMEOUT_SLEEP_PERIOD_SECS 60
 #define KEEP_AWAKE_WARNING_SECS 10
 
