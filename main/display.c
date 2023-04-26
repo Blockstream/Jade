@@ -21,7 +21,7 @@ uint8_t GUI_DEFAULT_FONT = DEFAULT_FONT;
 
 void display_init(void)
 {
-    JADE_LOGI("Powering the screen");
+    JADE_LOGI("display/screen init");
     power_screen_on();
 
     esp_err_t ret;
@@ -74,7 +74,6 @@ void display_splash(gui_activity_t** activity_ptr)
 
     // set the current activity and draw it on screen
     gui_set_current_activity(*activity_ptr);
-    power_backlight_on(BACKLIGHT_MAX);
 }
 
 // get/set screen orientation
