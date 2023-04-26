@@ -42,7 +42,7 @@ static void set_screen_dimmed(const bool dimmed)
 void idletimer_set_min_timeout_secs(const uint16_t min_timeout_secs) { min_timeout_override_secs = min_timeout_secs; }
 
 // Function to register activity
-void idletimer_register_activity(const bool is_ui)
+bool idletimer_register_activity(const bool is_ui)
 {
     JADE_ASSERT(last_activity_mutex);
 
@@ -64,7 +64,9 @@ void idletimer_register_activity(const bool is_ui)
     if (is_ui && screen_dimmed) {
         JADE_LOGI("Activity while screen disabled - powering screen");
         set_screen_dimmed(false);
+        return true;
     }
+    return false;
 }
 
 // Function to get last registered activity time

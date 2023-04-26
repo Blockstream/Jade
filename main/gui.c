@@ -2135,38 +2135,38 @@ static void gui_task(void* args)
 // TODO: different functions for different types of click
 void gui_wheel_click(void)
 {
-    if (gui_click_event == GUI_WHEEL_CLICK_EVENT) {
-        select_action(current_activity);
+    if (!idletimer_register_activity(true)) {
+        if (gui_click_event == GUI_WHEEL_CLICK_EVENT) {
+            select_action(current_activity);
+        }
+        esp_event_post(GUI_EVENT, GUI_WHEEL_CLICK_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
     }
-
-    esp_event_post(GUI_EVENT, GUI_WHEEL_CLICK_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
-    idletimer_register_activity(true);
 }
 
 void gui_front_click(void)
 {
-    if (gui_click_event == GUI_FRONT_CLICK_EVENT) {
-        select_action(current_activity);
+    if (!idletimer_register_activity(true)) {
+        if (gui_click_event == GUI_FRONT_CLICK_EVENT) {
+            select_action(current_activity);
+        }
+        esp_event_post(GUI_EVENT, GUI_FRONT_CLICK_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
     }
-
-    esp_event_post(GUI_EVENT, GUI_FRONT_CLICK_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
-    idletimer_register_activity(true);
 }
 
 void gui_next(void)
 {
-    gui_select_next(current_activity);
-
-    esp_event_post(GUI_EVENT, GUI_WHEEL_RIGHT_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
-    idletimer_register_activity(true);
+    if (!idletimer_register_activity(true)) {
+        gui_select_next(current_activity);
+        esp_event_post(GUI_EVENT, GUI_WHEEL_RIGHT_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
+    }
 }
 
 void gui_prev(void)
 {
-    gui_select_prev(current_activity);
-
-    esp_event_post(GUI_EVENT, GUI_WHEEL_LEFT_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
-    idletimer_register_activity(true);
+    if (!idletimer_register_activity(true)) {
+        gui_select_prev(current_activity);
+        esp_event_post(GUI_EVENT, GUI_WHEEL_LEFT_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
+    }
 }
 
 // Set the item to be initally selected when the activity is activated/switched-to
