@@ -332,8 +332,7 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* t
     vTaskDelete(camera_task);
     jade_camera_stop();
 
-    // Remove the minimum idle timeout - make the completed image capture count as 'activity'
-    idletimer_register_activity();
+    // Remove the minimum idle timeout
     idletimer_set_min_timeout_secs(0);
 
 #else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1

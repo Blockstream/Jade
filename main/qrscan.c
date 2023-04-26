@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "camera.h"
+#include "idletimer.h"
 #include "jade_assert.h"
 #include "qrscan.h"
 #include "sensitive.h"
@@ -96,6 +97,9 @@ static bool qr_recognize(
         qr_data->len = 0;
         return false;
     }
+
+    // Make the completed QR image capture count as 'activity' against the idle timer
+    idletimer_register_activity();
 
     // QR data was extracted and validated - return true
     return true;
