@@ -99,7 +99,7 @@ static bool qr_recognize(
     }
 
     // Make the completed QR image capture count as 'activity' against the idle timer
-    idletimer_register_activity();
+    idletimer_register_activity(true);
 
     // QR data was extracted and validated - return true
     return true;

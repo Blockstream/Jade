@@ -2140,7 +2140,7 @@ void gui_wheel_click(void)
     }
 
     esp_event_post(GUI_EVENT, GUI_WHEEL_CLICK_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
-    idletimer_register_activity();
+    idletimer_register_activity(true);
 }
 
 void gui_front_click(void)
@@ -2150,7 +2150,7 @@ void gui_front_click(void)
     }
 
     esp_event_post(GUI_EVENT, GUI_FRONT_CLICK_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
-    idletimer_register_activity();
+    idletimer_register_activity(true);
 }
 
 void gui_next(void)
@@ -2158,7 +2158,7 @@ void gui_next(void)
     gui_select_next(current_activity);
 
     esp_event_post(GUI_EVENT, GUI_WHEEL_RIGHT_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
-    idletimer_register_activity();
+    idletimer_register_activity(true);
 }
 
 void gui_prev(void)
@@ -2166,7 +2166,7 @@ void gui_prev(void)
     gui_select_prev(current_activity);
 
     esp_event_post(GUI_EVENT, GUI_WHEEL_LEFT_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
-    idletimer_register_activity();
+    idletimer_register_activity(true);
 }
 
 // Set the item to be initally selected when the activity is activated/switched-to

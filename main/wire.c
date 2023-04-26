@@ -71,16 +71,17 @@ static void handle_data_impl(
             break;
         }
 
-        // Message arrival counts as 'activity' against idle timeout
-        idletimer_register_activity();
-
         if (!rpc_request_valid(&ctx.value)) {
             // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
             JADE_LOGW("Invalid request, length %u", msg_len);
             SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", msg_len);
         } else {
             // Push to task queue for dashboard to handle
-            if (!jade_process_push_in_message(full_data_in, msg_len + 1)) {
+            if (jade_process_push_in_message(full_data_in, msg_len + 1)) {
+                // Valid message arrival counts as 'activity' against idle timeout
+                // (but not as 'UI' activity - ie. keep jade on but do not stop the screen from turning off)
+                idletimer_register_activity(false);
+            } else {
                 SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Input message too large to handle", msg_len);
             }
         }

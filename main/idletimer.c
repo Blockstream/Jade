@@ -14,8 +14,9 @@
 
 #define SECS_TO_TICKS(secs) (secs * 1000 / portTICK_PERIOD_MS)
 
-// The 'last activity' counter, protected by a mutex
+// The 'last activity' counters, protected by a mutex
 static TickType_t last_activity_registered = 0;
+static TickType_t last_ui_activity_registered = 0;
 static SemaphoreHandle_t last_activity_mutex = NULL;
 static uint16_t min_timeout_override_secs = 0;
 
@@ -26,7 +27,7 @@ static uint16_t min_timeout_override_secs = 0;
 void idletimer_set_min_timeout_secs(const uint16_t min_timeout_secs) { min_timeout_override_secs = min_timeout_secs; }
 
 // Function to register activity
-void idletimer_register_activity(void)
+void idletimer_register_activity(const bool is_ui)
 {
     JADE_ASSERT(last_activity_mutex);
 
@@ -34,12 +35,18 @@ void idletimer_register_activity(void)
     while (xSemaphoreTake(last_activity_mutex, portMAX_DELAY) != pdTRUE) {
         // wait for the mutex
     }
+
+    // Register activity, and optionally 'ui activity'
     last_activity_registered = xTaskGetTickCount();
+    if (is_ui) {
+        last_ui_activity_registered = last_activity_registered;
+    }
+
     xSemaphoreGive(last_activity_mutex);
 }
 
 // Function to get last registered activity time
-static TickType_t get_last_registered_activity(void)
+static TickType_t get_last_registered_activity(const bool ui)
 {
     JADE_ASSERT(last_activity_mutex);
 
@@ -47,7 +54,7 @@ static TickType_t get_last_registered_activity(void)
     while (xSemaphoreTake(last_activity_mutex, portMAX_DELAY) != pdTRUE) {
         // wait for the mutex
     }
-    const TickType_t last_activity = last_activity_registered;
+    const TickType_t last_activity = ui ? last_ui_activity_registered : last_activity_registered;
     xSemaphoreGive(last_activity_mutex);
     return last_activity;
 }
@@ -88,7 +95,7 @@ static void idletimer_task(void* ignore)
         }
         const TickType_t timeout = SECS_TO_TICKS(timeout_secs);
 
-        const TickType_t last_activity = get_last_registered_activity();
+        const TickType_t last_activity = get_last_registered_activity(false);
         const TickType_t checktime = xTaskGetTickCount();
 
         // See if the last activity was sufficiently long ago
@@ -104,7 +111,7 @@ static void idletimer_task(void* ignore)
             const bool acted = show_timeout_warning_screen();
 
             // Check the activity time again, if it was recent we can cancel the power-off
-            if (acted || get_last_registered_activity() > checktime) {
+            if (acted || get_last_registered_activity(false) > checktime) {
                 // User pressed something or message arrived - sleep until the next check
                 JADE_LOGI("Cancelling idle-timeout, next check in %lu", period);
                 vTaskDelay(period);
@@ -139,9 +146,6 @@ void idletimer_init(void)
     if (timeout_secs == 0) {
         storage_set_idle_timeout(DEFAULT_IDLE_TIMEOUT_SECS);
     }
-
-    // Initialise the 'last activity' to now
-    idletimer_register_activity();
 
     // Kick off the idletimer task
     const BaseType_t retval = xTaskCreatePinnedToCore(
