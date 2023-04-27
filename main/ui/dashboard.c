@@ -533,7 +533,7 @@ void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(timeout_btns);
-    JADE_ASSERT(nBtns == 6);
+    JADE_ASSERT(nBtns == 7);
 
     gui_make_activity(activity_ptr, true, "Idle Timeout");
 
@@ -551,7 +551,7 @@ void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout
 
     {
         gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 6, 16, 16, 16, 16, 18, 18);
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 7, 14, 14, 14, 14, 14, 14, 16);
         gui_set_parent(hsplit, vsplit);
 
         for (int i = 0; i < nBtns; ++i) {

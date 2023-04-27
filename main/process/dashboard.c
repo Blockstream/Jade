@@ -1152,11 +1152,12 @@ static void handle_idle_timeout(uint16_t* const timeout)
         { .txt = "3", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 2, .val = 180 },
         { .txt = "5", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 3, .val = 300 },
         { .txt = "10", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 4, .val = 600 },
-        { .txt = "15", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 5, .val = 900 } };
+        { .txt = "15", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 5, .val = 900 },
+        { .txt = "OFF", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 6, .val = UINT16_MAX } };
     const size_t nBtns = sizeof(timeout_btns) / sizeof(btn_data_t);
 
     // Timeout button ids must be available/contiguous
-    JADE_ASSERT(BTN_SETTINGS_TIMEOUT_0 + 5 == BTN_SETTINGS_TIMEOUT_5);
+    JADE_ASSERT(timeout_btns[nBtns - 1].ev_id == BTN_SETTINGS_TIMEOUT_6);
 
     gui_activity_t* act = NULL;
     make_idle_timeout_screen(&act, timeout_btns, nBtns);
@@ -1182,11 +1183,14 @@ static void update_idle_timeout_btn_text(gui_view_node_t* timeout_btn_text, cons
     if (timeout_btn_text) {
         // Prefer to display in minutes
         char txt[32];
-        if (timeout % 60 == 0) {
+        if (timeout == UINT16_MAX) {
+            const int ret = snprintf(txt, sizeof(txt), "Idle Timeout (OFF)");
+            JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+        } else if (timeout % 60 == 0) {
             const int ret = snprintf(txt, sizeof(txt), "Idle Timeout (%um)", timeout / 60);
             JADE_ASSERT(ret > 0 && ret < sizeof(txt));
         } else {
-            const int ret = snprintf(txt, sizeof(txt), "idle Timeout (%us)", timeout);
+            const int ret = snprintf(txt, sizeof(txt), "Idle Timeout (%us)", timeout);
             JADE_ASSERT(ret > 0 && ret < sizeof(txt));
         }
         gui_update_text(timeout_btn_text, txt);
