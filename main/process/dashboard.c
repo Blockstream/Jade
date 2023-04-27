@@ -1183,10 +1183,10 @@ static void update_idle_timeout_btn_text(gui_view_node_t* timeout_btn_text, cons
         // Prefer to display in minutes
         char txt[32];
         if (timeout % 60 == 0) {
-            const int ret = snprintf(txt, sizeof(txt), "Power-off Timeout (%um)", timeout / 60);
+            const int ret = snprintf(txt, sizeof(txt), "Idle Timeout (%um)", timeout / 60);
             JADE_ASSERT(ret > 0 && ret < sizeof(txt));
         } else {
-            const int ret = snprintf(txt, sizeof(txt), "Power-off Timeout (%us)", timeout);
+            const int ret = snprintf(txt, sizeof(txt), "idle Timeout (%us)", timeout);
             JADE_ASSERT(ret > 0 && ret < sizeof(txt));
         }
         gui_update_text(timeout_btn_text, txt);

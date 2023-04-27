@@ -466,7 +466,7 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr)
     gui_make_activity(activity_ptr, true, "Options");
 
     btn_data_t btns[] = { { .txt = "BIP39 Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
-        { .txt = "Power-off Timeout", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
+        { .txt = "Idle Timeout", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
         { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
@@ -522,7 +522,7 @@ void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t*
     gui_set_parent(btn, btns[0].btn);
 
     gui_view_node_t* text;
-    gui_make_text(&text, "Power-off Timeout", TFT_WHITE);
+    gui_make_text(&text, "Idle Timeout", TFT_WHITE);
     gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text, btn);
 
@@ -535,7 +535,7 @@ void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout
     JADE_ASSERT(timeout_btns);
     JADE_ASSERT(nBtns == 6);
 
-    gui_make_activity(activity_ptr, true, "Power-off Timeout");
+    gui_make_activity(activity_ptr, true, "Idle Timeout");
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
@@ -544,7 +544,7 @@ void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout
 
     {
         gui_view_node_t* text;
-        gui_make_text(&text, "Power-off Timeout (mins)", TFT_WHITE);
+        gui_make_text(&text, "Idle Timeout (mins)", TFT_WHITE);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, vsplit);
     }
