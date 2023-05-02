@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.1.48] - 2023-05-18
+### Added
+- Support for LiquiDEX 2-step swap protocol, including signing partial transactions (ie. swap maker)
+- Add screen brightness setting to 'Power-Off Timeout' screen, and rename 'Power Settings'
+- Add 'OFF' option to idle-timeout, so unit never reboots, powers-off, or locks the wallet due to inactivity
+- Allow the screen to dim (but the wallet remain loaded and Jade powered on) when the only activity is via messaging (ie. no physical button/wheel activity occuring)
+- Add option to 'get_blinding_factor' API to be able to fetch both abf and vbf for a tx output in a single call
+- M5StickC-Plus Support and DIY documentation
+- Add support for camera GC0308
+
+### Changed
+- Update libwally to 0.8.9
+- Change idle-timeout so as not to power-off completely when connected via USB, but instead reboot with the screen dimmed
+- Increase the default idle-timeout from 5mins to 10mins
+- Reduce contrast of displayed QR codes to assist scanning
+- Reword warning message shown when receive address being verified is a valid internal/change address
+
+### Fixed
+- Fix 'stuck button' when BLE enabled on M5Stack devices
+- Re-enable M5Stack-Fire diy config option
+
 ## [0.1.47] - 2023-03-29
 ### Added
 
