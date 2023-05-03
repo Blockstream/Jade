@@ -45,6 +45,7 @@ int serial_logger(const char* message, va_list fmt);
 
 void offer_startup_options(void);
 void dashboard_process(void* process_ptr);
+void temp_stack_init(void);
 
 static void ensure_boot_flags()
 {
@@ -119,6 +120,7 @@ static void boot_process(void)
 #endif
 
     sensitive_init();
+    temp_stack_init();
 
     // We spend a bit of time initialising random while the splash screen is being shown
     random_full_initialization();
