@@ -9,6 +9,7 @@ idf_component_register(SRCS
                        "upstream/src/bip38.c"
                        "upstream/src/bip39.c"
                        "upstream/src/blech32.c"
+                       "upstream/src/descriptor.c"
                        "upstream/src/ecdh.c"
                        "upstream/src/elements.c"
                        "upstream/src/hex.c"
