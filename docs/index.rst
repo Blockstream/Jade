@@ -1108,6 +1108,7 @@ Request to sign transaction inputs using RFC6979.
         "params": {
             "network": "mainnet",
             "txn": <bytes>,
+            "num_inputs": 2,
             "use_ae_signatures": false,
             "change": [
                 null,
@@ -1121,6 +1122,7 @@ Request to sign transaction inputs using RFC6979.
     }
 
 * 'txn' should be the raw txn bytes.
+* 'num_inputs' is the number of input messages which will be sent - which must be equal to the number of inputs in the transaction 'txn'.
 * 'change' is optional (or can be null) - if provided it should be an array with the same number of elements as there are tx outputs.
 * 'change' elements should be null for most outputs, and only populated for the outputs Jade is to automatically verify belong to its wallet.
 * If 'is_change' is set (or missing - if so it is assumed to be true) this output will not be shown to the user to verify.
@@ -1542,6 +1544,7 @@ Request to sign liquid transaction inputs.
         "params": {
             "network": "testnet-liquid",
             "txn": <bytes>,
+            "num_inputs": 4,
             "use_ae_signatures": false,
             "change": [
                 null,
