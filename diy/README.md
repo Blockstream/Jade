@@ -9,17 +9,18 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 ## No-Camera Hardware Options:
 
 ### TTGO (Lilygo) T-Display
-![](img/ttgo-tdisplay.jpg)
+![TTGO T-Display](img/ttgo-tdisplay.jpg)
 * [Vendor Product Page](https://www.lilygo.cc/en-ca/products/lilygo%C2%AE-ttgo-t-display-1-14-inch-lcd-esp32-control-board)
 * ~$10 USD
 * Two button interface (Press both together to select)
 * No battery (No ability to monitor battery, even if one is added)
-* No case (Low cost case options available)
+* Base model has no case
+  * [OEM Model K164](https://www.lilygo.cc/products/lilygo%C2%AE-ttgo-t-display-1-14-inch-lcd-esp32-control-board?variant=42720264683701) and other low cost case options available)
 * USB VendorID:1a86 ProductID:55d4 (Same as retail Jade)
 * Typically supports Secure Boot V2
 
-### M5 StickC-Plus
-![](img/M5StickCPlus.jpg)
+### M5Stack M5StickC PLUS
+![M5Stack M5StickC PLUS](img/M5StickCPlus.jpg)
 * [Vendor Product Page](https://shop.m5stack.com/collections/m5-controllers/products/m5stickc-plus-esp32-pico-mini-iot-development-kit)
 * ~$20 USD
 * Two button interface (Long press front button to select)
@@ -28,9 +29,9 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 * USB VendorID:0403 ProductID:6001 (Different to retail Jade, will require custom Electrum/HWI builds until they add support to these device IDs)
 * Typically supports Secure Boot V1
 
-### M5 Stack Basic
-![](img/M5Stack-Basic.jpg)
-* [Vendor Product Page](https://shop.m5stack.com/products/esp32-basic-core-iot-development-kit-v2-6)
+### M5Stack Basic Core
+![M5Stack Basic Core](img/M5Stack-Basic.jpg)
+* [Vendor Product Page](https://shop.m5stack.com/products/esp32-basic-core-lot-development-kit-v2-7)
 * ~$40 USD
 * Three button interface (Middle button to select)
 * Includes 110mAh battery
@@ -38,7 +39,8 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 * USB VendorID:1a86 ProductID:55d4 (Same as retail Jade)
 * Typically supports Secure Boot V2
 
-### M5 Stack Fire (~$50 USD)
+### M5Stack FIRE (~$50 USD)
+![M5Stack FIRE](img/M5Stack-FIRE.jpg)
 * [Vendor Product Page](https://shop.m5stack.com/collections/m5-controllers/products/m5stack-fire-iot-development-kit-psram-v2-6)
 * ~$50 USD
 * Extra 8mb PSRAM (When compared to Basic)
