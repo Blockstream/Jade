@@ -9,7 +9,7 @@ To build you can use the docker image (see Dockerfile) or install the esp-idf to
 
 # DIY Hardware & Programming Notes
 For information about suitable DIY hardware, as well as suggested configuration profiles and notes on secure boot.
-[DIY Guide](./diy/readme.md)
+[DIY Guide](./diy/README.md)
 
 # Use docker
 
