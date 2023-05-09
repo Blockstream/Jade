@@ -147,11 +147,22 @@ static esp_err_t _power_display_off(void)
 }
 #endif // CONFIG_BOARD_TYPE_JADE_V1_1
 
-esp_err_t power_backlight_on(void)
+esp_err_t power_backlight_on(uint8_t brightness)
 {
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
-    return _power_write_command(0x91, 0xc0);
+    // MIN    -> 1 -> 8  (1000) -> 0x80 - 2.6v
+    // DIM    -> 2 -> 9  (1001) -> 0x90 - 2.7v
+    // MEDIUM -> 3 -> 10 (1010) -> 0xa0 - 2.8v
+    // BRIGHT -> 4 -> 11 (1011) -> 0xb0 - 2.9v
+    // MAX    -> 5 -> 12 (1100) -> 0xc0 - 3.0v
+    if (brightness < BACKLIGHT_MIN) {
+        brightness = BACKLIGHT_MIN;
+    } else if (brightness > BACKLIGHT_MAX) {
+        brightness = BACKLIGHT_MAX;
+    }
+    return _power_write_command(0x91, ((brightness + 7) << 4));
 #else // ie. CONFIG_BOARD_TYPE_JADE
+    // dimming not supported - just full on
     return _power_write_command(0x90, 0x02);
 #endif
 }
@@ -506,8 +517,9 @@ esp_err_t power_screen_off(void)
     return _power_write_command(0x12, buf1 & (~0x08));
 }
 
-esp_err_t power_backlight_on(void)
+esp_err_t power_backlight_on(const uint8_t brightness)
 {
+    // dimming not supported - just full on
     uint8_t buf1;
     I2C_LOG_ANY_ERROR(_power_master_read_slave(0x34, 0x12, &buf1, 1));
     vTaskDelay(20 / portTICK_PERIOD_MS);
@@ -674,7 +686,7 @@ esp_err_t power_shutdown(void)
 esp_err_t power_screen_on(void) { return ESP_OK; }
 esp_err_t power_screen_off(void) { return ESP_OK; }
 
-esp_err_t power_backlight_on(void) { return ESP_OK; }
+esp_err_t power_backlight_on(const uint8_t brightness) { return ESP_OK; }
 esp_err_t power_backlight_off(void) { return ESP_OK; }
 
 esp_err_t power_camera_on(void) { return ESP_OK; }
@@ -764,7 +776,7 @@ esp_err_t power_shutdown(void)
 esp_err_t power_screen_on(void) { return ESP_OK; }
 esp_err_t power_screen_off(void) { return ESP_OK; }
 
-esp_err_t power_backlight_on(void) { return ESP_OK; }
+esp_err_t power_backlight_on(const uint8_t brightness) { return ESP_OK; }
 esp_err_t power_backlight_off(void) { return ESP_OK; }
 
 esp_err_t power_camera_on(void) { return ESP_OK; }

@@ -74,7 +74,7 @@ void display_splash(gui_activity_t** activity_ptr)
 
     // set the current activity and draw it on screen
     gui_set_current_activity(*activity_ptr);
-    power_backlight_on();
+    power_backlight_on(BACKLIGHT_MAX);
 }
 
 // get/set screen orientation

@@ -5,10 +5,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define BACKLIGHT_MIN 1
+#define BACKLIGHT_DIM 2
+#define BACKLIGHT_MEDIUM 3
+#define BACKLIGHT_BRIGHT 4
+#define BACKLIGHT_MAX 5
+
 esp_err_t power_init(void);
 esp_err_t power_shutdown(void);
 
-esp_err_t power_backlight_on(void);
+esp_err_t power_backlight_on(uint8_t brightness);
 esp_err_t power_backlight_off(void);
 
 esp_err_t power_screen_on(void);
