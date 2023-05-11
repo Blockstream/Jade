@@ -66,6 +66,9 @@ network_type_t storage_get_network_type_restriction(void);
 bool storage_set_idle_timeout(uint16_t timeout);
 uint16_t storage_get_idle_timeout(void);
 
+bool storage_set_brightness(uint8_t brightness);
+uint8_t storage_get_brightness(void);
+
 bool storage_set_click_event(uint8_t event);
 uint8_t storage_get_click_event(void);
 

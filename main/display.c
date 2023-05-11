@@ -6,6 +6,7 @@
 #include "button_events.h"
 #include "jade_assert.h"
 #include "power.h"
+#include "storage.h"
 
 // GUI configuration, see gui.h for more details
 dispWin_t GUI_DISPLAY_WINDOW = { .x1 = 40, .y1 = 53, .x2 = 280, .y2 = 188 };
@@ -60,6 +61,11 @@ void display_init(void)
     gray_scale = 0;
     TFT_setRotation(CONFIG_DISP_ORIENTATION_DEFAULT);
     TFT_resetclipwin();
+
+    // Default screen brightness if not set
+    if (!storage_get_brightness()) {
+        storage_set_brightness(BACKLIGHT_MAX);
+    }
 }
 
 #include "../logo/splash.c"

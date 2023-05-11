@@ -31,6 +31,7 @@ static const char* USER_PINSERVER_CERT = "pinsvrcert";
 
 static const char* NETWORK_TYPE_FIELD = "networktype";
 static const char* IDLE_TIMEOUT_FIELD = "idletimeout";
+static const char* BRIGHTNESS_FIELD = "brightness";
 static const char* CLICK_EVENT_FIELD = "clickevent";
 static const char* BLE_FLAGS_FIELD = "bleflags";
 static const char* QR_FLAGS_FIELD = "qrflags";
@@ -549,6 +550,17 @@ uint16_t storage_get_idle_timeout(void)
 {
     uint16_t timeout = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, IDLE_TIMEOUT_FIELD, (uint8_t*)&timeout, sizeof(timeout)) ? timeout : 0;
+}
+
+bool storage_set_brightness(uint8_t brightness)
+{
+    return store_blob(DEFAULT_NAMESPACE, BRIGHTNESS_FIELD, &brightness, sizeof(brightness));
+}
+
+uint8_t storage_get_brightness(void)
+{
+    uint8_t brightness = 0;
+    return read_blob_fixed(DEFAULT_NAMESPACE, BRIGHTNESS_FIELD, &brightness, sizeof(brightness)) ? brightness : 0;
 }
 
 bool storage_set_click_event(uint8_t event)
