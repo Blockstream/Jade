@@ -604,7 +604,7 @@ bool bcur_scan_qr(const char* title, const char* prompt_text, char** output_type
 
     uint8_t urdecoder[URDECODER_SIZE];
     urcreate_placement_decoder(urdecoder, sizeof(urdecoder));
-    progress_bar_t progress_bar = { .progress_bar = NULL };
+    progress_bar_t progress_bar = {};
     qr_data_t qr_data = { .len = 0, .is_valid = collect_any_bcur, .ctx = urdecoder, .progress_bar = &progress_bar };
 
     // Scan qr code using the bcur decoder to collate multiple frames if required
