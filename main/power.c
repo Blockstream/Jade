@@ -181,10 +181,9 @@ esp_err_t power_init(void)
     I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
     I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
 
-    // Create and load the i2c mutex
-    i2c_mutex = xSemaphoreCreateBinary();
+    // Create i2c mutex semaphore
+    i2c_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(i2c_mutex);
-    xSemaphoreGive(i2c_mutex);
 
     // Set ADC to All Enable
     // Enable Bat,ACIN,VBUS,APS adc
@@ -458,10 +457,9 @@ esp_err_t power_init(void)
     I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
     I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
 
-    // Create and load the i2c mutex
-    i2c_mutex = xSemaphoreCreateBinary();
+    // Create i2c mutex semaphore
+    i2c_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(i2c_mutex);
-    xSemaphoreGive(i2c_mutex);
 
     _power_enable_coulomb_counter();
 
@@ -659,10 +657,10 @@ esp_err_t power_init(void)
     I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
     I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
 
-    // Create and load the i2c mutex
-    i2c_mutex = xSemaphoreCreateBinary();
+    // Create i2c mutex semaphore
+    i2c_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(i2c_mutex);
-    xSemaphoreGive(i2c_mutex);
+
     return ESP_OK;
 }
 

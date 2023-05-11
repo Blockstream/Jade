@@ -126,10 +126,9 @@ static void idletimer_task(void* ignore)
 
 void idletimer_init(void)
 {
-    // Create semaphore.  Note it has to be 'preloaded' so it can be taken later
-    last_activity_mutex = xSemaphoreCreateBinary();
+    // Create mutext semaphore.
+    last_activity_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(last_activity_mutex);
-    xSemaphoreGive(last_activity_mutex);
 
     // Default timeout time if not set
     const uint16_t timeout_secs = storage_get_idle_timeout();

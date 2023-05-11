@@ -24,6 +24,8 @@ wait_event_data_t* make_wait_event_data(void)
 {
     wait_event_data_t* const wait_event_data = JADE_CALLOC(1, sizeof(wait_event_data_t));
 
+    // Create the binary semaphore which will be awaited by the waiting thread
+    // and 'given' by the event loop when that event occurs, thus freeing the waiter.
     wait_event_data->triggered = xSemaphoreCreateBinary();
 
     // Not yet registered

@@ -136,14 +136,12 @@ void gui_set_click_event(gui_event_t event)
 
 void gui_init(void)
 {
-    // Create semaphores.  Note they have to be 'preloaded' so they can be taken later
-    paint_mutex = xSemaphoreCreateBinary();
+    // Create mutex semaphores.
+    paint_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(paint_mutex);
-    xSemaphoreGive(paint_mutex);
 
-    activities_mutex = xSemaphoreCreateBinary();
+    activities_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(activities_mutex);
-    xSemaphoreGive(activities_mutex);
 
     // Which button event are we to use as a click / 'select item' - sanity checked
     const gui_event_t loaded_click_event = storage_get_click_event();
