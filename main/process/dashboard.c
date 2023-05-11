@@ -100,7 +100,8 @@ void make_unlocked_settings_screen(gui_activity_t** activity_ptr);
 void make_wallet_settings_screen(gui_activity_t** activity_ptr);
 void make_advanced_options_screen(gui_activity_t** activity_ptr);
 void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
-void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns);
+void make_power_options_screen(
+    gui_activity_t** activity_ptr, btn_data_t* timeout_btns, size_t nBtns, progress_bar_t* brightness_bar);
 
 void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr);
 void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr);
@@ -1130,21 +1131,32 @@ static void handle_view_otps(void)
     }
 }
 
-static void update_idle_timeout_btns(btn_data_t* timeout_btn, const size_t nBtns, const uint16_t timeout)
+static void update_idle_timeout_btns(
+    gui_activity_t* activity, btn_data_t* timeout_btn, const size_t nBtns, const uint16_t timeout)
 {
     JADE_ASSERT(timeout_btn);
 
     for (int i = 0; i < nBtns; ++i) {
         JADE_ASSERT(timeout_btn[i].btn);
-        gui_set_borders(timeout_btn[i].btn, timeout_btn[i].val == timeout ? TFT_BLUE : TFT_BLACK, 2, GUI_BORDER_ALL);
+        if (timeout_btn[i].val == timeout) {
+            gui_set_borders(timeout_btn[i].btn, TFT_BLUE, 2, GUI_BORDER_ALL);
+            gui_select_node(activity, timeout_btn[i].btn);
+        } else {
+            gui_set_borders(timeout_btn[i].btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        }
         gui_set_borders_selected_color(timeout_btn[i].btn, TFT_BLOCKSTREAM_GREEN);
         gui_repaint(timeout_btn[i].btn, true);
     }
 }
 
-static void handle_idle_timeout(uint16_t* const timeout)
+static void handle_power_options()
 {
-    JADE_ASSERT(timeout);
+    // Get/track the idle timeout
+    const uint16_t initial_timeout = storage_get_idle_timeout();
+    uint16_t new_timeout = initial_timeout;
+
+    const uint8_t initial_brightness = storage_get_brightness();
+    uint8_t new_brightness = initial_brightness;
 
     // The idle timeout buttons (1,2,3,5,10,15 mins).
     btn_data_t timeout_btns[] = { { .txt = "1", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0, .val = 60 },
@@ -1160,40 +1172,45 @@ static void handle_idle_timeout(uint16_t* const timeout)
     JADE_ASSERT(timeout_btns[nBtns - 1].ev_id == BTN_SETTINGS_TIMEOUT_6);
 
     gui_activity_t* act = NULL;
-    make_idle_timeout_screen(&act, timeout_btns, nBtns);
+    progress_bar_t brightness_bar = {};
+    make_power_options_screen(&act, timeout_btns, nBtns, &brightness_bar);
     JADE_ASSERT(act);
 
-    update_idle_timeout_btns(timeout_btns, nBtns, *timeout);
+    // Highlight currently selected value
+    update_idle_timeout_btns(act, timeout_btns, nBtns, new_timeout);
     gui_set_current_activity(act);
+    vTaskDelay(150 / portTICK_PERIOD_MS);
 
-    int32_t ev_id;
-    const bool res = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-
-    if (res && ev_id >= BTN_SETTINGS_TIMEOUT_0 && ev_id < BTN_SETTINGS_TIMEOUT_0 + nBtns) {
-        const uint32_t idx = ev_id - BTN_SETTINGS_TIMEOUT_0;
-
-        // Return the updated timeout value
-        *timeout = timeout_btns[idx].val;
-        storage_set_idle_timeout(*timeout);
-    }
-}
-
-static void update_idle_timeout_btn_text(gui_view_node_t* timeout_btn_text, const uint16_t timeout)
-{
-    if (timeout_btn_text) {
-        // Prefer to display in minutes
-        char txt[32];
-        if (timeout == UINT16_MAX) {
-            const int ret = snprintf(txt, sizeof(txt), "Idle Timeout (OFF)");
-            JADE_ASSERT(ret > 0 && ret < sizeof(txt));
-        } else if (timeout % 60 == 0) {
-            const int ret = snprintf(txt, sizeof(txt), "Idle Timeout (%um)", timeout / 60);
-            JADE_ASSERT(ret > 0 && ret < sizeof(txt));
-        } else {
-            const int ret = snprintf(txt, sizeof(txt), "Idle Timeout (%us)", timeout);
-            JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+    while (true) {
+        // Only Jade v1.1's have brightness controls
+        if (brightness_bar.progress_bar) {
+            update_progress_bar(&brightness_bar, BACKLIGHT_MAX, new_brightness);
         }
-        gui_update_text(timeout_btn_text, txt);
+
+        int32_t ev_id;
+        const bool res = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        if (res) {
+            if (res && ev_id >= BTN_SETTINGS_TIMEOUT_0 && ev_id < BTN_SETTINGS_TIMEOUT_0 + nBtns) {
+                const uint32_t idx = ev_id - BTN_SETTINGS_TIMEOUT_0;
+                new_timeout = timeout_btns[idx].val;
+                update_idle_timeout_btns(act, timeout_btns, nBtns, new_timeout);
+            } else if (ev_id == BTN_PLUS_INCREASE && new_brightness < BACKLIGHT_MAX) {
+                power_backlight_on(++new_brightness);
+            } else if (ev_id == BTN_MINUS_DECREASE && new_brightness > BACKLIGHT_MIN) {
+                power_backlight_on(--new_brightness);
+            } else if (ev_id == BTN_SETTINGS_EXIT) {
+                // Done!
+                break;
+            }
+        }
+    }
+
+    // Persist updated preferences
+    if (new_timeout != initial_timeout) {
+        storage_set_idle_timeout(new_timeout);
+    }
+    if (new_brightness != initial_brightness) {
+        storage_set_brightness(new_brightness);
     }
 }
 
@@ -1272,9 +1289,6 @@ static void create_settings_menu(gui_activity_t** activity, const bool startup_m
 
 static void handle_settings(const bool startup_menu)
 {
-    // Get/track the idle timeout
-    uint16_t timeout = storage_get_idle_timeout();
-
     // Create the appropriate 'Settings' menu
     gui_activity_t* act = NULL;
     gui_view_node_t* timeout_btn_text = NULL;
@@ -1312,7 +1326,6 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_DEVICE:
             // Change to 'Device' menu
             make_device_settings_screen(&act, &timeout_btn_text);
-            update_idle_timeout_btn_text(timeout_btn_text, timeout);
             break;
 
         case BTN_SETTINGS_WALLET:
@@ -1337,9 +1350,8 @@ static void handle_settings(const bool startup_menu)
             handle_ble();
             break;
 
-        case BTN_SETTINGS_IDLE_TIMEOUT:
-            handle_idle_timeout(&timeout);
-            update_idle_timeout_btn_text(timeout_btn_text, timeout);
+        case BTN_SETTINGS_POWER_OPTIONS:
+            handle_power_options();
             break;
 
         case BTN_SETTINGS_BIP39_PASSPHRASE:

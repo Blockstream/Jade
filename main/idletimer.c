@@ -31,7 +31,7 @@ static __NOINIT_ATTR idle_state_t idle_state;
 
 static void set_screen_dimmed(const bool dimmed)
 {
-    power_backlight_on(dimmed ? BACKLIGHT_MIN : BACKLIGHT_MAX);
+    power_backlight_on(dimmed ? BACKLIGHT_MIN : storage_get_brightness());
     screen_dimmed = dimmed;
 }
 

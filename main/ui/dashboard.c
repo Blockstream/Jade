@@ -466,7 +466,7 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr)
     gui_make_activity(activity_ptr, true, "Options");
 
     btn_data_t btns[] = { { .txt = "BIP39 Passphrase", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
-        { .txt = "Idle Timeout", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
+        { .txt = "Power Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
         { .txt = "Recovery Phrase Login", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
@@ -498,58 +498,46 @@ void make_wallet_settings_screen(gui_activity_t** activity_ptr)
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
 }
 
-void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text)
+void make_device_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(timeout_btn_text);
 
     gui_make_activity(activity_ptr, true, "Device");
 
     // Note: placeholder in first position - timeout button set into this slot below
-    btn_data_t btns[]
-        = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // placeholder for timeout
-              { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
-              { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
-              { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DEVICE_EXIT } };
+    btn_data_t btns[] = { { .txt = "Power Settings", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
+        { .txt = "Bluetooth", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
+        { .txt = "Factory Reset", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DEVICE_EXIT } };
     add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
-
-    // Put special timeout button in the 1st position
-    gui_view_node_t* btn;
-    gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_IDLE_TIMEOUT, NULL);
-    gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-    gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-    gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_parent(btn, btns[0].btn);
-
-    gui_view_node_t* text;
-    gui_make_text(&text, "Idle Timeout", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text, btn);
-
-    *timeout_btn_text = text;
 }
 
-void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns)
+void make_power_options_screen(
+    gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns, progress_bar_t* brightness_bar)
 {
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(timeout_btns);
     JADE_ASSERT(nBtns == 7);
+    JADE_ASSERT(brightness_bar);
 
-    gui_make_activity(activity_ptr, true, "Idle Timeout");
+    gui_make_activity(activity_ptr, true, "Power Settings");
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 6, 16, 18, 4, 16, 24, 22);
+#else
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 25, 25, 30);
+#endif
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
     gui_set_parent(vsplit, (*activity_ptr)->root_node);
 
+    // Idle timeout
     {
         gui_view_node_t* text;
-        gui_make_text(&text, "Idle Timeout (mins)", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_make_text(&text, "Idle Timeout (mins):", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, vsplit);
-    }
 
-    {
         gui_view_node_t* hsplit;
         gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 7, 14, 14, 14, 14, 14, 14, 16);
         gui_set_parent(hsplit, vsplit);
@@ -572,6 +560,66 @@ void make_idle_timeout_screen(gui_activity_t** activity_ptr, btn_data_t* timeout
             // Set the button back in the info struct
             btn_info->btn = btn;
         }
+    }
+
+    gui_view_node_t* spacer;
+    gui_make_fill(&spacer, TFT_BLACK);
+    gui_set_parent(spacer, vsplit);
+
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    // Screen brightness
+    {
+        gui_view_node_t* text;
+        gui_make_text(&text, "Screen Brightness:", TFT_WHITE);
+        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        gui_set_parent(text, vsplit);
+
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 16, 66, 16);
+        gui_set_padding(hsplit, GUI_MARGIN_TWO_VALUES, 2, 2);
+        gui_set_parent(hsplit, vsplit);
+
+        gui_view_node_t* btnless;
+        gui_make_button(&btnless, TFT_BLACK, BTN_MINUS_DECREASE, NULL);
+        gui_set_margins(btnless, GUI_MARGIN_ALL_EQUAL, 1);
+        gui_set_parent(btnless, hsplit);
+        gui_set_borders(btnless, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btnless, TFT_BLOCKSTREAM_GREEN);
+
+        gui_view_node_t* textless;
+        gui_make_text_font(&textless, "-", TFT_WHITE, DEFAULT_FONT);
+        gui_set_parent(textless, btnless);
+        gui_set_align(textless, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+        make_progress_bar(hsplit, brightness_bar);
+
+        gui_view_node_t* btnmore;
+        gui_make_button(&btnmore, TFT_BLACK, BTN_PLUS_INCREASE, NULL);
+        gui_set_margins(btnmore, GUI_MARGIN_ALL_EQUAL, 1);
+        gui_set_parent(btnmore, hsplit);
+        gui_set_borders(btnmore, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btnmore, TFT_BLOCKSTREAM_GREEN);
+
+        gui_view_node_t* textmore;
+        gui_make_text_font(&textmore, "+", TFT_WHITE, DEFAULT_FONT);
+        gui_set_parent(textmore, btnmore);
+        gui_set_align(textmore, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    }
+#endif // CONFIG_BOARD_TYPE_JADE_V1_1
+
+    // Exit btn
+    {
+        gui_view_node_t* btn;
+        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
+        gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 0, 75);
+        gui_set_parent(btn, vsplit);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+
+        gui_view_node_t* text;
+        gui_make_text_font(&text, "Exit", TFT_WHITE, DEFAULT_FONT);
+        gui_set_parent(text, btn);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     }
 }
 
