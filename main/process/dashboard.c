@@ -162,8 +162,10 @@ static void format_pin(char* buf, const uint8_t buf_len, const uint8_t* pin, con
 
 static void reply_version_info(const void* ctx, CborEncoder* container)
 {
-    JADE_ASSERT(ctx == NULL); // Unused here
+    JADE_ASSERT(ctx);
     JADE_ASSERT(container);
+
+    const jade_process_t* process = (const jade_process_t*)ctx;
 
 #ifdef CONFIG_DEBUG_MODE
     const uint8_t num_version_fields = 19;
@@ -226,8 +228,11 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     const bool has_pin = keychain_has_pin();
     const bool has_keys = keychain_get() != NULL;
     if (has_keys) {
-        if (keychain_get_userdata() != SOURCE_NONE) {
+        if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
             add_string_to_map(&map_encoder, "JADE_STATE", "READY");
+        } else if (keychain_get_userdata() != SOURCE_NONE) {
+            // Other connection interface in use - so this interface is 'locked'
+            add_string_to_map(&map_encoder, "JADE_STATE", "LOCKED");
         } else if (keychain_has_temporary()) {
             add_string_to_map(&map_encoder, "JADE_STATE", "TEMP");
         } else {
@@ -340,7 +345,7 @@ static void dispatch_message(jade_process_t* process)
     // Methods available before user is authorised
     if (IS_METHOD("get_version_info")) {
         JADE_LOGD("Received request for version");
-        jade_process_reply_to_message_result(process->ctx, NULL, reply_version_info);
+        jade_process_reply_to_message_result(process->ctx, process, reply_version_info);
     } else if (IS_METHOD("add_entropy")) {
         JADE_LOGD("Received external entropy message");
         process_add_entropy_request(process);

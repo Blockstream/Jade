@@ -129,7 +129,7 @@ get_version_info reply
   - 'UNINIT' - no wallet set on the hw, mnemonic not entered, unit uninitialised.
   - 'UNSAVED' - wallet mnemonic has been set on hw, but not yet persisted with blind pinserver.
   - 'LOCKED' - wallet set, but currently locked - requires PIN entry to unlock.
-  - 'READY' - wallet set and unlocked, ready to use.
+  - 'READY' - wallet set and unlocked for this interface, ready to use.
   - 'TEMP' - hw currently set with a temporary ('Emergency Restore') wallet, ready to use.
     
 * 'JADE_NETWORKS' :
