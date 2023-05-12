@@ -10,8 +10,15 @@
 #include "idletimer.h"
 #include "jade_assert.h"
 #include "keychain.h"
+#include "process.h"
 #include "random.h"
 #include "utils/cbor_rpc.h"
+
+// Version info reply
+void build_version_info_reply(const void* ctx, CborEncoder* container);
+
+// Flag set when main thread is busy processing a message or awaiting user menu navigation
+extern uint32_t main_thread_action;
 
 // 2s 'no activity' stale message timeout
 static const TickType_t TIMEOUT_TICKS = 2000 / portTICK_PERIOD_MS;
@@ -24,6 +31,40 @@ static const TickType_t TIMEOUT_TICKS = 2000 / portTICK_PERIOD_MS;
         JADE_ASSERT(ret > 0 && ret < sizeof(lenstr));                                                                  \
         jade_process_reject_message_ex(ctx, code, msg, (uint8_t*)lenstr, ret, data_out, MAX_OUTPUT_MSG_SIZE);          \
     } while (false)
+
+// Some messages we handle immediately in this task
+static const char PING[] = { 'p', 'i', 'n', 'g' };
+static const char VERINFO[] = { 'g', 'e', 't', '_', 'v', 'e', 'r', 's', 'i', 'o', 'n', '_', 'i', 'n', 'f', 'o' };
+
+static bool handleImmediateMessage(cbor_msg_t* ctx)
+{
+    JADE_ASSERT(ctx);
+
+    size_t method_len = 0;
+    const char* method = NULL;
+    rpc_get_method(&ctx->value, &method, &method_len);
+
+    if (method) {
+        if (method_len == sizeof(PING) && !strncmp(method, PING, method_len)) {
+            // Simple ping message
+            JADE_LOGI("Ping message, replying immediately");
+            const uint64_t jade_task_current_action = main_thread_action;
+            jade_process_reply_to_message_result(*ctx, &jade_task_current_action, cbor_result_uint64_cb);
+            return true;
+        } else if (method_len == sizeof(VERINFO) && !strncmp(method, VERINFO, method_len)) {
+            // Version-info message - reply immediately if it contains the 'nonblocking' flag
+            CborValue params;
+            bool nonblocking;
+            if (rpc_get_map("params", &ctx->value, &params) && rpc_get_boolean("nonblocking", &params, &nonblocking)
+                && nonblocking) {
+                JADE_LOGI("VerInfoEx message, replying immediately");
+                jade_process_reply_to_message_result(*ctx, &ctx->source, build_version_info_reply);
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 // Handle bytes in receive buffer
 // NOTE: assumes sizes of input and output buffers - could be passed sizes if preferred
@@ -75,8 +116,11 @@ static void handle_data_impl(
             // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
             JADE_LOGW("Invalid request, length %u", msg_len);
             SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", msg_len);
+        } else if (handleImmediateMessage(&ctx)) {
+            JADE_LOGI("Message handled, not passing to main task");
+            idletimer_register_activity(false);
         } else {
-            // Push to task queue for dashboard to handle
+            // Push to task queue for main task to handle
             if (jade_process_push_in_message(full_data_in, msg_len + 1)) {
                 // Valid message arrival counts as 'activity' against idle timeout
                 // (but not as 'UI' activity - ie. keep jade on but do not stop the screen from turning off)

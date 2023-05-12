@@ -83,6 +83,40 @@ get_extended_data reply
 
 * The content of the message will be dependent on the original message whose reply data is being split over multiple messages.
 
+.. _ping_request:
+
+ping request
+------------
+
+Used to test the connection to Jade and that Jade is powered on and receiving data, which returns whether the main task is currently handling a client message, handling user ui menu navigation, or is idle.
+
+NOTE: unlike all other calls this is not queued and handled in fifo order - this message is handled immediately and the response sent as quickly as possible.
+This call does not block.
+If this call is made in parallel with Jade processing other messages, the replies may be out of order (although the message 'id' should still be correct).
+Use with caution.
+
+.. code-block:: cbor
+
+    {
+        "id": "2712",
+        "method": "ping"
+    }
+
+.. _ping_reply:
+
+ping reply
+----------
+
+.. code-block:: cbor
+
+    {
+        "id": "2712",
+        "result": true
+    }
+
+* The result is 0 if the main jade task is idle, 1 if handling a client message, or 2 if handling ui menu navigation.
+* If used with a short timeout this message is ideal for detecting whether Jade is powered/active.
+
 .. _get_version_info_request:
 
 get_version_info request

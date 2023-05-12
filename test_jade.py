@@ -2854,10 +2854,44 @@ NBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNA&digits=8&algorithm=SHA512'
         assert rslt == expected
 
 
+def test_ping_protocol(jade):
+    # Random ae data as irrelevant, so long as same in both cases
+    signmsg = jade.build_request('signABC', 'sign_message',
+                                 {'path': [0, 16],
+                                  'message': 'TestABC',
+                                  'ae_host_commitment': os.urandom(32)})
+    getsig = jade.build_request('getsigABC', 'get_signature',
+                                {'ae_host_entropy': os.urandom(32)})
+
+    # Uninterrupted flow
+    commitABC1 = jade.make_rpc_call(signmsg)['result']
+    sigABC1 = jade.make_rpc_call(getsig)['result']
+
+    # Same messages but with a 'ping' packet between protocol messages
+    commitABC2 = jade.make_rpc_call(signmsg)['result']
+    assert commitABC2 == commitABC1
+
+    jade_is_busy = jade.make_rpc_call(jade.build_request('pingNOW', 'ping'))['result']
+    assert jade_is_busy == 1  # handling a message (the sign-msg sent above)
+
+    verinfo = jade.make_rpc_call(jade.build_request('verInfoNOW', 'get_version_info',
+                                                    {'nonblocking': True}))['result']
+    assert len(verinfo) == NUM_VALUES_VERINFO
+
+    sigABC2 = jade.make_rpc_call(getsig)['result']
+    assert sigABC2 == sigABC1
+
+    jade_is_busy = jade.make_rpc_call(jade.build_request('pingAGAIN', 'ping'))['result']
+    assert jade_is_busy == 0  # idle
+
+
 def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     rslt = jadeapi.clean_reset()
     assert rslt is True
+
+    rslt = jadeapi.ping()
+    assert rslt == 0  # idle
 
     # On connection, a companion app should:
     # a) get the version info and check is compatible, needs update, etc.
@@ -2865,6 +2899,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # c) optionally set the epcoh time (required to use TOTP)
     # d) tell the jade to authenticate the user (eg. pin entry)
     #    - here we use 'set_mnemonic' instead to replace hw authentication
+    rslt = jadeapi.get_version_info(nonblocking=True)
+    assert len(rslt) == NUM_VALUES_VERINFO
     rslt = jadeapi.get_version_info()
     assert len(rslt) == NUM_VALUES_VERINFO
 
@@ -2883,6 +2919,9 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # Set mnemonic here instead of (or to override the result of) 'auth_user'
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
+
+    rslt = jadeapi.ping()
+    assert rslt == 0  # idle
 
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
@@ -2982,13 +3021,26 @@ def run_interface_tests(jadeapi,
     rslt = jadeapi.clean_reset()
     assert rslt is True
 
+    rslt = jadeapi.ping()
+    assert rslt == 0  # idle
+
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
+
+    rslt = jadeapi.ping()
+    assert rslt == 0  # idle
 
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
     has_ble = startinfo['JADE_CONFIG'] == 'BLE'
+
+    rslt = jadeapi.get_version_info(nonblocking=True)
+    assert len(rslt) == NUM_VALUES_VERINFO
+    assert rslt['EFUSEMAC'] == startinfo['EFUSEMAC']
+    assert rslt['JADE_CONFIG'] == startinfo['JADE_CONFIG']
+    assert rslt['JADE_VERSION'] == startinfo['JADE_VERSION']
+    assert rslt['JADE_STATE'] == startinfo['JADE_STATE']
 
     # Smoke tests
     if smoke:
@@ -3010,6 +3062,9 @@ def run_interface_tests(jadeapi,
 
         # Test mnemonic-with-passphrase
         test_passphrase(jadeapi.jade)
+
+        # Test ping doesn't break signing protocol
+        test_ping_protocol(jadeapi.jade)
 
         # Only run QR scan/camera tests a) over serial, and b) on proper Jade hw
         if not qemu and not isble and startinfo['BOARD_TYPE'] in ['JADE', 'JADE_V1.1']:

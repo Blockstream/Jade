@@ -337,16 +337,41 @@ class JadeAPI:
 
         return result
 
-    def get_version_info(self):
+    def ping(self):
+        """
+        RPC call to test the connection to Jade and that Jade is powered on and receiving data, and
+        return whether the main task is currently handling a message, handling user menu navigation
+        or is idle.
+
+        NOTE: unlike all other calls this is not queued and handled in fifo order - this message is
+        handled immediately and the response sent as quickly as possible.  This call does not block.
+        If this call is made in parallel with Jade processing other messages, the replies may be
+        out of order (although the message 'id' should still be correct).  Use with caution.
+
+        Returns
+        -------
+        0 if the main task is currently idle
+        1 if the main task is handling a client message
+        2 if the main task is handling user ui menu navigation
+        """
+        return self._jadeRpc('ping')
+
+    def get_version_info(self, nonblocking=False):
         """
         RPC call to fetch summary details pertaining to the hardware unit and running firmware.
+
+        Parameters
+        ----------
+        nonblocking : bool
+            If True message will be handled immediately (see also ping()) *experimental feature*
 
         Returns
         -------
         dict
             Contains keys for various info describing the hw and running fw
         """
-        return self._jadeRpc('get_version_info')
+        params = {'nonblocking': True} if nonblocking else None
+        return self._jadeRpc('get_version_info', params)
 
     def add_entropy(self, entropy):
         """

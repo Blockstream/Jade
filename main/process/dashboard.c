@@ -96,6 +96,12 @@ static const char* device_name;
 extern esp_app_desc_t running_app_info;
 extern uint8_t macid[6];
 
+// Flag set when main thread is busy processing a message or awaiting user menu navigation
+#define MAIN_THREAD_ACTIVITY_NONE 0
+#define MAIN_THREAD_ACTIVITY_MESSAGE 1
+#define MAIN_THREAD_ACTIVITY_UI_MENU 2
+uint32_t main_thread_action = MAIN_THREAD_ACTIVITY_NONE;
+
 // Functional actions
 void register_otp_process(void* process_ptr);
 void get_otp_code_process(void* process_ptr);
@@ -2090,6 +2096,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         // 1. Process any message if available (do not block if no message available)
         jade_process_load_in_message(process, false);
         if (process->ctx.cbor) {
+            main_thread_action = MAIN_THREAD_ACTIVITY_MESSAGE;
             dispatch_message(process);
             acted = true;
         }
@@ -2102,6 +2109,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
                 if (show_connect_screen && ev_base == GUI_BUTTON_EVENT) {
                     // Normal button press from some other home-like screen
                     // (eg. connect/connect-to screens etc)
+                    main_thread_action = MAIN_THREAD_ACTIVITY_UI_MENU;
                     handle_btn(ev_id);
                     acted = true;
                 } else if (ev_base == GUI_EVENT) {
@@ -2124,6 +2132,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
                         update_home_screen_menu();
                     } else if (ev_id == gui_get_click_event()) {
                         // Click - handle the current button's event
+                        main_thread_action = MAIN_THREAD_ACTIVITY_UI_MENU;
                         menu_item = get_selected_home_screen_menu_item();
                         handle_btn(menu_item->btn_id);
                         acted = true;
@@ -2132,13 +2141,15 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
             }
         }
 
-        // If we did some action this loop, run housekeeping
         if (acted) {
             // Cleanup anything attached to the dashboard process
             cleanup_jade_process(process);
 
             // Assert all sensitive memory was zero'd
             sensitive_assert_empty();
+
+            // Set activity flag back to idle
+            main_thread_action = MAIN_THREAD_ACTIVITY_NONE;
         }
 
         // Ensure to clear any decrypted keychain if ble- or usb- connection status changes.

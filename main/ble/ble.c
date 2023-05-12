@@ -448,7 +448,7 @@ bool ble_init(TaskHandle_t* ble_handle)
     ble_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
     const BaseType_t retval = xTaskCreatePinnedToCore(
-        &ble_writer, "ble_writer", 2 * 1024, NULL, JADE_TASK_PRIO_WRITER, ble_handle, JADE_CORE_SECONDARY);
+        &ble_writer, "ble_writer", 2 * 1024 + 512, NULL, JADE_TASK_PRIO_WRITER, ble_handle, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create ble_writer task, xTaskCreatePinnedToCore() returned %d", retval);
 

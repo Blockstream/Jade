@@ -121,7 +121,7 @@ bool serial_init(TaskHandle_t* serial_handle)
     }
 
     BaseType_t retval = xTaskCreatePinnedToCore(
-        &serial_reader, "serial_reader", 2 * 1024, NULL, JADE_TASK_PRIO_READER, NULL, JADE_CORE_SECONDARY);
+        &serial_reader, "serial_reader", 5 * 1024, NULL, JADE_TASK_PRIO_READER, NULL, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create serial_reader task, xTaskCreatePinnedToCore() returned %d", retval);
 

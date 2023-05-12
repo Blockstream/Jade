@@ -240,7 +240,7 @@ bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
     qemu_tcp_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
     BaseType_t retval = xTaskCreatePinnedToCore(
-        &qemu_tcp_reader, "qemu_tcp_reader", 2 * 1024, NULL, JADE_TASK_PRIO_READER, NULL, JADE_CORE_SECONDARY);
+        &qemu_tcp_reader, "qemu_tcp_reader", 5 * 1024, NULL, JADE_TASK_PRIO_READER, NULL, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create qemu_tcp_reader task, xTaskCreatePinnedToCore() returned %d", retval);
 
