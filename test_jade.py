@@ -2272,6 +2272,11 @@ def test_sign_tx_error_cases(jadeapi, pattern):
 
 
 def test_liquid_blinding_keys(jadeapi):
+    # Check Jade's master blinding key is as expected and is consistent with wally
+    seed = wally.bip39_mnemonic_to_seed512(TEST_MNEMONIC, None)
+    master_blinding_key = wally.asset_blinding_key_from_seed(seed)
+    assert EXPECTED_MASTER_BLINDING_KEY == master_blinding_key[32:]  # 2nd half of full 512bits
+
     # Get Liquid master blinding key
     rslt = jadeapi.get_master_blinding_key()
     assert rslt == EXPECTED_MASTER_BLINDING_KEY
@@ -2291,13 +2296,23 @@ def test_liquid_blinding_keys(jadeapi):
 
 
 def test_liquid_blinded_commitments(jadeapi):
+
+    # Test Jade's values are as expected and are consistent with wally
+    abf = wally.asset_blinding_key_to_abf(EXPECTED_MASTER_BLINDING_KEY, TEST_HASH_PREVOUTS, 3)
+    vbf = wally.asset_blinding_key_to_vbf(EXPECTED_MASTER_BLINDING_KEY, TEST_HASH_PREVOUTS, 3)
+
     # Get Liquid blinding factor
     rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'ASSET')
     assert rslt == EXPECTED_LIQ_COMMITMENT_1['abf']
+    assert rslt == abf
+
     rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'VALUE')
     assert rslt == EXPECTED_LIQ_COMMITMENT_1['vbf']
+    assert rslt == vbf
+
     rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'ASSET_AND_VALUE')
     assert rslt == EXPECTED_LIQ_COMMITMENT_1['abf'] + EXPECTED_LIQ_COMMITMENT_1['vbf']
+    assert rslt == abf + vbf
 
     # Get Liquid commitments without custom VBF
     rslt = jadeapi.get_commitments(TEST_REGTEST_BITCOIN,
