@@ -136,8 +136,8 @@ static void boot_process(void)
     // We spend a bit of time initialising random while the splash screen is being shown
     random_full_initialization();
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     size_t counter = 0;
+#if defined(CONFIG_HAS_CAMERA)
     jade_camera_process_images(&rnd_camera_feed, &counter, NULL, NULL, NULL, NULL);
 #endif
 

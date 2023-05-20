@@ -1409,7 +1409,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         goto cleanup;
     }
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
     // Offer export via qr for true Jade hw's (ie. with camera) and the flag is set
     // ie. a) if 'Advanced' setup was used, and b) we did not already scan a QR
     if (advanced_mode) {

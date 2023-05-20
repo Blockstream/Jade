@@ -145,7 +145,7 @@ bool jade_camera_scan_qr(qr_data_t* qr_data, const char* text_label, const char*
     // help_url is optional
 
 // At the moment camera only supported by Jade devices
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
     // Create the quirc structs (reused for each frame) - destroyed below
     JADE_ASSERT(!qr_data->q);
     qr_data->q = quirc_new();

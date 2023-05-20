@@ -244,7 +244,15 @@ static void jade_camera_task(void* data)
             uint8_t(*buf_as_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
             for (size_t x = 0; x < CAMERA_IMAGE_WIDTH / 2; ++x) {
                 for (size_t y = 0; y < CAMERA_IMAGE_HEIGHT / 2; ++y) {
+#if defined(CONFIG_CAMERA_ROTATE_90)
                     scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_HEIGHT)-y * 2][x * 2];
+#elif defined(CONFIG_CAMERA_ROTATE_180)
+                    scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_WIDTH)- x * 2][(CAMERA_IMAGE_HEIGHT) - y * 2];
+#elif defined(CONFIG_CAMERA_ROTATE_270)
+                    scale_rotated[x][y] = buf_as_matrix[y * 2][(CAMERA_IMAGE_WIDTH) - x * 2];
+#else
+                    scale_rotated[x][y] = buf_as_matrix[x * 2][y * 2];
+#endif
                 }
             }
             gui_update_picture(image_node, &pic, false);
@@ -313,7 +321,7 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* t
     JADE_ASSERT(text_label || !progress_bar);
 
 // At the moment camera only supported by Jade devices
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
     // Config for the camera task
     camera_task_config_t camera_config = { .text_label = text_label,
         .text_button = text_button,

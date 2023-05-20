@@ -594,6 +594,10 @@ void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, con
     gui_make_fill(&bg, TFT_BLACK);
     activity->root_node = bg;
     activity->root_node->activity = activity;
+#ifdef CONFIG_UI_WRAP_ALL_MENUS
+    activity->selectables_wrap = true; // allow the button cursor to wrap
+#endif
+
 }
 
 // Create a new/initialised 'managed' activity without a status bar,

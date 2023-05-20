@@ -18,7 +18,13 @@ void input_init(void)
 void set_invert_wheel(bool inverted) { invert_wheel = inverted; }
 
 #ifdef CONFIG_INPUT_FRONT_SW
-static void button_front_release(void* arg) { gui_front_click(); }
+static void button_front_release(void* arg)
+{
+#ifdef CONFIG_DEBUG_MODE
+    JADE_LOGE("Front SW Released");
+#endif
+    gui_front_click();
+}
 
 static void button_front_long(void* arg)
 {
@@ -177,7 +183,7 @@ void wheel_init(void)
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_pressed, &button_B_pressed);
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_released, &button_B_pressed);
 }
-#elif defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS)
+#elif defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS) || defined(CONFIG_INPUT_ONE_BUTTON_MODE)
 /*
 M5StickC-Plus is similar to the TTGO T-Display in that it is two buttons,
 but one of the buttons behaves badly when Bluetooth is active.
@@ -194,12 +200,18 @@ static void button_A_pressed(void* arg) { wheel_prev(); }
 static uint64_t button_B_pressed_time = 0;
 static void button_B_pressed(void* arg)
 {
+#ifdef CONFIG_DEBUG_MODE
+    JADE_LOGE("B pressed");
+#endif
     uint64_t current = xTaskGetTickCount();
     button_B_pressed_time = current;
 }
 
 static void button_B_released(void* arg)
 {
+#ifdef CONFIG_DEBUG_MODE
+    JADE_LOGE("B released");
+#endif
     uint64_t current = xTaskGetTickCount();
     if ((current - button_B_pressed_time) > 50) {
         gui_front_click();
@@ -213,16 +225,33 @@ void wheel_init(void)
     button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_PUSH, button_A_pressed, NULL);
 
+#ifdef CONFIG_BUTTON_B_ACTIVE_HIGH
+    button_handle_t btn_handle_next = iot_button_create(CONFIG_INPUT_BTN_B, BUTTON_ACTIVE_HIGH);
+#else
     button_handle_t btn_handle_next = iot_button_create(CONFIG_INPUT_BTN_B, BUTTON_ACTIVE_LOW);
+#endif
+
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_B_pressed, NULL);
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_B_released, NULL);
 }
 #else
 // wheel_init() to mock wheel with buttons
 // Long press buttons mocks wheel spin (multiple events)
-static void button_A_pressed(void* arg) { wheel_prev(); }
+static void button_A_pressed(void* arg)
+{
+#ifdef CONFIG_DEBUG_MODE
+    JADE_LOGE("A Pressed");
+#endif
+    wheel_prev();
+}
 
-static void button_B_pressed(void* arg) { wheel_next(); }
+static void button_B_pressed(void* arg)
+{
+#ifdef CONFIG_DEBUG_MODE
+    JADE_LOGE("B Pressed");
+#endif
+    wheel_next();
+}
 
 void wheel_init(void)
 {

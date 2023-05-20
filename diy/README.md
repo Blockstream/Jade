@@ -50,6 +50,55 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 * USB VendorID:1a86 ProductID:55d4 (Same as retail Jade)
 * Typically supports Secure Boot V2
 
+## Camera-Enabled Hardware Options:
+
+### Lilygo T-Camera Plus + Digital Pushbutton
+![](img/t-camera-plus.jpg)
+* Costs between ~$30 USD and ~50 USD depending on hardware options you want. (See below)
+* Single button interface
+* Has the option of adding a battery  and soldering new on-button)
+* USB VendorID:1a86 ProductID:55d4 (Same as retail Jade)
+* Typically supports Secure Boot V2
+* Hardware Required (Some soldering required for all options)
+  * [Lilygo T-Camera Plus](http://www.lilygo.cn/prod_view.aspx?TypeId=50067&Id=1272&FId=t3:50067:3)
+  * Digital Push button (Or two if you intend on using a battery)
+  * 3.7v lithium battery (Optional, this also requires removing a 0ohm resistor from the PCB and connecting an alternative power button)
+  * MicroSD Sniffer (Optional, larger device but MUCH easier to solder)
+  * [3d printed case, example STL files available here](https://www.printables.com/model/493449-cases-for-diy-jade-based-on-lilygo-t-camera-plus)
+* [Assembly Guide & Hardware Notes](./t-camera-plus/)
+
+### ESP32-Wrover-Cam Board + 1.14 Pico LCD Hat (Or Waveshare 1.3 LCD Hat)
+![](img/esp32-wrover-cam.jpg)
+* Costs between $20 and $30 USD depending on whether you go for official or clone hardware
+* Three button interface
+* No simple option for battery
+* USB VendorID:1a86 ProductID:7523 (Different to retail Jade)
+* Typically supports Secure Boot V2
+* Hardware Required (No Soldering Required)
+  * [Freenove ESP32-Wrover CAM](https://github.com/Freenove/Freenove_ESP32_WROVER_Board) (Or any clone)
+  * [Waveshare Pico LCD 1.14](https://www.waveshare.com/wiki/Pico-LCD-1.14)
+  * [Waveshare 1.3inch LCD Hat](https://www.waveshare.com/wiki/1.3inch_LCD_HAT)
+  * Dupont Female to Male Connectors (Short ones, so 10cm)
+  * [3d printed case, example STL files available here](https://www.printables.com/model/493229-cases-for-diy-jade-based-on-esp32-wrover-cam)
+* [Assembly Guide & Hardware Notes](./esp32-wrover-cam/)
+
+### ESP32-Cam Board + 1.14 Pico LCD + Digital Pushbutton
+![](img/esp32-cam.jpg)
+* Costs between $10 and $20 USD depending on whether you want an integrated programmer/USB interface
+* One button interface
+* No simple option for battery
+* No integrated USB-Serial device, so you have a few options (Including running without one after initial firmware flash)
+  * ESP32-CAM-MB: USB VendorID: ProductID: (Different to retail Jade)
+  * CP2104: USB VendorID:1a86 ProductID:55d4 (Same as retail Jade)
+* Typically supports Secure Boot V2
+* Hardware Required (No Soldering Required)
+  * [ESP32- CAM](https://docs.ai-thinker.com/en/esp32-cam) (Or any clone)
+  * 135*240 RGB, ST7789, SPI, LCD Board. (You could also use the Waveshare Pico 1.14 hat as above)
+  * Digital Push button
+  * Dupont Female to Female Connectors (Short ones, so 10cm)
+  * [3d printed case, example STL files available here](https://www.printables.com/model/493485-cases-for-diy-jade-based-on-esp32-cam)
+* [Assembly Guide & Hardware Notes](./esp32-cam/)
+
 # Modifying Configuration Files for Use
 Once you are familiar with the process of flashing the firmware using the sdkconfig templates that are included in the /config folder of this repository, there are some additional changes that you should make to these files before using the device with actual funds.
 
