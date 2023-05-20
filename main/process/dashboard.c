@@ -1487,7 +1487,7 @@ static void handle_device(void)
 {
     char power_status[32] = "NO BAT";
 
-#if defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) || defined(CONFIG_BOARD_TYPE_M5_FIRE)
+#if defined(CONFIG_HAS_IP5306)
     float approx_voltage;
     approx_voltage = power_get_vbat() / 1000.0;
     const int ret = snprintf(power_status, sizeof(power_status), "Approx %.1fv", approx_voltage);

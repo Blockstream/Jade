@@ -201,7 +201,7 @@ void make_connection_select_screen(gui_activity_t** activity_ptr, const bool tem
 
     // One, two or three buttons, depending on whether QR and/or Bluetooth are available in the build
     // Also, a 'recovery phrase login' puts 'QR'(mode) first, whereas a standard initialisation puts QR last!
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
     const char* qr_label = "QR";
     const uint32_t qr_ev_id = BTN_CONNECT_VIA_QR;
 #else
