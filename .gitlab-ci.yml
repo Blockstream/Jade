@@ -173,6 +173,27 @@ test_build_display_ttgo_tdisplay:
   after_script:
     - mv build build_display_ttgo_tdisplay
 
+test_build_diycam_esp32-cam:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_diycam_esp32-cam.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_diycam_esp32-cam
+
+test_build_diycam_esp32-wrover-cam:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_diycam_esp32-wrover-cam.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_diycam_esp32-wrover-cam
+
+test_build_diycam_tcameraplus:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_diycam_tcameraplus.defaults sdkconfig.defaults
+  after_script:
+    - mv build_diycam_tcameraplus
+
 test_build_jade_noblobs_ci:
   extends: .test_build_template
   before_script:

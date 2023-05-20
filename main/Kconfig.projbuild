@@ -26,15 +26,20 @@ menu "Blockstream Jade"
         config BOARD_TYPE_JADE
             bool "Blockstream Jade v1 (wheel)"
             select HAS_AXP
+            select HAS_CAMERA
         config BOARD_TYPE_JADE_V1_1
             bool "Blockstream Jade v1.1 (rocker)"
             select HAS_AXP
+            select HAS_CAMERA
         config BOARD_TYPE_M5_FIRE
             bool "M5Stack Fire"
+            select HAS_IP5306
         config BOARD_TYPE_M5_BLACK_GRAY
             bool "M5Stack Black/Gray"
+            select HAS_IP5306
         config BOARD_TYPE_M5_STICKC_PLUS
             bool "M5StickC Plus"
+            select HAS_AXP
         config BOARD_TYPE_TTGO_TDISPLAY
             bool "TTGO T-DISPLAY"
         config BOARD_TYPE_DEV
@@ -51,9 +56,16 @@ menu "Blockstream Jade"
         help
             Invert the colors in the dipslay. Some M5 devices have inverted colors depending on revision.
 
+    config DISP_FULLSCREEN
+        bool "Use entire screen real-estate"
+        depends on BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+        default n
+        help
+            Use entire screen real estate (experimental)
+
     config RETURN_CAMERA_IMAGES
         bool "Enable return camera images, larger outbound message buffer"
-        depends on DEBUG_MODE && (BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1)
+        depends on DEBUG_MODE && HAS_CAMERA
         default n
         help
             Enables call to return camera images - allocates larger outbound message buffer
@@ -65,7 +77,7 @@ menu "Blockstream Jade"
             Jade (and some devices) come with the AXP192 to manage power to ESP, display, camera
             default n
 
-    menu "AXP configuration"
+    menu "AXP Pin Mapping"
         visible if HAS_AXP && BOARD_TYPE_CUSTOM
 
         config AXP_SDA
@@ -81,7 +93,45 @@ menu "Blockstream Jade"
             default 22 if BOARD_TYPE_M5_STICKC_PLUS
     endmenu
 
-    menu "Input configuration"
+    config HAS_IP5306
+        bool "Use the IP5306 power controller"
+        depends on BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_CUSTOM
+        help
+            Some devices come with the IP5306 to manage power to ESP, charge the battery, etc.
+            default n
+
+    menu "IP5306 Pin Mapping"
+        visible if HAS_IP5306 && BOARD_TYPE_CUSTOM
+
+        config IP5306_SDA
+            int "IP5306 SDA Pin"
+            range -1 40
+            default 21 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+        config IP5306_SCL
+            int "IP5306 SCL Pin"
+            range -1 40
+            default 22 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
+    endmenu
+
+    menu "Input Options"
+        visible if BOARD_TYPE_CUSTOM
+        config UI_WRAP_ALL_MENUS
+            bool "Enable Scroll Wrapping for all Menus"
+            help
+                Allows nagivation of all menus with a single button device.
+
+        config INPUT_ONE_BUTTON_MODE
+            bool "Enable One Button Input Mode"
+            help
+                Enable navigation and selection using short/long presses of the A button.
+
+        config BUTTON_B_ACTIVE_HIGH
+            bool "Configure B Button for Active High Operation"
+            help
+                Enable navigation and selection using short/long presses of the A button.
+    endmenu
+
+    menu "Input Pin Mapping"
         visible if BOARD_TYPE_CUSTOM
 
         config INPUT_WHEEL_A
@@ -125,8 +175,31 @@ menu "Blockstream Jade"
             default 35 if BOARD_TYPE_DEV
     endmenu
 
-    menu "Camera configuration"
-        visible if BOARD_TYPE_CUSTOM
+    config HAS_CAMERA
+        bool "Enable Camera Functions"
+        help
+            Enables camera functionality
+            default n
+
+    menu "Camera Rotation"
+        visible if HAS_CAMERA && BOARD_TYPE_CUSTOM
+
+        config CAMERA_ROTATE_90
+            bool "Rotate Camera Image by 90 degrees"
+            default y
+
+        config CAMERA_ROTATE_180
+            bool "Rotate Camera Image by 180 degrees"
+            default n
+
+        config CAMERA_ROTATE_270
+            bool "Rotate Camera Image by 270 degrees"
+            default n
+
+    endmenu
+
+    menu "Camera Pin Mapping"
+        visible if HAS_CAMERA && BOARD_TYPE_CUSTOM
 
         config CAMERA_D0
             int "Camera pin D0"
@@ -208,7 +281,7 @@ menu "Blockstream Jade"
             default -1
     endmenu
 
-    menu "TFT Display"
+    menu "Display Driver"
         visible if BOARD_TYPE_CUSTOM
 
         choice
@@ -283,7 +356,31 @@ menu "Blockstream Jade"
             int "RGB-BGR"
             default 0
 
-        menu "Pin mapping"
+        config GUI_DISPLAY_WINDOW_X1
+            int "Gui Display Window X1 offset"
+            range 0 1000
+            default 0 if DISP_FULLSCREEN && (BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY)
+            default 40
+
+        config GUI_DISPLAY_WINDOW_Y1
+            int "Gui Display Window Y1 offset"
+            range 0 1000
+            default 0 if DISP_FULLSCREEN && (BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY)
+            default 53
+
+        config GUI_DISPLAY_WINDOW_X2
+            int "Gui Display Window X2 offset"
+            range 0 1000
+            default 320 if DISP_FULLSCREEN && (BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY)
+            default 280
+
+        config GUI_DISPLAY_WINDOW_Y2
+            int "Gui Display Window Y2 offset"
+            range 0 1000
+            default 240 if DISP_FULLSCREEN && (BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY)
+            default 188
+
+        menu "Display Pin mapping"
             config DISP_PIN_NUM_MISO
                 int "PIN_NUM_MISO"
                 range -1 40

@@ -177,7 +177,7 @@ void wheel_init(void)
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_pressed, &button_B_pressed);
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_released, &button_B_pressed);
 }
-#elif defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS)
+#elif defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS) || defined(CONFIG_INPUT_ONE_BUTTON_MODE)
 /*
 M5StickC-Plus is similar to the TTGO T-Display in that it is two buttons,
 but one of the buttons behaves badly when Bluetooth is active.
@@ -213,7 +213,12 @@ void wheel_init(void)
     button_handle_t btn_handle_prev = iot_button_create(CONFIG_INPUT_BTN_A, BUTTON_ACTIVE_LOW);
     iot_button_set_evt_cb(btn_handle_prev, BUTTON_CB_PUSH, button_A_pressed, NULL);
 
+#ifdef CONFIG_BUTTON_B_ACTIVE_HIGH
+    button_handle_t btn_handle_next = iot_button_create(CONFIG_INPUT_BTN_B, BUTTON_ACTIVE_HIGH);
+#else
     button_handle_t btn_handle_next = iot_button_create(CONFIG_INPUT_BTN_B, BUTTON_ACTIVE_LOW);
+#endif
+
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_PUSH, button_B_pressed, NULL);
     iot_button_set_evt_cb(btn_handle_next, BUTTON_CB_RELEASE, button_B_released, NULL);
 }

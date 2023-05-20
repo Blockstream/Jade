@@ -2,9 +2,7 @@
 #include "jade_assert.h"
 #include <sdkconfig.h>
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)                                            \
-    || defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS) || defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)                           \
-    || defined(CONFIG_BOARD_TYPE_M5_FIRE)
+#if defined(CONFIG_HAS_IP5306) || defined(CONFIG_HAS_AXP)
 // Code common to all devices that communicate with a PMU via i2c
 #include <driver/i2c.h>
 
@@ -90,7 +88,8 @@ static esp_err_t _power_write_command(uint8_t reg, uint8_t val)
 }
 #endif
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) // Retail Jades have AXP192, but configured
+                                                                            // differently to things like M5StickCPlus
 // Code common to JADE v1 and v1.1 - ie. using AXP
 #include <esp_private/adc_share_hw_ctrl.h>
 
@@ -649,8 +648,7 @@ bool usb_connected(void)
     return is_usb_connected;
 }
 
-#elif defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)                                                                         \
-    || defined(CONFIG_BOARD_TYPE_M5_FIRE) // M5Stack Basic with IP5303 Power PMU
+#elif defined(CONFIG_HAS_IP5306) // Board with IP5303 Power PMU
 #include <esp_sleep.h>
 
 esp_err_t power_init(void)
@@ -658,9 +656,9 @@ esp_err_t power_init(void)
 
     const i2c_config_t conf = {
         .mode = I2C_MODE_MASTER,
-        .sda_io_num = 21,
+        .sda_io_num = CONFIG_IP5306_SDA,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_io_num = 22,
+        .scl_io_num = CONFIG_IP5306_SCL,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .master.clk_speed = 400000,
         .clk_flags = 0,

@@ -97,7 +97,7 @@ static void make_status_bar(void)
     root->parent = NULL;
 
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 4, 160, 20, 20, 40);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 67, 8, 8, 17);
     gui_set_parent(hsplit, root);
 
     gui_view_node_t* black_title_bg;
@@ -594,6 +594,9 @@ void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, con
     gui_make_fill(&bg, TFT_BLACK);
     activity->root_node = bg;
     activity->root_node->activity = activity;
+#ifdef CONFIG_UI_WRAP_ALL_MENUS
+    activity->selectables_wrap = true; // allow the button cursor to wrap
+#endif
 }
 
 // Create a new/initialised 'managed' activity without a status bar,

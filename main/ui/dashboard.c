@@ -154,8 +154,8 @@ gui_activity_t* make_select_connection_activity_if_required(const bool temporary
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
     size_t ibtn = 0;
 
-    // Temporary restore has QR first (Jade hw only)
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    // Temporary restore has QR first (Camera-Enabled hw only)
+#ifdef CONFIG_HAS_CAMERA
     if (temporary_restore) {
         menubtns[ibtn].txt = "QR";
         menubtns[ibtn].ev_id = BTN_CONNECT_VIA_QR;
@@ -175,8 +175,8 @@ gui_activity_t* make_select_connection_activity_if_required(const bool temporary
     ++ibtn;
 #endif
 
-    // If not temporary restore, QR is last (Jade hw only)
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    // If not temporary restore, QR is last (Camera-Enabled hw only)
+#ifdef CONFIG_HAS_CAMERA
     if (!temporary_restore) {
         menubtns[ibtn].txt = "QR";
         menubtns[ibtn].ev_id = BTN_CONNECT_VIA_QR;

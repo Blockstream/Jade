@@ -60,7 +60,7 @@ gui_activity_t* make_export_qr_fragment_activity(
 
 gui_activity_t* make_bip85_mnemonic_words_activity(void);
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#ifdef CONFIG_HAS_CAMERA
 // Export a mnemonic by asking the user to transcribe it to hard copy, then
 // scanning that hard copy back in and verifying the data matches.
 // NOTE: the SeedSigner 'CompactSeedQR' format is used (raw entropy).
@@ -227,7 +227,7 @@ cleanup:
     // Return 'true' if done, or 'false' if 'back' was pressed
     return retval;
 }
-#endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+#endif // CONFIG_HAS_CAMERA
 
 // Function to change the mnemonic word separator and provide pointers to
 // the start of the words.  Used when confirming one word at a time.
@@ -1409,7 +1409,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         goto cleanup;
     }
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#ifdef CONFIG_HAS_CAMERA
     // Offer export via qr for true Jade hw's (ie. with camera) and the flag is set
     // ie. a) if 'Advanced' setup was used, and b) we did not already scan a QR
     if (advanced_mode) {
@@ -1437,7 +1437,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 #else
     // Flag unused if no camera available - silence compiler warning
     (void)qr_scanned;
-#endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+#endif // CONFIG_HAS_CAMERA
 
     // When using 'temporary restore' we respect the existing passphrase settings.
     // If using 'advanced mode' to setup the persistent wallet, we ask the user and save the settings.
