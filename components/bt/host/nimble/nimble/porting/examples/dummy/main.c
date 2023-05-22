@@ -21,7 +21,7 @@
 
 int main(int argc, char **argv)
 {
-    nimble_port_init();
+    int ret = nimble_port_init();
 
-    return 0;
+    return ret;
 }

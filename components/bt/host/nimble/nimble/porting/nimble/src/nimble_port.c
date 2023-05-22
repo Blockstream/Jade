@@ -134,47 +134,76 @@ esp_err_t esp_nimble_deinit(void)
     return ESP_OK;
 }
 
-void
+/**
+ * @brief nimble_port_init - Initialize controller and NimBLE host stack
+ *
+ * @return esp_err_t
+ */
+esp_err_t
 nimble_port_init(void)
 {
+    esp_err_t ret;
+
 #if CONFIG_IDF_TARGET_ESP32
     esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
 #endif
 #if CONFIG_BT_CONTROLLER_ENABLED
     esp_bt_controller_config_t config_opts = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    if(esp_bt_controller_init(&config_opts) != ESP_OK) {
+
+    ret = esp_bt_controller_init(&config_opts);
+    if (ret != ESP_OK) {
         ESP_LOGE(NIMBLE_PORT_LOG_TAG, "controller init failed\n");
-        return;
+        return ret;
     }
-    if(esp_bt_controller_enable(ESP_BT_MODE_BLE) != ESP_OK) {
+
+    ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
+    if (ret != ESP_OK) {
         ESP_LOGE(NIMBLE_PORT_LOG_TAG, "controller enable failed\n");
-        return;
+        return ret;
     }
 #endif
 
-    if(esp_nimble_init() != 0) {
+    ret = esp_nimble_init();
+    if (ret != ESP_OK) {
         ESP_LOGE(NIMBLE_PORT_LOG_TAG, "nimble host init failed\n");
-        return;
+        return ret;
     }
+
+    return ESP_OK;
 }
 
-void
+/**
+ * @brief nimble_port_deinit - Deinitialize controller and NimBLE host stack
+ *
+ * @return esp_err_t
+ */
+
+esp_err_t
 nimble_port_deinit(void)
 {
-    if(esp_nimble_deinit() != 0) {
+    esp_err_t ret;
+
+    ret = esp_nimble_deinit();
+    if(ret != ESP_OK) {
         ESP_LOGE(NIMBLE_PORT_LOG_TAG, "nimble host deinit failed\n");
-        return;
+        return ret;
     }
+
 #if CONFIG_BT_CONTROLLER_ENABLED
-    if(esp_bt_controller_disable() != ESP_OK) {
+    ret = esp_bt_controller_disable();
+    if(ret != ESP_OK) {
         ESP_LOGE(NIMBLE_PORT_LOG_TAG, "controller disable failed\n");
-        return;
+        return ret;
     }
-    if(esp_bt_controller_deinit() != ESP_OK) {
+
+    ret = esp_bt_controller_deinit();
+    if(ret != ESP_OK) {
         ESP_LOGE(NIMBLE_PORT_LOG_TAG, "controller deinit failed\n");
-        return;
+        return ret;
     }
 #endif
+
+    return ESP_OK;
 }
 
 

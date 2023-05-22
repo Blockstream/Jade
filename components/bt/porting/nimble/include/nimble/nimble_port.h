@@ -35,16 +35,22 @@
 extern "C" {
 #endif
 
-typedef struct {
-    uint16_t evt_count;
-    uint16_t evtq_count;
-    uint16_t co_count;
-    uint16_t sem_count;
-    uint16_t mutex_count;
-} ble_npl_count_info_t;
 
-void nimble_port_init(void);
-void nimble_port_deinit(void);
+/**
+* @brief nimble_port_init - Initialize controller and NimBLE host stack
+*
+* @return esp_err_t   - ESP_OK ( if success)
+*                       Error code in case of failure
+*/
+esp_err_t nimble_port_init(void);
+
+/**
+* @brief nimble_port_deinit - Deinitialize controller and NimBLE host stack
+*
+* @return esp_err_t   - ESP_OK ( if success)
+*                       Error code in case of failure
+*/
+esp_err_t nimble_port_deinit(void);
 
 void nimble_port_run(void);
 int nimble_port_stop(void);
