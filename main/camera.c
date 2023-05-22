@@ -51,6 +51,7 @@ void camera_set_debug_image(const uint8_t* data, const size_t len)
 }
 #endif
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 // Signal to the caller that we are done, and await our death
 static void post_exit_event_and_await_death(void)
 {
@@ -289,6 +290,7 @@ static void jade_camera_task(void* data)
     }
     post_exit_event_and_await_death();
 }
+#endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
 
 void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* title, const char* text_label,
     const char* text_button, progress_bar_t* progress_bar)

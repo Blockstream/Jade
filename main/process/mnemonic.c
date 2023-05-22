@@ -61,6 +61,7 @@ void make_export_qr_fragment_activity(
     gui_activity_t** activity_ptr, const Icon* icon, gui_view_node_t** icon_node, gui_view_node_t** label_node);
 void make_bip85_mnemonic_screen(gui_activity_t** activity_ptr);
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 // Export a mnemonic by asking the user to transcribe it to hard copy, then
 // scanning that hard copy back in and verifying the data matches.
 // NOTE: the SeedSigner 'CompactSeedQR' format is used (raw entropy).
@@ -203,6 +204,7 @@ static void mnemonic_export_qr(const char* mnemonic)
     free(icons);
     qrcode_freeIcon(&qr_overview);
 }
+#endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
 
 // Function to change the mnemonic word separator and provide pointers to
 // the start of the words.  Used when confirming one word at a time.
@@ -359,6 +361,7 @@ cleanup:
     return mnemonic_confirmed;
 }
 
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
 // NOTE: only the English wordlist is supported.
 static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
 {
@@ -386,6 +389,7 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
 
     return mnemonic_confirmed;
 }
+#endif // CONFIG_DEBUG_UNATTENDED_CI
 
 // NOTE: only the English wordlist is supported.
 static void enable_relevant_chars(const bool is_mnemonic, const char* word, const size_t word_len,
@@ -837,6 +841,7 @@ static size_t get_wordlist_words(
     return words_entered;
 }
 
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
 // NOTE: only the English wordlist is supported.
 static bool mnemonic_recover(const size_t nwords, const bool advanced_mode, char* mnemonic, const size_t mnemonic_len)
 {
@@ -851,6 +856,7 @@ static bool mnemonic_recover(const size_t nwords, const bool advanced_mode, char
 
     return words_entered == nwords;
 }
+#endif // CONFIG_DEBUG_UNATTENDED_CI
 
 // Take a nul terminated string of space-separated mnemonic-word prefixes, and populate a string of
 // space-separated full mnemonic words (also nul terminated).
@@ -1310,7 +1316,10 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
             false)) {
         mnemonic_export_qr(mnemonic);
     }
-#endif
+#else
+    // Flag unused if no camera available - silence compiler warning
+    (void)offer_export_qr;
+#endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
 
     // Perhaps offer/get passphrase (ie. if using advanced options)
     if (advanced_mode) {

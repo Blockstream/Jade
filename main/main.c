@@ -55,6 +55,7 @@ static void ensure_boot_flags()
 #endif
 }
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 static bool rnd_camera_feed(
     const size_t width, const size_t height, const uint8_t* data, const size_t len, void* ctx_data)
 {
@@ -65,6 +66,7 @@ static bool rnd_camera_feed(
     refeed_entropy(data, len);
     return ++*counter > 10;
 }
+#endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
 
 static void boot_process(void)
 {
@@ -129,8 +131,8 @@ static void boot_process(void)
     // We spend a bit of time initialising random while the splash screen is being shown
     random_full_initialization();
 
-    size_t counter = 0;
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    size_t counter = 0;
     jade_camera_process_images(&rnd_camera_feed, &counter, NULL, NULL, NULL, NULL);
 #endif
 
