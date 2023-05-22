@@ -1,5 +1,5 @@
 dependencies:
-  espressif/nghttp: "=1.50.0"
+  espressif/nghttp: "=1.52.0"
   espressif/cbor: "=0.6.0~1"
   espressif/libsodium: "=1.0.20"
   espressif/esp32-camera: "==2.0.3"
