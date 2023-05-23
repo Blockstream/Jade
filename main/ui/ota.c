@@ -92,7 +92,7 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
     // cancel btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_CANCEL_OTA, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_CANCEL_OTA, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
@@ -105,7 +105,7 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
     // accept btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_ACCEPT_OTA, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_ACCEPT_OTA, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
@@ -118,7 +118,7 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
     // view-hash btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_OTA_VIEW_FW_HASH, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_OTA_VIEW_FW_HASH, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);

@@ -262,7 +262,7 @@ void make_connect_to_screen(
     if (initialisation_source != SOURCE_QR) {
         // Back button
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_CONNECT_TO_BACK, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_CONNECT_TO_BACK, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_margins(btn, GUI_MARGIN_ALL_DIFFERENT, 15, 150, 0, 8);
@@ -323,7 +323,7 @@ void make_ready_screen(
     // session btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SESSION, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SESSION, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
@@ -336,7 +336,7 @@ void make_ready_screen(
     // options btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SETTINGS, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
@@ -349,7 +349,7 @@ void make_ready_screen(
     // scan btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SCAN_QR, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SCAN_QR, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
@@ -362,7 +362,7 @@ void make_ready_screen(
     // info btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_INFO, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_INFO, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, hsplit);
@@ -397,7 +397,7 @@ void make_bip39_passphrase_prefs_screen(
         gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_PASSPHRASE_TOGGLE_FREQUENCY, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_PASSPHRASE_TOGGLE_FREQUENCY, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);
@@ -420,7 +420,7 @@ void make_bip39_passphrase_prefs_screen(
         gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_PASSPHRASE_TOGGLE_METHOD, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_PASSPHRASE_TOGGLE_METHOD, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);
@@ -549,7 +549,7 @@ void make_power_options_screen(
             JADE_ASSERT(btn_info->txt);
 
             gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, btn_info->ev_id, NULL);
+            gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, btn_info->ev_id, NULL);
             gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
             gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
             gui_set_parent(btn, hsplit);
@@ -582,7 +582,7 @@ void make_power_options_screen(
         gui_set_parent(hsplit, vsplit);
 
         gui_view_node_t* btnless;
-        gui_make_button(&btnless, TFT_BLACK, BTN_MINUS_DECREASE, NULL);
+        gui_make_button(&btnless, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_MINUS_DECREASE, NULL);
         gui_set_margins(btnless, GUI_MARGIN_ALL_EQUAL, 1);
         gui_set_parent(btnless, hsplit);
         gui_set_borders(btnless, TFT_BLACK, 2, GUI_BORDER_ALL);
@@ -596,7 +596,7 @@ void make_power_options_screen(
         make_progress_bar(hsplit, brightness_bar);
 
         gui_view_node_t* btnmore;
-        gui_make_button(&btnmore, TFT_BLACK, BTN_PLUS_INCREASE, NULL);
+        gui_make_button(&btnmore, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_PLUS_INCREASE, NULL);
         gui_set_margins(btnmore, GUI_MARGIN_ALL_EQUAL, 1);
         gui_set_parent(btnmore, hsplit);
         gui_set_borders(btnmore, TFT_BLACK, 2, GUI_BORDER_ALL);
@@ -612,7 +612,7 @@ void make_power_options_screen(
     // Exit btn
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_SETTINGS_EXIT, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SETTINGS_EXIT, NULL);
         gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 0, 75);
         gui_set_parent(btn, vsplit);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
@@ -783,7 +783,7 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
         // gui_set_borders(key, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_BLE_TOGGLE_ENABLE, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_BLE_TOGGLE_ENABLE, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);
@@ -807,7 +807,7 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
         // gui_set_borders(key, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_BLE_RESET_PAIRING, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_BLE_RESET_PAIRING, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);
@@ -820,7 +820,7 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
 
     {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_BLE_EXIT, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_BLE_EXIT, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, vsplit);
@@ -1136,7 +1136,7 @@ void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entri
         gui_set_parent(row, vsplit);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_INFO_EXIT, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_INFO_EXIT, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, row);

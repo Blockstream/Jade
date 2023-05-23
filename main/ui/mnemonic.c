@@ -132,7 +132,8 @@ static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t 
 
         // Padding/back-button - first page is 'exit', otherwise 'previous page'
         if (irow == 3) {
-            gui_make_button(&btn_back, TFT_BLACK, first_page ? BTN_MNEMONIC_EXIT : BTN_MNEMONIC_PREV, NULL);
+            gui_make_button(&btn_back, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN,
+                first_page ? BTN_MNEMONIC_EXIT : BTN_MNEMONIC_PREV, NULL);
             gui_set_margins(btn_back, GUI_MARGIN_ALL_EQUAL, 2);
             gui_set_borders(btn_back, TFT_BLACK, 2, GUI_BORDER_ALL);
             gui_set_borders_selected_color(btn_back, TFT_BLOCKSTREAM_GREEN);
@@ -160,7 +161,8 @@ static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t 
 
         // Padding/fwd-button - last page is 'verify', otherwise 'next page'
         if (irow == 3) {
-            gui_make_button(&btn_next, TFT_BLACK, last_page ? BTN_MNEMONIC_VERIFY : BTN_MNEMONIC_NEXT, NULL);
+            gui_make_button(&btn_next, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN,
+                last_page ? BTN_MNEMONIC_VERIFY : BTN_MNEMONIC_NEXT, NULL);
             gui_set_margins(btn_next, GUI_MARGIN_ALL_EQUAL, 2);
             gui_set_borders(btn_next, TFT_BLACK, 2, GUI_BORDER_ALL);
             gui_set_borders_selected_color(btn_next, TFT_BLOCKSTREAM_GREEN);
@@ -388,7 +390,7 @@ void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, const char* ti
             }
 
             gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, btn_ev_id, NULL);
+            gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, btn_ev_id, NULL);
             gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
             gui_set_borders(btn, TFT_BLUE, 2, GUI_BORDER_ALL);
             gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);

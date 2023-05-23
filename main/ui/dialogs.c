@@ -23,7 +23,7 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
     if (btn_info->ev_id == GUI_BUTTON_EVENT_NONE) {
         gui_make_fill(&btn, TFT_BLACK);
     } else {
-        gui_make_button(&btn, TFT_BLACK, btn_info->ev_id, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, btn_info->ev_id, NULL);
         gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
@@ -155,7 +155,7 @@ static void make_msg_activity(gui_activity_t** activity_ptr, const char* msg, co
 
     if (button) {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_EXIT_MESSAGE_SCREEN, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_EXIT_MESSAGE_SCREEN, NULL);
         gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 4, 85);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
@@ -196,7 +196,7 @@ static void make_msg_activity_two_lines(
 
     if (button) {
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_EXIT_MESSAGE_SCREEN, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_EXIT_MESSAGE_SCREEN, NULL);
         gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 4, 85);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);

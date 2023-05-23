@@ -221,7 +221,7 @@ void make_show_hotp_code_activity(
     } else {
         // Single 'ok' button
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_OTP_CONFIRM, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_OTP_CONFIRM, NULL);
         gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 4, 50);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);

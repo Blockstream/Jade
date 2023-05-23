@@ -408,7 +408,7 @@ void gui_chain_activities(const link_activity_t* link_act, linked_activities_inf
 void free_view_node(gui_view_node_t* node);
 void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...);
 void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...);
-void gui_make_button(gui_view_node_t** ptr, color_t color, uint32_t event_id, void* args);
+void gui_make_button(gui_view_node_t** ptr, color_t color, color_t selected_color, uint32_t event_id, void* args);
 void gui_make_fill(gui_view_node_t** ptr, color_t color);
 void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color);
 void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, uint32_t font);

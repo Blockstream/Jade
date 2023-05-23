@@ -89,7 +89,7 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
         gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_XPUB_TOGGLE_SCRIPT, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_XPUB_TOGGLE_SCRIPT, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);
@@ -112,7 +112,7 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
         gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_XPUB_TOGGLE_MULTISIG, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_XPUB_TOGGLE_MULTISIG, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);
@@ -136,7 +136,7 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
             gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
             gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, BTN_XPUB_TOGGLE_BCUR_TYPE, NULL);
+            gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_XPUB_TOGGLE_BCUR_TYPE, NULL);
             gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
             gui_set_borders_selected_color(btn, TFT_RED);
             gui_set_parent(btn, hsplit);
@@ -248,7 +248,7 @@ void make_qr_options_activity(
         gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_QR_TOGGLE_DENSITY, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_QR_TOGGLE_DENSITY, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);
@@ -271,7 +271,7 @@ void make_qr_options_activity(
         gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, BTN_QR_TOGGLE_SPEED, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_QR_TOGGLE_SPEED, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_RED);
         gui_set_parent(btn, hsplit);

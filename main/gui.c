@@ -906,7 +906,8 @@ void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t p
     va_end(args);
 }
 
-void gui_make_button(gui_view_node_t** ptr, color_t color, uint32_t event_id, void* args)
+void gui_make_button(
+    gui_view_node_t** ptr, const color_t color, const color_t selected_color, const uint32_t event_id, void* args)
 {
     JADE_INIT_OUT_PPTR(ptr);
 
@@ -914,7 +915,7 @@ void gui_make_button(gui_view_node_t** ptr, color_t color, uint32_t event_id, vo
 
     // by default same color
     data->color = color;
-    data->selected_color = color;
+    data->selected_color = selected_color;
 
     data->click_event_id = event_id;
     data->args = args;
