@@ -743,10 +743,8 @@ static void initialise_wallet(const bool temporary_restore)
 
 static bool offer_temporary_wallet_login(void)
 {
-    if (!await_yesno_activity("Temporary Login",
-            "Do you want to temporarily\nlogin using a recovery phrase?\nThis doesn't affect your PIN\nsaved wallet, "
-            "if any.",
-            true, NULL)) {
+    if (!await_continueback_activity(NULL, "      Do you want to\n temporarily login using\a    a recovery phrase?",
+            true, "blkstrm.com/temporary")) {
         // User decided against it
         return false;
     }
@@ -1010,9 +1008,9 @@ static void handle_passphrase_prefs()
         if (ret) {
             if (ev_id == BTN_PASSPHRASE_TOGGLE_FREQUENCY) {
                 // Never -> Once -> Always -> Once ...
-                freq = (freq == PASSPHRASE_NO     ? PASSPHRASE_ONCE
+                freq = (freq == PASSPHRASE_NEVER  ? PASSPHRASE_ONCE
                         : freq == PASSPHRASE_ONCE ? PASSPHRASE_ALWAYS
-                                                  : PASSPHRASE_NO);
+                                                  : PASSPHRASE_NEVER);
             } else if (ev_id == BTN_PASSPHRASE_TOGGLE_METHOD) {
                 type = (type == PASSPHRASE_FREETEXT ? PASSPHRASE_WORDLIST : PASSPHRASE_FREETEXT);
             } else if (ev_id == BTN_PASSPHRASE_OPTIONS_HELP) {

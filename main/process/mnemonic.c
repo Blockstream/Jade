@@ -37,46 +37,45 @@
 typedef enum { MNEMONIC_SIMPLE, MNEMONIC_ADVANCED, WORDLIST_PASSPHRASE } wordlist_purpose_t;
 
 // main/ui/mnemonic.c
-gui_activity_t* make_mnemonic_welcome_screen(void);
-gui_activity_t* make_new_mnemonic_screen(void);
-gui_activity_t* make_new_mnemonic_screen_advanced(void);
-gui_activity_t* make_mnemonic_recovery_screen(bool temporary_restore);
-gui_activity_t* make_mnemonic_recovery_screen_advanced(void);
-void make_show_mnemonic(
+gui_activity_t* make_mnemonic_setup_type_activity(void);
+gui_activity_t* make_mnemonic_setup_method_activity(bool advanced);
+gui_activity_t* make_new_mnemonic_activity(void);
+gui_activity_t* make_restore_mnemonic_activity(bool temporary_restore);
+
+void make_show_mnemonic_activities(
     gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], size_t nwords);
-gui_activity_t* make_confirm_mnemonic_screen(
+gui_activity_t* make_confirm_mnemonic_word_activity(
     gui_view_node_t** text_box_ptr, size_t confirm, char* words[], size_t nwords);
-gui_activity_t* make_enter_wordlist_word_page(const char* title, bool show_enter_btn, gui_view_node_t** textbox,
-    gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys, size_t keys_len);
-gui_activity_t* make_calculate_final_word_page(void);
-gui_activity_t* make_using_passphrase_screen(const bool use_passphrase_once, const bool use_passphrase_always);
-gui_activity_t* make_confirm_passphrase_screen(const char* passphrase, gui_view_node_t** textbox);
-gui_activity_t* make_confirm_qr_export_activity(void);
-gui_activity_t* make_export_qr_overview_activity(const Icon* icon);
+
+gui_activity_t* make_enter_wordlist_word_activity(gui_view_node_t** titletext, bool show_enter_btn,
+    gui_view_node_t** textbox, gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys,
+    size_t keys_len);
+gui_activity_t* make_calculate_final_word_activity(void);
+
+gui_activity_t* make_confirm_passphrase_activity(const char* passphrase, gui_view_node_t** textbox);
+
+gui_activity_t* make_export_qr_overview_activity(const Icon* icon, bool initial);
 gui_activity_t* make_export_qr_fragment_activity(
     const Icon* icon, gui_view_node_t** icon_node, gui_view_node_t** label_node);
-gui_activity_t* make_bip85_mnemonic_screen(void);
+
+gui_activity_t* make_bip85_mnemonic_words_activity(void);
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 // Export a mnemonic by asking the user to transcribe it to hard copy, then
 // scanning that hard copy back in and verifying the data matches.
 // NOTE: the SeedSigner 'CompactSeedQR' format is used (raw entropy).
-static void mnemonic_export_qr(const char* mnemonic)
+// NOTE: a 'true' return means the user either completed the QR copy and verification
+// process, OR they decided to abandon/skip it - in either case move on to the next step.
+// 'false' implies they pressed a 'back' button and we should NOT move forward.
+static bool mnemonic_export_qr(const char* mnemonic)
 {
     JADE_ASSERT(mnemonic);
 
-    int32_t ev_id = 0;
-    gui_activity_t* const act_confirm = make_confirm_qr_export_activity();
-
-    // Free all gui screen activities thus far, as those used to show or enter a mnemonic
-    // are memory intensive, and are there is no navigation now back to those screens.
-    // The QR export and scanning screens which may follow (if exporting QR) are also memory intensive,
-    // and DRAM would be exhausted unless we free those we have finished with.
-    gui_set_current_activity_ex(act_confirm, true);
-    if (!gui_activity_wait_event(act_confirm, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)
-        || ev_id != BTN_YES) {
-        // User decided against it at this time
-        return;
+    if (!await_skipyes_activity(
+            NULL, "            Draw the\n   CompactSeedQR for\n    use with QR Mode.", true, "blkstrm.com/seedqr")) {
+        // User decided against it at this time - 'true' return implies a definitive
+        // decision by the user - as opposed to a simple 'back' button press.
+        return true;
     }
 
     // CompactSeedQR is simply the mnemonic entropy
@@ -117,83 +116,111 @@ static void mnemonic_export_qr(const char* mnemonic)
     // This is vital to prevent fragmentation occuring which then causes the large
     // allocations made by the qr-scanner to fail (even if there appears to be
     // sufficient DRAM available).
+    bool retval = true;
+    bool first_attempt = true;
+    int32_t ev_id;
     while (true) {
-        // Show the overview QR
-        gui_activity_t* const act_overview_qr = make_export_qr_overview_activity(&qr_overview);
-        gui_set_current_activity_ex(act_overview_qr, true);
-        while (!gui_activity_wait_event(act_overview_qr, GUI_BUTTON_EVENT, BTN_QR_EXPORT_BEGIN, NULL, NULL, NULL, 0)) {
-            // Wait for the 'Begin' button to be pressed
-        }
-
-        // Make a screen to display qr-code fragment icons
-        gui_view_node_t* icon_node = NULL;
-        gui_view_node_t* text_node = NULL;
-        gui_activity_t* const act_qr_part = make_export_qr_fragment_activity(&qr_overview, &icon_node, &text_node);
-        JADE_ASSERT(icon_node);
-        JADE_ASSERT(text_node);
-
-        // Show QR parts, using the wheel to navigate to previous/next fragment
-        uint8_t ipart = 0;
-        bool done = false;
-        while (!done) {
-            // Update display - ipart == num_icons implies the 'overview' of the entire qr-code
-            if (ipart < num_icons) {
-                char label[12];
-                const int ret = snprintf(label, sizeof(label), "Grid: %c%u", 'A' + (ipart / expected_grid_size),
-                    1 + (ipart % expected_grid_size));
-                JADE_ASSERT(ret > 0 && ret < sizeof(label));
-                gui_update_icon(icon_node, icons[ipart], false);
-                gui_update_text(text_node, label);
+        while (true) {
+            // Show the overview QR
+            uint8_t ipart = 0; // fragment to show
+            gui_activity_t* const act_overview_qr = make_export_qr_overview_activity(&qr_overview, first_attempt);
+            gui_set_current_activity_ex(act_overview_qr, true);
+            if (gui_activity_wait_event(act_overview_qr, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                if (ev_id == BTN_QR_EXPORT_DONE) {
+                    // We are done viewing/copying the qr
+                    break;
+                } else if (ev_id == BTN_QR_EXPORT_NEXT) {
+                    // Move to fragments carousel, showing the first fragment
+                    ipart = 0;
+                } else if (ev_id == BTN_QR_EXPORT_PREV) {
+                    if (first_attempt) {
+                        // On the initial screen, 'back' takes us back out of these screens
+                        // A false return implies a 'back' option was pressed.
+                        retval = false;
+                        goto cleanup;
+                    } else {
+                        // On subsequent loops through, the 'back' button goes back into
+                        // the carousel of grid images, from the end (ie. backwards)
+                        ipart = num_icons - 1;
+                    }
+                } else {
+                    // Unexpected button event, continue waiting
+                    continue;
+                }
             } else {
-                // Show the entire qr overview image
-                gui_update_icon(icon_node, qr_overview, true);
-                gui_update_text(text_node, "Overview");
+                // Unexpected gui event, continue waiting
+                continue;
             }
-            gui_set_current_activity_ex(act_qr_part, true);
+            first_attempt = false;
 
-            if (gui_activity_wait_event(act_qr_part, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                switch (ev_id) {
-                case GUI_FRONT_CLICK_EVENT:
-                    done = true;
+            // Make a screen to display qr-code fragment icons
+            gui_view_node_t* icon_node = NULL;
+            gui_view_node_t* text_node = NULL;
+            gui_activity_t* const act_qr_part = make_export_qr_fragment_activity(&qr_overview, &icon_node, &text_node);
+            JADE_ASSERT(icon_node);
+            JADE_ASSERT(text_node);
+
+            // Show QR parts, using the buttons to navigate to previous/next fragment
+            while (true) {
+                // Update display - ipart == num_icons implies going back to the 'overview' of the entire qr-code
+                if (ipart < num_icons) {
+                    char label[12];
+                    const int ret = snprintf(label, sizeof(label), "Grid: %c%u", 'A' + (ipart / expected_grid_size),
+                        1 + (ipart % expected_grid_size));
+                    JADE_ASSERT(ret > 0 && ret < sizeof(label));
+                    gui_update_icon(icon_node, icons[ipart], false);
+                    gui_update_text(text_node, label);
+                } else {
+                    // Done showing fragments - back to qr overview screen
                     break;
-                case GUI_WHEEL_LEFT_EVENT:
-                    ipart = (ipart + num_icons) % (num_icons + 1);
-                    break;
-                case GUI_WHEEL_RIGHT_EVENT:
-                    ipart = (ipart + 1) % (num_icons + 1);
-                    break;
-                default:
-                    break;
+                }
+
+                gui_set_current_activity_ex(act_qr_part, true);
+                if (gui_activity_wait_event(act_qr_part, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    switch (ev_id) {
+                    case BTN_QR_EXPORT_PREV:
+                        ipart = (ipart + num_icons) % (num_icons + 1);
+                        break;
+                    case BTN_QR_EXPORT_NEXT:
+                        ipart = (ipart + 1) % (num_icons + 1);
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }
         }
 
         // Verify QR by scanning it back
         qr_data_t qr_data = { .len = 0 };
-        jade_camera_scan_qr(&qr_data, "Scan QR", "\nScan created\nQR to verify");
+        jade_camera_scan_qr(&qr_data, "Scan QR", "\nScan new\nQR to verify");
         if (qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
             // QR Code scanned, and it matched expected entropy
             await_message_activity("QR Code Verified");
+            break; // done
         } else {
-            const char* retry_message
-                = qr_data.len ? "\nQR scan does not match\n\nRetry?" : "\nNo QR code captured\n\nRetry?";
-            if (await_yesno_activity("Error", retry_message, true, NULL)) {
-                // Retry from the top
+            const char* msg = qr_data.len ? "\nQR code does not match\n\n            Retry?"
+                                          : "\n  No QR code captured\n\n            Retry?";
+            if (await_skipyes_activity(NULL, msg, true, NULL)) {
+                // User agreed to retry, so go back to displaying qr fragments
                 continue;
+            } else {
+                // User decided to abandon, just break out of loop
+                break;
             }
-
-            // Either qr code mismatched and user not retrying, or no qr code scanned (abandoned)
-            await_error_activity("QR Code NOT Verified!");
         }
-        break;
     }
 
+cleanup:
     // Free the icons
     for (int i = 0; i < num_icons; ++i) {
         free(icons[i].data);
     }
     free(icons);
     qrcode_freeIcon(&qr_overview);
+
+    // Return 'true' if done, or 'false' if 'back' was pressed
+    return retval;
 }
 #endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
 
@@ -227,16 +254,22 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
     JADE_ASSERT(nwords == 12 || nwords == 24);
     JADE_ASSERT(mnemonic);
 
+    // Show the warning banner screen, user to confirm
+    if (!await_continueback_activity(NULL, "  These words are your\n    wallet. Keep them\n  protected and offline.",
+            true, "blkstrm.com/phrase")) {
+        // Abandon before we begin
+        return false;
+    }
+
     // Change the word separator to a null so we can treat each word as a terminated string.
-    // Large enough for 12 and 24 word mnemonic
-    char* words[MNEMONIC_MAXWORDS];
+    char* words[MNEMONIC_MAXWORDS]; // large enough for 12 and 24 word mnemonic
     change_mnemonic_word_separator(mnemonic, mnemonic_len, ' ', '\0', words, nwords);
     bool mnemonic_confirmed = false;
 
-    // create the "show mnemonic" only once and then reuse it
+    // create the "show mnemonic" activities only once and then reuse them
     gui_activity_t* first_activity = NULL;
     gui_activity_t* last_activity = NULL;
-    make_show_mnemonic(&first_activity, &last_activity, words, nwords);
+    make_show_mnemonic_activities(&first_activity, &last_activity, words, nwords);
     JADE_ASSERT(first_activity);
     JADE_ASSERT(last_activity);
 
@@ -275,7 +308,7 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
             already_confirmed[selected] = true;
 
             gui_view_node_t* textbox = NULL;
-            gui_activity_t* const confirm_act = make_confirm_mnemonic_screen(&textbox, selected, words, nwords);
+            gui_activity_t* const confirm_act = make_confirm_mnemonic_word_activity(&textbox, selected, words, nwords);
             JADE_LOGD("selected = %u", selected);
 
             // Large enough for 12 and 24 word mnemonic
@@ -312,13 +345,12 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
 
                 switch (ev_id) {
                 case GUI_WHEEL_LEFT_EVENT:
-                    index = (index + 1) % num_words_options;
+                    index = (index + num_words_options - 1) % num_words_options;
                     gui_update_text(textbox, words[random_words[index]]);
                     break;
 
                 case GUI_WHEEL_RIGHT_EVENT:
-                    // Avoid unsigned wrapping below zero
-                    index = (index + num_words_options - 1) % num_words_options;
+                    index = (index + 1) % num_words_options;
                     gui_update_text(textbox, words[random_words[index]]);
                     break;
 
@@ -333,7 +365,7 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
 
             // the wrong word has been selected
             if (random_words[index] != selected) {
-                await_error_activity("Wrong, please try again");
+                await_error_activity("\n Incorrect. Check your\n  recovery phrase and\n           try again.");
                 mnemonic_confirmed = false;
                 break;
             } else if (i == num_words_confirm - 1) { // last word, and it's correct
@@ -582,18 +614,24 @@ static size_t get_wordlist_words(
 
     gui_view_node_t* btns[26] = {};
     const size_t btns_len = sizeof(btns) / sizeof(btns[0]);
-    const char* fixed_kb_title = ((purpose == WORDLIST_PASSPHRASE) ? "Enter Passphrase" : NULL);
-    gui_view_node_t *textbox = NULL, *backspace = NULL, *enter = NULL;
+    gui_view_node_t *titletext = NULL, *textbox = NULL, *backspace = NULL, *enter = NULL;
     const bool show_enter_btn = !is_mnemonic; // Don't show 'done' button when entering mnemonic words
     gui_activity_t* const enter_word_activity
-        = make_enter_wordlist_word_page(fixed_kb_title, show_enter_btn, &textbox, &backspace, &enter, btns, btns_len);
+        = make_enter_wordlist_word_activity(&titletext, show_enter_btn, &textbox, &backspace, &enter, btns, btns_len);
     JADE_ASSERT(enter);
     enter->is_active = show_enter_btn;
+
+    JADE_ASSERT(titletext);
+    if (purpose == WORDLIST_PASSPHRASE) {
+        // Fixed title for all words
+        gui_update_text(titletext, "Enter Passphrase");
+    }
 
     gui_view_node_t* text_selection = NULL;
     gui_view_node_t* label = NULL;
     const char* select_word_title = ((purpose == WORDLIST_PASSPHRASE) ? "Enter Passphrase" : "Recover Wallet");
     gui_activity_t* const choose_word_activity = make_carousel_activity(select_word_title, &label, &text_selection);
+    int32_t ev_id;
 
     // For each word
     char* wordlist_words[MNEMONIC_MAXWORDS] = { 0 };
@@ -609,29 +647,39 @@ static size_t get_wordlist_words(
         size_t final_words[MAX_NUM_FINAL_WORDS];
         bool random_first_selection_word = false;
         if (purpose == MNEMONIC_ADVANCED && word_index == nwords - 1) {
-            gui_activity_t* const final_word_activity = make_calculate_final_word_page();
-            gui_set_current_activity(final_word_activity);
+            gui_activity_t* const final_word_activity = make_calculate_final_word_activity();
+            while (true) {
+                gui_set_current_activity(final_word_activity);
 
-            int32_t ev_id;
-            if (gui_activity_wait_event(final_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)
-                && ev_id == BTN_MNEMONIC_FINAL_WORD_CALCULATE) {
-                // Fetch valid final words to use as additional filter
-                display_processing_message_activity();
-                num_filter_words = valid_final_words(wordlist_words, word_index, final_words, MAX_NUM_FINAL_WORDS);
-                p_filter_words = final_words;
-                JADE_ASSERT(num_filter_words == (nwords == 12 ? 128 : 8)); // expected due to checksum bits
+                if (gui_activity_wait_event(
+                        final_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    if (ev_id == BTN_MNEMONIC_FINAL_WORD_EXISTING) {
+                        // Do nothing/skip, just let user enter final word as per other words
+                        break;
+                    } else if (ev_id == BTN_MNEMONIC_FINAL_WORD_CALCULATE) {
+                        // Fetch valid final words to use as additional filter
+                        display_processing_message_activity();
+                        num_filter_words
+                            = valid_final_words(wordlist_words, word_index, final_words, MAX_NUM_FINAL_WORDS);
+                        p_filter_words = final_words;
+                        JADE_ASSERT(num_filter_words == (nwords == 12 ? 128 : 8)); // expected due to checksum bits
+
+                        // When we select from the valid words, randomise the initally selected word
+                        random_first_selection_word = true;
+                        break;
+                    } else if (ev_id == BTN_MNEMONIC_FINAL_WORD_HELP) {
+                        await_qr_help_activity("blkstrm.com/finalword");
+                    }
+                }
             }
-
-            // When we select from the valid words, randomise the initally selected word
-            random_first_selection_word = true;
         }
 
-        // Reset default title for next word if title not explicitly fixed
-        if (!fixed_kb_title) {
+        // Reset default title for next word when entering mnemonic phrase
+        if (is_mnemonic) {
             char enter_word_title[16];
             const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %u", word_index + 1);
             JADE_ASSERT(ret > 0 && ret < sizeof(enter_word_title));
-            gui_set_activity_title(enter_word_activity, enter_word_title);
+            gui_update_text(titletext, enter_word_title);
         }
 
         char word[16] = { 0 };
@@ -667,11 +715,13 @@ static size_t get_wordlist_words(
 
                     // Update current selection
                     if (selected == possible_words) { // delete
+                        gui_set_text_font(text_selection, DEJAVU24_FONT);
                         gui_update_text(text_selection, "|");
                     } else {
                         // word from wordlist
                         JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_word_list[selected], &wordlist_extracted));
                         JADE_ASSERT(wordlist_extracted);
+                        gui_set_text_font(text_selection, GUI_DEFAULT_FONT);
                         gui_update_text(text_selection, wordlist_extracted);
                     }
 
@@ -679,7 +729,6 @@ static size_t get_wordlist_words(
                     gui_set_current_activity(choose_word_activity);
 
                     // wait for a GUI event
-                    int32_t ev_id;
                     gui_activity_wait_event(choose_word_activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
                     switch (ev_id) {
@@ -760,7 +809,6 @@ static size_t get_wordlist_words(
                     enter_word_activity, backspace, enter, btns, btns_len);
 
                 // Wait for kb button click
-                int32_t ev_id;
                 gui_activity_wait_event(enter_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
                 selected_backspace = (ev_id == BTN_KEYBOARD_BACKSPACE);
                 done_entering_words = (ev_id == BTN_KEYBOARD_ENTER);
@@ -788,7 +836,7 @@ static size_t get_wordlist_words(
                     JADE_ASSERT(!wordlist_words[word_index]);
                     --word_index;
 
-                    // Free cached previous word, as we star that one from scratch
+                    // Free cached previous word, as we start that one from scratch
                     JADE_ASSERT(wordlist_words[word_index]);
                     JADE_WALLY_VERIFY(wally_free_string(wordlist_words[word_index]));
                     wordlist_words[word_index] = NULL;
@@ -1105,7 +1153,7 @@ static void get_freetext_passphrase(char* passphrase, const size_t passphrase_le
     gui_activity_t* confirm_passphrase_activity = NULL;
     gui_view_node_t* text_to_confirm = NULL;
     if (confirm) {
-        confirm_passphrase_activity = make_confirm_passphrase_screen(passphrase, &text_to_confirm);
+        confirm_passphrase_activity = make_confirm_passphrase_activity(passphrase, &text_to_confirm);
         JADE_ASSERT(text_to_confirm);
     }
 
@@ -1127,16 +1175,12 @@ static void get_freetext_passphrase(char* passphrase, const size_t passphrase_le
 
         // Perhaps ask user to confirm, before accepting passphrase
         if (confirm) {
-            if (kb_entry.len > 0) {
-                int32_t ev_id;
-                gui_update_text(text_to_confirm, kb_entry.strdata);
-                gui_set_current_activity(confirm_passphrase_activity);
-                gui_activity_wait_event(
-                    confirm_passphrase_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-                done = (ev_id == BTN_YES);
-            } else {
-                done = await_yesno_activity("Confirm Passphrase", "Do you confirm the empty\npassphrase?", false, NULL);
-            }
+            int32_t ev_id;
+            gui_update_text(text_to_confirm, kb_entry.len > 0 ? kb_entry.strdata : "<no passphrase>");
+            gui_set_current_activity(confirm_passphrase_activity);
+            gui_activity_wait_event(
+                confirm_passphrase_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+            done = (ev_id == BTN_YES);
         } else {
             // Not explicitly confirming passphrase, so done
             done = true;
@@ -1153,7 +1197,7 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
     JADE_ASSERT(passphrase_len);
     passphrase[0] = '\0';
 
-    if (keychain_get_passphrase_freq() == PASSPHRASE_NO) {
+    if (keychain_get_passphrase_freq() == PASSPHRASE_NEVER) {
         // Auto apply the empty passphrase - return empty immediately
         return;
     }
@@ -1184,22 +1228,31 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     keychain_t keydata = { 0 };
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
-    bool advanced_mode = false;
-    bool offer_export_qr = false;
-    bool got_mnemonic = false;
+    // NOTE: temporary wallets default to 'advanced mode'
+    bool advanced_mode = temporary_restore;
+    bool qr_scanned = force_qr_scan;
+    gui_activity_t* act = NULL;
     if (force_qr_scan) {
         // Jump directly to scan-qr
-        got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
+        if (!mnemonic_qr(mnemonic, sizeof(mnemonic))) {
+            // User abandoned scanning
+            goto cleanup;
+        }
     } else {
         // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
-        gui_activity_t* act = NULL;
         if (temporary_restore) {
-            act = make_mnemonic_recovery_screen(temporary_restore);
+            act = make_restore_mnemonic_activity(temporary_restore);
+        } else if (await_continueback_activity(NULL,
+                       "  For setup instructions\n visit blockstream.com/\n               jade", true,
+                       "blkstrm.com/jade")) {
+            act = make_mnemonic_setup_type_activity();
         } else {
-            act = make_mnemonic_welcome_screen();
+            // User decided against it
+            goto cleanup;
         }
 
-        while (true) {
+        bool got_mnemonic = false;
+        while (!got_mnemonic) {
             gui_set_current_activity_ex(act, true);
 
             // In a debug unattended ci build, use hardcoded mnemonic after a short delay
@@ -1210,52 +1263,63 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 
             switch (ev_id) {
             case BTN_MNEMONIC_EXIT:
-                // Abandon setting up mnemonic
-                break;
+                // Abandon setting up mnemonic altogether
+                goto cleanup;
 
             // Change screens and continue to await button events
+            case BTN_MNEMONIC_TYPE:
+                advanced_mode = false;
+                act = make_mnemonic_setup_type_activity();
+                continue;
+
+            case BTN_MNEMONIC_ADVANCED:
+                advanced_mode = await_continueback_activity("Advanced Setup",
+                    "    Technical features\n    will be presented.\n  Proceed with caution.", true,
+                    "blkstrm.com/advanced");
+                if (advanced_mode) {
+                    act = make_mnemonic_setup_method_activity(advanced_mode);
+                } else {
+                    act = make_mnemonic_setup_type_activity();
+                }
+                continue;
+
+            case BTN_MNEMONIC_METHOD:
+                act = make_mnemonic_setup_method_activity(advanced_mode);
+                continue;
+
             case BTN_NEW_MNEMONIC:
-                act = make_new_mnemonic_screen();
+                act = make_new_mnemonic_activity();
                 continue;
 
-            case BTN_NEW_MNEMONIC_ADVANCED:
-                act = make_new_mnemonic_screen_advanced();
-                offer_export_qr = true;
-                advanced_mode = true;
-                continue;
-
-            case BTN_RECOVER_MNEMONIC:
-                act = make_mnemonic_recovery_screen(temporary_restore);
-                continue;
-
-            case BTN_RECOVER_MNEMONIC_ADVANCED:
-                act = make_mnemonic_recovery_screen_advanced();
-                offer_export_qr = true;
-                advanced_mode = true;
+            case BTN_RESTORE_MNEMONIC:
+                act = make_restore_mnemonic_activity(temporary_restore);
                 continue;
 
             // Await user mnemonic entry/confirmation
-            case BTN_NEW_MNEMONIC_12_BEGIN:
+            case BTN_NEW_MNEMONIC_12:
                 got_mnemonic = mnemonic_new(12, mnemonic, sizeof(mnemonic));
                 break;
 
-            case BTN_NEW_MNEMONIC_24_BEGIN:
+            case BTN_NEW_MNEMONIC_24:
                 got_mnemonic = mnemonic_new(24, mnemonic, sizeof(mnemonic));
                 break;
 
-            case BTN_RECOVER_MNEMONIC_12_BEGIN:
+            case BTN_RESTORE_MNEMONIC_12:
                 got_mnemonic = mnemonic_recover(12, advanced_mode, mnemonic, sizeof(mnemonic));
                 break;
 
-            case BTN_RECOVER_MNEMONIC_24_BEGIN:
+            case BTN_RESTORE_MNEMONIC_24:
                 got_mnemonic = mnemonic_recover(24, advanced_mode, mnemonic, sizeof(mnemonic));
                 break;
 
-            case BTN_RECOVER_MNEMONIC_QR_BEGIN:
-            default:
+            case BTN_RESTORE_MNEMONIC_QR:
                 got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
-                offer_export_qr = false;
+                qr_scanned = got_mnemonic;
                 break;
+
+            default:
+                // Unknown event, ignore
+                continue;
             }
 #else
             gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
@@ -1266,17 +1330,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
                 "science crane oval letter slot invite sadness banana");
             got_mnemonic = true;
 #endif
-
-            // Exit once mnemonic requested, even if abandoned.
-            // 'got_mnemonic' indicates whether one was retrieved.
-            break;
         }
-    }
-
-    // If we failed to get a mnemonic break/return here
-    if (!got_mnemonic) {
-        JADE_LOGW("No mnemonic entered");
-        goto cleanup;
     }
 
     // Check mnemonic valid before entering passphrase
@@ -1290,61 +1344,39 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     // Offer export via qr for true Jade hw's (ie. with camera) and the flag is set
     // ie. a) if 'Advanced' setup was used, and b) we did not already scan a QR
-    if (offer_export_qr
-        && await_yesno_activity("QR Export",
-            "Do you want to export your\nrecovery phrase as a Compact\nSeedQR? For more info "
-            "vist:\nblockstream.com/jadeqr",
-            false, NULL)) {
-        mnemonic_export_qr(mnemonic);
+    if (advanced_mode && !qr_scanned) {
+        bool export_qr
+            = await_yesno_activity(NULL, "Export recovery phrase\n  as a CompactSeedQR?", true, "blkstrm.com/seedqr");
+
+        while (export_qr) {
+            // Call export function - it returns 'true' when the step is complete (or skipped)
+            // (it returns 'false' if the user presses 'back' to restart the process)
+            export_qr = !mnemonic_export_qr(mnemonic);
+        }
     }
 #else
     // Flag unused if no camera available - silence compiler warning
-    (void)offer_export_qr;
+    (void)qr_scanned;
 #endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
 
-    // Perhaps offer/get passphrase (ie. if using advanced options)
-    if (advanced_mode) {
-        // Get current state to select default button - NOTE: both flags set impliles
-        // just using a passphrase once, for the next login only.
-        const passphrase_freq_t freq = keychain_get_passphrase_freq();
-        gui_activity_t* const act = make_using_passphrase_screen(freq == PASSPHRASE_ONCE, freq == PASSPHRASE_ALWAYS);
-
-        // Free all gui screen activities thus far, as those used to show or enter a mnemonic and those
-        // used to export and scan/verify are memory intensive, and are there is no navigation now back
-        // to those screens.
-        // The keyboard screens which may follow (if entering passphrase) are also memory intensive,
-        // and DRAM would be exhausted unless we free those we have finished with.
-        gui_set_current_activity_ex(act, true);
-
-        int32_t ev_id;
-        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-            // NOTE: these are always persisted in storage for a full initialisation
-            // for a temporary restore, we only persist if the user sets the 'always' option.
-            switch (ev_id) {
-            case BTN_USE_PASSPHRASE_NO:
-                keychain_set_passphrase_frequency(PASSPHRASE_NO);
-                break;
-
-            case BTN_USE_PASSPHRASE_ONCE:
-                keychain_set_passphrase_frequency(PASSPHRASE_ONCE);
-                break;
-
-            case BTN_USE_PASSPHRASE_ALWAYS:
-                keychain_set_passphrase_frequency(PASSPHRASE_ALWAYS);
-                break;
-            }
-
-            // NOTE: these are always persisted in storage for a full initialisation.
-            // For a temporary restore, we only persist if the user sets the 'always' option.
-            if (!temporary_restore || ev_id == BTN_USE_PASSPHRASE_ALWAYS) {
-                keychain_persist_passphrase_prefs();
-            }
-        }
+    // When using 'temporary restore' we respect the existing passphrase settings.
+    // If using 'advanced mode' to setup the persistent wallet, we ask the user and save the settings.
+    // In basic/standard mode automatically set 'no passphrase'.
+    // NOTE: we don't offer the 'once' option at setup time (only in the options/setting prefs menu).
+    if (!temporary_restore) {
+        const bool use_passphrase = advanced_mode
+            && await_yesno_activity("BIP39 Passphrase",
+                " Add BIP39 passphrase?\n    You will need this\n   to access your funds.", false,
+                "blkstrm.com/passphrase");
+        keychain_set_passphrase_frequency(use_passphrase ? PASSPHRASE_ALWAYS : PASSPHRASE_NEVER);
+        keychain_persist_passphrase_prefs();
     }
 
     // Get any passphrase, if relevant
     char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
     SENSITIVE_PUSH(passphrase, sizeof(passphrase));
+    passphrase[0] = '\0';
+
     const bool confirm_passphrase = true;
     get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
     const size_t passphrase_len = strnlen(passphrase, sizeof(passphrase));
@@ -1354,9 +1386,9 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 
     // If the mnemonic is valid derive temporary keychain from it.
     // Otherwise break/return here.
-    got_mnemonic = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
+    const bool wallet_created = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
     SENSITIVE_POP(passphrase);
-    if (!got_mnemonic) {
+    if (!wallet_created) {
         JADE_LOGW("Failed to derive wallet");
         await_error_activity("Failed to derive wallet");
         goto cleanup;
@@ -1406,25 +1438,42 @@ void handle_bip85_mnemonic()
 {
     JADE_ASSERT(keychain_get());
 
-    // Fetch number of words to generate
-    gui_activity_t* act = make_bip85_mnemonic_screen();
-    gui_set_current_activity(act);
-
-    int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-    ev_id = BTN_BIP85_EXIT;
-#endif
-
-    if (!ret || (ev_id != BTN_BIP85_12_WORDS && ev_id != BTN_BIP85_24_WORDS)) {
+    if (!await_continueback_activity("BIP85", " Create a new recovery\n   phrase derived from \n      wallet and index",
+            true, "blkstrm.com/bip85")) {
         // User declined
         return;
     }
-    const size_t nwords = (ev_id == BTN_BIP85_24_WORDS) ? 24 : 12;
+
+    gui_activity_t* act = make_bip85_mnemonic_words_activity();
+    uint8_t nwords = 0;
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_BIP85_12_WORDS;
+#endif
+
+        if (ret) {
+            if (ev_id == BTN_BIP85_12_WORDS) {
+                nwords = 12;
+                break;
+            } else if (ev_id == BTN_BIP85_24_WORDS) {
+                nwords = 24;
+                break;
+            } else if (ev_id == BTN_BIP85_EXIT) {
+                // User declined
+                return;
+            }
+        }
+    }
+    JADE_ASSERT(nwords == 12 || nwords == 24);
 
     // Fetch index
     gui_view_node_t* textbox = NULL;

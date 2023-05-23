@@ -98,7 +98,7 @@ bool keychain_requires_passphrase(void)
 void keychain_set_passphrase_frequency(const passphrase_freq_t freq)
 {
     switch (freq) {
-    case PASSPHRASE_NO:
+    case PASSPHRASE_NEVER:
         passphrase_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
         passphrase_flags &= ~KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
         break;
@@ -122,7 +122,7 @@ passphrase_freq_t keychain_get_passphrase_freq()
     // NOTE: Both flags set implies 'once only'
     return (passphrase_flags & KEY_FLAGS_USER_TO_ENTER_PASSPHRASE)
         ? ((passphrase_flags & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE) ? PASSPHRASE_ONCE : PASSPHRASE_ALWAYS)
-        : PASSPHRASE_NO;
+        : PASSPHRASE_NEVER;
 }
 
 void keychain_set_passphrase_type(const passphrase_type_t type)

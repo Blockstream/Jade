@@ -17,7 +17,7 @@ typedef struct {
     size_t seed_len;
 } keychain_t;
 
-typedef enum { PASSPHRASE_NO, PASSPHRASE_ONCE, PASSPHRASE_ALWAYS } passphrase_freq_t;
+typedef enum { PASSPHRASE_NEVER, PASSPHRASE_ONCE, PASSPHRASE_ALWAYS } passphrase_freq_t;
 typedef enum { PASSPHRASE_WORDLIST, PASSPHRASE_FREETEXT } passphrase_type_t;
 
 bool keychain_init(void);
