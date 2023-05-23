@@ -31,8 +31,8 @@ void make_sign_identity_activity(gui_activity_t** activity_ptr, const char* iden
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
     // third row, buttons
-    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_CANCEL_SIGNATURE },
-        { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+    btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CANCEL_SIGNATURE },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_ACCEPT_SIGNATURE } };
     add_buttons(vsplit, UI_ROW, btns, 3);
 }

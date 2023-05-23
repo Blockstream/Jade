@@ -169,7 +169,7 @@ void make_show_ota_hash_activity(
     }
 
     // third row, buttons
-    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_CANCEL_OTA },
+    btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CANCEL_OTA },
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTA_HASH_CONFIRMED } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 }

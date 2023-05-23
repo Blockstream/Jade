@@ -122,7 +122,7 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     }
 
     // Buttons
-    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_MULTISIG_EXIT },
+    btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MULTISIG_EXIT },
         { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_NEXT } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 
@@ -239,7 +239,7 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
 
     // Buttons [<-] [X] [->]  (Prev, cancel, next)
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_PREV },
-        { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_MULTISIG_EXIT },
+        { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MULTISIG_EXIT },
         { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_NEXT } };
     add_buttons(vsplit, UI_ROW, btns, 3);
 
@@ -321,7 +321,7 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
 
     // Buttons [<-] [X] [V]  (Prev, cancel, confirm)
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_PREV },
-        { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_MULTISIG_EXIT },
+        { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MULTISIG_EXIT },
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_MULTISIG_CONFIRM } };
     add_buttons(vsplit, UI_ROW, btns, 3);
 
@@ -492,13 +492,13 @@ void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* mult
     }
 
     // Buttons - Delete and Next
-    btn_data_t btns[] = { { .txt = "Delete", .font = DEFAULT_FONT, .ev_id = BTN_MULTISIG_DELETE },
+    btn_data_t btns[] = { { .txt = "Delete", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MULTISIG_DELETE },
         { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_NEXT } };
 
     // Change 'Next' to 'Exit' for last entry
     if (index >= total) {
         btns[1].txt = "Exit";
-        btns[1].font = DEFAULT_FONT;
+        btns[1].font = GUI_DEFAULT_FONT;
         btns[1].ev_id = BTN_MULTISIG_EXIT;
     }
 

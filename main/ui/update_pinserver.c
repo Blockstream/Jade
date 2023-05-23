@@ -96,15 +96,15 @@ void make_show_pinserver_details_activity(gui_activity_t** activity_ptr, const c
     // fourth row, buttons
     if (confirming_details) {
         // 'Deny' and 'Confirm' buttons
-        btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
-            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+        btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
+            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
         add_buttons(vsplit, UI_ROW, btns, 3);
     } else {
         // Just a central 'ok' button
-        btn_data_t btns[] = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-            { .txt = "Ok", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM },
-            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+        btn_data_t btns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+            { .txt = "Ok", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM },
+            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
         add_buttons(vsplit, UI_ROW, btns, 3);
     }
 }
@@ -162,15 +162,15 @@ void make_show_pinserver_certificate_activity(
     // fourth row, buttons
     if (confirming_details) {
         // 'Deny' and 'Confirm' buttons
-        btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
-            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+        btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
+            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
         add_buttons(vsplit, UI_ROW, btns, 3);
     } else {
         // Just a central 'ok' button
-        btn_data_t btns[] = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-            { .txt = "Ok", .font = DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM },
-            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+        btn_data_t btns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+            { .txt = "Ok", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM },
+            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
         add_buttons(vsplit, UI_ROW, btns, 3);
     }
 }

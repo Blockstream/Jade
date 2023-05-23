@@ -282,8 +282,8 @@ static void make_yesno_activity(
     gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
     // second row, Yes and No buttons
-    btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_NO },
-        { .txt = "Yes", .font = DEFAULT_FONT, .ev_id = BTN_YES } };
+    btn_data_t btns[] = { { .txt = "No", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO },
+        { .txt = "Yes", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 
     // Select default button

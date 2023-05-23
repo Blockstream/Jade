@@ -477,8 +477,8 @@ void make_select_word_page(gui_activity_t** activity_ptr, const char* title, con
 
 void make_calculate_final_word_page(gui_activity_t** activity_ptr)
 {
-    btn_data_t btns[] = { { .txt = "Existing", .font = DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_EXISTING },
-        { .txt = "Calculate", .font = DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_CALCULATE } };
+    btn_data_t btns[] = { { .txt = "Existing", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_EXISTING },
+        { .txt = "Calculate", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_CALCULATE } };
     make_mnemonic_screen(activity_ptr, "Final Word",
         "Enter final word from existing\nrecovery phrase or calculate\nvalid ones?", btns, 2);
 }
@@ -518,9 +518,9 @@ void make_using_passphrase_screen(
     gui_set_align(txt_warning, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
     // third row, buttons
-    btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
-        { .txt = "Always", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ALWAYS },
-        { .txt = "Once", .font = DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE } };
+    btn_data_t btns[] = { { .txt = "No", .font = GUI_DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_NO },
+        { .txt = "Always", .font = GUI_DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ALWAYS },
+        { .txt = "Once", .font = GUI_DEFAULT_FONT, .ev_id = BTN_USE_PASSPHRASE_ONCE } };
     add_buttons(vsplit, UI_ROW, btns, 3);
 
     // Set default button
@@ -562,8 +562,8 @@ void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* p
     *textbox = entered_phrase;
 
     // third row, Yes and No buttons
-    btn_data_t btns[] = { { .txt = "No", .font = DEFAULT_FONT, .ev_id = BTN_NO },
-        { .txt = "Yes", .font = DEFAULT_FONT, .ev_id = BTN_YES } };
+    btn_data_t btns[] = { { .txt = "No", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO },
+        { .txt = "Yes", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
@@ -584,8 +584,8 @@ void make_confirm_qr_export_activity(gui_activity_t** activity_ptr)
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
     // third row, Yes and No buttons
-    btn_data_t btns[] = { { .txt = "Skip", .font = DEFAULT_FONT, .ev_id = BTN_NO },
-        { .txt = "Next", .font = DEFAULT_FONT, .ev_id = BTN_YES } };
+    btn_data_t btns[] = { { .txt = "Skip", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO },
+        { .txt = "Next", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 
     // Select 'Next' button by default
@@ -633,7 +633,7 @@ void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon*
     gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
     // Just a 'begin' button
-    btn_data_t btn = { .txt = "Begin", .font = DEFAULT_FONT, .ev_id = BTN_QR_EXPORT_BEGIN };
+    btn_data_t btn = { .txt = "Begin", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_EXPORT_BEGIN };
     add_buttons(vsplit, UI_COLUMN, &btn, 1);
 }
 
@@ -700,6 +700,6 @@ void make_export_qr_fragment_activity(
     *label_node = icon_label;
 
     // Just a 'done' button
-    btn_data_t btn = { .txt = "Done", .font = DEFAULT_FONT, .ev_id = BTN_QR_EXPORT_DONE };
+    btn_data_t btn = { .txt = "Done", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_EXPORT_DONE };
     add_buttons(vsplit, UI_COLUMN, &btn, 1);
 }

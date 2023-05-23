@@ -1161,13 +1161,13 @@ static void handle_power_options()
     uint8_t new_brightness = initial_brightness;
 
     // The idle timeout buttons (1,2,3,5,10,15 mins).
-    btn_data_t timeout_btns[] = { { .txt = "1", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0, .val = 60 },
-        { .txt = "2", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 1, .val = 120 },
-        { .txt = "3", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 2, .val = 180 },
-        { .txt = "5", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 3, .val = 300 },
-        { .txt = "10", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 4, .val = 600 },
-        { .txt = "15", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 5, .val = 900 },
-        { .txt = "OFF", .font = DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 6, .val = UINT16_MAX } };
+    btn_data_t timeout_btns[] = { { .txt = "1", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0, .val = 60 },
+        { .txt = "2", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 1, .val = 120 },
+        { .txt = "3", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 2, .val = 180 },
+        { .txt = "5", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 3, .val = 300 },
+        { .txt = "10", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 4, .val = 600 },
+        { .txt = "15", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 5, .val = 900 },
+        { .txt = "OFF", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 6, .val = UINT16_MAX } };
     const size_t nBtns = sizeof(timeout_btns) / sizeof(btn_data_t);
 
     // Timeout button ids must be available/contiguous

@@ -201,7 +201,7 @@ static void make_input_output_activity(link_activity_t* output_activity, const c
 
     // Buttons
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_TX_SCREEN_PREV },
-        { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_TX_SCREEN_EXIT },
+        { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_TX_SCREEN_EXIT },
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_TX_SCREEN_NEXT } };
 
     // Remove 'Previous' button if not valid
@@ -282,8 +282,8 @@ static void make_final_activity(gui_activity_t** activity_ptr, const char* title
     }
 
     // Buttons
-    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_CANCEL_SIGNATURE },
-        { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+    btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CANCEL_SIGNATURE },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_ACCEPT_SIGNATURE } };
     add_buttons(vsplit, UI_ROW, btns, 3);
 }

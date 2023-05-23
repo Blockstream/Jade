@@ -145,7 +145,7 @@ void make_confirm_otp_activity(gui_activity_t** activity_ptr, const otpauth_ctx_
     JADE_ASSERT(valid);
 
     // Buttons - Cancel/Confirm
-    btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
+    btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTP_CONFIRM } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
@@ -170,8 +170,8 @@ void make_view_otp_activity(
     populate_otp_screen(vsplit, ctx, valid);
 
     // Buttons - Delete, Generate (if record valid), Next[Exit]
-    btn_data_t btns[] = { { .txt = "Delete", .font = DEFAULT_FONT, .ev_id = BTN_OTP_DELETE },
-        { .txt = "Generate", .font = DEFAULT_FONT, .ev_id = BTN_OTP_GENERATE },
+    btn_data_t btns[] = { { .txt = "Delete", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_DELETE },
+        { .txt = "Generate", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_GENERATE },
         { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_OTP_NEXT } };
 
     // Remove 'Generate' if not valid
@@ -183,7 +183,7 @@ void make_view_otp_activity(
     // Change 'Next' to 'Exit' for last entry
     if (index >= total) {
         btns[2].txt = "Exit";
-        btns[2].font = DEFAULT_FONT;
+        btns[2].font = GUI_DEFAULT_FONT;
         btns[2].ev_id = BTN_OTP_EXIT;
     }
 
@@ -215,7 +215,7 @@ void make_show_hotp_code_activity(
 
     if (cancel_button) {
         // Two buttons - Cancel/Confirm
-        btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
+        btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTP_CONFIRM } };
         add_buttons(vsplit, UI_ROW, btns, 2);
     } else {
@@ -293,14 +293,14 @@ void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* nam
 
     if (cancel_button) {
         // Two buttons - Cancel/Confirm
-        btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
+        btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTP_CONFIRM } };
         add_buttons(vsplit, UI_ROW, btns, 2);
     } else {
         // Single 'ok' button
-        btn_data_t btns[] = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+        btn_data_t btns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTP_CONFIRM },
-            { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } }; // spacer
+            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } }; // spacer
         add_buttons(vsplit, UI_ROW, btns, 3);
     }
 }

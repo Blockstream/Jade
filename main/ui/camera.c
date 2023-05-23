@@ -64,12 +64,12 @@ void make_camera_activity(gui_activity_t** activity_ptr, const char* title, cons
     // buttons
     if (btnText) {
         // A 'click' and an 'exit' button
-        btn_data_t btns[] = { { .txt = btnText, .font = DEFAULT_FONT, .ev_id = BTN_CAMERA_CLICK },
-            { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_CAMERA_EXIT } };
+        btn_data_t btns[] = { { .txt = btnText, .font = GUI_DEFAULT_FONT, .ev_id = BTN_CAMERA_CLICK },
+            { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CAMERA_EXIT } };
         add_buttons(vsplit, UI_COLUMN, btns, 2);
     } else {
         // Just an 'exit' button
-        btn_data_t btn = { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_CAMERA_EXIT };
+        btn_data_t btn = { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CAMERA_EXIT };
         add_buttons(vsplit, UI_COLUMN, &btn, 1);
     }
 }

@@ -45,7 +45,7 @@ void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label
     gui_set_align(path, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
     // buttons
-    btn_data_t btns[] = { { .txt = "Options", .font = DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS },
+    btn_data_t btns[] = { { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS },
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_XPUB_EXIT } };
     add_buttons(vsplit, UI_COLUMN, btns, 2);
 
@@ -156,7 +156,7 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
 
     // buttons
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_OPTIONS_EXIT },
-        { .txt = "?", .font = DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP } };
+        { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
@@ -216,8 +216,8 @@ void make_search_verify_address_activity(
     }
 
     // buttons
-    btn_data_t btns[] = { { .txt = "Exit", .font = DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_EXIT },
-        { .txt = "Skip", .font = DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_SKIP_ADDRESSES } };
+    btn_data_t btns[] = { { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_EXIT },
+        { .txt = "Skip", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_SKIP_ADDRESSES } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 
     // Select 'Skip' button by default
@@ -291,7 +291,7 @@ void make_qr_options_activity(
 
     // buttons
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_OPTIONS_EXIT },
-        { .txt = "?", .font = DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS_HELP } };
+        { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS_HELP } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
@@ -334,14 +334,14 @@ void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, con
 
     // Buttons - 'options' and  back/exit, or just back/exit
     if (show_options_button) {
-        btn_data_t btns[] = { { .txt = "Options", .font = DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS },
+        btn_data_t btns[] = { { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS },
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
         add_buttons(vsplit, UI_COLUMN, btns, 2);
 
         // Select 'exit' as the default button
         gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
     } else {
-        btn_data_t btns[] = { { .txt = NULL, .font = DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+        btn_data_t btns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
         add_buttons(vsplit, UI_COLUMN, btns, 2);
     }
@@ -478,7 +478,7 @@ void make_show_qr_yesno_activity(gui_activity_t** activity_ptr, const char* titl
         gui_set_align(text_url, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
         // buttons, done
-        btn_data_t btns[] = { { .txt = "X", .font = DEFAULT_FONT, .ev_id = BTN_NO },
+        btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO },
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_YES } };
         add_buttons(vsplit, UI_ROW, btns, 2);
 

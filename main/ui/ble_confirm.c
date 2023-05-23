@@ -24,7 +24,7 @@ void make_ble_confirmation_activity(gui_activity_t** activity_ptr, const uint32_
     gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
     // second row, buttons
-    btn_data_t btns[] = { { .txt = "Deny", .font = DEFAULT_FONT, .ev_id = BTN_BLE_DENY },
-        { .txt = "Confirm", .font = DEFAULT_FONT, .ev_id = BTN_BLE_CONFIRM } };
+    btn_data_t btns[] = { { .txt = "Deny", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BLE_DENY },
+        { .txt = "Confirm", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BLE_CONFIRM } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
