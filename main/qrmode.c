@@ -30,20 +30,20 @@
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
 
 gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon);
-gui_activity_t* make_show_qr_yesno_activity(
-    const char* title, const char* label, const char* url, const Icon* qr_icon, bool default_selection);
+gui_activity_t* make_qr_back_continue_activity(
+    const char* label, const char* url, const Icon* qr_icon, bool default_selection);
 
 gui_activity_t* make_show_xpub_qr_activity(
     const char* label, const char* pathstr, Icon* icons, size_t num_icons, size_t frames_per_qr_icon);
 gui_activity_t* make_xpub_qr_options_activity(
-    gui_view_node_t** script_textbox, gui_view_node_t** multisig_textbox, gui_view_node_t** urtype_textbox);
+    gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** density_textbox);
 
 gui_activity_t* make_search_verify_address_activity(
     const char* pathstr, progress_bar_t* progress_bar, gui_view_node_t** index_text);
 
-gui_activity_t* make_show_qr_activity(const char* title, const char* label, Icon* icons, size_t num_icons,
-    size_t frames_per_qr_icon, bool show_options_button);
-gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox);
+gui_activity_t* make_show_qr_activity(const char* label, Icon* icons, size_t num_icons, size_t frames_per_qr_icon,
+    bool show_options_button, bool show_help_btn);
+gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** framerate_textbox);
 
 bool register_otp_string(const char* otp_uri, const size_t uri_len, const char** errmsg);
 int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg);
@@ -87,14 +87,14 @@ static void rotate_flags(uint16_t* flags, const uint16_t high, const uint16_t lo
     }
 }
 
-static uint8_t qr_animation_speed_from_flags(const uint16_t qr_flags)
+static uint8_t qr_framerate_from_flags(const uint16_t qr_flags)
 {
     // Frame periods around 800ms, 450ms, 270ms  (see GUI_TARGET_FRAMERATE)
     // Frame rates: HIGH|LOW > HIGH > LOW ...
     // unset/default is treated as 'high' (ie. the middle value)
     return contains_flags(qr_flags, QR_SPEED_HIGH | QR_SPEED_LOW) ? 4 : contains_flags(qr_flags, QR_SPEED_LOW) ? 12 : 7;
 }
-static const char* qr_animation_speed_desc_from_flags(const uint16_t qr_flags)
+static const char* qr_framerate_desc_from_flags(const uint16_t qr_flags)
 {
     // unset/default is treated as 'high' (ie. the middle value)
     return contains_flags(qr_flags, QR_SPEED_HIGH | QR_SPEED_LOW) ? "High"
@@ -129,6 +129,16 @@ static script_variant_t xpub_script_variant_from_flags(const uint16_t qr_flags)
     }
     return wrapped_segwit ? P2WPKH_P2SH : P2WPKH;
 }
+static inline const char* xpub_scripttype_desc_from_flags(const uint16_t qr_flags)
+{
+    // unset/default is treated as singlesig
+    return contains_flags(qr_flags, QR_XPUB_P2SH_WRAPPED) ? "Wrapped Segwit" : "Native Segwit";
+}
+static inline const char* xpub_wallettype_desc_from_flags(const uint16_t qr_flags)
+{
+    // unset/default is treated as native-segwit
+    return contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
+}
 
 static gui_activity_t* create_display_xpub_qr_activity(const uint16_t qr_flags)
 {
@@ -161,7 +171,7 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint16_t qr_flags)
     const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr));
     JADE_ASSERT(ret);
     const char* label = qr_flags & QR_XPUB_MULTISIG ? "Multisig" : "Singlesig";
-    const uint8_t frames_per_qr = qr_animation_speed_from_flags(qr_flags);
+    const uint8_t frames_per_qr = qr_framerate_from_flags(qr_flags);
     return make_show_xpub_qr_activity(label, pathstr, icons, num_icons, frames_per_qr);
 }
 
@@ -169,21 +179,29 @@ static bool handle_xpub_options(uint16_t* qr_flags)
 {
     JADE_ASSERT(qr_flags);
 
+    gui_view_node_t* script_item = NULL;
+    gui_view_node_t* wallet_item = NULL;
+    gui_view_node_t* density_item = NULL;
+    gui_activity_t* const act = make_xpub_qr_options_activity(&script_item, &wallet_item, &density_item);
+    update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
+    update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
+    update_menu_item(density_item, "QR Density", qr_density_desc_from_flags(*qr_flags));
+    gui_set_current_activity(act);
+
     gui_view_node_t* script_textbox = NULL;
-    gui_view_node_t* multisig_textbox = NULL;
-    gui_view_node_t* urtype_textbox = NULL;
-    gui_activity_t* const act = make_xpub_qr_options_activity(&script_textbox, &multisig_textbox, &urtype_textbox);
-    JADE_ASSERT(script_textbox);
-    JADE_ASSERT(multisig_textbox);
-    JADE_ASSERT(!urtype_textbox); // not currently in use
+    gui_activity_t* const act_scripttype = make_carousel_activity("Script Type", NULL, &script_textbox);
+    gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
+
+    gui_view_node_t* wallet_textbox = NULL;
+    gui_activity_t* const act_wallettype = make_carousel_activity("Wallet Type", NULL, &wallet_textbox);
+    gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
+
+    gui_view_node_t* density_textbox = NULL;
+    gui_activity_t* const act_density = make_carousel_activity("QR Density", NULL, &density_textbox);
+    gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
 
     const uint16_t initial_flags = *qr_flags;
     while (true) {
-        // Update options
-        gui_update_text(script_textbox, *qr_flags & QR_XPUB_P2SH_WRAPPED ? "Wrapped Segwit" : "Native Segwit");
-        gui_update_text(multisig_textbox, *qr_flags & QR_XPUB_MULTISIG ? "Multisig" : "Singlesig");
-        // gui_update_text(urtype_textbox, *qr_flags & QR_XPUB_HDKEY ? "HDKey" : "Account");  // not currently in use
-
         // Show, and await button click
         gui_set_current_activity(act);
 
@@ -194,17 +212,55 @@ static bool handle_xpub_options(uint16_t* qr_flags)
         gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
-        ev_id = BTN_XPUB_EXIT;
+        ev_id = BTN_XPUB_OPTIONS_EXIT;
 #endif
         if (ret) {
-            if (ev_id == BTN_XPUB_TOGGLE_SCRIPT) {
-                *qr_flags ^= QR_XPUB_P2SH_WRAPPED;
-            } else if (ev_id == BTN_XPUB_TOGGLE_MULTISIG) {
-                *qr_flags ^= QR_XPUB_MULTISIG;
-                //} else if (ev_id == BTN_XPUB_TOGGLE_BCUR_TYPE) {
-                //    *qr_flags ^= QR_XPUB_HDKEY;
+            if (ev_id == BTN_XPUB_OPTIONS_SCRIPTTYPE) {
+                gui_set_current_activity(act_scripttype);
+                while (true) {
+                    gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
+                    if (gui_activity_wait_event(act_scripttype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            *qr_flags ^= QR_XPUB_P2SH_WRAPPED; // toggle
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
+            } else if (ev_id == BTN_XPUB_OPTIONS_WALLETTYPE) {
+                gui_set_current_activity(act_wallettype);
+                while (true) {
+                    gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
+                    if (gui_activity_wait_event(act_wallettype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            *qr_flags ^= QR_XPUB_MULTISIG; // toggle
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
+            } else if (ev_id == BTN_QR_OPTIONS_DENSITY) {
+                gui_set_current_activity(act_density);
+                while (true) {
+                    gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
+                    if (gui_activity_wait_event(act_density, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                            rotate_flags(qr_flags, QR_DENSITY_LOW, QR_DENSITY_HIGH); // reverse
+                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            rotate_flags(qr_flags, QR_DENSITY_HIGH, QR_DENSITY_LOW);
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(density_item, "QR Density", qr_density_desc_from_flags(*qr_flags));
             } else if (ev_id == BTN_XPUB_OPTIONS_HELP) {
-                await_qr_help_activity("blockstream.com/xpub");
+                await_qr_help_activity("blkstrm.com/xpub");
             } else if (ev_id == BTN_XPUB_OPTIONS_EXIT) {
                 // Done
                 break;
@@ -249,6 +305,8 @@ void display_xpub_qr(void)
                     // Options were updated - re-create xpub screen
                     act = create_display_xpub_qr_activity(qr_flags);
                 }
+            } else if (ev_id == BTN_XPUB_HELP) {
+                await_qr_help_activity("blkstrm.com/xpub");
             } else if (ev_id == BTN_XPUB_EXIT) {
                 // Done
                 break;
@@ -511,18 +569,22 @@ static bool handle_qr_options(uint16_t* qr_flags)
 {
     JADE_ASSERT(qr_flags);
 
+    gui_view_node_t* density_item = NULL;
+    gui_view_node_t* framerate_item = NULL;
+    gui_activity_t* const act = make_qr_options_activity(&density_item, &framerate_item);
+    update_menu_item(density_item, "QR Density", qr_density_desc_from_flags(*qr_flags));
+    update_menu_item(framerate_item, "Frame Rate", qr_framerate_desc_from_flags(*qr_flags));
+
     gui_view_node_t* density_textbox = NULL;
-    gui_view_node_t* speed_textbox = NULL;
-    gui_activity_t* const act = make_qr_options_activity(&density_textbox, &speed_textbox);
-    JADE_ASSERT(density_textbox);
-    JADE_ASSERT(speed_textbox);
+    gui_activity_t* const act_density = make_carousel_activity("QR Density", NULL, &density_textbox);
+    gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
+
+    gui_view_node_t* framerate_textbox = NULL;
+    gui_activity_t* const act_framerate = make_carousel_activity("Frame Rate", NULL, &framerate_textbox);
+    gui_update_text(framerate_textbox, qr_framerate_desc_from_flags(*qr_flags));
 
     const uint16_t initial_flags = *qr_flags;
     while (true) {
-        // Update options
-        gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
-        gui_update_text(speed_textbox, qr_animation_speed_desc_from_flags(*qr_flags));
-
         // Show, and await button click
         gui_set_current_activity(act);
 
@@ -533,18 +595,46 @@ static bool handle_qr_options(uint16_t* qr_flags)
         gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
-        ev_id = BTN_XPUB_EXIT;
+        ev_id = BTN_QR_OPTIONS_EXIT;
 #endif
         if (ret) {
             // NOTE: For Density and Speed :- HIGH|LOW > HIGH > LOW
             // Rotate through: LOW -> HIGH -> HIGH|LOW -> LOW -> ...
             // unset/default is treated as HIGH ie. the middle value
-            if (ev_id == BTN_QR_TOGGLE_DENSITY) {
-                rotate_flags(qr_flags, QR_DENSITY_HIGH, QR_DENSITY_LOW);
-            } else if (ev_id == BTN_QR_TOGGLE_SPEED) {
-                rotate_flags(qr_flags, QR_SPEED_HIGH, QR_SPEED_LOW);
+            if (ev_id == BTN_QR_OPTIONS_DENSITY) {
+                gui_set_current_activity(act_density);
+                while (true) {
+                    gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
+                    if (gui_activity_wait_event(act_density, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                            rotate_flags(qr_flags, QR_DENSITY_LOW, QR_DENSITY_HIGH); // reverse
+                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            rotate_flags(qr_flags, QR_DENSITY_HIGH, QR_DENSITY_LOW);
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(density_item, "QR Density", qr_density_desc_from_flags(*qr_flags));
+            } else if (ev_id == BTN_QR_OPTIONS_FRAMERATE) {
+                gui_set_current_activity(act_framerate);
+                while (true) {
+                    gui_update_text(framerate_textbox, qr_framerate_desc_from_flags(*qr_flags));
+                    if (gui_activity_wait_event(act_framerate, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                            rotate_flags(qr_flags, QR_SPEED_LOW, QR_SPEED_HIGH); // reverse
+                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            rotate_flags(qr_flags, QR_SPEED_HIGH, QR_SPEED_LOW);
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(framerate_item, "Frame Rate", qr_framerate_desc_from_flags(*qr_flags));
             } else if (ev_id == BTN_QR_OPTIONS_HELP) {
-                await_qr_help_activity("blockstream.com/scan");
+                await_qr_help_activity("blkstrm.com/scanjade");
             } else if (ev_id == BTN_QR_OPTIONS_EXIT) {
                 // Done
                 break;
@@ -563,14 +653,14 @@ static bool handle_qr_options(uint16_t* qr_flags)
 }
 
 // Create activity to display (potentially multi-frame/animated) qr
-static gui_activity_t* create_display_bcur_qr_activity(const char* title, const char* label, const char* bcur_type,
-    const uint8_t* cbor, const size_t cbor_len, const uint16_t qr_flags)
+static gui_activity_t* create_display_bcur_qr_activity(const char* label, const char* bcur_type, const uint8_t* cbor,
+    const size_t cbor_len, const uint16_t qr_flags, const char* help_url)
 {
-    JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(bcur_type);
     JADE_ASSERT(cbor);
     JADE_ASSERT(cbor_len);
+    // help_url is optional
 
     // Map BCUR cbor into a series of QR-code icons
     Icon* icons = NULL;
@@ -580,19 +670,19 @@ static gui_activity_t* create_display_bcur_qr_activity(const char* title, const 
 
     // Create qr activity for those icons
     const bool show_options_button = true;
-    const uint8_t frames_per_qr = qr_animation_speed_from_flags(qr_flags);
-    return make_show_qr_activity(title, label, icons, num_icons, frames_per_qr, show_options_button);
+    const uint8_t frames_per_qr = qr_framerate_from_flags(qr_flags);
+    return make_show_qr_activity(label, icons, num_icons, frames_per_qr, show_options_button, help_url);
 }
 
 // Display a QR code, with access to size_speed options
 static void display_bcur_qr(
-    const char* title, const char* label, const char* bcur_type, const uint8_t* cbor, const size_t cbor_len)
+    const char* label, const char* bcur_type, const uint8_t* cbor, const size_t cbor_len, const char* help_url)
 {
-    JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(bcur_type);
     JADE_ASSERT(cbor);
     JADE_ASSERT(cbor_len);
+    // help_url is optional
 
     uint16_t qr_flags = storage_get_qr_flags();
 
@@ -601,7 +691,7 @@ static void display_bcur_qr(
     idletimer_set_min_timeout_secs(BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS);
 
     // Create show psbt activity for those icons
-    gui_activity_t* act = create_display_bcur_qr_activity(title, label, bcur_type, cbor, cbor_len, qr_flags);
+    gui_activity_t* act = create_display_bcur_qr_activity(label, bcur_type, cbor, cbor_len, qr_flags, help_url);
 
     while (true) {
         // Show, and await button click
@@ -621,8 +711,10 @@ static void display_bcur_qr(
                 if (handle_qr_options(&qr_flags)) {
                     // Options were updated - re-create psbt qr screen
                     display_processing_message_activity();
-                    act = create_display_bcur_qr_activity(title, label, bcur_type, cbor, cbor_len, qr_flags);
+                    act = create_display_bcur_qr_activity(label, bcur_type, cbor, cbor_len, qr_flags, help_url);
                 }
+            } else if (ev_id == BTN_QR_DISPLAY_HELP) {
+                await_qr_help_activity(help_url);
             } else if (ev_id == BTN_QR_DISPLAY_EXIT) {
                 // Done
                 break;
@@ -662,7 +754,7 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         JADE_ASSERT(written < sizeof(sig));
         JADE_ASSERT(sig[written - 1] == '\0');
 
-        await_single_qr_activity("Signature", "Scan QR\nsignature", sig, written - 1);
+        await_single_qr_activity("Scan QR\nsignature", sig, written - 1, NULL);
         return true;
     }
 
@@ -749,7 +841,8 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     }
 
     // Now display bcur QR
-    display_bcur_qr("PSBT Export", "Scan using\nwallet app", BCUR_TYPE_CRYPTO_PSBT, cbor_signed, cbor_signed_len);
+    display_bcur_qr(
+        "Scan with\n   wallet\n     app", BCUR_TYPE_CRYPTO_PSBT, cbor_signed, cbor_signed_len, "blkstrm.com/psbt");
 
 cleanup:
     JADE_WALLY_VERIFY(wally_psbt_free(psbt));
@@ -915,27 +1008,43 @@ static void bytes_to_qr_icon(const uint8_t* bytes, const size_t bytes_len, const
 
 // Display screen with help url and qr code
 // Handles up to v6. codes - ie text up to 134 bytes
-void await_single_qr_activity(const char* title, const char* label, const uint8_t* data, const size_t data_len)
+// help_url is optional
+void await_single_qr_activity(const char* label, const uint8_t* data, const size_t data_len, const char* help_url)
 {
-    JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(data);
     JADE_ASSERT(data_len);
+    // help_url is optional
 
     const bool large_icons = true;
     Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
     bytes_to_qr_icon(data, data_len, large_icons, qr_icon);
 
     // Show, and await button click - note gui takes ownership of icon
-    gui_activity_t* const act = make_show_qr_activity(title, label, qr_icon, 1, 0, false);
-    gui_set_current_activity(act);
+    gui_activity_t* const act = make_show_qr_activity(label, qr_icon, 1, 0, false, help_url);
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_QR_DISPLAY_EXIT;
 #endif
+
+        if (ret) {
+            if (ev_id == BTN_QR_DISPLAY_EXIT) {
+                // Done
+                break;
+            } else if (ev_id == BTN_QR_DISPLAY_HELP) {
+                await_qr_help_activity(help_url);
+            }
+        }
+    }
 }
 
 // Display screen with help url and qr code
@@ -956,17 +1065,16 @@ void await_qr_help_activity(const char* url)
     gui_set_current_activity(act);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_EXIT_QR_HELP, NULL, NULL, NULL, 0);
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_HELP_EXIT, NULL, NULL, NULL, 0);
 #else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_EXIT_QR_HELP, NULL, NULL, NULL,
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_HELP_EXIT, NULL, NULL, NULL,
         CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
 #endif
 }
 
 // Display screen with help url and qr code
-bool await_qr_yesno_activity(const char* title, const char* label, const char* url, bool default_selection)
+bool await_qr_back_continue_activity(const char* label, const char* url, const bool default_selection)
 {
-    JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(url);
 
@@ -978,7 +1086,7 @@ bool await_qr_yesno_activity(const char* title, const char* label, const char* u
     bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
 
     // Show, and await button click
-    gui_activity_t* const act = make_show_qr_yesno_activity(title, label, url, qr_icon, default_selection);
+    gui_activity_t* const act = make_qr_back_continue_activity(label, url, qr_icon, default_selection);
     gui_set_current_activity(act);
 
     int32_t ev_id = 0;
@@ -991,7 +1099,7 @@ bool await_qr_yesno_activity(const char* title, const char* label, const char* u
     ev_id = BTN_YES;
 #endif
 
-    // Return whether 'Yes' was cicked
+    // Return whether 'Continue' was cicked
     return ret && ev_id == BTN_YES;
 }
 
@@ -1109,10 +1217,10 @@ cleanup:
 // (whether valid/expected or not), and it does not want to wait to be presented with another message.
 // ie. the return indicates processing has finished, not that processing was necessarily successful.
 // (That information is returned in the context object.)
-// NOTE: the presence of a 'title' indicates we want to display the message payload as a QR
-static bool handle_pinserver_reply(const char* title, const uint8_t* msg, const size_t len, void* ctx)
+// NOTE: the presence of a 'label' indicates we want to display the message payload as a QR
+static bool handle_pinserver_reply(const char* label, const uint8_t* msg, const size_t len, void* ctx)
 {
-    // title is optional
+    // label is optional
     JADE_ASSERT(msg);
     JADE_ASSERT(len);
     JADE_ASSERT(ctx);
@@ -1143,9 +1251,9 @@ static bool handle_pinserver_reply(const char* title, const uint8_t* msg, const 
         goto cleanup;
     }
 
-    // Display message as bcur qr if a screen title was passed
-    if (title) {
-        display_bcur_qr(title, "Scan QR with\nwebpage", BCUR_TYPE_JADE_PIN, msg, len);
+    // Display message as bcur qr if a screen label was passed
+    if (label) {
+        display_bcur_qr(label, BCUR_TYPE_JADE_PIN, msg, len, "blkstrm.com/qrpin");
     }
 
     // Message received and QR displayed successfully
@@ -1160,12 +1268,12 @@ cleanup:
 
 static bool handle_first_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
 {
-    return handle_pinserver_reply("Step 1 of 4", msg, len, ctx);
+    return handle_pinserver_reply(" Step 1/4\nScan Jade\n    QR", msg, len, ctx);
 }
 
 static bool handle_second_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
 {
-    return handle_pinserver_reply("Step 3 of 4", msg, len, ctx);
+    return handle_pinserver_reply(" Step 3/4\nScan Jade\n    QR", msg, len, ctx);
 }
 
 static bool handle_third_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)

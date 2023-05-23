@@ -138,7 +138,7 @@ bool show_ota_versions_activity(
                 break;
 
             case BTN_HELP:
-                await_qr_help_activity("blockstream.com/fwupgrade");
+                await_qr_help_activity("blkstrm.com/fwupgrade");
                 break;
 
             case BTN_OTA_REJECT:

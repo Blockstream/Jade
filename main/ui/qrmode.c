@@ -11,155 +11,75 @@ gui_activity_t* make_show_xpub_qr_activity(
     JADE_ASSERT(num_icons);
 
     gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* node;
 
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 42, 58);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 44, 56);
     gui_set_parent(hsplit, act->root_node);
 
     // LHS
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 19, 19, 46);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 25, 25);
     gui_set_parent(vsplit, hsplit);
 
-    // first row, header
-    gui_view_node_t* title;
-    gui_make_text(&title, "Xpub Export", TFT_WHITE);
-    gui_set_parent(title, vsplit);
-    gui_set_padding(title, GUI_MARGIN_TWO_VALUES, 0, 2);
-    gui_set_align(title, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(title, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+    // back button
+    btn_data_t hdrbtns[]
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_EXIT, .borders = GUI_BORDER_ALL },
+              { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+              { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_XPUB_HELP, .borders = GUI_BORDER_ALL } };
+    add_buttons(vsplit, UI_ROW, hdrbtns, 3); // 44 (hsplit) / 3 == 14 - almost 15 so ok
 
     // second row, type label
-    gui_view_node_t* text;
-    gui_make_text(&text, label, TFT_WHITE);
-    gui_set_parent(text, vsplit);
-    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 0, 2);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_make_text(&node, label, TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
     // third row, path
-    gui_view_node_t* path;
-    gui_make_text(&path, pathstr, TFT_WHITE);
-    gui_set_parent(path, vsplit);
-    gui_set_padding(path, GUI_MARGIN_TWO_VALUES, 0, 2);
-    gui_set_align(path, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_make_text_font(&node, pathstr, TFT_WHITE, DEFAULT_FONT); // fits path
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
-    // buttons
-    btn_data_t btns[] = { { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS },
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_XPUB_EXIT } };
-    add_buttons(vsplit, UI_COLUMN, btns, 2);
-
-    // Select 'exit' as the default button
-    gui_set_activity_initial_selection(act, btns[1].btn);
+    // button
+    btn_data_t ftrbtn
+        = { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS, .borders = GUI_BORDER_TOP };
+    add_buttons(vsplit, UI_COLUMN, &ftrbtn, 1);
 
     // RHS - QR icons
-    gui_view_node_t* bg_fill_node;
-    gui_make_fill(&bg_fill_node, TFT_BLOCKSTREAM_QR_PALE);
-    gui_set_parent(bg_fill_node, hsplit);
+    gui_view_node_t* fill;
+    gui_make_fill(&fill, TFT_BLOCKSTREAM_QR_PALE);
+    gui_set_parent(fill, hsplit);
 
-    gui_view_node_t* icon_node;
-    gui_make_icon(&icon_node, icons, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
-    gui_set_align(icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(icon_node, bg_fill_node);
-    gui_set_icon_animation(icon_node, icons, num_icons, frames_per_qr_icon);
+    gui_make_icon(&node, icons, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, fill);
+    gui_set_icon_animation(node, icons, num_icons, frames_per_qr_icon);
 
     return act;
 }
 
 gui_activity_t* make_xpub_qr_options_activity(
-    gui_view_node_t** script_textbox, gui_view_node_t** multisig_textbox, gui_view_node_t** urtype_textbox)
+    gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** density_textbox)
 {
-    JADE_INIT_OUT_PPTR(script_textbox);
-    JADE_INIT_OUT_PPTR(multisig_textbox);
-    JADE_INIT_OUT_PPTR(urtype_textbox);
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_OPTIONS_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP } };
 
-    gui_activity_t* const act = gui_make_activity();
+    // menu buttons with bespoke content
+    gui_make_text(script_textbox, "Script", TFT_WHITE);
+    gui_set_align(*script_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
-    gui_set_parent(vsplit, act->root_node);
+    gui_make_text(wallet_textbox, "Wallet", TFT_WHITE);
+    gui_set_align(*wallet_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-        gui_set_parent(hsplit, vsplit);
+    gui_make_text(density_textbox, "QR Density", TFT_WHITE);
+    gui_set_align(*density_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-        gui_view_node_t* key;
-        gui_make_text(&key, "Script Type", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    // TODO maybe, add UR-type, hdkey or crypto-account ?
+    btn_data_t menubtns[]
+        = { { .content = *script_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_SCRIPTTYPE },
+              { .content = *wallet_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_WALLETTYPE },
+              { .content = *density_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS_DENSITY } };
 
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_XPUB_TOGGLE_SCRIPT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_RED);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-        *script_textbox = text;
-    }
-
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-        gui_set_parent(hsplit, vsplit);
-
-        gui_view_node_t* key;
-        gui_make_text(&key, "Wallet Type", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_XPUB_TOGGLE_MULTISIG, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_RED);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-        *multisig_textbox = text;
-    }
-
-    /*  Not currently in use
-        {
-            gui_view_node_t* hsplit;
-            gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-            gui_set_parent(hsplit, vsplit);
-
-            gui_view_node_t* key;
-            gui_make_text(&key, "UR Type", TFT_WHITE);
-            gui_set_parent(key, hsplit);
-            gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_XPUB_TOGGLE_BCUR_TYPE, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_RED);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text(&text, "", TFT_WHITE);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-            *urtype_textbox = text;
-        }
-        */
-    {
-        gui_view_node_t* filler;
-        gui_make_fill(&filler, TFT_BLACK);
-        gui_set_parent(filler, vsplit);
-    }
-
-    // buttons
-    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_OPTIONS_EXIT },
-        { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
-
-    return act;
+    return make_menu_activity("Xpub Settings", hdrbtns, 2, menubtns, 3);
 }
 
 gui_activity_t* make_search_verify_address_activity(
@@ -227,82 +147,29 @@ gui_activity_t* make_search_verify_address_activity(
     return act;
 }
 
-gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox)
+gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** framerate_textbox)
 {
-    JADE_INIT_OUT_PPTR(density_textbox);
-    JADE_INIT_OUT_PPTR(speed_textbox);
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_OPTIONS_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_QR_OPTIONS_HELP } };
 
-    gui_activity_t* const act = gui_make_activity();
+    // menu buttons with bespoke content
+    gui_make_text(density_textbox, "QR Density", TFT_WHITE);
+    gui_set_align(*density_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
-    gui_set_parent(vsplit, act->root_node);
+    gui_make_text(framerate_textbox, "Frame Rate", TFT_WHITE);
+    gui_set_align(*framerate_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-        gui_set_parent(hsplit, vsplit);
+    btn_data_t menubtns[]
+        = { { .content = *density_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS_DENSITY },
+              { .content = *framerate_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS_FRAMERATE } };
 
-        gui_view_node_t* key;
-        gui_make_text(&key, "QR Density", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_QR_TOGGLE_DENSITY, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_RED);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-        *density_textbox = text;
-    }
-
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-        gui_set_parent(hsplit, vsplit);
-
-        gui_view_node_t* key;
-        gui_make_text(&key, "Frame Rate", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_QR_TOGGLE_SPEED, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_RED);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-        *speed_textbox = text;
-    }
-
-    {
-        gui_view_node_t* filler;
-        gui_make_fill(&filler, TFT_BLACK);
-        gui_set_parent(filler, vsplit);
-    }
-
-    // buttons
-    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_OPTIONS_EXIT },
-        { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS_HELP } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
-
-    return act;
+    return make_menu_activity("QR Settings", hdrbtns, 2, menubtns, 2);
 }
 
 // NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
-gui_activity_t* make_show_qr_activity(const char* title, const char* label, Icon* icons, const size_t num_icons,
-    const size_t frames_per_qr_icon, const bool show_options_button)
+gui_activity_t* make_show_qr_activity(const char* label, Icon* icons, const size_t num_icons,
+    const size_t frames_per_qr_icon, const bool show_options_button, const bool show_help_btn)
 {
-    JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(icons);
     JADE_ASSERT(num_icons);
@@ -311,53 +178,56 @@ gui_activity_t* make_show_qr_activity(const char* title, const char* label, Icon
     gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 42, 58);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 44, 56);
     gui_set_parent(hsplit, act->root_node);
+    gui_view_node_t* node;
 
     // LHS
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 16, 38, 46);
-    gui_set_parent(vsplit, hsplit);
+    {
+        gui_view_node_t* vsplit;
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 56, 24);
+        gui_set_parent(vsplit, hsplit);
 
-    // first row, header
-    gui_view_node_t* txt_title;
-    gui_make_text(&txt_title, title, TFT_WHITE);
-    gui_set_parent(txt_title, vsplit);
-    gui_set_padding(txt_title, GUI_MARGIN_TWO_VALUES, 0, 2);
-    gui_set_align(txt_title, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(txt_title, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+        // tick button
+        btn_data_t hdrbtns[]
+            = { { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT, .borders = GUI_BORDER_ALL },
+                  { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+                  { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_QR_DISPLAY_HELP, .borders = GUI_BORDER_ALL } };
 
-    // second row, type label
-    gui_view_node_t* text;
-    gui_make_text(&text, label, TFT_WHITE);
-    gui_set_parent(text, vsplit);
-    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 0, 2);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        if (!show_help_btn) {
+            // Remove help button if not needed
+            hdrbtns[2].txt = NULL;
+            hdrbtns[2].font = GUI_DEFAULT_FONT;
+            hdrbtns[2].ev_id = GUI_BUTTON_EVENT_NONE;
+        }
 
-    // Buttons - 'options' and  back/exit, or just back/exit
-    if (show_options_button) {
-        btn_data_t btns[] = { { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS },
-            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
-        add_buttons(vsplit, UI_COLUMN, btns, 2);
+        add_buttons(vsplit, UI_ROW, hdrbtns, 3); // 44 (hsplit) / 3 == 14 - almost 15 so ok
 
-        // Select 'exit' as the default button
-        gui_set_activity_initial_selection(act, btns[1].btn);
-    } else {
-        btn_data_t btns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
-        add_buttons(vsplit, UI_COLUMN, btns, 2);
+        // second row, label
+        gui_make_text(&node, label, TFT_WHITE);
+        gui_set_parent(node, vsplit);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, 4);
+        gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+
+        // Buttons, optionally options
+        if (show_options_button) {
+            btn_data_t ftrbtn
+                = { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS, .borders = GUI_BORDER_TOP };
+            add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
+        }
     }
 
     // RHS - QR icons
-    gui_view_node_t* bg_fill_node;
-    gui_make_fill(&bg_fill_node, TFT_BLOCKSTREAM_QR_PALE);
-    gui_set_parent(bg_fill_node, hsplit);
+    {
+        gui_view_node_t* fill;
+        gui_make_fill(&fill, TFT_BLOCKSTREAM_QR_PALE);
+        gui_set_parent(fill, hsplit);
 
-    gui_view_node_t* icon_node;
-    gui_make_icon(&icon_node, icons, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
-    gui_set_align(icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(icon_node, bg_fill_node);
-    gui_set_icon_animation(icon_node, icons, num_icons, frames_per_qr_icon);
+        gui_make_icon(&node, icons, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(node, fill);
+        gui_set_icon_animation(node, icons, num_icons, frames_per_qr_icon);
+    }
 
     return act;
 }
@@ -375,73 +245,66 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 56, 44);
     gui_set_parent(hsplit, act->root_node);
+    gui_view_node_t* node;
 
     // LHS
     {
         gui_view_node_t* vsplit;
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 32, 28, 24);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 25, 55);
         gui_set_parent(vsplit, hsplit);
 
-        // first row, header
-        gui_view_node_t* title;
-        gui_make_text(&title, "Learn More", TFT_WHITE);
-        gui_set_parent(title, vsplit);
-        gui_set_padding(title, GUI_MARGIN_TWO_VALUES, 0, 2);
-        gui_set_align(title, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_borders(title, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+        gui_view_node_t* headersplit;
+        gui_make_hsplit(&headersplit, GUI_SPLIT_RELATIVE, 2, 27, 73); // 27 x 56 (hsplit) == 15
+        gui_set_parent(headersplit, vsplit);
+
+        // first row, header, back button
+        btn_data_t hdrbtn
+            = { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_HELP_EXIT, .borders = GUI_BORDER_ALL };
+        add_buttons(headersplit, UI_ROW, &hdrbtn, 1);
 
         // second row, message
-        gui_view_node_t* text;
-        gui_make_text(&text, "Scan QR or visit\nlink to learn more", TFT_WHITE);
-        gui_set_parent(text, vsplit);
-        gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 8, 0);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_LEFT);
+        gui_make_text(&node, "Learn more:", TFT_WHITE);
+        gui_set_parent(node, vsplit);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, 4);
+        gui_set_align(node, GUI_ALIGN_TOP, GUI_ALIGN_LEFT);
 
         // third row, url
-        gui_view_node_t* text_url;
-        gui_make_text(&text_url, url, TFT_WHITE);
-        gui_set_parent(text_url, vsplit);
-        gui_set_padding(text_url, GUI_MARGIN_ALL_DIFFERENT, 2, 4, 0, 2);
-        gui_set_align(text_url, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-
-        // buttons, done
-        btn_data_t btn = { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_EXIT_QR_HELP };
-        add_buttons(vsplit, UI_COLUMN, &btn, 1);
+        gui_make_text(&node, url, TFT_WHITE);
+        gui_set_parent(node, vsplit);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, 4);
+        gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     }
 
     // RHS - QR icon
     {
         gui_view_node_t* vsplit;
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 16, 76, 8);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 12, 76, 12);
         gui_set_parent(vsplit, hsplit);
 
-        gui_view_node_t* upper;
-        gui_make_fill(&upper, TFT_BLACK);
-        gui_set_parent(upper, vsplit);
+        gui_view_node_t* fill;
+        gui_make_fill(&fill, TFT_BLACK);
+        gui_set_parent(fill, vsplit);
 
-        gui_view_node_t* bg_fill_node;
-        gui_make_fill(&bg_fill_node, TFT_BLOCKSTREAM_QR_PALE);
-        gui_set_parent(bg_fill_node, vsplit);
+        // QR icon background
+        gui_make_fill(&fill, TFT_BLOCKSTREAM_QR_PALE);
+        gui_set_parent(fill, vsplit);
 
-        gui_view_node_t* icon_node;
-        gui_make_icon(&icon_node, qr_icon, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
-        gui_set_align(icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(icon_node, bg_fill_node);
-        gui_set_icon_animation(icon_node, qr_icon, 1, 0); // takes ownership of icon
+        gui_make_icon(&node, qr_icon, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(node, fill);
+        gui_set_icon_animation(node, qr_icon, 1, 0); // takes ownership of icon
 
-        gui_view_node_t* lower;
-        gui_make_fill(&lower, TFT_BLACK);
-        gui_set_parent(lower, vsplit);
+        gui_make_fill(&fill, TFT_BLACK);
+        gui_set_parent(fill, vsplit);
     }
 
     return act;
 }
 
 // NOTE: 'qr_icon' passed in here must be heap-allocated as the gui element takes ownership
-gui_activity_t* make_show_qr_yesno_activity(
-    const char* title, const char* label, const char* url, Icon* qr_icon, const bool default_selection)
+gui_activity_t* make_qr_back_continue_activity(
+    const char* label, const char* url, Icon* qr_icon, const bool default_selection)
 {
-    JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(qr_icon);
     JADE_ASSERT(qr_icon->width <= 100);
@@ -452,67 +315,57 @@ gui_activity_t* make_show_qr_yesno_activity(
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 56, 44);
     gui_set_parent(hsplit, act->root_node);
+    gui_view_node_t* node;
 
     // LHS
     {
         gui_view_node_t* vsplit;
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 32, 28, 24);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 55, 25);
         gui_set_parent(vsplit, hsplit);
 
-        // first row, header
-        gui_view_node_t* text_title;
-        gui_make_text(&text_title, title, TFT_WHITE);
-        gui_set_parent(text_title, vsplit);
-        gui_set_padding(text_title, GUI_MARGIN_TWO_VALUES, 0, 2);
-        gui_set_align(text_title, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_borders(text_title, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+        gui_view_node_t* headersplit;
+        gui_make_hsplit(&headersplit, GUI_SPLIT_RELATIVE, 2, 27, 73); // 27 x 56 (hsplit) == 15
+        gui_set_parent(headersplit, vsplit);
+
+        btn_data_t hdrbtn = { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_NO, .borders = GUI_BORDER_ALL };
+        add_buttons(headersplit, UI_ROW, &hdrbtn, 1);
 
         // second row, message
-        gui_view_node_t* text_label;
-        gui_make_text(&text_label, label, TFT_WHITE);
-        gui_set_parent(text_label, vsplit);
-        gui_set_padding(text_label, GUI_MARGIN_TWO_VALUES, 8, 0);
-        gui_set_align(text_label, GUI_ALIGN_CENTER, GUI_ALIGN_LEFT);
+        gui_make_text(&node, label, TFT_WHITE);
+        gui_set_parent(node, vsplit);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 0, 2, 4);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_LEFT);
 
-        // third row, url
-        gui_view_node_t* text_url;
-        gui_make_text(&text_url, url, TFT_WHITE);
-        gui_set_parent(text_url, vsplit);
-        gui_set_padding(text_url, GUI_MARGIN_TWO_VALUES, 2, 2);
-        gui_set_align(text_url, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        // button, continue
+        btn_data_t ftrbtn
+            = { .txt = "Continue", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOP };
+        add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
 
-        // buttons, done
-        btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO },
-            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_YES } };
-        add_buttons(vsplit, UI_ROW, btns, 2);
-
-        // Select default button
-        gui_set_activity_initial_selection(act, default_selection ? btns[1].btn : btns[0].btn);
+        // Select default selected button
+        gui_set_activity_initial_selection(act, default_selection ? ftrbtn.btn : hdrbtn.btn);
     }
 
     // RHS - QR icon
     {
         gui_view_node_t* vsplit;
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 16, 76, 8);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 12, 76, 12);
         gui_set_parent(vsplit, hsplit);
 
-        gui_view_node_t* upper;
-        gui_make_fill(&upper, TFT_BLACK);
-        gui_set_parent(upper, vsplit);
+        gui_view_node_t* fill;
+        gui_make_fill(&fill, TFT_BLACK);
+        gui_set_parent(fill, vsplit);
 
-        gui_view_node_t* bg_fill_node;
-        gui_make_fill(&bg_fill_node, TFT_BLOCKSTREAM_QR_PALE);
-        gui_set_parent(bg_fill_node, vsplit);
+        // QR icon background
+        gui_make_fill(&fill, TFT_BLOCKSTREAM_QR_PALE);
+        gui_set_parent(fill, vsplit);
 
-        gui_view_node_t* icon_node;
-        gui_make_icon(&icon_node, qr_icon, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
-        gui_set_align(icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(icon_node, bg_fill_node);
-        gui_set_icon_animation(icon_node, qr_icon, 1, 0); // takes ownership of icon
+        gui_make_icon(&node, qr_icon, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(node, fill);
+        gui_set_icon_animation(node, qr_icon, 1, 0); // takes ownership of icon
 
-        gui_view_node_t* lower;
-        gui_make_fill(&lower, TFT_BLACK);
-        gui_set_parent(lower, vsplit);
+        gui_make_fill(&fill, TFT_BLACK);
+        gui_set_parent(fill, vsplit);
     }
 
     return act;

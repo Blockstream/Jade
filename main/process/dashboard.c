@@ -654,18 +654,13 @@ static bool offer_pinserver_via_qr(const bool temporary_restore)
 {
     // User to confirm pinserver-via-QR
     if (!temporary_restore) {
-        if (keychain_has_pin()) {
-            if (!await_qr_yesno_activity(
-                    "QR PIN Unlock", "Visit webpage to\nunlock using QRs", "blockstream.com/pinQR", true)) {
-                // User decided against it
-                return false;
-            }
-        } else {
-            if (!await_qr_yesno_activity(
-                    "QR PIN Setup", "Visit webpage to\nsecure using QRs", "blockstream.com/pinQR", true)) {
-                // User decided against it
-                return false;
-            }
+        char msg[64];
+        const int ret
+            = snprintf(msg, sizeof(msg), "      Visit\nblkstrm.com/pn to %s", keychain_has_pin() ? "unlock" : "secure");
+        JADE_ASSERT(ret > 0 && ret < sizeof(msg));
+        if (!await_qr_back_continue_activity(msg, "blkstrm.com/pn", true)) {
+            // User decided against it
+            return false;
         }
     }
 
@@ -1014,7 +1009,7 @@ static void handle_passphrase_prefs()
             } else if (ev_id == BTN_PASSPHRASE_TOGGLE_METHOD) {
                 type = (type == PASSPHRASE_FREETEXT ? PASSPHRASE_WORDLIST : PASSPHRASE_FREETEXT);
             } else if (ev_id == BTN_PASSPHRASE_OPTIONS_HELP) {
-                await_qr_help_activity("blockstream.com/passphrase");
+                await_qr_help_activity("blkstrm.com/passphrase");
             } else if (ev_id == BTN_PASSPHRASE_OPTIONS_EXIT) {
                 // Done
                 break;
@@ -1741,7 +1736,7 @@ static void handle_btn(const int32_t btn)
         break;
 
     case BTN_CONNECT_HELP:
-        await_qr_help_activity("blockstream.com/jadewallets");
+        await_qr_help_activity("blkstrm.com/jadewallets");
         break;
 
     default:
