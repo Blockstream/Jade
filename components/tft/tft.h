@@ -155,6 +155,7 @@ extern const color_t TFT_BLOCKSTREAM_QR_PALE;
 #define BATTERY_FONT 19
 #define JADE_SYMBOLS_16x16_FONT 20
 #define JADE_SYMBOLS_16x32_FONT 21
+#define JADE_SYMBOLS_24x24_FONT 22
 
 // ===== PUBLIC FUNCTIONS =========================================================================
 

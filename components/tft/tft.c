@@ -51,6 +51,7 @@ extern uint8_t tft_Various_Symbols_32x32[];
 extern uint8_t tft_Battery_24x48[];
 extern uint8_t jade_symbols_16x16[];
 extern uint8_t jade_symbols_16x32[];
+extern uint8_t jade_symbols_24x24[];
 
 const color_t TFT_BLACK       = { 255, 255, 255 };
 const color_t TFT_NAVY        = { 255, 255, 128 };
@@ -1527,8 +1528,9 @@ void TFT_setFont(uint8_t font, const char *font_file)
 	  else if (font == VARIOUS_SYMBOLS_FONT) cfont.font = tft_various_symbols;
 	  else if (font == VARIOUS_SYMBOLS_32_FONT) cfont.font = tft_Various_Symbols_32x32;
 	  else if (font == BATTERY_FONT) cfont.font = tft_Battery_24x48;
-    else if (font == JADE_SYMBOLS_16x16_FONT) cfont.font = jade_symbols_16x16;
-    else if (font == JADE_SYMBOLS_16x32_FONT) cfont.font = jade_symbols_16x32;
+      else if (font == JADE_SYMBOLS_16x16_FONT) cfont.font = jade_symbols_16x16;
+      else if (font == JADE_SYMBOLS_16x32_FONT) cfont.font = jade_symbols_16x32;
+      else if (font == JADE_SYMBOLS_24x24_FONT) cfont.font = jade_symbols_24x24;
 	  else cfont.font = tft_DefaultFont;
 
 	  cfont.bitmap = 1;
