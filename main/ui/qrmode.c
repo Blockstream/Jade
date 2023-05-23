@@ -11,7 +11,7 @@ void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label
     JADE_ASSERT(icons);
     JADE_ASSERT(num_icons);
 
-    gui_make_activity(activity_ptr, false, NULL);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 42, 58);
@@ -72,7 +72,7 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
     JADE_INIT_OUT_PPTR(multisig_textbox);
     JADE_INIT_OUT_PPTR(urtype_textbox);
 
-    gui_make_activity(activity_ptr, true, "Xpub Export");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
@@ -167,7 +167,7 @@ void make_search_verify_address_activity(
     JADE_ASSERT(progress_bar);
     JADE_ASSERT(index_text);
 
-    gui_make_activity(activity_ptr, true, "Verify Address");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
@@ -231,7 +231,7 @@ void make_qr_options_activity(
     JADE_INIT_OUT_PPTR(density_textbox);
     JADE_INIT_OUT_PPTR(speed_textbox);
 
-    gui_make_activity(activity_ptr, true, "QR Options");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
@@ -306,7 +306,7 @@ void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, con
     JADE_ASSERT(num_icons);
     JADE_ASSERT(frames_per_qr_icon || num_icons == 1);
 
-    gui_make_activity(activity_ptr, false, NULL);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 42, 58);
@@ -367,7 +367,7 @@ void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, 
     JADE_ASSERT(qr_icon->width <= 100);
     JADE_ASSERT(qr_icon->height <= 100);
 
-    gui_make_activity(activity_ptr, false, NULL);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 56, 44);
@@ -443,7 +443,7 @@ void make_show_qr_yesno_activity(gui_activity_t** activity_ptr, const char* titl
     JADE_ASSERT(qr_icon->width <= 100);
     JADE_ASSERT(qr_icon->height <= 100);
 
-    gui_make_activity(activity_ptr, false, NULL);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 56, 44);

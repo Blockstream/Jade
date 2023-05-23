@@ -133,7 +133,7 @@ void make_confirm_otp_activity(gui_activity_t** activity_ptr, const otpauth_ctx_
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(otp_is_valid(ctx));
 
-    gui_make_activity(activity_ptr, true, "Confirm OTP");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
@@ -159,7 +159,7 @@ void make_view_otp_activity(
     char header[16];
     const int ret = snprintf(header, sizeof(header), "OTP %d/%d", index, total);
     JADE_ASSERT(ret > 0 && ret < sizeof(header));
-    gui_make_activity(activity_ptr, true, header);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
@@ -200,7 +200,7 @@ void make_show_hotp_code_activity(
     JADE_ASSERT(name);
     JADE_ASSERT(codestr);
 
-    gui_make_activity(activity_ptr, true, name);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
@@ -246,7 +246,7 @@ void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* nam
     JADE_INIT_OUT_PPTR(txt_ts);
     JADE_INIT_OUT_PPTR(txt_code);
 
-    gui_make_activity(activity_ptr, true, name);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 17, 18, 35, 30);

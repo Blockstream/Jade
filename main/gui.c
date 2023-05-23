@@ -153,7 +153,7 @@ void gui_init(void)
     JADE_ASSERT(gui_click_event == GUI_FRONT_CLICK_EVENT || gui_click_event == GUI_WHEEL_CLICK_EVENT);
 
     // create a blank activity
-    gui_make_activity(&current_activity, false, NULL);
+    gui_make_activity(&current_activity);
 
     // create the default event loop used by btns
     const esp_err_t rc = esp_event_loop_create_default();
@@ -567,11 +567,8 @@ void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, con
     activity->root_node->activity = activity;
 }
 
-// Create a new/initialised activity, and add to the stack of existing activities
-void gui_make_activity(gui_activity_t** ppact, const bool has_status_bar, const char* title)
-{
-    gui_make_activity_ex(ppact, has_status_bar, title, true);
-}
+// Create a new/initialised 'managed' activity without a status bar
+void gui_make_activity(gui_activity_t** ppact) { gui_make_activity_ex(ppact, false, NULL, true); }
 
 // free a linked list of selectable_t
 static void free_selectables(gui_activity_t* activity)

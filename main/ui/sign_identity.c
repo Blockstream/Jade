@@ -8,7 +8,7 @@ void make_sign_identity_activity(gui_activity_t** activity_ptr, const char* iden
     JADE_ASSERT(identity);
     JADE_ASSERT(identity_len < MAX_DISPLAY_MESSAGE_LEN);
 
-    gui_make_activity(activity_ptr, true, "Sign Identity");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 10, 56, 34);

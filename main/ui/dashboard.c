@@ -17,7 +17,7 @@ void make_startup_options_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Advanced");
+    gui_make_activity(activity_ptr);
 
     btn_data_t btns[]
         = { { .txt = "Factory Reset", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
@@ -41,12 +41,8 @@ void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, c
     JADE_ASSERT(device_name);
     JADE_ASSERT(firmware_version);
 
-    char title[32];
-    const int ret = snprintf(title, sizeof(title), "Setup %s", device_name);
-    JADE_ASSERT(ret > 0 && ret < sizeof(title));
-
     // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
-    gui_make_activity_ex(activity_ptr, true, title, false);
+    gui_make_activity_ex(activity_ptr, true, device_name, false);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 32, 52, 16);
@@ -91,7 +87,7 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_make_activity(activity_ptr, true, title);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 34, 34, 32);
@@ -122,7 +118,7 @@ void make_connect_qrmode_screen(gui_activity_t** activity_ptr, const char* devic
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
 
-    gui_make_activity(activity_ptr, true, device_name);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 28, 72);
@@ -187,7 +183,7 @@ void make_connection_select_screen(gui_activity_t** activity_ptr, const bool tem
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Select Connection");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
@@ -242,7 +238,7 @@ void make_connect_to_screen(
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_make_activity(activity_ptr, true, title);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
@@ -380,7 +376,7 @@ void make_bip39_passphrase_prefs_screen(
     JADE_INIT_OUT_PPTR(frequency_textbox);
     JADE_INIT_OUT_PPTR(method_textbox);
 
-    gui_make_activity(activity_ptr, true, "BIP39 Passphrase");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
@@ -448,7 +444,7 @@ void make_uninitialised_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Advanced");
+    gui_make_activity(activity_ptr);
 
     // Note: placeholder in second position - timeout button set into this slot below
     btn_data_t btns[]
@@ -463,7 +459,7 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Options");
+    gui_make_activity(activity_ptr);
 
     btn_data_t btns[] = {
         { .txt = "BIP39 Passphrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
@@ -478,7 +474,7 @@ void make_unlocked_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Options");
+    gui_make_activity(activity_ptr);
 
     btn_data_t btns[] = { { .txt = "Wallet", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET },
         { .txt = "Device", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
@@ -491,7 +487,7 @@ void make_wallet_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Wallet");
+    gui_make_activity(activity_ptr);
 
     btn_data_t btns[] = { { .txt = "Xpub Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_XPUB_EXPORT },
         { .txt = "Registered Multisigs", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
@@ -504,7 +500,7 @@ void make_device_settings_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Device");
+    gui_make_activity(activity_ptr);
 
     // Note: placeholder in first position - timeout button set into this slot below
     btn_data_t btns[] = { { .txt = "Power Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
@@ -522,7 +518,7 @@ void make_power_options_screen(
     JADE_ASSERT(nBtns == 7);
     JADE_ASSERT(brightness_bar);
 
-    gui_make_activity(activity_ptr, true, "Power Settings");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
@@ -629,7 +625,7 @@ void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Wallet-Erase PIN");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
@@ -655,7 +651,7 @@ void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(pinstr);
 
-    gui_make_activity(activity_ptr, true, "Wallet-Erase PIN");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
@@ -682,7 +678,7 @@ void make_advanced_options_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Advanced");
+    gui_make_activity(activity_ptr);
 
     btn_data_t btns[] = { { .txt = "OTP", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
         { .txt = "Wallet-Erase PIN", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
@@ -696,7 +692,7 @@ void make_otp_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "OTP");
+    gui_make_activity(activity_ptr);
 
     btn_data_t btns[] = { { .txt = "View OTPs", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_VIEW },
         { .txt = "Scan New OTP QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
@@ -709,7 +705,7 @@ void make_pinserver_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "PinServer");
+    gui_make_activity(activity_ptr);
 
     btn_data_t btns[]
         = { { .txt = "View PinServer Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SHOW },
@@ -723,7 +719,7 @@ void make_session_screen(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Wallet Session");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
@@ -748,7 +744,7 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
     JADE_ASSERT(device_name);
     JADE_INIT_OUT_PPTR(ble_status_textbox);
 
-    gui_make_activity(activity_ptr, true, "Bluetooth");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
@@ -847,7 +843,7 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
     JADE_ASSERT(page_act);
 
     gui_activity_t* act = NULL;
-    gui_make_activity(&act, true, "Certifications");
+    gui_make_activity(&act);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 63, 37);
@@ -989,7 +985,7 @@ void make_device_screen(
     JADE_ASSERT(mac);
     JADE_ASSERT(firmware_version);
 
-    gui_make_activity(activity_ptr, true, "Device");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 21, 21, 21, 37);
@@ -1061,7 +1057,7 @@ void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entri
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "Storage");
+    gui_make_activity(activity_ptr);
 
     const size_t entries_total = entries_used + entries_free;
     char buf[16];

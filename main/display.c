@@ -73,7 +73,7 @@ void display_init(void)
 
 void display_splash(gui_activity_t** activity_ptr)
 {
-    gui_make_activity(activity_ptr, false, NULL);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* splash_node;
     gui_make_picture(&splash_node, &splash);

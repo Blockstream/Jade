@@ -55,7 +55,7 @@ static void make_input_output_activity(link_activity_t* output_activity, const c
     JADE_ASSERT(!asset_str || !warning_msg);
 
     gui_activity_t* act = NULL;
-    gui_make_activity(&act, true, title);
+    gui_make_activity(&act);
 
     gui_view_node_t* vsplit = NULL;
     const bool have_additional_info = asset_str || warning_msg;
@@ -232,7 +232,7 @@ static void make_final_activity(gui_activity_t** activity_ptr, const char* title
     JADE_ASSERT(total_fee);
     JADE_ASSERT(ticker);
 
-    gui_make_activity(activity_ptr, true, title);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);

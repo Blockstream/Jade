@@ -31,7 +31,7 @@ static void make_initial_confirm_screen(link_activity_t* link_activity, const ch
     JADE_ASSERT(wallet_fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);
 
     gui_activity_t* act = NULL;
-    gui_make_activity(&act, true, "Confirm Multisig");
+    gui_make_activity(&act);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
@@ -150,7 +150,7 @@ static void make_signer_activity(link_activity_t* link_activity, const size_t nu
     JADE_ASSERT(ret > 0 && ret < sizeof(header));
 
     gui_activity_t* act = NULL;
-    gui_make_activity(&act, true, header);
+    gui_make_activity(&act);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
@@ -262,7 +262,7 @@ static void make_final_confirm_screen(link_activity_t* link_activity, const char
     JADE_ASSERT(multisig_name);
 
     gui_activity_t* act = NULL;
-    gui_make_activity(&act, true, "Confirm Multisig");
+    gui_make_activity(&act);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
@@ -390,7 +390,7 @@ void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* mult
     char header[24];
     const int ret = snprintf(header, sizeof(header), "Multisig %d/%d", index, total);
     JADE_ASSERT(ret > 0 && ret < sizeof(header));
-    gui_make_activity(activity_ptr, true, header);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);

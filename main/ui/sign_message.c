@@ -10,7 +10,7 @@ void make_sign_message_activity(gui_activity_t** activity_ptr, const char* msg_s
     JADE_ASSERT(msg_len < MAX_DISPLAY_MESSAGE_LEN);
     JADE_ASSERT(path_as_str);
 
-    gui_make_activity(activity_ptr, true, "Sign Message");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);

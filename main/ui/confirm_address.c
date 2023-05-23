@@ -8,7 +8,7 @@ void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* ad
     JADE_ASSERT(address);
     JADE_ASSERT(warning_msg);
 
-    gui_make_activity(activity_ptr, true, "Confirm Address");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 60, 15, 25);

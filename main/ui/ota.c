@@ -10,7 +10,7 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
     JADE_ASSERT(new_version);
     JADE_ASSERT(expected_hash_hexstr);
 
-    gui_make_activity(activity_ptr, true, "Firmware Upgrade");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 19, 30);
@@ -135,7 +135,7 @@ void make_show_ota_hash_activity(
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(expected_hash_hexstr);
 
-    gui_make_activity(activity_ptr, true, "Confirm Hash");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 50, 30);

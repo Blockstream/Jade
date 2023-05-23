@@ -14,7 +14,7 @@ static void make_mnemonic_screen(
     JADE_ASSERT(msg);
     JADE_ASSERT(btns);
 
-    gui_make_activity(activity_ptr, true, title);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
@@ -109,7 +109,7 @@ static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t 
     const bool last_page = first_index == nwords - 4;
 
     gui_activity_t* act = NULL;
-    gui_make_activity(&act, true, "Recovery Phrase");
+    gui_make_activity(&act);
 
     // Display 4 words per page, in a column
     // NOTE: the words prefixed by their index, eg. "1: river"
@@ -227,7 +227,7 @@ static void make_confirm_mnemonic_page(
 
     JADE_LOGD("Confirm page index %u, prev %s, next %s", confirm_index, word_prev, word_next);
 
-    gui_make_activity(activity_ptr, true, "Backup Check");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
@@ -343,7 +343,7 @@ void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, const char* ti
     JADE_ASSERT(keys);
     JADE_ASSERT(keys_len == 26); // ie. A->Z
 
-    gui_make_activity(activity_ptr, true, title ? title : "Enter Word");
+    gui_make_activity(activity_ptr);
     (*activity_ptr)->selectables_wrap = true; // allow the button cursor to wrap
 
     gui_view_node_t* vsplit;
@@ -429,7 +429,7 @@ void make_select_word_page(gui_activity_t** activity_ptr, const char* title, con
     JADE_INIT_OUT_PPTR(textbox);
     JADE_INIT_OUT_PPTR(label);
 
-    gui_make_activity(activity_ptr, true, title);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 45, 25, 30);
@@ -490,7 +490,7 @@ void make_using_passphrase_screen(
 {
     JADE_ASSERT(!(use_passphrase_once && use_passphrase_always));
 
-    gui_make_activity(activity_ptr, true, "BIP39 Passphrase");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 34, 34, 32);
@@ -540,7 +540,7 @@ void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* p
     JADE_ASSERT(passphrase);
     JADE_INIT_OUT_PPTR(textbox);
 
-    gui_make_activity(activity_ptr, true, "Confirm Passphrase");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 40, 27, 33);
@@ -573,7 +573,7 @@ void make_confirm_qr_export_activity(gui_activity_t** activity_ptr)
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, "QR Export");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
@@ -599,7 +599,7 @@ void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon*
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(icon);
 
-    gui_make_activity(activity_ptr, false, NULL);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
@@ -647,7 +647,7 @@ void make_export_qr_fragment_activity(
     JADE_INIT_OUT_PPTR(icon_node);
     JADE_INIT_OUT_PPTR(label_node);
 
-    gui_make_activity(activity_ptr, false, NULL);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);

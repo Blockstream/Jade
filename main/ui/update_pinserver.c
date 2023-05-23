@@ -9,7 +9,7 @@ void make_show_pinserver_details_activity(gui_activity_t** activity_ptr, const c
     JADE_ASSERT(urlA);
     JADE_ASSERT(urlB);
 
-    gui_make_activity(activity_ptr, true, confirming_details ? "Confirm PinServer" : "Custom PinServer");
+    gui_make_activity(activity_ptr);
 
     char buf[128];
 
@@ -114,7 +114,7 @@ void make_show_pinserver_certificate_activity(
 {
     JADE_ASSERT(activity_ptr);
 
-    gui_make_activity(activity_ptr, true, confirming_details ? "Confirm PinServer" : "Custom PinServer");
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);

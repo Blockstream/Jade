@@ -94,7 +94,7 @@ void make_show_label_activity(
     JADE_ASSERT(message);
     JADE_INIT_OUT_PPTR(item_text);
 
-    gui_make_activity(activity_ptr, title, title);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
@@ -141,7 +141,7 @@ static void make_msg_activity(gui_activity_t** activity_ptr, const char* msg, co
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(msg);
 
-    gui_make_activity(activity_ptr, false, NULL);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
@@ -176,7 +176,7 @@ static void make_msg_activity_two_lines(
     JADE_ASSERT(msg_first);
     JADE_ASSERT(msg_second);
 
-    gui_make_activity(activity_ptr, false, NULL);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 35, 35, 30);
@@ -268,7 +268,7 @@ static void make_yesno_activity(
     JADE_ASSERT(message);
     // title is optional
 
-    gui_make_activity(activity_ptr, title, title);
+    gui_make_activity(activity_ptr);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
@@ -349,7 +349,7 @@ gui_activity_t* make_progress_bar_activity(const char* title, const char* messag
     // title is optional
 
     gui_activity_t* act = NULL;
-    gui_make_activity(&act, title, title);
+    gui_make_activity(&act);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 26, 44, 30);
