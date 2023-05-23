@@ -35,7 +35,9 @@ extern uint8_t GUI_SCROLL_WAIT_END;
 extern uint8_t GUI_SCROLL_WAIT_FRAME;
 // Height for the system status bar
 extern uint8_t GUI_STATUS_BAR_HEIGHT;
-// Default font
+// The default title/status-bar font
+extern uint8_t GUI_TITLE_FONT;
+// The default body font
 extern uint8_t GUI_DEFAULT_FONT;
 
 // -------------- Constants -----------------

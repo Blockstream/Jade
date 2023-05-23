@@ -94,7 +94,7 @@ static void make_status_bar(void)
     gui_set_parent(black_title_bg, hsplit);
 
     gui_view_node_t* title_text;
-    gui_make_text(&title_text, "Jade", TFT_WHITE);
+    gui_make_text_font(&title_text, "Jade", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_parent(title_text, black_title_bg);
     gui_set_align(title_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_padding(title_text, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
