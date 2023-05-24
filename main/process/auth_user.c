@@ -38,12 +38,13 @@ static void check_wallet_erase_pin(jade_process_t* process, const uint8_t* pin_e
     }
 }
 
-void check_pin_load_keys(jade_process_t* process)
+static bool check_pin_load_keys(jade_process_t* process)
 {
     // At this point we should have encrypted keys persisted in the flash but
     // *NOT* have any keys in-memory.  We need the pinserver data to decrypt.
     JADE_ASSERT(!keychain_get());
     JADE_ASSERT(keychain_has_pin());
+    bool rslt = false;
 
     const uint8_t pin_attempts_remaining = keychain_pin_attempts_remaining();
     JADE_ASSERT(pin_attempts_remaining > 0); // Shouldn't be here otherwise
@@ -52,15 +53,14 @@ void check_pin_load_keys(jade_process_t* process)
     const char* msg = NULL;
     switch (pin_attempts_remaining) {
     case 2:
-        msg = "\nEnter PIN:\n(Two attempts remaining)";
+        msg = "Two attempts remaining";
         break;
     case 1:
-        msg = "\nEnter PIN:\n(Final attempt)";
+        msg = "Final attempt";
         break;
     default:
-        msg = "\nEnter PIN:";
+        msg = NULL;
     }
-    JADE_ASSERT(msg);
 
     pin_insert_t pin_insert = {};
     make_pin_insert_activity(&pin_insert, "Unlock Jade", msg);
@@ -130,6 +130,7 @@ void check_pin_load_keys(jade_process_t* process)
     // (ie interface) which we will accept receiving messages from.
     // (This also clears any temporarily cached mnemonic entropy data)
     keychain_set(keychain_get(), process->ctx.source, false);
+    rslt = true;
 
     // All good
     jade_process_reply_to_message_ok(process);
@@ -140,25 +141,31 @@ cleanup:
     SENSITIVE_POP(aeskey);
     SENSITIVE_POP(pin);
     SENSITIVE_POP(&pin_insert);
+
+    return rslt;
 }
 
-static void set_pin_save_keys(jade_process_t* process)
+static bool set_pin_save_keys(jade_process_t* process)
 {
     // At this point we should have keys in-memory, but should *NOT* have
     // any encrypted keys persisted in the flash memory - ie. no PIN set.
     JADE_ASSERT(keychain_get());
     JADE_ASSERT(!keychain_has_pin());
     JADE_ASSERT(!keychain_has_temporary());
+    bool rslt = false;
 
     // Enter PIN to lock mnemonic/key material.
     // In a debug unattended ci build, use hardcoded pin after a short delay
     pin_insert_t pin_insert = {};
-    make_pin_insert_activity(&pin_insert, "Enter New PIN", "\nNew PIN:");
+    make_pin_insert_activity(&pin_insert, "Enter New PIN", NULL);
     JADE_ASSERT(pin_insert.activity);
     SENSITIVE_PUSH(&pin_insert, sizeof(pin_insert_t));
 
     uint8_t pin[sizeof(pin_insert.pin)];
     SENSITIVE_PUSH(pin, sizeof(pin));
+
+    uint8_t aeskey[AES_KEY_LEN_256];
+    SENSITIVE_PUSH(aeskey, sizeof(aeskey));
 
     while (true) {
         gui_set_current_activity(pin_insert.activity);
@@ -172,12 +179,10 @@ static void set_pin_save_keys(jade_process_t* process)
         memcpy(pin_insert.pin, testpin, sizeof(testpin));
 #endif
 
-        // this is the first pin, copy it and clear screen fields
+        // this is the first pin, copy it and clear screen fields and have the user confirm
         memcpy(pin, pin_insert.pin, sizeof(pin));
-        clear_current_pin(&pin_insert);
+        reset_pin(&pin_insert, "Confirm PIN");
 
-        // have user confirm it
-        gui_set_title("Confirm New PIN");
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         run_pin_entry_loop(&pin_insert);
 #else
@@ -193,16 +198,18 @@ static void set_pin_save_keys(jade_process_t* process)
             break;
         } else {
             // Pins mismatch - try again
-            await_error_activity("Pin mismatch, please try again");
-            clear_current_pin(&pin_insert);
+            if (!await_continueback_activity(NULL, "        Pin mismatch,\n      please try again.", true, NULL)) {
+                // Abandon
+                jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User failed to set new PIN", NULL);
+                goto cleanup;
+            }
+            reset_pin(&pin_insert, "Enter New PIN");
         }
     }
 
     display_message_activity("Persisting PIN data...");
 
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
-    uint8_t aeskey[AES_KEY_LEN_256];
-    SENSITIVE_PUSH(aeskey, sizeof(aeskey));
     if (!pinclient_set(process, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
         // Server or networking/connection error
         // NOTE: reply message will have already been sent
@@ -222,6 +229,7 @@ static void set_pin_save_keys(jade_process_t* process)
     // (ie interface) which we will accept receiving messages from.
     // (This also clears any temporarily cached mnemonic entropy data)
     keychain_set(keychain_get(), process->ctx.source, false);
+    rslt = true;
 
     // All good
     jade_process_reply_to_message_ok(process);
@@ -232,6 +240,8 @@ cleanup:
     SENSITIVE_POP(aeskey);
     SENSITIVE_POP(pin);
     SENSITIVE_POP(&pin_insert);
+
+    return rslt;
 }
 
 void auth_user_process(void* process_ptr)
@@ -275,7 +285,7 @@ void auth_user_process(void* process_ptr)
     //    - prompt for PIN to secure/encrypt the keys
     // 5. Uninitialised - has no persisted/encrypted keys and no keys in memory
     //    - prompt for mnemonic setup, then onto PIN to secure keys
-
+    bool rslt = false;
     if (keychain_has_temporary()) {
         JADE_LOGI("using temporary keychain already present - skipping PIN step");
         JADE_ASSERT(keychain_get());
@@ -283,6 +293,7 @@ void auth_user_process(void* process_ptr)
         if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
             JADE_LOGI("temporary keychain already unlocked by this message-source");
             jade_process_reply_to_message_ok(process);
+            rslt = true;
         } else if (keychain_get_userdata() == SOURCE_NONE) {
             // First use of this temporary wallet
             // Re-set the (same) keychain in order to confirm the 'source'
@@ -290,6 +301,7 @@ void auth_user_process(void* process_ptr)
             JADE_LOGI("First use of temporary keychain, associating with this message-source");
             keychain_set(keychain_get(), process->ctx.source, true);
             jade_process_reply_to_message_ok(process);
+            rslt = true;
         } else {
             // Reject the message as hw locked
             JADE_LOGI("Trying to reuse temporary keychain with different message-source");
@@ -301,12 +313,13 @@ void auth_user_process(void* process_ptr)
         if (KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
             JADE_LOGI("keychain already unlocked by this message-source");
             jade_process_reply_to_message_ok(process);
+            rslt = true;
         } else {
             JADE_LOGI("keychain locked for this source, requesting pin");
             if (keychain_get()) {
                 keychain_clear();
             }
-            check_pin_load_keys(process);
+            rslt = check_pin_load_keys(process);
         }
     } else {
         // Jade hw is not fully initialised - if we have an 'in-memory' mnemonic
@@ -328,15 +341,17 @@ void auth_user_process(void* process_ptr)
         }
 
         JADE_LOGI("requesting new pin");
-        set_pin_save_keys(process);
+        rslt = set_pin_save_keys(process);
     }
 
+    if (rslt) {
 #ifndef CONFIG_DEBUG_MODE
-    // If not a debug build, we restrict the hw to this network type
-    // (In case it wasn't set at wallet creation/recovery time [older fw])
-    keychain_set_network_type_restriction(network);
+        // If not a debug build, we restrict the hw to this network type
+        // (In case it wasn't set at wallet creation/recovery time [older fw])
+        keychain_set_network_type_restriction(network);
 #endif
-    JADE_LOGI("Success");
+        JADE_LOGI("Success");
+    }
 
 cleanup:
     return;

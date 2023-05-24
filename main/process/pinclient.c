@@ -667,7 +667,7 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
         // If a) the error is 'retry-able' and b) the user elects to retry, then loop and try again
         // (In a CI build no GUI, so assume 'no' and return the error immediately.)
         if (pir.result == CAN_RETRY
-            && await_yesno_activity("Network Error", "\nFailed communicating with\nPinServer - retry ?", true, NULL)) {
+            && await_yesno_activity("Network Error", "\n  Failed communicating\nwith PinServer - retry?", true, NULL)) {
             display_message_activity("Retrying ...");
             continue;
         }

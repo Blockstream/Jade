@@ -45,11 +45,20 @@ enum pin_digit_status {
 };
 
 typedef struct {
+    gui_view_node_t* fill_node;
+    gui_view_node_t* up_arrow_node;
+    gui_view_node_t* digit_node;
+    gui_view_node_t* down_arrow_node;
+} pin_digit_t;
+
+typedef struct {
     uint8_t pin[PIN_SIZE];
     enum pin_digit_status digit_status[PIN_SIZE];
 
     gui_activity_t* activity;
-    gui_view_node_t* pin_digit_nodes[PIN_SIZE];
+    gui_view_node_t* title;
+
+    pin_digit_t pin_digit_nodes[PIN_SIZE];
 
     uint8_t selected_digit;
     uint8_t current_selected_value;
@@ -140,7 +149,7 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
 // Functions for pin entry
 void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message);
 void run_pin_entry_loop(pin_insert_t* pin_insert);
-void clear_current_pin(pin_insert_t* pin_insert);
+void reset_pin(pin_insert_t* pin_insert, const char* title);
 
 // Generic progress-bar
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);

@@ -2,7 +2,6 @@
 #include "../jade_assert.h"
 #include "../random.h"
 #include "../ui.h"
-#include "../utils/malloc_ext.h"
 
 static const char CHAR_BACKSPACE = '|';
 static const char PIN_CHARS[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', CHAR_BACKSPACE };
@@ -20,24 +19,33 @@ static inline uint8_t get_random_pin_digit(void) { return get_uniform_random_byt
 static void update_digit_node(pin_insert_t* pin_insert, uint8_t i)
 {
     JADE_ASSERT(pin_insert);
+    JADE_ASSERT(i < PIN_SIZE);
 
-    char str[] = { '\0', '\0' };
-
+    char strdigit[] = { '\0', '\0' };
     switch (pin_insert->digit_status[i]) {
     case EMPTY:
-        gui_set_borders(pin_insert->pin_digit_nodes[i], TFT_LIGHTGREY, 2, GUI_BORDER_ALL);
+        gui_set_color(pin_insert->pin_digit_nodes[i].fill_node, TFT_BLACK);
+        gui_set_borders(pin_insert->pin_digit_nodes[i].fill_node, TFT_LIGHTGREY, 2, GUI_BORDER_ALL);
+        gui_update_text(pin_insert->pin_digit_nodes[i].up_arrow_node, "");
+        gui_update_text(pin_insert->pin_digit_nodes[i].down_arrow_node, "");
         break;
     case SELECTED:
-        gui_set_borders(pin_insert->pin_digit_nodes[i], TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_ALL);
-        str[0] = PIN_CHARS[pin_insert->current_selected_value];
+        gui_set_color(pin_insert->pin_digit_nodes[i].fill_node, TFT_BLOCKSTREAM_DARKGREEN);
+        gui_set_borders(pin_insert->pin_digit_nodes[i].fill_node, TFT_BLOCKSTREAM_DARKGREEN, 2, GUI_BORDER_ALL);
+        gui_update_text(pin_insert->pin_digit_nodes[i].up_arrow_node, "K");
+        gui_update_text(pin_insert->pin_digit_nodes[i].down_arrow_node, "L");
+        strdigit[0] = PIN_CHARS[pin_insert->current_selected_value];
         break;
     case SET:
-        gui_set_borders(pin_insert->pin_digit_nodes[i], TFT_BLOCKSTREAM_DARKGREEN, 2, GUI_BORDER_ALL);
-        str[0] = '*';
+        gui_set_color(pin_insert->pin_digit_nodes[i].fill_node, TFT_BLACK);
+        gui_set_borders(pin_insert->pin_digit_nodes[i].fill_node, TFT_BLOCKSTREAM_DARKGREEN, 2, GUI_BORDER_ALL);
+        gui_update_text(pin_insert->pin_digit_nodes[i].up_arrow_node, "");
+        gui_update_text(pin_insert->pin_digit_nodes[i].down_arrow_node, "");
+        strdigit[0] = '*';
         break;
     }
-
-    gui_update_text(pin_insert->pin_digit_nodes[i], str);
+    gui_update_text(pin_insert->pin_digit_nodes[i].digit_node, strdigit);
+    gui_repaint(pin_insert->pin_digit_nodes[i].fill_node, true);
 }
 
 void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message)
@@ -45,22 +53,24 @@ void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const
     JADE_ASSERT(pin_insert);
 
     pin_insert->activity = gui_make_activity();
+    gui_view_node_t* parent = add_title_bar(pin_insert->activity, title, NULL, 0, &pin_insert->title);
+    gui_view_node_t* node;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(vsplit, pin_insert->activity->root_node);
+    if (message) {
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 25, 75);
+        gui_make_text(&node, message, TFT_WHITE);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    } else {
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 10, 75, 15);
+        gui_make_fill(&node, TFT_BLACK);
+    }
+    gui_set_parent(vsplit, parent);
+    gui_set_parent(node, vsplit);
 
-    // first row, message
-    gui_view_node_t* text_status;
-    gui_make_text(&text_status, message, TFT_WHITE);
-    gui_set_parent(text_status, vsplit);
-    gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 4);
-    gui_set_align(text_status, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-
-    // second row, pin spinners
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 6, 30, 30, 30, 30, 30, 30);
-    gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 30, 12, 30);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 6, 35, 35, 35, 35, 35, 35);
+    gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 15, 12, 15);
     gui_set_parent(hsplit, vsplit);
 
     pin_insert->current_selected_value = get_random_pin_digit();
@@ -69,13 +79,32 @@ void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const
         pin_insert->pin[i] = 0xFF;
         pin_insert->digit_status[i] = i == 0 ? SELECTED : EMPTY;
 
-        gui_view_node_t* fill;
-        gui_make_fill(&fill, TFT_BLACK);
-        gui_set_parent(fill, hsplit);
+        gui_make_fill(&node, TFT_BLACK);
+        gui_set_parent(node, hsplit);
+        pin_insert->pin_digit_nodes[i].fill_node = node;
 
-        gui_make_text_font(&pin_insert->pin_digit_nodes[i], "", TFT_WHITE, DEJAVU24_FONT);
-        gui_set_align(pin_insert->pin_digit_nodes[i], GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(pin_insert->pin_digit_nodes[i], fill);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 25, 50, 25);
+        gui_set_parent(vsplit, node);
+        // no need to store the vsplit
+
+        // Up arrow
+        gui_make_text_font(&node, "K", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(node, vsplit);
+        pin_insert->pin_digit_nodes[i].up_arrow_node = node;
+
+        // Digit
+        gui_make_text_font(&node, "", TFT_WHITE, DEJAVU24_FONT);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(node, vsplit);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 5, 0, 0, 0);
+        pin_insert->pin_digit_nodes[i].digit_node = node;
+
+        // Down arrow
+        gui_make_text_font(&node, "L", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(node, vsplit);
+        pin_insert->pin_digit_nodes[i].down_arrow_node = node;
 
         update_digit_node(pin_insert, i);
     }
@@ -189,15 +218,25 @@ void run_pin_entry_loop(pin_insert_t* pin_insert)
     }
 }
 
-void clear_current_pin(pin_insert_t* pin_insert)
+void reset_pin(pin_insert_t* pin_insert, const char* title)
 {
+    JADE_ASSERT(pin_insert);
+    // title is optional
+
+    // Select and re-randomise first digit
     pin_insert->selected_digit = 0;
     pin_insert->current_selected_value = get_random_pin_digit();
 
+    // Mark all digits as unset
     for (size_t i = 0; i < PIN_SIZE; ++i) {
         pin_insert->pin[i] = 0xFF;
         pin_insert->digit_status[i] = i == 0 ? SELECTED : EMPTY;
-
         update_digit_node(pin_insert, i);
+    }
+
+    // Update title if passed
+    if (title) {
+        JADE_ASSERT(pin_insert->title);
+        gui_update_text(pin_insert->title, title);
     }
 }

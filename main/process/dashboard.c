@@ -514,7 +514,7 @@ static void offer_jade_reset(void)
     JADE_LOGI("User must enter: %s to reset all data", pinstr);
 
     char confirm_msg[64];
-    const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm value to erase all data:\n%20s\n", pinstr);
+    const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm reset: %s", pinstr);
     JADE_ASSERT(ret > 0 && ret < sizeof(confirm_msg));
 
     pin_insert_t pin_insert = {};
@@ -788,20 +788,20 @@ static void set_wallet_erase_pin(void)
 
     // Ask user to enter a wallet-erase pin
     pin_insert_t pin_insert = {};
-    make_pin_insert_activity(&pin_insert, "Wallet-Erase PIN", "Enter Wallet-Erase PIN,\ndifferent from unlock PIN");
+    make_pin_insert_activity(&pin_insert, "Wallet-Erase PIN", "Different from main PIN");
     JADE_ASSERT(pin_insert.activity);
 
     while (true) {
         gui_set_current_activity(pin_insert.activity);
+
         run_pin_entry_loop(&pin_insert);
 
         // This is the first pin, copy it and clear screen fields
         uint8_t pin[sizeof(pin_insert.pin)];
         memcpy(pin, pin_insert.pin, sizeof(pin));
-        clear_current_pin(&pin_insert);
+        reset_pin(&pin_insert, "Confirm Erase PIN");
 
         // Ask user to re-enter PIN
-        gui_set_title("Confirm Erase PIN");
         run_pin_entry_loop(&pin_insert);
 
         // Check that the two pins are the same
@@ -812,8 +812,11 @@ static void set_wallet_erase_pin(void)
             break;
         } else {
             // Pins mismatch - try again
-            await_error_activity("Pin mismatch, please try again");
-            clear_current_pin(&pin_insert);
+            if (!await_continueback_activity(NULL, "        Pin mismatch,\n      please try again.", true, NULL)) {
+                // Abandon
+                break;
+            }
+            reset_pin(&pin_insert, "Wallet-Erase PIN");
         }
     }
 }
