@@ -2,20 +2,19 @@
 #include "../ui.h"
 #include "jade_assert.h"
 
-void make_sign_message_activity(gui_activity_t** activity_ptr, const char* msg_str, const size_t msg_len,
-    const bool is_hash, const char* path_as_str)
+gui_activity_t* make_sign_message_activity(
+    const char* msg_str, const size_t msg_len, const bool is_hash, const char* path_as_str)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(msg_str);
     JADE_ASSERT(msg_len < MAX_DISPLAY_MESSAGE_LEN);
     JADE_ASSERT(path_as_str);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, hash value
     gui_view_node_t* hsplit_text2;
@@ -65,4 +64,6 @@ void make_sign_message_activity(gui_activity_t** activity_ptr, const char* msg_s
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_ACCEPT_SIGNATURE } };
     add_buttons(vsplit, UI_ROW, btns, 3);
+
+    return act;
 }

@@ -98,9 +98,7 @@ static void boot_process(void)
     // user clicked the front button.  If they did, we offer to reset the jade
     // (one-time passkey required).
     JADE_LOGI("Showing splash screen");
-    gui_activity_t* act = NULL;
-    display_splash(&act);
-    JADE_ASSERT(act);
+    gui_activity_t* const splash = display_splash();
 
     // Idletimer init decides whether to power the screen or not based on whether this
     // is a soft restart due to inactivity.
@@ -110,9 +108,9 @@ static void boot_process(void)
     button_init();
     wheel_init();
 
-    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act); // activity takes ownership
+    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(splash); // activity takes ownership
     JADE_ASSERT(event_data);
-    gui_activity_register_event(act, GUI_EVENT, GUI_FRONT_CLICK_EVENT, sync_wait_event_handler, event_data);
+    gui_activity_register_event(splash, GUI_EVENT, GUI_FRONT_CLICK_EVENT, sync_wait_event_handler, event_data);
 
     if (!serial_init(serial_handle)) {
         JADE_ABORT();

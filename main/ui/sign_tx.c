@@ -54,8 +54,7 @@ static void make_input_output_activity(link_activity_t* output_activity, const c
     JADE_ASSERT(ticker);
     JADE_ASSERT(!asset_str || !warning_msg);
 
-    gui_activity_t* act = NULL;
-    gui_make_activity(&act);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit = NULL;
     const bool have_additional_info = asset_str || warning_msg;
@@ -224,20 +223,19 @@ static void make_input_output_activity(link_activity_t* output_activity, const c
     output_activity->next_button = btns[2].btn;
 }
 
-static void make_final_activity(gui_activity_t** activity_ptr, const char* title, const char* total_fee,
-    const char* ticker, const char* warning_msg)
+static gui_activity_t* make_final_activity(
+    const char* title, const char* total_fee, const char* ticker, const char* warning_msg)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     JADE_ASSERT(total_fee);
     JADE_ASSERT(ticker);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     gui_view_node_t* hsplit1;
     gui_make_hsplit(&hsplit1, GUI_SPLIT_RELATIVE, 2, 20, 80);
@@ -286,6 +284,8 @@ static void make_final_activity(gui_activity_t** activity_ptr, const char* title
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_ACCEPT_SIGNATURE } };
     add_buttons(vsplit, UI_ROW, btns, 3);
+
+    return act;
 }
 
 // Don't display pre-validated (eg. change) outputs (if provided) unless they have an associated warning message.
@@ -328,13 +328,12 @@ static uint32_t displayable_outputs(
     return nDisplayable > 0 ? nDisplayable : tx->num_outputs;
 }
 
-void make_display_output_activity(
-    const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity)
+gui_activity_t* make_display_output_activity(
+    const char* network, const struct wally_tx* tx, const output_info_t* output_info)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(tx);
     // Note: output_info is optional and can be null
-    JADE_ASSERT(first_activity);
 
     // Show outputs which don't have a script
     const bool show_scriptless = true;
@@ -377,7 +376,7 @@ void make_display_output_activity(
     // Connect the final screen's 'next' button to the 'translate' handler above
     gui_activity_register_event(act_info.last_activity, GUI_BUTTON_EVENT, BTN_TX_SCREEN_NEXT, translate_event, NULL);
 
-    *first_activity = act_info.first_activity;
+    return act_info.first_activity;
 }
 
 static bool get_asset_display_info(const char* network, const asset_info_t* assets, const size_t num_assets,
@@ -436,15 +435,13 @@ static bool get_asset_display_info(const char* network, const asset_info_t* asse
     return have_asset_info;
 }
 
-void make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
-    const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets,
-    gui_activity_t** first_activity)
+gui_activity_t* make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
+    const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(tx);
     JADE_ASSERT(output_info);
     JADE_ASSERT(assets || !num_assets);
-    JADE_ASSERT(first_activity);
 
     // Don't show outputs which don't have a script (as these are fees)
     const bool show_scriptless = false;
@@ -522,8 +519,7 @@ void make_display_elements_output_activity(const char* network, const struct wal
     // Connect the final screen's 'next' button to the 'translate' handler above
     gui_activity_register_event(act_info.last_activity, GUI_BUTTON_EVENT, BTN_TX_SCREEN_NEXT, translate_event, NULL);
 
-    // Set output parameters
-    *first_activity = act_info.first_activity;
+    return act_info.first_activity;
 }
 
 static void make_elements_asset_summary_screens(linked_activities_info_t* act_info, const char* title,
@@ -574,10 +570,10 @@ static void make_elements_asset_summary_screens(linked_activities_info_t* act_in
     }
 }
 
-void make_display_elements_swap_activity(const char* network, const bool initial_proposal,
+gui_activity_t* make_display_elements_swap_activity(const char* network, const bool initial_proposal,
     const movement_summary_info_t* wallet_input_summary, const size_t wallet_input_summary_size,
     const movement_summary_info_t* wallet_output_summary, const size_t wallet_output_summary_size,
-    const asset_info_t* assets, const size_t num_assets, gui_activity_t** first_activity)
+    const asset_info_t* assets, const size_t num_assets)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(wallet_input_summary);
@@ -585,7 +581,6 @@ void make_display_elements_swap_activity(const char* network, const bool initial
     JADE_ASSERT(wallet_output_summary);
     JADE_ASSERT(wallet_output_summary_size);
     JADE_ASSERT(assets || !num_assets);
-    JADE_ASSERT(first_activity);
 
     // Track the first and last activities created
     linked_activities_info_t act_info
@@ -604,29 +599,25 @@ void make_display_elements_swap_activity(const char* network, const bool initial
     // Connect the final screen's 'next' button to the 'translate' handler above
     gui_activity_register_event(act_info.last_activity, GUI_BUTTON_EVENT, BTN_TX_SCREEN_NEXT, translate_event, NULL);
 
-    // Set output parameters
-    *first_activity = act_info.first_activity;
+    return act_info.first_activity;
 }
 
 // Screens to confirm the fee / signing the tx
-void make_display_final_confirmation_activity(const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
+gui_activity_t* make_display_final_confirmation_activity(const uint64_t fee, const char* warning_msg)
 {
-    JADE_ASSERT(activity);
-
     char fee_str[32];
     const int ret = snprintf(fee_str, sizeof(fee_str), "%.08f", 1.0 * fee / 1e8);
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
     // final confirmation screen
-    make_final_activity(activity, "Summary", fee_str, "BTC", warning_msg);
+    return make_final_activity("Summary", fee_str, "BTC", warning_msg);
 }
 
-void make_display_elements_final_confirmation_activity(
-    const char* network, const char* title, const uint64_t fee, const char* warning_msg, gui_activity_t** activity)
+gui_activity_t* make_display_elements_final_confirmation_activity(
+    const char* network, const char* title, const uint64_t fee, const char* warning_msg)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(title);
-    JADE_ASSERT(activity);
 
     // final confirmation screen
 
@@ -651,5 +642,5 @@ void make_display_elements_final_confirmation_activity(
     JADE_ASSERT(ret > 0 && ret < sizeof(fee_str));
 
     // final confirmation screen
-    make_final_activity(activity, title, fee_str, ticker, warning_msg);
+    return make_final_activity(title, fee_str, ticker, warning_msg);
 }

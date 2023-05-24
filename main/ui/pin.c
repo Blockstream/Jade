@@ -44,7 +44,7 @@ void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const
 {
     JADE_ASSERT(pin_insert);
 
-    gui_make_activity(&pin_insert->activity);
+    pin_insert->activity = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);

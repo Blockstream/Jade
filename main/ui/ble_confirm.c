@@ -2,15 +2,13 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-void make_ble_confirmation_activity(gui_activity_t** activity_ptr, const uint32_t numcmp)
+gui_activity_t* make_ble_confirmation_activity(const uint32_t numcmp)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 66, 34);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, message
     char confirm_msg[64];
@@ -27,4 +25,6 @@ void make_ble_confirmation_activity(gui_activity_t** activity_ptr, const uint32_
     btn_data_t btns[] = { { .txt = "Deny", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BLE_DENY },
         { .txt = "Confirm", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BLE_CONFIRM } };
     add_buttons(vsplit, UI_ROW, btns, 2);
+
+    return act;
 }

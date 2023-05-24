@@ -15,8 +15,7 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
     // title is optional
     JADE_INIT_OUT_PPTR(textbox);
 
-    gui_activity_t* act = NULL;
-    gui_make_activity(&act);
+    gui_activity_t* const act = gui_make_activity();
     act->selectables_wrap = true; // allow the button cursor to wrap
 
     gui_view_node_t* vsplit;

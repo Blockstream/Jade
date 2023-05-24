@@ -2,18 +2,17 @@
 #include "../ui.h"
 #include "jade_assert.h"
 
-void make_sign_identity_activity(gui_activity_t** activity_ptr, const char* identity, const size_t identity_len)
+gui_activity_t* make_sign_identity_activity(const char* identity, const size_t identity_len)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(identity);
     JADE_ASSERT(identity_len < MAX_DISPLAY_MESSAGE_LEN);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 10, 56, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, blank
     gui_view_node_t* dummy_bg;
@@ -35,4 +34,6 @@ void make_sign_identity_activity(gui_activity_t** activity_ptr, const char* iden
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_ACCEPT_SIGNATURE } };
     add_buttons(vsplit, UI_ROW, btns, 3);
+
+    return act;
 }

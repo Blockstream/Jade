@@ -11,9 +11,9 @@
 #include <string.h>
 
 // UI screens to confirm ota
-void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version,
-    const char* expected_hash_hexstr, bool full_fw_hash);
-void make_show_ota_hash_activity(gui_activity_t** activity_ptr, const char* expected_hash_hexstr, bool full_fw_hash);
+gui_activity_t* make_ota_versions_activity(
+    const char* current_version, const char* new_version, const char* expected_hash_hexstr, bool full_fw_hash);
+gui_activity_t* make_show_ota_hash_activity(const char* expected_hash_hexstr, bool full_fw_hash);
 
 const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t custom_app_desc
     = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
@@ -269,25 +269,21 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
 
     const bool full_fw_hash = joctx->hash_type == HASHTYPE_FULLFWDATA;
 
-    gui_activity_t* ota_activity = NULL;
-    make_ota_versions_activity(&ota_activity, current_version, new_version, joctx->expected_hash_hexstr, full_fw_hash);
-    JADE_ASSERT(ota_activity);
-
-    gui_activity_t* show_hash_activity = NULL;
-    make_show_ota_hash_activity(&show_hash_activity, joctx->expected_hash_hexstr, full_fw_hash);
-    JADE_ASSERT(show_hash_activity);
+    gui_activity_t* const ota_activity
+        = make_ota_versions_activity(current_version, new_version, joctx->expected_hash_hexstr, full_fw_hash);
+    gui_activity_t* const show_hash_activity = make_show_ota_hash_activity(joctx->expected_hash_hexstr, full_fw_hash);
 
     bool ota_accepted = false;
-    gui_activity_t* activity = ota_activity;
+    gui_activity_t* act = ota_activity;
     while (!ota_accepted) {
-        gui_set_current_activity(activity);
+        gui_set_current_activity(act);
 
         int32_t ev_id;
         // In a debug unattended ci build, assume 'accept' button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_ACCEPT_OTA;
@@ -296,10 +292,10 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
         if (ret) {
             switch (ev_id) {
             case BTN_OTA_VIEW_FW_HASH:
-                activity = show_hash_activity;
+                act = show_hash_activity;
                 break;
             case BTN_OTA_HASH_CONFIRMED:
-                activity = ota_activity;
+                act = ota_activity;
                 break;
             case BTN_ACCEPT_OTA:
                 ota_accepted = true;
@@ -312,8 +308,8 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     }
 
     // Now user has confirmed, display the progress bar
-    activity = make_progress_bar_activity("Firmware Upgrade", "Upload Progress:", &joctx->progress_bar);
-    gui_set_current_activity_ex(activity, true); // free prior activities
+    act = make_progress_bar_activity("Firmware Upgrade", "Upload Progress:", &joctx->progress_bar);
+    gui_set_current_activity_ex(act, true); // free prior activities
     vTaskDelay(100 / portTICK_PERIOD_MS); // time for screen to update
 
     return SUCCESS;

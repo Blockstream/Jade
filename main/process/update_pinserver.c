@@ -12,10 +12,9 @@
 
 #include "process_utils.h"
 
-void make_show_pinserver_details_activity(
-    gui_activity_t** activity_ptr, const char* urlA, const char* urlB, const char* pubkeyhex, bool confirming_details);
-void make_show_pinserver_certificate_activity(
-    gui_activity_t** activity_ptr, const char* cert_hash_hex, bool confirming_details);
+gui_activity_t* make_show_pinserver_details_activity(
+    const char* urlA, const char* urlB, const char* pubkeyhex, bool confirming_details);
+gui_activity_t* make_show_pinserver_certificate_activity(const char* cert_hash_hex, bool confirming_details);
 
 // Default pinserver public key
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
@@ -48,17 +47,15 @@ void show_pinserver_details(void)
             JADE_WALLY_VERIFY(wally_hex_from_bytes(pubkey, sizeof(pubkey), &pubkey_hex));
         }
 
-        gui_activity_t* activity = NULL;
         const bool confirming_details = false;
-        make_show_pinserver_details_activity(&activity, urlA, urlB, pubkey_hex, confirming_details);
-        JADE_ASSERT(activity);
-        gui_set_current_activity(activity);
+        gui_activity_t* const act = make_show_pinserver_details_activity(urlA, urlB, pubkey_hex, confirming_details);
+        gui_set_current_activity(act);
 
         // In a debug unattended ci build, assume button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, 0);
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
 #endif
         JADE_WALLY_VERIFY(wally_free_string(pubkey_hex));
@@ -71,17 +68,15 @@ void show_pinserver_details(void)
         JADE_WALLY_VERIFY(wally_sha256((uint8_t*)cert, cert_len, cert_hash, sizeof(cert_hash)));
         JADE_WALLY_VERIFY(wally_hex_from_bytes(cert_hash, sizeof(cert_hash), &cert_hash_hex));
 
-        gui_activity_t* activity = NULL;
         const bool confirming_details = false;
-        make_show_pinserver_certificate_activity(&activity, cert_hash_hex, confirming_details);
-        JADE_ASSERT(activity);
-        gui_set_current_activity(activity);
+        gui_activity_t* const act = make_show_pinserver_certificate_activity(cert_hash_hex, confirming_details);
+        gui_set_current_activity(act);
 
         // In a debug unattended ci build, assume button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, 0);
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
 #endif
         JADE_WALLY_VERIFY(wally_free_string(cert_hash_hex));
@@ -165,18 +160,16 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             JADE_WALLY_VERIFY(wally_hex_from_bytes(pubkey, pubkey_len, &pubkey_hex));
         }
 
-        gui_activity_t* activity = NULL;
         const bool confirming_details = true;
-        make_show_pinserver_details_activity(&activity, urlA, urlB, pubkey_hex, confirming_details);
-        JADE_ASSERT(activity);
-        gui_set_current_activity(activity);
+        gui_activity_t* const act = make_show_pinserver_details_activity(urlA, urlB, pubkey_hex, confirming_details);
+        gui_set_current_activity(act);
 
         int32_t ev_id;
         // In a debug unattended ci build, assume 'confirm' button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_PINSERVER_DETAILS_CONFIRM;
@@ -219,18 +212,16 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             JADE_WALLY_VERIFY(wally_hex_from_bytes(cert_hash, sizeof(cert_hash), &cert_hash_hex));
         }
 
-        gui_activity_t* activity = NULL;
         const bool confirming_details = true;
-        make_show_pinserver_certificate_activity(&activity, cert_hash_hex, confirming_details);
-        JADE_ASSERT(activity);
-        gui_set_current_activity(activity);
+        gui_activity_t* const act = make_show_pinserver_certificate_activity(cert_hash_hex, confirming_details);
+        gui_set_current_activity(act);
 
         int32_t ev_id;
         // In a debug unattended ci build, assume 'confirm' button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_PINSERVER_DETAILS_CONFIRM;

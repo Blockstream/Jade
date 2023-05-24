@@ -15,8 +15,8 @@
 // as we don't want the unit to shut down because of apparent inactivity.
 #define CAMERA_MIN_TIMEOUT_SECS 300
 
-void make_camera_activity(gui_activity_t** activity_ptr, const char* title, const char* btnText,
-    progress_bar_t* progress_bar, gui_view_node_t** image_node, gui_view_node_t** label_node);
+gui_activity_t* make_camera_activity(const char* title, const char* btnText, progress_bar_t* progress_bar,
+    gui_view_node_t** image_node, gui_view_node_t** label_node);
 
 // Camera-task config data
 typedef struct {
@@ -181,9 +181,8 @@ static void jade_camera_task(void* data)
 
     if (has_gui) {
         // Create camera screen
-        make_camera_activity(&act, camera_config->title, camera_config->text_button, camera_config->progress_bar,
-            &image_node, &label_node);
-        JADE_ASSERT(act);
+        act = make_camera_activity(
+            camera_config->title, camera_config->text_button, camera_config->progress_bar, &image_node, &label_node);
         gui_set_current_activity(act);
     }
 

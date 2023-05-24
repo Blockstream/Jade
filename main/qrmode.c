@@ -29,22 +29,21 @@
 // as we don't want the unit to shut down because of apparent inactivity.
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
 
-void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, Icon* qr_icon);
-void make_show_qr_yesno_activity(gui_activity_t** activity_ptr, const char* title, const char* label, const char* url,
-    const Icon* qr_icon, bool default_selection);
+gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon);
+gui_activity_t* make_show_qr_yesno_activity(
+    const char* title, const char* label, const char* url, const Icon* qr_icon, bool default_selection);
 
-void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label, const char* pathstr, Icon* icons,
-    size_t num_icons, size_t frames_per_qr_icon);
-void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_t** script_textbox,
-    gui_view_node_t** multisig_textbox, gui_view_node_t** urtype_textbox);
+gui_activity_t* make_show_xpub_qr_activity(
+    const char* label, const char* pathstr, Icon* icons, size_t num_icons, size_t frames_per_qr_icon);
+gui_activity_t* make_xpub_qr_options_activity(
+    gui_view_node_t** script_textbox, gui_view_node_t** multisig_textbox, gui_view_node_t** urtype_textbox);
 
-void make_search_verify_address_activity(
-    gui_activity_t** activity_ptr, const char* pathstr, progress_bar_t* progress_bar, gui_view_node_t** index_text);
+gui_activity_t* make_search_verify_address_activity(
+    const char* pathstr, progress_bar_t* progress_bar, gui_view_node_t** index_text);
 
-void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, const char* label, Icon* icons,
-    size_t num_icons, size_t frames_per_qr_icon, bool show_options_button);
-void make_qr_options_activity(
-    gui_activity_t** activity_ptr, gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox);
+gui_activity_t* make_show_qr_activity(const char* title, const char* label, Icon* icons, size_t num_icons,
+    size_t frames_per_qr_icon, bool show_options_button);
+gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox);
 
 bool register_otp_string(const char* otp_uri, const size_t uri_len, const char** errmsg);
 int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg);
@@ -131,10 +130,8 @@ static script_variant_t xpub_script_variant_from_flags(const uint16_t qr_flags)
     return wrapped_segwit ? P2WPKH_P2SH : P2WPKH;
 }
 
-static void create_display_xpub_qr_activity(gui_activity_t** activity_ptr, const uint16_t qr_flags)
+static gui_activity_t* create_display_xpub_qr_activity(const uint16_t qr_flags)
 {
-    JADE_ASSERT(activity_ptr);
-
     const bool use_format_hdkey = false; // qr_flags & QR_XPUB_HDKEY;  - not currently in use
     const char* const xpub_qr_format = use_format_hdkey ? BCUR_TYPE_CRYPTO_HDKEY : BCUR_TYPE_CRYPTO_ACCOUNT;
     const script_variant_t script_variant = xpub_script_variant_from_flags(qr_flags);
@@ -165,20 +162,17 @@ static void create_display_xpub_qr_activity(gui_activity_t** activity_ptr, const
     JADE_ASSERT(ret);
     const char* label = qr_flags & QR_XPUB_MULTISIG ? "Multisig" : "Singlesig";
     const uint8_t frames_per_qr = qr_animation_speed_from_flags(qr_flags);
-    make_show_xpub_qr_activity(activity_ptr, label, pathstr, icons, num_icons, frames_per_qr);
-    JADE_ASSERT(*activity_ptr);
+    return make_show_xpub_qr_activity(label, pathstr, icons, num_icons, frames_per_qr);
 }
 
 static bool handle_xpub_options(uint16_t* qr_flags)
 {
     JADE_ASSERT(qr_flags);
 
-    gui_activity_t* activity = NULL;
     gui_view_node_t* script_textbox = NULL;
     gui_view_node_t* multisig_textbox = NULL;
     gui_view_node_t* urtype_textbox = NULL;
-    make_xpub_qr_options_activity(&activity, &script_textbox, &multisig_textbox, &urtype_textbox);
-    JADE_ASSERT(activity);
+    gui_activity_t* const act = make_xpub_qr_options_activity(&script_textbox, &multisig_textbox, &urtype_textbox);
     JADE_ASSERT(script_textbox);
     JADE_ASSERT(multisig_textbox);
     JADE_ASSERT(!urtype_textbox); // not currently in use
@@ -191,13 +185,13 @@ static bool handle_xpub_options(uint16_t* qr_flags)
         // gui_update_text(urtype_textbox, *qr_flags & QR_XPUB_HDKEY ? "HDKey" : "Account");  // not currently in use
 
         // Show, and await button click
-        gui_set_current_activity(activity);
+        gui_set_current_activity(act);
 
         int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_XPUB_EXIT;
@@ -234,19 +228,17 @@ void display_xpub_qr(void)
     uint16_t qr_flags = storage_get_qr_flags();
 
     // Create show xpub activity for those icons
-    gui_activity_t* activity = NULL;
-    create_display_xpub_qr_activity(&activity, qr_flags);
-    JADE_ASSERT(activity);
+    gui_activity_t* act = create_display_xpub_qr_activity(qr_flags);
 
     while (true) {
         // Show, and await button click
-        gui_set_current_activity(activity);
+        gui_set_current_activity(act);
 
         int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_XPUB_EXIT;
@@ -255,7 +247,7 @@ void display_xpub_qr(void)
             if (ev_id == BTN_XPUB_OPTIONS) {
                 if (handle_xpub_options(&qr_flags)) {
                     // Options were updated - re-create xpub screen
-                    create_display_xpub_qr_activity(&activity, qr_flags);
+                    act = create_display_xpub_qr_activity(qr_flags);
                 }
             } else if (ev_id == BTN_XPUB_EXIT) {
                 // Done
@@ -273,12 +265,10 @@ static bool select_multisig_record(char names[][MAX_MULTISIG_NAME_SIZE], const s
     JADE_INIT_OUT_SIZE(selected);
 
     // Otherwise offer choice of multisig names
-    gui_activity_t* activity = NULL;
     gui_view_node_t* item_text = NULL;
-    make_show_label_activity(&activity, "Multisig Address", "Select multisig wallet:", &item_text);
-    JADE_ASSERT(activity);
+    gui_activity_t* const act = make_show_label_activity("Multisig Address", "Select multisig wallet:", &item_text);
     JADE_ASSERT(item_text);
-    gui_set_current_activity(activity);
+    gui_set_current_activity(act);
 
     const size_t limit = num_names + 1;
     while (true) {
@@ -291,7 +281,7 @@ static bool select_multisig_record(char names[][MAX_MULTISIG_NAME_SIZE], const s
 
         // wait for a GUI event
         int32_t ev_id = 0;
-        gui_activity_wait_event(activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
         switch (ev_id) {
         case GUI_WHEEL_LEFT_EVENT:
@@ -425,19 +415,17 @@ static bool verify_address(const address_data_t* const addr_data)
         JADE_ASSERT(ret);
     }
 
-    gui_activity_t* activity = NULL;
     gui_view_node_t* index_text = NULL;
     progress_bar_t progress_bar = {};
-    make_search_verify_address_activity(&activity, label, &progress_bar, &index_text);
-    JADE_ASSERT(activity);
+    gui_activity_t* const act = make_search_verify_address_activity(label, &progress_bar, &index_text);
     JADE_ASSERT(index_text);
 
     // Make an event-data structure to track events - attached to the activity
-    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(activity);
+    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act);
     JADE_ASSERT(event_data);
 
     // ... and register against the activity - we will await btn events later
-    gui_activity_register_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+    gui_activity_register_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
 
     size_t index = 0;
     size_t confirmed_at_index = index;
@@ -445,7 +433,7 @@ static bool verify_address(const address_data_t* const addr_data)
     const size_t address_search_batch_size = ADDRESS_SEARCH_BATCH_SIZE(is_multisig);
     const size_t num_indexes_to_reconfirm = NUM_INDEXES_TO_RECONFIRM(is_multisig);
     while (!verified) {
-        gui_set_current_activity(activity);
+        gui_set_current_activity(act);
 
         // Update the progress bar and text label
         char idx_txt[12];
@@ -523,11 +511,9 @@ static bool handle_qr_options(uint16_t* qr_flags)
 {
     JADE_ASSERT(qr_flags);
 
-    gui_activity_t* activity = NULL;
     gui_view_node_t* density_textbox = NULL;
     gui_view_node_t* speed_textbox = NULL;
-    make_qr_options_activity(&activity, &density_textbox, &speed_textbox);
-    JADE_ASSERT(activity);
+    gui_activity_t* const act = make_qr_options_activity(&density_textbox, &speed_textbox);
     JADE_ASSERT(density_textbox);
     JADE_ASSERT(speed_textbox);
 
@@ -538,13 +524,13 @@ static bool handle_qr_options(uint16_t* qr_flags)
         gui_update_text(speed_textbox, qr_animation_speed_desc_from_flags(*qr_flags));
 
         // Show, and await button click
-        gui_set_current_activity(activity);
+        gui_set_current_activity(act);
 
         int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_XPUB_EXIT;
@@ -577,10 +563,9 @@ static bool handle_qr_options(uint16_t* qr_flags)
 }
 
 // Create activity to display (potentially multi-frame/animated) qr
-static void create_display_bcur_qr_activity(gui_activity_t** activity_ptr, const char* title, const char* label,
-    const char* bcur_type, const uint8_t* cbor, const size_t cbor_len, const uint16_t qr_flags)
+static gui_activity_t* create_display_bcur_qr_activity(const char* title, const char* label, const char* bcur_type,
+    const uint8_t* cbor, const size_t cbor_len, const uint16_t qr_flags)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(bcur_type);
@@ -596,8 +581,7 @@ static void create_display_bcur_qr_activity(gui_activity_t** activity_ptr, const
     // Create qr activity for those icons
     const bool show_options_button = true;
     const uint8_t frames_per_qr = qr_animation_speed_from_flags(qr_flags);
-    make_show_qr_activity(activity_ptr, title, label, icons, num_icons, frames_per_qr, show_options_button);
-    JADE_ASSERT(*activity_ptr);
+    return make_show_qr_activity(title, label, icons, num_icons, frames_per_qr, show_options_button);
 }
 
 // Display a QR code, with access to size_speed options
@@ -617,19 +601,17 @@ static void display_bcur_qr(
     idletimer_set_min_timeout_secs(BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS);
 
     // Create show psbt activity for those icons
-    gui_activity_t* activity = NULL;
-    create_display_bcur_qr_activity(&activity, title, label, bcur_type, cbor, cbor_len, qr_flags);
-    JADE_ASSERT(activity);
+    gui_activity_t* act = create_display_bcur_qr_activity(title, label, bcur_type, cbor, cbor_len, qr_flags);
 
     while (true) {
         // Show, and await button click
-        gui_set_current_activity(activity);
+        gui_set_current_activity(act);
 
         int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_QR_DISPLAY_EXIT;
@@ -639,7 +621,7 @@ static void display_bcur_qr(
                 if (handle_qr_options(&qr_flags)) {
                     // Options were updated - re-create psbt qr screen
                     display_message_activity("Processing...");
-                    create_display_bcur_qr_activity(&activity, title, label, bcur_type, cbor, cbor_len, qr_flags);
+                    act = create_display_bcur_qr_activity(title, label, bcur_type, cbor, cbor_len, qr_flags);
                 }
             } else if (ev_id == BTN_QR_DISPLAY_EXIT) {
                 // Done
@@ -945,15 +927,13 @@ void await_single_qr_activity(const char* title, const char* label, const uint8_
     bytes_to_qr_icon(data, data_len, large_icons, qr_icon);
 
     // Show, and await button click - note gui takes ownership of icon
-    gui_activity_t* activity = NULL;
-    make_show_qr_activity(&activity, title, label, qr_icon, 1, 0, false);
-    JADE_ASSERT(activity);
-    gui_set_current_activity(activity);
+    gui_activity_t* const act = make_show_qr_activity(title, label, qr_icon, 1, 0, false);
+    gui_set_current_activity(act);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL, 0);
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL, 0);
 #else
-    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL,
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL,
         CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
 #endif
 }
@@ -972,15 +952,13 @@ void await_qr_help_activity(const char* url)
     bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
 
     // Show, and await button click - note gui takes ownership of icon
-    gui_activity_t* activity = NULL;
-    make_show_qr_help_activity(&activity, url, qr_icon);
-    JADE_ASSERT(activity);
-    gui_set_current_activity(activity);
+    gui_activity_t* const act = make_show_qr_help_activity(url, qr_icon);
+    gui_set_current_activity(act);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_EXIT_QR_HELP, NULL, NULL, NULL, 0);
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_EXIT_QR_HELP, NULL, NULL, NULL, 0);
 #else
-    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, BTN_EXIT_QR_HELP, NULL, NULL, NULL,
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_EXIT_QR_HELP, NULL, NULL, NULL,
         CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
 #endif
 }
@@ -1000,16 +978,14 @@ bool await_qr_yesno_activity(const char* title, const char* label, const char* u
     bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
 
     // Show, and await button click
-    gui_activity_t* activity = NULL;
-    make_show_qr_yesno_activity(&activity, title, label, url, qr_icon, default_selection);
-    JADE_ASSERT(activity);
-    gui_set_current_activity(activity);
+    gui_activity_t* const act = make_show_qr_yesno_activity(title, label, url, qr_icon, default_selection);
+    gui_set_current_activity(act);
 
     int32_t ev_id = 0;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
         CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const bool ret = true;
     ev_id = BTN_YES;

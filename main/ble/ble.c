@@ -60,7 +60,7 @@ static const size_t ATT_OVERHEAD = 3;
 static size_t ble_max_write_size = CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU - ATT_OVERHEAD;
 static TaskHandle_t* ble_writer_handle = NULL;
 
-void make_ble_confirmation_activity(gui_activity_t** activity_ptr, const uint32_t numcmp);
+gui_activity_t* make_ble_confirmation_activity(const uint32_t numcmp);
 
 int ble_get_mac(char* mac, size_t length)
 {
@@ -704,21 +704,19 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             JADE_LOGI("Passkey on device's display: %ld", event->passkey.params.numcmp);
 
             // Display passkey on Jade GUI and get confirm/deny response - assume deny after timeout
-            gui_activity_t* prior_activity = gui_current_activity();
-            gui_activity_t* activity = NULL;
-            make_ble_confirmation_activity(&activity, event->passkey.params.numcmp);
-            JADE_ASSERT(activity);
+            gui_activity_t* const prior_activity = gui_current_activity();
+            gui_activity_t* const act = make_ble_confirmation_activity(event->passkey.params.numcmp);
 
             JADE_LOGI("Showing BLE confirm screen");
             int32_t ev_id;
-            gui_set_current_activity(activity);
+            gui_set_current_activity(act);
 
 // In a debug unattended ci build, assume 'confirm' button clicked after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
             const bool ret = gui_activity_wait_event(
-                activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 30000 / portTICK_PERIOD_MS);
+                act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 30000 / portTICK_PERIOD_MS);
 #else
-            gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
                 CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
             const bool ret = true;
             ev_id = BTN_BLE_CONFIRM;
@@ -758,7 +756,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             }
 
             // Replace prior activity if we're still current
-            if (gui_current_activity() == activity) {
+            if (gui_current_activity() == act) {
                 gui_set_current_activity(prior_activity);
             }
         } else if (event->passkey.params.action == BLE_SM_IOACT_DISP) {

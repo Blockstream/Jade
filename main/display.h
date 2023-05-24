@@ -10,7 +10,7 @@
 
 void display_init(void);
 
-void display_splash(gui_activity_t** ppact);
+gui_activity_t* display_splash(void);
 
 bool display_is_orientation_flipped(void);
 void display_toggle_orientation(void);

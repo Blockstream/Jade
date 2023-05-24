@@ -11,7 +11,7 @@
 
 #include "process_utils.h"
 
-void make_confirm_otp_activity(gui_activity_t** activity_ptr, const otpauth_ctx_t* ctx);
+gui_activity_t* make_confirm_otp_activity(const otpauth_ctx_t* ctx);
 
 static bool validate_otp_name(const char* otp_name, const char** errmsg)
 {
@@ -65,9 +65,7 @@ static int handle_new_otp_uri(const char* otp_name, const char* otp_uri, const s
     }
 
     // Get user to confirm saving otp record
-    gui_activity_t* act = NULL;
-    make_confirm_otp_activity(&act, &otp_ctx);
-    JADE_ASSERT(act);
+    gui_activity_t* const act = make_confirm_otp_activity(&otp_ctx);
     gui_set_current_activity(act);
 
     int32_t ev_id;

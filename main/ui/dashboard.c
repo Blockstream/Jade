@@ -13,11 +13,9 @@
 #include "../logo/telec.c"
 #endif
 
-void make_startup_options_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_startup_options_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     btn_data_t btns[]
         = { { .txt = "Factory Reset", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
@@ -29,7 +27,9 @@ void make_startup_options_screen(gui_activity_t** activity_ptr)
               { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT },
               { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } }; // spacer
 #endif
-    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+
+    return act;
 }
 
 // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
@@ -87,7 +87,7 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_make_activity(activity_ptr);
+    *activity_ptr = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 34, 34, 32);
@@ -113,121 +113,6 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     add_buttons(vsplit, UI_ROW, btns, 2);
 }
 
-void make_connect_qrmode_screen(gui_activity_t** activity_ptr, const char* device_name)
-{
-    JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(device_name);
-
-    gui_make_activity(activity_ptr);
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 28, 72);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    // Text
-    gui_view_node_t* text;
-    gui_make_text(&text, "How do you want to access\nQR Mode ?", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 2, 0, 0, 2);
-    gui_set_parent(text, vsplit);
-
-    // Buttons
-    btn_data_t btns[] = { { .txt = "QR PIN Unlock", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_PIN },
-        { .txt = "Scan SeedQR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_SCAN },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK } };
-    add_buttons(vsplit, UI_COLUMN, btns, 3);
-}
-
-// NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
-// in the list of activities to be freed by 'set_current_activity_ex()' calls.
-// It must be freed by the caller.
-void make_welcome_back_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
-{
-    JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(device_name);
-    JADE_ASSERT(firmware_version);
-
-    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
-    gui_make_activity_ex(activity_ptr, true, device_name, false);
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 36, 32, 32);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    // first row, text
-    gui_view_node_t* text;
-    gui_make_text(&text, "Connect Jade to a companion\napp or choose more options", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 8, 4, 0, 4);
-    gui_set_parent(text, vsplit);
-
-    // second row, fw version
-    char buf[64];
-    const size_t fwverlen = strlen(firmware_version);
-    const int ret = snprintf(buf, sizeof(buf), "%s%s", fwverlen <= 20 ? "Firmware: " : "", firmware_version);
-    JADE_ASSERT(ret > 0); // ignore any truncation of overlong version string
-
-    gui_view_node_t* ver;
-    gui_make_text(&ver, buf, TFT_WHITE);
-    gui_set_align(ver, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(ver, vsplit);
-
-    // third row, buttons
-    btn_data_t btns[] = { { .txt = "Connect", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT },
-        { .txt = "QR Mode", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_MODE },
-        { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
-}
-
-void make_connection_select_screen(gui_activity_t** activity_ptr, const bool temporary_restore)
-{
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    gui_view_node_t* text;
-    gui_make_text(&text, "How do you want to interact\nwith your Jade?", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
-    gui_set_parent(text, vsplit);
-
-    // One, two or three buttons, depending on whether QR and/or Bluetooth are available in the build
-    // Also, a 'recovery phrase login' puts 'QR'(mode) first, whereas a standard initialisation puts QR last!
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    const char* qr_label = "QR";
-    const uint32_t qr_ev_id = BTN_CONNECT_VIA_QR;
-#else
-    const char* qr_label = NULL;
-    const uint32_t qr_ev_id = GUI_BUTTON_EVENT_NONE;
-#endif
-
-#ifdef CONFIG_BT_ENABLED
-    const char* ble_label = "Bluetooth";
-    const uint32_t ble_ev_id = BTN_CONNECT_VIA_BLE;
-#else
-    const char* ble_label = NULL;
-    const uint32_t ble_ev_id = GUI_BUTTON_EVENT_NONE;
-#endif
-
-    if (temporary_restore) {
-        // QR, USB, BLE
-        btn_data_t btns[] = { { .txt = qr_label, .font = GUI_DEFAULT_FONT, .ev_id = qr_ev_id },
-            { .txt = "USB", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_VIA_USB },
-            { .txt = ble_label, .font = GUI_DEFAULT_FONT, .ev_id = ble_ev_id } };
-        add_buttons(vsplit, UI_ROW, btns, 3);
-    } else {
-        // USB, BLE, QR
-        btn_data_t btns[] = { { .txt = "USB", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_VIA_USB },
-            { .txt = ble_label, .font = GUI_DEFAULT_FONT, .ev_id = ble_ev_id },
-            { .txt = qr_label, .font = GUI_DEFAULT_FONT, .ev_id = qr_ev_id } };
-        add_buttons(vsplit, UI_ROW, btns, 3);
-    }
-}
-
 void make_connect_to_screen(
     gui_activity_t** activity_ptr, const char* device_name, const jade_msg_source_t initialisation_source)
 {
@@ -238,7 +123,7 @@ void make_connect_to_screen(
     const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
     JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    gui_make_activity(activity_ptr);
+    *activity_ptr = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
@@ -369,18 +254,133 @@ void make_ready_screen(
     }
 }
 
-void make_bip39_passphrase_prefs_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox)
+gui_activity_t* make_connect_qrmode_screen(const char* device_name)
+{
+    JADE_ASSERT(device_name);
+
+    gui_activity_t* const act = gui_make_activity();
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 28, 72);
+    gui_set_parent(vsplit, act->root_node);
+
+    // Text
+    gui_view_node_t* text;
+    gui_make_text(&text, "How do you want to access\nQR Mode ?", TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 2, 0, 0, 2);
+    gui_set_parent(text, vsplit);
+
+    // Buttons
+    btn_data_t btns[] = { { .txt = "QR PIN Unlock", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_PIN },
+        { .txt = "Scan SeedQR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_SCAN },
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK } };
+    add_buttons(vsplit, UI_COLUMN, btns, 3);
+
+    return act;
+}
+
+// NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
+// in the list of activities to be freed by 'set_current_activity_ex()' calls.
+// It must be freed by the caller.
+void make_welcome_back_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
 {
     JADE_ASSERT(activity_ptr);
+    JADE_ASSERT(device_name);
+    JADE_ASSERT(firmware_version);
+
+    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
+    gui_make_activity_ex(activity_ptr, true, device_name, false);
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 36, 32, 32);
+    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+
+    // first row, text
+    gui_view_node_t* text;
+    gui_make_text(&text, "Connect Jade to a companion\napp or choose more options", TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 8, 4, 0, 4);
+    gui_set_parent(text, vsplit);
+
+    // second row, fw version
+    char buf[64];
+    const size_t fwverlen = strlen(firmware_version);
+    const int ret = snprintf(buf, sizeof(buf), "%s%s", fwverlen <= 20 ? "Firmware: " : "", firmware_version);
+    JADE_ASSERT(ret > 0); // ignore any truncation of overlong version string
+
+    gui_view_node_t* ver;
+    gui_make_text(&ver, buf, TFT_WHITE);
+    gui_set_align(ver, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(ver, vsplit);
+
+    // third row, buttons
+    btn_data_t btns[] = { { .txt = "Connect", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT },
+        { .txt = "QR Mode", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_MODE },
+        { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS } };
+    add_buttons(vsplit, UI_ROW, btns, 3);
+}
+
+gui_activity_t* make_connection_select_screen(const bool temporary_restore)
+{
+    gui_activity_t* const act = gui_make_activity();
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
+    gui_set_parent(vsplit, act->root_node);
+
+    gui_view_node_t* text;
+    gui_make_text(&text, "How do you want to interact\nwith your Jade?", TFT_WHITE);
+    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
+    gui_set_parent(text, vsplit);
+
+    // One, two or three buttons, depending on whether QR and/or Bluetooth are available in the build
+    // Also, a 'recovery phrase login' puts 'QR'(mode) first, whereas a standard initialisation puts QR last!
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    const char* qr_label = "QR";
+    const uint32_t qr_ev_id = BTN_CONNECT_VIA_QR;
+#else
+    const char* qr_label = NULL;
+    const uint32_t qr_ev_id = GUI_BUTTON_EVENT_NONE;
+#endif
+
+#ifdef CONFIG_BT_ENABLED
+    const char* ble_label = "Bluetooth";
+    const uint32_t ble_ev_id = BTN_CONNECT_VIA_BLE;
+#else
+    const char* ble_label = NULL;
+    const uint32_t ble_ev_id = GUI_BUTTON_EVENT_NONE;
+#endif
+
+    if (temporary_restore) {
+        // QR, USB, BLE
+        btn_data_t btns[] = { { .txt = qr_label, .font = GUI_DEFAULT_FONT, .ev_id = qr_ev_id },
+            { .txt = "USB", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_VIA_USB },
+            { .txt = ble_label, .font = GUI_DEFAULT_FONT, .ev_id = ble_ev_id } };
+        add_buttons(vsplit, UI_ROW, btns, 3);
+    } else {
+        // USB, BLE, QR
+        btn_data_t btns[] = { { .txt = "USB", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_VIA_USB },
+            { .txt = ble_label, .font = GUI_DEFAULT_FONT, .ev_id = ble_ev_id },
+            { .txt = qr_label, .font = GUI_DEFAULT_FONT, .ev_id = qr_ev_id } };
+        add_buttons(vsplit, UI_ROW, btns, 3);
+    }
+
+    return act;
+}
+
+gui_activity_t* make_bip39_passphrase_prefs_screen(
+    gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox)
+{
     JADE_INIT_OUT_PPTR(frequency_textbox);
     JADE_INIT_OUT_PPTR(method_textbox);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -438,13 +438,13 @@ void make_bip39_passphrase_prefs_screen(
     btn_data_t btns[] = { { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PASSPHRASE_OPTIONS_EXIT },
         { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PASSPHRASE_OPTIONS_HELP } };
     add_buttons(vsplit, UI_ROW, btns, 2);
+
+    return act;
 }
 
-void make_uninitialised_settings_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_uninitialised_settings_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     // Note: placeholder in second position - timeout button set into this slot below
     btn_data_t btns[]
@@ -452,14 +452,14 @@ void make_uninitialised_settings_screen(gui_activity_t** activity_ptr)
               { .txt = "BIP39 Passphrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
               { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
-    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+
+    return act;
 }
 
-void make_locked_settings_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_locked_settings_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     btn_data_t btns[] = {
         { .txt = "BIP39 Passphrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
@@ -467,58 +467,58 @@ void make_locked_settings_screen(gui_activity_t** activity_ptr)
         { .txt = "Recovery Phrase Login", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT }
     };
-    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+
+    return act;
 }
 
-void make_unlocked_settings_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_unlocked_settings_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     btn_data_t btns[] = { { .txt = "Wallet", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET },
         { .txt = "Device", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
         { .txt = "Advanced", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
-    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+
+    return act;
 }
 
-void make_wallet_settings_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_wallet_settings_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     btn_data_t btns[] = { { .txt = "Xpub Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_XPUB_EXPORT },
         { .txt = "Registered Multisigs", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
         { .txt = "BIP85 Recovery Phrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP85 },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_WALLET_EXIT } };
-    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+
+    return act;
 }
 
-void make_device_settings_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_device_settings_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     // Note: placeholder in first position - timeout button set into this slot below
     btn_data_t btns[] = { { .txt = "Power Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
         { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
         { .txt = "Factory Reset", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DEVICE_EXIT } };
-    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+
+    return act;
 }
 
-void make_power_options_screen(
-    gui_activity_t** activity_ptr, btn_data_t* timeout_btns, const size_t nBtns, progress_bar_t* brightness_bar)
+gui_activity_t* make_power_options_screen(btn_data_t* timeout_btns, const size_t nBtns, progress_bar_t* brightness_bar)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(timeout_btns);
     JADE_ASSERT(nBtns == 7);
     JADE_ASSERT(brightness_bar);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
@@ -527,7 +527,7 @@ void make_power_options_screen(
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 25, 25, 30);
 #endif
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // Idle timeout
     {
@@ -619,18 +619,18 @@ void make_power_options_screen(
         gui_set_parent(text, btn);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     }
+
+    return act;
 }
 
-void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr)
+gui_activity_t* make_wallet_erase_pin_info_activity(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     const char* msg = "A wallet-erase PIN will erase the\nrecovery phrase and show\n\"Internal Error\".\nMake sure "
                       "your recovery\nphrase is backed up.";
@@ -644,19 +644,20 @@ void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr)
     btn_data_t btns[] = { { .txt = "Cancel", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_EXIT },
         { .txt = "I understand", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_SET } };
     add_buttons(vsplit, UI_ROW, btns, 2);
+
+    return act;
 }
 
-void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr)
+gui_activity_t* make_wallet_erase_pin_options_activity(const char* pinstr)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(pinstr);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     char msg[64];
     const int ret = snprintf(msg, sizeof(msg), "\nA wallet-erase PIN is enabled:\n%20s", pinstr);
@@ -672,59 +673,59 @@ void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const
         { .txt = "Change", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_SET },
         { .txt = "Disable", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_DISABLE } };
     add_buttons(vsplit, UI_ROW, btns, 3);
+
+    return act;
 }
 
-void make_advanced_options_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_advanced_options_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     btn_data_t btns[] = { { .txt = "OTP", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
         { .txt = "Wallet-Erase PIN", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
         //{ .txt = "Nostr", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_NOSTR },  ??
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_ADVANCED_EXIT },
         { .txt = NULL, .font = JADE_SYMBOLS_16x16_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
-    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+
+    return act;
 }
 
-void make_otp_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_otp_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     btn_data_t btns[] = { { .txt = "View OTPs", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_VIEW },
         { .txt = "Scan New OTP QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
         { .txt = "Enter New OTP URI", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_KB },
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_OTP_EXIT } };
-    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+
+    return act;
 }
 
-void make_pinserver_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_pinserver_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     btn_data_t btns[]
         = { { .txt = "View PinServer Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SHOW },
               { .txt = "Scan Custom PinServer", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SCAN_QR },
               { .txt = "Reset PinServer Defaults ", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_RESET },
               { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PINSERVER_EXIT } };
-    add_buttons((*activity_ptr)->root_node, UI_COLUMN, btns, 4);
+    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+
+    return act;
 }
 
-void make_session_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_session_screen(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     gui_view_node_t* text;
     gui_make_text(&text, "\nLogout of current wallet or \nput Jade into sleep mode?", TFT_WHITE);
@@ -736,20 +737,21 @@ void make_session_screen(gui_activity_t** activity_ptr)
         { .txt = "Logout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SESSION_LOGOUT },
         { .txt = "Sleep", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SESSION_SLEEP } };
     add_buttons(vsplit, UI_ROW, btns, 3);
+
+    return act;
 }
 
-void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** ble_status_textbox)
+gui_activity_t* make_ble_screen(const char* device_name, gui_view_node_t** ble_status_textbox)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
     JADE_INIT_OUT_PPTR(ble_status_textbox);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -826,6 +828,8 @@ void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
+
+    return act;
 }
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
@@ -842,8 +846,7 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
 {
     JADE_ASSERT(page_act);
 
-    gui_activity_t* act = NULL;
-    gui_make_activity(&act);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 63, 37);
@@ -960,10 +963,8 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
     page_act->next_button = (legal_page == MAX_LEGAL_PAGE) ? NULL : btns[1].btn;
 }
 
-void make_legal_screen(gui_activity_t** first_activity_ptr)
+gui_activity_t* make_legal_screen(void)
 {
-    JADE_ASSERT(first_activity_ptr);
-
     // Chain the legal screen activities
     link_activity_t page_act = {};
     linked_activities_info_t act_info = {};
@@ -973,24 +974,22 @@ void make_legal_screen(gui_activity_t** first_activity_ptr)
         gui_chain_activities(&page_act, &act_info);
     }
 
-    *first_activity_ptr = act_info.first_activity;
+    return act_info.first_activity;
 }
 #endif
 
-void make_device_screen(
-    gui_activity_t** activity_ptr, const char* power_status, const char* mac, const char* firmware_version)
+gui_activity_t* make_device_screen(const char* power_status, const char* mac, const char* firmware_version)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(power_status);
     JADE_ASSERT(mac);
     JADE_ASSERT(firmware_version);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 21, 21, 21, 37);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -1051,13 +1050,13 @@ void make_device_screen(
         { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_INFO_EXIT } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 #endif
+
+    return act;
 }
 
-void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entries_used, const size_t entries_free)
+gui_activity_t* make_storage_stats_screen(const size_t entries_used, const size_t entries_free)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     const size_t entries_total = entries_used + entries_free;
     char buf[16];
@@ -1065,7 +1064,7 @@ void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entri
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 20, 20, 40);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -1142,4 +1141,6 @@ void make_storage_stats_screen(gui_activity_t** activity_ptr, const size_t entri
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
+
+    return act;
 }

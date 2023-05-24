@@ -128,17 +128,16 @@ static bool populate_otp_screen(gui_view_node_t* parent, const otpauth_ctx_t* ct
     return true;
 }
 
-void make_confirm_otp_activity(gui_activity_t** activity_ptr, const otpauth_ctx_t* ctx)
+gui_activity_t* make_confirm_otp_activity(const otpauth_ctx_t* ctx)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(otp_is_valid(ctx));
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // Populate otp data - 4 rows
     const bool valid = populate_otp_screen(vsplit, ctx, true);
@@ -148,23 +147,25 @@ void make_confirm_otp_activity(gui_activity_t** activity_ptr, const otpauth_ctx_
     btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_EXIT },
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTP_CONFIRM } };
     add_buttons(vsplit, UI_ROW, btns, 2);
+
+    return act;
 }
 
-void make_view_otp_activity(
-    gui_activity_t** activity_ptr, const size_t index, const size_t total, const bool valid, const otpauth_ctx_t* ctx)
+gui_activity_t* make_view_otp_activity(
+    const size_t index, const size_t total, const bool valid, const otpauth_ctx_t* ctx)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(ctx);
 
     char header[16];
     const int ret = snprintf(header, sizeof(header), "OTP %d/%d", index, total);
     JADE_ASSERT(ret > 0 && ret < sizeof(header));
-    gui_make_activity(activity_ptr);
+
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 4, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // Populate otp data
     populate_otp_screen(vsplit, ctx, valid);
@@ -190,22 +191,22 @@ void make_view_otp_activity(
     add_buttons(vsplit, UI_ROW, btns, 3);
 
     // Set the intially selected item to the 'Next' button (ie. btn[2])
-    gui_set_activity_initial_selection(*activity_ptr, btns[2].btn);
+    gui_set_activity_initial_selection(act, btns[2].btn);
+
+    return act;
 }
 
-void make_show_hotp_code_activity(
-    gui_activity_t** activity_ptr, const char* name, const char* codestr, const bool cancel_button)
+gui_activity_t* make_show_hotp_code_activity(const char* name, const char* codestr, const bool cancel_button)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(name);
     JADE_ASSERT(codestr);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 4, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // Display the OTP code large/central
     gui_view_node_t* txtvalue;
@@ -232,13 +233,13 @@ void make_show_hotp_code_activity(
         gui_set_parent(text, btn);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     }
+
+    return act;
 }
 
-void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* name, const char* timestr,
-    const char* codestr, const bool cancel_button, progress_bar_t* progress_bar, gui_view_node_t** txt_ts,
-    gui_view_node_t** txt_code)
+gui_activity_t* make_show_totp_code_activity(const char* name, const char* timestr, const char* codestr,
+    const bool cancel_button, progress_bar_t* progress_bar, gui_view_node_t** txt_ts, gui_view_node_t** txt_code)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(name);
     JADE_ASSERT(timestr);
     JADE_ASSERT(codestr);
@@ -246,12 +247,12 @@ void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* nam
     JADE_INIT_OUT_PPTR(txt_ts);
     JADE_INIT_OUT_PPTR(txt_code);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 17, 18, 35, 30);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 4, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // Display timestamp string
     {
@@ -303,4 +304,6 @@ void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* nam
             { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } }; // spacer
         add_buttons(vsplit, UI_ROW, btns, 3);
     }
+
+    return act;
 }

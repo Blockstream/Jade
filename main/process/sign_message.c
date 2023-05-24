@@ -11,8 +11,7 @@
 
 #include <wally_anti_exfil.h>
 
-void make_sign_message_activity(
-    gui_activity_t** activity_ptr, const char* msg_str, size_t msg_len, bool is_hash, const char* path_as_str);
+gui_activity_t* make_sign_message_activity(const char* msg_str, size_t msg_len, bool is_hash, const char* path_as_str);
 
 static const char SIGN_MESSAGE_FILE_PREFIX[] = "signmessage";
 static const char SIGN_MESSAGE_FILE_LABEL_ASCII[] = "ascii";
@@ -36,24 +35,23 @@ static bool confirm_sign_message(
     const char* message, const size_t msg_len, const uint8_t* message_hash, const size_t hash_len, const char* pathstr)
 {
     char* message_hex = NULL;
-    gui_activity_t* activity = NULL;
+    gui_activity_t* act = NULL;
     if (msg_len < MAX_DISPLAY_MESSAGE_LEN) {
         // Sufficiently short message - display the message
-        make_sign_message_activity(&activity, message, msg_len, false, pathstr);
+        act = make_sign_message_activity(message, msg_len, false, pathstr);
     } else {
         // Overlong message - display the hash
         JADE_WALLY_VERIFY(wally_hex_from_bytes(message_hash, sizeof(message_hash), &message_hex));
-        make_sign_message_activity(&activity, message_hex, strlen(message_hex), true, pathstr);
+        act = make_sign_message_activity(message_hex, strlen(message_hex), true, pathstr);
     }
-    JADE_ASSERT(activity);
-    gui_set_current_activity(activity);
+    gui_set_current_activity(act);
 
     int32_t ev_id;
     // In a debug unattended ci build, assume 'accept' button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
         CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const bool ret = true;
     ev_id = BTN_ACCEPT_SIGNATURE;

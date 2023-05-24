@@ -23,10 +23,9 @@ static const char MSIG_FILE_FORMAT[] = "Format";
 static const char MSIG_FILE_POLICY[] = "Policy";
 static const char MSIG_FILE_DERIVATION[] = "Derivation";
 
-void make_confirm_multisig_activity(const char* multisig_name, bool sorted, size_t threshold, const signer_t* signers,
-    size_t num_signers, const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len,
-    const uint8_t* master_blinding_key, size_t master_blinding_key_len, bool overwriting,
-    gui_activity_t** first_activity);
+gui_activity_t* make_confirm_multisig_activity(const char* multisig_name, bool sorted, size_t threshold,
+    const signer_t* signers, size_t num_signers, const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len,
+    const uint8_t* master_blinding_key, size_t master_blinding_key_len, bool overwriting);
 
 // Function to validate multsig parameters and persist the record
 static int register_multisig(const char* multisig_name, const char* network, const script_variant_t script_variant,
@@ -94,10 +93,9 @@ static int register_multisig(const char* multisig_name, const char* network, con
         }
     }
 
-    gui_activity_t* first_activity = NULL;
-    make_confirm_multisig_activity(multisig_name, sorted, threshold, signers, num_signers, wallet_fingerprint,
-        sizeof(wallet_fingerprint), master_blinding_key, master_blinding_key_len, overwriting, &first_activity);
-    JADE_ASSERT(first_activity);
+    gui_activity_t* const first_activity
+        = make_confirm_multisig_activity(multisig_name, sorted, threshold, signers, num_signers, wallet_fingerprint,
+            sizeof(wallet_fingerprint), master_blinding_key, master_blinding_key_len, overwriting);
     gui_set_current_activity(first_activity);
 
     // ----------------------------------

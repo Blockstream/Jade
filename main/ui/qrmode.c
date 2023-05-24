@@ -2,20 +2,19 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label, const char* pathstr, Icon* icons,
-    const size_t num_icons, const size_t frames_per_qr_icon)
+gui_activity_t* make_show_xpub_qr_activity(
+    const char* label, const char* pathstr, Icon* icons, const size_t num_icons, const size_t frames_per_qr_icon)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(label);
     JADE_ASSERT(pathstr);
     JADE_ASSERT(icons);
     JADE_ASSERT(num_icons);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 42, 58);
-    gui_set_parent(hsplit, (*activity_ptr)->root_node);
+    gui_set_parent(hsplit, act->root_node);
 
     // LHS
     gui_view_node_t* vsplit;
@@ -50,7 +49,7 @@ void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label
     add_buttons(vsplit, UI_COLUMN, btns, 2);
 
     // Select 'exit' as the default button
-    gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+    gui_set_activity_initial_selection(act, btns[1].btn);
 
     // RHS - QR icons
     gui_view_node_t* bg_fill_node;
@@ -62,21 +61,22 @@ void make_show_xpub_qr_activity(gui_activity_t** activity_ptr, const char* label
     gui_set_align(icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(icon_node, bg_fill_node);
     gui_set_icon_animation(icon_node, icons, num_icons, frames_per_qr_icon);
+
+    return act;
 }
 
-void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_t** script_textbox,
-    gui_view_node_t** multisig_textbox, gui_view_node_t** urtype_textbox)
+gui_activity_t* make_xpub_qr_options_activity(
+    gui_view_node_t** script_textbox, gui_view_node_t** multisig_textbox, gui_view_node_t** urtype_textbox)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_INIT_OUT_PPTR(script_textbox);
     JADE_INIT_OUT_PPTR(multisig_textbox);
     JADE_INIT_OUT_PPTR(urtype_textbox);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -158,20 +158,21 @@ void make_xpub_qr_options_activity(gui_activity_t** activity_ptr, gui_view_node_
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_OPTIONS_EXIT },
         { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP } };
     add_buttons(vsplit, UI_ROW, btns, 2);
+
+    return act;
 }
 
-void make_search_verify_address_activity(
-    gui_activity_t** activity_ptr, const char* root_label, progress_bar_t* progress_bar, gui_view_node_t** index_text)
+gui_activity_t* make_search_verify_address_activity(
+    const char* root_label, progress_bar_t* progress_bar, gui_view_node_t** index_text)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(progress_bar);
     JADE_ASSERT(index_text);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -221,21 +222,21 @@ void make_search_verify_address_activity(
     add_buttons(vsplit, UI_ROW, btns, 2);
 
     // Select 'Skip' button by default
-    gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+    gui_set_activity_initial_selection(act, btns[1].btn);
+
+    return act;
 }
 
-void make_qr_options_activity(
-    gui_activity_t** activity_ptr, gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox)
+gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** speed_textbox)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_INIT_OUT_PPTR(density_textbox);
     JADE_INIT_OUT_PPTR(speed_textbox);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     {
         gui_view_node_t* hsplit;
@@ -293,24 +294,25 @@ void make_qr_options_activity(
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_OPTIONS_EXIT },
         { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS_HELP } };
     add_buttons(vsplit, UI_ROW, btns, 2);
+
+    return act;
 }
 
 // NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
-void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, const char* label, Icon* icons,
-    const size_t num_icons, const size_t frames_per_qr_icon, const bool show_options_button)
+gui_activity_t* make_show_qr_activity(const char* title, const char* label, Icon* icons, const size_t num_icons,
+    const size_t frames_per_qr_icon, const bool show_options_button)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(icons);
     JADE_ASSERT(num_icons);
     JADE_ASSERT(frames_per_qr_icon || num_icons == 1);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 42, 58);
-    gui_set_parent(hsplit, (*activity_ptr)->root_node);
+    gui_set_parent(hsplit, act->root_node);
 
     // LHS
     gui_view_node_t* vsplit;
@@ -339,7 +341,7 @@ void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, con
         add_buttons(vsplit, UI_COLUMN, btns, 2);
 
         // Select 'exit' as the default button
-        gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+        gui_set_activity_initial_selection(act, btns[1].btn);
     } else {
         btn_data_t btns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT } };
@@ -356,22 +358,23 @@ void make_show_qr_activity(gui_activity_t** activity_ptr, const char* title, con
     gui_set_align(icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(icon_node, bg_fill_node);
     gui_set_icon_animation(icon_node, icons, num_icons, frames_per_qr_icon);
+
+    return act;
 }
 
 // NOTE: 'qr_icon' passed in here must be heap-allocated as the gui element takes ownership
-void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, Icon* qr_icon)
+gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(url);
     JADE_ASSERT(qr_icon);
     JADE_ASSERT(qr_icon->width <= 100);
     JADE_ASSERT(qr_icon->height <= 100);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 56, 44);
-    gui_set_parent(hsplit, (*activity_ptr)->root_node);
+    gui_set_parent(hsplit, act->root_node);
 
     // LHS
     {
@@ -430,24 +433,25 @@ void make_show_qr_help_activity(gui_activity_t** activity_ptr, const char* url, 
         gui_make_fill(&lower, TFT_BLACK);
         gui_set_parent(lower, vsplit);
     }
+
+    return act;
 }
 
 // NOTE: 'qr_icon' passed in here must be heap-allocated as the gui element takes ownership
-void make_show_qr_yesno_activity(gui_activity_t** activity_ptr, const char* title, const char* label, const char* url,
-    Icon* qr_icon, const bool default_selection)
+gui_activity_t* make_show_qr_yesno_activity(
+    const char* title, const char* label, const char* url, Icon* qr_icon, const bool default_selection)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     JADE_ASSERT(label);
     JADE_ASSERT(qr_icon);
     JADE_ASSERT(qr_icon->width <= 100);
     JADE_ASSERT(qr_icon->height <= 100);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 56, 44);
-    gui_set_parent(hsplit, (*activity_ptr)->root_node);
+    gui_set_parent(hsplit, act->root_node);
 
     // LHS
     {
@@ -483,7 +487,7 @@ void make_show_qr_yesno_activity(gui_activity_t** activity_ptr, const char* titl
         add_buttons(vsplit, UI_ROW, btns, 2);
 
         // Select default button
-        gui_set_activity_initial_selection(*activity_ptr, default_selection ? btns[1].btn : btns[0].btn);
+        gui_set_activity_initial_selection(act, default_selection ? btns[1].btn : btns[0].btn);
     }
 
     // RHS - QR icon
@@ -510,4 +514,6 @@ void make_show_qr_yesno_activity(gui_activity_t** activity_ptr, const char* titl
         gui_make_fill(&lower, TFT_BLACK);
         gui_set_parent(lower, vsplit);
     }
+
+    return act;
 }

@@ -81,58 +81,55 @@ void ota_delta_process(void* process_ptr);
 void update_pinserver_process(void* process_ptr);
 void auth_user_process(void* process_ptr);
 
-// GUI screens
+// Home/ready screens
 void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
-void make_connection_select_screen(gui_activity_t** activity_ptr, bool temporary_restore);
+void make_welcome_back_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
+void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, void* unused);
 void make_connect_to_screen(
     gui_activity_t** activity_ptr, const char* device_name, jade_msg_source_t initialisation_source);
-void make_welcome_back_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
-void make_connect_qrmode_screen(gui_activity_t** activity_ptr, const char* device_name);
-void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, void* unused);
 void make_ready_screen(
     gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_label, gui_view_node_t** txt_extra);
 
-void make_startup_options_screen(gui_activity_t** activity_ptr);
-void make_uninitialised_settings_screen(gui_activity_t** activity_ptr);
-void make_locked_settings_screen(gui_activity_t** activity_ptr);
-void make_unlocked_settings_screen(gui_activity_t** activity_ptr);
+// GUI screens
+gui_activity_t* make_connection_select_screen(bool temporary_restore);
+gui_activity_t* make_connect_qrmode_screen(const char* device_name);
 
-void make_wallet_settings_screen(gui_activity_t** activity_ptr);
-void make_advanced_options_screen(gui_activity_t** activity_ptr);
-void make_device_settings_screen(gui_activity_t** activity_ptr, gui_view_node_t** timeout_btn_text);
-void make_power_options_screen(
-    gui_activity_t** activity_ptr, btn_data_t* timeout_btns, size_t nBtns, progress_bar_t* brightness_bar);
+gui_activity_t* make_startup_options_screen(void);
+gui_activity_t* make_uninitialised_settings_screen(void);
+gui_activity_t* make_locked_settings_screen(void);
+gui_activity_t* make_unlocked_settings_screen(void);
 
-void make_wallet_erase_pin_info_activity(gui_activity_t** activity_ptr);
-void make_wallet_erase_pin_options_activity(gui_activity_t** activity_ptr, const char* pinstr);
+gui_activity_t* make_wallet_settings_screen(void);
+gui_activity_t* make_advanced_options_screen(void);
+gui_activity_t* make_device_settings_screen(gui_view_node_t** timeout_btn_text);
+gui_activity_t* make_power_options_screen(btn_data_t* timeout_btns, size_t nBtns, progress_bar_t* brightness_bar);
 
-void make_bip39_passphrase_prefs_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox);
+gui_activity_t* make_wallet_erase_pin_info_activity(void);
+gui_activity_t* make_wallet_erase_pin_options_activity(const char* pinstr);
 
-void make_otp_screen(gui_activity_t** activity_ptr);
-void make_view_otp_activity(
-    gui_activity_t** activity_ptr, size_t index, size_t total, bool valid, const otpauth_ctx_t* ctx);
-void make_show_hotp_code_activity(
-    gui_activity_t** activity_ptr, const char* name, const char* codestr, bool cancel_button);
-void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* name, const char* timestamp,
-    const char* codestr, const bool cancel_button, progress_bar_t* progress_bar, gui_view_node_t** txt_ts,
-    gui_view_node_t** txt_code);
+gui_activity_t* make_bip39_passphrase_prefs_screen(
+    gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox);
 
-void make_pinserver_screen(gui_activity_t** activity_ptr);
+gui_activity_t* make_otp_screen(void);
+gui_activity_t* make_view_otp_activity(size_t index, size_t total, bool valid, const otpauth_ctx_t* ctx);
+gui_activity_t* make_show_hotp_code_activity(const char* name, const char* codestr, bool cancel_button);
+gui_activity_t* make_show_totp_code_activity(const char* name, const char* timestamp, const char* codestr,
+    const bool cancel_button, progress_bar_t* progress_bar, gui_view_node_t** txt_ts, gui_view_node_t** txt_code);
 
-void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* multisig_name, size_t index, size_t total,
-    bool valid, bool sorted, size_t threshold, size_t num_signers, const uint8_t* master_blinding_key,
+gui_activity_t* make_pinserver_screen(void);
+
+gui_activity_t* make_view_multisig_activity(const char* multisig_name, size_t index, size_t total, bool valid,
+    bool sorted, size_t threshold, size_t num_signers, const uint8_t* master_blinding_key,
     size_t master_blinding_key_len);
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-void make_legal_screen(gui_activity_t** activity_ptr);
+gui_activity_t* make_legal_screen(void);
 #endif
-void make_storage_stats_screen(gui_activity_t** activity_ptr, size_t entries_used, size_t entries_free);
+gui_activity_t* make_storage_stats_screen(size_t entries_used, size_t entries_free);
 
-void make_session_screen(gui_activity_t** activity_ptr);
-void make_ble_screen(gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** ble_status_textbox);
-void make_device_screen(
-    gui_activity_t** activity_ptr, const char* power_status, const char* mac, const char* firmware_version);
+gui_activity_t* make_session_screen(void);
+gui_activity_t* make_ble_screen(const char* device_name, gui_view_node_t** ble_status_textbox);
+gui_activity_t* make_device_screen(const char* power_status, const char* mac, const char* firmware_version);
 
 // Wallet initialisation function
 void initialise_with_mnemonic(bool temporary_restore, bool force_qr_scan);
@@ -588,20 +585,17 @@ static bool offer_pinserver_qr_unlock()
 static void select_initial_connection(const bool temporary_restore)
 {
     // Since we have connection options, the user must choose one
-    gui_activity_t* activity = NULL;
-    make_connection_select_screen(&activity, temporary_restore);
-    JADE_ASSERT(activity);
-
+    gui_activity_t* const act = make_connection_select_screen(temporary_restore);
     initialisation_source = SOURCE_NONE;
     do {
-        gui_set_current_activity(activity);
+        gui_set_current_activity(act);
 
         int32_t ev_id;
         // In a debug unattended ci build, assume 'USB' button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_CONNECT_VIA_USB;
@@ -659,9 +653,7 @@ static bool offer_temporary_wallet_login(void)
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 static void handle_legal(void)
 {
-    gui_activity_t* first_activity = NULL;
-    make_legal_screen(&first_activity);
-    JADE_ASSERT(first_activity);
+    gui_activity_t* const first_activity = make_legal_screen();
     gui_set_current_activity(first_activity);
 
     while (sync_await_single_event(GUI_BUTTON_EVENT, BTN_INFO_EXIT, NULL, NULL, NULL, 0) != ESP_OK) {
@@ -695,11 +687,8 @@ static inline void update_ble_enabled_text(gui_view_node_t* ble_status_textbox)
 
 static void handle_ble(void)
 {
-    gui_activity_t* act = NULL;
     gui_view_node_t* ble_status_textbox = NULL;
-    make_ble_screen(&act, device_name, &ble_status_textbox);
-    JADE_ASSERT(act);
-
+    gui_activity_t* const act = make_ble_screen(device_name, &ble_status_textbox);
     update_ble_enabled_text(ble_status_textbox);
     gui_set_current_activity(act);
 
@@ -765,11 +754,10 @@ static void handle_multisigs(void)
             JADE_LOGW("%s", errmsg);
         }
 
-        gui_activity_t* act = NULL;
-        uint8_t* const master_blinding_key
+        const uint8_t* const master_blinding_key
             = multisig_data.master_blinding_key_len ? multisig_data.master_blinding_key : NULL;
-        make_view_multisig_activity(&act, multisig_name, i + 1, num_multisigs, valid, multisig_data.sorted,
-            multisig_data.threshold, multisig_data.num_xpubs, master_blinding_key,
+        gui_activity_t* const act = make_view_multisig_activity(multisig_name, i + 1, num_multisigs, valid,
+            multisig_data.sorted, multisig_data.threshold, multisig_data.num_xpubs, master_blinding_key,
             multisig_data.master_blinding_key_len);
         JADE_ASSERT(act);
 
@@ -839,11 +827,10 @@ static void handle_wallet_erase_pin(void)
         if (storage_get_wallet_erase_pin(pin_erase, sizeof(pin_erase))) {
             char pinstr[sizeof(pin_erase) + 1];
             format_pin(pinstr, sizeof(pinstr), pin_erase, sizeof(pin_erase));
-            make_wallet_erase_pin_options_activity(&act, pinstr);
+            act = make_wallet_erase_pin_options_activity(pinstr);
         } else {
-            make_wallet_erase_pin_info_activity(&act);
+            act = make_wallet_erase_pin_info_activity();
         }
-        JADE_ASSERT(act);
         gui_set_current_activity(act);
 
         int32_t ev_id;
@@ -875,11 +862,9 @@ static inline const char* passphrase_method_desc_from_flags(const passphrase_typ
 
 static void handle_passphrase_prefs()
 {
-    gui_activity_t* activity = NULL;
     gui_view_node_t* frequency_textbox = NULL;
     gui_view_node_t* method_textbox = NULL;
-    make_bip39_passphrase_prefs_screen(&activity, &frequency_textbox, &method_textbox);
-    JADE_ASSERT(activity);
+    gui_activity_t* const act = make_bip39_passphrase_prefs_screen(&frequency_textbox, &method_textbox);
     JADE_ASSERT(frequency_textbox);
     JADE_ASSERT(method_textbox);
 
@@ -891,13 +876,13 @@ static void handle_passphrase_prefs()
         gui_update_text(method_textbox, passphrase_method_desc_from_flags(type));
 
         // Show, and await button click
-        gui_set_current_activity(activity);
+        gui_set_current_activity(act);
 
         int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-        gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool ret = true;
         ev_id = BTN_XPUB_EXIT;
@@ -933,10 +918,7 @@ static bool display_hotp_screen(const char* name, const char* token, const bool 
     JADE_ASSERT(name);
     JADE_ASSERT(token);
 
-    gui_activity_t* act = NULL;
-    make_show_hotp_code_activity(&act, name, token, show_cancel_button);
-    JADE_ASSERT(act);
-
+    gui_activity_t* const act = make_show_hotp_code_activity(name, token, show_cancel_button);
     gui_set_current_activity(act);
 
     int32_t ev_id;
@@ -965,13 +947,11 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
     char timestr[32];
     ctime_r((time_t*)&epoch_value, timestr);
 
-    gui_activity_t* act = NULL;
     gui_view_node_t* txt_ts = NULL;
     gui_view_node_t* txt_code = NULL;
     progress_bar_t time_left = {};
-    make_show_totp_code_activity(
-        &act, otp_ctx->name, timestr, token, show_cancel_button, &time_left, &txt_ts, &txt_code);
-    JADE_ASSERT(act);
+    gui_activity_t* const act = make_show_totp_code_activity(
+        otp_ctx->name, timestr, token, show_cancel_button, &time_left, &txt_ts, &txt_code);
     JADE_ASSERT(txt_ts);
     JADE_ASSERT(txt_code);
 
@@ -1104,9 +1084,7 @@ static void handle_view_otps(void)
             JADE_LOGE("Error loading otp record: %s", otp_name);
         }
 
-        gui_activity_t* act = NULL;
-        make_view_otp_activity(&act, i + 1, num_otp_records, valid, &otp_ctx);
-        JADE_ASSERT(act);
+        gui_activity_t* const act = make_view_otp_activity(i + 1, num_otp_records, valid, &otp_ctx);
 
         while (true) {
             gui_set_current_activity(act);
@@ -1134,7 +1112,7 @@ static void handle_view_otps(void)
 }
 
 static void update_idle_timeout_btns(
-    gui_activity_t* activity, btn_data_t* timeout_btn, const size_t nBtns, const uint16_t timeout)
+    gui_activity_t* act, btn_data_t* timeout_btn, const size_t nBtns, const uint16_t timeout)
 {
     JADE_ASSERT(timeout_btn);
 
@@ -1142,7 +1120,7 @@ static void update_idle_timeout_btns(
         JADE_ASSERT(timeout_btn[i].btn);
         if (timeout_btn[i].val == timeout) {
             gui_set_borders(timeout_btn[i].btn, TFT_BLUE, 2, GUI_BORDER_ALL);
-            gui_select_node(activity, timeout_btn[i].btn);
+            gui_select_node(act, timeout_btn[i].btn);
         } else {
             gui_set_borders(timeout_btn[i].btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         }
@@ -1173,10 +1151,8 @@ static void handle_power_options()
     // Timeout button ids must be available/contiguous
     JADE_ASSERT(timeout_btns[nBtns - 1].ev_id == BTN_SETTINGS_TIMEOUT_6);
 
-    gui_activity_t* act = NULL;
     progress_bar_t brightness_bar = {};
-    make_power_options_screen(&act, timeout_btns, nBtns, &brightness_bar);
-    JADE_ASSERT(act);
+    gui_activity_t* const act = make_power_options_screen(timeout_btns, nBtns, &brightness_bar);
 
     // Highlight currently selected value
     update_idle_timeout_btns(act, timeout_btns, nBtns, new_timeout);
@@ -1266,35 +1242,30 @@ static void handle_pinserver_reset(void)
 }
 
 // Create the appropriate 'Settings' menu
-static void create_settings_menu(gui_activity_t** activity, const bool startup_menu)
+static gui_activity_t* create_settings_menu(const bool startup_menu)
 {
-    JADE_ASSERT(activity);
-
+    gui_activity_t* act = NULL;
     if (startup_menu) {
         // Startup (click on spalsh screen) menu
-        make_startup_options_screen(activity);
+        act = make_startup_options_screen();
+    } else if (keychain_get()) {
+        // Unlocked Jade - main settings
+        act = make_unlocked_settings_screen();
+    } else if (keychain_has_pin()) {
+        // Locked Jade - before pin entry when saved wallet exists
+        act = make_locked_settings_screen();
     } else {
-        // Normal 'Settings' menu - depends on wallet state (unlocked, locked, uninitialised)
-        if (keychain_get()) {
-            // Unlocked Jade - main settings
-            make_unlocked_settings_screen(activity);
-        } else if (keychain_has_pin()) {
-            // Locked Jade - before pin entry when saved wallet exists
-            make_locked_settings_screen(activity);
-        } else {
-            // Uninitilised Jade - no wallet set
-            make_uninitialised_settings_screen(activity);
-        }
+        // Uninitilised Jade - no wallet set
+        act = make_uninitialised_settings_screen();
     }
-    JADE_ASSERT(*activity);
+    return act;
 }
 
 static void handle_settings(const bool startup_menu)
 {
     // Create the appropriate 'Settings' menu
-    gui_activity_t* act = NULL;
     gui_view_node_t* timeout_btn_text = NULL;
-    create_settings_menu(&act, startup_menu);
+    gui_activity_t* act = create_settings_menu(startup_menu);
 
     bool done = false;
     while (!done) {
@@ -1314,37 +1285,37 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_WALLET_EXIT:
         case BTN_SETTINGS_PINSERVER_EXIT:
             // Change to base 'Settings' menu
-            create_settings_menu(&act, startup_menu);
+            act = create_settings_menu(startup_menu);
             timeout_btn_text = NULL;
             break;
 
         case BTN_SETTINGS_ADVANCED:
         case BTN_SETTINGS_OTP_EXIT:
             // Change to 'Advanced' menu
-            make_advanced_options_screen(&act);
+            act = make_advanced_options_screen();
             timeout_btn_text = NULL;
             break;
 
         case BTN_SETTINGS_DEVICE:
             // Change to 'Device' menu
-            make_device_settings_screen(&act, &timeout_btn_text);
+            act = make_device_settings_screen(&timeout_btn_text);
             break;
 
         case BTN_SETTINGS_WALLET:
             // Change to 'Device' menu
-            make_wallet_settings_screen(&act);
+            act = make_wallet_settings_screen();
             timeout_btn_text = NULL;
             break;
 
         case BTN_SETTINGS_OTP:
             // Change to 'OTP' menu
-            make_otp_screen(&act);
+            act = make_otp_screen();
             timeout_btn_text = NULL;
             break;
 
         case BTN_SETTINGS_PINSERVER:
             // Change to 'PinServer' menu
-            make_pinserver_screen(&act);
+            act = make_pinserver_screen();
             timeout_btn_text = NULL;
             break;
 
@@ -1443,10 +1414,7 @@ void offer_startup_options(void)
 // Session logout or sleep/power-off
 static void handle_session(void)
 {
-    gui_activity_t* act = NULL;
-    make_session_screen(&act);
-    JADE_ASSERT(act);
-
+    gui_activity_t* const act = make_session_screen();
     gui_set_current_activity(act);
 
     int32_t ev_id;
@@ -1473,10 +1441,7 @@ static void handle_storage(void)
     size_t entries_used, entries_free;
     const bool ok = storage_get_stats(&entries_used, &entries_free);
     if (ok) {
-        gui_activity_t* act = NULL;
-        make_storage_stats_screen(&act, entries_used, entries_free);
-        JADE_ASSERT(act);
-
+        gui_activity_t* const act = make_storage_stats_screen(entries_used, entries_free);
         gui_set_current_activity(act);
         gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_INFO_EXIT, NULL, NULL, NULL, 0);
     } else {
@@ -1507,8 +1472,7 @@ static void handle_device(void)
     JADE_ASSERT(rc == 18);
 #endif
 
-    gui_activity_t* act = NULL;
-    make_device_screen(&act, power_status, mac, running_app_info.version);
+    gui_activity_t* const act = make_device_screen(power_status, mac, running_app_info.version);
     JADE_ASSERT(act);
 
     bool loop = true;
@@ -1552,8 +1516,7 @@ static bool qr_mode_scan_seedqr(void)
 
 static void handle_qr_mode(void)
 {
-    gui_activity_t* act = NULL;
-    make_connect_qrmode_screen(&act, device_name);
+    gui_activity_t* const act = make_connect_qrmode_screen(device_name);
 
     bool done = false;
     while (!done) {
@@ -1628,10 +1591,10 @@ static void handle_btn(const int32_t btn)
 }
 
 // Display the passed dashboard screen
-static void display_screen(jade_process_t* process, gui_activity_t* activity)
+static void display_screen(jade_process_t* process, gui_activity_t* act)
 {
     JADE_ASSERT(process);
-    JADE_ASSERT(activity);
+    JADE_ASSERT(act);
 
     // Print the main stack usage (high water mark), and the DRAM usage
     JADE_LOGI("Main task stack HWM: %u free", uxTaskGetStackHighWaterMark(NULL));
@@ -1640,7 +1603,7 @@ static void display_screen(jade_process_t* process, gui_activity_t* activity)
 
     // Switch to passed screen, and at that point free all other managed activities
     // Should be no-op if we didn't switch away from this screen
-    gui_set_current_activity_ex(activity, true);
+    gui_set_current_activity_ex(act, true);
 
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();
@@ -1717,12 +1680,10 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
 
 // Helper to create a dashboard activity using the function passed, and then register
 // the button event handler which we check if there are no external messages to handle.
-#define MAKE_DASHBOARD_SCREEN(fn_make_activity, activity, extra_arg)                                                   \
+#define MAKE_DASHBOARD_SCREEN(fn_make_activity, act, extra_arg)                                                        \
     do {                                                                                                               \
-        fn_make_activity(&activity, device_name, extra_arg);                                                           \
-        JADE_ASSERT(activity);                                                                                         \
-        gui_activity_register_event(                                                                                   \
-            activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);                        \
+        fn_make_activity(&act, device_name, extra_arg);                                                                \
+        gui_activity_register_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);     \
     } while (false)
 
 // Small helper to update additional info labels on the 'Ready' dashboard screen
@@ -1754,8 +1715,8 @@ static void update_ready_screen_text(gui_view_node_t* txt_label, gui_view_node_t
 // Wrapper to put calls to free activities onto the process
 static void free_unmanaged_activity_wrapper(void* activity_to_free)
 {
-    gui_activity_t* activity = (gui_activity_t*)activity_to_free;
-    free_unmanaged_activity(activity);
+    gui_activity_t* act = (gui_activity_t*)activity_to_free;
+    free_unmanaged_activity(act);
 }
 
 // Main/default screen/process when ready for user interaction

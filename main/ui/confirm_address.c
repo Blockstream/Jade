@@ -2,18 +2,17 @@
 #include "../ui.h"
 #include "jade_assert.h"
 
-void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* address, const char* warning_msg)
+gui_activity_t* make_confirm_address_activity(const char* address, const char* warning_msg)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(address);
     JADE_ASSERT(warning_msg);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 60, 15, 25);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, wrapped address (not scrolling)
     gui_view_node_t* text_addr;
@@ -40,4 +39,6 @@ void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* ad
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_ACCEPT_ADDRESS } };
     add_buttons(vsplit, UI_ROW, btns, 3);
+
+    return act;
 }

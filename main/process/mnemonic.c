@@ -37,29 +37,27 @@
 typedef enum { MNEMONIC_SIMPLE, MNEMONIC_ADVANCED, WORDLIST_PASSPHRASE } wordlist_purpose_t;
 
 // main/ui/mnemonic.c
-void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr);
-void make_new_mnemonic_screen(gui_activity_t** activity_ptr);
-void make_new_mnemonic_screen_advanced(gui_activity_t** activity_ptr);
-void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr, bool temporary_restore);
-void make_mnemonic_recovery_screen_advanced(gui_activity_t** activity_ptr);
+gui_activity_t* make_mnemonic_welcome_screen(void);
+gui_activity_t* make_new_mnemonic_screen(void);
+gui_activity_t* make_new_mnemonic_screen_advanced(void);
+gui_activity_t* make_mnemonic_recovery_screen(bool temporary_restore);
+gui_activity_t* make_mnemonic_recovery_screen_advanced(void);
 void make_show_mnemonic(
     gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], size_t nwords);
-void make_confirm_mnemonic_screen(
-    gui_activity_t** activity_ptr, gui_view_node_t** text_box_ptr, size_t confirm, char* words[], size_t nwords);
-void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, const char* title, bool show_enter_btn,
-    gui_view_node_t** textbox, gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys,
-    size_t keys_len);
-void make_select_word_page(gui_activity_t** activity_ptr, const char* title, const char* initial_label,
-    gui_view_node_t** textbox, gui_view_node_t** label);
-void make_calculate_final_word_page(gui_activity_t** activity_ptr);
-void make_using_passphrase_screen(
-    gui_activity_t** activity_ptr, const bool use_passphrase_once, const bool use_passphrase_always);
-void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox);
-void make_confirm_qr_export_activity(gui_activity_t** activity_ptr);
-void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon* icon);
-void make_export_qr_fragment_activity(
-    gui_activity_t** activity_ptr, const Icon* icon, gui_view_node_t** icon_node, gui_view_node_t** label_node);
-void make_bip85_mnemonic_screen(gui_activity_t** activity_ptr);
+gui_activity_t* make_confirm_mnemonic_screen(
+    gui_view_node_t** text_box_ptr, size_t confirm, char* words[], size_t nwords);
+gui_activity_t* make_enter_wordlist_word_page(const char* title, bool show_enter_btn, gui_view_node_t** textbox,
+    gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys, size_t keys_len);
+gui_activity_t* make_select_word_page(
+    const char* title, const char* initial_label, gui_view_node_t** textbox, gui_view_node_t** label);
+gui_activity_t* make_calculate_final_word_page(void);
+gui_activity_t* make_using_passphrase_screen(const bool use_passphrase_once, const bool use_passphrase_always);
+gui_activity_t* make_confirm_passphrase_screen(const char* passphrase, gui_view_node_t** textbox);
+gui_activity_t* make_confirm_qr_export_activity(void);
+gui_activity_t* make_export_qr_overview_activity(const Icon* icon);
+gui_activity_t* make_export_qr_fragment_activity(
+    const Icon* icon, gui_view_node_t** icon_node, gui_view_node_t** label_node);
+gui_activity_t* make_bip85_mnemonic_screen(void);
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 // Export a mnemonic by asking the user to transcribe it to hard copy, then
@@ -70,8 +68,7 @@ static void mnemonic_export_qr(const char* mnemonic)
     JADE_ASSERT(mnemonic);
 
     int32_t ev_id = 0;
-    gui_activity_t* act_confirm = NULL;
-    make_confirm_qr_export_activity(&act_confirm);
+    gui_activity_t* const act_confirm = make_confirm_qr_export_activity();
 
     // Free all gui screen activities thus far, as those used to show or enter a mnemonic
     // are memory intensive, and are there is no navigation now back to those screens.
@@ -124,9 +121,7 @@ static void mnemonic_export_qr(const char* mnemonic)
     // sufficient DRAM available).
     while (true) {
         // Show the overview QR
-        gui_activity_t* act_overview_qr = NULL;
-        make_export_qr_overview_activity(&act_overview_qr, &qr_overview);
-        JADE_ASSERT(act_overview_qr);
+        gui_activity_t* const act_overview_qr = make_export_qr_overview_activity(&qr_overview);
         gui_set_current_activity_ex(act_overview_qr, true);
         while (!gui_activity_wait_event(act_overview_qr, GUI_BUTTON_EVENT, BTN_QR_EXPORT_BEGIN, NULL, NULL, NULL, 0)) {
             // Wait for the 'Begin' button to be pressed
@@ -135,9 +130,7 @@ static void mnemonic_export_qr(const char* mnemonic)
         // Make a screen to display qr-code fragment icons
         gui_view_node_t* icon_node = NULL;
         gui_view_node_t* text_node = NULL;
-        gui_activity_t* act_qr_part = NULL;
-        make_export_qr_fragment_activity(&act_qr_part, &qr_overview, &icon_node, &text_node);
-        JADE_ASSERT(act_qr_part);
+        gui_activity_t* const act_qr_part = make_export_qr_fragment_activity(&qr_overview, &icon_node, &text_node);
         JADE_ASSERT(icon_node);
         JADE_ASSERT(text_node);
 
@@ -283,10 +276,8 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
             } while (already_confirmed[selected]);
             already_confirmed[selected] = true;
 
-            gui_activity_t* confirm_act = NULL;
             gui_view_node_t* textbox = NULL;
-            make_confirm_mnemonic_screen(&confirm_act, &textbox, selected, words, nwords);
-            JADE_ASSERT(confirm_act);
+            gui_activity_t* const confirm_act = make_confirm_mnemonic_screen(&textbox, selected, words, nwords);
             JADE_LOGD("selected = %u", selected);
 
             // Large enough for 12 and 24 word mnemonic
@@ -595,20 +586,16 @@ static size_t get_wordlist_words(
     const size_t btns_len = sizeof(btns) / sizeof(btns[0]);
     const char* fixed_kb_title = ((purpose == WORDLIST_PASSPHRASE) ? "Enter Passphrase" : NULL);
     gui_view_node_t *textbox = NULL, *backspace = NULL, *enter = NULL;
-    gui_activity_t* enter_word_activity = NULL;
     const bool show_enter_btn = !is_mnemonic; // Don't show 'done' button when entering mnemonic words
-    make_enter_wordlist_word_page(
-        &enter_word_activity, fixed_kb_title, show_enter_btn, &textbox, &backspace, &enter, btns, btns_len);
-    JADE_ASSERT(enter_word_activity);
+    gui_activity_t* const enter_word_activity
+        = make_enter_wordlist_word_page(fixed_kb_title, show_enter_btn, &textbox, &backspace, &enter, btns, btns_len);
     JADE_ASSERT(enter);
     enter->is_active = show_enter_btn;
 
     gui_view_node_t* text_selection = NULL;
     gui_view_node_t* label = NULL;
-    gui_activity_t* choose_word_activity = NULL;
     const char* select_word_title = ((purpose == WORDLIST_PASSPHRASE) ? "Enter Passphrase" : "Recover Wallet");
-    make_select_word_page(&choose_word_activity, select_word_title, "", &text_selection, &label);
-    JADE_ASSERT(choose_word_activity);
+    gui_activity_t* const choose_word_activity = make_select_word_page(select_word_title, "", &text_selection, &label);
 
     // For each word
     char* wordlist_words[MNEMONIC_MAXWORDS] = { 0 };
@@ -624,9 +611,7 @@ static size_t get_wordlist_words(
         size_t final_words[MAX_NUM_FINAL_WORDS];
         bool random_first_selection_word = false;
         if (purpose == MNEMONIC_ADVANCED && word_index == nwords - 1) {
-            gui_activity_t* final_word_activity = NULL;
-            make_calculate_final_word_page(&final_word_activity);
-            JADE_ASSERT(final_word_activity);
+            gui_activity_t* const final_word_activity = make_calculate_final_word_page();
             gui_set_current_activity(final_word_activity);
 
             int32_t ev_id;
@@ -1122,8 +1107,7 @@ static void get_freetext_passphrase(char* passphrase, const size_t passphrase_le
     gui_activity_t* confirm_passphrase_activity = NULL;
     gui_view_node_t* text_to_confirm = NULL;
     if (confirm) {
-        make_confirm_passphrase_screen(&confirm_passphrase_activity, passphrase, &text_to_confirm);
-        JADE_ASSERT(confirm_passphrase_activity);
+        confirm_passphrase_activity = make_confirm_passphrase_screen(passphrase, &text_to_confirm);
         JADE_ASSERT(text_to_confirm);
     }
 
@@ -1210,22 +1194,20 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
     } else {
         // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
-        gui_activity_t* activity = NULL;
+        gui_activity_t* act = NULL;
         if (temporary_restore) {
-            make_mnemonic_recovery_screen(&activity, temporary_restore);
+            act = make_mnemonic_recovery_screen(temporary_restore);
         } else {
-            make_mnemonic_welcome_screen(&activity);
+            act = make_mnemonic_welcome_screen();
         }
-        JADE_ASSERT(activity);
 
         while (true) {
-            gui_set_current_activity_ex(activity, true);
+            gui_set_current_activity_ex(act, true);
 
             // In a debug unattended ci build, use hardcoded mnemonic after a short delay
             int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-            const bool ret
-                = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+            const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
             JADE_ASSERT(ret);
 
             switch (ev_id) {
@@ -1235,21 +1217,21 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 
             // Change screens and continue to await button events
             case BTN_NEW_MNEMONIC:
-                make_new_mnemonic_screen(&activity);
+                act = make_new_mnemonic_screen();
                 continue;
 
             case BTN_NEW_MNEMONIC_ADVANCED:
-                make_new_mnemonic_screen_advanced(&activity);
+                act = make_new_mnemonic_screen_advanced();
                 offer_export_qr = true;
                 advanced_mode = true;
                 continue;
 
             case BTN_RECOVER_MNEMONIC:
-                make_mnemonic_recovery_screen(&activity, temporary_restore);
+                act = make_mnemonic_recovery_screen(temporary_restore);
                 continue;
 
             case BTN_RECOVER_MNEMONIC_ADVANCED:
-                make_mnemonic_recovery_screen_advanced(&activity);
+                act = make_mnemonic_recovery_screen_advanced();
                 offer_export_qr = true;
                 advanced_mode = true;
                 continue;
@@ -1278,7 +1260,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
                 break;
             }
 #else
-            gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
                 CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
             strcpy(mnemonic,
                 "fish inner face ginger orchard permit useful method fence kidney chuckle party favorite sunset draw "
@@ -1324,13 +1306,10 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 
     // Perhaps offer/get passphrase (ie. if using advanced options)
     if (advanced_mode) {
-        gui_activity_t* act = NULL;
-
         // Get current state to select default button - NOTE: both flags set impliles
         // just using a passphrase once, for the next login only.
         const passphrase_freq_t freq = keychain_get_passphrase_freq();
-        make_using_passphrase_screen(&act, freq == PASSPHRASE_ONCE, freq == PASSPHRASE_ALWAYS);
-        JADE_ASSERT(act);
+        gui_activity_t* const act = make_using_passphrase_screen(freq == PASSPHRASE_ONCE, freq == PASSPHRASE_ALWAYS);
 
         // Free all gui screen activities thus far, as those used to show or enter a mnemonic and those
         // used to export and scan/verify are memory intensive, and are there is no navigation now back
@@ -1430,16 +1409,14 @@ void handle_bip85_mnemonic()
     JADE_ASSERT(keychain_get());
 
     // Fetch number of words to generate
-    gui_activity_t* activity = NULL;
-    make_bip85_mnemonic_screen(&activity);
-    JADE_ASSERT(activity);
-    gui_set_current_activity(activity);
+    gui_activity_t* const act = make_bip85_mnemonic_screen();
+    gui_set_current_activity(act);
 
     int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
         CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const bool ret = true;
     ev_id = BTN_BIP85_EXIT;
@@ -1452,11 +1429,9 @@ void handle_bip85_mnemonic()
     const size_t nwords = (ev_id == BTN_BIP85_24_WORDS) ? 24 : 12;
 
     // Fetch index
-    gui_activity_t* select_index_activity = NULL;
     gui_view_node_t* textbox = NULL;
     gui_view_node_t* label = NULL;
-    make_select_word_page(&select_index_activity, "BIP85", "Index #", &textbox, &label);
-    JADE_ASSERT(select_index_activity);
+    gui_activity_t* const select_index_activity = make_select_word_page("BIP85", "Index #", &textbox, &label);
     JADE_ASSERT(textbox);
     gui_set_current_activity(select_index_activity);
 

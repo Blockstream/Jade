@@ -2,21 +2,20 @@
 #include "../ui.h"
 #include "jade_assert.h"
 
-void make_show_pinserver_details_activity(gui_activity_t** activity_ptr, const char* urlA, const char* urlB,
-    const char* pubkey_hex, const bool confirming_details)
+gui_activity_t* make_show_pinserver_details_activity(
+    const char* urlA, const char* urlB, const char* pubkey_hex, const bool confirming_details)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(urlA);
     JADE_ASSERT(urlB);
 
-    gui_make_activity(activity_ptr);
-
     char buf[128];
+
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, url
     gui_view_node_t* hsplit_text1;
@@ -107,19 +106,18 @@ void make_show_pinserver_details_activity(gui_activity_t** activity_ptr, const c
             { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
         add_buttons(vsplit, UI_ROW, btns, 3);
     }
+
+    return act;
 }
 
-void make_show_pinserver_certificate_activity(
-    gui_activity_t** activity_ptr, const char* cert_hash_hex, const bool confirming_details)
+gui_activity_t* make_show_pinserver_certificate_activity(const char* cert_hash_hex, const bool confirming_details)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, text
     gui_view_node_t* text1;
@@ -173,4 +171,6 @@ void make_show_pinserver_certificate_activity(
             { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
         add_buttons(vsplit, UI_ROW, btns, 3);
     }
+
+    return act;
 }

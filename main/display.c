@@ -71,16 +71,16 @@ void display_init(void)
 
 #include "../logo/splash.c"
 
-void display_splash(gui_activity_t** activity_ptr)
+gui_activity_t* display_splash(void)
 {
-    gui_make_activity(activity_ptr);
-
+    gui_activity_t* const act = gui_make_activity();
     gui_view_node_t* splash_node;
     gui_make_picture(&splash_node, &splash);
-    gui_set_parent(splash_node, (*activity_ptr)->root_node);
+    gui_set_parent(splash_node, act->root_node);
 
     // set the current activity and draw it on screen
-    gui_set_current_activity(*activity_ptr);
+    gui_set_current_activity(act);
+    return act;
 }
 
 // get/set screen orientation

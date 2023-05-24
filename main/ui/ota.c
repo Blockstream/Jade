@@ -2,19 +2,18 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* current_version, const char* new_version,
-    const char* expected_hash_hexstr, const bool full_fw_hash)
+gui_activity_t* make_ota_versions_activity(
+    const char* current_version, const char* new_version, const char* expected_hash_hexstr, const bool full_fw_hash)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(current_version);
     JADE_ASSERT(new_version);
     JADE_ASSERT(expected_hash_hexstr);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 19, 30);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, current version
     {
@@ -127,19 +126,19 @@ void make_ota_versions_activity(gui_activity_t** activity_ptr, const char* curre
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(text, btn);
     }
+
+    return act;
 }
 
-void make_show_ota_hash_activity(
-    gui_activity_t** activity_ptr, const char* expected_hash_hexstr, const bool full_fw_hash)
+gui_activity_t* make_show_ota_hash_activity(const char* expected_hash_hexstr, const bool full_fw_hash)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(expected_hash_hexstr);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 50, 30);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, label
     {
@@ -172,4 +171,6 @@ void make_show_ota_hash_activity(
     btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CANCEL_OTA },
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTA_HASH_CONFIRMED } };
     add_buttons(vsplit, UI_ROW, btns, 2);
+
+    return act;
 }

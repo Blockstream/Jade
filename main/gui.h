@@ -400,7 +400,7 @@ void gui_init(void);
 bool gui_initialized(void);
 
 void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, const char* title, const bool managed);
-void gui_make_activity(gui_activity_t** ppact);
+gui_activity_t* gui_make_activity(void);
 void free_unmanaged_activity(gui_activity_t* activity);
 
 void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent);

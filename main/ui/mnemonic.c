@@ -6,19 +6,17 @@
 
 #define NUM_KEYBOARD_ROWS 3
 
-static void make_mnemonic_screen(
-    gui_activity_t** activity_ptr, const char* title, const char* msg, btn_data_t* btns, const size_t num_btns)
+static gui_activity_t* make_mnemonic_screen(const char* title, const char* msg, btn_data_t* btns, const size_t num_btns)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     JADE_ASSERT(msg);
     JADE_ASSERT(btns);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, message
     gui_view_node_t* text_status;
@@ -29,37 +27,44 @@ static void make_mnemonic_screen(
 
     // second row, buttons
     add_buttons(vsplit, UI_ROW, btns, num_btns);
+
+    return act;
 }
 
-void make_mnemonic_welcome_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_mnemonic_welcome_screen(void)
 {
     // First btn looks like '<-'
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MNEMONIC_EXIT },
         { .txt = "New", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC },
         { .txt = "Recover", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC } };
-    make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
-        "Do you want to create a new\nwallet, or recover an existing\nwallet?", btns, 3);
+
+    gui_activity_t* const act = make_mnemonic_screen(
+        "Welcome to Jade!", "Do you want to create a new\nwallet, or recover an existing\nwallet?", btns, 3);
 
     // Set the intially selected item to the 'New' button
-    gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+    gui_set_activity_initial_selection(act, btns[1].btn);
+
+    return act;
 }
 
-void make_new_mnemonic_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_new_mnemonic_screen(void)
 {
     btn_data_t btns[] = { { .txt = "12 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_12_BEGIN },
         { .txt = "Advanced", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_ADVANCED } };
-    make_mnemonic_screen(activity_ptr, "Welcome to Jade!",
+
+    return make_mnemonic_screen("Welcome to Jade!",
         "A new recovery phrase will be\ngenerated.\nWrite these words down and\nstore them somewhere safe.", btns, 2);
 }
 
-void make_new_mnemonic_screen_advanced(gui_activity_t** activity_ptr)
+gui_activity_t* make_new_mnemonic_screen_advanced(void)
 {
     btn_data_t btns[] = { { .txt = "12 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_12_BEGIN },
         { .txt = "24 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_24_BEGIN } };
-    make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length.", btns, 2);
+
+    return make_mnemonic_screen("Welcome to Jade!", "\nSelect recovery phrase length.", btns, 2);
 }
 
-void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr, const bool temporary_restore)
+gui_activity_t* make_mnemonic_recovery_screen(const bool temporary_restore)
 {
     btn_data_t btns[] = { { .txt = "12 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC_12_BEGIN },
         { .txt = "Advanced", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC_ADVANCED } };
@@ -70,24 +75,25 @@ void make_mnemonic_recovery_screen(gui_activity_t** activity_ptr, const bool tem
         btns[0].ev_id = BTN_RECOVER_MNEMONIC_QR_BEGIN;
     }
 
-    make_mnemonic_screen(activity_ptr, "Welcome to Jade!", "\nHow would you like to\nrecover the wallet?", btns, 2);
+    return make_mnemonic_screen("Welcome to Jade!", "\nHow would you like to\nrecover the wallet?", btns, 2);
 }
 
-void make_mnemonic_recovery_screen_advanced(gui_activity_t** activity_ptr)
+gui_activity_t* make_mnemonic_recovery_screen_advanced(void)
 {
     btn_data_t btns[] = { { .txt = "12 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC_12_BEGIN },
         { .txt = "24 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC_24_BEGIN },
         { .txt = "Scan QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RECOVER_MNEMONIC_QR_BEGIN } };
-    make_mnemonic_screen(
-        activity_ptr, "Welcome to Jade!", "\nSelect recovery phrase length\nor to scan a QR code.", btns, 3);
+
+    return make_mnemonic_screen("Welcome to Jade!", "\nSelect recovery phrase length\nor to scan a QR code.", btns, 3);
 }
 
-void make_bip85_mnemonic_screen(gui_activity_t** activity_ptr)
+gui_activity_t* make_bip85_mnemonic_screen(void)
 {
     btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BIP85_EXIT },
         { .txt = "12 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BIP85_12_WORDS },
         { .txt = "24 words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BIP85_24_WORDS } };
-    make_mnemonic_screen(activity_ptr, "BIP85",
+
+    return make_mnemonic_screen("BIP85",
         "\nCreate a new recovery phrase\nderived from the current wallet\nand selected index number.", btns, 3);
 }
 
@@ -108,8 +114,7 @@ static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t 
     const bool first_page = first_index == 0;
     const bool last_page = first_index == nwords - 4;
 
-    gui_activity_t* act = NULL;
-    gui_make_activity(&act);
+    gui_activity_t* const act = gui_make_activity();
 
     // Display 4 words per page, in a column
     // NOTE: the words prefixed by their index, eg. "1: river"
@@ -219,19 +224,18 @@ void make_show_mnemonic(
     *last_activity_ptr = act_info.last_activity;
 }
 
-static void make_confirm_mnemonic_page(
-    gui_activity_t** activity_ptr, gui_view_node_t** text_box, size_t confirm_index, char* word_prev, char* word_next)
+static gui_activity_t* make_confirm_mnemonic_page(
+    gui_view_node_t** text_box, size_t confirm_index, char* word_prev, char* word_next)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_INIT_OUT_PPTR(text_box);
 
     JADE_LOGD("Confirm page index %u, prev %s, next %s", confirm_index, word_prev, word_next);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, hint index
     char hint_str[32];
@@ -322,33 +326,33 @@ static void make_confirm_mnemonic_page(
     gui_make_text(&follow_right, "", TFT_WHITE);
     gui_set_align(follow_right, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(follow_right, follow_hsplit);
+
+    return act;
 }
 
-void make_confirm_mnemonic_screen(gui_activity_t** activity_ptr, gui_view_node_t** text_box_ptr, const size_t confirm,
-    char* words[], const size_t nwords)
+gui_activity_t* make_confirm_mnemonic_screen(
+    gui_view_node_t** text_box_ptr, const size_t confirm, char* words[], const size_t nwords)
 {
     JADE_ASSERT(confirm > 0 && confirm < nwords - 1); // Must be able to access next and previous entries
-    make_confirm_mnemonic_page(activity_ptr, text_box_ptr, confirm, words[confirm - 1], words[confirm + 1]);
+    return make_confirm_mnemonic_page(text_box_ptr, confirm, words[confirm - 1], words[confirm + 1]);
 }
 
-void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, const char* title, const bool show_enter_btn,
-    gui_view_node_t** textbox, gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys,
-    const size_t keys_len)
+gui_activity_t* make_enter_wordlist_word_page(const char* title, const bool show_enter_btn, gui_view_node_t** textbox,
+    gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys, const size_t keys_len)
 {
     // title is optional
-    JADE_ASSERT(activity_ptr);
     JADE_INIT_OUT_PPTR(textbox);
     JADE_INIT_OUT_PPTR(backspace);
     JADE_INIT_OUT_PPTR(enter);
     JADE_ASSERT(keys);
     JADE_ASSERT(keys_len == 26); // ie. A->Z
 
-    gui_make_activity(activity_ptr);
-    (*activity_ptr)->selectables_wrap = true; // allow the button cursor to wrap
+    gui_activity_t* const act = gui_make_activity();
+    act->selectables_wrap = true; // allow the button cursor to wrap
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, message
     gui_view_node_t* text_bg;
@@ -418,22 +422,23 @@ void make_enter_wordlist_word_page(gui_activity_t** activity_ptr, const char* ti
             gui_set_align(label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         }
     }
+
+    return act;
 }
 
-void make_select_word_page(gui_activity_t** activity_ptr, const char* title, const char* initial_label,
-    gui_view_node_t** textbox, gui_view_node_t** label)
+gui_activity_t* make_select_word_page(
+    const char* title, const char* initial_label, gui_view_node_t** textbox, gui_view_node_t** label)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     JADE_ASSERT(initial_label);
     JADE_INIT_OUT_PPTR(textbox);
     JADE_INIT_OUT_PPTR(label);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 45, 25, 30);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, label
     gui_view_node_t* text_bg;
@@ -475,26 +480,28 @@ void make_select_word_page(gui_activity_t** activity_ptr, const char* title, con
     gui_make_text_font(&text_right, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(text_right, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(text_right, words_hsplit);
+
+    return act;
 }
 
-void make_calculate_final_word_page(gui_activity_t** activity_ptr)
+gui_activity_t* make_calculate_final_word_page(void)
 {
     btn_data_t btns[] = { { .txt = "Existing", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_EXISTING },
         { .txt = "Calculate", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_CALCULATE } };
-    make_mnemonic_screen(activity_ptr, "Final Word",
-        "Enter final word from existing\nrecovery phrase or calculate\nvalid ones?", btns, 2);
+
+    return make_mnemonic_screen(
+        "Final Word", "Enter final word from existing\nrecovery phrase or calculate\nvalid ones?", btns, 2);
 }
 
-void make_using_passphrase_screen(
-    gui_activity_t** activity_ptr, const bool use_passphrase_once, const bool use_passphrase_always)
+gui_activity_t* make_using_passphrase_screen(const bool use_passphrase_once, const bool use_passphrase_always)
 {
     JADE_ASSERT(!(use_passphrase_once && use_passphrase_always));
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 34, 34, 32);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, question
     gui_view_node_t* txt_question;
@@ -529,22 +536,23 @@ void make_using_passphrase_screen(
     gui_view_node_t* default_btn = use_passphrase_once ? btns[1].btn
         : use_passphrase_always                        ? btns[2].btn
                                                        : btns[0].btn;
-    gui_set_activity_initial_selection(*activity_ptr, default_btn);
+    gui_set_activity_initial_selection(act, default_btn);
+
+    return act;
 }
 
 // confrm passphrase - note we use UBUNTU16_FONT to ensure all punctuation characters are
 // displayed as expected (no font glyphs have been overridden/changed in this font)
-void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* passphrase, gui_view_node_t** textbox)
+gui_activity_t* make_confirm_passphrase_screen(const char* passphrase, gui_view_node_t** textbox)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(passphrase);
     JADE_INIT_OUT_PPTR(textbox);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 40, 27, 33);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     // first row, message
     gui_view_node_t* text;
@@ -567,17 +575,17 @@ void make_confirm_passphrase_screen(gui_activity_t** activity_ptr, const char* p
     btn_data_t btns[] = { { .txt = "No", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO },
         { .txt = "Yes", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES } };
     add_buttons(vsplit, UI_ROW, btns, 2);
+
+    return act;
 }
 
-void make_confirm_qr_export_activity(gui_activity_t** activity_ptr)
+gui_activity_t* make_confirm_qr_export_activity(void)
 {
-    JADE_ASSERT(activity_ptr);
-
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_set_parent(vsplit, act->root_node);
 
     gui_view_node_t* text;
     gui_make_text(&text, "\nDraw the CompactSeedQR for\nuse with Recovery Phrase\nLogin.", TFT_WHITE);
@@ -591,19 +599,20 @@ void make_confirm_qr_export_activity(gui_activity_t** activity_ptr)
     add_buttons(vsplit, UI_ROW, btns, 2);
 
     // Select 'Next' button by default
-    gui_set_activity_initial_selection(*activity_ptr, btns[1].btn);
+    gui_set_activity_initial_selection(act, btns[1].btn);
+
+    return act;
 }
 
-void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon* icon)
+gui_activity_t* make_export_qr_overview_activity(const Icon* icon)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(icon);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(hsplit, (*activity_ptr)->root_node);
+    gui_set_parent(hsplit, act->root_node);
 
     // lhs - text
     gui_view_node_t* vsplit;
@@ -637,21 +646,22 @@ void make_export_qr_overview_activity(gui_activity_t** activity_ptr, const Icon*
     // Just a 'begin' button
     btn_data_t btn = { .txt = "Begin", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_EXPORT_BEGIN };
     add_buttons(vsplit, UI_COLUMN, &btn, 1);
+
+    return act;
 }
 
-void make_export_qr_fragment_activity(
-    gui_activity_t** activity_ptr, const Icon* icon, gui_view_node_t** icon_node, gui_view_node_t** label_node)
+gui_activity_t* make_export_qr_fragment_activity(
+    const Icon* icon, gui_view_node_t** icon_node, gui_view_node_t** label_node)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(icon);
     JADE_INIT_OUT_PPTR(icon_node);
     JADE_INIT_OUT_PPTR(label_node);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(hsplit, (*activity_ptr)->root_node);
+    gui_set_parent(hsplit, act->root_node);
 
     // lhs - text
     gui_view_node_t* vsplit;
@@ -704,4 +714,6 @@ void make_export_qr_fragment_activity(
     // Just a 'done' button
     btn_data_t btn = { .txt = "Done", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_EXPORT_DONE };
     add_buttons(vsplit, UI_COLUMN, &btn, 1);
+
+    return act;
 }

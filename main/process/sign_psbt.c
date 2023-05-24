@@ -23,9 +23,9 @@
 
 #include "process_utils.h"
 
-void make_display_output_activity(
-    const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity);
-void make_display_final_confirmation_activity(uint64_t fee, const char* warning_msg, gui_activity_t** activity);
+gui_activity_t* make_display_output_activity(
+    const char* network, const struct wally_tx* tx, const output_info_t* output_info);
+gui_activity_t* make_display_final_confirmation_activity(uint64_t fee, const char* warning_msg);
 
 static void wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
 
@@ -517,9 +517,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     }
 
     // User to verify outputs and fee amount
-    gui_activity_t* first_activity = NULL;
-    make_display_output_activity(network, tx, output_info, &first_activity);
-    JADE_ASSERT(first_activity);
+    gui_activity_t* const first_activity = make_display_output_activity(network, tx, output_info);
     gui_set_current_activity(first_activity);
 
     // ----------------------------------
@@ -545,12 +543,10 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     JADE_LOGD("User accepted outputs");
 
     // User to agree fee amount
-    gui_activity_t* final_activity = NULL;
     const uint64_t fees = input_amount - output_amount;
     const char* const warning_msg
         = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-    make_display_final_confirmation_activity(fees, warning_msg, &final_activity);
-    JADE_ASSERT(final_activity);
+    gui_activity_t* const final_activity = make_display_final_confirmation_activity(fees, warning_msg);
     gui_set_current_activity(final_activity);
 
     // ----------------------------------

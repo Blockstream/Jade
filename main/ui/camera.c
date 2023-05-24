@@ -4,21 +4,20 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-void make_camera_activity(gui_activity_t** activity_ptr, const char* title, const char* btnText,
-    progress_bar_t* progress_bar, gui_view_node_t** image_node, gui_view_node_t** label_node)
+gui_activity_t* make_camera_activity(const char* title, const char* btnText, progress_bar_t* progress_bar,
+    gui_view_node_t** image_node, gui_view_node_t** label_node)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(title);
     // btnText is only needed if a 'click' button is wanted
     // progress bar is optional
     JADE_INIT_OUT_PPTR(image_node);
     JADE_INIT_OUT_PPTR(label_node);
 
-    gui_make_activity(activity_ptr);
+    gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(hsplit, (*activity_ptr)->root_node);
+    gui_set_parent(hsplit, act->root_node);
 
     gui_view_node_t* vsplit;
     if (btnText && progress_bar) {
@@ -72,4 +71,6 @@ void make_camera_activity(gui_activity_t** activity_ptr, const char* title, cons
         btn_data_t btn = { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CAMERA_EXIT };
         add_buttons(vsplit, UI_COLUMN, &btn, 1);
     }
+
+    return act;
 }
