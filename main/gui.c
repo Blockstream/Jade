@@ -18,7 +18,7 @@
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
 
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
 #include "ble/ble.h"
 #endif
 
@@ -2055,7 +2055,7 @@ static void update_status_bar(void)
     // since we don't want to redraw each update individually, but rather
     // capture in a single repaint after all nodes are updated.
     if ((status_bar.battery_update_counter % 10) == 0) {
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
         const bool new_ble = ble_enabled();
 #else
         const bool new_ble = false;

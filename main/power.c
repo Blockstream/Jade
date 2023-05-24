@@ -232,7 +232,7 @@ esp_err_t power_init(void)
     _power_set_v_off();
 #endif
 
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
     /**
      * There is a bug around using GPIO36/39 with ADC/WiFi (BLE) with sleep mode.
      * We use:
@@ -250,7 +250,7 @@ esp_err_t power_init(void)
      * (by ~1mA), but will remove the glitches on GPIO36 and GPIO39.
      */
     adc_power_acquire();
-#endif // CONFIG_ESP32_NO_BLOBS
+#endif // CONFIG_BT_ENABLED
 
     return ESP_OK;
 }

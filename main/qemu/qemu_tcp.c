@@ -43,7 +43,7 @@ esp_event_handler_instance_t ctx_got_ip;
 
 static void qemu_tcp_reader(void* ignore)
 {
-    struct sockaddr_in6 dest_addr;
+    struct sockaddr_in dest_addr;
     struct sockaddr_in* dest_addr_ip4 = (struct sockaddr_in*)&dest_addr;
     dest_addr_ip4->sin_addr.s_addr = htonl(INADDR_ANY);
     dest_addr_ip4->sin_family = AF_INET;
@@ -57,7 +57,7 @@ static void qemu_tcp_reader(void* ignore)
     err = listen(qemu_tcp_listen_sock, 1);
     JADE_ASSERT(err == 0);
 
-    struct sockaddr_in6 source_addr;
+    struct sockaddr_in source_addr;
     socklen_t addr_len = sizeof(source_addr);
 
     size_t read = 0;

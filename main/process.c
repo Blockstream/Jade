@@ -5,7 +5,7 @@
 #include "process/process_utils.h"
 #include "utils/cbor_rpc.h"
 #include "utils/malloc_ext.h"
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
 #include "../ble/ble.h"
 #endif
 
@@ -28,7 +28,7 @@ static TaskHandle_t qr_handle;
 static RingbufHandle_t qr_out = NULL;
 static jade_msg_source_t last_message_source = SOURCE_NONE;
 
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
 static TaskHandle_t ble_handle;
 #endif
 
@@ -164,7 +164,7 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
     qemu_tcp_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
     JADE_ASSERT(qemu_tcp_out);
 #endif
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
     *ble_h = &ble_handle;
     ble_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
     JADE_ASSERT(ble_out);
@@ -267,7 +267,7 @@ void jade_process_push_out_message(const uint8_t* data, const size_t size, const
 {
 #if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
     JADE_ASSERT(source == SOURCE_QEMU_TCP || source == SOURCE_SERIAL);
-#elif defined(CONFIG_ESP32_NO_BLOBS)
+#elif !defined(CONFIG_BT_ENABLED)
     JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_QR);
 #else
     JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_BLE || source == SOURCE_QR);
@@ -283,7 +283,7 @@ void jade_process_push_out_message(const uint8_t* data, const size_t size, const
         ring = qr_out;
         handle = qr_handle;
         break;
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
     case SOURCE_BLE:
         ring = ble_out;
         handle = ble_handle;
@@ -351,7 +351,7 @@ static void dump_mem_report(void)
 }
 #endif /* CONFIG_HEAP_TRACING */
 
-#ifdef CONFIG_ESP32_NO_BLOBS
+#ifndef CONFIG_BT_ENABLED
 static inline bool ble_connected(void) { return false; }
 #endif
 
@@ -430,7 +430,7 @@ bool jade_process_get_out_message(outbound_message_writer_fn_t writer, const jad
     case SOURCE_QR:
         ring = qr_out;
         break;
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
     case SOURCE_BLE:
         ring = ble_out;
         break;

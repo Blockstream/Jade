@@ -209,7 +209,7 @@ void make_connection_select_screen(gui_activity_t** activity_ptr, const bool tem
     const uint32_t qr_ev_id = GUI_BUTTON_EVENT_NONE;
 #endif
 
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
     const char* ble_label = "Bluetooth";
     const uint32_t ble_ev_id = BTN_CONNECT_VIA_BLE;
 #else
@@ -258,7 +258,7 @@ void make_connect_to_screen(
     gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
     gui_set_parent(text, vsplit);
 
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
     if (initialisation_source != SOURCE_QR) {
         // Back button
         gui_view_node_t* btn;

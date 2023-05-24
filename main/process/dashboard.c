@@ -26,7 +26,7 @@
 #include "../utils/util.h"
 #include "../utils/wally_ext.h"
 #include "../wallet.h"
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
 #include "../ble/ble.h"
 #else
 // Stubs
@@ -666,7 +666,7 @@ static void handle_legal(void)
 }
 #endif
 
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
 // Reset BLE pairing data
 static void handle_ble_reset(void)
 {
@@ -735,7 +735,7 @@ static void handle_ble(void)
 }
 #else
 static void handle_ble(void) { await_message_activity("BLE disabled in this firmware"); }
-#endif // CONFIG_ESP32_NO_BLOBS
+#endif // CONFIG_BT_ENABLED
 
 static void handle_multisigs(void)
 {
@@ -1500,7 +1500,7 @@ static void handle_device(void)
 #endif
 
     char mac[18] = "NO BLE";
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
     const int rc = ble_get_mac(mac, sizeof(mac));
     JADE_ASSERT(rc == 18);
 #endif

@@ -307,7 +307,7 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
     *data = commitments;
 }
 
-#if defined(CONFIG_ESP32_SPIRAM_SUPPORT) || defined(CONFIG_ESP32_NO_BLOBS)
+#if defined(CONFIG_ESP32_SPIRAM_SUPPORT) || !defined(CONFIG_BT_ENABLED)
 // Workaround to run 'wally_explicit_rangeproof_verify()' on a temporary stack, as the
 // underlying libsecp call 'secp256k1_rangeproof_verify()' requires ~40kb of stack space.
 // NOTE: a device with BLE compiled in but without SPIRAM does not have sufficient free
@@ -326,7 +326,7 @@ static bool explicit_rangeproof_verify(void* ctx)
                commitments->asset_generator, sizeof(commitments->asset_generator))
         == WALLY_OK;
 }
-#endif // CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32_NO_BLOBS
+#endif // CONFIG_ESP32_SPIRAM_SUPPORT || !CONFIG_BT_ENABLED
 
 static bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg)
 {
@@ -358,7 +358,7 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
     // b) can be reconstructed (ie. from value, vbf, and asset generator)
     // NOTE: only a device with SPIRAM has sufficient memory to be able to do this verification.
     if (commitments->content & COMMITMENTS_VALUE_BLIND_PROOF) {
-#if defined(CONFIG_ESP32_SPIRAM_SUPPORT) || defined(CONFIG_ESP32_NO_BLOBS)
+#if defined(CONFIG_ESP32_SPIRAM_SUPPORT) || !defined(CONFIG_BT_ENABLED)
         // Because the underlying libsecp call 'secp256k1_rangeproof_verify()' requires more stack
         // space than is available to the main task, we run that function with a temporary stack.
         const size_t stack_size = 40 * 1024; // 40kb seems sufficient
@@ -369,7 +369,7 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
 #else
         *errmsg = "Devices with radio enabled but without external SPIRAM are unable to verify rangeproof data";
         return false;
-#endif // CONFIG_ESP32_SPIRAM_SUPPORT || CONFIG_ESP32_NO_BLOBS
+#endif // CONFIG_ESP32_SPIRAM_SUPPORT || !CONFIG_BT_ENABLED
     } else {
         uint8_t commitment_tmp[sizeof(commitments->value_commitment)];
         if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf), generator_tmp,

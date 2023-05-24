@@ -30,7 +30,7 @@
 #include "qemu_tcp.h"
 #endif
 
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
 #include "ble/ble.h"
 #endif
 
@@ -142,7 +142,7 @@ static void boot_process(void)
         JADE_ABORT();
     }
 
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
     // Delay BLE initialisation as uses the hw unit key which is not initialised until
     // the first run of keychain_init() (on a new or factory-reset unit).
     // Should not really cause an issue as on a fresh unit BLE should be disabled anyway,

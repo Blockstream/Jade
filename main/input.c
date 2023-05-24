@@ -235,7 +235,7 @@ void wheel_init(void)
     // M5Stack-Basic/Fire hw has three buttons, but the A button behaves behaves badly when Bluetooth is active.
     // In this case the A button generates constant input if serial input is enabled, so the simplest fix is to remove
     // the ability to hold the button down (ie. do not add serial event handlers).
-#if defined(CONFIG_ESP32_NO_BLOBS) || (!defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) && !defined(CONFIG_BOARD_TYPE_M5_FIRE))
+#if (!defined(CONFIG_BT_ENABLED)) || (!defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) && !defined(CONFIG_BOARD_TYPE_M5_FIRE))
     iot_button_set_serial_cb(btn_handle_prev, 1, 100 / portTICK_PERIOD_MS, button_A_pressed, NULL);
     iot_button_set_serial_cb(btn_handle_next, 1, 100 / portTICK_PERIOD_MS, button_B_pressed, NULL);
 #endif

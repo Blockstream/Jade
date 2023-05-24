@@ -1,4 +1,4 @@
-if(NOT CONFIG_ESP32_NO_BLOBS)
+if(CONFIG_BT_ENABLED)
     set(bledir "ble")
 endif()
 

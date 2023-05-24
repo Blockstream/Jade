@@ -9,7 +9,7 @@
 // Some config/features compiled into the firmware
 
 // Whether the ble/radio is configured/enabled
-#ifndef CONFIG_ESP32_NO_BLOBS
+#ifdef CONFIG_BT_ENABLED
 #define JADE_OTA_CONFIG "BLE"
 #else
 #define JADE_OTA_CONFIG "NORADIO"
