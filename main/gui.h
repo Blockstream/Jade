@@ -202,6 +202,11 @@ struct view_node_fill_data {
 struct view_node_text_scroll_data {
     // color to repaint in background to remove the previous rendering
     color_t background_color;
+    color_t selected_background_color;
+    bool only_when_selected;
+
+    // is the text moving right?
+    bool going_back;
 
     // chars to skip
     uint8_t offset;
@@ -210,8 +215,6 @@ struct view_node_text_scroll_data {
     // iterations left to wait here (without moving the text)
     // used when we reach one end of the string and we want to wait a while there
     uint8_t wait;
-    // is the text moving right?
-    bool going_back;
 };
 
 // Data appended to a text node when noise is needed
@@ -419,6 +422,8 @@ void gui_set_color(gui_view_node_t* node, color_t color);
 void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum gui_vertical_align valign);
 void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, size_t num_icons, size_t frames_per_icon);
 void gui_set_text_scroll(gui_view_node_t* node, color_t background_color);
+void gui_set_text_scroll_selected(
+    gui_view_node_t* node, bool only_when_selected, color_t background_color, color_t selected_background_color);
 void gui_set_text_noise(gui_view_node_t* node, color_t background_color);
 void gui_set_text_font(gui_view_node_t* node, uint32_t font);
 void gui_set_text_default_font(gui_view_node_t* node);

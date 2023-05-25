@@ -1301,6 +1301,22 @@ static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
         return false;
     }
 
+    // check if scrolling is only enabled when the item is selected, and node
+    // NOT currently selected - if so redraw at 'start' position
+    if (!node->is_selected && node->text->scroll->only_when_selected) {
+        // if text already at start position, just exit, nothing to do
+        if (!node->text->scroll->going_back && !node->text->scroll->offset) {
+            return false;
+        }
+
+        // set text to start position and return true so item repainted
+        node->text->scroll->prev_offset = node->text->scroll->offset;
+        node->text->scroll->going_back = false;
+        node->text->scroll->offset = 0;
+        node->text->scroll->wait = GUI_SCROLL_WAIT_END;
+        return true;
+    }
+
     // do nothing this frame
     if (node->text->scroll->wait > 0) {
         node->text->scroll->wait--;
@@ -1361,7 +1377,8 @@ void gui_set_text_scroll(gui_view_node_t* node, color_t background_color)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
-    JADE_ASSERT(!node->text->scroll); // the node is already scrolling...
+    JADE_ASSERT(!node->text->scroll); // the node is not already scrolling...
+    JADE_ASSERT(!node->text->noise); // if the node has noise added we will not allow scrolling ...
 
     struct view_node_text_scroll_data* scroll_data = JADE_CALLOC(1, sizeof(struct view_node_text_scroll_data));
 
@@ -1369,11 +1386,22 @@ void gui_set_text_scroll(gui_view_node_t* node, color_t background_color)
     scroll_data->offset = 0;
     scroll_data->wait = GUI_SCROLL_WAIT_END;
     scroll_data->background_color = background_color;
+    scroll_data->selected_background_color = background_color;
 
     node->text->scroll = scroll_data;
 
     // now push this to the list of updatable elements so that it gets updated every frame
     push_updatable(node->activity, node, text_scroll_frame_callback, NULL);
+}
+
+void gui_set_text_scroll_selected(
+    gui_view_node_t* node, bool only_when_selected, color_t background_color, color_t selected_background_color)
+{
+    gui_set_text_scroll(node, background_color);
+
+    node->text->scroll->only_when_selected = only_when_selected;
+    node->text->scroll->background_color = background_color;
+    node->text->scroll->selected_background_color = selected_background_color;
 }
 
 void gui_set_text_noise(gui_view_node_t* node, color_t background_color)
@@ -1742,7 +1770,7 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
         text_wrap = 0;
 
         // set the foreground color to the "background color" to remove the previous string
-        _fg = node->text->scroll->background_color;
+        _fg = node->is_selected ? node->text->scroll->selected_background_color : node->text->scroll->background_color;
         TFT_print_in_area(node->render_data.resolved_text + node->text->scroll->prev_offset,
             resolve_halign(0, node->text->halign), resolve_valign(0, node->text->valign), cs);
 
