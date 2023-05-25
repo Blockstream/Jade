@@ -31,7 +31,7 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 
 ### M5Stack Basic Core
 ![M5Stack Basic Core](img/M5Stack-Basic.jpg)
-* [Vendor Product Page](https://shop.m5stack.com/products/esp32-basic-core-iot-development-kit-v2-6)
+* [Vendor Product Page](https://shop.m5stack.com/products/esp32-basic-core-lot-development-kit-v2-7)
 * ~$40 USD
 * Three button interface (Middle button to select)
 * Includes 110mAh battery
