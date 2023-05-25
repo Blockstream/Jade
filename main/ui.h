@@ -100,6 +100,12 @@ typedef enum { UI_ROW, UI_COLUMN } ui_button_layout_t;
 void add_button(gui_view_node_t* parent, btn_data_t* btn_info);
 void add_buttons(gui_view_node_t* parent, ui_button_layout_t layout, btn_data_t* btns, size_t num_btns);
 
+// Helpers to create and populate the common title bar
+void populate_title_bar(
+    gui_view_node_t* bar, const char* title, btn_data_t* btns, size_t num_btns, gui_view_node_t** title_node);
+gui_view_node_t* add_title_bar(
+    gui_activity_t* activity, const char* title, btn_data_t* btns, size_t num_btns, gui_view_node_t** title_node);
+
 // Functions for keyboard entry
 void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title);
 void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);

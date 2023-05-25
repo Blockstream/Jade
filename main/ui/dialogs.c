@@ -99,6 +99,78 @@ void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_d
     }
 }
 
+static inline btn_data_t* add_default_border(btn_data_t* btn, const uint32_t default_borders)
+{
+    if (!btn->borders && btn->ev_id != GUI_BUTTON_EVENT_NONE) {
+        btn->borders = default_borders;
+    }
+    return btn;
+}
+
+// Helper to populate the common title bar
+void populate_title_bar(
+    gui_view_node_t* bar, const char* title, btn_data_t* btns, const size_t num_btns, gui_view_node_t** title_node)
+{
+    JADE_ASSERT(bar);
+    JADE_ASSERT(title || btns);
+    JADE_ASSERT((btns && num_btns == 2) || !num_btns);
+    JADE_ASSERT(!title_node || title);
+    // title is optional but do not expect neither title nor buttons
+    // buttons are optional, but must have zero or two (can be placeholder)
+    // title_node is optional, but can only be passed if a title (even an empty string) is passed
+
+    // Create the title text
+    // If the caller has asked for the node to be returned it probably means they are expecting
+    // to update it - in which case inject an intermediate fill (so updated text redraws properly).
+    gui_view_node_t* titlenode;
+    if (title) {
+        gui_make_text_font(&titlenode, title, TFT_WHITE, GUI_TITLE_FONT);
+        gui_set_align(titlenode, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+        if (title_node) {
+            *title_node = titlenode;
+            gui_make_fill(&titlenode, TFT_BLACK);
+            gui_set_parent(*title_node, titlenode);
+        }
+    } else {
+        // No title, just a blank space
+        gui_make_fill(&titlenode, TFT_BLACK);
+    }
+
+    if (!num_btns) {
+        // Just a title, no buttons - just apply straight to the bar node
+        gui_set_parent(titlenode, bar);
+    } else {
+        // Split the bar into three sections, [lbtn | title | rbtn]
+        gui_view_node_t* hsplit;
+        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 15, 70, 15);
+        gui_set_parent(hsplit, bar);
+
+        // If not otherwise specified, put a border around the buttons
+        add_button(hsplit, add_default_border(btns, GUI_BORDER_ALL));
+        gui_set_parent(titlenode, hsplit);
+        add_button(hsplit, add_default_border(btns + 1, GUI_BORDER_ALL));
+    }
+}
+
+// Helper to create and populate the common title bar
+gui_view_node_t* add_title_bar(
+    gui_activity_t* activity, const char* title, btn_data_t* btns, const size_t num_btns, gui_view_node_t** title_node)
+{
+    JADE_ASSERT(activity);
+
+    // Split off the top 20% as the title bar
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 20, 80);
+    gui_set_parent(vsplit, activity->root_node);
+
+    // Populate the title bar
+    populate_title_bar(vsplit, title, btns, num_btns, title_node);
+
+    // Return the new parent for further ui elements
+    return vsplit;
+}
+
 // activity to show a single central label, which can be updated by the caller
 gui_activity_t* make_show_label_activity(const char* title, const char* message, gui_view_node_t** item_text)
 {
