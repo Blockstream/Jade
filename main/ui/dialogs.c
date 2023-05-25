@@ -11,23 +11,60 @@ void update_menu_item(gui_view_node_t* node, const char* label, const char* valu
     gui_update_text(node, buf);
 }
 
+// Helper to make a standard button, for consistent look and feel behaviour
+void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
+{
+    JADE_ASSERT(parent);
+    JADE_ASSERT(btn_info);
+
+    gui_view_node_t* btn;
+
+    // No event implies no 'pressable' button in this position - use a 'fill' instead
+    if (btn_info->ev_id == GUI_BUTTON_EVENT_NONE) {
+        gui_make_fill(&btn, TFT_BLACK);
+    } else {
+        gui_make_button(&btn, TFT_BLACK, btn_info->ev_id, NULL);
+        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
+        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+    }
+    gui_set_parent(btn, parent);
+
+    // Add any text
+    if (btn_info->txt) {
+        gui_view_node_t* text;
+        gui_make_text_font(&text, btn_info->txt, TFT_WHITE, btn_info->font);
+        gui_set_parent(text, btn);
+        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    }
+
+    // Set the (btn) control back in the info struct
+    btn_info->btn = btn;
+}
+
 // Helper to create up to four buttons in a row or column
 void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_data_t* btns, const size_t num_btns)
 {
     JADE_ASSERT(parent);
     JADE_ASSERT(layout == UI_ROW || layout == UI_COLUMN);
     JADE_ASSERT(btns);
+    JADE_ASSERT(num_btns);
     JADE_ASSERT(num_btns <= 4);
+
+    if (num_btns == 1) {
+        // skip intermediate split, apply button directly to parent
+        // ('layout' (row or column) is irrelevant in this case)
+        add_button(parent, btns);
+        return;
+    }
 
     // Make the split relevant for the number of buttons
     typedef void (*make_split_fn)(gui_view_node_t * *ptr, enum gui_split_type kind, uint32_t parts, ...);
-    make_split_fn make_split = layout == UI_COLUMN ? gui_make_vsplit : gui_make_hsplit;
+    make_split_fn make_split = (layout == UI_COLUMN) ? gui_make_vsplit : gui_make_hsplit;
+
+    // Make a split for the number of buttons (if greater than one)
     gui_view_node_t* split = NULL;
-    // Make hsplit for the number of buttons
     switch (num_btns) {
-    case 1:
-        make_split(&split, GUI_SPLIT_RELATIVE, 1, 100);
-        break;
     case 2:
         make_split(&split, GUI_SPLIT_RELATIVE, 2, 50, 50);
         break;
@@ -42,30 +79,9 @@ void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_d
     }
     gui_set_parent(split, parent);
 
+    // Add buttons to split
     for (size_t i = 0; i < num_btns; ++i) {
-        btn_data_t* const btn_info = btns + i;
-
-        gui_view_node_t* btn;
-        // No event implies no 'pressable' button in this position
-        if (btn_info->ev_id == GUI_BUTTON_EVENT_NONE) {
-            gui_make_fill(&btn, TFT_BLACK);
-        } else {
-            gui_make_button(&btn, TFT_BLACK, btn_info->ev_id, NULL);
-            gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        }
-        gui_set_parent(btn, split);
-
-        if (btn_info->txt) {
-            gui_view_node_t* text;
-            gui_make_text_font(&text, btn_info->txt, TFT_WHITE, btn_info->font);
-            gui_set_parent(text, btn);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        }
-
-        // Set the button back in the info struct
-        btn_info->btn = btn;
+        add_button(split, btns + i);
     }
 }
 
