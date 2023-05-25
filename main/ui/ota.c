@@ -2,175 +2,151 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-gui_activity_t* make_ota_versions_activity(
-    const char* current_version, const char* new_version, const char* expected_hash_hexstr, const bool full_fw_hash)
+void await_qr_help_activity(const char* url);
+
+// Make summary activity and all drilldown activities
+static gui_activity_t* make_ota_versions_activities(const char* current_version, const char* new_version,
+    const char* hashstr, const bool full_fw_hash, gui_activity_t** actcurrentver, gui_activity_t** actnewver,
+    gui_activity_t** acthash)
 {
     JADE_ASSERT(current_version);
     JADE_ASSERT(new_version);
-    JADE_ASSERT(expected_hash_hexstr);
+    JADE_ASSERT(hashstr);
+    JADE_INIT_OUT_PPTR(actcurrentver);
+    JADE_INIT_OUT_PPTR(actnewver);
+    JADE_INIT_OUT_PPTR(acthash);
 
-    gui_activity_t* const act = gui_make_activity();
+    const char* hashtitle = full_fw_hash ? "File Hash:" : "File Hash:";
+    const bool show_help_btn = true;
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 19, 30);
-    gui_set_parent(vsplit, act->root_node);
+    // First row, current version
+    gui_view_node_t* splitcurrent;
+    gui_make_hsplit(&splitcurrent, GUI_SPLIT_RELATIVE, 2, 36, 64);
 
-    // first row, current version
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 30, 70);
-        gui_set_parent(hsplit, vsplit);
+    gui_view_node_t* vercurrent;
+    gui_make_text(&vercurrent, "Current:", TFT_WHITE);
+    gui_set_align(vercurrent, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(vercurrent, splitcurrent);
 
-        gui_view_node_t* label;
-        gui_make_text(&label, "Current:", TFT_WHITE);
-        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(label, hsplit);
+    gui_make_text(&vercurrent, current_version, TFT_WHITE);
+    gui_set_align(vercurrent, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(vercurrent, splitcurrent);
 
-        gui_view_node_t* version;
-        gui_make_text(&version, current_version, TFT_WHITE);
-        gui_set_align(version, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(version, hsplit);
-    }
+    *actcurrentver = make_show_single_value_activity("Current Version", current_version, show_help_btn);
 
-    // second row, new version
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 30, 70);
-        gui_set_parent(hsplit, vsplit);
+    // Second row, new version
+    gui_view_node_t* splitnew;
+    gui_make_hsplit(&splitnew, GUI_SPLIT_RELATIVE, 2, 36, 64);
 
-        gui_view_node_t* label;
-        gui_make_text(&label, "New:", TFT_WHITE);
-        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(label, hsplit);
+    gui_view_node_t* vernew;
+    gui_make_text(&vernew, "New:", TFT_WHITE);
+    gui_set_align(vernew, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(vernew, splitnew);
 
-        gui_view_node_t* version;
-        gui_make_text(&version, new_version, TFT_WHITE);
-        gui_set_align(version, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(version, hsplit);
-    }
+    gui_make_text(&vernew, new_version, TFT_WHITE);
+    gui_set_align(vernew, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(vernew, splitnew);
 
-    // third row, hash
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 30, 70);
-        gui_set_parent(hsplit, vsplit);
+    *actnewver = make_show_single_value_activity("New Version", new_version, show_help_btn);
 
-        gui_view_node_t* label;
-        gui_make_text(&label, full_fw_hash ? "Fw Hash:" : "File Hash:", TFT_WHITE);
-        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(label, hsplit);
+    // Third row, hash
+    gui_view_node_t* splithash;
+    gui_make_hsplit(&splithash, GUI_SPLIT_RELATIVE, 2, 45, 55);
 
-        JADE_ASSERT(strlen(expected_hash_hexstr) == 64);
-        char hashstr[96];
-        const int ret = snprintf(hashstr, sizeof(hashstr), "} %.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s {", 8,
-            expected_hash_hexstr, 8, expected_hash_hexstr + 8, 8, expected_hash_hexstr + 16, 8,
-            expected_hash_hexstr + 24, 8, expected_hash_hexstr + 32, 8, expected_hash_hexstr + 40, 8,
-            expected_hash_hexstr + 48, 8, expected_hash_hexstr + 56);
-        JADE_ASSERT(ret > 0 && ret < sizeof(hashstr));
+    gui_view_node_t* fwhash;
+    gui_make_text(&fwhash, hashtitle, TFT_WHITE);
+    gui_set_align(fwhash, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(fwhash, splithash);
 
-        gui_view_node_t* hash;
-        gui_make_text(&hash, hashstr, TFT_WHITE);
-        gui_set_align(hash, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(hash, hsplit);
-        gui_set_text_scroll(hash, TFT_BLACK);
-    }
+    gui_make_text(&fwhash, hashstr, TFT_WHITE);
+    gui_set_align(fwhash, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(fwhash, splithash);
 
-    // fourth row, text
-    {
-        gui_view_node_t* msg;
-        gui_make_text(&msg, "Continue with Update ?", TFT_WHITE);
-        gui_set_align(msg, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(msg, vsplit);
-    }
+    *acthash = make_show_single_value_activity(hashtitle, hashstr, show_help_btn);
 
-    // fifth row, buttons
-    gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 30, 30, 40);
-    gui_set_parent(hsplit, vsplit);
+    // Create buttons/menu
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_OTA_REJECT },
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTA_ACCEPT } };
 
-    // cancel btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_CANCEL_OTA, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "X", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    btn_data_t menubtns[] = { { .content = splitcurrent, .ev_id = BTN_OTA_VIEW_CURRENT_VERSION },
+        { .content = splitnew, .ev_id = BTN_OTA_VIEW_NEW_VERSION },
+        { .content = splithash, .ev_id = BTN_OTA_VIEW_FW_HASH } };
 
-    // accept btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_ACCEPT_OTA, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text_font(&text, "S", TFT_WHITE, VARIOUS_SYMBOLS_FONT);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    gui_activity_t* const act = make_menu_activity("Firmware Upgrade", hdrbtns, 2, menubtns, 3);
 
-    // view-hash btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_OTA_VIEW_FW_HASH, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "View Hash", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    // NOTE: can only set scrolling *after* gui tree created
+    gui_set_text_scroll_selected(vercurrent, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(vernew, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(fwhash, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
 
     return act;
 }
 
-gui_activity_t* make_show_ota_hash_activity(const char* expected_hash_hexstr, const bool full_fw_hash)
+// ota version details screen for user confirmation
+bool show_ota_versions_activity(
+    const char* current_version, const char* new_version, const char* hashhex, const bool full_fw_hash)
 {
-    JADE_ASSERT(expected_hash_hexstr);
+    JADE_ASSERT(current_version);
+    JADE_ASSERT(new_version);
+    JADE_ASSERT(hashhex);
 
-    gui_activity_t* const act = gui_make_activity();
+    // Break up hash string into groups of 8 chars
+    char hashstr[96];
+    JADE_ASSERT(strlen(hashhex) == 64);
+    const int ret = snprintf(hashstr, sizeof(hashstr), "%.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s", 8, hashhex, 8,
+        hashhex + 8, 8, hashhex + 16, 8, hashhex + 24, 8, hashhex + 32, 8, hashhex + 40, 8, hashhex + 48, 8,
+        hashhex + 56);
+    JADE_ASSERT(ret > 0 && ret < sizeof(hashstr));
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 50, 30);
-    gui_set_parent(vsplit, act->root_node);
+    gui_activity_t* act_currentver = NULL;
+    gui_activity_t* act_newver = NULL;
+    gui_activity_t* act_hash = NULL;
+    gui_activity_t* act_summary = make_ota_versions_activities(
+        current_version, new_version, hashstr, full_fw_hash, &act_currentver, &act_newver, &act_hash);
 
-    // first row, label
-    {
-        const char* label_text = full_fw_hash ? "New Firmware Hash:" : "Uploaded File Hash:";
-        gui_view_node_t* label;
-        gui_make_text(&label, label_text, TFT_WHITE);
-        gui_set_padding(label, GUI_MARGIN_TWO_VALUES, 4, 4);
-        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(label, vsplit);
+    gui_activity_t* act = act_summary;
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+
+        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_OTA_ACCEPT;
+#endif
+        if (ret) {
+            switch (ev_id) {
+            case BTN_BACK:
+                act = act_summary;
+                break;
+
+            case BTN_OTA_VIEW_CURRENT_VERSION:
+                act = act_currentver;
+                break;
+
+            case BTN_OTA_VIEW_NEW_VERSION:
+                act = act_newver;
+                break;
+
+            case BTN_OTA_VIEW_FW_HASH:
+                act = act_hash;
+                break;
+
+            case BTN_HELP:
+                await_qr_help_activity("blockstream.com/fwupgrade");
+                break;
+
+            case BTN_OTA_REJECT:
+                return false;
+
+            case BTN_OTA_ACCEPT:
+                return true;
+            }
+        }
     }
-
-    // second row, hash
-    {
-        JADE_ASSERT(strlen(expected_hash_hexstr) == 64);
-        char hashstr[96];
-        const int ret = snprintf(hashstr, sizeof(hashstr), "%.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s", 8,
-            expected_hash_hexstr, 8, expected_hash_hexstr + 8, 8, expected_hash_hexstr + 16, 8,
-            expected_hash_hexstr + 24, 8, expected_hash_hexstr + 32, 8, expected_hash_hexstr + 40, 8,
-            expected_hash_hexstr + 48, 8, expected_hash_hexstr + 56);
-        JADE_ASSERT(ret > 0 && ret < sizeof(hashstr));
-
-        gui_view_node_t* hash;
-        gui_make_text(&hash, hashstr, TFT_WHITE);
-        gui_set_padding(hash, GUI_MARGIN_TWO_VALUES, 4, 4);
-        gui_set_align(hash, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-        gui_set_parent(hash, vsplit);
-    }
-
-    // third row, buttons
-    btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CANCEL_OTA },
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTA_HASH_CONFIRMED } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
-
-    return act;
 }

@@ -502,37 +502,36 @@ void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar)
 // using the update_progress_bar() function below.
 gui_activity_t* make_progress_bar_activity(const char* title, const char* message, progress_bar_t* progress_bar)
 {
-    JADE_ASSERT(progress_bar);
+    JADE_ASSERT(title);
     JADE_ASSERT(message);
-    // title is optional
+    JADE_ASSERT(progress_bar);
 
     gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* parent = add_title_bar(act, title, NULL, 0, NULL);
+    gui_view_node_t* node;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 26, 44, 30);
-    gui_set_parent(vsplit, act->root_node);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 25, 45, 30);
+    gui_set_parent(vsplit, parent);
 
     // First row, message text
-    gui_view_node_t* text;
-    gui_make_text(&text, message, TFT_WHITE);
-    gui_set_parent(text, vsplit);
-    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 8, 4);
-    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+    gui_make_text(&node, message, TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_padding(node, GUI_MARGIN_TWO_VALUES, 0, 12);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
     // second row, progress bar
     make_progress_bar(vsplit, progress_bar);
 
     // third row, percentage text
-    gui_view_node_t* background;
-    gui_make_fill(&background, TFT_BLACK);
-    gui_set_parent(background, vsplit);
+    gui_make_text(&node, "0%", TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    progress_bar->pcnt_txt = node;
 
-    gui_view_node_t* pcnt;
-    gui_make_text(&pcnt, "0%", TFT_WHITE);
-    gui_set_parent(pcnt, background);
-    gui_set_padding(pcnt, GUI_MARGIN_TWO_VALUES, 8, 4);
-    gui_set_align(pcnt, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    progress_bar->pcnt_txt = pcnt;
+    gui_make_fill(&node, TFT_BLACK);
+    gui_set_parent(node, vsplit);
+
+    gui_set_parent(progress_bar->pcnt_txt, node);
 
     return act;
 }

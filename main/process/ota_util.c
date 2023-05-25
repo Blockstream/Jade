@@ -2,6 +2,7 @@
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
+#include "../qrmode.h"
 #include "ota_defines.h"
 
 #include <ctype.h>
@@ -10,10 +11,8 @@
 #include <sodium/utils.h>
 #include <string.h>
 
-// UI screens to confirm ota
-gui_activity_t* make_ota_versions_activity(
-    const char* current_version, const char* new_version, const char* expected_hash_hexstr, bool full_fw_hash);
-gui_activity_t* make_show_ota_hash_activity(const char* expected_hash_hexstr, bool full_fw_hash);
+bool show_ota_versions_activity(
+    const char* current_version, const char* new_version, const char* hashhex, const bool full_fw_hash);
 
 const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t custom_app_desc
     = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
@@ -257,58 +256,27 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     // User to confirm once new firmware version known and all checks passed
     char current_config[sizeof(JADE_OTA_CONFIG)];
     to_lower(current_config, JADE_OTA_CONFIG);
-    char current_version[sizeof(running_app_info.version) + sizeof(current_config)];
+    char current_version[sizeof(running_app_info.version) + sizeof(current_config) + 2];
     int rc = snprintf(current_version, sizeof(current_version), "%s %s", running_app_info.version, current_config);
     JADE_ASSERT(rc > 0 && rc < sizeof(current_version));
 
     char new_config[sizeof(custom_info->config)];
     to_lower(new_config, custom_info->config);
-    char new_version[sizeof(new_app_info->version) + sizeof(new_config)];
+    char new_version[sizeof(new_app_info->version) + sizeof(new_config) + 2];
     rc = snprintf(new_version, sizeof(new_version), "%s %s", new_app_info->version, new_config);
     JADE_ASSERT(rc > 0 && rc < sizeof(new_version));
 
     const bool full_fw_hash = joctx->hash_type == HASHTYPE_FULLFWDATA;
 
-    gui_activity_t* const ota_activity
-        = make_ota_versions_activity(current_version, new_version, joctx->expected_hash_hexstr, full_fw_hash);
-    gui_activity_t* const show_hash_activity = make_show_ota_hash_activity(joctx->expected_hash_hexstr, full_fw_hash);
-
-    bool ota_accepted = false;
-    gui_activity_t* act = ota_activity;
-    while (!ota_accepted) {
-        gui_set_current_activity(act);
-
-        int32_t ev_id;
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_ACCEPT_OTA;
-#endif
-
-        if (ret) {
-            switch (ev_id) {
-            case BTN_OTA_VIEW_FW_HASH:
-                act = show_hash_activity;
-                break;
-            case BTN_OTA_HASH_CONFIRMED:
-                act = ota_activity;
-                break;
-            case BTN_ACCEPT_OTA:
-                ota_accepted = true;
-                break;
-            case BTN_CANCEL_OTA:
-                JADE_LOGW("User declined ota firmware version");
-                return ERROR_USER_DECLINED;
-            }
-        }
+    // Ask user to confirm
+    if (!show_ota_versions_activity(current_version, new_version, joctx->expected_hash_hexstr, full_fw_hash)) {
+        JADE_LOGW("User declined ota firmware version");
+        return ERROR_USER_DECLINED;
     }
 
     // Now user has confirmed, display the progress bar
-    act = make_progress_bar_activity("Firmware Upgrade", "Upload Progress:", &joctx->progress_bar);
+    gui_activity_t* const act
+        = make_progress_bar_activity("Firmware Upgrade", "Upload Progress:", &joctx->progress_bar);
     gui_set_current_activity_ex(act, true); // free prior activities
     vTaskDelay(100 / portTICK_PERIOD_MS); // time for screen to update
 
