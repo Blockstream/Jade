@@ -213,6 +213,58 @@ gui_activity_t* make_menu_activity(
     return act;
 }
 
+// Helper to create an activity to show a message on a single central label
+// Can pass title-bar information (optional) and footer buttons (also optional)
+gui_activity_t* make_show_message_activity(const char* message, const uint32_t toppad, const char* title,
+    btn_data_t* hdrbtns, const size_t num_hdrbtns, btn_data_t* ftrbtns, const size_t num_ftrbtns)
+{
+    JADE_ASSERT(message);
+    // Header and footer are optional
+
+    gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* parent = act->root_node;
+
+    // Add a titlebar if deisred
+    const bool have_hdr = title || num_hdrbtns;
+    if (have_hdr) {
+        parent = add_title_bar(act, title, hdrbtns, num_hdrbtns, NULL);
+    }
+
+    // Message - align center/middle if no carriage returns in message.
+    // If multi-line, align top-left and let the caller manage the spacing.
+    gui_view_node_t* msgnode;
+    gui_make_text(&msgnode, message, TFT_WHITE);
+    if (!strchr(message, '\n')) {
+        gui_set_align(msgnode, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    } else {
+        gui_set_align(msgnode, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    }
+
+    // Apply any padding above the message
+    if (toppad) {
+        gui_set_padding(msgnode, GUI_MARGIN_ALL_DIFFERENT, toppad, 0, 0, 0);
+    }
+
+    if (!ftrbtns || !num_ftrbtns) {
+        // Just a message, no buttons - just apply straight to the parent
+        gui_set_parent(msgnode, parent);
+    } else {
+        // Relative height of buttons depends on whether there is a header
+        gui_view_node_t* vsplit;
+        const uint32_t btnheight = have_hdr ? 30 : 25;
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 100 - btnheight, btnheight);
+        gui_set_parent(vsplit, parent);
+
+        // Add message to top of vsplit
+        gui_set_parent(msgnode, vsplit);
+
+        // Add buttons to below
+        add_buttons(vsplit, UI_ROW, ftrbtns, num_ftrbtns);
+    }
+
+    return act;
+}
+
 // activity to show a single central label, which can be updated by the caller
 gui_activity_t* make_show_label_activity(const char* title, const char* message, gui_view_node_t** item_text)
 {

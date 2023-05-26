@@ -110,6 +110,10 @@ gui_view_node_t* add_title_bar(
 gui_activity_t* make_menu_activity(
     const char* title, btn_data_t* hdrbtns, const size_t num_hdrbtns, btn_data_t* menubtns, size_t num_menubtns);
 
+// Helper to create an activity to show a message on a single central label
+gui_activity_t* make_show_message_activity(const char* message, uint32_t toppad, const char* title, btn_data_t* hdrbtns,
+    size_t num_hdrbtns, btn_data_t* ftrbtns, size_t num_ftrbtns);
+
 // Functions for keyboard entry
 void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title);
 void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
