@@ -58,6 +58,9 @@ extern uint8_t GUI_DEFAULT_FONT;
 // Shorthands for some common border configurations
 #define GUI_BORDER_ALL (GUI_BORDER_TOP | GUI_BORDER_RIGHT | GUI_BORDER_BOTTOM | GUI_BORDER_LEFT)
 #define GUI_BORDER_SIDES (GUI_BORDER_RIGHT | GUI_BORDER_LEFT)
+#define GUI_BORDER_TOPBOTTOM (GUI_BORDER_TOP | GUI_BORDER_BOTTOM)
+#define GUI_BORDER_TOPLEFT (GUI_BORDER_TOP | GUI_BORDER_LEFT)
+#define GUI_BORDER_TOPRIGHT (GUI_BORDER_TOP | GUI_BORDER_RIGHT)
 
 // How should the parameters to set_margin/set_padding be interpreted
 #define GUI_MARGIN_ALL_EQUAL 1 // one value for all
