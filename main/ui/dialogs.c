@@ -24,11 +24,19 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
         gui_make_fill(&btn, TFT_BLACK);
     } else {
         gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, btn_info->ev_id, NULL);
-        gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
     }
     gui_set_parent(btn, parent);
+
+    // If borders explcitly specified, show in dark grey
+    // 0 implies default behaviour - no visible borders when not selected
+    if (btn_info->borders) {
+        gui_set_borders(btn, TFT_BLOCKSTREAM_BUTTONBORDER_GREY, 1, btn_info->borders);
+    } else {
+        gui_set_borders(btn, TFT_BLACK, 1, GUI_BORDER_ALL);
+    }
+
+    // In any case green body/bg when selected
+    gui_set_colors(btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
 
     // Add any text
     if (btn_info->txt) {

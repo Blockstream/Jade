@@ -83,11 +83,12 @@ typedef struct {
 } progress_bar_t;
 
 typedef struct {
+    gui_view_node_t* btn;
     const char* txt;
     uint32_t font;
     uint32_t ev_id;
     uint32_t val;
-    gui_view_node_t* btn;
+    uint8_t borders;
 } btn_data_t;
 
 // Helper to update dynamic menu item label (name: value)

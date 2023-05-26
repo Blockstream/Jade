@@ -75,6 +75,7 @@ const color_t TFT_PINK        = {   3,  63,  53 };
 const color_t TFT_BLOCKSTREAM_GREEN = { 254, 79, 108 };
 const color_t TFT_BLOCKSTREAM_DARKGREEN = { 248, 119, 152 };
 const color_t TFT_BLOCKSTREAM_LIGHTGREEN = { 86, 36, 76 };
+const color_t TFT_BLOCKSTREAM_BUTTONBORDER_GREY = { 220, 220, 220 };
 const color_t TFT_BLOCKSTREAM_QR_PALE = { 180, 180, 180 };
 
 // ===============================================

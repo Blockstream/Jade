@@ -118,6 +118,7 @@ extern const color_t TFT_PINK;
 extern const color_t TFT_BLOCKSTREAM_GREEN;
 extern const color_t TFT_BLOCKSTREAM_DARKGREEN;
 extern const color_t TFT_BLOCKSTREAM_LIGHTGREEN;
+extern const color_t TFT_BLOCKSTREAM_BUTTONBORDER_GREY;
 extern const color_t TFT_BLOCKSTREAM_QR_PALE;
 
 // === Color invert constants ===
