@@ -17,6 +17,9 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
     JADE_ASSERT(parent);
     JADE_ASSERT(btn_info);
 
+    // Cannot specify both 'text label' and 'explicit content'
+    JADE_ASSERT(!btn_info->txt || !btn_info->content);
+
     gui_view_node_t* btn;
 
     // No event implies no 'pressable' button in this position - use a 'fill' instead
@@ -38,12 +41,15 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
     // In any case green body/bg when selected
     gui_set_colors(btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
 
-    // Add any text
+    // Add any simple text label
     if (btn_info->txt) {
         gui_view_node_t* text;
         gui_make_text_font(&text, btn_info->txt, TFT_WHITE, btn_info->font);
         gui_set_parent(text, btn);
         gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    } else if (btn_info->content) {
+        // In more complex cases caller can prepare content and pass instead
+        gui_set_parent(btn_info->content, btn);
     }
 
     // Set the (btn) control back in the info struct

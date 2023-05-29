@@ -84,6 +84,7 @@ typedef struct {
 
 typedef struct {
     gui_view_node_t* btn;
+    gui_view_node_t* content;
     const char* txt;
     uint32_t font;
     uint32_t ev_id;
