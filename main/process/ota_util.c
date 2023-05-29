@@ -312,8 +312,9 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     }
 
     // Now user has confirmed, display the progress bar
-    display_progress_bar_activity("Firmware Upgrade", "Upload Progress:", &joctx->progress_bar);
-    vTaskDelay(50 / portTICK_PERIOD_MS); // time for screen to update
+    activity = make_progress_bar_activity("Firmware Upgrade", "Upload Progress:", &joctx->progress_bar);
+    gui_set_current_activity_ex(activity, true); // free prior activities
+    vTaskDelay(100 / portTICK_PERIOD_MS); // time for screen to update
 
     return SUCCESS;
 }

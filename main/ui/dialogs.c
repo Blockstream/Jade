@@ -323,10 +323,10 @@ void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar)
     progress_bar->progress_bar = progress;
 }
 
-// Show a progress bar screen, with the given title.
+// Create a progress bar screen, with the given title.
 // The progress-bar structure indicated is populated, and should be used to update the progress
 // using the update_progress_bar() function below.
-void display_progress_bar_activity(const char* title, const char* message, progress_bar_t* progress_bar)
+gui_activity_t* make_progress_bar_activity(const char* title, const char* message, progress_bar_t* progress_bar)
 {
     JADE_ASSERT(progress_bar);
     JADE_ASSERT(message);
@@ -361,8 +361,7 @@ void display_progress_bar_activity(const char* title, const char* message, progr
     gui_set_align(pcnt, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
     progress_bar->pcnt_txt = pcnt;
 
-    // Display the progress bar
-    gui_set_current_activity(act);
+    return act;
 }
 
 void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const size_t current)

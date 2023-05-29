@@ -117,7 +117,7 @@ bool await_yesno_activity(const char* title, const char* message, bool default_s
 
 // Generic progress-bar
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);
-void display_progress_bar_activity(const char* title, const char* message, progress_bar_t* progress_bar);
+gui_activity_t* make_progress_bar_activity(const char* title, const char* message, progress_bar_t* progress_bar);
 void update_progress_bar(progress_bar_t* progress_bar, size_t total, size_t current);
 
 #endif /* UI_H_ */
