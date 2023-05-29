@@ -566,12 +566,14 @@ void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, con
     activity->root_node->activity = activity;
 }
 
-// Create a new/initialised 'managed' activity without a status bar
+// Create a new/initialised 'managed' activity without a status bar,
+// and with the 'wrapped' selection style
 gui_activity_t* gui_make_activity(void)
 {
     gui_activity_t* activity = NULL;
     gui_make_activity_ex(&activity, false, NULL, true);
     JADE_ASSERT(activity);
+    activity->selectables_wrap = true;
     return activity;
 }
 
