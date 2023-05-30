@@ -171,6 +171,48 @@ gui_view_node_t* add_title_bar(
     return vsplit;
 }
 
+// Helper to create an activity to show a vertical menu
+// Must pass title-bar information - supports 2, 3 or 4 menu buttons
+gui_activity_t* make_menu_activity(
+    const char* title, btn_data_t* hdrbtns, const size_t num_hdrbtns, btn_data_t* menubtns, const size_t num_menubtns)
+{
+    JADE_ASSERT(title);
+    // Header buttons are optional
+    JADE_ASSERT(menubtns);
+    JADE_ASSERT(num_menubtns > 1);
+    JADE_ASSERT(num_menubtns < 5);
+
+    // Explicitly set just left|top|right borders around header buttons when menu is 'full'
+    // as bottom edge will be covered by upper line above top menu item.
+    if (num_menubtns > 2) {
+        for (size_t i = 0; i < num_hdrbtns; ++i) {
+            add_default_border(&hdrbtns[i], GUI_BORDER_SIDES | GUI_BORDER_TOP);
+        }
+    }
+
+    gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* parent = add_title_bar(act, title, hdrbtns, num_hdrbtns, NULL);
+
+    // Add any padding for smaller number of items
+    if (num_menubtns == 2) {
+        gui_view_node_t* vsplit;
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
+        gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 12, 0, 0, 0);
+        gui_set_parent(vsplit, parent);
+        parent = vsplit;
+    }
+
+    // Add default borders between menu items
+    for (size_t i = 0; i < num_menubtns; ++i) {
+        add_default_border(&menubtns[i], i == 0 ? GUI_BORDER_TOPBOTTOM : GUI_BORDER_BOTTOM);
+    }
+
+    // Add menu buttons
+    add_buttons(parent, UI_COLUMN, menubtns, num_menubtns);
+
+    return act;
+}
+
 // activity to show a single central label, which can be updated by the caller
 gui_activity_t* make_show_label_activity(const char* title, const char* message, gui_view_node_t** item_text)
 {
