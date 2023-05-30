@@ -43,7 +43,7 @@ bool scan_qr(const size_t width, const size_t height, const uint8_t* data, const
 // Function to scan a qr code with the camera.
 // Any scanned/extracted string (which passes any additional validity check)
 // is written to the passed qr_data struct, and the function returns true.
-// The fucntion returns false if scanning is aborted, and no string is returned.
-bool jade_camera_scan_qr(qr_data_t* qr_data, const char* title, const char* text_label);
+// The function returns false if scanning is aborted, and no string is returned.
+bool jade_camera_scan_qr(qr_data_t* qr_data, const char* text_label, const char* help_url);
 
 #endif /* QRSCAN_H_ */

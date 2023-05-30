@@ -52,6 +52,8 @@ int params_set_epoch_time(CborValue* params, const char** errmsg);
 int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output, const size_t sig_len, size_t* written,
     const char** errmsg);
 
+bool show_confirm_address_activity(const char* address, bool default_selection);
+
 // PSBT struct and functions
 struct wally_psbt;
 int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg);
@@ -366,10 +368,9 @@ static bool verify_address(const address_data_t* const addr_data)
     JADE_ASSERT(addr_data->network);
     JADE_ASSERT(addr_data->script_len);
 
-    char buf[160];
-    int rc = snprintf(buf, sizeof(buf), "Attempt to verify address?\n\n%s", addr_data->address);
-    JADE_ASSERT(rc > 0 && rc < sizeof(buf));
-    if (!await_yesno_activity("Verify Address", buf, true, NULL)) {
+    const bool default_selection = true;
+    if (!show_confirm_address_activity(addr_data->address, default_selection)) {
+        // Abandon
         return false;
     }
 
@@ -404,12 +405,14 @@ static bool verify_address(const address_data_t* const addr_data)
 
         // p2sh-wrapped could be multi- or single- sig.  User to select which.
         if (script_type != WALLY_SCRIPT_TYPE_P2SH
-            || await_yesno_activity("Multisig Address", "\nIs this a multisig address?", false, NULL)) {
+            || await_yesno_activity(
+                "Verify Address", "     Are you trying to\n     verify a multisig\n           address?", false, NULL)) {
             // Must have a multisig record - user to select
             size_t selected = 0;
             if (!num_multisigs || !select_multisig_record(names, num_multisigs, &selected)) {
                 JADE_LOGE("No relevant multisig records found/selected for multisig address");
-                await_error_activity("Register multisig record\nbefore attempting to\nverify multisig addresses");
+                await_error_activity("\nRegister multisig record\n  before attempting to\n      verify a multisig\n    "
+                                     "        address");
                 return false;
             }
             JADE_ASSERT(selected < num_multisigs);
@@ -439,8 +442,8 @@ static bool verify_address(const address_data_t* const addr_data)
             }
 
             // Use multisig name as ui label.
-            rc = snprintf(label, sizeof(label), "<%s>/0", names[selected]);
-            JADE_ASSERT(rc > 0 && rc < sizeof(label));
+            const int ret = snprintf(label, sizeof(label), "%s", names[selected]);
+            JADE_ASSERT(ret > 0 && ret < sizeof(label));
         }
     }
 
@@ -495,8 +498,8 @@ static bool verify_address(const address_data_t* const addr_data)
 
         // Update the progress bar and text label
         char idx_txt[12];
-        rc = snprintf(idx_txt, sizeof(idx_txt), "%u", index);
-        JADE_ASSERT(rc > 0 && rc < sizeof(idx_txt));
+        const int ret = snprintf(idx_txt, sizeof(idx_txt), "%u", index);
+        JADE_ASSERT(ret > 0 && ret < sizeof(idx_txt));
         update_progress_bar(&progress_bar, num_indexes_to_reconfirm, index - confirmed_at_index);
         gui_update_text(index_text, idx_txt);
 
@@ -521,10 +524,11 @@ static bool verify_address(const address_data_t* const addr_data)
 
         // Every so often suggest to user that they might want to abandon the search
         if (index >= confirmed_at_index + num_indexes_to_reconfirm) {
-            rc = snprintf(
-                buf, sizeof(buf), "Failed to verify address.\n\nCheck next %u addresses?", num_indexes_to_reconfirm);
-            JADE_ASSERT(rc > 0 && rc < sizeof(buf));
-            if (!await_yesno_activity("Verify Address", buf, true, NULL)) {
+            char buf[64];
+            const int ret = snprintf(
+                buf, sizeof(buf), "\n Failed to verify, check\n   next %u addresses?", num_indexes_to_reconfirm);
+            JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+            if (!await_yesno_activity("Verify Address", buf, true, "blkstrm.com/scanaddress")) {
                 // Abandon - exit loop
                 break;
             }
@@ -553,8 +557,9 @@ static bool verify_address(const address_data_t* const addr_data)
     }
 
     if (verified) {
-        rc = snprintf(buf, sizeof(buf), "Address verified for:\n\n%s/%u", label, index);
-        JADE_ASSERT(rc > 0 && rc < sizeof(buf));
+        char buf[64];
+        const int ret = snprintf(buf, sizeof(buf), "\n\n Address verified:\n  %s/%u", label, index);
+        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
         await_message_activity(buf);
     } else {
         await_error_activity("Address NOT verified!");
@@ -927,7 +932,7 @@ void handle_scan_qr(void)
     char* type = NULL;
     uint8_t* data = NULL;
     size_t data_len = 0;
-    if (!bcur_scan_qr("Scan QR", "Scan supported\nQR code", &type, &data, &data_len) || !data) {
+    if (!bcur_scan_qr("     Scan\n supported\n  QR code", &type, &data, &data_len, "blkstrm.com/jadescan") || !data) {
         // Scan aborted
         JADE_ASSERT(!type);
         JADE_ASSERT(!data);
@@ -1174,9 +1179,9 @@ static bool post_auth_msg_request(const jade_msg_source_t source)
 }
 
 // Scan a bcur QR code, and post it into Jade with SOURCE_QR
-static bool scan_qr_post_in_message(const char* title, const char* expected_type)
+static bool scan_qr_post_in_message(const char* label, const char* expected_type)
 {
-    JADE_ASSERT(title);
+    JADE_ASSERT(label);
     JADE_ASSERT(expected_type);
 
     char* output_type = NULL;
@@ -1185,7 +1190,7 @@ static bool scan_qr_post_in_message(const char* title, const char* expected_type
     bool ret = false;
 
     // NOTE: we take ownership of 'output_type' and 'output'
-    if (!bcur_scan_qr(title, "Scan QR on\nwebpage", &output_type, &output, &output_len)) {
+    if (!bcur_scan_qr(label, &output_type, &output, &output_len, "blkstrm.com/qrpin")) {
         JADE_LOGI("QR scanning failed or abandoned");
         return false;
     }
@@ -1268,12 +1273,12 @@ cleanup:
 
 static bool handle_first_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
 {
-    return handle_pinserver_reply(" Step 1/4\nScan Jade\n    QR", msg, len, ctx);
+    return handle_pinserver_reply(" Step 1/4\nScan Jade\n     QR", msg, len, ctx);
 }
 
 static bool handle_second_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
 {
-    return handle_pinserver_reply(" Step 3/4\nScan Jade\n    QR", msg, len, ctx);
+    return handle_pinserver_reply(" Step 3/4\nScan Jade\n     QR", msg, len, ctx);
 }
 
 static bool handle_third_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
@@ -1328,7 +1333,7 @@ static void auth_qr_client_task(void* unused)
     // Scan qr code and post back to auth_user/pinclient task
     // 'start_handshake'
     JADE_LOGI("Scanning/posting start_handshake data");
-    if (!scan_qr_post_in_message("Step 2 of 4", BCUR_TYPE_JADE_PIN)) {
+    if (!scan_qr_post_in_message("  Step 2/4\n Scan Web\n      QR", BCUR_TYPE_JADE_PIN)) {
         JADE_LOGW("Failed to scan start_handshake message");
         goto cleanup;
     }
@@ -1344,7 +1349,7 @@ static void auth_qr_client_task(void* unused)
     // Scan qr code and post back to auth_user/pinclient task
     // 'handshake_complete'
     JADE_LOGI("Scanning/posting handshake_complete data");
-    if (!scan_qr_post_in_message("Step 4 of 4", BCUR_TYPE_JADE_PIN)) {
+    if (!scan_qr_post_in_message("  Step 4/4\n Scan Web\n      QR", BCUR_TYPE_JADE_PIN)) {
         JADE_LOGW("Failed to scan handshake_complete message");
         goto cleanup;
     }

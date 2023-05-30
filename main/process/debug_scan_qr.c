@@ -123,7 +123,7 @@ void debug_capture_image_data_process(void* process_ptr)
     // Launch the camera with the 'click' callback function set to
     // return the captured image data in the reply message
     image_capture_into_t info = { .process = process, .check_qr = ret && check_qr };
-    jade_camera_process_images(return_image_data, &info, "Image Capture", "Point and\n    Click!", "Capture", NULL);
+    jade_camera_process_images(return_image_data, &info, "Point and\n    Click!", "Capture", NULL, NULL);
 
     // Send a 'user cancelled' error reply if the callback was not invoked
     // (We can detect as the callback frees the 'current message' on successful completion)
@@ -171,7 +171,7 @@ void debug_scan_qr_process(void* process_ptr)
 
     // Attempt to scan a qr
     qr_data_t qr_data = { .len = 0 };
-    if (!jade_camera_scan_qr(&qr_data, "Test Scan QR", "Test Scan\n(fixed image)")) {
+    if (!jade_camera_scan_qr(&qr_data, "\nTest Scan\n(fixed image)", NULL)) {
         JADE_LOGW("QR scanning failed!");
     }
 

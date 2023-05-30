@@ -345,7 +345,7 @@ bool register_otp_qr(void)
     SENSITIVE_PUSH(&qr_data, sizeof(qr_data));
 
     // Get URI from qr code scan
-    if (!jade_camera_scan_qr(&qr_data, "Scan QR", "\nScan OTP\nQR code") || !qr_data.len) {
+    if (!jade_camera_scan_qr(&qr_data, "\n Scan OTP\n  QR code", "blkstrm.com/otp") || !qr_data.len) {
         // User exit without scanning
         JADE_LOGW("No qr code scanned");
         goto cleanup;

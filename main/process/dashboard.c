@@ -1316,7 +1316,7 @@ static void handle_pinserver_scan(void)
     char* type;
     uint8_t* data = NULL;
     size_t data_len = 0;
-    if (!bcur_scan_qr("Scan QR", "Scan PinServer\ndetails QR", &type, &data, &data_len)) {
+    if (!bcur_scan_qr("Scan Oracle\n      QR", &type, &data, &data_len, "blkstrm.com/oracle")) {
         // Scan aborted
         JADE_ASSERT(!type);
         JADE_ASSERT(!data);
@@ -1324,15 +1324,15 @@ static void handle_pinserver_scan(void)
     }
 
     if (!type || strcasecmp(type, BCUR_TYPE_JADE_UPDPS) || !data || !data_len) {
-        await_error_activity("Failed to parse PinServer data");
+        await_error_activity("Failed to parse Oracle data");
         goto cleanup;
     }
 
     if (!handle_update_pinserver_qr(data, data_len)) {
-        JADE_LOGD("Failed to persist pinserver details");
+        JADE_LOGD("Failed to persist Oracle details");
         goto cleanup;
     }
-    await_message_activity("PinServer details updated!");
+    await_message_activity("Oracle details updated!");
 
 cleanup:
     free(type);

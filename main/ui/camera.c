@@ -4,10 +4,9 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
-gui_activity_t* make_camera_activity(const char* title, const char* btnText, progress_bar_t* progress_bar,
-    gui_view_node_t** image_node, gui_view_node_t** label_node)
+gui_activity_t* make_camera_activity(const char* btnText, progress_bar_t* progress_bar, gui_view_node_t** image_node,
+    gui_view_node_t** label_node, const bool show_help_btn)
 {
-    JADE_ASSERT(title);
     // btnText is only needed if a 'click' button is wanted
     // progress bar is optional
     JADE_INIT_OUT_PPTR(image_node);
@@ -19,41 +18,39 @@ gui_activity_t* make_camera_activity(const char* title, const char* btnText, pro
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
     gui_set_parent(hsplit, act->root_node);
 
+    // LHS
     gui_view_node_t* vsplit;
     if (btnText && progress_bar) {
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 22, 16, 46);
-    } else if (progress_bar) {
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 16, 38, 16, 30);
-    } else if (btnText) {
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 16, 38, 46);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 25, 25);
+    } else if (progress_bar || btnText) {
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 55, 25);
     } else {
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 16, 54, 30);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 20, 80);
     }
     gui_set_parent(vsplit, hsplit);
 
-    gui_view_node_t* camera_fill;
-    gui_make_picture(&camera_fill, NULL);
-    gui_set_parent(camera_fill, hsplit);
-    *image_node = camera_fill;
+    // first row, header, back button
+    btn_data_t hdrbtns[]
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CAMERA_EXIT, .borders = GUI_BORDER_ALL },
+              { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+              { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CAMERA_HELP, .borders = GUI_BORDER_ALL } };
 
-    // first row, header
-    gui_view_node_t* text1;
-    gui_make_text(&text1, title, TFT_WHITE);
-    gui_set_parent(text1, vsplit);
-    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text1, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+    // Remove help button if not required
+    if (!show_help_btn) {
+        hdrbtns[2].txt = NULL;
+        hdrbtns[2].ev_id = GUI_BUTTON_EVENT_NONE;
+    }
+    add_buttons(vsplit, UI_ROW, hdrbtns, 3);
 
     // second row, message
-    gui_view_node_t* text_bg;
-    gui_make_fill(&text_bg, TFT_BLACK);
-    gui_set_parent(text_bg, vsplit);
+    gui_view_node_t* fill;
+    gui_make_fill(&fill, TFT_BLACK);
+    gui_set_parent(fill, vsplit);
 
-    gui_view_node_t* text_status;
-    gui_make_text(&text_status, "Initializing the\ncamera...", TFT_WHITE);
-    gui_set_parent(text_status, text_bg);
-    gui_set_padding(text_status, GUI_MARGIN_TWO_VALUES, 8, 2);
-    gui_set_align(text_status, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    *label_node = text_status;
+    gui_make_text(label_node, "Initializing\nthe camera", TFT_WHITE);
+    gui_set_parent(*label_node, fill);
+    gui_set_padding(*label_node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, 4);
+    gui_set_align(*label_node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
     // Any progress bar, if applicable
     if (progress_bar) {
@@ -62,15 +59,14 @@ gui_activity_t* make_camera_activity(const char* title, const char* btnText, pro
 
     // buttons
     if (btnText) {
-        // A 'click' and an 'exit' button
-        btn_data_t btns[] = { { .txt = btnText, .font = GUI_DEFAULT_FONT, .ev_id = BTN_CAMERA_CLICK },
-            { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CAMERA_EXIT } };
-        add_buttons(vsplit, UI_COLUMN, btns, 2);
-    } else {
-        // Just an 'exit' button
-        btn_data_t btn = { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CAMERA_EXIT };
-        add_buttons(vsplit, UI_COLUMN, &btn, 1);
+        // A 'click' button
+        btn_data_t ftrbtn = { .txt = btnText, .font = GUI_DEFAULT_FONT, .ev_id = BTN_CAMERA_CLICK };
+        add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
     }
+
+    // RHS
+    gui_make_picture(image_node, NULL);
+    gui_set_parent(*image_node, hsplit);
 
     return act;
 }

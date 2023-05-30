@@ -15,17 +15,20 @@
 // as we don't want the unit to shut down because of apparent inactivity.
 #define CAMERA_MIN_TIMEOUT_SECS 300
 
-gui_activity_t* make_camera_activity(const char* title, const char* btnText, progress_bar_t* progress_bar,
-    gui_view_node_t** image_node, gui_view_node_t** label_node);
+void await_qr_help_activity(const char* url);
+
+gui_activity_t* make_camera_activity(const char* btnText, progress_bar_t* progress_bar, gui_view_node_t** image_node,
+    gui_view_node_t** label_node, bool show_help_btn);
 
 // Camera-task config data
 typedef struct {
     // Text to display on camera screen
     // NOTE: no text_btn means no button is shown, and all images are processed
-    // NOTE: no title and no text_label implies no ui is shown at all (and all images are processed)
-    const char* title;
+    // NOTE: no text_label implies no ui is shown at all (and all images are processed)
+    // NOTE: help_url is optional, and only valid if a label is passed
     const char* text_label;
     const char* text_button;
+    const char* help_url;
 
     // Any progress bar (feedback for multi-frame scanning)
     progress_bar_t* progress_bar;
@@ -164,14 +167,16 @@ static void jade_camera_task(void* data)
 
     camera_task_config_t* const camera_config = (camera_task_config_t*)data;
     JADE_ASSERT(camera_config->fn_process);
-    JADE_ASSERT(!camera_config->title == !camera_config->text_label);
     JADE_ASSERT(camera_config->text_label || !camera_config->text_button);
+    JADE_ASSERT(camera_config->text_label || !camera_config->help_url);
     // camera_config->ctx is optional
-    // camera_config->title and camera_config->text_label are optional (but must be both or neither)
-    //   - the presence of these indicate we want the images shown on screen/ui - if they are NULL no GUI is shown
+    // camera_config->text_label is optional
+    //   - presence indicates we want the images shown on screen/ui
+    //   - if NULL no GUI is shown
     // camera_config->text_button is optional - indicates we want the user to select the images presented
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
-    // NOTE: not valid to have a button[label] if no screen[title/label]
+    // camera_config->help_url is optional - if preset a '?' (and help screen) are shown
+    // NOTE: not valid to have a button[label] or help_url if no screen[title/label]
 
     const bool has_gui = camera_config->text_label;
 
@@ -182,7 +187,7 @@ static void jade_camera_task(void* data)
     if (has_gui) {
         // Create camera screen
         act = make_camera_activity(
-            camera_config->title, camera_config->text_button, camera_config->progress_bar, &image_node, &label_node);
+            camera_config->text_button, camera_config->progress_bar, &image_node, &label_node, camera_config->help_url);
         gui_set_current_activity(act);
     }
 
@@ -262,6 +267,8 @@ static void jade_camera_task(void* data)
                     if (!done) {
                         gui_update_text(label_node, camera_config->text_label);
                     }
+                } else if (ev_id == BTN_CAMERA_HELP) {
+                    await_qr_help_activity(camera_config->help_url);
                 } else if (ev_id == BTN_CAMERA_EXIT) {
                     // Done with camera
                     done = true;
@@ -287,28 +294,30 @@ static void jade_camera_task(void* data)
 }
 #endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
 
-void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* title, const char* text_label,
-    const char* text_button, progress_bar_t* progress_bar)
+void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* text_label, const char* text_button,
+    const char* help_url, progress_bar_t* progress_bar)
 {
     JADE_ASSERT(fn);
     // ctx is optional
 
-    // title and text_label are optional (but must be both or neither)
-    //   - the presence of these indicate we want the images shown on screen/ui - if they are NULL no GUI is shown
+    // text_label is optional
+    //   - presence indicates we want the images shown on screen/ui
+    //   - if NULL no GUI is shown
     // text_button is optional - indicates we want the user to select the images presented
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
+    // camera_config->help_url is optional - if preset a '?' (and help screen) are shown
     // progress_bar is optional, and is for providing feedback for multi-frame scanning
-    // NOTE: not valid to have a button[label] or progress_bar if no gui screen[title/label]
-    JADE_ASSERT(!title == !text_label);
+    // NOTE: not valid to have a button[label], help_url or progress_bar if no gui screen[title/label]
     JADE_ASSERT(text_label || !text_button);
+    JADE_ASSERT(text_label || !help_url);
     JADE_ASSERT(text_label || !progress_bar);
 
 // At the moment camera only supported by Jade devices
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     // Config for the camera task
-    camera_task_config_t camera_config = { .title = title,
-        .text_label = text_label,
+    camera_task_config_t camera_config = { .text_label = text_label,
         .text_button = text_button,
+        .help_url = help_url,
         .progress_bar = progress_bar,
         .fn_process = fn,
         .ctx = ctx };

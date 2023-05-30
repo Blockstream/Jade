@@ -594,9 +594,9 @@ static bool collect_any_bcur(qr_data_t* qr_data)
 // If not BC-UR, the scanned payload is returned with a type of NULL.
 // In either case the caller takes ownership, and must free the output data bytes and any type string.
 // Returns false if scanning fails or is abandoned - in which case there is nothing to free.
-bool bcur_scan_qr(const char* title, const char* prompt_text, char** output_type, uint8_t** output, size_t* output_len)
+bool bcur_scan_qr(
+    const char* prompt_text, char** output_type, uint8_t** output, size_t* output_len, const char* help_url)
 {
-    JADE_ASSERT(title);
     JADE_ASSERT(prompt_text);
     JADE_INIT_OUT_PPTR(output_type);
     JADE_INIT_OUT_PPTR(output);
@@ -608,7 +608,7 @@ bool bcur_scan_qr(const char* title, const char* prompt_text, char** output_type
     qr_data_t qr_data = { .len = 0, .is_valid = collect_any_bcur, .ctx = urdecoder, .progress_bar = &progress_bar };
 
     // Scan qr code using the bcur decoder to collate multiple frames if required
-    if (!jade_camera_scan_qr(&qr_data, title, prompt_text)) {
+    if (!jade_camera_scan_qr(&qr_data, prompt_text, help_url)) {
         // User exited without completing scanning
         urfree_placement_decoder(urdecoder);
         return false;

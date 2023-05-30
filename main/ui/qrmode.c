@@ -88,61 +88,56 @@ gui_activity_t* make_search_verify_address_activity(
     JADE_ASSERT(progress_bar);
     JADE_ASSERT(index_text);
 
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SCAN_ADDRESS_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
     gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* const parent = add_title_bar(act, "Verify Address", hdrbtns, 2, NULL);
+    gui_view_node_t* hsplit;
+    gui_view_node_t* node;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
-    gui_set_parent(vsplit, act->root_node);
-
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 20, 80);
-        gui_set_parent(hsplit, vsplit);
-
-        gui_view_node_t* label;
-        gui_make_text(&label, "Root:", TFT_WHITE);
-        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_padding(label, GUI_MARGIN_TWO_VALUES, 0, 4);
-        gui_set_parent(label, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, root_label, TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, hsplit);
-    }
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+    gui_set_parent(vsplit, parent);
 
     // Progress bar
     make_progress_bar(vsplit, progress_bar);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_parent(hsplit, vsplit);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
+    gui_set_parent(hsplit, vsplit);
 
-        gui_view_node_t* label;
-        gui_make_text(&label, "Current Index:", TFT_WHITE);
-        gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_padding(label, GUI_MARGIN_TWO_VALUES, 0, 4);
-        gui_set_parent(label, hsplit);
+    gui_make_text(&node, "Checking Index:", TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(node, GUI_MARGIN_TWO_VALUES, 0, 2);
+    gui_set_parent(node, hsplit);
 
-        gui_view_node_t* bg_fill;
-        gui_make_fill(&bg_fill, TFT_BLACK);
-        gui_set_parent(bg_fill, hsplit);
+    gui_make_fill(&node, TFT_BLACK);
+    gui_set_parent(node, hsplit);
 
-        gui_view_node_t* text;
-        gui_make_text(&text, "", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, bg_fill);
-        *index_text = text;
-    }
+    gui_make_text(index_text, "", TFT_WHITE);
+    gui_set_align(*index_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(*index_text, node);
+
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 24, 76);
+    gui_set_parent(hsplit, vsplit);
+
+    gui_make_text(&node, "Root:", TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(node, GUI_MARGIN_TWO_VALUES, 0, 2);
+    gui_set_parent(node, hsplit);
+
+    gui_make_text(&node, root_label, TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
     // buttons
-    btn_data_t btns[] = { { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_EXIT },
-        { .txt = "Skip", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_SKIP_ADDRESSES } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
+    btn_data_t ftrbtn = {
+        .txt = "Skip", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_SKIP_ADDRESSES, .borders = GUI_BORDER_TOP
+    };
+    add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
 
     // Select 'Skip' button by default
-    gui_set_activity_initial_selection(act, btns[1].btn);
+    gui_set_activity_initial_selection(act, ftrbtn.btn);
 
     return act;
 }
