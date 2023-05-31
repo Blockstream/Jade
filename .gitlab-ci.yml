@@ -159,6 +159,13 @@ test_build_display_m5blackgray:
   after_script:
     - mv build build_display_m5blackgray
 
+test_build_display_m5stickcplus:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display_m5stickcplus.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_m5stickcplus
+
 test_build_display_ttgo_tdisplay:
   extends: .test_build_template
   before_script:
