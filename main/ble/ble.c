@@ -60,7 +60,7 @@ static const size_t ATT_OVERHEAD = 3;
 static size_t ble_max_write_size = CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU - ATT_OVERHEAD;
 static TaskHandle_t* ble_writer_handle = NULL;
 
-gui_activity_t* make_ble_confirmation_activity(const uint32_t numcmp);
+gui_activity_t* make_ble_confirmation_activity(uint32_t numcmp);
 
 int ble_get_mac(char* mac, size_t length)
 {
