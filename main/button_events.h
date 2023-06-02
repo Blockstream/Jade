@@ -79,8 +79,9 @@ typedef enum {
     BTN_BIP85_EXIT,
 
     BTN_INITIALIZE,
-    BTN_SESSION,
+    BTN_SCAN_SEEDQR,
     BTN_SETTINGS,
+    BTN_SESSION,
     BTN_SCAN_QR,
     BTN_INFO,
 

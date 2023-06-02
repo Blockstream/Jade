@@ -45,6 +45,53 @@ static inline void ble_start(void) { JADE_ASSERT(false); }
 static jade_msg_source_t initialisation_source = SOURCE_NONE;
 static bool show_connect_screen = false;
 
+// The dynamic home screen menu
+#define HOME_SCREEN_TYPE_UNINIT 0
+#define HOME_SCREEN_TYPE_LOCKED 1
+#define HOME_SCREEN_TYPE_ACTIVE 2
+#define HOME_SCREEN_TYPE_NUM_STATES 3
+
+static uint8_t home_screen_type = 0;
+static uint8_t home_screen_menu_item = 0;
+gui_view_node_t* home_screen_item_symbol = NULL;
+gui_view_node_t* home_screen_item_text = NULL;
+
+typedef struct {
+    const char* symbol;
+    const char* text;
+    const uint32_t btn_id;
+} home_menu_item_t;
+
+// Menus for the HOME_SCREEN_TYPE_XXX values above
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#define NUM_HOME_SCREEN_MENU_ENTRIES 3
+#else
+#define NUM_HOME_SCREEN_MENU_ENTRIES 2
+#endif
+
+home_menu_item_t home_menu_items[HOME_SCREEN_TYPE_NUM_STATES][NUM_HOME_SCREEN_MENU_ENTRIES] = {
+    // Uninitialised
+    { { .symbol = "1", .text = "  Setup Jade", .btn_id = BTN_INITIALIZE },
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+        { .symbol = "2", .text = " Scan SeedQR", .btn_id = BTN_SCAN_SEEDQR },
+#endif
+        { .symbol = "3", .text = "    Options", .btn_id = BTN_SETTINGS } },
+
+    // Initialised/Locked
+    { { .symbol = "5", .text = " Unlock Jade", .btn_id = BTN_CONNECT },
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+        { .symbol = "2", .text = "   QR Mode", .btn_id = BTN_QR_MODE },
+#endif
+        { .symbol = "3", .text = "    Options", .btn_id = BTN_SETTINGS } },
+
+    // Active/Unlocked/Ready
+    { { .symbol = "4", .text = "    Session", .btn_id = BTN_SESSION },
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+        { .symbol = "2", .text = "   Scan QR", .btn_id = BTN_SCAN_QR },
+#endif
+        { .symbol = "3", .text = "    Options", .btn_id = BTN_SETTINGS } }
+};
+
 // The device name and running firmware info, loaded at startup
 static const char* device_name;
 static esp_app_desc_t running_app_info;
@@ -81,14 +128,14 @@ void ota_delta_process(void* process_ptr);
 void update_pinserver_process(void* process_ptr);
 void auth_user_process(void* process_ptr);
 
-// Home/ready screens
-void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
-void make_welcome_back_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version);
-void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, void* unused);
-void make_connect_to_screen(
-    gui_activity_t** activity_ptr, const char* device_name, jade_msg_source_t initialisation_source);
-void make_ready_screen(
-    gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_label, gui_view_node_t** txt_extra);
+// Home screen
+gui_activity_t* make_home_screen_activity(const char* device_name, const char* firmware_version,
+    gui_view_node_t** item_symbol, gui_view_node_t** item_text, gui_view_node_t** status_light,
+    gui_view_node_t** status_text, gui_view_node_t** label);
+
+// Temporary screens while connecting
+gui_activity_t* make_connect_activity(const char* device_name);
+gui_activity_t* make_connect_to_activity(const char* device_name, jade_msg_source_t initialisation_source);
 
 // GUI screens
 gui_activity_t* make_select_connection_activity_if_required(bool temporary_restore);
@@ -146,6 +193,62 @@ bool reset_pinserver(void);
 
 // Bip85
 void handle_bip85_mnemonic();
+
+// Home screen/menu update
+static void update_home_screen(gui_view_node_t* status_light, gui_view_node_t* status_text, gui_view_node_t* label)
+{
+    JADE_ASSERT(status_light);
+    JADE_ASSERT(status_text);
+    JADE_ASSERT(label);
+
+    if (home_screen_type == HOME_SCREEN_TYPE_ACTIVE) {
+        gui_set_color(status_light, TFT_BLOCKSTREAM_DARKGREEN);
+        gui_update_text(status_light, keychain_has_temporary() ? "N" : "J"); // Clock or Filled circle
+        gui_update_text(status_text, "Active");
+
+        // Wallet fingerprint in uppercase hex
+        char* fphex = NULL;
+        uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+        wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(fingerprint, sizeof(fingerprint), &fphex));
+        map_string(fphex, toupper);
+        gui_update_text(label, fphex);
+        JADE_WALLY_VERIFY(wally_free_string(fphex));
+    } else if (home_screen_type == HOME_SCREEN_TYPE_LOCKED) {
+        gui_set_color(status_light, TFT_LIGHTGREY);
+        gui_update_text(status_light, "J"); // Filled circle
+        gui_update_text(status_text, "Initialized");
+        gui_update_text(label, running_app_info.version);
+    } else if (home_screen_type == HOME_SCREEN_TYPE_UNINIT) {
+        gui_set_color(status_light, TFT_BLOCKSTREAM_BUTTONBORDER_GREY);
+        gui_update_text(status_light, "J"); // Filled circle
+        gui_update_text(status_text, "Uninitialized");
+        gui_update_text(label, running_app_info.version);
+    } else {
+        JADE_ASSERT_MSG(false, "Unexpected home screen type: %u", home_screen_type);
+    }
+}
+
+static const home_menu_item_t* get_selected_home_screen_menu_item(void)
+{
+    JADE_ASSERT(home_screen_type < sizeof(home_menu_items) / sizeof(home_menu_items[0]));
+    JADE_ASSERT(home_screen_menu_item < sizeof(home_menu_items[0]) / sizeof(home_menu_items[0][0]));
+    const home_menu_item_t* const menu_item = &home_menu_items[home_screen_type][home_screen_menu_item];
+    return menu_item;
+}
+
+static void update_home_screen_menu(void)
+{
+    JADE_ASSERT(home_screen_item_symbol);
+    JADE_ASSERT(home_screen_item_text);
+
+    const home_menu_item_t* const menu_item = get_selected_home_screen_menu_item();
+    JADE_ASSERT(menu_item->text);
+    JADE_ASSERT(menu_item->symbol);
+
+    gui_update_text(home_screen_item_symbol, menu_item->symbol);
+    gui_update_text(home_screen_item_text, menu_item->text);
+}
 
 // Function to print a pin into a char buffer.
 // Assumes each pin component value is a single digit.
@@ -486,6 +589,7 @@ static void dispatch_message(jade_process_t* process)
         // When the authentication process exits, wipe the cached 'initialistion source'
         if (task_function == auth_user_process) {
             initialisation_source = SOURCE_NONE;
+            show_connect_screen = false;
         }
     }
 }
@@ -565,6 +669,7 @@ static bool offer_pinserver_via_qr(const bool temporary_restore)
 
     // Start pinserver/qr handshake process
     initialisation_source = SOURCE_QR;
+    show_connect_screen = true;
     handle_qr_auth();
     return true;
 }
@@ -585,6 +690,7 @@ static void select_initial_connection(const bool temporary_restore)
     // Otherwise this call returns null and we default to USB
     gui_activity_t* const act = make_select_connection_activity_if_required(temporary_restore);
     initialisation_source = act ? SOURCE_NONE : SOURCE_SERIAL;
+    show_connect_screen = true;
 
     while (initialisation_source == SOURCE_NONE) {
         gui_set_current_activity(act);
@@ -1561,6 +1667,10 @@ static void handle_btn(const int32_t btn)
         initialise_wallet(false);
         break;
 
+    case BTN_SCAN_SEEDQR:
+        qr_mode_scan_seedqr();
+        break;
+
     case BTN_CONNECT_TO_BACK:
         select_initial_connection(keychain_has_temporary());
         break;
@@ -1661,11 +1771,42 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
             acted = true;
         }
 
-        // 2. Process any GUI event (again, don't block)
+        // 2. Process any outstanding GUI event if we didn't process a message (again, don't block)
+        const char* ev_base;
         int32_t ev_id;
-        if (!acted && sync_wait_event(event_data, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS) == ESP_OK) {
-            handle_btn(ev_id);
-            acted = true;
+        if (!acted) {
+            if (sync_wait_event(event_data, &ev_base, &ev_id, NULL, 100 / portTICK_PERIOD_MS) == ESP_OK) {
+                if (show_connect_screen && ev_base == GUI_BUTTON_EVENT) {
+                    // Normal button press from some other home-like screen
+                    // (eg. connect/connect-to screens etc)
+                    handle_btn(ev_id);
+                    acted = true;
+                } else if (ev_base == GUI_EVENT) {
+                    // Low-level gui event from the generic home screen
+                    const size_t nbtns = sizeof(home_menu_items[0]) / sizeof(home_menu_items[0][0]);
+                    const home_menu_item_t* menu_item = NULL;
+                    if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                        // Back, but skip over any unused menu-item entries (null text)
+                        do {
+                            home_screen_menu_item = (home_screen_menu_item + nbtns - 1) % nbtns;
+                            menu_item = get_selected_home_screen_menu_item();
+                        } while (!menu_item->text);
+                        update_home_screen_menu();
+                    } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                        // Next, but skip over any unused menu-item entries (null text)
+                        do {
+                            home_screen_menu_item = (home_screen_menu_item + 1) % nbtns;
+                            menu_item = get_selected_home_screen_menu_item();
+                        } while (!menu_item->text);
+                        update_home_screen_menu();
+                    } else if (ev_id == gui_get_click_event()) {
+                        // Click - handle the current button's event
+                        menu_item = get_selected_home_screen_menu_item();
+                        handle_btn(menu_item->btn_id);
+                        acted = true;
+                    }
+                }
+            }
         }
 
         // If we did some action this loop, run housekeeping
@@ -1691,46 +1832,13 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
     }
 }
 
-// Helper to create a dashboard activity using the function passed, and then register
-// the button event handler which we check if there are no external messages to handle.
-#define MAKE_DASHBOARD_SCREEN(fn_make_activity, act, extra_arg)                                                        \
+#define UPDATE_HOME_SCREEN(screen_type)                                                                                \
     do {                                                                                                               \
-        fn_make_activity(&act, device_name, extra_arg);                                                                \
-        gui_activity_register_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);     \
+        home_screen_type = screen_type;                                                                                \
+        home_screen_menu_item = 0;                                                                                     \
+        update_home_screen(status_light, status_text, label);                                                          \
+        update_home_screen_menu();                                                                                     \
     } while (false)
-
-// Small helper to update additional info labels on the 'Ready' dashboard screen
-static void update_ready_screen_text(gui_view_node_t* txt_label, gui_view_node_t* txt_extra)
-{
-    JADE_ASSERT(txt_label);
-    JADE_ASSERT(txt_extra);
-
-    // Wallet fingerprint in uppercase hex
-    char* fphex = NULL;
-    uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
-    wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
-    JADE_WALLY_VERIFY(wally_hex_from_bytes(fingerprint, sizeof(fingerprint), &fphex));
-    map_string(fphex, toupper);
-
-    char label[20];
-    const int ret = snprintf(label, sizeof(label), "Wallet: %s", fphex);
-    JADE_ASSERT(ret > 0 && ret < sizeof(label));
-    JADE_WALLY_VERIFY(wally_free_string(fphex));
-    gui_update_text(txt_label, label);
-
-    // Extra info under the main wallet label
-    const char* const extra = (keychain_get_userdata() == SOURCE_QR ? "(QR Mode)"
-            : keychain_has_temporary()                              ? "(Temporary Wallet)"
-                                                                    : "");
-    gui_update_text(txt_extra, extra);
-}
-
-// Wrapper to put calls to free activities onto the process
-static void free_unmanaged_activity_wrapper(void* activity_to_free)
-{
-    gui_activity_t* act = (gui_activity_t*)activity_to_free;
-    free_unmanaged_activity(act);
-}
 
 // Main/default screen/process when ready for user interaction
 void dashboard_process(void* process_ptr)
@@ -1740,9 +1848,8 @@ void dashboard_process(void* process_ptr)
     jade_process_t* process = process_ptr;
     ASSERT_NO_CURRENT_MESSAGE(process);
 
-    // At startup we may have entered an emergency restore mnemonic
-    // otherwise we'd expect no keychain at this point.
-    JADE_ASSERT(!keychain_get() || keychain_has_temporary());
+    // At startup we expect no keychain
+    JADE_ASSERT(!keychain_get());
 
     // Populate the static fields about the unit/fw
     device_name = get_jade_id();
@@ -1752,22 +1859,31 @@ void dashboard_process(void* process_ptr)
     JADE_ASSERT(running);
     const esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
     JADE_ASSERT(err == ESP_OK);
-    wait_event_data_t* const event_data = make_wait_event_data();
-    JADE_ASSERT(event_data);
 
     // NOTE: Create 'Ready' screen for when Jade is unlocked and ready to use early, so that
-    // it does not fragment the RAM (since it is long-lived once unit is unlocked with PIN).
-    // NOTE: The main 'Ready' screen is created as an 'unmanaged' activity, so it is not placed
+    // it does not fragment the RAM (since it is long-lived).
+    // NOTE: The main home screen is created as an 'unmanaged' activity, so it is not placed
     // in the list of activities to be freed by 'set_current_activity_ex()' calls.
-    // This is ok as the 'Ready' screen is never freed and lives as long as the application itself.
-    gui_activity_t* act_ready = NULL;
-    gui_view_node_t* txt_label = NULL;
-    gui_view_node_t* txt_extra = NULL;
-    make_ready_screen(&act_ready, device_name, &txt_label, &txt_extra);
-    JADE_ASSERT(act_ready);
-    JADE_ASSERT(txt_label);
-    JADE_ASSERT(txt_extra);
-    gui_activity_register_event(act_ready, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+    // This is desirable as this screen is never freed and lives as long as the application.
+
+    // NOTE: the menu nodes are static, so we can update the menu displayed when teh user scrolls
+    gui_view_node_t* status_light = NULL;
+    gui_view_node_t* status_text = NULL;
+    gui_view_node_t* label = NULL;
+    gui_activity_t* const act_home = make_home_screen_activity(device_name, running_app_info.version,
+        &home_screen_item_symbol, &home_screen_item_text, &status_light, &status_text, &label);
+    JADE_ASSERT(home_screen_item_symbol);
+    JADE_ASSERT(home_screen_item_text);
+    JADE_ASSERT(status_light);
+    JADE_ASSERT(status_text);
+    JADE_ASSERT(label);
+
+    // We may as well associate the long-lived event data with this activity also
+    wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act_home);
+    JADE_ASSERT(event_data);
+
+    // Register for all events on the home screen
+    gui_activity_register_event(act_home, GUI_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
 
     while (true) {
         // Create/set current 'dashboard' screen, then process all events until that
@@ -1785,40 +1901,39 @@ void dashboard_process(void* process_ptr)
         //    - connect screen
         // 6. Uninitialised - has no persisted/encrypted keys and no keys in memory
         //    - setup screen
-        // NOTE: Some dashboard screens are created as 'unmanaged' activities, so are not placed
-        // in the list of activities to be freed by 'set_current_activity_ex()' calls, so any
-        // 'act_dashboard' created here must be explicitly freed when no longer relevant.
-        // 'free_dashboard' is set when this is the case.
-        bool free_dashboard = false;
         gui_activity_t* act_dashboard = NULL;
         const bool has_pin = keychain_has_pin();
         const keychain_t* initial_keychain = keychain_get();
-        if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
-            JADE_LOGI("Connected and have wallet/keys - showing Ready screen");
-            update_ready_screen_text(txt_label, txt_extra);
-            show_connect_screen = false;
-            act_dashboard = act_ready;
-            // free_dashboard is not required as this screen lives for the lifetime of the application
-        } else if (initialisation_source == SOURCE_QR) {
-            JADE_LOGI("Awaiting QR initialisation");
-            act_dashboard = display_processing_message_activity();
-            // free_dashboard is not required as this is a standard 'managed' activity
-        } else if (initial_keychain) {
-            JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");
-            MAKE_DASHBOARD_SCREEN(make_connect_to_screen, act_dashboard, initialisation_source);
-            // free_dashboard is not required as this is a standard 'managed' activity
-        } else if (show_connect_screen) {
-            JADE_LOGI("User navigated to 'connect' screen");
-            MAKE_DASHBOARD_SCREEN(make_connect_screen, act_dashboard, NULL);
-            // free_dashboard is not required as this is a standard 'managed' activity
-        } else if (has_pin) {
-            JADE_LOGI("Wallet/keys pin set but not yet loaded - showing Welcome-Back screen");
-            MAKE_DASHBOARD_SCREEN(make_welcome_back_screen, act_dashboard, running_app_info.version);
-            free_dashboard = true;
+
+        if (show_connect_screen) {
+            // Some sort of connection is in progress
+            if (initialisation_source == SOURCE_QR) {
+                JADE_LOGI("Awaiting QR initialisation");
+                act_dashboard = display_processing_message_activity();
+            } else if (initial_keychain) {
+                JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");
+                act_dashboard = make_connect_to_activity(device_name, initialisation_source);
+                gui_activity_register_event(
+                    act_dashboard, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+            } else {
+                JADE_LOGI("User navigated to 'connect' screen");
+                act_dashboard = make_connect_activity(device_name);
+                gui_activity_register_event(
+                    act_dashboard, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
+            }
         } else {
-            JADE_LOGI("No wallet/keys and no pin set - showing Setup screen");
-            MAKE_DASHBOARD_SCREEN(make_setup_screen, act_dashboard, running_app_info.version);
-            free_dashboard = true;
+            // Show home screen
+            if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
+                JADE_LOGI("Connected and have wallet/keys - showing home screen/Active");
+                UPDATE_HOME_SCREEN(HOME_SCREEN_TYPE_ACTIVE);
+            } else if (has_pin) {
+                JADE_LOGI("Wallet/keys pin set but not yet loaded - showing home screen/Initialised");
+                UPDATE_HOME_SCREEN(HOME_SCREEN_TYPE_LOCKED);
+            } else {
+                JADE_LOGI("No wallet/keys and no pin set - showing home screen/Uninitialised");
+                UPDATE_HOME_SCREEN(HOME_SCREEN_TYPE_UNINIT);
+            }
+            act_dashboard = act_home;
         }
 
         // This call loops/blocks all the time the user keychain (and related details)
@@ -1827,10 +1942,5 @@ void dashboard_process(void* process_ptr)
         // NOTE: connecting or disconnecting serial or ble will cause any keys to
         // be cleared (and bzero'd).
         do_dashboard(process, initial_keychain, has_pin, act_dashboard, event_data);
-
-        // Free (defered slightly) any dashboard screen if flagged as needing explicit free
-        if (free_dashboard) {
-            jade_process_call_on_exit(process, free_unmanaged_activity_wrapper, act_dashboard);
-        }
     }
 }

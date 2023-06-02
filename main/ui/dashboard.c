@@ -13,69 +13,103 @@
 #include "../logo/telec.c"
 #endif
 
-// NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
-// in the list of activities to be freed by 'set_current_activity_ex()' calls.
-// It must be freed by the caller.
-void make_setup_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
+gui_activity_t* make_home_screen_activity(const char* device_name, const char* firmware_version,
+    gui_view_node_t** item_symbol, gui_view_node_t** item_text, gui_view_node_t** status_light,
+    gui_view_node_t** status_text, gui_view_node_t** label)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
     JADE_ASSERT(firmware_version);
+    JADE_INIT_OUT_PPTR(item_symbol);
+    JADE_INIT_OUT_PPTR(item_text);
+    JADE_INIT_OUT_PPTR(status_light);
+    JADE_INIT_OUT_PPTR(status_text);
+    JADE_INIT_OUT_PPTR(label);
 
-    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
-    gui_make_activity_ex(activity_ptr, true, device_name, false);
+    // NOTE: The home screen is created as an 'unmanaged' activity as
+    // its lifetime is same as that of the entire application
+    gui_activity_t* act = NULL;
+    gui_make_activity_ex(&act, true, device_name, false);
+    JADE_ASSERT(act);
+
+    gui_view_node_t* hsplit;
+    gui_view_node_t* node;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 32, 52, 16);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 76, 24);
+    gui_set_parent(vsplit, act->root_node);
 
-    {
-        gui_view_node_t* text;
-        gui_make_text(&text, "For setup instructions visit\nblockstream.com/jade", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-        gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 6, 8, 0, 8);
-        gui_set_parent(text, vsplit);
-    }
+    // Main area, scrolling horizontal menu
+    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 20, 0, 20, 0);
+    gui_set_parent(node, vsplit);
 
-    {
-        gui_view_node_t* row;
-        gui_make_fill(&row, TFT_BLACK);
-        gui_set_padding(row, GUI_MARGIN_TWO_VALUES, 0, 50);
-        gui_set_parent(row, vsplit);
+    // l-arrow, item-symbol, item-txt, r-arrow
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 10, 20, 60, 10);
+    gui_set_parent(hsplit, node);
 
-        btn_data_t btns[] = { { .txt = "Initialize", .font = GUI_DEFAULT_FONT, .ev_id = BTN_INITIALIZE },
-            { .txt = "Advanced", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS } };
+    gui_make_text_font(&node, "H", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
-        add_buttons(row, UI_COLUMN, btns, 2);
-    }
+    // The items symbol and text will be updated, so we add a background that will
+    // be repainted every time to wipe the previous string
+    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_parent(node, hsplit);
+    gui_make_text_font(item_symbol, "", TFT_WHITE, JADE_SYMBOLS_24x24_FONT);
+    gui_set_align(*item_symbol, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(*item_symbol, node);
 
-    {
-        gui_view_node_t* ver;
-        gui_make_text(&ver, firmware_version, TFT_WHITE);
-        gui_set_align(ver, GUI_ALIGN_RIGHT, GUI_ALIGN_BOTTOM);
-        gui_set_padding(ver, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 2, 2);
-        gui_set_parent(ver, vsplit);
-    }
+    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_parent(node, hsplit);
+    gui_make_text_font(item_text, "", TFT_WHITE, GUI_DEFAULT_FONT);
+    gui_set_align(*item_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(*item_text, node);
+
+    gui_make_text_font(&node, "I", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
+
+    // Footer, three labels - status light + status, fw-version/wallet-id label
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 9, 44, 47);
+    gui_set_parent(hsplit, vsplit);
+
+    gui_make_fill(&node, TFT_BLACK);
+    gui_set_parent(node, hsplit);
+    gui_make_text_font(status_light, "M", TFT_DARKGREY, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(*status_light, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(*status_light, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 2);
+    gui_set_parent(*status_light, node);
+
+    gui_make_fill(&node, TFT_BLACK);
+    gui_set_parent(node, hsplit);
+    gui_make_text_font(status_text, "", TFT_WHITE, GUI_TITLE_FONT);
+    gui_set_align(*status_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(*status_text, node);
+
+    gui_make_fill(&node, TFT_BLACK);
+    gui_set_parent(node, hsplit);
+    gui_make_text_font(label, firmware_version, TFT_WHITE, GUI_TITLE_FONT);
+    gui_set_align(*label, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(*label, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 0);
+    gui_set_parent(*label, node);
+
+    return act;
 }
 
-void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name, void* unused)
+gui_activity_t* make_connect_activity(const char* device_name)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
-    JADE_ASSERT(!unused);
 
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_HELP } };
 
-    *activity_ptr = make_show_message_activity(
+    return make_show_message_activity(
         "  Connect via USB/BLE\n   to a companion app\n and select your Jade to\n  unlock with your PIN", 12,
         device_name, hdrbtns, 2, NULL, 0);
 }
 
-void make_connect_to_screen(
-    gui_activity_t** activity_ptr, const char* device_name, const jade_msg_source_t initialisation_source)
+gui_activity_t* make_connect_to_activity(const char* device_name, const jade_msg_source_t initialisation_source)
 {
-    JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
 
     char msg[128];
@@ -97,104 +131,7 @@ void make_connect_to_screen(
         hdrbtns[0].ev_id = GUI_BUTTON_EVENT_NONE;
     }
 
-    *activity_ptr = make_show_message_activity(msg, 2, device_name, hdrbtns, 2, NULL, 0);
-}
-
-// NOTE: The main 'Ready' screen is created as an 'unmanaged' activity, so it is not placed
-// in the list of activities to be freed by 'set_current_activity_ex()' calls.
-// This is becase the 'Ready' screen is never freed and lives as long as the application itself.
-void make_ready_screen(
-    gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_label, gui_view_node_t** txt_extra)
-{
-    JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(device_name);
-    JADE_INIT_OUT_PPTR(txt_label);
-    JADE_INIT_OUT_PPTR(txt_extra);
-
-    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
-    gui_make_activity_ex(activity_ptr, true, device_name, false);
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 40, 25, 35);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    gui_view_node_t* row1;
-    gui_make_fill(&row1, TFT_BLACK);
-    gui_set_parent(row1, vsplit);
-
-    gui_view_node_t* label_text;
-    gui_make_text(&label_text, "", TFT_WHITE);
-    gui_set_align(label_text, GUI_ALIGN_CENTER, GUI_ALIGN_BOTTOM);
-    gui_set_parent(label_text, row1);
-    *txt_label = label_text;
-
-    gui_view_node_t* row2;
-    gui_make_fill(&row2, TFT_BLACK);
-    gui_set_parent(row2, vsplit);
-
-    gui_view_node_t* extra_text;
-    gui_make_text(&extra_text, "", TFT_WHITE);
-    gui_set_align(extra_text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    gui_set_parent(extra_text, row2);
-    *txt_extra = extra_text;
-
-    // Make the button bar under the passed node, and add all the buttons
-    gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 28, 27, 29, 16);
-    gui_set_parent(hsplit, vsplit);
-
-    // session btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SESSION, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Session", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    // options btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SETTINGS, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Options", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    // scan btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SCAN_QR, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "QR Scan", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    // info btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_INFO, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, hsplit);
-        gui_view_node_t* text;
-        gui_make_text(&text, "Info", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    return make_show_message_activity(msg, 2, device_name, hdrbtns, 2, NULL, 0);
 }
 
 gui_activity_t* make_connect_qrmode_screen(const char* device_name)
@@ -208,47 +145,6 @@ gui_activity_t* make_connect_qrmode_screen(const char* device_name)
         { .txt = "Scan SeedQR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_SCAN } };
 
     return make_menu_activity("QR Mode", hdrbtns, 2, menubtns, 2);
-}
-
-// NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
-// in the list of activities to be freed by 'set_current_activity_ex()' calls.
-// It must be freed by the caller.
-void make_welcome_back_screen(gui_activity_t** activity_ptr, const char* device_name, const char* firmware_version)
-{
-    JADE_ASSERT(activity_ptr);
-    JADE_ASSERT(device_name);
-    JADE_ASSERT(firmware_version);
-
-    // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity
-    gui_make_activity_ex(activity_ptr, true, device_name, false);
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 36, 32, 32);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    // first row, text
-    gui_view_node_t* text;
-    gui_make_text(&text, "Connect Jade to a companion\napp or choose more options", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 8, 4, 0, 4);
-    gui_set_parent(text, vsplit);
-
-    // second row, fw version
-    char buf[64];
-    const size_t fwverlen = strlen(firmware_version);
-    const int ret = snprintf(buf, sizeof(buf), "%s%s", fwverlen <= 20 ? "Firmware: " : "", firmware_version);
-    JADE_ASSERT(ret > 0); // ignore any truncation of overlong version string
-
-    gui_view_node_t* ver;
-    gui_make_text(&ver, buf, TFT_WHITE);
-    gui_set_align(ver, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(ver, vsplit);
-
-    // third row, buttons
-    btn_data_t btns[] = { { .txt = "Connect", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT },
-        { .txt = "QR Mode", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_MODE },
-        { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
 }
 
 gui_activity_t* make_select_connection_activity_if_required(const bool temporary_restore)
