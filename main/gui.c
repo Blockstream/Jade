@@ -86,7 +86,6 @@ static void make_status_bar(void)
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 4, 160, 20, 20, 40);
-    gui_set_borders(hsplit, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
     gui_set_parent(hsplit, root);
 
     gui_view_node_t* black_title_bg;
