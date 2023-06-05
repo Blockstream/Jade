@@ -11,9 +11,6 @@ ESP_EVENT_DEFINE_BASE(JADE_EVENT);
 struct wait_event_data_t {
     SemaphoreHandle_t triggered;
 
-    esp_event_base_t register_event_base;
-    int32_t register_event_id;
-
     esp_event_base_t trigger_event_base;
     int32_t trigger_event_id;
     void* trigger_event_data;
@@ -27,10 +24,6 @@ wait_event_data_t* make_wait_event_data(void)
     // Create the binary semaphore which will be awaited by the waiting thread
     // and 'given' by the event loop when that event occurs, thus freeing the waiter.
     wait_event_data->triggered = xSemaphoreCreateBinary();
-
-    // Not yet registered
-    wait_event_data->register_event_base = NULL;
-    wait_event_data->register_event_id = 0;
 
     // Not yet triggered
     wait_event_data->trigger_event_base = NULL;
@@ -46,7 +39,7 @@ void free_wait_event_data(wait_event_data_t* data)
     JADE_ASSERT(data);
 
     // Free the underlying event data struct
-    JADE_LOGD("Freeing event data for %s/%lu (%p)", data->register_event_base, data->register_event_id, data);
+    JADE_LOGD("Freeing event data %p", data);
     vSemaphoreDelete(data->triggered);
     free(data);
 }
@@ -73,10 +66,6 @@ esp_err_t sync_wait_event(esp_event_base_t event_base, int32_t event_id, wait_ev
     esp_event_base_t* trigger_event_base, int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait)
 {
     JADE_ASSERT(wait_event_data);
-
-    // we will use that to un-register the handler later
-    wait_event_data->register_event_base = event_base;
-    wait_event_data->register_event_id = event_id;
 
     JADE_LOGD("Awaiting event %s/%lu (%p) (timeout = %lu)", event_base, event_id, wait_event_data, max_wait);
     if (!max_wait) {
