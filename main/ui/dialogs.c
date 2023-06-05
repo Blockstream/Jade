@@ -174,14 +174,14 @@ gui_view_node_t* add_title_bar(
 }
 
 // Helper to create an activity to show a vertical menu
-// Must pass title-bar information - supports 2, 3 or 4 menu buttons
+// Must pass title-bar information - supports up to 4 menu buttons
 gui_activity_t* make_menu_activity(
     const char* title, btn_data_t* hdrbtns, const size_t num_hdrbtns, btn_data_t* menubtns, const size_t num_menubtns)
 {
     JADE_ASSERT(title);
     // Header buttons are optional
     JADE_ASSERT(menubtns);
-    JADE_ASSERT(num_menubtns > 1);
+    JADE_ASSERT(num_menubtns);
     JADE_ASSERT(num_menubtns < 5);
 
     // Explicitly set just left|top|right borders around header buttons when menu is 'full'
@@ -196,9 +196,10 @@ gui_activity_t* make_menu_activity(
     gui_view_node_t* parent = add_title_bar(act, title, hdrbtns, num_hdrbtns, NULL);
 
     // Add any padding for smaller number of items
-    if (num_menubtns == 2) {
+    if (num_menubtns < 3) {
         gui_view_node_t* vsplit;
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
+        const uint32_t split = num_menubtns == 2 ? 65 : 35;
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, split, 100 - split);
         gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 12, 0, 0, 0);
         gui_set_parent(vsplit, parent);
         parent = vsplit;

@@ -134,7 +134,7 @@ gui_activity_t* make_connect_to_activity(const char* device_name, const jade_msg
     return make_show_message_activity(msg, 2, device_name, hdrbtns, 2, NULL, 0);
 }
 
-gui_activity_t* make_connect_qrmode_screen(const char* device_name)
+gui_activity_t* make_connect_qrmode_activity(const char* device_name)
 {
     JADE_ASSERT(device_name);
 
@@ -272,7 +272,7 @@ gui_activity_t* make_bip39_passphrase_prefs_screen(
     return act;
 }
 
-gui_activity_t* make_startup_options_screen(void)
+gui_activity_t* make_startup_options_activity(void)
 {
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
@@ -291,74 +291,124 @@ gui_activity_t* make_startup_options_screen(void)
     return make_menu_activity("Boot Menu", hdrbtns, 2, menubtns, num_menubtns);
 }
 
-gui_activity_t* make_uninitialised_settings_screen(void)
+gui_activity_t* make_uninitialised_settings_activity(void)
 {
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    // Note: placeholder in second position - timeout button set into this slot below
-    btn_data_t btns[]
-        = { { .txt = "Recovery Phrase Login", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
+    btn_data_t menubtns[]
+        = { { .txt = "Temporary Signer", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
               { .txt = "BIP39 Passphrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
-              { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
-              { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
-    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+              { .txt = "Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PREFS } };
 
-    return act;
+    return make_menu_activity("Options", hdrbtns, 2, menubtns, 3);
 }
 
-gui_activity_t* make_locked_settings_screen(void)
+gui_activity_t* make_locked_settings_activity(void)
 {
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    btn_data_t btns[] = {
-        { .txt = "BIP39 Passphrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
-        { .txt = "Power Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
-        { .txt = "Recovery Phrase Login", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT }
-    };
-    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+    btn_data_t menubtns[]
+        = { { .txt = "BIP39 Passphrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
+              { .txt = "Device", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
+              { .txt = "Temporary Signer", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN } };
 
-    return act;
+    return make_menu_activity("Options", hdrbtns, 2, menubtns, 3);
 }
 
-gui_activity_t* make_unlocked_settings_screen(void)
+gui_activity_t* make_unlocked_settings_activity(void)
 {
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    btn_data_t btns[] = { { .txt = "Wallet", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET },
+    btn_data_t menubtns[] = { { .txt = "Wallet", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET },
         { .txt = "Device", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
-        { .txt = "Advanced", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_ADVANCED },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT } };
-    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+        { .txt = "Authentication", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_AUTHENTICATION } };
 
-    return act;
+    return make_menu_activity("Options", hdrbtns, 2, menubtns, 3);
 }
 
-gui_activity_t* make_wallet_settings_screen(void)
+gui_activity_t* make_wallet_settings_activity(void)
 {
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_WALLET_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    btn_data_t btns[] = { { .txt = "Xpub Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_XPUB_EXPORT },
-        { .txt = "Registered Multisigs", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
-        { .txt = "BIP85 Recovery Phrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP85 },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_WALLET_EXIT } };
-    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+    btn_data_t menubtns[] = { { .txt = "Export Xpub", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_XPUB_EXPORT },
+        { .txt = "Registered Wallets", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
+        { .txt = "BIP85", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP85 } };
 
-    return act;
+    return make_menu_activity("Wallet", hdrbtns, 2, menubtns, 3);
 }
 
-gui_activity_t* make_device_settings_screen(void)
+gui_activity_t* make_device_settings_activity(void)
 {
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DEVICE_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    // Note: placeholder in first position - timeout button set into this slot below
-    btn_data_t btns[] = { { .txt = "Power Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
-        { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
+    btn_data_t menubtns[] = { { .txt = "Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PREFS },
         { .txt = "Factory Reset", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DEVICE_EXIT } };
-    add_buttons(act->root_node, UI_COLUMN, btns, 4);
+        { .txt = "Info", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_INFO } };
 
-    return act;
+    return make_menu_activity("Device", hdrbtns, 2, menubtns, 3);
+}
+
+gui_activity_t* make_prefs_settings_activity(const bool show_ble)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PREFS_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t menubtns[]
+        = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
+              { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
+              { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE } };
+
+    return make_menu_activity("Settings", hdrbtns, 2, menubtns, show_ble ? 3 : 2);
+}
+
+gui_activity_t* make_authentication_activity(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_AUTHENTICATION_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t menubtns[] = { { .txt = "Duress PIN", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
+        { .txt = "OTP", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP } };
+
+    return make_menu_activity("Authentication", hdrbtns, 2, menubtns, 2);
+}
+
+gui_activity_t* make_otp_activity(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_OTP_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_OTP_HELP } };
+
+    btn_data_t menubtns[] = { { .txt = "View OTP", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_VIEW },
+        { .txt = "New OTP Record", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW } };
+
+    return make_menu_activity("OTP", hdrbtns, 2, menubtns, 2);
+}
+
+gui_activity_t* make_new_otp_activity(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_OTP_HELP } };
+
+    btn_data_t menubtns[] = { { .txt = "Scan QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
+        { .txt = "Enter URI", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_KB } };
+
+    return make_menu_activity("New OTP", hdrbtns, 2, menubtns, 2);
+}
+
+gui_activity_t* make_pinserver_activity(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PINSERVER_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_PINSERVER_HELP } };
+
+    btn_data_t menubtns[] = { { .txt = "Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SHOW },
+        { .txt = "Scan Oracle QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SCAN_QR },
+        { .txt = "Reset Oracle", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_RESET } };
+
+    return make_menu_activity("Blind Oracle", hdrbtns, 2, menubtns, 3);
 }
 
 gui_activity_t* make_power_options_screen(btn_data_t* timeout_btns, const size_t nBtns, progress_bar_t* brightness_bar)
@@ -521,68 +571,15 @@ gui_activity_t* make_wallet_erase_pin_options_activity(gui_view_node_t** pin_tex
     return act;
 }
 
-gui_activity_t* make_advanced_options_screen(void)
+gui_activity_t* make_session_activity(void)
 {
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SESSION_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    btn_data_t btns[] = { { .txt = "OTP", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
-        { .txt = "Wallet-Erase PIN", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
-        //{ .txt = "Nostr", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_NOSTR },  ??
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_ADVANCED_EXIT },
-        { .txt = NULL, .font = JADE_SYMBOLS_16x16_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
-    add_buttons(act->root_node, UI_COLUMN, btns, 4);
-
-    return act;
-}
-
-gui_activity_t* make_otp_screen(void)
-{
-    gui_activity_t* const act = gui_make_activity();
-
-    btn_data_t btns[] = { { .txt = "View OTPs", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_VIEW },
-        { .txt = "Scan New OTP QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
-        { .txt = "Enter New OTP URI", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_KB },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_OTP_EXIT } };
-    add_buttons(act->root_node, UI_COLUMN, btns, 4);
-
-    return act;
-}
-
-gui_activity_t* make_pinserver_screen(void)
-{
-    gui_activity_t* const act = gui_make_activity();
-
-    btn_data_t btns[]
-        = { { .txt = "View PinServer Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SHOW },
-              { .txt = "Scan Custom PinServer", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SCAN_QR },
-              { .txt = "Reset PinServer Defaults ", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_RESET },
-              { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PINSERVER_EXIT } };
-    add_buttons(act->root_node, UI_COLUMN, btns, 4);
-
-    return act;
-}
-
-gui_activity_t* make_session_screen(void)
-{
-    gui_activity_t* const act = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
-
-    gui_view_node_t* text;
-    gui_make_text(&text, "\nLogout of current wallet or \nput Jade into sleep mode?", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 8, 8);
-    gui_set_parent(text, vsplit);
-
-    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SESSION_EXIT },
-        { .txt = "Logout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SESSION_LOGOUT },
+    btn_data_t menubtns[] = { { .txt = "Logout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SESSION_LOGOUT },
         { .txt = "Sleep", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SESSION_SLEEP } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
 
-    return act;
+    return make_menu_activity("Session", hdrbtns, 2, menubtns, 2);
 }
 
 gui_activity_t* make_ble_screen(const char* device_name, gui_view_node_t** ble_status_textbox)
@@ -786,14 +783,14 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
     if (legal_page == 0) {
         btns[0].txt = "Exit";
         btns[0].font = GUI_DEFAULT_FONT;
-        btns[0].ev_id = BTN_INFO_EXIT;
+        btns[0].ev_id = BTN_LEGAL_EXIT;
     }
 
     // Change last button to 'exit' if on last page
     if (legal_page == MAX_LEGAL_PAGE) {
         btns[1].txt = "Exit";
         btns[1].font = GUI_DEFAULT_FONT;
-        btns[1].ev_id = BTN_INFO_EXIT;
+        btns[1].ev_id = BTN_LEGAL_EXIT;
     }
 
     add_buttons(vsplit, UI_ROW, btns, 2);
@@ -885,13 +882,13 @@ gui_activity_t* make_device_screen(const char* power_status, const char* mac, co
 
     // 'Legal' (for genuine Jade v1.0 and v1.1), 'Storage' and 'Exit'
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    btn_data_t btns[] = { { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_INFO_LEGAL },
-        { .txt = "Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_INFO_STORAGE },
-        { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_INFO_EXIT } };
+    btn_data_t btns[] = { { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL },
+        { .txt = "Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_INFO_STORAGE },
+        { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_INFO_EXIT } };
     add_buttons(vsplit, UI_ROW, btns, 3);
 #else
-    btn_data_t btns[] = { { .txt = "Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_INFO_STORAGE },
-        { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_INFO_EXIT } };
+    btn_data_t btns[] = { { .txt = "Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_INFO_STORAGE },
+        { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_INFO_EXIT } };
     add_buttons(vsplit, UI_ROW, btns, 2);
 #endif
 
@@ -975,7 +972,7 @@ gui_activity_t* make_storage_stats_screen(const size_t entries_used, const size_
         gui_set_parent(row, vsplit);
 
         gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_INFO_EXIT, NULL);
+        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SETTINGS_INFO_EXIT, NULL);
         gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
         gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
         gui_set_parent(btn, row);

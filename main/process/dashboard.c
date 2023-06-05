@@ -139,16 +139,17 @@ gui_activity_t* make_connect_to_activity(const char* device_name, jade_msg_sourc
 
 // GUI screens
 gui_activity_t* make_select_connection_activity_if_required(bool temporary_restore);
-gui_activity_t* make_connect_qrmode_screen(const char* device_name);
+gui_activity_t* make_connect_qrmode_activity(const char* device_name);
 
-gui_activity_t* make_startup_options_screen(void);
-gui_activity_t* make_uninitialised_settings_screen(void);
-gui_activity_t* make_locked_settings_screen(void);
-gui_activity_t* make_unlocked_settings_screen(void);
+gui_activity_t* make_startup_options_activity(void);
+gui_activity_t* make_uninitialised_settings_activity(void);
+gui_activity_t* make_locked_settings_activity(void);
+gui_activity_t* make_unlocked_settings_activity(void);
 
-gui_activity_t* make_wallet_settings_screen(void);
-gui_activity_t* make_advanced_options_screen(void);
-gui_activity_t* make_device_settings_screen(gui_view_node_t** timeout_btn_text);
+gui_activity_t* make_wallet_settings_activity(void);
+gui_activity_t* make_device_settings_activity(void);
+gui_activity_t* make_authentication_activity(void);
+gui_activity_t* make_prefs_settings_activity(bool show_ble);
 
 gui_activity_t* make_power_options_screen(btn_data_t* timeout_btns, size_t nBtns, progress_bar_t* brightness_bar);
 
@@ -158,13 +159,14 @@ gui_activity_t* make_wallet_erase_pin_options_activity(gui_view_node_t** pin_tex
 gui_activity_t* make_bip39_passphrase_prefs_screen(
     gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox);
 
-gui_activity_t* make_otp_screen(void);
+gui_activity_t* make_otp_activity(void);
+gui_activity_t* make_new_otp_activity(void);
 gui_activity_t* make_view_otp_activity(size_t index, size_t total, bool valid, const otpauth_ctx_t* ctx);
 gui_activity_t* make_show_hotp_code_activity(const char* name, const char* codestr, bool cancel_button);
 gui_activity_t* make_show_totp_code_activity(const char* name, const char* timestamp, const char* codestr,
     const bool cancel_button, progress_bar_t* progress_bar, gui_view_node_t** txt_ts, gui_view_node_t** txt_code);
 
-gui_activity_t* make_pinserver_screen(void);
+gui_activity_t* make_pinserver_activity(void);
 
 gui_activity_t* make_view_multisig_activity(const char* multisig_name, size_t index, size_t total, bool valid,
     bool sorted, size_t threshold, size_t num_signers, const uint8_t* master_blinding_key,
@@ -175,7 +177,7 @@ gui_activity_t* make_legal_screen(void);
 #endif
 gui_activity_t* make_storage_stats_screen(size_t entries_used, size_t entries_free);
 
-gui_activity_t* make_session_screen(void);
+gui_activity_t* make_session_activity(void);
 gui_activity_t* make_ble_screen(const char* device_name, gui_view_node_t** ble_status_textbox);
 gui_activity_t* make_device_screen(const char* power_status, const char* mac, const char* firmware_version);
 
@@ -761,7 +763,7 @@ static void handle_legal(void)
     gui_activity_t* const first_activity = make_legal_screen();
     gui_set_current_activity(first_activity);
 
-    while (sync_await_single_event(GUI_BUTTON_EVENT, BTN_INFO_EXIT, NULL, NULL, NULL, 0) != ESP_OK) {
+    while (sync_await_single_event(GUI_BUTTON_EVENT, BTN_LEGAL_EXIT, NULL, NULL, NULL, 0) != ESP_OK) {
         // Wait until we get this event
     }
 }
@@ -1359,22 +1361,88 @@ static void handle_pinserver_reset(void)
     }
 }
 
+// Device info
+static void handle_storage(void)
+{
+    size_t entries_used, entries_free;
+    const bool ok = storage_get_stats(&entries_used, &entries_free);
+    if (ok) {
+        gui_activity_t* const act = make_storage_stats_screen(entries_used, entries_free);
+        gui_set_current_activity(act);
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_SETTINGS_INFO_EXIT, NULL, NULL, NULL, 0);
+    } else {
+        await_error_activity("Error accessing storage!");
+    }
+}
+
+static void handle_device_info(void)
+{
+    char power_status[32] = "NO BAT";
+
+#if defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) || defined(CONFIG_BOARD_TYPE_M5_FIRE)
+    float approx_voltage;
+    approx_voltage = power_get_vbat() / 1000.0;
+    const int ret = snprintf(power_status, sizeof(power_status), "Approx %.1fv", approx_voltage);
+    JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
+#endif
+
+#ifdef CONFIG_HAS_AXP
+    const int ret = snprintf(power_status, sizeof(power_status), "%umv", power_get_vbat());
+    JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
+#endif
+
+    char mac[18] = "NO BLE";
+#ifdef CONFIG_BT_ENABLED
+    const int rc = ble_get_mac(mac, sizeof(mac));
+    JADE_ASSERT(rc == 18);
+#endif
+
+    gui_activity_t* const act = make_device_screen(power_status, mac, running_app_info.version);
+    JADE_ASSERT(act);
+
+    bool loop = true;
+    while (loop) {
+        int32_t ev_id;
+        gui_set_current_activity(act);
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+
+        switch (ev_id) {
+        case BTN_SETTINGS_INFO_EXIT:
+            loop = false;
+            break;
+
+        case BTN_SETTINGS_INFO_STORAGE:
+            handle_storage();
+            break;
+
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+        // For genuine Jade hw, show legal info
+        case BTN_SETTINGS_LEGAL:
+            handle_legal();
+            break;
+#endif
+        default:
+            break;
+        }
+    }
+}
+
 // Create the appropriate 'Settings' menu
 static gui_activity_t* create_settings_menu(const bool startup_menu)
 {
     gui_activity_t* act = NULL;
     if (startup_menu) {
         // Startup (click on spalsh screen) menu
-        act = make_startup_options_screen();
+        act = make_startup_options_activity();
     } else if (keychain_get()) {
         // Unlocked Jade - main settings
-        act = make_unlocked_settings_screen();
+        act = make_unlocked_settings_activity();
     } else if (keychain_has_pin()) {
         // Locked Jade - before pin entry when saved wallet exists
-        act = make_locked_settings_screen();
+        act = make_locked_settings_activity();
     } else {
         // Uninitilised Jade - no wallet set
-        act = make_uninitialised_settings_screen();
+        act = make_uninitialised_settings_activity();
     }
     return act;
 }
@@ -1382,9 +1450,16 @@ static gui_activity_t* create_settings_menu(const bool startup_menu)
 static void handle_settings(const bool startup_menu)
 {
     // Create the appropriate 'Settings' menu
-    gui_view_node_t* timeout_btn_text = NULL;
     gui_activity_t* act = create_settings_menu(startup_menu);
 
+    // Only show BLE settings if a) unit unlocked or b) unit uninitialised
+    const bool show_ble_settings = keychain_get() || !keychain_has_pin();
+
+    // hw uninitialised and not unlocked (eg. as temporary signer)
+    const bool hw_locked_uninitialised = !keychain_get() && !keychain_has_pin();
+
+    // NOTE: menu navigation frees prior screens, as the navigation is
+    // potentially unbound with all the back and forward buttons.
     bool done = false;
     while (!done) {
         gui_set_current_activity_ex(act, true);
@@ -1398,43 +1473,58 @@ static void handle_settings(const bool startup_menu)
             done = true;
             break;
 
-        case BTN_SETTINGS_ADVANCED_EXIT:
         case BTN_SETTINGS_DEVICE_EXIT:
         case BTN_SETTINGS_WALLET_EXIT:
+        case BTN_SETTINGS_AUTHENTICATION_EXIT:
         case BTN_SETTINGS_PINSERVER_EXIT:
             // Change to base 'Settings' menu
             act = create_settings_menu(startup_menu);
-            timeout_btn_text = NULL;
             break;
 
-        case BTN_SETTINGS_ADVANCED:
-        case BTN_SETTINGS_OTP_EXIT:
-            // Change to 'Advanced' menu
-            act = make_advanced_options_screen();
-            timeout_btn_text = NULL;
+        case BTN_SETTINGS_WALLET:
+            // Change to 'Wallet' menu
+            act = make_wallet_settings_activity();
             break;
 
         case BTN_SETTINGS_DEVICE:
             // Change to 'Device' menu
-            act = make_device_settings_screen(&timeout_btn_text);
+            act = make_device_settings_activity();
             break;
 
-        case BTN_SETTINGS_WALLET:
-            // Change to 'Device' menu
-            act = make_wallet_settings_screen();
-            timeout_btn_text = NULL;
+        case BTN_SETTINGS_PREFS_EXIT:
+            // Change to 'Device' menu (or 'uninitialised options' menu)
+            act = hw_locked_uninitialised ? make_uninitialised_settings_activity() : make_device_settings_activity();
+            break;
+
+        case BTN_SETTINGS_INFO:
+            handle_device_info();
+            break;
+
+        case BTN_SETTINGS_PREFS:
+            // Change to 'Preferences' menu (Settings)
+            act = make_prefs_settings_activity(show_ble_settings);
+            break;
+
+        case BTN_SETTINGS_AUTHENTICATION:
+        case BTN_SETTINGS_OTP_EXIT:
+            // Change to 'Authentication' menu
+            act = make_authentication_activity();
             break;
 
         case BTN_SETTINGS_OTP:
+        case BTN_SETTINGS_OTP_NEW_EXIT:
             // Change to 'OTP' menu
-            act = make_otp_screen();
-            timeout_btn_text = NULL;
+            act = make_otp_activity();
+            break;
+
+        case BTN_SETTINGS_OTP_NEW:
+            // Change to 'New OTP' menu
+            act = make_new_otp_activity();
             break;
 
         case BTN_SETTINGS_PINSERVER:
             // Change to 'PinServer' menu
-            act = make_pinserver_screen();
-            timeout_btn_text = NULL;
+            act = make_pinserver_activity();
             break;
 
         case BTN_SETTINGS_BLE:
@@ -1516,6 +1606,15 @@ static void handle_settings(const bool startup_menu)
             break;
 #endif
 
+        // Help screens
+        case BTN_SETTINGS_PINSERVER_HELP:
+            await_qr_help_activity("blkstrm.com/oracle");
+            break;
+
+        case BTN_SETTINGS_OTP_HELP:
+            await_qr_help_activity("blkstrm.com/otp");
+            break;
+
         default:
             // Unexpected event, just ignore
             break;
@@ -1532,90 +1631,29 @@ void offer_startup_options(void)
 // Session logout or sleep/power-off
 static void handle_session(void)
 {
-    gui_activity_t* const act = make_session_screen();
-    gui_set_current_activity(act);
-
+    gui_activity_t* const act = make_session_activity();
     int32_t ev_id;
-    if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-        switch (ev_id) {
-        case BTN_SESSION_LOGOUT:
-            // Logout of current wallet, delete keychain
-            keychain_clear();
-            break;
 
-        case BTN_SESSION_SLEEP:
-            // Shutdown Jade
-            power_shutdown();
-            break;
-
-        default:
-            break;
-        }
-    }
-}
-
-static void handle_storage(void)
-{
-    size_t entries_used, entries_free;
-    const bool ok = storage_get_stats(&entries_used, &entries_free);
-    if (ok) {
-        gui_activity_t* const act = make_storage_stats_screen(entries_used, entries_free);
+    while (true) {
         gui_set_current_activity(act);
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_INFO_EXIT, NULL, NULL, NULL, 0);
-    } else {
-        await_error_activity("Error accessing storage!");
-    }
-}
+        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            switch (ev_id) {
+            case BTN_SESSION_LOGOUT:
+                // Logout of current wallet, delete keychain
+                keychain_clear();
+                return;
 
-// Device info
-static void handle_device(void)
-{
-    char power_status[32] = "NO BAT";
+            case BTN_SESSION_SLEEP:
+                // Shutdown Jade
+                power_shutdown();
+                return;
 
-#if defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) || defined(CONFIG_BOARD_TYPE_M5_FIRE)
-    float approx_voltage;
-    approx_voltage = power_get_vbat() / 1000.0;
-    const int ret = snprintf(power_status, sizeof(power_status), "Approx %.1fv", approx_voltage);
-    JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
-#endif
+            case BTN_SESSION_EXIT:
+                return;
 
-#ifdef CONFIG_HAS_AXP
-    const int ret = snprintf(power_status, sizeof(power_status), "%umv", power_get_vbat());
-    JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
-#endif
-
-    char mac[18] = "NO BLE";
-#ifdef CONFIG_BT_ENABLED
-    const int rc = ble_get_mac(mac, sizeof(mac));
-    JADE_ASSERT(rc == 18);
-#endif
-
-    gui_activity_t* const act = make_device_screen(power_status, mac, running_app_info.version);
-    JADE_ASSERT(act);
-
-    bool loop = true;
-    while (loop) {
-        int32_t ev_id;
-        gui_set_current_activity_ex(act, true);
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-
-        switch (ev_id) {
-        case BTN_INFO_EXIT:
-            loop = false;
-            break;
-
-        case BTN_INFO_STORAGE:
-            handle_storage();
-            break;
-
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-        // For genuine Jade hw, show legal info
-        case BTN_INFO_LEGAL:
-            handle_legal();
-            break;
-#endif
-        default:
-            break;
+            default:
+                break;
+            }
         }
     }
 }
@@ -1635,26 +1673,30 @@ static bool qr_mode_scan_seedqr(void)
 
 static void handle_qr_mode(void)
 {
-    gui_activity_t* const act = make_connect_qrmode_screen(device_name);
+    gui_activity_t* const act = make_connect_qrmode_activity(device_name);
+    int32_t ev_id;
 
     bool done = false;
     while (!done) {
         gui_set_current_activity(act);
+        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            switch (ev_id) {
+            case BTN_CONNECT_QR_PIN:
+                done = offer_pinserver_qr_unlock();
+                break;
 
-        int32_t ev_id;
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-        switch (ev_id) {
-        case BTN_CONNECT_QR_PIN:
-            done = offer_pinserver_qr_unlock();
-            break;
+            case BTN_CONNECT_QR_SCAN:
+                done = qr_mode_scan_seedqr();
+                break;
 
-        case BTN_CONNECT_QR_SCAN:
-            done = qr_mode_scan_seedqr();
-            break;
+            case BTN_CONNECT_HELP:
+                await_qr_help_activity("blkstrm.com/qrmode");
+                break;
 
-        case BTN_CONNECT_BACK:
-            done = true;
-            break;
+            case BTN_CONNECT_BACK:
+                done = true;
+                break;
+            }
         }
     }
 }
@@ -1689,10 +1731,6 @@ static void handle_btn(const int32_t btn)
 
     case BTN_SCAN_QR:
         handle_scan_qr();
-        break;
-
-    case BTN_INFO:
-        handle_device();
         break;
 
     // The 'connect' screen
