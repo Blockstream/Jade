@@ -86,7 +86,7 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 * One button interface
 * No simple option for battery
 * No integrated USB-Serial device, so you have a few options (Including running without one after initial firmware flash)
-  * ESP32-CAM-MB: USB VendorID: ProductID: (Different to retail Jade)
+  * ESP32-CAM-MB: USB VendorID:1a86 ProductID:7523 (Different to retail Jade)
   * CP2104: USB VendorID:1a86 ProductID:55d4 (Same as retail Jade)
 * Typically supports Secure Boot V2
 * Hardware Required (No Soldering Required)
