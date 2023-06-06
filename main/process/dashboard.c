@@ -91,7 +91,7 @@ void make_ready_screen(
     gui_activity_t** activity_ptr, const char* device_name, gui_view_node_t** txt_label, gui_view_node_t** txt_extra);
 
 // GUI screens
-gui_activity_t* make_connection_select_screen(bool temporary_restore);
+gui_activity_t* make_select_connection_activity_if_required(bool temporary_restore);
 gui_activity_t* make_connect_qrmode_screen(const char* device_name);
 
 gui_activity_t* make_startup_options_screen(void);
@@ -578,13 +578,15 @@ static bool offer_pinserver_qr_unlock()
     return offer_pinserver_via_qr(temporary_restore);
 }
 
-// Screen to select whether the initial connection is via USB or BLE
+// Screen to select whether the initial connection is via USB, BLE or QR
 static void select_initial_connection(const bool temporary_restore)
 {
-    // Since we have connection options, the user must choose one
-    gui_activity_t* const act = make_connection_select_screen(temporary_restore);
-    initialisation_source = SOURCE_NONE;
-    do {
+    // If there are connection options, the user must choose one
+    // Otherwise this call returns null and we default to USB
+    gui_activity_t* const act = make_select_connection_activity_if_required(temporary_restore);
+    initialisation_source = act ? SOURCE_NONE : SOURCE_SERIAL;
+
+    while (initialisation_source == SOURCE_NONE) {
         gui_set_current_activity(act);
 
         int32_t ev_id;
@@ -617,7 +619,7 @@ static void select_initial_connection(const bool temporary_restore)
                 }
             }
         }
-    } while (initialisation_source == SOURCE_NONE);
+    }
 }
 
 // Helper to initialise with mnemonic, and (if successful) request whether the
@@ -1518,10 +1520,11 @@ static bool qr_mode_scan_seedqr(void)
     const bool temporary_restore = true;
     const bool force_qr_scan = true;
     initialise_with_mnemonic(temporary_restore, force_qr_scan);
-    if (keychain_get()) {
-        offer_pinserver_via_qr(temporary_restore);
+    if (!keychain_get()) {
+        return false;
     }
-    return true;
+
+    return offer_pinserver_via_qr(temporary_restore);
 }
 
 static void handle_qr_mode(void)
@@ -1711,7 +1714,7 @@ static void update_ready_screen_text(gui_view_node_t* txt_label, gui_view_node_t
 
     char label[20];
     const int ret = snprintf(label, sizeof(label), "Wallet: %s", fphex);
-    JADE_ASSERT(ret > 0 && ret <= sizeof(label));
+    JADE_ASSERT(ret > 0 && ret < sizeof(label));
     JADE_WALLY_VERIFY(wally_free_string(fphex));
     gui_update_text(txt_label, label);
 

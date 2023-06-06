@@ -64,34 +64,12 @@ void make_connect_screen(gui_activity_t** activity_ptr, const char* device_name,
     JADE_ASSERT(device_name);
     JADE_ASSERT(!unused);
 
-    char title[32];
-    const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
-    JADE_ASSERT(ret > 0 && ret < sizeof(title));
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_HELP } };
 
-    *activity_ptr = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 34, 34, 32);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    // Text1
-    gui_view_node_t* text1;
-    gui_make_text(&text1, "Connect using USB or BLE to\na companion device.", TFT_WHITE);
-    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text1, GUI_MARGIN_ALL_DIFFERENT, 8, 2, 0, 4);
-    gui_set_parent(text1, vsplit);
-
-    // Text2
-    gui_view_node_t* text2;
-    gui_make_text(&text2, "Select Jade on a compatible\nwallet to unlock with PIN.", TFT_WHITE);
-    gui_set_align(text2, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text2, GUI_MARGIN_ALL_DIFFERENT, 4, 2, 0, 4);
-    gui_set_parent(text2, vsplit);
-
-    // Buttons
-    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK },
-        { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_HELP } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
+    *activity_ptr = make_show_message_activity(
+        "  Connect via USB/BLE\n   to a companion app\n and select your Jade to\n  unlock with your PIN", 12,
+        device_name, hdrbtns, 2, NULL, 0);
 }
 
 void make_connect_to_screen(
@@ -100,42 +78,26 @@ void make_connect_to_screen(
     JADE_ASSERT(activity_ptr);
     JADE_ASSERT(device_name);
 
-    char title[32];
-    const int ret = snprintf(title, sizeof(title), "Connect %s", device_name);
-    JADE_ASSERT(ret > 0 && ret < sizeof(title));
-
-    *activity_ptr = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
-    gui_set_parent(vsplit, (*activity_ptr)->root_node);
-
-    // Text
-    const char* message = initialisation_source == SOURCE_BLE
-        ? "Select your Jade on the \ncompanion app to pair it"
-        : "Connect Jade to a compatible\nwallet app\nblockstream.com/jadewallets";
-    gui_view_node_t* text;
-    gui_make_text(&text, message, TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
-    gui_set_parent(text, vsplit);
-
-#ifdef CONFIG_BT_ENABLED
-    if (initialisation_source != SOURCE_QR) {
-        // Back button
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_CONNECT_TO_BACK, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_margins(btn, GUI_MARGIN_ALL_DIFFERENT, 15, 150, 0, 8);
-        gui_set_parent(btn, vsplit);
-
-        gui_view_node_t* btntext;
-        gui_make_text_font(&btntext, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-        gui_set_align(btntext, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(btntext, btn);
+    char msg[128];
+    if (initialisation_source == SOURCE_BLE) {
+        const int ret = snprintf(
+            msg, sizeof(msg), "\n  Select %s on\n  the companion app to\n              pair it", device_name);
+        JADE_ASSERT(ret > 0 && ret < sizeof(msg));
+    } else {
+        const int ret
+            = snprintf(msg, sizeof(msg), "\n  Connect %s\n to a compatible wallet\n               app", device_name);
+        JADE_ASSERT(ret > 0 && ret < sizeof(msg));
     }
-#endif
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_TO_BACK },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_HELP } };
+
+    if (initialisation_source == SOURCE_QR) {
+        // Hide back button as QR login task will have been initiated
+        hdrbtns[0].txt = NULL;
+        hdrbtns[0].ev_id = GUI_BUTTON_EVENT_NONE;
+    }
+
+    *activity_ptr = make_show_message_activity(msg, 2, device_name, hdrbtns, 2, NULL, 0);
 }
 
 // NOTE: The main 'Ready' screen is created as an 'unmanaged' activity, so it is not placed
@@ -239,26 +201,13 @@ gui_activity_t* make_connect_qrmode_screen(const char* device_name)
 {
     JADE_ASSERT(device_name);
 
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_HELP } };
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 28, 72);
-    gui_set_parent(vsplit, act->root_node);
+    btn_data_t menubtns[] = { { .txt = "QR PIN Unlock", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_PIN },
+        { .txt = "Scan SeedQR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_SCAN } };
 
-    // Text
-    gui_view_node_t* text;
-    gui_make_text(&text, "How do you want to access\nQR Mode ?", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 2, 0, 0, 2);
-    gui_set_parent(text, vsplit);
-
-    // Buttons
-    btn_data_t btns[] = { { .txt = "QR PIN Unlock", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_PIN },
-        { .txt = "Scan SeedQR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_SCAN },
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK } };
-    add_buttons(vsplit, UI_COLUMN, btns, 3);
-
-    return act;
+    return make_menu_activity("QR Mode", hdrbtns, 2, menubtns, 2);
 }
 
 // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
@@ -302,53 +251,57 @@ void make_welcome_back_screen(gui_activity_t** activity_ptr, const char* device_
     add_buttons(vsplit, UI_ROW, btns, 3);
 }
 
-gui_activity_t* make_connection_select_screen(const bool temporary_restore)
+gui_activity_t* make_select_connection_activity_if_required(const bool temporary_restore)
 {
-    gui_activity_t* const act = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
-    gui_set_parent(vsplit, act->root_node);
-
-    gui_view_node_t* text;
-    gui_make_text(&text, "How do you want to interact\nwith your Jade?", TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_padding(text, GUI_MARGIN_ALL_DIFFERENT, 12, 8, 0, 8);
-    gui_set_parent(text, vsplit);
-
-    // One, two or three buttons, depending on whether QR and/or Bluetooth are available in the build
+    // Two or three buttons, depending on whether QR and/or Bluetooth are available in the build
+    // NOTE: if neither QR or BLE are an available, then the only option is USB, and this call returns null.
     // Also, a 'recovery phrase login' puts 'QR'(mode) first, whereas a standard initialisation puts QR last!
+
+    // Initially placeholders
+    btn_data_t menubtns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+    size_t ibtn = 0;
+
+    // Temporary restore has QR first (Jade hw only)
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    const char* qr_label = "QR";
-    const uint32_t qr_ev_id = BTN_CONNECT_VIA_QR;
-#else
-    const char* qr_label = NULL;
-    const uint32_t qr_ev_id = GUI_BUTTON_EVENT_NONE;
-#endif
-
-#ifdef CONFIG_BT_ENABLED
-    const char* ble_label = "Bluetooth";
-    const uint32_t ble_ev_id = BTN_CONNECT_VIA_BLE;
-#else
-    const char* ble_label = NULL;
-    const uint32_t ble_ev_id = GUI_BUTTON_EVENT_NONE;
-#endif
-
     if (temporary_restore) {
-        // QR, USB, BLE
-        btn_data_t btns[] = { { .txt = qr_label, .font = GUI_DEFAULT_FONT, .ev_id = qr_ev_id },
-            { .txt = "USB", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_VIA_USB },
-            { .txt = ble_label, .font = GUI_DEFAULT_FONT, .ev_id = ble_ev_id } };
-        add_buttons(vsplit, UI_ROW, btns, 3);
-    } else {
-        // USB, BLE, QR
-        btn_data_t btns[] = { { .txt = "USB", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_VIA_USB },
-            { .txt = ble_label, .font = GUI_DEFAULT_FONT, .ev_id = ble_ev_id },
-            { .txt = qr_label, .font = GUI_DEFAULT_FONT, .ev_id = qr_ev_id } };
-        add_buttons(vsplit, UI_ROW, btns, 3);
+        menubtns[ibtn].txt = "QR";
+        menubtns[ibtn].ev_id = BTN_CONNECT_VIA_QR;
+        ++ibtn;
+    }
+#endif
+
+    // USB is always available
+    menubtns[ibtn].txt = "USB";
+    menubtns[ibtn].ev_id = BTN_CONNECT_VIA_USB;
+    ++ibtn;
+
+    // BLE if enabled in fw
+#ifdef CONFIG_BT_ENABLED
+    menubtns[ibtn].txt = "Bluetooth";
+    menubtns[ibtn].ev_id = BTN_CONNECT_VIA_BLE;
+    ++ibtn;
+#endif
+
+    // If not temporary restore, QR is last (Jade hw only)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    if (!temporary_restore) {
+        menubtns[ibtn].txt = "QR";
+        menubtns[ibtn].ev_id = BTN_CONNECT_VIA_QR;
+        ++ibtn;
+    }
+#endif
+
+    // For non-jade hw without BLE enabled, USB might be the only option,
+    // in which case we don't really need this screen at all!
+    // In this case return null here.
+    if (ibtn < 2) {
+        return NULL;
     }
 
-    return act;
+    // Otherwise make a menu and return that
+    return make_menu_activity("Select Connection", NULL, 0, menubtns, ibtn);
 }
 
 gui_activity_t* make_bip39_passphrase_prefs_screen(
