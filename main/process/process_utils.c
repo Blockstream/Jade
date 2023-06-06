@@ -193,17 +193,15 @@ bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_d
         const char* msg1 = "";
         if (!all_paths_as_expected) {
             if (flipped_change_element) {
-                msg1 = is_change ? "Non-change multisig path." : "Multisig change path.";
+                msg1 = is_change ? "\nExternal multisig path." : "\nMultisig change path.";
             } else {
-                msg1 = is_change ? "Unusual multisig change path." : "Unusual multisig path.";
+                msg1 = "\nUnusual multisig path.";
             }
         }
-        const char* msg2
-            = !final_elements_consistent ? "Non-standard multisig with different paths across signers." : "";
-        const char* maybe_space = !all_paths_as_expected && !final_elements_consistent ? " " : "";
+        const char* msg2 = !final_elements_consistent ? "\nDiffering signer paths." : "";
 
-        const int ret = snprintf(
-            warningmsg, warningmsg_len, "Warning: %s%s%s Proceed at your own risk.", msg1, maybe_space, msg2);
+        const char* heading = flipped_change_element && final_elements_consistent ? "Note" : "Warning";
+        const int ret = snprintf(warningmsg, warningmsg_len, "%s:%s%s", heading, msg1, msg2);
         JADE_ASSERT(ret > 0 && ret < warningmsg_len);
     }
 

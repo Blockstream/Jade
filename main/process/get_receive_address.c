@@ -4,6 +4,7 @@
 #include "../multisig.h"
 #include "../process.h"
 #include "../storage.h"
+#include "../ui.h"
 #include "../utils/address.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
@@ -16,7 +17,7 @@
 
 #include "process_utils.h"
 
-gui_activity_t* make_confirm_address_activity(const char* address, const char* warning_msg);
+bool show_confirm_address_activity(const char* address, bool default_selection);
 
 void get_receive_address_process(void* process_ptr)
 {
@@ -129,10 +130,8 @@ void get_receive_address_process(void* process_ptr)
             rpc_get_sizet("csv_blocks", &params, &csvBlocks);
 
             if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
-                const int ret = snprintf(warning_msg, sizeof(warning_msg),
-                    "Warning: Output has non-standard csv value (%u), so may be difficult to find. "
-                    "Proceed at your own risk.",
-                    csvBlocks);
+                const int ret
+                    = snprintf(warning_msg, sizeof(warning_msg), "Warning:\nNon-standard csv:\n%u", csvBlocks);
                 JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
             }
 
@@ -164,8 +163,8 @@ void get_receive_address_process(void* process_ptr)
                         process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
                     goto cleanup;
                 }
-                const char* path_desc = is_change ? "Change" : "Unusual";
-                const int ret = snprintf(warning_msg, sizeof(warning_msg), "Warning: %s path: %s", path_desc, path_str);
+                const char* path_desc = is_change ? "Note:\nChange path" : "Warning:\nUnusual path";
+                const int ret = snprintf(warning_msg, sizeof(warning_msg), "%s\n%s", path_desc, path_str);
                 JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
             }
 
@@ -217,27 +216,19 @@ void get_receive_address_process(void* process_ptr)
     }
 
     // Display to the user to confirm
-    gui_activity_t* const act = make_confirm_address_activity(address, warning_msg);
-    gui_set_current_activity(act);
-
-    int32_t ev_id;
-    // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-    ev_id = BTN_ACCEPT_ADDRESS;
-#endif
-
-    // Check to see whether user accepted or declined
-    if (!ret || ev_id != BTN_ACCEPT_ADDRESS) {
+    const bool default_selection = false;
+    if (!show_confirm_address_activity(address, default_selection)) {
         JADE_LOGW("User declined to confirm address");
         jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to confirm address", NULL);
         goto cleanup;
     }
+
     JADE_LOGD("User pressed accept");
+
+    // Show warning if necessary
+    if (warning_msg[0] != '\0') {
+        await_message_activity(warning_msg);
+    }
 
     // Reply with the address
     jade_process_reply_to_message_result(process->ctx, address, cbor_result_string_cb);

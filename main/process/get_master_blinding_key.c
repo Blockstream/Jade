@@ -15,10 +15,8 @@ void get_master_blinding_key_process(void* process_ptr)
     ASSERT_CURRENT_MESSAGE(process, "get_master_blinding_key");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
 
-    if (!await_yesno_activity("Export Blinding Key",
-            "Export master blinding key?\nChoose yes to allow the\ncompanion app to unblind all\nyour data without "
-            "prompting.",
-            true, NULL)) {
+    if (!await_yesno_activity(
+            "Blinding Key", "\n        Export master\n         blinding key?", true, "blkstrm.com/blindingkey")) {
         JADE_LOGW("User declined to export master blinding key");
         jade_process_reject_message(
             process, CBOR_RPC_USER_CANCELLED, "User declined to export master blinding key", NULL);
