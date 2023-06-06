@@ -420,52 +420,60 @@ bool await_continueback_activity(
     return await_yesno_activity_loop(act, help_url);
 }
 
-// activity to show a single central label, which can be updated by the caller
-gui_activity_t* make_show_label_activity(const char* title, const char* message, gui_view_node_t** item_text)
+// Updatable label with left/right arrows
+gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** label, gui_view_node_t** item)
 {
-    // title is optional
-    JADE_ASSERT(message);
-    JADE_INIT_OUT_PPTR(item_text);
+    JADE_ASSERT(title);
+    // label is optional
+    JADE_INIT_OUT_PPTR(item);
 
     gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* parent = add_title_bar(act, title, NULL, 0, NULL);
+    gui_view_node_t* node;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-    gui_set_parent(vsplit, act->root_node);
+    if (label) {
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 40, 35, 25);
+        gui_set_parent(vsplit, parent);
 
-    gui_view_node_t* text_message;
-    gui_make_text(&text_message, message, TFT_WHITE);
-    gui_set_padding(text_message, GUI_MARGIN_TWO_VALUES, 4, 4);
-    gui_set_align(text_message, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text_message, vsplit);
+        // Label
+        gui_make_text(label, "", TFT_WHITE);
+        gui_set_padding(*label, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 0, 0);
+        gui_set_align(*label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(*label, vsplit);
+    } else {
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 25, 35, 40);
+        gui_set_parent(vsplit, parent);
+
+        gui_make_fill(&node, TFT_BLACK);
+        gui_set_parent(node, vsplit);
+    }
+
+    // Background fill
+    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_parent(node, vsplit);
 
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 12, 76, 12);
-    gui_set_padding(hsplit, GUI_MARGIN_TWO_VALUES, 8, 0);
-    gui_set_parent(hsplit, vsplit);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 10, 80, 10);
+    gui_set_parent(hsplit, node);
 
     // Left arrow
-    gui_view_node_t* text_left;
-    gui_make_text_font(&text_left, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_align(text_left, GUI_ALIGN_RIGHT, GUI_ALIGN_TOP);
-    gui_set_parent(text_left, hsplit);
+    gui_make_text_font(&node, "H", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
-    // Updateable label
-    gui_view_node_t* bg_fill;
-    gui_make_fill(&bg_fill, TFT_BLACK);
-    gui_set_parent(bg_fill, hsplit);
+    // Updateable carousel item
+    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_parent(node, hsplit);
 
-    gui_view_node_t* text_label;
-    gui_make_text(&text_label, message, TFT_WHITE);
-    gui_set_align(text_label, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    gui_set_parent(text_label, bg_fill);
-    *item_text = text_label;
+    gui_make_text(item, "", TFT_WHITE);
+    gui_set_align(*item, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(*item, node);
 
     // Right arrow
-    gui_view_node_t* text_right;
-    gui_make_text_font(&text_right, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_align(text_right, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-    gui_set_parent(text_right, hsplit);
+    gui_make_text_font(&node, "I", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
     return act;
 }

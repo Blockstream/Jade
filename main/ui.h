@@ -130,6 +130,9 @@ bool await_yesno_activity(const char* title, const char* message, bool default_s
 bool await_skipyes_activity(const char* title, const char* message, bool default_selection, const char* help_url);
 bool await_continueback_activity(const char* title, const char* message, bool default_selection, const char* help_url);
 
+// Updatable label with left/right arrows
+gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** label, gui_view_node_t** item);
+
 // Functions for keyboard entry
 void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title);
 void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
@@ -138,9 +141,6 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
 void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message);
 void run_pin_entry_loop(pin_insert_t* pin_insert);
 void clear_current_pin(pin_insert_t* pin_insert);
-
-// Generic message screens which may await a button click
-gui_activity_t* make_show_label_activity(const char* title, const char* message, gui_view_node_t** item_text);
 
 // Generic progress-bar
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);

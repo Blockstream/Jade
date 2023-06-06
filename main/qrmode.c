@@ -266,7 +266,7 @@ static bool select_multisig_record(char names[][MAX_MULTISIG_NAME_SIZE], const s
 
     // Otherwise offer choice of multisig names
     gui_view_node_t* item_text = NULL;
-    gui_activity_t* const act = make_show_label_activity("Multisig Address", "Select multisig wallet:", &item_text);
+    gui_activity_t* const act = make_carousel_activity("Select Wallet", NULL, &item_text);
     JADE_ASSERT(item_text);
     gui_set_current_activity(act);
 

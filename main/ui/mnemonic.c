@@ -426,64 +426,6 @@ gui_activity_t* make_enter_wordlist_word_page(const char* title, const bool show
     return act;
 }
 
-gui_activity_t* make_select_word_page(
-    const char* title, const char* initial_label, gui_view_node_t** textbox, gui_view_node_t** label)
-{
-    JADE_ASSERT(title);
-    JADE_ASSERT(initial_label);
-    JADE_INIT_OUT_PPTR(textbox);
-    JADE_INIT_OUT_PPTR(label);
-
-    gui_activity_t* const act = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 45, 25, 30);
-    gui_set_parent(vsplit, act->root_node);
-
-    // first row, label
-    gui_view_node_t* text_bg;
-    gui_make_fill(&text_bg, TFT_BLACK);
-    gui_set_parent(text_bg, vsplit);
-
-    gui_view_node_t* text_label;
-    gui_make_text(&text_label, initial_label, TFT_WHITE);
-    gui_set_parent(text_label, text_bg);
-    gui_set_padding(text_label, GUI_MARGIN_TWO_VALUES, 1, 0);
-    gui_set_align(text_label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    *label = text_label;
-
-    // second row, words
-    gui_view_node_t* words_hsplit;
-    gui_make_hsplit(&words_hsplit, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-    gui_set_margins(words_hsplit, GUI_MARGIN_TWO_VALUES, 0, 4);
-    gui_set_parent(words_hsplit, vsplit);
-
-    gui_view_node_t* text_left;
-    gui_make_text_font(&text_left, "=", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_align(text_left, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text_left, words_hsplit);
-
-    // This textbox will be updated so we add a black bg that will be repainted every time to clean the previous string
-    gui_view_node_t* black_bg;
-    gui_make_fill(&black_bg, TFT_BLACK);
-    gui_set_parent(black_bg, words_hsplit);
-
-    gui_view_node_t* text_select;
-    gui_make_text(&text_select, "", TFT_WHITE);
-    gui_set_text_noise(text_select, TFT_BLACK);
-    gui_set_align(text_select, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text_select, black_bg);
-    gui_set_borders(text_select, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_ALL);
-    *textbox = text_select;
-
-    gui_view_node_t* text_right;
-    gui_make_text_font(&text_right, ">", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_align(text_right, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text_right, words_hsplit);
-
-    return act;
-}
-
 gui_activity_t* make_calculate_final_word_page(void)
 {
     btn_data_t btns[] = { { .txt = "Existing", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_EXISTING },

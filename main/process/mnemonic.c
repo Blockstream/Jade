@@ -48,8 +48,6 @@ gui_activity_t* make_confirm_mnemonic_screen(
     gui_view_node_t** text_box_ptr, size_t confirm, char* words[], size_t nwords);
 gui_activity_t* make_enter_wordlist_word_page(const char* title, bool show_enter_btn, gui_view_node_t** textbox,
     gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys, size_t keys_len);
-gui_activity_t* make_select_word_page(
-    const char* title, const char* initial_label, gui_view_node_t** textbox, gui_view_node_t** label);
 gui_activity_t* make_calculate_final_word_page(void);
 gui_activity_t* make_using_passphrase_screen(const bool use_passphrase_once, const bool use_passphrase_always);
 gui_activity_t* make_confirm_passphrase_screen(const char* passphrase, gui_view_node_t** textbox);
@@ -595,7 +593,7 @@ static size_t get_wordlist_words(
     gui_view_node_t* text_selection = NULL;
     gui_view_node_t* label = NULL;
     const char* select_word_title = ((purpose == WORDLIST_PASSPHRASE) ? "Enter Passphrase" : "Recover Wallet");
-    gui_activity_t* const choose_word_activity = make_select_word_page(select_word_title, "", &text_selection, &label);
+    gui_activity_t* const choose_word_activity = make_carousel_activity(select_word_title, &label, &text_selection);
 
     // For each word
     char* wordlist_words[MNEMONIC_MAXWORDS] = { 0 };
@@ -1409,7 +1407,7 @@ void handle_bip85_mnemonic()
     JADE_ASSERT(keychain_get());
 
     // Fetch number of words to generate
-    gui_activity_t* const act = make_bip85_mnemonic_screen();
+    gui_activity_t* act = make_bip85_mnemonic_screen();
     gui_set_current_activity(act);
 
     int32_t ev_id;
@@ -1430,10 +1428,9 @@ void handle_bip85_mnemonic()
 
     // Fetch index
     gui_view_node_t* textbox = NULL;
-    gui_view_node_t* label = NULL;
-    gui_activity_t* const select_index_activity = make_select_word_page("BIP85", "Index #", &textbox, &label);
+    act = make_carousel_activity("Index #", NULL, &textbox);
     JADE_ASSERT(textbox);
-    gui_set_current_activity(select_index_activity);
+    gui_set_current_activity(act);
 
     size_t index = 0;
     char buf[8];
@@ -1448,7 +1445,7 @@ void handle_bip85_mnemonic()
 
         // wait for a GUI event
         int32_t ev_id;
-        gui_activity_wait_event(select_index_activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
         switch (ev_id) {
         case GUI_WHEEL_LEFT_EVENT:
