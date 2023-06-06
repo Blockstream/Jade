@@ -13,25 +13,6 @@
 #include "../logo/telec.c"
 #endif
 
-gui_activity_t* make_startup_options_screen(void)
-{
-    gui_activity_t* const act = gui_make_activity();
-
-    btn_data_t btns[]
-        = { { .txt = "Factory Reset", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
-              { .txt = "PinServer", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER },
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-              { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL },
-              { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT } };
-#else
-              { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_EXIT },
-              { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } }; // spacer
-#endif
-    add_buttons(act->root_node, UI_COLUMN, btns, 4);
-
-    return act;
-}
-
 // NOTE: This 'dashboard' screen is created as an 'unmanaged' activity, so it is not placed
 // in the list of activities to be freed by 'set_current_activity_ex()' calls.
 // It must be freed by the caller.
@@ -440,6 +421,25 @@ gui_activity_t* make_bip39_passphrase_prefs_screen(
     add_buttons(vsplit, UI_ROW, btns, 2);
 
     return act;
+}
+
+gui_activity_t* make_startup_options_screen(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t menubtns[] = { { .txt = "Factory Reset", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
+        { .txt = "Blind Oracle", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER },
+        { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL } };
+
+    // Legal screens only apply to proper jade hw
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    const size_t num_menubtns = 3;
+#else
+    const size_t num_menubtns = 2;
+#endif
+
+    return make_menu_activity("Boot Menu", hdrbtns, 2, menubtns, num_menubtns);
 }
 
 gui_activity_t* make_uninitialised_settings_screen(void)

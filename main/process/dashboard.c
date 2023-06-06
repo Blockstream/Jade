@@ -102,6 +102,7 @@ gui_activity_t* make_unlocked_settings_screen(void);
 gui_activity_t* make_wallet_settings_screen(void);
 gui_activity_t* make_advanced_options_screen(void);
 gui_activity_t* make_device_settings_screen(gui_view_node_t** timeout_btn_text);
+
 gui_activity_t* make_power_options_screen(btn_data_t* timeout_btns, size_t nBtns, progress_bar_t* brightness_bar);
 
 gui_activity_t* make_wallet_erase_pin_info_activity(void);
@@ -493,15 +494,11 @@ static void dispatch_message(jade_process_t* process)
 static void offer_jade_reset(void)
 {
     // Run 'Reset Jade?'  confirmation screen and wait for yes/no response
-    JADE_LOGI("Offering Jade reset");
-    const bool bReset = await_yesno_activity("Reset Jade",
-        "Do you want to reset Jade and\nclear all PIN and key data?\nThis action cannot be undone!", false, NULL);
-
-    if (!bReset) {
+    if (!await_yesno_activity("Factory Reset",
+            "Reset Jade and erase all\n  PIN and wallet data?\nThis cannot be undone!", false, "blkstrm.com/reset")) {
+        // User decided against it
         return;
     }
-
-    JADE_LOGI("Yes - requesting numeric confirmation");
 
     // Force user to confirm a random number
     uint8_t num[PIN_SIZE];
@@ -537,12 +534,12 @@ static void offer_jade_reset(void)
         } else {
             // Erase failed ?    What can we do other than alert the user ?
             JADE_LOGE("Factory reset failed!");
-            await_error_activity("Unable to completely reset Jade.");
+            await_error_activity("\n\n  Unable to completely\n          reset Jade.");
         }
     } else {
         // Incorrect - continue to boot screen
         JADE_LOGI("User confirmation number incorrect, not wiping data.");
-        await_error_activity("Confirmation number incorrect");
+        await_error_activity("\n\n Confirmation number\n          incorrect!");
     }
 }
 
