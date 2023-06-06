@@ -18,7 +18,7 @@ void get_master_blinding_key_process(void* process_ptr)
     if (!await_yesno_activity("Export Blinding Key",
             "Export master blinding key?\nChoose yes to allow the\ncompanion app to unblind all\nyour data without "
             "prompting.",
-            true)) {
+            true, NULL)) {
         JADE_LOGW("User declined to export master blinding key");
         jade_process_reject_message(
             process, CBOR_RPC_USER_CANCELLED, "User declined to export master blinding key", NULL);

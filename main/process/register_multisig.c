@@ -475,7 +475,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
         const int ret = snprintf(
             buf, sizeof(buf), "Multisig record name too long!\nTruncate to 15 characters?\n\n%s", multisig_name);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-        if (!await_yesno_activity("Confirm Multisig", buf, false)) {
+        if (!await_yesno_activity("Confirm Multisig", buf, false, NULL)) {
             JADE_LOGW("User declined truncating multisig record name to: %s", multisig_name);
             *errmsg = "Invalid multisig name";
             goto cleanup;

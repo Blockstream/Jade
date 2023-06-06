@@ -18,12 +18,12 @@ void jade_abort(const char* file, const int line_n)
     sensitive_clear_stack();
 
     if (gui_initialized()) {
-        char details[SIZE_OF_ERR_BUFF] = { 0 };
-        const int ret = snprintf(details, SIZE_OF_ERR_BUFF, "%s:%d", file, line_n);
+        char details[64 + SIZE_OF_ERR_BUFF] = { 0 };
+        const int ret = snprintf(details, sizeof(details), "\n\n      Internal error\n\n%s:%d", file, line_n);
         if (ret > 0 && ret < SIZE_OF_ERR_BUFF) {
-            display_message_activity_two_lines("Internal error - restarting", details);
+            display_message_activity(details);
         } else {
-            display_message_activity("Internal error - restarting");
+            display_message_activity("\n\n      Internal error\n\n        Restarting");
         }
     }
 

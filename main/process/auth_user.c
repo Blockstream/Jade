@@ -114,7 +114,7 @@ void check_pin_load_keys(jade_process_t* process)
         const bool confirm_passphrase = false;
         get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
 
-        display_message_activity("Processing...");
+        display_processing_message_activity();
 
         if (!keychain_complete_derivation_with_passphrase(passphrase)) {
             SENSITIVE_POP(passphrase);

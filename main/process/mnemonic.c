@@ -179,7 +179,7 @@ static void mnemonic_export_qr(const char* mnemonic)
         } else {
             const char* retry_message
                 = qr_data.len ? "\nQR scan does not match\n\nRetry?" : "\nNo QR code captured\n\nRetry?";
-            if (await_yesno_activity("Error", retry_message, true)) {
+            if (await_yesno_activity("Error", retry_message, true, NULL)) {
                 // Retry from the top
                 continue;
             }
@@ -618,7 +618,7 @@ static size_t get_wordlist_words(
             if (gui_activity_wait_event(final_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)
                 && ev_id == BTN_MNEMONIC_FINAL_WORD_CALCULATE) {
                 // Fetch valid final words to use as additional filter
-                display_message_activity("Processing...");
+                display_processing_message_activity();
                 num_filter_words = valid_final_words(wordlist_words, word_index, final_words, MAX_NUM_FINAL_WORDS);
                 p_filter_words = final_words;
                 JADE_ASSERT(num_filter_words == (nwords == 12 ? 128 : 8)); // expected due to checksum bits
@@ -1137,7 +1137,7 @@ static void get_freetext_passphrase(char* passphrase, const size_t passphrase_le
                     confirm_passphrase_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
                 done = (ev_id == BTN_YES);
             } else {
-                done = await_yesno_activity("Confirm Passphrase", "Do you confirm the empty\npassphrase?", false);
+                done = await_yesno_activity("Confirm Passphrase", "Do you confirm the empty\npassphrase?", false, NULL);
             }
         } else {
             // Not explicitly confirming passphrase, so done
@@ -1296,7 +1296,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         && await_yesno_activity("QR Export",
             "Do you want to export your\nrecovery phrase as a Compact\nSeedQR? For more info "
             "vist:\nblockstream.com/jadeqr",
-            false)) {
+            false, NULL)) {
         mnemonic_export_qr(mnemonic);
     }
 #else
@@ -1352,7 +1352,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     const size_t passphrase_len = strnlen(passphrase, sizeof(passphrase));
     JADE_ASSERT(passphrase_len < sizeof(passphrase));
 
-    display_message_activity("Processing...");
+    display_processing_message_activity();
 
     // If the mnemonic is valid derive temporary keychain from it.
     // Otherwise break/return here.

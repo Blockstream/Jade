@@ -198,7 +198,7 @@ void ota_delta_process(void* process_ptr)
 
     // We will show a progress bar once the user has confirmed and the upload in progress
     // Initially just show a message screen.
-    display_message_activity_two_lines("Preparing for firmware", "update");
+    display_message_activity("\n\nPreparing for firmware\n\n            update");
     vTaskDelay(100 / portTICK_PERIOD_MS); // sleep a little bit to redraw screen
 
     struct deflate_ctx* dctx = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct deflate_ctx));

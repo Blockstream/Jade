@@ -2,8 +2,7 @@
 #define BUTTON_EVENTS_H_
 
 typedef enum {
-    BTN_EXIT_MESSAGE_SCREEN,
-
+    BTN_HELP,
     BTN_YES,
     BTN_NO,
 

@@ -98,7 +98,7 @@ void sign_identity_process(void* process_ptr)
     }
     JADE_LOGD("User pressed accept");
 
-    display_message_activity("Processing...");
+    display_processing_message_activity();
 
     // Compute the signature and send back to caller
     signature_and_pubkey_t output;

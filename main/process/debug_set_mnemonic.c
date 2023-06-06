@@ -103,7 +103,7 @@ void debug_set_mnemonic_process(void* process_ptr)
 
     // Pop up a notification that the wallet has been injected
     // (In a 'real' scenario the wallet is not set without some gui activity)
-    await_message_activity("Warning: debug set wallet");
+    await_message_activity("Warning: debug wallet");
     vTaskDelay(250 / portTICK_PERIOD_MS);
 
     // Copy temporary keychain into a new global keychain

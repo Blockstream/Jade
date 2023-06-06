@@ -495,7 +495,7 @@ static void offer_jade_reset(void)
     // Run 'Reset Jade?'  confirmation screen and wait for yes/no response
     JADE_LOGI("Offering Jade reset");
     const bool bReset = await_yesno_activity("Reset Jade",
-        "Do you want to reset Jade and\nclear all PIN and key data?\nThis action cannot be undone!", false);
+        "Do you want to reset Jade and\nclear all PIN and key data?\nThis action cannot be undone!", false, NULL);
 
     if (!bReset) {
         return;
@@ -639,7 +639,7 @@ static bool offer_temporary_wallet_login(void)
     if (!await_yesno_activity("Temporary Login",
             "Do you want to temporarily\nlogin using a recovery phrase?\nThis doesn't affect your PIN\nsaved wallet, "
             "if any.",
-            true)) {
+            true, NULL)) {
         // User decided against it
         return false;
     }
@@ -671,7 +671,7 @@ static void handle_ble_reset(void)
         return;
     }
 
-    const bool bReset = await_yesno_activity("BLE Reset", "\nDo you want to reset all\nbonded devices?", false);
+    const bool bReset = await_yesno_activity("BLE Reset", "\nDo you want to reset all\nbonded devices?", false, NULL);
     if (bReset) {
         if (!ble_remove_all_devices()) {
             await_error_activity("Failed to remove all BLE devices");
@@ -770,7 +770,7 @@ static void handle_multisigs(void)
                 char message[128];
                 const int ret = snprintf(message, sizeof(message), "Delete registered multisig?\n\n%s", multisig_name);
                 JADE_ASSERT(ret > 0 && ret < sizeof(message));
-                if (!await_yesno_activity("Delete Multisig", message, false)) {
+                if (!await_yesno_activity("Delete Multisig", message, false, NULL)) {
                     continue;
                 }
 
@@ -1095,7 +1095,7 @@ static void handle_view_otps(void)
                 char message[128];
                 const int ret = snprintf(message, sizeof(message), "Delete OTP record?\n\n%s", otp_name);
                 JADE_ASSERT(ret > 0 && ret < sizeof(message));
-                if (!await_yesno_activity("Delete OTP", message, false)) {
+                if (!await_yesno_activity("Delete OTP", message, false, NULL)) {
                     continue;
                 }
 
@@ -1234,7 +1234,7 @@ static void handle_pinserver_reset(void)
         return;
     }
 
-    if (await_yesno_activity("Reset PinServer", "Reset PinServer details\nand certificate?", false)) {
+    if (await_yesno_activity("Reset PinServer", "Reset PinServer details\nand certificate?", false, NULL)) {
         if (!reset_pinserver()) {
             await_error_activity("Error resetting PinServer");
         }
@@ -1788,7 +1788,7 @@ void dashboard_process(void* process_ptr)
             // free_dashboard is not required as this screen lives for the lifetime of the application
         } else if (initialisation_source == SOURCE_QR) {
             JADE_LOGI("Awaiting QR initialisation");
-            act_dashboard = display_message_activity("Processing...");
+            act_dashboard = display_processing_message_activity();
             // free_dashboard is not required as this is a standard 'managed' activity
         } else if (initial_keychain) {
             JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");

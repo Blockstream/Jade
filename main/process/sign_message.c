@@ -263,7 +263,7 @@ void sign_message_process(void* process_ptr)
         JADE_ASSERT(ae_host_commitment_len == WALLY_HOST_COMMITMENT_LEN);
 
         if (!auto_sign) {
-            display_message_activity("Processing...");
+            display_processing_message_activity();
         }
 
         // Compute signer-commitment

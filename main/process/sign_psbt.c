@@ -570,7 +570,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     }
 
     JADE_LOGD("User accepted fee");
-    display_message_activity("Processing...");
+    display_processing_message_activity();
 
     // Sign our inputs
     for (size_t index = 0; index < psbt->num_inputs; ++index) {

@@ -114,6 +114,19 @@ gui_activity_t* make_menu_activity(
 gui_activity_t* make_show_message_activity(const char* message, uint32_t toppad, const char* title, btn_data_t* hdrbtns,
     size_t num_hdrbtns, btn_data_t* ftrbtns, size_t num_ftrbtns);
 
+// Make activity that displays a simple message - cannot be dismissed by caller
+gui_activity_t* display_message_activity(const char* message);
+gui_activity_t* display_processing_message_activity();
+
+// Run activity that displays a message and awaits an 'ack' button click
+void await_message_activity(const char* message);
+void await_error_activity(const char* errormessage);
+
+// Activity that displays a message and awaits a 'Yes'/'Continue' or 'No'/'Skip'/'Back' event
+bool await_yesno_activity(const char* title, const char* message, bool default_selection, const char* help_url);
+bool await_skipyes_activity(const char* title, const char* message, bool default_selection, const char* help_url);
+bool await_continueback_activity(const char* title, const char* message, bool default_selection, const char* help_url);
+
 // Functions for keyboard entry
 void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title);
 void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
@@ -125,11 +138,6 @@ void clear_current_pin(pin_insert_t* pin_insert);
 
 // Generic message screens which may await a button click
 gui_activity_t* make_show_label_activity(const char* title, const char* message, gui_view_node_t** item_text);
-gui_activity_t* display_message_activity(const char* message);
-gui_activity_t* display_message_activity_two_lines(const char* msg_first, const char* msg_second);
-void await_message_activity(const char* message);
-void await_error_activity(const char* errormessage);
-bool await_yesno_activity(const char* title, const char* message, bool default_selection);
 
 // Generic progress-bar
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);

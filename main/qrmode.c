@@ -311,7 +311,7 @@ static bool verify_address(const address_data_t* const addr_data)
     char buf[160];
     int rc = snprintf(buf, sizeof(buf), "Attempt to verify address?\n\n%s", addr_data->address);
     JADE_ASSERT(rc > 0 && rc < sizeof(buf));
-    if (!await_yesno_activity("Verify Address", buf, true)) {
+    if (!await_yesno_activity("Verify Address", buf, true, NULL)) {
         return false;
     }
 
@@ -346,7 +346,7 @@ static bool verify_address(const address_data_t* const addr_data)
 
         // p2sh-wrapped could be multi- or single- sig.  User to select which.
         if (script_type != WALLY_SCRIPT_TYPE_P2SH
-            || await_yesno_activity("Multisig Address", "\nIs this a multisig address?", false)) {
+            || await_yesno_activity("Multisig Address", "\nIs this a multisig address?", false, NULL)) {
             // Must have a multisig record - user to select
             size_t selected = 0;
             if (!num_multisigs || !select_multisig_record(names, num_multisigs, &selected)) {
@@ -466,7 +466,7 @@ static bool verify_address(const address_data_t* const addr_data)
             rc = snprintf(
                 buf, sizeof(buf), "Failed to verify address.\n\nCheck next %u addresses?", num_indexes_to_reconfirm);
             JADE_ASSERT(rc > 0 && rc < sizeof(buf));
-            if (!await_yesno_activity("Verify Address", buf, true)) {
+            if (!await_yesno_activity("Verify Address", buf, true, NULL)) {
                 // Abandon - exit loop
                 break;
             }
@@ -620,7 +620,7 @@ static void display_bcur_qr(
             if (ev_id == BTN_QR_OPTIONS) {
                 if (handle_qr_options(&qr_flags)) {
                     // Options were updated - re-create psbt qr screen
-                    display_message_activity("Processing...");
+                    display_processing_message_activity();
                     act = create_display_bcur_qr_activity(title, label, bcur_type, cbor, cbor_len, qr_flags);
                 }
             } else if (ev_id == BTN_QR_DISPLAY_EXIT) {

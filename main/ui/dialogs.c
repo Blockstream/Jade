@@ -2,6 +2,8 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
+void await_qr_help_activity(const char* url);
+
 // Helper to update dynamic menu item label (name: value)
 void update_menu_item(gui_view_node_t* node, const char* label, const char* value)
 {
@@ -232,16 +234,17 @@ gui_activity_t* make_show_message_activity(const char* message, const uint32_t t
 
     // Message - align center/middle if no carriage returns in message.
     // If multi-line, align top-left and let the caller manage the spacing.
+    const bool msg_includes_crlf = strchr(message, '\n');
     gui_view_node_t* msgnode;
     gui_make_text(&msgnode, message, TFT_WHITE);
-    if (!strchr(message, '\n')) {
+    if (!msg_includes_crlf) {
         gui_set_align(msgnode, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     } else {
         gui_set_align(msgnode, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     }
 
-    // Apply any padding above the message
-    if (toppad) {
+    // Apply any padding above the message (only applies if message contains cr/lf)
+    if (msg_includes_crlf && toppad) {
         gui_set_padding(msgnode, GUI_MARGIN_ALL_DIFFERENT, toppad, 0, 0, 0);
     }
 
@@ -263,6 +266,132 @@ gui_activity_t* make_show_message_activity(const char* message, const uint32_t t
     }
 
     return act;
+}
+
+// Make activity that displays a simple message - cannot be dismissed by caller
+gui_activity_t* display_message_activity(const char* message)
+{
+    gui_activity_t* const act = make_show_message_activity(message, 0, NULL, NULL, 0, NULL, 0);
+    gui_set_current_activity(act);
+    return act;
+}
+
+gui_activity_t* display_processing_message_activity() { return display_message_activity("Processing..."); }
+
+// Show passed dialog and handle events until a 'yes' or 'no', which is translated into a boolean return
+// NOTE: only expect BTN_YES, BTN_NO and BTN_HELP events.
+static bool await_yesno_activity_loop(gui_activity_t* const act, const char* help_url)
+{
+    JADE_ASSERT(act);
+    // help_url is optional (but should be present if a BTN_HELP btn is present)
+
+    int32_t ev_id;
+    while (true) {
+        gui_set_current_activity(act);
+
+        // In a debug unattended ci build, assume 'Yes' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_YES;
+#endif
+
+        if (ret) {
+            // Return true if 'Yes' was pressed, false if 'No'
+            switch (ev_id) {
+            case BTN_YES:
+                return true;
+
+            case BTN_NO:
+                return false;
+
+            case BTN_HELP:
+                await_qr_help_activity(help_url);
+                break;
+
+            default:
+                JADE_LOGW("Unexpected button event: %ld", ev_id);
+                break;
+            }
+        }
+    }
+}
+
+// Run activity that displays a message and awaits an 'ack' button click
+void await_message_activity(const char* message)
+{
+    JADE_ASSERT(message);
+
+    btn_data_t ftrbtn = { .txt = "Continue", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOP };
+
+    gui_activity_t* const act = make_show_message_activity(message, 0, NULL, NULL, 0, &ftrbtn, 1);
+
+    const bool rslt = await_yesno_activity_loop(act, NULL);
+    JADE_ASSERT(rslt);
+}
+
+void await_error_activity(const char* errormessage) { await_message_activity(errormessage); }
+
+// Generic activity that displays a message and Yes/No buttons, and waits
+// for button press.  Function returns true if 'Yes' was pressed.
+static bool await_yesno_activity_impl(const char* title, const char* message, const char* yes, const char* no,
+    const bool default_selection, const char* help_url)
+{
+    // title is optional
+    JADE_ASSERT(message);
+    // help_url is optional - '?' button shown if passed
+
+    btn_data_t hdrbtns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_HELP } };
+
+    btn_data_t ftrbtns[] = { { .txt = no, .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO, .borders = GUI_BORDER_TOPRIGHT },
+        { .txt = yes, .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOPLEFT } };
+
+    gui_activity_t* const act = make_show_message_activity(message, 4, title, hdrbtns, help_url ? 2 : 0, ftrbtns, 2);
+    gui_set_activity_initial_selection(act, ftrbtns[default_selection ? 1 : 0].btn);
+
+    return await_yesno_activity_loop(act, help_url);
+}
+
+// Generic Yes/No activity
+bool await_yesno_activity(const char* title, const char* message, const bool default_selection, const char* help_url)
+{
+    return await_yesno_activity_impl(title, message, "Yes", "No", default_selection, help_url);
+}
+
+// Variant of the Yes/No activity that is instead Skip/Yes
+bool await_skipyes_activity(const char* title, const char* message, const bool default_selection, const char* help_url)
+{
+    return await_yesno_activity_impl(title, message, "Yes", "Skip", default_selection, help_url);
+}
+
+// Variant of the Yes/No activity that is instead Continue/Back (latter in title bar)
+bool await_continueback_activity(
+    const char* title, const char* message, const bool default_selection, const char* help_url)
+{
+    // title is optional
+    JADE_ASSERT(message);
+    // help_url is optional - '?' button shown if passed
+
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_NO },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    // Optionally add help btn
+    if (help_url) {
+        hdrbtns[1].txt = "?";
+        hdrbtns[1].font = GUI_TITLE_FONT;
+        hdrbtns[1].ev_id = BTN_HELP;
+    }
+
+    btn_data_t ftrbtn = { .txt = "Continue", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOP };
+
+    gui_activity_t* const act = make_show_message_activity(message, 10, title, hdrbtns, 2, &ftrbtn, 1);
+    gui_set_activity_initial_selection(act, (default_selection ? ftrbtn : hdrbtns[0]).btn);
+
+    return await_yesno_activity_loop(act, help_url);
 }
 
 // activity to show a single central label, which can be updated by the caller
@@ -313,180 +442,6 @@ gui_activity_t* make_show_label_activity(const char* title, const char* message,
     gui_set_parent(text_right, hsplit);
 
     return act;
-}
-
-// Generic activity that displays a message, optionally with an 'ok' button
-static gui_activity_t* make_msg_activity(const char* msg, const bool error, const bool button)
-{
-    JADE_ASSERT(msg);
-
-    gui_activity_t* const act = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
-    gui_set_parent(vsplit, act->root_node);
-
-    gui_view_node_t* text;
-    gui_make_text(&text, msg, error ? TFT_RED : TFT_WHITE);
-    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 8, 8);
-    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(text, vsplit);
-
-    if (button) {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_EXIT_MESSAGE_SCREEN, NULL);
-        gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 4, 85);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-
-        gui_view_node_t* txt;
-        gui_make_text(&txt, "Ok", TFT_WHITE);
-        gui_set_parent(txt, btn);
-        gui_set_align(txt, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    }
-
-    return act;
-}
-
-// Generic activity that displays a message on two lines, optionally with an 'ok' button
-static gui_activity_t* make_msg_activity_two_lines(
-    const char* msg_first, const char* msg_second, const bool error, const bool button)
-{
-    JADE_ASSERT(msg_first);
-    JADE_ASSERT(msg_second);
-
-    gui_activity_t* const act = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 35, 35, 30);
-    gui_set_parent(vsplit, act->root_node);
-
-    gui_view_node_t* text_first;
-    gui_make_text(&text_first, msg_first, error ? TFT_RED : TFT_WHITE);
-    gui_set_padding(text_first, GUI_MARGIN_TWO_VALUES, 8, 8);
-    gui_set_align(text_first, GUI_ALIGN_CENTER, GUI_ALIGN_BOTTOM);
-    gui_set_parent(text_first, vsplit);
-
-    gui_view_node_t* text_second;
-    gui_make_text(&text_second, msg_second, error ? TFT_RED : TFT_WHITE);
-    gui_set_padding(text_second, GUI_MARGIN_TWO_VALUES, 8, 8);
-    gui_set_align(text_second, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    gui_set_parent(text_second, vsplit);
-
-    if (button) {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_EXIT_MESSAGE_SCREEN, NULL);
-        gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 4, 85);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-
-        gui_view_node_t* txt;
-        gui_make_text(&txt, "Ok", TFT_WHITE);
-        gui_set_parent(txt, btn);
-        gui_set_align(txt, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    }
-
-    return act;
-}
-
-// Run generic activity that displays a message and awaits a button click
-static void await_msg_activity(const char* msg, const bool error)
-{
-    gui_activity_t* const act = make_msg_activity(msg, error, true);
-    gui_set_current_activity(act);
-
-    // Display the message and wait for the user to press the button
-    // In a debug unatteneded ci build, assume button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_EXIT_MESSAGE_SCREEN, NULL, NULL, NULL, 0);
-#else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_EXIT_MESSAGE_SCREEN, NULL, NULL, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-#endif
-    JADE_ASSERT_MSG(ret, "gui_activity_wait_event returned %d", ret);
-}
-
-// Run generic activity that displays a message (no button or awaiting click)
-// Returns the activity to the caller.
-gui_activity_t* display_message_activity(const char* message)
-{
-    gui_activity_t* const act = make_msg_activity(message, false, false);
-    gui_set_current_activity(act);
-    return act;
-}
-
-// Run generic activity that displays a message on two lines (no button or awaiting click)
-// Returns the activity to the caller.
-gui_activity_t* display_message_activity_two_lines(const char* msg_first, const char* msg_second)
-{
-    gui_activity_t* const act = make_msg_activity_two_lines(msg_first, msg_second, false, false);
-    gui_set_current_activity(act);
-    return act;
-}
-
-// Run generic activity that displays a message and awaits a button click
-void await_message_activity(const char* message) { await_msg_activity(message, false); }
-
-// Run generic activity that displays an error msg and awaits a button click
-void await_error_activity(const char* errormessage) { await_msg_activity(errormessage, true); }
-
-// Generic activity that displays a message and Yes/No buttons.
-static gui_activity_t* make_yesno_activity(const char* title, const char* message, const bool default_selection)
-{
-    JADE_ASSERT(message);
-    // title is optional
-
-    gui_activity_t* const act = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 68, 32);
-    gui_set_parent(vsplit, act->root_node);
-
-    // First row, message text
-    gui_view_node_t* text;
-    gui_make_text(&text, message, TFT_WHITE);
-    gui_set_parent(text, vsplit);
-    gui_set_padding(text, GUI_MARGIN_TWO_VALUES, 4, 8);
-    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-
-    // second row, Yes and No buttons
-    btn_data_t btns[] = { { .txt = "No", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO },
-        { .txt = "Yes", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
-
-    // Select default button
-    gui_set_activity_initial_selection(act, default_selection ? btns[1].btn : btns[0].btn);
-
-    return act;
-}
-
-// Run generic activity that displays a message and Yes/No buttons, and waits
-// for button press.  Function returns true if 'Yes' was pressed.
-bool await_yesno_activity(const char* title, const char* message, const bool default_selection)
-{
-    JADE_ASSERT(message);
-    // title is optional
-
-    gui_activity_t* const act = make_yesno_activity(title, message, default_selection);
-    gui_set_current_activity(act);
-
-    // In a debug unattended ci build, assume 'Yes' button pressed after a short delay
-    int32_t ev_id = ESP_EVENT_ANY_ID;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-    ev_id = BTN_YES;
-#endif
-    JADE_ASSERT_MSG(ret, "gui_activity_wait_event returned %d", ret);
-
-    // Return true if 'Yes' was pressed
-    return ev_id == BTN_YES;
 }
 
 // The progress-bar structure indicated is populated, and should be used to update the progress

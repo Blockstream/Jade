@@ -190,7 +190,7 @@ static bool get_otp_data_from_kb(
         const char* errmsg = NULL;
         if (!kb_entry.len) {
             // If empty, perhaps abort registering the OTP and return false
-            if (await_yesno_activity("Discard OTP", "Do you want to discard\nthe OTP record?", false)) {
+            if (await_yesno_activity("Discard OTP", "Do you want to discard\nthe OTP record?", false, NULL)) {
                 return false;
             }
         } else if (!validate_otp_name(kb_entry.strdata, &errmsg)) {
@@ -201,7 +201,7 @@ static bool get_otp_data_from_kb(
             const int ret = snprintf(
                 message, sizeof(message), "Do you confirm the following\nOTP Name:\n\n  %s", kb_entry.strdata);
             JADE_ASSERT(ret > 0 && ret < sizeof(message));
-            done = await_yesno_activity("Confirm OTP Name", message, true);
+            done = await_yesno_activity("Confirm OTP Name", message, true, NULL);
         }
     }
 

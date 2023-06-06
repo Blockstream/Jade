@@ -404,7 +404,7 @@ void sign_tx_process(void* process_ptr)
     }
 
     JADE_LOGD("User accepted outputs");
-    display_message_activity("Processing...");
+    display_processing_message_activity();
 
     // Send ok - client should send inputs
     jade_process_reply_to_message_ok(process);
@@ -629,7 +629,7 @@ void sign_tx_process(void* process_ptr)
     }
 
     JADE_LOGD("User accepted fee");
-    display_message_activity("Processing...");
+    display_processing_message_activity();
 
     // Send signature replies.
     // NOTE: currently we have two message flows - the backward compatible version

@@ -18,7 +18,7 @@ void debug_clean_reset_process(void* process_ptr)
     ASSERT_CURRENT_MESSAGE(process, "debug_clean_reset");
 
     // Pop up a notification that the wallet is being wiped
-    await_message_activity("Warning: debug wipe wallet");
+    await_message_activity("Warning: debug wipe");
     vTaskDelay(250 / portTICK_PERIOD_MS);
 
     // Clean keychain from memory and storage
