@@ -200,76 +200,26 @@ gui_activity_t* make_select_connection_activity_if_required(const bool temporary
     return make_menu_activity("Select Connection", NULL, 0, menubtns, ibtn);
 }
 
-gui_activity_t* make_bip39_passphrase_prefs_screen(
+gui_activity_t* make_bip39_passphrase_prefs_activity(
     gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox)
 {
     JADE_INIT_OUT_PPTR(frequency_textbox);
     JADE_INIT_OUT_PPTR(method_textbox);
 
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_PASSPHRASE_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_PASSPHRASE_HELP } };
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 24, 24, 24, 28);
-    gui_set_parent(vsplit, act->root_node);
+    // menu buttons with bespoke content
+    gui_make_text(frequency_textbox, "Frequency", TFT_WHITE);
+    gui_set_align(*frequency_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-        gui_set_parent(hsplit, vsplit);
+    gui_make_text(method_textbox, "Method", TFT_WHITE);
+    gui_set_align(*method_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-        gui_view_node_t* key;
-        gui_make_text(&key, "Frequency", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    btn_data_t menubtns[] = { { .content = *frequency_textbox, .ev_id = BTN_PASSPHRASE_FREQUENCY },
+        { .content = *method_textbox, .ev_id = BTN_PASSPHRASE_METHOD } };
 
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_PASSPHRASE_TOGGLE_FREQUENCY, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_RED);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-        *frequency_textbox = text;
-    }
-
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-        gui_set_parent(hsplit, vsplit);
-
-        gui_view_node_t* key;
-        gui_make_text(&key, "Method", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_PASSPHRASE_TOGGLE_METHOD, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_RED);
-        gui_set_parent(btn, hsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-        *method_textbox = text;
-    }
-
-    {
-        gui_view_node_t* filler;
-        gui_make_fill(&filler, TFT_BLACK);
-        gui_set_parent(filler, vsplit);
-    }
-
-    // buttons
-    btn_data_t btns[] = { { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PASSPHRASE_OPTIONS_EXIT },
-        { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PASSPHRASE_OPTIONS_HELP } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
-
-    return act;
+    return make_menu_activity("BIP39 Passphrase", hdrbtns, 2, menubtns, 2);
 }
 
 gui_activity_t* make_startup_options_activity(void)
@@ -358,12 +308,20 @@ gui_activity_t* make_prefs_settings_activity(const bool show_ble)
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PREFS_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
+    // NOTE: Only Jade v1.1's have brightness controls
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
     btn_data_t menubtns[]
-        = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
-              { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_POWER_OPTIONS },
+        = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_SCREEN_BRIGHTNESS },
+              { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
               { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE } };
+    const size_t num_menubtns = 3;
+#else
+    btn_data_t menubtns[] = { { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
+        { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE } };
+    const size_t num_menubtns = 2;
+#endif
 
-    return make_menu_activity("Settings", hdrbtns, 2, menubtns, show_ble ? 3 : 2);
+    return make_menu_activity("Settings", hdrbtns, 2, menubtns, show_ble ? num_menubtns : num_menubtns - 1);
 }
 
 gui_activity_t* make_authentication_activity(void)
@@ -409,117 +367,6 @@ gui_activity_t* make_pinserver_activity(void)
         { .txt = "Reset Oracle", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_RESET } };
 
     return make_menu_activity("Blind Oracle", hdrbtns, 2, menubtns, 3);
-}
-
-gui_activity_t* make_power_options_screen(btn_data_t* timeout_btns, const size_t nBtns, progress_bar_t* brightness_bar)
-{
-    JADE_ASSERT(timeout_btns);
-    JADE_ASSERT(nBtns == 7);
-    JADE_ASSERT(brightness_bar);
-
-    gui_activity_t* const act = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 6, 16, 18, 4, 16, 24, 22);
-#else
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 25, 25, 30);
-#endif
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
-
-    // Idle timeout
-    {
-        gui_view_node_t* text;
-        gui_make_text(&text, "Idle Timeout (mins):", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, vsplit);
-
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 7, 14, 14, 14, 14, 14, 14, 16);
-        gui_set_parent(hsplit, vsplit);
-
-        for (int i = 0; i < nBtns; ++i) {
-            btn_data_t* const btn_info = timeout_btns + i;
-            JADE_ASSERT(btn_info->txt);
-
-            gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, btn_info->ev_id, NULL);
-            gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-            gui_set_parent(btn, hsplit);
-
-            gui_view_node_t* text;
-            gui_make_text_font(&text, btn_info->txt, TFT_WHITE, btn_info->font);
-            gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(text, btn);
-
-            // Set the button back in the info struct
-            btn_info->btn = btn;
-        }
-    }
-
-    gui_view_node_t* spacer;
-    gui_make_fill(&spacer, TFT_BLACK);
-    gui_set_parent(spacer, vsplit);
-
-#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
-    // Screen brightness
-    {
-        gui_view_node_t* text;
-        gui_make_text(&text, "Screen Brightness:", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, vsplit);
-
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 16, 66, 16);
-        gui_set_padding(hsplit, GUI_MARGIN_TWO_VALUES, 2, 2);
-        gui_set_parent(hsplit, vsplit);
-
-        gui_view_node_t* btnless;
-        gui_make_button(&btnless, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_MINUS_DECREASE, NULL);
-        gui_set_margins(btnless, GUI_MARGIN_ALL_EQUAL, 1);
-        gui_set_parent(btnless, hsplit);
-        gui_set_borders(btnless, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btnless, TFT_BLOCKSTREAM_GREEN);
-
-        gui_view_node_t* textless;
-        gui_make_text_font(&textless, "-", TFT_WHITE, GUI_DEFAULT_FONT);
-        gui_set_parent(textless, btnless);
-        gui_set_align(textless, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-        make_progress_bar(hsplit, brightness_bar);
-
-        gui_view_node_t* btnmore;
-        gui_make_button(&btnmore, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_PLUS_INCREASE, NULL);
-        gui_set_margins(btnmore, GUI_MARGIN_ALL_EQUAL, 1);
-        gui_set_parent(btnmore, hsplit);
-        gui_set_borders(btnmore, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btnmore, TFT_BLOCKSTREAM_GREEN);
-
-        gui_view_node_t* textmore;
-        gui_make_text_font(&textmore, "+", TFT_WHITE, GUI_DEFAULT_FONT);
-        gui_set_parent(textmore, btnmore);
-        gui_set_align(textmore, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    }
-#endif // CONFIG_BOARD_TYPE_JADE_V1_1
-
-    // Exit btn
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SETTINGS_EXIT, NULL);
-        gui_set_margins(btn, GUI_MARGIN_TWO_VALUES, 0, 75);
-        gui_set_parent(btn, vsplit);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-
-        gui_view_node_t* text;
-        gui_make_text_font(&text, "Exit", TFT_WHITE, GUI_DEFAULT_FONT);
-        gui_set_parent(text, btn);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    }
-
-    return act;
 }
 
 gui_activity_t* make_wallet_erase_pin_info_activity(void)
@@ -582,229 +429,205 @@ gui_activity_t* make_session_activity(void)
     return make_menu_activity("Session", hdrbtns, 2, menubtns, 2);
 }
 
-gui_activity_t* make_ble_screen(const char* device_name, gui_view_node_t** ble_status_textbox)
+gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item)
 {
-    JADE_ASSERT(device_name);
-    JADE_INIT_OUT_PPTR(ble_status_textbox);
+    JADE_INIT_OUT_PPTR(ble_status_item);
 
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BLE_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_BLE_HELP } };
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    // menu buttons with bespoke content
+    gui_make_text(ble_status_item, "Status:", TFT_WHITE);
+    gui_set_align(*ble_status_item, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_parent(hsplit, vsplit);
+    btn_data_t menubtns[] = { { .content = *ble_status_item, .ev_id = BTN_BLE_STATUS },
+        { .txt = "Reset Pairings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BLE_RESET_PAIRING } };
 
-        gui_view_node_t* key;
-        gui_make_text(&key, "Device", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    return make_menu_activity("Bluetooth", hdrbtns, 2, menubtns, 2);
+}
 
-        gui_view_node_t* text;
-        gui_make_text(&text, device_name, TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, hsplit);
-    }
+gui_activity_t* make_info_activity(const char* fw_version)
+{
+    JADE_ASSERT(fw_version);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_parent(hsplit, vsplit);
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_INFO_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-        gui_view_node_t* key;
-        gui_make_text(&key, "Status", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        // gui_set_borders(key, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+    // menu buttons with bespoke content
+    const size_t fwlen = strlen(fw_version);
+    const uint32_t fwsplitsize = fwlen > 8 ? 44 : 60;
+    gui_view_node_t* splitfw;
+    gui_make_hsplit(&splitfw, GUI_SPLIT_RELATIVE, 2, fwsplitsize, 100 - fwsplitsize);
 
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_BLE_TOGGLE_ENABLE, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_RED);
-        gui_set_parent(btn, hsplit);
+    gui_view_node_t* fwver;
+    gui_make_text(&fwver, "Firmware:", TFT_WHITE);
+    gui_set_align(fwver, GUI_ALIGN_MIDDLE, GUI_ALIGN_MIDDLE);
+    gui_set_parent(fwver, splitfw);
 
-        gui_view_node_t* text;
-        gui_make_text(&text, "---", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-        *ble_status_textbox = text;
-    }
+    gui_make_text(&fwver, fw_version, TFT_WHITE);
+    gui_set_align(fwver, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(fwver, splitfw);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_parent(hsplit, vsplit);
+    btn_data_t menubtns[] = { { .content = splitfw, .ev_id = BTN_SETTINGS_INFO_FWVERSION },
+        { .txt = "Device Info", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO },
+        { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL } };
 
-        gui_view_node_t* key;
-        gui_make_text(&key, "Pairing", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        // gui_set_borders(key, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+    // Legal screens only apply to proper jade hw
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    const size_t num_menubtns = 3;
+#else
+    const size_t num_menubtns = 2;
+#endif
 
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_BLE_RESET_PAIRING, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_RED);
-        gui_set_parent(btn, hsplit);
+    gui_activity_t* const act = make_menu_activity("Info", hdrbtns, 2, menubtns, num_menubtns);
 
-        gui_view_node_t* text;
-        gui_make_text(&text, "Reset", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
-
-    {
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_BLE_EXIT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, vsplit);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "Exit", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    // NOTE: can only set scrolling *after* gui tree created
+    gui_set_text_scroll_selected(fwver, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
 
     return act;
+}
+
+gui_activity_t* make_device_info_activity(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t menubtns[] = { { .txt = "MAC Address", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO_MAC },
+        { .txt = "Battery Volts", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO_BATTERY },
+        { .txt = "Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO_STORAGE } };
+
+    return make_menu_activity("Device Info", hdrbtns, 2, menubtns, 3);
 }
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-#define JADE_FCC_ID "2AWI3BLOCKSTREAMJD2"
-#define MAX_LEGAL_PAGE 5
+#define JADE_FCC_ID "2AWI3BLOCK\n STREAMJD2"
+#define MAX_LEGAL_PAGE 6
 #else
-#define JADE_FCC_ID "2AWI3BLOCKSTREAMJD1"
-#define MAX_LEGAL_PAGE 4
+#define JADE_FCC_ID "2AWI3BLOCK\n STREAMJD1"
+#define MAX_LEGAL_PAGE 5
 #endif
 
 static void make_legal_page(link_activity_t* page_act, int legal_page)
 {
     JADE_ASSERT(page_act);
 
-    gui_activity_t* const act = gui_make_activity();
+    const bool first_page = (legal_page == 0);
+    const bool last_page = (legal_page == MAX_LEGAL_PAGE);
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 63, 37);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 0, 0, 0);
-    gui_set_parent(vsplit, act->root_node);
+    // 'prev' and 'next' buttons - give 'exit' event on first/last page
+    btn_data_t hdrbtns[]
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = first_page ? BTN_LEGAL_EXIT : BTN_LEGAL_PREV },
+              { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = last_page ? BTN_LEGAL_EXIT : BTN_LEGAL_NEXT } };
+
+    gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* const parent = add_title_bar(act, "Certifications", hdrbtns, 2, NULL);
+    gui_view_node_t* node;
 
     switch (legal_page) {
     case 0: {
         gui_view_node_t* hsplit;
         gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 35, 65);
-        gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-        gui_set_parent(hsplit, vsplit);
+        gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 8, 4, 2, 4);
+        gui_set_parent(hsplit, parent);
 
-        gui_view_node_t* logo_node;
-        gui_make_picture(&logo_node, &fcc);
-        gui_set_parent(logo_node, hsplit);
-        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_make_picture(&node, &fcc);
+        gui_set_parent(node, hsplit);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-        gui_view_node_t* subvsplit;
-        gui_make_vsplit(&subvsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        gui_set_parent(subvsplit, hsplit);
+        gui_view_node_t* vsplit;
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 30, 70);
+        gui_set_parent(vsplit, hsplit);
 
         gui_view_node_t* title;
         gui_make_text(&title, "FCC ID", TFT_WHITE);
-        gui_set_parent(title, subvsplit);
+        gui_set_parent(title, vsplit);
         gui_set_align(title, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-        gui_view_node_t* key;
-        gui_make_text(&key, JADE_FCC_ID, TFT_WHITE);
-        gui_set_parent(key, subvsplit);
-        gui_set_align(key, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_make_text(&node, JADE_FCC_ID, TFT_WHITE);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 8, 0, 0, 12);
+        gui_set_parent(node, vsplit);
+        gui_set_align(node, GUI_ALIGN_TOP, GUI_ALIGN_LEFT);
         break;
     }
     case 1: {
-        gui_view_node_t* key;
-        gui_make_text(&key,
-            "This device complies with Part\n"
-            "15 of the FCC Rules. Operation\n"
-            "is subject to the following two\n"
-            "conditions: (1) this device may\n"
-            "not cause harmful interference",
+        gui_make_text(&node,
+            "This device complies\n"
+            "with Part 15 of the FCC\n"
+            "rules. Operation is\n"
+            "subject to the following\n"
+            "two conditions: (1) this",
             TFT_WHITE);
-        gui_set_parent(key, vsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_parent(node, parent);
+        gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 8, 0, 0, 4);
         break;
     }
     case 2: {
         gui_view_node_t* key;
         gui_make_text(&key,
-            "and (2) this device must accept\n"
-            "any interference received,\n"
-            "including interference that may\n"
-            "cause undesired operation.",
+            "device may not cause\n"
+            "harmful interference\n"
+            "and (2) this device\n"
+            "must accept any\n"
+            "interference received",
             TFT_WHITE);
-        gui_set_parent(key, vsplit);
+        gui_set_parent(key, parent);
         gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 8, 0, 0, 4);
         break;
     }
     case 3: {
-        gui_view_node_t* logo_node;
-        gui_make_picture(&logo_node, &ce);
-        gui_set_parent(logo_node, vsplit);
-        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_view_node_t* key;
+        gui_make_text(&key,
+            "including interference\n"
+            "that may cause\n"
+            "undesired operation.",
+            TFT_WHITE);
+        gui_set_parent(key, parent);
+        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 8, 0, 0, 4);
         break;
     }
     case 4: {
-        gui_view_node_t* logo_node;
-        gui_make_picture(&logo_node, &weee);
-        gui_set_parent(logo_node, vsplit);
-        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_make_picture(&node, &ce);
+        gui_set_parent(node, parent);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_padding(node, GUI_MARGIN_ALL_EQUAL, 12);
+        break;
+    }
+    case 5: {
+        gui_make_picture(&node, &weee);
+        gui_set_parent(node, parent);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_padding(node, GUI_MARGIN_ALL_EQUAL, 12);
         break;
     }
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    case 5: {
-        gui_view_node_t* logo_node;
-        gui_make_picture(&logo_node, &telec);
-        gui_set_parent(logo_node, vsplit);
-        gui_set_align(logo_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    case 6: {
+        gui_make_picture(&node, &telec);
+        gui_set_parent(node, parent);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_padding(node, GUI_MARGIN_ALL_EQUAL, 12);
         break;
     }
 #endif
     default: {
         JADE_ASSERT(false);
     }
-
-    } // switch-case
-
-    // Assume 'prev' and 'next' buttons (ok in most cases)
-    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_LEGAL_PREV },
-        { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_LEGAL_NEXT } };
-
-    // Change first button to 'exit' if on first page
-    if (legal_page == 0) {
-        btns[0].txt = "Exit";
-        btns[0].font = GUI_DEFAULT_FONT;
-        btns[0].ev_id = BTN_LEGAL_EXIT;
     }
-
-    // Change last button to 'exit' if on last page
-    if (legal_page == MAX_LEGAL_PAGE) {
-        btns[1].txt = "Exit";
-        btns[1].font = GUI_DEFAULT_FONT;
-        btns[1].ev_id = BTN_LEGAL_EXIT;
-    }
-
-    add_buttons(vsplit, UI_ROW, btns, 2);
 
     // Set the intially selected item to the next/verify (ie. the last) button
-    gui_set_activity_initial_selection(act, btns[1].btn);
+    gui_set_activity_initial_selection(act, hdrbtns[1].btn);
 
     // Copy activity and prev and next buttons into output struct
     page_act->activity = act;
-    page_act->prev_button = (legal_page == 0) ? NULL : btns[0].btn;
-    page_act->next_button = (legal_page == MAX_LEGAL_PAGE) ? NULL : btns[1].btn;
+    page_act->prev_button = first_page ? NULL : hdrbtns[0].btn;
+    page_act->next_button = last_page ? NULL : hdrbtns[1].btn;
 }
 
-gui_activity_t* make_legal_screen(void)
+gui_activity_t* make_legal_certifications_activity(void)
 {
     // Chain the legal screen activities
     link_activity_t page_act = {};
@@ -819,169 +642,70 @@ gui_activity_t* make_legal_screen(void)
 }
 #endif
 
-gui_activity_t* make_device_screen(const char* power_status, const char* mac, const char* firmware_version)
+gui_activity_t* make_storage_stats_activity(const size_t entries_used, const size_t entries_free)
 {
-    JADE_ASSERT(power_status);
-    JADE_ASSERT(mac);
-    JADE_ASSERT(firmware_version);
+    btn_data_t hdrbtns[]
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO_STORAGE_EXIT },
+              { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     gui_activity_t* const act = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 21, 21, 21, 37);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
-
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-        gui_set_parent(hsplit, vsplit);
-
-        gui_view_node_t* key;
-        gui_make_text(&key, "Firmware", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, firmware_version, TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, hsplit);
-    }
-
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-        gui_set_parent(hsplit, vsplit);
-
-        gui_view_node_t* key;
-        gui_make_text(&key, "Mac Address", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, mac, TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, hsplit);
-    }
-
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
-        gui_set_parent(hsplit, vsplit);
-
-        gui_view_node_t* key;
-        gui_make_text(&key, "Batt. Volts", TFT_WHITE);
-        gui_set_parent(key, hsplit);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, power_status, TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, hsplit);
-    }
-
-    // 'Legal' (for genuine Jade v1.0 and v1.1), 'Storage' and 'Exit'
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-    btn_data_t btns[] = { { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL },
-        { .txt = "Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_INFO_STORAGE },
-        { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_INFO_EXIT } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
-#else
-    btn_data_t btns[] = { { .txt = "Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_INFO_STORAGE },
-        { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_INFO_EXIT } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
-#endif
-
-    return act;
-}
-
-gui_activity_t* make_storage_stats_screen(const size_t entries_used, const size_t entries_free)
-{
-    gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* const parent = add_title_bar(act, "Storage", hdrbtns, 2, NULL);
+    gui_view_node_t* hsplit;
+    gui_view_node_t* node;
 
     const size_t entries_total = entries_used + entries_free;
     char buf[16];
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 20, 20, 40);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, parent);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
-        gui_set_parent(hsplit, vsplit);
+    // % used
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 75, 25);
+    gui_set_parent(hsplit, vsplit);
 
-        gui_view_node_t* text;
-        gui_make_text(&text, "Percentage Used", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, hsplit);
+    gui_make_text(&node, "Percentage Used", TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
-        const int32_t pcnt_used = 100 * entries_used / entries_total;
-        const int ret = snprintf(buf, sizeof(buf), "%ld%%", pcnt_used);
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+    const int32_t pcnt_used = 100 * entries_used / entries_total;
+    int ret = snprintf(buf, sizeof(buf), "%ld%%", pcnt_used);
+    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
 
-        gui_view_node_t* pct;
-        gui_make_text(&pct, buf, TFT_WHITE);
-        gui_set_align(pct, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(pct, hsplit);
-    }
+    gui_make_text(&node, buf, TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
-        gui_set_parent(hsplit, vsplit);
+    // Entries used
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
+    gui_set_parent(hsplit, vsplit);
 
-        gui_view_node_t* text;
-        gui_make_text(&text, "Entries Used", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, hsplit);
+    gui_make_text(&node, "Entries Used", TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
-        const int ret = snprintf(buf, sizeof(buf), "%d / %d", entries_used, entries_total);
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+    ret = snprintf(buf, sizeof(buf), "%d / %d", entries_used, entries_total);
+    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
 
-        gui_view_node_t* used;
-        gui_make_text(&used, buf, TFT_WHITE);
-        gui_set_align(used, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(used, hsplit);
-    }
+    gui_make_text(&node, buf, TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
-    {
-        gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
-        gui_set_parent(hsplit, vsplit);
+    // Entries free
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
+    gui_set_parent(hsplit, vsplit);
 
-        gui_view_node_t* text;
-        gui_make_text(&text, "Entries Free", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, hsplit);
+    gui_make_text(&node, "Entries Free", TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
-        const int ret = snprintf(buf, sizeof(buf), "%d", entries_free);
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+    ret = snprintf(buf, sizeof(buf), "%d", entries_free);
+    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
 
-        gui_view_node_t* used;
-        gui_make_text(&used, buf, TFT_WHITE);
-        gui_set_align(used, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-        gui_set_parent(used, hsplit);
-    }
-
-    {
-        gui_view_node_t* row;
-        gui_make_fill(&row, TFT_BLACK);
-        gui_set_padding(row, GUI_MARGIN_TWO_VALUES, 4, 75);
-        gui_set_parent(row, vsplit);
-
-        gui_view_node_t* btn;
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, BTN_SETTINGS_INFO_EXIT, NULL);
-        gui_set_borders(btn, TFT_BLACK, 2, GUI_BORDER_ALL);
-        gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
-        gui_set_parent(btn, row);
-
-        gui_view_node_t* text;
-        gui_make_text(&text, "Exit", TFT_WHITE);
-        gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(text, btn);
-    }
+    gui_make_text(&node, buf, TFT_WHITE);
+    gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, hsplit);
 
     return act;
 }

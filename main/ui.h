@@ -97,7 +97,6 @@ typedef struct {
     const char* txt;
     uint32_t font;
     uint32_t ev_id;
-    uint32_t val;
     uint8_t borders;
 } btn_data_t;
 

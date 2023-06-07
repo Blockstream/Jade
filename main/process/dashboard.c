@@ -151,12 +151,18 @@ gui_activity_t* make_device_settings_activity(void);
 gui_activity_t* make_authentication_activity(void);
 gui_activity_t* make_prefs_settings_activity(bool show_ble);
 
-gui_activity_t* make_power_options_screen(btn_data_t* timeout_btns, size_t nBtns, progress_bar_t* brightness_bar);
+gui_activity_t* make_info_activity(const char* fw_version);
+gui_activity_t* make_device_info_activity(void);
+
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+gui_activity_t* make_legal_certifications_activity(void);
+#endif
+gui_activity_t* make_storage_stats_activity(size_t entries_used, size_t entries_free);
 
 gui_activity_t* make_wallet_erase_pin_info_activity(void);
 gui_activity_t* make_wallet_erase_pin_options_activity(gui_view_node_t** pin_text);
 
-gui_activity_t* make_bip39_passphrase_prefs_screen(
+gui_activity_t* make_bip39_passphrase_prefs_activity(
     gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox);
 
 gui_activity_t* make_otp_activity(void);
@@ -172,14 +178,8 @@ gui_activity_t* make_view_multisig_activity(const char* multisig_name, size_t in
     bool sorted, size_t threshold, size_t num_signers, const uint8_t* master_blinding_key,
     size_t master_blinding_key_len);
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-gui_activity_t* make_legal_screen(void);
-#endif
-gui_activity_t* make_storage_stats_screen(size_t entries_used, size_t entries_free);
-
 gui_activity_t* make_session_activity(void);
-gui_activity_t* make_ble_screen(const char* device_name, gui_view_node_t** ble_status_textbox);
-gui_activity_t* make_device_screen(const char* power_status, const char* mac, const char* firmware_version);
+gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item);
 
 // Wallet initialisation function
 void initialise_with_mnemonic(bool temporary_restore, bool force_qr_scan);
@@ -753,7 +753,7 @@ static bool offer_temporary_wallet_login(void)
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 static void handle_legal(void)
 {
-    gui_activity_t* const first_activity = make_legal_screen();
+    gui_activity_t* const first_activity = make_legal_certifications_activity();
     gui_set_current_activity(first_activity);
 
     while (sync_await_single_event(GUI_BUTTON_EVENT, BTN_LEGAL_EXIT, NULL, NULL, NULL, 0) != ESP_OK) {
@@ -767,67 +767,93 @@ static void handle_legal(void)
 static void handle_ble_reset(void)
 {
     if (!ble_enabled()) {
-        await_message_activity("You must enable Bluetooth\nbefore accessing the pairing\ninformation.");
+        await_message_activity("\n      You must enable\n     Bluetooth to reset\n            pairings.");
         return;
     }
 
-    const bool bReset = await_yesno_activity("BLE Reset", "\nDo you want to reset all\nbonded devices?", false, NULL);
-    if (bReset) {
-        if (!ble_remove_all_devices()) {
-            await_error_activity("Failed to remove all BLE devices");
-        }
+    if (!await_yesno_activity(
+            device_name, "     Delete Bluetooth\n       pairings for all \n      bonded devices?", false, NULL)) {
+        return;
+    }
+
+    if (ble_remove_all_devices()) {
+        await_message_activity("\n\n    Bluetooth pairings\n            deleted");
+    } else {
+        await_error_activity("\n\n   Failed to remove all\n    Bluetooth pairings!");
     }
 }
 
 // BLE properties screen
-static inline void update_ble_enabled_text(gui_view_node_t* ble_status_textbox)
-{
-    gui_update_text(ble_status_textbox, ble_enabled() ? "Enabled" : "Disabled");
-}
-
 static void handle_ble(void)
 {
-    gui_view_node_t* ble_status_textbox = NULL;
-    gui_activity_t* const act = make_ble_screen(device_name, &ble_status_textbox);
-    update_ble_enabled_text(ble_status_textbox);
+    uint8_t ble_flags = storage_get_ble_flags();
+
+    gui_view_node_t* ble_status_item = NULL;
+    gui_activity_t* const act = make_ble_activity(&ble_status_item);
+    gui_update_text(ble_status_item, ble_enabled() ? "Status: Enabled" : "Status: Disabled");
     gui_set_current_activity(act);
 
-    bool loop = true;
-    while (loop) {
-        int32_t ev_id;
-        uint8_t ble_flags;
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+    gui_view_node_t* status_textbox = NULL;
+    gui_activity_t* const act_status = make_carousel_activity("Bluetooth Status", NULL, &status_textbox);
+    gui_update_text(status_textbox, ble_enabled() ? "Enabled" : "Disabled");
 
-        switch (ev_id) {
-        case BTN_BLE_EXIT:
-            loop = false;
-            break;
+    int32_t ev_id;
+    while (true) {
+        // Show, and await button click
+        gui_set_current_activity(act);
 
-        case BTN_BLE_TOGGLE_ENABLE:
-            ble_flags = storage_get_ble_flags();
-            if (ble_enabled()) {
-                ble_stop();
-                ble_flags &= ~BLE_ENABLED;
-            } else {
-                ble_start();
-                ble_flags |= BLE_ENABLED;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        bool ret = true;
+        ev_id = BTN_BLE_EXIT;
+#endif
+        if (ret) {
+            if (ev_id == BTN_BLE_STATUS) {
+                gui_set_current_activity(act_status);
+                bool enable_ble = ble_enabled();
+                while (true) {
+                    gui_update_text(status_textbox, enable_ble ? "Enabled" : "Disabled");
+                    if (gui_activity_wait_event(act_status, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            enable_ble = !enable_ble; // Just toggle label at this point
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done - apply ble change
+                            break;
+                        }
+                    }
+                }
+
+                // Start/stop BLE and persist pref/flags
+                if (enable_ble) {
+                    if (!ble_enabled()) {
+                        ble_start();
+                    }
+                    ble_flags |= BLE_ENABLED;
+                    storage_set_ble_flags(ble_flags);
+                } else {
+                    if (ble_enabled()) {
+                        ble_stop();
+                    }
+                    ble_flags &= ~BLE_ENABLED;
+                    storage_set_ble_flags(ble_flags);
+                }
+                gui_update_text(ble_status_item, ble_enabled() ? "Status: Enabled" : "Status: Disabled");
+            } else if (ev_id == BTN_BLE_RESET_PAIRING) {
+                handle_ble_reset();
+            } else if (ev_id == BTN_BLE_HELP) {
+                await_qr_help_activity("blkstrm.com/bluetooth");
+            } else if (ev_id == BTN_BLE_EXIT) {
+                // Done
+                break;
             }
-            storage_set_ble_flags(ble_flags);
-            update_ble_enabled_text(ble_status_textbox);
-            break;
-
-        case BTN_BLE_RESET_PAIRING:
-            handle_ble_reset();
-            gui_set_current_activity(act);
-            break;
-
-        default:
-            break;
         }
     }
 }
 #else
-static void handle_ble(void) { await_message_activity("BLE disabled in this firmware"); }
+static void handle_ble(void) { await_message_activity("\n\n       BLE disabled in\n        this firmware"); }
 #endif // CONFIG_BT_ENABLED
 
 static void handle_multisigs(void)
@@ -975,42 +1001,76 @@ static inline const char* passphrase_method_desc_from_flags(const passphrase_typ
 
 static void handle_passphrase_prefs()
 {
-    gui_view_node_t* frequency_textbox = NULL;
-    gui_view_node_t* method_textbox = NULL;
-    gui_activity_t* const act = make_bip39_passphrase_prefs_screen(&frequency_textbox, &method_textbox);
-    JADE_ASSERT(frequency_textbox);
-    JADE_ASSERT(method_textbox);
-
     passphrase_freq_t freq = keychain_get_passphrase_freq();
     passphrase_type_t type = keychain_get_passphrase_type();
-    while (true) {
-        // Update options
-        gui_update_text(frequency_textbox, passphrase_frequency_desc_from_flags(freq));
-        gui_update_text(method_textbox, passphrase_method_desc_from_flags(type));
 
+    gui_view_node_t* frequency_item = NULL;
+    gui_view_node_t* method_item = NULL;
+    gui_activity_t* const act = make_bip39_passphrase_prefs_activity(&frequency_item, &method_item);
+    update_menu_item(frequency_item, "Frequency", passphrase_frequency_desc_from_flags(freq));
+    update_menu_item(method_item, "Method", passphrase_method_desc_from_flags(type));
+    gui_set_current_activity(act);
+
+    gui_view_node_t* frequency_textbox = NULL;
+    gui_activity_t* const act_freq = make_carousel_activity("Frequency", NULL, &frequency_textbox);
+    gui_update_text(frequency_textbox, passphrase_frequency_desc_from_flags(freq));
+
+    gui_view_node_t* method_textbox = NULL;
+    gui_activity_t* const act_method = make_carousel_activity("Method", NULL, &method_textbox);
+    gui_update_text(method_textbox, passphrase_method_desc_from_flags(type));
+
+    int32_t ev_id;
+    while (true) {
         // Show, and await button click
         gui_set_current_activity(act);
 
-        int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
         gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_XPUB_EXIT;
+        bool ret = true;
+        ev_id = BTN_PASSPHRASE_EXIT;
 #endif
         if (ret) {
-            if (ev_id == BTN_PASSPHRASE_TOGGLE_FREQUENCY) {
+            if (ev_id == BTN_PASSPHRASE_FREQUENCY) {
                 // Never -> Once -> Always -> Once ...
-                freq = (freq == PASSPHRASE_NEVER  ? PASSPHRASE_ONCE
-                        : freq == PASSPHRASE_ONCE ? PASSPHRASE_ALWAYS
-                                                  : PASSPHRASE_NEVER);
-            } else if (ev_id == BTN_PASSPHRASE_TOGGLE_METHOD) {
-                type = (type == PASSPHRASE_FREETEXT ? PASSPHRASE_WORDLIST : PASSPHRASE_FREETEXT);
-            } else if (ev_id == BTN_PASSPHRASE_OPTIONS_HELP) {
+                gui_set_current_activity(act_freq);
+                while (true) {
+                    gui_update_text(frequency_textbox, passphrase_frequency_desc_from_flags(freq));
+                    if (gui_activity_wait_event(act_freq, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                            freq = (freq == PASSPHRASE_NEVER  ? PASSPHRASE_ALWAYS
+                                    : freq == PASSPHRASE_ONCE ? PASSPHRASE_NEVER
+                                                              : PASSPHRASE_ONCE);
+                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            freq = (freq == PASSPHRASE_NEVER  ? PASSPHRASE_ONCE
+                                    : freq == PASSPHRASE_ONCE ? PASSPHRASE_ALWAYS
+                                                              : PASSPHRASE_NEVER);
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(frequency_item, "Frequency", passphrase_frequency_desc_from_flags(freq));
+            } else if (ev_id == BTN_PASSPHRASE_METHOD) {
+                gui_set_current_activity(act_method);
+                while (true) {
+                    gui_update_text(method_textbox, passphrase_method_desc_from_flags(type));
+                    if (gui_activity_wait_event(act_method, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            type = (type == PASSPHRASE_FREETEXT ? PASSPHRASE_WORDLIST : PASSPHRASE_FREETEXT);
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(method_item, "Method", passphrase_method_desc_from_flags(type));
+            } else if (ev_id == BTN_PASSPHRASE_HELP) {
                 await_qr_help_activity("blkstrm.com/passphrase");
-            } else if (ev_id == BTN_PASSPHRASE_OPTIONS_EXIT) {
+            } else if (ev_id == BTN_PASSPHRASE_EXIT) {
                 // Done
                 break;
             }
@@ -1224,84 +1284,133 @@ static void handle_view_otps(void)
     }
 }
 
-static void update_idle_timeout_btns(
-    gui_activity_t* act, btn_data_t* timeout_btn, const size_t nBtns, const uint16_t timeout)
+// NOTE: Only Jade v1.1's have brightness controls
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+static void handle_screen_brightness(void)
 {
-    JADE_ASSERT(timeout_btn);
+    static const char* LABELS[] = { "Min(1)", "Low(2)", "Medium(3)", "High(4)", "Max(5)" };
 
-    for (int i = 0; i < nBtns; ++i) {
-        JADE_ASSERT(timeout_btn[i].btn);
-        if (timeout_btn[i].val == timeout) {
-            gui_set_borders(timeout_btn[i].btn, TFT_BLUE, 2, GUI_BORDER_ALL);
-            gui_select_node(act, timeout_btn[i].btn);
-        } else {
-            gui_set_borders(timeout_btn[i].btn, TFT_BLACK, 2, GUI_BORDER_ALL);
+    const uint8_t initial_brightness = storage_get_brightness();
+    uint8_t new_brightness = initial_brightness;
+    if (new_brightness < BACKLIGHT_MIN) {
+        new_brightness = BACKLIGHT_MIN;
+    }
+    if (new_brightness > BACKLIGHT_MAX) {
+        new_brightness = BACKLIGHT_MAX;
+    }
+
+    gui_view_node_t* item_text = NULL;
+    gui_activity_t* const act = make_carousel_activity("Brightness", NULL, &item_text);
+    JADE_ASSERT(item_text);
+    gui_update_text(item_text, LABELS[new_brightness - 1]);
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    bool done = false;
+    while (!done) {
+        // wait for a GUI event
+        gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+
+        switch (ev_id) {
+        case GUI_WHEEL_LEFT_EVENT:
+            if (new_brightness > BACKLIGHT_MIN) {
+                power_backlight_on(--new_brightness);
+                gui_update_text(item_text, LABELS[new_brightness - 1]);
+            }
+            break;
+
+        case GUI_WHEEL_RIGHT_EVENT:
+            if (new_brightness < BACKLIGHT_MAX) {
+                power_backlight_on(++new_brightness);
+                gui_update_text(item_text, LABELS[new_brightness - 1]);
+            }
+            break;
+
+        default:
+            done = (ev_id == gui_get_click_event());
         }
-        gui_set_borders_selected_color(timeout_btn[i].btn, TFT_BLOCKSTREAM_GREEN);
-        gui_repaint(timeout_btn[i].btn, true);
+    }
+
+    // Persist updated preferences
+    if (new_brightness != initial_brightness) {
+        storage_set_brightness(new_brightness);
     }
 }
+#endif
 
-static void handle_power_options()
+static void update_idle_timeout_text(gui_view_node_t* timeout_text, const uint16_t timeout)
 {
+    JADE_ASSERT(timeout_text);
+    char txt[16];
+
+    // Prefer to display in minutes
+    if (timeout == UINT16_MAX) {
+        const int ret = snprintf(txt, sizeof(txt), "Disabled");
+        JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+    } else if (timeout == 60) {
+        const int ret = snprintf(txt, sizeof(txt), "1 minute");
+        JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+    } else if (timeout % 60 == 0) {
+        const int ret = snprintf(txt, sizeof(txt), "%u minutes", timeout / 60);
+        JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+    } else {
+        const int ret = snprintf(txt, sizeof(txt), "%u seconds", timeout);
+        JADE_ASSERT(ret > 0 && ret < sizeof(txt));
+    }
+    gui_update_text(timeout_text, txt);
+}
+
+static void handle_idle_timeout(void)
+{
+    static const uint16_t VALUES[] = {
+        60, 120, 180, 300, 600, 900, 1200, 1800, 3600, UINT16_MAX // UINT16_MAX == OFF
+    };
+    static const uint16_t num_values = sizeof(VALUES) / sizeof(VALUES[0]);
+
     // Get/track the idle timeout
     const uint16_t initial_timeout = storage_get_idle_timeout();
     uint16_t new_timeout = initial_timeout;
 
-    const uint8_t initial_brightness = storage_get_brightness();
-    uint8_t new_brightness = initial_brightness;
+    // Find the position in the list of allowed values
+    // (NOTE: UINT16_MAX as final value prevents off-the-end)
+    uint8_t pos = 0;
+    while (VALUES[pos] < new_timeout) {
+        ++pos;
+    }
 
-    // The idle timeout buttons (1,2,3,5,10,15 mins).
-    btn_data_t timeout_btns[] = { { .txt = "1", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0, .val = 60 },
-        { .txt = "2", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 1, .val = 120 },
-        { .txt = "3", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 2, .val = 180 },
-        { .txt = "5", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 3, .val = 300 },
-        { .txt = "10", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 4, .val = 600 },
-        { .txt = "15", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 5, .val = 900 },
-        { .txt = "OFF", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TIMEOUT_0 + 6, .val = UINT16_MAX } };
-    const size_t nBtns = sizeof(timeout_btns) / sizeof(btn_data_t);
-
-    // Timeout button ids must be available/contiguous
-    JADE_ASSERT(timeout_btns[nBtns - 1].ev_id == BTN_SETTINGS_TIMEOUT_6);
-
-    progress_bar_t brightness_bar = {};
-    gui_activity_t* const act = make_power_options_screen(timeout_btns, nBtns, &brightness_bar);
-
-    // Highlight currently selected value
-    update_idle_timeout_btns(act, timeout_btns, nBtns, new_timeout);
+    gui_view_node_t* item_text = NULL;
+    gui_activity_t* const act = make_carousel_activity("Idle Timeout", NULL, &item_text);
+    JADE_ASSERT(item_text);
+    update_idle_timeout_text(item_text, new_timeout);
     gui_set_current_activity(act);
-    vTaskDelay(150 / portTICK_PERIOD_MS);
 
-    while (true) {
-        // Only Jade v1.1's have brightness controls
-        if (brightness_bar.progress_bar) {
-            update_progress_bar(&brightness_bar, BACKLIGHT_MAX, new_brightness);
-        }
+    int32_t ev_id;
+    bool done = false;
+    while (!done) {
+        // wait for a GUI event
+        gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 
-        int32_t ev_id;
-        const bool res = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-        if (res) {
-            if (res && ev_id >= BTN_SETTINGS_TIMEOUT_0 && ev_id < BTN_SETTINGS_TIMEOUT_0 + nBtns) {
-                const uint32_t idx = ev_id - BTN_SETTINGS_TIMEOUT_0;
-                new_timeout = timeout_btns[idx].val;
-                update_idle_timeout_btns(act, timeout_btns, nBtns, new_timeout);
-            } else if (ev_id == BTN_PLUS_INCREASE && new_brightness < BACKLIGHT_MAX) {
-                power_backlight_on(++new_brightness);
-            } else if (ev_id == BTN_MINUS_DECREASE && new_brightness > BACKLIGHT_MIN) {
-                power_backlight_on(--new_brightness);
-            } else if (ev_id == BTN_SETTINGS_EXIT) {
-                // Done!
-                break;
-            }
+        switch (ev_id) {
+        case GUI_WHEEL_LEFT_EVENT:
+            pos = (pos + num_values - 1) % num_values;
+            new_timeout = VALUES[pos];
+            update_idle_timeout_text(item_text, new_timeout);
+            break;
+
+        case GUI_WHEEL_RIGHT_EVENT:
+            pos = (pos + 1) % num_values;
+            new_timeout = VALUES[pos];
+            update_idle_timeout_text(item_text, new_timeout);
+            break;
+
+        default:
+            done = (ev_id == gui_get_click_event());
         }
     }
 
     // Persist updated preferences
     if (new_timeout != initial_timeout) {
         storage_set_idle_timeout(new_timeout);
-    }
-    if (new_brightness != initial_brightness) {
-        storage_set_brightness(new_brightness);
     }
 }
 
@@ -1358,66 +1467,58 @@ static void handle_pinserver_reset(void)
 static void handle_storage(void)
 {
     size_t entries_used, entries_free;
-    const bool ok = storage_get_stats(&entries_used, &entries_free);
-    if (ok) {
-        gui_activity_t* const act = make_storage_stats_screen(entries_used, entries_free);
-        gui_set_current_activity(act);
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_SETTINGS_INFO_EXIT, NULL, NULL, NULL, 0);
-    } else {
+    if (!storage_get_stats(&entries_used, &entries_free)) {
         await_error_activity("Error accessing storage!");
+        return;
+    }
+
+    gui_activity_t* const act = make_storage_stats_activity(entries_used, entries_free);
+    gui_set_current_activity(act);
+    while (
+        !gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_SETTINGS_DEVICE_INFO_STORAGE_EXIT, NULL, NULL, NULL, 0)) {
+        // await button press
     }
 }
 
-static void handle_device_info(void)
+static void handle_info_detail_screen(const char* title, const char* detail)
 {
-    char power_status[32] = "NO BAT";
+    JADE_ASSERT(title);
+    JADE_ASSERT(detail);
 
-#if defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) || defined(CONFIG_BOARD_TYPE_M5_FIRE)
-    float approx_voltage;
-    approx_voltage = power_get_vbat() / 1000.0;
-    const int ret = snprintf(power_status, sizeof(power_status), "Approx %.1fv", approx_voltage);
-    JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
-#endif
+    const bool show_help_btn = false;
+    gui_activity_t* const act = make_show_single_value_activity(title, detail, show_help_btn);
+    gui_set_current_activity(act);
+    while (!gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_BACK, NULL, NULL, NULL, 0)) {
+        // await button press
+    }
+}
 
-#ifdef CONFIG_HAS_AXP
-    const int ret = snprintf(power_status, sizeof(power_status), "%umv", power_get_vbat());
-    JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
-#endif
+static void handle_display_fwversion(void) { handle_info_detail_screen("Firmware Version", running_app_info.version); }
 
+static void handle_display_mac_address(void)
+{
     char mac[18] = "NO BLE";
 #ifdef CONFIG_BT_ENABLED
     const int rc = ble_get_mac(mac, sizeof(mac));
     JADE_ASSERT(rc == 18);
 #endif
 
-    gui_activity_t* const act = make_device_screen(power_status, mac, running_app_info.version);
-    JADE_ASSERT(act);
+    handle_info_detail_screen("MAC Address", mac);
+}
 
-    bool loop = true;
-    while (loop) {
-        int32_t ev_id;
-        gui_set_current_activity(act);
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-
-        switch (ev_id) {
-        case BTN_SETTINGS_INFO_EXIT:
-            loop = false;
-            break;
-
-        case BTN_SETTINGS_INFO_STORAGE:
-            handle_storage();
-            break;
-
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-        // For genuine Jade hw, show legal info
-        case BTN_SETTINGS_LEGAL:
-            handle_legal();
-            break;
+static void handle_display_battery_volts(void)
+{
+    char power_status[32] = "NO BAT";
+#ifdef CONFIG_HAS_AXP
+    const int ret = snprintf(power_status, sizeof(power_status), "%umv", power_get_vbat());
+    JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
+#elif defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) || defined(CONFIG_BOARD_TYPE_M5_FIRE)
+    const float approx_voltage = power_get_vbat() / 1000.0;
+    const int ret = snprintf(power_status, sizeof(power_status), "Approx %.1fv", approx_voltage);
+    JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
 #endif
-        default:
-            break;
-        }
-    }
+
+    handle_info_detail_screen("Battery Volts", power_status);
 }
 
 // Create the appropriate 'Settings' menu
@@ -1480,6 +1581,7 @@ static void handle_settings(const bool startup_menu)
             break;
 
         case BTN_SETTINGS_DEVICE:
+        case BTN_SETTINGS_INFO_EXIT:
             // Change to 'Device' menu
             act = make_device_settings_activity();
             break;
@@ -1490,7 +1592,14 @@ static void handle_settings(const bool startup_menu)
             break;
 
         case BTN_SETTINGS_INFO:
-            handle_device_info();
+        case BTN_SETTINGS_DEVICE_INFO_EXIT:
+            // Change to 'Info' menu
+            act = make_info_activity(running_app_info.version);
+            break;
+
+        case BTN_SETTINGS_DEVICE_INFO:
+            // Change to 'Device' menu
+            act = make_device_info_activity();
             break;
 
         case BTN_SETTINGS_PREFS:
@@ -1520,12 +1629,36 @@ static void handle_settings(const bool startup_menu)
             act = make_pinserver_activity();
             break;
 
+        // Screen handling
+        case BTN_SETTINGS_INFO_FWVERSION:
+            handle_display_fwversion();
+            break;
+
+        case BTN_SETTINGS_DEVICE_INFO_MAC:
+            handle_display_mac_address();
+            break;
+
+        case BTN_SETTINGS_DEVICE_INFO_BATTERY:
+            handle_display_battery_volts();
+            break;
+
+        case BTN_SETTINGS_DEVICE_INFO_STORAGE:
+            handle_storage();
+            break;
+
         case BTN_SETTINGS_BLE:
             handle_ble();
             break;
 
-        case BTN_SETTINGS_POWER_OPTIONS:
-            handle_power_options();
+// NOTE: Only Jade v1.1's have brightness controls
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+        case BTN_SETTINGS_SCREEN_BRIGHTNESS:
+            handle_screen_brightness();
+            break;
+#endif
+
+        case BTN_SETTINGS_IDLE_TIMEOUT:
+            handle_idle_timeout();
             break;
 
         case BTN_SETTINGS_BIP39_PASSPHRASE:
