@@ -12,15 +12,15 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
     const bool has_shift_btn, gui_view_node_t** textbox)
 {
     JADE_ASSERT(kb_screen_activity);
-    // title is optional
+    JADE_ASSERT(title);
     JADE_INIT_OUT_PPTR(textbox);
 
     gui_activity_t* const act = gui_make_activity();
-    act->selectables_wrap = true; // allow the button cursor to wrap
+    gui_view_node_t* const parent = add_title_bar(act, title, NULL, 0, NULL);
 
     gui_view_node_t* vsplit;
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, parent);
 
     // first row, message
     gui_view_node_t* text_bg;
@@ -105,8 +105,8 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
                 gui_view_node_t* btn;
                 gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, btn_ev_id, NULL);
                 gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
-                gui_set_borders(btn, TFT_BLUE, 2, GUI_BORDER_ALL);
-                gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_GREEN);
+                gui_set_borders(btn, TFT_BLUE, 1, GUI_BORDER_ALL);
+                gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_DARKGREEN);
                 gui_set_borders_inactive_color(btn, TFT_BLACK);
                 gui_set_parent(btn, hsplit);
 
@@ -135,7 +135,7 @@ void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title)
 {
     JADE_ASSERT(kb_entry);
     JADE_ASSERT(kb_entry->num_kbs);
-    // title is optional
+    JADE_ASSERT(title);
 
     if (kb_entry->num_kbs == 1) {
         // Single kb screen, no need for kb screen 'linking'
