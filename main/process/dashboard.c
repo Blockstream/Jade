@@ -106,7 +106,7 @@ gui_activity_t* make_device_settings_screen(gui_view_node_t** timeout_btn_text);
 gui_activity_t* make_power_options_screen(btn_data_t* timeout_btns, size_t nBtns, progress_bar_t* brightness_bar);
 
 gui_activity_t* make_wallet_erase_pin_info_activity(void);
-gui_activity_t* make_wallet_erase_pin_options_activity(const char* pinstr);
+gui_activity_t* make_wallet_erase_pin_options_activity(gui_view_node_t** pin_text);
 
 gui_activity_t* make_bip39_passphrase_prefs_screen(
     gui_view_node_t** frequency_textbox, gui_view_node_t** method_textbox);
@@ -820,6 +820,12 @@ static void set_wallet_erase_pin(void)
 
 static void handle_wallet_erase_pin(void)
 {
+    gui_activity_t* act_info = make_wallet_erase_pin_info_activity();
+
+    gui_view_node_t* pin_text = NULL;
+    gui_activity_t* act_options = make_wallet_erase_pin_options_activity(&pin_text);
+    JADE_ASSERT(pin_text);
+
     while (true) {
         // Add wallet erase pin confirmation screens
         uint8_t pin_erase[PIN_SIZE];
@@ -827,9 +833,10 @@ static void handle_wallet_erase_pin(void)
         if (storage_get_wallet_erase_pin(pin_erase, sizeof(pin_erase))) {
             char pinstr[sizeof(pin_erase) + 1];
             format_pin(pinstr, sizeof(pinstr), pin_erase, sizeof(pin_erase));
-            act = make_wallet_erase_pin_options_activity(pinstr);
+            gui_update_text(pin_text, pinstr);
+            act = act_options;
         } else {
-            act = make_wallet_erase_pin_info_activity();
+            act = act_info;
         }
         gui_set_current_activity(act);
 
@@ -838,15 +845,18 @@ static void handle_wallet_erase_pin(void)
             if (ev_id == BTN_WALLET_ERASE_PIN_SET) {
                 // User opted to set a new wallet-erasing PIN
                 set_wallet_erase_pin();
-                continue;
             } else if (ev_id == BTN_WALLET_ERASE_PIN_DISABLE) {
                 // User opted to disable/erase wallet-erasing PIN
                 JADE_LOGI("Erasing Wallet-Erase PIN");
                 storage_erase_wallet_erase_pin();
-                await_message_activity("Wallet-Erase PIN disabled");
+                await_message_activity("\n\n      Wallet-Erase PIN\n            deleted");
+            } else if (ev_id == BTN_WALLET_ERASE_PIN_HELP) {
+                await_qr_help_activity("blkstrm.com/duress");
+            } else if (ev_id == BTN_WALLET_ERASE_PIN_EXIT) {
+                // Done
+                break;
             }
         }
-        break;
     }
 }
 

@@ -625,54 +625,49 @@ gui_activity_t* make_power_options_screen(btn_data_t* timeout_btns, const size_t
 
 gui_activity_t* make_wallet_erase_pin_info_activity(void)
 {
-    gui_activity_t* const act = gui_make_activity();
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_WALLET_ERASE_PIN_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_WALLET_ERASE_PIN_HELP } };
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    btn_data_t ftrbtn
+        = { .txt = "Continue", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_SET, .borders = GUI_BORDER_TOP };
 
-    const char* msg = "A wallet-erase PIN will erase the\nrecovery phrase and show\n\"Internal Error\".\nMake sure "
-                      "your recovery\nphrase is backed up.";
+    gui_activity_t* const act
+        = make_show_message_activity("A duress PIN will delete\n    the wallet stored on\n        Jade if entered", 12,
+            "Wallet-Erase PIN", hdrbtns, 2, &ftrbtn, 1);
 
-    gui_view_node_t* text;
-    gui_make_text(&text, msg, TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    gui_set_parent(text, vsplit);
-
-    // Buttons
-    btn_data_t btns[] = { { .txt = "Cancel", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_EXIT },
-        { .txt = "I understand", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_SET } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
+    // Set the intially selected item to the 'Continue' button
+    gui_set_activity_initial_selection(act, ftrbtn.btn);
 
     return act;
 }
 
-gui_activity_t* make_wallet_erase_pin_options_activity(const char* pinstr)
+gui_activity_t* make_wallet_erase_pin_options_activity(gui_view_node_t** pin_text)
 {
-    JADE_ASSERT(pinstr);
+    JADE_INIT_OUT_PPTR(pin_text);
+
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_WALLET_ERASE_PIN_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_WALLET_ERASE_PIN_HELP } };
 
     gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* const parent = add_title_bar(act, "Wallet-Erase PIN", hdrbtns, 2, NULL);
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 35, 35, 30);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 8, 0, 8, 0);
+    gui_set_parent(vsplit, parent);
 
-    char msg[64];
-    const int ret = snprintf(msg, sizeof(msg), "\nA wallet-erase PIN is enabled:\n%20s", pinstr);
-    JADE_ASSERT(ret > 0 && ret < sizeof(msg));
+    gui_view_node_t* label;
+    gui_make_text(&label, "Wallet-erase PIN set:", TFT_WHITE);
+    gui_set_align(label, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(label, vsplit);
 
-    gui_view_node_t* text;
-    gui_make_text(&text, msg, TFT_WHITE);
-    gui_set_align(text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
-    gui_set_parent(text, vsplit);
+    gui_make_text(pin_text, "", TFT_WHITE);
+    gui_set_align(*pin_text, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
+    gui_set_parent(*pin_text, vsplit);
 
-    // Buttons
-    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_WALLET_ERASE_PIN_EXIT },
-        { .txt = "Change", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_SET },
+    btn_data_t ftrbtns[] = { { .txt = "Change", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_SET },
         { .txt = "Disable", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_DISABLE } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
+    add_buttons(vsplit, UI_ROW, ftrbtns, 2);
 
     return act;
 }
