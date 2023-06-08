@@ -20,6 +20,15 @@
 
 #include "process_utils.h"
 
+void make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
+    const output_info_t* output_info, const asset_info_t* assets, size_t num_assets, gui_activity_t** first_activity);
+void make_display_elements_swap_activity(const char* network, bool initial_proposal,
+    const movement_summary_info_t* wallet_input_summary, size_t wallet_input_summary_size,
+    const movement_summary_info_t* wallet_output_summary, size_t wallet_output_summary_size, const asset_info_t* assets,
+    size_t num_assets, gui_activity_t** first_activity);
+void make_display_elements_final_confirmation_activity(
+    const char* network, const char* title, uint64_t fee, const char* warning_msg, gui_activity_t** activity);
+
 // From sign_tx.c
 bool validate_wallet_outputs(jade_process_t* process, const char* network, const struct wally_tx* tx,
     CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg);

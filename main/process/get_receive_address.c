@@ -1,9 +1,9 @@
+#include "../gui.h"
 #include "../jade_assert.h"
 #include "../keychain.h"
 #include "../multisig.h"
 #include "../process.h"
 #include "../storage.h"
-#include "../ui.h"
 #include "../utils/address.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
@@ -15,6 +15,8 @@
 #include <wally_script.h>
 
 #include "process_utils.h"
+
+void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* address, const char* warning_msg);
 
 void get_receive_address_process(void* process_ptr)
 {

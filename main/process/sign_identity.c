@@ -10,6 +10,8 @@
 #include "../identity.h"
 #include "process_utils.h"
 
+void make_sign_identity_activity(gui_activity_t** activity_ptr, const char* identity, size_t identity_len);
+
 typedef struct {
     // NOTE: signature with leading 0x00 (required or can strip?)
     // Note also that we use uncompressed keys in this api

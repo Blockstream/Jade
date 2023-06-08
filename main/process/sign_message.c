@@ -11,6 +11,9 @@
 
 #include <wally_anti_exfil.h>
 
+void make_sign_message_activity(
+    gui_activity_t** activity_ptr, const char* msg_str, size_t msg_len, bool is_hash, const char* path_as_str);
+
 static const char SIGN_MESSAGE_FILE_PREFIX[] = "signmessage";
 static const char SIGN_MESSAGE_FILE_LABEL_ASCII[] = "ascii";
 

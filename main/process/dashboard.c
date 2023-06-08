@@ -120,6 +120,10 @@ void make_show_totp_code_activity(gui_activity_t** activity_ptr, const char* nam
 
 void make_pinserver_screen(gui_activity_t** activity_ptr);
 
+void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* multisig_name, size_t index, size_t total,
+    bool valid, bool sorted, size_t threshold, size_t num_signers, const uint8_t* master_blinding_key,
+    size_t master_blinding_key_len);
+
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 void make_legal_screen(gui_activity_t** activity_ptr);
 #endif

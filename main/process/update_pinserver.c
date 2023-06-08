@@ -12,6 +12,11 @@
 
 #include "process_utils.h"
 
+void make_show_pinserver_details_activity(
+    gui_activity_t** activity_ptr, const char* urlA, const char* urlB, const char* pubkeyhex, bool confirming_details);
+void make_show_pinserver_certificate_activity(
+    gui_activity_t** activity_ptr, const char* cert_hash_hex, bool confirming_details);
+
 // Default pinserver public key
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
 

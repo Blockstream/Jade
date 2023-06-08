@@ -103,17 +103,6 @@ void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const
 void run_pin_entry_loop(pin_insert_t* pin_insert);
 void clear_current_pin(pin_insert_t* pin_insert);
 
-// Functions for pinserver details
-void make_show_pinserver_details_activity(
-    gui_activity_t** activity_ptr, const char* urlA, const char* urlB, const char* pubkeyhex, bool confirming_details);
-void make_show_pinserver_certificate_activity(
-    gui_activity_t** activity_ptr, const char* cert_hash_hex, bool confirming_details);
-
-// View/delete multisig registration
-void make_view_multisig_activity(gui_activity_t** activity_ptr, const char* multisig_name, size_t index, size_t total,
-    bool valid, bool sorted, size_t threshold, size_t num_signers, const uint8_t* master_blinding_key,
-    size_t master_blinding_key_len);
-
 // Generic message screens which may await a button click
 void make_show_label_activity(
     gui_activity_t** activity, const char* title, const char* message, gui_view_node_t** item_text);
@@ -127,23 +116,5 @@ bool await_yesno_activity(const char* title, const char* message, bool default_s
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);
 void display_progress_bar_activity(const char* title, const char* message, progress_bar_t* progress_bar);
 void update_progress_bar(progress_bar_t* progress_bar, size_t total, size_t current);
-
-// Signing-specific screens
-void make_confirm_address_activity(gui_activity_t** activity_ptr, const char* address, const char* warning_msg);
-void make_sign_message_activity(
-    gui_activity_t** activity_ptr, const char* msg_str, size_t msg_len, bool is_hash, const char* path_as_str);
-void make_sign_identity_activity(gui_activity_t** activity_ptr, const char* identity, size_t identity_len);
-
-void make_display_output_activity(
-    const char* network, const struct wally_tx* tx, const output_info_t* output_info, gui_activity_t** first_activity);
-void make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
-    const output_info_t* output_info, const asset_info_t* assets, size_t num_assets, gui_activity_t** first_activity);
-void make_display_elements_swap_activity(const char* network, bool initial_proposal,
-    const movement_summary_info_t* wallet_input_summary, size_t wallet_input_summary_size,
-    const movement_summary_info_t* wallet_output_summary, size_t wallet_output_summary_size, const asset_info_t* assets,
-    size_t num_assets, gui_activity_t** first_activity);
-void make_display_final_confirmation_activity(uint64_t fee, const char* warning_msg, gui_activity_t** activity);
-void make_display_elements_final_confirmation_activity(
-    const char* network, const char* title, uint64_t fee, const char* warning_msg, gui_activity_t** activity);
 
 #endif /* UI_H_ */
