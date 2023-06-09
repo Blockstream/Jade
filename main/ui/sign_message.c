@@ -2,68 +2,189 @@
 #include "../ui.h"
 #include "jade_assert.h"
 
-gui_activity_t* make_sign_message_activity(
-    const char* msg_str, const size_t msg_len, const bool is_hash, const char* path_as_str)
+static gui_activity_t* make_sign_message_activities(const char* message, const char* hashhex, const char* pathstr,
+    gui_activity_t** actmessage1, gui_activity_t** actmessage2, gui_activity_t** acthash, gui_activity_t** actpath)
 {
-    JADE_ASSERT(msg_str);
-    JADE_ASSERT(msg_len < MAX_DISPLAY_MESSAGE_LEN);
-    JADE_ASSERT(path_as_str);
+    JADE_ASSERT(message);
+    JADE_ASSERT(hashhex);
+    JADE_ASSERT(pathstr);
+    JADE_INIT_OUT_PPTR(actmessage1);
+    JADE_INIT_OUT_PPTR(actmessage2);
+    JADE_INIT_OUT_PPTR(acthash);
+    JADE_INIT_OUT_PPTR(actpath);
 
-    gui_activity_t* const act = gui_make_activity();
+    const bool show_help_btn = false;
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    // First row, message
+    gui_view_node_t* msgsplit;
+    gui_make_hsplit(&msgsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
 
-    // first row, hash value
-    gui_view_node_t* hsplit_text2;
-    gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 30, 70);
-    gui_set_parent(hsplit_text2, vsplit);
+    gui_view_node_t* msgnode;
+    gui_make_text(&msgnode, "Message:", TFT_WHITE);
+    gui_set_align(msgnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(msgnode, msgsplit);
 
-    gui_view_node_t* text2;
-    gui_make_text(&text2, is_hash ? "Hash" : "Message", TFT_WHITE);
-    gui_set_parent(text2, hsplit_text2);
-    gui_set_align(text2, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text2, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+    gui_make_text(&msgnode, message, TFT_WHITE);
+    gui_set_align(msgnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(msgnode, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
+    gui_set_parent(msgnode, msgsplit);
 
-    char display_str[MAX_DISPLAY_MESSAGE_LEN + 8]; // ample
-    const int ret = snprintf(display_str, sizeof(display_str), "} %.*s {", msg_len, msg_str);
-    JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
+    // NOTE: maybe two value drilldown screens
+    const size_t message_len = strlen(message);
+    JADE_ASSERT(message_len <= MAX_DISPLAY_MESSAGE_LEN);
+    const size_t max_display_len = MAX_DISPLAY_MESSAGE_LEN / 2;
+    char buf[1 + max_display_len + 1];
 
-    gui_view_node_t* text;
-    gui_make_text(&text, display_str, TFT_WHITE);
-    gui_set_parent(text, hsplit_text2);
-    gui_set_align(text, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_text_scroll(text, TFT_BLACK);
+    if (message_len <= max_display_len) {
+        // Just the one message screen with a tick/accept button
+        btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNMSG_ACCEPT } };
 
-    // second row, path
-    gui_view_node_t* hsplit_text3;
-    gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 30, 70);
-    gui_set_parent(hsplit_text3, vsplit);
+        const int ret = snprintf(buf, sizeof(buf), "\n%s", message);
+        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
 
-    gui_view_node_t* text3;
-    gui_make_text(&text3, "Path", TFT_WHITE);
-    gui_set_parent(text3, hsplit_text3);
-    gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text3, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+        *actmessage1 = make_show_message_activity(buf, 0, "Message", hdrbtns, 2, NULL, 0);
+        *actmessage2 = NULL;
+    } else {
+        // Two message screens
+        // First message screen needs a 'next' button
+        btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+            { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNMSG_NEXT } };
 
-    gui_view_node_t* text_path;
-    gui_make_text(&text_path, path_as_str, TFT_WHITE);
-    gui_set_parent(text_path, hsplit_text3);
-    gui_set_align(text_path, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_text_scroll(text_path, TFT_BLACK);
+        int ret = snprintf(buf, sizeof(buf), "\n%.*s", max_display_len, message);
+        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+        *actmessage1 = make_show_message_activity(buf, 0, "Message (1/2)", hdrbtns, 2, NULL, 0);
 
-    // third row, dummy black bg
-    gui_view_node_t* dummy_bg;
-    gui_make_fill(&dummy_bg, TFT_BLACK);
-    gui_set_parent(dummy_bg, vsplit);
+        // Set the intially selected item to the 'Next' button
+        gui_set_activity_initial_selection(*actmessage1, hdrbtns[1].btn);
 
-    // fourth row, buttons
-    btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CANCEL_SIGNATURE },
-        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_ACCEPT_SIGNATURE } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
+        // Second message screen has a tick button
+        hdrbtns[1].txt = "S";
+        hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
+
+        ret = snprintf(buf, sizeof(buf), "\n%s", message + max_display_len);
+        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+        *actmessage2 = make_show_message_activity(buf, 0, "Message (2/2)", hdrbtns, 2, NULL, 0);
+
+        // Set the intially selected item to the 'Next' button
+        gui_set_activity_initial_selection(*actmessage2, hdrbtns[1].btn);
+    }
+
+    // Second row, hash
+    gui_view_node_t* hashsplit;
+    gui_make_hsplit(&hashsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
+
+    gui_view_node_t* hashnode;
+    gui_make_text(&hashnode, "Hash:", TFT_WHITE);
+    gui_set_align(hashnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(hashnode, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
+    gui_set_parent(hashnode, hashsplit);
+
+    gui_make_text(&hashnode, hashhex, TFT_WHITE);
+    gui_set_align(hashnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(hashnode, hashsplit);
+
+    *acthash = make_show_single_value_activity("Hash", hashhex, show_help_btn);
+
+    // Third row, path
+    gui_view_node_t* pathsplit;
+    gui_make_hsplit(&pathsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
+
+    gui_view_node_t* pathnode;
+    gui_make_text(&pathnode, "Path:", TFT_WHITE);
+    gui_set_align(pathnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(pathnode, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
+    gui_set_parent(pathnode, pathsplit);
+
+    gui_make_text(&pathnode, pathstr, TFT_WHITE);
+    gui_set_align(pathnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(pathnode, pathsplit);
+
+    *actpath = make_show_single_value_activity("Path", pathstr, show_help_btn);
+
+    // Create buttons/menu
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNMSG_REJECT },
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNMSG_ACCEPT } };
+
+    btn_data_t menubtns[] = { { .content = msgsplit, .ev_id = BTN_SIGNMSG_MSG },
+        { .content = hashsplit, .ev_id = BTN_SIGNMSG_HASH }, { .content = pathsplit, .ev_id = BTN_SIGNMSG_PATH } };
+
+    gui_activity_t* const act = make_menu_activity("Sign Message", hdrbtns, 2, menubtns, 3);
+
+    // NOTE: can only set scrolling *after* gui tree created
+    gui_set_text_scroll_selected(msgnode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(hashnode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(pathnode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
 
     return act;
+}
+
+// message details screen for user confirmation
+bool show_sign_message_activity(const char* message, const char* hashhex, const char* pathstr)
+{
+    JADE_ASSERT(message);
+    JADE_ASSERT(hashhex);
+    JADE_ASSERT(pathstr);
+
+    // Break up hash string into groups of 8 chars
+    char hashstr[96];
+    JADE_ASSERT(strlen(hashhex) == 64);
+    const int ret = snprintf(hashstr, sizeof(hashstr), "%.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s", 8, hashhex, 8,
+        hashhex + 8, 8, hashhex + 16, 8, hashhex + 24, 8, hashhex + 32, 8, hashhex + 40, 8, hashhex + 48, 8,
+        hashhex + 56);
+    JADE_ASSERT(ret > 0 && ret < sizeof(hashstr));
+
+    gui_activity_t* act_message1 = NULL;
+    gui_activity_t* act_message2 = NULL;
+    gui_activity_t* act_hash = NULL;
+    gui_activity_t* act_path = NULL;
+    gui_activity_t* act_summary
+        = make_sign_message_activities(message, hashstr, pathstr, &act_message1, &act_message2, &act_hash, &act_path);
+
+    gui_activity_t* act = act_summary;
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+
+        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_SIGNMSG_ACCEPT;
+#endif
+
+        if (ret) {
+            switch (ev_id) {
+            case BTN_BACK:
+                act = (act == act_message2) ? act_message1 : act_summary;
+                break;
+
+            case BTN_SIGNMSG_MSG:
+                act = act_message1;
+                break;
+
+            case BTN_SIGNMSG_HASH:
+                act = act_hash;
+                break;
+
+            case BTN_SIGNMSG_PATH:
+                act = act_path;
+                break;
+
+            case BTN_SIGNMSG_NEXT:
+                act = (act == act_message1) ? act_message2 : act_summary;
+                break;
+
+            case BTN_SIGNMSG_REJECT:
+                return false;
+
+            case BTN_SIGNMSG_ACCEPT:
+                return true;
+            }
+        }
+    }
 }

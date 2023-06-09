@@ -11,7 +11,7 @@
 
 #include <wally_anti_exfil.h>
 
-gui_activity_t* make_sign_message_activity(const char* msg_str, size_t msg_len, bool is_hash, const char* path_as_str);
+bool show_sign_message_activity(const char* msg_str, const char* hashhex, const char* path_as_str);
 
 static const char SIGN_MESSAGE_FILE_PREFIX[] = "signmessage";
 static const char SIGN_MESSAGE_FILE_LABEL_ASCII[] = "ascii";
@@ -32,36 +32,30 @@ static inline bool isGdkLoginChallenge(
 
 // Ask the user to confirm signing the message
 static bool confirm_sign_message(
-    const char* message, const size_t msg_len, const uint8_t* message_hash, const size_t hash_len, const char* pathstr)
+    const char* msg, const size_t msg_len, const uint8_t* hash, const size_t hash_len, const char* pathstr)
 {
-    char* message_hex = NULL;
-    gui_activity_t* act = NULL;
+    JADE_ASSERT(msg);
+    JADE_ASSERT(hash);
+    JADE_ASSERT(hash_len == SHA256_LEN);
+    JADE_ASSERT(pathstr);
+
+    // Truncate message if overlong
+    char message[MAX_DISPLAY_MESSAGE_LEN];
     if (msg_len < MAX_DISPLAY_MESSAGE_LEN) {
-        // Sufficiently short message - display the message
-        act = make_sign_message_activity(message, msg_len, false, pathstr);
+        const int ret = snprintf(message, sizeof(message), "%.*s", msg_len, msg);
+        JADE_ASSERT(ret == msg_len);
     } else {
-        // Overlong message - display the hash
-        JADE_WALLY_VERIFY(wally_hex_from_bytes(message_hash, sizeof(message_hash), &message_hex));
-        act = make_sign_message_activity(message_hex, strlen(message_hex), true, pathstr);
-    }
-    gui_set_current_activity(act);
-
-    int32_t ev_id;
-    // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-    ev_id = BTN_ACCEPT_SIGNATURE;
-#endif
-    if (message_hex) {
-        JADE_WALLY_VERIFY(wally_free_string(message_hex));
+        const int ret = snprintf(message, sizeof(message), "%.*s...", sizeof(message) - 4, msg);
+        JADE_ASSERT(ret == sizeof(message) - 1);
     }
 
-    // Return whether user accepted signing
-    return ret && ev_id == BTN_ACCEPT_SIGNATURE;
+    // Ask user to confirm
+    char* hashhex = NULL;
+    JADE_WALLY_VERIFY(wally_hex_from_bytes(hash, hash_len, &hashhex));
+    const bool confirmed = show_sign_message_activity(message, hashhex, pathstr);
+    JADE_WALLY_VERIFY(wally_free_string(hashhex));
+
+    return confirmed;
 }
 
 int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output, const size_t sig_len, size_t* written,
