@@ -11,7 +11,8 @@
 
 #include "process_utils.h"
 
-gui_activity_t* make_confirm_otp_activity(const otpauth_ctx_t* ctx);
+bool show_otp_details_activity(
+    const otpauth_ctx_t* ctx, bool initial_confirmation, bool is_valid, bool show_delete_btn);
 
 static bool validate_otp_name(const char* otp_name, const char** errmsg)
 {
@@ -64,24 +65,11 @@ static int handle_new_otp_uri(const char* otp_name, const char* otp_uri, const s
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    // Get user to confirm saving otp record
-    gui_activity_t* const act = make_confirm_otp_activity(&otp_ctx);
-    gui_set_current_activity(act);
-
-    int32_t ev_id;
-
-    // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-    ev_id = BTN_OTP_CONFIRM;
-#endif
-
-    // Check to see whether user accepted or declined
-    if (!ret || ev_id != BTN_OTP_CONFIRM) {
+    // Get user to confirm saving otp record for this wallet
+    const bool initial_confirmation = true;
+    const bool is_valid_for_this_wallet = true;
+    const bool show_delete_btn = false;
+    if (!show_otp_details_activity(&otp_ctx, initial_confirmation, is_valid_for_this_wallet, show_delete_btn)) {
         JADE_LOGW("User declined OTP record");
         *errmsg = "User declined OTP record";
         return CBOR_RPC_USER_CANCELLED;
@@ -201,7 +189,7 @@ static bool get_otp_data_from_kb(
             const int ret = snprintf(
                 message, sizeof(message), "Do you confirm the following\nOTP Name:\n\n  %s", kb_entry.strdata);
             JADE_ASSERT(ret > 0 && ret < sizeof(message));
-            done = await_yesno_activity("Confirm OTP Name", message, true, NULL);
+            done = await_yesno_activity("Confirm OTP Name", kb_entry.strdata, true, "blkstrm.com/otp");
         }
     }
 
@@ -231,29 +219,35 @@ static bool get_otp_data_from_kb(
             // Run the keyboard entry loop to get a typed passphrase
             run_keyboard_entry_loop(&kb_entry);
 
-            // If empty, abort action and return false
+            // If empty, abandon
             if (!kb_entry.len) {
-                SENSITIVE_POP(kb_entry.strdata);
-                return false;
+                // empty, abandon
+                break;
             }
 
             otpauth_ctx_t otp_ctx = { .name = otp_name };
             if (!otp_uri_to_ctx(kb_entry.strdata, kb_entry.len, &otp_ctx)) {
-                await_error_activity("Invalid OTP URI");
+                if (!await_continueback_activity(NULL, "Invalid OTP URI", true, "blkstrm.com/otp")) {
+                    // Invalid and user opts to abandon
+                    kb_entry.len = 0; // blank out any invalid value
+                    break;
+                }
             } else {
                 // URI valid, so exit text entry loop here
                 done = true;
             }
         }
 
-        JADE_ASSERT(kb_entry.len < uri_len);
-        strcpy(otp_uri, kb_entry.strdata);
-        *uri_written = kb_entry.len;
-
+        if (done) {
+            // ie. success
+            JADE_ASSERT(kb_entry.len);
+            JADE_ASSERT(kb_entry.len < uri_len);
+            strcpy(otp_uri, kb_entry.strdata);
+            *uri_written = kb_entry.len;
+        }
         SENSITIVE_POP(kb_entry.strdata);
     }
-
-    return true;
+    return done;
 }
 
 // Register a new OTP record by screen kb entry
@@ -323,7 +317,11 @@ static bool validate_scanned_otp_uri(qr_data_t* qr_data)
 invalid_qr:
     // Show the user that a valid qr was scanned, but the string data
     // did not constitute a valid/parseable OTP URI string.
-    await_error_activity("Invalid OTP URI");
+    if (!await_continueback_activity(NULL, "Invalid OTP URI", true, "blkstrm.com/otp")) {
+        // return true if we are done (ie abandoning) or false if we are to return to scanning
+        qr_data->len = 0; // blank out any invalid value
+        return true; // ie. done with scanning
+    }
     return false;
 }
 

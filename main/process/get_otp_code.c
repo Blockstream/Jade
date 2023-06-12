@@ -12,7 +12,7 @@
 #include "process_utils.h"
 
 bool display_otp_screen(
-    otpauth_ctx_t* otp_ctx, uint64_t value, char* token, size_t token_len, bool show_cancel_button, bool auto_update);
+    otpauth_ctx_t* otp_ctx, uint64_t value, char* token, size_t token_len, bool confirm_only, bool auto_update);
 
 void get_otp_code_process(void* process_ptr)
 {
@@ -72,7 +72,7 @@ void get_otp_code_process(void* process_ptr)
 #ifdef CONFIG_DEBUG_MODE
     if (rpc_get_uint64_t("override", &params, &value)) {
         otp_set_explicit_value(&otp_ctx, value);
-        auto_update = false; // fozen on passed override value
+        auto_update = false; // frozen on passed override value
     }
 #endif
 
@@ -83,8 +83,8 @@ void get_otp_code_process(void* process_ptr)
     }
 
     // Check to see whether user confirmed code
-    const bool show_cancel_button = true;
-    if (!display_otp_screen(&otp_ctx, value, token, sizeof(token), show_cancel_button, auto_update)) {
+    const bool confirm_only = true;
+    if (!display_otp_screen(&otp_ctx, value, token, sizeof(token), confirm_only, auto_update)) {
         JADE_LOGW("User declined OTP code");
         jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined OTP code", NULL);
         goto cleanup;

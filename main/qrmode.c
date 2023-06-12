@@ -887,7 +887,7 @@ static bool handle_epoch_qr(const uint8_t* cbor, const size_t cbor_len)
     char timestr[32];
     const uint64_t epoch_value = time(NULL);
     ctime_r((const time_t*)&epoch_value, timestr);
-    const int ret = snprintf(msg, sizeof(msg), "Time set successfully\n\n %s", timestr);
+    const int ret = snprintf(msg, sizeof(msg), "Time set successfully\n%s", timestr);
     JADE_ASSERT(ret > 0 && ret < sizeof(msg));
     await_message_activity(msg);
 
