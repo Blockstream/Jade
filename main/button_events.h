@@ -2,6 +2,7 @@
 #define BUTTON_EVENTS_H_
 
 typedef enum {
+    BTN_BACK,
     BTN_HELP,
     BTN_YES,
     BTN_NO,

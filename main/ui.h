@@ -114,6 +114,9 @@ gui_activity_t* make_menu_activity(
 gui_activity_t* make_show_message_activity(const char* message, uint32_t toppad, const char* title, btn_data_t* hdrbtns,
     size_t num_hdrbtns, btn_data_t* ftrbtns, size_t num_ftrbtns);
 
+// Activity to show a single value
+gui_activity_t* make_show_single_value_activity(const char* name, const char* value, const bool show_helpbtn);
+
 // Make activity that displays a simple message - cannot be dismissed by caller
 gui_activity_t* display_message_activity(const char* message);
 gui_activity_t* display_processing_message_activity();

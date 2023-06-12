@@ -268,6 +268,32 @@ gui_activity_t* make_show_message_activity(const char* message, const uint32_t t
     return act;
 }
 
+// Activity to show a single value
+gui_activity_t* make_show_single_value_activity(const char* name, const char* value, const bool show_helpbtn)
+{
+    JADE_ASSERT(name);
+    JADE_ASSERT(value);
+
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    if (show_helpbtn) {
+        hdrbtns[1].txt = "?";
+        hdrbtns[1].ev_id = BTN_HELP;
+    }
+
+    gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* const parent = add_title_bar(act, name, hdrbtns, 2, NULL);
+
+    gui_view_node_t* node;
+    gui_make_text_font(&node, value, TFT_WHITE, GUI_DEFAULT_FONT);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 24, 0, 0, 0);
+    gui_set_parent(node, parent);
+
+    return act;
+}
+
 // Make activity that displays a simple message - cannot be dismissed by caller
 gui_activity_t* display_message_activity(const char* message)
 {
