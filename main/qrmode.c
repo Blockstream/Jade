@@ -906,7 +906,7 @@ bool handle_update_pinserver_qr(const uint8_t* cbor, const size_t cbor_len)
     CborParser parser;
     if (!bcur_parse_jade_message(cbor, cbor_len, &parser, &root, "update_pinserver", &params)) {
         JADE_LOGE("Failed to parse Jade pinserver message");
-        await_error_activity("Error parsing PinServer data");
+        await_error_activity("Error parsing Oracle data");
         return false;
     }
 
@@ -916,7 +916,7 @@ bool handle_update_pinserver_qr(const uint8_t* cbor, const size_t cbor_len)
         if (errcode != CBOR_RPC_USER_CANCELLED) {
             JADE_LOGE("Error updating pinserver details: %s", errmsg);
             char buf[128];
-            const int ret = snprintf(buf, sizeof(buf), "Error updating PinServer\n%s", errmsg);
+            const int ret = snprintf(buf, sizeof(buf), "Error updating Oracle\n%s", errmsg);
             JADE_ASSERT(ret > 0 && ret < sizeof(buf));
             await_error_activity(buf);
         }

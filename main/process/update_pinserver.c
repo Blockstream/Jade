@@ -12,9 +12,9 @@
 
 #include "process_utils.h"
 
-gui_activity_t* make_show_pinserver_details_activity(
-    const char* urlA, const char* urlB, const char* pubkeyhex, bool confirming_details);
-gui_activity_t* make_show_pinserver_certificate_activity(const char* cert_hash_hex, bool confirming_details);
+bool show_pinserver_details_activity(
+    const char* urlA, const char* urlB, const char* pubkeyhex, bool initial_confirmation);
+bool show_pinserver_certificate_activity(const char* cert_hash_hex, bool initial_confirmation);
 
 // Default pinserver public key
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
@@ -34,31 +34,22 @@ void show_pinserver_details(void)
 
     // If no pinserver set, show the help screen
     if (!have_pubkey && !have_urlA && !have_urlB && !have_cert) {
-        await_message_activity("Custom PinServer not set");
-        await_qr_help_activity("blkstrm.com/pinserver");
+        await_message_activity("Custom Oracle not set");
         return;
     }
 
     // Show Pinserver details if present
     if (have_pubkey || have_urlA || have_urlB) {
-
         char* pubkey_hex = NULL;
         if (have_pubkey) {
             JADE_WALLY_VERIFY(wally_hex_from_bytes(pubkey, sizeof(pubkey), &pubkey_hex));
         }
+        const bool initial_confirmation = false;
+        show_pinserver_details_activity(urlA, urlB, pubkey_hex, initial_confirmation);
 
-        const bool confirming_details = false;
-        gui_activity_t* const act = make_show_pinserver_details_activity(urlA, urlB, pubkey_hex, confirming_details);
-        gui_set_current_activity(act);
-
-        // In a debug unattended ci build, assume button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-#endif
-        JADE_WALLY_VERIFY(wally_free_string(pubkey_hex));
+        if (pubkey_hex) {
+            JADE_WALLY_VERIFY(wally_free_string(pubkey_hex));
+        }
     }
 
     // Show certificate details if present
@@ -69,16 +60,7 @@ void show_pinserver_details(void)
         JADE_WALLY_VERIFY(wally_hex_from_bytes(cert_hash, sizeof(cert_hash), &cert_hash_hex));
 
         const bool confirming_details = false;
-        gui_activity_t* const act = make_show_pinserver_certificate_activity(cert_hash_hex, confirming_details);
-        gui_set_current_activity(act);
-
-        // In a debug unattended ci build, assume button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-#endif
+        show_pinserver_certificate_activity(cert_hash_hex, confirming_details);
         JADE_WALLY_VERIFY(wally_free_string(cert_hash_hex));
     }
 }
@@ -125,7 +107,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             goto cleanup;
         }
         if (pubkey_len != EC_PUBLIC_KEY_LEN || wally_ec_public_key_verify(pubkey, pubkey_len) != WALLY_OK) {
-            *errmsg = "Invalid PinServer pubkey";
+            *errmsg = "Invalid Oracle pubkey";
             goto cleanup;
         }
     }
@@ -160,32 +142,23 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             JADE_WALLY_VERIFY(wally_hex_from_bytes(pubkey, pubkey_len, &pubkey_hex));
         }
 
-        const bool confirming_details = true;
-        gui_activity_t* const act = make_show_pinserver_details_activity(urlA, urlB, pubkey_hex, confirming_details);
-        gui_set_current_activity(act);
+        const bool initial_confirmation = true;
+        const bool confirmed = show_pinserver_details_activity(urlA, urlB, pubkey_hex, initial_confirmation);
 
-        int32_t ev_id;
-        // In a debug unattended ci build, assume 'confirm' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_PINSERVER_DETAILS_CONFIRM;
-#endif
-        JADE_WALLY_VERIFY(wally_free_string(pubkey_hex));
+        if (pubkey_hex) {
+            JADE_WALLY_VERIFY(wally_free_string(pubkey_hex));
+        }
 
-        if (!ret || ev_id != BTN_PINSERVER_DETAILS_CONFIRM) {
+        if (!confirmed) {
             JADE_LOGW("User declined to confirm pinserver details");
-            *errmsg = "User declined to confirm PinServer details";
+            *errmsg = "User declined to confirm Oracle details";
             retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;
         }
     } else if (reset_details) {
-        if (!await_yesno_activity("Reset PinServer", "Reset PinServer details?", false, NULL)) {
+        if (!await_yesno_activity("Reset Oracle", "Reset Oracle details?", false, NULL)) {
             JADE_LOGW("User declined to confirm resetting pinserver details");
-            *errmsg = "User declined to confirm resetting PinServer details";
+            *errmsg = "User declined to confirm resetting Oracle details";
             retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;
         }
@@ -212,32 +185,23 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             JADE_WALLY_VERIFY(wally_hex_from_bytes(cert_hash, sizeof(cert_hash), &cert_hash_hex));
         }
 
-        const bool confirming_details = true;
-        gui_activity_t* const act = make_show_pinserver_certificate_activity(cert_hash_hex, confirming_details);
-        gui_set_current_activity(act);
+        const bool initial_confirmation = true;
+        const bool confirmed = show_pinserver_certificate_activity(cert_hash_hex, initial_confirmation);
 
-        int32_t ev_id;
-        // In a debug unattended ci build, assume 'confirm' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_PINSERVER_DETAILS_CONFIRM;
-#endif
-        JADE_WALLY_VERIFY(wally_free_string(cert_hash_hex));
+        if (cert_hash_hex) {
+            JADE_WALLY_VERIFY(wally_free_string(cert_hash_hex));
+        }
 
-        if (!ret || ev_id != BTN_PINSERVER_DETAILS_CONFIRM) {
+        if (!confirmed) {
             JADE_LOGW("User declined to confirm pinserver certificate");
-            *errmsg = "User declined to confirm PinServer certificate";
+            *errmsg = "User declined to confirm Oracle certificate";
             retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;
         }
     } else if (reset_certificate) {
-        if (!await_yesno_activity("Certificate", "Reset PinServer certificate?", false, NULL)) {
+        if (!await_yesno_activity("Certificate", "\n        Reset Oracle\n         certificate?", false, NULL)) {
             JADE_LOGW("User declined to confirm resetting pinserver certificate");
-            *errmsg = "User declined to confirm resetting PinServer certificate";
+            *errmsg = "User declined to confirm resetting Oracle certificate";
             retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;
         }
@@ -248,7 +212,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
         JADE_LOGI("Setting user pinserver details");
         if (!storage_set_pinserver_details(urlA, urlB, pubkey, pubkey_len)) {
             JADE_LOGE("Failed to persist pinserver details");
-            *errmsg = "Failed to persist PinServer details";
+            *errmsg = "Failed to persist Oracle details";
             retval = CBOR_RPC_INTERNAL_ERROR;
             goto cleanup;
         }
@@ -256,7 +220,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
         JADE_LOGI("Erasing user pinserver details - resetting to default");
         if (!storage_erase_pinserver_details()) {
             JADE_LOGE("Failed to erase pinserver details");
-            *errmsg = "Failed to erase PinServer details";
+            *errmsg = "Failed to erase Oracle details";
             retval = CBOR_RPC_INTERNAL_ERROR;
             goto cleanup;
         }
@@ -266,7 +230,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
         JADE_LOGI("Setting user pinserver certificate");
         if (!storage_set_pinserver_cert(cert)) {
             JADE_LOGE("Failed to persist pinserver certificate");
-            *errmsg = "Failed to persist PinServer certificate";
+            *errmsg = "Failed to persist Oracle certificate";
             retval = CBOR_RPC_INTERNAL_ERROR;
             goto cleanup;
         }
@@ -274,7 +238,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
         JADE_LOGI("Erasing user pinserver certificate - resetting to default");
         if (!storage_erase_pinserver_cert()) {
             JADE_LOGE("Failed to erase pinserver certificate");
-            *errmsg = "Failed to erase PinServer certificate";
+            *errmsg = "Failed to erase Oracle certificate";
             retval = CBOR_RPC_INTERNAL_ERROR;
             goto cleanup;
         }

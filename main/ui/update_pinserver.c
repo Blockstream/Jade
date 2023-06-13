@@ -1,176 +1,246 @@
 #include "../button_events.h"
 #include "../ui.h"
+#include "../utils/util.h"
 #include "jade_assert.h"
 
-gui_activity_t* make_show_pinserver_details_activity(
-    const char* urlA, const char* urlB, const char* pubkey_hex, const bool confirming_details)
+static gui_activity_t* make_pinserver_details_activities(const char* urlA, const char* urlB, const char* pubkey_hex,
+    const bool initial_confirmation, gui_activity_t** acturl1, gui_activity_t** acturl2, gui_activity_t** actpubkey)
 {
     JADE_ASSERT(urlA);
     JADE_ASSERT(urlB);
+    JADE_INIT_OUT_PPTR(acturl1);
+    JADE_INIT_OUT_PPTR(acturl2);
+    JADE_INIT_OUT_PPTR(actpubkey);
 
-    char buf[128];
+    const bool show_help_btn = false;
+    const char* const title = initial_confirmation ? "Confirm Oracle" : "Oracle Details";
 
-    gui_activity_t* const act = gui_make_activity();
+    // First row, URL
+    gui_view_node_t* urlsplit;
+    gui_make_hsplit(&urlsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_view_node_t* urlnode;
+    gui_make_text(&urlnode, "URL:", TFT_WHITE);
+    gui_set_align(urlnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(urlnode, urlsplit);
 
-    // first row, url
-    gui_view_node_t* hsplit_text1;
-    gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 30, 70);
-    gui_set_parent(hsplit_text1, vsplit);
+    gui_make_text(&urlnode, urlA, TFT_WHITE);
+    gui_set_align(urlnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(urlnode, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
+    gui_set_parent(urlnode, urlsplit);
 
-    gui_view_node_t* text1;
-    gui_make_text(&text1, "URL", TFT_WHITE);
-    gui_set_parent(text1, hsplit_text1);
-    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text1, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
+    *acturl1 = make_show_single_value_activity("URL", urlA, show_help_btn);
 
-    if (urlA[0] == '\0') {
-        const int ret = snprintf(buf, sizeof(buf), "<None>");
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-    } else {
-        const int ret = snprintf(buf, sizeof(buf), "} %s {", urlA);
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+    // Second row, second url
+    gui_view_node_t* url2split;
+    gui_make_hsplit(&url2split, GUI_SPLIT_RELATIVE, 2, 40, 60);
+
+    gui_view_node_t* url2node;
+    gui_make_text(&url2node, "2nd URL:", TFT_WHITE);
+    gui_set_align(url2node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(url2node, url2split);
+
+    gui_make_text(&url2node, urlB, TFT_WHITE);
+    gui_set_align(url2node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(url2node, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
+    gui_set_parent(url2node, url2split);
+
+    *acturl2 = make_show_single_value_activity("2nd URL", urlB, show_help_btn);
+
+    // Third row, pubkey
+    gui_view_node_t* pubkeysplit;
+    gui_make_hsplit(&pubkeysplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
+
+    gui_view_node_t* pubkeynode;
+    gui_make_text(&pubkeynode, "Pubkey:", TFT_WHITE);
+    gui_set_align(pubkeynode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_padding(pubkeynode, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
+    gui_set_parent(pubkeynode, pubkeysplit);
+
+    gui_make_text(&pubkeynode, pubkey_hex, TFT_WHITE);
+    gui_set_align(pubkeynode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(pubkeynode, pubkeysplit);
+
+    *actpubkey = make_show_single_value_activity("Oracle Pubkey", pubkey_hex, show_help_btn);
+
+    // Create buttons/menu
+    btn_data_t hdrbtns[]
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_PINSERVER_DETAILS_RETAIN_CONFIRM },
+              { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    // If initial confirmation, also add a 'confirm' button
+    // For initial confirmation, the 'back' button is 'discard' rather than 'retain'
+    // and we add a 'confirm' button also.
+    if (initial_confirmation) {
+        hdrbtns[0].ev_id = BTN_PINSERVER_DETAILS_DISCARD_DELETE;
+
+        hdrbtns[1].txt = "S";
+        hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
+        hdrbtns[1].ev_id = BTN_PINSERVER_DETAILS_RETAIN_CONFIRM;
     }
 
-    gui_view_node_t* text_url1;
-    gui_make_text(&text_url1, buf, TFT_WHITE);
-    gui_set_parent(text_url1, hsplit_text1);
-    gui_set_align(text_url1, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_text_scroll(text_url1, TFT_BLACK);
+    btn_data_t menubtns[] = { { .content = urlsplit, .ev_id = BTN_PINSERVER_DETAILS_URL_A },
+        { .content = url2split, .ev_id = BTN_PINSERVER_DETAILS_URL_B },
+        { .content = pubkeysplit, .ev_id = BTN_PINSERVER_DETAILS_PUBKEY } };
 
-    // second row, alternative URL
-    gui_view_node_t* hsplit_text2;
-    gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 30, 70);
-    gui_set_parent(hsplit_text2, vsplit);
+    gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 3);
 
-    gui_view_node_t* text2;
-    gui_make_text(&text2, "2nd URL", TFT_WHITE);
-    gui_set_parent(text2, hsplit_text2);
-    gui_set_align(text2, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text2, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
-
-    if (urlB[0] == '\0') {
-        const int ret = snprintf(buf, sizeof(buf), "<None>");
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-    } else {
-        const int ret = snprintf(buf, sizeof(buf), "} %s {", urlB);
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-    }
-
-    gui_view_node_t* text_url2;
-    gui_make_text(&text_url2, buf, TFT_WHITE);
-    gui_set_parent(text_url2, hsplit_text2);
-    gui_set_align(text_url2, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_text_scroll(text_url2, TFT_BLACK);
-
-    // third row, pubkey
-    gui_view_node_t* hsplit_text3;
-    gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 30, 70);
-    gui_set_parent(hsplit_text3, vsplit);
-
-    gui_view_node_t* text3;
-    gui_make_text(&text3, "PubKey", TFT_WHITE);
-    gui_set_parent(text3, hsplit_text3);
-    gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text3, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
-
-    if (!pubkey_hex) {
-        const int ret = snprintf(buf, sizeof(buf), "<No Change>");
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-    } else {
-        const int ret = snprintf(buf, sizeof(buf), "} %s {", pubkey_hex);
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-    }
-
-    gui_view_node_t* text_pubkey;
-    gui_make_text(&text_pubkey, buf, TFT_WHITE);
-    gui_set_parent(text_pubkey, hsplit_text3);
-    gui_set_align(text_pubkey, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_text_scroll(text_pubkey, TFT_BLACK);
-
-    // fourth row, buttons
-    if (confirming_details) {
-        // 'Deny' and 'Confirm' buttons
-        btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
-            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
-            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
-        add_buttons(vsplit, UI_ROW, btns, 3);
-    } else {
-        // Just a central 'ok' button
-        btn_data_t btns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-            { .txt = "Ok", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM },
-            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
-        add_buttons(vsplit, UI_ROW, btns, 3);
-    }
+    // NOTE: can only set scrolling *after* gui tree created
+    gui_set_text_scroll_selected(urlnode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(url2node, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(pubkeynode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
 
     return act;
 }
 
-gui_activity_t* make_show_pinserver_certificate_activity(const char* cert_hash_hex, const bool confirming_details)
+// message details screen for user confirmation
+bool show_pinserver_details_activity(
+    const char* urlA, const char* urlB, const char* pubkey_hex, const bool initial_confirmation)
 {
+    // all fields optional
+
+    char display_hex[96];
+    if (pubkey_hex) {
+        JADE_ASSERT(strlen(pubkey_hex) == 66);
+        const int ret
+            = snprintf(display_hex, sizeof(display_hex), "%.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s %.*s", 8,
+                pubkey_hex, 8, pubkey_hex + 8, 8, pubkey_hex + 16, 8, pubkey_hex + 24, 8, pubkey_hex + 32, 8,
+                pubkey_hex + 40, 8, pubkey_hex + 48, 8, pubkey_hex + 56, 2, pubkey_hex + 64);
+        JADE_ASSERT(ret > 0 && ret < sizeof(display_hex));
+    } else {
+        display_hex[0] = '\0';
+    }
+
+    gui_activity_t* act_urlA = NULL;
+    gui_activity_t* act_urlB = NULL;
+    gui_activity_t* act_pubkey = NULL;
+    gui_activity_t* act_summary = make_pinserver_details_activities(make_empty_none(urlA), make_empty_none(urlB),
+        make_empty_none(display_hex), initial_confirmation, &act_urlA, &act_urlB, &act_pubkey);
+
+    gui_activity_t* act = act_summary;
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+
+        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_PINSERVER_DETAILS_RETAIN_CONFIRM;
+#endif
+
+        if (ret) {
+            switch (ev_id) {
+            case BTN_BACK:
+                act = act_summary;
+                break;
+
+            case BTN_PINSERVER_DETAILS_URL_A:
+                act = act_urlA;
+                break;
+
+            case BTN_PINSERVER_DETAILS_URL_B:
+                act = act_urlB;
+                break;
+
+            case BTN_PINSERVER_DETAILS_PUBKEY:
+                act = act_pubkey;
+                break;
+
+            case BTN_PINSERVER_DETAILS_DISCARD_DELETE:
+                return false;
+
+            case BTN_PINSERVER_DETAILS_RETAIN_CONFIRM:
+                return true;
+            }
+        }
+    }
+}
+
+static gui_activity_t* make_show_pinserver_certificate_activity(
+    const char* cert_hash_hex, const bool initial_confirmation)
+{
+    JADE_ASSERT(cert_hash_hex);
+
+    const char* const title = initial_confirmation ? "Confirm Oracle" : "Oracle Details";
+
+    btn_data_t hdrbtns[]
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_PINSERVER_DETAILS_RETAIN_CONFIRM },
+              { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    // If initial confirmation, also add a 'confirm' button
+    if (initial_confirmation) {
+        hdrbtns[0].ev_id = BTN_PINSERVER_DETAILS_DISCARD_DELETE;
+
+        hdrbtns[1].txt = "S";
+        hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
+        hdrbtns[1].ev_id = BTN_PINSERVER_DETAILS_RETAIN_CONFIRM;
+    }
+
     gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* const parent = add_title_bar(act, title, hdrbtns, 2, NULL);
+    gui_view_node_t* node;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 22, 22, 22, 34);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 25, 75);
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    gui_set_parent(vsplit, parent);
 
     // first row, text
-    gui_view_node_t* text1;
-    const char* message = confirming_details ? "Confirm hash of certificate" : "Additional root certificate";
-    gui_make_text(&text1, message, TFT_WHITE);
-    gui_set_parent(text1, vsplit);
-    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_make_text(&node, "Certificate Hash:", TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
     // second row, hash
-    gui_view_node_t* hsplit_text2;
-    gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 30, 70);
-    gui_set_parent(hsplit_text2, vsplit);
-
-    gui_view_node_t* text2;
-    gui_make_text(&text2, "Hash", TFT_WHITE);
-    gui_set_parent(text2, hsplit_text2);
-    gui_set_align(text2, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_borders(text2, TFT_BLOCKSTREAM_GREEN, 2, GUI_BORDER_BOTTOM);
-
-    char buf[128];
-    if (cert_hash_hex == NULL) {
-        const int ret = snprintf(buf, sizeof(buf), "<None>");
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-    } else {
-        const int ret = snprintf(buf, sizeof(buf), "} %s {", cert_hash_hex);
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-    }
-
-    gui_view_node_t* text_hash;
-    gui_make_text(&text_hash, buf, TFT_WHITE);
-    gui_set_parent(text_hash, hsplit_text2);
-    gui_set_align(text_hash, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_text_scroll(text_hash, TFT_BLACK);
-
-    // third row, dummy black bg
-    gui_view_node_t* dummy_bg3;
-    gui_make_fill(&dummy_bg3, TFT_BLACK);
-    gui_set_parent(dummy_bg3, vsplit);
-
-    // fourth row, buttons
-    if (confirming_details) {
-        // 'Deny' and 'Confirm' buttons
-        btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_DENY },
-            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
-            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM } };
-        add_buttons(vsplit, UI_ROW, btns, 3);
-    } else {
-        // Just a central 'ok' button
-        btn_data_t btns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-            { .txt = "Ok", .font = GUI_DEFAULT_FONT, .ev_id = BTN_PINSERVER_DETAILS_CONFIRM },
-            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
-        add_buttons(vsplit, UI_ROW, btns, 3);
-    }
+    gui_make_text(&node, cert_hash_hex, TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
     return act;
+}
+
+bool show_pinserver_certificate_activity(const char* cert_hash_hex, const bool initial_confirmation)
+{
+    // all fields optional
+
+    char display_hex[96];
+    if (cert_hash_hex) {
+        JADE_ASSERT(strlen(cert_hash_hex) == 64);
+        const int ret = snprintf(display_hex, sizeof(display_hex), "%.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s", 8,
+            cert_hash_hex, 8, cert_hash_hex + 8, 8, cert_hash_hex + 16, 8, cert_hash_hex + 24, 8, cert_hash_hex + 32, 8,
+            cert_hash_hex + 40, 8, cert_hash_hex + 48, 8, cert_hash_hex + 56);
+        JADE_ASSERT(ret > 0 && ret < sizeof(display_hex));
+    } else {
+        display_hex[0] = '\0';
+    }
+
+    gui_activity_t* act = make_show_pinserver_certificate_activity(make_empty_none(display_hex), initial_confirmation);
+    gui_set_current_activity(act);
+    int32_t ev_id;
+
+    while (true) {
+        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_PINSERVER_DETAILS_RETAIN_CONFIRM;
+#endif
+
+        if (ret) {
+            switch (ev_id) {
+            case BTN_PINSERVER_DETAILS_DISCARD_DELETE:
+                return false;
+
+            case BTN_PINSERVER_DETAILS_RETAIN_CONFIRM:
+                return true;
+            }
+        }
+    }
 }

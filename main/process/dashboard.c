@@ -1475,7 +1475,7 @@ static void handle_pinserver_scan(void)
 {
     if (keychain_has_pin()) {
         // Not allowed if wallet initialised
-        await_error_activity("Set PinServer not permitted\nonce wallet initialized");
+        await_error_activity("\n       Set Oracle not\n       permitted once\n      wallet initialized");
         return;
     }
 
@@ -1509,13 +1509,13 @@ static void handle_pinserver_reset(void)
 {
     if (keychain_has_pin()) {
         // Not allowed if wallet initialised
-        await_error_activity("Reset PinServer not permitted\nonce wallet initialized");
+        await_error_activity("\n      Reset Oracle not\n       permitted once\n      wallet initialized");
         return;
     }
 
-    if (await_yesno_activity("Reset PinServer", "Reset PinServer details\nand certificate?", false, NULL)) {
+    if (await_yesno_activity("Reset Oracle", "\nReset Oracle details\nand certificate?", false, NULL)) {
         if (!reset_pinserver()) {
-            await_error_activity("Error resetting PinServer");
+            await_error_activity("Error resetting Oracle");
         }
     }
 }

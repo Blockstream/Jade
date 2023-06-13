@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "jade_assert.h"
+
+static inline const char* make_empty_none(const char* pstr) { return (!pstr || *pstr == '\0') ? "<None>" : pstr; }
+
 static inline void reverse(uint8_t* dest, const uint8_t* src, const size_t len)
 {
     JADE_ASSERT(dest);
