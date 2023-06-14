@@ -176,9 +176,8 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
 
 gui_activity_t* make_pinserver_activity(void);
 
-gui_activity_t* make_view_multisig_activity(const char* multisig_name, size_t index, size_t total, bool valid,
-    bool sorted, size_t threshold, size_t num_signers, const uint8_t* master_blinding_key,
-    size_t master_blinding_key_len);
+bool show_view_multisig_activity(const char* multisig_name, bool initial_confirmation, bool is_valid, bool is_sorted,
+    size_t threshold, size_t num_signers, const char* master_blinding_key_hex);
 
 gui_activity_t* make_session_activity(void);
 gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item);
@@ -858,6 +857,24 @@ static void handle_ble(void)
 static void handle_ble(void) { await_message_activity("\n\n       BLE disabled in\n        this firmware"); }
 #endif // CONFIG_BT_ENABLED
 
+// Helper to delete a multisig record after user confirms
+static bool delete_multisig_record(const char* multisig_name)
+{
+    JADE_ASSERT(multisig_name);
+
+    if (!await_yesno_activity("Delete Wallet", multisig_name, false, "blkstrm.com/wallets")) {
+        return false;
+    }
+
+    if (!storage_erase_multisig_registration(multisig_name)) {
+        await_error_activity("\n\n      Failed to delete\n  registered wallet!");
+        return false;
+    }
+
+    await_message_activity("\n\n    Registered Wallet\n            Deleted");
+    return true;
+}
+
 static void handle_multisigs(void)
 {
     char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
@@ -867,46 +884,65 @@ static void handle_multisigs(void)
     JADE_ASSERT(ok);
 
     if (num_multisigs == 0) {
-        await_message_activity("No m-of-n multisigs registered");
+        await_message_activity("\n\n   No additional wallets\n          registered");
         return;
     }
 
-    for (int i = 0; i < num_multisigs; ++i) {
-        const char* errmsg = NULL;
-        const char* multisig_name = names[i];
-        multisig_data_t multisig_data;
-        const bool valid = multisig_load_from_storage(multisig_name, &multisig_data, &errmsg);
+    size_t selected = 0;
+    gui_view_node_t* walletname = NULL;
+    gui_activity_t* const act = make_carousel_activity("View Wallet", NULL, &walletname);
+    gui_update_text(walletname, names[selected]);
+    gui_set_current_activity(act);
+    int32_t ev_id;
 
-        // We will display the names of invalid entries, just log any message
-        if (errmsg) {
-            JADE_LOGW("%s", errmsg);
-        }
+    bool done = false;
+    while (!done) {
+        JADE_ASSERT(selected < num_multisigs);
+        gui_update_text(walletname, names[selected]);
 
-        const uint8_t* const master_blinding_key
-            = multisig_data.master_blinding_key_len ? multisig_data.master_blinding_key : NULL;
-        gui_activity_t* const act = make_view_multisig_activity(multisig_name, i + 1, num_multisigs, valid,
-            multisig_data.sorted, multisig_data.threshold, multisig_data.num_xpubs, master_blinding_key,
-            multisig_data.master_blinding_key_len);
-        JADE_ASSERT(act);
+        if (gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            switch (ev_id) {
+            case GUI_WHEEL_LEFT_EVENT:
+                selected = (selected + num_multisigs - 1) % num_multisigs;
+                break;
 
-        while (true) {
-            gui_set_current_activity(act);
+            case GUI_WHEEL_RIGHT_EVENT:
+                selected = (selected + 1) % num_multisigs;
+                break;
 
-            int32_t ev_id;
-            ok = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-            if (ok && ev_id == BTN_MULTISIG_DELETE) {
-                char message[128];
-                const int ret = snprintf(message, sizeof(message), "Delete registered multisig?\n\n%s", multisig_name);
-                JADE_ASSERT(ret > 0 && ret < sizeof(message));
-                if (!await_yesno_activity("Delete Multisig", message, false, NULL)) {
-                    continue;
+            default:
+                if (ev_id == gui_get_click_event()) {
+                    done = true;
+                    break;
                 }
-
-                ok = storage_erase_multisig_registration(multisig_name);
-                JADE_ASSERT(ok);
             }
-            break;
-        };
+        }
+    }
+
+    // Load selected multisig record from storage given the name
+    JADE_ASSERT(selected < num_multisigs);
+    const char* errmsg = NULL;
+    multisig_data_t multisig_data;
+    const bool is_valid = multisig_load_from_storage(names[selected], &multisig_data, &errmsg);
+    const bool initial_confirmation = false;
+
+    // We will display the names of invalid entries, just log any message
+    if (errmsg) {
+        JADE_LOGW("%s", errmsg);
+    }
+
+    char* master_blinding_key_hex = NULL;
+    if (is_valid && multisig_data.master_blinding_key_len) {
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(
+            multisig_data.master_blinding_key, multisig_data.master_blinding_key_len, &master_blinding_key_hex));
+    }
+    if (!show_view_multisig_activity(names[selected], initial_confirmation, is_valid, multisig_data.sorted,
+            multisig_data.threshold, multisig_data.num_xpubs, master_blinding_key_hex)) {
+        // Delete record
+        delete_multisig_record(names[selected]);
+    }
+    if (master_blinding_key_hex) {
+        JADE_WALLY_VERIFY(wally_free_string(master_blinding_key_hex));
     }
 }
 

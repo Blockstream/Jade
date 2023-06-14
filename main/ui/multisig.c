@@ -6,501 +6,599 @@
 #include "../multisig.h"
 #include "../ui.h"
 #include "../utils/event.h"
+#include "../utils/util.h"
 
 #include <sodium/utils.h>
 
 bool wallet_bip32_path_as_str(const uint32_t* parts, size_t num_parts, char* output, const size_t output_len);
 
-// Translate a GUI button (ok/cancel) into a multisig_ JADE_EVENT (so the caller
-// can await without worrying about which screen/activity it came from).
-static void translate_event(void* handler_arg, esp_event_base_t base, int32_t id, void* unused)
+static gui_activity_t* make_view_multisig_activities(const char* multisig_name, const bool initial_confirmation,
+    const bool is_valid, const bool is_sorted, const size_t threshold, const size_t num_signers,
+    const char* master_blinding_key_hex, gui_activity_t** actname, gui_activity_t** acttype, gui_activity_t** actsorted,
+    gui_activity_t** actblindingkey)
 {
-    JADE_ASSERT(id == BTN_MULTISIG_EXIT || id == BTN_MULTISIG_CONFIRM);
-    esp_event_post(
-        JADE_EVENT, id == BTN_MULTISIG_CONFIRM ? MULTISIG_ACCEPT : MULTISIG_DECLINE, NULL, 0, 100 / portTICK_PERIOD_MS);
-}
-
-static void make_initial_confirm_screen(link_activity_t* link_activity, const char* multisig_name, const bool sorted,
-    const size_t threshold, const size_t num_signers, const uint8_t* master_blinding_key,
-    const size_t master_blinding_key_len, const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len)
-{
-    JADE_ASSERT(link_activity);
     JADE_ASSERT(multisig_name);
-    JADE_ASSERT(wallet_fingerprint);
-    JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
-    JADE_ASSERT(wallet_fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);
+    // master blinding key is optional
+    JADE_INIT_OUT_PPTR(actname);
+    JADE_INIT_OUT_PPTR(acttype);
+    JADE_INIT_OUT_PPTR(actsorted);
+    JADE_INIT_OUT_PPTR(actblindingkey);
 
-    gui_activity_t* const act = gui_make_activity();
+    // initial confirmations can't be invalid
+    JADE_ASSERT(!initial_confirmation || is_valid);
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    const bool show_help_btn = false;
+    char display_str[2 * MULTISIG_MASTER_BLINDING_KEY_SIZE + 1];
 
-    gui_view_node_t* hsplit_text1;
-    gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 40, 60);
-    gui_set_parent(hsplit_text1, vsplit);
+    // First row, name
+    gui_view_node_t* splitname;
+    gui_make_hsplit(&splitname, GUI_SPLIT_RELATIVE, 2, 35, 65);
 
-    gui_view_node_t* text1a;
-    gui_make_text(&text1a, "Name", TFT_WHITE);
-    gui_set_parent(text1a, hsplit_text1);
-    gui_set_align(text1a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_view_node_t* name;
+    gui_make_text(&name, "Name: ", TFT_WHITE);
+    gui_set_align(name, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(name, splitname);
 
-    gui_view_node_t* text1b;
-    gui_make_text(&text1b, multisig_name, TFT_WHITE);
-    gui_set_parent(text1b, hsplit_text1);
-    gui_set_align(text1b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_make_text(&name, multisig_name, TFT_WHITE);
+    gui_set_align(name, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(name, splitname);
 
-    gui_view_node_t* hsplit_text2;
-    gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 45, 55);
-    gui_set_parent(hsplit_text2, vsplit);
+    *actname = make_show_single_value_activity("Wallet Name", multisig_name, show_help_btn);
 
-    gui_view_node_t* text2a;
-    gui_make_text(&text2a, "Type", TFT_WHITE);
-    gui_set_parent(text2a, hsplit_text2);
-    gui_set_align(text2a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    // If not valid, no details, just message
+    if (!is_valid) {
+        // Create 'name' button and warning
+        btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_RETAIN_CONFIRM },
+            { .txt = "X", .font = GUI_TITLE_FONT, .ev_id = BTN_MULTISIG_DISCARD_DELETE } };
 
-    char type[16];
-    int ret = snprintf(type, sizeof(type), "%uof%u", threshold, num_signers);
-    JADE_ASSERT(ret > 0 && ret < sizeof(type));
+        btn_data_t menubtns[] = { { .content = splitname, .ev_id = BTN_OTA_VIEW_CURRENT_VERSION },
+            { .txt = "Not valid for", .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+            { .txt = "current wallet", .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    gui_view_node_t* text2b;
-    gui_make_text(&text2b, type, TFT_WHITE);
-    gui_set_parent(text2b, hsplit_text2);
-    gui_set_align(text2b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+        gui_activity_t* const act = make_menu_activity("Registered Wallet", hdrbtns, 2, menubtns, 4);
 
-    gui_view_node_t* hsplit_text3;
-    gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 45, 55);
-    gui_set_parent(hsplit_text3, vsplit);
-
-    gui_view_node_t* text3a;
-    gui_make_text(&text3a, "Sorted", TFT_WHITE);
-    gui_set_parent(text3a, hsplit_text3);
-    gui_set_align(text3a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* text3b;
-    gui_make_text(&text3b, sorted ? "Y" : "N", TFT_WHITE);
-    gui_set_parent(text3b, hsplit_text3);
-    gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* hsplit_text4;
-    gui_make_hsplit(&hsplit_text4, GUI_SPLIT_RELATIVE, 2, 45, 55);
-    gui_set_parent(hsplit_text4, vsplit);
-
-    if (master_blinding_key && master_blinding_key_len) {
-        gui_view_node_t* text4a;
-        gui_make_text(&text4a, "Blinding Key", TFT_WHITE);
-        gui_set_parent(text4a, hsplit_text4);
-        gui_set_align(text4a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        char* hexstr = NULL;
-        char display_str[2 * MULTISIG_MASTER_BLINDING_KEY_SIZE + 4 + 1]; // sufficient for hex key and bookends
-        JADE_WALLY_VERIFY(wally_hex_from_bytes(master_blinding_key, master_blinding_key_len, &hexstr));
-        const int ret = snprintf(display_str, sizeof(display_str), "} %s {", hexstr);
-        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-        JADE_WALLY_VERIFY(wally_free_string(hexstr));
-
-        gui_view_node_t* text4b;
-        gui_make_text(&text4b, display_str, TFT_WHITE);
-        gui_set_parent(text4b, hsplit_text4);
-        gui_set_align(text4b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-        gui_set_text_scroll(text4b, TFT_BLACK);
-    } else {
-        gui_view_node_t* text4a;
-        gui_make_text(&text4a, "Wallet", TFT_WHITE);
-        gui_set_parent(text4a, hsplit_text4);
-        gui_set_align(text4a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        char* hexstr = NULL;
-        JADE_WALLY_VERIFY(wally_hex_from_bytes(wallet_fingerprint, wallet_fingerprint_len, &hexstr));
-        gui_view_node_t* text4b;
-        gui_make_text(&text4b, hexstr, TFT_WHITE);
-        gui_set_parent(text4b, hsplit_text4);
-        gui_set_align(text4b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-        JADE_WALLY_VERIFY(wally_free_string(hexstr));
+        // NOTE: can only set scrolling *after* gui tree created
+        gui_set_text_scroll_selected(name, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+        return act;
     }
 
-    // Buttons
-    btn_data_t btns[] = { { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MULTISIG_EXIT },
-        { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_NEXT } };
-    add_buttons(vsplit, UI_ROW, btns, 2);
+    // Second row, type
+    gui_view_node_t* splittype;
+    gui_make_hsplit(&splittype, GUI_SPLIT_RELATIVE, 2, 35, 65);
 
-    // Connect every screen's 'exit' button to the 'translate' handler above
-    gui_activity_register_event(act, GUI_BUTTON_EVENT, BTN_MULTISIG_EXIT, translate_event, NULL);
+    gui_view_node_t* type;
+    gui_make_text(&type, "Type: ", TFT_WHITE);
+    gui_set_align(type, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(type, splittype);
 
-    // Set the intially selected item to the 'Next' button (ie. btn[1])
-    gui_set_activity_initial_selection(act, btns[1].btn);
+    int ret = snprintf(display_str, sizeof(display_str), "%uof%u", threshold, num_signers);
+    JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
 
-    // Push details into the output structure
-    link_activity->activity = act;
-    link_activity->prev_button = NULL;
-    link_activity->next_button = btns[1].btn;
+    gui_make_text(&type, display_str, TFT_WHITE);
+    gui_set_align(type, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(type, splittype);
+
+    *acttype = make_show_single_value_activity("Type", display_str, show_help_btn);
+
+    // Third row, sorted flag
+    gui_view_node_t* splitsorted;
+    gui_make_hsplit(&splitsorted, GUI_SPLIT_RELATIVE, 2, 35, 65);
+
+    gui_view_node_t* sorted;
+    gui_make_text(&sorted, "Sorted: ", TFT_WHITE);
+    gui_set_align(sorted, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(sorted, splitsorted);
+
+    gui_make_text(&sorted, is_sorted ? "Yes" : "No", TFT_WHITE);
+    gui_set_align(sorted, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(sorted, splitsorted);
+
+    *actsorted = make_show_single_value_activity("Sorted", is_sorted ? "Yes" : "No", show_help_btn);
+
+    // Forth row, blinding key
+    gui_view_node_t* splitblindingkey;
+    gui_make_hsplit(&splitblindingkey, GUI_SPLIT_RELATIVE, 2, 55, 45);
+
+    gui_view_node_t* blindingkey;
+    gui_make_text(&blindingkey, "Blinding Key: ", TFT_WHITE);
+    gui_set_align(blindingkey, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(blindingkey, splitblindingkey);
+
+    gui_make_text(&blindingkey, master_blinding_key_hex, TFT_WHITE);
+    gui_set_align(blindingkey, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(blindingkey, splitblindingkey);
+
+    *actblindingkey = make_show_single_value_activity("Blinding Key", master_blinding_key_hex, show_help_btn);
+
+    // Buttons - Delete and Next
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_RETAIN_CONFIRM },
+        { .txt = "X", .font = GUI_TITLE_FONT, .ev_id = BTN_MULTISIG_DISCARD_DELETE } };
+
+    // For initial confirmation, the 'back' button is 'discard' rather than 'retain'
+    // and the 'delete' button is replaced by a 'next' button.
+    if (initial_confirmation) {
+        hdrbtns[0].ev_id = BTN_MULTISIG_DISCARD_DELETE;
+
+        hdrbtns[1].txt = ">";
+        hdrbtns[1].font = JADE_SYMBOLS_16x16_FONT;
+        hdrbtns[1].ev_id = BTN_MULTISIG_RETAIN_CONFIRM;
+    }
+
+    btn_data_t menubtns[] = { { .content = splitname, .ev_id = BTN_MULTISIG_NAME },
+        { .content = splittype, .ev_id = BTN_MULTISIG_TYPE }, { .content = splitsorted, .ev_id = BTN_MULTISIG_SORTED },
+        { .content = splitblindingkey, .ev_id = BTN_MULTISIG_BLINDINGKEY } };
+
+    const char* title = initial_confirmation ? "Register Multisig" : "Registered Wallet";
+    gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
+
+    if (initial_confirmation) {
+        // Set the intially selected item to the 'Next' button
+        gui_set_activity_initial_selection(act, hdrbtns[1].btn);
+    }
+
+    // NOTE: can only set scrolling *after* gui tree created
+    gui_set_text_scroll_selected(name, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    // gui_set_text_scroll_selected(type, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    // gui_set_text_scroll_selected(sorted, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(blindingkey, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+
+    return act;
 }
 
-static void make_signer_activity(link_activity_t* link_activity, const size_t num_signers, const size_t index,
-    const bool is_this_wallet, const signer_t* signer)
+// multisig details screen for viewing or confirmation
+// returns true if we are to store/retain this record, false if we are to discard/delete the record
+bool show_view_multisig_activity(const char* multisig_name, const bool initial_confirmation, const bool is_valid,
+    const bool is_sorted, const size_t threshold, const size_t num_signers, const char* master_blinding_key_hex)
 {
-    JADE_ASSERT(link_activity);
-    JADE_ASSERT(index <= num_signers);
+    JADE_ASSERT(multisig_name);
+
+    // Break up key string into groups of 8 chars
+    char blindingkeystr[96];
+    if (master_blinding_key_hex) {
+        JADE_ASSERT(strlen(master_blinding_key_hex) == 64);
+        const int ret
+            = snprintf(blindingkeystr, sizeof(blindingkeystr), "%.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s  %.*s", 8,
+                master_blinding_key_hex, 8, master_blinding_key_hex + 8, 8, master_blinding_key_hex + 16, 8,
+                master_blinding_key_hex + 24, 8, master_blinding_key_hex + 32, 8, master_blinding_key_hex + 40, 8,
+                master_blinding_key_hex + 48, 8, master_blinding_key_hex + 56);
+        JADE_ASSERT(ret > 0 && ret < sizeof(blindingkeystr));
+    } else {
+        blindingkeystr[0] = '\0';
+    }
+
+    gui_activity_t* act_name = NULL;
+    gui_activity_t* act_type = NULL;
+    gui_activity_t* act_sorted = NULL;
+    gui_activity_t* act_blindingkey = NULL;
+    gui_activity_t* act_summary
+        = make_view_multisig_activities(multisig_name, initial_confirmation, is_valid, is_sorted, threshold,
+            num_signers, make_empty_none(blindingkeystr), &act_name, &act_type, &act_sorted, &act_blindingkey);
+    gui_activity_t* act = act_summary;
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+
+        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_MULTISIG_RETAIN_CONFIRM;
+#endif
+
+        if (ret) {
+            switch (ev_id) {
+            case BTN_BACK:
+                act = act_summary;
+                break;
+
+            case BTN_MULTISIG_NAME:
+                act = act_name;
+                break;
+
+            case BTN_MULTISIG_TYPE:
+                act = act_type;
+                break;
+
+            case BTN_MULTISIG_SORTED:
+                act = act_sorted;
+                break;
+
+            case BTN_MULTISIG_BLINDINGKEY:
+                act = act_blindingkey;
+                break;
+
+            case BTN_MULTISIG_DISCARD_DELETE:
+                return false;
+
+            case BTN_MULTISIG_RETAIN_CONFIRM:
+                return true;
+            }
+        }
+    }
+}
+
+static gui_activity_t* make_multisig_signer_activities(const signer_t* signer, const size_t signer_number,
+    const size_t num_signers, const bool is_this_signer, gui_activity_t** actfingerprint,
+    gui_activity_t** actderivation, gui_activity_t** actxpub1, gui_activity_t** actxpub2, gui_activity_t** actpath)
+{
     JADE_ASSERT(signer);
+    JADE_ASSERT(signer_number > 0);
+    JADE_ASSERT(signer_number <= num_signers);
+    JADE_INIT_OUT_PPTR(actfingerprint);
+    JADE_INIT_OUT_PPTR(actderivation);
+    JADE_INIT_OUT_PPTR(actxpub1);
+    JADE_INIT_OUT_PPTR(actxpub2);
+    JADE_INIT_OUT_PPTR(actpath);
 
-    char header[24];
-    const int ret = snprintf(header, sizeof(header), "Signer %d/%d%s", index, num_signers, is_this_wallet ? " *" : "");
-    JADE_ASSERT(ret > 0 && ret < sizeof(header));
+    const bool show_help_btn = false;
+    char display_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
 
-    gui_activity_t* const act = gui_make_activity();
+    // First row, fingerprint
+    gui_view_node_t* splitfingerprint;
+    gui_make_hsplit(&splitfingerprint, GUI_SPLIT_RELATIVE, 2, 55, 45);
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
-
-    gui_view_node_t* hsplit_text1;
-    gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 35, 65);
-    gui_set_parent(hsplit_text1, vsplit);
-
-    gui_view_node_t* text1a;
-    gui_make_text(&text1a, "Fingerprint", TFT_WHITE);
-    gui_set_parent(text1a, hsplit_text1);
-    gui_set_align(text1a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_view_node_t* fingerprint;
+    gui_make_text(&fingerprint, "Fingerprint: ", TFT_WHITE);
+    gui_set_align(fingerprint, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(fingerprint, splitfingerprint);
 
     char* fingerprint_hex;
     JADE_WALLY_VERIFY(wally_hex_from_bytes(signer->fingerprint, sizeof(signer->fingerprint), &fingerprint_hex));
-    gui_view_node_t* text1b;
-    gui_make_text(&text1b, fingerprint_hex, TFT_WHITE);
-    gui_set_parent(text1b, hsplit_text1);
-    gui_set_align(text1b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_make_text(&fingerprint, fingerprint_hex, TFT_WHITE);
+    gui_set_align(fingerprint, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(fingerprint, splitfingerprint);
+
+    *actfingerprint = make_show_single_value_activity("Fingerprint", fingerprint_hex, show_help_btn);
     JADE_WALLY_VERIFY(wally_free_string(fingerprint_hex));
 
-    gui_view_node_t* hsplit_text2;
-    gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 35, 65);
-    gui_set_parent(hsplit_text2, vsplit);
+    // Second row, type
+    gui_view_node_t* splitderivation;
+    gui_make_hsplit(&splitderivation, GUI_SPLIT_RELATIVE, 2, 55, 45);
 
-    gui_view_node_t* text2a;
-    gui_make_text(&text2a, "Derivation", TFT_WHITE);
-    gui_set_parent(text2a, hsplit_text2);
-    gui_set_align(text2a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_view_node_t* derivation;
+    gui_make_text(&derivation, "Derivation: ", TFT_WHITE);
+    gui_set_align(derivation, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(derivation, splitderivation);
 
-    char derivation[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
     if (signer->derivation_len == 0) {
-        strcpy(derivation, "[none provided]");
-    } else if (!wallet_bip32_path_as_str(signer->derivation, signer->derivation_len, derivation, sizeof(derivation))) {
-        strcpy(derivation, "[too long]");
+        strcpy(display_str, "<None>");
+    } else if (!wallet_bip32_path_as_str(
+                   signer->derivation, signer->derivation_len, display_str, sizeof(display_str))) {
+        strcpy(display_str, "[too long]");
+    }
+    gui_make_text(&derivation, display_str, TFT_WHITE);
+    gui_set_align(derivation, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(derivation, splitderivation);
+
+    *actderivation = make_show_single_value_activity("Derivation", display_str, show_help_btn);
+
+    // Third row, xpub
+    gui_view_node_t* splitxpub;
+    gui_make_hsplit(&splitxpub, GUI_SPLIT_RELATIVE, 2, 35, 65);
+
+    gui_view_node_t* xpub;
+    gui_make_text(&xpub, "Xpub: ", TFT_WHITE);
+    gui_set_align(xpub, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(xpub, splitxpub);
+
+    gui_make_text(&xpub, signer->xpub, TFT_WHITE);
+    gui_set_align(xpub, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(xpub, splitxpub);
+
+    // NOTE: two xpub drilldown screens
+    {
+        JADE_ASSERT(signer->xpub_len <= MAX_DISPLAY_MESSAGE_LEN);
+        const size_t display_len = signer->xpub_len / 2;
+        JADE_ASSERT(display_len - 2 <= sizeof(display_str));
+
+        // First screen needs a 'next' button
+        btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+            { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_SIGNER_XPUB_NEXT } };
+
+        int ret = snprintf(display_str, sizeof(display_str), "\n%.*s", display_len, signer->xpub);
+        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
+        *actxpub1 = make_show_message_activity(display_str, 0, "Xpub (1/2)", hdrbtns, 2, NULL, 0);
+
+        // Set the intially selected item to the 'Next' button
+        gui_set_activity_initial_selection(*actxpub1, hdrbtns[1].btn);
+
+        // Second message screen has a tick button
+        hdrbtns[1].txt = "S";
+        hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
+
+        ret = snprintf(display_str, sizeof(display_str), "\n%s", signer->xpub + display_len);
+        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
+        *actxpub2 = make_show_message_activity(display_str, 0, "Xpub (2/2)", hdrbtns, 2, NULL, 0);
+
+        // Set the intially selected item to the 'Next' button
+        gui_set_activity_initial_selection(*actxpub2, hdrbtns[1].btn);
     }
 
-    gui_view_node_t* text2b;
-    gui_make_text(&text2b, derivation, TFT_WHITE);
-    gui_set_parent(text2b, hsplit_text2);
-    gui_set_align(text2b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    if (strlen(derivation) > 20) {
-        gui_set_text_scroll(text2b, TFT_BLACK);
-    }
+    // Fourth row, path
+    gui_view_node_t* splitpath;
+    gui_make_hsplit(&splitpath, GUI_SPLIT_RELATIVE, 2, 35, 65);
 
-    gui_view_node_t* hsplit_text3;
-    gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text3, vsplit);
+    gui_view_node_t* path;
+    gui_make_text(&path, "Path: ", TFT_WHITE);
+    gui_set_align(path, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(path, splitpath);
 
-    gui_view_node_t* text3a;
-    gui_make_text(&text3a, "Xpub", TFT_WHITE);
-    gui_set_parent(text3a, hsplit_text3);
-    gui_set_align(text3a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* text3b;
-    gui_make_text(&text3b, signer->xpub, TFT_WHITE);
-    gui_set_parent(text3b, hsplit_text3);
-    gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_text_scroll(text3b, TFT_BLACK);
-
-    gui_view_node_t* hsplit_text4;
-    gui_make_hsplit(&hsplit_text4, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text4, vsplit);
-
-    gui_view_node_t* text4a;
-    gui_make_text(&text4a, "Path", TFT_WHITE);
-    gui_set_parent(text4a, hsplit_text4);
-    gui_set_align(text4a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-    char path[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
     if (signer->path_len == 0) {
-        strcpy(path, "None");
-    } else if (!wallet_bip32_path_as_str(signer->path, signer->path_len, path, sizeof(path))) {
-        strcpy(path, "[too long]");
+        strcpy(display_str, "<None>");
+    } else if (!wallet_bip32_path_as_str(signer->path, signer->path_len, display_str, sizeof(display_str))) {
+        strcpy(display_str, "[too long]");
     }
+    gui_make_text(&path, display_str, TFT_WHITE);
+    gui_set_align(path, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(path, splitpath);
 
-    gui_view_node_t* text4b;
-    gui_make_text(&text4b, path, TFT_WHITE);
-    gui_set_parent(text4b, hsplit_text4);
-    gui_set_align(text4b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    if (strlen(path) > 20) {
-        gui_set_text_scroll(text4b, TFT_BLACK);
-    }
+    *actpath = make_show_single_value_activity("Path", display_str, show_help_btn);
 
-    // Buttons [<-] [X] [->]  (Prev, cancel, next)
-    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_PREV },
-        { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MULTISIG_EXIT },
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_PREV },
         { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_NEXT } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
 
-    // Connect every screen's 'exit' button to the 'translate' handler above
-    gui_activity_register_event(act, GUI_BUTTON_EVENT, BTN_MULTISIG_EXIT, translate_event, NULL);
+    btn_data_t menubtns[] = { { .content = splitfingerprint, .ev_id = BTN_MULTISIG_SIGNER_FINGERPRINT },
+        { .content = splitderivation, .ev_id = BTN_MULTISIG_SIGNER_DERIVATION },
+        { .content = splitxpub, .ev_id = BTN_MULTISIG_SIGNER_XPUB },
+        { .content = splitpath, .ev_id = BTN_MULTISIG_SIGNER_PATH } };
 
-    // Set the intially selected item to the 'Next' button (ie. btns[2])
-    gui_set_activity_initial_selection(act, btns[2].btn);
+    char title[24];
+    const int ret
+        = snprintf(title, sizeof(title), "Signer %d/%d%s", signer_number, num_signers, is_this_signer ? " *" : "");
+    JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
-    // Push details into the output structure
-    link_activity->activity = act;
-    link_activity->prev_button = btns[0].btn;
-    link_activity->next_button = btns[2].btn;
+    gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
+
+    // Set the intially selected item to the 'Next' button
+    gui_set_activity_initial_selection(act, hdrbtns[1].btn);
+
+    // NOTE: can only set scrolling *after* gui tree created
+    gui_set_text_scroll_selected(fingerprint, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(derivation, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(xpub, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(path, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+
+    return act;
 }
 
-static void make_final_confirm_screen(link_activity_t* link_activity, const char* multisig_name, const size_t threshold,
-    const size_t num_signers, const bool overwriting)
+static bool show_multisig_signer_activity(
+    const signer_t* signer, const size_t signer_number, const size_t num_signers, const bool is_this_signer)
 {
-    JADE_ASSERT(link_activity);
+    JADE_ASSERT(signer);
+    JADE_ASSERT(signer_number > 0);
+    JADE_ASSERT(signer_number <= num_signers);
+
+    gui_activity_t* act_fingerprint = NULL;
+    gui_activity_t* act_derivation = NULL;
+    gui_activity_t* act_xpub1 = NULL;
+    gui_activity_t* act_xpub2 = NULL;
+    gui_activity_t* act_path = NULL;
+    gui_activity_t* act_summary = make_multisig_signer_activities(signer, signer_number, num_signers, is_this_signer,
+        &act_fingerprint, &act_derivation, &act_xpub1, &act_xpub2, &act_path);
+    gui_activity_t* act = act_summary;
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+
+        // In a debug unattended ci build, assume 'next' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_MULTISIG_NEXT;
+#endif
+
+        if (ret) {
+            switch (ev_id) {
+            case BTN_BACK:
+                act = (act == act_xpub2) ? act_xpub1 : act_summary;
+                break;
+
+            case BTN_MULTISIG_SIGNER_FINGERPRINT:
+                act = act_fingerprint;
+                break;
+
+            case BTN_MULTISIG_SIGNER_DERIVATION:
+                act = act_derivation;
+                break;
+
+            case BTN_MULTISIG_SIGNER_PATH:
+                act = act_path;
+                break;
+
+            case BTN_MULTISIG_SIGNER_XPUB:
+                act = act_xpub1;
+                break;
+
+            case BTN_MULTISIG_SIGNER_XPUB_NEXT:
+                act = (act == act_xpub1) ? act_xpub2 : act_summary;
+                break;
+
+            case BTN_MULTISIG_PREV:
+                return false;
+
+            case BTN_MULTISIG_NEXT:
+                return true;
+            }
+        }
+    }
+}
+
+static gui_activity_t* make_final_multisig_summary_activities(const char* multisig_name, const size_t threshold,
+    const size_t num_signers, const bool overwriting, gui_activity_t** actname, gui_activity_t** acttype)
+{
+    JADE_ASSERT(multisig_name);
+    JADE_INIT_OUT_PPTR(actname);
+    JADE_INIT_OUT_PPTR(acttype);
+
+    const bool show_help_btn = false;
+
+    // First row, name
+    gui_view_node_t* splitname;
+    gui_make_hsplit(&splitname, GUI_SPLIT_RELATIVE, 2, 35, 65);
+
+    gui_view_node_t* name;
+    gui_make_text(&name, "Name: ", TFT_WHITE);
+    gui_set_align(name, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(name, splitname);
+
+    gui_make_text(&name, multisig_name, TFT_WHITE);
+    gui_set_align(name, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(name, splitname);
+
+    *actname = make_show_single_value_activity("Wallet Name", multisig_name, show_help_btn);
+
+    // Second row, type
+    gui_view_node_t* splittype;
+    gui_make_hsplit(&splittype, GUI_SPLIT_RELATIVE, 2, 35, 65);
+
+    gui_view_node_t* type;
+    gui_make_text(&type, "Type: ", TFT_WHITE);
+    gui_set_align(type, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(type, splittype);
+
+    char typestr[16];
+    const int ret = snprintf(typestr, sizeof(typestr), "%uof%u", threshold, num_signers);
+    JADE_ASSERT(ret > 0 && ret < sizeof(typestr));
+
+    gui_make_text(&type, typestr, TFT_WHITE);
+    gui_set_align(type, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(type, splittype);
+
+    *acttype = make_show_single_value_activity("Type", typestr, show_help_btn);
+
+    // Show a warning if overwriting an existing registration
+    const char* overwrite_warning_1 = overwriting ? "WARNING" : NULL;
+    const char* overwrite_warning_2 = overwriting ? "Overwriting existing" : NULL;
+
+    // Buttons - Delete and Next
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_DISCARD_DELETE },
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_MULTISIG_RETAIN_CONFIRM } };
+
+    btn_data_t menubtns[]
+        = { { .content = splitname, .ev_id = BTN_MULTISIG_NAME }, { .content = splittype, .ev_id = BTN_MULTISIG_TYPE },
+              { .txt = overwrite_warning_1, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+              { .txt = overwrite_warning_2, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    gui_activity_t* const act = make_menu_activity("Register Multisig", hdrbtns, 2, menubtns, 4);
+
+    // NOTE: can only set scrolling *after* gui tree created
+    gui_set_text_scroll_selected(name, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(type, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+
+    return act;
+}
+
+static bool show_final_multisig_summary_activity(
+    const char* multisig_name, const size_t threshold, const size_t num_signers, const bool overwriting)
+{
     JADE_ASSERT(multisig_name);
 
-    gui_activity_t* const act = gui_make_activity();
+    gui_activity_t* act_name = NULL;
+    gui_activity_t* act_type = NULL;
+    gui_activity_t* act_summary = make_final_multisig_summary_activities(
+        multisig_name, threshold, num_signers, overwriting, &act_name, &act_type);
+    gui_activity_t* act = act_summary;
+    int32_t ev_id;
 
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
+    while (true) {
+        gui_set_current_activity(act);
 
-    gui_view_node_t* text1;
-    gui_make_text(&text1, "Register this multisig?", TFT_WHITE);
-    gui_set_parent(text1, vsplit);
-    gui_set_align(text1, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_MULTISIG_RETAIN_CONFIRM;
+#endif
 
-    gui_view_node_t* hsplit_text2;
-    gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text2, vsplit);
+        if (ret) {
+            switch (ev_id) {
+            case BTN_BACK:
+                act = act_summary;
+                break;
 
-    gui_view_node_t* text2a;
-    gui_make_text(&text2a, "Name", TFT_WHITE);
-    gui_set_parent(text2a, hsplit_text2);
-    gui_set_align(text2a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+            case BTN_MULTISIG_NAME:
+                act = act_name;
+                break;
 
-    gui_view_node_t* text2b;
-    gui_make_text(&text2b, multisig_name, TFT_WHITE);
-    gui_set_parent(text2b, hsplit_text2);
-    gui_set_align(text2b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+            case BTN_MULTISIG_TYPE:
+                act = act_type;
+                break;
 
-    gui_view_node_t* hsplit_text3;
-    gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text3, vsplit);
+            case BTN_MULTISIG_DISCARD_DELETE:
+                return false;
 
-    gui_view_node_t* text3a;
-    gui_make_text(&text3a, "Type", TFT_WHITE);
-    gui_set_parent(text3a, hsplit_text3);
-    gui_set_align(text3a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-    char type[16];
-    int ret = snprintf(type, sizeof(type), "%uof%u", threshold, num_signers);
-    JADE_ASSERT(ret > 0 && ret < sizeof(type));
-
-    gui_view_node_t* text3b;
-    gui_make_text(&text3b, type, TFT_WHITE);
-    gui_set_parent(text3b, hsplit_text3);
-    gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-
-    // Show warning if overwriting
-    if (overwriting) {
-        gui_view_node_t* text4;
-        gui_make_text(&text4, "Warning: overwriting existing registration", TFT_RED);
-        gui_set_parent(text4, vsplit);
-        gui_set_align(text4, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-        gui_set_text_scroll(text4, TFT_BLACK);
-    } else {
-        gui_view_node_t* row4;
-        gui_make_fill(&row4, TFT_BLACK);
-        gui_set_parent(row4, vsplit);
+            case BTN_MULTISIG_RETAIN_CONFIRM:
+                return true;
+            }
+        }
     }
-
-    // Buttons [<-] [X] [V]  (Prev, cancel, confirm)
-    btn_data_t btns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_PREV },
-        { .txt = "X", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MULTISIG_EXIT },
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_MULTISIG_CONFIRM } };
-    add_buttons(vsplit, UI_ROW, btns, 3);
-
-    // Connect every screen's 'exit' button to the 'translate' handler above
-    gui_activity_register_event(act, GUI_BUTTON_EVENT, BTN_MULTISIG_EXIT, translate_event, NULL);
-
-    // Connect the ''confirm' button to the 'translate' handler above too
-    gui_activity_register_event(act, GUI_BUTTON_EVENT, BTN_MULTISIG_CONFIRM, translate_event, NULL);
-
-    // Set the intially selected item to the 'No' button (ie. btns[1])
-    gui_set_activity_initial_selection(act, btns[1].btn);
-
-    // Push details into the output structure
-    link_activity->activity = act;
-    link_activity->prev_button = btns[0].btn;
-    link_activity->next_button = NULL;
 }
 
-gui_activity_t* make_confirm_multisig_activity(const char* multisig_name, const bool sorted, const size_t threshold,
-    const signer_t* signers, const size_t num_signers, const uint8_t* wallet_fingerprint,
-    const size_t wallet_fingerprint_len, const uint8_t* master_blinding_key, const size_t master_blinding_key_len,
-    const bool overwriting)
+bool show_confirm_multisig_activity(const char* multisig_name, const bool is_sorted, const size_t threshold,
+    const signer_t* signers, const size_t num_signers, const char* master_blinding_key_hex,
+    const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len, const bool overwriting)
 {
     JADE_ASSERT(multisig_name);
     JADE_ASSERT(threshold > 0);
     JADE_ASSERT(signers);
     JADE_ASSERT(num_signers >= threshold);
-    JADE_ASSERT(wallet_fingerprint);
-    JADE_ASSERT(wallet_fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);
-    JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
 
-    // Track the first and last activities created
-    link_activity_t link_act = {};
-    linked_activities_info_t act_info = {};
-
-    // 1 based indices for display purposes
-    make_initial_confirm_screen(&link_act, multisig_name, sorted, threshold, num_signers, master_blinding_key,
-        master_blinding_key_len, wallet_fingerprint, wallet_fingerprint_len);
-    gui_chain_activities(&link_act, &act_info);
-
-    // Screen per signer
-    for (size_t i = 0; i < num_signers; ++i) {
-        const signer_t* signer = signers + i;
-        const bool is_this_wallet = sodium_memcmp(signer->fingerprint, wallet_fingerprint, wallet_fingerprint_len) == 0;
-        make_signer_activity(&link_act, num_signers, i + 1, is_this_wallet, signer);
-        gui_chain_activities(&link_act, &act_info);
-    }
-
-    // Final confirmation
-    make_final_confirm_screen(&link_act, multisig_name, threshold, num_signers, overwriting);
-    gui_chain_activities(&link_act, &act_info);
-
-    return act_info.first_activity;
-}
-
-gui_activity_t* make_view_multisig_activity(const char* multisig_name, const size_t index, const size_t total,
-    const bool valid, const bool sorted, const size_t threshold, const size_t num_signers,
-    const uint8_t* master_blinding_key, const size_t master_blinding_key_len)
-{
-    JADE_ASSERT(multisig_name);
-    // master blinding key is optional
-
-    char header[24];
-    const int ret = snprintf(header, sizeof(header), "Multisig %d/%d", index, total);
-    JADE_ASSERT(ret > 0 && ret < sizeof(header));
-
-    gui_activity_t* const act = gui_make_activity();
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 17, 17, 17, 17, 32);
-    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 2, 2, 2, 2);
-    gui_set_parent(vsplit, act->root_node);
-
-    gui_view_node_t* hsplit_text1;
-    gui_make_hsplit(&hsplit_text1, GUI_SPLIT_RELATIVE, 2, 25, 75);
-    gui_set_parent(hsplit_text1, vsplit);
-
-    gui_view_node_t* text1a;
-    gui_make_text(&text1a, "Name", TFT_WHITE);
-    gui_set_parent(text1a, hsplit_text1);
-    gui_set_align(text1a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-    gui_view_node_t* text1b;
-    gui_make_text(&text1b, multisig_name, TFT_WHITE);
-    gui_set_parent(text1b, hsplit_text1);
-    gui_set_align(text1b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-
-    if (valid) {
-        JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
-
-        gui_view_node_t* hsplit_text2;
-        gui_make_hsplit(&hsplit_text2, GUI_SPLIT_RELATIVE, 2, 25, 75);
-        gui_set_parent(hsplit_text2, vsplit);
-
-        char type[16];
-        int ret = snprintf(type, sizeof(type), "%uof%u", threshold, num_signers);
-        JADE_ASSERT(ret > 0 && ret < sizeof(type));
-
-        gui_view_node_t* text2a;
-        gui_make_text(&text2a, "Type", TFT_WHITE);
-        gui_set_parent(text2a, hsplit_text2);
-        gui_set_align(text2a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* text2b;
-        gui_make_text(&text2b, type, TFT_WHITE);
-        gui_set_parent(text2b, hsplit_text2);
-        gui_set_align(text2b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* hsplit_text3;
-        gui_make_hsplit(&hsplit_text3, GUI_SPLIT_RELATIVE, 2, 25, 75);
-        gui_set_parent(hsplit_text3, vsplit);
-
-        gui_view_node_t* text3a;
-        gui_make_text(&text3a, "Sorted", TFT_WHITE);
-        gui_set_parent(text3a, hsplit_text3);
-        gui_set_align(text3a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* text3b;
-        gui_make_text(&text3b, sorted ? "Y" : "N", TFT_WHITE);
-        gui_set_parent(text3b, hsplit_text3);
-        gui_set_align(text3b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* hsplit_text4;
-        gui_make_hsplit(&hsplit_text4, GUI_SPLIT_RELATIVE, 2, 45, 55);
-        gui_set_parent(hsplit_text4, vsplit);
-
-        gui_view_node_t* text4a;
-        gui_make_text(&text4a, "Blinding Key", TFT_WHITE);
-        gui_set_parent(text4a, hsplit_text4);
-        gui_set_align(text4a, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        if (master_blinding_key && master_blinding_key_len) {
-            char* hexstr = NULL;
-            char display_str[2 * MULTISIG_MASTER_BLINDING_KEY_SIZE + 4 + 1]; // sufficient for hex key and bookends
-            JADE_WALLY_VERIFY(wally_hex_from_bytes(master_blinding_key, master_blinding_key_len, &hexstr));
-            const int ret = snprintf(display_str, sizeof(display_str), "} %s {", hexstr);
-            JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-            JADE_WALLY_VERIFY(wally_free_string(hexstr));
-
-            gui_view_node_t* text4b;
-            gui_make_text(&text4b, display_str, TFT_WHITE);
-            gui_set_parent(text4b, hsplit_text4);
-            gui_set_align(text4b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-            gui_set_text_scroll(text4b, TFT_BLACK);
+    // NOTE: because multisig potentially has a lot of signers and info to display
+    // we deal with the signers one at a time, rather than creating them all up-front.
+    gui_activity_t* act_clear = gui_make_activity();
+    bool confirmed = false;
+    uint8_t screen = 0; // 0 = initial summary, 1->n = signers, n+1 = final summary
+    while (true) {
+        JADE_ASSERT(screen <= num_signers + 1);
+        if (screen == 0) {
+            const bool initial_confirmation = true;
+            const bool is_valid = true;
+            if (show_view_multisig_activity(multisig_name, initial_confirmation, is_valid, is_sorted, threshold,
+                    num_signers, master_blinding_key_hex)) {
+                // User pressed 'next'
+                ++screen;
+            } else {
+                // User rejected
+                confirmed = false;
+                break;
+            }
+        } else if (screen > num_signers) {
+            if (show_final_multisig_summary_activity(multisig_name, threshold, num_signers, overwriting)) {
+                // User pressed 'confirm'
+                confirmed = true;
+                break;
+            } else {
+                // User pressed 'back'
+                --screen;
+            }
         } else {
-            // No blinding key
-            gui_view_node_t* text4b;
-            gui_make_text(&text4b, "<None>", TFT_WHITE);
-            gui_set_parent(text4b, hsplit_text4);
-            gui_set_align(text4b, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+            // Free all existing activities between signers
+            gui_set_current_activity_ex(act_clear, true);
+
+            const uint8_t signer_index = screen - 1;
+            const signer_t* signer = signers + signer_index;
+            const bool is_this_signer = !sodium_memcmp(signer->fingerprint, wallet_fingerprint, wallet_fingerprint_len);
+            if (show_multisig_signer_activity(signer, signer_index + 1, num_signers, is_this_signer)) {
+                // User pressed 'next'
+                ++screen;
+            } else {
+                // User pressed 'back'
+                --screen;
+            }
         }
-    } else {
-        // Not valid for this wallet - just show warning
-        gui_view_node_t* row2;
-        gui_make_fill(&row2, TFT_BLACK);
-        gui_set_parent(row2, vsplit);
-
-        gui_view_node_t* text3;
-        gui_make_text(&text3, "Not valid for this wallet", TFT_RED);
-        gui_set_parent(text3, vsplit);
-        gui_set_align(text3, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-
-        gui_view_node_t* row4;
-        gui_make_fill(&row4, TFT_BLACK);
-        gui_set_parent(row4, vsplit);
     }
 
-    // Buttons - Delete and Next
-    btn_data_t btns[] = { { .txt = "Delete", .font = GUI_DEFAULT_FONT, .ev_id = BTN_MULTISIG_DELETE },
-        { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_NEXT } };
-
-    // Change 'Next' to 'Exit' for last entry
-    if (index >= total) {
-        btns[1].txt = "Exit";
-        btns[1].font = GUI_DEFAULT_FONT;
-        btns[1].ev_id = BTN_MULTISIG_EXIT;
-    }
-
-    add_buttons(vsplit, UI_ROW, btns, 2);
-
-    // Set the intially selected item to the 'Next' button (ie. btn[1])
-    gui_set_activity_initial_selection(act, btns[1].btn);
-
-    return act;
+    return confirmed;
 }

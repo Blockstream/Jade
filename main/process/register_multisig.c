@@ -23,9 +23,9 @@ static const char MSIG_FILE_FORMAT[] = "Format";
 static const char MSIG_FILE_POLICY[] = "Policy";
 static const char MSIG_FILE_DERIVATION[] = "Derivation";
 
-gui_activity_t* make_confirm_multisig_activity(const char* multisig_name, bool sorted, size_t threshold,
-    const signer_t* signers, size_t num_signers, const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len,
-    const uint8_t* master_blinding_key, size_t master_blinding_key_len, bool overwriting);
+bool show_confirm_multisig_activity(const char* multisig_name, bool is_sorted, size_t threshold,
+    const signer_t* signers, size_t num_signers, const char* master_blinding_key_hex, const uint8_t* wallet_fingerprint,
+    size_t wallet_fingerprint_len, bool overwriting);
 
 // Function to validate multsig parameters and persist the record
 static int register_multisig(const char* multisig_name, const char* network, const script_variant_t script_variant,
@@ -93,26 +93,18 @@ static int register_multisig(const char* multisig_name, const char* network, con
         }
     }
 
-    gui_activity_t* const first_activity
-        = make_confirm_multisig_activity(multisig_name, sorted, threshold, signers, num_signers, wallet_fingerprint,
-            sizeof(wallet_fingerprint), master_blinding_key, master_blinding_key_len, overwriting);
-    gui_set_current_activity(first_activity);
-
-    // ----------------------------------
-    // wait for the last "next" (proceed with the protocol and then final confirmation)
-    int32_t ev_id;
-    // In a debug unattended ci build, assume buttons pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const esp_err_t gui_ret = sync_await_single_event(JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    sync_await_single_event(
-        JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const esp_err_t gui_ret = ESP_OK;
-    ev_id = MULTISIG_ACCEPT;
-#endif
-
     // Check to see whether user accepted or declined
-    if (gui_ret != ESP_OK || ev_id != MULTISIG_ACCEPT) {
+    char* master_blinding_key_hex = NULL;
+    if (master_blinding_key_len) {
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(master_blinding_key, master_blinding_key_len, &master_blinding_key_hex));
+    }
+    const bool confirmed = show_confirm_multisig_activity(multisig_name, sorted, threshold, signers, num_signers,
+        master_blinding_key_hex, wallet_fingerprint, sizeof(wallet_fingerprint), overwriting);
+    if (master_blinding_key_hex) {
+        JADE_WALLY_VERIFY(wally_free_string(master_blinding_key_hex));
+    }
+
+    if (!confirmed) {
         JADE_LOGW("User declined to register multisig");
         *errmsg = "User declined to register multisig";
         return CBOR_RPC_USER_CANCELLED;
@@ -471,11 +463,8 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     // If 'name' was truncated, ask user to confirm
     if (name_truncated) {
         JADE_ASSERT(strlen(multisig_name) == sizeof(multisig_name) - 1);
-        char buf[128];
-        const int ret = snprintf(
-            buf, sizeof(buf), "Multisig record name too long!\nTruncate to 15 characters?\n\n%s", multisig_name);
-        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-        if (!await_yesno_activity("Confirm Multisig", buf, false, NULL)) {
+        if (!await_yesno_activity("Confirm Multisig",
+                "  Multisig record name\n  too long! Truncate to\n       15 characters?", false, NULL)) {
             JADE_LOGW("User declined truncating multisig record name to: %s", multisig_name);
             *errmsg = "Invalid multisig name";
             goto cleanup;
