@@ -10,7 +10,7 @@
 #include "../identity.h"
 #include "process_utils.h"
 
-gui_activity_t* make_sign_identity_activity(const char* identity, size_t identity_len);
+bool show_sign_identity_activity(const char* identity, size_t identity_len);
 
 typedef struct {
     // NOTE: signature with leading 0x00 (required or can strip?)
@@ -75,23 +75,7 @@ void sign_identity_process(void* process_ptr)
     }
 
     // User to confirm identity
-    gui_activity_t* const act = make_sign_identity_activity(identity, identity_len);
-    gui_set_current_activity(act);
-
-    int32_t ev_id;
-
-    // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-    ev_id = BTN_ACCEPT_SIGNATURE;
-#endif
-
-    // Check to see whether user accepted or declined
-    if (!ret || ev_id != BTN_ACCEPT_SIGNATURE) {
+    if (!show_sign_identity_activity(identity, identity_len)) {
         JADE_LOGW("User declined to sign message");
         jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign identity", NULL);
         goto cleanup;
