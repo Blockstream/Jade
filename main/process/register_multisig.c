@@ -428,6 +428,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
             if (!memcmp(serialised, &xpub_version, sizeof(xpub_version))) {
                 // Version bytes as expected
                 strcpy(signers[isigner].xpub, value);
+                signers[isigner].xpub_len = value_len;
             } else {
                 JADE_LOGI("Overwriting xpub version bytes");
 
@@ -440,8 +441,10 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
                 }
                 JADE_LOGI("new xpub: %s", xpub);
 
-                JADE_ASSERT(strlen(xpub) < sizeof(signers[isigner].xpub));
+                const size_t new_len = strlen(xpub);
+                JADE_ASSERT(new_len < sizeof(signers[isigner].xpub));
                 strcpy(signers[isigner].xpub, xpub);
+                signers[isigner].xpub_len = new_len;
                 JADE_WALLY_VERIFY(wally_free_string(xpub));
             }
 
