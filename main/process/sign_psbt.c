@@ -23,9 +23,9 @@
 
 #include "process_utils.h"
 
-gui_activity_t* make_display_output_activity(
+bool show_btc_transaction_outputs_activity(
     const char* network, const struct wally_tx* tx, const output_info_t* output_info);
-gui_activity_t* make_display_final_confirmation_activity(uint64_t fee, const char* warning_msg);
+bool show_btc_final_confirmation_activity(uint64_t fee, const char* warning_msg);
 
 static void wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
 
@@ -517,24 +517,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     }
 
     // User to verify outputs and fee amount
-    gui_activity_t* const first_activity = make_display_output_activity(network, tx, output_info);
-    gui_set_current_activity(first_activity);
-
-    // ----------------------------------
-    // wait for the last "next" (proceed with the protocol and then final confirmation)
-    int32_t ev_id;
-    // In a debug unattended ci build, assume buttons pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const esp_err_t outputs_ret = sync_await_single_event(JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    sync_await_single_event(
-        JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const esp_err_t outputs_ret = ESP_OK;
-    ev_id = SIGN_TX_ACCEPT_OUTPUTS;
-#endif
-
-    // Check to see whether user accepted or declined
-    if (outputs_ret != ESP_OK || ev_id != SIGN_TX_ACCEPT_OUTPUTS) {
+    if (!show_btc_transaction_outputs_activity(network, tx, output_info)) {
         *errmsg = "User declined to sign psbt";
         retval = CBOR_RPC_USER_CANCELLED;
         goto cleanup;
@@ -546,24 +529,9 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     const uint64_t fees = input_amount - output_amount;
     const char* const warning_msg
         = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-    gui_activity_t* const final_activity = make_display_final_confirmation_activity(fees, warning_msg);
-    gui_set_current_activity(final_activity);
-
-    // ----------------------------------
-    // Wait for the confirmation btn
-    // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool fee_ret
-        = gui_activity_wait_event(final_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    gui_activity_wait_event(final_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool fee_ret = true;
-    ev_id = BTN_ACCEPT_SIGNATURE;
-#endif
 
     // Check to see whether user accepted or declined
-    if (!fee_ret || ev_id != BTN_ACCEPT_SIGNATURE) {
+    if (!show_btc_final_confirmation_activity(fees, warning_msg)) {
         *errmsg = "User declined to sign psbt";
         retval = CBOR_RPC_USER_CANCELLED;
         goto cleanup;

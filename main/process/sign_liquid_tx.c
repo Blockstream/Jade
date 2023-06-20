@@ -20,14 +20,14 @@
 
 #include "process_utils.h"
 
-gui_activity_t* make_display_elements_output_activity(const char* network, const struct wally_tx* tx,
+bool show_elements_transaction_outputs_activity(const char* network, const struct wally_tx* tx,
     const output_info_t* output_info, const asset_info_t* assets, size_t num_assets);
-gui_activity_t* make_display_elements_swap_activity(const char* network, bool initial_proposal,
+bool show_elements_swap_activity(const char* network, bool initial_proposal,
     const movement_summary_info_t* wallet_input_summary, size_t wallet_input_summary_size,
     const movement_summary_info_t* wallet_output_summary, size_t wallet_output_summary_size, const asset_info_t* assets,
     size_t num_assets);
-gui_activity_t* make_display_elements_final_confirmation_activity(
-    const char* network, const char* title, uint64_t fee, const char* warning_msg);
+bool show_elements_final_confirmation_activity(
+    const char* network, const char* title, const uint64_t fee, const char* warning_msg);
 
 // From sign_tx.c
 bool validate_wallet_outputs(jade_process_t* process, const char* network, const struct wally_tx* tx,
@@ -711,35 +711,21 @@ void sign_liquid_tx_process(void* process_ptr)
         }
     }
 
-    gui_activity_t* act = NULL;
     if (txtype == TXTYPE_SWAP) {
         // Confirm wallet-summary info (ie. net inputs and outputs)
-        act = make_display_elements_swap_activity(network, tx_is_partial, wallet_input_summary,
-            wallet_input_summary_size, wallet_output_summary, wallet_output_summary_size, assets, num_assets);
+        if (!show_elements_swap_activity(network, tx_is_partial, wallet_input_summary, wallet_input_summary_size,
+                wallet_output_summary, wallet_output_summary_size, assets, num_assets)) {
+            JADE_LOGW("User declined to sign swap transaction");
+            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
+            goto cleanup;
+        }
     } else {
         // Confirm all non-change outputs
-        act = make_display_elements_output_activity(network, tx, output_info, assets, num_assets);
-    }
-    gui_set_current_activity(act);
-
-    // ----------------------------------
-    // wait for the last "next" (proceed with the protocol and then final confirmation)
-    int32_t ev_id;
-    // In a debug unattended ci build, assume buttons pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const esp_err_t outputs_ret = sync_await_single_event(JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    sync_await_single_event(
-        JADE_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const esp_err_t outputs_ret = ESP_OK;
-    ev_id = SIGN_TX_ACCEPT_OUTPUTS;
-#endif
-
-    // Check to see whether user accepted or declined
-    if (outputs_ret != ESP_OK || ev_id != SIGN_TX_ACCEPT_OUTPUTS) {
-        JADE_LOGW("User declined to sign transaction");
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
-        goto cleanup;
+        if (!show_elements_transaction_outputs_activity(network, tx, output_info, assets, num_assets)) {
+            JADE_LOGW("User declined to sign transaction");
+            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
+            goto cleanup;
+        }
     }
 
     JADE_LOGD("User accepted outputs");
@@ -903,25 +889,11 @@ void sign_liquid_tx_process(void* process_ptr)
     } else {
         const char* const warning_msg
             = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-
-        const char* title = (txtype == TXTYPE_SWAP) ? (tx_is_partial ? "Swap Proposal" : "Complete Swap") : "Summary";
-        act = make_display_elements_final_confirmation_activity(network, title, fees, warning_msg);
-        gui_set_current_activity(act);
-
-        // ----------------------------------
-        // Wait for the confirmation btn
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool fee_ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool fee_ret = true;
-        ev_id = BTN_ACCEPT_SIGNATURE;
-#endif
+        const char* title
+            = (txtype == TXTYPE_SWAP) ? (tx_is_partial ? "Swap Proposal" : "Complete Swap") : "Send Transaction";
 
         // If user cancels we'll send the 'cancelled' error response for the last input message only
-        if (!fee_ret || ev_id != BTN_ACCEPT_SIGNATURE) {
+        if (!show_elements_final_confirmation_activity(network, title, fees, warning_msg)) {
             // If using ae-signatures, we need to load the message to send the error back on
             if (use_ae_signatures) {
                 jade_process_load_in_message(process, true);

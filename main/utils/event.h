@@ -9,8 +9,6 @@ ESP_EVENT_DECLARE_BASE(JADE_EVENT);
 
 enum jade_events {
     CAMERA_EXIT,
-    SIGN_TX_ACCEPT_OUTPUTS,
-    SIGN_TX_DECLINE,
 };
 
 typedef struct wait_event_data_t wait_event_data_t;

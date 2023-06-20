@@ -90,7 +90,7 @@ typedef enum {
     SCRIPT_FLAVOUR_MIXED
 } script_flavour_t;
 
-#define WARN_MSG_MIXED_INPUTS "Your inputs in this transaction are of varying types."
+#define WARN_MSG_MIXED_INPUTS "Your transaction inputs are of varying types."
 
 // Sanity check extended-data payload fields
 bool check_extended_data_fields(CborValue* params, const char* expected_origid, const char* expected_orig,
