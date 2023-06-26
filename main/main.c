@@ -154,8 +154,7 @@ static void boot_process(void)
 
     // Check if the user had clicked.
     int32_t ev_id;
-    const esp_err_t esp_ret
-        = sync_wait_event(GUI_EVENT, GUI_FRONT_CLICK_EVENT, event_data, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS);
+    const esp_err_t esp_ret = sync_wait_event(event_data, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS);
 
     // If clicked, offer startup/advanced menu
     if (esp_ret == ESP_OK && ev_id == GUI_FRONT_CLICK_EVENT) {

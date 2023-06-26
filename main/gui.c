@@ -2302,8 +2302,8 @@ bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, u
     gui_activity_register_event(activity, event_base, event_id, sync_wait_event_handler, wait_event_data);
 
     // immediately start waiting
-    const esp_err_t ret = sync_wait_event(
-        event_base, event_id, wait_event_data, trigger_event_base, trigger_event_id, trigger_event_data, max_wait);
+    const esp_err_t ret
+        = sync_wait_event(wait_event_data, trigger_event_base, trigger_event_id, trigger_event_data, max_wait);
 
     return ret == ESP_OK;
 }

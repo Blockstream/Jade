@@ -252,9 +252,7 @@ static void jade_camera_task(void* data)
 
             // Check for button events
             int32_t ev_id;
-            if (sync_wait_event(
-                    GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 50 / portTICK_PERIOD_MS)
-                == ESP_OK) {
+            if (sync_wait_event(event_data, NULL, &ev_id, NULL, 50 / portTICK_PERIOD_MS) == ESP_OK) {
                 if (ev_id == BTN_CAMERA_CLICK) {
                     // Button clicked - invoke passed processing callback
                     JADE_ASSERT(camera_config->text_button);

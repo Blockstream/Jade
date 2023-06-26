@@ -991,12 +991,10 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
 
         // In a debug unattended ci build, assume 'accept' button pressed after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool btn_pressed
-            = sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, timeout) == ESP_OK;
+        const bool btn_pressed = sync_wait_event(event_data, NULL, &ev_id, NULL, timeout) == ESP_OK;
         timeout = 1000 / portTICK_PERIOD_MS; // After initial update, update every 1s
 #else
-        sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        sync_wait_event(event_data, NULL, &ev_id, NULL, CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const bool btn_pressed = true;
         ev_id = BTN_OTP_CONFIRM;
 #endif
@@ -1685,10 +1683,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
 
         // 2. Process any GUI event (again, don't block)
         int32_t ev_id;
-        if (!acted
-            && sync_wait_event(
-                   GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)
-                == ESP_OK) {
+        if (!acted && sync_wait_event(event_data, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS) == ESP_OK) {
             handle_btn(ev_id);
             acted = true;
         }

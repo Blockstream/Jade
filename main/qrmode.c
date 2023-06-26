@@ -487,12 +487,9 @@ static bool verify_address(const address_data_t* const addr_data)
             // Giver user a chance to exit or to skip this batch of addresses
             int32_t ev_id = 0;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-            const bool ret = sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL,
-                                 10 / portTICK_PERIOD_MS)
-                == ESP_OK;
+            const bool ret = sync_wait_event(event_data, NULL, &ev_id, NULL, 10 / portTICK_PERIOD_MS) == ESP_OK;
 #else
-            sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, NULL, NULL,
-                CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+            sync_wait_event(event_data, NULL, NULL, NULL, CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
             const bool ret = index > 4 * num_indexes_to_reconfirm; // let it run for a few batches, then exit
             ev_id = BTN_SCAN_ADDRESS_EXIT;
 #endif

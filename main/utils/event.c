@@ -58,29 +58,30 @@ void sync_wait_event_handler(void* handler_arg, esp_event_base_t base, int32_t i
     xSemaphoreGive(data->triggered);
 }
 
-// This function waits for the passed event to be triggered.
-// NOTE: DOES NOT register the event handler - assumes it is already registered.
-// Returns ESP_OK if event triggered (output id params populated), or ESP_NO_EVENT if not
+// This function waits for a previously registered event to be triggered.
+// NOTE: DOES NOT register any event handler - assumes one is already registered and the
+// passed 'wait_event_data_t' instance should contain the relevant registration data.
+// Returns ESP_OK the event triggered (output id params populated), or ESP_NO_EVENT if not
 // (ie. timed-out).
-esp_err_t sync_wait_event(esp_event_base_t event_base, int32_t event_id, wait_event_data_t* wait_event_data,
-    esp_event_base_t* trigger_event_base, int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait)
+esp_err_t sync_wait_event(wait_event_data_t* wait_event_data, esp_event_base_t* trigger_event_base,
+    int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait)
 {
     JADE_ASSERT(wait_event_data);
 
-    JADE_LOGD("Awaiting event %s/%lu (%p) (timeout = %lu)", event_base, event_id, wait_event_data, max_wait);
+    JADE_LOGD("Awaiting event %p (timeout = %lu)", wait_event_data, max_wait);
     if (!max_wait) {
         while (xSemaphoreTake(wait_event_data->triggered, portMAX_DELAY) != pdTRUE) {
             // wait for the event to be triggered
         }
     } else {
         if (xSemaphoreTake(wait_event_data->triggered, max_wait) != pdTRUE) {
-            JADE_LOGD("Event %s/%lu (%p) timed-out", event_base, event_id, wait_event_data);
+            JADE_LOGD("Event %p timed-out", wait_event_data);
             return ESP_NO_EVENT;
         }
     }
 
     // ESP_OK means the event was fired, so copy the ids into the output params
-    JADE_LOGD("Event %s/%lu (%p) received in waiting task", event_base, event_id, wait_event_data);
+    JADE_LOGD("Event %p received in waiting task", wait_event_data);
     if (trigger_event_base) {
         *trigger_event_base = wait_event_data->trigger_event_base;
     }
@@ -107,8 +108,8 @@ esp_err_t sync_await_single_event(esp_event_base_t event_base, int32_t event_id,
     esp_event_handler_instance_register(event_base, event_id, sync_wait_event_handler, wait_data, &ctx);
 
     // Block awaiting the event
-    const esp_err_t retval = sync_wait_event(
-        event_base, event_id, wait_data, trigger_event_base, trigger_event_id, trigger_event_data, max_wait);
+    const esp_err_t retval
+        = sync_wait_event(wait_data, trigger_event_base, trigger_event_id, trigger_event_data, max_wait);
 
     // Unregister and free data
     esp_event_handler_instance_unregister(event_base, event_id, ctx);

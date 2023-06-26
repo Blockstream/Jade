@@ -201,7 +201,7 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry)
 
     while (true) {
         ev_id = ESP_EVENT_ANY_ID;
-        if (sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, wait_data, NULL, &ev_id, NULL, 0) != ESP_OK) {
+        if (sync_wait_event(wait_data, NULL, &ev_id, NULL, 0) != ESP_OK) {
             continue;
         }
 
@@ -230,8 +230,7 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry)
         }
     }
 #else
-    sync_wait_event(GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, wait_data, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+    sync_wait_event(wait_data, NULL, &ev_id, NULL, CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     strcpy(kb_entry->strdata, "abcdef");
     kb_entry->len = strlen(kb_entry->strdata);
 #endif
