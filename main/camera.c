@@ -232,9 +232,8 @@ static void jade_camera_task(void* data)
         JADE_ASSERT(fb->width == CAMERA_IMAGE_WIDTH);
         JADE_ASSERT(fb->height == CAMERA_IMAGE_HEIGHT);
 
-        if (!has_gui) {
-            done = invoke_user_cb_fn(camera_config, fb);
-        } else {
+        // If we have a gui, update the image on screen and check for button events
+        if (has_gui) {
             // Copy from camera output to screen image
             JADE_ASSERT(fb->len == 4 * image_size); // twice width and twice height
             uint8_t(*scale_rotated)[CAMERA_IMAGE_HEIGHT / 2] = image_buffer;
@@ -251,35 +250,34 @@ static void jade_camera_task(void* data)
                 gui_set_current_activity(act);
             }
 
-            // If we have no 'click' button, we run the processing callback on every frame
-            // (We still test to see if the 'Exit' button is pressed though)
-            if (!camera_config->text_button) {
-                done = invoke_user_cb_fn(camera_config, fb)
-                    || (sync_wait_event(
-                            GUI_BUTTON_EVENT, BTN_CAMERA_EXIT, event_data, NULL, NULL, NULL, 10 / portTICK_PERIOD_MS)
-                        == ESP_OK);
-            } else {
-                // Await button click event before we do anything
-                int32_t ev_id;
-                if (sync_wait_event(
-                        GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 50 / portTICK_PERIOD_MS)
-                    == ESP_OK) {
-                    if (ev_id == BTN_CAMERA_CLICK) {
-                        // Button clicked - invoke passed processing callback
-                        gui_update_text(label_node, "Processing...");
-                        done = invoke_user_cb_fn(camera_config, fb);
+            // Check for button events
+            int32_t ev_id;
+            if (sync_wait_event(
+                    GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, event_data, NULL, &ev_id, NULL, 50 / portTICK_PERIOD_MS)
+                == ESP_OK) {
+                if (ev_id == BTN_CAMERA_CLICK) {
+                    // Button clicked - invoke passed processing callback
+                    JADE_ASSERT(camera_config->text_button);
+                    gui_update_text(label_node, "Processing...");
+                    done = invoke_user_cb_fn(camera_config, fb);
 
-                        // If not done, will loop and continue to capture images
-                        if (!done) {
-                            gui_update_text(label_node, camera_config->text_label);
-                        }
-                    } else if (ev_id == BTN_CAMERA_EXIT) {
-                        // Done with camera
-                        done = true;
+                    // If not done, will loop and continue to capture images
+                    if (!done) {
+                        gui_update_text(label_node, camera_config->text_label);
                     }
+                } else if (ev_id == BTN_CAMERA_EXIT) {
+                    // Done with camera
+                    done = true;
                 }
             }
         }
+
+        // If we have no 'click' button (or no gui at all), we run the processing callback on every frame
+        if (!done && !camera_config->text_button) {
+            done = invoke_user_cb_fn(camera_config, fb);
+        }
+
+        // Release camera output buffer
         esp_camera_fb_return(fb);
     }
 
