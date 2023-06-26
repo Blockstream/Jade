@@ -3,6 +3,15 @@
     [],
     []
   ],
+  "DEV": [
+    [
+      "CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y"
+    ],
+    [
+      "CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT=y",
+      "CONFIG_ESP_CONSOLE_NONE=y"
+    ]
+  ],
   "NDEBUG": [
     [
       "CONFIG_LOG_DEFAULT_LEVEL_NONE=y"
