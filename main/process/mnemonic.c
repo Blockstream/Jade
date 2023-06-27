@@ -888,9 +888,20 @@ static bool mnemonic_recover(const size_t nwords, const bool advanced_mode, char
 
     const wordlist_purpose_t purpose = advanced_mode ? MNEMONIC_ADVANCED : MNEMONIC_SIMPLE;
     const size_t words_entered = get_wordlist_words(purpose, nwords, mnemonic, mnemonic_len);
-    JADE_ASSERT(words_entered == 0 || words_entered == nwords);
 
-    return words_entered == nwords;
+    if (!words_entered) {
+        // Mnemonic entry abandoned
+        return false;
+    }
+
+    if (words_entered != nwords || bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
+        // Invalid mnemonic entered
+        JADE_LOGW("Invalid mnemonic entered");
+        await_error_activity("Invalid recovery phrase");
+        return false;
+    }
+
+    return true;
 }
 #endif // CONFIG_DEBUG_UNATTENDED_CI
 
@@ -903,19 +914,21 @@ static bool mnemonic_recover(const size_t nwords, const bool advanced_mode, char
 // eg: bar, barely, bargain, barrel; pen, penalty, pencil; ski, skill, skin, skirt
 // In this case we allow/prefer an exact match even when the word is an prefix of other words.
 // NOTE: only the English wordlist is supported.
-static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+static bool expand_words(const uint8_t* bytes, const size_t bytes_len, char* buf, const size_t buf_len, size_t* written)
 {
-    JADE_ASSERT(qr_data);
+    JADE_ASSERT(bytes);
     JADE_ASSERT(buf);
     JADE_ASSERT(buf_len);
     JADE_INIT_OUT_SIZE(written);
 
+    JADE_ASSERT(bytes[bytes_len] == '\0');
+
     size_t write_pos = 0;
-    const char* read_ptr = (const char*)qr_data->data;
+    const char* read_ptr = (const char*)bytes;
     const char* end_ptr = read_ptr;
 
     // Must be a string of printable characters
-    if (!string_all((const char*)qr_data->data, isprint)) {
+    if (!string_all((const char*)bytes, isprint)) {
         return false;
     }
 
@@ -924,10 +937,10 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
         end_ptr = strchr(read_ptr, ' ');
         if (!end_ptr) {
             // Not found, point to end of string
-            end_ptr = (const char*)qr_data->data + qr_data->len;
+            end_ptr = (const char*)bytes + bytes_len;
             JADE_ASSERT(*end_ptr == '\0');
         }
-        JADE_ASSERT(end_ptr <= (const char*)qr_data->data + qr_data->len);
+        JADE_ASSERT(end_ptr <= (const char*)bytes + bytes_len);
 
         // Lookup prefix in the default (English) wordlist, ensuring exactly one match
         size_t possible_match = 0;
@@ -966,34 +979,40 @@ static bool expand_words(const qr_data_t* qr_data, char* buf, const size_t buf_l
     return *end_ptr == '\0';
 }
 
-static bool import_bcur_bip39(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+static bool import_bcur_bip39(
+    const uint8_t* bytes, const size_t bytes_len, char* buf, const size_t buf_len, size_t* written)
 {
-    JADE_ASSERT(qr_data);
+    JADE_ASSERT(bytes);
     JADE_ASSERT(buf);
     JADE_ASSERT(buf_len);
     JADE_INIT_OUT_SIZE(written);
 
+    JADE_ASSERT(bytes[bytes_len] == '\0');
+
     // Quick check to see if it looks like a bcur bip39 string
     const char bcqrtag[] = "UR:CRYPTO-BIP39";
-    if (qr_data->len <= sizeof(bcqrtag) || strncasecmp(bcqrtag, (const char*)qr_data->data, sizeof(bcqrtag) - 1)) {
+    if (bytes_len <= sizeof(bcqrtag) || strncasecmp(bcqrtag, (const char*)bytes, sizeof(bcqrtag) - 1)) {
         return false;
     }
 
     // Decode bcur string
-    return bcur_parse_bip39((const char*)qr_data->data, qr_data->len, buf, buf_len, written);
+    return bcur_parse_bip39_wrapper((const char*)bytes, bytes_len, buf, buf_len, written);
 }
 
 // SeedSigner SeedQR support (ie string of 4-digit word indices).
 // NOTE: only the English wordlist is supported.
-static bool import_seedqr(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+static bool import_seedqr(
+    const uint8_t* bytes, const size_t bytes_len, char* buf, const size_t buf_len, size_t* written)
 {
-    JADE_ASSERT(qr_data);
+    JADE_ASSERT(bytes);
     JADE_ASSERT(buf);
     JADE_ASSERT(buf_len);
     JADE_INIT_OUT_SIZE(written);
 
+    JADE_ASSERT(bytes[bytes_len] == '\0');
+
     // Must be a string of appropriate length and all digits
-    if ((qr_data->len != 48 && qr_data->len != 96) || !string_all((const char*)qr_data->data, isdigit)) {
+    if ((bytes_len != 48 && bytes_len != 96) || !string_all((const char*)bytes, isdigit)) {
         return false;
     }
 
@@ -1003,9 +1022,9 @@ static bool import_seedqr(const qr_data_t* qr_data, char* buf, const size_t buf_
     index_code[4] = '\0';
 
     size_t write_pos = 0;
-    const size_t num_words = qr_data->len == 48 ? 12 : 24;
+    const size_t num_words = bytes_len == 48 ? 12 : 24;
     for (size_t i = 0; i < num_words; ++i) {
-        memcpy(index_code, qr_data->data + (i * 4), 4);
+        memcpy(index_code, bytes + (i * 4), 4);
         const size_t index = strtol(index_code, NULL, 10);
         if (index > 2047) {
             JADE_LOGE("Error, provided a bip39 word out of range");
@@ -1043,21 +1062,22 @@ static bool import_seedqr(const qr_data_t* qr_data, char* buf, const size_t buf_
 
 // SeedSigner CompactSeedQR support (ie raw entropy).
 // NOTE: only the English wordlist is supported.
-static bool import_compactseedqr(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+static bool import_compactseedqr(
+    const uint8_t* bytes, const size_t bytes_len, char* buf, const size_t buf_len, size_t* written)
 {
-    JADE_ASSERT(qr_data);
+    JADE_ASSERT(bytes);
     JADE_ASSERT(buf);
     JADE_ASSERT(buf_len);
     JADE_INIT_OUT_SIZE(written);
 
     // Any buffer of appropriate length will work as a compactseedqr as it's just raw entropy
-    if ((qr_data->len != BIP32_ENTROPY_LEN_128 && qr_data->len != BIP32_ENTROPY_LEN_256)) {
+    if ((bytes_len != BIP32_ENTROPY_LEN_128 && bytes_len != BIP32_ENTROPY_LEN_256)) {
         return false;
     }
 
     // Convert binary entropy to mnemonic string
     char* mnemonic = NULL;
-    JADE_WALLY_VERIFY(bip39_mnemonic_from_bytes(NULL, qr_data->data, qr_data->len, &mnemonic));
+    JADE_WALLY_VERIFY(bip39_mnemonic_from_bytes(NULL, bytes, bytes_len, &mnemonic));
     JADE_ASSERT(mnemonic);
     const size_t mnemonic_len = strnlen(mnemonic, buf_len);
     JADE_ASSERT(mnemonic_len < buf_len); // buffer should be large enough for any mnemonic
@@ -1072,14 +1092,22 @@ static bool import_compactseedqr(const qr_data_t* qr_data, char* buf, const size
 }
 
 // Attempt to import mnemonic from supported formats
-static bool import_mnemonic(const qr_data_t* qr_data, char* buf, const size_t buf_len, size_t* written)
+bool import_mnemonic(const uint8_t* bytes, const size_t bytes_len, char* buf, const size_t buf_len, size_t* written)
 {
+    JADE_ASSERT(bytes);
+    JADE_ASSERT(buf);
+    JADE_INIT_OUT_SIZE(written);
+
+    JADE_ASSERT(bytes[bytes_len] == '\0');
+
     // 1. Try seedsigner compact format (ie. raw 128bit or 256bit entropy)
     // 2. Try seedsigner standard format (string of 4-digit indicies, no spaces)
     // 3. Try bcur bip39 format (starts with a specific string prefix)
     // 4. Try to read word prefixes or whole words (space separated)
-    return import_compactseedqr(qr_data, buf, buf_len, written) || import_seedqr(qr_data, buf, buf_len, written)
-        || import_bcur_bip39(qr_data, buf, buf_len, written) || expand_words(qr_data, buf, buf_len, written);
+    return import_compactseedqr(bytes, bytes_len, buf, buf_len, written)
+        || import_seedqr(bytes, bytes_len, buf, buf_len, written)
+        || import_bcur_bip39(bytes, bytes_len, buf, buf_len, written)
+        || expand_words(bytes, bytes_len, buf, buf_len, written);
 }
 
 // Function to validate qr scanned is (or expands to) a valid mnemonic
@@ -1096,7 +1124,8 @@ bool import_and_validate_mnemonic(qr_data_t* qr_data)
 
     // Try to import mnemonic, validate, and if all good copy over into the qr_data
     size_t written = 0;
-    if (import_mnemonic(qr_data, buf, sizeof(buf), &written) && bip39_mnemonic_validate(NULL, buf) == WALLY_OK) {
+    if (import_mnemonic(qr_data->data, qr_data->len, buf, sizeof(buf), &written)
+        && bip39_mnemonic_validate(NULL, buf) == WALLY_OK) {
         JADE_ASSERT(written);
         JADE_ASSERT(written <= sizeof(buf));
         JADE_ASSERT(buf[written - 1] == '\0');
@@ -1210,6 +1239,45 @@ void get_passphrase(char* passphrase, const size_t passphrase_len)
     }
 }
 
+bool derive_keychain(const bool temporary_restore, const char* mnemonic)
+{
+    JADE_ASSERT(mnemonic);
+    // NOTE: mnemnonic should be valid at this point for best UX
+
+    keychain_t keydata = { 0 };
+    SENSITIVE_PUSH(&keydata, sizeof(keydata));
+
+    // Get any passphrase, if relevant
+    char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
+    SENSITIVE_PUSH(passphrase, sizeof(passphrase));
+    passphrase[0] = '\0';
+
+    get_passphrase(passphrase, sizeof(passphrase));
+    const size_t passphrase_len = strnlen(passphrase, sizeof(passphrase));
+    JADE_ASSERT(passphrase_len < sizeof(passphrase));
+
+    display_processing_message_activity();
+
+    // If the mnemonic is valid derive temporary keychain from it.
+    // Otherwise break/return here.
+    const bool wallet_created = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
+    SENSITIVE_POP(passphrase);
+
+    if (!wallet_created) {
+        SENSITIVE_POP(&keydata);
+        JADE_LOGE("Failed to derive wallet");
+        return false;
+    }
+
+    // All good - push temporary into main in-memory keychain
+    // and remove the restriction on network-types.
+    keychain_set(&keydata, SOURCE_NONE, temporary_restore);
+    keychain_clear_network_type_restriction();
+
+    SENSITIVE_POP(&keydata);
+    return true;
+}
+
 void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_scan, bool* offer_qr_temporary)
 {
     // At this point we should not have any keys in-memory
@@ -1225,8 +1293,6 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 
     char mnemonic[MNEMONIC_BUFLEN]; // buffer should be large enough for any mnemonic
     SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
-    keychain_t keydata = { 0 };
-    SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     // NOTE: temporary wallets default to 'advanced mode'
     bool advanced_mode = temporary_restore;
@@ -1333,10 +1399,12 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         }
     }
 
-    // Check mnemonic valid before entering passphrase
-    // NOTE: only the English wordlist is supported.
+    // Mnemonic should be populated and *valid* at this point
+    // a. newly created mnemonics should always be valid
+    // b. restore by kb-entry includes explicit validation
+    // c. qr-scanner includes a validation check before returning the scanned mnemonic
     if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
-        JADE_LOGW("Invalid mnemonic");
+        JADE_LOGE("Invalid mnemonic unexpected");
         await_error_activity("Invalid recovery phrase");
         goto cleanup;
     }
@@ -1385,31 +1453,12 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         keychain_persist_key_flags();
     }
 
-    // Get any passphrase, if relevant
-    char passphrase[PASSPHRASE_MAX_LEN + 1]; // max chars plus '\0'
-    SENSITIVE_PUSH(passphrase, sizeof(passphrase));
-    passphrase[0] = '\0';
-
-    get_passphrase(passphrase, sizeof(passphrase));
-    const size_t passphrase_len = strnlen(passphrase, sizeof(passphrase));
-    JADE_ASSERT(passphrase_len < sizeof(passphrase));
-
-    display_processing_message_activity();
-
-    // If the mnemonic is valid derive temporary keychain from it.
-    // Otherwise break/return here.
-    const bool wallet_created = keychain_derive_from_mnemonic(mnemonic, passphrase, &keydata);
-    SENSITIVE_POP(passphrase);
-    if (!wallet_created) {
-        JADE_LOGW("Failed to derive wallet");
-        await_error_activity("Failed to derive wallet");
+    if (!derive_keychain(temporary_restore, mnemonic)) {
+        // Error making wallet...
+        JADE_LOGE("Failed to derive keychain from valid mnemonic");
+        await_error_activity("Failed to create wallet");
         goto cleanup;
     }
-
-    // All good - push temporary into main in-memory keychain
-    // and remove the restriction on network-types.
-    keychain_set(&keydata, SOURCE_NONE, temporary_restore);
-    keychain_clear_network_type_restriction();
 
     if (!temporary_restore) {
         // We need to cache the root mnemonic entropy as it is this that we will persist
@@ -1418,7 +1467,6 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     }
 
 cleanup:
-    SENSITIVE_POP(&keydata);
     SENSITIVE_POP(mnemonic);
 }
 

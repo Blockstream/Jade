@@ -25,6 +25,8 @@
 #include <string.h>
 #include <time.h>
 
+#define MNEMONIC_BUFLEN 256
+
 // When we are displaying a BCUR QR code we ensure the timeout is at least this value
 // as we don't want the unit to shut down because of apparent inactivity.
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
@@ -45,14 +47,17 @@ gui_activity_t* make_show_qr_activity(const char* label, Icon* icons, size_t num
     bool show_options_button, bool show_help_btn);
 gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** framerate_textbox);
 
-bool register_otp_string(const char* otp_uri, const size_t uri_len, const char** errmsg);
-int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg);
+bool import_mnemonic(const uint8_t* bytes, size_t bytes_len, char* buf, size_t buf_len, size_t* written);
+bool register_otp_string(const char* otp_uri, size_t uri_len, const char** errmsg);
+int register_multisig_file(const char* multisig_file, size_t multisig_file_len, const char** errmsg);
 int update_pinserver(const CborValue* const params, const char** errmsg);
 int params_set_epoch_time(CborValue* params, const char** errmsg);
-int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output, const size_t sig_len, size_t* written,
-    const char** errmsg);
+int sign_message_file(
+    const char* str, size_t str_len, uint8_t* sig_output, size_t sig_len, size_t* written, const char** errmsg);
 
 bool show_confirm_address_activity(const char* address, bool default_selection);
+
+bool handle_mnemonic_qr(const char* mnemonic);
 
 // PSBT struct and functions
 struct wally_psbt;
@@ -791,6 +796,25 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         return true;
     }
 
+    // See if it looks like a new wallet phrase
+    // NOTE: these must always be nul-terminated (even when a binary compact seed qr)
+    if (strbytes[bytes_len] == '\0') {
+        char mnemonic[MNEMONIC_BUFLEN];
+        SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
+        size_t written = 0;
+        if (import_mnemonic(bytes, bytes_len, mnemonic, sizeof(mnemonic), &written) && written < sizeof(mnemonic)) {
+            if (!handle_mnemonic_qr(mnemonic)) {
+                JADE_LOGE("Handling new scanned mnemonic failed");
+                await_error_activity("Failed loading wallet");
+                SENSITIVE_POP(mnemonic);
+                return false;
+            }
+            SENSITIVE_POP(mnemonic);
+            return true;
+        }
+        SENSITIVE_POP(mnemonic);
+    }
+
     JADE_LOGW("Unhandled QR (bytes) message");
     await_error_activity("Unhandled QR payload");
     return false;
@@ -925,6 +949,23 @@ bool handle_update_pinserver_qr(const uint8_t* cbor, const size_t cbor_len)
     return true;
 }
 
+static bool handle_bip39_qr(const uint8_t* cbor, const size_t cbor_len)
+{
+    char mnemonic[MNEMONIC_BUFLEN];
+    SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
+    size_t written = 0;
+    if (!bcur_parse_bip39(cbor, cbor_len, mnemonic, sizeof(mnemonic), &written) || written >= sizeof(mnemonic)
+        || !handle_mnemonic_qr(mnemonic)) {
+        SENSITIVE_POP(mnemonic);
+        JADE_LOGE("Processing scanned mnemonic data failed");
+        await_error_activity("Failed loading wallet");
+        return false;
+    }
+
+    SENSITIVE_POP(mnemonic);
+    return true;
+}
+
 // Handle scanning a QR - supports addresses and PSBTs
 void handle_scan_qr(void)
 {
@@ -955,6 +996,11 @@ void handle_scan_qr(void)
             // Pinserver details
             if (!handle_update_pinserver_qr(data, data_len)) {
                 JADE_LOGE("Processing BC-UR as pinserver details failed");
+            }
+        } else if (!strcasecmp(type, BCUR_TYPE_CRYPTO_BIP39)) {
+            // BIP39 phrase
+            if (!handle_bip39_qr(data, data_len)) {
+                JADE_LOGE("Processing BC-UR as bip39 phrase failed");
             }
         } else if (!strcasecmp(type, BCUR_TYPE_BYTES)) {
             // Opaque bytes

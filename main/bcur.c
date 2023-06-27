@@ -14,6 +14,7 @@
 bool deserialise_psbt(const uint8_t* bytes, size_t bytes_len, struct wally_psbt** psbt_out);
 bool serialise_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len);
 
+const char BCUR_TYPE_CRYPTO_BIP39[] = "crypto-bip39";
 const char BCUR_TYPE_CRYPTO_ACCOUNT[] = "crypto-account";
 const char BCUR_TYPE_CRYPTO_HDKEY[] = "crypto-hdkey";
 const char BCUR_TYPE_CRYPTO_PSBT[] = "crypto-psbt";
@@ -54,7 +55,7 @@ static const uint32_t QR_SCALE_FACTOR[] = { 0, 6, 5, 4, 4, 3, 3, 3, 2, 2, 2, 2, 
 
 // Parse bcur bip39 cbor to extract a mnemonic string (space separated words)
 // NOTE: only the English wordlist is supported.
-static bool parse_bcur_bip39_cbor(
+bool bcur_parse_bip39(
     const uint8_t* cbor, const size_t cbor_len, char* mnemonic, const size_t mnemonic_len, size_t* written)
 {
     JADE_ASSERT(cbor);
@@ -147,16 +148,13 @@ static bool parse_bcur_bip39_cbor(
 // Parse bcur bip39 data to extract a mnemonic string (space separated words)
 // NOTE: only the English wordlist is supported.
 // See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md
-bool bcur_parse_bip39(
+bool bcur_parse_bip39_wrapper(
     const char* bcur, const size_t bcur_len, char* mnemonic, const size_t mnemonic_len, size_t* written)
 {
     JADE_ASSERT(bcur);
     JADE_ASSERT(mnemonic);
     JADE_ASSERT(mnemonic_len);
     JADE_INIT_OUT_SIZE(written);
-
-    // Expected type for bip39 mnemonic
-    const char expected_type[] = "crypto-bip39";
 
     // Decode bcur string
     bool ret = false;
@@ -172,13 +170,13 @@ bool bcur_parse_bip39(
     uint8_t* result = NULL;
     size_t result_len = 0;
     urresult_ur_decoder(decoder, &result, &result_len, &type);
-    if (!type || !result || !result_len || strcasecmp(expected_type, type)) {
-        JADE_LOGW("Unable to decode bcur bip39 string to expected type %s", expected_type);
+    if (!type || !result || !result_len || strcasecmp(BCUR_TYPE_CRYPTO_BIP39, type)) {
+        JADE_LOGW("Unable to decode bcur bip39 string to expected type %s", BCUR_TYPE_CRYPTO_BIP39);
         goto cleanup;
     }
 
     // Decode the cbor
-    if (!parse_bcur_bip39_cbor(result, result_len, mnemonic, mnemonic_len, written)) {
+    if (!bcur_parse_bip39(result, result_len, mnemonic, mnemonic_len, written)) {
         JADE_LOGW("Failed to parse bcur bip39 cbor message");
         goto cleanup;
     }
@@ -192,7 +190,7 @@ cleanup:
 }
 
 // Parse the bcur cbor for raw undifferentiated bytes (bytes) - just bytes.
-// NOTE: this returns a pointer to the buye buffer allocate in the existing cbor input
+// NOTE: this returns a pointer to the byte buffer allocated in the existing cbor input
 // *AND NOT* a freshly allocated or copied range.
 // See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md
 bool bcur_parse_bytes(const uint8_t* cbor, size_t cbor_len, const uint8_t** bytes, size_t* bytes_len)

@@ -183,7 +183,8 @@ bool show_view_multisig_activity(const char* multisig_name, bool initial_confirm
 gui_activity_t* make_session_activity(void);
 gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item);
 
-// Wallet initialisation function
+// Wallet initialisation functions
+bool derive_keychain(bool temporary_restore, const char* mnemonic);
 void initialise_with_mnemonic(bool temporary_restore, bool force_qr_scan, bool* offer_qr_temporary);
 
 // Register a new otp code
@@ -756,6 +757,37 @@ static void select_initial_connection(const bool offer_qr_temporary)
 
     // Selection method chosen, return to 'home' screen showing specific message
     show_connect_screen = true;
+}
+
+// Called when the generic QR-scanner sees a valid mnemonic QR
+bool handle_mnemonic_qr(const char* mnemonic)
+{
+    JADE_ASSERT(mnemonic);
+
+    if (!await_yesno_activity("Switch Wallet", "   Wallet QR identified.\n    Log out and switch\n            wallets?",
+            true, "blkstrm.com/temporary")) {
+        // User opted against - return true to show qr handled without processing error
+        return true;
+    }
+
+    // Log-out and switch to new wallet
+    const bool assume_qr_mode = (keychain_get_userdata() == SOURCE_QR);
+    JADE_LOGI("Switching wallets - qrmode: %u", assume_qr_mode);
+
+    const bool temporary_restore = true;
+    if (!derive_keychain(temporary_restore, mnemonic)) {
+        JADE_LOGE("Failed to derive new wallet to switch into");
+        return false;
+    }
+
+    // If the original wallet was in qrmode, remain in qr-mode, otherwise ask user
+    if (assume_qr_mode) {
+        offer_pinserver_via_qr();
+    } else {
+        select_initial_connection(!temporary_restore);
+    }
+
+    return true;
 }
 
 // Helper to initialise with mnemonic, and (if successful) request whether the

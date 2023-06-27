@@ -12,6 +12,7 @@
 struct wally_psbt;
 
 // Some BC-UR 'type' strings
+extern const char BCUR_TYPE_CRYPTO_BIP39[];
 extern const char BCUR_TYPE_CRYPTO_ACCOUNT[];
 extern const char BCUR_TYPE_CRYPTO_HDKEY[];
 extern const char BCUR_TYPE_CRYPTO_PSBT[];
@@ -21,7 +22,8 @@ extern const char BCUR_TYPE_JADE_UPDPS[];
 extern const char BCUR_TYPE_BYTES[];
 
 // Parse BC-UR messages - decodes BC-UR and parses nested CBOR
-bool bcur_parse_bip39(const char* bcur, size_t bcur_len, char* mnemonic, size_t mnemonic_len, size_t* written);
+bool bcur_parse_bip39_wrapper(const char* bcur, size_t bcur_len, char* mnemonic, size_t mnemonic_len, size_t* written);
+bool bcur_parse_bip39(const uint8_t* cbor, size_t cbor_len, char* mnemonic, size_t mnemonic_len, size_t* written);
 bool bcur_parse_bytes(const uint8_t* cbor, size_t cbor_len, const uint8_t** bytes, size_t* bytes_len);
 bool bcur_parse_psbt(const uint8_t* cbor, size_t cbor_len, struct wally_psbt** psbt_out);
 bool bcur_parse_jade_message(const uint8_t* cbor, size_t cbor_len, CborParser* parser, CborValue* root,
