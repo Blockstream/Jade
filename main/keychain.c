@@ -156,6 +156,18 @@ void keychain_persist_passphrase_prefs()
     }
 }
 
+// Only for use under specific circumstances during wallet setup, when the initialisation is
+// started as standard/pin-protected, but the user then wants to flip to temporary-wallet only.
+void keychain_set_temporary(void)
+{
+    // This combination should only occur when part way through initial setup
+    JADE_ASSERT(keychain_data);
+    JADE_ASSERT(mnemonic_entropy_len);
+    JADE_ASSERT(!keychain_temporary);
+    JADE_ASSERT(!keychain_has_pin());
+    keychain_temporary = true;
+}
+
 bool keychain_has_temporary(void)
 {
     JADE_ASSERT(!keychain_temporary || keychain_data);

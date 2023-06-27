@@ -67,9 +67,13 @@ gui_activity_t* make_bip85_mnemonic_words_activity(void);
 // NOTE: a 'true' return means the user either completed the QR copy and verification
 // process, OR they decided to abandon/skip it - in either case move on to the next step.
 // 'false' implies they pressed a 'back' button and we should NOT move forward.
-static bool mnemonic_export_qr(const char* mnemonic)
+static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
 {
     JADE_ASSERT(mnemonic);
+    JADE_ASSERT(export_qr_verified);
+
+    // Will be set if scan succeeds
+    *export_qr_verified = false;
 
     if (!await_skipyes_activity(
             NULL, "            Draw the\n   CompactSeedQR for\n    use with QR Mode.", true, "blkstrm.com/seedqr")) {
@@ -197,6 +201,7 @@ static bool mnemonic_export_qr(const char* mnemonic)
         if (qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
             // QR Code scanned, and it matched expected entropy
             await_message_activity("QR Code Verified");
+            *export_qr_verified = true;
             break; // done
         } else {
             const char* msg = qr_data.len ? "\nQR code does not match\n\n            Retry?"
@@ -1205,10 +1210,14 @@ void get_passphrase(char* passphrase, const size_t passphrase_len)
     }
 }
 
-void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_scan)
+void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_scan, bool* offer_qr_temporary)
 {
     // At this point we should not have any keys in-memory
     JADE_ASSERT(!keychain_get());
+    JADE_ASSERT(offer_qr_temporary);
+
+    // Initially false, set after wallet creation depending on path/routes/options
+    *offer_qr_temporary = false;
 
     // We only allow setting new keys when encrypted keys are persisted if
     // we are doing a temporary restore.
@@ -1335,14 +1344,26 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     // Offer export via qr for true Jade hw's (ie. with camera) and the flag is set
     // ie. a) if 'Advanced' setup was used, and b) we did not already scan a QR
-    if (advanced_mode && !qr_scanned) {
-        bool export_qr
-            = await_yesno_activity(NULL, "Export recovery phrase\n  as a CompactSeedQR?", true, "blkstrm.com/seedqr");
+    if (advanced_mode) {
+        // If the user scanned a qr for a non-temporary login, we may double-check
+        // they don't prefer the temporary qr-mode wallet, in case that's what they intended.
+        *offer_qr_temporary = qr_scanned && !temporary_restore;
 
-        while (export_qr) {
-            // Call export function - it returns 'true' when the step is complete (or skipped)
-            // (it returns 'false' if the user presses 'back' to restart the process)
-            export_qr = !mnemonic_export_qr(mnemonic);
+        // If the user did not scan a QR, offer the chance to export (ie. draw) one now
+        if (!qr_scanned) {
+            bool export_qr = await_yesno_activity(
+                NULL, "Export recovery phrase\n  as a CompactSeedQR?", true, "blkstrm.com/seedqr");
+
+            bool export_qr_verified = false;
+            while (export_qr) {
+                // Call export function - it returns 'true' when the step is complete (or skipped)
+                // (it returns 'false' if the user presses 'back' to restart the process)
+                export_qr = !mnemonic_export_qr(mnemonic, &export_qr_verified);
+            }
+
+            // If the user successfully exported the qr for a non-temporary login, we may double-check
+            // they don't prefer the temporary qr-mode wallet, in case that's what they intended.
+            *offer_qr_temporary = export_qr_verified && !temporary_restore;
         }
     }
 #else

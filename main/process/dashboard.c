@@ -140,6 +140,7 @@ gui_activity_t* make_connect_to_activity(const char* device_name, jade_msg_sourc
 // GUI screens
 gui_activity_t* make_select_connection_activity_if_required(bool temporary_restore);
 gui_activity_t* make_connect_qrmode_activity(const char* device_name);
+gui_activity_t* make_confirm_qrmode_activity(void);
 
 gui_activity_t* make_startup_options_activity(void);
 gui_activity_t* make_uninitialised_settings_activity(void);
@@ -183,7 +184,7 @@ gui_activity_t* make_session_activity(void);
 gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item);
 
 // Wallet initialisation function
-void initialise_with_mnemonic(bool temporary_restore, bool force_qr_scan);
+void initialise_with_mnemonic(bool temporary_restore, bool force_qr_scan, bool* offer_qr_temporary);
 
 // Register a new otp code
 bool register_otp_qr(void);
@@ -651,10 +652,10 @@ static void offer_jade_reset(void)
 }
 
 // Offer to communicate with pinserver via QRs
-static bool offer_pinserver_via_qr(const bool temporary_restore)
+static bool offer_pinserver_via_qr(void)
 {
     // User to confirm pinserver-via-QR
-    if (!temporary_restore) {
+    if (!keychain_has_temporary()) {
         char msg[64];
         const int ret
             = snprintf(msg, sizeof(msg), "      Visit\nblkstrm.com/pn to %s", keychain_has_pin() ? "unlock" : "secure");
@@ -676,20 +677,26 @@ static bool offer_pinserver_via_qr(const bool temporary_restore)
 static bool offer_pinserver_qr_unlock()
 {
     JADE_ASSERT(keychain_has_pin());
-    const bool temporary_restore = keychain_has_temporary();
-    JADE_ASSERT(!temporary_restore);
-    return offer_pinserver_via_qr(temporary_restore);
+    JADE_ASSERT(!keychain_has_temporary());
+    return offer_pinserver_via_qr();
 }
 
 // Screen to select whether the initial connection is via USB, BLE or QR
-static void select_initial_connection(const bool temporary_restore)
+static void select_initial_connection(const bool offer_qr_temporary)
 {
+    // Don't offer temporary (qr-mode) if already a temporary wallet
+    JADE_ASSERT(!offer_qr_temporary || !keychain_has_temporary());
+
     // If there are connection options, the user must choose one
     // Otherwise this call returns null and we default to USB
-    gui_activity_t* const act = make_select_connection_activity_if_required(temporary_restore);
-    initialisation_source = act ? SOURCE_NONE : SOURCE_SERIAL;
-    show_connect_screen = true;
+    gui_activity_t* const act_select = make_select_connection_activity_if_required(keychain_has_temporary());
+    gui_activity_t* act = act_select;
 
+    // In advanced-setup, when choosing QRs double check re: temporary-restore/'QR Mode'
+    gui_activity_t* const act_confirm_qr_mode
+        = (act_select && offer_qr_temporary) ? make_confirm_qrmode_activity() : NULL;
+
+    initialisation_source = act_select ? SOURCE_NONE : SOURCE_SERIAL;
     while (initialisation_source == SOURCE_NONE) {
         gui_set_current_activity(act);
 
@@ -718,12 +725,37 @@ static void select_initial_connection(const bool temporary_restore)
                 }
             } else if (ev_id == BTN_CONNECT_VIA_QR) {
                 // Offer pinserver via qr with urls etc
-                if (offer_pinserver_via_qr(temporary_restore)) {
+                if (act_confirm_qr_mode) {
+                    // Double check re: temporary-restore/'QR Mode'
+                    act = act_confirm_qr_mode;
+                } else if (offer_pinserver_via_qr()) {
                     JADE_ASSERT(initialisation_source == SOURCE_QR);
                 }
+            } else if (ev_id == BTN_CONNECT_QR_PIN) {
+                // Offer pinserver via qr with urls etc
+                if (offer_pinserver_via_qr()) {
+                    JADE_ASSERT(initialisation_source == SOURCE_QR);
+                }
+            } else if (ev_id == BTN_CONNECT_QR_SCAN) {
+                if (await_continueback_activity(NULL,
+                        "    This wallet will be\n      temporary and\n   forgotton on reboot", true,
+                        "blkstrm.com/qrmode")) {
+                    // 'QR-Mode' temporary login only
+                    keychain_set_temporary();
+                    if (offer_pinserver_via_qr()) {
+                        JADE_ASSERT(initialisation_source == SOURCE_QR);
+                    }
+                }
+            } else if (ev_id == BTN_CONNECT_QR_BACK) {
+                act = act_select;
+            } else if (ev_id == BTN_CONNECT_QR_HELP) {
+                await_qr_help_activity("blkstrm.com/qrmode");
             }
         }
     }
+
+    // Selection method chosen, return to 'home' screen showing specific message
+    show_connect_screen = true;
 }
 
 // Helper to initialise with mnemonic, and (if successful) request whether the
@@ -731,9 +763,10 @@ static void select_initial_connection(const bool temporary_restore)
 static void initialise_wallet(const bool temporary_restore)
 {
     const bool force_qr_scan = false;
-    initialise_with_mnemonic(temporary_restore, force_qr_scan);
+    bool offer_qr_temporary = false;
+    initialise_with_mnemonic(temporary_restore, force_qr_scan, &offer_qr_temporary);
     if (keychain_get()) {
-        select_initial_connection(temporary_restore);
+        select_initial_connection(offer_qr_temporary);
     }
 }
 
@@ -1882,12 +1915,14 @@ static bool qr_mode_scan_seedqr(void)
 {
     const bool temporary_restore = true;
     const bool force_qr_scan = true;
-    initialise_with_mnemonic(temporary_restore, force_qr_scan);
+    bool offer_qr_temporary = false; // unused - already flagged as temporary wallet
+    initialise_with_mnemonic(temporary_restore, force_qr_scan, &offer_qr_temporary);
     if (!keychain_get()) {
         return false;
     }
 
-    return offer_pinserver_via_qr(temporary_restore);
+    JADE_ASSERT(keychain_has_temporary());
+    return offer_pinserver_via_qr();
 }
 
 static void handle_qr_mode(void)
@@ -1908,11 +1943,11 @@ static void handle_qr_mode(void)
                 done = qr_mode_scan_seedqr();
                 break;
 
-            case BTN_CONNECT_HELP:
+            case BTN_CONNECT_QR_HELP:
                 await_qr_help_activity("blkstrm.com/qrmode");
                 break;
 
-            case BTN_CONNECT_BACK:
+            case BTN_CONNECT_QR_BACK:
                 done = true;
                 break;
             }
@@ -1933,7 +1968,7 @@ static void handle_btn(const int32_t btn)
         break;
 
     case BTN_CONNECT_TO_BACK:
-        select_initial_connection(keychain_has_temporary());
+        select_initial_connection(false);
         break;
 
     case BTN_QR_MODE:

@@ -33,6 +33,7 @@ void keychain_set_passphrase_type(passphrase_type_t type);
 passphrase_type_t keychain_get_passphrase_type();
 void keychain_persist_passphrase_prefs();
 
+void keychain_set_temporary(void);
 bool keychain_has_temporary(void);
 uint8_t keychain_get_userdata(void);
 

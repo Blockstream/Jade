@@ -138,8 +138,8 @@ gui_activity_t* make_connect_qrmode_activity(const char* device_name)
 {
     JADE_ASSERT(device_name);
 
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK },
-        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_HELP } };
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_QR_BACK },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_QR_HELP } };
 
     btn_data_t menubtns[] = { { .txt = "QR PIN Unlock", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_PIN },
         { .txt = "Scan SeedQR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_SCAN } };
@@ -198,6 +198,22 @@ gui_activity_t* make_select_connection_activity_if_required(const bool temporary
 
     // Otherwise make a menu and return that
     return make_menu_activity("Select Connection", NULL, 0, menubtns, ibtn);
+}
+
+gui_activity_t* make_confirm_qrmode_activity(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_QR_BACK },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_QR_HELP } };
+
+    btn_data_t ftrbtns[] = {
+        { .txt = "PIN", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_PIN, .borders = GUI_BORDER_TOPRIGHT },
+        { .txt = "SeedQR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_SCAN, .borders = GUI_BORDER_TOPLEFT }
+    };
+
+    gui_activity_t* const act = make_show_message_activity(
+        " Save and encypt wallet\n     with PIN or scan a\n SeedQR every session?", 12, NULL, hdrbtns, 2, ftrbtns, 2);
+
+    return act;
 }
 
 gui_activity_t* make_bip39_passphrase_prefs_activity(
