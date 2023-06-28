@@ -591,10 +591,11 @@ static void dispatch_message(jade_process_t* process)
         // Then clean up after the process has finished
         cleanup_jade_process(&task_process);
 
-        // When the authentication process exits, wipe the cached 'initialistion source'
+        // When the authentication process exits clear any initialisation-source.
+        // Also set the 'connect screen' flag if it looks like the auth failed.
         if (task_function == auth_user_process) {
+            show_connect_screen = (keychain_get() && keychain_get_userdata() == SOURCE_NONE);
             initialisation_source = SOURCE_NONE;
-            show_connect_screen = false;
         }
     }
 }
@@ -653,18 +654,25 @@ static void offer_jade_reset(void)
 }
 
 // Offer to communicate with pinserver via QRs
-static bool offer_pinserver_via_qr(void)
+static bool auth_qr_mode(void)
 {
-    // User to confirm pinserver-via-QR
-    if (!keychain_has_temporary()) {
-        char msg[64];
-        const int ret
-            = snprintf(msg, sizeof(msg), "      Visit\nblkstrm.com/pn to %s", keychain_has_pin() ? "unlock" : "secure");
-        JADE_ASSERT(ret > 0 && ret < sizeof(msg));
-        if (!await_qr_back_continue_activity(msg, "blkstrm.com/pn", true)) {
-            // User decided against it
-            return false;
-        }
+
+    // Temporary login via QR - just set the message source
+    if (keychain_has_temporary()) {
+        keychain_set(keychain_get(), SOURCE_QR, true);
+        initialisation_source = SOURCE_QR;
+        show_connect_screen = false;
+        return true;
+    }
+
+    // Otherwise user to confirm pinserver-via-QRs
+    char msg[64];
+    const int ret
+        = snprintf(msg, sizeof(msg), "      Visit\nblkstrm.com/pn to %s", keychain_has_pin() ? "unlock" : "secure");
+    JADE_ASSERT(ret > 0 && ret < sizeof(msg));
+    if (!await_qr_back_continue_activity(msg, "blkstrm.com/pn", true)) {
+        // User decided against it
+        return false;
     }
 
     // Start pinserver/qr handshake process
@@ -675,11 +683,11 @@ static bool offer_pinserver_via_qr(void)
 }
 
 // Unlock jade using qr-codes to effect communication with the pinserver
-static bool offer_pinserver_qr_unlock()
+static bool offer_pinserver_qr_unlock(void)
 {
     JADE_ASSERT(keychain_has_pin());
     JADE_ASSERT(!keychain_has_temporary());
-    return offer_pinserver_via_qr();
+    return auth_qr_mode();
 }
 
 // Screen to select whether the initial connection is via USB, BLE or QR
@@ -716,9 +724,11 @@ static void select_initial_connection(const bool offer_qr_temporary)
             if (ev_id == BTN_CONNECT_VIA_USB) {
                 // Set USB/SERIAL source
                 initialisation_source = SOURCE_SERIAL;
+                show_connect_screen = true;
             } else if (ev_id == BTN_CONNECT_VIA_BLE) {
                 // Set BLE source and ensure ble enabled now and by default
                 initialisation_source = SOURCE_BLE;
+                show_connect_screen = true;
                 if (!ble_enabled()) {
                     const uint8_t ble_flags = storage_get_ble_flags() | BLE_ENABLED;
                     storage_set_ble_flags(ble_flags);
@@ -729,13 +739,15 @@ static void select_initial_connection(const bool offer_qr_temporary)
                 if (act_confirm_qr_mode) {
                     // Double check re: temporary-restore/'QR Mode'
                     act = act_confirm_qr_mode;
-                } else if (offer_pinserver_via_qr()) {
+                } else if (auth_qr_mode()) {
                     JADE_ASSERT(initialisation_source == SOURCE_QR);
+                    JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
                 }
             } else if (ev_id == BTN_CONNECT_QR_PIN) {
                 // Offer pinserver via qr with urls etc
-                if (offer_pinserver_via_qr()) {
+                if (auth_qr_mode()) {
                     JADE_ASSERT(initialisation_source == SOURCE_QR);
+                    JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
                 }
             } else if (ev_id == BTN_CONNECT_QR_SCAN) {
                 if (await_continueback_activity(NULL,
@@ -743,8 +755,9 @@ static void select_initial_connection(const bool offer_qr_temporary)
                         "blkstrm.com/qrmode")) {
                     // 'QR-Mode' temporary login only
                     keychain_set_temporary();
-                    if (offer_pinserver_via_qr()) {
+                    if (auth_qr_mode()) {
                         JADE_ASSERT(initialisation_source == SOURCE_QR);
+                        JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
                     }
                 }
             } else if (ev_id == BTN_CONNECT_QR_BACK) {
@@ -754,9 +767,6 @@ static void select_initial_connection(const bool offer_qr_temporary)
             }
         }
     }
-
-    // Selection method chosen, return to 'home' screen showing specific message
-    show_connect_screen = true;
 }
 
 // Called when the generic QR-scanner sees a valid mnemonic QR
@@ -782,7 +792,7 @@ bool handle_mnemonic_qr(const char* mnemonic)
 
     // If the original wallet was in qrmode, remain in qr-mode, otherwise ask user
     if (assume_qr_mode) {
-        offer_pinserver_via_qr();
+        auth_qr_mode();
     } else {
         select_initial_connection(!temporary_restore);
     }
@@ -1954,7 +1964,7 @@ static bool qr_mode_scan_seedqr(void)
     }
 
     JADE_ASSERT(keychain_has_temporary());
-    return offer_pinserver_via_qr();
+    return auth_qr_mode();
 }
 
 static void handle_qr_mode(void)
@@ -2235,7 +2245,7 @@ void dashboard_process(void* process_ptr)
                 JADE_LOGI("Awaiting QR initialisation");
                 act_dashboard = display_processing_message_activity();
             } else if (initial_keychain) {
-                JADE_LOGI("Wallet/keys initialised but not yet saved - showing Connect-To screen");
+                JADE_LOGI("Wallet/keys initialised but not yet saved/authed - showing Connect-To screen");
                 act_dashboard = make_connect_to_activity(device_name, initialisation_source);
                 gui_activity_register_event(
                     act_dashboard, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
@@ -2247,7 +2257,9 @@ void dashboard_process(void* process_ptr)
             }
         } else {
             // Show home screen
-            if (initial_keychain && keychain_get_userdata() != SOURCE_NONE) {
+            initialisation_source = SOURCE_NONE; // Not mid-initialisation
+            if (initial_keychain) {
+                JADE_ASSERT(keychain_get_userdata() != SOURCE_NONE);
                 JADE_LOGI("Connected and have wallet/keys - showing home screen/Active");
                 UPDATE_HOME_SCREEN(HOME_SCREEN_TYPE_ACTIVE);
             } else if (has_pin) {

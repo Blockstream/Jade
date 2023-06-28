@@ -111,6 +111,7 @@ gui_activity_t* make_connect_activity(const char* device_name)
 gui_activity_t* make_connect_to_activity(const char* device_name, const jade_msg_source_t initialisation_source)
 {
     JADE_ASSERT(device_name);
+    JADE_ASSERT(initialisation_source != SOURCE_QR);
 
     char msg[128];
     if (initialisation_source == SOURCE_BLE) {
@@ -124,12 +125,6 @@ gui_activity_t* make_connect_to_activity(const char* device_name, const jade_msg
     }
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_TO_BACK },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_HELP } };
-
-    if (initialisation_source == SOURCE_QR) {
-        // Hide back button as QR login task will have been initiated
-        hdrbtns[0].txt = NULL;
-        hdrbtns[0].ev_id = GUI_BUTTON_EVENT_NONE;
-    }
 
     return make_show_message_activity(msg, 2, device_name, hdrbtns, 2, NULL, 0);
 }

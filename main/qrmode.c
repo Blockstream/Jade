@@ -1350,6 +1350,9 @@ static void auth_qr_client_task(void* unused)
 {
     JADE_LOGI("Starting Auth QR client task: %lu", xPortGetFreeHeapSize());
 
+    // Only needed/expected for 'full' inititialistion with pinserver
+    JADE_ASSERT(!keychain_has_temporary());
+
     // Drain any old messages sitting on the QR queue
     while (jade_process_get_out_message(NULL, SOURCE_QR, NULL)) {
         JADE_LOGW("Discarded stale message from QR queue");
@@ -1366,13 +1369,7 @@ static void auth_qr_client_task(void* unused)
     // and display the message payload as bcur QR code on screen.
     JADE_LOGI("Awaiting auth_user reply data to display as qr");
     if (!get_outbound_reply_show_qr(handle_first_pinserver_reply)) {
-        // For a temporary wallet this call is expected to 'fail' as we don't need
-        // any pinserver interaction (but still have to 'auth' to some degree).
-        if (keychain_has_temporary()) {
-            JADE_LOGI("Temporary wallet, QR Mode, skipping pinserver interaction");
-        } else {
-            JADE_LOGW("Failed to receive auth_user reply data");
-        }
+        JADE_LOGW("Failed to receive auth_user reply data");
         goto cleanup;
     }
 
@@ -1420,6 +1417,9 @@ cleanup:
 
 void handle_qr_auth(void)
 {
+    // Only needed/expected for 'full' inititialistion with pinserver
+    JADE_ASSERT(!keychain_has_temporary());
+
     // Start a task to run the qr client side
     TaskHandle_t auth_qr_client_task_handle;
     const BaseType_t retval = xTaskCreatePinnedToCore(&auth_qr_client_task, "auth_qr_client_task", 4 * 1024, NULL,
