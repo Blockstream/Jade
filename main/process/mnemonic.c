@@ -983,6 +983,7 @@ static bool import_seedqr(const qr_data_t* qr_data, char* buf, const size_t buf_
         if (write_pos + 1 + wordlen + 1 >= buf_len) {
             // Not enough remaining for space, word, nul
             JADE_LOGE("Error, expanded mnemonic string too large for buffer");
+            JADE_WALLY_VERIFY(wally_free_string(wally_word));
             SENSITIVE_POP(index_code);
             return false;
         }
