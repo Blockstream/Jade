@@ -380,11 +380,14 @@ void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, 
         // the last message was over serial or ble, and now that interface is not connected.
         // NOTE: this check only really affects 'blocking' calls, as a non-blocking call is going
         // to return 'no message' here in any case.
-        const bool lost_usb_connection = (last_message_source == SOURCE_SERIAL) && !usb_connected();
-        const bool lost_ble_connection = (last_message_source == SOURCE_BLE) && !ble_connected();
-        if (lost_usb_connection || lost_ble_connection) {
-            JADE_LOGE("Lost connection, returning without fetching message");
-            return;
+        if (blocking && last_message_source != SOURCE_NONE) {
+            const bool lost_usb_connection = (last_message_source == SOURCE_SERIAL) && !usb_connected();
+            const bool lost_ble_connection = (last_message_source == SOURCE_BLE) && !ble_connected();
+            if (lost_usb_connection || lost_ble_connection) {
+                JADE_LOGE("Lost connection, returning from blocking wait without fetching message");
+                last_message_source = SOURCE_NONE;
+                return;
+            }
         }
     } while (blocking);
 }
