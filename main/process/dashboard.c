@@ -37,7 +37,6 @@ static inline void ble_start(void) { JADE_ASSERT(false); }
 #include "process_utils.h"
 
 #include <esp_chip_info.h>
-#include <esp_mac.h>
 #include <sodium/utils.h>
 #include <time.h>
 
@@ -94,7 +93,11 @@ home_menu_item_t home_menu_items[HOME_SCREEN_TYPE_NUM_STATES][NUM_HOME_SCREEN_ME
 
 // The device name and running firmware info, loaded at startup
 static const char* device_name;
-static esp_app_desc_t running_app_info;
+
+// The chip-info, mac-id, and running firmware-info, loaded at startup in main.c
+extern esp_app_desc_t running_app_info;
+extern esp_chip_info_t chip_info;
+extern uint8_t macid[6];
 
 // Functional actions
 void register_otp_process(void* process_ptr);
@@ -306,16 +309,11 @@ static void reply_version_info(const void* ctx, CborEncoder* container)
     const char* idfversion = esp_get_idf_version();
     add_string_to_map(&map_encoder, "IDF_VERSION", idfversion);
 
-    esp_chip_info_t info;
-    esp_chip_info(&info);
-
     char* hexstr = NULL;
-    JADE_WALLY_VERIFY(wally_hex_from_bytes((uint8_t*)&info.features, 4, &hexstr));
+    JADE_WALLY_VERIFY(wally_hex_from_bytes((uint8_t*)&chip_info.features, 4, &hexstr));
     add_string_to_map(&map_encoder, "CHIP_FEATURES", hexstr);
     JADE_WALLY_VERIFY(wally_free_string(hexstr));
 
-    uint8_t macid[6];
-    esp_efuse_mac_get_default(macid);
     JADE_WALLY_VERIFY(wally_hex_from_bytes(macid, 6, &hexstr));
     map_string(hexstr, toupper);
     add_string_to_map(&map_encoder, "EFUSEMAC", hexstr);
@@ -1725,8 +1723,29 @@ static void handle_display_mac_address(void)
 {
     char mac[18] = "NO BLE";
 #ifdef CONFIG_BT_ENABLED
-    const int rc = ble_get_mac(mac, sizeof(mac));
-    JADE_ASSERT(rc == 18);
+    char* hexout = NULL;
+    JADE_WALLY_VERIFY(wally_hex_from_bytes((uint8_t*)macid, 6, &hexout));
+
+    mac[0] = toupper((int)hexout[0]);
+    mac[1] = toupper((int)hexout[1]);
+    mac[2] = ':';
+    mac[3] = toupper((int)hexout[2]);
+    mac[4] = toupper((int)hexout[3]);
+    mac[5] = ':';
+    mac[6] = toupper((int)hexout[4]);
+    mac[7] = toupper((int)hexout[5]);
+    mac[8] = ':';
+    mac[9] = toupper((int)hexout[6]);
+    mac[10] = toupper((int)hexout[7]);
+    mac[11] = ':';
+    mac[12] = toupper((int)hexout[8]);
+    mac[13] = toupper((int)hexout[9]);
+    mac[14] = ':';
+    mac[15] = toupper((int)hexout[10]);
+    mac[16] = toupper((int)hexout[11]);
+    mac[17] = '\0';
+
+    JADE_WALLY_VERIFY(wally_free_string(hexout));
 #endif
 
     handle_info_detail_screen("MAC Address", mac);
@@ -2258,11 +2277,6 @@ void dashboard_process(void* process_ptr)
     // Populate the static fields about the unit/fw
     device_name = get_jade_id();
     JADE_ASSERT(device_name);
-
-    const esp_partition_t* running = esp_ota_get_running_partition();
-    JADE_ASSERT(running);
-    const esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
-    JADE_ASSERT(err == ESP_OK);
 
     // NOTE: Create 'Ready' screen for when Jade is unlocked and ready to use early, so that
     // it does not fragment the RAM (since it is long-lived).

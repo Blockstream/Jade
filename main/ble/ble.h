@@ -16,8 +16,6 @@ void ble_stop(void);
 void ble_start_advertising(void);
 void ble_stop_advertising(void);
 
-int ble_get_mac(char* mac, size_t length);
-
 bool ble_remove_all_devices(void);
 
 #endif /* BLE_H_ */

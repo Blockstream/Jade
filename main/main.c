@@ -1,5 +1,7 @@
+#include <esp_chip_info.h>
 #include <esp_efuse.h>
 #include <esp_event.h>
+#include <esp_mac.h>
 #include <esp_ota_ops.h>
 
 #include <driver/gpio.h>
@@ -39,6 +41,11 @@
 #include "storage.h"
 #include "wallet.h"
 
+// Running partition/fw info & chip info, fetched once at boot
+esp_app_desc_t running_app_info;
+esp_chip_info_t chip_info;
+uint8_t macid[6];
+
 #ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
 int serial_logger(const char* message, va_list fmt);
 #endif
@@ -47,7 +54,7 @@ void offer_startup_options(void);
 void dashboard_process(void* process_ptr);
 void temp_stack_init(void);
 
-static void ensure_boot_flags()
+static void ensure_boot_flags(void)
 {
 #ifdef CONFIG_SECURE_BOOT
     esp_efuse_disable_basic_rom_console();
@@ -175,6 +182,11 @@ static void start_dashboard(void)
 
 static void validate_running_image(void)
 {
+    // Populate chip info struct and mac-id
+    esp_chip_info(&chip_info);
+    esp_efuse_mac_get_default(macid);
+
+    // Check running partition/fw image
     const esp_partition_t* running = esp_ota_get_running_partition();
     JADE_LOGI("Running partition ptr: %p", running);
 
@@ -183,7 +195,7 @@ static void validate_running_image(void)
         return;
     }
 
-    esp_app_desc_t running_app_info;
+    // Populate the running partition info struct
     esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
     if (err == ESP_OK) {
         JADE_LOGI("Running firmware version: %s", running_app_info.version);
@@ -215,8 +227,8 @@ void app_main(void)
 {
     ensure_boot_flags();
     random_start_collecting();
+    validate_running_image();
     boot_process();
     sensitive_assert_empty();
-    validate_running_image();
     start_dashboard();
 }

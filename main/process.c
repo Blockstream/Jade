@@ -36,6 +36,10 @@ static TaskHandle_t ble_handle;
 static TaskHandle_t qemu_tcp_handle;
 #endif
 
+// The mac-id, loaded at startup in main.c
+extern uint8_t macid[6];
+
+// The 'id' we make using that mac-id
 static char jade_id[16];
 
 #ifdef CONFIG_HEAP_TRACING
@@ -106,8 +110,6 @@ static void deduce_jade_id(void)
 {
     JADE_ASSERT(sizeof(jade_id) > 12);
 
-    uint8_t macid[6];
-    esp_efuse_mac_get_default(macid);
     char* hexout = NULL;
     JADE_WALLY_VERIFY(wally_hex_from_bytes(macid, 6, &hexout));
 

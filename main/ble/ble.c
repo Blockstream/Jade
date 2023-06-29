@@ -62,39 +62,6 @@ static TaskHandle_t* ble_writer_handle = NULL;
 
 gui_activity_t* make_ble_confirmation_activity(uint32_t numcmp);
 
-int ble_get_mac(char* mac, size_t length)
-{
-    if (length < 18)
-        return -1;
-
-    esp_efuse_mac_get_default((uint8_t*)mac);
-    char* hexout = NULL;
-    JADE_WALLY_VERIFY(wally_hex_from_bytes((uint8_t*)mac, 6, &hexout));
-
-    mac[0] = toupper((int)hexout[0]);
-    mac[1] = toupper((int)hexout[1]);
-    mac[2] = ':';
-    mac[3] = toupper((int)hexout[2]);
-    mac[4] = toupper((int)hexout[3]);
-    mac[5] = ':';
-    mac[6] = toupper((int)hexout[4]);
-    mac[7] = toupper((int)hexout[5]);
-    mac[8] = ':';
-    mac[9] = toupper((int)hexout[6]);
-    mac[10] = toupper((int)hexout[7]);
-    mac[11] = ':';
-    mac[12] = toupper((int)hexout[8]);
-    mac[13] = toupper((int)hexout[9]);
-    mac[14] = ':';
-    mac[15] = toupper((int)hexout[10]);
-    mac[16] = toupper((int)hexout[11]);
-    mac[17] = '\0';
-
-    JADE_WALLY_VERIFY(wally_free_string(hexout));
-
-    return 18;
-}
-
 static int gatt_chr_event(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt* ctxt, void* arg)
 {
     JADE_LOGI("Entering gatt_chr_event %d", ctxt->op);
@@ -390,6 +357,7 @@ static void ble_writer(void* ignore)
  *
  * REMOVE WHEN ISSUE FIXED UPSTREAM
  */
+extern uint8_t macid[6]; // loaded at startup in main.c
 void ble_hs_pvcy_get_default_irk(uint8_t* new_irk_out, const size_t new_irk_len)
 {
     JADE_ASSERT(new_irk_out);
@@ -398,9 +366,6 @@ void ble_hs_pvcy_get_default_irk(uint8_t* new_irk_out, const size_t new_irk_len)
     uint8_t output[HMAC_SHA256_LEN];
     JADE_ASSERT(new_irk_len <= sizeof(output));
 
-    uint8_t mac[6];
-    esp_efuse_mac_get_default(mac);
-
     /* before we call into wally re-randomize secp256k1 ctx for this task */
     jade_wally_randomize_secp_ctx();
 
@@ -408,7 +373,7 @@ void ble_hs_pvcy_get_default_irk(uint8_t* new_irk_out, const size_t new_irk_len)
     const bool ret = storage_get_pin_privatekey(privatekey, sizeof(privatekey));
     JADE_ASSERT(ret);
 
-    const int wret = wally_hmac_sha256(privatekey, sizeof(privatekey), mac, sizeof(mac), output, sizeof(output));
+    const int wret = wally_hmac_sha256(privatekey, sizeof(privatekey), macid, sizeof(macid), output, sizeof(output));
     JADE_WALLY_VERIFY(wally_bzero(privatekey, sizeof(privatekey)));
     JADE_ASSERT(wret == WALLY_OK);
 

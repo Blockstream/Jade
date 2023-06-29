@@ -14,6 +14,9 @@
 bool show_ota_versions_activity(
     const char* current_version, const char* new_version, const char* hashhex, const bool full_fw_hash);
 
+// The running firmware info, loaded at startup
+extern esp_app_desc_t running_app_info;
+
 const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t custom_app_desc
     = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
 
@@ -213,12 +216,6 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     JADE_ASSERT(joctx->running_partition);
     JADE_ASSERT(joctx->ota_handle);
 
-    esp_app_desc_t running_app_info;
-    esp_err_t err = esp_ota_get_partition_description(joctx->running_partition, &running_app_info);
-    if (err != ESP_OK) {
-        JADE_LOGE("Failed to get running partition data, error: %d", err);
-        return ERROR_BADPARTITION;
-    }
     JADE_LOGI("Running firmware version: %s", running_app_info.version);
 
     // Check chip
