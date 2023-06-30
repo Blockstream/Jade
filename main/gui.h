@@ -415,6 +415,7 @@ void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, ui
 void gui_set_borders_selected_color(gui_view_node_t* node, color_t selected_color);
 void gui_set_borders_inactive_color(gui_view_node_t* node, color_t inactive_color);
 void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color);
+void gui_set_color(gui_view_node_t* node, color_t color);
 void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum gui_vertical_align valign);
 void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, size_t num_icons, size_t frames_per_icon);
 void gui_set_text_scroll(gui_view_node_t* node, color_t background_color);

@@ -1252,6 +1252,8 @@ void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color
     }
 }
 
+void gui_set_color(gui_view_node_t* node, color_t color) { gui_set_colors(node, color, color); }
+
 void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum gui_vertical_align valign)
 {
     JADE_ASSERT(node);
@@ -2092,7 +2094,7 @@ static void update_status_bar(void)
         }
         if (new_bat != status_bar.last_battery_val) {
             status_bar.last_battery_val = new_bat;
-            gui_set_colors(status_bar.battery_text, color, color);
+            gui_set_color(status_bar.battery_text, color);
             gui_update_text_node_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
             status_bar.updated = true;
         }
