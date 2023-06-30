@@ -15,7 +15,7 @@
 
 // Wallet initialisation functions
 void initialise_with_mnemonic(bool temporary_restore, bool force_qr_scan);
-void get_passphrase(char* passphrase, size_t passphrase_len, bool confirm);
+void get_passphrase(char* passphrase, size_t passphrase_len);
 
 // Pinserver interaction
 bool pinclient_get(
@@ -111,8 +111,7 @@ static bool check_pin_load_keys(jade_process_t* process)
         passphrase[0] = '\0';
 
         // Get any passphrase that may be required
-        const bool confirm_passphrase = false;
-        get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+        get_passphrase(passphrase, sizeof(passphrase));
 
         display_processing_message_activity();
 

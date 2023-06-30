@@ -1144,19 +1144,16 @@ cleanup:
     return qr_scanned;
 }
 
-static void get_freetext_passphrase(char* passphrase, const size_t passphrase_len, const bool confirm)
+static void get_freetext_passphrase(char* passphrase, const size_t passphrase_len)
 {
     JADE_ASSERT(passphrase);
     JADE_ASSERT(passphrase_len);
     passphrase[0] = '\0';
 
-    // We will need this activity later if confirming
-    gui_activity_t* confirm_passphrase_activity = NULL;
+    // We will need this activity later when confirming
     gui_view_node_t* text_to_confirm = NULL;
-    if (confirm) {
-        confirm_passphrase_activity = make_confirm_passphrase_activity(passphrase, &text_to_confirm);
-        JADE_ASSERT(text_to_confirm);
-    }
+    gui_activity_t* const confirm_passphrase_activity = make_confirm_passphrase_activity(passphrase, &text_to_confirm);
+    int32_t ev_id;
 
     // For passphrase we want all 4 keyboards
     keyboard_entry_t kb_entry = { .max_allowed_len = passphrase_len - 1 };
@@ -1174,25 +1171,18 @@ static void get_freetext_passphrase(char* passphrase, const size_t passphrase_le
         // Run the keyboard entry loop to get a typed passphrase
         run_keyboard_entry_loop(&kb_entry);
 
-        // Perhaps ask user to confirm, before accepting passphrase
-        if (confirm) {
-            int32_t ev_id;
-            gui_update_text(text_to_confirm, kb_entry.len > 0 ? kb_entry.strdata : "<no passphrase>");
-            gui_set_current_activity(confirm_passphrase_activity);
-            gui_activity_wait_event(
-                confirm_passphrase_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-            done = (ev_id == BTN_YES);
-        } else {
-            // Not explicitly confirming passphrase, so done
-            done = true;
-        }
+        // Ask user to confirm passphrase
+        gui_update_text(text_to_confirm, kb_entry.len > 0 ? kb_entry.strdata : "<no passphrase>");
+        gui_set_current_activity(confirm_passphrase_activity);
+        gui_activity_wait_event(confirm_passphrase_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        done = (ev_id == BTN_YES);
     }
 
     JADE_ASSERT(kb_entry.len < passphrase_len);
     strcpy(passphrase, kb_entry.strdata);
 }
 
-void get_passphrase(char* passphrase, const size_t passphrase_len, const bool confirm)
+void get_passphrase(char* passphrase, const size_t passphrase_len)
 {
     JADE_ASSERT(passphrase);
     JADE_ASSERT(passphrase_len);
@@ -1211,7 +1201,7 @@ void get_passphrase(char* passphrase, const size_t passphrase_len, const bool co
         JADE_LOGI("%u wordlist words used for passphrase", nwords);
     } else {
         // Free-text passphrase
-        get_freetext_passphrase(passphrase, passphrase_len, confirm);
+        get_freetext_passphrase(passphrase, passphrase_len);
     }
 }
 
@@ -1378,8 +1368,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     SENSITIVE_PUSH(passphrase, sizeof(passphrase));
     passphrase[0] = '\0';
 
-    const bool confirm_passphrase = true;
-    get_passphrase(passphrase, sizeof(passphrase), confirm_passphrase);
+    get_passphrase(passphrase, sizeof(passphrase));
     const size_t passphrase_len = strnlen(passphrase, sizeof(passphrase));
     JADE_ASSERT(passphrase_len < sizeof(passphrase));
 
