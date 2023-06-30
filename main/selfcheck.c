@@ -1,5 +1,3 @@
-#include "selfcheck.h"
-
 #include <sdkconfig.h>
 #include <string.h>
 #include <wally_bip32.h>
@@ -8,6 +6,7 @@
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "keychain.h"
+#include "process.h"
 #include "random.h"
 #include "storage.h"
 #include <sodium/crypto_verify_64.h>
@@ -169,8 +168,10 @@ static bool test_new_wallets(const size_t nwords)
 // Check 3 incorrect PIN attempts erases stored key data
 // NOTE: also tests loading legacy wallets
 // (master keys rather than mnemonic entropy)
-static bool test_storage_with_pin(void)
+static bool test_storage_with_pin(jade_process_t* process)
 {
+    JADE_ASSERT(process);
+
     // Check encryption/decryption and pin attempts exhausted
     keychain_t keydata = { 0 };
     if (!keychain_derive_from_mnemonic(TEST_MNEMONIC, NULL, &keydata)) {
@@ -181,7 +182,7 @@ static bool test_storage_with_pin(void)
     get_random(aeskey, AES_KEY_LEN_256);
 
     // Save keychain to nvs
-    keychain_set(&keydata, 0, false);
+    keychain_set(&keydata, process->ctx.source, false);
     if (!keychain_store_encrypted(aeskey, sizeof(aeskey))) {
         FAIL();
     }
@@ -270,8 +271,10 @@ static bool test_storage_with_pin(void)
 
 // Test storing mnemonic entropy in storage, and deriving wallet with passphrase when reloading
 // NOTE: only 12- and 24- words supported
-static bool test_storage_with_passphrase(const size_t nwords)
+static bool test_storage_with_passphrase(jade_process_t* process, const size_t nwords)
 {
+    JADE_ASSERT(process);
+
     uint8_t aeskey[AES_KEY_LEN_256];
     get_random(aeskey, AES_KEY_LEN_256);
 
@@ -287,7 +290,7 @@ static bool test_storage_with_passphrase(const size_t nwords)
         FAIL();
     }
 
-    keychain_set(&keydata, 0, false);
+    keychain_set(&keydata, process->ctx.source, false);
     keychain_cache_mnemonic_entropy(mnemonic);
     WALLY_FREE_STR(mnemonic);
 
@@ -359,14 +362,16 @@ static bool test_storage_with_passphrase(const size_t nwords)
         WALLY_FREE_STR(generated);                                                                                     \
     } while (false)
 
-bool test_bip85_mnemonic()
+bool test_bip85_mnemonic(jade_process_t* process)
 {
+    JADE_ASSERT(process);
+
     // Set standard test wallet
     keychain_t keydata = { 0 };
     if (!keychain_derive_from_mnemonic(TEST_MNEMONIC, NULL, &keydata)) {
         FAIL();
     }
-    keychain_set(&keydata, 0, true);
+    keychain_set(&keydata, process->ctx.source, true);
 
     // Test some bip85 derived mnemonics are as expected
     // Test cases generated with: https://github.com/ethankosakovsky/bip85
@@ -770,8 +775,10 @@ static bool test_bcur_large_payload_many_icons(void)
 }
 #endif // CONFIG_ESP32_SPIRAM_SUPPORT
 
-bool debug_selfcheck(void)
+bool debug_selfcheck(jade_process_t* process)
 {
+    JADE_ASSERT(process);
+
     // Test can restore known mnemonic and service path is computed as expected
     if (!test_simple_restore()) {
         FAIL();
@@ -787,20 +794,20 @@ bool debug_selfcheck(void)
 
     // Test can write and read-back key data from storage
     // Test that 3 bad PIN attempts erases stored keys
-    if (!test_storage_with_pin()) {
+    if (!test_storage_with_pin(process)) {
         FAIL();
     }
 
     // Test save/load when using passphrase
-    if (!test_storage_with_passphrase(12)) {
+    if (!test_storage_with_passphrase(process, 12)) {
         FAIL();
     }
-    if (!test_storage_with_passphrase(24)) {
+    if (!test_storage_with_passphrase(process, 24)) {
         FAIL();
     }
 
     // Test Bip85 child bip39 mnemonic generation
-    if (!test_bip85_mnemonic()) {
+    if (!test_bip85_mnemonic(process)) {
         FAIL();
     }
 

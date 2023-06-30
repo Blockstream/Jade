@@ -15,7 +15,6 @@
 #include "../process.h"
 #include "../qrmode.h"
 #include "../random.h"
-#include "../selfcheck.h"
 #include "../sensitive.h"
 #include "../storage.h"
 #include "../ui.h"
@@ -75,6 +74,7 @@ void debug_scan_qr_process(void* process_ptr);
 void debug_set_mnemonic_process(void* process_ptr);
 void debug_clean_reset_process(void* process_ptr);
 void debug_handshake(void* process_ptr);
+bool debug_selfcheck(jade_process_t* process);
 #endif
 void ota_process(void* process_ptr);
 void ota_delta_process(void* process_ptr);
@@ -393,7 +393,7 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("debug_selfcheck")) {
         // Time test run and return to caller
         const TickType_t start_time = xTaskGetTickCount();
-        if (debug_selfcheck()) {
+        if (debug_selfcheck(process)) {
             const TickType_t end_time = xTaskGetTickCount();
             const uint64_t elapsed_time_ms = (end_time - start_time) * portTICK_PERIOD_MS;
             jade_process_reply_to_message_result(process->ctx, &elapsed_time_ms, cbor_result_uint64_cb);
