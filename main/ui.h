@@ -90,6 +90,9 @@ typedef struct {
     gui_view_node_t* btn;
 } btn_data_t;
 
+// Helper to update dynamic menu item label (name: value)
+void update_menu_item(gui_view_node_t* node, const char* label, const char* value);
+
 // Helper to create up to four buttons in a row or column
 typedef enum { UI_ROW, UI_COLUMN } ui_button_layout_t;
 void add_buttons(gui_view_node_t* parent, ui_button_layout_t layout, btn_data_t* btns, size_t num_btns);

@@ -2,6 +2,15 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
+// Helper to update dynamic menu item label (name: value)
+void update_menu_item(gui_view_node_t* node, const char* label, const char* value)
+{
+    char buf[32];
+    const int ret = snprintf(buf, sizeof(buf), "%s: %s", label, value);
+    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+    gui_update_text(node, buf);
+}
+
 // Helper to create up to four buttons in a row or column
 void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_data_t* btns, const size_t num_btns)
 {
