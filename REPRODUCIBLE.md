@@ -29,7 +29,9 @@ All following commands are to be run inside the 'jade_builder' docker container.
 ```
 . /root/esp/esp-idf/export.sh
 cd /builds/blockstream/jade
+git config --global --add safe.directory /builds/blockstream/jade
 ```
+Since the mounted source repository will have a different owner from the user running the shell in the container, `git describe` (which is used internally in the build process to generate/include an application version tag) may fail.  The `git config` command above should address this and ensure the correct version tag is included in the firmware image being built.
 
 * RE-RUN FROM HERE TO BUILD DIFFERENT CONFIGURATIONS
 
