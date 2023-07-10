@@ -15,15 +15,16 @@ void get_master_blinding_key_process(void* process_ptr)
     ASSERT_CURRENT_MESSAGE(process, "get_master_blinding_key");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
 
-    if (!await_yesno_activity(
-            "Blinding Key", "\n        Export master\n         blinding key?", true, "blkstrm.com/blindingkey")) {
-        JADE_LOGW("User declined to export master blinding key");
-        jade_process_reject_message(
-            process, CBOR_RPC_USER_CANCELLED, "User declined to export master blinding key", NULL);
-        goto cleanup;
+    if (keychain_get_confirm_export_blinding_key()) {
+        if (!await_yesno_activity(
+                "Blinding Key", "\n        Export master\n         blinding key?", true, "blkstrm.com/blindingkey")) {
+            JADE_LOGW("User declined to export master blinding key");
+            jade_process_reject_message(
+                process, CBOR_RPC_USER_CANCELLED, "User declined to export master blinding key", NULL);
+            goto cleanup;
+        }
+        JADE_LOGD("User pressed accept");
     }
-
-    JADE_LOGD("User pressed accept");
 
     // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
     // the master unblinding key is only the second half of that - ie. 256 bits

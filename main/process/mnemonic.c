@@ -1375,13 +1375,14 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     // If using 'advanced mode' to setup the persistent wallet, we ask the user and save the settings.
     // In basic/standard mode automatically set 'no passphrase'.
     // NOTE: we don't offer the 'once' option at setup time (only in the options/setting prefs menu).
+    keychain_set_confirm_export_blinding_key(advanced_mode);
     if (!temporary_restore) {
         const bool use_passphrase = advanced_mode
             && await_yesno_activity("BIP39 Passphrase",
                 " Add BIP39 passphrase?\n    You will need this\n   to access your funds.", false,
                 "blkstrm.com/passphrase");
         keychain_set_passphrase_frequency(use_passphrase ? PASSPHRASE_ALWAYS : PASSPHRASE_NEVER);
-        keychain_persist_passphrase_prefs();
+        keychain_persist_key_flags();
     }
 
     // Get any passphrase, if relevant

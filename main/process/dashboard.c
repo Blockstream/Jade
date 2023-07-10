@@ -1152,7 +1152,7 @@ static void handle_passphrase_prefs()
     if (freq != keychain_get_passphrase_freq() || type != keychain_get_passphrase_type()) {
         keychain_set_passphrase_frequency(freq);
         keychain_set_passphrase_type(type);
-        keychain_persist_passphrase_prefs();
+        keychain_persist_key_flags();
     }
 }
 

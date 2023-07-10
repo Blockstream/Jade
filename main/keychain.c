@@ -35,8 +35,8 @@ static bool keychain_temporary = false;
 static uint8_t mnemonic_entropy[BIP39_ENTROPY_LEN_256]; // Maximum supported entropy is 24 words
 static size_t mnemonic_entropy_len = 0;
 
-// Cached passphrase flags
-static uint8_t passphrase_flags = 0;
+// Cached key flags
+static uint8_t key_flags = 0;
 
 void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temporary)
 {
@@ -57,8 +57,8 @@ void keychain_set(const keychain_t* src, const uint8_t userdata, const bool temp
     JADE_WALLY_VERIFY(wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy)));
     mnemonic_entropy_len = 0;
 
-    // Reload passphrase flags
-    passphrase_flags = storage_get_key_flags();
+    // Reload key flags
+    key_flags = storage_get_key_flags();
 
     // Hold the associated userdata
     keychain_userdata = userdata;
@@ -78,8 +78,8 @@ void keychain_clear(void)
     JADE_WALLY_VERIFY(wally_bzero(mnemonic_entropy, sizeof(mnemonic_entropy)));
     mnemonic_entropy_len = 0;
 
-    // Reload passphrase flags
-    passphrase_flags = storage_get_key_flags();
+    // Reload key flags
+    key_flags = storage_get_key_flags();
 
     keychain_userdata = 0;
     keychain_temporary = false;
@@ -99,47 +99,58 @@ void keychain_set_passphrase_frequency(const passphrase_freq_t freq)
 {
     switch (freq) {
     case PASSPHRASE_NEVER:
-        passphrase_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
-        passphrase_flags &= ~KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
+        key_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+        key_flags &= ~KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
         break;
     case PASSPHRASE_ALWAYS:
-        passphrase_flags &= ~KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
-        passphrase_flags |= KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
+        key_flags &= ~KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+        key_flags |= KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
         break;
     case PASSPHRASE_ONCE:
         // Set both 'auto default' and 'user to set' to imply
         // 'user to enter just this once, but usually auto-default'
-        passphrase_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
-        passphrase_flags |= KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
+        key_flags |= KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE;
+        key_flags |= KEY_FLAGS_USER_TO_ENTER_PASSPHRASE;
         break;
     default:
         JADE_LOGE("Unexpected passphrase frequency flag ignored: %u", freq);
     }
 }
 
-passphrase_freq_t keychain_get_passphrase_freq()
+passphrase_freq_t keychain_get_passphrase_freq(void)
 {
     // NOTE: Both flags set implies 'once only'
-    return (passphrase_flags & KEY_FLAGS_USER_TO_ENTER_PASSPHRASE)
-        ? ((passphrase_flags & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE) ? PASSPHRASE_ONCE : PASSPHRASE_ALWAYS)
+    return (key_flags & KEY_FLAGS_USER_TO_ENTER_PASSPHRASE)
+        ? ((key_flags & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE) ? PASSPHRASE_ONCE : PASSPHRASE_ALWAYS)
         : PASSPHRASE_NEVER;
 }
 
 void keychain_set_passphrase_type(const passphrase_type_t type)
 {
     if (type == PASSPHRASE_WORDLIST) {
-        passphrase_flags |= KEY_FLAGS_WORDLIST_PASSPHRASE;
+        key_flags |= KEY_FLAGS_WORDLIST_PASSPHRASE;
     } else {
-        passphrase_flags &= ~KEY_FLAGS_WORDLIST_PASSPHRASE;
+        key_flags &= ~KEY_FLAGS_WORDLIST_PASSPHRASE;
     }
 }
 
-passphrase_type_t keychain_get_passphrase_type()
+passphrase_type_t keychain_get_passphrase_type(void)
 {
-    return (passphrase_flags & KEY_FLAGS_WORDLIST_PASSPHRASE) ? PASSPHRASE_WORDLIST : PASSPHRASE_FREETEXT;
+    return (key_flags & KEY_FLAGS_WORDLIST_PASSPHRASE) ? PASSPHRASE_WORDLIST : PASSPHRASE_FREETEXT;
 }
 
-void keychain_persist_passphrase_prefs()
+void keychain_set_confirm_export_blinding_key(const bool confirm_export)
+{
+    if (confirm_export) {
+        key_flags |= KEY_FLAGS_CONFIRM_EXPORT_BLINDING_KEY;
+    } else {
+        key_flags &= ~KEY_FLAGS_CONFIRM_EXPORT_BLINDING_KEY;
+    }
+}
+
+bool keychain_get_confirm_export_blinding_key(void) { return (key_flags & KEY_FLAGS_CONFIRM_EXPORT_BLINDING_KEY); }
+
+void keychain_persist_key_flags(void)
 {
     // If both the 'auto-default (ie. empty) passphrase' flag and the 'ask user for passphrase'
     // flags are set, then we ask the user for a passphrase *just for the
@@ -148,11 +159,10 @@ void keychain_persist_passphrase_prefs()
     // 'auto-apply empty passphrase' flag into flash nvs.
     // NOTE: the flags use is a bit clumsy because of the way they evolved over time, and we
     // always want to maintain backward-compatibility with the previous meanings of these flags.
-    if ((passphrase_flags & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE)
-        && (passphrase_flags & KEY_FLAGS_USER_TO_ENTER_PASSPHRASE)) {
-        storage_set_key_flags(passphrase_flags & ~KEY_FLAGS_USER_TO_ENTER_PASSPHRASE);
+    if ((key_flags & KEY_FLAGS_AUTO_DEFAULT_PASSPHRASE) && (key_flags & KEY_FLAGS_USER_TO_ENTER_PASSPHRASE)) {
+        storage_set_key_flags(key_flags & ~KEY_FLAGS_USER_TO_ENTER_PASSPHRASE);
     } else {
-        storage_set_key_flags(passphrase_flags);
+        storage_set_key_flags(key_flags);
     }
 }
 
@@ -641,8 +651,8 @@ bool keychain_init(void)
     network_type_restriction = storage_get_network_type_restriction();
     has_encrypted_blob = keychain_pin_attempts_remaining() > 0;
 
-    // Cache the user passphrase preferences
-    passphrase_flags = storage_get_key_flags();
+    // Cache the user key/passphrase preferences
+    key_flags = storage_get_key_flags();
 
     return res;
 }

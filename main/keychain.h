@@ -27,11 +27,14 @@ void keychain_clear(void);
 const keychain_t* keychain_get(void);
 bool keychain_requires_passphrase(void);
 
+// key flags
 void keychain_set_passphrase_frequency(passphrase_freq_t freq);
 passphrase_freq_t keychain_get_passphrase_freq();
 void keychain_set_passphrase_type(passphrase_type_t type);
 passphrase_type_t keychain_get_passphrase_type();
-void keychain_persist_passphrase_prefs();
+void keychain_set_confirm_export_blinding_key(const bool confirm_export);
+bool keychain_get_confirm_export_blinding_key(void);
+void keychain_persist_key_flags(void);
 
 void keychain_set_temporary(void);
 bool keychain_has_temporary(void);
