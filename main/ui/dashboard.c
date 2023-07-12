@@ -319,20 +319,31 @@ gui_activity_t* make_prefs_settings_activity(const bool show_ble)
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PREFS_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
+    btn_data_t menubtns[] = { { .txt = "Display", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY },
+        { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
+        { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE } };
+    const size_t num_menubtns = show_ble ? 3 : 2;
+
+    return make_menu_activity("Settings", hdrbtns, 2, menubtns, num_menubtns);
+}
+
+gui_activity_t* make_display_settings_activity(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DISPLAY_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
     // NOTE: Only Jade v1.1's have brightness controls
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
     btn_data_t menubtns[]
-        = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_SCREEN_BRIGHTNESS },
-              { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
-              { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE } };
-    const size_t num_menubtns = 3;
-#else
-    btn_data_t menubtns[] = { { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
-        { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE } };
+        = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_BRIGHTNESS },
+              { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
     const size_t num_menubtns = 2;
+#else
+    btn_data_t menubtns[] = { { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
+    const size_t num_menubtns = 1;
 #endif
 
-    return make_menu_activity("Settings", hdrbtns, 2, menubtns, show_ble ? num_menubtns : num_menubtns - 1);
+    return make_menu_activity("Display", hdrbtns, 2, menubtns, num_menubtns);
 }
 
 gui_activity_t* make_authentication_activity(void)

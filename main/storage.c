@@ -32,9 +32,12 @@ static const char* USER_PINSERVER_CERT = "pinsvrcert";
 static const char* NETWORK_TYPE_FIELD = "networktype";
 static const char* IDLE_TIMEOUT_FIELD = "idletimeout";
 static const char* BRIGHTNESS_FIELD = "brightness";
-static const char* CLICK_EVENT_FIELD = "clickevent";
+static const char* GUI_FLAGS_FIELD = "guiflags";
 static const char* BLE_FLAGS_FIELD = "bleflags";
 static const char* QR_FLAGS_FIELD = "qrflags";
+
+// Deprecated/removed keys
+static const char* CLICK_EVENT_FIELD = "clickevent";
 
 // NOTE: esp-idf reserve the final page of nvs entries for internal use (for defrag/consolidation)
 // See: https://github.com/espressif/esp-idf/issues/5247#issuecomment-1048604221
@@ -329,6 +332,10 @@ bool storage_init(void)
     }
 
     esp_log_level_set("nvs", ESP_LOG_ERROR);
+
+    // Erase any now-deprecated keys
+    erase_key(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD);
+
     return err == ESP_OK;
 }
 
@@ -563,15 +570,15 @@ uint8_t storage_get_brightness(void)
     return read_blob_fixed(DEFAULT_NAMESPACE, BRIGHTNESS_FIELD, &brightness, sizeof(brightness)) ? brightness : 0;
 }
 
-bool storage_set_click_event(uint8_t event)
+bool storage_set_gui_flags(uint8_t gui_flags)
 {
-    return store_blob(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD, &event, sizeof(event));
+    return store_blob(DEFAULT_NAMESPACE, GUI_FLAGS_FIELD, &gui_flags, sizeof(gui_flags));
 }
 
-uint8_t storage_get_click_event(void)
+uint8_t storage_get_gui_flags(void)
 {
-    uint8_t event = 0;
-    return read_blob_fixed(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD, &event, sizeof(event)) ? event : 0;
+    uint8_t gui_flags = 0;
+    return read_blob_fixed(DEFAULT_NAMESPACE, GUI_FLAGS_FIELD, &gui_flags, sizeof(gui_flags)) ? gui_flags : 0;
 }
 
 bool storage_set_ble_flags(uint8_t flags)

@@ -151,7 +151,7 @@ gui_activity_t* make_wallet_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
 gui_activity_t* make_authentication_activity(void);
 gui_activity_t* make_prefs_settings_activity(bool show_ble);
-
+gui_activity_t* make_display_settings_activity(void);
 gui_activity_t* make_info_activity(const char* fw_version);
 gui_activity_t* make_device_info_activity(void);
 
@@ -1582,6 +1582,64 @@ static void handle_idle_timeout(void)
     }
 }
 
+static void handle_display_theme(void)
+{
+    static const char* THEME_NAMES[]
+        = { "Jade Green", "Bitcoin Orange", "Liquid Blue", "Cypherpunk Black", "Open-Source Opal" };
+    static const uint16_t num_themes = sizeof(THEME_NAMES) / sizeof(THEME_NAMES[0]);
+    JADE_ASSERT(num_themes == GUI_NUM_DISPLAY_THEMES);
+
+    const uint8_t initial_gui_flags = storage_get_gui_flags();
+    const uint8_t initial_theme = initial_gui_flags & ~GUI_FLAGS_USE_WHEEL_CLICK;
+
+    uint8_t new_theme = initial_theme < num_themes ? initial_theme : 0;
+
+    gui_view_node_t* item_text = NULL;
+    gui_activity_t* const act = make_carousel_activity("Theme", NULL, &item_text);
+    JADE_ASSERT(item_text);
+    gui_update_text(item_text, THEME_NAMES[new_theme]);
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    bool done = false;
+    while (!done) {
+        // wait for a GUI event
+        gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+
+        switch (ev_id) {
+        case GUI_WHEEL_LEFT_EVENT:
+            new_theme = (new_theme + num_themes - 1) % num_themes;
+            gui_set_highlight_color(new_theme);
+            update_carousel_highlight_color(item_text, gui_get_highlight_color(), true);
+            gui_update_text(item_text, THEME_NAMES[new_theme]);
+            break;
+
+        case GUI_WHEEL_RIGHT_EVENT:
+            new_theme = (new_theme + 1) % num_themes;
+            gui_set_highlight_color(new_theme);
+            update_carousel_highlight_color(item_text, gui_get_highlight_color(), true);
+            gui_update_text(item_text, THEME_NAMES[new_theme]);
+            break;
+
+        default:
+            done = (ev_id == gui_get_click_event());
+        }
+    }
+
+    // Persist updated preferences
+    if (new_theme != initial_theme) {
+        uint8_t new_gui_flags = new_theme;
+        if (initial_gui_flags & GUI_FLAGS_USE_WHEEL_CLICK) {
+            new_gui_flags |= GUI_FLAGS_USE_WHEEL_CLICK;
+        }
+        storage_set_gui_flags(new_gui_flags);
+
+        // Also update top-level (long-lived) home screen with new colors
+        update_carousel_highlight_color(home_screen_item_symbol, gui_get_highlight_color(), false);
+        update_carousel_highlight_color(home_screen_item_text, gui_get_highlight_color(), false);
+    }
+}
+
 static void handle_pinserver_scan(void)
 {
     if (keychain_has_pin()) {
@@ -1771,8 +1829,14 @@ static void handle_settings(const bool startup_menu)
             break;
 
         case BTN_SETTINGS_PREFS:
+        case BTN_SETTINGS_DISPLAY_EXIT:
             // Change to 'Preferences' menu (Settings)
             act = make_prefs_settings_activity(show_ble_settings);
+            break;
+
+        case BTN_SETTINGS_DISPLAY:
+            // Change to 'Device' menu
+            act = make_display_settings_activity();
             break;
 
         case BTN_SETTINGS_AUTHENTICATION:
@@ -1814,19 +1878,25 @@ static void handle_settings(const bool startup_menu)
             handle_storage();
             break;
 
+        case BTN_SETTINGS_IDLE_TIMEOUT:
+            handle_idle_timeout();
+            break;
+
         case BTN_SETTINGS_BLE:
             handle_ble();
             break;
 
 // NOTE: Only Jade v1.1's have brightness controls
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
-        case BTN_SETTINGS_SCREEN_BRIGHTNESS:
+        case BTN_SETTINGS_DISPLAY_BRIGHTNESS:
             handle_screen_brightness();
             break;
 #endif
 
-        case BTN_SETTINGS_IDLE_TIMEOUT:
-            handle_idle_timeout();
+        case BTN_SETTINGS_DISPLAY_THEME:
+            handle_display_theme();
+            // remake parent screen to update colours
+            act = make_display_settings_activity();
             break;
 
         case BTN_SETTINGS_BIP39_PASSPHRASE:

@@ -479,6 +479,29 @@ gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** labe
     return act;
 }
 
+// Function to update the highlight colour used for the selection
+void update_carousel_highlight_color(const gui_view_node_t* text_label, const color_t color, const bool repaint)
+{
+    // Assert is label in carousel as created above
+    JADE_ASSERT(text_label);
+    JADE_ASSERT(text_label->kind == TEXT);
+    JADE_ASSERT(text_label->parent);
+    JADE_ASSERT(text_label->parent->kind == FILL);
+    JADE_ASSERT(text_label->parent->parent);
+    JADE_ASSERT(text_label->parent->parent->kind == HSPLIT);
+    JADE_ASSERT(text_label->parent->parent->parent);
+    JADE_ASSERT(text_label->parent->parent->parent->kind == FILL);
+
+    // Update the selection colour of the two fill elements
+    gui_set_color(text_label->parent, color);
+    gui_set_color(text_label->parent->parent->parent, color);
+
+    // Repaint if requested
+    if (repaint) {
+        gui_repaint(text_label->parent->parent->parent, true);
+    }
+}
+
 // The progress-bar structure indicated is populated, and should be used to update the progress
 // using the update_progress_bar() function below.
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar)

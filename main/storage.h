@@ -11,6 +11,8 @@
 
 #define BLE_ENABLED 0x1
 
+#define GUI_FLAGS_USE_WHEEL_CLICK 0x80
+
 #define QR_DENSITY_LOW 0x1
 #define QR_DENSITY_HIGH 0x2
 #define QR_SPEED_LOW 0x4
@@ -70,8 +72,8 @@ uint16_t storage_get_idle_timeout(void);
 bool storage_set_brightness(uint8_t brightness);
 uint8_t storage_get_brightness(void);
 
-bool storage_set_click_event(uint8_t event);
-uint8_t storage_get_click_event(void);
+bool storage_set_gui_flags(uint8_t color);
+uint8_t storage_get_gui_flags(void);
 
 bool storage_set_ble_flags(uint8_t flags);
 uint8_t storage_get_ble_flags(void);

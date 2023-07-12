@@ -140,6 +140,7 @@ bool await_continueback_activity(const char* title, const char* message, bool de
 
 // Updatable label with left/right arrows
 gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** label, gui_view_node_t** item);
+void update_carousel_highlight_color(const gui_view_node_t* text_label, color_t color, bool repaint);
 
 // Functions for keyboard entry
 void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title);

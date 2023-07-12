@@ -24,6 +24,12 @@ extern const color_t GUI_BLOCKSTREAM_JADE_GREEN;
 extern const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY;
 extern const color_t GUI_BLOCKSTREAM_QR_PALE;
 
+extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT;
+extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE;
+extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE;
+extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY;
+extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY;
+
 // -------------- Configuration -----------------
 
 // Display window
@@ -49,6 +55,9 @@ extern uint8_t GUI_DEFAULT_FONT;
 
 // Fill all the remaining space in an {h,v}split
 #define GUI_SPLIT_FILL_REMAINING 0xFF
+
+// Number of GUI themes
+#define GUI_NUM_DISPLAY_THEMES 5
 
 // Bits used to enable or disable a border
 #define GUI_BORDER_TOP_BIT 0
@@ -399,7 +408,12 @@ typedef struct {
 } linked_activities_info_t;
 
 gui_event_t gui_get_click_event(void);
-void gui_set_click_event(gui_event_t event);
+void gui_set_click_event(bool use_wheel_click);
+
+color_t gui_get_highlight_color(void);
+void gui_set_highlight_color(uint8_t theme);
+
+color_t gui_get_highlight_color(void);
 
 color_t gui_get_highlight_color(void);
 

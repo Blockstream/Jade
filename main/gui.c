@@ -29,6 +29,12 @@ const color_t GUI_BLOCKSTREAM_JADE_GREEN = { 248, 119, 152 };
 const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY = { 220, 220, 220 };
 const color_t GUI_BLOCKSTREAM_QR_PALE = { 180, 180, 180 };
 
+const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT = GUI_BLOCKSTREAM_JADE_GREEN;
+const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE = { 43, 131, 255 };
+const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE = { 230, 230, 100 };
+const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY = { 200, 200, 200 };
+const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY = { 150, 150, 150 };
+
 typedef struct _activity_holder_t activity_holder_t;
 struct _activity_holder_t {
     gui_activity_t activity;
@@ -56,7 +62,9 @@ static TaskHandle_t gui_task_handle = NULL;
 static RingbufHandle_t switch_activities_queue = NULL;
 
 // Click/select event (ie. which button counts as 'click'/select)
+// and which gui highlight colour is in use
 static gui_event_t gui_click_event = GUI_FRONT_CLICK_EVENT;
+static color_t gui_highlight_color = {};
 
 // status bar
 struct {
@@ -130,14 +138,33 @@ static void make_status_bar(void)
 
 gui_event_t gui_get_click_event(void) { return gui_click_event; }
 
-void gui_set_click_event(gui_event_t event)
+void gui_set_click_event(const bool use_wheel_click)
 {
-    JADE_ASSERT(event == GUI_FRONT_CLICK_EVENT || event == GUI_WHEEL_CLICK_EVENT);
-    storage_set_click_event(event);
-    gui_click_event = event;
+    gui_click_event = use_wheel_click ? GUI_WHEEL_CLICK_EVENT : GUI_FRONT_CLICK_EVENT;
 }
 
-color_t gui_get_highlight_color(void) { return GUI_BLOCKSTREAM_JADE_GREEN; }
+color_t gui_get_highlight_color(void) { return gui_highlight_color; }
+
+void gui_set_highlight_color(const uint8_t theme)
+{
+    switch (theme) {
+    case 1:
+        gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE;
+        break;
+    case 2:
+        gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE;
+        break;
+    case 3:
+        gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY;
+        break;
+    case 4:
+        gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY;
+        break;
+    default:
+        gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT; // jade green
+        break;
+    }
+}
 
 void gui_init(void)
 {
@@ -148,14 +175,11 @@ void gui_init(void)
     activities_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(activities_mutex);
 
-    // Which button event are we to use as a click / 'select item' - sanity checked
-    const gui_event_t loaded_click_event = storage_get_click_event();
-    if (loaded_click_event == GUI_FRONT_CLICK_EVENT || loaded_click_event == GUI_WHEEL_CLICK_EVENT) {
-        gui_click_event = loaded_click_event;
-    } else {
-        gui_set_click_event(GUI_FRONT_CLICK_EVENT);
-    }
-    JADE_ASSERT(gui_click_event == GUI_FRONT_CLICK_EVENT || gui_click_event == GUI_WHEEL_CLICK_EVENT);
+    // Which button event are we to use as a click / 'select item'
+    // and which menu highlight colour to use
+    const uint8_t gui_flags = storage_get_gui_flags();
+    gui_set_click_event(gui_flags & GUI_FLAGS_USE_WHEEL_CLICK);
+    gui_set_highlight_color(gui_flags & ~GUI_FLAGS_USE_WHEEL_CLICK);
 
     // create a blank activity
     current_activity = gui_make_activity();
