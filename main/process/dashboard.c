@@ -207,7 +207,7 @@ static void update_home_screen(gui_view_node_t* status_light, gui_view_node_t* s
     JADE_ASSERT(label);
 
     if (home_screen_type == HOME_SCREEN_TYPE_ACTIVE) {
-        gui_set_color(status_light, TFT_BLOCKSTREAM_DARKGREEN);
+        gui_set_color(status_light, gui_get_highlight_color());
         gui_update_text(status_light, keychain_has_temporary() ? "N" : "J"); // Clock or Filled circle
         gui_update_text(status_text, "Active");
 

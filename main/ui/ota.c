@@ -75,9 +75,9 @@ static gui_activity_t* make_ota_versions_activities(const char* current_version,
     gui_activity_t* const act = make_menu_activity("Firmware Upgrade", hdrbtns, 2, menubtns, 3);
 
     // NOTE: can only set scrolling *after* gui tree created
-    gui_set_text_scroll_selected(vercurrent, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(vernew, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(fwhash, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(vercurrent, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(vernew, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(fwhash, true, TFT_BLACK, gui_get_highlight_color());
 
     return act;
 }

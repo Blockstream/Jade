@@ -289,13 +289,13 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
     gui_set_activity_initial_selection(act, hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
-    gui_set_text_scroll_selected(amountvalue, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(addr, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(amountvalue, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(addr, true, TFT_BLACK, gui_get_highlight_color());
     if (assetinfo) {
-        gui_set_text_scroll_selected(assetinfo, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+        gui_set_text_scroll_selected(assetinfo, true, TFT_BLACK, gui_get_highlight_color());
     }
     if (warning) {
-        gui_set_text_scroll_selected(warning, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+        gui_set_text_scroll_selected(warning, true, TFT_BLACK, gui_get_highlight_color());
     }
 
     return act;
@@ -686,9 +686,9 @@ static gui_activity_t* make_final_confirmation_activities(const char* title, con
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 2);
 
     // NOTE: can only set scrolling *after* gui tree created
-    gui_set_text_scroll_selected(amountvalue, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(amountvalue, true, TFT_BLACK, gui_get_highlight_color());
     if (warning) {
-        gui_set_text_scroll_selected(warning, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+        gui_set_text_scroll_selected(warning, true, TFT_BLACK, gui_get_highlight_color());
     }
 
     return act;

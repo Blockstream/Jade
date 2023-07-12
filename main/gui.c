@@ -133,6 +133,8 @@ void gui_set_click_event(gui_event_t event)
     gui_click_event = event;
 }
 
+color_t gui_get_highlight_color(void) { return TFT_BLOCKSTREAM_DARKGREEN; }
+
 void gui_init(void)
 {
     // Create mutex semaphores.

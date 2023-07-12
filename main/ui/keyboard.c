@@ -103,10 +103,10 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
             } else {
                 // Keyboard button as normal
                 gui_view_node_t* btn;
-                gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, btn_ev_id, NULL);
+                gui_make_button(&btn, TFT_BLACK, gui_get_highlight_color(), btn_ev_id, NULL);
                 gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
                 gui_set_borders(btn, TFT_BLUE, 1, GUI_BORDER_ALL);
-                gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_DARKGREEN);
+                gui_set_borders_selected_color(btn, gui_get_highlight_color());
                 gui_set_borders_inactive_color(btn, TFT_BLACK);
                 gui_set_parent(btn, hsplit);
 

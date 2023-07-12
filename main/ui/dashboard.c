@@ -39,7 +39,7 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     gui_set_parent(vsplit, act->root_node);
 
     // Main area, scrolling horizontal menu
-    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_make_fill(&node, gui_get_highlight_color());
     gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 20, 0, 20, 0);
     gui_set_parent(node, vsplit);
 
@@ -53,13 +53,13 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
 
     // The items symbol and text will be updated, so we add a background that will
     // be repainted every time to wipe the previous string
-    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_make_fill(&node, gui_get_highlight_color());
     gui_set_parent(node, hsplit);
     gui_make_text_font(item_symbol, "", TFT_WHITE, JADE_SYMBOLS_24x24_FONT);
     gui_set_align(*item_symbol, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     gui_set_parent(*item_symbol, node);
 
-    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_make_fill(&node, gui_get_highlight_color());
     gui_set_parent(node, hsplit);
     gui_make_text_font(item_text, "", TFT_WHITE, GUI_DEFAULT_FONT);
     gui_set_align(*item_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
@@ -493,7 +493,7 @@ gui_activity_t* make_info_activity(const char* fw_version)
     gui_activity_t* const act = make_menu_activity("Info", hdrbtns, 2, menubtns, num_menubtns);
 
     // NOTE: can only set scrolling *after* gui tree created
-    gui_set_text_scroll_selected(fwver, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(fwver, true, TFT_BLACK, gui_get_highlight_color());
 
     return act;
 }

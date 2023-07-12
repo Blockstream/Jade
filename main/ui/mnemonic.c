@@ -220,7 +220,7 @@ gui_activity_t* make_confirm_mnemonic_word_activity(
     gui_set_parent(node, hsplit);
 
     // third row, selection word
-    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_make_fill(&node, gui_get_highlight_color());
     gui_set_margins(node, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);
     gui_set_parent(node, vsplit);
 
@@ -233,11 +233,11 @@ gui_activity_t* make_confirm_mnemonic_word_activity(
 
     // This text will be updated, so we add a background that will
     // be repainted every time to wipe the previous string
-    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_make_fill(&node, gui_get_highlight_color());
     gui_set_parent(node, hsplit);
 
     gui_make_text(text_box, "", TFT_WHITE);
-    gui_set_text_noise(*text_box, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_noise(*text_box, gui_get_highlight_color());
     gui_set_align(*text_box, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(*text_box, node);
 
@@ -322,10 +322,10 @@ gui_activity_t* make_enter_wordlist_word_activity(gui_view_node_t** titletext, c
             }
 
             gui_view_node_t* btn;
-            gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, btn_ev_id, NULL);
+            gui_make_button(&btn, TFT_BLACK, gui_get_highlight_color(), btn_ev_id, NULL);
             gui_set_margins(btn, GUI_MARGIN_ALL_EQUAL, 2);
             gui_set_borders(btn, TFT_BLUE, 1, GUI_BORDER_ALL);
-            gui_set_borders_selected_color(btn, TFT_BLOCKSTREAM_DARKGREEN);
+            gui_set_borders_selected_color(btn, gui_get_highlight_color());
             gui_set_borders_inactive_color(btn, TFT_BLACK);
             gui_set_parent(btn, hsplit);
 

@@ -28,7 +28,7 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
     if (btn_info->ev_id == GUI_BUTTON_EVENT_NONE) {
         gui_make_fill(&btn, TFT_BLACK);
     } else {
-        gui_make_button(&btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN, btn_info->ev_id, NULL);
+        gui_make_button(&btn, TFT_BLACK, gui_get_highlight_color(), btn_info->ev_id, NULL);
     }
     gui_set_parent(btn, parent);
 
@@ -40,8 +40,8 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
         gui_set_borders(btn, TFT_BLACK, 1, GUI_BORDER_ALL);
     }
 
-    // In any case green body/bg when selected
-    gui_set_colors(btn, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    // In any case, highlight body/bg when selected
+    gui_set_colors(btn, TFT_BLACK, gui_get_highlight_color());
 
     // Add any simple text label
     if (btn_info->txt) {
@@ -451,7 +451,7 @@ gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** labe
     }
 
     // Background fill
-    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_make_fill(&node, gui_get_highlight_color());
     gui_set_parent(node, vsplit);
 
     gui_view_node_t* hsplit;
@@ -464,7 +464,7 @@ gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** labe
     gui_set_parent(node, hsplit);
 
     // Updateable carousel item
-    gui_make_fill(&node, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_make_fill(&node, gui_get_highlight_color());
     gui_set_parent(node, hsplit);
 
     gui_make_text(item, "", TFT_WHITE);
@@ -492,7 +492,7 @@ void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar)
     gui_view_node_t* progress;
     gui_make_fill(&progress, TFT_BLACK);
     gui_set_margins(progress, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(progress, TFT_BLOCKSTREAM_GREEN, 0, GUI_BORDER_LEFT);
+    gui_set_borders(progress, gui_get_highlight_color(), 0, GUI_BORDER_LEFT);
     gui_set_parent(progress, container);
 
     progress_bar->progress_bar = progress;
@@ -561,7 +561,7 @@ void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const
         const uint16_t width_bar = constraints_x2 - constraints_x1 - margins->left - margins->right;
         const uint16_t width_shaded = width_bar * current / total;
 
-        gui_set_borders(progress_bar->progress_bar, TFT_BLOCKSTREAM_GREEN, width_shaded, GUI_BORDER_LEFT);
+        gui_set_borders(progress_bar->progress_bar, gui_get_highlight_color(), width_shaded, GUI_BORDER_LEFT);
         gui_repaint(progress_bar->progress_bar, true);
     }
 

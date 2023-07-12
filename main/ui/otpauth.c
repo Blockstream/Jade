@@ -60,7 +60,7 @@ static gui_activity_t* make_otp_details_activities(const otpauth_ctx_t* ctx, con
         gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
 
         // NOTE: can only set scrolling *after* gui tree created
-        gui_set_text_scroll_selected(name, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+        gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());
         return act;
     }
 
@@ -155,10 +155,10 @@ static gui_activity_t* make_otp_details_activities(const otpauth_ctx_t* ctx, con
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
 
     // NOTE: can only set scrolling *after* gui tree created
-    gui_set_text_scroll_selected(name, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(label, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(issuer, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(type, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(label, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(issuer, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(type, true, TFT_BLACK, gui_get_highlight_color());
 
     return act;
 }

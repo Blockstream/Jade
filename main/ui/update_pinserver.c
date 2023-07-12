@@ -86,9 +86,9 @@ static gui_activity_t* make_pinserver_details_activities(const char* urlA, const
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 3);
 
     // NOTE: can only set scrolling *after* gui tree created
-    gui_set_text_scroll_selected(urlnode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(url2node, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(pubkeynode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(urlnode, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(url2node, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(pubkeynode, true, TFT_BLACK, gui_get_highlight_color());
 
     return act;
 }

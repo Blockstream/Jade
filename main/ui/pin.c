@@ -30,15 +30,15 @@ static void update_digit_node(pin_insert_t* pin_insert, uint8_t i)
         gui_update_text(pin_insert->pin_digit_nodes[i].down_arrow_node, "");
         break;
     case SELECTED:
-        gui_set_color(pin_insert->pin_digit_nodes[i].fill_node, TFT_BLOCKSTREAM_DARKGREEN);
-        gui_set_borders(pin_insert->pin_digit_nodes[i].fill_node, TFT_BLOCKSTREAM_DARKGREEN, 2, GUI_BORDER_ALL);
+        gui_set_color(pin_insert->pin_digit_nodes[i].fill_node, gui_get_highlight_color());
+        gui_set_borders(pin_insert->pin_digit_nodes[i].fill_node, gui_get_highlight_color(), 2, GUI_BORDER_ALL);
         gui_update_text(pin_insert->pin_digit_nodes[i].up_arrow_node, "K");
         gui_update_text(pin_insert->pin_digit_nodes[i].down_arrow_node, "L");
         strdigit[0] = PIN_CHARS[pin_insert->current_selected_value];
         break;
     case SET:
         gui_set_color(pin_insert->pin_digit_nodes[i].fill_node, TFT_BLACK);
-        gui_set_borders(pin_insert->pin_digit_nodes[i].fill_node, TFT_BLOCKSTREAM_DARKGREEN, 2, GUI_BORDER_ALL);
+        gui_set_borders(pin_insert->pin_digit_nodes[i].fill_node, gui_get_highlight_color(), 2, GUI_BORDER_ALL);
         gui_update_text(pin_insert->pin_digit_nodes[i].up_arrow_node, "");
         gui_update_text(pin_insert->pin_digit_nodes[i].down_arrow_node, "");
         strdigit[0] = '*';

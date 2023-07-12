@@ -396,6 +396,8 @@ typedef struct {
 gui_event_t gui_get_click_event(void);
 void gui_set_click_event(gui_event_t event);
 
+color_t gui_get_highlight_color(void);
+
 void gui_init(void);
 bool gui_initialized(void);
 

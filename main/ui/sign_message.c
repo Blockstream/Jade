@@ -112,9 +112,9 @@ static gui_activity_t* make_sign_message_activities(const char* message, const c
     gui_activity_t* const act = make_menu_activity("Sign Message", hdrbtns, 2, menubtns, 3);
 
     // NOTE: can only set scrolling *after* gui tree created
-    gui_set_text_scroll_selected(msgnode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(hashnode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
-    gui_set_text_scroll_selected(pathnode, true, TFT_BLACK, TFT_BLOCKSTREAM_DARKGREEN);
+    gui_set_text_scroll_selected(msgnode, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(hashnode, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(pathnode, true, TFT_BLACK, gui_get_highlight_color());
 
     return act;
 }
