@@ -148,7 +148,8 @@ bool params_load_multisig(CborValue* params, char* multisig_name, const size_t m
         return false;
     }
 
-    if (!multisig_load_from_storage(multisig_name, multisig_data, errmsg)) {
+    // NOTE: can extend to pass signer_t structs here if we want full signer details
+    if (!multisig_load_from_storage(multisig_name, multisig_data, NULL, 0, NULL, errmsg)) {
         // 'errmsg' populated by above call
         return false;
     }
@@ -242,7 +243,7 @@ bool params_get_master_blindingkey(
     }
 
     multisig_data_t multisig_data = { 0 };
-    if (!multisig_load_from_storage(multisig_name, &multisig_data, errmsg)) {
+    if (!multisig_load_from_storage(multisig_name, &multisig_data, NULL, 0, NULL, errmsg)) {
         // 'errmsg' populated by above call
         return false;
     }

@@ -10,16 +10,19 @@
 // 0 - 0.1.30 - variant, threshold, signers, hmac
 // 1 - 0.1.31 - include the 'sorted' flag
 // 2 - 0.1.34 - include any liquid master blinding key
-static const uint8_t CURRENT_RECORD_VERSION = 2;
+// 3 - 1.0.22 - persist all metadata so can recreate original input
+static const uint8_t CURRENT_RECORD_VERSION = 3;
 
 // The smallest valid multisig record, for sanity checking
 // version 1, 1of1  (moving to v1 predated allowing just 1 signer)
 #define MIN_MULTISIG_BYTES_LEN (4 + 78 + 32)
 
 // Walks the multisig signers and validates - this wallet must have at least one xpub and it must be correct
-bool multisig_validate_signers(const char* network, const signer_t* signers, const size_t num_signers,
-    const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len)
+bool multisig_validate_signers(const signer_t* signers, const size_t num_signers, const uint8_t* wallet_fingerprint,
+    const size_t wallet_fingerprint_len, size_t* total_num_path_elements)
 {
+    JADE_INIT_OUT_SIZE(total_num_path_elements);
+
     if (!signers || !num_signers || num_signers > MAX_MULTISIG_SIGNERS || !wallet_fingerprint
         || wallet_fingerprint_len != BIP32_KEY_FINGERPRINT_LEN) {
         return false;
@@ -66,22 +69,27 @@ bool multisig_validate_signers(const char* network, const signer_t* signers, con
             // All good - we have found our signer in the multisig
             bFound = true;
         }
+
+        // Count the total number of path elements across all signers
+        *total_num_path_elements += signer->derivation_len;
+        *total_num_path_elements += signer->path_len;
     }
 
     return bFound;
 }
 
 bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, const uint8_t threshold,
-    const signer_t* signers, const size_t num_signers, const uint8_t* master_blinding_key,
-    const size_t master_blinding_key_len, uint8_t* output_bytes, const size_t output_len)
+    const uint8_t* master_blinding_key, const size_t master_blinding_key_len, const signer_t* signers,
+    const size_t num_signers, const size_t total_num_path_elements, uint8_t* output_bytes, const size_t output_len)
 {
     JADE_ASSERT(threshold > 0);
+    JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
     JADE_ASSERT(signers);
     JADE_ASSERT(num_signers >= threshold);
     JADE_ASSERT(num_signers <= MAX_MULTISIG_SIGNERS);
-    JADE_ASSERT(IS_VALID_BLINDING_KEY(master_blinding_key, master_blinding_key_len));
+    JADE_ASSERT(total_num_path_elements <= num_signers * 2 * MAX_PATH_LEN);
     JADE_ASSERT(output_bytes);
-    JADE_ASSERT(output_len == MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers));
+    JADE_ASSERT(output_len == MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers, total_num_path_elements));
 
     // Version byte
     uint8_t* write_ptr = output_bytes;
@@ -112,37 +120,225 @@ bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, c
         write_ptr += master_blinding_key_len;
     }
 
-    // All signers immediate parent keys
+    // Num signers (new to version 3)
+    JADE_ASSERT(num_signers <= MAX_MULTISIG_SIGNERS);
+    const uint8_t num_signers_byte = num_signers;
+    memcpy(write_ptr, &num_signers_byte, sizeof(num_signers_byte));
+    write_ptr += sizeof(num_signers_byte);
+
+    // All signers
+    size_t counted_path_elements = 0;
     for (size_t i = 0; i < num_signers; ++i) {
-        struct ext_key hdkey;
-        const signer_t* signer = signers + i;
-        if (!wallet_derive_from_xpub(signer->xpub, signer->path, signer->path_len, BIP32_FLAG_SKIP_HASH, &hdkey)) {
-            JADE_LOGE("Failed to derive signer pubkey");
+        const signer_t* const signer = signers + i;
+
+        // Check total number of path elements persisted
+        counted_path_elements += signer->derivation_len;
+        counted_path_elements += signer->path_len;
+        JADE_ASSERT(counted_path_elements <= total_num_path_elements);
+
+        // Key origin information (new to version 3)
+        memcpy(write_ptr, signer->fingerprint, sizeof(signer->fingerprint));
+        write_ptr += sizeof(signer->fingerprint);
+
+        JADE_ASSERT(signer->derivation_len <= MAX_PATH_LEN);
+        const uint8_t derivation_len = (uint8_t)signer->derivation_len;
+        memcpy(write_ptr, &derivation_len, sizeof(derivation_len));
+        write_ptr += sizeof(derivation_len);
+
+        const size_t derivation_bytes_len = signer->derivation_len * sizeof(signer->derivation[0]);
+        memcpy(write_ptr, signer->derivation, derivation_bytes_len);
+        write_ptr += derivation_bytes_len;
+
+        // Xpub (changed in version 3 to be the xpub as passed, not the derived immediate parent xpub)
+        size_t written = 0;
+        if (wally_base58_to_bytes(
+                signer->xpub, BASE58_FLAG_CHECKSUM, write_ptr, output_bytes + output_len - write_ptr, &written)
+                != WALLY_OK
+            || written != BIP32_SERIALIZED_LEN) {
+            JADE_LOGE("Failed to parse/write signer %u xpub: '%s'", i, signer->xpub);
             return false;
         }
+        write_ptr += written;
 
-        // Get xpub in bytes-serialised form
-        uint8_t xpub[BIP32_SERIALIZED_LEN];
-        if (bip32_key_serialize(&hdkey, BIP32_FLAG_KEY_PUBLIC, xpub, sizeof(xpub)) != WALLY_OK) {
-            JADE_LOGE("Failed to serialise signer xpub");
-            return false;
-        }
+        // Additional path (new to version 3 - prior to that was included in the xpub persisted)
+        JADE_ASSERT(signer->path_len <= MAX_PATH_LEN);
+        const uint8_t path_len = (uint8_t)signer->path_len;
+        memcpy(write_ptr, &path_len, sizeof(path_len));
+        write_ptr += sizeof(path_len);
 
-        // Append serialised xpub to the data bytes
-        memcpy(write_ptr, xpub, sizeof(xpub));
-        write_ptr += sizeof(xpub);
+        const size_t path_bytes_len = path_len * sizeof(signer->path[0]);
+        memcpy(write_ptr, signer->path, path_bytes_len);
+        write_ptr += path_bytes_len;
     }
+    JADE_ASSERT(counted_path_elements == total_num_path_elements);
 
     // Append hmac
     JADE_ASSERT(write_ptr + HMAC_SHA256_LEN == output_bytes + output_len);
     return wallet_hmac_with_master_key(output_bytes, output_len - HMAC_SHA256_LEN, write_ptr, HMAC_SHA256_LEN);
 }
 
-bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, multisig_data_t* output)
+// Before v3 signer data was the simply the signers' immediate parent xpubs, concatentated
+// Not possible to read full signer metadata records, just the xpubs needed to make pubkeys/addresses
+static bool read_simple_signers(
+    const uint8_t* const signer_bytes, const size_t signer_bytes_len, const uint8_t version, multisig_data_t* output)
+{
+    JADE_ASSERT(signer_bytes);
+    JADE_ASSERT(signer_bytes_len);
+    JADE_ASSERT(version < 3);
+
+    const size_t num_xpubs = signer_bytes_len / BIP32_SERIALIZED_LEN;
+    if (!num_xpubs || num_xpubs > MAX_MULTISIG_SIGNERS) {
+        JADE_LOGE("Unexpected number of multisig signers %d", num_xpubs);
+        return false;
+    }
+
+    if (num_xpubs * BIP32_SERIALIZED_LEN != signer_bytes_len) {
+        JADE_LOGE("Unexpected multisig data length for %d signers", num_xpubs);
+        return false;
+    }
+
+    output->num_xpubs = (uint8_t)num_xpubs; // ok as less than MAX_MULTISIG_SIGNERS
+    memcpy(output->xpubs, signer_bytes, signer_bytes_len);
+    return true;
+}
+
+// In v3 signer data was changed to contain all the metadata from the original registration, such that
+// the original registration could be recreated if required (eg. to export from the device).
+// Can pass 'signer_t' structs to fetch that data now (in addition to the data needed for address generation)
+static bool read_complete_signers(const uint8_t* const signer_bytes, const size_t signer_bytes_len,
+    const uint8_t version, multisig_data_t* output, signer_t* signer_details, const size_t signer_details_len,
+    size_t* written)
+{
+    JADE_ASSERT(signer_bytes);
+    JADE_ASSERT(signer_bytes_len);
+    JADE_ASSERT(version >= 3);
+
+    // signer_details (incl written) is optional (passed for more detailed data)
+    JADE_ASSERT(signer_details || !signer_details_len);
+    JADE_ASSERT(written || !signer_details);
+    if (written) {
+        *written = 0;
+    }
+
+    const uint8_t* read_ptr = signer_bytes;
+
+    // Num signers (new to version 3)
+    const uint8_t num_signers = *read_ptr;
+    if (!num_signers || num_signers > MAX_MULTISIG_SIGNERS) {
+        JADE_LOGE("Bad number of signers read from registered multisig data");
+        return false;
+    }
+    output->num_xpubs = num_signers;
+    read_ptr += sizeof(num_signers);
+
+    for (size_t i = 0; i < num_signers; ++i) {
+        // Do we want to return signer details
+        signer_t* const signer = (signer_details && i < signer_details_len) ? signer_details + i : NULL;
+
+        if (signer) {
+            JADE_ASSERT(written);
+            *written = i + 1;
+
+            // Key origin information (new to version 3)
+            memcpy(signer->fingerprint, read_ptr, sizeof(signer->fingerprint));
+        }
+        read_ptr += sizeof(signer->fingerprint);
+
+        uint8_t derivation_len = 0;
+        memcpy(&derivation_len, read_ptr, sizeof(derivation_len));
+        const size_t derivation_bytes_len = derivation_len * sizeof(signer->derivation[0]);
+        if (derivation_len > MAX_PATH_LEN || derivation_bytes_len > sizeof(signer->derivation)) {
+            JADE_LOGE("Overlong derivation path length %u for signer %u", derivation_len, i);
+            return false;
+        }
+        read_ptr += sizeof(derivation_len);
+
+        if (signer) {
+            signer->derivation_len = derivation_len;
+            memcpy(signer->derivation, read_ptr, derivation_bytes_len);
+        }
+        read_ptr += derivation_bytes_len;
+
+        // Xpub (changed in version 3 to be the xpub as passed, not the derived immediate parent xpub)
+        // Copy it into the output position now - it may get ocverwritten later if there is additional path
+        uint8_t* const xpub = output->xpubs + (i * BIP32_SERIALIZED_LEN);
+        memcpy(xpub, read_ptr, BIP32_SERIALIZED_LEN);
+        read_ptr += BIP32_SERIALIZED_LEN;
+
+        if (signer) {
+            // Write xpub as string into signer details
+            char* pstr = NULL;
+            if (wally_base58_from_bytes(xpub, BIP32_SERIALIZED_LEN, BASE58_FLAG_CHECKSUM, &pstr) != WALLY_OK || !pstr) {
+                JADE_LOGE("Failed to dump signer %u xpub as string", i);
+                return false;
+            }
+
+            const size_t len = strlen(pstr);
+            if (len >= sizeof(signer->xpub)) {
+                JADE_LOGE("Signer %u xpub string too long %u: %s", i, len, pstr);
+                JADE_WALLY_VERIFY(wally_free_string(pstr));
+                return false;
+            }
+
+            strcpy(signer->xpub, pstr);
+            signer->xpub_len = len;
+            JADE_WALLY_VERIFY(wally_free_string(pstr));
+        }
+
+        // Additional path (new to version 3 - prior to that was included in the xpub persisted)
+        uint8_t path_len = 0;
+        memcpy(&path_len, read_ptr, sizeof(path_len));
+        const size_t path_bytes_len = path_len * sizeof(signer->path[0]);
+        if (path_len > MAX_PATH_LEN || path_bytes_len > sizeof(signer->path)) {
+            JADE_LOGE("Overlong additional path length %u for signer %u", path_len, i);
+            return false;
+        }
+        read_ptr += sizeof(path_len);
+
+        if (path_len) {
+            // Need to overwrite the output xpub with a further derived one
+            struct ext_key hdkey;
+            uint32_t path[MAX_PATH_LEN];
+            memcpy(path, read_ptr, path_bytes_len);
+            if (!wallet_derive_pubkey(
+                    xpub, BIP32_SERIALIZED_LEN, path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &hdkey)) {
+                JADE_LOGE("Failed to derive immediate parent pubkey for signer %u", i);
+                return false;
+            }
+            if (bip32_key_serialize(&hdkey, BIP32_FLAG_KEY_PUBLIC, xpub, BIP32_SERIALIZED_LEN) != WALLY_OK) {
+                JADE_LOGE("Failed to serialise derived parent xpub for signer %u", i);
+                return false;
+            }
+        }
+
+        if (signer) {
+            signer->path_len = path_len;
+            memcpy(signer->path, read_ptr, path_bytes_len);
+        }
+        read_ptr += path_bytes_len;
+    }
+
+    if (read_ptr != signer_bytes + signer_bytes_len) {
+        JADE_LOGE("Unexpected multisig data length for %d signers", num_signers);
+        return false;
+    }
+
+    return true;
+}
+
+bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, multisig_data_t* output,
+    signer_t* signer_details, const size_t signer_details_len, size_t* written)
 {
     JADE_ASSERT(bytes);
     JADE_ASSERT(bytes_len >= MIN_MULTISIG_BYTES_LEN);
     JADE_ASSERT(output);
+
+    // signer_details (incl written) is optional (passed for more detailed data)
+    JADE_ASSERT(signer_details || !signer_details_len);
+    JADE_ASSERT(written || !signer_details);
+    if (written) {
+        *written = 0;
+    }
 
     // Check hmac first
     uint8_t hmac_calculated[HMAC_SHA256_LEN];
@@ -198,43 +394,47 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
         }
     }
 
-    // All signers immediate parent keys
-    const size_t xpubs_len = bytes + bytes_len - HMAC_SHA256_LEN - read_ptr;
-    const size_t num_xpubs = xpubs_len / BIP32_SERIALIZED_LEN;
-    if (!num_xpubs || num_xpubs > MAX_MULTISIG_SIGNERS) {
-        JADE_LOGE("Unexpected number of multisig signers %d", output->num_xpubs);
-        return false;
+    // What was saved per signer changed in v3 (so that we can re-consistite the original input data)
+    // All bytes remaining in buffer, up to the hmac, are the signer data.
+    const size_t signer_bytes_len = bytes + bytes_len - HMAC_SHA256_LEN - read_ptr;
+    if (version < 3) {
+        // Not able to produce signer details from legacy records
+        if (written) {
+            JADE_LOGW("Unable to recover signer details from v%u multisig record", version);
+            *written = 0;
+        }
+        // Legacy record
+        return read_simple_signers(read_ptr, signer_bytes_len, version, output);
     }
-    if (num_xpubs * BIP32_SERIALIZED_LEN != xpubs_len) {
-        JADE_LOGE("Unexpected multisig data length %d for %d signers", bytes_len, output->num_xpubs);
-        return false;
-    }
-    output->num_xpubs = (uint8_t)num_xpubs; // ok as less than MAX_MULTISIG_SIGNERS
 
-    memcpy(output->xpubs, read_ptr, xpubs_len);
-    read_ptr += xpubs_len;
-
-    // Check just got the hmac (checked first, above) left in the buffer
-    JADE_ASSERT(read_ptr + HMAC_SHA256_LEN == bytes + bytes_len);
-
-    return true;
+    return read_complete_signers(
+        read_ptr, signer_bytes_len, version, output, signer_details, signer_details_len, written);
 }
 
-bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output, const char** errmsg)
+bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output, signer_t* signer_details,
+    const size_t signer_details_len, size_t* written, const char** errmsg)
 {
     JADE_ASSERT(multisig_name);
     JADE_ASSERT(output);
     JADE_INIT_OUT_PPTR(errmsg);
 
-    size_t written = 0;
+    // signer_details (incl written) is optional (passed for more detailed data)
+    JADE_ASSERT(signer_details || !signer_details_len);
+    JADE_ASSERT(written || !signer_details);
+    if (written) {
+        *written = 0;
+    }
+
+    size_t registration_len = 0;
     uint8_t* const registration = JADE_MALLOC(MAX_MULTISIG_BYTES_LEN); // Sufficient
-    if (!storage_get_multisig_registration(multisig_name, registration, MAX_MULTISIG_BYTES_LEN, &written)) {
+    if (!storage_get_multisig_registration(multisig_name, registration, MAX_MULTISIG_BYTES_LEN, &registration_len)) {
         *errmsg = "Cannot find named multisig wallet";
         free(registration);
         return false;
     }
 
-    if (!multisig_data_from_bytes(registration, written, output)) {
+    if (!multisig_data_from_bytes(
+            registration, registration_len, output, signer_details, signer_details_len, written)) {
         *errmsg = "Cannot de-serialise multisig wallet data";
         free(registration);
         return false;
@@ -396,7 +596,7 @@ void multisig_get_valid_record_names(
     for (int i = 0; i < num_multisigs; ++i) {
         const char* errmsg = NULL;
         multisig_data_t multisig_data;
-        if (multisig_load_from_storage(names[i], &multisig_data, &errmsg)
+        if (multisig_load_from_storage(names[i], &multisig_data, NULL, 0, NULL, &errmsg)
             && variant_matches_script_type(multisig_data.variant, script_type)) {
             // If any previous records were not valid, move subsequent valid record names down
             if (written != i) {

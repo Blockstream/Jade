@@ -57,20 +57,23 @@ static int register_multisig(const char* multisig_name, const char* network, con
     }
 
     // Validate signers
+    size_t total_num_path_elements = 0;
     uint8_t wallet_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
     wallet_get_fingerprint(wallet_fingerprint, sizeof(wallet_fingerprint));
-    if (!multisig_validate_signers(network, signers, num_signers, wallet_fingerprint, sizeof(wallet_fingerprint))) {
+    if (!multisig_validate_signers(
+            signers, num_signers, wallet_fingerprint, sizeof(wallet_fingerprint), &total_num_path_elements)) {
         *errmsg = "Failed to validate co-signers";
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    uint8_t registration[MAX_MULTISIG_BYTES_LEN]; // Sufficient
-    const size_t registration_len = MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers);
-    JADE_ASSERT(registration_len <= sizeof(registration));
-    if (!multisig_data_to_bytes(script_variant, sorted, threshold, signers, num_signers, master_blinding_key,
-            master_blinding_key_len, registration, registration_len)) {
+    int retval = 0;
+    const size_t registration_len = MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers, total_num_path_elements);
+    uint8_t* const registration = JADE_MALLOC(registration_len);
+    if (!multisig_data_to_bytes(script_variant, sorted, threshold, master_blinding_key, master_blinding_key_len,
+            signers, num_signers, total_num_path_elements, registration, registration_len)) {
         *errmsg = "Failed to serialise multisig";
-        return CBOR_RPC_INTERNAL_ERROR;
+        retval = CBOR_RPC_INTERNAL_ERROR;
+        goto cleanup;
     }
 
     // See if a record for this name exists already
@@ -80,17 +83,20 @@ static int register_multisig(const char* multisig_name, const char* network, con
     // - if so, just return true immediately.
     if (overwriting) {
         size_t written = 0;
-        uint8_t existing[MAX_MULTISIG_BYTES_LEN]; // Sufficient
+        uint8_t* const existing = JADE_MALLOC(registration_len);
         if (storage_get_multisig_registration(multisig_name, existing, sizeof(existing), &written)
             && written == registration_len && !sodium_memcmp(existing, registration, registration_len)) {
             JADE_LOGI("Multisig %s: identical registration exists, returning immediately", multisig_name);
-            return 0; // success
+            free(existing);
+            goto cleanup;
         }
+        free(existing);
     } else {
         // Not overwriting an existing record - check storage slot available
         if (storage_get_multisig_registration_count() >= MAX_MULTISIG_REGISTRATIONS) {
             *errmsg = "Already have maximum number of multisig wallets";
-            return CBOR_RPC_BAD_PARAMETERS;
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
         }
     }
 
@@ -108,7 +114,8 @@ static int register_multisig(const char* multisig_name, const char* network, con
     if (!confirmed) {
         JADE_LOGW("User declined to register multisig");
         *errmsg = "User declined to register multisig";
-        return CBOR_RPC_USER_CANCELLED;
+        retval = CBOR_RPC_USER_CANCELLED;
+        goto cleanup;
     }
 
     JADE_LOGD("User accepted multisig");
@@ -117,11 +124,13 @@ static int register_multisig(const char* multisig_name, const char* network, con
     if (!storage_set_multisig_registration(multisig_name, registration, registration_len)) {
         *errmsg = "Failed to persist multisig data";
         await_error_activity("Error saving multisig");
-        return CBOR_RPC_INTERNAL_ERROR;
+        retval = CBOR_RPC_INTERNAL_ERROR;
+        goto cleanup;
     }
 
-    // All good - return 0
-    return 0;
+cleanup:
+    free(registration);
+    return retval;
 }
 
 // Helper to get next line from a file/string
@@ -561,7 +570,7 @@ static void get_signers_allocate(const char* field, const CborValue* value, sign
         }
 
         rpc_get_string("xpub", sizeof(signer->xpub), &arrayItem, signer->xpub, &signer->xpub_len);
-        if (signer->xpub_len == 0 || signer->xpub_len >= sizeof(signer->xpub)) {
+        if (!signer->xpub_len || signer->xpub_len >= sizeof(signer->xpub)) {
             free(signers);
             return;
         }
