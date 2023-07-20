@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.21] - 2023-08-01
+### Added
+- Generic QR scan handles scanning a seed/wallet QR and switching wallets
+- Ability to change UI color scheme / highlight color
+- New 'ping' message which will always return immediately, even if main handler thread is busy
+
+### Changed
+- Jade UI screens - larger font, clearer highlighting, consistent look-and-feel, more 'help' links
+
+### Fixed
+
 ## [0.1.48] - 2023-05-18
 ### Added
 - Support for LiquiDEX 2-step swap protocol, including signing partial transactions (ie. swap maker)
