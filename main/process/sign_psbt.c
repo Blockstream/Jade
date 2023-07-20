@@ -224,7 +224,7 @@ static bool get_suitable_multisig_record(const struct wally_map* keypaths, const
     // Iterate over named persisted multisigs to see if one fits
     for (int i = 0; i < num_multisigs; ++i) {
         const char* errmsg = NULL;
-        if (!multisig_load_from_storage(names[i], multisig_data, &errmsg)) {
+        if (!multisig_load_from_storage(names[i], multisig_data, NULL, 0, NULL, &errmsg)) {
             JADE_LOGD("Ignoring multisig %s as not valid for this wallet", names[i]);
             JADE_LOGD("%s", errmsg);
             continue;

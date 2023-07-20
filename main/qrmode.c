@@ -428,7 +428,7 @@ static bool verify_address(const address_data_t* const addr_data)
 
             const char* errmsg = NULL;
             multisig_data_t multisig_data;
-            if (!multisig_load_from_storage(names[selected], &multisig_data, &errmsg)) {
+            if (!multisig_load_from_storage(names[selected], &multisig_data, NULL, 0, NULL, &errmsg)) {
                 await_error_activity("Failed to load multisig record");
                 return false;
             }

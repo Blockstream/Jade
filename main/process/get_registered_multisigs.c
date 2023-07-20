@@ -88,7 +88,8 @@ void get_registered_multisigs_process(void* process_ptr)
     for (int i = 0; i < num_multisigs; ++i) {
         const char* errmsg = NULL;
         multisig_data_t multisig_data;
-        const bool valid = multisig_load_from_storage(names[i], &multisig_data, &errmsg);
+        // NOTE: can extend to pass signer_t structs here if we want full signer details
+        const bool valid = multisig_load_from_storage(names[i], &multisig_data, NULL, 0, NULL, &errmsg);
 
         // If valid for this wallet, add description/summary info
         if (valid) {

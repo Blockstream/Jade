@@ -909,7 +909,8 @@ static void handle_multisigs(void)
     // Load selected multisig record from storage given the name
     const char* errmsg = NULL;
     multisig_data_t multisig_data;
-    const bool is_valid = multisig_load_from_storage(names[selected], &multisig_data, &errmsg);
+    // NOTE: can extend to pass signer_t structs here if we want full signer details
+    const bool is_valid = multisig_load_from_storage(names[selected], &multisig_data, NULL, 0, NULL, &errmsg);
     const bool initial_confirmation = false;
 
     // We will display the names of invalid entries, just log any message

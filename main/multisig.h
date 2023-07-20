@@ -21,12 +21,15 @@
         || (master_blinding_key && master_blinding_key_len == MULTISIG_MASTER_BLINDING_KEY_SIZE))
 
 // The size of the byte-string required to store a multisig registration of the current 'version'
-#define MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers)                                                       \
-    ((5 * sizeof(uint8_t)) + master_blinding_key_len + (num_signers * BIP32_SERIALIZED_LEN) + HMAC_SHA256_LEN)
+#define MULTISIG_BYTES_LEN(master_blinding_key_len, num_signers, total_num_path_elements)                              \
+    ((6 * sizeof(uint8_t)) + master_blinding_key_len + (num_signers * (6 + BIP32_SERIALIZED_LEN))                      \
+        + (total_num_path_elements * sizeof(uint32_t)) + HMAC_SHA256_LEN)
 
 // The largest supported multisig record
 // NOTE: beware of a later 'version' reducing this size as we may end up with larger records persisted in storage
-#define MAX_MULTISIG_BYTES_LEN (MULTISIG_BYTES_LEN(MULTISIG_MASTER_BLINDING_KEY_SIZE, MAX_MULTISIG_SIGNERS))
+#define MAX_MULTISIG_BYTES_LEN                                                                                         \
+    (MULTISIG_BYTES_LEN(                                                                                               \
+        MULTISIG_MASTER_BLINDING_KEY_SIZE, MAX_MULTISIG_SIGNERS, MAX_MULTISIG_SIGNERS * 2 * MAX_PATH_LEN))
 
 // Multisig data as persisted
 typedef struct _multisig_data {
@@ -59,16 +62,18 @@ typedef struct {
     size_t path_len;
 } signer_t;
 
-bool multisig_validate_signers(const char* network, const signer_t* signers, size_t num_signers,
-    const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len);
+bool multisig_validate_signers(const signer_t* signers, size_t num_signers, const uint8_t* wallet_fingerprint,
+    size_t wallet_fingerprint_len, size_t* total_num_path_elements);
 
-bool multisig_data_to_bytes(script_variant_t variant, bool sorted, uint8_t threshold, const signer_t* signers,
-    size_t num_signers, const uint8_t* master_blinding_key, size_t master_blinding_key_len, uint8_t* output_bytes,
-    size_t output_len);
+bool multisig_data_to_bytes(script_variant_t variant, bool sorted, uint8_t threshold,
+    const uint8_t* master_blinding_key, size_t master_blinding_key_len, const signer_t* signers, size_t num_signers,
+    size_t total_num_path_elements, uint8_t* output_bytes, size_t output_len);
 
-bool multisig_data_from_bytes(const uint8_t* bytes, size_t bytes_len, multisig_data_t* output);
+bool multisig_data_from_bytes(const uint8_t* bytes, size_t bytes_len, multisig_data_t* output, signer_t* signer_details,
+    size_t signer_details_len, size_t* written);
 
-bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output, const char** errmsg);
+bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output, signer_t* signer_details,
+    size_t signer_details_len, size_t* written, const char** errmsg);
 
 bool multisig_validate_paths(
     const bool is_change, CborValue* all_signer_paths, bool* all_paths_as_expected, bool* final_elements_consistent);
