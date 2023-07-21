@@ -46,10 +46,10 @@ gui_activity_t* make_show_xpub_qr_activity(
 
     // RHS - QR icons
     gui_view_node_t* fill;
-    gui_make_fill(&fill, TFT_BLOCKSTREAM_QR_PALE);
+    gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
     gui_set_parent(fill, hsplit);
 
-    gui_make_icon(&node, icons, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
+    gui_make_icon(&node, icons, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
     gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(node, fill);
     gui_set_icon_animation(node, icons, num_icons, frames_per_qr_icon);
@@ -215,10 +215,10 @@ gui_activity_t* make_show_qr_activity(const char* label, Icon* icons, const size
     // RHS - QR icons
     {
         gui_view_node_t* fill;
-        gui_make_fill(&fill, TFT_BLOCKSTREAM_QR_PALE);
+        gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
         gui_set_parent(fill, hsplit);
 
-        gui_make_icon(&node, icons, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
+        gui_make_icon(&node, icons, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
         gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(node, fill);
         gui_set_icon_animation(node, icons, num_icons, frames_per_qr_icon);
@@ -281,10 +281,10 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
         gui_set_parent(fill, vsplit);
 
         // QR icon background
-        gui_make_fill(&fill, TFT_BLOCKSTREAM_QR_PALE);
+        gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
         gui_set_parent(fill, vsplit);
 
-        gui_make_icon(&node, qr_icon, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
+        gui_make_icon(&node, qr_icon, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
         gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(node, fill);
         gui_set_icon_animation(node, qr_icon, 1, 0); // takes ownership of icon
@@ -351,10 +351,10 @@ gui_activity_t* make_qr_back_continue_activity(
         gui_set_parent(fill, vsplit);
 
         // QR icon background
-        gui_make_fill(&fill, TFT_BLOCKSTREAM_QR_PALE);
+        gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
         gui_set_parent(fill, vsplit);
 
-        gui_make_icon(&node, qr_icon, TFT_BLACK, &TFT_BLOCKSTREAM_QR_PALE);
+        gui_make_icon(&node, qr_icon, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
         gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_parent(node, fill);
         gui_set_icon_animation(node, qr_icon, 1, 0); // takes ownership of icon

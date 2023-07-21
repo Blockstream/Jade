@@ -19,6 +19,11 @@ extern uint8_t text_wrap;
 extern uint8_t tft_disp_type;
 extern uint8_t gray_scale;
 
+// Additional colour tokens
+extern const color_t GUI_BLOCKSTREAM_JADE_GREEN;
+extern const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY;
+extern const color_t GUI_BLOCKSTREAM_QR_PALE;
+
 // -------------- Configuration -----------------
 
 // Display window

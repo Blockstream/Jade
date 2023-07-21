@@ -25,6 +25,10 @@
 ESP_EVENT_DEFINE_BASE(GUI_BUTTON_EVENT);
 ESP_EVENT_DEFINE_BASE(GUI_EVENT);
 
+const color_t GUI_BLOCKSTREAM_JADE_GREEN = { 248, 119, 152 };
+const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY = { 220, 220, 220 };
+const color_t GUI_BLOCKSTREAM_QR_PALE = { 180, 180, 180 };
+
 typedef struct _activity_holder_t activity_holder_t;
 struct _activity_holder_t {
     gui_activity_t activity;
@@ -133,7 +137,7 @@ void gui_set_click_event(gui_event_t event)
     gui_click_event = event;
 }
 
-color_t gui_get_highlight_color(void) { return TFT_BLOCKSTREAM_DARKGREEN; }
+color_t gui_get_highlight_color(void) { return GUI_BLOCKSTREAM_JADE_GREEN; }
 
 void gui_init(void)
 {
