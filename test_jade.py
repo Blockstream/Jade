@@ -136,11 +136,6 @@ def _get_test_cases(pattern):
     return (_h2b_test_case(_read_json_file(f)) for f in glob.glob("./test_data/" + pattern))
 
 
-# Helper to compare two dicts
-def _dicts_eq(lhs, rhs):
-    return cbor.dumps(lhs, sort_keys=True) == cbor.dumps(rhs, sort_keys=True)
-
-
 BLE_TEST_PASSKEYFILE = "ble_test_passkey.txt"
 BLE_TEST_BADKEYFILE = "ble_test_badkey.txt"
 
@@ -2319,7 +2314,7 @@ def test_liquid_blinded_commitments(jadeapi):
                                    9000000,
                                    TEST_HASH_PREVOUTS,
                                    3)
-    assert _dicts_eq(rslt, EXPECTED_LIQ_COMMITMENT_1)
+    assert rslt == EXPECTED_LIQ_COMMITMENT_1
 
     # Get Liquid commitments with custom VBF
     rslt = jadeapi.get_commitments(TEST_REGTEST_BITCOIN,
@@ -2327,7 +2322,7 @@ def test_liquid_blinded_commitments(jadeapi):
                                    TEST_HASH_PREVOUTS,
                                    0,
                                    EXPECTED_LIQ_COMMITMENT_2['vbf'])
-    assert _dicts_eq(rslt, EXPECTED_LIQ_COMMITMENT_2)
+    assert rslt == EXPECTED_LIQ_COMMITMENT_2
 
     # This checks that we get the same blinders and commitments as we got
     # using a ledger.  See also test_data/txn_liquid_ledger_compare.json,
@@ -2354,7 +2349,7 @@ def test_liquid_blinded_commitments(jadeapi):
                                    hash_prevouts,
                                    0)
     del ledger_commitments[0]['blinding_key']
-    assert _dicts_eq(rslt, ledger_commitments[0])
+    assert rslt == ledger_commitments[0]
 
     # Second output commitments, including custom vbf
     rslt = jadeapi.get_commitments(ledger_commitments[1]['asset_id'],
@@ -2363,7 +2358,7 @@ def test_liquid_blinded_commitments(jadeapi):
                                    1,
                                    ledger_commitments[1]['vbf'],)
     del ledger_commitments[1]['blinding_key']
-    assert _dicts_eq(rslt, ledger_commitments[1])
+    assert rslt == ledger_commitments[1]
 
 
 def test_sign_liquid_tx(jadeapi, has_psram, has_ble, pattern):
