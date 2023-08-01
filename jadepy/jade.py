@@ -1,4 +1,4 @@
-import cbor
+import cbor2 as cbor
 import hashlib
 import json
 import time

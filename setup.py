@@ -7,7 +7,7 @@ setup(
         'jadepy'
     ],
     install_requires=[
-        'cbor>=1.0.0,<2.0.0',
+        'cbor2>=5.4.6,<6.0.0',
         'pyserial>=3.5.0,<4.0.0'
     ],
     extras_require={

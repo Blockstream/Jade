@@ -1,7 +1,7 @@
 import os
 import time
 import glob
-import cbor
+import cbor2 as cbor
 import copy
 import json
 import base64
