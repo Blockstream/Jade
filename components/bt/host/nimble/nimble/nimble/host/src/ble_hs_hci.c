@@ -22,10 +22,9 @@
 #include <stdio.h>
 #include "os/os.h"
 #include "mem/mem.h"
-#include "nimble/ble_hci_trans.h"
-#include "host/ble_monitor.h"
 #include "ble_hs_priv.h"
-#include "ble_monitor_priv.h"
+
+#include "nimble/transport.h"
 
 #define BLE_HCI_CMD_TIMEOUT_MS  2000
 
@@ -46,6 +45,7 @@ static uint8_t ble_hs_hci_version;
     (BLE_ACL_MAX_PKT_SIZE +             \
      BLE_HCI_DATA_HDR_SZ +              \
      sizeof (struct os_mbuf_pkthdr) +   \
+     sizeof (struct ble_mbuf_hdr) +     \
      sizeof (struct os_mbuf))
 #else
 #define BLE_HS_HCI_FRAG_DATABUF_SIZE    \
@@ -53,6 +53,7 @@ static uint8_t ble_hs_hci_version;
       BLE_HCI_DATA_HDR_SZ +             \
       BLE_HS_CTRL_DATA_HDR_SZ +         \
       sizeof (struct os_mbuf_pkthdr) +  \
+      sizeof (struct ble_mbuf_hdr) +    \
       sizeof (struct os_mbuf))
 #endif
 
@@ -269,8 +270,7 @@ ble_hs_hci_wait_for_ack(void)
     if (ble_hs_hci_phony_ack_cb == NULL) {
         rc = BLE_HS_ETIMEOUT_HCI;
     } else {
-        ble_hs_hci_ack =
-            (void *) ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_CMD);
+        ble_hs_hci_ack = ble_transport_alloc_cmd();
         BLE_HS_DBG_ASSERT(ble_hs_hci_ack != NULL);
         rc = ble_hs_hci_phony_ack_cb((void *)ble_hs_hci_ack, 260);
     }
@@ -280,12 +280,6 @@ ble_hs_hci_wait_for_ack(void)
     switch (rc) {
     case 0:
         BLE_HS_DBG_ASSERT(ble_hs_hci_ack != NULL);
-
-#if BLE_MONITOR
-        ble_monitor_send(BLE_MONITOR_OPCODE_EVENT_PKT, (void *) ble_hs_hci_ack,
-                         sizeof(*ble_hs_hci_ack) + ble_hs_hci_ack->length);
-#endif
-
         break;
     case OS_TIMEOUT:
         rc = BLE_HS_ETIMEOUT_HCI;
@@ -351,7 +345,7 @@ ble_hs_hci_cmd_tx(uint16_t opcode, const void *cmd, uint8_t cmd_len,
 
 done:
     if (ble_hs_hci_ack != NULL) {
-        ble_hci_trans_buf_free((uint8_t *) ble_hs_hci_ack);
+        ble_transport_free((uint8_t *) ble_hs_hci_ack);
         ble_hs_hci_ack = NULL;
     }
 
@@ -359,12 +353,26 @@ done:
     return rc;
 }
 
+#if MYNEWT_VAL(BLE_HCI_VS)
+int
+ble_hs_hci_send_vs_cmd(uint16_t ocf, const void *cmdbuf, uint8_t cmdlen,
+                       void *rspbuf, uint8_t rsplen)
+{
+    int rc;
+
+    rc = ble_hs_hci_cmd_tx(BLE_HCI_OP(BLE_HCI_OGF_VENDOR, ocf),
+                           cmdbuf, cmdlen, rspbuf, rsplen);
+
+    return rc;
+}
+#endif
+
 static void
 ble_hs_hci_rx_ack(uint8_t *ack_ev)
 {
     if (ble_npl_sem_get_count(&ble_hs_hci_sem) > 0) {
         /* This ack is unexpected; ignore it. */
-        ble_hci_trans_buf_free(ack_ev);
+        ble_transport_free(ack_ev);
         return;
     }
     BLE_HS_DBG_ASSERT(ble_hs_hci_ack == NULL);
@@ -432,7 +440,11 @@ ble_hs_hci_frag_alloc(uint16_t frag_size, void *arg)
     struct os_mbuf *om;
 
     /* Prefer the dedicated one-element fragment pool. */
+#if MYNEWT_VAL(BLE_CONTROLLER)
+    om = os_mbuf_get_pkthdr(&ble_hs_hci_frag_mbuf_pool, sizeof(struct ble_mbuf_hdr));
+#else
     om = os_mbuf_get_pkthdr(&ble_hs_hci_frag_mbuf_pool, 0);
+#endif
     if (om != NULL) {
 #if CONFIG_BT_NIMBLE_LEGACY_VHCI_ENABLE
         om->om_data += BLE_HCI_DATA_HDR_SZ;

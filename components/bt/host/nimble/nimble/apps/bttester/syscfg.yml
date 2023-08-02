@@ -75,16 +75,21 @@ syscfg.defs:
         description: Maximum MTU size the application can handle
         value: 230
 
+    BTTESTER_NRPA_TIMEOUT:
+        description: NRPA rotation timeout in seconds
+        value: 5
+
 syscfg.vals:
     OS_MAIN_STACK_SIZE: 512
     SHELL_TASK: 0
     SHELL_NEWTMGR: 0
     LOG_LEVEL: 12
-    MSYS_1_BLOCK_COUNT: 80
+    MSYS_1_BLOCK_COUNT: 100
 
     BLE_MONITOR_RTT: 1
     CONSOLE_RTT: 0
     CONSOLE_UART: 0
+    CONSOLE_UART_FLOW_CONTROL: UART_FLOW_CTL_RTS_CTS
     RTT_NUM_BUFFERS_UP: 0
     RTT_NUM_BUFFERS_DOWN: 0
 
@@ -127,7 +132,8 @@ syscfg.vals:
     BLE_MESH_CFG_CLI: 1
     BLE_MESH_RX_SDU_MAX: 110
     BLE_MESH_HEALTH_CLI: 1
-    BLE_MESH_FRIEND_QUEUE_SIZE: 32
+    BLE_MESH_FRIEND_QUEUE_SIZE: 16
+    BLE_MESH_SEG_RETRANSMIT_ATTEMPTS: 6
     BLE_MESH_RX_SEG_MAX: 13
     BLE_MESH_TX_SEG_MSG_COUNT: 2
     BLE_MAX_CONNECTIONS: 8

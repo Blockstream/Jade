@@ -22,16 +22,6 @@ syscfg.defs:
             Enable SystemView tracing module for radio driver.
         value: 0
 
-    BLE_PHY_CODED_RX_IFS_EXTRA_MARGIN:
-        description: >
-            This defines additional margin for T_IFS tolerance while in
-            RX on coded phy to allow maintaining connections with some
-            controllers that exceed proper T_IFS (150 usecs) by more
-            than allowed 2 usecs.
-            This value shall be only used for debugging purposes. It is
-            strongly recommended to keep this settings at default value
-            to ensure compliance with specification.
-        value: 0
     BLE_PHY_DBG_TIME_TXRXEN_READY_PIN:
         description: >
             When set to proper GPIO pin number, this pin will be set
@@ -73,3 +63,10 @@ syscfg.defs:
             - nRF52840 Engineering C
             - nRF52840 Rev 1 (final silicon)
         value: 1
+
+    BLE_PHY_UBLOX_BMD345_PUBLIC_ADDR:
+        description: >
+            Ublox BMD-345 modules come with public address preprogrammed
+            in UICR register. If enabled public address will be read from
+            custom UICR instead of FICR register.
+        value: 0

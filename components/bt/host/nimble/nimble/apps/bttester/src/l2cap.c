@@ -48,6 +48,7 @@ static os_membuf_t tester_sdu_coc_mem[
 
 struct os_mbuf_pool sdu_os_mbuf_pool;
 static struct os_mempool sdu_coc_mbuf_mempool;
+static bool hold_credit = false;
 
 static struct channel {
 	uint8_t chan_id; /* Internal number that identifies L2CAP channel. */
@@ -105,10 +106,13 @@ tester_l2cap_coc_recv(struct ble_l2cap_chan *chan, struct os_mbuf *sdu)
 		    (uint32_t) chan, OS_MBUF_PKTLEN(sdu));
 
 	os_mbuf_free_chain(sdu);
-	sdu = os_mbuf_get_pkthdr(&sdu_os_mbuf_pool, 0);
-	assert(sdu != NULL);
+	if (!hold_credit) {
+	    sdu = os_mbuf_get_pkthdr(&sdu_os_mbuf_pool, 0);
+	    assert(sdu != NULL);
 
-	ble_l2cap_recv_ready(chan, sdu);
+
+	    ble_l2cap_recv_ready(chan, sdu);
+	}
 }
 
 static void recv_cb(uint16_t conn_handle, struct ble_l2cap_chan *chan,
@@ -249,6 +253,7 @@ tester_l2cap_event(struct ble_l2cap_event *event, void *arg)
 {
 	struct ble_l2cap_chan_info chan_info;
 	int accept_response;
+	struct ble_gap_conn_desc conn;
 
 	switch (event->type) {
 		case BLE_L2CAP_EVENT_COC_CONNECTED:
@@ -258,8 +263,6 @@ tester_l2cap_event(struct ble_l2cap_event *event, void *arg)
 
 		if (event->connect.status) {
 			console_printf("LE COC error: %d\n", event->connect.status);
-			disconnected_cb(event->connect.conn_handle,
-					event->connect.chan, &chan_info, arg);
 			return 0;
 		}
 
@@ -288,6 +291,28 @@ tester_l2cap_event(struct ble_l2cap_event *event, void *arg)
 				event->disconnect.chan, &chan_info, arg);
 		return 0;
 	case BLE_L2CAP_EVENT_COC_ACCEPT:
+		ble_l2cap_get_chan_info(event->accept.chan, &chan_info);
+		if (chan_info.psm == 0x00F2) {
+			/* TSPX_psm_authentication_required */
+			ble_gap_conn_find(event->accept.conn_handle, &conn);
+			if (!conn.sec_state.authenticated) {
+				return BLE_HS_EAUTHEN;
+			}
+		} else if (chan_info.psm == 0x00F3) {
+			/* TSPX_psm_authorization_required */
+			ble_gap_conn_find(event->accept.conn_handle, &conn);
+			if (!conn.sec_state.encrypted) {
+				return BLE_HS_EAUTHOR;
+			}
+			return BLE_HS_EAUTHOR;
+		} else if (chan_info.psm == 0x00F4) {
+			/* TSPX_psm_encryption_key_size_required */
+			ble_gap_conn_find(event->accept.conn_handle, &conn);
+			if (conn.sec_state.key_size < 16) {
+				return BLE_HS_EENCRYPT_KEY_SZ;
+			}
+		}
+
 		accept_response = POINTER_TO_INT(arg);
 		if (accept_response) {
 			return accept_response;
@@ -375,7 +400,9 @@ static void connect(uint8_t *data, uint16_t len)
 	ble_addr_t *addr = (void *) data;
 	uint16_t mtu = htole16(cmd->mtu);
 	int rc;
-	int i;
+	int i, j;
+	bool ecfc = cmd->options & L2CAP_CONNECT_OPT_ECFC;
+	hold_credit = cmd->options & L2CAP_CONNECT_OPT_HOLD_CREDIT;
 
 	SYS_LOG_DBG("connect: type: %d addr: %s", addr->type, bt_hex(addr->val, 6));
 
@@ -397,6 +424,8 @@ static void connect(uint8_t *data, uint16_t len)
 			SYS_LOG_ERR("No free channels");
 			goto fail;
 		}
+		/* temporarily mark channel as used to select next one */
+        chan->state = 1;
 
 		rp->chan_ids[i] = chan->chan_id;
 
@@ -407,11 +436,20 @@ static void connect(uint8_t *data, uint16_t len)
 		}
 	}
 
-	if (cmd->num == 1) {
+	/* mark selected channels as unused again */
+	for (i = 0; i < cmd->num; i++) {
+	    for (j = 0; j < CHANNELS; j++) {
+	        if (rp->chan_ids[i] == channels[j].chan_id) {
+	            channels[j].state = 0;
+	        }
+	    }
+	}
+
+	if (cmd->num == 1 && !ecfc) {
 		rc = ble_l2cap_connect(desc.conn_handle, htole16(cmd->psm),
 				       mtu, sdu_rx[0],
 				       tester_l2cap_event, NULL);
-	} else if (cmd->num > 1) {
+	} else if (ecfc) {
 		rc = ble_l2cap_enhanced_connect(desc.conn_handle,
 						htole16(cmd->psm), mtu,
 						cmd->num, sdu_rx,
@@ -529,6 +567,22 @@ l2cap_coc_err2hs_err(uint16_t coc_err)
 	}
 }
 
+static int
+l2cap_btp_listen_err2coc_err(uint16_t coc_err)
+{
+    switch (coc_err) {
+        case 0x01:
+            return BLE_L2CAP_COC_ERR_INSUFFICIENT_AUTHEN;
+        case 0x02:
+            return BLE_L2CAP_COC_ERR_INSUFFICIENT_AUTHOR;
+        case 0x03:
+            return BLE_L2CAP_COC_ERR_INSUFFICIENT_KEY_SZ;
+        case 0x04:
+            return BLE_L2CAP_COC_ERR_INSUFFICIENT_ENC;
+        default:
+            return 0;
+    }
+}
 
 static void listen(const uint8_t *data, uint16_t len)
 {
@@ -543,6 +597,7 @@ static void listen(const uint8_t *data, uint16_t len)
 		mtu = TESTER_COC_MTU;
 	}
 
+	rsp = l2cap_btp_listen_err2coc_err(rsp);
 	rsp = l2cap_coc_err2hs_err(rsp);
 
 	/* TODO: Handle cmd->transport flag */
@@ -559,6 +614,35 @@ static void listen(const uint8_t *data, uint16_t len)
 fail:
 	tester_rsp(BTP_SERVICE_ID_L2CAP, L2CAP_LISTEN, CONTROLLER_INDEX,
 		   BTP_STATUS_FAILED);
+}
+
+static void credits(uint8_t *data, uint16_t len)
+{
+    const struct l2cap_credits_cmd *cmd = (void *)data;
+    struct os_mbuf *sdu;
+    int rc;
+
+    struct channel *channel = get_channel(cmd->chan_id);
+    if (channel == NULL) {
+        goto fail;
+    }
+
+    sdu = os_mbuf_get_pkthdr(&sdu_os_mbuf_pool, 0);
+    if (sdu == NULL) {
+        os_mbuf_free_chain(sdu);
+        goto fail;
+    }
+
+    rc = ble_l2cap_recv_ready(channel->chan, sdu);
+    if (rc != 0) {
+        goto fail;
+    }
+    tester_rsp(BTP_SERVICE_ID_L2CAP, L2CAP_CREDITS, CONTROLLER_INDEX,
+               BTP_STATUS_SUCCESS);
+    return;
+fail:
+    tester_rsp(BTP_SERVICE_ID_L2CAP, L2CAP_CREDITS, CONTROLLER_INDEX,
+               BTP_STATUS_FAILED);
 }
 
 static void reconfigure(const uint8_t *data, uint16_t len)
@@ -645,6 +729,9 @@ void tester_handle_l2cap(uint8_t opcode, uint8_t index, uint8_t *data,
 		return;
 	case L2CAP_RECONFIGURE:
 		reconfigure(data, len);
+		return;
+	case L2CAP_CREDITS:
+		credits(data, len);
 		return;
 	default:
 		tester_rsp(BTP_SERVICE_ID_L2CAP, opcode, index,

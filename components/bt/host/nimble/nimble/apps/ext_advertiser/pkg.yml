@@ -25,13 +25,11 @@ pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
 
 pkg.deps:
-    - nimble/controller
     - nimble/host
     - nimble/host/util
     - nimble/host/services/gap
     - nimble/host/services/gatt
     - nimble/host/store/config
-    - nimble/transport/ram
     - "@apache-mynewt-core/kernel/os"
     - "@apache-mynewt-core/sys/console/full"
     - "@apache-mynewt-core/sys/log/full"

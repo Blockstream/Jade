@@ -21,6 +21,7 @@
 #include <string.h>
 #include <errno.h>
 #include "os/os.h"
+#include "host/ble_att.h"
 #include "nimble/ble.h"
 #include "host/ble_uuid.h"
 #include "ble_hs_priv.h"
@@ -31,7 +32,7 @@
  * ATT server - Attribute Protocol
  *
  * Notes on buffer reuse:
- * Most request handlers reuse the request buffer for the reponse.  This is
+ * Most request handlers reuse the request buffer for the response.  This is
  * done to prevent out-of-memory conditions.  However, there are two handlers
  * which do not reuse the request buffer:
  *     1. Write request.
@@ -285,6 +286,16 @@ ble_att_svr_check_perms(uint16_t conn_handle, int is_read,
     }
 
     ble_att_svr_get_sec_state(conn_handle, &sec_state);
+    /* In SC Only mode all characteristics requiring security
+     * require it on level 4
+     */
+    if (MYNEWT_VAL(BLE_SM_SC_ONLY)) {
+        if (sec_state.key_size != 16 ||
+            !sec_state.authenticated ||
+            !sec_state.encrypted) {
+            return BLE_ATT_ERR_INSUFFICIENT_KEY_SZ;
+        }
+    }
     if ((enc || authen) && !sec_state.encrypted) {
         ble_hs_lock();
         conn = ble_hs_conn_find(conn_handle);
@@ -2130,7 +2141,10 @@ ble_att_svr_prep_validate(struct ble_att_prep_entry_list *prep_list,
 {
     struct ble_att_prep_entry *entry;
     struct ble_att_prep_entry *prev;
+
+#if !MYNEWT_VAL(BLE_GATT_BLOB_TRANSFER)
     int cur_len;
+#endif
 
     prev = NULL;
     SLIST_FOREACH(entry, prep_list, bape_next) {
@@ -2150,12 +2164,13 @@ ble_att_svr_prep_validate(struct ble_att_prep_entry_list *prep_list,
             }
         }
 
+#if !MYNEWT_VAL(BLE_GATT_BLOB_TRANSFER)
         cur_len = entry->bape_offset + OS_MBUF_PKTLEN(entry->bape_value);
         if (cur_len > BLE_ATT_ATTR_MAX_LEN) {
             *err_handle = entry->bape_handle;
             return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
         }
-
+#endif
         prev = entry;
     }
 
@@ -2462,6 +2477,7 @@ ble_att_svr_rx_notify(uint16_t conn_handle, struct os_mbuf **rxom)
 #endif
 
     struct ble_att_notify_req *req;
+    struct ble_gap_sec_state sec_state;
     uint16_t handle;
     int rc;
 
@@ -2476,6 +2492,15 @@ ble_att_svr_rx_notify(uint16_t conn_handle, struct os_mbuf **rxom)
 
     if (handle == 0) {
         return BLE_HS_EBADDATA;
+    }
+
+    ble_att_svr_get_sec_state(conn_handle, &sec_state);
+
+    /* All indications shall be confirmed, but only these with required
+     * security established shall be pass to application
+     */
+    if (MYNEWT_VAL(BLE_SM_SC_LVL) >= 2 && !sec_state.encrypted) {
+        return 0;
     }
 
     /* Strip the request base from the front of the mbuf. */
@@ -2527,6 +2552,7 @@ ble_att_svr_rx_indicate(uint16_t conn_handle, struct os_mbuf **rxom)
 #endif
 
     struct ble_att_indicate_req *req;
+    struct ble_gap_sec_state sec_state;
     struct os_mbuf *txom;
     uint16_t handle;
     uint8_t att_err;
@@ -2556,6 +2582,15 @@ ble_att_svr_rx_indicate(uint16_t conn_handle, struct os_mbuf **rxom)
      */
     rc = ble_att_svr_build_indicate_rsp(rxom, &txom, &att_err);
     if (rc != 0) {
+        goto done;
+    }
+
+    ble_att_svr_get_sec_state(conn_handle, &sec_state);
+
+    /* All indications shall be confirmed, but only these with required
+     * security established shall be pass to application
+     */
+    if (MYNEWT_VAL(BLE_SM_SC_LVL) >= 2 && !sec_state.encrypted) {
         goto done;
     }
 
@@ -2662,6 +2697,8 @@ ble_att_svr_reset(void)
         ble_att_svr_entry_free(entry);
     }
 
+    ble_att_svr_id = 0;
+    
     /* Note: prep entries do not get freed here because it is assumed there are
      * no established connections.
      */

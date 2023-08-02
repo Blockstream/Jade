@@ -302,26 +302,37 @@ tBTM_STATUS BTM_BleSetExtendedAdvRandaddr(UINT8 instance, BD_ADDR rand_addr)
     BD_ADDR invalid_rand_addr_a, invalid_rand_addr_b;
     memset(invalid_rand_addr_a, 0xff, sizeof(BD_ADDR));
     memset(invalid_rand_addr_b, 0x00, sizeof(BD_ADDR));
-    invalid_rand_addr_b[0] = invalid_rand_addr_b[0] | BT_STATIC_RAND_ADDR_MASK;
-    if((rand_addr[0] & BT_STATIC_RAND_ADDR_MASK) == BT_STATIC_RAND_ADDR_MASK
-        && memcmp(invalid_rand_addr_a, rand_addr, BD_ADDR_LEN) != 0
-        && memcmp(invalid_rand_addr_b, rand_addr, BD_ADDR_LEN) != 0){
-        // set random address
-        if((err = btsnd_hcic_ble_set_extend_rand_address(instance, rand_addr)) != HCI_SUCCESS) {
-            BTM_TRACE_ERROR("%s, fail to send the hci command, the error code = %s(0x%x)",
-                            __func__, btm_ble_hci_status_to_str(err), err);
+    if((rand_addr[0] & BT_STATIC_RAND_ADDR_MASK) == BT_STATIC_RAND_ADDR_MASK) {
+        invalid_rand_addr_b[0] = invalid_rand_addr_b[0] | BT_STATIC_RAND_ADDR_MASK;
+        if (memcmp(invalid_rand_addr_a, rand_addr, BD_ADDR_LEN) == 0
+        || memcmp(invalid_rand_addr_b, rand_addr, BD_ADDR_LEN) == 0) {
             status = BTM_ILLEGAL_VALUE;
-        } else {
-            // set random address success, update address infor
-            if(extend_adv_cb.inst[instance].configured && extend_adv_cb.inst[instance].connetable) {
-                BTM_BleSetStaticAddr(rand_addr);
-                BTM_UpdateAddrInfor(BLE_ADDR_RANDOM, rand_addr);
-            }
+            goto end;
+        }
+    } else if ((rand_addr[0] | BT_NON_RPA_MASK) == BT_NON_RPA_MASK) {
+        invalid_rand_addr_a[0] = invalid_rand_addr_a[0] & BT_NON_RPA_MASK;
+        if (memcmp(invalid_rand_addr_a, rand_addr, BD_ADDR_LEN) == 0
+        || memcmp(invalid_rand_addr_b, rand_addr, BD_ADDR_LEN) == 0) {
+            status = BTM_ILLEGAL_VALUE;
+            goto end;
         }
     } else {
         BTM_TRACE_ERROR("%s invalid random address", __func__);
         status = BTM_ILLEGAL_VALUE;
         goto end;
+    }
+
+    // set random address
+    if((err = btsnd_hcic_ble_set_extend_rand_address(instance, rand_addr)) != HCI_SUCCESS) {
+        BTM_TRACE_ERROR("%s, fail to send the hci command, the error code = %s(0x%x)",
+                        __func__, btm_ble_hci_status_to_str(err), err);
+        status = BTM_ILLEGAL_VALUE;
+    } else {
+        // set random address success, update address infor
+        if(extend_adv_cb.inst[instance].configured && extend_adv_cb.inst[instance].connetable) {
+            BTM_BleSetStaticAddr(rand_addr);
+            BTM_UpdateAddrInfor(BLE_ADDR_RANDOM, rand_addr);
+        }
     }
 
 end:
@@ -1021,7 +1032,6 @@ void BTM_BleSetPreferExtenedConnParams (BD_ADDR bd_addr, tBTM_EXT_CONN_PARAMS *p
     return;
 }
 
-
 void btm_ble_extended_init(void)
 {
 
@@ -1272,3 +1282,33 @@ void btm_ble_periodic_adv_sync_establish_evt(tBTM_BLE_PERIOD_ADV_SYNC_ESTAB *par
 }
 
 #endif // #if (BLE_50_FEATURE_SUPPORT == TRUE)
+
+#if (BLE_FEAT_PERIODIC_ADV_SYNC_TRANSFER == TRUE)
+void BTM_BlePeriodicAdvSetInfoTrans(BD_ADDR bd_addr, UINT16 service_data, UINT8 adv_handle)
+{
+    tL2C_LCB *p_lcb = l2cu_find_lcb_by_bd_addr(bd_addr, BT_TRANSPORT_LE);
+
+    if (!p_lcb) {
+        BTM_TRACE_ERROR("%s, invalid parameters", __func__);
+        return;
+    }
+
+    if (!btsnd_hcic_ble_periodic_adv_set_info_trans(p_lcb->handle, service_data, adv_handle)) {
+        BTM_TRACE_ERROR("%s, hci cmd error", __func__);
+    }
+}
+
+void BTM_BleSetPeriodicAdvSyncTransParams(BD_ADDR bd_addr, UINT8 mode, UINT16 skip, UINT16 sync_timeout, UINT8 cte_type)
+{
+    tL2C_LCB *p_lcb = l2cu_find_lcb_by_bd_addr(bd_addr, BT_TRANSPORT_LE);
+
+    if (!p_lcb) {
+        BTM_TRACE_ERROR("%s, invalid parameters", __func__);
+        return;
+    }
+
+    if (!btsnd_hcic_ble_set_periodic_adv_sync_trans_params(p_lcb->handle, mode, skip, sync_timeout, cte_type)) {
+        BTM_TRACE_ERROR("%s, hci cmd error", __func__);
+    }
+}
+#endif // #if (BLE_FEAT_PERIODIC_ADV_SYNC_TRANSFER == TRUE)

@@ -1,0 +1,11 @@
+/*
+ * SPDX-FileCopyrightText: 2017-2023 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syscfg.defs:
+    BLE_SVC_HR_SYSINIT_STAGE:
+        description: >
+            Sysinit stage for the heart rate service.
+        value: 303

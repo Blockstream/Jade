@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2022 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2023 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -19,7 +19,6 @@
 #ifdef CONFIG_BT_LE_HCI_INTERFACE_USE_UART
 #include "driver/uart.h"
 #endif
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,23 +76,26 @@ typedef enum {
  * @brief Bluetooth TX power level(index), it's just a index corresponding to power(dbm).
  */
 typedef enum {
-    ESP_PWR_LVL_N27 = 0,              /*!< Corresponding to -27dbm */
-    ESP_PWR_LVL_N24 = 1,              /*!< Corresponding to -24dbm */
-    ESP_PWR_LVL_N21 = 2,              /*!< Corresponding to -21dbm */
-    ESP_PWR_LVL_N18 = 3,              /*!< Corresponding to -18dbm */
-    ESP_PWR_LVL_N15 = 4,              /*!< Corresponding to -15dbm */
-    ESP_PWR_LVL_N12 = 5,              /*!< Corresponding to -12dbm */
-    ESP_PWR_LVL_N9  = 6,              /*!< Corresponding to  -9dbm */
-    ESP_PWR_LVL_N6  = 7,              /*!< Corresponding to  -6dbm */
-    ESP_PWR_LVL_N3  = 8,              /*!< Corresponding to  -3dbm */
-    ESP_PWR_LVL_N0  = 9,              /*!< Corresponding to   0dbm */
-    ESP_PWR_LVL_P3  = 10,             /*!< Corresponding to  +3dbm */
-    ESP_PWR_LVL_P6  = 11,             /*!< Corresponding to  +6dbm */
-    ESP_PWR_LVL_P9  = 12,             /*!< Corresponding to  +9dbm */
-    ESP_PWR_LVL_P12 = 13,             /*!< Corresponding to  +12dbm */
-    ESP_PWR_LVL_P15 = 14,             /*!< Corresponding to  +15dbm */
-    ESP_PWR_LVL_P18 = 15,             /*!< Corresponding to  +18dbm */
-    ESP_PWR_LVL_INVALID = 0xFF,         /*!< Indicates an invalid value */
+    ESP_PWR_LVL_N24 = 0,              /*!< Corresponding to -24dbm */
+    ESP_PWR_LVL_N21 = 1,              /*!< Corresponding to -21dbm */
+    ESP_PWR_LVL_N18 = 2,              /*!< Corresponding to -18dbm */
+    ESP_PWR_LVL_N15 = 3,              /*!< Corresponding to -15dbm */
+    ESP_PWR_LVL_N12 = 4,              /*!< Corresponding to -12dbm */
+    ESP_PWR_LVL_N9  = 5,              /*!< Corresponding to  -9dbm */
+    ESP_PWR_LVL_N6  = 6,              /*!< Corresponding to  -6dbm */
+    ESP_PWR_LVL_N3  = 7,              /*!< Corresponding to  -3dbm */
+    ESP_PWR_LVL_N0  = 8,              /*!< Corresponding to   0dbm */
+    ESP_PWR_LVL_P3  = 9,              /*!< Corresponding to  +3dbm */
+    ESP_PWR_LVL_P6  = 10,             /*!< Corresponding to  +6dbm */
+    ESP_PWR_LVL_P9  = 11,             /*!< Corresponding to  +9dbm */
+    ESP_PWR_LVL_P12 = 12,             /*!< Corresponding to  +12dbm */
+    ESP_PWR_LVL_P15 = 13,             /*!< Corresponding to  +15dbm */
+    ESP_PWR_LVL_P16 = 14,             /*!< Corresponding to  +16dbm */
+    ESP_PWR_LVL_P17 = 15,             /*!< Corresponding to  +17dbm */
+    ESP_PWR_LVL_P18 = 16,             /*!< Corresponding to  +18dbm */
+    ESP_PWR_LVL_P19 = 17,             /*!< Corresponding to  +19dbm */
+    ESP_PWR_LVL_P20 = 18,             /*!< Corresponding to  +20dbm */
+    ESP_PWR_LVL_INVALID = 0xFF,       /*!< Indicates an invalid value */
 } esp_power_level_t;
 
 typedef enum {
@@ -127,7 +129,6 @@ esp_err_t esp_ble_tx_power_set(esp_ble_power_type_t power_type, esp_power_level_
  */
 esp_power_level_t esp_ble_tx_power_get(esp_ble_power_type_t power_type);
 
-
 /**
  * @brief  ENHANCED API for Setting BLE TX power
  *         Connection Tx power should only be set after connection created.
@@ -147,7 +148,7 @@ esp_err_t esp_ble_tx_power_set_enhanced(esp_ble_enhanced_power_type_t power_type
  */
 esp_power_level_t esp_ble_tx_power_get_enhanced(esp_ble_enhanced_power_type_t power_type, uint16_t handle);
 
-#define CONFIG_VERSION  0x20220824
+#define CONFIG_VERSION  0x20230113
 #define CONFIG_MAGIC    0x5A5AA5A5
 
 /**
@@ -205,6 +206,9 @@ typedef struct {
     uint8_t cca_drop_mode;
     int8_t cca_low_tx_pwr;
     uint8_t main_xtal_freq;
+    uint8_t cpu_freq_mhz;
+    uint8_t ignore_wl_for_direct_adv;
+    uint8_t enable_pcl;
     uint32_t config_magic;
 } esp_bt_controller_config_t;
 
@@ -251,12 +255,14 @@ typedef struct {
     .ble_hci_uart_uart_parity   = DEFAULT_BT_LE_HCI_UART_PARITY,                        \
     .enable_tx_cca              = DEFAULT_BT_LE_TX_CCA_ENABLED,                         \
     .cca_rssi_thresh            = 256 - DEFAULT_BT_LE_CCA_RSSI_THRESH,                  \
-    .cca_drop_mode              = 0,                                                    \
-    .cca_low_tx_pwr             = 0,                                                    \
     .sleep_en                   = NIMBLE_SLEEP_ENABLE,                                  \
     .coex_phy_coded_tx_rx_time_limit = DEFAULT_BT_LE_COEX_PHY_CODED_TX_RX_TLIM_EFF,     \
-    .ble_scan_classify_filter_enable         = 0,                                       \
+    .dis_scan_backoff           = NIMBLE_DISABLE_SCAN_BACKOFF,                          \
+    .ble_scan_classify_filter_enable         = 1,                                       \
     .main_xtal_freq             = CONFIG_XTAL_FREQ,                                     \
+    .cpu_freq_mhz               = CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ,                      \
+    .ignore_wl_for_direct_adv   = 0,                                                    \
+    .enable_pcl                 = 0,                                                    \
     .config_magic = CONFIG_MAGIC,                                                       \
 }
 
@@ -361,6 +367,14 @@ esp_err_t esp_bt_mem_release(esp_bt_mode_t mode);
 
 /* Returns random static address or -1 if not present */
 extern int esp_ble_hw_get_static_addr(esp_ble_addr_t *addr);
+
+#if CONFIG_BT_LE_CONTROLLER_LOG_ENABLED
+/** @brief esp_ble_controller_log_dump_all
+ * dump all controller log information cached in buffer
+ * @param output : true for log dump, false will be no effect
+ */
+void esp_ble_controller_log_dump_all(bool output);
+#endif // CONFIG_BT_LE_CONTROLLER_LOG_ENABLED
 
 #ifdef __cplusplus
 }

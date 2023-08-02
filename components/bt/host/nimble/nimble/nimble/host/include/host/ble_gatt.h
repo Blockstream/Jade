@@ -30,6 +30,8 @@
 #include <inttypes.h>
 #include "host/ble_att.h"
 #include "host/ble_uuid.h"
+#include "host/ble_esp_gatt.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -905,12 +907,6 @@ int ble_gatts_reset(void);
  *                                  error.
  */
 int ble_gatts_start(void);
-
-/**
- * Resets the GATT configuration parameters and deallocates the memory of attributes.
- *
- */
-void ble_gatts_stop(void);
 
 #ifdef __cplusplus
 }

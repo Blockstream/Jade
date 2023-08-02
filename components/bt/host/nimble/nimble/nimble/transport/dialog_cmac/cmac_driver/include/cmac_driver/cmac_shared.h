@@ -131,10 +131,10 @@ struct cmac_shared_data {
     uint8_t mbox_c2s_buf[ MYNEWT_VAL(CMAC_MBOX_SIZE_C2S) ];
 };
 
-#if MYNEWT_VAL(BLE_HOST)
-extern volatile struct cmac_shared_data *g_cmac_shared_data;
-#elif MYNEWT_VAL(BLE_CONTROLLER)
+#if MYNEWT_VAL(BLE_CONTROLLER)
 extern volatile struct cmac_shared_data g_cmac_shared_data;
+#else
+extern volatile struct cmac_shared_data *g_cmac_shared_data;
 #endif
 
 /* cmac_mbox */
@@ -142,6 +142,7 @@ typedef int (cmac_mbox_read_cb)(const void *data, uint16_t len);
 typedef void (cmac_mbox_write_notif_cb)(void);
 void cmac_mbox_set_read_cb(cmac_mbox_read_cb *cb);
 void cmac_mbox_set_write_notif_cb(cmac_mbox_write_notif_cb *cb);
+int cmac_mbox_has_data(void);
 int cmac_mbox_read(void);
 int cmac_mbox_write(const void *data, uint16_t len);
 
@@ -161,10 +162,10 @@ void cmac_rand_set_isr_cb(cmac_rand_isr_cb_t cb);
 void cmac_shared_init(void);
 void cmac_shared_sync(void);
 
-#if MYNEWT_VAL(BLE_HOST)
-#define CMAC_SHARED_LOCK_VAL    0x40000000
-#elif MYNEWT_VAL(BLE_CONTROLLER)
+#if MYNEWT_VAL(BLE_CONTROLLER)
 #define CMAC_SHARED_LOCK_VAL    0xc0000000
+#else
+#define CMAC_SHARED_LOCK_VAL    0x40000000
 #endif
 
 static inline void

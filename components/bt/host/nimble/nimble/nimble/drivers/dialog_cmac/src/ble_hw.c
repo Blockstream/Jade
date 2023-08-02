@@ -24,7 +24,6 @@
 #include "controller/ble_hw.h"
 #include "CMAC.h"
 #include "cmac_driver/cmac_shared.h"
-#include "mcu/mcu.h"
 #include "tinycrypt/aes.h"
 
 static struct tc_aes_key_sched_struct g_ctx;
@@ -303,6 +302,12 @@ ble_hw_resolv_proc_disable(void)
     g_ble_hw_resolv_proc.f_done = 1;
 
     NVIC_DisableIRQ(CRYPTO_IRQn);
+}
+
+void
+ble_hw_resolv_proc_reset(const uint8_t *addr)
+{
+    g_ble_hw_resolv_proc.f_match = 0;
 }
 
 void

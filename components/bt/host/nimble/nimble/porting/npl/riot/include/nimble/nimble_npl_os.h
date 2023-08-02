@@ -24,8 +24,12 @@
 #include <stdbool.h>
 #include "event/callback.h"
 #include "mutex.h"
-#include "semaphore.h"
-#include "xtimer.h"
+#include "sema.h"
+#include "ztimer.h"
+
+#if defined(CPU_FAM_NRF51) || defined(CPU_FAM_NRF52)
+#include "nrf_clock.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,8 +42,6 @@ extern "C" {
 typedef uint32_t ble_npl_time_t;
 typedef int32_t ble_npl_stime_t;
 
-extern volatile int ble_npl_in_critical;
-
 struct ble_npl_event {
     event_callback_t e;
     void *arg;
@@ -50,8 +52,8 @@ struct ble_npl_eventq {
 };
 
 struct ble_npl_callout {
-    xtimer_t timer;
-    uint64_t target_us;
+    ztimer_t timer;
+    ble_npl_time_t ticks;
     struct ble_npl_event e;
     event_queue_t *q;
 };
@@ -61,7 +63,7 @@ struct ble_npl_mutex {
 };
 
 struct ble_npl_sem {
-    sem_t sem;
+    sema_t sem;
 };
 
 static inline bool
@@ -100,8 +102,9 @@ ble_npl_eventq_get(struct ble_npl_eventq *evq, ble_npl_time_t tmo)
     } else if (tmo == BLE_NPL_TIME_FOREVER) {
         return (struct ble_npl_event *)event_wait(&evq->q);
     } else {
-        return (struct ble_npl_event *)event_wait_timeout64(&evq->q,
-                                                            tmo * US_PER_MS);
+        return (struct ble_npl_event *)event_wait_timeout_ztimer(&evq->q,
+                                                                 ZTIMER_MSEC,
+                                                                 (uint32_t)tmo);
     }
 }
 
@@ -174,49 +177,39 @@ ble_npl_mutex_release(struct ble_npl_mutex *mu)
 static inline ble_npl_error_t
 ble_npl_sem_init(struct ble_npl_sem *sem, uint16_t tokens)
 {
-    int rc;
-
-    rc = sem_init(&sem->sem, 0, tokens);
-
-    return rc == 0 ? BLE_NPL_OK : BLE_NPL_ERROR;
+    sema_create(&sem->sem, (unsigned)tokens);
+    return BLE_NPL_OK;
 }
 
 static inline ble_npl_error_t
 ble_npl_sem_release(struct ble_npl_sem *sem)
 {
-    int rc;
-
-    rc = sem_post(&sem->sem);
-
-    return rc == 0 ? BLE_NPL_OK : BLE_NPL_ERROR;
+    int rc = sema_post(&sem->sem);
+    return (rc == 0) ? BLE_NPL_OK : BLE_NPL_ERROR;
 }
 
 static inline uint16_t
 ble_npl_sem_get_count(struct ble_npl_sem *sem)
 {
-    int val = 0;
-
-    sem_getvalue(&sem->sem, &val);
-
-    return (uint16_t)val;
+    return (uint16_t)sema_get_value(&sem->sem);
 }
 
 static inline void
 ble_npl_callout_stop(struct ble_npl_callout *co)
 {
-    xtimer_remove(&co->timer);
+    ztimer_remove(ZTIMER_MSEC, &co->timer);
 }
 
 static inline bool
 ble_npl_callout_is_active(struct ble_npl_callout *c)
 {
-    return (c->timer.offset || c->timer.long_offset);
+    return ztimer_is_set(ZTIMER_MSEC, &c->timer);
 }
 
 static inline ble_npl_time_t
 ble_npl_callout_get_ticks(struct ble_npl_callout *co)
 {
-    return (ble_npl_time_t)(co->target_us / US_PER_MS);
+    return co->ticks;
 }
 
 static inline void
@@ -228,7 +221,7 @@ ble_npl_callout_set_arg(struct ble_npl_callout *co, void *arg)
 static inline ble_npl_time_t
 ble_npl_time_get(void)
 {
-    return (ble_npl_time_t)(xtimer_now_usec64() / US_PER_MS);
+    return (ble_npl_time_t)ztimer_now(ZTIMER_MSEC);
 }
 
 static inline ble_npl_error_t
@@ -260,34 +253,42 @@ ble_npl_time_ticks_to_ms32(ble_npl_time_t ticks)
 static inline void
 ble_npl_time_delay(ble_npl_time_t ticks)
 {
-    xtimer_usleep64(ticks * US_PER_MS);
+    ztimer_sleep(ZTIMER_MSEC, (uint32_t)ticks);
 }
 
 static inline uint32_t
 ble_npl_hw_enter_critical(void)
 {
-    uint32_t ctx = irq_disable();
-    ++ble_npl_in_critical;
-    return ctx;
+    return (uint32_t)irq_disable();
 }
 
 static inline void
 ble_npl_hw_exit_critical(uint32_t ctx)
 {
-    --ble_npl_in_critical;
     irq_restore((unsigned)ctx);
 }
 
 static inline bool
 ble_npl_hw_is_in_critical(void)
 {
-    /*
-     * XXX Currently RIOT does not support an API for finding out if interrupts
-     *     are currently disabled, hence in a critical section in this context.
-     *     So for now, we use this global variable to keep this state for us.
-    -*/
-    return (ble_npl_in_critical > 0);
+    return (bool)!irq_is_enabled();
 }
+
+/* XXX: these functions are required to build hal_timer.c, however with the
+*       default configuration they are never used... */
+#if defined(CPU_FAM_NRF51) || defined(CPU_FAM_NRF52)
+static inline void
+nrf52_clock_hfxo_request(void)
+{
+    clock_hfxo_request();
+}
+
+static inline void
+nrf52_clock_hfxo_release(void)
+{
+    clock_hfxo_release();
+}
+#endif
 
 #ifdef __cplusplus
 }

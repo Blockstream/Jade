@@ -45,8 +45,8 @@ static const char *TAG = "Timer";
 #define OS_MEM_ALLOC (1)
 
 #if CONFIG_BT_NIMBLE_ENABLED
-#define BT_LE_HCI_EVT_HI_BUF_COUNT MYNEWT_VAL(BLE_HCI_EVT_HI_BUF_COUNT)
-#define BT_LE_HCI_EVT_LO_BUF_COUNT MYNEWT_VAL(BLE_HCI_EVT_LO_BUF_COUNT)
+#define BT_LE_HCI_EVT_HI_BUF_COUNT MYNEWT_VAL(BLE_TRANSPORT_EVT_COUNT)
+#define BT_LE_HCI_EVT_LO_BUF_COUNT MYNEWT_VAL(BLE_TRANSPORT_EVT_DISCARDABLE_COUNT)
 #define BT_LE_MAX_EXT_ADV_INSTANCES MYNEWT_VAL(BLE_MULTI_ADV_INSTANCES)
 #define BT_LE_MAX_CONNECTIONS MYNEWT_VAL(BLE_MAX_CONNECTIONS)
 #else
@@ -683,7 +683,7 @@ IRAM_ATTR os_callout_timer_cb(TimerHandle_t timer)
 }
 #endif
 
-void
+int
 IRAM_ATTR npl_freertos_callout_init(struct ble_npl_callout *co, struct ble_npl_eventq *evq,
                       ble_npl_event_fn *ev_cb, void *ev_arg)
 {
@@ -707,13 +707,25 @@ IRAM_ATTR npl_freertos_callout_init(struct ble_npl_callout *co, struct ble_npl_e
 		.name = "nimble_timer"
 	};
 
-	ESP_ERROR_CHECK(esp_timer_create(&create_args, &callout->handle));
+        if (esp_timer_create(&create_args, &callout->handle) != ESP_OK) {
+            ble_npl_event_deinit(&callout->ev);
+            os_memblock_put(&ble_freertos_co_pool,callout);
+            co->co = NULL;
+            return -1;
+        }
 
 #else
 	callout->handle = xTimerCreate("co", 1, pdFALSE, callout, os_callout_timer_cb);
+
+        if (!callout->handle) {
+            ble_npl_event_deinit(&callout->ev);
+            os_memblock_put(&ble_freertos_co_pool,callout);
+            co->co = NULL;
+            return -1;
+        }
+
 #endif
 
-	BLE_LL_ASSERT(callout->handle);
     } else {
 	callout = (struct ble_npl_callout_freertos *)co->co;
 	BLE_LL_ASSERT(callout);
@@ -725,7 +737,9 @@ IRAM_ATTR npl_freertos_callout_init(struct ble_npl_callout *co, struct ble_npl_e
     if(!co->co) {
         co->co = malloc(sizeof(struct ble_npl_callout_freertos));
         callout = (struct ble_npl_callout_freertos *)co->co;
-        BLE_LL_ASSERT(callout);
+        if (!callout) {
+            return -1;
+        }
 
 	memset(callout, 0, sizeof(*callout));
         ble_npl_event_init(&callout->ev, ev_cb, ev_arg);
@@ -739,12 +753,22 @@ IRAM_ATTR npl_freertos_callout_init(struct ble_npl_callout *co, struct ble_npl_e
 		.name = "nimble_timer"
 	};
 
-	ESP_ERROR_CHECK(esp_timer_create(&create_args, &callout->handle));
+        if (esp_timer_create(&create_args, &callout->handle) != ESP_OK) {
+            ble_npl_event_deinit(&callout->ev);
+            free((void *)callout);
+            co->co = NULL;
+            return -1;
+        }
 #else
 	callout->handle = xTimerCreate("co", 1, pdFALSE, callout, os_callout_timer_cb);
-#endif
 
-	BLE_LL_ASSERT(callout->handle);
+        if (!callout->handle) {
+            ble_npl_event_deinit(&callout->ev);
+            free((void *)callout);
+            co->co = NULL;
+            return -1;
+        }
+#endif
     }
     else {
         callout = (struct ble_npl_callout_freertos *)co->co;
@@ -753,7 +777,7 @@ IRAM_ATTR npl_freertos_callout_init(struct ble_npl_callout *co, struct ble_npl_e
 	ble_npl_event_init(&callout->ev, ev_cb, ev_arg);
     }
 #endif
-
+    return 0;
 }
 
 void
@@ -763,11 +787,11 @@ IRAM_ATTR npl_freertos_callout_deinit(struct ble_npl_callout *co)
 
     /* Since we dynamically deinit timers, function can be called for NULL timers. Return for such scenarios */
     if (!callout) {
-	return;
+        return;
     }
 
     BLE_LL_ASSERT(callout->handle);
-
+    ble_npl_event_deinit(&callout->ev);
 #if CONFIG_BT_NIMBLE_USE_ESP_TIMER
     if(esp_timer_stop(callout->handle))
         ESP_LOGD(TAG, "Timer not stopped");
@@ -778,7 +802,6 @@ IRAM_ATTR npl_freertos_callout_deinit(struct ble_npl_callout *co)
 #else
 
     xTimerDelete(callout->handle, portMAX_DELAY);
-    ble_npl_event_deinit(&callout->ev);
 
 #if OS_MEM_ALLOC
     os_memblock_put(&ble_freertos_co_pool,callout);
@@ -1175,18 +1198,23 @@ _error:
 #if SOC_ESP_NIMBLE_CONTROLLER
     if(ble_freertos_ev_buf) {
         free(ble_freertos_ev_buf);
+	ble_freertos_ev_buf = NULL;
     }
     if(ble_freertos_evq_buf) {
         free(ble_freertos_evq_buf);
+	ble_freertos_evq_buf = NULL;
     }
     if(ble_freertos_co_buf) {
         free(ble_freertos_co_buf);
+	ble_freertos_co_buf = NULL;
     }
     if(ble_freertos_sem_buf) {
         free(ble_freertos_sem_buf);
+	ble_freertos_sem_buf = NULL;
     }
     if(ble_freertos_mutex_buf) {
         free(ble_freertos_mutex_buf);
+	ble_freertos_mutex_buf = NULL;
     }
     return -1;
 #else
@@ -1201,18 +1229,23 @@ void npl_freertos_mempool_deinit(void)
 #if SOC_ESP_NIMBLE_CONTROLLER
     if(ble_freertos_ev_buf) {
         free(ble_freertos_ev_buf);
+	ble_freertos_ev_buf = NULL;
     }
     if(ble_freertos_evq_buf) {
         free(ble_freertos_evq_buf);
+	ble_freertos_evq_buf = NULL;
     }
     if(ble_freertos_co_buf) {
         free(ble_freertos_co_buf);
+	ble_freertos_co_buf = NULL;
     }
     if(ble_freertos_sem_buf) {
         free(ble_freertos_sem_buf);
+	ble_freertos_sem_buf = NULL;
     }
     if(ble_freertos_mutex_buf) {
         free(ble_freertos_mutex_buf);
+	ble_freertos_mutex_buf = NULL;
     }
 #endif
 }

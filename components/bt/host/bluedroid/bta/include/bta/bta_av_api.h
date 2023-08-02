@@ -262,6 +262,8 @@ typedef BOOLEAN (*tBTA_AV_CO_INIT) (UINT8 *p_codec_type, UINT8 *p_codec_info,
                                     UINT8 *p_num_protect, UINT8 *p_protect_info, UINT8 tsep);
 typedef void (*tBTA_AV_CO_DISC_RES) (tBTA_AV_HNDL hndl, UINT8 num_seps,
                                      UINT8 num_snk, UINT8 num_src, BD_ADDR addr, UINT16 uuid_local);
+typedef void (*tBTA_AV_CO_CFG_RES) (tBTA_AV_HNDL hndl, UINT8 num_seps,
+                                     UINT8 num_snk, UINT8 num_src, BD_ADDR addr, UINT16 uuid_local);
 typedef UINT8 (*tBTA_AV_CO_GETCFG) (tBTA_AV_HNDL hndl, tBTA_AV_CODEC codec_type,
                                     UINT8 *p_codec_info, UINT8 *p_sep_info_idx, UINT8 seid,
                                     UINT8 *p_num_protect, UINT8 *p_protect_info);
@@ -291,6 +293,7 @@ typedef BOOLEAN (*tBTA_AVRC_CO_RN_EVT_SUPPORTED) (UINT8 event_id);
 typedef struct {
     tBTA_AV_CO_INIT               init;
     tBTA_AV_CO_DISC_RES           disc_res;
+    tBTA_AV_CO_CFG_RES            cfg_res;
     tBTA_AV_CO_GETCFG             getcfg;
     tBTA_AV_CO_SETCFG             setcfg;
     tBTA_AV_CO_OPEN               open;
@@ -553,6 +556,7 @@ typedef struct {
     UINT16  video_mtu;          /* AVDTP video transport channel MTU at L2CAP */
     UINT16  video_flush_to;     /* AVDTP video transport channel flush timeout */
     BOOLEAN avrc_group;         /* TRUE, to accept AVRC 1.3 group nevigation command */
+    BOOLEAN avrc_br;            /* FALSE, does not support browsing channel */
     UINT8   num_co_ids;         /* company id count in p_meta_co_ids */
     tBTA_AV_CODE  rc_pass_rsp;  /* the default response code for pass through commands */
     const UINT32 *p_meta_co_ids;/* the metadata Get Capabilities response for company id */

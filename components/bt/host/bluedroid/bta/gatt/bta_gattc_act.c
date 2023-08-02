@@ -126,6 +126,7 @@ static void bta_gattc_enable(tBTA_GATTC_CB *p_cb)
     if (p_cb->state == BTA_GATTC_STATE_DISABLED) {
         /* initialize control block */
         memset(&bta_gattc_cb, 0, sizeof(tBTA_GATTC_CB));
+        bta_gattc_cb.auto_disc = true;
         p_cb->state = BTA_GATTC_STATE_ENABLED;
     } else {
         APPL_TRACE_DEBUG("GATTC is already enabled");
@@ -692,9 +693,11 @@ void bta_gattc_conn(tBTA_GATTC_CLCB *p_clcb, tBTA_GATTC_DATA *p_data)
             } else
 #endif
             { /* cache is building */
-                p_clcb->p_srcb->state = BTA_GATTC_SERV_DISC;
-                /* cache load failure, start discovery */
-                bta_gattc_start_discover(p_clcb, NULL);
+                if (bta_gattc_cb.auto_disc) {
+                    p_clcb->p_srcb->state = BTA_GATTC_SERV_DISC;
+                    /* cache load failure, start discovery */
+                    bta_gattc_start_discover(p_clcb, NULL);
+                }
             }
         } else { /* cache is building */
             p_clcb->state = BTA_GATTC_DISCOVER_ST;
@@ -819,8 +822,6 @@ void bta_gattc_close(tBTA_GATTC_CLCB *p_clcb, tBTA_GATTC_DATA *p_data)
     if (p_clcb->transport == BTA_TRANSPORT_BR_EDR) {
         bta_sys_conn_close( BTA_ID_GATTC , BTA_ALL_APP_ID, p_clcb->bda);
     }
-
-    bta_gattc_clcb_dealloc(p_clcb);
 
     if (p_data->hdr.event == BTA_GATTC_API_CLOSE_EVT) {
         cb_data.close.status = GATT_Disconnect(p_data->hdr.layer_specific);

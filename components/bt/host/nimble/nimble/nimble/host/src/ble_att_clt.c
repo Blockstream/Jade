@@ -769,10 +769,17 @@ ble_att_clt_tx_prep_write(uint16_t conn_handle, uint16_t handle,
         goto err;
     }
 
+#if MYNEWT_VAL(BLE_GATT_BLOB_TRANSFER)
+    if (OS_MBUF_PKTLEN(txom) > BLE_ATT_ATTR_MAX_LEN) {
+        rc = BLE_HS_EINVAL;
+        goto err;
+    }
+#else
     if (offset + OS_MBUF_PKTLEN(txom) > BLE_ATT_ATTR_MAX_LEN) {
         rc = BLE_HS_EINVAL;
         goto err;
     }
+#endif
 
     if (OS_MBUF_PKTLEN(txom) >
         ble_att_mtu(conn_handle) - BLE_ATT_PREP_WRITE_CMD_BASE_SZ) {

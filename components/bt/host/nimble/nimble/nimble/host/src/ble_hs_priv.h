@@ -29,7 +29,6 @@
 #include "ble_hs_hci_priv.h"
 #include "ble_hs_atomic_priv.h"
 #include "ble_hs_conn_priv.h"
-#include "ble_hs_atomic_priv.h"
 #include "ble_hs_mbuf_priv.h"
 #include "ble_hs_startup_priv.h"
 #include "ble_l2cap_priv.h"
@@ -43,7 +42,6 @@
 #include "ble_hs_periodic_sync_priv.h"
 #include "ble_uuid_priv.h"
 #include "host/ble_hs.h"
-#include "host/ble_monitor.h"
 #include "nimble/nimble_opt.h"
 #include "stats/stats.h"
 #ifdef __cplusplus

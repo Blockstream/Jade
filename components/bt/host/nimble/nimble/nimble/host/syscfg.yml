@@ -44,44 +44,6 @@ syscfg.defs:
             simulator.
         value: 1
 
-    # Monitor interface settings
-    BLE_MONITOR_UART:
-        description: Enables monitor interface over UART
-        value: 0
-    BLE_MONITOR_UART_DEV:
-        description: Monitor interface UART device
-        value: '"uart0"'
-    BLE_MONITOR_UART_BAUDRATE:
-        description: Baudrate for monitor interface UART
-        value: 1000000
-    BLE_MONITOR_UART_BUFFER_SIZE:
-        description: >
-            Monitor interface ringbuffer size for UART.
-            This value should be a power of 2.
-        value: 64
-    BLE_MONITOR_RTT:
-        description: Enables monitor interface over RTT
-        value: 0
-    BLE_MONITOR_RTT_BUFFER_NAME:
-        description: Monitor interface upstream buffer name
-        value: '"btmonitor"'
-    BLE_MONITOR_RTT_BUFFER_SIZE:
-        description: Monitor interface upstream buffer size
-        value: 256
-    BLE_MONITOR_RTT_BUFFERED:
-        description: >
-            Enables buffering when using monitor interface over RTT. The data
-            are written to RTT once complete packet is created in intermediate
-            buffer. This allows to skip complete packet if there is not enough
-            space in RTT buffer (e.g. there is no reader connected). If disabled,
-            monitor will simply block waiting for RTT to free space in buffer.
-        value: 1
-    BLE_MONITOR_CONSOLE_BUFFER_SIZE:
-        description: >
-            Size of internal buffer for console output. Any line exceeding this
-            length value will be split.
-        value: 128
-
     # L2CAP settings.
     BLE_L2CAP_MAX_CHANS:
         description: >
@@ -132,6 +94,34 @@ syscfg.defs:
     BLE_SM_SC:
         description: 'Security manager secure connections (4.2).'
         value: 0
+
+    BLE_SM_SC_ONLY:
+        description: >
+            Force global Secure Connections Pairing Only mode. This means
+            that only SC pairing mode 1 level 4 shall be used, and all
+            characteristics will require it to access, except these
+            requiring mode 1 level 1.
+        value: 0
+        restrictions:
+            - 'BLE_SM_SC_LVL == 4 if 1'
+
+    BLE_SM_SC_LVL:
+        description: >
+          Force global Secure Connections mode 1 level. This level
+          describes requirements for pairing response/request received
+          to accept pairing:
+          - 1 - do not pair; only access to characteristics with no
+                authentication requirements is granted
+          - 2 - allow to pair despite MITM being on or off
+          - 3 - allow to pair only when MITM protection is on
+          - 4 - allow to pair only when 128 bit key is used and MITM is on
+          When set to 0 level is no forced and pairing is allowed for all
+          requests/responses with valid values (for example pairing will be
+          rejected with key longer than 128 bits). Successful pairing with
+          insufficient security will still cause denying access to protected
+          GATT characteristics.
+        value: 0
+        range: 0..4
 
     BLE_SM_MAX_PROCS:
         description: >
@@ -469,3 +459,6 @@ syscfg.logs:
 
 syscfg.vals.BLE_MESH:
     BLE_SM_SC: 1
+
+syscfg.restrictions:
+    - BLE_TRANSPORT_HS == "native"

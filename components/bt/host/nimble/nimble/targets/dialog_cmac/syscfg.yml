@@ -22,7 +22,7 @@ syscfg.vals:
     MCU_SLP_TIMER: 1
     MCU_SLP_TIMER_32K_ONLY: 1
 
-    BLE_HCI_TRANSPORT: dialog_cmac
+    BLE_TRANSPORT_HS: dialog_cmac
 
     # LL recommended settings (decreasing timing values is not recommended)
     BLE_LL_CFG_FEAT_CTRL_TO_HOST_FLOW_CONTROL: 1
@@ -32,4 +32,4 @@ syscfg.vals:
     BLE_LL_SCHED_AUX_CHAIN_MAFS_DELAY: 150
 
     # NOTE: set public address in target settings
-    # BLE_PUBLIC_DEV_ADDR: "(uint8_t[6]){0xff, 0xff, 0xff, 0xff, 0xff, 0xff}"
+    # BLE_LL_PUBLIC_DEV_ADDR: 0xffffffffffff

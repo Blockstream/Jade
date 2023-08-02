@@ -140,8 +140,6 @@ void bt_test_print_credentials(void)
 		console_printf("Subnet: %d\n", i);
 		console_printf("\tNetKeyIdx: %04x\n",
 			       sub->net_idx);
-		console_printf("\tNetKey: %s\n",
-			       bt_hex(sub->keys[sub->kr_flag].net_key, 16));
 	}
 
 	for (i = 0; i < ARRAY_SIZE(bt_mesh_cdb.app_keys); ++i)
@@ -159,8 +157,6 @@ void bt_test_print_credentials(void)
 			       app_key->net_idx);
 		console_printf("\tAppKeyIdx: %04x\n",
 			       app_key->app_idx);
-		console_printf("\tAppKey: %s\n",
-			       bt_hex(app_key->keys[sub->kr_flag].app_key, 16));
 	}
 
 	for (i = 0; i < ARRAY_SIZE(bt_mesh_cdb.subnets); ++i)

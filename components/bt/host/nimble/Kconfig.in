@@ -64,11 +64,12 @@ config BT_NIMBLE_LOG_LEVEL
 
 config BT_NIMBLE_MAX_CONNECTIONS
     int "Maximum number of concurrent connections"
-    range 1 8 if IDF_TARGET_ESP32H2
     range 1 2 if IDF_TARGET_ESP32C2
-    range 1 9 if !SOC_ESP_NIMBLE_CONTROLLER
-    default 3 if (IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2)
+    range 1 70 if IDF_TARGET_ESP32C6
+    range 1 35 if IDF_TARGET_ESP32H2
+    range 1 9
     default 2 if IDF_TARGET_ESP32C2
+    default 3
     depends on BT_NIMBLE_ENABLED
     help
         Defines maximum number of concurrent BLE connections. For ESP32, user
@@ -268,23 +269,23 @@ menu "Memory Settings"
         help
                 Dynamic memory size of block 2
 
-    config BT_NIMBLE_ACL_BUF_COUNT
+    config BT_NIMBLE_TRANSPORT_ACL_FROM_LL_COUNT
         int "ACL Buffer count"
         depends on BT_NIMBLE_ENABLED
         default 24
         help
-            The number of ACL data buffers.
+            The number of ACL data buffers allocated for host.
 
-    config BT_NIMBLE_ACL_BUF_SIZE
-        int "ACL Buffer size"
+    config BT_NIMBLE_TRANSPORT_ACL_SIZE
+        int "Transport ACL Buffer size"
         depends on BT_NIMBLE_ENABLED
         default 255
         help
             This is the maximum size of the data portion of HCI ACL data packets.
             It does not include the HCI data header (of 4 bytes)
 
-    config BT_NIMBLE_HCI_EVT_BUF_SIZE
-        int "HCI Event Buffer size"
+    config BT_NIMBLE_TRANSPORT_EVT_SIZE
+        int "Transport Event Buffer size"
         depends on BT_NIMBLE_ENABLED
         default 257 if BT_NIMBLE_EXT_ADV
         default 70
@@ -293,8 +294,8 @@ menu "Memory Settings"
             extended advertising, packets can be fragmented. 257 bytes is the
             maximum size of a packet.
 
-    config BT_NIMBLE_HCI_EVT_HI_BUF_COUNT
-        int "High Priority HCI Event Buffer count"
+    config BT_NIMBLE_TRANSPORT_EVT_COUNT
+        int "Transport Event Buffer count"
         depends on BT_NIMBLE_ENABLED
         default 30
         help
@@ -303,8 +304,8 @@ menu "Memory Settings"
             are no free high-priority event buffers then host will try to allocate a
             low-priority buffer instead
 
-    config BT_NIMBLE_HCI_EVT_LO_BUF_COUNT
-        int "Low Priority HCI Event Buffer count"
+    config BT_NIMBLE_TRANSPORT_EVT_DISCARD_COUNT
+        int "Discardable Transport Event Buffer count"
         depends on BT_NIMBLE_ENABLED
         default 8
         help
@@ -480,14 +481,14 @@ config BT_NIMBLE_HS_STOP_TIMEOUT_MS
 config BT_NIMBLE_HOST_BASED_PRIVACY
     bool "Enable host based privacy for random address."
     default n
-    depends on BT_NIMBLE_ENABLED && !IDF_TARGET_ESP32
+    depends on BT_NIMBLE_ENABLED && IDF_TARGET_ESP32
     help
         Use this option to do host based Random Private Address resolution.
         If this option is disabled then controller based privacy is used.
 
 config BT_NIMBLE_ENABLE_CONN_REATTEMPT
     bool "Enable connection reattempts on connection establishment error"
-    default y if (IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2 || IDF_TARGET_ESP32C2)
+    default y if (IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32S3 || SOC_ESP_NIMBLE_CONTROLLER)
     default n if IDF_TARGET_ESP32
     help
         Enable to make the NimBLE host to reattempt GAP connection on connection
@@ -568,14 +569,13 @@ if BT_NIMBLE_EXT_ADV
         default y
         help
                 This enables controller transfer periodic sync events to host
-
 endif
 
 config BT_NIMBLE_MAX_PERIODIC_SYNCS
     int "Maximum number of periodic advertising syncs"
     depends on BT_NIMBLE_50_FEATURE_SUPPORT
-    range 0 8 if !IDF_TARGET_ESP32C2
     range 0 3 if IDF_TARGET_ESP32C2
+    range 0 8
     default 1 if BT_NIMBLE_ENABLE_PERIODIC_ADV
     default 0
     help
@@ -585,29 +585,23 @@ config BT_NIMBLE_MAX_PERIODIC_SYNCS
 
 config BT_NIMBLE_MAX_PERIODIC_ADVERTISER_LIST
     int "Maximum number of periodic advertiser list"
-    depends on BT_NIMBLE_50_FEATURE_SUPPORT && (IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32H2)
+    depends on BT_NIMBLE_50_FEATURE_SUPPORT && SOC_ESP_NIMBLE_CONTROLLER
     range 1 5
     default 5 if BT_NIMBLE_50_FEATURE_SUPPORT
     help
         Set this option to set the upper limit for number of periodic advertiser list.
 
-menuconfig BT_NIMBLE_53_FEATURE_SUPPORT
-    bool "Enable BLE 5.3 feature"
-    depends on BT_NIMBLE_ENABLED && SOC_ESP_NIMBLE_CONTROLLER
+config BT_NIMBLE_BLE_POWER_CONTROL
+    bool "Enable support for BLE Power Control"
+    depends on BT_NIMBLE_50_FEATURE_SUPPORT && SOC_BLE_POWER_CONTROL_SUPPORTED
+    default n
     help
-            Enable BLE 5.3 feature
-
-config BT_NIMBLE_SUBRATE
-    bool "Connection Subrate"
-    depends on BT_NIMBLE_53_FEATURE_SUPPORT
-    help
-        Enable support for Connection Subrate
-
+        Set this option to enable the Power Control feature
 
 choice BT_NIMBLE_COEX_PHY_CODED_TX_RX_TLIM
     prompt "Coexistence: limit on MAX Tx/Rx time for coded-PHY connection"
     default BT_NIMBLE_COEX_PHY_CODED_TX_RX_TLIM_DIS
-    depends on ESP32_WIFI_SW_COEXIST_ENABLE && BT_NIMBLE_ENABLED
+    depends on ESP_WIFI_SW_COEXIST_ENABLE && BT_NIMBLE_ENABLED
     help
             When using PHY-Coded in BLE connection, limitation on max tx/rx time can be applied to
             better avoid dramatic performance deterioration of Wi-Fi.
@@ -623,20 +617,9 @@ choice BT_NIMBLE_COEX_PHY_CODED_TX_RX_TLIM
                 Disable the limitation on max tx/rx time for Coded-PHY connection
 endchoice
 
-menuconfig BT_NIMBLE_52_FEATURE_SUPPORT
-    bool "Enable BLE 5.2 Feature"
-    help
-        Enable this option to select 5.2 features
-
-config BT_NIMBLE_BLE_POWER_CONTROL
-    bool "Enable support for BLE Power Control"
-    depends on BT_NIMBLE_52_FEATURE_SUPPORT && SOC_ESP_NIMBLE_CONTROLLER
-    help
-        Set this option to enable the Power Control feature
-
 config BT_NIMBLE_COEX_PHY_CODED_TX_RX_TLIM_EFF
     int
-    default 0 if !(ESP32_WIFI_SW_COEXIST_ENABLE && BT_NIMBLE_ENABLED)
+    default 0 if !(ESP_WIFI_SW_COEXIST_ENABLE && BT_NIMBLE_ENABLED)
     default 1 if BT_NIMBLE_COEX_PHY_CODED_TX_RX_TLIM_EN
     default 0 if BT_NIMBLE_COEX_PHY_CODED_TX_RX_TLIM_DIS
 
@@ -674,3 +657,25 @@ config BT_NIMBLE_LEGACY_VHCI_ENABLE
     default n
     help
         This option is used to distinguish whether a previous version of VHCI is being used
+
+config BT_NIMBLE_BLE_GATT_BLOB_TRANSFER
+    bool "Blob transfer"
+    help
+        This option is used when data to be sent is more than 512 bytes. For peripheral role,
+        BT_NIMBLE_MSYS_1_BLOCK_COUNT needs to be increased according to the need.
+
+config BT_NIMBLE_VS_SUPPORT
+    bool "Enable support for VSC and VSE"
+    help
+        This option is used to enable support for sending Vendor Specific HCI commands and handling
+        Vendor Specific HCI Events.
+
+config BT_NIMBLE_OPTIMIZE_MULTI_CONN
+    bool "Enable the optimization of multi-connection"
+    depends on SOC_BLE_MULTI_CONN_OPTIMIZATION
+    select BT_NIMBLE_VS_SUPPORT
+    default n
+    help
+        This option enables the use of vendor-specific APIs for multi-connections, which can
+        greatly enhance the stability of coexistence between numerous central and peripheral
+        devices. It will prohibit the usage of standard APIs.

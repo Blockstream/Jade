@@ -25,7 +25,6 @@
 #include "bsp/bsp.h"
 #include "log/log.h"
 #include "stats/stats.h"
-#include "bsp/bsp.h"
 #include "hal/hal_gpio.h"
 #include "console/console.h"
 #include "btshell.h"
@@ -34,7 +33,6 @@
 /* BLE */
 #include "nimble/ble.h"
 #include "nimble/nimble_opt.h"
-#include "nimble/ble_hci_trans.h"
 #include "host/ble_hs.h"
 #include "host/ble_hs_adv.h"
 #include "host/ble_uuid.h"
@@ -965,8 +963,30 @@ btshell_decode_adv_data(const uint8_t *adv_data, uint8_t adv_data_len, void *arg
 static void
 btshell_decode_event_type(struct ble_gap_ext_disc_desc *desc, void *arg)
 {
+    const struct ble_hs_adv_field *ad_name = NULL;
     struct btshell_scan_opts *scan_opts = arg;
     uint8_t directed = 0;
+
+    if (scan_opts && scan_opts->name_filter_len) {
+        if (ble_hs_adv_find_field(BLE_HS_ADV_TYPE_COMP_NAME, desc->data,
+                                  desc->length_data, &ad_name)) {
+            ble_hs_adv_find_field(BLE_HS_ADV_TYPE_INCOMP_NAME, desc->data,
+                                  desc->length_data, &ad_name);
+        }
+
+        if (!ad_name) {
+            return;
+        }
+
+        if (ad_name->length < scan_opts->name_filter_len) {
+            return;
+        }
+
+        if (strncasecmp(scan_opts->name_filter, (const char *)ad_name->value,
+                        scan_opts->name_filter_len)) {
+            return;
+        }
+    }
 
     if (desc->props & BLE_HCI_ADV_LEGACY_MASK) {
         if (scan_opts && scan_opts->ignore_legacy) {
@@ -2557,8 +2577,8 @@ btshell_init_ext_adv_restart(void)
  *
  * @return int NOTE: this function should never return!
  */
-int
-main(int argc, char **argv)
+static int
+main_fn(int argc, char **argv)
 {
     int rc;
 
@@ -2631,6 +2651,19 @@ main(int argc, char **argv)
     }
     /* os start should never return. If it does, this should be an error */
     assert(0);
+
+    return 0;
+}
+
+int
+main(int argc, char **argv)
+{
+#if BABBLESIM
+    extern void bsim_init(int argc, char** argv, void *main_fn);
+    bsim_init(argc, argv, main_fn);
+#else
+    main_fn(argc, argv);
+#endif
 
     return 0;
 }

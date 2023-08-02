@@ -14,16 +14,20 @@ if(CONFIG_BT_ENABLED)
         list(APPEND include_dirs include/esp32c3/include)
 
     elseif(CONFIG_IDF_TARGET_ESP32S3)
-        list(APPEND srcs "controller/esp32s3/bt.c")
-        list(APPEND include_dirs include/esp32s3/include)
-
-    elseif(CONFIG_IDF_TARGET_ESP32H2)
-        list(APPEND srcs "controller/esp32h2/bt.c")
-        list(APPEND include_dirs include/esp32h2/include)
+        list(APPEND srcs "controller/esp32c3/bt.c")
+        list(APPEND include_dirs include/esp32c3/include)
 
     elseif(CONFIG_IDF_TARGET_ESP32C2)
         list(APPEND srcs "controller/esp32c2/bt.c")
         list(APPEND include_dirs include/esp32c2/include)
+
+    elseif(CONFIG_IDF_TARGET_ESP32C6)
+        list(APPEND srcs "controller/esp32c6/bt.c")
+        list(APPEND include_dirs include/esp32c6/include)
+
+    elseif(CONFIG_IDF_TARGET_ESP32H2)
+        list(APPEND srcs "controller/esp32h2/bt.c")
+        list(APPEND include_dirs include/esp32h2/include)
     endif()
 
 
@@ -321,6 +325,7 @@ if(CONFIG_BT_ENABLED)
                    "host/bluedroid/stack/gatt/gatt_db.c"
                    "host/bluedroid/stack/gatt/gatt_main.c"
                    "host/bluedroid/stack/gatt/gatt_sr.c"
+                   "host/bluedroid/stack/gatt/gatt_sr_hash.c"
                    "host/bluedroid/stack/gatt/gatt_utils.c"
                    "host/bluedroid/stack/hcic/hciblecmds.c"
                    "host/bluedroid/stack/hcic/hcicmds.c"
@@ -522,25 +527,32 @@ if(CONFIG_BT_ENABLED)
                     host/nimble/nimble/nimble/host/services/dis/include
                     host/nimble/nimble/nimble/host/services/gap/include
                     host/nimble/nimble/nimble/host/services/gatt/include
+                    host/nimble/nimble/nimble/host/services/hr/include
+                    host/nimble/nimble/nimble/host/services/htp/include
                     host/nimble/nimble/nimble/host/services/ias/include
                     host/nimble/nimble/nimble/host/services/ipss/include
                     host/nimble/nimble/nimble/host/services/lls/include
+                    host/nimble/nimble/nimble/host/services/prox/include
                     host/nimble/nimble/nimble/host/services/tps/include
                     host/nimble/nimble/nimble/host/util/include
                     host/nimble/nimble/nimble/host/store/ram/include
                     host/nimble/nimble/nimble/host/store/config/include
                     )
 
-        list(APPEND srcs "host/nimble/nimble/nimble/host/util/src/addr.c"
+        list(APPEND srcs "host/nimble/nimble/nimble/transport/src/transport.c"
+                    "host/nimble/nimble/nimble/host/util/src/addr.c"
                     "host/nimble/nimble/nimble/host/services/gatt/src/ble_svc_gatt.c"
                     "host/nimble/nimble/nimble/host/services/tps/src/ble_svc_tps.c"
                     "host/nimble/nimble/nimble/host/services/ias/src/ble_svc_ias.c"
                     "host/nimble/nimble/nimble/host/services/ipss/src/ble_svc_ipss.c"
                     "host/nimble/nimble/nimble/host/services/ans/src/ble_svc_ans.c"
+                    "host/nimble/nimble/nimble/host/services/hr/src/ble_svc_hr.c"
+                    "host/nimble/nimble/nimble/host/services/htp/src/ble_svc_htp.c"
                     "host/nimble/nimble/nimble/host/services/gap/src/ble_svc_gap.c"
                     "host/nimble/nimble/nimble/host/services/bas/src/ble_svc_bas.c"
                     "host/nimble/nimble/nimble/host/services/dis/src/ble_svc_dis.c"
                     "host/nimble/nimble/nimble/host/services/lls/src/ble_svc_lls.c"
+                    "host/nimble/nimble/nimble/host/services/prox/src/ble_svc_prox.c"
                     "host/nimble/nimble/nimble/host/src/ble_hs_conn.c"
                     "host/nimble/nimble/nimble/host/src/ble_store_util.c"
                     "host/nimble/nimble/nimble/host/src/ble_sm.c"
@@ -563,7 +575,6 @@ if(CONFIG_BT_ENABLED)
                     "host/nimble/nimble/nimble/host/src/ble_store.c"
                     "host/nimble/nimble/nimble/host/src/ble_sm_lgcy.c"
                     "host/nimble/nimble/nimble/host/src/ble_hs_cfg.c"
-                    "host/nimble/nimble/nimble/host/src/ble_monitor.c"
                     "host/nimble/nimble/nimble/host/src/ble_att_clt.c"
                     "host/nimble/nimble/nimble/host/src/ble_l2cap_coc.c"
                     "host/nimble/nimble/nimble/host/src/ble_hs_mbuf.c"
@@ -598,6 +609,7 @@ if(CONFIG_BT_ENABLED)
                 porting/include
                 host/nimble/nimble/porting/nimble/include
                 host/nimble/port/include
+                host/nimble/nimble/nimble/transport/include
             )
 
         if(NOT CONFIG_BT_LE_CONTROLLER_NPL_OS_PORTING_SUPPORT)
@@ -643,7 +655,10 @@ if(CONFIG_BT_ENABLED)
                         "host/nimble/nimble/nimble/host/mesh/src/crypto.c"
                         "host/nimble/nimble/nimble/host/mesh/src/settings.c"
                         "host/nimble/nimble/nimble/host/mesh/src/adv.c"
+                        "host/nimble/nimble/nimble/host/mesh/src/adv_ext.c"
+                        "host/nimble/nimble/nimble/host/mesh/src/adv_legacy.c"
                         "host/nimble/nimble/nimble/host/mesh/src/model_srv.c"
+                        "host/nimble/nimble/nimble/host/mesh/src/msg.c"
                         "host/nimble/nimble/nimble/host/mesh/src/beacon.c"
                         "host/nimble/nimble/nimble/host/mesh/src/glue.c"
                         "host/nimble/nimble/nimble/host/mesh/src/model_cli.c"
@@ -656,7 +671,6 @@ if(CONFIG_BT_ENABLED)
                         "host/nimble/nimble/nimble/host/mesh/src/light_model.c"
                         "host/nimble/nimble/nimble/host/mesh/src/health_cli.c"
                         "host/nimble/nimble/nimble/host/mesh/src/lpn.c"
-                        "host/nimble/nimble/nimble/host/mesh/src/proxy.c"
                         "host/nimble/nimble/nimble/host/mesh/src/health_srv.c"
                         "host/nimble/nimble/nimble/host/mesh/src/testing.c"
                         "host/nimble/nimble/nimble/host/mesh/src/aes-ccm.c"
@@ -665,11 +679,14 @@ if(CONFIG_BT_ENABLED)
                         "host/nimble/nimble/nimble/host/mesh/src/cfg.c"
                         "host/nimble/nimble/nimble/host/mesh/src/pb_adv.c"
                         "host/nimble/nimble/nimble/host/mesh/src/pb_gatt.c"
+                        "host/nimble/nimble/nimble/host/mesh/src/pb_gatt_srv.c"
                         "host/nimble/nimble/nimble/host/mesh/src/prov_device.c"
                         "host/nimble/nimble/nimble/host/mesh/src/provisioner.c"
                         "host/nimble/nimble/nimble/host/mesh/src/heartbeat.c"
                         "host/nimble/nimble/nimble/host/mesh/src/rpl.c"
                         "host/nimble/nimble/nimble/host/mesh/src/subnet.c"
+                        "host/nimble/nimble/nimble/host/mesh/src/proxy_msg.c"
+                        "host/nimble/nimble/nimble/host/mesh/src/proxy_srv.c"
                         "host/nimble/nimble/nimble/host/mesh/src/net.c")
         endif()
     endif()
@@ -681,34 +698,33 @@ idf_component_register(SRCS "${srcs}"
                 INCLUDE_DIRS "${include_dirs}"
                 PRIV_INCLUDE_DIRS "${priv_include_dirs}"
                 REQUIRES esp_timer esp_wifi
-                PRIV_REQUIRES nvs_flash soc esp_pm esp_phy mbedtls driver vfs
+                PRIV_REQUIRES nvs_flash soc esp_pm esp_phy esp_coex mbedtls driver vfs
                 LDFRAGMENTS "linker.lf")
 
 if(CONFIG_BT_ENABLED)
     target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-implicit-fallthrough -Wno-unused-const-variable)
     if(CONFIG_IDF_TARGET_ESP32)
-        target_link_libraries(${COMPONENT_LIB} INTERFACE "-L${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32/esp32")
+        target_link_directories(${COMPONENT_LIB} INTERFACE "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32/esp32")
         target_link_libraries(${COMPONENT_LIB} PUBLIC btdm_app)
 
         target_link_libraries(${COMPONENT_LIB} INTERFACE "-u ld_include_hli_vectors_bt")
     elseif(CONFIG_IDF_TARGET_ESP32C3)
-        target_link_libraries(${COMPONENT_LIB} INTERFACE
-                "-L${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c3_family/esp32c3")
+        target_link_directories(${COMPONENT_LIB} INTERFACE
+                "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c3_family/esp32c3")
         target_link_libraries(${COMPONENT_LIB} PUBLIC btdm_app)
     elseif(CONFIG_IDF_TARGET_ESP32S3)
-        target_link_libraries(${COMPONENT_LIB} INTERFACE
-                "-L${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c3_family/esp32s3")
+        target_link_directories(${COMPONENT_LIB} INTERFACE
+                "${CMAKE_CURRENT_LIST_DIR}/controller/lib_esp32c3_family/esp32s3")
         target_link_libraries(${COMPONENT_LIB} PUBLIC btdm_app)
-    elseif(CONFIG_IDF_TARGET_ESP32H2)
-        if(CONFIG_IDF_TARGET_ESP32H2_BETA_VERSION_1)
-            add_prebuilt_library(nimblelib "controller/lib_esp32h2/esp32h2-bt-lib/beta1/libble_app.a")
-        elseif(CONFIG_IDF_TARGET_ESP32H2_BETA_VERSION_2)
-            add_prebuilt_library(nimblelib "controller/lib_esp32h2/esp32h2-bt-lib/beta2/libble_app.a")
-        endif()
-        target_link_libraries(${COMPONENT_LIB} PRIVATE nimblelib)
     elseif(CONFIG_IDF_TARGET_ESP32C2)
-        add_prebuilt_library(nimblelib "controller/lib_esp32c2/esp32c2-bt-lib/libble_app.a")
-        target_link_libraries(${COMPONENT_LIB} PRIVATE nimblelib)
+        add_prebuilt_library(libble_app "controller/lib_esp32c2/esp32c2-bt-lib/libble_app.a")
+        target_link_libraries(${COMPONENT_LIB} PRIVATE libble_app)
+    elseif(CONFIG_IDF_TARGET_ESP32C6)
+        add_prebuilt_library(libble_app "controller/lib_esp32c6/esp32c6-bt-lib/libble_app.a")
+        target_link_libraries(${COMPONENT_LIB} PRIVATE libble_app)
+    elseif(CONFIG_IDF_TARGET_ESP32H2)
+        add_prebuilt_library(libble_app "controller/lib_esp32h2/esp32h2-bt-lib/libble_app.a")
+        target_link_libraries(${COMPONENT_LIB} PRIVATE libble_app)
     endif()
 
     set_source_files_properties(
@@ -732,7 +748,11 @@ if(CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_DISABLE AND CONFIG_BT_NIMBLE_ENABLED)
 endif()
 
 if(NOT CMAKE_BUILD_EARLY_EXPANSION)
+    set(jump_table_opts "-fjump-tables")
+    if(NOT (CMAKE_C_COMPILER_ID MATCHES "Clang") )
+        set(jump_table_opts "${jump_table_opts} -ftree-switch-conversion")
+    endif()
     set_source_files_properties("${CMAKE_CURRENT_LIST_DIR}/host/bluedroid/bta/hf_ag/bta_ag_cmd.c"
                                 "${CMAKE_CURRENT_LIST_DIR}/host/bluedroid/btc/profile/std/gap/btc_gap_ble.c"
-                                 PROPERTIES COMPILE_FLAGS "-fjump-tables -ftree-switch-conversion")
+                                PROPERTIES COMPILE_FLAGS "${jump_table_opts}")
 endif()

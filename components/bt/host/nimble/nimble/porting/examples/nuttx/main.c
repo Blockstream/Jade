@@ -71,8 +71,6 @@ int main(int argc, char *argv[])
         ble_hci_sock_set_device(atoi(argv[1]));
     }
 
-    printf("hci init\n");
-    ble_hci_sock_init();
     printf("port init\n");
 
     ret = nimble_port_init();
@@ -80,6 +78,9 @@ int main(int argc, char *argv[])
         printf(" Failed to init nimble %d \n", ret);
 	return ret;
     }
+
+    printf("hci init\n");
+    ble_hci_sock_init();
 
     /* This example provides GATT Alert service */
     printf("gap init\n");

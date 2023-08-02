@@ -86,7 +86,7 @@ start_ext_max_events(uint8_t pattern, bool configure)
         params.primary_phy = BLE_HCI_LE_PHY_1M;
         params.secondary_phy = BLE_HCI_LE_PHY_1M;
         params.tx_power = 127;
-        params.sid = pattern % 16;
+        params.sid = 4;
 
         /* allow larger interval, 400 * 0.625ms with 100 events will give up to
          * ~2.5 seconds for instance
@@ -94,7 +94,7 @@ start_ext_max_events(uint8_t pattern, bool configure)
         params.itvl_min = BLE_GAP_ADV_FAST_INTERVAL1_MIN;
         params.itvl_max = 400;
 
-        /* configure instance 0 */
+        /* configure instance 4 */
         rc = ble_gap_ext_adv_configure(instance, &params, NULL,
                                         start_ext_max_events_gap_event, NULL);
         assert (rc == 0);
@@ -184,9 +184,9 @@ start_legacy_duration(uint8_t pattern, bool configure)
         params.primary_phy = BLE_HCI_LE_PHY_1M;
         params.secondary_phy = BLE_HCI_LE_PHY_1M;
         params.tx_power = 127;
-        params.sid = pattern % 16;
+        params.sid = 3;
 
-        /* configure instance 0 */
+        /* configure instance 3 */
         rc = ble_gap_ext_adv_configure(instance, &params, NULL,
                                         start_legacy_duration_gap_event, NULL);
         assert (rc == 0);
@@ -251,7 +251,7 @@ start_scannable_legacy_ext(void)
     params.tx_power = 127;
     params.sid = 2;
 
-    /* configure instance 0 */
+    /* configure instance 2 */
     rc = ble_gap_ext_adv_configure(instance, &params, NULL, NULL, NULL);
     assert (rc == 0);
 
@@ -335,7 +335,7 @@ start_scannable_ext(void)
     params.tx_power = 127;
     params.sid = 1;
 
-    /* configure instance 0 */
+    /* configure instance 1 */
     rc = ble_gap_ext_adv_configure(instance, &params, NULL,
                                    scannable_ext_gap_event, NULL);
     assert (rc == 0);
@@ -387,7 +387,7 @@ start_non_connectable_ext(void)
     params.tx_power = 127;
     params.sid = 0;
 
-    /* configure instance */
+    /* configure instance 0 */
     rc = ble_gap_ext_adv_configure(instance, &params, NULL, NULL, NULL);
     assert (rc == 0);
 
@@ -409,6 +409,84 @@ start_non_connectable_ext(void)
     assert (rc == 0);
 
     console_printf("instance %u started (non-con non-scan)\n", instance);
+}
+
+static void start_periodic(void)
+{
+    struct ble_gap_periodic_adv_params pparams;
+    struct ble_gap_ext_adv_params params;
+    struct ble_hs_adv_fields adv_fields;
+    struct os_mbuf *data;
+    uint8_t instance = 5;
+    ble_addr_t addr;
+    int rc;
+
+    /* For periodic we use nstance with non-connectable advertising */
+    memset (&params, 0, sizeof(params));
+
+    /* advertise using random addr */
+    params.own_addr_type = BLE_OWN_ADDR_RANDOM;
+
+    params.primary_phy = BLE_HCI_LE_PHY_1M;
+    params.secondary_phy = BLE_HCI_LE_PHY_1M;
+    params.tx_power = 127;
+    params.sid = 5;
+
+    /* configure instance 5 */
+    rc = ble_gap_ext_adv_configure(instance, &params, NULL, NULL, NULL);
+    assert (rc == 0);
+
+    /* set random (NRPA) address for instance */
+    rc = ble_hs_id_gen_rnd(1, &addr);
+    assert (rc == 0);
+
+    rc = ble_gap_ext_adv_set_addr(instance, &addr );
+    assert (rc == 0);
+
+    memset(&adv_fields, 0, sizeof(adv_fields));
+    adv_fields.name = (const uint8_t *)"nimble with periodic";
+    adv_fields.name_len = strlen((char *)adv_fields.name);
+
+    /* Default to legacy PDUs size, mbuf chain will be increased if needed
+     */
+    data = os_msys_get_pkthdr(BLE_HCI_MAX_ADV_DATA_LEN, 0);
+    assert(data);
+
+    rc = ble_hs_adv_set_fields_mbuf(&adv_fields, data);
+    assert(rc == 0);
+
+    rc = ble_gap_ext_adv_set_data(instance, data);
+    assert(rc == 0);
+
+    /* configure periodic advertising */
+    memset(&pparams, 0, sizeof(pparams));
+    pparams.include_tx_power = 1;
+    pparams.itvl_min = 160;
+    pparams.itvl_max = 240;
+
+    rc = ble_gap_periodic_adv_configure(instance, &pparams);
+    assert(rc == 0);
+
+    /* get mbuf for periodic data */
+    data = os_msys_get_pkthdr(sizeof(ext_adv_pattern_1), 0);
+    assert(data);
+
+    /* fill mbuf with periodic data */
+    rc = os_mbuf_append(data, ext_adv_pattern_1, sizeof(ext_adv_pattern_1));
+    assert(rc == 0);
+
+    rc = ble_gap_periodic_adv_set_data(instance, data);
+    assert (rc == 0);
+
+    /* start periodic advertising */
+    rc = ble_gap_periodic_adv_start(instance);
+    assert (rc == 0);
+
+    /* start advertising */
+     rc = ble_gap_ext_adv_start(instance, 0, 0);
+     assert (rc == 0);
+
+     console_printf("instance %u started (periodic)\n", instance);
 }
 
 static void
@@ -435,6 +513,8 @@ on_sync(void)
     start_legacy_duration(0, true);
 
     start_ext_max_events(0, true);
+
+    start_periodic();
 }
 
 /*

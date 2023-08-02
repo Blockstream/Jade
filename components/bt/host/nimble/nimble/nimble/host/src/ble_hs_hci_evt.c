@@ -22,9 +22,7 @@
 #include <stdio.h>
 #include "os/os.h"
 #include "nimble/hci_common.h"
-#include "nimble/ble_hci_trans.h"
 #include "host/ble_gap.h"
-#include "host/ble_monitor.h"
 #include "ble_hs_priv.h"
 #include "ble_hs_resolv_priv.h"
 
@@ -57,6 +55,9 @@ static ble_hs_hci_evt_fn ble_hs_hci_evt_encrypt_change;
 static ble_hs_hci_evt_fn ble_hs_hci_evt_enc_key_refresh;
 #endif
 static ble_hs_hci_evt_fn ble_hs_hci_evt_le_meta;
+#if MYNEWT_VAL(BLE_HCI_VS)
+static ble_hs_hci_evt_fn ble_hs_hci_evt_vs;
+#endif
 
 typedef int ble_hs_hci_evt_le_fn(uint8_t subevent, const void *data,
                                  unsigned int len);
@@ -112,6 +113,9 @@ static const struct ble_hs_hci_evt_dispatch_entry ble_hs_hci_evt_dispatch[] = {
     { BLE_HCI_EVCODE_ENC_KEY_REFRESH, ble_hs_hci_evt_enc_key_refresh },
 #endif
     { BLE_HCI_EVCODE_HW_ERROR, ble_hs_hci_evt_hw_error },
+#if MYNEWT_VAL(BLE_HCI_VS)
+    { BLE_HCI_EVCODE_VS_DEBUG, ble_hs_hci_evt_vs },
+#endif
 };
 
 #define BLE_HS_HCI_EVT_DISPATCH_SZ \
@@ -225,13 +229,17 @@ ble_hs_hci_evt_disconn_complete(uint8_t event_code, const void *data,
 	        for (i = 0; i < MYNEWT_VAL(BLE_MAX_CONNECTIONS); i++) {
                     if (reattempt_conn[i].count == 0) {
 	                    idx = i;
-		                break;
-	                }
+		            break;
+		    }
 	        }
         }
 
         if (idx == MYNEWT_VAL(BLE_MAX_CONNECTIONS)) {
             BLE_HS_LOG(DEBUG, "No space left in array ");
+
+	    for (i = 0; i < idx; i++) {
+                 memset(&reattempt_conn[i], 0x0, sizeof(struct ble_gap_reattempt_ctxt));
+	    }
             goto done;
         }
 
@@ -242,7 +250,12 @@ ble_hs_hci_evt_disconn_complete(uint8_t event_code, const void *data,
             if (conn->bhc_flags & BLE_HS_CONN_F_MASTER) {
                 if (reattempt_conn[idx].count < MAX_REATTEMPT_ALLOWED) {
                     reattempt_conn[idx].count += 1;
-                    memcpy(&reattempt_conn[idx].peer_addr, &conn->bhc_peer_addr, BLE_DEV_ADDR_LEN);
+
+		    for (i = 0; i < BLE_DEV_ADDR_LEN; i++) {
+		        reattempt_conn[idx].peer_addr.val[i] = conn->bhc_peer_addr.val[i];
+                    }
+
+		    reattempt_conn[idx].peer_addr.type = conn->bhc_peer_addr.type;
 
                     rc = ble_gap_master_connect_reattempt(ev->conn_handle);
                     if (rc != 0) {
@@ -359,6 +372,22 @@ ble_hs_hci_evt_num_completed_pkts(uint8_t event_code, const void *data,
 
     return 0;
 }
+
+#if MYNEWT_VAL(BLE_HCI_VS)
+static int
+ble_hs_hci_evt_vs(uint8_t event_code, const void *data, unsigned int len)
+{
+    const struct ble_hci_ev_vs_debug *ev = data;
+
+    if (len < sizeof(*ev)) {
+        return BLE_HS_ECONTROLLER;
+    }
+
+    ble_gap_vs_hci_event(data, len);
+
+    return 0;
+}
+#endif
 
 static int
 ble_hs_hci_evt_le_meta(uint8_t event_code, const void *data, unsigned int len)
@@ -625,20 +654,21 @@ ble_hs_hci_evt_le_rd_rem_used_feat_complete(uint8_t subevent, const void *data,
 static int
 ble_hs_hci_decode_legacy_type(uint16_t evt_type)
 {
-     switch (evt_type) {
-     case BLE_HCI_LEGACY_ADV_EVTYPE_ADV_IND:
-         return BLE_HCI_ADV_RPT_EVTYPE_ADV_IND;
-     case BLE_HCI_LEGACY_ADV_EVTYPE_ADV_DIRECT_IND:
-         return BLE_HCI_ADV_RPT_EVTYPE_DIR_IND;
-     case BLE_HCI_LEGACY_ADV_EVTYPE_ADV_SCAN_IND:
-         return BLE_HCI_ADV_RPT_EVTYPE_SCAN_IND;
-     case BLE_HCI_LEGACY_ADV_EVTYPE_ADV_NONCON_IND:
-         return BLE_HCI_ADV_RPT_EVTYPE_NONCONN_IND;
-     case BLE_HCI_LEGACY_ADV_EVTYPE_SCAN_RSP_ADV_IND:
-         return BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP;
-     default:
-         return -1;
-     }
+    switch (evt_type) {
+    case BLE_HCI_LEGACY_ADV_EVTYPE_ADV_IND:
+        return BLE_HCI_ADV_RPT_EVTYPE_ADV_IND;
+    case BLE_HCI_LEGACY_ADV_EVTYPE_ADV_DIRECT_IND:
+        return BLE_HCI_ADV_RPT_EVTYPE_DIR_IND;
+    case BLE_HCI_LEGACY_ADV_EVTYPE_ADV_SCAN_IND:
+        return BLE_HCI_ADV_RPT_EVTYPE_SCAN_IND;
+    case BLE_HCI_LEGACY_ADV_EVTYPE_ADV_NONCON_IND:
+        return BLE_HCI_ADV_RPT_EVTYPE_NONCONN_IND;
+    case BLE_HCI_LEGACY_ADV_EVTYPE_SCAN_RSP_ADV_IND:
+    case BLE_HCI_LEGACY_ADV_EVTYPE_SCAN_RSP_ADV_SCAN_IND:
+        return BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP;
+    default:
+        return -1;
+    }
 }
 #endif
 
@@ -964,7 +994,7 @@ ble_hs_hci_evt_le_phy_update_complete(uint8_t subevent, const void *data,
 #endif
 
 int
-ble_hs_hci_evt_process(const struct ble_hci_ev *ev)
+ble_hs_hci_evt_process(struct ble_hci_ev *ev)
 {
     const struct ble_hs_hci_evt_dispatch_entry *entry;
     int rc;
@@ -978,10 +1008,22 @@ ble_hs_hci_evt_process(const struct ble_hci_ev *ev)
         STATS_INC(ble_hs_stats, hci_unknown_event);
         rc = BLE_HS_ENOTSUP;
     } else {
+#if !BLE_MONITOR
+	/* Ignore NOCP for debug */
+       if(ev->opcode != 0x13) {
+           BLE_HS_LOG(DEBUG, "ble_hs_event_rx_hci_ev; opcode=0x%x ", ev->opcode);
+
+	   /* For LE Meta, print subevent code */
+           if(ev->opcode == 0x3e)
+              BLE_HS_LOG(DEBUG, "subevent: 0x%x", ev->data[0]);
+
+           BLE_HS_LOG(DEBUG, "\n");
+        }
+#endif
         rc = entry->cb(ev->opcode, ev->data, ev->length);
     }
 
-    ble_hci_trans_buf_free((uint8_t *) ev);
+    ble_transport_free((uint8_t *)ev);
 
     return rc;
 }

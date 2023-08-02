@@ -35,11 +35,35 @@
 #if (BLE_INCLUDED == TRUE)
 
 #if (BLE_50_FEATURE_SUPPORT == TRUE)
-const tHCI_ExtConnParams ext_conn_params = {
+#define EXT_CONN_INT_DEF_1M MAX(((MAX_ACL_CONNECTIONS + 1) * 4), 12)
+#define EXT_CONN_INT_DEF_2M MAX(((MAX_ACL_CONNECTIONS + 1) * 2), 12)
+#define EXT_CONN_INT_DEF_CODED (320) // 306-> 362Kbps
+
+const static tHCI_ExtConnParams ext_conn_params_1m_phy = {
     .scan_interval = 0x40,
     .scan_window = 0x40,
-    .conn_interval_min = 320, // 306-> 362Kbps
-    .conn_interval_max = 320,
+    .conn_interval_min = EXT_CONN_INT_DEF_1M,
+    .conn_interval_max = EXT_CONN_INT_DEF_1M,
+    .conn_latency = 0,
+    .sup_timeout = 600,
+    .min_ce_len  = 0,
+    .max_ce_len = 0,
+};
+const static tHCI_ExtConnParams ext_conn_params_2m_phy = {
+    .scan_interval = 0x40,
+    .scan_window = 0x40,
+    .conn_interval_min = EXT_CONN_INT_DEF_2M,
+    .conn_interval_max = EXT_CONN_INT_DEF_2M,
+    .conn_latency = 0,
+    .sup_timeout = 600,
+    .min_ce_len  = 0,
+    .max_ce_len = 0,
+};
+const static tHCI_ExtConnParams ext_conn_params_coded_phy = {
+    .scan_interval = 0x40,
+    .scan_window = 0x40,
+    .conn_interval_min = EXT_CONN_INT_DEF_CODED,
+    .conn_interval_max = EXT_CONN_INT_DEF_CODED,
     .conn_latency = 0,
     .sup_timeout = 600,
     .min_ce_len  = 0,
@@ -280,7 +304,7 @@ void l2cble_notify_le_connection (BD_ADDR bda)
             tBTM_BLE_INQ_CB *p_cb = &btm_cb.ble_ctr_cb.inq_var;
             if(p_cb) {
                 p_cb->adv_mode = BTM_BLE_ADV_DISABLE;
-                p_cb->state = BTM_BLE_STOP_ADV;
+                p_cb->state &= ~BTM_BLE_ADVERTISING;
             }
         }
         /* update link status */
@@ -769,6 +793,69 @@ void l2cble_process_sig_cmd (tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len)
         }
         break;
     }
+    case L2CAP_CMD_BLE_CREDIT_BASED_CONN_REQ: {
+        tL2C_CCB *p_ccb = NULL;
+        tL2C_RCB *p_rcb = NULL;
+        UINT16 spsm;
+        UINT16 scid;
+        UINT16 mtu;
+        UINT16 mps;
+        UINT16 credits;
+        STREAM_TO_UINT16(spsm, p);
+        STREAM_TO_UINT16(scid, p);
+        STREAM_TO_UINT16(mtu, p);
+        STREAM_TO_UINT16(mps, p);
+        STREAM_TO_UINT16(credits, p);
+        L2CAP_TRACE_DEBUG("%s spsm %x, scid %x", __func__, spsm, scid);
+
+        p_ccb = l2cu_find_ccb_by_remote_cid(p_lcb, scid);
+        if (p_ccb) {
+            l2cu_reject_ble_connection(p_lcb, id, L2CAP_LE_RESULT_SOURCE_CID_ALREADY_ALLOCATED);
+            break;
+        }
+
+        #if 0
+        p_rcb = l2cu_find_ble_rcb_by_psm(spsm);
+        if (p_rcb == NULL) {
+            break;
+        }
+        #endif
+
+        p_ccb = l2cu_allocate_ccb(p_lcb, 0);
+        if (p_ccb == NULL) {
+            l2cu_reject_ble_connection(p_lcb, id, L2CAP_LE_RESULT_NO_RESOURCES);
+            break;
+        }
+
+        p_ccb->remote_id = id;
+        p_ccb->p_rcb = p_rcb;
+        p_ccb->remote_cid = scid;
+        p_ccb->local_conn_cfg.mtu = mtu;
+        p_ccb->local_conn_cfg.mps = controller_get_interface()->get_acl_data_size_ble();
+        p_ccb->local_conn_cfg.credits = credits;
+        p_ccb->peer_conn_cfg.mtu = mtu;
+        p_ccb->peer_conn_cfg.mps = mps;
+        p_ccb->peer_conn_cfg.credits = credits;
+
+        l2cu_send_peer_ble_credit_based_conn_res(p_ccb, L2CAP_LE_RESULT_CONN_OK);
+        break;
+    }
+    case L2CAP_CMD_DISC_REQ: {
+        tL2C_CCB *p_ccb = NULL;
+        UINT16 lcid;
+        UINT16 rcid;
+        STREAM_TO_UINT16(lcid, p);
+        STREAM_TO_UINT16(rcid, p);
+
+        p_ccb = l2cu_find_ccb_by_cid(p_lcb, lcid);
+        if (p_ccb) {
+            p_ccb->remote_id = id;
+            // TODO
+        }
+
+        l2cu_send_peer_disc_rsp(p_lcb, id, lcid, rcid);
+        break;
+    }
     default:
         L2CAP_TRACE_WARNING ("L2CAP - LE - unknown cmd code: %d", cmd_code);
         l2cu_send_peer_cmd_reject (p_lcb, L2CAP_CMD_REJ_NOT_UNDERSTOOD, id, 0, 0);
@@ -929,9 +1016,9 @@ BOOLEAN l2cble_init_direct_conn (tL2C_LCB *p_lcb)
         if (p_dev_rec->ext_conn_params.phy_mask == BLE_PHY_NO_PREF) {
             L2CAP_TRACE_WARNING("No extend connection parameters set, use default parameters");
             aux_conn.init_phy_mask = BLE_PHY_PREF_MASK;
-            memcpy(&aux_conn.params[0], &ext_conn_params, sizeof(tHCI_ExtConnParams));
-            memcpy(&aux_conn.params[1], &ext_conn_params, sizeof(tHCI_ExtConnParams));
-            memcpy(&aux_conn.params[2], &ext_conn_params, sizeof(tHCI_ExtConnParams));
+            memcpy(&aux_conn.params[0], &ext_conn_params_1m_phy, sizeof(tHCI_ExtConnParams));
+            memcpy(&aux_conn.params[1], &ext_conn_params_2m_phy, sizeof(tHCI_ExtConnParams));
+            memcpy(&aux_conn.params[2], &ext_conn_params_coded_phy, sizeof(tHCI_ExtConnParams));
         } else {
             aux_conn.init_phy_mask = p_dev_rec->ext_conn_params.phy_mask;
             memcpy(&aux_conn.params[0], &p_dev_rec->ext_conn_params.phy_1m_conn_params, sizeof(tHCI_ExtConnParams));

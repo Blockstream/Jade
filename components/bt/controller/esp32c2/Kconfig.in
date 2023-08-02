@@ -213,7 +213,7 @@ menu "Memory Settings"
 
     config BT_LE_ACL_BUF_SIZE
         int "ACL Buffer size"
-        default 255
+        default 517
         help
             This is the maximum size of the data portion of HCI ACL data packets.
             It does not include the HCI data header (of 4 bytes)

@@ -31,9 +31,7 @@ pkg.deps:
     - "@apache-mynewt-core/kernel/os"
     - "@apache-mynewt-core/util/mem"
     - nimble
+    - "@apache-mynewt-core/hw/usb/tinyusb"
 
 pkg.apis:
     - ble_transport
-
-pkg.init:
-    ble_hci_usb_init: 'MYNEWT_VAL(BLE_TRANS_USB_SYSINIT_STAGE)'

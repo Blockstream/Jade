@@ -5210,8 +5210,15 @@ static tBTM_STATUS btm_sec_execute_procedure (tBTM_SEC_DEV_REC *p_dev_rec)
 
 #if (CLASSIC_BT_INCLUDED == TRUE)
     tACL_CONN *p_acl_cb = btm_handle_to_acl(p_dev_rec->hci_handle);
-    /* If esp32 has not authenticated peer deivce yet, just remove the flag of BTM_SEC_AUTHENTICATED. */
-    if ((BTM_BothEndsSupportSecureConnections(p_acl_cb->remote_addr) == 0) &&
+    /*
+     * To prevent a remote device from doing a Bluetooth Impersonation Attack, a suggested fix by SIG is:
+     *
+     * "Hosts performing legacy (non-mutual) authentication must ensure a remote device is authenticated
+     *  prior to proceeding with encryption establishment, regardless of role."
+     *
+     * As an implementation, we enforce mutual authentication when devices use Legacy Authentication.
+     */
+    if ((p_acl_cb != NULL) && (BTM_BothEndsSupportSecureConnections(p_acl_cb->remote_addr) == 0) &&
         ((p_acl_cb->legacy_auth_state & BTM_ACL_LEGACY_AUTH_SELF) == 0)) {
         p_dev_rec->sec_flags &= ~BTM_SEC_AUTHENTICATED;
     }

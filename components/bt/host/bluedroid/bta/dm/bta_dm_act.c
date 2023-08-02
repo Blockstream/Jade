@@ -675,6 +675,27 @@ void bta_dm_set_dev_name (tBTA_DM_MSG *p_data)
 
 /*******************************************************************************
 **
+** Function         bta_dm_get_dev_name
+**
+** Description      Gets local device name
+**
+**
+** Returns          void
+**
+*******************************************************************************/
+void bta_dm_get_dev_name (tBTA_DM_MSG *p_data)
+{
+    tBTM_STATUS status;
+    char *name = NULL;
+
+    status = BTM_ReadLocalDeviceName(&name);
+    if (p_data->get_name.p_cback) {
+        (*p_data->get_name.p_cback)(status, name);
+    }
+}
+
+/*******************************************************************************
+**
 ** Function         bta_dm_set_afh_channels
 **
 ** Description      Sets AFH channels
@@ -824,14 +845,14 @@ void bta_dm_ble_set_channels (tBTA_DM_MSG *p_data)
 void bta_dm_update_white_list(tBTA_DM_MSG *p_data)
 {
 #if (BLE_INCLUDED == TRUE)
-    BTM_BleUpdateAdvWhitelist(p_data->white_list.add_remove, p_data->white_list.remote_addr, p_data->white_list.addr_type, p_data->white_list.add_wl_cb);
+    BTM_BleUpdateAdvWhitelist(p_data->white_list.add_remove, p_data->white_list.remote_addr, p_data->white_list.addr_type, p_data->white_list.update_wl_cb);
 #endif  ///BLE_INCLUDED == TRUE
 }
 
 void bta_dm_clear_white_list(tBTA_DM_MSG *p_data)
 {
 #if (BLE_INCLUDED == TRUE)
-    BTM_BleClearWhitelist();
+    BTM_BleClearWhitelist(p_data->white_list.update_wl_cb);
 #endif
 }
 
@@ -961,10 +982,6 @@ static void bta_dm_process_remove_device(BD_ADDR bd_addr, tBT_TRANSPORT transpor
 
     BTM_SecDeleteDevice(bd_addr, transport);
 
-#if (BLE_INCLUDED == TRUE && GATTC_INCLUDED == TRUE)
-    /* remove all cached GATT information */
-    BTA_GATTC_Refresh(bd_addr, false);
-#endif
     if (bta_dm_cb.p_sec_cback) {
         tBTA_DM_SEC sec_event;
         bdcpy(sec_event.link_down.bd_addr, bd_addr);
@@ -1119,8 +1136,6 @@ void bta_dm_close_acl(tBTA_DM_MSG *p_data)
 #if (BLE_INCLUDED == TRUE && GATTC_INCLUDED == TRUE)
         /* need to remove all pending background connection if any */
         BTA_GATTC_CancelOpen(0, p_remove_acl->bd_addr, FALSE);
-        /* remove all cached GATT information */
-        BTA_GATTC_Refresh(p_remove_acl->bd_addr, false);
 #endif
     }
     /* otherwise, no action needed */
@@ -1424,6 +1439,40 @@ void bta_dm_oob_reply(tBTA_DM_MSG *p_data)
 {
 #if (BLE_INCLUDED)
     BTM_BleOobDataReply(p_data->oob_reply.bd_addr, BTM_SUCCESS, p_data->oob_reply.len, p_data->oob_reply.value);
+#endif
+}
+
+/*******************************************************************************
+**
+** Function         bta_dm_sc_oob_reply
+**
+** Description      This function is called to provide the OOB data for
+**                  SMP in response to BLE secure connection OOB request.
+**
+** Returns          void
+**
+*******************************************************************************/
+void bta_dm_sc_oob_reply(tBTA_DM_MSG *p_data)
+{
+#if (BLE_INCLUDED)
+    BTM_BleSecureConnectionOobDataReply(p_data->sc_oob_reply.bd_addr, p_data->sc_oob_reply.c, p_data->sc_oob_reply.r);
+#endif
+}
+
+/*******************************************************************************
+**
+** Function         bta_dm_sc_create_oob_data
+**
+** Description      This function is called to create the OOB data for
+**                  SMP when secure connection.
+**
+** Returns          void
+**
+*******************************************************************************/
+void bta_dm_sc_create_oob_data(tBTA_DM_MSG *p_data)
+{
+#if (BLE_INCLUDED)
+    BTM_BleSecureConnectionCreateOobData();
 #endif
 }
 
@@ -3615,8 +3664,6 @@ void bta_dm_acl_change(tBTA_DM_MSG *p_data)
 #if (BLE_INCLUDED == TRUE && GATTC_INCLUDED == TRUE)
             /* need to remove all pending background connection */
             BTA_GATTC_CancelOpen(0, p_bda, FALSE);
-            /* remove all cached GATT information */
-            BTA_GATTC_Refresh(p_bda, false);
 #endif
         }
 
@@ -3794,8 +3841,6 @@ static BOOLEAN bta_dm_remove_sec_dev_entry(BD_ADDR remote_bd_addr)
 #if (BLE_INCLUDED == TRUE && GATTC_INCLUDED == TRUE)
         /* need to remove all pending background connection */
         BTA_GATTC_CancelOpen(0, remote_bd_addr, FALSE);
-        /* remove all cached GATT information */
-        BTA_GATTC_Refresh(remote_bd_addr, false);
 #endif
     }
     return is_device_deleted;
@@ -4709,6 +4754,17 @@ static UINT8 bta_dm_ble_smp_cback (tBTM_LE_EVT event, BD_ADDR bda, tBTM_LE_EVT_D
     case BTM_LE_OOB_REQ_EVT:
         bdcpy(sec_event.ble_req.bd_addr, bda);
         bta_dm_cb.p_sec_cback(BTA_DM_BLE_OOB_REQ_EVT, &sec_event);
+        break;
+
+    case BTM_LE_SC_OOB_REQ_EVT:
+        bdcpy(sec_event.ble_req.bd_addr, bda);
+        bta_dm_cb.p_sec_cback(BTA_DM_BLE_SC_OOB_REQ_EVT, &sec_event);
+        break;
+
+    case BTM_LE_SC_LOC_OOB_EVT:
+        memcpy(sec_event.local_oob_data.local_oob_c, p_data->local_oob_data.commitment, BT_OCTET16_LEN);
+        memcpy(sec_event.local_oob_data.local_oob_r, p_data->local_oob_data.randomizer, BT_OCTET16_LEN);
+        bta_dm_cb.p_sec_cback(BTA_DM_BLE_SC_CR_LOC_OOB_EVT, &sec_event);
         break;
 
     case BTM_LE_NC_REQ_EVT:

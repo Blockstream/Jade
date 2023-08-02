@@ -31,6 +31,7 @@
 #include "host/ble_hs.h"
 #include "host/ble_hs_adv.h"
 #include "syscfg/syscfg.h"
+#include "host/ble_esp_gap.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -139,6 +140,7 @@ struct hci_conn_update;
 #define BLE_GAP_EVENT_PATHLOSS_THRESHOLD    25
 #define BLE_GAP_EVENT_TRANSMIT_POWER        26
 #define BLE_GAP_EVENT_SUBRATE_CHANGE        27
+#define BLE_GAP_EVENT_VS_HCI                28
 
 /*** Reason codes for the subscribe GAP event. */
 
@@ -1016,13 +1018,13 @@ struct ble_gap_event {
 	    uint8_t phy;
 
 	    /** Transmit power Level */
-	    uint8_t transmit_power_level;
+	    int8_t transmit_power_level;
 
 	    /** Transmit Power Level Flag */
 	    uint8_t transmit_power_level_flag;
 
 	    /** Delta indicating change in transmit Power Level */
-	    uint8_t delta;
+	    int8_t delta;
 	} transmit_power;
 #endif
 
@@ -1053,8 +1055,68 @@ struct ble_gap_event {
             uint16_t supervision_tmo;
         } subrate_change;
 #endif
+
+#if MYNEWT_VAL(BLE_HCI_VS)
+        /**
+         * Represents a received vendor-specific HCI event
+         *
+         * Valid for the following event types:
+         *     o BLE_GAP_EVENT_VS_HCI
+         */
+        struct {
+            const void *ev;
+            uint8_t length;
+        } vs_hci;
+#endif
     };
 };
+
+
+#if MYNEWT_VAL(OPTIMIZE_MULTI_CONN)
+/** @brief multiple Connection parameters  */
+struct ble_gap_multi_conn_params {
+    /** The type of address the stack should use for itself. */
+    uint8_t own_addr_type;
+
+#if MYNEWT_VAL(BLE_EXT_ADV)
+    /** Define on which PHYs connection attempt should be done */
+    uint8_t phy_mask;
+#endif // MYNEWT_VAL(BLE_EXT_ADV)
+
+    /** The address of the peer to connect to. */
+    const ble_addr_t *peer_addr;
+
+    /** The duration of the discovery procedure. */
+    int32_t duration_ms;
+
+    /** 
+     * Additional arguments specifying the particulars of the connect procedure. When extended 
+     * adv is disabled or BLE_GAP_LE_PHY_1M_MASK is set in phy_mask this parameter can't be 
+     * specified to null.
+     */
+    const struct ble_gap_conn_params *phy_1m_conn_params;
+
+#if MYNEWT_VAL(BLE_EXT_ADV)
+    /** 
+     * Additional arguments specifying the particulars of the connect procedure. When
+     * BLE_GAP_LE_PHY_2M_MASK is set in phy_mask this parameter can't be specified to null.
+     */
+    const struct ble_gap_conn_params *phy_2m_conn_params;
+    
+    /** 
+     * Additional arguments specifying the particulars of the connect procedure. When
+     * BLE_GAP_LE_PHY_CODED_MASK is set in phy_mask this parameter can't be specified to null.
+     */
+    const struct ble_gap_conn_params *phy_coded_conn_params;
+#endif // MYNEWT_VAL(BLE_EXT_ADV)
+
+    /** 
+     * The minimum length occupied by this connection in scheduler. 0 means disable the 
+     * optimization for this connection.
+     */
+    uint32_t scheduling_len_us;
+};
+#endif // MYNEWT_VAL(OPTIMIZE_MULTI_CONN)
 
 typedef int ble_gap_event_fn(struct ble_gap_event *event, void *arg);
 
@@ -1225,55 +1287,6 @@ int ble_gap_adv_set_fields(const struct ble_hs_adv_fields *rsp_fields);
  */
 int ble_gap_adv_rsp_set_fields(const struct ble_hs_adv_fields *rsp_fields);
 
-/**
- * Configure LE Data Length in controller (OGF = 0x08, OCF = 0x0022).
- *
- * @param conn_handle      Connection handle.
- * @param tx_octets        The preferred value of payload octets that the Controller
- *                         should use for a new connection (Range
- *                         0x001B-0x00FB).
- * @param tx_time          The preferred maximum number of microseconds that the local Controller
- *                         should use to transmit a single link layer packet
- *                         (Range 0x0148-0x4290).
- *
- * @return              0 on success,
- *                      other error code on failure.
- */
-int ble_hs_hci_util_set_data_len(uint16_t conn_handle, uint16_t tx_octets,
-                                 uint16_t tx_time);
-
-/**
- * Read host's suggested values for the controller's maximum transmitted number of payload octets
- * and maximum packet transmission time (OGF = 0x08, OCF = 0x0024).
- *
- * @param out_sugg_max_tx_octets    The Host's suggested value for the Controller's maximum transmitted
- *                                  number of payload octets in LL Data PDUs to be used for new
- *                                  connections. (Range 0x001B-0x00FB).
- * @param out_sugg_max_tx_time      The Host's suggested value for the Controller's maximum packet
- *                                  transmission time for packets containing LL Data PDUs to be used
- *                                  for new connections. (Range 0x0148-0x4290).
- *
- * @return                          0 on success,
- *                                  other error code on failure.
- */
-int ble_hs_hci_util_read_sugg_def_data_len(uint16_t *out_sugg_max_tx_octets,
-                                           uint16_t *out_sugg_max_tx_time);
-/**
- * Configure host's suggested maximum transmitted number of payload octets and maximum packet
- * transmission time in controller (OGF = 0x08, OCF = 0x0024).
- *
- * @param sugg_max_tx_octets    The Host's suggested value for the Controller's maximum transmitted
- *                              number of payload octets in LL Data PDUs to be used for new
- *                              connections. (Range 0x001B-0x00FB).
- * @param sugg_max_tx_time      The Host's suggested value for the Controller's maximum packet
- *                              transmission time for packets containing LL Data PDUs to be used
- *                              for new connections. (Range 0x0148-0x4290).
- *
- * @return                      0 on success,
- *                              other error code on failure.
- */
-int ble_hs_hci_util_write_sugg_def_data_len(uint16_t sugg_max_tx_octets, uint16_t sugg_max_tx_time);
-
 #if MYNEWT_VAL(BLE_EXT_ADV)
 /** @brief Extended advertising parameters  */
 struct ble_gap_ext_adv_params {
@@ -1289,7 +1302,19 @@ struct ble_gap_ext_adv_params {
     /** If perform high-duty directed advertising */
     unsigned int high_duty_directed:1;
 
-    /** If use legacy PDUs for advertising */
+    /** If use legacy PDUs for advertising.
+     *
+     *  Valid combinations of the connectable, scannable, directed,
+     *  high_duty_directed options with the legcy_pdu flag are:
+     *  - IND       -> legacy_pdu + connectable + scannable
+     *  - LD_DIR    -> legacy_pdu + connectable + directed
+     *  - HD_DIR    -> legacy_pdu + connectable + directed + high_duty_directed
+     *  - SCAN      -> legacy_pdu + scannable
+     *  - NONCONN   -> legacy_pdu
+     *
+     * Any other combination of these options combined with the legacy_pdu flag
+     * are invalid.
+     */
     unsigned int legacy_pdu:1;
 
     /** If perform anonymous advertising */
@@ -1733,6 +1758,16 @@ int ble_gap_disc(uint8_t own_addr_type, int32_t duration_ms,
  *                              its last Scan Duration until it begins the
  *                              subsequent Scan Duration. Specify 0 to scan
  *                              continuously. Units are 1.28 second.
+ * @param filter_duplicates     Set to enable packet filtering in the
+ *                              controller
+ * @param filter_policy         Set the used filter policy. Valid values are:
+ *                                      - BLE_HCI_SCAN_FILT_NO_WL
+ *                                      - BLE_HCI_SCAN_FILT_USE_WL
+ *                                      - BLE_HCI_SCAN_FILT_NO_WL_INITA
+ *                                      - BLE_HCI_SCAN_FILT_USE_WL_INITA
+ *                                      - BLE_HCI_SCAN_FILT_MAX
+ *                              This parameter is ignored unless
+ *                              @p filter_duplicates is set.
  * @param limited               If limited discovery procedure should be used.
  * @param uncoded_params        Additional arguments specifying the particulars
  *                              of the discovery procedure for uncoded PHY.
@@ -1878,6 +1913,44 @@ int ble_gap_ext_connect(uint8_t own_addr_type, const ble_addr_t *peer_addr,
                         const struct ble_gap_conn_params *phy_coded_conn_params,
                         ble_gap_event_fn *cb, void *cb_arg);
 
+#if MYNEWT_VAL(OPTIMIZE_MULTI_CONN)
+/**
+ * @brief Enable the optimization of multiple connections.
+ * 
+ * @param enable                Enable or disable the optimization.
+ * @param common_factor         The greatest common factor of all intervals in 0.625ms units.
+ * @return                      0 on success; 
+ * 
+ */
+int ble_gap_common_factor_set(bool enable, uint32_t common_factor);
+
+/**
+ * Initiates an extended connect procedure with optimization.
+ *
+ * @param multi_conn_params     Additional arguments specifying the particulars
+ *                                  of the connect procedure.
+ * @param cb                    The callback to associate with this connect
+ *                                  procedure.  When the connect procedure
+ *                                  completes, the result is reported through
+ *                                  this callback.  If the connect procedure
+ *                                  succeeds, the connection inherits this
+ *                                  callback as its event-reporting mechanism.
+ * @param cb_arg                The optional argument to pass to the callback
+ *                                  function.
+ * 
+ * @return                      0 on success;
+ *                              BLE_HS_EALREADY if a connection attempt is
+ *                                  already in progress;
+ *                              BLE_HS_EBUSY if initiating a connection is not
+ *                                  possible because scanning is in progress;
+ *                              BLE_HS_EDONE if the specified peer is already
+ *                                  connected;
+ *                              Other nonzero on error.
+ */
+int ble_gap_multi_connect(struct ble_gap_multi_conn_params *multi_conn_params, 
+                          ble_gap_event_fn *cb, void *cb_arg);
+#endif
+
 /**
  * Aborts a connect procedure in progress.
  *
@@ -1920,15 +1993,6 @@ int ble_gap_terminate(uint16_t conn_handle, uint8_t hci_reason);
  * @return                      0 on success; nonzero on failure.
  */
 int ble_gap_wl_set(const ble_addr_t *addrs, uint8_t white_list_count);
-
-/**
- * Removes the address from controller's white list.
- *
- * @param addrs                 The entry to be removed from the white list.
- *
- * @return                      0 on success; nonzero on failure.
- */
-int ble_gap_wl_tx_rmv(const ble_addr_t *addrs);
 
 /**
  * Initiates a connection parameter update procedure.
@@ -2283,6 +2347,7 @@ int ble_gap_event_listener_register(struct ble_gap_event_listener *listener,
  */
 int ble_gap_event_listener_unregister(struct ble_gap_event_listener *listener);
 
+#if MYNEWT_VAL(BLE_POWER_CONTROL)
 /**
  * Enable Set Path Loss Reporting.
  *
@@ -2300,35 +2365,37 @@ int ble_gap_set_path_loss_reporting_enable(uint16_t conn_handle, uint8_t enable)
  *
  * @param conn_handle       Connection handle
  * @params local_enable     1: Enable local transmit power reports
- * 			    0: Disable local transmit power reports
+ *                          0: Disable local transmit power reports
  *
  * @params remote_enable    1: Enable remote transmit power reports
- * 			    0: Disable remote transmit power reports
+ *                          0: Disable remote transmit power reports
  *
  * @return                  0 on success; nonzero on failure.
  */
 int ble_gap_set_transmit_power_reporting_enable(uint16_t conn_handle,
-                                            uint8_t local_enable,
-                                            uint8_t remote_enable);
+                                                uint8_t local_enable,
+                                                uint8_t remote_enable);
 
 /**
  * LE Enhanced Read Transmit Power Level
  *
- * @param conn_handle       Connection handle
- * @params phy              Advertising Phy
+ * @param conn_handle            Connection handle
+ * @params phy                   Advertising Phy
  *
- * @params status	    0 on success; nonzero on failure.
- * @params conn_handle	    Connection handle
- * @params phy		    Advertising Phy
+ * @params status                0 on success; nonzero on failure.
+ * @params conn_handle           Connection handle
+ * @params phy	                 Advertising Phy
  *
  * @params curr_tx_power_level   Current trasnmit Power Level
  *
  * @params mx_tx_power_level     Maximum transmit power level
  *
- * @return                  0 on success; nonzero on failure.
+ * @return                       0 on success; nonzero on failure.
  */
-int ble_gap_enh_read_transmit_power_level(uint16_t conn_handle, uint8_t phy, uint8_t *out_status, uint8_t *out_phy ,
-                                      uint8_t *out_curr_tx_power_level, uint8_t *out_max_tx_power_level);
+int ble_gap_enh_read_transmit_power_level(uint16_t conn_handle, uint8_t phy,
+                                          uint8_t *out_status, uint8_t *out_phy,
+					  uint8_t *out_curr_tx_power_level,
+					  uint8_t *out_max_tx_power_level);
 
 /**
  * Read Remote Transmit Power Level
@@ -2353,9 +2420,9 @@ int ble_gap_read_remote_transmit_power_level(uint16_t conn_handle, uint8_t phy);
  * @return                  0 on success; nonzero on failure.
  */
 int ble_gap_set_path_loss_reporting_param(uint16_t conn_handle, uint8_t high_threshold,
-                                      uint8_t high_hysteresis, uint8_t low_threshold,
-                                      uint8_t low_hysteresis, uint16_t min_time_spent);
-
+                                          uint8_t high_hysteresis, uint8_t low_threshold,
+                                          uint8_t low_hysteresis, uint16_t min_time_spent);
+#endif
 #ifdef __cplusplus
 }
 #endif

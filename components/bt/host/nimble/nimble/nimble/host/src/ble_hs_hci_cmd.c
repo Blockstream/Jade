@@ -23,11 +23,7 @@
 #include <stdio.h>
 #include "os/os.h"
 #include "nimble/hci_common.h"
-#include "nimble/ble_hci_trans.h"
-#include "host/ble_monitor.h"
 #include "ble_hs_priv.h"
-#include "ble_monitor_priv.h"
-#include "soc/soc_caps.h"
 
 /*
  * HCI Command Header
@@ -45,12 +41,7 @@ ble_hs_hci_cmd_transport(struct ble_hci_cmd *cmd)
 {
     int rc;
 
-#if BLE_MONITOR
-    ble_monitor_send(BLE_MONITOR_OPCODE_COMMAND_PKT, cmd,
-                     cmd->length + sizeof(*cmd));
-#endif
-
-    rc = ble_hci_trans_hs_cmd_tx((uint8_t *) cmd);
+    rc = ble_transport_to_ll_cmd((uint8_t *)cmd);
     switch (rc) {
     case 0:
         return 0;
@@ -66,12 +57,14 @@ ble_hs_hci_cmd_transport(struct ble_hci_cmd *cmd)
 static int
 ble_hs_hci_cmd_send(uint16_t opcode, uint8_t len, const void *cmddata)
 {
+    struct ble_hci_cmd *cmd;
     uint8_t *buf;
     int rc;
 
-    buf = ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_CMD);
-    BLE_HS_DBG_ASSERT(buf != NULL);
+    cmd = (struct ble_hci_cmd *)ble_transport_alloc_cmd();
+    BLE_HS_DBG_ASSERT(cmd != NULL);
 
+    buf = (uint8_t *)cmd;
 #if !(SOC_ESP_NIMBLE_CONTROLLER) && !CONFIG_BT_CONTROLLER_DISABLED
     /* Hack for avoiding memcpy while handling tx pkt to VHCI,
      * keep one byte for type field*/

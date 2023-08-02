@@ -27,14 +27,13 @@
 
 #define NIMBLE_HS_STACK_SIZE CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE
 
-#if (CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32C2)
+#if SOC_ESP_NIMBLE_CONTROLLER
 #define NIMBLE_LL_STACK_SIZE CONFIG_BT_LE_CONTROLLER_TASK_STACK_SIZE
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /**
 * @brief nimble_port_init - Initialize controller and NimBLE host stack

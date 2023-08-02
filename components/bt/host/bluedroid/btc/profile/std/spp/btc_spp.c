@@ -1419,7 +1419,6 @@ esp_err_t spp_send_data_to_btc(uint32_t handle, int len, uint8_t *p_data, esp_sp
                 btc_spp_arg_deep_free) == BT_STATUS_SUCCESS ? ESP_OK : ESP_FAIL);
 }
 
-
 static ssize_t spp_vfs_write(int fd, const void * data, size_t size)
 {
     assert(data != NULL);

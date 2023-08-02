@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include "syscfg/syscfg.h"
 
@@ -32,16 +33,16 @@
 #include "controller/ble_ll_scan.h"
 #include "controller/ble_ll_resolv.h"
 #include "controller/ble_ll_rfmgmt.h"
+#include "controller/ble_ll_tmr.h"
 
 #include "nimble/ble.h"
 #include "nimble/hci_common.h"
-#include "nimble/ble_hci_trans.h"
 
 #include "ble_ll_conn_priv.h"
 
 #include "stats/stats.h"
 
-#if MYNEWT_VAL(BLE_LL_CFG_FEAT_LL_PERIODIC_ADV)
+#if MYNEWT_VAL(BLE_LL_CFG_FEAT_LL_PERIODIC_ADV) && MYNEWT_VAL(BLE_LL_ROLE_OBSERVER)
 
 /* defines number of events that can be lost during sync establishment
  * before failed to be established error is reported
@@ -61,6 +62,7 @@
 #define BLE_LL_SYNC_SM_FLAG_ADDR_RESOLVED   0x0080
 #define BLE_LL_SYNC_SM_FLAG_HCI_TRUNCATED   0x0100
 #define BLE_LL_SYNC_SM_FLAG_NEW_CHANMAP     0x0200
+#define BLE_LL_SYNC_SM_FLAG_CHAIN           0x0400
 
 #define BLE_LL_SYNC_CHMAP_LEN               5
 #define BLE_LL_SYNC_ITVL_USECS              1250
@@ -137,6 +139,8 @@ static uint8_t *g_ble_ll_sync_create_comp_ev;
 
 static struct ble_ll_sync_sm *g_ble_ll_sync_sm_current;
 
+static int ble_ll_sync_event_start_cb(struct ble_ll_sched_item *sch);
+
 static int
 ble_ll_sync_on_list(const uint8_t *addr, uint8_t addr_type, uint8_t sid)
 {
@@ -197,7 +201,7 @@ ble_ll_sync_sm_clear(struct ble_ll_sync_sm *sm)
     }
 
     if (sm->next_report) {
-        ble_hci_trans_buf_free(sm->next_report);
+        ble_transport_free(sm->next_report);
     }
 
     if (g_ble_ll_sync_sm_current == sm) {
@@ -211,7 +215,12 @@ ble_ll_sync_sm_clear(struct ble_ll_sync_sm *sm)
 
     BLE_LL_ASSERT(sm->sync_ev_end.ev.ev_queued == 0);
     BLE_LL_ASSERT(sm->sch.enqueued == 0);
+
     memset(sm, 0, sizeof(*sm));
+
+    sm->sch.sched_cb = ble_ll_sync_event_start_cb;
+    sm->sch.cb_arg = sm;
+    sm->sch.sched_type = BLE_LL_SCHED_TYPE_SYNC;
 }
 
 static uint8_t
@@ -324,7 +333,7 @@ ble_ll_sync_transfer_received(struct ble_ll_sync_sm *sm, uint8_t status)
 
         ble_ll_hci_event_send(hci_ev);
     } else {
-        ble_hci_trans_buf_free(sm->transfer_received_ev);
+        ble_transport_free(sm->transfer_received_ev);
     }
 
     sm->transfer_received_ev = NULL;
@@ -362,7 +371,7 @@ ble_ll_sync_est_event_success(struct ble_ll_sync_sm *sm)
 
         ble_ll_hci_event_send(hci_ev);
     } else {
-        ble_hci_trans_buf_free(g_ble_ll_sync_create_comp_ev);
+        ble_transport_free(g_ble_ll_sync_create_comp_ev);
     }
 
     g_ble_ll_sync_create_comp_ev = NULL;
@@ -390,7 +399,7 @@ ble_ll_sync_est_event_failed(uint8_t status)
 
         ble_ll_hci_event_send(hci_ev);
     } else {
-        ble_hci_trans_buf_free(g_ble_ll_sync_create_comp_ev);
+        ble_transport_free(g_ble_ll_sync_create_comp_ev);
     }
 
     g_ble_ll_sync_create_comp_ev = NULL;
@@ -403,7 +412,7 @@ ble_ll_sync_lost_event(struct ble_ll_sync_sm *sm)
     struct ble_hci_ev *hci_ev;
 
     if (ble_ll_hci_is_le_event_enabled(BLE_HCI_LE_SUBEV_PERIODIC_ADV_SYNC_LOST)) {
-        hci_ev = (void *) ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_EVT_HI);
+        hci_ev = ble_transport_alloc_evt(0);
         if (hci_ev) {
             hci_ev->opcode = BLE_HCI_EVCODE_LE_META;
             hci_ev->length = sizeof(*ev);
@@ -436,6 +445,7 @@ ble_ll_sync_event_start_cb(struct ble_ll_sched_item *sch)
     struct ble_ll_sync_sm *sm;
     uint32_t wfr_usecs;
     uint32_t start;
+    uint8_t chan;
     int rc;
 
     /* Set current connection state machine */
@@ -451,7 +461,9 @@ ble_ll_sync_event_start_cb(struct ble_ll_sched_item *sch)
     ble_ll_state_set(BLE_LL_STATE_SYNC);
 
     /* Set channel */
-    ble_phy_setchan(sm->chan_index, sm->access_addr, sm->crcinit);
+    chan = sm->flags & BLE_LL_SYNC_SM_FLAG_CHAIN ? sm->chan_chain :
+                                                   sm->chan_index;
+    ble_phy_setchan(chan, sm->access_addr, sm->crcinit);
 
 #if MYNEWT_VAL(BLE_LL_CFG_FEAT_LL_PRIVACY)
     ble_phy_resolv_list_disable();
@@ -469,31 +481,35 @@ ble_ll_sync_event_start_cb(struct ble_ll_sched_item *sch)
     rc = ble_phy_rx_set_start_time(start, sch->remainder);
     if (rc && rc != BLE_PHY_ERR_RX_LATE) {
         STATS_INC(ble_ll_stats, sync_event_failed);
-        rc = BLE_LL_SCHED_STATE_DONE;
         ble_ll_event_send(&sm->sync_ev_end);
         ble_ll_sync_current_sm_over();
+        rc = BLE_LL_SCHED_STATE_DONE;
     } else {
-        /*
-         * Set flag that tells to set last anchor point if a packet
-         * has been received.
-         */
-        sm->flags |= BLE_LL_SYNC_SM_FLAG_SET_ANCHOR;
-
-        /* Set WFR timer.
-         * If establishing we always adjust with offset unit.
-         * If this is first packet of sync (one that was pointed by from
-         * SyncInfo we don't adjust WFT with window widening.
-         */
-        if (sm->flags & BLE_LL_SYNC_SM_FLAG_ESTABLISHING) {
+        if (sm->flags & BLE_LL_SYNC_SM_FLAG_CHAIN) {
             wfr_usecs = (sm->flags & BLE_LL_SYNC_SM_FLAG_OFFSET_300) ? 300 : 30;
-            if (!(sm->flags & BLE_LL_SYNC_SM_FLAG_SYNC_INFO)) {
-                wfr_usecs += 2 * sm->window_widening;
-            }
         } else {
-            wfr_usecs = 2 * sm->window_widening;
-        }
-        ble_phy_wfr_enable(BLE_PHY_WFR_ENABLE_RX, 0, wfr_usecs);
+            /* Set flag that tells to set last anchor point if a packet
+             * has been received.
+             */
+            sm->flags |= BLE_LL_SYNC_SM_FLAG_SET_ANCHOR;
 
+            /* Set WFR timer.
+             * If establishing we always adjust with offset unit.
+             * If this is first packet of sync (one that was pointed by from
+             * SyncInfo we don't adjust WFR with window widening.
+             */
+            if (sm->flags & BLE_LL_SYNC_SM_FLAG_ESTABLISHING) {
+                wfr_usecs = (sm->flags & BLE_LL_SYNC_SM_FLAG_OFFSET_300) ? 300
+                                                                         : 30;
+                if (!(sm->flags & BLE_LL_SYNC_SM_FLAG_SYNC_INFO)) {
+                    wfr_usecs += 2 * sm->window_widening;
+                }
+            } else {
+                wfr_usecs = 2 * sm->window_widening;
+            }
+        }
+
+        ble_phy_wfr_enable(BLE_PHY_WFR_ENABLE_RX, 0, wfr_usecs);
         rc = BLE_LL_SCHED_STATE_RUNNING;
     }
 
@@ -566,7 +582,7 @@ ble_ll_sync_parse_ext_hdr(struct os_mbuf *om, uint8_t **aux, int8_t *tx_power,
 
         /* Ignore CTE for now */
         if (ext_hdr_flags & (1 << BLE_LL_EXT_ADV_CTE_INFO_BIT)) {
-            i += 1;
+            i += BLE_LL_EXT_ADV_CTE_INFO_SIZE;
         }
 
         /* there should be no ADI in Sync or chain, skip it */
@@ -626,7 +642,7 @@ ble_ll_sync_send_truncated_per_adv_rpt(struct ble_ll_sync_sm *sm, uint8_t *evbuf
 
     if (!ble_ll_hci_is_le_event_enabled(BLE_HCI_LE_SUBEV_PERIODIC_ADV_RPT) ||
         (sm->flags & BLE_LL_SYNC_SM_FLAG_DISABLED)) {
-        ble_hci_trans_buf_free(evbuf);
+        ble_transport_free(evbuf);
         return;
     }
 
@@ -663,7 +679,7 @@ ble_ll_sync_send_per_adv_rpt(struct ble_ll_sync_sm *sm, struct os_mbuf *rxpdu,
         hci_ev = (void *) sm->next_report;
         sm->next_report = NULL;
     } else {
-        hci_ev = (void * )ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_EVT_LO);
+        hci_ev = ble_transport_alloc_evt(1);
         if (!hci_ev) {
             goto done;
         }
@@ -698,7 +714,7 @@ ble_ll_sync_send_per_adv_rpt(struct ble_ll_sync_sm *sm, struct os_mbuf *rxpdu,
 
         /* Need another event for next fragment of this PDU */
         if (offset < datalen) {
-            hci_ev_next = (void *) ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_EVT_LO);
+            hci_ev_next = ble_transport_alloc_evt(1);
             if (hci_ev_next) {
                 ev->data_status = BLE_HCI_PERIODIC_DATA_STATUS_INCOMPLETE;
             } else {
@@ -709,7 +725,7 @@ ble_ll_sync_send_per_adv_rpt(struct ble_ll_sync_sm *sm, struct os_mbuf *rxpdu,
             if (aux) {
                 if (aux_scheduled) {
                     /* if we scheduled aux, we need buffer for next report */
-                    hci_ev_next = (void *) ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_EVT_LO);
+                    hci_ev_next = ble_transport_alloc_evt(1);
                     if (hci_ev_next) {
                         ev->data_status = BLE_HCI_PERIODIC_DATA_STATUS_INCOMPLETE;
                     } else {
@@ -822,7 +838,7 @@ ble_ll_sync_get_event_end_time(void)
     if (g_ble_ll_sync_sm_current) {
         end_time = g_ble_ll_sync_sm_current->sch.end_time;
     } else {
-        end_time = os_cputime_get32();
+        end_time = ble_ll_tmr_get();
     }
     return end_time;
 }
@@ -848,7 +864,7 @@ static void
 ble_ll_sync_parse_aux_ptr(const uint8_t *buf, uint8_t *chan, uint32_t *offset,
                           uint8_t *offset_units, uint8_t *phy)
 {
-    uint32_t aux_ptr_field = get_le32(buf) & 0x00FFFFFF;
+    uint32_t aux_ptr_field = get_le24(buf);
 
     *chan = aux_ptr_field & 0x3F;
 
@@ -863,63 +879,6 @@ ble_ll_sync_parse_aux_ptr(const uint8_t *buf, uint8_t *chan, uint32_t *offset,
     }
 
     *phy = (aux_ptr_field >> 21) & 0x07;
-}
-
-static int
-ble_ll_sync_chain_start_cb(struct ble_ll_sched_item *sch)
-{
-    struct ble_ll_sync_sm *sm;
-    uint32_t wfr_usecs;
-    uint32_t start;
-    int rc;
-
-    /* Set current connection state machine */
-    sm = sch->cb_arg;
-    g_ble_ll_sync_sm_current = sm;
-    BLE_LL_ASSERT(sm);
-
-    /* Disable whitelisting */
-    ble_ll_whitelist_disable();
-
-    /* Set LL state */
-    ble_ll_state_set(BLE_LL_STATE_SYNC);
-
-    /* Set channel */
-    ble_phy_setchan(sm->chan_chain, sm->access_addr, sm->crcinit);
-
-#if MYNEWT_VAL(BLE_LL_CFG_FEAT_LL_PRIVACY)
-    ble_phy_resolv_list_disable();
-#endif
-
-#if MYNEWT_VAL(BLE_LL_CFG_FEAT_LE_ENCRYPTION)
-    ble_phy_encrypt_disable();
-#endif
-
-#if (BLE_LL_BT5_PHY_SUPPORTED == 1)
-    ble_phy_mode_set(sm->phy_mode, sm->phy_mode);
-#endif
-
-    start = sch->start_time + g_ble_ll_sched_offset_ticks;
-    rc = ble_phy_rx_set_start_time(start, sch->remainder);
-    if (rc && rc != BLE_PHY_ERR_RX_LATE) {
-        STATS_INC(ble_ll_stats, sync_chain_failed);
-        rc = BLE_LL_SCHED_STATE_DONE;
-        ble_ll_event_send(&sm->sync_ev_end);
-        ble_ll_sync_current_sm_over();
-    } else {
-        /*
-         * Clear flag that tells to set last anchor point if a packet
-         * has been received, this is chain and we don't need it.
-         */
-        sm->flags &= ~BLE_LL_SYNC_SM_FLAG_SET_ANCHOR;
-
-        wfr_usecs = (sm->flags & BLE_LL_SYNC_SM_FLAG_OFFSET_300) ? 300 : 30;
-
-        ble_phy_wfr_enable(BLE_PHY_WFR_ENABLE_RX, 0, wfr_usecs);
-        rc = BLE_LL_SCHED_STATE_RUNNING;
-    }
-
-    return rc;
 }
 
 static int
@@ -941,7 +900,7 @@ ble_ll_sync_schedule_chain(struct ble_ll_sync_sm *sm, struct ble_mbuf_hdr *hdr,
         return -1;
     }
 
-    /* chain should use same PHY as master PDU */
+    /* chain should use same PHY as central PDU */
     if (phy != ble_ll_sync_phy_mode_to_aux_phy(sm->phy_mode)) {
         return -1;
     }
@@ -954,9 +913,7 @@ ble_ll_sync_schedule_chain(struct ble_ll_sync_sm *sm, struct ble_mbuf_hdr *hdr,
 
     sm->chan_chain = chan;
 
-    sm->sch.sched_cb = ble_ll_sync_chain_start_cb;
-    sm->sch.cb_arg = sm;
-    sm->sch.sched_type = BLE_LL_SCHED_TYPE_SYNC;
+    sm->flags |= BLE_LL_SYNC_SM_FLAG_CHAIN;
 
     return ble_ll_sched_sync(&sm->sch, hdr->beg_cputime, hdr->rem_usecs,
                              offset, sm->phy_mode);
@@ -1182,14 +1139,12 @@ ble_ll_sync_next_event(struct ble_ll_sync_sm *sm, uint32_t cur_ww_adjust)
 {
     uint32_t cur_ww;
     uint32_t max_ww;
-    uint32_t ticks;
     uint32_t itvl;
-    uint8_t usecs;
     uint16_t skip = sm->skip;
 
     /* don't skip if are establishing sync or we missed last event */
     if (skip && ((sm->flags & BLE_LL_SYNC_SM_FLAG_ESTABLISHING) ||
-                  CPUTIME_LT(sm->last_anchor_point, sm->anchor_point))) {
+                  LL_TMR_LT(sm->last_anchor_point, sm->anchor_point))) {
         skip = 0;
     }
 
@@ -1197,19 +1152,12 @@ ble_ll_sync_next_event(struct ble_ll_sync_sm *sm, uint32_t cur_ww_adjust)
      * interval if not skipping
      */
     if (skip == 0) {
-        ticks = sm->itvl_ticks;
-        usecs = sm->itvl_usecs;
+        sm->anchor_point += sm->itvl_ticks;
+        ble_ll_tmr_add_u(&sm->anchor_point, &sm->anchor_point_usecs,
+                         sm->itvl_usecs);
     } else {
         itvl = sm->itvl * BLE_LL_SYNC_ITVL_USECS * (1 + skip);
-        ticks = os_cputime_usecs_to_ticks(itvl);
-        usecs = itvl - os_cputime_ticks_to_usecs(ticks);
-    }
-
-    sm->anchor_point += ticks;
-    sm->anchor_point_usecs += usecs;
-    if (sm->anchor_point_usecs >= 31) {
-        sm->anchor_point++;
-        sm->anchor_point_usecs -= 31;
+        ble_ll_tmr_add(&sm->anchor_point, &sm->anchor_point_usecs, itvl);
     }
 
     /* Set event counter to the next event */
@@ -1230,8 +1178,8 @@ ble_ll_sync_next_event(struct ble_ll_sync_sm *sm, uint32_t cur_ww_adjust)
     }
 
     /* Calculate channel index of next event */
-    sm->chan_index = ble_ll_utils_calc_dci_csa2(sm->event_cntr, sm->channel_id,
-                                                sm->num_used_chans, sm->chanmap);
+    sm->chan_index = ble_ll_utils_dci_csa2(sm->event_cntr, sm->channel_id,
+                                           sm->num_used_chans, sm->chanmap);
 
     cur_ww = ble_ll_utils_calc_window_widening(sm->anchor_point,
                                                sm->last_anchor_point,
@@ -1256,7 +1204,7 @@ ble_ll_sync_next_event(struct ble_ll_sync_sm *sm, uint32_t cur_ww_adjust)
      * BLE_LL_SYNC_ESTABLISH_CNT events before failing regardless of timeout
      */
     if (!(sm->flags & BLE_LL_SYNC_SM_FLAG_ESTABLISHING)) {
-        if (CPUTIME_GT(sm->anchor_point - os_cputime_usecs_to_ticks(cur_ww),
+        if (LL_TMR_GT(sm->anchor_point - ble_ll_tmr_u2t(cur_ww),
                        sm->last_anchor_point + sm->timeout )) {
             return -1;
         }
@@ -1308,10 +1256,7 @@ ble_ll_sync_event_end(struct ble_npl_event *ev)
 
     /* Event ended so we are no longer chaining */
     sm->flags &= ~BLE_LL_SYNC_SM_FLAG_HCI_TRUNCATED;
-
-    sm->sch.sched_cb = ble_ll_sync_event_start_cb;
-    sm->sch.cb_arg = sm;
-    sm->sch.sched_type = BLE_LL_SCHED_TYPE_SYNC;
+    sm->flags &= ~BLE_LL_SYNC_SM_FLAG_CHAIN;
 
     do {
         if (ble_ll_sync_next_event(sm, 0) < 0) {
@@ -1333,14 +1278,11 @@ ble_ll_sync_event_end(struct ble_npl_event *ev)
 }
 
 void
-ble_ll_sync_info_event(const uint8_t *addr, uint8_t addr_type, int rpa_index,
+ble_ll_sync_info_event(struct ble_ll_scan_addr_data *addrd,
                        uint8_t sid, struct ble_mbuf_hdr *rxhdr,
                        const uint8_t *syncinfo)
 {
     struct ble_ll_sync_sm *sm = NULL;
-#if MYNEWT_VAL(BLE_LL_CFG_FEAT_LL_PERIODIC_ADV_SYNC_TRANSFER)
-    const uint8_t *rpa = NULL;
-#endif
     uint16_t max_skip;
     uint32_t offset;
     uint32_t usecs;
@@ -1365,28 +1307,21 @@ ble_ll_sync_info_event(const uint8_t *addr, uint8_t addr_type, int rpa_index,
         return;
     }
 
-    /* check if resolved */
-    if (rpa_index >= 0) {
-#if MYNEWT_VAL(BLE_LL_CFG_FEAT_LL_PERIODIC_ADV_SYNC_TRANSFER)
-        rpa = addr;
-#endif
-        addr = g_ble_ll_resolv_list[rpa_index].rl_identity_addr;
-        addr_type = g_ble_ll_resolv_list[rpa_index].rl_addr_type;
-    }
-
     /* check peer */
     if (g_ble_ll_sync_create_params.options & BLE_HCI_LE_PERIODIC_ADV_CREATE_SYNC_OPT_FILTER) {
-        if (ble_ll_sync_on_list(addr, addr_type, sid) < 0) {
+        if (ble_ll_sync_on_list(addrd->adv_addr,
+                                addrd->adv_addr_type, sid) < 0) {
             return;
         }
 
         /* set addr and sid in sm */
         sm->adv_sid = sid;
-        sm->adv_addr_type = addr_type;
-        memcpy(sm->adv_addr, addr, BLE_DEV_ADDR_LEN);
+        sm->adv_addr_type = addrd->adv_addr_type;
+        memcpy(sm->adv_addr, addrd->adv_addr, BLE_DEV_ADDR_LEN);
     } else {
-        if ((sm->adv_sid != sid) || (sm->adv_addr_type != addr_type) ||
-                memcmp(sm->adv_addr, addr, BLE_DEV_ADDR_LEN)) {
+        if ((sm->adv_sid != sid) ||
+                (sm->adv_addr_type != addrd->adv_addr_type) ||
+                memcmp(sm->adv_addr, addrd->adv_addr, BLE_DEV_ADDR_LEN)) {
             return;
         }
     }
@@ -1406,12 +1341,14 @@ ble_ll_sync_info_event(const uint8_t *addr, uint8_t addr_type, int rpa_index,
         return;
     }
 
-    if (rpa_index >= 0) {
+#if MYNEWT_VAL(BLE_LL_CFG_FEAT_LL_PRIVACY)
+    if (addrd->adva_resolved) {
         sm->flags |= BLE_LL_SYNC_SM_FLAG_ADDR_RESOLVED;
 #if MYNEWT_VAL(BLE_LL_CFG_FEAT_LL_PERIODIC_ADV_SYNC_TRANSFER)
-        memcpy(sm->adv_addr_rpa, rpa, BLE_DEV_ADDR_LEN);
+        memcpy(sm->adv_addr_rpa, addrd->adva, BLE_DEV_ADDR_LEN);
 #endif
     }
+#endif
 
     /* set params from HCI LE Create Periodic Sync */
     sm->timeout = g_ble_ll_sync_create_params.timeout;
@@ -1433,13 +1370,7 @@ ble_ll_sync_info_event(const uint8_t *addr, uint8_t addr_type, int rpa_index,
 
     /* precalculate interval ticks and usecs */
     usecs = sm->itvl * BLE_LL_SYNC_ITVL_USECS;
-    sm->itvl_ticks = os_cputime_usecs_to_ticks(usecs);
-    sm->itvl_usecs = (uint8_t)(usecs -
-                               os_cputime_ticks_to_usecs(sm->itvl_ticks));
-    if (sm->itvl_usecs == 31) {
-        sm->itvl_usecs = 0;
-        sm->itvl_ticks++;
-    }
+    sm->itvl_ticks = ble_ll_tmr_u2t_r(usecs, &sm->itvl_usecs);
 
     /* Channels Mask (37 bits) */
     sm->chanmap[0] = syncinfo[4];
@@ -1472,18 +1403,14 @@ ble_ll_sync_info_event(const uint8_t *addr, uint8_t addr_type, int rpa_index,
     }
 
     /* from now on we only need timeout in ticks */
-    sm->timeout = os_cputime_usecs_to_ticks(sm->timeout);
+    sm->timeout = ble_ll_tmr_u2t(sm->timeout);
 
     sm->phy_mode = rxhdr->rxinfo.phy_mode;
     sm->window_widening = BLE_LL_JITTER_USECS;
 
     /* Calculate channel index of first event */
-    sm->chan_index = ble_ll_utils_calc_dci_csa2(sm->event_cntr, sm->channel_id,
-                                                sm->num_used_chans, sm->chanmap);
-
-    sm->sch.sched_cb = ble_ll_sync_event_start_cb;
-    sm->sch.cb_arg = sm;
-    sm->sch.sched_type = BLE_LL_SCHED_TYPE_SYNC;
+    sm->chan_index = ble_ll_utils_dci_csa2(sm->event_cntr, sm->channel_id,
+                                           sm->num_used_chans, sm->chanmap);
 
     if (ble_ll_sched_sync(&sm->sch, rxhdr->beg_cputime, rxhdr->rem_usecs,
                           offset, sm->phy_mode)) {
@@ -1539,11 +1466,22 @@ ble_ll_sync_create(const uint8_t *cmdbuf, uint8_t len)
         return BLE_ERR_INV_HCI_CMD_PARMS;
     }
 
-#if MYNEWT_VAL(BLE_VERSION) >= 51
-    if (cmd->options > BLE_HCI_LE_PERIODIC_ADV_CREATE_SYNC_OPT_DISABLED) {
-#else
-    if (cmd->options > BLE_HCI_LE_PERIODIC_ADV_CREATE_SYNC_OPT_FILTER) {
-#endif
+    if (MYNEWT_VAL(BLE_VERSION) >= 53) {
+        if (cmd->options & 0xf8) {
+            return BLE_ERR_INV_HCI_CMD_PARMS;
+        }
+        if (!(cmd->options & BLE_HCI_LE_PERIODIC_ADV_CREATE_SYNC_OPT_DISABLED) &&
+            (cmd->options & BLE_HCI_LE_PERIODIC_ADV_CREATE_SYNC_OPT_DUPLICATES)) {
+            /* We do not support ADI in periodic advertising thus cannot enable
+             * duplicate filtering.
+             */
+            return BLE_ERR_UNSUPPORTED;
+        }
+    } else if (MYNEWT_VAL(BLE_VERSION) >= 51) {
+        if (cmd->options & 0xfc) {
+            return BLE_ERR_INV_HCI_CMD_PARMS;
+        }
+    } else if (cmd->options & 0xfe) {
         return BLE_ERR_INV_HCI_CMD_PARMS;
     }
 
@@ -1590,7 +1528,7 @@ ble_ll_sync_create(const uint8_t *cmdbuf, uint8_t len)
     }
 
     /* reserve buffer for sync complete event */
-    g_ble_ll_sync_create_comp_ev = ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_EVT_HI);
+    g_ble_ll_sync_create_comp_ev = ble_transport_alloc_evt(0);
     if (!g_ble_ll_sync_create_comp_ev) {
         return BLE_ERR_MEM_CAPACITY;
     }
@@ -1600,7 +1538,7 @@ ble_ll_sync_create(const uint8_t *cmdbuf, uint8_t len)
     /* reserve 1 SM for created sync */
     sm = ble_ll_sync_reserve();
     if (!sm) {
-        ble_hci_trans_buf_free(g_ble_ll_sync_create_comp_ev);
+        ble_transport_free(g_ble_ll_sync_create_comp_ev);
         g_ble_ll_sync_create_comp_ev = NULL;
         OS_EXIT_CRITICAL(sr);
         return BLE_ERR_MEM_CAPACITY;
@@ -1817,7 +1755,16 @@ ble_ll_sync_receive_enable(const uint8_t *cmdbuf, uint8_t len)
         return BLE_ERR_INV_HCI_CMD_PARMS;
     }
 
-    if (cmd->enable > 0x01) {
+    if (MYNEWT_VAL(BLE_VERSION) >= 53) {
+        if (cmd->enable > 0x03) {
+            return BLE_ERR_INV_HCI_CMD_PARMS;
+        } else if (cmd->enable == 0x03) {
+            /* We do not support ADI in periodic advertising thus cannot enable
+             * duplicate filtering.
+             */
+            return BLE_ERR_UNSUPPORTED;
+        }
+    } else if (cmd->enable > 0x01) {
         return BLE_ERR_INV_HCI_CMD_PARMS;
     }
 
@@ -1862,7 +1809,7 @@ ble_ll_sync_transfer_get(const uint8_t *addr, uint8_t addr_type, uint8_t sid)
 
         if (!sm->flags) {
             /* allocate event for transfer received event */
-            sm->transfer_received_ev = ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_EVT_HI);
+            sm->transfer_received_ev = ble_transport_alloc_evt(0);
             if (!sm->transfer_received_ev) {
                 break;
             }
@@ -1930,6 +1877,7 @@ ble_ll_sync_periodic_ind(struct ble_ll_conn_sm *connsm,
 
     rpa_index = -1;
 
+#if MYNEWT_VAL(BLE_LL_CFG_FEAT_LL_PRIVACY)
     /* check if need to resolve */
     if (ble_ll_is_rpa(addr, addr_type)) {
         rpa_index = ble_ll_resolv_peer_rpa_any(addr);
@@ -1939,6 +1887,7 @@ ble_ll_sync_periodic_ind(struct ble_ll_conn_sm *connsm,
             addr_type = g_ble_ll_resolv_list[rpa_index].rl_addr_type;
         }
     }
+#endif
 
     OS_ENTER_CRITICAL(sr);
     /* check if already synchronized with this peer */
@@ -1963,7 +1912,7 @@ ble_ll_sync_periodic_ind(struct ble_ll_conn_sm *connsm,
     }
 
     /* set params from transfer */
-    sm->timeout = os_cputime_usecs_to_ticks(sync_timeout);
+    sm->timeout = ble_ll_tmr_u2t(sync_timeout);
     sm->skip = max_skip;
     sm->sync_pending_cnt = BLE_LL_SYNC_ESTABLISH_CNT;
     sm->transfer_id = get_le16(sync_ind); /* first two bytes */
@@ -1993,13 +1942,7 @@ ble_ll_sync_periodic_ind(struct ble_ll_conn_sm *connsm,
     sm->itvl = itvl;
 
     /* precalculate interval ticks and usecs */
-    sm->itvl_ticks = os_cputime_usecs_to_ticks(itvl_usecs);
-    sm->itvl_usecs = (uint8_t)(itvl_usecs -
-                               os_cputime_ticks_to_usecs(sm->itvl_ticks));
-    if (sm->itvl_usecs == 31) {
-        sm->itvl_usecs = 0;
-        sm->itvl_ticks++;
-    }
+    sm->itvl_ticks = ble_ll_tmr_u2t_r(itvl_usecs, &sm->itvl_usecs);
 
     /* Channels Mask (37 bits) */
     sm->chanmap[0] = syncinfo[4];
@@ -2034,12 +1977,8 @@ ble_ll_sync_periodic_ind(struct ble_ll_conn_sm *connsm,
     sm->phy_mode = phy_mode;
 
     /* Calculate channel index of first event */
-    sm->chan_index = ble_ll_utils_calc_dci_csa2(sm->event_cntr, sm->channel_id,
-                                                sm->num_used_chans, sm->chanmap);
-
-    sm->sch.sched_cb = ble_ll_sync_event_start_cb;
-    sm->sch.cb_arg = sm;
-    sm->sch.sched_type = BLE_LL_SCHED_TYPE_SYNC;
+    sm->chan_index = ble_ll_utils_dci_csa2(sm->event_cntr, sm->channel_id,
+                                           sm->num_used_chans, sm->chanmap);
 
     /* get anchor for specified conn event */
     conn_event_count = get_le16(sync_ind + 20);
@@ -2058,8 +1997,8 @@ ble_ll_sync_periodic_ind(struct ble_ll_conn_sm *connsm,
                                                   sync_anchor, sca);
 
     /* spin until we get anchor in future */
-    future = os_cputime_get32() + g_ble_ll_sched_offset_ticks;
-    while (CPUTIME_LT(sm->anchor_point, future)) {
+    future = ble_ll_tmr_get() + g_ble_ll_sched_offset_ticks;
+    while (LL_TMR_LT(sm->anchor_point, future)) {
         if (ble_ll_sync_next_event(sm, ww_adjust) < 0) {
             /* release SM if this failed */
             ble_ll_sync_transfer_received(sm, BLE_ERR_CONN_ESTABLISHMENT);
@@ -2101,11 +2040,11 @@ ble_ll_sync_put_syncinfo(struct ble_ll_sync_sm *syncsm,
     conn_cnt = connsm->event_cntr;
 
     /* get anchor for conn event that is before periodic_adv_event_start_time */
-    while (CPUTIME_GT(anchor, syncsm->anchor_point)) {
+    while (LL_TMR_GT(anchor, syncsm->anchor_point)) {
         ble_ll_conn_get_anchor(connsm, --conn_cnt, &anchor, &anchor_usecs);
     }
 
-    offset = os_cputime_ticks_to_usecs(syncsm->anchor_point - anchor);
+    offset = ble_ll_tmr_t2u(syncsm->anchor_point - anchor);
     offset -= anchor_usecs;
     offset += syncsm->anchor_point_usecs;
 
@@ -2258,19 +2197,15 @@ ble_ll_sync_transfer(const uint8_t *cmdbuf, uint8_t len,
         goto done;
     }
 
-    connsm = ble_ll_conn_find_active_conn(handle);
+    connsm = ble_ll_conn_find_by_handle(handle);
     if (!connsm) {
         rc = BLE_ERR_UNK_CONN_ID;
         OS_EXIT_CRITICAL(sr);
         goto done;
     }
 
-    /* TODO should not need to shift
-     * byte 3 (0 byte is conn_feature) , bit 1
-     *
-     * Allow initiate LL procedure only if remote supports it.
-     */
-    if (!(connsm->remote_features[2] & (BLE_LL_FEAT_SYNC_TRANS_RECV >> (8 * 3)))) {
+     /* Allow initiate LL procedure only if remote supports it. */
+    if (!ble_ll_conn_rem_feature_check(connsm, BLE_LL_FEAT_SYNC_TRANS_RECV)) {
         rc = BLE_ERR_UNSUPP_REM_FEATURE;
         goto done;
     }
@@ -2327,7 +2262,7 @@ ble_ll_sync_reset(void)
     g_ble_ll_sync_sm_current = NULL;
 
     if (g_ble_ll_sync_create_comp_ev) {
-        ble_hci_trans_buf_free(g_ble_ll_sync_create_comp_ev);
+        ble_transport_free(g_ble_ll_sync_create_comp_ev);
         g_ble_ll_sync_create_comp_ev = NULL;
     }
 }

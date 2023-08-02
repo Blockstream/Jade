@@ -39,7 +39,6 @@
 #endif
 
 
-#include "nimble/ble_hci_trans.h"
 
 #include "esp_intr_alloc.h"
 #include "freertos/FreeRTOS.h"
@@ -63,6 +62,9 @@ static struct ble_hs_stop_listener stop_listener;
 static struct ble_npl_eventq g_eventq_dflt;
 static struct ble_npl_sem ble_hs_stop_sem;
 static struct ble_npl_event ble_hs_ev_stop;
+
+extern void os_msys_init(void);
+extern void os_mempool_module_init(void);
 
 /**
  * Called when the host stop procedure has completed.
@@ -99,16 +101,14 @@ esp_err_t esp_nimble_init(void)
 
     /* Initialize default event queue */
     ble_npl_eventq_init(&g_eventq_dflt);
-
+    /* Initialize the global memory pool */
+    os_mempool_module_init();
     os_msys_init();
 
-    void ble_store_ram_init(void); 
-    /* XXX Need to have template for store */
-    ble_store_ram_init();
 #endif
-
     /* Initialize the host */
-    ble_hs_init();
+    ble_transport_hs_init();
+
     return ESP_OK;
 }
 
@@ -211,7 +211,14 @@ int
 nimble_port_stop(void)
 {
     esp_err_t err = ESP_OK;
-    ble_npl_sem_init(&ble_hs_stop_sem, 0);
+    ble_npl_error_t rc;
+
+    rc = ble_npl_sem_init(&ble_hs_stop_sem, 0);
+
+    if( rc != 0) {
+        ESP_LOGE(NIMBLE_PORT_LOG_TAG, "sem init failed with reason: %d \n", rc);
+	return rc;
+    }
 
     /* Initiate a host stop procedure. */
     err = ble_hs_stop(&stop_listener, ble_hs_stop_cb,
@@ -232,6 +239,8 @@ nimble_port_stop(void)
     ble_npl_sem_pend(&ble_hs_stop_sem, BLE_NPL_TIME_FOREVER);
 
     ble_npl_sem_deinit(&ble_hs_stop_sem);
+
+    ble_npl_event_deinit(&ble_hs_ev_stop);
 
     return ESP_OK;
 }

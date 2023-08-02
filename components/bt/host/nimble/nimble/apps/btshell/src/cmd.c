@@ -98,25 +98,32 @@ parse_dev_addr(const char *prefix, const struct kv_pair *addr_types,
 {
     char name[32];
     int rc;
+    int written = 0;
 
     if (!prefix) {
         name[0] = '\0';
     } else {
-        if (strlcpy(name, prefix, sizeof(name)) >= sizeof(name)) {
+        written = snprintf(name, sizeof(name), "%s", prefix);
+        if (written >= sizeof(name) || written < 0) {
             return EINVAL;
         }
     }
 
-    if (strlcat(name, "addr", sizeof(name)) >= sizeof(name)) {
+    rc = snprintf(name + written, sizeof(name) - written, "%s", "addr");
+    if (rc >= sizeof(name) - written || rc < 0) {
         return EINVAL;
     }
+    written += rc;
+
     rc = parse_arg_addr(name, addr);
     if (rc == ENOENT) {
         /* not found */
         return rc;
     } else if (rc == EAGAIN) {
         /* address found, but no type provided */
-        if (strlcat(name, "_type", sizeof(name)) >= sizeof(name)) {
+        rc = written;
+        written = snprintf(name + written, sizeof(name) - written, "%s", "_type");
+        if (written >= sizeof(name) - rc || written < 0) {
             return EINVAL;
         }
         addr->type = parse_arg_kv(name, addr_types, &rc);
@@ -130,7 +137,9 @@ parse_dev_addr(const char *prefix, const struct kv_pair *addr_types,
         return rc;
     } else {
         /* full address found, but let's just make sure there is no type arg */
-        if (strlcat(name, "_type", sizeof(name)) >= sizeof(name)) {
+        rc = written;
+        written = snprintf(name + written, sizeof(name) - written, "%s", "_type");
+        if (written >= sizeof(name) - rc || written < 0) {
             return EINVAL;
         }
         if (parse_arg_extract(name)) {
@@ -1098,11 +1107,14 @@ static const struct shell_cmd_help disconnect_help = {
 static struct btshell_scan_opts g_scan_opts = {
         .limit = UINT16_MAX,
         .ignore_legacy = 0,
+        .periodic_only = 0,
+        .name_filter_len = 0,
 };
 
 static int
 cmd_set_scan_opts(int argc, char **argv)
 {
+    char *name_filter;
     int rc;
 
     rc = parse_arg_all(argc - 1, argv + 1);
@@ -1128,6 +1140,16 @@ cmd_set_scan_opts(int argc, char **argv)
         return rc;
     }
 
+    name_filter = parse_arg_extract("name_filter");
+    if (name_filter) {
+        strncpy(g_scan_opts.name_filter, name_filter, NAME_FILTER_LEN_MAX);
+        g_scan_opts.name_filter[NAME_FILTER_LEN_MAX - 1] = '\0';
+    } else {
+        g_scan_opts.name_filter[0] = '\0';
+    }
+
+    g_scan_opts.name_filter_len = strlen(g_scan_opts.name_filter);
+
     return rc;
 }
 
@@ -1136,6 +1158,7 @@ static const struct shell_param set_scan_opts_params[] = {
     {"decode_limit", "usage: =[0-UINT16_MAX], default: UINT16_MAX"},
     {"ignore_legacy", "usage: =[0-1], default: 0"},
     {"periodic_only", "usage: =[0-1], default: 0"},
+    {"name_filter", "usage: =name, default: {none}"},
     {NULL, NULL}
 };
 

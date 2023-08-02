@@ -767,4 +767,9 @@ void ble_hs_resolv_init(void)
                          NULL);
 }
 
+void ble_hs_resolv_deinit(void)
+{
+    ble_npl_callout_stop(&g_ble_hs_resolv_data.rpa_timer);
+    ble_npl_callout_deinit(&g_ble_hs_resolv_data.rpa_timer);
+}
 #endif  /* if MYNEWT_VAL(BLE_HOST_BASED_PRIVACY) */
