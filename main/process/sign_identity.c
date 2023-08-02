@@ -37,7 +37,7 @@ static void reply_signature_and_pubkey(const void* ctx, CborEncoder* container)
 
 void sign_identity_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     // We expect a current message to be present

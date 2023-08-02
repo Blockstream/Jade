@@ -1,4 +1,4 @@
-FROM blockstream/verde@sha256:dac128d884e5932c68ddfa72702b0f2cc534fe6068e042f6ccbdf42b53c93df7
+FROM blockstream/verde@sha256:35f67f7b1320159c0f1573f128bfaeeb5dd18331326ff9f4befcaf5e900256bb
 
 RUN echo "source /root/esp/esp-idf/export.sh" >> /etc/bash.bashrc
 

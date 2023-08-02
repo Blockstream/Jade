@@ -65,7 +65,7 @@ static void reply_registered_multisigs(const void* ctx, CborEncoder* container)
 
 void get_registered_multisigs_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     // We expect a current message to be present

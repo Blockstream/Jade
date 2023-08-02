@@ -22,7 +22,7 @@ bool import_and_validate_mnemonic(qr_data_t* qr_data);
 #ifdef CONFIG_DEBUG_MODE
 void debug_set_mnemonic_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     // We expect a current message to be present

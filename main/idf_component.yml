@@ -4,4 +4,4 @@ dependencies:
   espressif/libsodium: "=1.0.20"
   espressif/esp32-camera: "==2.0.3"
   idf:
-    version: "==5.0.2"
+    version: "==5.1.1"

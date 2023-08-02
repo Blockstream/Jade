@@ -21,7 +21,7 @@ bool show_confirm_address_activity(const char* address, bool default_selection);
 
 void get_receive_address_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     char network[MAX_NETWORK_NAME_LEN];

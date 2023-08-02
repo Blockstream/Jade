@@ -619,7 +619,7 @@ static void get_signers_allocate(const char* field, const CborValue* value, sign
 
 void register_multisig_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     char network[MAX_NETWORK_NAME_LEN];

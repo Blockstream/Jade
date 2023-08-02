@@ -2275,7 +2275,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
 // Main/default screen/process when ready for user interaction
 void dashboard_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
 
     jade_process_t* process = process_ptr;
     ASSERT_NO_CURRENT_MESSAGE(process);

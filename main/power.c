@@ -248,7 +248,7 @@ esp_err_t power_init(void)
      * As a workaround, call adc_power_acquire() in the app. This will result in higher power consumption
      * (by ~1mA), but will remove the glitches on GPIO36 and GPIO39.
      */
-    adc_power_acquire();
+    adc_lock_acquire(ADC_UNIT_1);
 #endif // CONFIG_BT_ENABLED
 
     return ESP_OK;

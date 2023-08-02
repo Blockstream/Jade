@@ -16,7 +16,7 @@ bool display_otp_screen(
 
 void get_otp_code_process(void* process_ptr)
 {
-    JADE_LOGI("Starting: %lu", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
     char otp_uri[OTP_MAX_URI_LEN];
