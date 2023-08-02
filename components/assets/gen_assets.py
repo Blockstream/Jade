@@ -4,7 +4,7 @@ import json
 import os
 
 # Enable logging
-logger = logging.getLogger('gen_assets')
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 

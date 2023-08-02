@@ -3,7 +3,7 @@ import logging
 
 from serial.tools import list_ports
 
-logger = logging.getLogger('jade.serial')
+logger = logging.getLogger(__name__)
 
 
 #

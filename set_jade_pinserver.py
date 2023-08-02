@@ -9,11 +9,11 @@ from jadepy import JadeAPI
 # Enable jade logging
 jadehandler = logging.StreamHandler()
 
-logger = logging.getLogger('jade')
+logger = logging.getLogger('jadepy.jade')
 logger.setLevel(logging.INFO)
 logger.addHandler(jadehandler)
 
-device_logger = logging.getLogger('jade-device')
+device_logger = logging.getLogger('jadepy.jade-device')
 device_logger.setLevel(logging.INFO)
 device_logger.addHandler(jadehandler)
 

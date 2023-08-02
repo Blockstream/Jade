@@ -20,11 +20,11 @@ from jadepy.jade import JadeAPI, JadeError
 # Enable jade logging
 jadehandler = logging.StreamHandler()
 
-logger = logging.getLogger('jade')
+logger = logging.getLogger('jadepy.jade')
 logger.setLevel(logging.DEBUG)
 logger.addHandler(jadehandler)
 
-device_logger = logging.getLogger('jade-device')
+device_logger = logging.getLogger('jadepy.jade-device')
 device_logger.setLevel(logging.DEBUG)
 device_logger.addHandler(jadehandler)
 
