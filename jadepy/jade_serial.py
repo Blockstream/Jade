@@ -31,7 +31,7 @@ class JadeSerialImpl:
                 jades.append(devinfo.device)
 
         if len(jades) > 1:
-            logger.warn(f'Multiple potential jade devices detected: {jades}')
+            logger.warning(f'Multiple potential jade devices detected: {jades}')
 
         return jades[0] if jades else None
 

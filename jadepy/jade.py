@@ -25,8 +25,8 @@ device_logger = logging.getLogger('jade-device')
 try:
     from .jade_ble import JadeBleImpl
 except ImportError as e:
-    logger.warn(e)
-    logger.warn('BLE scanning/connectivity will not be available')
+    logger.warning(e)
+    logger.warning('BLE scanning/connectivity will not be available')
 
 
 # Default serial connection
@@ -1718,7 +1718,7 @@ class JadeInterface:
         Log any/all outstanding messages/data.
         NOTE: can run indefinitely if data is arriving constantly.
         """
-        logger.warn("Draining interface...")
+        logger.warning("Draining interface...")
         drained = bytearray()
         finished = False
 
@@ -1729,14 +1729,14 @@ class JadeInterface:
 
             if finished or byte_ == b'\n' or len(drained) > 256:
                 try:
-                    device_logger.warn(drained.decode('utf-8'))
+                    device_logger.warning(drained.decode('utf-8'))
                 except Exception as e:
                     # Dump the bytes raw and as hex if decoding as utf-8 failed
-                    device_logger.warn("Raw:")
-                    device_logger.warn(drained)
-                    device_logger.warn("----")
-                    device_logger.warn("Hex dump:")
-                    device_logger.warn(drained.hex())
+                    device_logger.warning("Raw:")
+                    device_logger.warning(drained)
+                    device_logger.warning("----")
+                    device_logger.warning("Hex dump:")
+                    device_logger.warning(drained.hex())
 
                 # Clear and loop to continue collecting
                 drained.clear()
@@ -1870,7 +1870,7 @@ class JadeInterface:
                         response = message['log'].decode("utf-8")
                         log_methods = {
                             'E': device_logger.error,
-                            'W': device_logger.warn,
+                            'W': device_logger.warning,
                             'I': device_logger.info,
                             'D': device_logger.debug,
                             'V': device_logger.debug,
