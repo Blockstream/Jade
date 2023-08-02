@@ -115,9 +115,9 @@ class JadeBleImpl:
                 connected = client.is_connected
                 logger.info('Connected: {}'.format(connected))
             except Exception as e:
-                logger.warn("BLE connection exception: '{}'".format(e))
+                logger.warning("BLE connection exception: '{}'".format(e))
                 if not attempts_remaining:
-                    logger.warn("Exhausted retries - BLE connection failed")
+                    logger.warning("Exhausted retries - BLE connection failed")
                     raise
 
         # Peruse services and characteristics
@@ -178,7 +178,7 @@ class JadeBleImpl:
         except Exception as err:
             # Sometimes get an exception when testing connection
             # if the client has already internally disconnected ...
-            logger.warn("Exception when disconnecting ble: {}".format(err))
+            logger.warning("Exception when disconnecting ble: {}".format(err))
 
         # Set the client to None in any case - that will cause the receive
         # generator to terminate and not wait forever for data.
@@ -217,7 +217,7 @@ class JadeBleImpl:
         try:
             await self.write_task
         except asyncio.CancelledError:
-            logger.warn("write() task cancelled having written "
+            logger.warning("write() task cancelled having written "
                         "{} of {} bytes".format(written, towrite))
         finally:
             self.write_task = None

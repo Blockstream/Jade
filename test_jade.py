@@ -2367,13 +2367,13 @@ def test_sign_liquid_tx(jadeapi, has_psram, has_ble, pattern):
         if not has_psram:
             # Skip any liquid txns too large for reduced message buffer on no-psram devices
             if len(inputdata['txn']) > (15 * 1024):  # esitimate 1k for rest of message fields
-                logger.warn("Skipping test case - tx too large for non-psram device configuration")
+                logger.warning("Skipping test case - tx too large for non-psram device configuration")
                 continue
 
             # Skip any rangeproof tests which cannot be handled by ble-enabled no-psram devices
             if has_ble and \
                any(tcs and 'value_blind_proof' in tcs for tcs in inputdata['trusted_commitments']):
-                logger.warn("Skipping test case - value_blind_proof too large for non-psram device")
+                logger.warning("Skipping test case - value_blind_proof too large for non-psram device")
                 continue
 
         rslt = jadeapi.sign_liquid_tx(inputdata['network'],
