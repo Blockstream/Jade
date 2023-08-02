@@ -13,11 +13,11 @@ if LOGGING:
     jadehandler = logging.StreamHandler()
     jadehandler.setLevel(LOGGING)
 
-    logger = logging.getLogger('jade')
+    logger = logging.getLogger('jadepy.jade')
     logger.setLevel(LOGGING)
     logger.addHandler(jadehandler)
 
-    device_logger = logging.getLogger('jade-device')
+    device_logger = logging.getLogger('jadepy.jade-device')
     device_logger.setLevel(LOGGING)
     device_logger.addHandler(jadehandler)
 

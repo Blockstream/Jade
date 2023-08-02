@@ -8,7 +8,7 @@ import bleak
 
 from .jade_error import JadeError
 
-logger = logging.getLogger('jade.ble')
+logger = logging.getLogger(__name__)
 
 
 #
