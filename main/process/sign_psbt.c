@@ -424,9 +424,8 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
         struct wally_psbt_input* input = &psbt->inputs[index];
 
         // Get the utxo being spent
-        struct wally_tx_output* utxo = NULL;
-        JADE_WALLY_VERIFY(wally_psbt_get_input_best_utxo_alloc(psbt, index, &utxo));
-        if (!utxo) {
+        const struct wally_tx_output* utxo = NULL;
+        if (wally_psbt_get_input_best_utxo(psbt, index, &utxo) != WALLY_OK || !utxo) {
             *errmsg = "Input utxo missing";
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
@@ -450,7 +449,6 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                 JADE_LOGW("Unsupported sighash for signing input %u", index);
                 *errmsg = "Unsupported sighash";
                 retval = CBOR_RPC_BAD_PARAMETERS;
-                JADE_WALLY_VERIFY(wally_tx_output_free(utxo));
                 goto cleanup;
             }
 
@@ -499,7 +497,6 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                 }
             }
         }
-        JADE_WALLY_VERIFY(wally_tx_output_free(utxo));
     }
 
     // Sanity check amounts
