@@ -609,7 +609,10 @@ static void select_initial_connection(const bool offer_qr_temporary)
     gui_activity_t* const act_confirm_qr_mode
         = (act_select && offer_qr_temporary) ? make_confirm_qrmode_activity() : NULL;
 
+    // If no BLE and no camera/QR-scan (ie. no selection screen created) then assume USB
     initialisation_source = act_select ? SOURCE_NONE : SOURCE_SERIAL;
+    show_connect_screen = initialisation_source != SOURCE_NONE;
+
     while (initialisation_source == SOURCE_NONE) {
         gui_set_current_activity(act);
 
