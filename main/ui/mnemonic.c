@@ -85,7 +85,7 @@ gui_activity_t* make_bip85_mnemonic_words_activity(void)
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = { { .txt = "12 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BIP85_12_WORDS },
-        { .txt = "24 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BIP85_12_WORDS } };
+        { .txt = "24 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BIP85_24_WORDS } };
 
     gui_activity_t* const act = make_menu_activity("BIP85", hdrbtns, 2, menubtns, 2);
 
