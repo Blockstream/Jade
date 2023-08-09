@@ -15,6 +15,13 @@ struct ext_key;
 
 #include <sodium/utils.h>
 
+// 0 - 1.0.22 - version, type, length, script, map-values, hmac
+static const uint8_t CURRENT_RECORD_VERSION = 0;
+
+// The smallest valid descriptor record, for sanity checking
+// v0, no map values, assuming min script len 4(?)
+#define MIN_DESCRIPTOR_BYTES_LEN (2 + 2 + 4 + 1 + 0 + 0)
+
 // Stack size required for miniscript parsing.
 // Allow 1k, plus 1k per 'depth' level, plus 4k for handling the
 // public keys which are expected to be at the end of most branches.
@@ -414,5 +421,142 @@ bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
     // Script generated - caller takes ownership
     *output = args.script_output;
     *output_len = args.script_len;
+    return true;
+}
+
+// Get total length of string values
+size_t string_values_len(const string_value_t* datavalues, const size_t num_values)
+{
+    JADE_ASSERT(datavalues || !num_values);
+
+    size_t len = 0;
+    for (size_t i = 0; i < num_values; ++i) {
+        const string_value_t* const map_entry = datavalues + i;
+        len += map_entry->key_len;
+        len += map_entry->value_len;
+    }
+    return len;
+}
+
+// Storage related functions
+bool descriptor_to_bytes(descriptor_data_t* descriptor, uint8_t* output_bytes, const size_t output_len)
+{
+    JADE_ASSERT(descriptor);
+    JADE_ASSERT(output_bytes);
+    JADE_ASSERT(output_len == DESCRIPTOR_BYTES_LEN(descriptor));
+
+    JADE_ASSERT(descriptor->script_len);
+    JADE_ASSERT(descriptor->values || !descriptor->num_values);
+
+    // Version byte
+    uint8_t* write_ptr = output_bytes;
+    memcpy(write_ptr, &CURRENT_RECORD_VERSION, sizeof(CURRENT_RECORD_VERSION));
+    write_ptr += sizeof(CURRENT_RECORD_VERSION);
+
+    // Descriptor type
+    const uint8_t type_byte = (uint8_t)descriptor->type;
+    memcpy(write_ptr, &type_byte, sizeof(type_byte));
+    write_ptr += sizeof(type_byte);
+
+    // Descriptor script
+    memcpy(write_ptr, &descriptor->script_len, sizeof(descriptor->script_len));
+    write_ptr += sizeof(descriptor->script_len);
+    memcpy(write_ptr, descriptor->script, descriptor->script_len);
+    write_ptr += descriptor->script_len;
+
+    // Any data values
+    memcpy(write_ptr, &descriptor->num_values, sizeof(descriptor->num_values));
+    write_ptr += sizeof(descriptor->num_values);
+
+    for (uint8_t i = 0; i < descriptor->num_values; ++i) {
+        const string_value_t* const map_entry = descriptor->values + i;
+
+        memcpy(write_ptr, &map_entry->key_len, sizeof(map_entry->key_len));
+        write_ptr += sizeof(map_entry->key_len);
+        memcpy(write_ptr, map_entry->key, map_entry->key_len);
+        write_ptr += map_entry->key_len;
+
+        memcpy(write_ptr, &map_entry->value_len, sizeof(map_entry->value_len));
+        write_ptr += sizeof(map_entry->value_len);
+        memcpy(write_ptr, map_entry->value, map_entry->value_len);
+        write_ptr += map_entry->value_len;
+    }
+
+    // Append hmac
+    JADE_ASSERT(write_ptr + HMAC_SHA256_LEN == output_bytes + output_len);
+    return wallet_hmac_with_master_key(output_bytes, output_len - HMAC_SHA256_LEN, write_ptr, HMAC_SHA256_LEN);
+}
+
+bool descriptor_from_bytes(const uint8_t* bytes, const size_t bytes_len, descriptor_data_t* descriptor)
+{
+    JADE_ASSERT(bytes);
+    JADE_ASSERT(bytes_len >= MIN_DESCRIPTOR_BYTES_LEN);
+    JADE_ASSERT(descriptor);
+
+    // Check hmac first
+    uint8_t hmac_calculated[HMAC_SHA256_LEN];
+    if (!wallet_hmac_with_master_key(bytes, bytes_len - HMAC_SHA256_LEN, hmac_calculated, sizeof(hmac_calculated))
+        || sodium_memcmp(bytes + bytes_len - HMAC_SHA256_LEN, hmac_calculated, sizeof(hmac_calculated)) != 0) {
+        JADE_LOGW("Descriptor data HMAC error/mismatch");
+        return false;
+    }
+
+    // Version byte
+    const uint8_t* read_ptr = bytes;
+    const uint8_t version = *read_ptr;
+    if (version > CURRENT_RECORD_VERSION) {
+        JADE_LOGE("Bad version byte in stored registered descriptor data");
+        return false;
+    }
+    read_ptr += sizeof(version);
+
+    // Descriptor type
+    uint8_t type_byte;
+    memcpy(&type_byte, read_ptr, sizeof(type_byte));
+    descriptor->type = (descriptor_type_t)type_byte;
+    read_ptr += sizeof(type_byte);
+
+    // Descriptor script
+    memcpy(&descriptor->script_len, read_ptr, sizeof(descriptor->script_len));
+    if (descriptor->script_len > sizeof(descriptor->script)) {
+        JADE_LOGE("Bad script_len stored registered descriptor data");
+        return false;
+    }
+    read_ptr += sizeof(descriptor->script_len);
+    memcpy(descriptor->script, read_ptr, descriptor->script_len);
+    descriptor->script[descriptor->script_len] = '\0'; // Add null terminator
+    read_ptr += descriptor->script_len;
+
+    // Any data values
+    memcpy(&descriptor->num_values, read_ptr, sizeof(descriptor->num_values));
+    read_ptr += sizeof(descriptor->num_values);
+
+    for (uint8_t i = 0; i < descriptor->num_values; ++i) {
+        string_value_t* const map_entry = descriptor->values + i;
+
+        memcpy(&map_entry->key_len, read_ptr, sizeof(map_entry->key_len));
+        if (map_entry->key_len > sizeof(map_entry->key)) {
+            JADE_LOGE("Bad key_len stored registered descriptor data");
+            return false;
+        }
+        read_ptr += sizeof(map_entry->key_len);
+        memcpy(map_entry->key, read_ptr, map_entry->key_len);
+        map_entry->key[map_entry->key_len] = '\0'; // Add null terminator
+        read_ptr += map_entry->key_len;
+
+        memcpy(&map_entry->value_len, read_ptr, sizeof(map_entry->value_len));
+        if (map_entry->value_len > sizeof(map_entry->value)) {
+            JADE_LOGE("Bad value_len stored registered descriptor data");
+            return false;
+        }
+        read_ptr += sizeof(map_entry->value_len);
+        memcpy(map_entry->value, read_ptr, map_entry->value_len);
+        map_entry->value[map_entry->value_len] = '\0'; // Add null terminator
+        read_ptr += map_entry->value_len;
+    }
+
+    // Check just got the hmac (checked first, above) left in the buffer
+    JADE_ASSERT(read_ptr + HMAC_SHA256_LEN == bytes + bytes_len);
+
     return true;
 }

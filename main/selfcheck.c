@@ -841,6 +841,40 @@ static bool test_bcur_large_payload_many_icons(void)
     (wally_hex_to_bytes(fp, buf, sizeof(buf), &written) == WALLY_OK && written == sizeof(signers[n].fingerprint)       \
         && !memcmp(buf, signers[n].fingerprint, written) && !strcmp(xp, signers[n].xpub))
 
+static bool check_descriptor_serialisation(descriptor_data_t* const desc)
+{
+    JADE_ASSERT(desc);
+
+    // Should be same if serialised and de-serialised
+    uint8_t serialised[768];
+    const size_t serialised_len = DESCRIPTOR_BYTES_LEN(desc);
+    JADE_ASSERT(serialised_len < sizeof(serialised));
+    if (!descriptor_to_bytes(desc, serialised, serialised_len)) {
+        FAIL();
+    }
+
+    wally_bzero(desc, sizeof(descriptor_data_t));
+
+    if (!descriptor_from_bytes(serialised, serialised_len, desc)) {
+        FAIL();
+    }
+
+    // Re-serialise - should be same as first serialisation
+    if (DESCRIPTOR_BYTES_LEN(desc) != serialised_len) {
+        FAIL();
+    }
+
+    uint8_t serialised2[sizeof(serialised)];
+    if (!descriptor_to_bytes(desc, serialised2, serialised_len)) {
+        FAIL();
+    }
+    if (memcmp(serialised, serialised2, serialised_len)) {
+        FAIL();
+    }
+
+    return true;
+}
+
 static bool test_miniscript_descriptors(void)
 {
     const char* errmsg = NULL;
@@ -912,6 +946,7 @@ static bool test_miniscript_descriptors(void)
         FAIL();
     }
 
+    // Check scripts/addresses
     uint32_t multi_index = 0;
     const char* expectedA[2] = { "tb1qcf6egdkhq96vwkn4ge6fyz446zn09alwhuadcz8ezf6remuw7r7stzu9gj",
         "tb1qep0hehn3gl5nse6w5vyqe0g4q9czvhgr3nlzj76uhmfsxvqcz8pq2zyy4c" };
@@ -947,6 +982,11 @@ static bool test_miniscript_descriptors(void)
             FAIL();
         }
         desc.type = DESCRIPTOR_TYPE_MIXED;
+    }
+
+    // Check serialisation
+    if (!check_descriptor_serialisation(&desc)) {
+        FAIL();
     }
 
     // Liana example
@@ -1009,6 +1049,7 @@ static bool test_miniscript_descriptors(void)
         FAIL();
     }
 
+    // Check scripts/addresses
     const char* expectedB[2][2] = { { "tb1q0ddn2fn5y66gt2r69dv6el32lw44lupa2ry9enlm8zduxhpwk6aqen88zh",
                                         "tb1qfj66kfjk98cfcays67c9rvkzals7tnxz2dkxnwrjslwk5tzcd8ysgx9ahf" },
         { "tb1qu6j64q9kezc0dxgfl67fgnm2z9yycc55c0fa09uresf65w6py04s4qwgul",
@@ -1019,6 +1060,25 @@ static bool test_miniscript_descriptors(void)
             // Use unknown type
             char* addr = NULL;
             ret = descriptor_to_address("B1", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+            if (!ret || strcmp(addr, expectedB[multi_index][child_num])) {
+                wally_free_string(addr);
+                FAIL();
+            }
+            wally_free_string(addr);
+        }
+    }
+
+    // Check serialisation
+    if (!check_descriptor_serialisation(&desc)) {
+        FAIL();
+    }
+
+    // Addresses should be same
+    for (multi_index = 0; multi_index < 2; ++multi_index) {
+        for (uint32_t child_num = 0; child_num < 2; ++child_num) {
+            // Use unknown type
+            char* addr = NULL;
+            ret = descriptor_to_address("B2", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
             if (!ret || strcmp(addr, expectedB[multi_index][child_num])) {
                 wally_free_string(addr);
                 FAIL();
@@ -1079,6 +1139,7 @@ static bool test_miniscript_descriptors(void)
         FAIL();
     }
 
+    // Check scripts/addresses
     const char* expectedC[2] = { "2MzcimvUcAwWKDDufQmTwq2FU4qenKL51fL", "2Mw3VJsaTKNCuZ2Drw3UMBvQg7QyHEvt8Nz" };
 
     multi_index = 0;
@@ -1086,6 +1147,24 @@ static bool test_miniscript_descriptors(void)
         // Use unknown type
         char* addr = NULL;
         ret = descriptor_to_address("C1", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+        if (!ret || strcmp(addr, expectedC[child_num])) {
+            wally_free_string(addr);
+            FAIL();
+        }
+        wally_free_string(addr);
+    }
+
+    // Check serialisation
+    if (!check_descriptor_serialisation(&desc)) {
+        FAIL();
+    }
+
+    // Addresses should be same
+    multi_index = 0;
+    for (uint32_t child_num = 0; child_num < 2; ++child_num) {
+        // Use unknown type
+        char* addr = NULL;
+        const bool ret = descriptor_to_address("C2", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
         if (!ret || strcmp(addr, expectedC[child_num])) {
             wally_free_string(addr);
             FAIL();
@@ -1156,6 +1235,11 @@ static bool test_miniscript_descriptors(void)
 
         free(hex);
         free(script);
+    }
+
+    // Check serialisation
+    if (!check_descriptor_serialisation(&desc)) {
+        FAIL();
     }
 
     return true;
