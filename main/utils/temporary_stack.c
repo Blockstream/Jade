@@ -54,6 +54,7 @@ bool run_on_temporary_stack(const size_t stack_size, temporary_stack_function_t 
     s_rslt = false;
 
     // Allocate temporary stack
+    JADE_LOGI("Using temporary stack of size: %u", stack_size);
     uint8_t* const temporary_stack = JADE_MALLOC(stack_size);
 
     // Run the wrapping function on the temporary stack.
