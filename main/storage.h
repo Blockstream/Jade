@@ -88,11 +88,23 @@ bool storage_get_multisig_registration(
     const char* name, uint8_t* registration, size_t registration_len, size_t* written);
 
 size_t storage_get_multisig_registration_count(void);
-bool storage_multisig_name_exists(const char* multisig_name);
+bool storage_multisig_name_exists(const char* name);
 bool storage_get_all_multisig_registration_names(
     char names[][NVS_KEY_NAME_MAX_SIZE], size_t num_names, size_t* num_written);
 
 bool storage_erase_multisig_registration(const char* name);
+
+// Descriptor wallets
+bool storage_set_descriptor_registration(const char* name, const uint8_t* registration, size_t registration_len);
+bool storage_get_descriptor_registration(
+    const char* name, uint8_t* registration, size_t registration_len, size_t* written);
+
+size_t storage_get_descriptor_registration_count(void);
+bool storage_descriptor_name_exists(const char* name);
+bool storage_get_all_descriptor_registration_names(
+    char names[][NVS_KEY_NAME_MAX_SIZE], size_t num_names, size_t* num_written);
+
+bool storage_erase_descriptor_registration(const char* name);
 
 // HOTP / TOTP
 bool storage_set_otp_data(const char* name, const uint8_t* data, size_t data_len);

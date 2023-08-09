@@ -1,3 +1,4 @@
+#include "../descriptor.h"
 #include "../jade_assert.h"
 #include "../keychain.h"
 #include "../multisig.h"
@@ -38,6 +39,18 @@ void debug_clean_reset_process(void* process_ptr)
 
     for (int i = 0; i < num_multisigs; ++i) {
         ok = storage_erase_multisig_registration(multisig_names[i]);
+        JADE_ASSERT(ok);
+    }
+
+    // Clean descriptor registrations from storage
+    char descriptor_names[MAX_DESCRIPTOR_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
+    const size_t num_descriptor_names = sizeof(descriptor_names) / sizeof(descriptor_names[0]);
+    size_t num_descriptors = 0;
+    ok = storage_get_all_descriptor_registration_names(descriptor_names, num_descriptor_names, &num_descriptors);
+    JADE_ASSERT(ok);
+
+    for (int i = 0; i < num_descriptors; ++i) {
+        ok = storage_erase_descriptor_registration(descriptor_names[i]);
         JADE_ASSERT(ok);
     }
 

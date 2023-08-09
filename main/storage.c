@@ -15,6 +15,7 @@ static const char* NVS_KEYS_PARTITION_LABEL = "nvs_key";
 
 static const char* DEFAULT_NAMESPACE = "PIN";
 static const char* MULTISIG_NAMESPACE = "MULTISIGS";
+static const char* DESCRIPTOR_NAMESPACE = "DESCRIPTORS";
 static const char* OTP_NAMESPACE = "OTP";
 static const char* HOTP_COUNTERS_NAMESPACE = "HOTPC";
 
@@ -657,6 +658,33 @@ bool storage_get_all_multisig_registration_names(
 }
 
 bool storage_erase_multisig_registration(const char* name) { return erase_key(MULTISIG_NAMESPACE, name); }
+
+// Descriptor wallets
+bool storage_set_descriptor_registration(const char* name, const uint8_t* registration, const size_t registration_len)
+{
+    return store_blob(DESCRIPTOR_NAMESPACE, name, registration, registration_len);
+}
+
+bool storage_get_descriptor_registration(
+    const char* name, uint8_t* registration, const size_t registration_len, size_t* written)
+{
+    return read_blob(DESCRIPTOR_NAMESPACE, name, registration, registration_len, written);
+}
+
+size_t storage_get_descriptor_registration_count(void) { return get_entry_count(DESCRIPTOR_NAMESPACE, NVS_TYPE_BLOB); }
+
+bool storage_descriptor_name_exists(const char* name)
+{
+    return key_name_exists(name, DESCRIPTOR_NAMESPACE, NVS_TYPE_BLOB);
+}
+
+bool storage_get_all_descriptor_registration_names(
+    char names[][NVS_KEY_NAME_MAX_SIZE], const size_t num_names, size_t* num_written)
+{
+    return get_all_key_names(DESCRIPTOR_NAMESPACE, NVS_TYPE_BLOB, names, num_names, num_written);
+}
+
+bool storage_erase_descriptor_registration(const char* name) { return erase_key(DESCRIPTOR_NAMESPACE, name); }
 
 // HOTP / TOTP
 bool storage_set_otp_data(const char* name, const uint8_t* data, const size_t data_len)
