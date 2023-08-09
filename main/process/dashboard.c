@@ -108,6 +108,7 @@ void get_otp_code_process(void* process_ptr);
 void get_xpubs_process(void* process_ptr);
 void get_registered_multisigs_process(void* process_ptr);
 void register_multisig_process(void* process_ptr);
+void register_descriptor_process(void* process_ptr);
 void get_receive_address_process(void* process_ptr);
 void get_identity_pubkey_process(void* process_ptr);
 void get_identity_shared_key_process(void* process_ptr);
@@ -450,6 +451,8 @@ static void dispatch_message(jade_process_t* process)
             task_function = get_registered_multisigs_process;
         } else if (IS_METHOD("register_multisig")) {
             task_function = register_multisig_process;
+        } else if (IS_METHOD("register_descriptor")) {
+            task_function = register_descriptor_process;
         } else if (IS_METHOD("get_receive_address")) {
             task_function = get_receive_address_process;
         } else if (IS_METHOD("get_identity_pubkey")) {
