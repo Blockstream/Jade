@@ -1,0 +1,23 @@
+{
+  "input": {
+    "network": "testnet",
+    "descriptor_name": "p2sh_p2wsh_ms",
+    "descriptor": "sh(wsh(or_d(thresh(1,pk(@0/<0;1>/*)),and_v(v:thresh(1,pk(@1/<0;1>/*)),older(30)))))",
+    "datavalues": {
+      "@0": "[1273da33/48'/1'/0'/2']tpubDEAjmvwVDj4aTdNLyLdoVGdEuRf8ZMsZEun6Aa2uMHa3DFNSzXQFt8DY62gi37RuaPTcpoNFage2h6dPHABssCnWcp2j6srQTpWbGEKHgU1",
+      "@1": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+    }
+  },
+  "address_tests": [
+    {
+      "branch": 0,
+      "pointer": 0,
+      "expected_address": "2NAxP4LFDiHkjkWsExDn18sMzk3GfDYCZPB"
+    },
+    {
+      "branch": 0,
+      "pointer": 1,
+      "expected_address": "2MwfaaqyQARv5zLbwa4yq23WiX535tsBnqo"
+    }
+  ]
+}

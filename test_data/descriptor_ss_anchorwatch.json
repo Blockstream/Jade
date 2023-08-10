@@ -1,0 +1,24 @@
+{
+  "input": {
+    "network": "testnet",
+    "descriptor_name": "testanchorwatch",
+    "descriptor": "wsh(or_d(pk(@0/<0;1>/*),and_v(v:multi(2,@1/<0;1>/*,@2/<0;1>/*),older(4320))))",
+    "datavalues": {
+      "@0": "[1273da33/48'/1'/0'/2']tpubDEAjmvwVDj4aTdNLyLdoVGdEuRf8ZMsZEun6Aa2uMHa3DFNSzXQFt8DY62gi37RuaPTcpoNFage2h6dPHABssCnWcp2j6srQTpWbGEKHgU1",
+      "@1": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE",
+      "@2": "[e1640396/48'/1'/0'/2']tpubDFgDvZifofePphQiVjLfkov8YTDg3UPuHRvt6LzbySYMZQhN19p6zvR7NTEXi1ZJAMNostHMTnz2sfXXYcJFQqtyCnNuUfgYqsahxTLGJq2"
+    }
+  },
+  "address_tests": [
+    {
+      "branch": 0,
+      "pointer": 0,
+      "expected_address": "tb1qc8vql2ljkkmtc9kqj6v45qde0e8jgusva6d8ex5zpzpv75k6vw8sswsajw"
+    },
+    {
+      "branch": 0,
+      "pointer": 1,
+      "expected_address": "tb1qtyjtmq0ya577qkyhq6v8ue7hjsmmde6j80fndm0f5gl8kfjx7nysn6w6fq"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "input": {
+    "network": "testnet",
+    "descriptor_name": "wsh_sorted",
+    "descriptor": "wsh(sortedmulti(2,@0/**,@1/**))",
+    "datavalues": {
+      "@0": "[1273da33/48'/1'/0'/2']tpubDEAjmvwVDj4aTdNLyLdoVGdEuRf8ZMsZEun6Aa2uMHa3DFNSzXQFt8DY62gi37RuaPTcpoNFage2h6dPHABssCnWcp2j6srQTpWbGEKHgU1",
+      "@1": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+    },
+    "multisig_equivalent": {
+      "descriptor": {
+        "variant": "wsh(multi(k))",
+        "sorted": true,
+        "threshold": 2,
+        "signers": [
+          {
+            "fingerprint": "1273da33",
+            "derivation": [
+              2147483696,
+              2147483649,
+              2147483648,
+              2147483650
+            ],
+            "xpub": "tpubDEAjmvwVDj4aTdNLyLdoVGdEuRf8ZMsZEun6Aa2uMHa3DFNSzXQFt8DY62gi37RuaPTcpoNFage2h6dPHABssCnWcp2j6srQTpWbGEKHgU1",
+            "path": []
+          },
+          {
+            "fingerprint": "e3ebcc79",
+            "derivation": [
+              2147483696,
+              2147483649,
+              2147483648,
+              2147483650
+            ],
+            "xpub": "tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE",
+            "path": []
+          }
+        ]
+      }
+    }
+  },
+  "address_tests": [
+    {
+      "branch": 0,
+      "pointer": 0,
+      "expected_address": "tb1qe5f847vum9jvad5tnu2ghwv6470asy5tmewetjth0cxhpm3t28xq3ykdlc"
+    },
+    {
+      "branch": 0,
+      "pointer": 27,
+      "expected_address": "tb1qwd6qm0rt7p7nch9wnym6td6vs0kk4qzxppfw0ujftcmr60v7tfpqmccswj"
+    },
+    {
+      "branch": 0,
+      "pointer": 736,
+      "expected_address": "tb1qkluc3eyaukn3r24a5za2aqh44grc4qxfnzuwn2wp3ulx6j3f27esk3u9yh"
+    }
+  ]
+}

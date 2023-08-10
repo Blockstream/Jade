@@ -580,6 +580,55 @@ ota_complete reply
 
 * A 'true' response implies the firmware upload completed successfully, and the next restart will attempt to boot the new firmware.
 
+.. _register_descriptor_request:
+
+register_descriptor request
+---------------------------
+
+Jade can store up to 16 user-defined miniscript descriptor wallet configurations, which need to be confirmed on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "186282",
+        "method": "register_descriptor"
+        "params": {
+            "network": "mainnet",
+            "descriptor_name": "inheritance",
+            "descriptor": "wsh(or_d(pk(@0/<0;1>/*),and_v(v:multi(2,@1/<0;1>/*,@2/<0;1>/*),older(4320))))",
+            "datavalues": [
+                {
+                    "key": "@0",
+                    "value": "[1bf12fe0/48'/1'/0'/2']tpubDEHXLZfMAAM5duEnX6SSnZjGYbrxqXvRJmMxw8MFwr3gu4LC4DSxR9KVEfVDVcZxre4XL5tGcwVRrHwQ9euTMnSq6P6BqREemaqrFsC96Fy",
+                },
+                {
+                    "key": "@1",
+                    "value": "[eda3d606/48'/1'/0'/2']tpubDEAmqvQkhqP6SbfbSPu3AeRR9kfHLFXYvNDiWashLy7V2zicg1YLg654AqfomsC6kFwTs4MpcnqwxN2AnYAqi5JZeuVDBn3rfZZLTaAuS8Y",
+                },
+                {
+                    "key": "@2",
+                    "value": "[e1640396/48'/1'/0'/2']tpubDFgDvZifofePphQiVjLfkov8YTDg3UPuHRvt6LzbySYMZQhN19p6zvR7NTEXi1ZJAMNostHMTnz2sfXXYcJFQqtyCnNuUfgYqsahxTLGJq2",
+                }
+            ]
+        }
+    }
+
+* 'descriptor_name' is a string, and must be less than 16 characters long.  Using an existing name will overwrite the corresponding descriptor registration record.
+* 'descriptor' is the descriptor string.  It must be a 'wallet policy' miniscript expression with the keys presented in the accompanying datavalues map.
+* 'datavalues' is the map of signers' keys, which must include an entry for the Jade signer.
+
+.. _register_descriptor_reply:
+
+register_descriptor reply
+-------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "186282",
+        "result": true
+    }
+
 .. _register_multisig_request:
 
 register_multisig request
@@ -630,7 +679,7 @@ or:
         }
     }
 
-* 'multisig_name' is a string, and must be less than 16 characters long.  Using an existing name will overwrite the corresponding registration record.
+* 'multisig_name' is a string, and must be less than 16 characters long.  Using an existing name will overwrite the corresponding multisig registration record.
 * 'variant' indicates the script type used, and must be one of: 'sh(multi(k))', 'wsh(multi(k))' or 'sh(wsh(multi(k)))'
 * 'master_blinding_key' should be set for multisigs to be used on a Liquid network if the Jade is to provide confidential addresses, blinding keys, blinding nonces, asset blinding factors or output commitments.  Otherwise it can be omitted.
 * 'fingerprint' is the 4-byte wallet origin fingerprint - at least one signer must reference the Jade signer's root xpub fingerprint.

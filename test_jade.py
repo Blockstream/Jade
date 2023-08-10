@@ -126,6 +126,12 @@ def _h2b_test_case(testcase):
         if expected_result and 'master_blinding_key' in expected_result:
             expected_result['master_blinding_key'] = h2b(expected_result['master_blinding_key'])
 
+    elif 'descriptor_name' in testcase['input']:
+        # descriptor data
+        if 'multisig_equivalent' in testcase['input']:
+            for signer in testcase['input']['multisig_equivalent']['descriptor']['signers']:
+                signer['fingerprint'] = h2b(signer['fingerprint'])
+
     return testcase
 
 
@@ -407,6 +413,7 @@ MULTI_REG_TESTS = "multisig_reg_*.json"
 MULTI_REG_SS_TESTS = "multisig_reg_ss_*.json"
 MULTI_REG_FILE_TESTS = "multisig_file_*.json"
 MULTI_REG_BAD_FILE_TESTS = "multisig_bad_file_*.json"
+DESCRIPTOR_REG_SS_TESTS = "descriptor_ss_*.json"
 SIGN_MSG_TESTS = "msg_*.json"
 SIGN_MSG_FILE_TESTS = "msgfile_*.json"
 SIGN_IDENTITY_TESTS = "identity_*.json"
@@ -813,7 +820,7 @@ def test_bad_params(jade):
 7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59d\
 ffae18852bbd7300000000')
 
-    GOOD_COSIGNERS = [
+    MULTI_COSIGNERS = [
         {
           "fingerprint": h2b("1273da33"),
           "derivation": [44, 2147483648, 2147483648],
@@ -830,14 +837,21 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
         }
     ]
     # Default test user is cosigners[1]
-    bad_cosigners1 = copy.deepcopy(GOOD_COSIGNERS)
-    bad_cosigners1[1]['fingerprint'] = h2b("abcdef")
-    bad_cosigners2 = copy.deepcopy(GOOD_COSIGNERS)
-    bad_cosigners2[1]['fingerprint'] = bad_cosigners2[0]['fingerprint']
-    bad_cosigners3 = copy.deepcopy(GOOD_COSIGNERS)
-    bad_cosigners3[1]['derivation'] = [1, 2, 3, 4]
-    bad_cosigners4 = copy.deepcopy(GOOD_COSIGNERS)
-    bad_cosigners4[1]['path'] = [2147483648]
+    bad_multi_cosigners1 = copy.deepcopy(MULTI_COSIGNERS)
+    bad_multi_cosigners1[1]['fingerprint'] = h2b("abcdef")
+    bad_multi_cosigners2 = copy.deepcopy(MULTI_COSIGNERS)
+    bad_multi_cosigners2[1]['fingerprint'] = bad_multi_cosigners2[0]['fingerprint']
+    bad_multi_cosigners3 = copy.deepcopy(MULTI_COSIGNERS)
+    bad_multi_cosigners3[1]['derivation'] = [1, 2, 3, 4]
+    bad_multi_cosigners4 = copy.deepcopy(MULTI_COSIGNERS)
+    bad_multi_cosigners4[1]['path'] = [2147483648]
+
+    DESCRIPTOR = 'wsh(pkh(@0/<0;1>/*))'
+    DESCR_SIGNER = "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3\
+HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+    bad_descr_signer1 = '[abcdef' + DESCR_SIGNER[DESCR_SIGNER.find('/'):]
+    bad_descr_signer2 = '[1273da33' + DESCR_SIGNER[DESCR_SIGNER.find('/'):]
+    bad_descr_signer3 = '[e3ebcc79/1/2/3/4' + DESCR_SIGNER[DESCR_SIGNER.find(']'):]
 
     trezor_id_test = list(_get_test_cases('identity_ssh_nist_matches_trezor.json'))
     assert len(trezor_id_test) == 1
@@ -977,41 +991,93 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                    'Invalid multisig threshold'),
                   (('badmulti12', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(wsh(multi(k)))', 'threshold': 5, 'signers': GOOD_COSIGNERS}}),
-                   'Invalid multisig threshold'),
+                      'variant': 'sh(wsh(multi(k)))', 'threshold': 5,
+                      'signers': MULTI_COSIGNERS}}), 'Invalid multisig threshold'),
                   (('badmulti13', 'register_multisig',  # network missing or invalid
                     {'network': 'noexist', 'multisig_name': 'test'}), 'valid network'),
                   (('badmulti15', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(wsh(multi(k)))', 'threshold': 2, 'signers': bad_cosigners1}}),
-                   'Failed to extract valid co-signers'),
+                      'variant': 'sh(wsh(multi(k)))', 'threshold': 2,
+                      'signers': bad_multi_cosigners1}}), 'Failed to extract valid co-signers'),
                   (('badmulti16', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'wsh(multi(k))', 'threshold': 2, 'signers': bad_cosigners2}}),
-                   'Failed to validate co-signers'),
+                      'variant': 'wsh(multi(k))', 'threshold': 2,
+                      'signers': bad_multi_cosigners2}}), 'Failed to validate co-signers'),
                   (('badmulti17', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners3}}),
-                   'Failed to validate co-signers'),
+                      'variant': 'sh(multi(k))', 'threshold': 2,
+                      'signers': bad_multi_cosigners3}}), 'Failed to validate co-signers'),
                   (('badmulti18', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(multi(k))', 'threshold': 2, 'signers': bad_cosigners4}}),
-                   'Failed to validate co-signers'),
+                      'variant': 'sh(multi(k))', 'threshold': 2,
+                      'signers': bad_multi_cosigners4}}), 'Failed to validate co-signers'),
                   (('badmulti19', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(wsh(multi(k)))', 'threshold': 1, 'signers': GOOD_COSIGNERS,
+                      'variant': 'sh(wsh(multi(k)))', 'threshold': 1, 'signers': MULTI_COSIGNERS,
                       'master_blinding_key': 1234}}),
                    'Invalid blinding key'),
                   (('badmulti20', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'wsh(multi(k))', 'threshold': 1, 'signers': GOOD_COSIGNERS,
+                      'variant': 'wsh(multi(k))', 'threshold': 1, 'signers': MULTI_COSIGNERS,
                       'master_blinding_key': 'abcdef'}}),
                    'Invalid blinding key'),
                   (('badmulti21', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
-                      'variant': 'sh(wsh(multi(k)))', 'threshold': 1, 'signers': GOOD_COSIGNERS,
+                      'variant': 'sh(wsh(multi(k)))', 'threshold': 1, 'signers': MULTI_COSIGNERS,
                       'master_blinding_key': EXPECTED_MASTER_BLINDING_KEY[:-1]}}),
                    'Invalid blinding key'),
+
+                  (('baddescr1', 'register_descriptor'), 'Expecting parameters map'),
+                  (('baddescr2', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': None}), 'invalid descriptor name'),
+                  (('baddescr3', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'space is bad'}),
+                   'invalid descriptor name'),
+                  (('baddescr4', 'register_descriptor',
+                    {'network': 'testnet',
+                     'descriptor_name': 'excessivelylong1'}), 'invalid descriptor name'),
+                  (('baddescr5', 'register_descriptor',
+                    {'network': 'testnet',
+                     'descriptor_name': 'test'}), 'extract valid output descriptor'),
+                  (('baddescr6', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'test',
+                     'descriptor': "wsh(pk(" + DESCR_SIGNER + "))"}),
+                   'Failed to extract valid parameter values'),
+                  (('baddescr7', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'test', 'descriptor': DESCRIPTOR,
+                     'datavalues': "Wrong type"}), 'Failed to extract valid parameter values'),
+                  (('baddescr8', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'test', 'descriptor': DESCRIPTOR,
+                     'datavalues': []}), 'Failed to extract valid parameter values'),
+                  (('baddescr9', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'test', 'descriptor': DESCRIPTOR,
+                     'datavalues': {'@0': 12}}), 'Failed to extract valid parameter values'),
+                  (('baddescr10', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'test', 'descriptor': DESCRIPTOR,
+                     'datavalues': {'@0': 'Not a key'}}), 'Failed to parse descriptor'),
+                  (('baddescr11', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'test', 'descriptor': DESCRIPTOR,
+                     'datavalues': {'@1': DESCR_SIGNER}}), 'Failed to parse descriptor'),
+                  (('baddescr12', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'test',
+                     'descriptor': 'wsh(pkh(@A/<0;1>/*))', 'datavalues': {'@A': DESCR_SIGNER}}),
+                   'Failed to parse descriptor'),
+                  (('baddescr13', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'isgood', 'descriptor': DESCRIPTOR,
+                     'datavalues': {'@0': bad_descr_signer1}}), 'Failed to parse descriptor'),
+                  (('baddescr14', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'isgood', 'descriptor': DESCRIPTOR,
+                     'datavalues': {'@0': bad_descr_signer2}}), 'Failed to validate signers'),
+                  (('baddescr15', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'isgood', 'descriptor': DESCRIPTOR,
+                     'datavalues': {'@0': bad_descr_signer3}}), 'Failed to validate signers'),
+                  (('baddescr16', 'register_descriptor',
+                    {'network': 'testnet', 'descriptor_name': 'isgood', 'descriptor': DESCRIPTOR,
+                     'datavalues': {'@0': DESCR_SIGNER, '@1': DESCR_SIGNER}}),
+                   'Failed to parse descriptor'),
+                  (('baddescr17', 'register_descriptor',
+                    {'network': 'liquid', 'descriptor_name': 'isgood', 'descriptor': DESCRIPTOR,
+                     'datavalues': {'@0': DESCR_SIGNER}}), 'not supported on liquid'),
 
                   (('badrecvaddr1', 'get_receive_address'), 'Expecting parameters map'),
                   (('badrecvaddr2', 'get_receive_address',
@@ -1060,6 +1126,12 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'paths': [[1], [2, 3]], 'multisig_name': 'does not exist',
                      'network': 'testnet'}), 'Cannot find named multisig wallet'),
                   (('badrecvaddr16', 'get_receive_address',
+                    {'branch': 0, 'pointer': 1, 'descriptor_name': 'does not exist',
+                     'network': 'testnet'}), 'Cannot find named descriptor wallet'),
+                  (('badrecvaddr17', 'get_receive_address',
+                    {'branch': 0, 'pointer': 1, 'descriptor_name': 'looksvalid',
+                     'network': 'liquid'}), 'not supported on liquid'),
+                  (('badrecvaddr18', 'get_receive_address',
                     {'path': [1, 2, 3], 'variant': 'pkh(k)', 'confidential': True,
                      'network': 'mainnet'}), 'Confidential addresses only apply to liquid'),
 
@@ -1317,11 +1389,20 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                      'change': [{'multisig_name': 'bad', 'is_change': True,
                                  'paths': [[1, 2, 3]]}]}),
                    'Cannot find named multisig wallet'),
-                  (('badsigntx16', 'sign_tx',
+                  (('badsigntx16', 'sign_tx',  # missing descriptor name
+                    {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
+                     'change': [{'descriptor_name': '',
+                                 'branch': 1, 'pointer': 13}]}), 'Invalid descriptor name'),
+                  (('badsigntx17', 'sign_tx',  # bad descriptor name
+                    {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
+                     'change': [{'descriptor_name': 'bad', 'is_change': True,
+                                 'branch': 1, 'pointer': 13}]}),
+                   'Cannot find named descriptor wallet'),
+                  (('badsigntx19', 'sign_tx',  # missing change path
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
                      'change': [{'is_change': False, 'not_path': [1, 2, 3]}]}),
                    'extract valid receive path'),
-                  (('badsigntx17', 'sign_tx',  # wrong number of outputs
+                  (('badsigntx20', 'sign_tx',  # wrong number of outputs
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
                      'change': [None, None]}), 'Unexpected number of output entries')]
 
@@ -1661,24 +1742,29 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
                      'change': [{}, {}]}), 'Failed to extract valid receive path'),
-
-                  (('badsignliq19', 'sign_liquid_tx',
+                  (('badsignliq19', 'sign_liquid_tx',  # descriptor wallet
                     {'network': 'localtest-liquid', 'txn': GOODTX,
-                     'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
-                     'change': None, 'asset_info': [BAD_ASSET1]}), 'Invalid asset info passed'),
+                     'num_inputs': 1, 'trusted_commitments': [{}, {}],
+                     'change': [{'descriptor_name': 'looksvalid', 'is_change': True,
+                                 'branch': 1, 'pointer': 13}, {}]}), 'not supported on liquid'),
+
                   (('badsignliq20', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
-                     'change': None, 'asset_info': [BAD_ASSET2]}), 'Invalid asset info passed'),
+                     'change': None, 'asset_info': [BAD_ASSET1]}), 'Invalid asset info passed'),
                   (('badsignliq21', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
-                     'change': None, 'asset_info': [BAD_ASSET3]}), 'Invalid asset info passed'),
+                     'change': None, 'asset_info': [BAD_ASSET2]}), 'Invalid asset info passed'),
                   (('badsignliq22', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
-                     'change': None, 'asset_info': [BAD_ASSET4]}), 'Invalid asset info passed'),
+                     'change': None, 'asset_info': [BAD_ASSET3]}), 'Invalid asset info passed'),
                   (('badsignliq23', 'sign_liquid_tx',
+                    {'network': 'localtest-liquid', 'txn': GOODTX,
+                     'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
+                     'change': None, 'asset_info': [BAD_ASSET4]}), 'Invalid asset info passed'),
+                  (('badsignliq24', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
                      'change': None, 'asset_info': [BAD_ASSET5]}), 'Invalid asset info passed')]
@@ -2847,6 +2933,57 @@ def test_generic_multisig_ss_signer(jadeapi):
         _check_multisig_registration(jadeapi, multisig_data)
 
 
+def test_miniscript_descriptor_registration(jadeapi):
+    for descriptor_data in _get_test_cases(DESCRIPTOR_REG_SS_TESTS):
+        # Register the descriptor
+        inputdata = descriptor_data['input']
+        rslt = jadeapi.register_descriptor(inputdata['network'],
+                                           inputdata['descriptor_name'],
+                                           inputdata['descriptor'],
+                                           inputdata.get('datavalues'))
+        assert rslt is True
+
+        # Check present and correct in 'get_registered_descriptors'
+        # registered_descriptors = jadeapi.get_registered_descriptors()
+        # descriptor_desc = registered_descriptors.get(inputdata['descriptor_name'])
+        # assert descriptor_desc is not None
+        # assert descriptor_desc['descriptor'] == inputdata['descriptor']
+        # assert descriptor_desc['datavalues'] == descriptor['datavalues']
+
+        # This includes 'get receive address' tests ...
+        for addr_test in descriptor_data['address_tests']:
+            rslt = jadeapi.get_receive_address(inputdata['network'],
+                                               addr_test['branch'],
+                                               addr_test['pointer'],
+                                               descriptor_name=inputdata['descriptor_name'])
+            assert rslt == addr_test['expected_address']
+
+        # Check multisig equivalent if provided
+        if 'multisig_equivalent' in inputdata:
+            # Register the multisig equivalent
+            descriptor = inputdata['multisig_equivalent']['descriptor']
+            rslt = jadeapi.register_multisig(inputdata['network'],
+                                             inputdata['descriptor_name'],
+                                             descriptor['variant'],
+                                             descriptor['sorted'],
+                                             descriptor['threshold'],
+                                             descriptor['signers'],
+                                             None)  # blinding key
+            assert rslt is True
+
+            # Check the receive addresses are the same
+            for addr_test in descriptor_data['address_tests']:
+                paths = [[addr_test['branch'], addr_test['pointer']]] * len(descriptor['signers'])
+                rslt = jadeapi.get_receive_address(inputdata['network'],
+                                                   paths,
+                                                   multisig_name=inputdata['descriptor_name'])
+                assert rslt == addr_test['expected_address']
+
+
+def test_miniscript_descriptor_registration_ss_signer(jadeapi):
+    test_miniscript_descriptor_registration(jadeapi)  # for now ...
+
+
 def test_12word_mnemonic(jadeapi):
     # Short sanity-test of 12-word mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12)
@@ -2976,7 +3113,7 @@ def test_totp(jadeapi):
 # HOTP/SHA1 which does not extend the secrets.
 def test_totp_ex(jadeapi):
     # Short secret - not padded/lengthened for SHA1 for maximum gauth compatibility
-    totp_name = 'test_totp_ex_1'
+    totp_name = 'test_totp_ex'
     totp_uri = 'otpauth://totp/ACM?secret=VMR466AB62ZBOKHE&digits=6&algorithm=SHA1'
     rslt = jadeapi.register_otp(totp_name, totp_uri)
     assert rslt
@@ -2988,7 +3125,7 @@ def test_totp_ex(jadeapi):
         assert rslt == expected
 
     # Short secret - not padded for gauth/SHA1
-    totp_name = 'test_totp_ex_2'
+    totp_name = 'test_totp_ex'
     totp_uri = 'otpauth://totp/Foo?secret=VM'
     rslt = jadeapi.register_otp(totp_name, totp_uri)
     assert rslt
@@ -3000,7 +3137,7 @@ def test_totp_ex(jadeapi):
         assert rslt == expected
 
     # Long secret for SHA512 - padded if required
-    totp_name = 'test_totp_ex_3'
+    totp_name = 'test_totp_ex'
     totp_uri = 'otpauth://totp/Foo\
 ?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDG\
 NBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNA&digits=8&algorithm=SHA512'
@@ -3113,6 +3250,9 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_generic_multisig_matches_ga_signatures_liquid(jadeapi)
     test_generic_multisig_files(jadeapi)
 
+    # Test descriptor wallets
+    test_miniscript_descriptor_registration(jadeapi)
+
     # Get (receive) green-addresses, get-xpub, and sign-message
     test_get_greenaddress_receive_address(jadeapi)
     test_get_xpubs(jadeapi)
@@ -3143,6 +3283,11 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # NOTE: some of these tests assume 'test_generic_multisig_registration()' test
     # has already been run, to register the multisigs for the test mnemonic signer
     test_generic_multisig_ss_signer(jadeapi)
+
+    # Test the descriptor wallets again, using a second signer
+    # NOTE: some of these tests assume 'test_miniscript_descriptor_registration()' test
+    # has already been run, to register the descriptors for the test mnemonic signer
+    test_miniscript_descriptor_registration_ss_signer(jadeapi)
 
     test_get_singlesig_receive_address(jadeapi)
     test_sign_tx(jadeapi, SIGN_TXN_SINGLE_SIG_TESTS)

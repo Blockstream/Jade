@@ -901,8 +901,32 @@ class JadeAPI:
         params = {'multisig_file': multisig_file}
         return self._jadeRpc('register_multisig', params)
 
+    def register_descriptor(self, network, descriptor_name, descriptor_script, datavalues=None):
+        """
+        RPC call to register a new descriptor wallet, which must contain the hw signer.
+        A registration name is provided - if it already exists that record is overwritten.
+
+        Parameters
+        ----------
+        network : string
+            Network to which the multisig should apply - eg. 'mainnet', 'liquid', 'testnet', etc.
+
+        descriptor_name : string
+            Name to use to identify this descriptor wallet registration record.
+            If a registration record exists with the name given, that record is overwritten.
+
+        Returns
+        -------
+        bool
+            True on success, implying the descriptor wallet can now be used.
+        """
+        params = {'network': network, 'descriptor_name': descriptor_name,
+                  'descriptor': descriptor_script, 'datavalues': datavalues}
+        return self._jadeRpc('register_descriptor', params)
+
     def get_receive_address(self, *args, recovery_xpub=None, csv_blocks=0,
-                            variant=None, multisig_name=None, confidential=None):
+                            variant=None, multisig_name=None, descriptor_name=None,
+                            confidential=None):
         """
         RPC call to generate, show, and return an address for the given path.
         The call has three forms.
@@ -948,6 +972,16 @@ class JadeAPI:
             multisig_name : str
                 The name of the registered multisig wallet record used to generate the address.
 
+        4. Descriptor wallet addresses
+            branch : int
+                Multi-path derivation branch, usually 0.
+
+            pointer : int
+                Path index to descriptor
+
+            descriptor_name : str
+                The name of the registered descriptor wallet record used to generate the address.
+
         Returns
         -------
         str
@@ -958,6 +992,10 @@ class JadeAPI:
             assert len(args) == 2
             keys = ['network', 'paths', 'multisig_name']
             args += (multisig_name,)
+        elif descriptor_name is not None:
+            assert len(args) == 3
+            keys = ['network', 'branch', 'pointer', 'descriptor_name']
+            args += (descriptor_name,)
         elif variant is not None:
             assert len(args) == 2
             keys = ['network', 'path', 'variant']
