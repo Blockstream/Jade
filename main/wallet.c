@@ -1136,7 +1136,6 @@ bool wallet_get_shared_blinding_nonce(const uint8_t* master_blinding_key, const 
         return false;
     }
 
-    uint8_t ecdh_output[SHA256_LEN];
     uint8_t privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privkey, sizeof(privkey));
     if (!wallet_get_blinding_privkey(
@@ -1145,16 +1144,13 @@ bool wallet_get_shared_blinding_nonce(const uint8_t* master_blinding_key, const 
         return false;
     }
 
-    const int wret
-        = wally_ecdh(their_pubkey, their_pubkey_len, privkey, sizeof(privkey), ecdh_output, sizeof(ecdh_output));
+    const int wret = wally_ecdh_nonce_hash(
+        their_pubkey, their_pubkey_len, privkey, sizeof(privkey), output_nonce, output_nonce_len);
     if (wret != WALLY_OK) {
-        JADE_LOGE("Error building ecdh: %d", wret);
+        JADE_LOGE("Error building ecdh nonce hash: %d", wret);
         SENSITIVE_POP(privkey);
         return false;
     }
-
-    // Shared blinding nonce is the hash of this ecdh result
-    JADE_WALLY_VERIFY(wally_sha256(ecdh_output, sizeof(ecdh_output), output_nonce, output_nonce_len));
 
     // Caller may also want our public blinding key
     if (output_pubkey) {
