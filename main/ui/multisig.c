@@ -51,7 +51,7 @@ static gui_activity_t* make_view_multisig_activities(const char* multisig_name, 
         btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_RETAIN_CONFIRM },
             { .txt = "X", .font = GUI_TITLE_FONT, .ev_id = BTN_MULTISIG_DISCARD_DELETE } };
 
-        btn_data_t menubtns[] = { { .content = splitname, .ev_id = BTN_OTA_VIEW_CURRENT_VERSION },
+        btn_data_t menubtns[] = { { .content = splitname, .ev_id = BTN_MULTISIG_NAME },
             { .txt = "Not valid for", .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
             { .txt = "current wallet", .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
             { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
@@ -292,9 +292,8 @@ static gui_activity_t* make_multisig_signer_activities(const signer_t* signer, c
 
     // NOTE: two xpub drilldown screens
     {
-        JADE_ASSERT(signer->xpub_len <= MAX_DISPLAY_MESSAGE_LEN);
         const size_t display_len = signer->xpub_len / 2;
-        JADE_ASSERT(display_len - 2 <= sizeof(display_str));
+        JADE_ASSERT(display_len + 2 <= sizeof(display_str));
 
         // First screen needs a 'next' button
         btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
@@ -554,6 +553,8 @@ bool show_confirm_multisig_activity(const char* multisig_name, const bool is_sor
     JADE_ASSERT(threshold > 0);
     JADE_ASSERT(signers);
     JADE_ASSERT(num_signers >= threshold);
+    JADE_ASSERT(wallet_fingerprint);
+    JADE_ASSERT(wallet_fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);
 
     // NOTE: because multisig potentially has a lot of signers and info to display
     // we deal with the signers one at a time, rather than creating them all up-front.
