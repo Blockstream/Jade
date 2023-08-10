@@ -13,6 +13,7 @@
 #include <wally_anti_exfil.h>
 #include <wally_bip32.h>
 #include <wally_bip39.h>
+#include <wally_bip85.h>
 #include <wally_core.h>
 #include <wally_crypto.h>
 #include <wally_elements.h>
@@ -36,13 +37,6 @@ static const uint32_t BIP44_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 44;
 static const uint32_t BIP48_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 48;
 static const uint32_t BIP49_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 49;
 static const uint32_t BIP84_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 84;
-
-// Bip85 path element values
-static const uint32_t BIP85_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 83696968;
-static const uint32_t BIP85_APPLICATION_39 = BIP32_INITIAL_HARDENED_CHILD + 39;
-static const uint32_t BIP85_LANGUAGE_ENGLISH = BIP32_INITIAL_HARDENED_CHILD;
-static const uint8_t BIP85_BIP39_ENTROPY_HMAC_KEY[]
-    = { 'b', 'i', 'p', '-', 'e', 'n', 't', 'r', 'o', 'p', 'y', '-', 'f', 'r', 'o', 'm', '-', 'k' };
 
 // Maximum number of csv blocks allowed in csv scripts
 static const uint32_t MAX_CSV_BLOCKS_ALLOWED = 65535;
@@ -363,7 +357,7 @@ static void wallet_get_privkey(const uint32_t* path, const size_t path_len, uint
     struct ext_key derived;
     SENSITIVE_PUSH(&derived, sizeof(derived));
     JADE_WALLY_VERIFY(bip32_key_from_parent_path(
-        &(keychain_get()->xpriv), path, path_len, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
+        &keychain_get()->xpriv, path, path_len, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
 
     memcpy(output, derived.priv_key + 1, output_len);
     SENSITIVE_POP(&derived);
@@ -994,12 +988,12 @@ bool wallet_get_hdkey(const uint32_t* path, const size_t path_len, const uint32_
 
     if (path_len == 0) {
         // Just copy root ext key
-        memcpy(output, &(keychain_get()->xpriv), sizeof(struct ext_key));
+        memcpy(output, &keychain_get()->xpriv, sizeof(struct ext_key));
     } else {
         // Derive child from root and path - handle stripping the pubkey ourselves as wally does
         // not handle: parent-privkey + hardened-path -> child-pubkey
         const uint32_t derivation_flags = (flags & ~BIP32_FLAG_KEY_PUBLIC) | BIP32_FLAG_KEY_PRIVATE;
-        const int wret = bip32_key_from_parent_path(&(keychain_get()->xpriv), path, path_len, derivation_flags, output);
+        const int wret = bip32_key_from_parent_path(&keychain_get()->xpriv, path, path_len, derivation_flags, output);
         if (wret != WALLY_OK) {
             JADE_LOGE("Failed to derive key from path (size %u): %d", path_len, wret);
             return false;
@@ -1244,24 +1238,18 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, const size_t signat
 // Function to get bip85-generated entropy for a new bip39 mnemonic
 // See: https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki
 // NOTE: only the English wordlist is supported.
-void wallet_get_bip85_bip39_entropy(const size_t nwords, const size_t index, uint8_t* entropy, const size_t entropy_len)
+void wallet_get_bip85_bip39_entropy(
+    const size_t nwords, const size_t index, uint8_t* entropy, const size_t entropy_len, size_t* written)
 {
+    JADE_ASSERT(nwords);
     JADE_ASSERT(entropy);
     JADE_ASSERT(entropy_len == HMAC_SHA512_LEN);
+    JADE_INIT_OUT_SIZE(written);
+
+    JADE_ASSERT(keychain_get());
 
     // Get bip85 path for bip39 mnemonic
-    const uint32_t path[]
-        = { BIP85_PURPOSE, BIP85_APPLICATION_39, BIP85_LANGUAGE_ENGLISH, harden(nwords), harden(index) };
-    const size_t path_len = sizeof(path) / sizeof(path[0]);
-
-    // Get privkey for that path
-    uint8_t privkey[EC_PRIVATE_KEY_LEN];
-    SENSITIVE_PUSH(privkey, sizeof(privkey));
-    wallet_get_privkey(path, path_len, privkey, sizeof(privkey));
-
-    // Get entropy for that privkey
-    JADE_WALLY_VERIFY(wally_hmac_sha512(BIP85_BIP39_ENTROPY_HMAC_KEY, sizeof(BIP85_BIP39_ENTROPY_HMAC_KEY), privkey,
-        sizeof(privkey), entropy, entropy_len));
-
-    SENSITIVE_POP(privkey);
+    JADE_WALLY_VERIFY(
+        bip85_get_bip39_entropy(&keychain_get()->xpriv, NULL, nwords, index, entropy, entropy_len, written));
+    JADE_ASSERT(*written <= entropy_len);
 }

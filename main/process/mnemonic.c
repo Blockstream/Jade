@@ -1480,12 +1480,12 @@ void get_bip85_mnemonic(const uint32_t nwords, const uint32_t index, char** new_
     JADE_INIT_OUT_PPTR(new_mnemonic);
     JADE_ASSERT(keychain_get());
 
+    size_t entropy_len = 0;
     uint8_t entropy[HMAC_SHA512_LEN];
     SENSITIVE_PUSH(entropy, sizeof(entropy));
-    wallet_get_bip85_bip39_entropy(nwords, index, entropy, sizeof(entropy));
+    wallet_get_bip85_bip39_entropy(nwords, index, entropy, sizeof(entropy), &entropy_len);
+    JADE_ASSERT(entropy_len == (nwords == 12 ? BIP39_ENTROPY_LEN_128 : BIP39_ENTROPY_LEN_256));
 
-    const size_t entropy_len = nwords == 12 ? BIP39_ENTROPY_LEN_128 : BIP39_ENTROPY_LEN_256;
-    JADE_ASSERT(entropy_len < sizeof(entropy));
     JADE_WALLY_VERIFY(bip39_mnemonic_from_bytes(NULL, entropy, entropy_len, new_mnemonic));
     JADE_ASSERT(new_mnemonic);
     SENSITIVE_POP(entropy);

@@ -30,7 +30,7 @@ bool wallet_derive_pubkey(const uint8_t* serialised_key, size_t key_len, const u
 bool wallet_derive_from_xpub(
     const char* xpub, const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* hdkey);
 
-size_t script_length_for_variant(const script_variant_t variant);
+size_t script_length_for_variant(script_variant_t variant);
 const char* get_script_variant_string(script_variant_t variant);
 bool get_script_variant(const char* variant, size_t variant_len, script_variant_t* output);
 bool get_singlesig_variant_from_script_type(size_t script_type, script_variant_t* variant);
@@ -38,9 +38,7 @@ bool is_greenaddress(script_variant_t variant);
 bool is_singlesig(script_variant_t variant);
 bool is_multisig(script_variant_t variant);
 
-void wallet_get_bip85_wordlist_path(
-    uint32_t nwords, uint32_t index, uint32_t* path, const size_t path_len, size_t* written);
-void wallet_get_bip85_bip39_entropy(size_t nwords, size_t index, uint8_t* entropy, const size_t entropy_len);
+void wallet_get_bip85_bip39_entropy(size_t nwords, size_t index, uint8_t* entropy, size_t entropy_len, size_t* written);
 
 void wallet_get_default_xpub_export_path(script_variant_t variant, uint32_t* path, size_t path_len, size_t* written);
 bool wallet_is_expected_singlesig_path(
@@ -62,7 +60,7 @@ bool wallet_search_for_multisig_script(script_variant_t script_variant, bool sor
     const uint8_t* script, size_t script_len);
 
 void wallet_get_fingerprint(uint8_t* output, size_t output_len);
-bool wallet_get_hdkey(const uint32_t* path, const size_t path_len, uint32_t flags, struct ext_key* output);
+bool wallet_get_hdkey(const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* output);
 bool wallet_get_xpub(const char* network, const uint32_t* path, size_t path_len, char** output);
 
 bool wallet_get_message_hash(const uint8_t* bytes, size_t bytes_len, uint8_t* output, size_t output_len);
