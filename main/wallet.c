@@ -990,19 +990,11 @@ bool wallet_get_hdkey(const uint32_t* path, const size_t path_len, const uint32_
         // Just copy root ext key
         memcpy(output, &keychain_get()->xpriv, sizeof(struct ext_key));
     } else {
-        // Derive child from root and path - handle stripping the pubkey ourselves as wally does
-        // not handle: parent-privkey + hardened-path -> child-pubkey
-        const uint32_t derivation_flags = (flags & ~BIP32_FLAG_KEY_PUBLIC) | BIP32_FLAG_KEY_PRIVATE;
-        const int wret = bip32_key_from_parent_path(&keychain_get()->xpriv, path, path_len, derivation_flags, output);
+        const int wret = bip32_key_from_parent_path(&keychain_get()->xpriv, path, path_len, flags, output);
         if (wret != WALLY_OK) {
             JADE_LOGE("Failed to derive key from path (size %u): %d", path_len, wret);
             return false;
         }
-    }
-
-    // If the caller wanted only a pubkey, strip the private key info now
-    if (flags & BIP32_FLAG_KEY_PUBLIC) {
-        JADE_WALLY_VERIFY(bip32_key_strip_private_key(output));
     }
 
     return true;
