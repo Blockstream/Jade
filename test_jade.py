@@ -1344,6 +1344,12 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     BADVAL32 = EXPECTED_LIQ_COMMITMENT_1['abf']
     BADVAL33 = EXPECTED_LIQ_COMMITMENT_1['value_commitment']
 
+    # Correct lengths, prefixes, etc.
+    BAD_ASSET_PROOF = h2b("0100017454d5579ec0def281d4712c832e98af69208af4146ba\
+691841d6605088e16c55cb5bffdbad36202475d94dea902fbcfa8c428ab7b3901e92df8b201ac865da3")
+    BAD_VALUE_PROOF = h2b("200000000000047f47eb9b2f9267f23f7f64c6f93ab7cb7311b\
+305abe97f4ac7877e981ffc7d4f662052de1efc379c28cf17f887e92208e70739e1e7abd095227587a895589e725de8")
+
     GOOD_ASSET = {
         "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
         "contract": {
@@ -1388,6 +1394,11 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     def _commitsUpdate(key, val):
         commits = GOOD_COMMITMENT.copy()
         commits[key] = val
+        return commits
+
+    def _commitsAssetBlindProof(val):
+        commits = _commitsMinus('abf')
+        commits['asset_blind_proof'] = val
         return commits
 
     def _commitsValueBlindProof(val):
@@ -1676,13 +1687,20 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                         (_commitsUpdate('vbf', BADVAL32), 'verify blinded value commitment'),
                         (_commitsUpdate('asset_generator', BADVAL33), 'blinded asset generator'),
                         (_commitsUpdate('value_commitment', BADVAL33), 'blinded value commitment'),
+                        # Asset blind proof in place of abf
+                        (_commitsAssetBlindProof(''), 'extract trusted commitments'),
+                        (_commitsAssetBlindProof('notbin'), 'extract trusted commitments'),
+                        (_commitsAssetBlindProof('123abc'), 'extract trusted commitments'),
                         # Value blind proof in place of vbf
                         (_commitsValueBlindProof(''), 'extract trusted commitments'),
                         (_commitsValueBlindProof('notbin'), 'extract trusted commitments'),
                         (_commitsValueBlindProof('123abc'), 'extract trusted commitments')]
-    if has_psram or not has_ble:
-        bad_commitments.append((_commitsValueBlindProof(BADVAL32),
-                               'blinded value commitment using explicit rangeproof'))
+    if has_psram:
+        # Invalid/incorrect explicit proofs
+        bad_commitments.append((_commitsAssetBlindProof(BAD_ASSET_PROOF),
+                               'Failed to verify explicit asset/value commitment proofs'))
+        bad_commitments.append((_commitsValueBlindProof(BAD_VALUE_PROOF),
+                               'Failed to verify explicit asset/value commitment proofs'))
 
     # Test all the simple cases
     for badmsg, errormsg in bad_params:
@@ -1703,7 +1721,7 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     for badinput, errormsg in bad_liq_inputs:
         # Initiate a good sign-liquid-tx
         result = _test_good_params(jade,
-                                   ('signLiquid', 'sign_liquid_tx',
+                                   ('signLiquidInput', 'sign_liquid_tx',
                                     {'network': 'localtest-liquid',
                                      'txn': GOODTX,
                                      'num_inputs': 1,
@@ -2370,10 +2388,10 @@ def test_sign_liquid_tx(jadeapi, has_psram, has_ble, pattern):
                 logger.warning("Skipping test - tx too large for non-psram device")
                 continue
 
-            # Skip any rangeproof tests which cannot be handled by ble-enabled no-psram devices
-            if has_ble and \
-               any(tcs and 'value_blind_proof' in tcs for tcs in inputdata['trusted_commitments']):
-                logger.warning("Skipping test - value_blind_proof too large for non-psram device")
+            # Skip any explicit proof tests which cannot be handled by no-psram devices
+            if any(tcs and ('value_blind_proof' in tcs or 'asset_blind_proof' in tcs)
+                    for tcs in inputdata['trusted_commitments']):
+                logger.warning("Skipping test - explicit proofs too large for non-psram device")
                 continue
 
         rslt = jadeapi.sign_liquid_tx(inputdata['network'],

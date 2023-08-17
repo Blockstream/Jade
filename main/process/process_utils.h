@@ -6,13 +6,16 @@
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
 
-#define COMMITMENTS_NONE 0
-#define COMMITMENTS_BLINDERS 1
-#define COMMITMENTS_BLINDING_KEY 2
-#define COMMITMENTS_VALUE_BLIND_PROOF 4
-#define COMMITMENTS_INCLUDES_COMMITMENTS 8
+#define COMMITMENTS_NONE 0x0
+#define COMMITMENTS_ABF 0x1
+#define COMMITMENTS_VBF 0x2
+#define COMMITMENTS_BLINDING_KEY 0x4
+#define COMMITMENTS_ASSET_BLIND_PROOF 0x8
+#define COMMITMENTS_VALUE_BLIND_PROOF 0x10
+#define COMMITMENTS_INCLUDES_COMMITMENTS 0x20
 
 typedef struct {
+    uint8_t asset_blind_proof[ASSET_EXPLICIT_SURJECTIONPROOF_LEN];
     uint8_t value_blind_proof[ASSET_EXPLICIT_RANGEPROOF_MAX_LEN];
     uint8_t asset_generator[ASSET_GENERATOR_LEN];
     uint8_t value_commitment[ASSET_COMMITMENT_LEN];

@@ -193,20 +193,35 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
 
     commitment->content = COMMITMENTS_NONE;
 
-    if (!rpc_get_n_bytes("abf", item, sizeof(commitment->abf), commitment->abf)) {
+    // Need abf or asset_blind_proof
+    if (rpc_get_n_bytes("abf", item, sizeof(commitment->abf), commitment->abf)) {
+        commitment->content |= COMMITMENTS_ABF;
+    }
+
+    if (rpc_get_n_bytes(
+            "asset_blind_proof", item, sizeof(commitment->asset_blind_proof), commitment->asset_blind_proof)) {
+        commitment->content |= COMMITMENTS_ASSET_BLIND_PROOF;
+    }
+
+    if (!(commitment->content & (COMMITMENTS_ABF | COMMITMENTS_ASSET_BLIND_PROOF))) {
         return false;
     }
 
-    // Need a vbf *or* a value_blind_proof
-    if (!rpc_get_n_bytes("vbf", item, sizeof(commitment->vbf), commitment->vbf)) {
-        size_t written = 0;
-        rpc_get_bytes(
-            "value_blind_proof", sizeof(commitment->value_blind_proof), item, commitment->value_blind_proof, &written);
-        if (!written) {
-            return false;
-        }
+    // Need vbf or value_blind_proof
+    if (rpc_get_n_bytes("vbf", item, sizeof(commitment->vbf), commitment->vbf)) {
+        commitment->content |= COMMITMENTS_VBF;
+    }
+
+    size_t written = 0;
+    rpc_get_bytes(
+        "value_blind_proof", sizeof(commitment->value_blind_proof), item, commitment->value_blind_proof, &written);
+    if (written && written <= sizeof(commitment->value_blind_proof)) {
         commitment->value_blind_proof_len = written;
         commitment->content |= COMMITMENTS_VALUE_BLIND_PROOF;
+    }
+
+    if (!(commitment->content & (COMMITMENTS_VBF | COMMITMENTS_VALUE_BLIND_PROOF))) {
+        return false;
     }
 
     if (!rpc_get_n_bytes("asset_id", item, sizeof(commitment->asset_id), commitment->asset_id)) {
@@ -217,10 +232,6 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
         return false;
     }
 
-    // Set flag to show struct is partially populated/initialised - no commitment overrides (yet).
-    // Passed blinders/unblinded values refer to commitments already present in the transaction outputs.
-    commitment->content |= COMMITMENTS_BLINDERS;
-
     // Blinding key is optional in some scenarios
     if (rpc_get_n_bytes("blinding_key", item, sizeof(commitment->blinding_key), commitment->blinding_key)) {
         commitment->content |= COMMITMENTS_BLINDING_KEY;
@@ -228,8 +239,8 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
 
     // Actual commitments are optional - but must be both commitments or neither.
     // If both are passed these will be copied into the tx and signed.
-    // If not passed, the above blinding factors must match what is already present in the transaction output.
-    // If just one commitment is passed it will be ignored.
+    // If not passed, the above blinding factors/proofs must match what is already present in the transaction output.
+    // Must be both or neither - error if only one commitment passed.
     if (rpc_has_field_data("asset_generator", item) || rpc_has_field_data("value_commitment", item)) {
         if (!rpc_get_n_bytes(
                 "asset_generator", item, sizeof(commitment->asset_generator), commitment->asset_generator)) {
@@ -316,24 +327,45 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
     *data = commitments;
 }
 
-#if defined(CONFIG_ESP32_SPIRAM_SUPPORT) || !defined(CONFIG_BT_ENABLED)
-// Workaround to run 'wally_explicit_rangeproof_verify()' on a temporary stack, as the
-// underlying libsecp call 'secp256k1_rangeproof_verify()' requires ~40kb of stack space.
-// NOTE: a device with BLE compiled in but without SPIRAM does not have sufficient free
-// memory to be able to do this verification, so atm we exclude it for those devices.
-static bool explicit_rangeproof_verify(void* ctx)
+#ifdef CONFIG_ESP32_SPIRAM_SUPPORT
+// Workaround to run 'wally_explicit_surjectionproof_verify()' and 'wally_explicit_rangeproof_verify()'
+// on a temporary stack, as the underlying libsecp calls require over 50kb of stack space.
+// NOTE: devices without SPIRAM do not have sufficient free memory to be able to do this verification,
+// so atm we exclude it for those devices.
+static bool verify_explicit_proofs(void* ctx)
 {
     JADE_ASSERT(ctx);
 
     const commitment_t* commitments = (const commitment_t*)ctx;
-    JADE_ASSERT(commitments->content & COMMITMENTS_BLINDERS);
+    JADE_ASSERT(commitments->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF));
     JADE_ASSERT(commitments->content & COMMITMENTS_INCLUDES_COMMITMENTS);
-    JADE_ASSERT(commitments->content & COMMITMENTS_VALUE_BLIND_PROOF);
 
-    return wally_explicit_rangeproof_verify(commitments->value_blind_proof, commitments->value_blind_proof_len,
-               commitments->value, commitments->value_commitment, sizeof(commitments->value_commitment),
-               commitments->asset_generator, sizeof(commitments->asset_generator))
-        == WALLY_OK;
+    if (commitments->content & COMMITMENTS_ASSET_BLIND_PROOF) {
+        uint8_t reversed_asset_id[sizeof(commitments->asset_id)];
+        reverse(reversed_asset_id, commitments->asset_id, sizeof(commitments->asset_id));
+
+        // NOTE: Appears to require ~52kb of stack space
+        if (wally_explicit_surjectionproof_verify(commitments->asset_blind_proof,
+                sizeof(commitments->asset_blind_proof), reversed_asset_id, sizeof(reversed_asset_id),
+                commitments->asset_generator, sizeof(commitments->asset_generator))
+            != WALLY_OK) {
+            // Failed to verify explicit asset proof
+            return false;
+        }
+    }
+
+    if (commitments->content & COMMITMENTS_VALUE_BLIND_PROOF) {
+        // NOTE: Appears to require ~40kb of stack space
+        if (wally_explicit_rangeproof_verify(commitments->value_blind_proof, commitments->value_blind_proof_len,
+                commitments->value, commitments->value_commitment, sizeof(commitments->value_commitment),
+                commitments->asset_generator, sizeof(commitments->asset_generator))
+            != WALLY_OK) {
+            // Failed to verify explicit value proof
+            return false;
+        }
+    }
+
+    return true;
 }
 #endif // CONFIG_ESP32_SPIRAM_SUPPORT || !CONFIG_BT_ENABLED
 
@@ -347,42 +379,37 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
         return false;
     }
 
-    // 1. Check the blinded asset commitment can be reconstructed
-    // (ie. from the given reversed asset_id and abf)
-    uint8_t reversed_asset_id[sizeof(commitments->asset_id)];
-    reverse(reversed_asset_id, commitments->asset_id, sizeof(commitments->asset_id));
-
-    uint8_t generator_tmp[sizeof(commitments->asset_generator)];
-    if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitments->abf,
-            sizeof(commitments->abf), generator_tmp, sizeof(generator_tmp))
-            != WALLY_OK
-        || sodium_memcmp(commitments->asset_generator, generator_tmp, sizeof(generator_tmp)) != 0) {
-        *errmsg = "Failed to verify blinded asset generator from commitments data";
+    if (!(commitments->content & (COMMITMENTS_ABF | COMMITMENTS_ASSET_BLIND_PROOF))
+        || !(commitments->content & (COMMITMENTS_VBF | COMMITMENTS_VALUE_BLIND_PROOF))) {
+        *errmsg = "Failed to extract blinding factors or proofs from commitments data";
         return false;
     }
 
-    // 2. Check the blinded value commitment
-    // Either:
-    // a) satisfies the provided 'value_blind_proof', or
-    // b) can be reconstructed (ie. from value, vbf, and asset generator)
-    // NOTE: only a device with SPIRAM has sufficient memory to be able to do this verification.
-    if (commitments->content & COMMITMENTS_VALUE_BLIND_PROOF) {
-#if defined(CONFIG_ESP32_SPIRAM_SUPPORT) || !defined(CONFIG_BT_ENABLED)
-        // Because the underlying libsecp call 'secp256k1_rangeproof_verify()' requires more stack
-        // space than is available to the main task, we run that function with a temporary stack.
-        const size_t stack_size = 40 * 1024; // 40kb seems sufficient
-        if (!run_on_temporary_stack(stack_size, explicit_rangeproof_verify, (void*)commitments)) {
-            *errmsg = "Failed to verify blinded value commitment using explicit rangeproof";
+    // 1. Asset generator
+    // If passed the abf, check the blinded asset commitment can be reconstructed
+    // (ie. from the given reversed asset_id and abf)
+    if (commitments->content & COMMITMENTS_ABF) {
+        uint8_t reversed_asset_id[sizeof(commitments->asset_id)];
+        reverse(reversed_asset_id, commitments->asset_id, sizeof(commitments->asset_id));
+
+        uint8_t generator_tmp[sizeof(commitments->asset_generator)];
+        if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitments->abf,
+                sizeof(commitments->abf), generator_tmp, sizeof(generator_tmp))
+                != WALLY_OK
+            || sodium_memcmp(commitments->asset_generator, generator_tmp, sizeof(generator_tmp)) != 0) {
+            *errmsg = "Failed to verify blinded asset generator from commitments data";
             return false;
         }
-#else
-        *errmsg = "Devices with radio enabled but without external SPIRAM are unable to verify rangeproof data";
-        return false;
-#endif // CONFIG_ESP32_SPIRAM_SUPPORT || !CONFIG_BT_ENABLED
-    } else {
+    }
+
+    // 2. Value commitment
+    // If passed the vbf, check the blinded value commitment can be reconstructed
+    // (ie. from the given value, asset_generator and vbf)
+    if (commitments->content & COMMITMENTS_VBF) {
         uint8_t commitment_tmp[sizeof(commitments->value_commitment)];
-        if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf), generator_tmp,
-                sizeof(generator_tmp), commitment_tmp, sizeof(commitment_tmp))
+        if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf),
+                commitments->asset_generator, sizeof(commitments->asset_generator), commitment_tmp,
+                sizeof(commitment_tmp))
                 != WALLY_OK
             || sodium_memcmp(commitments->value_commitment, commitment_tmp, sizeof(commitment_tmp)) != 0) {
             *errmsg = "Failed to verify blinded value commitment from commitments data";
@@ -390,6 +417,22 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
         }
     }
 
+    // Verify any blinded proofs
+    // NOTE: only a device with SPIRAM has sufficient memory to be able to do this verification.
+    if (commitments->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF)) {
+#ifdef CONFIG_ESP32_SPIRAM_SUPPORT
+        // Because the libsecp calls 'secp256k1_surjectionproof_verify()' and 'secp256k1_rangeproof_verify()'
+        // requires more stack space than is available to the main task, we run that function with a temporary stack.
+        const size_t stack_size = 54 * 1024; // 54kb seems sufficient
+        if (!run_on_temporary_stack(stack_size, verify_explicit_proofs, (void*)commitments)) {
+            *errmsg = "Failed to verify explicit asset/value commitment proofs";
+            return false;
+        }
+#else
+        *errmsg = "Devices without external SPIRAM are unable to verify explicit proofs";
+        return false;
+#endif // CONFIG_ESP32_SPIRAM_SUPPORT || !CONFIG_BT_ENABLED
+    }
     return true;
 }
 
@@ -402,7 +445,7 @@ static bool add_output_info(
     JADE_INIT_OUT_PPTR(errmsg);
 
     JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED)));
-    if (commitments->content & COMMITMENTS_BLINDERS) {
+    if (commitments->content != COMMITMENTS_NONE) {
         // Output to be confidential/blinded, use the commitments data
         outinfo->flags |= (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED);
 
