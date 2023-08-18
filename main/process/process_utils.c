@@ -1,3 +1,4 @@
+#include "../descriptor.h"
 #include "../identity.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
@@ -125,6 +126,31 @@ bool params_hashprevouts_outputindex(CborValue* params, const uint8_t** hash_pre
 
     if (!rpc_get_sizet("output_index", params, output_index)) {
         *errmsg = "Failed to extract output index from parameters";
+        return false;
+    }
+
+    return true;
+}
+
+// Read descriptor name and load the registration record.
+bool params_load_descriptor(CborValue* params, char* descriptor_name, const size_t descriptor_name_len,
+    descriptor_data_t* descriptor, const char** errmsg)
+{
+    JADE_ASSERT(params);
+    JADE_ASSERT(descriptor_name);
+    JADE_ASSERT(descriptor_name_len);
+    JADE_ASSERT(descriptor);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    size_t written = 0;
+    rpc_get_string("descriptor_name", descriptor_name_len, params, descriptor_name, &written);
+    if (written == 0) {
+        *errmsg = "Invalid descriptor name parameter";
+        return false;
+    }
+
+    if (!descriptor_load_from_storage(descriptor_name, descriptor, errmsg)) {
+        // 'errmsg' populated by above call
         return false;
     }
 

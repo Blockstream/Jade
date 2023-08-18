@@ -68,5 +68,6 @@ bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
 // Storage related functions
 bool descriptor_to_bytes(descriptor_data_t* descriptor, uint8_t* output_bytes, size_t output_len);
 bool descriptor_from_bytes(const uint8_t* bytes, size_t bytes_len, descriptor_data_t* descriptor);
+bool descriptor_load_from_storage(const char* descriptor_name, descriptor_data_t* output, const char** errmsg);
 
 #endif /* DESCRIPTOR_H_ */

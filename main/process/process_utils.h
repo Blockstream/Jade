@@ -108,6 +108,10 @@ bool params_identity_curve_index(CborValue* params, const char** identity, size_
 bool params_hashprevouts_outputindex(CborValue* params, const uint8_t** hash_prevouts, size_t* hash_prevouts_len,
     size_t* output_index, const char** errmsg);
 
+typedef struct _descriptor_data descriptor_data_t;
+bool params_load_descriptor(CborValue* params, char* descriptor_name, const size_t descriptor_name_len,
+    descriptor_data_t* descriptor, const char** errmsg);
+
 typedef struct _multisig_data multisig_data_t;
 bool params_load_multisig(CborValue* params, char* multisig_name, size_t multisig_name_len,
     multisig_data_t* multisig_data, const char** errmsg);

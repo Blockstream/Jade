@@ -1,6 +1,7 @@
 #include "descriptor.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
+#include "storage.h"
 #include "utils/malloc_ext.h"
 #include "utils/network.h"
 #include "utils/temporary_stack.h"
@@ -558,5 +559,35 @@ bool descriptor_from_bytes(const uint8_t* bytes, const size_t bytes_len, descrip
     // Check just got the hmac (checked first, above) left in the buffer
     JADE_ASSERT(read_ptr + HMAC_SHA256_LEN == bytes + bytes_len);
 
+    return true;
+}
+
+bool descriptor_load_from_storage(const char* descriptor_name, descriptor_data_t* output, const char** errmsg)
+{
+    JADE_ASSERT(descriptor_name);
+    JADE_ASSERT(output);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    size_t registration_len = 0;
+    uint8_t* const registration = JADE_MALLOC(MAX_DESCRIPTOR_BYTES_LEN); // Sufficient
+    if (!storage_get_descriptor_registration(
+            descriptor_name, registration, MAX_DESCRIPTOR_BYTES_LEN, &registration_len)) {
+        *errmsg = "Cannot find named descriptor wallet";
+        free(registration);
+        return false;
+    }
+
+    if (!descriptor_from_bytes(registration, registration_len, output)) {
+        *errmsg = "Cannot de-serialise descriptor wallet data";
+        free(registration);
+        return false;
+    }
+
+    // Sanity check data we are have loaded
+    if (output->script_len > sizeof(output->script) || output->num_values > MAX_ALLOWED_SIGNERS) {
+        *errmsg = "Descriptor wallet data invalid";
+    }
+
+    free(registration);
     return true;
 }
