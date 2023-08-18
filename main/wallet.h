@@ -57,6 +57,11 @@ bool wallet_search_for_multisig_script(script_variant_t script_variant, bool sor
     const struct ext_key* search_roots, size_t search_roots_len, size_t* index, size_t search_depth,
     const uint8_t* script, size_t script_len);
 
+typedef struct _descriptor_data descriptor_data_t;
+bool wallet_build_descriptor_script(const char* network, const char* descriptor_name,
+    const descriptor_data_t* descriptor, size_t multi_index, size_t index, uint8_t* output, size_t output_len,
+    size_t* written, const char** errmsg);
+
 void wallet_get_fingerprint(uint8_t* output, size_t output_len);
 bool wallet_get_hdkey(const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* output);
 bool wallet_get_xpub(const char* network, const uint32_t* path, size_t path_len, char** output);

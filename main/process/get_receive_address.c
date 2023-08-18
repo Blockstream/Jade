@@ -1,3 +1,4 @@
+#include "../descriptor.h"
 #include "../gui.h"
 #include "../jade_assert.h"
 #include "../keychain.h"
@@ -92,6 +93,38 @@ void get_receive_address_process(void* process_ptr)
             }
             p_master_blinding_key = multisig_master_blinding_key;
             master_blinding_key_len = sizeof(multisig_master_blinding_key);
+        }
+    } else if (rpc_has_field_data("descriptor_name", &params)) {
+        // Not valid for liquid wallets atm
+        if (isLiquidNetwork(network)) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Descriptor wallets not supported on liquid network", NULL);
+            goto cleanup;
+        }
+
+        // Load descriptor record
+        descriptor_data_t descriptor;
+        char descriptor_name[MAX_DESCRIPTOR_NAME_SIZE];
+        if (!params_load_descriptor(&params, descriptor_name, sizeof(descriptor_name), &descriptor, &errmsg)) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+            goto cleanup;
+        }
+
+        // The path is given in two parts - optional (change) branch and mandatory index pointer
+        size_t branch = 0, pointer = 0;
+        rpc_get_sizet("branch", &params, &branch); // optional
+        if (!rpc_get_sizet("pointer", &params, &pointer)) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters", NULL);
+            goto cleanup;
+        }
+
+        // Build a script pubkey for the passed parameters
+        if (!wallet_build_descriptor_script(
+                network, descriptor_name, &descriptor, branch, pointer, script, sizeof(script), &script_len, &errmsg)) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid descriptor script", NULL);
+            goto cleanup;
         }
     } else {
         uint32_t path[MAX_PATH_LEN];

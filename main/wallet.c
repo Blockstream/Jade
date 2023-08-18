@@ -1,4 +1,5 @@
 #include "wallet.h"
+#include "descriptor.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "keychain.h"
@@ -851,6 +852,32 @@ bool wallet_search_for_multisig_script(const script_variant_t script_variant, co
         }
     }
     return found;
+}
+
+bool wallet_build_descriptor_script(const char* network, const char* descriptor_name,
+    const descriptor_data_t* descriptor, const size_t multi_index, const size_t index, uint8_t* output,
+    const size_t output_len, size_t* written, const char** errmsg)
+{
+    JADE_ASSERT(keychain_get());
+
+    if (!isValidNetwork(network) || !descriptor_name || !descriptor || !output || !output_len || !errmsg) {
+        return false;
+    }
+
+    uint8_t* p_script = NULL;
+    size_t script_len = 0;
+    if (!descriptor_to_script(
+            descriptor_name, descriptor, network, multi_index, index, NULL, &p_script, &script_len, errmsg)
+        || !script_len || script_len > output_len) {
+        return false;
+    }
+
+    // Copy allocated script into passed buffer and free allocation
+    memcpy(output, p_script, script_len);
+    *written = script_len;
+    free(p_script);
+
+    return true;
 }
 
 // Function to compute an anti-exfil signer commitment with a derived key for a given
