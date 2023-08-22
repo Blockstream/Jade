@@ -1,4 +1,5 @@
 #include "../button_events.h"
+#include "../descriptor.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
@@ -92,6 +93,36 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                 if (!wallet_build_multisig_script(multisig_data.variant, multisig_data.sorted, multisig_data.threshold,
                         pubkeys, written, script, sizeof(script), &script_len)) {
                     *errmsg = "Failed to generate valid multisig script";
+                    return false;
+                }
+            } else if (rpc_has_field_data("descriptor_name", &arrayItem)) {
+                // Not valid for liquid wallets atm
+                if (isLiquidNetwork(network)) {
+                    *errmsg = "Descriptor wallets not supported on liquid network";
+                    return false;
+                }
+
+                // Load descriptor record
+                descriptor_data_t descriptor;
+                char descriptor_name[MAX_DESCRIPTOR_NAME_SIZE];
+                if (!params_load_descriptor(
+                        &arrayItem, descriptor_name, sizeof(descriptor_name), &descriptor, errmsg)) {
+                    // 'errmsg' populated by above call
+                    return false;
+                }
+
+                // The path is given in two parts - optional (change) branch and mandatory index pointer
+                size_t branch = 0, pointer = 0;
+                rpc_get_sizet("branch", &arrayItem, &branch); // optional
+                if (!rpc_get_sizet("pointer", &arrayItem, &pointer)) {
+                    *errmsg = "Failed to extract path elements from parameters";
+                    return false;
+                }
+
+                // Build a script pubkey for the passed parameters
+                if (!wallet_build_descriptor_script(network, descriptor_name, &descriptor, branch, pointer, script,
+                        sizeof(script), &script_len, errmsg)) {
+                    *errmsg = "Failed to generate valid descriptor script";
                     return false;
                 }
             } else {
