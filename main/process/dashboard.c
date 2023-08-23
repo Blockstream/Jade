@@ -60,7 +60,7 @@ typedef struct {
 } home_menu_item_t;
 
 // Menus for the HOME_SCREEN_TYPE_XXX values above
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
 #define NUM_HOME_SCREEN_MENU_ENTRIES 3
 #else
 #define NUM_HOME_SCREEN_MENU_ENTRIES 2
@@ -69,21 +69,21 @@ typedef struct {
 home_menu_item_t home_menu_items[HOME_SCREEN_TYPE_NUM_STATES][NUM_HOME_SCREEN_MENU_ENTRIES] = {
     // Uninitialised
     { { .symbol = "1", .text = "  Setup Jade", .btn_id = BTN_INITIALIZE },
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
         { .symbol = "2", .text = " Scan SeedQR", .btn_id = BTN_SCAN_SEEDQR },
 #endif
         { .symbol = "3", .text = "    Options", .btn_id = BTN_SETTINGS } },
 
     // Initialised/Locked
     { { .symbol = "5", .text = " Unlock Jade", .btn_id = BTN_CONNECT },
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
         { .symbol = "2", .text = "   QR Mode", .btn_id = BTN_QR_MODE },
 #endif
         { .symbol = "3", .text = "    Options", .btn_id = BTN_SETTINGS } },
 
     // Active/Unlocked/Ready
     { { .symbol = "4", .text = "    Session", .btn_id = BTN_SESSION },
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
         { .symbol = "2", .text = "   Scan QR", .btn_id = BTN_SCAN_QR },
 #endif
         { .symbol = "3", .text = "    Options", .btn_id = BTN_SETTINGS } }

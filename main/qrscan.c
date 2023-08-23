@@ -170,7 +170,7 @@ bool jade_camera_scan_qr(qr_data_t* qr_data, const char* text_label, const char*
 
     // Any scanned qr code will be in the qr_data passed
     return qr_data->len > 0;
-#else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+#else // CONFIG_HAS_CAMERA
     JADE_LOGW("No camera supported for this device");
     await_error_activity("No camera detected");
     return false;

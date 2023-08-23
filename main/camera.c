@@ -54,7 +54,7 @@ void camera_set_debug_image(const uint8_t* data, const size_t len)
 }
 #endif
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
 // Signal to the caller that we are done, and await our death
 static void post_exit_event_and_await_death(void)
 {
@@ -300,7 +300,7 @@ static void jade_camera_task(void* data)
     }
     post_exit_event_and_await_death();
 }
-#endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+#endif // CONFIG_HAS_CAMERA
 
 void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* text_label, const char* text_button,
     const char* help_url, progress_bar_t* progress_bar)
@@ -349,7 +349,7 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* t
     // Remove the minimum idle timeout
     idletimer_set_min_timeout_secs(0);
 
-#else // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+#else // CONFIG_HAS_CAMERA
     JADE_LOGW("No camera supported for this device");
     await_error_activity("No camera detected");
 #endif

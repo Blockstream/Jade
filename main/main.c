@@ -62,7 +62,7 @@ static void ensure_boot_flags(void)
 #endif
 }
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_HAS_CAMERA)
 static bool rnd_camera_feed(
     const size_t width, const size_t height, const uint8_t* data, const size_t len, void* ctx_data)
 {
@@ -73,7 +73,7 @@ static bool rnd_camera_feed(
     refeed_entropy(data, len);
     return ++*counter > 10;
 }
-#endif // CONFIG_BOARD_TYPE_JADE || CONFIG_BOARD_TYPE_JADE_V1_1
+#endif // CONFIG_HAS_CAMERA
 
 static void boot_process(void)
 {

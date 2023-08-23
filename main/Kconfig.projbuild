@@ -352,21 +352,25 @@ menu "Blockstream Jade"
         config GUI_DISPLAY_WINDOW_X1
             int "Gui Display Window X1 offset"
             range 0 1000
+            default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
             default 40
 
         config GUI_DISPLAY_WINDOW_Y1
             int "Gui Display Window Y1 offset"
             range 0 1000
+            default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
             default 53
 
         config GUI_DISPLAY_WINDOW_X2
             int "Gui Display Window X2 offset"
             range 0 1000
+            default 320 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
             default 280
 
         config GUI_DISPLAY_WINDOW_Y2
             int "Gui Display Window Y2 offset"
             range 0 1000
+            default 240 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
             default 188
 
         menu "Display Pin mapping"
