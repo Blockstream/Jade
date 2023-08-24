@@ -349,8 +349,8 @@ bool show_multisig_activity(const char* multisig_name, const bool is_sorted, con
     const bool initial_confirmation, const bool overwriting, const bool is_valid)
 {
     JADE_ASSERT(multisig_name);
-    JADE_ASSERT(threshold > 0);
-    JADE_ASSERT(num_signers >= threshold);
+    JADE_ASSERT(!is_valid || threshold > 0);
+    JADE_ASSERT(!is_valid || num_signers >= threshold);
     JADE_ASSERT(signer_details || !num_signer_details);
     JADE_ASSERT(wallet_fingerprint);
     JADE_ASSERT(wallet_fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);

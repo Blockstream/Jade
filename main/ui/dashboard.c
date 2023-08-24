@@ -296,7 +296,7 @@ gui_activity_t* make_wallet_settings_activity(void)
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = { { .txt = "Export Xpub", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_XPUB_EXPORT },
-        { .txt = "Registered Wallets", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_MULTISIG },
+        { .txt = "Registered Wallets", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_REGISTERED_WALLETS },
         { .txt = "BIP85", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP85 } };
 
     return make_menu_activity("Wallet", hdrbtns, 2, menubtns, 3);
@@ -472,7 +472,7 @@ gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item)
     return make_menu_activity("Bluetooth", hdrbtns, 2, menubtns, 2);
 }
 
-gui_activity_t* make_view_delete_wallet_activity(const char* wallet_name)
+gui_activity_t* make_view_delete_wallet_activity(const char* wallet_name, const bool allow_export)
 {
     JADE_ASSERT(wallet_name);
 
@@ -480,10 +480,15 @@ gui_activity_t* make_view_delete_wallet_activity(const char* wallet_name)
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = { { .txt = "Details", .font = GUI_DEFAULT_FONT, .ev_id = BTN_VIEW_WALLET },
-        { .txt = "Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_EXPORT_WALLET },
+        { .txt = "Delete", .font = GUI_DEFAULT_FONT, .ev_id = BTN_DELETE_WALLET },
         { .txt = "Delete", .font = GUI_DEFAULT_FONT, .ev_id = BTN_DELETE_WALLET } };
 
-    return make_menu_activity(wallet_name, hdrbtns, 2, menubtns, 3);
+    if (allow_export) {
+        menubtns[1].txt = "Export";
+        menubtns[1].ev_id = BTN_EXPORT_WALLET;
+    }
+
+    return make_menu_activity(wallet_name, hdrbtns, 2, menubtns, allow_export ? 3 : 2);
 }
 
 gui_activity_t* make_info_activity(const char* fw_version)

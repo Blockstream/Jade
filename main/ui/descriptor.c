@@ -154,10 +154,8 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
     const char* title = initial_confirmation ? "Register Descriptor" : "Registered Wallet";
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 2);
 
-    if (initial_confirmation) {
-        // Set the intially selected item to the 'Next' button
-        gui_set_activity_initial_selection(act, hdrbtns[1].btn);
-    }
+    // Set the intially selected item to the 'Next' button
+    gui_set_activity_initial_selection(act, hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());
@@ -227,9 +225,10 @@ bool show_view_descriptor_activity(const char* descriptor_name, const descriptor
 }
 
 static gui_activity_t* make_final_descriptor_summary_activities(
-    const char* descriptor_name, const bool overwriting, gui_activity_t** actname)
+    const char* descriptor_name, const bool initial_confirmation, const bool overwriting, gui_activity_t** actname)
 {
     JADE_ASSERT(descriptor_name);
+    JADE_ASSERT(!overwriting || initial_confirmation);
     JADE_INIT_OUT_PPTR(actname);
 
     const bool show_help_btn = false;
@@ -261,7 +260,12 @@ static gui_activity_t* make_final_descriptor_summary_activities(
         { .txt = overwrite_warning_1, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
         { .txt = overwrite_warning_2, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    gui_activity_t* const act = make_menu_activity("Register Wallet", hdrbtns, 2, menubtns, 3);
+    const char* title = initial_confirmation ? "Register Descriptor" : "Registered Wallet";
+    gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 3);
+
+    // Set the intially selected item to 'Discard' when confirming new record
+    // but to 'Retain' when viewing existing record.
+    gui_set_activity_initial_selection(act, hdrbtns[initial_confirmation ? 0 : 1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());
@@ -269,12 +273,15 @@ static gui_activity_t* make_final_descriptor_summary_activities(
     return act;
 }
 
-static bool show_final_descriptor_summary_activity(const char* descriptor_name, const bool overwriting)
+static bool show_final_descriptor_summary_activity(
+    const char* descriptor_name, const bool initial_confirmation, const bool overwriting)
 {
     JADE_ASSERT(descriptor_name);
+    JADE_ASSERT(!overwriting || initial_confirmation);
 
     gui_activity_t* act_name = NULL;
-    gui_activity_t* act_summary = make_final_descriptor_summary_activities(descriptor_name, overwriting, &act_name);
+    gui_activity_t* act_summary
+        = make_final_descriptor_summary_activities(descriptor_name, initial_confirmation, overwriting, &act_name);
     gui_activity_t* act = act_summary;
     int32_t ev_id;
 
@@ -341,7 +348,7 @@ bool show_descriptor_activity(const char* descriptor_name, const descriptor_data
                 break;
             }
         } else if (screen > descriptor->num_values) {
-            confirmed = show_final_descriptor_summary_activity(descriptor_name, overwriting);
+            confirmed = show_final_descriptor_summary_activity(descriptor_name, initial_confirmation, overwriting);
             if (confirmed) {
                 // User pressed 'confirm'
                 break;
