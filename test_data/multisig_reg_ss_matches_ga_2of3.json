@@ -1,7 +1,7 @@
 {
   "input": {
     "network": "testnet",
-    "multisig_name": "matches_ga_2of3",
+    "multisig_name": "matches_ga",
     "descriptor": {
       "variant": "sh(wsh(multi(k)))",
       "sorted": false,

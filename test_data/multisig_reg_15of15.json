@@ -1,7 +1,7 @@
 {
   "input": {
     "network": "testnet",
-    "multisig_name": "thefullmonty",
+    "multisig_name": "test_multisig",
     "descriptor": {
       "variant": "wsh(multi(k))",
       "sorted": true,

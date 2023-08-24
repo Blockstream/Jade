@@ -2348,7 +2348,7 @@ def test_liquid_blinded_commitments(jadeapi):
     # 4b4a27e482eff9dbaa52e7bada4cd7115c299c8e6ac8ebbd20e8d923ad2dad00
     # - and gets the same blinders and the same final signatures.
 
-    ledger_txs = list(_get_test_cases("liquid_txn_ledger_compare.json"))
+    ledger_txs = list(_get_test_cases('liquid_txn_ledger_compare.json'))
     assert len(ledger_txs) == 1
     ledger_commitments = ledger_txs[0]['input']['trusted_commitments']
     assert len(ledger_commitments) == 3
@@ -2497,6 +2497,20 @@ def test_generic_multisig_registration(jadeapi):
     for multisig_data in _get_test_cases(MULTI_REG_TESTS):
         _check_multisig_registration(jadeapi, multisig_data)
 
+    # Ensure the 1of1 is registered at the end - same name will be used to overwrite
+    # any large test cases (eg. nof15) that otherwise consume all the storage space.
+    for multisig_data in _get_test_cases('test_data/multisig_reg_1of1.json'):
+        inputdata = multisig_data['input']
+        descriptor = inputdata['descriptor']
+        rslt = jadeapi.register_multisig(inputdata['network'],
+                                         inputdata['multisig_name'],
+                                         descriptor['variant'],
+                                         descriptor['sorted'],
+                                         descriptor['threshold'],
+                                         descriptor['signers'],
+                                         master_blinding_key=descriptor.get('master_blinding_key'))
+        assert rslt
+
 
 def test_generic_multisig_files(jadeapi):
     # Check these multisig files load ok
@@ -2537,7 +2551,7 @@ def test_generic_multisig_matches_ga_addresses(jadeapi):
     # This test checks that the generic multisig wallets 'matches_ga', do...
     # ie. if I use the standard ga receive-address, I get the same result as
     # that using 'generic multisig' (as the co-signers are set-up to match green)
-    matching_ga_msigs = _get_test_cases("multisig_reg_*matches_ga_*.json")
+    matching_ga_msigs = _get_test_cases('multisig_reg_*matches_ga_*.json')
     for ga_msig in matching_ga_msigs:
         inputdata = ga_msig['input']
         signers = inputdata['descriptor']['signers']
@@ -2609,10 +2623,20 @@ def test_generic_multisig_matches_ga_addresses(jadeapi):
 
 def test_generic_multisig_matches_ga_signatures(jadeapi):
     # Sign txns using generic multisig registration - should get same sigs as ga
-    ga_2of2_multisig_data = list(_get_test_cases("multisig_reg_matches_ga_2of2.json"))
+    ga_2of2_multisig_data = list(_get_test_cases('multisig_reg_matches_ga_2of2.json'))
     assert len(ga_2of2_multisig_data) == 1
-    ga_2of2_multisig_name = ga_2of2_multisig_data[0]['input']['multisig_name']
+    inputdata = ga_2of2_multisig_data[0]['input']
+    descriptor = inputdata['descriptor']
+    rslt = jadeapi.register_multisig(inputdata['network'],
+                                     inputdata['multisig_name'],
+                                     descriptor['variant'],
+                                     descriptor['sorted'],
+                                     descriptor['threshold'],
+                                     descriptor['signers'],
+                                     master_blinding_key=descriptor.get('master_blinding_key'))
+    assert rslt
 
+    ga_2of2_multisig_name = inputdata['multisig_name']
     MULTISIG_SIGN_TXS = ['txn_2of2_change.json', 'txn_segwit_multi_input.json']
     ga_2of2_multisig_txns = (list(_get_test_cases(testcase))[0] for testcase in MULTISIG_SIGN_TXS)
     for ga_msig in ga_2of2_multisig_txns:
@@ -2640,10 +2664,20 @@ def test_generic_multisig_matches_ga_signatures(jadeapi):
 
 def test_generic_multisig_matches_ga_signatures_liquid(jadeapi):
     # Sign liquid txns using generic multisig registration - should get same sigs as ga
-    ga_2of2_multisig_data = list(_get_test_cases("multisig_reg_liquid_matches_ga_2of2.json"))
+    ga_2of2_multisig_data = list(_get_test_cases('multisig_reg_liquid_matches_ga_2of2.json'))
     assert len(ga_2of2_multisig_data) == 1
-    ga_2of2_multisig_name = ga_2of2_multisig_data[0]['input']['multisig_name']
+    inputdata = ga_2of2_multisig_data[0]['input']
+    descriptor = inputdata['descriptor']
+    rslt = jadeapi.register_multisig(inputdata['network'],
+                                     inputdata['multisig_name'],
+                                     descriptor['variant'],
+                                     descriptor['sorted'],
+                                     descriptor['threshold'],
+                                     descriptor['signers'],
+                                     master_blinding_key=descriptor.get('master_blinding_key'))
+    assert rslt
 
+    ga_2of2_multisig_name = inputdata['multisig_name']
     MULTISIG_SIGN_TXS = ['liquid_txn_lowr_nochange.json', 'liquid_txn_noncsv.json']
     ga_2of2_multisig_txns = (list(_get_test_cases(testcase))[0] for testcase in MULTISIG_SIGN_TXS)
     for ga_msig in ga_2of2_multisig_txns:

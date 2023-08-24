@@ -1,20 +1,12 @@
 {
   "input": {
     "network": "mainnet",
-    "multisig_name": "2of3_qr_example",
+    "multisig_name": "2of2_qr_example",
     "descriptor": {
       "variant": "sh(wsh(multi(k)))",
       "sorted": false,
       "threshold": 2,
       "signers": [
-        {
-          "fingerprint": "96a5a9df",
-          "derivation": [
-            3
-          ],
-          "xpub": "xpub68zijUK3CmyCqTMA4bYKqYmYs5Q5HBRk8y4nDpu7Jb2FZYuEy1poxDGtnrrzQkzrLnLmDhSydEAecJBQcCPqusyXc3WNzSqHSuyRejQthY8",
-          "path": []
-        },
         {
           "fingerprint": "e3ebcc79",
           "derivation": [
@@ -48,12 +40,9 @@
         [
           0,
           1
-        ],
-        [
-          1
         ]
       ],
-      "expected_address": "3MFpyehSGEMDkPth7oJj29NcXe7NngEJ95"
+      "expected_address": "3MrWdmrk65DcuXXVNbXubyJo6fSma21Xx9"
     },
     {
       "paths": [
@@ -64,13 +53,9 @@
         [
           0,
           13
-        ],
-        [
-          0,
-          13
         ]
       ],
-      "expected_address": "3L4gCXbb2GxpHrbHphbEbWHBJ8MjyGSLxQ"
+      "expected_address": "36YsoiamjkEBbAPQd9Nv1DFWTYWWego4w5"
     },
     {
       "paths": [
@@ -81,13 +66,9 @@
         [
           0,
           377
-        ],
-        [
-          0,
-          377
         ]
       ],
-      "expected_address": "3KKAtuQQyxqFbpq46pR3SeoLg55nss7ip1"
+      "expected_address": "39SPyWf1s5rKxTLwh7a5HDzhEr6MaAD88H"
     }
   ]
 }

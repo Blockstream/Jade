@@ -1,7 +1,7 @@
 {
   "input": {
     "network": "testnet",
-    "multisig_name": "p2sh_2of2",
+    "multisig_name": "test_multisig",
     "descriptor": {
       "variant": "sh(multi(k))",
       "sorted": false,
