@@ -437,11 +437,14 @@ gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** labe
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 40, 35, 25);
         gui_set_parent(vsplit, parent);
 
-        // Label
+        // Updateable label
+        gui_make_fill(&node, TFT_BLACK);
+        gui_set_parent(node, vsplit);
+
         gui_make_text(label, "", TFT_WHITE);
         gui_set_padding(*label, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 0, 0);
         gui_set_align(*label, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(*label, vsplit);
+        gui_set_parent(*label, node);
     } else {
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 25, 35, 40);
         gui_set_parent(vsplit, parent);
