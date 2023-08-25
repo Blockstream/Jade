@@ -2951,6 +2951,13 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # Test update pinserver details
     test_set_pinserver(jadeapi)
 
+    # Test generic multisig
+    test_generic_multisig_registration(jadeapi)
+    test_generic_multisig_matches_ga_addresses(jadeapi)
+    test_generic_multisig_matches_ga_signatures(jadeapi)
+    test_generic_multisig_matches_ga_signatures_liquid(jadeapi)
+    test_generic_multisig_files(jadeapi)
+
     # Get (receive) green-addresses, get-xpub, and sign-message
     test_get_greenaddress_receive_address(jadeapi)
     test_get_xpubs(jadeapi)
@@ -2969,13 +2976,6 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # Test sign psbts (app-generated cases)
     test_sign_psbt(jadeapi, SIGN_PSBT_TESTS)
 
-    # Test generic multisig
-    test_generic_multisig_registration(jadeapi)
-    test_generic_multisig_matches_ga_addresses(jadeapi)
-    test_generic_multisig_matches_ga_signatures(jadeapi)
-    test_generic_multisig_matches_ga_signatures_liquid(jadeapi)
-    test_generic_multisig_files(jadeapi)
-
     # Short sanity-test of 12-word mnemonic
     test_12word_mnemonic(jadeapi)
 
@@ -2984,17 +2984,17 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.set_seed(bytes.fromhex(TEST_SEED_SINGLE_SIG))
     assert rslt is True
 
+    # Test the generic multisigs again, using a second signer
+    # NOTE: some of these tests assume 'test_generic_multisig_registration()' test
+    # has already been run, to register the multisigs for the test mnemonic signer
+    test_generic_multisig_ss_signer(jadeapi)
+
     test_get_singlesig_receive_address(jadeapi)
     test_sign_tx(jadeapi, SIGN_TXN_SINGLE_SIG_TESTS)
     test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
 
     # Test sign psbts (HWI-generated cases)
     test_sign_psbt(jadeapi, SIGN_PSBT_SS_TESTS)
-
-    # Test the generic multisigs again, using a second signer
-    # NOTE: some of these tests assume 'test_generic_multisig_registration()' test
-    # has already been run, to register the multisigs for the test mnemonic signer
-    test_generic_multisig_ss_signer(jadeapi)
 
     # Sign identity (ssh & gpg) tests require a specific mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12_IDENTITY)

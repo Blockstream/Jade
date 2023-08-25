@@ -411,7 +411,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     script_flavour_t aggregate_inputs_scripts_flavour = SCRIPT_FLAVOUR_NONE;
 
     // Output info
-    output_info_t* output_info = JADE_CALLOC(psbt->num_outputs, sizeof(output_info_t));
+    output_info_t* const output_info = JADE_CALLOC(psbt->num_outputs, sizeof(output_info_t));
 
     // Go through each of the inputs summing amounts
     // Also, if we are signing this input, inspect the script type and any multisig info
@@ -419,7 +419,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     bool* const signing_inputs = JADE_CALLOC(psbt->num_inputs, sizeof(bool));
     uint64_t input_amount = 0;
     uint8_t signing_flags = 0;
-    multisig_data_t multisig_data;
+    multisig_data_t* const multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
     for (size_t index = 0; index < psbt->num_inputs; ++index) {
         struct wally_psbt_input* input = &psbt->inputs[index];
 
@@ -475,7 +475,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                     JADE_ASSERT(path_tail_start <= path_len);
                     const size_t path_tail_len = path_len - path_tail_start;
 
-                    if (!verify_multisig_script_matches(&multisig_data, &path[path_tail_start], path_tail_len,
+                    if (!verify_multisig_script_matches(multisig_data, &path[path_tail_start], path_tail_len,
                             &input->keypaths, utxo->script, utxo->script_len)) {
                         // Previously found record does now work for this input.  Abandon multisig change detection.
                         JADE_LOGW(
@@ -486,7 +486,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                 } else {
                     // Search all multisig records looking for one that fits this input
                     if (get_suitable_multisig_record(
-                            &input->keypaths, our_key_index, utxo->script, utxo->script_len, &multisig_data)) {
+                            &input->keypaths, our_key_index, utxo->script, utxo->script_len, multisig_data)) {
                         JADE_LOGI("Signing multisig - registered record found");
                         signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
                     } else {
@@ -510,7 +510,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
     // Examine outputs for change we can automatically validate
     if (signing_flags) {
-        validate_any_change_outputs(network, psbt, signing_flags, &multisig_data, output_info, &hdkey);
+        validate_any_change_outputs(network, psbt, signing_flags, multisig_data, output_info, &hdkey);
     }
 
     // User to verify outputs and fee amount
@@ -591,6 +591,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 cleanup:
     SENSITIVE_POP(&hdkey);
     JADE_WALLY_VERIFY(wally_tx_free(tx));
+    free(multisig_data);
     free(signing_inputs);
     free(output_info);
     return retval;
@@ -696,14 +697,15 @@ void sign_psbt_process(void* process_ptr)
     rpc_get_id(&process->ctx.value, original_id, sizeof(original_id), &original_id_len);
 
     const int nmsgs = (psbt_len_out / PSBT_OUT_CHUNK_SIZE) + 1;
-    uint8_t buf[MAX_OUTPUT_MSG_SIZE];
+    uint8_t* const msgbuf = JADE_MALLOC(MAX_OUTPUT_MSG_SIZE);
     uint8_t* chunk = psbt_bytes_out;
     for (size_t imsg = 0; imsg < nmsgs; ++imsg) {
         JADE_ASSERT(chunk < psbt_bytes_out + psbt_len_out);
         const size_t remaining = psbt_bytes_out + psbt_len_out - chunk;
         const size_t chunk_len = remaining < PSBT_OUT_CHUNK_SIZE ? remaining : PSBT_OUT_CHUNK_SIZE;
         const size_t seqnum = imsg + 1;
-        jade_process_reply_to_message_bytes_sequence(process->ctx, seqnum, nmsgs, chunk, chunk_len, buf, sizeof(buf));
+        jade_process_reply_to_message_bytes_sequence(
+            process->ctx, seqnum, nmsgs, chunk, chunk_len, msgbuf, MAX_OUTPUT_MSG_SIZE);
         chunk += chunk_len;
 
         if (seqnum < nmsgs) {
@@ -713,6 +715,7 @@ void sign_psbt_process(void* process_ptr)
                 // Protocol error
                 jade_process_reject_message(
                     process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'get_extended_data'", NULL);
+                free(msgbuf);
                 goto cleanup;
             }
 
@@ -722,10 +725,12 @@ void sign_psbt_process(void* process_ptr)
                 // Protocol error
                 jade_process_reject_message(
                     process, CBOR_RPC_PROTOCOL_ERROR, "Mismatched fields in 'get_extended_data' message", NULL);
+                free(msgbuf);
                 goto cleanup;
             }
         }
     }
+    free(msgbuf);
 
     JADE_LOGI("Success");
 

@@ -227,14 +227,16 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
     JADE_INIT_OUT_PPTR(errmsg);
 
     size_t written = 0;
-    uint8_t registration[MAX_MULTISIG_BYTES_LEN]; // Sufficient
-    if (!storage_get_multisig_registration(multisig_name, registration, sizeof(registration), &written)) {
+    uint8_t* const registration = JADE_MALLOC(MAX_MULTISIG_BYTES_LEN); // Sufficient
+    if (!storage_get_multisig_registration(multisig_name, registration, MAX_MULTISIG_BYTES_LEN, &written)) {
         *errmsg = "Cannot find named multisig wallet";
+        free(registration);
         return false;
     }
 
     if (!multisig_data_from_bytes(registration, written, output)) {
         *errmsg = "Cannot de-serialise multisig wallet data";
+        free(registration);
         return false;
     }
 
@@ -245,6 +247,7 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
         *errmsg = "Multisig wallet data invalid";
     }
 
+    free(registration);
     return true;
 }
 
