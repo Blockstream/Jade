@@ -5,6 +5,7 @@
   "expected_result": {
     "multisig_name": "Jade_File_Test",
     "variant": "wsh(multi(k))",
+    "sorted": false,
     "threshold": 1,
     "num_signers": 2
   }

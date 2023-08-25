@@ -20,6 +20,7 @@
 // Multisig registration file, field names
 static const char MSIG_FILE_NAME[] = "Name";
 static const char MSIG_FILE_FORMAT[] = "Format";
+static const char MSIG_FILE_SORTED[] = "Sorted";
 static const char MSIG_FILE_POLICY[] = "Policy";
 static const char MSIG_FILE_DERIVATION[] = "Derivation";
 
@@ -206,7 +207,8 @@ static bool split_line(
 #define FIELD_NAME 0x1
 #define FIELD_POLICY 0x2
 #define FIELD_FORMAT 0x4
-#define FIELD_DERIVATION 0x8
+#define FIELD_SORTED 0x8
+#define FIELD_DERIVATION 0x10
 
 // Match the current line to a specific trial field, passed as a char[]
 #define IS_FIELD(field) (name_len == sizeof(field) - 1 && !strncasecmp(field, read_ptr, name_len))
@@ -238,8 +240,10 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     size_t isigner = 0; // signers so far populated
     signer_t* signers = NULL;
 
+    // Optional 'sorted multi' field
+    bool sorted = true; // for historical reasons defaults to 'true'
+
     // Not supported by the file format ?
-    const bool sorted = true; // appears to be implied/default
     const uint8_t* blinding_key = NULL;
     const size_t blinding_key_len = 0;
 
@@ -355,6 +359,24 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
                 goto cleanup;
             }
             fields_read |= FIELD_FORMAT;
+        } else if (IS_FIELD(MSIG_FILE_SORTED)) {
+            if (fields_read & FIELD_SORTED) {
+                JADE_LOGE("Repeated sorted flag");
+                *errmsg = "Invalid multisig file";
+                goto cleanup;
+            }
+
+            // Sorted-multi?
+            if (!strcasecmp(value, "TRUE")) {
+                sorted = true;
+            } else if (!strcasecmp(value, "FALSE")) {
+                sorted = false;
+            } else {
+                JADE_LOGE("Invalid sorted flag: %s", value);
+                *errmsg = "Invalid sorted flag";
+                goto cleanup;
+            }
+            fields_read |= FIELD_SORTED;
         } else if (IS_FIELD(MSIG_FILE_DERIVATION)) {
             // "m/a/b/c/d" - accepts m/ or M/ as master, and h, H or ' as hardened indicators
             // NOTE: allowed to see derivation element multiple times (eg once per signer)
@@ -367,8 +389,9 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
             fields_read |= FIELD_DERIVATION;
         } else if (name_len == BIP32_KEY_FINGERPRINT_LEN * 2) {
             // Assume <fingerprint>: <xpub>
-            // Must have all other fields before we get to signers
-            if (fields_read != (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION)) {
+            // Must have all other mandatory fields before we get to signers
+            // (NOTE: for historical reasons 'sorted' field is optional)
+            if ((fields_read & ~FIELD_SORTED) != (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION)) {
                 JADE_LOGE("Insufficient information read from multisig file when signers reached: %u", fields_read);
                 *errmsg = "Insufficient information records";
                 goto cleanup;
@@ -448,8 +471,8 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     };
     JADE_LOGD("Processing multisig file complete: %u", fields_read);
 
-    // File exhausted - did we read all required data
-    if (fields_read != (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION)) {
+    // File exhausted - did we read all required data (Note: 'sorted' is optional)
+    if ((fields_read & ~FIELD_SORTED) != (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION)) {
         JADE_LOGE("Insufficient information read from multisig file: %u", fields_read);
         *errmsg = "Insufficient information records";
         goto cleanup;

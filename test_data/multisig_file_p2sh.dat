@@ -2,5 +2,6 @@ Name: Test p2sh with very long name
 Policy: 2 of 2
 Derivation: m/48'/0'/0'/0'
 Format: P2SH
+Sorted: True
 E3EBCC79: xpub6EWJLhf2M3Xb6uBhFYuxCDQfxoB58GtJomaCUiVfWGPwX7YuXvzmf8FttVw94WfkLLcsg54HM8xTaBC3RehKasxVURatHY88b4wFX3uRRU9
 8D688EA0: xpub6Ch41kHXUBgLjAPHeSZCC1v8emQ2x2BhDcRHcxbhSmqTV8AmGYh8xQdLzM5uPpvScYAMjcMFHL983xvuqYWtW1athULQ2W9mV37ZKbkMjML

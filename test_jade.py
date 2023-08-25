@@ -2513,7 +2513,7 @@ def test_generic_multisig_files(jadeapi):
         registered_multisigs = jadeapi.get_registered_multisigs()
         multisig_desc = registered_multisigs.get(expected_result['multisig_name'])
         assert multisig_desc is not None
-        assert multisig_desc['sorted']  # File load always implies sorted multi
+        assert multisig_desc['sorted'] == expected_result['sorted']
         assert multisig_desc['variant'] == expected_result['variant']
         assert multisig_desc['threshold'] == expected_result['threshold']
         assert multisig_desc['num_signers'] == expected_result['num_signers']

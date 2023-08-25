@@ -2,5 +2,6 @@ Name: Jade File Test
 Policy: 1 of 2
 Derivation: m/48'/0'/0'/2'
 Format: P2WSH
+Sorted: False
 E3EBCC79: xpub6DKw8J3a2uow2TiJn64sQCg8BFhuaVUG3Uk12jhQb3M9gQZpjGHFyBVpyheKRHPnk1WjR4X3n59xfUbN7X1Qw5pDVy3z2pb14pAMqKjDQnF
 8D688EA0: xpub6Ch41kHXUBgLjAPHeSZCC1v8emQ2x2BhDcRHcxbhSmqTV8AmGYh8xQdLzM5uPpvScYAMjcMFHL983xvuqYWtW1athULQ2W9mV37ZKbkMjML

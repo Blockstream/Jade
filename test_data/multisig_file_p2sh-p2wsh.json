@@ -5,6 +5,7 @@
   "expected_result": {
     "multisig_name": "Test_17characte",
     "variant": "sh(wsh(multi(k)))",
+    "sorted": false,
     "threshold": 2,
     "num_signers": 2
   }
