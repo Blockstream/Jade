@@ -1836,19 +1836,24 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
 
             const int pos_y = resolve_valign(0, node->text->valign);
 
-            uint8_t offset = 0;
-
+            uint8_t offset_x = 0;
+            uint8_t offset_y = 0;
+            char buf[2] = { '\0', '\0' };
             for (size_t i = 0; i < node->render_data.resolved_text_length; ++i) {
-                char buff[2];
+                buf[0] = node->render_data.resolved_text[i];
+                const int char_width = TFT_getStringWidth(buf);
+                if (pos_x + offset_x + char_width >= cs.x2 - cs.x1) {
+                    offset_y += TFT_getfontheight();
+                    offset_x = 0;
+                }
+
                 _fg = node->text->noise->background_color;
-                buff[0] = 0x61 + get_uniform_random_byte(0x7a - 0x61);
-                buff[1] = '\0';
-                TFT_print_in_area(buff, pos_x + offset, pos_y, cs);
+                buf[0] = 0x61 + get_uniform_random_byte(0x7a - 0x61);
+                TFT_print_in_area(buf, pos_x + offset_x, pos_y + offset_y, cs);
                 _fg = color;
-                buff[0] = node->render_data.resolved_text[i];
-                buff[1] = '\0';
-                TFT_print_in_area(buff, pos_x + offset, pos_y, cs);
-                offset += TFT_getStringWidth(buff);
+                buf[0] = node->render_data.resolved_text[i];
+                TFT_print_in_area(buf, pos_x + offset_x, pos_y + offset_y, cs);
+                offset_x += char_width;
             }
         } else { // without noise
             _fg = node->is_selected ? node->text->selected_color : node->text->color;
