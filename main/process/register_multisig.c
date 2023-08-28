@@ -24,9 +24,10 @@ static const char MSIG_FILE_SORTED[] = "Sorted";
 static const char MSIG_FILE_POLICY[] = "Policy";
 static const char MSIG_FILE_DERIVATION[] = "Derivation";
 
-bool show_confirm_multisig_activity(const char* multisig_name, bool is_sorted, size_t threshold,
-    const signer_t* signers, size_t num_signers, const char* master_blinding_key_hex, const uint8_t* wallet_fingerprint,
-    size_t wallet_fingerprint_len, bool overwriting);
+bool show_multisig_activity(const char* multisig_name, bool is_sorted, size_t threshold, size_t num_signers,
+    const signer_t* signer_details, const size_t num_signer_details, const char* master_blinding_key_hex,
+    const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting,
+    bool is_valid);
 
 // Function to validate multsig parameters and persist the record
 static int register_multisig(const char* multisig_name, const char* network, const script_variant_t script_variant,
@@ -105,8 +106,12 @@ static int register_multisig(const char* multisig_name, const char* network, con
     if (master_blinding_key_len) {
         JADE_WALLY_VERIFY(wally_hex_from_bytes(master_blinding_key, master_blinding_key_len, &master_blinding_key_hex));
     }
-    const bool confirmed = show_confirm_multisig_activity(multisig_name, sorted, threshold, signers, num_signers,
-        master_blinding_key_hex, wallet_fingerprint, sizeof(wallet_fingerprint), overwriting);
+    // Check to see whether user accepted or declined
+    const bool is_valid = true;
+    const bool initial_confirmation = true;
+    const bool confirmed = show_multisig_activity(multisig_name, sorted, threshold, num_signers, signers, num_signers,
+        master_blinding_key_hex, wallet_fingerprint, sizeof(wallet_fingerprint), initial_confirmation, overwriting,
+        is_valid);
     if (master_blinding_key_hex) {
         JADE_WALLY_VERIFY(wally_free_string(master_blinding_key_hex));
     }
