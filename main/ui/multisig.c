@@ -112,18 +112,8 @@ static gui_activity_t* make_view_multisig_activities(const char* multisig_name, 
     *actblindingkey = make_show_single_value_activity("Blinding Key", master_blinding_key_hex, show_help_btn);
 
     // Buttons - Delete and Next
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_RETAIN_CONFIRM },
-        { .txt = "X", .font = GUI_TITLE_FONT, .ev_id = BTN_MULTISIG_DISCARD_DELETE } };
-
-    // For initial confirmation, the 'back' button is 'discard' rather than 'retain'
-    // and the 'delete' button is replaced by a 'next' button.
-    if (initial_confirmation) {
-        hdrbtns[0].ev_id = BTN_MULTISIG_DISCARD_DELETE;
-
-        hdrbtns[1].txt = ">";
-        hdrbtns[1].font = JADE_SYMBOLS_16x16_FONT;
-        hdrbtns[1].ev_id = BTN_MULTISIG_RETAIN_CONFIRM;
-    }
+    btn_data_t hdrbtns[] = { { .txt = "X", .font = GUI_TITLE_FONT, .ev_id = BTN_MULTISIG_DISCARD_DELETE },
+        { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_RETAIN_CONFIRM } };
 
     btn_data_t menubtns[] = { { .content = splitname, .ev_id = BTN_MULTISIG_NAME },
         { .content = splittype, .ev_id = BTN_MULTISIG_TYPE }, { .content = splitsorted, .ev_id = BTN_MULTISIG_SORTED },
@@ -132,10 +122,8 @@ static gui_activity_t* make_view_multisig_activities(const char* multisig_name, 
     const char* title = initial_confirmation ? "Register Multisig" : "Registered Wallet";
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
 
-    if (initial_confirmation) {
-        // Set the intially selected item to the 'Next' button
-        gui_set_activity_initial_selection(act, hdrbtns[1].btn);
-    }
+    // Set the intially selected item to the 'Next' button
+    gui_set_activity_initial_selection(act, hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());
@@ -148,7 +136,7 @@ static gui_activity_t* make_view_multisig_activities(const char* multisig_name, 
 
 // multisig details screen for viewing or confirmation
 // returns true if we are to store/retain this record, false if we are to discard/delete the record
-bool show_view_multisig_activity(const char* multisig_name, const bool initial_confirmation, const bool is_valid,
+static bool show_view_multisig_activity(const char* multisig_name, const bool initial_confirmation, const bool is_valid,
     const bool is_sorted, const size_t threshold, const size_t num_signers, const char* master_blinding_key_hex)
 {
     JADE_ASSERT(multisig_name);
@@ -432,9 +420,14 @@ static bool show_multisig_signer_activity(
 }
 
 static gui_activity_t* make_final_multisig_summary_activities(const char* multisig_name, const size_t threshold,
-    const size_t num_signers, const bool overwriting, gui_activity_t** actname, gui_activity_t** acttype)
+    const size_t num_signers, const size_t num_signer_details, const bool initial_confirmation, const bool overwriting,
+    gui_activity_t** actname, gui_activity_t** acttype)
 {
     JADE_ASSERT(multisig_name);
+    JADE_ASSERT(threshold <= num_signers);
+    JADE_ASSERT(!overwriting || initial_confirmation);
+    JADE_ASSERT(num_signer_details <= num_signers);
+    JADE_ASSERT(num_signer_details == num_signers || !initial_confirmation);
     JADE_INIT_OUT_PPTR(actname);
     JADE_INIT_OUT_PPTR(acttype);
 
@@ -474,9 +467,18 @@ static gui_activity_t* make_final_multisig_summary_activities(const char* multis
 
     *acttype = make_show_single_value_activity("Type", typestr, show_help_btn);
 
-    // Show a warning if overwriting an existing registration
-    const char* overwrite_warning_1 = overwriting ? "WARNING" : NULL;
-    const char* overwrite_warning_2 = overwriting ? "Overwriting existing" : NULL;
+    // Show a warning if overwriting an existing registration or if signer details not available
+    const char* warning_1 = NULL;
+    const char* warning_2 = NULL;
+    if (overwriting) {
+        JADE_ASSERT(num_signer_details == num_signers);
+        warning_1 = "WARNING";
+        warning_2 = "Overwriting existing";
+    } else if (num_signer_details < num_signers) {
+        JADE_ASSERT(!initial_confirmation);
+        warning_1 = "Complete signer";
+        warning_2 = "Details unavailable";
+    }
 
     // Buttons - Delete and Next
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MULTISIG_DISCARD_DELETE },
@@ -484,10 +486,15 @@ static gui_activity_t* make_final_multisig_summary_activities(const char* multis
 
     btn_data_t menubtns[]
         = { { .content = splitname, .ev_id = BTN_MULTISIG_NAME }, { .content = splittype, .ev_id = BTN_MULTISIG_TYPE },
-              { .txt = overwrite_warning_1, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-              { .txt = overwrite_warning_2, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+              { .txt = warning_1, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+              { .txt = warning_2, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    gui_activity_t* const act = make_menu_activity("Register Multisig", hdrbtns, 2, menubtns, 4);
+    const char* title = initial_confirmation ? "Register Multisig" : "Registered Wallet";
+    gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
+
+    // Set the intially selected item to 'Discard' when confirming new record
+    // but to 'Retain' when viewing existing record.
+    gui_set_activity_initial_selection(act, hdrbtns[initial_confirmation ? 0 : 1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());
@@ -496,15 +503,18 @@ static gui_activity_t* make_final_multisig_summary_activities(const char* multis
     return act;
 }
 
-static bool show_final_multisig_summary_activity(
-    const char* multisig_name, const size_t threshold, const size_t num_signers, const bool overwriting)
+static bool show_final_multisig_summary_activity(const char* multisig_name, const size_t threshold,
+    const size_t num_signers, const size_t num_signer_details, const bool initial_confirmation, const bool overwriting)
 {
     JADE_ASSERT(multisig_name);
+    JADE_ASSERT(threshold <= num_signers);
+    JADE_ASSERT(num_signer_details <= num_signers);
+    JADE_ASSERT(!overwriting || initial_confirmation);
 
     gui_activity_t* act_name = NULL;
     gui_activity_t* act_type = NULL;
-    gui_activity_t* act_summary = make_final_multisig_summary_activities(
-        multisig_name, threshold, num_signers, overwriting, &act_name, &act_type);
+    gui_activity_t* act_summary = make_final_multisig_summary_activities(multisig_name, threshold, num_signers,
+        num_signer_details, initial_confirmation, overwriting, &act_name, &act_type);
     gui_activity_t* act = act_summary;
     int32_t ev_id;
 
@@ -545,16 +555,21 @@ static bool show_final_multisig_summary_activity(
     }
 }
 
-bool show_confirm_multisig_activity(const char* multisig_name, const bool is_sorted, const size_t threshold,
-    const signer_t* signers, const size_t num_signers, const char* master_blinding_key_hex,
-    const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len, const bool overwriting)
+bool show_multisig_activity(const char* multisig_name, const bool is_sorted, const size_t threshold,
+    const size_t num_signers, const signer_t* signer_details, const size_t num_signer_details,
+    const char* master_blinding_key_hex, const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len,
+    const bool initial_confirmation, const bool overwriting, const bool is_valid)
 {
     JADE_ASSERT(multisig_name);
     JADE_ASSERT(threshold > 0);
-    JADE_ASSERT(signers);
     JADE_ASSERT(num_signers >= threshold);
+    JADE_ASSERT(signer_details || !num_signer_details);
     JADE_ASSERT(wallet_fingerprint);
     JADE_ASSERT(wallet_fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);
+
+    // Overwriting only applies to intial confirmations - which cannot be invalid
+    JADE_ASSERT(!overwriting || initial_confirmation);
+    JADE_ASSERT(!initial_confirmation || is_valid);
 
     // NOTE: because multisig potentially has a lot of signers and info to display
     // we deal with the signers one at a time, rather than creating them all up-front.
@@ -562,34 +577,35 @@ bool show_confirm_multisig_activity(const char* multisig_name, const bool is_sor
     bool confirmed = false;
     uint8_t screen = 0; // 0 = initial summary, 1->n = signers, n+1 = final summary
     while (true) {
-        JADE_ASSERT(screen <= num_signers + 1);
+        JADE_ASSERT(screen <= num_signer_details + 1);
         if (screen == 0) {
-            const bool initial_confirmation = true;
-            const bool is_valid = true;
-            if (show_view_multisig_activity(multisig_name, initial_confirmation, is_valid, is_sorted, threshold,
-                    num_signers, master_blinding_key_hex)) {
-                // User pressed 'next'
+            confirmed = show_view_multisig_activity(multisig_name, initial_confirmation, is_valid, is_sorted, threshold,
+                num_signers, master_blinding_key_hex);
+            if (confirmed && is_valid) {
+                // Show more details
                 ++screen;
             } else {
-                // User rejected
-                confirmed = false;
+                // either details not valid or record has been rejected
                 break;
             }
-        } else if (screen > num_signers) {
-            if (show_final_multisig_summary_activity(multisig_name, threshold, num_signers, overwriting)) {
+        } else if (screen > num_signer_details) {
+            confirmed = show_final_multisig_summary_activity(
+                multisig_name, threshold, num_signers, num_signer_details, initial_confirmation, overwriting);
+            if (confirmed) {
                 // User pressed 'confirm'
-                confirmed = true;
                 break;
             } else {
                 // User pressed 'back'
                 --screen;
             }
         } else {
+            JADE_ASSERT(signer_details);
+
             // Free all existing activities between signers
             gui_set_current_activity_ex(act_clear, true);
 
             const uint8_t signer_index = screen - 1;
-            const signer_t* signer = signers + signer_index;
+            const signer_t* signer = signer_details + signer_index;
             const bool is_this_signer = !sodium_memcmp(signer->fingerprint, wallet_fingerprint, wallet_fingerprint_len);
             if (show_multisig_signer_activity(signer, signer_index + 1, num_signers, is_this_signer)) {
                 // User pressed 'next'

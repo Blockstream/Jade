@@ -183,8 +183,10 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
 
 gui_activity_t* make_pinserver_activity(void);
 
-bool show_view_multisig_activity(const char* multisig_name, bool initial_confirmation, bool is_valid, bool is_sorted,
-    size_t threshold, size_t num_signers, const char* master_blinding_key_hex);
+bool show_multisig_activity(const char* multisig_name, const bool is_sorted, const size_t threshold,
+    const size_t num_signers, const signer_t* signer_details, const size_t num_signer_details,
+    const char* master_blinding_key_hex, const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len,
+    bool initial_confirmation, bool overwriting, bool is_valid);
 
 gui_activity_t* make_session_activity(void);
 gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item);
@@ -907,24 +909,34 @@ static void handle_multisigs(void)
     }
 
     // Load selected multisig record from storage given the name
+    // Note we pass signer_t structs here to retrieve full signer details
     const char* errmsg = NULL;
     multisig_data_t multisig_data;
-    // NOTE: can extend to pass signer_t structs here if we want full signer details
-    const bool is_valid = multisig_load_from_storage(names[selected], &multisig_data, NULL, 0, NULL, &errmsg);
-    const bool initial_confirmation = false;
+    signer_t signer_details[MAX_MULTISIG_SIGNERS];
+    size_t num_signer_details = 0;
+    const bool is_valid = multisig_load_from_storage(names[selected], &multisig_data, signer_details,
+        sizeof(signer_details) / sizeof(signer_details[0]), &num_signer_details, &errmsg);
 
     // We will display the names of invalid entries, just log any message
     if (errmsg) {
         JADE_LOGW("%s", errmsg);
     }
 
+    uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+    wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
+
     char* master_blinding_key_hex = NULL;
     if (is_valid && multisig_data.master_blinding_key_len) {
         JADE_WALLY_VERIFY(wally_hex_from_bytes(
             multisig_data.master_blinding_key, multisig_data.master_blinding_key_len, &master_blinding_key_hex));
     }
-    if (!show_view_multisig_activity(names[selected], initial_confirmation, is_valid, multisig_data.sorted,
-            multisig_data.threshold, multisig_data.num_xpubs, master_blinding_key_hex)) {
+
+    // We are not confirming or writing-to-storage
+    const bool initial_confirmation = false;
+    const bool overwriting = false;
+    if (!show_multisig_activity(names[selected], multisig_data.sorted, multisig_data.threshold, multisig_data.num_xpubs,
+            signer_details, num_signer_details, master_blinding_key_hex, fingerprint, sizeof(fingerprint),
+            initial_confirmation, overwriting, is_valid)) {
         // Delete record
         delete_multisig_record(names[selected]);
     }
@@ -1843,7 +1855,9 @@ static void handle_settings(const bool startup_menu)
             break;
 
         case BTN_SETTINGS_MULTISIG:
+            // Potentialy shows so many screens, menu screen will have been freed
             handle_multisigs();
+            act = make_wallet_settings_activity();
             break;
 
         case BTN_SETTINGS_WALLET_ERASE_PIN:
