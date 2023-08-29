@@ -183,6 +183,7 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
 
 gui_activity_t* make_pinserver_activity(void);
 
+gui_activity_t* make_view_delete_wallet_activity(const char* wallet_name);
 bool show_multisig_activity(const char* multisig_name, const bool is_sorted, const size_t threshold,
     const size_t num_signers, const signer_t* signer_details, const size_t num_signer_details,
     const char* master_blinding_key_hex, const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len,
@@ -842,7 +843,7 @@ static void handle_ble(void) { await_message_activity("\n\n       BLE disabled i
 #endif // CONFIG_BT_ENABLED
 
 // Helper to delete a multisig record after user confirms
-static bool delete_multisig_record(const char* multisig_name)
+static bool offer_delete_multisig_record(const char* multisig_name)
 {
     JADE_ASSERT(multisig_name);
 
@@ -908,42 +909,107 @@ static void handle_multisigs(void)
         return;
     }
 
-    // Load selected multisig record from storage given the name
-    // Note we pass signer_t structs here to retrieve full signer details
-    const char* errmsg = NULL;
-    multisig_data_t multisig_data;
-    signer_t signer_details[MAX_MULTISIG_SIGNERS];
-    size_t num_signer_details = 0;
-    const bool is_valid = multisig_load_from_storage(names[selected], &multisig_data, signer_details,
-        sizeof(signer_details) / sizeof(signer_details[0]), &num_signer_details, &errmsg);
-    JADE_ASSERT(num_signer_details <= MAX_MULTISIG_SIGNERS);
+    // View/export/delete wallet
+    signer_t* const signer_details = JADE_MALLOC(MAX_MULTISIG_SIGNERS * sizeof(signer_t));
+    done = false;
+    while (!done) {
+        gui_activity_t* const act_wallet = make_view_delete_wallet_activity(names[selected]);
+        gui_set_current_activity_ex(act_wallet, true);
+        if (gui_activity_wait_event(act_wallet, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            if (ev_id == BTN_BACK) {
+                done = true;
+                continue;
+            }
 
-    // We will display the names of invalid entries, just log any message
-    if (errmsg) {
-        JADE_LOGW("%s", errmsg);
-    }
+            if (ev_id == BTN_DELETE_WALLET) {
+                done = offer_delete_multisig_record(names[selected]);
+                continue;
+            }
 
-    uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
-    wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
+            if (ev_id == BTN_EXPORT_WALLET || ev_id == BTN_VIEW_WALLET) {
+                // Load selected multisig record from storage given the name
+                // Note we pass signer_t structs here to retrieve full signer details
+                JADE_ASSERT(selected < num_multisigs);
+                const char* errmsg = NULL;
+                multisig_data_t multisig_data;
+                size_t num_signer_details = 0;
+                const bool is_valid = multisig_load_from_storage(names[selected], &multisig_data, signer_details,
+                    MAX_MULTISIG_SIGNERS, &num_signer_details, &errmsg);
+                JADE_ASSERT(num_signer_details <= MAX_MULTISIG_SIGNERS);
 
-    char* master_blinding_key_hex = NULL;
-    if (is_valid && multisig_data.master_blinding_key_len) {
-        JADE_WALLY_VERIFY(wally_hex_from_bytes(
-            multisig_data.master_blinding_key, multisig_data.master_blinding_key_len, &master_blinding_key_hex));
-    }
+                // We will display the names of invalid entries, just log any message
+                if (errmsg) {
+                    JADE_LOGW("%s", errmsg);
+                }
 
-    // We are not confirming or writing-to-storage
-    const bool initial_confirmation = false;
-    const bool overwriting = false;
-    if (!show_multisig_activity(names[selected], multisig_data.sorted, multisig_data.threshold, multisig_data.num_xpubs,
-            signer_details, num_signer_details, master_blinding_key_hex, fingerprint, sizeof(fingerprint),
-            initial_confirmation, overwriting, is_valid)) {
-        // Delete record
-        delete_multisig_record(names[selected]);
+                if (ev_id == BTN_EXPORT_WALLET) {
+                    if (!is_valid || num_signer_details != multisig_data.num_xpubs) {
+                        JADE_LOGW("Unable to export multisig details - invalid or incomplete");
+                        await_error_activity("\n\n      Unable to export\n        wallet details");
+                        continue;
+                    }
+
+                    // Warning for unsorted multisig, as this is not strictly handled by the origial
+                    // common file format and may not be supported by the imprting wallet.
+                    if (!multisig_data.sorted) {
+                        await_message_activity("\n   Exporting unsorted\n  multisig - ensure the\n   wallet app "
+                                               "supports\n     this configuration");
+                    }
+
+                    display_processing_message_activity();
+
+                    // Create output file
+                    const size_t output_len = MULTISIG_FILE_MAX_LEN(num_signer_details);
+                    char* const output = JADE_MALLOC(output_len);
+                    size_t written = 0;
+                    if (!multisig_create_export_file(names[selected], &multisig_data, signer_details,
+                            num_signer_details, output, output_len, &written)) {
+                        JADE_LOGE("Failed to export multisig details");
+                        await_error_activity("\n\n      Unable to export\n        wallet details");
+                        free(output);
+                        continue;
+                    }
+
+                    // Get as cbor bytes
+                    if (!display_bcur_bytes_qr(
+                            "  Export\n Multisig\n  wallet", (const uint8_t*)output, written, "blkstrm.com/wallets")) {
+                        JADE_LOGE("Failed to create multisig export details QR code");
+                        await_error_activity("\n\n      Unable to export\n        wallet details");
+                        free(output);
+                        continue;
+                    }
+
+                    // Done
+                    free(output);
+                } else {
+                    uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+                    wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
+
+                    char* master_blinding_key_hex = NULL;
+                    if (is_valid && multisig_data.master_blinding_key_len) {
+                        JADE_WALLY_VERIFY(wally_hex_from_bytes(multisig_data.master_blinding_key,
+                            multisig_data.master_blinding_key_len, &master_blinding_key_hex));
+                    }
+
+                    // We are not confirming or writing-to-storage
+                    const bool initial_confirmation = false;
+                    const bool overwriting = false;
+                    if (!show_multisig_activity(names[selected], multisig_data.sorted, multisig_data.threshold,
+                            multisig_data.num_xpubs, signer_details, num_signer_details, master_blinding_key_hex,
+                            fingerprint, sizeof(fingerprint), initial_confirmation, overwriting, is_valid)) {
+                        // Delete record ?
+                        done = offer_delete_multisig_record(names[selected]);
+                    }
+
+                    if (master_blinding_key_hex) {
+                        JADE_WALLY_VERIFY(wally_free_string(master_blinding_key_hex));
+                    }
+                }
+                continue;
+            }
+        }
     }
-    if (master_blinding_key_hex) {
-        JADE_WALLY_VERIFY(wally_free_string(master_blinding_key_hex));
-    }
+    free(signer_details);
 }
 
 static void set_wallet_erase_pin(void)
