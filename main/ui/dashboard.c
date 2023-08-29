@@ -468,6 +468,20 @@ gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item)
     return make_menu_activity("Bluetooth", hdrbtns, 2, menubtns, 2);
 }
 
+gui_activity_t* make_view_delete_wallet_activity(const char* wallet_name)
+{
+    JADE_ASSERT(wallet_name);
+
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t menubtns[] = { { .txt = "Details", .font = GUI_DEFAULT_FONT, .ev_id = BTN_VIEW_WALLET },
+        { .txt = "Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_EXPORT_WALLET },
+        { .txt = "Delete", .font = GUI_DEFAULT_FONT, .ev_id = BTN_DELETE_WALLET } };
+
+    return make_menu_activity(wallet_name, hdrbtns, 2, menubtns, 3);
+}
+
 gui_activity_t* make_info_activity(const char* fw_version)
 {
     JADE_ASSERT(fw_version);
