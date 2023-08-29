@@ -862,8 +862,8 @@ static void handle_multisigs(void)
     char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
     const size_t num_names = sizeof(names) / sizeof(names[0]);
     size_t num_multisigs = 0;
-    bool ok = storage_get_all_multisig_registration_names(names, num_names, &num_multisigs);
-    JADE_ASSERT(ok);
+    bool done = storage_get_all_multisig_registration_names(names, num_names, &num_multisigs);
+    JADE_ASSERT(done);
 
     if (num_multisigs == 0) {
         await_message_activity("\n\n   No additional wallets\n          registered");
@@ -877,19 +877,20 @@ static void handle_multisigs(void)
     gui_set_current_activity(act);
     int32_t ev_id;
 
-    bool done = false;
+    const size_t limit = num_multisigs + 1;
+    done = false;
     while (!done) {
-        JADE_ASSERT(selected < num_multisigs);
-        gui_update_text(walletname, names[selected]);
+        JADE_ASSERT(selected < limit);
+        gui_update_text(walletname, selected < num_multisigs ? names[selected] : "[Cancel]");
 
         if (gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
             switch (ev_id) {
             case GUI_WHEEL_LEFT_EVENT:
-                selected = (selected + num_multisigs - 1) % num_multisigs;
+                selected = (selected + limit - 1) % limit;
                 break;
 
             case GUI_WHEEL_RIGHT_EVENT:
-                selected = (selected + 1) % num_multisigs;
+                selected = (selected + 1) % limit;
                 break;
 
             default:
@@ -900,9 +901,12 @@ static void handle_multisigs(void)
             }
         }
     }
+    if (selected >= num_multisigs) {
+        // Back/exit
+        return;
+    }
 
     // Load selected multisig record from storage given the name
-    JADE_ASSERT(selected < num_multisigs);
     const char* errmsg = NULL;
     multisig_data_t multisig_data;
     const bool is_valid = multisig_load_from_storage(names[selected], &multisig_data, &errmsg);
@@ -1297,8 +1301,8 @@ static void handle_view_otps(void)
     char names[OTP_MAX_RECORDS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
     const size_t num_names = sizeof(names) / sizeof(names[0]);
     size_t num_otp_records = 0;
-    bool ok = storage_get_all_otp_names(names, num_names, &num_otp_records);
-    JADE_ASSERT(ok);
+    bool done = storage_get_all_otp_names(names, num_names, &num_otp_records);
+    JADE_ASSERT(done);
 
     if (num_otp_records == 0) {
         await_message_activity("\n\n      No OTP records\n          registered");
@@ -1312,19 +1316,20 @@ static void handle_view_otps(void)
     gui_set_current_activity(act);
     int32_t ev_id;
 
-    bool done = false;
+    const size_t limit = num_otp_records + 1;
+    done = false;
     while (!done) {
-        JADE_ASSERT(selected < num_otp_records);
-        gui_update_text(otpname, names[selected]);
+        JADE_ASSERT(selected <= limit);
+        gui_update_text(otpname, selected < num_otp_records ? names[selected] : "[Cancel]");
 
         if (gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
             switch (ev_id) {
             case GUI_WHEEL_LEFT_EVENT:
-                selected = (selected + num_otp_records - 1) % num_otp_records;
+                selected = (selected + limit - 1) % limit;
                 break;
 
             case GUI_WHEEL_RIGHT_EVENT:
-                selected = (selected + 1) % num_otp_records;
+                selected = (selected + 1) % limit;
                 break;
 
             default:
@@ -1334,6 +1339,10 @@ static void handle_view_otps(void)
                 }
             }
         }
+    }
+    if (selected >= num_otp_records) {
+        // Back/exit
+        return;
     }
 
     // Load selected OTP record from storage given the name

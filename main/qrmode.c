@@ -338,11 +338,7 @@ static bool select_multisig_record(char names[][MAX_MULTISIG_NAME_SIZE], const s
     const size_t limit = num_names + 1;
     while (true) {
         JADE_ASSERT(*selected < limit);
-        if (*selected < num_names) {
-            gui_update_text(item_text, names[*selected]);
-        } else {
-            gui_update_text(item_text, "< Cancel >");
-        }
+        gui_update_text(item_text, *selected < num_names ? names[*selected] : "[Cancel]");
 
         // wait for a GUI event
         int32_t ev_id = 0;
