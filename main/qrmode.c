@@ -1061,6 +1061,28 @@ static void bytes_to_qr_icon(const uint8_t* bytes, const size_t bytes_len, const
     qrcode_toIcon(&qrcode, qr_icon, scale_factor);
 }
 
+// Display a BC-UR bytes message
+bool display_bcur_bytes_qr(const char* label, const uint8_t* data, const size_t data_len, const char* help_url)
+{
+    JADE_ASSERT(label);
+    JADE_ASSERT(data);
+    JADE_ASSERT(data_len);
+
+    // Build BCUR message holding the bytes
+    uint8_t* cbor = NULL;
+    size_t cbor_len = 0;
+    if (!bcur_build_cbor_bytes(data, data_len, &cbor, &cbor_len)) {
+        JADE_LOGW("Failed to build cbor bytes message");
+        return false;
+    }
+
+    // Now display bcur QR
+    display_bcur_qr(label, BCUR_TYPE_BYTES, cbor, cbor_len, help_url);
+
+    free(cbor);
+    return true;
+}
+
 // Display screen with help url and qr code
 // Handles up to v6. codes - ie text up to 134 bytes
 // help_url is optional

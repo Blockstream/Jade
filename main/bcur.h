@@ -34,6 +34,7 @@ void bcur_build_cbor_crypto_hdkey(
     const uint32_t* path, size_t path_len, uint8_t* output, size_t output_len, size_t* written);
 void bcur_build_cbor_crypto_account(script_variant_t script_variant, const uint32_t* path, size_t path_len,
     uint8_t* output, size_t output_len, size_t* written);
+bool bcur_build_cbor_bytes(const uint8_t* data, size_t data_len, uint8_t** output, size_t* output_len);
 bool bcur_build_cbor_crypto_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len);
 
 // Scan a QR code that may be a BC-UR code/fragment - ie. single-frame or animated/multi-frame.

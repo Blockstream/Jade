@@ -279,6 +279,32 @@ bool bcur_parse_jade_message(const uint8_t* cbor, size_t cbor_len, CborParser* p
     return true;
 }
 
+// Encode a txn psbt as a bcur cbor 'bytes' - just bytes
+// See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md
+bool bcur_build_cbor_bytes(const uint8_t* data, const size_t data_len, uint8_t** output, size_t* output_len)
+{
+    JADE_ASSERT(data);
+    JADE_ASSERT(data_len);
+    JADE_INIT_OUT_PPTR(output);
+    JADE_INIT_OUT_SIZE(output_len);
+
+    // Format as simple cbor message containing only bytes
+    const size_t buflen = data_len + 8; // sufficent for cbor overhead
+    uint8_t* buf = JADE_MALLOC_PREFER_SPIRAM(buflen);
+    CborEncoder root_encoder;
+    cbor_encoder_init(&root_encoder, buf, buflen, 0);
+    const CborError cberr = cbor_encode_byte_string(&root_encoder, data, data_len);
+    JADE_ASSERT(cberr == CborNoError);
+
+    const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, buf);
+    JADE_ASSERT(cbor_len > data_len && cbor_len <= buflen);
+
+    // Copy cbor buffer to output
+    *output = buf;
+    *output_len = cbor_len;
+    return true;
+}
+
 // Encode a txn psbt as a bcur cbor 'crypto-psbt' - just bytes
 // See: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md
 bool bcur_build_cbor_crypto_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len)
@@ -295,21 +321,9 @@ bool bcur_build_cbor_crypto_psbt(const struct wally_psbt* psbt, uint8_t** output
     }
 
     // Format as simple cbor message
-    const size_t buflen = psbt_len_out + 8; // sufficent for cbor overhead
-    uint8_t* buf = JADE_MALLOC_PREFER_SPIRAM(buflen);
-    CborEncoder root_encoder;
-    cbor_encoder_init(&root_encoder, buf, buflen, 0);
-    const CborError cberr = cbor_encode_byte_string(&root_encoder, psbt_bytes_out, psbt_len_out);
-    JADE_ASSERT(cberr == CborNoError);
+    const bool ret = bcur_build_cbor_bytes(psbt_bytes_out, psbt_len_out, output, output_len);
     free(psbt_bytes_out);
-
-    const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, buf);
-    JADE_ASSERT(cbor_len > psbt_len_out && cbor_len <= buflen);
-
-    // Copy cbor buffer to output
-    *output = buf;
-    *output_len = cbor_len;
-    return true;
+    return ret;
 }
 
 static void encode_script_variant_tag(CborEncoder* encoder, const script_variant_t script_variant)
