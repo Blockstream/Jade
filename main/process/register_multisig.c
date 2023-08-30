@@ -17,13 +17,6 @@
 #include <ctype.h>
 #include <sodium/utils.h>
 
-// Multisig registration file, field names
-static const char MSIG_FILE_NAME[] = "Name";
-static const char MSIG_FILE_FORMAT[] = "Format";
-static const char MSIG_FILE_SORTED[] = "Sorted";
-static const char MSIG_FILE_POLICY[] = "Policy";
-static const char MSIG_FILE_DERIVATION[] = "Derivation";
-
 bool show_multisig_activity(const char* multisig_name, bool is_sorted, size_t threshold, size_t num_signers,
     const signer_t* signer_details, const size_t num_signer_details, const char* master_blinding_key_hex,
     const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting,
@@ -222,10 +215,14 @@ static bool split_line(
 #define FIELD_POLICY 0x2
 #define FIELD_FORMAT 0x4
 #define FIELD_SORTED 0x8
-#define FIELD_DERIVATION 0x10
+#define FIELD_BLINDINGKEY 0x10
+#define FIELD_DERIVATION 0x20
 
 // Match the current line to a specific trial field, passed as a char[]
 #define IS_FIELD(field) (name_len == sizeof(field) - 1 && !strncasecmp(field, read_ptr, name_len))
+
+// Check all mask bits set
+#define HAVE_FIELDS(fields_read, mask) ((fields_read & mask) == mask)
 
 // Function to read a multisig file, and if possible register the multisig
 int register_multisig_file(const char* multisig_file, const size_t multisig_file_len, const char** errmsg)
@@ -257,9 +254,10 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     // Optional 'sorted multi' field
     bool sorted = true; // for historical reasons defaults to 'true'
 
-    // Not supported by the file format ?
+    // Optional extension
+    uint8_t blinding_key_bytes[MULTISIG_MASTER_BLINDING_KEY_SIZE];
     const uint8_t* blinding_key = NULL;
-    const size_t blinding_key_len = 0;
+    size_t blinding_key_len = 0;
 
     // Current signer's derivation path
     // (Can be global, or set per signer)
@@ -391,6 +389,26 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
                 goto cleanup;
             }
             fields_read |= FIELD_SORTED;
+        } else if (IS_FIELD(MSIG_FILE_BLINDING_KEY)) {
+            if (fields_read & FIELD_BLINDINGKEY) {
+                JADE_LOGE("Repeated blinding key flag");
+                *errmsg = "Invalid multisig file";
+                goto cleanup;
+            }
+
+            // Master blinding key
+            size_t written = 0;
+            if (value_len != 2 * sizeof(blinding_key_bytes)
+                || wally_hex_n_to_bytes(value, value_len, blinding_key_bytes, sizeof(blinding_key_bytes), &written)
+                    != WALLY_OK
+                || written != sizeof(blinding_key_bytes)) {
+                JADE_LOGE("Error in master blinding key hex: %s", value);
+                *errmsg = "Invalid master blinding key";
+                goto cleanup;
+            }
+            blinding_key = blinding_key_bytes;
+            blinding_key_len = sizeof(blinding_key_bytes);
+            fields_read |= FIELD_BLINDINGKEY;
         } else if (IS_FIELD(MSIG_FILE_DERIVATION)) {
             // "m/a/b/c/d" - accepts m/ or M/ as master, and h, H or ' as hardened indicators
             // NOTE: allowed to see derivation element multiple times (eg once per signer)
@@ -404,8 +422,8 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
         } else if (name_len == BIP32_KEY_FINGERPRINT_LEN * 2) {
             // Assume <fingerprint>: <xpub>
             // Must have all other mandatory fields before we get to signers
-            // (NOTE: for historical reasons 'sorted' field is optional)
-            if ((fields_read & ~FIELD_SORTED) != (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION)) {
+            // (NOTE: for historical reasons 'sorted' field is optional, as is blinding-key)
+            if (!HAVE_FIELDS(fields_read, (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION))) {
                 JADE_LOGE("Insufficient information read from multisig file when signers reached: %u", fields_read);
                 *errmsg = "Insufficient information records";
                 goto cleanup;
@@ -485,8 +503,8 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     };
     JADE_LOGD("Processing multisig file complete: %u", fields_read);
 
-    // File exhausted - did we read all required data (Note: 'sorted' is optional)
-    if ((fields_read & ~FIELD_SORTED) != (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION)) {
+    // File exhausted - did we read all required data (Note: 'sorted' and blinding-key fields are optional)
+    if (!HAVE_FIELDS(fields_read, (FIELD_NAME | FIELD_POLICY | FIELD_FORMAT | FIELD_DERIVATION))) {
         JADE_LOGE("Insufficient information read from multisig file: %u", fields_read);
         *errmsg = "Insufficient information records";
         goto cleanup;

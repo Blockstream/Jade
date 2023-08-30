@@ -96,7 +96,7 @@ def _h2b_test_case(testcase):
         expected_output['slip-0017'] = h2b(expected_output['slip-0017'])
         expected_output['ecdh_with_trezor'] = h2b(expected_output['ecdh_with_trezor'])
 
-    if 'multisig_name' in testcase['input']:
+    elif 'multisig_name' in testcase['input']:
         # multisig data
         descriptor = testcase['input']['descriptor']
         if 'master_blinding_key' in descriptor:
@@ -120,6 +120,11 @@ def _h2b_test_case(testcase):
                 blinding_test['vbf'] = h2b(blinding_test['vbf'])
                 blinding_test['asset_generator'] = h2b(blinding_test['asset_generator'])
                 blinding_test['value_commitment'] = h2b(blinding_test['value_commitment'])
+
+    elif 'multisig_file' in testcase['input']:
+        expected_result = testcase.get('expected_result')
+        if expected_result and 'master_blinding_key' in expected_result:
+            expected_result['master_blinding_key'] = h2b(expected_result['master_blinding_key'])
 
     return testcase
 
@@ -2531,7 +2536,8 @@ def test_generic_multisig_files(jadeapi):
         assert multisig_desc['variant'] == expected_result['variant']
         assert multisig_desc['threshold'] == expected_result['threshold']
         assert multisig_desc['num_signers'] == expected_result['num_signers']
-        assert multisig_desc['master_blinding_key'] == b''
+        assert multisig_desc['master_blinding_key'] == \
+            expected_result.get('master_blinding_key', b'')
 
     # Check these multisig files *do not* load
     for multisig_file_test in _get_test_cases(MULTI_REG_BAD_FILE_TESTS):
