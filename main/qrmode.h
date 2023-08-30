@@ -11,6 +11,9 @@ void display_xpub_qr(void);
 // Handle scanning a QR - supports addresses and PSBTs
 void handle_scan_qr(void);
 
+// Display a BC-UR bytes message
+bool display_bcur_bytes_qr(const char* label, const uint8_t* data, size_t data_len, const char* help_url);
+
 // Display screen with single arbitrary qr code
 // Handles up to v6 codes - ie. text up to 134 bytes
 // help_url is optional
