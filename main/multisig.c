@@ -260,7 +260,7 @@ static bool read_complete_signers(const uint8_t* const signer_bytes, const size_
         read_ptr += derivation_bytes_len;
 
         // Xpub (changed in version 3 to be the xpub as passed, not the derived immediate parent xpub)
-        // Copy it into the output position now - it may get ocverwritten later if there is additional path
+        // Copy it into the output position now - it may get overwritten later if there is additional path
         uint8_t* const xpub = output->xpubs + (i * BIP32_SERIALIZED_LEN);
         memcpy(xpub, read_ptr, BIP32_SERIALIZED_LEN);
         read_ptr += BIP32_SERIALIZED_LEN;
@@ -606,4 +606,128 @@ void multisig_get_valid_record_names(
         }
     }
     *num_written = written;
+}
+
+// Export a multisig in the common (coldcard) file format
+static bool write_text(const char* text, const bool add_eol, char* output, const size_t output_len, size_t* written)
+{
+    JADE_ASSERT(text);
+    JADE_ASSERT(output);
+    JADE_INIT_OUT_SIZE(written);
+
+    const size_t len = strlen(text);
+    if (len >= output_len) {
+        JADE_LOGE("Output buffer filled, failed to write line: %s", text);
+        return false;
+    }
+
+    strcpy(output, text);
+
+    if (add_eol) {
+        output[len] = '\n';
+        output[len + 1] = '\0';
+    }
+
+    *written = add_eol ? len + 1 : len;
+    return true;
+}
+
+#define WRITE_TEXT(text, add_eol)                                                                                      \
+    do {                                                                                                               \
+        size_t written = 0;                                                                                            \
+        if (!write_text(text, add_eol, write_ptr, end - write_ptr, &written)) {                                        \
+            return false;                                                                                              \
+        }                                                                                                              \
+        write_ptr += written;                                                                                          \
+    } while (false)
+
+#define WRITE_KEY_VALUE_LINE(key, value)                                                                               \
+    do {                                                                                                               \
+        WRITE_TEXT(key, false);                                                                                        \
+        WRITE_TEXT(": ", false);                                                                                       \
+        WRITE_TEXT(value, true);                                                                                       \
+    } while (false)
+
+bool multisig_create_export_file(const char* multisig_name, const multisig_data_t* multisig_data,
+    const signer_t* signer_details, const size_t num_signer_details, char* output, const size_t output_len,
+    size_t* written)
+{
+    JADE_ASSERT(multisig_name);
+    JADE_ASSERT(multisig_data);
+    JADE_ASSERT(signer_details);
+    JADE_ASSERT(num_signer_details == multisig_data->num_xpubs);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len >= MULTISIG_FILE_MAX_LEN(num_signer_details));
+    JADE_INIT_OUT_SIZE(written);
+
+    char* write_ptr = output;
+    char* const end = output + output_len;
+    char buf[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
+
+    // Comment and name
+    WRITE_TEXT("# Exported by Blockstream Jade", true);
+    WRITE_KEY_VALUE_LINE(MSIG_FILE_NAME, multisig_name);
+
+    // Policy
+    const int ret = snprintf(buf, sizeof(buf), "%u of %u", multisig_data->threshold, multisig_data->num_xpubs);
+    JADE_ASSERT(ret && ret < sizeof(buf));
+    WRITE_KEY_VALUE_LINE(MSIG_FILE_POLICY, buf);
+
+    // Format (script type)
+    const char* format = NULL;
+    if (multisig_data->variant == MULTI_P2WSH) {
+        format = "P2WSH";
+    } else if (multisig_data->variant == MULTI_P2WSH_P2SH) {
+        format = "P2SH-P2WSH";
+    } else if (multisig_data->variant == MULTI_P2SH) {
+        format = "P2SH";
+    } else {
+        JADE_LOGE("Unhandled multisig variant: %u", multisig_data->variant);
+        return false;
+    }
+    WRITE_KEY_VALUE_LINE(MSIG_FILE_FORMAT, format);
+
+    // Only output sorted flag if the multisig is not sorted
+    // (as sorted is the default, and the 'sorted' flag is not standard)
+    if (!multisig_data->sorted) {
+        WRITE_KEY_VALUE_LINE(MSIG_FILE_SORTED, "False");
+    }
+
+    // Only output blinding key if it's set (as the 'blindingkey' flag is not standard)
+    if (multisig_data->master_blinding_key_len) {
+        char* blinding_key_hex = NULL;
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(
+            multisig_data->master_blinding_key, multisig_data->master_blinding_key_len, &blinding_key_hex));
+        WRITE_KEY_VALUE_LINE(MSIG_FILE_BLINDING_KEY, blinding_key_hex);
+        JADE_WALLY_VERIFY(wally_free_string(blinding_key_hex));
+    }
+
+    // Signers
+    for (size_t i = 0; i < num_signer_details; ++i) {
+        const signer_t* const signer = signer_details + i;
+
+        if (signer->path_len) {
+            JADE_LOGW("Multisig signers with additional path cannot be exported");
+            return false;
+        }
+
+        // Derivation
+        if (!wallet_bip32_path_as_str(signer->derivation, signer->derivation_len, buf, sizeof(buf))) {
+            JADE_LOGE("Multisig signer derivation path error");
+            return false;
+        }
+        WRITE_KEY_VALUE_LINE(MSIG_FILE_DERIVATION, buf);
+
+        // Fingerprint: xpub
+        char* fingerprint_hex = NULL;
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(signer->fingerprint, sizeof(signer->fingerprint), &fingerprint_hex));
+        WRITE_KEY_VALUE_LINE(fingerprint_hex, signer->xpub);
+        JADE_WALLY_VERIFY(wally_free_string(fingerprint_hex));
+    }
+
+    JADE_ASSERT(write_ptr < end);
+    JADE_ASSERT(*write_ptr == '\0');
+
+    *written = write_ptr - output;
+    return true;
 }

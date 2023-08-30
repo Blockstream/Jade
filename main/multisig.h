@@ -31,6 +31,17 @@
     (MULTISIG_BYTES_LEN(                                                                                               \
         MULTISIG_MASTER_BLINDING_KEY_SIZE, MAX_MULTISIG_SIGNERS, MAX_MULTISIG_SIGNERS * 2 * MAX_PATH_LEN))
 
+// Multisig registration file, field names
+#define MSIG_FILE_NAME "Name"
+#define MSIG_FILE_FORMAT "Format"
+#define MSIG_FILE_SORTED "Sorted"
+#define MSIG_FILE_POLICY "Policy"
+#define MSIG_FILE_BLINDING_KEY "BlindingKey"
+#define MSIG_FILE_DERIVATION "Derivation"
+
+#define MULTISIG_FILE_MAX_LEN(num_signers)                                                                             \
+    (32 + 22 + 17 + 19 + 14 + 78 + (num_signers * (13 + MAX_PATH_STR_LEN(MAX_PATH_LEN) + 122)))
+
 // Multisig data as persisted
 typedef struct _multisig_data {
     script_variant_t variant;
@@ -86,5 +97,8 @@ bool multisig_get_master_blinding_key(const multisig_data_t* multisig_data, uint
 
 void multisig_get_valid_record_names(
     const size_t* script_type, char names[][MAX_MULTISIG_NAME_SIZE], size_t num_names, size_t* num_written);
+
+bool multisig_create_export_file(const char* multisig_name, const multisig_data_t* multisig_data,
+    const signer_t* signer_details, size_t num_signer_details, char* output, size_t output_len, size_t* written);
 
 #endif /* MULTISIG_H_ */

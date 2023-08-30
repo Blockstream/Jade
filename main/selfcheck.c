@@ -6,6 +6,7 @@
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "keychain.h"
+#include "multisig.h"
 #include "process.h"
 #include "random.h"
 #include "storage.h"
@@ -18,6 +19,8 @@
 #include <ctype.h>
 
 void get_bip85_mnemonic(const uint32_t nwords, const uint32_t index, char** new_mnemonic);
+
+int register_multisig_file(const char* multisig_file, size_t multisig_file_len, const char** errmsg);
 
 static const char TEST_MNEMONIC[] = "fish inner face ginger orchard permit useful method fence kidney chuckle party "
                                     "favorite sunset draw limb science crane oval letter slot invite sadness banana";
@@ -392,6 +395,74 @@ bool test_bip85_mnemonic(jade_process_t* process)
     TEST_BIP85_BIP39(24, 65535,
         "humble museum grab fitness wrap window front job quarter update rich grape gap daring blame cricket traffic "
         "sad trade easily genius boost lumber rhythm");
+
+    return true;
+}
+
+bool test_multisig_files()
+{
+    const char* nameA = "roundtripperA";
+    const char* filedata = "# Passport Multisig setup file (created by Sparrow)\n"
+                           "#\n"
+                           "Name: roundtripperA\n"
+                           "Policy: 2 of 3\n"
+                           "Derivation: m/48'/0'/0'/2'\n"
+                           "Format: P2WSH\n"
+                           "\n"
+                           "E3EBCC79: "
+                           "xpub6EWJLhf2M3XbBH22hCW69RL6gvfeUyLFfhLBtAH7W8ci4DgTCmEmoDEqkYVME5qAx6DtUG82h4JeNPHV33AoD93"
+                           "uGM7MzvuoJNvBmStqhwc\n"
+                           "249192D2: "
+                           "xpub6EbXynW6xjYR3crcztum6KzSWqDJoAJQoovwamwVnLaCSHA6syXKPnJo6U3bVeGdeEaXAeHsQTxhkLam9Dw2Yfo"
+                           "AabtNm44XUWnnUZfHJRq\n"
+                           "67F90FFC: "
+                           "xpub6EHuWWrYd8bp5FS1XAZsMPkmCqLSjpULmygWqAqWRCCjSWQwz6ntq5KnuQnL23No2Jo8qdp48PrL8SVyf14uBry"
+                           "nurgPxonvnX6R5pbit3w\n";
+
+    const char* errmsg = NULL;
+    if (register_multisig_file(filedata, strlen(filedata), &errmsg)) {
+        FAIL();
+    }
+
+    uint8_t registrationA[MULTISIG_BYTES_LEN(0, 3, 12)];
+    size_t reglenA = 0;
+    if (!storage_get_multisig_registration(nameA, registrationA, sizeof(registrationA), &reglenA)) {
+        FAIL();
+    }
+
+    multisig_data_t multisig_data;
+    signer_t signer_details[3];
+    size_t signers_written = 0;
+    if (!multisig_data_from_bytes(registrationA, reglenA, &multisig_data, signer_details, 3, &signers_written)) {
+        FAIL();
+    }
+    if (signers_written != 3) {
+        FAIL();
+    }
+
+    const char* nameB = "roundtripperB";
+    char file_out[MULTISIG_FILE_MAX_LEN(3)];
+    size_t file_len = 0;
+    if (!multisig_create_export_file(
+            nameB, &multisig_data, signer_details, signers_written, file_out, sizeof(file_out), &file_len)) {
+        FAIL();
+    }
+
+    // Can't compare fileA to fileB as format/whitespace/comments etc could be different.
+    // But we can re-register and compare serialised bytes which should be same.
+    if (register_multisig_file(file_out, file_len, &errmsg)) {
+        FAIL();
+    }
+
+    uint8_t registrationB[sizeof(registrationA)];
+    size_t reglenB = 0;
+    if (!storage_get_multisig_registration(nameB, registrationB, sizeof(registrationB), &reglenB)) {
+        FAIL();
+    }
+
+    if (reglenA != reglenB || memcmp(registrationA, registrationB, reglenA)) {
+        FAIL();
+    }
 
     return true;
 }
@@ -808,6 +879,11 @@ bool debug_selfcheck(jade_process_t* process)
 
     // Test Bip85 child bip39 mnemonic generation
     if (!test_bip85_mnemonic(process)) {
+        FAIL();
+    }
+
+    // Test multisig file import/export
+    if (!test_multisig_files()) {
         FAIL();
     }
 

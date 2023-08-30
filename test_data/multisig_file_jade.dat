@@ -1,0 +1,10 @@
+# Exported by Blockstream Jade
+Name: Jade_File_Test
+Policy: 1 of 2
+Format: P2WSH
+Sorted: False
+BlindingKey: 3172ae4169b206645a52df2ef79dff7a8c23412e6c0f129ef92e3ec570c5e2d1
+Derivation: m/48'/0'/0'/2'
+e3ebcc79: xpub6DKw8J3a2uow2TiJn64sQCg8BFhuaVUG3Uk12jhQb3M9gQZpjGHFyBVpyheKRHPnk1WjR4X3n59xfUbN7X1Qw5pDVy3z2pb14pAMqKjDQnF
+Derivation: m/48'/0'/0'/2'
+8d688ea0: xpub6Ch41kHXUBgLjAPHeSZCC1v8emQ2x2BhDcRHcxbhSmqTV8AmGYh8xQdLzM5uPpvScYAMjcMFHL983xvuqYWtW1athULQ2W9mV37ZKbkMjML

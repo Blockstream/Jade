@@ -1,0 +1,13 @@
+{
+  "input": {
+    "multisig_file": "multisig_file_jade.dat"
+  },
+  "expected_result": {
+    "multisig_name": "Jade_File_Test",
+    "variant": "wsh(multi(k))",
+    "sorted": false,
+    "master_blinding_key": "3172ae4169b206645a52df2ef79dff7a8c23412e6c0f129ef92e3ec570c5e2d1",
+    "threshold": 1,
+    "num_signers": 2
+  }
+}
