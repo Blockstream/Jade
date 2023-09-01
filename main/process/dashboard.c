@@ -721,7 +721,7 @@ static void initialise_wallet(const bool temporary_restore)
 
 static bool offer_temporary_wallet_login(void)
 {
-    if (!await_continueback_activity(NULL, "      Do you want to\n temporarily login using\a    a recovery phrase?",
+    if (!await_continueback_activity(NULL, "      Do you want to\n temporarily login using\n    a recovery phrase?",
             true, "blkstrm.com/temporary")) {
         // User decided against it
         return false;
