@@ -34,6 +34,7 @@ static const uint32_t BIP44_COIN_BTC = BIP32_INITIAL_HARDENED_CHILD;
 static const uint32_t BIP44_COIN_TEST = BIP32_INITIAL_HARDENED_CHILD + 1;
 static const uint32_t BIP44_COIN_LBTC = BIP32_INITIAL_HARDENED_CHILD + 1776;
 static const uint32_t BIP44_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 44;
+static const uint32_t BIP45_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 45;
 static const uint32_t BIP48_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 48;
 static const uint32_t BIP49_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 49;
 static const uint32_t BIP84_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 84;
@@ -320,8 +321,15 @@ void wallet_get_default_xpub_export_path(
     JADE_ASSERT(path_len > 3);
     JADE_INIT_OUT_SIZE(written);
 
-    // 'Purpose' depends on script variant unless bip48 multisig
     const bool multisig = is_multisig(variant);
+    if (multisig && variant == MULTI_P2SH) {
+        // Special case for sh(multi()) - use bip45 (m/45' only)
+        path[0] = BIP45_PURPOSE;
+        *written = 1;
+        return;
+    }
+
+    // 'Purpose' depends on script variant unless bip48 multisig
     path[0] = multisig           ? BIP48_PURPOSE
         : variant == P2WPKH      ? BIP84_PURPOSE
         : variant == P2WPKH_P2SH ? BIP49_PURPOSE

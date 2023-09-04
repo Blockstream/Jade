@@ -127,23 +127,29 @@ static const char* qr_density_desc_from_flags(const uint16_t qr_flags)
                                                                       : "Medium";
 }
 
-// We support native segwit and p2sh-wrapped segwit, siglesig and multisig
+// We support native segwit and p2sh-wrapped segwit, singlesig and multisig
 static script_variant_t xpub_script_variant_from_flags(const uint16_t qr_flags)
 {
-    const bool wrapped_segwit = contains_flags(qr_flags, QR_XPUB_P2SH_WRAPPED);
+    // unset/default is treated as 'high' (ie. the middle value)
     if (contains_flags(qr_flags, QR_XPUB_MULTISIG)) {
-        return wrapped_segwit ? MULTI_P2WSH_P2SH : MULTI_P2WSH;
+        return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? MULTI_P2WSH_P2SH
+            : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? MULTI_P2SH
+                                                                          : MULTI_P2WSH;
     }
-    return wrapped_segwit ? P2WPKH_P2SH : P2WPKH;
+    return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? P2WPKH_P2SH
+        : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? P2PKH
+                                                                      : P2WPKH;
 }
 static inline const char* xpub_scripttype_desc_from_flags(const uint16_t qr_flags)
 {
-    // unset/default is treated as singlesig
-    return contains_flags(qr_flags, QR_XPUB_P2SH_WRAPPED) ? "Wrapped Segwit" : "Native Segwit";
+    // unset/default is treated as 'high' (ie. the middle value)
+    return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? "Wrapped Segwit"
+        : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? "Legacy"
+                                                                      : "Native Segwit";
 }
 static inline const char* xpub_wallettype_desc_from_flags(const uint16_t qr_flags)
 {
-    // unset/default is treated as native-segwit
+    // unset/default is treated as singlesig
     return contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
 }
 
@@ -227,8 +233,10 @@ static bool handle_xpub_options(uint16_t* qr_flags)
                 while (true) {
                     gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
                     if (gui_activity_wait_event(act_scripttype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            *qr_flags ^= QR_XPUB_P2SH_WRAPPED; // toggle
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                            rotate_flags(qr_flags, QR_XPUB_WITNESS, QR_XPUB_LEGACY);
+                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            rotate_flags(qr_flags, QR_XPUB_LEGACY, QR_XPUB_WITNESS);
                         } else if (ev_id == gui_get_click_event()) {
                             // Done
                             break;
