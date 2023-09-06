@@ -122,6 +122,7 @@ void get_commitments_process(void* process_ptr);
 void get_blinding_factor_process(void* process_ptr);
 void sign_liquid_tx_process(void* process_ptr);
 #ifdef CONFIG_DEBUG_MODE
+void get_bip85_bip39_entropy_process(void* process_ptr);
 void debug_capture_image_data_process(void* process_ptr);
 void debug_scan_qr_process(void* process_ptr);
 void debug_set_mnemonic_process(void* process_ptr);
@@ -425,6 +426,9 @@ static void dispatch_message(jade_process_t* process)
         task_function = debug_handshake;
     } else if (IS_METHOD("debug_scan_qr")) {
         task_function = debug_scan_qr_process;
+    } else if (IS_METHOD("get_bip85_bip39_entropy")) {
+        // ATM only exposed for testing purposes
+        task_function = get_bip85_bip39_entropy_process;
 #ifdef CONFIG_RETURN_CAMERA_IMAGES
     } else if (IS_METHOD("debug_capture_image_data")) {
         task_function = debug_capture_image_data_process;

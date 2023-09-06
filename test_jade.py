@@ -238,6 +238,27 @@ quality fringe palace foot recipe labor glow tortoise potato still',
    b'\xf5\\\xf5\x87\xf2T=\x01\t\r\n\xe7\x10\xbd;m'),
 ]
 
+# Test cases generated with: https://github.com/ethankosakovsky/bip85
+GET_BIP85_BIP39_DATA = [
+    (12, 0, "elephant this puppy lucky fatigue skate aerobic emotion peanut outer clinic casino"),
+    (12, 12, "prevent marriage menu outside total tone prison few sword coffee print salad"),
+    (12, 100, "lottery divert goat drink tackle picture youth text stem marriage call tip"),
+    (12, 65535, "curtain angle fatigue siren involve bleak detail frame name spare size cycle"),
+
+    (24, 0,
+     "certain act palace ball plug they divide fold climb hand tuition inside choose sponsor grass "
+     "scheme choose split top twenty always vendor fit thank"),
+    (24, 24,
+     "flip meat face wood hammer crack fat topple admit canvas bid capital leopard angry fan gate "
+     "domain exile patient recipe nut honey resist inner"),
+    (24, 1024,
+     "phone goat wheel unique local maximum sand reflect scissors one have spin weasel dignity "
+     "antenna acid pulp increase fitness typical bacon strike spy festival"),
+    (24, 65535,
+     "humble museum grab fitness wrap window front job quarter update rich grape gap daring blame "
+     "cricket traffic sad trade easily genius boost lumber rhythm")
+]
+
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
 # bitcoin-cli sethdseed true "92zRAmYnWVRrWJ6cQb8yrzEz9r3aXj4oEUiPAZEbiPKHpCnxkKz"
@@ -1029,8 +1050,30 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                     {'path': [1, 2, 3], 'variant': 'pkh(k)', 'confidential': True,
                      'network': 'mainnet'}), 'Confidential addresses only apply to liquid'),
 
+                  (('badbip85ent1', 'get_bip85_bip39_entropy'), 'Expecting parameters map'),
+                  (('badbip85ent2', 'get_bip85_bip39_entropy',
+                    {'num_words': None}), 'valid number of words'),
+                  (('badbip85ent3', 'get_bip85_bip39_entropy',
+                    {'num_words': 'bad'}), 'valid number of words'),
+                  (('badbip85ent4', 'get_bip85_bip39_entropy',
+                    {'num_words': 18}), 'valid number of words'),
+                  (('badbip85ent5', 'get_bip85_bip39_entropy',
+                    {'num_words': 12}), 'fetch valid index'),
+                  (('badbip85ent6', 'get_bip85_bip39_entropy',
+                    {'num_words': 12, 'index': None}), 'fetch valid index'),
+                  (('badbip85ent7', 'get_bip85_bip39_entropy',
+                    {'num_words': 12, 'index': 'bad'}), 'fetch valid index'),
+                  (('badbip85ent8', 'get_bip85_bip39_entropy',
+                    {'num_words': 24, 'index': 0}), 'fetch valid pubkey'),
+                  (('badbip85ent9', 'get_bip85_bip39_entropy',
+                    {'num_words': 24, 'index': 0, 'pubkey': 'vbad'}), 'fetch valid pubkey'),
+                  (('badbip85ent9', 'get_bip85_bip39_entropy',
+                    {'num_words': 24, 'index': 0, 'pubkey': GOOD_ECDH_PUBKEY[:-1]}),
+                   'fetch valid pubkey'),
+
                   (('badidpk1', 'get_identity_pubkey'), 'Expecting parameters map'),
-                  (('badidpk2', 'sign_identity', {'curve': 'nist256p1'}), 'extract valid identity'),
+                  (('badidpk2', 'get_identity_pubkey', {'curve': 'nist256p1'}),
+                   'extract valid identity'),
                   (('badidpk3', 'get_identity_pubkey', {'identity': 'xxx', 'curve': 'nist256p1'}),
                    'extract valid identity'),
                   (('badidpk4', 'get_identity_pubkey',
@@ -2210,6 +2253,51 @@ def test_set_pinserver(jadeapi):
     assert rslt
 
 
+def test_bip85_bip39_encrypted_entropy(jadeapi):
+    # Get the Jade test mnemonic master key locally so we can verify the
+    # bip85_bip39 entropy returned from jade with libwally
+    seed = wally.bip39_mnemonic_to_seed512(TEST_MNEMONIC, None)
+    local_master_key = wally.bip32_key_from_seed(seed, wally.BIP32_VER_MAIN_PRIVATE, 0)
+
+    for nwords, index, expected_mnemonic in GET_BIP85_BIP39_DATA:
+        # get new ephemeral key
+        while True:
+            try:
+                privkey = os.urandom(32)
+                wally.ec_private_key_verify(privkey)
+                break
+            except Exception:
+                pass
+
+        pubkey = wally.ec_public_key_from_private_key(privkey)
+
+        # Get encrypted bip85 bip39 data from Jade
+        rslt = jadeapi.get_bip85_bip39_entropy(nwords, index, pubkey)
+        encrypted = rslt['encrypted']
+        hmac = rslt['hmac']
+
+        # Calculate the shared secret and the two further derived keys
+        shared_secret = wally.ecdh(rslt['pubkey'], privkey)
+        encryption_key = wally.hmac_sha256(shared_secret, bytearray([0x1]))
+        hmac_key = wally.hmac_sha256(shared_secret, bytearray([0x2]))
+
+        # Verify the hmac is correct
+        assert wally.hmac_sha256(hmac_key, encrypted) == hmac
+
+        iv = encrypted[:wally.AES_BLOCK_LEN]
+        encrypted_entropy = encrypted[wally.AES_BLOCK_LEN:]
+        jade_entropy = wally.aes_cbc(encryption_key, iv, encrypted_entropy, wally.AES_FLAG_DECRYPT)
+
+        # Check against libwally when calculated locally
+        expected_entropy = wally.bip85_get_bip39_entropy(local_master_key, None, nwords, index)
+        assert jade_entropy == expected_entropy
+
+        # Check against explicit mnemonic words if passed
+        if expected_mnemonic:
+            jade_mnemonic = wally.bip39_mnemonic_from_bytes(None, jade_entropy)
+            assert jade_mnemonic == expected_mnemonic
+
+
 def test_get_greenaddress_receive_address(jadeapi):
     for network, subact, branch, ptr, recovxpub, csvblocks, conf, expected in GET_GREENADDRESS_DATA:
         rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
@@ -2990,6 +3078,9 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     # Test update pinserver details
     test_set_pinserver(jadeapi)
+
+    # Test BIP85 entropy
+    test_bip85_bip39_encrypted_entropy(jadeapi)
 
     # Test generic multisig
     test_generic_multisig_registration(jadeapi)

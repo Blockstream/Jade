@@ -615,6 +615,38 @@ class JadeAPI:
         params = {'seed': seed}
         return self._jadeRpc('debug_set_mnemonic', params)
 
+    def get_bip85_bip39_entropy(self, num_words, index, pubkey):
+        """
+        RPC call to fetch encrypted bip85-bip39 entropy.
+        NOTE: Only available in a DEBUG build of the firmware.
+
+        Parameters
+        ----------
+        num_words : int
+            The number of words the entropy is required to produce.
+
+        index : int
+            The index to use in the bip32 path to calcuate the entropy.
+
+        pubkey: 33-bytes
+            The host ephemeral pubkey to use to generate a shared ecdh secret to use as an AES key
+            to encrypt the returned entropy.
+
+        Returns
+        -------
+        dict
+            pubkey - 33-bytes, Jade's ephemeral pubkey used to generate a shared ecdh secret used as
+            an AES key to encrypt the returned entropy
+            encrypted - bytes, the requested bip85 bip39 entropy, AES encrypted with the first key
+            derived from the ecdh shared secret, prefixed with the iv
+            hmac - 32-bytes, the hmac of the encrypted buffer, using the second key derived from the
+            ecdh shared secret
+        """
+        params = {'num_words': num_words,
+                  'index': index,
+                  'pubkey': pubkey}
+        return self._jadeRpc('get_bip85_bip39_entropy', params)
+
     def set_pinserver(self, urlA=None, urlB=None, pubkey=None, cert=None):
         """
         RPC call to explicitly set (override) the details of the blind pinserver used to
@@ -1239,7 +1271,7 @@ class JadeAPI:
         Returns
         -------
         dict
-            Containing the following the blinding factors and output commitments.
+            Containing the blinding factors and output commitments.
         """
         params = {'asset_id': asset_id,
                   'value': value,

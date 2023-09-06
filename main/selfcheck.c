@@ -353,19 +353,7 @@ static bool test_storage_with_passphrase(jade_process_t* process, const size_t n
     return true;
 }
 
-#define TEST_BIP85_BIP39(nwords, index, expected)                                                                      \
-    do {                                                                                                               \
-        char* generated = NULL;                                                                                        \
-        get_bip85_mnemonic(nwords, index, &generated);                                                                 \
-        JADE_ASSERT(generated);                                                                                        \
-        if (strcmp(generated, expected)) {                                                                             \
-            WALLY_FREE_STR(generated);                                                                                 \
-            FAIL();                                                                                                    \
-        }                                                                                                              \
-        WALLY_FREE_STR(generated);                                                                                     \
-    } while (false)
-
-bool test_bip85_mnemonic(jade_process_t* process)
+bool test_multisig_files(jade_process_t* process)
 {
     JADE_ASSERT(process);
 
@@ -376,31 +364,6 @@ bool test_bip85_mnemonic(jade_process_t* process)
     }
     keychain_set(&keydata, process->ctx.source, true);
 
-    // Test some bip85 derived mnemonics are as expected
-    // Test cases generated with: https://github.com/ethankosakovsky/bip85
-    TEST_BIP85_BIP39(12, 0, "elephant this puppy lucky fatigue skate aerobic emotion peanut outer clinic casino");
-    TEST_BIP85_BIP39(12, 12, "prevent marriage menu outside total tone prison few sword coffee print salad");
-    TEST_BIP85_BIP39(12, 100, "lottery divert goat drink tackle picture youth text stem marriage call tip");
-    TEST_BIP85_BIP39(12, 65535, "curtain angle fatigue siren involve bleak detail frame name spare size cycle");
-
-    TEST_BIP85_BIP39(24, 0,
-        "certain act palace ball plug they divide fold climb hand tuition inside choose sponsor grass scheme choose "
-        "split top twenty always vendor fit thank");
-    TEST_BIP85_BIP39(24, 24,
-        "flip meat face wood hammer crack fat topple admit canvas bid capital leopard angry fan gate domain exile "
-        "patient recipe nut honey resist inner");
-    TEST_BIP85_BIP39(24, 1024,
-        "phone goat wheel unique local maximum sand reflect scissors one have spin weasel dignity antenna acid pulp "
-        "increase fitness typical bacon strike spy festival");
-    TEST_BIP85_BIP39(24, 65535,
-        "humble museum grab fitness wrap window front job quarter update rich grape gap daring blame cricket traffic "
-        "sad trade easily genius boost lumber rhythm");
-
-    return true;
-}
-
-bool test_multisig_files()
-{
     const char* nameA = "roundtripperA";
     const char* filedata = "# Passport Multisig setup file (created by Sparrow)\n"
                            "#\n"
@@ -877,13 +840,8 @@ bool debug_selfcheck(jade_process_t* process)
         FAIL();
     }
 
-    // Test Bip85 child bip39 mnemonic generation
-    if (!test_bip85_mnemonic(process)) {
-        FAIL();
-    }
-
     // Test multisig file import/export
-    if (!test_multisig_files()) {
+    if (!test_multisig_files(process)) {
         FAIL();
     }
 
