@@ -54,6 +54,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg);
 int params_set_epoch_time(CborValue* params, const char** errmsg);
 int sign_message_file(
     const char* str, size_t str_len, uint8_t* sig_output, size_t sig_len, size_t* written, const char** errmsg);
+int get_bip85_bip39_entropy_cbor(const CborValue* params, CborEncoder* output, const char** errmsg);
 
 bool show_confirm_address_activity(const char* address, bool default_selection);
 
@@ -882,6 +883,47 @@ cleanup:
     return ret;
 }
 
+static bool handle_bip85_bip39_request_qr(const uint8_t* cbor, const size_t cbor_len)
+{
+    JADE_ASSERT(cbor);
+    JADE_ASSERT(cbor_len);
+
+    // Parse cbor
+    CborValue root;
+    CborParser parser;
+    if (!bcur_parse_jade_message(cbor, cbor_len, &parser, &root, NULL, NULL)) {
+        JADE_LOGE("Failed to parse Jade bip85/bip39 entropy request");
+        await_error_activity("Error parsing message");
+        return false;
+    }
+
+    uint8_t cbor_reply[176]; // sufficient
+    CborEncoder reply_encoder;
+    cbor_encoder_init(&reply_encoder, cbor_reply, sizeof(cbor_reply), 0);
+
+    const char* errmsg = NULL;
+    const int errcode = get_bip85_bip39_entropy_cbor(&root, &reply_encoder, &errmsg);
+    if (errcode) {
+        if (errcode != CBOR_RPC_USER_CANCELLED) {
+            JADE_LOGE("Error generating encrypted bip85 entropy: %s", errmsg);
+            char buf[128];
+            const int ret = snprintf(buf, sizeof(buf), "Error in bip85/bip39\n%s", errmsg);
+            JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+            await_error_activity(buf);
+        }
+        return false;
+    }
+
+    const size_t reply_cbor_len = cbor_encoder_get_buffer_size(&reply_encoder, cbor_reply);
+    JADE_ASSERT(reply_cbor_len && reply_cbor_len <= sizeof(cbor_reply));
+
+    // Now display bcur QR
+    display_bcur_qr("Scan with\n   wallet\n     app", BCUR_TYPE_JADE_BIP8539_REPLY, cbor_reply, reply_cbor_len,
+        "blkstrm.com/bip85");
+
+    return true;
+}
+
 // Accept an epoch (time) message via qr code
 static bool handle_epoch_qr(const uint8_t* cbor, const size_t cbor_len)
 {
@@ -990,6 +1032,11 @@ void handle_scan_qr(void)
             // PSBT
             if (!parse_sign_display_bcur_psbt_qr(data, data_len)) {
                 JADE_LOGE("Processing BC-UR as PSBT failed");
+            }
+        } else if (!strcasecmp(type, BCUR_TYPE_JADE_BIP8539_REQUEST)) {
+            // BIP85/BIP39 entropy request
+            if (!handle_bip85_bip39_request_qr(data, data_len)) {
+                JADE_LOGE("Processing BC-UR as bip85/bip39 entropy request failed");
             }
         } else if (!strcasecmp(type, BCUR_TYPE_JADE_EPOCH)) {
             // Epoch value
