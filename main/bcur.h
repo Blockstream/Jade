@@ -19,6 +19,8 @@ extern const char BCUR_TYPE_CRYPTO_PSBT[];
 extern const char BCUR_TYPE_JADE_PIN[];
 extern const char BCUR_TYPE_JADE_EPOCH[];
 extern const char BCUR_TYPE_JADE_UPDPS[];
+extern const char BCUR_TYPE_JADE_BIP8539_REQUEST[];
+extern const char BCUR_TYPE_JADE_BIP8539_REPLY[];
 extern const char BCUR_TYPE_BYTES[];
 
 // Parse BC-UR messages - decodes BC-UR and parses nested CBOR

@@ -21,6 +21,8 @@ const char BCUR_TYPE_CRYPTO_PSBT[] = "crypto-psbt";
 const char BCUR_TYPE_JADE_PIN[] = "jade-pin";
 const char BCUR_TYPE_JADE_EPOCH[] = "jade-epoch";
 const char BCUR_TYPE_JADE_UPDPS[] = "jade-updps";
+const char BCUR_TYPE_JADE_BIP8539_REQUEST[] = "jade-bip8539-request";
+const char BCUR_TYPE_JADE_BIP8539_REPLY[] = "jade-bip8539-reply";
 const char BCUR_TYPE_BYTES[] = "bytes";
 
 static const char BCUR_PREFIX[] = "ur:";
@@ -740,8 +742,8 @@ bool bcur_check_fragment_sizes(void)
     // Test various versions, with various message types, and various payload lengths
     bool overflowed = false;
     const uint8_t versions[] = { 4, 6, 12 }; // the versions & ur-types of interest
-    const char* types[]
-        = { BCUR_TYPE_CRYPTO_PSBT, BCUR_TYPE_CRYPTO_ACCOUNT, BCUR_TYPE_CRYPTO_HDKEY, BCUR_TYPE_JADE_PIN };
+    const char* types[] = { BCUR_TYPE_CRYPTO_PSBT, BCUR_TYPE_CRYPTO_ACCOUNT, BCUR_TYPE_CRYPTO_HDKEY, BCUR_TYPE_JADE_PIN,
+        BCUR_TYPE_JADE_BIP8539_REPLY };
     uint8_t payload[4096];
 
     for (uint8_t iver = 0; iver < sizeof(versions); ++iver) {
