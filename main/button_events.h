@@ -88,6 +88,7 @@ typedef enum {
 
     BTN_BIP85_12_WORDS,
     BTN_BIP85_24_WORDS,
+    BTN_BIP85_CONTINUE,
     BTN_BIP85_EXIT,
 
     BTN_INITIALIZE,
