@@ -96,6 +96,10 @@ void debug_handshake(void* process_ptr)
 
     JADE_ASSERT(keychain_has_pin());
     JADE_ASSERT(storage_get_counter() == 3);
+    uint32_t initial_replay_counter = UINT32_MAX;
+
+    JADE_ASSERT(storage_get_replay_counter((uint8_t*)&initial_replay_counter));
+    JADE_ASSERT(initial_replay_counter < UINT32_MAX);
 
     jade_process_reply_to_message_ok(process);
     JADE_LOGI("Set Success");
@@ -115,6 +119,11 @@ void debug_handshake(void* process_ptr)
         JADE_LOGE("Server or network error");
         goto cleanup;
     }
+
+    uint32_t replay_counter = UINT32_MAX;
+    JADE_ASSERT(storage_get_replay_counter((uint8_t*)&replay_counter));
+    JADE_ASSERT(replay_counter == initial_replay_counter + 2);
+
     if (!keychain_load_cleartext(aeskey2, sizeof(aeskey2))) {
         JADE_LOGE("Failed to load keys - Incorrect PIN");
         jade_process_reply_to_message_fail(process);

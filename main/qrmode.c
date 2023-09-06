@@ -1592,14 +1592,15 @@ cleanup:
 // ie. the return indicates processing has finished, not that processing was necessarily successful.
 // (That information is returned in the context object.)
 // NOTE: the presence of a label messages indicate we want to display the payload as a QR
-static bool handle_pinserver_reply(
-    const char* message[], const size_t message_size, const uint8_t* msg, const size_t len, void* ctx)
+static bool handle_jade_reply_http_request_show_qr(const char* message[], const size_t message_size, const uint8_t* msg,
+    const size_t len, void* ctx, const char* help_url)
 {
     // message and message_size are optional, but must be consistent
     JADE_ASSERT(!message_size || message);
     JADE_ASSERT(msg);
     JADE_ASSERT(len);
     JADE_ASSERT(ctx);
+    // help_url is optional
 
     bool* const ok = (bool*)ctx;
     *ok = false;
@@ -1616,7 +1617,7 @@ static bool handle_pinserver_reply(
     // Ultimate response is boolean
     bool bool_result = false;
     if (rpc_get_boolean("result", &root, &bool_result)) {
-        JADE_LOGI("PIN QR result: %u", bool_result);
+        JADE_LOGI("Boolean result: %u", bool_result);
         goto cleanup;
     }
 
@@ -1629,7 +1630,7 @@ static bool handle_pinserver_reply(
 
     // Display message as bcur qr if a screen label was passed
     if (message_size) {
-        display_bcur_qr(message, message_size, BCUR_TYPE_JADE_PIN, msg, len, "blkstrm.com/qrpin");
+        display_bcur_qr(message, message_size, BCUR_TYPE_JADE_PIN, msg, len, help_url);
     }
 
     // Message received and QR displayed successfully
@@ -1642,25 +1643,19 @@ cleanup:
     return true;
 }
 
-static bool handle_first_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
+static bool handle_initial_jade_reply_pinserver_request(const uint8_t* msg, const size_t len, void* ctx)
 {
-    const char* message[] = { "Step 1/4", "Scan Jade", "QR" };
-    return handle_pinserver_reply(message, 3, msg, len, ctx);
+    const char* message[] = { "Step 1/2", "Scan Jade", "QR" };
+    return handle_jade_reply_http_request_show_qr(message, 3, msg, len, ctx, "blkstrm.com/qrpin");
 }
 
-static bool handle_second_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
-{
-    const char* message[] = { "Step 3/4", "Scan Jade", "QR" };
-    return handle_pinserver_reply(message, 3, msg, len, ctx);
-}
-
-static bool handle_third_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
+static bool handle_final_jade_reply_pinserver_request(const uint8_t* msg, const size_t len, void* ctx)
 {
     // No QR to display with final reply
-    return handle_pinserver_reply(NULL, 0, msg, len, ctx);
+    return handle_jade_reply_http_request_show_qr(NULL, 0, msg, len, ctx, "blkstrm.com/qrpin");
 }
 
-static bool get_outbound_reply_show_qr(outbound_message_writer_fn_t handler)
+static bool handle_outbound_reply(outbound_message_writer_fn_t handler)
 {
     JADE_ASSERT(handler);
 
@@ -1695,38 +1690,22 @@ static void auth_qr_client_task(void* unused)
     // Wait for message (from synthesized auth_user/pinclient processing)
     // and display the message payload as bcur QR code on screen.
     JADE_LOGI("Awaiting auth_user reply data to display as qr");
-    if (!get_outbound_reply_show_qr(handle_first_pinserver_reply)) {
+    if (!handle_outbound_reply(handle_initial_jade_reply_pinserver_request)) {
         JADE_LOGW("Failed to receive auth_user reply data");
-        goto cleanup;
-    }
-
-    // Scan qr code and post back to auth_user/pinclient task
-    // 'start_handshake'
-    JADE_LOGI("Scanning/posting start_handshake data");
-    if (!scan_qr_post_in_message("  Step 2/4\n Scan Web\n      QR", BCUR_TYPE_JADE_PIN)) {
-        JADE_LOGW("Failed to scan start_handshake message");
-        goto cleanup;
-    }
-
-    // Wait for message from auth_user/pinclient processing
-    // and display as bcur QR code on screen
-    JADE_LOGI("Awaiting start_handshake reply data to display as qr");
-    if (!get_outbound_reply_show_qr(handle_second_pinserver_reply)) {
-        JADE_LOGW("Failed to receive start_handshake reply data");
         goto cleanup;
     }
 
     // Scan qr code and post back to auth_user/pinclient task
     // 'handshake_complete'
     JADE_LOGI("Scanning/posting handshake_complete data");
-    if (!scan_qr_post_in_message("  Step 4/4\n Scan Web\n      QR", BCUR_TYPE_JADE_PIN)) {
+    if (!scan_qr_post_in_message("  Step 2/2\n Scan Web\n      QR", BCUR_TYPE_JADE_PIN)) {
         JADE_LOGW("Failed to scan handshake_complete message");
         goto cleanup;
     }
 
     // Process (discard) the final message
     JADE_LOGI("Awaiting (discarding) handshake_complete reply data");
-    get_outbound_reply_show_qr(handle_third_pinserver_reply);
+    handle_outbound_reply(handle_final_jade_reply_pinserver_request);
 
     JADE_LOGI("Success");
 

@@ -12,7 +12,7 @@ import subprocess
 import threading
 import _thread
 
-from pinserver.server import PINServerECDHv1
+from pinserver.server import PINServerECDHv2
 from pinserver.pindb import PINDb
 import wallycore as wally
 from jadepy.jade import JadeAPI, JadeError
@@ -744,7 +744,8 @@ def test_concatenated_messages(jade):
 
 def test_unknown_method(jade):
     # Includes tests of method prefixes 'get...' and 'sign...'
-    for msgid, method in [('unk0', 'dostuff'), ('unk1', 'get'), ('unk2', 'sign')]:
+    for msgid, method in [('unk0', 'dostuff'), ('unk1', 'get'), ('unk2', 'sign'),
+                          ('unk3', 'handshake_init')]:
         request = jade.build_request(msgid, method,
                                      {'path': (0, 1, 2, 3, 4),
                                       'message': 'Jade is cool'})
@@ -763,9 +764,7 @@ def test_unknown_method(jade):
 def test_unexpected_method(jade):
     # These messages are only expected as a subsequent message
     # in a multi-message protocol.
-    unexpected = [('protocol1', 'handshake_init',
-                   {'ske': 'abcdef', 'sig': '1234'}),
-                  ('protocol2', 'handshake_complete',
+    unexpected = [('protocol2', 'handshake_complete',
                    {'payload': 'abcdef', 'hmac': '1234'}),
                   ('protocol3', 'ota_data', h2b('abcdef')),
                   ('protocol4', 'ota_complete'),
@@ -2049,13 +2048,17 @@ def test_handshake(jade):
     reply = jade.make_rpc_call(msg)
     assert reply['result'] is True
 
-    # server provides a signed (with a static key) an ephemeral server key
-    # exchange (ske) client validates it and provides a client key exchange
-    # (cke) and because the server went first the client also provides an
-    # encrypted (and hmaced) and signed piece of data that provides the server
-    # with the actual request, to setup a PIN (pubkey, pinsecret) -> aes key
-    # the aes key is hmac with some 32 byte random from the client and some 32
-    # from the server
+    # Pin Protocol v2
+    # Client provides server with a random ephemeral public key (ske) and a replay counter.
+    # This counter serves two purposes - a) it is used to 'tweak' the server static
+    # key to generate a determinisitic server ephemeral key (ske), and also it must increase
+    # with every request (get and set) for the given client, to prevent message replay.
+    # The client also provides an encrypted (and hmaced) and signed piece of data that
+    # provides the server with the actual request, to either
+    # a) setup a PIN (pubkey, pinsecret) -> aes key entropy mapping (the aes key is random,
+    # hmac'd with some 32 byte random from the client and some 32 from the server), or
+    # b) fetch the aes key entropy given the (pubkey, pinsecret)
+    PINServerECDHv2.load_private_key()
 
     # A: a test of 'set-pin' (ie. after user has initialised with a mnemonic)
 
@@ -2066,33 +2069,8 @@ def test_handshake(jade):
     result = reply['result']
     assert list(result.keys()) == ['http_request'], result.keys()
     assert list(result['http_request'].keys()) == ['params', 'on-reply']
-    assert result['http_request']['on-reply'] == 'handshake_init'
-    assert list(result['http_request']['params'].keys()) == \
-        ['urls', 'root_certificates', 'method', 'accept', 'data']
-    assert result['http_request']['params']['accept'] == 'json'
-    assert result['http_request']['params']['method'] == 'POST'
-    urls = result['http_request']['params']['urls']
-    assert urls == [TEST_URL+'/start_handshake', TEST_ONION+'/start_handshake']
-    certs = result['http_request']['params']['root_certificates']
-    assert certs == [TEST_CERT]
-
-    # 2. This is where the app would call the URL returned, and pass the
-    #    response (ecdh key) to jade.  We use the pinserver class directly.
-    #    The response from jade is the encrypted pin packet and the URL.
-    server = PINServerECDHv1()
-    server.load_private_key()
-    pubkey, sig = server.get_signed_public_key()
-
-    msg = jade.build_request(
-                        'initA2', 'handshake_init',
-                        {'ske': wally.hex_from_bytes(pubkey),
-                         'sig': wally.hex_from_bytes(sig)})
-    reply = jade.make_rpc_call(msg)
-    result = reply['result']
-
-    assert list(result.keys()) == ['http_request'], result.keys()
-    assert list(result['http_request'].keys()) == ['params', 'on-reply']
     assert result['http_request']['on-reply'] == 'handshake_complete'
+
     assert list(result['http_request']['params'].keys()) == \
         ['urls', 'root_certificates', 'method', 'accept', 'data']
     assert result['http_request']['params']['accept'] == 'json'
@@ -2102,23 +2080,24 @@ def test_handshake(jade):
     certs = result['http_request']['params']['root_certificates']
     assert certs == [TEST_CERT]
 
+    # 2. This is where the app would call the URL returned with the data
+    #    provided.  We use the pinserver class directly here.
     data = result['http_request']['params']['data']
-    assert data['ske'] == wally.hex_from_bytes(pubkey)  # ske echoed back
+    data = base64.b64decode(data['data'].encode())
+    assert len(data) > 33 + 4
 
-    cke = wally.hex_to_bytes(data['cke'])
-    encrypted_data = wally.hex_to_bytes(data['encrypted_data'])
-    hmac = wally.hex_to_bytes(data['hmac_encrypted_data'])
+    cke = data[:33]
+    replay_counter = data[33:33 + 4]
+    encrypted_data = data[33 + 4:]
 
-    # 3. This is where the app would call the URL returned with the data
-    #    provided, and pass the response (encrypted server aes-key) to jade.
-    #    Again, we use the pinserver class directly here.
-    encrypted, hmac = server.call_with_payload(
-        cke, encrypted_data, hmac, PINDb.set_pin)
+    server = PINServerECDHv2(replay_counter, cke)
+    encrypted_key = server.call_with_payload(cke, encrypted_data, PINDb.set_pin)
+    encrypted = base64.b64encode(encrypted_key).decode()
 
+    # 3. Pass the response (encrypted server aes-key) to jade.
     msg2 = jade.build_request(
-                         'completeA3', 'handshake_complete',
-                         {'encrypted_key': wally.hex_from_bytes(encrypted),
-                          'hmac': wally.hex_from_bytes(hmac)})
+                         'completeA2', 'handshake_complete',
+                         {'data': encrypted})
     reply2 = jade.make_rpc_call(msg2)
     assert reply2['result'] is True
 
@@ -2134,32 +2113,6 @@ def test_handshake(jade):
     result = reply['result']
     assert list(result.keys()) == ['http_request'], result.keys()
     assert list(result['http_request'].keys()) == ['params', 'on-reply']
-    assert result['http_request']['on-reply'] == 'handshake_init'
-    assert list(result['http_request']['params'].keys()) == \
-        ['urls', 'root_certificates', 'method', 'accept', 'data']
-    assert result['http_request']['params']['accept'] == 'json'
-    assert result['http_request']['params']['method'] == 'POST'
-    urls = result['http_request']['params']['urls']
-    assert urls == [TEST_URL+'/start_handshake', TEST_ONION+'/start_handshake']
-    certs = result['http_request']['params']['root_certificates']
-    assert certs == [TEST_CERT]
-
-    # 2. pass pinserver ecdh key to jade
-    # Note: PINServerECDHv1 instances are ephemeral, so we create a new one
-    #       here, as that is what would happen in pinserver proper.
-    server = PINServerECDHv1()
-    server.load_private_key()
-    pubkey, sig = server.get_signed_public_key()
-
-    msg = jade.build_request(
-                        'initB2', 'handshake_init',
-                        {'ske': wally.hex_from_bytes(pubkey),
-                         'sig': wally.hex_from_bytes(sig)})
-    reply = jade.make_rpc_call(msg)
-    result = reply['result']
-
-    assert list(result.keys()) == ['http_request'], result.keys()
-    assert list(result['http_request'].keys()) == ['params', 'on-reply']
     assert result['http_request']['on-reply'] == 'handshake_complete'
     assert list(result['http_request']['params'].keys()) == \
         ['urls', 'root_certificates', 'method', 'accept', 'data']
@@ -2170,21 +2123,26 @@ def test_handshake(jade):
     certs = result['http_request']['params']['root_certificates']
     assert certs == [TEST_CERT]
 
+    # 2. This is where the app would call the URL returned with the data
+    #    provided.  We use the pinserver class directly here.
+    # Note: PINServerECDH instances are ephemeral, so we create a new one
+    #       here, as that is what would happen in pinserver proper.
     data = result['http_request']['params']['data']
-    assert data['ske'] == wally.hex_from_bytes(pubkey)  # ske echoed back
+    data = base64.b64decode(data['data'].encode())
+    assert len(data) > 33 + 4
 
-    cke = wally.hex_to_bytes(data['cke'])
-    encrypted_data = wally.hex_to_bytes(data['encrypted_data'])
-    hmac = wally.hex_to_bytes(data['hmac_encrypted_data'])
+    cke = data[:33]
+    replay_counter = data[33:33 + 4]
+    encrypted_data = data[33 + 4:]
 
-    # 3. get encrypted server aes-key and pass to jade
-    encrypted, hmac = server.call_with_payload(
-        cke, encrypted_data, hmac, PINDb.get_aes_key)
+    server = PINServerECDHv2(replay_counter, cke)
+    encrypted_key = server.call_with_payload(cke, encrypted_data, PINDb.get_aes_key)
+    encrypted = base64.b64encode(encrypted_key).decode()
 
+    # 3. Pass the response (encrypted server aes-key) to jade.
     msg2 = jade.build_request(
-                         'completeB3', 'handshake_complete',
-                         {'encrypted_key': wally.hex_from_bytes(encrypted),
-                          'hmac': wally.hex_from_bytes(hmac)})
+                         'completeB2', 'handshake_complete',
+                         {'data': encrypted})
     reply2 = jade.make_rpc_call(msg2)
     assert reply2['result'] is True
 
@@ -2192,7 +2150,11 @@ def test_handshake(jade):
 # Pinserver handshake test - set the hww back to the default/production
 # authentication data - this should then fail with 'bad-sig' when we sign
 # with the test pinserver details.
-def test_handshake_bad_sig(jade):
+# More a test of pinserver than Jade itself, but seems nice to have it here.
+def test_handshake_bad_server(jade):
+    # Load test server keys
+    PINServerECDHv2.load_private_key()
+
     # 1. reset hww back to default pinserver details
     msg = jade.build_request('reset_pnsvr', 'update_pinserver',
                              {'reset_details': True, 'reset_certificate': True})
@@ -2204,28 +2166,43 @@ def test_handshake_bad_sig(jade):
     reply = jade.make_rpc_call(msg)
     result = reply['result']
     urls = result['http_request']['params']['urls']
-    assert urls == [PINSERVER_DEFAULT_URL+'/start_handshake',
-                    PINSERVER_DEFAULT_ONION+'/start_handshake']
+    assert urls == [PINSERVER_DEFAULT_URL+'/set_pin',
+                    PINSERVER_DEFAULT_ONION+'/set_pin']
 
     # By default no certificate is returned
     assert 'root_certificates' not in result['http_request']['params']
 
-    # 3. This is where the app would call the URL returned, and pass the
-    #    response (ecdh key) to jade.  We use the pinserver class directly.
-    #    We expect this to fail as the pinserver signature will not match expected
-    server = PINServerECDHv1()
-    server.load_private_key()
-    pubkey, sig = server.get_signed_public_key()
+    # 3. This is where the app would call the URL returned with the data
+    #    provided.  We use the pinserver class directly here.
+    # We expect this to fail as the ephemeral server key used on each side would not match
+    data = result['http_request']['params']['data']
+    data = base64.b64decode(data['data'].encode())
+    assert len(data) > 33 + 4
 
-    msg = jade.build_request(
-                        'badsig_init', 'handshake_init',
-                        {'ske': wally.hex_from_bytes(pubkey),
-                         'sig': wally.hex_from_bytes(sig)})
-    reply = jade.make_rpc_call(msg)
-    assert 'result' not in reply
-    error = reply['error']
-    assert error['code'] == JadeError.BAD_PARAMETERS
-    assert error['message'] == 'Cannot initiate handshake - ske and/or sig invalid'
+    cke = data[:33]
+    replay_counter = data[33:33 + 4]
+    encrypted_data = data[33 + 4:]
+
+    server = PINServerECDHv2(replay_counter, cke)
+    try:
+        server.call_with_payload(cke, encrypted_data, PINDb.set_pin)
+        assert False, "Expected exception from bad pinserver"
+    except ValueError as e:
+        assert str(e) == "Invalid argument"
+
+    server = PINServerECDHv2(replay_counter, cke)
+    try:
+        server.call_with_payload(cke, encrypted_data, PINDb.get_aes_key)
+        assert False, "Expected exception from bad pinserver"
+    except ValueError as e:
+        assert str(e) == "Invalid argument"
+
+    # Jade should error if sent this empty body (but completes the test case handler)
+    msg2 = jade.build_request('completeBad', 'handshake_complete')
+    reply2 = jade.make_rpc_call(msg2)
+    assert 'result' not in reply2
+    assert 'error' in reply2
+    assert reply2['error']['message'] == 'Failed to read parameters from Oracle'
 
 
 # Check/print memory stats
@@ -3433,7 +3410,7 @@ def run_interface_tests(jadeapi,
 
         # Test good pinserver handshake, and also 'bad sig' pinserver
         test_handshake(jadeapi.jade)
-        test_handshake_bad_sig(jadeapi.jade)
+        test_handshake_bad_server(jadeapi.jade)
 
         # Test importing mnemonic words eg. from qr scan
         test_mnemonic_import(jadeapi.jade)

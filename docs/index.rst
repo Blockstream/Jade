@@ -349,52 +349,9 @@ Otherwise if a message like the below is received, the given http end point must
 
 NOTE: in this instance some of 'byte' data fields may actually be hexidecimal strings - this data is opaque to the client and should simply be passed between Jade and the blind pinserver.
 
-.. code-block:: cbor
 
-    {
-        "id": "6",
-        "result": {
-            "http_request": {
-                "params": {
-                    "urls": [
-                        "https://jadepin.blockstream.com/start_handshake",
-                        "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion/start_handshake"
-                    ],
-                    "method": "POST",
-                    "accept": "json",
-                    "data": ""
-                }
-                "on-reply": "handshake_init"
-            }
-        }
-    }
-
-The first step is to initiate a secure channel with the pinserver.  Either URL can be used to get a key from the pinserver.
-The response body should be json, which should be re-encoded as cbor and passed to Jade as the 'params' to the 'handshake_init' method.
-It should look similar to the below:
-
-.. _handshake_init_request:
-
-handshake_init request
-----------------------
-
-.. code-block:: cbor
-
-    {
-        "id": "R2D2",
-        "method": "handshake_init",
-        "params": {
-            "sig": "8c110cb45b31a98f9be3c5125f5df839449ce959da529e1e6ef7d9402126a88e1827452182ea016f6990aaf6de32f2faa2fa6a07b1cf0015cc3c1f8eb098b59c",
-            "ske": "025b27c4ae5d0942370e66f20348b765fa910847325aa0d2b19bd12b2b090a83ba"
-        }
-    }
-
-The result of 'handshake_init' provides the http-call to make next with the data (derived from the entered PIN) to pass.
-
-.. _handshake_init_reply:
-
-handshake_init reply
---------------------
+auth_user reply
+---------------
 
 .. code-block:: cbor
 
@@ -410,10 +367,7 @@ handshake_init reply
                     "method": "POST",
                     "accept": "json",
                     "data": {
-                        "cke": "0223ef4a0214cb3ef79be0d04acd3122164d7663a571b85887ea8d44e004cda704",
-                        "encrypted_data": "22a4834e167792aa2d88ed311c397b0ffb4bc0eec06096b1c26375cf104fe4c94268fd0ed6ce30a9c5a7a2aaa501aca7e09d50477c694d0ec347c578c77352540cb87f3d6581161152c5291ef59a7923019b0b68420779ac989dc49759f4c7b037d55065cd4c72885b11b6b582c7db822973cc5f28cb6f74ed9a710573a8e5cb1969804d958769e1f52d887a18367f57eedaa81c08b25af7acc74a19cd97e59e",
-                        "hmac_encrypted_data": "77374b9c19ba8b34c2eb6cd97679fd8d8821b9dc7408f7d9d414c9f5a12ecb18",
-                        "ske": "025b27c4ae5d0942370e66f20348b765fa910847325aa0d2b19bd12b2b090a83ba"
+                        "data": "\"%*>PH1h<i>iAOAG4;fO)Ro/552Gt+2\":s*g2Cr`70`em!1p.oQTHFTkeDa%J2p?%k-)kG=[5>f(8&IV=X-2;Bc6-PIG$=\\2X/;odu0Ab-=B(6[K88p68<u.iin(YSGge#S0=5d%EMN6NohJ=0O[J6Og+G1cD\\PQ9$Ul!Xk]1.d9fs*16an:o>J!d0Z%].Q)m\";\\*>b6q%HOB[NU5bpZ\\Bil\\b+Gh!dl<5-0>h!@gW3ZV=ZP6i^$iIf"
                     }
                 }
                 "on-reply": "handshake_complete"
@@ -421,7 +375,7 @@ handshake_init reply
         }
     }
 
-Again the 'data' should be sent (as json) to the url provided (either is fine), and the response body forwarded to the 'handshake_complete' Jade method.
+The 'data' should be sent (as json) to the url provided (either is fine), and the response body forwarded to the 'handshake_complete' Jade method.
 The request should look like the below:
 
 .. _handshake_complete_request:
@@ -435,8 +389,7 @@ handshake_complete request
         "id": "C3PO",
         "method": "handshake_complete",
         "params": {
-            "encrypted_key": "33bbde37c3719114e80b380106ca265c2b95efebfd4e098068ba7ada601e24e499db74ed2b60b289aca949ed64912c65766fa26de87f6950a97ab184f006387e",
-            "hmac": "c30348d55bee099d8738a4f4e4f80a18fd358e4843091a0a925e8af6a067f029"
+            "data": "kbt_._7o&sa2TOJU$lj.J<@oh)a?l>-CReEF5nY3HP9CdeSjEA8PCU'Hj?#e-mhV3@KE:DZhGNJL\"#L\\ObZ:s-s0R6nk':WB!WY@.\"ja($)o37B*9iHqsL4t"
         }
     }
 

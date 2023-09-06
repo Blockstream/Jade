@@ -10,6 +10,7 @@
 #include "../utils/cbor_rpc.h"
 
 #include <cbor.h>
+#include <mbedtls/base64.h>
 #include <sodium/crypto_verify_32.h>
 
 #include "process_utils.h"
@@ -20,15 +21,21 @@ static const char PINSERVER_ONION[] = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
 
 // Pinserver documents to post to
-static const char PINSERVER_DOC_INIT[] = "start_handshake";
 static const char PINSERVER_DOC_GET_PIN[] = "get_pin";
 static const char PINSERVER_DOC_SET_PIN[] = "set_pin";
 
+// Fixed hmac keys used to derive ephemeral encrpytion keys
+static const unsigned char LABEL_ORACLE_REQUEST[]
+    = { 'b', 'l', 'i', 'n', 'd', '_', 'o', 'r', 'a', 'c', 'l', 'e', '_', 'r', 'e', 'q', 'u', 'e', 's', 't' };
+static const unsigned char LABEL_ORACLE_RESPONSE[]
+    = { 'b', 'l', 'i', 'n', 'd', '_', 'o', 'r', 'a', 'c', 'l', 'e', '_', 'r', 'e', 's', 'p', 'o', 'n', 's', 'e' };
+
 #define PIN_SECRET_LEN HMAC_SHA256_LEN
 #define ENTROPY_LEN HMAC_SHA256_LEN
-#define CLIENT_CLEARTEXT_LEN (PIN_SECRET_LEN + ENTROPY_LEN + EC_SIGNATURE_RECOVERABLE_LEN)
-#define CLIENT_REQUEST_PAYLOAD_LEN AES_ENCRYPTED_LEN(CLIENT_CLEARTEXT_LEN)
-#define SERVER_REPLY_PAYLOAD_LEN AES_ENCRYPTED_LEN(AES_KEY_LEN_256)
+#define CLIENT_MAX_CLEARTEXT_LEN (PIN_SECRET_LEN + ENTROPY_LEN + EC_SIGNATURE_RECOVERABLE_LEN)
+#define CLIENT_REQUEST_MAX_PAYLOAD_LEN (AES_ENCRYPTED_LEN(CLIENT_MAX_CLEARTEXT_LEN) + HMAC_SHA256_LEN)
+#define SERVER_REPLY_PAYLOAD_LEN (AES_ENCRYPTED_LEN(AES_KEY_LEN_256) + HMAC_SHA256_LEN)
+#define REPLAY_COUNTER_LEN 4
 
 // Helper macro to return pinserver_result_t
 #define RETURN_RESULT(rslt, errcode, msg)                                                                              \
@@ -46,49 +53,27 @@ typedef struct {
 } pinserver_result_t;
 
 typedef struct {
-    // The ephemeral server and client ecdh public keys
+    // The tweak derived server ecdh public key
     uint8_t ske[EC_PUBLIC_KEY_LEN];
+    // The ephemeral client ecdh keys
     uint8_t cke[EC_PUBLIC_KEY_LEN];
-
-    // The four ephemeral derived keys
-    uint8_t encrypt_key[HMAC_SHA256_LEN];
-    uint8_t hmac_encrypt_key[HMAC_SHA256_LEN];
-    uint8_t decrypt_key[HMAC_SHA256_LEN];
-    uint8_t hmac_decrypt_key[HMAC_SHA256_LEN];
+    uint8_t privkey[EC_PRIVATE_KEY_LEN];
+    // Monotonic Forward Replay counter required for v2
+    uint8_t replay_counter[REPLAY_COUNTER_LEN];
 } pin_keys_t;
-
-typedef struct {
-    const uint8_t* ske;
-    const uint8_t* cke;
-    const uint8_t* encrypted_data;
-    const uint8_t* hmac_encrypted_data;
-} handshake_data_t;
 
 typedef struct {
     const char* document;
     const char* on_reply;
-    const handshake_data_t* data;
-} handshake_reply_t;
-
-// Helper to encode bytes as hex and add as a string to the message
-static void add_hex_bytes_to_map(CborEncoder* container, const char* name, const uint8_t* bytes, const size_t size)
-{
-    JADE_ASSERT(container);
-    JADE_ASSERT(name);
-    JADE_ASSERT(bytes);
-
-    char* tmpstr;
-    JADE_WALLY_VERIFY(wally_hex_from_bytes(bytes, size, &tmpstr));
-    add_string_to_map(container, name, tmpstr);
-    JADE_WALLY_VERIFY(wally_free_string(tmpstr));
-}
+    const char* data;
+} handshake_reply_data_t;
 
 // The urls may be overridden in storage, otherwise use the default
 static void add_urls(CborEncoder* encoder, const char* document)
 {
     char buf[MAX_PINSVR_URL_LENGTH];
-    char urlA[sizeof(buf) + sizeof(PINSERVER_DOC_INIT)];
-    char urlB[sizeof(buf) + sizeof(PINSERVER_DOC_INIT)];
+    char urlA[sizeof(buf) + sizeof(PINSERVER_DOC_GET_PIN)];
+    char urlB[sizeof(buf) + sizeof(PINSERVER_DOC_GET_PIN)];
 
     // Get first URL (defaults to h/coded url)
     size_t urlA_len = 0;
@@ -129,17 +114,19 @@ static void add_urls(CborEncoder* encoder, const char* document)
 //     }
 //     "on-reply": `on_reply`  ** the result of gdk.http_request(params) should be passed to this method
 //   }
-static void http_post_cbor(const void* ctx, CborEncoder* container)
+static void http_post_reply(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
+    JADE_ASSERT(container);
 
     size_t cert_len = 0;
     char user_certificate[MAX_PINSVR_CERTIFICATE_LENGTH];
     const bool have_certificate = storage_get_pinserver_cert(user_certificate, sizeof(user_certificate), &cert_len);
 
-    const handshake_reply_t* envelope_data = (const handshake_reply_t*)ctx;
-    JADE_ASSERT(envelope_data->document);
-    JADE_ASSERT(envelope_data->on_reply);
+    const handshake_reply_data_t* reply_data = (const handshake_reply_data_t*)ctx;
+    JADE_ASSERT(reply_data->document);
+    JADE_ASSERT(reply_data->on_reply);
+    JADE_ASSERT(reply_data->data);
 
     CborEncoder root_map;
     CborError cberr = cbor_encoder_create_map(container, &root_map, 1);
@@ -163,7 +150,7 @@ static void http_post_cbor(const void* ctx, CborEncoder* container)
 
     // The urls (tls and onion) and any associated root certificate we may require
     // These may be the built-in defaults, or may have been overridden (in storage)
-    add_urls(&params_encoder, envelope_data->document);
+    add_urls(&params_encoder, reply_data->document);
 
     if (have_certificate) {
         const char* root_certificates[] = { user_certificate };
@@ -174,39 +161,25 @@ static void http_post_cbor(const void* ctx, CborEncoder* container)
     add_string_to_map(&params_encoder, "method", "POST");
     add_string_to_map(&params_encoder, "accept", "json");
 
-    // If we have payload data, add that
-    const handshake_data_t* payload_data = envelope_data->data;
-    if (payload_data) {
-        JADE_ASSERT(payload_data->ske);
-        JADE_ASSERT(payload_data->cke);
-        JADE_ASSERT(payload_data->encrypted_data);
-        JADE_ASSERT(payload_data->hmac_encrypted_data);
+    // Add payload data
+    cberr = cbor_encode_text_stringz(&params_encoder, "data");
+    JADE_ASSERT(cberr == CborNoError);
 
-        cberr = cbor_encode_text_stringz(&params_encoder, "data");
-        JADE_ASSERT(cberr == CborNoError);
+    CborEncoder data_encoder;
+    cberr = cbor_encoder_create_map(&params_encoder, &data_encoder, 1);
+    JADE_ASSERT(cberr == CborNoError);
 
-        CborEncoder data_encoder;
-        cberr = cbor_encoder_create_map(&params_encoder, &data_encoder, 4);
-        JADE_ASSERT(cberr == CborNoError);
+    // Payload data - one large opaque base64 string
+    add_string_to_map(&data_encoder, "data", reply_data->data);
 
-        // Handshake payload data
-        add_hex_bytes_to_map(&data_encoder, "ske", payload_data->ske, EC_PUBLIC_KEY_LEN);
-        add_hex_bytes_to_map(&data_encoder, "cke", payload_data->cke, EC_PUBLIC_KEY_LEN);
-        add_hex_bytes_to_map(&data_encoder, "encrypted_data", payload_data->encrypted_data, CLIENT_REQUEST_PAYLOAD_LEN);
-        add_hex_bytes_to_map(&data_encoder, "hmac_encrypted_data", payload_data->hmac_encrypted_data, HMAC_SHA256_LEN);
-
-        cberr = cbor_encoder_close_container(&params_encoder, &data_encoder);
-        JADE_ASSERT(cberr == CborNoError);
-    } else {
-        // Empty placeholder
-        add_string_to_map(&params_encoder, "data", "");
-    }
+    cberr = cbor_encoder_close_container(&params_encoder, &data_encoder);
+    JADE_ASSERT(cberr == CborNoError);
 
     cberr = cbor_encoder_close_container(&http_encoder, &params_encoder);
     JADE_ASSERT(cberr == CborNoError);
 
     // Add function to call with server's reply payload
-    add_string_to_map(&http_encoder, "on-reply", envelope_data->on_reply);
+    add_string_to_map(&http_encoder, "on-reply", reply_data->on_reply);
 
     cberr = cbor_encoder_close_container(&root_map, &http_encoder);
     JADE_ASSERT(cberr == CborNoError);
@@ -215,17 +188,16 @@ static void http_post_cbor(const void* ctx, CborEncoder* container)
     JADE_ASSERT(cberr == CborNoError);
 }
 
-// Hepler to verify the server ske is correctly signed - ie. that the server is valid
-static bool verify_server_signature(const uint8_t* ske, const size_t ske_len, const uint8_t* sig, const size_t sig_len)
+// Hepler to tweak the server static key into a session key
+static bool generate_ske(pin_keys_t* pinkeys)
 {
-    JADE_ASSERT(ske);
-    JADE_ASSERT(sig);
-    JADE_ASSERT(ske_len == EC_PUBLIC_KEY_LEN);
-    JADE_ASSERT(sig_len == EC_SIGNATURE_LEN);
+    JADE_ASSERT(pinkeys);
 
     // The pinserver pubkey - can be default or overridden by user
     const uint8_t* pubkey = server_public_key_start;
     uint8_t user_pubkey[EC_PUBLIC_KEY_LEN];
+    uint8_t hmac_tweak[HMAC_SHA256_LEN];
+    uint8_t sha_tweak[SHA256_LEN];
     if (storage_get_pinserver_pubkey(user_pubkey, sizeof(user_pubkey))) {
         pubkey = user_pubkey;
     }
@@ -235,197 +207,112 @@ static bool verify_server_signature(const uint8_t* ske, const size_t ske_len, co
         return false;
     }
 
-    uint8_t skehash[SHA256_LEN];
-    if (wally_sha256(ske, ske_len, skehash, sizeof(skehash)) != WALLY_OK) {
-        JADE_LOGE("Failed to hash pubkey!");
+    if (wally_hmac_sha256(
+            pinkeys->cke, EC_PUBLIC_KEY_LEN, pinkeys->replay_counter, REPLAY_COUNTER_LEN, hmac_tweak, HMAC_SHA256_LEN)
+        != WALLY_OK) {
         return false;
     }
 
-    return wally_ec_sig_verify(pubkey, EC_PUBLIC_KEY_LEN, skehash, sizeof(skehash), EC_FLAG_ECDSA, sig, sig_len)
-        == WALLY_OK;
-}
-
-// Helper to derive a pin-key entry from the shared secret and an index.
-// NOTE: the shared-secret must be of size SHA256_LEN, and the output key of size HMAC_SHA256_LEN
-static bool derive_secret(const uint8_t* shared_secret, const size_t index, uint8_t* result_key)
-{
-    uint8_t flags[1] = { index };
-    return wally_hmac_sha256(shared_secret, SHA256_LEN, &flags[0], 1, result_key, HMAC_SHA256_LEN) == WALLY_OK;
-}
-
-// Hepler function to populate the pinkeys structure given the server key
-static bool generate_ecdh_pinkeys(const uint8_t* ske, const size_t ske_len, pin_keys_t* pinkeys)
-{
-    JADE_ASSERT(ske);
-    JADE_ASSERT(ske_len == sizeof(pinkeys->ske));
-    JADE_ASSERT(pinkeys);
-
-    bool ret = false;
-
-    uint8_t e_ecdh_privatekey[EC_PRIVATE_KEY_LEN];
-    SENSITIVE_PUSH(e_ecdh_privatekey, sizeof(e_ecdh_privatekey));
-
-    uint8_t shared_secret[SHA256_LEN];
-    SENSITIVE_PUSH(shared_secret, sizeof(shared_secret));
-
-    // Copy the ske into pinkeys->ske
-    memcpy(pinkeys->ske, ske, ske_len);
-
-    // Get a new ephemeral client key into pinkeys->cke
-    if (!keychain_get_new_privatekey(e_ecdh_privatekey, sizeof(e_ecdh_privatekey))) {
-        goto cleanup;
+    if (wally_sha256(hmac_tweak, sizeof(hmac_tweak), sha_tweak, sizeof(sha_tweak)) != WALLY_OK) {
+        return false;
     }
-    if (wally_ec_public_key_from_private_key(
-            e_ecdh_privatekey, sizeof(e_ecdh_privatekey), pinkeys->cke, sizeof(pinkeys->cke))
+
+    if (wally_ec_public_key_bip341_tweak(
+            pubkey, EC_PUBLIC_KEY_LEN, sha_tweak, SHA256_LEN, 0, pinkeys->ske, sizeof(pinkeys->ske))
         != WALLY_OK) {
-        goto cleanup;
+        return false;
     }
-
-    // Make the new ecdh 'shared secret' from ske + cke
-    if (wally_ecdh(ske, ske_len, e_ecdh_privatekey, sizeof(e_ecdh_privatekey), shared_secret, SHA256_LEN) != WALLY_OK) {
-        goto cleanup;
-    }
-
-    // Derive the 'pinkeys' from that
-    ret = derive_secret(shared_secret, 0, pinkeys->encrypt_key)
-        && derive_secret(shared_secret, 1, pinkeys->hmac_encrypt_key)
-        && derive_secret(shared_secret, 2, pinkeys->decrypt_key)
-        && derive_secret(shared_secret, 3, pinkeys->hmac_decrypt_key);
-
-cleanup:
-    SENSITIVE_POP(shared_secret);
-    SENSITIVE_POP(e_ecdh_privatekey);
-    return ret;
+    return true;
 }
 
 // Helper to build the aes-encrypted payload
 // Assumes all the passed buffers are non-null and are of the appropriate sizes
-static bool encrypt_payload(const uint8_t* aeskey, const uint8_t* pin_secret, const uint8_t* entropy,
-    const uint8_t* sig, uint8_t* encrypted, const size_t encrypted_len)
+static bool encrypt_payload(const pin_keys_t* pinkeys, const uint8_t* pin_secret, const size_t pin_secret_len,
+    const uint8_t* entropy, const size_t entropy_len, const uint8_t* sig, const size_t sig_len, uint8_t* encrypted,
+    const size_t encrypted_len, size_t* written)
 {
-    JADE_ASSERT(aeskey);
+    JADE_ASSERT(pinkeys);
     JADE_ASSERT(pin_secret);
-    JADE_ASSERT(entropy);
+    JADE_ASSERT(pin_secret_len == PIN_SECRET_LEN);
+    JADE_ASSERT(entropy || !entropy_len);
+    JADE_ASSERT(!entropy_len || entropy_len == ENTROPY_LEN);
     JADE_ASSERT(sig);
+    JADE_ASSERT(sig_len == EC_SIGNATURE_RECOVERABLE_LEN);
     JADE_ASSERT(encrypted);
-    JADE_ASSERT(encrypted_len == CLIENT_REQUEST_PAYLOAD_LEN);
+    JADE_ASSERT(encrypted_len == CLIENT_REQUEST_MAX_PAYLOAD_LEN);
+    JADE_INIT_OUT_SIZE(written);
 
-    uint8_t buf[CLIENT_CLEARTEXT_LEN];
-    SENSITIVE_PUSH(buf, sizeof(buf));
+    uint8_t cleartext[CLIENT_MAX_CLEARTEXT_LEN];
+    SENSITIVE_PUSH(cleartext, sizeof(cleartext));
 
-    memcpy(buf, pin_secret, PIN_SECRET_LEN);
-    memcpy(&buf[PIN_SECRET_LEN], entropy, ENTROPY_LEN);
-    memcpy(&buf[PIN_SECRET_LEN + ENTROPY_LEN], sig, EC_SIGNATURE_RECOVERABLE_LEN);
+    const size_t cleartext_len = pin_secret_len + entropy_len + sig_len;
+    JADE_ASSERT(cleartext_len <= sizeof(cleartext));
 
-    const bool ret = aes_encrypt_bytes(aeskey, AES_KEY_LEN_256, buf, sizeof(buf), encrypted, encrypted_len);
-    SENSITIVE_POP(buf);
-    return ret;
+    memcpy(cleartext, pin_secret, pin_secret_len);
+    memcpy(&cleartext[pin_secret_len], entropy, entropy_len);
+    memcpy(&cleartext[pin_secret_len + entropy_len], sig, sig_len);
+
+    uint8_t iv[AES_BLOCK_LEN];
+    get_random(iv, sizeof(iv));
+    const int wret = wally_aes_cbc_with_ecdh_key(pinkeys->privkey, sizeof(pinkeys->privkey), iv, sizeof(iv), cleartext,
+        cleartext_len, pinkeys->ske, sizeof(pinkeys->ske), LABEL_ORACLE_REQUEST, sizeof(LABEL_ORACLE_REQUEST),
+        AES_FLAG_ENCRYPT, encrypted, encrypted_len, written);
+    SENSITIVE_POP(cleartext);
+
+    return wret == WALLY_OK && *written <= encrypted_len;
 }
 
-// Helper to decrypt the aes-encrypted reply - which should be an aes-key (with hmac).
+// Helper to decrypt the aes-encrypted reply - which should be an aes-key.
 // Assumes all the passed buffers are non-null and are of the appropriate sizes
-static bool decrypt_reply(const uint8_t* aeskey, const uint8_t* encrypted, const size_t encrypted_len,
-    const uint8_t* hmac, const uint8_t* hmac_key, uint8_t* decryptedaes, const size_t decryptedaes_len)
+static bool decrypt_reply(const pin_keys_t* pinkeys, const uint8_t* encrypted, const size_t encrypted_len,
+    uint8_t* decryptedaes, const size_t decryptedaes_len)
 {
-    JADE_ASSERT(aeskey);
+    JADE_ASSERT(pinkeys);
     JADE_ASSERT(encrypted);
     JADE_ASSERT(encrypted_len == SERVER_REPLY_PAYLOAD_LEN);
-    JADE_ASSERT(hmac);
-    JADE_ASSERT(hmac_key);
     JADE_ASSERT(decryptedaes);
     JADE_ASSERT(decryptedaes_len == AES_KEY_LEN_256);
 
-    uint8_t hmac_calculated[HMAC_SHA256_LEN];
-    if (wally_hmac_sha256(hmac_key, HMAC_SHA256_LEN, encrypted, encrypted_len, hmac_calculated, HMAC_SHA256_LEN)
-        != WALLY_OK) {
-        return false;
-    }
-
-    if (crypto_verify_32(hmac_calculated, hmac) != 0) {
-        return false;
-    }
-
+    // In theory the decrypted payload can be up to the size of the encrypted payload minus
+    // the iv (an aes block len), *after* we've removed the trailing hmac.  It can be smaller - in
+    // fact in this case we are expecting to decrypt exactly 32 bytes (aes key len)
+    uint8_t decrypted_padded[SERVER_REPLY_PAYLOAD_LEN - HMAC_SHA256_LEN - AES_BLOCK_LEN];
     size_t written = 0;
-    return aes_decrypt_bytes(
-               aeskey, AES_KEY_LEN_256, encrypted, encrypted_len, decryptedaes, decryptedaes_len, &written)
-        && written == AES_KEY_LEN_256;
+    if (wally_aes_cbc_with_ecdh_key(pinkeys->privkey, sizeof(pinkeys->privkey), NULL, 0, encrypted, encrypted_len,
+            pinkeys->ske, sizeof(pinkeys->ske), LABEL_ORACLE_RESPONSE, sizeof(LABEL_ORACLE_RESPONSE), AES_FLAG_DECRYPT,
+            decrypted_padded, sizeof(decrypted_padded), &written)
+            != WALLY_OK
+        || written != decryptedaes_len) {
+        return false;
+    }
+    memcpy(decryptedaes, decrypted_padded, written);
+    return true;
 }
 
-// Trigger, and then parse, handshake_init message
-// Sets-up the ECDH and the ephemeral encryption keys - populates pinkeys structure
-// Returns a small struct containing the success/fail, whether it is a 'hard' or
-// 'retryable' error, and any error code/message that should be sent.
-static pinserver_result_t start_handshake(jade_process_t* process, pin_keys_t* pinkeys)
+// Generate a random client-side ephemeral key, and derive the server key via tweak.
+// Populates passed pinkeys structure.
+// Returns a small struct containing the success/fail, and any error
+// code/message that should be sent.
+static pinserver_result_t generate_ephemeral_pinkeys(pin_keys_t* pinkeys)
 {
-    JADE_ASSERT(process);
     JADE_ASSERT(pinkeys);
-    ASSERT_HAS_CURRENT_MESSAGE(process);
 
-    CborValue params;
-    uint8_t ske[EC_PUBLIC_KEY_LEN];
-    uint8_t sig[EC_SIGNATURE_LEN];
-    char tmpstr[256];
-
-    // Send a reply with the handshake url
-    JADE_LOGD("Initiating server handshake with: %s", PINSERVER_URL);
-    const handshake_reply_t handshake_init
-        = { .document = PINSERVER_DOC_INIT, .on_reply = "handshake_init", .data = NULL };
-    jade_process_reply_to_message_result(process->ctx, &handshake_init, http_post_cbor);
-
-    // Await a 'handshake_init' message
-    jade_process_load_in_message(process, true);
-
-    if (IS_CURRENT_MESSAGE(process, "cancel")) {
-        // Cancelled
-        RETURN_RESULT(CANCELLED, 0, NULL);
-    } else if (!IS_CURRENT_MESSAGE(process, "handshake_init")) {
-        // Protocol error
-        RETURN_RESULT(FAILURE, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'handshake_init'");
-    }
-
-    // If we receive no parameters it implies some comms failure with the pinserver
-    // This is an error we can retry and is not a 'wrong pin' type failure.
-    const CborError cberr = cbor_value_map_find_value(&process->ctx.value, CBOR_RPC_TAG_PARAMS, &params);
-    if (cberr != CborNoError || !cbor_value_is_valid(&params) || cbor_value_get_type(&params) == CborInvalidType
-        || !cbor_value_is_map(&params)) {
-        // We provide the error details in case the user opts not to retry
-        RETURN_RESULT(CAN_RETRY, CBOR_RPC_BAD_PARAMETERS, "Failed to read parameters from Oracle");
-    }
-
-    // ske
-    size_t len = 0;
-    rpc_get_string("ske", sizeof(tmpstr), &params, tmpstr, &len);
-    if (len == 0) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "ske missing");
-    }
-
-    len = 0;
-    if (wally_hex_to_bytes(tmpstr, ske, sizeof(ske), &len) != WALLY_OK || len != EC_PUBLIC_KEY_LEN) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "ske invalid");
-    }
-
-    // sig
-    len = 0;
-    rpc_get_string("sig", sizeof(tmpstr), &params, tmpstr, &len);
-    if (len == 0) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "sig missing");
-    }
-
-    len = 0;
-    if (wally_hex_to_bytes(tmpstr, sig, sizeof(sig), &len) != WALLY_OK || len != EC_SIGNATURE_LEN) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "sig invalid");
-    }
-
-    // Verify server key/signature
-    if (!verify_server_signature(ske, sizeof(ske), sig, sizeof(sig))) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "Cannot initiate handshake - ske and/or sig invalid");
-    }
-
-    // Derive all the various encryption keys
-    JADE_LOGD("Deriving shared secrets/keys");
-    if (!generate_ecdh_pinkeys(ske, sizeof(ske), pinkeys)) {
+    // Get a new ephemeral client key into pinkeys
+    if (!keychain_get_new_privatekey(pinkeys->privkey, sizeof(pinkeys->privkey))
+        || wally_ec_public_key_from_private_key(
+               pinkeys->privkey, sizeof(pinkeys->privkey), pinkeys->cke, sizeof(pinkeys->cke))
+            != WALLY_OK) {
+        JADE_LOGE("Failed to generate ephemeral client key");
         RETURN_RESULT(
-            FAILURE, CBOR_RPC_INTERNAL_ERROR, "Cannot initiate handshake - failed to generate shared secrets");
+            FAILURE, CBOR_RPC_INTERNAL_ERROR, "Cannot initiate handshake - failed to generate ephemeral client key");
+    }
+
+    // Load the replay counter and deduce the server key via tweak
+    const bool res = storage_get_replay_counter(pinkeys->replay_counter);
+    if (!res || !generate_ske(pinkeys)) {
+        JADE_LOGE("Failed to deduce ephemeral server key");
+        RETURN_RESULT(
+            FAILURE, CBOR_RPC_INTERNAL_ERROR, "Cannot initiate handshake - failed to deduce ephemeral server key");
     }
 
     // Success!
@@ -443,12 +330,11 @@ static pinserver_result_t complete_handshake(
     JADE_ASSERT(pinkeys);
     JADE_ASSERT(serverkey);
     JADE_ASSERT(serverkey_len == AES_KEY_LEN_256);
-    ASSERT_CURRENT_MESSAGE(process, "handshake_init");
+
+    ASSERT_CURRENT_MESSAGE(process, "auth_user");
 
     CborValue params;
-    uint8_t aes_encrypted[SERVER_REPLY_PAYLOAD_LEN];
-    uint8_t aes_hmac[HMAC_SHA256_LEN];
-    char tmpstr[256];
+    uint8_t aes_encrypted[512]; // sufficient for correct payload
 
     // Await a 'complete_handshake' message
     jade_process_load_in_message(process, true);
@@ -471,35 +357,23 @@ static pinserver_result_t complete_handshake(
     }
 
     // encrypted key
-    size_t len = 0;
-    rpc_get_string("encrypted_key", sizeof(tmpstr), &params, tmpstr, &len);
-    if (len == 0) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "encrypted_key missing");
+    size_t data_len = 0;
+    const char* data = NULL;
+    rpc_get_string_ptr("data", &params, &data, &data_len);
+    if (!data || !data_len) {
+        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "data field missing");
     }
 
-    len = 0;
-    if (wally_hex_to_bytes(tmpstr, aes_encrypted, sizeof(aes_encrypted), &len) != WALLY_OK
-        || len != SERVER_REPLY_PAYLOAD_LEN) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "encrypted_key invalid");
-    }
-
-    // hmac
-    len = 0;
-    rpc_get_string("hmac", sizeof(tmpstr), &params, tmpstr, &len);
-    if (len == 0) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "hmac missing");
-    }
-
-    len = 0;
-    if (wally_hex_to_bytes(tmpstr, aes_hmac, sizeof(aes_hmac), &len) != WALLY_OK || len != HMAC_SHA256_LEN) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "hmac invalid");
+    size_t written = 0;
+    if (mbedtls_base64_decode(aes_encrypted, sizeof(aes_encrypted), &written, (const uint8_t*)data, data_len)
+        || written != SERVER_REPLY_PAYLOAD_LEN) {
+        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "data field invalid");
     }
 
     // Decrypt the message payload and check hmacs
     JADE_LOGD("Decrypting response and obtaining server key");
-    if (!decrypt_reply(pinkeys->decrypt_key, aes_encrypted, sizeof(aes_encrypted), aes_hmac, pinkeys->hmac_decrypt_key,
-            serverkey, serverkey_len)) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "failed to decrypt payload");
+    if (!decrypt_reply(pinkeys, aes_encrypted, written, serverkey, serverkey_len)) {
+        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "Failed to decrypt payload");
     }
 
     // Success!
@@ -507,47 +381,59 @@ static pinserver_result_t complete_handshake(
 }
 
 // Helper to hmac an n-digit pin into a 256bit secret
-static bool get_pin_secret(const uint8_t* pin, const size_t pin_len, const uint8_t* pin_privatekey, uint8_t* pin_secret)
+static bool get_pin_secret(const uint8_t* pin, const size_t pin_len, const uint8_t* pin_privatekey,
+    const size_t pin_privatekey_len, uint8_t* pin_secret, const size_t pin_secret_len)
 {
     JADE_ASSERT(pin);
     JADE_ASSERT(pin_len > 0);
     JADE_ASSERT(pin_privatekey);
+    JADE_ASSERT(pin_privatekey_len == EC_PRIVATE_KEY_LEN);
     JADE_ASSERT(pin_secret);
+    JADE_ASSERT(pin_secret_len == PIN_SECRET_LEN);
 
     const uint8_t subkey = 0;
     uint8_t hmac_key[HMAC_SHA256_LEN];
     SENSITIVE_PUSH(hmac_key, sizeof(hmac_key));
 
     const bool ret
-        = wally_hmac_sha256(pin_privatekey, EC_PRIVATE_KEY_LEN, &subkey, 1, hmac_key, HMAC_SHA256_LEN) == WALLY_OK
-        && wally_hmac_sha256(hmac_key, sizeof(hmac_key), pin, pin_len, pin_secret, HMAC_SHA256_LEN) == WALLY_OK;
+        = wally_hmac_sha256(pin_privatekey, pin_privatekey_len, &subkey, 1, hmac_key, sizeof(hmac_key)) == WALLY_OK
+        && wally_hmac_sha256(hmac_key, sizeof(hmac_key), pin, pin_len, pin_secret, pin_secret_len) == WALLY_OK;
 
     SENSITIVE_POP(hmac_key);
     return ret;
 }
 
 // Sign the payload with the private key
-static bool sign_payload(
-    const uint8_t* pin_privatekey, const uint8_t* cke, const uint8_t* pinsecret, const uint8_t* entropy, uint8_t* sig)
+static bool sign_payload(const uint8_t* pin_privatekey, const size_t pin_privatekey_len, const pin_keys_t* pinkeys,
+    const uint8_t* pinsecret, const size_t pinsecret_len, const uint8_t* entropy, const size_t entropy_len,
+    uint8_t* sig, const size_t sig_len)
 {
     JADE_ASSERT(pin_privatekey);
-    JADE_ASSERT(cke);
+    JADE_ASSERT(pin_privatekey_len == EC_PRIVATE_KEY_LEN);
+    JADE_ASSERT(pinkeys);
     JADE_ASSERT(pinsecret);
-    JADE_ASSERT(entropy);
+    JADE_ASSERT(pinsecret_len == PIN_SECRET_LEN);
+    JADE_ASSERT(entropy || !entropy_len);
+    JADE_ASSERT(!entropy_len || entropy_len == ENTROPY_LEN);
     JADE_ASSERT(sig);
+    JADE_ASSERT(sig_len == EC_SIGNATURE_RECOVERABLE_LEN);
 
     uint8_t shahash[SHA256_LEN];
     SENSITIVE_PUSH(shahash, sizeof(shahash));
-    uint8_t shadata[EC_PUBLIC_KEY_LEN + PIN_SECRET_LEN + ENTROPY_LEN];
+    uint8_t shadata[sizeof(pinkeys->cke) + sizeof(pinkeys->replay_counter) + PIN_SECRET_LEN + ENTROPY_LEN];
     SENSITIVE_PUSH(shadata, sizeof(shadata));
 
-    memcpy(shadata, cke, EC_PUBLIC_KEY_LEN);
-    memcpy(&shadata[EC_PUBLIC_KEY_LEN], pinsecret, PIN_SECRET_LEN);
-    memcpy(&shadata[EC_PUBLIC_KEY_LEN + PIN_SECRET_LEN], entropy, ENTROPY_LEN);
+    const size_t shadata_len = sizeof(pinkeys->cke) + sizeof(pinkeys->replay_counter) + pinsecret_len + entropy_len;
+    JADE_ASSERT(shadata_len <= sizeof(shadata));
 
-    const bool ret = wally_sha256(shadata, sizeof(shadata), shahash, sizeof(shahash)) == WALLY_OK
-        && wally_ec_sig_from_bytes(pin_privatekey, EC_PRIVATE_KEY_LEN, shahash, sizeof(shahash),
-               EC_FLAG_ECDSA | EC_FLAG_RECOVERABLE, sig, EC_SIGNATURE_RECOVERABLE_LEN)
+    memcpy(shadata, pinkeys->cke, sizeof(pinkeys->cke));
+    memcpy(&shadata[sizeof(pinkeys->cke)], pinkeys->replay_counter, sizeof(pinkeys->replay_counter));
+    memcpy(&shadata[sizeof(pinkeys->cke) + sizeof(pinkeys->replay_counter)], pinsecret, pinsecret_len);
+    memcpy(&shadata[sizeof(pinkeys->cke) + sizeof(pinkeys->replay_counter) + pinsecret_len], entropy, entropy_len);
+
+    const bool ret = wally_sha256(shadata, shadata_len, shahash, sizeof(shahash)) == WALLY_OK
+        && wally_ec_sig_from_bytes(pin_privatekey, pin_privatekey_len, shahash, sizeof(shahash),
+               EC_FLAG_ECDSA | EC_FLAG_RECOVERABLE, sig, sig_len)
             == WALLY_OK;
 
     SENSITIVE_POP(shadata);
@@ -555,26 +441,41 @@ static bool sign_payload(
     return ret;
 }
 
-// Calculate the hmac of the cke + (encrypted) payload
-static bool hmac_ckepayload(const pin_keys_t* pinkeys, const uint8_t* payload, uint8_t* output)
+static bool assemble_reply_data(
+    const pin_keys_t* pinkeys, const uint8_t* payload, const size_t payload_len, char* output, const size_t output_len)
 {
     JADE_ASSERT(pinkeys);
     JADE_ASSERT(payload);
+    JADE_ASSERT(payload_len <= CLIENT_REQUEST_MAX_PAYLOAD_LEN);
     JADE_ASSERT(output);
+    JADE_ASSERT(output_len > payload_len);
 
-    uint8_t data[EC_PUBLIC_KEY_LEN + CLIENT_REQUEST_PAYLOAD_LEN];
-    memcpy(data, pinkeys->cke, EC_PUBLIC_KEY_LEN);
-    memcpy(&data[EC_PUBLIC_KEY_LEN], payload, CLIENT_REQUEST_PAYLOAD_LEN);
+    // Concatentate fields and base-64 encode
+    uint8_t data[sizeof(pinkeys->cke) + sizeof(pinkeys->replay_counter) + CLIENT_REQUEST_MAX_PAYLOAD_LEN];
+    const size_t data_len = sizeof(pinkeys->cke) + sizeof(pinkeys->replay_counter) + payload_len;
+    JADE_ASSERT(data_len <= sizeof(data));
+    JADE_ASSERT(output_len > data_len);
 
-    return wally_hmac_sha256(pinkeys->hmac_encrypt_key, sizeof(pinkeys->hmac_encrypt_key), data, sizeof(data), output,
-               HMAC_SHA256_LEN)
-        == WALLY_OK;
+    memcpy(data, pinkeys->cke, sizeof(pinkeys->cke));
+    memcpy(data + sizeof(pinkeys->cke), pinkeys->replay_counter, sizeof(pinkeys->replay_counter));
+    memcpy(data + sizeof(pinkeys->cke) + sizeof(pinkeys->replay_counter), payload, payload_len);
+
+    size_t written = 0;
+    if (mbedtls_base64_encode((uint8_t*)output, output_len, &written, data, data_len) || !written) {
+        JADE_LOGE("Error encoding to base64: %u", written);
+        return false;
+    }
+    JADE_ASSERT(written < output_len);
+
+    // Append nul-terminator and return true
+    output[written] = '\0';
+    return true;
 }
 
 // Dance with the pinserver to obtain the final aes-key - start handshake,
 // compute shared secrets, fetch server key, and then compute final aes key.
 static pinserver_result_t pinserver_interaction(jade_process_t* process, const uint8_t* pin, const size_t pin_len,
-    const char* document, uint8_t* finalaes, const size_t finalaes_len)
+    const char* document, const bool pass_client_entropy, uint8_t* finalaes, const size_t finalaes_len)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(pin);
@@ -589,8 +490,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     uint8_t pinsecret[PIN_SECRET_LEN];
     uint8_t entropy[ENTROPY_LEN];
     uint8_t sig[EC_SIGNATURE_RECOVERABLE_LEN];
-    uint8_t payload[CLIENT_REQUEST_PAYLOAD_LEN];
-    uint8_t hmac_payload[HMAC_SHA256_LEN];
+    uint8_t payload[CLIENT_REQUEST_MAX_PAYLOAD_LEN];
 
     SENSITIVE_PUSH(&pinkeys, sizeof(pinkeys));
     SENSITIVE_PUSH(pin_privatekey, sizeof(pin_privatekey));
@@ -598,8 +498,8 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     SENSITIVE_PUSH(entropy, sizeof(entropy));
     SENSITIVE_PUSH(sig, sizeof(sig));
 
-    // Start the pinserver handshake and derive the shared encryption keys
-    pinserver_result_t retval = start_handshake(process, &pinkeys);
+    // Start the ecdh and derive the ephemeral encryption keys
+    pinserver_result_t retval = generate_ephemeral_pinkeys(&pinkeys);
     if (retval.result != SUCCESS) {
         goto cleanup;
     }
@@ -607,12 +507,17 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     // Generate, sign, encrypt and hmac the pin data to send
     JADE_LOGI("Generating pinserver payload");
     get_random(entropy, sizeof(entropy));
+    const size_t entropy_len = pass_client_entropy ? sizeof(entropy) : 0;
 
+    size_t written = 0;
+    char data[2 * (sizeof(pinkeys.cke) + sizeof(pinkeys.replay_counter) + sizeof(payload))]; // sufficient
     if (!storage_get_pin_privatekey(pin_privatekey, sizeof(pin_privatekey))
-        || !get_pin_secret(pin, pin_len, pin_privatekey, pinsecret)
-        || !sign_payload(pin_privatekey, pinkeys.cke, pinsecret, entropy, sig)
-        || !encrypt_payload(pinkeys.encrypt_key, pinsecret, entropy, sig, payload, sizeof(payload))
-        || !hmac_ckepayload(&pinkeys, payload, hmac_payload)) {
+        || !get_pin_secret(pin, pin_len, pin_privatekey, sizeof(pin_privatekey), pinsecret, sizeof(pinsecret))
+        || !sign_payload(pin_privatekey, sizeof(pin_privatekey), &pinkeys, pinsecret, sizeof(pinsecret), entropy,
+            entropy_len, sig, sizeof(sig))
+        || !encrypt_payload(&pinkeys, pinsecret, sizeof(pinsecret), entropy, entropy_len, sig, sizeof(sig), payload,
+            sizeof(payload), &written)
+        || !assemble_reply_data(&pinkeys, payload, written, data, sizeof(data))) {
         // Internal failure
         retval.result = FAILURE;
         retval.errorcode = CBOR_RPC_INTERNAL_ERROR;
@@ -621,11 +526,9 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     }
 
     // Build and send cbor reply
-    const handshake_data_t payload_data
-        = { .ske = pinkeys.ske, .cke = pinkeys.cke, .encrypted_data = payload, .hmac_encrypted_data = hmac_payload };
-    const handshake_reply_t handshake_complete
-        = { .document = document, .on_reply = "handshake_complete", .data = &payload_data };
-    jade_process_reply_to_message_result(process->ctx, &handshake_complete, http_post_cbor);
+    const handshake_reply_data_t handshake_complete
+        = { .document = document, .on_reply = "handshake_complete", .data = data };
+    jade_process_reply_to_message_result(process->ctx, &handshake_complete, http_post_reply);
 
     // Get the server's aes key for the given pin/key data
     uint8_t serverkey[AES_KEY_LEN_256];
@@ -654,14 +557,15 @@ cleanup:
 // Dance with the pinserver to obtain the final aes-key.  Wraps pinserver interaction
 // with retry logic in-case there are http/network issues.
 static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, const size_t pin_len,
-    const char* document, uint8_t* finalaes, const size_t finalaes_len)
+    const char* document, const bool pass_client_entropy, uint8_t* finalaes, const size_t finalaes_len)
 {
     // pinserver interaction only happens atm as a result of a call to 'auth_user'
     ASSERT_CURRENT_MESSAGE(process, "auth_user");
 
     while (true) {
         // Do the pinserver interaction dance, and get the resulting aes-key
-        const pinserver_result_t pir = pinserver_interaction(process, pin, pin_len, document, finalaes, finalaes_len);
+        const pinserver_result_t pir
+            = pinserver_interaction(process, pin, pin_len, document, pass_client_entropy, finalaes, finalaes_len);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         // If a) the error is 'retry-able' and b) the user elects to retry, then loop and try again
@@ -697,7 +601,9 @@ bool pinclient_get(
     jade_process_t* process, const uint8_t* pin, const size_t pin_len, uint8_t* finalaes, const size_t finalaes_len)
 {
     JADE_LOGI("Fetching pinserver data");
-    return get_pinserver_aeskey(process, pin, pin_len, PINSERVER_DOC_GET_PIN, finalaes, finalaes_len);
+    const bool pass_client_entropy = false; // not required for 'get'
+    return get_pinserver_aeskey(
+        process, pin, pin_len, PINSERVER_DOC_GET_PIN, pass_client_entropy, finalaes, finalaes_len);
 }
 
 // Interact with the pinserver to get a new server key
@@ -706,5 +612,7 @@ bool pinclient_set(
     jade_process_t* process, const uint8_t* pin, const size_t pin_len, uint8_t* finalaes, const size_t finalaes_len)
 {
     JADE_LOGI("Setting new pinserver data");
-    return get_pinserver_aeskey(process, pin, pin_len, PINSERVER_DOC_SET_PIN, finalaes, finalaes_len);
+    const bool pass_client_entropy = true; // mandatory for 'set pin' (as new aes key is created)
+    return get_pinserver_aeskey(
+        process, pin, pin_len, PINSERVER_DOC_SET_PIN, pass_client_entropy, finalaes, finalaes_len);
 }

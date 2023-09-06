@@ -21,6 +21,7 @@ static const char* HOTP_COUNTERS_NAMESPACE = "HOTPC";
 
 static const char* PIN_PRIVATEKEY_FIELD = "privatekey";
 static const char* PIN_COUNTER_FIELD = "counter";
+static const char* REPLAY_COUNTER_FIELD = "antireplay";
 static const char* BLOB_FIELD = "blob";
 static const char* KEY_FLAGS_FIELD = "keyflags";
 static const char* WALLET_ERASE_PIN = "walleterasepin";
@@ -399,7 +400,6 @@ bool storage_get_pin_privatekey(uint8_t* privatekey, const size_t key_len)
 {
     JADE_ASSERT(privatekey);
     JADE_ASSERT(key_len == EC_PRIVATE_KEY_LEN);
-
     if (!read_blob_fixed(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD, privatekey, key_len)) {
         return false;
     }
@@ -477,6 +477,38 @@ uint8_t storage_get_counter(void)
 {
     uint8_t counter = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD, &counter, sizeof(counter)) ? counter : 0;
+}
+
+bool storage_get_replay_counter(uint8_t* replay_counter)
+{
+    // returns the latest counter and increments the one on flash for next use
+    // if a counter is not set we create one set to 0
+    JADE_ASSERT(replay_counter);
+
+    nvs_handle handle;
+    STORAGE_OPEN(handle, DEFAULT_NAMESPACE, NVS_READWRITE);
+    uint32_t j = UINT32_MAX;
+    esp_err_t err = nvs_get_u32(handle, REPLAY_COUNTER_FIELD, &j);
+    if (err != ESP_OK) {
+        if (err != ESP_ERR_NVS_NOT_FOUND) {
+            JADE_LOGE("nvs_get_u32() for %s failed: %u", REPLAY_COUNTER_FIELD, err);
+            nvs_close(handle);
+            return false;
+        }
+        JADE_LOGI("nvs_get_u32() for %s - not found", REPLAY_COUNTER_FIELD);
+        j = 0;
+    }
+    JADE_ASSERT(j < UINT32_MAX);
+    memcpy(replay_counter, &j, sizeof(j));
+    err = nvs_set_u32(handle, REPLAY_COUNTER_FIELD, ++j);
+    if (err != ESP_OK) {
+        JADE_LOGE("nvs_set_u32() for %s failed: %u", REPLAY_COUNTER_FIELD, err);
+        nvs_close(handle);
+        return false;
+    }
+    STORAGE_COMMIT(handle);
+    STORAGE_CLOSE(handle);
+    return true;
 }
 
 bool storage_set_pinserver_details(const char* urlA, const char* urlB, const uint8_t* pubkey, const size_t pubkey_len)
