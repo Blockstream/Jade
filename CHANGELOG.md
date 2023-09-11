@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.22] - 2023-09-15
+### Added
+- Add option to export registered multisig data in the import file format by QR
+- Export BIP85 entropy AES encrypted with key derived from ecdh shared secret by QR
+- Support QR export of legacy address scripts/xpubs using BIP44 paths
+- Accept optional 'sorted' boolean in the multisig import file
+- Add support for explicit proofs when signing liquid transactions
+
+### Changed
+- Update libwally to 0.9.1
+- Ensure to set build config flag APP_REPRODUCIBLE_BUILD to true in all configs
+- UI improvement when viewing registered multisigs showing all multisig data
+- Insist custom pinserver urls are prefixed 'http://' or 'https://'
+
+### Fixed
+- Correct BIP85 24-word generation
+- Display issues when confirming long BIP39 passphrase and BIP85 mnemonic
+- Initialising wallet on diy device without camera or Bluetooth
+- Python api fixes - logger hierarchy, deprecated functions, qemu emulator connection, and update cbor dependency
+
 ## [1.0.21] - 2023-08-01
 ### Added
 - Generic QR scan handles scanning a seed/wallet QR and switching wallets
@@ -75,12 +95,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.45] - 2023-02-22
 ### Added
 - Added option to unlock Jade with PIN using only QR codes (ie. airgapped)
-- Added bip85 creation of bip39 mnemonic phrase
+- Added BIP85 creation of BIP39 mnemonic phrase
 
 ### Changed
 - Reworked initial screens and settings/options menus
 - Handle truncating long multisig wallet names when scanning QR multisig setup
-- Added more visible warning when offering bip39 passphrase use
+- Added more visible warning when offering BIP39 passphrase use
 - Update libwally to 0.8.8
 
 ### Fixed
@@ -96,8 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.43] - 2023-02-10
 ### Added
-- Facilitate bip39 passphrases made up only of wordlist words
-- Add option to calculate the final bip39 mnemonic word
+- Facilitate BIP39 passphrases made up only of wordlist words
+- Add option to calculate the final BIP39 mnemonic word
 - Support sign-message via QR (eg. Specter)
 - Add wallet 'logout' option to lock hw unit
 
