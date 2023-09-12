@@ -206,7 +206,7 @@ gui_activity_t* make_confirm_qrmode_activity(void)
     };
 
     gui_activity_t* const act = make_show_message_activity(
-        " Save and encypt wallet\n     with PIN or scan a\n SeedQR every session?", 12, NULL, hdrbtns, 2, ftrbtns, 2);
+        "Save and encrypt wallet\n     with PIN or scan a\n SeedQR every session?", 12, NULL, hdrbtns, 2, ftrbtns, 2);
 
     return act;
 }
