@@ -19,6 +19,12 @@ bool show_pinserver_certificate_activity(const char* cert_hash_hex, bool initial
 // Default pinserver public key
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
 
+static const char URL_PROTOCOL_HTTP[] = { 'h', 't', 't', 'p', ':', '/', '/' };
+static const char URL_PROTOCOL_HTTPS[] = { 'h', 't', 't', 'p', 's', ':', '/', '/' };
+
+#define PROTOCOL_IS(protocol, url, len) (len > sizeof(protocol) && !strncmp(url, protocol, sizeof(protocol)))
+#define VALID_PROTOCOL(url, len) (PROTOCOL_IS(URL_PROTOCOL_HTTP, url, len) || PROTOCOL_IS(URL_PROTOCOL_HTTPS, url, len))
+
 void show_pinserver_details(void)
 {
     // Load custom pinserver details from storage
@@ -89,8 +95,12 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
     rpc_get_string("urlB", sizeof(urlB), params, urlB, &urlB_len);
     rpc_get_bytes_ptr("pubkey", params, &pubkey, &pubkey_len);
 
-    if (urlA_len == 0 && rpc_has_field_data("urlA", params)) {
-        *errmsg = "Cannot set empty URL";
+    if (rpc_has_field_data("urlA", params) && !VALID_PROTOCOL(urlA, urlA_len)) {
+        *errmsg = "Empty or invalid first URL";
+        goto cleanup;
+    }
+    if (urlB_len && !VALID_PROTOCOL(urlB, urlB_len)) {
+        *errmsg = "Invalid second URL";
         goto cleanup;
     }
     if (urlB_len && !urlA_len) {

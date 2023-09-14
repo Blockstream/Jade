@@ -854,18 +854,30 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
 
                   (('badpin1', 'update_pinserver'), 'Expecting parameters map'),
                   (('badpin2', 'update_pinserver',
-                    {'urlB': 'testurl'}), 'set only second URL'),
+                    {'urlA': ''}), 'invalid first URL'),
                   (('badpin3', 'update_pinserver',
-                    {'urlA': 'testurl', 'urlB': 'testonion', 'reset_details': True}),
-                   'set and reset details'),
+                    {'urlA': '192.168.1.123'}), 'invalid first URL'),
                   (('badpin4', 'update_pinserver',
-                    {'pubkey': h2b('abc123'), 'reset_details': True}), 'set and reset details'),
+                    {'urlA': 'ftp://192.168.1.123'}), 'invalid first URL'),
                   (('badpin5', 'update_pinserver',
-                    {'pubkey': h2b('abcdef')}), 'set pubkey without URL'),
+                    {'urlA': 'http://192.168.1.123', 'urlB': 'testurl.com:8080'}),
+                   'Invalid second URL'),
                   (('badpin6', 'update_pinserver',
-                    {'urlA': 'testurl', 'urlB': 'testonion', 'pubkey': h2b('abcdef1234')}),
-                   'Invalid Oracle pubkey'),
+                    {'urlA': 'http://192.168.1.123', 'urlB': 'madeup://testurl.com:8080'}),
+                   'Invalid second URL'),
                   (('badpin7', 'update_pinserver',
+                    {'urlB': 'https://192.168.1.124'}), 'set only second URL'),
+                  (('badpin8', 'update_pinserver',
+                    {'urlA': 'http://192.168.1.123', 'urlB': 'https://192.168.1.124',
+                     'reset_details': True}), 'set and reset details'),
+                  (('badpin9', 'update_pinserver',
+                    {'pubkey': h2b('abc123'), 'reset_details': True}), 'set and reset details'),
+                  (('badpin10', 'update_pinserver',
+                    {'pubkey': h2b('abcdef')}), 'set pubkey without URL'),
+                  (('badpin11', 'update_pinserver',
+                    {'urlA': 'http://192.168.1.123', 'urlB': 'https://192.168.1.124',
+                     'pubkey': h2b('abcdef1234')}), 'Invalid Oracle pubkey'),
+                  (('badpin12', 'update_pinserver',
                     {'certificate': 'testcert', 'reset_certificate': True}),
                    'set and reset certificate'),
 
@@ -2247,7 +2259,10 @@ def test_set_pinserver(jadeapi):
     # See test_handshake() above for more in-depth test of this functionality
     with open(PINSERVER_TEST_PUBKEY_FILE, 'rb') as f:
         pubkey = f.read()
-    rslt = jadeapi.set_pinserver('testurl', 'testonion', pubkey, 'testcert')
+    rslt = jadeapi.set_pinserver('https://192.168.0.123:8080',
+                                 'http://somelongstringblahblahblah.onion',
+                                 pubkey,
+                                 'testcertalsoshouldreallybeprettylong')
     assert rslt
     rslt = jadeapi.reset_pinserver(True, True)
     assert rslt
