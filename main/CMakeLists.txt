@@ -9,6 +9,14 @@ if(CONFIG_ETH_USE_OPENETH)
     endif()
 endif()
 
+if (CONFIG_BOARD_TYPE_JADE OR CONFIG_BOARD_TYPE_JADE_V1_1)
+    list(APPEND logo_files ${PROJECT_DIR}/logo/splash.bin.gz ${PROJECT_DIR}/logo/ce.bin.gz ${PROJECT_DIR}/logo/fcc.bin.gz ${PROJECT_DIR}/logo/weee.bin.gz)
+endif()
+
+if (CONFIG_BOARD_TYPE_JADE_V1_1)
+    list(APPEND logo_files ${PROJECT_DIR}/logo/telec.bin.gz)
+endif()
+
 idf_component_register(SRC_DIRS "."
                                 "process"
                                 "utils"
@@ -19,7 +27,7 @@ idf_component_register(SRC_DIRS "."
                           "${bledir}"
                           "${qemudir}"
         PRIV_REQUIRES assets libwally-core tft libsodium esp32-rotary-encoder esp32-quirc bootloader_support app_update nvs_flash bt autogenlang cbor esp_netif esp32_bsdiff esp32_deflate nghttp esp32_bc-ur driver mbedtls http_parser esp_hw_support efuse esp_eth esp_http_server
-        EMBED_FILES ${PROJECT_DIR}/pinserver_public_key.pub "${qemu_display_file}")
+        EMBED_FILES ${PROJECT_DIR}/pinserver_public_key.pub ${logo_files} ${qemu_display_file})
 
 if(CONFIG_ETH_USE_OPENETH)
     if (CONFIG_HAS_CAMERA)

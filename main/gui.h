@@ -298,7 +298,7 @@ struct view_node_icon_data {
 };
 
 // Data for a picture node
-// NOTE: picture data is not owned here
+// NOTE: picture data IS owned here unless driven from the camera
 struct view_node_picture_data {
     const Picture* picture;
 

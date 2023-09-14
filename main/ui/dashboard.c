@@ -1,16 +1,22 @@
 #include "../button_events.h"
+#include "../display.h"
 #include "../jade_assert.h"
 #include "../ui.h"
 #include "process.h"
+#include "utils/malloc_ext.h"
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-#include "../logo/ce.c"
-#include "../logo/fcc.c"
-#include "../logo/weee.c"
+extern const uint8_t fccstart[] asm("_binary_fcc_bin_gz_start");
+extern const uint8_t fccend[] asm("_binary_fcc_bin_gz_end");
+extern const uint8_t cestart[] asm("_binary_ce_bin_gz_start");
+extern const uint8_t ceend[] asm("_binary_ce_bin_gz_end");
+extern const uint8_t weeestart[] asm("_binary_weee_bin_gz_start");
+extern const uint8_t weeeend[] asm("_binary_weee_bin_gz_end");
 #endif
 
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
-#include "../logo/telec.c"
+extern const uint8_t telecstart[] asm("_binary_telec_bin_gz_start");
+extern const uint8_t telecend[] asm("_binary_telec_bin_gz_end");
 #endif
 
 gui_activity_t* make_home_screen_activity(const char* device_name, const char* firmware_version,
@@ -606,7 +612,8 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
         gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 8, 4, 2, 4);
         gui_set_parent(hsplit, parent);
 
-        gui_make_picture(&node, &fcc);
+        Picture* const pic = get_picture(fccstart, fccend);
+        gui_make_picture(&node, pic);
         gui_set_parent(node, hsplit);
         gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
@@ -665,14 +672,16 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
         break;
     }
     case 4: {
-        gui_make_picture(&node, &ce);
+        Picture* const pic = get_picture(cestart, ceend);
+        gui_make_picture(&node, pic);
         gui_set_parent(node, parent);
         gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_padding(node, GUI_MARGIN_ALL_EQUAL, 12);
         break;
     }
     case 5: {
-        gui_make_picture(&node, &weee);
+        Picture* const pic = get_picture(weeestart, weeeend);
+        gui_make_picture(&node, pic);
         gui_set_parent(node, parent);
         gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_padding(node, GUI_MARGIN_ALL_EQUAL, 12);
@@ -680,7 +689,8 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
     }
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     case 6: {
-        gui_make_picture(&node, &telec);
+        Picture* const pic = get_picture(telecstart, telecend);
+        gui_make_picture(&node, pic);
         gui_set_parent(node, parent);
         gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         gui_set_padding(node, GUI_MARGIN_ALL_EQUAL, 12);
@@ -706,7 +716,6 @@ gui_activity_t* make_legal_certifications_activity(void)
     // Chain the legal screen activities
     link_activity_t page_act = {};
     linked_activities_info_t act_info = {};
-
     for (size_t j = 0; j <= MAX_LEGAL_PAGE; ++j) {
         make_legal_page(&page_act, j);
         gui_chain_activities(&page_act, &act_info);

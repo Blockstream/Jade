@@ -880,6 +880,17 @@ static void free_view_node_icon_data(void* vdata)
     }
 }
 
+// destructor for picture nodes
+static void free_view_node_picture_data(void* vdata)
+{
+    JADE_ASSERT(vdata);
+    struct view_node_picture_data* data = vdata;
+    JADE_ASSERT(data->picture);
+    JADE_ASSERT(data->picture->data_8);
+    free((void*)data->picture->data_8);
+    free((void*)data->picture);
+}
+
 // make the underlying view node, common across all the gui_make_* functions
 static void make_view_node(gui_view_node_t** ptr, enum view_node_kind kind, void* data, free_callback_t free_callback)
 {
@@ -1109,7 +1120,9 @@ void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)
     data->halign = GUI_ALIGN_LEFT;
     data->valign = GUI_ALIGN_TOP;
 
-    make_view_node(ptr, PICTURE, data, NULL);
+    // if the picture node is created without providing a picture then the caller
+    // is responsable for freeing the picture data
+    make_view_node(ptr, PICTURE, data, picture ? free_view_node_picture_data : NULL);
 }
 
 static void set_vals_with_varargs(gui_margin_t* margins, const uint8_t sides, va_list args)

@@ -7,6 +7,8 @@
 #include "jade_assert.h"
 #include "power.h"
 #include "storage.h"
+#include "utils/malloc_ext.h"
+#include <deflate.h>
 
 // GUI configuration, see gui.h for more details
 dispWin_t GUI_DISPLAY_WINDOW = { .x1 = CONFIG_GUI_DISPLAY_WINDOW_X1,
@@ -72,13 +74,125 @@ void display_init(void)
     }
 }
 
-#include "../logo/splash.c"
+typedef struct {
+    Icon* icon;
+    Picture* pic;
+    size_t written;
+} image_deflate_ctx_t;
+
+#define MAX_FLASH_PICTURE_SIZE (198 * 62 * sizeof(uint16_t))
+#define MAX_FLASH_ICON_SIZE (200 * 200 / 8)
+
+static int uncompressed_image_stream_writer(void* ctx, uint8_t* uncompressed, size_t towrite)
+{
+    JADE_ASSERT(ctx);
+    JADE_ASSERT(uncompressed);
+    JADE_ASSERT(towrite);
+
+    image_deflate_ctx_t* const ictx = (image_deflate_ctx_t*)ctx;
+
+    // Should be loading a picture or an icon, not both!
+    JADE_ASSERT((ictx->icon && ictx->icon->data) || (ictx->pic && ictx->pic->data_8));
+    JADE_ASSERT(!ictx->pic || !ictx->icon);
+
+    const size_t max_image_size = ictx->icon ? MAX_FLASH_ICON_SIZE : MAX_FLASH_PICTURE_SIZE;
+    if (towrite + ictx->written > max_image_size + 1) { // +1 for the prefixed width byte
+        // larger than we want to handle
+        return DEFLATE_ERROR;
+    }
+
+    if (!ictx->written) {
+        // First iteration, extract first byte from uncompressed stream to get the width
+        uint16_t* const width = ictx->icon ? &ictx->icon->width : (uint16_t*)&ictx->pic->width;
+        *width = uncompressed[0];
+        --towrite;
+        ++uncompressed;
+    }
+
+    uint8_t* const dest = ictx->icon ? (uint8_t*)ictx->icon->data : ictx->pic->data_8;
+    memcpy(dest + ictx->written, uncompressed, towrite);
+    ictx->written += towrite;
+    return DEFLATE_OK;
+}
+static void decompress_image(const uint8_t* const start, const uint8_t* const end, image_deflate_ctx_t* const ictx)
+{
+    JADE_ASSERT(start);
+    JADE_ASSERT(end);
+    JADE_ASSERT(ictx);
+
+    const size_t compressed_size = end - start;
+    struct deflate_ctx* const dctx = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct deflate_ctx));
+    int dret = deflate_init_write_compressed(dctx, compressed_size, uncompressed_image_stream_writer, ictx);
+    JADE_ASSERT(!dret);
+    dret = dctx->write_compressed(dctx, (uint8_t*)start, compressed_size);
+    JADE_ASSERT(!dret);
+    free(dctx);
+}
+
+Picture* get_picture(const uint8_t* const start, const uint8_t* const end)
+{
+    JADE_ASSERT(start);
+    JADE_ASSERT(end);
+
+    // Setup for Picture load
+    image_deflate_ctx_t ictx = { .icon = NULL, .pic = JADE_MALLOC(sizeof(Picture)), .written = 0 };
+    ictx.pic->data_8 = JADE_MALLOC_PREFER_SPIRAM(MAX_FLASH_PICTURE_SIZE);
+    ictx.pic->bytes_per_pixel = 2;
+    ictx.pic->width = 0;
+    ictx.pic->height = 0;
+
+    // Decompress the image data
+    decompress_image(start, end, &ictx);
+
+    // Deduce the image height
+    JADE_ASSERT(ictx.pic->width);
+    JADE_ASSERT(ictx.written);
+    ictx.pic->height = ictx.written / (ictx.pic->width * ictx.pic->bytes_per_pixel);
+    JADE_ASSERT(ictx.pic->height);
+    JADE_ASSERT(ictx.pic->height * ictx.pic->width * ictx.pic->bytes_per_pixel == ictx.written);
+    return ictx.pic;
+}
+
+Icon* get_icon(const uint8_t* const start, const uint8_t* const end)
+{
+    JADE_ASSERT(start);
+    JADE_ASSERT(end);
+
+    // Setup for Icon load
+    image_deflate_ctx_t ictx = { .icon = JADE_MALLOC(sizeof(Icon)), .pic = NULL, .written = 0 };
+    ictx.icon->data = JADE_MALLOC_PREFER_SPIRAM(MAX_FLASH_ICON_SIZE);
+    ictx.icon->width = 0;
+    ictx.icon->height = 0;
+    ictx.written = 0;
+
+    // Decompress the image data
+    decompress_image(start, end, &ictx);
+
+    // Deduce the image height
+    JADE_ASSERT(ictx.icon->width);
+    JADE_ASSERT(ictx.written);
+    ictx.icon->height = (ictx.written * 8) / ictx.icon->width;
+    JADE_ASSERT(ictx.icon->height);
+    JADE_ASSERT(ictx.icon->height * ictx.icon->width == ictx.written * 8);
+    return ictx.icon;
+}
+
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+extern const uint8_t splashstart[] asm("_binary_splash_bin_gz_start");
+extern const uint8_t splashend[] asm("_binary_splash_bin_gz_end");
+#endif
 
 gui_activity_t* display_splash(void)
 {
     gui_activity_t* const act = gui_make_activity();
     gui_view_node_t* splash_node;
-    gui_make_picture(&splash_node, &splash);
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    Picture* const pic = get_picture(splashstart, splashend);
+    gui_make_picture(&splash_node, pic);
+#else
+    gui_make_text(&splash_node, "Jade DIY", TFT_WHITE);
+#endif
+    gui_set_align(splash_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(splash_node, act->root_node);
 
     // set the current activity and draw it on screen
