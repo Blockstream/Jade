@@ -77,7 +77,7 @@ def download_file(verinfo, release):
     build_type = {'SB': '', 'DEV': 'dev'}.get(verinfo['JADE_FEATURES'])
     if hw_target is None or build_type is None:
         logger.error(f'Unsupported hardware: {verinfo["BOARD_TYPE"]} / {verinfo["JADE_FEATURES"]}')
-        return None
+        return None, None, None, None
     hw_target += build_type
 
     # GET the index file from the firmware server which lists the
@@ -91,7 +91,7 @@ def download_file(verinfo, release):
     release_data = json.loads(rslt.text).get(release)
     if not release_data:
         logger.warning(f'No suitable firmware for tag: {release}')
-        return None, None, None
+        return None, None, None, None
 
     fwdata = get_fw_metadata(verinfo, release_data)
     fwname = fwdata['filename']
