@@ -1,4 +1,5 @@
 dependencies:
+  espressif/button: "=3.0.1"
   espressif/nghttp: "=1.52.0"
   espressif/cbor: "=0.6.0~1"
   espressif/libsodium: "=1.0.20"

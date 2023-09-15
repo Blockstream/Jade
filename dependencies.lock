@@ -1,10 +1,22 @@
 dependencies:
+  espressif/button:
+    component_hash: 86d2d2be3b51a2ad78277b0967b3631b38ef61d0fa288ba5dbf4ad9a6ca2e3e1
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 3.0.1
   espressif/cbor:
     component_hash: 440f4ee4504841cc9b4f3a8ef755776a612ac9dace355514c68b999868f990ff
     source:
       service_url: https://api.components.espressif.com/
       type: service
     version: 0.6.0~1
+  espressif/cmake_utilities:
+    component_hash: 9941c11223bbe015b5fe4b85ba6666b8ffde62008ec3512af91d90c482eb71d8
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 0.5.1
   espressif/esp32-camera:
     component_hash: bf6c6f29710c79228988cf91c18a31b40178f42086b39a3157a4d15df201978b
     source:
@@ -28,6 +40,6 @@ dependencies:
     source:
       type: idf
     version: 5.1.1
-manifest_hash: 2310ce1fe3eaa76edd4328ec1cf58d8d0eee114ebd80ba76c2224b5d93729b7b
+manifest_hash: f4606f23871a271c42355be78388c036e7f2456da92188db2c20dcdae00f1e55
 target: esp32
 version: 1.0.0

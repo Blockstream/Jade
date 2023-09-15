@@ -114,9 +114,11 @@ static void boot_process(void)
     // is a soft restart due to inactivity.
     // NOTE: input methods use idle-timer, so are dependent.
     idletimer_init();
+#ifndef CONFIG_ETH_USE_OPENETH
     input_init();
     button_init();
     wheel_init();
+#endif
 
     wait_event_data_t* const event_data = gui_activity_make_wait_event_data(splash); // activity takes ownership
     JADE_ASSERT(event_data);

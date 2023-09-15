@@ -18,7 +18,7 @@ idf_component_register(SRC_DIRS "."
         PRIV_INCLUDE_DIRS "."
                           "${bledir}"
                           "${qemudir}"
-        PRIV_REQUIRES assets libwally-core tft libsodium button esp32-rotary-encoder esp32-quirc bootloader_support app_update nvs_flash bt autogenlang cbor esp_netif esp32_bsdiff esp32_deflate nghttp esp32_bc-ur driver mbedtls http_parser esp_hw_support efuse esp_eth esp_http_server
+        PRIV_REQUIRES assets libwally-core tft libsodium esp32-rotary-encoder esp32-quirc bootloader_support app_update nvs_flash bt autogenlang cbor esp_netif esp32_bsdiff esp32_deflate nghttp esp32_bc-ur driver mbedtls http_parser esp_hw_support efuse esp_eth esp_http_server
         EMBED_FILES ${PROJECT_DIR}/pinserver_public_key.pub "${qemu_display_file}")
 
 if(CONFIG_ETH_USE_OPENETH)
