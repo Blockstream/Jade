@@ -91,21 +91,29 @@ try:
 
         # Use the first non-onion url
         url = [url for url in params['urls'] if not url.endswith('.onion')][0]
+
         if params['method'] == 'GET':
             assert 'data' not in params, 'Cannot pass body to requests.get'
-            f = requests.get(url)
+            def http_call_fn(): return requests.get(url)
         elif params['method'] == 'POST':
             data = json.dumps(params['data'])
-            f = requests.post(url, data)
+            def http_call_fn(): return requests.post(url, data)
+        else:
+            raise JadeError(1, "Only GET and POST methods supported", params['method'])
 
-        logger.debug("http_request received reply: {}".format(f.text))
+        try:
+            f = http_call_fn()
+            logger.debug("http_request received reply: {}".format(f.text))
 
-        if f.status_code != 200:
-            logger.error("http error {} : {}".format(f.status_code, f.text))
-            raise ValueError(f.status_code)
+            if f.status_code != 200:
+                logger.error("http error {} : {}".format(f.status_code, f.text))
+                raise ValueError(f.status_code)
 
-        assert params['accept'] == 'json'
-        f = f.json()
+            assert params['accept'] == 'json'
+            f = f.json()
+        except Exception as e:
+            logging.error(e)
+            f = None
 
         return {'body': f}
 
