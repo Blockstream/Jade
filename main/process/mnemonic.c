@@ -1583,7 +1583,7 @@ void handle_bip85_mnemonic()
 
     // Display and confirm mnemonic phrase
     if (display_confirm_mnemonic(nwords, new_mnemonic, mnemonic_len)) {
-        await_message_activity("Recovery Phrase Confirmed");
+        await_message_activity("\n\n     Recovery Phrase\n          Confirmed");
     }
 
     // Cleanup
