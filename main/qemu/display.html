@@ -20,12 +20,6 @@
         top: 0px;
         left: 620px;
       }
-      #display {
-        position: absolute;
-        top: 360px;
-        left: 416px;
-        transform: scale(3.47);
-      }
       #btnmain {
         position: absolute;
         transform: scale(3.5);
@@ -38,14 +32,18 @@
       }
       #camera-select {
         position: absolute;
-        top: 900px;
+        top: 550px;
         left: 450px;
         transform: scale(3);
       }
       #camera-header{
         position: absolute;
-        top: 850px;
+        top: 500px;
         left: 50px;
+      }
+      .scaled-down-image {
+        width: 1800px;
+        height: 750px;
       }
       optgroup { font-size:40px; }
     </style>
@@ -54,17 +52,19 @@
   </head>
   <body>
     <div id="image-container">
-    <img src="jade.png" width="1850" height="800">
+    <img src="jade.png" class="scaled-down-image">
     <select id="camera-select" name="camera-select"></select>
     <h1 id="camera-header" style="color:black;font-size:40px;">Camera</h1>
     <canvas id="btnleft" width="40" height="40"></canvas>
     <canvas id="btnmiddle" width="20" height="40"></canvas>
     <canvas id="btnright" width="40" height="40"></canvas>
-    <canvas id="display" width="240" height="135"></canvas>
+    <canvas id="display" width="DISPLAY_WIDTH" height="DISPLAY_HEIGHT"></canvas>
     <canvas id="btnmain" width="65" height="110"></canvas>
     </div>
     <script>
 (function() {
+
+
       window.localStream = null;
       function sc(ws, code) {
           var a = new ArrayBuffer(1);
@@ -112,13 +112,25 @@
           sc(ws, 0);
       }
       var canvas = document.getElementById('display');
+      canvas.style.position = 'absolute';
+      var scale = 2;
+      if (DISPLAY_WIDTH == 240) {
+        canvas.style.top = '190px';
+        canvas.style.left = '200px';
+        canvas.style.transform = 'scale(2)';
+      } else {
+        canvas.style.top = '175px';
+        canvas.style.left = '160px';
+        canvas.style.transform = 'scale(1.6)';
+        scale = 1.6;
+      }
       var old_x = 0;
       var old_y = 0;
 
       canvas.onmousemove = function(e) {
           let rect = canvas.getBoundingClientRect();
-          let x = Math.trunc((e.clientX - rect.x) / 3.47);
-          let y = Math.trunc((e.clientY - rect.y) / 3.47);
+          let x = Math.trunc((e.clientX - rect.x) / scale);
+          let y = Math.trunc((e.clientY - rect.y) / scale);
           if (x === old_x && y === old_y) {
               return;
           }
@@ -127,16 +139,16 @@
           old_x = x;
           old_y = y;
       };
-      document.addEventListener("keydown", function(e) {
-          if (e.code === "ArrowLeft" || e.code === "ArrowUp") {
+      document.addEventListener('keydown', function(e) {
+          if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
               e.preventDefault();
               sc(ws, 1);
           }
-          if (e.code === "ArrowRight" || e.code === "ArrowDown") {
+          if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
               e.preventDefault();
               sc(ws, 3);
           }
-          if (e.code === "Enter") {
+          if (e.code === 'Enter') {
               e.preventDefault();
               sc(ws, 4);
           }
@@ -144,12 +156,18 @@
 
       var ctx = canvas.getContext('2d',  {alpha: false});
       console.log('Opening connection');
-      const url =  (window.location.protocol === 'http:' ? 'ws://' : 'wss://') + window.location.host + window.location.pathname + "ws";
+      const location = window.location;
+      const protocol = location.protocol === 'http:' ? 'ws://' : 'wss://';
+      const host = location.host;
+      const path = location.pathname.substring(0, location.pathname.lastIndexOf('/'));
+      const url = protocol + host + path + "/ws";
+      //const url =  (window.location.protocol === 'http:' ? 'ws://' : 'wss://') + window.location.host + window.location.pathname + "ws";
       var ws = new WebSocket(url);
       ws.binaryType = 'arraybuffer';
       ws.onopen = (e) => {sd(ws);};
       ws.addEventListener('close', (event) => {
           console.log("Disconnected");
+          // FIXME: reconnect or reload page?
       });
 
       var video_canvas = document.createElement('canvas');
@@ -158,41 +176,75 @@
 
       var video_ctx = video_canvas.getContext('2d', {willReadFrequently: true});
       video_ctx.filter = 'grayscale(100%)';
+
+      // FIXME: try [again] to do the rotation in Jade rather than in JS
       video_ctx.translate(160, 120);
       video_ctx.rotate(270 * Math.PI / 180);
+
       var video = null;
       var a = new ArrayBuffer(1 + 320 * 240);
       var v = new Uint8Array(a);
       function update_video() {
+         // FIXME: try [again] to do the rotation in Jade rather than in JS
+         // video_ctx.drawImage(video, 0, 0);
          video_ctx.drawImage(video, -120, -160);
+
          var imgData = video_ctx.getImageData(0, 0, video_canvas.width, video_canvas.height);
          v[0] = 12;
-         /* only send 1 byte per pixel / grayscale*/
+         /* only send 1 byte per pixel / grayscale */
          for (var i = 0, counter = 1; i < imgData.data.length; i += 4) {
              v[counter] = (imgData.data[i] + imgData.data[i + 1] + imgData.data[i + 2]) / 3; // intentionally skip alpha
              ++counter;
          }
-         /* if we send it in one frame sometimes it fails, splitting it in two frames seems to always work so far */
-         ws.send(v.buffer.slice(0, 38401));
-         v[38400] = 12;
-         ws.send(v.buffer.slice(38400));
+         /* send off in chuncks of 16k including first "command" byte */
+         var chunkSize = 16383;
+         var offset = 1
+         while (offset < v.length) {
+             const end = Math.min(offset + chunkSize, v.length);
+             var chunk = new Uint8Array(end - offset + 1);
+             chunk[0] = 12;
+             chunk.set(new Uint8Array(v.buffer, offset, end - offset), 1);
+             ws.send(chunk.buffer);
+             offset = end;
+         }
       }
+
+      var video_frame_byte_counter = 0;
+      /* FIXME: check if we can create an image data that accept less than 32 bit values? */
+      var imageData = ctx.createImageData(DISPLAY_WIDTH, DISPLAY_HEIGHT);
       ws.addEventListener('message', (e) => {
           if (event.data instanceof ArrayBuffer) {
               var dataview = new Uint8Array(e.data);
               switch(dataview[0]) {
                   case 0:
                       /* update display event */
+
+                      /* drop the image frame byte */
                       dataview = dataview.slice(1);
-                      const ctx = canvas.getContext('2d');
-                      var imageData = ctx.createImageData(240, 135);
-                      for (let i = 0, k = 0; i < dataview.length; i += 3, ++k) {
-                        imageData.data[i + k] = 255 - dataview[i];
-                        imageData.data[i + 1 + k] = 255 - dataview[i + 1];
-                        imageData.data[i + 2 + k] = 255 - dataview[i + 2];
-                        imageData.data[i + 3 + k] = 255;
+
+                      /* we loop each pixel (two bytes) and convert 16 bit to 32 bit color with fixed transparency (none?) */
+                      for (let i = 0, k = 0; i < dataview.length; i += 2, ++k) {
+                          const rgb565 = dataview[i + 1] | (dataview[i] << 8);
+                          const r5 = (rgb565 >> 11) & 0x1F;
+                          const g6 = (rgb565 >> 5) & 0x3F;
+                          const b5 = rgb565 & 0x1F;
+                          const r8 = (r5 << 3) | (r5 >> 2);
+                          const g8 = (g6 << 2) | (g6 >> 4);
+                          const b8 = (b5 << 3) | (b5 >> 2);
+                          imageData.data[video_frame_byte_counter + k * 4] = r8;
+                          imageData.data[video_frame_byte_counter + k * 4 + 1] = g8;
+                          imageData.data[video_frame_byte_counter + k * 4 + 2] = b8;
+                          imageData.data[video_frame_byte_counter + k * 4 + 3] = 255;
                       }
-                      ctx.putImageData(imageData, 0, 0);
+                      video_frame_byte_counter += dataview.length * 2;
+
+                      /* if we processed a full display worth of pixels */
+                      if (video_frame_byte_counter == DISPLAY_WIDTH * DISPLAY_HEIGHT * 4) {
+                          ctx.putImageData(imageData, 0, 0);
+                          video_frame_byte_counter = 0;
+                      } else if (video_frame_byte_counter > DISPLAY_WIDTH * DISPLAY_HEIGHT * 4) {
+                          video_frame_byte_counter = 0;
+                      }
                       break;
                   case 1:
                       /* get video frame event */

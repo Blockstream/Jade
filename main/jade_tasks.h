@@ -14,6 +14,8 @@
 #define JADE_CORE_SECONDARY 1
 #endif
 
+#define JADE_CORE_GUI JADE_CORE_SECONDARY
+
 // Task priorities
 // NOTE: the automatically started main task has priority (tskIDLE_PRIORITY + 1)
 #define JADE_TASK_PRIO_READER (tskIDLE_PRIORITY + 4)
@@ -21,6 +23,7 @@
 #define JADE_TASK_PRIO_GUI (tskIDLE_PRIORITY + 3)
 #define JADE_TASK_PRIO_WHEEL (tskIDLE_PRIORITY + 3)
 #define JADE_TASK_PRIO_CAMERA (tskIDLE_PRIORITY + 3)
+#define JADE_TASK_PRIO_USB (tskIDLE_PRIORITY + 3)
 
 #define JADE_TASK_PRIO_WRITER (tskIDLE_PRIORITY + 2)
 

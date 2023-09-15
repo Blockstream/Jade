@@ -1425,8 +1425,11 @@ void await_qr_help_activity(const char* url)
 
     const size_t url_len = strlen(url);
     JADE_ASSERT(url_len < MAX_QR_V4_DATA_LEN); // v4, binary
-
+#if CONFIG_DISPLAY_WIDTH == 320
+    const bool large_icons = true;
+#else
     const bool large_icons = false;
+#endif
     Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
     bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
 
@@ -1481,22 +1484,6 @@ bool await_qr_back_continue_activity(
 
 // QR-Mode PinServer interaction
 
-// Post a message onto Jade's input queue
-static bool post_in_message(const uint8_t* msg, const size_t msg_len, const jade_msg_source_t source)
-{
-    JADE_ASSERT(msg);
-    JADE_ASSERT(msg_len);
-
-    // Post as message into Jade with msg-source prefix
-    const size_t fullmsg_len = msg_len + 1;
-    uint8_t* const fullmsg = JADE_MALLOC(fullmsg_len);
-    fullmsg[0] = source;
-    memcpy(fullmsg + 1, msg, msg_len);
-    const bool ret = jade_process_push_in_message(fullmsg, fullmsg_len);
-    free(fullmsg);
-    return ret;
-}
-
 // Create and post a 'cancel' message
 static bool post_cancel_message(const jade_msg_source_t source)
 {
@@ -1513,7 +1500,7 @@ static bool post_cancel_message(const jade_msg_source_t source)
     JADE_ASSERT(cberr == CborNoError);
 
     const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
-    return post_in_message(cbor_buf, cbor_len, source);
+    return jade_process_push_in_message_ex(cbor_buf, cbor_len, source);
 }
 
 // Locally create and post an 'auth_user' request
@@ -1547,7 +1534,7 @@ static bool post_auth_msg_request(const jade_msg_source_t source, const bool sup
     JADE_ASSERT(cberr == CborNoError);
 
     const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
-    return post_in_message(cbor_buf, cbor_len, source);
+    return jade_process_push_in_message_ex(cbor_buf, cbor_len, source);
 }
 
 // Scan a bcur QR code, and post it into Jade with SOURCE_INTERNAL
@@ -1584,7 +1571,7 @@ static bool scan_qr_post_in_message(const char* label, const char* expected_type
     }
 
     // Post as message into Jade with source-qr prefix
-    ret = post_in_message(output, output_len, SOURCE_INTERNAL);
+    ret = jade_process_push_in_message_ex(output, output_len, SOURCE_INTERNAL);
 
 cleanup:
     free(output);

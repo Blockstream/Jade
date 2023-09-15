@@ -34,4 +34,9 @@ uint16_t power_get_temp(void);
 
 bool usb_connected(void);
 
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+void enable_usb_host(void);
+void disable_usb_host(void);
+#endif
+
 #endif /* POWER_H_ */

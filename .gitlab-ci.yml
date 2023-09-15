@@ -138,13 +138,6 @@ test_build_jade_v1_1_ndebug:
   after_script:
     - mv build build_jade_v1_1_ndebug
 
-test_build_display:
-  extends: .test_build_template
-  before_script:
-    - cp configs/sdkconfig_display.defaults sdkconfig.defaults
-  after_script:
-    - mv build build_display
-
 test_build_display_m5fire:
   extends: .test_build_template
   before_script:
@@ -159,6 +152,13 @@ test_build_display_m5blackgray:
   after_script:
     - mv build build_display_m5blackgray
 
+test_build_display_m5core2:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display_m5core2.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_m5core2
+
 test_build_display_m5stickcplus:
   extends: .test_build_template
   before_script:
@@ -166,12 +166,33 @@ test_build_display_m5stickcplus:
   after_script:
     - mv build build_display_m5stickcplus
 
+test_build_display_m5cores3:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display_m5cores3.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_m5cores3
+
 test_build_display_ttgo_tdisplay:
   extends: .test_build_template
   before_script:
     - cp configs/sdkconfig_display_ttgo_tdisplay.defaults sdkconfig.defaults
   after_script:
     - mv build build_display_ttgo_tdisplay
+
+test_build_display_ttgo_tdisplays3:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display_ttgo_tdisplays3.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_ttgo_tdisplays3
+
+test_build_display_ttgo_tdisplays3_ci:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display_ttgo_tdisplays3_ci.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_ttgo_tdisplays3_ci
 
 test_build_diycam_esp32-cam:
   extends: .test_build_template
@@ -276,12 +297,27 @@ test_flash_qemu_psram:
     - cp build*/sdkconfig ./
     - ./ci_flash.sh
 
+.test_flash_artifact_template_s3:
+  stage: deploy
+  tags:
+    - esp32s3flasher
+  script:
+    - cp build*/sdkconfig ./
+    - ./ci_flash.sh esp32s3
+
 test_flash_artifact:
   extends: .test_flash_artifact_template
   needs:
     - test_build_jade_ci
   before_script:
     - mv build_jade_ci build
+
+test_flash_artifacts3:
+  extends: .test_flash_artifact_template_s3
+  needs:
+    - test_build_display_ttgo_tdisplays3_ci
+  before_script:
+    - mv build_display_ttgo_tdisplays3_ci build
 
 test_flash_artifact_ota_delta:
   stage: deploy

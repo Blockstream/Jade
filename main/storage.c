@@ -44,7 +44,12 @@ static const char* CLICK_EVENT_FIELD = "clickevent";
 // NOTE: esp-idf reserve the final page of nvs entries for internal use (for defrag/consolidation)
 // See: https://github.com/espressif/esp-idf/issues/5247#issuecomment-1048604221
 // If the 'free entries' appears to include these entries, deduct them from the value returned.
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#define ESP_NVS_PARTITION_SIZE (64 * 1024)
+#else
 #define ESP_NVS_PARTITION_SIZE (16 * 1024)
+#endif
+
 #define ESP_NVS_PAGE_OVERHEAD (32 + 32)
 #define ESP_NVS_ENTRY_SIZE 32
 #define ESP_NVS_ENTRIES_PER_PAGE 126

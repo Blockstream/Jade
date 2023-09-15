@@ -18,13 +18,14 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+static TaskHandle_t gui_handle = NULL;
 static RingbufHandle_t shared_in = NULL;
 
-static TaskHandle_t serial_handle;
+static TaskHandle_t serial_handle = NULL;
 static RingbufHandle_t serial_out = NULL;
 static RingbufHandle_t ble_out = NULL;
 static RingbufHandle_t qemu_tcp_out = NULL;
-static TaskHandle_t internal_handle;
+static TaskHandle_t internal_handle = NULL;
 static RingbufHandle_t internal_out = NULL;
 static jade_msg_source_t last_message_source = SOURCE_NONE;
 
@@ -132,7 +133,7 @@ static void deduce_jade_id(void)
 // Get the Jade's serial number - eg: 'Jade ABCDEF'
 const char* get_jade_id(void) { return jade_id; }
 
-bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle_t** qemu_tcp_h)
+bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle_t** qemu_tcp_h, TaskHandle_t** gui_h)
 {
     JADE_INIT_OUT_PPTR(serial_h);
     JADE_INIT_OUT_PPTR(ble_h);
@@ -153,6 +154,7 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
     shared_in = create_ringbuffer(2 * MAX_INPUT_MSG_SIZE + 32);
     JADE_ASSERT(shared_in);
 
+    *gui_h = &gui_handle;
     // The ring buffers are quite generous because at startup, especially with
     // debug logging on, logging messages accumulate in the buffer before the
     // serial writer task starts running to clear them down.
@@ -172,7 +174,7 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
     JADE_ASSERT(ble_out);
 #endif
 
-#ifdef CONFIG_HAS_CAMERA
+#if defined(CONFIG_HAS_CAMERA) || defined(CONFIG_IDF_TARGET_ESP32S3)
     internal_handle = xTaskGetCurrentTaskHandle();
     internal_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
     JADE_ASSERT(internal_out);
@@ -263,6 +265,20 @@ bool jade_process_push_in_message(const uint8_t* data, const size_t size)
     }
 
     return true;
+}
+
+bool jade_process_push_in_message_ex(const uint8_t* data, const size_t size, const jade_msg_source_t source)
+{
+    JADE_ASSERT(data);
+    JADE_ASSERT(size);
+    // Post as message into Jade with msg-source prefix
+    const size_t fullsize = size + 1;
+    uint8_t* const fullmsg = JADE_MALLOC(fullsize);
+    fullmsg[0] = source;
+    memcpy(fullmsg + 1, data, size);
+    const bool ret = jade_process_push_in_message(fullmsg, fullsize);
+    free(fullmsg);
+    return ret;
 }
 
 void jade_process_push_out_message(const uint8_t* data, const size_t size, const jade_msg_source_t source)

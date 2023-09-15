@@ -13,6 +13,7 @@
 #include "../qrmode.h"
 #include "../random.h"
 #include "../sensitive.h"
+#include "../serial.h"
 #include "../storage.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
@@ -22,6 +23,10 @@
 #include "../utils/util.h"
 #include "../utils/wally_ext.h"
 #include "../wallet.h"
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#include "usbhmsc/usbhmsc.h"
+#include "usbhmsc/usbmode.h"
+#endif
 #ifdef CONFIG_BT_ENABLED
 #include "../ble/ble.h"
 #else
@@ -162,6 +167,7 @@ gui_activity_t* make_locked_settings_activity(void);
 gui_activity_t* make_unlocked_settings_activity(void);
 
 gui_activity_t* make_wallet_settings_activity(void);
+gui_activity_t* make_usb_storage_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
 gui_activity_t* make_authentication_activity(bool initialised_and_pin_unlocked);
 gui_activity_t* make_prefs_settings_activity(bool initialised_and_locked, gui_view_node_t** qr_mode_network_item);
@@ -1888,6 +1894,116 @@ static void handle_pinserver_reset(void)
     }
 }
 
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+struct usb_storage_ota {
+    SemaphoreHandle_t semaphore_started;
+    SemaphoreHandle_t semaphore_detected;
+    bool started;
+    bool detected;
+};
+
+static void cb(storage_event_t event, uint8_t device_address, void* ctx)
+{
+    struct usb_storage_ota* ota = (struct usb_storage_ota*)ctx;
+    if (event == STORAGE_DETECTED) {
+        // signal to handle_usb_storage_firmware that it doesn't need to start the
+        // insert device activity
+        ota->detected = true;
+        xSemaphoreGive(ota->semaphore_detected);
+        if (usb_storage_mount(device_address)) {
+            ota->started = list_files("/usb");
+        } else {
+            // FIXME: what do we do if mount fails?
+            JADE_ASSERT(false);
+        }
+    }
+    xSemaphoreGive(ota->semaphore_started);
+}
+
+static gui_activity_t* make_usb_connect_activity(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USB_STORAGE_FW_BACK },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_USB_STORAGE_FW_HELP } };
+
+    const char* message[] = { "Please connect a USB", "storage device" };
+
+    return make_show_message_activity(message, 2, "Firmware Upgrade", hdrbtns, 2, NULL, 0);
+}
+
+static bool handle_usb_storage_firmware(void)
+{
+    serial_stop();
+    struct usb_storage_ota ota = {};
+    ota.semaphore_started = xSemaphoreCreateBinary();
+    ota.semaphore_detected = xSemaphoreCreateBinary();
+    JADE_ASSERT(ota.semaphore_started);
+    JADE_ASSERT(ota.semaphore_detected);
+
+    usb_storage_register_callback(cb, &ota);
+    if (!usb_storage_start()) {
+        // FIXME: show to the user an error
+        // !! Jade may require restart though? !!
+        JADE_ASSERT_MSG(false, "usb_storage_start failed");
+    }
+
+    // We should only do this if within 0.4 seconds or so we don't detect a usb device already plugged
+
+    // now wait for either the the sempahore to be unlocked or for back button on the activity
+    int32_t ev_id;
+    int counter = 0;
+    gui_activity_t* act = NULL;
+    while (1) {
+
+        if (counter == 5 && !act && !ota.detected) {
+            act = make_usb_connect_activity();
+            gui_set_current_activity(act);
+        }
+
+        if (!act && counter < 5 && xSemaphoreTake(ota.semaphore_detected, 200 / portTICK_PERIOD_MS) == pdFALSE
+            && !ota.detected) {
+            ++counter;
+            continue;
+        }
+
+        if (xSemaphoreTake(ota.semaphore_started, 20 / portTICK_PERIOD_MS) == pdTRUE) {
+            // user has selected a file, a new task was started
+            break;
+        }
+
+        if (act
+            && gui_activity_wait_event(
+                act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 200 / portTICK_PERIOD_MS)) {
+
+            if (ev_id == BTN_SETTINGS_USB_STORAGE_FW_BACK) {
+                usb_storage_register_callback(NULL, NULL);
+                // when the user goes back we go through here
+                // then the device doesn't have ota started but has disk detected
+                break;
+            }
+            if (ev_id == BTN_SETTINGS_USB_STORAGE_FW_HELP) {
+                // FIXME: can't get out of qr activity?
+                await_qr_help_activity("blkstrm.com/jadeusbstorage");
+            }
+        }
+    }
+
+    if (!ota.started) {
+        if (ota.detected) {
+            // if it was detected it was mounted
+            usb_storage_unmount();
+        }
+        usb_storage_stop();
+        serial_start();
+    }
+
+    usb_storage_register_callback(NULL, NULL);
+    vSemaphoreDelete(ota.semaphore_started);
+    vSemaphoreDelete(ota.semaphore_detected);
+    return ota.started;
+}
+
+#endif // IDF_TARGET_ESP32S3
+
 // Device info
 static void handle_storage(void)
 {
@@ -2075,10 +2191,12 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_WALLET_EXIT:
         case BTN_SETTINGS_AUTHENTICATION_EXIT:
         case BTN_SETTINGS_PINSERVER_EXIT:
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+        case BTN_SETTINGS_USB_STORAGE_EXIT:
+#endif
             // Change to base 'Settings' menu
             act = create_settings_menu(startup_menu);
             break;
-
         case BTN_SETTINGS_WALLET:
             // Change to 'Wallet' menu
             act = make_wallet_settings_activity();
@@ -2168,6 +2286,19 @@ static void handle_settings(const bool startup_menu)
             handle_network_type(network_type_item);
             break;
 
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+        case BTN_SETTINGS_USB_STORAGE_FW:
+            done = handle_usb_storage_firmware();
+            break;
+
+        case BTN_SETTINGS_USB_STORAGE_SIGN:
+            // FIXME: implement
+            break;
+        case BTN_SETTINGS_USB_STORAGE_EXPORT:
+            // FIXME: implement
+            break;
+#endif
+
         case BTN_SETTINGS_BLE:
             handle_ble();
             break;
@@ -2236,6 +2367,20 @@ static void handle_settings(const bool startup_menu)
             done = offer_temporary_wallet_login();
             break;
 
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+        case BTN_SETTINGS_USB_STORAGE_FW_EXIT:
+        case BTN_SETTINGS_USB_STORAGE:
+            // when entering manually (rather than detecting hot plug)
+            // we have to first manually disable the usb serial, no op if already off
+            // we should register the callback
+            // immediately show the UX Please plug in a USB device
+            // on callback DETECTED we mount and show options for usb stuff to do
+            act = make_usb_storage_settings_activity();
+            // we should only restart it if it was already on
+            // serial_start();
+
+            break;
+#endif
         case BTN_SETTINGS_OTP_VIEW:
             handle_view_otps();
             break;

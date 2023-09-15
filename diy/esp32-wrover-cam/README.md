@@ -44,9 +44,9 @@ You can also swap the LCD hat for other LCD hats, such as the one commonly used 
 
 Given that this hat is a different resolution than the retail Jade, you also need to adjust the x and y offsets for the gui.
 
-    CONFIG_GUI_DISPLAY_WINDOW_X1=0
-    CONFIG_GUI_DISPLAY_WINDOW_Y1=0
-    CONFIG_GUI_DISPLAY_WINDOW_X2=240
-    CONFIG_GUI_DISPLAY_WINDOW_Y2=240
+    CONFIG_DISPLAY_OFFSET_X=0
+    CONFIG_DISPLAY_OFFSET_Y=0
+    CONFIG_DISPLAY_WIDTH=240
+    CONFIG_DISPLAY_HEIGHT=240
 
 This can be done using the command `idf.py menuconfig` and navigating to `Blockstream Jade` -> `Display Driver` and adjusting the Gui display offsets with the values above. You can build and flash to apply the new configuration.

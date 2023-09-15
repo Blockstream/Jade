@@ -1,23 +1,14 @@
 #ifndef GUI_H_
 #define GUI_H_
 
-#include <tft.h>
+#include "display.h"
+#include <arch/sys_arch.h>
 #include <utils/event.h>
 
 #include "jlocale.h"
 
-extern int _width;
-extern int _height;
-extern uint32_t max_rdclock;
 extern color_t _fg;
-extern color_t _bg;
-extern uint8_t orientation;
-extern uint16_t font_rotate;
-extern uint8_t font_transparent;
-extern uint8_t font_forceFixed;
 extern uint8_t text_wrap;
-extern uint8_t tft_disp_type;
-extern uint8_t gray_scale;
 
 // Additional colour tokens
 extern const color_t GUI_BLOCKSTREAM_JADE_GREEN;
@@ -36,8 +27,6 @@ extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY;
 extern dispWin_t GUI_DISPLAY_WINDOW;
 // Locale used to translate strings
 extern jlocale_t GUI_LOCALE;
-// If true, adds some borders to show nodes' boundaries
-extern bool GUI_VIEW_DEBUG;
 // Set the "target" framerate for updatables nodes
 extern uint8_t GUI_TARGET_FRAMERATE;
 // How many frames should a scroll wait when an end is reached
@@ -417,7 +406,7 @@ color_t gui_get_highlight_color(void);
 
 color_t gui_get_highlight_color(void);
 
-void gui_init(void);
+void gui_init(TaskHandle_t* gui_h);
 bool gui_initialized(void);
 
 void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, const char* title, const bool managed);
@@ -471,6 +460,7 @@ void gui_select_node(gui_activity_t* activity, gui_view_node_t* node);
 void gui_set_activity_title(gui_activity_t* activity, const char* title);
 
 gui_activity_t* gui_current_activity(void);
+gui_activity_t* gui_display_splash(void);
 
 void gui_wheel_click(void);
 void gui_front_click(void);

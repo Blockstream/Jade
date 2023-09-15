@@ -31,6 +31,14 @@ static inline void* jade_malloc_prefer_spiram(const char* file, const int line, 
     return ptr;
 }
 
+static inline void* jade_malloc_spiram_aligned(
+    const char* file, const int line, const size_t size, const size_t alignment)
+{
+    void* ptr = heap_caps_aligned_alloc(alignment, size, MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM);
+    JADE_ASSERT_MSG(ptr, "heap_caps_aligned_alloc failed %s:%d", file, line);
+    return ptr;
+}
+
 static inline void* jade_calloc_prefer_spiram(const char* file, const int line, const size_t num, const size_t size)
 {
     void* ptr = heap_caps_calloc_prefer(num, size, MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT);
@@ -55,6 +63,8 @@ static inline void* jade_calloc(const char* file, const int line, const size_t n
 #define JADE_MALLOC(size) jade_malloc(__FILE__, __LINE__, size)
 #define JADE_CALLOC(num, size) jade_calloc(__FILE__, __LINE__, num, size)
 #define JADE_MALLOC_PREFER_SPIRAM(size) jade_malloc_prefer_spiram(__FILE__, __LINE__, size)
+#define JADE_MALLOC_PREFER_SPIRAM_ALIGNED(size, alignment)                                                             \
+    jade_malloc_spiram_aligned(__FILE__, __LINE__, size, alignment)
 #define JADE_CALLOC_PREFER_SPIRAM(num, size) jade_calloc_prefer_spiram(__FILE__, __LINE__, num, size)
 #define JADE_MALLOC_DRAM(size) jade_malloc_dram(__FILE__, __LINE__, size)
 #define JADE_CALLOC_DRAM(size) jade_calloc_dram(__FILE__, __LINE__, size)

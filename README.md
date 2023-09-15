@@ -15,8 +15,7 @@ For information about suitable DIY hardware, as well as suggested configuration 
 
 If you are on MacOS, you are better off setting up the environment locally (see next step) than trying to get access to your device from the docker container. For more, see [this article](https://dev.to/rubberduck/using-usb-with-docker-for-mac-3fdd).
 
-Note the supplied docker-compose.yml assumes the Jade device is at
-dev/ttyUSB0.
+Note the supplied docker-compose.yml assumes the Jade device is at /dev/ttyUSB0, but note that it may instead be /dev/ttyACM0 (or either with some other trailing number) or some other path as appropriate for the host operating system.
 
 Note the below instructions assume an original Jade v1.0 hardware with a true wheel.
 When using the later Jade v1.1 hw revision with a rocker/jog-wheel, use 'configs/sdkconfig_jade_v1_1.defaults' in place of 'configs/sdkconfig_jade.defaults'.
@@ -157,7 +156,19 @@ docker build -t jade-qemu-web -f Dockerfile.qemu --build-arg="SDK_CONFIG=configs
 docker run --rm -p 30121:30121 -p 30122:30122 -it jade-qemu-web
 ```
 
-For more 'hands-on' development with qemu, run these commands inside the jade source repo root directory, it will enter a docker container
+Alternatively, to run the qemu emulator with display and camera support is to run
+```
+main/qemu/run_emulator.sh
+```
+
+Then you will be able to open the browser and point it to 'http://localhost:30122' to interface with the emulated Jade.
+
+Note that the ```run_emulator.sh``` command will launch a docker image so it will only work on Linux.
+You can also optionally pass the flag ```--larger-display``` to run the emulator with a bigger display.
+
+Otherwise if you don't need the display or want to run with gdb, follow the below steps.
+
+Run these commands inside the jade source repo root directory, it will enter a docker container:
 
 ```
 DOCKER_BUILDKIT=1 docker build . -t testjadeqemu
@@ -201,6 +212,10 @@ At this point the Jade fw running in the qemu emulator should be available on 't
 # Reproducible Build
 
 See [REPRODUCIBLE.md](./REPRODUCIBLE.md) for instructions on locally reproducing the official Blockstream Jade firmware images (minus the Blockstream signature block).
+
+# DIY
+
+Seen working on M5 Stack gray/black/FIRE, M5 Stick Plus, Core 2, Core S3, LilyGO T-Display, T-DisplayS3, RPI Zero + display shield (via QEMU), Desktop via Qemu (browser for display/webcam)
 
 # License
 

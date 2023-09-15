@@ -5,8 +5,8 @@ if [ -f /.dockerenv ]; then
     . ${HOME}/esp/esp-idf/export.sh
 fi
 
+rm -fr sdkconfig sdkconfig.defaults build
 for filename in production/*.defaults configs/*.defaults; do
-    rm -fr sdkconfig sdkconfig.defaults build
 
     if [[ $filename == *"s3"* ]]; then
         esp_variant=esp32s3

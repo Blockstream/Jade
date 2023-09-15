@@ -6,9 +6,77 @@
 #include "rotary_encoder.h"
 #include "utils/malloc_ext.h"
 
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+#include <driver/i2c.h>
+#include <esp_lcd_touch.h>
+#include <esp_lcd_touch_ft5x06.h>
+#endif
+
 void input_init(void) {}
 
-#ifdef CONFIG_INPUT_FRONT_SW
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+static void touchscreen_task(void* ignored)
+{
+    esp_lcd_touch_handle_t ret_touch = NULL;
+    const esp_lcd_touch_config_t tp_cfg = {
+        .x_max = 320,
+        .y_max = 240,
+        .rst_gpio_num = GPIO_NUM_NC,
+        .int_gpio_num = GPIO_NUM_NC,
+        .levels = {
+            .reset = 0,
+            .interrupt = 0,
+        },
+        .flags = {
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+        },
+    };
+
+    esp_lcd_panel_io_handle_t tp_io_handle = NULL;
+    const esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)0, &tp_io_config, &tp_io_handle));
+    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_ft5x06(tp_io_handle, &tp_cfg, &ret_touch));
+
+    uint16_t touch_x[1];
+    uint16_t touch_y[1];
+    uint16_t touch_strength[1];
+    uint8_t touch_cnt = 10;
+
+    for (;;) {
+        if (esp_lcd_touch_read_data(ret_touch) == ESP_OK) {
+            bool touchpad_pressed
+                = esp_lcd_touch_get_coordinates(ret_touch, touch_x, touch_y, touch_strength, &touch_cnt, 1);
+            if (touchpad_pressed) {
+                if (touch_y[0] > 200) {
+                    if (touch_x[0] >= 10 && touch_x[0] <= 90) {
+                        gui_prev();
+                    } else if (touch_x[0] >= 120 && touch_x[0] <= 200) {
+                        gui_front_click();
+                    } else if (touch_x[0] >= 230 && touch_x[0] <= 310) {
+                        gui_next();
+                    } else {
+                        continue;
+                    }
+                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                }
+            }
+        }
+        vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+}
+
+void touchscreen_init(void)
+{
+    const BaseType_t retval = xTaskCreatePinnedToCore(
+        &touchscreen_task, "touchscreen task", 3 * 1024, NULL, JADE_TASK_PRIO_WHEEL, NULL, JADE_CORE_PRIMARY);
+    JADE_ASSERT_MSG(
+        retval == pdPASS, "Failed to create touchscreen task, xTaskCreatePinnedToCore() returned %d", retval);
+}
+#endif
+
+#if CONFIG_INPUT_FRONT_SW >= 0
 static void button_front_release(void* arg, void* ctx) { gui_front_click(); }
 
 static void button_front_long(void* arg, void* ctx)
@@ -18,7 +86,7 @@ static void button_front_long(void* arg, void* ctx)
 }
 #endif
 
-#ifdef CONFIG_INPUT_WHEEL_SW
+#if CONFIG_INPUT_WHEEL_SW >= 0
 static void button_wheel_release(void* arg, void* ctx) { gui_wheel_click(); }
 
 static void button_wheel_long(void* arg, void* ctx)
@@ -30,7 +98,7 @@ static void button_wheel_long(void* arg, void* ctx)
 
 void button_init(void)
 {
-#ifdef CONFIG_INPUT_FRONT_SW
+#if CONFIG_INPUT_FRONT_SW >= 0
     button_config_t front_sw_btn_cfg = {
     .type = BUTTON_TYPE_GPIO,
     .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,
@@ -45,7 +113,7 @@ void button_init(void)
     iot_button_register_cb(btn_handle_front, BUTTON_LONG_PRESS_START, button_front_long, NULL);
 #endif
 
-#ifdef CONFIG_INPUT_WHEEL_SW
+#if CONFIG_INPUT_WHEEL_SW >= 0
     button_config_t wheel_btn_cfg = {
     .type = BUTTON_TYPE_GPIO,
     .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,
@@ -61,7 +129,7 @@ void button_init(void)
 #endif
 }
 
-#ifndef CONFIG_BOARD_TYPE_JADE
+#if !defined(CONFIG_BOARD_TYPE_JADE) && !defined(CONFIG_DISPLAY_TOUCHSCREEN)
 static void wheel_common(button_handle_t* btn_handle_prev, button_handle_t* btn_handle_next)
 {
     button_config_t prev_btn_cfg = {
@@ -175,7 +243,7 @@ void wheel_init(void)
         retval == pdPASS, "Failed to create wheel_watcher task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
-#elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
+#elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY) || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAYS3)
 // wheel_init() to mock wheel with buttons
 
 // Slightly complicated to allow both-buttons pressed to mock selection button
@@ -210,6 +278,7 @@ static void button_released(void* arg, void* ctx)
 
 void wheel_init(void)
 {
+#if !defined(CONFIG_DISPLAY_TOUCHSCREEN)
     button_handle_t btn_handle_prev = NULL;
     button_handle_t btn_handle_next = NULL;
     wheel_common(&btn_handle_prev, &btn_handle_next);
@@ -217,6 +286,7 @@ void wheel_init(void)
     iot_button_register_cb(btn_handle_prev, BUTTON_PRESS_UP, button_released, &button_A_pressed);
     iot_button_register_cb(btn_handle_next, BUTTON_PRESS_DOWN, button_pressed, &button_B_pressed);
     iot_button_register_cb(btn_handle_next, BUTTON_PRESS_UP, button_released, &button_B_pressed);
+#endif
 }
 #elif defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS) || defined(CONFIG_INPUT_ONE_BUTTON_MODE)
 /*
@@ -263,6 +333,7 @@ static void button_B_pressed(void* arg, void* ctx) { gui_next(); }
 
 void wheel_init(void)
 {
+#if !defined(CONFIG_DISPLAY_TOUCHSCREEN)
     button_handle_t btn_handle_prev = NULL;
     button_handle_t btn_handle_next = NULL;
     wheel_common(&btn_handle_prev, &btn_handle_next);
@@ -275,6 +346,7 @@ void wheel_init(void)
 #if (!defined(CONFIG_BT_ENABLED)) || (!defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY) && !defined(CONFIG_BOARD_TYPE_M5_FIRE))
     iot_button_register_cb(btn_handle_prev, BUTTON_LONG_PRESS_HOLD, button_A_pressed, NULL);
     iot_button_register_cb(btn_handle_next, BUTTON_LONG_PRESS_HOLD, button_B_pressed, NULL);
+#endif
 #endif
 }
 #endif // CONFIG_BOARD_TYPE_xxx

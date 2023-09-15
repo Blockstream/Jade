@@ -226,8 +226,13 @@ void idletimer_init(void)
     }
 
     // Kick off the idletimer task
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+    const size_t stack_size = (2 * 1024) + 512;
+#else
+    const size_t stack_size = 2 * 1024;
+#endif
     const BaseType_t retval = xTaskCreatePinnedToCore(
-        idletimer_task, "idle_timeout", 2 * 1024, NULL, JADE_TASK_PRIO_IDLETIMER, NULL, JADE_CORE_PRIMARY);
+        idletimer_task, "idle_timeout", stack_size, NULL, JADE_TASK_PRIO_IDLETIMER, NULL, JADE_CORE_PRIMARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create idle_timeout task, xTaskCreatePinnedToCore() returned %d", retval);
 }

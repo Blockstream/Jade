@@ -26,6 +26,9 @@
 #include "process.h"
 #include "process/process_utils.h"
 #include "random.h"
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#include "usbhmsc/usbhmsc.h"
+#endif
 #include "sensitive.h"
 #include "serial.h"
 #ifdef CONFIG_ETH_USE_OPENETH
@@ -83,8 +86,9 @@ static void boot_process(void)
     TaskHandle_t* serial_handle = NULL;
     TaskHandle_t* ble_handle = NULL;
     TaskHandle_t* qemu_tcp_handle = NULL;
+    TaskHandle_t* gui_handle = NULL;
 
-    if (!jade_process_init(&serial_handle, &ble_handle, &qemu_tcp_handle)) {
+    if (!jade_process_init(&serial_handle, &ble_handle, &qemu_tcp_handle, &gui_handle)) {
         JADE_ABORT();
     }
 
@@ -100,29 +104,39 @@ static void boot_process(void)
     }
 
     keychain_init_cache();
-    display_init();
-    gui_init();
+    display_init(gui_handle);
+    gui_init(gui_handle);
 
     // Display splash screen with Blockstream logo.  Carry out further initialisation
     // while that screen is shown for a short time.  Then test to see whether the
     // user clicked the front button.  If they did, we offer to reset the jade
     // (one-time passkey required).
     JADE_LOGI("Showing splash screen");
-    gui_activity_t* const splash = display_splash();
+    gui_activity_t* const splash = gui_display_splash();
+    vTaskDelay(100 / portTICK_PERIOD_MS);
 
     // Idletimer init decides whether to power the screen or not based on whether this
     // is a soft restart due to inactivity.
     // NOTE: input methods use idle-timer, so are dependent.
     idletimer_init();
-#ifndef CONFIG_ETH_USE_OPENETH
+
+#if !defined(CONFIG_ETH_USE_OPENETH) && !defined(CONFIG_DISPLAY_TOUCHSCREEN)
     input_init();
     button_init();
     wheel_init();
 #endif
 
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+    touchscreen_init();
+#endif
+
     wait_event_data_t* const event_data = gui_activity_make_wait_event_data(splash); // activity takes ownership
     JADE_ASSERT(event_data);
     gui_activity_register_event(splash, GUI_EVENT, GUI_FRONT_CLICK_EVENT, sync_wait_event_handler, event_data);
+
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+    usb_storage_init();
+#endif
 
     if (!serial_init(serial_handle)) {
         JADE_ABORT();

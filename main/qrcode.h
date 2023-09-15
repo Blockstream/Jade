@@ -32,14 +32,13 @@
 #ifndef __QRCODE_H_
 #define __QRCODE_H_
 
-#include "tft.h"
-
 /*#ifndef __cplusplus
    typedef unsigned char bool;
    static const bool false = 0;
    static const bool true = 1;
  #endif */
 
+#include "display.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

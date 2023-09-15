@@ -281,8 +281,14 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
 {
     JADE_ASSERT(url);
     JADE_ASSERT(qr_icon);
+
+#if CONFIG_DISPLAY_WIDTH == 320
+    JADE_ASSERT(qr_icon->width <= 125);
+    JADE_ASSERT(qr_icon->height <= 125);
+#else
     JADE_ASSERT(qr_icon->width <= 100);
     JADE_ASSERT(qr_icon->height <= 100);
+#endif
 
     gui_activity_t* const act = gui_make_activity();
 

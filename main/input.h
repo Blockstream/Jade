@@ -19,4 +19,8 @@ void wheel_uninit(bool uninstall_gpio_isr_service);
 void wheel_reinit(bool install_gpio_isr_service);
 #endif
 
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+void touchscreen_init(void);
+#endif
+
 #endif /* INPUT_H_ */

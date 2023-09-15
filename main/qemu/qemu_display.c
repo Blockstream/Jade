@@ -16,62 +16,53 @@
 #include <esp_http_server.h>
 #include <esp_log.h>
 #include <esp_netif.h>
-#include <esp_timer.h>
-#include <tftspi.h>
 
 #define QEMU_HTTP_PORT 30122
-#define WS_DISPLAY_TIMEOUT 100000
+#define QEMU_MAX_WS_SIZE (1024 * 16)
+#define DISPLAY_SIZE (CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT)
+#define CAMERA_IMAGE_SIZE (CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT)
 
-static color_t* display = NULL;
+// commands sent
+#define LATEST_DISPLAY 0
+#define WEBCAM_CAPTURE 1
+#define DISABLE_WEBCAM_CAPTURE 2
+
+// commands received
+#define PROVIDE_DISPLAY 0
+#define LEFT_WHEEL_TRIGGERED 1
+#define MIDDLE_CLICK_WHEEL_TRIGGERED 2
+#define RIGHT_WHEEL_TRIGGERED 3
+#define FRONT_BUTTON_TRIGGERED 4
+#define CAMERA_FRAME_INBOUND 12
+
 static struct async_resp_arg* resp_arg = NULL;
 static uint8_t* ws_pkt_buf = NULL;
 static camera_fb_t* camerafb = NULL;
 static uint8_t* camerabuf = NULL;
 static uint32_t cameracounter = 0;
-static esp_timer_handle_t displaytimer;
+static bool requires_flush = true;
 
 static QueueHandle_t cameraqueue = NULL;
+
+static color_t* pixels = NULL;
+static uint8_t* packet_payload = NULL;
 
 struct async_resp_arg {
     httpd_handle_t hd;
     int fd;
 };
 
-static void display_timeout_fn(void* unused)
-{
-    const httpd_handle_t hd = resp_arg->hd;
-    const int fd = resp_arg->fd;
-    httpd_ws_frame_t ws_pkt = { 0 };
-    ws_pkt.payload = (uint8_t*)display;
-    ws_pkt.len = 240 * 135 * sizeof(color_t) + 1;
-    ws_pkt.type = HTTPD_WS_TYPE_BINARY;
-    httpd_ws_send_frame_async(hd, fd, &ws_pkt);
-}
-
-static void ws_async_send(void)
-{
-    if (!resp_arg) {
-        return;
-    }
-    if (esp_timer_is_active(displaytimer)) {
-        const esp_err_t ret = esp_timer_restart(displaytimer, WS_DISPLAY_TIMEOUT);
-        if (ret == ESP_OK) {
-            return;
-        }
-    }
-    // timer was not active or failed to restart
-    const esp_err_t ret = esp_timer_start_once(displaytimer, WS_DISPLAY_TIMEOUT);
-    JADE_ASSERT(ret == ESP_OK);
-}
-
 esp_err_t __wrap_esp_camera_init(const camera_config_t* config) { return ESP_OK; }
 
 esp_err_t __wrap_esp_camera_deinit()
 {
+    if (!resp_arg) {
+        return ESP_OK;
+    }
     const httpd_handle_t hd = resp_arg->hd;
     const int fd = resp_arg->fd;
     httpd_ws_frame_t ws_pkt = { 0 };
-    uint8_t payload_value = 2; /* disable webcam capture */
+    uint8_t payload_value = DISABLE_WEBCAM_CAPTURE;
     ws_pkt.payload = &payload_value;
     ws_pkt.len = 1;
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
@@ -81,16 +72,18 @@ esp_err_t __wrap_esp_camera_deinit()
 
 camera_fb_t* __wrap_esp_camera_fb_get()
 {
+    if (!resp_arg) {
+        return NULL;
+    }
     camera_fb_t* fb = camerafb;
-    fb->format = PIXFORMAT_GRAYSCALE; // 1BPP/GRAYSCALE
+    fb->format = PIXFORMAT_GRAYSCALE;
     fb->width = CAMERA_IMAGE_WIDTH;
     fb->height = CAMERA_IMAGE_HEIGHT;
-    const size_t image_size = sizeof(uint8_t[CAMERA_IMAGE_WIDTH / 2][CAMERA_IMAGE_HEIGHT / 2]);
-    fb->len = 4 * image_size; // twice width and twice height
+    fb->len = CAMERA_IMAGE_SIZE;
     const httpd_handle_t hd = resp_arg->hd;
     const int fd = resp_arg->fd;
     httpd_ws_frame_t ws_pkt = { 0 };
-    uint8_t payload_value = 1;
+    uint8_t payload_value = WEBCAM_CAPTURE;
     ws_pkt.payload = &payload_value;
     ws_pkt.len = 1;
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
@@ -114,63 +107,69 @@ void __wrap_esp_camera_fb_return(camera_fb_t* fb)
     // reuse struct and buf until the camera is disabled since we only do one frame
 }
 
-static void set_color(color_t* position, color_t color, size_t num)
+void qemu_draw_bitmap(int x, int y, int w, int h, const uint16_t* color_data)
 {
-    for (color_t* i = position; i < (position + num); ++i) {
-        *i = color;
-    }
-}
+    JADE_ASSERT(pixels);
+    JADE_ASSERT(color_data);
 
-void __wrap_send_data(int x1, int y1, int x2, int y2, uint32_t len, color_t* buf)
-{
-    if (!display) {
-        return;
-    }
-    color_t* const leftcorner = ((color_t*)(((uint8_t*)display) + 1)) + (x1 - 40) + ((y1 - 53) * 240);
-    size_t color_counter = 0;
-    for (int v = 0; v < y2 - y1; ++v) {
-        color_t* position = leftcorner + 240 * v;
-        for (color_t* i = position; i < position + (x2 - x1); ++i, ++color_counter) {
-            *i = buf[color_counter];
+    JADE_ASSERT(x + w <= CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X);
+    JADE_ASSERT(y + h <= CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y);
+
+    const int initial_offset = (x - CONFIG_DISPLAY_OFFSET_X) + (y - CONFIG_DISPLAY_OFFSET_Y) * CONFIG_DISPLAY_WIDTH;
+    for (int i = 0; i < h; ++i) {
+        for (int k = 0; k < w; ++k) {
+            pixels[initial_offset + k + (i * CONFIG_DISPLAY_WIDTH)] = ((uint16_t*)color_data)[i * w + k];
         }
     }
+    requires_flush = true;
+}
 
-    if (y1 == 187) {
-        // a bit ugly: we only send the display update when it is the last row
-        // and we force the update rather than do the async timeout based one
-        display_timeout_fn(NULL);
-    } else {
-        ws_async_send();
+#define min(A, B) ((A) < (B) ? (A) : (B))
+
+static void send_async(void* unused)
+{
+    const httpd_handle_t hd = resp_arg->hd;
+    const int fd = resp_arg->fd;
+    packet_payload[0] = LATEST_DISPLAY;
+    httpd_ws_frame_t ws_pkt = { .type = HTTPD_WS_TYPE_BINARY, .payload = packet_payload };
+    size_t tosend = DISPLAY_SIZE;
+    while (tosend) {
+        /* Given our pixels are 2 bytes we have to send data in multiples of
+         * 2 - we can't send half a pixel */
+        int sendable_pixels = QEMU_MAX_WS_SIZE - 1;
+        sendable_pixels &= ~1;
+        ws_pkt.len = min(tosend * 2, sendable_pixels) + 1; /* command byte */
+        JADE_ASSERT(ws_pkt.len & 1);
+        memcpy(packet_payload + 1, pixels + (DISPLAY_SIZE - tosend), ws_pkt.len - 1);
+        if (httpd_ws_send_frame_async(hd, fd, &ws_pkt) != ESP_OK) {
+            /* in case of network failure fail gracefully */
+            return;
+        }
+        tosend -= (ws_pkt.len - 1) / 2;
     }
 }
 
-void __wrap_TFT_pushColorRep(int x1, int y1, int x2, int y2, color_t data, uint32_t len)
+void qemu_display_flush(void)
 {
-    if (!display) {
+    JADE_ASSERT(pixels);
+    if (!requires_flush || !resp_arg) {
         return;
     }
-
-    color_t* const leftcorner = ((color_t*)(((uint8_t*)display) + 1)) + (x1 - 40) + ((y1 - 53) * 240);
-    for (int i = 0; i < (y2 - y1) + 1; ++i) {
-        set_color(leftcorner + (240 * i), data, (x2 - x1) + 1);
-    }
-    ws_async_send();
+    requires_flush = false;
+    httpd_queue_work(resp_arg->hd, send_async, resp_arg);
 }
 
-void __wrap_drawPixel(int16_t x, int16_t y, color_t color, uint8_t sel)
+void qemu_display_init(void)
 {
-    if (!display) {
-        return;
-    }
-    *(((color_t*)(((uint8_t*)display) + 1)) + (x - 40) + ((y - 53) * 240)) = color;
-    ws_async_send();
+    JADE_ASSERT(!pixels);
+    JADE_ASSERT(!packet_payload);
+    pixels = JADE_MALLOC_PREFER_SPIRAM(sizeof(uint16_t) * DISPLAY_SIZE);
+    packet_payload = JADE_MALLOC_PREFER_SPIRAM(QEMU_MAX_WS_SIZE);
+    resp_arg = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct async_resp_arg));
 }
 
 static void setup_async_send(httpd_req_t* req)
 {
-    if (!resp_arg) {
-        resp_arg = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct async_resp_arg));
-    }
     resp_arg->hd = req->handle;
     resp_arg->fd = httpd_req_to_sockfd(req);
 }
@@ -201,37 +200,51 @@ static esp_err_t ws_handler(httpd_req_t* req)
     }
 
     switch (*ws_pkt_buf) {
-    case 0:
+    case PROVIDE_DISPLAY:
         JADE_ASSERT(ws_pkt.len == 1);
-        ws_pkt.len = 240 * 135 * sizeof(color_t) + 1;
-        ws_pkt.payload = (uint8_t*)display;
-        return httpd_ws_send_frame(req, &ws_pkt);
-    case 1:
+        packet_payload[0] = LATEST_DISPLAY;
+        ws_pkt.payload = packet_payload;
+        size_t tosend = DISPLAY_SIZE;
+        while (tosend) {
+            /* Given our pixels are 2 bytes we have to send data in multiples of
+             * 2 - we can't send half a pixel */
+            int sendable_pixels = QEMU_MAX_WS_SIZE - 1;
+            sendable_pixels &= ~1;
+            ws_pkt.len = min(tosend * 2, sendable_pixels) + 1; /* command byte */
+            JADE_ASSERT(ws_pkt.len & 1);
+            memcpy(packet_payload + 1, pixels + (DISPLAY_SIZE - tosend), ws_pkt.len - 1);
+            if (httpd_ws_send_frame(req, &ws_pkt) != ESP_OK) {
+                /* in case of network failure fail gracefully */
+                return ESP_OK;
+            }
+            tosend -= (ws_pkt.len - 1) / 2;
+        }
+        return ESP_OK;
+    case LEFT_WHEEL_TRIGGERED:
         JADE_ASSERT(ws_pkt.len == 1);
         gui_prev();
         break;
-    case 2:
+    case MIDDLE_CLICK_WHEEL_TRIGGERED:
         JADE_ASSERT(ws_pkt.len == 1);
         gui_wheel_click();
         break;
-    case 3:
+    case RIGHT_WHEEL_TRIGGERED:
         JADE_ASSERT(ws_pkt.len == 1);
         gui_next();
         break;
-    case 4:
+    case FRONT_BUTTON_TRIGGERED:
         JADE_ASSERT(ws_pkt.len == 1);
         gui_front_click();
         break;
-    case 12:
+    case CAMERA_FRAME_INBOUND:
         JADE_ASSERT(ws_pkt.len > 1);
         memcpy(camerabuf + cameracounter, ws_pkt_buf + 1, ws_pkt.len - 1);
-        if (cameracounter + (ws_pkt.len - 1) == 320 * 240) {
+        if (cameracounter + (ws_pkt.len - 1) == CAMERA_IMAGE_SIZE) {
             xQueueSend(cameraqueue, &camerabuf, portMAX_DELAY);
             cameracounter = 0;
         } else {
             cameracounter += ws_pkt.len - 1;
         }
-
         break;
     default:
         JADE_LOGE("Unexpected byte %d received by ws client for request len %d", *ws_pkt_buf, ws_pkt.len);
@@ -275,13 +288,12 @@ static const httpd_uri_t png
 bool qemu_start_display_webserver(void)
 {
     httpd_handle_t server = NULL;
-    JADE_ASSERT(!display);
+    JADE_ASSERT(pixels);
+    JADE_ASSERT(packet_payload);
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    display = JADE_MALLOC_PREFER_SPIRAM(240 * 135 * sizeof(color_t) + 1);
-    ((uint8_t*)display)[0] = 0;
+    config.keep_alive_enable = true;
     config.server_port = QEMU_HTTP_PORT;
-    const size_t image_size = sizeof(uint8_t[CAMERA_IMAGE_WIDTH / 2][CAMERA_IMAGE_HEIGHT / 2]);
-    ws_pkt_buf = JADE_MALLOC_PREFER_SPIRAM(image_size * 4 + 1);
+    ws_pkt_buf = JADE_MALLOC_PREFER_SPIRAM(CAMERA_IMAGE_SIZE + 1);
 
     cameraqueue = xQueueCreate(1, sizeof(void*));
     JADE_ASSERT(cameraqueue);
@@ -290,13 +302,7 @@ bool qemu_start_display_webserver(void)
     JADE_ASSERT(!camerabuf);
 
     camerafb = JADE_MALLOC_PREFER_SPIRAM(sizeof(camera_fb_t));
-    camerabuf = JADE_MALLOC_PREFER_SPIRAM(320 * 240);
-
-    const esp_timer_create_args_t timer_args = {
-        .callback = &display_timeout_fn,
-    };
-
-    esp_timer_create(&timer_args, &displaytimer);
+    camerabuf = JADE_MALLOC_PREFER_SPIRAM(CAMERA_IMAGE_SIZE);
 
     if (httpd_start(&server, &config) == ESP_OK) {
         httpd_register_uri_handler(server, &ws);

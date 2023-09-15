@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <tft.h>
 
+#include "display.h"
 #include "utils/cbor_rpc.h"
 #include "wallet.h"
 

@@ -5,7 +5,7 @@
 #include <freertos/ringbuf.h>
 #include <freertos/task.h>
 
-#include <tftspi.h>
+#include "display.h"
 
 #include "gui.h"
 #include "idletimer.h"
@@ -14,6 +14,7 @@
 #include "power.h"
 #include "qrcode.h"
 #include "random.h"
+#include "serial.h"
 #include "storage.h"
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
@@ -25,15 +26,15 @@
 ESP_EVENT_DEFINE_BASE(GUI_BUTTON_EVENT);
 ESP_EVENT_DEFINE_BASE(GUI_EVENT);
 
-const color_t GUI_BLOCKSTREAM_JADE_GREEN = { 248, 119, 152 };
-const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY = { 220, 220, 220 };
-const color_t GUI_BLOCKSTREAM_QR_PALE = { 180, 180, 180 };
+const color_t GUI_BLOCKSTREAM_JADE_GREEN = 0x4C04;
+const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY = 0x0421;
+const color_t GUI_BLOCKSTREAM_QR_PALE = 0x494A;
 
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT = GUI_BLOCKSTREAM_JADE_GREEN;
-const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE = { 43, 131, 255 };
-const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE = { 230, 230, 100 };
-const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY = { 200, 200, 200 };
-const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY = { 150, 150, 150 };
+const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE = 0xE0D3;
+const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE = 0xD318;
+const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY = 0xA631;
+const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY = 0x4D6B;
 
 typedef struct _activity_holder_t activity_holder_t;
 struct _activity_holder_t {
@@ -57,14 +58,14 @@ static gui_activity_t* current_activity = NULL;
 static activity_holder_t* existing_activities = NULL;
 
 // handle to the task running to update the gui
-static TaskHandle_t gui_task_handle = NULL;
+static TaskHandle_t* gui_task_handle = NULL;
 // queue for gui task to receive items to process (eg. repaint node, switch activities, etc.)
 static RingbufHandle_t gui_input_queue = NULL;
 
 // Click/select event (ie. which button counts as 'click'/select)
 // and which gui highlight colour is in use
 static gui_event_t gui_click_event = GUI_FRONT_CLICK_EVENT;
-static color_t gui_highlight_color = {};
+static color_t gui_highlight_color = 0;
 
 // status bar
 struct {
@@ -167,7 +168,7 @@ void gui_set_highlight_color(const uint8_t theme)
     }
 }
 
-void gui_init(void)
+void gui_init(TaskHandle_t* gui_h)
 {
     // Create mutex semaphore
     gui_mutex = xSemaphoreCreateMutex();
@@ -194,12 +195,13 @@ void gui_init(void)
     make_status_bar();
 
     // Create (high priority) gui task
-    BaseType_t retval = xTaskCreatePinnedToCore(
-        gui_task, "gui", 3 * 1024, NULL, JADE_TASK_PRIO_GUI, &gui_task_handle, JADE_CORE_SECONDARY);
+    BaseType_t retval
+        = xTaskCreatePinnedToCore(gui_task, "gui", 8 * 1024, NULL, JADE_TASK_PRIO_GUI, gui_h, JADE_CORE_GUI);
+    gui_task_handle = gui_h;
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create GUI task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
-bool gui_initialized(void) { return gui_task_handle; } // gui task started
+bool gui_initialized(void) { return *gui_task_handle; } // gui task started
 
 // Is this kind of node selectable?
 static inline bool is_kind_selectable(enum view_node_kind kind) { return kind == BUTTON; }
@@ -1334,15 +1336,10 @@ void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum
     *valign_ptr = valign;
 }
 
-static inline bool same_color(const color_t c1, const color_t c2)
-{
-    return c1.r == c2.r && c1.g == c2.g && c1.b == c2.b;
-}
-
 static inline bool can_text_fit(const char* text, uint32_t font, dispWin_t cs)
 {
-    TFT_setFont(font, NULL); // measure relative to this font
-    return TFT_getStringWidth(text) <= cs.x2 - cs.x1;
+    display_set_font(font, NULL); // measure relative to this font
+    return display_get_string_width(text) <= cs.x2 - cs.x1;
 }
 
 // move to the next frame of a scrolling text node
@@ -1689,8 +1686,8 @@ static void render_button(gui_view_node_t* node, const dispWin_t cs, const uint8
     // the button is transparent when not selected, so we can skip filling the content.
     // NOTE: requires the parent is redrawn otherwise button will remain in 'selected' appearance
     // when selection moves on to another item.
-    if (node->is_selected || !same_color(node->button->color, node->button->selected_color)) {
-        TFT_fillRect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1,
+    if (node->is_selected || node->button->color != node->button->selected_color) {
+        display_fill_rect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1,
             node->is_selected ? node->button->selected_color : node->button->color);
     }
 
@@ -1766,7 +1763,7 @@ static void render_fill(gui_view_node_t* node, const dispWin_t cs, const uint8_t
 {
     color_t* color = node->is_selected ? &node->fill->selected_color : &node->fill->color;
 
-    TFT_fillRect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1, *color);
+    display_fill_rect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1, *color);
 
     // Draw any children directly over the current node
     gui_view_node_t* ptr = node->child;
@@ -1811,26 +1808,23 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
 
-    TFT_setFont(node->text->font, NULL);
+    display_set_font(node->text->font, NULL);
 
     if (node->text->scroll) {
         // this text has the scroll enable, so disable wrap
-        text_wrap = 0;
 
         // set the foreground color to the "background color" to remove the previous string
         _fg = node->is_selected ? node->text->scroll->selected_background_color : node->text->scroll->background_color;
-        TFT_print_in_area(node->render_data.resolved_text + node->text->scroll->prev_offset,
-            resolve_halign(0, node->text->halign), resolve_valign(0, node->text->valign), cs);
+        display_print_in_area(node->render_data.resolved_text + node->text->scroll->prev_offset,
+            resolve_halign(0, node->text->halign), resolve_valign(0, node->text->valign), cs, 0);
 
         // and now we write the new one using the correct color
         _fg = node->is_selected ? node->text->selected_color : node->text->color;
-        TFT_print_in_area(node->render_data.resolved_text + node->text->scroll->offset,
-            resolve_halign(0, node->text->halign), resolve_valign(0, node->text->valign), cs);
+        display_print_in_area(node->render_data.resolved_text + node->text->scroll->offset,
+            resolve_halign(0, node->text->halign), resolve_valign(0, node->text->valign), cs, 0);
 
-        text_wrap = 1;
     } else {
         // normal print with wrap
-        text_wrap = 1;
         if (node->text->noise) { // with noise
             color_t color = node->is_selected ? node->text->selected_color : node->text->color;
 
@@ -1840,10 +1834,10 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
                 pos_x = 0;
                 break;
             case GUI_ALIGN_CENTER:
-                pos_x = (cs.x2 - cs.x1 - TFT_getStringWidth(node->render_data.resolved_text)) / 2;
+                pos_x = (cs.x2 - cs.x1 - display_get_string_width(node->render_data.resolved_text)) / 2;
                 break;
             case GUI_ALIGN_RIGHT:
-                pos_x = cs.x2 - cs.x1 - TFT_getStringWidth(node->render_data.resolved_text);
+                pos_x = cs.x2 - cs.x1 - display_get_string_width(node->render_data.resolved_text);
                 break;
             }
 
@@ -1854,25 +1848,25 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
             char buf[2] = { '\0', '\0' };
             for (size_t i = 0; i < node->render_data.resolved_text_length; ++i) {
                 buf[0] = node->render_data.resolved_text[i];
-                const int char_width = TFT_getStringWidth(buf);
+                const int char_width = display_get_string_width(buf);
                 if (pos_x + offset_x + char_width >= cs.x2 - cs.x1) {
-                    offset_y += TFT_getfontheight();
+                    offset_y += display_get_font_height();
                     offset_x = 0;
                 }
 
                 _fg = node->text->noise->background_color;
                 buf[0] = 0x61 + get_uniform_random_byte(0x7a - 0x61);
-                TFT_print_in_area(buf, pos_x + offset_x, pos_y + offset_y, cs);
+                display_print_in_area(buf, pos_x + offset_x, pos_y + offset_y, cs, 1);
                 _fg = color;
                 buf[0] = node->render_data.resolved_text[i];
-                TFT_print_in_area(buf, pos_x + offset_x, pos_y + offset_y, cs);
+                display_print_in_area(buf, pos_x + offset_x, pos_y + offset_y, cs, 1);
                 offset_x += char_width;
             }
         } else { // without noise
             _fg = node->is_selected ? node->text->selected_color : node->text->color;
 
-            TFT_print_in_area(node->render_data.resolved_text, resolve_halign(0, node->text->halign),
-                resolve_valign(0, node->text->valign), cs);
+            display_print_in_area(node->render_data.resolved_text, resolve_halign(0, node->text->halign),
+                resolve_valign(0, node->text->valign), cs, 1);
         }
     }
 }
@@ -1885,8 +1879,8 @@ static void render_icon(gui_view_node_t* node, const dispWin_t cs, const uint8_t
 
     if (node->icon) {
         const color_t* color = node->is_selected ? &node->icon->selected_color : &node->icon->color;
-        const bool transparent = same_color(node->icon->bg_color, node->icon->color);
-        TFT_icon(&node->icon->icon, resolve_halign(0, node->icon->halign), resolve_valign(0, node->icon->valign),
+        const bool transparent = node->icon->bg_color == node->icon->color;
+        display_icon(&node->icon->icon, resolve_halign(0, node->icon->halign), resolve_valign(0, node->icon->valign),
             *color, cs, transparent ? NULL : &node->icon->bg_color);
     }
 
@@ -1904,7 +1898,7 @@ static void render_picture(gui_view_node_t* node, const dispWin_t cs, const uint
     JADE_ASSERT(node->kind == PICTURE);
 
     if (node->picture && node->picture->picture) {
-        TFT_picture(node->picture->picture, resolve_halign(0, node->picture->halign),
+        display_picture(node->picture->picture, resolve_halign(0, node->picture->halign),
             resolve_valign(0, node->picture->valign), cs);
     }
 
@@ -1938,16 +1932,16 @@ static void paint_borders(gui_view_node_t* node, const dispWin_t cs)
     uint16_t thickness;
 
     if ((thickness = get_border_thickness(node->borders, GUI_BORDER_TOP_BIT))) {
-        TFT_fillRect(cs.x1, cs.y1, width, thickness, *color); // top
+        display_fill_rect(cs.x1, cs.y1, width, thickness, *color); // top
     }
     if ((thickness = get_border_thickness(node->borders, GUI_BORDER_RIGHT_BIT))) {
-        TFT_fillRect(cs.x2 - thickness, cs.y1, thickness, height, *color); // right
+        display_fill_rect(cs.x2 - thickness, cs.y1, thickness, height, *color); // right
     }
     if ((thickness = get_border_thickness(node->borders, GUI_BORDER_BOTTOM_BIT))) {
-        TFT_fillRect(cs.x1, cs.y2 - thickness, width, thickness, *color); // bottom
+        display_fill_rect(cs.x1, cs.y2 - thickness, width, thickness, *color); // bottom
     }
     if ((thickness = get_border_thickness(node->borders, GUI_BORDER_LEFT_BIT))) {
-        TFT_fillRect(cs.x1, cs.y1, thickness, height, *color); // left
+        display_fill_rect(cs.x1, cs.y1, thickness, height, *color); // left
     }
 }
 
@@ -1957,7 +1951,7 @@ static void repaint_node(gui_view_node_t* node)
     JADE_ASSERT(node);
 
     // Ensure we only call the underlying dislay library from the gui_task
-    JADE_ASSERT_MSG(xTaskGetCurrentTaskHandle() == gui_task_handle,
+    JADE_ASSERT_MSG(xTaskGetCurrentTaskHandle() == *gui_task_handle,
         "ERROR: repaint_node() called from non-gui-task: %s", pcTaskGetName(NULL));
 
     // borders use the un-padded constraints
@@ -1996,14 +1990,6 @@ static void repaint_node(gui_view_node_t* node)
         render_picture(node, node->render_data.padded_constraints, node->render_data.depth);
         break;
     }
-
-    if (GUI_VIEW_DEBUG) {
-        uint16_t width = node->render_data.padded_constraints.x2 - node->render_data.padded_constraints.x1;
-        uint16_t height = node->render_data.padded_constraints.y2 - node->render_data.padded_constraints.y1;
-
-        TFT_drawRect(node->render_data.padded_constraints.x1, node->render_data.padded_constraints.y1, width, height,
-            DEBUG_COLOR(node->render_data.depth));
-    }
 }
 
 static void gui_render_activity(gui_activity_t* activity)
@@ -2039,12 +2025,14 @@ static void free_activities(activity_holder_t* to_free)
 }
 
 // update the status bar
-static void update_status_bar(const bool force_redraw)
+static bool update_status_bar(const bool force_redraw)
 {
     // No-op if no status bar
     if (!current_activity || !current_activity->status_bar) {
-        return;
+        return false;
     }
+
+    bool updated = false;
 
     dispWin_t status_bar_cs = GUI_DISPLAY_WINDOW;
     status_bar_cs.y2 = status_bar_cs.y1 + GUI_STATUS_BAR_HEIGHT;
@@ -2074,8 +2062,12 @@ static void update_status_bar(const bool force_redraw)
             status_bar.last_usb_val = new_usb;
             if (new_usb) {
                 gui_update_text_node_text(status_bar.usb_text, (char[]){ 'C', '\0' });
+                // FIXME: change to charging rather than usb connected
+                // serial_start();
             } else {
                 gui_update_text_node_text(status_bar.usb_text, (char[]){ 'D', '\0' });
+                // FIXME: change to no power rather than usb connected
+                // serial_stop();
             }
             status_bar.updated = true;
             status_bar.battery_update_counter = 0; // Force battery icon update
@@ -2102,7 +2094,10 @@ static void update_status_bar(const bool force_redraw)
     if (status_bar.updated || force_redraw) {
         render_node(status_bar.root, status_bar_cs, 0);
         status_bar.updated = false;
+        updated = true;
     }
+
+    return updated;
 }
 
 // Process queue of jobs - always drain entire queue
@@ -2195,11 +2190,13 @@ static size_t handle_gui_input_queue(bool* switched_activities)
 }
 
 // updatables task, this task runs to update elements in the `updatables` list of the current activity
-static void update_updateables(void)
+static bool update_updateables(void)
 {
     if (!current_activity) {
-        return;
+        return false;
     }
+
+    bool updated = false;
 
     updatable_t* current = current_activity->updatables;
     while (current) {
@@ -2214,9 +2211,11 @@ static void update_updateables(void)
             // repaint the node on-screen
             // TODO: we are ignoring the return code here...
             repaint_node(current->node);
+            updated = true;
         }
         current = current->next;
     }
+    return updated;
 }
 
 // gui task, for managing display/activities
@@ -2224,7 +2223,9 @@ static void gui_task(void* args)
 {
     const TickType_t period = 1000 / GUI_TARGET_FRAMERATE / portTICK_PERIOD_MS;
     TickType_t last_wake = xTaskGetTickCount();
+
     for (;;) {
+
         // Wait for the next frame
         // Note: this task is never suspended, so no need to re-fetch the tick-
         // time each loop, just let vTaskDelayUntil() track the 'last_wake' count.
@@ -2237,14 +2238,18 @@ static void gui_task(void* args)
         if (jobs_handled > 4) {
             JADE_LOGW("gui task handled %u jobs", jobs_handled);
         }
+        bool updated = true;
         if (!switched_activities) {
             // Not switching activities, update any 'updatable' gui elements on this activity
-            update_updateables();
+            updated = update_updateables();
         }
 
         // Update status bar if required
         const bool force_redraw = false;
-        update_status_bar(force_redraw);
+        if (update_status_bar(force_redraw) || updated || jobs_handled) {
+            // Flush
+            display_flush();
+        }
     }
 
     vTaskDelete(NULL);
@@ -2305,7 +2310,7 @@ void gui_repaint(gui_view_node_t* node)
 
     // If we are called from the gui task we can immediately repaint the node.
     // If not, we should enqueue a message to the gui task to repaint.
-    if (xTaskGetCurrentTaskHandle() == gui_task_handle) {
+    if (xTaskGetCurrentTaskHandle() == *gui_task_handle) {
         repaint_node(node);
         return;
     }
@@ -2470,3 +2475,25 @@ void gui_set_activity_title(gui_activity_t* activity, const char* title)
 }
 
 gui_activity_t* gui_current_activity(void) { return current_activity; }
+
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+extern const uint8_t splashstart[] asm("_binary_splash_bin_gz_start");
+extern const uint8_t splashend[] asm("_binary_splash_bin_gz_end");
+#endif
+
+gui_activity_t* gui_display_splash(void)
+{
+    gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* splash_node;
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    Picture* const pic = get_picture(splashstart, splashend);
+    gui_make_picture(&splash_node, pic);
+#else
+    gui_make_text(&splash_node, "Jade DIY", TFT_WHITE);
+#endif
+    gui_set_align(splash_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(splash_node, act->root_node);
+    // set the current activity and draw it on screen
+    gui_set_current_activity(act);
+    return act;
+}

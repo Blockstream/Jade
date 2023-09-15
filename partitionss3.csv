@@ -1,0 +1,7 @@
+# Espressif ESP32S3 Partition Table
+# Name,   Type, SubType, Offset,  Size, Flags
+nvs,      data, nvs,     0xA000,  0x10000,
+otadata,  data, ota,     0x1A000, 0x2000, encrypted
+ota_0,    app,  ota_0,   ,        4011K,
+ota_1,    app,  ota_1,   ,        4011K,
+nvs_key,  data, nvs_keys,,        4K, encrypted
