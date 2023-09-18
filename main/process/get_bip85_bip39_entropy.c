@@ -10,10 +10,12 @@
 
 #include "process_utils.h"
 
+static const unsigned char HMAC_MESSAGE[]
+    = { 'b', 'i', 'p', '8', '5', '_', 'b', 'i', 'p', '3', '9', '_', 'e', 'n', 't', 'r', 'o', 'p', 'y' };
+
 typedef struct {
-    uint8_t encrypted[AES_ENCRYPTED_LEN(HMAC_SHA512_LEN)];
+    uint8_t encrypted[AES_ENCRYPTED_LEN(HMAC_SHA512_LEN) + HMAC_SHA256_LEN];
     uint8_t pubkey[EC_PUBLIC_KEY_LEN];
-    uint8_t hmac[HMAC_SHA256_LEN];
     size_t encrypted_len;
 } bip85_data_t;
 
@@ -26,12 +28,11 @@ static void populate_bip85_reply_data(CborEncoder* container, const bip85_data_t
     JADE_ASSERT(bip85_data->encrypted_len);
 
     CborEncoder map_encoder; // result data
-    CborError cberr = cbor_encoder_create_map(container, &map_encoder, 3);
+    CborError cberr = cbor_encoder_create_map(container, &map_encoder, 2);
     JADE_ASSERT(cberr == CborNoError);
 
     add_bytes_to_map(&map_encoder, "pubkey", bip85_data->pubkey, sizeof(bip85_data->pubkey));
     add_bytes_to_map(&map_encoder, "encrypted", bip85_data->encrypted, bip85_data->encrypted_len);
-    add_bytes_to_map(&map_encoder, "hmac", bip85_data->hmac, sizeof(bip85_data->hmac));
 
     cberr = cbor_encoder_close_container(container, &map_encoder);
     JADE_ASSERT(cberr == CborNoError);
@@ -57,10 +58,8 @@ static bool get_encrypted_bip85_bip39_entropy(const size_t nwords, const size_t 
     SENSITIVE_PUSH(eph_privkey, sizeof(eph_privkey));
     uint8_t shared_secret[SHA256_LEN];
     SENSITIVE_PUSH(shared_secret, sizeof(shared_secret));
-    uint8_t encryption_key[SHA256_LEN];
-    SENSITIVE_PUSH(encryption_key, sizeof(encryption_key));
-    uint8_t hmac_key[SHA256_LEN];
-    SENSITIVE_PUSH(hmac_key, sizeof(hmac_key));
+    uint8_t encryption_hmac_keys[SHA512_LEN];
+    SENSITIVE_PUSH(encryption_hmac_keys, sizeof(encryption_hmac_keys));
     uint8_t entropy[HMAC_SHA512_LEN];
     SENSITIVE_PUSH(entropy, sizeof(entropy));
 
@@ -75,14 +74,10 @@ static bool get_encrypted_bip85_bip39_entropy(const size_t nwords, const size_t 
         eph_privkey, sizeof(eph_privkey), bip85_data->pubkey, sizeof(bip85_data->pubkey)));
 
     // Make the new ecdh 'shared secret' with the passed pubkey, and derive two further keys
-    const uint8_t derived_key_data[] = { 1, 2 };
     if (wally_ecdh(pubkey, pubkey_len, eph_privkey, sizeof(eph_privkey), shared_secret, sizeof(shared_secret))
             != WALLY_OK
-        || wally_hmac_sha256(shared_secret, sizeof(shared_secret), &derived_key_data[0], sizeof(derived_key_data[0]),
-               encryption_key, sizeof(encryption_key))
-            != WALLY_OK
-        || wally_hmac_sha256(shared_secret, sizeof(shared_secret), &derived_key_data[1], sizeof(derived_key_data[1]),
-               hmac_key, sizeof(hmac_key))
+        || wally_hmac_sha512(shared_secret, sizeof(shared_secret), HMAC_MESSAGE, sizeof(HMAC_MESSAGE),
+               encryption_hmac_keys, sizeof(encryption_hmac_keys))
             != WALLY_OK) {
         *errmsg = "Failed to compute shared ecdh secret and derived keys";
         goto cleanup;
@@ -99,27 +94,28 @@ static bool get_encrypted_bip85_bip39_entropy(const size_t nwords, const size_t 
     // Encrypt the entropy with the first key derived from the shared secret
     bip85_data->encrypted_len = AES_ENCRYPTED_LEN(entropy_len);
     JADE_ASSERT(bip85_data->encrypted_len <= sizeof(bip85_data->encrypted));
-    if (!aes_encrypt_bytes(encryption_key, sizeof(encryption_key), entropy, entropy_len, bip85_data->encrypted,
-            bip85_data->encrypted_len)) {
+    if (!aes_encrypt_bytes(encryption_hmac_keys, sizeof(encryption_hmac_keys) / 2, entropy, entropy_len,
+            bip85_data->encrypted, bip85_data->encrypted_len)) {
         *errmsg = "Failed to encrypt bip85 entropy";
         goto cleanup;
     }
 
-    // hmac the encrypted data
-    if (wally_hmac_sha256(hmac_key, sizeof(hmac_key), bip85_data->encrypted, bip85_data->encrypted_len,
-            bip85_data->hmac, sizeof(bip85_data->hmac))
+    // hmac the encrypted data and append to the encrypted data
+    if (wally_hmac_sha256(encryption_hmac_keys + sizeof(encryption_hmac_keys) / 2, sizeof(encryption_hmac_keys) / 2,
+            bip85_data->encrypted, bip85_data->encrypted_len, bip85_data->encrypted + bip85_data->encrypted_len,
+            HMAC_SHA256_LEN)
         != WALLY_OK) {
         *errmsg = "Failed to hmac encrypted payload";
         goto cleanup;
     }
+    bip85_data->encrypted_len += HMAC_SHA256_LEN;
 
     retval = true;
     JADE_LOGI("Success");
 
 cleanup:
     SENSITIVE_POP(entropy);
-    SENSITIVE_POP(hmac_key);
-    SENSITIVE_POP(encryption_key);
+    SENSITIVE_POP(encryption_hmac_keys);
     SENSITIVE_POP(shared_secret);
     SENSITIVE_POP(eph_privkey);
     return retval;

@@ -2273,13 +2273,14 @@ def test_bip85_bip39_encrypted_entropy(jadeapi):
 
         # Get encrypted bip85 bip39 data from Jade
         rslt = jadeapi.get_bip85_bip39_entropy(nwords, index, pubkey)
-        encrypted = rslt['encrypted']
-        hmac = rslt['hmac']
+        encrypted = rslt['encrypted'][:-32]
+        hmac = rslt['encrypted'][-32:]
 
         # Calculate the shared secret and the two further derived keys
         shared_secret = wally.ecdh(rslt['pubkey'], privkey)
-        encryption_key = wally.hmac_sha256(shared_secret, bytearray([0x1]))
-        hmac_key = wally.hmac_sha256(shared_secret, bytearray([0x2]))
+        key_data = wally.hmac_sha512(shared_secret, 'bip85_bip39_entropy'.encode())
+        encryption_key = key_data[:32]
+        hmac_key = key_data[32:]
 
         # Verify the hmac is correct
         assert wally.hmac_sha256(hmac_key, encrypted) == hmac
