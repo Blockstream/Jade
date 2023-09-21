@@ -2274,6 +2274,7 @@ def test_bip85_bip39_encrypted_entropy(jadeapi):
     # bip85_bip39 entropy returned from jade with libwally
     seed = wally.bip39_mnemonic_to_seed512(TEST_MNEMONIC, None)
     local_master_key = wally.bip32_key_from_seed(seed, wally.BIP32_VER_MAIN_PRIVATE, 0)
+    label = 'bip85_bip39_entropy'.encode()
 
     for nwords, index, expected_mnemonic in GET_BIP85_BIP39_DATA:
         # get new ephemeral key
@@ -2294,7 +2295,7 @@ def test_bip85_bip39_encrypted_entropy(jadeapi):
 
         # Calculate the shared secret and the two further derived keys
         shared_secret = wally.ecdh(rslt['pubkey'], privkey)
-        key_data = wally.hmac_sha512(shared_secret, 'bip85_bip39_entropy'.encode())
+        key_data = wally.hmac_sha512(shared_secret, label)
         encryption_key = key_data[:32]
         hmac_key = key_data[32:]
 
@@ -2308,6 +2309,12 @@ def test_bip85_bip39_encrypted_entropy(jadeapi):
         # Check against libwally when calculated locally
         expected_entropy = wally.bip85_get_bip39_entropy(local_master_key, None, nwords, index)
         assert jade_entropy == expected_entropy
+
+        # TODO: uncomment when libwally released and python dependency updated
+        # Test using 'all-in-one' wally function
+        # jade_entropy = wally.aes_cbc_with_ecdh_key(privkey, None, rslt['encrypted'],
+        #                                            rslt['pubkey'], label, wally.AES_FLAG_DECRYPT)
+        # assert jade_entropy == expected_entropy
 
         # Check against explicit mnemonic words if passed
         if expected_mnemonic:

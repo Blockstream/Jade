@@ -3,6 +3,7 @@
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../process.h"
+#include "../random.h"
 #include "../sensitive.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
@@ -56,10 +57,6 @@ static bool get_encrypted_bip85_bip39_entropy(const size_t nwords, const size_t 
 
     uint8_t eph_privkey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(eph_privkey, sizeof(eph_privkey));
-    uint8_t shared_secret[SHA256_LEN];
-    SENSITIVE_PUSH(shared_secret, sizeof(shared_secret));
-    uint8_t encryption_hmac_keys[SHA512_LEN];
-    SENSITIVE_PUSH(encryption_hmac_keys, sizeof(encryption_hmac_keys));
     uint8_t entropy[HMAC_SHA512_LEN];
     SENSITIVE_PUSH(entropy, sizeof(entropy));
 
@@ -73,16 +70,6 @@ static bool get_encrypted_bip85_bip39_entropy(const size_t nwords, const size_t 
     JADE_WALLY_VERIFY(wally_ec_public_key_from_private_key(
         eph_privkey, sizeof(eph_privkey), bip85_data->pubkey, sizeof(bip85_data->pubkey)));
 
-    // Make the new ecdh 'shared secret' with the passed pubkey, and derive two further keys
-    if (wally_ecdh(pubkey, pubkey_len, eph_privkey, sizeof(eph_privkey), shared_secret, sizeof(shared_secret))
-            != WALLY_OK
-        || wally_hmac_sha512(shared_secret, sizeof(shared_secret), HMAC_MESSAGE, sizeof(HMAC_MESSAGE),
-               encryption_hmac_keys, sizeof(encryption_hmac_keys))
-            != WALLY_OK) {
-        *errmsg = "Failed to compute shared ecdh secret and derived keys";
-        goto cleanup;
-    }
-
     // Generate the bip85/bip39 entropy
     size_t entropy_len = 0;
     wallet_get_bip85_bip39_entropy(nwords, index, entropy, sizeof(entropy), &entropy_len);
@@ -91,32 +78,23 @@ static bool get_encrypted_bip85_bip39_entropy(const size_t nwords, const size_t 
         goto cleanup;
     }
 
-    // Encrypt the entropy with the first key derived from the shared secret
-    bip85_data->encrypted_len = AES_ENCRYPTED_LEN(entropy_len);
-    JADE_ASSERT(bip85_data->encrypted_len <= sizeof(bip85_data->encrypted));
-    if (!aes_encrypt_bytes(encryption_hmac_keys, sizeof(encryption_hmac_keys) / 2, entropy, entropy_len,
-            bip85_data->encrypted, bip85_data->encrypted_len)) {
+    // Use wally call to produce encrypted/hmac'd blob
+    uint8_t iv[AES_BLOCK_LEN];
+    get_random(iv, sizeof(iv));
+    if (wally_aes_cbc_with_ecdh_key(eph_privkey, sizeof(eph_privkey), iv, sizeof(iv), entropy, entropy_len, pubkey,
+            pubkey_len, HMAC_MESSAGE, sizeof(HMAC_MESSAGE), AES_FLAG_ENCRYPT, bip85_data->encrypted,
+            sizeof(bip85_data->encrypted), &bip85_data->encrypted_len)
+            != WALLY_OK
+        || bip85_data->encrypted_len > sizeof(bip85_data->encrypted)) {
         *errmsg = "Failed to encrypt bip85 entropy";
         goto cleanup;
     }
-
-    // hmac the encrypted data and append to the encrypted data
-    if (wally_hmac_sha256(encryption_hmac_keys + sizeof(encryption_hmac_keys) / 2, sizeof(encryption_hmac_keys) / 2,
-            bip85_data->encrypted, bip85_data->encrypted_len, bip85_data->encrypted + bip85_data->encrypted_len,
-            HMAC_SHA256_LEN)
-        != WALLY_OK) {
-        *errmsg = "Failed to hmac encrypted payload";
-        goto cleanup;
-    }
-    bip85_data->encrypted_len += HMAC_SHA256_LEN;
 
     retval = true;
     JADE_LOGI("Success");
 
 cleanup:
     SENSITIVE_POP(entropy);
-    SENSITIVE_POP(encryption_hmac_keys);
-    SENSITIVE_POP(shared_secret);
     SENSITIVE_POP(eph_privkey);
     return retval;
 }
