@@ -166,7 +166,7 @@ bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_d
     JADE_ASSERT(params);
     JADE_ASSERT(multisig_data);
     JADE_ASSERT(pubkeys);
-    JADE_ASSERT(pubkeys_len == MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN);
+    JADE_ASSERT(pubkeys_len == MAX_ALLOWED_SIGNERS * EC_PUBLIC_KEY_LEN);
     JADE_INIT_OUT_SIZE(pubkeys_written);
     JADE_ASSERT(warningmsg);
     JADE_ASSERT(warningmsg_len);

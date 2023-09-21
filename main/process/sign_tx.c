@@ -81,7 +81,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                     multisig_name);
 
                 // Get the paths (suffixes) and derive pubkeys
-                uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
+                uint8_t pubkeys[MAX_ALLOWED_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
                 if (!params_multisig_pubkeys(is_change, &arrayItem, &multisig_data, pubkeys, sizeof(pubkeys), &written,
                         output_info[i].message, sizeof(output_info[i].message), errmsg)) {
                     // 'errmsg' populated by above call

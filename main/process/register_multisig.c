@@ -40,8 +40,8 @@ static int register_multisig(const char* multisig_name, const char* network, con
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    if (num_signers > MAX_MULTISIG_SIGNERS) {
-        *errmsg = "Failed to extract co-signers";
+    if (num_signers > MAX_ALLOWED_SIGNERS) {
+        *errmsg = "Invalid multisig co-signers";
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
@@ -55,8 +55,8 @@ static int register_multisig(const char* multisig_name, const char* network, con
     uint8_t wallet_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
     wallet_get_fingerprint(wallet_fingerprint, sizeof(wallet_fingerprint));
     const bool allow_string_paths = false; // paths must be numeric array
-    if (!multisig_validate_signers(signers, num_signers, allow_string_paths, wallet_fingerprint,
-            sizeof(wallet_fingerprint), &total_num_path_elements)) {
+    if (!validate_signers(signers, num_signers, allow_string_paths, wallet_fingerprint, sizeof(wallet_fingerprint),
+            &total_num_path_elements)) {
         *errmsg = "Failed to validate co-signers";
         return CBOR_RPC_BAD_PARAMETERS;
     }
@@ -341,7 +341,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
             threshold = strtoul(value, &end1, 10);
             char* end2 = NULL;
             nsigners = strtoul(space2 + 1, &end2, 10);
-            if (!threshold || !nsigners || threshold > nsigners || nsigners > MAX_MULTISIG_SIGNERS || end1 != space1
+            if (!threshold || !nsigners || threshold > nsigners || nsigners > MAX_ALLOWED_SIGNERS || end1 != space1
                 || end2 != value_end || strcasecmp(space1 + 1, "of")) {
                 JADE_LOGE("Invalid multisig policy %s %s %s", value, space1, space2);
                 *errmsg = "Invalid multisig policy";
@@ -713,7 +713,7 @@ void register_multisig_process(void* process_ptr)
     // Threshold
     written = 0;
     rpc_get_sizet("threshold", &descriptor, &written);
-    if (written == 0 || written > MAX_MULTISIG_SIGNERS) {
+    if (written == 0 || written > MAX_ALLOWED_SIGNERS) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid multisig threshold value", NULL);
         goto cleanup;
     }

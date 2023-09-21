@@ -69,7 +69,7 @@ void get_receive_address_process(void* process_ptr)
 
         // Get the paths (suffixes) and derive pubkeys
         const bool is_change = false;
-        uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
+        uint8_t pubkeys[MAX_ALLOWED_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
         if (!params_multisig_pubkeys(is_change, &params, &multisig_data, pubkeys, sizeof(pubkeys), &written,
                 warning_msg, sizeof(warning_msg), &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);

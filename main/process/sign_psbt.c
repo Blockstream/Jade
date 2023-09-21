@@ -150,7 +150,7 @@ static bool verify_multisig_script_matches(const multisig_data_t* multisig_data,
 
     // Check pubkeys match those given
     struct ext_key hdkey;
-    uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
+    uint8_t pubkeys[MAX_ALLOWED_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
     const size_t pubkeys_len = multisig_data->num_xpubs * EC_PUBLIC_KEY_LEN;
     for (size_t i = 0; i < multisig_data->num_xpubs; ++i) {
         // Derive a pubkey for this registered signer based for the common path tail

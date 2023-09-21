@@ -9,9 +9,6 @@
 // Blinding factors
 typedef enum { BF_ASSET, BF_VALUE, BF_ASSET_VALUE } BlindingFactorType_t;
 
-// The maximum number of multisig signers supported
-#define MAX_MULTISIG_SIGNERS 15
-
 #define MAX_VARIANT_LEN 24
 
 // 'm' + ( ('/' + <10 digit number>[+ ']) * n) + '\0'

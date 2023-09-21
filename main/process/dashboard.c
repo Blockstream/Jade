@@ -914,7 +914,7 @@ static void handle_multisigs(void)
     }
 
     // View/export/delete wallet
-    signer_t* const signer_details = JADE_MALLOC(MAX_MULTISIG_SIGNERS * sizeof(signer_t));
+    signer_t* const signer_details = JADE_CALLOC(MAX_ALLOWED_SIGNERS, sizeof(signer_t));
     done = false;
     while (!done) {
         gui_activity_t* const act_wallet = make_view_delete_wallet_activity(names[selected]);
@@ -937,9 +937,9 @@ static void handle_multisigs(void)
                 const char* errmsg = NULL;
                 multisig_data_t multisig_data;
                 size_t num_signer_details = 0;
-                const bool is_valid = multisig_load_from_storage(names[selected], &multisig_data, signer_details,
-                    MAX_MULTISIG_SIGNERS, &num_signer_details, &errmsg);
-                JADE_ASSERT(num_signer_details <= MAX_MULTISIG_SIGNERS);
+                const bool is_valid = multisig_load_from_storage(
+                    names[selected], &multisig_data, signer_details, MAX_ALLOWED_SIGNERS, &num_signer_details, &errmsg);
+                JADE_ASSERT(num_signer_details <= MAX_ALLOWED_SIGNERS);
 
                 // We will display the names of invalid entries, just log any message
                 if (errmsg) {

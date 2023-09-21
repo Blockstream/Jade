@@ -1,10 +1,9 @@
 #ifndef MULTISIG_H_
 #define MULTISIG_H_
 
+#include "signer.h"
 #include "utils/cbor_rpc.h"
 #include "wallet.h"
-
-#include <stdbool.h>
 
 // The length of a multisig wallet name (see also storage key name size limit)
 #define MAX_MULTISIG_NAME_SIZE 16
@@ -28,8 +27,7 @@
 // The largest supported multisig record
 // NOTE: beware of a later 'version' reducing this size as we may end up with larger records persisted in storage
 #define MAX_MULTISIG_BYTES_LEN                                                                                         \
-    (MULTISIG_BYTES_LEN(                                                                                               \
-        MULTISIG_MASTER_BLINDING_KEY_SIZE, MAX_MULTISIG_SIGNERS, MAX_MULTISIG_SIGNERS * 2 * MAX_PATH_LEN))
+    (MULTISIG_BYTES_LEN(MULTISIG_MASTER_BLINDING_KEY_SIZE, MAX_ALLOWED_SIGNERS, MAX_ALLOWED_SIGNERS * 2 * MAX_PATH_LEN))
 
 // Multisig registration file, field names
 #define MSIG_FILE_NAME "Name"
@@ -50,37 +48,8 @@ typedef struct _multisig_data {
     uint8_t num_xpubs;
     uint8_t master_blinding_key_len;
     uint8_t master_blinding_key[MULTISIG_MASTER_BLINDING_KEY_SIZE];
-    uint8_t xpubs[MAX_MULTISIG_SIGNERS * BIP32_SERIALIZED_LEN];
+    uint8_t xpubs[MAX_ALLOWED_SIGNERS * BIP32_SERIALIZED_LEN];
 } multisig_data_t;
-
-// Signer details passed in during multisig registration
-typedef struct {
-    uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
-
-    // The derivation is the path to get from the root/fingerprint to
-    // the xpub provided.  Only actually needs to be present and correct
-    // for this wallet's xpub - as will be used to verify the xpub.
-    uint32_t derivation[MAX_PATH_LEN];
-    size_t derivation_len;
-
-    // Should be sufficient as all xpubs should be <= 112
-    char xpub[120];
-    size_t xpub_len;
-
-    // This is any fixed path always applied after the given xpub, but
-    // before any variable path suffix provided on a per-call basis.
-    // Can be expressed as a string where contains multi-path or wildcards.
-    bool path_is_string;
-    union {
-        uint32_t path[MAX_PATH_LEN];
-        char path_str[MAX_PATH_LEN * sizeof(uint32_t)];
-    };
-    // Can refer to number of elements in numeric path array or length of path string
-    size_t path_len;
-} signer_t;
-
-bool multisig_validate_signers(const signer_t* signers, size_t num_signers, bool accept_string_path,
-    const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, size_t* total_num_path_elements);
 
 bool multisig_data_to_bytes(script_variant_t variant, bool sorted, uint8_t threshold,
     const uint8_t* master_blinding_key, size_t master_blinding_key_len, const signer_t* signers, size_t num_signers,

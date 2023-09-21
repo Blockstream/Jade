@@ -3,6 +3,7 @@
 #include "jade_wally_verify.h"
 #include "keychain.h"
 #include "sensitive.h"
+#include "signer.h"
 #include "utils/network.h"
 #include "utils/util.h"
 
@@ -780,7 +781,7 @@ bool wallet_build_multisig_script(const script_variant_t script_variant, const b
     }
 
     // Build a standard multisig script
-    uint8_t multisig_script[MULTISIG_SCRIPT_LEN(MAX_MULTISIG_SIGNERS)]; // Sufficient
+    uint8_t multisig_script[MULTISIG_SCRIPT_LEN(MAX_ALLOWED_SIGNERS)]; // Sufficient
     wallet_build_multisig(sorted, threshold, pubkeys, pubkeys_len, multisig_script, sizeof(multisig_script), written);
 
     // Wrap as appropriate
@@ -815,13 +816,13 @@ bool wallet_search_for_multisig_script(const script_variant_t script_variant, co
     JADE_ASSERT(keychain_get());
 
     if (!is_multisig(script_variant) || !threshold || !search_roots || !search_roots_len
-        || search_roots_len > MAX_MULTISIG_SIGNERS || !index || !search_depth || !script
+        || search_roots_len > MAX_ALLOWED_SIGNERS || !index || !search_depth || !script
         || script_len != script_length_for_variant(script_variant)) {
         return false;
     }
 
     bool found = false;
-    uint8_t pubkeys[MAX_MULTISIG_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
+    uint8_t pubkeys[MAX_ALLOWED_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
     const size_t pubkeys_len = search_roots_len * EC_PUBLIC_KEY_LEN;
     uint8_t generated[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
     for (const size_t end = *index + search_depth; *index < end; ++*index) {
