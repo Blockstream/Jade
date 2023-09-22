@@ -71,10 +71,18 @@ gui_activity_t* make_restore_mnemonic_activity(const bool temporary_restore)
         { .txt = "24 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_24 },
         { .txt = "Scan QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_QR } };
 
-    gui_activity_t* const act = make_menu_activity("Restore Wallet", hdrbtns, 2, menubtns, 3);
+#ifdef CONFIG_HAS_CAMERA
+    const size_t nbtns = 3;
+    const size_t selected = temporary_restore ? 2 : 0;
+#else
+    const size_t nbtns = 2;
+    const size_t selected = 0;
+#endif
+
+    gui_activity_t* const act = make_menu_activity("Restore Wallet", hdrbtns, 2, menubtns, nbtns);
 
     // Set the intially selected item to the '12 words' or 'Scan QR' buttons
-    gui_set_activity_initial_selection(act, menubtns[temporary_restore ? 2 : 0].btn);
+    gui_set_activity_initial_selection(act, menubtns[selected].btn);
 
     return act;
 }
