@@ -422,9 +422,9 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
     if (commitments->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF)) {
 #ifdef CONFIG_ESP32_SPIRAM_SUPPORT
         // Because the libsecp calls 'secp256k1_surjectionproof_verify()' and 'secp256k1_rangeproof_verify()'
-        // requires more stack space than is available to the main task, we run that function with a temporary stack.
+        // requires more stack space than is available to the main task, we run that function in a temporary task.
         const size_t stack_size = 54 * 1024; // 54kb seems sufficient
-        if (!run_on_temporary_stack(stack_size, verify_explicit_proofs, (void*)commitments)) {
+        if (!run_in_temporary_task(stack_size, verify_explicit_proofs, (void*)commitments)) {
             *errmsg = "Failed to verify explicit asset/value commitment proofs";
             return false;
         }

@@ -24,6 +24,9 @@
 
 #define JADE_TASK_PRIO_WRITER (tskIDLE_PRIORITY + 2)
 
+// The temporary task is an extension to the main task when an
+// amount of additional stack space is temporarily required.
+#define JADE_TASK_PRIO_TEMPORARY (tskIDLE_PRIORITY + 1)
 // Main Task Priority : (tskIDLE_PRIORITY + 1)
 
 #define JADE_TASK_PRIO_IDLETIMER (tskIDLE_PRIORITY)
