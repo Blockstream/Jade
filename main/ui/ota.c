@@ -16,7 +16,7 @@ static gui_activity_t* make_ota_versions_activities(const char* current_version,
     JADE_INIT_OUT_PPTR(actnewver);
     JADE_INIT_OUT_PPTR(acthash);
 
-    const char* hashtitle = full_fw_hash ? "File Hash:" : "File Hash:";
+    const char* hashtitle = full_fw_hash ? "Fw Hash:" : "File Hash:";
     const bool show_help_btn = true;
 
     // First row, current version
