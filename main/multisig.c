@@ -59,15 +59,14 @@ bool multisig_validate_signers(const signer_t* signers, const size_t num_signers
             }
 
             // Compare vital fields 'pub_key' and 'chain_code'
-            if (memcmp(hdkey_provided.pub_key, hdkey_calculated.pub_key, sizeof(hdkey_calculated.pub_key))
-                || memcmp(
+            // NOTE: a mismatch here is not a hard fail as could be a fingerprint clash with another signer
+            if (!sodium_memcmp(hdkey_provided.pub_key, hdkey_calculated.pub_key, sizeof(hdkey_calculated.pub_key))
+                && !sodium_memcmp(
                     hdkey_provided.chain_code, hdkey_calculated.chain_code, sizeof(hdkey_calculated.chain_code))) {
-                JADE_LOGE("Failed to validate xpub provided (signer %d): %s", i, signer->xpub);
-                return false;
+                // We have found our signer in the quorum
+                JADE_LOGI("Found our signer (signer %d)", i);
+                bFound = true;
             }
-
-            // All good - we have found our signer in the multisig
-            bFound = true;
         }
 
         // Count the total number of path elements across all signers

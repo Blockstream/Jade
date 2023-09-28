@@ -829,8 +829,9 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
           "path": [1]
         }
     ]
+    # Default test user is cosigners[1]
     bad_cosigners1 = copy.deepcopy(GOOD_COSIGNERS)
-    bad_cosigners1[0]['fingerprint'] = bad_cosigners1[1]['fingerprint']
+    bad_cosigners1[1]['fingerprint'] = h2b("abcdef")
     bad_cosigners2 = copy.deepcopy(GOOD_COSIGNERS)
     bad_cosigners2[1]['fingerprint'] = bad_cosigners2[0]['fingerprint']
     bad_cosigners3 = copy.deepcopy(GOOD_COSIGNERS)
@@ -983,7 +984,7 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
                   (('badmulti15', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(wsh(multi(k)))', 'threshold': 2, 'signers': bad_cosigners1}}),
-                   'Failed to validate co-signers'),
+                   'Failed to extract valid co-signers'),
                   (('badmulti16', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'wsh(multi(k))', 'threshold': 2, 'signers': bad_cosigners2}}),
