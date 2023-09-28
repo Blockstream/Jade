@@ -69,12 +69,18 @@ typedef struct {
 
     // This is any fixed path always applied after the given xpub, but
     // before any variable path suffix provided on a per-call basis.
-    uint32_t path[MAX_PATH_LEN];
+    // Can be expressed as a string where contains multi-path or wildcards.
+    bool path_is_string;
+    union {
+        uint32_t path[MAX_PATH_LEN];
+        char path_str[MAX_PATH_LEN * sizeof(uint32_t)];
+    };
+    // Can refer to number of elements in numeric path array or length of path string
     size_t path_len;
 } signer_t;
 
-bool multisig_validate_signers(const signer_t* signers, size_t num_signers, const uint8_t* wallet_fingerprint,
-    size_t wallet_fingerprint_len, size_t* total_num_path_elements);
+bool multisig_validate_signers(const signer_t* signers, size_t num_signers, bool accept_string_path,
+    const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, size_t* total_num_path_elements);
 
 bool multisig_data_to_bytes(script_variant_t variant, bool sorted, uint8_t threshold,
     const uint8_t* master_blinding_key, size_t master_blinding_key_len, const signer_t* signers, size_t num_signers,

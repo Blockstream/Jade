@@ -18,8 +18,8 @@ static const uint8_t CURRENT_RECORD_VERSION = 3;
 #define MIN_MULTISIG_BYTES_LEN (4 + 78 + 32)
 
 // Walks the multisig signers and validates - this wallet must have at least one xpub and it must be correct
-bool multisig_validate_signers(const signer_t* signers, const size_t num_signers, const uint8_t* wallet_fingerprint,
-    const size_t wallet_fingerprint_len, size_t* total_num_path_elements)
+bool multisig_validate_signers(const signer_t* signers, const size_t num_signers, const bool accept_string_path,
+    const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len, size_t* total_num_path_elements)
 {
     JADE_INIT_OUT_SIZE(total_num_path_elements);
 
@@ -33,10 +33,24 @@ bool multisig_validate_signers(const signer_t* signers, const size_t num_signers
         const signer_t* signer = signers + i;
 
         // Check additional 'path' (after the xpub) contains no hardened elements
-        for (size_t j = 0; j < signer->path_len; ++j) {
-            if (signer->path[j] & BIP32_INITIAL_HARDENED_CHILD) {
-                JADE_LOGE("Found hardened path %lu at pos %d in signer %d", signer->path[j], j, i);
+        if (signer->path_is_string) {
+            if (!accept_string_path) {
+                JADE_LOGE("Unexpected string path for signer %d: %s", i, signer->path_str);
                 return false;
+            }
+
+            uint32_t features = 0;
+            if (bip32_path_str_get_features(signer->path_str, &features) != WALLY_OK
+                || (features & BIP32_PATH_IS_HARDENED)) {
+                JADE_LOGE("Suspect path string for signer %d: %s", i, signer->path_str);
+                return false;
+            }
+        } else {
+            for (size_t j = 0; j < signer->path_len; ++j) {
+                if (signer->path[j] & BIP32_INITIAL_HARDENED_CHILD) {
+                    JADE_LOGE("Found hardened path %lu at pos %d in signer %d", signer->path[j], j, i);
+                    return false;
+                }
             }
         }
 
@@ -160,6 +174,13 @@ bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, c
         write_ptr += written;
 
         // Additional path (new to version 3 - prior to that was included in the xpub persisted)
+
+        // We do not support persisting path strings
+        if (signer->path_is_string) {
+            JADE_LOGE("Cannot persist multisig signer with string path");
+            return false;
+        }
+
         JADE_ASSERT(signer->path_len <= MAX_PATH_LEN);
         const uint8_t path_len = (uint8_t)signer->path_len;
         memcpy(write_ptr, &path_len, sizeof(path_len));
@@ -282,6 +303,7 @@ static bool read_complete_signers(const uint8_t* const signer_bytes, const size_
         }
 
         // Additional path (new to version 3 - prior to that was included in the xpub persisted)
+        // NOTE: path strings not supported - explicit numeric array only
         uint8_t path_len = 0;
         memcpy(&path_len, read_ptr, sizeof(path_len));
         const size_t path_bytes_len = path_len * sizeof(signer->path[0]);
@@ -308,6 +330,7 @@ static bool read_complete_signers(const uint8_t* const signer_bytes, const size_
         }
 
         if (signer) {
+            signer->path_is_string = false;
             signer->path_len = path_len;
             memcpy(signer->path, read_ptr, path_bytes_len);
         }
@@ -707,7 +730,7 @@ bool multisig_create_export_file(const char* multisig_name, const multisig_data_
     for (size_t i = 0; i < num_signer_details; ++i) {
         const signer_t* const signer = signer_details + i;
 
-        if (signer->path_len) {
+        if (signer->path_len || signer->path_is_string) {
             JADE_LOGW("Multisig signers with additional path cannot be exported");
             return false;
         }

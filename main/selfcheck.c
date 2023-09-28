@@ -402,6 +402,9 @@ bool test_multisig_files(jade_process_t* process)
     if (num_signers != 3) {
         FAIL();
     }
+    if (signer_details[0].path_is_string || signer_details[1].path_is_string || signer_details[2].path_is_string) {
+        FAIL();
+    }
 
     const char* nameB = "roundtripperB";
     char file_out[MULTISIG_FILE_MAX_LEN(3)];

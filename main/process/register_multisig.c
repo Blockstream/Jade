@@ -54,8 +54,9 @@ static int register_multisig(const char* multisig_name, const char* network, con
     size_t total_num_path_elements = 0;
     uint8_t wallet_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
     wallet_get_fingerprint(wallet_fingerprint, sizeof(wallet_fingerprint));
-    if (!multisig_validate_signers(
-            signers, num_signers, wallet_fingerprint, sizeof(wallet_fingerprint), &total_num_path_elements)) {
+    const bool allow_string_paths = false; // paths must be numeric array
+    if (!multisig_validate_signers(signers, num_signers, allow_string_paths, wallet_fingerprint,
+            sizeof(wallet_fingerprint), &total_num_path_elements)) {
         *errmsg = "Failed to validate co-signers";
         return CBOR_RPC_BAD_PARAMETERS;
     }
@@ -494,6 +495,9 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
             }
 
             // Done - this signer complete
+            // Explcitly set no additional path
+            signers[isigner].path_is_string = false;
+            signers[isigner].path_len = 0;
             ++isigner;
         } else {
             JADE_LOGE("Unexpected line in multisig file: %.*s", eol - read_ptr, read_ptr);
@@ -598,6 +602,7 @@ static void get_signers_allocate(const char* field, const CborValue* value, sign
             return;
         }
 
+        signer->path_is_string = false;
         if (!rpc_get_bip32_path("path", &arrayItem, signer->path, MAX_PATH_LEN, &signer->path_len)) {
             free(signers);
             return;

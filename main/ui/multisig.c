@@ -317,6 +317,9 @@ static gui_activity_t* make_multisig_signer_activities(const signer_t* signer, c
 
     if (signer->path_len == 0) {
         strcpy(display_str, "<None>");
+    } else if (signer->path_is_string) {
+        JADE_ASSERT(signer->path_len < sizeof(display_str));
+        strcpy(display_str, signer->path_str);
     } else if (!wallet_bip32_path_as_str(signer->path, signer->path_len, display_str, sizeof(display_str))) {
         strcpy(display_str, "[too long]");
     }
