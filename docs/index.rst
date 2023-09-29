@@ -404,8 +404,8 @@ handshake_init reply
             "http_request": {
                 "params": {
                     "urls": [
-                        "url": "https://jadepin.blockstream.com/get_pin",
-                        "onion": "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion/get_pin"
+                        "url": "https://jadepin.blockstream.com/set_pin",
+                        "onion": "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion/set_pin"
                     ],
                     "method": "POST",
                     "accept": "json",
