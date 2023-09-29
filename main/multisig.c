@@ -579,7 +579,7 @@ static inline bool variant_matches_script_type(const script_variant_t variant, c
 // Get the registered multisig record names
 // Filtered to those valid for this signer, and optionally for the given script type
 void multisig_get_valid_record_names(
-    const size_t* script_type, char names[][NVS_KEY_NAME_MAX_SIZE], const size_t num_names, size_t* num_written)
+    const size_t* script_type, char names[][MAX_MULTISIG_NAME_SIZE], const size_t num_names, size_t* num_written)
 {
     // script_type filter is optional
     JADE_ASSERT(names);
