@@ -2,6 +2,7 @@
 
 #include "bcur.h"
 #include "button_events.h"
+#include "descriptor.h"
 #include "gui.h"
 #include "idletimer.h"
 #include "jade_assert.h"
@@ -65,6 +66,10 @@ bool show_confirm_address_activity(const char* address, bool default_selection);
 
 bool handle_mnemonic_qr(const char* mnemonic);
 
+bool select_registered_wallet(const char multisig_names[][NVS_KEY_NAME_MAX_SIZE], size_t num_multisigs,
+    const char descriptor_names[][NVS_KEY_NAME_MAX_SIZE], size_t num_descriptors, const char** wallet_name_out,
+    bool* is_multisig);
+
 // PSBT struct and functions
 struct wally_psbt;
 int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg);
@@ -72,9 +77,10 @@ int wally_psbt_free(struct wally_psbt* psbt);
 
 #define EXPORT_XPUB_PATH_LEN 4
 
-#define ADDRESS_SEARCH_BATCH_SIZE(multisig) (multisig ? 10 : 20)
-#define NUM_BATCHES_TO_RECONFIRM(multisig) (multisig ? 20 : 25)
-#define NUM_INDEXES_TO_RECONFIRM(multisig) (NUM_BATCHES_TO_RECONFIRM(multisig) * ADDRESS_SEARCH_BATCH_SIZE(multisig))
+#define ADDRESS_SEARCH_BATCH_SIZE(registered_wallet) (registered_wallet ? 10 : 20)
+#define NUM_BATCHES_TO_RECONFIRM(registered_wallet) (registered_wallet ? 20 : 25)
+#define NUM_INDEXES_TO_RECONFIRM(registered_wallet)                                                                    \
+    (NUM_BATCHES_TO_RECONFIRM(registered_wallet) * ADDRESS_SEARCH_BATCH_SIZE(registered_wallet))
 
 // Test whether 'flags' contains the entirety of the 'test_flags'
 // (ie. maybe compound/multiple bits set)
@@ -348,43 +354,64 @@ void display_xpub_qr(void)
     }
 }
 
-// Helper to get user to select multisig record to use
-static bool select_multisig_record(char names[][MAX_MULTISIG_NAME_SIZE], const size_t num_names, size_t* selected)
+// Helper to get user to select and load registered wallet record
+static bool load_registered_wallet(const size_t script_type, char* name_out, const size_t name_out_len,
+    multisig_data_t** multisig_data, descriptor_data_t** descriptor)
 {
-    JADE_ASSERT(names);
-    JADE_ASSERT(num_names);
-    JADE_INIT_OUT_SIZE(selected);
+    JADE_ASSERT(name_out);
+    JADE_ASSERT(name_out_len > NVS_KEY_NAME_MAX_SIZE);
+    JADE_INIT_OUT_PPTR(multisig_data);
+    JADE_INIT_OUT_PPTR(descriptor);
 
-    // Otherwise offer choice of multisig names
-    gui_view_node_t* item_text = NULL;
-    gui_activity_t* const act = make_carousel_activity("Select Wallet", NULL, &item_text);
-    JADE_ASSERT(item_text);
-    gui_set_current_activity(act);
+    // Could be multisig/descriptor - offer choice of wallet records
+    char multisig_names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
+    const size_t num_multisig_names = sizeof(multisig_names) / sizeof(multisig_names[0]);
+    size_t num_multisigs = 0;
+    multisig_get_valid_record_names(&script_type, multisig_names, num_multisig_names, &num_multisigs);
 
-    const size_t limit = num_names + 1;
-    while (true) {
-        JADE_ASSERT(*selected < limit);
-        gui_update_text(item_text, *selected < num_names ? names[*selected] : "[Cancel]");
+    char descriptor_names[MAX_DESCRIPTOR_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
+    const size_t num_descriptor_names = sizeof(descriptor_names) / sizeof(descriptor_names[0]);
+    size_t num_descriptors = 0;
+    descriptor_get_valid_record_names(descriptor_names, num_descriptor_names, &num_descriptors);
 
-        // wait for a GUI event
-        int32_t ev_id = 0;
-        gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-
-        switch (ev_id) {
-        case GUI_WHEEL_LEFT_EVENT:
-            *selected = (*selected + limit - 1) % limit;
-            break;
-
-        case GUI_WHEEL_RIGHT_EVENT:
-            *selected = (*selected + 1) % limit;
-            break;
-
-        default:
-            if (ev_id == gui_get_click_event()) {
-                return *selected < num_names;
-            }
-        }
+    if (!num_multisigs && !num_descriptors) {
+        // No valid records
+        return false;
     }
+
+    bool is_multisig = false;
+    const char* wallet_name = NULL;
+    if (!select_registered_wallet(
+            multisig_names, num_multisigs, descriptor_names, num_descriptors, &wallet_name, &is_multisig)
+        || !wallet_name) {
+        // No wallet selected
+        return false;
+    }
+
+    // Copy the selected name (assume external address for now - is updated later)
+    const int ret = snprintf(name_out, name_out_len, "%s/0", wallet_name);
+    JADE_ASSERT(ret > 0 && ret < name_out_len);
+
+    // Load the selected wallet
+    const char* errmsg = NULL;
+    if (is_multisig) {
+        multisig_data_t* const allocated = JADE_MALLOC(sizeof(multisig_data_t));
+        if (!multisig_load_from_storage(wallet_name, allocated, NULL, 0, NULL, &errmsg)) {
+            await_error_activity("Failed to load multisig record");
+            free(allocated);
+            return false;
+        }
+        *multisig_data = allocated;
+    } else {
+        descriptor_data_t* const allocated = JADE_MALLOC(sizeof(descriptor_data_t));
+        if (!descriptor_load_from_storage(wallet_name, allocated, &errmsg)) {
+            await_error_activity("Failed to load descriptor record");
+            free(allocated);
+            return false;
+        }
+        *descriptor = allocated;
+    }
+    return true;
 }
 
 // Get search root for singlesig address
@@ -432,6 +459,25 @@ static void get_multisig_search_roots(const multisig_data_t* multisig_data, cons
             xpub, BIP32_SERIALIZED_LEN, path, 1, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &search_roots[i]);
         JADE_ASSERT(ret);
     }
+
+    // Use the existing name plus the change indicator as the label
+    const size_t len = strlen(pathstr);
+    JADE_ASSERT(len < pathstr_len);
+    JADE_ASSERT(pathstr[len - 1] == '0' || pathstr[len - 1] == '1');
+    pathstr[len - 1] = is_change ? '1' : '0';
+}
+
+// Get search root for descriptor address
+static void get_descriptor_search_roots(const descriptor_data_t* descriptor, const bool is_change, char* pathstr,
+    const size_t pathstr_len, struct ext_key* search_roots, const size_t search_roots_len)
+{
+    JADE_ASSERT(descriptor);
+    JADE_ASSERT(pathstr);
+    JADE_ASSERT(pathstr_len);
+    JADE_ASSERT(!search_roots);
+    JADE_ASSERT(!search_roots_len);
+
+    // NOTE: No keys to derive as all included in descriptor data
 
     // Use the existing name plus the change indicator as the label
     const size_t len = strlen(pathstr);
@@ -509,7 +555,6 @@ static bool handle_address_options(const bool show_account, uint16_t* account_in
 static bool verify_address(const address_data_t* const addr_data)
 {
     JADE_ASSERT(addr_data);
-
     JADE_ASSERT(addr_data->network);
     JADE_ASSERT(addr_data->script_len);
 
@@ -533,8 +578,9 @@ static bool verify_address(const address_data_t* const addr_data)
     }
 
     char label[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
-    script_variant_t variant;
+    script_variant_t variant = GREEN;
     uint16_t account_index = 0;
+    descriptor_data_t* descriptor = NULL;
     multisig_data_t* multisig_data = NULL;
     bool is_change = false;
     struct ext_key* search_roots = NULL;
@@ -542,51 +588,42 @@ static bool verify_address(const address_data_t* const addr_data)
 
     // If it is (or might be) multisig, ask the user to select one, and load details
     if (script_type == WALLY_SCRIPT_TYPE_P2SH || script_type == WALLY_SCRIPT_TYPE_P2WSH) {
-        // Could be multisig - offer choice of multisig records
-        char names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
-        const size_t num_names = sizeof(names) / sizeof(names[0]);
-        size_t num_multisigs = 0;
-        multisig_get_valid_record_names(&script_type, names, num_names, &num_multisigs);
-
         // p2sh-wrapped could be multi- or single- sig.  User to select which.
         if (script_type != WALLY_SCRIPT_TYPE_P2SH
-            || await_yesno_activity(
-                "Verify Address", "     Are you trying to\n     verify a multisig\n           address?", false, NULL)) {
-            // Must have a multisig record - user to select
-            size_t selected = 0;
-            if (!num_multisigs || !select_multisig_record(names, num_multisigs, &selected)) {
-                JADE_LOGE("No relevant multisig records found/selected for multisig address");
-                await_error_activity("\nRegister multisig record\n  before attempting to\n      verify a multisig\n    "
-                                     "        address");
+            || await_yesno_activity("Verify Address",
+                "     Are you trying to\n   verify a registered\n      wallet address?", false, NULL)) {
+
+            // Must have a multisig or descriptor record - user to select
+            // NOTE: Use wallet name as ui label
+            if (!load_registered_wallet(script_type, label, sizeof(label), &multisig_data, &descriptor)) {
+                JADE_ASSERT(!multisig_data && !descriptor);
+                JADE_LOGE("No relevant wallet records found/selected for address");
+                await_error_activity("\nRegister wallet record\n  before attempting to\n     verify address");
                 return false;
             }
-            JADE_ASSERT(selected < num_multisigs);
+            JADE_ASSERT(!multisig_data != !descriptor); // Must be one or the other
 
-            const char* errmsg = NULL;
-            multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
-            if (!multisig_load_from_storage(names[selected], multisig_data, NULL, 0, NULL, &errmsg)) {
-                await_error_activity("Failed to load multisig record");
-                free(multisig_data);
-                return false;
+            if (multisig_data) {
+                // Calculate the key search roots (ie. up to the final leaf)
+                search_roots_len = multisig_data->num_xpubs;
+                search_roots = JADE_CALLOC(search_roots_len, sizeof(struct ext_key));
+                get_multisig_search_roots(
+                    multisig_data, is_change, label, sizeof(label), search_roots, search_roots_len);
+            } else {
+                // Not actually any search roots - but updates label string
+                get_descriptor_search_roots(
+                    descriptor, is_change, label, sizeof(label), search_roots, search_roots_len);
             }
-
-            // Use the multisig name plus the change indicator as the label
-            const int ret = snprintf(label, sizeof(label), "%s/%u", names[selected], is_change ? 1 : 0);
-            JADE_ASSERT(ret > 0 && ret < sizeof(label));
-
-            // Calculate the key search roots (ie. up to the final leaf)
-            search_roots_len = multisig_data->num_xpubs;
-            search_roots = JADE_CALLOC(search_roots_len, sizeof(struct ext_key));
-            get_multisig_search_roots(multisig_data, is_change, label, sizeof(label), search_roots, search_roots_len);
         }
     }
 
-    // If not multisig, must be singlesig
-    if (!multisig_data) {
+    // If not multisig or descriptor, must be singlesig
+    const bool registered_wallet = multisig_data || descriptor;
+    if (!registered_wallet) {
         JADE_ASSERT(!search_roots);
         JADE_ASSERT(!search_roots_len);
 
-        if (!get_singlesig_variant_from_script_type(script_type, &variant)) {
+        if (!get_singlesig_variant_from_script_type(script_type, &variant) || variant == GREEN) {
             await_error_activity("Address scriptpubkey unsupported");
             return false;
         }
@@ -620,8 +657,8 @@ static bool verify_address(const address_data_t* const addr_data)
     size_t index = 0;
     size_t confirmed_at_index = index;
     bool verified = false;
-    const size_t address_search_batch_size = ADDRESS_SEARCH_BATCH_SIZE(multisig_data);
-    const size_t num_indexes_to_reconfirm = NUM_INDEXES_TO_RECONFIRM(multisig_data);
+    const size_t address_search_batch_size = ADDRESS_SEARCH_BATCH_SIZE(registered_wallet);
+    const size_t num_indexes_to_reconfirm = NUM_INDEXES_TO_RECONFIRM(registered_wallet);
     while (!verified) {
         gui_set_current_activity(act);
 
@@ -634,13 +671,22 @@ static bool verify_address(const address_data_t* const addr_data)
 
         // Search a small batch of paths for the address script
         // NOTE: 'index' is updated as we go along
-        JADE_ASSERT(search_roots);
         if (multisig_data) {
+            JADE_ASSERT(search_roots);
+            JADE_ASSERT(search_roots_len);
             verified = wallet_search_for_multisig_script(multisig_data->variant, multisig_data->sorted,
                 multisig_data->threshold, search_roots, search_roots_len, &index, address_search_batch_size,
                 addr_data->script, addr_data->script_len);
+        } else if (descriptor) {
+            JADE_ASSERT(!search_roots);
+            JADE_ASSERT(!search_roots_len);
+            const uint32_t multi_index = is_change ? 1 : 0;
+            verified = wallet_search_for_descriptor_script(addr_data->network, label, descriptor, multi_index, &index,
+                address_search_batch_size, addr_data->script, addr_data->script_len);
         } else {
+            JADE_ASSERT(search_roots);
             JADE_ASSERT(search_roots_len == 1);
+            JADE_ASSERT(variant != GREEN);
             verified = wallet_search_for_singlesig_script(
                 variant, &search_roots[0], &index, address_search_batch_size, addr_data->script, addr_data->script_len);
         }
@@ -679,11 +725,14 @@ static bool verify_address(const address_data_t* const addr_data)
                     index = confirmed_at_index + num_indexes_to_reconfirm;
                     confirmed_at_index = index;
                 } else if (ev_id == BTN_SCAN_ADDRESS_OPTIONS) {
-                    if (handle_address_options(!multisig_data, &account_index, &is_change)) {
+                    if (handle_address_options(!registered_wallet, &account_index, &is_change)) {
                         // Recreate the search root(s) and update the screen label
                         if (multisig_data) {
                             get_multisig_search_roots(
                                 multisig_data, is_change, label, sizeof(label), search_roots, search_roots_len);
+                        } else if (descriptor) {
+                            get_descriptor_search_roots(
+                                descriptor, is_change, label, sizeof(label), search_roots, search_roots_len);
                         } else {
                             get_singlesig_search_root(variant, account_index, is_change, label, sizeof(label),
                                 search_roots, search_roots_len);
@@ -711,8 +760,11 @@ static bool verify_address(const address_data_t* const addr_data)
         await_error_activity("Address NOT verified!");
     }
 
-    free(multisig_data);
+    // Free any allocated data
     free(search_roots);
+    free(multisig_data);
+    free(descriptor);
+
     return verified;
 }
 

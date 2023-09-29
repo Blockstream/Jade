@@ -65,9 +65,15 @@ bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
     uint32_t multi_index, uint32_t child_num, descriptor_type_t* type, uint8_t** output, size_t* output_len,
     const char** errmsg);
 
+// Iterate over a number of leaf child indexes testing the generated script for a match against the passed script
+bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor, const char* network,
+    uint32_t multi_index, uint32_t* child_num, size_t search_depth, const uint8_t* script, size_t script_len);
+
 // Storage related functions
 bool descriptor_to_bytes(descriptor_data_t* descriptor, uint8_t* output_bytes, size_t output_len);
 bool descriptor_from_bytes(const uint8_t* bytes, size_t bytes_len, descriptor_data_t* descriptor);
 bool descriptor_load_from_storage(const char* descriptor_name, descriptor_data_t* output, const char** errmsg);
+void descriptor_get_valid_record_names(
+    char names[][MAX_DESCRIPTOR_NAME_SIZE], const size_t num_names, size_t* num_written);
 
 #endif /* DESCRIPTOR_H_ */

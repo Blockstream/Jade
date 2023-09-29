@@ -41,7 +41,9 @@ static const uint8_t MAX_DESCRIPTOR_PARSING_DEPTH = 25; // just for sanity
 typedef struct {
     const struct wally_descriptor* descriptor;
     const uint32_t multi_index;
-    const uint32_t child_num;
+    uint32_t child_num;
+    size_t search_depth;
+    const uint8_t* script_input;
     uint8_t* script_output;
     size_t script_len;
     char* addr_output;
@@ -96,6 +98,57 @@ static bool descriptor_to_script_impl(void* ctx)
     data->script_output = script;
     data->script_len = written;
     return true;
+}
+
+static bool descriptor_search_for_script_impl(void* ctx)
+{
+    JADE_ASSERT(ctx);
+    descriptor_evaluation_data_t* const data = (descriptor_evaluation_data_t*)ctx;
+    JADE_ASSERT(data->search_depth);
+    JADE_ASSERT(data->script_input);
+    JADE_ASSERT(data->script_len);
+
+    const uint32_t variant = 0;
+    const uint32_t flags = 0;
+    const uint32_t depth = 0;
+    const uint32_t index = 0;
+
+    size_t maxlen = 0;
+    if (wally_descriptor_to_script_get_maximum_length(
+            data->descriptor, depth, index, variant, data->multi_index, data->child_num, flags, &maxlen)
+            != WALLY_OK
+        || !maxlen) {
+        JADE_LOGE("Failed to get descriptor script length");
+        return false;
+    }
+
+    if (maxlen < data->script_len) {
+        JADE_LOGW("Descriptor script length too short");
+        return false;
+    }
+
+    bool found = false;
+    uint8_t* script = JADE_MALLOC(maxlen);
+    for (const size_t end = data->child_num + data->search_depth; data->child_num < end; ++data->child_num) {
+        // Build script
+        size_t written = 0;
+        if (wally_descriptor_to_script(data->descriptor, depth, index, variant, data->multi_index, data->child_num,
+                flags, script, maxlen, &written)
+                != WALLY_OK
+            || !written || written > maxlen) {
+            JADE_LOGE("Failed to get descriptor script");
+            free(script);
+            return false;
+        }
+
+        // See if generated is identical to the script passed in
+        if (written == data->script_len && !memcmp(script, data->script_input, data->script_len)) {
+            found = true;
+            break;
+        }
+    }
+    free(script);
+    return found;
 }
 
 // Map must have been initialised with 'wally_map_init()' already.
@@ -425,6 +478,46 @@ bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
     return true;
 }
 
+bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor, const char* network,
+    const uint32_t multi_index, uint32_t* child_num, const size_t search_depth, const uint8_t* script,
+    const size_t script_len)
+{
+    JADE_ASSERT(name);
+    JADE_ASSERT(descriptor);
+    JADE_ASSERT(network);
+    JADE_ASSERT(child_num);
+    JADE_ASSERT(search_depth);
+    JADE_ASSERT(script);
+    JADE_ASSERT(script_len);
+
+    const char* errmsg = NULL;
+    descriptor_type_t* const deduced_type = NULL; // unused
+
+    struct wally_descriptor* d = NULL;
+    uint32_t depth = 0;
+    if (!parse_descriptor(name, descriptor, network, deduced_type, &d, &depth, &errmsg)) {
+        JADE_ASSERT(!d);
+        return false;
+    }
+
+    // Search for script - note 'large stack' workaround as it can require many kb of
+    // stack space for all but the simplest miniscript descriptors, and we don't
+    // want to assume anything about the free stack at the time of calling.
+    const size_t stack_size = DESCRIPTOR_PARSE_STACK_SIZE(depth);
+    descriptor_evaluation_data_t args = { .descriptor = d,
+        .multi_index = multi_index,
+        .child_num = *child_num,
+        .search_depth = search_depth,
+        .script_input = script,
+        .script_len = script_len };
+    const bool ret = run_in_temporary_task(stack_size, descriptor_search_for_script_impl, &args);
+    JADE_WALLY_VERIFY(wally_descriptor_free(d));
+
+    // Return the updated child number and whether we found the script
+    *child_num = args.child_num;
+    return ret;
+}
+
 // Get total length of string values
 size_t string_values_len(const string_value_t* datavalues, const size_t num_values)
 {
@@ -590,4 +683,37 @@ bool descriptor_load_from_storage(const char* descriptor_name, descriptor_data_t
 
     free(registration);
     return true;
+}
+
+// Get the registered descriptor record names
+// Filtered to those valid for this signer
+void descriptor_get_valid_record_names(
+    char names[][MAX_DESCRIPTOR_NAME_SIZE], const size_t num_names, size_t* num_written)
+{
+    // script_type filter is optional
+    JADE_ASSERT(names);
+    JADE_ASSERT(num_names);
+    JADE_INIT_OUT_SIZE(num_written);
+
+    // Get registered descriptor names
+    size_t num_descriptors = 0;
+    if (!storage_get_all_descriptor_registration_names(names, num_names, &num_descriptors) || !num_descriptors) {
+        // No registered multisig records
+        return;
+    }
+
+    // Load description of each - remove ones that are not valid for this wallet
+    size_t written = 0;
+    for (int i = 0; i < num_descriptors; ++i) {
+        const char* errmsg = NULL;
+        descriptor_data_t descriptor_data;
+        if (descriptor_load_from_storage(names[i], &descriptor_data, &errmsg)) {
+            // If any previous records were not valid, move subsequent valid record names down
+            if (written != i) {
+                strcpy(names[written], names[i]);
+            }
+            ++written;
+        }
+    }
+    *num_written = written;
 }

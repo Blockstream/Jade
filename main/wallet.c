@@ -880,6 +880,24 @@ bool wallet_build_descriptor_script(const char* network, const char* descriptor_
     return true;
 }
 
+bool wallet_search_for_descriptor_script(const char* network, const char* descriptor_name,
+    const descriptor_data_t* descriptor, size_t multi_index, size_t* index, size_t search_depth, const uint8_t* script,
+    const size_t script_len)
+{
+    JADE_ASSERT(keychain_get());
+
+    if (!descriptor || descriptor->num_values > MAX_ALLOWED_SIGNERS || !index || !search_depth || !script) {
+        return false;
+    }
+
+    uint32_t child_num = *index;
+    const bool found = descriptor_search_for_script(
+        descriptor_name, descriptor, network, multi_index, &child_num, search_depth, script, script_len);
+
+    *index = child_num;
+    return found;
+}
+
 // Function to compute an anti-exfil signer commitment with a derived key for a given
 // signature hash (SHA256_LEN) and host commitment (WALLY_HOST_COMMITMENT_LEN).
 // Output must be of size WALLY_S2C_OPENING_LEN.
