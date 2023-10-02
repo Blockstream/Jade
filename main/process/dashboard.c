@@ -186,6 +186,9 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
 
 gui_activity_t* make_pinserver_activity(void);
 
+bool select_registered_wallet(const char multisig_names[][NVS_KEY_NAME_MAX_SIZE], size_t num_multisigs,
+    const char descriptor_names[][NVS_KEY_NAME_MAX_SIZE], size_t num_descriptors, const char** wallet_name_out,
+    bool* is_multisig);
 gui_activity_t* make_view_delete_wallet_activity(const char* wallet_name, bool allow_export);
 bool show_multisig_activity(const char* multisig_name, bool is_sorted, size_t threshold, size_t num_signers,
     const signer_t* signer_details, size_t num_signer_details, const char* master_blinding_key_hex,
@@ -873,20 +876,6 @@ static bool offer_delete_registered_wallet(const char* name, const bool is_multi
     return true;
 }
 
-#define UPDATE_WALLET_CAROUSEL(i)                                                                                      \
-    do {                                                                                                               \
-        if (i < num_multisigs) {                                                                                       \
-            gui_update_text(label, "Multisig Wallet");                                                                 \
-            gui_update_text(walletname, multisig_names[selected]);                                                     \
-        } else if (i < num_registered_wallets) {                                                                       \
-            gui_update_text(label, "Descriptor Wallet");                                                               \
-            gui_update_text(walletname, descriptor_names[i - num_multisigs]);                                          \
-        } else {                                                                                                       \
-            gui_update_text(label, "");                                                                                \
-            gui_update_text(walletname, "[Cancel]");                                                                   \
-        }                                                                                                              \
-    } while (false)
-
 static void handle_registered_wallets(void)
 {
     char multisig_names[MAX_MULTISIG_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
@@ -907,40 +896,12 @@ static void handle_registered_wallets(void)
         return;
     }
 
-    size_t selected = 0;
-    gui_view_node_t* label = NULL;
-    gui_view_node_t* walletname = NULL;
-    gui_activity_t* const act = make_carousel_activity("View Wallet", &label, &walletname);
-    UPDATE_WALLET_CAROUSEL(0);
-    gui_set_current_activity(act);
-    int32_t ev_id;
-
-    const size_t limit = num_registered_wallets + 1;
-    done = false;
-    while (!done) {
-        JADE_ASSERT(selected < limit);
-        UPDATE_WALLET_CAROUSEL(selected);
-
-        if (gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-            switch (ev_id) {
-            case GUI_WHEEL_LEFT_EVENT:
-                selected = (selected + limit - 1) % limit;
-                break;
-
-            case GUI_WHEEL_RIGHT_EVENT:
-                selected = (selected + 1) % limit;
-                break;
-
-            default:
-                if (ev_id == gui_get_click_event()) {
-                    done = true;
-                    break;
-                }
-            }
-        }
-    }
-    if (selected >= num_registered_wallets) {
-        // Back/exit
+    bool is_multisig = false;
+    const char* wallet_name = NULL;
+    if (!select_registered_wallet(
+            multisig_names, num_multisigs, descriptor_names, num_descriptors, &wallet_name, &is_multisig)
+        || !wallet_name) {
+        // No wallet selected
         return;
     }
 
@@ -948,13 +909,11 @@ static void handle_registered_wallets(void)
     wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
     signer_t* const signer_details = JADE_CALLOC(MAX_ALLOWED_SIGNERS, sizeof(signer_t));
 
-    const bool is_multisig = selected < num_multisigs;
-    const char* name = is_multisig ? multisig_names[selected] : descriptor_names[selected - num_multisigs];
-
     done = false;
     while (!done) {
         // View/export/delete wallet
-        gui_activity_t* const act_wallet = make_view_delete_wallet_activity(name, is_multisig);
+        int32_t ev_id;
+        gui_activity_t* const act_wallet = make_view_delete_wallet_activity(wallet_name, is_multisig);
         gui_set_current_activity_ex(act_wallet, true);
         if (gui_activity_wait_event(act_wallet, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
             if (ev_id == BTN_BACK) {
@@ -963,7 +922,7 @@ static void handle_registered_wallets(void)
             }
 
             if (ev_id == BTN_DELETE_WALLET) {
-                done = offer_delete_registered_wallet(name, is_multisig);
+                done = offer_delete_registered_wallet(wallet_name, is_multisig);
                 continue;
             }
 
@@ -980,7 +939,7 @@ static void handle_registered_wallets(void)
                 multisig_data_t multisig_data;
                 size_t num_signer_details = 0;
                 const bool is_valid = multisig_load_from_storage(
-                    name, &multisig_data, signer_details, MAX_ALLOWED_SIGNERS, &num_signer_details, &errmsg);
+                    wallet_name, &multisig_data, signer_details, MAX_ALLOWED_SIGNERS, &num_signer_details, &errmsg);
                 JADE_ASSERT(num_signer_details <= MAX_ALLOWED_SIGNERS);
 
                 // We will display the names of invalid entries, just log any message
@@ -1009,8 +968,8 @@ static void handle_registered_wallets(void)
                     const size_t output_len = MULTISIG_FILE_MAX_LEN(num_signer_details);
                     char* const output = JADE_MALLOC(output_len);
                     size_t written = 0;
-                    if (!multisig_create_export_file(
-                            name, &multisig_data, signer_details, num_signer_details, output, output_len, &written)) {
+                    if (!multisig_create_export_file(wallet_name, &multisig_data, signer_details, num_signer_details,
+                            output, output_len, &written)) {
                         JADE_LOGE("Failed to export multisig details");
                         await_error_activity("\n\n      Unable to export\n        wallet details");
                         free(output);
@@ -1041,11 +1000,11 @@ static void handle_registered_wallets(void)
                     // We are not confirming or writing-to-storage
                     const bool initial_confirmation = false;
                     const bool overwriting = false;
-                    if (!show_multisig_activity(name, multisig_data.sorted, multisig_data.threshold,
+                    if (!show_multisig_activity(wallet_name, multisig_data.sorted, multisig_data.threshold,
                             multisig_data.num_xpubs, signer_details, num_signer_details, master_blinding_key_hex,
                             fingerprint, sizeof(fingerprint), initial_confirmation, overwriting, is_valid)) {
                         // Delete record ?
-                        done = offer_delete_registered_wallet(name, is_multisig);
+                        done = offer_delete_registered_wallet(wallet_name, is_multisig);
                     }
 
                     if (master_blinding_key_hex) {
@@ -1056,7 +1015,7 @@ static void handle_registered_wallets(void)
                 // Load selected descriptor record from storage given the name
                 const char* errmsg = NULL;
                 descriptor_data_t descriptor;
-                const bool is_valid = descriptor_load_from_storage(name, &descriptor, &errmsg);
+                const bool is_valid = descriptor_load_from_storage(wallet_name, &descriptor, &errmsg);
 
                 // We will display the names of invalid entries, just log any message
                 if (errmsg) {
@@ -1069,7 +1028,7 @@ static void handle_registered_wallets(void)
                 // Get signer info from descriptor
                 size_t num_signer_details = 0;
                 const char* network_unknown = NULL;
-                if (!descriptor_get_signers(name, &descriptor, network_unknown, NULL, signer_details,
+                if (!descriptor_get_signers(wallet_name, &descriptor, network_unknown, NULL, signer_details,
                         MAX_ALLOWED_SIGNERS, &num_signer_details, &errmsg)
                     || num_signer_details != descriptor.num_values) {
                     JADE_LOGE("Failed to load signer information from descriptor data");
@@ -1080,10 +1039,10 @@ static void handle_registered_wallets(void)
                 // We are not confirming or writing-to-storage
                 const bool initial_confirmation = false;
                 const bool overwriting = false;
-                if (!show_descriptor_activity(name, &descriptor, signer_details, num_signer_details, fingerprint,
+                if (!show_descriptor_activity(wallet_name, &descriptor, signer_details, num_signer_details, fingerprint,
                         sizeof(fingerprint), initial_confirmation, overwriting, is_valid)) {
                     // Delete record ?
-                    done = offer_delete_registered_wallet(name, is_multisig);
+                    done = offer_delete_registered_wallet(wallet_name, is_multisig);
                 }
             }
         }
