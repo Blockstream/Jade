@@ -1,4 +1,5 @@
 #include "../button_events.h"
+#include "../descriptor.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
@@ -192,15 +193,88 @@ static bool verify_multisig_script_matches(const multisig_data_t* multisig_data,
     return true;
 }
 
+// Use the passed descriptor to derive the output script
+// Return whether the generated output script matches the passed target script
+static bool verify_descriptor_script_matches_impl(const char* descriptor_name, const descriptor_data_t* descriptor,
+    const char* network, const uint32_t multi_index, const uint32_t index, const uint8_t* target_script,
+    const size_t target_script_len)
+{
+    JADE_ASSERT(descriptor_name);
+    JADE_ASSERT(descriptor);
+    JADE_ASSERT(network);
+    JADE_ASSERT(target_script);
+    JADE_ASSERT(target_script_len);
+
+    // Build descriptor script
+    const char* errmsg = NULL;
+    size_t trial_script_len = 0;
+    uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient];
+    if (!wallet_build_descriptor_script(network, descriptor_name, descriptor, multi_index, index, trial_script,
+            sizeof(trial_script), &trial_script_len, &errmsg)) {
+        JADE_LOGE("Receive script cannot be constructed");
+        return false;
+    }
+
+    // Compare generated script to that expected/in the txn
+    if (trial_script_len != target_script_len || sodium_memcmp(trial_script, target_script, target_script_len) != 0) {
+        JADE_LOGW("Receive script failed validation");
+        return false;
+    }
+
+    // Script matches
+    return true;
+}
+
+// Use the passed descriptor to derive the output script
+// Return whether the generated output script matches the passed target script
+static bool verify_descriptor_script_matches(const char* descriptor_name, const descriptor_data_t* descriptor,
+    const char* network, const uint32_t* path, const size_t path_len, const struct wally_map* keypaths,
+    const uint8_t* target_script, const size_t target_script_len)
+{
+    JADE_ASSERT(descriptor_name);
+    JADE_ASSERT(descriptor);
+    JADE_ASSERT(network);
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len);
+    JADE_ASSERT(keypaths);
+    JADE_ASSERT(target_script);
+    JADE_ASSERT(target_script_len);
+
+    // Ensure number of signatories match
+    size_t num_keys = 0;
+    JADE_WALLY_VERIFY(wally_map_get_num_items(keypaths, &num_keys));
+    if (descriptor->num_values != num_keys) {
+        JADE_LOGD("Mismatch in number of signatories");
+        return false;
+    }
+
+    // Get the final path index
+    const uint32_t index = path[path_len - 1];
+
+    // If longer path tail, try descriptor with multi-path 1
+    uint32_t multi_index = 1;
+    if (path_len > 1
+        && verify_descriptor_script_matches_impl(
+            descriptor_name, descriptor, network, multi_index, index, target_script, target_script_len)) {
+        return true;
+    }
+
+    multi_index = 0;
+    return verify_descriptor_script_matches_impl(
+        descriptor_name, descriptor, network, multi_index, index, target_script, target_script_len);
+}
+
 // Try to find a multisig registration which creates the passed script with the given
-// keypaths map.  NOTE: our signer's path is passed in, from which the common path tail
-// is deduced.
-static bool get_suitable_multisig_record(const struct wally_map* keypaths, const size_t our_key_index,
-    const uint8_t* target_script, const size_t target_script_len, multisig_data_t* const multisig_data)
+// keypaths map.  Our signer's path tail is passed in, and is assumed to be common across signers.
+static bool get_suitable_multisig_record(const struct wally_map* keypaths, const uint32_t* path, const size_t path_len,
+    const uint8_t* target_script, const size_t target_script_len, char* wallet_name, const size_t wallet_name_len,
+    multisig_data_t* const multisig_data)
 {
     JADE_ASSERT(keypaths);
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
+    JADE_ASSERT(wallet_name);
+    JADE_ASSERT(wallet_name_len);
     JADE_ASSERT(multisig_data);
 
     // Load multisig record names saved in nvs
@@ -208,37 +282,29 @@ static bool get_suitable_multisig_record(const struct wally_map* keypaths, const
     const size_t num_names = sizeof(names) / sizeof(names[0]);
     size_t num_multisigs = 0;
     if (!storage_get_all_multisig_registration_names(names, num_names, &num_multisigs)) {
-        JADE_LOGE("Error loading multisig record names - won't be able to verify multisig change");
+        JADE_LOGE("Error loading multisig record names");
         return false;
     }
-
-    size_t path_len = 0;
-    uint32_t path[MAX_PATH_LEN];
-    JADE_WALLY_VERIFY(wally_map_keypath_get_item_path(keypaths, our_key_index, path, MAX_PATH_LEN, &path_len));
-
-    // Get the path tail after the last hardened element
-    const size_t path_tail_start = get_multisig_path_tail_start_index(path, path_len);
-    JADE_ASSERT(path_tail_start <= path_len);
-    const size_t path_tail_len = path_len - path_tail_start;
 
     // Iterate over named persisted multisigs to see if one fits
     for (int i = 0; i < num_multisigs; ++i) {
         const char* errmsg = NULL;
         if (!multisig_load_from_storage(names[i], multisig_data, NULL, 0, NULL, &errmsg)) {
             JADE_LOGD("Ignoring multisig %s as not valid for this wallet", names[i]);
-            JADE_LOGD("%s", errmsg);
             continue;
         }
 
         JADE_LOGD("Trying loaded multisig: %s", names[i]);
         if (!verify_multisig_script_matches(
-                multisig_data, &path[path_tail_start], path_tail_len, keypaths, target_script, target_script_len)) {
+                multisig_data, path, path_len, keypaths, target_script, target_script_len)) {
             JADE_LOGD("Receive script failed validation with %s", names[i]);
             continue;
         }
 
         // Found suitable record
         JADE_LOGI("Found suitable multisig record: %s", names[i]);
+        JADE_ASSERT(strlen(names[i]) < wallet_name_len);
+        strcpy(wallet_name, names[i]);
         return true;
     }
 
@@ -246,16 +312,68 @@ static bool get_suitable_multisig_record(const struct wally_map* keypaths, const
     return false;
 }
 
+// Try to find a descriptor registration which creates the passed script with the given
+// keypaths map.  Our signer's path tail is passed in, and is assumed to be common across signers.
+static bool get_suitable_descriptor_record(const struct wally_map* keypaths, const uint32_t* path,
+    const size_t path_len, const uint8_t* target_script, const size_t target_script_len, const char* network,
+    char* wallet_name, const size_t wallet_name_len, descriptor_data_t* const descriptor)
+{
+    JADE_ASSERT(keypaths);
+    JADE_ASSERT(target_script);
+    JADE_ASSERT(target_script_len);
+    JADE_ASSERT(network);
+    JADE_ASSERT(wallet_name);
+    JADE_ASSERT(wallet_name_len);
+    JADE_ASSERT(descriptor);
+
+    // Load descriptor record names saved in nvs
+    char names[MAX_DESCRIPTOR_REGISTRATIONS][NVS_KEY_NAME_MAX_SIZE]; // Sufficient
+    const size_t num_names = sizeof(names) / sizeof(names[0]);
+    size_t num_descriptors = 0;
+    if (!storage_get_all_descriptor_registration_names(names, num_names, &num_descriptors)) {
+        JADE_LOGE("Error loading descriptor record names");
+        return false;
+    }
+
+    // Iterate over named persisted descriptors to see if one fits
+    for (int i = 0; i < num_descriptors; ++i) {
+        const char* errmsg = NULL;
+        if (!descriptor_load_from_storage(names[i], descriptor, &errmsg)) {
+            JADE_LOGD("Ignoring descriptor %s as not valid for this wallet", names[i]);
+            continue;
+        }
+
+        JADE_LOGI("Trying loaded descriptor: %s", names[i]);
+        if (!verify_descriptor_script_matches(
+                names[i], descriptor, network, path, path_len, keypaths, target_script, target_script_len)) {
+            JADE_LOGD("Receive script failed validation with %s", names[i]);
+            continue;
+        }
+
+        // Found suitable record
+        JADE_LOGI("Found suitable descriptor record: %s", names[i]);
+        JADE_ASSERT(strlen(names[i]) < wallet_name_len);
+        strcpy(wallet_name, names[i]);
+        return true;
+    }
+
+    JADE_LOGW("No suitable descriptor record found");
+    return false;
+}
+
 // Examine outputs for change we can automatically validate
 static void validate_any_change_outputs(const char* network, struct wally_psbt* psbt, const uint8_t signing_flags,
-    const multisig_data_t* multisig_data, output_info_t* output_info, struct ext_key* hdkey)
+    const char* wallet_name, const multisig_data_t* multisig_data, const descriptor_data_t* descriptor,
+    output_info_t* output_info, struct ext_key* hdkey)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(psbt);
     JADE_ASSERT(signing_flags);
-    JADE_ASSERT(multisig_data);
+    // wallet_name, multisig_data and descriptor optional
     JADE_ASSERT(output_info);
     JADE_ASSERT(hdkey);
+
+    JADE_ASSERT(!multisig_data || !descriptor); // cannot have both
 
     // Check each output in turn
     for (size_t index = 0; index < psbt->num_outputs; ++index) {
@@ -343,20 +461,29 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
                     "Ignoring multisig output %u as not signing only multisig inputs for a single registration", index);
                 continue;
             }
+            JADE_ASSERT(!multisig_data != !descriptor); // one or the other
 
             // Get the path tail after the last hardened element
             const size_t path_tail_start = get_multisig_path_tail_start_index(path, path_len);
             JADE_ASSERT(path_tail_start <= path_len);
             const size_t path_tail_len = path_len - path_tail_start;
 
-            if (!verify_multisig_script_matches(multisig_data, &path[path_tail_start], path_tail_len, &output->keypaths,
-                    tx_script, tx_script_len)) {
-                JADE_LOGD("Receive script failed validation");
+            if (multisig_data
+                && !verify_multisig_script_matches(multisig_data, &path[path_tail_start], path_tail_len,
+                    &output->keypaths, tx_script, tx_script_len)) {
+                JADE_LOGD("Receive script failed validation with multisig %s", wallet_name);
+                continue;
+            }
+            if (descriptor
+                && !verify_descriptor_script_matches(wallet_name, descriptor, network, &path[path_tail_start],
+                    path_tail_len, &output->keypaths, tx_script, tx_script_len)) {
+                JADE_LOGD("Receive script failed validation with descriptor %s", wallet_name);
                 continue;
             }
 
             // Change path valid and matches expected output script
-            JADE_LOGI("Output %u multisig %s path/script validated", index, is_change ? "change" : "receive");
+            JADE_LOGI("Output %u multisig %s path/script validated: %s", index, is_change ? "change" : "receive",
+                wallet_name);
 
             // Set appropriate flags
             output_info[index].flags |= OUTPUT_FLAG_VALIDATED;
@@ -419,7 +546,9 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     bool* const signing_inputs = JADE_CALLOC(psbt->num_inputs, sizeof(bool));
     uint64_t input_amount = 0;
     uint8_t signing_flags = 0;
-    multisig_data_t* const multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
+    char wallet_name[NVS_KEY_NAME_MAX_SIZE] = { '\0' };
+    multisig_data_t* multisig_data = NULL;
+    descriptor_data_t* descriptor = NULL;
     for (size_t index = 0; index < psbt->num_inputs; ++index) {
         struct wally_psbt_input* input = &psbt->inputs[index];
 
@@ -458,46 +587,85 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                 update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
             }
 
-            // If multisig, see if all signing inputs match the same persisted multisig record
+            // If multisig, see if all signing inputs match the same persisted wallet record
             // and if so, cache the record details to use later to verify any multisig change outputs
-            if (num_keys > 1) {
-                if ((signing_flags & PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED)) {
-                    // Already abandoned - do nothing
-                } else if (signing_flags & PSBT_SIGNING_SINGLE_MULTISIG_RECORD) {
+            if (signing_flags & PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED) {
+                // Already abandoned multisig change detection - do nothing
+            } else if (num_keys == 1) {
+                // singlesig input - mark multisig change detection as abandoned
+                JADE_LOGW("Signing singlesig input %u - multisig change detection abandoned", index);
+                signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+            } else {
+                size_t path_len = 0;
+                uint32_t path[MAX_PATH_LEN];
+                JADE_WALLY_VERIFY(
+                    wally_map_keypath_get_item_path(&input->keypaths, our_key_index, path, MAX_PATH_LEN, &path_len));
+
+                // Get the path tail after the last hardened element
+                const size_t path_tail_start = get_multisig_path_tail_start_index(path, path_len);
+                JADE_ASSERT(path_tail_start <= path_len);
+                const size_t path_tail_len = path_len - path_tail_start;
+
+                if (signing_flags & PSBT_SIGNING_SINGLE_MULTISIG_RECORD) {
                     // Test this input against the record previously found
-                    size_t path_len = 0;
-                    uint32_t path[MAX_PATH_LEN];
-                    JADE_WALLY_VERIFY(wally_map_keypath_get_item_path(
-                        &input->keypaths, our_key_index, path, MAX_PATH_LEN, &path_len));
+                    JADE_ASSERT(!multisig_data != !descriptor); // must be one or the other
 
-                    // Get the path tail after the last hardened element
-                    const size_t path_tail_start = get_multisig_path_tail_start_index(path, path_len);
-                    JADE_ASSERT(path_tail_start <= path_len);
-                    const size_t path_tail_len = path_len - path_tail_start;
-
-                    if (!verify_multisig_script_matches(multisig_data, &path[path_tail_start], path_tail_len,
+                    if (multisig_data
+                        && !verify_multisig_script_matches(multisig_data, &path[path_tail_start], path_tail_len,
                             &input->keypaths, utxo->script, utxo->script_len)) {
-                        // Previously found record does now work for this input.  Abandon multisig change detection.
-                        JADE_LOGW(
-                            "Previously found multisig record inappropriate for input %u - change detection abandoned",
-                            index);
+                        // Previously found multisig record does not work for this input.  Abandon multisig
+                        // change detection.
+                        JADE_LOGW("Previously found multisig record '%s' inappropriate for input %u - change "
+                                  "detection abandoned",
+                            wallet_name, index);
+                        signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+                    }
+
+                    if (descriptor
+                        && !verify_descriptor_script_matches(wallet_name, descriptor, network, &path[path_tail_start],
+                            path_tail_len, &input->keypaths, utxo->script, utxo->script_len)) {
+                        // Previously found descriptor record does not work for this input.  Abandon multisig
+                        // change detection.
+                        JADE_LOGW("Previously found descriptor record '%s' inappropriate for input %u - change "
+                                  "detection abandoned",
+                            wallet_name, index);
                         signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
                     }
                 } else {
-                    // Search all multisig records looking for one that fits this input
-                    if (get_suitable_multisig_record(
-                            &input->keypaths, our_key_index, utxo->script, utxo->script_len, multisig_data)) {
-                        JADE_LOGI("Signing multisig - registered record found");
+                    // Search all multisig and descriptor records looking for one that fits this input
+                    multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
+                    if (get_suitable_multisig_record(&input->keypaths, &path[path_tail_start], path_tail_len,
+                            utxo->script, utxo->script_len, wallet_name, sizeof(wallet_name), multisig_data)) {
+                        JADE_LOGI("Signing multisig input - registered multisig record found: %s", wallet_name);
                         signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
                     } else {
-                        // No suitable multisig record - mark as abandoned
-                        JADE_LOGW("No multisig record found for input %u - change detection abandoned", index);
+                        free(multisig_data);
+                        multisig_data = NULL;
+                    }
+
+                    if (!multisig_data) {
+                        descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
+                        if (get_suitable_descriptor_record(&input->keypaths, &path[path_tail_start], path_tail_len,
+                                utxo->script, utxo->script_len, network, wallet_name, sizeof(wallet_name),
+                                descriptor)) {
+                            JADE_LOGI("Signing multisig input - registered descriptor record found: %s", wallet_name);
+                            signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
+                        } else {
+                            free(descriptor);
+                            descriptor = NULL;
+                        }
+                    }
+
+                    if (!multisig_data && !descriptor) {
+                        // No suitable multisig or descriptor record - mark as abandoned
+                        JADE_LOGW(
+                            "No multisig or descriptor record found for input %u - change detection abandoned", index);
                         signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
                     }
                 }
             }
-        }
-    }
+        } // is our key
+    } // iterate keys
 
     // Sanity check amounts
     uint64_t output_amount;
@@ -510,7 +678,8 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
     // Examine outputs for change we can automatically validate
     if (signing_flags) {
-        validate_any_change_outputs(network, psbt, signing_flags, multisig_data, output_info, &hdkey);
+        validate_any_change_outputs(
+            network, psbt, signing_flags, wallet_name, multisig_data, descriptor, output_info, &hdkey);
     }
 
     // User to verify outputs and fee amount
@@ -591,6 +760,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 cleanup:
     SENSITIVE_POP(&hdkey);
     JADE_WALLY_VERIFY(wally_tx_free(tx));
+    free(descriptor);
     free(multisig_data);
     free(signing_inputs);
     free(output_info);
