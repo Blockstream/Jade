@@ -314,7 +314,7 @@ bool wallet_derive_from_xpub(
 
 // Function to get the path used when we are asked to export an xpub
 void wallet_get_default_xpub_export_path(
-    const script_variant_t variant, uint32_t* path, const size_t path_len, size_t* written)
+    const script_variant_t variant, const uint16_t account, uint32_t* path, const size_t path_len, size_t* written)
 {
     JADE_ASSERT(!is_greenaddress(variant));
     JADE_ASSERT(path);
@@ -339,13 +339,13 @@ void wallet_get_default_xpub_export_path(
     // FIXME: Handle liquid
     path[1] = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? BIP44_COIN_TEST : BIP44_COIN_BTC;
 
-    // 'Account' is just zero atm
-    path[2] = BIP32_INITIAL_HARDENED_CHILD; // 0'
+    // 'Account' is as passed in
+    path[2] = harden(account);
 
     if (multisig) {
         // bip48 script type flag
         const uint8_t bip48_script_type = variant == MULTI_P2WSH ? 2 : variant == MULTI_P2WSH_P2SH ? 1 : 0;
-        path[3] = BIP32_INITIAL_HARDENED_CHILD + bip48_script_type;
+        path[3] = harden(bip48_script_type);
     }
 
     *written = multisig ? 4 : 3;

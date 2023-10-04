@@ -40,7 +40,8 @@ bool is_multisig(script_variant_t variant);
 
 void wallet_get_bip85_bip39_entropy(size_t nwords, size_t index, uint8_t* entropy, size_t entropy_len, size_t* written);
 
-void wallet_get_default_xpub_export_path(script_variant_t variant, uint32_t* path, size_t path_len, size_t* written);
+void wallet_get_default_xpub_export_path(
+    script_variant_t variant, uint16_t account, uint32_t* path, size_t path_len, size_t* written);
 bool wallet_is_expected_singlesig_path(
     const char* network, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);
 bool wallet_is_expected_multisig_path(size_t cosigner_index, bool is_change, const uint32_t* path, size_t path_len);

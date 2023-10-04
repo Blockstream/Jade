@@ -27,6 +27,9 @@
 
 #define MNEMONIC_BUFLEN 256
 
+#define ACCOUNT_INDEX_MAX 65536
+#define ACCOUNT_INDEX_FLAGS_SHIFT 16
+
 // When we are displaying a BCUR QR code we ensure the timeout is at least this value
 // as we don't want the unit to shut down because of apparent inactivity.
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
@@ -159,11 +162,12 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
     const bool use_format_hdkey = false; // qr_flags & QR_XPUB_HDKEY;  - not currently in use
     const char* const xpub_qr_format = use_format_hdkey ? BCUR_TYPE_CRYPTO_HDKEY : BCUR_TYPE_CRYPTO_ACCOUNT;
     const script_variant_t script_variant = xpub_script_variant_from_flags(qr_flags);
+    const uint16_t account_index = qr_flags >> ACCOUNT_INDEX_FLAGS_SHIFT;
 
     // Deduce path based on script type and main/test network restrictions
     uint32_t path[EXPORT_XPUB_PATH_LEN]; // 3 or 4 - purpose'/cointype'/account'/[multisig bip48 script type']
     size_t path_len = 0;
-    wallet_get_default_xpub_export_path(script_variant, path, EXPORT_XPUB_PATH_LEN, &path_len);
+    wallet_get_default_xpub_export_path(script_variant, account_index, path, EXPORT_XPUB_PATH_LEN, &path_len);
 
     // Construct BC-UR CBOR message for 'crypto-account' or 'crypto-hdkey' bcur
     uint8_t cbor[128];
@@ -177,7 +181,7 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
     // Map BCUR cbor into a series of QR-code icons
     Icon* icons = NULL;
     size_t num_icons = 0;
-    const uint8_t qrcode_version = qr_version_from_flags(qr_flags);
+    const uint8_t qrcode_version = qr_version_from_flags(QR_DENSITY_LOW); // always use low density for xpub export
     bcur_create_qr_icons(cbor, written, xpub_qr_format, qrcode_version, &icons, &num_icons);
 
     // Create xpub activity for those icons
@@ -185,7 +189,7 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
     const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr));
     JADE_ASSERT(ret);
     const char* label = contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
-    const uint8_t frames_per_qr = qr_framerate_from_flags(qr_flags);
+    const uint8_t frames_per_qr = qr_framerate_from_flags(QR_SPEED_LOW); // always use slow framerate for xpub export
     return make_show_xpub_qr_activity(label, pathstr, icons, num_icons, frames_per_qr);
 }
 
@@ -193,13 +197,19 @@ static bool handle_xpub_options(uint32_t* qr_flags)
 {
     JADE_ASSERT(qr_flags);
 
+    uint16_t account_index = (*qr_flags) >> ACCOUNT_INDEX_FLAGS_SHIFT;
+
+    char buf[8];
+    int rc = snprintf(buf, sizeof(buf), "%u", account_index);
+    JADE_ASSERT(rc > 0 && rc < sizeof(buf));
+
     gui_view_node_t* script_item = NULL;
     gui_view_node_t* wallet_item = NULL;
-    gui_view_node_t* density_item = NULL;
-    gui_activity_t* const act = make_xpub_qr_options_activity(&script_item, &wallet_item, &density_item);
+    gui_view_node_t* account_item = NULL;
+    gui_activity_t* const act = make_xpub_qr_options_activity(&script_item, &wallet_item, &account_item);
     update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
     update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
-    update_menu_item(density_item, "QR Density", qr_density_desc_from_flags(*qr_flags));
+    update_menu_item(account_item, "Account Index", buf);
     gui_set_current_activity(act);
 
     gui_view_node_t* script_textbox = NULL;
@@ -210,9 +220,9 @@ static bool handle_xpub_options(uint32_t* qr_flags)
     gui_activity_t* const act_wallettype = make_carousel_activity("Wallet Type", NULL, &wallet_textbox);
     gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
 
-    gui_view_node_t* density_textbox = NULL;
-    gui_activity_t* const act_density = make_carousel_activity("QR Density", NULL, &density_textbox);
-    gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
+    gui_view_node_t* account_textbox = NULL;
+    gui_activity_t* const act_account = make_carousel_activity("Account Index", NULL, &account_textbox);
+    gui_update_text(account_textbox, buf);
 
     const uint32_t initial_flags = *qr_flags;
     while (true) {
@@ -259,22 +269,25 @@ static bool handle_xpub_options(uint32_t* qr_flags)
                     }
                 }
                 update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
-            } else if (ev_id == BTN_QR_OPTIONS_DENSITY) {
-                gui_set_current_activity(act_density);
+            } else if (ev_id == BTN_XPUB_OPTIONS_ACCOUNT) {
+                gui_set_current_activity(act_account);
                 while (true) {
-                    gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
-                    if (gui_activity_wait_event(act_density, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    rc = snprintf(buf, sizeof(buf), "%u", account_index);
+                    JADE_ASSERT(rc > 0 && rc < sizeof(buf));
+                    gui_update_text(account_textbox, buf);
+                    if (gui_activity_wait_event(act_account, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
                         if (ev_id == GUI_WHEEL_LEFT_EVENT) {
-                            rotate_flags(qr_flags, QR_DENSITY_LOW, QR_DENSITY_HIGH); // reverse
+                            // Avoid unsigned wrapping below zero
+                            account_index = (account_index + ACCOUNT_INDEX_MAX - 1) % ACCOUNT_INDEX_MAX;
                         } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            rotate_flags(qr_flags, QR_DENSITY_HIGH, QR_DENSITY_LOW);
+                            account_index = (account_index + 1) % ACCOUNT_INDEX_MAX;
                         } else if (ev_id == gui_get_click_event()) {
                             // Done
                             break;
                         }
                     }
                 }
-                update_menu_item(density_item, "QR Density", qr_density_desc_from_flags(*qr_flags));
+                update_menu_item(account_item, "Account Index", buf);
             } else if (ev_id == BTN_XPUB_OPTIONS_HELP) {
                 await_qr_help_activity("blkstrm.com/xpub");
             } else if (ev_id == BTN_XPUB_OPTIONS_EXIT) {
@@ -284,17 +297,19 @@ static bool handle_xpub_options(uint32_t* qr_flags)
         }
     }
 
-    // If nothing was updated, return false
+    // If updated, persist prefereces
+    *qr_flags = (uint16_t)(*qr_flags);
+    *qr_flags |= (((uint32_t)account_index) << ACCOUNT_INDEX_FLAGS_SHIFT);
     if (initial_flags == *qr_flags) {
         return false;
     }
 
-    // Persist prefereces and return true to indicate they were changed
+    // Return to indicate if any options were updated
     storage_set_qr_flags(*qr_flags);
     return true;
 }
 
-// Display singlesig xpub qr code
+// Display xpub qr code
 void display_xpub_qr(void)
 {
     uint32_t qr_flags = storage_get_qr_flags();
@@ -469,9 +484,10 @@ static bool verify_address(const address_data_t* const addr_data)
         }
 
         // Get the path to search
+        const uint16_t account_index = 0; // always search account 0 for now
         uint32_t path[EXPORT_XPUB_PATH_LEN];
         size_t path_len = 0;
-        wallet_get_default_xpub_export_path(variant, path, EXPORT_XPUB_PATH_LEN, &path_len);
+        wallet_get_default_xpub_export_path(variant, account_index, path, EXPORT_XPUB_PATH_LEN, &path_len);
         JADE_ASSERT(path_len == EXPORT_XPUB_PATH_LEN - 1);
         path[path_len++] = 0; // 'external' (ie. not internal change) address
 

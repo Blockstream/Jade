@@ -58,7 +58,7 @@ gui_activity_t* make_show_xpub_qr_activity(
 }
 
 gui_activity_t* make_xpub_qr_options_activity(
-    gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** density_textbox)
+    gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** account_textbox)
 {
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_OPTIONS_EXIT },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP } };
@@ -70,14 +70,14 @@ gui_activity_t* make_xpub_qr_options_activity(
     gui_make_text(wallet_textbox, "Wallet", TFT_WHITE);
     gui_set_align(*wallet_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    gui_make_text(density_textbox, "QR Density", TFT_WHITE);
-    gui_set_align(*density_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_make_text(account_textbox, "Account Index", TFT_WHITE);
+    gui_set_align(*account_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
     // TODO maybe, add UR-type, hdkey or crypto-account ?
     btn_data_t menubtns[]
         = { { .content = *script_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_SCRIPTTYPE },
               { .content = *wallet_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_WALLETTYPE },
-              { .content = *density_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_OPTIONS_DENSITY } };
+              { .content = *account_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_ACCOUNT } };
 
     return make_menu_activity("Xpub Settings", hdrbtns, 2, menubtns, 3);
 }
