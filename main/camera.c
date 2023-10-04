@@ -249,11 +249,12 @@ static void jade_camera_task(void* data)
             for (size_t x = 0; x < CAMERA_IMAGE_WIDTH / 2; ++x) {
                 for (size_t y = 0; y < CAMERA_IMAGE_HEIGHT / 2; ++y) {
 #if defined(CONFIG_CAMERA_ROTATE_90)
-                    scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_HEIGHT)-y * 2][x * 2];
+                    scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (y * 2)][x * 2];
 #elif defined(CONFIG_CAMERA_ROTATE_180)
-                    scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_WIDTH)-x * 2][(CAMERA_IMAGE_HEIGHT)-y * 2];
+                    scale_rotated[x][y]
+                        = buf_as_matrix[(CAMERA_IMAGE_WIDTH - 1) - (x * 2)][(CAMERA_IMAGE_HEIGHT - 1) - (y * 2)];
 #elif defined(CONFIG_CAMERA_ROTATE_270)
-                    scale_rotated[x][y] = buf_as_matrix[y * 2][(CAMERA_IMAGE_WIDTH)-x * 2];
+                    scale_rotated[x][y] = buf_as_matrix[y * 2][(CAMERA_IMAGE_WIDTH - 1) - (x * 2)];
 #else
                     scale_rotated[x][y] = buf_as_matrix[x * 2][y * 2];
 #endif
