@@ -1589,7 +1589,7 @@ Request to sign liquid transaction inputs.
                 },
                 null
             ],
-            asset_info": [
+            "asset_info": [
                 {
                     "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
                     "contract": {
@@ -1615,7 +1615,7 @@ Request to sign liquid transaction inputs.
                     "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
                     "blinding_key": "03462d3febd7654b22c6faaf5d12a400693dbdf21f8cb9a82e18aba8457c6812d4",
                     "value": 50000000,
-                    "value_commitment": <33 bytes>
+                    "value_commitment": <33 bytes>,
                     "vbf": <32 bytes>
                 },
                 {
@@ -1634,7 +1634,7 @@ Request to sign liquid transaction inputs.
                 "wallet_input_summary": [
                     {
                         "asset_id": "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49",
-                        "satoshi": 1000000,
+                        "satoshi": 1000000
                     }
                 ],
                 "wallet_output_summary": [
