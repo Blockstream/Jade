@@ -15,6 +15,12 @@
 // as we don't want the unit to shut down because of apparent inactivity.
 #define CAMERA_MIN_TIMEOUT_SECS 300
 
+// The image from the camera framebuffer is scaled and cropped to fit the display image
+// (Based on Jade screen dimensions and the fact that the image is half the screen.)
+#define DISPLAY_IMAGE_WIDTH 120
+#define DISPLAY_IMAGE_HEIGHT 135
+#define DISPLAY_IMAGE_SCALE_FACTOR 2
+
 void await_qr_help_activity(const char* url);
 
 gui_activity_t* make_camera_activity(const char* btnText, progress_bar_t* progress_bar, gui_view_node_t** image_node,
@@ -201,7 +207,7 @@ static void jade_camera_task(void* data)
     vTaskDelay(500 / portTICK_PERIOD_MS);
     void* image_buffer = NULL;
     Picture pic = {};
-    const size_t image_size = sizeof(uint8_t[CAMERA_IMAGE_WIDTH / 2][CAMERA_IMAGE_HEIGHT / 2]);
+    const size_t image_size = sizeof(uint8_t[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_WIDTH]);
     wait_event_data_t* event_data = NULL;
     if (has_gui) {
         // Update the text label to indicate readiness
@@ -213,9 +219,8 @@ static void jade_camera_task(void* data)
         // captures potentially sensitive data eg. a valid mnemonic qrcode.
         image_buffer = JADE_MALLOC_PREFER_SPIRAM(image_size);
         SENSITIVE_PUSH(image_buffer, image_size);
-        // NOTE rotated so height <-> width
-        pic.width = CAMERA_IMAGE_HEIGHT / 2;
-        pic.height = CAMERA_IMAGE_WIDTH / 2;
+        pic.width = DISPLAY_IMAGE_WIDTH;
+        pic.height = DISPLAY_IMAGE_HEIGHT;
         pic.bytes_per_pixel = 1;
         pic.data_8 = image_buffer;
 
@@ -243,20 +248,22 @@ static void jade_camera_task(void* data)
         // If we have a gui, update the image on screen and check for button events
         if (has_gui) {
             // Copy from camera output to screen image
-            JADE_ASSERT(fb->len == 4 * image_size); // twice width and twice height
-            uint8_t(*scale_rotated)[CAMERA_IMAGE_HEIGHT / 2] = image_buffer;
-            uint8_t(*buf_as_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
-            for (size_t x = 0; x < CAMERA_IMAGE_WIDTH / 2; ++x) {
-                for (size_t y = 0; y < CAMERA_IMAGE_HEIGHT / 2; ++y) {
+            // (Ensure source image large enough to be scaled down to display image size)
+            const uint8_t scale = DISPLAY_IMAGE_SCALE_FACTOR;
+            JADE_ASSERT(fb->len >= scale * scale * image_size);
+            uint8_t(*image_matrix)[DISPLAY_IMAGE_WIDTH] = image_buffer;
+            uint8_t(*fb_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
+            for (size_t imgy = 0; imgy < DISPLAY_IMAGE_HEIGHT; ++imgy) {
+                for (size_t imgx = 0; imgx < DISPLAY_IMAGE_WIDTH; ++imgx) {
 #if defined(CONFIG_CAMERA_ROTATE_90)
-                    scale_rotated[x][y] = buf_as_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (y * 2)][x * 2];
+                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)][imgy * scale];
 #elif defined(CONFIG_CAMERA_ROTATE_180)
-                    scale_rotated[x][y]
-                        = buf_as_matrix[(CAMERA_IMAGE_WIDTH - 1) - (x * 2)][(CAMERA_IMAGE_HEIGHT - 1) - (y * 2)];
+                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)]
+                                                        [(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)];
 #elif defined(CONFIG_CAMERA_ROTATE_270)
-                    scale_rotated[x][y] = buf_as_matrix[y * 2][(CAMERA_IMAGE_WIDTH - 1) - (x * 2)];
+                    image_matrix[imgy][imgx] = fb_matrix[imgx * scale][(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)];
 #else
-                    scale_rotated[x][y] = buf_as_matrix[x * 2][y * 2];
+                    image_matrix[imgy][imgx] = fb_matrix[imgy * scale][imgx * scale];
 #endif
                 }
             }
