@@ -44,7 +44,9 @@ gui_activity_t* make_xpub_qr_options_activity(
     gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** density_textbox);
 
 gui_activity_t* make_search_verify_address_activity(
-    const char* pathstr, progress_bar_t* progress_bar, gui_view_node_t** index_text);
+    const char* root_label, gui_view_node_t** label_text, progress_bar_t* progress_bar, gui_view_node_t** index_text);
+gui_activity_t* make_search_address_options_activity(
+    bool show_account, gui_view_node_t** account_textbox, gui_view_node_t** change_textbox);
 
 gui_activity_t* make_show_qr_activity(const char* label, Icon* icons, size_t num_icons, size_t frames_per_qr_icon,
     bool show_options_button, bool show_help_btn);
@@ -385,6 +387,124 @@ static bool select_multisig_record(char names[][MAX_MULTISIG_NAME_SIZE], const s
     }
 }
 
+// Get search root for singlesig address
+static void get_singlesig_search_root(const script_variant_t variant, const uint16_t account_index,
+    const bool is_change, char* pathstr, const size_t pathstr_len, struct ext_key* search_roots,
+    const size_t search_roots_len)
+{
+    JADE_ASSERT(pathstr);
+    JADE_ASSERT(pathstr_len);
+    JADE_ASSERT(search_roots);
+    JADE_ASSERT(search_roots_len == 1);
+
+    // Get the path to search
+    size_t path_len = 0;
+    uint32_t path[EXPORT_XPUB_PATH_LEN];
+    wallet_get_default_xpub_export_path(variant, account_index, path, EXPORT_XPUB_PATH_LEN, &path_len);
+    JADE_ASSERT(path_len == EXPORT_XPUB_PATH_LEN - 1);
+    path[path_len++] = is_change ? 1 : 0; // set change indicator
+
+    // Get as hdkey
+    bool ret = wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, search_roots);
+    JADE_ASSERT(ret);
+
+    // Use the root bip32 path as the label
+    ret = wallet_bip32_path_as_str(path, path_len, pathstr, pathstr_len);
+    JADE_ASSERT(ret);
+}
+
+// Get search root for multisig address
+static void get_multisig_search_roots(const multisig_data_t* multisig_data, const bool is_change, char* pathstr,
+    const size_t pathstr_len, struct ext_key* search_roots, const size_t search_roots_len)
+{
+    JADE_ASSERT(multisig_data);
+    JADE_ASSERT(pathstr);
+    JADE_ASSERT(pathstr_len);
+    JADE_ASSERT(search_roots);
+    JADE_ASSERT(search_roots_len);
+    JADE_ASSERT(search_roots_len == multisig_data->num_xpubs);
+
+    // Derive set of multisig parent keys
+    const uint32_t path[] = { is_change ? 1 : 0 }; // set change indicator
+    for (int i = 0; i < search_roots_len; ++i) {
+        const uint8_t* xpub = multisig_data->xpubs + (i * BIP32_SERIALIZED_LEN);
+        const bool ret = wallet_derive_pubkey(
+            xpub, BIP32_SERIALIZED_LEN, path, 1, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &search_roots[i]);
+        JADE_ASSERT(ret);
+    }
+
+    // Use the existing name plus the change indicator as the label
+    const size_t len = strlen(pathstr);
+    JADE_ASSERT(len < pathstr_len);
+    JADE_ASSERT(pathstr[len - 1] == '0' || pathstr[len - 1] == '1');
+    pathstr[len - 1] = is_change ? '1' : '0';
+}
+
+static bool handle_address_options(const bool show_account, uint16_t* account_index, bool* is_change)
+{
+    JADE_ASSERT(account_index || !show_account);
+    JADE_ASSERT(is_change);
+
+    // Create the 'options' screens
+    char buf[8];
+    gui_view_node_t* account_item = NULL;
+    gui_view_node_t* change_item = NULL;
+    gui_activity_t* const act_options = make_search_address_options_activity(show_account, &account_item, &change_item);
+    JADE_ASSERT(!account_item == !show_account);
+
+    gui_activity_t* act_account = NULL;
+    gui_view_node_t* account_textbox = NULL;
+    if (account_item) {
+        const int ret = snprintf(buf, sizeof(buf), "%u", *account_index);
+        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+        update_menu_item(account_item, "Account Index", buf);
+
+        act_account = make_carousel_activity("Account Index", NULL, &account_textbox);
+        gui_update_text(account_textbox, buf);
+    }
+    update_menu_item(change_item, "Change", *is_change ? "Yes" : "No");
+
+    const bool initial_change = *is_change;
+    const uint16_t initial_account = *account_index;
+    while (true) {
+        int32_t ev_id;
+        gui_set_current_activity(act_options);
+        if (gui_activity_wait_event(act_options, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+
+            if (ev_id == BTN_SCAN_ADDRESS_OPTIONS_ACCOUNT) {
+                gui_set_current_activity(act_account);
+                while (true) {
+                    const int ret = snprintf(buf, sizeof(buf), "%u", *account_index);
+                    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+                    gui_update_text(account_textbox, buf);
+                    if (gui_activity_wait_event(act_account, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                            // Avoid unsigned wrapping below zero
+                            *account_index = (*account_index + ACCOUNT_INDEX_MAX - 1) % ACCOUNT_INDEX_MAX;
+                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            *account_index = (*account_index + 1) % ACCOUNT_INDEX_MAX;
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(account_item, "Account Index", buf);
+            } else if (ev_id == BTN_SCAN_ADDRESS_OPTIONS_CHANGE) {
+                // Simple toggle
+                *is_change = !*is_change;
+                update_menu_item(change_item, "Change", *is_change ? "Yes" : "No");
+            } else if (ev_id == BTN_SCAN_ADDRESS_OPTIONS_EXIT) {
+                // Exit optins screen
+                break;
+            }
+        }
+    }
+
+    // Return value indicates whether options were changed
+    return *is_change != initial_change || *account_index != initial_account;
+}
+
 // Verify an address string by brute-forcing
 static bool verify_address(const address_data_t* const addr_data)
 {
@@ -414,9 +534,9 @@ static bool verify_address(const address_data_t* const addr_data)
 
     char label[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
     script_variant_t variant;
-    bool is_multisig = false;
-    uint8_t threshold = 0;
-    bool sorted = false;
+    uint16_t account_index = 0;
+    multisig_data_t* multisig_data = NULL;
+    bool is_change = false;
     struct ext_key* search_roots = NULL;
     size_t search_roots_len = 0;
 
@@ -443,68 +563,51 @@ static bool verify_address(const address_data_t* const addr_data)
             JADE_ASSERT(selected < num_multisigs);
 
             const char* errmsg = NULL;
-            multisig_data_t multisig_data;
-            if (!multisig_load_from_storage(names[selected], &multisig_data, NULL, 0, NULL, &errmsg)) {
+            multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
+            if (!multisig_load_from_storage(names[selected], multisig_data, NULL, 0, NULL, &errmsg)) {
                 await_error_activity("Failed to load multisig record");
+                free(multisig_data);
                 return false;
             }
 
-            // 'multisig_data' is populated - copy key fields
-            is_multisig = true;
-            variant = multisig_data.variant;
-            sorted = multisig_data.sorted;
-            threshold = multisig_data.threshold;
-            search_roots_len = multisig_data.num_xpubs;
-            search_roots = JADE_CALLOC(search_roots_len, sizeof(struct ext_key));
-
-            // Derive set of multisig parent keys
-            const uint32_t path[] = { 0 }; // 'external' (ie. not internal change) address
-            for (int i = 0; i < search_roots_len; ++i) {
-                const uint8_t* xpub = multisig_data.xpubs + (i * BIP32_SERIALIZED_LEN);
-                const bool ret = wallet_derive_pubkey(xpub, BIP32_SERIALIZED_LEN, path, 1,
-                    BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &search_roots[i]);
-                JADE_ASSERT(ret);
-            }
-
-            // Use multisig name as ui label.
-            const int ret = snprintf(label, sizeof(label), "%s", names[selected]);
+            // Use the multisig name plus the change indicator as the label
+            const int ret = snprintf(label, sizeof(label), "%s/%u", names[selected], is_change ? 1 : 0);
             JADE_ASSERT(ret > 0 && ret < sizeof(label));
+
+            // Calculate the key search roots (ie. up to the final leaf)
+            search_roots_len = multisig_data->num_xpubs;
+            search_roots = JADE_CALLOC(search_roots_len, sizeof(struct ext_key));
+            get_multisig_search_roots(multisig_data, is_change, label, sizeof(label), search_roots, search_roots_len);
         }
     }
 
     // If not multisig, must be singlesig
-    if (!is_multisig) {
+    if (!multisig_data) {
         JADE_ASSERT(!search_roots);
         JADE_ASSERT(!search_roots_len);
-        JADE_ASSERT(!threshold);
 
         if (!get_singlesig_variant_from_script_type(script_type, &variant)) {
             await_error_activity("Address scriptpubkey unsupported");
             return false;
         }
 
-        // Get the path to search
-        const uint16_t account_index = 0; // always search account 0 for now
-        uint32_t path[EXPORT_XPUB_PATH_LEN];
-        size_t path_len = 0;
-        wallet_get_default_xpub_export_path(variant, account_index, path, EXPORT_XPUB_PATH_LEN, &path_len);
-        JADE_ASSERT(path_len == EXPORT_XPUB_PATH_LEN - 1);
-        path[path_len++] = 0; // 'external' (ie. not internal change) address
+        // Default search root account to the last exported xpub
+        const uint32_t qr_flags = storage_get_qr_flags();
+        account_index = qr_flags >> ACCOUNT_INDEX_FLAGS_SHIFT;
 
-        // Get as hdkey
+        // Calculate the key search root (ie. up to the final leaf)
         search_roots_len = 1;
         search_roots = JADE_CALLOC(search_roots_len, sizeof(struct ext_key));
-        bool ret = wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, search_roots);
-        JADE_ASSERT(ret);
-
-        // Use the root bip32 path as the label
-        ret = wallet_bip32_path_as_str(path, path_len, label, sizeof(label));
-        JADE_ASSERT(ret);
+        get_singlesig_search_root(
+            variant, account_index, is_change, label, sizeof(label), search_roots, search_roots_len);
     }
 
+    // Create the main search progress screen
+    gui_view_node_t* label_text = NULL;
     gui_view_node_t* index_text = NULL;
     progress_bar_t progress_bar = {};
-    gui_activity_t* const act = make_search_verify_address_activity(label, &progress_bar, &index_text);
+    gui_activity_t* const act = make_search_verify_address_activity(label, &label_text, &progress_bar, &index_text);
+    JADE_ASSERT(label_text);
     JADE_ASSERT(index_text);
 
     // Make an event-data structure to track events - attached to the activity
@@ -517,8 +620,8 @@ static bool verify_address(const address_data_t* const addr_data)
     size_t index = 0;
     size_t confirmed_at_index = index;
     bool verified = false;
-    const size_t address_search_batch_size = ADDRESS_SEARCH_BATCH_SIZE(is_multisig);
-    const size_t num_indexes_to_reconfirm = NUM_INDEXES_TO_RECONFIRM(is_multisig);
+    const size_t address_search_batch_size = ADDRESS_SEARCH_BATCH_SIZE(multisig_data);
+    const size_t num_indexes_to_reconfirm = NUM_INDEXES_TO_RECONFIRM(multisig_data);
     while (!verified) {
         gui_set_current_activity(act);
 
@@ -532,9 +635,10 @@ static bool verify_address(const address_data_t* const addr_data)
         // Search a small batch of paths for the address script
         // NOTE: 'index' is updated as we go along
         JADE_ASSERT(search_roots);
-        if (is_multisig) {
-            verified = wallet_search_for_multisig_script(variant, sorted, threshold, search_roots, search_roots_len,
-                &index, address_search_batch_size, addr_data->script, addr_data->script_len);
+        if (multisig_data) {
+            verified = wallet_search_for_multisig_script(multisig_data->variant, multisig_data->sorted,
+                multisig_data->threshold, search_roots, search_roots_len, &index, address_search_batch_size,
+                addr_data->script, addr_data->script_len);
         } else {
             JADE_ASSERT(search_roots_len == 1);
             verified = wallet_search_for_singlesig_script(
@@ -574,6 +678,22 @@ static bool verify_address(const address_data_t* const addr_data)
                     // Jump to end of this batch
                     index = confirmed_at_index + num_indexes_to_reconfirm;
                     confirmed_at_index = index;
+                } else if (ev_id == BTN_SCAN_ADDRESS_OPTIONS) {
+                    if (handle_address_options(!multisig_data, &account_index, &is_change)) {
+                        // Recreate the search root(s) and update the screen label
+                        if (multisig_data) {
+                            get_multisig_search_roots(
+                                multisig_data, is_change, label, sizeof(label), search_roots, search_roots_len);
+                        } else {
+                            get_singlesig_search_root(variant, account_index, is_change, label, sizeof(label),
+                                search_roots, search_roots_len);
+                        }
+                        gui_update_text(label_text, label);
+
+                        // Restart search from index 0
+                        confirmed_at_index = 0;
+                        index = 0;
+                    }
                 } else if (ev_id == BTN_SCAN_ADDRESS_EXIT) {
                     // Abandon - exit loop
                     break;
@@ -591,6 +711,7 @@ static bool verify_address(const address_data_t* const addr_data)
         await_error_activity("Address NOT verified!");
     }
 
+    free(multisig_data);
     free(search_roots);
     return verified;
 }

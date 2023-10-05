@@ -83,8 +83,9 @@ gui_activity_t* make_xpub_qr_options_activity(
 }
 
 gui_activity_t* make_search_verify_address_activity(
-    const char* root_label, progress_bar_t* progress_bar, gui_view_node_t** index_text)
+    const char* root_label, gui_view_node_t** label_text, progress_bar_t* progress_bar, gui_view_node_t** index_text)
 {
+    JADE_ASSERT(label_text);
     JADE_ASSERT(progress_bar);
     JADE_ASSERT(index_text);
 
@@ -126,20 +127,58 @@ gui_activity_t* make_search_verify_address_activity(
     gui_set_padding(node, GUI_MARGIN_TWO_VALUES, 0, 2);
     gui_set_parent(node, hsplit);
 
-    gui_make_text(&node, root_label, TFT_WHITE);
-    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_make_fill(&node, TFT_BLACK);
     gui_set_parent(node, hsplit);
 
-    // buttons
-    btn_data_t ftrbtn = {
-        .txt = "Skip", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_SKIP_ADDRESSES, .borders = GUI_BORDER_TOP
-    };
-    add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
+    gui_make_text(label_text, root_label, TFT_WHITE);
+    gui_set_align(*label_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(*label_text, node);
 
-    // Select 'Skip' button by default
-    gui_set_activity_initial_selection(act, ftrbtn.btn);
+    // buttons
+    btn_data_t ftrbtns[] = { { .txt = "Skip",
+                                 .font = GUI_DEFAULT_FONT,
+                                 .ev_id = BTN_SCAN_ADDRESS_SKIP_ADDRESSES,
+                                 .borders = GUI_BORDER_TOPRIGHT },
+        { .txt = "Edit Root",
+            .font = GUI_DEFAULT_FONT,
+            .ev_id = BTN_SCAN_ADDRESS_OPTIONS,
+            .borders = GUI_BORDER_TOPLEFT } };
+    add_buttons(vsplit, UI_ROW, ftrbtns, 2);
+
+    // Select 'Edit Root' button by default
+    gui_set_activity_initial_selection(act, ftrbtns[1].btn);
 
     return act;
+}
+
+gui_activity_t* make_search_address_options_activity(
+    const bool show_account, gui_view_node_t** account_textbox, gui_view_node_t** change_textbox)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SCAN_ADDRESS_OPTIONS_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    // menu buttons with bespoke content
+    if (show_account) {
+        gui_make_text(account_textbox, "Account Index", TFT_WHITE);
+        gui_set_align(*account_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+        gui_make_text(change_textbox, "Change", TFT_WHITE);
+        gui_set_align(*change_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+        btn_data_t menubtns[]
+            = { { .content = *account_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_OPTIONS_ACCOUNT },
+                  { .content = *change_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_OPTIONS_CHANGE } };
+
+        return make_menu_activity("Search Root", hdrbtns, 2, menubtns, 2);
+    } else {
+        gui_make_text(change_textbox, "Change", TFT_WHITE);
+        gui_set_align(*change_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+        btn_data_t menubtn
+            = { .content = *change_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_SCAN_ADDRESS_OPTIONS_CHANGE };
+
+        return make_menu_activity("Search Root", hdrbtns, 2, &menubtn, 1);
+    }
 }
 
 gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** framerate_textbox)
