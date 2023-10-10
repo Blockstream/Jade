@@ -73,10 +73,12 @@ def get_fw_metadata(verinfo, release_data):
 # Download compressed firmware file from Firmware Server using 'requests'
 def download_file(verinfo, release):
     # Workout hw_target subdir
-    hw_target = {'JADE': 'jade', 'JADE_V1.1': 'jade1.1'}.get(verinfo['BOARD_TYPE'])
-    build_type = {'SB': '', 'DEV': 'dev'}.get(verinfo['JADE_FEATURES'])
+    board_type = verinfo.get("BOARD_TYPE")
+    features = verinfo.get("JADE_FEATURES")
+    hw_target = {'JADE': 'jade', 'JADE_V1.1': 'jade1.1'}.get(board_type if board_type else 'JADE')
+    build_type = {'SB': '', 'DEV': 'dev'}.get(features)
     if hw_target is None or build_type is None:
-        logger.error(f'Unsupported hardware: {verinfo["BOARD_TYPE"]} / {verinfo["JADE_FEATURES"]}')
+        logger.error(f'Unsupported hardware: {board_type} / {features}')
         return None, None, None, None
     hw_target += build_type
 
@@ -150,7 +152,7 @@ def ota(jade, verinfo, fwcompressed, fwlength, fwhash, patchlen=None):
     chunksize = int(verinfo['JADE_OTA_MAX_CHUNK'])
     assert chunksize > 0
 
-    if verinfo['JADE_STATE'] not in ['READY', 'UNINIT']:
+    if verinfo.get('JADE_STATE') not in ['READY', 'UNINIT']:
         # The network to use is deduced from the version-info
         print('Please ensure Jade is unlocked')
         network = 'testnet' if verinfo.get('JADE_NETWORKS') == 'TEST' else 'mainnet'
