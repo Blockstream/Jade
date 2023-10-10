@@ -79,8 +79,8 @@ uint8_t storage_get_gui_flags(void);
 bool storage_set_ble_flags(uint8_t flags);
 uint8_t storage_get_ble_flags(void);
 
-bool storage_set_qr_flags(uint16_t flags);
-uint16_t storage_get_qr_flags(void);
+bool storage_set_qr_flags(uint32_t flags);
+uint32_t storage_get_qr_flags(void);
 
 // Generic multisig
 bool storage_set_multisig_registration(const char* name, const uint8_t* registration, size_t registration_len);

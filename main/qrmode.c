@@ -73,14 +73,14 @@ int wally_psbt_free(struct wally_psbt* psbt);
 
 // Test whether 'flags' contains the entirety of the 'test_flags'
 // (ie. maybe compound/multiple bits set)
-static inline bool contains_flags(const uint16_t flags, const uint16_t test_flags)
+static inline bool contains_flags(const uint32_t flags, const uint32_t test_flags)
 {
     return (flags & test_flags) == test_flags;
 }
 
 // Rotate through: low -> high -> high|low -> low -> high ...
 // 'unset' treated as 'high' (ie. the middle value)
-static void rotate_flags(uint16_t* flags, const uint16_t high, const uint16_t low)
+static void rotate_flags(uint32_t* flags, const uint32_t high, const uint32_t low)
 {
     JADE_ASSERT(flags);
 
@@ -95,14 +95,14 @@ static void rotate_flags(uint16_t* flags, const uint16_t high, const uint16_t lo
     }
 }
 
-static uint8_t qr_framerate_from_flags(const uint16_t qr_flags)
+static uint8_t qr_framerate_from_flags(const uint32_t qr_flags)
 {
     // Frame periods around 800ms, 450ms, 270ms  (see GUI_TARGET_FRAMERATE)
     // Frame rates: HIGH|LOW > HIGH > LOW ...
     // unset/default is treated as 'high' (ie. the middle value)
     return contains_flags(qr_flags, QR_SPEED_HIGH | QR_SPEED_LOW) ? 4 : contains_flags(qr_flags, QR_SPEED_LOW) ? 12 : 7;
 }
-static const char* qr_framerate_desc_from_flags(const uint16_t qr_flags)
+static const char* qr_framerate_desc_from_flags(const uint32_t qr_flags)
 {
     // unset/default is treated as 'high' (ie. the middle value)
     return contains_flags(qr_flags, QR_SPEED_HIGH | QR_SPEED_LOW) ? "High"
@@ -110,7 +110,7 @@ static const char* qr_framerate_desc_from_flags(const uint16_t qr_flags)
                                                                   : "Medium";
 }
 
-static uint8_t qr_version_from_flags(const uint16_t qr_flags)
+static uint8_t qr_version_from_flags(const uint32_t qr_flags)
 {
     // QR versions 12, 6 and 4 fit well on the Jade screen with scaling of
     // 2 px-per-cell, 3 px-per-cell, and 4 px-per-cell respectively.
@@ -120,7 +120,7 @@ static uint8_t qr_version_from_flags(const uint16_t qr_flags)
         : contains_flags(qr_flags, QR_DENSITY_LOW)                    ? 4
                                                                       : 6;
 }
-static const char* qr_density_desc_from_flags(const uint16_t qr_flags)
+static const char* qr_density_desc_from_flags(const uint32_t qr_flags)
 {
     // unset/default is treated as 'high' (ie. the middle value)
     return contains_flags(qr_flags, QR_DENSITY_HIGH | QR_DENSITY_LOW) ? "High"
@@ -129,7 +129,7 @@ static const char* qr_density_desc_from_flags(const uint16_t qr_flags)
 }
 
 // We support native segwit and p2sh-wrapped segwit, singlesig and multisig
-static script_variant_t xpub_script_variant_from_flags(const uint16_t qr_flags)
+static script_variant_t xpub_script_variant_from_flags(const uint32_t qr_flags)
 {
     // unset/default is treated as 'high' (ie. the middle value)
     if (contains_flags(qr_flags, QR_XPUB_MULTISIG)) {
@@ -141,20 +141,20 @@ static script_variant_t xpub_script_variant_from_flags(const uint16_t qr_flags)
         : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? P2PKH
                                                                       : P2WPKH;
 }
-static inline const char* xpub_scripttype_desc_from_flags(const uint16_t qr_flags)
+static inline const char* xpub_scripttype_desc_from_flags(const uint32_t qr_flags)
 {
     // unset/default is treated as 'high' (ie. the middle value)
     return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? "Wrapped Segwit"
         : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? "Legacy"
                                                                       : "Native Segwit";
 }
-static inline const char* xpub_wallettype_desc_from_flags(const uint16_t qr_flags)
+static inline const char* xpub_wallettype_desc_from_flags(const uint32_t qr_flags)
 {
     // unset/default is treated as singlesig
     return contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
 }
 
-static gui_activity_t* create_display_xpub_qr_activity(const uint16_t qr_flags)
+static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
 {
     const bool use_format_hdkey = false; // qr_flags & QR_XPUB_HDKEY;  - not currently in use
     const char* const xpub_qr_format = use_format_hdkey ? BCUR_TYPE_CRYPTO_HDKEY : BCUR_TYPE_CRYPTO_ACCOUNT;
@@ -184,12 +184,12 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint16_t qr_flags)
     char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
     const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr));
     JADE_ASSERT(ret);
-    const char* label = qr_flags & QR_XPUB_MULTISIG ? "Multisig" : "Singlesig";
+    const char* label = contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
     const uint8_t frames_per_qr = qr_framerate_from_flags(qr_flags);
     return make_show_xpub_qr_activity(label, pathstr, icons, num_icons, frames_per_qr);
 }
 
-static bool handle_xpub_options(uint16_t* qr_flags)
+static bool handle_xpub_options(uint32_t* qr_flags)
 {
     JADE_ASSERT(qr_flags);
 
@@ -214,7 +214,7 @@ static bool handle_xpub_options(uint16_t* qr_flags)
     gui_activity_t* const act_density = make_carousel_activity("QR Density", NULL, &density_textbox);
     gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
 
-    const uint16_t initial_flags = *qr_flags;
+    const uint32_t initial_flags = *qr_flags;
     while (true) {
         // Show, and await button click
         gui_set_current_activity(act);
@@ -297,7 +297,7 @@ static bool handle_xpub_options(uint16_t* qr_flags)
 // Display singlesig xpub qr code
 void display_xpub_qr(void)
 {
-    uint16_t qr_flags = storage_get_qr_flags();
+    uint32_t qr_flags = storage_get_qr_flags();
 
     // Create show xpub activity for those icons
     gui_activity_t* act = create_display_xpub_qr_activity(qr_flags);
@@ -580,7 +580,7 @@ static bool verify_address(const address_data_t* const addr_data)
 }
 
 // Handle QR Options dialog - ie. QR size and frame-rate
-static bool handle_qr_options(uint16_t* qr_flags)
+static bool handle_qr_options(uint32_t* qr_flags)
 {
     JADE_ASSERT(qr_flags);
 
@@ -598,7 +598,7 @@ static bool handle_qr_options(uint16_t* qr_flags)
     gui_activity_t* const act_framerate = make_carousel_activity("Frame Rate", NULL, &framerate_textbox);
     gui_update_text(framerate_textbox, qr_framerate_desc_from_flags(*qr_flags));
 
-    const uint16_t initial_flags = *qr_flags;
+    const uint32_t initial_flags = *qr_flags;
     while (true) {
         // Show, and await button click
         gui_set_current_activity(act);
@@ -669,7 +669,7 @@ static bool handle_qr_options(uint16_t* qr_flags)
 
 // Create activity to display (potentially multi-frame/animated) qr
 static gui_activity_t* create_display_bcur_qr_activity(const char* label, const char* bcur_type, const uint8_t* cbor,
-    const size_t cbor_len, const uint16_t qr_flags, const char* help_url)
+    const size_t cbor_len, const uint32_t qr_flags, const char* help_url)
 {
     JADE_ASSERT(label);
     JADE_ASSERT(bcur_type);
@@ -699,7 +699,7 @@ static void display_bcur_qr(
     JADE_ASSERT(cbor_len);
     // help_url is optional
 
-    uint16_t qr_flags = storage_get_qr_flags();
+    uint32_t qr_flags = storage_get_qr_flags();
 
     // When displaying a bcur qr code we set the minimum idle timeout to keep the hw from sleeping too quickly
     // (If the user has set a longer timeout value that is respected)

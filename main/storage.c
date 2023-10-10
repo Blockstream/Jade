@@ -592,15 +592,23 @@ uint8_t storage_get_ble_flags(void)
     return read_blob_fixed(DEFAULT_NAMESPACE, BLE_FLAGS_FIELD, &flags, sizeof(flags)) ? flags : 0;
 }
 
-bool storage_set_qr_flags(uint16_t flags)
+bool storage_set_qr_flags(uint32_t flags)
 {
     return store_blob(DEFAULT_NAMESPACE, QR_FLAGS_FIELD, (const uint8_t*)&flags, sizeof(flags));
 }
 
-uint16_t storage_get_qr_flags(void)
+uint32_t storage_get_qr_flags(void)
 {
-    uint16_t flags = 0;
-    return read_blob_fixed(DEFAULT_NAMESPACE, QR_FLAGS_FIELD, (uint8_t*)&flags, sizeof(flags)) ? flags : 0;
+    uint32_t flags = 0;
+    if (!read_blob_fixed(DEFAULT_NAMESPACE, QR_FLAGS_FIELD, (uint8_t*)&flags, sizeof(flags))) {
+        uint16_t legacy_flags = 0; // flags used to be saved as 16bits only
+        if (read_blob_fixed(DEFAULT_NAMESPACE, QR_FLAGS_FIELD, (uint8_t*)&legacy_flags, sizeof(legacy_flags))) {
+            flags = legacy_flags;
+        } else {
+            flags = 0;
+        }
+    }
+    return flags;
 }
 
 bool storage_set_key_flags(uint8_t flags)
