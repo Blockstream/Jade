@@ -2157,7 +2157,7 @@ static void display_screen(jade_process_t* process, gui_activity_t* act)
 
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();
-    refeed_entropy((const uint8_t*)&tick_count, sizeof(tick_count));
+    refeed_entropy(&tick_count, sizeof(tick_count));
 }
 
 // Display the dashboard ready or welcome screen.  Await messages or user GUI input.

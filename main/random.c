@@ -126,14 +126,14 @@ static void get_random_internal(uint8_t* bytes_out, const size_t len, const uint
     JADE_WALLY_VERIFY(wally_bzero(buf, sizeof(buf)));
 }
 
-void refeed_entropy(const uint8_t* additional, const size_t len)
+void refeed_entropy(const void* additional, const size_t len)
 {
     JADE_ASSERT(additional);
     JADE_ASSERT(len);
     get_random_internal(NULL, 0, additional, len);
 }
 
-void get_random(uint8_t* bytes_out, const size_t len)
+void get_random(void* bytes_out, const size_t len)
 {
     JADE_ASSERT(bytes_out);
     JADE_ASSERT(len);
