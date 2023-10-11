@@ -453,7 +453,7 @@ void gui_set_text_default_font(gui_view_node_t* node);
 void gui_update_text(gui_view_node_t* node, const char* text);
 void gui_update_icon(gui_view_node_t* node, Icon icon, bool repaint_parent);
 void gui_update_picture(gui_view_node_t* node, const Picture* picture, bool repaint_parent);
-void gui_repaint(gui_view_node_t* node, bool take_mutex);
+void gui_repaint(gui_view_node_t* node);
 
 void gui_set_current_activity_ex(gui_activity_t* new_current, bool free_managed_activities);
 void gui_set_current_activity(gui_activity_t* new_current);
@@ -469,7 +469,6 @@ bool gui_set_active(gui_activity_t* activity, gui_view_node_t* node, bool value)
 void gui_select_node(gui_activity_t* activity, gui_view_node_t* node);
 
 void gui_set_activity_title(gui_activity_t* activity, const char* title);
-void gui_set_title(const char* title);
 
 gui_activity_t* gui_current_activity(void);
 

@@ -42,15 +42,17 @@ struct _activity_holder_t {
 };
 
 typedef struct {
+    gui_view_node_t* node_to_repaint;
     gui_activity_t* new_activity;
     activity_holder_t* to_free;
-} activity_switch_info_t;
+} gui_task_job_t;
 
 // global mutex used to synchronize tft paint commands. global across activities
 static SemaphoreHandle_t paint_mutex = NULL;
-// global mutex used to synchronize activity data
+// Main mutex used to synchronize all gui node and activity data
 // notably the current activity and the list of managed activities
-static SemaphoreHandle_t activities_mutex = NULL;
+// and any calls to the underlying screen-driver library.
+static SemaphoreHandle_t gui_mutex = NULL;
 // current activity being drawn on screen
 static gui_activity_t* current_activity = NULL;
 // stack of activities that currently exist
@@ -58,8 +60,8 @@ static activity_holder_t* existing_activities = NULL;
 
 // handle to the task running to update the gui
 static TaskHandle_t gui_task_handle = NULL;
-// queue for gui task to receive the new activity
-static RingbufHandle_t switch_activities_queue = NULL;
+// queue for gui task to receive items to process (eg. repaint node, switch activities, etc.)
+static RingbufHandle_t gui_input_queue = NULL;
 
 // Click/select event (ie. which button counts as 'click'/select)
 // and which gui highlight colour is in use
@@ -89,6 +91,7 @@ struct {
 static inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
 
 static void gui_task(void* args);
+static void repaint_node(gui_view_node_t* node, bool take_mutex);
 
 static void make_status_bar(void)
 {
@@ -172,8 +175,8 @@ void gui_init(void)
     paint_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(paint_mutex);
 
-    activities_mutex = xSemaphoreCreateMutex();
-    JADE_ASSERT(activities_mutex);
+    gui_mutex = xSemaphoreCreateMutex();
+    JADE_ASSERT(gui_mutex);
 
     // Which button event are we to use as a click / 'select item'
     // and which menu highlight colour to use
@@ -188,9 +191,9 @@ void gui_init(void)
     const esp_err_t rc = esp_event_loop_create_default();
     JADE_ASSERT(rc == ESP_OK);
 
-    // Create 'switch activities' input queue (ringbuffer)
-    switch_activities_queue = xRingbufferCreate(32, RINGBUF_TYPE_NOSPLIT);
-    JADE_ASSERT(switch_activities_queue);
+    // Create main input queue (ringbuffer)
+    gui_input_queue = xRingbufferCreate(32 * sizeof(gui_task_job_t), RINGBUF_TYPE_NOSPLIT);
+    JADE_ASSERT(gui_input_queue);
 
     // Create status-bar
     make_status_bar();
@@ -250,7 +253,7 @@ bool gui_set_active(gui_activity_t* activity, gui_view_node_t* node, bool value)
     if (value) {
         // Set passed node to active
         set_tree_active(node, true);
-        gui_repaint(node, true);
+        gui_repaint(node);
         return true;
     }
 
@@ -273,7 +276,7 @@ bool gui_set_active(gui_activity_t* activity, gui_view_node_t* node, bool value)
     }
 
     set_tree_active(node, false);
-    gui_repaint(node, true);
+    gui_repaint(node);
     return true;
 }
 
@@ -341,10 +344,10 @@ static bool gui_select_prev(gui_activity_t* activity)
     }
 
     set_tree_selection(current->node, false);
-    gui_repaint(current->node, true);
+    gui_repaint(current->node);
 
     set_tree_selection(prev_active->node, true);
-    gui_repaint(prev_active->node, true);
+    gui_repaint(prev_active->node);
 
     activity->selectables = prev_active;
 
@@ -392,12 +395,12 @@ void gui_select_node(gui_activity_t* activity, gui_view_node_t* node)
     // Deactivate prior selection
     if (old_selected) {
         set_tree_selection(old_selected->node, false);
-        gui_repaint(old_selected->node, true);
+        gui_repaint(old_selected->node);
     }
 
     // Select passed node
     set_tree_selection(new_selected->node, true);
-    gui_repaint(new_selected->node, true);
+    gui_repaint(new_selected->node);
 
     activity->selectables = new_selected;
 }
@@ -448,11 +451,11 @@ static bool gui_select_next(gui_activity_t* activity)
 
     // remove selection from `current`
     set_tree_selection(current->node, false);
-    gui_repaint(current->node, true);
+    gui_repaint(current->node);
 
     // add selection to `next_active`
     set_tree_selection(next_active->node, true);
-    gui_repaint(next_active->node, true);
+    gui_repaint(next_active->node);
 
     activity->selectables = next_active;
 
@@ -563,10 +566,10 @@ void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, con
         activity_holder_t* holder = JADE_CALLOC(1, sizeof(activity_holder_t));
 
         // Add to the stack of existing activities
-        JADE_SEMAPHORE_TAKE(activities_mutex);
+        JADE_SEMAPHORE_TAKE(gui_mutex);
         holder->next = existing_activities;
         existing_activities = holder;
-        JADE_SEMAPHORE_GIVE(activities_mutex);
+        JADE_SEMAPHORE_GIVE(gui_mutex);
 
         // Return the activity from within this holder
         *ppact = &holder->activity;
@@ -703,11 +706,11 @@ void free_unmanaged_activity(gui_activity_t* activity)
 #ifdef CONFIG_DEBUG_MODE
     // Assert this is indeed an 'unmanaged' activity
     // ie. is not in the list of managed activities
-    JADE_SEMAPHORE_TAKE(activities_mutex);
+    JADE_SEMAPHORE_TAKE(gui_mutex);
     for (activity_holder_t* managed = existing_activities; managed; managed = managed->next) {
         JADE_ASSERT(&managed->activity != activity);
     }
-    JADE_SEMAPHORE_GIVE(activities_mutex);
+    JADE_SEMAPHORE_GIVE(gui_mutex);
 #endif
 
     JADE_LOGW("Freeing unmanaged gui activity at %p", activity);
@@ -1519,38 +1522,33 @@ static void gui_update_text_node_text(gui_view_node_t* node, const char* text)
     gui_resolve_text(node);
 }
 
-// Takes the activities_mutex, updates the text node, and then only draws the
+// Takes the gui_mutex, updates the text node, and then only draws the
 // updated item if it is part of the 'current activity'.
 void gui_update_text(gui_view_node_t* node, const char* text)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
 
-    // Get the root node holding the passed node
-    gui_view_node_t* const root = gui_get_root_node(node);
-
-    // Get the activity mutex
-    JADE_SEMAPHORE_TAKE(activities_mutex);
-
-    // Update the text node text
+    // Get the activity mutex, update the text node text and
+    // if part of current activity release the mutex and post
+    // a message to the gui task to repaint it.
+    JADE_SEMAPHORE_TAKE(gui_mutex);
     gui_update_text_node_text(node, text);
+    const bool repaint = current_activity && node->activity == current_activity;
+    JADE_SEMAPHORE_GIVE(gui_mutex);
 
-    // If part of current activity, draw it immediately
-    if (current_activity && current_activity->root_node && current_activity->root_node == root) {
+    if (repaint) {
         // repaint the parent (so that the old string is cleared). Usually a parent should
         // be present, because it's unlikely that a root node is of type "text"
         if (node->parent) {
-            gui_repaint(node->parent, true);
+            gui_repaint(node->parent);
         } else {
-            gui_repaint(node, true);
+            gui_repaint(node);
         }
     }
-
-    // Release the activity mutex
-    JADE_SEMAPHORE_GIVE(activities_mutex);
 }
 
-// Takes the activities_mutex, updates the icon, and then only draws the
+// Takes the gui_mutex, updates the icon, and then only draws the
 // updated item if it is part of the 'current activity'.
 void gui_update_icon(gui_view_node_t* node, const Icon icon, const bool repaint_parent)
 {
@@ -1558,63 +1556,54 @@ void gui_update_icon(gui_view_node_t* node, const Icon icon, const bool repaint_
     JADE_ASSERT(node->kind == ICON);
     JADE_ASSERT(!node->icon->animation); // animated
 
-    // Get the root node holding the passed node
-    gui_view_node_t* const root = gui_get_root_node(node);
-
-    // Get the activity mutex
-    JADE_SEMAPHORE_TAKE(activities_mutex);
-
-    // Update icon
+    // Get the activity mutex, update the icon data and
+    // if part of current activity release the mutex and post
+    // a message to the gui task to repaint it.
+    JADE_SEMAPHORE_TAKE(gui_mutex);
     node->icon->icon = icon;
+    const bool repaint = current_activity && node->activity == current_activity;
+    JADE_SEMAPHORE_GIVE(gui_mutex);
 
-    // If part of current activity, draw it immediately
-    if (current_activity && current_activity->root_node && current_activity->root_node == root) {
+    if (repaint) {
         // Maybe repaint the parent (so that the old icon is cleared). Usually a parent should
         // be present, because it's unlikely that a root node is of type "icon"
         if (repaint_parent && node->parent) {
             // Redraw parent (ie. background), then children
-            gui_repaint(node->parent, true);
+            gui_repaint(node->parent);
         } else {
             // Simply redraw over the top - eg. if icon same size or larger and not transparent
-            gui_repaint(node, true);
+            gui_repaint(node);
         }
     }
-
-    // Release the activity mutex
-    JADE_SEMAPHORE_GIVE(activities_mutex);
 }
 
-// Takes the activities_mutex, updates the picture, and then only draws the
+// Takes the gui_mutex, updates the picture, and then only draws the
 // updated item if it is part of the 'current activity'.
 void gui_update_picture(gui_view_node_t* node, const Picture* picture, const bool repaint_parent)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == PICTURE);
 
-    // Get the root node holding the passed node
-    gui_view_node_t* const root = gui_get_root_node(node);
-
-    // Get the activity mutex
-    JADE_SEMAPHORE_TAKE(activities_mutex);
-
-    // Update picture
+    // Get the activity mutex, update the picture data and
+    // if part of current activity release the mutex and post
+    // a message to the gui task to repaint it.
+    JADE_SEMAPHORE_TAKE(gui_mutex);
     node->picture->picture = picture;
+    const bool repaint = current_activity && node->activity == current_activity;
+    JADE_SEMAPHORE_GIVE(gui_mutex);
 
     // If part of current activity, draw it immediately
-    if (current_activity && current_activity->root_node && current_activity->root_node == root) {
+    if (repaint) {
         // Maybe repaint the parent (so that the old picture is cleared). Usually a parent should
-        // be present, because it's unlikely that a root node is of type "icon"
+        // be present, because it's unlikely that a root node is of type "picture"
         if (repaint_parent && node->parent) {
             // Redraw parent (ie. background), then children
-            gui_repaint(node->parent, true);
+            gui_repaint(node->parent);
         } else {
             // Simply redraw over the top - eg. if picture same size or larger
-            gui_repaint(node, true);
+            gui_repaint(node);
         }
     }
-
-    // Release the activity mutex
-    JADE_SEMAPHORE_GIVE(activities_mutex);
 }
 
 static inline color_t DEBUG_COLOR(uint8_t depth)
@@ -1680,7 +1669,7 @@ static void render_node(gui_view_node_t* node, dispWin_t constraints, uint8_t de
     node->render_data.depth = depth;
 
     // actually paint the node on-screen, taking the mutex only if we are the root
-    gui_repaint(node, !node->parent);
+    repaint_node(node, !node->parent);
 }
 
 static void render_button(gui_view_node_t* node, dispWin_t cs, uint8_t depth)
@@ -1929,8 +1918,8 @@ static void paint_borders(gui_view_node_t* node, dispWin_t cs)
     }
 }
 
-// repaint a node to screen
-void gui_repaint(gui_view_node_t* node, bool take_mutex)
+// Actually repaint a node on the display - calls underlying display library
+static void repaint_node(gui_view_node_t* node, bool take_mutex)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(paint_mutex);
@@ -2012,22 +2001,39 @@ static void gui_render_activity(gui_activity_t* activity)
     }
 }
 
-static bool switch_activities(void)
+static void free_activities(activity_holder_t* to_free)
 {
-    JADE_ASSERT(switch_activities_queue);
+    while (to_free) {
+        JADE_ASSERT(&to_free->activity != current_activity);
+        activity_holder_t* const next = to_free->next;
+        free_managed_activity(to_free);
+        to_free = next;
+    }
+}
 
+// Process queue of jobs - always drain entire queue
+static size_t handle_gui_input_queue(bool* switched_activities)
+{
+    JADE_ASSERT(switched_activities);
+    JADE_ASSERT(gui_input_queue);
+
+    size_t jobs_handled = 0;
+    *switched_activities = false;
+
+    gui_task_job_t* job = NULL;
     size_t item_size = 0;
-    activity_switch_info_t* const switch_info
-        = xRingbufferReceive(switch_activities_queue, &item_size, 20 / portTICK_PERIOD_MS);
+    while ((job = xRingbufferReceive(gui_input_queue, &item_size, 10 / portTICK_PERIOD_MS))) {
+        JADE_ASSERT(item_size == sizeof(gui_task_job_t));
 
-    if (switch_info != NULL) {
-        JADE_ASSERT(item_size == sizeof(activity_switch_info_t));
-        JADE_ASSERT(switch_info->new_activity);
+        // *Either* repainting a node *or* moving to a whole new activity
+        JADE_ASSERT(!job->node_to_repaint != !job->new_activity);
+        activity_holder_t* to_free = job->to_free;
 
-        // Take the activities mutex while we swap activities
-        JADE_SEMAPHORE_TAKE(activities_mutex);
+        // Take the main gui mutex
+        JADE_SEMAPHORE_TAKE(gui_mutex);
 
-        if (switch_info->new_activity != current_activity) {
+        if (job->new_activity && job->new_activity != current_activity) {
+            *switched_activities = true;
 
             // Unregister the old activity's event handlers
             if (current_activity) {
@@ -2040,25 +2046,23 @@ static bool switch_activities(void)
             }
 
             // Set the current_activity to the new one, and render it
-            current_activity = switch_info->new_activity;
+            current_activity = job->new_activity;
 
             // If passed a 'to_free' list, free these activities now.
             // This does not really need to be protected by the semaphore - however we want to
             // free the old activities *before* the code below runs, as it makes allocations.
             // If we defer the 'frees' until later, we end up fragmenting the memory, which is
             // particularly detrimental to no-psram devices.
-            activity_holder_t* to_free = switch_info->to_free;
-            while (to_free) {
-                JADE_ASSERT(&to_free->activity != current_activity);
-                activity_holder_t* const next = to_free->next;
-                free_managed_activity(to_free);
-                to_free = next;
+            if (to_free) {
+                free_activities(to_free);
+                to_free = NULL;
             }
 
             // Update the status bar text for the new activity
             if (current_activity->status_bar) {
                 if (current_activity->title) {
-                    gui_set_title(current_activity->title);
+                    gui_update_text_node_text(status_bar.title, current_activity->title);
+                    repaint_node(status_bar.root, true);
                 }
                 status_bar.updated = true;
             }
@@ -2075,17 +2079,27 @@ static bool switch_activities(void)
             }
         }
 
-        // Release the activities mutex
-        JADE_SEMAPHORE_GIVE(activities_mutex);
+        // May have been passed a node to repaint
+        // Only do so if it belongs on the current activity and we haven't just switched
+        if (job->node_to_repaint && job->node_to_repaint->activity == current_activity && !job->new_activity) {
+            // Issue repaint command on the node passed
+            repaint_node(job->node_to_repaint, true);
+        }
+
+        // Release the main gui mutex
+        JADE_SEMAPHORE_GIVE(gui_mutex);
 
         // Return the ringbuffer slot
-        vRingbufferReturnItem(switch_activities_queue, switch_info);
+        vRingbufferReturnItem(gui_input_queue, job);
 
-        return true;
+        // Free any outstanding activities, if required (and not already done)
+        free_activities(to_free);
+
+        // Count jobs handled so we can return
+        ++jobs_handled;
     }
 
-    // No item/no new activity
-    return false;
+    return jobs_handled;
 }
 
 // updatables task, this task runs to update elements in the `updatables` list of the current activity
@@ -2107,7 +2121,7 @@ static void update_updateables(void)
         if (result) {
             // repaint and take the mutex
             // TODO: we are ignoring the return code here...
-            gui_repaint(current->node, true);
+            repaint_node(current->node, true);
         }
         current = current->next;
     }
@@ -2191,9 +2205,14 @@ static void gui_task(void* args)
         // time each loop, just let vTaskDelayUntil() track the 'last_wake' count.
         vTaskDelayUntil(&last_wake, period);
 
-        // Check the current activity - set new activity if need be
+        // Check the input queue - repaint node or set new activity if need be
         // Note: this can also free all the old/completed activities
-        if (!switch_activities()) {
+        bool switched_activities = false;
+        const size_t jobs_handled = handle_gui_input_queue(&switched_activities);
+        if (jobs_handled > 4) {
+            JADE_LOGW("gui task handled %u jobs", jobs_handled);
+        }
+        if (!switched_activities) {
             // Not switching activities, update any 'updatable' gui elements on this activity
             update_updateables();
         }
@@ -2250,6 +2269,21 @@ void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_
     activity->initial_selection = node;
 }
 
+// Post a node to the gui task to be repainted
+// Should ultimately result in a call to repaint_node() from the gui_task.
+// This ensures all calls to the undlerying display driver come from the gui_task
+// and are serialised, such that no mutexing should be required.
+void gui_repaint(gui_view_node_t* node)
+{
+    JADE_ASSERT(node);
+
+    // Post the node to the gui task
+    const gui_task_job_t node_repaint_info = { .node_to_repaint = node, .new_activity = NULL, .to_free = NULL };
+    while (xRingbufferSend(gui_input_queue, &node_repaint_info, sizeof(node_repaint_info), portMAX_DELAY) != pdTRUE) {
+        // wait for a spot in the ring
+    }
+}
+
 // Call to initiate a change of current activity - optionally freeing other managed activities.
 // Can also pass a 'retain' activity which is not made current, but is retained and not freed.
 void gui_set_current_activity_ex(gui_activity_t* new_current, const bool free_managed_activities)
@@ -2257,12 +2291,12 @@ void gui_set_current_activity_ex(gui_activity_t* new_current, const bool free_ma
     JADE_ASSERT(new_current);
 
     // We will post the gui task the new activity, and the list of activities it can free
-    activity_switch_info_t switch_info = { .new_activity = new_current, .to_free = NULL };
+    gui_task_job_t switch_info = { .node_to_repaint = NULL, .new_activity = new_current, .to_free = NULL };
 
     // If freeing others, partition existing activities into those to keep (new current and the
     //  passed 'retain' activity) and those to free (all others).
     if (free_managed_activities) {
-        JADE_SEMAPHORE_TAKE(activities_mutex);
+        JADE_SEMAPHORE_TAKE(gui_mutex);
         activity_holder_t* holder = existing_activities;
         existing_activities = NULL;
 
@@ -2287,11 +2321,11 @@ void gui_set_current_activity_ex(gui_activity_t* new_current, const bool free_ma
         JADE_ASSERT(
             !existing_activities || ((&existing_activities->activity == new_current) && !existing_activities->next));
 
-        JADE_SEMAPHORE_GIVE(activities_mutex);
+        JADE_SEMAPHORE_GIVE(gui_mutex);
     }
 
     // Post the new activity and the list to free to the gui task
-    while (xRingbufferSend(switch_activities_queue, &switch_info, sizeof(switch_info), portMAX_DELAY) != pdTRUE) {
+    while (xRingbufferSend(gui_input_queue, &switch_info, sizeof(switch_info), portMAX_DELAY) != pdTRUE) {
         // wait for a spot in the ring
     }
 }
@@ -2335,9 +2369,9 @@ void gui_activity_register_event(
     link->handler = handler;
     link->args = args;
 
-    // Get the activities mutex before we update the activity events
-    // or check the current activity, as can be concurrent with 'switch_activities()'
-    JADE_SEMAPHORE_TAKE(activities_mutex);
+    // Get the main gui mutex before we update the activity events
+    // or check the current activity, as can be concurrent with 'handle_gui_input_queue()'
+    JADE_SEMAPHORE_TAKE(gui_mutex);
 
     if (!activity->activity_events) {
         activity->activity_events = link;
@@ -2356,8 +2390,8 @@ void gui_activity_register_event(
         JADE_ASSERT(rc == ESP_OK);
     }
 
-    // Return the activities mutex
-    JADE_SEMAPHORE_GIVE(activities_mutex);
+    // Return the main gui mutex
+    JADE_SEMAPHORE_GIVE(gui_mutex);
 }
 
 // Registers and event handler, then blocks waiting for it to fire.  A timeout can be passed.
@@ -2387,24 +2421,19 @@ void gui_set_activity_title(gui_activity_t* activity, const char* title)
     JADE_ASSERT(activity);
     JADE_ASSERT(title);
 
+    JADE_SEMAPHORE_TAKE(gui_mutex);
     if (activity->title) {
         free(activity->title);
     }
     activity->title = strdup(title);
 
-    // If setting title for the current activity, update status bar immediately
-    if (activity == current_activity) {
-        gui_set_title(title);
-    }
-}
+    // If setting title for the current activity, update status bar
+    const bool repaint = current_activity && activity == current_activity;
+    JADE_SEMAPHORE_GIVE(gui_mutex);
 
-// Set status bar title on screen immediately
-void gui_set_title(const char* title)
-{
-    JADE_ASSERT(title);
-    // Update the text then repaint the entire status bar
-    gui_update_text_node_text(status_bar.title, title);
-    gui_repaint(status_bar.root, true);
+    if (repaint) {
+        gui_repaint(status_bar.root);
+    }
 }
 
 gui_activity_t* gui_current_activity(void) { return current_activity; }

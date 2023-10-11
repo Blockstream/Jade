@@ -45,7 +45,7 @@ static void update_digit_node(pin_insert_t* pin_insert, uint8_t i)
         break;
     }
     gui_update_text(pin_insert->pin_digit_nodes[i].digit_node, strdigit);
-    gui_repaint(pin_insert->pin_digit_nodes[i].fill_node, true);
+    gui_repaint(pin_insert->pin_digit_nodes[i].fill_node);
 }
 
 void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message)

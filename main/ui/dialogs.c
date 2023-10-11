@@ -501,7 +501,7 @@ void update_carousel_highlight_color(const gui_view_node_t* text_label, const co
 
     // Repaint if requested
     if (repaint) {
-        gui_repaint(text_label->parent->parent->parent, true);
+        gui_repaint(text_label->parent->parent->parent);
     }
 }
 
@@ -588,7 +588,7 @@ void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const
         const uint16_t width_shaded = width_bar * current / total;
 
         gui_set_borders(progress_bar->progress_bar, gui_get_highlight_color(), width_shaded, GUI_BORDER_LEFT);
-        gui_repaint(progress_bar->progress_bar, true);
+        gui_repaint(progress_bar->progress_bar);
     }
 
     // Update the % progress text label if present
