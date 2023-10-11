@@ -56,9 +56,14 @@ void jade_abort(const char* file, const int line_n);
     do {                                                                                                               \
         int attempt = 0;                                                                                               \
         while (xSemaphoreTake(s, 500 / portTICK_PERIOD_MS) != pdTRUE) {                                                \
-            JADE_LOGW("Failed to acquire mutex, attempt %u", ++attempt);                                               \
+            JADE_LOGW("Failed to acquire mutex %p, attempt %u", (void*)s, ++attempt);                                  \
             JADE_ASSERT_MSG(attempt < 10, "Fatal failure to acquire mutex, exhausted retries");                        \
         }                                                                                                              \
+        JADE_LOGD("Aquired mutex %p", (void*)s);                                                                       \
     } while (false)
 
-#define JADE_SEMAPHORE_GIVE(s) xSemaphoreGive(s)
+#define JADE_SEMAPHORE_GIVE(s)                                                                                         \
+    do {                                                                                                               \
+        xSemaphoreGive(s);                                                                                             \
+        JADE_LOGD("Released mutex %p", (void*)s);                                                                      \
+    } while (false)
