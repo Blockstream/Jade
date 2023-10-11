@@ -111,7 +111,7 @@ static void jade_camera_init(void)
         .pixel_format = PIXFORMAT_GRAYSCALE,
         .frame_size = FRAMESIZE_QVGA,
 
-        .fb_count = 3,
+        .fb_count = 1,
         .fb_location = CAMERA_FB_IN_PSRAM,
         .grab_mode = CAMERA_GRAB_LATEST,
 
@@ -234,9 +234,7 @@ static void jade_camera_task(void* data)
 
     // Loop periodically refreshes screen image from camera, and waits for button event
     bool done = false;
-    bool show_this_frame = true;
     while (!done) {
-
         // Capture camera output
         camera_fb_t* const fb = esp_camera_fb_get();
         if (!fb) {
@@ -249,60 +247,53 @@ static void jade_camera_task(void* data)
 
         // If we have a gui, update the image on screen and check for button events
         if (has_gui) {
-            // Note to maximise processing performace we may skip drawing some frames
-            // (but still pass them to the processing function)
-            if (camera_config->text_button || show_this_frame) {
-                // Copy from camera output to screen image
-                // (Ensure source image large enough to be scaled down to display image size)
-                const uint8_t scale = DISPLAY_IMAGE_SCALE_FACTOR;
-                JADE_ASSERT(fb->len >= scale * scale * image_size);
-                uint8_t(*image_matrix)[DISPLAY_IMAGE_WIDTH] = image_buffer;
-                uint8_t(*fb_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
-                for (size_t imgy = 0; imgy < DISPLAY_IMAGE_HEIGHT; ++imgy) {
-                    for (size_t imgx = 0; imgx < DISPLAY_IMAGE_WIDTH; ++imgx) {
+            // Copy from camera output to screen image
+            // (Ensure source image large enough to be scaled down to display image size)
+            const uint8_t scale = DISPLAY_IMAGE_SCALE_FACTOR;
+            JADE_ASSERT(fb->len >= scale * scale * image_size);
+            uint8_t(*image_matrix)[DISPLAY_IMAGE_WIDTH] = image_buffer;
+            uint8_t(*fb_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
+            for (size_t imgy = 0; imgy < DISPLAY_IMAGE_HEIGHT; ++imgy) {
+                for (size_t imgx = 0; imgx < DISPLAY_IMAGE_WIDTH; ++imgx) {
 #if defined(CONFIG_CAMERA_ROTATE_90)
-                        image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)][imgy * scale];
+                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)][imgy * scale];
 #elif defined(CONFIG_CAMERA_ROTATE_180)
-                        image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)]
-                                                            [(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)];
+                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)]
+                                                        [(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)];
 #elif defined(CONFIG_CAMERA_ROTATE_270)
-                        image_matrix[imgy][imgx] = fb_matrix[imgx * scale][(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)];
+                    image_matrix[imgy][imgx] = fb_matrix[imgx * scale][(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)];
 #else
-                        image_matrix[imgy][imgx] = fb_matrix[imgy * scale][imgx * scale];
+                    image_matrix[imgy][imgx] = fb_matrix[imgy * scale][imgx * scale];
 #endif
-                    }
-                }
-                gui_update_picture(image_node, &pic, false);
-
-                // Ensure showing camera activity/captured image
-                if (gui_current_activity() != act) {
-                    gui_set_current_activity(act);
-                }
-
-                // Check for button events
-                int32_t ev_id;
-                if (sync_wait_event(event_data, NULL, &ev_id, NULL, 10 / portTICK_PERIOD_MS) == ESP_OK) {
-                    if (ev_id == BTN_CAMERA_CLICK) {
-                        // Button clicked - invoke passed processing callback
-                        JADE_ASSERT(camera_config->text_button);
-                        gui_update_text(label_node, "Processing...");
-                        done = invoke_user_cb_fn(camera_config, fb);
-
-                        // If not done, will loop and continue to capture images
-                        if (!done) {
-                            gui_update_text(label_node, camera_config->text_label);
-                        }
-                    } else if (ev_id == BTN_CAMERA_HELP) {
-                        await_qr_help_activity(camera_config->help_url);
-                    } else if (ev_id == BTN_CAMERA_EXIT) {
-                        // Done with camera
-                        done = true;
-                    }
                 }
             }
+            gui_update_picture(image_node, &pic, false);
 
-            // Flip the flag so that every other frame is displayed/skipped
-            show_this_frame = !show_this_frame;
+            // Ensure showing camera activity/captured image
+            if (gui_current_activity() != act) {
+                gui_set_current_activity(act);
+            }
+
+            // Check for button events
+            int32_t ev_id;
+            if (sync_wait_event(event_data, NULL, &ev_id, NULL, 50 / portTICK_PERIOD_MS) == ESP_OK) {
+                if (ev_id == BTN_CAMERA_CLICK) {
+                    // Button clicked - invoke passed processing callback
+                    JADE_ASSERT(camera_config->text_button);
+                    gui_update_text(label_node, "Processing...");
+                    done = invoke_user_cb_fn(camera_config, fb);
+
+                    // If not done, will loop and continue to capture images
+                    if (!done) {
+                        gui_update_text(label_node, camera_config->text_label);
+                    }
+                } else if (ev_id == BTN_CAMERA_HELP) {
+                    await_qr_help_activity(camera_config->help_url);
+                } else if (ev_id == BTN_CAMERA_EXIT) {
+                    // Done with camera
+                    done = true;
+                }
+            }
         }
 
         // If we have no 'click' button (or no gui at all), we run the processing callback on every frame

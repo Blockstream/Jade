@@ -74,7 +74,7 @@ static bool rnd_camera_feed(
     JADE_ASSERT(ctx_data);
     size_t* counter = (size_t*)ctx_data;
     refeed_entropy(data, len);
-    return ++*counter > 20;
+    return ++*counter > 10;
 }
 #endif // CONFIG_HAS_CAMERA && !CONFIG_ETH_USE_OPENETH
 
