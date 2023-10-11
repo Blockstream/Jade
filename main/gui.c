@@ -47,8 +47,6 @@ typedef struct {
     activity_holder_t* to_free;
 } gui_task_job_t;
 
-// global mutex used to synchronize tft paint commands. global across activities
-static SemaphoreHandle_t paint_mutex = NULL;
 // Main mutex used to synchronize all gui node and activity data
 // notably the current activity and the list of managed activities
 // and any calls to the underlying screen-driver library.
@@ -91,7 +89,7 @@ struct {
 static inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
 
 static void gui_task(void* args);
-static void repaint_node(gui_view_node_t* node, bool take_mutex);
+static void repaint_node(gui_view_node_t* node);
 
 static void make_status_bar(void)
 {
@@ -171,10 +169,7 @@ void gui_set_highlight_color(const uint8_t theme)
 
 void gui_init(void)
 {
-    // Create mutex semaphores.
-    paint_mutex = xSemaphoreCreateMutex();
-    JADE_ASSERT(paint_mutex);
-
+    // Create mutex semaphore
     gui_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(gui_mutex);
 
@@ -1668,8 +1663,8 @@ static void render_node(gui_view_node_t* node, dispWin_t constraints, uint8_t de
 
     node->render_data.depth = depth;
 
-    // actually paint the node on-screen, taking the mutex only if we are the root
-    repaint_node(node, !node->parent);
+    // actually paint the node on-screen
+    repaint_node(node);
 }
 
 static void render_button(gui_view_node_t* node, dispWin_t cs, uint8_t depth)
@@ -1919,15 +1914,13 @@ static void paint_borders(gui_view_node_t* node, dispWin_t cs)
 }
 
 // Actually repaint a node on the display - calls underlying display library
-static void repaint_node(gui_view_node_t* node, bool take_mutex)
+static void repaint_node(gui_view_node_t* node)
 {
     JADE_ASSERT(node);
-    JADE_ASSERT(paint_mutex);
 
-    if (take_mutex) {
-        // obtain a lock on the paint mutex
-        JADE_SEMAPHORE_TAKE(paint_mutex);
-    }
+    // Ensure we only call the underlying dislay library from the gui_task
+    JADE_ASSERT_MSG(xTaskGetCurrentTaskHandle() == gui_task_handle,
+        "ERROR: repaint_node() called from non-gui-task: %s", pcTaskGetName(NULL));
 
     // borders use the un-padded constraints
     if (node->borders) {
@@ -1972,10 +1965,6 @@ static void repaint_node(gui_view_node_t* node, bool take_mutex)
 
         TFT_drawRect(node->render_data.padded_constraints.x1, node->render_data.padded_constraints.y1, width, height,
             DEBUG_COLOR(node->render_data.depth));
-    }
-
-    if (take_mutex) {
-        JADE_SEMAPHORE_GIVE(paint_mutex);
     }
 }
 
@@ -2062,7 +2051,7 @@ static size_t handle_gui_input_queue(bool* switched_activities)
             if (current_activity->status_bar) {
                 if (current_activity->title) {
                     gui_update_text_node_text(status_bar.title, current_activity->title);
-                    repaint_node(status_bar.root, true);
+                    repaint_node(status_bar.root);
                 }
                 status_bar.updated = true;
             }
@@ -2083,7 +2072,7 @@ static size_t handle_gui_input_queue(bool* switched_activities)
         // Only do so if it belongs on the current activity and we haven't just switched
         if (job->node_to_repaint && job->node_to_repaint->activity == current_activity && !job->new_activity) {
             // Issue repaint command on the node passed
-            repaint_node(job->node_to_repaint, true);
+            repaint_node(job->node_to_repaint);
         }
 
         // Release the main gui mutex
@@ -2119,9 +2108,9 @@ static void update_updateables(void)
         // let's see if we need to repaint this
         bool result = current->callback(current->node, current->extra_args);
         if (result) {
-            // repaint and take the mutex
+            // repaint the node on-screen
             // TODO: we are ignoring the return code here...
-            repaint_node(current->node, true);
+            repaint_node(current->node);
         }
         current = current->next;
     }
