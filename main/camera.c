@@ -15,11 +15,10 @@
 // as we don't want the unit to shut down because of apparent inactivity.
 #define CAMERA_MIN_TIMEOUT_SECS 300
 
-// The image from the camera framebuffer is scaled and cropped to fit the display image
+// The image from the camera framebuffer is centered and cropped to fit the display image
 // (Based on Jade screen dimensions and the fact that the image is half the screen.)
 #define DISPLAY_IMAGE_WIDTH 120
 #define DISPLAY_IMAGE_HEIGHT 135
-#define DISPLAY_IMAGE_SCALE_FACTOR 2
 
 void await_qr_help_activity(const char* url);
 
@@ -214,7 +213,7 @@ static void jade_camera_task(void* data)
         gui_update_text(label_node, camera_config->text_label);
 
         // Image from camera to display on screen.
-        // 50% scale down and rotated - still a 20k image buffer.
+        // centered rotated and cropped - still a 20k image buffer.
         // Keep image in spiram but make sure to zero it after use in case it
         // captures potentially sensitive data eg. a valid mnemonic qrcode.
         image_buffer = JADE_MALLOC_PREFER_SPIRAM(image_size);
@@ -232,6 +231,10 @@ static void jade_camera_task(void* data)
         gui_activity_register_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
     }
 
+    // Offsets for centering the image on screen
+    const size_t offsetX = (CAMERA_IMAGE_WIDTH - DISPLAY_IMAGE_WIDTH) / 2;
+    const size_t offsetY = (CAMERA_IMAGE_HEIGHT - DISPLAY_IMAGE_HEIGHT) / 2;
+
     // Loop periodically refreshes screen image from camera, and waits for button event
     bool done = false;
     while (!done) {
@@ -248,22 +251,20 @@ static void jade_camera_task(void* data)
         // If we have a gui, update the image on screen and check for button events
         if (has_gui) {
             // Copy from camera output to screen image
-            // (Ensure source image large enough to be scaled down to display image size)
-            const uint8_t scale = DISPLAY_IMAGE_SCALE_FACTOR;
-            JADE_ASSERT(fb->len >= scale * scale * image_size);
             uint8_t(*image_matrix)[DISPLAY_IMAGE_WIDTH] = image_buffer;
             uint8_t(*fb_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
             for (size_t imgy = 0; imgy < DISPLAY_IMAGE_HEIGHT; ++imgy) {
                 for (size_t imgx = 0; imgx < DISPLAY_IMAGE_WIDTH; ++imgx) {
 #if defined(CONFIG_CAMERA_ROTATE_90)
-                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)][imgy * scale];
+                    image_matrix[imgy][imgx] = fb_matrix[CAMERA_IMAGE_HEIGHT - 1 - (imgx + offsetX)][imgy + offsetY];
 #elif defined(CONFIG_CAMERA_ROTATE_180)
-                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)]
-                                                        [(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)];
+                    image_matrix[imgy][imgx] = fb_matrix[CAMERA_IMAGE_WIDTH - 1 - (imgx + offsetX)]
+                                                        [CAMERA_IMAGE_HEIGHT - 1 - (imgy + offsetY)];
 #elif defined(CONFIG_CAMERA_ROTATE_270)
-                    image_matrix[imgy][imgx] = fb_matrix[imgx * scale][(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)];
+                    image_matrix[imgy][imgx] = fb_matrix[imgx + offsetX][CAMERA_IMAGE_WIDTH - 1 - (imgy + offsetY)];
 #else
-                    image_matrix[imgy][imgx] = fb_matrix[imgy * scale][imgx * scale];
+                    image_matrix[imgy][imgx] = fb_matrix[CAMERA_IMAGE_HEIGHT - 1 - (imgy + offsetY)]
+                                                        [CAMERA_IMAGE_WIDTH - 1 - (imgx + offsetX)];
 #endif
                 }
             }
