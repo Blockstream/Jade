@@ -111,7 +111,7 @@ ping reply
 
     {
         "id": "2712",
-        "result": true
+        "result": 0
     }
 
 * The result is 0 if the main jade task is idle, 1 if handling a client message, or 2 if handling ui menu navigation.
