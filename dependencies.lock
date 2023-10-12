@@ -12,11 +12,11 @@ dependencies:
       type: service
     version: 0.6.0~1
   espressif/cmake_utilities:
-    component_hash: 9941c11223bbe015b5fe4b85ba6666b8ffde62008ec3512af91d90c482eb71d8
+    component_hash: c3f351bed6fdb3d91bee6076740cb13d22e2c7bfcdd78969a65b46943885bbd4
     source:
       service_url: https://api.components.espressif.com/
       type: service
-    version: 0.5.1
+    version: 0.5.2
   espressif/esp32-camera:
     component_hash: bf6c6f29710c79228988cf91c18a31b40178f42086b39a3157a4d15df201978b
     source:
@@ -40,6 +40,6 @@ dependencies:
     source:
       type: idf
     version: 5.1.1
-manifest_hash: f4606f23871a271c42355be78388c036e7f2456da92188db2c20dcdae00f1e55
+manifest_hash: 7546ebceb6b4e229e26b2ff8ff6bc0d347a3309279e5921eb70db136b86643ee
 target: esp32
 version: 1.0.0
