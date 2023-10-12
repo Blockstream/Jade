@@ -32,7 +32,7 @@ static esp_eth_phy_t* s_phy = NULL;
 static void* s_eth_glue = NULL;
 static const char* TAG = "jade";
 
-static portMUX_TYPE sockmutex;
+static SemaphoreHandle_t sockmutex = NULL;
 static int qemu_tcp_sock = 0;
 static int qemu_tcp_listen_sock = 0;
 
@@ -43,6 +43,7 @@ esp_event_handler_instance_t ctx_got_ip;
 
 static void qemu_tcp_reader(void* ignore)
 {
+    JADE_ASSERT(sockmutex);
     struct sockaddr_in dest_addr;
     struct sockaddr_in* dest_addr_ip4 = (struct sockaddr_in*)&dest_addr;
     dest_addr_ip4->sin_addr.s_addr = htonl(INADDR_ANY);
@@ -65,18 +66,18 @@ static void qemu_tcp_reader(void* ignore)
     TickType_t last_processing_time = 0;
 
     while (1) {
-        portENTER_CRITICAL(&sockmutex);
+        JADE_SEMAPHORE_TAKE(sockmutex);
         // if we are connected we reuse it
         int tmp_qemu_tcp_sock = qemu_tcp_sock;
-        portEXIT_CRITICAL(&sockmutex);
+        JADE_SEMAPHORE_GIVE(sockmutex);
 
         if (tmp_qemu_tcp_sock == 0) {
             // otherwise we wait for a new connection (note: this server supports only one client at the time)
             tmp_qemu_tcp_sock = accept(qemu_tcp_listen_sock, (struct sockaddr*)&source_addr, &addr_len);
             JADE_ASSERT(tmp_qemu_tcp_sock > 0);
-            portENTER_CRITICAL(&sockmutex);
+            JADE_SEMAPHORE_TAKE(sockmutex);
             qemu_tcp_sock = tmp_qemu_tcp_sock;
-            portEXIT_CRITICAL(&sockmutex);
+            JADE_SEMAPHORE_GIVE(sockmutex);
         }
 
         // Read incoming data max to fill buffer
@@ -85,9 +86,9 @@ static void qemu_tcp_reader(void* ignore)
         if (len <= 0) {
             // Close socket, pause and retry... will be reopened by above next loop
             JADE_LOGE("Error reading bytes from tcp stream device: %u", len);
-            portENTER_CRITICAL(&sockmutex);
+            JADE_SEMAPHORE_TAKE(sockmutex);
             qemu_tcp_sock = 0;
-            portEXIT_CRITICAL(&sockmutex);
+            JADE_SEMAPHORE_GIVE(sockmutex);
             shutdown(tmp_qemu_tcp_sock, 0);
             close(tmp_qemu_tcp_sock);
             read = 0;
@@ -108,9 +109,9 @@ static bool write_qemu_tcp(const uint8_t* msg, const size_t length, void* ignore
     JADE_ASSERT(msg);
     JADE_ASSERT(length);
 
-    portENTER_CRITICAL(&sockmutex);
+    JADE_SEMAPHORE_TAKE(sockmutex);
     const int tmp_qemu_tcp_sock = qemu_tcp_sock;
-    portEXIT_CRITICAL(&sockmutex);
+    JADE_SEMAPHORE_GIVE(sockmutex);
     if (tmp_qemu_tcp_sock == 0) {
         return false;
     }
@@ -230,7 +231,9 @@ bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
     JADE_ASSERT(!full_qemu_tcp_data_in);
     JADE_ASSERT(!qemu_tcp_data_out);
 
-    spinlock_initialize(&sockmutex);
+    JADE_ASSERT(!sockmutex);
+    sockmutex = xSemaphoreCreateMutex();
+    JADE_ASSERT(sockmutex);
 
     ESP_ERROR_CHECK(esp_netif_init());
 

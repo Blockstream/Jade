@@ -9,6 +9,7 @@
 #include <esp_timer.h>
 
 #include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 #include <freertos/task.h>
 #include <mbedtls/sha512.h>
 #include <string.h>
@@ -43,8 +44,8 @@
     } while (false)
 
 static uint8_t entropy_state[SHA256_LEN];
-static uint32_t rnd_counter;
-static portMUX_TYPE rndmutex;
+static uint32_t rnd_counter = 0;
+static SemaphoreHandle_t rnd_mutex = NULL;
 
 static uint16_t esp32_get_temperature(void)
 {
@@ -64,6 +65,7 @@ static uint16_t esp32_get_temperature(void)
 // returns up to 32 bytes of randomness (optional), takes optionallly extra entropy
 static void get_random_internal(uint8_t* bytes_out, const size_t len, const uint8_t* additional, const size_t addlen)
 {
+    JADE_ASSERT(rnd_mutex);
     JADE_ASSERT(len <= SHA256_LEN);
     JADE_ASSERT((bytes_out && len) || (!bytes_out && !len));
     JADE_ASSERT((additional && addlen) || (!additional && !addlen));
@@ -91,7 +93,7 @@ static void get_random_internal(uint8_t* bytes_out, const size_t len, const uint
         add_bytes_to_hasher(ctx, additional, addlen);
     }
 
-    portENTER_CRITICAL(&rndmutex);
+    JADE_SEMAPHORE_TAKE(rnd_mutex);
 
     add_bytes_to_hasher(ctx, entropy_state, sizeof(entropy_state));
     add_bytes_to_hasher(ctx, &rnd_counter, sizeof(rnd_counter));
@@ -117,7 +119,7 @@ static void get_random_internal(uint8_t* bytes_out, const size_t len, const uint
     // Store the last 32 bytes of the hash output as new RNG state.
     memcpy(entropy_state, buf + SHA256_LEN, SHA256_LEN);
 
-    portEXIT_CRITICAL(&rndmutex);
+    JADE_SEMAPHORE_GIVE(rnd_mutex);
     mbedtls_sha512_free(&ctx);
 
     // Since refeeding can be called from any task (including internal rtos tasks),
@@ -259,7 +261,9 @@ void random_start_collecting(void)
     esp_fill_random(entropy_state, sizeof(entropy_state));
     bootloader_random_disable();
 
-    spinlock_initialize(&rndmutex);
+    JADE_ASSERT(!rnd_mutex);
+    rnd_mutex = xSemaphoreCreateMutex();
+    JADE_ASSERT(rnd_mutex);
 }
 
 void random_full_initialization(void)
