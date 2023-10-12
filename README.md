@@ -39,7 +39,7 @@ Get the esp-idf sdk and required tools:
 ```
 cd ~/esp
 git clone -b v5.1.1 --recursive https://github.com/espressif/esp-idf.git
-cd ~/esp/esp-idf && git checkout e088c3766ba440e72268b458a68f27b6e7d63986 && ./install.sh esp32
+cd ~/esp/esp-idf && git checkout e088c3766ba440e72268b458a68f27b6e7d63986 && ./install.sh --enable-gdbgui esp32 esp32s3
 ```
 
 Set up the environmental variables:
