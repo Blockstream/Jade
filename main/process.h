@@ -15,7 +15,7 @@
 // This should be the size of the largest valid input message.
 // Used by ble and serial when reading data in. (sign-liquid-txn)
 // NOTE: limited to 17k when SPIRAM not enabled.
-#ifndef CONFIG_ESP32_SPIRAM_SUPPORT
+#ifndef CONFIG_SPIRAM
 #define MAX_INPUT_MSG_SIZE (1024 * 17)
 #else
 #define MAX_INPUT_MSG_SIZE (1024 * 401)

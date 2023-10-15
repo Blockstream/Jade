@@ -327,7 +327,7 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
     *data = commitments;
 }
 
-#ifdef CONFIG_ESP32_SPIRAM_SUPPORT
+#ifdef CONFIG_SPIRAM
 // Workaround to run 'wally_explicit_surjectionproof_verify()' and 'wally_explicit_rangeproof_verify()'
 // on a temporary stack, as the underlying libsecp calls require over 50kb of stack space.
 // NOTE: devices without SPIRAM do not have sufficient free memory to be able to do this verification,
@@ -367,7 +367,7 @@ static bool verify_explicit_proofs(void* ctx)
 
     return true;
 }
-#endif // CONFIG_ESP32_SPIRAM_SUPPORT || !CONFIG_BT_ENABLED
+#endif // CONFIG_SPIRAM
 
 static bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg)
 {
@@ -420,7 +420,7 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
     // Verify any blinded proofs
     // NOTE: only a device with SPIRAM has sufficient memory to be able to do this verification.
     if (commitments->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF)) {
-#ifdef CONFIG_ESP32_SPIRAM_SUPPORT
+#ifdef CONFIG_SPIRAM
         // Because the libsecp calls 'secp256k1_surjectionproof_verify()' and 'secp256k1_rangeproof_verify()'
         // requires more stack space than is available to the main task, we run that function in a temporary task.
         const size_t stack_size = 54 * 1024; // 54kb seems sufficient
@@ -431,7 +431,7 @@ static bool verify_commitment_consistent(const commitment_t* commitments, const 
 #else
         *errmsg = "Devices without external SPIRAM are unable to verify explicit proofs";
         return false;
-#endif // CONFIG_ESP32_SPIRAM_SUPPORT || !CONFIG_BT_ENABLED
+#endif // CONFIG_SPIRAM
     }
     return true;
 }

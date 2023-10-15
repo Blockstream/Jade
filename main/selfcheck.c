@@ -789,7 +789,7 @@ static bool test_bcur_icons(void)
     return true;
 }
 
-#ifdef CONFIG_ESP32_SPIRAM_SUPPORT
+#ifdef CONFIG_SPIRAM
 // Test we can render a sequence of up to 1000 bcur fragments
 static bool test_bcur_large_payload_many_icons(void)
 {
@@ -810,7 +810,7 @@ static bool test_bcur_large_payload_many_icons(void)
     free(payload);
     return true;
 }
-#endif // CONFIG_ESP32_SPIRAM_SUPPORT
+#endif // CONFIG_SPIRAM
 
 bool debug_selfcheck(jade_process_t* process)
 {
@@ -863,7 +863,7 @@ bool debug_selfcheck(jade_process_t* process)
         FAIL();
     }
 
-#ifdef CONFIG_ESP32_SPIRAM_SUPPORT
+#ifdef CONFIG_SPIRAM
     // Test we can render a large sequence of bcur fragments (smallest supported qr version)
     if (!test_bcur_large_payload_many_icons()) {
         FAIL();
