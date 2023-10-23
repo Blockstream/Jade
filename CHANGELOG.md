@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.24] - 2023-10-24
+### Added
+- Add support for registered descriptor wallets
+- Added setting account and change flag when when verifying scanned address
+- Allow user to specifiy account for xpub export qr
+- Added support for diy hw with camera
+- Added web interaction/display to the jade qemu emulator
+
+### Changed
+- Update ESP-IDF base firmware to v5.1.1
+- Update button-lib dependency to espressif/button 3.0.1
+
+### Fixed
+- Correct camera image transformation to display picture
+- Improve fw update script for early firmwares with less version-info
+- Correct multisig validation when different signers share the same fingerprint
+
 ## [1.0.23] - 2023-09-20
 ### Added
 - Add option to export registered multisig data in the import file format by QR
@@ -41,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Jade UI screens - larger font, clearer highlighting, consistent look-and-feel, more 'help' links
+- Update ESP-IDF base firmware to v5.0.2
 
 ### Fixed
 
