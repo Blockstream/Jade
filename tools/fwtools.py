@@ -26,7 +26,7 @@ def get_firmware_compressed_filepath(firmware, outputdir):
     # Get the version string - first printable string in the
     # firmware binary file of length 6 or more.
     # FIXME: improve regex when we know what the version labels will look like
-    match = re.search(u'[^\x00-\x1F\x7F-\xFF]{6,}'.encode('utf8'), firmware)
+    match = re.search('[ -~]{6,}'.encode('utf8'), firmware)
     assert match and match.group() and match.group().decode('utf8')
     ver = match.group().decode('utf8')
 
