@@ -632,7 +632,7 @@ static size_t get_wordlist_words(
     int32_t ev_id;
 
     // For each word
-    char* wordlist_words[MNEMONIC_MAXWORDS] = { 0 };
+    const char* wordlist_words[MNEMONIC_MAXWORDS] = { 0 };
     size_t word_index = 0;
     bool done_entering_words = false;
     while (word_index < nwords && !done_entering_words) {
@@ -757,10 +757,10 @@ static size_t get_wordlist_words(
                 if (selected_backspace) {
                     JADE_ASSERT(!wordlist_extracted);
                 } else {
-                    // Copy the matched word to the selected words array
+                    // Store the matched word in the selected words array
                     JADE_ASSERT(wordlist_extracted);
                     JADE_ASSERT(!wordlist_words[word_index]);
-                    wordlist_words[word_index++] = strdup(wordlist_extracted);
+                    wordlist_words[word_index++] = wordlist_extracted;
                     wordlist_extracted = NULL; // relinquish
                 }
             } else {
@@ -833,9 +833,8 @@ static size_t get_wordlist_words(
                     JADE_ASSERT(!wordlist_words[word_index]);
                     --word_index;
 
-                    // Free cached previous word, as we start that one from scratch
+                    // NULL the cached previous word, as we start that one from scratch
                     JADE_ASSERT(wordlist_words[word_index]);
-                    JADE_WALLY_VERIFY(wally_free_string(wordlist_words[word_index]));
                     wordlist_words[word_index] = NULL;
                 } else {
                     // Backspace at start of first word -
@@ -863,7 +862,6 @@ static size_t get_wordlist_words(
         }
         const int ret = snprintf(output + offset, output_len - offset, wordlist_words[word_index]);
         JADE_ASSERT(ret > 0 && ret < output_len - offset);
-        JADE_WALLY_VERIFY(wally_free_string(wordlist_words[word_index]));
         offset += ret;
     }
     return words_entered;
