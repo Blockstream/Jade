@@ -452,8 +452,9 @@ static void enable_relevant_chars(const bool is_mnemonic, const char* word, cons
         const size_t wordlist_index = filter_word_list ? filter_word_list[index] : index;
         JADE_ASSERT(wordlist_index < BIP39_WORDLIST_LEN);
 
-        char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
-        JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
+        // TODO: check strlen(wordlist_extracted)
+        const char* wordlist_extracted = bip39_get_word_by_index(NULL, wordlist_index);
+        JADE_ASSERT(wordlist_extracted);
 
         // If we have the first letter(s) typed, we can a) skip all preceding words
         // and also b) exit once we have passed beyond the relevant words.
@@ -461,11 +462,9 @@ static void enable_relevant_chars(const bool is_mnemonic, const char* word, cons
             const int32_t res = strncmp(wordlist_extracted, word, word_len);
             if (res < 0) {
                 // Not yet reached words with 'word' stem - loop to next word
-                JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
                 continue;
             } else if (res > 0) {
                 // Gone past words with 'word' stem - may as well break
-                JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
                 break;
             }
         }
@@ -478,8 +477,6 @@ static void enable_relevant_chars(const bool is_mnemonic, const char* word, cons
             enabled[char_index] = true;
             ++num_enabled;
         }
-
-        JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
     }
     JADE_ASSERT(num_enabled > 0);
 
@@ -526,19 +523,18 @@ static size_t valid_words(const char* word, const size_t word_len, const size_t*
         const size_t wordlist_index = filter_word_list ? filter_word_list[index] : index;
         JADE_ASSERT(wordlist_index < BIP39_WORDLIST_LEN);
 
-        char* wordlist_extracted = NULL; // TODO: check strlen(wordlist_extracted)
-        JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
+        // TODO: check strlen(wordlist_extracted)
+        const char* wordlist_extracted = bip39_get_word_by_index(NULL, wordlist_index);
+        JADE_ASSERT(wordlist_extracted);
 
         // Test if passed 'word' is a valid prefix of the wordlist word
         const int32_t res = strncmp(wordlist_extracted, word, word_len);
 
         if (res < 0) {
             // No there yet, continue to next word
-            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
             continue;
         } else if (res > 0) {
             // Too late - gone past word - may as well abandon
-            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
             break;
         }
 
@@ -556,8 +552,6 @@ static size_t valid_words(const char* word, const size_t word_len, const size_t*
         }
 
         ++num_possible_words;
-
-        JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
     }
 
     return num_possible_words;
@@ -585,8 +579,8 @@ static size_t valid_final_words(char** mnemonic_words, const size_t num_mnemonic
 
     size_t num_possible_words = 0;
     for (size_t wordlist_index = 0; wordlist_index < BIP39_WORDLIST_LEN; ++wordlist_index) {
-        char* wordlist_extracted = NULL;
-        JADE_WALLY_VERIFY(bip39_get_word(NULL, wordlist_index, &wordlist_extracted));
+        const char* wordlist_extracted = bip39_get_word_by_index(NULL, wordlist_index);
+        JADE_ASSERT(wordlist_extracted);
         const size_t remaining = sizeof(buf) - offset;
         const int ret = snprintf(buf + offset, remaining, wordlist_extracted);
         JADE_ASSERT(ret >= 3 && ret < remaining && buf[offset + ret] == '\0');
@@ -598,7 +592,6 @@ static size_t valid_final_words(char** mnemonic_words, const size_t num_mnemonic
             }
             ++num_possible_words;
         }
-        JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
     }
 
     return num_possible_words;
@@ -713,7 +706,7 @@ static size_t get_wordlist_words(
 
                 bool stop = false;
                 uint8_t selected = random_first_selection_word ? get_uniform_random_byte(possible_words) : 0;
-                char* wordlist_extracted = NULL;
+                const char* wordlist_extracted = NULL;
                 while (!stop) {
                     JADE_ASSERT(selected <= possible_words);
                     JADE_ASSERT(!wordlist_extracted);
@@ -724,7 +717,7 @@ static size_t get_wordlist_words(
                         gui_update_text(text_selection, "|");
                     } else {
                         // word from wordlist
-                        JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_word_list[selected], &wordlist_extracted));
+                        wordlist_extracted = bip39_get_word_by_index(NULL, possible_word_list[selected]);
                         JADE_ASSERT(wordlist_extracted);
                         gui_set_text_font(text_selection, GUI_DEFAULT_FONT);
                         gui_update_text(text_selection, wordlist_extracted);
@@ -751,9 +744,8 @@ static size_t get_wordlist_words(
                         stop = (ev_id == gui_get_click_event());
                     }
 
-                    // If looping to new word, free current word
+                    // If looping to new word, NULL the current word
                     if (!stop && wordlist_extracted) {
-                        JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
                         wordlist_extracted = NULL;
                     }
                 } // while !stop
@@ -765,10 +757,10 @@ static size_t get_wordlist_words(
                 if (selected_backspace) {
                     JADE_ASSERT(!wordlist_extracted);
                 } else {
-                    // Pass word ownership to selected words array
+                    // Copy the matched word to the selected words array
                     JADE_ASSERT(wordlist_extracted);
                     JADE_ASSERT(!wordlist_words[word_index]);
-                    wordlist_words[word_index++] = wordlist_extracted;
+                    wordlist_words[word_index++] = strdup(wordlist_extracted);
                     wordlist_extracted = NULL; // relinquish
                 }
             } else {
@@ -951,18 +943,16 @@ static bool expand_words(const uint8_t* bytes, const size_t bytes_len, char* buf
             return false;
         }
 
-        char* wordlist_extracted = NULL;
-        JADE_WALLY_VERIFY(bip39_get_word(NULL, possible_match, &wordlist_extracted));
+        const char* wordlist_extracted = bip39_get_word_by_index(NULL, possible_match);
+        JADE_ASSERT(wordlist_extracted);
         const size_t word_len = strlen(wordlist_extracted);
         if (write_pos + word_len >= buf_len) {
             JADE_LOGW("Expanded mnemonic too long");
-            JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
             return false;
         }
 
         // Copy the expanded word into the output buffer
         memcpy(buf + write_pos, wordlist_extracted, word_len);
-        JADE_WALLY_VERIFY(wally_free_string(wordlist_extracted));
         write_pos += word_len;
 
         // Copy space separator or nul terminator
@@ -1032,13 +1022,12 @@ static bool import_seedqr(
             return false;
         }
 
-        char* wally_word = NULL;
-        JADE_WALLY_VERIFY(bip39_get_word(NULL, index, &wally_word));
-        const size_t wordlen = strlen(wally_word);
+        const char* wordlist_extracted = bip39_get_word_by_index(NULL, index);
+        JADE_ASSERT(wordlist_extracted);
+        const size_t wordlen = strlen(wordlist_extracted);
         if (write_pos + 1 + wordlen + 1 >= buf_len) {
             // Not enough remaining for space, word, nul
             JADE_LOGE("Error, expanded mnemonic string too large for buffer");
-            JADE_WALLY_VERIFY(wally_free_string(wally_word));
             SENSITIVE_POP(index_code);
             return false;
         }
@@ -1049,9 +1038,8 @@ static bool import_seedqr(
         }
 
         // Copy word
-        memcpy(buf + write_pos, wally_word, wordlen);
+        memcpy(buf + write_pos, wordlist_extracted, wordlen);
         write_pos += wordlen;
-        JADE_WALLY_VERIFY(wally_free_string(wally_word));
     }
 
     SENSITIVE_POP(index_code);
