@@ -19,6 +19,7 @@ endif()
 
 
 if (CONFIG_IDF_TARGET_ESP32S3)
+    set(attestdir "attestation")
     set(usbdir "usbhmsc")
 endif()
 
@@ -29,10 +30,12 @@ idf_component_register(SRC_DIRS "."
                                 "fonts"
                                 "${bledir}"
                                 "${qemudir}"
+                                "${attestdir}"
                                 "${usbdir}"
         PRIV_INCLUDE_DIRS "."
                           "${bledir}"
                           "${qemudir}"
+                          "${attestdir}"
                           "${usbdir}"
         PRIV_REQUIRES assets libwally-core libsodium esp32-rotary-encoder esp32-quirc bootloader_support app_update nvs_flash bt autogenlang cbor esp_netif esp32_bsdiff esp32_deflate nghttp esp32_bc-ur driver mbedtls http_parser esp_hw_support efuse esp_eth esp_http_server esp_lcd usb vfs
         EMBED_FILES ${PROJECT_DIR}/pinserver_public_key.pub ${logo_files} ${qemu_display_file})

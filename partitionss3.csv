@@ -5,3 +5,4 @@ otadata,  data, ota,     0x1A000, 0x2000, encrypted
 ota_0,    app,  ota_0,   ,        4011K,
 ota_1,    app,  ota_1,   ,        4011K,
 nvs_key,  data, nvs_keys,,        4K, encrypted
+attest,   data,,,                 4K,
