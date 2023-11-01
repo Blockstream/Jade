@@ -161,6 +161,14 @@ uint8_t get_uniform_random_byte(const uint8_t upper_bound)
     }
 }
 
+// Adapter between 'get_random()' and the mbedtls RNG function interface
+int random_mbedtls_cb(void* ctx, uint8_t* buf, const size_t len)
+{
+    // ctx is ignored (should be NULL)
+    get_random(buf, len);
+    return 0;
+}
+
 // taken from core
 static void random_sanity_check(void)
 {

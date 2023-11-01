@@ -24,14 +24,6 @@ static const uint8_t SSH_NIST_HMAC_KEY[] = { 'N', 'i', 's', 't', '2', '5', '6', 
 // NOTE: 'bytes' ptr must be 4-byte aligned
 #define HARDENED_PATH_ELEMENT(bytes) (BIP32_INITIAL_HARDENED_CHILD | *((uint32_t*)(bytes)))
 
-// Adapter between Jade's 'get_random()', and the mbedtls RNG function interface
-static int jade_get_random_cb(void* ctx, uint8_t* buf, const size_t len)
-{
-    // ctx is ignored (should be NULL)
-    get_random(buf, len);
-    return 0;
-}
-
 // Deduce the default (only?) curve to use from the identity protocol
 static inline mbedtls_ecp_group_id get_curve_group_id(const char* curve_name, const size_t curve_name_len)
 {
@@ -232,11 +224,11 @@ static bool get_internal_keypair(const size_t slip_prefix, const char* identity,
 
     // Generate the public key from the private key + curve settings
     JADE_ZERO_VERIFY(mbedtls_ecp_mul(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(Q),
-        &keypair->MBEDTLS_PRIVATE(d), &keypair->MBEDTLS_PRIVATE(grp).G, jade_get_random_cb, NULL));
+        &keypair->MBEDTLS_PRIVATE(d), &keypair->MBEDTLS_PRIVATE(grp).G, random_mbedtls_cb, NULL));
     JADE_ZERO_VERIFY(mbedtls_ecp_check_pubkey(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(Q)));
 
     // Sanity check
-    JADE_ZERO_VERIFY(mbedtls_ecp_check_pub_priv(keypair, keypair, jade_get_random_cb, NULL));
+    JADE_ZERO_VERIFY(mbedtls_ecp_check_pub_priv(keypair, keypair, random_mbedtls_cb, NULL));
 
     return true;
 }
@@ -254,7 +246,7 @@ static bool sign_challenge(mbedtls_ecp_keypair* keypair, const uint8_t* challeng
 
     // Use RFC6979 deterministic signatures
     const int ret = mbedtls_ecdsa_sign_det_ext(&keypair->MBEDTLS_PRIVATE(grp), pr, ps, &keypair->MBEDTLS_PRIVATE(d),
-        challenge, challenge_len, MBEDTLS_MD_SHA256, jade_get_random_cb, NULL);
+        challenge, challenge_len, MBEDTLS_MD_SHA256, random_mbedtls_cb, NULL);
     if (ret) {
         JADE_LOGE("mbedtls_ecdsa_sign_det_ext() failed, returned %d", ret);
         return false;
@@ -362,7 +354,7 @@ bool get_identity_shared_key(const char* identity, const size_t identity_len, co
             mbedtls_mpi_init(&shared_secret);
 
             const int ret = mbedtls_ecdh_compute_shared(&keypair.MBEDTLS_PRIVATE(grp), &shared_secret, &pubk,
-                &keypair.MBEDTLS_PRIVATE(d), jade_get_random_cb, NULL);
+                &keypair.MBEDTLS_PRIVATE(d), random_mbedtls_cb, NULL);
             if (ret) {
                 JADE_LOGE("ecdh_compute_shared failed with %d", ret);
             } else {
