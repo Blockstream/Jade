@@ -55,7 +55,7 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t t
 
     if (octx->joctx->hash_type == HASHTYPE_FULLFWDATA) {
         // Add written to hash calculation
-        mbedtls_sha256_update(octx->joctx->sha_ctx, uncompressed, towrite);
+        JADE_ZERO_VERIFY(mbedtls_sha256_update(octx->joctx->sha_ctx, uncompressed, towrite));
     }
 
     *octx->joctx->remaining_uncompressed -= towrite;

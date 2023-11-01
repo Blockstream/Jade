@@ -117,7 +117,7 @@ static int ota_stream_writer(const struct bspatch_stream_n* stream, const void* 
 
     if (bctx->joctx->hash_type == HASHTYPE_FULLFWDATA) {
         // Add written to hash calculation
-        mbedtls_sha256_update(bctx->joctx->sha_ctx, buffer, length);
+        JADE_ZERO_VERIFY(mbedtls_sha256_update(bctx->joctx->sha_ctx, buffer, length));
     }
 
     bctx->written += length;

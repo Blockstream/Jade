@@ -66,10 +66,10 @@ static void get_identity_hash(
 
     mbedtls_sha256_context ctx;
     mbedtls_sha256_init(&ctx);
-    mbedtls_sha256_starts(&ctx, 0);
-    mbedtls_sha256_update(&ctx, (uint8_t*)&index, sizeof(index));
-    mbedtls_sha256_update(&ctx, (uint8_t*)identity, identity_len);
-    mbedtls_sha256_finish(&ctx, output);
+    JADE_ZERO_VERIFY(mbedtls_sha256_starts(&ctx, 0));
+    JADE_ZERO_VERIFY(mbedtls_sha256_update(&ctx, (uint8_t*)&index, sizeof(index)));
+    JADE_ZERO_VERIFY(mbedtls_sha256_update(&ctx, (uint8_t*)identity, identity_len));
+    JADE_ZERO_VERIFY(mbedtls_sha256_finish(&ctx, output));
     mbedtls_sha256_free(&ctx);
 }
 
@@ -129,20 +129,14 @@ static void get_bip32_hardened_child(
     mbedtls_mpi_init(&key);
     mbedtls_mpi_init(&tweak);
     mbedtls_mpi_init(&tmp);
-    int ret = 0;
 
-    ret = mbedtls_mpi_read_binary(&key, &parent->priv_key[1], sizeof(parent->priv_key) - 1);
-    JADE_ASSERT(!ret);
-    ret = mbedtls_mpi_read_binary(&tweak, sha, sizeof(sha) / 2);
-    JADE_ASSERT(!ret);
+    JADE_ZERO_VERIFY(mbedtls_mpi_read_binary(&key, &parent->priv_key[1], sizeof(parent->priv_key) - 1));
+    JADE_ZERO_VERIFY(mbedtls_mpi_read_binary(&tweak, sha, sizeof(sha) / 2));
 
-    ret = mbedtls_mpi_add_mpi(&tmp, &tweak, &key);
-    JADE_ASSERT(!ret);
-    ret = mbedtls_mpi_mod_mpi(&key, &tmp, &grp->N);
-    JADE_ASSERT(!ret);
+    JADE_ZERO_VERIFY(mbedtls_mpi_add_mpi(&tmp, &tweak, &key));
+    JADE_ZERO_VERIFY(mbedtls_mpi_mod_mpi(&key, &tmp, &grp->N));
 
-    ret = mbedtls_mpi_write_binary(&key, &child_out->priv_key[1], sizeof(child_out->priv_key) - 1);
-    JADE_ASSERT(!ret);
+    JADE_ZERO_VERIFY(mbedtls_mpi_write_binary(&key, &child_out->priv_key[1], sizeof(child_out->priv_key) - 1));
 
     mbedtls_mpi_free(&key);
     mbedtls_mpi_free(&tweak);
@@ -205,8 +199,7 @@ static bool get_internal_keypair(const size_t slip_prefix, const char* identity,
         return false;
     }
     // FIXME: use getters instead of MBEDTLS_PRIVATE MACRO
-    int ret = mbedtls_ecp_group_load(&keypair->MBEDTLS_PRIVATE(grp), curve_group_id);
-    JADE_ASSERT(!ret);
+    JADE_ZERO_VERIFY(mbedtls_ecp_group_load(&keypair->MBEDTLS_PRIVATE(grp), curve_group_id));
 
     // Get the hash of the identity and index
     uint8_t identity_hash[SHA256_LEN];
@@ -232,22 +225,18 @@ static bool get_internal_keypair(const size_t slip_prefix, const char* identity,
 
     // Read the private key into the output keypair
     // NOTE: need to skip the leading 0 byte
-    ret = mbedtls_mpi_read_binary(&keypair->MBEDTLS_PRIVATE(d), &derived.priv_key[1], sizeof(derived.priv_key) - 1);
-    JADE_ASSERT(!ret);
-    ret = mbedtls_ecp_check_privkey(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(d));
-    JADE_ASSERT(!ret);
+    JADE_ZERO_VERIFY(
+        mbedtls_mpi_read_binary(&keypair->MBEDTLS_PRIVATE(d), &derived.priv_key[1], sizeof(derived.priv_key) - 1));
+    JADE_ZERO_VERIFY(mbedtls_ecp_check_privkey(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(d)));
     SENSITIVE_POP(&derived);
 
     // Generate the public key from the private key + curve settings
-    ret = mbedtls_ecp_mul(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(Q), &keypair->MBEDTLS_PRIVATE(d),
-        &keypair->MBEDTLS_PRIVATE(grp).G, jade_get_random_cb, NULL);
-    JADE_ASSERT(!ret);
-    ret = mbedtls_ecp_check_pubkey(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(Q));
-    JADE_ASSERT(!ret);
+    JADE_ZERO_VERIFY(mbedtls_ecp_mul(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(Q),
+        &keypair->MBEDTLS_PRIVATE(d), &keypair->MBEDTLS_PRIVATE(grp).G, jade_get_random_cb, NULL));
+    JADE_ZERO_VERIFY(mbedtls_ecp_check_pubkey(&keypair->MBEDTLS_PRIVATE(grp), &keypair->MBEDTLS_PRIVATE(Q)));
 
     // Sanity check
-    ret = mbedtls_ecp_check_pub_priv(keypair, keypair, jade_get_random_cb, NULL);
-    JADE_ASSERT(!ret);
+    JADE_ZERO_VERIFY(mbedtls_ecp_check_pub_priv(keypair, keypair, jade_get_random_cb, NULL));
 
     return true;
 }
@@ -264,7 +253,7 @@ static bool sign_challenge(mbedtls_ecp_keypair* keypair, const uint8_t* challeng
     JADE_ASSERT(ps);
 
     // Use RFC6979 deterministic signatures
-    int ret = mbedtls_ecdsa_sign_det_ext(&keypair->MBEDTLS_PRIVATE(grp), pr, ps, &keypair->MBEDTLS_PRIVATE(d),
+    const int ret = mbedtls_ecdsa_sign_det_ext(&keypair->MBEDTLS_PRIVATE(grp), pr, ps, &keypair->MBEDTLS_PRIVATE(d),
         challenge, challenge_len, MBEDTLS_MD_SHA256, jade_get_random_cb, NULL);
     if (ret) {
         JADE_LOGE("mbedtls_ecdsa_sign_det_ext() failed, returned %d", ret);
@@ -277,23 +266,19 @@ static bool sign_challenge(mbedtls_ecp_keypair* keypair, const uint8_t* challeng
     mbedtls_mpi tmp = { 0 };
     mbedtls_mpi_init(&tmp);
 
-    ret = mbedtls_mpi_copy(&tmp, &keypair->MBEDTLS_PRIVATE(grp).N);
-    JADE_ASSERT(!ret);
-    mbedtls_mpi_shift_r(&tmp, 1);
+    JADE_ZERO_VERIFY(mbedtls_mpi_copy(&tmp, &keypair->MBEDTLS_PRIVATE(grp).N));
+    JADE_ZERO_VERIFY(mbedtls_mpi_shift_r(&tmp, 1));
 
     if (mbedtls_mpi_cmp_mpi(ps, &tmp) > 0) {
         // Generated 'high' S.  Flip to low-s.
-        ret = mbedtls_mpi_sub_mpi(&tmp, &keypair->MBEDTLS_PRIVATE(grp).N, ps);
-        JADE_ASSERT(!ret);
-        ret = mbedtls_mpi_copy(ps, &tmp);
-        JADE_ASSERT(!ret);
+        JADE_ZERO_VERIFY(mbedtls_mpi_sub_mpi(&tmp, &keypair->MBEDTLS_PRIVATE(grp).N, ps));
+        JADE_ZERO_VERIFY(mbedtls_mpi_copy(ps, &tmp));
     }
     mbedtls_mpi_free(&tmp);
 
     // Sanity check
-    ret = mbedtls_ecdsa_verify(
-        &keypair->MBEDTLS_PRIVATE(grp), challenge, challenge_len, &keypair->MBEDTLS_PRIVATE(Q), pr, ps);
-    JADE_ASSERT(!ret);
+    JADE_ZERO_VERIFY(mbedtls_ecdsa_verify(
+        &keypair->MBEDTLS_PRIVATE(grp), challenge, challenge_len, &keypair->MBEDTLS_PRIVATE(Q), pr, ps));
 
     return true;
 }
@@ -329,9 +314,8 @@ bool get_identity_pubkey(const char* identity, const size_t identity_len, const 
     } else {
         // Return the pubkey assoiciated with this identity/signature
         size_t pubkeylen = 0;
-        int ret = mbedtls_ecp_point_write_binary(&keypair.MBEDTLS_PRIVATE(grp), &keypair.MBEDTLS_PRIVATE(Q),
-            MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len);
-        JADE_ASSERT(!ret);
+        JADE_ZERO_VERIFY(mbedtls_ecp_point_write_binary(&keypair.MBEDTLS_PRIVATE(grp), &keypair.MBEDTLS_PRIVATE(Q),
+            MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len));
         JADE_ASSERT(pubkeylen == pubkey_out_len);
         result = true;
     }
@@ -368,8 +352,8 @@ bool get_identity_shared_key(const char* identity, const size_t identity_len, co
         mbedtls_ecp_point pubk = { 0 };
         mbedtls_ecp_point_init(&pubk);
 
-        if (mbedtls_ecp_point_read_binary(&keypair.MBEDTLS_PRIVATE(grp), &pubk, their_pubkey, their_pubkey_len) != 0
-            || mbedtls_ecp_check_pubkey(&keypair.MBEDTLS_PRIVATE(grp), &pubk) != 0) {
+        if (mbedtls_ecp_point_read_binary(&keypair.MBEDTLS_PRIVATE(grp), &pubk, their_pubkey, their_pubkey_len)
+            || mbedtls_ecp_check_pubkey(&keypair.MBEDTLS_PRIVATE(grp), &pubk)) {
             JADE_LOGE("get_identity_shared_key() failed to read/validate public key point for curve id %d",
                 keypair.MBEDTLS_PRIVATE(grp).id);
         } else {
@@ -377,14 +361,13 @@ bool get_identity_shared_key(const char* identity, const size_t identity_len, co
             mbedtls_mpi shared_secret = { 0 };
             mbedtls_mpi_init(&shared_secret);
 
-            int ret = mbedtls_ecdh_compute_shared(&keypair.MBEDTLS_PRIVATE(grp), &shared_secret, &pubk,
+            const int ret = mbedtls_ecdh_compute_shared(&keypair.MBEDTLS_PRIVATE(grp), &shared_secret, &pubk,
                 &keypair.MBEDTLS_PRIVATE(d), jade_get_random_cb, NULL);
-            if (ret != 0) {
+            if (ret) {
                 JADE_LOGE("ecdh_compute_shared failed with %d", ret);
             } else {
                 // Success - export secret to output buffer
-                ret = mbedtls_mpi_write_binary(&shared_secret, output, output_len);
-                JADE_ASSERT(!ret);
+                JADE_ZERO_VERIFY(mbedtls_mpi_write_binary(&shared_secret, output, output_len));
                 result = true;
             }
 
@@ -421,9 +404,8 @@ bool sign_identity(const char* identity, const size_t identity_len, const size_t
     if (get_internal_keypair(SLIP13_PATH_PREFIX, identity, identity_len, index, curve_name, curve_name_len, &keypair)) {
         // Return the pubkey assoiciated with this identity/signature
         size_t pubkeylen = 0;
-        int ret = mbedtls_ecp_point_write_binary(&keypair.MBEDTLS_PRIVATE(grp), &keypair.MBEDTLS_PRIVATE(Q),
-            MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len);
-        JADE_ASSERT(!ret);
+        JADE_ZERO_VERIFY(mbedtls_ecp_point_write_binary(&keypair.MBEDTLS_PRIVATE(grp), &keypair.MBEDTLS_PRIVATE(Q),
+            MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len));
         JADE_ASSERT(pubkeylen == pubkey_out_len);
 
         // Sign the challenge with the key
@@ -445,10 +427,8 @@ bool sign_identity(const char* identity, const size_t identity_len, const size_t
         if (result) {
             // Success - write R and S into output buffer, with leading 00
             signature_out[0] = 0x00;
-            int ret = mbedtls_mpi_write_binary(&r, signature_out + 1, 32);
-            JADE_ASSERT(!ret);
-            ret = mbedtls_mpi_write_binary(&s, signature_out + 1 + 32, 32);
-            JADE_ASSERT(!ret);
+            JADE_ZERO_VERIFY(mbedtls_mpi_write_binary(&r, signature_out + 1, 32));
+            JADE_ZERO_VERIFY(mbedtls_mpi_write_binary(&s, signature_out + 1 + 32, 32));
         } else {
             JADE_LOGE("sign_challenge failed!");
         }

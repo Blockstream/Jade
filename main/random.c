@@ -25,22 +25,22 @@
 // these functions rely on cleanup being available
 #define hasherstart(ctx)                                                                                               \
     do {                                                                                                               \
-        mbedtls_sha512_starts(&ctx, 0);                                                                                \
+        JADE_ZERO_VERIFY(mbedtls_sha512_starts(&ctx, 0));                                                              \
     } while (false)
 #define hasherfinish(ctx, _data)                                                                                       \
     do {                                                                                                               \
-        mbedtls_sha512_finish(&ctx, (uint8_t*)_data);                                                                  \
+        JADE_ZERO_VERIFY(mbedtls_sha512_finish(&ctx, (uint8_t*)_data));                                                \
     } while (false)
 
 #define call_uint16_t_func_to_hasher(ctx, _func)                                                                       \
     do {                                                                                                               \
         const uint16_t _tmp = _func();                                                                                 \
-        mbedtls_sha512_update(&ctx, (const uint8_t*)&_tmp, sizeof(_tmp));                                              \
+        JADE_ZERO_VERIFY(mbedtls_sha512_update(&ctx, (const uint8_t*)&_tmp, sizeof(_tmp)));                            \
     } while (false)
 
 #define add_bytes_to_hasher(ctx, _bytes, _len)                                                                         \
     do {                                                                                                               \
-        mbedtls_sha512_update(&ctx, (const uint8_t*)_bytes, _len);                                                     \
+        JADE_ZERO_VERIFY(mbedtls_sha512_update(&ctx, (const uint8_t*)_bytes, _len));                                   \
     } while (false)
 
 static uint8_t entropy_state[SHA256_LEN];

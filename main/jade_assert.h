@@ -34,6 +34,13 @@ void jade_abort(const char* file, const int line_n);
         }                                                                                                              \
     } while (false)
 
+// Macro to make an call and assert that the result is 0
+#define JADE_ZERO_VERIFY(expr)                                                                                         \
+    do {                                                                                                               \
+        const int _r = (expr);                                                                                         \
+        JADE_ASSERT_MSG(!_r, "ERROR: %d", _r);                                                                         \
+    } while (false)
+
 // Assert pointer-to-pointer is non-null, then set pointee to zero
 #define JADE_INIT_OUT_PPTR(pptr)                                                                                       \
     do {                                                                                                               \
