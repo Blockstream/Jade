@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.25] - 2023-11-02
+### Added
+
+### Changed
+- Minor internal improvements
+
+### Fixed
+- Support BLE comms with Android 14 (limit payload to 512 bytes)
+
 ## [1.0.24] - 2023-10-24
 ### Added
 - Add support for registered descriptor wallets
