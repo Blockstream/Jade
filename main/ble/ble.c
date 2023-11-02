@@ -57,10 +57,23 @@ static uint8_t* ble_data_out = NULL;
 static uint16_t peer_conn_handle = 0;
 static uint16_t peer_conn_attr_handle = 0;
 static const size_t ATT_OVERHEAD = 3;
-static size_t ble_max_write_size = CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU - ATT_OVERHEAD;
+static const size_t MAX_BLE_ATTR_SIZE = 512;
+static size_t ble_max_write_size = 0;
 static TaskHandle_t* ble_writer_handle = NULL;
 
 gui_activity_t* make_ble_confirmation_activity(uint32_t numcmp);
+
+// Max write size is min(mtu - 3, 512).
+// 1. Must leave 3 bytes for headers
+// 2. Largest allowed attribute size is 512
+// NOTE: larger MTUs up to 517 are allowed (eg. android14)
+static void set_ble_max_write_size_for_mtu(const uint16_t mtu)
+{
+    ble_max_write_size = mtu - ATT_OVERHEAD;
+    if (ble_max_write_size > MAX_BLE_ATTR_SIZE) {
+        ble_max_write_size = MAX_BLE_ATTR_SIZE;
+    }
+}
 
 static int gatt_chr_event(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt* ctxt, void* arg)
 {
@@ -229,7 +242,9 @@ void ble_start_advertising(void)
         JADE_LOGW("ble_start_advertising() called but already advertising!");
         return;
     }
-    ble_max_write_size = CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU - ATT_OVERHEAD;
+
+    // Reset the write size assuming preferred MTU
+    set_ble_max_write_size_for_mtu(CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU);
 
     struct ble_gap_adv_params adv_params;
     struct ble_hs_adv_fields fields;
@@ -439,7 +454,9 @@ bool ble_init(TaskHandle_t* ble_handle)
     JADE_ASSERT(!full_ble_data_in);
     JADE_ASSERT(!ble_data_out);
 
-    // Sanity check
+    // Initialise assuming preferred MTU and sanity check value
+    set_ble_max_write_size_for_mtu(CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU);
+    JADE_ASSERT(ble_max_write_size <= MAX_BLE_ATTR_SIZE);
     JADE_ASSERT(ble_max_write_size >= 64);
 
     // Extra byte at the start for source-id
@@ -639,7 +656,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
     case BLE_GAP_EVENT_MTU:
         JADE_LOGI("mtu update event; conn_handle=%d cid=%d mtu=%d\n", event->mtu.conn_handle, event->mtu.channel_id,
             event->mtu.value);
-        ble_max_write_size = event->mtu.value - ATT_OVERHEAD;
+        set_ble_max_write_size_for_mtu(event->mtu.value);
         return 0;
 
     case BLE_GAP_EVENT_REPEAT_PAIRING:
