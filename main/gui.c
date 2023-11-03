@@ -2266,6 +2266,13 @@ void gui_repaint(gui_view_node_t* node)
 {
     JADE_ASSERT(node);
 
+    // If we are called from the gui task we can immediately repaint the node.
+    // If not, we should enqueue a message to the gui task to repaint.
+    if (xTaskGetCurrentTaskHandle() == gui_task_handle) {
+        repaint_node(node);
+        return;
+    }
+
     // Post the node to the gui task
     const gui_task_job_t node_repaint_info = { .node_to_repaint = node, .new_activity = NULL, .to_free = NULL };
     while (xRingbufferSend(gui_input_queue, &node_repaint_info, sizeof(node_repaint_info), portMAX_DELAY) != pdTRUE) {
