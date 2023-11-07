@@ -1256,6 +1256,35 @@ class JadeAPI:
         params = {'identity': identity, 'curve': curve, 'index': index, 'challenge': challenge}
         return self._jadeRpc('sign_identity', params)
 
+    def sign_attestation(self, challenge):
+        """
+        RPC call to sign passed challenge with embedded hw RSA-4096 key, such that the caller
+        can check the authenticity of the hardware unit.  eg. whether it is a genuine
+        Blockstream production Jade unit.
+        Caller must have the public key of the external verifying authority they wish to validate
+        against (eg. Blockstream's Jade verification public key).
+        NOTE: only supported by ESP32S3-based hardware units.
+
+        Parameters
+        ----------
+        challenge : bytes
+            Challenge bytes to sign
+
+        Returns
+        -------
+        dict
+            Contains keys:
+            signature - 512-bytes, hardware RSA signature of the SHA256 hash of the passed
+                        challenge bytes.
+            pubkey_pem - str, PEM export of RSA pubkey of the hardware unit, to verify the returned
+            RSA signature.
+            ext_signature - bytes, RSA signature of the verifying authority over the returned
+            pubkey_pem data.
+            (Caller can verify this signature with the public key of the verifying authority.)
+        """
+        params = {'challenge': challenge}
+        return self._jadeRpc('sign_attestation', params)
+
     def get_master_blinding_key(self, only_if_silent=False):
         """
         RPC call to fetch the master (SLIP-077) blinding key for the hw signer.

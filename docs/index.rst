@@ -174,6 +174,50 @@ get_version_info reply
 
 .. _update_pinserver_request:
 
+.. _sign_attestation_request:
+
+sign_attestation request
+------------------------
+
+Request to sign to confirm hw unit authenticity using a hw-embedded RSA-4096 key.
+
+NOTE: this call is only supported by ESP32S3-based hw units.
+
+.. code-block:: cbor
+
+    {
+        "id": "84",
+        "method": "sign_attestation",
+        "params": {
+            "challenge": <bytes>
+        }
+    }
+
+* NOTE: 'challenge' will be hased with SHA256 and padded according to PKCS1v1.5 before being signed.
+
+.. _sign_attestation_reply:
+
+sign_attestation reply
+----------------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed signing on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "84",
+        "result": {
+            "signature": <512 bytes>
+            "pubkey_pem": <bytes>
+            "ext_signature": <bytes>
+        }
+    }
+
+* 'signature' is the RSA signature of the hw-embedded RSA-4096 key over the hashed and padded challenge bytes.
+* 'pubkey_pem' is the exported PEM of the pubkey of the hw-embedded RSA key used to sign the challenge.  Base64 bytes with a trailing nul-terminator.
+* 'ext_signature' is an RSA signature of the verifying authority over the pubkey_pem bytes (including nul-terminator).
+* NOTE: the caller should have the RSA pubkey of the verifying authority in order to verify ext_signature and hence the authenticity of the hw unit.
+
 update_pinserver request
 ------------------------
 

@@ -111,6 +111,8 @@ extern uint8_t macid[6];
 uint32_t main_thread_action = MAIN_THREAD_ACTIVITY_NONE;
 
 // Functional actions
+void register_attestation_process(void* process_ptr);
+void sign_attestation_process(void* process_ptr);
 void register_otp_process(void* process_ptr);
 void get_otp_code_process(void* process_ptr);
 void get_xpubs_process(void* process_ptr);
@@ -437,6 +439,12 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("logout")) {
         JADE_LOGD("Received logout message");
         process_logout_request(process);
+    } else if (IS_METHOD("register_attestation")) {
+        JADE_LOGD("Received register_attestation message");
+        task_function = register_attestation_process;
+    } else if (IS_METHOD("sign_attestation")) {
+        JADE_LOGD("Received sign_attestation message");
+        task_function = sign_attestation_process;
     } else if (IS_METHOD("update_pinserver")) {
         JADE_LOGD("Received update to pinserver details");
         task_function = update_pinserver_process;
