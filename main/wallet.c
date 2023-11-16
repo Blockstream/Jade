@@ -930,9 +930,10 @@ bool wallet_get_signer_commitment(const uint8_t* signature_hash, const size_t si
 // Function to sign an input hash with a derived key - cannot be the root key, and value must be a sha256 hash.
 // If 'ae_host_entropy' is passed it is used to generate an 'anti-exfil' signature, otherwise a standard EC signature
 // (ie. using rfc6979) is created.  The output signature is returned in DER format, with a SIGHASH_<xxx> postfix.
-// Output buffer size must be EC_SIGNATURE_DER_MAX_LEN.
+// Output buffer size must be (EC_SIGNATURE_DER_MAX_LEN + 1).
 // NOTE: the standard EC signature will 'grind-r' to produce a 'low-r' signature, the anti-exfil case
-// cannot (as the entropy is provided explicitly).
+// cannot (as the entropy is provided explicitly). However all signatures produced are Low-S,
+// to comply with bitcoin standardness rules.
 bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signature_hash_len, const uint32_t* path,
     const size_t path_len, const uint8_t sighash, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len,
     uint8_t* output, const size_t output_len, size_t* written)
