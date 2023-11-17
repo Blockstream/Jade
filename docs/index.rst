@@ -729,23 +729,88 @@ get_registered_multisigs reply
                 "variant": "wsh(multi(k))",
                 "sorted": true,
                 "threshold": 2,
-                "num_signers": 3
+                "num_signers": 3,
                 "master_blinding_key": <32-bytes>
             },
             "family": {
                 "variant": "sh(wsh(multi(k)))",
                 "sorted": false,
                 "threshold": 2,
-                "num_signers": 3
+                "num_signers": 3,
                 "master_blinding_key": null
             },
             "small_beans": {
                 "variant": "sh(multi(k))",
                 "sorted": true,
                 "threshold": 2,
-                "num_signers": 2
+                "num_signers": 2,
                 "master_blinding_key": <32-bytes>
             },
+        }
+    }
+
+.. _get_registered_multisigs_request:
+
+get_registered_multisig request
+-------------------------------
+
+Call to fetch signer details of any registered multisig wallets associated with the hw signer.
+NOTE: the multisig wallet must have been registered with firmware v1.0.23 or later for the full signer details to be persisted and available.
+
+.. code-block:: cbor
+
+    {
+        "id": "43",
+        "method": "get_registered_multisig"
+        "params": {
+            "multisig_name": "busacct",
+            "as_file": false
+        }
+    }
+
+* If 'as_file' is true, the flat-file format as supported by several wallet apps is returned in a single string
+* If 'as_file' is false, structured json is returned
+
+
+.. _get_registered_multisigs_reply:
+
+get_registered_multisig reply
+-----------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "43",
+        "multisig_name": "busacct",
+        "multisig_file": "Name: MainWallet\nPolicy: 2 of 3\nFormat: P2WSH\nDerivation: m/48'/0'/0'/2\n\nB237FE9D: xpub6E8C7BX4c7qfTsX7urnXggcAyFuhDmYLQhwRwZGLD9maUGWPinuc9k96ejhEQ1DCk..."
+    }
+
+or:
+
+.. code-block:: cbor
+
+    {
+        "id": "43",
+        "multisig_name": "busacct",
+        "descriptor": {
+            "variant": "wsh(multi(k))",
+            "sorted": true,
+            "threshold": 2,
+            "master_blinding_key": <32-bytes>,
+            "signers": [
+                {
+                    "fingerprint": <4 bytes>,
+                    "derivation": [44, 2147483648, 2147483648],
+                    "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                    "path": [3, 1]
+                },
+                {
+                    "fingerprint": <4 bytes>,
+                    "derivation": [2147483651, 2147483649, 1],
+                    "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                    "path": [1]
+                }
+            ]
         }
     }
 

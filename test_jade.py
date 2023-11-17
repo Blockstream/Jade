@@ -952,6 +952,19 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                   (('badxpub13', 'get_xpub',  # network missing or invalid
                     {'path': [1, 2, 3], 'network': 'invalid'}), 'valid network'),
 
+                  (('badgetmulti1', 'get_registered_multisig'), 'Expecting parameters map'),
+                  (('badgetmulti2', 'get_registered_multisig',
+                    {'multisig_name': 'notsobad', 'as_file': 'not bool'}),
+                   'Failed to extract valid as_file parameter'),
+                  (('badgetmulti3', 'get_registered_multisig', {'multisig_name': None}),
+                   'invalid multisig name'),
+                  (('badgetmulti4', 'get_registered_multisig', {'multisig_name': 'space is bad'}),
+                   'invalid multisig name'),
+                  (('badgetmulti5', 'get_registered_multisig',
+                    {'multisig_name': 'excessivelylong1'}), 'invalid multisig name'),
+                  (('badgetmulti6', 'get_registered_multisig', {'multisig_name': 'noexist'}),
+                   'does not exist for this signer'),
+
                   (('badmulti1', 'register_multisig'), 'Expecting parameters map'),
                   (('badmulti2', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': None}), 'invalid multisig name'),
@@ -2626,7 +2639,20 @@ def _check_multisig_registration(jadeapi, multisig_data):
                                      master_blinding_key=descriptor.get('master_blinding_key'))
     assert rslt is True
 
-    # Check present and correct in 'get_registered_multisigs'
+    # Pull the data back, then reload (roundtrip) - should be a no-op
+    roundtrip = jadeapi.get_registered_multisig(inputdata['multisig_name'])
+    fetched = roundtrip['descriptor']
+    assert fetched['variant'] == descriptor['variant']
+    assert fetched['sorted'] == descriptor['sorted']
+    assert fetched['threshold'] == descriptor['threshold']
+    assert fetched['master_blinding_key'] == descriptor.get('master_blinding_key', b'')
+    assert fetched['signers'] == descriptor['signers']
+
+    roundtrip['network'] = inputdata['network']  # the only item not roundtripped
+    rslt = jadeapi._jadeRpc('get_registered_multisig', roundtrip)  # push result structure back
+    assert rslt
+
+    # Check present and correct in 'get_registered_multisigs' also
     registered_multisigs = jadeapi.get_registered_multisigs()
     multisig_desc = registered_multisigs.get(inputdata['multisig_name'])
     assert multisig_desc is not None
@@ -2712,7 +2738,20 @@ def test_generic_multisig_files(jadeapi):
         rslt = jadeapi.register_multisig_file(multisig_file)
         assert rslt
 
+        # Pull the data back, then reload (roundtrip) - should be a no-op
+        roundtrip = jadeapi.get_registered_multisig(expected_result['multisig_name'], as_file=True)
+        rslt = jadeapi.register_multisig_file(roundtrip['multisig_file'])
+        assert rslt
+
         # Check registered as expected
+        fetched = jadeapi.get_registered_multisig(expected_result['multisig_name'])
+        fetched = fetched['descriptor']
+        assert fetched['variant'] == expected_result['variant']
+        assert fetched['sorted'] == expected_result['sorted']
+        assert fetched['threshold'] == expected_result['threshold']
+        assert fetched['master_blinding_key'] == expected_result.get('master_blinding_key', b'')
+        assert len(fetched['signers']) == expected_result['num_signers']
+
         registered_multisigs = jadeapi.get_registered_multisigs()
         multisig_desc = registered_multisigs.get(expected_result['multisig_name'])
         assert multisig_desc is not None

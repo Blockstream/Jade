@@ -824,6 +824,55 @@ class JadeAPI:
         """
         return self._jadeRpc('get_registered_multisigs')
 
+    def get_registered_multisig(self, multisig_name, as_file=False):
+        """
+        RPC call to fetch details of a named multisig wallet registered to this signer.
+        NOTE: the multisig wallet must have been registered with firmware v1.0.23 or later
+        for the full signer details to be persisted and available.
+
+        Parameters
+        ----------
+        multisig_name : string
+            Name of multsig registration record to return.
+
+        as_file : string, optional
+            If true the flat file format is returned, otherwise structured json is returned.
+            Defaults to false.
+
+        Returns
+        -------
+        dict
+            Description of registered multisig wallet identified by registration name.
+            Contains keys:
+                is_file is true:
+                    multisig_file - str, the multisig file as produced by several wallet apps.
+                    eg:
+                        Name: MainWallet
+                        Policy: 2 of 3
+                        Format: P2WSH
+                        Derivation: m/48'/0'/0'/2'
+
+                        B237FE9D: xpub6E8C7BX4c7qfTsX7urnXggcAyFuhDmYLQhwRwZGLD9maUGWPinuc9k96ej...
+                        249192D2: xpub6EbXynW6xjYR3crcztum6KzSWqDJoAJQoovwamwVnLaCSHA6syXKPnJo6U...
+                        67F90FFC: xpub6EHuWWrYd8bp5FS1XAZsMPkmCqLSjpULmygWqAqWRCCjSWQwz6ntq5KnuQ...
+
+                is_file is false:
+                    multisig_name - str, name of multisig registration
+                    variant - str, script type, eg. 'sh(wsh(multi(k)))'
+                    sorted - boolean, whether bip67 key sorting is applied
+                    threshold - int, number of signers required,N
+                    master_blinding_key - 32-bytes, any liquid master blinding key for this wallet
+                    signers - dict containing keys:
+                        fingerprint - 4 bytes, origin fingerprint
+                        derivation - [int], bip32 path from origin to signer xpub provided
+                        xpub - str, base58 xpub of signer
+                        path - [int], any fixed path to always apply after the xpub - usually empty.
+
+        """
+        params = {'multisig_name': multisig_name,
+                  'as_file': as_file}
+        return self._jadeRpc('get_registered_multisig', params)
+
     def register_multisig(self, network, multisig_name, variant, sorted_keys, threshold, signers,
                           master_blinding_key=None):
         """
