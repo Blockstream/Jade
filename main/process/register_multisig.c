@@ -79,7 +79,7 @@ static int register_multisig(const char* multisig_name, const char* network, con
     if (overwriting) {
         size_t written = 0;
         uint8_t* const existing = JADE_MALLOC(registration_len);
-        if (storage_get_multisig_registration(multisig_name, existing, sizeof(existing), &written)
+        if (storage_get_multisig_registration(multisig_name, existing, registration_len, &written)
             && written == registration_len && !sodium_memcmp(existing, registration, registration_len)) {
             JADE_LOGI("Multisig %s: identical registration exists, returning immediately", multisig_name);
             free(existing);

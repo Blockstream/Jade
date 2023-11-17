@@ -655,6 +655,7 @@ bool multisig_create_export_file(const char* multisig_name, const multisig_data_
     // Signers
     for (size_t i = 0; i < num_signer_details; ++i) {
         const signer_t* const signer = signer_details + i;
+        JADE_ASSERT(signer->xpub[signer->xpub_len] == '\0');
 
         if (signer->path_len || signer->path_is_string) {
             JADE_LOGW("Multisig signers with additional path cannot be exported");
