@@ -599,16 +599,16 @@ void add_string_to_map(CborEncoder* container, const char* name, const char* val
     JADE_ASSERT(cberr == CborNoError);
 }
 
-void add_string_sized_to_map(CborEncoder* container, const char* name, const char* value, size_t size)
+void add_string_sized_to_map(CborEncoder* container, const char* name, const char* value, size_t len)
 {
     JADE_ASSERT(container);
     JADE_ASSERT(name);
     JADE_ASSERT(value);
-    JADE_ASSERT(size);
+    JADE_ASSERT(len);
 
     CborError cberr = cbor_encode_text_stringz(container, name);
     JADE_ASSERT(cberr == CborNoError);
-    cberr = cbor_encode_text_string(container, value, size);
+    cberr = cbor_encode_text_string(container, value, len);
     JADE_ASSERT(cberr == CborNoError);
 }
 
@@ -617,7 +617,7 @@ void add_string_array_to_map(CborEncoder* container, const char* name, const cha
     JADE_ASSERT(name);
     JADE_ASSERT(container);
     JADE_ASSERT(texts);
-    JADE_ASSERT((texts && len) || (texts == NULL && len == 0));
+    JADE_ASSERT(texts || !len);
 
     CborError cberr = cbor_encode_text_stringz(container, name);
     JADE_ASSERT(cberr == CborNoError);
@@ -637,11 +637,33 @@ void add_string_array_to_map(CborEncoder* container, const char* name, const cha
     JADE_ASSERT(cberr == CborNoError);
 }
 
+void add_uint_array_to_map(CborEncoder* container, const char* name, const uint32_t* values, const size_t len)
+{
+    JADE_ASSERT(name);
+    JADE_ASSERT(container);
+    JADE_ASSERT(values || !len);
+
+    CborError cberr = cbor_encode_text_stringz(container, name);
+    JADE_ASSERT(cberr == CborNoError);
+
+    CborEncoder elements_encoder;
+    cberr = cbor_encoder_create_array(container, &elements_encoder, len);
+    JADE_ASSERT(cberr == CborNoError);
+
+    for (size_t i = 0; i < len; ++i) {
+        cberr = cbor_encode_uint(&elements_encoder, values[i]);
+        JADE_ASSERT(cberr == CborNoError);
+    }
+
+    cberr = cbor_encoder_close_container(container, &elements_encoder);
+    JADE_ASSERT(cberr == CborNoError);
+}
+
 void add_bytes_to_map(CborEncoder* container, const char* name, const uint8_t* value, const size_t len)
 {
     JADE_ASSERT(container);
     JADE_ASSERT(name);
-    JADE_ASSERT((value && len) || (value == NULL && len == 0));
+    JADE_ASSERT(value || !len);
 
     CborError cberr = cbor_encode_text_stringz(container, name);
     JADE_ASSERT(cberr == CborNoError);

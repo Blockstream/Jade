@@ -66,8 +66,9 @@ void rpc_init_cbor_with_sequence(
 void add_int_to_map(CborEncoder* container, const char* name, int64_t value);
 void add_uint_to_map(CborEncoder* container, const char* name, uint64_t value);
 void add_string_to_map(CborEncoder* container, const char* name, const char* value);
-void add_string_sized_to_map(CborEncoder* container, const char* name, const char* value, size_t size);
+void add_string_sized_to_map(CborEncoder* container, const char* name, const char* value, size_t len);
 void add_string_array_to_map(CborEncoder* container, const char* name, const char** texts, size_t len);
+void add_uint_array_to_map(CborEncoder* container, const char* name, const uint32_t* values, size_t len);
 void add_bytes_to_map(CborEncoder* container, const char* name, const uint8_t* value, size_t len);
 void add_boolean_to_map(CborEncoder* container, const char* name, bool value);
 #endif /* UTILS_CBOR_RPC_H_ */
