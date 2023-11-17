@@ -4,6 +4,7 @@ import sys
 import glob
 import json
 import logging
+import hashlib
 import os
 
 import fwtools
@@ -47,6 +48,12 @@ def process_fw_filename(fwname, fwhashes):
         # Skip unknown file
         logger.warning('Unknown file type: {fwname}')
         return None
+
+    # Add hashes - compute file hash, lookup firmware hash
+    with open(fwname, 'rb') as f:
+        cmphash = hashlib.sha256(f.read()).digest().hex()
+        assert len(cmphash) == 64
+        desc['cmphash'] = cmphash
 
     fwhash = fwhashes.get(info)
     if fwhash:
