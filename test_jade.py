@@ -812,9 +812,6 @@ def _test_bad_params(jade, args, expected_error):
 
 
 def test_bad_params(jade):
-    pubkey1, sig1 = PINServerECDH().get_signed_public_key()
-    pubkey2, sig2 = PINServerECDH().get_signed_public_key()
-
     GOODTX = h2b(
              '02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee\
 7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59d\
@@ -2039,6 +2036,7 @@ def test_handshake(jade):
     #    response (ecdh key) to jade.  We use the pinserver class directly.
     #    The response from jade is the encrypted pin packet and the URL.
     server = PINServerECDH()
+    server.load_private_key()
     pubkey, sig = server.get_signed_public_key()
 
     msg = jade.build_request(
@@ -2106,6 +2104,7 @@ def test_handshake(jade):
     # Note: PINServerECDH instances are ephemeral, so we create a new one
     #       here, as that is what would happen in pinserver proper.
     server = PINServerECDH()
+    server.load_private_key()
     pubkey, sig = server.get_signed_public_key()
 
     msg = jade.build_request(
@@ -2171,6 +2170,7 @@ def test_handshake_bad_sig(jade):
     #    response (ecdh key) to jade.  We use the pinserver class directly.
     #    We expect this to fail as the pinserver signature will not match expected
     server = PINServerECDH()
+    server.load_private_key()
     pubkey, sig = server.get_signed_public_key()
 
     msg = jade.build_request(
@@ -2296,15 +2296,20 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
 
     # Iterate over the results verifying each signature
     for i, (expected, actual) in enumerate(zip(testcase['expected_output'], rslt)):
+        # NOTE: signatures returned have the sighash byte appended
         if use_ae_signatures:
-            # Anti-Exfil signer_commitment and signature (might not be low-r)
+            # Anti-Exfil signer_commitment and signature (might not be low-r, but should be low-s)
             assert tuple(expected) == actual, list(map(bytes.hex, actual))
-            assert len(actual[1]) <= wally.EC_SIGNATURE_DER_MAX_LEN
+
+            # Check sig length is low-s (ie. remove one from the possible max length)
+            assert len(actual[1]) <= wally.EC_SIGNATURE_DER_MAX_LEN + 1 - 1  # sighash byte, low-s
             signer_commitment, signature = actual
         else:
-            # Standard EC signature should be low-r
+            # Standard EC signature should be low-s and low-r
             assert actual == expected, actual.hex()
-            assert len(actual) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN
+
+            # NOTE: low-s is implied/assumed here, so no need to remove one from max-len
+            assert len(actual) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN + 1  # sighash byte, low-s
             signer_commitment, signature = None, actual  # No signer_commitment for EC sig
 
         # Verify signature (if we signed this input)
@@ -2376,31 +2381,12 @@ def test_bip85_bip39_encrypted_entropy(jadeapi):
 
         # Get encrypted bip85 bip39 data from Jade
         rslt = jadeapi.get_bip85_bip39_entropy(nwords, index, pubkey)
-        encrypted = rslt['encrypted'][:-32]
-        hmac = rslt['encrypted'][-32:]
-
-        # Calculate the shared secret and the two further derived keys
-        shared_secret = wally.ecdh(rslt['pubkey'], privkey)
-        key_data = wally.hmac_sha512(shared_secret, label)
-        encryption_key = key_data[:32]
-        hmac_key = key_data[32:]
-
-        # Verify the hmac is correct
-        assert wally.hmac_sha256(hmac_key, encrypted) == hmac
-
-        iv = encrypted[:wally.AES_BLOCK_LEN]
-        encrypted_entropy = encrypted[wally.AES_BLOCK_LEN:]
-        jade_entropy = wally.aes_cbc(encryption_key, iv, encrypted_entropy, wally.AES_FLAG_DECRYPT)
+        jade_entropy = wally.aes_cbc_with_ecdh_key(privkey, None, rslt['encrypted'],
+                                                   rslt['pubkey'], label, wally.AES_FLAG_DECRYPT)
 
         # Check against libwally when calculated locally
         expected_entropy = wally.bip85_get_bip39_entropy(local_master_key, None, nwords, index)
         assert jade_entropy == expected_entropy
-
-        # TODO: uncomment when libwally released and python dependency updated
-        # Test using 'all-in-one' wally function
-        # jade_entropy = wally.aes_cbc_with_ecdh_key(privkey, None, rslt['encrypted'],
-        #                                            rslt['pubkey'], label, wally.AES_FLAG_DECRYPT)
-        # assert jade_entropy == expected_entropy
 
         # Check against explicit mnemonic words if passed
         if expected_mnemonic:

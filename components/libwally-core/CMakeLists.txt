@@ -2,8 +2,8 @@ idf_component_register(SRCS
                        "upstream/src/address.c"
                        "upstream/src/aes.c"
                        "upstream/src/anti_exfil.c"
-                       "upstream/src/base58.c"
-                       "upstream/src/base64.c"
+                       "upstream/src/base_58.c"
+                       "upstream/src/base_64.c"
                        "upstream/src/bech32.c"
                        "upstream/src/bip32.c"
                        "upstream/src/bip38.c"
@@ -13,7 +13,7 @@ idf_component_register(SRCS
                        "upstream/src/descriptor.c"
                        "upstream/src/ecdh.c"
                        "upstream/src/elements.c"
-                       "upstream/src/hex.c"
+                       "upstream/src/hex_.c"
                        "upstream/src/hmac.c"
                        "upstream/src/internal.c"
                        "upstream/src/map.c"
@@ -45,6 +45,7 @@ idf_component_register(SRCS
                        "upstream/src/ccan"
                        "upstream/src/secp256k1"
                        "upstream/src/secp256k1/src"
+                       "upstream/src/secp256k1/include"
                        "upstream/src/secp256k1/src/modules/ecdh"
                        "upstream/src/secp256k1/src/modules/ecdsa_adaptor"
                        "upstream/src/secp256k1/src/modules/ecdsa_s2c"
@@ -72,11 +73,22 @@ set_source_files_properties(
     PROPERTIES COMPILE_FLAGS
     "-Wno-nonnull-compare -Wno-unused-function -Wno-error=maybe-uninitialized -Wno-type-limits -Wno-error=array-parameter"
     )
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_CONFIG_H")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_ELEMENTS=1")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_MINIMAL=1")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_MBEDTLS_SHA256_H")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_MBEDTLS_SHA512_H")
+
+# libsecp flags
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DECMULT_WINDOW_SIZE=8")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_ECDH=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_ECDSA_S2C=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_EXTRAKEYS=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_GENERATOR=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_RANGEPROOF=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_RECOVERY=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_SCHNORRSIG=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_SURJECTIONPROOF=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_BUILTIN_POPCOUNT=1")
 
 add_custom_command(TARGET ${COMPONENT_LIB}
                    POST_BUILD

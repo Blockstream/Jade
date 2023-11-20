@@ -42,4 +42,7 @@ fi
 FW_FULL=$(ls build/*_fw.bin)
 python jade_ota.py --push-mnemonic --log=INFO --serialport=${JADESERIALPORT} --fwfile=${FW_FULL}
 
+sleep 5
+python -c "from jadepy import JadeAPI; jade = JadeAPI.create_serial(device=\"${JADESERIALPORT}\", timeout=5) ; jade.connect(); jade.drain(); jade.disconnect()"
+
 python test_jade.py --log=INFO --serialport=${JADESERIALPORT}
