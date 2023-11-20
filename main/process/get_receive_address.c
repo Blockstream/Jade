@@ -226,6 +226,7 @@ void get_receive_address_process(void* process_ptr)
     // Convert that into an address string
     JADE_ASSERT(script_len > 0);
     char address[MAX_ADDRESS_LEN];
+    const bool has_value = false;
     if (isLiquid) {
         if (confidential) {
             // Blind address
@@ -238,14 +239,14 @@ void get_receive_address_process(void* process_ptr)
                 goto cleanup;
             }
             elements_script_to_address(
-                network, script, script_len, blinding_key, sizeof(blinding_key), address, sizeof(address));
+                network, script, script_len, has_value, blinding_key, sizeof(blinding_key), address, sizeof(address));
         } else {
             JADE_ASSERT(!p_master_blinding_key && !master_blinding_key_len);
-            elements_script_to_address(network, script, script_len, NULL, 0, address, sizeof(address));
+            elements_script_to_address(network, script, script_len, has_value, NULL, 0, address, sizeof(address));
         }
     } else {
         JADE_ASSERT(!confidential && !p_master_blinding_key && !master_blinding_key_len);
-        script_to_address(network, script, script_len, address, sizeof(address));
+        script_to_address(network, script, script_len, has_value, address, sizeof(address));
     }
 
     // Display to the user to confirm

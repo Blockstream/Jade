@@ -15,11 +15,12 @@ typedef struct {
 } address_data_t;
 
 // Script pubkey to address, for BTC networks
-void script_to_address(const char* network, const uint8_t* script, size_t script_len, char* output, size_t output_len);
+void script_to_address(
+    const char* network, const uint8_t* script, size_t script_len, bool has_value, char* output, size_t output_len);
 
 // Script pubkey to address, for liquid networks
 // Will be converted to a confidential address if blindingkey is passed.
-void elements_script_to_address(const char* network, const uint8_t* script, size_t script_len,
+void elements_script_to_address(const char* network, const uint8_t* script, size_t script_len, bool has_value,
     const uint8_t* blinding_key, size_t blinding_key_len, char* output, size_t output_len);
 
 // Attempt to parse an address - return the network and the scriptpubkey

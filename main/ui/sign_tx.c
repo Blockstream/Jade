@@ -443,7 +443,7 @@ bool show_btc_transaction_outputs_activity(
         JADE_ASSERT(ret > 0 && ret < sizeof(amount));
 
         char address[MAX_ADDRESS_LEN];
-        script_to_address(network, out->script, out->script_len, address, sizeof(address));
+        script_to_address(network, out->script, out->script_len, out->satoshi > 0, address, sizeof(address));
         const bool is_address = true;
 
         // Show output info
@@ -499,7 +499,7 @@ bool show_elements_transaction_outputs_activity(const char* network, const struc
 
         // Get the address
         char address[MAX_ADDRESS_LEN];
-        elements_script_to_address(network, out->script, out->script_len,
+        elements_script_to_address(network, out->script, out->script_len, output_info[i].value > 0,
             (output_info[i].flags & OUTPUT_FLAG_HAS_BLINDING_KEY) ? output_info[i].blinding_key : NULL,
             sizeof(output_info[i].blinding_key), address, sizeof(address));
         const bool is_address = true;
