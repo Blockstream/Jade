@@ -40,7 +40,8 @@ void show_pinserver_details(void)
 
     // If no pinserver set, show the help screen
     if (!have_pubkey && !have_urlA && !have_urlB && !have_cert) {
-        await_message_activity("Custom Oracle not set");
+        const char* message[] = { "Custom Oracle not set" };
+        await_message_activity(message, 1);
         return;
     }
 
@@ -166,7 +167,8 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             goto cleanup;
         }
     } else if (reset_details) {
-        if (!await_yesno_activity("Reset Oracle", "Reset Oracle details?", false, NULL)) {
+        const char* message[] = { "Reset Oracle details?" };
+        if (!await_yesno_activity("Reset Oracle", message, 1, false, NULL)) {
             JADE_LOGW("User declined to confirm resetting pinserver details");
             *errmsg = "User declined to confirm resetting Oracle details";
             retval = CBOR_RPC_USER_CANCELLED;
@@ -209,7 +211,8 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
             goto cleanup;
         }
     } else if (reset_certificate) {
-        if (!await_yesno_activity("Certificate", "\n        Reset Oracle\n         certificate?", false, NULL)) {
+        const char* question[] = { "Reset Oracle", "certificate?" };
+        if (!await_yesno_activity("Certificate", question, 2, false, NULL)) {
             JADE_LOGW("User declined to confirm resetting pinserver certificate");
             *errmsg = "User declined to confirm resetting Oracle certificate";
             retval = CBOR_RPC_USER_CANCELLED;

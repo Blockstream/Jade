@@ -127,16 +127,17 @@ static int get_bip85_bip39_entropy_data(const CborValue* params, bip85_data_t* b
     }
 
     // User to confirm
-    char idx[8];
-    int ret = snprintf(idx, sizeof(idx), "%u", index);
-    JADE_ASSERT(ret > 0 && ret < sizeof(idx));
-    const int padding = (sizeof(idx) - ret) / 2;
-    char msg[96];
-    ret = snprintf(msg, sizeof(msg), "  Export an encrypted\n  %u word seed phrase\n%*sfor BIP85 index %s?", nwords,
-        padding, "", idx);
-    JADE_ASSERT(ret > 0 && ret < sizeof(msg));
+    char nwordphrase[24];
+    int ret = snprintf(nwordphrase, sizeof(nwordphrase), "%u word seed phrase", nwords);
+    JADE_ASSERT(ret > 0 && ret < sizeof(nwordphrase));
 
-    if (!await_continueback_activity("Key Export", msg, false, "blkstrm.com/bip85")) {
+    char txtindex[24];
+    ret = snprintf(txtindex, sizeof(txtindex), "for BIP85 index %u?", index);
+    JADE_ASSERT(ret > 0 && ret < sizeof(txtindex));
+
+    const char* message[] = { "Export an encrypted", nwordphrase, txtindex };
+
+    if (!await_continueback_activity("Key Export", message, 3, false, "blkstrm.com/bip85")) {
         // User declined
         *errmsg = "User declined to export entropy";
         return CBOR_RPC_USER_CANCELLED;

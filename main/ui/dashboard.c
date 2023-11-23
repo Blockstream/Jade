@@ -103,9 +103,10 @@ gui_activity_t* make_connect_activity(const char* device_name)
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_HELP } };
 
-    return make_show_message_activity(
-        "  Connect via USB/BLE\n   to a companion app\n and select your Jade to\n  unlock with your PIN", 12,
-        device_name, hdrbtns, 2, NULL, 0);
+    const char* message[]
+        = { "Connect via USB/BLE", "to a companion app", "and select your Jade to", "unlock with your PIN" };
+
+    return make_show_message_activity(message, 4, device_name, hdrbtns, 2, NULL, 0);
 }
 
 gui_activity_t* make_connect_to_activity(const char* device_name, const jade_msg_source_t initialisation_source)
@@ -113,20 +114,29 @@ gui_activity_t* make_connect_to_activity(const char* device_name, const jade_msg
     JADE_ASSERT(device_name);
     JADE_ASSERT(initialisation_source != SOURCE_INTERNAL);
 
-    char msg[128];
-    if (initialisation_source == SOURCE_BLE) {
-        const int ret = snprintf(
-            msg, sizeof(msg), "\n  Select %s on\n  the companion app to\n              pair it", device_name);
-        JADE_ASSERT(ret > 0 && ret < sizeof(msg));
-    } else {
-        const int ret
-            = snprintf(msg, sizeof(msg), "\n  Connect %s\n to a compatible wallet\n               app", device_name);
-        JADE_ASSERT(ret > 0 && ret < sizeof(msg));
-    }
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_TO_BACK },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_HELP } };
 
-    return make_show_message_activity(msg, 2, device_name, hdrbtns, 2, NULL, 0);
+    const char* message[] = { NULL, NULL, NULL };
+    if (initialisation_source == SOURCE_BLE) {
+        char select_device[32];
+        const int ret = snprintf(select_device, sizeof(select_device), "Select %s on", device_name);
+        JADE_ASSERT(ret > 0 && ret < sizeof(select_device));
+
+        message[0] = select_device;
+        message[1] = "the companion app to";
+        message[2] = "pair it";
+    } else {
+        char connect_device[32];
+        const int ret = snprintf(connect_device, sizeof(connect_device), "Connect %s", device_name);
+        JADE_ASSERT(ret > 0 && ret < sizeof(connect_device));
+
+        message[0] = connect_device;
+        message[1] = "to a compatible wallet";
+        message[2] = "app";
+    }
+
+    return make_show_message_activity(message, 3, device_name, hdrbtns, 2, NULL, 0);
 }
 
 gui_activity_t* make_connect_qrmode_activity(const char* device_name)
@@ -200,15 +210,14 @@ gui_activity_t* make_confirm_qrmode_activity(void)
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_QR_BACK },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_QR_HELP } };
 
+    const char* message[] = { "Save and encrypt wallet", "with PIN or scan a", "SeedQR every session?" };
+
     btn_data_t ftrbtns[] = {
         { .txt = "PIN", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_PIN, .borders = GUI_BORDER_TOPRIGHT },
         { .txt = "SeedQR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_CONNECT_QR_SCAN, .borders = GUI_BORDER_TOPLEFT }
     };
 
-    gui_activity_t* const act = make_show_message_activity(
-        "Save and encrypt wallet\n     with PIN or scan a\n SeedQR every session?", 12, NULL, hdrbtns, 2, ftrbtns, 2);
-
-    return act;
+    return make_show_message_activity(message, 3, NULL, hdrbtns, 2, ftrbtns, 2);
 }
 
 gui_activity_t* make_bip39_passphrase_prefs_activity(
@@ -396,12 +405,12 @@ gui_activity_t* make_wallet_erase_pin_info_activity(void)
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_WALLET_ERASE_PIN_EXIT },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_WALLET_ERASE_PIN_HELP } };
 
+    const char* message[] = { "A duress PIN will delete", "the wallet stored on", "Jade if entered" };
+
     btn_data_t ftrbtn
         = { .txt = "Continue", .font = GUI_DEFAULT_FONT, .ev_id = BTN_WALLET_ERASE_PIN_SET, .borders = GUI_BORDER_TOP };
 
-    gui_activity_t* const act
-        = make_show_message_activity("A duress PIN will delete\n    the wallet stored on\n        Jade if entered", 12,
-            "Wallet-Erase PIN", hdrbtns, 2, &ftrbtn, 1);
+    gui_activity_t* const act = make_show_message_activity(message, 3, "Wallet-Erase PIN", hdrbtns, 2, &ftrbtn, 1);
 
     // Set the intially selected item to the 'Continue' button
     gui_set_activity_initial_selection(act, ftrbtn.btn);

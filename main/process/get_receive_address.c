@@ -164,7 +164,7 @@ void get_receive_address_process(void* process_ptr)
 
             if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
                 const int ret
-                    = snprintf(warning_msg, sizeof(warning_msg), "Warning:\nNon-standard csv:\n%u", csvBlocks);
+                    = snprintf(warning_msg, sizeof(warning_msg), "\nWarning:\nNon-standard csv:\n%u", csvBlocks);
                 JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
             }
 
@@ -197,7 +197,7 @@ void get_receive_address_process(void* process_ptr)
                     goto cleanup;
                 }
                 const char* path_desc = is_change ? "Note:\nChange path" : "Warning:\nUnusual path";
-                const int ret = snprintf(warning_msg, sizeof(warning_msg), "%s\n%s", path_desc, path_str);
+                const int ret = snprintf(warning_msg, sizeof(warning_msg), "\n%s\n%s", path_desc, path_str);
                 JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
             }
 
@@ -261,7 +261,8 @@ void get_receive_address_process(void* process_ptr)
 
     // Show warning if necessary
     if (warning_msg[0] != '\0') {
-        await_message_activity(warning_msg);
+        const char* message[] = { warning_msg };
+        await_message_activity(message, 1);
     }
 
     // Reply with the address

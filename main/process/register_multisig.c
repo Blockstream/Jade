@@ -122,7 +122,10 @@ static int register_multisig(const char* multisig_name, const char* network, con
     // Persist multisig registration in nvs
     if (!storage_set_multisig_registration(multisig_name, registration, registration_len)) {
         *errmsg = "Failed to persist multisig data";
-        await_error_activity("Error saving multisig");
+
+        const char* message[] = { "Error saving multisig" };
+        await_error_activity(message, 1);
+
         retval = CBOR_RPC_INTERNAL_ERROR;
         goto cleanup;
     }
@@ -522,8 +525,9 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     // If 'name' was truncated, ask user to confirm
     if (name_truncated) {
         JADE_ASSERT(strlen(multisig_name) == sizeof(multisig_name) - 1);
-        if (!await_yesno_activity("Confirm Multisig",
-                "  Multisig record name\n  too long! Truncate to\n       15 characters?", false, NULL)) {
+
+        const char* question[] = { "Multisig record name", "too long! Truncate to", "15 characters?" };
+        if (!await_yesno_activity("Confirm Multisig", question, 3, false, NULL)) {
             JADE_LOGW("User declined truncating multisig record name to: %s", multisig_name);
             *errmsg = "Invalid multisig name";
             goto cleanup;

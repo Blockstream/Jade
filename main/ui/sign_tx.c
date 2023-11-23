@@ -146,12 +146,13 @@ static gui_activity_t* make_display_assetinfo_activities(
 
     // Need two screens to show asset info
     char buf[128];
+    const char* message[] = { buf };
 
     // First screen, ticker and issuer
     btn_data_t hdrbtns1[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNTX_ASSETINFO_DONE },
         { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNTX_ASSETINFO_NEXT } };
 
-    int ret = snprintf(buf, sizeof(buf), "%s\n%s", ticker, issuer);
+    int ret = snprintf(buf, sizeof(buf), "\n%s\n%s", ticker, issuer);
     JADE_ASSERT(ret > 0);
     if (ret > sizeof(buf)) {
         buf[sizeof(buf) - 4] = '.';
@@ -160,7 +161,7 @@ static gui_activity_t* make_display_assetinfo_activities(
         buf[sizeof(buf) - 1] = '\0';
     }
 
-    gui_activity_t* const act = make_show_message_activity(buf, 12, "Asset Info", hdrbtns1, 2, NULL, 0);
+    gui_activity_t* const act = make_show_message_activity(message, 1, "Asset Info", hdrbtns1, 2, NULL, 0);
 
     gui_set_activity_initial_selection(act, hdrbtns1[1].btn);
 
@@ -171,7 +172,7 @@ static gui_activity_t* make_display_assetinfo_activities(
     btn_data_t hdrbtns2[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNTX_ASSETINFO_NEXT },
         { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNTX_ASSETINFO_DONE } };
 
-    *assetinfo2 = make_show_message_activity(buf, 0, "Asset Id", hdrbtns2, 2, NULL, 0);
+    *assetinfo2 = make_show_message_activity(message, 1, "Asset Id", hdrbtns2, 2, NULL, 0);
 
     gui_set_activity_initial_selection(*assetinfo2, hdrbtns2[1].btn);
 

@@ -355,6 +355,8 @@ gui_activity_t* make_calculate_final_word_activity(void)
     btn_data_t hdrbtns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_MNEMONIC_FINAL_WORD_HELP } };
 
+    const char* message[] = { "Enter existing word", "or display possible", "options?" };
+
     btn_data_t ftrbtns[] = { { .txt = "Existing",
                                  .font = GUI_DEFAULT_FONT,
                                  .ev_id = BTN_MNEMONIC_FINAL_WORD_EXISTING,
@@ -364,9 +366,7 @@ gui_activity_t* make_calculate_final_word_activity(void)
             .ev_id = BTN_MNEMONIC_FINAL_WORD_CALCULATE,
             .borders = GUI_BORDER_TOPLEFT } };
 
-    gui_activity_t* const act
-        = make_show_message_activity("   Enter existing word\n    or display possible\n           options?", 12,
-            "Final Word", hdrbtns, 2, ftrbtns, 2);
+    gui_activity_t* const act = make_show_message_activity(message, 3, "Final Word", hdrbtns, 2, ftrbtns, 2);
 
     // Select 'Existing' button by default
     gui_set_activity_initial_selection(act, ftrbtns[0].btn);

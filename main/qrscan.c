@@ -171,7 +171,8 @@ bool jade_camera_scan_qr(qr_data_t* qr_data, const char* text_label, const char*
     return qr_data->len > 0;
 #else // CONFIG_HAS_CAMERA
     JADE_LOGW("No camera supported for this device");
-    await_error_activity("No camera detected");
+    const char* message[] = { "No camera detected" };
+    await_error_activity(message, 1);
     return false;
 #endif
 }

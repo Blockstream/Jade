@@ -33,7 +33,9 @@ static void check_wallet_erase_pin(jade_process_t* process, const uint8_t* pin_e
         // 'Wallet erase' PIN entered.  Erase wallet keys, show 'Internal Error' message and shut-down
         keychain_erase_encrypted();
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Internal Error", NULL);
-        await_error_activity("Internal Error!");
+
+        const char* message[] = { "Internal Error!" };
+        await_error_activity(message, 1);
         power_shutdown();
     }
 }
@@ -79,7 +81,9 @@ static bool check_pin_load_keys(jade_process_t* process)
     uint8_t pin[] = { 0, 1, 2, 3, 4, 5 };
 #endif
     SENSITIVE_PUSH(pin, sizeof(pin));
-    display_message_activity("Checking...");
+
+    const char* message[] = { "Checking..." };
+    display_message_activity(message, 1);
 
     // Ok, have keychain and a PIN - do the pinserver 'getpin' process
     uint8_t aeskey[AES_KEY_LEN_256];
@@ -98,7 +102,9 @@ static bool check_pin_load_keys(jade_process_t* process)
         check_wallet_erase_pin(process, pin, sizeof(pin));
 
         jade_process_reply_to_message_fail(process);
-        await_error_activity("Incorrect PIN!");
+
+        const char* message[] = { "Incorrect PIN!" };
+        await_error_activity(message, 1);
         goto cleanup;
     }
 
@@ -119,7 +125,9 @@ static bool check_pin_load_keys(jade_process_t* process)
             SENSITIVE_POP(passphrase);
             JADE_LOGE("Failed to derive wallet");
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to derive wallet", NULL);
-            await_error_activity("Failed to derive wallet");
+
+            const char* message[] = { "Failed to derive wallet" };
+            await_error_activity(message, 1);
             goto cleanup;
         }
         SENSITIVE_POP(passphrase);
@@ -197,7 +205,8 @@ static bool set_pin_save_keys(jade_process_t* process)
             break;
         } else {
             // Pins mismatch - try again
-            if (!await_continueback_activity(NULL, "        Pin mismatch,\n      please try again.", true, NULL)) {
+            const char* message[] = { "Pin mismatch,", "please try again." };
+            if (!await_continueback_activity(NULL, message, 2, true, NULL)) {
                 // Abandon
                 jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User failed to set new PIN", NULL);
                 goto cleanup;
@@ -206,7 +215,8 @@ static bool set_pin_save_keys(jade_process_t* process)
         }
     }
 
-    display_message_activity("Persisting PIN data...");
+    const char* message[] = { "Persisting PIN data..." };
+    display_message_activity(message, 1);
 
     // Ok, have keychain and a PIN - do the pinserver 'setpin' process
     if (!pinclient_set(process, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
@@ -220,7 +230,9 @@ static bool set_pin_save_keys(jade_process_t* process)
         JADE_LOGE("Failed to store key data encrypted in flash memory!");
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);
-        await_error_activity("Failed to persist key data");
+
+        const char* message[] = { "Failed to persist key data" };
+        await_error_activity(message, 1);
         goto cleanup;
     }
 

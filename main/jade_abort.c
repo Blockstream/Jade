@@ -7,8 +7,6 @@
 
 #include <esp_system.h>
 
-#define SIZE_OF_ERR_BUFF 128
-
 extern void __real_abort(void);
 
 void jade_abort(const char* file, const int line_n)
@@ -18,13 +16,13 @@ void jade_abort(const char* file, const int line_n)
     sensitive_clear_stack();
 
     if (gui_initialized()) {
-        char details[64 + SIZE_OF_ERR_BUFF] = { 0 };
-        const int ret = snprintf(details, sizeof(details), "\n\n      Internal error\n\n%s:%d", file, line_n);
-        if (ret > 0 && ret < SIZE_OF_ERR_BUFF) {
-            display_message_activity(details);
-        } else {
-            display_message_activity("\n\n      Internal error\n\n        Restarting");
+        char details[128];
+        const int ret = snprintf(details, sizeof(details), "%s:%d", file, line_n);
+        const char* message[] = { "Internal error", "", "Restarting" };
+        if (ret > 0 && ret < sizeof(details)) {
+            message[2] = details;
         }
+        display_message_activity(message, 3);
     }
 
     // Brief delay before abort

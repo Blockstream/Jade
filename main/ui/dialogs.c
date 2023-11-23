@@ -4,6 +4,14 @@
 
 void await_qr_help_activity(const char* url);
 
+// releative
+#define TITLE_BAR_HEIGHT_PCNT 20
+#define FOOTER_BUTTONS_HEIGHT_PCNT 25
+
+// absolute, appropriate for font being used and jade 1.0/1.1 screens
+#define MESSAGE_DISPLAY_HEIGHT 135
+#define MESSAGE_LINE_ROW_HEIGHT 20
+
 // Helper to update dynamic menu item label (name: value)
 void update_menu_item(gui_view_node_t* node, const char* label, const char* value)
 {
@@ -172,10 +180,11 @@ gui_view_node_t* add_title_bar(
     gui_activity_t* activity, const char* title, btn_data_t* btns, const size_t num_btns, gui_view_node_t** title_node)
 {
     JADE_ASSERT(activity);
+    JADE_ASSERT(btns || !num_btns);
 
     // Split off the top 20% as the title bar
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 20, 80);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, TITLE_BAR_HEIGHT_PCNT, 100 - TITLE_BAR_HEIGHT_PCNT);
     gui_set_parent(vsplit, activity->root_node);
 
     // Populate the title bar
@@ -230,11 +239,15 @@ gui_activity_t* make_menu_activity(
 
 // Helper to create an activity to show a message on a single central label
 // Can pass title-bar information (optional) and footer buttons (also optional)
-gui_activity_t* make_show_message_activity(const char* message, const uint32_t toppad, const char* title,
+gui_activity_t* make_show_message_activity(const char* message[], const size_t message_size, const char* title,
     btn_data_t* hdrbtns, const size_t num_hdrbtns, btn_data_t* ftrbtns, const size_t num_ftrbtns)
 {
     JADE_ASSERT(message);
+    JADE_ASSERT(message_size);
+    JADE_ASSERT(message_size < 5);
     // Header and footer are optional
+    JADE_ASSERT(hdrbtns || !num_hdrbtns);
+    JADE_ASSERT(ftrbtns || !num_ftrbtns);
 
     gui_activity_t* const act = gui_make_activity();
     gui_view_node_t* parent = act->root_node;
@@ -247,27 +260,68 @@ gui_activity_t* make_show_message_activity(const char* message, const uint32_t t
 
     // Message - align center/middle if no carriage returns in message.
     // If multi-line, align top-left and let the caller manage the spacing.
-    const bool msg_includes_crlf = strchr(message, '\n');
     gui_view_node_t* msgnode;
-    gui_make_text(&msgnode, message, TFT_WHITE);
-    if (!msg_includes_crlf) {
-        gui_set_align(msgnode, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    size_t toppad = 0;
+    if (message_size > 1) {
+        // Create a vsplit for the text lines
+        const size_t ypct
+            = 100 - (have_hdr ? TITLE_BAR_HEIGHT_PCNT : 0) - (num_ftrbtns ? FOOTER_BUTTONS_HEIGHT_PCNT : 0);
+        JADE_ASSERT(ypct > 50 && ypct <= 100); // sanity cehck
+        const size_t yextent = (ypct * MESSAGE_DISPLAY_HEIGHT) / 100;
+
+        const size_t h = MESSAGE_LINE_ROW_HEIGHT; // each text line height, appropriate for the default font height
+        const size_t msgextent = message_size * h;
+        toppad = msgextent < yextent ? (yextent - msgextent) / 2 : 0; // top padding to centre message
+        JADE_LOGD("ypct, yextent, msgextent, toppad: %u, %u, %u, %u", ypct, yextent, msgextent, toppad);
+        JADE_ASSERT(toppad < 50); // sanity check
+
+        switch (message_size) {
+        case 2:
+            gui_make_vsplit(&msgnode, GUI_SPLIT_ABSOLUTE, 2, h, h);
+            break;
+        case 3:
+            gui_make_vsplit(&msgnode, GUI_SPLIT_ABSOLUTE, 3, h, h, h);
+            break;
+        case 4:
+            gui_make_vsplit(&msgnode, GUI_SPLIT_ABSOLUTE, 4, h, h, h, h);
+            break;
+        default:
+            JADE_ASSERT_MSG(false, "Unsupported number of text lines");
+        }
+
+        // Create text lines, each one horizontally centered
+        for (size_t i = 0; i < message_size; ++i) {
+            if (strchr(message[i], '\n')) {
+                JADE_LOGW("Multiline message includes explicit \n!!");
+            }
+            gui_view_node_t* linenode;
+            gui_make_text(&linenode, message[i], TFT_WHITE);
+            gui_set_align(linenode, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(linenode, msgnode);
+        }
     } else {
-        gui_set_align(msgnode, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        // Just create a single text node
+        gui_make_text(&msgnode, message[0], TFT_WHITE);
+
+        // Align center/middle if no carriage returns in message, otherwise
+        // align top-left and let the caller manage the spacing.
+        if (strchr(message[0], '\n')) {
+            gui_set_align(msgnode, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        } else {
+            gui_set_align(msgnode, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        }
     }
 
-    // Apply any padding above the message (only applies if message contains cr/lf)
-    if (msg_includes_crlf && toppad) {
-        gui_set_padding(msgnode, GUI_MARGIN_ALL_DIFFERENT, toppad, 0, 0, 0);
-    }
+    // Apply any padding above the message, and a small offset from the screen edges
+    gui_set_padding(msgnode, GUI_MARGIN_ALL_DIFFERENT, toppad, 2, 0, 2);
 
-    if (!ftrbtns || !num_ftrbtns) {
+    if (!num_ftrbtns) {
         // Just a message, no buttons - just apply straight to the parent
         gui_set_parent(msgnode, parent);
     } else {
         // Relative height of buttons depends on whether there is a header
         gui_view_node_t* vsplit;
-        const uint32_t btnheight = have_hdr ? 30 : 25;
+        const uint32_t btnheight = (100 * FOOTER_BUTTONS_HEIGHT_PCNT) / (100 - (have_hdr ? TITLE_BAR_HEIGHT_PCNT : 0));
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 100 - btnheight, btnheight);
         gui_set_parent(vsplit, parent);
 
@@ -308,14 +362,18 @@ gui_activity_t* make_show_single_value_activity(const char* name, const char* va
 }
 
 // Make activity that displays a simple message - cannot be dismissed by caller
-gui_activity_t* display_message_activity(const char* message)
+gui_activity_t* display_message_activity(const char* message[], const size_t message_size)
 {
-    gui_activity_t* const act = make_show_message_activity(message, 0, NULL, NULL, 0, NULL, 0);
+    gui_activity_t* const act = make_show_message_activity(message, message_size, NULL, NULL, 0, NULL, 0);
     gui_set_current_activity(act);
     return act;
 }
 
-gui_activity_t* display_processing_message_activity() { return display_message_activity("Processing..."); }
+gui_activity_t* display_processing_message_activity()
+{
+    const char* message[] = { "Processing..." };
+    return display_message_activity(message, 1);
+}
 
 // Show passed dialog and handle events until a 'yes' or 'no', which is translated into a boolean return
 // NOTE: only expect BTN_YES, BTN_NO and BTN_HELP events.
@@ -360,27 +418,31 @@ static bool await_yesno_activity_loop(gui_activity_t* const act, const char* hel
 }
 
 // Run activity that displays a message and awaits an 'ack' button click
-void await_message_activity(const char* message)
+void await_message_activity(const char* message[], const size_t message_size)
 {
-    JADE_ASSERT(message);
-
     btn_data_t ftrbtn = { .txt = "Continue", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOP };
 
-    gui_activity_t* const act = make_show_message_activity(message, 0, NULL, NULL, 0, &ftrbtn, 1);
+    gui_activity_t* const act = make_show_message_activity(message, message_size, NULL, NULL, 0, &ftrbtn, 1);
 
     const bool rslt = await_yesno_activity_loop(act, NULL);
     JADE_ASSERT(rslt);
 }
 
-void await_error_activity(const char* errormessage) { await_message_activity(errormessage); }
+void await_error_activity(const char* message[], const size_t message_size)
+{
+    await_message_activity(message, message_size);
+}
 
 // Generic activity that displays a message and Yes/No buttons, and waits
 // for button press.  Function returns true if 'Yes' was pressed.
-static bool await_yesno_activity_impl(const char* title, const char* message, const char* yes, const char* no,
-    const bool default_selection, const char* help_url)
+static bool await_yesno_activity_impl(const char* title, const char* message[], const size_t message_size,
+    const char* yes, const char* no, const bool default_selection, const char* help_url)
 {
     // title is optional
     JADE_ASSERT(message);
+    JADE_ASSERT(message_size);
+    JADE_ASSERT(yes);
+    JADE_ASSERT(no);
     // help_url is optional - '?' button shown if passed
 
     btn_data_t hdrbtns[] = { { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
@@ -389,30 +451,34 @@ static bool await_yesno_activity_impl(const char* title, const char* message, co
     btn_data_t ftrbtns[] = { { .txt = no, .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO, .borders = GUI_BORDER_TOPRIGHT },
         { .txt = yes, .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOPLEFT } };
 
-    gui_activity_t* const act = make_show_message_activity(message, 4, title, hdrbtns, help_url ? 2 : 0, ftrbtns, 2);
+    gui_activity_t* const act
+        = make_show_message_activity(message, message_size, title, hdrbtns, help_url ? 2 : 0, ftrbtns, 2);
     gui_set_activity_initial_selection(act, ftrbtns[default_selection ? 1 : 0].btn);
 
     return await_yesno_activity_loop(act, help_url);
 }
 
 // Generic Yes/No activity
-bool await_yesno_activity(const char* title, const char* message, const bool default_selection, const char* help_url)
+bool await_yesno_activity(const char* title, const char* message[], const size_t message_size,
+    const bool default_selection, const char* help_url)
 {
-    return await_yesno_activity_impl(title, message, "Yes", "No", default_selection, help_url);
+    return await_yesno_activity_impl(title, message, message_size, "Yes", "No", default_selection, help_url);
 }
 
 // Variant of the Yes/No activity that is instead Skip/Yes
-bool await_skipyes_activity(const char* title, const char* message, const bool default_selection, const char* help_url)
+bool await_skipyes_activity(const char* title, const char* message[], const size_t message_size,
+    const bool default_selection, const char* help_url)
 {
-    return await_yesno_activity_impl(title, message, "Yes", "Skip", default_selection, help_url);
+    return await_yesno_activity_impl(title, message, message_size, "Yes", "Skip", default_selection, help_url);
 }
 
 // Variant of the Yes/No activity that is instead Continue/Back (latter in title bar)
-bool await_continueback_activity(
-    const char* title, const char* message, const bool default_selection, const char* help_url)
+bool await_continueback_activity(const char* title, const char* message[], const size_t message_size,
+    const bool default_selection, const char* help_url)
 {
     // title is optional
     JADE_ASSERT(message);
+    JADE_ASSERT(message_size);
     // help_url is optional - '?' button shown if passed
 
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_NO },
@@ -427,7 +493,7 @@ bool await_continueback_activity(
 
     btn_data_t ftrbtn = { .txt = "Continue", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOP };
 
-    gui_activity_t* const act = make_show_message_activity(message, 10, title, hdrbtns, 2, &ftrbtn, 1);
+    gui_activity_t* const act = make_show_message_activity(message, message_size, title, hdrbtns, 2, &ftrbtn, 1);
     gui_set_activity_initial_selection(act, (default_selection ? ftrbtn : hdrbtns[0]).btn);
 
     return await_yesno_activity_loop(act, help_url);

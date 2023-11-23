@@ -666,11 +666,13 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         // If a) the error is 'retry-able' and b) the user elects to retry, then loop and try again
         // (In a CI build no GUI, so assume 'no' and return the error immediately.)
-        if (pir.result == CAN_RETRY
-            && await_yesno_activity(
-                "Network Error", "\n  Failed communicating\n   with Oracle - retry ?", true, NULL)) {
-            display_message_activity("Retrying ...");
-            continue;
+        if (pir.result == CAN_RETRY) {
+            const char* question[] = { "Failed communicating", "with Oracle - retry ?" };
+            if (await_yesno_activity("Network Error", question, 2, true, NULL)) {
+                const char* message[] = { "Retrying..." };
+                display_message_activity(message, 1);
+                continue;
+            }
         }
 #endif
         // If failed or abandoned, send reject message
@@ -678,7 +680,9 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
         if (pir.result != SUCCESS && pir.result != CANCELLED) {
             JADE_LOGE("Failed to complete pinserver interaction");
             jade_process_reject_message(process, pir.errorcode, pir.message, NULL);
-            await_error_activity("Network or server error");
+
+            const char* message[] = { "Network or server", "error" };
+            await_error_activity(message, 2);
             return false;
         }
 

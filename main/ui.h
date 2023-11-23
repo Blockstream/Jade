@@ -126,24 +126,27 @@ gui_activity_t* make_menu_activity(
     const char* title, btn_data_t* hdrbtns, const size_t num_hdrbtns, btn_data_t* menubtns, size_t num_menubtns);
 
 // Helper to create an activity to show a message on a single central label
-gui_activity_t* make_show_message_activity(const char* message, uint32_t toppad, const char* title, btn_data_t* hdrbtns,
-    size_t num_hdrbtns, btn_data_t* ftrbtns, size_t num_ftrbtns);
+gui_activity_t* make_show_message_activity(const char* message[], size_t message_size, const char* title,
+    btn_data_t* hdrbtns, size_t num_hdrbtns, btn_data_t* ftrbtns, size_t num_ftrbtns);
 
 // Activity to show a single value
 gui_activity_t* make_show_single_value_activity(const char* name, const char* value, const bool show_helpbtn);
 
 // Make activity that displays a simple message - cannot be dismissed by caller
-gui_activity_t* display_message_activity(const char* message);
+gui_activity_t* display_message_activity(const char* message[], size_t message_size);
 gui_activity_t* display_processing_message_activity();
 
 // Run activity that displays a message and awaits an 'ack' button click
-void await_message_activity(const char* message);
-void await_error_activity(const char* errormessage);
+void await_message_activity(const char* message[], size_t message_size);
+void await_error_activity(const char* message[], size_t message_size);
 
 // Activity that displays a message and awaits a 'Yes'/'Continue' or 'No'/'Skip'/'Back' event
-bool await_yesno_activity(const char* title, const char* message, bool default_selection, const char* help_url);
-bool await_skipyes_activity(const char* title, const char* message, bool default_selection, const char* help_url);
-bool await_continueback_activity(const char* title, const char* message, bool default_selection, const char* help_url);
+bool await_yesno_activity(
+    const char* title, const char* message[], size_t message_size, bool default_selection, const char* help_url);
+bool await_skipyes_activity(
+    const char* title, const char* message[], size_t message_size, bool default_selection, const char* help_url);
+bool await_continueback_activity(
+    const char* title, const char* message[], size_t message_size, bool default_selection, const char* help_url);
 
 // Updatable label with left/right arrows
 gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** label, gui_view_node_t** item);

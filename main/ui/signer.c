@@ -79,6 +79,7 @@ static gui_activity_t* make_signer_activities(const signer_t* signer, const size
     {
         const size_t display_len = signer->xpub_len / 2;
         JADE_ASSERT(display_len + 2 <= sizeof(display_str));
+        const char* message[] = { display_str };
 
         // First screen needs a 'next' button
         btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
@@ -86,7 +87,8 @@ static gui_activity_t* make_signer_activities(const signer_t* signer, const size
 
         int ret = snprintf(display_str, sizeof(display_str), "\n%.*s", display_len, signer->xpub);
         JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-        *actxpub1 = make_show_message_activity(display_str, 0, "Xpub (1/2)", hdrbtns, 2, NULL, 0);
+
+        *actxpub1 = make_show_message_activity(message, 1, "Xpub (1/2)", hdrbtns, 2, NULL, 0);
 
         // Set the intially selected item to the 'Next' button
         gui_set_activity_initial_selection(*actxpub1, hdrbtns[1].btn);
@@ -97,7 +99,8 @@ static gui_activity_t* make_signer_activities(const signer_t* signer, const size
 
         ret = snprintf(display_str, sizeof(display_str), "\n%s", signer->xpub + display_len);
         JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-        *actxpub2 = make_show_message_activity(display_str, 0, "Xpub (2/2)", hdrbtns, 2, NULL, 0);
+
+        *actxpub2 = make_show_message_activity(message, 1, "Xpub (2/2)", hdrbtns, 2, NULL, 0);
 
         // Set the intially selected item to the 'Next' button
         gui_set_activity_initial_selection(*actxpub2, hdrbtns[1].btn);

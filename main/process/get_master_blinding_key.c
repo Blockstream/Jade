@@ -23,9 +23,8 @@ void get_master_blinding_key_process(void* process_ptr)
         bool onlyIfSilent = false;
         rpc_get_boolean("only_if_silent", &params, &onlyIfSilent);
 
-        if (onlyIfSilent
-            || !await_yesno_activity(
-                "Blinding Key", "\n        Export master\n         blinding key?", true, "blkstrm.com/blindingkey")) {
+        const char* question[] = { "Export master", "blinding key?" };
+        if (onlyIfSilent || !await_yesno_activity("Blinding Key", question, 2, true, "blkstrm.com/blindingkey")) {
             JADE_LOGW("User declined to export master blinding key");
             jade_process_reject_message(
                 process, CBOR_RPC_USER_CANCELLED, "User declined to export master blinding key", NULL);

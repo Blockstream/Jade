@@ -126,7 +126,8 @@ void ota_process(void* process_ptr)
 
     // We will show a progress bar once the user has confirmed and the upload in progress
     // Initially just show a message screen.
-    display_message_activity("\n\nPreparing for firmware\n\n            update");
+    const char* message[] = { "Preparing for firmware", "", "update" };
+    display_message_activity(message, 3);
     vTaskDelay(100 / portTICK_PERIOD_MS); // sleep a little bit to redraw screen
 
     struct deflate_ctx* dctx = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct deflate_ctx));
@@ -224,7 +225,10 @@ cleanup:
     // If error, show error-message and await user acknowledgement.
     if (ota_return_status == SUCCESS) {
         JADE_LOGW("OTA successful - rebooting");
-        display_message_activity("Upgrade successful!");
+
+        const char* message[] = { "Upgrade successful!" };
+        display_message_activity(message, 1);
+
         vTaskDelay(2500 / portTICK_PERIOD_MS);
         esp_restart();
     } else {
@@ -249,7 +253,8 @@ cleanup:
 
         // If the error is not 'did not start' or 'user declined', show an error screen
         if (ota_return_status != ERROR_OTA_SETUP && ota_return_status != ERROR_USER_DECLINED) {
-            await_error_activity(MESSAGES[ota_return_status]);
+            const char* message[] = { MESSAGES[ota_return_status] };
+            await_error_activity(message, 1);
         }
     }
 }

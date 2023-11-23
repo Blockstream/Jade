@@ -75,8 +75,8 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
     // Will be set if scan succeeds
     *export_qr_verified = false;
 
-    if (!await_skipyes_activity(
-            NULL, "            Draw the\n   CompactSeedQR for\n    use with QR Mode.", true, "blkstrm.com/seedqr")) {
+    const char* question[] = { "Draw the", "CompactSeedQR for", "use with QR Mode." };
+    if (!await_skipyes_activity(NULL, question, 3, true, "blkstrm.com/seedqr")) {
         // User decided against it at this time - 'true' return implies a definitive
         // decision by the user - as opposed to a simple 'back' button press.
         return true;
@@ -200,13 +200,13 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
         jade_camera_scan_qr(&qr_data, "     Scan\ncreated QR\n  to verify", "blkstrm.com/seedqr");
         if (qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
             // QR Code scanned, and it matched expected entropy
-            await_message_activity("QR Code Verified");
+            const char* message[] = { "QR Code Verified" };
+            await_message_activity(message, 1);
             *export_qr_verified = true;
             break; // done
         } else {
-            const char* msg = qr_data.len ? "\nQR code does not match\n\n            Retry?"
-                                          : "\n  No QR code captured\n\n            Retry?";
-            if (await_skipyes_activity(NULL, msg, true, NULL)) {
+            const char* question[] = { qr_data.len ? "QR code does not match" : "No QR code captured", "Retry?" };
+            if (await_skipyes_activity(NULL, question, 2, true, NULL)) {
                 // User agreed to retry, so go back to displaying qr fragments
                 continue;
             } else {
@@ -260,8 +260,8 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
     JADE_ASSERT(mnemonic);
 
     // Show the warning banner screen, user to confirm
-    if (!await_continueback_activity(NULL, "  These words are your\n    wallet. Keep them\n  protected and offline.",
-            true, "blkstrm.com/phrase")) {
+    const char* message[] = { "These words are your", "wallet. Keep them", "protected and offline." };
+    if (!await_continueback_activity(NULL, message, 3, true, "blkstrm.com/phrase")) {
         // Abandon before we begin
         return false;
     }
@@ -367,7 +367,8 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
 
             // the wrong word has been selected
             if (random_words[index] != selected) {
-                await_error_activity("\n Incorrect. Check your\n  recovery phrase and\n           try again.");
+                const char* message[] = { "Incorrect. Check your", "recovery phrase and", "try again." };
+                await_error_activity(message, 3);
                 mnemonic_confirmed = false;
                 break;
             }
@@ -881,7 +882,8 @@ static bool mnemonic_recover(const size_t nwords, const bool advanced_mode, char
     if (words_entered != nwords || bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
         // Invalid mnemonic entered
         JADE_LOGW("Invalid mnemonic entered");
-        await_error_activity("Invalid recovery phrase");
+        const char* message[] = { "Invalid recovery phrase" };
+        await_error_activity(message, 1);
         return false;
     }
 
@@ -1120,8 +1122,11 @@ bool import_and_validate_mnemonic(qr_data_t* qr_data)
     // Show the user that a valid qr was scanned, but the string data
     // did not constitute (or expand to) a valid bip39 mnemonic string.
     SENSITIVE_POP(buf);
-    await_error_activity("Invalid recovery phrase");
+
+    const char* message[] = { "Invalid recovery phrase" };
+    await_error_activity(message, 1);
     qr_data->len = 0;
+
     return false;
 }
 
@@ -1286,11 +1291,10 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         }
     } else {
         // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
+        const char* message[] = { "For setup instructions", "visit blockstream.com/", "jade" };
         if (temporary_restore) {
             act = make_restore_mnemonic_activity(temporary_restore);
-        } else if (await_continueback_activity(NULL,
-                       "  For setup instructions\n visit blockstream.com/\n               jade", true,
-                       "blkstrm.com/jade")) {
+        } else if (await_continueback_activity(NULL, message, 3, true, "blkstrm.com/jade")) {
             act = make_mnemonic_setup_type_activity();
         } else {
             // User decided against it
@@ -1319,9 +1323,8 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
                 continue;
 
             case BTN_MNEMONIC_ADVANCED:
-                advanced_mode = await_continueback_activity("Advanced Setup",
-                    "    Technical features\n    will be presented.\n  Proceed with caution.", true,
-                    "blkstrm.com/advanced");
+                const char* message[] = { "Technical features", "will be presented.", "Proceed with caution." };
+                advanced_mode = await_continueback_activity("Advanced Setup", message, 3, true, "blkstrm.com/advanced");
                 if (advanced_mode) {
                     act = make_mnemonic_setup_method_activity(advanced_mode);
                 } else {
@@ -1385,7 +1388,8 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     // c. qr-scanner includes a validation check before returning the scanned mnemonic
     if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
         JADE_LOGE("Invalid mnemonic unexpected");
-        await_error_activity("Invalid recovery phrase");
+        const char* message[] = { "Invalid recovery phrase" };
+        await_error_activity(message, 1);
         goto cleanup;
     }
 
@@ -1399,8 +1403,8 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 
         // If the user did not scan a QR, offer the chance to export (ie. draw) one now
         if (!qr_scanned) {
-            bool export_qr = await_yesno_activity(
-                NULL, "Export recovery phrase\n  as a CompactSeedQR?", true, "blkstrm.com/seedqr");
+            const char* question[] = { "Export recovery phrase", "as a CompactSeedQR?" };
+            bool export_qr = await_yesno_activity(NULL, question, 2, true, "blkstrm.com/seedqr");
 
             bool export_qr_verified = false;
             while (export_qr) {
@@ -1425,10 +1429,9 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     // NOTE: we don't offer the 'once' option at setup time (only in the options/setting prefs menu).
     keychain_set_confirm_export_blinding_key(advanced_mode);
     if (!temporary_restore) {
-        const bool use_passphrase = advanced_mode
-            && await_yesno_activity("BIP39 Passphrase",
-                " Add BIP39 passphrase?\n    You will need this\n   to access your funds.", false,
-                "blkstrm.com/passphrase");
+        const char* question[] = { " Add BIP39 passphrase?", "You will need this", "to access your funds." };
+        const bool use_passphrase
+            = advanced_mode && await_yesno_activity("BIP39 Passphrase", question, 3, false, "blkstrm.com/passphrase");
         keychain_set_passphrase_frequency(use_passphrase ? PASSPHRASE_ALWAYS : PASSPHRASE_NEVER);
         keychain_persist_key_flags();
     }
@@ -1436,7 +1439,8 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     if (!derive_keychain(temporary_restore, mnemonic)) {
         // Error making wallet...
         JADE_LOGE("Failed to derive keychain from valid mnemonic");
-        await_error_activity("Failed to create wallet");
+        const char* message[] = { "Failed to create wallet" };
+        await_error_activity(message, 1);
         goto cleanup;
     }
 
@@ -1478,8 +1482,8 @@ void handle_bip85_mnemonic()
 {
     JADE_ASSERT(keychain_get());
 
-    if (!await_continueback_activity("BIP85", " Create a new recovery\n   phrase derived from \n      wallet and index",
-            true, "blkstrm.com/bip85")) {
+    const char* message[] = { "Create a new recovery", "phrase derived from", "wallet and index" };
+    if (!await_continueback_activity("BIP85", message, 3, true, "blkstrm.com/bip85")) {
         // User declined
         return;
     }
@@ -1563,7 +1567,8 @@ void handle_bip85_mnemonic()
 
     // Display and confirm mnemonic phrase
     if (display_confirm_mnemonic(nwords, new_mnemonic, mnemonic_len)) {
-        await_message_activity("\n\n     Recovery Phrase\n          Confirmed");
+        const char* message[] = { "Recovery Phrase", "Confirmed" };
+        await_message_activity(message, 2);
     }
 
     // Cleanup

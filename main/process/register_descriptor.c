@@ -134,7 +134,9 @@ static int register_descriptor(
     // Persist descriptor registration in nvs
     if (!storage_set_descriptor_registration(descriptor_name, registration, registration_len)) {
         *errmsg = "Failed to persist descriptor data";
-        await_error_activity("Error saving descriptor");
+
+        const char* message[] = { "Error saving descriptor" };
+        await_error_activity(message, 1);
         retval = CBOR_RPC_INTERNAL_ERROR;
         goto cleanup;
     }

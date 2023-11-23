@@ -528,8 +528,8 @@ static void dispatch_message(jade_process_t* process)
 static void offer_jade_reset(void)
 {
     // Run 'Reset Jade?'  confirmation screen and wait for yes/no response
-    if (!await_yesno_activity("Factory Reset",
-            "Reset Jade and erase all\n  PIN and wallet data?\nThis cannot be undone!", false, "blkstrm.com/reset")) {
+    const char* question[] = { "Reset Jade and erase all", "PIN and wallet data?", "This cannot be undone!" };
+    if (!await_yesno_activity("Factory Reset", question, 3, false, "blkstrm.com/reset")) {
         // User decided against it
         return;
     }
@@ -568,12 +568,14 @@ static void offer_jade_reset(void)
         } else {
             // Erase failed ?    What can we do other than alert the user ?
             JADE_LOGE("Factory reset failed!");
-            await_error_activity("\n\n  Unable to completely\n          reset Jade.");
+            const char* message[] = { "Unable to completely", "reset Jade." };
+            await_error_activity(message, 2);
         }
     } else {
         // Incorrect - continue to boot screen
         JADE_LOGI("User confirmation number incorrect, not wiping data.");
-        await_error_activity("\n\n Confirmation number\n          incorrect!");
+        const char* message[] = { "Confirmation number", "incorrect!" };
+        await_error_activity(message, 2);
     }
 }
 
@@ -677,9 +679,8 @@ static void select_initial_connection(const bool offer_qr_temporary)
                     JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
                 }
             } else if (ev_id == BTN_CONNECT_QR_SCAN) {
-                if (await_continueback_activity(NULL,
-                        "    This wallet will be\n      temporary and\n   forgotten on reboot", true,
-                        "blkstrm.com/qrmode")) {
+                const char* message[] = { "This wallet will be", "temporary and", "forgotten on reboot" };
+                if (await_continueback_activity(NULL, message, 3, true, "blkstrm.com/qrmode")) {
                     // 'QR-Mode' temporary login only
                     keychain_set_temporary();
                     if (auth_qr_mode()) {
@@ -701,8 +702,8 @@ bool handle_mnemonic_qr(const char* mnemonic)
 {
     JADE_ASSERT(mnemonic);
 
-    if (!await_yesno_activity("Switch Wallet", "   Wallet QR identified.\n    Log out and switch\n            wallets?",
-            true, "blkstrm.com/temporary")) {
+    const char* question[] = { "Wallet QR identified.", "Log out and switch", "wallets?" };
+    if (!await_yesno_activity("Switch Wallet", question, 3, true, "blkstrm.com/temporary")) {
         // User opted against - return true to show qr handled without processing error
         return true;
     }
@@ -741,8 +742,8 @@ static void initialise_wallet(const bool temporary_restore)
 
 static bool offer_temporary_wallet_login(void)
 {
-    if (!await_continueback_activity(NULL, "      Do you want to\n temporarily login using\n    a recovery phrase?",
-            true, "blkstrm.com/temporary")) {
+    const char* message[] = { "Do you want to", "temporarily login using", "a recovery phrase?" };
+    if (!await_continueback_activity(NULL, message, 3, true, "blkstrm.com/temporary")) {
         // User decided against it
         return false;
     }
@@ -770,19 +771,22 @@ static void handle_legal(void)
 static void handle_ble_reset(void)
 {
     if (!ble_enabled()) {
-        await_message_activity("\n      You must enable\n     Bluetooth to reset\n            pairings.");
+        const char* message[] = { "You must enable", "Bluetooth to reset", "pairings." };
+        await_message_activity(message, 3);
         return;
     }
 
-    if (!await_yesno_activity(
-            device_name, "     Delete Bluetooth\n       pairings for all \n      bonded devices?", false, NULL)) {
+    const char* question[] = { "Delete Bluetooth", "pairings for all", "bonded devices?" };
+    if (!await_yesno_activity(device_name, question, 3, false, NULL)) {
         return;
     }
 
     if (ble_remove_all_devices()) {
-        await_message_activity("\n\n    Bluetooth pairings\n            deleted");
+        const char* message[] = { "Bluetooth pairings", "deleted" };
+        await_message_activity(message, 2);
     } else {
-        await_error_activity("\n\n   Failed to remove all\n    Bluetooth pairings!");
+        const char* message[] = { "Failed to remove all", "Bluetooth pairings!" };
+        await_error_activity(message, 2);
     }
 }
 
@@ -856,7 +860,12 @@ static void handle_ble(void)
     }
 }
 #else
-static void handle_ble(void) { await_message_activity("\n\n       BLE disabled in\n        this firmware"); }
+static void handle_ble(void)
+{
+    const char* message[] = { "BLE disabled in", "this firmware" };
+    await_message_activity(message, 2);
+}
+
 #endif // CONFIG_BT_ENABLED
 
 // Helper to delete a wallet registration record after user confirms
@@ -864,18 +873,20 @@ static bool offer_delete_registered_wallet(const char* name, const bool is_multi
 {
     JADE_ASSERT(name);
 
-    if (!await_yesno_activity("Delete Wallet", name, false, "blkstrm.com/wallets")) {
+    if (!await_yesno_activity("Delete Wallet", &name, 1, false, "blkstrm.com/wallets")) {
         return false;
     }
 
     const bool erased
         = is_multisig ? storage_erase_multisig_registration(name) : storage_erase_descriptor_registration(name);
     if (!erased) {
-        await_error_activity("\n\n      Failed to delete\n  registered wallet!");
+        const char* message[] = { "Failed to delete", "registered wallet!" };
+        await_error_activity(message, 2);
         return false;
     }
 
-    await_message_activity("\n\n    Registered Wallet\n            Deleted");
+    const char* message[] = { "Registered Wallet", "Deleted" };
+    await_message_activity(message, 2);
     return true;
 }
 
@@ -895,7 +906,8 @@ static void handle_registered_wallets(void)
 
     const size_t num_registered_wallets = num_multisigs + num_descriptors;
     if (!num_registered_wallets) {
-        await_message_activity("\n\n   No additional wallets\n          registered");
+        const char* message[] = { "No additional wallets", "registered" };
+        await_message_activity(message, 2);
         return;
     }
 
@@ -954,17 +966,18 @@ static void handle_registered_wallets(void)
                     // Export as QR
                     if (!is_valid || num_signer_details != multisig_data.num_xpubs) {
                         JADE_LOGW("Unable to export multisig details - invalid or incomplete");
-                        await_error_activity("\n\n      Unable to export\n        wallet details");
+                        const char* message[] = { "Unable to export", "wallet details" };
+                        await_error_activity(message, 2);
                         continue;
                     }
 
                     // Warning for unsorted multisig, as this is not strictly handled by the origial
                     // common file format and may not be supported by the imprting wallet.
                     if (!multisig_data.sorted) {
-                        await_message_activity("\n   Exporting unsorted\n  multisig - ensure the\n   wallet app "
-                                               "supports\n     this configuration");
+                        const char* message[] = { "Exporting unsorted", "multisig - ensure the", "wallet app supports",
+                            "this configuration" };
+                        await_message_activity(message, 4);
                     }
-
                     display_processing_message_activity();
 
                     // Create output file
@@ -974,7 +987,8 @@ static void handle_registered_wallets(void)
                     if (!multisig_create_export_file(wallet_name, &multisig_data, signer_details, num_signer_details,
                             output, output_len, &written)) {
                         JADE_LOGE("Failed to export multisig details");
-                        await_error_activity("\n\n      Unable to export\n        wallet details");
+                        const char* message[] = { "Unable to export", "wallet details" };
+                        await_error_activity(message, 2);
                         free(output);
                         continue;
                     }
@@ -983,7 +997,8 @@ static void handle_registered_wallets(void)
                     if (!display_bcur_bytes_qr(
                             "  Export\n Multisig\n  wallet", (const uint8_t*)output, written, "blkstrm.com/wallets")) {
                         JADE_LOGE("Failed to create multisig export details QR code");
-                        await_error_activity("\n\n      Unable to export\n        wallet details");
+                        const char* message[] = { "Unable to export", "wallet details" };
+                        await_error_activity(message, 2);
                         free(output);
                         continue;
                     }
@@ -1035,7 +1050,8 @@ static void handle_registered_wallets(void)
                         MAX_ALLOWED_SIGNERS, &num_signer_details, &errmsg)
                     || num_signer_details != descriptor.num_values) {
                     JADE_LOGE("Failed to load signer information from descriptor data");
-                    await_error_activity("\n\n      Unable to load\n        signer details");
+                    const char* message[] = { "Unable to load", "signer details" };
+                    await_error_activity(message, 2);
                     continue;
                 }
 
@@ -1085,7 +1101,8 @@ static void set_wallet_erase_pin(void)
             break;
         } else {
             // Pins mismatch - try again
-            if (!await_continueback_activity(NULL, "        Pin mismatch,\n      please try again.", true, NULL)) {
+            const char* message[] = { "Pin mismatch,", "please try again." };
+            if (!await_continueback_activity(NULL, message, 2, true, NULL)) {
                 // Abandon
                 break;
             }
@@ -1125,7 +1142,9 @@ static void handle_wallet_erase_pin(void)
                 // User opted to disable/erase wallet-erasing PIN
                 JADE_LOGI("Erasing Wallet-Erase PIN");
                 storage_erase_wallet_erase_pin();
-                await_message_activity("\n\n      Wallet-Erase PIN\n            deleted");
+
+                const char* message[] = { "Wallet-Erase PIN", "deleted" };
+                await_message_activity(message, 2);
             } else if (ev_id == BTN_WALLET_ERASE_PIN_HELP) {
                 await_qr_help_activity("blkstrm.com/duress");
             } else if (ev_id == BTN_WALLET_ERASE_PIN_EXIT) {
@@ -1237,16 +1256,18 @@ static bool delete_otp_record(const char* otpname)
 {
     JADE_ASSERT(otpname);
 
-    if (!await_yesno_activity("Delete OTP Record", otpname, false, "blkstrm.com/otp")) {
+    if (!await_yesno_activity("Delete OTP Record", &otpname, 1, false, "blkstrm.com/otp")) {
         return false;
     }
 
     if (!storage_erase_otp(otpname)) {
-        await_error_activity("\n\n      Failed to delete\n         OTP record!");
+        const char* message[] = { "Failed to delete", "OTP record!" };
+        await_error_activity(message, 2);
         return false;
     }
 
-    await_message_activity("OTP Record Deleted");
+    const char* message[] = { "OTP Record Deleted" };
+    await_message_activity(message, 1);
     return true;
 }
 
@@ -1328,7 +1349,8 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
         // Update values
         if (auto_update) {
             if (!otp_set_default_value(otp_ctx, &epoch_value)) {
-                await_error_activity("\n\n       Failed to fetch\n        time/counter!");
+                const char* message[] = { "Failed to fetch", "time/counter!" };
+                await_error_activity(message, 2);
                 return false;
             }
             ctime_r((time_t*)&epoch_value, timestr);
@@ -1338,7 +1360,8 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
             if (count < last_count) {
                 // Wrapped - token code should have changed
                 if (!otp_get_auth_code(otp_ctx, token, token_len)) {
-                    await_error_activity("\n\n    Failed to calculate\n              OTP!");
+                    const char* message[] = { "Failed to calculate", "OTP!" };
+                    await_error_activity(message, 2);
                     return false;
                 }
                 gui_update_text(txt_code, token);
@@ -1401,14 +1424,16 @@ static bool show_otp_code(otpauth_ctx_t* otp_ctx)
     // Update context with current default 'moving' element
     uint64_t value = 0;
     if (!otp_set_default_value(otp_ctx, &value)) {
-        await_error_activity("\n\n       Failed to fetch\n        time/counter!");
+        const char* message[] = { "Failed to fetch", "time/counter!" };
+        await_error_activity(message, 2);
         return false;
     }
 
     // Calculate token
     char token[OTP_MAX_TOKEN_LEN];
     if (!otp_get_auth_code(otp_ctx, token, sizeof(token))) {
-        await_error_activity("\n\n    Failed to calculate\n              OTP!");
+        const char* message[] = { "Failed to calculate", "OTP!" };
+        await_error_activity(message, 2);
         return false;
     }
 
@@ -1428,7 +1453,8 @@ static void handle_view_otps(void)
     JADE_ASSERT(done);
 
     if (num_otp_records == 0) {
-        await_message_activity("\n\n      No OTP records\n          registered");
+        const char* message[] = { "No OTP records", "registered" };
+        await_message_activity(message, 2);
         return;
     }
 
@@ -1683,7 +1709,8 @@ static void handle_pinserver_scan(void)
 {
     if (keychain_has_pin()) {
         // Not allowed if wallet initialised
-        await_error_activity("\n       Set Oracle not\n       permitted once\n      wallet initialized");
+        const char* message[] = { "Set Oracle not", "permitted once", "wallet initialized" };
+        await_error_activity(message, 3);
         return;
     }
 
@@ -1698,7 +1725,8 @@ static void handle_pinserver_scan(void)
     }
 
     if (!type || strcasecmp(type, BCUR_TYPE_JADE_UPDPS) || !data || !data_len) {
-        await_error_activity("Failed to parse Oracle data");
+        const char* message[] = { "Failed to parse Oracle data" };
+        await_error_activity(message, 1);
         goto cleanup;
     }
 
@@ -1706,7 +1734,9 @@ static void handle_pinserver_scan(void)
         JADE_LOGD("Failed to persist Oracle details");
         goto cleanup;
     }
-    await_message_activity("Oracle details updated!");
+
+    const char* message[] = { "Oracle details updated" };
+    await_message_activity(message, 1);
 
 cleanup:
     free(type);
@@ -1717,13 +1747,16 @@ static void handle_pinserver_reset(void)
 {
     if (keychain_has_pin()) {
         // Not allowed if wallet initialised
-        await_error_activity("\n      Reset Oracle not\n       permitted once\n      wallet initialized");
+        const char* message[] = { "Reset Oracle not", "permitted once", "wallet initialized" };
+        await_error_activity(message, 3);
         return;
     }
 
-    if (await_yesno_activity("Reset Oracle", "\nReset Oracle details\nand certificate?", false, NULL)) {
+    const char* question[] = { "Reset Oracle details", "and certificate?" };
+    if (await_yesno_activity("Reset Oracle", question, 2, false, NULL)) {
         if (!reset_pinserver()) {
-            await_error_activity("Error resetting Oracle");
+            const char* message[] = { "Error resetting Oracle" };
+            await_error_activity(message, 1);
         }
     }
 }
@@ -1733,7 +1766,8 @@ static void handle_storage(void)
 {
     size_t entries_used, entries_free;
     if (!storage_get_stats(&entries_used, &entries_free)) {
-        await_error_activity("Error accessing storage!");
+        const char* message[] = { "Error accessing storage!" };
+        await_error_activity(message, 1);
         return;
     }
 

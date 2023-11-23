@@ -16,6 +16,7 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
     const size_t addrlen = strlen(address);
     const size_t max_display_len = MAX_DISPLAY_ADDRESS_LEN / 2;
     char buf[1 + max_display_len + 1];
+    const char* message[] = { buf };
 
     if (addrlen <= max_display_len) {
         // Just one screen to show address
@@ -30,7 +31,7 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
         const int ret = snprintf(buf, sizeof(buf), "\n%s", address);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
 
-        act = make_show_message_activity(buf, 0, title, hdrbtns, 2, NULL, 0);
+        act = make_show_message_activity(message, 1, title, hdrbtns, 2, NULL, 0);
 
         gui_set_activity_initial_selection(
             act, show_one_screen_tick && default_selection ? hdrbtns[1].btn : hdrbtns[0].btn);
@@ -47,7 +48,7 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
         ret = snprintf(buf, sizeof(buf), "\n%.*s", max_display_len, address);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
 
-        act = make_show_message_activity(buf, 0, titlebuf, hdrbtns1, 2, NULL, 0);
+        act = make_show_message_activity(message, 1, titlebuf, hdrbtns1, 2, NULL, 0);
 
         gui_set_activity_initial_selection(act, hdrbtns1[1].btn);
 
@@ -61,7 +62,7 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
         ret = snprintf(buf, sizeof(buf), "\n%s", address + max_display_len);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
 
-        *actaddr2 = make_show_message_activity(buf, 0, titlebuf, hdrbtns2, 2, NULL, 0);
+        *actaddr2 = make_show_message_activity(message, 1, titlebuf, hdrbtns2, 2, NULL, 0);
 
         gui_set_activity_initial_selection(*actaddr2, default_selection ? hdrbtns2[1].btn : hdrbtns2[0].btn);
     }

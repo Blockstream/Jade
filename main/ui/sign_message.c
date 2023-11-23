@@ -2,10 +2,10 @@
 #include "../ui.h"
 #include "jade_assert.h"
 
-static gui_activity_t* make_sign_message_activities(const char* message, const char* hashhex, const char* pathstr,
+static gui_activity_t* make_sign_message_activities(const char* msgtxt, const char* hashhex, const char* pathstr,
     gui_activity_t** actmessage1, gui_activity_t** actmessage2, gui_activity_t** acthash, gui_activity_t** actpath)
 {
-    JADE_ASSERT(message);
+    JADE_ASSERT(msgtxt);
     JADE_ASSERT(hashhex);
     JADE_ASSERT(pathstr);
     JADE_INIT_OUT_PPTR(actmessage1);
@@ -15,7 +15,7 @@ static gui_activity_t* make_sign_message_activities(const char* message, const c
 
     const bool show_help_btn = false;
 
-    // First row, message
+    // First row, msgtxt
     gui_view_node_t* msgsplit;
     gui_make_hsplit(&msgsplit, GUI_SPLIT_RELATIVE, 2, 40, 60);
 
@@ -24,26 +24,27 @@ static gui_activity_t* make_sign_message_activities(const char* message, const c
     gui_set_align(msgnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(msgnode, msgsplit);
 
-    gui_make_text(&msgnode, message, TFT_WHITE);
+    gui_make_text(&msgnode, msgtxt, TFT_WHITE);
     gui_set_align(msgnode, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_padding(msgnode, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
     gui_set_parent(msgnode, msgsplit);
 
     // NOTE: maybe two value drilldown screens
-    const size_t message_len = strlen(message);
-    JADE_ASSERT(message_len <= MAX_DISPLAY_MESSAGE_LEN);
+    const size_t msgtxt_len = strlen(msgtxt);
+    JADE_ASSERT(msgtxt_len <= MAX_DISPLAY_MESSAGE_LEN);
     const size_t max_display_len = MAX_DISPLAY_MESSAGE_LEN / 2;
     char buf[1 + max_display_len + 1];
+    const char* message[] = { buf };
 
-    if (message_len <= max_display_len) {
+    if (msgtxt_len <= max_display_len) {
         // Just the one message screen with a tick/accept button
         btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
             { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNMSG_ACCEPT } };
 
-        const int ret = snprintf(buf, sizeof(buf), "\n%s", message);
+        const int ret = snprintf(buf, sizeof(buf), "\n%s", msgtxt);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
 
-        *actmessage1 = make_show_message_activity(buf, 0, "Message", hdrbtns, 2, NULL, 0);
+        *actmessage1 = make_show_message_activity(message, 1, "Message", hdrbtns, 2, NULL, 0);
         *actmessage2 = NULL;
     } else {
         // Two message screens
@@ -51,9 +52,9 @@ static gui_activity_t* make_sign_message_activities(const char* message, const c
         btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
             { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNMSG_NEXT } };
 
-        int ret = snprintf(buf, sizeof(buf), "\n%.*s", max_display_len, message);
+        int ret = snprintf(buf, sizeof(buf), "\n%.*s", max_display_len, msgtxt);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-        *actmessage1 = make_show_message_activity(buf, 0, "Message (1/2)", hdrbtns, 2, NULL, 0);
+        *actmessage1 = make_show_message_activity(message, 1, "Message (1/2)", hdrbtns, 2, NULL, 0);
 
         // Set the intially selected item to the 'Next' button
         gui_set_activity_initial_selection(*actmessage1, hdrbtns[1].btn);
@@ -62,9 +63,9 @@ static gui_activity_t* make_sign_message_activities(const char* message, const c
         hdrbtns[1].txt = "S";
         hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
 
-        ret = snprintf(buf, sizeof(buf), "\n%s", message + max_display_len);
+        ret = snprintf(buf, sizeof(buf), "\n%s", msgtxt + max_display_len);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-        *actmessage2 = make_show_message_activity(buf, 0, "Message (2/2)", hdrbtns, 2, NULL, 0);
+        *actmessage2 = make_show_message_activity(message, 1, "Message (2/2)", hdrbtns, 2, NULL, 0);
 
         // Set the intially selected item to the 'Next' button
         gui_set_activity_initial_selection(*actmessage2, hdrbtns[1].btn);
