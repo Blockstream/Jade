@@ -28,6 +28,10 @@
 
 #define MNEMONIC_BUFLEN 256
 
+#define MAX_QR_V2_DATA_LEN 32
+#define MAX_QR_V4_DATA_LEN 78
+#define MAX_QR_V6_DATA_LEN 134
+
 #define ACCOUNT_INDEX_MAX 65536
 #define ACCOUNT_INDEX_FLAGS_SHIFT 16
 
@@ -1289,12 +1293,12 @@ static void bytes_to_qr_icon(const uint8_t* bytes, const size_t bytes_len, const
 {
     JADE_ASSERT(bytes);
     JADE_ASSERT(bytes_len);
-    JADE_ASSERT(bytes_len < 134); // v6, binary
+    JADE_ASSERT(bytes_len < MAX_QR_V6_DATA_LEN); // v6, binary
     JADE_ASSERT(qr_icon);
 
     // Create icon for url
     // For sizes, see: https://www.qrcode.com/en/about/version.html - 'Binary'
-    const uint8_t qr_version = bytes_len < 32 ? 2 : bytes_len < 78 ? 4 : 6;
+    const uint8_t qr_version = bytes_len < MAX_QR_V2_DATA_LEN ? 2 : bytes_len < MAX_QR_V4_DATA_LEN ? 4 : 6;
     const uint8_t scale_factor = (qr_version == 2 ? 4 : qr_version == 4 ? 3 : 2) + (large_icons ? 1 : 0);
 
     // Convert url to qr code, then to Icon
@@ -1370,21 +1374,55 @@ void await_single_qr_activity(const char* label, const uint8_t* data, const size
     }
 }
 
+// Put an explicit \n before the last part of the url
+static void add_cr_after_last_slash(const char* url, char* output, const size_t output_len)
+{
+    JADE_ASSERT(url);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len);
+
+    const size_t url_len = strlen(url);
+    JADE_ASSERT(output_len >= url_len + 2); // url + new \n +_ trailing \0
+
+    // Find last '/' character
+    const char* last_slash = url;
+    while (true) {
+        const char* next_slash = strchr(last_slash + 1, '/');
+        if (!next_slash) {
+            break;
+        } else {
+            last_slash = next_slash;
+        }
+    }
+    JADE_ASSERT(last_slash);
+
+    const size_t index = last_slash - url;
+    JADE_ASSERT(index < url_len);
+
+    strncpy(output, url, index + 1); // up to and including the '/'
+    output[index + 1] = '\n'; // explict line-break
+    strcpy(output + index + 2, url + index + 1);
+}
+
 // Display screen with help url and qr code
-// Handles up to v4 codes - ie text up to 78 bytes
+// Handles up to v4 codes - ie. text up to 78 bytes
 void await_qr_help_activity(const char* url)
 {
     JADE_ASSERT(url);
 
     const size_t url_len = strlen(url);
-    JADE_ASSERT(url_len < 78); // v4, binary
+    JADE_ASSERT(url_len < MAX_QR_V4_DATA_LEN); // v4, binary
 
     const bool large_icons = false;
     Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
     bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
 
+    // Put an explicit \n before the last part of the url
+    char url_with_crlf[MAX_QR_V4_DATA_LEN + 2]; // new \n and trailing \0
+    add_cr_after_last_slash(url, url_with_crlf, sizeof(url_with_crlf));
+
     // Show, and await button click - note gui takes ownership of icon
-    gui_activity_t* const act = make_show_qr_help_activity(url, qr_icon);
+    gui_activity_t* const act = make_show_qr_help_activity(url_with_crlf, qr_icon);
     gui_set_current_activity(act);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
@@ -1402,7 +1440,7 @@ bool await_qr_back_continue_activity(const char* label, const char* url, const b
     JADE_ASSERT(url);
 
     const size_t url_len = strlen(url);
-    JADE_ASSERT(url_len < 78); // v4, binary
+    JADE_ASSERT(url_len < MAX_QR_V4_DATA_LEN); // v4, binary
 
     const bool large_icons = false;
     Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
