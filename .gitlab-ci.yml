@@ -7,7 +7,7 @@ stages:
   - test
   - deploy
 
-image: blockstream/verde@sha256:bb20e230564195a3a9f8b4dfa338af15da8c06862ecd487cf3b7e09279435055
+image: blockstream/verde@sha256:ba2566c345bb4b7c7d0f2504fb3a7538fd4be2e14d3998a18a22916425e20a3f
 
 test_format:
   tags:
