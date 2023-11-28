@@ -156,6 +156,10 @@ void ble_gap_deinit(void);
 int ble_gap_dbg_update_active(uint16_t conn_handle);
 #endif
 
+#if MYNEWT_VAL(BLE_ENABLE_CONN_REATTEMPT)
+void ble_gap_reattempt_count(uint16_t conn_handle, uint8_t count);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

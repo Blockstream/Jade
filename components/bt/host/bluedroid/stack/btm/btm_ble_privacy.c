@@ -377,6 +377,45 @@ void btm_ble_read_resolving_list_entry_complete(UINT8 *p, UINT16 evt_len)
         btm_ble_refresh_peer_resolvable_private_addr(pseudo_bda, rra, rra_type);
     }
 }
+
+/*******************************************************************************
+**
+** Function         btm_ble_set_addr_resolution_enable_complete
+**
+** Description      This function is called when the command to set address
+**                  resolution enable completes.
+**
+** Parameters       p: Pointer to the command complete event data.
+**                  evt_len: Length of the event data.
+**
+** Returns          void
+**
+*******************************************************************************/
+void btm_ble_set_addr_resolution_enable_complete(UINT8 *p, UINT16 evt_len)
+{
+    UINT8 status;
+
+    STREAM_TO_UINT8(status, p);
+
+    BTM_TRACE_DEBUG("%s status = %d", __func__, status);
+
+    tBTM_LE_RANDOM_CB *random_cb = &btm_cb.ble_ctr_cb.addr_mgnt_cb;
+
+    if (!(random_cb && random_cb->set_local_privacy_cback)) {
+        return;
+    }
+
+    if (status == HCI_SUCCESS) {
+        random_cb->set_local_privacy_cback(BTM_SUCCESS);
+        return;
+    } else if (status == HCI_ERR_COMMAND_DISALLOWED) {
+        BTM_TRACE_ERROR("a non-connected activity is ongoing, such as advertising and scanning");
+    } else {
+        BTM_TRACE_ERROR("set local privacy failed");
+    }
+    random_cb->set_local_privacy_cback(BTM_ILLEGAL_VALUE);
+}
+
 /*******************************************************************************
                 VSC that implement controller based privacy
 ********************************************************************************/
@@ -434,10 +473,18 @@ tBTM_STATUS btm_ble_remove_resolving_list_entry(tBTM_SEC_DEV_REC *p_dev_rec)
 
     tBTM_STATUS st = BTM_NO_RESOURCES;
     if (controller_get_interface()->supports_ble_privacy()) {
+        #if CONTROLLER_RPA_LIST_ENABLE
         if (btsnd_hcic_ble_rm_device_resolving_list(p_dev_rec->ble.static_addr_type,
                 p_dev_rec->ble.static_addr)) {
             st =  BTM_CMD_STARTED;
         }
+        #else
+            // do nothing
+            /* It will cause that scanner doesn't send scan request to advertiser
+            * which has sent IRK to us and we have stored the IRK in controller.
+            * It is a hardware limitation. The preliminary solution is not to
+            * send key to the controller, but to resolve the random address in host. */
+        #endif
     } else {
         UINT8 param[20] = {0};
         UINT8 *p = param;

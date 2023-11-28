@@ -92,7 +92,11 @@ extern STATS_SECT_DECL(ble_gatts_stats) ble_gatts_stats;
 typedef uint8_t ble_gatts_conn_flags;
 
 struct ble_gatts_conn {
+#if MYNEWT_VAL(BLE_DYNAMIC_SERVICE)
+    struct ble_gatts_clt_cfg_list clt_cfgs;
+#else
     struct ble_gatts_clt_cfg *clt_cfgs;
+#endif
     int num_clt_cfgs;
 
     uint16_t indicate_val_handle;

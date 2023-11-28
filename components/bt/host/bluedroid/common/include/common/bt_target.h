@@ -192,6 +192,24 @@
 #define BLE_42_FEATURE_SUPPORT   FALSE
 #endif
 
+#if (UC_BT_BLE_FEAT_PERIODIC_ADV_SYNC_TRANSFER == TRUE)
+#define BLE_FEAT_PERIODIC_ADV_SYNC_TRANSFER   TRUE
+#else
+#define BLE_FEAT_PERIODIC_ADV_SYNC_TRANSFER   FALSE
+#endif
+
+#if (UC_BT_BLE_FEAT_PERIODIC_ADV_ENH == TRUE)
+#define BLE_FEAT_PERIODIC_ADV_ENH   TRUE
+#else
+#define BLE_FEAT_PERIODIC_ADV_ENH   FALSE
+#endif
+
+#if (UC_BT_BLE_HIGH_DUTY_ADV_INTERVAL == TRUE)
+#define BLE_HIGH_DUTY_ADV_INTERVAL TRUE
+#else
+#define BLE_HIGH_DUTY_ADV_INTERVAL FALSE
+#endif
+
 #if (UC_BT_BLE_RPA_SUPPORTED  == TRUE)
 #define CONTROLLER_RPA_LIST_ENABLE   TRUE
 #else
@@ -517,6 +535,12 @@
 
 #ifdef UC_BT_BLE_RPA_TIMEOUT
 #define BTM_BLE_PRIVATE_ADDR_INT UC_BT_BLE_RPA_TIMEOUT
+#endif
+
+#if (UC_BT_CLASSIC_BQB_ENABLED == TRUE)
+#define BT_CLASSIC_BQB_INCLUDED TRUE
+#else
+#define BT_CLASSIC_BQB_INCLUDED FALSE
 #endif
 
 /* This feature is used to eanble interleaved scan*/
@@ -1430,6 +1454,12 @@
 #define SDP_INCLUDED                FALSE
 #endif
 
+#if (SDP_INCLUDED == TRUE) && (BTA_JV_INCLUDED == TRUE) && (BT_CLASSIC_BQB_INCLUDED == TRUE)
+#define BT_SDP_BQB_INCLUDED         TRUE
+#else
+#define BT_SDP_BQB_INCLUDED         FALSE
+#endif
+
 /* This is set to enable SDP server functionality. */
 #ifndef SDP_SERVER_ENABLED
 #if SDP_INCLUDED == TRUE
@@ -1498,7 +1528,7 @@
 
 /* The maximum number of simultaneous client and server connections. */
 #ifndef SDP_MAX_CONNECTIONS
-#define SDP_MAX_CONNECTIONS         2 // 4
+#define SDP_MAX_CONNECTIONS         4
 #endif
 
 /* The MTU size for the L2CAP configuration. */
@@ -1528,6 +1558,12 @@
 ******************************************************************************/
 #ifndef RFCOMM_INCLUDED
 #define RFCOMM_INCLUDED             FALSE
+#endif
+
+#if (RFCOMM_INCLUDED == TRUE) && (BT_CLASSIC_BQB_INCLUDED == TRUE)
+#define BT_RFCOMM_BQB_INCLUDED      TRUE
+#else
+#define BT_RFCOMM_BQB_INCLUDED      FALSE
 #endif
 
 #ifndef BTA_JV_RFCOMM_INCLUDED
@@ -1959,6 +1995,24 @@
 
 /******************************************************************************
 **
+** HFP
+**
+******************************************************************************/
+
+#if (BTC_HF_INCLUDED == TRUE) && (BT_CLASSIC_BQB_INCLUDED == TRUE)
+#define BT_HF_AG_BQB_INCLUDED           TRUE
+#else
+#define BT_HF_AG_BQB_INCLUDED           FALSE
+#endif
+
+#if (BTC_HF_CLIENT_INCLUDED == TRUE) && (BT_CLASSIC_BQB_INCLUDED == TRUE)
+#define BT_HF_CLIENT_BQB_INCLUDED       TRUE
+#else
+#define BT_HF_CLIENT_BQB_INCLUDED       FALSE
+#endif
+
+/******************************************************************************
+**
 ** GAP
 **
 ******************************************************************************/
@@ -2021,6 +2075,12 @@
 #define HID_DEV_FLUSH_TO 0xffff
 #endif
 
+#if (BTA_HD_INCLUDED == TRUE) && (HID_DEV_INCLUDED == TRUE) && (BT_CLASSIC_BQB_INCLUDED == TRUE)
+#define BT_HID_DEVICE_BQB_INCLUDED      TRUE
+#else
+#define BT_HID_DEVICE_BQB_INCLUDED      FALSE
+#endif
+
 /*************************************************************************
 ** Definitions for Both HID-Host & Device
 */
@@ -2068,6 +2128,12 @@
  */
 #ifndef A2D_INCLUDED
 #define A2D_INCLUDED            FALSE
+#endif
+
+#if (BTC_AV_SRC_INCLUDED == TRUE) && (BT_CLASSIC_BQB_INCLUDED == TRUE)
+#define A2D_SRC_BQB_INCLUDED TRUE
+#else
+#define A2D_SRC_BQB_INCLUDED FALSE
 #endif
 
 /******************************************************************************
@@ -2301,13 +2367,6 @@ The maximum number of payload octets that the local device can receive in a sing
 #define HEAP_ALLOCATION_FROM_SPIRAM_FIRST TRUE
 #else
 #define HEAP_ALLOCATION_FROM_SPIRAM_FIRST FALSE
-#endif
-
-// TODO: add menuconfig and api for periodic adv sync transfer
-#if (BLE_50_FEATURE_SUPPORT)
-#define BLE_FEAT_PERIODIC_ADV_SYNC_TRANSFER TRUE
-#else
-#define BLE_FEAT_PERIODIC_ADV_SYNC_TRANSFER FALSE
 #endif
 
 #include "common/bt_trace.h"

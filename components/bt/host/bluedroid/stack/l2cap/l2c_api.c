@@ -1949,6 +1949,36 @@ BOOLEAN L2CA_RemoveFixedChnl (UINT16 fixed_cid, BD_ADDR rem_bda)
     return (TRUE);
 }
 
+#if BLE_INCLUDED == TRUE
+BOOLEAN L2CA_BleDisconnect (BD_ADDR rem_bda)
+{
+    tL2C_LCB    *p_lcb;
+    tGATT_TCB   *p_tcb;
+
+    p_lcb = l2cu_find_lcb_by_bd_addr (rem_bda, BT_TRANSPORT_LE);
+    if (p_lcb == NULL) {
+        return FALSE;
+    }
+
+    if (p_lcb->link_state != LST_CONNECTED) {
+        return FALSE;
+    }
+
+    p_lcb->disc_reason = HCI_ERR_CONN_CAUSE_LOCAL_HOST;
+    p_lcb->link_state = LST_DISCONNECTING;
+    btsnd_hcic_disconnect (p_lcb->handle, HCI_ERR_PEER_USER);
+
+    p_tcb = gatt_find_tcb_by_addr(rem_bda, BT_TRANSPORT_LE);
+    if (p_tcb == NULL) {
+        return FALSE;
+    }
+
+    gatt_set_ch_state(p_tcb, GATT_CH_CLOSING);
+
+    return TRUE;
+}
+#endif
+
 /*******************************************************************************
 **
 ** Function         L2CA_SetFixedChannelTout
@@ -2106,6 +2136,33 @@ UINT8 L2CA_DataWrite (UINT16 cid, BT_HDR *p_data)
     return l2c_data_write (cid, p_data, L2CAP_FLUSHABLE_CH_BASED);
 }
 #endif  ///CLASSIC_BT_INCLUDED == TRUE
+
+/*******************************************************************************
+**
+** Function         l2cap_bqb_write_data
+**
+** Description      Call L2CA_DataWrite and write I-Frame data for BQB test.
+**
+** Returns          None
+**
+*******************************************************************************/
+#if (BT_CLASSIC_BQB_INCLUDED == TRUE)
+void l2cap_bqb_write_data(UINT16 cid)
+{
+    BT_HDR *p_buf;
+    uint8_t *p;
+
+    if ((p_buf = (BT_HDR *)osi_malloc(SDP_DATA_BUF_SIZE)) != NULL) {
+        p_buf->len = 30;
+        p_buf->offset = L2CAP_MIN_OFFSET;
+        p = (UINT8 *)(p_buf + 1) + p_buf->offset;
+        for(int i = 0 ; i < 10; i++) {
+            UINT8_TO_BE_STREAM(p, 0)
+        }
+        L2CA_DataWrite(cid, p_buf);
+    }
+}
+#endif /* BT_CLASSIC_BQB_INCLUDED */
 
 /*******************************************************************************
 **

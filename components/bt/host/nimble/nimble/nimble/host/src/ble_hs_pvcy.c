@@ -27,8 +27,11 @@
 static uint8_t ble_hs_pvcy_started;
 static uint8_t ble_hs_pvcy_irk[16];
 
-/** Use this function to fetch a default IRK from the client code */
-extern void ble_hs_pvcy_get_default_irk(uint8_t* irk, size_t irk_len);
+/** Use this as a default IRK if none gets set. */
+const uint8_t ble_hs_pvcy_default_irk[16] = {
+    0xef, 0x8d, 0xe2, 0x16, 0x4f, 0xec, 0x43, 0x0d,
+    0xbf, 0x5b, 0xdd, 0x34, 0xc0, 0x53, 0x1e, 0xb8,
+};
 
 static int
 ble_hs_pvcy_set_addr_timeout(uint16_t timeout)
@@ -210,7 +213,7 @@ ble_hs_pvcy_set_our_irk(const uint8_t *irk)
     if (irk != NULL) {
         memcpy(new_irk, irk, 16);
     } else {
-        ble_hs_pvcy_get_default_irk(new_irk, sizeof(new_irk));
+        memcpy(new_irk, ble_hs_pvcy_default_irk, 16);
     }
 
     /* Clear the resolving list if this is a new IRK. */

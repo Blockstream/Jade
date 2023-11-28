@@ -754,7 +754,7 @@ extern UINT16 gatts_add_char_descr (tGATT_SVC_DB *p_db, tGATT_PERM perm,
 
 extern tGATT_STATUS gatts_set_attribute_value(tGATT_SVC_DB *p_db, UINT16 attr_handle,
                                     UINT16 length, UINT8 *value);
-
+extern tGATT_STATUS gatts_get_attr_value_internal(UINT16 attr_handle, UINT16 *length, UINT8 **value);
 extern tGATT_STATUS gatts_get_attribute_value(tGATT_SVC_DB *p_db, UINT16 attr_handle,
                                     UINT16 *length, UINT8 **value);
 extern BOOLEAN gatts_is_auto_response(UINT16 attr_handle);
@@ -778,6 +778,8 @@ extern uint16_t gatt_get_local_mtu(void);
 extern void gatt_set_local_mtu(uint16_t mtu);
 
 extern tGATT_STATUS gatts_calculate_datebase_hash(BT_OCTET16 hash);
+extern void gatts_show_local_database(void);
+
 extern BOOLEAN gatt_sr_is_cl_change_aware(tGATT_TCB *p_tcb);
 extern void gatt_sr_init_cl_status(tGATT_TCB *p_tcb);
 extern void gatt_sr_update_cl_status(tGATT_TCB *tcb, BOOLEAN chg_aware);

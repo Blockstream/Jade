@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2022 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2023 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -71,26 +71,36 @@ static hf_local_param_t *hf_local_param;
 
 #if (BTM_WBS_INCLUDED == TRUE)
 #ifndef BTC_HF_FEATURES
-#define BTC_HF_FEATURES    ( BTA_AG_FEAT_ECNR   | \
-                             BTA_AG_FEAT_REJECT | \
-                             BTA_AG_FEAT_ECS    | \
-                             BTA_AG_FEAT_EXTERR | \
-                             BTA_AG_FEAT_VREC   | \
-                             BTA_AG_FEAT_INBAND | \
-                             BTA_AG_FEAT_CODEC  | \
-                             BTA_AG_FEAT_ESCO_S4| \
-                             BTA_AG_FEAT_UNAT)
+#define BTC_HF_FEATURES    ( BTA_AG_FEAT_ECNR    | \
+                             BTA_AG_FEAT_REJECT  | \
+                             BTA_AG_FEAT_ECS     | \
+                             BTA_AG_FEAT_EXTERR  | \
+                             BTA_AG_FEAT_VREC    | \
+                             BTA_AG_FEAT_INBAND  | \
+                             BTA_AG_FEAT_CODEC   | \
+                             BTA_AG_FEAT_ESCO_S4 | \
+                             BTA_AG_FEAT_UNAT )
 #endif
 #else
 #ifndef BTC_HF_FEATURES
-#define BTC_HF_FEATURES    ( BTA_AG_FEAT_ECNR   | \
-                             BTA_AG_FEAT_REJECT | \
-                             BTA_AG_FEAT_ECS    | \
-                             BTA_AG_FEAT_EXTERR | \
-                             BTA_AG_FEAT_VREC   | \
-                             BTA_AG_FEAT_INBAND | \
-                             BTA_AG_FEAT_ESCO_S4| \
-                             BTA_AG_FEAT_UNAT)
+#if BT_HF_AG_BQB_INCLUDED
+#define BTC_HF_FEATURES    ( BTA_AG_FEAT_REJECT  | \
+                             BTA_AG_FEAT_ECS     | \
+                             BTA_AG_FEAT_EXTERR  | \
+                             BTA_AG_FEAT_VREC    | \
+                             BTA_AG_FEAT_INBAND  | \
+                             BTA_AG_FEAT_ESCO_S4 | \
+                             BTA_AG_FEAT_UNAT )
+#else
+#define BTC_HF_FEATURES    ( BTA_AG_FEAT_ECNR    | \
+                             BTA_AG_FEAT_REJECT  | \
+                             BTA_AG_FEAT_ECS     | \
+                             BTA_AG_FEAT_EXTERR  | \
+                             BTA_AG_FEAT_VREC    | \
+                             BTA_AG_FEAT_INBAND  | \
+                             BTA_AG_FEAT_ESCO_S4 | \
+                             BTA_AG_FEAT_UNAT )
+#endif /* BT_HF_AG_BQB_INCLUDED */
 #endif
 #endif
 
@@ -134,12 +144,12 @@ do {                                                                            
     hf_local_param[idx].btc_hf_cb.num_active = 0;  \
     hf_local_param[idx].btc_hf_cb.num_held = 0;
 
-#define CHECK_HF_IDX(idx)                                            \
-do {                                                                 \
-    if ((idx < 0) || (idx >= BTC_HF_NUM_CB)) {                       \
-        BTC_TRACE_ERROR("%s: Invalid index %d", __FUNCTION__, idx);  \
-        return;                                                      \
-    }                                                                \
+#define CHECK_HF_IDX(idx)                                                        \
+do {                                                                             \
+    if ((idx < 0) || (idx >= BTC_HF_NUM_CB)) {                                   \
+        BTC_TRACE_ERROR("%s:%d Invalid index %d", __FUNCTION__, __LINE__, idx);  \
+        return;                                                                  \
+    }                                                                            \
 } while (0)
 
 /************************************************************************************
@@ -212,37 +222,6 @@ static void send_indicator_update(UINT16 indicator, UINT16 value)
     ag_res.ind.type = indicator;
     ag_res.ind.value = value;
     BTA_AgResult(BTA_AG_HANDLE_ALL, BTA_AG_IND_RES, &ag_res);
-}
-
-static void btc_hf_cind_evt(tBTA_AG_IND *ind)
-{
-    esp_hf_cb_param_t param;
-    memset(&param, 0, sizeof(esp_hf_cb_param_t));
-
-    switch (ind->type) {
-        case BTA_AG_IND_CALL:
-            param.cind.call_status = ind->value;
-            break;
-        case BTA_AG_IND_CALLSETUP:
-            param.cind.call_setup_status = ind->value;
-            break;
-        case BTA_AG_IND_SERVICE:
-            param.cind.svc = ind->value;
-            break;
-        case BTA_AG_IND_SIGNAL:
-            param.cind.signal_strength = ind->value;
-            break;
-        case BTA_AG_IND_ROAM:
-            param.cind.roam = ind->value;
-            break;
-        case BTA_AG_IND_BATTCHG:
-            param.cind.battery_level = ind->value;
-            break;
-        case BTA_AG_IND_CALLHELD:
-            param.cind.call_held_status = ind->value;
-            break;
-    }
-    btc_hf_cb_to_app(ESP_HF_CIND_RESPONSE_EVT, &param);
 }
 
 static void bte_hf_evt(tBTA_AG_EVT event, tBTA_AG *param)
@@ -441,6 +420,21 @@ bt_status_t btc_hf_disconnect_audio(bt_bdaddr_t *bd_addr)
     return BT_STATUS_FAIL;
 }
 
+static bt_status_t btc_hf_pkt_stat_nums_get(UINT16 sync_conn_handle)
+{
+    bt_status_t status = BT_STATUS_FAIL;
+#if (BTM_SCO_HCI_INCLUDED == TRUE)
+    int idx = btc_hf_latest_connected_idx();
+    CHECK_HF_SLC_CONNECTED(idx);
+
+    if (idx != BTC_HF_INVALID_IDX) {
+        BTA_AgPktStatsNumsGet(hf_local_param[idx].btc_hf_cb.handle, sync_conn_handle);
+        status = BT_STATUS_SUCCESS;
+    }
+#endif /*#if (BTM_SCO_HCI_INCLUDED == TRUE) */
+    return status;
+}
+
 /************************************************************************************
 **  AT cmd Handle
 ************************************************************************************/
@@ -541,7 +535,20 @@ static bt_status_t btc_hf_indchange_notification(bt_bdaddr_t *bd_addr,
         send_indicator_update(BTA_AG_IND_SIGNAL, signal);
         return BT_STATUS_SUCCESS;
     }
-    return BT_STATUS_SUCCESS;
+    return BT_STATUS_FAIL;
+}
+
+// +CIEV<...> for device status update, send other indicators, e.g. roaming, battery, call held and bearer
+bt_status_t btc_hf_ciev_report(bt_bdaddr_t *bd_addr, tBTA_AG_IND_TYPE indicator, uint16_t value)
+{
+    int idx = btc_hf_idx_by_bdaddr(bd_addr);
+    CHECK_HF_INIT(idx);
+
+    if (is_connected(idx, bd_addr)) {
+        send_indicator_update(indicator, value);
+        return BT_STATUS_SUCCESS;
+    }
+    return BT_STATUS_FAIL;
 }
 
 //AT+CIND response
@@ -623,7 +630,7 @@ static bt_status_t btc_hf_clcc_response(bt_bdaddr_t *bd_addr, int index, esp_hf_
 }
 
 //AT+CNUM
-static bt_status_t btc_hf_cnum_response(bt_bdaddr_t *bd_addr, const char *number, esp_hf_subscriber_service_type_t type)
+static bt_status_t btc_hf_cnum_response(bt_bdaddr_t *bd_addr, const char *number, int number_type, esp_hf_subscriber_service_type_t service_type)
 {
     int idx = btc_hf_idx_by_bdaddr(bd_addr);
     CHECK_HF_SLC_CONNECTED(idx);
@@ -631,11 +638,11 @@ static bt_status_t btc_hf_cnum_response(bt_bdaddr_t *bd_addr, const char *number
     if (is_connected(idx, bd_addr)) {
         tBTA_AG_RES_DATA    ag_res;
         memset(&ag_res, 0, sizeof (ag_res));
-        BTC_TRACE_EVENT("cnum_response: number = %s, type = %d", number, type);
-        if (number) {
-            sprintf(ag_res.str, ",\"%s\",%d",number, type);
+        BTC_TRACE_EVENT("cnum_response: number = %s, number type = %d, service type = %d", number, number_type, service_type);
+        if (service_type) {
+            sprintf(ag_res.str, ",\"%s\",%d,,%d",number, number_type, service_type);
         } else {
-            sprintf(ag_res.str, ",\"\",%d",type);
+            sprintf(ag_res.str, ",\"%s\",%d,,",number, number_type);
         }
         ag_res.ok_flag = BTA_AG_OK_DONE;
         BTA_AgResult(hf_local_param[idx].btc_hf_cb.handle, BTA_AG_CNUM_RES, &ag_res);
@@ -1133,6 +1140,12 @@ void btc_hf_call_handler(btc_msg_t *msg)
             break;
         }
 
+        case BTC_HF_CIEV_REPORT_EVT:
+        {
+            btc_hf_ciev_report(&arg->ciev_rep.remote_addr, arg->ciev_rep.ind.type, arg->ciev_rep.ind.value);
+            break;
+        }
+
         case BTC_HF_CIND_RESPONSE_EVT:
         {
             btc_hf_cind_response(&arg->cind_rep.remote_addr,
@@ -1158,7 +1171,7 @@ void btc_hf_call_handler(btc_msg_t *msg)
 
         case BTC_HF_CNUM_RESPONSE_EVT:
         {
-            btc_hf_cnum_response(&arg->cnum_rep.remote_addr, arg->cnum_rep.number, arg->cnum_rep.type);
+            btc_hf_cnum_response(&arg->cnum_rep.remote_addr, arg->cnum_rep.number, arg->cnum_rep.number_type, arg->cnum_rep.service_type);
             break;
         }
 
@@ -1206,8 +1219,13 @@ void btc_hf_call_handler(btc_msg_t *msg)
         case BTC_HF_REGISTER_DATA_CALLBACK_EVT:
         {
             btc_hf_reg_data_cb(arg->reg_data_cb.recv, arg->reg_data_cb.send);
-        }
             break;
+        }
+        case BTC_HF_REQUEST_PKT_STAT_EVT:
+        {
+            btc_hf_pkt_stat_nums_get(arg->pkt_sync_hd.sync_conn_handle);
+            break;
+        }
 
         default:
             BTC_TRACE_WARNING("%s : unhandled event: %d\n", __FUNCTION__, msg->act);
@@ -1224,6 +1242,8 @@ void btc_hf_cb_handler(btc_msg_t *msg)
     int idx = BTC_HF_INVALID_IDX;
 
     BTC_TRACE_DEBUG("%s: event = %s", __FUNCTION__, dump_hf_event(event));
+
+    memset(&param, 0, sizeof(esp_hf_cb_param_t));
 
     switch (event) {
         case BTA_AG_ENABLE_EVT:
@@ -1261,7 +1281,6 @@ void btc_hf_cb_handler(btc_msg_t *msg)
             }
 
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
                 memcpy(param.conn_stat.remote_bda, &hf_local_param[idx].btc_hf_cb.connected_bda, sizeof(esp_bd_addr_t));
                 param.conn_stat.state = hf_local_param[idx].btc_hf_cb.connection_state;
                 param.conn_stat.peer_feat = 0;
@@ -1288,7 +1307,6 @@ void btc_hf_cb_handler(btc_msg_t *msg)
             hf_local_param[idx].btc_hf_cb.connection_state  = ESP_HF_CONNECTION_STATE_SLC_CONNECTED;
 
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
                 param.conn_stat.state = hf_local_param[idx].btc_hf_cb.connection_state;
                 param.conn_stat.peer_feat = hf_local_param[idx].btc_hf_cb.peer_feat;
                 param.conn_stat.chld_feat = hf_local_param[idx].btc_hf_cb.chld_feat;
@@ -1309,7 +1327,6 @@ void btc_hf_cb_handler(btc_msg_t *msg)
             BTC_TRACE_DEBUG("%s: BTA_AG_CLOSE_EVT," "hf_local_param[%d].btc_hf_cb.handle = %d", __FUNCTION__,
                             idx, hf_local_param[idx].btc_hf_cb.handle);
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
                 param.conn_stat.state = ESP_HF_CONNECTION_STATE_DISCONNECTED;
                 param.conn_stat.peer_feat = 0;
                 param.conn_stat.chld_feat = 0;
@@ -1328,9 +1345,9 @@ void btc_hf_cb_handler(btc_msg_t *msg)
             idx = p_data->hdr.handle - 1;
             CHECK_HF_IDX(idx);
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
                 param.audio_stat.state = ESP_HF_AUDIO_STATE_CONNECTED;
                 memcpy(param.audio_stat.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+                param.audio_stat.sync_conn_handle = p_data->hdr.sync_conn_handle;
                 btc_hf_cb_to_app(ESP_HF_AUDIO_STATE_EVT, &param);
             } while(0);
             break;
@@ -1341,9 +1358,9 @@ void btc_hf_cb_handler(btc_msg_t *msg)
             idx = p_data->hdr.handle - 1;
             CHECK_HF_IDX(idx);
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
                 param.audio_stat.state = ESP_HF_AUDIO_STATE_CONNECTED_MSBC;
                 memcpy(param.audio_stat.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+                param.audio_stat.sync_conn_handle = p_data->hdr.sync_conn_handle;
                 btc_hf_cb_to_app(ESP_HF_AUDIO_STATE_EVT, &param);
             } while (0);
             break;
@@ -1353,9 +1370,9 @@ void btc_hf_cb_handler(btc_msg_t *msg)
             idx = p_data->hdr.handle - 1;
             CHECK_HF_IDX(idx);
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
                 param.audio_stat.state = ESP_HF_AUDIO_STATE_DISCONNECTED;
                 memcpy(param.audio_stat.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda, sizeof(esp_bd_addr_t));
+                param.audio_stat.sync_conn_handle = p_data->hdr.sync_conn_handle;
                 btc_hf_cb_to_app(ESP_HF_AUDIO_STATE_EVT, &param);
             } while(0);
             break;
@@ -1366,8 +1383,8 @@ void btc_hf_cb_handler(btc_msg_t *msg)
             idx = p_data->hdr.handle - 1;
             CHECK_HF_IDX(idx);
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
                 param.vra_rep.value = p_data->val.num;
+                memcpy(param.vra_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
                 btc_hf_cb_to_app(ESP_HF_BVRA_RESPONSE_EVT, &param);
                 if (p_data->val.num) {
                     btc_hf_connect_audio(&hf_local_param[idx].btc_hf_cb.connected_bda);
@@ -1381,8 +1398,10 @@ void btc_hf_cb_handler(btc_msg_t *msg)
         case BTA_AG_SPK_EVT:
         case BTA_AG_MIC_EVT:
         {
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
+                memcpy(param.volume_control.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
                 param.volume_control.type = (event == BTA_AG_SPK_EVT) ? ESP_HF_VOLUME_CONTROL_TARGET_SPK : ESP_HF_VOLUME_CONTROL_TARGET_MIC;
                 param.volume_control.volume = p_data->val.num;
                 btc_hf_cb_to_app(ESP_HF_VOLUME_CONTROL_EVT, &param);
@@ -1392,46 +1411,67 @@ void btc_hf_cb_handler(btc_msg_t *msg)
 
         case BTA_AG_AT_UNAT_EVT:
         {
-            memset(&param, 0, sizeof(esp_hf_cb_param_t));
-            param.unat_rep.unat = p_data->val.str;
-            btc_hf_cb_to_app(ESP_HF_UNAT_RESPONSE_EVT, &param);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            do {
+                memcpy(param.unat_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+                param.unat_rep.unat = p_data->val.str;
+                btc_hf_cb_to_app(ESP_HF_UNAT_RESPONSE_EVT, &param);
+            } while (0);
             break;
         }
 
         case BTA_AG_AT_CBC_EVT:
         {
-            btc_hf_cb_to_app(ESP_HF_IND_UPDATE_EVT, NULL);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            memcpy(param.ind_upd.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+            btc_hf_cb_to_app(ESP_HF_IND_UPDATE_EVT, &param);
             break;
         }
 
         case BTA_AG_AT_CIND_EVT:
         {
-            btc_hf_cind_evt(&p_data->ind);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            memcpy(param.cind_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+            btc_hf_cb_to_app(ESP_HF_CIND_RESPONSE_EVT, &param);
             break;
         }
 
         case BTA_AG_AT_COPS_EVT:
         {
-            btc_hf_cb_to_app(ESP_HF_COPS_RESPONSE_EVT, NULL);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            memcpy(param.cops_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+            btc_hf_cb_to_app(ESP_HF_COPS_RESPONSE_EVT, &param);
             break;
         }
 
         case BTA_AG_AT_CLCC_EVT:
         {
-            btc_hf_cb_to_app(ESP_HF_CLCC_RESPONSE_EVT, NULL);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            memcpy(param.clcc_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+            btc_hf_cb_to_app(ESP_HF_CLCC_RESPONSE_EVT, &param);
             break;
         }
 
         case BTA_AG_AT_CNUM_EVT:
         {
-            btc_hf_cb_to_app(ESP_HF_CNUM_RESPONSE_EVT, NULL);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            memcpy(param.cnum_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+            btc_hf_cb_to_app(ESP_HF_CNUM_RESPONSE_EVT, &param);
             break;
         }
 
         case BTA_AG_AT_VTS_EVT:
         {
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
+                memcpy(param.vts_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
                 param.vts_rep.code = p_data->val.str;
                 btc_hf_cb_to_app(ESP_HF_VTS_RESPONSE_EVT, &param);
             } while(0);
@@ -1440,8 +1480,10 @@ void btc_hf_cb_handler(btc_msg_t *msg)
 
         case BTA_AG_AT_NREC_EVT:
         {
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
             do {
-                memset(&param, 0, sizeof(esp_hf_cb_param_t));
+                memcpy(param.nrec.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
                 param.nrec.state = p_data->val.num;
                 btc_hf_cb_to_app(ESP_HF_NREC_RESPONSE_EVT, &param);
             } while(0);
@@ -1450,29 +1492,38 @@ void btc_hf_cb_handler(btc_msg_t *msg)
 
         case BTA_AG_AT_A_EVT:
         {
-            btc_hf_cb_to_app(ESP_HF_ATA_RESPONSE_EVT, NULL);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            memcpy(param.ata_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+            btc_hf_cb_to_app(ESP_HF_ATA_RESPONSE_EVT, &param);
             break;
         }
 
         case BTA_AG_AT_CHUP_EVT:
         {
-            btc_hf_cb_to_app(ESP_HF_CHUP_RESPONSE_EVT, NULL);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            memcpy(param.chup_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+            btc_hf_cb_to_app(ESP_HF_CHUP_RESPONSE_EVT, &param);
             break;
         }
 
         case BTA_AG_AT_BLDN_EVT:
         case BTA_AG_AT_D_EVT:
         {
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
             do {
                 if (event == BTA_AG_AT_D_EVT) {           // dial_number_or_memory
-                    memset(&param, 0, sizeof(esp_hf_cb_param_t));
+                    memcpy(param.out_call.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+                    param.out_call.type = p_data->val.value;
                     param.out_call.num_or_loc = osi_malloc((strlen(p_data->val.str) + 1) * sizeof(char));
                     sprintf(param.out_call.num_or_loc, "%s", p_data->val.str);
                     btc_hf_cb_to_app(ESP_HF_DIAL_EVT, &param);
-                    send_indicator_update(BTA_AG_IND_CALLSETUP,BTA_AG_CALLSETUP_OUTGOING);
                     osi_free(param.out_call.num_or_loc);
                 } else if (event == BTA_AG_AT_BLDN_EVT) {                    //dial_last
-                    memset(&param, 0, sizeof(esp_hf_cb_param_t));
+                    memcpy(param.out_call.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+                    param.out_call.num_or_loc = NULL;
                     btc_hf_cb_to_app(ESP_HF_DIAL_EVT, &param);
                 }
             } while(0);
@@ -1515,23 +1566,37 @@ void btc_hf_cb_handler(btc_msg_t *msg)
 #if (BTM_WBS_INCLUDED == TRUE)
         case BTA_AG_WBS_EVT:
         {
-            BTC_TRACE_DEBUG("Set codec status %d codec %d 1=CVSD 2=MSBC", p_data->val.hdr.status, p_data->val.num);
-            memset(&param, 0, sizeof(esp_hf_cb_param_t));
-            param.wbs_rep.codec = p_data->val.num;
-            btc_hf_cb_to_app(ESP_HF_WBS_RESPONSE_EVT, &param);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            do {
+                BTC_TRACE_DEBUG("Set codec status %d codec %d 1=CVSD 2=MSBC", p_data->val.hdr.status, p_data->val.num);
+                memcpy(param.wbs_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+                param.wbs_rep.codec = p_data->val.num;
+                btc_hf_cb_to_app(ESP_HF_WBS_RESPONSE_EVT, &param);
+            } while (0);
             break;
         }
 
         case BTA_AG_AT_BCS_EVT:
         {
-            BTC_TRACE_DEBUG("AG final seleded codec is %d 1=CVSD 2=MSBC", p_data->val.num);
-            memset(&param, 0, sizeof(esp_hf_cb_param_t));
-            param.bcs_rep.mode = p_data->val.num;
-            /* No ESP_HF_WBS_NONE case, becuase HFP 1.6 supported device can send BCS */
-            btc_hf_cb_to_app(ESP_HF_BCS_RESPONSE_EVT, &param);
+            idx = p_data->hdr.handle - 1;
+            CHECK_HF_IDX(idx);
+            do {
+                BTC_TRACE_DEBUG("AG final seleded codec is %d 1=CVSD 2=MSBC", p_data->val.num);
+                memcpy(param.bcs_rep.remote_addr, &hf_local_param[idx].btc_hf_cb.connected_bda,sizeof(esp_bd_addr_t));
+                param.bcs_rep.mode = p_data->val.num;
+                /* No ESP_HF_WBS_NONE case, becuase HFP 1.6 supported device can send BCS */
+                btc_hf_cb_to_app(ESP_HF_BCS_RESPONSE_EVT, &param);
+            } while (0);
             break;
         }
 #endif
+        case BTA_AG_PKT_NUMS_GET_EVT:
+        {
+            memcpy(&param.pkt_nums, &p_data->pkt_num, sizeof(struct ag_pkt_status_nums));
+            btc_hf_cb_to_app(ESP_HF_PKT_STAT_NUMS_GET_EVT, &param);
+            break;
+        }
         default:
             BTC_TRACE_WARNING("%s: Unhandled event: %d", __FUNCTION__, event);
             break;

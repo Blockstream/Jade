@@ -447,7 +447,9 @@ void
 IRAM_ATTR npl_freertos_event_run(struct ble_npl_event *ev)
 {
     struct ble_npl_event_freertos *event = (struct ble_npl_event_freertos *)ev->event;
-    event->fn(ev);
+    if (event) {
+        event->fn(ev);
+    }
 }
 
 bool
@@ -461,21 +463,29 @@ bool
 IRAM_ATTR npl_freertos_event_is_queued(struct ble_npl_event *ev)
 {
     struct ble_npl_event_freertos *event = (struct ble_npl_event_freertos *)ev->event;
-    return event->queued;
+    if (event) {
+        return event->queued;
+    }
+    return false;
 }
 
 void *
 IRAM_ATTR npl_freertos_event_get_arg(struct ble_npl_event *ev)
 {
     struct ble_npl_event_freertos *event = (struct ble_npl_event_freertos *)ev->event;
-    return event->arg;
+    if (event) {
+        return event->arg;
+    }
+    return NULL;
 }
 
 void
 IRAM_ATTR npl_freertos_event_set_arg(struct ble_npl_event *ev, void *arg)
 {
     struct ble_npl_event_freertos *event = (struct ble_npl_event_freertos *)ev->event;
-    event->arg = arg;
+    if (event) {
+        event->arg = arg;
+    }
 }
 
 

@@ -24,6 +24,9 @@
 #include "syscfg/syscfg.h"
 #include "os/queue.h"
 #include "nimble/nimble_opt.h"
+#if MYNEWT_VAL(ENC_ADV_DATA)
+#include "host/ble_ead.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

@@ -78,15 +78,29 @@ config BT_CTRL_ADV_DUP_FILT_MAX
     help
         The maxinum number of suplicate scan filter
 
-config BT_CTRL_HW_CCA
-    bool "HW CCA check enable"
-    default n
+choice BT_BLE_CCA_MODE
+    prompt "BLE CCA mode"
+    default BT_BLE_CCA_MODE_NONE
     help
-        It enables HW CCA feature in controller
+        Define BT BLE CCA mode
+
+    config BT_BLE_CCA_MODE_NONE
+        bool "NONE"
+    config BT_BLE_CCA_MODE_HW
+        bool "Hardware"
+    config BT_BLE_CCA_MODE_SW
+        bool "Software"
+endchoice
+
+config BT_BLE_CCA_MODE
+    int
+    default 0 if BT_BLE_CCA_MODE_NONE
+    default 1 if BT_BLE_CCA_MODE_HW
+    default 2 if BT_BLE_CCA_MODE_SW
 
 config BT_CTRL_HW_CCA_VAL
     int "CCA threshold value"
-    range 20 60
+    range 20 100
     default 20
     help
         It is the threshold value of HW CCA, if the value is 30, it means CCA threshold is -30 dBm.
@@ -265,20 +279,19 @@ choice BT_CTRL_SCAN_DUPL_TYPE
     config BT_CTRL_SCAN_DUPL_TYPE_DEVICE
         bool "Scan Duplicate By Device Address"
         help
-            This way is to use advertiser address filtering. The adv packet of the same address is only
-            allowed to be reported once
+            Advertising packets with the same address, address type, and advertising type are reported once.
 
     config BT_CTRL_SCAN_DUPL_TYPE_DATA
         bool "Scan Duplicate By Advertising Data"
         help
-            This way is to use advertising data filtering. All same advertising data only allow to be reported
-            once even though they are from different devices.
+            Advertising packets with identical advertising data, address type, and advertising type
+            are reported only once, even if they originate from different devices.
 
     config BT_CTRL_SCAN_DUPL_TYPE_DATA_DEVICE
         bool "Scan Duplicate By Device Address And Advertising Data"
         help
-            This way is to use advertising data and device address filtering. All different adv packets with
-            the same address are allowed to be reported.
+            Advertising packets with the same address, advertising data, address type,
+            and advertising type are reported only once.
 endchoice
 
 config BT_CTRL_SCAN_DUPL_TYPE

@@ -62,6 +62,11 @@
 #define BTA_AV_RECONFIG_RETRY       6
 #endif
 
+/* avdt_handle to send abort command for AVDTP BQB test */
+#if A2D_SRC_BQB_INCLUDED
+static uint8_t s_avdt_bqb_handle;
+#endif /* CONFIG_BT_BQB_ENABLED */
+
 static void bta_av_st_rc_timer(tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data);
 
 /* state machine states */
@@ -733,8 +738,7 @@ static void bta_av_adjust_seps_idx(tBTA_AV_SCB *p_scb, UINT8 avdt_handle)
     for (xx = 0; xx < BTA_AV_MAX_SEPS; xx++) {
         APPL_TRACE_DEBUG("av_handle: %d codec_type: %d",
                          p_scb->seps[xx].av_handle, p_scb->seps[xx].codec_type);
-        if ((p_scb->seps[xx].av_handle && p_scb->codec_type == p_scb->seps[xx].codec_type)
-                && (p_scb->seps[xx].av_handle == avdt_handle)) {
+        if ((p_scb->seps[xx].av_handle) && (p_scb->seps[xx].av_handle == avdt_handle)) {
             p_scb->sep_idx      = xx;
             p_scb->avdt_handle  = p_scb->seps[xx].av_handle;
             break;
@@ -1027,6 +1031,7 @@ void bta_av_cleanup(tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
     p_scb->wait = 0;
     p_scb->num_disc_snks = 0;
     p_scb->disc_rsn = 0;
+    p_scb->avdt_handle = 0;
     bta_sys_stop_timer(&p_scb->timer);
     if (p_scb->deregistring) {
         /* remove stream */
@@ -1415,6 +1420,10 @@ void bta_av_str_opened (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
         }
     }
 
+#if A2D_SRC_BQB_INCLUDED
+    s_avdt_bqb_handle = p_scb->avdt_handle;
+#endif /* A2D_SRC_BQB_INCLUDED */
+
 #if 0 /* TODO: implement the property enable/disable */
     // This code is used to pass PTS TC for AVDTP ABORT
     char value[PROPERTY_VALUE_MAX] = {0};
@@ -1425,6 +1434,22 @@ void bta_av_str_opened (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
     }
 #endif /* #if 0*/
 }
+
+/*******************************************************************************
+**
+** Function         avdt_bqb_abort
+**
+** Description      Send AVDT abort request for BQB test
+**
+** Returns          void
+**
+*******************************************************************************/
+#if A2D_SRC_BQB_INCLUDED
+void avdt_bqb_abort(void)
+{
+    AVDT_AbortReq(s_avdt_bqb_handle);
+}
+#endif /* A2D_SRC_BQB_INCLUDED */
 
 /*******************************************************************************
 **

@@ -47,6 +47,13 @@ config BT_CLASSIC_ENABLED
     help
         For now this option needs "SMP_ENABLE" to be set to yes
 
+config BT_CLASSIC_BQB_ENABLED
+    bool "Host Qualitifcation support for Classic Bluetooth"
+    depends on BT_CLASSIC_ENABLED
+    default n
+    help
+        This enables functionalities of Host qualification for Classic Bluetooth.
+
 config BT_A2DP_ENABLE
     bool "A2DP"
     depends on BT_CLASSIC_ENABLED
@@ -1136,3 +1143,24 @@ config BT_BLE_42_FEATURES_SUPPORTED
     default n
     help
         This enables BLE 4.2 features.
+
+config BT_BLE_FEAT_PERIODIC_ADV_SYNC_TRANSFER
+    bool "Enable BLE periodic advertising sync transfer feature"
+    depends on (BT_BLUEDROID_ENABLED && BT_BLE_50_FEATURES_SUPPORTED && SOC_ESP_NIMBLE_CONTROLLER)
+    default n
+    help
+        This enables BLE periodic advertising sync transfer feature
+
+config BT_BLE_FEAT_PERIODIC_ADV_ENH
+    bool "Enable periodic adv enhancements(adi support)"
+    depends on (BT_BLUEDROID_ENABLED && BT_BLE_50_FEATURES_SUPPORTED && SOC_ESP_NIMBLE_CONTROLLER)
+    default n
+    help
+        Enable the periodic advertising enhancements
+
+config BT_BLE_HIGH_DUTY_ADV_INTERVAL
+    bool "Enable BLE high duty advertising interval feature"
+    depends on BT_BLUEDROID_ENABLED
+    default n
+    help
+        This enable BLE high duty advertising interval feature

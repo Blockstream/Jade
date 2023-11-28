@@ -32,14 +32,6 @@
 #endif
 #include "soc/soc_caps.h"
 
-#if SOC_ESP_NIMBLE_CONTROLLER
-#if CONFIG_SW_COEXIST_ENABLE
-#include "esp_coexist_internal.h"
-#endif
-#endif
-
-
-
 #include "esp_intr_alloc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -252,11 +244,12 @@ IRAM_ATTR nimble_port_run(void)
 
     while (1) {
         ev = ble_npl_eventq_get(&g_eventq_dflt, BLE_NPL_TIME_FOREVER);
-        ble_npl_event_run(ev);
-        if (ev == &ble_hs_ev_stop) {
-            break;
+        if (ev) {
+            ble_npl_event_run(ev);
+            if (ev == &ble_hs_ev_stop) {
+                break;
+            }
         }
-
     }
 }
 

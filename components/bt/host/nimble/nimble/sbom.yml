@@ -1,0 +1,5 @@
+name: 'Apache Mynewt Nimble'
+version: '1.5.0'
+supplier: 'Organization: Espressif Systems (Shanghai) CO LTD'
+originator: 'Organization: The Apache Software Foundation'
+description: An open-source Bluetooth 5.1 stack with additional features and patches from Espressif.

@@ -33,6 +33,10 @@
 #include "syscfg/syscfg.h"
 #include "host/ble_esp_gap.h"
 
+#if MYNEWT_VAL(ENC_ADV_DATA)
+#include "../../src/ble_hs_hci_priv.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -47,14 +51,24 @@ struct hci_conn_update;
 #define BLE_GAP_SUPERVISION_TIMEOUT_MS(t)   ((t) / 10)
 #define BLE_GAP_PERIODIC_ITVL_MS(t)         ((t) * 1000 / BLE_HCI_PERIODIC_ADV_ITVL)
 
+#if MYNEWT_VAL(BLE_HIGH_DUTY_ADV_ITVL)
+/** 5 ms. */
+#define BLE_GAP_ADV_FAST_INTERVAL1_MIN      BLE_GAP_ADV_ITVL_MS(5)
+#else
 /** 30 ms. */
 #define BLE_GAP_ADV_FAST_INTERVAL1_MIN      BLE_GAP_ADV_ITVL_MS(30)
+#endif
 
 /** 60 ms. */
 #define BLE_GAP_ADV_FAST_INTERVAL1_MAX      BLE_GAP_ADV_ITVL_MS(60)
 
+#if MYNEWT_VAL(BLE_HIGH_DUTY_ADV_ITVL)
+/** 5 ms. */
+#define BLE_GAP_ADV_FAST_INTERVAL2_MIN      BLE_GAP_ADV_ITVL_MS(5)
+#else
 /** 100 ms. */
 #define BLE_GAP_ADV_FAST_INTERVAL2_MIN      BLE_GAP_ADV_ITVL_MS(100)
+#endif
 
 /** 150 ms. */
 #define BLE_GAP_ADV_FAST_INTERVAL2_MAX      BLE_GAP_ADV_ITVL_MS(150)
@@ -141,6 +155,7 @@ struct hci_conn_update;
 #define BLE_GAP_EVENT_TRANSMIT_POWER        26
 #define BLE_GAP_EVENT_SUBRATE_CHANGE        27
 #define BLE_GAP_EVENT_VS_HCI                28
+#define BLE_GAP_EVENT_REATTEMPT_COUNT       29
 
 /*** Reason codes for the subscribe GAP event. */
 
@@ -1068,9 +1083,25 @@ struct ble_gap_event {
             uint8_t length;
         } vs_hci;
 #endif
+
+#if MYNEWT_VAL(BLE_ENABLE_CONN_REATTEMPT)
+	/**
+	 * Represents a event mentioning connection reattempt
+	 * count
+	 *
+	 * Valid for the following event types:
+	 * 	o BLE_GAP_EVENT_REATTEMPT_COUNT
+	 */
+        struct {
+            /* Connection handle */
+	    uint16_t conn_handle;
+
+	    /* Reattempt connection attempt count */
+	    uint8_t count;
+        } reattempt_cnt;
+#endif
     };
 };
-
 
 #if MYNEWT_VAL(OPTIMIZE_MULTI_CONN)
 /** @brief multiple Connection parameters  */
@@ -1287,6 +1318,44 @@ int ble_gap_adv_set_fields(const struct ble_hs_adv_fields *rsp_fields);
  */
 int ble_gap_adv_rsp_set_fields(const struct ble_hs_adv_fields *rsp_fields);
 
+#if MYNEWT_VAL(ENC_ADV_DATA)
+/**
+ * @brief Bluetooth data serialized size.
+ *
+ * Get the size of a serialized @ref bt_data given its data length.
+ *
+ * Size of 'AD Structure'->'Length' field, equal to 1.
+ * Size of 'AD Structure'->'Data'->'AD Type' field, equal to 1.
+ * Size of 'AD Structure'->'Data'->'AD Data' field, equal to data_len.
+ *
+ * See Core Specification Version 5.4 Vol. 3 Part C, 11, Figure 11.1.
+ */
+#define BLE_GAP_DATA_SERIALIZED_SIZE(data_len) ((data_len) + 2)
+#define BLE_GAP_ENC_ADV_DATA    0x31
+struct enc_adv_data {
+    uint8_t len;
+    uint8_t type;
+    uint8_t *data;
+};
+
+/**
+ * @brief Helper to declare elements of enc_adv_data arrays
+ *
+ * This macro is mainly for creating an array of struct enc_adv_data
+ * elements which is then passed to e.g. @ref ble_gap_adv_start().
+ *
+ * @param _type Type of advertising data field
+ * @param _data Pointer to the data field payload
+ * @param _data_len Number of bytes behind the _data pointer
+ */
+#define ENC_ADV_DATA(_type, _data, _data_len) \
+    { \
+        .type = (_type), \
+        .len = (_data_len), \
+        .data = (uint8_t *)(_data), \
+    }
+#endif
+
 #if MYNEWT_VAL(BLE_EXT_ADV)
 /** @brief Extended advertising parameters  */
 struct ble_gap_ext_adv_params {
@@ -1501,6 +1570,26 @@ struct ble_gap_periodic_adv_params {
     uint16_t itvl_max;
 };
 
+#if MYNEWT_VAL(BLE_PERIODIC_ADV_ENH)
+/** @brief Periodic advertising enable parameters  */
+struct ble_gap_periodic_adv_enable_params {
+    /** If include adi in aux_sync_ind PDU */
+    unsigned int include_adi:1;
+};
+
+/** @brief Periodic advertising sync reporting parameters  */
+struct ble_gap_periodic_adv_sync_report_params {
+    /** If filter duplicates */
+    unsigned int filter_duplicates:1;
+};
+
+/** @brief Periodic adv set data parameters  */
+struct ble_gap_periodic_adv_set_data_params {
+    /** If include adi in aux_sync_ind PDU */
+    unsigned int update_did:1;
+};
+#endif
+
 /** @brief Periodic sync parameters  */
 struct ble_gap_periodic_sync_params {
     /** The maximum number of periodic advertising events that controller can
@@ -1514,6 +1603,12 @@ struct ble_gap_periodic_sync_params {
 
     /** If reports should be initially disabled when sync is created */
     unsigned int reports_disabled:1;
+
+#if MYNEWT_VAL(BLE_PERIODIC_ADV_ENH)
+    /** If duplicate filtering should be should be initially enabled when sync is
+     created */
+    unsigned int filter_duplicates:1;
+#endif
 };
 
 /**
@@ -1531,6 +1626,21 @@ struct ble_gap_periodic_sync_params {
 int ble_gap_periodic_adv_configure(uint8_t instance,
                                    const struct ble_gap_periodic_adv_params *params);
 
+#if MYNEWT_VAL(BLE_PERIODIC_ADV_ENH)
+/**
+ * Start periodic advertising for specified advertising instance.
+ *
+ * @param instance            Instance ID
+ * @param params              Additional arguments specifying the particulars
+ *                            of periodic advertising.
+ *
+ * @return              0 on success, error code on failure.
+ */
+int
+ble_gap_periodic_adv_start(uint8_t instance,
+                           const struct ble_gap_periodic_adv_enable_params *params);
+
+#else
 /**
  * Start periodic advertising for specified advertising instance.
  *
@@ -1539,6 +1649,7 @@ int ble_gap_periodic_adv_configure(uint8_t instance,
  * @return              0 on success, error code on failure.
  */
 int ble_gap_periodic_adv_start(uint8_t instance);
+#endif
 
 /**
  * Stop periodic advertising for specified advertising instance.
@@ -1549,6 +1660,22 @@ int ble_gap_periodic_adv_start(uint8_t instance);
  */
 int ble_gap_periodic_adv_stop(uint8_t instance);
 
+#if MYNEWT_VAL(BLE_PERIODIC_ADV_ENH)
+/**
+ * Configures the data to include in periodic advertisements for specified
+ * advertising instance.
+ *
+ * @param instance            Instance ID
+ * @param data                Chain containing the periodic advertising data.
+ * @param params              Additional arguments specifying the particulars
+                             of periodic advertising data.
+ *
+ * @return          0 on success or error code on failure.
+ */
+int ble_gap_periodic_adv_set_data(uint8_t instance,
+                              struct os_mbuf *data,
+                              struct ble_gap_periodic_adv_set_data_params *params);
+#else
 /**
  * Configures the data to include in periodic advertisements for specified
  * advertising instance.
@@ -1559,6 +1686,7 @@ int ble_gap_periodic_adv_stop(uint8_t instance);
  * @return          0 on success or error code on failure.
  */
 int ble_gap_periodic_adv_set_data(uint8_t instance, struct os_mbuf *data);
+#endif
 
 /**
  * Performs the Synchronization procedure with periodic advertiser.
@@ -1597,6 +1725,21 @@ int ble_gap_periodic_adv_sync_create_cancel(void);
 int ble_gap_periodic_adv_sync_terminate(uint16_t sync_handle);
 
 #if MYNEWT_VAL(BLE_PERIODIC_ADV_SYNC_TRANSFER)
+#if MYNEWT_VAL(BLE_PERIODIC_ADV_ENH)
+/**
+ * Disable or enable periodic reports for specified sync.
+ *
+ * @param sync_handle        Handle identifying synchronization.
+ * @param enable             If reports should be enabled.
+ * @param params              Additional arguments specifying the particulars
+ *                            of periodic reports.
+ *
+ * @return                   0 on success; nonzero on failure.
+ */
+int ble_gap_periodic_adv_sync_reporting(uint16_t sync_handle,
+                                        bool enable,
+                                        const struct ble_gap_periodic_adv_sync_report_params *params);
+#else
 /**
  * Disable or enable periodic reports for specified sync.
  *
@@ -1606,7 +1749,7 @@ int ble_gap_periodic_adv_sync_terminate(uint16_t sync_handle);
  * @return                   0 on success; nonzero on failure.
  */
 int ble_gap_periodic_adv_sync_reporting(uint16_t sync_handle, bool enable);
-
+#endif
 /**
  * Initialize sync transfer procedure for specified handles.
  *
@@ -1636,6 +1779,18 @@ int ble_gap_periodic_adv_sync_transfer(uint16_t sync_handle,
 int ble_gap_periodic_adv_sync_set_info(uint8_t instance,
                                        uint16_t conn_handle,
                                        uint16_t service_data);
+
+/**
+ * Set the default periodic sync transfer params.
+ *
+ *
+ * @param conn_handle        Handle identifying connection.
+ * @param params             Default Parameters for periodic sync transfer.
+ *
+ * @return                   0 on success; nonzero on failure.
+ */
+int periodic_adv_set_default_sync_params(uint16_t conn_handle,
+                                         const struct ble_gap_periodic_sync_params *params);
 
 /**
  * Enables or disables sync transfer reception on specified connection.
@@ -2423,6 +2578,17 @@ int ble_gap_set_path_loss_reporting_param(uint16_t conn_handle, uint8_t high_thr
                                           uint8_t high_hysteresis, uint8_t low_threshold,
                                           uint8_t low_hysteresis, uint16_t min_time_spent);
 #endif
+
+/**
+ * Set Data Related Address Changes Param
+ *
+ * @param adv_handle        Advertising handle
+ * @param change_reason     Reasons for refreshing addresses
+ *
+ * @return                  0 on success; nonzero on failure.
+ */
+int ble_gap_set_data_related_addr_change_param(uint8_t adv_handle, uint8_t change_reason);
+
 #ifdef __cplusplus
 }
 #endif

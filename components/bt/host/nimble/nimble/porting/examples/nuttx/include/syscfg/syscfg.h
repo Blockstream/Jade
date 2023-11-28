@@ -438,6 +438,10 @@
 #define MYNEWT_VAL_BLE_EXT_ADV_MAX_SIZE (31)
 #endif
 
+#ifndef MYNEWT_VAL_ENC_ADV_DATA
+#define MYNEWT_VAL_ENC_ADV_DATA (0)
+#endif
+
 #ifndef MYNEWT_VAL_BLE_HCI_VS
 #define MYNEWT_VAL_BLE_HCI_VS (0)
 #endif
@@ -847,6 +851,10 @@
 
 #ifndef MYNEWT_VAL_BLE_STORE_MAX_CCCDS
 #define MYNEWT_VAL_BLE_STORE_MAX_CCCDS (8)
+#endif
+
+#ifdef CONFIG_BT_NIMBLE_MAX_EADS
+#define MYNEWT_VAL_BLE_STORE_MAX_EADS CONFIG_BT_NIMBLE_MAX_EADS
 #endif
 
 /*** @apache-mynewt-nimble/nimble/host/services/ans */

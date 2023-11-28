@@ -869,15 +869,6 @@ BOOLEAN BTM_BleConfigPrivacy(BOOLEAN privacy_mode, tBTM_SET_LOCAL_PRIVACY_CBACK 
         return FALSE;
     }
 
-    if (p_cb->inq_var.state != BTM_BLE_IDLE) {
-        BTM_TRACE_ERROR("Advertising or scaning now, can't set privacy ");
-        if (random_cb && random_cb->set_local_privacy_cback){
-            (*random_cb->set_local_privacy_cback)(BTM_SET_PRIVACY_FAIL);
-            random_cb->set_local_privacy_cback = NULL;
-        }
-        return FALSE;
-    }
-
 #if (defined(GAP_INCLUDED) && GAP_INCLUDED == TRUE && GATTS_INCLUDED == TRUE)
     uint8_t addr_resolution = 0;
 #endif  /* defined(GAP_INCLUDED) && GAP_INCLUDED == TRUE && GATTS_INCLUDED == TRUE */
@@ -886,22 +877,12 @@ BOOLEAN BTM_BleConfigPrivacy(BOOLEAN privacy_mode, tBTM_SET_LOCAL_PRIVACY_CBACK 
         memset(p_cb->addr_mgnt_cb.resolvale_addr, 0, BD_ADDR_LEN);
         p_cb->addr_mgnt_cb.own_addr_type = BLE_ADDR_PUBLIC;
         p_cb->privacy_mode = BTM_PRIVACY_NONE;
-        if (random_cb && random_cb->set_local_privacy_cback){
-            (*random_cb->set_local_privacy_cback)(BTM_SET_PRIVACY_SUCCESS);
-            random_cb->set_local_privacy_cback = NULL;
-        }
         // Disable RPA function
         btsnd_hcic_ble_set_addr_resolution_enable(FALSE);
     } else { /* privacy is turned on*/
 #if (CONTROLLER_RPA_LIST_ENABLE == FALSE)
         /* always set host random address, used when privacy 1.1 or priavcy 1.2 is disabled */
         btm_gen_resolvable_private_addr((void *)btm_gen_resolve_paddr_low);
-#else
-        /* Controller generates RPA, Host don't need to set random address */
-        if (random_cb && random_cb->set_local_privacy_cback){
-            (*random_cb->set_local_privacy_cback)(BTM_SET_PRIVACY_SUCCESS);
-            random_cb->set_local_privacy_cback = NULL;
-        }
 #endif
 
         if (BTM_BleMaxMultiAdvInstanceCount() > 0) {
@@ -1019,7 +1000,7 @@ uint32_t BTM_BleUpdateOwnType(uint8_t *own_bda_type, tBTM_START_ADV_CMPL_CBACK *
             memcpy(btm_cb.ble_ctr_cb.addr_mgnt_cb.private_addr, btm_cb.ble_ctr_cb.addr_mgnt_cb.resolvale_addr, BD_ADDR_LEN);
             btsnd_hcic_ble_set_random_addr(btm_cb.ble_ctr_cb.addr_mgnt_cb.resolvale_addr);
         }else {
-            BTM_TRACE_ERROR ("No random address yet, please set random address and try\n");
+            BTM_TRACE_ERROR ("No random address yet, please set random address using API \"esp_ble_gap_set_rand_addr\" and retry\n");
             if(cb) {
                 (* cb)(HCI_ERR_ESP_VENDOR_FAIL);
             }
@@ -1068,17 +1049,28 @@ uint32_t BTM_BleUpdateOwnType(uint8_t *own_bda_type, tBTM_START_ADV_CMPL_CBACK *
 #else
 uint32_t BTM_BleUpdateOwnType(uint8_t *own_bda_type, tBTM_START_ADV_CMPL_CBACK *cb)
 {
+    tBTM_LE_RANDOM_CB *p_cb = &btm_cb.ble_ctr_cb.addr_mgnt_cb;
+
     if((*own_bda_type == BLE_ADDR_RANDOM) || (*own_bda_type == BLE_ADDR_RANDOM_ID)) {
-        if((btm_cb.ble_ctr_cb.addr_mgnt_cb.exist_addr_bit & BTM_BLE_GAP_ADDR_BIT_RANDOM) != BTM_BLE_GAP_ADDR_BIT_RANDOM) {
+        if((p_cb->exist_addr_bit & BTM_BLE_GAP_ADDR_BIT_RANDOM) != BTM_BLE_GAP_ADDR_BIT_RANDOM) {
             BTM_TRACE_ERROR("No random address yet, please set random address and try\n");
             if(cb) {
                 (* cb)(HCI_ERR_ESP_VENDOR_FAIL);
             }
             return BTM_ILLEGAL_VALUE;
         }
+
+        // If a device is using RPA, it shall also have an Identity Address
+        if ((*own_bda_type == BLE_ADDR_RANDOM_ID) && BTM_BLE_IS_NON_RESLVE_BDA(p_cb->static_rand_addr)) {
+            BTM_TRACE_ERROR("No identity address yet, please set static random address and try\n");
+            if (cb) {
+                (* cb)(HCI_ERR_ESP_VENDOR_FAIL);
+            }
+            return BTM_ILLEGAL_VALUE;
+        }
     }
 
-    btm_cb.ble_ctr_cb.addr_mgnt_cb.own_addr_type = *own_bda_type;
+    p_cb->own_addr_type = *own_bda_type;
 
     return BTM_SUCCESS;
 }

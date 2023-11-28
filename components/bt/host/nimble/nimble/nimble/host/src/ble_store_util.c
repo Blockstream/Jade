@@ -37,6 +37,9 @@ ble_store_util_iter_unique_peer(int obj_type,
     int i;
 
     BLE_HS_DBG_ASSERT(obj_type == BLE_STORE_OBJ_TYPE_OUR_SEC ||
+#if MYNEWT_VAL(ENC_ADV_DATA)
+                      obj_type == BLE_STORE_OBJ_TYPE_ENC_ADV_DATA ||
+#endif
                       obj_type == BLE_STORE_OBJ_TYPE_PEER_SEC);
 
     set = arg;
@@ -133,6 +136,16 @@ ble_store_util_delete_peer(const ble_addr_t *peer_id_addr)
         return rc;
     }
 
+#if MYNEWT_VAL(ENC_ADV_DATA)
+    memset(&key, 0, sizeof key);
+    key.ead.peer_addr = *peer_id_addr;
+    
+    rc = ble_store_util_delete_all(BLE_STORE_OBJ_TYPE_ENC_ADV_DATA, &key);
+    if (rc != 0) {
+        return rc;
+    }
+#endif
+
 #if MYNEWT_VAL(BLE_HOST_BASED_PRIVACY)
     struct ble_hs_dev_records *peer_rec =
                               ble_rpa_find_peer_dev_rec(key.sec.peer_addr.val);
@@ -212,6 +225,7 @@ ble_store_util_count(int type, int *out_count)
 int
 ble_store_util_delete_oldest_peer(void)
 {
+#if MYNEWT_VAL(BLE_STORE_MAX_BONDS)
     ble_addr_t peer_id_addrs[MYNEWT_VAL(BLE_STORE_MAX_BONDS)];
     int num_peers;
     int rc;
@@ -231,9 +245,78 @@ ble_store_util_delete_oldest_peer(void)
     if (rc != 0) {
         return rc;
     }
-
+#endif
     return 0;
 }
+
+#if MYNEWT_VAL(ENC_ADV_DATA)
+/**
+* Retrieves the set of peer addresses for which a ead has been established.
+*
+* @param out_peer_id_addrs     On success, the set of ead peer addresses
+*                              gets written here.
+* @param out_num_peers         On success, the number of eads gets written
+*                              here.
+* @param max_peers             The capacity of the destination buffer.
+*
+* @return                      0 on success;
+*                              BLE_HS_ENOMEM if the destination buffer is too
+*                              small;
+*                              Other nonzero on error.
+*/
+int
+ble_store_util_ead_peers(ble_addr_t *out_peer_id_addrs, int *out_num_peers,
+                         int max_peers)
+{
+   struct ble_store_util_peer_set set = {
+       .peer_id_addrs = out_peer_id_addrs,
+       .num_peers = 0,
+       .max_peers = max_peers,
+       .status = 0,
+   };
+   int rc;
+
+   rc = ble_store_iterate(BLE_STORE_OBJ_TYPE_ENC_ADV_DATA,
+                          ble_store_util_iter_unique_peer,
+                          &set);
+   if (rc != 0) {
+       return rc;
+   }
+
+   *out_num_peers = set.num_peers;
+   return 0;
+}
+
+
+int
+ble_store_util_delete_ead_oldest_peer(void)
+{
+   ble_addr_t peer_id_addrs[MYNEWT_VAL(BLE_STORE_MAX_EADS)];
+   int num_peers;
+   int rc;
+   union ble_store_key key;
+   memset(&key, 0, sizeof key);
+
+   rc = ble_store_util_ead_peers(
+           peer_id_addrs, &num_peers,
+           sizeof peer_id_addrs / sizeof peer_id_addrs[0]);
+   if (rc != 0) {
+       return rc;
+   }
+
+   if (num_peers == 0) {
+       return 0;
+   }
+
+   key.ead.peer_addr = peer_id_addrs[0];
+   rc = ble_store_util_delete_all(BLE_STORE_OBJ_TYPE_ENC_ADV_DATA, &key);
+   if (rc != 0) {
+       return rc;
+   }
+
+   return 0;
+}
+#endif
 
 /**
  * Round-robin status callback.  If a there is insufficient storage capacity
@@ -256,7 +339,10 @@ ble_store_util_status_rr(struct ble_store_status_event *event, void *arg)
         case BLE_STORE_OBJ_TYPE_CCCD:
             /* Try unpairing oldest peer except current peer */
             return ble_gap_unpair_oldest_except(&event->overflow.value->cccd.peer_addr);
-
+#if MYNEWT_VAL(ENC_ADV_DATA)
+        case BLE_STORE_OBJ_TYPE_ENC_ADV_DATA:
+            return ble_store_util_delete_ead_oldest_peer();
+#endif
         default:
             return BLE_HS_EUNKNOWN;
         }

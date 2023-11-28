@@ -25,8 +25,9 @@
 #include "host/ble_gap.h"
 #include "ble_hs_priv.h"
 #include "ble_hs_resolv_priv.h"
+#include "esp_nimble_mem.h"
 
-#if CONFIG_BT_NIMBLE_ENABLE_CONN_REATTEMPT
+#if MYNEWT_VAL(BLE_ENABLE_CONN_REATTEMPT)
 struct ble_gap_reattempt_ctxt {
     ble_addr_t peer_addr;
     uint8_t count;
@@ -41,6 +42,13 @@ extern int ble_gap_master_connect_reattempt(uint16_t conn_handle);
 #define MAX_REATTEMPT_ALLOWED 0
 #endif
 #endif
+   
+#if MYNEWT_VAL(BLE_QUEUE_CONG_CHECK)
+static struct ble_npl_mutex adv_list_lock;          
+static uint16_t ble_adv_list_count;
+#define  BLE_ADV_LIST_MAX_LENGTH    50 
+#define  BLE_ADV_LIST_MAX_COUNT     200
+#endif    
 
 _Static_assert(sizeof (struct hci_data_hdr) == BLE_HCI_DATA_HDR_SZ,
                "struct hci_data_hdr must be 4 bytes");
@@ -183,7 +191,7 @@ ble_hs_hci_evt_le_dispatch_find(uint8_t event_code)
     return ble_hs_hci_evt_le_dispatch[event_code];
 }
 
-#if CONFIG_BT_NIMBLE_ENABLE_CONN_REATTEMPT
+#if MYNEWT_VAL(BLE_ENABLE_CONN_REATTEMPT)
 static int
 ble_gap_find_reattempt_conn_idx(const struct ble_hs_conn *conn)
 {
@@ -218,9 +226,10 @@ ble_hs_hci_evt_disconn_complete(uint8_t event_code, const void *data,
     }
     ble_hs_unlock();
 
-#if CONFIG_BT_NIMBLE_ENABLE_CONN_REATTEMPT
+#if MYNEWT_VAL(BLE_ENABLE_CONN_REATTEMPT)
     if (ev->reason == BLE_ERR_CONN_ESTABLISHMENT) {
         int rc, i, idx;
+        uint16_t handle;
 
         idx = ble_gap_find_reattempt_conn_idx(conn);
 
@@ -257,6 +266,10 @@ ble_hs_hci_evt_disconn_complete(uint8_t event_code, const void *data,
 
 		    reattempt_conn[idx].peer_addr.type = conn->bhc_peer_addr.type;
 
+                    handle = le16toh(ev->conn_handle);
+                    /* Post event to interested application */
+                    ble_gap_reattempt_count(handle, reattempt_conn[idx].count);
+
                     rc = ble_gap_master_connect_reattempt(ev->conn_handle);
                     if (rc != 0) {
                         BLE_HS_LOG(DEBUG, "Master reconnect attempt failed; rc = %d", rc);
@@ -265,8 +278,8 @@ ble_hs_hci_evt_disconn_complete(uint8_t event_code, const void *data,
                     memset(&reattempt_conn[idx].peer_addr, 0x0, BLE_DEV_ADDR_LEN);
                     reattempt_conn[idx].count = 0;
                 }
-            }
-        } else {
+	    }
+	} else {
             /* Disconnect completed with some other reason than
             * BLE_ERR_CONN_ESTABLISHMENT, reset the corresponding reattempt count
             * */
@@ -587,8 +600,23 @@ ble_hs_hci_evt_le_adv_rpt(uint8_t subevent, const void *data, unsigned int len)
     data += sizeof(*ev);
 
     desc.direct_addr = *BLE_ADDR_ANY;
+    
+    /* BLE Queue Congestion check*/
+#if MYNEWT_VAL(BLE_QUEUE_CONG_CHECK) 
+    if (ble_get_adv_list_length() > BLE_ADV_LIST_MAX_LENGTH || ble_adv_list_count > BLE_ADV_LIST_MAX_COUNT) {
+        ble_adv_list_refresh();
+    }
+    ble_adv_list_count++;
+#endif
 
     for (i = 0; i < ev->num_reports; i++) {
+
+    /* Avoiding further processing, if the adv report is from the same device*/        
+#if MYNEWT_VAL(BLE_QUEUE_CONG_CHECK) 
+    if (ble_check_adv_list(ev->reports[i].addr, ev->reports[i].addr_type) == true) {
+        continue;
+    }
+#endif
         rpt = data;
 
         data += sizeof(rpt) + rpt->data_len + 1;
@@ -1115,3 +1143,124 @@ err:
     return BLE_HS_ENOTSUP;
 #endif
 }
+
+#if MYNEWT_VAL(BLE_QUEUE_CONG_CHECK)
+struct ble_addr_list_entry
+{
+    ble_addr_t addr;
+    SLIST_ENTRY(ble_addr_list_entry) next;
+};
+
+SLIST_HEAD(ble_device_list, ble_addr_list_entry) ble_adv_list;
+
+void ble_adv_list_init(void)
+{
+    ble_npl_mutex_init(&adv_list_lock);
+
+    SLIST_INIT(&ble_adv_list);
+    ble_adv_list_count = 0;
+}
+
+void ble_adv_list_deinit(void) 
+{    
+    struct ble_addr_list_entry *device;
+    struct ble_addr_list_entry *temp;
+
+    ble_npl_mutex_pend(&adv_list_lock, BLE_NPL_TIME_FOREVER);
+
+    SLIST_FOREACH_SAFE(device, &ble_adv_list, next, temp) {
+        SLIST_REMOVE(&ble_adv_list, device, ble_addr_list_entry, next);
+        free(device);
+    }
+
+    ble_npl_mutex_release(&adv_list_lock);
+
+    ble_npl_mutex_deinit(&adv_list_lock);
+}
+
+void ble_adv_list_add_packet(void *data)
+{
+    struct ble_addr_list_entry *device; 
+
+    if (!data) {
+        BLE_HS_LOG(ERROR, "%s data is NULL", __func__);
+        return;
+    }
+    
+    ble_npl_mutex_pend(&adv_list_lock, BLE_NPL_TIME_FOREVER);
+
+    device = (struct ble_addr_list_entry *)data; 
+    SLIST_INSERT_HEAD(&ble_adv_list, device, next);
+
+    ble_npl_mutex_release(&adv_list_lock);
+}
+
+uint32_t ble_get_adv_list_length(void)
+{
+    uint32_t length = 0;
+    struct ble_addr_list_entry *device;
+    
+    SLIST_FOREACH(device, &ble_adv_list, next) {
+        length++;
+    }
+
+    return length;
+}
+
+void ble_adv_list_refresh(void)
+{
+    struct ble_addr_list_entry *device;
+    struct ble_addr_list_entry *temp;
+    ble_adv_list_count = 0;
+
+    if (SLIST_EMPTY(&ble_adv_list)) {
+        BLE_HS_LOG(ERROR, "%s ble_adv_list is empty", __func__);
+        return;
+    }
+
+    ble_npl_mutex_pend(&adv_list_lock, BLE_NPL_TIME_FOREVER);
+    
+    SLIST_FOREACH_SAFE(device, &ble_adv_list, next, temp) {
+        SLIST_REMOVE(&ble_adv_list, device, ble_addr_list_entry, next);
+        free(device);
+    }
+
+    ble_npl_mutex_release(&adv_list_lock);
+}
+
+bool ble_check_adv_list(const uint8_t *addr, uint8_t addr_type)
+{
+    struct ble_addr_list_entry *device;
+    struct ble_addr_list_entry *adv_packet; 
+    bool found = false;
+    
+    if (!addr) {
+        BLE_HS_LOG(ERROR, "%s addr is NULL", __func__);
+        return found;
+    }
+
+    ble_npl_mutex_pend(&adv_list_lock, BLE_NPL_TIME_FOREVER);
+    
+    SLIST_FOREACH(device, &ble_adv_list, next) {
+        if (!memcmp(addr, device->addr.val, BLE_DEV_ADDR_LEN) && device->addr.type == addr_type) {
+            found = true;
+            break;
+        }
+    }
+
+    ble_npl_mutex_release(&adv_list_lock);
+
+    if (!found) {
+        adv_packet = nimble_platform_mem_malloc(sizeof(struct ble_addr_list_entry));
+        if (adv_packet) {
+            adv_packet->addr.type = addr_type;
+            memcpy(adv_packet->addr.val, addr, BLE_DEV_ADDR_LEN);
+            ble_adv_list_add_packet(adv_packet);
+        } else {
+            BLE_HS_LOG(ERROR, "%s adv_packet malloc failed", __func__);
+        }
+    }
+
+    return found;
+}
+#endif
