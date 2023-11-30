@@ -20,7 +20,8 @@ typedef struct {
 typedef enum { PASSPHRASE_NEVER, PASSPHRASE_ONCE, PASSPHRASE_ALWAYS } passphrase_freq_t;
 typedef enum { PASSPHRASE_WORDLIST, PASSPHRASE_FREETEXT } passphrase_type_t;
 
-bool keychain_init(void);
+void keychain_init_cache(void);
+bool keychain_init_unit_key(void);
 void keychain_set(const keychain_t* src, uint8_t userdata, bool temporary);
 void keychain_clear(void);
 

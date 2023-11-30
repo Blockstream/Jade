@@ -99,7 +99,7 @@ static void boot_process(void)
         JADE_ABORT();
     }
 
-    wallet_init();
+    keychain_init_cache();
     display_init();
     gui_init();
 
@@ -153,8 +153,9 @@ static void boot_process(void)
 #endif
 
     jade_wally_init();
+    wallet_init();
 
-    if (!keychain_init()) {
+    if (!keychain_init_unit_key()) {
         JADE_ABORT();
     }
 

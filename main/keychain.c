@@ -626,7 +626,17 @@ bool keychain_get_new_privatekey(uint8_t* privatekey, const size_t size)
     return false;
 }
 
-bool keychain_init(void)
+void keychain_init_cache(void)
+{
+    // Cache whether we are restricted to main/test networks and whether we have an encrypted blob
+    network_type_restriction = storage_get_network_type_restriction();
+    has_encrypted_blob = keychain_pin_attempts_remaining() > 0;
+
+    // Cache the user key/passphrase preferences
+    key_flags = storage_get_key_flags();
+}
+
+bool keychain_init_unit_key(void)
 {
     uint8_t privatekey[EC_PRIVATE_KEY_LEN];
     SENSITIVE_PUSH(privatekey, sizeof(privatekey));
@@ -646,13 +656,5 @@ bool keychain_init(void)
         }
     }
     SENSITIVE_POP(privatekey);
-
-    // Cache whether we are restricted to main/test networks and whether we have an encrypted blob
-    network_type_restriction = storage_get_network_type_restriction();
-    has_encrypted_blob = keychain_pin_attempts_remaining() > 0;
-
-    // Cache the user key/passphrase preferences
-    key_flags = storage_get_key_flags();
-
     return res;
 }
