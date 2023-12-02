@@ -5,5 +5,4 @@ RUN echo "source /root/esp/esp-idf/export.sh" >> /etc/bash.bashrc
 COPY .git /host/jade/.git
 RUN git clone /host/jade/ /jade
 WORKDIR /jade
-RUN git submodule init
-RUN git submodule update
+RUN git submodule update --init --recursive
