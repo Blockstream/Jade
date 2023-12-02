@@ -13,6 +13,8 @@ For information about suitable DIY hardware, as well as suggested configuration 
 
 # Use docker
 
+If you are on MacOS, you are better off setting up the environment locally (see next step) than trying to get access to your device from the docker container. For more, see [this article](https://dev.to/rubberduck/using-usb-with-docker-for-mac-3fdd).
+
 Note the supplied docker-compose.yml assumes the Jade device is at
 dev/ttyUSB0.
 
@@ -37,6 +39,7 @@ More information is available in the [Espressif official guide](https://docs.esp
 Get the esp-idf sdk and required tools:
 
 ```
+mkdir ~/esp
 cd ~/esp
 git clone -b v5.1.2 --recursive https://github.com/espressif/esp-idf.git
 cd ~/esp/esp-idf && git checkout 482a8fb2d78e3b58eb21b26da8a5bedf90623213 && ./install.sh --enable-gdbgui esp32 esp32s3
@@ -48,6 +51,10 @@ Set up the environmental variables:
 . $HOME/esp/esp-idf/export.sh
 ```
 
+On MacOS: You will need cmake on your system for this step (`brew install cmake`).
+
+If you encounter Python dependencies issue, make sure to use a recent Python version (e.g. Python 3.11) as the current system version which is used by the install script.
+
 # Build the firmware
 
 ```
@@ -56,8 +63,16 @@ cd $HOME/jade
 cp configs/sdkconfig_jade.defaults sdkconfig.defaults
 idf.py flash monitor
 ```
+Use a config file from the configs folder that is specific to your hardware (if available).
 
-_Some hardware configurations (eg: M5StickC-Plus) may not support the default baud rate and won't be detected, so you can force a specific baud rate for flash/monitor by using the `-b` argument.
+_For example for the TTGO T-Display:_
+```
+cp configs/sdkconfig_display_ttgo_tdisplay.defaults sdkconfig.defaults
+```
+
+If you flash multiple devices or make changes to the original config file that you used, make sure to delete the `sdkconfig` file that gets created from `sdkconfig.defaults`. Otherwise, your changes will not get picked up when building and re-flashing the firmware.
+
+Some hardware configurations (eg: M5StickC-Plus) may not support the default baud rate and won't be detected, so you can force a specific baud rate for flash/monitor by using the `-b` argument.
 
 _For example, the last line of the above code block would change be:_
 ```
