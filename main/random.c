@@ -15,7 +15,9 @@
 #include <string.h>
 #include <wally_crypto.h>
 
+#ifdef CONFIG_IDF_TARGET_ESP32
 #include "esp32/rom/ets_sys.h"
+#endif
 #include "soc/rtc_cntl_reg.h"
 #include "soc/sens_reg.h"
 #include <stdio.h>
@@ -47,6 +49,7 @@ static uint8_t entropy_state[SHA256_LEN];
 static uint32_t rnd_counter = 0;
 static SemaphoreHandle_t rnd_mutex = NULL;
 
+#ifdef CONFIG_IDF_TARGET_ESP32
 static uint16_t esp32_get_temperature(void)
 {
     // taken from esp-idf components/esp32/test/test_tsens.c
@@ -61,6 +64,7 @@ static uint16_t esp32_get_temperature(void)
     ets_delay_us(5);
     return GET_PERI_REG_BITS2(SENS_SAR_SLAVE_ADDR3_REG, SENS_TSENS_OUT, SENS_TSENS_OUT_S);
 }
+#endif
 
 // returns up to 32 bytes of randomness (optional), takes optionallly extra entropy
 static void get_random_internal(uint8_t* bytes_out, const size_t len, const uint8_t* additional, const size_t addlen)
@@ -84,7 +88,9 @@ static void get_random_internal(uint8_t* bytes_out, const size_t len, const uint
     call_uint16_t_func_to_hasher(ctx, power_get_ibat_charge);
     call_uint16_t_func_to_hasher(ctx, power_get_ibat_discharge);
     call_uint16_t_func_to_hasher(ctx, power_get_temp);
+#ifdef CONFIG_IDF_TARGET_ESP32
     call_uint16_t_func_to_hasher(ctx, esp32_get_temperature);
+#endif
     const uint32_t counter = xthal_get_ccount();
 
     add_bytes_to_hasher(ctx, &counter, sizeof(counter));
