@@ -163,8 +163,7 @@ void ota_process(void* process_ptr)
         goto cleanup;
     }
 
-    const int dret
-        = deflate_init_write_compressed(dctx, compressedsize, firmwaresize, uncompressed_stream_writer, &octx);
+    const int dret = deflate_init_write_compressed(dctx, compressedsize, uncompressed_stream_writer, &octx);
     JADE_ASSERT(!dret);
 
     // Send the ok response, which implies now we will get ota_data messages

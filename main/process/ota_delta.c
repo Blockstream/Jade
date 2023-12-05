@@ -230,8 +230,7 @@ void ota_delta_process(void* process_ptr)
 
     bctx.joctx = &joctx;
 
-    int ret
-        = deflate_init_read_uncompressed(dctx, compressedsize, uncompressedpatchsize, compressed_stream_reader, &bctx);
+    int ret = deflate_init_read_uncompressed(dctx, compressedsize, compressed_stream_reader, &bctx);
     JADE_ASSERT(!ret);
 
     if (!ota_init(&joctx)) {
