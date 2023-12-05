@@ -412,6 +412,7 @@ static void ble_on_sync(void)
 #else
     int rc = ble_hs_util_ensure_addr(1);
     JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_util_ensure_addr(1); rc=%d", rc);
+#ifdef CONFIG_IDF_TARGET_ESP32
 
     // From the bleprph example README (no actual example code provided):
     // For RPA feature (currently Host based privacy feature is supported), use API
@@ -432,7 +433,8 @@ static void ble_on_sync(void)
     own_addr_type = BLE_OWN_ADDR_RANDOM;
     rc = ble_hs_pvcy_rpa_config(1);
     JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_pvcy_rpa_config(1); rc=%d", rc);
-#endif
+#endif // CONFIG_IDF_TARGET_ESP32
+#endif // CONFIG_DEBUG_UNATTENDED_CI
 
     // Start advertising
     ble_start_advertising();
