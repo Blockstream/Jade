@@ -558,8 +558,8 @@ static size_t valid_words(const char* word, const size_t word_len, const size_t*
 }
 
 // NOTE: only the English wordlist is supported.
-static size_t valid_final_words(char** mnemonic_words, const size_t num_mnemonic_words, size_t* possible_word_list,
-    const size_t possible_word_list_len)
+static size_t valid_final_words(const char** mnemonic_words, const size_t num_mnemonic_words,
+    size_t* possible_word_list, const size_t possible_word_list_len)
 {
     JADE_ASSERT(mnemonic_words);
     JADE_ASSERT(num_mnemonic_words == 11 || num_mnemonic_words == 23);
