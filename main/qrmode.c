@@ -1696,15 +1696,15 @@ static void auth_qr_client_task(void* unused)
     }
 
     // Scan qr code and post back to auth_user/pinclient task
-    // 'handshake_complete'
-    JADE_LOGI("Scanning/posting handshake_complete data");
+    // 'pin'
+    JADE_LOGI("Scanning/posting 'pin' data");
     if (!scan_qr_post_in_message("  Step 2/2\n Scan Web\n      QR", BCUR_TYPE_JADE_PIN)) {
-        JADE_LOGW("Failed to scan handshake_complete message");
+        JADE_LOGW("Failed to scan pin message");
         goto cleanup;
     }
 
     // Process (discard) the final message
-    JADE_LOGI("Awaiting (discarding) handshake_complete reply data");
+    JADE_LOGI("Awaiting (discarding) 'pin' reply data");
     handle_outbound_reply(handle_final_jade_reply_pinserver_request);
 
     JADE_LOGI("Success");

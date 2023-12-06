@@ -490,7 +490,7 @@ static void dispatch_message(jade_process_t* process)
         } else if (IS_METHOD("get_shared_nonce")) {
             task_function = get_shared_nonce_process;
         } else if (IS_METHOD("ota_data") || IS_METHOD("ota_complete") || IS_METHOD("tx_input")
-            || IS_METHOD("get_extended_data") || IS_METHOD("get_signature") || IS_METHOD("handshake_complete")) {
+            || IS_METHOD("get_extended_data") || IS_METHOD("get_signature") || IS_METHOD("pin")) {
             // Method we only expect as part of a multi-message protocol
             jade_process_reject_message(process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected method", NULL);
         } else {

@@ -66,7 +66,7 @@ typedef struct {
     const char* document;
     const char* on_reply;
     const char* data;
-} handshake_reply_data_t;
+} pin_data_t;
 
 // The urls may be overridden in storage, otherwise use the default
 static void add_urls(CborEncoder* encoder, const char* document)
@@ -123,7 +123,7 @@ static void http_post_reply(const void* ctx, CborEncoder* container)
     char user_certificate[MAX_PINSVR_CERTIFICATE_LENGTH];
     const bool have_certificate = storage_get_pinserver_cert(user_certificate, sizeof(user_certificate), &cert_len);
 
-    const handshake_reply_data_t* reply_data = (const handshake_reply_data_t*)ctx;
+    const pin_data_t* reply_data = (const pin_data_t*)ctx;
     JADE_ASSERT(reply_data->document);
     JADE_ASSERT(reply_data->on_reply);
     JADE_ASSERT(reply_data->data);
@@ -319,11 +319,11 @@ static pinserver_result_t generate_ephemeral_pinkeys(pin_keys_t* pinkeys)
     RETURN_RESULT(SUCCESS, 0, NULL);
 }
 
-// Trigger, and then parse, handshake_complete message
+// Trigger, and then parse, 'pin' message
 // Use the ephemeral encryption keys to decrypt the main payload (server aes key)
 // Returns a small struct containing the success/fail, whether it is a 'hard' or
 // 'retryable' error, and any error code/message that should be sent.
-static pinserver_result_t complete_handshake(
+static pinserver_result_t handle_pin(
     jade_process_t* process, const pin_keys_t* pinkeys, uint8_t* serverkey, const size_t serverkey_len)
 {
     JADE_ASSERT(process);
@@ -336,15 +336,15 @@ static pinserver_result_t complete_handshake(
     CborValue params;
     uint8_t aes_encrypted[512]; // sufficient for correct payload
 
-    // Await a 'complete_handshake' message
+    // Await a 'pin' message
     jade_process_load_in_message(process, true);
 
     if (IS_CURRENT_MESSAGE(process, "cancel")) {
         // Cancelled
         RETURN_RESULT(CANCELLED, 0, NULL);
-    } else if (!IS_CURRENT_MESSAGE(process, "handshake_complete")) {
+    } else if (!IS_CURRENT_MESSAGE(process, "pin")) {
         // Protocol error
-        RETURN_RESULT(FAILURE, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'handshake_complete'");
+        RETURN_RESULT(FAILURE, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'pin'");
     }
 
     // If we receive no parameters it implies some comms failure with the pinserver
@@ -472,8 +472,8 @@ static bool assemble_reply_data(
     return true;
 }
 
-// Dance with the pinserver to obtain the final aes-key - start handshake,
-// compute shared secrets, fetch server key, and then compute final aes key.
+// Dance with the pinserver to obtain the final aes-key.
+// Compute shared secrets, fetch server key, and then compute final aes key.
 static pinserver_result_t pinserver_interaction(jade_process_t* process, const uint8_t* pin, const size_t pin_len,
     const char* document, const bool pass_client_entropy, uint8_t* finalaes, const size_t finalaes_len)
 {
@@ -526,13 +526,12 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     }
 
     // Build and send cbor reply
-    const handshake_reply_data_t handshake_complete
-        = { .document = document, .on_reply = "handshake_complete", .data = data };
-    jade_process_reply_to_message_result(process->ctx, &handshake_complete, http_post_reply);
+    const pin_data_t pin_data = { .document = document, .on_reply = "pin", .data = data };
+    jade_process_reply_to_message_result(process->ctx, &pin_data, http_post_reply);
 
     // Get the server's aes key for the given pin/key data
     uint8_t serverkey[AES_KEY_LEN_256];
-    retval = complete_handshake(process, &pinkeys, serverkey, sizeof(serverkey));
+    retval = handle_pin(process, &pinkeys, serverkey, sizeof(serverkey));
     if (retval.result != SUCCESS) {
         goto cleanup;
     }

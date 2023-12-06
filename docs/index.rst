@@ -370,33 +370,33 @@ auth_user reply
                         "data": "\"%*>PH1h<i>iAOAG4;fO)Ro/552Gt+2\":s*g2Cr`70`em!1p.oQTHFTkeDa%J2p?%k-)kG=[5>f(8&IV=X-2;Bc6-PIG$=\\2X/;odu0Ab-=B(6[K88p68<u.iin(YSGge#S0=5d%EMN6NohJ=0O[J6Og+G1cD\\PQ9$Ul!Xk]1.d9fs*16an:o>J!d0Z%].Q)m\";\\*>b6q%HOB[NU5bpZ\\Bil\\b+Gh!dl<5-0>h!@gW3ZV=ZP6i^$iIf"
                     }
                 }
-                "on-reply": "handshake_complete"
+                "on-reply": "pin"
             }
         }
     }
 
-The 'data' should be sent (as json) to the url provided (either is fine), and the response body forwarded to the 'handshake_complete' Jade method.
+The 'data' should be sent (as json) to the url provided (either is fine), and the response body forwarded to the 'pin' Jade method.
 The request should look like the below:
 
-.. _handshake_complete_request:
+.. _pin_request:
 
-handshake_complete request
---------------------------
+pin request
+-----------
 
 .. code-block:: cbor
 
     {
         "id": "C3PO",
-        "method": "handshake_complete",
+        "method": "pin",
         "params": {
             "data": "kbt_._7o&sa2TOJU$lj.J<@oh)a?l>-CReEF5nY3HP9CdeSjEA8PCU'Hj?#e-mhV3@KE:DZhGNJL\"#L\\ObZ:s-s0R6nk':WB!WY@.\"ja($)o37B*9iHqsL4t"
         }
     }
 
-.. _handshake_complete_reply:
+.. _pin_reply:
 
-handshake_complete reply
-------------------------
+pin reply
+---------
 
 .. code-block:: cbor
 

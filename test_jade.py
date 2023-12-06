@@ -764,7 +764,7 @@ def test_unknown_method(jade):
 def test_unexpected_method(jade):
     # These messages are only expected as a subsequent message
     # in a multi-message protocol.
-    unexpected = [('protocol2', 'handshake_complete',
+    unexpected = [('protocol2', 'pin',
                    {'payload': 'abcdef', 'hmac': '1234'}),
                   ('protocol3', 'ota_data', h2b('abcdef')),
                   ('protocol4', 'ota_complete'),
@@ -2069,7 +2069,7 @@ def test_handshake(jade):
     result = reply['result']
     assert list(result.keys()) == ['http_request'], result.keys()
     assert list(result['http_request'].keys()) == ['params', 'on-reply']
-    assert result['http_request']['on-reply'] == 'handshake_complete'
+    assert result['http_request']['on-reply'] == 'pin'
 
     assert list(result['http_request']['params'].keys()) == \
         ['urls', 'root_certificates', 'method', 'accept', 'data']
@@ -2096,7 +2096,7 @@ def test_handshake(jade):
 
     # 3. Pass the response (encrypted server aes-key) to jade.
     msg2 = jade.build_request(
-                         'completeA2', 'handshake_complete',
+                         'completeA2', result['http_request']['on-reply'],
                          {'data': encrypted})
     reply2 = jade.make_rpc_call(msg2)
     assert reply2['result'] is True
@@ -2113,7 +2113,7 @@ def test_handshake(jade):
     result = reply['result']
     assert list(result.keys()) == ['http_request'], result.keys()
     assert list(result['http_request'].keys()) == ['params', 'on-reply']
-    assert result['http_request']['on-reply'] == 'handshake_complete'
+    assert result['http_request']['on-reply'] == 'pin'
     assert list(result['http_request']['params'].keys()) == \
         ['urls', 'root_certificates', 'method', 'accept', 'data']
     assert result['http_request']['params']['accept'] == 'json'
@@ -2141,7 +2141,7 @@ def test_handshake(jade):
 
     # 3. Pass the response (encrypted server aes-key) to jade.
     msg2 = jade.build_request(
-                         'completeB2', 'handshake_complete',
+                         'completeB2', result['http_request']['on-reply'],
                          {'data': encrypted})
     reply2 = jade.make_rpc_call(msg2)
     assert reply2['result'] is True
@@ -2198,7 +2198,7 @@ def test_handshake_bad_server(jade):
         assert str(e) == "Invalid argument"
 
     # Jade should error if sent this empty body (but completes the test case handler)
-    msg2 = jade.build_request('completeBad', 'handshake_complete')
+    msg2 = jade.build_request('completeBad', result['http_request']['on-reply'])
     reply2 = jade.make_rpc_call(msg2)
     assert 'result' not in reply2
     assert 'error' in reply2
