@@ -1486,7 +1486,7 @@ static bool post_auth_msg_request(const jade_msg_source_t source)
     return post_in_message(cbor_buf, cbor_len, source);
 }
 
-// Scan a bcur QR code, and post it into Jade with SOURCE_QR
+// Scan a bcur QR code, and post it into Jade with SOURCE_INTERNAL
 static bool scan_qr_post_in_message(const char* label, const char* expected_type)
 {
     JADE_ASSERT(label);
@@ -1518,7 +1518,7 @@ static bool scan_qr_post_in_message(const char* label, const char* expected_type
     }
 
     // Post as message into Jade with source-qr prefix
-    ret = post_in_message(output, output_len, SOURCE_QR);
+    ret = post_in_message(output, output_len, SOURCE_INTERNAL);
 
 cleanup:
     free(output);
@@ -1601,7 +1601,7 @@ static bool get_outbound_reply_show_qr(outbound_message_writer_fn_t handler)
 
     // Await message from Jade to pinserver
     bool ok = false;
-    while (!jade_process_get_out_message(handler, SOURCE_QR, &ok)) {
+    while (!jade_process_get_out_message(handler, SOURCE_INTERNAL, &ok)) {
         // Await outbound message
     }
     return ok;
@@ -1616,13 +1616,13 @@ static void auth_qr_client_task(void* unused)
     JADE_ASSERT(!keychain_has_temporary());
 
     // Drain any old messages sitting on the QR queue
-    while (jade_process_get_out_message(NULL, SOURCE_QR, NULL)) {
+    while (jade_process_get_out_message(NULL, SOURCE_INTERNAL, NULL)) {
         JADE_LOGW("Discarded stale message from QR queue");
     }
 
     // Post in a synthesized 'auth_user' message
     JADE_LOGI("Posting initial auth_user message");
-    if (!post_auth_msg_request(SOURCE_QR)) {
+    if (!post_auth_msg_request(SOURCE_INTERNAL)) {
         JADE_LOGW("Failed to post initial auth_user message");
         goto cleanup;
     }
@@ -1668,7 +1668,7 @@ static void auth_qr_client_task(void* unused)
 cleanup:
     // Post a cancel message which should ensure the main dashboard task returns
     // (it will be ignored if not required)
-    post_cancel_message(SOURCE_QR);
+    post_cancel_message(SOURCE_INTERNAL);
 
     // Log the task stack HWM so we can estimate ideal stack size
     JADE_LOGI("Auth QR client task complete - task stack HWM: %u free", uxTaskGetStackHighWaterMark(NULL));

@@ -583,8 +583,8 @@ static bool auth_qr_mode(void)
 
     // Temporary login via QR - just set the message source
     if (keychain_has_temporary()) {
-        keychain_set(keychain_get(), SOURCE_QR, true);
-        initialisation_source = SOURCE_QR;
+        keychain_set(keychain_get(), SOURCE_INTERNAL, true);
+        initialisation_source = SOURCE_INTERNAL;
         show_connect_screen = false;
         return true;
     }
@@ -600,7 +600,7 @@ static bool auth_qr_mode(void)
     }
 
     // Start pinserver/qr handshake process
-    initialisation_source = SOURCE_QR;
+    initialisation_source = SOURCE_INTERNAL;
     show_connect_screen = true;
     handle_qr_auth();
     return true;
@@ -667,13 +667,13 @@ static void select_initial_connection(const bool offer_qr_temporary)
                     // Double check re: temporary-restore/'QR Mode'
                     act = act_confirm_qr_mode;
                 } else if (auth_qr_mode()) {
-                    JADE_ASSERT(initialisation_source == SOURCE_QR);
+                    JADE_ASSERT(initialisation_source == SOURCE_INTERNAL);
                     JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
                 }
             } else if (ev_id == BTN_CONNECT_QR_PIN) {
                 // Offer pinserver via qr with urls etc
                 if (auth_qr_mode()) {
-                    JADE_ASSERT(initialisation_source == SOURCE_QR);
+                    JADE_ASSERT(initialisation_source == SOURCE_INTERNAL);
                     JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
                 }
             } else if (ev_id == BTN_CONNECT_QR_SCAN) {
@@ -683,7 +683,7 @@ static void select_initial_connection(const bool offer_qr_temporary)
                     // 'QR-Mode' temporary login only
                     keychain_set_temporary();
                     if (auth_qr_mode()) {
-                        JADE_ASSERT(initialisation_source == SOURCE_QR);
+                        JADE_ASSERT(initialisation_source == SOURCE_INTERNAL);
                         JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
                     }
                 }
@@ -708,7 +708,7 @@ bool handle_mnemonic_qr(const char* mnemonic)
     }
 
     // Log-out and switch to new wallet
-    const bool assume_qr_mode = (keychain_get_userdata() == SOURCE_QR);
+    const bool assume_qr_mode = (keychain_get_userdata() == SOURCE_INTERNAL);
     JADE_LOGI("Switching wallets - qrmode: %u", assume_qr_mode);
 
     const bool temporary_restore = true;
@@ -2373,7 +2373,7 @@ void dashboard_process(void* process_ptr)
 
         if (show_connect_screen) {
             // Some sort of connection is in progress
-            if (initialisation_source == SOURCE_QR) {
+            if (initialisation_source == SOURCE_INTERNAL) {
                 JADE_LOGI("Awaiting QR initialisation");
                 act_dashboard = display_processing_message_activity();
             } else if (initial_keychain) {

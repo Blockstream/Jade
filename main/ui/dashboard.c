@@ -111,7 +111,7 @@ gui_activity_t* make_connect_activity(const char* device_name)
 gui_activity_t* make_connect_to_activity(const char* device_name, const jade_msg_source_t initialisation_source)
 {
     JADE_ASSERT(device_name);
-    JADE_ASSERT(initialisation_source != SOURCE_QR);
+    JADE_ASSERT(initialisation_source != SOURCE_INTERNAL);
 
     char msg[128];
     if (initialisation_source == SOURCE_BLE) {

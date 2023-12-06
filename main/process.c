@@ -24,8 +24,8 @@ static TaskHandle_t serial_handle;
 static RingbufHandle_t serial_out = NULL;
 static RingbufHandle_t ble_out = NULL;
 static RingbufHandle_t qemu_tcp_out = NULL;
-static TaskHandle_t qr_handle;
-static RingbufHandle_t qr_out = NULL;
+static TaskHandle_t internal_handle;
+static RingbufHandle_t internal_out = NULL;
 static jade_msg_source_t last_message_source = SOURCE_NONE;
 
 #ifdef CONFIG_BT_ENABLED
@@ -138,7 +138,7 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
     JADE_INIT_OUT_PPTR(ble_h);
     JADE_INIT_OUT_PPTR(qemu_tcp_h);
 
-    if (shared_in || serial_out || ble_out || qemu_tcp_out || qr_out) {
+    if (shared_in || serial_out || ble_out || qemu_tcp_out || internal_out) {
         return false;
     }
 
@@ -173,9 +173,9 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
 #endif
 
 #ifdef CONFIG_HAS_CAMERA
-    qr_handle = xTaskGetCurrentTaskHandle();
-    qr_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
-    JADE_ASSERT(qr_out);
+    internal_handle = xTaskGetCurrentTaskHandle();
+    internal_out = create_ringbuffer(2 * MAX_OUTPUT_MSG_SIZE + 32);
+    JADE_ASSERT(internal_out);
 #endif
 
 #ifdef CONFIG_HEAP_TRACING
@@ -268,11 +268,11 @@ bool jade_process_push_in_message(const uint8_t* data, const size_t size)
 void jade_process_push_out_message(const uint8_t* data, const size_t size, const jade_msg_source_t source)
 {
 #if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
-    JADE_ASSERT(source == SOURCE_QEMU_TCP || source == SOURCE_SERIAL || source == SOURCE_QR);
+    JADE_ASSERT(source == SOURCE_QEMU_TCP || source == SOURCE_SERIAL || source == SOURCE_INTERNAL);
 #elif !defined(CONFIG_BT_ENABLED)
-    JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_QR);
+    JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_INTERNAL);
 #else
-    JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_BLE || source == SOURCE_QR);
+    JADE_ASSERT(source == SOURCE_SERIAL || source == SOURCE_BLE || source == SOURCE_INTERNAL);
 #endif
     RingbufHandle_t ring = NULL;
     TaskHandle_t handle = NULL;
@@ -281,9 +281,9 @@ void jade_process_push_out_message(const uint8_t* data, const size_t size, const
         ring = serial_out;
         handle = serial_handle;
         break;
-    case SOURCE_QR:
-        ring = qr_out;
-        handle = qr_handle;
+    case SOURCE_INTERNAL:
+        ring = internal_out;
+        handle = internal_handle;
         break;
 #ifdef CONFIG_BT_ENABLED
     case SOURCE_BLE:
@@ -432,8 +432,8 @@ bool jade_process_get_out_message(outbound_message_writer_fn_t writer, const jad
     case SOURCE_SERIAL:
         ring = serial_out;
         break;
-    case SOURCE_QR:
-        ring = qr_out;
+    case SOURCE_INTERNAL:
+        ring = internal_out;
         break;
 #ifdef CONFIG_BT_ENABLED
     case SOURCE_BLE:

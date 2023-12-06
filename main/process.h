@@ -45,7 +45,7 @@ typedef void (*inbound_message_reader_fn_t)(void*, uint8_t*, size_t);
 // Callback to write messages to the outbound destination
 typedef bool (*outbound_message_writer_fn_t)(const uint8_t*, size_t, void*);
 
-typedef enum { SOURCE_NONE, SOURCE_QR, SOURCE_SERIAL, SOURCE_QEMU_TCP, SOURCE_BLE } jade_msg_source_t;
+typedef enum { SOURCE_NONE, SOURCE_INTERNAL, SOURCE_SERIAL, SOURCE_QEMU_TCP, SOURCE_BLE } jade_msg_source_t;
 
 typedef struct {
     CborValue value;
