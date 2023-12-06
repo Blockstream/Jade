@@ -40,6 +40,8 @@
    static const bool true = 1;
  #endif */
 
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 // QR Code Format Encoding
