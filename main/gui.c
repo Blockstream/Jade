@@ -913,7 +913,7 @@ static void make_split_node(
     // copy the values
     data->values = JADE_CALLOC(1, sizeof(uint8_t) * parts);
 
-    for (uint8_t i = 0; i < parts; i++) {
+    for (uint8_t i = 0; i < parts; ++i) {
         data->values[i] = va_arg(values, uint32_t);
     };
 
@@ -1704,7 +1704,7 @@ static void render_vsplit(gui_view_node_t* node, dispWin_t constraints, uint8_t 
 
         render_node(ptr, child_constraints, depth + 1);
 
-        count++;
+        ++count;
         y = child_constraints.y2;
         ptr = ptr->sibling;
     }
@@ -1731,7 +1731,7 @@ static void render_hsplit(gui_view_node_t* node, dispWin_t constraints, uint8_t 
 
         render_node(ptr, child_constraints, depth + 1);
 
-        count++;
+        ++count;
         x = child_constraints.x2;
         ptr = ptr->sibling;
     }

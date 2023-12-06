@@ -678,7 +678,7 @@ gui_activity_t* make_legal_certifications_activity(void)
     link_activity_t page_act = {};
     linked_activities_info_t act_info = {};
 
-    for (size_t j = 0; j <= MAX_LEGAL_PAGE; j++) {
+    for (size_t j = 0; j <= MAX_LEGAL_PAGE; ++j) {
         make_legal_page(&page_act, j);
         gui_chain_activities(&page_act, &act_info);
     }

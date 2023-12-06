@@ -53,7 +53,7 @@ bool urldecode(const char* src, const size_t src_len, char* dest, const size_t d
         } else if (*src == '+') {
             // Encoded <space>
             *dest++ = ' ';
-            src++;
+            ++src;
         } else {
             // Copy across
             *dest++ = *src++;

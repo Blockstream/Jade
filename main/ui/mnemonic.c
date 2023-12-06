@@ -173,7 +173,7 @@ void make_show_mnemonic_activities(
     linked_activities_info_t act_info = {};
 
     const size_t npages = nwords / 4; // 4 words per page
-    for (size_t j = 0; j < npages; j++) {
+    for (size_t j = 0; j < npages; ++j) {
         make_show_new_mnemonic_page(
             &page_act, nwords, j * 4, words[j * 4], words[j * 4 + 1], words[j * 4 + 2], words[j * 4 + 3]);
         gui_chain_activities(&page_act, &act_info);
