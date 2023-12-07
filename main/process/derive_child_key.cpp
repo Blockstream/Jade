@@ -26,7 +26,7 @@ void get_child_key_process(void* process_ptr)
     char network[MAX_NETWORK_NAME_LEN];
 
     // We expect a current message to be present
-    ASSERT_CURRENT_MESSAGE(process, "dervice_child");
+    ASSERT_CURRENT_MESSAGE(process, "derive_child");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
 
@@ -43,7 +43,7 @@ void get_child_key_process(void* process_ptr)
     const uint8_t* p_master_blinding_key = NULL;
     size_t master_blinding_key_len = 0;
 
-if (rpc_has_field_data("dervice_child", &params) {
+if (rpc_has_field_data("derive_child", &params) {
             rpc_get_bip32_path("path", &params, path, max_path_len, &path_len);
             if (path_len == 0) {
                 jade_process_reject_message(
@@ -54,8 +54,7 @@ if (rpc_has_field_data("dervice_child", &params) {
             // If paths not as expected show a warning message with the address
             bool is_change = false;
             if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
-                is_change = true;
-                is_change = wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len);
+                is_change = wallet_is_expected_singlesig_path(network, script_variant, true, path, path_len);
 
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                 if (!wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
@@ -80,12 +79,6 @@ if (rpc_has_field_data("dervice_child", &params) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unhandled script variant", NULL);
             goto cleanup;
         }
-
-        if (confidential) {
-            // Standard
-            p_master_blinding_key = keychain_get()->master_unblinding_key;
-            master_blinding_key_len = sizeof(keychain_get()->master_unblinding_key);
-        }
     }
 
     // Display to the user to confirm
@@ -104,7 +97,7 @@ if (rpc_has_field_data("dervice_child", &params) {
     }
 
     // Reply with the address
-    jade_process_reply_to_message_result(process->ctx, derived, cbor_result_string_cb);
+    jade_process_reply_to_message_result(process->ctx, derived.priv_key, cbor_result_string_cb);
 
     JADE_LOGI("Success");
 
