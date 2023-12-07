@@ -112,6 +112,7 @@ void get_registered_multisig_process(void* process_ptr);
 void register_multisig_process(void* process_ptr);
 void register_descriptor_process(void* process_ptr);
 void get_receive_address_process(void* process_ptr);
+void get_child_key_process(void* process_ptr);
 void get_identity_pubkey_process(void* process_ptr);
 void get_identity_shared_key_process(void* process_ptr);
 void sign_identity_process(void* process_ptr);
@@ -465,6 +466,8 @@ static void dispatch_message(jade_process_t* process)
             task_function = register_descriptor_process;
         } else if (IS_METHOD("get_receive_address")) {
             task_function = get_receive_address_process;
+        } else if (IS_METHOD("get_child_key")) {
+            task_function = get_child_key_process;
         } else if (IS_METHOD("get_identity_pubkey")) {
             task_function = get_identity_pubkey_process;
         } else if (IS_METHOD("get_identity_shared_key")) {
