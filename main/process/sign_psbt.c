@@ -26,7 +26,8 @@
 
 bool show_btc_transaction_outputs_activity(
     const char* network, const struct wally_tx* tx, const output_info_t* output_info);
-bool show_btc_final_confirmation_activity(uint64_t fee, const char* warning_msg);
+bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_info_t* outinfo,
+    script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
 
 static void wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
 
@@ -692,12 +693,9 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     JADE_LOGD("User accepted outputs");
 
     // User to agree fee amount
-    const uint64_t fees = input_amount - output_amount;
-    const char* const warning_msg
-        = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-
     // Check to see whether user accepted or declined
-    if (!show_btc_final_confirmation_activity(fees, warning_msg)) {
+    if (!show_btc_fee_confirmation_activity(
+            tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
         *errmsg = "User declined to sign psbt";
         retval = CBOR_RPC_USER_CANCELLED;
         goto cleanup;

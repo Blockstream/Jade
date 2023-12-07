@@ -233,6 +233,47 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
     return true;
 }
 
+bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_info_t* outinfo,
+    const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t input_amount, const uint64_t output_amount)
+{
+    JADE_ASSERT(tx);
+    // outputinfo is optional
+    JADE_ASSERT(input_amount);
+    JADE_ASSERT(output_amount);
+
+    JADE_ASSERT(input_amount >= output_amount);
+
+    // User to agree fee amount
+    // The fee amount is the shortfall between input and output amounts
+    // The 'spend' amount is the total of the outputs not flagged as change
+    const uint64_t fees = input_amount - output_amount;
+    uint64_t spend_amount = output_amount;
+    if (outinfo) {
+        for (size_t i = 0; i < tx->num_outputs; ++i) {
+            if (outinfo[i].flags & OUTPUT_FLAG_CHANGE) {
+                // Deduct change output amount
+                JADE_ASSERT(spend_amount >= tx->outputs[i].satoshi);
+                spend_amount -= tx->outputs[i].satoshi;
+            }
+        }
+    }
+
+    char warnbuf[128]; // sufficient
+    const char* warning_msg = NULL;
+    if (fees >= spend_amount && aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED) {
+        const int retval = snprintf(warnbuf, sizeof(warnbuf), "%s %s", WARN_MSG_HIGH_FEES, WARN_MSG_MIXED_INPUTS);
+        JADE_ASSERT(retval > 0 && retval < sizeof(warnbuf));
+        warning_msg = warnbuf;
+    } else if (aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED) {
+        warning_msg = WARN_MSG_MIXED_INPUTS;
+    } else if (fees >= spend_amount) {
+        warning_msg = WARN_MSG_HIGH_FEES;
+    }
+
+    // Return whether the user accepts or declines
+    return show_btc_final_confirmation_activity(fees, warning_msg);
+}
+
 // Loop to generate and send Anti-Exfil signatures as they are requested.
 void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_signing_data, const uint32_t num_inputs)
 {
@@ -613,11 +654,10 @@ void sign_tx_process(void* process_ptr)
         goto cleanup;
     }
 
+    // User to agree fee amount
     // If user cancels we'll send the 'cancelled' error response for the last input message only
-    const uint64_t fees = input_amount - output_amount;
-    const char* const warning_msg
-        = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-    if (!show_btc_final_confirmation_activity(fees, warning_msg)) {
+    if (!show_btc_fee_confirmation_activity(
+            tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
         // If using ae-signatures, we need to load the message to send the error back on
         if (use_ae_signatures) {
             jade_process_load_in_message(process, true);
