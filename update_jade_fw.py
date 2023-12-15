@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import json
+import hashlib
 import logging
 import argparse
 import requests
@@ -98,6 +99,7 @@ def download_file(verinfo, release):
     fwdata = get_fw_metadata(verinfo, release_data)
     fwname = fwdata['filename']
     fwhash = fwdata.get('fwhash')
+    cmphash = fwdata.get('cmphash')
 
     # GET the selected firmware from the server
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -107,6 +109,14 @@ def download_file(verinfo, release):
 
     fwcmp = rslt.content
     logger.info(f'Downloaded {len(fwcmp)} byte firmware')
+
+    # Check the downloaded file hash if available
+    if cmphash:
+        # Compute the sha256 hash of the downloaded file
+        cmphasher = hashlib.sha256()
+        cmphasher.update(fwcmp)
+        assert cmphasher.digest() == bytes.fromhex(cmphash)
+        logger.info(f'Downloaded file hash verified')
 
     # Optionally save the file locally
     write_file = input('Save local copy of downloaded firmware? [y/N]').strip()

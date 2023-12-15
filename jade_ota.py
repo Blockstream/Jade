@@ -105,6 +105,7 @@ def download_file(hw_target, write_compressed, release):
     fwdata = get_fw_metadata(release_data)
     fwname = fwdata['filename']
     fwhash = fwdata.get('fwhash')
+    cmphash = fwdata.get('cmphash')
 
     # GET the selected firmware from the server
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -114,6 +115,14 @@ def download_file(hw_target, write_compressed, release):
 
     fwcmp = rslt.content
     logger.info(f'Downloaded {len(fwcmp)} byte firmware')
+
+    # Check the downloaded file hash if available
+    if cmphash:
+        # Compute the sha256 hash of the downloaded file
+        cmphasher = hashlib.sha256()
+        cmphasher.update(fwcmp)
+        assert cmphasher.digest() == bytes.fromhex(cmphash)
+        logger.info(f'Downloaded file hash verified')
 
     # If passed --write-compressed we write a copy of the compressed file
     if write_compressed:
