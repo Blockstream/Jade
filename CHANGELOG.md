@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.27] - 2024-01-08
+### Added
+- Add a warning when fee amount greater than spend amount
+- Add 'get_registered_multisig' api call to export multisig registration by name
+
+### Changed
+- Changed screen shown for liquid OP_RETURN outputs to highlight asset burn
+- Update ESP-IDF base firmware to v5.1.2
+- Update libwally to 1.0.0
+- Miscellaneous internal changes/improvements
+
+### Fixed
+- Fix bug registering multisig when identical record already exists
+- Fix incorrect state returned when 'get-version-info' called while unit booting
+- Fix dev dockerfile, some code comments and README docs
+
 ## [1.0.26] - 2023-11-03
 ### Added
 
