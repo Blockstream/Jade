@@ -126,6 +126,7 @@ static esp_err_t _power_set_v_off(void) { return _power_write_command(AXP192_ADD
 #endif // CONFIG_BOARD_TYPE_JADE
 
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+static esp_err_t _power_set_dc_dc1_voltage(void) { return _power_write_command(AXP192_ADDR, 0x26, 0x68); } // 3.3v
 static esp_err_t _power_gpio0_to_ldo(void) { return _power_write_command(AXP192_ADDR, 0x90, 0x02); }
 static esp_err_t _power_vbus_hold_limit(void) { return _power_write_command(AXP192_ADDR, 0x30, 0x80); }
 static esp_err_t _power_temperature_protection(void) { return _power_write_command(AXP192_ADDR, 0x39, 0xfc); }
@@ -214,6 +215,9 @@ esp_err_t power_init(void)
     _power_open_drain_gpio();
 
 #ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    // Set the DC-DC1 voltage appropriately
+    _power_set_dc_dc1_voltage();
+
     // Set GPIO0 to LDO
     _power_gpio0_to_ldo();
 
