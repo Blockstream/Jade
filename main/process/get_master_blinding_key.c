@@ -14,9 +14,17 @@ void get_master_blinding_key_process(void* process_ptr)
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_master_blinding_key");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
+    GET_MSG_PARAMS(process);
 
+    // Ask the user if necessary
     if (keychain_get_confirm_export_blinding_key()) {
-        if (!await_yesno_activity(
+        // Optional field to suppress asking user for permission and instead
+        // error in the cases where we would normally need to ask the user.
+        bool onlyIfSilent = false;
+        rpc_get_boolean("only_if_silent", &params, &onlyIfSilent);
+
+        if (onlyIfSilent
+            || !await_yesno_activity(
                 "Blinding Key", "\n        Export master\n         blinding key?", true, "blkstrm.com/blindingkey")) {
             JADE_LOGW("User declined to export master blinding key");
             jade_process_reject_message(

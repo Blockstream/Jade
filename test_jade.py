@@ -2511,7 +2511,17 @@ def test_liquid_blinding_keys(jadeapi):
     master_blinding_key = wally.asset_blinding_key_from_seed(seed)
     assert EXPECTED_MASTER_BLINDING_KEY == master_blinding_key[32:]  # 2nd half of full 512bits
 
-    # Get Liquid master blinding key
+    # Get Liquid master blinding key - errors if we pass the 'onlyIfSilent'
+    # flag, as would normally block while asking user.
+    try:
+        rslt = jadeapi.get_master_blinding_key(True)
+        assert False, "Expecting 'user declined' error"
+    except JadeError as e:
+        assert e.code == JadeError.USER_CANCELLED
+
+    # These ask the user to confirm which is fine
+    rslt = jadeapi.get_master_blinding_key(False)
+    assert rslt == EXPECTED_MASTER_BLINDING_KEY
     rslt = jadeapi.get_master_blinding_key()
     assert rslt == EXPECTED_MASTER_BLINDING_KEY
 

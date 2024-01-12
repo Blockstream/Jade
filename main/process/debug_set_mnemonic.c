@@ -110,6 +110,7 @@ void debug_set_mnemonic_process(void* process_ptr)
     // and remove the restriction on network-types.
     keychain_set(&keydata, (uint8_t)process->ctx.source, temporary_wallet);
     keychain_clear_network_type_restriction();
+    keychain_set_confirm_export_blinding_key(true);
 
     // To be consistent with normal wallet setup in mnemonic.c ...
     if (!temporary_wallet) {

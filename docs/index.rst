@@ -1481,13 +1481,21 @@ get_master_blinding_key request
 -------------------------------
 
 Used to fetch the master (SLIP-077) blinding key for the wallet.
+May block temporarily while asking the user to confirm the export from Jade.
+Passing 'only_if_silent' will instead immediately return a 'denied' error if it would usually need to ask the user to confirm.
 
 .. code-block:: cbor
 
     {
         "id": "66",
         "method": "get_master_blinding_key"
+        "params": {
+            "only_if_silent": False
+        }
     }
+
+* Passing 'only_if_silent' as True means the call will always return immediately - it will return the 'denied' error if it would normally ask the user to confirm.
+* Passing 'only_if_silent' as False (or not passing it at all) allows the call to block temporarily if asking the user to confirm the export is required.
 
 .. _get_master_blinding_key_reply:
 
