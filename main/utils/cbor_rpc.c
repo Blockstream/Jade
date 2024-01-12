@@ -214,7 +214,7 @@ void rpc_get_bytes(const char* field, const size_t max, const CborValue* value, 
         return;
     }
 
-    if (tmp_len > max) {
+    if (!tmp_len || tmp_len > max) {
         return;
     }
 

@@ -896,7 +896,7 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                   (('badent1', 'add_entropy'), 'Expecting parameters map'),
                   (('badent2', 'add_entropy', {'entropy': None}), 'valid entropy bytes'),
                   (('badent3', 'add_entropy', {'entropy': 1234512345}), 'valid entropy bytes'),
-                  (('badent4', 'add_entropy', {'entropy': ''}), 'valid entropy bytes'),
+                  (('badent4', 'add_entropy', {'entropy': b''}), 'valid entropy bytes'),
                   (('badent5', 'add_entropy', {'entropy': 'notbinary'}), 'valid entropy bytes'),
 
                   (('badepoch1', 'set_epoch'), 'Expecting parameters map'),
@@ -1162,8 +1162,11 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                     {'num_words': 24, 'index': 0}), 'fetch valid pubkey'),
                   (('badbip85ent9', 'get_bip85_bip39_entropy',
                     {'num_words': 24, 'index': 0, 'pubkey': 'vbad'}), 'fetch valid pubkey'),
-                  (('badbip85ent9', 'get_bip85_bip39_entropy',
+                  (('badbip85ent10', 'get_bip85_bip39_entropy',
                     {'num_words': 24, 'index': 0, 'pubkey': GOOD_ECDH_PUBKEY[:-1]}),
+                   'fetch valid pubkey'),
+                  (('badbip85ent11', 'get_bip85_bip39_entropy',
+                    {'num_words': 24, 'index': 0, 'pubkey': b''}),
                    'fetch valid pubkey'),
 
                   (('badidpk1', 'get_identity_pubkey'), 'Expecting parameters map'),
@@ -1562,6 +1565,7 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                   (('badblindkey2', 'get_blinding_key', {'script': None}), 'extract script'),
                   (('badblindkey3', 'get_blinding_key', {'script': 123}), 'extract script'),
                   (('badblindkey4', 'get_blinding_key', {'script': 'notbin'}), 'extract script'),
+                  (('badblindkey5', 'get_blinding_key', {'script': b''}), 'extract script'),
 
                   (('badnonce1', 'get_shared_nonce'), 'Expecting parameters map'),
                   (('badnonce2', 'get_shared_nonce',
@@ -1572,12 +1576,16 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                     {'script': 123, 'their_pubkey': TEST_THEIR_PK}), 'extract script'),
                   (('badnonce5', 'get_shared_nonce',
                     {'script': 'notbin', 'their_pubkey': TEST_THEIR_PK}), 'extract script'),
+                  (('badnonce5a', 'get_shared_nonce',
+                    {'script': b'', 'their_pubkey': TEST_THEIR_PK}), 'extract script'),
                   (('badnonce6', 'get_shared_nonce',
                     {'script': TEST_SCRIPT, 'their_pubkey': 123}), 'extract their_pubkey'),
                   (('badnonce7', 'get_shared_nonce',
                     {'script': TEST_SCRIPT, 'their_pubkey': 'notbin'}), 'extract their_pubkey'),
                   (('badnonce8', 'get_shared_nonce',  # short pubkey
                     {'script': TEST_SCRIPT, 'their_pubkey': h2b('ab')}), 'extract their_pubkey'),
+                  (('badnonce8a', 'get_shared_nonce',  # short pubkey
+                    {'script': TEST_SCRIPT, 'their_pubkey': b''}), 'extract their_pubkey'),
                   (('badnonce9', 'get_shared_nonce',  # bad 'include_pubkey'
                     {'script': TEST_SCRIPT, 'their_pubkey': TEST_THEIR_PK,
                      'include_pubkey': 'True'}), 'extract valid pubkey flag'),
@@ -1587,6 +1595,9 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                     {'output_index': 0, 'type': 'ASSET'}), 'extract hash_prevouts'),
                   (('badblindfac3', 'get_blinding_factor',
                     {'hash_prevouts': 123, 'output_index': 0,
+                     'type': 'ASSET'}), 'extract hash_prevouts'),
+                  (('badblindfac3a', 'get_blinding_factor',
+                    {'hash_prevouts': b'', 'output_index': 0,
                      'type': 'ASSET'}), 'extract hash_prevouts'),
                   (('badblindfac4', 'get_blinding_factor',
                     {'hash_prevouts': TEST_HASH_PREVOUTS, 'type': 'ASSET',
@@ -1630,7 +1641,10 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                     {'asset_id': 'notbin', 'hash_prevouts': TEST_HASH_PREVOUTS,
                      'output_index': 0, 'value': 123}), 'extract asset_id'),
                   (('badcommit6', 'get_commitments',
-                    {'asset_id': '123abc', 'hash_prevouts': TEST_HASH_PREVOUTS,
+                    {'asset_id': h2b('123abc'), 'hash_prevouts': TEST_HASH_PREVOUTS,
+                     'output_index': 0, 'value': 123}), 'extract asset_id'),
+                  (('badcommit6a', 'get_commitments',
+                    {'asset_id': b'', 'hash_prevouts': TEST_HASH_PREVOUTS,
                      'output_index': 0, 'value': 123}), 'extract asset_id'),
                   (('badcommit7', 'get_commitments',
                     {'output_index': 0,
@@ -1655,10 +1669,10 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                      'asset_id': TEST_REGTEST_BITCOIN, 'value': 123}), 'extract output index'),
                   (('badcommit14', 'get_commitments',
                     {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': '0',
-                     'asset_id': TEST_REGTEST_BITCOIN, 'value': 123}), ''),
+                     'asset_id': TEST_REGTEST_BITCOIN, 'value': 123}), 'extract output index'),
                   (('badcommit15', 'get_commitments',
                     {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': 'X',
-                     'asset_id': TEST_REGTEST_BITCOIN, 'value': 123}), ''),
+                     'asset_id': TEST_REGTEST_BITCOIN, 'value': 123}), 'extract output index'),
                   (('badcommit16', 'get_commitments',
                     {'hash_prevouts': TEST_HASH_PREVOUTS, 'output_index': 0,
                      'asset_id': TEST_REGTEST_BITCOIN}), 'extract value'),
@@ -1684,19 +1698,19 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                      'trusted_commitments': [{}, {}]}), 'extract valid network'),
                   (('badsignliq2a', 'sign_liquid_tx',
                     {'network': 'localtest-liquid',
-                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract txn'),
+                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract tx'),
                   (('badsignliq2b', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': None,
-                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract txn'),
+                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract tx'),
                   (('badsignliq2c', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': b'',
-                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract txn'),
+                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract tx'),
                   (('badsignliq3', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': 'notbin',
-                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract txn'),
+                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract tx'),
                   (('badsignliq4', 'sign_liquid_tx',
-                    {'network': 'localtest-liquid', 'txn': '123abc',
-                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract txn'),
+                    {'network': 'localtest-liquid', 'txn': h2b('123abc'),
+                     'num_inputs': 1, 'trusted_commitments': [{}, {}]}), 'extract tx'),
                   (('badsignliq5', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'trusted_commitments': [{}, {}]}), 'valid number of inputs'),
@@ -1826,12 +1840,15 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                         (_commitsMinus('blinding_key'), 'Missing commitments data'),
                         # Field bad type/length etc.
                         (_commitsUpdate('asset_id', 'notbin'), 'extract trusted commitments'),
-                        (_commitsUpdate('asset_id', '123abc'), 'extract trusted commitments'),
+                        (_commitsUpdate('asset_id', h2b('123abc')), 'extract trusted commitments'),
+                        (_commitsUpdate('asset_id', b''), 'extract trusted commitments'),
                         (_commitsUpdate('value', 'notint'), 'extract trusted commitments'),
                         (_commitsUpdate('abf', 'notbin'), 'extract trusted commitments'),
-                        (_commitsUpdate('abf', '123abc'), 'extract trusted commitments'),
+                        (_commitsUpdate('abf', h2b('123abc')), 'extract trusted commitments'),
+                        (_commitsUpdate('abf', b''), 'extract trusted commitments'),
                         (_commitsUpdate('vbf', 'notbin'), 'extract trusted commitments'),
-                        (_commitsUpdate('vbf', '123abc'), 'extract trusted commitments'),
+                        (_commitsUpdate('vbf', h2b('123abc')), 'extract trusted commitments'),
+                        (_commitsUpdate('vbf', b''), 'extract trusted commitments'),
                         (_commitsUpdate('asset_generator', 'notbin'), 'extract trusted commit'),
                         (_commitsUpdate('asset_generator', '123abc'), 'extract trusted commit'),
                         (_commitsUpdate('value_commitment', 'notbin'), 'extract trusted commit'),
@@ -1848,10 +1865,12 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                         (_commitsAssetBlindProof(''), 'extract trusted commitments'),
                         (_commitsAssetBlindProof('notbin'), 'extract trusted commitments'),
                         (_commitsAssetBlindProof('123abc'), 'extract trusted commitments'),
+                        (_commitsAssetBlindProof(b''), 'extract trusted commitments'),
                         # Value blind proof in place of vbf
                         (_commitsValueBlindProof(''), 'extract trusted commitments'),
                         (_commitsValueBlindProof('notbin'), 'extract trusted commitments'),
-                        (_commitsValueBlindProof('123abc'), 'extract trusted commitments')]
+                        (_commitsValueBlindProof('123abc'), 'extract trusted commitments'),
+                        (_commitsValueBlindProof(b''), 'extract trusted commitments')]
     if has_psram:
         # Invalid/incorrect explicit proofs
         bad_commitments.append((_commitsAssetBlindProof(BAD_ASSET_PROOF),
@@ -3301,7 +3320,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     # Sign single sig
     # Single sig requires a different seed for the tests
-    rslt = jadeapi.set_seed(bytes.fromhex(TEST_SEED_SINGLE_SIG))
+    rslt = jadeapi.set_seed(h2b(TEST_SEED_SINGLE_SIG))
     assert rslt is True
 
     # Test the generic multisigs again, using a second signer
