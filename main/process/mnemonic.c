@@ -298,31 +298,26 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
             }
         }
 
-        // Large enough for 12 and 24 word mnemonic
-        bool already_confirmed[MNEMONIC_MAXWORDS] = { false };
-
-        // Confirm the mnemonic - the number of words to confirm
-        // and the number of options presented for each word.
-        const size_t num_words_confirm = nwords == MNEMONIC_MAXWORDS ? 6 : 4;
+        // Confirm the mnemonic - show groups of three consecutive words
+        // and have user confirm one of them at random.
+        // Ensures all words are at the very least displayed.
+        mnemonic_confirmed = true; // will be set to false if wrong word selected
         const size_t num_words_options = nwords == MNEMONIC_MAXWORDS ? 8 : 6;
-        for (size_t i = 0; i < num_words_confirm; ++i) {
-            size_t selected;
-            do {
-                selected = 1 + get_uniform_random_byte(nwords - 2); // never select the first or last word
-            } while (already_confirmed[selected]);
-            already_confirmed[selected] = true;
-
-            // Make the word to confirm the 'middle' word of the three shown
+        for (size_t i = 0; i < nwords; i += 3) {
+            const size_t offset_word_to_confirm = get_uniform_random_byte(3);
+            const size_t selected = i + offset_word_to_confirm;
             gui_view_node_t* textbox = NULL;
             gui_activity_t* const confirm_act
-                = make_confirm_mnemonic_word_activity(&textbox, selected - 1, 1, words, nwords);
+                = make_confirm_mnemonic_word_activity(&textbox, i, offset_word_to_confirm, words, nwords);
             JADE_LOGD("selected = %u", selected);
 
+            // Pick some other words from the mnemonic as options, but avoid
+            // the words currently displayed on screen (neighbouring words).
             // Large enough for 12 and 24 word mnemonic
             bool already_picked[MNEMONIC_MAXWORDS] = { false };
-            already_picked[selected] = true;
-            already_picked[selected - 1] = true;
-            already_picked[selected + 1] = true;
+            already_picked[i] = true;
+            already_picked[i + 1] = true;
+            already_picked[i + 2] = true;
 
             // Large enough for 12 and 24 word mnemonic
             // (Only really needs to be as big as 'num_words_options' so MAXWORDS is plenty)
@@ -374,9 +369,6 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
             if (random_words[index] != selected) {
                 await_error_activity("\n Incorrect. Check your\n  recovery phrase and\n           try again.");
                 mnemonic_confirmed = false;
-                break;
-            } else if (i == num_words_confirm - 1) { // last word, and it's correct
-                mnemonic_confirmed = true;
                 break;
             }
         }
