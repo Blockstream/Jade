@@ -44,8 +44,8 @@ gui_activity_t* make_restore_mnemonic_activity(bool temporary_restore);
 
 void make_show_mnemonic_activities(
     gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], size_t nwords);
-gui_activity_t* make_confirm_mnemonic_word_activity(
-    gui_view_node_t** text_box_ptr, size_t confirm, char* words[], size_t nwords);
+gui_activity_t* make_confirm_mnemonic_word_activity(gui_view_node_t** text_box_ptr, uint8_t first_word_index,
+    uint8_t offset_word_to_confirm, char* words[], size_t nwords);
 
 gui_activity_t* make_enter_wordlist_word_activity(gui_view_node_t** titletext, bool show_enter_btn,
     gui_view_node_t** textbox, gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys,
@@ -312,8 +312,10 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
             } while (already_confirmed[selected]);
             already_confirmed[selected] = true;
 
+            // Make the word to confirm the 'middle' word of the three shown
             gui_view_node_t* textbox = NULL;
-            gui_activity_t* const confirm_act = make_confirm_mnemonic_word_activity(&textbox, selected, words, nwords);
+            gui_activity_t* const confirm_act
+                = make_confirm_mnemonic_word_activity(&textbox, selected - 1, 1, words, nwords);
             JADE_LOGD("selected = %u", selected);
 
             // Large enough for 12 and 24 word mnemonic

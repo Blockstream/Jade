@@ -183,93 +183,80 @@ void make_show_mnemonic_activities(
     *last_activity_ptr = act_info.last_activity;
 }
 
-gui_activity_t* make_confirm_mnemonic_word_activity(
-    gui_view_node_t** text_box, const size_t idxconfirm, char* words[], const size_t nwords)
+gui_activity_t* make_confirm_mnemonic_word_activity(gui_view_node_t** text_box, const uint8_t first_word_index,
+    const uint8_t offset_word_to_confirm, char* words[], const size_t nwords)
 {
     JADE_INIT_OUT_PPTR(text_box);
-    JADE_ASSERT(idxconfirm > 0 && idxconfirm < nwords - 1); // Must be able to access next and previous entries
+    JADE_ASSERT(first_word_index <= nwords - 3);
+    JADE_ASSERT(offset_word_to_confirm < 3); // top (0), middle (1) or bottom (2)
     JADE_ASSERT(words);
 
-    const char* const prev_word = words[idxconfirm - 1];
-    const char* const next_word = words[idxconfirm + 1];
-
-    JADE_LOGD("Confirm page index %u, prev %s, next %s", idxconfirm, prev_word, next_word);
-
-    // First row, title/hint index (1-based index)
+    // Title/hint index (1-based index)
     char str[32];
-    int ret = snprintf(str, sizeof(str), "Confirm word %u", idxconfirm + 1);
+    int ret = snprintf(str, sizeof(str), "Confirm word %u", first_word_index + offset_word_to_confirm + 1);
     JADE_ASSERT(ret > 0 && ret < sizeof(str));
 
     gui_activity_t* const act = gui_make_activity();
     gui_view_node_t* parent = add_title_bar(act, str, NULL, 0, NULL);
 
-    // Then prior word, word to select, following word
+    // Then three words, one of which will be selectable (as given by offset_word_to_confirm)
+    uint32_t splits[3] = { 30, 30, 30 };
+    splits[offset_word_to_confirm] = 40; // selectable row slightly larger
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 30, 40, 30);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, splits[0], splits[1], splits[2]);
     gui_set_parent(vsplit, parent);
-    gui_view_node_t* hsplit;
+
     gui_view_node_t* node;
+    gui_view_node_t* hsplit;
+    for (size_t i = 0; i < 3; ++i) {
+        if (i != offset_word_to_confirm) {
+            // Make neighbour index-and-word row
+            const size_t index = first_word_index + i;
+            JADE_ASSERT(index < nwords);
 
-    // second row, previous word
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 30, 40, 30);
-    gui_set_parent(hsplit, vsplit);
+            gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 30, 40, 30);
+            gui_set_parent(hsplit, vsplit);
 
-    ret = snprintf(str, sizeof(str), "%u", idxconfirm);
-    JADE_ASSERT(ret > 0 && ret < sizeof(str));
+            ret = snprintf(str, sizeof(str), "%u", index + 1); // 1-based index
+            JADE_ASSERT(ret > 0 && ret < sizeof(str));
 
-    gui_make_text(&node, str, TFT_WHITE);
-    gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 0, 10, 0, 0);
-    gui_set_parent(node, hsplit);
+            gui_make_text(&node, str, TFT_WHITE);
+            gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+            gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 0, 10, 0, 0);
+            gui_set_parent(node, hsplit);
 
-    gui_make_text(&node, prev_word, TFT_WHITE);
-    gui_set_text_noise(node, TFT_BLACK);
-    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(node, hsplit);
+            gui_make_text(&node, words[index], TFT_WHITE);
+            gui_set_text_noise(node, TFT_BLACK);
+            gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(node, hsplit);
+        } else {
+            // Make the selectable row
+            gui_make_fill(&node, gui_get_highlight_color());
+            gui_set_margins(node, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);
+            gui_set_parent(node, vsplit);
 
-    // third row, selection word
-    gui_make_fill(&node, gui_get_highlight_color());
-    gui_set_margins(node, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);
-    gui_set_parent(node, vsplit);
+            gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 25, 50, 25);
+            gui_set_parent(hsplit, node);
 
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 25, 50, 25);
-    gui_set_parent(hsplit, node);
+            gui_make_text_font(&node, "H", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+            gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(node, hsplit);
 
-    gui_make_text_font(&node, "H", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(node, hsplit);
+            // This text will be updated, so we add a background that will
+            // be repainted every time to wipe the previous string
+            gui_make_fill(&node, gui_get_highlight_color());
+            gui_set_parent(node, hsplit);
 
-    // This text will be updated, so we add a background that will
-    // be repainted every time to wipe the previous string
-    gui_make_fill(&node, gui_get_highlight_color());
-    gui_set_parent(node, hsplit);
+            gui_make_text(text_box, "", TFT_WHITE);
+            gui_set_text_noise(*text_box, gui_get_highlight_color());
+            gui_set_align(*text_box, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(*text_box, node);
 
-    gui_make_text(text_box, "", TFT_WHITE);
-    gui_set_text_noise(*text_box, gui_get_highlight_color());
-    gui_set_align(*text_box, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(*text_box, node);
-
-    gui_make_text_font(&node, "I", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(node, hsplit);
-
-    // fourth row, following word
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 30, 40, 30);
-    gui_set_parent(hsplit, vsplit);
-
-    ret = snprintf(str, sizeof(str), "%u", idxconfirm + 2);
-    JADE_ASSERT(ret > 0 && ret < sizeof(str));
-
-    gui_make_text(&node, str, TFT_WHITE);
-    gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 0, 10, 0, 0);
-    gui_set_parent(node, hsplit);
-
-    gui_make_text(&node, next_word, TFT_WHITE);
-    gui_set_text_noise(node, TFT_BLACK);
-    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(node, hsplit);
-
+            gui_make_text_font(&node, "I", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+            gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(node, hsplit);
+        }
+    }
     return act;
 }
 
