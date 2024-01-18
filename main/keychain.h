@@ -64,5 +64,6 @@ bool keychain_complete_derivation_with_passphrase(const char* passphrase);
 
 bool keychain_store(const uint8_t* aeskey, size_t aeslen);
 bool keychain_load(const uint8_t* aeskey, size_t aeslen);
+bool keychain_reencrypt(const uint8_t* curr_aeskey, size_t curr_aeslen, const uint8_t* new_aeskey, size_t new_aeslen);
 
 #endif /* KEYCHAIN_H_ */

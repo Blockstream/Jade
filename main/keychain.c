@@ -630,6 +630,44 @@ bool keychain_load(const uint8_t* aeskey, const size_t aeslen)
     return true;
 }
 
+bool keychain_reencrypt(
+    const uint8_t* curr_aeskey, const size_t curr_aeslen, const uint8_t* new_aeskey, const size_t new_aeslen)
+{
+    if (!curr_aeskey || curr_aeslen != AES_KEY_LEN_256 || !new_aeskey || new_aeslen != AES_KEY_LEN_256) {
+        return false;
+    }
+
+    if (!keychain_has_pin()) {
+        // No valid keychain data in storage to load
+        return false;
+    }
+
+    // This buffer is sized for deserialising the extended key structure
+    // If instead we are storing mnemonic entropy, the buffer is of ample size.
+    uint8_t serialized[AES_PADDED_LEN(SERIALIZED_KEY_LEN)];
+    SENSITIVE_PUSH(serialized, sizeof(serialized));
+    size_t serialized_data_len = 0;
+
+    // 1. Load from flash storage and decrypt
+    if (!keychain_load_and_decrypt_blob(
+            curr_aeskey, curr_aeslen, serialized, sizeof(serialized), &serialized_data_len)) {
+        JADE_LOGE("Failed to load and decrypt blob from storage");
+        SENSITIVE_POP(serialized);
+        return false;
+    }
+
+    // 3. Re-encrypt blob (new key) and save to flash storage
+    // 2. Get as (re-)encrypted blob (new key) and save into storage
+    if (!keychain_encrypt_and_save_blob(new_aeskey, new_aeslen, serialized, serialized_data_len)) {
+        JADE_LOGE("Failed to encrypt and save key data");
+        SENSITIVE_POP(serialized);
+        return false;
+    }
+    SENSITIVE_POP(serialized);
+
+    return true;
+}
+
 bool keychain_has_pin(void) { return has_encrypted_blob; }
 
 uint8_t keychain_pin_attempts_remaining(void) { return storage_get_counter(); }

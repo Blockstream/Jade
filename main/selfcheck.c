@@ -240,10 +240,28 @@ static bool test_storage_with_pin(jade_process_t* process)
     WALLY_FREE_STR(base58res);
     WALLY_FREE_STR(base58res_copy);
 
+    // Check re-encrypting with new aeskey
+    uint8_t new_aeskey[AES_KEY_LEN_256];
+    get_random(new_aeskey, AES_KEY_LEN_256);
+
+    if (!keychain_reencrypt(aeskey, sizeof(aeskey), new_aeskey, sizeof(new_aeskey))) {
+        FAIL();
+    }
+
+    // Should now only load with new aeskey
+    if (keychain_load(aeskey, sizeof(aeskey))) {
+        FAIL();
+    }
+    if (!keychain_load(new_aeskey, sizeof(new_aeskey))) {
+        FAIL();
+    }
+    if (!all_fields_same(&keydata, keychain_get(), false)) {
+        FAIL();
+    }
+    keychain_clear();
+
     // Reload from nvs again ...
     // BUT! pass the wrong aes-key (ie. wrong PIN) 3 times
-    uint8_t wrongkey[AES_KEY_LEN_256];
-    get_random(wrongkey, AES_KEY_LEN_256);
     for (size_t i = 3; i > 0; --i) {
         if (keychain_pin_attempts_remaining() != i) {
             FAIL();
@@ -253,7 +271,7 @@ static bool test_storage_with_pin(jade_process_t* process)
             FAIL();
         }
 
-        if (keychain_load(wrongkey, sizeof(wrongkey))) {
+        if (keychain_load(aeskey, sizeof(aeskey))) {
             FAIL();
         }
 
@@ -267,9 +285,10 @@ static bool test_storage_with_pin(jade_process_t* process)
     }
 
     // Now even the correct key/PIN should fail
-    if (keychain_load(aeskey, sizeof(aeskey))) {
+    if (keychain_load(new_aeskey, sizeof(new_aeskey))) {
         FAIL();
     }
+
     return true;
 }
 
