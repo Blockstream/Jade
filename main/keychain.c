@@ -405,50 +405,51 @@ static void unserialize(const uint8_t* decrypted, const size_t decrypted_len, ke
 }
 
 // AES encrypt passed bytes with passed key (uses new random iv).  Also appends HMAC of the encrypted bytes.
-static bool get_encrypted_blob(const uint8_t* aeskey, const size_t aes_len, const uint8_t* bytes,
-    const size_t bytes_len, uint8_t* output, const size_t output_len)
+static bool get_encrypted_blob(const uint8_t* aeskey, const size_t aeslen, const uint8_t* bytes, const size_t bytes_len,
+    uint8_t* output, const size_t output_len)
 {
     JADE_ASSERT(aeskey);
-    JADE_ASSERT(aes_len);
+    JADE_ASSERT(aeslen);
     JADE_ASSERT(bytes);
     JADE_ASSERT(bytes_len);
     JADE_ASSERT(output);
     JADE_ASSERT(output_len == AES_ENCRYPTED_LEN(bytes_len) + HMAC_SHA256_LEN); // hmac appended
 
     // 1. Encrypt the passed data into the start of the buffer
-    if (!aes_encrypt_bytes(aeskey, aes_len, bytes, bytes_len, output, output_len - HMAC_SHA256_LEN)) {
+    if (!aes_encrypt_bytes(aeskey, aeslen, bytes, bytes_len, output, output_len - HMAC_SHA256_LEN)) {
         JADE_LOGW("Failed to encrypt wallet!");
         return false;
     }
 
     // 2. Write the hmac into the buffer after the encrypted data
     JADE_WALLY_VERIFY(wally_hmac_sha256(
-        aeskey, aes_len, output, output_len - HMAC_SHA256_LEN, output + output_len - HMAC_SHA256_LEN, HMAC_SHA256_LEN));
+        aeskey, aeslen, output, output_len - HMAC_SHA256_LEN, output + output_len - HMAC_SHA256_LEN, HMAC_SHA256_LEN));
 
     return true;
 }
 
-static bool get_decrypted_payload(const uint8_t* aeskey, const size_t aes_len, const uint8_t* bytes,
+static bool get_decrypted_payload(const uint8_t* aeskey, const size_t aeslen, const uint8_t* bytes,
     const size_t bytes_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(aeskey);
-    JADE_ASSERT(aes_len);
+    JADE_ASSERT(aeslen);
     JADE_ASSERT(bytes);
     JADE_ASSERT(bytes_len > HMAC_SHA256_LEN); // hmac appended
     JADE_ASSERT(output);
     JADE_ASSERT(output_len);
+    JADE_INIT_OUT_SIZE(written);
 
     // 1. Verify HMAC at the tail of the input buffer
     uint8_t hmac_calculated[HMAC_SHA256_LEN];
     JADE_WALLY_VERIFY(wally_hmac_sha256(
-        aeskey, aes_len, bytes, bytes_len - HMAC_SHA256_LEN, hmac_calculated, sizeof(hmac_calculated)));
+        aeskey, aeslen, bytes, bytes_len - HMAC_SHA256_LEN, hmac_calculated, sizeof(hmac_calculated)));
     if (crypto_verify_32(hmac_calculated, bytes + bytes_len - HMAC_SHA256_LEN) != 0) {
         JADE_LOGW("hmac mismatch (bad pin)");
         return false;
     }
 
     // 2. Decrypt bytes at front of buffer
-    if (!aes_decrypt_bytes(aeskey, aes_len, bytes, bytes_len - HMAC_SHA256_LEN, output, output_len, written)) {
+    if (!aes_decrypt_bytes(aeskey, aeslen, bytes, bytes_len - HMAC_SHA256_LEN, output, output_len, written)) {
         JADE_LOGW("Failed to decrypt wallet!");
         return false;
     }
@@ -456,9 +457,82 @@ static bool get_decrypted_payload(const uint8_t* aeskey, const size_t aes_len, c
     return true;
 }
 
-bool keychain_store_encrypted(const uint8_t* aeskey, const size_t aes_len)
+static bool keychain_encrypt_and_save_blob(
+    const uint8_t* aeskey, const size_t aeslen, const uint8_t* cleartext_blob, const size_t blob_len)
 {
-    if (!aeskey || aes_len != AES_KEY_LEN_256) {
+    if (!aeskey || aeslen != AES_KEY_LEN_256) {
+        return false;
+    }
+    if (!cleartext_blob || blob_len > SERIALIZED_KEY_LEN) {
+        // Invlaid cleartext blob
+        return false;
+    }
+
+    // This buffer is sized for deserialising the extended key structure
+    // If instead we are storing mnemonic entropy, the buffer is of ample size.
+    uint8_t encrypted[ENCRYPTED_DATA_LEN(SERIALIZED_KEY_LEN)];
+
+    // 1. Get as encrypted blob
+    const size_t encrypted_data_len = ENCRYPTED_DATA_LEN(blob_len);
+    if (!get_encrypted_blob(aeskey, aeslen, cleartext_blob, blob_len, encrypted, encrypted_data_len)) {
+        JADE_LOGE("Failed to encrypt key data");
+        return false;
+    }
+
+    // 2. Push into flash storage
+    if (!storage_set_encrypted_blob(encrypted, encrypted_data_len)) {
+        JADE_LOGE("Failed to store encrypted key data");
+        return false;
+    }
+
+    return true;
+}
+
+static bool keychain_load_and_decrypt_blob(
+    const uint8_t* aeskey, const size_t aeslen, uint8_t* cleartext_blob, const size_t blob_len, size_t* written)
+{
+    if (!aeskey || aeslen != AES_KEY_LEN_256 || !cleartext_blob || blob_len < AES_PADDED_LEN(SERIALIZED_KEY_LEN)
+        || !written) {
+        return false;
+    }
+    if (!keychain_has_pin() || !storage_decrement_counter()) {
+        // No valid keychain data in storage to load
+        return false;
+    }
+
+    // This buffer is sized for deserialising the extended key structure
+    // If instead we are storing mnemonic entropy, the buffer is of ample size.
+    uint8_t encrypted[ENCRYPTED_DATA_LEN(SERIALIZED_KEY_LEN)];
+
+    // 1. Load from flash storage
+    size_t encrypted_data_len = 0;
+    if (!storage_get_encrypted_blob(encrypted, sizeof(encrypted), &encrypted_data_len)) {
+        JADE_LOGE("Failed to load encrypted blob from storage - ensuring fully erased");
+        storage_erase_encrypted_blob();
+        has_encrypted_blob = false;
+        return false;
+    }
+
+    // 2. Get decrypted payload from the encrypted blob
+    if (!get_decrypted_payload(aeskey, aeslen, encrypted, encrypted_data_len, cleartext_blob, blob_len, written)) {
+        JADE_LOGW("Failed to decrypt key data (bad pin)");
+        if (keychain_pin_attempts_remaining() == 0) {
+            JADE_LOGW("Multiple failures to decrypt key data - erasing encrypted keys");
+            keychain_erase_encrypted();
+        }
+        return false;
+    }
+
+    // 3. Decrypt succeed so pin ok - reset counter
+    // (Ignore failure as it can't make things worse)
+    storage_restore_counter();
+
+    return true;
+}
+
+bool keychain_store(const uint8_t* aeskey, const size_t aeslen)
+{
+    if (!aeskey || aeslen != AES_KEY_LEN_256) {
         return false;
     }
     if (!keychain_data && !mnemonic_entropy_len) {
@@ -466,11 +540,9 @@ bool keychain_store_encrypted(const uint8_t* aeskey, const size_t aes_len)
         return false;
     }
 
-    // These buffers are sized for serialising the extended key structure
-    // If instead we are storing mnemonic entropy, the 'encrypted' buffer is of ample size.
+    // This buffer is sized for deserialising the extended key structure
+    // If instead we are storing mnemonic entropy, the buffer is of ample size.
     uint8_t serialized[SERIALIZED_KEY_LEN];
-    uint8_t encrypted[ENCRYPTED_DATA_LEN(sizeof(serialized))];
-    SENSITIVE_PUSH(encrypted, sizeof(encrypted));
     SENSITIVE_PUSH(serialized, sizeof(serialized));
 
     // If we have cached mnemonic entropy, we store that (as the wallet is passphrase-protected)
@@ -494,79 +566,49 @@ bool keychain_store_encrypted(const uint8_t* aeskey, const size_t aes_len)
         serialized_data_len = sizeof(serialized);
     }
 
-    // 2. Get as encrypted blob
-    const size_t encrypted_data_len = ENCRYPTED_DATA_LEN(serialized_data_len);
-    const bool ret
-        = get_encrypted_blob(aeskey, aes_len, p_serialized_data, serialized_data_len, encrypted, encrypted_data_len);
+    // 2. Get as encrypted blob and save into storage
+    if (!keychain_encrypt_and_save_blob(aeskey, aeslen, p_serialized_data, serialized_data_len)) {
+        JADE_LOGE("Failed to encrypt and save key data");
+        SENSITIVE_POP(serialized);
+        return false;
+    }
     SENSITIVE_POP(serialized);
-    if (!ret) {
-        JADE_LOGE("Failed to encrypt key data");
-        SENSITIVE_POP(encrypted);
-        return false;
-    }
 
-    // 3. Push into flash storage
-    if (!storage_set_encrypted_blob(encrypted, encrypted_data_len)) {
-        JADE_LOGE("Failed to store encrypted key data");
-        SENSITIVE_POP(encrypted);
-        return false;
-    }
-    SENSITIVE_POP(encrypted);
-
-    // 4. Clear main/test network restriction and cache that we have encrypted keys
+    // 3. Clear main/test network restriction and cache that we have encrypted keys
     keychain_clear_network_type_restriction();
     has_encrypted_blob = true;
 
     return true;
 }
 
-bool keychain_load_cleartext(const uint8_t* aeskey, const size_t aes_len)
+bool keychain_load(const uint8_t* aeskey, const size_t aeslen)
 {
-    if (!aeskey || aes_len != AES_KEY_LEN_256) {
+    if (!aeskey || aeslen != AES_KEY_LEN_256) {
         return false;
     }
     if (keychain_data || mnemonic_entropy_len) {
         // We already have loaded keychain data - do not overwrite
         return false;
     }
-    if (!keychain_has_pin() || !storage_decrement_counter()) {
+    if (!keychain_has_pin()) {
         // No valid keychain data in storage to load
         return false;
     }
 
-    // These buffers are sized for deserialising the extended key structure
-    // If instead we are storing mnemonic entropy, the buffers are of ample size.
-    uint8_t serialized[AES_PADDED_LEN(SERIALIZED_KEY_LEN)];
-    uint8_t encrypted[ENCRYPTED_DATA_LEN(SERIALIZED_KEY_LEN)];
-
-    // 1. Load from flash storage
-    size_t encrypted_data_len = 0;
-    if (!storage_get_encrypted_blob(encrypted, sizeof(encrypted), &encrypted_data_len)) {
-        JADE_LOGE("Failed to load encrypted blob from storage - ensuring fully erased");
-        storage_erase_encrypted_blob();
-        has_encrypted_blob = false;
-        return false;
-    }
-
-    // 2. Get decrypted payload from the encrypted blob
+    // This buffer is sized for deserialising the extended key structure
+    // If instead we are storing mnemonic entropy, the buffer is of ample size.
     size_t serialized_data_len = 0;
+    uint8_t serialized[AES_PADDED_LEN(SERIALIZED_KEY_LEN)];
     SENSITIVE_PUSH(serialized, sizeof(serialized));
-    if (!get_decrypted_payload(
-            aeskey, aes_len, encrypted, encrypted_data_len, serialized, sizeof(serialized), &serialized_data_len)) {
-        JADE_LOGW("Failed to decrypt key data (bad pin)");
-        if (keychain_pin_attempts_remaining() == 0) {
-            JADE_LOGW("Multiple failures to decrypt key data - erasing encrypted keys");
-            keychain_erase_encrypted();
-        }
+
+    // 1. Load from flash storage and decrypt
+    if (!keychain_load_and_decrypt_blob(aeskey, aeslen, serialized, sizeof(serialized), &serialized_data_len)) {
+        JADE_LOGE("Failed to load and decrypt blob from storage");
         SENSITIVE_POP(serialized);
         return false;
     }
 
-    // 3. Decrypt succeed so pin ok - reset counter
-    // (Ignore failure as it can't make things worse)
-    storage_restore_counter();
-
-    // 4. Cache mnemonic entropy or deserialise keychain
+    // 2. Cache mnemonic entropy or deserialise keychain
     if (serialized_data_len == BIP39_ENTROPY_LEN_128 || serialized_data_len == BIP39_ENTROPY_LEN_256) {
         // Write mnemonic entropy - only 12 or 24 word mnemonics are supported
         memcpy(mnemonic_entropy, serialized, serialized_data_len);
@@ -583,7 +625,6 @@ bool keychain_load_cleartext(const uint8_t* aeskey, const size_t aes_len)
         SENSITIVE_POP(serialized);
         return false;
     }
-
     SENSITIVE_POP(serialized);
 
     return true;

@@ -88,7 +88,7 @@ void debug_handshake(void* process_ptr)
         JADE_LOGE("Server or network error");
         goto cleanup;
     }
-    if (!keychain_store_encrypted(aeskey1, sizeof(aeskey1))) {
+    if (!keychain_store(aeskey1, sizeof(aeskey1))) {
         JADE_LOGE("Failed to store key data encrypted in flash memory!");
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);
@@ -124,7 +124,7 @@ void debug_handshake(void* process_ptr)
     JADE_ASSERT(storage_get_replay_counter((uint8_t*)&replay_counter));
     JADE_ASSERT(replay_counter == initial_replay_counter + 2);
 
-    if (!keychain_load_cleartext(aeskey2, sizeof(aeskey2))) {
+    if (!keychain_load(aeskey2, sizeof(aeskey2))) {
         JADE_LOGE("Failed to load keys - Incorrect PIN");
         jade_process_reply_to_message_fail(process);
         goto cleanup;

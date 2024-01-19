@@ -187,7 +187,7 @@ static bool test_storage_with_pin(jade_process_t* process)
 
     // Save keychain to nvs
     keychain_set(&keydata, process->ctx.source, false);
-    if (!keychain_store_encrypted(aeskey, sizeof(aeskey))) {
+    if (!keychain_store(aeskey, sizeof(aeskey))) {
         FAIL();
     }
     if (!keychain_has_pin()) {
@@ -209,7 +209,7 @@ static bool test_storage_with_pin(jade_process_t* process)
     }
 
     // Reload keychain from nvs
-    if (!keychain_load_cleartext(aeskey, sizeof(aeskey))) {
+    if (!keychain_load(aeskey, sizeof(aeskey))) {
         FAIL();
     }
     if (!keychain_has_pin()) {
@@ -253,7 +253,7 @@ static bool test_storage_with_pin(jade_process_t* process)
             FAIL();
         }
 
-        if (keychain_load_cleartext(wrongkey, sizeof(wrongkey))) {
+        if (keychain_load(wrongkey, sizeof(wrongkey))) {
             FAIL();
         }
 
@@ -267,7 +267,7 @@ static bool test_storage_with_pin(jade_process_t* process)
     }
 
     // Now even the correct key/PIN should fail
-    if (keychain_load_cleartext(aeskey, sizeof(aeskey))) {
+    if (keychain_load(aeskey, sizeof(aeskey))) {
         FAIL();
     }
     return true;
@@ -298,7 +298,7 @@ static bool test_storage_with_passphrase(jade_process_t* process, const size_t n
     keychain_cache_mnemonic_entropy(mnemonic);
     WALLY_FREE_STR(mnemonic);
 
-    if (!keychain_store_encrypted(aeskey, sizeof(aeskey))) {
+    if (!keychain_store(aeskey, sizeof(aeskey))) {
         FAIL();
     }
     if (!keychain_has_pin()) {
@@ -318,7 +318,7 @@ static bool test_storage_with_passphrase(jade_process_t* process, const size_t n
     }
 
     // Reload should prompt for a passphrase
-    if (!keychain_load_cleartext(aeskey, sizeof(aeskey))) {
+    if (!keychain_load(aeskey, sizeof(aeskey))) {
         FAIL();
     }
     if (!keychain_requires_passphrase()) {
@@ -335,7 +335,7 @@ static bool test_storage_with_passphrase(jade_process_t* process, const size_t n
     keychain_clear();
 
     // Check different passphrase leads to different wallet
-    if (!keychain_load_cleartext(aeskey, sizeof(aeskey))) {
+    if (!keychain_load(aeskey, sizeof(aeskey))) {
         FAIL();
     }
     if (!keychain_requires_passphrase()) {

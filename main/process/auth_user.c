@@ -95,7 +95,7 @@ static bool check_pin_load_keys(jade_process_t* process)
     }
 
     // Load wallet master key from flash
-    if (!keychain_load_cleartext(aeskey, sizeof(aeskey))) {
+    if (!keychain_load(aeskey, sizeof(aeskey))) {
         JADE_LOGE("Failed to load keys - Incorrect PIN");
 
         // Handle this being the 'erase' pin
@@ -226,7 +226,7 @@ static bool set_pin_save_keys(jade_process_t* process)
     }
 
     // Persist wallet master key (or mnemonic entropy if passphrase-protected) to flash memory
-    if (!keychain_store_encrypted(aeskey, sizeof(aeskey))) {
+    if (!keychain_store(aeskey, sizeof(aeskey))) {
         JADE_LOGE("Failed to store key data encrypted in flash memory!");
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);

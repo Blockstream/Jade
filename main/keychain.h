@@ -62,7 +62,7 @@ void keychain_derive_from_seed(const uint8_t* seed, size_t seed_len, keychain_t*
 bool keychain_derive_from_mnemonic(const char* mnemonic, const char* passphrase, keychain_t* keydata);
 bool keychain_complete_derivation_with_passphrase(const char* passphrase);
 
-bool keychain_store_encrypted(const uint8_t* aeskey, size_t aes_len);
-bool keychain_load_cleartext(const uint8_t* aeskey, size_t aes_len);
+bool keychain_store(const uint8_t* aeskey, size_t aeslen);
+bool keychain_load(const uint8_t* aeskey, size_t aeslen);
 
 #endif /* KEYCHAIN_H_ */
