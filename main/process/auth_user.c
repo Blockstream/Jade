@@ -23,6 +23,11 @@ bool pinclient_get(
 bool pinclient_set(
     jade_process_t* process, const uint8_t* pin, const size_t pin_len, uint8_t* finalaes, const size_t finalaes_len);
 
+// Whether we want to change the PIN on the next unlock
+static bool change_pin_requested = false;
+
+void set_request_change_pin(const bool change_pin) { change_pin_requested = change_pin; }
+
 static void check_wallet_erase_pin(jade_process_t* process, const uint8_t* pin_entered, const size_t pin_len)
 {
     JADE_ASSERT(pin_entered);
@@ -232,6 +237,35 @@ static bool get_pin_load_keys(jade_process_t* process)
     keychain_set(keychain_get(), process->ctx.source, false);
     rslt = true;
 
+    // Optionally change PIN
+    const char* question[] = { "Do you want to", "change your PIN?" };
+    if (change_pin_requested && await_yesno_activity("Change PIN", question, 2, true, NULL)) {
+        uint8_t aeskey_new[AES_KEY_LEN_256];
+        SENSITIVE_PUSH(aeskey_new, sizeof(aeskey_new));
+
+        if (set_pin_get_aeskey(process, "Enter New PIN", pin, sizeof(pin), aeskey_new, sizeof(aeskey_new))) {
+            JADE_LOGI("PIN changed on server");
+            if (keychain_reencrypt(aeskey, sizeof(aeskey), aeskey_new, sizeof(aeskey_new))) {
+                const char* message[] = { "PIN changed" };
+                await_message_activity(message, 1);
+            } else {
+                JADE_LOGE("Failed to re-encrypt with changed PIN data");
+                const char* message[] = { "Failed to re-encypt key data!" };
+                await_error_activity(message, 1);
+            }
+        } else {
+            JADE_LOGW("Abandoned change-PIN");
+            const char* message[] = { "Change-PIN abandoned" };
+            await_error_activity(message, 1);
+        }
+        SENSITIVE_POP(aeskey_new);
+    }
+
+    // All good
+    set_request_change_pin(false);
+    jade_process_reply_to_message_ok(process);
+    JADE_LOGI("Success");
+
 cleanup:
     SENSITIVE_POP(aeskey);
     SENSITIVE_POP(pin);
@@ -275,6 +309,11 @@ static bool set_pin_save_keys(jade_process_t* process)
     // (This also clears any temporarily cached mnemonic entropy data)
     keychain_set(keychain_get(), process->ctx.source, false);
     rslt = true;
+
+    // All good
+    set_request_change_pin(false); // clear flag
+    jade_process_reply_to_message_ok(process);
+    JADE_LOGI("Success");
 
 cleanup:
     SENSITIVE_POP(aeskey);
@@ -383,15 +422,12 @@ void auth_user_process(void* process_ptr)
         rslt = set_pin_save_keys(process);
     }
 
-    // NOTE: in error case reply message will have already been sent
     if (rslt) {
 #ifndef CONFIG_DEBUG_MODE
         // If not a debug build, we restrict the hw to this network type
         // (In case it wasn't set at wallet creation/recovery time [older fw])
         keychain_set_network_type_restriction(network);
 #endif
-        // All good
-        jade_process_reply_to_message_ok(process);
         JADE_LOGI("Success");
     }
 

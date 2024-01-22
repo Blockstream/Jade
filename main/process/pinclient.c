@@ -331,7 +331,7 @@ static pinserver_result_t handle_pin(
     JADE_ASSERT(serverkey);
     JADE_ASSERT(serverkey_len == AES_KEY_LEN_256);
 
-    ASSERT_CURRENT_MESSAGE(process, "auth_user");
+    JADE_ASSERT(IS_CURRENT_MESSAGE(process, "auth_user") || IS_CURRENT_MESSAGE(process, "pin"));
 
     CborValue params;
     uint8_t aes_encrypted[512]; // sufficient for correct payload
@@ -559,7 +559,8 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
     const char* document, const bool pass_client_entropy, uint8_t* finalaes, const size_t finalaes_len)
 {
     // pinserver interaction only happens atm as a result of a call to 'auth_user'
-    ASSERT_CURRENT_MESSAGE(process, "auth_user");
+    // or the completion of a previous pin interaction (eg. change-PIN)
+    JADE_ASSERT(IS_CURRENT_MESSAGE(process, "auth_user") || IS_CURRENT_MESSAGE(process, "pin"));
 
     while (true) {
         // Do the pinserver interaction dance, and get the resulting aes-key
