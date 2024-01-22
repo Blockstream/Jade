@@ -323,7 +323,7 @@ gui_activity_t* make_device_settings_activity(void)
     return make_menu_activity("Device", hdrbtns, 2, menubtns, 3);
 }
 
-gui_activity_t* make_prefs_settings_activity(const bool show_ble)
+gui_activity_t* make_prefs_settings_activity(const bool initialised_and_locked)
 {
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PREFS_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
@@ -331,9 +331,15 @@ gui_activity_t* make_prefs_settings_activity(const bool show_ble)
     btn_data_t menubtns[] = { { .txt = "Display", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY },
         { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
         { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE } };
-    const size_t num_menubtns = show_ble ? 3 : 2;
 
-    return make_menu_activity("Settings", hdrbtns, 2, menubtns, num_menubtns);
+    // If Jade is initialised and locked, show the 'change_pin' option.
+    // If not (ie. is unlocked, or is uninitialised) show the ble option.
+    if (initialised_and_locked) {
+        menubtns[2].txt = "Change PIN";
+        menubtns[2].ev_id = BTN_SETTINGS_CHANGE_PIN;
+    }
+
+    return make_menu_activity("Settings", hdrbtns, 2, menubtns, 3);
 }
 
 gui_activity_t* make_display_settings_activity(void)

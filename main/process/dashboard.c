@@ -160,7 +160,7 @@ gui_activity_t* make_unlocked_settings_activity(void);
 gui_activity_t* make_wallet_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
 gui_activity_t* make_authentication_activity(void);
-gui_activity_t* make_prefs_settings_activity(bool show_ble);
+gui_activity_t* make_prefs_settings_activity(bool initialised_and_locked);
 gui_activity_t* make_display_settings_activity(void);
 gui_activity_t* make_info_activity(const char* fw_version);
 gui_activity_t* make_device_info_activity(void);
@@ -220,6 +220,9 @@ void handle_bip85_mnemonic();
 
 // Version info reply
 void build_version_info_reply(const void* ctx, CborEncoder* container);
+
+// Set flag to change PIN on next successful unlock
+void set_request_change_pin(bool change_pin);
 
 // Home screen/menu update
 static void update_home_screen(gui_view_node_t* status_light, gui_view_node_t* status_text, gui_view_node_t* label)
@@ -866,6 +869,14 @@ static void handle_ble(void)
 }
 
 #endif // CONFIG_BT_ENABLED
+
+static void handle_change_pin(void)
+{
+    // Set flag to change pin on next successful auth/unlock
+    const char* message[] = { "Do you want to", "change your PIN", "when Jade unlocked?" };
+    const bool change_pin = await_yesno_activity("Change PIN", message, 3, true, NULL);
+    set_request_change_pin(change_pin);
+}
 
 // Helper to delete a wallet registration record after user confirms
 static bool offer_delete_registered_wallet(const char* name, const bool is_multisig)
@@ -1865,10 +1876,10 @@ static void handle_settings(const bool startup_menu)
     // Create the appropriate 'Settings' menu
     gui_activity_t* act = create_settings_menu(startup_menu);
 
-    // Only show BLE settings if a) unit unlocked or b) unit uninitialised
-    const bool show_ble_settings = keychain_get() || !keychain_has_pin();
+    // hw initialised but not unlocked/no wallet loaded
+    const bool hw_locked_initialised = !keychain_get() && keychain_has_pin();
 
-    // hw uninitialised and not unlocked (eg. as temporary signer)
+    // hw uninitialised and not unlocked/no wallet loaded (ie. no temporary signer)
     const bool hw_locked_uninitialised = !keychain_get() && !keychain_has_pin();
 
     // NOTE: menu navigation frees prior screens, as the navigation is
@@ -1924,7 +1935,7 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_PREFS:
         case BTN_SETTINGS_DISPLAY_EXIT:
             // Change to 'Preferences' menu (Settings)
-            act = make_prefs_settings_activity(show_ble_settings);
+            act = make_prefs_settings_activity(hw_locked_initialised);
             break;
 
         case BTN_SETTINGS_DISPLAY:
@@ -1977,6 +1988,10 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_BLE:
             handle_ble();
+            break;
+
+        case BTN_SETTINGS_CHANGE_PIN:
+            handle_change_pin();
             break;
 
 // NOTE: Only Jade v1.1's have brightness controls
