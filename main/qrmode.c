@@ -1643,16 +1643,10 @@ cleanup:
     return true;
 }
 
-static bool handle_initial_jade_reply_pinserver_request(const uint8_t* msg, const size_t len, void* ctx)
+static bool handle_jade_reply_pinserver_request(const uint8_t* msg, const size_t len, void* ctx)
 {
     const char* message[] = { "Step 1/2", "Scan Jade", "QR" };
     return handle_jade_reply_http_request_show_qr(message, 3, msg, len, ctx, "blkstrm.com/qrpin");
-}
-
-static bool handle_final_jade_reply_pinserver_request(const uint8_t* msg, const size_t len, void* ctx)
-{
-    // No QR to display with final reply
-    return handle_jade_reply_http_request_show_qr(NULL, 0, msg, len, ctx, "blkstrm.com/qrpin");
 }
 
 static bool handle_outbound_reply(outbound_message_writer_fn_t handler)
@@ -1690,24 +1684,17 @@ static void auth_qr_client_task(void* unused)
     // Wait for message (from synthesized auth_user/pinclient processing)
     // and display the message payload as bcur QR code on screen.
     JADE_LOGI("Awaiting auth_user reply data to display as qr");
-    if (!handle_outbound_reply(handle_initial_jade_reply_pinserver_request)) {
-        JADE_LOGW("Failed to receive auth_user reply data");
-        goto cleanup;
+    while (handle_outbound_reply(handle_jade_reply_pinserver_request)) {
+        // Scan qr code and post back to auth_user/pinclient task
+        // 'pin'
+        JADE_LOGI("Scanning/posting 'pin' data");
+        if (!scan_qr_post_in_message("  Step 2/2\n Scan Web\n      QR", BCUR_TYPE_JADE_PIN)) {
+            JADE_LOGW("Failed to scan pin message");
+            goto cleanup;
+        }
     }
 
-    // Scan qr code and post back to auth_user/pinclient task
-    // 'pin'
-    JADE_LOGI("Scanning/posting 'pin' data");
-    if (!scan_qr_post_in_message("  Step 2/2\n Scan Web\n      QR", BCUR_TYPE_JADE_PIN)) {
-        JADE_LOGW("Failed to scan pin message");
-        goto cleanup;
-    }
-
-    // Process (discard) the final message
-    JADE_LOGI("Awaiting (discarding) 'pin' reply data");
-    handle_outbound_reply(handle_final_jade_reply_pinserver_request);
-
-    JADE_LOGI("Success");
+    JADE_LOGI("Complete");
 
 cleanup:
     // Post a cancel message which should ensure the main dashboard task returns
