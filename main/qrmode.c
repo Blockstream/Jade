@@ -1513,9 +1513,9 @@ static bool post_cancel_message(const jade_msg_source_t source)
 }
 
 // Locally create and post an 'auth_user' request
-static bool post_auth_msg_request(const jade_msg_source_t source)
+static bool post_auth_msg_request(const jade_msg_source_t source, const bool suppress_pin_change_confirmation)
 {
-    uint8_t cbor_buf[64];
+    uint8_t cbor_buf[96];
     CborEncoder root_encoder;
     cbor_encoder_init(&root_encoder, cbor_buf, sizeof(cbor_buf), 0);
 
@@ -1530,11 +1530,12 @@ static bool post_auth_msg_request(const jade_msg_source_t source)
     JADE_ASSERT(cberr == CborNoError);
 
     CborEncoder params_encoder; // network
-    cberr = cbor_encoder_create_map(&root_map_encoder, &params_encoder, 1);
+    cberr = cbor_encoder_create_map(&root_map_encoder, &params_encoder, 2);
     JADE_ASSERT(cberr == CborNoError);
     const network_type_t restriction = keychain_get_network_type_restriction();
     const char* networks = restriction == NETWORK_TYPE_TEST ? "testnet" : "mainnet";
     add_string_to_map(&params_encoder, "network", networks);
+    add_boolean_to_map(&params_encoder, "suppress_pin_change_confirmation", suppress_pin_change_confirmation);
     cberr = cbor_encoder_close_container(&root_map_encoder, &params_encoder);
     JADE_ASSERT(cberr == CborNoError);
 
@@ -1662,9 +1663,12 @@ static bool handle_outbound_reply(outbound_message_writer_fn_t handler)
 }
 
 // This task is run to act as a client to Jade's normal 'auth-user' processing
-static void auth_qr_client_task(void* unused)
+static void auth_qr_client_task(void* ctx)
 {
-    JADE_LOGI("Starting Auth QR client task: %d", xPortGetFreeHeapSize());
+    JADE_LOGI("Starting Auth QR client task: %d with ctx %p", xPortGetFreeHeapSize(), ctx);
+
+    // NOTE: we just use ctx being NULL or not to convey boolean
+    const bool suppress_pin_change_confirmation = (ctx != NULL);
 
     // Only needed/expected for 'full' inititialistion with pinserver
     JADE_ASSERT(!keychain_has_temporary());
@@ -1676,7 +1680,7 @@ static void auth_qr_client_task(void* unused)
 
     // Post in a synthesized 'auth_user' message
     JADE_LOGI("Posting initial auth_user message");
-    if (!post_auth_msg_request(SOURCE_INTERNAL)) {
+    if (!post_auth_msg_request(SOURCE_INTERNAL, suppress_pin_change_confirmation)) {
         JADE_LOGW("Failed to post initial auth_user message");
         goto cleanup;
     }
@@ -1708,15 +1712,15 @@ cleanup:
     vTaskDelete(NULL);
 }
 
-void handle_qr_auth(void)
+void handle_qr_auth(const bool suppress_pin_change_confirmation)
 {
     // Only needed/expected for 'full' inititialistion with pinserver
     JADE_ASSERT(!keychain_has_temporary());
 
     // Start a task to run the qr client side
     TaskHandle_t auth_qr_client_task_handle;
-    const BaseType_t retval = xTaskCreatePinnedToCore(&auth_qr_client_task, "auth_qr_client_task", 4 * 1024, NULL,
-        JADE_TASK_PRIO_GUI, &auth_qr_client_task_handle, JADE_CORE_SECONDARY);
+    const BaseType_t retval = xTaskCreatePinnedToCore(&auth_qr_client_task, "auth_qr_client_task", 4 * 1024,
+        (void*)suppress_pin_change_confirmation, JADE_TASK_PRIO_GUI, &auth_qr_client_task_handle, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create auth_qr_client_task, xTaskCreatePinnedToCore() returned %d", retval);
 

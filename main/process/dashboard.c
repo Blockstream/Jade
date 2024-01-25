@@ -41,6 +41,7 @@ static inline void ble_start(void) { JADE_ASSERT(false); }
 
 // Whether during initialisation we select USB, BLE QR etc.
 static jade_msg_source_t initialisation_source = SOURCE_NONE;
+static jade_msg_source_t internal_relogin_source = SOURCE_NONE;
 static bool show_connect_screen = false;
 
 // The dynamic home screen menu
@@ -159,7 +160,7 @@ gui_activity_t* make_unlocked_settings_activity(void);
 
 gui_activity_t* make_wallet_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
-gui_activity_t* make_authentication_activity(void);
+gui_activity_t* make_authentication_activity(bool initialised_and_pin_unlocked);
 gui_activity_t* make_prefs_settings_activity(bool initialised_and_locked);
 gui_activity_t* make_display_settings_activity(void);
 gui_activity_t* make_info_activity(const char* fw_version);
@@ -518,10 +519,26 @@ static void dispatch_message(jade_process_t* process)
         cleanup_jade_process(&task_process);
 
         // When the authentication process exits clear any initialisation-source.
-        // Also set the 'connect screen' flag if it looks like the auth failed.
+        // Also set the 'connect screen' flag if it looks like the auth failed,
+        // and handle any relogin data that may have been cached.
         if (task_function == auth_user_process) {
             show_connect_screen = (keychain_get() && keychain_get_userdata() == SOURCE_NONE);
             initialisation_source = SOURCE_NONE;
+
+            if (internal_relogin_source != SOURCE_NONE) {
+                if (keychain_has_temporary() || !keychain_has_pin() || keychain_get_userdata() != SOURCE_INTERNAL) {
+                    // If pin-wallet wiped (eg bad pins) or a temporary login or non-internal
+                    // login made, wipe the internal-relogin data as it no longer applies.
+                    internal_relogin_source = SOURCE_NONE;
+                } else if (keychain_get()) {
+                    // On successful login, re-instate original login source
+                    keychain_set(keychain_get(), internal_relogin_source, false);
+                    internal_relogin_source = SOURCE_NONE;
+                }
+                // else bad-pin (no wallet loaded) but still have tries remaining.
+                // Retain re-login data until successful login or ultimate failure
+                // when encrypted pin-protected wallet is wiped completely.
+            }
         }
     }
 }
@@ -582,9 +599,8 @@ static void offer_jade_reset(void)
 }
 
 // Offer to communicate with pinserver via QRs
-static bool auth_qr_mode(void)
+static bool auth_qr_mode_ex(const bool suppress_pin_change_confirmation)
 {
-
     // Temporary login via QR - just set the message source
     if (keychain_has_temporary()) {
         keychain_set(keychain_get(), SOURCE_INTERNAL, true);
@@ -606,8 +622,16 @@ static bool auth_qr_mode(void)
     // Start pinserver/qr handshake process
     initialisation_source = SOURCE_INTERNAL;
     show_connect_screen = true;
-    handle_qr_auth();
+    handle_qr_auth(suppress_pin_change_confirmation);
     return true;
+}
+
+// Offer to communicate with pinserver via QRs
+static bool auth_qr_mode(void)
+{
+    // Standard/normal authentication using QR codes
+    const bool suppress_pin_change_confirmation = false;
+    return auth_qr_mode_ex(suppress_pin_change_confirmation);
 }
 
 // Unlock jade using qr-codes to effect communication with the pinserver
@@ -876,6 +900,30 @@ static void handle_change_pin(void)
     const char* message[] = { "Do you want to", "change your PIN", "when Jade unlocked?" };
     const bool change_pin = await_yesno_activity("Change PIN", message, 3, true, NULL);
     set_request_change_pin(change_pin);
+}
+
+static bool handle_change_pin_qr(void)
+{
+    // Request/start a qr unlock
+    // NOTE: we suppress the pin-change confirmation mid-handling,
+    // as we ask up-front before the process is initiated.
+    const bool suppress_pin_change_confirmation = true;
+    const char* message[] = { "Do you want to", "change your PIN now", "using QR codes?" };
+    if (!await_yesno_activity("Change PIN", message, 3, true, NULL)
+        || !auth_qr_mode_ex(suppress_pin_change_confirmation)) {
+        return false;
+    }
+
+    // Cache the existing 'source' userdata so it can be re-instated after a
+    // successful pin-change and re-login (otherwise we'd be left in QR mode)
+    internal_relogin_source = keychain_get_userdata();
+
+    // Set flag to change pin on next successful auth/unlock and log out of
+    // the current session (note the qr unlock has already been initiated).
+    // Return to main loop to handle the qr unlock
+    set_request_change_pin(true);
+    keychain_clear();
+    return true;
 }
 
 // Helper to delete a wallet registration record after user confirms
@@ -1882,6 +1930,9 @@ static void handle_settings(const bool startup_menu)
     // hw uninitialised and not unlocked/no wallet loaded (ie. no temporary signer)
     const bool hw_locked_uninitialised = !keychain_get() && !keychain_has_pin();
 
+    // hw initialised and that wallet has been unlocked with PIN (ie not a temporary signer)
+    const bool hw_pin_unlocked = keychain_get() && keychain_has_pin() && !keychain_has_temporary();
+
     // NOTE: menu navigation frees prior screens, as the navigation is
     // potentially unbound with all the back and forward buttons.
     bool done = false;
@@ -1946,7 +1997,7 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_AUTHENTICATION:
         case BTN_SETTINGS_OTP_EXIT:
             // Change to 'Authentication' menu
-            act = make_authentication_activity();
+            act = make_authentication_activity(hw_pin_unlocked);
             break;
 
         case BTN_SETTINGS_OTP:
@@ -1992,6 +2043,10 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_CHANGE_PIN:
             handle_change_pin();
+            break;
+
+        case BTN_SETTINGS_CHANGE_PIN_QR:
+            done = handle_change_pin_qr();
             break;
 
 // NOTE: Only Jade v1.1's have brightness controls

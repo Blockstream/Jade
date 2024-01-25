@@ -169,7 +169,7 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
     return pinclient_set(process, pin, pin_len, aeskey, aes_len);
 }
 
-static bool get_pin_load_keys(jade_process_t* process)
+static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_change_confirmation)
 {
     JADE_ASSERT(process);
 
@@ -185,7 +185,8 @@ static bool get_pin_load_keys(jade_process_t* process)
     SENSITIVE_PUSH(aeskey, sizeof(aeskey));
 
     // Do the pinserver 'getpin' process
-    if (!get_pin_get_aeskey(process, "Unlock Jade", pin, sizeof(pin), aeskey, sizeof(aeskey))) {
+    const char* unlock_pin_msg = suppress_pin_change_confirmation ? "Enter Current PIN" : "Unlock Jade";
+    if (!get_pin_get_aeskey(process, unlock_pin_msg, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
         // Server or networking/connection error
         // NOTE: reply message will have already been sent
         JADE_LOGE("Failed to get aeskey from pinserver");
@@ -238,31 +239,33 @@ static bool get_pin_load_keys(jade_process_t* process)
     rslt = true;
 
     // Optionally change PIN
-    const char* question[] = { "Do you want to", "change your PIN?" };
-    if (change_pin_requested && await_yesno_activity("Change PIN", question, 2, true, NULL)) {
-        uint8_t aeskey_new[AES_KEY_LEN_256];
-        SENSITIVE_PUSH(aeskey_new, sizeof(aeskey_new));
+    if (change_pin_requested) {
+        const char* question[] = { "Do you want to", "change your PIN?" };
+        if (suppress_pin_change_confirmation || await_yesno_activity("Change PIN", question, 2, true, NULL)) {
+            uint8_t aeskey_new[AES_KEY_LEN_256];
+            SENSITIVE_PUSH(aeskey_new, sizeof(aeskey_new));
 
-        if (set_pin_get_aeskey(process, "Enter New PIN", pin, sizeof(pin), aeskey_new, sizeof(aeskey_new))) {
-            JADE_LOGI("PIN changed on server");
-            if (keychain_reencrypt(aeskey, sizeof(aeskey), aeskey_new, sizeof(aeskey_new))) {
-                const char* message[] = { "PIN changed" };
-                await_message_activity(message, 1);
+            if (set_pin_get_aeskey(process, "Enter New PIN", pin, sizeof(pin), aeskey_new, sizeof(aeskey_new))) {
+                JADE_LOGI("PIN changed on server");
+                if (keychain_reencrypt(aeskey, sizeof(aeskey), aeskey_new, sizeof(aeskey_new))) {
+                    const char* message[] = { "PIN changed" };
+                    await_message_activity(message, 1);
+                } else {
+                    JADE_LOGE("Failed to re-encrypt with changed PIN data");
+                    const char* message[] = { "Failed to re-encypt key data!" };
+                    await_error_activity(message, 1);
+                }
             } else {
-                JADE_LOGE("Failed to re-encrypt with changed PIN data");
-                const char* message[] = { "Failed to re-encypt key data!" };
+                JADE_LOGW("Abandoned change-PIN");
+                const char* message[] = { "Change-PIN abandoned" };
                 await_error_activity(message, 1);
             }
-        } else {
-            JADE_LOGW("Abandoned change-PIN");
-            const char* message[] = { "Change-PIN abandoned" };
-            await_error_activity(message, 1);
+            SENSITIVE_POP(aeskey_new);
         }
-        SENSITIVE_POP(aeskey_new);
     }
 
     // All good
-    set_request_change_pin(false);
+    set_request_change_pin(false); // clear flag
     jade_process_reply_to_message_ok(process);
     JADE_LOGI("Success");
 
@@ -351,6 +354,10 @@ void auth_user_process(void* process_ptr)
         }
     }
 
+    // Optional flag to suppress user confirmation of any pin change
+    bool suppress_pin_change_confirmation = false;
+    rpc_get_boolean("suppress_pin_change_confirmation", &params, &suppress_pin_change_confirmation);
+
     // We have five cases:
     // 1. Temporary - has a temporary keys in memory
     //    - nothing to do here, just return ok  (having checked message source)
@@ -396,7 +403,7 @@ void auth_user_process(void* process_ptr)
             if (keychain_get()) {
                 keychain_clear();
             }
-            rslt = get_pin_load_keys(process);
+            rslt = get_pin_load_keys(process, suppress_pin_change_confirmation);
         }
     } else {
         // Jade hw is not fully initialised - if we have an 'in-memory' mnemonic

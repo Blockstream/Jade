@@ -361,15 +361,18 @@ gui_activity_t* make_display_settings_activity(void)
     return make_menu_activity("Display", hdrbtns, 2, menubtns, num_menubtns);
 }
 
-gui_activity_t* make_authentication_activity(void)
+gui_activity_t* make_authentication_activity(const bool initialised_and_pin_unlocked)
 {
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_AUTHENTICATION_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = { { .txt = "Duress PIN", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
-        { .txt = "OTP", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP } };
+        { .txt = "OTP", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
+        { .txt = "Change PIN (QR)", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_CHANGE_PIN_QR } };
 
-    return make_menu_activity("Authentication", hdrbtns, 2, menubtns, 2);
+    const size_t num_btns = initialised_and_pin_unlocked ? 3 : 2;
+
+    return make_menu_activity("Authentication", hdrbtns, 2, menubtns, num_btns);
 }
 
 gui_activity_t* make_otp_activity(void)

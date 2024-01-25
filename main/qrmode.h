@@ -29,6 +29,6 @@ bool await_qr_back_continue_activity(
     const char* message[], size_t message_size, const char* url, bool default_selection);
 
 // Start pinserver authentication via qr codes
-void handle_qr_auth(void);
+void handle_qr_auth(bool suppress_pin_change_confirmation);
 
 #endif /* QRMODE_H_ */
