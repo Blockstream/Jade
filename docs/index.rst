@@ -506,7 +506,7 @@ Request to initiate a firmware update using a binary diff/patch to be applied on
 
     {
         "id": "7",
-        "method": "ota",
+        "method": "ota_delta",
         "params": {
             "fwsize": 926448,
             "patchsize": 987291,
@@ -578,7 +578,8 @@ ota_complete reply
         "result": true
     }
 
-* A 'true' response implies the firmware upload completed successfully, and the next restart will attempt to boot the new firmware.
+* A 'true' response implies the firmware upload completed successfully, and the next restart (which should happen immediately/automatically) will attempt to boot the new firmware.
+
 
 .. _register_descriptor_request:
 
@@ -749,7 +750,7 @@ get_registered_multisigs reply
         }
     }
 
-.. _get_registered_multisigs_request:
+.. _get_registered_multisig_request:
 
 get_registered_multisig request
 -------------------------------
@@ -772,7 +773,7 @@ NOTE: the multisig wallet must have been registered with firmware v1.0.23 or lat
 * If 'as_file' is false, structured json is returned
 
 
-.. _get_registered_multisigs_reply:
+.. _get_registered_multisig_reply:
 
 get_registered_multisig reply
 -----------------------------
@@ -1820,6 +1821,7 @@ A batch of 'tx_input' messages should be sent to Jade - one for each tx input, a
 * In addition, if a signature is required for this input and 'is_witness' is 'true', then the input utxo 'value_commitment' must be passed.
 * NOTE: no 'input_tx' is needed.
 * For advanced tx types, eg swaps, with blinded inputs, we pass the unblinding info here.  ie. asset_id, abf, asset_generator, value and vbf - these are as in the 'commitments' data in sign_liquid_tx_legacy_request_.
+
 Once the entire batch (of 'tx_input' messages) has been sent, processed and confirmed on Jade, a batch of replies are sent.
 
 .. _sign_liquid_tx_legacy_input_reply:
