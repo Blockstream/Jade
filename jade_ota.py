@@ -433,6 +433,10 @@ if __name__ == '__main__':
     if downloading and not args.release:
         args.release = 'stable'  # default to latest/stable
 
+    # Create target dir if not present
+    if args.writecompressed and not os.path.isdir(COMP_FW_DIR):
+        os.mkdir(COMP_FW_DIR)
+
     # Get the file to OTA
     if args.downloadfw:
         fwlen, patchlen, fwhash, fwcmp = download_file(args.hwtarget, args.writecompressed,
