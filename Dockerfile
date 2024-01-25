@@ -1,4 +1,4 @@
-FROM debian:bookworm@sha256:133a1f2aa9e55d1c93d0ae1aaa7b94fb141265d0ee3ea677175cdb96f5f990e5 as base
+FROM debian:bookworm@sha256:b16cef8cbcb20935c0f052e37fc3d38dc92bfec0bcfb894c328547f81e932d67 as base
 RUN apt-get update -qq && apt-get upgrade --no-install-recommends --no-install-suggests -yqq && apt-get install --no-install-recommends --no-install-suggests -yqq git wget libncurses-dev flex bison gperf libffi-dev libssl-dev dfu-util cmake ninja-build ccache build-essential ca-certificates ccache cmake curl make pkg-config python3 python3-dev python3-pip python3-setuptools python3-serial python3-click python3-cryptography python3-future python3-pyparsing python3-pyelftools python3-pkg-resources python3-wheel python3-venv python3-sphinx unzip bluez-tools bluez libusb-1.0-0 clang-format libglib2.0-dev libpixman-1-dev libgcrypt20-dev virtualenv libslirp-dev && apt-get -yqq autoremove && apt-get -yqq clean && rm -rf /var/lib/apt/lists/* /var/cache/* /tmp/*
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 RUN python3 -m pip install --break-system-packages --user pycodestyle
@@ -14,8 +14,8 @@ RUN cd ~/esp/esp-idf && git checkout ${ESP_IDF_COMMIT} && ./install.sh esp32 esp
 FROM base AS esp-qemu
 
 # These ARGs are easily parseable (eg by HWI)
-ARG ESP_QEMU_BRANCH=esp-develop-8.1.2-20231017
-ARG ESP_QEMU_COMMIT=9f1e6f1e048f5198d2e055389ab0b13930b046b1
+ARG ESP_QEMU_BRANCH=esp-develop-8.2.0-20240122
+ARG ESP_QEMU_COMMIT=b3354073efe670e312707c899f9bb2ebbe482ba1
 RUN git clone --quiet --depth 1 --branch ${ESP_QEMU_BRANCH} --single-branch --recursive --shallow-submodules https://github.com/espressif/qemu.git \
 && cd qemu && git checkout ${ESP_QEMU_COMMIT}
 
