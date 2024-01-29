@@ -249,8 +249,6 @@ bool keychain_is_network_type_consistent(const char* network)
 static void populate_service_path(keychain_t* keydata)
 {
     JADE_ASSERT(keydata);
-    uint8_t extkeydata[EC_PRIVATE_KEY_LEN + EC_PUBLIC_KEY_LEN];
-    SENSITIVE_PUSH(extkeydata, sizeof(extkeydata));
 
     // 1. Derive a child of our private key using the fixed GA index
     struct ext_key derived;
@@ -259,20 +257,16 @@ static void populate_service_path(keychain_t* keydata)
         &keydata->xpriv, &GA_PATH_ROOT, 1, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
 
     // 2. Get it as an 'extended public key' byte-array
-    memcpy(extkeydata, derived.chain_code, EC_PRIVATE_KEY_LEN);
-    memcpy(extkeydata + EC_PRIVATE_KEY_LEN, derived.pub_key, EC_PUBLIC_KEY_LEN);
-    SENSITIVE_POP(&derived);
+    uint8_t extkeydata[sizeof(derived.chain_code) + sizeof(derived.pub_key)];
+    SENSITIVE_PUSH(extkeydata, sizeof(extkeydata));
+    memcpy(extkeydata, derived.chain_code, sizeof(derived.chain_code));
+    memcpy(extkeydata + sizeof(derived.chain_code), derived.pub_key, sizeof(derived.pub_key));
 
     // 3. HMAC the fixed GA key message with 2. to yield the 512-bit 'service path' for this mnemonic/private key
     JADE_WALLY_VERIFY(wally_hmac_sha512(GA_KEY_MSG, sizeof(GA_KEY_MSG), extkeydata, sizeof(extkeydata),
         keydata->service_path, sizeof(keydata->service_path)));
     SENSITIVE_POP(extkeydata);
-
-    // Debug log
-    // char *logbuf = NULL;
-    // wally_hex_from_bytes(keydata->service_path, sizeof(keydata->service_path), &logbuf);
-    // JADE_LOGI("Service path: %s", logbuf);
-    // wally_free_string(logbuf);
+    SENSITIVE_POP(&derived);
 }
 
 void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
