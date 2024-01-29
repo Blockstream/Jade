@@ -16,7 +16,7 @@
 #include "process_utils.h"
 
 // Default pinserver url, onion, and public key
-static const char PINSERVER_URL[] = "https://jadepin.blockstream.com";
+static const char PINSERVER_URL[] = "https://j8d.io";
 static const char PINSERVER_ONION[] = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion";
 extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key_pub_start");
 

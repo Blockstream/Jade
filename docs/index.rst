@@ -195,7 +195,7 @@ Call to update the details of the blind pinserver used to authenticate Jade unlo
     }
 
 * All fields are optional (although an empty message has no effect).
-* 'reset_details' - resets to default pinserver (ie. *https://jadepin.blockstream.com*)
+* 'reset_details' - resets to default pinserver (ie. *https://j8d.io*)
 * 'reset_certificate' - resets any additional certificate (to none)
 * 'urlA'/'urlB' - sets up to two urls for the pinserver.  (Setting only urlA will set urlB to none).
 * 'pubkey' - 33-byte EC public key of pinserver.

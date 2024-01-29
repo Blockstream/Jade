@@ -157,7 +157,7 @@ DEFAULT_SERIAL_TIMEOUT = 120
 PINSERVER_TEST_PUBKEY_FILE = "server_public_key.pub"
 
 # Pinserver prod defaults
-PINSERVER_DEFAULT_URL = "https://jadepin.blockstream.com"
+PINSERVER_DEFAULT_URL = "https://j8d.io"
 PINSERVER_DEFAULT_ONION = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion"
 
 # The number of values expected back in version info
