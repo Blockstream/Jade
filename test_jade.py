@@ -842,6 +842,10 @@ epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
     bad_multi_cosigners3[1]['derivation'] = [1, 2, 3, 4]
     bad_multi_cosigners4 = copy.deepcopy(MULTI_COSIGNERS)
     bad_multi_cosigners4[1]['path'] = [2147483648]
+    bad_multi_cosigners5 = copy.deepcopy(MULTI_COSIGNERS)
+    bad_multi_cosigners5[1]['xpub'] = bad_multi_cosigners2[0]['xpub']
+    bad_multi_cosigners6 = copy.deepcopy(MULTI_COSIGNERS)
+    bad_multi_cosigners6[0]['xpub'] = bad_multi_cosigners6[0]['xpub'].replace('D', 'E', 1)
 
     DESCRIPTOR = 'wsh(pkh(@0/<0;1>/*))'
     DESCR_SIGNER = "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3\
@@ -1023,15 +1027,23 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                       'signers': bad_multi_cosigners4}}), 'Failed to validate co-signers'),
                   (('badmulti19', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'threshold': 2,
+                      'signers': bad_multi_cosigners5}}), 'Failed to validate co-signers'),
+                  (('badmulti20', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
+                      'variant': 'sh(multi(k))', 'threshold': 2,
+                      'signers': bad_multi_cosigners6}}), 'Failed to validate co-signers'),
+                  (('badmulti21', 'register_multisig',
+                    {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(wsh(multi(k)))', 'threshold': 1, 'signers': MULTI_COSIGNERS,
                       'master_blinding_key': 1234}}),
                    'Invalid blinding key'),
-                  (('badmulti20', 'register_multisig',
+                  (('badmulti22', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'wsh(multi(k))', 'threshold': 1, 'signers': MULTI_COSIGNERS,
                       'master_blinding_key': 'abcdef'}}),
                    'Invalid blinding key'),
-                  (('badmulti21', 'register_multisig',
+                  (('badmulti23', 'register_multisig',
                     {'network': 'testnet', 'multisig_name': 'test', 'descriptor': {
                       'variant': 'sh(wsh(multi(k)))', 'threshold': 1, 'signers': MULTI_COSIGNERS,
                       'master_blinding_key': EXPECTED_MASTER_BLINDING_KEY[:-1]}}),

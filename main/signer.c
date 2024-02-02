@@ -42,19 +42,21 @@ bool validate_signers(const signer_t* signers, const size_t num_signers, const b
             }
         }
 
-        // See if signer that matches this wallet (by fingerprint)
+        // Check all given xpubs can be parsed
+        const uint32_t flags = BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH;
+        struct ext_key hdkey_provided;
+        if (!wallet_derive_from_xpub(signer->xpub, NULL, 0, flags, &hdkey_provided)) {
+            JADE_LOGE("Cannot deserialise xpub for derivation path (signer %d)", i);
+            return false;
+        }
+
+        // See if signer matches this wallet (by fingerprint)
         if (!sodium_memcmp(wallet_fingerprint, signer->fingerprint, wallet_fingerprint_len)) {
             // This signer has our fingerprint - check xpub provided
             // NOTE: because some 3rd-party apps provide xpubs which are slightly incorrect in their ancilliary
             // metadata fields, we can't strictly compare xpub strings without affecting compatabililty.
             // Instead we deserialise the provided xpub string and compare pubkey and chaincode only.
             // NOTE: a mismatch here is not a hard fail as could be a fingerprint clash with another signer
-            const uint32_t flags = BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH;
-            struct ext_key hdkey_provided;
-            if (!wallet_derive_from_xpub(signer->xpub, NULL, 0, flags, &hdkey_provided)) {
-                JADE_LOGE("Cannot deserialise xpub for derivation path (signer %d)", i);
-                return false;
-            }
             struct ext_key hdkey_calculated;
             if (!wallet_get_hdkey(signer->derivation, signer->derivation_len, flags, &hdkey_calculated)) {
                 JADE_LOGE("Cannot derive key for derivation path (signer %d)", i);
