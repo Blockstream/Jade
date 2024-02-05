@@ -201,10 +201,11 @@ gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_
 }
 
 // NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
-gui_activity_t* make_show_qr_activity(const char* label, Icon* icons, const size_t num_icons,
-    const size_t frames_per_qr_icon, const bool show_options_button, const bool show_help_btn)
+gui_activity_t* make_show_qr_activity(const char* message[], const size_t message_size, Icon* icons,
+    const size_t num_icons, const size_t frames_per_qr_icon, const bool show_options_button, const bool show_help_btn)
 {
-    JADE_ASSERT(label);
+    JADE_ASSERT(message);
+    JADE_ASSERT(message_size < 4);
     JADE_ASSERT(icons);
     JADE_ASSERT(num_icons);
     JADE_ASSERT(frames_per_qr_icon || num_icons == 1);
@@ -233,15 +234,24 @@ gui_activity_t* make_show_qr_activity(const char* label, Icon* icons, const size
             hdrbtns[2].txt = NULL;
             hdrbtns[2].font = GUI_DEFAULT_FONT;
             hdrbtns[2].ev_id = GUI_BUTTON_EVENT_NONE;
+            hdrbtns[2].borders = 0; // None
         }
 
         add_buttons(vsplit, UI_ROW, hdrbtns, 3); // 44 (hsplit) / 3 == 14 - almost 15 so ok
 
-        // second row, label
-        gui_make_text(&node, label, TFT_WHITE);
-        gui_set_parent(node, vsplit);
-        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, 4);
-        gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        // text label
+        gui_view_node_t* text_parent = vsplit;
+        if (message_size > 1) {
+            text_parent = make_even_split(UI_COLUMN, message_size);
+            const size_t tbpad = ((3 - message_size) * 12) + 8;
+            gui_set_padding(text_parent, GUI_MARGIN_TWO_VALUES, tbpad, 2);
+            gui_set_parent(text_parent, vsplit);
+        }
+        for (size_t i = 0; i < message_size; ++i) {
+            gui_make_text(&node, message[i], TFT_WHITE);
+            gui_set_parent(node, text_parent);
+            gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        }
 
         // Buttons, optionally options
         if (show_options_button) {
@@ -288,7 +298,7 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
         gui_set_parent(vsplit, hsplit);
 
         gui_view_node_t* headersplit;
-        gui_make_hsplit(&headersplit, GUI_SPLIT_RELATIVE, 2, 27, 73); // 27 x 56 (hsplit) == 15
+        gui_make_hsplit(&headersplit, GUI_SPLIT_RELATIVE, 2, 27, 73); // 27 x 56% (hsplit) == 15
         gui_set_parent(headersplit, vsplit);
 
         // first row, header, back button
@@ -337,9 +347,10 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
 
 // NOTE: 'qr_icon' passed in here must be heap-allocated as the gui element takes ownership
 gui_activity_t* make_qr_back_continue_activity(
-    const char* label, const char* url, Icon* qr_icon, const bool default_selection)
+    const char* message[], const size_t message_size, const char* url, Icon* qr_icon, const bool default_selection)
 {
-    JADE_ASSERT(label);
+    JADE_ASSERT(message);
+    JADE_ASSERT(message_size == 3);
     JADE_ASSERT(qr_icon);
     JADE_ASSERT(qr_icon->width <= 100);
     JADE_ASSERT(qr_icon->height <= 100);
@@ -354,21 +365,26 @@ gui_activity_t* make_qr_back_continue_activity(
     // LHS
     {
         gui_view_node_t* vsplit;
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 55, 25);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 6, 20, 18, 16, 21, 25);
         gui_set_parent(vsplit, hsplit);
 
         gui_view_node_t* headersplit;
-        gui_make_hsplit(&headersplit, GUI_SPLIT_RELATIVE, 2, 27, 73); // 27 x 56 (hsplit) == 15
+        gui_make_hsplit(&headersplit, GUI_SPLIT_RELATIVE, 2, 27, 73); // 27 x 56% (hsplit) == 15
         gui_set_parent(headersplit, vsplit);
 
         btn_data_t hdrbtn = { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_NO, .borders = GUI_BORDER_ALL };
         add_buttons(headersplit, UI_ROW, &hdrbtn, 1);
 
-        // second row, message
-        gui_make_text(&node, label, TFT_WHITE);
+        // second/third/fourth row, message
+        gui_make_text(&node, message[0], TFT_WHITE);
         gui_set_parent(node, vsplit);
-        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 0, 2, 4);
-        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_LEFT);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_BOTTOM);
+        gui_make_text(&node, message[1], TFT_WHITE);
+        gui_set_parent(node, vsplit);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_make_text(&node, message[2], TFT_WHITE);
+        gui_set_parent(node, vsplit);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
         // button, continue
         btn_data_t ftrbtn

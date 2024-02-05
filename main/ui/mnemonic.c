@@ -409,12 +409,12 @@ gui_activity_t* make_export_qr_overview_activity(const Icon* icon, const bool in
     gui_activity_t* const act = gui_make_activity();
 
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 45, 55);
     gui_set_parent(hsplit, act->root_node);
 
     // lhs - text
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 55, 25);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 25, 25);
     gui_set_parent(vsplit, hsplit);
 
     // rhs - icon
@@ -441,12 +441,13 @@ gui_activity_t* make_export_qr_overview_activity(const Icon* icon, const bool in
 
     add_buttons(vsplit, UI_ROW, hdrbtns, 3);
 
-    // Second row, message
-    const char* msg = initial ? "     Draw\n   SeedQR" : " SeedQR on\n  template";
-    gui_make_text(&node, msg, TFT_WHITE);
+    // Second/third rows, message
+    gui_make_text(&node, initial ? "Draw" : "SeedQR", TFT_WHITE);
     gui_set_parent(node, vsplit);
-    gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 16, 0, 0, 0);
-    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_BOTTOM);
+    gui_make_text(&node, initial ? "SeedQR" : "template", TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
     btn_data_t ftrbtn
         = { .txt = "Start", .font = GUI_DEFAULT_FONT, .ev_id = BTN_QR_EXPORT_NEXT, .borders = GUI_BORDER_TOP };
@@ -474,12 +475,12 @@ gui_activity_t* make_export_qr_fragment_activity(
     gui_view_node_t* node;
 
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 45, 55);
     gui_set_parent(hsplit, act->root_node);
 
     // lhs - text
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 20, 60);
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 5, 20, 20, 18, 16, 26);
     gui_set_parent(vsplit, hsplit);
 
     // rhs - icon
@@ -505,11 +506,16 @@ gui_activity_t* make_export_qr_fragment_activity(
     gui_set_align(*label_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(*label_node, node);
 
-    // third row, message
-    gui_make_text(&node, "     Draw\n SeedQR on\n  template", TFT_WHITE);
+    // third/fourth/fifth rows, message
+    gui_make_text(&node, "Draw", TFT_WHITE);
     gui_set_parent(node, vsplit);
-    gui_set_padding(node, GUI_MARGIN_TWO_VALUES, 4, 0);
-    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_BOTTOM);
+    gui_make_text(&node, "SeedQR", TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_make_text(&node, "template", TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
     // Select 'Next' button by default
     gui_set_activity_initial_selection(act, hdrbtns[2].btn);

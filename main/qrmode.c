@@ -41,7 +41,7 @@
 
 gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon);
 gui_activity_t* make_qr_back_continue_activity(
-    const char* label, const char* url, const Icon* qr_icon, bool default_selection);
+    const char* message[], size_t message_size, const char* url, const Icon* qr_icon, bool default_selection);
 
 gui_activity_t* make_show_xpub_qr_activity(
     const char* label, const char* pathstr, Icon* icons, size_t num_icons, size_t frames_per_qr_icon);
@@ -53,8 +53,8 @@ gui_activity_t* make_search_verify_address_activity(
 gui_activity_t* make_search_address_options_activity(
     bool show_account, gui_view_node_t** account_textbox, gui_view_node_t** change_textbox);
 
-gui_activity_t* make_show_qr_activity(const char* label, Icon* icons, size_t num_icons, size_t frames_per_qr_icon,
-    bool show_options_button, bool show_help_btn);
+gui_activity_t* make_show_qr_activity(const char* message[], size_t message_size, Icon* icons, size_t num_icons,
+    size_t frames_per_qr_icon, bool show_options_button, bool show_help_btn);
 gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** framerate_textbox);
 
 bool import_mnemonic(const uint8_t* bytes, size_t bytes_len, char* buf, size_t buf_len, size_t* written);
@@ -870,10 +870,11 @@ static bool handle_qr_options(uint32_t* qr_flags)
 }
 
 // Create activity to display (potentially multi-frame/animated) qr
-static gui_activity_t* create_display_bcur_qr_activity(const char* label, const char* bcur_type, const uint8_t* cbor,
-    const size_t cbor_len, const uint32_t qr_flags, const char* help_url)
+static gui_activity_t* create_display_bcur_qr_activity(const char* message[], const size_t message_size,
+    const char* bcur_type, const uint8_t* cbor, const size_t cbor_len, const uint32_t qr_flags, const char* help_url)
 {
-    JADE_ASSERT(label);
+    JADE_ASSERT(message);
+    JADE_ASSERT(message_size);
     JADE_ASSERT(bcur_type);
     JADE_ASSERT(cbor);
     JADE_ASSERT(cbor_len);
@@ -888,14 +889,15 @@ static gui_activity_t* create_display_bcur_qr_activity(const char* label, const 
     // Create qr activity for those icons
     const bool show_options_button = true;
     const uint8_t frames_per_qr = qr_framerate_from_flags(qr_flags);
-    return make_show_qr_activity(label, icons, num_icons, frames_per_qr, show_options_button, help_url);
+    return make_show_qr_activity(message, message_size, icons, num_icons, frames_per_qr, show_options_button, help_url);
 }
 
 // Display a QR code, with access to size_speed options
-static void display_bcur_qr(
-    const char* label, const char* bcur_type, const uint8_t* cbor, const size_t cbor_len, const char* help_url)
+static void display_bcur_qr(const char* message[], const size_t message_size, const char* bcur_type,
+    const uint8_t* cbor, const size_t cbor_len, const char* help_url)
 {
-    JADE_ASSERT(label);
+    JADE_ASSERT(message);
+    JADE_ASSERT(message_size);
     JADE_ASSERT(bcur_type);
     JADE_ASSERT(cbor);
     JADE_ASSERT(cbor_len);
@@ -908,7 +910,8 @@ static void display_bcur_qr(
     idletimer_set_min_timeout_secs(BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS);
 
     // Create show psbt activity for those icons
-    gui_activity_t* act = create_display_bcur_qr_activity(label, bcur_type, cbor, cbor_len, qr_flags, help_url);
+    gui_activity_t* act
+        = create_display_bcur_qr_activity(message, message_size, bcur_type, cbor, cbor_len, qr_flags, help_url);
 
     while (true) {
         // Show, and await button click
@@ -928,7 +931,8 @@ static void display_bcur_qr(
                 if (handle_qr_options(&qr_flags)) {
                     // Options were updated - re-create psbt qr screen
                     display_processing_message_activity();
-                    act = create_display_bcur_qr_activity(label, bcur_type, cbor, cbor_len, qr_flags, help_url);
+                    act = create_display_bcur_qr_activity(
+                        message, message_size, bcur_type, cbor, cbor_len, qr_flags, help_url);
                 }
             } else if (ev_id == BTN_QR_DISPLAY_HELP) {
                 await_qr_help_activity(help_url);
@@ -971,7 +975,8 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         JADE_ASSERT(written < sizeof(sig));
         JADE_ASSERT(sig[written - 1] == '\0');
 
-        await_single_qr_activity("Scan QR\nsignature", sig, written - 1, NULL);
+        const char* message[] = { "Scan QR", "signature" };
+        await_single_qr_activity(message, 2, sig, written - 1, NULL);
         return true;
     }
 
@@ -1081,8 +1086,8 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     }
 
     // Now display bcur QR
-    display_bcur_qr(
-        "Scan with\n   wallet\n     app", BCUR_TYPE_CRYPTO_PSBT, cbor_signed, cbor_signed_len, "blkstrm.com/psbt");
+    const char* message[] = { "Scan with", "wallet", "app" };
+    display_bcur_qr(message, 3, BCUR_TYPE_CRYPTO_PSBT, cbor_signed, cbor_signed_len, "blkstrm.com/psbt");
 
 cleanup:
     JADE_WALLY_VERIFY(wally_psbt_free(psbt));
@@ -1123,8 +1128,8 @@ static bool handle_bip85_bip39_request_qr(const uint8_t* cbor, const size_t cbor
     JADE_ASSERT(reply_cbor_len && reply_cbor_len <= sizeof(cbor_reply));
 
     // Now display bcur QR
-    display_bcur_qr("Scan with\n   wallet\n     app", BCUR_TYPE_JADE_BIP8539_REPLY, cbor_reply, reply_cbor_len,
-        "blkstrm.com/bip85");
+    const char* message[] = { "Scan with", "wallet", "app" };
+    display_bcur_qr(message, 3, BCUR_TYPE_JADE_BIP8539_REPLY, cbor_reply, reply_cbor_len, "blkstrm.com/bip85");
 
     return true;
 }
@@ -1312,9 +1317,11 @@ static void bytes_to_qr_icon(const uint8_t* bytes, const size_t bytes_len, const
 }
 
 // Display a BC-UR bytes message
-bool display_bcur_bytes_qr(const char* label, const uint8_t* data, const size_t data_len, const char* help_url)
+bool display_bcur_bytes_qr(
+    const char* message[], const size_t message_size, const uint8_t* data, const size_t data_len, const char* help_url)
 {
-    JADE_ASSERT(label);
+    JADE_ASSERT(message);
+    JADE_ASSERT(message_size);
     JADE_ASSERT(data);
     JADE_ASSERT(data_len);
 
@@ -1327,7 +1334,7 @@ bool display_bcur_bytes_qr(const char* label, const uint8_t* data, const size_t 
     }
 
     // Now display bcur QR
-    display_bcur_qr(label, BCUR_TYPE_BYTES, cbor, cbor_len, help_url);
+    display_bcur_qr(message, message_size, BCUR_TYPE_BYTES, cbor, cbor_len, help_url);
 
     free(cbor);
     return true;
@@ -1336,9 +1343,11 @@ bool display_bcur_bytes_qr(const char* label, const uint8_t* data, const size_t 
 // Display screen with help url and qr code
 // Handles up to v6. codes - ie text up to 134 bytes
 // help_url is optional
-void await_single_qr_activity(const char* label, const uint8_t* data, const size_t data_len, const char* help_url)
+void await_single_qr_activity(
+    const char* message[], const size_t message_size, const uint8_t* data, const size_t data_len, const char* help_url)
 {
-    JADE_ASSERT(label);
+    JADE_ASSERT(message);
+    JADE_ASSERT(message_size);
     JADE_ASSERT(data);
     JADE_ASSERT(data_len);
     // help_url is optional
@@ -1348,7 +1357,7 @@ void await_single_qr_activity(const char* label, const uint8_t* data, const size
     bytes_to_qr_icon(data, data_len, large_icons, qr_icon);
 
     // Show, and await button click - note gui takes ownership of icon
-    gui_activity_t* const act = make_show_qr_activity(label, qr_icon, 1, 0, false, help_url);
+    gui_activity_t* const act = make_show_qr_activity(message, message_size, qr_icon, 1, 0, false, help_url);
     int32_t ev_id;
 
     while (true) {
@@ -1434,9 +1443,11 @@ void await_qr_help_activity(const char* url)
 }
 
 // Display screen with help url and qr code
-bool await_qr_back_continue_activity(const char* label, const char* url, const bool default_selection)
+bool await_qr_back_continue_activity(
+    const char* message[], const size_t message_size, const char* url, const bool default_selection)
 {
-    JADE_ASSERT(label);
+    JADE_ASSERT(message);
+    JADE_ASSERT(message_size);
     JADE_ASSERT(url);
 
     const size_t url_len = strlen(url);
@@ -1447,7 +1458,7 @@ bool await_qr_back_continue_activity(const char* label, const char* url, const b
     bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
 
     // Show, and await button click
-    gui_activity_t* const act = make_qr_back_continue_activity(label, url, qr_icon, default_selection);
+    gui_activity_t* const act = make_qr_back_continue_activity(message, message_size, url, qr_icon, default_selection);
     gui_set_current_activity(act);
 
     int32_t ev_id = 0;
@@ -1580,10 +1591,12 @@ cleanup:
 // (whether valid/expected or not), and it does not want to wait to be presented with another message.
 // ie. the return indicates processing has finished, not that processing was necessarily successful.
 // (That information is returned in the context object.)
-// NOTE: the presence of a 'label' indicates we want to display the message payload as a QR
-static bool handle_pinserver_reply(const char* label, const uint8_t* msg, const size_t len, void* ctx)
+// NOTE: the presence of a label messages indicate we want to display the payload as a QR
+static bool handle_pinserver_reply(
+    const char* message[], const size_t message_size, const uint8_t* msg, const size_t len, void* ctx)
 {
-    // label is optional
+    // message and message_size are optional, but must be consistent
+    JADE_ASSERT(!message_size || message);
     JADE_ASSERT(msg);
     JADE_ASSERT(len);
     JADE_ASSERT(ctx);
@@ -1593,30 +1606,30 @@ static bool handle_pinserver_reply(const char* label, const uint8_t* msg, const 
 
     // Parse the received message
     CborParser parser;
-    CborValue message;
-    const CborError cberr = cbor_parser_init(msg, len, CborValidateBasic, &parser, &message);
-    if (cberr != CborNoError || !rpc_message_valid(&message)) {
+    CborValue root;
+    const CborError cberr = cbor_parser_init(msg, len, CborValidateBasic, &parser, &root);
+    if (cberr != CborNoError || !rpc_message_valid(&root)) {
         JADE_LOGE("Invalid cbor message");
         goto cleanup;
     }
 
     // Ultimate response is boolean
     bool bool_result = false;
-    if (rpc_get_boolean("result", &message, &bool_result)) {
+    if (rpc_get_boolean("result", &root, &bool_result)) {
         JADE_LOGI("PIN QR result: %u", bool_result);
         goto cleanup;
     }
 
     CborValue result;
     CborValue http_request;
-    if (!rpc_get_map("result", &message, &result) || !rpc_get_map("http_request", &result, &http_request)) {
+    if (!rpc_get_map("result", &root, &result) || !rpc_get_map("http_request", &result, &http_request)) {
         JADE_LOGE("Unexpected cbor message - no 'http_request' result payload");
         goto cleanup;
     }
 
     // Display message as bcur qr if a screen label was passed
-    if (label) {
-        display_bcur_qr(label, BCUR_TYPE_JADE_PIN, msg, len, "blkstrm.com/qrpin");
+    if (message_size) {
+        display_bcur_qr(message, message_size, BCUR_TYPE_JADE_PIN, msg, len, "blkstrm.com/qrpin");
     }
 
     // Message received and QR displayed successfully
@@ -1631,18 +1644,20 @@ cleanup:
 
 static bool handle_first_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
 {
-    return handle_pinserver_reply(" Step 1/4\nScan Jade\n     QR", msg, len, ctx);
+    const char* message[] = { "Step 1/4", "Scan Jade", "QR" };
+    return handle_pinserver_reply(message, 3, msg, len, ctx);
 }
 
 static bool handle_second_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
 {
-    return handle_pinserver_reply(" Step 3/4\nScan Jade\n     QR", msg, len, ctx);
+    const char* message[] = { "Step 3/4", "Scan Jade", "QR" };
+    return handle_pinserver_reply(message, 3, msg, len, ctx);
 }
 
 static bool handle_third_pinserver_reply(const uint8_t* msg, const size_t len, void* ctx)
 {
     // No QR to display with final reply
-    return handle_pinserver_reply(NULL, msg, len, ctx);
+    return handle_pinserver_reply(NULL, 0, msg, len, ctx);
 }
 
 static bool get_outbound_reply_show_qr(outbound_message_writer_fn_t handler)

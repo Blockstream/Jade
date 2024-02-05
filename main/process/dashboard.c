@@ -592,11 +592,11 @@ static bool auth_qr_mode(void)
     }
 
     // Otherwise user to confirm pinserver-via-QRs
-    char msg[64];
-    const int ret
-        = snprintf(msg, sizeof(msg), "      Visit\nblkstrm.com/pn to %s", keychain_has_pin() ? "unlock" : "secure");
-    JADE_ASSERT(ret > 0 && ret < sizeof(msg));
-    if (!await_qr_back_continue_activity(msg, "blkstrm.com/pn", true)) {
+    char buf[16];
+    const int ret = snprintf(buf, sizeof(buf), "pn to %s", keychain_has_pin() ? "unlock" : "secure");
+    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+    const char* message[] = { "Visit", "blkstrm.com/", buf };
+    if (!await_qr_back_continue_activity(message, 3, "blkstrm.com/pn", true)) {
         // User decided against it
         return false;
     }
@@ -994,8 +994,8 @@ static void handle_registered_wallets(void)
                     }
 
                     // Get as cbor bytes
-                    if (!display_bcur_bytes_qr(
-                            "  Export\n Multisig\n  wallet", (const uint8_t*)output, written, "blkstrm.com/wallets")) {
+                    const char* message[] = { "Export", "Multisig", "wallet" };
+                    if (!display_bcur_bytes_qr(message, 3, (const uint8_t*)output, written, "blkstrm.com/wallets")) {
                         JADE_LOGE("Failed to create multisig export details QR code");
                         const char* message[] = { "Unable to export", "wallet details" };
                         await_error_activity(message, 2);
