@@ -27,6 +27,16 @@
 #include "usbhmsc/usbhmsc.h"
 #include "usbhmsc/usbmode.h"
 #endif
+
+// A genuine production v2 Jade may be awaiting mandatory attestation data
+#if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)
+#include "attestation/attestation.h"
+static inline bool awaiting_attestation_data(void) { return !attestation_initialised(); }
+#else
+// Jade v1.x and diy devices are never awaiting mandatory attestation data
+static inline bool awaiting_attestation_data(void) { return false; }
+#endif
+
 #ifdef CONFIG_BT_ENABLED
 #include "../ble/ble.h"
 #else
@@ -2762,7 +2772,15 @@ void dashboard_process(void* process_ptr)
         const bool has_pin = keychain_has_pin();
         const keychain_t* initial_keychain = keychain_get();
 
-        if (show_connect_screen) {
+        if (awaiting_attestation_data()) {
+            // Initial screen while awaiting attestation data upload
+            gui_activity_t* const act = gui_make_activity();
+            gui_view_node_t* node;
+            gui_make_text(&node, "Awaiting Attestation Data", TFT_WHITE);
+            gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+            gui_set_parent(node, act->root_node);
+            act_dashboard = act;
+        } else if (show_connect_screen) {
             // Some sort of connection is in progress
             if (initialisation_source == SOURCE_INTERNAL) {
                 JADE_LOGI("Awaiting QR initialisation");

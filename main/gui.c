@@ -23,6 +23,15 @@
 #include "ble/ble.h"
 #endif
 
+// A genuine production v2 Jade may be awaiting mandatory attestation data
+#if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)
+#include "attestation/attestation.h"
+static inline bool awaiting_attestation_data(void) { return !attestation_initialised(); }
+#else
+// Jade v1.x and diy devices are never awaiting mandatory attestation data
+static inline bool awaiting_attestation_data(void) { return false; }
+#endif
+
 ESP_EVENT_DEFINE_BASE(GUI_BUTTON_EVENT);
 ESP_EVENT_DEFINE_BASE(GUI_EVENT);
 
@@ -2510,15 +2519,22 @@ extern const uint8_t splashend[] asm("_binary_splash_bin_gz_end");
 gui_activity_t* gui_display_splash(void)
 {
     gui_activity_t* const act = gui_make_activity();
-    gui_view_node_t* splash_node;
+    gui_view_node_t* splash_node = NULL;
+
+    if (awaiting_attestation_data()) {
+        gui_make_text(&splash_node, "Awaiting Attestation Data", TFT_WHITE);
+    } else {
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
-    Picture* const pic = get_picture(splashstart, splashend);
-    gui_make_picture(&splash_node, pic);
+        Picture* const pic = get_picture(splashstart, splashend);
+        gui_make_picture(&splash_node, pic);
 #else
-    gui_make_text(&splash_node, "Jade DIY", TFT_WHITE);
+        gui_make_text(&splash_node, "Jade DIY", TFT_WHITE);
 #endif
+    }
+
     gui_set_align(splash_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(splash_node, act->root_node);
+
     // set the current activity and draw it on screen
     gui_set_current_activity(act);
     return act;
