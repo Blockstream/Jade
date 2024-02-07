@@ -13,6 +13,39 @@ void update_menu_item(gui_view_node_t* node, const char* label, const char* valu
     gui_update_text(node, buf);
 }
 
+// Handles up to 5 splits, row or column.
+// layout == UI_ROW -> [ x | y | z ] items in a row -> an hsplit
+// layout == UI_COLUMN -> [ x / y / z ] items in a column -> a vsplit
+gui_view_node_t* make_even_split(const ui_button_layout_t layout, const uint8_t num_splits)
+{
+    JADE_ASSERT(layout == UI_ROW || layout == UI_COLUMN);
+    // num_splits range asserted in switch below
+
+    // Make the split relevant for the number of buttons
+    typedef void (*make_split_fn)(gui_view_node_t * *ptr, enum gui_split_type kind, uint32_t parts, ...);
+    make_split_fn make_split = (layout == UI_COLUMN) ? gui_make_vsplit : gui_make_hsplit;
+
+    // Make a split for the number of buttons (if greater than one)
+    gui_view_node_t* split = NULL;
+    switch (num_splits) {
+    case 2:
+        make_split(&split, GUI_SPLIT_RELATIVE, 2, 50, 50);
+        break;
+    case 3:
+        make_split(&split, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
+        break;
+    case 4:
+        make_split(&split, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+        break;
+    case 5:
+        make_split(&split, GUI_SPLIT_RELATIVE, 5, 20, 20, 20, 20, 20);
+        break;
+    default:
+        JADE_ASSERT_MSG(false, "Unsupported split size");
+    }
+    return split;
+}
+
 // Helper to make a standard button, for consistent look and feel behaviour
 void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
 {
@@ -55,14 +88,13 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
     btn_info->btn = btn;
 }
 
-// Helper to create up to four buttons in a row or column
+// Helper to create buttons in a row or column
 void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_data_t* btns, const size_t num_btns)
 {
     JADE_ASSERT(parent);
     JADE_ASSERT(layout == UI_ROW || layout == UI_COLUMN);
     JADE_ASSERT(btns);
     JADE_ASSERT(num_btns);
-    JADE_ASSERT(num_btns <= 4);
 
     if (num_btns == 1) {
         // skip intermediate split, apply button directly to parent
@@ -71,25 +103,8 @@ void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_d
         return;
     }
 
-    // Make the split relevant for the number of buttons
-    typedef void (*make_split_fn)(gui_view_node_t * *ptr, enum gui_split_type kind, uint32_t parts, ...);
-    make_split_fn make_split = (layout == UI_COLUMN) ? gui_make_vsplit : gui_make_hsplit;
-
     // Make a split for the number of buttons (if greater than one)
-    gui_view_node_t* split = NULL;
-    switch (num_btns) {
-    case 2:
-        make_split(&split, GUI_SPLIT_RELATIVE, 2, 50, 50);
-        break;
-    case 3:
-        make_split(&split, GUI_SPLIT_RELATIVE, 3, 33, 34, 33);
-        break;
-    case 4:
-        make_split(&split, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
-        break;
-    default:
-        JADE_ASSERT_MSG(false, "Unsupported number of buttons");
-    }
+    gui_view_node_t* const split = make_even_split(layout, num_btns);
     gui_set_parent(split, parent);
 
     // Add buttons to split
