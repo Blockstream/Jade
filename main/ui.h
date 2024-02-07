@@ -121,6 +121,10 @@ void populate_title_bar(
 gui_view_node_t* add_title_bar(
     gui_activity_t* activity, const char* title, btn_data_t* btns, size_t num_btns, gui_view_node_t** title_node);
 
+// Helper to create an activity which is a grid of (up to 5x5) text items
+gui_activity_t* make_text_grid_activity(const char* title, btn_data_t* hdrbtns, size_t num_hdrbtns, size_t toppad,
+    uint8_t xcells, uint8_t ycells, const char* texts, size_t num_texts, const char** remaining_texts);
+
 // Helper to create a vertical menu of 2, 3 or 4 buttons
 gui_activity_t* make_menu_activity(
     const char* title, btn_data_t* hdrbtns, const size_t num_hdrbtns, btn_data_t* menubtns, size_t num_menubtns);

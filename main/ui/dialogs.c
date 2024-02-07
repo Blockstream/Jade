@@ -193,6 +193,61 @@ gui_view_node_t* add_title_bar(
     return vsplit;
 }
 
+// Helper to create an activity which is a grid of (up to 5x5) text items
+// NOTE: the text is passed as one char large array containing embedded terminators
+// to delineate the separate texts - eg: ... , "abc\0def\0ghi\0j\0", 4)
+gui_activity_t* make_text_grid_activity(const char* title, btn_data_t* hdrbtns, const size_t num_hdrbtns,
+    const size_t toppad, const uint8_t xcells, const uint8_t ycells, const char* texts, const size_t num_texts,
+    const char** remaining_texts)
+{
+    // Title and header are optional
+    JADE_ASSERT(hdrbtns || !num_hdrbtns);
+    JADE_ASSERT(xcells);
+    JADE_ASSERT(ycells);
+    JADE_ASSERT(texts);
+    JADE_ASSERT(num_texts);
+    JADE_ASSERT(num_texts <= xcells * ycells);
+    // remaining_texts pointer is optional
+
+    gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* parent = act->root_node;
+
+    // Add a titlebar if deisred
+    const bool have_hdr = title || num_hdrbtns;
+    if (have_hdr) {
+        parent = add_title_bar(act, title, hdrbtns, num_hdrbtns, NULL);
+    }
+
+    // Make grid - reads across then down
+    gui_view_node_t* const vsplit = make_even_split(UI_COLUMN, ycells);
+    gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, toppad, 2, 0, 2);
+    gui_set_parent(vsplit, parent);
+
+    const char* text_item = texts;
+    for (uint8_t y = 0; y < ycells; ++y) {
+        gui_view_node_t* hsplit = make_even_split(UI_ROW, xcells);
+        gui_set_parent(hsplit, vsplit);
+
+        for (uint8_t x = 0; x < xcells; ++x) {
+            const int itxt = (y * xcells) + x;
+            if (itxt < num_texts) {
+                gui_view_node_t* node;
+                gui_make_text(&node, text_item, TFT_WHITE);
+                gui_set_parent(node, hsplit);
+                text_item += strlen(text_item) + 1;
+            }
+        }
+    }
+
+    // Return pointer indicating where we have read/displayed up to
+    // NOTE: could be off the end of the 'texts' string if entire string consumed.
+    if (remaining_texts) {
+        *remaining_texts = text_item;
+    }
+
+    return act;
+}
+
 // Helper to create an activity to show a vertical menu
 // Must pass title-bar information - supports up to 4 menu buttons
 gui_activity_t* make_menu_activity(
