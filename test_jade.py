@@ -12,7 +12,7 @@ import subprocess
 import threading
 import _thread
 
-from pinserver.server import PINServerECDH
+from pinserver.server import PINServerECDHv1
 from pinserver.pindb import PINDb
 import wallycore as wally
 from jadepy.jade import JadeAPI, JadeError
@@ -2079,7 +2079,7 @@ def test_handshake(jade):
     # 2. This is where the app would call the URL returned, and pass the
     #    response (ecdh key) to jade.  We use the pinserver class directly.
     #    The response from jade is the encrypted pin packet and the URL.
-    server = PINServerECDH()
+    server = PINServerECDHv1()
     server.load_private_key()
     pubkey, sig = server.get_signed_public_key()
 
@@ -2145,9 +2145,9 @@ def test_handshake(jade):
     assert certs == [TEST_CERT]
 
     # 2. pass pinserver ecdh key to jade
-    # Note: PINServerECDH instances are ephemeral, so we create a new one
+    # Note: PINServerECDHv1 instances are ephemeral, so we create a new one
     #       here, as that is what would happen in pinserver proper.
-    server = PINServerECDH()
+    server = PINServerECDHv1()
     server.load_private_key()
     pubkey, sig = server.get_signed_public_key()
 
@@ -2213,7 +2213,7 @@ def test_handshake_bad_sig(jade):
     # 3. This is where the app would call the URL returned, and pass the
     #    response (ecdh key) to jade.  We use the pinserver class directly.
     #    We expect this to fail as the pinserver signature will not match expected
-    server = PINServerECDH()
+    server = PINServerECDHv1()
     server.load_private_key()
     pubkey, sig = server.get_signed_public_key()
 
