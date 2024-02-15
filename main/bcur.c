@@ -618,7 +618,7 @@ static bool collect_any_bcur(qr_data_t* qr_data)
 bool bcur_scan_qr(
     const char* prompt_text, char** output_type, uint8_t** output, size_t* output_len, const char* help_url)
 {
-    JADE_ASSERT(prompt_text);
+    // prompt_text is optional
     JADE_INIT_OUT_PPTR(output_type);
     JADE_INIT_OUT_PPTR(output);
     JADE_INIT_OUT_SIZE(output_len);

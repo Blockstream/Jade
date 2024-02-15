@@ -147,20 +147,29 @@ static void copy_camera_image_180(
 
 void await_qr_help_activity(const char* url);
 
-gui_activity_t* make_camera_activity(const char* btnText, progress_bar_t* progress_bar, gui_view_node_t** image_node,
-    gui_view_node_t** label_node, bool show_help_btn);
+gui_activity_t* make_camera_activity(gui_view_node_t** image_node, gui_view_node_t** label_node, bool show_click_btn,
+    bool show_qr_frame_guide, progress_bar_t* progress_bar, bool show_help_btn);
 
 // Camera-task config data
 typedef struct {
-    // Text to display on camera screen
-    // NOTE: no text_btn means no button is shown, and all images are processed
-    // NOTE: no text_label implies no ui is shown at all (and all images are processed)
-    // NOTE: help_url is optional, and only valid if a label is passed
+    // Whether to show a ui or silently collect image data
+    const bool show_ui;
+
+    // Text to display on camera screen - only valid if 'show_ui' is set.
     const char* text_label;
-    const char* text_button;
+
+    // NOTE: help_url is optional, and only valid if a 'show_ui' is passed
     const char* help_url;
 
+    // NOTE: no click button implies all images are processed
+    bool show_click_button;
+
+    // Whether to show guides for ideal QR code placement
+    // NOTE: show_qr_frame_guide is only valid if 'show_ui' is set.
+    bool show_qr_frame_guide;
+
     // Any progress bar (feedback for multi-frame scanning)
+    // NOTE: progress_bar is optional, and only valid if 'show_ui' is set.
     progress_bar_t* progress_bar;
 
     // Function to call to process captured image
@@ -336,26 +345,32 @@ static void jade_camera_task(void* data)
 
     camera_task_config_t* const camera_config = (camera_task_config_t*)data;
     JADE_ASSERT(camera_config->fn_process);
-    JADE_ASSERT(camera_config->text_label || !camera_config->text_button);
-    JADE_ASSERT(camera_config->text_label || !camera_config->help_url);
+    if (!camera_config->show_ui) {
+        JADE_ASSERT(!camera_config->text_label);
+        JADE_ASSERT(!camera_config->show_click_button);
+        JADE_ASSERT(!camera_config->help_url);
+        JADE_ASSERT(!camera_config->show_qr_frame_guide);
+        JADE_ASSERT(!camera_config->progress_bar);
+    }
+
     // camera_config->ctx is optional
+    // camera_config->show_ui indicates whether to show a ui or collect cmaera data 'silently'
     // camera_config->text_label is optional
-    //   - presence indicates we want the images shown on screen/ui
-    //   - if NULL no GUI is shown
-    // camera_config->text_button is optional - indicates we want the user to select the images presented
+    // camera_config->show_click_button indicates we want the user to select the images presented
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
     // camera_config->help_url is optional - if preset a '?' (and help screen) are shown
-    // NOTE: not valid to have a button[label] or help_url if no screen[title/label]
-    const bool has_gui = camera_config->text_label;
+    // camera_config->show_qr_frame_guide is optional - if set guides for ideal QR placement are shown
+    // camera_config->progress_bar is optional, and is for providing feedback for multi-frame scanning
+    // NOTE: not valid to have a label, click button, help_url, qr frame or progress bar if no ui shown
 
     gui_activity_t* act = NULL;
     gui_view_node_t* image_node = NULL;
     gui_view_node_t* label_node = NULL;
 
-    if (has_gui) {
+    if (camera_config->show_ui) {
         // Create camera screen
-        act = make_camera_activity(
-            camera_config->text_button, camera_config->progress_bar, &image_node, &label_node, camera_config->help_url);
+        act = make_camera_activity(&image_node, &label_node, camera_config->show_click_button,
+            camera_config->show_qr_frame_guide, camera_config->progress_bar, camera_config->help_url);
         gui_set_current_activity(act);
     }
 
@@ -369,9 +384,11 @@ static void jade_camera_task(void* data)
     Picture pic = {};
     const size_t image_size = sizeof(uint8_t[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_WIDTH]);
     wait_event_data_t* event_data = NULL;
-    if (has_gui) {
+    const char* const label = camera_config->text_label ? camera_config->text_label : "";
+
+    if (camera_config->show_ui) {
         // Update the text label to indicate readiness
-        gui_update_text(label_node, camera_config->text_label);
+        gui_update_text(label_node, label);
 
         // Image from camera to display on screen.
         // 50% scale down and rotated - still a 20k image buffer.
@@ -406,7 +423,7 @@ static void jade_camera_task(void* data)
         JADE_ASSERT(fb->height == CAMERA_IMAGE_HEIGHT);
 
         // If we have a gui, update the image on screen and check for button events
-        if (has_gui) {
+        if (camera_config->show_ui) {
             // Copy from camera output to screen image
             // (Ensure source image large enough to be scaled down to display image size)
             JADE_ASSERT(fb->len >= UI2CAM(UI2CAM(image_size))); // x and y scaled
@@ -425,13 +442,13 @@ static void jade_camera_task(void* data)
             if (sync_wait_event(event_data, NULL, &ev_id, NULL, 10 / portTICK_PERIOD_MS) == ESP_OK) {
                 if (ev_id == BTN_CAMERA_CLICK) {
                     // Button clicked - invoke passed processing callback
-                    JADE_ASSERT(camera_config->text_button);
+                    JADE_ASSERT(camera_config->show_click_button);
                     gui_update_text(label_node, "Processing...");
                     done = invoke_user_cb_fn(camera_config, fb);
 
                     // If not done, will loop and continue to capture images
                     if (!done) {
-                        gui_update_text(label_node, camera_config->text_label);
+                        gui_update_text(label_node, label);
                     }
                 } else if (ev_id == BTN_CAMERA_HELP) {
                     await_qr_help_activity(camera_config->help_url);
@@ -443,7 +460,7 @@ static void jade_camera_task(void* data)
         }
 
         // If we have no 'click' button (or no gui at all), we run the processing callback on every frame
-        if (!done && !camera_config->text_button) {
+        if (!done && !camera_config->show_click_button) {
             done = invoke_user_cb_fn(camera_config, fb);
         }
 
@@ -452,7 +469,7 @@ static void jade_camera_task(void* data)
     }
 
     // Finished with camera - free everything and kill task
-    if (has_gui) {
+    if (camera_config->show_ui) {
         SENSITIVE_POP(image_buffer);
         free(image_buffer);
     }
@@ -460,29 +477,35 @@ static void jade_camera_task(void* data)
 }
 #endif // CONFIG_HAS_CAMERA
 
-void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* text_label, const char* text_button,
-    const char* help_url, progress_bar_t* progress_bar)
+void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool show_ui, const char* text_label,
+    const bool show_click_button, const bool show_qr_frame_guide, const char* help_url, progress_bar_t* progress_bar)
 {
     JADE_ASSERT(fn);
     // ctx is optional
 
+    // show_ui indicates whether to show a ui or collect cmaera data 'silently'
     // text_label is optional
-    //   - presence indicates we want the images shown on screen/ui
-    //   - if NULL no GUI is shown
     // text_button is optional - indicates we want the user to select the images presented
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
-    // camera_config->help_url is optional - if preset a '?' (and help screen) are shown
+    // show_qr_frame_guide is optional - if set guides for ideal QR placement are shown
+    // help_url is optional - if preset a '?' (and help screen) are shown
     // progress_bar is optional, and is for providing feedback for multi-frame scanning
-    // NOTE: not valid to have a button[label], help_url or progress_bar if no gui screen[title/label]
-    JADE_ASSERT(text_label || !text_button);
-    JADE_ASSERT(text_label || !help_url);
-    JADE_ASSERT(text_label || !progress_bar);
+    // NOTE: not valid to have a label, button[label], help_url, qr frame or progress bar if no ui shown
+    if (!show_ui) {
+        JADE_ASSERT(!text_label);
+        JADE_ASSERT(!show_click_button);
+        JADE_ASSERT(!help_url);
+        JADE_ASSERT(!show_qr_frame_guide);
+        JADE_ASSERT(!progress_bar);
+    }
 
 #ifdef CONFIG_HAS_CAMERA
     // Config for the camera task
-    camera_task_config_t camera_config = { .text_label = text_label,
-        .text_button = text_button,
+    camera_task_config_t camera_config = { .show_ui = show_ui,
+        .text_label = text_label,
+        .show_click_button = show_click_button,
         .help_url = help_url,
+        .show_qr_frame_guide = show_qr_frame_guide,
         .progress_bar = progress_bar,
         .fn_process = fn,
         .ctx = ctx };
