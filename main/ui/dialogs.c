@@ -24,9 +24,9 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
 
     gui_view_node_t* btn;
 
-    // No event implies no 'pressable' button in this position - use a 'fill' instead
+    // No event implies no 'pressable' button in this position - use an empty 'vsplit' as a spacer
     if (btn_info->ev_id == GUI_BUTTON_EVENT_NONE) {
-        gui_make_fill(&btn, TFT_BLACK);
+        gui_make_vsplit(&btn, GUI_SPLIT_RELATIVE, 1, 100); // no-op spacer
     } else {
         gui_make_button(&btn, TFT_BLACK, gui_get_highlight_color(), btn_info->ev_id, NULL);
     }
@@ -39,9 +39,6 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
     } else {
         gui_set_borders(btn, TFT_BLACK, 1, GUI_BORDER_ALL);
     }
-
-    // In any case, highlight body/bg when selected
-    gui_set_colors(btn, TFT_BLACK, gui_get_highlight_color());
 
     // Add any simple text label
     if (btn_info->txt) {
