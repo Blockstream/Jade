@@ -509,19 +509,26 @@ void update_carousel_highlight_color(const gui_view_node_t* text_label, const co
 // using the update_progress_bar() function below.
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar)
 {
-    gui_view_node_t* container;
-    gui_make_fill(&container, TFT_BLACK);
-    gui_set_borders(container, TFT_WHITE, 2, GUI_BORDER_ALL);
-    gui_set_margins(container, GUI_MARGIN_TWO_VALUES, 4, 16);
-    gui_set_parent(container, parent);
+    JADE_ASSERT(parent);
+    JADE_ASSERT(progress_bar);
 
-    gui_view_node_t* progress;
-    gui_make_fill(&progress, TFT_BLACK);
-    gui_set_margins(progress, GUI_MARGIN_ALL_EQUAL, 2);
-    gui_set_borders(progress, gui_get_highlight_color(), 0, GUI_BORDER_LEFT);
-    gui_set_parent(progress, container);
+    // A progress-bar can be transparent, but should the value decrease the parent would
+    // need to be redrawn to reduce the amount of 'fill' in the bar.
+    if (progress_bar->transparent) {
+        gui_make_vsplit(&progress_bar->container, GUI_SPLIT_RELATIVE, 1, 100);
+        gui_make_vsplit(&progress_bar->progress_bar, GUI_SPLIT_RELATIVE, 1, 100);
+    } else {
+        gui_make_fill(&progress_bar->container, TFT_BLACK);
+        gui_make_fill(&progress_bar->progress_bar, TFT_BLACK);
+    }
 
-    progress_bar->progress_bar = progress;
+    gui_set_borders(progress_bar->container, TFT_WHITE, 2, GUI_BORDER_ALL);
+    gui_set_margins(progress_bar->container, GUI_MARGIN_TWO_VALUES, 4, 16);
+    gui_set_parent(progress_bar->container, parent);
+
+    gui_set_margins(progress_bar->progress_bar, GUI_MARGIN_ALL_EQUAL, 2);
+    gui_set_borders(progress_bar->progress_bar, gui_get_highlight_color(), 0, GUI_BORDER_LEFT);
+    gui_set_parent(progress_bar->progress_bar, progress_bar->container);
 }
 
 // Create a progress bar screen, with the given title.
