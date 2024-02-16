@@ -948,7 +948,10 @@ void gui_make_button(
 
     struct view_node_button_data* data = JADE_CALLOC(1, sizeof(struct view_node_button_data));
 
-    // by default same color
+    // If the un-selected colour is the same as the selected colour, it implies
+    // the button is transparent when not selected, so we can skip filling the content.
+    // NOTE: requires the parent is redrawn otherwise button will remain in 'selected' appearance
+    // when selection moves on to another item.
     data->color = color;
     data->selected_color = selected_color;
 
@@ -1669,8 +1672,14 @@ static void render_node(gui_view_node_t* node, const dispWin_t constraints, cons
 
 static void render_button(gui_view_node_t* node, const dispWin_t cs, const uint8_t depth)
 {
-    TFT_fillRect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1,
-        node->is_selected ? node->button->selected_color : node->button->color);
+    // If the un-selected colour is the same as the selected colour, it implies
+    // the button is transparent when not selected, so we can skip filling the content.
+    // NOTE: requires the parent is redrawn otherwise button will remain in 'selected' appearance
+    // when selection moves on to another item.
+    if (node->is_selected || !same_color(node->button->color, node->button->selected_color)) {
+        TFT_fillRect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1,
+            node->is_selected ? node->button->selected_color : node->button->color);
+    }
 
     // Draw any children directly over the current node
     gui_view_node_t* ptr = node->child;
