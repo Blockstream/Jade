@@ -1242,7 +1242,7 @@ void handle_scan_qr(void)
     char* type = NULL;
     uint8_t* data = NULL;
     size_t data_len = 0;
-    if (!bcur_scan_qr("     Scan\n supported\n  QR code", &type, &data, &data_len, "blkstrm.com/jadescan") || !data) {
+    if (!bcur_scan_qr("Scan QR code", &type, &data, &data_len, "blkstrm.com/jadescan") || !data) {
         // Scan aborted
         JADE_ASSERT(!type);
         JADE_ASSERT(!data);
@@ -1695,7 +1695,7 @@ static void auth_qr_client_task(void* ctx)
         // Scan qr code and post back to auth_user/pinclient task
         // 'pin'
         JADE_LOGI("Scanning/posting 'pin' data");
-        if (!scan_qr_post_in_message("  Step 2/2\n Scan Web\n      QR", BCUR_TYPE_JADE_PIN)) {
+        if (!scan_qr_post_in_message("Scan Web QR 2/2", BCUR_TYPE_JADE_PIN)) {
             JADE_LOGW("Failed to scan pin message");
             goto cleanup;
         }

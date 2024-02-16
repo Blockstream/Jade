@@ -44,8 +44,8 @@
 #define UI_CAMERA_IMAGE_HEIGHT CAMERA_IMAGE_HEIGHT
 #endif
 
-// Screen area used to display camera image - half the width x full height
-#define UI_DISPLAY_WIDTH (CONFIG_DISPLAY_WIDTH / 2)
+// Screen area used to display camera image - full screen
+#define UI_DISPLAY_WIDTH (CONFIG_DISPLAY_WIDTH * 70 / 100) // 70% of screen width
 #define UI_DISPLAY_HEIGHT CONFIG_DISPLAY_HEIGHT
 
 // Scale down if image much larger than screen area in both dimensions
@@ -162,6 +162,7 @@ typedef struct {
     const char* help_url;
 
     // NOTE: no click button implies all images are processed
+    // NOTE: atm show_click_btn and help_url are mutually exclusive
     bool show_click_button;
 
     // Whether to show guides for ideal QR code placement
@@ -362,6 +363,7 @@ static void jade_camera_task(void* data)
     // camera_config->show_qr_frame_guide is optional - if set guides for ideal QR placement are shown
     // camera_config->progress_bar is optional, and is for providing feedback for multi-frame scanning
     // NOTE: not valid to have a label, click button, help_url, qr frame or progress bar if no ui shown
+    // NOTE: atm show_click_btn and help_url are mutually exclusive
 
     gui_activity_t* act = NULL;
     gui_view_node_t* image_node = NULL;
@@ -491,6 +493,7 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
     // help_url is optional - if preset a '?' (and help screen) are shown
     // progress_bar is optional, and is for providing feedback for multi-frame scanning
     // NOTE: not valid to have a label, button[label], help_url, qr frame or progress bar if no ui shown
+    // NOTE: atm show_click_btn and help_url are mutually exclusive
     if (!show_ui) {
         JADE_ASSERT(!text_label);
         JADE_ASSERT(!show_click_button);

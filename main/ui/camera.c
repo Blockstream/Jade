@@ -69,70 +69,67 @@ gui_activity_t* make_camera_activity(gui_view_node_t** image_node, gui_view_node
     JADE_INIT_OUT_PPTR(image_node);
     JADE_INIT_OUT_PPTR(label_node);
 
+    // NOTE: atm show_click_btn and help_url are mutually exclusive
+    JADE_ASSERT(!show_click_btn || !show_help_btn);
+
     gui_activity_t* const act = gui_make_activity();
 
-    gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
-    gui_set_parent(hsplit, act->root_node);
+    // Whole screen image
+    gui_make_picture(image_node, NULL);
+    gui_set_align(*image_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(*image_node, act->root_node);
+    gui_view_node_t* parent = *image_node;
 
-    // LHS
-    gui_view_node_t* vsplit;
-    if (show_click_btn && progress_bar) {
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 25, 25);
-    } else if (progress_bar || show_click_btn) {
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 55, 25);
-    } else {
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 20, 80);
+    // QR frame guide if applicable
+    if (show_qr_frame_guide) {
+        // TODO: remove - dev check of icon size
+        JADE_ASSERT(sizeof(qr_frame_guide_icon_data) == (GUIDE_CORNERS_ICON_WIDTH * GUIDE_CORNERS_ICON_HEIGHT / 8) + 1);
+        gui_make_icon(&parent, &icon_qr_frame_guide, TFT_WHITE, NULL);
+        gui_set_align(parent, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        gui_set_parent(parent, *image_node);
     }
-    gui_set_parent(vsplit, hsplit);
 
-    // first row, header, back button
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 60, 20);
+    gui_set_parent(vsplit, parent);
+
+    // Header row buttons - back and either help or 'click'
     btn_data_t hdrbtns[]
         = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CAMERA_EXIT, .borders = GUI_BORDER_ALL },
-              { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
               { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CAMERA_HELP, .borders = GUI_BORDER_ALL } };
 
-    // Remove help button if not required
-    if (!show_help_btn) {
-        hdrbtns[2].txt = NULL;
-        hdrbtns[2].ev_id = GUI_BUTTON_EVENT_NONE;
-    }
-    add_buttons(vsplit, UI_ROW, hdrbtns, 3);
-
-    // second row, message
-    gui_view_node_t* fill;
-    gui_make_fill(&fill, TFT_BLACK);
-    gui_set_parent(fill, vsplit);
-
-    gui_make_text(label_node, "Initializing\nthe camera", TFT_WHITE);
-    gui_set_parent(*label_node, fill);
-    gui_set_padding(*label_node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, 4);
-    gui_set_align(*label_node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-
-    // Any progress bar, if applicable
-    if (progress_bar) {
-        make_progress_bar(vsplit, progress_bar);
-    }
-
-    // buttons
     if (show_click_btn) {
-        // A 'click' button
-        btn_data_t ftrbtn = { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_CAMERA_CLICK };
-        add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
+        hdrbtns[1].txt = "S";
+        hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
+        hdrbtns[1].ev_id = BTN_CAMERA_CLICK;
     }
 
-    // RHS
-    gui_make_picture(image_node, NULL);
-    gui_set_parent(*image_node, hsplit);
-    gui_set_align(*image_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 15, 70, 15);
+    gui_set_parent(hsplit, vsplit);
 
-    // Show QR frame guides if required
-    if (show_qr_frame_guide) {
-        JADE_ASSERT(sizeof(qr_frame_guide_icon_data) == (GUIDE_CORNERS_ICON_WIDTH * GUIDE_CORNERS_ICON_HEIGHT / 8) + 1);
-        gui_view_node_t* qr_frame_guide;
-        gui_make_icon(&qr_frame_guide, &icon_qr_frame_guide, TFT_WHITE, NULL);
-        gui_set_align(qr_frame_guide, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(qr_frame_guide, *image_node);
+    // Back/cancel button
+    add_button(hsplit, &hdrbtns[0]);
+
+    // Any help or 'click' button, if required
+    if (show_help_btn || show_click_btn) {
+        gui_view_node_t* spacer;
+        gui_make_vsplit(&spacer, GUI_SPLIT_RELATIVE, 1, 100); // no-op transparent spacer
+        gui_set_parent(spacer, hsplit);
+        add_button(hsplit, &hdrbtns[1]);
+    }
+
+    // Text label across the centre
+    gui_make_text(label_node, "Initializing...", TFT_WHITE);
+    gui_set_align(*label_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(*label_node, vsplit);
+
+    // Bottom part, any progress bar if applicable (transparent)
+    if (progress_bar) {
+        progress_bar->transparent = true;
+        make_progress_bar(vsplit, progress_bar);
+        gui_set_borders(progress_bar->container, GUI_BLOCKSTREAM_BUTTONBORDER_GREY, 1, GUI_BORDER_ALL);
+        gui_set_margins(progress_bar->container, GUI_MARGIN_ALL_DIFFERENT, 12, 12, 4, 12);
     }
 
     return act;

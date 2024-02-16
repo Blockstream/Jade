@@ -1907,7 +1907,7 @@ static void handle_pinserver_scan(void)
     char* type;
     uint8_t* data = NULL;
     size_t data_len = 0;
-    if (!bcur_scan_qr("Scan Oracle\n      QR", &type, &data, &data_len, "blkstrm.com/oracle")) {
+    if (!bcur_scan_qr("Scan Oracle QR", &type, &data, &data_len, "blkstrm.com/oracle")) {
         // Scan aborted
         JADE_ASSERT(!type);
         JADE_ASSERT(!data);

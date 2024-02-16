@@ -206,7 +206,7 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
 
         // Verify QR by scanning it back
         qr_data_t qr_data = { .len = 0 };
-        jade_camera_scan_qr(&qr_data, "     Scan\ncreated QR\n  to verify", "blkstrm.com/seedqr");
+        jade_camera_scan_qr(&qr_data, "Scan QR to verify", "blkstrm.com/seedqr");
         if (qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
             // QR Code scanned, and it matched expected entropy
             const char* message[] = { "QR Code Verified" };
@@ -1150,9 +1150,7 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     mnemonic[0] = '\0';
 
     // We return 'true' if we scanned any string data at all
-    const bool qr_scanned
-        = jade_camera_scan_qr(&qr_data, "     Scan\nSeedQR or\n supported\n   format", "blkstrm.com/scanwallet")
-        && qr_data.len > 0;
+    const bool qr_scanned = jade_camera_scan_qr(&qr_data, "Scan SeedQR", "blkstrm.com/scanwallet") && qr_data.len > 0;
     if (!qr_scanned) {
         JADE_LOGW("No qr code scanned");
         goto cleanup;
