@@ -258,8 +258,8 @@ static void jade_camera_task(void* data)
 #if defined(CONFIG_CAMERA_ROTATE_90)
                     image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)][imgy * scale];
 #elif defined(CONFIG_CAMERA_ROTATE_180)
-                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)]
-                                                        [(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)];
+                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (imgy * scale)]
+                                                        [(CAMERA_IMAGE_WIDTH - 1) - (imgx * scale)];
 #elif defined(CONFIG_CAMERA_ROTATE_270)
                     image_matrix[imgy][imgx] = fb_matrix[imgx * scale][(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)];
 #else
