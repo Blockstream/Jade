@@ -18,6 +18,10 @@
 #define CAMERA_IMAGE_HEIGHT 240
 #endif
 
+// How much image (central area) is displayed on screen
+size_t camera_displayed_image_width(void);
+size_t camera_displayed_image_height(void);
+
 // Function to process images from the camera.
 // Should return false if processing incomplete (and so should be called again with the next frame)
 // Should return true when processing complete (and the image capture loop/task should exit)
