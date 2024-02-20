@@ -69,6 +69,9 @@ typedef struct {
     gui_view_node_t* text;
 } home_menu_entry_t;
 
+// Whether QR Frame Guides (box corners) should be shown
+typedef enum { QR_GUIDES_NONE, QR_GUIDES_SMALL, QR_GUIDES_LARGE } qr_frame_guides_t;
+
 #define OUTPUT_FLAG_CONFIDENTIAL 1
 #define OUTPUT_FLAG_HAS_BLINDING_KEY 2
 #define OUTPUT_FLAG_VALIDATED 4

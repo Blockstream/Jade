@@ -629,7 +629,8 @@ bool bcur_scan_qr(
     qr_data_t qr_data = { .len = 0, .is_valid = collect_any_bcur, .ctx = urdecoder, .progress_bar = &progress_bar };
 
     // Scan qr code using the bcur decoder to collate multiple frames if required
-    if (!jade_camera_scan_qr(&qr_data, prompt_text, help_url)) {
+    const qr_frame_guides_t qr_frame_guides = QR_GUIDES_LARGE;
+    if (!jade_camera_scan_qr(&qr_data, prompt_text, qr_frame_guides, help_url)) {
         // User exited without completing scanning
         urfree_placement_decoder(urdecoder);
         return false;

@@ -128,7 +128,9 @@ void debug_capture_image_data_process(void* process_ptr)
     const bool show_camera_ui = true;
     const bool show_click_button = true;
     image_capture_into_t info = { .process = process, .check_qr = ret && check_qr };
-    jade_camera_process_images(return_image_data, &info, show_camera_ui, NULL, show_click_button, check_qr, NULL, NULL);
+    const qr_frame_guides_t qr_frame_guides = check_qr ? QR_GUIDES_LARGE : QR_GUIDES_NONE;
+    jade_camera_process_images(
+        return_image_data, &info, show_camera_ui, NULL, show_click_button, qr_frame_guides, NULL, NULL);
 
     // Send a 'user cancelled' error reply if the callback was not invoked
     // (We can detect as the callback frees the 'current message' on successful completion)
@@ -176,7 +178,8 @@ void debug_scan_qr_process(void* process_ptr)
 
     // Attempt to scan a qr
     qr_data_t qr_data = { .len = 0 };
-    if (!jade_camera_scan_qr(&qr_data, "Test Scan Image", NULL)) {
+    const qr_frame_guides_t qr_frame_guides = QR_GUIDES_LARGE;
+    if (!jade_camera_scan_qr(&qr_data, "Test Scan Image", qr_frame_guides, NULL)) {
         JADE_LOGW("QR scanning failed!");
     }
 

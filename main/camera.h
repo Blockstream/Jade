@@ -38,11 +38,11 @@ void camera_set_debug_image(const uint8_t* data, size_t len);
 // If a 'text_label' is passed it is shown with the camera image.
 // If 'show_click_button'' is passed, the user must click to process an image, otherwise
 // every frame captured is passed to the processing function.
-// 'show_qr_frame_guide' can be passed to indicate the ideal QR code placement
+// 'qr_frame_guides' can be passed to indicate the ideal QR code placement
 // 'help_url' can be passed to link to a help url/resource.
 // 'progress_bar' can be passed to give feedback on multi-frame scanning.
 // NOTE: atm show_click_btn and help_url are mutually exclusive
 void jade_camera_process_images(camera_process_fn_t fn, void* ctx, bool show_ui, const char* text_label,
-    bool show_click_button, bool show_qr_frame_guide, const char* help_url, progress_bar_t* progress_bar);
+    bool show_click_button, qr_frame_guides_t qr_frame_guides, const char* help_url, progress_bar_t* progress_bar);
 
 #endif /* CAMERA_H_ */
