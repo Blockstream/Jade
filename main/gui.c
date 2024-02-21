@@ -2000,6 +2000,73 @@ static void free_activities(activity_holder_t* to_free)
     }
 }
 
+// update the status bar
+static void update_status_bar(const bool force_redraw)
+{
+    // No-op if no status bar
+    if (!current_activity || !current_activity->status_bar) {
+        return;
+    }
+
+    dispWin_t status_bar_cs = GUI_DISPLAY_WINDOW;
+    status_bar_cs.y2 = status_bar_cs.y1 + GUI_STATUS_BAR_HEIGHT;
+
+    // NOTE: we use the internal 'gui_update_text_node_text()' method here
+    // since we don't want to redraw each update individually, but rather
+    // capture in a single repaint after all nodes are updated.
+    if ((status_bar.battery_update_counter % 10) == 0) {
+#ifdef CONFIG_BT_ENABLED
+        const bool new_ble = ble_enabled();
+#else
+        const bool new_ble = false;
+#endif
+
+        if (new_ble != status_bar.last_ble_val) {
+            status_bar.last_ble_val = new_ble;
+            if (new_ble) {
+                gui_update_text_node_text(status_bar.ble_text, (char[]){ 'E', '\0' });
+            } else {
+                gui_update_text_node_text(status_bar.ble_text, (char[]){ 'F', '\0' });
+            }
+            status_bar.updated = true;
+        }
+
+        const bool new_usb = usb_connected();
+        if (new_usb != status_bar.last_usb_val) {
+            status_bar.last_usb_val = new_usb;
+            if (new_usb) {
+                gui_update_text_node_text(status_bar.usb_text, (char[]){ 'C', '\0' });
+            } else {
+                gui_update_text_node_text(status_bar.usb_text, (char[]){ 'D', '\0' });
+            }
+            status_bar.updated = true;
+            status_bar.battery_update_counter = 0; // Force battery icon update
+        }
+    }
+
+    if (status_bar.battery_update_counter == 0) {
+        uint8_t new_bat = power_get_battery_status();
+        color_t color = new_bat == 0 ? TFT_RED : new_bat == 1 ? TFT_ORANGE : TFT_WHITE;
+        if (power_get_battery_charging()) {
+            new_bat = new_bat + 12;
+        }
+        if (new_bat != status_bar.last_battery_val) {
+            status_bar.last_battery_val = new_bat;
+            gui_set_color(status_bar.battery_text, color);
+            gui_update_text_node_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
+            status_bar.updated = true;
+        }
+        status_bar.battery_update_counter = 60;
+    }
+
+    status_bar.battery_update_counter--;
+
+    if (status_bar.updated || force_redraw) {
+        render_node(status_bar.root, status_bar_cs, 0);
+        status_bar.updated = false;
+    }
+}
+
 // Process queue of jobs - always drain entire queue
 static size_t handle_gui_input_queue(bool* switched_activities)
 {
@@ -2049,11 +2116,9 @@ static size_t handle_gui_input_queue(bool* switched_activities)
 
             // Update the status bar text for the new activity
             if (current_activity->status_bar) {
-                if (current_activity->title) {
-                    gui_update_text_node_text(status_bar.title, current_activity->title);
-                    repaint_node(status_bar.root);
-                }
-                status_bar.updated = true;
+                const bool force_redraw = true;
+                gui_update_text_node_text(status_bar.title, current_activity->title ? current_activity->title : "");
+                update_status_bar(force_redraw);
             }
 
             // Draw the new activity
@@ -2116,73 +2181,6 @@ static void update_updateables(void)
     }
 }
 
-// update the status bar
-static void update_status_bar(void)
-{
-    // No-op if no status bar
-    if (!current_activity || !current_activity->status_bar) {
-        return;
-    }
-
-    dispWin_t status_bar_cs = GUI_DISPLAY_WINDOW;
-    status_bar_cs.y2 = status_bar_cs.y1 + GUI_STATUS_BAR_HEIGHT;
-
-    // NOTE: we use the internal 'gui_update_text_node_text()' method here
-    // since we don't want to redraw each update individually, but rather
-    // capture in a single repaint after all nodes are updated.
-    if ((status_bar.battery_update_counter % 10) == 0) {
-#ifdef CONFIG_BT_ENABLED
-        const bool new_ble = ble_enabled();
-#else
-        const bool new_ble = false;
-#endif
-
-        if (new_ble != status_bar.last_ble_val) {
-            status_bar.last_ble_val = new_ble;
-            if (new_ble) {
-                gui_update_text_node_text(status_bar.ble_text, (char[]){ 'E', '\0' });
-            } else {
-                gui_update_text_node_text(status_bar.ble_text, (char[]){ 'F', '\0' });
-            }
-            status_bar.updated = true;
-        }
-
-        const bool new_usb = usb_connected();
-        if (new_usb != status_bar.last_usb_val) {
-            status_bar.last_usb_val = new_usb;
-            if (new_usb) {
-                gui_update_text_node_text(status_bar.usb_text, (char[]){ 'C', '\0' });
-            } else {
-                gui_update_text_node_text(status_bar.usb_text, (char[]){ 'D', '\0' });
-            }
-            status_bar.updated = true;
-            status_bar.battery_update_counter = 0; // Force battery icon update
-        }
-    }
-
-    if (status_bar.battery_update_counter == 0) {
-        uint8_t new_bat = power_get_battery_status();
-        color_t color = new_bat == 0 ? TFT_RED : new_bat == 1 ? TFT_ORANGE : TFT_WHITE;
-        if (power_get_battery_charging()) {
-            new_bat = new_bat + 12;
-        }
-        if (new_bat != status_bar.last_battery_val) {
-            status_bar.last_battery_val = new_bat;
-            gui_set_color(status_bar.battery_text, color);
-            gui_update_text_node_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
-            status_bar.updated = true;
-        }
-        status_bar.battery_update_counter = 60;
-    }
-
-    status_bar.battery_update_counter--;
-
-    if (status_bar.updated) {
-        render_node(status_bar.root, status_bar_cs, 0);
-        status_bar.updated = false;
-    }
-}
-
 // gui task, for managing display/activities
 static void gui_task(void* args)
 {
@@ -2207,7 +2205,8 @@ static void gui_task(void* args)
         }
 
         // Update status bar if required
-        update_status_bar();
+        const bool force_redraw = false;
+        update_status_bar(force_redraw);
     }
 
     vTaskDelete(NULL);
