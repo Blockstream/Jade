@@ -17,6 +17,11 @@ if (CONFIG_BOARD_TYPE_JADE_V1_1 OR CONFIG_BOARD_TYPE_JADE_V2)
     list(APPEND logo_files ${PROJECT_DIR}/logo/telec.bin.gz)
 endif()
 
+if (CONFIG_DISPLAY_HEIGHT GREATER_EQUAL 170)
+    list(APPEND logo_files ${PROJECT_DIR}/logo/statusbar_large.bin.gz)
+else()
+    list(APPEND logo_files ${PROJECT_DIR}/logo/statusbar_small.bin.gz)
+endif()
 
 if (CONFIG_IDF_TARGET_ESP32S3)
     set(attestdir "attestation")

@@ -42,6 +42,9 @@ extern uint8_t GUI_DEFAULT_FONT;
 
 // -------------- Constants -----------------
 
+// Whether to use a deep status bar on the home screen, better suited to larger displays
+#define HOME_SCREEN_DEEP_STATUS_BAR (CONFIG_DISPLAY_HEIGHT >= 170)
+
 // Fill all the remaining space in an {h,v}split
 #define GUI_SPLIT_FILL_REMAINING 0xFF
 

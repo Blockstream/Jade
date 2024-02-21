@@ -102,47 +102,95 @@ static inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
 static void gui_task(void* args);
 static void repaint_node(gui_view_node_t* node);
 
+#if HOME_SCREEN_DEEP_STATUS_BAR
+extern const uint8_t statusbar_logo_start[] asm("_binary_statusbar_large_bin_gz_start");
+extern const uint8_t statusbar_logo_end[] asm("_binary_statusbar_large_bin_gz_end");
+#else
+extern const uint8_t statusbar_logo_start[] asm("_binary_statusbar_small_bin_gz_start");
+extern const uint8_t statusbar_logo_end[] asm("_binary_statusbar_small_bin_gz_end");
+#endif
+
 static void make_status_bar(void)
 {
-    gui_view_node_t* root;
-    gui_make_fill(&root, TFT_BLACK);
-    root->parent = NULL;
+    gui_view_node_t* status_parent = NULL;
+    enum gui_horizontal_align name_alignment = GUI_ALIGN_CENTER;
 
+    // Black fill background as the root node
+    gui_make_fill(&status_bar.root, TFT_BLACK);
+    status_bar.root->parent = NULL;
+
+    gui_view_node_t* name_parent;
+    gui_make_fill(&name_parent, TFT_BLACK);
+
+    // Status bar logo image (size appropriate)
+    const Picture* const logopic = get_picture(statusbar_logo_start, statusbar_logo_end);
+
+#if HOME_SCREEN_DEEP_STATUS_BAR
+    // Make an hsplit for the logo on the left, and info on the right
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 67, 8, 8, 17);
-    gui_set_parent(hsplit, root);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
+    gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 2);
+    gui_set_parent(hsplit, status_bar.root);
 
-    gui_view_node_t* black_title_bg;
-    gui_make_fill(&black_title_bg, TFT_BLACK);
-    gui_set_parent(black_title_bg, hsplit);
+    // LHS - logo image
+    gui_view_node_t* logo;
+    gui_make_picture(&logo, logopic);
+    gui_set_align(logo, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(logo, hsplit);
 
-    gui_view_node_t* title_text;
-    gui_make_text_font(&title_text, "Jade", TFT_WHITE, GUI_TITLE_FONT);
-    gui_set_parent(title_text, black_title_bg);
-    gui_set_align(title_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_padding(title_text, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
+    // RHS - Info ; vsplit, the status icons above and the name below
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 50, 50);
+    gui_set_parent(vsplit, hsplit);
 
-    gui_view_node_t* usb_text;
-    gui_make_text_font(&usb_text, "D", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_parent(usb_text, hsplit);
-    gui_set_align(usb_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    // Status icons - hsplit above the name
+    gui_make_hsplit(&status_parent, GUI_SPLIT_RELATIVE, 3, 28, 28, 44);
+    gui_set_padding(status_parent, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 2);
+    gui_set_parent(status_parent, vsplit);
 
-    gui_view_node_t* ble_text;
-    gui_make_text_font(&ble_text, "F", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_parent(ble_text, hsplit);
-    gui_set_align(ble_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    // The name beneath, aligned to the right
+    gui_set_parent(name_parent, vsplit);
+    name_alignment = GUI_ALIGN_RIGHT;
+#else
+    // Make an hsplit for the icon, name, and status icons
+    gui_make_hsplit(&status_parent, GUI_SPLIT_RELATIVE, 5, 10, 57, 8, 8, 17);
+    gui_set_padding(status_parent, GUI_MARGIN_ALL_DIFFERENT, 3, 0, 0, 4);
+    gui_set_parent(status_parent, status_bar.root);
 
-    gui_view_node_t* battery_text;
-    gui_make_text_font(&battery_text, "0", TFT_WHITE, JADE_SYMBOLS_16x32_FONT);
-    gui_set_parent(battery_text, hsplit);
-    gui_set_align(battery_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    // LHS - logo image
+    gui_view_node_t* logo;
+    gui_make_picture(&logo, logopic);
+    gui_set_align(logo, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(logo, status_parent);
 
-    status_bar.root = root;
-    status_bar.title = title_text;
-    status_bar.battery_text = battery_text;
-    status_bar.usb_text = usb_text;
-    status_bar.ble_text = ble_text;
+    // The first part is for the name, aligned left
+    gui_set_parent(name_parent, status_parent);
+    name_alignment = GUI_ALIGN_LEFT;
+#endif // HOME_SCREEN_DEEP_STATUS_BAR
 
+    // Status icons onto the status parent (hsplit)
+    JADE_ASSERT(status_parent);
+    JADE_ASSERT(status_parent->kind == HSPLIT);
+    gui_make_text_font(&status_bar.usb_text, "D", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(status_bar.usb_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(status_bar.usb_text, status_parent);
+
+    gui_make_text_font(&status_bar.ble_text, "F", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+    gui_set_align(status_bar.ble_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(status_bar.ble_text, status_parent);
+
+    gui_make_text_font(&status_bar.battery_text, "0", TFT_WHITE, JADE_SYMBOLS_16x32_FONT);
+    gui_set_align(status_bar.battery_text, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(status_bar.battery_text, status_parent);
+
+    JADE_ASSERT(name_parent);
+    JADE_ASSERT(name_parent->kind == FILL);
+    JADE_ASSERT(name_alignment != GUI_ALIGN_CENTER);
+    gui_make_text_font(&status_bar.title, "Jade", TFT_WHITE, GUI_TITLE_FONT);
+    gui_set_align(status_bar.title, name_alignment, GUI_ALIGN_MIDDLE);
+    gui_set_parent(status_bar.title, name_parent);
+
+    // Status bar data fields for tracking updates
     status_bar.updated = false;
     status_bar.last_battery_val = 0xFF;
     status_bar.battery_update_counter = 0;
