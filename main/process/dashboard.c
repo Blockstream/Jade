@@ -68,8 +68,9 @@ static bool show_connect_screen = false;
 
 static uint8_t home_screen_type = 0;
 static uint8_t home_screen_menu_item = 0;
-gui_view_node_t* home_screen_item_symbol = NULL;
-gui_view_node_t* home_screen_item_text = NULL;
+
+home_menu_entry_t home_screen_selected_entry;
+home_menu_entry_t home_screen_next_entry;
 
 typedef struct {
     const char* symbol;
@@ -84,27 +85,27 @@ typedef struct {
 #define NUM_HOME_SCREEN_MENU_ENTRIES 2
 #endif
 
-home_menu_item_t home_menu_items[HOME_SCREEN_TYPE_NUM_STATES][NUM_HOME_SCREEN_MENU_ENTRIES] = {
+static const home_menu_item_t home_menu_items[HOME_SCREEN_TYPE_NUM_STATES][NUM_HOME_SCREEN_MENU_ENTRIES] = {
     // Uninitialised
-    { { .symbol = "1", .text = "  Setup Jade", .btn_id = BTN_INITIALIZE },
+    { { .symbol = "1", .text = "Setup Jade", .btn_id = BTN_INITIALIZE },
 #ifdef CONFIG_HAS_CAMERA
-        { .symbol = "2", .text = " Scan SeedQR", .btn_id = BTN_SCAN_SEEDQR },
+        { .symbol = "2", .text = "Scan SeedQR", .btn_id = BTN_SCAN_SEEDQR },
 #endif
-        { .symbol = "3", .text = "    Options", .btn_id = BTN_SETTINGS } },
+        { .symbol = "3", .text = "Options", .btn_id = BTN_SETTINGS } },
 
     // Initialised/Locked
-    { { .symbol = "5", .text = " Unlock Jade", .btn_id = BTN_CONNECT },
+    { { .symbol = "5", .text = "Unlock Jade", .btn_id = BTN_CONNECT },
 #ifdef CONFIG_HAS_CAMERA
-        { .symbol = "2", .text = "   QR Mode", .btn_id = BTN_QR_MODE },
+        { .symbol = "2", .text = "QR Mode", .btn_id = BTN_QR_MODE },
 #endif
-        { .symbol = "3", .text = "    Options", .btn_id = BTN_SETTINGS } },
+        { .symbol = "3", .text = "Options", .btn_id = BTN_SETTINGS } },
 
     // Active/Unlocked/Ready
-    { { .symbol = "4", .text = "    Session", .btn_id = BTN_SESSION },
+    { { .symbol = "4", .text = "Session", .btn_id = BTN_SESSION },
 #ifdef CONFIG_HAS_CAMERA
-        { .symbol = "2", .text = "   Scan QR", .btn_id = BTN_SCAN_QR },
+        { .symbol = "2", .text = "Scan QR", .btn_id = BTN_SCAN_QR },
 #endif
-        { .symbol = "3", .text = "    Options", .btn_id = BTN_SETTINGS } }
+        { .symbol = "3", .text = "Options", .btn_id = BTN_SETTINGS } }
 };
 
 // The device name and running firmware info, loaded at startup
@@ -161,7 +162,7 @@ void auth_user_process(void* process_ptr);
 
 // Home screen
 gui_activity_t* make_home_screen_activity(const char* device_name, const char* firmware_version,
-    gui_view_node_t** item_symbol, gui_view_node_t** item_text, gui_view_node_t** status_light,
+    home_menu_entry_t* selected_entry, home_menu_entry_t* next_entry, gui_view_node_t** status_light,
     gui_view_node_t** status_text, gui_view_node_t** label);
 
 // Temporary screens while connecting
@@ -328,25 +329,36 @@ static void update_home_screen(gui_view_node_t* status_light, gui_view_node_t* s
     }
 }
 
-static const home_menu_item_t* get_selected_home_screen_menu_item(void)
+static const home_menu_item_t* get_selected_home_screen_menu_item(const home_menu_item_t** next_item)
 {
+    // next_item is optional
+    const size_t nbtns = sizeof(home_menu_items[0]) / sizeof(home_menu_items[0][0]);
     JADE_ASSERT(home_screen_type < sizeof(home_menu_items) / sizeof(home_menu_items[0]));
-    JADE_ASSERT(home_screen_menu_item < sizeof(home_menu_items[0]) / sizeof(home_menu_items[0][0]));
+    JADE_ASSERT(home_screen_menu_item < nbtns);
+
     const home_menu_item_t* const menu_item = &home_menu_items[home_screen_type][home_screen_menu_item];
+    if (next_item) {
+        const uint8_t next_index = (home_screen_menu_item + 1) % nbtns;
+        *next_item = &home_menu_items[home_screen_type][next_index];
+    }
     return menu_item;
+}
+
+static void update_home_screen_menu_entry(home_menu_entry_t* entry, const home_menu_item_t* item)
+{
+    JADE_ASSERT(entry);
+    JADE_ASSERT(item);
+
+    gui_update_text(entry->symbol, item->symbol);
+    gui_update_text(entry->text, item->text);
 }
 
 static void update_home_screen_menu(void)
 {
-    JADE_ASSERT(home_screen_item_symbol);
-    JADE_ASSERT(home_screen_item_text);
-
-    const home_menu_item_t* const menu_item = get_selected_home_screen_menu_item();
-    JADE_ASSERT(menu_item->text);
-    JADE_ASSERT(menu_item->symbol);
-
-    gui_update_text(home_screen_item_symbol, menu_item->symbol);
-    gui_update_text(home_screen_item_text, menu_item->text);
+    const home_menu_item_t* next_item = NULL;
+    const home_menu_item_t* selected_item = get_selected_home_screen_menu_item(&next_item);
+    update_home_screen_menu_entry(&home_screen_selected_entry, selected_item);
+    update_home_screen_menu_entry(&home_screen_next_entry, next_item);
 }
 
 // Function to print a pin into a char buffer.
@@ -1800,6 +1812,14 @@ static void handle_idle_timeout(void)
     }
 }
 
+static void update_home_screen_item_highlight_color(gui_view_node_t* item)
+{
+    JADE_ASSERT(item);
+    JADE_ASSERT(item->parent);
+    JADE_ASSERT(item->parent->kind == FILL);
+    gui_set_color(item->parent, gui_get_highlight_color());
+}
+
 static void handle_display_theme(void)
 {
     static const char* THEME_NAMES[GUI_NUM_DISPLAY_THEMES]
@@ -1851,8 +1871,8 @@ static void handle_display_theme(void)
         storage_set_gui_flags(new_gui_flags);
 
         // Also update top-level (long-lived) home screen with new colors
-        update_carousel_highlight_color(home_screen_item_symbol, gui_get_highlight_color(), false);
-        update_carousel_highlight_color(home_screen_item_text, gui_get_highlight_color(), false);
+        update_home_screen_item_highlight_color(home_screen_selected_entry.symbol);
+        update_home_screen_item_highlight_color(home_screen_selected_entry.text);
     }
 }
 
@@ -2679,20 +2699,20 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
                         // Back, but skip over any unused menu-item entries (null text)
                         do {
                             home_screen_menu_item = (home_screen_menu_item + nbtns - 1) % nbtns;
-                            menu_item = get_selected_home_screen_menu_item();
+                            menu_item = get_selected_home_screen_menu_item(NULL);
                         } while (!menu_item->text);
                         update_home_screen_menu();
                     } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
                         // Next, but skip over any unused menu-item entries (null text)
                         do {
                             home_screen_menu_item = (home_screen_menu_item + 1) % nbtns;
-                            menu_item = get_selected_home_screen_menu_item();
+                            menu_item = get_selected_home_screen_menu_item(NULL);
                         } while (!menu_item->text);
                         update_home_screen_menu();
                     } else if (ev_id == gui_get_click_event()) {
                         // Click - handle the current button's event
                         main_thread_action = MAIN_THREAD_ACTIVITY_UI_MENU;
-                        menu_item = get_selected_home_screen_menu_item();
+                        menu_item = get_selected_home_screen_menu_item(NULL);
                         handle_btn(menu_item->btn_id);
                         acted = true;
                     }
@@ -2756,14 +2776,16 @@ void dashboard_process(void* process_ptr)
     // in the list of activities to be freed by 'set_current_activity_ex()' calls.
     // This is desirable as this screen is never freed and lives as long as the application.
 
-    // NOTE: the menu nodes are static, so we can update the menu displayed when teh user scrolls
+    // NOTE: the menu nodes are static, so we can update the menu displayed when the user scrolls
     gui_view_node_t* status_light = NULL;
     gui_view_node_t* status_text = NULL;
     gui_view_node_t* label = NULL;
     gui_activity_t* const act_home = make_home_screen_activity(device_name, running_app_info.version,
-        &home_screen_item_symbol, &home_screen_item_text, &status_light, &status_text, &label);
-    JADE_ASSERT(home_screen_item_symbol);
-    JADE_ASSERT(home_screen_item_text);
+        &home_screen_selected_entry, &home_screen_next_entry, &status_light, &status_text, &label);
+    JADE_ASSERT(home_screen_selected_entry.symbol);
+    JADE_ASSERT(home_screen_selected_entry.text);
+    JADE_ASSERT(home_screen_next_entry.symbol);
+    JADE_ASSERT(home_screen_next_entry.text);
     JADE_ASSERT(status_light);
     JADE_ASSERT(status_text);
     JADE_ASSERT(label);

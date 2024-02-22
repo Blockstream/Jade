@@ -64,6 +64,11 @@ typedef struct {
     uint8_t current_selected_value;
 } pin_insert_t;
 
+typedef struct {
+    gui_view_node_t* symbol;
+    gui_view_node_t* text;
+} home_menu_entry_t;
+
 #define OUTPUT_FLAG_CONFIDENTIAL 1
 #define OUTPUT_FLAG_HAS_BLINDING_KEY 2
 #define OUTPUT_FLAG_VALIDATED 4

@@ -19,14 +19,44 @@ extern const uint8_t telecstart[] asm("_binary_telec_bin_gz_start");
 extern const uint8_t telecend[] asm("_binary_telec_bin_gz_end");
 #endif
 
+static gui_view_node_t* make_home_screen_panel_item(const color_t color, home_menu_entry_t* entry)
+{
+    JADE_ASSERT(entry);
+
+    gui_view_node_t* item;
+    gui_view_node_t* fill;
+
+    // The items symbol, text and any description will be updated, so we add a
+    // background that will be repainted every time to wipe the previous string.
+    gui_make_vsplit(&item, GUI_SPLIT_RELATIVE, 2, HOME_SCREEN_DEEP_STATUS_BAR ? 55 : 65, GUI_SPLIT_FILL_REMAINING);
+
+    // Top row, the symbol and label text
+    gui_make_fill(&fill, color);
+    gui_set_parent(fill, item);
+    gui_make_text_font(&entry->symbol, "", TFT_WHITE, JADE_SYMBOLS_24x24_FONT);
+    gui_set_padding(entry->symbol, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 8);
+    gui_set_align(entry->symbol, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(entry->symbol, fill);
+
+    // Second row, label text
+    gui_make_fill(&fill, color);
+    gui_set_parent(fill, item);
+    gui_make_text_font(&entry->text, "", TFT_WHITE, HOME_SCREEN_DEEP_STATUS_BAR ? DEJAVU24_FONT : GUI_DEFAULT_FONT);
+    gui_set_padding(entry->text, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 8);
+    gui_set_align(entry->text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_parent(entry->text, fill);
+
+    return item;
+}
+
 gui_activity_t* make_home_screen_activity(const char* device_name, const char* firmware_version,
-    gui_view_node_t** item_symbol, gui_view_node_t** item_text, gui_view_node_t** status_light,
+    home_menu_entry_t* selected_entry, home_menu_entry_t* next_entry, gui_view_node_t** status_light,
     gui_view_node_t** status_text, gui_view_node_t** label)
 {
     JADE_ASSERT(device_name);
     JADE_ASSERT(firmware_version);
-    JADE_INIT_OUT_PPTR(item_symbol);
-    JADE_INIT_OUT_PPTR(item_text);
+    JADE_ASSERT(selected_entry);
+    JADE_ASSERT(next_entry);
     JADE_INIT_OUT_PPTR(status_light);
     JADE_INIT_OUT_PPTR(status_text);
     JADE_INIT_OUT_PPTR(label);
@@ -37,42 +67,28 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     gui_make_activity_ex(&act, true, device_name, false);
     JADE_ASSERT(act);
 
-    gui_view_node_t* hsplit;
     gui_view_node_t* node;
+    gui_view_node_t* hsplit;
 
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 76, 24);
+
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 75, 25);
     gui_set_parent(vsplit, act->root_node);
 
-    // Main area, scrolling horizontal menu
-    gui_make_fill(&node, gui_get_highlight_color());
-    gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 20, 0, 20, 0);
-    gui_set_parent(node, vsplit);
+    // Main area, scrolling horizontal menu, in two sections - this/next
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
+    const size_t toppad = (CONFIG_DISPLAY_HEIGHT > 200) ? (CONFIG_DISPLAY_HEIGHT - 180) / 2 : 8;
+    gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, toppad, 0, 8, 0);
+    gui_set_parent(hsplit, vsplit);
 
-    // l-arrow, item-symbol, item-txt, r-arrow
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 4, 10, 20, 60, 10);
-    gui_set_parent(hsplit, node);
-
-    gui_make_text_font(&node, "H", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
+    // Selected item
+    node = make_home_screen_panel_item(gui_get_highlight_color(), selected_entry);
+    gui_set_borders(node, TFT_BLACK, 4, GUI_BORDER_RIGHT);
     gui_set_parent(node, hsplit);
 
-    // The items symbol and text will be updated, so we add a background that will
-    // be repainted every time to wipe the previous string
-    gui_make_fill(&node, gui_get_highlight_color());
-    gui_set_parent(node, hsplit);
-    gui_make_text_font(item_symbol, "", TFT_WHITE, JADE_SYMBOLS_24x24_FONT);
-    gui_set_align(*item_symbol, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
-    gui_set_parent(*item_symbol, node);
-
-    gui_make_fill(&node, gui_get_highlight_color());
-    gui_set_parent(node, hsplit);
-    gui_make_text_font(item_text, "", TFT_WHITE, GUI_DEFAULT_FONT);
-    gui_set_align(*item_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
-    gui_set_parent(*item_text, node);
-
-    gui_make_text_font(&node, "I", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
-    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    // Next item
+    node = make_home_screen_panel_item(GUI_BLOCKSTREAM_QR_PALE, next_entry);
+    gui_set_borders(node, TFT_BLACK, 6, GUI_BORDER_LEFT);
     gui_set_parent(node, hsplit);
 
     // Footer, three labels - status light + status, fw-version/wallet-id label
