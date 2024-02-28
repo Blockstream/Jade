@@ -97,18 +97,27 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
     const int qret = qrcode_initBytes(&qrcode, qrbuffer, qrcode_version, ECC_LOW, entropy, entropy_len);
     JADE_ASSERT(qret == 0);
 
+#if CONFIG_DISPLAY_WIDTH >= 480 && CONFIG_DISPLAY_HEIGHT >= 220
+    const uint8_t overview_scale = qrcode_version == 1 ? 9 : 8;
+    const uint8_t fragment_target_size = 210;
+#elif CONFIG_DISPLAY_WIDTH >= 320 && CONFIG_DISPLAY_HEIGHT >= 170
+    const uint8_t overview_scale = qrcode_version == 1 ? 7 : 6;
+    const uint8_t fragment_target_size = 150;
+#else
+    const uint8_t overview_scale = qrcode_version == 1 ? 5 : 4;
+    const uint8_t fragment_target_size = 105;
+#endif
+
     // Make qr code icon as an overview image
     Icon qr_overview;
-    const uint8_t overview_scale = qrcode_version == 1 ? 5 : 4;
     qrcode_toIcon(&qrcode, &qr_overview, overview_scale);
 
     // Make a bag of icons for square fragments of the qr
     Icon* icons = NULL;
     size_t num_icons = 0;
-    const uint8_t target_size = 105;
     const bool show_grid = true;
     const uint8_t expected_grid_size = (qrcode_version == 1) ? 3 : 5;
-    qrcode_toFragmentsIcons(&qrcode, target_size, show_grid, &icons, &num_icons);
+    qrcode_toFragmentsIcons(&qrcode, fragment_target_size, show_grid, &icons, &num_icons);
     JADE_ASSERT(num_icons == expected_grid_size * expected_grid_size);
 
     // Show the overview and magnified fragments, and when the user

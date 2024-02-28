@@ -39,6 +39,18 @@
 // as we don't want the unit to shut down because of apparent inactivity.
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
 
+// QR 'version' (ie size) used to display bcur codes
+// NOTE: we can scale up more on larger screens - note paradoxically the larger screen
+// uses a smaller 'largest' version, as this scales v.nicely to the screen extents.
+// (tbh ver12 on the smaller screen is v difficult to scan but is the next scaling-to-fit)
+#define QR_VER_LOW 4
+#define QR_VER_MID 6
+#if CONFIG_DISPLAY_WIDTH >= 320 && CONFIG_DISPLAY_HEIGHT >= 170
+#define QR_VER_HIGH 9
+#else
+#define QR_VER_HIGH 12
+#endif
+
 gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon);
 gui_activity_t* make_qr_back_continue_activity(
     const char* message[], size_t message_size, const char* url, const Icon* qr_icon, bool default_selection);
@@ -131,9 +143,9 @@ static uint8_t qr_version_from_flags(const uint32_t qr_flags)
     // 2 px-per-cell, 3 px-per-cell, and 4 px-per-cell respectively.
     // Version/Size/Density: HIGH|LOW > HIGH > LOW ... 0 implies unset/default
     // unset/default is treated as 'high' (ie. the middle value)
-    return contains_flags(qr_flags, QR_DENSITY_HIGH | QR_DENSITY_LOW) ? 12
-        : contains_flags(qr_flags, QR_DENSITY_LOW)                    ? 4
-                                                                      : 6;
+    return contains_flags(qr_flags, QR_DENSITY_HIGH | QR_DENSITY_LOW) ? QR_VER_HIGH
+        : contains_flags(qr_flags, QR_DENSITY_LOW)                    ? QR_VER_LOW
+                                                                      : QR_VER_MID;
 }
 static const char* qr_density_desc_from_flags(const uint32_t qr_flags)
 {
@@ -1298,7 +1310,7 @@ void handle_scan_qr(void)
 // Populate an Icon with a QR code of text
 // Handles up to v6 codes - ie. text up to 134 bytes
 // Caller takes ownership of Icon data and must free
-static void bytes_to_qr_icon(const uint8_t* bytes, const size_t bytes_len, const bool large_icons, Icon* const qr_icon)
+static void bytes_to_qr_icon(const uint8_t* bytes, const size_t bytes_len, Icon* const qr_icon)
 {
     JADE_ASSERT(bytes);
     JADE_ASSERT(bytes_len);
@@ -1308,7 +1320,13 @@ static void bytes_to_qr_icon(const uint8_t* bytes, const size_t bytes_len, const
     // Create icon for url
     // For sizes, see: https://www.qrcode.com/en/about/version.html - 'Binary'
     const uint8_t qr_version = bytes_len < MAX_QR_V2_DATA_LEN ? 2 : bytes_len < MAX_QR_V4_DATA_LEN ? 4 : 6;
-    const uint8_t scale_factor = (qr_version == 2 ? 4 : qr_version == 4 ? 3 : 2) + (large_icons ? 1 : 0);
+#if CONFIG_DISPLAY_WIDTH >= 480 && CONFIG_DISPLAY_HEIGHT >= 220
+    const uint8_t scale_factor = (qr_version == 2 ? 7 : qr_version == 4 ? 6 : 5);
+#elif CONFIG_DISPLAY_WIDTH >= 320 && CONFIG_DISPLAY_HEIGHT >= 170
+    const uint8_t scale_factor = (qr_version == 2 ? 5 : qr_version == 4 ? 4 : 4);
+#else
+    const uint8_t scale_factor = (qr_version == 2 ? 4 : qr_version == 4 ? 3 : 3);
+#endif
 
     // Convert url to qr code, then to Icon
     QRCode qrcode;
@@ -1356,9 +1374,8 @@ void await_single_qr_activity(
     JADE_ASSERT(data_len);
     // help_url is optional
 
-    const bool large_icons = true;
     Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
-    bytes_to_qr_icon(data, data_len, large_icons, qr_icon);
+    bytes_to_qr_icon(data, data_len, qr_icon);
 
     // Show, and await button click - note gui takes ownership of icon
     gui_activity_t* const act = make_show_qr_activity(message, message_size, qr_icon, 1, 0, false, help_url);
@@ -1425,13 +1442,9 @@ void await_qr_help_activity(const char* url)
 
     const size_t url_len = strlen(url);
     JADE_ASSERT(url_len < MAX_QR_V4_DATA_LEN); // v4, binary
-#if CONFIG_DISPLAY_WIDTH == 320
-    const bool large_icons = true;
-#else
-    const bool large_icons = false;
-#endif
+
     Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
-    bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
+    bytes_to_qr_icon((const uint8_t*)url, url_len, qr_icon);
 
     // Put an explicit \n before the last part of the url
     char url_with_crlf[MAX_QR_V4_DATA_LEN + 2]; // new \n and trailing \0
@@ -1460,9 +1473,8 @@ bool await_qr_back_continue_activity(
     const size_t url_len = strlen(url);
     JADE_ASSERT(url_len < MAX_QR_V4_DATA_LEN); // v4, binary
 
-    const bool large_icons = false;
     Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
-    bytes_to_qr_icon((const uint8_t*)url, url_len, large_icons, qr_icon);
+    bytes_to_qr_icon((const uint8_t*)url, url_len, qr_icon);
 
     // Show, and await button click
     gui_activity_t* const act = make_qr_back_continue_activity(message, message_size, url, qr_icon, default_selection);

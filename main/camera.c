@@ -19,11 +19,48 @@
 // as we don't want the unit to shut down because of apparent inactivity.
 #define CAMERA_MIN_TIMEOUT_SECS 300
 
+// Size of the image as provided by the camera - note this should be consistent
+// with CAMERA_IMAGE_WIDTH and CAMERA_IMAGE_HEIGHT !  TODO: fetch from Kconfig?
+#define CAMERA_IMAGE_RESOLUTION FRAMESIZE_QVGA
+
+#define MIN(a, b) (a < b ? a : b)
+#define MAX(a, b) (a > b ? a : b)
+
 // The image from the camera framebuffer is scaled and cropped to fit the display image
 // (Based on Jade screen dimensions and the fact that the image is half the screen.)
-#define DISPLAY_IMAGE_WIDTH 120
-#define DISPLAY_IMAGE_HEIGHT 135
-#define DISPLAY_IMAGE_SCALE_FACTOR 2
+
+// Width and height of camera image aligned to screen orientation
+#if defined(CONFIG_CAMERA_ROTATE_90) || (CONFIG_CAMERA_ROTATE_270)
+// Camera image height and width directions flipped
+#define UI_CAMERA_IMAGE_WIDTH CAMERA_IMAGE_HEIGHT
+#define UI_CAMERA_IMAGE_HEIGHT CAMERA_IMAGE_WIDTH
+#else
+// Height and width directions match
+#define UI_CAMERA_IMAGE_WIDTH CAMERA_IMAGE_WIDTH
+#define UI_CAMERA_IMAGE_HEIGHT CAMERA_IMAGE_HEIGHT
+#endif
+
+// Screen area used to display camera image - half the width x full height
+#define UI_DISPLAY_WIDTH (CONFIG_DISPLAY_WIDTH / 2)
+#define UI_DISPLAY_HEIGHT CONFIG_DISPLAY_HEIGHT
+
+// Scale down if image much larger than screen area in both dimensions
+// The numerator is fixed at 2, allowing half-integer scaling
+#define SCALE_NUMERATOR 2
+#define CALC_SCALE_DENOMINATOR(img, ui) MAX(SCALE_NUMERATOR, (((SCALE_NUMERATOR * img) + (ui / 2)) / ui))
+#define SCALE_DENOMINATOR                                                                                              \
+    MIN(CALC_SCALE_DENOMINATOR(UI_CAMERA_IMAGE_WIDTH, UI_DISPLAY_WIDTH),                                               \
+        CALC_SCALE_DENOMINATOR(UI_CAMERA_IMAGE_HEIGHT, UI_DISPLAY_HEIGHT))
+#define CAM2UI(x) ((x * SCALE_NUMERATOR) / SCALE_DENOMINATOR)
+#define UI2CAM(x) ((x * SCALE_DENOMINATOR) / SCALE_NUMERATOR)
+
+// Dimensions of image to display
+#define DISPLAY_IMAGE_WIDTH MIN(UI_DISPLAY_WIDTH, CAM2UI(UI_CAMERA_IMAGE_WIDTH))
+#define DISPLAY_IMAGE_HEIGHT MIN(UI_DISPLAY_HEIGHT, CAM2UI(UI_CAMERA_IMAGE_HEIGHT))
+
+// Crop central area of camera frame if scaled image still larger
+#define XOFFSET MAX(0, ((UI_CAMERA_IMAGE_WIDTH - UI2CAM(DISPLAY_IMAGE_WIDTH)) / 2))
+#define YOFFSET MAX(0, ((UI_CAMERA_IMAGE_HEIGHT - UI2CAM(DISPLAY_IMAGE_HEIGHT)) / 2))
 
 void await_qr_help_activity(const char* url);
 
@@ -86,6 +123,18 @@ static void post_exit_event_and_await_death(void)
 #ifndef CONFIG_ETH_USE_OPENETH
 static void jade_camera_init(void)
 {
+    JADE_LOGI("CAMERA_IMAGE_WIDTH: %u", CAMERA_IMAGE_WIDTH);
+    JADE_LOGI("CAMERA_IMAGE_HEIGHT: %u", CAMERA_IMAGE_HEIGHT);
+    JADE_LOGI("UI_CAMERA_IMAGE_WIDTH: %u", UI_CAMERA_IMAGE_WIDTH);
+    JADE_LOGI("UI_CAMERA_IMAGE_HEIGHT: %u", UI_CAMERA_IMAGE_HEIGHT);
+    JADE_LOGI("UI_DISPLAY_WIDTH: %u", UI_DISPLAY_WIDTH);
+    JADE_LOGI("UI_DISPLAY_HEIGHT: %u", UI_DISPLAY_HEIGHT);
+    JADE_LOGI("DISPLAY_IMAGE_SCALE_FACTOR: %u%%", CAM2UI(100)); // percent
+    JADE_LOGI("DISPLAY_IMAGE_WIDTH: %u", DISPLAY_IMAGE_WIDTH);
+    JADE_LOGI("DISPLAY_IMAGE_HEIGHT: %u", DISPLAY_IMAGE_HEIGHT);
+    JADE_LOGI("XOFFSET: %u", XOFFSET);
+    JADE_LOGI("YOFFSET: %u", YOFFSET);
+
     const esp_err_t ret = power_camera_on();
     if (ret != ESP_OK) {
         JADE_LOGE("Failed to inititialise/power camera on: %u", ret);
@@ -113,7 +162,7 @@ static void jade_camera_init(void)
         .xclk_freq_hz = CONFIG_CAMERA_XCLK_FREQ,
 
         .pixel_format = PIXFORMAT_GRAYSCALE,
-        .frame_size = FRAMESIZE_QVGA,
+        .frame_size = CAMERA_IMAGE_RESOLUTION,
 
         .fb_count = 1,
         .fb_location = CAMERA_FB_IN_PSRAM,
@@ -193,6 +242,10 @@ static void jade_camera_task(void* data)
 {
     JADE_ASSERT(data);
 
+    JADE_ASSERT(UI2CAM(1000) >= 1000); // UI image should not be larger than camera image
+    JADE_ASSERT(XOFFSET >= 0);
+    JADE_ASSERT(YOFFSET >= 0);
+
     camera_task_config_t* const camera_config = (camera_task_config_t*)data;
     JADE_ASSERT(camera_config->fn_process);
     JADE_ASSERT(camera_config->text_label || !camera_config->text_button);
@@ -205,7 +258,6 @@ static void jade_camera_task(void* data)
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
     // camera_config->help_url is optional - if preset a '?' (and help screen) are shown
     // NOTE: not valid to have a button[label] or help_url if no screen[title/label]
-
     const bool has_gui = camera_config->text_label;
 
     gui_activity_t* act = NULL;
@@ -269,22 +321,30 @@ static void jade_camera_task(void* data)
         if (has_gui) {
             // Copy from camera output to screen image
             // (Ensure source image large enough to be scaled down to display image size)
-            const uint8_t scale = DISPLAY_IMAGE_SCALE_FACTOR;
-            JADE_ASSERT(fb->len >= scale * scale * image_size);
+            JADE_ASSERT(fb->len >= UI2CAM(UI2CAM(image_size))); // x and y scaled
             uint8_t(*image_matrix)[DISPLAY_IMAGE_WIDTH] = image_buffer;
             uint8_t(*fb_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
             for (size_t imgy = 0; imgy < DISPLAY_IMAGE_HEIGHT; ++imgy) {
                 for (size_t imgx = 0; imgx < DISPLAY_IMAGE_WIDTH; ++imgx) {
 #if defined(CONFIG_CAMERA_ROTATE_90)
-                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (imgx * scale)][imgy * scale];
+                    const size_t srcy = (CAMERA_IMAGE_HEIGHT - 1) - XOFFSET - UI2CAM(imgx);
+                    const size_t srcx = YOFFSET + UI2CAM(imgy);
 #elif defined(CONFIG_CAMERA_ROTATE_180)
-                    image_matrix[imgy][imgx] = fb_matrix[(CAMERA_IMAGE_HEIGHT - 1) - (imgy * scale)]
-                                                        [(CAMERA_IMAGE_WIDTH - 1) - (imgx * scale)];
+                    const size_t srcy = (CAMERA_IMAGE_HEIGHT - 1) - YOFFSET - UI2CAM(imgy);
+                    const size_t srcx = (CAMERA_IMAGE_WIDTH - 1) - XOFFSET - UI2CAM(imgx);
 #elif defined(CONFIG_CAMERA_ROTATE_270)
-                    image_matrix[imgy][imgx] = fb_matrix[imgx * scale][(CAMERA_IMAGE_WIDTH - 1) - (imgy * scale)];
+                    const size_t srcy = XOFFSET + UI2CAM(imgx);
+                    const size_t srcx = (CAMERA_IMAGE_WIDTH - 1) - YOFFSET - UI2CAM(imgy);
 #else
-                    image_matrix[imgy][imgx] = fb_matrix[imgy * scale][imgx * scale];
+                    const size_t srcy = YOFFSET + UI2CAM(imgy);
+                    const size_t srcx = XOFFSET + UI2CAM(imgx);
 #endif
+
+#ifdef CONFIG_DEBUG_MODE
+                    JADE_ASSERT(srcx < CAMERA_IMAGE_WIDTH);
+                    JADE_ASSERT(srcy < CAMERA_IMAGE_HEIGHT);
+#endif
+                    image_matrix[imgy][imgx] = fb_matrix[srcy][srcx];
                 }
             }
             gui_update_picture(image_node, &pic, false);
@@ -296,7 +356,7 @@ static void jade_camera_task(void* data)
 
             // Check for button events
             int32_t ev_id;
-            if (sync_wait_event(event_data, NULL, &ev_id, NULL, 50 / portTICK_PERIOD_MS) == ESP_OK) {
+            if (sync_wait_event(event_data, NULL, &ev_id, NULL, 10 / portTICK_PERIOD_MS) == ESP_OK) {
                 if (ev_id == BTN_CAMERA_CLICK) {
                     // Button clicked - invoke passed processing callback
                     JADE_ASSERT(camera_config->text_button);

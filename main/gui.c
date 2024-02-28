@@ -215,6 +215,8 @@ static inline bool is_before(const selectable_t* a, const selectable_t* b)
 // Traverse the tree from `node` downward and set the `is_selected` of every node to `value`
 static void set_tree_selection(gui_view_node_t* node, bool value)
 {
+    JADE_ASSERT(node);
+
     node->is_selected = value;
 
     gui_view_node_t* child = node->child;
@@ -227,6 +229,8 @@ static void set_tree_selection(gui_view_node_t* node, bool value)
 // Traverse the tree from `node` downward and set the `is_active` of every node to `value`
 static void set_tree_active(gui_view_node_t* node, bool value)
 {
+    JADE_ASSERT(node);
+
     node->is_active = value;
 
     gui_view_node_t* child = node->child;
@@ -1113,6 +1117,7 @@ void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, const size_t num
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)
 {
     JADE_INIT_OUT_PPTR(ptr);
+    // picture optional at creation time
 
     struct view_node_picture_data* data = JADE_CALLOC(1, sizeof(struct view_node_picture_data));
 
@@ -1129,6 +1134,8 @@ void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)
 
 static void set_vals_with_varargs(gui_margin_t* margins, const uint8_t sides, va_list args)
 {
+    JADE_ASSERT(margins);
+
     int val;
 
     switch (sides) {
@@ -1338,6 +1345,8 @@ void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum
 
 static inline bool can_text_fit(const char* text, uint32_t font, dispWin_t cs)
 {
+    JADE_ASSERT(text);
+
     display_set_font(font, NULL); // measure relative to this font
     return display_get_string_width(text) <= cs.x2 - cs.x1;
 }
@@ -1446,6 +1455,9 @@ void gui_set_text_scroll(gui_view_node_t* node, color_t background_color)
 void gui_set_text_scroll_selected(
     gui_view_node_t* node, bool only_when_selected, color_t background_color, color_t selected_background_color)
 {
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == TEXT);
+
     gui_set_text_scroll(node, background_color);
 
     node->text->scroll->only_when_selected = only_when_selected;
@@ -1515,6 +1527,7 @@ static void gui_update_text_node_text(gui_view_node_t* node, const char* text)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
+    JADE_ASSERT(text);
 
     // max chars limited to GUI_MAX_TEXT_LENGTH
     const size_t len = min(GUI_MAX_TEXT_LENGTH, strlen(text) + 1);
@@ -1535,7 +1548,7 @@ static void gui_update_text_node_text(gui_view_node_t* node, const char* text)
 void gui_update_text(gui_view_node_t* node, const char* text)
 {
     JADE_ASSERT(node);
-    JADE_ASSERT(node->kind == TEXT);
+    JADE_ASSERT(text);
 
     // Get the activity mutex, update the text node text and
     // if part of current activity release the mutex and post
@@ -1591,6 +1604,7 @@ void gui_update_picture(gui_view_node_t* node, const Picture* picture, const boo
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == PICTURE);
+    JADE_ASSERT(picture);
 
     // Get the activity mutex, update the picture data and
     // if part of current activity release the mutex and post
@@ -1682,6 +1696,9 @@ static void render_node(gui_view_node_t* node, const dispWin_t constraints, cons
 
 static void render_button(gui_view_node_t* node, const dispWin_t cs, const uint8_t depth)
 {
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == BUTTON);
+
     // If the un-selected colour is the same as the selected colour, it implies
     // the button is transparent when not selected, so we can skip filling the content.
     // NOTE: requires the parent is redrawn otherwise button will remain in 'selected' appearance
@@ -1700,6 +1717,9 @@ static void render_button(gui_view_node_t* node, const dispWin_t cs, const uint8
 
 static void render_vsplit(gui_view_node_t* node, const dispWin_t constraints, const uint8_t depth)
 {
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == VSPLIT);
+
     uint16_t count = 0;
     uint16_t y = constraints.y1;
     uint16_t max_y = constraints.y2;
@@ -1733,6 +1753,9 @@ static void render_vsplit(gui_view_node_t* node, const dispWin_t constraints, co
 
 static void render_hsplit(gui_view_node_t* node, const dispWin_t constraints, const uint8_t depth)
 {
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == HSPLIT);
+
     uint16_t count = 0;
     uint16_t x = constraints.x1;
     uint16_t max_x = constraints.x2;
@@ -1761,6 +1784,9 @@ static void render_hsplit(gui_view_node_t* node, const dispWin_t constraints, co
 
 static void render_fill(gui_view_node_t* node, const dispWin_t cs, const uint8_t depth)
 {
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == FILL);
+
     color_t* color = node->is_selected ? &node->fill->selected_color : &node->fill->color;
 
     display_fill_rect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1, *color);

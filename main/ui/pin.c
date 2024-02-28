@@ -68,9 +68,11 @@ void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const
     gui_set_parent(vsplit, parent);
     gui_set_parent(node, vsplit);
 
+    const size_t toppad = CONFIG_DISPLAY_HEIGHT > 200 ? 20 : CONFIG_DISPLAY_HEIGHT > 160 ? 12 : 4;
+    const size_t lrpad = (CONFIG_DISPLAY_WIDTH - (6 * 35)) / 2;
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 6, 35, 35, 35, 35, 35, 35);
-    gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 15, 12, 15);
+    gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, toppad, lrpad, toppad + 8, lrpad);
     gui_set_parent(hsplit, vsplit);
 
     pin_insert->current_selected_value = get_random_pin_digit();

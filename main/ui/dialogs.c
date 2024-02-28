@@ -8,9 +8,8 @@ void await_qr_help_activity(const char* url);
 #define TITLE_BAR_HEIGHT_PCNT 20
 #define FOOTER_BUTTONS_HEIGHT_PCNT 25
 
-// absolute, appropriate for font being used and jade 1.0/1.1 screens
-#define MESSAGE_DISPLAY_HEIGHT 135
-#define MESSAGE_LINE_ROW_HEIGHT 20
+// absolute, appropriate for font being used and adjusted slightly for larger screens
+#define MESSAGE_LINE_ROW_HEIGHT (CONFIG_DISPLAY_HEIGHT >= 150 ? 22 : 20)
 
 // Helper to update dynamic menu item label (name: value)
 void update_menu_item(gui_view_node_t* node, const char* label, const char* value)
@@ -267,13 +266,13 @@ gui_activity_t* make_show_message_activity(const char* message[], const size_t m
         const size_t ypct
             = 100 - (have_hdr ? TITLE_BAR_HEIGHT_PCNT : 0) - (num_ftrbtns ? FOOTER_BUTTONS_HEIGHT_PCNT : 0);
         JADE_ASSERT(ypct > 50 && ypct <= 100); // sanity cehck
-        const size_t yextent = (ypct * MESSAGE_DISPLAY_HEIGHT) / 100;
+        const size_t yextent = (ypct * CONFIG_DISPLAY_HEIGHT) / 100;
 
         const size_t h = MESSAGE_LINE_ROW_HEIGHT; // each text line height, appropriate for the default font height
         const size_t msgextent = message_size * h;
         toppad = msgextent < yextent ? (yextent - msgextent) / 2 : 0; // top padding to centre message
         JADE_LOGD("ypct, yextent, msgextent, toppad: %u, %u, %u, %u", ypct, yextent, msgextent, toppad);
-        JADE_ASSERT(toppad < 50); // sanity check
+        JADE_ASSERT(toppad < 100); // sanity check
 
         switch (message_size) {
         case 2:

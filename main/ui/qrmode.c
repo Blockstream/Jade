@@ -282,12 +282,15 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
     JADE_ASSERT(url);
     JADE_ASSERT(qr_icon);
 
-#if CONFIG_DISPLAY_WIDTH == 320
-    JADE_ASSERT(qr_icon->width <= 125);
-    JADE_ASSERT(qr_icon->height <= 125);
+#if CONFIG_DISPLAY_WIDTH >= 480 && CONFIG_DISPLAY_HEIGHT >= 220
+    const size_t lpad = 12;
+    const size_t vpad = 3;
+#elif CONFIG_DISPLAY_WIDTH >= 320 && CONFIG_DISPLAY_HEIGHT >= 170
+    const size_t lpad = 12;
+    const size_t vpad = 10;
 #else
-    JADE_ASSERT(qr_icon->width <= 100);
-    JADE_ASSERT(qr_icon->height <= 100);
+    const size_t lpad = 4;
+    const size_t vpad = 12;
 #endif
 
     gui_activity_t* const act = gui_make_activity();
@@ -315,20 +318,20 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
         // second row, message
         gui_make_text(&node, "Learn more:", TFT_WHITE);
         gui_set_parent(node, vsplit);
-        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, 4);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, lpad);
         gui_set_align(node, GUI_ALIGN_TOP, GUI_ALIGN_LEFT);
 
         // third row, url
         gui_make_text(&node, url, TFT_WHITE);
         gui_set_parent(node, vsplit);
-        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, 4);
+        gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, lpad);
         gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
     }
 
     // RHS - QR icon
     {
         gui_view_node_t* vsplit;
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 12, 76, 12);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, vpad, 100 - (2 * vpad), vpad);
         gui_set_parent(vsplit, hsplit);
 
         gui_view_node_t* fill;
@@ -358,8 +361,14 @@ gui_activity_t* make_qr_back_continue_activity(
     JADE_ASSERT(message);
     JADE_ASSERT(message_size == 3);
     JADE_ASSERT(qr_icon);
-    JADE_ASSERT(qr_icon->width <= 100);
-    JADE_ASSERT(qr_icon->height <= 100);
+
+#if CONFIG_DISPLAY_WIDTH >= 480 && CONFIG_DISPLAY_HEIGHT >= 220
+    const size_t vpad = 3;
+#elif CONFIG_DISPLAY_WIDTH >= 320 && CONFIG_DISPLAY_HEIGHT >= 170
+    const size_t vpad = 10;
+#else
+    const size_t vpad = 12;
+#endif
 
     gui_activity_t* const act = gui_make_activity();
 
@@ -404,7 +413,7 @@ gui_activity_t* make_qr_back_continue_activity(
     // RHS - QR icon
     {
         gui_view_node_t* vsplit;
-        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 12, 76, 12);
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, vpad, 100 - (2 * vpad), vpad);
         gui_set_parent(vsplit, hsplit);
 
         gui_view_node_t* fill;

@@ -35,7 +35,14 @@ static const uint32_t QR_ALPHANUMERIC_CAPACITY[] = { 0, 25, 47, 77, 114, 154, 19
 
 // Index is QR 'version' (ie size), value is the scale factor
 // used to get an image as large as sensibly fits the Jade screen.
-static const uint32_t QR_SCALE_FACTOR[] = { 0, 6, 5, 4, 4, 3, 3, 3, 2, 2, 2, 2, 2 };
+// NOTE: we can scale up more on larger screens
+#if CONFIG_DISPLAY_WIDTH >= 480 && CONFIG_DISPLAY_HEIGHT >= 220
+static const uint32_t QR_SCALE_FACTOR[] = { 0, 10, 8, 7, 6, 5, 5, 4, 4, 4, 3, 3, 3 };
+#elif CONFIG_DISPLAY_WIDTH >= 320 && CONFIG_DISPLAY_HEIGHT >= 170
+static const uint32_t QR_SCALE_FACTOR[] = { 0, 8, 6, 5, 5, 4, 4, 3, 3, 3, 2, 2, 2 };
+#else
+static const uint32_t QR_SCALE_FACTOR[] = { 0, 6, 5, 4, 4, 3, 3, 2, 2, 2, 2, 2, 2 };
+#endif
 
 // NOTE: educated-guesswork/reverse-engineered - pass this value into bcur encoder
 // to get a series of text fragments which are within 'capacity' - ie. within the
@@ -663,7 +670,8 @@ bool bcur_scan_qr(
 // These are then rendered as a set of QR codes of the passed version/size.
 // NOTE: input is expected to be a valid CBOR message, although this is not validated
 // Caller takes ownership of the icons returned.
-// NOTE Only supports qr-versions from 4 to 12  (4, 6 and 12 fit nicely on a Jade screen).
+// NOTE Only supports qr-versions from 4 to 12  (4, 6 and 12 fit nicely on a v1 Jade screen, and
+// 4, 6 and 9 on the larger v2 screen (with greater scaling)).
 void bcur_create_qr_icons(const uint8_t* payload, const size_t len, const char* bcur_type, const uint8_t qr_version,
     Icon** icons, size_t* num_icons)
 {

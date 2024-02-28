@@ -61,15 +61,20 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
         JADE_ASSERT_MSG(false, "Unhandled keyboard type: %d", kb_type);
     }
 
+    JADE_ASSERT(CONFIG_DISPLAY_WIDTH >= 240);
+    const uint32_t w = (CONFIG_DISPLAY_WIDTH >= 320) ? 32 : 24;
+    const uint32_t lpad = (CONFIG_DISPLAY_WIDTH - (10 * w)) / 2;
     gui_view_node_t* btnShift = NULL;
+
     for (size_t l = 0; l < NUM_KEYBOARD_ROWS; ++l) {
         const char* line = lines[l];
         const size_t linelen = strlen(line);
+        JADE_ASSERT(linelen <= 10);
 
         gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 10, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24);
-        gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0,
-            ((10 - linelen) * 10)); // offset each row depending on row length
+        gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 10, w, w, w, w, w, w, w, w, w, w);
+        gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0,
+            lpad + ((10 - linelen) * w / 2)); // offset each row depending on row length
         gui_set_parent(hsplit, vsplit);
 
         // Create 'keys'

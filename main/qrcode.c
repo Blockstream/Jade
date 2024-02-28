@@ -979,7 +979,9 @@ void qrcode_toIcon(QRCode* qrcode, Icon* icon, const uint8_t scale)
 
 // Blockstream added function
 // NOTE: only supports v1 and v2 qrcodes atm.
-// fyi: target_size of 105 works well for 'full screen' icons of v1 and v2 qrcodes
+// fyi: target_size of 105 works well for jade v1 icons of v1 and v2 qrcodes
+// and: target_size of 150 works well for jade v2 icons of v1 and v2 qrcodes
+// and: target_size of 210 works well for large device icons of v1 and v2 qrcodes
 bool qrcode_toFragmentsIcons(
     QRCode* qrcode, const uint8_t target_size, const bool show_grid, Icon** icons_out, size_t* num_icons_out)
 {

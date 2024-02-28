@@ -297,10 +297,14 @@ gui_activity_t* make_enter_wordlist_word_activity(gui_view_node_t** titletext, c
     lines[2] = (char[]){ 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', ' ', '|' };
     const size_t sizes[NUM_KEYBOARD_ROWS] = { 10, 9, 9 };
 
+    JADE_ASSERT(CONFIG_DISPLAY_WIDTH >= 240);
+    const uint32_t w = (CONFIG_DISPLAY_WIDTH >= 320) ? 32 : 24;
+    const uint32_t lpad = (CONFIG_DISPLAY_WIDTH - (10 * w)) / 2;
+
     for (size_t l = 0; l < NUM_KEYBOARD_ROWS; ++l) {
         gui_view_node_t* hsplit;
-        gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 10, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24);
-        gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, (l * 8)); // offset each row slightly
+        gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 10, w, w, w, w, w, w, w, w, w, w);
+        gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, lpad + (l * w / 3)); // offset each row slightly
         gui_set_parent(hsplit, vsplit);
 
         for (size_t c = 0; c < sizes[l]; ++c) {

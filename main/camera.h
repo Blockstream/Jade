@@ -8,7 +8,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// Size of the image as provided by the camera lib
+// Size of the image as provided by the camera - note this should be consistent
+// with CAMERA_IMAGE_RESOLUTION !  TODO: fetch from Kconfig?
 #define CAMERA_IMAGE_WIDTH 320
 #define CAMERA_IMAGE_HEIGHT 240
 
