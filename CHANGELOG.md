@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.28] - 2024-03-15
+### Added
+- Feature to change PIN on next login/unlock
+- Option to change PIN of currently unlocked Jade using QR codes
+
+### Changed
+- More thorough new wallet phrase words confirmation (every word displayed, 1 in 3 verified)
+- Changed pinserver oracle protocol to only require a single roundtrip, exchanging a single base64-encoded string
+- UI code changes to improve spacing/centering of text labels in general
+- Tweaks to fetching the liquid master blinding key so the caller can predict whether Jade will block while awaiting user approval
+- Update libwally to 1.2.0
+- Miscellaneous internal changes/improvements, mostly in UI code
+
+### Fixed
+- Better checking of base58 xpub strings when importing multisig details, with clearer error messages
+- Better error handling if passed empty bytestring in api cbor message
+
 ## [1.0.27] - 2024-01-08
 ### Added
 - Add a warning when fee amount greater than spend amount
