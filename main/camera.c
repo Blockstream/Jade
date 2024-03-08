@@ -261,7 +261,7 @@ static void jade_camera_init(void)
         .pixel_format = PIXFORMAT_GRAYSCALE,
         .frame_size = CAMERA_IMAGE_RESOLUTION,
 
-        .fb_count = 1,
+        .fb_count = 2,
         .fb_location = CAMERA_FB_IN_PSRAM,
         .grab_mode = CAMERA_GRAB_LATEST,
 
