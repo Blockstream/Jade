@@ -72,6 +72,7 @@ static bool return_image_data(const size_t width, const size_t height, const uin
     }
 
     // Compress image data
+    JADE_LOGI("Compressing image data of len: %u", len);
     const size_t compressed_buflen = len;
     uint8_t* const compressed = JADE_MALLOC_PREFER_SPIRAM(compressed_buflen);
     const size_t compressed_len = compress(data, len, compressed, compressed_buflen);
@@ -79,6 +80,7 @@ static bool return_image_data(const size_t width, const size_t height, const uin
         JADE_LOGW("Compressing image data failed");
         goto cleanup;
     }
+    JADE_LOGI("Compressed len: %u", compressed_len);
 
     // Decompress and verify is same
     const size_t decompressed_buflen = len;
@@ -95,6 +97,7 @@ static bool return_image_data(const size_t width, const size_t height, const uin
     // All good, reply with the compressed image data
     const size_t buflen = compressed_len + CBOR_OVERHEAD;
     uint8_t* buffer = JADE_MALLOC_PREFER_SPIRAM(buflen);
+    JADE_LOGI("Trying to send compressed captured image data, message buffer len: %u", buflen);
     jade_process_reply_to_message_bytes(info->process->ctx, compressed, compressed_len, buffer, buflen);
     free(buffer);
 

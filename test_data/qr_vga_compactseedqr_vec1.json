@@ -1,0 +1,8 @@
+{
+  "input": {
+    "image": "qr_vga_compactseedqr_vec1.dat"
+  },
+  "expected_output": {
+    "hex": "0e74b64107f94cc0ccfae6a13dcbec3662154fec67e0e00999c07892597d190a"
+  }
+}

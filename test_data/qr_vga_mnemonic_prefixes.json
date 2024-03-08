@@ -1,0 +1,8 @@
+{
+  "input": {
+    "image": "qr_vga_mnemonic_prefixes.dat"
+  },
+  "expected_output": {
+    "text": "fish inne face gin orc perm usef meth fen kidn chuc part fav suns draw limb scie cran ova let slot invi sadn bana"
+  }
+}

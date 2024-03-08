@@ -26,11 +26,15 @@
 // NOTE: if CONFIG_RETURN_CAMERA_IMAGES is defined we allocate a larger
 // buffer as image sizes are much larger than standard messges.
 #define MAX_STANDARD_OUTPUT_MSG_SIZE (1024 * 3)
-#ifndef CONFIG_RETURN_CAMERA_IMAGES
-#define MAX_OUTPUT_MSG_SIZE MAX_STANDARD_OUTPUT_MSG_SIZE
+#ifdef CONFIG_RETURN_CAMERA_IMAGES
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#define MAX_OUTPUT_MSG_SIZE (MAX_STANDARD_OUTPUT_MSG_SIZE * 100)
 #else
 #define MAX_OUTPUT_MSG_SIZE (MAX_STANDARD_OUTPUT_MSG_SIZE * 30)
-#endif
+#endif // CONFIG_IDF_TARGET_ESP32S3
+#else
+#define MAX_OUTPUT_MSG_SIZE MAX_STANDARD_OUTPUT_MSG_SIZE
+#endif // CONFIG_RETURN_CAMERA_IMAGES
 
 // Cbor encoding function prototype
 typedef void (*cbor_encoder_fn_t)(const void*, CborEncoder*);

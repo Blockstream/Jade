@@ -21,7 +21,11 @@
 
 // Size of the image as provided by the camera - note this should be consistent
 // with CAMERA_IMAGE_WIDTH and CAMERA_IMAGE_HEIGHT !  TODO: fetch from Kconfig?
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#define CAMERA_IMAGE_RESOLUTION FRAMESIZE_VGA
+#else
 #define CAMERA_IMAGE_RESOLUTION FRAMESIZE_QVGA
+#endif
 
 #define MIN(a, b) (a < b ? a : b)
 #define MAX(a, b) (a > b ? a : b)
@@ -494,8 +498,14 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* t
     const UBaseType_t mem_caps = MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL;
 #endif
 
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_RETURN_CAMERA_IMAGES)
+    const uint32_t stack_size = 18 * 1024;
+#else
+    const uint32_t stack_size = 16 * 1024;
+#endif
+
     TaskHandle_t camera_task;
-    const BaseType_t retval = xTaskCreatePinnedToCoreWithCaps(&jade_camera_task, "jade_camera", 16 * 1024,
+    const BaseType_t retval = xTaskCreatePinnedToCoreWithCaps(&jade_camera_task, "jade_camera", stack_size,
         &camera_config, JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY, mem_caps);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);

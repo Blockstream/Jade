@@ -10,8 +10,13 @@
 
 // Size of the image as provided by the camera - note this should be consistent
 // with CAMERA_IMAGE_RESOLUTION !  TODO: fetch from Kconfig?
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#define CAMERA_IMAGE_WIDTH 640
+#define CAMERA_IMAGE_HEIGHT 480
+#else
 #define CAMERA_IMAGE_WIDTH 320
 #define CAMERA_IMAGE_HEIGHT 240
+#endif
 
 // Function to process images from the camera.
 // Should return false if processing incomplete (and so should be called again with the next frame)

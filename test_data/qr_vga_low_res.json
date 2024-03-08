@@ -1,0 +1,8 @@
+{
+  "input": {
+    "image": "qr_vga_low_res.dat"
+  },
+  "expected_output": {
+    "text": "This is a test of Jade's QR scanner."
+  }
+}
