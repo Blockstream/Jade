@@ -678,7 +678,7 @@ static void select_initial_connection(const bool offer_qr_temporary)
                 }
             } else if (ev_id == BTN_CONNECT_QR_SCAN) {
                 if (await_continueback_activity(NULL,
-                        "    This wallet will be\n      temporary and\n   forgotton on reboot", true,
+                        "    This wallet will be\n      temporary and\n   forgotten on reboot", true,
                         "blkstrm.com/qrmode")) {
                     // 'QR-Mode' temporary login only
                     keychain_set_temporary();
