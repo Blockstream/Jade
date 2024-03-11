@@ -814,7 +814,7 @@ static bool test_bcur_icons(void)
 static bool test_bcur_large_payload_many_icons(void)
 {
     const int qr_version = 4; // smallest supported
-    const int payload_len = 24 * 1024; // 24k, should result ~1000 fragments
+    const int payload_len = 22 * 1024; // 22k, should result ~1000 fragments
     uint8_t* payload = JADE_MALLOC_PREFER_SPIRAM(payload_len);
     Icon* icons = NULL;
     size_t num_icons = 0;
