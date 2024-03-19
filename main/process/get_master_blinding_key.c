@@ -14,14 +14,18 @@ void get_master_blinding_key_process(void* process_ptr)
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_master_blinding_key");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
-    GET_MSG_PARAMS(process);
 
     // Ask the user if necessary
     if (keychain_get_confirm_export_blinding_key()) {
         // Optional field to suppress asking user for permission and instead
         // error in the cases where we would normally need to ask the user.
         bool onlyIfSilent = false;
-        rpc_get_boolean("only_if_silent", &params, &onlyIfSilent);
+
+        CborValue params;
+        const CborError cberr = cbor_value_map_find_value(&process->ctx.value, CBOR_RPC_TAG_PARAMS, &params);
+        if (cberr == CborNoError || cbor_value_is_valid(&params) || cbor_value_is_map(&params)) {
+            rpc_get_boolean("only_if_silent", &params, &onlyIfSilent);
+        }
 
         const char* question[] = { "Export master", "blinding key?" };
         if (onlyIfSilent || !await_yesno_activity("Blinding Key", question, 2, true, "blkstrm.com/blindingkey")) {

@@ -1220,28 +1220,18 @@ class JadeAPI:
         params = {'identity': identity, 'curve': curve, 'index': index, 'challenge': challenge}
         return self._jadeRpc('sign_identity', params)
 
-    def get_master_blinding_key(self, only_if_silent=False):
+    def get_master_blinding_key(self):
         """
         RPC call to fetch the master (SLIP-077) blinding key for the hw signer.
-        May block temporarily to request the user's permission to export.  Passing 'only_if_silent'
-        causes the call to return the 'denied' error if it would normally ask the user.
         NOTE: the master blinding key of any registered multisig wallets can be obtained from
         the result of `get_registered_multisigs()`.
-
-        Parameters
-        ----------
-        only_if_silent : boolean, optional
-            If True Jade will return the denied error if it would normally ask the user's permission
-            to export the master blinding key.  Passing False (or letting default) may block while
-            asking the user to confirm the export on Jade.
 
         Returns
         -------
         32-bytes
             SLIP-077 master blinding key
         """
-        params = {'only_if_silent': only_if_silent}
-        return self._jadeRpc('get_master_blinding_key', params)
+        return self._jadeRpc('get_master_blinding_key')
 
     def get_blinding_key(self, script, multisig_name=None):
         """
