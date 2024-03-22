@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.29] - 2024-03-22
+### Added
+
+### Changed
+
+### Fixed
+- Fix regression when requesting liquid master blinding key
+
 ## [1.0.28] - 2024-03-15
 ### Added
 - Feature to change PIN on next login/unlock
