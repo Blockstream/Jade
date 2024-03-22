@@ -41,18 +41,18 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
     // and are buttons for 'backspace', 'shift/next kb', and 'enter/done'  (see below)
     if (kb_type == KB_LOWER_CASE_CHARS) {
         lines[0] = "abcdefghij";
-        lines[1] = "klmnopqrs";
-        lines[2] = "tuvwxyz|>S";
+        lines[1] = "klmnopqrst";
+        lines[2] = "uvwxyz |>S";
         // 'sizes' ok
     } else if (kb_type == KB_UPPER_CASE_CHARS) {
         lines[0] = "ABCDEFGHIJ";
-        lines[1] = "KLMNOPQRS";
-        lines[2] = "TUVWXYZ|>S";
+        lines[1] = "KLMNOPQRST";
+        lines[2] = "UVWXYZ |>S";
         // 'sizes' ok
     } else if (kb_type == KB_NUMBERS_SYMBOLS) {
         lines[0] = "1234567890";
         lines[1] = "!\"#$%&'()";
-        lines[2] = "*+,-./|>S";
+        lines[2] = "*+,-./ |>S";
     } else if (kb_type == KB_REMAINING_SYMBOLS) {
         lines[0] = ":;<=>?@";
         lines[1] = "[\\]^_`~";
