@@ -1,4 +1,5 @@
 #include <esp_camera.h>
+#include <freertos/idf_additions.h>
 
 #include "button_events.h"
 #include "camera.h"
@@ -365,15 +366,21 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const char* t
     idletimer_set_min_timeout_secs(CAMERA_MIN_TIMEOUT_SECS);
 
     // Run the camera task
+#ifdef CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+    const UBaseType_t mem_caps = MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM;
+#else
+    const UBaseType_t mem_caps = MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL;
+#endif
+
     TaskHandle_t camera_task;
-    const BaseType_t retval = xTaskCreatePinnedToCore(&jade_camera_task, "jade_camera", 16 * 1024, &camera_config,
-        JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY);
+    const BaseType_t retval = xTaskCreatePinnedToCoreWithCaps(&jade_camera_task, "jade_camera", 16 * 1024,
+        &camera_config, JADE_TASK_PRIO_CAMERA, &camera_task, JADE_CORE_SECONDARY, mem_caps);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create jade_camera task, xTaskCreatePinnedToCore() returned %d", retval);
 
     // Await camera exit event
     sync_await_single_event(JADE_EVENT, CAMERA_EXIT, NULL, NULL, NULL, 0);
-    vTaskDelete(camera_task);
+    vTaskDeleteWithCaps(camera_task);
     jade_camera_stop();
 
     // Remove the minimum idle timeout

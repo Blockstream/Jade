@@ -3,6 +3,7 @@
 #include "jade_tasks.h"
 
 #include <esp_expression_with_stack.h>
+#include <freertos/idf_additions.h>
 #include <utils/malloc_ext.h>
 
 // Helper to run function which may require a large amount of stack space on a temporary stack or in
@@ -55,7 +56,11 @@ bool run_on_temporary_stack(const size_t stack_size, temporary_stack_function_t 
 
     // Allocate temporary stack
     JADE_LOGI("Using temporary stack of size: %u", stack_size);
-    uint8_t* const temporary_stack = JADE_MALLOC(stack_size);
+#ifdef CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+    uint8_t* const temporary_stack = JADE_MALLOC_PREFER_SPIRAM(stack_size);
+#else
+    uint8_t* const temporary_stack = JADE_MALLOC_DRAM(stack_size);
+#endif
 
     // Run the wrapping function on the temporary stack.
     // It will invoke the user-supplied function with the passed context argument
@@ -109,9 +114,15 @@ bool run_in_temporary_task(const size_t stack_size, temporary_stack_function_t f
 
     // Run the temporary task
     JADE_LOGI("Using temporary task with stack of size: %u", stack_size);
+#ifdef CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+    const UBaseType_t mem_caps = MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM;
+#else
+    const UBaseType_t mem_caps = MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL;
+#endif
+
     TaskHandle_t temporary_task;
-    const BaseType_t retval = xTaskCreatePinnedToCore(&temp_task_wrapper, "temporary_task", stack_size, ctx,
-        JADE_TASK_PRIO_TEMPORARY, &temporary_task, JADE_CORE_SECONDARY);
+    const BaseType_t retval = xTaskCreatePinnedToCoreWithCaps(&temp_task_wrapper, "temporary_task", stack_size, ctx,
+        JADE_TASK_PRIO_TEMPORARY, &temporary_task, JADE_CORE_SECONDARY, mem_caps);
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create temporary task, xTaskCreatePinnedToCore() returned %d", retval);
 
     // Wait for the task to flag completion and copy the result
@@ -126,7 +137,7 @@ bool run_in_temporary_task(const size_t stack_size, temporary_stack_function_t f
     s_rslt = false;
 
     // Kill the task and return overall mutex
-    vTaskDelete(temporary_task);
+    vTaskDeleteWithCaps(temporary_task);
     xSemaphoreGive(overall_mutex);
 
     // Return the boolean result - any other output info should be in the ctx object
