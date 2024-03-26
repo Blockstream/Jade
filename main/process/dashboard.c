@@ -624,7 +624,11 @@ static void offer_jade_reset(void)
     JADE_ASSERT(sizeof(num) == sizeof(pin_insert.pin));
 
     gui_set_current_activity(pin_insert.activity);
-    run_pin_entry_loop(&pin_insert);
+    if (!run_pin_entry_loop(&pin_insert)) {
+        // User abandoned pin entry - continue to boot screen
+        JADE_LOGI("User confirmation abandoned, not wiping data.");
+        return;
+    }
 
     format_pin(pinstr, sizeof(pinstr), pin_insert.pin, sizeof(pin_insert.pin));
     JADE_LOGI("User entered: %s", pinstr);
@@ -1199,9 +1203,14 @@ static void set_wallet_erase_pin(void)
     JADE_ASSERT(pin_insert.activity);
 
     while (true) {
+        reset_pin(&pin_insert, "Wallet-Erase PIN");
         gui_set_current_activity(pin_insert.activity);
 
-        run_pin_entry_loop(&pin_insert);
+        if (!run_pin_entry_loop(&pin_insert)) {
+            // User abandoned pin entry
+            JADE_LOGI("User abandoned setting wallet erase PIN");
+            break;
+        }
 
         // This is the first pin, copy it and clear screen fields
         uint8_t pin[sizeof(pin_insert.pin)];
@@ -1209,7 +1218,10 @@ static void set_wallet_erase_pin(void)
         reset_pin(&pin_insert, "Confirm Erase PIN");
 
         // Ask user to re-enter PIN
-        run_pin_entry_loop(&pin_insert);
+        if (!run_pin_entry_loop(&pin_insert)) {
+            // User abandoned second input - back to first ...
+            continue;
+        }
 
         // Check that the two pins are the same
         JADE_LOGD("Checking pins match");
@@ -1224,7 +1236,6 @@ static void set_wallet_erase_pin(void)
                 // Abandon
                 break;
             }
-            reset_pin(&pin_insert, "Wallet-Erase PIN");
         }
     }
 }

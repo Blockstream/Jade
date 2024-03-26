@@ -85,7 +85,12 @@ static bool get_pin_get_aeskey(jade_process_t* process, const char* title, uint8
 
     // In a debug unattended ci build, use hardcoded pin after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    run_pin_entry_loop(&pin_insert);
+    if (!run_pin_entry_loop(&pin_insert)) {
+        // User abandoned entering pin
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandonded pin entry", NULL);
+        SENSITIVE_POP(&pin_insert);
+        return false;
+    }
 #else
     vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
     const uint8_t testpin[sizeof(pin_insert.pin)] = { 0, 1, 2, 3, 4, 5 };
@@ -121,11 +126,18 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
     SENSITIVE_PUSH(&pin_insert, sizeof(pin_insert_t));
 
     while (true) {
+        reset_pin(&pin_insert, title);
+
         // If getting PIN via QRs, free gui memory before attempting QR roundtrip
         gui_set_current_activity_ex(pin_insert.activity, process->ctx.source == SOURCE_INTERNAL);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        run_pin_entry_loop(&pin_insert);
+        if (!run_pin_entry_loop(&pin_insert)) {
+            // User abandoned setting new pin
+            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandoned setting new PIN", NULL);
+            SENSITIVE_POP(&pin_insert);
+            return false;
+        }
 #else
         vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         const uint8_t testpin[sizeof(pin_insert.pin)] = { 0, 1, 2, 3, 4, 5 };
@@ -137,7 +149,10 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
         reset_pin(&pin_insert, "Confirm PIN");
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        run_pin_entry_loop(&pin_insert);
+        if (!run_pin_entry_loop(&pin_insert)) {
+            // User abandoned second input - back to first ...
+            continue;
+        }
 #else
         vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
         memcpy(pin_insert.pin, testpin, sizeof(testpin));
@@ -153,12 +168,11 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
             // Pins mismatch - try again
             const char* message[] = { "Pin mismatch,", "please try again." };
             if (!await_continueback_activity(NULL, message, 2, true, NULL)) {
-                // Abandon
-                jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User failed to set new PIN", NULL);
+                // Abandon setting new pin
+                jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandoned setting new PIN", NULL);
                 SENSITIVE_POP(&pin_insert);
                 return false;
             }
-            reset_pin(&pin_insert, title);
         }
     }
     SENSITIVE_POP(&pin_insert);
@@ -189,9 +203,8 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
     // Do the pinserver 'getpin' process
     const char* unlock_pin_msg = suppress_pin_change_confirmation ? "Enter Current PIN" : "Unlock Jade";
     if (!get_pin_get_aeskey(process, unlock_pin_msg, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
-        // Server or networking/connection error
+        // User abandoned entering PIN, or some sort of server or networking/connection error
         // NOTE: reply message will have already been sent
-        JADE_LOGE("Failed to get aeskey from pinserver");
         goto cleanup;
     }
 
@@ -293,7 +306,7 @@ static bool set_pin_save_keys(jade_process_t* process)
 
     // Do the pinserver 'setpin' process
     if (!set_pin_get_aeskey(process, "Enter New PIN", pin, sizeof(pin), aeskey, sizeof(aeskey))) {
-        // Server or networking/connection error
+        // User abandoned entering PIN, or some sort of server or networking/connection error
         // NOTE: reply message will have already been sent
         goto cleanup;
     }

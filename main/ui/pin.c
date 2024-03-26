@@ -113,6 +113,7 @@ void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const
 static bool next_selected_digit(pin_insert_t* pin_insert)
 {
     JADE_ASSERT(pin_insert);
+    JADE_ASSERT(pin_insert->selected_digit < PIN_SIZE);
 
     // make sure the '<' is not selected
     JADE_ASSERT(pin_insert->current_selected_value < 10);
@@ -123,28 +124,30 @@ static bool next_selected_digit(pin_insert_t* pin_insert)
     // set the status and update the ui
     pin_insert->digit_status[pin_insert->selected_digit] = SET;
     update_digit_node(pin_insert, pin_insert->selected_digit);
-
     pin_insert->selected_digit++;
-    pin_insert->current_selected_value = get_random_pin_digit();
 
-    // finally reached the last digit
+    // reached the last digit - cannot select next, return false
     if (pin_insert->selected_digit >= PIN_SIZE) {
-        return true;
+        return false;
     }
 
     // set the status and update the ui
     pin_insert->digit_status[pin_insert->selected_digit] = SELECTED;
+
+    pin_insert->current_selected_value = get_random_pin_digit();
     update_digit_node(pin_insert, pin_insert->selected_digit);
 
-    return false;
+    return true;
 }
 
-static void prev_selected_digit(pin_insert_t* pin_insert)
+static bool prev_selected_digit(pin_insert_t* pin_insert)
 {
     JADE_ASSERT(pin_insert);
+    JADE_ASSERT(pin_insert->selected_digit < PIN_SIZE);
 
+    // at the first digit - cannot select previous, return false
     if (pin_insert->selected_digit == 0) {
-        return;
+        return false;
     }
 
     // set the status and update the ui
@@ -157,34 +160,13 @@ static void prev_selected_digit(pin_insert_t* pin_insert)
     // set the status and update the ui
     pin_insert->digit_status[pin_insert->selected_digit] = SELECTED;
     update_digit_node(pin_insert, pin_insert->selected_digit);
+
+    return true;
 }
 
-static void next_value(pin_insert_t* pin_insert)
-{
-    JADE_ASSERT(pin_insert);
-
-    // Do not show '<' on first pin digit
-    const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? NUM_PIN_VALUES : NUM_PIN_CHARS;
-    pin_insert->current_selected_value = (pin_insert->current_selected_value + 1) % digit_value_ceiling;
-
-    // TODO: skip < if selected_digit == 0
-    update_digit_node(pin_insert, pin_insert->selected_digit);
-}
-
-static void prev_value(pin_insert_t* pin_insert)
-{
-    JADE_ASSERT(pin_insert);
-
-    // Do not show '<' on first pin digit
-    const uint8_t digit_value_ceiling = pin_insert->selected_digit == 0 ? NUM_PIN_VALUES : NUM_PIN_CHARS;
-    pin_insert->current_selected_value
-        = (digit_value_ceiling + pin_insert->current_selected_value - 1) % digit_value_ceiling;
-
-    // TODO: skip < if selected_digit == 0
-    update_digit_node(pin_insert, pin_insert->selected_digit);
-}
-
-void run_pin_entry_loop(pin_insert_t* pin_insert)
+// Returns true if pin entry completes and pin_insert->pin is valid,
+// and false if pin entry abandoned and pin_insert->pin is not to be used.
+bool run_pin_entry_loop(pin_insert_t* pin_insert)
 {
     JADE_ASSERT(pin_insert);
     JADE_ASSERT(pin_insert->activity);
@@ -196,22 +178,25 @@ void run_pin_entry_loop(pin_insert_t* pin_insert)
 
         switch (ev_id) {
         case GUI_WHEEL_LEFT_EVENT:
-            prev_value(pin_insert);
+            pin_insert->current_selected_value
+                = (pin_insert->current_selected_value + NUM_PIN_CHARS - 1) % NUM_PIN_CHARS;
+            update_digit_node(pin_insert, pin_insert->selected_digit);
             break;
         case GUI_WHEEL_RIGHT_EVENT:
-            next_value(pin_insert);
+            pin_insert->current_selected_value = (pin_insert->current_selected_value + 1) % NUM_PIN_CHARS;
+            update_digit_node(pin_insert, pin_insert->selected_digit);
             break;
 
         default:
             if (ev_id == gui_get_click_event()) {
                 if (get_pin_value(pin_insert->current_selected_value) == CHAR_BACKSPACE) {
-                    prev_selected_digit(pin_insert);
-                    continue;
-                }
-
-                // Returns true when click on last digit
-                if (next_selected_digit(pin_insert)) {
-                    return;
+                    if (!prev_selected_digit(pin_insert)) {
+                        // Returns false when click 'backspace' on first digit (cannot move to previous)
+                        return false; // pin entry abandoned
+                    }
+                } else if (!next_selected_digit(pin_insert)) {
+                    // Returns false when click number on last digit (cannot move to next)
+                    return true; // pin entry complete
                 }
             }
         }

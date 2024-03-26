@@ -158,7 +158,7 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
 
 // Functions for pin entry
 void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message);
-void run_pin_entry_loop(pin_insert_t* pin_insert);
+bool run_pin_entry_loop(pin_insert_t* pin_insert);
 void reset_pin(pin_insert_t* pin_insert, const char* title);
 
 // Generic progress-bar
