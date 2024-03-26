@@ -1425,6 +1425,46 @@ get_signature reply (sign_tx)
 * 'result' will be the bytes for the signature for the corresponding input, in DER format with the sighash appended.
 * 'result' will be empty, if no signature was required for this input.
 
+.. _sign_psbt_request:
+
+sign_psbt request
+-----------------
+
+Request to append signatures to a passed psbt, using RFC6979.
+
+.. code-block:: cbor
+
+    {
+        "id": "6979",
+        "method": "sign_psbt",
+        "params": {
+            "network": "mainnet",
+            "psbt": <psbt bytes>
+        }
+    }
+
+* Any inputs requiring signatures from this wallet (as identified by fingerprint) are generated and appended to the passed psbt.
+
+.. _sign_psbt_reply:
+
+sign_psbt reply
+---------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed signing on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "6979",
+        "seqnum": 1
+        "seqlen": 4
+        "result": <psbt bytes>
+    }
+
+* NOTE: 'seqnum' and 'seqlen' indicate if the data is complete.  If 'seqlen' is greater than 1, the caller will have to send 'get_extended_data' messages to fetch the complete data.  See get_extended_data_request_.
+* 'result' is the input psbt updated with any generated signatures.
+* NOTE: if 'get_extended_data' calls are needed, the bytes payload of the messages must be concatenated to yield the complete psbt.
+
 
 Blockstream Liquid specific
 ===========================
@@ -1900,46 +1940,6 @@ get_signature reply (sign_liquid_tx)
 
 * 'result' will be the bytes for the signature for the corresponding input, in DER format with the sighash appended.
 * 'result' will be empty, if no signature was required for this input.
-
-.. _sign_psbt_request:
-
-sign_psbt request
------------------
-
-Request to append signatures to a passed psbt, using RFC6979.
-
-.. code-block:: cbor
-
-    {
-        "id": "6979",
-        "method": "sign_psbt",
-        "params": {
-            "network": "mainnet",
-            "psbt": <psbt bytes>
-        }
-    }
-
-* Any inputs requiring signatures from this wallet (as identified by fingerprint) are generated and appended to the passed psbt.
-
-.. _sign_psbt_reply:
-
-sign_psbt
----------
-
-* NOTE: The reply is not sent until the user has explicitly confirmed signing on the hw.
-
-.. code-block:: cbor
-
-    {
-        "id": "6979",
-        "seqnum": 1
-        "seqlen": 4
-        "result": <psbt bytes>
-    }
-
-* NOTE: 'seqnum' and 'seqlen' indicate if the data is complete.  If 'seqlen' is greater than 1, the caller will have to send 'get_extended_data' messages to fetch the complete data.  See get_extended_data_request_.
-* 'result' is the input psbt updated with any generated signatures.
-* NOTE: if 'get_extended_data' calls are needed, the bytes payload of the messages must be concatenated to yield the complete psbt.
 
 Indices and tables
 ==================
