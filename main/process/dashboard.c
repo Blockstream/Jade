@@ -1105,8 +1105,7 @@ static void handle_registered_wallets(void)
                 size_t num_signer_details = 0;
                 const char* network_unknown = NULL;
                 if (!descriptor_get_signers(wallet_name, &descriptor, network_unknown, NULL, signer_details,
-                        MAX_ALLOWED_SIGNERS, &num_signer_details, &errmsg)
-                    || num_signer_details != descriptor.num_values) {
+                        MAX_ALLOWED_SIGNERS, &num_signer_details, &errmsg)) {
                     JADE_LOGE("Failed to load signer information from descriptor data");
                     const char* message[] = { "Unable to load", "signer details" };
                     await_error_activity(message, 2);

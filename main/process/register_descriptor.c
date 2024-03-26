@@ -46,14 +46,13 @@ static int register_descriptor(
     int retval = 0;
     const size_t registration_len = DESCRIPTOR_BYTES_LEN(descriptor);
     uint8_t* const registration = JADE_MALLOC(registration_len);
-    signer_t* const signers = JADE_MALLOC(descriptor->num_values * sizeof(signer_t));
+    signer_t* const signers = JADE_CALLOC(MAX_ALLOWED_SIGNERS, sizeof(signer_t));
     size_t num_signers = 0;
 
     // Get signers - this also yields the type
     descriptor_type_t deduced_type = DESCRIPTOR_TYPE_UNKNOWN;
     if (!descriptor_get_signers(
-            descriptor_name, descriptor, network, &deduced_type, signers, descriptor->num_values, &num_signers, errmsg)
-        || num_signers != descriptor->num_values) {
+            descriptor_name, descriptor, network, &deduced_type, signers, MAX_ALLOWED_SIGNERS, &num_signers, errmsg)) {
         JADE_LOGE("Failed to extract signer information from descriptor");
         retval = CBOR_RPC_BAD_PARAMETERS;
         goto cleanup;

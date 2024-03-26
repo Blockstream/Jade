@@ -1106,6 +1106,95 @@ static bool test_miniscript_descriptors(void)
         }
     }
 
+    // Another Liana example - NOTE: resuing placeholder @0
+    INIT_DESC(desc, "wsh(or_d(multi(2,@0/<0;1>/*,@1/<0;1>/*),and_v(v:pkh(@0/<2;3>/*),older(65535))))");
+    ADD_MAP_VAL(desc, "@0",
+        "[fb5d3ada/48'/1'/0'/2']"
+        "tpubDFa4d4JXKYKrsyxkaxxk6QQscMo1bmwkczNWGKrwkPZiXSbwHueBEsS8Hq4RNTz2cm37MseAhzDRgyrmuaSDTtT6zi"
+        "rPxsi8FTVUBY6FLiQ");
+    ADD_MAP_VAL(desc, "@1",
+        "[077ace32/48'/1'/0'/2']"
+        "tpubDDzogRd3Gt71WEQavJggpR6R38iru9kC2uMkMcftBHLF8RzzPNSeZeTUoqvoa9xfXr2qeihmpysKbzwj6NmLbFQ9v2"
+        "VHdMw7p8MnQycgAV8");
+
+    // Check parsing and key iteration
+    ret = descriptor_get_signers("b0", &desc, "testnet", NULL, NULL, 0, &num_signers, &errmsg);
+    if (!ret) {
+        FAIL();
+    }
+    if (num_signers != 3) {
+        FAIL();
+    }
+    ret = descriptor_get_signers("b0", &desc, "testnet", &desc.type, signers, 3, &num_signers, &errmsg);
+    if (!ret) {
+        FAIL();
+    }
+    if (desc.type != DESCRIPTOR_TYPE_MIXED) {
+        FAIL();
+    }
+    if (num_signers != 3) {
+        FAIL();
+    }
+    for (size_t i = 0; i < 2; ++i) {
+        if (signers[i].derivation_len != 4 || signers[i].derivation[0] != harden(48)
+            || signers[i].derivation[1] != harden(1) || signers[i].derivation[2] != harden(0)
+            || signers[i].derivation[3] != harden(2)) {
+            FAIL();
+        }
+        if (!signers[i].path_is_string || strcmp(signers[i].path_str, i == 2 ? "<2;3>/*" : "<0;1>/*")) {
+            FAIL();
+        }
+    }
+
+    if (!FP_XPUB_MATCH(0, "fb5d3ada",
+            "tpubDFa4d4JXKYKrsyxkaxxk6QQscMo1bmwkczNWGKrwkPZiXSbwHueBEsS8Hq4RNTz2cm37MseAhzDRgyrmuaSDTtT6zi"
+            "rPxsi8FTVUBY6FLiQ")) {
+        FAIL();
+    }
+    if (!FP_XPUB_MATCH(1, "077ace32",
+            "tpubDDzogRd3Gt71WEQavJggpR6R38iru9kC2uMkMcftBHLF8RzzPNSeZeTUoqvoa9xfXr2qeihmpysKbzwj6NmLbFQ9v2"
+            "VHdMw7p8MnQycgAV8")) {
+        FAIL();
+    }
+
+    // Check scripts/addresses
+    const char* expectedb[2][2] = { { "tb1q8uu3hj86chgu2zgpn4x32crv7cxl8skjdexue2ku2mjgwjvm7t3q4x2yxa",
+                                        "tb1qf84tqnrcp36vtghf530406wyct00ns4jma3hw3ztfv5h98cka52qajm5v8" },
+        { "tb1qx8zx3x9wf33uaar3ghvzy8y7l5wzh7e8vs5gthwvxr5z3x7ekuvsn8689q",
+            "tb1q3a3k2m7qt3v05gar4kynpuu6xspqucet529mavjru4ca90ppayqqj0ad9f" } };
+
+    for (multi_index = 0; multi_index < 2; ++multi_index) {
+        for (uint32_t child_num = 0; child_num < 2; ++child_num) {
+            // Use unknown type
+            char* addr = NULL;
+            ret = descriptor_to_address("b1", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+            if (!ret || strcmp(addr, expectedb[multi_index][child_num])) {
+                wally_free_string(addr);
+                FAIL();
+            }
+            wally_free_string(addr);
+        }
+    }
+
+    // Check serialisation
+    if (!check_descriptor_serialisation(&desc)) {
+        FAIL();
+    }
+
+    // Addresses should be same
+    for (multi_index = 0; multi_index < 2; ++multi_index) {
+        for (uint32_t child_num = 0; child_num < 2; ++child_num) {
+            // Use unknown type
+            char* addr = NULL;
+            ret = descriptor_to_address("b2", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+            if (!ret || strcmp(addr, expectedb[multi_index][child_num])) {
+                wally_free_string(addr);
+                FAIL();
+            }
+            wally_free_string(addr);
+        }
+    }
+
     // Another miniscript example... NOTE: not a 'wallet policy'
     INIT_DESC(desc,
         "sh(wsh(or_d(thresh(1,pk("

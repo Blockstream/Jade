@@ -327,7 +327,6 @@ bool show_descriptor_activity(const char* descriptor_name, const descriptor_data
     JADE_ASSERT(descriptor_name);
     JADE_ASSERT(descriptor);
     JADE_ASSERT(signer_details);
-    JADE_ASSERT(num_signer_details == descriptor->num_values);
 
     // Overwriting only applies to intial confirmations - which cannot be invalid
     JADE_ASSERT(!overwriting || initial_confirmation);
@@ -339,7 +338,7 @@ bool show_descriptor_activity(const char* descriptor_name, const descriptor_data
     bool confirmed = false;
     uint8_t screen = 0; // 0 = initial summary, 1->n = signers, n+1 = final summary
     while (true) {
-        JADE_ASSERT(screen <= descriptor->num_values + 1);
+        JADE_ASSERT(screen <= num_signer_details + 1);
         if (screen == 0) {
             confirmed = show_view_descriptor_activity(descriptor_name, descriptor, initial_confirmation, is_valid);
             if (confirmed && is_valid) {
@@ -349,7 +348,7 @@ bool show_descriptor_activity(const char* descriptor_name, const descriptor_data
                 // either details not valid or record has been rejected
                 break;
             }
-        } else if (screen > descriptor->num_values) {
+        } else if (screen > num_signer_details) {
             confirmed = show_final_descriptor_summary_activity(descriptor_name, initial_confirmation, overwriting);
             if (confirmed) {
                 // User pressed 'confirm'

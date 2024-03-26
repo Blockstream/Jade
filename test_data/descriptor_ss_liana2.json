@@ -1,0 +1,33 @@
+{
+  "input": {
+    "network": "testnet",
+    "descriptor_name": "testliana",
+    "descriptor": "wsh(or_d(multi(2,@0/<0;1>/*,@1/<0;1>/*),and_v(v:pkh(@0/<2;3>/*),older(65535))))",
+    "datavalues": {
+      "@0": "[1273da33/48'/1'/0'/2']tpubDEAjmvwVDj4aTdNLyLdoVGdEuRf8ZMsZEun6Aa2uMHa3DFNSzXQFt8DY62gi37RuaPTcpoNFage2h6dPHABssCnWcp2j6srQTpWbGEKHgU1",
+      "@1": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+    }
+  },
+  "address_tests": [
+    {
+      "branch": 0,
+      "pointer": 0,
+      "expected_address": "tb1q76y5gnkave8u4w53jced3janercsm70u69sjkfpeaer2hkr2ymrsx3qdw7"
+    },
+    {
+      "branch": 0,
+      "pointer": 1,
+      "expected_address": "tb1qs09rm9jcvcq5mqf2qjpkhkgy7hgfmw5jpuk6jd8jdxayaq84ukasyzd6sc"
+    },
+    {
+      "branch": 1,
+      "pointer": 0,
+      "expected_address": "tb1q0lav0wrg73jc3ucxvjjqn4a4hqwktatt5z2a78cfazdnhavgfeuqa0vuuv"
+    },
+    {
+      "branch": 1,
+      "pointer": 1,
+      "expected_address": "tb1qz5gu7u8wmjm6mec2uyhm2s2mvc7zcrpuvcz8j28puu6hdj697laqpx4432"
+    }
+  ]
+}
