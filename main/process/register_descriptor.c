@@ -80,14 +80,16 @@ static int register_descriptor(
     }
 
     // Validate descriptor by fetching an external and change address
-    char* addr = NULL;
-    if (!descriptor_to_address(descriptor_name, descriptor, network, 0, 0, NULL, &addr, errmsg)
-        || !descriptor_to_address(descriptor_name, descriptor, network, 1, 0, NULL, &addr, errmsg)) {
+    char* addr0 = NULL;
+    char* addr1 = NULL;
+    if (!descriptor_to_address(descriptor_name, descriptor, network, 0, 0, NULL, &addr0, errmsg)
+        || !descriptor_to_address(descriptor_name, descriptor, network, 1, 0, NULL, &addr1, errmsg)) {
         // errmsg populated by prior call
         retval = CBOR_RPC_BAD_PARAMETERS;
         goto cleanup;
     }
-    JADE_WALLY_VERIFY(wally_free_string(addr));
+    JADE_WALLY_VERIFY(wally_free_string(addr0));
+    JADE_WALLY_VERIFY(wally_free_string(addr1));
 
     if (!descriptor_to_bytes(descriptor, registration, registration_len)) {
         *errmsg = "Failed to serialise descriptor";
