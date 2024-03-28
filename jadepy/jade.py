@@ -950,6 +950,42 @@ class JadeAPI:
         params = {'multisig_file': multisig_file}
         return self._jadeRpc('register_multisig', params)
 
+    def get_registered_descriptors(self):
+        """
+        RPC call to fetch brief summaries of any descriptor wallets registered to this signer.
+
+        Returns
+        -------
+        dict
+            Brief description of registered descriptor, keyed by registration name.
+            Each entry contains keys:
+                descriptor_len - int, length of descriptor output script
+                num_datavalues - int, total number of substitution placeholders passed with script
+                master_blinding_key - 32-bytes, any liquid master blinding key for this wallet
+        """
+        return self._jadeRpc('get_registered_descriptors')
+
+    def get_registered_descriptor(self, descriptor_name):
+        """
+        RPC call to fetch details of a named descriptor wallet registered to this signer.
+
+        Parameters
+        ----------
+        descriptor_name : string
+            Name of descriptor registration record to return.
+
+        Returns
+        -------
+        dict
+            Description of registered descriptor wallet identified by registration name.
+            Contains keys:
+                descriptor_name - str, name of descritpor registration
+                descriptor - str, descriptor output script, may contain substitution placeholders
+                datavalues - dict containing placeholders for substitution into script
+        """
+        params = {'descriptor_name': descriptor_name}
+        return self._jadeRpc('get_registered_descriptor', params)
+
     def register_descriptor(self, network, descriptor_name, descriptor_script, datavalues=None):
         """
         RPC call to register a new descriptor wallet, which must contain the hw signer.
@@ -958,7 +994,7 @@ class JadeAPI:
         Parameters
         ----------
         network : string
-            Network to which the multisig should apply - eg. 'mainnet', 'liquid', 'testnet', etc.
+            Network to which the descriptor should apply - eg. 'mainnet', 'liquid', 'testnet', etc.
 
         descriptor_name : string
             Name to use to identify this descriptor wallet registration record.

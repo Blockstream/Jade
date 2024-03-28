@@ -1048,6 +1048,16 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                       'master_blinding_key': EXPECTED_MASTER_BLINDING_KEY[:-1]}}),
                    'Invalid blinding key'),
 
+                  (('badgetdescr1', 'get_registered_descriptor'), 'Expecting parameters map'),
+                  (('badgetdescr2', 'get_registered_descriptor', {'descriptor_name': None}),
+                   'invalid descriptor name'),
+                  (('badgetdescr3', 'get_registered_descriptor',
+                    {'descriptor_name': 'space is bad'}), 'invalid descriptor name'),
+                  (('badgetdescr4', 'get_registered_descriptor',
+                    {'descriptor_name': 'excessivelylong1'}), 'invalid descriptor name'),
+                  (('badgetmulti5', 'get_registered_descriptor', {'descriptor_name': 'noexist'}),
+                   'does not exist for this signer'),
+
                   (('baddescr1', 'register_descriptor'), 'Expecting parameters map'),
                   (('baddescr2', 'register_descriptor',
                     {'network': 'testnet', 'descriptor_name': None}), 'invalid descriptor name'),
@@ -2989,12 +2999,22 @@ def test_miniscript_descriptor_registration(jadeapi):
                                            inputdata.get('datavalues'))
         assert rslt is True
 
-        # Check present and correct in 'get_registered_descriptors'
-        # registered_descriptors = jadeapi.get_registered_descriptors()
-        # descriptor_desc = registered_descriptors.get(inputdata['descriptor_name'])
-        # assert descriptor_desc is not None
-        # assert descriptor_desc['descriptor'] == inputdata['descriptor']
-        # assert descriptor_desc['datavalues'] == descriptor['datavalues']
+        # Pull the data back, then reload (roundtrip) - should be a no-op
+        roundtrip = jadeapi.get_registered_descriptor(inputdata['descriptor_name'])
+        assert roundtrip is not None
+        assert roundtrip['descriptor'] == inputdata['descriptor']
+        assert roundtrip.get('datavalues') == inputdata.get('datavalues')
+
+        roundtrip['network'] = inputdata['network']  # the only item not roundtripped
+        rslt = jadeapi._jadeRpc('register_descriptor', roundtrip)  # push result structure back
+        assert rslt
+
+        # Check present and correct in 'get_registered_multisigs' also
+        registered_descriptors = jadeapi.get_registered_descriptors()
+        descriptor_desc = registered_descriptors.get(inputdata['descriptor_name'])
+        assert descriptor_desc is not None
+        assert descriptor_desc['descriptor_len'] == len(inputdata['descriptor'])
+        assert descriptor_desc['num_datavalues'] == len(inputdata.get('datavalues', []))
 
         # This includes 'get receive address' tests ...
         for addr_test in descriptor_data['address_tests']:

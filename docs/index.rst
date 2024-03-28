@@ -583,6 +583,75 @@ register_descriptor reply
         "result": true
     }
 
+.. _get_registered_descriptors_request:
+
+get_registered_descriptors request
+----------------------------------
+
+Call to fetch brief summary of any registered descriptor wallets associated with the hw signer.
+
+.. code-block:: cbor
+
+    {
+        "id": "82",
+        "method": "get_registered_descriptors"
+    }
+
+.. _get_registered_descriptors_reply:
+
+get_registered_descriptors reply
+--------------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "82",
+        "result": {
+            "work-team": {
+                "descriptor_len": 79
+                "num_datavalues": 2
+            },
+            "family": {
+                "descriptor_len": 132
+                "num_datavalues": 3
+            }
+        }
+    }
+
+.. _get_registered_descriptor_request:
+
+get_registered_descriptor request
+---------------------------------
+
+Call to fetch details of any registered descriptor wallets associated with the hw signer.
+
+.. code-block:: cbor
+
+    {
+        "id": "87",
+        "method": "get_registered_descriptor"
+        "params": {
+            "descriptor_name": "2of2decay"
+        }
+    }
+
+.. _get_registered_descriptor_reply:
+
+get_registered_descriptor reply
+-------------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "87",
+        "descriptor_name": "2of2decay",
+        "descriptor": "wsh(or_d(multi(2,@0/<0;1>/*,@1/<0;1>/*),and_v(v:pkh(@0/<2;3>/*),older(65535))))",
+        "datavalues": {
+            "@0": "[1273da33/48'/1'/0'/2']tpubDEAjmvwVDj4aTdNLyLdoVGdEuRf8ZMsZEun6Aa2uMHa3DFNSzXQFt8DY62gi37RuaPTcpoNFage2h6dPHABssCnWcp2j6srQTpWbGEKHgU1",
+            "@1": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+        }
+    }
+
 .. _register_multisig_request:
 
 register_multisig request
