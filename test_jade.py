@@ -2667,7 +2667,10 @@ def _check_multisig_registration(jadeapi, multisig_data):
     assert fetched['signers'] == descriptor['signers']
 
     roundtrip['network'] = inputdata['network']  # the only item not roundtripped
-    rslt = jadeapi._jadeRpc('get_registered_multisig', roundtrip)  # push result structure back
+    if not fetched['master_blinding_key']:
+        del fetched['master_blinding_key']  # don't send null/empty blinding key
+
+    rslt = jadeapi._jadeRpc('register_multisig', roundtrip)  # push result structure back
     assert rslt
 
     # Check present and correct in 'get_registered_multisigs' also
