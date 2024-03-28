@@ -161,7 +161,7 @@ gui_activity_t* make_unlocked_settings_activity(void);
 gui_activity_t* make_wallet_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
 gui_activity_t* make_authentication_activity(bool initialised_and_pin_unlocked);
-gui_activity_t* make_prefs_settings_activity(bool initialised_and_locked);
+gui_activity_t* make_prefs_settings_activity(bool initialised_and_locked, gui_view_node_t** qr_mode_network_item);
 gui_activity_t* make_display_settings_activity(void);
 gui_activity_t* make_info_activity(const char* fw_version);
 gui_activity_t* make_device_info_activity(void);
@@ -836,11 +836,11 @@ static void handle_ble(void)
         gui_set_current_activity(act);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
         gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
             CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        bool ret = true;
+        const bool ret = true;
         ev_id = BTN_BLE_EXIT;
 #endif
         if (ret) {
@@ -1899,6 +1899,56 @@ static void handle_display_battery_volts(void)
     handle_info_detail_screen("Battery Volts", power_status);
 }
 
+static void update_network_menu_label(gui_view_node_t* network_type_item)
+{
+    JADE_ASSERT(network_type_item);
+    const network_type_t type = keychain_get_network_type_restriction();
+    const char* label = type == NETWORK_TYPE_TEST ? "Network: Testnet" : "Network: Mainnet";
+    gui_update_text(network_type_item, label);
+}
+
+static void update_network_carousel_item(gui_view_node_t* network_type_item, const network_type_t type)
+{
+    JADE_ASSERT(network_type_item);
+    const char* label = type == NETWORK_TYPE_TEST ? "Testnet" : "Mainnet";
+    gui_update_text(network_type_item, label);
+}
+
+static void handle_network_type(gui_view_node_t* network_type_item)
+{
+    JADE_ASSERT(network_type_item);
+
+    // Only expected for QR Mode atm
+    JADE_ASSERT(keychain_get() && keychain_get_userdata() == SOURCE_INTERNAL);
+
+    network_type_t type = keychain_get_network_type_restriction();
+
+    gui_view_node_t* network_textbox = NULL;
+    gui_activity_t* const act_network = make_carousel_activity("Network Type", NULL, &network_textbox);
+    update_network_carousel_item(network_textbox, type);
+
+    // Show, and await button click
+    gui_set_current_activity(act_network);
+
+    int32_t ev_id;
+    while (true) {
+        if (gui_activity_wait_event(act_network, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                type = type == NETWORK_TYPE_TEST ? NETWORK_TYPE_MAIN
+                                                 : NETWORK_TYPE_TEST; // Just toggle label at this point
+                update_network_carousel_item(network_textbox, type);
+            } else if (ev_id == gui_get_click_event()) {
+                // Done - apply network change
+                break;
+            }
+        }
+    }
+
+    keychain_clear_network_type_restriction();
+    keychain_set_network_type_restriction(type == NETWORK_TYPE_TEST ? TAG_TESTNET : TAG_MAINNET);
+    update_network_menu_label(network_type_item);
+}
+
 // Create the appropriate 'Settings' menu
 static gui_activity_t* create_settings_menu(const bool startup_menu)
 {
@@ -1932,6 +1982,10 @@ static void handle_settings(const bool startup_menu)
 
     // hw initialised and that wallet has been unlocked with PIN (ie not a temporary signer)
     const bool hw_pin_unlocked = keychain_get() && keychain_has_pin() && !keychain_has_temporary();
+
+    // hw initialised with internal message source (ie. QR-mode)
+    const bool hw_qr_mode = keychain_get() && keychain_get_userdata() == SOURCE_INTERNAL;
+    gui_view_node_t* network_type_item = NULL;
 
     // NOTE: menu navigation frees prior screens, as the navigation is
     // potentially unbound with all the back and forward buttons.
@@ -1986,7 +2040,11 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_PREFS:
         case BTN_SETTINGS_DISPLAY_EXIT:
             // Change to 'Preferences' menu (Settings)
-            act = make_prefs_settings_activity(hw_locked_initialised);
+            // Only pass the qr_mode_network_item if we're in QR mode
+            act = make_prefs_settings_activity(hw_locked_initialised, hw_qr_mode ? &network_type_item : NULL);
+            if (network_type_item) {
+                update_network_menu_label(network_type_item);
+            }
             break;
 
         case BTN_SETTINGS_DISPLAY:
@@ -2035,6 +2093,10 @@ static void handle_settings(const bool startup_menu)
 
         case BTN_SETTINGS_IDLE_TIMEOUT:
             handle_idle_timeout();
+            break;
+
+        case BTN_SETTINGS_NETWORK_TYPE:
+            handle_network_type(network_type_item);
             break;
 
         case BTN_SETTINGS_BLE:
