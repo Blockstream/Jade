@@ -148,7 +148,7 @@ At this point the Jade fw running in the qemu emulator should be available on 't
 
 # Reproducible Build
 
-See REPRODUCIBLE.md for instructions on locally reproducing the official Blockstream Jade firmware images (minus the Blockstream signature block).
+See [REPRODUCIBLE.md](./REPRODUCIBLE.md) for instructions on locally reproducing the official Blockstream Jade firmware images (minus the Blockstream signature block).
 
 # License
 

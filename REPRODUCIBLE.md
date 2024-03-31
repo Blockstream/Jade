@@ -2,6 +2,12 @@
 
 The following assumes the jade repo is cloned, checked-out to the appropriate release tag, and all submodules updated.
 
+> To initalize and update submodules, run the following:
+> ```
+> git submodule init
+> git submodule update
+> ```
+
 NOTE: DO NOT TRY TO FLASH OR OTA THESE BUILD ARTIFACTS ONTO A JADE OR ANY OTHER ESP32 HARDWARE.
 
 They contain settings to encrypt the flash and to enable 'secure boot' - this burns 'efuses' on the device - a one-way operation, and may render the device unusable.  
@@ -51,7 +57,7 @@ eg:
 cp ./production/sdkconfig_jade_prod.defaults sdkconfig.defaults
 rm -f sdkconfig
 ```
-NOTE: The `rm -f sdkconfig` step is not necessary on a fresh/clean repo, but always best to ensure this file does not exist and is recreated from the `sdkconfig.defaults` file.  This is vital if the `skconfig.defaults` file is changed (eg. to build another configuration).
+NOTE: The `rm -f sdkconfig` step is not necessary on a fresh/clean repo, but always best to ensure this file does not exist and is recreated from the `sdkconfig.defaults` file.  This is vital if the `sdkconfig.defaults` file is changed (eg. to build another configuration).
 
 5. Build
 ```
