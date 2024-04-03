@@ -6,4 +6,4 @@ dependencies:
   espressif/esp32-camera: "==2.0.3"
   espressif/cmake_utilities: "==0.5.2"
   idf:
-    version: "==5.1.2"
+    version: "==5.1.3"

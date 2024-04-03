@@ -1,4 +1,4 @@
-FROM debian:bookworm@sha256:b16cef8cbcb20935c0f052e37fc3d38dc92bfec0bcfb894c328547f81e932d67 as base
+FROM debian:bookworm@sha256:e97ee92bf1e11a2de654e9f3da827d8dce32b54e0490ac83bfc65c8706568116 as base
 RUN apt-get update -qq && apt-get upgrade --no-install-recommends --no-install-suggests -yqq && apt-get install --no-install-recommends --no-install-suggests -yqq git wget libncurses-dev flex bison gperf libffi-dev libssl-dev dfu-util cmake ninja-build ccache build-essential ca-certificates ccache cmake curl make pkg-config python3 python3-dev python3-pip python3-setuptools python3-serial python3-click python3-cryptography python3-future python3-pyparsing python3-pyelftools python3-pkg-resources python3-wheel python3-venv python3-sphinx unzip bluez-tools bluez libusb-1.0-0 clang-format libglib2.0-dev libpixman-1-dev libgcrypt20-dev virtualenv libslirp-dev && apt-get -yqq autoremove && apt-get -yqq clean && rm -rf /var/lib/apt/lists/* /var/cache/* /tmp/*
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 RUN python3 -m pip install --break-system-packages --user pycodestyle
@@ -6,8 +6,8 @@ RUN python3 -m pip install --break-system-packages --user pycodestyle
 FROM base AS esp-idf
 
 # These ARGs are easily parseable (eg by HWI)
-ARG ESP_IDF_BRANCH=v5.1.2
-ARG ESP_IDF_COMMIT=482a8fb2d78e3b58eb21b26da8a5bedf90623213
+ARG ESP_IDF_BRANCH=v5.1.3
+ARG ESP_IDF_COMMIT=e7771c75bd1dbbfb7b3c5381be7e063b197c9734
 RUN mkdir ~/esp && cd ~/esp && git clone --quiet --depth=1 --branch ${ESP_IDF_BRANCH} --single-branch --recursive --shallow-submodules https://github.com/espressif/esp-idf.git
 RUN cd ~/esp/esp-idf && git checkout ${ESP_IDF_COMMIT} && ./install.sh esp32 esp32s3
 
