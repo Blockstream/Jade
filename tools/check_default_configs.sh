@@ -15,6 +15,6 @@ for filename in production/*.defaults configs/*.defaults; do
     fi
 
     idf.py -D SDKCONFIG_DEFAULTS="${filename}" set-target ${esp_variant} reconfigure save-defconfig
-    tail -n +4 sdkconfig.defaults > ${filename}
+    tail -n +4 sdkconfig.defaults | LC_ALL=C sort -o ${filename}
 done
 rm -fr sdkconfig sdkconfig.defaults build
