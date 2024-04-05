@@ -80,7 +80,8 @@ static bool get_pin_get_aeskey(jade_process_t* process, const char* title, uint8
     JADE_ASSERT(pin_insert.activity);
     SENSITIVE_PUSH(&pin_insert, sizeof(pin_insert_t));
 
-    gui_set_current_activity(pin_insert.activity);
+    // If getting PIN via QRs, free gui memory before attempting QR roundtrip
+    gui_set_current_activity_ex(pin_insert.activity, process->ctx.source == SOURCE_INTERNAL);
 
     // In a debug unattended ci build, use hardcoded pin after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
@@ -120,7 +121,8 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
     SENSITIVE_PUSH(&pin_insert, sizeof(pin_insert_t));
 
     while (true) {
-        gui_set_current_activity(pin_insert.activity);
+        // If getting PIN via QRs, free gui memory before attempting QR roundtrip
+        gui_set_current_activity_ex(pin_insert.activity, process->ctx.source == SOURCE_INTERNAL);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         run_pin_entry_loop(&pin_insert);
