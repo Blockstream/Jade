@@ -139,7 +139,6 @@ bool wallet_bip32_path_from_str(
     const char* pathstr, const size_t str_len, uint32_t* path, const size_t path_len, size_t* written)
 {
     JADE_ASSERT(pathstr);
-    JADE_ASSERT(str_len);
     JADE_ASSERT(path);
     JADE_ASSERT(path_len);
     JADE_INIT_OUT_SIZE(written);
