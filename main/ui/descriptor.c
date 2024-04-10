@@ -24,7 +24,7 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
     JADE_ASSERT(!initial_confirmation || is_valid);
 
     const bool show_help_btn = false;
-    char display_str[96];
+    char display_str[128];
 
     // First row, name
     gui_view_node_t* splitname;
@@ -78,14 +78,14 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
         // Three screens to show script
         // Two screens to show script
         const size_t display_len = descriptor->script_len / 3;
-        JADE_ASSERT(display_len + 2 <= sizeof(display_str));
+        JADE_ASSERT(display_len + 1 <= sizeof(display_str));
         const char* message[] = { display_str };
 
         // First screen needs a 'next' button
         btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
             { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_DESCRIPTOR_SCRIPT_NEXT } };
 
-        int ret = snprintf(display_str, sizeof(display_str), "\n%.*s", display_len, descriptor->script);
+        int ret = snprintf(display_str, sizeof(display_str), "%.*s", display_len, descriptor->script);
         JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
         *actscript1 = make_show_message_activity(message, 1, "Script (1/3)", hdrbtns, 2, NULL, 0);
 
@@ -93,7 +93,7 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
         gui_set_activity_initial_selection(*actscript1, hdrbtns[1].btn);
 
         // Second screen similar to first
-        ret = snprintf(display_str, sizeof(display_str), "\n%.*s", display_len, descriptor->script + display_len);
+        ret = snprintf(display_str, sizeof(display_str), "%.*s", display_len, descriptor->script + display_len);
         JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
         *actscript2 = make_show_message_activity(message, 1, "Script (2/3)", hdrbtns, 2, NULL, 0);
 
@@ -104,7 +104,7 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
         hdrbtns[1].txt = "S";
         hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
 
-        ret = snprintf(display_str, sizeof(display_str), "\n%s", descriptor->script + (2 * display_len));
+        ret = snprintf(display_str, sizeof(display_str), "%s", descriptor->script + (2 * display_len));
         JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
         *actscript3 = make_show_message_activity(message, 1, "Script (3/3)", hdrbtns, 2, NULL, 0);
 
@@ -113,14 +113,14 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
     } else if (descriptor->script_len > sizeof(descriptor->script) / 3) {
         // Two screens to show script
         const size_t display_len = descriptor->script_len / 2;
-        JADE_ASSERT(display_len + 2 <= sizeof(display_str));
+        JADE_ASSERT(display_len + 1 <= sizeof(display_str));
         const char* message[] = { display_str };
 
         // First screen needs a 'next' button
         btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
             { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_DESCRIPTOR_SCRIPT_NEXT } };
 
-        int ret = snprintf(display_str, sizeof(display_str), "\n%.*s", display_len, descriptor->script);
+        int ret = snprintf(display_str, sizeof(display_str), "%.*s", display_len, descriptor->script);
         JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
         *actscript1 = make_show_message_activity(message, 1, "Script (1/2)", hdrbtns, 2, NULL, 0);
 
@@ -131,7 +131,7 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
         hdrbtns[1].txt = "S";
         hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
 
-        ret = snprintf(display_str, sizeof(display_str), "\n%s", descriptor->script + display_len);
+        ret = snprintf(display_str, sizeof(display_str), "%s", descriptor->script + display_len);
         JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
         *actscript2 = make_show_message_activity(message, 1, "Script (2/2)", hdrbtns, 2, NULL, 0);
 
