@@ -55,6 +55,42 @@ On MacOS: You will need cmake on your system for this step (`brew install cmake`
 
 If you encounter Python dependencies issue, make sure to use a recent Python version (e.g. Python 3.11) as the current system version which is used by the install script.
 
+# Build dependencies
+
+Cmake is needed to build the firmware, you can install in on debian based distros with:
+
+``` 
+sudo apt install cmake
+```
+
+# Serial port
+
+In order to have permissions using serial port to load firmware, your user should be in `dialout` group on debian 
+based distros, other distros can use a different group name, you can figure out by checking the group of the serial 
+port 'file' using `ls -l` command:
+
+(serial port is usually `/dev/ttyACM0` or `/dev/ttyUSB0`)
+
+``` 
+$ ls -l /dev/ttyACM0                                                                                                                     14:37:07
+crw-rw----+ 1 root dialout 166, 0 Apr 15 14:37 /dev/ttyACM0
+```
+
+You can check that `dialout` appear in your user groups by running:
+
+``` 
+$ groups
+docker libvirt dialout storage kvm wheel plugdev
+```
+
+if not present you should add your user to the group:
+
+``` 
+sudo usermod -aG dialout $USER
+```
+
+(you should then login/logout or reboot)
+
 # Build the firmware
 
 ```
