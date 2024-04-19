@@ -9,22 +9,26 @@
 
 bool show_signer_activity(const signer_t* signer, size_t signer_number, size_t num_signers, bool is_this_signer);
 
+#define MAX_NUM_SCRIPT_SCREENS 5
+#define MAX_SCRIPT_CHARS_PER_SCREEN 104
+
 static gui_activity_t* make_view_descriptor_activities(const char* descriptor_name, const bool initial_confirmation,
-    const bool is_valid, const descriptor_data_t* descriptor, gui_activity_t** actname, gui_activity_t** actscript1,
-    gui_activity_t** actscript2, gui_activity_t** actscript3)
+    const bool is_valid, const descriptor_data_t* descriptor, gui_activity_t** actname, gui_activity_t* act_scripts[],
+    const size_t act_scripts_len, size_t* num_script_screens)
 {
     JADE_ASSERT(descriptor_name);
     JADE_ASSERT(descriptor);
     JADE_INIT_OUT_PPTR(actname);
-    JADE_INIT_OUT_PPTR(actscript1);
-    JADE_INIT_OUT_PPTR(actscript2);
-    JADE_INIT_OUT_PPTR(actscript3);
+
+    JADE_ASSERT(act_scripts);
+    JADE_ASSERT(act_scripts_len == MAX_NUM_SCRIPT_SCREENS);
+    JADE_INIT_OUT_SIZE(num_script_screens);
 
     // initial confirmations can't be invalid
     JADE_ASSERT(!initial_confirmation || is_valid);
 
     const bool show_help_btn = false;
-    char display_str[128];
+    char display_str[MAX_SCRIPT_CHARS_PER_SCREEN + 2]; // Leading \n and trailing \0
 
     // First row, name
     gui_view_node_t* splitname;
@@ -73,77 +77,54 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
     gui_set_align(script, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(script, splitscript);
 
-    // NOTE: can be up to three script display screens
-    if (descriptor->script_len > (2 * sizeof(descriptor->script) / 3)) {
-        // Three screens to show script
-        // Two screens to show script
-        const size_t display_len = descriptor->script_len / 3;
-        JADE_ASSERT(display_len + 1 <= sizeof(display_str));
-        const char* message[] = { display_str };
+    // NOTE: can be up to five script display screens
+    JADE_ASSERT(sizeof(descriptor->script) <= MAX_NUM_SCRIPT_SCREENS * MAX_SCRIPT_CHARS_PER_SCREEN);
+    JADE_ASSERT(descriptor->script_len <= sizeof(descriptor->script));
 
-        // First screen needs a 'next' button
-        btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
-            { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_DESCRIPTOR_SCRIPT_NEXT } };
-
-        int ret = snprintf(display_str, sizeof(display_str), "%.*s", display_len, descriptor->script);
-        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-        *actscript1 = make_show_message_activity(message, 1, "Script (1/3)", hdrbtns, 2, NULL, 0);
-
-        // Set the intially selected item to the 'Next' button
-        gui_set_activity_initial_selection(*actscript1, hdrbtns[1].btn);
-
-        // Second screen similar to first
-        ret = snprintf(display_str, sizeof(display_str), "%.*s", display_len, descriptor->script + display_len);
-        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-        *actscript2 = make_show_message_activity(message, 1, "Script (2/3)", hdrbtns, 2, NULL, 0);
-
-        // Set the intially selected item to the 'Next' button
-        gui_set_activity_initial_selection(*actscript2, hdrbtns[1].btn);
-
-        // Third message screen has a tick button
-        hdrbtns[1].txt = "S";
-        hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
-
-        ret = snprintf(display_str, sizeof(display_str), "%s", descriptor->script + (2 * display_len));
-        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-        *actscript3 = make_show_message_activity(message, 1, "Script (3/3)", hdrbtns, 2, NULL, 0);
-
-        // Set the intially selected item to the 'Next' button
-        gui_set_activity_initial_selection(*actscript3, hdrbtns[1].btn);
-    } else if (descriptor->script_len > sizeof(descriptor->script) / 3) {
-        // Two screens to show script
-        const size_t display_len = descriptor->script_len / 2;
-        JADE_ASSERT(display_len + 1 <= sizeof(display_str));
-        const char* message[] = { display_str };
-
-        // First screen needs a 'next' button
-        btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
-            { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_DESCRIPTOR_SCRIPT_NEXT } };
-
-        int ret = snprintf(display_str, sizeof(display_str), "%.*s", display_len, descriptor->script);
-        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-        *actscript1 = make_show_message_activity(message, 1, "Script (1/2)", hdrbtns, 2, NULL, 0);
-
-        // Set the intially selected item to the 'Next' button
-        gui_set_activity_initial_selection(*actscript1, hdrbtns[1].btn);
-
-        // Second message screen has a tick button
-        hdrbtns[1].txt = "S";
-        hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
-
-        ret = snprintf(display_str, sizeof(display_str), "%s", descriptor->script + display_len);
-        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-        *actscript2 = make_show_message_activity(message, 1, "Script (2/2)", hdrbtns, 2, NULL, 0);
-
-        // Set the intially selected item to the 'Next' button
-        gui_set_activity_initial_selection(*actscript2, hdrbtns[1].btn);
-
-        *actscript3 = NULL;
-    } else {
+    if (descriptor->script_len < MAX_SCRIPT_CHARS_PER_SCREEN) {
         // Just the one script screen
-        *actscript1 = make_show_single_value_activity("Script", descriptor->script, show_help_btn);
-        *actscript2 = NULL;
-        *actscript3 = NULL;
+        act_scripts[0] = make_show_single_value_activity("Script", descriptor->script, show_help_btn);
+        *num_script_screens = 1;
+    } else {
+        // Multiple screens required
+        const size_t script_screens_needed = (descriptor->script_len / MAX_SCRIPT_CHARS_PER_SCREEN)
+            + (descriptor->script_len % MAX_SCRIPT_CHARS_PER_SCREEN ? 1 : 0);
+        JADE_ASSERT(script_screens_needed <= MAX_NUM_SCRIPT_SCREENS);
+        char title[16];
+
+        for (size_t pos = 0, iscreen = 0; iscreen < script_screens_needed; ++iscreen) {
+            JADE_ASSERT(pos < descriptor->script_len);
+
+            const bool final_screen = (iscreen == script_screens_needed - 1);
+            const size_t display_len = (descriptor->script_len - pos) / (script_screens_needed - iscreen);
+            JADE_ASSERT(display_len + 2 <= sizeof(display_str));
+
+            // Title showing number of screens
+            int ret = snprintf(title, sizeof(title), "Script (%u/%u)", iscreen + 1, script_screens_needed);
+            JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
+
+            // Most screens needs a 'back' and 'next' button
+            btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+                { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_DESCRIPTOR_SCRIPT_NEXT } };
+
+            // Final screen has a tick button (same 'next' event)
+            if (final_screen) {
+                hdrbtns[1].txt = "S";
+                hdrbtns[1].font = VARIOUS_SYMBOLS_FONT;
+            }
+
+            // Script fragment
+            ret = snprintf(display_str, sizeof(display_str), "\n%.*s", display_len, descriptor->script + pos);
+            JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
+            pos += display_len;
+
+            const char* message[] = { display_str };
+            act_scripts[iscreen] = make_show_message_activity(message, 1, title, hdrbtns, 2, NULL, 0);
+
+            // Set the intially selected item to the 'Next' button
+            gui_set_activity_initial_selection(act_scripts[iscreen], hdrbtns[1].btn);
+        }
+        *num_script_screens = script_screens_needed;
     }
 
     // Buttons - Delete and Next
@@ -175,12 +156,15 @@ bool show_view_descriptor_activity(const char* descriptor_name, const descriptor
     JADE_ASSERT(descriptor);
 
     gui_activity_t* act_name = NULL;
-    gui_activity_t* act_script1 = NULL;
-    gui_activity_t* act_script2 = NULL;
-    gui_activity_t* act_script3 = NULL;
+    gui_activity_t* act_scripts[MAX_NUM_SCRIPT_SCREENS] = {};
+    size_t num_script_screens = 0;
     gui_activity_t* act_summary = make_view_descriptor_activities(descriptor_name, initial_confirmation, is_valid,
-        descriptor, &act_name, &act_script1, &act_script2, &act_script3);
+        descriptor, &act_name, act_scripts, MAX_NUM_SCRIPT_SCREENS, &num_script_screens);
+    JADE_ASSERT(num_script_screens);
+    JADE_ASSERT(num_script_screens <= MAX_NUM_SCRIPT_SCREENS);
+
     gui_activity_t* act = act_summary;
+    uint8_t script_screen_index = 0;
     int32_t ev_id;
 
     while (true) {
@@ -199,7 +183,9 @@ bool show_view_descriptor_activity(const char* descriptor_name, const descriptor
         if (ret) {
             switch (ev_id) {
             case BTN_BACK:
-                act = (act == act_script3) ? act_script2 : (act == act_script2) ? act_script1 : act_summary;
+                JADE_ASSERT(script_screen_index < num_script_screens);
+                JADE_ASSERT(act == act_name || act == act_scripts[script_screen_index]);
+                act = script_screen_index == 0 ? act_summary : act_scripts[--script_screen_index];
                 break;
 
             case BTN_DESCRIPTOR_NAME:
@@ -207,13 +193,14 @@ bool show_view_descriptor_activity(const char* descriptor_name, const descriptor
                 break;
 
             case BTN_DESCRIPTOR_SCRIPT:
-                act = act_script1;
+                script_screen_index = 0;
+                act = act_scripts[script_screen_index];
                 break;
 
             case BTN_DESCRIPTOR_SCRIPT_NEXT:
-                act = (act == act_script2 && act_script3) ? act_script3
-                    : (act == act_script1)                ? act_script2
-                                                          : act_summary;
+                JADE_ASSERT(script_screen_index < num_script_screens);
+                JADE_ASSERT(act == act_scripts[script_screen_index]);
+                act = script_screen_index == num_script_screens - 1 ? act_summary : act_scripts[++script_screen_index];
                 break;
 
             case BTN_DESCRIPTOR_DISCARD_DELETE:

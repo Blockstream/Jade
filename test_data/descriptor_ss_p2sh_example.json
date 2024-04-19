@@ -1,7 +1,7 @@
 {
   "input": {
     "network": "testnet",
-    "descriptor_name": "p2sh_p2wsh_ms",
+    "descriptor_name": "test_descriptor",
     "descriptor": "sh(wsh(or_d(thresh(1,pk(@0/<0;1>/*)),and_v(v:thresh(1,pk(@1/<0;1>/*)),older(30)))))",
     "datavalues": {
       "@0": "[1273da33/48'/1'/0'/2']tpubDEAjmvwVDj4aTdNLyLdoVGdEuRf8ZMsZEun6Aa2uMHa3DFNSzXQFt8DY62gi37RuaPTcpoNFage2h6dPHABssCnWcp2j6srQTpWbGEKHgU1",

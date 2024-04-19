@@ -1,7 +1,7 @@
 {
   "input": {
     "network": "testnet",
-    "descriptor_name": "wsh_sorted",
+    "descriptor_name": "test_descriptor",
     "descriptor": "wsh(sortedmulti(2,@0/**,@1/**))",
     "datavalues": {
       "@0": "[1273da33/48'/1'/0'/2']tpubDEAjmvwVDj4aTdNLyLdoVGdEuRf8ZMsZEun6Aa2uMHa3DFNSzXQFt8DY62gi37RuaPTcpoNFage2h6dPHABssCnWcp2j6srQTpWbGEKHgU1",

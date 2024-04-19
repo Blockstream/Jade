@@ -1,0 +1,35 @@
+{
+  "input": {
+    "network": "testnet",
+    "descriptor_name": "testliana",
+    "descriptor": "wsh(or_i(and_v(v:thresh(1,pkh(@0/<4;5>/*),a:pkh(@1/<6;7>/*)),older(65535)),or_i(and_v(v:thresh(2,pkh(@0/<2;3>/*),a:pkh(@1/<4;5>/*)),older(51234)),or_i(and_v(v:thresh(1,pkh(@2/<4;5>/*),a:pkh(@1/<2;3>/*)),older(41001)),or_d(multi(2,@2/<0;1>/*,@3/<0;1>/*),and_v(v:thresh(3,pkh(@2/<2;3>/*),a:pkh(@3/<2;3>/*),a:pkh(@0/<0;1>/*),a:pkh(@1/<0;1>/*)),older(31111)))))))",
+    "datavalues": {
+      "@0": "[1273da33/48'/1'/0'/2']tpubDEAjmvwVDj4aTdNLyLdoVGdEuRf8ZMsZEun6Aa2uMHa3DFNSzXQFt8DY62gi37RuaPTcpoNFage2h6dPHABssCnWcp2j6srQTpWbGEKHgU1",
+      "@1": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE",
+      "@2": "[f38d4037/48'/1'/0'/2']tpubDDpE8cYNYT3rYXE1x1dVxYEX3Ud2AyxZVoAM2Dcndwto8Dx9b717oGnPq4N1PtSTBb8AgKjRD9oj1srbYSCmXBAR161q76pEhCiQBmgTSJr",
+      "@3": "[7eb8fcb3/48'/1'/0'/2']tpubDCxRQvc8EdGgiEKatkGrvCBt7yVtzjJWKNzx9AwHq2DsjjyQZSMAiNd5y6T2xramodXmDPuQUHPySPPfBnMhvYKZSn6Jz4CuS7yg315XYRH"
+    }
+  },
+  "address_tests": [
+    {
+      "branch": 0,
+      "pointer": 0,
+      "expected_address": "tb1qfa9t5sncd36ulyuz3tskdj3dzlr8p6z0flegsa6gvnt4ju76p8pq5pmsd4"
+    },
+    {
+      "branch": 0,
+      "pointer": 1,
+      "expected_address": "tb1qy9uzgutsf2pcak50asanece4g6qjcjr5duwz5f06needmefp9hyqgvmh6w"
+    },
+    {
+      "branch": 1,
+      "pointer": 0,
+      "expected_address": "tb1qysnyc6kc7u56ads57xv6pmmauzjk4qv33x40j099e7ln7rmvk70qtcwmsx"
+    },
+    {
+      "branch": 1,
+      "pointer": 1,
+      "expected_address": "tb1qswcfcdqrrrajv25fx0krnp7ejkxppwp9tpa2sgv2m0685l3hk4ush7jr9g"
+    }
+  ]
+}

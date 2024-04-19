@@ -12,7 +12,7 @@ struct wally_map;
 #define MAX_DESCRIPTOR_REGISTRATIONS 16
 
 // The maximum length of the descriptor script
-#define MAX_DESCRIPTOR_SCRIPT_LEN 380
+#define MAX_DESCRIPTOR_SCRIPT_LEN 512
 
 // The size of the byte-string required to store a descriptor registration of the current 'version'
 #define DESCRIPTOR_BYTES_LEN(descriptor)                                                                               \
