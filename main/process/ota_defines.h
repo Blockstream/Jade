@@ -21,6 +21,8 @@
 #define JADE_OTA_BOARD_TYPE "JADE" // Jade 1.0 (with true wheel)
 #elif defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 #define JADE_OTA_BOARD_TYPE "JADE_V1.1" // Jade 1.1 (with jog wheel)
+#elif defined(CONFIG_BOARD_TYPE_JADE_V2)
+#define JADE_OTA_BOARD_TYPE "JADE_V2" // Jade 2 (with physical buttons)
 #elif defined(CONFIG_BOARD_TYPE_M5_FIRE)
 #define JADE_OTA_BOARD_TYPE "M5FIRE"
 #elif defined(CONFIG_BOARD_TYPE_M5_BLACK_GRAY)

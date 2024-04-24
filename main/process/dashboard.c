@@ -175,7 +175,7 @@ gui_activity_t* make_display_settings_activity(void);
 gui_activity_t* make_info_activity(const char* fw_version);
 gui_activity_t* make_device_info_activity(void);
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
 gui_activity_t* make_legal_certifications_activity(void);
 #endif
 gui_activity_t* make_storage_stats_activity(size_t entries_used, size_t entries_free);
@@ -841,7 +841,7 @@ static bool offer_temporary_wallet_login(void)
     return true;
 }
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
 static void handle_legal(void)
 {
     gui_activity_t* const first_activity = make_legal_certifications_activity();
@@ -1652,8 +1652,8 @@ static void handle_view_otps(void)
     SENSITIVE_POP(otp_uri);
 }
 
-// NOTE: Only Jade v1.1's have brightness controls
-#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+// NOTE: Only Jade v1.1's and v2's have brightness controls
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
 static void handle_screen_brightness(void)
 {
     static const char* LABELS[] = { "Min(1)", "Low(2)", "Medium(3)", "High(4)", "Max(5)" };
@@ -2311,8 +2311,8 @@ static void handle_settings(const bool startup_menu)
             done = handle_change_pin_qr();
             break;
 
-// NOTE: Only Jade v1.1's have brightness controls
-#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+// NOTE: Only Jade v1.1's and v2's have brightness controls
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
         case BTN_SETTINGS_DISPLAY_BRIGHTNESS:
             handle_screen_brightness();
             break;
@@ -2405,7 +2405,7 @@ static void handle_settings(const bool startup_menu)
             handle_pinserver_reset();
             break;
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
         case BTN_SETTINGS_LEGAL:
             handle_legal();
             break;

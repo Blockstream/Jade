@@ -2476,7 +2476,7 @@ void gui_set_activity_title(gui_activity_t* activity, const char* title)
 
 gui_activity_t* gui_current_activity(void) { return current_activity; }
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
 extern const uint8_t splashstart[] asm("_binary_splash_bin_gz_start");
 extern const uint8_t splashend[] asm("_binary_splash_bin_gz_end");
 #endif
@@ -2485,7 +2485,7 @@ gui_activity_t* gui_display_splash(void)
 {
     gui_activity_t* const act = gui_make_activity();
     gui_view_node_t* splash_node;
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
     Picture* const pic = get_picture(splashstart, splashend);
     gui_make_picture(&splash_node, pic);
 #else

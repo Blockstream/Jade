@@ -124,6 +124,13 @@ test_build_jade_v1_1:
   after_script:
     - mv build build_jade_v1_1
 
+test_build_jade_v2:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_v2s3.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_v2
+
 test_build_jade_ndebug:
   extends: .test_build_template
   before_script:
@@ -137,6 +144,13 @@ test_build_jade_v1_1_ndebug:
     - cp configs/sdkconfig_jade_v1_1_ndebug.defaults sdkconfig.defaults
   after_script:
     - mv build build_jade_v1_1_ndebug
+
+test_build_jade_v2_ndebug:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_v2s3_ndebug.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_v2_ndebug
 
 test_build_display_m5fire:
   extends: .test_build_template

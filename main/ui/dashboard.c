@@ -5,7 +5,7 @@
 #include "process.h"
 #include "utils/malloc_ext.h"
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
 extern const uint8_t fccstart[] asm("_binary_fcc_bin_gz_start");
 extern const uint8_t fccend[] asm("_binary_fcc_bin_gz_end");
 extern const uint8_t cestart[] asm("_binary_ce_bin_gz_start");
@@ -14,7 +14,7 @@ extern const uint8_t weeestart[] asm("_binary_weee_bin_gz_start");
 extern const uint8_t weeeend[] asm("_binary_weee_bin_gz_end");
 #endif
 
-#if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
 extern const uint8_t telecstart[] asm("_binary_telec_bin_gz_start");
 extern const uint8_t telecend[] asm("_binary_telec_bin_gz_end");
 #endif
@@ -258,7 +258,7 @@ gui_activity_t* make_startup_options_activity(void)
         { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL } };
 
     // Legal screens only apply to proper jade hw
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
     const size_t num_menubtns = 3;
 #else
     const size_t num_menubtns = 2;
@@ -383,8 +383,8 @@ gui_activity_t* make_display_settings_activity(void)
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DISPLAY_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    // NOTE: Only Jade v1.1's have brightness controls
-#ifdef CONFIG_BOARD_TYPE_JADE_V1_1
+    // NOTE: Only Jade v1.1's and v2's have brightness controls
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
     btn_data_t menubtns[]
         = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_BRIGHTNESS },
               { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
@@ -574,7 +574,7 @@ gui_activity_t* make_info_activity(const char* fw_version)
         { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL } };
 
     // Legal screens only apply to proper jade hw
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
     const size_t num_menubtns = 3;
 #else
     const size_t num_menubtns = 2;
@@ -600,9 +600,9 @@ gui_activity_t* make_device_info_activity(void)
     return make_menu_activity("Device Info", hdrbtns, 2, menubtns, 3);
 }
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
 
-#if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
 #define JADE_FCC_ID "2AWI3BLOCK\n STREAMJD2"
 #define MAX_LEGAL_PAGE 6
 #else
@@ -708,7 +708,7 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
         gui_set_padding(node, GUI_MARGIN_ALL_EQUAL, 12);
         break;
     }
-#if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
     case 6: {
         Picture* const pic = get_picture(telecstart, telecend);
         gui_make_picture(&node, pic);

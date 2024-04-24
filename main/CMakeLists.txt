@@ -9,11 +9,11 @@ if(CONFIG_ETH_USE_OPENETH)
     endif()
 endif()
 
-if (CONFIG_BOARD_TYPE_JADE OR CONFIG_BOARD_TYPE_JADE_V1_1)
+if (CONFIG_BOARD_TYPE_JADE OR CONFIG_BOARD_TYPE_JADE_V1_1 OR CONFIG_BOARD_TYPE_JADE_V2)
     list(APPEND logo_files ${PROJECT_DIR}/logo/splash.bin.gz ${PROJECT_DIR}/logo/ce.bin.gz ${PROJECT_DIR}/logo/fcc.bin.gz ${PROJECT_DIR}/logo/weee.bin.gz)
 endif()
 
-if (CONFIG_BOARD_TYPE_JADE_V1_1)
+if (CONFIG_BOARD_TYPE_JADE_V1_1 OR CONFIG_BOARD_TYPE_JADE_V2)
     list(APPEND logo_files ${PROJECT_DIR}/logo/telec.bin.gz)
 endif()
 

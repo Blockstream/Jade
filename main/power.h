@@ -18,7 +18,6 @@ esp_err_t power_backlight_on(uint8_t brightness);
 esp_err_t power_backlight_off(void);
 
 esp_err_t power_screen_on(void);
-esp_err_t power_screen_off(void);
 
 esp_err_t power_camera_on(void);
 esp_err_t power_camera_off(void);
