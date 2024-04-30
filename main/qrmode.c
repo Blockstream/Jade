@@ -1082,12 +1082,13 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     size_t cbor_signed_len = 0;
     if (!bcur_build_cbor_crypto_psbt(psbt, &cbor_signed, &cbor_signed_len)) {
         JADE_LOGW("Failed to build bcur/cbor for psbt");
-        return false;
+        goto cleanup;
     }
 
     // Now display bcur QR
     const char* message[] = { "Scan with", "wallet", "app" };
     display_bcur_qr(message, 3, BCUR_TYPE_CRYPTO_PSBT, cbor_signed, cbor_signed_len, "blkstrm.com/psbt");
+    ret = true;
 
 cleanup:
     JADE_WALLY_VERIFY(wally_psbt_free(psbt));
