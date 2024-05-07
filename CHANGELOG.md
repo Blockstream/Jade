@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.30] - 2024-05-08
+### Added
+- Added 'get_registered_descriptors' and 'get_registered_descriptor' api calls
+- Added menu option to set network selection (mainnet/testnet) for stateless QR code users
+- Add <space> to all generic keyboard screens
+
+### Changed
+- Update ESP-IDF base firmware to v5.1.3
+ * NOTE: THIS WILL INVALIDATE ALL CURRENTLY SAVED BLUETOOTH BONDS - DEVICES WILL NEED TO BE RE-PAIRED
+- Corrected/updated documentation
+
+### Fixed
+- Fix bug when signer placeholder reused in registered descriptor policy
+- Fixed handling of Specter 'sign_message' QR when bip32 path missing
+
 ## [1.0.29] - 2024-03-22
 ### Added
 
