@@ -967,7 +967,8 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         if (errcode) {
             if (errcode != CBOR_RPC_USER_CANCELLED) {
                 JADE_LOGE("Processing 'signmessage' QR failed: %d, %s", errcode, errmsg);
-                await_error_activity(&errmsg, 1);
+                const char* message[] = { errmsg };
+                await_error_activity(message, 1);
             }
             return false;
         }
@@ -1001,7 +1002,8 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         if (errcode) {
             if (errcode != CBOR_RPC_USER_CANCELLED) {
                 JADE_LOGE("Processing multisig file failed: %s", errmsg);
-                await_error_activity(&errmsg, 1);
+                const char* message[] = { errmsg };
+                await_error_activity(message, 1);
             }
             return false;
         }
@@ -1072,7 +1074,8 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     const int errcode = sign_psbt(network, psbt, &errmsg);
     if (errcode) {
         if (errcode != CBOR_RPC_USER_CANCELLED) {
-            await_error_activity(&errmsg, 1);
+            const char* message[] = { errmsg };
+            await_error_activity(message, 1);
         }
         goto cleanup;
     }

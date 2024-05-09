@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected/updated documentation
 
 ### Fixed
+- Fixed display of error messages if OTA (delta) fails
 - Fix bug when signer placeholder reused in registered descriptor policy
 - Fixed handling of Specter 'sign_message' QR when bip32 path missing
 

@@ -342,7 +342,8 @@ cleanup:
 
         // If the error is not 'did not start' or 'user declined', show an error screen
         if (ota_return_status != ERROR_OTA_SETUP && ota_return_status != ERROR_USER_DECLINED) {
-            await_error_activity((const char**)(&MESSAGES[ota_return_status]), 1);
+            const char* message[] = { MESSAGES[ota_return_status] };
+            await_error_activity(message, 1);
         }
     }
 }

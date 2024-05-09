@@ -137,7 +137,8 @@ void register_otp_process(void* process_ptr)
         // Display any internal error that may occur after the user has viewed
         // and confirmed the OTP record (earlier errors are just messaged)
         if (errcode == CBOR_RPC_INTERNAL_ERROR) {
-            await_error_activity(&errmsg, 1);
+            const char* message[] = { errmsg };
+            await_error_activity(message, 1);
         }
         jade_process_reject_message(process, errcode, errmsg, NULL);
         goto cleanup;
@@ -184,7 +185,8 @@ static bool get_otp_data_from_kb(
             }
         } else if (!validate_otp_name(kb_entry.strdata, &errmsg)) {
             // Invalid otp name
-            await_error_activity(&errmsg, 1);
+            const char* message[] = { errmsg };
+            await_error_activity(message, 1);
         } else {
             const char* question[] = { kb_entry.strdata };
             done = await_yesno_activity("Confirm OTP Name", question, 1, true, "blkstrm.com/otp");
@@ -280,7 +282,8 @@ bool register_otp_kb_entry(void)
     const int errcode = handle_new_otp_uri(otp_name, otp_uri, uri_written, &errmsg);
     if (errcode && errcode != CBOR_RPC_USER_CANCELLED) {
         // Display any error (ignoring explicit user cancel)
-        await_error_activity(&errmsg, 1);
+        const char* message[] = { errmsg };
+        await_error_activity(message, 1);
         goto cleanup;
     }
 
@@ -362,7 +365,8 @@ bool register_otp_qr(void)
     const int errcode = handle_new_otp_uri(otp_name, (const char*)qr_data.data, qr_data.len, &errmsg);
     if (errcode && errcode != CBOR_RPC_USER_CANCELLED) {
         // Display any error (ignoring explicit user cancel)
-        await_error_activity(&errmsg, 1);
+        const char* message[] = { errmsg };
+        await_error_activity(message, 1);
         goto cleanup;
     }
 
