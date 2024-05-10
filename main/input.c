@@ -8,12 +8,7 @@
 
 static bool invert_wheel = false;
 
-void input_init(void)
-{
-    const esp_err_t rc = gpio_install_isr_service(0);
-    JADE_ASSERT(rc == ESP_OK);
-    invert_wheel = false;
-}
+void input_init(void) { invert_wheel = false; }
 
 void set_invert_wheel(bool inverted) { invert_wheel = inverted; }
 
@@ -134,10 +129,10 @@ static void wheel_common(button_handle_t* btn_handle_prev, button_handle_t* btn_
 
 // Jade proper wheel init
 static QueueHandle_t event_queue;
+static rotary_encoder_info_t info = {};
 
-void wheel_watch_task(void* info_void)
+void wheel_watch_task(void* unused)
 {
-    rotary_encoder_info_t* info = (rotary_encoder_info_t*)info_void;
     int32_t last_position = 0;
 
     for (;;) {
@@ -154,37 +149,54 @@ void wheel_watch_task(void* info_void)
     }
 
     JADE_LOGE("queue receive failed");
-    const esp_err_t rc = rotary_encoder_uninit(info);
-    JADE_ASSERT(rc == ESP_OK);
-    free(info);
-
     vTaskDelete(NULL);
+}
+
+void wheel_uninit(bool uninstall_gpio_isr_service)
+{
+    const esp_err_t rc = rotary_encoder_uninit(&info);
+    JADE_ASSERT(rc == ESP_OK);
+    if (uninstall_gpio_isr_service) {
+        gpio_uninstall_isr_service();
+    }
+}
+
+/* reinit reuses same queue and Task */
+void wheel_reinit(bool install_gpio_isr_service)
+{
+    if (install_gpio_isr_service) {
+        const esp_err_t rc = gpio_install_isr_service(0);
+        JADE_ASSERT(rc == ESP_OK);
+    }
+    // Initialise the rotary encoder device with the GPIOs for A and B signals
+    esp_err_t rc = rotary_encoder_init(&info, CONFIG_INPUT_WHEEL_A, CONFIG_INPUT_WHEEL_B);
+    JADE_ASSERT(rc == ESP_OK);
+    rc = rotary_encoder_enable_half_steps(&info, ENABLE_HALF_STEPS);
+    JADE_ASSERT(rc == ESP_OK);
+#ifdef FLIP_DIRECTION
+    rc = rotary_encoder_flip_direction(&info);
+    JADE_ASSERT(rc == ESP_OK);
+#endif
+    JADE_ASSERT(event_queue);
+
+    // Tasks can read from this queue to receive up to date position information.
+    rc = rotary_encoder_set_queue(&info, event_queue);
+    JADE_ASSERT(rc == ESP_OK);
 }
 
 void wheel_init(void)
 {
-    // Initialise the rotary encoder device with the GPIOs for A and B signals
-    rotary_encoder_info_t* info = (rotary_encoder_info_t*)JADE_MALLOC(sizeof(rotary_encoder_info_t));
-    esp_err_t rc = rotary_encoder_init(info, CONFIG_INPUT_WHEEL_A, CONFIG_INPUT_WHEEL_B);
-    JADE_ASSERT(rc == ESP_OK);
-    rc = rotary_encoder_enable_half_steps(info, ENABLE_HALF_STEPS);
-    JADE_ASSERT(rc == ESP_OK);
-#ifdef FLIP_DIRECTION
-    rc = rotary_encoder_flip_direction(info);
-    JADE_ASSERT(rc == ESP_OK);
-#endif
-
     // Create a queue for events from the rotary encoder driver.
     event_queue = rotary_encoder_create_queue();
-    // Tasks can read from this queue to receive up to date position information.
-    rc = rotary_encoder_set_queue(info, event_queue);
-    JADE_ASSERT(rc == ESP_OK);
+
+    wheel_reinit(/* install_gpio_isr_service */ true);
 
     const BaseType_t retval = xTaskCreatePinnedToCore(
-        &wheel_watch_task, "wheel_watcher", 2 * 1024, info, JADE_TASK_PRIO_WHEEL, NULL, JADE_CORE_SECONDARY);
+        &wheel_watch_task, "wheel_watcher", 2 * 1024, NULL, JADE_TASK_PRIO_WHEEL, NULL, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create wheel_watcher task, xTaskCreatePinnedToCore() returned %d", retval);
 }
+
 #elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
 // wheel_init() to mock wheel with buttons
 

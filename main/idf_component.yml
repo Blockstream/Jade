@@ -1,9 +1,26 @@
 dependencies:
-  espressif/button: "==3.0.1"
-  espressif/nghttp: "==1.52.0"
+  espressif/button: "==3.2.0"
+  espressif/nghttp: "==1.58.0"
   espressif/cbor: "==0.6.0~1"
-  espressif/libsodium: "==1.0.20"
-  espressif/esp32-camera: "==2.0.3"
-  espressif/cmake_utilities: "==0.5.2"
+  espressif/libsodium: "==1.0.20~1"
+  espressif/cmake_utilities: "==0.5.3"
+  espressif/esp32-camera:
+      version: "==2.0.8"
+  espressif/esp_lcd_touch_ft5x06:
+      version: "==1.0.6"
+  espressif/esp_lcd_touch:
+      version: "==1.1.1"
+  espressif/esp_tinyusb:
+      version: "==1.4.4"
+      rules:
+      - if: "target in [esp32s3]"
+  espressif/tinyusb:
+      version: "==0.15.0~9"
+      rules:
+      - if: "target in [esp32s3]"
+  espressif/usb_host_msc:
+      version: "==1.1.2"
+      rules:
+      - if: "target in [esp32s3]"
   idf:
     version: "==5.1.3"

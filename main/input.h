@@ -32,5 +32,9 @@ void button_tap(void* arg);
 void button_long(void* arg);
 
 void wheel_init(void);
+#ifdef CONFIG_BOARD_TYPE_JADE
+void wheel_uninit(bool uninstall_gpio_isr_service);
+void wheel_reinit(bool install_gpio_isr_service);
+#endif
 
 #endif /* BUTTONS_H_ */
