@@ -62,6 +62,85 @@
 #define XOFFSET MAX(0, ((UI_CAMERA_IMAGE_WIDTH - UI2CAM(DISPLAY_IMAGE_WIDTH)) / 2))
 #define YOFFSET MAX(0, ((UI_CAMERA_IMAGE_HEIGHT - UI2CAM(DISPLAY_IMAGE_HEIGHT)) / 2))
 
+static inline void copy_pixel(uint8_t dest[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_WIDTH], const uint16_t destx,
+    const uint16_t desty, const uint8_t src[CAMERA_IMAGE_HEIGHT][CAMERA_IMAGE_WIDTH], const uint16_t srcx,
+    const uint16_t srcy)
+{
+#ifdef CONFIG_DEBUG_MODE
+    JADE_ASSERT(destx < DISPLAY_IMAGE_WIDTH);
+    JADE_ASSERT(desty < DISPLAY_IMAGE_HEIGHT);
+    JADE_ASSERT(srcx < CAMERA_IMAGE_WIDTH);
+    JADE_ASSERT(srcy < CAMERA_IMAGE_HEIGHT);
+#endif
+    dest[desty][destx] = src[srcy][srcx];
+}
+
+// Loops to copy the camera image
+// Avoids any 'ifs' or function calls during the image copy loop
+#if defined(CONFIG_CAMERA_ROTATE_90) || defined(CONFIG_CAMERA_ROTATE_270)
+static void copy_camera_image_90(
+    uint8_t dest[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_WIDTH], const uint8_t src[CAMERA_IMAGE_HEIGHT][CAMERA_IMAGE_WIDTH])
+{
+    for (uint16_t desty = 0; desty < DISPLAY_IMAGE_HEIGHT; ++desty) {
+        for (uint16_t destx = 0; destx < DISPLAY_IMAGE_WIDTH; ++destx) {
+            const uint16_t srcy = (CAMERA_IMAGE_HEIGHT - 1) - XOFFSET - UI2CAM(destx);
+            const uint16_t srcx = YOFFSET + UI2CAM(desty);
+            copy_pixel(dest, destx, desty, src, srcx, srcy);
+        }
+    }
+}
+
+static void copy_camera_image_270(
+    uint8_t dest[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_WIDTH], const uint8_t src[CAMERA_IMAGE_HEIGHT][CAMERA_IMAGE_WIDTH])
+{
+    for (uint16_t desty = 0; desty < DISPLAY_IMAGE_HEIGHT; ++desty) {
+        for (uint16_t destx = 0; destx < DISPLAY_IMAGE_WIDTH; ++destx) {
+            const uint16_t srcy = XOFFSET + UI2CAM(destx);
+            const uint16_t srcx = (CAMERA_IMAGE_WIDTH - 1) - YOFFSET - UI2CAM(desty);
+            copy_pixel(dest, destx, desty, src, srcx, srcy);
+        }
+    }
+}
+#else
+static void copy_camera_image_0(
+    uint8_t dest[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_WIDTH], const uint8_t src[CAMERA_IMAGE_HEIGHT][CAMERA_IMAGE_WIDTH])
+{
+    for (uint16_t desty = 0; desty < DISPLAY_IMAGE_HEIGHT; ++desty) {
+        for (uint16_t destx = 0; destx < DISPLAY_IMAGE_WIDTH; ++destx) {
+            const uint16_t srcy = YOFFSET + UI2CAM(desty);
+            const uint16_t srcx = XOFFSET + UI2CAM(destx);
+            copy_pixel(dest, destx, desty, src, srcx, srcy);
+        }
+    }
+}
+
+static void copy_camera_image_180(
+    uint8_t dest[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_WIDTH], const uint8_t src[CAMERA_IMAGE_HEIGHT][CAMERA_IMAGE_WIDTH])
+{
+    for (uint16_t desty = 0; desty < DISPLAY_IMAGE_HEIGHT; ++desty) {
+        for (uint16_t destx = 0; destx < DISPLAY_IMAGE_WIDTH; ++destx) {
+            const uint16_t srcy = (CAMERA_IMAGE_HEIGHT - 1) - YOFFSET - UI2CAM(desty);
+            const uint16_t srcx = (CAMERA_IMAGE_WIDTH - 1) - XOFFSET - UI2CAM(destx);
+            copy_pixel(dest, destx, desty, src, srcx, srcy);
+        }
+    }
+}
+#endif
+
+#if defined(CONFIG_CAMERA_ROTATE_90)
+#define COPY_CAMERA_IMAGE_STRAIGHT copy_camera_image_90
+#define COPY_CAMERA_IMAGE_FLIPPED copy_camera_image_270
+#elif defined(CONFIG_CAMERA_ROTATE_180)
+#define COPY_CAMERA_IMAGE_STRAIGHT copy_camera_image_180
+#define COPY_CAMERA_IMAGE_FLIPPED copy_camera_image_0
+#elif defined(CONFIG_CAMERA_ROTATE_270)
+#define COPY_CAMERA_IMAGE_STRAIGHT copy_camera_image_270
+#define COPY_CAMERA_IMAGE_FLIPPED copy_camera_image_90
+#else
+#define COPY_CAMERA_IMAGE_STRAIGHT copy_camera_image_0
+#define COPY_CAMERA_IMAGE_FLIPPED copy_camera_image_180
+#endif
+
 void await_qr_help_activity(const char* url);
 
 gui_activity_t* make_camera_activity(const char* btnText, progress_bar_t* progress_bar, gui_view_node_t** image_node,
@@ -246,6 +325,11 @@ static void jade_camera_task(void* data)
     JADE_ASSERT(XOFFSET >= 0);
     JADE_ASSERT(YOFFSET >= 0);
 
+    typedef void (*copy_camera_image_fn_t)(
+        uint8_t[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_WIDTH], const uint8_t[CAMERA_IMAGE_HEIGHT][CAMERA_IMAGE_WIDTH]);
+    copy_camera_image_fn_t copy_camera_image
+        = gui_get_flipped_orientation() ? COPY_CAMERA_IMAGE_FLIPPED : COPY_CAMERA_IMAGE_STRAIGHT;
+
     camera_task_config_t* const camera_config = (camera_task_config_t*)data;
     JADE_ASSERT(camera_config->fn_process);
     JADE_ASSERT(camera_config->text_label || !camera_config->text_button);
@@ -323,30 +407,8 @@ static void jade_camera_task(void* data)
             // (Ensure source image large enough to be scaled down to display image size)
             JADE_ASSERT(fb->len >= UI2CAM(UI2CAM(image_size))); // x and y scaled
             uint8_t(*image_matrix)[DISPLAY_IMAGE_WIDTH] = image_buffer;
-            uint8_t(*fb_matrix)[CAMERA_IMAGE_WIDTH] = (uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
-            for (size_t imgy = 0; imgy < DISPLAY_IMAGE_HEIGHT; ++imgy) {
-                for (size_t imgx = 0; imgx < DISPLAY_IMAGE_WIDTH; ++imgx) {
-#if defined(CONFIG_CAMERA_ROTATE_90)
-                    const size_t srcy = (CAMERA_IMAGE_HEIGHT - 1) - XOFFSET - UI2CAM(imgx);
-                    const size_t srcx = YOFFSET + UI2CAM(imgy);
-#elif defined(CONFIG_CAMERA_ROTATE_180)
-                    const size_t srcy = (CAMERA_IMAGE_HEIGHT - 1) - YOFFSET - UI2CAM(imgy);
-                    const size_t srcx = (CAMERA_IMAGE_WIDTH - 1) - XOFFSET - UI2CAM(imgx);
-#elif defined(CONFIG_CAMERA_ROTATE_270)
-                    const size_t srcy = XOFFSET + UI2CAM(imgx);
-                    const size_t srcx = (CAMERA_IMAGE_WIDTH - 1) - YOFFSET - UI2CAM(imgy);
-#else
-                    const size_t srcy = YOFFSET + UI2CAM(imgy);
-                    const size_t srcx = XOFFSET + UI2CAM(imgx);
-#endif
-
-#ifdef CONFIG_DEBUG_MODE
-                    JADE_ASSERT(srcx < CAMERA_IMAGE_WIDTH);
-                    JADE_ASSERT(srcy < CAMERA_IMAGE_HEIGHT);
-#endif
-                    image_matrix[imgy][imgx] = fb_matrix[srcy][srcx];
-                }
-            }
+            const uint8_t(*fb_matrix)[CAMERA_IMAGE_WIDTH] = (const uint8_t(*)[CAMERA_IMAGE_WIDTH])fb->buf;
+            copy_camera_image(image_matrix, fb_matrix);
             gui_update_picture(image_node, &pic, false);
 
             // Ensure showing camera activity/captured image
