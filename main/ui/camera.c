@@ -67,6 +67,7 @@ gui_activity_t* make_camera_activity(const char* btnText, progress_bar_t* progre
     // RHS
     gui_make_picture(image_node, NULL);
     gui_set_parent(*image_node, hsplit);
+    gui_set_align(*image_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
     return act;
 }
