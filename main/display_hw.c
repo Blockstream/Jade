@@ -192,7 +192,10 @@ static void esp_lcd_init(void* _ignored)
 #endif
 
 #ifdef CONFIG_DCS_ADDRESS_MODE_MIRROR_X_SELECTED
+#define X_FLIPPED true
     ESP_ERROR_CHECK(esp_lcd_panel_mirror(ph, true, false));
+#else
+#define X_FLIPPED false
 #endif
 
 #ifdef CONFIG_DISPLAY_INVERT
@@ -206,6 +209,12 @@ static void esp_lcd_init(void* _ignored)
     for (;;) {
         vTaskDelay(portMAX_DELAY);
     }
+}
+
+bool display_hw_flip_orientation(const bool flipped_orientation)
+{
+    ESP_ERROR_CHECK(esp_lcd_panel_mirror(ph, flipped_orientation ^ X_FLIPPED, flipped_orientation));
+    return flipped_orientation;
 }
 
 void display_hw_init(TaskHandle_t* gui_handle)

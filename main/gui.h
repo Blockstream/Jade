@@ -402,9 +402,8 @@ void gui_set_click_event(bool use_wheel_click);
 color_t gui_get_highlight_color(void);
 void gui_set_highlight_color(uint8_t theme);
 
-color_t gui_get_highlight_color(void);
-
-color_t gui_get_highlight_color(void);
+bool gui_get_flipped_orientation(void);
+bool gui_set_flipped_orientation(bool flipped_orientation);
 
 void gui_init(TaskHandle_t* gui_h);
 bool gui_initialized(void);

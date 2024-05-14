@@ -1856,6 +1856,25 @@ static void handle_display_theme(void)
     }
 }
 
+static void handle_flip_orientation(void)
+{
+    const uint8_t initial_gui_flags = storage_get_gui_flags();
+    const bool initial_flipped_orientation = initial_gui_flags & GUI_FLAGS_FLIP_ORIENTATION;
+    const bool new_flipped_orientation = gui_set_flipped_orientation(!initial_flipped_orientation); // toggle
+
+    if (new_flipped_orientation != initial_flipped_orientation) {
+        const uint8_t new_gui_flags = new_flipped_orientation ? initial_gui_flags | GUI_FLAGS_FLIP_ORIENTATION
+                                                              : initial_gui_flags & ~GUI_FLAGS_FLIP_ORIENTATION;
+        storage_set_gui_flags(new_gui_flags);
+    }
+
+    // Repaint the screen (as now inverted/rotated)
+    const gui_activity_t* const act = gui_current_activity();
+    if (act) {
+        gui_repaint(act->root_node);
+    }
+}
+
 static void handle_pinserver_scan(void)
 {
     if (keychain_has_pin()) {

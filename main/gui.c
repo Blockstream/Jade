@@ -75,6 +75,7 @@ static RingbufHandle_t gui_input_queue = NULL;
 // and which gui highlight colour is in use
 static gui_event_t gui_click_event = GUI_FRONT_CLICK_EVENT;
 static color_t gui_highlight_color = 0;
+static bool gui_orientation_flipped = false;
 
 // status bar
 struct {
@@ -177,6 +178,14 @@ void gui_set_highlight_color(const uint8_t theme)
     }
 }
 
+bool gui_get_flipped_orientation(void) { return gui_orientation_flipped; }
+
+bool gui_set_flipped_orientation(const bool flipped_orientation)
+{
+    gui_orientation_flipped = display_flip_orientation(flipped_orientation);
+    return gui_orientation_flipped;
+}
+
 void gui_init(TaskHandle_t* gui_h)
 {
     // Create mutex semaphore
@@ -188,6 +197,7 @@ void gui_init(TaskHandle_t* gui_h)
     const uint8_t gui_flags = storage_get_gui_flags();
     gui_set_click_event(gui_flags & GUI_FLAGS_USE_WHEEL_CLICK);
     gui_set_highlight_color(gui_flags & GUI_FLAGS_THEMES_MASK);
+    gui_set_flipped_orientation(gui_flags & GUI_FLAGS_FLIP_ORIENTATION);
 
     // create a blank activity
     current_activity = gui_make_activity();
@@ -2311,7 +2321,7 @@ void gui_front_click(void)
     }
 }
 
-void gui_next(void)
+static void gui_next_right(void)
 {
     if (!idletimer_register_activity(true)) {
         gui_select_next(current_activity);
@@ -2319,11 +2329,29 @@ void gui_next(void)
     }
 }
 
-void gui_prev(void)
+static void gui_prev_left(void)
 {
     if (!idletimer_register_activity(true)) {
         gui_select_prev(current_activity);
         esp_event_post(GUI_EVENT, GUI_WHEEL_LEFT_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
+    }
+}
+
+void gui_next(void)
+{
+    if (gui_orientation_flipped) {
+        gui_prev_left();
+    } else {
+        gui_next_right();
+    }
+}
+
+void gui_prev(void)
+{
+    if (gui_orientation_flipped) {
+        gui_next_right();
+    } else {
+        gui_prev_left();
     }
 }
 

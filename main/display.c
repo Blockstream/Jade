@@ -285,6 +285,16 @@ void display_init(TaskHandle_t* gui_h)
     }
 }
 
+bool display_flip_orientation(const bool flipped_orientation)
+{
+#ifndef CONFIG_ETH_USE_OPENETH
+    return display_hw_flip_orientation(flipped_orientation);
+#else
+    // Not supported for qemu
+    return false;
+#endif
+}
+
 typedef struct {
     Icon* icon;
     Picture* pic;
