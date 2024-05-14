@@ -6,11 +6,7 @@
 #include "rotary_encoder.h"
 #include "utils/malloc_ext.h"
 
-static bool invert_wheel = false;
-
-void input_init(void) { invert_wheel = false; }
-
-void set_invert_wheel(bool inverted) { invert_wheel = inverted; }
+void input_init(void) {}
 
 #ifdef CONFIG_INPUT_FRONT_SW
 static void button_front_release(void* arg, void* ctx) { gui_front_click(); }
@@ -63,24 +59,6 @@ void button_init(void)
     iot_button_register_cb(btn_handle_wheel, BUTTON_PRESS_UP, button_wheel_release, NULL);
     iot_button_register_cb(btn_handle_wheel, BUTTON_LONG_PRESS_START, button_wheel_long, NULL);
 #endif
-}
-
-static inline void wheel_prev(void)
-{
-    if (invert_wheel) {
-        gui_next();
-    } else {
-        gui_prev();
-    }
-}
-
-static inline void wheel_next(void)
-{
-    if (invert_wheel) {
-        gui_prev();
-    } else {
-        gui_next();
-    }
 }
 
 #ifndef CONFIG_BOARD_TYPE_JADE
@@ -139,9 +117,9 @@ void wheel_watch_task(void* unused)
         rotary_encoder_event_t event = { 0 };
         if (xQueueReceive(event_queue, &event, 1000 / portTICK_PERIOD_MS) == pdTRUE) {
             if (event.state.position < last_position) {
-                wheel_prev();
+                gui_prev();
             } else {
-                wheel_next();
+                gui_next();
             }
 
             last_position = event.state.position;
@@ -220,9 +198,9 @@ static void button_released(void* arg, void* ctx)
     if (button_A_pressed && button_B_pressed) {
         gui_front_click();
     } else if (button_A_pressed && ctx == &button_A_pressed) {
-        wheel_prev();
+        gui_prev();
     } else if (button_B_pressed && ctx == &button_B_pressed) {
-        wheel_next();
+        gui_next();
     }
 
     // Clear both flags here so we ignore the second button release when both pressed
@@ -249,7 +227,7 @@ but one of the buttons behaves badly when Bluetooth is active.
 // In the case of the M5StickC-Plus, the A button stops giving a "Released" event.
 // As such, the A button simply looks for input when the button is pressed and calls "Prev"
 
-static void button_A_pressed(void* arg, void* ctx) { wheel_prev(); }
+static void button_A_pressed(void* arg, void* ctx) { gui_prev(); }
 
 // The B button works fine, so it makes sense to have the "Front Click" as long click on the "B" Button
 // (On the front face of the device) and also have the short click be "Next"
@@ -263,7 +241,7 @@ static void button_B_released(void* arg, void* ctx)
     if ((current - button_B_pressed_time) > 50) {
         gui_front_click();
     } else {
-        wheel_next();
+        gui_next();
     }
 }
 
@@ -279,9 +257,9 @@ void wheel_init(void)
 #else
 // wheel_init() to mock wheel with buttons
 // Long press buttons mocks wheel spin (multiple events)
-static void button_A_pressed(void* arg, void* ctx) { wheel_prev(); }
+static void button_A_pressed(void* arg, void* ctx) { gui_prev(); }
 
-static void button_B_pressed(void* arg, void* ctx) { wheel_next(); }
+static void button_B_pressed(void* arg, void* ctx) { gui_next(); }
 
 void wheel_init(void)
 {
