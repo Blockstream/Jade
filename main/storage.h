@@ -11,6 +11,7 @@
 
 #define BLE_ENABLED 0x1
 
+#define GUI_FLAGS_THEMES_MASK 0x7
 #define GUI_FLAGS_USE_WHEEL_CLICK 0x80
 
 #define QR_DENSITY_LOW 0x1

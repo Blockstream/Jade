@@ -1712,15 +1712,14 @@ static void handle_idle_timeout(void)
 
 static void handle_display_theme(void)
 {
-    static const char* THEME_NAMES[]
+    static const char* THEME_NAMES[GUI_NUM_DISPLAY_THEMES]
         = { "Jade Green", "Bitcoin Orange", "Liquid Blue", "Cypherpunk Black", "Open-Source Opal" };
-    static const uint16_t num_themes = sizeof(THEME_NAMES) / sizeof(THEME_NAMES[0]);
-    JADE_ASSERT(num_themes == GUI_NUM_DISPLAY_THEMES);
+    JADE_ASSERT(GUI_NUM_DISPLAY_THEMES < GUI_FLAGS_THEMES_MASK);
 
     const uint8_t initial_gui_flags = storage_get_gui_flags();
-    const uint8_t initial_theme = initial_gui_flags & ~GUI_FLAGS_USE_WHEEL_CLICK;
+    const uint8_t initial_theme = initial_gui_flags & GUI_FLAGS_THEMES_MASK;
 
-    uint8_t new_theme = initial_theme < num_themes ? initial_theme : 0;
+    uint8_t new_theme = initial_theme < GUI_NUM_DISPLAY_THEMES ? initial_theme : 0;
 
     gui_view_node_t* item_text = NULL;
     gui_activity_t* const act = make_carousel_activity("Theme", NULL, &item_text);
@@ -1736,14 +1735,14 @@ static void handle_display_theme(void)
 
         switch (ev_id) {
         case GUI_WHEEL_LEFT_EVENT:
-            new_theme = (new_theme + num_themes - 1) % num_themes;
+            new_theme = (new_theme + GUI_NUM_DISPLAY_THEMES - 1) % GUI_NUM_DISPLAY_THEMES;
             gui_set_highlight_color(new_theme);
             update_carousel_highlight_color(item_text, gui_get_highlight_color(), true);
             gui_update_text(item_text, THEME_NAMES[new_theme]);
             break;
 
         case GUI_WHEEL_RIGHT_EVENT:
-            new_theme = (new_theme + 1) % num_themes;
+            new_theme = (new_theme + 1) % GUI_NUM_DISPLAY_THEMES;
             gui_set_highlight_color(new_theme);
             update_carousel_highlight_color(item_text, gui_get_highlight_color(), true);
             gui_update_text(item_text, THEME_NAMES[new_theme]);
@@ -1756,10 +1755,9 @@ static void handle_display_theme(void)
 
     // Persist updated preferences
     if (new_theme != initial_theme) {
-        uint8_t new_gui_flags = new_theme;
-        if (initial_gui_flags & GUI_FLAGS_USE_WHEEL_CLICK) {
-            new_gui_flags |= GUI_FLAGS_USE_WHEEL_CLICK;
-        }
+        JADE_ASSERT(new_theme < GUI_FLAGS_THEMES_MASK);
+        const uint8_t new_gui_flags
+            = (new_theme & GUI_FLAGS_THEMES_MASK) | (initial_gui_flags & ~GUI_FLAGS_THEMES_MASK);
         storage_set_gui_flags(new_gui_flags);
 
         // Also update top-level (long-lived) home screen with new colors

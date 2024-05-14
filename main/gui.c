@@ -177,7 +177,7 @@ void gui_init(void)
     // and which menu highlight colour to use
     const uint8_t gui_flags = storage_get_gui_flags();
     gui_set_click_event(gui_flags & GUI_FLAGS_USE_WHEEL_CLICK);
-    gui_set_highlight_color(gui_flags & ~GUI_FLAGS_USE_WHEEL_CLICK);
+    gui_set_highlight_color(gui_flags & GUI_FLAGS_THEMES_MASK);
 
     // create a blank activity
     current_activity = gui_make_activity();
