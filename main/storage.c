@@ -44,8 +44,18 @@ static const char* CLICK_EVENT_FIELD = "clickevent";
 // NOTE: esp-idf reserve the final page of nvs entries for internal use (for defrag/consolidation)
 // See: https://github.com/espressif/esp-idf/issues/5247#issuecomment-1048604221
 // If the 'free entries' appears to include these entries, deduct them from the value returned.
-static const size_t NUM_ALL_NVS_ENTRIES = 504;
-static const size_t NUM_ESP_RESERVED_ENTRIES = 126;
+#define ESP_NVS_PARTITION_SIZE (16 * 1024)
+#define ESP_NVS_PAGE_OVERHEAD (32 + 32)
+#define ESP_NVS_ENTRY_SIZE 32
+#define ESP_NVS_ENTRIES_PER_PAGE 126
+#define ESP_NVS_PAGE_SIZE ((ESP_NVS_ENTRIES_PER_PAGE * ESP_NVS_ENTRY_SIZE) + ESP_NVS_PAGE_OVERHEAD)
+// NOTE: ESP_NVS_PAGE_SIZE should be 4kb
+
+#define ESP_NVS_PAGES (ESP_NVS_PARTITION_SIZE / ESP_NVS_PAGE_SIZE)
+#define ESP_NVS_TOTAL_ENTRIES (ESP_NVS_PAGES * ESP_NVS_ENTRIES_PER_PAGE)
+
+#define ESP_NVS_RESERVED_PAGES 1
+#define ESP_NVS_RESERVED_ENTRIES (ESP_NVS_RESERVED_PAGES * ESP_NVS_ENTRIES_PER_PAGE)
 
 // Building block macros for the store/read/erase functions.
 // They all close the storage and return false on any error.
@@ -367,9 +377,9 @@ bool storage_get_stats(size_t* entries_used, size_t* entries_free)
     // NOTE: esp-idf reserve the final page of nvs entries for internal use (for defrag/consolidation)
     // See: https://github.com/espressif/esp-idf/issues/5247#issuecomment-1048604221
     // If the 'free entries' appears to include these entries, deduct them from the value returned.
-    if (stats.free_entries >= NUM_ESP_RESERVED_ENTRIES
-        && stats.used_entries + stats.free_entries == NUM_ALL_NVS_ENTRIES) {
-        *entries_free = stats.free_entries - NUM_ESP_RESERVED_ENTRIES;
+    if (stats.free_entries >= ESP_NVS_RESERVED_ENTRIES
+        && stats.used_entries + stats.free_entries == ESP_NVS_TOTAL_ENTRIES) {
+        *entries_free = stats.free_entries - ESP_NVS_RESERVED_ENTRIES;
     } else {
         JADE_LOGW("Fewer (free?) NVS entries than expected - is the 'reserved' page now not reported?");
         *entries_free = stats.free_entries;
