@@ -6,6 +6,9 @@
 #include <cbor.h>
 #include <esp_ota_ops.h>
 #include <esp_system.h>
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_DEBUG_MODE) && defined(CONFIG_APPTRACE_GCOV_ENABLE)
+#include <esp_app_trace.h>
+#endif
 
 #include "idletimer.h"
 #include "jade_assert.h"
@@ -35,6 +38,9 @@ static const TickType_t TIMEOUT_TICKS = 2000 / portTICK_PERIOD_MS;
 // Some messages we handle immediately in this task
 static const char PING[] = { 'p', 'i', 'n', 'g' };
 static const char VERINFO[] = { 'g', 'e', 't', '_', 'v', 'e', 'r', 's', 'i', 'o', 'n', '_', 'i', 'n', 'f', 'o' };
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_DEBUG_MODE) && defined(CONFIG_APPTRACE_GCOV_ENABLE)
+static const char DEBUG_GCOV_DUMP[] = { 'd', 'e', 'b', 'u', 'g', '_', 'g', 'c', 'o', 'v', '_', 'd', 'u', 'm', 'p' };
+#endif
 
 static bool handleImmediateMessage(cbor_msg_t* ctx)
 {
@@ -61,6 +67,13 @@ static bool handleImmediateMessage(cbor_msg_t* ctx)
                 jade_process_reply_to_message_result(*ctx, &ctx->source, build_version_info_reply);
                 return true;
             }
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_DEBUG_MODE) && defined(CONFIG_APPTRACE_GCOV_ENABLE)
+        } else if (method_len == sizeof(DEBUG_GCOV_DUMP) && !strncmp(method, DEBUG_GCOV_DUMP, method_len)) {
+            const bool ok = true;
+            jade_process_reply_to_message_result(*ctx, &ok, cbor_result_boolean_cb);
+            esp_gcov_dump();
+            return true;
+#endif
         }
     }
     return false;

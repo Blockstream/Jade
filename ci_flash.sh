@@ -11,13 +11,6 @@ if [[ -z ${JADESERIALPORT} ]]; then
     echo "Serial port set to default \"${JADESERIALPORT}\""
 fi
 
-# Deduce a port for the pinserver and redis.  Slightly hacky.
-PINSVRPORT="$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')"
-REDIS_PORT="$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')"
-
-# Pinserver tests use a short session lifetime (for session-timeout tests)
-PINSVR_SESSION_TIMEOUT=3
-
 TARGET_CHIP=${1:-esp32}
 
 if [ "$TARGET_CHIP" = "esp32" ]; then
@@ -29,6 +22,38 @@ else
 fi
 
 sleep 1
+
+
+if fgrep -qs "CONFIG_APPTRACE_GCOV_ENABLE=y" build/sdkconfig sdkconfig; then
+    cleanup() {
+        killall -9 openocd || true
+    }
+
+    trap cleanup EXIT ERR
+    killall -9 openocd || true
+    # idf.py openocd already needs to do reconfigure but in background could mess things up
+    idf.py reconfigure
+    idf.py openocd &
+
+    # this takes a while on CI because it will want to rebuild things to start openocd
+    # Wait up to 20 minutes (1200 seconds) for openocd to start
+    for i in {1..1200}; do
+        if pgrep openocd > /dev/null; then
+            echo "openocd is running"
+            break
+        fi
+        if ! jobs %% >/dev/null; then
+            echo "idf.py openocd failed"
+            exit 1
+        fi
+        sleep 1
+    done
+
+    if ! pgrep openocd > /dev/null; then
+        echo "openocd did not start within 20 minutes"
+        exit 1
+    fi
+fi
 
 source ~/venv3/bin/activate
 
@@ -42,3 +67,9 @@ sleep 5
 python -c "from jadepy import JadeAPI; jade = JadeAPI.create_serial(device=\"${JADESERIALPORT}\", timeout=5) ; jade.connect(); jade.drain(); jade.disconnect()"
 
 python test_jade.py --log=INFO --serialport=${JADESERIALPORT}
+
+# check if gcov is enabled and run collection tool
+if fgrep -qs "CONFIG_APPTRACE_GCOV_ENABLE=y" build/sdkconfig sdkconfig; then
+  ./tools/gcov/generate_report.sh
+  killall -9 openocd || true
+fi

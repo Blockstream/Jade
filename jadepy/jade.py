@@ -7,6 +7,7 @@ import collections
 import collections.abc
 import traceback
 import random
+import socket
 import sys
 
 # JadeError
@@ -120,6 +121,32 @@ try:
 except ImportError as e:
     logger.info(e)
     logger.info('Default _http_requests() function will not be available')
+
+
+def generate_dump():
+    while True:
+        try:
+            with socket.create_connection(("localhost", 4444)) as s:
+                output = b""
+                while b"Open On-Chip Debugger" not in output:
+                    data = s.recv(1024)
+                    if not data:
+                        continue
+                    output += data
+
+                s.sendall(b"esp gcov dump\n")
+
+                output = b""
+                while b"Targets disconnected." not in output:
+                    data = s.recv(1024)
+                    if not data:
+                        continue
+                    output += data
+                s.sendall(b"resume\n")
+                time.sleep(1)
+            return
+        except ConnectionRefusedError:
+            pass
 
 
 class JadeAPI:
@@ -430,7 +457,8 @@ class JadeAPI:
         """
         return self._jadeRpc('logout')
 
-    def ota_update(self, fwcmp, fwlen, chunksize, fwhash=None, patchlen=None, cb=None):
+    def ota_update(self, fwcmp, fwlen, chunksize, fwhash=None, patchlen=None, cb=None,
+                   gcov_dump=False):
         """
         RPC call to attempt to update the unit's firmware.
 
@@ -506,6 +534,9 @@ class JadeAPI:
             if (cb):
                 cb(written, cmplen)
 
+        if gcov_dump:
+            self.run_remote_gcov_dump()
+
         # All binary data uploaded
         return self._jadeRpc('ota_complete')
 
@@ -521,6 +552,22 @@ class JadeAPI:
             ie. excluding any messaging overhead
         """
         return self._jadeRpc('debug_selfcheck', long_timeout=True)
+
+    def run_remote_gcov_dump(self):
+        """
+        RPC call to run in-built gcov-dump.
+        NOTE: Only available in a DEBUG build of the firmware.
+
+        Returns
+        -------
+        bool
+            Always True.
+        """
+        result = self._jadeRpc('debug_gcov_dump', long_timeout=True)
+        time.sleep(0.5)
+        generate_dump()
+        time.sleep(2)
+        return result
 
     def capture_image_data(self, check_qr=False):
         """

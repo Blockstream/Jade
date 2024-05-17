@@ -28,7 +28,7 @@ void build_version_info_reply(const void* ctx, CborEncoder* container)
     const jade_msg_source_t* const source = (const jade_msg_source_t*)ctx;
 
 #ifdef CONFIG_DEBUG_MODE
-    const uint8_t num_version_fields = 19;
+    const uint8_t num_version_fields = 20;
 #else
     const uint8_t num_version_fields = 12;
 #endif
@@ -120,6 +120,11 @@ void build_version_info_reply(const void* ctx, CborEncoder* container)
     add_uint_to_map(&map_encoder, "JADE_FREE_SPIRAM", heap_caps_get_free_size(MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM));
     add_uint_to_map(
         &map_encoder, "JADE_LARGEST_SPIRAM", heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM));
+#ifdef CONFIG_APPTRACE_GCOV_ENABLE
+    add_boolean_to_map(&map_encoder, "GCOV", true);
+#else
+    add_boolean_to_map(&map_encoder, "GCOV", false);
+#endif
 #endif // CONFIG_DEBUG_MODE
 
     cberr = cbor_encoder_close_container(container, &map_encoder);

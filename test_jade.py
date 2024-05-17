@@ -163,7 +163,7 @@ PINSERVER_DEFAULT_URL = "https://j8d.io"
 PINSERVER_DEFAULT_ONION = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion"
 
 # The number of values expected back in version info
-NUM_VALUES_VERINFO = 19
+NUM_VALUES_VERINFO = 20
 
 TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
@@ -2253,7 +2253,7 @@ def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
 
     if breaches:
         logger.error("Memory limit breaches: {}".format(breaches))
-        assert not strict
+        assert endinfo['GCOV'] or not strict
 
 
 # Helper to verify a signature - handles checking an Anti-Exfil signature
@@ -3615,6 +3615,9 @@ def run_all_jade_tests(info, args):
         with JadeAPI.create_serial(args.serialport,
                                    timeout=args.serialtimeout) as jade:
             run_jade_tests(jade, args, isble=False)
+            # 1.1 Code coverage
+            if info['GCOV'] and (args.skipble or info['JADE_CONFIG'] != 'BLE'):
+                jade.run_remote_gcov_dump()
 
     # 2. Test over BLE connection
     if not args.skipble:
@@ -3627,6 +3630,10 @@ def run_all_jade_tests(info, args):
             # 3. If testing both interfaces, test cannot connect 'other' when one in use
             if not args.skipserial:
                 mixed_sources_test(args.serialport, bleid)
+
+            # 3.1 Code coverage
+            if info['GCOV']:
+                jade.run_remote_gcov_dump()
         else:
             msg = "Skipping BLE tests - not enabled on the hardware"
             logger.warning(msg)
