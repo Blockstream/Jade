@@ -325,8 +325,6 @@ gui_activity_t* make_device_settings_activity(void)
 
 gui_activity_t* make_prefs_settings_activity(const bool initialised_and_locked, gui_view_node_t** network_type_item)
 {
-    JADE_LOGE("make_prefs_settings_activity(%u, %p)", initialised_and_locked, network_type_item);
-
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_PREFS_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
