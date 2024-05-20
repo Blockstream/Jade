@@ -356,26 +356,27 @@ gui_activity_t* make_prefs_settings_activity(const bool initialised_and_locked, 
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = { { .txt = "Display", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY },
-        { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE },
-        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_NETWORK_TYPE } };
+        { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
+        { .txt = "Bluetooth", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BLE } };
+
+    // If qr_mode_network_item status control passed, implies want that button visible
+    // Otherwise show 'idle timeout' button
+    if (network_type_item) {
+        gui_make_text(network_type_item, "Network:", TFT_WHITE);
+        gui_set_align(*network_type_item, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+        menubtns[1].txt = NULL;
+        menubtns[1].content = *network_type_item;
+        menubtns[1].ev_id = BTN_SETTINGS_NETWORK_TYPE;
+    }
 
     // If Jade is initialised and locked, show the 'change_pin' option.
     // If not (ie. is unlocked, or is uninitialised) show the ble option.
     if (initialised_and_locked) {
-        menubtns[1].txt = "Change PIN";
-        menubtns[1].ev_id = BTN_SETTINGS_CHANGE_PIN;
+        menubtns[2].txt = "Change PIN";
+        menubtns[2].ev_id = BTN_SETTINGS_CHANGE_PIN;
     }
 
-    size_t num_menubtns = 2;
-
-    // If qr_mode_network_item status control passed, implies want that button visible
-    if (network_type_item) {
-        gui_make_text(network_type_item, "Network:", TFT_WHITE);
-        gui_set_align(*network_type_item, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        menubtns[num_menubtns++].content = *network_type_item;
-    }
-
-    return make_menu_activity("Settings", hdrbtns, 2, menubtns, num_menubtns);
+    return make_menu_activity("Settings", hdrbtns, 2, menubtns, 3);
 }
 
 gui_activity_t* make_display_settings_activity(void)
@@ -384,15 +385,25 @@ gui_activity_t* make_display_settings_activity(void)
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     // NOTE: Only Jade v1.1's and v2's have brightness controls
-#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+    // NOTE: Jade v1.1's do not support Flip Orientation because of issues with screen offsets
+#if defined(CONFIG_BOARD_TYPE_JADE_V2)
     btn_data_t menubtns[]
         = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_BRIGHTNESS },
-              { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT },
+              { .txt = "Flip Orientation", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_ORIENTATION },
               { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
     const size_t num_menubtns = 3;
-#else
-    btn_data_t menubtns[] = { { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME },
-        { .txt = "Idle Timeout", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_IDLE_TIMEOUT } };
+#elif defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    btn_data_t menubtns[]
+        = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_BRIGHTNESS },
+              { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
+    const size_t num_menubtns = 2;
+#elif defined(CONFIG_BOARD_TYPE_JADE)
+    btn_data_t menubtns[] = { { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
+    const size_t num_menubtns = 1;
+#else // DIY units
+    btn_data_t menubtns[]
+        = { { .txt = "Flip Orientation", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_ORIENTATION },
+              { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
     const size_t num_menubtns = 2;
 #endif
 

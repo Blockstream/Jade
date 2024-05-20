@@ -2355,6 +2355,10 @@ static void handle_settings(const bool startup_menu)
             break;
 #endif
 
+        case BTN_SETTINGS_DISPLAY_ORIENTATION:
+            handle_flip_orientation();
+            break;
+
         case BTN_SETTINGS_DISPLAY_THEME:
             handle_display_theme();
             // remake parent screen to update colours
