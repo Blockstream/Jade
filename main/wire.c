@@ -68,8 +68,7 @@ static bool handleImmediateMessage(cbor_msg_t* ctx)
 
 // Handle bytes in receive buffer
 // NOTE: assumes sizes of input and output buffers - could be passed sizes if preferred
-static void handle_data_impl(
-    uint8_t* full_data_in, size_t initial_offset, size_t* read_ptr, bool reject_if_no_msg, uint8_t* data_out)
+static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool reject_if_no_msg, uint8_t* data_out)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
@@ -80,20 +79,18 @@ static void handle_data_impl(
     uint8_t* const data_in = full_data_in + 1;
 
     while (true) {
-        JADE_ASSERT(*read_ptr >= initial_offset);
 
         cbor_msg_t ctx = { .source = source, .cbor = NULL, .cbor_len = 0 };
         const size_t read = *read_ptr;
         size_t msg_len = 0;
 
-        // Start validating from 'initial_offset' as we can assume we have validated up to that point in a previous
-        // call (ie. with the previous data chunk).  Validating one byte at a time is painful enough, without repeating
-        // validation from the start with each chunk of additional message data received.
-        for (size_t i = initial_offset; i <= read; ++i) {
-            const CborError cberr = cbor_parser_init(data_in, i, CborValidateCompleteData, &ctx.parser, &ctx.value);
-            if (cberr == CborNoError && cbor_value_validate_basic(&ctx.value) == CborNoError) {
-                msg_len = i;
-                break;
+        const CborError cberr = cbor_parser_init(data_in, read, CborValidateCompleteData, &ctx.parser, &ctx.value);
+        if (cberr == CborNoError) {
+            // Attempt to fetch the next single cbor object from the stream and store the relevant message length
+            // Will carry out basic structure validation - see: cbor_value_validate_basic()
+            CborValue tmp_value = ctx.value;
+            if (cbor_value_advance(&tmp_value) == CborNoError) {
+                msg_len = tmp_value.source.ptr - data_in;
             }
         }
 
@@ -136,12 +133,11 @@ static void handle_data_impl(
         }
 
         // Otherwise we have some data left in the buffer - move the unhandled data down to the start of the buffer
-        // (overwriting what we've handled) and reset the 'initial_offset' (so we start validating from the beginning).
+        // (overwriting what we've handled)
         // Also set 'reject_if_no_msg' to false, as we have now read a message.
         memmove(data_in, data_in + msg_len, read - msg_len);
         *read_ptr -= msg_len;
         reject_if_no_msg = false;
-        initial_offset = 0;
     }
 
     // Discard the entire buffer by resetting the read-ptr
@@ -169,7 +165,7 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_
         const bool reject_if_no_msg = true;
         const size_t initial_offset = *read_ptr;
         JADE_LOGW("Timing out %u bytes in buffer", *read_ptr);
-        handle_data_impl(full_data_in, initial_offset, read_ptr, reject_if_no_msg, data_out);
+        handle_data_impl(full_data_in, read_ptr, reject_if_no_msg, data_out);
         JADE_ASSERT(*read_ptr == 0);
 
         // Copy newly recevied bytes down to start of buffer
@@ -178,11 +174,10 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_
     }
 
     // Append new bytes, and try to parse
-    const size_t initial_offset = *read_ptr;
     *read_ptr += new_data_len;
     JADE_LOGD("Passing %u bytes to common handler", *read_ptr);
     const bool reject_if_no_msg = force_reject_if_no_msg || (*read_ptr == MAX_INPUT_MSG_SIZE);
-    handle_data_impl(full_data_in, initial_offset, read_ptr, reject_if_no_msg, data_out);
+    handle_data_impl(full_data_in, read_ptr, reject_if_no_msg, data_out);
 
     // Update caller's 'last processing time'
     *last_processing_time = time_now;
