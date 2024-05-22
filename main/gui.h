@@ -120,8 +120,8 @@ typedef struct {
     color_t selected_color;
     color_t inactive_color;
 
+    uint16_t thickness;
     uint8_t borders;
-    uint8_t thickness;
 } gui_border_t;
 
 // Horizontal align constants for text, icons and pictures
@@ -437,7 +437,7 @@ void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture);
 void gui_set_margins(gui_view_node_t* node, uint32_t sides, ...);
 void gui_set_padding(gui_view_node_t* node, uint32_t sides, ...);
-void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, uint8_t borders);
+void gui_set_borders(gui_view_node_t* node, color_t color, uint16_t thickness, uint8_t borders);
 void gui_set_borders_selected_color(gui_view_node_t* node, color_t selected_color);
 void gui_set_borders_inactive_color(gui_view_node_t* node, color_t inactive_color);
 void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color);

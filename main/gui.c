@@ -1165,7 +1165,7 @@ static void set_vals_with_varargs(gui_margin_t* margins, const uint8_t sides, va
 }
 
 // get the thickness for border "border_bit" (which should have the value of one of the BIT constants)
-static inline uint8_t get_border_thickness(gui_border_t* const borders, const uint8_t border_bit)
+static inline uint16_t get_border_thickness(gui_border_t* const borders, const uint8_t border_bit)
 {
     // thickness is either "border->thickness" if that specific border is enabled or 0
     return borders ? borders->thickness * ((borders->borders >> border_bit) & 1) : 0;
@@ -1232,7 +1232,7 @@ void gui_set_padding(gui_view_node_t* node, uint32_t sides, ...)
     calc_render_data(node);
 }
 
-void gui_set_borders(gui_view_node_t* node, color_t color, uint8_t thickness, uint8_t borders)
+void gui_set_borders(gui_view_node_t* node, const color_t color, const uint16_t thickness, const uint8_t borders)
 {
     JADE_ASSERT(node);
 
@@ -1922,7 +1922,7 @@ static void paint_borders(gui_view_node_t* node, const dispWin_t cs)
 
     JADE_ASSERT(color);
 
-    uint8_t thickness;
+    uint16_t thickness;
 
     if ((thickness = get_border_thickness(node->borders, GUI_BORDER_TOP_BIT))) {
         TFT_fillRect(cs.x1, cs.y1, width, thickness, *color); // top
