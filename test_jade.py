@@ -3410,15 +3410,7 @@ def run_interface_tests(jadeapi,
     rslt = jadeapi.clean_reset()
     assert rslt is True
 
-    rslt = jadeapi.ping()
-    assert rslt == 0  # idle
-
-    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
-    assert rslt is True
-
-    rslt = jadeapi.ping()
-    assert rslt == 0  # idle
-
+    time.sleep(5)  # Lets idle tasks clean up
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
@@ -3430,6 +3422,15 @@ def run_interface_tests(jadeapi,
     assert rslt['JADE_CONFIG'] == startinfo['JADE_CONFIG']
     assert rslt['JADE_VERSION'] == startinfo['JADE_VERSION']
     assert rslt['JADE_STATE'] == startinfo['JADE_STATE']
+
+    rslt = jadeapi.ping()
+    assert rslt == 0  # idle
+
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
+    assert rslt is True
+
+    rslt = jadeapi.ping()
+    assert rslt == 0  # idle
 
     # Smoke tests
     if smoke:
@@ -3479,6 +3480,9 @@ def run_interface_tests(jadeapi,
         test_unexpected_method(jadeapi.jade)
         test_bad_params(jadeapi.jade)
         test_bad_params_liquid(jadeapi.jade, has_psram, has_ble)
+
+    rslt = jadeapi.logout()
+    assert rslt is True
 
     time.sleep(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
