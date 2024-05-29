@@ -2223,11 +2223,17 @@ def test_handshake_bad_server(jade):
 
 
 # Check/print memory stats
-def check_mem_stats(startinfo, endinfo, check_frag=True, strict=True):
+def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
+
+    # NOTE: skip the fragmentation check when we have BLE enabled
+    # as there is too much memory allocation outside of our control.
+    # Also skip for no-psram (qemu) devices.
+    check_frag = has_psram and not has_ble
+
     # Memory stats to log/check
     breaches = []
     for field, limit in [('JADE_FREE_HEAP', 1536),
-                         ('JADE_FREE_DRAM', 1536),
+                         ('JADE_FREE_DRAM', 4096 if has_ble else 1536),
                          ('JADE_LARGEST_DRAM', 4096 if check_frag else -1),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
@@ -3295,20 +3301,22 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
 
-    rslt = jadeapi.ping()
-    assert rslt == 0  # idle
-
-    startinfo = jadeapi.get_version_info()
-    assert len(startinfo) == NUM_VALUES_VERINFO
-    has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
-    has_ble = startinfo['JADE_CONFIG'] == 'BLE'
-
-    # Test logout
-    assert startinfo['JADE_STATE'] == 'READY'
+    # Test logout and log back in before we collect mem stats in case there are
+    # 'one off' allocations when we first log in
+    assert jadeapi.get_version_info()['JADE_STATE'] == 'READY'
     jadeapi.logout()
     assert jadeapi.get_version_info()['JADE_STATE'] in ['LOCKED', 'UNINIT']
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert jadeapi.get_version_info()['JADE_STATE'] == "READY"
+
+    rslt = jadeapi.ping()
+    assert rslt == 0  # idle
+
+    time.sleep(5)  # Lets idle tasks clean up
+    startinfo = jadeapi.get_version_info()
+    assert len(startinfo) == NUM_VALUES_VERINFO
+    has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
+    has_ble = startinfo['JADE_CONFIG'] == 'BLE'
 
     # Test update pinserver details
     test_set_pinserver(jadeapi)
@@ -3387,12 +3395,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     time.sleep(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-
-    # NOTE: skip the fragmentation check when we have BLE enabled
-    # as there is too much memory allocation outside of our control.
-    # Also skip for no-psram (qemu) devices.
-    check_frag = has_psram and not has_ble
-    check_mem_stats(startinfo, endinfo, check_frag=check_frag)
+    check_mem_stats(startinfo, endinfo, has_psram, has_ble)
 
     rslt = jadeapi.clean_reset()
     assert rslt is True
@@ -3408,6 +3411,13 @@ def run_interface_tests(jadeapi,
     assert jadeapi is not None
 
     rslt = jadeapi.clean_reset()
+    assert rslt is True
+
+    # Log out and log back in before we collect mem stats in case there are
+    # 'one off' allocations when we first log in
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
+    assert rslt is True
+    rslt = jadeapi.logout()
     assert rslt is True
 
     time.sleep(5)  # Lets idle tasks clean up
@@ -3486,12 +3496,7 @@ def run_interface_tests(jadeapi,
 
     time.sleep(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-
-    # NOTE: skip the fragmentation check when we have BLE enabled
-    # as there is too much memory allocation outside of our control.
-    # Also skip for no-psram (qemu) devices.
-    check_frag = has_psram and not has_ble
-    check_mem_stats(startinfo, endinfo, check_frag=check_frag)
+    check_mem_stats(startinfo, endinfo, has_psram, has_ble)
 
     rslt = jadeapi.clean_reset()
     assert rslt is True
