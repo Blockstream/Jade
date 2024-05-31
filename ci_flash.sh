@@ -32,17 +32,7 @@ sleep 1
 
 source ~/venv3/bin/activate
 
-pip install --require-hashes -r requirements.txt -r pinserver/requirements.txt
-
-SESSION_LIFETIME="${PINSVR_SESSION_TIMEOUT}" PINSERVER_PORT="${PINSVRPORT}" python -m unittest -v
-
-if command -v redis-server &> /dev/null
-then
-    echo "Redis found, running tests on localhost:${REDIS_PORT}"
-    redis-server --port ${REDIS_PORT}  &
-    REDIS_HEALTH_CHECK_INTERVAL=0 REDIS_SLEEP=0 REDIS_PORT=${REDIS_PORT} REDIS_HOST='localhost' SESSION_LIFETIME="${PINSVR_SESSION_TIMEOUT}" PINSERVER_PORT="${PINSVRPORT}" python -m unittest -v
-    redis-cli -p ${REDIS_PORT} shutdown
-fi
+pip install --require-hashes -r requirements.txt
 
 # NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware file
 FW_FULL=$(ls build/*_fw.bin)

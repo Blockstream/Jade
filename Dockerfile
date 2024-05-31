@@ -30,6 +30,5 @@ RUN cd qemu && ./configure --target-list=xtensa-softmmu --prefix=/opt \
 FROM esp-idf
 COPY --from=esp-qemu /opt /opt
 COPY requirements.txt /
-COPY pinserver/requirements.txt /ps_requirements.txt
 SHELL ["/bin/bash", "-c"]
-RUN virtualenv -p python3 /venv && source /venv/bin/activate && pip install --require-hashes -r /requirements.txt -r /ps_requirements.txt
+RUN virtualenv -p python3 /venv && source /venv/bin/activate && pip install --require-hashes -r /requirements.txt
