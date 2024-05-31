@@ -141,7 +141,23 @@ deactivate
 
 # Emulator/Virtualizer (qemu in Docker)
 
-Run these commands inside the jade source repo root directory, it will enter a docker container
+The following will build a docker image running the headless ci-test (approves every request):
+```
+docker build -t jade-qemu-ci -f Dockerfile.qemu .
+docker run --rm -p 30121:30121 -it jade-qemu-ci
+```
+The python 'jadepy' api can talk to it as if it were a serial interface, if given the device string 'tcp:localhost:30121'.
+```
+python -c "from jadepy.jade import JadeAPI; jade = JadeAPI.create_serial(device='tcp:localhost:30121'); jade.connect(); print(jade.get_version_info()); jade.disconnect()"
+```
+
+Similarly, for a manually driven web-enabled 'virtual jade' (at 'http://localhost:30122/'):
+```
+docker build -t jade-qemu-web -f Dockerfile.qemu --build-arg="SDK_CONFIG=configs/sdkconfig_qemu_psram_webdisplay.defaults" .
+docker run --rm -p 30121:30121 -p 30122:30122 -it jade-qemu-web
+```
+
+For more 'hands-on' development with qemu, run these commands inside the jade source repo root directory, it will enter a docker container
 
 ```
 DOCKER_BUILDKIT=1 docker build . -t testjadeqemu
