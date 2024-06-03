@@ -146,8 +146,8 @@ static void idletimer_task(void* ignore)
                     continue;
                 }
 
-#ifdef CONFIG_DEBUG_UNATTENDED_CI
-                // Don't reboot or power-off in unattended/ci build
+#if defined(CONFIG_DEBUG_UNATTENDED_CI) || defined(CONFIG_ETH_USE_OPENETH)
+                // Don't reboot or power-off in unattended/ci build or in emulator
                 action = SCREEN_DIMMED;
 #endif
             }
