@@ -1952,6 +1952,13 @@ static void handle_display_battery_volts(void)
     const float approx_voltage = power_get_vbat() / 1000.0;
     const int ret = snprintf(power_status, sizeof(power_status), "Approx %.1fv", approx_voltage);
     JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
+#else
+    uint16_t vbat = 0;
+    vbat = power_get_vbat();
+    if (vbat > 0) {
+        const int ret = snprintf(power_status, sizeof(power_status), "%umv", vbat);
+    }
+
 #endif
 
     handle_info_detail_screen("Battery Volts", power_status);
