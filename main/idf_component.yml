@@ -5,7 +5,7 @@ dependencies:
   espressif/libsodium: "==1.0.20~1"
   espressif/cmake_utilities: "==0.5.3"
   espressif/esp32-camera:
-      version: "==2.0.8"
+      version: "==2.0.9"
   espressif/esp_lcd_touch_ft5x06:
       version: "==1.0.6"
   espressif/esp_lcd_touch:
@@ -23,4 +23,4 @@ dependencies:
       rules:
       - if: "target in [esp32s3]"
   idf:
-    version: "==5.1.4"
+    version: "==5.2.2"

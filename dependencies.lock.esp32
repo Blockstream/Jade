@@ -18,11 +18,11 @@ dependencies:
       type: service
     version: 0.5.3
   espressif/esp32-camera:
-    component_hash: e00e75c24164b5d097bf98f325938558697916a0cb6b68872b9927587b46882a
+    component_hash: a1933162caca04a3a3bb0dca00bb56fcb3c50cd3779ab2f2b03ad8536e9bd0d0
     source:
       service_url: https://api.components.espressif.com/
       type: service
-    version: 2.0.8
+    version: 2.0.9
   espressif/esp_lcd_touch:
     component_hash: d4d8f2dc33205797169a97a02e0d89a8982f59fe0509129b54422052b8522f59
     source:
@@ -51,7 +51,7 @@ dependencies:
     component_hash: null
     source:
       type: idf
-    version: 5.1.4
-manifest_hash: 1193c708ba48d3f11c6e01e3f3677a4494fe2675b26024c840e286ace1ee817b
+    version: 5.2.2
+manifest_hash: 1f401b7d54241af8d239f02c75a6eb517e08370167ac71c0599b91f070c5fae8
 target: esp32
 version: 1.0.0
