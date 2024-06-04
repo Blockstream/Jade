@@ -194,6 +194,13 @@ test_build_display_m5stickcplus:
   after_script:
     - mv build build_display_m5stickcplus
 
+test_build_display_m5stickcplus2:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display_m5stickcplus2.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_m5stickcplus2
+
 test_build_display_m5cores3:
   extends: .test_build_template
   before_script:

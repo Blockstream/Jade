@@ -2132,6 +2132,12 @@ static void handle_display_battery_volts(void)
 #ifdef CONFIG_HAS_AXP
     const int ret = snprintf(power_status, sizeof(power_status), "%umv", power_get_vbat());
     JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
+#elif defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS_2)
+    const uint16_t vbat = power_get_vbat();
+    if (vbat > 0) {
+        const int ret = snprintf(power_status, sizeof(power_status), "%umv", vbat);
+        JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
+    }
 #elif defined(CONFIG_HAS_IP5306)
     const float approx_voltage = power_get_vbat() / 1000.0;
     const int ret = snprintf(power_status, sizeof(power_status), "Approx %.1fv", approx_voltage);

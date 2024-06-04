@@ -29,6 +29,17 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 * USB VendorID:0403 ProductID:6001 (Different to retail Jade, will require custom Electrum/HWI builds until they add support to these device IDs)
 * Typically supports Secure Boot V1
 
+### M5Stack M5StickC PLUS 2
+![M5Stack M5StickC PLUS2](img/M5StickCPlus.jpg)
+* [Vendor Product Page](https://shop.m5stack.com/products/m5stickc-plus2-esp32-mini-iot-development-kit)
+* ~$20 USD
+* Extra 2mb PSRAM (When compared to M5StickC PLUS)
+* Two button interface (Long press front button to select)
+* Includes 200mAh battery
+* Fully assembled with case
+* USB VendorID:0403 ProductID:6001 (Different to retail Jade, will require custom Electrum/HWI builds until they add support to these device IDs)
+* Typically supports Secure Boot V2
+
 ### M5Stack Basic Core
 ![M5Stack Basic Core](img/M5Stack-Basic.jpg)
 * [Vendor Product Page](https://shop.m5stack.com/products/esp32-basic-core-lot-development-kit-v2-7)
