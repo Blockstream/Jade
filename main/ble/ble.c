@@ -357,45 +357,6 @@ static void ble_writer(void* ignore)
     }
 }
 
-/**
- * FIXME: patch in esp-idf/components/bt/host/nimble/nimble/nimble/host/src/ble_hs_pvcy.c
- * Expects this function to exist and provide the default IRK
- * Based on suggestion: https://github.com/espressif/esp-nimble/issues/24#issuecomment-924072566
- *
- * NOTE:
- * By using the device key from 'storage_get_pin_privatekey()', we get something secret, unique and
- * largely persistent - although it is deleted/reset if we do a full factory reset of the unit (seems good).
- * We could derive any key from it - hmac'ing with the efuse mac (which is fixed/persistent [never changed]
- * and should be unique per hw unit) seems as good as anything.
- *
- * NOTE:
- * This function is called on the internal nimble 'ble' task
- *
- * REMOVE WHEN ISSUE FIXED UPSTREAM
- */
-extern uint8_t macid[6]; // loaded at startup in main.c
-void ble_hs_pvcy_get_default_irk(uint8_t* new_irk_out, const size_t new_irk_len)
-{
-    JADE_ASSERT(new_irk_out);
-    JADE_LOGI("ble_hs_pvcy_get_default_irk() called");
-
-    uint8_t output[HMAC_SHA256_LEN];
-    JADE_ASSERT(new_irk_len <= sizeof(output));
-
-    /* before we call into wally re-randomize secp256k1 ctx for this task */
-    jade_wally_randomize_secp_ctx();
-
-    uint8_t privatekey[EC_PRIVATE_KEY_LEN];
-    const bool ret = storage_get_pin_privatekey(privatekey, sizeof(privatekey));
-    JADE_ASSERT(ret);
-
-    const int wret = wally_hmac_sha256(privatekey, sizeof(privatekey), macid, sizeof(macid), output, sizeof(output));
-    JADE_WALLY_VERIFY(wally_bzero(privatekey, sizeof(privatekey)));
-    JADE_ASSERT(wret == WALLY_OK);
-
-    memcpy(new_irk_out, output, new_irk_len);
-}
-
 static void ble_on_reset(int reason) { JADE_LOGI("ble resetting state; reason=%d", reason); }
 
 static void ble_on_sync(void)
