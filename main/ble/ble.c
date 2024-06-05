@@ -16,7 +16,9 @@
 #include <esp_system.h>
 #include <freertos/event_groups.h>
 #include <host/ble_hs.h>
+#ifdef CONFIG_IDF_TARGET_ESP32
 #include <host/ble_hs_pvcy.h>
+#endif
 #include <host/ble_store.h>
 #include <host/ble_uuid.h>
 #include <host/util/util.h>
@@ -278,15 +280,21 @@ static void ble_start_advertising(void)
     adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
 
+    JADE_LOGI("Advertised address type: %u", own_addr_type);
     rc = ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event, NULL);
     if (rc != 0) {
         JADE_LOGE("ble_gap_adv_start() failed with error %d", rc);
     }
 
+#ifdef CONFIG_IDF_TARGET_ESP32
     // Log advertised address
+    int isnrpa = 0;
     uint8_t addr_val[6] = { 0 };
-    rc = ble_hs_id_copy_addr(own_addr_type, addr_val, NULL);
-    JADE_LOGI("Advertising started, with address:");
+    rc = ble_hs_id_copy_addr(own_addr_type, addr_val, &isnrpa);
+    if (rc) {
+        JADE_LOGE("ble_hs_id_copy_addr(%u) failed with error: %d", own_addr_type, rc);
+    }
+    JADE_LOGI("Advertising started, (type %u, nrpa %d) with address:", own_addr_type, isnrpa);
     print_addr(addr_val);
 
     // Refeed entropy - this is called whenever the advertisied address changes  - ie.
@@ -294,6 +302,7 @@ static void ble_start_advertising(void)
     // Called again when the client disconnects.  So frequent (if BLE enabled) but not
     // completely predictable ...
     refeed_entropy(addr_val, sizeof(addr_val));
+#endif
 }
 
 static bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
@@ -357,21 +366,22 @@ static void ble_on_reset(int reason) { JADE_LOGI("ble resetting state; reason=%d
 
 static void ble_on_sync(void)
 {
+    int rc;
+
     // In a debug unattended ci build do not use RPA as it doesn't appear to
     // to work on the CI machine atm, but is preferred for android/ios apps.
 #ifdef CONFIG_DEBUG_UNATTENDED_CI
-    int rc = ble_hs_util_ensure_addr(0);
+    JADE_LOGI("ble sync() - Debug/CI mode using non-RPA fixed address");
+    rc = ble_hs_util_ensure_addr(0);
     JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_util_ensure_addr(0); rc=%d", rc);
 
     // From the bleprph example main.c
-    JADE_LOGI("ble sync() - Debug/CI mode using non-RPA fixed address");
     rc = ble_hs_id_infer_auto(0, &own_addr_type);
     JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_id_infer_auto(0,...); rc=%d", rc);
 #else
-    int rc = ble_hs_util_ensure_addr(1);
-    JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_util_ensure_addr(1); rc=%d", rc);
-#ifdef CONFIG_IDF_TARGET_ESP32
+    JADE_LOGI("ble sync() - Using RPA address");
 
+#ifdef CONFIG_IDF_TARGET_ESP32
     // From the bleprph example README (no actual example code provided):
     // For RPA feature (currently Host based privacy feature is supported), use API
     // `ble_hs_pvcy_rpa_config` to enable/disable host based privacy, `own_addr_type`
@@ -387,10 +397,33 @@ static void ble_on_sync(void)
     //
     // NOTE: There is also an attached patch at:
     // https://github.com/espressif/esp-nimble/issues/8#issuecomment-615130885
-    JADE_LOGI("ble sync() - Using RPA address");
+    rc = ble_hs_util_ensure_addr(1);
+    JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_util_ensure_addr(1); rc=%d", rc);
     own_addr_type = BLE_OWN_ADDR_RANDOM;
     rc = ble_hs_pvcy_rpa_config(1);
     JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_pvcy_rpa_config(1); rc=%d", rc);
+#else
+    // NOTE: need to generate and set a new address if using ble_hs_util_ensure_addr(1) or will receive
+    // error BLE_HS_EROLE when trying to re-start advertising (ble_gap_adv_start() failed with error 530)
+    // (appears fine on initial start but fails if ble stopped/restarted).
+    ble_addr_t addr;
+
+    // generate new private address
+    rc = ble_hs_id_gen_rnd(0, &addr);
+    JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_id_gen_rnd(0); rc=%d", rc);
+
+    // set generated address
+    rc = ble_hs_id_set_rnd(addr.val);
+    JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_id_set_rnd(); rc=%d", rc);
+
+    // configure address, prefer random
+    rc = ble_hs_util_ensure_addr(1);
+    JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_util_ensure_addr(0); rc=%d", rc);
+
+    // determine own_addr_type
+    rc = ble_hs_id_infer_auto(1, &own_addr_type);
+    JADE_ASSERT_MSG(rc == 0, "Error from ble_hs_id_infer_auto(1,...); rc=%d", rc);
+    JADE_LOGI("Inferred address type: %u", own_addr_type);
 #endif // CONFIG_IDF_TARGET_ESP32
 #endif // CONFIG_DEBUG_UNATTENDED_CI
 
@@ -483,8 +516,8 @@ void ble_start(void)
     // In a CI build do not set these as they don't appear to work on the CI
     // machine, but are necessary for RPA to work (as used in non-CI builds).
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    ble_hs_cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
-    ble_hs_cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
+    ble_hs_cfg.sm_our_key_dist = (BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
+    ble_hs_cfg.sm_their_key_dist = (BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
 #endif
 
     int rc = gatt_svr_init();
