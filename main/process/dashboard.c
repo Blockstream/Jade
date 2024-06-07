@@ -847,12 +847,6 @@ static void handle_legal(void)
 // Reset BLE pairing data
 static void handle_ble_reset(void)
 {
-    if (!ble_enabled()) {
-        const char* message[] = { "You must enable", "Bluetooth to reset", "pairings." };
-        await_message_activity(message, 3);
-        return;
-    }
-
     const char* question[] = { "Delete Bluetooth", "pairings for all", "bonded devices?" };
     if (!await_yesno_activity(device_name, question, 3, false, NULL)) {
         return;

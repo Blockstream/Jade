@@ -504,7 +504,11 @@ void ble_start(void)
        esp_bt_controller_deinit();
        esp_bt_mem_release(ESP_BT_MODE_BTDM);
      */
-    nimble_port_init();
+    const esp_err_t err = nimble_port_init();
+    if (err != ESP_OK) {
+        JADE_LOGE("Unable to init NimBLE!: %d", err);
+        return;
+    }
 
     ble_hs_cfg.reset_cb = ble_on_reset;
     ble_hs_cfg.sync_cb = ble_on_sync;
@@ -557,13 +561,19 @@ void ble_stop(void)
     // flag tasks to die
     ble_is_enabled = false;
 
-    int ret = nimble_port_stop();
+    // Log errors but carry on
+    const int ret = nimble_port_stop();
     if (ret == 0) {
-        nimble_port_deinit();
+        const esp_err_t err = nimble_port_deinit();
+        if (err != ESP_OK) {
+            JADE_LOGE("Unable to deinit NimBLE!: %d", err);
+        }
+    } else {
+        JADE_LOGE("Unable to stop NimBLE!: %d", ret);
     }
 
     // The above kills the main BLE task
-    // Kill our writer task
+    // Kill our writer task in any case
     xSemaphoreTake(writer_shutdown_done, portMAX_DELAY);
     vTaskDelete(*p_ble_writer_handle);
     *p_ble_writer_handle = NULL;
@@ -782,7 +792,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
     return 0;
 }
 
-bool ble_remove_all_devices(void)
+static bool ble_remove_all_devices_impl(void)
 {
     bool errored = false;
     ble_addr_t peer_id_addrs[CONFIG_BT_NIMBLE_MAX_BONDS];
@@ -818,4 +828,30 @@ bool ble_remove_all_devices(void)
     }
 
     return !errored;
+}
+
+bool ble_remove_all_devices(void)
+{
+    // Simple case!
+    if (ble_is_enabled) {
+        return ble_remove_all_devices_impl();
+    }
+
+    // Need to temporarily initialise low-level ble subsystem
+    // for these calls to be valid / work as expected.
+    esp_err_t err = nimble_port_init();
+    if (err != ESP_OK) {
+        JADE_LOGE("Unable to init NimBLE!: %d", err);
+        return false;
+    }
+
+    ble_store_config_init();
+    const bool retval = ble_remove_all_devices_impl();
+
+    err = nimble_port_deinit();
+    if (err != ESP_OK) {
+        JADE_LOGE("Unable to deinit NimBLE!: %d", err);
+    }
+
+    return retval;
 }
