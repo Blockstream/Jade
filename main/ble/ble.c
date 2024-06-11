@@ -38,22 +38,23 @@ static const ble_uuid128_t service_uuid
     = BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0, 0x93, 0xf3, 0xa3, 0xb5, 0x01, 0x00, 0x40, 0x6e);
 
 // 6E400003-B5A3-F393-E0A9-E50E24DCCA9E
-static const ble_uuid128_t tx_service_uuid
+static const ble_uuid128_t tx_chr_uuid
     = BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0, 0x93, 0xf3, 0xa3, 0xb5, 0x03, 0x00, 0x40, 0x6e);
 
 // 6E400002-B5A3-F393-E0A9-E50E24DCCA9E
-static const ble_uuid128_t rx_service_uuid
+static const ble_uuid128_t rx_chr_uuid
     = BLE_UUID128_INIT(0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0, 0x93, 0xf3, 0xa3, 0xb5, 0x02, 0x00, 0x40, 0x6e);
 
 static bool ble_is_enabled = false;
 static bool ble_is_connected = false;
+static uint16_t tx_val_handle;
+static uint16_t rx_val_handle;
 static size_t ble_read = 0;
 static uint8_t own_addr_type = BLE_OWN_ADDR_RANDOM;
 static uint8_t* full_ble_data_in = NULL;
 static TickType_t last_processing_time = 0;
 static uint8_t* ble_data_out = NULL;
 static uint16_t peer_conn_handle = 0;
-static uint16_t peer_conn_attr_handle = 0;
 static const size_t ATT_OVERHEAD = 3;
 static const size_t MAX_BLE_ATTR_SIZE = 512;
 static size_t ble_max_write_size = 0;
@@ -74,22 +75,17 @@ static void set_ble_max_write_size_for_mtu(const uint16_t mtu)
     }
 }
 
-static int gatt_chr_event(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt* ctxt, void* arg)
+static int gatt_chr_event(
+    const uint16_t conn_handle, const uint16_t attr_handle, struct ble_gatt_access_ctxt* ctxt, void* arg)
 {
-    JADE_LOGI("Entering gatt_chr_event %d", ctxt->op);
-    const ble_uuid_t* uuid;
-    int rc;
+    JADE_LOGI("Entering gatt_chr_event op: %d for attr: %d", ctxt->op, attr_handle);
 
-    uuid = ctxt->chr->uuid;
-
-    uint16_t ble_msg_len;
-
-    if (ble_uuid_cmp(uuid, &rx_service_uuid.u) == 0) {
+    if (attr_handle == rx_val_handle) {
         switch (ctxt->op) {
         case BLE_GATT_ACCESS_OP_WRITE_CHR:
             JADE_LOGI("Reading from ble device");
 
-            ble_msg_len = OS_MBUF_PKTLEN(ctxt->om);
+            const uint16_t ble_msg_len = OS_MBUF_PKTLEN(ctxt->om);
             JADE_LOGI("Reading %u bytes", ble_msg_len);
 
             if (ble_msg_len == 0) {
@@ -107,7 +103,7 @@ static int gatt_chr_event(uint16_t conn_handle, uint16_t attr_handle, struct ble
 
             uint16_t out_copy_len;
             uint8_t* const ble_data_in = full_ble_data_in + 1;
-            rc = ble_hs_mbuf_to_flat(ctxt->om, ble_data_in + ble_read, ble_msg_len, &out_copy_len);
+            const int rc = ble_hs_mbuf_to_flat(ctxt->om, ble_data_in + ble_read, ble_msg_len, &out_copy_len);
             JADE_ASSERT(rc == 0);
             JADE_ASSERT(out_copy_len == ble_msg_len);
 
@@ -118,16 +114,16 @@ static int gatt_chr_event(uint16_t conn_handle, uint16_t attr_handle, struct ble
             return 0;
 
         default:
-            JADE_LOGW("Unexpected gatt access op: %u, ignoring", ctxt->op);
+            JADE_LOGW("Unexpected gatt access op: %u for rx chr, ignoring", ctxt->op);
             return 0;
         }
-    } else if (ble_uuid_cmp(uuid, &tx_service_uuid.u) == 0) {
-        JADE_LOGW("Received op %u for tx uuid, ignoring", ctxt->op);
+    } else if (attr_handle == tx_val_handle) {
+        JADE_LOGW("Received op %u for tx chr, ignoring", ctxt->op);
         return 0;
     }
 
     char buf[BLE_UUID_STR_LEN];
-    JADE_LOGW("Unexpected uuid, ignoring: %s", ble_uuid_to_str(uuid, buf));
+    JADE_LOGW("Unexpected uuid, ignoring: %s", ble_uuid_to_str(ctxt->chr->uuid, buf));
     return 0;
 }
 
@@ -137,13 +133,15 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
         // that mandate an encrypted connection.
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &service_uuid.u,
-        .characteristics = (struct ble_gatt_chr_def[]){ { .uuid = &tx_service_uuid.u,
+        .characteristics = (struct ble_gatt_chr_def[]){ { .uuid = &tx_chr_uuid.u,
                                                             .access_cb = gatt_chr_event,
                                                             .flags = BLE_GATT_CHR_F_INDICATE | BLE_GATT_CHR_F_READ_ENC
-                                                                | BLE_GATT_CHR_F_READ_AUTHEN },
-            { .uuid = &rx_service_uuid.u,
+                                                                | BLE_GATT_CHR_F_READ_AUTHEN,
+                                                            .val_handle = &tx_val_handle },
+            { .uuid = &rx_chr_uuid.u,
                 .access_cb = gatt_chr_event,
-                .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_ENC | BLE_GATT_CHR_F_WRITE_AUTHEN },
+                .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_ENC | BLE_GATT_CHR_F_WRITE_AUTHEN,
+                .val_handle = &rx_val_handle },
             {
                 0,
             } },
@@ -316,7 +314,7 @@ static bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
             struct os_mbuf* data = ble_hs_mbuf_from_flat(msg + written, writenow);
             JADE_ASSERT(data);
 
-            rc = ble_gatts_indicate_custom(peer_conn_handle, peer_conn_attr_handle, data);
+            rc = ble_gatts_indicate_custom(peer_conn_handle, tx_val_handle, data);
             if (rc != 0) {
                 JADE_LOGW("ble_gattc_indicate_custom() returned error %d trying to write %u bytes, attempt %u", rc,
                     writenow, try);
@@ -590,7 +588,6 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
         ble_read = 0;
         ble_print_conn_desc(&event->disconnect.conn);
         peer_conn_handle = 0;
-        peer_conn_attr_handle = 0;
         ble_is_connected = false;
 
         // Restart advertising if ble enabled
@@ -673,8 +670,11 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             event->subscribe.conn_handle, event->subscribe.attr_handle, event->subscribe.reason,
             event->subscribe.prev_notify, event->subscribe.cur_notify, event->subscribe.prev_indicate,
             event->subscribe.cur_indicate);
-        peer_conn_handle = event->subscribe.conn_handle;
-        peer_conn_attr_handle = event->subscribe.attr_handle;
+
+        // Cache the last peer to subscribe to the tx val (so they can be notified)
+        if (event->subscribe.attr_handle == tx_val_handle) {
+            peer_conn_handle = event->subscribe.conn_handle;
+        }
         ble_is_connected = true;
         return 0;
 
