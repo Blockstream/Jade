@@ -31,8 +31,6 @@
 #include <wally_core.h>
 #include <wally_crypto.h>
 
-#define JSON_EOM_CHAR '\n'
-
 #define BLE_CONNECTION_TIMEOUT_MS 5000
 
 // 6E400001-B5A3-F393-E0A9-E50E24DCCA9E
@@ -163,17 +161,17 @@ static void gatt_svr_register_cb(struct ble_gatt_register_ctxt* ctxt, void* arg)
     switch (ctxt->op) {
     case BLE_GATT_REGISTER_OP_SVC:
         JADE_LOGI(
-            "Registered service %s with handle=%d\n", ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf), ctxt->svc.handle);
+            "Registered service %s with handle=%d", ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf), ctxt->svc.handle);
         break;
 
     case BLE_GATT_REGISTER_OP_CHR:
         JADE_LOGI("Registering characteristic %s with "
-                  "def_handle=%d val_handle=%d\n",
+                  "def_handle=%d val_handle=%d",
             ble_uuid_to_str(ctxt->chr.chr_def->uuid, buf), ctxt->chr.def_handle, ctxt->chr.val_handle);
         break;
 
     case BLE_GATT_REGISTER_OP_DSC:
-        JADE_LOGI("Registering descriptor %s with handle=%d\n", ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf),
+        JADE_LOGI("Registering descriptor %s with handle=%d", ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf),
             ctxt->dsc.handle);
         break;
 
@@ -223,7 +221,7 @@ static void ble_print_conn_desc(struct ble_gap_conn_desc* desc)
     JADE_LOGI(" peer_id_addr_type=%d peer_id_addr=", desc->peer_id_addr.type);
     print_addr(desc->peer_id_addr.val);
     JADE_LOGI(" conn_itvl=%d conn_latency=%d supervision_timeout=%d "
-              "encrypted=%d authenticated=%d bonded=%d\n",
+              "encrypted=%d authenticated=%d bonded=%d",
         desc->conn_itvl, desc->conn_latency, desc->supervision_timeout, desc->sec_state.encrypted,
         desc->sec_state.authenticated, desc->sec_state.bonded);
 }
@@ -552,9 +550,10 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
 
     switch (event->type) {
     case BLE_GAP_EVENT_CONNECT:
-        /* A new connection was established or a connection attempt failed. */
+        // A new connection was established or a connection attempt failed.
         JADE_LOGI(
             "connection %s; status=%d ", event->connect.status == 0 ? "established" : "failed", event->connect.status);
+
         if (event->connect.status == 0) {
             // Increase timeouts - not sure if this is the best/only way ...
             // Note: these values are in specific units/increments
@@ -578,7 +577,6 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             JADE_ASSERT(rc == 0);
             ble_print_conn_desc(&desc);
         }
-        JADE_LOGI("\n");
 
         if (event->connect.status != 0) {
             ble_start_advertising();
@@ -589,7 +587,6 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
         JADE_LOGI("disconnect; reason=%d ", event->disconnect.reason);
         ble_read = 0;
         ble_print_conn_desc(&event->disconnect.conn);
-        JADE_LOGI("\n");
         peer_conn_handle = 0;
         peer_conn_attr_handle = 0;
         ble_is_connected = false;
@@ -601,12 +598,40 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
 
         return 0;
 
+    case BLE_GAP_EVENT_CONN_UPDATE_REQ:
+        JADE_LOGI("connection update request; peer_params: itvl_min=%d, itvl_max=%d"
+                  "min_ce_len=%d max_ce_len=%d latency=%d supervision_timeout=%d",
+            event->conn_update_req.peer_params->itvl_min, event->conn_update_req.peer_params->itvl_max,
+            event->conn_update_req.peer_params->min_ce_len, event->conn_update_req.peer_params->max_ce_len,
+            event->conn_update_req.peer_params->latency, event->conn_update_req.peer_params->supervision_timeout);
+
+        // Set our preferred parameters
+        event->conn_update_req.self_params->itvl_min = BLE_GAP_INITIAL_CONN_ITVL_MIN;
+        event->conn_update_req.self_params->itvl_max = BLE_GAP_INITIAL_CONN_ITVL_MAX;
+        event->conn_update_req.self_params->supervision_timeout = BLE_CONNECTION_TIMEOUT_MS / 10;
+        event->conn_update_req.self_params->min_ce_len = BLE_GAP_INITIAL_CONN_MIN_CE_LEN;
+        event->conn_update_req.self_params->max_ce_len = BLE_GAP_INITIAL_CONN_MAX_CE_LEN;
+
+        JADE_LOGI("connection update request; self_params: itvl_min=%d, itvl_max=%d"
+                  "min_ce_len=%d max_ce_len=%d latency=%d supervision_timeout=%d",
+            event->conn_update_req.self_params->itvl_min, event->conn_update_req.self_params->itvl_max,
+            event->conn_update_req.self_params->min_ce_len, event->conn_update_req.self_params->max_ce_len,
+            event->conn_update_req.self_params->latency, event->conn_update_req.self_params->supervision_timeout);
+
+        return 0;
+
     case BLE_GAP_EVENT_CONN_UPDATE:
         JADE_LOGI("connection updated; status=%d ", event->conn_update.status);
         rc = ble_gap_conn_find(event->conn_update.conn_handle, &desc);
         JADE_ASSERT(rc == 0);
         ble_print_conn_desc(&desc);
-        JADE_LOGI("\n");
+        return 0;
+
+    case BLE_GAP_EVENT_IDENTITY_RESOLVED:
+        JADE_LOGI("identity resolved;");
+        rc = ble_gap_conn_find(event->identity_resolved.conn_handle, &desc);
+        JADE_ASSERT(rc == 0);
+        ble_print_conn_desc(&desc);
         return 0;
 
     case BLE_GAP_EVENT_NOTIFY_TX:
@@ -626,17 +651,23 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
         return 0;
 
     case BLE_GAP_EVENT_ENC_CHANGE:
-        /* Encryption has been enabled or disabled for this connection. */
+        // Encryption has been enabled or disabled for this connection.
         JADE_LOGI("encryption change event; status=%d ", event->enc_change.status);
         rc = ble_gap_conn_find(event->enc_change.conn_handle, &desc);
         JADE_ASSERT(rc == 0);
         ble_print_conn_desc(&desc);
-        JADE_LOGI("\n");
+        return 0;
+
+    case BLE_GAP_EVENT_DATA_LEN_CHG:
+        JADE_LOGI("data length change event; conn_handle=%d "
+                  "max_tx_octets=%d max_tx_time=%d max_rx_octets=%d max_rx_time=%d",
+            event->data_len_chg.conn_handle, event->data_len_chg.max_tx_octets, event->data_len_chg.max_tx_time,
+            event->data_len_chg.max_rx_octets, event->data_len_chg.max_rx_time);
         return 0;
 
     case BLE_GAP_EVENT_SUBSCRIBE:
         JADE_LOGI("subscribe event; conn_handle=%d attr_handle=%d "
-                  "reason=%d prevn=%d curn=%d previ=%d curi=%d\n",
+                  "reason=%d prevn=%d curn=%d previ=%d curi=%d",
             event->subscribe.conn_handle, event->subscribe.attr_handle, event->subscribe.reason,
             event->subscribe.prev_notify, event->subscribe.cur_notify, event->subscribe.prev_indicate,
             event->subscribe.cur_indicate);
@@ -646,7 +677,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
         return 0;
 
     case BLE_GAP_EVENT_MTU:
-        JADE_LOGI("mtu update event; conn_handle=%d cid=%d mtu=%d\n", event->mtu.conn_handle, event->mtu.channel_id,
+        JADE_LOGI("mtu update event; conn_handle=%d cid=%d mtu=%d", event->mtu.conn_handle, event->mtu.channel_id,
             event->mtu.value);
         set_ble_max_write_size_for_mtu(event->mtu.value);
         return 0;
@@ -664,7 +695,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
         return BLE_GAP_REPEAT_PAIRING_RETRY;
 
     case BLE_GAP_EVENT_PASSKEY_ACTION:
-        JADE_LOGI("PASSKEY_ACTION_EVENT started: %d \n", event->passkey.params.action);
+        JADE_LOGI("PASSKEY_ACTION_EVENT started: %d", event->passkey.params.action);
         rc = ble_gap_conn_find(event->passkey.conn_handle, &desc);
         JADE_ASSERT(rc == 0);
         ble_print_conn_desc(&desc);
