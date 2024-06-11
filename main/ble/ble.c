@@ -318,7 +318,7 @@ static bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
             struct os_mbuf* data = ble_hs_mbuf_from_flat(msg + written, writenow);
             JADE_ASSERT(data);
 
-            rc = ble_gattc_indicate_custom(peer_conn_handle, peer_conn_attr_handle, data);
+            rc = ble_gatts_indicate_custom(peer_conn_handle, peer_conn_attr_handle, data);
             if (rc != 0) {
                 JADE_LOGW("ble_gattc_indicate_custom() returned error %d trying to write %u bytes, attempt %u", rc,
                     writenow, try);
