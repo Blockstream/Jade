@@ -1424,17 +1424,13 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 #endif // CONFIG_HAS_CAMERA
 
     // When using 'temporary restore' we respect the existing passphrase settings.
-    // If using 'advanced mode' to setup the persistent wallet, we ask the user and save the settings.
-    // In basic/standard mode automatically set 'no passphrase'.
-    // NOTE: we don't offer the 'once' option at setup time (only in the options/setting prefs menu).
-    keychain_set_confirm_export_blinding_key(advanced_mode);
+    // Otherwise reset to 'passphrase not in use' by default during new wallet setup.
+    // NOTE: the user can enable it explicitly in the options/setting prefs menu if desired.
     if (!temporary_restore) {
-        const char* question[] = { " Add BIP39 passphrase?", "You will need this", "to access your funds." };
-        const bool use_passphrase
-            = advanced_mode && await_yesno_activity("BIP39 Passphrase", question, 3, false, "blkstrm.com/passphrase");
-        keychain_set_passphrase_frequency(use_passphrase ? PASSPHRASE_ALWAYS : PASSPHRASE_NEVER);
+        keychain_set_passphrase_frequency(PASSPHRASE_NEVER);
         keychain_persist_key_flags();
     }
+    keychain_set_confirm_export_blinding_key(advanced_mode);
 
     if (!derive_keychain(temporary_restore, mnemonic)) {
         // Error making wallet...
