@@ -1,6 +1,6 @@
 {
   "input": {
-    "image": "qr_seedqr_vec1.dat"
+    "image": "qr_qvga_seedqr_vec1.dat"
   },
   "expected_output": {
     "text": "011513251154012711900771041507421289190620080870026613431420201617920614089619290300152408010643"

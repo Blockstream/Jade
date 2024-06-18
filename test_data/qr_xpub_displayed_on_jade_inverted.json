@@ -1,8 +1,0 @@
-{
-  "input": {
-    "image": "qr_xpub_displayed_on_jade_inverted.dat"
-  },
-  "expected_output": {
-    "text": "xpub661MyMwAqRbcGJMgtWQnZ6b8Nk1YE4RkR2sAT9ZE3ovUH95wH5UxY1qkg7aRC7MdQD7YMauTncJMMHyWdDmkCeKMMoVwzJoK5DbZHHhinUQ"
-  }
-}

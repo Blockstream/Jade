@@ -1,6 +1,6 @@
 {
   "input": {
-    "image": "qr_hotp.dat"
+    "image": "qr_qvga_hotp.dat"
   },
   "expected_output": {
     "text": "otpauth://hotp/ACME%20Co:john.doe@email.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=ACME%20Co&digits=8&counter=5"

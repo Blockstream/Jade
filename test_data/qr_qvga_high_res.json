@@ -1,6 +1,6 @@
 {
   "input": {
-    "image": "qr_high_res.dat"
+    "image": "qr_qvga_high_res.dat"
   },
   "expected_output": {
     "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Odio eu feugiat pretium nibh ipsum consequat. Fermentum posuere urna nec tincidunt praesent semper feugiat nibh sed."

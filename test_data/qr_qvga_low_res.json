@@ -1,6 +1,6 @@
 {
   "input": {
-    "image": "qr_low_res.dat"
+    "image": "qr_qvga_low_res.dat"
   },
   "expected_output": {
     "text": "This is a test of Jade's QR scanner."

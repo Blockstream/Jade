@@ -1,6 +1,6 @@
 {
   "input": {
-    "image": "qr_compactseedqr_vec8.dat"
+    "image": "qr_qvga_compactseedqr_vec8.dat"
   },
   "expected_output": {
     "hex": "307eaf058659ca7a7a0d63152509e541"
