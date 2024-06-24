@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
-(cd main && clang-format -i *.c *.h */*.{c,h})
+(cd main && clang-format -i *.c *.h */*.{c,h,inc})
 
 if [ -f /.dockerenv ]; then
     PATH=${PATH}:/root/.local/bin
