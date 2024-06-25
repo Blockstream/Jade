@@ -549,4 +549,11 @@ menu "Blockstream Jade"
                 default -1
         endmenu
     endmenu
+
+    config JADE_QA
+        bool "Enable smoketest firmware"
+        default n
+        help
+            Enable smoketest firmware.
+
 endmenu

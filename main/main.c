@@ -44,6 +44,7 @@
 
 #include "idletimer.h"
 #include "power.h"
+#include "smoketest.h"
 #include "storage.h"
 #include "wallet.h"
 
@@ -66,6 +67,49 @@ static void ensure_boot_flags(void)
     esp_efuse_disable_basic_rom_console();
     esp_efuse_disable_rom_download_mode();
 #endif
+}
+
+static void validate_running_image(void)
+{
+    // Populate chip info struct and mac-id
+    esp_chip_info(&chip_info);
+    esp_efuse_mac_get_default(macid);
+
+    // Check running partition/fw image
+    const esp_partition_t* running = esp_ota_get_running_partition();
+    JADE_LOGI("Running partition ptr: %p", running);
+
+    if (!running) {
+        JADE_LOGE("Cannot get running partition - cannot validate");
+        return;
+    }
+
+    // Populate the running partition info struct
+    esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
+    if (err == ESP_OK) {
+        JADE_LOGI("Running firmware version: %s", running_app_info.version);
+    } else {
+        JADE_LOGE("esp_ota_get_partition_description(%p) returned %d", running, err);
+    }
+
+    esp_ota_img_states_t ota_state;
+    err = esp_ota_get_state_partition(running, &ota_state);
+    if (err != ESP_OK) {
+        JADE_LOGE("esp_ota_get_state_partition(%p) returned %d", running, err);
+        return;
+    }
+
+    JADE_LOGI("Running partition state: %d", ota_state);
+    if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
+        JADE_LOGI("First boot of current version");
+
+        err = esp_ota_mark_app_valid_cancel_rollback();
+        if (err == ESP_OK) {
+            JADE_LOGI("Successfully marked current partition as good");
+        } else {
+            JADE_LOGE("esp_ota_mark_app_valid_cancel_rollback() returned %d", err);
+        }
+    }
 }
 
 #if defined(CONFIG_HAS_CAMERA) && !defined(CONFIG_ETH_USE_OPENETH)
@@ -194,6 +238,7 @@ static void boot_process(void)
     }
 }
 
+#ifndef CONFIG_JADE_QA
 static void start_dashboard(void)
 {
     JADE_LOGI("Starting dashboard on core %u, with priority %u", xPortGetCoreID(), uxTaskPriorityGet(NULL));
@@ -205,49 +250,7 @@ static void start_dashboard(void)
     // runs forever (on default core 0)
     dashboard_process(&main_process);
 }
-
-static void validate_running_image(void)
-{
-    // Populate chip info struct and mac-id
-    esp_chip_info(&chip_info);
-    esp_efuse_mac_get_default(macid);
-
-    // Check running partition/fw image
-    const esp_partition_t* running = esp_ota_get_running_partition();
-    JADE_LOGI("Running partition ptr: %p", running);
-
-    if (!running) {
-        JADE_LOGE("Cannot get running partition - cannot validate");
-        return;
-    }
-
-    // Populate the running partition info struct
-    esp_err_t err = esp_ota_get_partition_description(running, &running_app_info);
-    if (err == ESP_OK) {
-        JADE_LOGI("Running firmware version: %s", running_app_info.version);
-    } else {
-        JADE_LOGE("esp_ota_get_partition_description(%p) returned %d", running, err);
-    }
-
-    esp_ota_img_states_t ota_state;
-    err = esp_ota_get_state_partition(running, &ota_state);
-    if (err != ESP_OK) {
-        JADE_LOGE("esp_ota_get_state_partition(%p) returned %d", running, err);
-        return;
-    }
-
-    JADE_LOGI("Running partition state: %d", ota_state);
-    if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
-        JADE_LOGI("First boot of current version");
-
-        err = esp_ota_mark_app_valid_cancel_rollback();
-        if (err == ESP_OK) {
-            JADE_LOGI("Successfully marked current partition as good");
-        } else {
-            JADE_LOGE("esp_ota_mark_app_valid_cancel_rollback() returned %d", err);
-        }
-    }
-}
+#endif
 
 void app_main(void)
 {
@@ -256,5 +259,9 @@ void app_main(void)
     validate_running_image();
     boot_process();
     sensitive_assert_empty();
+#ifndef CONFIG_JADE_QA
     start_dashboard();
+#else
+    start_smoketest();
+#endif
 }
