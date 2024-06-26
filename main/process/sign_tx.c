@@ -527,6 +527,9 @@ void sign_tx_process(void* process_ptr)
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
             }
+        } else {
+            // May still need witness flag
+            rpc_get_boolean("is_witness", &params, &is_witness);
         }
 
         // Full input tx can be omitted for transactions with only one single witness
