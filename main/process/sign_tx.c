@@ -480,6 +480,7 @@ void sign_tx_process(void* process_ptr)
 
     // NOTE: atm we only accept 'SIGHASH_ALL' for inputs we are signing
     const uint8_t expected_sighash = WALLY_SIGHASH_ALL;
+    bool signing = false;
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
         if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
@@ -515,6 +516,8 @@ void sign_tx_process(void* process_ptr)
         // (But if passed must be valid - empty/root path is not allowed for signing)
         const bool has_path = rpc_has_field_data("path", &params);
         if (has_path) {
+            signing = true;
+
             // Get all common tx-signing input fields which must be present if a path is given
             if (!params_tx_input_signing_data(use_ae_signatures, &params, &is_witness, sig_data, &ae_host_commitment,
                     &ae_host_commitment_len, &script, &script_len, &aggregate_inputs_scripts_flavour, &errmsg)) {
@@ -600,6 +603,7 @@ void sign_tx_process(void* process_ptr)
         if (has_path) {
             // Generate hash of this input which we will sign later
             JADE_ASSERT(sig_data->sighash == WALLY_SIGHASH_ALL);
+
             if (!wallet_get_tx_input_hash(tx, index, is_witness, script, script_len, input_satoshi, sig_data->sighash,
                     sig_data->signature_hash, sizeof(sig_data->signature_hash))) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
@@ -671,6 +675,13 @@ void sign_tx_process(void* process_ptr)
     }
 
     JADE_LOGD("User accepted fee");
+
+    // Show warning if nothing to sign
+    if (!signing) {
+        const char* message[] = { "There are no relevant", "inputs to be signed" };
+        await_message_activity(message, 2);
+    }
+
     display_processing_message_activity();
 
     // Send signature replies.

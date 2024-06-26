@@ -793,6 +793,8 @@ void sign_liquid_tx_process(void* process_ptr)
     const uint8_t expected_sighash = (txtype == TXTYPE_SWAP && tx_is_partial)
         ? (WALLY_SIGHASH_SINGLE | WALLY_SIGHASH_ANYONECANPAY)
         : WALLY_SIGHASH_ALL;
+    bool signing = false;
+
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
         if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
@@ -826,6 +828,8 @@ void sign_liquid_tx_process(void* process_ptr)
         // Make signature-hash (should have a prevout script in hand)
         const bool has_path = rpc_has_field_data("path", &params);
         if (has_path) {
+            signing = true;
+
             // Get all common tx-signing input fields which must be present if a path is given
             if (!params_tx_input_signing_data(use_ae_signatures, &params, &is_witness, sig_data, &ae_host_commitment,
                     &ae_host_commitment_len, &script, &script_len, &aggregate_inputs_scripts_flavour, &errmsg)) {
@@ -948,6 +952,13 @@ void sign_liquid_tx_process(void* process_ptr)
 
         JADE_LOGD("User accepted fee");
     }
+
+    // Show warning if nothing to sign
+    if (!signing) {
+        const char* message[] = { "There are no relevant", "inputs to be signed" };
+        await_message_activity(message, 2);
+    }
+
     display_processing_message_activity();
 
     // Send signature replies.

@@ -702,6 +702,13 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     }
 
     JADE_LOGD("User accepted fee");
+
+    // Show warning if nothing to sign
+    if (!signing_flags) {
+        const char* message[] = { "There are no relevant", "inputs to be signed" };
+        await_message_activity(message, 2);
+    }
+
     display_processing_message_activity();
 
     // Sign our inputs
