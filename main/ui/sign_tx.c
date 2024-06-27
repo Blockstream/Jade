@@ -23,6 +23,9 @@ static const char MISSING_ASSET_DATA[] = "Amounts may be shown in the wrong unit
 // A warning to display if the unblinding data is missing
 static const char BLINDED_OUTPUT[] = "Cannot unblind output";
 
+// Note shown to highlight outputs to self (script/address verified)
+static const char VERIFIED_WALLET_OUTPUT_MSG[] = "Verified wallet output";
+
 static const char TICKER_BTC[] = "BTC";
 
 // Don't display pre-validated (eg. change) outputs (if provided) unless they have an associated warning message.
@@ -179,10 +182,11 @@ static gui_activity_t* make_display_assetinfo_activities(
     return act;
 }
 
-static gui_activity_t* make_input_output_activities(const char* title, const bool is_address, const char* address_label,
-    const char* amount, const char* ticker, const char* issuer, const char* asset_id_hex, const char* warning_msg,
-    gui_activity_t** acttickeramt, gui_activity_t** actaddr1, gui_activity_t** actaddr2, gui_activity_t** actassetinfo1,
-    gui_activity_t** actassetinfo2, gui_activity_t** actwarning)
+static gui_activity_t* make_input_output_activities(const char* title, const bool is_wallet_output,
+    const bool is_address, const char* address_label, const char* amount, const char* ticker, const char* issuer,
+    const char* asset_id_hex, const char* warning_msg, gui_activity_t** acttickeramt, gui_activity_t** actaddr1,
+    gui_activity_t** actaddr2, gui_activity_t** actassetinfo1, gui_activity_t** actassetinfo2,
+    gui_activity_t** actwarning)
 {
     JADE_ASSERT(title);
     JADE_ASSERT(address_label);
@@ -274,16 +278,19 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
     btn_data_t hdrbtns[] = { { .txt = "X", .font = GUI_TITLE_FONT, .ev_id = BTN_SIGNTX_REJECT },
         { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNTX_ACCEPT } };
 
-    btn_data_t menubtns[] = {
-        { .content = splitaddr, .ev_id = BTN_SIGNTX_ADDRESS },
+    // Screen items
+    btn_data_t menubtns[] = { { .content = splitaddr, .ev_id = BTN_SIGNTX_ADDRESS },
         { .content = splitamount, .ev_id = BTN_SIGNTX_TICKERAMOUNT },
         { .content = assetinfo,
+            .txt = is_wallet_output && !assetinfo ? VERIFIED_WALLET_OUTPUT_MSG : NULL,
             .font = GUI_DEFAULT_FONT,
             .ev_id = assetinfo ? BTN_SIGNTX_ASSETINFO : GUI_BUTTON_EVENT_NONE },
-        { .content = warning, .font = GUI_DEFAULT_FONT, .ev_id = warning ? BTN_SIGNTX_WARNING : GUI_BUTTON_EVENT_NONE }
-    };
+        { .content = warning,
+            .txt = is_wallet_output && assetinfo && !warning ? VERIFIED_WALLET_OUTPUT_MSG : NULL,
+            .font = GUI_DEFAULT_FONT,
+            .ev_id = warning ? BTN_SIGNTX_WARNING : GUI_BUTTON_EVENT_NONE } };
 
-    const size_t num_btns = assetinfo || warning ? 4 : 2;
+    const size_t num_btns = assetinfo || warning || is_wallet_output ? 4 : 2;
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, num_btns);
 
     // Set the intially selected item to the 'Next' button
@@ -312,8 +319,9 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
 //
 // It is not valid to call this with both an address and a label string (but must have one).
 
-static bool show_input_output_activity(const char* title, const bool is_address, const char* address_label,
-    const char* amount, const char* ticker, const char* issuer, const char* asset_id_hex, const char* warning_msg)
+static bool show_input_output_activity(const char* title, const bool is_wallet_output, const bool is_address,
+    const char* address_label, const char* amount, const char* ticker, const char* issuer, const char* asset_id_hex,
+    const char* warning_msg)
 {
     JADE_ASSERT(title);
     JADE_ASSERT(address_label);
@@ -340,8 +348,9 @@ static bool show_input_output_activity(const char* title, const bool is_address,
     gui_activity_t* act_assetinfo1 = NULL;
     gui_activity_t* act_assetinfo2 = NULL;
     gui_activity_t* act_warning = NULL;
-    gui_activity_t* act_summary = make_input_output_activities(title, is_address, address_label, amount, ticker, issuer,
-        assethex, warning_msg, &act_tickeramt, &act_addr1, &act_addr2, &act_assetinfo1, &act_assetinfo2, &act_warning);
+    gui_activity_t* act_summary = make_input_output_activities(title, is_wallet_output, is_address, address_label,
+        amount, ticker, issuer, assethex, warning_msg, &act_tickeramt, &act_addr1, &act_addr2, &act_assetinfo1,
+        &act_assetinfo2, &act_warning);
     gui_activity_t* act = act_summary;
     int32_t ev_id;
 
@@ -435,6 +444,8 @@ bool show_btc_transaction_outputs_activity(
         // Free all existing activities between outputs
         gui_set_current_activity_ex(act_clear, true);
 
+        const bool is_wallet_output = output_info && (output_info[i].flags & OUTPUT_FLAG_VALIDATED);
+
         char title[16];
         int ret = snprintf(title, sizeof(title), "Output %ld/%ld", nDisplayedOutput, nTotalOutputsDisplayed);
         JADE_ASSERT(ret > 0 && ret < sizeof(title));
@@ -449,7 +460,8 @@ bool show_btc_transaction_outputs_activity(
 
         // Show output info
         const char* msg = (output_info && strlen(output_info[i].message) > 0) ? output_info[i].message : NULL;
-        if (!show_input_output_activity(title, is_address, address, amount, TICKER_BTC, NULL, NULL, msg)) {
+        if (!show_input_output_activity(
+                title, is_wallet_output, is_address, address, amount, TICKER_BTC, NULL, NULL, msg)) {
             // User pressed 'cancel'
             return false;
         }
@@ -494,6 +506,8 @@ bool show_elements_transaction_outputs_activity(const char* network, const struc
         // Free all existing activities between outputs
         gui_set_current_activity_ex(act_clear, true);
 
+        const bool is_wallet_output = output_info[i].flags & OUTPUT_FLAG_VALIDATED;
+
         char title[16];
         const int ret = snprintf(title, sizeof(title), "Output %ld/%ld", nDisplayedOutput, nTotalOutputsDisplayed);
         JADE_ASSERT(ret > 0 && ret < sizeof(title));
@@ -509,8 +523,8 @@ bool show_elements_transaction_outputs_activity(const char* network, const struc
         // ATM assert that we always have unblinded info when displaying an output
         JADE_ASSERT(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED);
         if (!(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED)) {
-            if (!show_input_output_activity(
-                    title, is_address, address, "????", "????", "????", "????????????", BLINDED_OUTPUT)) {
+            if (!show_input_output_activity(title, is_wallet_output, is_address, address, "????", "????", "????",
+                    "????????????", BLINDED_OUTPUT)) {
                 // User pressed 'cancel'
                 return false;
             }
@@ -530,8 +544,8 @@ bool show_elements_transaction_outputs_activity(const char* network, const struc
         // Insert extra screen to display warning if the asset registry information is missing
         if (!have_asset_info) {
             // Make activity with no asset-id but with the warning message
-            if (!show_input_output_activity(
-                    title, is_address, address, amount, ticker, issuer, asset_id_hex, MISSING_ASSET_DATA)) {
+            if (!show_input_output_activity(title, is_wallet_output, is_address, address, amount, ticker, issuer,
+                    asset_id_hex, MISSING_ASSET_DATA)) {
                 // User pressed 'cancel'
                 return false;
             }
@@ -540,7 +554,8 @@ bool show_elements_transaction_outputs_activity(const char* network, const struc
         // Normal output screen - with issuer and asset-id
         const char* msg = (output_info && strlen(output_info[i].message) > 0) ? output_info[i].message : NULL;
         if (have_asset_info || msg) {
-            if (!show_input_output_activity(title, is_address, address, amount, ticker, issuer, asset_id_hex, msg)) {
+            if (!show_input_output_activity(
+                    title, is_wallet_output, is_address, address, amount, ticker, issuer, asset_id_hex, msg)) {
                 // User pressed 'cancel'
                 return false;
             }
@@ -576,6 +591,7 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
             JADE_ASSERT(ret > 0 && ret < sizeof(label));
         }
         const bool is_address = false;
+        const bool is_wallet_output = false; // not used in this case
 
         // Look up the asset-id in the asset-data
         char issuer[128];
@@ -588,7 +604,8 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
 
         // Normal output screen - with issuer and asset-id etc
         const char* msg = !have_asset_info ? MISSING_ASSET_DATA : NULL;
-        if (!show_input_output_activity(title, is_address, label, amount, ticker, issuer, asset_id_hex, msg)) {
+        if (!show_input_output_activity(
+                title, is_wallet_output, is_address, label, amount, ticker, issuer, asset_id_hex, msg)) {
             // User pressed 'cancel'
             return false;
         }
