@@ -241,10 +241,11 @@ static bool verify_descriptor_script_matches(const char* descriptor_name, const 
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
 
-    // Ensure number of signatories match
+    // Ensure number of pubkeys is not less than the number of xpub signers
+    // (xpubs can be reused with different paths, but they cannot be left unused)
     size_t num_keys = 0;
     JADE_WALLY_VERIFY(wally_map_get_num_items(keypaths, &num_keys));
-    if (descriptor->num_values != num_keys) {
+    if (descriptor->num_values > num_keys) {
         JADE_LOGD("Mismatch in number of signatories");
         return false;
     }
