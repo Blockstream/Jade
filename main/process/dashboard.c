@@ -2448,8 +2448,6 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
     // Loop all the time the keychain is unchanged, awaiting either a message
     // from companion app or a GUI interaction from the user
     bool acted = true;
-    const bool initial_ble = ble_connected();
-    const bool initial_usb = usb_connected();
     const uint8_t initial_userdata = keychain_get_userdata();
     const jade_msg_source_t initial_connection_selection = initialisation_source;
     const bool initial_show_connect_screen = show_connect_screen;
@@ -2527,14 +2525,16 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
             main_thread_action = MAIN_THREAD_ACTIVITY_NONE;
         }
 
-        // Ensure to clear any decrypted keychain if ble- or usb- connection status changes.
+        // Ensure to clear any decrypted keychain if in-use ble- or usb- connection lost.
+        // Allow serial to be plugged even if we're not unlocked over serial for eg. charging.
         // NOTE: if this clears a populated keychain then this loop will complete
         // and cause this function to return.
         // NOTE: only applies to a *peristed* keychain - ie if we have a pin set, and *NOT*
         // if this is a temporary/emergency-restore wallet.
         if (initial_has_pin && initial_keychain && !keychain_has_temporary()) {
-            if (ble_connected() != initial_ble || usb_connected() != initial_usb) {
-                JADE_LOGI("Connection status changed - clearing keychain");
+            if ((initial_userdata == SOURCE_SERIAL && !usb_connected())
+                || (initial_userdata == SOURCE_BLE && !ble_connected())) {
+                JADE_LOGI("Connection lost - clearing keychain");
                 keychain_clear();
             }
         }
