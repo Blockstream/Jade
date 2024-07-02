@@ -96,6 +96,20 @@ prod_build_jade_v1_1_noradio:
   after_script:
     - mv build build_v1_1_noradio_prod
 
+smoketest_build_jade_v1_1:
+  before_script:
+    - cp production/sdkconfig_jade_v1_1_smoketest.defaults sdkconfig.defaults
+  extends: .test_build_template
+  after_script:
+    - mv build build_v1_1_smoketest
+
+smoketest_build_jade_v2:
+  before_script:
+    - cp production/sdkconfig_jade_v2s3_smoketest.defaults sdkconfig.defaults
+  extends: .test_build_template
+  after_script:
+    - mv build build_v2_smoketest
+
 test_build_jade_ci:
   before_script:
     - cp configs/sdkconfig_jade_ci.defaults sdkconfig.defaults
