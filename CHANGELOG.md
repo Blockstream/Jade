@@ -11,6 +11,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.31] - 2024-08-09
+### Added
+- Identify and automatically validate change outputs when signing Green 'Multisig Shield' PSBT
+- Show message to highlight if displayed tx output is verified as being sent back to the spending wallet (eg. re-org/consolidation)
+- Show message when presented PSBT/tx that does not appear to contain any inputs that require a signature from the Jade signer
+- Allow abandoning PIN entry by going 'back' from first digit
+- Enable BLE bonds to be cleared when BLE not running
+- Allow flipping screen orientation (ie. 180-degree rotation) in diy hardware
+- Add cli tool for simple command-line interaction and testing
+- Add support for M5StickCPlus2 device
+- *Experimental* support for esp32s3 devices ttgo-tdisplayS3 and ttgo-tdisplay-S3procamera
+
+### Changed
+- Newly designed Home and Camera/QRScan screens
+- Lock device only when *in-use* serial or BLE connection lost (ie. not when just [un-]plugging for charging purposes)
+- Always reset to 'no bip39 passphrase' when new wallet initially created/restored
+- Stop BLE listener/handler tasks if doing serial-OTA or once user authenticated over USB/serial or QR
+- Optimise cbor message parsing from bytes received
+- Update ESP-IDF base firmware to v5.2.2, and update dependencies
+- Change UI graphics library to esp_lcd
+- Update libwally to 1.3.0
+
+### Fixed
+- Improve UI on larger diy displays
+- Fix bug identifying change outputs when signer placeholder reused in registered descriptor policy
+- Correct display of confidential liquid taproot address when signing to include blinding
+- Protect against stack-overflow crash if presented elements/liquid PSET (in place of PSBT)
+
 ## [1.0.30] - 2024-05-08
 ### Added
 - Added 'get_registered_descriptors' and 'get_registered_descriptor' api calls
