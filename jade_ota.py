@@ -375,7 +375,8 @@ if __name__ == '__main__':
                         action='store',
                         dest='hwtarget',
                         help='Hardware target for downloading firmware.  Defaults to jade',
-                        choices=['jade', 'jadedev', 'jade1.1', 'jade1.1dev'],
+                        choices=['jade', 'jadedev', 'jade1.1', 'jade1.1dev',
+                                 'jade2.0', 'jade2.0dev'],
                         default=None)
     parser.add_argument('--release',
                         action='store',

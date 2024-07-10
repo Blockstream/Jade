@@ -76,7 +76,9 @@ def download_file(verinfo, release):
     # Workout hw_target subdir
     board_type = verinfo.get("BOARD_TYPE")
     features = verinfo.get("JADE_FEATURES")
-    hw_target = {'JADE': 'jade', 'JADE_V1.1': 'jade1.1'}.get(board_type if board_type else 'JADE')
+    hw_target = {'JADE': 'jade',
+                 'JADE_V1.1': 'jade1.1',
+                 'JADE_V2': 'jade2.0'}.get(board_type if board_type else 'JADE')
     build_type = {'SB': '', 'DEV': 'dev'}.get(features)
     if hw_target is None or build_type is None:
         logger.error(f'Unsupported hardware: {board_type} / {features}')
