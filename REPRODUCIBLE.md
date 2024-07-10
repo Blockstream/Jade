@@ -83,6 +83,7 @@ A diff of `./build/jade_signed.bin` against `./build/jade.bin` should just show 
 | --------------------------- | ------------------- |
 | Jade 1.0 (true wheel)       | --hw-target jade    |
 | Jade 1.1 (rocker/jog-wheel) | --hw-target jade1.1 |
+| Jade 2.0 (two buttons)      | --hw-target jade2.0 |
 
 eg:
 ```
