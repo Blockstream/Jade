@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INDEX="BETA"
-PRODDIRS="jade jade1.1"
+PRODDIRS="jade jade1.1 jade2.0"
 BUILDDIRS="./build_*"
 FW_PATTERN="*_fw.bin"
 HASH_PATTERN="*_fw.bin.hash"

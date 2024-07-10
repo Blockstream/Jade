@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HWDIRS="jade jade1.1 jadedev jade1.1dev"
+HWDIRS="jade jade1.1 jade2.0 jadedev jade1.1dev jade2.0dev"
 
 STAGING="staging"
 UPLOAD="upload"

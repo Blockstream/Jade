@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INDEX="BETA"
-DEVDIRS="jadedev jade1.1dev"
+DEVDIRS="jadedev jade1.1dev jade2.0dev"
 BUILDDIRS="./build_jade*_ndebug"
 FW_PATTERN="*_fw.bin"
 HASH_PATTERN="*_fw.bin.hash"
