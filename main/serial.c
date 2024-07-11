@@ -55,7 +55,7 @@ static TaskHandle_t s_tusb_tskh;
 
 static void tusb_device_task(void* arg)
 {
-    while (1) {
+    while (true) {
         tud_task();
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
@@ -98,7 +98,7 @@ static void serial_reader(void* ignore)
     size_t read = 0;
     TickType_t last_processing_time = 0;
 
-    while (1) {
+    while (true) {
         if (!serial_is_enabled) {
             break;
         }
@@ -209,7 +209,7 @@ static bool write_serial(const uint8_t* msg, const size_t length, void* ignore)
 
 static void serial_writer(void* ignore)
 {
-    while (1) {
+    while (true) {
         if (!serial_is_enabled) {
             break;
         }

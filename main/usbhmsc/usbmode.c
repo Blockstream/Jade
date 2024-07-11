@@ -367,7 +367,7 @@ bool list_files(const char* const path)
     uint8_t hash[SHA256_LEN];
 
     bool ota_started = false;
-    while (1) {
+    while (true) {
         if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
             if (ev_id == BTN_SETTINGS_USB_STORAGE_FW_EXIT) {
                 break;

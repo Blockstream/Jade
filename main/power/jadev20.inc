@@ -52,7 +52,7 @@ static void IRAM_ATTR usb_gpio_isr_handler(void* arg)
 
 void usb_detection_task(void* param)
 {
-    while (1) {
+    while (true) {
         if (xSemaphoreTake(usb_semaphore, portMAX_DELAY) == pdTRUE) {
             JADE_SEMAPHORE_TAKE(i2c_mutex);
             // reset interrupts

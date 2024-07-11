@@ -65,7 +65,7 @@ static void qemu_tcp_reader(void* ignore)
     uint8_t* const qemu_tcp_data_in = full_qemu_tcp_data_in + 1;
     TickType_t last_processing_time = 0;
 
-    while (1) {
+    while (true) {
         JADE_SEMAPHORE_TAKE(sockmutex);
         // if we are connected we reuse it
         int tmp_qemu_tcp_sock = qemu_tcp_sock;
@@ -129,7 +129,7 @@ static bool write_qemu_tcp(const uint8_t* msg, const size_t length, void* ignore
 
 static void qemu_tcp_writer(void* ignore)
 {
-    while (1) {
+    while (true) {
         vTaskDelay(20 / portTICK_PERIOD_MS);
         while (jade_process_get_out_message(&write_qemu_tcp, SOURCE_QEMU_TCP, NULL)) {
             // process messages

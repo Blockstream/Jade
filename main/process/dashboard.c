@@ -2009,7 +2009,7 @@ static bool handle_usb_storage_firmware(void)
     int32_t ev_id;
     int counter = 0;
     gui_activity_t* act = NULL;
-    while (1) {
+    while (true) {
 
         if (counter == 5 && !act && !ota.detected) {
             act = make_usb_connect_activity();

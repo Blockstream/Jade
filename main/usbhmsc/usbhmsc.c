@@ -94,7 +94,7 @@ static void msc_event_cb(const msc_host_event_t* event, void* arg)
 
 static void handle_usb_events(void* args)
 {
-    while (1) {
+    while (true) {
         uint32_t event_flags;
         const esp_err_t err = usb_host_lib_handle_events(100 / portTICK_PERIOD_MS, &event_flags);
         if (!usb_storage_is_enabled_subtask) {
