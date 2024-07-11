@@ -15,6 +15,185 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#define MAX_FILENAME_SIZE 256
+#define MAX_FILE_ENTRIES 64
+
+static const char FW_SUFFIX[] = "_fw.bin";
+static const char HASH_SUFFIX[] = ".hash";
+
+#define STR_ENDSWITH(str, str_len, suffix, suffix_len)                                                                 \
+    (str && str_len > suffix_len && str[str_len] == '\0' && !memcmp(str + str_len - suffix_len, suffix, suffix_len))
+
+typedef bool (*filename_filter_fn_t)(const char* path, const char* filename, const size_t filename_len);
+
+static bool file_exists(const char* file_path)
+{
+    JADE_ASSERT(file_path);
+
+    struct stat buffer;
+    return !stat(file_path, &buffer);
+}
+
+static size_t get_file_size(const char* filename)
+{
+    JADE_ASSERT(filename);
+
+    struct stat st;
+    return !stat(filename, &st) ? st.st_size : 0;
+}
+
+static size_t read_file_to_buffer(const char* filename, uint8_t* buffer, size_t buf_len)
+{
+    JADE_ASSERT(filename);
+    JADE_ASSERT(buffer);
+    JADE_ASSERT(buf_len);
+
+    const size_t file_size = get_file_size(filename);
+    JADE_ASSERT(buf_len >= file_size);
+
+    FILE* fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        return 0;
+    }
+
+    const size_t bytes_read = fread(buffer, 1, buf_len, fp);
+    fclose(fp);
+
+    JADE_ASSERT(bytes_read == file_size);
+    return bytes_read;
+}
+
+// Display list of files, and return if user selects one
+// Must be passed predicate to filter filenames
+// NOTE: 'extra_path' (input) is relative to the mount point, but 'filename' (output) will be the full path including
+// the path to the mount point.  eg. path: "/fws" -> filename: "/usb/fws/1.0.31-beta2_ble_1356784_fw.bin"
+static bool select_file_from_filtered_list(const char* title, const char* const extra_path, filename_filter_fn_t filter,
+    char* filename, const size_t filename_len)
+{
+    JADE_ASSERT(title);
+    // extra_path is optional
+    JADE_ASSERT(filter);
+    JADE_ASSERT(filename);
+    JADE_ASSERT(filename_len == MAX_FILENAME_SIZE);
+
+    char path[MAX_FILENAME_SIZE];
+    int ret = snprintf(path, sizeof(path), "%s%s", USBSTORAGE_MOUNT_POINT, extra_path ? extra_path : "");
+    JADE_ASSERT(ret > 0 && ret < sizeof(path));
+    const size_t path_len = strlen(path);
+
+    DIR* const dir = opendir(path);
+    if (dir == NULL) {
+        return false;
+    }
+
+    char* filenames[MAX_FILE_ENTRIES] = {};
+    size_t num_files = 0;
+
+    while (num_files < MAX_FILE_ENTRIES) {
+        errno = 0;
+        const struct dirent* const entry = readdir(dir);
+        if (errno || !entry) {
+            break;
+        }
+
+        // DT_REG: regular file
+        if (entry->d_type == DT_REG) {
+            const size_t d_name_len = strlen(entry->d_name);
+            if (path_len + 1 + d_name_len + 1 > MAX_FILENAME_SIZE) {
+                // We don't support overlong filenames - skip
+                continue;
+            }
+
+            // Offer to filter function
+            if (!filter(path, entry->d_name, d_name_len)) {
+                // Does not pass filter - skip
+                continue;
+            }
+
+            // Add to list of candidate files
+            filenames[num_files] = strdup(entry->d_name);
+            JADE_ASSERT(filenames[num_files]);
+            ++num_files;
+        }
+    }
+
+    if (closedir(dir) == -1) {
+        JADE_LOGE("Error closing directory");
+    }
+
+    if (!num_files) {
+        // No candidate files
+        return false;
+    }
+
+    // Display as carousel
+    gui_view_node_t* label_item = NULL;
+    gui_view_node_t* filename_item = NULL;
+    gui_activity_t* const act = make_carousel_activity(title, &label_item, &filename_item);
+    JADE_ASSERT(filename_item);
+    JADE_ASSERT(label_item);
+
+    uint8_t selected = 0;
+    gui_set_align(label_item, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_update_text(filename_item, filenames[selected]);
+    gui_set_current_activity(act);
+    int32_t ev_id;
+
+    char label[32];
+    const size_t limit = num_files + 1;
+    bool done = false;
+    while (!done) {
+        JADE_ASSERT(selected <= num_files);
+        if (selected < num_files) {
+            // File item
+            ret = snprintf(label, sizeof(label), "Candidate file %u/%u :", selected + 1, num_files);
+            JADE_ASSERT(ret > 0 && ret < sizeof(label));
+            gui_update_text(label_item, label);
+            gui_update_text(filename_item, filenames[selected]);
+        } else {
+            // 'Cancel' sentinel
+            gui_update_text(label_item, "");
+            gui_update_text(filename_item, "[Cancel]");
+        }
+
+        if (gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            switch (ev_id) {
+            case GUI_WHEEL_LEFT_EVENT:
+                selected = (selected + limit - 1) % limit;
+                break;
+
+            case GUI_WHEEL_RIGHT_EVENT:
+                selected = (selected + 1) % limit;
+                break;
+
+            default:
+                if (ev_id == gui_get_click_event()) {
+                    done = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (selected < num_files) {
+        // Copy the selected filename (including fullpath) to output
+        JADE_ASSERT(filenames[selected]);
+        ret = snprintf(filename, filename_len, "%s/%s", path, filenames[selected]);
+        JADE_ASSERT(ret > 0 && ret < filename_len);
+    } else {
+        done = false; // ie. cancelled, no filename copied
+    }
+
+    // Free the duplicated filename strings
+    for (size_t i = 0; i < num_files; ++i) {
+        free(filenames[i]);
+    }
+
+    return done;
+}
+
+// OTA
+
 static void prepare_common_msg(CborEncoder* root_map_encoder, CborEncoder* root_encoder, const jade_msg_source_t source,
     const char* method, uint8_t* buffer, const size_t buffer_len, const bool has_params)
 {
@@ -138,14 +317,6 @@ static size_t read_fwsize(const char* str)
     return strtoul(temp, NULL, 10);
 }
 
-static bool file_exists(const char* file_path)
-{
-    JADE_ASSERT(file_path);
-
-    struct stat buffer;
-    return !stat(file_path, &buffer);
-}
-
 static bool read_hash_file_to_buffer(const char* filename, uint8_t* buffer, size_t buf_size)
 {
     JADE_ASSERT(filename);
@@ -158,14 +329,7 @@ static bool read_hash_file_to_buffer(const char* filename, uint8_t* buffer, size
         return false;
     }
 
-    FILE* fp = fopen(filename, "rb");
-    if (fp == NULL) {
-        return false;
-    }
-
-    size_t bytes_read = fread(hash_hex, 1, sizeof(hash_hex), fp);
-    fclose(fp);
-
+    const size_t bytes_read = read_file_to_buffer(filename, (uint8_t*)hash_hex, sizeof(hash_hex));
     if (bytes_read != 64) {
         return false;
     }
@@ -176,19 +340,6 @@ static bool read_hash_file_to_buffer(const char* filename, uint8_t* buffer, size
     JADE_ASSERT(wally_res == WALLY_OK);
     return true;
 }
-
-static size_t get_file_size(const char* filename)
-{
-    JADE_ASSERT(filename);
-
-    struct stat st;
-    if (!stat(filename, &st)) {
-        return st.st_size;
-    }
-    return 0;
-}
-
-#define MAX_FILENAME_SIZE 256
 
 static bool handle_ota_reply(const uint8_t* msg, const size_t len, void* ctx)
 {
@@ -315,7 +466,7 @@ static void start_usb_ota_task(char* str, size_t fwsize, size_t cmpsize, uint8_t
     // FIXME: check stack size better
     char* copy = strdup(str);
     JADE_ASSERT(copy);
-    struct usbmode_ota_worker_data* ctx_data = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct usbmode_ota_worker_data));
+    struct usbmode_ota_worker_data* ctx_data = JADE_MALLOC(sizeof(struct usbmode_ota_worker_data));
     JADE_ASSERT(ctx_data);
 
     ctx_data->file_to_flash = copy;
@@ -325,109 +476,54 @@ static void start_usb_ota_task(char* str, size_t fwsize, size_t cmpsize, uint8_t
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create usb_ota_task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
-bool usbmode_ota_list_files(const char* const path)
+static bool is_full_fw_file(const char* path, const char* filename, const size_t filename_len)
 {
-    JADE_ASSERT(path);
-
-    /* we only find files in the root dir for now */
-    // FIXME: implement recursive?
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXIT },
-        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
-    const char* suffix = "_fw.bin";
-    const char* hash_suffix = ".hash";
-    const size_t suffix_len = strlen(suffix);
-    const size_t hash_suffix_len = strlen(hash_suffix);
-
-    btn_data_t* menubtns = NULL;
-    size_t arraySize = 0;
-
-    DIR* const dp = opendir(path);
-    if (dp == NULL) {
+    // Must look like a fw file (name)
+    if (!STR_ENDSWITH(filename, filename_len, FW_SUFFIX, strlen(FW_SUFFIX))) {
         return false;
     }
 
-    char full_filename[MAX_FILENAME_SIZE + hash_suffix_len + 1];
-
-    errno = 0;
-    struct dirent* entry;
-    while ((entry = readdir(dp))) {
-        if (errno != 0) {
-            break;
-        }
-
-        if (entry->d_type == DT_REG) {
-            const char* str = entry->d_name;
-            size_t str_len = strlen(str);
-            if (str_len + hash_suffix_len >= MAX_FILENAME_SIZE) {
-                // we don't support filenames beyond 512 characters
-                continue;
-            }
-
-            if (str_len >= suffix_len && !strcmp(str + str_len - suffix_len, suffix)) {
-                const int ret = snprintf(full_filename, sizeof(full_filename), "%s/%s%s", path, str, hash_suffix);
-                JADE_ASSERT(ret > 0 && ret < sizeof(full_filename));
-
-                if (file_exists(full_filename)) {
-                    // FIXME: we should extract now and validate now the fwsize/cmpsize/hash length
-                    // otherwise ota can silently fail files that have a bad fwsize
-                    ++arraySize;
-                    menubtns = realloc(menubtns, arraySize * sizeof(btn_data_t));
-                    JADE_ASSERT(menubtns);
-                    memset(&menubtns[arraySize - 1], 0, sizeof(btn_data_t));
-                    char* copy = strdup(str);
-                    JADE_ASSERT(copy);
-                    menubtns[arraySize - 1].txt = copy;
-                    menubtns[arraySize - 1].font = GUI_DEFAULT_FONT;
-                    menubtns[arraySize - 1].ev_id = BTN_KEYBOARD_ASCII_OFFSET + arraySize;
-                }
-            }
-        }
-        errno = 0;
+    // Must have corresponding hash file
+    char hash_filename[MAX_FILENAME_SIZE];
+    if (strlen(path) + 1 + filename_len + sizeof(HASH_SUFFIX) > sizeof(hash_filename)) {
+        return false;
     }
+    const int ret = snprintf(hash_filename, sizeof(hash_filename), "%s/%s%s", path, filename, HASH_SUFFIX);
+    JADE_ASSERT(ret > 0 && ret < sizeof(hash_filename));
 
-    if (closedir(dp) == -1) {
-        JADE_LOGE("error closing dir");
-    }
+    return file_exists(hash_filename);
+}
 
-    if (!menubtns) {
+// List files for firmware flashing and start the client task to feed the data to the ota process
+bool usbmode_start_ota(const char* const extra_path)
+{
+    // extra_path is optional
+
+    char filename[MAX_FILENAME_SIZE];
+    if (!select_file_from_filtered_list("Select Firmware", extra_path, is_full_fw_file, filename, sizeof(filename))) {
+        // User abandoned
         return false;
     }
 
-    gui_activity_t* act = make_menu_activity("Firmwares", hdrbtns, 2, menubtns, arraySize);
+    char hash_filename[MAX_FILENAME_SIZE];
+    const int ret = snprintf(hash_filename, sizeof(hash_filename), "%s%s", filename, HASH_SUFFIX);
+    JADE_ASSERT(ret > 0 && ret < sizeof(hash_filename));
 
-    gui_set_current_activity(act);
-    int32_t ev_id = 0;
     uint8_t hash[SHA256_LEN];
-
-    bool ota_started = false;
-    while (true) {
-        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-            if (ev_id == BTN_SETTINGS_USBSTORAGE_EXIT) {
-                break;
-            }
-            char* str = (char*)(menubtns[(ev_id - BTN_KEYBOARD_ASCII_OFFSET) - 1].txt);
-            int ret = snprintf(full_filename, sizeof(full_filename), "%s/%s%s", path, str, hash_suffix);
-            JADE_ASSERT(ret > 0 && ret < sizeof(full_filename));
-
-            bool res = read_hash_file_to_buffer(full_filename, hash, sizeof(hash));
-            // FIXME: fail more gracefully if disk disappers?
-            JADE_ASSERT(res);
-
-            ret = snprintf(full_filename, sizeof(full_filename), "%s/%s", path, str);
-            JADE_ASSERT(ret > 0 && ret < sizeof(full_filename));
-
-            const size_t cmpsize = get_file_size(full_filename);
-            const size_t fwsize = read_fwsize(full_filename);
-            start_usb_ota_task(full_filename, fwsize, cmpsize, hash, sizeof(hash));
-            ota_started = true;
-            break;
-        }
+    if (!read_hash_file_to_buffer(hash_filename, hash, sizeof(hash))) {
+        const char* message[] = { "Failed to read", "hash file" };
+        await_error_activity(message, 2);
+        return false;
     }
 
-    for (size_t i = 0; i < arraySize; ++i) {
-        free((void*)menubtns[i].txt);
+    const size_t cmpsize = get_file_size(filename);
+    const size_t fwsize = read_fwsize(filename);
+    if (!cmpsize || !fwsize) {
+        const char* message[] = { "Failed to parse", "firmware filename" };
+        await_error_activity(message, 2);
+        return false;
     }
 
-    free(menubtns);
-    return ota_started;
+    start_usb_ota_task(filename, fwsize, cmpsize, hash, sizeof(hash));
+    return true;
 }

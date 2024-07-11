@@ -1975,7 +1975,7 @@ static void usbstorage_handle_event(const usbstorage_event_t event, const uint8_
         ota->detected = true;
         xSemaphoreGive(ota->semaphore_detected);
         if (usbstorage_mount(device_address)) {
-            ota->started = usbmode_ota_list_files("/usb");
+            ota->started = usbmode_start_ota(NULL);
         } else {
             // FIXME: what do we do if mount fails?
             // Fail more cleanly ?
@@ -2056,6 +2056,7 @@ static bool handle_usbstorage_firmware(void)
     vSemaphoreDelete(ota.semaphore_detected);
     return ota.started;
 }
+
 #endif // IDF_TARGET_ESP32S3
 
 // Device info
@@ -2354,7 +2355,6 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_USBSTORAGE_SIGN:
             // FIXME: implement
             break;
-
         case BTN_SETTINGS_USBSTORAGE_EXPORT:
             // FIXME: implement
             break;

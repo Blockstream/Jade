@@ -5,6 +5,8 @@
 #include <freertos/task.h>
 #include <stdbool.h>
 
+#define USBSTORAGE_MOUNT_POINT "/usb"
+
 typedef enum {
     USBSTORAGE_DETECTED,
     USBSTORAGE_EJECTED,

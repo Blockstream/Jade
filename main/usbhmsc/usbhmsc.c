@@ -288,7 +288,7 @@ bool usbstorage_mount(uint8_t device_address)
     JADE_SEMAPHORE_TAKE(interface_semaphore);
     /* if any of these fails usually is because the device was removed */
     JADE_RETURN_CHECK(msc_host_install_device(device_address, &msc_device));
-    JADE_RETURN_CHECK(msc_host_vfs_register(msc_device, "/usb", &mount_config, &vfs_handle));
+    JADE_RETURN_CHECK(msc_host_vfs_register(msc_device, USBSTORAGE_MOUNT_POINT, &mount_config, &vfs_handle));
     usb_is_mounted = true;
     JADE_SEMAPHORE_GIVE(interface_semaphore);
     return true;

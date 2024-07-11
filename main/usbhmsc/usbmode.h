@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-/* This list files for firmware flashing but also optionally starts a task to feed the data to the ota task */
-bool usbmode_ota_list_files(const char* const path);
+// List files for firmware flashing and start the client task to feed the data to the ota process
+bool usbmode_start_ota(const char* const path);
 
 #endif /* USBMODE_H_ */
