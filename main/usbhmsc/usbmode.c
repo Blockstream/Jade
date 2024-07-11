@@ -226,7 +226,7 @@ struct usbmode_ota_worker_data {
     size_t data_to_send;
 };
 
-static void usbmode_worker(void* ctx)
+static void usbmode_ota_worker(void* ctx)
 {
     JADE_ASSERT(ctx);
     struct usbmode_ota_worker_data* ctx_data = (struct usbmode_ota_worker_data*)ctx;
@@ -293,14 +293,15 @@ static void usbmode_worker(void* ctx)
         // ota success, device will be rebooted soon
     }
 
-    usb_storage_unmount();
-    usb_storage_stop();
+    // After ota try to unmount usbstorage and restart normal serial comms
+    usbstorage_unmount();
+    usbstorage_stop();
     serial_start();
 
     vTaskDelete(NULL);
 }
 
-static void start_usb_internal_task(char* str, size_t fwsize, size_t cmpsize, uint8_t* hash, const size_t hash_len)
+static void start_usb_ota_task(char* str, size_t fwsize, size_t cmpsize, uint8_t* hash, const size_t hash_len)
 {
     JADE_ASSERT(str);
     JADE_ASSERT(fwsize);
@@ -320,17 +321,17 @@ static void start_usb_internal_task(char* str, size_t fwsize, size_t cmpsize, ui
     ctx_data->file_to_flash = copy;
     ctx_data->data_to_send = cmpsize;
     const BaseType_t retval = xTaskCreatePinnedToCore(
-        usbmode_worker, "USBFWTASK", 12 * 1024, ctx_data, JADE_TASK_PRIO_USB, NULL, JADE_CORE_SECONDARY);
-    JADE_ASSERT_MSG(retval == pdPASS, "Failed to create USBFWTASK, xTaskCreatePinnedToCore() returned %d", retval);
+        usbmode_ota_worker, "usb_ota_task", 12 * 1024, ctx_data, JADE_TASK_PRIO_USB, NULL, JADE_CORE_SECONDARY);
+    JADE_ASSERT_MSG(retval == pdPASS, "Failed to create usb_ota_task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
-bool list_files(const char* const path)
+bool usbmode_ota_list_files(const char* const path)
 {
     JADE_ASSERT(path);
 
     /* we only find files in the root dir for now */
     // FIXME: implement recursive?
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USB_STORAGE_FW_EXIT },
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
     const char* suffix = "_fw.bin";
     const char* hash_suffix = ".hash";
@@ -401,7 +402,7 @@ bool list_files(const char* const path)
     bool ota_started = false;
     while (true) {
         if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-            if (ev_id == BTN_SETTINGS_USB_STORAGE_FW_EXIT) {
+            if (ev_id == BTN_SETTINGS_USBSTORAGE_FW_EXIT) {
                 break;
             }
             char* str = (char*)(menubtns[(ev_id - BTN_KEYBOARD_ASCII_OFFSET) - 1].txt);
@@ -417,7 +418,7 @@ bool list_files(const char* const path)
 
             const size_t cmpsize = get_file_size(full_filename);
             const size_t fwsize = read_fwsize(full_filename);
-            start_usb_internal_task(full_filename, fwsize, cmpsize, hash, sizeof(hash));
+            start_usb_ota_task(full_filename, fwsize, cmpsize, hash, sizeof(hash));
             ota_started = true;
             break;
         }

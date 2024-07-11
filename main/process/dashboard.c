@@ -180,7 +180,7 @@ gui_activity_t* make_locked_settings_activity(void);
 gui_activity_t* make_unlocked_settings_activity(void);
 
 gui_activity_t* make_wallet_settings_activity(void);
-gui_activity_t* make_usb_storage_settings_activity(void);
+gui_activity_t* make_usbstorage_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
 gui_activity_t* make_authentication_activity(bool initialised_and_pin_unlocked);
 gui_activity_t* make_prefs_settings_activity(bool initialised_and_locked, gui_view_node_t** qr_mode_network_item);
@@ -1952,30 +1952,31 @@ static void handle_pinserver_reset(void)
 }
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
-struct usb_storage_ota {
+struct usbstorage_ota {
     SemaphoreHandle_t semaphore_started;
     SemaphoreHandle_t semaphore_detected;
     bool started;
     bool detected;
 };
 
-static void cb(const storage_event_t event, const uint8_t device_address, void* ctx)
+static void usbstorage_handle_event(const usbstorage_event_t event, const uint8_t device_address, void* ctx)
 {
     JADE_ASSERT(ctx);
 
-    struct usb_storage_ota* const ota = (struct usb_storage_ota*)ctx;
+    struct usbstorage_ota* const ota = (struct usbstorage_ota*)ctx;
     JADE_ASSERT(ota->semaphore_detected);
     JADE_ASSERT(ota->semaphore_started);
 
-    if (event == STORAGE_DETECTED) {
-        // signal to handle_usb_storage_firmware that it doesn't need to start the
+    if (event == USBSTORAGE_DETECTED) {
+        // signal to handle_usbstorage_firmware that it doesn't need to start the
         // insert device activity
         ota->detected = true;
         xSemaphoreGive(ota->semaphore_detected);
-        if (usb_storage_mount(device_address)) {
-            ota->started = list_files("/usb");
+        if (usbstorage_mount(device_address)) {
+            ota->started = usbmode_ota_list_files("/usb");
         } else {
             // FIXME: what do we do if mount fails?
+            // Fail more cleanly ?
             JADE_ASSERT(false);
         }
     }
@@ -1984,28 +1985,28 @@ static void cb(const storage_event_t event, const uint8_t device_address, void* 
 
 static gui_activity_t* make_usb_connect_activity(void)
 {
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USB_STORAGE_FW_BACK },
-        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_USB_STORAGE_FW_HELP } };
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW_BACK },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW_HELP } };
 
     const char* message[] = { "Please connect a USB", "storage device" };
 
     return make_show_message_activity(message, 2, "Firmware Upgrade", hdrbtns, 2, NULL, 0);
 }
 
-static bool handle_usb_storage_firmware(void)
+static bool handle_usbstorage_firmware(void)
 {
     serial_stop();
-    struct usb_storage_ota ota = {};
+    struct usbstorage_ota ota = {};
     ota.semaphore_started = xSemaphoreCreateBinary();
     ota.semaphore_detected = xSemaphoreCreateBinary();
     JADE_ASSERT(ota.semaphore_started);
     JADE_ASSERT(ota.semaphore_detected);
 
-    usb_storage_register_callback(cb, &ota);
-    if (!usb_storage_start()) {
+    usbstorage_register_callback(usbstorage_handle_event, &ota);
+    if (!usbstorage_start()) {
         // FIXME: show to the user an error
         // !! Jade may require restart though? !!
-        JADE_ASSERT_MSG(false, "usb_storage_start failed");
+        JADE_ASSERT_MSG(false, "usbstorage_start failed");
     }
 
     // We should only do this if within 0.4 seconds or so we don't detect a usb device already plugged
@@ -2036,13 +2037,13 @@ static bool handle_usb_storage_firmware(void)
             && gui_activity_wait_event(
                 act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 200 / portTICK_PERIOD_MS)) {
 
-            if (ev_id == BTN_SETTINGS_USB_STORAGE_FW_BACK) {
-                usb_storage_register_callback(NULL, NULL);
+            if (ev_id == BTN_SETTINGS_USBSTORAGE_FW_BACK) {
+                usbstorage_register_callback(NULL, NULL);
                 // when the user goes back we go through here
                 // then the device doesn't have ota started but has disk detected
                 break;
             }
-            if (ev_id == BTN_SETTINGS_USB_STORAGE_FW_HELP) {
+            if (ev_id == BTN_SETTINGS_USBSTORAGE_FW_HELP) {
                 // FIXME: can't get out of qr activity?
                 await_qr_help_activity("blkstrm.com/jadeusbstorage");
             }
@@ -2052,18 +2053,17 @@ static bool handle_usb_storage_firmware(void)
     if (!ota.started) {
         if (ota.detected) {
             // if it was detected it was mounted
-            usb_storage_unmount();
+            usbstorage_unmount();
         }
-        usb_storage_stop();
+        usbstorage_stop();
         serial_start();
     }
 
-    usb_storage_register_callback(NULL, NULL);
+    usbstorage_register_callback(NULL, NULL);
     vSemaphoreDelete(ota.semaphore_started);
     vSemaphoreDelete(ota.semaphore_detected);
     return ota.started;
 }
-
 #endif // IDF_TARGET_ESP32S3
 
 // Device info
@@ -2260,7 +2260,7 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_AUTHENTICATION_EXIT:
         case BTN_SETTINGS_PINSERVER_EXIT:
 #ifdef CONFIG_IDF_TARGET_ESP32S3
-        case BTN_SETTINGS_USB_STORAGE_EXIT:
+        case BTN_SETTINGS_USBSTORAGE_EXIT:
 #endif
             // Change to base 'Settings' menu
             act = create_settings_menu(startup_menu);
@@ -2355,14 +2355,15 @@ static void handle_settings(const bool startup_menu)
             break;
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
-        case BTN_SETTINGS_USB_STORAGE_FW:
-            done = handle_usb_storage_firmware();
+        case BTN_SETTINGS_USBSTORAGE_FW:
+            done = handle_usbstorage_firmware();
             break;
 
-        case BTN_SETTINGS_USB_STORAGE_SIGN:
+        case BTN_SETTINGS_USBSTORAGE_SIGN:
             // FIXME: implement
             break;
-        case BTN_SETTINGS_USB_STORAGE_EXPORT:
+
+        case BTN_SETTINGS_USBSTORAGE_EXPORT:
             // FIXME: implement
             break;
 #endif
@@ -2440,14 +2441,14 @@ static void handle_settings(const bool startup_menu)
             break;
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
-        case BTN_SETTINGS_USB_STORAGE_FW_EXIT:
-        case BTN_SETTINGS_USB_STORAGE:
+        case BTN_SETTINGS_USBSTORAGE_FW_EXIT:
+        case BTN_SETTINGS_USBSTORAGE:
             // when entering manually (rather than detecting hot plug)
             // we have to first manually disable the usb serial, no op if already off
             // we should register the callback
             // immediately show the UX Please plug in a USB device
             // on callback DETECTED we mount and show options for usb stuff to do
-            act = make_usb_storage_settings_activity();
+            act = make_usbstorage_settings_activity();
             // we should only restart it if it was already on
             // serial_start();
 

@@ -179,7 +179,7 @@ static void boot_process(void)
     gui_activity_register_event(splash, GUI_EVENT, GUI_FRONT_CLICK_EVENT, sync_wait_event_handler, event_data);
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
-    usb_storage_init();
+    usbstorage_init();
 #endif
 
     if (!serial_init(serial_handle)) {

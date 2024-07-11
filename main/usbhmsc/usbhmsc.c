@@ -47,8 +47,8 @@ static SemaphoreHandle_t callback_semaphore = NULL;
 static TaskHandle_t main_task = NULL;
 static bool volatile usb_is_mounted = false;
 
-static bool volatile usb_storage_is_enabled = false;
-static bool volatile usb_storage_is_enabled_subtask = false;
+static bool volatile usbstorage_is_enabled = false;
+static bool volatile usbstorage_is_enabled_subtask = false;
 static EventGroupHandle_t usb_flags;
 
 static msc_host_device_handle_t msc_device = NULL;
@@ -61,10 +61,10 @@ static const esp_vfs_fat_mount_config_t mount_config = {
     .allocation_unit_size = 1024,
 };
 
-static storage_callback_t registered_callback = NULL;
+static usbstorage_callback_t registered_callback = NULL;
 static void* callback_ctx = NULL;
 
-void usb_storage_register_callback(storage_callback_t callback, void* ctx)
+void usbstorage_register_callback(usbstorage_callback_t callback, void* ctx)
 {
     JADE_ASSERT(callback_semaphore);
     JADE_SEMAPHORE_TAKE(callback_semaphore);
@@ -73,7 +73,7 @@ void usb_storage_register_callback(storage_callback_t callback, void* ctx)
     JADE_SEMAPHORE_GIVE(callback_semaphore);
 }
 
-static void trigger_event(storage_event_t event, uint8_t device_address)
+static void trigger_event(usbstorage_event_t event, uint8_t device_address)
 {
     JADE_ASSERT(callback_semaphore);
     JADE_SEMAPHORE_TAKE(callback_semaphore);
@@ -97,7 +97,7 @@ static void handle_usb_events(void* args)
     while (true) {
         uint32_t event_flags;
         const esp_err_t err = usb_host_lib_handle_events(100 / portTICK_PERIOD_MS, &event_flags);
-        if (!usb_storage_is_enabled_subtask) {
+        if (!usbstorage_is_enabled_subtask) {
             break;
         }
         if (err == ESP_ERR_TIMEOUT) {
@@ -115,7 +115,7 @@ static void handle_usb_events(void* args)
         }
     }
 
-    JADE_ASSERT(!usb_storage_is_enabled);
+    JADE_ASSERT(!usbstorage_is_enabled);
 
     xSemaphoreGive(aux_task_semaphore);
     for (;;) {
@@ -123,12 +123,12 @@ static void handle_usb_events(void* args)
     }
 }
 
-static void usb_storage_task(void* ignore)
+static void usbstorage_task(void* ignore)
 {
 
     const usb_host_config_t host_config = { .intr_flags = ESP_INTR_FLAG_LEVEL1 };
     if (usb_host_install(&host_config) != ESP_OK) {
-        usb_storage_is_enabled = false;
+        usbstorage_is_enabled = false;
 
         /* disable_usb_host(); */
         xSemaphoreGive(main_task_semaphore);
@@ -137,7 +137,7 @@ static void usb_storage_task(void* ignore)
         return;
     }
 
-    usb_storage_is_enabled_subtask = true;
+    usbstorage_is_enabled_subtask = true;
     TaskHandle_t aux_task = NULL;
 
     usb_flags = xEventGroupCreate();
@@ -161,7 +161,7 @@ static void usb_storage_task(void* ignore)
 
     bool done = false;
 
-    /* signal to usb_storage_start that we completed the start without [major] fail */
+    /* signal to usbstorage_start that we completed the start without [major] fail */
     xSemaphoreGive(main_task_semaphore);
 
     bool requires_host_uinstall = true;
@@ -171,7 +171,7 @@ static void usb_storage_task(void* ignore)
         const EventBits_t event
             = xEventGroupWaitBits(usb_flags, DEVICE_CONNECTED | DEVICE_ADDRESS_MASK, pdTRUE, pdFALSE, xTicksToWait);
 
-        if (!usb_storage_is_enabled) {
+        if (!usbstorage_is_enabled) {
             break;
         }
 
@@ -180,22 +180,22 @@ static void usb_storage_task(void* ignore)
         }
 
         const uint8_t device_address = (event & DEVICE_ADDRESS_MASK) >> 4;
-        trigger_event(STORAGE_DETECTED, device_address);
+        trigger_event(USBSTORAGE_DETECTED, device_address);
         for (;;) {
             const EventBits_t ebt = xEventGroupWaitBits(usb_flags, 0xFF, pdTRUE, pdFALSE, xTicksToWait);
             if (ebt & HOST_ALL_FREE) {
                 // user removed the device which wasn't mounted
-                trigger_event(STORAGE_EJECTED, device_address);
-                done = !usb_storage_is_enabled;
+                trigger_event(USBSTORAGE_EJECTED, device_address);
+                done = !usbstorage_is_enabled;
                 break;
             } else if (ebt & DEVICE_DISCONNECTED) {
                 // user removed the device which was mounted!
-                trigger_event(STORAGE_ABNORMALLY_EJECTED, device_address);
-                done = !usb_storage_is_enabled;
+                trigger_event(USBSTORAGE_ABNORMALLY_EJECTED, device_address);
+                done = !usbstorage_is_enabled;
                 break;
             } else if (ebt & (DEVICE_CONNECTED | HOST_ALL_FREE)) {
-                trigger_event(STORAGE_EJECTED, device_address);
-                done = !usb_storage_is_enabled;
+                trigger_event(USBSTORAGE_EJECTED, device_address);
+                done = !usbstorage_is_enabled;
                 break;
             } else if (!ebt && requires_host_uinstall && !usb_is_mounted) {
                 esp_err_t err = msc_host_uninstall();
@@ -215,7 +215,7 @@ static void usb_storage_task(void* ignore)
         }
     }
 
-    usb_storage_is_enabled_subtask = false;
+    usbstorage_is_enabled_subtask = false;
     xSemaphoreTake(aux_task_semaphore, portMAX_DELAY);
     vTaskDelete(aux_task);
     vEventGroupDelete(usb_flags);
@@ -233,7 +233,7 @@ static void usb_storage_task(void* ignore)
     }
 }
 
-void usb_storage_init(void)
+void usbstorage_init(void)
 {
     JADE_ASSERT(!main_task_semaphore);
     JADE_ASSERT(!aux_task_semaphore);
@@ -249,33 +249,33 @@ void usb_storage_init(void)
     JADE_ASSERT(callback_semaphore);
 }
 
-bool usb_storage_start(void)
+bool usbstorage_start(void)
 {
     JADE_ASSERT(main_task_semaphore);
     JADE_ASSERT(aux_task_semaphore);
     JADE_ASSERT(interface_semaphore);
     JADE_SEMAPHORE_TAKE(interface_semaphore);
-    JADE_ASSERT(!usb_storage_is_enabled);
+    JADE_ASSERT(!usbstorage_is_enabled);
     JADE_ASSERT(!main_task);
     /* enable_usb_host(); */
-    usb_storage_is_enabled = true;
+    usbstorage_is_enabled = true;
     /* FIXME: find the right stack size */
     const BaseType_t task_created = xTaskCreatePinnedToCore(
-        usb_storage_task, "usb_events", 2048 * 4, NULL, JADE_TASK_PRIO_USB, &main_task, JADE_CORE_SECONDARY);
+        usbstorage_task, "usb_events", 2048 * 4, NULL, JADE_TASK_PRIO_USB, &main_task, JADE_CORE_SECONDARY);
     JADE_ASSERT(task_created == pdPASS);
     JADE_ASSERT(main_task);
     xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
-    const bool enabled = usb_storage_is_enabled;
+    const bool enabled = usbstorage_is_enabled;
     JADE_SEMAPHORE_GIVE(interface_semaphore);
     return enabled;
 }
 
-void usb_storage_stop(void)
+void usbstorage_stop(void)
 {
     JADE_ASSERT(main_task);
     JADE_SEMAPHORE_TAKE(interface_semaphore);
-    JADE_ASSERT(usb_storage_is_enabled);
-    usb_storage_is_enabled = false;
+    JADE_ASSERT(usbstorage_is_enabled);
+    usbstorage_is_enabled = false;
     xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
     vTaskDelete(main_task);
     main_task = NULL;
@@ -283,7 +283,7 @@ void usb_storage_stop(void)
     JADE_SEMAPHORE_GIVE(interface_semaphore);
 }
 
-bool usb_storage_mount(uint8_t device_address)
+bool usbstorage_mount(uint8_t device_address)
 {
     JADE_SEMAPHORE_TAKE(interface_semaphore);
     /* if any of these fails usually is because the device was removed */
@@ -294,7 +294,7 @@ bool usb_storage_mount(uint8_t device_address)
     return true;
 }
 
-void usb_storage_unmount(void)
+void usbstorage_unmount(void)
 {
     JADE_SEMAPHORE_TAKE(interface_semaphore);
     // FIXME: on failure just send a callback rather than ERROR_CHECK?
