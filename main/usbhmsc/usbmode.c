@@ -16,25 +16,34 @@
 #include <sys/types.h>
 
 static void prepare_common_msg(CborEncoder* root_map_encoder, CborEncoder* root_encoder, const jade_msg_source_t source,
-    const char* method, uint8_t* buffer, size_t buffer_len, size_t items)
+    const char* method, uint8_t* buffer, const size_t buffer_len, const bool has_params)
 {
+    JADE_ASSERT(root_map_encoder);
+    JADE_ASSERT(root_encoder);
+    JADE_ASSERT(method);
+    JADE_ASSERT(buffer);
+    JADE_ASSERT(buffer_len);
+
     cbor_encoder_init(root_encoder, buffer, buffer_len, 0);
-    const CborError cberr = cbor_encoder_create_map(root_encoder, root_map_encoder, items);
+    const CborError cberr = cbor_encoder_create_map(root_encoder, root_map_encoder, has_params ? 3 : 2);
     JADE_ASSERT(cberr == CborNoError);
     add_string_to_map(root_map_encoder, "id", "0");
     add_string_to_map(root_map_encoder, "method", method);
 }
 
-static bool post_ota_message(
-    const jade_msg_source_t source, size_t fwsize, size_t cmpsize, uint8_t* hash, size_t size_hash)
+static bool post_ota_message(const jade_msg_source_t source, const size_t fwsize, const size_t cmpsize,
+    const uint8_t* hash, const size_t hash_len)
 {
-    JADE_ASSERT(size_hash == SHA256_LEN);
+    JADE_ASSERT(hash);
+    JADE_ASSERT(hash_len == SHA256_LEN);
+
     CborEncoder root_encoder;
     CborEncoder root_map_encoder;
 
     // FIXME: check max size required?
     uint8_t cbor_buf[512 + 128];
-    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota", cbor_buf, sizeof(cbor_buf), 3);
+    const bool has_params = true;
+    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota", cbor_buf, sizeof(cbor_buf), has_params);
 
     CborError cberr = cbor_encode_text_stringz(&root_map_encoder, "params");
     JADE_ASSERT(cberr == CborNoError);
@@ -44,7 +53,7 @@ static bool post_ota_message(
     JADE_ASSERT(cberr == CborNoError);
     add_uint_to_map(&params_encoder, "fwsize", fwsize);
     add_uint_to_map(&params_encoder, "cmpsize", cmpsize);
-    add_bytes_to_map(&params_encoder, "fwhash", hash, size_hash);
+    add_bytes_to_map(&params_encoder, "fwhash", hash, hash_len);
 
     cberr = cbor_encoder_close_container(&root_map_encoder, &params_encoder);
     JADE_ASSERT(cberr == CborNoError);
@@ -58,12 +67,16 @@ static bool post_ota_message(
 
 static bool post_ota_data_message(const jade_msg_source_t source, uint8_t* data, size_t data_len)
 {
+    JADE_ASSERT(data);
+    JADE_ASSERT(data_len);
+
     // FIXME: check max size required?
     uint8_t cbor_buf[4096 + 128];
     CborEncoder root_encoder;
     CborEncoder root_map_encoder;
 
-    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota_data", cbor_buf, sizeof(cbor_buf), 3);
+    const bool has_params = true;
+    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota_data", cbor_buf, sizeof(cbor_buf), has_params);
     add_bytes_to_map(&root_map_encoder, "params", data, data_len);
 
     const CborError cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
@@ -79,7 +92,9 @@ static bool post_ota_complete_message(const jade_msg_source_t source)
     uint8_t cbor_buf[64];
     CborEncoder root_encoder;
     CborEncoder root_map_encoder; // id, method
-    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota_complete", cbor_buf, sizeof(cbor_buf), 2);
+    const bool has_params = false;
+    prepare_common_msg(
+        &root_map_encoder, &root_encoder, source, "ota_complete", cbor_buf, sizeof(cbor_buf), has_params);
     const CborError cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
     JADE_ASSERT(cberr == CborNoError);
 
@@ -92,6 +107,7 @@ static bool post_ota_complete_message(const jade_msg_source_t source)
 static size_t read_fwsize(const char* str)
 {
     JADE_ASSERT(str);
+
     const char* last_underscore = strrchr(str, '_');
     if (!last_underscore || *(last_underscore + 1) == '\0') {
         return 0;
@@ -124,11 +140,13 @@ static size_t read_fwsize(const char* str)
 
 static bool file_exists(const char* file_path)
 {
+    JADE_ASSERT(file_path);
+
     struct stat buffer;
     return !stat(file_path, &buffer);
 }
 
-static bool read_file_to_buffer(const char* filename, uint8_t* buffer, size_t buf_size)
+static bool read_hash_file_to_buffer(const char* filename, uint8_t* buffer, size_t buf_size)
 {
     JADE_ASSERT(filename);
     JADE_ASSERT(buffer);
@@ -161,6 +179,8 @@ static bool read_file_to_buffer(const char* filename, uint8_t* buffer, size_t bu
 
 static size_t get_file_size(const char* filename)
 {
+    JADE_ASSERT(filename);
+
     struct stat st;
     if (!stat(filename, &st)) {
         return st.st_size;
@@ -201,7 +221,7 @@ cleanup:
     return true;
 }
 
-struct usb_worker_data {
+struct usbmode_ota_worker_data {
     char* file_to_flash;
     size_t data_to_send;
 };
@@ -209,7 +229,7 @@ struct usb_worker_data {
 static void usbmode_worker(void* ctx)
 {
     JADE_ASSERT(ctx);
-    struct usb_worker_data* ctx_data = (struct usb_worker_data*)ctx;
+    struct usbmode_ota_worker_data* ctx_data = (struct usbmode_ota_worker_data*)ctx;
     JADE_ASSERT(ctx_data->file_to_flash);
 
     uint8_t buffer[4096];
@@ -280,15 +300,23 @@ static void usbmode_worker(void* ctx)
     vTaskDelete(NULL);
 }
 
-static void start_usb_internal_task(char* str, size_t fwsize, size_t cmpsize, uint8_t* hash, size_t len_hash)
+static void start_usb_internal_task(char* str, size_t fwsize, size_t cmpsize, uint8_t* hash, const size_t hash_len)
 {
-    const bool res = post_ota_message(SOURCE_INTERNAL, fwsize, cmpsize, hash, SHA256_LEN);
+    JADE_ASSERT(str);
+    JADE_ASSERT(fwsize);
+    JADE_ASSERT(cmpsize);
+    JADE_ASSERT(hash);
+    JADE_ASSERT(hash_len == SHA256_LEN);
+
+    const bool res = post_ota_message(SOURCE_INTERNAL, fwsize, cmpsize, hash, hash_len);
     JADE_ASSERT(res);
+
     // FIXME: check stack size better
     char* copy = strdup(str);
     JADE_ASSERT(copy);
-    struct usb_worker_data* ctx_data = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct usb_worker_data));
+    struct usbmode_ota_worker_data* ctx_data = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct usbmode_ota_worker_data));
     JADE_ASSERT(ctx_data);
+
     ctx_data->file_to_flash = copy;
     ctx_data->data_to_send = cmpsize;
     const BaseType_t retval = xTaskCreatePinnedToCore(
@@ -298,14 +326,16 @@ static void start_usb_internal_task(char* str, size_t fwsize, size_t cmpsize, ui
 
 bool list_files(const char* const path)
 {
+    JADE_ASSERT(path);
+
     /* we only find files in the root dir for now */
     // FIXME: implement recursive?
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USB_STORAGE_FW_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
     const char* suffix = "_fw.bin";
     const char* hash_suffix = ".hash";
-    size_t suffix_len = strlen(suffix);
-    size_t hash_suffix_len = strlen(hash_suffix);
+    const size_t suffix_len = strlen(suffix);
+    const size_t hash_suffix_len = strlen(hash_suffix);
 
     btn_data_t* menubtns = NULL;
     size_t arraySize = 0;
@@ -333,7 +363,9 @@ bool list_files(const char* const path)
             }
 
             if (str_len >= suffix_len && !strcmp(str + str_len - suffix_len, suffix)) {
-                snprintf(full_filename, sizeof(full_filename), "%s/%s%s", path, str, hash_suffix);
+                const int ret = snprintf(full_filename, sizeof(full_filename), "%s/%s%s", path, str, hash_suffix);
+                JADE_ASSERT(ret > 0 && ret < sizeof(full_filename));
+
                 if (file_exists(full_filename)) {
                     // FIXME: we should extract now and validate now the fwsize/cmpsize/hash length
                     // otherwise ota can silently fail files that have a bad fwsize
@@ -373,12 +405,16 @@ bool list_files(const char* const path)
                 break;
             }
             char* str = (char*)(menubtns[(ev_id - BTN_KEYBOARD_ASCII_OFFSET) - 1].txt);
-            snprintf(full_filename, sizeof(full_filename), "%s/%s%s", path, str, hash_suffix);
-            bool res = read_file_to_buffer(full_filename, hash, sizeof(hash));
+            int ret = snprintf(full_filename, sizeof(full_filename), "%s/%s%s", path, str, hash_suffix);
+            JADE_ASSERT(ret > 0 && ret < sizeof(full_filename));
+
+            bool res = read_hash_file_to_buffer(full_filename, hash, sizeof(hash));
             // FIXME: fail more gracefully if disk disappers?
             JADE_ASSERT(res);
 
-            snprintf(full_filename, sizeof(full_filename), "%s/%s", path, str);
+            ret = snprintf(full_filename, sizeof(full_filename), "%s/%s", path, str);
+            JADE_ASSERT(ret > 0 && ret < sizeof(full_filename));
+
             const size_t cmpsize = get_file_size(full_filename);
             const size_t fwsize = read_fwsize(full_filename);
             start_usb_internal_task(full_filename, fwsize, cmpsize, hash, sizeof(hash));

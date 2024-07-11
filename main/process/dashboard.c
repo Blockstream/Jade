@@ -1959,9 +1959,14 @@ struct usb_storage_ota {
     bool detected;
 };
 
-static void cb(storage_event_t event, uint8_t device_address, void* ctx)
+static void cb(const storage_event_t event, const uint8_t device_address, void* ctx)
 {
-    struct usb_storage_ota* ota = (struct usb_storage_ota*)ctx;
+    JADE_ASSERT(ctx);
+
+    struct usb_storage_ota* const ota = (struct usb_storage_ota*)ctx;
+    JADE_ASSERT(ota->semaphore_detected);
+    JADE_ASSERT(ota->semaphore_started);
+
     if (event == STORAGE_DETECTED) {
         // signal to handle_usb_storage_firmware that it doesn't need to start the
         // insert device activity
