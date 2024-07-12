@@ -4,6 +4,12 @@
 #include <wally_address.h>
 #include <wally_bip32.h>
 
+// Green CSV buckets allowed
+static const size_t ALLOWED_CSV_MAINNET[] = { 25920, 51840, 65535 };
+static const size_t ALLOWED_CSV_TESTNET[] = { 144, 4320, 51840 };
+static const size_t ALLOWED_CSV_LIQUID[] = { 65535 };
+static const size_t ALLOWED_CSV_TESTNET_LIQUID[] = { 1440, 65535 };
+
 // True for known networks
 bool isValidNetwork(const char* network)
 {
@@ -31,39 +37,58 @@ bool isLiquidNetwork(const char* network)
 }
 
 // Are the passed number of csv blocks expected for the given network
-bool csvBlocksExpectedForNetwork(const char* network, const uint32_t csvBlocks)
+size_t csvBlocksForNetwork(const char* network, const size_t** csvAllowed)
 {
     JADE_ASSERT(isValidNetwork(network));
+    JADE_INIT_OUT_PPTR(csvAllowed);
 
     if (!strcmp(TAG_MAINNET, network)) {
-        return csvBlocks == 25920 || csvBlocks == 51840 || csvBlocks == 65535;
+        *csvAllowed = ALLOWED_CSV_MAINNET;
+        return sizeof(ALLOWED_CSV_MAINNET) / sizeof(ALLOWED_CSV_MAINNET[0]);
     } else if (!strcmp(TAG_LIQUID, network)) {
-        return csvBlocks == 65535;
+        *csvAllowed = ALLOWED_CSV_LIQUID;
+        return sizeof(ALLOWED_CSV_LIQUID) / sizeof(ALLOWED_CSV_LIQUID[0]);
     } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
-        return csvBlocks == 144 || csvBlocks == 4320 || csvBlocks == 51840;
+        *csvAllowed = ALLOWED_CSV_TESTNET;
+        return sizeof(ALLOWED_CSV_TESTNET) / sizeof(ALLOWED_CSV_TESTNET[0]);
     } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
-        return csvBlocks == 1440 || csvBlocks == 65535;
+        *csvAllowed = ALLOWED_CSV_TESTNET_LIQUID;
+        return sizeof(ALLOWED_CSV_TESTNET_LIQUID) / sizeof(ALLOWED_CSV_TESTNET_LIQUID[0]);
     } else {
-        return false;
+        *csvAllowed = NULL;
+        return 0;
     }
+}
+
+bool csvBlocksExpectedForNetwork(const char* network, const uint32_t csvBlocks)
+{
+    JADE_ASSERT(network);
+
+    const size_t* csvAllowed = NULL;
+    const size_t num_allowed = csvBlocksForNetwork(network, &csvAllowed);
+    JADE_ASSERT(num_allowed > 0);
+    JADE_ASSERT(csvAllowed);
+
+    for (size_t i = 0; i < num_allowed; ++i) {
+        if (csvBlocks == csvAllowed[i]) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // minimum allowed csv blocks per network
 size_t networkToMinAllowedCsvBlocks(const char* network)
 {
-    JADE_ASSERT(isValidNetwork(network));
+    JADE_ASSERT(network);
 
-    if (!strcmp(TAG_MAINNET, network)) {
-        return 25920;
-    } else if (!strcmp(TAG_LIQUID, network)) {
-        return 65535;
-    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
-        return 144;
-    } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
-        return 1440;
-    } else {
-        return SIZE_MAX;
-    }
+    const size_t* csvAllowed = NULL;
+    const size_t num_allowed = csvBlocksForNetwork(network, &csvAllowed);
+    JADE_ASSERT(num_allowed > 0);
+    JADE_ASSERT(csvAllowed);
+
+    return csvAllowed[0];
 }
 
 // Network string to wally's network id value
