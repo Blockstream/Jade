@@ -34,11 +34,18 @@ static void wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_f
 // Cache what type of inputs we are signing
 #define PSBT_SIGNING_SINGLESIG 0x1
 #define PSBT_SIGNING_MULTISIG 0x2
+#define PSBT_SIGNING_GREEN_MULTISIG 0x4
+
 // Also if just one multisig record used for all signing inputs
 #define PSBT_SIGNING_SINGLE_MULTISIG_RECORD 0x10
 #define PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED 0x20
 
 #define PSBT_OUT_CHUNK_SIZE (MAX_OUTPUT_MSG_SIZE - 64)
+
+struct pubkey_data {
+    uint8_t key[EC_PUBLIC_KEY_LEN];
+    size_t key_len;
+};
 
 // Helper to get next key derived from the signer master key in the passed keypath map.
 // NOTE: Both start_index and found_index are zero-based.
@@ -68,6 +75,116 @@ static bool get_our_next_key(
     JADE_ASSERT(index); // 1-based - should def be found!
     --*index; // reduce to 0-based
 
+    return true;
+}
+
+static bool is_green_multisig_signers(
+    const char* network, const struct wally_map* keypaths, struct pubkey_data* recovery_pubkey)
+{
+    JADE_ASSERT(network);
+    JADE_ASSERT(keypaths);
+
+    // recovery_pubkey is optional
+    if (recovery_pubkey) {
+        recovery_pubkey->key_len = 0;
+    }
+
+    size_t num_keys = 0;
+    JADE_WALLY_VERIFY(wally_map_get_num_items(keypaths, &num_keys));
+
+    if (num_keys != 2 && num_keys != 3) {
+        // Green multisig is 2of2 or 2of3 only
+        return false;
+    }
+
+    uint8_t user_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+    wallet_get_fingerprint(user_fingerprint, sizeof(user_fingerprint));
+    uint32_t user_path[MAX_PATH_LEN];
+    size_t user_path_len = 0;
+
+    uint8_t ga_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+    if (!wallet_get_gaservice_fingerprint(network, ga_fingerprint, sizeof(ga_fingerprint))) {
+        // Can't get ga-signer for network
+        return false;
+    }
+    uint32_t ga_path[MAX_GASERVICE_PATH_LEN];
+    size_t ga_path_len = 0;
+
+    uint32_t recovery_path[MAX_PATH_LEN];
+    size_t recovery_path_len = 0;
+
+    for (size_t ikey = 0; ikey < num_keys; ++ikey) {
+        uint8_t key_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+        JADE_WALLY_VERIFY(
+            wally_map_keypath_get_item_fingerprint(keypaths, ikey, key_fingerprint, sizeof(key_fingerprint)));
+
+        if (!memcmp(key_fingerprint, user_fingerprint, sizeof(key_fingerprint))) {
+            // Appears to be our signer
+            if (user_path_len
+                || wally_map_keypath_get_item_path(keypaths, ikey, user_path, MAX_PATH_LEN, &user_path_len)
+                    != WALLY_OK) {
+                // Seen user signer already or path too long
+                return false;
+            }
+        } else if (!memcmp(key_fingerprint, ga_fingerprint, sizeof(key_fingerprint))) {
+            // Appears to be ga-service signer
+            if (ga_path_len
+                || wally_map_keypath_get_item_path(keypaths, ikey, ga_path, MAX_GASERVICE_PATH_LEN, &ga_path_len)
+                    != WALLY_OK) {
+                // Seen ga service signer already or path too long
+                return false;
+            }
+        } else {
+            // 2of3 recovery key
+            if (recovery_path_len
+                || wally_map_keypath_get_item_path(keypaths, ikey, recovery_path, MAX_PATH_LEN, &recovery_path_len)
+                    != WALLY_OK) {
+                // Seen 'third-party' signer already or path too long
+                return false;
+            }
+
+            // Return the recovery pubkey if the caller so desires
+            // NOTE: only compressed pubkeys are expected/supported.
+            if (recovery_pubkey) {
+                size_t written = 0;
+                if (wally_map_get_item_key(keypaths, ikey, recovery_pubkey->key, sizeof(recovery_pubkey->key), &written)
+                        != WALLY_OK
+                    || written > sizeof(recovery_pubkey->key)) {
+                    JADE_LOGE("Error fetching ga-multisig 2of3 recovery key");
+                    return false;
+                }
+                recovery_pubkey->key_len = written;
+            }
+        }
+    }
+
+    // Check got expected paths
+    if (!user_path_len || !ga_path_len || (num_keys == 3 && !recovery_path_len)) {
+        return false;
+    }
+
+    // Check final path elements identical
+    const uint32_t user_ptr = user_path[user_path_len - 1];
+    if (ga_path[ga_path_len - 1] != user_ptr || (num_keys == 3 && recovery_path[recovery_path_len - 1] != user_ptr)) {
+        return false;
+    }
+
+    // Check entire ga-service path
+    uint32_t expected_ga_path[MAX_GASERVICE_PATH_LEN];
+    size_t expected_ga_path_len = 0;
+    if (!wallet_get_gaservice_path(
+            user_path, user_path_len, expected_ga_path, MAX_GASERVICE_PATH_LEN, &expected_ga_path_len)) {
+        // Can't get ga-service path for given user path
+        return false;
+    }
+
+    if (ga_path_len != expected_ga_path_len
+        || sodium_memcmp(expected_ga_path, ga_path, ga_path_len * sizeof(ga_path[0]))) {
+        // Unexpected ga service path
+        return false;
+    }
+
+    // Looks like GA signers...
     return true;
 }
 
@@ -573,7 +690,13 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
             size_t num_keys = 0;
             JADE_WALLY_VERIFY(wally_map_get_num_items(&input->keypaths, &num_keys));
-            signing_flags |= (num_keys > 1 ? PSBT_SIGNING_MULTISIG : PSBT_SIGNING_SINGLESIG);
+            if (num_keys > 1) {
+                signing_flags |= is_green_multisig_signers(network, &input->keypaths, NULL)
+                    ? PSBT_SIGNING_GREEN_MULTISIG
+                    : PSBT_SIGNING_MULTISIG;
+            } else {
+                signing_flags |= PSBT_SIGNING_SINGLESIG;
+            }
 
             // Only support SIGHASH_ALL atm.
             if (input->sighash && input->sighash != WALLY_SIGHASH_ALL) {
@@ -593,9 +716,9 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
             // and if so, cache the record details to use later to verify any multisig change outputs
             if (signing_flags & PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED) {
                 // Already abandoned multisig change detection - do nothing
-            } else if (num_keys == 1) {
-                // singlesig input - mark multisig change detection as abandoned
-                JADE_LOGW("Signing singlesig input %u - multisig change detection abandoned", index);
+            } else if (signing_flags & (PSBT_SIGNING_SINGLESIG | PSBT_SIGNING_GREEN_MULTISIG)) {
+                // Green-multisig or singlesig input - mark multisig change detection as abandoned
+                JADE_LOGW("Signing singlesig or Green-multisig input %u - multisig change detection abandoned", index);
                 signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
             } else {
                 size_t path_len = 0;
