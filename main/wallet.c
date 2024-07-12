@@ -469,18 +469,32 @@ void wallet_build_receive_path(const uint32_t subaccount, const uint32_t branch,
     }
 }
 
-// Helper to validate the user-path, and fetch the wallet's relevant gait service pubkey
-static bool wallet_get_gaservice_key(
-    const char* network, const uint32_t* path, const size_t path_len, struct ext_key* gakey)
+bool wallet_get_gaservice_fingerprint(const char* network, uint8_t* output, size_t output_len)
 {
-    JADE_ASSERT(keychain_get());
     JADE_ASSERT(network);
-    JADE_ASSERT(path);
-    JADE_ASSERT(path_len > 0);
-    JADE_ASSERT(gakey);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len == BIP32_KEY_FINGERPRINT_LEN);
 
-    uint32_t ga_path[35]; // 32 + 3 max
-    size_t ga_path_len = 0;
+    const struct ext_key* const service = networkToGaService(network);
+    if (!service) {
+        JADE_LOGE("Unknown network: %s", network);
+        return false;
+    }
+
+    // Fingerprint is first 4 bytes of the hash160, which should be populated already
+    memcpy(output, service->hash160, output_len);
+    return true;
+}
+
+// Fetch the wallet's relevant gait service path based on the user signer's path
+bool wallet_get_gaservice_path(
+    const uint32_t* path, const size_t path_len, uint32_t* ga_path, const size_t ga_path_len, size_t* written)
+{
+    if (!path || path_len == 0 || !ga_path || ga_path_len != MAX_GASERVICE_PATH_LEN || !written) {
+        return false;
+    }
+
+    JADE_ASSERT(keychain_get());
 
     // We only support the following cases
     if (path_len == 2) {
@@ -493,7 +507,7 @@ static bool wallet_get_gaservice_key(
         ga_path[0] = path[0];
         // skip 1-32
         ga_path[33] = path[1];
-        ga_path_len = 34;
+        *written = 34;
 
     } else if (path_len == 4) {
         // 2.  3'/subact'/1/ptr
@@ -507,7 +521,7 @@ static bool wallet_get_gaservice_key(
         // skip 1-32
         ga_path[33] = unharden(path[1]);
         ga_path[34] = path[3];
-        ga_path_len = 35;
+        *written = 35;
     } else {
         return false;
     }
@@ -516,6 +530,25 @@ static bool wallet_get_gaservice_key(
     const keychain_t* const keychain = keychain_get();
     for (size_t i = 0; i < 32; ++i) {
         ga_path[i + 1] = (keychain->service_path[2 * i] << 8) + keychain->service_path[2 * i + 1];
+    }
+
+    return true;
+}
+
+// Helper to validate the user-path, and fetch the wallet's relevant gait service pubkey
+static bool wallet_get_gaservice_key(
+    const char* network, const uint32_t* path, const size_t path_len, struct ext_key* gakey)
+{
+    JADE_ASSERT(network);
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len);
+    JADE_ASSERT(gakey);
+
+    uint32_t ga_path[MAX_GASERVICE_PATH_LEN]; // 32 + 3 max
+    size_t ga_path_len = 0;
+    if (!wallet_get_gaservice_path(path, path_len, ga_path, MAX_GASERVICE_PATH_LEN, &ga_path_len)) {
+        // Cannot get ga service path from user path
+        return false;
     }
 
     // Derive ga account pubkey for the path, except the ptr (so we can log it).

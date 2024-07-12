@@ -10,6 +10,7 @@
 typedef enum { BF_ASSET, BF_VALUE, BF_ASSET_VALUE } BlindingFactorType_t;
 
 #define MAX_VARIANT_LEN 24
+#define MAX_GASERVICE_PATH_LEN 35
 
 // 'm' + ( ('/' + <10 digit number>[+ ']) * n) + '\0'
 #define MAX_PATH_STR_LEN(max_path_elems) (1 + ((1 + 10 + 1) * max_path_elems) + 1)
@@ -68,6 +69,10 @@ bool wallet_search_for_descriptor_script(const char* network, const char* descri
 void wallet_get_fingerprint(uint8_t* output, size_t output_len);
 bool wallet_get_hdkey(const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* output);
 bool wallet_get_xpub(const char* network, const uint32_t* path, size_t path_len, char** output);
+
+bool wallet_get_gaservice_fingerprint(const char* network, uint8_t* output, size_t output_len);
+bool wallet_get_gaservice_path(
+    const uint32_t* path, size_t path_len, uint32_t* ga_path, size_t ga_path_len, size_t* written);
 
 bool wallet_get_message_hash(const uint8_t* bytes, size_t bytes_len, uint8_t* output, size_t output_len);
 bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
