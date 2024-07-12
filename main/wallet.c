@@ -658,25 +658,33 @@ static void wallet_build_csv(const char* network, const uint8_t* pubkeys, const 
 }
 
 // Function to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
-bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const size_t csvBlocks, const uint32_t* path,
-    const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
+bool wallet_build_ga_script_ex(const char* network, const uint8_t* recovery_pubkey, const size_t recovery_pubkey_len,
+    const size_t csv_blocks, const uint32_t* path, const size_t path_len, uint8_t* output, const size_t output_len,
+    size_t* written)
 {
     JADE_ASSERT(keychain_get());
+    JADE_ASSERT(!recovery_pubkey_len || recovery_pubkey);
 
-    if (!network || csvBlocks > MAX_CSV_BLOCKS_ALLOWED || !path || path_len == 0 || !output
+    if (!network || csv_blocks > MAX_CSV_BLOCKS_ALLOWED || !path || !path_len || !output
         || output_len < script_length_for_variant(GREEN) || !written) {
         return false;
     }
 
-    // We do not support 2of3-csv (ie. can't have csv blocks AND a recovery xpub)
-    if (csvBlocks > 0 && xpubrecovery) {
+    // We only support compressed pubkeys
+    if (recovery_pubkey_len && recovery_pubkey_len != EC_PUBLIC_KEY_LEN) {
+        JADE_LOGE("pubkey len %u not supported", recovery_pubkey_len);
+        return false;
+    }
+
+    // We do not support 2of3-csv (ie. can't have csv blocks AND a recovery pubkey)
+    if (csv_blocks && recovery_pubkey_len) {
         JADE_LOGE("2of3-csv is not supported");
         return false;
     }
 
     // If csv, ensure above allowed minimum for network
-    if (csvBlocks > 0 && csvBlocks < networkToMinAllowedCsvBlocks(network)) {
-        JADE_LOGE("csvblocks (%u) too low for network %s", csvBlocks, network);
+    if (csv_blocks && csv_blocks < networkToMinAllowedCsvBlocks(network)) {
+        JADE_LOGE("csvblocks (%u) too low for network %s", csv_blocks, network);
         return false;
     }
 
@@ -686,7 +694,7 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
 
     // The GA and user pubkeys
     uint8_t pubkeys[3 * EC_PUBLIC_KEY_LEN]; // In case of 2of3
-    const size_t num_pubkeys = xpubrecovery ? 3 : 2; // 2of3 if recovery-xpub
+    const size_t num_pubkeys = recovery_pubkey_len ? 3 : 2; // 2of3 if recovery-xpub
     uint8_t* next_pubkey = pubkeys;
 
     // Get the GA-key for the passed path (if valid)
@@ -709,22 +717,16 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
     next_pubkey += EC_PUBLIC_KEY_LEN;
 
     // Add recovery key also, if one passed
-    if (xpubrecovery) {
+    if (recovery_pubkey_len) {
         JADE_ASSERT(num_pubkeys == 3);
-
-        // xpub includes branch, so only need to derive the final step (ptr)
-        struct ext_key key;
-        if (!wallet_derive_from_xpub(xpubrecovery, &path[path_len - 1], 1, BIP32_FLAG_SKIP_HASH, &key)) {
-            JADE_LOGE("Error trying to apply recovery key '%s'", xpubrecovery);
-            return false;
-        }
-        memcpy(next_pubkey, key.pub_key, sizeof(key.pub_key));
+        JADE_ASSERT(recovery_pubkey_len == EC_PUBLIC_KEY_LEN);
+        memcpy(next_pubkey, recovery_pubkey, recovery_pubkey_len);
     }
 
     // Get 2of2 or 2of3, csv or multisig script, depending on params
-    if (csvBlocks > 0) {
+    if (csv_blocks > 0) {
         wallet_build_csv(
-            network, pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, csvBlocks, script, sizeof(script), &script_len);
+            network, pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, csv_blocks, script, sizeof(script), &script_len);
     } else {
         const bool sorted = false; // GA multisig is not BIP67 sorted - the keys are provided in the expected order
         wallet_build_multisig(sorted, 2, pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, script, sizeof(script), &script_len);
@@ -733,6 +735,37 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
     // Get the p2sh/p2wsh script-pubkey for the script we have created
     wallet_p2sh_p2wsh_scriptpubkey_for_bytes(script, script_len, WALLY_SCRIPT_SHA256, output, output_len, written);
     return true;
+}
+
+// Function to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
+bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const size_t csv_blocks,
+    const uint32_t* path, const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
+{
+    JADE_ASSERT(keychain_get());
+
+    if (!network || csv_blocks > MAX_CSV_BLOCKS_ALLOWED || !path || !path_len || !output
+        || output_len < script_length_for_variant(GREEN) || !written) {
+        return false;
+    }
+
+    // Derive the recovery key, if one passed
+    uint8_t recovery_pubkey[EC_PUBLIC_KEY_LEN];
+    size_t recovery_pubkey_len = 0;
+    if (xpubrecovery) {
+        // xpub includes branch, so only need to derive the final step (ptr)
+        struct ext_key key;
+        if (!wallet_derive_from_xpub(xpubrecovery, &path[path_len - 1], 1, BIP32_FLAG_SKIP_HASH, &key)) {
+            JADE_LOGE("Error trying to apply recovery key '%s'", xpubrecovery);
+            return false;
+        }
+        JADE_ASSERT(sizeof(recovery_pubkey) == sizeof(key.pub_key));
+
+        memcpy(recovery_pubkey, key.pub_key, sizeof(key.pub_key));
+        recovery_pubkey_len = sizeof(recovery_pubkey);
+    }
+
+    return wallet_build_ga_script_ex(
+        network, recovery_pubkey, recovery_pubkey_len, csv_blocks, path, path_len, output, output_len, written);
 }
 
 // Function to build a single-sig script - legacy-p2pkh, native segwit p2wpkh, or a p2sh-wrapped p2wpkh
