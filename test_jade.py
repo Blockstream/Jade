@@ -69,12 +69,14 @@ def _h2b_test_case(testcase):
             testcase['expected_output'] = h2b(testcase['expected_output'])
 
     elif 'psbt' in testcase['input']:
-        # sign-psbt data
         testcase['input']['psbt'] = base64.b64decode(testcase['input']['psbt'])
-        testcase['expected_output']['psbt'] = base64.b64decode(testcase['expected_output']['psbt'])
 
-        if 'txn' in testcase['expected_output']:
-            testcase['expected_output']['txn'] = h2b(testcase['expected_output']['txn'])
+        if 'expected_output' in testcase:
+            expected_output = testcase['expected_output']
+            expected_output['psbt'] = base64.b64decode(expected_output['psbt'])
+
+            if 'txn' in expected_output:
+                expected_output['txn'] = h2b(expected_output['txn'])
 
     elif 'message' in testcase['input']:
         # sign-msg test data
@@ -2652,7 +2654,16 @@ def test_sign_liquid_tx(jadeapi, has_psram, has_ble, pattern):
 
 def test_sign_psbt(jadeapi, cases):
     for txn_data in _get_test_cases(cases):
-        rslt = jadeapi.sign_psbt(txn_data['input']['network'], txn_data['input']['psbt'])
+        try:
+            rslt = jadeapi.sign_psbt(txn_data['input']['network'], txn_data['input']['psbt'])
+        except JadeError as err:
+            # Check expected error
+            assert 'expected_output' not in txn_data
+            assert err.message == txn_data['expected_error']
+            continue
+
+        # Othewise, should have worked, check expected output
+        assert 'expected_error' not in txn_data
         assert rslt == txn_data['expected_output']['psbt'], base64.b64encode(rslt).decode()
 
         # Optionally test extracted tx

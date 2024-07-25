@@ -31,6 +31,9 @@ bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_
 
 static void wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
 
+// From https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
+static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; // 'psbt' + 0xff
+
 // Cache what type of inputs we are signing
 #define PSBT_SIGNING_SINGLESIG 0x1
 #define PSBT_SIGNING_MULTISIG 0x2
@@ -992,6 +995,14 @@ bool deserialise_psbt(const uint8_t* psbt_bytes, const size_t psbt_len, struct w
 {
     JADE_ASSERT(psbt_bytes);
     JADE_INIT_OUT_PPTR(psbt_out);
+
+    // Sanity check lead bytes before attempting full parse
+    // NOTE: libwally supports PSET (elements) which Jade does not as yet.
+    if (psbt_len < sizeof(PSBT_MAGIC_PREFIX) || memcmp(psbt_bytes, PSBT_MAGIC_PREFIX, sizeof(PSBT_MAGIC_PREFIX))) {
+        JADE_LOGE("Unexpected leading 'magic' bytes for PSBT");
+        return false;
+    }
+
     return wally_psbt_from_bytes(psbt_bytes, psbt_len, WALLY_PSBT_PARSE_FLAG_STRICT, psbt_out) == WALLY_OK && *psbt_out;
 }
 
