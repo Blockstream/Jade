@@ -164,6 +164,7 @@ void elements_script_to_address(const char* network, const uint8_t* script, cons
         switch (output_type) {
         case WALLY_SCRIPT_TYPE_P2WPKH:
         case WALLY_SCRIPT_TYPE_P2WSH:
+        case WALLY_SCRIPT_TYPE_P2TR:
             hrpConfidential = networkToBlech32Hrp(network);
             JADE_ASSERT(hrpConfidential);
             JADE_WALLY_VERIFY(wally_confidential_addr_from_addr_segwit(
