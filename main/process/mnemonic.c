@@ -1423,6 +1423,10 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     (void)qr_scanned;
 #endif // CONFIG_HAS_CAMERA
 
+    // Set flag indicating whether we should ask the user before exporting the master blinding key
+    // (In advanced mode we ask the user, in default/basic mode we always silently export the key.)
+    keychain_set_confirm_export_blinding_key(advanced_mode);
+
     // When using 'temporary restore' we respect the existing passphrase settings.
     // Otherwise reset to 'passphrase not in use' by default during new wallet setup.
     // NOTE: the user can enable it explicitly in the options/setting prefs menu if desired.
@@ -1430,7 +1434,6 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         keychain_set_passphrase_frequency(PASSPHRASE_NEVER);
         keychain_persist_key_flags();
     }
-    keychain_set_confirm_export_blinding_key(advanced_mode);
 
     if (!derive_keychain(temporary_restore, mnemonic)) {
         // Error making wallet...
