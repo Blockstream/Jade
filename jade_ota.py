@@ -293,7 +293,7 @@ def ota(jade, fwcompressed, fwlength, fwhash, patchlen=None, pushmnemonic=False)
         last_written = written
 
     result = jade.ota_update(fwcompressed, fwlength, chunksize, fwhash,
-                             patchlen=patchlen, cb=_log_progress, gcov_dump=info['GCOV'])
+                             patchlen=patchlen, cb=_log_progress, gcov_dump=info.get('GCOV', False))
     assert result is True
 
     logger.info(f'Total ota time in secs: {time.time() - start_time}')
