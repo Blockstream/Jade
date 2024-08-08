@@ -2,11 +2,15 @@
 #include "../gui.h"
 #include "../jade_assert.h"
 #include "../jade_tasks.h"
+#include "../jade_wally_verify.h"
+#include "../keychain.h"
 #include "../process.h"
 #include "../serial.h"
 #include "../ui.h"
 #include "../utils/malloc_ext.h"
+#include "../utils/network.h"
 #include "usbhmsc.h"
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -15,14 +19,27 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <wally_psbt.h>
+
 gui_activity_t* make_usb_connect_activity(const char* title);
 void await_qr_help_activity(const char* url);
+
+// PSBT serialisation functions
+bool deserialise_psbt(const uint8_t* bytes, size_t bytes_len, struct wally_psbt** psbt_out);
+bool serialise_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len);
+int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg);
 
 #define MAX_FILENAME_SIZE 256
 #define MAX_FILE_ENTRIES 64
 
+#define MIN_PSBT_FILE_SIZE 32
+#define MAX_PSBT_FILE_SIZE MAX_INPUT_MSG_SIZE
+
 static const char FW_SUFFIX[] = "_fw.bin";
 static const char HASH_SUFFIX[] = ".hash";
+
+static const char PSBT_SUFFIX[] = ".psbt";
+static const char PSBT_TXT_SUFFIX[] = ".psbt.txt";
 
 #define STR_ENDSWITH(str, str_len, suffix, suffix_len)                                                                 \
     (str && str_len > suffix_len && str[str_len] == '\0' && !memcmp(str + str_len - suffix_len, suffix, suffix_len))
@@ -74,6 +91,24 @@ static size_t read_file_to_buffer(const char* filename, uint8_t* buffer, size_t 
 
     JADE_ASSERT(bytes_read == file_size);
     return bytes_read;
+}
+
+static size_t write_buffer_to_file(const char* filename, const uint8_t* buffer, size_t buf_len)
+{
+    JADE_ASSERT(filename);
+    JADE_ASSERT(buffer);
+    JADE_ASSERT(buf_len);
+
+    FILE* fp = fopen(filename, "wb");
+    if (fp == NULL) {
+        return 0;
+    }
+
+    const size_t bytes_written = fwrite(buffer, 1, buf_len, fp);
+    fclose(fp);
+
+    JADE_ASSERT(bytes_written == buf_len);
+    return bytes_written;
 }
 
 // Display list of files, and return if user selects one
@@ -667,4 +702,146 @@ bool usbstorage_firmware_ota(const char* extra_path)
     // extra_path is optional
     const bool is_async = true;
     return handle_usbstorage_action("Firmware Upgrade", initiate_usb_ota, extra_path, is_async);
+}
+
+// Sign PSBT
+
+static bool is_psbt_binary_file(const char* path, const char* filename, const size_t filename_len)
+{
+    return STR_ENDSWITH(filename, filename_len, PSBT_SUFFIX, strlen(PSBT_SUFFIX));
+}
+
+static bool is_psbt_txt_file(const char* path, const char* filename, const size_t filename_len)
+{
+    return STR_ENDSWITH(filename, filename_len, PSBT_TXT_SUFFIX, strlen(PSBT_TXT_SUFFIX));
+}
+
+static bool is_psbt_file(const char* path, const char* filename, const size_t filename_len)
+{
+    return is_psbt_binary_file(path, filename, filename_len) || is_psbt_txt_file(path, filename, filename_len);
+}
+
+static bool sign_usb_psbt(const char* extra_path)
+{
+    // extra_path is optional
+
+    char filename[MAX_FILENAME_SIZE];
+    if (!select_file_from_filtered_list("Select PSBT", extra_path, is_psbt_file, filename, sizeof(filename))) {
+        return false;
+    }
+
+    // Sanity check file size
+    size_t psbt_len = get_file_size(filename);
+    if (psbt_len < MIN_PSBT_FILE_SIZE) {
+        const char* message[] = { "Invalid PSBT file" };
+        await_error_activity(message, 1);
+        return false;
+    }
+    if (psbt_len > MAX_PSBT_FILE_SIZE) {
+        const char* message[] = { "PSBT file too large" };
+        await_error_activity(message, 1);
+        return false;
+    }
+
+    bool retval = false;
+    struct wally_psbt* psbt = NULL;
+    const size_t filename_len = strlen(filename);
+    const bool b64 = is_psbt_txt_file("", filename, filename_len);
+
+    uint8_t* psbt_bytes = JADE_MALLOC_PREFER_SPIRAM(psbt_len);
+    if (b64) {
+        // Load from base64 text file
+        char* const psbt64 = JADE_MALLOC_PREFER_SPIRAM(psbt_len + 1);
+        const size_t bytes_read = read_file_to_buffer(filename, (uint8_t*)psbt64, psbt_len);
+        JADE_ASSERT(bytes_read == psbt_len);
+
+        // Add trailing terminator and trim any trailing whitespace
+        do {
+            psbt64[psbt_len] = '\0';
+        } while (isspace((unsigned char)(psbt64[--psbt_len])));
+
+        size_t written = 0;
+        const int wret = wally_base64_to_bytes(psbt64, 0, psbt_bytes, psbt_len, &written);
+        free(psbt64);
+
+        if (wret != WALLY_OK || !written || written > psbt_len) {
+            const char* message[] = { "Failed to decode", "PSBT base64" };
+            await_error_activity(message, 2);
+            goto cleanup;
+        }
+        psbt_len = written;
+    } else {
+        // Read bytes from binary file
+        const size_t bytes_read = read_file_to_buffer(filename, psbt_bytes, psbt_len);
+        JADE_ASSERT(bytes_read == psbt_len);
+    }
+
+    // Deserialise bytes
+    if (!deserialise_psbt(psbt_bytes, psbt_len, &psbt) || !psbt) {
+        const char* message[] = { "Failed to load PSBT" };
+        await_error_activity(message, 1);
+        goto cleanup;
+    }
+
+    // Free bytes loaded from file
+    free(psbt_bytes);
+    psbt_bytes = NULL;
+    psbt_len = 0;
+
+    // Sign PSBT
+    const char* errmsg = NULL;
+    const char* network = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? TAG_TESTNET : TAG_MAINNET;
+    const int errcode = sign_psbt(network, psbt, &errmsg);
+    if (errcode) {
+        if (errcode != CBOR_RPC_USER_CANCELLED) {
+            const char* message[] = { errmsg };
+            await_error_activity(message, 1);
+        }
+        goto cleanup;
+    }
+
+    // Write to file
+    // FIXME: create a new file ?
+    if (b64) {
+        // Encode to base64
+        char* psbt64 = NULL;
+        if (wally_psbt_to_base64(psbt, 0, &psbt64) != WALLY_OK || !psbt64) {
+            const char* message[] = { "Failed to", "serialise PSBT" };
+            await_error_activity(message, 2);
+            goto cleanup;
+        }
+        write_buffer_to_file(filename, (const uint8_t*)psbt64, strlen(psbt64));
+        JADE_WALLY_VERIFY(wally_free_string(psbt64));
+    } else {
+        // Serialise signed PSBT to bytes
+        if (!serialise_psbt(psbt, &psbt_bytes, &psbt_len)) {
+            const char* message[] = { "Failed to", "serialise PSBT" };
+            await_error_activity(message, 2);
+            goto cleanup;
+        }
+        write_buffer_to_file(filename, psbt_bytes, psbt_len);
+    }
+
+    const size_t mount_point_len = strlen(USBSTORAGE_MOUNT_POINT);
+    JADE_ASSERT(filename_len > mount_point_len);
+    JADE_ASSERT(!memcmp(filename, USBSTORAGE_MOUNT_POINT, mount_point_len));
+    const char* message[] = { "PSBT file saved:", filename + mount_point_len + 1 };
+    await_error_activity(message, 2);
+    retval = true;
+
+cleanup:
+    JADE_WALLY_VERIFY(wally_psbt_free(psbt));
+    free(psbt_bytes);
+
+    return retval;
+}
+
+// Sign PSBT file, and write updated file back to the usb-storage directory.
+// Accepts binary PSBT file ('xxx.psbt') or base64-encoded PSBT file ('xxx.psbt.txt').
+// After any signatures are added, the file is written in the same format.
+bool usbstorage_sign_psbt(const char* extra_path)
+{
+    // extra_path is optional
+    const bool is_async = false;
+    return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, extra_path, is_async);
 }

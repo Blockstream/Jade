@@ -2330,7 +2330,10 @@ static void handle_settings(const bool startup_menu)
             break;
 
         case BTN_SETTINGS_USBSTORAGE_SIGN:
-            // FIXME: implement
+            usbstorage_sign_psbt(NULL);
+
+            // NOTE: signing cleans up other activities, so need to recreate menu
+            act = make_usbstorage_settings_activity(keychain_get());
             break;
 
         case BTN_SETTINGS_USBSTORAGE_EXPORT:
