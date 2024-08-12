@@ -15,6 +15,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+gui_activity_t* make_usb_connect_activity(const char* title);
+void await_qr_help_activity(const char* url);
+
 #define MAX_FILENAME_SIZE 256
 #define MAX_FILE_ENTRIES 64
 
@@ -24,7 +27,17 @@ static const char HASH_SUFFIX[] = ".hash";
 #define STR_ENDSWITH(str, str_len, suffix, suffix_len)                                                                 \
     (str && str_len > suffix_len && str[str_len] == '\0' && !memcmp(str + str_len - suffix_len, suffix, suffix_len))
 
+// Function predicate to filter filenames available for a particular action
 typedef bool (*filename_filter_fn_t)(const char* path, const char* filename, const size_t filename_len);
+
+// Fucntion/action to call on a usb-storage directory
+typedef bool (*usbstorage_action_fn_t)(const char* extra_path);
+
+// State of usb storage
+struct usbstorage_state {
+    SemaphoreHandle_t semaphore_usbstorage_event;
+    bool usbstorage_mounted;
+};
 
 static bool file_exists(const char* file_path)
 {
@@ -172,6 +185,11 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
                     break;
                 }
             }
+
+            if (ev_id == BTN_SETTINGS_USBSTORAGE_HELP) {
+                await_qr_help_activity("blkstrm.com/jadeusbstorage");
+                gui_set_current_activity(act);
+            }
         }
     }
 
@@ -190,6 +208,119 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
     }
 
     return done;
+}
+
+// usb storage state event callback
+static void handle_usbstorage_event(const usbstorage_event_t event, const uint8_t device_address, void* ctx)
+{
+    JADE_ASSERT(ctx);
+
+    struct usbstorage_state* const state = (struct usbstorage_state*)ctx;
+    JADE_ASSERT(state->semaphore_usbstorage_event);
+
+    // When the device is detected, mount it immediately
+    if (event == USBSTORAGE_DETECTED) {
+        if (usbstorage_mount(device_address)) {
+            state->usbstorage_mounted = true;
+            xSemaphoreGive(state->semaphore_usbstorage_event);
+        } else {
+            JADE_LOGE("Failed to mount USB storage!");
+            const char* message[] = { "Error accessing", "usb storage!" };
+            await_error_activity(message, 2);
+        }
+    }
+
+    // Handle other events ?
+}
+
+// Generic handler to run usb storage actions
+static bool handle_usbstorage_action(
+    const char* title, usbstorage_action_fn_t usbstorage_action, const char* extra_path, const bool async_action)
+{
+    JADE_ASSERT(title);
+    JADE_ASSERT(usbstorage_action);
+    // extra_path is optional
+
+    // Stop normal serial usb and start usbstorage
+    display_processing_message_activity();
+    serial_stop();
+
+    struct usbstorage_state state = { .usbstorage_mounted = false };
+    state.semaphore_usbstorage_event = xSemaphoreCreateBinary();
+    JADE_ASSERT(state.semaphore_usbstorage_event);
+    usbstorage_register_callback(handle_usbstorage_event, &state);
+
+    if (!usbstorage_start()) {
+        JADE_LOGE("Failed to start USB storage!");
+        const char* message[] = { "Failed to start", "usb storage!" };
+        await_error_activity(message, 2);
+
+        // !! Jade may require restart though? !!
+        JADE_ASSERT_MSG(false, "usbstorage_start failed");
+    }
+
+    // We should only do this if within 0.4 seconds or so we don't detect a usb device already plugged
+
+    // Now wait for either the the sempahore to be unlocked or for back button on the activity
+    size_t counter = 0;
+    gui_activity_t* act_prompt = NULL;
+    bool action_initiated = false;
+    while (true) {
+        // If the usb_storage is mounted, run the action
+        if (state.usbstorage_mounted) {
+            action_initiated = usbstorage_action(extra_path);
+            break;
+        }
+
+        // If the usb-storage device is not detected/mounted, show a screen prompting the user
+        if (!act_prompt && !state.usbstorage_mounted) {
+            xSemaphoreTake(state.semaphore_usbstorage_event, 200 / portTICK_PERIOD_MS);
+            if (!state.usbstorage_mounted) {
+                if (counter < 5) {
+                    ++counter;
+                    continue;
+                }
+
+                // Prompt user to plug usbstorage device
+                act_prompt = make_usb_connect_activity(title);
+                gui_set_current_activity(act_prompt);
+            }
+        }
+
+        // Handle any events from that screen
+        int32_t ev_id;
+        if (act_prompt
+            && gui_activity_wait_event(
+                act_prompt, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)) {
+
+            if (ev_id == BTN_SETTINGS_USBSTORAGE_BACK) {
+                usbstorage_register_callback(NULL, NULL);
+                // when the user goes back we go through here
+                // then the device hasn't started any action, but has disk detected
+                break;
+            }
+            if (ev_id == BTN_SETTINGS_USBSTORAGE_HELP) {
+                await_qr_help_activity("blkstrm.com/jadeusbstorage");
+                gui_set_current_activity(act_prompt);
+            }
+        }
+    }
+
+    // If the action was not an async action (ie. it has already completed) or
+    // the action was never properly started, we stop/unmount usbstorage now.
+    if (!async_action || !action_initiated) {
+        if (state.usbstorage_mounted) {
+            // if it was detected it was mounted
+            usbstorage_unmount();
+        }
+        usbstorage_stop();
+        serial_start();
+    }
+
+    usbstorage_register_callback(NULL, NULL);
+    vSemaphoreDelete(state.semaphore_usbstorage_event);
+
+    return action_initiated;
 }
 
 // OTA
@@ -471,8 +602,9 @@ static void start_usb_ota_task(char* str, size_t fwsize, size_t cmpsize, uint8_t
 
     ctx_data->file_to_flash = copy;
     ctx_data->data_to_send = cmpsize;
+
     const BaseType_t retval = xTaskCreatePinnedToCore(
-        usbmode_ota_worker, "usb_ota_task", 12 * 1024, ctx_data, JADE_TASK_PRIO_USB, NULL, JADE_CORE_SECONDARY);
+        usbmode_ota_worker, "usb_ota_task", 10 * 1024, ctx_data, JADE_TASK_PRIO_USB, NULL, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create usb_ota_task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
@@ -494,8 +626,7 @@ static bool is_full_fw_file(const char* path, const char* filename, const size_t
     return file_exists(hash_filename);
 }
 
-// List files for firmware flashing and start the client task to feed the data to the ota process
-bool usbmode_start_ota(const char* const extra_path)
+static bool initiate_usb_ota(const char* extra_path)
 {
     // extra_path is optional
 
@@ -526,4 +657,14 @@ bool usbmode_start_ota(const char* const extra_path)
 
     start_usb_ota_task(filename, fwsize, cmpsize, hash, sizeof(hash));
     return true;
+}
+
+// Initiate an OTA fw upgrade from compressed fw and hash file
+// NOTE: this function starts a separate task to read the file and provide the fw chunks.
+// It must return and pass control back to the main dispatcher loop to process the OTA.
+bool usbstorage_firmware_ota(const char* extra_path)
+{
+    // extra_path is optional
+    const bool is_async = true;
+    return handle_usbstorage_action("Firmware Upgrade", initiate_usb_ota, extra_path, is_async);
 }

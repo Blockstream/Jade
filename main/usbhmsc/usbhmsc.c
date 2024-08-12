@@ -145,7 +145,7 @@ static void usbstorage_task(void* ignore)
 
     /* FIXME: find the right stack size */
     const BaseType_t task_created = xTaskCreatePinnedToCore(
-        handle_usb_events, "usb_events", 2048 * 2, NULL, JADE_TASK_PRIO_USB, &aux_task, JADE_CORE_SECONDARY);
+        handle_usb_events, "usb_events", 1024, NULL, JADE_TASK_PRIO_USB, &aux_task, JADE_CORE_SECONDARY);
     JADE_ASSERT(task_created == pdPASS);
     JADE_ASSERT(aux_task);
 
@@ -261,7 +261,7 @@ bool usbstorage_start(void)
     usbstorage_is_enabled = true;
     /* FIXME: find the right stack size */
     const BaseType_t task_created = xTaskCreatePinnedToCore(
-        usbstorage_task, "usb_events", 2048 * 4, NULL, JADE_TASK_PRIO_USB, &main_task, JADE_CORE_SECONDARY);
+        usbstorage_task, "usb_events", 2 * 1024, NULL, JADE_TASK_PRIO_USB, &main_task, JADE_CORE_SECONDARY);
     JADE_ASSERT(task_created == pdPASS);
     JADE_ASSERT(main_task);
     xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
@@ -277,6 +277,7 @@ void usbstorage_stop(void)
     JADE_ASSERT(usbstorage_is_enabled);
     usbstorage_is_enabled = false;
     xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
+
     vTaskDelete(main_task);
     main_task = NULL;
     // disable_usb_host();
