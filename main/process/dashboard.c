@@ -180,8 +180,8 @@ gui_activity_t* make_locked_settings_activity(void);
 gui_activity_t* make_unlocked_settings_activity(void);
 
 gui_activity_t* make_wallet_settings_activity(void);
-gui_activity_t* make_usbstorage_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
+gui_activity_t* make_usbstorage_settings_activity(bool unlocked);
 gui_activity_t* make_authentication_activity(bool initialised_and_pin_unlocked);
 gui_activity_t* make_prefs_settings_activity(bool initialised_and_locked, gui_view_node_t** qr_mode_network_item);
 gui_activity_t* make_display_settings_activity(void);
@@ -209,6 +209,8 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
     bool confirm_only, progress_bar_t* progress_bar, gui_view_node_t** txt_ts, gui_view_node_t** txt_code);
 
 gui_activity_t* make_pinserver_activity(void);
+
+gui_activity_t* make_usb_connect_activity(const char* title);
 
 bool select_registered_wallet(const char multisig_names[][NVS_KEY_NAME_MAX_SIZE], size_t num_multisigs,
     const char descriptor_names[][NVS_KEY_NAME_MAX_SIZE], size_t num_descriptors, const char** wallet_name_out,
@@ -1983,16 +1985,6 @@ static void usbstorage_handle_event(const usbstorage_event_t event, const uint8_
     xSemaphoreGive(ota->semaphore_started);
 }
 
-static gui_activity_t* make_usb_connect_activity(void)
-{
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW_BACK },
-        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW_HELP } };
-
-    const char* message[] = { "Please connect a USB", "storage device" };
-
-    return make_show_message_activity(message, 2, "Firmware Upgrade", hdrbtns, 2, NULL, 0);
-}
-
 static bool handle_usbstorage_firmware(void)
 {
     serial_stop();
@@ -2018,7 +2010,7 @@ static bool handle_usbstorage_firmware(void)
     while (true) {
 
         if (counter == 5 && !act && !ota.detected) {
-            act = make_usb_connect_activity();
+            act = make_usb_connect_activity("Firmware Upgrade");
             gui_set_current_activity(act);
         }
 
@@ -2037,13 +2029,13 @@ static bool handle_usbstorage_firmware(void)
             && gui_activity_wait_event(
                 act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 200 / portTICK_PERIOD_MS)) {
 
-            if (ev_id == BTN_SETTINGS_USBSTORAGE_FW_BACK) {
+            if (ev_id == BTN_SETTINGS_USBSTORAGE_BACK) {
                 usbstorage_register_callback(NULL, NULL);
                 // when the user goes back we go through here
                 // then the device doesn't have ota started but has disk detected
                 break;
             }
-            if (ev_id == BTN_SETTINGS_USBSTORAGE_FW_HELP) {
+            if (ev_id == BTN_SETTINGS_USBSTORAGE_HELP) {
                 // FIXME: can't get out of qr activity?
                 await_qr_help_activity("blkstrm.com/jadeusbstorage");
             }
@@ -2441,14 +2433,13 @@ static void handle_settings(const bool startup_menu)
             break;
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
-        case BTN_SETTINGS_USBSTORAGE_FW_EXIT:
         case BTN_SETTINGS_USBSTORAGE:
             // when entering manually (rather than detecting hot plug)
             // we have to first manually disable the usb serial, no op if already off
             // we should register the callback
             // immediately show the UX Please plug in a USB device
             // on callback DETECTED we mount and show options for usb stuff to do
-            act = make_usbstorage_settings_activity();
+            act = make_usbstorage_settings_activity(keychain_get());
             // we should only restart it if it was already on
             // serial_start();
 

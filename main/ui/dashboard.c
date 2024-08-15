@@ -321,9 +321,12 @@ gui_activity_t* make_unlocked_settings_activity(void)
 
     btn_data_t menubtns[] = { { .txt = "Wallet", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET },
         { .txt = "Device", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+        { .txt = "USB Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE },
+#endif
         { .txt = "Authentication", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_AUTHENTICATION } };
 
-    return make_menu_activity("Options", hdrbtns, 2, menubtns, 3);
+    return make_menu_activity("Options", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
 
 gui_activity_t* make_wallet_settings_activity(void)
@@ -339,7 +342,7 @@ gui_activity_t* make_wallet_settings_activity(void)
 }
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
-gui_activity_t* make_usbstorage_settings_activity(void)
+gui_activity_t* make_usbstorage_settings_activity(const bool unlocked)
 {
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
@@ -350,7 +353,7 @@ gui_activity_t* make_usbstorage_settings_activity(void)
         { .txt = "Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT },
     };
 
-    return make_menu_activity("USB Storage", hdrbtns, 2, menubtns, 3);
+    return make_menu_activity("USB Storage", hdrbtns, 2, menubtns, unlocked ? 3 : 1);
 }
 #endif
 
@@ -473,6 +476,19 @@ gui_activity_t* make_pinserver_activity(void)
 
     return make_menu_activity("Blind Oracle", hdrbtns, 2, menubtns, 3);
 }
+
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+gui_activity_t* make_usb_connect_activity(const char* title)
+{
+    JADE_ASSERT(title);
+
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_BACK },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_HELP } };
+
+    const char* message[] = { "Please connect a USB", "storage device" };
+    return make_show_message_activity(message, 2, title, hdrbtns, 2, NULL, 0);
+}
+#endif
 
 gui_activity_t* make_wallet_erase_pin_info_activity(void)
 {

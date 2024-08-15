@@ -331,7 +331,7 @@ bool usbmode_ota_list_files(const char* const path)
 
     /* we only find files in the root dir for now */
     // FIXME: implement recursive?
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW_EXIT },
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
     const char* suffix = "_fw.bin";
     const char* hash_suffix = ".hash";
@@ -402,7 +402,7 @@ bool usbmode_ota_list_files(const char* const path)
     bool ota_started = false;
     while (true) {
         if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-            if (ev_id == BTN_SETTINGS_USBSTORAGE_FW_EXIT) {
+            if (ev_id == BTN_SETTINGS_USBSTORAGE_EXIT) {
                 break;
             }
             char* str = (char*)(menubtns[(ev_id - BTN_KEYBOARD_ASCII_OFFSET) - 1].txt);
