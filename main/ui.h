@@ -177,6 +177,7 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
 void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message);
 bool run_pin_entry_loop(pin_insert_t* pin_insert);
 void reset_pin(pin_insert_t* pin_insert, const char* title);
+size_t get_pin_as_number(const pin_insert_t* pin_insert);
 
 // Generic progress-bar
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);

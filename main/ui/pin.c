@@ -3,6 +3,8 @@
 #include "../random.h"
 #include "../ui.h"
 
+#include <math.h>
+
 static const char CHAR_BACKSPACE = '|';
 static const char PIN_CHARS[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', CHAR_BACKSPACE };
 static const uint32_t NUM_PIN_CHARS = sizeof(PIN_CHARS) / sizeof(PIN_CHARS[0]);
@@ -241,4 +243,22 @@ void reset_pin(pin_insert_t* pin_insert, const char* title)
         JADE_ASSERT(pin_insert->title);
         gui_update_text(pin_insert->title, title);
     }
+}
+
+size_t get_pin_as_number(const pin_insert_t* pin_insert)
+{
+    JADE_ASSERT(pin_insert);
+    JADE_ASSERT(pin_insert->selected_digit == PIN_SIZE); // entry complete
+
+    size_t val = 0;
+    for (uint8_t i = 0; i < PIN_SIZE; ++i) {
+        JADE_ASSERT(pin_insert->digit_status[i] == SET);
+        JADE_ASSERT(pin_insert->pin[i] < NUM_PIN_VALUES);
+
+        const size_t digit = pin_insert->pin[i];
+        const uint8_t exponent = PIN_SIZE - i - 1;
+        val += (digit * pow(10, exponent));
+    }
+
+    return val;
 }
