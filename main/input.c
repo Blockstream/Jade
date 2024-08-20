@@ -198,24 +198,15 @@ void wheel_watch_task(void* unused)
     vTaskDelete(NULL);
 }
 
-void wheel_uninit(bool uninstall_gpio_isr_service)
+void wheel_init(void)
 {
-    const esp_err_t rc = rotary_encoder_uninit(&info);
-    JADE_ASSERT(rc == ESP_OK);
-    if (uninstall_gpio_isr_service) {
-        gpio_uninstall_isr_service();
-    }
-}
+    // Create a queue for events from the rotary encoder driver.
+    event_queue = rotary_encoder_create_queue();
 
-/* reinit reuses same queue and Task */
-void wheel_reinit(bool install_gpio_isr_service)
-{
-    if (install_gpio_isr_service) {
-        const esp_err_t rc = gpio_install_isr_service(0);
-        JADE_ASSERT(rc == ESP_OK);
-    }
-    // Initialise the rotary encoder device with the GPIOs for A and B signals
-    esp_err_t rc = rotary_encoder_init(&info, CONFIG_INPUT_WHEEL_A, CONFIG_INPUT_WHEEL_B);
+    esp_err_t rc = gpio_install_isr_service(0);
+    JADE_ASSERT(rc == ESP_OK);
+
+    rc = rotary_encoder_init(&info, CONFIG_INPUT_WHEEL_A, CONFIG_INPUT_WHEEL_B);
     JADE_ASSERT(rc == ESP_OK);
     rc = rotary_encoder_enable_half_steps(&info, ENABLE_HALF_STEPS);
     JADE_ASSERT(rc == ESP_OK);
@@ -228,14 +219,6 @@ void wheel_reinit(bool install_gpio_isr_service)
     // Tasks can read from this queue to receive up to date position information.
     rc = rotary_encoder_set_queue(&info, event_queue);
     JADE_ASSERT(rc == ESP_OK);
-}
-
-void wheel_init(void)
-{
-    // Create a queue for events from the rotary encoder driver.
-    event_queue = rotary_encoder_create_queue();
-
-    wheel_reinit(/* install_gpio_isr_service */ true);
 
     const BaseType_t retval = xTaskCreatePinnedToCore(
         &wheel_watch_task, "wheel_watcher", 2 * 1024, NULL, JADE_TASK_PRIO_WHEEL, NULL, JADE_CORE_SECONDARY);

@@ -1,6 +1,6 @@
 dependencies:
   espressif/button:
-    component_hash: 1f5297fe16f0ee988dbb14b6f4c91782fe2baf85025bb15cc1e0093edd3fb2ee
+    component_hash: c3ee3ba339a3848977496d0157008ae574a24fc59f54d27c93ab51b14446a2fb
     dependencies:
     - name: espressif/cmake_utilities
       registry_url: https://components.espressif.com/
@@ -12,7 +12,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 3.2.0
+    version: 3.3.1
   espressif/cbor:
     component_hash: 440f4ee4504841cc9b4f3a8ef755776a612ac9dace355514c68b999868f990ff
     dependencies:
@@ -34,14 +34,14 @@ dependencies:
       type: service
     version: 0.5.3
   espressif/esp32-camera:
-    component_hash: a1933162caca04a3a3bb0dca00bb56fcb3c50cd3779ab2f2b03ad8536e9bd0d0
+    component_hash: 4aadd189e9ca97298f1d69920f2d8c6b07cb3cbca014584b60e96de8a3cbb249
     dependencies: []
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 2.0.9
+    version: 2.0.10
   espressif/esp_lcd_touch:
-    component_hash: d4d8f2dc33205797169a97a02e0d89a8982f59fe0509129b54422052b8522f59
+    component_hash: 779b4ba2464a3ae85681e4b860caa5fdc35801458c23f3039ee761bae7f442a4
     dependencies:
     - name: idf
       require: private
@@ -49,9 +49,9 @@ dependencies:
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.1.1
+    version: 1.1.2
   espressif/esp_lcd_touch_ft5x06:
-    component_hash: 97759953d9436a365e9427078c5b04ecce4e6a50f50cf62c68cd6bfa229b812c
+    component_hash: 00a8c8e846faa99a476091a45e47fbf3e9b6d303bacb849553ac01510d52d7eb
     dependencies:
     - name: espressif/esp_lcd_touch
       registry_url: https://components.espressif.com/
@@ -63,7 +63,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.0.6
+    version: 1.0.6~1
   espressif/libsodium:
     component_hash: f6e982479a2389cb6868e8fb761cf23aba6c355a8090b3e906299807775f58a3
     dependencies:
@@ -75,7 +75,7 @@ dependencies:
       type: service
     version: 1.0.20~1
   espressif/nghttp:
-    component_hash: 5e55c2fc982f7ddd257818be86f50d60705f3fd3a39d709c399434e81d458e1e
+    component_hash: c52b83cc3d1083ae669751534ea4f7445974b86d91d49a5273bdb0fbf87f34d6
     dependencies:
     - name: idf
       require: private
@@ -83,7 +83,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.58.0
+    version: 1.62.1
   idf:
     source:
       type: idf
@@ -98,6 +98,6 @@ direct_dependencies:
 - espressif/libsodium
 - espressif/nghttp
 - idf
-manifest_hash: 1422119db248864a898f4cc58cc2aea55e85b1fca83cc8d4bd38c34e222dbf4f
+manifest_hash: 0b6086c6e80bc12f51c4b1f2b83286a2682fc797b940006fa08d2e7299d57dc3
 target: esp32
 version: 2.0.0

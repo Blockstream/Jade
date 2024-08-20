@@ -4,9 +4,6 @@
 #include "button_events.h"
 #include "camera.h"
 #include "idletimer.h"
-#ifdef CONFIG_BOARD_TYPE_JADE
-#include "input.h"
-#endif
 #include "jade_assert.h"
 #include "jade_tasks.h"
 #include "power.h"
@@ -266,10 +263,6 @@ static void jade_camera_init(void)
         .grab_mode = CAMERA_GRAB_LATEST,
 
         .jpeg_quality = 0 };
-#ifdef CONFIG_BOARD_TYPE_JADE
-    /* uninit wheel in order to fully cleanup in anticipation of camera calling gpio_install_isr_service itself */
-    wheel_uninit(/* uninstall gpio isr service */ true);
-#endif
     const esp_err_t err = esp_camera_init(&camera_config);
     JADE_LOGI("Camera init done");
     if (err != ESP_OK) {
@@ -296,26 +289,14 @@ static void jade_camera_init(void)
             JADE_LOGE("Failed to set camera hmirror/vflip, returned: %d/%d", hret, vret);
         }
     }
-#ifdef CONFIG_BOARD_TYPE_JADE
-    /* make wheel work with interrupt service from camera */
-    wheel_reinit(/* install_gpio_isr_service */ false);
-#endif
 }
 #endif
 
 // Stop the camera
 static void jade_camera_stop(void)
 {
-#ifdef CONFIG_BOARD_TYPE_JADE
-    /* wheel is currently using the camera gpio_install_isr_service , clean up only part of it */
-    wheel_uninit(/* uninstall_gpio_isr_service */ false);
-#endif
     esp_camera_deinit();
     power_camera_off();
-#ifdef CONFIG_BOARD_TYPE_JADE
-    /* create a new gpio_install_isr_service for the wheel before restarting it */
-    wheel_reinit(/* install_gpio_isr_service */ true);
-#endif
 }
 
 static inline bool invoke_user_cb_fn(const camera_task_config_t* camera_config, const camera_fb_t* fb)
