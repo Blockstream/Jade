@@ -32,7 +32,7 @@
 
 #define WORDLIST_PASSPHRASE_MAX_WORDS 10
 
-#define BIP85_INDEX_MAX 65536
+#define BIP85_INDEX_MAX 1000000
 
 typedef enum { MNEMONIC_SIMPLE, MNEMONIC_ADVANCED, WORDLIST_PASSPHRASE } wordlist_purpose_t;
 
@@ -1528,42 +1528,35 @@ void handle_bip85_mnemonic()
     }
     JADE_ASSERT(nwords == 12 || nwords == 24);
 
-    // Fetch index
-    gui_view_node_t* textbox = NULL;
-    act = make_carousel_activity("Index #", NULL, &textbox);
-    JADE_ASSERT(textbox);
-    gui_set_current_activity(act);
+    // Fetch index (uses pin-entry screen)
+    pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
+    make_pin_insert_activity(&pin_insert, "BIP85", "Index #:");
+    JADE_ASSERT(pin_insert.activity);
 
     size_t index = 0;
-    char buf[8];
-    bool stop = false;
-    while (!stop) {
+    while (true) {
+        reset_pin(&pin_insert, "BIP85");
+        gui_set_current_activity(pin_insert.activity);
+        if (!run_pin_entry_loop(&pin_insert)) {
+            // User abandoned index entry
+            JADE_LOGI("User abandoned selecting index");
+            return;
+        }
+
+        // Get entered digits as single numeric value
+        index = get_pin_as_number(&pin_insert);
         JADE_ASSERT(index < BIP85_INDEX_MAX);
 
-        // Update current selection
+        // User to confirm
+        char buf[8];
         const int ret = snprintf(buf, sizeof(buf), "%u", index);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-        gui_update_text(textbox, buf);
-
-        // wait for a GUI event
-        int32_t ev_id;
-        gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-
-        switch (ev_id) {
-        case GUI_WHEEL_LEFT_EVENT:
-            // Avoid unsigned wrapping below zero
-            index = (index + BIP85_INDEX_MAX - 1) % BIP85_INDEX_MAX;
+        const char* message[] = { "BIP85 index selected:", buf };
+        if (await_continueback_activity("BIP85", message, 2, true, "blkstrm.com/bip85")) {
+            JADE_LOGI("BIP85 index number selected: %u", index);
             break;
-
-        case GUI_WHEEL_RIGHT_EVENT:
-            index = (index + 1) % BIP85_INDEX_MAX;
-            break;
-
-        default:
-            // Stop the loop on a 'click' event
-            stop = (ev_id == gui_get_click_event());
         }
-    } // while !stop
+    }
     JADE_ASSERT(index < BIP85_INDEX_MAX);
 
     // Generate bip39 mnemonic phrase from bip85 entropy
