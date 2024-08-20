@@ -38,6 +38,8 @@ typedef struct {
 // PIN entry
 #define PIN_SIZE 6
 
+enum pin_digit_initial_state { RANDOM, ZERO, POSITION };
+
 enum pin_digit_status {
     EMPTY,
     SELECTED,
@@ -52,6 +54,9 @@ typedef struct {
 } pin_digit_t;
 
 typedef struct {
+    const enum pin_digit_initial_state initial_state;
+    const bool pin_digits_shown;
+
     uint8_t pin[PIN_SIZE];
     enum pin_digit_status digit_status[PIN_SIZE];
 

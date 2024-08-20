@@ -74,7 +74,7 @@ static bool get_pin_get_aeskey(jade_process_t* process, const char* title, uint8
         msg = NULL;
     }
 
-    pin_insert_t pin_insert = {};
+    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = false };
     JADE_ASSERT(sizeof(pin_insert.pin) == pin_len);
     make_pin_insert_activity(&pin_insert, title, msg);
     JADE_ASSERT(pin_insert.activity);
@@ -119,7 +119,7 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
 
     // Enter PIN to lock mnemonic/key material.
     // In a debug unattended ci build, use hardcoded pin after a short delay
-    pin_insert_t pin_insert = {};
+    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = false };
     JADE_ASSERT(sizeof(pin_insert.pin) == pin_len);
     make_pin_insert_activity(&pin_insert, title, NULL);
     JADE_ASSERT(pin_insert.activity);

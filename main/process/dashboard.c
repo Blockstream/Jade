@@ -654,7 +654,7 @@ static void offer_jade_reset(void)
     const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm reset: %s", pinstr);
     JADE_ASSERT(ret > 0 && ret < sizeof(confirm_msg));
 
-    pin_insert_t pin_insert = {};
+    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = true };
     make_pin_insert_activity(&pin_insert, "Reset Jade", confirm_msg);
     JADE_ASSERT(pin_insert.activity);
     JADE_ASSERT(sizeof(num) == sizeof(pin_insert.pin));
@@ -1234,7 +1234,7 @@ static void set_wallet_erase_pin(void)
     JADE_LOGI("Requesting wallet-erase PIN");
 
     // Ask user to enter a wallet-erase pin
-    pin_insert_t pin_insert = {};
+    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = false };
     make_pin_insert_activity(&pin_insert, "Wallet-Erase PIN", "Different from main PIN");
     JADE_ASSERT(pin_insert.activity);
 

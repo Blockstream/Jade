@@ -14,7 +14,22 @@ static inline char get_pin_value(size_t index)
     return PIN_CHARS[index];
 }
 
-static inline uint8_t get_random_pin_digit(void) { return get_uniform_random_byte(NUM_PIN_VALUES); }
+static void reinitialise_current_pin_digit(pin_insert_t* pin_insert)
+{
+    JADE_ASSERT(pin_insert);
+
+    switch (pin_insert->initial_state) {
+    case ZERO:
+        pin_insert->current_selected_value = 0;
+        break;
+    case POSITION:
+        pin_insert->current_selected_value = pin_insert->selected_digit;
+        break;
+    default:
+        pin_insert->current_selected_value = get_uniform_random_byte(NUM_PIN_VALUES);
+        break;
+    }
+}
 
 static void update_digit_node(pin_insert_t* pin_insert, uint8_t i)
 {
@@ -41,7 +56,7 @@ static void update_digit_node(pin_insert_t* pin_insert, uint8_t i)
         gui_set_borders(pin_insert->pin_digit_nodes[i].fill_node, gui_get_highlight_color(), 2, GUI_BORDER_ALL);
         gui_update_text(pin_insert->pin_digit_nodes[i].up_arrow_node, "");
         gui_update_text(pin_insert->pin_digit_nodes[i].down_arrow_node, "");
-        strdigit[0] = '*';
+        strdigit[0] = pin_insert->pin_digits_shown ? PIN_CHARS[pin_insert->pin[i]] : '*';
         break;
     }
     gui_update_text(pin_insert->pin_digit_nodes[i].digit_node, strdigit);
@@ -75,7 +90,7 @@ void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const
     gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, toppad, lrpad, toppad + 8, lrpad);
     gui_set_parent(hsplit, vsplit);
 
-    pin_insert->current_selected_value = get_random_pin_digit();
+    reinitialise_current_pin_digit(pin_insert);
 
     for (size_t i = 0; i < PIN_SIZE; ++i) {
         pin_insert->pin[i] = 0xFF;
@@ -126,7 +141,7 @@ static bool next_selected_digit(pin_insert_t* pin_insert)
     // set the status and update the ui
     pin_insert->digit_status[pin_insert->selected_digit] = SET;
     update_digit_node(pin_insert, pin_insert->selected_digit);
-    pin_insert->selected_digit++;
+    ++pin_insert->selected_digit;
 
     // reached the last digit - cannot select next, return false
     if (pin_insert->selected_digit >= PIN_SIZE) {
@@ -136,7 +151,7 @@ static bool next_selected_digit(pin_insert_t* pin_insert)
     // set the status and update the ui
     pin_insert->digit_status[pin_insert->selected_digit] = SELECTED;
 
-    pin_insert->current_selected_value = get_random_pin_digit();
+    reinitialise_current_pin_digit(pin_insert);
     update_digit_node(pin_insert, pin_insert->selected_digit);
 
     return true;
@@ -156,8 +171,8 @@ static bool prev_selected_digit(pin_insert_t* pin_insert)
     pin_insert->digit_status[pin_insert->selected_digit] = EMPTY;
     update_digit_node(pin_insert, pin_insert->selected_digit);
 
-    pin_insert->selected_digit--;
-    pin_insert->current_selected_value = get_random_pin_digit();
+    --pin_insert->selected_digit;
+    reinitialise_current_pin_digit(pin_insert);
 
     // set the status and update the ui
     pin_insert->digit_status[pin_insert->selected_digit] = SELECTED;
@@ -212,7 +227,7 @@ void reset_pin(pin_insert_t* pin_insert, const char* title)
 
     // Select and re-randomise first digit
     pin_insert->selected_digit = 0;
-    pin_insert->current_selected_value = get_random_pin_digit();
+    reinitialise_current_pin_digit(pin_insert);
 
     // Mark all digits as unset
     for (size_t i = 0; i < PIN_SIZE; ++i) {
