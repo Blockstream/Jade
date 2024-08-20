@@ -1,57 +1,103 @@
 dependencies:
   espressif/button:
     component_hash: 1f5297fe16f0ee988dbb14b6f4c91782fe2baf85025bb15cc1e0093edd3fb2ee
+    dependencies:
+    - name: espressif/cmake_utilities
+      registry_url: https://components.espressif.com/
+      require: private
+      version: 0.*
+    - name: idf
+      require: private
+      version: '>=4.0'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 3.2.0
   espressif/cbor:
     component_hash: 440f4ee4504841cc9b4f3a8ef755776a612ac9dace355514c68b999868f990ff
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.3'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 0.6.0~1
   espressif/cmake_utilities:
     component_hash: 351350613ceafba240b761b4ea991e0f231ac7a9f59a9ee901f751bddc0bb18f
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.1'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 0.5.3
   espressif/esp32-camera:
     component_hash: a1933162caca04a3a3bb0dca00bb56fcb3c50cd3779ab2f2b03ad8536e9bd0d0
+    dependencies: []
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 2.0.9
   espressif/esp_lcd_touch:
     component_hash: d4d8f2dc33205797169a97a02e0d89a8982f59fe0509129b54422052b8522f59
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.4.2'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.1.1
   espressif/esp_lcd_touch_ft5x06:
     component_hash: 97759953d9436a365e9427078c5b04ecce4e6a50f50cf62c68cd6bfa229b812c
+    dependencies:
+    - name: espressif/esp_lcd_touch
+      registry_url: https://components.espressif.com/
+      require: public
+      version: ^1.0.4
+    - name: idf
+      require: private
+      version: '>=4.4.2'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.0.6
   espressif/libsodium:
     component_hash: f6e982479a2389cb6868e8fb761cf23aba6c355a8090b3e906299807775f58a3
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.2'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.0.20~1
   espressif/nghttp:
     component_hash: 5e55c2fc982f7ddd257818be86f50d60705f3fd3a39d709c399434e81d458e1e
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
     source:
-      service_url: https://api.components.espressif.com/
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.58.0
   idf:
-    component_hash: null
     source:
       type: idf
-    version: 5.2.2
-manifest_hash: 1f401b7d54241af8d239f02c75a6eb517e08370167ac71c0599b91f070c5fae8
+    version: 5.3.1
+direct_dependencies:
+- espressif/button
+- espressif/cbor
+- espressif/cmake_utilities
+- espressif/esp32-camera
+- espressif/esp_lcd_touch
+- espressif/esp_lcd_touch_ft5x06
+- espressif/libsodium
+- espressif/nghttp
+- idf
+manifest_hash: 1422119db248864a898f4cc58cc2aea55e85b1fca83cc8d4bd38c34e222dbf4f
 target: esp32
-version: 1.0.0
+version: 2.0.0
