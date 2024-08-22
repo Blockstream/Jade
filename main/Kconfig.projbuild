@@ -102,7 +102,8 @@ menu "Blockstream Jade"
         bool "Invert colors"
         default y if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE_V2 || \
             BOARD_TYPE_TTGO_TDISPLAY || BOARD_TYPE_M5_STICKC_PLUS || BOARD_TYPE_M5_STICKC_PLUS_2 || \
-            BOARD_TYPE_M5_FIRE || BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            BOARD_TYPE_M5_FIRE || BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || \
+            BOARD_TYPE_M5_BLACK_GRAY
         help
             Invert the colors in the dipslay. Some devices may have inverted colors depending on revision
 
