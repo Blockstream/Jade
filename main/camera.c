@@ -15,6 +15,21 @@
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
 
+#ifdef CONFIG_DEBUG_MODE
+// Debug/testing function to cache an image - the next time the camera is called
+// a frame is captured but is ignored/discarded and this image presented instead.
+// Call with NULL/0 to remove debug image.
+// NOTE: the image is not owned here.
+static const uint8_t* debug_image_data = NULL;
+void camera_set_debug_image(const uint8_t* data, const size_t len)
+{
+    JADE_ASSERT(!data == !len);
+    JADE_ASSERT(!len || len == CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT);
+    debug_image_data = data;
+}
+#endif
+
+#ifdef CONFIG_HAS_CAMERA
 // When the camera is running we ensure the timeout is at least this value
 // as we don't want the unit to shut down because of apparent inactivity.
 #define CAMERA_MIN_TIMEOUT_SECS 300
@@ -184,21 +199,6 @@ typedef struct {
     void* ctx;
 } camera_task_config_t;
 
-#ifdef CONFIG_DEBUG_MODE
-// Debug/testing function to cache an image - the next time the camera is called
-// a frame is captured but is ignored/discarded and this image presented instead.
-// Call with NULL/0 to remove debug image.
-// NOTE: the image is not owned here.
-static const uint8_t* debug_image_data = NULL;
-void camera_set_debug_image(const uint8_t* data, const size_t len)
-{
-    JADE_ASSERT(!data == !len);
-    JADE_ASSERT(!len || len == CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT);
-    debug_image_data = data;
-}
-#endif
-
-#ifdef CONFIG_HAS_CAMERA
 // Signal to the caller that we are done, and await our death
 static void post_exit_event_and_await_death(void)
 {
@@ -481,7 +481,6 @@ static void jade_camera_task(void* data)
     }
     post_exit_event_and_await_death();
 }
-#endif // CONFIG_HAS_CAMERA
 
 void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool show_ui, const char* text_label,
     const bool show_click_button, const qr_frame_guides_t qr_frame_guides, const char* help_url,
@@ -507,7 +506,6 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
         JADE_ASSERT(!progress_bar);
     }
 
-#ifdef CONFIG_HAS_CAMERA
     // Config for the camera task
     camera_task_config_t camera_config = { .show_ui = show_ui,
         .text_label = text_label,
@@ -548,10 +546,17 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
 
     // Remove the minimum idle timeout
     idletimer_set_min_timeout_secs(0);
+}
 
 #else // CONFIG_HAS_CAMERA
+
+void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool show_ui, const char* text_label,
+    const bool show_click_button, const qr_frame_guides_t qr_frame_guides, const char* help_url,
+    progress_bar_t* progress_bar)
+{
     JADE_LOGW("No camera supported for this device");
     const char* message[] = { "No camera detected" };
     await_error_activity(message, 1);
-#endif
 }
+
+#endif // CONFIG_HAS_CAMERA
