@@ -244,9 +244,9 @@ static bool handle_xpub_options(uint32_t* qr_flags)
     gui_activity_t* const act_wallettype = make_carousel_activity("Wallet Type", NULL, &wallet_textbox);
     gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
 
-    gui_view_node_t* account_textbox = NULL;
-    gui_activity_t* const act_account = make_carousel_activity("Account Index", NULL, &account_textbox);
-    gui_update_text(account_textbox, buf);
+    pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
+    make_pin_insert_activity(&pin_insert, "Account Index", "Enter index:");
+    JADE_ASSERT(pin_insert.activity);
 
     const uint32_t initial_flags = *qr_flags;
     while (true) {
@@ -294,24 +294,33 @@ static bool handle_xpub_options(uint32_t* qr_flags)
                 }
                 update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
             } else if (ev_id == BTN_XPUB_OPTIONS_ACCOUNT) {
-                gui_set_current_activity(act_account);
+
                 while (true) {
-                    rc = snprintf(buf, sizeof(buf), "%u", account_index);
-                    JADE_ASSERT(rc > 0 && rc < sizeof(buf));
-                    gui_update_text(account_textbox, buf);
-                    if (gui_activity_wait_event(act_account, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
-                            // Avoid unsigned wrapping below zero
-                            account_index = (account_index + ACCOUNT_INDEX_MAX - 1) % ACCOUNT_INDEX_MAX;
-                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            account_index = (account_index + 1) % ACCOUNT_INDEX_MAX;
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
+                    reset_pin(&pin_insert, NULL);
+                    gui_set_current_activity(pin_insert.activity);
+                    if (!run_pin_entry_loop(&pin_insert)) {
+                        // User abandoned index entry
+                        break;
+                    }
+
+                    // Get entered digits as single numeric value
+                    const uint32_t new_account_index = get_pin_as_number(&pin_insert);
+                    if (new_account_index < ACCOUNT_INDEX_MAX) {
+                        account_index = new_account_index;
+
+                        // Update the display
+                        const int ret = snprintf(buf, sizeof(buf), "%u", account_index);
+                        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+                        update_menu_item(account_item, "Account Index", buf);
+                        break;
+                    } else {
+                        // Show message and retry
+                        const int ret = snprintf(buf, sizeof(buf), "%u", ACCOUNT_INDEX_MAX);
+                        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+                        const char* message[] = { "Account index must", "be less than", buf };
+                        await_error_activity(message, 3);
                     }
                 }
-                update_menu_item(account_item, "Account Index", buf);
             } else if (ev_id == BTN_XPUB_OPTIONS_HELP) {
                 await_qr_help_activity("blkstrm.com/xpub");
             } else if (ev_id == BTN_XPUB_OPTIONS_EXIT) {
@@ -516,15 +525,10 @@ static bool handle_address_options(const bool show_account, uint16_t* account_in
     gui_activity_t* const act_options = make_search_address_options_activity(show_account, &account_item, &change_item);
     JADE_ASSERT(!account_item == !show_account);
 
-    gui_activity_t* act_account = NULL;
-    gui_view_node_t* account_textbox = NULL;
     if (account_item) {
         const int ret = snprintf(buf, sizeof(buf), "%u", *account_index);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
         update_menu_item(account_item, "Account Index", buf);
-
-        act_account = make_carousel_activity("Account Index", NULL, &account_textbox);
-        gui_update_text(account_textbox, buf);
     }
     update_menu_item(change_item, "Change", *is_change ? "Yes" : "No");
 
@@ -535,31 +539,40 @@ static bool handle_address_options(const bool show_account, uint16_t* account_in
         gui_set_current_activity(act_options);
         if (gui_activity_wait_event(act_options, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
 
-            if (ev_id == BTN_SCAN_ADDRESS_OPTIONS_ACCOUNT) {
-                gui_set_current_activity(act_account);
+            if (ev_id == BTN_SCAN_ADDRESS_OPTIONS_ACCOUNT && show_account) {
+                pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
+                make_pin_insert_activity(&pin_insert, "Account Index", "Enter index:");
+                JADE_ASSERT(pin_insert.activity);
+
                 while (true) {
-                    const int ret = snprintf(buf, sizeof(buf), "%u", *account_index);
-                    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-                    gui_update_text(account_textbox, buf);
-                    if (gui_activity_wait_event(act_account, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
-                            // Avoid unsigned wrapping below zero
-                            *account_index = (*account_index + ACCOUNT_INDEX_MAX - 1) % ACCOUNT_INDEX_MAX;
-                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            *account_index = (*account_index + 1) % ACCOUNT_INDEX_MAX;
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
+                    gui_set_current_activity(pin_insert.activity);
+                    if (!run_pin_entry_loop(&pin_insert)) {
+                        // User abandoned index entry
+                        break;
+                    }
+
+                    // Get entered digits as single numeric value
+                    uint32_t new_account_index = get_pin_as_number(&pin_insert);
+                    if (new_account_index < ACCOUNT_INDEX_MAX) {
+                        *account_index = new_account_index;
+
+                        // Update the display
+                        const int ret = snprintf(buf, sizeof(buf), "%u", *account_index);
+                        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+                        update_menu_item(account_item, "Account Index", buf);
+
+                        break;
+                    } else {
+                        const char* message[] = { "Invalid index", "Please try again" };
+                        await_message_activity(message, 2);
                     }
                 }
-                update_menu_item(account_item, "Account Index", buf);
             } else if (ev_id == BTN_SCAN_ADDRESS_OPTIONS_CHANGE) {
                 // Simple toggle
                 *is_change = !*is_change;
                 update_menu_item(change_item, "Change", *is_change ? "Yes" : "No");
             } else if (ev_id == BTN_SCAN_ADDRESS_OPTIONS_EXIT) {
-                // Exit optins screen
+                // Exit options screen
                 break;
             }
         }
@@ -568,7 +581,6 @@ static bool handle_address_options(const bool show_account, uint16_t* account_in
     // Return value indicates whether options were changed
     return *is_change != initial_change || *account_index != initial_account;
 }
-
 // Verify an address string by brute-forcing
 static bool verify_address(const address_data_t* const addr_data)
 {
