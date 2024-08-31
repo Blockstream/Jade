@@ -19,6 +19,15 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 * USB VendorID:1a86 ProductID:55d4 (Same as retail Jade)
 * Typically supports Secure Boot V2
 
+### TTGO (Lilygo) T-Display S3
+* [Vendor Product Page](https://www.lilygo.cc/products/t-display-s3)
+* ~$15 USD
+* Two button interface (Press both together to select)
+* No battery (No ability to monitor battery, even if one is added)
+* Base model has no case
+* USB VendorID:303a ProductID:4001 (Different to retail Jade, will require custom Electrum/HWI builds until they add support to these device IDs)
+* Typically supports Secure Boot V2
+  
 ### M5Stack M5StickC PLUS
 ![M5Stack M5StickC PLUS](img/M5StickCPlus.jpg)
 * [Vendor Product Page](https://shop.m5stack.com/collections/m5-controllers/products/m5stickc-plus-esp32-pico-mini-iot-development-kit)
