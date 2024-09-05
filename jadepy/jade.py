@@ -681,7 +681,7 @@ class JadeAPI:
             The number of words the entropy is required to produce.
 
         index : int
-            The index to use in the bip32 path to calcuate the entropy.
+            The index to use in the bip32 path to calculate the entropy.
 
         pubkey: 33-bytes
             The host ephemeral pubkey to use to generate a shared ecdh secret to use as an AES key
@@ -740,12 +740,12 @@ class JadeAPI:
 
     def reset_pinserver(self, reset_details, reset_certificate):
         """
-        RPC call to reset any formerly overidden pinserver details to their defauts.
+        RPC call to reset any formerly overridden pinserver details to their defaults.
 
         Parameters
         ----------
         reset_details : bool, optional
-            If set, any overidden urls and pubkey are reset to their defaults.
+            If set, any overridden urls and pubkey are reset to their defaults.
 
         reset_certificate : bool, optional
             If set, any additional certificate is reset (to None).
@@ -1612,7 +1612,7 @@ class JadeAPI:
                 is_witness, bool - whether this is a segwit input
                 script, bytes- the redeem script
                 path, [int] - the bip32 path to sign with
-                value_commitment, 33-bytes - The value commitment of ths input
+                value_commitment, 33-bytes - The value commitment of the input
 
                 This is optional if signing this input:
                 sighash, int - The sighash to use, defaults to 0x01 (SIGHASH_ALL)
