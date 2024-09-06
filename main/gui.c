@@ -263,7 +263,7 @@ void gui_init(TaskHandle_t* gui_h)
 
     // Create (high priority) gui task
     BaseType_t retval
-        = xTaskCreatePinnedToCore(gui_task, "gui", 8 * 1024, NULL, JADE_TASK_PRIO_GUI, gui_h, JADE_CORE_GUI);
+        = xTaskCreatePinnedToCore(gui_task, "gui", 3 * 1024, NULL, JADE_TASK_PRIO_GUI, gui_h, JADE_CORE_GUI);
     gui_task_handle = gui_h;
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create GUI task, xTaskCreatePinnedToCore() returned %d", retval);
 }
