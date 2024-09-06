@@ -58,15 +58,14 @@ static uint8_t buffer_selected = 0;
 static color_t* disp_buf = NULL;
 #if CONFIG_PIN_NUM_DATA0 != -1
 #define TRANSFER_BUFFER_LINES CONFIG_DISPLAY_HEIGHT
-#define TRANSFER_QUEUE_DEPTH 10
 #else // not i80, thus SPI - use fewer lines, save dram
 #define TRANSFER_BUFFER_LINES 8
-#define TRANSFER_QUEUE_DEPTH 10
 #endif // CONFIG_PIN_NUM_DATA0
 #else
 #define TRANSFER_BUFFER_LINES 1
-#define TRANSFER_QUEUE_DEPTH 64
 #endif // CONFIG_DISPLAY_FULL_FRAME_BUFFER
+
+#define TRANSFER_QUEUE_DEPTH 8
 
 #if defined(CONFIG_DISPLAY_FULL_FRAME_BUFFER) && !defined(CONFIG_DISPLAY_FULL_FRAME_BUFFER_DOUBLE)
 static bool color_trans_done(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t* edata, void* user_ctx)
