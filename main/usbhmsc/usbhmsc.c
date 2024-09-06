@@ -143,7 +143,6 @@ static void usbstorage_task(void* ignore)
     usb_flags = xEventGroupCreate();
     JADE_ASSERT(usb_flags);
 
-    /* FIXME: find the right stack size */
     const BaseType_t task_created = xTaskCreatePinnedToCore(
         handle_usb_events, "usb_events", 1024, NULL, JADE_TASK_PRIO_USB, &aux_task, JADE_CORE_SECONDARY);
     JADE_ASSERT(task_created == pdPASS);
@@ -259,9 +258,8 @@ bool usbstorage_start(void)
     JADE_ASSERT(!main_task);
     /* enable_usb_host(); */
     usbstorage_is_enabled = true;
-    /* FIXME: find the right stack size */
     const BaseType_t task_created = xTaskCreatePinnedToCore(
-        usbstorage_task, "usb_events", 2 * 1024, NULL, JADE_TASK_PRIO_USB, &main_task, JADE_CORE_SECONDARY);
+        usbstorage_task, "usb_storage", 2 * 1024, NULL, JADE_TASK_PRIO_USB, &main_task, JADE_CORE_SECONDARY);
     JADE_ASSERT(task_created == pdPASS);
     JADE_ASSERT(main_task);
     xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
