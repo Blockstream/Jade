@@ -23,7 +23,11 @@ def compress_to_bgr565(bmp_file):
         swapped_data.append(bgr565_data[i + 1])
         swapped_data.append(bgr565_data[i])
 
-    compressed_data = bytes([width]) + swapped_data
+    data_len = len(swapped_data)
+    assert data_len < 65536
+
+    data_len = data_len.to_bytes(2, 'little')
+    compressed_data = bytes([width]) + data_len + swapped_data
     compressed_data = zlib.compress(compressed_data, level=9)
     compressed_file = bmp_file.replace('.bmp', '.bin.gz')
     with open(compressed_file, "wb") as file:

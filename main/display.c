@@ -299,8 +299,10 @@ typedef struct {
     Icon* icon;
     Picture* pic;
     size_t written;
+    uint16_t allocated_size;
 } image_deflate_ctx_t;
 
+// Sanity checks
 #define MAX_FLASH_PICTURE_SIZE (198 * 62 * sizeof(uint16_t))
 #define MAX_FLASH_ICON_SIZE (200 * 200 / 8)
 
@@ -313,24 +315,46 @@ static int uncompressed_image_stream_writer(void* ctx, uint8_t* uncompressed, si
     image_deflate_ctx_t* const ictx = (image_deflate_ctx_t*)ctx;
 
     // Should be loading a picture or an icon, not both!
-    JADE_ASSERT((ictx->icon && ictx->icon->data) || (ictx->pic && ictx->pic->data_8));
-    JADE_ASSERT(!ictx->pic || !ictx->icon);
+    JADE_ASSERT(!ictx->icon != !ictx->pic);
 
-    const size_t max_image_size = ictx->icon ? MAX_FLASH_ICON_SIZE : MAX_FLASH_PICTURE_SIZE;
-    if (towrite + ictx->written > max_image_size + 1) { // +1 for the prefixed width byte
-        // larger than we want to handle
+    if (!ictx->written) {
+        // First iteration
+        JADE_ASSERT(towrite >= 3); // Assume can read at least 3 bytes
+        JADE_ASSERT(!ictx->allocated_size);
+
+        // NOTE: first byte in uncompressed stream is image width
+
+        // Extract next two bytes to get image data length (little-endian)
+        ictx->allocated_size = uncompressed[1] + (uncompressed[2] << 8);
+        const size_t max_allowed_size = ictx->icon ? MAX_FLASH_ICON_SIZE : MAX_FLASH_PICTURE_SIZE;
+        if (!ictx->allocated_size || ictx->allocated_size > max_allowed_size) {
+            // larger than we want to handle
+            return DEFLATE_ERROR;
+        }
+
+        // Allocate appropriate data buffer and set image width
+        if (ictx->icon) {
+            JADE_ASSERT(!ictx->icon->data);
+            ictx->icon->data = JADE_MALLOC_PREFER_SPIRAM(ictx->allocated_size);
+            ictx->icon->width = uncompressed[0];
+        } else {
+            JADE_ASSERT(!ictx->pic->data_8);
+            ictx->pic->data_8 = JADE_MALLOC_PREFER_SPIRAM(ictx->allocated_size);
+            ictx->pic->width = uncompressed[0];
+        }
+
+        // Count bytes read and bump read pointer
+        towrite -= 3;
+        uncompressed += 3;
+    }
+
+    if (towrite + ictx->written > ictx->allocated_size) {
+        // larger than allocation
         return DEFLATE_ERROR;
     }
 
-    if (!ictx->written) {
-        // First iteration, extract first byte from uncompressed stream to get the width
-        uint16_t* const width = ictx->icon ? &ictx->icon->width : (uint16_t*)&ictx->pic->width;
-        *width = uncompressed[0];
-        --towrite;
-        ++uncompressed;
-    }
-
     uint8_t* const dest = ictx->icon ? (uint8_t*)ictx->icon->data : ictx->pic->data_8;
+    JADE_ASSERT(dest);
 #ifdef CONFIG_IDF_TARGET_ESP32S3
     dsps_memcpy_aes3(dest + ictx->written, uncompressed, towrite);
 #else
@@ -339,6 +363,7 @@ static int uncompressed_image_stream_writer(void* ctx, uint8_t* uncompressed, si
     ictx->written += towrite;
     return DEFLATE_OK;
 }
+
 static void decompress_image(const uint8_t* const start, const uint8_t* const end, image_deflate_ctx_t* const ictx)
 {
     JADE_ASSERT(start);
@@ -351,6 +376,7 @@ static void decompress_image(const uint8_t* const start, const uint8_t* const en
     JADE_ASSERT(!dret);
     dret = dctx->write_compressed(dctx, (uint8_t*)start, compressed_size);
     JADE_ASSERT(!dret);
+    JADE_ASSERT(ictx->written == ictx->allocated_size);
     free(dctx);
 }
 
@@ -360,8 +386,8 @@ Picture* get_picture(const uint8_t* const start, const uint8_t* const end)
     JADE_ASSERT(end);
 
     // Setup for Picture load
-    image_deflate_ctx_t ictx = { .icon = NULL, .pic = JADE_MALLOC(sizeof(Picture)), .written = 0 };
-    ictx.pic->data_8 = JADE_MALLOC_PREFER_SPIRAM(MAX_FLASH_PICTURE_SIZE);
+    image_deflate_ctx_t ictx = { .icon = NULL, .pic = JADE_MALLOC(sizeof(Picture)), .written = 0, .allocated_size = 0 };
+    ictx.pic->data_8 = NULL;
     ictx.pic->bytes_per_pixel = 2;
     ictx.pic->width = 0;
     ictx.pic->height = 0;
@@ -375,6 +401,7 @@ Picture* get_picture(const uint8_t* const start, const uint8_t* const end)
     ictx.pic->height = ictx.written / (ictx.pic->width * ictx.pic->bytes_per_pixel);
     JADE_ASSERT(ictx.pic->height);
     JADE_ASSERT(ictx.pic->height * ictx.pic->width * ictx.pic->bytes_per_pixel == ictx.written);
+
     return ictx.pic;
 }
 
@@ -384,8 +411,8 @@ Icon* get_icon(const uint8_t* const start, const uint8_t* const end)
     JADE_ASSERT(end);
 
     // Setup for Icon load
-    image_deflate_ctx_t ictx = { .icon = JADE_MALLOC(sizeof(Icon)), .pic = NULL, .written = 0 };
-    ictx.icon->data = JADE_MALLOC_PREFER_SPIRAM(MAX_FLASH_ICON_SIZE);
+    image_deflate_ctx_t ictx = { .icon = JADE_MALLOC(sizeof(Icon)), .pic = NULL, .written = 0, .allocated_size = 0 };
+    ictx.icon->data = NULL;
     ictx.icon->width = 0;
     ictx.icon->height = 0;
     ictx.written = 0;
@@ -399,6 +426,7 @@ Icon* get_icon(const uint8_t* const start, const uint8_t* const end)
     ictx.icon->height = (ictx.written * 8) / ictx.icon->width;
     JADE_ASSERT(ictx.icon->height);
     JADE_ASSERT(ictx.icon->height * ictx.icon->width == ictx.written * 8);
+
     return ictx.icon;
 }
 

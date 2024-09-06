@@ -15,23 +15,22 @@ def extract_to_bmp(filename):
     decompressed_data = zlib.decompress(compressed_data)
 
     width = decompressed_data[0]
-
+    data_len = int.from_bytes(decompressed_data[1:3], 'little')
 
     swapped_pixel_data = bytearray()
-    for i in range(0, len(decompressed_data[1:]), 2):
-        swapped_pixel_data.append(decompressed_data[1:][i + 1])
-        swapped_pixel_data.append(decompressed_data[1:][i])
+    for i in range(0, len(decompressed_data[3:]), 2):
+        swapped_pixel_data.append(decompressed_data[3:][i + 1])
+        swapped_pixel_data.append(decompressed_data[3:][i])
+    assert len(swapped_pixel_data) == data_len
 
-    decompressed_data = bytes([width]) + swapped_pixel_data
-
-    num_pixels = (len(decompressed_data) - 1) // 2
+    num_pixels = len(swapped_pixel_data) // 2
     height = num_pixels // width
 
     image = Image.new("RGB", (width, height))
 
     pixels = image.load()
     for i in range(num_pixels):
-        offset = i * 2 + 1
+        offset = i * 2
         bgr_value = struct.unpack("<H", decompressed_data[offset:offset+2])[0]
 
         r = (bgr_value >> 11) << 3
