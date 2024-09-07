@@ -1455,6 +1455,58 @@ cleanup:
     SENSITIVE_POP(mnemonic);
 }
 
+static void mnemonic_export_bip85_qr(const char* mnemonic)
+{
+    JADE_ASSERT(mnemonic);
+
+    // CompactSeedQR is simply the mnemonic entropy
+    // Only 12 or 24 word mnemonics are supported (ie. 128 & 256 bit entropy)
+    size_t entropy_len = 0;
+    uint8_t entropy[BIP32_ENTROPY_LEN_256]; // Sufficient for 12 and 24 words
+    JADE_WALLY_VERIFY(bip39_mnemonic_to_bytes(NULL, mnemonic, entropy, sizeof(entropy), &entropy_len));
+    JADE_ASSERT(entropy_len == BIP32_ENTROPY_LEN_128 || entropy_len == BIP32_ENTROPY_LEN_256);
+
+    // Convert the entropy into a small (v1 or v2) qr-code
+    QRCode qrcode;
+    const uint8_t qrcode_version = entropy_len == BIP32_ENTROPY_LEN_128 ? 1 : 2;
+    uint8_t qrbuffer[96]; // underlying qrcode data/work area - opaque
+    JADE_ASSERT(sizeof(qrbuffer) > qrcode_getBufferSize(qrcode_version));
+    const int qret = qrcode_initBytes(&qrcode, qrbuffer, qrcode_version, ECC_LOW, entropy, entropy_len);
+    JADE_ASSERT(qret == 0);
+
+#if CONFIG_DISPLAY_WIDTH >= 480 && CONFIG_DISPLAY_HEIGHT >= 220
+    const uint8_t overview_scale = qrcode_version == 1 ? 9 : 8;
+#elif CONFIG_DISPLAY_WIDTH >= 320 && CONFIG_DISPLAY_HEIGHT >= 170
+    const uint8_t overview_scale = qrcode_version == 1 ? 7 : 6;
+#else
+    const uint8_t overview_scale = qrcode_version == 1 ? 5 : 4;
+#endif
+
+    // Make qr code icon as an overview image
+    Icon qr_overview;
+    qrcode_toIcon(&qrcode, &qr_overview, overview_scale);
+
+    // Show the overview QR
+    gui_activity_t* const act_overview_qr = make_export_qr_overview_activity(&qr_overview, true);
+    gui_set_current_activity(act_overview_qr);
+
+    // Wait for user input
+    int32_t ev_id;
+    while (true) {
+        if (gui_activity_wait_event(act_overview_qr, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            if (ev_id == BTN_QR_EXPORT_DONE || ev_id == BTN_QR_EXPORT_PREV) {
+                // We are done viewing the qr or user wants to go back
+                break;
+            }
+            // Ignore other button events
+        }
+    }
+
+    // Clean up
+    qrcode_freeIcon(&qr_overview);
+    gui_set_current_activity(NULL);
+}
+
 // Function to calculate a bip85 bip39 mnemonic phrase
 // Caller must free with 'wally_free_string()
 // NOTE: only the English wordlist is supported.
@@ -1559,7 +1611,11 @@ void handle_bip85_mnemonic()
     JADE_ASSERT(mnemonic_len < MNEMONIC_BUFLEN);
     SENSITIVE_PUSH(new_mnemonic, mnemonic_len);
 
-    // Display and confirm mnemonic phrase
+   // Display mnemonic as QR code
+    mnemonic_export_bip85_qr(new_mnemonic);
+    // Note: We ignore the return value of mnemonic_export_qr and proceed regardless
+
+    // Proceed with displaying and confirming mnemonic phrase
     if (display_confirm_mnemonic(nwords, new_mnemonic, mnemonic_len)) {
         const char* message[] = { "Recovery Phrase", "Confirmed" };
         await_message_activity(message, 2);
