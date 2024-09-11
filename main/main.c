@@ -79,7 +79,9 @@ void temp_stack_init(void);
 static void ensure_boot_flags(void)
 {
 #ifdef CONFIG_SECURE_BOOT
+#ifndef CONFIG_IDF_TARGET_ESP32S3
     esp_efuse_disable_basic_rom_console();
+#endif
     esp_efuse_disable_rom_download_mode();
 #endif
 }

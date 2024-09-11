@@ -11,6 +11,10 @@ TOOLPATH = os.path.dirname(os.path.abspath(__file__))
 DATAFILE = os.path.join(TOOLPATH, 'mkdefaults.dat.json')
 TEMPFILE = './sdkconfig.defaults.tmp'
 
+# Target chip
+CFG_TARGET = 'CONFIG_IDF_TARGET'
+target_chip = 'esp32'  # default
+
 # Load config updates
 with open(DATAFILE, 'r') as json_file:
     CFG_UPDATES = json.load(json_file)
@@ -47,13 +51,20 @@ with open(inputfilename, 'r') as infile, open(TEMPFILE, 'w') as outfile:
     # Copy the input file, filtering as necessary
     outfile.writelines(cfg for cfg in infile if cfg.strip() not in toremove)
 
-# Backup/remove existing sdkconfig files
+# Extract target chip
+with open(TEMPFILE, 'r') as f:
+    for cfg in f:
+        cfg = cfg.strip()
+        if cfg.startswith(CFG_TARGET + '='):
+            target_chip = cfg[len(CFG_TARGET) + 1:]
+
+# Backup existing sdkconfig.default file
 if os.path.isfile('./sdkconfig.defaults'):
     os.rename('./sdkconfig.defaults', './sdkconfig.defaults.orig')
-if os.path.isfile('./sdkconfig'):
-    os.remove('./sdkconfig')
 
 # Process tempfile with 'idf.py reconfigure write-defconfig' to create new sdkconfig.defaults
+subprocess.check_call(f'idf.py set-target {target_chip} && rm -f sdkconfig sdkconfig.defaults',
+                      shell=True)
 subprocess.check_call(f'idf.py -D SDKCONFIG_DEFAULTS="{TEMPFILE}" reconfigure save-defconfig',
                       shell=True)
 

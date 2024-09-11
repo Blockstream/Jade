@@ -96,6 +96,20 @@ prod_build_jade_v1_1_noradio:
   after_script:
     - mv build build_v1_1_noradio_prod
 
+prod_build_jade_v2:
+  before_script:
+    - cp production/sdkconfig_jade_v2s3_prod.defaults sdkconfig.defaults
+  extends: .test_build_template
+  after_script:
+    - mv build build_v2_prod
+
+prod_build_jade_v2_noradio:
+  before_script:
+    - cp production/sdkconfig_jade_v2s3_noradio_prod.defaults sdkconfig.defaults
+  extends: .test_build_template
+  after_script:
+    - mv build build_v2_noradio_prod
+
 smoketest_build_jade_v1_1:
   before_script:
     - cp production/sdkconfig_jade_v1_1_smoketest.defaults sdkconfig.defaults
@@ -123,6 +137,13 @@ test_build_jade_v1_1_ci:
   extends: .test_build_template
   after_script:
     - mv build build_jade_v1_1_ci
+
+test_build_jade_v2_ci:
+  before_script:
+    - cp configs/sdkconfig_jade_v2s3_ci.defaults sdkconfig.defaults
+  extends: .test_build_template
+  after_script:
+    - mv build build_jade_v2_ci
 
 test_build_jade:
   extends: .test_build_template
@@ -264,6 +285,13 @@ test_build_jade_v1_1_noblobs_ci:
   after_script:
     - mv build build_jade_v1_1_noblobs_ci
 
+test_build_jade_v2_noblobs_ci:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_v2s3_noradio_ci.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_v2_noblobs_ci
+
 test_build_jade_noblobs:
   extends: .test_build_template
   before_script:
@@ -278,6 +306,13 @@ test_build_jade_v1_1_noblobs:
   after_script:
     - mv build build_jade_v1_1_noblobs
 
+test_build_jade_v2_noblobs:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_v2s3_noradio.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_v2_noblobs
+
 test_build_jade_noblobs_ndebug:
   extends: .test_build_template
   before_script:
@@ -291,6 +326,13 @@ test_build_jade_v1_1_noblobs_ndebug:
     - cp configs/sdkconfig_jade_v1_1_noradio_ndebug.defaults sdkconfig.defaults
   after_script:
     - mv build build_jade_v1_1_noblobs_ndebug
+
+test_build_jade_v2_noblobs_ndebug:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_jade_v2s3_noradio_ndebug.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_jade_v2_noblobs_ndebug
 
 test_flash_qemu:
   stage: deploy
