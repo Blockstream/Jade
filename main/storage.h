@@ -79,6 +79,9 @@ uint8_t storage_get_brightness(void);
 bool storage_set_gui_flags(uint8_t color);
 uint8_t storage_get_gui_flags(void);
 
+bool storage_set_custom_theme_color(uint16_t color);
+uint16_t storage_get_custom_theme_color(void);
+
 bool storage_set_ble_flags(uint8_t flags);
 uint8_t storage_get_ble_flags(void);
 

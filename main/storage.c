@@ -38,6 +38,8 @@ static const char* GUI_FLAGS_FIELD = "guiflags";
 static const char* BLE_FLAGS_FIELD = "bleflags";
 static const char* QR_FLAGS_FIELD = "qrflags";
 
+static const char* CUSTOM_THEME_COLOR_FIELD = "customtheme";
+
 // Deprecated/removed keys
 static const char* CLICK_EVENT_FIELD = "clickevent";
 
@@ -627,6 +629,19 @@ uint8_t storage_get_gui_flags(void)
 {
     uint8_t gui_flags = 0;
     return read_blob_fixed(DEFAULT_NAMESPACE, GUI_FLAGS_FIELD, &gui_flags, sizeof(gui_flags)) ? gui_flags : 0;
+}
+
+
+
+bool storage_set_custom_theme_color(uint16_t color) {
+
+    return store_blob(DEFAULT_NAMESPACE, CUSTOM_THEME_COLOR_FIELD, (const uint8_t*)&color, sizeof(color));
+}
+
+uint16_t storage_get_custom_theme_color(void) {
+    uint16_t color = 0;
+
+    return read_blob_fixed(DEFAULT_NAMESPACE, CUSTOM_THEME_COLOR_FIELD, (uint8_t*)&color, sizeof(color)) ? color : 0;
 }
 
 bool storage_set_ble_flags(uint8_t flags)

@@ -1937,6 +1937,7 @@ static void handle_custom_theme(void) {
             if (ev_id == BTN_THEME_SAVE) {
                 // Save the current color combination as the custom theme color
                 CUSTOM_THEME_COLOR = (red << 16) | (green << 8) | blue;
+                storage_set_custom_theme_color(CUSTOM_THEME_COLOR);
                 break;
             } else if (ev_id == BTN_SETTINGS_CUSTOM_THEME_EXIT) {
                 // Exit the custom theme screen

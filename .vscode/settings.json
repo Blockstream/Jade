@@ -3,5 +3,8 @@
     "idf.port": "/dev/ttyACM0",
     "idf.openOcdConfigs": [
         "board/esp32s3-builtin.cfg"
-    ]
+    ],
+    "files.associations": {
+        "storage.h": "c"
+    }
 }

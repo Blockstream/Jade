@@ -44,7 +44,8 @@ const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE = 0xE0D3;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE = 0xD318;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY = 0xA210;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY = 0xB294;
-color_t CUSTOM_THEME_COLOR = 0xE010;
+color_t CUSTOM_THEME_COLOR = 0x4c04;
+
 
 typedef struct _activity_holder_t activity_holder_t;
 struct _activity_holder_t {
@@ -110,6 +111,10 @@ extern const uint8_t statusbar_logo_end[] asm("_binary_statusbar_large_bin_gz_en
 extern const uint8_t statusbar_logo_start[] asm("_binary_statusbar_small_bin_gz_start");
 extern const uint8_t statusbar_logo_end[] asm("_binary_statusbar_small_bin_gz_end");
 #endif
+
+void initialize_custom_theme_color(void) {
+    CUSTOM_THEME_COLOR = storage_get_custom_theme_color();
+}
 
 static void make_status_bar(void)
 {
