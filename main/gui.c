@@ -44,6 +44,7 @@ const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE = 0xE0D3;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE = 0xD318;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY = 0xA210;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY = 0xB294;
+color_t CUSTOM_THEME_COLOR = 0xE010;
 
 typedef struct _activity_holder_t activity_holder_t;
 struct _activity_holder_t {
@@ -220,8 +221,11 @@ void gui_set_highlight_color(const uint8_t theme)
     case 4:
         gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY;
         break;
+    case 5:
+        gui_highlight_color = CUSTOM_THEME_COLOR; //custom theme
+        break;
     default:
-        gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT; // jade green
+        gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT; //jade green
         break;
     }
 }

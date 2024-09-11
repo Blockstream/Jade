@@ -398,6 +398,7 @@ gui_activity_t* make_prefs_settings_activity(const bool initialised_and_locked, 
     return make_menu_activity("Settings", hdrbtns, 2, menubtns, 3);
 }
 
+
 gui_activity_t* make_display_settings_activity(void)
 {
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_DISPLAY_EXIT },
@@ -422,11 +423,47 @@ gui_activity_t* make_display_settings_activity(void)
 #else // DIY units
     btn_data_t menubtns[]
         = { { .txt = "Flip Orientation", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_ORIENTATION },
-              { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
-    const size_t num_menubtns = 2;
+              { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME }, 
+              { .txt = "Create Custom Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_CREATE_CUSTOM_THEME } };
+    const size_t num_menubtns = 3;
 #endif
 
     return make_menu_activity("Display", hdrbtns, 2, menubtns, num_menubtns);
+}
+
+void create_color_button_and_textbox(gui_view_node_t** textbox, const char* color_name, color_t color, gui_view_node_t* parent, uint32_t ev_id) {
+    gui_make_text(textbox, color_name, TFT_WHITE);
+    gui_set_align(*textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_margins(*textbox, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 0);
+    gui_set_borders(*textbox, color, 1, GUI_BORDER_ALL);
+    gui_set_colors(*textbox, color, TFT_LIGHTGREY);
+    
+    btn_data_t button_data = { .content = *textbox, .font = GUI_DEFAULT_FONT, .ev_id = ev_id };
+    add_button(parent, &button_data);
+}
+
+gui_activity_t* make_custom_theme_activity(gui_view_node_t** red_textbox, gui_view_node_t** green_textbox, gui_view_node_t** blue_textbox) {
+    JADE_INIT_OUT_PPTR(red_textbox);
+    JADE_INIT_OUT_PPTR(green_textbox);
+    JADE_INIT_OUT_PPTR(blue_textbox);
+
+    btn_data_t hdrbtns[] = { 
+        { .txt = "Save", .font = GUI_DEFAULT_FONT, .ev_id = BTN_THEME_SAVE }, 
+        { .txt = "Exit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_CUSTOM_THEME_EXIT } 
+    };
+
+    gui_activity_t* act = gui_make_activity();
+    gui_view_node_t* parent = add_title_bar(act, "Custom", hdrbtns, 2, NULL);
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 33, 33, 33);
+    gui_set_parent(vsplit, parent);
+
+    create_color_button_and_textbox(red_textbox, "Red   {0}", TFT_RED, vsplit, BTN_COLOR_RED);
+    create_color_button_and_textbox(green_textbox, "Green {0}", TFT_GREEN, vsplit, BTN_COLOR_GREEN);
+    create_color_button_and_textbox(blue_textbox, "Blue  {0}", TFT_BLUE, vsplit, BTN_COLOR_BLUE);
+
+    return act;
 }
 
 gui_activity_t* make_authentication_activity(const bool initialised_and_pin_unlocked)

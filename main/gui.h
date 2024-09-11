@@ -20,6 +20,7 @@ extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY;
+extern color_t CUSTOM_THEME_COLOR;
 
 // -------------- Configuration -----------------
 
@@ -49,7 +50,7 @@ extern uint8_t GUI_DEFAULT_FONT;
 #define GUI_SPLIT_FILL_REMAINING 0xFF
 
 // Number of GUI themes
-#define GUI_NUM_DISPLAY_THEMES 5
+#define GUI_NUM_DISPLAY_THEMES 6
 
 // Bits used to enable or disable a border
 #define GUI_BORDER_TOP_BIT 0
