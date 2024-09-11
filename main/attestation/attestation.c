@@ -560,11 +560,11 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
             JADE_LOGW("eFuse ds key write failed as already written - ignoring");
         } else {
             JADE_LOGE("eFuse ds key write failed: %d", err);
-            return false;
+            goto cleanup;
         }
 #else
         JADE_LOGE("eFuse ds key write failed: %d", err);
-        return false;
+        goto cleanup;
 #endif
     }
 
