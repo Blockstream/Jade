@@ -61,6 +61,21 @@ void offer_startup_options(void);
 void dashboard_process(void* process_ptr);
 void temp_stack_init(void);
 
+// CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS is an insecure flag which atm we only expect to be
+// set for JADEv2 in order to support initialising the attestation functionality with secure-boot
+// enabled.  The provisioning process means this setup is made secure before leaving the factory.
+// To enable attestation with secure-boot in a diy scenario this check must be skipped, but it is
+// incumbent on the diy-developer to ensure the attestation initialisation is run successfully to
+// completion (after the first boot) and the hw unit made secure before it is used.
+// (The unit cannot be considered secure until esp_efuse_write_field_bit(ESP_EFUSE_WR_DIS_RD_DIS) has
+// been called, once all the read-protected efuse keys have been programmed.  [This prevents marking
+// any further efuses as un-readable.])
+// See: https://docs.espressif.com/projects/esp-idf/en/v5.3.1/esp32s3/security/secure-boot-v2.html
+//  #restrictions-after-secure-boot-is-enabled
+#if defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS) && !defined(CONFIG_BOARD_TYPE_JADE_V2)
+#error "Error, insecure flag CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS set"
+#endif
+
 static void ensure_boot_flags(void)
 {
 #ifdef CONFIG_SECURE_BOOT

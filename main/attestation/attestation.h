@@ -10,6 +10,8 @@
 #define JADE_ATTEST_RSA_PUBKEY_PEM_MAX_LEN 832 // usually 800
 #define JADE_ATTEST_RSA_PRIVKEY_PEM_MAX_LEN 3264 // usually 3243 or 3247
 
+bool attestation_can_be_initialised(void);
+
 bool attestation_initialised(void);
 
 bool attestation_initialise(const char* privkey_pem, size_t privkey_pem_len, const char* ext_pubkey_pem,

@@ -58,6 +58,11 @@ void sign_attestation_process(void* process_ptr)
     GET_MSG_PARAMS(process);
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
+    if (!attestation_initialised()) {
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Attestation data not initialised", NULL);
+        goto cleanup;
+    }
+
     const uint8_t* challenge = NULL;
     size_t challenge_len = 0;
     rpc_get_bytes_ptr("challenge", &params, &challenge, &challenge_len);
@@ -81,8 +86,8 @@ void sign_attestation_process(void* process_ptr)
 
     JADE_LOGI("Success");
 #else // CONFIG_IDF_TARGET_ESP32S3
-    jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Remote attestation not supported", NULL);
-    const char* message[] = { "Remote attestation not supported" };
+    jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Attestation not supported", NULL);
+    const char* message[] = { "Attestation not supported" };
     await_error_activity(message, 1);
 #endif // CONFIG_IDF_TARGET_ESP32S3
 

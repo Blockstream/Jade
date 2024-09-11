@@ -29,7 +29,8 @@
 #endif
 
 // A genuine production v2 Jade may be awaiting mandatory attestation data
-#if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)
+#if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)                                                  \
+    && defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS)
 #include "attestation/attestation.h"
 static inline bool awaiting_attestation_data(void) { return !attestation_initialised(); }
 #else

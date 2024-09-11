@@ -9,6 +9,7 @@
 
 #include <esp_ds.h>
 #include <esp_efuse.h>
+#include <esp_efuse_table.h>
 #include <esp_err.h>
 #include <esp_partition.h>
 
@@ -21,9 +22,15 @@
 #include <string.h>
 
 // NOTE: these two params indicate the same efuse and so must be kept in
-// lock-step - KEY0==ID0, KEY0==ID0, etc. [id = fuse-4? undocumented ...]
-#define JADE_ATTEST_EFUSE EFUSE_BLK_KEY0
-#define JADE_ATTEST_HMAC_EFUSE_ID 0
+// lock-step - KEY0==ID0, KEY1==ID1, etc.
+// [id = EFUSE_BLK_KEY<N> - EFUSE_BLK_KEY0 ]
+// NOTE: it appears:
+// EFUSE_BLK_KEY0 - used by Secure Boot (V2)
+// [if we were using multiple digests, KEY1, KEY2 etc. also ?]
+// EFUSE_BLK_KEY1 - used by Flash-Encryption (as atm we only use one for SB)
+// Probably safer to use the last available key, KEY5
+#define JADE_ATTEST_EFUSE EFUSE_BLK_KEY5
+#define JADE_ATTEST_HMAC_EFUSE_ID (JADE_ATTEST_EFUSE - EFUSE_BLK_KEY0)
 
 #ifdef CONFIG_DEBUG_MODE
 #define ALLOW_REINITIALISE 1
@@ -419,13 +426,47 @@ static void rsa_ctx_to_ds_params(mbedtls_rsa_context* rsa, esp_ds_p_data_t* para
     mbedtls_mpi_free(&rinv);
 }
 
+bool attestation_can_be_initialised(void)
+{
+    // Check efuse is currently unused (ie. 'user', [or already set if in dev mode])
+    const esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(JADE_ATTEST_EFUSE);
+#ifdef ALLOW_REINITIALISE
+    if (purpose != ESP_EFUSE_KEY_PURPOSE_USER && purpose != ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE) {
+        return false;
+    }
+#else
+    if (purpose != ESP_EFUSE_KEY_PURPOSE_USER) {
+        return false;
+    }
+#endif
+
+    // Check efuse is both readable and writable
+    if (esp_efuse_get_key_dis_read(JADE_ATTEST_EFUSE) || esp_efuse_get_key_dis_write(JADE_ATTEST_EFUSE)) {
+        return false;
+    }
+
+    // Check efuses can still be made read-only
+    if (esp_efuse_read_field_bit(ESP_EFUSE_WR_DIS_RD_DIS)) {
+        return false;
+    }
+
+    return true;
+}
+
 bool attestation_initialised(void)
 {
-    // Check efuse
+    // Check efuse is set to expected purpose
     const esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(JADE_ATTEST_EFUSE);
     if (purpose != ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE) {
         return false;
     }
+
+#ifndef ALLOW_REINITIALISE
+    // Check efuse is neither readable nor writable
+    if (!esp_efuse_get_key_dis_read(JADE_ATTEST_EFUSE) || !esp_efuse_get_key_dis_write(JADE_ATTEST_EFUSE)) {
+        return false;
+    }
+#endif
 
     // Check saved attestation data
     attestation_data_t attestation_data = {};
@@ -449,22 +490,9 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
     JADE_ASSERT(ext_signature);
     JADE_ASSERT(ext_signature_len);
 
-    // Check to see if relevant efuse already written
-    const esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(JADE_ATTEST_EFUSE);
-    if (purpose == ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE) {
-        // Pubkey/hmac efuse already written
-        JADE_LOGE("Attestation initialisation attempted but efuse/parameters already initialised");
-#ifdef ALLOW_REINITIALISE
-        JADE_LOGE("Reinitialising enabled, continuing ...");
-    } else
-#else
-        return false;
-    }
-#endif
-
-        if (purpose != ESP_EFUSE_KEY_PURPOSE_USER) {
-        // Appears to be used for some other purpose!
-        JADE_LOGE("Attestation efuse %u already has unexpected purpose %u!", JADE_ATTEST_EFUSE, purpose);
+    // Check parameters initialised
+    if (!attestation_can_be_initialised()) {
+        JADE_LOGE("Attestation data not able to be initialised");
         return false;
     }
 
@@ -550,7 +578,7 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
 
     // Only burn the hmac key into the efuse when the above has all succeeded
     JADE_LOGW("Burning attestation hmac_key into efuse %u", JADE_ATTEST_HMAC_EFUSE_ID);
-    const esp_err_t err = esp_efuse_write_key(
+    esp_err_t err = esp_efuse_write_key(
         JADE_ATTEST_EFUSE, ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE, hmac_key, sizeof(hmac_key));
 
     if (err != ESP_OK) {
@@ -567,6 +595,16 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
         goto cleanup;
 #endif
     }
+
+#if defined(CONFIG_SECURE_BOOT) && defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS)
+    // Attestation initialised, now need to burn delayed secure-boot
+    // efuse which prevents making any more efuses read-only.
+    err = esp_efuse_write_field_bit(ESP_EFUSE_WR_DIS_RD_DIS);
+    if (err != ESP_OK) {
+        JADE_LOGE("Failed to burn disable-read-protection single-bit efuse");
+        return false;
+    }
+#endif
 
     // All good
     JADE_LOGI("Attestation parameters initialised");
@@ -593,17 +631,9 @@ bool attestation_sign_challenge(const uint8_t* challenge, const size_t challenge
     JADE_ASSERT(ext_signature_len);
     JADE_INIT_OUT_SIZE(ext_sig_written);
 
-    // Check to see if relevant efuse already written
-    const esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(JADE_ATTEST_EFUSE);
-
-    if (purpose == ESP_EFUSE_KEY_PURPOSE_USER) {
-        // Pubkey/hmac efuse not yet written
-        JADE_LOGE("Attestation attempted but efuse/parameters not initialised");
-        return false;
-    }
-    if (purpose != ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE) {
-        // Appears to be used for some other purpose!
-        JADE_LOGE("Attestation efuse %u has unexpected purpose %u!", JADE_ATTEST_EFUSE, purpose);
+    // Check to see if attestation data initialised
+    if (!attestation_initialised()) {
+        JADE_LOGE("Attestation data not properly initialised");
         return false;
     }
 

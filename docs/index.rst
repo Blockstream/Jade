@@ -193,7 +193,7 @@ NOTE: this call is only supported by ESP32S3-based hw units.
         }
     }
 
-* NOTE: 'challenge' will be hased with SHA256 and padded according to PKCS1v1.5 before being signed.
+* NOTE: 'challenge' will be hashed with SHA256 and padded according to PKCS1v1.5 before being signed.
 
 .. _sign_attestation_reply:
 
