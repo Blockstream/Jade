@@ -179,6 +179,8 @@ gui_activity_t* make_uninitialised_settings_activity(void);
 gui_activity_t* make_locked_settings_activity(void);
 gui_activity_t* make_unlocked_settings_activity(void);
 
+gui_activity_t* make_custom_theme_activity(gui_view_node_t** red_textbox, gui_view_node_t** green_textbox, gui_view_node_t** blue_textbox);
+
 gui_activity_t* make_wallet_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
 gui_activity_t* make_usbstorage_settings_activity(bool unlocked);
@@ -1823,7 +1825,7 @@ static void update_home_screen_item_highlight_color(gui_view_node_t* item)
 static void handle_display_theme(void)
 {
     static const char* THEME_NAMES[GUI_NUM_DISPLAY_THEMES]
-        = { "Jade Green", "Bitcoin Orange", "Liquid Blue", "Cypherpunk Black", "Open-Source Opal" };
+        = { "Jade Green", "Bitcoin Orange", "Liquid Blue", "Cypherpunk Black", "Open-Source Opal", "Custom Theme" };
     JADE_ASSERT(GUI_NUM_DISPLAY_THEMES < GUI_FLAGS_THEMES_MASK);
 
     const uint8_t initial_gui_flags = storage_get_gui_flags();
@@ -1875,6 +1877,87 @@ static void handle_display_theme(void)
         update_home_screen_item_highlight_color(home_screen_selected_entry.text);
     }
 }
+
+
+
+void generate_color_string(char* buffer, size_t size, const char* color_name, int color_value) {
+    snprintf(buffer, size, "%s{%d}", color_name, color_value);
+}
+
+void handle_color_activity(const char* color_name, int* color, gui_view_node_t* color_text, gui_activity_t* parent_act) {
+    gui_view_node_t* color_c_text = NULL;
+    char color_str[20];
+    generate_color_string(color_str, sizeof(color_str), color_name, *color);
+
+    gui_activity_t* act = make_carousel_activity(color_name, NULL, &color_c_text);
+    gui_update_text(color_c_text, color_str);
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    while (gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+            *color = (*color - 8 + 256) % 256;
+        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+            *color = (*color + 8) % 256;
+        } else if (ev_id == gui_get_click_event()) {
+            break;
+        }
+
+        // Update color string and repaint
+        generate_color_string(color_str, sizeof(color_str), color_name, *color);
+        gui_update_text(color_c_text, color_str);
+        gui_repaint(color_c_text->parent);
+    }
+
+    // Update the original color text and return to the main activity
+    gui_update_text(color_text, color_str);
+    gui_set_current_activity(parent_act);
+}
+
+// Main custom theme handler
+static void handle_custom_theme(void) {
+    gui_view_node_t* red_text = NULL;
+    gui_view_node_t* green_text = NULL;
+    gui_view_node_t* blue_text = NULL;
+    
+    int red = 0, green = 0, blue = 0;
+    char red_text_str[20], green_text_str[20], blue_text_str[20];
+
+    generate_color_string(red_text_str, sizeof(red_text_str), "Red", red);
+    generate_color_string(green_text_str, sizeof(green_text_str), "Green", green);
+    generate_color_string(blue_text_str, sizeof(blue_text_str), "Blue", blue);
+
+    gui_activity_t* act = make_custom_theme_activity(&red_text, &green_text, &blue_text);
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+        bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        if (ret) {
+            if (ev_id == BTN_THEME_SAVE) {
+                // Save the current color combination as the custom theme color
+                CUSTOM_THEME_COLOR = (red << 16) | (green << 8) | blue;
+                storage_set_custom_theme_color(CUSTOM_THEME_COLOR);
+                break;
+            } else if (ev_id == BTN_SETTINGS_CUSTOM_THEME_EXIT) {
+                // Exit the custom theme screen
+                break;
+            } else if (ev_id == BTN_COLOR_RED) {
+                // Handle red color adjustment
+                handle_color_activity("Red", &red, red_text, act);
+            } else if (ev_id == BTN_COLOR_GREEN) {
+                // Handle green color adjustment
+                handle_color_activity("Green", &green, green_text, act);
+            } else if (ev_id == BTN_COLOR_BLUE) {
+                // Handle blue color adjustment
+                handle_color_activity("Blue", &blue, blue_text, act);
+            }
+        }
+    }
+}
+
+
+
 
 static void handle_flip_orientation(void)
 {
@@ -2190,6 +2273,10 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_DISPLAY:
             // Change to 'Device' menu
             act = make_display_settings_activity();
+            break;
+        case  BTN_SETTINGS_CREATE_CUSTOM_THEME:
+            // Change to 'Create Custom Theme' menu
+            handle_custom_theme();
             break;
 
         case BTN_SETTINGS_AUTHENTICATION:

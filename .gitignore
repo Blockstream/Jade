@@ -12,3 +12,5 @@ tools/bsdiff
 .idea/
 managed_components/
 .DS_Store
+.vscode/
+dependencies.lock.esp32s3

@@ -20,6 +20,7 @@ extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY;
+extern color_t CUSTOM_THEME_COLOR;
 
 // -------------- Configuration -----------------
 
@@ -49,7 +50,7 @@ extern uint8_t GUI_DEFAULT_FONT;
 #define GUI_SPLIT_FILL_REMAINING 0xFF
 
 // Number of GUI themes
-#define GUI_NUM_DISPLAY_THEMES 5
+#define GUI_NUM_DISPLAY_THEMES 6
 
 // Bits used to enable or disable a border
 #define GUI_BORDER_TOP_BIT 0
@@ -398,6 +399,8 @@ typedef struct {
     gui_activity_t* last_activity;
     gui_view_node_t* last_activity_next_button;
 } linked_activities_info_t;
+
+void initialize_custom_theme_color(void);
 
 gui_event_t gui_get_click_event(void);
 void gui_set_click_event(bool use_wheel_click);
