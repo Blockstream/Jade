@@ -192,25 +192,9 @@ static void axp2101_init(void)
 
 esp_err_t power_init(void)
 {
+    I2C_CHECK_RET(_power_i2c_init());
 
-    const i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = CONFIG_I2C_SDA,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_io_num = CONFIG_I2C_SCL,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = 400000,
-        .clk_flags = 0,
-    };
-
-    I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
-    I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
-
-    // Create i2c mutex semaphore
-    i2c_mutex = xSemaphoreCreateMutex();
-    JADE_ASSERT(i2c_mutex);
-
-    //   _power_enable_coulomb_counter();
+    // _power_enable_coulomb_counter();
     axp2101_init();
 
     vTaskDelay(100 / portTICK_PERIOD_MS);

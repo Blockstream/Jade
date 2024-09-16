@@ -3,28 +3,7 @@
 #include "power/i2c.inc"
 #include <esp_sleep.h>
 
-esp_err_t power_init(void)
-{
-
-    const i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = CONFIG_IP5306_SDA,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_io_num = CONFIG_IP5306_SCL,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = 400000,
-        .clk_flags = 0,
-    };
-
-    I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
-    I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
-
-    // Create i2c mutex semaphore
-    i2c_mutex = xSemaphoreCreateMutex();
-    JADE_ASSERT(i2c_mutex);
-
-    return ESP_OK;
-}
+esp_err_t power_init(void) { return _power_i2c_init(); }
 
 esp_err_t power_shutdown(void)
 {

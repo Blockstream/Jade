@@ -110,21 +110,8 @@ void usb_detection_task(void* param)
 // Exported funtions
 esp_err_t power_init(void)
 {
-    const i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = CONFIG_I2C_SDA,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_io_num = CONFIG_I2C_SCL,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = 100000,
-        .clk_flags = 0,
-    };
-    I2C_CHECK_RET(i2c_param_config(I2C_BATTERY_PORT, &conf));
-    I2C_CHECK_RET(i2c_driver_install(I2C_BATTERY_PORT, conf.mode, 0, 0, 0));
+    I2C_CHECK_RET(_power_i2c_init());
 
-    // Create i2c mutex semaphore
-    i2c_mutex = xSemaphoreCreateMutex();
-    JADE_ASSERT(i2c_mutex);
     usb_semaphore = xSemaphoreCreateBinary();
     JADE_ASSERT(usb_semaphore);
 
