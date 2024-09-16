@@ -8,8 +8,8 @@
 static volatile bool shutdown_requested = false;
 static volatile bool shutdown_finished = false;
 
-esp_err_t _i2c_init_master(i2c_port_t port_num, int sda_io_num, int scl_io_num, uint32_t clk_speed);
-esp_err_t _i2c_deinit(i2c_port_t port_num);
+esp_err_t _i2c_init_master(i2c_port_t port_num, int sda_io_num, int scl_io_num, i2c_master_bus_handle_t* handle);
+esp_err_t _i2c_deinit(i2c_master_bus_handle_t handle);
 
 static void touchscreen_task(void* ignored)
 {
@@ -31,8 +31,9 @@ static void touchscreen_task(void* ignored)
         },
     };
 
-    ESP_ERROR_CHECK(
-        _i2c_init_master(CONFIG_DISPLAY_TOUCHSCREEN_I2C, CONFIG_I2C_TOUCH_SDA, CONFIG_I2C_TOUCH_SCL, 10000));
+    i2c_master_bus_handle_t touch_i2c_handle = NULL;
+    ESP_ERROR_CHECK(_i2c_init_master(
+        CONFIG_DISPLAY_TOUCHSCREEN_I2C, CONFIG_I2C_TOUCH_SDA, CONFIG_I2C_TOUCH_SCL, &touch_i2c_handle));
 
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
     esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
@@ -70,7 +71,7 @@ static void touchscreen_task(void* ignored)
         }
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
-    ESP_ERROR_CHECK(_i2c_deinit(CONFIG_DISPLAY_TOUCHSCREEN_I2C));
+    ESP_ERROR_CHECK(_i2c_deinit(touch_i2c_handle));
     shutdown_finished = true;
     vTaskDelete(NULL);
 }

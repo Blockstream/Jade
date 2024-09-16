@@ -4,8 +4,14 @@
 #include <esp_sleep.h>
 
 #define IP5306_ADDR 0x75
+static i2c_master_dev_handle_t ip56306 = NULL;
 
-esp_err_t power_init(void) { return _power_i2c_init(); }
+esp_err_t power_init(void)
+{
+    I2C_CHECK_RET(_power_i2c_init());
+    I2C_CHECK_RET(_power_i2c_attach_device(IP5306_ADDR, &ip56306));
+    return ESP_OK;
+}
 
 esp_err_t power_shutdown(void)
 {
@@ -26,7 +32,7 @@ uint16_t power_get_vbat(void)
 {
     uint8_t buf;
     JADE_SEMAPHORE_TAKE(i2c_mutex);
-    I2C_LOG_ANY_ERROR(_power_master_read_slave(IP5306_ADDR, 0x78, &buf, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(ip56306, 0x78, &buf, 1));
     JADE_SEMAPHORE_GIVE(i2c_mutex);
 
     switch (buf & 0xF0) {
@@ -47,11 +53,11 @@ uint8_t power_get_battery_status(void)
 {
     uint8_t buf;
     JADE_SEMAPHORE_TAKE(i2c_mutex);
-    I2C_LOG_ANY_ERROR(_power_master_read_slave(IP5306_ADDR, 0x78, &buf, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(ip56306, 0x78, &buf, 1));
     JADE_SEMAPHORE_GIVE(i2c_mutex);
 
-    // IP5306 only offers battery level in 25% increments, as opposed to the Jade's UI which displays it in 20%. (So
-    // skip just 2)
+    // IP5306 only offers battery level in 25% increments, as opposed to the Jade's UI which displays it in 20%.
+    // So skip just 2 ...
     switch (buf & 0xF0) {
     case 0x00:
         return 5;
@@ -70,7 +76,7 @@ bool power_get_battery_charging(void)
 {
     uint8_t chargedata;
     JADE_SEMAPHORE_TAKE(i2c_mutex);
-    I2C_LOG_ANY_ERROR(_power_master_read_slave(IP5306_ADDR, 0x70, &chargedata, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(ip56306, 0x70, &chargedata, 1));
     JADE_SEMAPHORE_GIVE(i2c_mutex);
     return (chargedata & 0x08) && power_get_battery_status() != 5;
 }
@@ -84,8 +90,8 @@ bool usb_connected(void)
 {
     uint8_t chargedata, chargedata2;
     JADE_SEMAPHORE_TAKE(i2c_mutex);
-    I2C_LOG_ANY_ERROR(_power_master_read_slave(IP5306_ADDR, 0x70, &chargedata, 1));
-    I2C_LOG_ANY_ERROR(_power_master_read_slave(IP5306_ADDR, 0x71, &chargedata2, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(ip56306, 0x70, &chargedata, 1));
+    I2C_LOG_ANY_ERROR(_power_master_read_slave(ip56306, 0x71, &chargedata2, 1));
     JADE_SEMAPHORE_GIVE(i2c_mutex);
     return ((chargedata & 0x08) || (chargedata2 & 0x08));
 }

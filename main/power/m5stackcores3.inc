@@ -7,43 +7,48 @@
 #define AXP2101_ADDR 0x34
 #define AW9523_ADDR 0x58
 
+static i2c_master_dev_handle_t axp2101 = NULL;
+static i2c_master_dev_handle_t aw9523 = NULL;
+
 static void axp2101_init(void)
 {
-    _power_write_command(AXP2101_ADDR, 0x90, 0xBF); // AXP ALDO~4,BLDO0~2,DIDO1 Enable
-    _power_write_command(AXP2101_ADDR, 0x94, 33 - 5); // camera
-    _power_write_command(AXP2101_ADDR, 0x99, 0b11110 - 5); // DLDO1
+    _power_write_command(axp2101, 0x90, 0xBF); // AXP ALDO~4,BLDO0~2,DIDO1 Enable
+    _power_write_command(axp2101, 0x94, 33 - 5); // camera
+    _power_write_command(axp2101, 0x99, 0b11110 - 5); // DLDO1
 }
 
 static void aw9523_init(void)
 {
 
-    _power_write_command(AW9523_ADDR, 0x7F, 0x00);
+    _power_write_command(aw9523, 0x7F, 0x00);
     vTaskDelay(30);
-    _power_write_command(AW9523_ADDR, 0x04, 0b11011000);
+    _power_write_command(aw9523, 0x04, 0b11011000);
     vTaskDelay(30);
-    _power_write_command(AW9523_ADDR, 0x05, 0b01111100);
+    _power_write_command(aw9523, 0x05, 0b01111100);
     vTaskDelay(30);
-    _power_write_command(AW9523_ADDR, 0x12, 0b11111111);
+    _power_write_command(aw9523, 0x12, 0b11111111);
     vTaskDelay(30);
-    _power_write_command(AW9523_ADDR, 0x13, 0b11111111);
+    _power_write_command(aw9523, 0x13, 0b11111111);
     vTaskDelay(30);
-    _power_write_command(AW9523_ADDR, 0x11, (1 << 4));
+    _power_write_command(aw9523, 0x11, (1 << 4));
     vTaskDelay(30);
-    _power_write_command(AW9523_ADDR, 0x02, 0b00000101);
+    _power_write_command(aw9523, 0x02, 0b00000101);
     vTaskDelay(30);
-    _power_write_command(AW9523_ADDR, 0x03, 0b00000011);
+    _power_write_command(aw9523, 0x03, 0b00000011);
     vTaskDelay(30);
 }
 
 esp_err_t power_init(void)
 {
     I2C_CHECK_RET(_power_i2c_init());
+    I2C_CHECK_RET(_power_i2c_attach_device(AXP2101_ADDR, &axp2101));
+    I2C_CHECK_RET(_power_i2c_attach_device(AW9523_ADDR, &aw9523));
 
     aw9523_init();
     axp2101_init();
 
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    I2C_CHECK_RET(i2c_driver_delete(I2C_NUM_0));
+    I2C_CHECK_RET(_i2c_deinit(NULL));
 
     return ESP_OK;
 }
