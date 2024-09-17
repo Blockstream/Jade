@@ -7,7 +7,6 @@
 #include "utils/malloc_ext.h"
 
 #if defined(CONFIG_DISPLAY_TOUCHSCREEN)
-#include <driver/i2c.h>
 #include <esp_lcd_touch.h>
 #include <esp_lcd_touch_ft5x06.h>
 #endif
