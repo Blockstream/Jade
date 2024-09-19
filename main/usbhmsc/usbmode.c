@@ -81,15 +81,17 @@ static size_t read_file_to_buffer(const char* filename, uint8_t* buffer, size_t 
     const size_t file_size = get_file_size(filename);
     JADE_ASSERT(buf_len >= file_size);
 
-    FILE* fp = fopen(filename, "rb");
-    if (fp == NULL) {
+    FILE* const fp = fopen(filename, "rb");
+    if (!fp) {
         return 0;
     }
 
-    const size_t bytes_read = fread(buffer, 1, buf_len, fp);
+    size_t bytes_read = 0;
+    while (bytes_read < file_size) {
+        bytes_read += fread(buffer + bytes_read, 1, buf_len - bytes_read, fp);
+    }
     fclose(fp);
 
-    JADE_ASSERT(bytes_read == file_size);
     return bytes_read;
 }
 
@@ -99,15 +101,17 @@ static size_t write_buffer_to_file(const char* filename, const uint8_t* buffer, 
     JADE_ASSERT(buffer);
     JADE_ASSERT(buf_len);
 
-    FILE* fp = fopen(filename, "wb");
-    if (fp == NULL) {
+    FILE* const fp = fopen(filename, "wb");
+    if (!fp) {
         return 0;
     }
 
-    const size_t bytes_written = fwrite(buffer, 1, buf_len, fp);
+    size_t bytes_written = 0;
+    while (bytes_written < buf_len) {
+        bytes_written += fwrite(buffer + bytes_written, 1, buf_len - bytes_written, fp);
+    }
     fclose(fp);
 
-    JADE_ASSERT(bytes_written == buf_len);
     return bytes_written;
 }
 
