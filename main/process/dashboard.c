@@ -59,6 +59,7 @@ static inline void ble_stop(void) { return; }
 // Whether during initialisation we select USB, BLE QR etc.
 static jade_msg_source_t initialisation_source = SOURCE_NONE;
 static jade_msg_source_t internal_relogin_source = SOURCE_NONE;
+static bool tolerate_usb_disconnection = false;
 static bool show_connect_screen = false;
 
 // The dynamic home screen menu
@@ -430,6 +431,20 @@ static void process_logout_request(jade_process_t* process)
     jade_process_reply_to_message_ok(process);
 }
 
+// OTA is allowed if either:
+// a) There is no PIN set (ie. no encrypted keys set, eg. new device)
+// or
+// b) User has passed PIN screen and unlocked Jade (ie. not a temporary signer) and:
+//   - OTA is over same network interface
+//  or
+//   - OTA is from the 'INTERNAL' source (eg. is coming via QR codes or connected usb mass storage)
+static bool ota_allowed(const jade_msg_source_t ota_source)
+{
+    return !keychain_has_pin()
+        || (keychain_get() && !keychain_has_temporary()
+            && (ota_source == (jade_msg_source_t)keychain_get_userdata() || ota_source == SOURCE_INTERNAL));
+}
+
 // method_name should be a string literal - or at least non-null and nul terminated
 #define IS_METHOD(method_name) (!strncmp(method, method_name, method_len) && strlen(method_name) == method_len)
 
@@ -478,12 +493,8 @@ static void dispatch_message(jade_process_t* process)
         // 'cancel' is completely ignored (as nothing is 'in-progress' to cancel)
         JADE_LOGD("Received 'cancel' request - no-op");
     } else if (IS_METHOD("ota")) {
-        // OTA is allowed if either:
-        // a) User has passed PIN screen and has unlocked Jade saved wallet
-        // or
-        // b) There is no PIN set (ie. no encrypted keys set, eg. new device)
-        if ((KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) && !keychain_has_temporary()) || !keychain_has_pin()) {
-            // If we are about to start an OTA we stop the other/unused connection
+        if (ota_allowed(process->ctx.source)) {
+            // If we are about to start an OTA we stop the other/unused external connection
             // interface for performance, stabililty and security reasons.
             enable_connection_interfaces(process->ctx.source);
             task_function = ota_process;
@@ -493,11 +504,10 @@ static void dispatch_message(jade_process_t* process)
                 process, CBOR_RPC_HW_LOCKED, "OTA is only allowed on new or logged-in device.", NULL);
         }
     } else if (IS_METHOD("ota_delta")) {
-        // OTA delta is allowed if either:
-        // a) User has passed PIN screen and has unlocked Jade saved wallet
-        // or
-        // b) There is no PIN set (ie. no encrypted keys set, eg. new device)
-        if ((KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) && !keychain_has_temporary()) || !keychain_has_pin()) {
+        if (ota_allowed(process->ctx.source)) {
+            // If we are about to start an OTA we stop the other/unused external connection
+            // interface for performance, stabililty and security reasons.
+            enable_connection_interfaces(process->ctx.source);
             task_function = ota_delta_process;
         } else {
             // Reject the message as hw locked
@@ -629,6 +639,11 @@ static void dispatch_message(jade_process_t* process)
             }
         }
     }
+
+    // Reset this flag after processing a single message, so that we will automatically lock the
+    // device should an in-use serial connection be physically disconnected/unplugged.
+    // (We may have tolerated it briefly to handle an action involving a usb mass storage device.)
+    tolerate_usb_disconnection = false;
 }
 
 // Function to get user confirmation, then erase all flash memory.
@@ -2327,10 +2342,19 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_USBSTORAGE_FW:
             // If the ota is initiated, we need to return to the main dispatcher loop
             // to handle the OTA messages - ie. set 'done' flag to exit this loop.
-            done = usbstorage_firmware_ota(NULL);
+            if (ota_allowed(SOURCE_INTERNAL)) {
+                // Set flag that allows usb to be disconnected temporarily
+                // (reset after the next message is processed).
+                tolerate_usb_disconnection = true;
+                done = usbstorage_firmware_ota(NULL);
+            } else {
+                const char* message[] = { "Unlock with PIN before", "initiating firmware update" };
+                await_error_activity(message, 2);
+            }
             break;
 
         case BTN_SETTINGS_USBSTORAGE_SIGN:
+            JADE_ASSERT(keychain_get());
             usbstorage_sign_psbt(NULL);
 
             // NOTE: signing cleans up other activities, so need to recreate menu
@@ -2637,7 +2661,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         // NOTE: only applies to a *peristed* keychain - ie if we have a pin set, and *NOT*
         // if this is a temporary/emergency-restore wallet.
         if (initial_has_pin && initial_keychain && !keychain_has_temporary()) {
-            if ((initial_userdata == SOURCE_SERIAL && !usb_connected())
+            if ((initial_userdata == SOURCE_SERIAL && !tolerate_usb_disconnection && !usb_connected())
                 || (initial_userdata == SOURCE_BLE && !ble_connected())) {
                 JADE_LOGI("Connection lost - clearing keychain");
                 keychain_clear();

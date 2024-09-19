@@ -165,8 +165,11 @@ void ota_delta_process(void* process_ptr)
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "ota_delta");
     GET_MSG_PARAMS(process);
+
+    const jade_msg_source_t ota_source = process->ctx.source;
     if (keychain_has_pin()) {
-        ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
+        // NOTE: ota from internal source is allowed (eg. QR codes or USB storage)
+        JADE_ASSERT(ota_source == (jade_msg_source_t)keychain_get_userdata() || ota_source == SOURCE_INTERNAL);
         JADE_ASSERT(!keychain_has_temporary());
     }
 
@@ -221,7 +224,7 @@ void ota_delta_process(void* process_ptr)
         .uncompressedsize = uncompressedpatchsize,
         .remaining_uncompressed = &remaining_uncompressed,
         .ota_return_status = &ota_return_status,
-        .expected_source = &process->ctx.source,
+        .expected_source = &ota_source,
         .remaining_compressed = compressedsize,
         .firmwaresize = firmwaresize,
         .compressedsize = compressedsize,
@@ -337,7 +340,7 @@ cleanup:
             uint8_t buf[256];
             jade_process_reject_message_with_id(id, error_code, "Error uploading OTA delta data",
                 (const uint8_t*)MESSAGES[ota_return_status], strlen(MESSAGES[ota_return_status]), buf, sizeof(buf),
-                process->ctx.source);
+                ota_source);
         }
 
         // If the error is not 'did not start' or 'user declined', show an error screen
