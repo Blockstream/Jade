@@ -134,7 +134,9 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
     const size_t path_len = strlen(path);
 
     DIR* const dir = opendir(path);
-    if (dir == NULL) {
+    if (!dir) {
+        const char* message[] = { "Error opening USB storage" };
+        await_message_activity(message, 1);
         return false;
     }
 
@@ -169,12 +171,14 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
         }
     }
 
-    if (closedir(dir) == -1) {
+    if (closedir(dir)) {
         JADE_LOGE("Error closing directory");
     }
 
     if (!num_files) {
         // No candidate files
+        const char* message[] = { "No matching files found" };
+        await_message_activity(message, 1);
         return false;
     }
 
