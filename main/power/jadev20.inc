@@ -164,6 +164,12 @@ esp_err_t power_init(void)
         return ESP_FAIL;
     }
 
+#ifdef CONFIG_SECURE_BOOT
+    // Ensure 'download mode' permanently disabled
+    I2C_LOG_ANY_ERROR(_power_write_command(PMIC_ADDR, PMIC_REG_DISABLE_DOWNLOAD, 0x01));
+    I2C_LOG_ANY_ERROR(_power_write_command(PMIC_ADDR, PMIC_REG_DISABLE_RESET, 0x01));
+#endif
+
     return ESP_OK;
 }
 
