@@ -41,9 +41,6 @@ void __attribute__((noreturn)) call_start_cpu0(void)
         bootloader_reset();
     }
 
-    // 2.1 Print a custom message!
-    esp_rom_printf("[%s] %s\n", TAG, CONFIG_EXAMPLE_BOOTLOADER_WELCOME_MESSAGE);
-
     // 3. Load the app image for booting
     bootloader_utility_load_boot_image(&bs, boot_index);
 }
