@@ -2717,13 +2717,8 @@ void dashboard_process(void* process_ptr)
         const keychain_t* initial_keychain = keychain_get();
 
         if (awaiting_attestation_data()) {
-            // Initial screen while awaiting attestation data upload
-            gui_activity_t* const act = gui_make_activity();
-            gui_view_node_t* node;
-            gui_make_text(&node, "Awaiting Attestation Data", TFT_WHITE);
-            gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-            gui_set_parent(node, act->root_node);
-            act_dashboard = act;
+            // Blank screen while awaiting attestation data upload
+            act_dashboard = gui_make_activity();
         } else if (show_connect_screen) {
             // Some sort of connection is in progress
             if (initialisation_source == SOURCE_INTERNAL) {
