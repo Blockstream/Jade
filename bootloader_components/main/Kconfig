@@ -1,8 +1,9 @@
-menu "Bootloader welcome message"
-
-    config EXAMPLE_BOOTLOADER_WELCOME_MESSAGE
-        string "Bootloader welcome message"
-        default "Custom bootloader message defined in the KConfig file."
+menu "2nd stage bootloader/ota minimum signatures"
+    config JADE_MINIMUM_SIGNATURES
+        int "bootloader 2nd stage and ota verifies minimum signatures"
+        range 1 3
+        default 2 if BOARD_TYPE_JADE_V2
+        default 1
         help
-            Message to print by the custom bootloader when booting up.
+            Number of signatures required for app-images from 2nd stage and ota
 endmenu
