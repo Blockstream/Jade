@@ -243,6 +243,13 @@ test_build_display_ttgo_tdisplays3:
   after_script:
     - mv build build_display_ttgo_tdisplays3
 
+test_build_display_ttgo_tdisplays3procamera:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display_ttgo_tdisplays3procamera.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_display_ttgo_tdisplays3procamera
+
 test_build_display_ttgo_tdisplays3_ci:
   extends: .test_build_template
   before_script:
