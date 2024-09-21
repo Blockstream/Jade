@@ -73,6 +73,13 @@ set_source_files_properties(
     PROPERTIES COMPILE_FLAGS
     "-Wno-nonnull-compare -Wno-unused-function -Wno-error=maybe-uninitialized -Wno-type-limits -Wno-error=array-parameter"
     )
+
+# fortify/performance flags
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC NDEBUG=1)
+target_compile_options(${COMPONENT_TARGET} PUBLIC "-fstack-protector-strong")
+target_link_options(${COMPONENT_TARGET} PUBLIC -Wl,-z,relro -Wl,-z,now)
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC _FORTIFY_SOURCE=2)
+
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_ELEMENTS=1")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_MINIMAL=1")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_MBEDTLS_SHA256_H")
