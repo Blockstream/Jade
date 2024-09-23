@@ -1,5 +1,7 @@
 #include "bcur.h"
 #include "jade_assert.h"
+#include "keychain.h"
+#include "network_type.h"
 #include "qrcode.h"
 #include "qrscan.h"
 #include "ui.h"
@@ -383,6 +385,9 @@ static void encode_hdkey(CborEncoder* encoder, const uint32_t fingerprint, const
     JADE_ASSERT(path);
     JADE_ASSERT(path_len);
 
+    // We will include the 'useinfo' section if testnet
+    const bool testnet = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST;
+
     // The hdkey for the passed path
     struct ext_key hdkey;
     const bool ret = wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC, &hdkey);
@@ -391,7 +396,7 @@ static void encode_hdkey(CborEncoder* encoder, const uint32_t fingerprint, const
 
     // hdkey
     CborEncoder key_map_encoder;
-    CborError cberr = cbor_encoder_create_map(encoder, &key_map_encoder, 4);
+    CborError cberr = cbor_encoder_create_map(encoder, &key_map_encoder, testnet ? 5 : 4);
     JADE_ASSERT(cberr == CborNoError);
 
     // pubkey
@@ -405,6 +410,34 @@ static void encode_hdkey(CborEncoder* encoder, const uint32_t fingerprint, const
     JADE_ASSERT(cberr == CborNoError);
     cberr = cbor_encode_byte_string(&key_map_encoder, hdkey.chain_code, sizeof(hdkey.chain_code));
     JADE_ASSERT(cberr == CborNoError);
+
+    // use-info (to indicate testnet wallet)
+    if (testnet) {
+        cberr = cbor_encode_uint(&key_map_encoder, 5);
+        JADE_ASSERT(cberr == CborNoError);
+        {
+            cbor_encode_tag(&key_map_encoder, 305);
+            CborEncoder use_info_map_encoder;
+            cberr = cbor_encoder_create_map(&key_map_encoder, &use_info_map_encoder, 2);
+            JADE_ASSERT(cberr == CborNoError);
+
+            // type - btc
+            cberr = cbor_encode_uint(&use_info_map_encoder, 1);
+            JADE_ASSERT(cberr == CborNoError);
+            cberr = cbor_encode_uint(&use_info_map_encoder, 0);
+            JADE_ASSERT(cberr == CborNoError);
+
+            // network
+            cberr = cbor_encode_uint(&use_info_map_encoder, 2);
+            JADE_ASSERT(cberr == CborNoError);
+            cberr = cbor_encode_uint(&use_info_map_encoder, testnet ? 1 : 0);
+            JADE_ASSERT(cberr == CborNoError);
+
+            // Close the use-info map
+            cberr = cbor_encoder_close_container(&key_map_encoder, &use_info_map_encoder);
+            JADE_ASSERT(cberr == CborNoError);
+        }
+    }
 
     // origin information
     cberr = cbor_encode_uint(&key_map_encoder, 6);
