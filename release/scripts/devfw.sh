@@ -22,8 +22,12 @@ WORKING_DIR="${STAGING}/${1}"
 # Relative paths from where it will be referenced in
 # jade/release/staging/<working dir>/<hw flavour>/<build flavour>
 DEV_KEY_DIR="../../../../scripts"
-DEV_KEY_PRIV="${DEV_KEY_DIR}/dev_fw_signing_key.pem"
-DEV_KEY_PUB="${DEV_KEY_DIR}/dev_fw_pub_key.pub"
+DEV_KEY_PRIV_A="${DEV_KEY_DIR}/dev_fw_signing_key_A.pem"
+DEV_KEY_PRIV_B="${DEV_KEY_DIR}/dev_fw_signing_key_B.pem"
+DEV_KEY_PRIV_C="${DEV_KEY_DIR}/dev_fw_signing_key_C.pem"
+DEV_KEY_PUB_A="${DEV_KEY_DIR}/dev_fw_pub_key_A.pub"
+DEV_KEY_PUB_B="${DEV_KEY_DIR}/dev_fw_pub_key_B.pub"
+DEV_KEY_PUB_C="${DEV_KEY_DIR}/dev_fw_pub_key_C.pub"
 FWPREP="../../../../../tools/fwprep.py"
 
 pushd "${WORKING_DIR}"
@@ -33,8 +37,18 @@ do
   for dir in ${BUILDDIRS}
   do
     pushd "${dir}"
-    espsecure.py sign_data --keyfile "${DEV_KEY_PRIV}" --version 2 --output "${SIGNED_BINARY}" "${UNSIGNED_BINARY}"
-    espsecure.py verify_signature --version 2 --keyfile "${DEV_KEY_PUB}" "${SIGNED_BINARY}"
+
+    # Sign the binary
+    espsecure.py sign_data --keyfile "${DEV_KEY_PRIV_A}" --version 2 --output "${SIGNED_BINARY}" "${UNSIGNED_BINARY}"
+
+    if [ "${devdir}" == "jade2.0dev" ]
+    then
+        # Append a second signature and verify
+        espsecure.py sign_data --keyfile "${DEV_KEY_PRIV_B}" --version 2 --append_signatures "${SIGNED_BINARY}"
+        espsecure.py verify_signature --version 2 --keyfile "${DEV_KEY_PUB_B}" "${SIGNED_BINARY}"
+    fi
+
+    espsecure.py verify_signature --version 2 --keyfile "${DEV_KEY_PUB_A}" "${SIGNED_BINARY}"
     "${FWPREP}" "${SIGNED_BINARY}" ..
     popd
   done

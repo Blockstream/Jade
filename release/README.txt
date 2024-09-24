@@ -42,8 +42,8 @@ eg. './scripts/prepver.sh 0.1.33'
 * scripts/devfw.sh <new version>
 eg. './scripts/devfw.sh 0.1.33'
 - For each dev build dir (ie. jadedev and jade1.1dev, ble and noradio variants),
-  signs the dev firmware 'jade.bin' with the dev/test key present in the
-  scripts dir.  Validates with the pubkey.  Creates 'jade_signed.bin'.
+  signs the dev firmware 'jade.bin' with the dev/test keys present in the
+  scripts dir.  Validates with the pubkeys.  Creates 'jade_signed.bin'.
 - Runs 'jade/tools/fwprep.py' on the signed binary 'jade_signed.bin'.  This
   compresses the firmware file and generates the descriptive name using the
   standard/agreed format (<ver>_<cfg>_<decompressed_size>)_fw.bin).  Also writes
