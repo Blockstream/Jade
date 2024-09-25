@@ -182,7 +182,7 @@ void display_fill_rect(int x, int y, int w, int h, color_t color)
         || ((y - CONFIG_DISPLAY_OFFSET_Y) + h > CONFIG_DISPLAY_HEIGHT)) {
         JADE_LOGE(
             "display_fill_rect called with bad params (ignored) x %d y %d w %d h %d color %u\n", x, y, w, h, color);
-#ifndef CONFIG_BOARD_TYPE_M5_CORES3
+#if !defined(CONFIG_BOARD_TYPE_M5_CORES3) && !defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)
         return;
 #endif
     }
@@ -243,8 +243,12 @@ void display_init(TaskHandle_t* gui_h)
     JADE_ASSERT(gui_h);
     display_hw_init(gui_h);
 
-#ifdef CONFIG_BOARD_TYPE_M5_CORES3
-    /* The M5 Core S3 doesn't have buttons that can be used (just power and reset)
+#if defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3) || defined(CONFIG_BOARD_TYPE_M5_CORES3)
+#define TOUCH_BUTTON_AREA 40
+#define TOUCH_BUTTON_MARGIN 5
+#define TOUCH_BUTTON_WIDTH 40
+    /* The TwatchS3 and core s3 don't have buttons that can be used (just power and
+       reset)
        but it has a touch panel, we use the bottom 40 pixels worth of height
        to display 3 buttons (prev, OK, next), we handle this here rather than
        in display_hw because we want to draw text inside the virtual buttons */
@@ -253,17 +257,23 @@ void display_init(TaskHandle_t* gui_h)
 
     /* blank the bottom of the display with black */
     uint16_t line[CONFIG_DISPLAY_WIDTH] = { TFT_BLACK };
-    for (int16_t i = 0; i < 40; ++i) {
-        draw_bitmap(0, CONFIG_DISPLAY_HEIGHT + i, CONFIG_DISPLAY_WIDTH, 1, line);
+    for (int16_t i = 0; i < TOUCH_BUTTON_AREA; ++i) {
+        draw_bitmap(CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_HEIGHT + i + CONFIG_DISPLAY_OFFSET_Y,
+            CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X, 1, line);
     }
 
-    dispWin_t disp_win_virtual_buttons = { .x1 = 10, .y1 = 205, .x2 = 90, .y2 = 235 };
+    dispWin_t disp_win_virtual_buttons = { .x1 = TOUCH_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_X,
+        .y1 = CONFIG_DISPLAY_HEIGHT + TOUCH_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_Y,
+        .x2 = TOUCH_BUTTON_WIDTH + CONFIG_DISPLAY_OFFSET_X,
+        .y2 = (CONFIG_DISPLAY_HEIGHT + (TOUCH_BUTTON_AREA - TOUCH_BUTTON_MARGIN)) + CONFIG_DISPLAY_OFFSET_Y };
+
     display_print_in_area("<", CENTER, CENTER, disp_win_virtual_buttons, 0);
-    disp_win_virtual_buttons.x1 = 120;
-    disp_win_virtual_buttons.x2 = 200;
+    disp_win_virtual_buttons.x1 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) - (TOUCH_BUTTON_WIDTH / 2);
+    disp_win_virtual_buttons.x2 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) + (TOUCH_BUTTON_WIDTH / 2);
     display_print_in_area("OK", CENTER, CENTER, disp_win_virtual_buttons, 0);
-    disp_win_virtual_buttons.x1 = 230;
-    disp_win_virtual_buttons.x2 = 310;
+    disp_win_virtual_buttons.x1
+        = ((CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X) - TOUCH_BUTTON_WIDTH;
+    disp_win_virtual_buttons.x2 = (CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X;
     display_print_in_area(">", CENTER, CENTER, disp_win_virtual_buttons, 0);
 
     vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -541,7 +551,7 @@ static int print_proportional_char(int x, int y)
             if ((ch & mask)) {
                 const int cx = (uint16_t)(x + fontChar.xOffset + i);
                 const int cy = (uint16_t)(y + j + fontChar.adjYOffset);
-#ifndef CONFIG_BOARD_TYPE_M5_CORES3
+#if !defined(CONFIG_BOARD_TYPE_M5_CORES3) && !defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)
                 if ((cx < CONFIG_DISPLAY_OFFSET_X) || (cy < CONFIG_DISPLAY_OFFSET_Y)
                     || (cx > (CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X))
                     || (cy > (CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y))) {

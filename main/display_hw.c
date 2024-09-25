@@ -189,10 +189,16 @@ static void esp_lcd_init(void* _ignored)
 
 #ifdef CONFIG_DCS_ADDRESS_MODE_MIRROR_X_SELECTED
 #define X_FLIPPED true
-    ESP_ERROR_CHECK(esp_lcd_panel_mirror(ph, true, false));
 #else
 #define X_FLIPPED false
 #endif
+
+#ifdef CONFIG_DCS_ADDRESS_MODE_MIRROR_Y_SELECTED
+#define Y_FLIPPED true
+#else
+#define Y_FLIPPED false
+#endif
+    ESP_ERROR_CHECK(esp_lcd_panel_mirror(ph, X_FLIPPED, Y_FLIPPED));
 
 #ifdef CONFIG_DISPLAY_INVERT
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(ph, true));
@@ -209,7 +215,7 @@ static void esp_lcd_init(void* _ignored)
 
 bool display_hw_flip_orientation(const bool flipped_orientation)
 {
-    ESP_ERROR_CHECK(esp_lcd_panel_mirror(ph, flipped_orientation ^ X_FLIPPED, flipped_orientation));
+    ESP_ERROR_CHECK(esp_lcd_panel_mirror(ph, flipped_orientation ^ X_FLIPPED, flipped_orientation ^ Y_FLIPPED));
     return flipped_orientation;
 }
 
@@ -254,11 +260,13 @@ void inline display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* c
     JADE_ASSERT(color_data);
     const int calculatedx = x - CONFIG_DISPLAY_OFFSET_X;
     const int calculatedy = y - CONFIG_DISPLAY_OFFSET_Y;
-#if defined(CONFIG_BOARD_TYPE_M5_CORES3) && defined(CONFIG_DISPLAY_FULL_FRAME_BUFFER)
+#if (defined(CONFIG_BOARD_TYPE_M5_CORES3) || defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3))                                 \
+    && defined(CONFIG_DISPLAY_FULL_FRAME_BUFFER)
     /* this is required for the virtual buttons */
-    if (y >= CONFIG_DISPLAY_HEIGHT) {
-        ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(
-            ph, calculatedx, calculatedy, x - CONFIG_DISPLAY_OFFSET_X + w, calculatedy + h, color_data));
+    if (calculatedy >= CONFIG_DISPLAY_HEIGHT) {
+        ESP_ERROR_CHECK(
+            esp_lcd_panel_draw_bitmap(ph, calculatedx, calculatedy, calculatedx + w, calculatedy + h, color_data));
+        ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(ph, calculatedx, calculatedy, x + w, calculatedy + h, color_data));
         return;
     }
 #endif

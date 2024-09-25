@@ -19,6 +19,9 @@
 #elif defined(CONFIG_BOARD_TYPE_M5_CORES3)
 // M5 Core S3 has AXP2101
 #include "power/m5stackcores3.inc"
+#elif defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)
+// twatchs3 has AXP2101
+#include "power/twatchs3.inc"
 #elif defined(CONFIG_HAS_IP5306)
 #include "power/ip5306.inc"
 #else

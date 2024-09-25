@@ -14,12 +14,15 @@
 void input_init(void) {}
 
 #if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+esp_err_t _i2c_init_master(i2c_port_t port_num, int sda_io_num, int scl_io_num, uint32_t clk_speed);
+
 static void touchscreen_task(void* ignored)
 {
     esp_lcd_touch_handle_t ret_touch = NULL;
+    // FIXME: check mirror flags?
     const esp_lcd_touch_config_t tp_cfg = {
-        .x_max = 320,
-        .y_max = 240,
+        .x_max = CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X,
+        .y_max = CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y,
         .rst_gpio_num = GPIO_NUM_NC,
         .int_gpio_num = GPIO_NUM_NC,
         .levels = {
@@ -33,9 +36,12 @@ static void touchscreen_task(void* ignored)
         },
     };
 
+    ESP_ERROR_CHECK(
+        _i2c_init_master(CONFIG_DISPLAY_TOUCHSCREEN_I2C, CONFIG_I2C_TOUCH_SDA, CONFIG_I2C_TOUCH_SCL, 10000));
+
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
-    const esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
-    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)0, &tp_io_config, &tp_io_handle));
+    esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(CONFIG_DISPLAY_TOUCHSCREEN_I2C, &tp_io_config, &tp_io_handle));
     ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_ft5x06(tp_io_handle, &tp_cfg, &ret_touch));
 
     uint16_t touch_x[1];
@@ -43,17 +49,22 @@ static void touchscreen_task(void* ignored)
     uint16_t touch_strength[1];
     uint8_t touch_cnt = 10;
 
+    // FIXME: don't allow multiple touches within 300 ms?
+    // FIXME: this doesn't currently work with Display -> Flip Orientation feature
+    // but it could by changing the touch_y[0] > 200 logic with < 40 and inverting prev with next and viceversa
     for (;;) {
         if (esp_lcd_touch_read_data(ret_touch) == ESP_OK) {
             bool touchpad_pressed
                 = esp_lcd_touch_get_coordinates(ret_touch, touch_x, touch_y, touch_strength, &touch_cnt, 1);
             if (touchpad_pressed) {
+                const uint16_t first_third_end = CONFIG_DISPLAY_WIDTH / 3;
+                const uint16_t middle_thirds_end = (CONFIG_DISPLAY_WIDTH * 2) / 3;
                 if (touch_y[0] > 200) {
-                    if (touch_x[0] >= 10 && touch_x[0] <= 90) {
+                    if (touch_x[0] <= first_third_end) {
                         gui_prev();
-                    } else if (touch_x[0] >= 120 && touch_x[0] <= 200) {
+                    } else if (touch_x[0] > first_third_end && touch_x[0] < middle_thirds_end) {
                         gui_front_click();
-                    } else if (touch_x[0] >= 230 && touch_x[0] <= 310) {
+                    } else if (touch_x[0] >= middle_thirds_end) {
                         gui_next();
                     } else {
                         continue;
@@ -306,7 +317,7 @@ void wheel_init(void)
     iot_button_register_cb(btn_handle_next, BUTTON_PRESS_DOWN, button_B_pressed, NULL);
     iot_button_register_cb(btn_handle_next, BUTTON_PRESS_UP, button_B_released, NULL);
 }
-#else
+#elif !defined(CONFIG_DISPLAY_TOUCHSCREEN)
 // wheel_init() to mock wheel with buttons
 // Long press buttons mocks wheel spin (multiple events)
 static void button_A_pressed(void* arg, void* ctx) { gui_prev(); }
@@ -315,7 +326,6 @@ static void button_B_pressed(void* arg, void* ctx) { gui_next(); }
 
 void wheel_init(void)
 {
-#if !defined(CONFIG_DISPLAY_TOUCHSCREEN)
     button_handle_t btn_handle_prev = NULL;
     button_handle_t btn_handle_next = NULL;
     wheel_common(&btn_handle_prev, &btn_handle_next);
@@ -329,6 +339,5 @@ void wheel_init(void)
     iot_button_register_cb(btn_handle_prev, BUTTON_LONG_PRESS_HOLD, button_A_pressed, NULL);
     iot_button_register_cb(btn_handle_next, BUTTON_LONG_PRESS_HOLD, button_B_pressed, NULL);
 #endif
-#endif
 }
-#endif // CONFIG_BOARD_TYPE_xxx
+#endif // CONFIG_BOARD_TYPE_xxx / !CONFIG_DISPLAY_TOUCHSCREEN
