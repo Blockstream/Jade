@@ -15,6 +15,7 @@ void button_long(void* arg);
 
 #if defined(CONFIG_DISPLAY_TOUCHSCREEN)
 void touchscreen_init(void);
+void touchscreen_deinit(void);
 #else
 void wheel_init(void);
 #endif

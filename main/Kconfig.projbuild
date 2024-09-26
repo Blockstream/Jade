@@ -263,6 +263,7 @@ menu "Blockstream Jade"
 
         config CAMERA_ROTATE_180
             bool "Rotate Camera Image by 180 degrees"
+            default y if BOARD_TYPE_M5_CORES3
             default n
 
         config CAMERA_ROTATE_270

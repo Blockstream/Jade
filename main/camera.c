@@ -9,6 +9,9 @@
 #include "power.h"
 #include "sensitive.h"
 #include "ui.h"
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+#include "input.h"
+#endif
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
 
@@ -289,6 +292,10 @@ static void jade_camera_init(void)
             JADE_LOGE("Failed to set camera hmirror/vflip, returned: %d/%d", hret, vret);
         }
     }
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+    touchscreen_deinit();
+    touchscreen_init();
+#endif
 }
 #endif
 

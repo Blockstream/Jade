@@ -14,7 +14,11 @@
 void input_init(void) {}
 
 #if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+static volatile bool shutdown_requested = false;
+static volatile bool shutdown_finished = false;
+
 esp_err_t _i2c_init_master(i2c_port_t port_num, int sda_io_num, int scl_io_num, uint32_t clk_speed);
+esp_err_t _i2c_deinit(i2c_port_t port_num);
 
 static void touchscreen_task(void* ignored)
 {
@@ -52,7 +56,7 @@ static void touchscreen_task(void* ignored)
     // FIXME: don't allow multiple touches within 300 ms?
     // FIXME: this doesn't currently work with Display -> Flip Orientation feature
     // but it could by changing the touch_y[0] > 200 logic with < 40 and inverting prev with next and viceversa
-    for (;;) {
+    while (!shutdown_requested) {
         if (esp_lcd_touch_read_data(ret_touch) == ESP_OK) {
             bool touchpad_pressed
                 = esp_lcd_touch_get_coordinates(ret_touch, touch_x, touch_y, touch_strength, &touch_cnt, 1);
@@ -75,6 +79,9 @@ static void touchscreen_task(void* ignored)
         }
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
+    ESP_ERROR_CHECK(_i2c_deinit(CONFIG_DISPLAY_TOUCHSCREEN_I2C));
+    shutdown_finished = true;
+    vTaskDelete(NULL);
 }
 
 void touchscreen_init(void)
@@ -83,6 +90,16 @@ void touchscreen_init(void)
         &touchscreen_task, "touchscreen task", 3 * 1024, NULL, JADE_TASK_PRIO_WHEEL, NULL, JADE_CORE_PRIMARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create touchscreen task, xTaskCreatePinnedToCore() returned %d", retval);
+}
+
+void touchscreen_deinit(void)
+{
+    shutdown_requested = true;
+    while (!shutdown_finished) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+    shutdown_requested = false;
+    shutdown_finished = false;
 }
 #endif
 
