@@ -229,6 +229,7 @@ menu "Blockstream Jade"
 
     config JADE_USE_USB_JTAG_SERIAL
         bool "Use USB JTAG serial instead of CDC tinyusb"
+        depends on IDF_TARGET_ESP32S3
         help
             Enables USB JTAG serial rather than CDC tinyusb, implies no tinyusb/host storage/etc
             default n
