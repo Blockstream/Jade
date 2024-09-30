@@ -260,13 +260,15 @@ bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_
 
     char warnbuf[128]; // sufficient
     const char* warning_msg = NULL;
-    if (fees >= spend_amount && aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED) {
+    const bool warn_fees = fees && fees >= spend_amount;
+    const bool warn_scripts = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED;
+    if (warn_fees && warn_scripts) {
         const int retval = snprintf(warnbuf, sizeof(warnbuf), "%s %s", WARN_MSG_HIGH_FEES, WARN_MSG_MIXED_INPUTS);
         JADE_ASSERT(retval > 0 && retval < sizeof(warnbuf));
         warning_msg = warnbuf;
-    } else if (aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED) {
+    } else if (warn_scripts) {
         warning_msg = WARN_MSG_MIXED_INPUTS;
-    } else if (fees >= spend_amount) {
+    } else if (warn_fees) {
         warning_msg = WARN_MSG_HIGH_FEES;
     }
 
