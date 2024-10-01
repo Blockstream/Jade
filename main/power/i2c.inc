@@ -26,20 +26,33 @@ static SemaphoreHandle_t i2c_mutex = NULL;
         }                                                                                                              \
     } while (false)
 
-static esp_err_t _power_i2c_init(void)
+esp_err_t _i2c_init_master(
+    const i2c_port_t port_num, const int sda_io_num, const int scl_io_num, const uint32_t clk_speed)
 {
     const i2c_config_t conf = {
         .mode = I2C_MODE_MASTER,
-        .sda_io_num = CONFIG_I2C_SDA,
+        .sda_io_num = sda_io_num,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_io_num = CONFIG_I2C_SCL,
+        .scl_io_num = scl_io_num,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = CONFIG_I2C_MASTER_CLK,
+        .master.clk_speed = clk_speed,
         .clk_flags = 0,
     };
+    I2C_CHECK_RET(i2c_param_config(port_num, &conf));
+    I2C_CHECK_RET(i2c_driver_install(port_num, conf.mode, 0, 0, 0));
 
-    I2C_CHECK_RET(i2c_param_config(I2C_NUM_0, &conf));
-    I2C_CHECK_RET(i2c_driver_install(I2C_NUM_0, conf.mode, 0, 0, 0));
+    return ESP_OK;
+}
+
+esp_err_t _i2c_deinit(const i2c_port_t port_num)
+{
+    I2C_CHECK_RET(i2c_driver_delete(port_num));
+    return ESP_OK;
+}
+
+static esp_err_t _power_i2c_init(void)
+{
+    I2C_CHECK_RET(_i2c_init_master(I2C_NUM_0, CONFIG_I2C_SDA, CONFIG_I2C_SCL, CONFIG_I2C_MASTER_CLK));
 
     // Create i2c mutex semaphore
     i2c_mutex = xSemaphoreCreateMutex();
