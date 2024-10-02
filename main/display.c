@@ -8,11 +8,8 @@
 #include "power.h"
 #include "storage.h"
 #include "utils/malloc_ext.h"
+#include "utils/util.h"
 #include <deflate.h>
-
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-#include <dsps_mem.h>
-#endif
 
 #if defined(CONFIG_ETH_USE_OPENETH)
 #define BUF_N 1
@@ -134,11 +131,7 @@ static Font cfont = {
 static inline void fill_disp_buf_color(size_t opt_loop, color_t original, uint32_t color32)
 {
     if (original == 0x0000 || original == 0xFFFF) {
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-        dsps_memset_aes3(disp_buf, original, opt_loop * 4);
-#else
-        memset(disp_buf, original, opt_loop * 4);
-#endif
+        jmemset(disp_buf, original, opt_loop * 4);
     } else {
         uint32_t* disp_buf_32 = (uint32_t*)disp_buf;
         for (size_t i = 0; i < opt_loop; ++i) {
@@ -355,11 +348,7 @@ static int uncompressed_image_stream_writer(void* ctx, uint8_t* uncompressed, si
 
     uint8_t* const dest = ictx->icon ? (uint8_t*)ictx->icon->data : ictx->pic->data_8;
     JADE_ASSERT(dest);
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-    dsps_memcpy_aes3(dest + ictx->written, uncompressed, towrite);
-#else
-    memcpy(dest + ictx->written, uncompressed, towrite);
-#endif
+    jmemcpy(dest + ictx->written, uncompressed, towrite);
     ictx->written += towrite;
     return DEFLATE_OK;
 }

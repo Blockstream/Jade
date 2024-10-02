@@ -6,6 +6,7 @@
 #include "jade_assert.h"
 #include "jade_tasks.h"
 #include "utils/malloc_ext.h"
+#include "utils/util.h"
 
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
@@ -15,10 +16,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <string.h>
-
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-#include <dsps_mem.h>
-#endif
 
 /*
  * Nota bene:
@@ -269,11 +266,7 @@ void inline display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* c
     if (!calculatedx && w == CONFIG_DISPLAY_WIDTH) {
         /* if we can copy the whole frame buffer in one go */
         uint16_t* screen_ptr = &disp_buf[calculatedy * CONFIG_DISPLAY_WIDTH];
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-        dsps_memcpy_aes3(screen_ptr, color_data, w * h * sizeof(color_t));
-#else
-        memcpy(screen_ptr, color_data, w * h * sizeof(color_t));
-#endif
+        jmemcpy(screen_ptr, color_data, w * h * sizeof(color_t));
         return;
     }
 
@@ -283,11 +276,7 @@ void inline display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* c
     const uint16_t* data_ptr = color_data;
 
     for (int k = 0; k < h; ++k) {
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-        dsps_memcpy_aes3(screen_ptr, data_ptr, data_stride);
-#else
-        memcpy(screen_ptr, data_ptr, data_stride);
-#endif
+        jmemcpy(screen_ptr, data_ptr, data_stride);
         screen_ptr += CONFIG_DISPLAY_WIDTH;
         data_ptr += w;
     }
@@ -308,11 +297,7 @@ void inline display_hw_draw_rect(int x, int y, int w, int h, const uint16_t colo
     if ((!calculatedx && w == CONFIG_DISPLAY_WIDTH)) {
         if (color == 0x0000 || color == 0xFFFF) {
             // small optimization, we can use memset instead of memcpy if it's black/white
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-            dsps_memset_aes3(screen_ptr, color, CONFIG_DISPLAY_WIDTH * h * sizeof(color_t));
-#else
-            memset(screen_ptr, color, CONFIG_DISPLAY_WIDTH * h * sizeof(color_t));
-#endif
+            jmemset(screen_ptr, color, CONFIG_DISPLAY_WIDTH * h * sizeof(color_t));
         } else {
             if (w % 2 == 0) {
                 uint32_t* disp_buf_32 = (uint32_t*)screen_ptr;
@@ -336,11 +321,7 @@ void inline display_hw_draw_rect(int x, int y, int w, int h, const uint16_t colo
             // in this we can use memset still, per line
             const int data_stride = w * sizeof(color_t);
             for (size_t i = 0; i < h; ++i) {
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-                dsps_memset_aes3(screen_ptr, color, data_stride);
-#else
-                memset(screen_ptr, color, data_stride);
-#endif
+                jmemset(screen_ptr, color, data_stride);
                 screen_ptr += CONFIG_DISPLAY_WIDTH;
             }
         } else {
@@ -380,12 +361,7 @@ static inline void switch_buffer(void)
     disp_buf = _disp_buf[buffer_selected];
     /* it is necessary to copy the old buffer over the new one as writes can be partial */
     /* FIXME: 5.2+ idf seems to support dma memcpy for ESP32 S2/S3 */
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-    dsps_memcpy_aes3(
-        disp_buf, _disp_buf[1 - buffer_selected], CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT * sizeof(color_t));
-#else
-    memcpy(disp_buf, _disp_buf[1 - buffer_selected], CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT * sizeof(color_t));
-#endif
+    jmemcpy(disp_buf, _disp_buf[1 - buffer_selected], CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT * sizeof(color_t));
 }
 #endif
 

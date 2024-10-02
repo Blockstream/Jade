@@ -7,6 +7,16 @@
 
 #include "jade_assert.h"
 
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#include <dsps_mem.h>
+#define jmemcpy dsps_memcpy_aes3
+#define jmemset dsps_memset_aes3
+#else
+#include <string.h>
+#define jmemcpy memcpy
+#define jmemset memset
+#endif
+
 static inline const char* make_empty_none(const char* pstr) { return (!pstr || *pstr == '\0') ? "<None>" : pstr; }
 
 static inline void reverse(uint8_t* dest, const uint8_t* src, const size_t len)
