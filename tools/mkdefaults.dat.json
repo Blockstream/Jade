@@ -54,8 +54,7 @@
       "CONFIG_ESP32_REV_MIN_3=y"
     ],
     [
-      "CONFIG_ESP32_REV_MIN_1=y",
-      "CONFIG_EFUSE_VIRTUAL=y"
+      "CONFIG_ESP32_REV_MIN_1=y"
     ]
   ]
 }

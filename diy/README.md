@@ -160,7 +160,6 @@ _Depending on the hardare you have selected, you may need to remove the last lin
 
 **Remove**
 
-    CONFIG_EFUSE_VIRTUAL=y
     CONFIG_ESP32_REV_MIN_1=y
 
 This can be accompished with, for example:
