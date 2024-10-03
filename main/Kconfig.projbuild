@@ -240,12 +240,6 @@ menu "Blockstream Jade"
             default -1
     endmenu
 
-    config HAS_CAMERA
-        bool "Enable Camera Functions"
-        help
-            Enables camera functionality
-            default y if BOARD_TYPE_JADE_V2 || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE || (ETH_USE_OPENETH && HTTPD_WS_SUPPORT) || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
-
     config JADE_USE_USB_JTAG_SERIAL
         bool "Use USB JTAG serial instead of CDC tinyusb"
         depends on IDF_TARGET_ESP32S3
@@ -253,7 +247,13 @@ menu "Blockstream Jade"
             Enables USB JTAG serial rather than CDC tinyusb, implies no tinyusb/host storage/etc
             default n
 
-    menu "Camera Rotation"
+    config HAS_CAMERA
+        bool "Enable Camera Functions"
+        help
+            Enables camera functionality
+            default y if BOARD_TYPE_JADE_V2 || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE || (ETH_USE_OPENETH && HTTPD_WS_SUPPORT) || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+
+    menu "Camera Orientation"
         visible if HAS_CAMERA && BOARD_TYPE_CUSTOM
 
         config CAMERA_ROTATE_90
@@ -271,7 +271,13 @@ menu "Blockstream Jade"
             default y if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
             default n
 
+        config CAMERA_FRONT_FACING
+            bool "Front-facing camera"
+            default y if BOARD_TYPE_M5_CORES3
+            default n
+
     endmenu
+
     menu "Camera Pin Mapping"
         visible if HAS_CAMERA && (BOARD_TYPE_CUSTOM || BOARD_TYPE_M5_CORES3)
 

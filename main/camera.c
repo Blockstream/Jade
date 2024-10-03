@@ -91,7 +91,18 @@ static inline void copy_pixel(uint8_t dest[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_W
     JADE_ASSERT(srcx < CAMERA_IMAGE_WIDTH);
     JADE_ASSERT(srcy < CAMERA_IMAGE_HEIGHT);
 #endif
+
+    // For a front-facing camera, write the image from right-to-left, so it 'moves' the way
+    // the user would expect, ie. behaves like a mirror.  In the final image any writing would be backwards...
+    // NOTE: this is only done here for the image going to the screen - the source data remains as
+    // presented by the camera, so in the source frame-buffer (ie. as passed to the processing callback)
+    // any writing would be 'correct'.  This is important for text *and QR codes* (and is why we can't use
+    // sensor->set_hmirror(i) which would reverse what the hw places in the framebuffer).
+#ifdef CONFIG_CAMERA_FRONT_FACING
+    dest[desty][(DISPLAY_IMAGE_WIDTH - 1) - destx] = src[srcy][srcx];
+#else
     dest[desty][destx] = src[srcy][srcx];
+#endif
 }
 
 // Loops to copy the camera image
