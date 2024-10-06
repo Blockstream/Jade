@@ -10,6 +10,7 @@ idf_component_register(SRCS
                        "upstream/src/bip39.c"
                        "upstream/src/bip85.c"
                        "upstream/src/blech32.c"
+                       "upstream/src/coins.c"
                        "upstream/src/descriptor.c"
                        "upstream/src/ecdh.c"
                        "upstream/src/elements.c"
@@ -95,6 +96,7 @@ target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_RANGEPROO
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_RECOVERY=1")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_SCHNORRSIG=1")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_SURJECTIONPROOF=1")
+target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_WHITELIST=1")
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_BUILTIN_POPCOUNT=1")
 
 add_custom_command(TARGET ${COMPONENT_LIB}
