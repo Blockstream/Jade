@@ -19,7 +19,18 @@
 #ifdef CONFIG_IDF_TARGET_ESP32S3
 
 #ifdef CONFIG_JADE_USE_USB_JTAG_SERIAL
+
+#if !defined(CONFIG_NEWLIB_STDIN_LINE_ENDING_LF) || !defined(CONFIG_NEWLIB_STDOUT_LINE_ENDING_LF)
+#error                                                                                                                 \
+    "Both CONFIG_NEWLIB_STDIN_LINE_ENDING_LF and CONFIG_NEWLIB_STDOUT_LINE_ENDING_LF must be set for CONFIG_JADE_USE_USB_JTAG_SERIAL mode"
+#endif
+
+#if !defined(CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG)
+#error "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG must be set for CONFIG_JADE_USE_USB_JTAG_SERIAL mode"
+#endif
+
 #include <esp_vfs.h>
+
 #else
 #include <tinyusb.h>
 #include <tusb_cdc_acm.h>
