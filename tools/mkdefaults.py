@@ -58,13 +58,21 @@ with open(TEMPFILE, 'r') as f:
         if cfg.startswith(CFG_TARGET + '='):
             target_chip = cfg[len(CFG_TARGET) + 1:]
 
-# Backup existing sdkconfig.default file
+# Backup/remove existing sdkconfig files
 if os.path.isfile('./sdkconfig.defaults'):
     os.rename('./sdkconfig.defaults', './sdkconfig.defaults.orig')
+if os.path.isfile('./sdkconfig'):
+    os.remove('./sdkconfig')
+
+subprocess.check_call(f'idf.py set-target {target_chip}', shell=True)
+
+# Remove recreated sdkconfig files
+if os.path.isfile('./sdkconfig.defaults'):
+    os.remove('./sdkconfig.defaults')
+if os.path.isfile('./sdkconfig'):
+    os.remove('./sdkconfig')
 
 # Process tempfile with 'idf.py reconfigure write-defconfig' to create new sdkconfig.defaults
-subprocess.check_call(f'idf.py set-target {target_chip} && rm -f sdkconfig sdkconfig.defaults',
-                      shell=True)
 subprocess.check_call(f'idf.py -D SDKCONFIG_DEFAULTS="{TEMPFILE}" reconfigure save-defconfig',
                       shell=True)
 
