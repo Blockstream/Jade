@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.32] - 2024-10-11
+### Added
+- Add support for esp32s3 DIY devices TTGO TWatchS3 and M5Stack CoreS3
+- Support building pypi project wheel and readthedocs.io documentation
+
+### Changed
+- Use PIN-entry style screen for entering bip85 index and bip44 account number
+- On larger displays show address strings in groups of 4 characters
+- Update ESP-IDF base firmware to v5.3.1, and update dependencies
+- Update libwally to 1.3.1
+
+### Fixed
+- Fixed issue with QR xpub export for testnet wallets
+- Improve fw upgrade and psbt signing using connected usb-storage (eg. sd card reader) for esp32s3 devices
+- Fix memory exhaustion issues on DIY devices without PSRAM
+- Fix display issues with DIY esp32 wrover
+
 ## [1.0.31] - 2024-08-09
 ### Added
 - Identify and automatically validate change outputs when signing Green 'Multisig Shield' PSBT
