@@ -484,6 +484,26 @@ test_flash_artifact_noblobs_v1_1:
   before_script:
     - mv build_jade_v1_1_noblobs_ci build
 
+build_jadepy_wheel:
+  tags:
+    - ga
+  stage: build
+  artifacts:
+    expire_in: 14 days
+    name: jadepy
+    when: on_success
+    paths:
+    - dist
+  script:
+    - cd $CI_PROJECT_DIR
+    - apt install -yqq python3-venv
+    - virtualenv -p python3 venv
+    - source venv/bin/activate
+    - pip install build
+    - python -m build
+    - deactivate
+    - rm -rf venv
+
 build_api_docs:
   tags:
     - ga
