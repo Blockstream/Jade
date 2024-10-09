@@ -1,8 +1,40 @@
 from setuptools import setup
 
+# Extract the jadepy version
+version = open('jadepy/__init__.py').readlines()
+version = [v for v in version if '__version__' in v][0].strip()
+version = version.split('"')[-2]
+assert len(version.split('.')) == 3, f'Invalid parsed version "{version}"'
+
 setup(
     name='jadepy',
-    version='0.2.0',
+    version=version,
+    description='Blockstream Jade Client API',
+    long_description='A Python library for interacting with the Blockstream Jade hardware wallet',
+    url='https://github.com/Blockstream/Jade',
+    author='Blockstream',
+    author_email='inquiries@blockstream.com',
+    license='MIT',
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'Topic :: Software Development',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)'
+        'Programming Language :: Python :: 3',
+    ],
+    keywords=[
+        'Blockstream',
+        'Jade',
+        'Hardware wallet',
+        'Bitcoin',
+        'BTC'
+        'Liquid',
+    ],
+    project_urls={
+        'Documentation': 'https://github.com/Blockstream/Jade/README.md',
+        'Source': 'https://github.com/Blockstream/Jade',
+        'Tracker': 'https://github.com/Blockstream/Jade/issues',
+    },
     packages=[
         'jadepy'
     ],
