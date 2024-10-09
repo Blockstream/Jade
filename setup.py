@@ -14,12 +14,11 @@ setup(
     url='https://github.com/Blockstream/Jade',
     author='Blockstream',
     author_email='inquiries@blockstream.com',
-    license='MIT',
+    license_expression='MIT',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Topic :: Software Development',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)'
         'Programming Language :: Python :: 3',
     ],
     keywords=[
