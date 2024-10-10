@@ -7,7 +7,7 @@ version = version.split('"')[-2]
 assert len(version.split('.')) == 3, f'Invalid parsed version "{version}"'
 
 setup(
-    name='jadepy',
+    name='jade_client',
     version=version,
     description='Blockstream Jade Client API',
     long_description='A Python library for interacting with the Blockstream Jade hardware wallet',
