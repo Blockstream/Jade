@@ -12,3 +12,5 @@ tools/bsdiff
 .idea/
 managed_components/
 .DS_Store
+dist/
+jade_client.egg-info/
