@@ -44,12 +44,12 @@ dependencies:
       type: service
     version: 1.5.2
   espressif/esp32-camera:
-    component_hash: 154da98781f3ee98f6dbbdd3aaec97497051fb1a570c300fc0fd3a946874a02e
+    component_hash: a82de4ee0b383bd34695935385c6a6c720129084580c2bbb55dce76eb2a3788f
     dependencies: []
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 2.0.12
+    version: 2.0.13
   espressif/esp_lcd_touch:
     component_hash: 779b4ba2464a3ae85681e4b860caa5fdc35801458c23f3039ee761bae7f442a4
     dependencies:
@@ -154,6 +154,6 @@ direct_dependencies:
 - espressif/tinyusb
 - espressif/usb_host_msc
 - idf
-manifest_hash: 750737527716f5eee0d4d18a5db96ab9d6d5f3986568bb64357820036a6d8bd4
+manifest_hash: 47fa6450299f0a36cea3a2735114868564ef1ee4c2444fe7558a6b739c54a7ef
 target: esp32s3
 version: 2.0.0
