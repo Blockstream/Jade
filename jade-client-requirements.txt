@@ -1,0 +1,3 @@
+jade-client==1.0.32 \
+    --hash=sha256:18973e582d095f1c671b7c86b1639bac12ad6606c3a288a311dacbabf593bd3b \
+    --hash=sha256:afeb28b213d3145ece02fdbbf143d9dd9e5940e7b8f760f79b377dd84b2210b1

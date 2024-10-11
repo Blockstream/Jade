@@ -217,6 +217,14 @@ See [REPRODUCIBLE.md](./REPRODUCIBLE.md) for instructions on locally reproducing
 
 Seen working on M5 Stack gray/black/FIRE, M5 Stick Plus, Core 2, Core S3, LilyGO T-Display, T-DisplayS3, RPI Zero + display shield (via QEMU), Desktop via Qemu (browser for display/webcam)
 
+# Client
+
+A python client is available to communicate with genuine or diy Jade units:
+```
+pip install jade-client
+```
+This installs the `jadepy` directory from this repo.  See [jade-client-requirements.txt](./jade-client-requirements.txt) and [jade-client-requirements.txt.asc](./jade-client-requirements.txt.asc)
+
 # License
 
 The collection is subject to gpl3 but individual source components can be used under their specific licenses.
