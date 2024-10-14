@@ -35,8 +35,12 @@ static void check_wallet_erase_pin(jade_process_t* process, const uint8_t* pin_e
     uint8_t pin_erase[PIN_SIZE];
     if (pin_len == sizeof(pin_erase) && storage_get_wallet_erase_pin(pin_erase, sizeof(pin_erase))
         && !sodium_memcmp(pin_erase, pin_entered, pin_len)) {
-        // 'Wallet erase' PIN entered.  Erase wallet keys, show 'Internal Error' message and shut-down
+        // 'Wallet erase' PIN entered.  Erase wallet keys and reset passphrase setting
         keychain_erase_encrypted();
+        keychain_set_passphrase_frequency(PASSPHRASE_NEVER);
+        keychain_persist_key_flags();
+
+        // Show/return 'Internal Error' message, and shut-down
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Internal Error", NULL);
 
         const char* message[] = { "Internal Error!" };
