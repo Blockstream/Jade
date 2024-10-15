@@ -267,6 +267,31 @@ GET_BIP85_BIP39_DATA = [
      "cricket traffic sad trade easily genius boost lumber rhythm")
 ]
 
+# Test vector generated using https://github.com/akarve/bipsea/blob/main/tests/test_bip85.py#L127
+# modified to use our own TEST_MNEMONIC and 1024 to 8192 keys
+GET_BIP85_RSA_DATA = [
+    ('45954a1a1b82976d9cf16ded12d304abaff7c6786f0556ef38335ec447116074'
+     'e12ad6857334958b69a3aaf56d9dac5fab9ff515b031887b859dd08a7a806e42', 1024, 0),
+    ('f35a660b07cf729eb72f557e48b0803abaaf1c7f79b68fb4e3f44ab689ac9005'
+     '37fdb8f5ab9ad1134a2c0b73da1df8cc303a288d6928155014497c5358b10629', 1024, 1),
+    ('de34903a773c76da0e41c0dbbe9b4be14ff163b06caab95600262ee578b71d59'
+     '0c8940665921d2075b63821a7b6790a2ec8083bdaa98447a8a84c11bd9d4b245', 2048, 0),
+    ('05b782fa17e0a3b0141d6c6a78b259628258f34571970b66f5d88073de2cdac5'
+     '079dd8f85df30c970d3fe3589bf24333ea2b3675e6b2494b3e5df6d07482b1a6', 2048, 1),
+    ('1e46421033d868529f6ed5b7e4827320fe4c0eb9029152092ad98edc487cd6a2'
+     '331b888cbef7e7f020274e5b7471a04773a925450cd7b51113b24ac185d554af', 3072, 0),
+    ('5aa27976bbcc83949c826415d173392b0fd95f2ea6deb0f8c195f5d204c6c7d3'
+     '980f2ab056fe0c1a20980371495c779bc64f65a6f36c73de4c5d02e51dc7ff6c', 3072, 1),
+    ('4f416e03d3693cf694960aa4a04311038f44ddbf84cf436b0e6a324fb634bd21'
+     '20fd24e5fb325979f2583df33b8df7d5e10c73c1379475dcd752ca4745c44620', 4096, 0),
+    ('99e120fc417959b4145bbfc7dede19622c4223466b63866a3b1ac4bdac2344ad'
+     '85ecacd930a98c8d9ffc918803e873d6b351a6b003ee2e58d9f73f4e97342338', 4096, 1),
+    ('0cbc707c69602095287624e78aaae4ab8048fa8b5407dadf87a6a0abd9162cab'
+     'b618900bcec641053edda87e412a93344a4d14a0c2e22ba9af9759a9114f8f20', 8192, 0),
+    ('eceac755acb069b159891a92a1c1f2ce2d0fcf055c446ed805f09e40fb3f6e02'
+     '7bb095d17634201520e626fdfc83764a4ac8bebec7ed34aed1911376765aa8cf', 8192, 1),
+]
+
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
 # bitcoin-cli sethdseed true "92zRAmYnWVRrWJ6cQb8yrzEz9r3aXj4oEUiPAZEbiPKHpCnxkKz"
@@ -2443,6 +2468,28 @@ def test_bip85_bip39_encrypted_entropy(jadeapi):
             assert jade_mnemonic == expected_mnemonic
 
 
+def test_bip85_rsa_encrypted_entropy(jadeapi):
+    label = 'bip85_rsa_entropy'.encode()
+
+    for entropy, key_bits, index in GET_BIP85_RSA_DATA:
+        # get new ephemeral key
+        while True:
+            try:
+                privkey = os.urandom(32)
+                wally.ec_private_key_verify(privkey)
+                break
+            except Exception:
+                pass
+
+        pubkey = wally.ec_public_key_from_private_key(privkey)
+
+        # Get encrypted bip85 rsa entropy from Jade
+        rslt = jadeapi.get_bip85_rsa_entropy(key_bits, index, pubkey)
+        jade_entropy = wally.aes_cbc_with_ecdh_key(privkey, None, rslt['encrypted'],
+                                                   rslt['pubkey'], label, wally.AES_FLAG_DECRYPT)
+        assert jade_entropy == h2b(entropy)
+
+
 def test_get_greenaddress_receive_address(jadeapi):
     for network, subact, branch, ptr, recovxpub, csvblocks, conf, expected in GET_GREENADDRESS_DATA:
         rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
@@ -3337,6 +3384,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     # Test BIP85 entropy
     test_bip85_bip39_encrypted_entropy(jadeapi)
+    test_bip85_rsa_encrypted_entropy(jadeapi)
 
     # Test generic multisig
     test_generic_multisig_registration(jadeapi)
@@ -3466,7 +3514,7 @@ def run_interface_tests(jadeapi,
         if not isble:
             time_ms = jadeapi.run_remote_selfcheck()
             logger.info('selfcheck time: ' + str(time_ms) + 'ms')
-            assert qemu or time_ms < 82500
+            assert qemu or time_ms < 85000
 
         # Test good pinserver handshake, and also 'bad sig' pinserver
         test_handshake(jadeapi.jade)

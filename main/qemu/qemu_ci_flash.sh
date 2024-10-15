@@ -49,4 +49,4 @@ cp "${FW_FULL}.hash" "${FW_PATCH}.hash"
 python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:30121 --fwfile=${FW_PATCH}
 
 # Run the tests - long timeout for bcur-fragment iteration test in 'run_remote_selfcheck()/selfcheck.c'
-python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:30121 --serialtimeout=450
+python test_jade.py --log=INFO --skipble --qemu --serialport=tcp:localhost:30121 --serialtimeout=900

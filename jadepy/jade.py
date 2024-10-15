@@ -711,6 +711,38 @@ class JadeAPI:
                   'pubkey': pubkey}
         return self._jadeRpc('get_bip85_bip39_entropy', params)
 
+    def get_bip85_rsa_entropy(self, key_bits, index, pubkey):
+        """
+        RPC call to fetch encrypted bip85-rsa entropy.
+        NOTE: Only available in a DEBUG build of the firmware.
+
+        Parameters
+        ----------
+        key_bits: int
+            The size of the RSA key.
+
+        index : int
+            The index to use in the bip32 path to calculate the entropy.
+
+        pubkey: 33-bytes
+            The host ephemeral pubkey to use to generate a shared ecdh secret to use as an AES key
+            to encrypt the returned entropy.
+
+        Returns
+        -------
+        dict
+            pubkey - 33-bytes, Jade's ephemeral pubkey used to generate a shared ecdh secret used as
+            an AES key to encrypt the returned entropy
+            encrypted - bytes, the requested bip85 rsa entropy, AES encrypted with the first key
+            derived from the ecdh shared secret, prefixed with the iv
+            hmac - 32-bytes, the hmac of the encrypted buffer, using the second key derived from the
+            ecdh shared secret
+        """
+        params = {'key_bits': key_bits,
+                  'index': index,
+                  'pubkey': pubkey}
+        return self._jadeRpc('get_bip85_rsa_entropy', params)
+
     def set_pinserver(self, urlA=None, urlB=None, pubkey=None, cert=None):
         """
         RPC call to explicitly set (override) the details of the blind pinserver used to

@@ -37,6 +37,7 @@ bool is_singlesig(script_variant_t variant);
 bool is_multisig(script_variant_t variant);
 
 void wallet_get_bip85_bip39_entropy(size_t nwords, size_t index, uint8_t* entropy, size_t entropy_len, size_t* written);
+void wallet_get_bip85_rsa_entropy(size_t key_bits, size_t index, uint8_t* entropy, size_t entropy_len, size_t* written);
 
 void wallet_get_default_xpub_export_path(
     script_variant_t variant, uint16_t account, uint32_t* path, size_t path_len, size_t* written);

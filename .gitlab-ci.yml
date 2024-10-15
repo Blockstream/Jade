@@ -9,6 +9,15 @@ stages:
 
 image: blockstream/verde@sha256:c6b59066998c138c7e43a8bc12ed6f9e83ebe3476ab4c5b73619390c495ab948
 
+test_bip85_rsa_key_gen:
+  tags:
+    - ga
+  stage: format
+  script:
+    - . $HOME/esp/esp-idf/export.sh
+    - (cd tools/bip85_rsa_key_gen && ./test.sh)
+    - git diff --exit-code
+
 test_format:
   tags:
     - ga

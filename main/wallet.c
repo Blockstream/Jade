@@ -5,6 +5,7 @@
 #include "keychain.h"
 #include "sensitive.h"
 #include "signer.h"
+#include "utils/malloc_ext.h"
 #include "utils/network.h"
 #include "utils/util.h"
 
@@ -1358,5 +1359,21 @@ void wallet_get_bip85_bip39_entropy(
     // Get bip85 path for bip39 mnemonic
     JADE_WALLY_VERIFY(
         bip85_get_bip39_entropy(&keychain_get()->xpriv, NULL, nwords, index, entropy, entropy_len, written));
+    JADE_ASSERT(*written <= entropy_len);
+}
+
+// Function to get bip85-generated entropy for a new rsa key
+// See: https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki
+void wallet_get_bip85_rsa_entropy(
+    const size_t key_bits, const size_t index, uint8_t* entropy, const size_t entropy_len, size_t* written)
+{
+    JADE_ASSERT(key_bits);
+    JADE_ASSERT(entropy);
+    JADE_ASSERT(entropy_len == HMAC_SHA512_LEN);
+    JADE_INIT_OUT_SIZE(written);
+
+    JADE_ASSERT(keychain_get());
+
+    JADE_WALLY_VERIFY(bip85_get_rsa_entropy(&keychain_get()->xpriv, key_bits, index, entropy, entropy_len, written));
     JADE_ASSERT(*written <= entropy_len);
 }
