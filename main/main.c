@@ -181,15 +181,8 @@ static void boot_process(void)
     // NOTE: input methods use idle-timer, so are dependent.
     idletimer_init();
 
-#if !defined(CONFIG_ETH_USE_OPENETH) && !defined(CONFIG_DISPLAY_TOUCHSCREEN)
+    // Initialise input devices as appropriate for the hw
     input_init();
-    button_init();
-    wheel_init();
-#endif
-
-#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
-    touchscreen_init();
-#endif
 
     wait_event_data_t* const event_data = gui_activity_make_wait_event_data(splash); // activity takes ownership
     JADE_ASSERT(event_data);
