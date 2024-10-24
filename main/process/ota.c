@@ -27,16 +27,16 @@ typedef struct {
 } ota_deflate_ctx_t;
 
 /* this is called by the deflate library when it has uncompressed data to write */
-static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t towrite)
+static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t length)
 {
     JADE_ASSERT(ctx);
     JADE_ASSERT(uncompressed);
-    JADE_ASSERT(towrite);
+    JADE_ASSERT(length);
 
     ota_deflate_ctx_t* octx = (ota_deflate_ctx_t*)ctx;
     JADE_ASSERT(octx->joctx);
 
-    if (!*octx->prevalidated && towrite >= CUSTOM_HEADER_MIN_WRITE) {
+    if (!*octx->prevalidated && length >= CUSTOM_HEADER_MIN_WRITE) {
         const enum ota_status res = ota_user_validation(octx->joctx, uncompressed);
         if (res != SUCCESS) {
             JADE_LOGE("ota_user_validation() error, %u", res);
@@ -46,7 +46,7 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t t
         *octx->prevalidated = true;
     }
 
-    const esp_err_t res = esp_ota_write(*octx->joctx->ota_handle, (const void*)uncompressed, towrite);
+    const esp_err_t res = esp_ota_write(*octx->joctx->ota_handle, (const void*)uncompressed, length);
     if (res != ESP_OK) {
         JADE_LOGE("ota_write() error: %u", res);
         *octx->joctx->ota_return_status = ERROR_WRITE;
@@ -55,20 +55,20 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t t
 
     if (octx->joctx->hash_type == HASHTYPE_FULLFWDATA) {
         // Add written to hash calculation
-        JADE_ZERO_VERIFY(mbedtls_sha256_update(octx->joctx->sha_ctx, uncompressed, towrite));
+        JADE_ZERO_VERIFY(mbedtls_sha256_update(octx->joctx->sha_ctx, uncompressed, length));
     }
 
-    *octx->joctx->remaining_uncompressed -= towrite;
+    *octx->joctx->remaining_uncompressed -= length;
     const size_t written = octx->joctx->uncompressedsize - *octx->joctx->remaining_uncompressed;
+
+    if (written > CUSTOM_HEADER_MIN_WRITE && !*octx->prevalidated) {
+        return DEFLATE_ERROR;
+    }
 
     /* Update the progress bar once the user has confirmed and upload is in progress */
     if (*octx->prevalidated) {
         JADE_ASSERT(octx->joctx->progress_bar.progress_bar);
         update_progress_bar(&octx->joctx->progress_bar, octx->joctx->uncompressedsize, written);
-    }
-
-    if (written > CUSTOM_HEADER_MIN_WRITE && !*octx->prevalidated) {
-        return DEFLATE_ERROR;
     }
 
     return DEFLATE_OK;
