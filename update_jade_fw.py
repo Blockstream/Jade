@@ -176,9 +176,11 @@ def ota(jade, verinfo, fwcompressed, fwlength, fwhash, patchlen=None):
     last_written = 0
 
     # Callback to log progress
-    def _log_progress(written, compressed_size):
+    def _log_progress(written, compressed_size, extended_reply):
         nonlocal last_time
         nonlocal last_written
+
+        assert extended_reply is None
 
         current_time = time.time()
         secs = current_time - last_time
@@ -198,7 +200,7 @@ def ota(jade, verinfo, fwcompressed, fwlength, fwhash, patchlen=None):
     print('Please approve the firmware update on the Jade device')
     try:
         result = jade.ota_update(fwcompressed, fwlength, chunksize, fwhash,
-                                 patchlen=patchlen, cb=_log_progress)
+                                 patchlen=patchlen, cb=_log_progress, extended_replies=False)
         assert result is True
         print(f'Total OTA time: {time.time() - start_time}s')
     except JadeError as err:

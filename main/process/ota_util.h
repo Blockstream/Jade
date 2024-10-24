@@ -39,6 +39,7 @@ typedef struct {
     mbedtls_sha256_context* sha_ctx;
     hash_type_t hash_type;
     char* id;
+    bool extended_replies;
     const uint8_t* expected_hash;
     const char* expected_hash_hexstr;
     const esp_partition_t* running_partition;

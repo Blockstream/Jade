@@ -20,13 +20,30 @@ extern esp_app_desc_t running_app_info;
 const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t custom_app_desc
     = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
 
-static void send_ok(const char* id, const jade_msg_source_t source)
+static void reply_ok(const void* ctx, CborEncoder* container)
 {
-    JADE_ASSERT(id);
+    JADE_ASSERT(ctx);
 
-    uint8_t ok_msg[MAXLEN_ID + 10];
-    bool ok = true;
-    jade_process_reply_to_message_result_with_id(id, ok_msg, sizeof(ok_msg), source, &ok, cbor_result_boolean_cb);
+    const jade_ota_ctx_t* joctx = (const jade_ota_ctx_t*)ctx;
+
+    if (joctx->extended_replies) {
+        // Extended/structured response
+        JADE_LOGI("Sending extended reply ok for %s", joctx->id);
+        CborEncoder map_encoder; // result data
+        CborError cberr = cbor_encoder_create_map(container, &map_encoder, 2);
+        JADE_ASSERT(cberr == CborNoError);
+
+        add_boolean_to_map(&map_encoder, "confirmed", *joctx->validated_confirmed);
+        add_uint_to_map(&map_encoder, "progress", joctx->progress_bar.percent_last_value);
+
+        cberr = cbor_encoder_close_container(container, &map_encoder);
+        JADE_ASSERT(cberr == CborNoError);
+    } else {
+        // Simple 'true' response
+        JADE_LOGI("Sending simple ok for %s", joctx->id);
+        const CborError cberr = cbor_encode_boolean(container, true);
+        JADE_ASSERT(cberr == CborNoError);
+    }
 }
 
 void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
@@ -101,8 +118,9 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
         joctx->uncompressedsize - *joctx->remaining_uncompressed);
 
     // Send ack after all processing - see comment above.
-    JADE_LOGI("Sending ok for %s", joctx->id);
-    send_ok(joctx->id, *joctx->expected_source);
+    uint8_t reply_msg[64];
+    jade_process_reply_to_message_result_with_id(
+        joctx->id, reply_msg, sizeof(reply_msg), *joctx->expected_source, joctx, reply_ok);
 
     // Blank out the current msg id once 'ok' is sent for it
     joctx->id[0] = '\0';

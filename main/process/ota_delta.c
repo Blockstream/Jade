@@ -179,6 +179,10 @@ void ota_delta_process(void* process_ptr)
         goto cleanup;
     }
 
+    // Optional field indicating preference for rich reply data
+    bool extended_replies = false;
+    rpc_get_boolean("extended_replies", &params, &extended_replies);
+
     // Can accept either uploaded file data hash (legacy) or hash of the full/final firmware image (preferred)
     uint8_t expected_hash[SHA256_LEN];
     char* expected_hash_hexstr = NULL;
@@ -223,6 +227,7 @@ void ota_delta_process(void* process_ptr)
         .compressedsize = compressedsize,
         .expected_hash_hexstr = expected_hash_hexstr,
         .expected_hash = expected_hash,
+        .extended_replies = extended_replies,
     };
 
     int ret = deflate_init_read_uncompressed(dctx, compressedsize, compressed_stream_reader, &joctx);

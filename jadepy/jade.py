@@ -458,7 +458,7 @@ class JadeAPI:
         return self._jadeRpc('logout')
 
     def ota_update(self, fwcmp, fwlen, chunksize, fwhash=None, patchlen=None, cb=None,
-                   gcov_dump=False):
+                   extended_replies=False, gcov_dump=False):
         """
         RPC call to attempt to update the unit's firmware.
 
@@ -488,9 +488,15 @@ class JadeAPI:
         cb : function, optional
             Callback function accepting two integers - the amount of compressed firmware sent thus
             far, and the total length of the compressed firmware to send.
+            If 'extended_replies' was set, this callback is also passed the extended data included
+            in the replies, if not this is None.
             If passed, this function is invoked each time a fw chunk is successfully uploaded and
             ack'd by the hw, to notify of upload progress.
             Defaults to None, and nothing is called to report upload progress.
+        extended_replies: bool, optional
+            If set Jade may return addtional progress data with each data chunk uploaded, which is
+            then passed to any progress callback as above.  If not no additional data is returned
+            or passed.
 
         Returns
         -------
@@ -509,7 +515,8 @@ class JadeAPI:
         ota_method = 'ota'
         params = {'fwsize': fwlen,
                   'cmpsize': cmplen,
-                  'cmphash': cmphash}
+                  'cmphash': cmphash,
+                  'extended_replies': extended_replies}
 
         if fwhash is not None:
             params['fwhash'] = fwhash
@@ -528,11 +535,13 @@ class JadeAPI:
             length = min(remaining, chunksize)
             chunk = bytes(fwcmp[written:written + length])
             result = self._jadeRpc('ota_data', chunk)
-            assert result is True
             written += length
 
+            have_extended_reply = isinstance(result, dict)
+            assert result is True or (extended_replies and have_extended_reply)
+
             if (cb):
-                cb(written, cmplen)
+                cb(written, cmplen, result if have_extended_reply else None)
 
         if gcov_dump:
             self.run_remote_gcov_dump()

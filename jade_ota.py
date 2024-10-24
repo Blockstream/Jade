@@ -248,7 +248,7 @@ def get_bleid(jade):
 # final (uncompressed) firmware, the length of the uncompressed diff/patch
 # (if this is a patch to apply to the current running firmware), and whether
 # to apply the test mnemonic rather than using normal pinserver authentication.
-def ota(jade, fwcompressed, fwlength, fwhash, patchlen=None, pushmnemonic=False):
+def ota(jade, fwcompressed, fwlength, fwhash, patchlen, extended_replies, pushmnemonic):
     info = jade.get_version_info()
     logger.info(f'Running OTA on: {info}')
     has_pin = info['JADE_HAS_PIN']
@@ -273,9 +273,14 @@ def ota(jade, fwcompressed, fwlength, fwhash, patchlen=None, pushmnemonic=False)
     last_written = 0
 
     # Callback to log progress
-    def _log_progress(written, compressed_size):
+    def _log_progress(written, compressed_size, extended_reply):
         nonlocal last_time
         nonlocal last_written
+
+        # For the purposes of this test we usually assume the hw supports
+        # extended replies.  Use --no-extended-reply if this is not the case
+        # (eg. updating from older firmware).
+        assert (extended_reply is not None) == (extended_replies is True)
 
         current_time = time.time()
         secs = current_time - last_time
@@ -287,13 +292,18 @@ def ota(jade, fwcompressed, fwlength, fwhash, patchlen=None, pushmnemonic=False)
         secs_remaining = (compressed_size - written) / avg_rate
         template = '{0:.2f} b/s - progress {1:.2f}% - {2:.2f} seconds left'
         logger.info(template.format(last_rate, progress, secs_remaining))
-        logger.info('Written {0}b in {1:.2f}s'.format(written, total_secs))
+        logger.info(f'Written {written}b in {total_secs}s')
+        if extended_reply:
+            logger.info(f'Confirmed: {extended_reply["confirmed"]}, ' +
+                        f'Write progress: {extended_reply["progress"]}%')
 
         last_time = current_time
         last_written = written
 
     result = jade.ota_update(fwcompressed, fwlength, chunksize, fwhash,
-                             patchlen=patchlen, cb=_log_progress, gcov_dump=info.get('GCOV', False))
+                             patchlen=patchlen, cb=_log_progress,
+                             extended_replies=extended_replies,
+                             gcov_dump=info.get('GCOV', False))
     assert result is True
 
     logger.info(f'Total ota time in secs: {time.time() - start_time}')
@@ -396,6 +406,11 @@ if __name__ == '__main__':
                         dest='pushmnemonic',
                         help='Sets a test mnemonic - only works with debug build of Jade',
                         default=False)
+    parser.add_argument('--no-extended-replies',
+                        action='store_true',
+                        dest='noextendedreplies',
+                        help='Do not request extended-replies (for backward-compatability)',
+                        default=False)
     parser.add_argument('--log',
                         action='store',
                         dest='loglevel',
@@ -479,7 +494,10 @@ if __name__ == '__main__':
         if not args.skipserial:
             logger.info(f'Jade OTA over serial')
             with JadeAPI.create_serial(device=args.serialport) as jade:
-                has_radio, bleid = ota(jade, fwcmp, fwlen, fwhash, patchlen, args.pushmnemonic)
+                # By default serial uses extended-replies
+                extended_replies = not args.noextendedreplies
+                has_radio, bleid = ota(jade, fwcmp, fwlen, fwhash, patchlen,
+                                       extended_replies, args.pushmnemonic)
 
         if not args.skipble:
             if has_radio and bleid is None and args.bleidfromserial:
@@ -490,7 +508,10 @@ if __name__ == '__main__':
             if has_radio:
                 logger.info(f'Jade OTA over BLE {bleid}')
                 with JadeAPI.create_ble(serial_number=bleid) as jade:
-                    ota(jade, fwcmp, fwlen, fwhash, patchlen, args.pushmnemonic)
+                    # Do not use extended-replies for ble
+                    extended_replies = False
+                    ota(jade, fwcmp, fwlen, fwhash, patchlen, extended_replies,
+                        args.pushmnemonic)
             else:
                 msg = 'Skipping BLE tests - not enabled on the hardware'
                 logger.warning(msg)
