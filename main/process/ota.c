@@ -21,11 +21,6 @@
 
 #include "process_utils.h"
 
-typedef struct {
-    bool* prevalidated;
-    jade_ota_ctx_t* joctx;
-} ota_deflate_ctx_t;
-
 /* this is called by the deflate library when it has uncompressed data to write */
 static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t length)
 {
@@ -33,42 +28,45 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t l
     JADE_ASSERT(uncompressed);
     JADE_ASSERT(length);
 
-    ota_deflate_ctx_t* octx = (ota_deflate_ctx_t*)ctx;
-    JADE_ASSERT(octx->joctx);
+    jade_ota_ctx_t* joctx = (jade_ota_ctx_t*)ctx;
 
-    if (!*octx->prevalidated && length >= CUSTOM_HEADER_MIN_WRITE) {
-        const enum ota_status res = ota_user_validation(octx->joctx, uncompressed);
+    if (!*joctx->validated_confirmed && length >= CUSTOM_HEADER_MIN_WRITE) {
+        const enum ota_status res = ota_user_validation(joctx, uncompressed);
         if (res != SUCCESS) {
             JADE_LOGE("ota_user_validation() error, %u", res);
-            *octx->joctx->ota_return_status = res;
+            *joctx->ota_return_status = res;
             return res;
         }
-        *octx->prevalidated = true;
+        *joctx->validated_confirmed = true;
     }
 
-    const esp_err_t res = esp_ota_write(*octx->joctx->ota_handle, (const void*)uncompressed, length);
+    const esp_err_t res = esp_ota_write(*joctx->ota_handle, (const void*)uncompressed, length);
     if (res != ESP_OK) {
         JADE_LOGE("ota_write() error: %u", res);
-        *octx->joctx->ota_return_status = ERROR_WRITE;
+        *joctx->ota_return_status = ERROR_WRITE;
         return DEFLATE_ERROR;
     }
 
-    if (octx->joctx->hash_type == HASHTYPE_FULLFWDATA) {
+    if (joctx->hash_type == HASHTYPE_FULLFWDATA) {
         // Add written to hash calculation
-        JADE_ZERO_VERIFY(mbedtls_sha256_update(octx->joctx->sha_ctx, uncompressed, length));
+        JADE_ZERO_VERIFY(mbedtls_sha256_update(joctx->sha_ctx, uncompressed, length));
     }
 
-    *octx->joctx->remaining_uncompressed -= length;
-    const size_t written = octx->joctx->uncompressedsize - *octx->joctx->remaining_uncompressed;
+    *joctx->remaining_uncompressed -= length;
+    joctx->fwwritten += length;
 
-    if (written > CUSTOM_HEADER_MIN_WRITE && !*octx->prevalidated) {
+    // For a full ota, the amount of fw data uncompressed should always be equal to the
+    // amount of new firmware we have written, as it should be the same thing.
+    JADE_ASSERT(joctx->uncompressedsize - *joctx->remaining_uncompressed == joctx->fwwritten);
+
+    if (joctx->fwwritten > CUSTOM_HEADER_MIN_WRITE && !*joctx->validated_confirmed) {
         return DEFLATE_ERROR;
     }
 
     /* Update the progress bar once the user has confirmed and upload is in progress */
-    if (*octx->prevalidated) {
-        JADE_ASSERT(octx->joctx->progress_bar.progress_bar);
-        update_progress_bar(&octx->joctx->progress_bar, octx->joctx->uncompressedsize, written);
+    if (*joctx->validated_confirmed) {
+        JADE_ASSERT(joctx->progress_bar.progress_bar);
+        update_progress_bar(&joctx->progress_bar, joctx->uncompressedsize, joctx->fwwritten);
     }
 
     return DEFLATE_OK;
@@ -81,7 +79,7 @@ void ota_process(void* process_ptr)
     jade_process_t* process = process_ptr;
     bool uploading = false;
     enum ota_status ota_return_status = ERROR_OTA_SETUP;
-    bool prevalidated = false;
+    bool validated_confirmed = false;
     bool ota_end_called = false;
 
     char id[MAXLEN_ID + 1];
@@ -134,10 +132,6 @@ void ota_process(void* process_ptr)
     struct deflate_ctx* dctx = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct deflate_ctx));
     jade_process_free_on_exit(process, dctx);
 
-    ota_deflate_ctx_t octx = {
-        .prevalidated = &prevalidated,
-    };
-
     size_t remaining_uncompressed = firmwaresize;
 
     jade_ota_ctx_t joctx = {
@@ -146,6 +140,7 @@ void ota_process(void* process_ptr)
         .hash_type = hash_type,
         .dctx = dctx,
         .id = id,
+        .validated_confirmed = &validated_confirmed,
         .uncompressedsize = firmwaresize,
         .remaining_uncompressed = &remaining_uncompressed,
         .ota_return_status = &ota_return_status,
@@ -158,14 +153,12 @@ void ota_process(void* process_ptr)
         .expected_hash = expected_hash,
     };
 
-    octx.joctx = &joctx;
-
     if (!ota_init(&joctx)) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to initialize OTA", NULL);
         goto cleanup;
     }
 
-    const int dret = deflate_init_write_compressed(dctx, compressedsize, uncompressed_stream_writer, &octx);
+    const int dret = deflate_init_write_compressed(dctx, compressedsize, uncompressed_stream_writer, &joctx);
     JADE_ASSERT(!dret);
 
     // Send the ok response, which implies now we will get ota_data messages
@@ -182,7 +175,7 @@ void ota_process(void* process_ptr)
             goto cleanup;
         }
     }
-    JADE_ASSERT(prevalidated);
+    JADE_ASSERT(validated_confirmed);
 
     // Uploading complete
     uploading = false;
@@ -190,6 +183,10 @@ void ota_process(void* process_ptr)
     // Bail-out if the fw uncompressed to an unexpected size
     if (remaining_uncompressed != 0) {
         JADE_LOGE("Expected uncompressed size: %u, got %u", firmwaresize, firmwaresize - remaining_uncompressed);
+        ota_return_status = ERROR_DECOMPRESS;
+    }
+    if (joctx.fwwritten != firmwaresize) {
+        JADE_LOGE("Expected amountof firmware written: %u, expected %u", joctx.fwwritten, firmwaresize);
         ota_return_status = ERROR_DECOMPRESS;
     }
 
@@ -234,7 +231,7 @@ cleanup:
         esp_restart();
     } else {
         JADE_LOGE("OTA error %u: %s", ota_return_status, MESSAGES[ota_return_status]);
-        if (prevalidated && !ota_end_called) {
+        if (validated_confirmed && !ota_end_called) {
             // ota_begin has been called, cleanup
             const esp_err_t err = esp_ota_abort(ota_handle);
             JADE_ASSERT(err == ESP_OK);

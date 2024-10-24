@@ -47,11 +47,13 @@ typedef struct {
     enum ota_status* ota_return_status;
     struct deflate_ctx* dctx;
     const jade_msg_source_t* expected_source;
+    bool* validated_confirmed;
     size_t* const remaining_uncompressed;
     size_t remaining_compressed;
     size_t uncompressedsize;
     size_t compressedsize;
     size_t firmwaresize;
+    size_t fwwritten;
 } jade_ota_ctx_t;
 
 enum ota_status {

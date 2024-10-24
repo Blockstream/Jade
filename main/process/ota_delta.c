@@ -22,14 +22,6 @@
 #include <bspatch.h>
 #include <deflate.h>
 
-typedef struct {
-    jade_ota_ctx_t* joctx;
-    char* id;
-    struct deflate_ctx* const dctx;
-    size_t written;
-    bool header_validated;
-} bsdiff_ctx_t;
-
 // Error reply in ota_delta is complicated by the fact that we reply 'ok' when we push the received patch data
 // into the decompressor, but we carry on copying the base firmware and inflating/applying patch data.
 // If an error occurs at this stage - we have no message id to reply to so must cache the error until we do receive
@@ -59,20 +51,20 @@ typedef struct {
 // NOTE: uses macros above so may return error immediately, or may just cache it for later return
 static int patch_stream_reader(const struct bspatch_stream* stream, void* buffer, int length)
 {
-    bsdiff_ctx_t* bctx = (bsdiff_ctx_t*)stream->opaque;
-    JADE_ASSERT(bctx);
+    jade_ota_ctx_t* joctx = (jade_ota_ctx_t*)stream->opaque;
+    JADE_ASSERT(joctx);
 
     if (length <= 0) {
-        HANDLE_NEW_ERROR(bctx->joctx, ERROR_PATCH);
+        HANDLE_NEW_ERROR(joctx, ERROR_PATCH);
     }
 
     // Return any non-zero error code from the read routine
-    const int ret = read_uncompressed(bctx->dctx, buffer, length);
+    const int ret = read_uncompressed(joctx->dctx, buffer, length);
     if (ret) {
-        HANDLE_NEW_ERROR(bctx->joctx, ret);
+        HANDLE_NEW_ERROR(joctx, ret);
     }
 
-    *bctx->joctx->remaining_uncompressed -= length;
+    *joctx->remaining_uncompressed -= length;
 
     return SUCCESS;
 }
@@ -80,15 +72,15 @@ static int patch_stream_reader(const struct bspatch_stream* stream, void* buffer
 // NOTE: uses macros above so may return error immediately, or may just cache it for later return
 static int base_firmware_stream_reader(const struct bspatch_stream_i* stream, void* buffer, int pos, int length)
 {
-    bsdiff_ctx_t* bctx = (bsdiff_ctx_t*)stream->opaque;
-    JADE_ASSERT(bctx);
+    jade_ota_ctx_t* joctx = (jade_ota_ctx_t*)stream->opaque;
+    JADE_ASSERT(joctx);
 
     // If currently in error, return immediately without reading anything
-    HANDLE_ANY_CACHED_ERROR(bctx->joctx);
+    HANDLE_ANY_CACHED_ERROR(joctx);
 
-    if (length <= 0 || pos + length >= bctx->joctx->running_partition->size
-        || esp_partition_read(bctx->joctx->running_partition, pos, buffer, length) != ESP_OK) {
-        HANDLE_NEW_ERROR(bctx->joctx, ERROR_PATCH);
+    if (length <= 0 || pos + length >= joctx->running_partition->size
+        || esp_partition_read(joctx->running_partition, pos, buffer, length) != ESP_OK) {
+        HANDLE_NEW_ERROR(joctx, ERROR_PATCH);
     }
 
     return SUCCESS;
@@ -97,37 +89,41 @@ static int base_firmware_stream_reader(const struct bspatch_stream_i* stream, vo
 // NOTE: uses macros above so may return error immediately, or may just cache it for later return
 static int ota_stream_writer(const struct bspatch_stream_n* stream, const void* buffer, int length)
 {
-    bsdiff_ctx_t* bctx = (bsdiff_ctx_t*)stream->opaque;
-    JADE_ASSERT(bctx);
+    jade_ota_ctx_t* joctx = (jade_ota_ctx_t*)stream->opaque;
+    JADE_ASSERT(joctx);
 
     // If currently in error, return immediately without writing anything
-    HANDLE_ANY_CACHED_ERROR(bctx->joctx);
+    HANDLE_ANY_CACHED_ERROR(joctx);
 
-    if (length <= 0 || esp_ota_write(*bctx->joctx->ota_handle, buffer, length) != ESP_OK) {
-        HANDLE_NEW_ERROR(bctx->joctx, ERROR_PATCH);
+    if (length <= 0 || esp_ota_write(*joctx->ota_handle, buffer, length) != ESP_OK) {
+        HANDLE_NEW_ERROR(joctx, ERROR_PATCH);
     }
 
-    if (!bctx->header_validated && length >= CUSTOM_HEADER_MIN_WRITE) {
-        const enum ota_status validation = ota_user_validation(bctx->joctx, (uint8_t*)buffer);
+    if (!*joctx->validated_confirmed && length >= CUSTOM_HEADER_MIN_WRITE) {
+        const enum ota_status validation = ota_user_validation(joctx, (uint8_t*)buffer);
         if (validation != SUCCESS) {
-            HANDLE_NEW_ERROR(bctx->joctx, validation);
+            HANDLE_NEW_ERROR(joctx, validation);
         }
-        bctx->header_validated = true;
+        *joctx->validated_confirmed = true;
     }
 
-    if (bctx->joctx->hash_type == HASHTYPE_FULLFWDATA) {
+    if (joctx->hash_type == HASHTYPE_FULLFWDATA) {
         // Add written to hash calculation
-        JADE_ZERO_VERIFY(mbedtls_sha256_update(bctx->joctx->sha_ctx, buffer, length));
+        JADE_ZERO_VERIFY(mbedtls_sha256_update(joctx->sha_ctx, buffer, length));
     }
 
-    bctx->written += length;
+    joctx->fwwritten += length;
 
-    if (bctx->written > CUSTOM_HEADER_MIN_WRITE && !bctx->header_validated) {
-        HANDLE_NEW_ERROR(bctx->joctx, ERROR_PATCH);
+    // For a patch, the amount of patch data uncompressed should always be more than the
+    // amount of new firmware we have written, because of additional patch meta-data.
+    JADE_ASSERT(joctx->uncompressedsize - *joctx->remaining_uncompressed > joctx->fwwritten);
+
+    if (joctx->fwwritten > CUSTOM_HEADER_MIN_WRITE && !*joctx->validated_confirmed) {
+        HANDLE_NEW_ERROR(joctx, ERROR_PATCH);
     }
 
-    if (bctx->header_validated) {
-        update_progress_bar(&bctx->joctx->progress_bar, bctx->joctx->firmwaresize, bctx->written);
+    if (*joctx->validated_confirmed) {
+        update_progress_bar(&joctx->progress_bar, joctx->firmwaresize, joctx->fwwritten);
     }
 
     return SUCCESS;
@@ -137,13 +133,12 @@ static int compressed_stream_reader(void* ctx)
 {
     JADE_ASSERT(ctx);
 
-    bsdiff_ctx_t* bctx = (bsdiff_ctx_t*)ctx;
-    JADE_ASSERT(bctx->joctx);
+    jade_ota_ctx_t* joctx = (jade_ota_ctx_t*)ctx;
 
     // NOTE: the ota_return_status can be set via ptr in joctx
     // Return any error here as it can be returned to the caller in the message reply
-    jade_process_get_in_message(bctx->joctx, &handle_in_bin_data, true);
-    return *bctx->joctx->ota_return_status;
+    jade_process_get_in_message(joctx, &handle_in_bin_data, true);
+    return *joctx->ota_return_status;
 }
 
 void ota_delta_process(void* process_ptr)
@@ -208,10 +203,7 @@ void ota_delta_process(void* process_ptr)
     struct deflate_ctx* dctx = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct deflate_ctx));
     jade_process_free_on_exit(process, dctx);
 
-    bsdiff_ctx_t bctx = {
-        .dctx = dctx,
-    };
-
+    bool validated_confirmed = false;
     size_t remaining_uncompressed = uncompressedpatchsize;
 
     jade_ota_ctx_t joctx = {
@@ -221,6 +213,7 @@ void ota_delta_process(void* process_ptr)
         .ota_handle = &ota_handle,
         .dctx = dctx,
         .id = id,
+        .validated_confirmed = &validated_confirmed,
         .uncompressedsize = uncompressedpatchsize,
         .remaining_uncompressed = &remaining_uncompressed,
         .ota_return_status = &ota_return_status,
@@ -232,9 +225,7 @@ void ota_delta_process(void* process_ptr)
         .expected_hash = expected_hash,
     };
 
-    bctx.joctx = &joctx;
-
-    int ret = deflate_init_read_uncompressed(dctx, compressedsize, compressed_stream_reader, &bctx);
+    int ret = deflate_init_read_uncompressed(dctx, compressedsize, compressed_stream_reader, &joctx);
     JADE_ASSERT(!ret);
 
     if (!ota_init(&joctx)) {
@@ -251,15 +242,15 @@ void ota_delta_process(void* process_ptr)
     struct bspatch_stream_n destination_firmware_stream_writer;
     // new partition
     destination_firmware_stream_writer.write = &ota_stream_writer;
-    destination_firmware_stream_writer.opaque = &bctx;
+    destination_firmware_stream_writer.opaque = &joctx;
     // patch
     struct bspatch_stream stream;
     stream.read = &patch_stream_reader;
-    stream.opaque = &bctx;
+    stream.opaque = &joctx;
     // old partition / base
     struct bspatch_stream_i basestream;
     basestream.read = &base_firmware_stream_reader;
-    basestream.opaque = &bctx;
+    basestream.opaque = &joctx;
 
     ota_return_status = SUCCESS;
     ret = bspatch(
@@ -275,7 +266,7 @@ void ota_delta_process(void* process_ptr)
     // Uploading complete
     uploading = false;
 
-    if (bctx.written != firmwaresize) {
+    if (joctx.fwwritten != firmwaresize) {
         ota_return_status = ERROR_PATCH;
     }
 
