@@ -1249,6 +1249,33 @@ class JadeAPI:
         params = {'message_file': message_file}
         return self._jadeRpc('sign_message', params)
 
+    def get_bip85_pubkey(self, key_type, key_bits, index):
+        """
+        RPC call to fetch a bip85-derived pubkey.
+
+        Parameters
+        ----------
+        key_type : string
+            The type of key to be derived.
+            At this time only 'RSA' is supported.
+
+        key_bits : int
+            The number of bits in the desired key.  Must be valid for the key type.
+            At this time must be 1024, 2048, 3096 or 4092
+
+        index : int
+            The index to use in the bip32 path to calculate the entropy to generate the key.
+
+        Returns
+        -------
+        string
+            PEM file of the public key derived.
+        """
+        params = {'key_type': key_type,
+                  'key_bits': key_bits,
+                  'index': index}
+        return self._jadeRpc('get_bip85_pubkey', params)
+
     def get_identity_pubkey(self, identity, curve, key_type, index=0):
         """
         RPC call to fetch a pubkey for the given identity (slip13/slip17).

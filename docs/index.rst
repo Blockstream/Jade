@@ -1074,6 +1074,49 @@ get_receive_address reply
         "result": "3A9HgJqKS5FZtGykWKuVBKyosFppojPPj5"
     }
 
+.. _get_bip85_pubkey_request:
+
+get_bip85_pubkey request
+------------------------
+
+Request to fetch a bip85-based deterministic key for a given type, key size and index.
+
+NOTE: currently this call only supports 'RSA', with sizes 1024, 2048, 3072 and 4096.
+
+NOTE: Uses current wallet seed and bip85 specification to produce deterministic entropy to initialise shake256 PRNG, used to create a deterministic key.
+However, since there is no well-specified deterministic recipe for creating keys, this implementation output may differ from other deterministic key-generation algorithms.
+
+.. code-block:: cbor
+
+    {
+        "id": "8",
+        "method": "get_bip85_pubkey",
+        "params": {
+            "key_type": "RSA",
+            "key_bits": 2048,
+            "index": 1
+        }
+    }
+
+* 'key_type' must be 'RSA'
+* 'key_bits' must be one of 1024, 2048, 3072 or 4096.
+
+
+.. _get_bip85_pubkey_reply:
+
+get_bip85_pubkey reply
+----------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "8",
+        "result": <pem string>
+    }
+
+* 'result' is a public key pem string
+
+
 .. _get_identity_pubkey_request:
 
 get_identity_pubkey request

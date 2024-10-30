@@ -9,6 +9,7 @@
 #include "multisig.h"
 #include "process.h"
 #include "random.h"
+#include "rsa.h"
 #include "storage.h"
 #include <sodium/crypto_verify_64.h>
 #include <sodium/utils.h>
@@ -31,8 +32,6 @@ static const char TEST_MNEMONIC[] = "fish inner face ginger orchard permit usefu
                                     "favorite sunset draw limb science crane oval letter slot invite sadness banana";
 static const char SERVICE_PATH_HEX[] = "00c9678fbd9d9f6a96bd43221d56733b5aba8f528487602b894e72d0f56e380f7d145b65639db7e"
                                        "e4f528a3fcfb8277b0cbbea00ef64767a531e9a447cacbfbc";
-static const char TEST_XPRIV[]
-    = "xprv9s21ZrQH143K2LBWUUQRFXhucrQqBpKdRRxNVq2zBqsx8HVqFk2uYo8kmbaLLHRdqtQpUm98uKfu3vca1LqdGhUtyoFnCNkfmXRyPXLjbKb";
 
 // See macros in keychain.c for calculating encrpyted blob lengths below
 // (Payload data is padded to next multiple of 16, and is concatenated between iv and hmac)
@@ -1359,113 +1358,58 @@ static bool test_miniscript_descriptors(void)
     return true;
 }
 
-static bool verify_rsa_key(
-    const uint32_t bits_size, uint8_t* entropy, const size_t entropy_size, const char* expected_hash_hex)
-{
-    JADE_ASSERT(bits_size);
-    JADE_ASSERT(entropy);
-    JADE_ASSERT(entropy_size == 64);
-
-    mbedtls_rsa_context ctx = {};
-    mbedtls_rsa_init(&ctx);
-
-    struct shake256_ctx sctx = {};
-    shake256_init(&sctx, entropy, entropy_size);
-    mbedtls_rsa_gen_key(&ctx, shake256_mbedtls_rnd_cb, &sctx, bits_size, 65537);
-
-    mbedtls_pk_context pk_ctx;
-    mbedtls_pk_init(&pk_ctx);
-    const size_t output_buf_size = 1000;
-    unsigned char* output_buf = JADE_MALLOC_PREFER_SPIRAM(output_buf_size);
-
-    if (mbedtls_pk_setup(&pk_ctx, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) != 0) {
-        FAIL();
-    }
-
-    if (mbedtls_rsa_copy(mbedtls_pk_rsa(pk_ctx), &ctx) != 0) {
-        FAIL();
-    }
-
-    if (mbedtls_pk_write_pubkey_pem(&pk_ctx, output_buf, output_buf_size) != 0) {
-        FAIL();
-    }
-
-    unsigned char public_key_hash[SHA256_LEN];
-    char* public_key_hash_hex = NULL;
-    JADE_WALLY_VERIFY(wally_sha256(output_buf, strlen((char*)output_buf), public_key_hash, SHA256_LEN));
-    JADE_WALLY_VERIFY(wally_hex_from_bytes(public_key_hash, SHA256_LEN, &public_key_hash_hex));
-
-    if (memcmp(public_key_hash_hex, expected_hash_hex, strlen(public_key_hash_hex)) != 0) {
-        JADE_LOGE("%s\nvs\n%s\n", public_key_hash_hex, expected_hash_hex);
-        FAIL();
-    }
-
-    wally_free_string(public_key_hash_hex);
-    free(output_buf);
-
-    mbedtls_pk_free(&pk_ctx);
-    mbedtls_rsa_free(&ctx);
-
-    return true;
-}
-
 typedef struct {
-    uint32_t index;
-    uint32_t key_size;
+    size_t index;
+    size_t key_size;
     const char* expected_hash;
-    const char* passphrase;
-    const char* xpriv;
-    const char* mnemonic;
 } rsa_test_params_t;
 
-static bool test_bip85_rsa_key_gen(void)
+static bool test_bip85_rsa_key_gen(jade_process_t* process)
 {
+    JADE_ASSERT(process);
 
-    const char* const passphrase = "bip85_rsa_key_gen";
+    // Set the debug wallet
+    keychain_t keydata = { 0 };
+    if (!keychain_derive_from_mnemonic(TEST_MNEMONIC, NULL, &keydata)) {
+        FAIL();
+    }
+    keychain_set(&keydata, process->ctx.source, true);
 
     const rsa_test_params_t rsa_tests[] = {
 #if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH) && defined(CONFIG_DEBUG_MODE)
-        { 0, 1024, "9e11d24ae78faeb37afea49abfd7bbe798a1fe2d24e601e9c53364ec325f8818", NULL, NULL, TEST_MNEMONIC },
-        { 1, 1024, "833fe83dd7dac618cdaea48b197aff21feeb874b5437ca20d2ea2967b5a973c2", NULL, NULL, TEST_MNEMONIC },
-        { 2, 1024, "4516a6cc9ad3bec438ec39105eaf62942b02f0dc3fd8a8227631374549b8da8b", NULL, NULL, TEST_MNEMONIC },
-        { 1, 3072, "60e223889e71e799a3432f7978e9f4b32198ad2a524fb1fe585e47e1336e6213", NULL, NULL, TEST_MNEMONIC },
-        { 2, 3072, "9632771cae8fadf9c7e1ef82c774a8dae050410827663dc124c77597ceb0d499", NULL, NULL, TEST_MNEMONIC },
-        { 0, 3072, "6dec7236f0b93d8a41baae7fd9c3519ffcfa5872f44e73fb113bc79567748f99", NULL, NULL, TEST_MNEMONIC },
-        { 0, 4096, "1a595ff6e6fccc7a9783b495cce81aa32ee393519174b2cc731788383b3aadf3", NULL, TEST_XPRIV, NULL },
-        { 1, 4096, "1493463aa0d937c7b73c9f0ebcc22577a00c9635443d70807709cb50254aee3b", NULL, TEST_XPRIV, NULL },
-        { 0, 4096, "03745cefd37483eea96bdbf695bbf3fae31f13cdeaf1358820f069be89fc6871", NULL, NULL, TEST_MNEMONIC },
+        { 0, 1024, "9e11d24ae78faeb37afea49abfd7bbe798a1fe2d24e601e9c53364ec325f8818" },
+        { 2, 1024, "4516a6cc9ad3bec438ec39105eaf62942b02f0dc3fd8a8227631374549b8da8b" },
+        { 0, 2048, "6597690e045f8aac15365b1a1f54a2de0557f355a3867c2b26c4650a747a646f" },
+        { 2, 2048, "9de081011a4d41f5a615a6ef0fde801fe8cbe7ab20bca02c1847623c7af56446" },
+        { 0, 3072, "6dec7236f0b93d8a41baae7fd9c3519ffcfa5872f44e73fb113bc79567748f99" },
+        { 2, 3072, "9632771cae8fadf9c7e1ef82c774a8dae050410827663dc124c77597ceb0d499" },
+        { 0, 4096, "03745cefd37483eea96bdbf695bbf3fae31f13cdeaf1358820f069be89fc6871" },
 #endif
-        { 0, 1024, "3b6dcb7161710e11b75af7cc68753f0f936591e2d748650ed1cb95de5a63c19f", passphrase, NULL,
-            TEST_MNEMONIC },
-        { 0, 3072, "e3669f1c80b6d6cb2fcee49f94ae3aae67dbba95d735964c8fda191c4e6b533b", NULL, TEST_XPRIV, NULL },
+        { 1, 1024, "833fe83dd7dac618cdaea48b197aff21feeb874b5437ca20d2ea2967b5a973c2" },
+        { 1, 2048, "692a57a0de7ec4c76a823652d95e6d2ff60ac08033f50e4b2edec24f9f193c91" },
+        { 1, 3072, "60e223889e71e799a3432f7978e9f4b32198ad2a524fb1fe585e47e1336e6213" }
     };
 
     const size_t num_tests = sizeof(rsa_tests) / sizeof(rsa_tests[0]);
-
     for (size_t i = 0; i < num_tests; ++i) {
-        uint8_t entropy[64];
-        size_t written = 0;
-        const rsa_test_params_t* const test = &rsa_tests[i];
-        JADE_ASSERT(!test->mnemonic != !test->xpriv); // one or the other
-
-        keychain_t keydata = { 0 };
-
-        if (test->mnemonic) {
-            if (!keychain_derive_from_mnemonic(test->mnemonic, test->passphrase, &keydata)) {
-                FAIL();
-            }
-        } else {
-            JADE_ASSERT(!test->passphrase); // only applies to mnemonic derivation
-            JADE_WALLY_VERIFY(bip32_key_from_base58(test->xpriv, &keydata.xpriv));
-        }
-
-        JADE_WALLY_VERIFY(
-            bip85_get_rsa_entropy(&keydata.xpriv, test->key_size, test->index, entropy, sizeof(entropy), &written));
-        JADE_ASSERT(written == sizeof(entropy));
-
-        if (!verify_rsa_key(test->key_size, entropy, written, test->expected_hash)) {
+        // Get bip85 rsa pubkey pem
+        char pem[1024];
+        if (!rsa_get_bip85_pubkey_pem(rsa_tests[i].key_size, rsa_tests[i].index, pem, sizeof(pem))) {
             FAIL();
         }
+
+        // Compare the hash to expected
+        unsigned char public_key_hash[SHA256_LEN];
+        char* public_key_hash_hex = NULL;
+        JADE_WALLY_VERIFY(wally_sha256((const uint8_t*)pem, strlen(pem), public_key_hash, sizeof(public_key_hash)));
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(public_key_hash, sizeof(public_key_hash), &public_key_hash_hex));
+
+        if (memcmp(public_key_hash_hex, rsa_tests[i].expected_hash, strlen(public_key_hash_hex)) != 0) {
+            JADE_LOGE("%s\nvs\n%s\n", public_key_hash_hex, rsa_tests[i].expected_hash);
+            wally_free_string(public_key_hash_hex);
+            FAIL();
+        }
+        wally_free_string(public_key_hash_hex);
     }
 
     return true;
@@ -1513,7 +1457,7 @@ bool debug_selfcheck(jade_process_t* process)
     }
 
     // Temporary test - will be replaced by python test when external rsa signing interface is completed
-    if (!test_bip85_rsa_key_gen()) {
+    if (!test_bip85_rsa_key_gen(process)) {
         FAIL();
     }
 

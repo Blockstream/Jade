@@ -125,6 +125,8 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
     signing_data_t* sig_data, const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len,
     const uint8_t** script, size_t* script_len, script_flavour_t* aggregate_script_flavour, const char** errmsg);
 
+bool params_get_bip85_rsa_key(CborValue* params, size_t* key_bits, size_t* index, const char** errmsg);
+
 // Track the types of the input prevout scripts
 script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len);
 void update_aggregate_scripts_flavour(script_flavour_t new_script_flavour, script_flavour_t* aggregate_scripts_flavour);

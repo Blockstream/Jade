@@ -4,9 +4,9 @@
 #include "../jade_wally_verify.h"
 #include "../process.h"
 #include "../random.h"
+#include "../rsa.h"
 #include "../sensitive.h"
 #include "../ui.h"
-#include "../utils/cbor_rpc.h"
 #include "../wallet.h"
 
 #include "process_utils.h"
@@ -15,8 +15,6 @@ static const unsigned char HMAC_BIP39_MESSAGE[]
     = { 'b', 'i', 'p', '8', '5', '_', 'b', 'i', 'p', '3', '9', '_', 'e', 'n', 't', 'r', 'o', 'p', 'y' };
 static const unsigned char HMAC_RSA_MESSAGE[]
     = { 'b', 'i', 'p', '8', '5', '_', 'r', 's', 'a', '_', 'e', 'n', 't', 'r', 'o', 'p', 'y' };
-
-#define RSA_KEY_SIZE_VALID(bits) (bits == 1024 || bits == 2048 || bits == 3072 || bits == 4096 || bits == 8192)
 
 typedef struct {
     uint8_t encrypted[AES_ENCRYPTED_LEN(HMAC_SHA512_LEN) + HMAC_SHA256_LEN];

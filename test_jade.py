@@ -153,7 +153,7 @@ BLE_TEST_PASSKEYFILE = "ble_test_passkey.txt"
 BLE_TEST_BADKEYFILE = "ble_test_badkey.txt"
 
 # The default serial read timeout
-DEFAULT_SERIAL_TIMEOUT = 120
+DEFAULT_SERIAL_TIMEOUT = 240
 
 # The pubkey for the test (in-proc) pinserver
 PINSERVER_TEST_PUBKEY_FILE = "server_public_key.pub"
@@ -164,6 +164,7 @@ PINSERVER_DEFAULT_ONION = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7j
 
 # The number of values expected back in version info
 NUM_VALUES_VERINFO = 20
+ESP32S3_CHIP_BOARDS = ['JADE_V2', 'TTGO_TDISPLAYS3', 'TTGO_TDISPLAYS3PROCAMERA', 'M5CORES3']
 
 TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
@@ -291,6 +292,12 @@ GET_BIP85_RSA_DATA = [
     ('eceac755acb069b159891a92a1c1f2ce2d0fcf055c446ed805f09e40fb3f6e02'
      '7bb095d17634201520e626fdfc83764a4ac8bebec7ed34aed1911376765aa8cf', 8192, 1),
 ]
+
+# Index chosen so as not to take too long, even on jade v1 hw
+GET_BIP85_RSA_PUBKEY_DATA = ['tools/bip85_rsa_key_gen/test_vectors/key_--mnemonic_1_1024.txt',
+                             'tools/bip85_rsa_key_gen/test_vectors/key_--mnemonic_1_2048.txt',
+                             'tools/bip85_rsa_key_gen/test_vectors/key_--mnemonic_1_3072.txt',
+                             'tools/bip85_rsa_key_gen/test_vectors/key_--mnemonic_0_4096.txt']
 
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
@@ -1224,6 +1231,32 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                   (('badbip85ent11', 'get_bip85_bip39_entropy',
                     {'num_words': 24, 'index': 0, 'pubkey': b''}),
                    'fetch valid pubkey'),
+
+                  (('badbip85pk1', 'get_bip85_pubkey'), 'Expecting parameters map'),
+                  (('badbip85pk2', 'get_bip85_pubkey',
+                    {'key_type': None}), 'extract valid key_type'),
+                  (('badbip85pk3', 'get_bip85_pubkey',
+                    {'key_type': 'bad'}), 'extract valid key_type'),
+                  (('badbip85pk4', 'get_bip85_pubkey',
+                    {'key_type': 'RSAx'}), 'extract valid key_type'),
+                  (('badbip85pk5', 'get_bip85_pubkey',
+                    {'key_type': 'RSA'}), 'fetch valid key length'),
+                  (('badbip85pk6', 'get_bip85_pubkey',
+                    {'key_type': 'RSA', 'key_bits': None}), 'fetch valid key length'),
+                  (('badbip85pk7', 'get_bip85_pubkey',
+                    {'key_type': 'RSA', 'key_bits': 'bad'}), 'fetch valid key length'),
+                  (('badbip85pk8', 'get_bip85_pubkey',
+                    {'key_type': 'RSA', 'key_bits': 3096}), 'fetch valid key length'),
+                  (('badbip85pk9', 'get_bip85_pubkey',
+                    {'key_type': 'RSA', 'key_bits': 8192}), 'fetch valid key length'),
+                  (('badbip85pk10', 'get_bip85_pubkey',
+                    {'key_type': 'RSA', 'key_bits': 2048}), 'fetch valid index'),
+                  (('badbip85pk11', 'get_bip85_pubkey',
+                    {'key_type': 'RSA', 'key_bits': 3072, 'index': None}),
+                   'fetch valid index'),
+                  (('badbip85pk12', 'get_bip85_pubkey',
+                    {'key_type': 'RSA', 'key_bits': 4096, 'index': 'bad'}),
+                   'fetch valid index'),
 
                   (('badidpk1', 'get_identity_pubkey'), 'Expecting parameters map'),
                   (('badidpk2', 'get_identity_pubkey', {'curve': 'nist256p1'}),
@@ -2490,6 +2523,33 @@ def test_bip85_rsa_encrypted_entropy(jadeapi):
         assert jade_entropy == h2b(entropy)
 
 
+def test_bip85_rsa_pubkey(jadeapi):
+    INDEX = "Index: "
+    KEYLEN = "Key bits: "
+    KEY_START = '-----BEGIN PUBLIC KEY-----'
+    KEY_END = '-----END PUBLIC KEY-----'
+    EOL = '\n'
+
+    for testcase_file in GET_BIP85_RSA_PUBKEY_DATA:
+        # Get tets case inputs and expected key from the test file
+        with open(testcase_file, 'r') as f:
+            filedata = f.read()
+
+        index = filedata.index(INDEX) + len(INDEX)
+        index = int(filedata[index:filedata.index(EOL, index)])
+
+        keylen = filedata.index(KEYLEN) + len(KEYLEN)
+        keylen = int(filedata[keylen:filedata.index(EOL, keylen)])
+
+        pemstart = filedata.index(KEY_START)
+        pemend = filedata.index(KEY_END) + len(KEY_END)
+        expected_pubkey_pem = filedata[pemstart:pemend] + EOL
+
+        # Get bip85 rsa pubkey from Jade and check matches
+        rslt = jadeapi.get_bip85_pubkey('RSA', keylen, index)
+        assert rslt == expected_pubkey_pem
+
+
 def test_get_greenaddress_receive_address(jadeapi):
     for network, subact, branch, ptr, recovxpub, csvblocks, conf, expected in GET_GREENADDRESS_DATA:
         rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
@@ -3385,6 +3445,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # Test BIP85 entropy
     test_bip85_bip39_encrypted_entropy(jadeapi)
     test_bip85_rsa_encrypted_entropy(jadeapi)
+    test_bip85_rsa_pubkey(jadeapi)
 
     # Test generic multisig
     test_generic_multisig_registration(jadeapi)
@@ -3487,6 +3548,7 @@ def run_interface_tests(jadeapi,
     assert len(startinfo) == NUM_VALUES_VERINFO
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
     has_ble = startinfo['JADE_CONFIG'] == 'BLE'
+    is_s3 = startinfo['BOARD_TYPE'] in ESP32S3_CHIP_BOARDS
 
     rslt = jadeapi.get_version_info(nonblocking=True)
     assert len(rslt) == NUM_VALUES_VERINFO
@@ -3514,7 +3576,7 @@ def run_interface_tests(jadeapi,
         if not isble:
             time_ms = jadeapi.run_remote_selfcheck()
             logger.info('selfcheck time: ' + str(time_ms) + 'ms')
-            assert qemu or time_ms < 85000
+            assert qemu or time_ms < (46000 if is_s3 else 126000)
 
         # Test good pinserver handshake, and also 'bad sig' pinserver
         test_handshake(jadeapi.jade)

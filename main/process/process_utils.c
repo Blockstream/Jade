@@ -4,6 +4,7 @@
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../multisig.h"
+#include "../rsa.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 
@@ -12,6 +13,8 @@
 #include <wally_script.h>
 
 #include "process_utils.h"
+
+static const char KEY_TYPE_RSA[] = { 'R', 'S', 'A' };
 
 // Sanity check extended-data payload fields
 bool check_extended_data_fields(CborValue* params, const char* expected_origid, const char* expected_orig,
@@ -341,6 +344,38 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
     // Track the types of the input prevout scripts
     const script_flavour_t script_flavour = get_script_flavour(*script, *script_len);
     update_aggregate_scripts_flavour(script_flavour, aggregate_script_flavour);
+
+    return true;
+}
+
+// Bip85 RSA key parameters (key size and index)
+bool params_get_bip85_rsa_key(CborValue* params, size_t* key_bits, size_t* index, const char** errmsg)
+{
+    JADE_ASSERT(params);
+    JADE_ASSERT(key_bits);
+    JADE_ASSERT(index);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    // Only handle 'RSA' atm
+    char key_type[8];
+    size_t written = 0;
+    rpc_get_string("key_type", sizeof(key_type), params, key_type, &written);
+    if (written != sizeof(KEY_TYPE_RSA) || memcmp(key_type, KEY_TYPE_RSA, sizeof(KEY_TYPE_RSA))) {
+        *errmsg = "Cannot extract valid key_type from parameters";
+        return false;
+    }
+
+    // Get number of key_bits and final index
+    if (!rpc_get_sizet("key_bits", params, key_bits) || *key_bits > MAX_RSA_GEN_KEY_LEN
+        || !RSA_KEY_SIZE_VALID(*key_bits)) {
+        *errmsg = "Failed to fetch valid key length from message";
+        return false;
+    }
+
+    if (!rpc_get_sizet("index", params, index)) {
+        *errmsg = "Failed to fetch valid index from message";
+        return false;
+    }
 
     return true;
 }
