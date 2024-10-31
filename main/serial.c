@@ -204,17 +204,6 @@ static bool write_serial(const uint8_t* msg, const size_t length, void* ignore)
         }
         written += wrote;
     }
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-#ifndef CONFIG_JADE_USE_USB_JTAG_SERIAL
-    return tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0, 0) != ESP_OK;
-#else
-    fflush(stdout);
-    /* it is necessary to wait a little for fflush to have an effect before
-     * fsync has all the data */
-    vTaskDelay(10 / portTICK_PERIOD_MS);
-    fsync(fileno(stdout));
-#endif
-#endif
     return true;
 }
 
@@ -228,6 +217,18 @@ static void serial_writer(void* ignore)
         while (jade_process_get_out_message(&write_serial, SOURCE_SERIAL, NULL)) {
             // process messages
         }
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#ifndef CONFIG_JADE_USE_USB_JTAG_SERIAL
+        /* if flush fails we ignore it */
+        tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0, 0);
+#else
+        fflush(stdout);
+        /* it is necessary to wait a little for fflush to have an effect before
+         * fsync has all the data */
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+        fsync(fileno(stdout));
+#endif
+#endif
         xTaskNotifyWait(0x00, ULONG_MAX, NULL, 100 / portTICK_PERIOD_MS);
     }
     post_exit_event_and_await_death(&writer_shutdown_done);
