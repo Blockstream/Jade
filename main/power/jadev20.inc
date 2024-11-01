@@ -82,7 +82,7 @@ void usb_detection_task(void* param)
             if (usb_type == SGM7220_REG_TYPE_SOURCE) {
                 // set to source mode
                 I2C_LOG_ANY_ERROR(_power_write_command(PMIC_ADDR, PMIC_REG_OTG, 0x01));
-            } else if (usb_type == SGM7220_REG_TYPE_SINK) {
+            } else {
                 // set to sink mode
                 I2C_LOG_ANY_ERROR(_power_write_command(PMIC_ADDR, PMIC_REG_OTG, 0x00));
             }
@@ -120,6 +120,9 @@ esp_err_t power_init(void)
     _power_master_read_slave(PMIC_ADDR, PMIC_REG_FW_VERSION, &data, 1);
     I2C_LOG_ANY_ERROR(_power_master_read_slave(PMIC_ADDR, PMIC_REG_FW_VERSION, &data, 1));
     JADE_LOGI("PMIC fw version: %u", data);
+
+    // set to sink mode by default
+    I2C_LOG_ANY_ERROR(_power_write_command(PMIC_ADDR, PMIC_REG_OTG, 0x00));
 
     // Do usb detection for power boost
     gpio_set_intr_type(USB_INT_PIN, GPIO_INTR_NEGEDGE);
@@ -297,7 +300,7 @@ bool usb_connected(void)
     I2C_LOG_ANY_ERROR(_power_write_command(SGM7220_ADDR, SGM7220_REG_TYPE, (usb_type | (0x1 << 4))));
     JADE_SEMAPHORE_GIVE(i2c_mutex);
 
-    // Check we are connected to a usb sink
+    // Check we are connected as a usb sink
     usb_type >>= SGM7220_REG_TYPE_SHIFT;
     return usb_type == SGM7220_REG_TYPE_SINK;
 #else
