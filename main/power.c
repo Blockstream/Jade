@@ -27,6 +27,9 @@
 #include "power/ip5306.inc"
 #elif defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
 #include "power/wslcdtouch2.inc"
+#elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAYS3) && defined(CONFIG_HAS_BATTERY)
+// ttgo-tdisplays3 can read battery level and charging status if a battery is connected
+#include "power/tdisplays3.inc"
 #else
 // Stubs for other hw boards (ie. no power management)
 #include "power/minimal.inc"

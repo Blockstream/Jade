@@ -154,6 +154,13 @@ menu "Blockstream Jade"
         help
             Jade v1 (and some other devices) come with the AXP192 to manage power to ESP, display, camera
 
+    config HAS_BATTERY
+        bool "Use analog input as battery level indicator and USB connection"
+        depends on BOARD_TYPE_TTGO_TDISPLAYS3
+        default n
+        help
+            Some devices can measure voltage and detect charging status through an analog input.
+
     menu "SDA/SCL Pin Mapping"
         visible if BOARD_TYPE_CUSTOM
 
