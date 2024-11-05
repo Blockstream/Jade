@@ -1337,9 +1337,11 @@ static void handle_wallet_erase_pin(void)
 }
 
 // Handle passphrase preferences
-static inline const char* passphrase_frequency_desc_from_flags(const passphrase_freq_t freq)
+static inline const char* passphrase_frequency_desc_from_flags(const passphrase_freq_t freq, const bool shortname)
 {
-    return freq == PASSPHRASE_ALWAYS ? "Always" : freq == PASSPHRASE_ONCE ? "Once" : "Never";
+    return freq == PASSPHRASE_ALWAYS ? "Always Ask"
+        : freq == PASSPHRASE_ONCE    ? (shortname ? "Next Login" : "Next Login Only")
+                                     : "Disabled";
 }
 static inline const char* passphrase_method_desc_from_flags(const passphrase_type_t type)
 {
@@ -1351,16 +1353,20 @@ static void handle_passphrase_prefs()
     passphrase_freq_t freq = keychain_get_passphrase_freq();
     passphrase_type_t type = keychain_get_passphrase_type();
 
+    // In some cases may need to use shorter names on smaller displays
+    const bool menu_freq_shortname = CONFIG_DISPLAY_WIDTH < 320;
+    const bool carousel_freq_shortname = false;
+
     gui_view_node_t* frequency_item = NULL;
     gui_view_node_t* method_item = NULL;
     gui_activity_t* const act = make_bip39_passphrase_prefs_activity(&frequency_item, &method_item);
-    update_menu_item(frequency_item, "Frequency", passphrase_frequency_desc_from_flags(freq));
+    update_menu_item(frequency_item, "Frequency", passphrase_frequency_desc_from_flags(freq, menu_freq_shortname));
     update_menu_item(method_item, "Method", passphrase_method_desc_from_flags(type));
     gui_set_current_activity(act);
 
     gui_view_node_t* frequency_textbox = NULL;
     gui_activity_t* const act_freq = make_carousel_activity("Frequency", NULL, &frequency_textbox);
-    gui_update_text(frequency_textbox, passphrase_frequency_desc_from_flags(freq));
+    gui_update_text(frequency_textbox, passphrase_frequency_desc_from_flags(freq, carousel_freq_shortname));
 
     gui_view_node_t* method_textbox = NULL;
     gui_activity_t* const act_method = make_carousel_activity("Method", NULL, &method_textbox);
@@ -1384,7 +1390,8 @@ static void handle_passphrase_prefs()
                 // Never -> Once -> Always -> Once ...
                 gui_set_current_activity(act_freq);
                 while (true) {
-                    gui_update_text(frequency_textbox, passphrase_frequency_desc_from_flags(freq));
+                    gui_update_text(
+                        frequency_textbox, passphrase_frequency_desc_from_flags(freq, carousel_freq_shortname));
                     if (gui_activity_wait_event(act_freq, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
                         if (ev_id == GUI_WHEEL_LEFT_EVENT) {
                             freq = (freq == PASSPHRASE_NEVER  ? PASSPHRASE_ALWAYS
@@ -1400,7 +1407,8 @@ static void handle_passphrase_prefs()
                         }
                     }
                 }
-                update_menu_item(frequency_item, "Frequency", passphrase_frequency_desc_from_flags(freq));
+                update_menu_item(
+                    frequency_item, "Frequency", passphrase_frequency_desc_from_flags(freq, menu_freq_shortname));
             } else if (ev_id == BTN_PASSPHRASE_METHOD) {
                 gui_set_current_activity(act_method);
                 while (true) {
