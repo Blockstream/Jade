@@ -170,7 +170,7 @@ esp_err_t power_shutdown(void)
 
     // Power off via the XXX
     JADE_SEMAPHORE_TAKE(i2c_mutex);
-    I2C_CHECK_RET(_power_write_command(PMIC_ADDR, PMIC_REG_POWER_OFF, 0x01));
+    I2C_LOG_ANY_ERROR(_power_write_command(PMIC_ADDR, PMIC_REG_POWER_OFF, 0x01));
     JADE_SEMAPHORE_GIVE(i2c_mutex);
 
     return ESP_OK;
