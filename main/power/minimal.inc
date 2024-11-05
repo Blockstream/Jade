@@ -28,4 +28,7 @@ uint16_t power_get_vusb(void) { return 0; }
 uint16_t power_get_iusb(void) { return 0; }
 uint16_t power_get_temp(void) { return 0; }
 
+void disable_usb_host(void) {}
+void enable_usb_host(void) {}
+
 bool usb_connected(void) { return true; }

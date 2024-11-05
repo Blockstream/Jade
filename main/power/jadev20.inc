@@ -249,6 +249,20 @@ uint16_t power_get_iusb(void) { return 0; }
 
 uint16_t power_get_temp(void) { return 0; }
 
+void disable_usb_host(void)
+{
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_write_command(PMIC_ADDR, PMIC_REG_OTG, 0x00));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+}
+
+void enable_usb_host(void)
+{
+    JADE_SEMAPHORE_TAKE(i2c_mutex);
+    I2C_LOG_ANY_ERROR(_power_write_command(PMIC_ADDR, PMIC_REG_OTG, 0x01));
+    JADE_SEMAPHORE_GIVE(i2c_mutex);
+}
+
 bool usb_connected(void)
 {
     uint8_t usb_type;
