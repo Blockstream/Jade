@@ -440,10 +440,12 @@ bool attestation_can_be_initialised(void)
     }
 #endif
 
+#ifndef ALLOW_REINITIALISE
     // Check efuse is both readable and writable
     if (esp_efuse_get_key_dis_read(JADE_ATTEST_EFUSE) || esp_efuse_get_key_dis_write(JADE_ATTEST_EFUSE)) {
         return false;
     }
+#endif
 
     // Check efuses can still be made read-only
     if (esp_efuse_read_field_bit(ESP_EFUSE_WR_DIS_RD_DIS)) {
