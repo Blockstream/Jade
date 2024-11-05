@@ -73,10 +73,10 @@ void sign_attestation_process(void* process_ptr)
     }
 
     // User to confirm signing
-    const char* message[] = { "Sign Attestation challenge?" };
-    if (!await_yesno_activity("Sign Attestation", message, 1, true, "blkstrm.com/attest")) {
+    const char* message[] = { "Sign Genuine Check?" };
+    if (!await_yesno_activity("Genuine Check", message, 1, true, "blkstrm.com/genuine")) {
         JADE_LOGW("User declined to sign attestation");
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign attestation", NULL);
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign genuine check", NULL);
         goto cleanup;
     }
     JADE_LOGD("User pressed accept");
