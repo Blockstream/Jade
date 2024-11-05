@@ -4,6 +4,7 @@
 #include "../jade_tasks.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
+#include "../power.h"
 #include "../process.h"
 #include "../serial.h"
 #include "../ui.h"
@@ -283,6 +284,12 @@ static bool handle_usbstorage_action(
     JADE_ASSERT(title);
     JADE_ASSERT(usbstorage_action);
     // extra_path is optional
+
+    if (usb_connected()) {
+        const char* message[] = { "Disconnect USB power and", "connect a storage device" };
+        await_error_activity(message, 2);
+        return false;
+    }
 
     // Stop normal serial usb and start usbstorage
     display_processing_message_activity();

@@ -256,7 +256,11 @@ bool usbstorage_start(void)
     JADE_SEMAPHORE_TAKE(interface_semaphore);
     JADE_ASSERT(!usbstorage_is_enabled);
     JADE_ASSERT(!main_task);
-    /* enable_usb_host(); */
+
+    // Power any connected device
+    JADE_ASSERT(!usb_connected());
+    enable_usb_host();
+
     usbstorage_is_enabled = true;
     const BaseType_t task_created = xTaskCreatePinnedToCore(
         usbstorage_task, "usb_storage", 2 * 1024, NULL, JADE_TASK_PRIO_USB, &main_task, JADE_CORE_SECONDARY);
@@ -278,7 +282,10 @@ void usbstorage_stop(void)
 
     vTaskDelete(main_task);
     main_task = NULL;
-    // disable_usb_host();
+
+    // Stop powering any connected usb device
+    disable_usb_host();
+
     JADE_SEMAPHORE_GIVE(interface_semaphore);
 }
 

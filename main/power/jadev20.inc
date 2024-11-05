@@ -38,8 +38,8 @@
 #define SGM7220_REG_TYPE_SOURCE 0x01
 #define SGM7220_REG_TYPE_SINK 0x02
 
+#ifdef USB_DETECTION
 #define USB_INT_PIN (gpio_num_t)18
-
 static SemaphoreHandle_t usb_semaphore;
 
 static void IRAM_ATTR usb_gpio_isr_handler(void* arg)
@@ -76,14 +76,12 @@ void usb_detection_task(void* param)
         }
     }
 }
+#endif // USB_DETECTION
 
 // Exported funtions
 esp_err_t power_init(void)
 {
     I2C_CHECK_RET(_power_i2c_init());
-
-    usb_semaphore = xSemaphoreCreateBinary();
-    JADE_ASSERT(usb_semaphore);
 
     // Need read twice for some reason - first one always fails, second should work!
     uint8_t data;
@@ -94,16 +92,14 @@ esp_err_t power_init(void)
     // set to sink mode by default
     I2C_LOG_ANY_ERROR(_power_write_command(PMIC_ADDR, PMIC_REG_OTG, 0x00));
 
+#ifdef USB_DETECTION
+    usb_semaphore = xSemaphoreCreateBinary();
+    JADE_ASSERT(usb_semaphore);
+
     // Do usb detection for power boost
     gpio_set_intr_type(USB_INT_PIN, GPIO_INTR_NEGEDGE);
     I2C_CHECK_RET(gpio_install_isr_service(0));
     gpio_isr_handler_add(USB_INT_PIN, usb_gpio_isr_handler, (void*)USB_INT_PIN);
-
-    uint8_t sgm_id[8] = { 0 };
-    I2C_CHECK_RET(_power_master_read_slave(SGM7220_ADDR, 0x00, &sgm_id[0], sizeof(sgm_id)));
-    JADE_LOGI("SGM7220 Device ID: %02x %02x %02x %02x %02x %02x %02x %02x", sgm_id[7], sgm_id[6], sgm_id[5], sgm_id[4],
-        sgm_id[3], sgm_id[2], sgm_id[1], sgm_id[0]);
-    I2C_CHECK_RET(_power_write_command(SGM7220_ADDR, 0x0A, 0x32));
 
     const BaseType_t retval = xTaskCreatePinnedToCore(
         usb_detection_task, "usbdt", 1024 * 4, NULL, JADE_TASK_PRIO_IDLETIMER, NULL, JADE_CORE_GUI);
@@ -111,6 +107,13 @@ esp_err_t power_init(void)
     if (retval != pdPASS) {
         return ESP_FAIL;
     }
+#endif
+
+    uint8_t sgm_id[8] = { 0 };
+    I2C_CHECK_RET(_power_master_read_slave(SGM7220_ADDR, 0x00, &sgm_id[0], sizeof(sgm_id)));
+    JADE_LOGI("SGM7220 Device ID: %02x %02x %02x %02x %02x %02x %02x %02x", sgm_id[7], sgm_id[6], sgm_id[5], sgm_id[4],
+        sgm_id[3], sgm_id[2], sgm_id[1], sgm_id[0]);
+    I2C_CHECK_RET(_power_write_command(SGM7220_ADDR, 0x0A, 0x32));
 
 #ifdef CONFIG_SECURE_BOOT
     // Ensure 'download mode' permanently disabled
