@@ -192,6 +192,9 @@ if __name__ == '__main__':
         if verinfo['BOARD_TYPE'] not in ESP32S3_CHIP_BOARDS:
             print('Attestation only available on esp32s3 chipset')
             sys.exit(2)
+        if verinfo['JADE_FEATURES'] != 'SB':
+            print('Attestation only available on secure-boot devices')
+            sys.exit(3)
 
         if args.initialise:
             attestation_initialise(jade, args)

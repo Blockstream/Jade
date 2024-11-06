@@ -32,7 +32,7 @@
 #define JADE_ATTEST_EFUSE EFUSE_BLK_KEY5
 #define JADE_ATTEST_HMAC_EFUSE_ID (JADE_ATTEST_EFUSE - EFUSE_BLK_KEY0)
 
-#ifdef CONFIG_DEBUG_MODE
+#if defined(CONFIG_DEBUG_MODE) && !defined(CONFIG_SECURE_BOOT)
 #define ALLOW_REINITIALISE 1
 #endif
 
@@ -428,6 +428,10 @@ static void rsa_ctx_to_ds_params(mbedtls_rsa_context* rsa, esp_ds_p_data_t* para
 
 bool attestation_can_be_initialised(void)
 {
+    // Only 'secure-boot' units can be set-up with attestation
+#ifndef CONFIG_SECURE_BOOT
+    return false;
+#else
     // Check efuse is currently unused (ie. 'user', [or already set if in dev mode])
     const esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(JADE_ATTEST_EFUSE);
 #ifdef ALLOW_REINITIALISE
@@ -453,6 +457,7 @@ bool attestation_can_be_initialised(void)
     }
 
     return true;
+#endif // CONFIG_SECURE_BOOT
 }
 
 bool attestation_initialised(void)
