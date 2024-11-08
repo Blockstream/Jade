@@ -284,6 +284,9 @@ static bool serial_init_internal(void)
     }
 #endif // IDF_TARGET_ESP32
 
+    // The tasks run while this flag is set
+    serial_is_enabled = true;
+
     BaseType_t retval = xTaskCreatePinnedToCore(&serial_reader, "serial_reader", reader_stack_size, NULL,
         JADE_TASK_PRIO_READER, &serial_reader_handle, JADE_CORE_SECONDARY);
 
@@ -294,6 +297,7 @@ static bool serial_init_internal(void)
         p_serial_writer_handle, JADE_CORE_SECONDARY);
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create serial_writer task, xTaskCreatePinnedToCore() returned %d", retval);
+
     return true;
 }
 
@@ -315,7 +319,6 @@ bool serial_init(TaskHandle_t* serial_handle)
     full_serial_data_in[0] = SOURCE_SERIAL;
     serial_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
     p_serial_writer_handle = serial_handle;
-    serial_is_enabled = true;
     return serial_init_internal();
 }
 
@@ -323,21 +326,18 @@ bool serial_enabled(void) { return serial_is_enabled; }
 
 void serial_start(void)
 {
-    // JADE_ASSERT(!serial_is_enabled);
     if (serial_is_enabled) {
         return;
     }
-    serial_is_enabled = true;
-    const bool res = serial_init_internal();
-    JADE_ASSERT(res);
+    serial_init_internal();
 }
 
 void serial_stop(void)
 {
-    // JADE_ASSERT(serial_is_enabled);
     if (!serial_is_enabled) {
         return;
     }
+
     // flag tasks to die
     serial_is_enabled = false;
 
