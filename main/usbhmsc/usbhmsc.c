@@ -179,21 +179,21 @@ static void usbstorage_task(void* ignore)
         }
 
         const uint8_t device_address = (event & DEVICE_ADDRESS_MASK) >> 4;
-        trigger_event(USBSTORAGE_DETECTED, device_address);
+        trigger_event(USBSTORAGE_EVENT_DETECTED, device_address);
         for (;;) {
             const EventBits_t ebt = xEventGroupWaitBits(usb_flags, 0xFF, pdTRUE, pdFALSE, xTicksToWait);
             if (ebt & HOST_ALL_FREE) {
                 // user removed the device which wasn't mounted
-                trigger_event(USBSTORAGE_EJECTED, device_address);
+                trigger_event(USBSTORAGE_EVENT_EJECTED, device_address);
                 done = !usbstorage_is_enabled;
                 break;
             } else if (ebt & DEVICE_DISCONNECTED) {
                 // user removed the device which was mounted!
-                trigger_event(USBSTORAGE_ABNORMALLY_EJECTED, device_address);
+                trigger_event(USBSTORAGE_EVENT_ABNORMALLY_EJECTED, device_address);
                 done = !usbstorage_is_enabled;
                 break;
             } else if (ebt & (DEVICE_CONNECTED | HOST_ALL_FREE)) {
-                trigger_event(USBSTORAGE_EJECTED, device_address);
+                trigger_event(USBSTORAGE_EVENT_EJECTED, device_address);
                 done = !usbstorage_is_enabled;
                 break;
             } else if (!ebt && requires_host_uinstall && !usb_is_mounted) {

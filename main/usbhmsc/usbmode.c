@@ -262,7 +262,7 @@ static void handle_usbstorage_event(const usbstorage_event_t event, const uint8_
     JADE_ASSERT(state->semaphore_usbstorage_event);
 
     // When the device is detected, mount it immediately
-    if (event == USBSTORAGE_DETECTED) {
+    if (event == USBSTORAGE_EVENT_DETECTED) {
         if (usbstorage_mount(device_address)) {
             state->usbstorage_mounted = true;
             xSemaphoreGive(state->semaphore_usbstorage_event);

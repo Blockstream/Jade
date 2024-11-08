@@ -8,9 +8,9 @@
 #define USBSTORAGE_MOUNT_POINT "/usb"
 
 typedef enum {
-    USBSTORAGE_DETECTED,
-    USBSTORAGE_EJECTED,
-    USBSTORAGE_ABNORMALLY_EJECTED,
+    USBSTORAGE_EVENT_DETECTED,
+    USBSTORAGE_EVENT_EJECTED,
+    USBSTORAGE_EVENT_ABNORMALLY_EJECTED,
 } usbstorage_event_t;
 
 typedef void (*usbstorage_callback_t)(usbstorage_event_t event, uint8_t device_address, void* ctx);
