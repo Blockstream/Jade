@@ -40,7 +40,6 @@ static const char FW_SUFFIX[] = "_fw.bin";
 static const char HASH_SUFFIX[] = ".hash";
 
 static const char PSBT_SUFFIX[] = ".psbt";
-static const char PSBT_TXT_SUFFIX[] = ".psbt.txt";
 
 #define STR_ENDSWITH(str, str_len, suffix, suffix_len)                                                                 \
     (str && str_len > suffix_len && str[str_len] == '\0' && !memcmp(str + str_len - suffix_len, suffix, suffix_len))
@@ -721,19 +720,9 @@ bool usbstorage_firmware_ota(const char* extra_path)
 
 // Sign PSBT
 
-static bool is_psbt_binary_file(const char* path, const char* filename, const size_t filename_len)
-{
-    return STR_ENDSWITH(filename, filename_len, PSBT_SUFFIX, strlen(PSBT_SUFFIX));
-}
-
-static bool is_psbt_txt_file(const char* path, const char* filename, const size_t filename_len)
-{
-    return STR_ENDSWITH(filename, filename_len, PSBT_TXT_SUFFIX, strlen(PSBT_TXT_SUFFIX));
-}
-
 static bool is_psbt_file(const char* path, const char* filename, const size_t filename_len)
 {
-    return is_psbt_binary_file(path, filename, filename_len) || is_psbt_txt_file(path, filename, filename_len);
+    return STR_ENDSWITH(filename, filename_len, PSBT_SUFFIX, strlen(PSBT_SUFFIX));
 }
 
 static bool sign_usb_psbt(const char* extra_path)
@@ -761,11 +750,16 @@ static bool sign_usb_psbt(const char* extra_path)
     bool retval = false;
     struct wally_psbt* psbt = NULL;
     const size_t filename_len = strlen(filename);
-    const bool b64 = is_psbt_txt_file("", filename, filename_len);
 
+    bool b64 = false;
     uint8_t* psbt_bytes = JADE_MALLOC_PREFER_SPIRAM(psbt_len);
-    if (b64) {
-        // Load from base64 text file
+
+    // Try to read as binary psbt first
+    const size_t bytes_read = read_file_to_buffer(filename, psbt_bytes, psbt_len);
+    JADE_ASSERT(bytes_read == psbt_len);
+    if (!deserialise_psbt(psbt_bytes, psbt_len, &psbt) || !psbt) {
+        // Failed ...
+        // Try to interpret as base64 text file
         char* const psbt64 = JADE_MALLOC_PREFER_SPIRAM(psbt_len + 1);
         const size_t bytes_read = read_file_to_buffer(filename, (uint8_t*)psbt64, psbt_len);
         JADE_ASSERT(bytes_read == psbt_len);
@@ -780,22 +774,19 @@ static bool sign_usb_psbt(const char* extra_path)
         free(psbt64);
 
         if (wret != WALLY_OK || !written || written > psbt_len) {
-            const char* message[] = { "Failed to decode", "PSBT base64" };
-            await_error_activity(message, 2);
+            const char* message[] = { "Failed to load PSBT" };
+            await_error_activity(message, 1);
             goto cleanup;
         }
         psbt_len = written;
-    } else {
-        // Read bytes from binary file
-        const size_t bytes_read = read_file_to_buffer(filename, psbt_bytes, psbt_len);
-        JADE_ASSERT(bytes_read == psbt_len);
-    }
+        b64 = true;
 
-    // Deserialise bytes
-    if (!deserialise_psbt(psbt_bytes, psbt_len, &psbt) || !psbt) {
-        const char* message[] = { "Failed to load PSBT" };
-        await_error_activity(message, 1);
-        goto cleanup;
+        // Deserialise bytes
+        if (!deserialise_psbt(psbt_bytes, psbt_len, &psbt) || !psbt) {
+            const char* message[] = { "Failed to load PSBT" };
+            await_error_activity(message, 1);
+            goto cleanup;
+        }
     }
 
     // Free bytes loaded from file
@@ -852,7 +843,7 @@ cleanup:
 }
 
 // Sign PSBT file, and write updated file back to the usb-storage directory.
-// Accepts binary PSBT file ('xxx.psbt') or base64-encoded PSBT file ('xxx.psbt.txt').
+// Accepts binary PSBT or base64-encoded PSBT file as 'xxx.psbt'.
 // After any signatures are added, the file is written in the same format.
 bool usbstorage_sign_psbt(const char* extra_path)
 {
