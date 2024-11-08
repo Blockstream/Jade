@@ -45,15 +45,14 @@ static SemaphoreHandle_t aux_task_semaphore = NULL;
 static SemaphoreHandle_t interface_semaphore = NULL;
 static SemaphoreHandle_t callback_semaphore = NULL;
 static TaskHandle_t main_task = NULL;
-static bool volatile usb_is_mounted = false;
+static bool volatile usb_device_installed = false;
 
 static bool volatile usbstorage_is_enabled = false;
 static bool volatile usbstorage_is_enabled_subtask = false;
 static EventGroupHandle_t usb_flags;
 
 static msc_host_device_handle_t msc_device = NULL;
-
-static msc_host_vfs_handle_t vfs_handle;
+static msc_host_vfs_handle_t vfs_handle = NULL;
 
 static const esp_vfs_fat_mount_config_t mount_config = {
     .format_if_mount_failed = false,
@@ -163,7 +162,7 @@ static void usbstorage_task(void* ignore)
     /* signal to usbstorage_start that we completed the start without [major] fail */
     xSemaphoreGive(main_task_semaphore);
 
-    bool requires_host_uinstall = true;
+    bool requires_host_uninstall = true;
     while (!done) {
         const TickType_t xTicksToWait = 100 / portTICK_PERIOD_MS;
 
@@ -196,10 +195,13 @@ static void usbstorage_task(void* ignore)
                 trigger_event(USBSTORAGE_EVENT_EJECTED, device_address);
                 done = !usbstorage_is_enabled;
                 break;
-            } else if (!ebt && requires_host_uinstall && !usb_is_mounted) {
+            } else if (!ebt && requires_host_uninstall && !usb_device_installed) {
                 esp_err_t err = msc_host_uninstall();
-                JADE_ASSERT(err == ESP_OK);
-                requires_host_uinstall = false;
+                if (err == ESP_OK) {
+                    requires_host_uninstall = false;
+                } else {
+                    JADE_LOGE("msc_host_uninstall failed %d", err);
+                }
             }
         }
     }
@@ -207,7 +209,7 @@ static void usbstorage_task(void* ignore)
     callback_ctx = NULL;
 
     // This may fail if the user removes the device at the right time
-    if (requires_host_uinstall) {
+    if (requires_host_uninstall) {
         const esp_err_t err = msc_host_uninstall();
         if (err != ESP_OK) {
             JADE_LOGE("msc_host_uninstall failed %d", err);
@@ -294,8 +296,9 @@ bool usbstorage_mount(uint8_t device_address)
     JADE_SEMAPHORE_TAKE(interface_semaphore);
     /* if any of these fails usually is because the device was removed */
     JADE_RETURN_CHECK(msc_host_install_device(device_address, &msc_device));
+    usb_device_installed = true;
+
     JADE_RETURN_CHECK(msc_host_vfs_register(msc_device, USBSTORAGE_MOUNT_POINT, &mount_config, &vfs_handle));
-    usb_is_mounted = true;
     JADE_SEMAPHORE_GIVE(interface_semaphore);
     return true;
 }
@@ -304,8 +307,14 @@ void usbstorage_unmount(void)
 {
     JADE_SEMAPHORE_TAKE(interface_semaphore);
     // FIXME: on failure just send a callback rather than ERROR_CHECK?
-    JADE_ERROR_CHECK(msc_host_vfs_unregister(vfs_handle));
-    JADE_ERROR_CHECK(msc_host_uninstall_device(msc_device));
-    usb_is_mounted = false;
+    if (vfs_handle) {
+        JADE_ERROR_CHECK(msc_host_vfs_unregister(vfs_handle));
+        vfs_handle = NULL;
+    }
+    if (msc_device) {
+        JADE_ERROR_CHECK(msc_host_uninstall_device(msc_device));
+        msc_device = NULL;
+    }
+    usb_device_installed = false;
     JADE_SEMAPHORE_GIVE(interface_semaphore);
 }
