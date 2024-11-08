@@ -54,11 +54,7 @@ static EventGroupHandle_t usb_flags;
 static msc_host_device_handle_t msc_device = NULL;
 static msc_host_vfs_handle_t vfs_handle = NULL;
 
-static const esp_vfs_fat_mount_config_t mount_config = {
-    .format_if_mount_failed = false,
-    .max_files = 1,
-    .allocation_unit_size = 1024,
-};
+static const esp_vfs_fat_mount_config_t mount_config = { .format_if_mount_failed = false, .max_files = 1 };
 
 static usbstorage_callback_t registered_callback = NULL;
 static void* callback_ctx = NULL;

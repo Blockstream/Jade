@@ -52,9 +52,9 @@ typedef bool (*filename_filter_fn_t)(const char* path, const char* filename, con
 typedef bool (*usbstorage_action_fn_t)(const char* extra_path);
 
 // State of usb storage
-struct usbstorage_state {
+struct usbstorage_state_t {
     SemaphoreHandle_t semaphore_usbstorage_event;
-    bool usbstorage_mounted;
+    enum { USBSTORAGE_STATE_NONE, USBSTORAGE_STATE_ERROR, USBSTORAGE_STATE_MOUNTED } usbstorage_state;
 };
 
 static bool file_exists(const char* file_path)
@@ -258,19 +258,21 @@ static void handle_usbstorage_event(const usbstorage_event_t event, const uint8_
 {
     JADE_ASSERT(ctx);
 
-    struct usbstorage_state* const state = (struct usbstorage_state*)ctx;
+    struct usbstorage_state_t* const state = (struct usbstorage_state_t*)ctx;
     JADE_ASSERT(state->semaphore_usbstorage_event);
 
     // When the device is detected, mount it immediately
     if (event == USBSTORAGE_EVENT_DETECTED) {
         if (usbstorage_mount(device_address)) {
-            state->usbstorage_mounted = true;
+            state->usbstorage_state = USBSTORAGE_STATE_MOUNTED;
             xSemaphoreGive(state->semaphore_usbstorage_event);
         } else {
+            state->usbstorage_state = USBSTORAGE_STATE_ERROR;
             JADE_LOGE("Failed to mount USB storage!");
-            const char* message[] = { "Error accessing", "usb storage!" };
-            await_error_activity(message, 2);
         }
+    } else if (event == USBSTORAGE_EVENT_EJECTED || event == USBSTORAGE_EVENT_ABNORMALLY_EJECTED) {
+        // Reset state when ejected
+        state->usbstorage_state = USBSTORAGE_STATE_NONE;
     }
 
     // Handle other events ?
@@ -294,7 +296,7 @@ static bool handle_usbstorage_action(
     display_processing_message_activity();
     serial_stop();
 
-    struct usbstorage_state state = { .usbstorage_mounted = false };
+    struct usbstorage_state_t state = {};
     state.semaphore_usbstorage_event = xSemaphoreCreateBinary();
     JADE_ASSERT(state.semaphore_usbstorage_event);
     usbstorage_register_callback(handle_usbstorage_event, &state);
@@ -303,9 +305,8 @@ static bool handle_usbstorage_action(
         JADE_LOGE("Failed to start USB storage!");
         const char* message[] = { "Failed to start", "usb storage!" };
         await_error_activity(message, 2);
-
-        // !! Jade may require restart though? !!
-        JADE_ASSERT_MSG(false, "usbstorage_start failed");
+        // Jade may require restart to use usb storage or serial at this point ...
+        return false;
     }
 
     // We should only do this if within 0.4 seconds or so we don't detect a usb device already plugged
@@ -316,41 +317,49 @@ static bool handle_usbstorage_action(
     bool action_initiated = false;
     while (true) {
         // If the usb_storage is mounted, run the action
-        if (state.usbstorage_mounted) {
+        if (state.usbstorage_state == USBSTORAGE_STATE_MOUNTED) {
             action_initiated = usbstorage_action(extra_path);
             break;
         }
 
-        // If the usb-storage device is not detected/mounted, show a screen prompting the user
-        if (!act_prompt && !state.usbstorage_mounted) {
-            xSemaphoreTake(state.semaphore_usbstorage_event, 200 / portTICK_PERIOD_MS);
-            if (!state.usbstorage_mounted) {
+        if (state.usbstorage_state == USBSTORAGE_STATE_ERROR) {
+            // Only show error screen once
+            const char* message[] = { "Error accessing usb", "storage. Note: only", "FAT32 is supported." };
+            await_message_activity(message, 3);
+            break;
+        }
+
+        if (!act_prompt) {
+            if (state.usbstorage_state == USBSTORAGE_STATE_NONE) {
+                // If the usb-storage device is not detected/mounted after ~1s, show a screen prompting the user
                 if (counter < 5) {
+                    xSemaphoreTake(state.semaphore_usbstorage_event, 200 / portTICK_PERIOD_MS);
                     ++counter;
                     continue;
                 }
-
-                // Prompt user to plug usbstorage device
-                act_prompt = make_usb_connect_activity(title);
-                gui_set_current_activity(act_prompt);
             }
+
+            // Prompt user to plug a usbstorage device
+            act_prompt = make_usb_connect_activity(title);
         }
 
         // Handle any events from that screen
-        int32_t ev_id;
-        if (act_prompt
-            && gui_activity_wait_event(
-                act_prompt, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)) {
+        if (act_prompt) {
+            int32_t ev_id;
+            gui_set_current_activity(act_prompt);
+            if (gui_activity_wait_event(
+                    act_prompt, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)) {
 
-            if (ev_id == BTN_SETTINGS_USBSTORAGE_BACK) {
-                usbstorage_register_callback(NULL, NULL);
-                // when the user goes back we go through here
-                // then the device hasn't started any action, but has disk detected
-                break;
-            }
-            if (ev_id == BTN_SETTINGS_USBSTORAGE_HELP) {
-                await_qr_help_activity("blkstrm.com/jadeusbstorage");
-                gui_set_current_activity(act_prompt);
+                if (ev_id == BTN_SETTINGS_USBSTORAGE_BACK) {
+                    usbstorage_register_callback(NULL, NULL);
+                    // when the user goes back we go through here
+                    // then the device hasn't started any action, but has disk detected
+                    break;
+                }
+                if (ev_id == BTN_SETTINGS_USBSTORAGE_HELP) {
+                    await_qr_help_activity("blkstrm.com/jadeusbstorage");
+                    gui_set_current_activity(act_prompt);
+                }
             }
         }
     }
@@ -358,8 +367,8 @@ static bool handle_usbstorage_action(
     // If the action was not an async action (ie. it has already completed) or
     // the action was never properly started, we stop/unmount usbstorage now.
     if (!async_action || !action_initiated) {
-        if (state.usbstorage_mounted) {
-            // if it was detected it was mounted
+        if (state.usbstorage_state != USBSTORAGE_STATE_NONE) {
+            // if usb was detected it may need unmounting/uninstalling
             usbstorage_unmount();
         }
         usbstorage_stop();
