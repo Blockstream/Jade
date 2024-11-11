@@ -40,6 +40,7 @@ static const char FW_SUFFIX[] = "_fw.bin";
 static const char HASH_SUFFIX[] = ".hash";
 
 static const char PSBT_SUFFIX[] = ".psbt";
+static const char SIGNED_PSBT_SUFFIX[] = "_signed.psbt";
 
 #define STR_ENDSWITH(str, str_len, suffix, suffix_len)                                                                 \
     (str && str_len > suffix_len && str[str_len] == '\0' && !memcmp(str + str_len - suffix_len, suffix, suffix_len))
@@ -666,7 +667,7 @@ static bool is_full_fw_file(const char* path, const char* filename, const size_t
 
     // Must have corresponding hash file
     char hash_filename[MAX_FILENAME_SIZE];
-    if (strlen(path) + 1 + filename_len + sizeof(HASH_SUFFIX) > sizeof(hash_filename)) {
+    if (strlen(path) + 1 + filename_len + sizeof(HASH_SUFFIX) + 1 > sizeof(hash_filename)) {
         return false;
     }
     const int ret = snprintf(hash_filename, sizeof(hash_filename), "%s/%s%s", path, filename, HASH_SUFFIX);
@@ -807,7 +808,18 @@ static bool sign_usb_psbt(const char* extra_path)
     }
 
     // Write to file
-    // FIXME: create a new file ?
+    // Create a new file if name not too long.  If new name would be too long, overwrite existing file.
+    char output_filename[MAX_FILENAME_SIZE];
+    if (filename_len - strlen(PSBT_SUFFIX) + strlen(SIGNED_PSBT_SUFFIX) + 1 > MAX_FILENAME_SIZE) {
+        const char* message[] = { "Warning: Long filename", "Overwriting existing", "psbt file" };
+        await_error_activity(message, 3);
+        strcpy(output_filename, filename);
+    } else {
+        const int ret = snprintf(output_filename, sizeof(output_filename), "%.*s%s", filename_len - strlen(PSBT_SUFFIX),
+            filename, SIGNED_PSBT_SUFFIX);
+        JADE_ASSERT(ret > 0 && ret < sizeof(output_filename));
+    }
+
     if (b64) {
         // Encode to base64
         char* psbt64 = NULL;
@@ -816,8 +828,10 @@ static bool sign_usb_psbt(const char* extra_path)
             await_error_activity(message, 2);
             goto cleanup;
         }
-        write_buffer_to_file(filename, (const uint8_t*)psbt64, strlen(psbt64));
+        const size_t psbt64_len = strlen(psbt64);
+        const size_t written = write_buffer_to_file(output_filename, (const uint8_t*)psbt64, psbt64_len);
         JADE_WALLY_VERIFY(wally_free_string(psbt64));
+        JADE_ASSERT(written == psbt64_len);
     } else {
         // Serialise signed PSBT to bytes
         if (!serialise_psbt(psbt, &psbt_bytes, &psbt_len)) {
@@ -825,13 +839,14 @@ static bool sign_usb_psbt(const char* extra_path)
             await_error_activity(message, 2);
             goto cleanup;
         }
-        write_buffer_to_file(filename, psbt_bytes, psbt_len);
+        const size_t written = write_buffer_to_file(output_filename, psbt_bytes, psbt_len);
+        JADE_ASSERT(written == psbt_len);
     }
 
     const size_t mount_point_len = strlen(USBSTORAGE_MOUNT_POINT);
-    JADE_ASSERT(filename_len > mount_point_len);
-    JADE_ASSERT(!memcmp(filename, USBSTORAGE_MOUNT_POINT, mount_point_len));
-    const char* message[] = { "PSBT file saved:", filename + mount_point_len + 1 };
+    JADE_ASSERT(strlen(output_filename) > mount_point_len);
+    JADE_ASSERT(!memcmp(output_filename, USBSTORAGE_MOUNT_POINT, mount_point_len));
+    const char* message[] = { "PSBT file saved:", output_filename + mount_point_len + 1 };
     await_error_activity(message, 2);
     retval = true;
 
