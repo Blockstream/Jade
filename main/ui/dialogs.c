@@ -684,7 +684,7 @@ gui_activity_t* make_progress_bar_activity(const char* title, const char* messag
     gui_make_text(&node, message, TFT_WHITE);
     gui_set_parent(node, vsplit);
     gui_set_padding(node, GUI_MARGIN_TWO_VALUES, 0, 12);
-    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
     // second row, progress bar
     make_progress_bar(vsplit, progress_bar);

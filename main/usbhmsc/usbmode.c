@@ -191,7 +191,6 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
     JADE_ASSERT(label_item);
 
     uint8_t selected = 0;
-    gui_set_align(label_item, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_update_text(filename_item, filenames[selected]);
     gui_set_current_activity(act);
     int32_t ev_id;
