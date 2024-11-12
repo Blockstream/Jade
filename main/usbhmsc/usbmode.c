@@ -153,9 +153,16 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
 
         // DT_REG: regular file
         if (entry->d_type == DT_REG) {
+            JADE_ASSERT(entry->d_name);
             const size_t d_name_len = strlen(entry->d_name);
             if (path_len + 1 + d_name_len + 1 > MAX_FILENAME_SIZE) {
                 // We don't support overlong filenames - skip
+                continue;
+            }
+
+            // Skip files where the name begins with a '.'
+            if (entry->d_name[0] == '.') {
+                // Treat as a hidden file and do not show
                 continue;
             }
 
@@ -675,7 +682,7 @@ static bool is_full_fw_file(const char* path, const char* filename, const size_t
 
     // Must have corresponding hash file
     char hash_filename[MAX_FILENAME_SIZE];
-    if (strlen(path) + 1 + filename_len + sizeof(HASH_SUFFIX) + 1 > sizeof(hash_filename)) {
+    if (strlen(path) + 1 + filename_len + strlen(HASH_SUFFIX) + 1 > sizeof(hash_filename)) {
         return false;
     }
     const int ret = snprintf(hash_filename, sizeof(hash_filename), "%s/%s%s", path, filename, HASH_SUFFIX);
