@@ -604,11 +604,9 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             JADE_ASSERT(rc == 0);
             ble_print_conn_desc(&desc);
 
-            // enable ble security if not already encrypted
-            if (!desc.sec_state.encrypted) {
-                rc = ble_gap_security_initiate(event->connect.conn_handle);
-                JADE_ASSERT(rc == 0);
-            }
+            // enable ble security
+            rc = ble_gap_security_initiate(event->connect.conn_handle);
+            JADE_ASSERT(rc == 0);
         }
 
         if (event->connect.status != 0) {
