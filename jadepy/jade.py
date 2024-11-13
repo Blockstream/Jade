@@ -1276,6 +1276,43 @@ class JadeAPI:
                   'index': index}
         return self._jadeRpc('get_bip85_pubkey', params)
 
+    def sign_bip85_digests(self, key_type, key_bits, index, digests):
+        """
+        RPC call to sign digests with a bip85-derived key.
+
+        Parameters
+        ----------
+        key_type : string
+            The type of key to be derived.
+            At this time only 'RSA' is supported.
+
+        key_bits : int
+            The number of bits in the desired key.  Must be valid for the key type.
+            At this time must be 1024, 2048, 3096 or 4092
+
+        index : int
+            The index to use in the bip32 path to calculate the entropy to generate the key.
+
+        digests : [bytes]
+            An array of digests to sign.  The maximum number of digests that can be signed in a
+            single call depends upon the key (and hence signature) size.
+            key_bits    max digests
+             1024        8
+             2048        8
+             3072        6
+             4096        4
+
+        Returns
+        -------
+        [bytes]
+            Array of signatures, same size as input digests array
+        """
+        params = {'key_type': key_type,
+                  'key_bits': key_bits,
+                  'index': index,
+                  'digests': digests}
+        return self._jadeRpc('sign_bip85_digests', params)
+
     def get_identity_pubkey(self, identity, curve, key_type, index=0):
         """
         RPC call to fetch a pubkey for the given identity (slip13/slip17).

@@ -1117,6 +1117,66 @@ get_bip85_pubkey reply
 * 'result' is a public key pem string
 
 
+.. _sign_bip85_digests_request:
+
+sign_bip85_digests request
+--------------------------
+
+Request to sign sha256 digests with a bip85-based deterministic key for a given type, key size and index.
+
+NOTE: currently this call only supports 'RSA', with sizes 1024, 2048, 3072 and 4096.
+
+NOTE: Uses current wallet seed and bip85 specification to produce deterministic entropy to initialise shake256 PRNG, used to create a deterministic key.
+However, since there is no well-specified deterministic recipe for creating keys, this implementation output may differ from other deterministic key-generation algorithms.
+This key is then used to sign the digests passed.
+
+.. code-block:: cbor
+
+    {
+        "id": "16",
+        "method": "get_bip85_pubkey",
+        "params": {
+            "key_type": "RSA",
+            "key_bits": 2048,
+            "index": 1,
+            "digests": [
+                <32-bytes>,
+                <32-bytes>,
+                ...
+            ]
+        }
+    }
+
+* 'key_type' must be 'RSA'
+* 'key_bits' must be one of 1024, 2048, 3072 or 4096.
+* 'digests' must be an array of 32-byte digests
+* The maximum number of digests that can be signed in a single call depends upon the key (and hence signature) size.
+    key_bits    max digests
+     1024        8
+     2048        8
+     3072        6
+     4096        4
+
+
+.. _sign_bip85_digests_reply:
+
+sign_bip85_digests reply
+------------------------
+
+.. code-block:: cbor
+
+    {
+        "id": "16",
+        "result": [
+          <bytes>,
+          <bytes>,
+          ...
+        ]
+    }
+
+* 'result' is a public key pem string
+
+  
 .. _get_identity_pubkey_request:
 
 get_identity_pubkey request

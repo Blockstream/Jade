@@ -299,6 +299,89 @@ GET_BIP85_RSA_PUBKEY_DATA = ['tools/bip85_rsa_key_gen/test_vectors/key_--mnemoni
                              'tools/bip85_rsa_key_gen/test_vectors/key_--mnemonic_1_3072.txt',
                              'tools/bip85_rsa_key_gen/test_vectors/key_--mnemonic_0_4096.txt']
 
+# Index chosen so as not to take too long, even on jade v1 hw
+GET_BIP85_RSA_SIGNING_TESTS = [
+    (1024, 1,
+     ['8ac2f58e782977adb6b6ab4cf0916d730dea6b81ce3a1bbeb2eeb5e48b2bd646',
+      '2c173c1c756fb2ef5c7580022edc860684d1047974ed935c128798fdb95bc3b0',
+      '61e86e6c31a183c8a185e59397d9c9916f6e7017949bbaccb21e5591d16dedc9'
+      ],
+     ['0147238d961b5021c41053e930f13ae60e84b82c94ba48c9fe2cfe6c99f23f166ec854aeb1e241fc8c91ee448cc'
+      '17b1f350361ccd4a46e00f2ffd0a9545af7cf03ce33aa2ec7784f31038637469bd76e63e4a8cc9f34c0849ff192'
+      'e7f9785e28e4817843db9ece1f342e737851f1e52d11d1b5711accc66fe6d5a07d8a933b0e',
+      '12acb78ae5929649b73b0591029d537fbdeab1dee1d2b744c7005d72515a7d8eb53d9bbd533290b26f08e94b603'
+      '69846c16bbf7e16e2c54f16df60f0a1386be79fbe30b340cd1a086d557c7721a6103cd731d23ba6a0ef6ab7d035'
+      '7f354ff3b1728c2357dd52618dad958d0fa5efda6273ae8897c1d5177a2e4e4cc0f6f0d7a5',
+      '7e852c71e541e85508f625aa1ae8d44c0957a3c921848a22da8d673472c12b6c97311b292665b52417662c72608'
+      '2c2a26aeb39f19e85315b427c7a4c5b65df7915bca1f639c6f1e64104814a9fd5fe5f65e071c387403ffb14db18'
+      '3d3aafbc8da5fd3870ea2b7aeb884698b9c3b3778679a08c068be192b8b784ccf1d9d4ec1a'
+      ]),
+
+    (2048, 1,
+     ['d747a4d86d35a160489390b9020303bffb1df34ba2aabfcab8b2dcbfd98b4084',
+      '26867d472214313f5c0baefd03b16550e3026c9a2dca94c158cd7a3d8c22e3e7',
+      '3fb966fca226c476ad19db247cf2224b5bb9f3066c1d797c3f34dcae1cd14f17'
+      ],
+     ['27cb3a0f02815f543dec187416c9b8141e81eba0f776d6bfe40d185279b863897047e11e1dbf4354fc6ff2b9c9'
+      'f280db4fd7c6950f521d725a60ecb1c18e17945ad73997b31316d78698a2bc0f045ddd503f2bb6a524d88b5939'
+      '7bf8a40dcb8bd7605a5d8762be77f1b7bca2f6b728847286b0222677ef258c68c407ce7ea98b1fb15c81f9b478'
+      '4ad7bb11a8da97e5886f2413dfb7cf54a70a8494b6ace1ed37aaae7af1d79c7d6fc1f43b791fa18b5a89bfe11d'
+      'add0ce2c2a8fe14b95ed28d83f039232323dea669a84447e5c445b19bc89fd29d023dd812bafe83c8b5b62acf6'
+      '1facd424f6d2fa9a6ad88bdd4a1cb7cee1099ef3c3bab797e84b2918323abc',
+      '900848df063ebe055338333f9fa4ef8662e063ab8377efb12b67bb4c1ab01f59c6242d484a0ea8b4daf729d421'
+      'f0c2b4e3d28458d064aa77d7e7dc26cad474a1eb1123b2d267d3a56161ee4914b5fc0d2c5fb1ce3af905f86caa'
+      '4da6fc1baf428761513c75ed60f23b5b73c8fb2d16fdb40d8c3e6a9049a695b6f00eabba544c2891ac2a533770'
+      'f1aaf4115e93c42423d15158693f8dd258553ff51b07194152a7336dd9ec4d4ee072f5477f8dfc03d1eaf40058'
+      '8ada7ef408901aa79c6d7348927c518dd5007846a73cdcc187533a2cf692fc9cd8ce19de5dd7acbd8667a7a1e8'
+      '8c4251eb44f92afd8684b861d173f3631f95724ba0469b59ac1b3c1a883541',
+      '5254dcba3d6ba1f56548d61219bf589df3c593d2d4890bb37e543283cf4254448fb281492f8bc2a2a8237be255'
+      '83459212bb72107d3c3f83b0328866bc855d968a52cd9ac077bdff8109d67c80a7c8943b4b70754cbeba7017d2'
+      '47b5e12cd71367a8a8bd75d48304df2e2abcbc6298969b727b6a6bdbfc50d867d48d773fb9d52421b75f024483'
+      '285726477807ad154f039b7aae4f40bd28bae43fc671630661717111dc4689c8224fc973e2250bc2e0139a16c4'
+      '0e87ae4007889f4ba69d9b27818372b98222f3ccc61f8a01867da0e0c6c1a1d2112e134e8ccc73517d467265f0'
+      'd78b65e654b1a71a9fad03245e1b26c16fc0ac62a5ee5f740b81e123098a09'
+      ]),
+
+    (3072, 1,
+     ['639aa5c3a7a61cd0e580f0edbff6a4e5a9c72132cc32904fa8ba1b4614b2a623',
+      '4a751015d1ead95481b9b410399ffb6444efd119cb61145af9cad0138be7a54d'],
+     ['1f716cab6eb0ca6dcb394bf1b35aa3ff72a02cf43b5208ccd403d82be7dbcaa69c983edd62cd5c0f075b9fe56e9'
+      'fb7fd6dca3edf78e5b7343b5dc2bcdd9e8563c8fa133ffc8e7dd8da3f010f0db362c89fafb1e986d81412257496'
+      '3be31def8dea7aa92e0565d4bf2a5d09c7acf54cd0243151675e2085f9468fabe736a90c6c04bfcf17a8b84375a'
+      'b67f492c6e822871ea201f07e8906fa1e77d3818026c3ee9cff249e83b1c7c467fbe6aaee83248e8b124e503895'
+      'f8419cbb6e5852aacca7c8b4ad2755296aaf03b59284d3edc3f48f6354e81ede86f2ff0df406255d90e49cbd754'
+      '1a6d6b86d21b7b0d6b8c86dac1d912f37fad72016ec88c3ae4b3ac42041d9ba2b2caca26a5dfbfa51deb5311747'
+      'b0032ec0fae5c5c9e5a28cb125b68c1b637aee8ef68086ac2b34dee807393c7e882fcf8478fb6b3d47e66b90c72'
+      '73a8667309fd956016803793e730c584196798c9444eab258e61c4f5fcdcae1fcfa9934e92161f4e5fec383ba0f'
+      '9aba1a4e5f89fc61408f2afbe2d6981e9f777871',
+      '2ab24ae43f966825a957093f34620e46996016733ae34694f16b75d6307ee7b2ad6d7b701ebfb0414bddcb82e53'
+      '4d5fd4f80f79503567d5c2c284af082f7a82bc62e1a6fe32f2f68e165d2bee2c02bf9fc51c794e8d6448ca6c502'
+      'e5a035b7d727b006881c3814a75cfa2f61f6ad5c29ec838bb998d42cd1f5dcfd2cee211c59ca58f3e1ee036fc23'
+      '2cb1dfc860962d2cd99b0a4c1ffd6804919f7db0afbfb5b93010284ec861f4fb4d325170b82854be18a306578dd'
+      '62cec7515fc1742597e0865f811bb25482c603fe3c79d14993e0bd48f1847c392df857589786bce482437cf2b00'
+      '379c06c468c9025e7e9c0cb68ab57ef6bed94e5dba3e4bd49499d6034958f73b34e86a0ac713f0dccdfe1179e4c'
+      '2fb38dcbb21792fc7d95885c38ff13d2d0993c82332b2f6757a4efedac6d1607ebbb62cfc71a75b831d47099cfa'
+      '76436dcc7203deba50dd27708caaded6e01add3d4960ab9cbfaf498b1c9eba1548bce6d941fc420d591511d6fea'
+      'd468f30239ec335f1babdd537cae21bb232ddb14'
+      ]),
+
+    (4096, 0,
+     ['1c9501594219bfcc5299677a765fbdde59cbc7ced3f12c4704f8371f57f703eb'],
+     ['721fc97a86df0fb4fac806c6e48a619bf87b04155ba4041fdd90cac9628ad153c25d12bd20ffb83d011a9e57e71'
+      '10f0f4884e359c248b93adf1e80e1672ff208825807e80be9cc39f8a80f541ce3e10a5f4b89d81ad2b9128afd72'
+      '7d87758d231d03c7d2e8f1ef11b7a031a0051320af7306b0d021502c09080fd47cd18b87f54f51f18ceaa596675'
+      'df12e1283cfdf613813d083cf497857dddaedd72b72e88e7ba4fc54e75c328d77e9e19475f1ebc22e5e0b3cf119'
+      'c0e5540d0f4111c2fffdeb5b03a4a49b71ab4acf932c68a60662c2d7738326599c3daabe752f77294cdb9d91dfc'
+      '4ed785ac6099b03253381122c5c59227b371477e6c9ab4fb427a605df1c1a9ced727e8795ac6ed9e06bf04362a2'
+      '0a4b754be8edc58d1ec442884010ece8a3bcbf323b1fc9824e8c0f627c8ba8ee9457ca0d6e2115ee92d4ebfb401'
+      '12a771b1ec48c8f277ec4587129e3153a925a8019b91d0f8ecedc08a0db5e26e8b82020cf05de4451a96a6a9ff5'
+      'f76bbb4b34c3e1eaa8a347e19b8edb5fc5b9276e1e95baee3379841554f1f1f4ec625300743ce31970580aa0bad'
+      'cb8e8110c03c48d952f9d06afe2538ef96b4446fcea8ebb9cad5aabfe9a6a1b66d9ff8ca40c3651f7457ee426ec'
+      '7c1da09734b00cb504be93772054e5d7a206126acfc5a76d22093cf1cf94724046fd8d17958d252523b1c19372f'
+      'c80da1653a5bdf363cf316f'
+      ]),
+]
+
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
 # bitcoin-cli sethdseed true "92zRAmYnWVRrWJ6cQb8yrzEz9r3aXj4oEUiPAZEbiPKHpCnxkKz"
@@ -1257,6 +1340,63 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                   (('badbip85pk12', 'get_bip85_pubkey',
                     {'key_type': 'RSA', 'key_bits': 4096, 'index': 'bad'}),
                    'fetch valid index'),
+
+                  (('badbip85sign1', 'sign_bip85_digests'), 'Expecting parameters map'),
+                  (('badbip85sign2', 'sign_bip85_digests',
+                    {'key_type': None}), 'extract valid key_type'),
+                  (('badbip85sign3', 'sign_bip85_digests',
+                    {'key_type': 'bad'}), 'extract valid key_type'),
+                  (('badbip85sign4', 'sign_bip85_digests',
+                    {'key_type': 'RSAx'}), 'extract valid key_type'),
+                  (('badbip85sign5', 'sign_bip85_digests',
+                    {'key_type': 'RSA'}), 'fetch valid key length'),
+                  (('badbip85sign6', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': None}), 'fetch valid key length'),
+                  (('badbip85sign7', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 'bad'}), 'fetch valid key length'),
+                  (('badbip85sign8', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 3096}), 'fetch valid key length'),
+                  (('badbip85sign8', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 8192}), 'fetch valid key length'),
+                  (('badbip85sign10', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 2048}), 'fetch valid index'),
+                  (('badbip85sign11', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 3072, 'index': None}),
+                   'fetch valid index'),
+                  (('badbip85sign12', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 4096, 'index': 'bad'}),
+                   'fetch valid index'),
+                  (('badbip85sign13', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 4096, 'index': 0}),
+                   'extract digests from parameters'),
+                  (('badbip85sign14', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 4096, 'index': 0, 'digests': None}),
+                   'extract digests from parameters'),
+                  (('badbip85sign15', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 4096, 'index': 0, 'digests': 'not array'}),
+                   'extract digests from parameters'),
+                  (('badbip85sign16', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 4096, 'index': 0, 'digests': ['not binary']}),
+                   'extract digests from parameters'),
+                  (('badbip85sign17', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 4096, 'index': 0, 'digests': [h2b('ababab')]}),
+                   'extract digests from parameters'),
+                  (('badbip85sign18', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 1024, 'index': 0,
+                     'digests': [h2b('ab') * 32] * 9}),
+                   'Unsupported number of digests'),
+                  (('badbip85sign19', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 1024, 'index': 0,
+                     'digests': [h2b('ab') * 32] * 9}),
+                   'Unsupported number of digests'),
+                  (('badbip85sign20', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 3072, 'index': 0,
+                     'digests': [h2b('ab') * 32] * 7}),
+                   'Unsupported number of digests'),
+                  (('badbip85sign21', 'sign_bip85_digests',
+                    {'key_type': 'RSA', 'key_bits': 4096, 'index': 0,
+                     'digests': [h2b('ab') * 32] * 5}),
+                   'Unsupported number of digests'),
 
                   (('badidpk1', 'get_identity_pubkey'), 'Expecting parameters map'),
                   (('badidpk2', 'get_identity_pubkey', {'curve': 'nist256p1'}),
@@ -2550,6 +2690,13 @@ def test_bip85_rsa_pubkey(jadeapi):
         assert rslt == expected_pubkey_pem
 
 
+def test_bip85_rsa_signing(jadeapi):
+    for keylen, index, digests, expected in GET_BIP85_RSA_SIGNING_TESTS:
+        assert len(digests) == len(expected)
+        sigs = jadeapi.sign_bip85_digests('RSA', keylen, index, h2b(digests))
+        assert sigs == h2b(expected)
+
+
 def test_get_greenaddress_receive_address(jadeapi):
     for network, subact, branch, ptr, recovxpub, csvblocks, conf, expected in GET_GREENADDRESS_DATA:
         rslt = jadeapi.get_receive_address(network, subact, branch, ptr, recovery_xpub=recovxpub,
@@ -3446,6 +3593,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_bip85_bip39_encrypted_entropy(jadeapi)
     test_bip85_rsa_encrypted_entropy(jadeapi)
     test_bip85_rsa_pubkey(jadeapi)
+    test_bip85_rsa_signing(jadeapi)
 
     # Test generic multisig
     test_generic_multisig_registration(jadeapi)
@@ -3467,7 +3615,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_sign_tx(jadeapi, SIGN_TXN_TESTS)
     test_sign_tx_error_cases(jadeapi, SIGN_TXN_FAIL_CASES)
 
-    # Test liuid blinding keys/nonce, blinded commitments and sign-tx
+    # Test liquid blinding keys/nonce, blinded commitments and sign-tx
     test_liquid_blinding_keys(jadeapi)
     test_liquid_blinded_commitments(jadeapi)
     test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_TESTS)
@@ -3480,7 +3628,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     # Sign single sig
     # Single sig requires a different seed for the tests
-    rslt = jadeapi.set_seed(h2b(TEST_SEED_SINGLE_SIG))
+    rslt = jadeapi.set_seed(bytes.fromhex(TEST_SEED_SINGLE_SIG))
     assert rslt is True
 
     # Test the generic multisigs again, using a second signer

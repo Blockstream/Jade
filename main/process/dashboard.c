@@ -149,6 +149,7 @@ void get_commitments_process(void* process_ptr);
 void get_blinding_factor_process(void* process_ptr);
 void sign_liquid_tx_process(void* process_ptr);
 void get_bip85_pubkey_process(void* process_ptr);
+void sign_bip85_digests_process(void* process_ptr);
 #ifdef CONFIG_DEBUG_MODE
 void get_bip85_bip39_entropy_process(void* process_ptr);
 void get_bip85_rsa_entropy_process(void* process_ptr);
@@ -598,6 +599,8 @@ static void dispatch_message(jade_process_t* process)
             task_function = get_shared_nonce_process;
         } else if (IS_METHOD("get_bip85_pubkey")) {
             task_function = get_bip85_pubkey_process;
+        } else if (IS_METHOD("sign_bip85_digests")) {
+            task_function = sign_bip85_digests_process;
         } else if (IS_METHOD("ota_data") || IS_METHOD("ota_complete") || IS_METHOD("tx_input")
             || IS_METHOD("get_extended_data") || IS_METHOD("get_signature") || IS_METHOD("pin")) {
             // Method we only expect as part of a multi-message protocol
