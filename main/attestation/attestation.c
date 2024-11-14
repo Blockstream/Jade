@@ -526,11 +526,13 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
 
     mbedtls_pk_context pk;
     mbedtls_pk_init(&pk);
+    SENSITIVE_PUSH(&pk, sizeof(pk));
+
     const bool is_private_key = true;
 
     // Import RSA private key - expected 4096-bit key
     if (!import_rsa_key(&pk, privkey_pem, privkey_pem_len, is_private_key)
-        || mbedtls_pk_get_bitlen(&pk) != (JADE_ATTEST_RSA_KEY_LEN * 8)) {
+        || mbedtls_pk_get_len(&pk) != JADE_ATTEST_RSA_KEY_LEN) {
         JADE_LOGE("Failed to import valid RSA private key of expected length");
         goto cleanup;
     }
@@ -620,6 +622,8 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
 cleanup:
     SENSITIVE_POP(hmac_key);
     mbedtls_pk_free(&pk);
+    SENSITIVE_POP(&pk);
+
     return retval;
 }
 
