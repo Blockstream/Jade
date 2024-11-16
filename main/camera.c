@@ -288,7 +288,6 @@ static void jade_camera_init(void)
 
     sensor_t* camera_sensor = esp_camera_sensor_get();
     JADE_ASSERT(camera_sensor);
-    JADE_ASSERT(camera_sensor->set_hmirror);
 
     camera_sensor_info_t* camera_info = esp_camera_sensor_get_info(&camera_sensor->id);
     JADE_ASSERT(camera_info);
@@ -299,10 +298,20 @@ static void jade_camera_init(void)
 
     // GC0308 appears to need image flipping on both axes
     if (camera_info->model == CAMERA_GC0308) {
+        JADE_ASSERT(camera_sensor->set_hmirror);
+        JADE_ASSERT(camera_sensor->set_vflip);
         const int hret = camera_sensor->set_hmirror(camera_sensor, 1);
         const int vret = camera_sensor->set_vflip(camera_sensor, 1);
         if (hret || vret) {
             JADE_LOGE("Failed to set camera hmirror/vflip, returned: %d/%d", hret, vret);
+        }
+    }
+    // OV5640 needs vertical flip for T-Display S3 PRO
+    else if (camera_info->model == CAMERA_OV5640) {
+        JADE_ASSERT(camera_sensor->set_vflip);
+        const int vret = camera_sensor->set_vflip(camera_sensor, 1);
+        if (vret) {
+            JADE_LOGE("Failed to set camera vflip, returned: %d", vret);
         }
     }
 #if defined(CONFIG_DISPLAY_TOUCHSCREEN)
