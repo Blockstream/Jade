@@ -122,3 +122,37 @@ eg: './scripts/mkhashes.sh 0.1.33' or './scripts/mkhashes.sh 0.1.32 0.1.33 0.1.3
 - NOTE: Should not be needed in normal operation, as the hash files are produced at
   the same times as the compressed firmware file.
   Needed to generate hash files for older fw files, or to regenerate hash files.
+
+Jade v2 Signing
+===============
+
+* scripts/v2sign.sh <version/dir> <key_label>
+eg: './scripts/v2sign.sh 1.0.33 v2pk1'
+- For the 'jade2.0' subdir in 'staging/upload/<version/dir>', signs the ble and noradio
+  firmware and bootloader binaries with the private key named (which must be present as
+  'scripts/<key_label>.pem').  (Note: the binaries are first hashed with sha256, and
+  the digests signed.)
+  The signature files are created in the top level of the version directory, and are
+  verified with the public key 'scripts/<key_label>.pub'
+
+* scripts/v2jadesign.sh <version/dir> <key_label>
+eg: './scripts/v2jadesign.sh 1.0.33 v2pk1'
+- For the 'jade2.0' subdir in 'staging/upload/<version/dir>', signs the ble and noradio
+  firmware and bootloader binaries with the Jade unit connected by usb/serial.
+  The RSA key is derived from the signer hd wallet root master key using bip85.
+  (Note: the binaries are first hashed with sha256, and the digests passed to Jade for
+  signing in a single call.)
+  The signature files are created in the top level of the version directory, and are
+  verified with the public key 'scripts/<key_label>.pub'
+
+* scripts/v2applysigs.sh <version/dir> <key_label> [ <key_label> ... ]
+eg: './scripts/v2applysigs.sh 1.0.33 v2pk1 v2pk2 v2pk3'
+- For the 'jade2.0' subdir in 'staging/upload/<version/dir>', for each of the ble and
+  noradio firmware and bootloader binaries, assembles the relevant signatures with the
+  original binary, into a single signed binary file.
+  The signed bnary files are created in the top level of the version directory but the
+  jade fw files are copied back into their respective build directories (consistent with
+  the v1 signing process).
+  The final signed binaries are verified with the public keys 'scripts/<key_label>.pub'
+  listed/used.
+
