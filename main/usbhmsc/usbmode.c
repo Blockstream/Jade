@@ -48,14 +48,20 @@ static const char SIGNED_PSBT_SUFFIX[] = "_signed.psbt";
 // Function predicate to filter filenames available for a particular action
 typedef bool (*filename_filter_fn_t)(const char* path, const char* filename, const size_t filename_len);
 
-// Fucntion/action to call on a usb-storage directory
-typedef bool (*usbstorage_action_fn_t)(const char* extra_path);
-
 // State of usb storage
 struct usbstorage_state_t {
     SemaphoreHandle_t semaphore_usbstorage_event;
     enum { USBSTORAGE_STATE_NONE, USBSTORAGE_STATE_ERROR, USBSTORAGE_STATE_MOUNTED } usbstorage_state;
 };
+
+// Context object passed through to action callbacks
+typedef struct {
+    const char* extra_path;
+    void* ctx;
+} usbstorage_action_context_t;
+
+// Function/action to call on a usb-storage directory
+typedef bool (*usbstorage_action_fn_t)(const usbstorage_action_context_t* ctx);
 
 static bool file_exists(const char* file_path)
 {
@@ -286,12 +292,12 @@ static void handle_usbstorage_event(const usbstorage_event_t event, const uint8_
 }
 
 // Generic handler to run usb storage actions
-static bool handle_usbstorage_action(
-    const char* title, usbstorage_action_fn_t usbstorage_action, const char* extra_path, const bool async_action)
+static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t usbstorage_action,
+    const usbstorage_action_context_t* ctx, const bool async_action)
 {
     JADE_ASSERT(title);
     JADE_ASSERT(usbstorage_action);
-    // extra_path is optional
+    JADE_ASSERT(ctx);
 
     while (usb_connected()) {
         const char* message[] = { "Disconnect USB power and", "connect a storage device" };
@@ -326,7 +332,7 @@ static bool handle_usbstorage_action(
     while (true) {
         // If the usb_storage is mounted, run the action
         if (state.usbstorage_state == USBSTORAGE_STATE_MOUNTED) {
-            action_initiated = usbstorage_action(extra_path);
+            action_initiated = usbstorage_action(ctx);
             break;
         }
 
@@ -692,12 +698,16 @@ static bool is_full_fw_file(const char* path, const char* filename, const size_t
     return file_exists(hash_filename);
 }
 
-static bool initiate_usb_ota(const char* extra_path)
+static bool initiate_usb_ota(const usbstorage_action_context_t* ctx)
 {
+    JADE_ASSERT(ctx);
+
     // extra_path is optional
+    JADE_ASSERT(!ctx->ctx);
 
     char filename[MAX_FILENAME_SIZE];
-    if (!select_file_from_filtered_list("Select Firmware", extra_path, is_full_fw_file, filename, sizeof(filename))) {
+    if (!select_file_from_filtered_list(
+            "Select Firmware", ctx->extra_path, is_full_fw_file, filename, sizeof(filename))) {
         // User abandoned
         return false;
     }
@@ -732,7 +742,8 @@ bool usbstorage_firmware_ota(const char* extra_path)
 {
     // extra_path is optional
     const bool is_async = true;
-    return handle_usbstorage_action("Firmware Upgrade", initiate_usb_ota, extra_path, is_async);
+    const usbstorage_action_context_t ctx = { .extra_path = extra_path };
+    return handle_usbstorage_action("Firmware Upgrade", initiate_usb_ota, &ctx, is_async);
 }
 
 // Sign PSBT
@@ -742,12 +753,15 @@ static bool is_psbt_file(const char* path, const char* filename, const size_t fi
     return STR_ENDSWITH(filename, filename_len, PSBT_SUFFIX, strlen(PSBT_SUFFIX));
 }
 
-static bool sign_usb_psbt(const char* extra_path)
+static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
 {
+    JADE_ASSERT(ctx);
+
     // extra_path is optional
+    JADE_ASSERT(!ctx->ctx);
 
     char filename[MAX_FILENAME_SIZE];
-    if (!select_file_from_filtered_list("Select PSBT", extra_path, is_psbt_file, filename, sizeof(filename))) {
+    if (!select_file_from_filtered_list("Select PSBT", ctx->extra_path, is_psbt_file, filename, sizeof(filename))) {
         return false;
     }
 
@@ -880,5 +894,6 @@ bool usbstorage_sign_psbt(const char* extra_path)
 {
     // extra_path is optional
     const bool is_async = false;
-    return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, extra_path, is_async);
+    const usbstorage_action_context_t ctx = { .extra_path = extra_path };
+    return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
