@@ -293,10 +293,11 @@ static bool handle_usbstorage_action(
     JADE_ASSERT(usbstorage_action);
     // extra_path is optional
 
-    if (usb_connected()) {
+    while (usb_connected()) {
         const char* message[] = { "Disconnect USB power and", "connect a storage device" };
-        await_error_activity(message, 2);
-        return false;
+        if (!await_continueback_activity(title, message, 2, true, "blkstrm.com/jadeusbstorage")) {
+            return false;
+        }
     }
 
     // Stop normal serial usb and start usbstorage
