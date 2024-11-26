@@ -1,3 +1,3 @@
-jade-client==1.0.32 \
-    --hash=sha256:18973e582d095f1c671b7c86b1639bac12ad6606c3a288a311dacbabf593bd3b \
-    --hash=sha256:afeb28b213d3145ece02fdbbf143d9dd9e5940e7b8f760f79b377dd84b2210b1
+jade-client==1.0.33 \
+    --hash=sha256:bdae24db72b2932dc90f24ab470c0d935d518ce9bb01f2c49c4201ac96fe98be \
+    --hash=sha256:8f8e7f3b08ac1b5c606363881db53f4d725590f8ca68f272890dd6b9b111c28e
