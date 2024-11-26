@@ -11,13 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.33] - 2024-11-26
+### Added
+- Add 'extended_reply' to provide more information during firmware upgrade process
+- Add BIP85 RSA signing and pubkey retrieval, given a key size and index number
+
+### Changed
+- Do not reset BIP39 passphrase preference when initialising saved wallet
+- Update BIP39 passphrase preference names for clarity
+- Update component dependencies
+
+### Fixed
+- Improve BLE pairing/bonding for esp32s3 devices
+- Improve error handling for usb-storage (eg. sd card reader) for esp32s3 devices
+- When signing psbt file on usb-storage, write new file rather than overwriting the input file
+- Hide files that begin with a period ('.') from the usb-storage file-chooser screen
+- Fix held-button repeat speed for esp32s3 devices
+
 ## [1.0.32] - 2024-10-11
 ### Added
 - Add support for esp32s3 DIY devices TTGO TWatchS3 and M5Stack CoreS3
 - Support building pypi project wheel and readthedocs.io documentation
 
 ### Changed
-- Use PIN-entry style screen for entering bip85 index and bip44 account number
+- Use PIN-entry style screen for entering BIP85 index and BIP44 account number
 - On larger displays show address strings in groups of 4 characters
 - Update ESP-IDF base firmware to v5.3.1, and update dependencies
 - Update libwally to 1.3.1
@@ -43,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Newly designed Home and Camera/QRScan screens
 - Lock device only when *in-use* serial or BLE connection lost (ie. not when just [un-]plugging for charging purposes)
-- Always reset to 'no bip39 passphrase' when new wallet initially created/restored
+- Always reset to 'no BIP39 passphrase' when new wallet initially created/restored
 - Stop BLE listener/handler tasks if doing serial-OTA or once user authenticated over USB/serial or QR
 - Optimise cbor message parsing from bytes received
 - Update ESP-IDF base firmware to v5.2.2, and update dependencies
@@ -70,7 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed display of error messages if OTA (delta) fails
 - Fix bug when signer placeholder reused in registered descriptor policy
-- Fixed handling of Specter 'sign_message' QR when bip32 path missing
+- Fixed handling of Specter 'sign_message' QR when BIP32 path missing
 
 ## [1.0.29] - 2024-03-22
 ### Added
