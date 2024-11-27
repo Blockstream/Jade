@@ -24,6 +24,9 @@
 #include "power/twatchs3.inc"
 #elif defined(CONFIG_HAS_IP5306)
 #include "power/ip5306.inc"
+// ttgo-tdisplays3 can read battery level and charging status if a battery is connected
+#elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAYS3) && defined(CONFIG_HAS_BATTERY)
+#include "power/tdisplays3.inc"
 #else
 // Stubs for other hw boards (ie. no power management)
 #include "power/minimal.inc"
