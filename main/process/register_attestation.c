@@ -80,8 +80,6 @@ void register_attestation_process(void* process_ptr)
 
 #else // CONFIG_IDF_TARGET_ESP32S3
     jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Attestation not supported", NULL);
-    const char* message[] = { "Attestation not supported" };
-    await_error_activity(message, 1);
 #endif // CONFIG_IDF_TARGET_ESP32S3
 
 cleanup:
