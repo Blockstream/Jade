@@ -208,7 +208,7 @@ sign_attestation reply
         "id": "84",
         "result": {
             "signature": <512 bytes>
-            "pubkey_pem": <bytes>
+            "pubkey_pem": <pem string>
             "ext_signature": <bytes>
         }
     }
@@ -1174,7 +1174,7 @@ sign_bip85_digests reply
         ]
     }
 
-* 'result' is a public key pem string
+* 'result' is an array of signatures, corresponding to the array of digests passed in.
 
   
 .. _get_identity_pubkey_request:
