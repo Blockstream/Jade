@@ -1299,8 +1299,8 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, const size_t signat
     const size_t path_len, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len, uint8_t* output,
     const size_t output_len, size_t* written)
 {
-    if (!path || !signature_hash || signature_hash_len != SHA256_LEN || !output || output_len < EC_SIGNATURE_LEN * 2
-        || !written) {
+    if (!path || !path_len || !signature_hash || signature_hash_len != SHA256_LEN || !output
+        || output_len < EC_SIGNATURE_LEN * 2 || !written) {
         return false;
     }
     if ((!ae_host_entropy && ae_host_entropy_len > 0)
