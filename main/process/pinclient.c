@@ -63,20 +63,23 @@ typedef struct {
     uint8_t replay_counter[REPLAY_COUNTER_LEN];
 } pin_keys_t;
 
-typedef struct {
-    const char* document;
-    const char* on_reply;
-    const char* data;
-} pin_data_t;
-
-// The urls may be overridden in storage, otherwise use the default
-static void add_urls(CborEncoder* encoder, const char* document)
+// The urls may be overridden in storage, otherwise use the defaults
+static void send_http_request_reply(jade_process_t* process, const char* document, const char* data)
 {
+    JADE_ASSERT(process);
+    JADE_ASSERT(document);
+    JADE_ASSERT(data);
+
+    // Prepare request data
+    data_request_t pin_data
+        = { .method = "POST", .accept = "json", .on_reply = "pin", .strdata = data, .rawdata_len = 0, .num_urls = 0 };
+
+    // Add urls - bespoke pinserver urls or defaults if not set
     char buf[MAX_PINSVR_URL_LENGTH];
     char urlA[sizeof(buf) + sizeof(PINSERVER_DOC_GET_PIN)];
     char urlB[sizeof(buf) + sizeof(PINSERVER_DOC_GET_PIN)];
 
-    // Get first URL (defaults to h/coded url)
+    // Add first URL (defaults to h/coded url)
     size_t urlA_len = 0;
     const bool urlASet = storage_get_pinserver_urlA(buf, sizeof(buf), &urlA_len);
     if (urlASet && urlA_len <= 1) {
@@ -85,9 +88,10 @@ static void add_urls(CborEncoder* encoder, const char* document)
     } else {
         urlA_len = snprintf(urlA, sizeof(urlA), "%s/%s", urlASet ? buf : PINSERVER_URL, document);
         JADE_ASSERT(urlA_len > 0 && urlA_len < sizeof(urlA));
+        pin_data.urls[pin_data.num_urls++] = urlA;
     }
 
-    // Get second URL (defaults to h/coded onion)
+    // Add second URL (defaults to h/coded onion)
     size_t urlB_len = 0;
     const bool urlBSet = storage_get_pinserver_urlB(buf, sizeof(buf), &urlB_len);
     if (urlBSet && urlB_len <= 1) {
@@ -96,97 +100,20 @@ static void add_urls(CborEncoder* encoder, const char* document)
     } else {
         urlB_len = snprintf(urlB, sizeof(urlB), "%s/%s", urlBSet ? buf : PINSERVER_ONION, document);
         JADE_ASSERT(urlB_len > 0 && urlB_len < sizeof(urlB));
+        pin_data.urls[pin_data.num_urls++] = urlB;
     }
 
     JADE_ASSERT(urlASet == urlBSet);
-    const char* urls[2] = { urlA, urlB };
-    add_string_array_to_map(encoder, "urls", urls, 2);
-}
 
-// {
-//   "http_request": {
-//     // params can be passed directly to gdk.http_request()
-//     "params": {
-//       "urls": [],
-//       "root_certificates": [`certificate`]'  ** only present if user has set an additional certificate
-//       "method": "POST",
-//       "accept": "json",
-//       "data": `data`
-//     }
-//     "on-reply": `on_reply`  ** the result of gdk.http_request(params) should be passed to this method
-//   }
-static void http_post_reply(const void* ctx, CborEncoder* container)
-{
-    JADE_ASSERT(ctx);
-    JADE_ASSERT(container);
-
+    // Add any user certificate
     size_t cert_len = 0;
     char user_certificate[MAX_PINSVR_CERTIFICATE_LENGTH];
-    const bool have_certificate = storage_get_pinserver_cert(user_certificate, sizeof(user_certificate), &cert_len);
-
-    const pin_data_t* reply_data = (const pin_data_t*)ctx;
-    JADE_ASSERT(reply_data->document);
-    JADE_ASSERT(reply_data->on_reply);
-    JADE_ASSERT(reply_data->data);
-
-    CborEncoder root_map;
-    CborError cberr = cbor_encoder_create_map(container, &root_map, 1);
-    JADE_ASSERT(cberr == CborNoError);
-
-    // Envelope data for http request
-    cberr = cbor_encode_text_stringz(&root_map, "http_request");
-    JADE_ASSERT(cberr == CborNoError);
-
-    CborEncoder http_encoder;
-    cberr = cbor_encoder_create_map(&root_map, &http_encoder, 2);
-    JADE_ASSERT(cberr == CborNoError);
-
-    cberr = cbor_encode_text_stringz(&http_encoder, "params");
-    JADE_ASSERT(cberr == CborNoError);
-
-    CborEncoder params_encoder;
-    const size_t num_params = have_certificate ? 5 : 4;
-    cberr = cbor_encoder_create_map(&http_encoder, &params_encoder, num_params);
-    JADE_ASSERT(cberr == CborNoError);
-
-    // The urls (tls and onion) and any associated root certificate we may require
-    // These may be the built-in defaults, or may have been overridden (in storage)
-    add_urls(&params_encoder, reply_data->document);
-
-    if (have_certificate) {
-        const char* root_certificates[] = { user_certificate };
-        add_string_array_to_map(&params_encoder, "root_certificates", root_certificates, 1);
+    if (storage_get_pinserver_cert(user_certificate, sizeof(user_certificate), &cert_len) && cert_len) {
+        pin_data.certificate = user_certificate;
     }
 
-    // The method here is always POST and the payload always json
-    add_string_to_map(&params_encoder, "method", "POST");
-    add_string_to_map(&params_encoder, "accept", "json");
-
-    // Add payload data
-    cberr = cbor_encode_text_stringz(&params_encoder, "data");
-    JADE_ASSERT(cberr == CborNoError);
-
-    CborEncoder data_encoder;
-    cberr = cbor_encoder_create_map(&params_encoder, &data_encoder, 1);
-    JADE_ASSERT(cberr == CborNoError);
-
-    // Payload data - one large opaque base64 string
-    add_string_to_map(&data_encoder, "data", reply_data->data);
-
-    cberr = cbor_encoder_close_container(&params_encoder, &data_encoder);
-    JADE_ASSERT(cberr == CborNoError);
-
-    cberr = cbor_encoder_close_container(&http_encoder, &params_encoder);
-    JADE_ASSERT(cberr == CborNoError);
-
-    // Add function to call with server's reply payload
-    add_string_to_map(&http_encoder, "on-reply", reply_data->on_reply);
-
-    cberr = cbor_encoder_close_container(&root_map, &http_encoder);
-    JADE_ASSERT(cberr == CborNoError);
-
-    cberr = cbor_encoder_close_container(container, &root_map);
-    JADE_ASSERT(cberr == CborNoError);
+    // Send reply message
+    jade_process_reply_to_message_result(process->ctx, &pin_data, http_request_reply);
 }
 
 // Hepler to tweak the server static key into a session key
@@ -535,8 +462,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     }
 
     // Build and send cbor reply
-    const pin_data_t pin_data = { .document = document, .on_reply = "pin", .data = data };
-    jade_process_reply_to_message_result(process->ctx, &pin_data, http_post_reply);
+    send_http_request_reply(process, document, data);
 
     // Get the server's aes key for the given pin/key data
     uint8_t serverkey[AES_KEY_LEN_256];

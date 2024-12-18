@@ -8,6 +8,8 @@
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 
+#include "process_utils.h"
+
 #include <sys/time.h>
 #include <wally_anti_exfil.h>
 #include <wally_script.h>
@@ -439,4 +441,122 @@ void update_aggregate_scripts_flavour(
         // As soon as we see something differet, set to 'mixed'
         *aggregate_scripts_flavour = SCRIPT_FLAVOUR_MIXED;
     }
+}
+
+// {
+//   "http_request": {
+//     //
+//     "params": {
+//       "urls": [],
+//       "root_certificates": [`certificate`]'  ** optional
+//       "method": "POST",                      ** optional
+//       "accept": "json",                      ** optional
+//       "data": `data`                         ** optional - can be text or binary
+//     }
+//     "on-reply": `on_reply`
+//   }
+void http_request_reply(const void* ctx, CborEncoder* container)
+{
+    JADE_ASSERT(ctx);
+    JADE_ASSERT(container);
+
+    const data_request_t* const request_data = (const data_request_t*)ctx;
+    JADE_ASSERT(request_data->num_urls);
+    JADE_ASSERT(request_data->on_reply);
+    // method, accept and certificate and data fields are optional, but some combinations may be nonsensical
+    JADE_ASSERT(request_data->rawdata || !request_data->rawdata_len);
+
+    const bool has_data_payload = request_data->strdata || (request_data->rawdata && request_data->rawdata_len);
+    const bool nested_json = request_data->accept
+        && (!strcmp(request_data->accept, "json") | !strcmp(request_data->accept, "application/json"));
+
+    JADE_ASSERT(!nested_json || !request_data->rawdata_len);
+
+    size_t num_params = 1; // urls
+    if (request_data->method) {
+        ++num_params;
+    }
+    if (request_data->accept) {
+        ++num_params;
+    }
+    if (request_data->certificate) {
+        ++num_params;
+    }
+    if (has_data_payload) {
+        ++num_params;
+    }
+
+    CborEncoder root_map;
+    CborError cberr = cbor_encoder_create_map(container, &root_map, 1);
+    JADE_ASSERT(cberr == CborNoError);
+
+    // Envelope data for http request
+    cberr = cbor_encode_text_stringz(&root_map, "http_request");
+    JADE_ASSERT(cberr == CborNoError);
+
+    CborEncoder http_encoder;
+    cberr = cbor_encoder_create_map(&root_map, &http_encoder, 2);
+    JADE_ASSERT(cberr == CborNoError);
+
+    cberr = cbor_encode_text_stringz(&http_encoder, "params");
+    JADE_ASSERT(cberr == CborNoError);
+
+    CborEncoder params_encoder;
+    cberr = cbor_encoder_create_map(&http_encoder, &params_encoder, num_params);
+    JADE_ASSERT(cberr == CborNoError);
+
+    // The urls (http/tls/onion)
+    add_string_array_to_map(&params_encoder, "urls", (const char**)request_data->urls, request_data->num_urls);
+
+    // Any additional root certificate that may be required
+    if (request_data->certificate) {
+        const char* root_certificates[] = { request_data->certificate };
+        add_string_array_to_map(&params_encoder, "root_certificates", root_certificates, 1);
+    }
+
+    // The optional method (eg. GET/POST) and accept header (eg. json)
+    if (request_data->method) {
+        add_string_to_map(&params_encoder, "method", request_data->method);
+    }
+    if (request_data->accept) {
+        add_string_to_map(&params_encoder, "accept", request_data->accept);
+    }
+
+    // Add payload data if passed
+    if (has_data_payload) {
+        if (request_data->rawdata_len) {
+            // Binary blob
+            add_bytes_to_map(&params_encoder, "data", request_data->rawdata, request_data->rawdata_len);
+        } else if (!nested_json) {
+            // Plain string
+            add_string_to_map(&params_encoder, "data", request_data->strdata);
+        } else {
+            // Add additional layer of json
+            cberr = cbor_encode_text_stringz(&params_encoder, "data");
+            JADE_ASSERT(cberr == CborNoError);
+
+            CborEncoder data_encoder;
+            cberr = cbor_encoder_create_map(&params_encoder, &data_encoder, 1);
+            JADE_ASSERT(cberr == CborNoError);
+
+            // Payload data - one large opaque string
+            // Test if character or binary string is based on length field
+            add_string_to_map(&data_encoder, "data", request_data->strdata);
+
+            cberr = cbor_encoder_close_container(&params_encoder, &data_encoder);
+            JADE_ASSERT(cberr == CborNoError);
+        }
+    }
+
+    cberr = cbor_encoder_close_container(&http_encoder, &params_encoder);
+    JADE_ASSERT(cberr == CborNoError);
+
+    // Add function to call with server's reply payload
+    add_string_to_map(&http_encoder, "on-reply", request_data->on_reply);
+
+    cberr = cbor_encoder_close_container(&root_map, &http_encoder);
+    JADE_ASSERT(cberr == CborNoError);
+
+    cberr = cbor_encoder_close_container(container, &root_map);
+    JADE_ASSERT(cberr == CborNoError);
 }
