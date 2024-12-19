@@ -236,6 +236,11 @@ bool rpc_get_n_bytes(const char* field, const CborValue* value, const size_t exp
     return written == expected_size;
 }
 
+void rpc_get_raw_string_ptr(const CborValue* value, const char** data, size_t* size)
+{
+    rpc_get_raw_type_ptr(value, (const uint8_t**)data, size, CBOR_TEXT_MASK);
+}
+
 void rpc_get_string_ptr(const char* field, const CborValue* value, const char** data, size_t* size)
 {
     rpc_get_type_ptr(field, value, (const uint8_t**)data, size, CBOR_TEXT_MASK);
