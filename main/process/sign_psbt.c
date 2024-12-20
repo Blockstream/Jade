@@ -800,8 +800,16 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
             // Track the types of the input prevout scripts
             if (utxo->script && utxo->script_len) {
-                const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len);
+                bool is_p2tr = false;
+                const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len, &is_p2tr);
                 update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
+                if (is_p2tr) {
+                    // FIXME: Support taproot signing
+                    JADE_LOGW("Unsupported p2tr input %u", index);
+                    *errmsg = "Unsupported p2tr input type";
+                    retval = CBOR_RPC_BAD_PARAMETERS;
+                    goto cleanup;
+                }
             }
 
             // If multisig, see if all signing inputs match the same persisted wallet record

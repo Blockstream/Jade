@@ -312,17 +312,17 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
         return false;
     }
 
-    // Get any explicit sighash byte (defaults to SIGHASH_ALL)
-    if (rpc_has_field_data("sighash", params)) {
+    // Get any explicit sighash byte.
+    // If one isn't given, we default it below according to the type
+    // of the input prevout script before returning
+    const bool have_sighash = rpc_has_field_data("sighash", params);
+    if (have_sighash) {
         size_t sighash = 0;
         if (!rpc_get_sizet("sighash", params, &sighash) || sighash > UINT8_MAX) {
             *errmsg = "Failed to fetch valid sighash from parameters";
             return false;
         }
         sig_data->sighash = (uint8_t)sighash;
-    } else {
-        // Default to SIGHASH_ALL if not passed
-        sig_data->sighash = WALLY_SIGHASH_ALL;
     }
 
     // If required, read anti-exfil host commitment data
@@ -341,9 +341,15 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
         return false;
     }
 
+    bool is_p2tr = false;
+    const script_flavour_t script_flavour = get_script_flavour(*script, *script_len, &is_p2tr);
     // Track the types of the input prevout scripts
-    const script_flavour_t script_flavour = get_script_flavour(*script, *script_len);
     update_aggregate_scripts_flavour(script_flavour, aggregate_script_flavour);
+
+    if (!have_sighash) {
+        // Default to SIGHASH_DEFAULT for taproot, or SIGHASH_ALL otherwise
+        sig_data->sighash = is_p2tr ? WALLY_SIGHASH_DEFAULT : WALLY_SIGHASH_ALL;
+    }
 
     return true;
 }
@@ -381,15 +387,19 @@ bool params_get_bip85_rsa_key(CborValue* params, size_t* key_bits, size_t* index
 }
 
 // For now just return 'single-sig' or 'other'.
-// In future may extend to inlcude eg. 'green', 'other-multisig', etc.
-script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len)
+// In future may extend to include eg. 'green', 'other-multisig', etc.
+script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len, bool* is_p2tr)
 {
     size_t script_type;
+    JADE_ASSERT(is_p2tr);
+    *is_p2tr = false;
     JADE_WALLY_VERIFY(wally_scriptpubkey_get_type(script, script_len, &script_type));
     switch (script_type) {
     case WALLY_SCRIPT_TYPE_P2PKH:
     case WALLY_SCRIPT_TYPE_P2WPKH:
+        return SCRIPT_FLAVOUR_SINGLESIG;
     case WALLY_SCRIPT_TYPE_P2TR:
+        *is_p2tr = true;
         return SCRIPT_FLAVOUR_SINGLESIG;
     case WALLY_SCRIPT_TYPE_MULTISIG:
         return SCRIPT_FLAVOUR_MULTISIG;
