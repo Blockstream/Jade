@@ -386,11 +386,14 @@ script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_l
 {
     size_t script_type;
     JADE_WALLY_VERIFY(wally_scriptpubkey_get_type(script, script_len, &script_type));
-    if (script_type == WALLY_SCRIPT_TYPE_P2PKH || script_type == WALLY_SCRIPT_TYPE_P2WPKH) {
+    switch (script_type) {
+    case WALLY_SCRIPT_TYPE_P2PKH:
+    case WALLY_SCRIPT_TYPE_P2WPKH:
+    case WALLY_SCRIPT_TYPE_P2TR:
         return SCRIPT_FLAVOUR_SINGLESIG;
-    } else if (script_type == WALLY_SCRIPT_TYPE_MULTISIG) {
+    case WALLY_SCRIPT_TYPE_MULTISIG:
         return SCRIPT_FLAVOUR_MULTISIG;
-    } else {
+    default:
         // eg. ga-csv script
         return SCRIPT_FLAVOUR_OTHER;
     }
