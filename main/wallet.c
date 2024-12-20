@@ -41,6 +41,7 @@ static const uint32_t BIP45_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 45;
 static const uint32_t BIP48_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 48;
 static const uint32_t BIP49_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 49;
 static const uint32_t BIP84_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 84;
+static const uint32_t BIP86_PURPOSE = BIP32_INITIAL_HARDENED_CHILD + 86;
 
 // Maximum number of csv blocks allowed in csv scripts
 static const uint32_t MAX_CSV_BLOCKS_ALLOWED = 65535;
@@ -53,6 +54,7 @@ static const uint32_t MAX_CSV_BLOCKS_ALLOWED = 65535;
 #define VARIANT_P2PKH "pkh(k)"
 #define VARIANT_P2WPKH "wpkh(k)"
 #define VARIANT_P2WPKH_P2SH "sh(wpkh(k))"
+#define VARIANT_P2TR "tr(k)"
 // 2. multisig
 #define VARIANT_MULTI_P2WSH "wsh(multi(k))"
 #define VARIANT_MULTI_P2SH "sh(multi(k))"
@@ -164,6 +166,8 @@ size_t script_length_for_variant(const script_variant_t variant)
         return WALLY_SCRIPTPUBKEY_P2PKH_LEN;
     case P2WPKH:
         return WALLY_SCRIPTPUBKEY_P2WPKH_LEN;
+    case P2TR:
+        return WALLY_SCRIPTPUBKEY_P2TR_LEN;
     case GREEN:
     case P2WPKH_P2SH:
     case MULTI_P2SH:
@@ -186,6 +190,8 @@ const char* get_script_variant_string(const script_variant_t variant)
         return VARIANT_P2WPKH;
     case P2WPKH_P2SH:
         return VARIANT_P2WPKH_P2SH;
+    case P2TR:
+        return VARIANT_P2TR;
     case MULTI_P2WSH:
         return VARIANT_MULTI_P2WSH;
     case MULTI_P2SH:
@@ -194,6 +200,28 @@ const char* get_script_variant_string(const script_variant_t variant)
         return VARIANT_MULTI_P2WSH_P2SH;
     default:
         return NULL;
+    }
+}
+
+// Map a script-variant enum value into its BIP-44 'purpose' value
+static uint32_t get_script_variant_purpose(const script_variant_t variant)
+{
+    switch (variant) {
+    case P2PKH:
+        return BIP44_PURPOSE;
+    case P2WPKH:
+        return BIP84_PURPOSE;
+    case P2WPKH_P2SH:
+        return BIP49_PURPOSE;
+    case P2TR:
+        return BIP86_PURPOSE;
+    case MULTI_P2SH:
+        return BIP45_PURPOSE;
+    case MULTI_P2WSH:
+    case MULTI_P2WSH_P2SH:
+        return BIP48_PURPOSE;
+    default:
+        JADE_ASSERT(false); // Green or unhandled case
     }
 }
 
@@ -212,6 +240,8 @@ bool get_script_variant(const char* variant, const size_t variant_len, script_va
         *output = P2WPKH;
     } else if (strcmp(VARIANT_P2WPKH_P2SH, variant) == 0) {
         *output = P2WPKH_P2SH;
+    } else if (strcmp(VARIANT_P2TR, variant) == 0) {
+        *output = P2TR;
         // Multisig
     } else if (strcmp(VARIANT_MULTI_P2SH, variant) == 0) {
         *output = MULTI_P2SH;
@@ -243,6 +273,9 @@ bool get_singlesig_variant_from_script_type(const size_t script_type, script_var
     case WALLY_SCRIPT_TYPE_P2SH:
         *variant = P2WPKH_P2SH; // assumed
         return true;
+    case WALLY_SCRIPT_TYPE_P2TR:
+        *variant = P2TR;
+        return true;
     default:
         return false;
     }
@@ -252,7 +285,7 @@ bool is_greenaddress(const script_variant_t variant) { return variant == GREEN; 
 
 bool is_singlesig(const script_variant_t variant)
 {
-    return variant == P2PKH || variant == P2WPKH || variant == P2WPKH_P2SH;
+    return variant == P2PKH || variant == P2WPKH || variant == P2WPKH_P2SH || variant == P2TR;
 }
 
 bool is_multisig(const script_variant_t variant)
@@ -323,19 +356,14 @@ void wallet_get_default_xpub_export_path(
     JADE_ASSERT(path_len > 3);
     JADE_INIT_OUT_SIZE(written);
 
-    const bool multisig = is_multisig(variant);
-    if (multisig && variant == MULTI_P2SH) {
+    // 'Purpose' depends on script variant unless bip48 multisig
+    path[0] = get_script_variant_purpose(variant);
+
+    if (variant == MULTI_P2SH) {
         // Special case for sh(multi()) - use bip45 (m/45' only)
-        path[0] = BIP45_PURPOSE;
         *written = 1;
         return;
     }
-
-    // 'Purpose' depends on script variant unless bip48 multisig
-    path[0] = multisig           ? BIP48_PURPOSE
-        : variant == P2WPKH      ? BIP84_PURPOSE
-        : variant == P2WPKH_P2SH ? BIP49_PURPOSE
-                                 : BIP44_PURPOSE;
 
     // 'Coin-type' depends on network
     // FIXME: Handle liquid
@@ -343,14 +371,14 @@ void wallet_get_default_xpub_export_path(
 
     // 'Account' is as passed in
     path[2] = harden(account);
+    *written = 3;
 
-    if (multisig) {
+    if (is_multisig(variant)) {
         // bip48 script type flag
         const uint8_t bip48_script_type = variant == MULTI_P2WSH ? 2 : variant == MULTI_P2WSH_P2SH ? 1 : 0;
         path[3] = harden(bip48_script_type);
+        *written += 1;
     }
-
-    *written = multisig ? 4 : 3;
 }
 
 // Internal helper to get a derived private key - note 'output' should point to a buffer of size EC_PRIVATE_KEY_LEN
@@ -385,10 +413,7 @@ bool wallet_is_expected_singlesig_path(const char* network, const script_variant
         return false;
     }
 
-    const uint32_t expected_purpose = script_variant == P2WPKH ? BIP84_PURPOSE
-        : script_variant == P2WPKH_P2SH                        ? BIP49_PURPOSE
-                                                               : BIP44_PURPOSE;
-    if (path[0] != expected_purpose) {
+    if (path[0] != get_script_variant_purpose(script_variant)) {
         return false;
     }
 
@@ -769,7 +794,11 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
         network, recovery_pubkey, recovery_pubkey_len, csv_blocks, path, path_len, output, output_len, written);
 }
 
-// Function to build a single-sig script - legacy-p2pkh, native segwit p2wpkh, or a p2sh-wrapped p2wpkh
+// Function to build a single-sig script:
+// - legacy-p2pkh
+// - native segwit v0 p2wpkh
+// - p2sh-wrapped segwit v0 p2wpkh
+// - segwit v1 p2tr (keyspend only)
 bool wallet_build_singlesig_script(const script_variant_t script_variant, const uint8_t* pubkey,
     const size_t pubkey_len, uint8_t* output, const size_t output_len, size_t* written)
 {
@@ -794,6 +823,11 @@ bool wallet_build_singlesig_script(const script_variant_t script_variant, const 
         JADE_LOGD("Generating singlesig p2pkh script");
         JADE_WALLY_VERIFY(
             wally_scriptpubkey_p2pkh_from_bytes(pubkey, pubkey_len, WALLY_SCRIPT_HASH160, output, output_len, written));
+    } else if (script_variant == P2TR) {
+        // Get a p2tr script-pubkey for the passed pubkey
+        // Wally will tweak the pubkey for us according to BIP-341
+        JADE_LOGD("Generating singlesig p2tr script");
+        JADE_WALLY_VERIFY(wally_scriptpubkey_p2tr_from_bytes(pubkey, pubkey_len, 0, output, output_len, written));
     } else {
         JADE_ASSERT_MSG(false, "Unrecognised script variant: %u", script_variant);
         return false;
