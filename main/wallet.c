@@ -1083,30 +1083,36 @@ bool wallet_sign_tx_input_hash(
     return true;
 }
 
-// Function to fetch a hash for a transaction input - output buffer should be of size SHA256_LEN
+// Function to fetch a hash for signing a transaction input
 bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_data_t* sig_data,
     const segwit_version_t segwit_ver, const uint8_t* script, size_t script_len, const uint64_t* amounts,
     const size_t amounts_len, const struct wally_map* scriptpubkeys)
 {
-    if (!tx || !sig_data || !script || script_len == 0 || !amounts || amounts_len != tx->num_inputs || !scriptpubkeys) {
+    int wret;
+
+    if (!tx || index >= tx->num_inputs || !sig_data || !script || script_len == 0 || !amounts
+        || amounts_len != tx->num_inputs || !scriptpubkeys) {
         return false;
     }
 
     if (segwit_ver == SEGWIT_V1) {
-        // TODO: Implement
-        JADE_LOGE("Unsupported segwit version v1");
-        return false;
+        // Taproot BTC signature hash
+        const uint32_t flags = 0;
+        const uint32_t key_version = 0;
+        wret = wally_tx_get_btc_taproot_signature_hash(tx, index, scriptpubkeys, amounts, amounts_len, NULL, 0,
+            key_version, WALLY_NO_CODESEPARATOR, NULL, 0, sig_data->sighash, flags, sig_data->signature_hash,
+            sizeof(sig_data->signature_hash));
+    } else {
+        // Pre-segwit or segwit v0 BTC signature hash
+        if (sig_data->sighash == WALLY_SIGHASH_DEFAULT) {
+            return false;
+        }
+        const uint32_t flags = segwit_ver == SEGWIT_V0 ? WALLY_TX_FLAG_USE_WITNESS : 0;
+        wret = wally_tx_get_btc_signature_hash(tx, index, script, script_len, amounts[index], sig_data->sighash, flags,
+            sig_data->signature_hash, sizeof(sig_data->signature_hash));
     }
-
-    // Generate the btc signature hash to sign
-    if (sig_data->sighash == WALLY_SIGHASH_DEFAULT) {
-        return false;
-    }
-    const size_t hash_flags = segwit_ver == SEGWIT_V0 ? WALLY_TX_FLAG_USE_WITNESS : 0;
-    const int wret = wally_tx_get_btc_signature_hash(tx, index, script, script_len, amounts[index], sig_data->sighash,
-        hash_flags, sig_data->sig, sizeof(sig_data->sig));
     if (wret != WALLY_OK) {
-        JADE_LOGE("Failed to get btc signature hash, error %d", wret);
+        JADE_LOGE("Failed to get btc signature hash for segwit version %d, error %d", (int)segwit_ver, wret);
         return false;
     }
     return true;
