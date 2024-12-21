@@ -1084,15 +1084,22 @@ bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signa
 }
 
 // Function to fetch a hash for a transaction input - output buffer should be of size SHA256_LEN
-bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, const bool is_witness, const uint8_t* script,
-    const size_t script_len, const uint64_t satoshi, const uint8_t sighash, uint8_t* output, const size_t output_len)
+bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, const segwit_version_t segwit_ver,
+    const uint8_t* script, const size_t script_len, const uint64_t satoshi, const uint8_t sighash, uint8_t* output,
+    const size_t output_len)
 {
     if (!tx || !script || script_len == 0 || sighash == 0 || !output || output_len != SHA256_LEN) {
         return false;
     }
 
+    if (segwit_ver == SEGWIT_V1) {
+        // TODO: Implement
+        JADE_LOGE("Unsupported segwit version v1");
+        return false;
+    }
+
     // Generate the btc signature hash to sign
-    const size_t hash_flags = is_witness ? WALLY_TX_FLAG_USE_WITNESS : 0;
+    const size_t hash_flags = segwit_ver == SEGWIT_V0 ? WALLY_TX_FLAG_USE_WITNESS : 0;
     const int wret = wally_tx_get_btc_signature_hash(
         tx, index, script, script_len, satoshi, sighash, hash_flags, output, output_len);
     if (wret != WALLY_OK) {
@@ -1103,7 +1110,7 @@ bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, const boo
 }
 
 // Function to fetch a hash for an elements input - output buffer should be of size SHA256_LEN
-bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, const bool is_witness,
+bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, const segwit_version_t segwit_ver,
     const uint8_t* script, const size_t script_len, const uint8_t* satoshi, const size_t satoshi_len,
     const uint8_t sighash, uint8_t* output, const size_t output_len)
 {
@@ -1111,8 +1118,14 @@ bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, 
         return false;
     }
 
+    if (segwit_ver == SEGWIT_V1) {
+        // TODO: Implement
+        JADE_LOGE("Unsupported segwit version v1");
+        return false;
+    }
+
     // Generate the elements signature hash to sign
-    const size_t hash_flags = is_witness ? WALLY_TX_FLAG_USE_WITNESS : 0;
+    const size_t hash_flags = segwit_ver == SEGWIT_V0 ? WALLY_TX_FLAG_USE_WITNESS : 0;
     const int wret = wally_tx_get_elements_signature_hash(
         tx, index, script, script_len, satoshi, satoshi_len, sighash, hash_flags, output, output_len);
     if (wret != WALLY_OK) {

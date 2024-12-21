@@ -9,6 +9,9 @@
 // Blinding factors
 typedef enum { BF_ASSET, BF_VALUE, BF_ASSET_VALUE } BlindingFactorType_t;
 
+// The segwit version (or pre-segwit-ness) of an input
+typedef enum { SEGWIT_V0 = 0, SEGWIT_V1 = 1, SEGWIT_NONE = 0xff } segwit_version_t;
+
 #define MAX_VARIANT_LEN 24
 #define MAX_GASERVICE_PATH_LEN 35
 
@@ -84,7 +87,7 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_ha
     size_t path_len, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output, size_t output_len,
     size_t* written);
 
-bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,
+bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, segwit_version_t segwit_ver, const uint8_t* script,
     size_t script_len, uint64_t satoshi, uint8_t sighash, uint8_t* output, size_t output_len);
 bool wallet_get_signer_commitment(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
     size_t path_len, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
@@ -101,7 +104,8 @@ bool wallet_get_shared_blinding_nonce(const uint8_t* master_blinding_key, size_t
 bool wallet_get_blinding_factor(const uint8_t* master_blinding_key, size_t master_blinding_key_len,
     const uint8_t* hash_prevouts, size_t hash_len, size_t output_index, BlindingFactorType_t type, uint8_t* output,
     size_t output_len);
-bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, size_t index, bool is_witness, const uint8_t* script,
-    size_t script_len, const uint8_t* satoshi, size_t satoshi_len, uint8_t sighash, uint8_t* output, size_t output_len);
+bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, size_t index, segwit_version_t segwit_ver,
+    const uint8_t* script, size_t script_len, const uint8_t* satoshi, size_t satoshi_len, uint8_t sighash,
+    uint8_t* output, size_t output_len);
 
 #endif /* WALLET_H_ */

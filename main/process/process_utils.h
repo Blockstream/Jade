@@ -5,6 +5,7 @@
 #include "../process.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/network.h"
+#include "../wallet.h"
 
 #define COMMITMENTS_NONE 0x0
 #define COMMITMENTS_ABF 0x1
@@ -121,7 +122,7 @@ bool params_multisig_pubkeys(bool is_change, CborValue* params, multisig_data_t*
 bool params_get_master_blindingkey(
     CborValue* params, uint8_t* master_blinding_key, size_t master_blinding_key_len, const char** errmsg);
 
-bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, bool* is_witness,
+bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, segwit_version_t* segwit_ver,
     signing_data_t* sig_data, const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len,
     const uint8_t** script, size_t* script_len, script_flavour_t* aggregate_script_flavour, const char** errmsg);
 

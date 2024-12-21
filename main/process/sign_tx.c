@@ -494,7 +494,7 @@ void sign_tx_process(void* process_ptr)
         // txn input as expected - get input parameters
         GET_MSG_PARAMS(process);
 
-        bool is_witness = false;
+        segwit_version_t segwit_ver = SEGWIT_NONE;
         size_t script_len = 0;
         const uint8_t* script = NULL;
         uint64_t input_satoshi = 0;
@@ -520,7 +520,7 @@ void sign_tx_process(void* process_ptr)
             signing = true;
 
             // Get all common tx-signing input fields which must be present if a path is given
-            if (!params_tx_input_signing_data(use_ae_signatures, &params, &is_witness, sig_data, &ae_host_commitment,
+            if (!params_tx_input_signing_data(use_ae_signatures, &params, &segwit_ver, sig_data, &ae_host_commitment,
                     &ae_host_commitment_len, &script, &script_len, &aggregate_inputs_scripts_flavour, &errmsg)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
@@ -533,7 +533,9 @@ void sign_tx_process(void* process_ptr)
             }
         } else {
             // May still need witness flag
+            bool is_witness = false;
             rpc_get_boolean("is_witness", &params, &is_witness);
+            segwit_ver = is_witness ? SEGWIT_V0 : SEGWIT_NONE;
         }
 
         // Full input tx can be omitted for transactions with only one single witness
@@ -582,13 +584,15 @@ void sign_tx_process(void* process_ptr)
             // Free the (potentially large) txn immediately
             JADE_WALLY_VERIFY(wally_tx_free(input_tx));
         } else {
-            if (!is_witness || num_inputs > 1) {
+            // For single segwit v0 inputs we can instead get just the amount
+            // directly from message. This optimization is deprecated and will
+            // be removed in a future firmware release.
+            if (segwit_ver != SEGWIT_V0 || num_inputs > 1) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract input_tx from parameters", NULL);
                 goto cleanup;
             }
 
-            // For single segwit input we can instead get just the amount directly from message
             JADE_LOGD("Single witness input - using explicitly passed amount");
 
             // Get the amount
@@ -605,7 +609,7 @@ void sign_tx_process(void* process_ptr)
             // Generate hash of this input which we will sign later
             JADE_ASSERT(sig_data->sighash == WALLY_SIGHASH_ALL);
 
-            if (!wallet_get_tx_input_hash(tx, index, is_witness, script, script_len, input_satoshi, sig_data->sighash,
+            if (!wallet_get_tx_input_hash(tx, index, segwit_ver, script, script_len, input_satoshi, sig_data->sighash,
                     sig_data->signature_hash, sizeof(sig_data->signature_hash))) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
                 goto cleanup;
