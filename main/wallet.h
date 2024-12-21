@@ -102,9 +102,8 @@ bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, segwit_version_
     size_t script_len, uint64_t satoshi, uint8_t sighash, uint8_t* output, size_t output_len);
 bool wallet_get_signer_commitment(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
     size_t path_len, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
-bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
-    size_t path_len, uint8_t sighash, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output,
-    size_t output_len, size_t* written);
+// Sign the signature hash in sig_data.
+bool wallet_sign_tx_input_hash(signing_data_t* sig_data, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len);
 
 bool wallet_hmac_with_master_key(const uint8_t* data, size_t data_len, uint8_t* output, size_t output_len);
 bool wallet_get_public_blinding_key(const uint8_t* master_blinding_key, size_t master_blinding_key_len,

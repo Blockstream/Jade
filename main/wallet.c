@@ -1034,12 +1034,10 @@ bool wallet_get_signer_commitment(const uint8_t* signature_hash, const size_t si
 // NOTE: the standard EC signature will 'grind-r' to produce a 'low-r' signature, the anti-exfil case
 // cannot (as the entropy is provided explicitly). However all signatures produced are Low-S,
 // to comply with bitcoin standardness rules.
-bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signature_hash_len, const uint32_t* path,
-    const size_t path_len, const uint8_t sighash, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len,
-    uint8_t* output, const size_t output_len, size_t* written)
+bool wallet_sign_tx_input_hash(
+    signing_data_t* sig_data, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len)
 {
-    if (!signature_hash || signature_hash_len != SHA256_LEN || !path || path_len == 0 || sighash == 0 || !output
-        || output_len < EC_SIGNATURE_DER_MAX_LEN + 1 || !written) {
+    if (!sig_data || sig_data->path_len == 0 || sig_data->sighash == 0) {
         return false;
     }
     if ((!ae_host_entropy && ae_host_entropy_len > 0)
@@ -1052,18 +1050,19 @@ bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signa
 
     // Derive the child key
     SENSITIVE_PUSH(privkey, sizeof(privkey));
-    wallet_get_privkey(path, path_len, privkey, sizeof(privkey));
+    wallet_get_privkey(sig_data->path, sig_data->path_len, privkey, sizeof(privkey));
 
     // Generate signature as appropriate
     int wret;
     if (ae_host_entropy) {
         // Anti-Exfil signature
-        wret = wally_ae_sig_from_bytes(privkey, sizeof(privkey), signature_hash, signature_hash_len, ae_host_entropy,
-            ae_host_entropy_len, EC_FLAG_ECDSA, signature, sizeof(signature));
+        wret = wally_ae_sig_from_bytes(privkey, sizeof(privkey), sig_data->signature_hash,
+            sizeof(sig_data->signature_hash), ae_host_entropy, ae_host_entropy_len, EC_FLAG_ECDSA, signature,
+            sizeof(signature));
     } else {
         // Standard EC signature
-        wret = wally_ec_sig_from_bytes(privkey, sizeof(privkey), signature_hash, signature_hash_len,
-            EC_FLAG_ECDSA | EC_FLAG_GRIND_R, signature, sizeof(signature));
+        wret = wally_ec_sig_from_bytes(privkey, sizeof(privkey), sig_data->signature_hash,
+            sizeof(sig_data->signature_hash), EC_FLAG_ECDSA | EC_FLAG_GRIND_R, signature, sizeof(signature));
     }
     SENSITIVE_POP(privkey);
 
@@ -1073,12 +1072,13 @@ bool wallet_sign_tx_input_hash(const uint8_t* signature_hash, const size_t signa
     }
 
     // Make the signature in DER format
-    JADE_WALLY_VERIFY(wally_ec_sig_to_der(signature, sizeof(signature), output, output_len - 1, written));
-    JADE_ASSERT(*written <= output_len - 1);
+    JADE_WALLY_VERIFY(wally_ec_sig_to_der(
+        signature, sizeof(signature), sig_data->sig, sizeof(sig_data->sig) - 1, &sig_data->sig_len));
+    JADE_ASSERT(sig_data->sig_len <= sizeof(sig_data->sig) - 1);
 
     // Append the sighash used
-    output[*written] = sighash;
-    *written += 1;
+    sig_data->sig[sig_data->sig_len] = sig_data->sighash;
+    sig_data->sig_len += 1;
 
     return true;
 }

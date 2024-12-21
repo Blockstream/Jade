@@ -311,9 +311,7 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
             }
 
             // Generate Anti-Exfil signature
-            if (!wallet_sign_tx_input_hash(sig_data->signature_hash, sizeof(sig_data->signature_hash), sig_data->path,
-                    sig_data->path_len, sig_data->sighash, ae_host_entropy, ae_host_entropy_len, sig_data->sig,
-                    sizeof(sig_data->sig), &sig_data->sig_len)) {
+            if (!wallet_sign_tx_input_hash(sig_data, ae_host_entropy, ae_host_entropy_len)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input", NULL);
                 goto cleanup;
             }
@@ -343,9 +341,7 @@ void send_ec_signature_replies(
         signing_data_t* const sig_data = all_signing_data + i;
         if (sig_data->path_len > 0) {
             // Generate EC signature
-            if (!wallet_sign_tx_input_hash(sig_data->signature_hash, sizeof(sig_data->signature_hash), sig_data->path,
-                    sig_data->path_len, sig_data->sighash, NULL, 0, sig_data->sig, sizeof(sig_data->sig),
-                    &sig_data->sig_len)) {
+            if (!wallet_sign_tx_input_hash(sig_data, NULL, 0)) {
                 jade_process_reject_message_with_id(sig_data->id, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input",
                     NULL, 0, msgbuf, sizeof(msgbuf), source);
                 goto cleanup;
