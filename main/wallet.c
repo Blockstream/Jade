@@ -1085,9 +1085,10 @@ bool wallet_sign_tx_input_hash(
 
 // Function to fetch a hash for a transaction input - output buffer should be of size SHA256_LEN
 bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_data_t* sig_data,
-    const segwit_version_t segwit_ver, const uint8_t* script, const size_t script_len, const uint64_t satoshi)
+    const segwit_version_t segwit_ver, const uint8_t* script, size_t script_len, const uint64_t* amounts,
+    const size_t amounts_len, const struct wally_map* scriptpubkeys)
 {
-    if (!tx || !sig_data || sig_data->sighash == 0 || !script || script_len == 0) {
+    if (!tx || !sig_data || !script || script_len == 0 || !amounts || amounts_len != tx->num_inputs || !scriptpubkeys) {
         return false;
     }
 
@@ -1098,9 +1099,12 @@ bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_d
     }
 
     // Generate the btc signature hash to sign
+    if (sig_data->sighash == WALLY_SIGHASH_DEFAULT) {
+        return false;
+    }
     const size_t hash_flags = segwit_ver == SEGWIT_V0 ? WALLY_TX_FLAG_USE_WITNESS : 0;
-    const int wret = wally_tx_get_btc_signature_hash(
-        tx, index, script, script_len, satoshi, sig_data->sighash, hash_flags, sig_data->sig, sizeof(sig_data->sig));
+    const int wret = wally_tx_get_btc_signature_hash(tx, index, script, script_len, amounts[index], sig_data->sighash,
+        hash_flags, sig_data->sig, sizeof(sig_data->sig));
     if (wret != WALLY_OK) {
         JADE_LOGE("Failed to get btc signature hash, error %d", wret);
         return false;

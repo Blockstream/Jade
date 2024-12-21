@@ -503,7 +503,6 @@ void sign_tx_process(void* process_ptr)
         segwit_version_t segwit_ver = SEGWIT_NONE;
         size_t script_len = 0;
         const uint8_t* script = NULL;
-        uint64_t* input_satoshi = input_amounts + index;
 
         // The ae commitments for this input (if using anti-exfil signatures)
         size_t ae_host_commitment_len = 0;
@@ -586,7 +585,7 @@ void sign_tx_process(void* process_ptr)
 
             // Fetch the amount and scriptpubkey from the passed input tx
             const struct wally_tx_output* const txout = &input_tx->outputs[tx->inputs[index].index];
-            *input_satoshi = txout->satoshi;
+            input_amounts[index] = txout->satoshi;
             res = wally_map_add_integer(scriptpubkeys, index, txout->script, txout->script_len);
             if (res != WALLY_OK) {
                 jade_process_reject_message(
@@ -610,7 +609,7 @@ void sign_tx_process(void* process_ptr)
             JADE_LOGD("Single witness input - using explicitly passed amount");
 
             // Get the amount
-            ret = rpc_get_uint64_t("satoshi", &params, input_satoshi);
+            ret = rpc_get_uint64_t("satoshi", &params, &input_amounts[index]);
             if (!ret) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract satoshi from parameters", NULL);
@@ -623,7 +622,8 @@ void sign_tx_process(void* process_ptr)
             // Generate hash of this input which we will sign later
             JADE_ASSERT(sig_data->sighash == WALLY_SIGHASH_ALL);
 
-            if (!wallet_get_tx_input_hash(tx, index, sig_data, segwit_ver, script, script_len, *input_satoshi)) {
+            if (!wallet_get_tx_input_hash(tx, index, sig_data, segwit_ver, script, script_len, input_amounts,
+                    tx->num_inputs, scriptpubkeys)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
                 goto cleanup;
             }
@@ -648,7 +648,7 @@ void sign_tx_process(void* process_ptr)
         }
 
         // Keep a running total
-        input_amount += *input_satoshi;
+        input_amount += input_amounts[index];
         if (input_amount > UINT32_MAX) {
             JADE_LOGD("input_amount over UINT32_MAX, truncated low = %" PRIu32 " high %" PRIu32, (uint32_t)input_amount,
                 (uint32_t)(input_amount >> 32));
