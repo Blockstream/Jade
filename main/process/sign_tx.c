@@ -638,6 +638,11 @@ void sign_tx_process(void* process_ptr)
             // processing below after this initial loop instead.
             // Taproot Schnorr signatures do not support Anti-Exfil, so we
             // skip creating a signer commitment here as well.
+            if (!use_ae_signatures) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_INTERNAL_ERROR, "Taproot signing requires Anti-exfil flow", NULL);
+                goto cleanup;
+            }
         } else if (has_path) {
             // We have been given a path, so are expected to sign this input.
             // Generate the signature hash of this input which we will sign later
