@@ -363,6 +363,16 @@ cleanup:
     SENSITIVE_POP(all_signing_data);
 }
 
+// Whether or not a sighash type is valid for BTC.
+// NOTE: atm we only accept 'SIGHASH_ALL', or SIGHASH_DEFAULT for p2tr
+static bool is_valid_btc_sighash_type(segwit_version_t segwit_ver, uint32_t sighash)
+{
+    if (segwit_ver == SEGWIT_V1) {
+        return sighash == WALLY_SIGHASH_DEFAULT || sighash == WALLY_SIGHASH_ALL;
+    }
+    return sighash == WALLY_SIGHASH_ALL;
+}
+
 /*
  * The message flow here is complicated because we cater for both a legacy flow
  * for standard deterministic EC signatures (see rfc6979) and a newer message
@@ -485,8 +495,6 @@ void sign_tx_process(void* process_ptr)
     // Run through each input message and generate a signature-hash for each one
     uint64_t input_amount = 0;
 
-    // NOTE: atm we only accept 'SIGHASH_ALL' for inputs we are signing
-    const uint8_t expected_sighash = WALLY_SIGHASH_ALL;
     bool signing = false;
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
@@ -531,8 +539,7 @@ void sign_tx_process(void* process_ptr)
                 goto cleanup;
             }
 
-            // NOTE: atm we only accept 'SIGHASH_ALL'
-            if (sig_data->sighash != expected_sighash) {
+            if (!is_valid_btc_sighash_type(segwit_ver, sig_data->sighash)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
             }
@@ -541,6 +548,7 @@ void sign_tx_process(void* process_ptr)
             bool is_witness = false;
             rpc_get_boolean("is_witness", &params, &is_witness);
             segwit_ver = is_witness ? SEGWIT_V0 : SEGWIT_NONE;
+            sig_data->sighash = WALLY_SIGHASH_ALL;
         }
 
         // Full input tx can be omitted for transactions with only one single witness
@@ -617,11 +625,9 @@ void sign_tx_process(void* process_ptr)
             }
         }
 
-        // Make signature if given a path (should have a prevout script in hand)
         if (has_path) {
-            // Generate hash of this input which we will sign later
-            JADE_ASSERT(sig_data->sighash == WALLY_SIGHASH_ALL);
-
+            // We have been given a path, so are expected to sign this input.
+            // Generate the signature hash of this input which we will sign later
             if (!wallet_get_tx_input_hash(tx, index, sig_data, segwit_ver, script, script_len, input_amounts,
                     tx->num_inputs, scriptpubkeys)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);

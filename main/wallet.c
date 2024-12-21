@@ -1104,9 +1104,6 @@ bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_d
             sizeof(sig_data->signature_hash));
     } else {
         // Pre-segwit or segwit v0 BTC signature hash
-        if (sig_data->sighash == WALLY_SIGHASH_DEFAULT) {
-            return false;
-        }
         const uint32_t flags = segwit_ver == SEGWIT_V0 ? WALLY_TX_FLAG_USE_WITNESS : 0;
         wret = wally_tx_get_btc_signature_hash(tx, index, script, script_len, amounts[index], sig_data->sighash, flags,
             sig_data->signature_hash, sizeof(sig_data->signature_hash));
