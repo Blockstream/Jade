@@ -35,6 +35,12 @@ void jade_abort(const char* file, const int line_n);
         }                                                                                                              \
     } while (false)
 
+// Compile-time assert that "cond" is true. If false compilation will fail.
+#define JADE_STATIC_ASSERT(cond)                                                                                       \
+    do {                                                                                                               \
+        (void)sizeof(char[1 - 2 * !(cond)]);                                                                           \
+    } while (0)
+
 // Macro to make an call and assert that the result is 0
 #define JADE_ZERO_VERIFY(expr)                                                                                         \
     do {                                                                                                               \
