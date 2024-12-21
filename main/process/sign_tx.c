@@ -18,6 +18,7 @@
 #include <sodium/utils.h>
 
 #include <wally_anti_exfil.h>
+#include <wally_map.h>
 #include <wally_script.h>
 
 #include "process_utils.h"
@@ -472,6 +473,15 @@ void sign_tx_process(void* process_ptr)
     signing_data_t* const all_signing_data = JADE_CALLOC(num_inputs, sizeof(signing_data_t));
     jade_process_free_on_exit(process, all_signing_data);
 
+    // Hold the scriptpubkeys for each input in a map keyed by input index,
+    // and the satoshi values in an array (this is how wally wants them).
+    struct wally_map *scriptpubkeys;
+    JADE_WALLY_VERIFY(wally_map_init_alloc(num_inputs, NULL, &scriptpubkeys));
+    jade_process_call_on_exit(process, jade_wally_free_map_wrapper, scriptpubkeys);
+
+    uint64_t* const input_amounts = JADE_CALLOC(num_inputs, sizeof(uint64_t));
+    jade_process_free_on_exit(process, input_amounts);
+
     // We track if the type of the inputs we are signing changes (ie. single-sig vs
     // green/multisig/other) so we can show a warning to the user if so.
     script_flavour_t aggregate_inputs_scripts_flavour = SCRIPT_FLAVOUR_NONE;
@@ -497,7 +507,7 @@ void sign_tx_process(void* process_ptr)
         segwit_version_t segwit_ver = SEGWIT_NONE;
         size_t script_len = 0;
         const uint8_t* script = NULL;
-        uint64_t input_satoshi = 0;
+        uint64_t* input_satoshi = input_amounts + index;
 
         // The ae commitments for this input (if using anti-exfil signatures)
         size_t ae_host_commitment_len = 0;
@@ -578,8 +588,16 @@ void sign_tx_process(void* process_ptr)
                 goto cleanup;
             }
 
-            // Fetch the amount from the txn
-            input_satoshi = input_tx->outputs[tx->inputs[index].index].satoshi;
+            // Fetch the amount and scriptpubkey from the passed input tx
+            const struct wally_tx_output* const txout = &input_tx->outputs[tx->inputs[index].index];
+            *input_satoshi = txout->satoshi;
+            res = wally_map_add_integer(scriptpubkeys, index, txout->script, txout->script_len);
+            if (res != WALLY_OK) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to parse prevout scriptpubkey", NULL);
+                JADE_WALLY_VERIFY(wally_tx_free(input_tx));
+                goto cleanup;
+            }
 
             // Free the (potentially large) txn immediately
             JADE_WALLY_VERIFY(wally_tx_free(input_tx));
@@ -596,7 +614,7 @@ void sign_tx_process(void* process_ptr)
             JADE_LOGD("Single witness input - using explicitly passed amount");
 
             // Get the amount
-            ret = rpc_get_uint64_t("satoshi", &params, &input_satoshi);
+            ret = rpc_get_uint64_t("satoshi", &params, input_satoshi);
             if (!ret) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract satoshi from parameters", NULL);
@@ -609,7 +627,7 @@ void sign_tx_process(void* process_ptr)
             // Generate hash of this input which we will sign later
             JADE_ASSERT(sig_data->sighash == WALLY_SIGHASH_ALL);
 
-            if (!wallet_get_tx_input_hash(tx, index, segwit_ver, script, script_len, input_satoshi, sig_data->sighash,
+            if (!wallet_get_tx_input_hash(tx, index, segwit_ver, script, script_len, *input_satoshi, sig_data->sighash,
                     sig_data->signature_hash, sizeof(sig_data->signature_hash))) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
                 goto cleanup;
@@ -635,7 +653,7 @@ void sign_tx_process(void* process_ptr)
         }
 
         // Keep a running total
-        input_amount += input_satoshi;
+        input_amount += *input_satoshi;
         if (input_amount > UINT32_MAX) {
             JADE_LOGD("input_amount over UINT32_MAX, truncated low = %" PRIu32 " high %" PRIu32, (uint32_t)input_amount,
                 (uint32_t)(input_amount >> 32));
