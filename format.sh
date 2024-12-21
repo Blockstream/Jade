@@ -15,5 +15,7 @@ fi
 
 KCONFIG_FILE=main/Kconfig.projbuild
 
-${IDF_PATH}/tools/ci/check_kconfigs.py ${KCONFIG_FILE} || true
-mv ${KCONFIG_FILE}.new ${KCONFIG_FILE}
+if [ -x ${IDF_PATH}/tools/ci/check_kconfigs.py ]; then
+    ${IDF_PATH}/tools/ci/check_kconfigs.py ${KCONFIG_FILE} || true
+    mv ${KCONFIG_FILE}.new ${KCONFIG_FILE}
+fi
