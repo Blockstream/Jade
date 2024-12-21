@@ -50,16 +50,16 @@ Set up the environmental variables:
 . $HOME/esp/esp-idf/export.sh
 ```
 
-On MacOS: You will need cmake on your system for this step (`brew install cmake`).
+On MacOS: You will need cmake and ninja on your system for this step (`brew install cmake ninja`).
 
 If you encounter Python dependencies issue, make sure to use a recent Python version (e.g. Python 3.11) as the current system version which is used by the install script.
 
 # Build dependencies
 
-Cmake is needed to build the firmware, you can install in on debian based distros with:
+Cmake and ninja are needed to build the firmware, you can install them on debian based distros with:
 
 ``` 
-sudo apt install cmake
+sudo apt install cmake ninja-build
 ```
 
 # Serial port
@@ -95,6 +95,7 @@ sudo usermod -aG dialout $USER
 ```
 git clone --recursive https://github.com/Blockstream/Jade.git $HOME/jade
 cd $HOME/jade
+git submodule update --init --recursive
 cp configs/sdkconfig_jade.defaults sdkconfig.defaults
 idf.py flash monitor
 ```
