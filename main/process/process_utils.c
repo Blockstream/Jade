@@ -290,6 +290,9 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
     signing_data_t* sig_data, const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len,
     const uint8_t** script, size_t* script_len, script_flavour_t* aggregate_script_flavour, const char** errmsg)
 {
+    // Ensure that signing_data_t meets our expections
+    JADE_STATIC_ASSERT(sizeof(((signing_data_t*)0)->path) == MAX_PATH_LEN * sizeof(uint32_t));
+    JADE_STATIC_ASSERT(sizeof(((signing_data_t*)0)->id) == MAXLEN_ID + 1);
     JADE_ASSERT(params);
     JADE_ASSERT(segwit_ver);
     JADE_ASSERT(sig_data);

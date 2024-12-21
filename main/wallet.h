@@ -12,6 +12,17 @@ typedef enum { BF_ASSET, BF_VALUE, BF_ASSET_VALUE } BlindingFactorType_t;
 // The segwit version (or pre-segwit-ness) of an input
 typedef enum { SEGWIT_V0 = 0, SEGWIT_V1 = 1, SEGWIT_NONE = 0xff } segwit_version_t;
 
+// Input/Output data for signing a tx input
+typedef struct {
+    uint8_t signature_hash[SHA256_LEN]; // Input: The signature hash to sign
+    uint32_t path[16]; // Input: The path to sign with
+    char id[16 + 1]; // For caller use: not used by signing.
+    uint8_t sig[EC_SIGNATURE_DER_MAX_LEN + 1]; // Output: The DER or Schnorr signature
+    size_t path_len; // Input: The length of the path in "path"
+    size_t sig_len; // Output: The length of the signature in "sig"
+    uint8_t sighash; // Input: The sighash flags to sign with
+} signing_data_t;
+
 #define MAX_VARIANT_LEN 24
 #define MAX_GASERVICE_PATH_LEN 35
 
