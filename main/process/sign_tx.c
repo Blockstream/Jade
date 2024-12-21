@@ -495,7 +495,9 @@ void sign_tx_process(void* process_ptr)
     // Run through each input message and generate a signature-hash for each one
     uint64_t input_amount = 0;
 
-    bool signing = false;
+    uint32_t num_to_sign = 0; // Total number of inputs to sign
+    uint32_t num_p2tr_to_sign = 0; // Total number of p2tr inputs to sign
+
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
         if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
@@ -530,7 +532,7 @@ void sign_tx_process(void* process_ptr)
         // (But if passed must be valid - empty/root path is not allowed for signing)
         const bool has_path = rpc_has_field_data("path", &params);
         if (has_path) {
-            signing = true;
+            num_to_sign += 1;
 
             // Get all common tx-signing input fields which must be present if a path is given
             if (!params_tx_input_signing_data(use_ae_signatures, &params, &segwit_ver, sig_data, &ae_host_commitment,
@@ -538,10 +540,12 @@ void sign_tx_process(void* process_ptr)
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
-
             if (!is_valid_btc_sighash_type(segwit_ver, sig_data->sighash)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
+            }
+            if (segwit_ver == SEGWIT_V1) {
+                num_p2tr_to_sign += 1;
             }
         } else {
             // May still need witness flag
@@ -625,7 +629,16 @@ void sign_tx_process(void* process_ptr)
             }
         }
 
-        if (has_path) {
+        bool made_ae_commitment = false;
+
+        if (has_path && segwit_ver == SEGWIT_V1) {
+            // We have been given a path, so are expected to sign this input.
+            // We can't compute a taproot signature hash until we have all
+            // values and scriptpubkeys - do nothing here and do taproot
+            // processing below after this initial loop instead.
+            // Taproot Schnorr signatures do not support Anti-Exfil, so we
+            // skip creating a signer commitment here as well.
+        } else if (has_path) {
             // We have been given a path, so are expected to sign this input.
             // Generate the signature hash of this input which we will sign later
             if (!wallet_get_tx_input_hash(tx, index, sig_data, segwit_ver, script, script_len, input_amounts,
@@ -645,6 +658,7 @@ void sign_tx_process(void* process_ptr)
                         process, CBOR_RPC_INTERNAL_ERROR, "Failed to make ae signer commitment", NULL);
                     goto cleanup;
                 }
+                made_ae_commitment = true;
             }
         } else {
             // Empty byte-string reply (no path given implies no sig needed or expected)
@@ -667,8 +681,9 @@ void sign_tx_process(void* process_ptr)
         // as this simplifies the code both here and in the client.
         if (use_ae_signatures) {
             uint8_t buffer[256];
-            jade_process_reply_to_message_bytes(process->ctx, ae_signer_commitment,
-                has_path ? sizeof(ae_signer_commitment) : 0, buffer, sizeof(buffer));
+            const size_t commitment_len = made_ae_commitment ? sizeof(ae_signer_commitment) : 0;
+            jade_process_reply_to_message_bytes(
+                process->ctx, ae_signer_commitment, commitment_len, buffer, sizeof(buffer));
         }
     }
 
@@ -701,7 +716,7 @@ void sign_tx_process(void* process_ptr)
     JADE_LOGD("User accepted fee");
 
     // Show warning if nothing to sign
-    if (!signing) {
+    if (num_to_sign == 0) {
         const char* message[] = { "There are no relevant", "inputs to be signed" };
         await_message_activity(message, 2);
     }
