@@ -498,6 +498,7 @@ void sign_tx_process(void* process_ptr)
     uint32_t num_to_sign = 0; // Total number of inputs to sign
     uint32_t num_p2tr_to_sign = 0; // Total number of p2tr inputs to sign
 
+    // Loop to fetch data for and validate all inputs
     for (size_t index = 0; index < num_inputs; ++index) {
         jade_process_load_in_message(process, true);
         if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
@@ -688,6 +689,22 @@ void sign_tx_process(void* process_ptr)
             const size_t commitment_len = made_ae_commitment ? sizeof(ae_signer_commitment) : 0;
             jade_process_reply_to_message_bytes(
                 process->ctx, ae_signer_commitment, commitment_len, buffer, sizeof(buffer));
+        }
+    }
+
+    // Loop to process any taproot inputs now that we have all input
+    // values and scriptpubkeys
+    for (size_t index = 0; num_p2tr_to_sign != 0 && index < num_inputs; ++index) {
+        signing_data_t* const sig_data = all_signing_data + index;
+        if (sig_data->segwit_ver != SEGWIT_V1 || !sig_data->path_len) {
+            // Not signing this input
+            continue;
+        }
+        if (!wallet_get_tx_input_hash(tx, index, sig_data, NULL, 0, input_amounts, tx->num_inputs, scriptpubkeys)) {
+            // We are using ae-signatures, so we need to load the message to send the error back on
+            jade_process_load_in_message(process, true);
+            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make taproot tx input hash", NULL);
+            goto cleanup;
         }
     }
 
