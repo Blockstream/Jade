@@ -1090,8 +1090,7 @@ bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_d
 {
     int wret;
 
-    if (!tx || index >= tx->num_inputs || !sig_data || !script || script_len == 0 || !amounts
-        || amounts_len != tx->num_inputs || !scriptpubkeys) {
+    if (!tx || index >= tx->num_inputs || !sig_data || !amounts || amounts_len != tx->num_inputs || !scriptpubkeys) {
         return false;
     }
 
@@ -1103,6 +1102,9 @@ bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_d
             key_version, WALLY_NO_CODESEPARATOR, NULL, 0, sig_data->sighash, flags, sig_data->signature_hash,
             sizeof(sig_data->signature_hash));
     } else {
+        if (!script || script_len == 0) {
+            return false; // Cannot compute hash without the prevout script
+        }
         // Pre-segwit or segwit v0 BTC signature hash
         const uint32_t flags = segwit_ver == SEGWIT_V0 ? WALLY_TX_FLAG_USE_WITNESS : 0;
         wret = wally_tx_get_btc_signature_hash(tx, index, script, script_len, amounts[index], sig_data->sighash, flags,
