@@ -365,12 +365,12 @@ cleanup:
 
 // Whether or not a sighash type is valid for BTC.
 // NOTE: atm we only accept 'SIGHASH_ALL', or SIGHASH_DEFAULT for p2tr
-static bool is_valid_btc_sighash_type(segwit_version_t segwit_ver, uint32_t sighash)
+static bool is_valid_btc_sighash_type(const signing_data_t* const sig_data)
 {
-    if (segwit_ver == SEGWIT_V1) {
-        return sighash == WALLY_SIGHASH_DEFAULT || sighash == WALLY_SIGHASH_ALL;
+    if (sig_data->segwit_ver == SEGWIT_V1) {
+        return sig_data->sighash == WALLY_SIGHASH_DEFAULT || sig_data->sighash == WALLY_SIGHASH_ALL;
     }
-    return sighash == WALLY_SIGHASH_ALL;
+    return sig_data->sighash == WALLY_SIGHASH_ALL;
 }
 
 /*
@@ -481,7 +481,7 @@ void sign_tx_process(void* process_ptr)
 
     // Hold the scriptpubkeys for each input in a map keyed by input index,
     // and the satoshi values in an array (this is how wally wants them).
-    struct wally_map *scriptpubkeys;
+    struct wally_map* scriptpubkeys;
     JADE_WALLY_VERIFY(wally_map_init_alloc(num_inputs, NULL, &scriptpubkeys));
     jade_process_call_on_exit(process, jade_wally_free_map_wrapper, scriptpubkeys);
 
@@ -510,7 +510,6 @@ void sign_tx_process(void* process_ptr)
         // txn input as expected - get input parameters
         GET_MSG_PARAMS(process);
 
-        segwit_version_t segwit_ver = SEGWIT_NONE;
         size_t script_len = 0;
         const uint8_t* script = NULL;
 
@@ -535,23 +534,23 @@ void sign_tx_process(void* process_ptr)
             num_to_sign += 1;
 
             // Get all common tx-signing input fields which must be present if a path is given
-            if (!params_tx_input_signing_data(use_ae_signatures, &params, &segwit_ver, sig_data, &ae_host_commitment,
+            if (!params_tx_input_signing_data(use_ae_signatures, &params, sig_data, &ae_host_commitment,
                     &ae_host_commitment_len, &script, &script_len, &aggregate_inputs_scripts_flavour, &errmsg)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
-            if (!is_valid_btc_sighash_type(segwit_ver, sig_data->sighash)) {
+            if (!is_valid_btc_sighash_type(sig_data)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
             }
-            if (segwit_ver == SEGWIT_V1) {
+            if (sig_data->segwit_ver == SEGWIT_V1) {
                 num_p2tr_to_sign += 1;
             }
         } else {
             // May still need witness flag
             bool is_witness = false;
             rpc_get_boolean("is_witness", &params, &is_witness);
-            segwit_ver = is_witness ? SEGWIT_V0 : SEGWIT_NONE;
+            sig_data->segwit_ver = is_witness ? SEGWIT_V0 : SEGWIT_NONE;
             sig_data->sighash = WALLY_SIGHASH_ALL;
         }
 
@@ -612,7 +611,7 @@ void sign_tx_process(void* process_ptr)
             // For single segwit v0 inputs we can instead get just the amount
             // directly from message. This optimization is deprecated and will
             // be removed in a future firmware release.
-            if (segwit_ver != SEGWIT_V0 || num_inputs > 1) {
+            if (sig_data->segwit_ver != SEGWIT_V0 || num_inputs > 1) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract input_tx from parameters", NULL);
                 goto cleanup;
@@ -631,7 +630,7 @@ void sign_tx_process(void* process_ptr)
 
         bool made_ae_commitment = false;
 
-        if (has_path && segwit_ver == SEGWIT_V1) {
+        if (has_path && sig_data->segwit_ver == SEGWIT_V1) {
             // We have been given a path, so are expected to sign this input.
             // We can't compute a taproot signature hash until we have all
             // values and scriptpubkeys - do nothing here and do taproot
@@ -646,8 +645,8 @@ void sign_tx_process(void* process_ptr)
         } else if (has_path) {
             // We have been given a path, so are expected to sign this input.
             // Generate the signature hash of this input which we will sign later
-            if (!wallet_get_tx_input_hash(tx, index, sig_data, segwit_ver, script, script_len, input_amounts,
-                    tx->num_inputs, scriptpubkeys)) {
+            if (!wallet_get_tx_input_hash(
+                    tx, index, sig_data, script, script_len, input_amounts, tx->num_inputs, scriptpubkeys)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
                 goto cleanup;
             }

@@ -286,15 +286,14 @@ bool params_get_master_blindingkey(
 }
 
 // Get the common parameters required when signing an tx input
-bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, segwit_version_t* segwit_ver,
-    signing_data_t* sig_data, const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len,
-    const uint8_t** script, size_t* script_len, script_flavour_t* aggregate_script_flavour, const char** errmsg)
+bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, signing_data_t* sig_data,
+    const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len, const uint8_t** script, size_t* script_len,
+    script_flavour_t* aggregate_script_flavour, const char** errmsg)
 {
     // Ensure that signing_data_t meets our expections
     JADE_STATIC_ASSERT(sizeof(((signing_data_t*)0)->path) == MAX_PATH_LEN * sizeof(uint32_t));
     JADE_STATIC_ASSERT(sizeof(((signing_data_t*)0)->id) == MAXLEN_ID + 1);
     JADE_ASSERT(params);
-    JADE_ASSERT(segwit_ver);
     JADE_ASSERT(sig_data);
     JADE_INIT_OUT_PPTR(ae_host_commitment);
     JADE_INIT_OUT_SIZE(ae_host_commitment_len);
@@ -309,7 +308,7 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
         return false;
     }
     // Assume segwit v0 for witness inputs unless v1 is detected below
-    *segwit_ver = is_witness ? SEGWIT_V0 : SEGWIT_NONE;
+    sig_data->segwit_ver = is_witness ? SEGWIT_V0 : SEGWIT_NONE;
 
     const size_t max_path_len = sizeof(sig_data->path) / sizeof(sig_data->path[0]);
     if (!rpc_get_bip32_path("path", params, sig_data->path, max_path_len, &sig_data->path_len)
@@ -350,7 +349,7 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
     bool is_p2tr = false;
     const script_flavour_t script_flavour = get_script_flavour(*script, *script_len, &is_p2tr);
     if (is_p2tr) {
-        *segwit_ver = SEGWIT_V1;
+        sig_data->segwit_ver = SEGWIT_V1;
     }
     // Track the types of the input prevout scripts
     update_aggregate_scripts_flavour(script_flavour, aggregate_script_flavour);

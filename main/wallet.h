@@ -16,11 +16,12 @@ typedef enum { SEGWIT_V0 = 0, SEGWIT_V1 = 1, SEGWIT_NONE = 0xff } segwit_version
 typedef struct {
     uint8_t signature_hash[SHA256_LEN]; // Input: The signature hash to sign
     uint32_t path[16]; // Input: The path to sign with
-    char id[16 + 1]; // For caller use: not used by signing.
     uint8_t sig[EC_SIGNATURE_DER_MAX_LEN + 1]; // Output: The DER or Schnorr signature
+    char id[16 + 1]; // For caller use: not used by signing.
+    uint8_t segwit_ver; // Input: The segwit version of this input
+    uint8_t sighash; // Input: The sighash flags to sign with
     size_t path_len; // Input: The length of the path in "path"
     size_t sig_len; // Output: The length of the signature in "sig"
-    uint8_t sighash; // Input: The sighash flags to sign with
 } signing_data_t;
 
 #define MAX_VARIANT_LEN 24
@@ -103,9 +104,8 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_ha
 // have an entry for each index.
 // Otherwise, only "amounts[index]" must be populated and "scriptpubkeys"
 // is unused.
-bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, signing_data_t* sig_data, segwit_version_t segwit_ver,
-    const uint8_t* script, size_t script_len, const uint64_t* amounts, size_t amounts_len,
-    const struct wally_map* scriptpubkeys);
+bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, signing_data_t* sig_data, const uint8_t* script,
+    size_t script_len, const uint64_t* amounts, size_t amounts_len, const struct wally_map* scriptpubkeys);
 bool wallet_get_signer_commitment(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
     size_t path_len, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
 // Sign the signature hash in sig_data.
