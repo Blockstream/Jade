@@ -300,17 +300,22 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
             // We are expecting to generate a signature for this input
             GET_MSG_PARAMS(process);
 
-            size_t ae_host_entropy_len = 0;
             const uint8_t* ae_host_entropy = NULL;
-            rpc_get_bytes_ptr("ae_host_entropy", &params, &ae_host_entropy, &ae_host_entropy_len);
+            size_t ae_host_entropy_len = 0;
 
-            if (!ae_host_entropy || ae_host_entropy_len != WALLY_S2C_DATA_LEN) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract host entropy from parameters", NULL);
-                goto cleanup;
+            if (sig_data->segwit_ver != SEGWIT_V1) {
+                // Non taproot signature: requires the host entropy to include
+                // in the signature
+                rpc_get_bytes_ptr("ae_host_entropy", &params, &ae_host_entropy, &ae_host_entropy_len);
+
+                if (!ae_host_entropy || ae_host_entropy_len != WALLY_S2C_DATA_LEN) {
+                    jade_process_reject_message(
+                        process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract host entropy from parameters", NULL);
+                    goto cleanup;
+                }
             }
 
-            // Generate Anti-Exfil signature
+            // Generate Anti-Exfil or non-AE Schnorr signature
             if (!wallet_sign_tx_input_hash(sig_data, ae_host_entropy, ae_host_entropy_len)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input", NULL);
                 goto cleanup;
