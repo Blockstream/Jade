@@ -1037,7 +1037,7 @@ bool wallet_get_signer_commitment(const uint8_t* signature_hash, const size_t si
 bool wallet_sign_tx_input_hash(
     signing_data_t* sig_data, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len)
 {
-    if (!sig_data || sig_data->path_len == 0 || sig_data->sighash == 0) {
+    if (!sig_data || sig_data->path_len == 0) {
         return false;
     }
     if ((!ae_host_entropy && ae_host_entropy_len > 0)
@@ -1053,16 +1053,34 @@ bool wallet_sign_tx_input_hash(
     wallet_get_privkey(sig_data->path, sig_data->path_len, privkey, sizeof(privkey));
 
     // Generate signature as appropriate
-    int wret;
-    if (ae_host_entropy) {
+    int wret = WALLY_OK;
+    if (ae_host_entropy && sig_data->segwit_ver != SEGWIT_V1) {
         // Anti-Exfil signature
         wret = wally_ae_sig_from_bytes(privkey, sizeof(privkey), sig_data->signature_hash,
             sizeof(sig_data->signature_hash), ae_host_entropy, ae_host_entropy_len, EC_FLAG_ECDSA, signature,
             sizeof(signature));
     } else {
-        // Standard EC signature
-        wret = wally_ec_sig_from_bytes(privkey, sizeof(privkey), sig_data->signature_hash,
-            sizeof(sig_data->signature_hash), EC_FLAG_ECDSA | EC_FLAG_GRIND_R, signature, sizeof(signature));
+        // Standard EC or taproot signature
+        uint8_t tweaked[EC_PRIVATE_KEY_LEN];
+        uint8_t* signing_key;
+        uint32_t flags;
+        SENSITIVE_PUSH(tweaked, sizeof(tweaked));
+
+        if (sig_data->segwit_ver != SEGWIT_V1) {
+            // ECDSA. Sign directly with the private key
+            signing_key = privkey;
+            flags = EC_FLAG_ECDSA | EC_FLAG_GRIND_R;
+        } else {
+            // Taproot. Tweak the private key before Schnorr signing
+            signing_key = tweaked;
+            flags = EC_FLAG_SCHNORR;
+            wret = wally_ec_private_key_bip341_tweak(privkey, sizeof(privkey), NULL, 0, 0, tweaked, sizeof(tweaked));
+        }
+        if (wret == WALLY_OK) {
+            wret = wally_ec_sig_from_bytes(signing_key, EC_PRIVATE_KEY_LEN, sig_data->signature_hash,
+                sizeof(sig_data->signature_hash), flags, signature, sizeof(signature));
+        }
+        SENSITIVE_POP(tweaked);
     }
     SENSITIVE_POP(privkey);
 
@@ -1071,12 +1089,22 @@ bool wallet_sign_tx_input_hash(
         return false;
     }
 
-    // Make the signature in DER format
-    JADE_WALLY_VERIFY(wally_ec_sig_to_der(
-        signature, sizeof(signature), sig_data->sig, sizeof(sig_data->sig) - 1, &sig_data->sig_len));
-    JADE_ASSERT(sig_data->sig_len <= sizeof(sig_data->sig) - 1);
+    if (sig_data->segwit_ver != SEGWIT_V1) {
+        // ECDSA: DER-encode the signature
+        JADE_WALLY_VERIFY(wally_ec_sig_to_der(
+            signature, sizeof(signature), sig_data->sig, sizeof(sig_data->sig) - 1, &sig_data->sig_len));
+    } else {
+        // Taproot: Copy the Schnorr signature as-is.
+        sig_data->sig_len = sizeof(signature);
+        memcpy(sig_data->sig, signature, sizeof(signature));
+        if (sig_data->sighash == WALLY_SIGHASH_DEFAULT) {
+            // We don't add the sighash byte for default signatures, so we are done
+            return true;
+        }
+    }
 
     // Append the sighash used
+    JADE_ASSERT(sig_data->sig_len <= sizeof(sig_data->sig) - 1);
     sig_data->sig[sig_data->sig_len] = sig_data->sighash;
     sig_data->sig_len += 1;
 
