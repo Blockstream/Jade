@@ -7,6 +7,7 @@
 
 #include "display.h"
 
+#include "ble/ble.h"
 #include "gui.h"
 #include "idletimer.h"
 #include "jade_assert.h"
@@ -18,10 +19,6 @@
 #include "storage.h"
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
-
-#ifdef CONFIG_BT_ENABLED
-#include "ble/ble.h"
-#endif
 
 // A genuine production v2 Jade may be awaiting mandatory attestation data
 #if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)                                                  \

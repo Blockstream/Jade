@@ -1,13 +1,11 @@
 #include "process.h"
+#include "ble/ble.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "power.h"
 #include "process/process_utils.h"
 #include "utils/cbor_rpc.h"
 #include "utils/malloc_ext.h"
-#ifdef CONFIG_BT_ENABLED
-#include "../ble/ble.h"
-#endif
 
 #include <esp_mac.h>
 #include <freertos/FreeRTOS.h>
@@ -368,10 +366,6 @@ static void dump_mem_report(void)
     }
 }
 #endif /* CONFIG_HEAP_TRACING */
-
-#ifndef CONFIG_BT_ENABLED
-static inline bool ble_connected(void) { return false; }
-#endif
 
 void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, bool blocking)
 {

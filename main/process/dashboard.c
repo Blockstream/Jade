@@ -39,15 +39,7 @@ static inline bool awaiting_attestation_data(void) { return !attestation_initial
 static inline bool awaiting_attestation_data(void) { return false; }
 #endif
 
-#ifdef CONFIG_BT_ENABLED
 #include "../ble/ble.h"
-#else
-// Stubs
-static inline bool ble_enabled(void) { return false; }
-static inline bool ble_connected(void) { return false; }
-static inline void ble_start(void) { JADE_ASSERT(false); }
-static inline void ble_stop(void) { return; }
-#endif
 #include "process/ota_defines.h"
 #include "process_utils.h"
 

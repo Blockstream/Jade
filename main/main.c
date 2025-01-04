@@ -39,10 +39,7 @@
 #include "qemu_tcp.h"
 #endif
 
-#ifdef CONFIG_BT_ENABLED
 #include "ble/ble.h"
-#endif
-
 #include "idletimer.h"
 #include "power.h"
 #include "smoketest.h"
