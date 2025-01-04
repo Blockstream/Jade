@@ -602,7 +602,7 @@ gui_activity_t* make_info_activity(const char* fw_version)
 
     gui_view_node_t* fwver;
     gui_make_text(&fwver, "Firmware:", TFT_WHITE);
-    gui_set_align(fwver, GUI_ALIGN_MIDDLE, GUI_ALIGN_MIDDLE);
+    gui_set_align(fwver, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(fwver, splitfw);
 
     gui_make_text(&fwver, fw_version, TFT_WHITE);

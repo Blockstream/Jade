@@ -319,7 +319,7 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
         gui_make_text(&node, "Learn more:", TFT_WHITE);
         gui_set_parent(node, vsplit);
         gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, lpad);
-        gui_set_align(node, GUI_ALIGN_TOP, GUI_ALIGN_LEFT);
+        gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
 
         // third row, url
         gui_make_text(&node, url, TFT_WHITE);
