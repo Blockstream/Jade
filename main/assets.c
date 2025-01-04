@@ -11,7 +11,7 @@
 #define ASSET_CONTRACT_BUFFER_LEN 768
 
 // flip the order of the bytes in-place
-static void reverse(uint8_t* buf, size_t len)
+static void reverse_in_place(uint8_t* buf, size_t len)
 {
     for (uint8_t *c1 = buf, *c2 = buf + len - 1; c1 < c2; ++c1, --c2) {
         const uint8_t tmp = *c1;
@@ -137,7 +137,7 @@ bool assets_get_allocate(const char* field, const CborValue* value, asset_info_t
                 free(assets);
                 return false;
             }
-            reverse(txhash, sizeof(txhash));
+            reverse_in_place(txhash, sizeof(txhash));
 
             size_t index;
             if (!rpc_get_sizet("vout", &issuanceprevout, &index)) {
