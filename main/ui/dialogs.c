@@ -56,7 +56,6 @@ gui_view_node_t* make_even_split(const ui_button_layout_t layout, const uint8_t 
 // Helper to make a standard button, for consistent look and feel behaviour
 void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
 {
-    JADE_ASSERT(parent);
     JADE_ASSERT(btn_info);
 
     // Cannot specify both 'text label' and 'explicit content'
@@ -98,7 +97,6 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
 // Helper to create buttons in a row or column
 void add_buttons(gui_view_node_t* parent, const ui_button_layout_t layout, btn_data_t* btns, const size_t num_btns)
 {
-    JADE_ASSERT(parent);
     JADE_ASSERT(layout == UI_ROW || layout == UI_COLUMN);
     JADE_ASSERT(btns);
     JADE_ASSERT(num_btns);
@@ -132,7 +130,6 @@ static inline btn_data_t* add_default_border(btn_data_t* btn, const uint32_t def
 void populate_title_bar(
     gui_view_node_t* bar, const char* title, btn_data_t* btns, const size_t num_btns, gui_view_node_t** title_node)
 {
-    JADE_ASSERT(bar);
     JADE_ASSERT(title || btns);
     JADE_ASSERT((btns && num_btns == 2) || !num_btns);
     JADE_ASSERT(!title_node || title);
