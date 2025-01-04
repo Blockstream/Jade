@@ -17,7 +17,7 @@ struct ext_key;
 #include <sodium/utils.h>
 
 // 0 - 1.0.22 - version, type, length, script, map-values, hmac
-static const uint8_t CURRENT_RECORD_VERSION = 0;
+static const uint8_t CURRENT_DESCRIPTOR_RECORD_VERSION = 0;
 
 // The smallest valid descriptor record, for sanity checking
 // v0, no map values, assuming min script len 4(?)
@@ -544,8 +544,8 @@ bool descriptor_to_bytes(descriptor_data_t* descriptor, uint8_t* output_bytes, c
 
     // Version byte
     uint8_t* write_ptr = output_bytes;
-    memcpy(write_ptr, &CURRENT_RECORD_VERSION, sizeof(CURRENT_RECORD_VERSION));
-    write_ptr += sizeof(CURRENT_RECORD_VERSION);
+    memcpy(write_ptr, &CURRENT_DESCRIPTOR_RECORD_VERSION, sizeof(CURRENT_DESCRIPTOR_RECORD_VERSION));
+    write_ptr += sizeof(CURRENT_DESCRIPTOR_RECORD_VERSION);
 
     // Descriptor type
     const uint8_t type_byte = (uint8_t)descriptor->type;
@@ -598,7 +598,7 @@ bool descriptor_from_bytes(const uint8_t* bytes, const size_t bytes_len, descrip
     // Version byte
     const uint8_t* read_ptr = bytes;
     const uint8_t version = *read_ptr;
-    if (version > CURRENT_RECORD_VERSION) {
+    if (version > CURRENT_DESCRIPTOR_RECORD_VERSION) {
         JADE_LOGE("Bad version byte in stored registered descriptor data");
         return false;
     }
