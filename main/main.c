@@ -1,3 +1,4 @@
+#include <esp_app_desc.h>
 #include <esp_chip_info.h>
 #include <esp_efuse.h>
 #include <esp_event.h>

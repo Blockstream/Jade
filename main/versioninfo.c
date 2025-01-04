@@ -9,7 +9,9 @@
 #include "utils/network.h"
 #include "utils/util.h"
 
+#include <esp_app_desc.h>
 #include <esp_chip_info.h>
+#include <esp_idf_version.h>
 #include <esp_mac.h>
 #include <esp_ota_ops.h>
 

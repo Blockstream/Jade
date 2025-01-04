@@ -27,6 +27,7 @@
 #include "usbhmsc/usbhmsc.h"
 #include "usbhmsc/usbmode.h"
 #endif
+#include <esp_app_desc.h>
 
 // A genuine production v2 Jade may be awaiting mandatory attestation data
 #if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)                                                  \
