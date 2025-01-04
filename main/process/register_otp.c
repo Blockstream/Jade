@@ -317,6 +317,8 @@ static bool validate_scanned_otp_uri(qr_data_t* qr_data)
     return true;
 
 invalid_qr:
+    /* no-op */; // Need an empty statement to allow a label before a declaration
+
     // Show the user that a valid qr was scanned, but the string data
     // did not constitute a valid/parseable OTP URI string.
     const char* message[] = { "Invalid OTP URI" };
