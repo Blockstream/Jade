@@ -12,6 +12,7 @@
 #include "../utils/network.h"
 #include "../utils/temporary_stack.h"
 #include "../utils/util.h"
+#include "../utils/wally_ext.h"
 #include "../wallet.h"
 
 #include <sodium/utils.h>
@@ -34,8 +35,6 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
     CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg);
 void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_signing_data, uint32_t num_inputs);
 void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_signing_data, uint32_t num_inputs);
-
-static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
 static const char TX_TYPE_STR_SWAP[] = "swap";
 static const char TX_TYPE_STR_SEND_PAYMENT[] = "send_payment";
@@ -559,7 +558,7 @@ void sign_liquid_tx_process(void* process_ptr)
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract tx from passed bytes", NULL);
         goto cleanup;
     }
-    jade_process_call_on_exit(process, wally_free_tx_wrapper, tx);
+    jade_process_call_on_exit(process, jade_wally_free_tx_wrapper, tx);
 
     // copy the amount
     size_t num_inputs = 0;

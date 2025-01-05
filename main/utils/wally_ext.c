@@ -7,6 +7,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <stdint.h>
+#include <wally_map.h>
+#include <wally_transaction.h>
 
 /* index == 0 is reserved for idf internal use,
  * see https://docs.espressif.com/projects/esp-idf/en/v4.3.2/esp32/api-guides/thread-local-storage.html
@@ -138,3 +140,7 @@ void jade_wally_init(void)
     set_jade_wally_ctx(&ctx, wally_get_secp_context());
     JADE_WALLY_VERIFY(wally_set_operations(&ops));
 }
+
+void jade_wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
+
+void jade_wally_free_map_wrapper(void* map) { JADE_WALLY_VERIFY(wally_map_free((struct wally_map*)map)); }

@@ -11,6 +11,7 @@
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
 #include "../utils/network.h"
+#include "../utils/wally_ext.h"
 #include "../wallet.h"
 
 #include <inttypes.h>
@@ -24,8 +25,6 @@
 bool show_btc_transaction_outputs_activity(
     const char* network, const struct wally_tx* tx, const output_info_t* output_info);
 bool show_btc_final_confirmation_activity(uint64_t fee, const char* warning_msg);
-
-static void wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
 // Can optionally be passed paths for change outputs, which we verify internally
 bool validate_wallet_outputs(jade_process_t* process, const char* network, const struct wally_tx* tx,
@@ -413,7 +412,7 @@ void sign_tx_process(void* process_ptr)
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract tx from passed bytes", NULL);
         goto cleanup;
     }
-    jade_process_call_on_exit(process, wally_free_tx_wrapper, tx);
+    jade_process_call_on_exit(process, jade_wally_free_tx_wrapper, tx);
 
     // copy the amount
     size_t num_inputs = 0;
