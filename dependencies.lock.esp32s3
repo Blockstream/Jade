@@ -1,23 +1,22 @@
 dependencies:
   espressif/button:
-    component_hash: 5357a6a2c0c47fa67eb9a4dad8cbd78f848d05409b3557e49ec9948898655cfb
+    component_hash: 30a3f495c3862d505ce6e41adbbd218b2750e9723ab2151feff00e9fe685b326
     dependencies:
-    - name: idf
-      require: private
-      version: '>=4.0'
     - name: espressif/cmake_utilities
       registry_url: https://components.espressif.com
       require: private
       version: 0.*
+    - name: idf
+      require: private
+      version: '>=4.0'
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 3.4.0
+    version: 3.5.0
   espressif/cbor:
     component_hash: 440f4ee4504841cc9b4f3a8ef755776a612ac9dace355514c68b999868f990ff
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=4.3'
     source:
@@ -28,7 +27,6 @@ dependencies:
     component_hash: 351350613ceafba240b761b4ea991e0f231ac7a9f59a9ee901f751bddc0bb18f
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=4.1'
     source:
@@ -39,7 +37,6 @@ dependencies:
     component_hash: fa7fe74305df6da25867437ebcd4213e047cbfc0556cf92067ab657fce537c6e
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=4.2'
     source:
@@ -47,17 +44,16 @@ dependencies:
       type: service
     version: 1.5.2
   espressif/esp32-camera:
-    component_hash: a82de4ee0b383bd34695935385c6a6c720129084580c2bbb55dce76eb2a3788f
+    component_hash: c3eb05fbeeae884a23bed9b17d48d5f0da8872beadae0c0e747d2fbea6094f06
     dependencies: []
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 2.0.13
+    version: 2.0.15
   espressif/esp_lcd_touch:
     component_hash: 779b4ba2464a3ae85681e4b860caa5fdc35801458c23f3039ee761bae7f442a4
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=4.4.2'
     source:
@@ -68,7 +64,6 @@ dependencies:
     component_hash: 00a8c8e846faa99a476091a45e47fbf3e9b6d303bacb849553ac01510d52d7eb
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=4.4.2'
     - name: espressif/esp_lcd_touch
@@ -80,36 +75,33 @@ dependencies:
       type: service
     version: 1.0.6~1
   espressif/esp_tinyusb:
-    component_hash: 2be80f1c9fcdc1ccf945e001856b88fee5a82c321187c3f4351519928e5de168
+    component_hash: 3f273ea23ce1a9573f6708729c02f46d75c8110bc88a61daa07c3a03789f718f
     dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
     - name: espressif/tinyusb
       registry_url: https://components.espressif.com
       require: public
       version: '>=0.14.2'
-    - name: idf
-      registry_url: https://components.espressif.com
-      require: private
-      version: '>=5.0'
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.4.5
+    version: 1.6.0
   espressif/libsodium:
-    component_hash: f6e982479a2389cb6868e8fb761cf23aba6c355a8090b3e906299807775f58a3
+    component_hash: 25b968723c584a2742ca36cebe5a7ef049c6767e059f7b1e1eec69946019025d
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=4.2'
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.0.20~1
+    version: 1.0.20~2
   espressif/nghttp:
     component_hash: c52b83cc3d1083ae669751534ea4f7445974b86d91d49a5273bdb0fbf87f34d6
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=5.0'
     source:
@@ -117,10 +109,9 @@ dependencies:
       type: service
     version: 1.62.1
   espressif/tinyusb:
-    component_hash: 214989d502fc168241a4a4f83b097d8ac44a93cd6f1787b4ac10069a8b3bebd3
+    component_hash: 7f73a4159dc95325ceaa4ade5e88734c4e1f5124746a3765cf61dc6157d78798
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=5.0'
     source:
@@ -130,7 +121,7 @@ dependencies:
     - esp32s2
     - esp32s3
     - esp32p4
-    version: 0.15.0~10
+    version: 0.17.0~2
   espressif/usb_host_msc:
     component_hash: efbf44743b0f1f1f808697a671064531ae4661ccbce84632637261f8f670b375
     dependencies:
@@ -148,7 +139,7 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.3.1
+    version: 5.4.0
 direct_dependencies:
 - espressif/button
 - espressif/cbor
@@ -163,6 +154,6 @@ direct_dependencies:
 - espressif/tinyusb
 - espressif/usb_host_msc
 - idf
-manifest_hash: c28a0179b69443af7fef7fc31d3fb296bddd505456d1e27df6236db76e6ead0d
+manifest_hash: 7e5521635493657803d091ca9252cfc19f2844c07c04dca7fd77d460540421c8
 target: esp32s3
 version: 2.0.0
