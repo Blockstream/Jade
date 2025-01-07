@@ -5,6 +5,8 @@
 #include <esp_lcd_touch.h>
 #include <esp_lcd_touch_ft5x06.h>
 
+#error Touch devices are not supported at the moment due to upstream updates delays, please use TAG 1.0.33 for now
+
 static volatile bool shutdown_requested = false;
 static volatile bool shutdown_finished = false;
 
