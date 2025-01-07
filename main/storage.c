@@ -494,10 +494,11 @@ uint8_t storage_get_counter(void)
     return read_blob_fixed(DEFAULT_NAMESPACE, PIN_COUNTER_FIELD, &counter, sizeof(counter)) ? counter : 0;
 }
 
-bool storage_get_replay_counter(uint8_t* replay_counter)
+bool storage_get_replay_counter(uint32_t* replay_counter)
 {
-    // returns the latest counter and increments the one on flash for next use
-    // if a counter is not set we create one set to 0
+    // returns the latest counter and increments the one on flash for next use.
+    // Note that the replay counter is never reset, only incremented.
+    // if no counter is set (i.e. brand new device), we create one set to 0.
     JADE_ASSERT(replay_counter);
 
     nvs_handle handle;
@@ -514,8 +515,9 @@ bool storage_get_replay_counter(uint8_t* replay_counter)
         j = 0;
     }
     JADE_ASSERT(j < UINT32_MAX);
-    memcpy(replay_counter, &j, sizeof(j));
-    err = nvs_set_u32(handle, REPLAY_COUNTER_FIELD, ++j);
+
+    *replay_counter = j;
+    err = nvs_set_u32(handle, REPLAY_COUNTER_FIELD, j + 1);
     if (err != ESP_OK) {
         JADE_LOGE("nvs_set_u32() for %s failed: %u", REPLAY_COUNTER_FIELD, err);
         nvs_close(handle);

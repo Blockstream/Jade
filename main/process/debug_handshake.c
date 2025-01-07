@@ -98,7 +98,7 @@ void debug_handshake(void* process_ptr)
     JADE_ASSERT(storage_get_counter() == 3);
     uint32_t initial_replay_counter = UINT32_MAX;
 
-    JADE_ASSERT(storage_get_replay_counter((uint8_t*)&initial_replay_counter));
+    JADE_ASSERT(storage_get_replay_counter(&initial_replay_counter));
     JADE_ASSERT(initial_replay_counter < UINT32_MAX);
 
     jade_process_reply_to_message_ok(process);
@@ -121,7 +121,7 @@ void debug_handshake(void* process_ptr)
     }
 
     uint32_t replay_counter = UINT32_MAX;
-    JADE_ASSERT(storage_get_replay_counter((uint8_t*)&replay_counter));
+    JADE_ASSERT(storage_get_replay_counter(&replay_counter));
     JADE_ASSERT(replay_counter == initial_replay_counter + 2);
 
     if (!keychain_load(aeskey2, sizeof(aeskey2))) {

@@ -59,6 +59,7 @@ typedef struct {
     uint8_t cke[EC_PUBLIC_KEY_LEN];
     uint8_t privkey[EC_PRIVATE_KEY_LEN];
     // Monotonic Forward Replay counter required for v2
+    // (32 bit unsigned little-endian integer)
     uint8_t replay_counter[REPLAY_COUNTER_LEN];
 } pin_keys_t;
 
@@ -207,8 +208,11 @@ static bool generate_ske(pin_keys_t* pinkeys)
         return false;
     }
 
-    if (wally_hmac_sha256(
-            pinkeys->cke, EC_PUBLIC_KEY_LEN, pinkeys->replay_counter, REPLAY_COUNTER_LEN, hmac_tweak, HMAC_SHA256_LEN)
+    uint8_t counter[sizeof(pinkeys->replay_counter)];
+    JADE_STATIC_ASSERT(sizeof(counter) == REPLAY_COUNTER_LEN);
+    // FIXME: counter needs to be byte-swapped if we are big-endian
+    memcpy(counter, pinkeys->replay_counter, sizeof(counter));
+    if (wally_hmac_sha256(pinkeys->cke, EC_PUBLIC_KEY_LEN, counter, sizeof(counter), hmac_tweak, HMAC_SHA256_LEN)
         != WALLY_OK) {
         return false;
     }
@@ -308,7 +312,12 @@ static pinserver_result_t generate_ephemeral_pinkeys(pin_keys_t* pinkeys)
     }
 
     // Load the replay counter and deduce the server key via tweak
-    const bool res = storage_get_replay_counter(pinkeys->replay_counter);
+    uint32_t counter;
+    const bool res = storage_get_replay_counter(&counter);
+    if (res) {
+        // FIXME: counter needs to be byte-swapped if we are big-endian
+        memcpy(pinkeys->replay_counter, &counter, sizeof(counter));
+    }
     if (!res || !generate_ske(pinkeys)) {
         JADE_LOGE("Failed to deduce ephemeral server key");
         RETURN_RESULT(

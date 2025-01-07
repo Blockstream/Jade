@@ -47,7 +47,7 @@ bool storage_get_encrypted_blob(uint8_t* encrypted, size_t encrypted_len, size_t
 bool storage_decrement_counter(void);
 bool storage_restore_counter(void);
 uint8_t storage_get_counter(void);
-bool storage_get_replay_counter(uint8_t* replay_counter);
+bool storage_get_replay_counter(uint32_t* replay_counter);
 bool storage_erase_encrypted_blob(void);
 
 bool storage_set_key_flags(uint8_t flags);
