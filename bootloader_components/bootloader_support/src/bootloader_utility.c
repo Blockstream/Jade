@@ -20,6 +20,7 @@
 #include "esp_rom_spiflash.h"
 
 #include "soc/soc.h"
+#include "soc/soc_caps.h"
 #include "soc/rtc.h"
 #include "soc/efuse_periph.h"
 #include "soc/rtc_periph.h"
@@ -66,7 +67,7 @@ static void set_cache_and_start_app(uint32_t drom_addr,
                                     uint32_t irom_addr,
                                     uint32_t irom_load_addr,
                                     uint32_t irom_size,
-                                    uint32_t entry_addr);
+                                    const esp_image_metadata_t *data);
 
 esp_err_t bootloader_common_read_otadata(const esp_partition_pos_t *ota_info, esp_ota_select_entry_t *two_otadata)
 {
@@ -199,6 +200,26 @@ bool bootloader_utility_load_partition_table(bootloader_state_t *bs)
                 break;
             }
             break; /* PARTITION_USAGE_DATA */
+        case PART_TYPE_BOOTLOADER: /* Bootloader partition */
+            switch (partition->subtype) {
+            case PART_SUBTYPE_BOOTLOADER_PRIMARY:
+                partition_usage = "primary bootloader";
+                break;
+            case PART_SUBTYPE_BOOTLOADER_OTA:
+                partition_usage = "ota bootloader";
+                break;
+            }
+            break; /* PART_TYPE_BOOTLOADER */
+        case PART_TYPE_PARTITION_TABLE: /* Partition table partition */
+            switch (partition->subtype) {
+            case PART_SUBTYPE_PARTITION_TABLE_PRIMARY:
+                partition_usage = "primary partition_table";
+                break;
+            case PART_SUBTYPE_PARTITION_TABLE_OTA:
+                partition_usage = "ota partition_table";
+                break;
+            }
+            break; /* PART_TYPE_PARTITION_TABLE */
         default: /* other partition type */
             break;
         }
@@ -461,15 +482,33 @@ static void set_actual_ota_seq(const bootloader_state_t *bs, int index)
 void bootloader_utility_load_boot_image_from_deep_sleep(void)
 {
     if (esp_rom_get_reset_reason(0) == RESET_REASON_CORE_DEEP_SLEEP) {
+#if SOC_RTC_FAST_MEM_SUPPORTED
         esp_partition_pos_t *partition = bootloader_common_get_rtc_retain_mem_partition();
-        if (partition != NULL) {
+        esp_image_metadata_t image_data;
+        if (partition != NULL && bootloader_load_image_no_verify(partition, &image_data) == ESP_OK) {
+            ESP_LOGI(TAG, "Fast booting app from partition at offset 0x%"PRIx32, partition->offset);
+            bootloader_common_update_rtc_retain_mem(NULL, true);
+            load_image(&image_data);
+        }
+#else // !SOC_RTC_FAST_MEM_SUPPORTED
+        bootloader_state_t bs = {0};
+        if (bootloader_utility_load_partition_table(&bs)) {
+            int index_of_last_loaded_app = FACTORY_INDEX;
+            esp_ota_select_entry_t otadata[2];
+            if (bs.ota_info.size && bootloader_common_read_otadata(&bs.ota_info, otadata) == ESP_OK) {
+                int active_otadata = bootloader_common_get_active_otadata(otadata);
+                if (active_otadata != -1) {
+                    index_of_last_loaded_app = (otadata[active_otadata].ota_seq - 1) % bs.app_count;
+                }
+            }
+            esp_partition_pos_t partition = index_to_partition(&bs, index_of_last_loaded_app);
             esp_image_metadata_t image_data;
-            if (bootloader_load_image_no_verify(partition, &image_data) == ESP_OK) {
-                ESP_LOGI(TAG, "Fast booting app from partition at offset 0x%"PRIx32, partition->offset);
-                bootloader_common_update_rtc_retain_mem(NULL, true);
+            if (partition.size && bootloader_load_image_no_verify(&partition, &image_data) == ESP_OK) {
+                ESP_LOGI(TAG, "Fast booting app from partition at offset 0x%"PRIx32, partition.offset);
                 load_image(&image_data);
             }
         }
+#endif // !SOC_RTC_FAST_MEM_SUPPORTED
         ESP_LOGE(TAG, "Fast booting is not successful");
         ESP_LOGI(TAG, "Try to load an app as usual with all validations");
     }
@@ -751,7 +790,7 @@ static void unpack_load_app(const esp_image_metadata_t *data)
                             rom_addr[1],
                             rom_load_addr[1],
                             rom_size[1],
-                            data->image.entry_addr);
+                            data);
 }
 
 #else  //!SOC_MMU_DI_VADDR_SHARED
@@ -796,7 +835,7 @@ static void unpack_load_app(const esp_image_metadata_t *data)
                             irom_addr,
                             irom_load_addr,
                             irom_size,
-                            data->image.entry_addr);
+                            data);
 }
 #endif  //#if SOC_MMU_DI_VADDR_SHARED
 
@@ -821,9 +860,11 @@ static void set_cache_and_start_app(
     uint32_t irom_addr,
     uint32_t irom_load_addr,
     uint32_t irom_size,
-    uint32_t entry_addr)
+    const esp_image_metadata_t *data)
 {
     int rc __attribute__((unused));
+    const uint32_t entry_addr = data->image.entry_addr;
+    const uint32_t mmu_page_size = data->mmu_page_size;
 
     ESP_EARLY_LOGD(TAG, "configure drom and irom and start");
     //-----------------------Disable Cache to do the mapping---------
@@ -833,12 +874,18 @@ static void set_cache_and_start_app(
 #else
     cache_hal_disable(CACHE_LL_LEVEL_EXT_MEM, CACHE_TYPE_ALL);
 #endif
+
+#if SOC_MMU_PAGE_SIZE_CONFIGURABLE
+    // re-configure MMU page size
+    mmu_ll_set_page_size(0, mmu_page_size);
+#endif //SOC_MMU_PAGE_SIZE_CONFIGURABLE
+
     //reset MMU table first
     mmu_hal_unmap_all();
 
     //-----------------------MAP DROM--------------------------
-    uint32_t drom_load_addr_aligned = drom_load_addr & MMU_FLASH_MASK;
-    uint32_t drom_addr_aligned = drom_addr & MMU_FLASH_MASK;
+    uint32_t drom_load_addr_aligned = drom_load_addr & MMU_FLASH_MASK_FROM_VAL(mmu_page_size);
+    uint32_t drom_addr_aligned = drom_addr & MMU_FLASH_MASK_FROM_VAL(mmu_page_size);
     ESP_EARLY_LOGV(TAG, "rodata starts from paddr=0x%08" PRIx32 ", vaddr=0x%08" PRIx32 ", size=0x%" PRIx32, drom_addr, drom_load_addr, drom_size);
     //The addr is aligned, so we add the mask off length to the size, to make sure the corresponding buses are enabled.
     drom_size = (drom_load_addr - drom_load_addr_aligned) + drom_size;
@@ -856,13 +903,13 @@ static void set_cache_and_start_app(
         ESP_EARLY_LOGV(TAG, "after mapping rodata, starting from paddr=0x%08" PRIx32 " and vaddr=0x%08" PRIx32 ", 0x%" PRIx32 " bytes are mapped", drom_addr_aligned, drom_load_addr_aligned, actual_mapped_len);
     }
     //we use the MMU_LL_END_DROM_ENTRY_ID mmu entry as a map page for app to find the boot partition
-    mmu_hal_map_region(0, MMU_TARGET_FLASH0, MMU_LL_END_DROM_ENTRY_VADDR, drom_addr_aligned, CONFIG_MMU_PAGE_SIZE, &actual_mapped_len);
-    ESP_EARLY_LOGV(TAG, "mapped one page of the rodata, from paddr=0x%08" PRIx32 " and vaddr=0x%08" PRIx32 ", 0x%" PRIx32 " bytes are mapped", drom_addr_aligned, drom_load_addr_aligned, actual_mapped_len);
+    mmu_hal_map_region(0, MMU_TARGET_FLASH0, MMU_DROM_END_ENTRY_VADDR_FROM_VAL(mmu_page_size), drom_addr_aligned, mmu_page_size, &actual_mapped_len);
+    ESP_EARLY_LOGV(TAG, "mapped one page of the rodata, from paddr=0x%08" PRIx32 " and vaddr=0x%08" PRIx32 ", 0x%" PRIx32 " bytes are mapped", drom_addr_aligned, MMU_LL_END_DROM_ENTRY_VADDR, actual_mapped_len);
 #endif
 
     //-----------------------MAP IROM--------------------------
-    uint32_t irom_load_addr_aligned = irom_load_addr & MMU_FLASH_MASK;
-    uint32_t irom_addr_aligned = irom_addr & MMU_FLASH_MASK;
+    uint32_t irom_load_addr_aligned = irom_load_addr & MMU_FLASH_MASK_FROM_VAL(mmu_page_size);
+    uint32_t irom_addr_aligned = irom_addr & MMU_FLASH_MASK_FROM_VAL(mmu_page_size);
     ESP_EARLY_LOGV(TAG, "text starts from paddr=0x%08" PRIx32 ", vaddr=0x%08" PRIx32 ", size=0x%" PRIx32, irom_addr, irom_load_addr, irom_size);
     //The addr is aligned, so we add the mask off length to the size, to make sure the corresponding buses are enabled.
     irom_size = (irom_load_addr - irom_load_addr_aligned) + irom_size;

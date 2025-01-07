@@ -16,12 +16,6 @@
 #include "hal/apm_hal.h"
 #endif
 
-#if CONFIG_IDF_TARGET_ESP32C5 // TODO: IDF-8615 Remove the workaround when APM supported on C5!
-#include "soc/hp_apm_reg.h"
-#include "soc/lp_apm_reg.h"
-#include "soc/lp_apm0_reg.h"
-#endif
-
 void bootloader_init_mem(void)
 {
 
@@ -38,15 +32,8 @@ void bootloader_init_mem(void)
 #endif
 #endif
 
-#if CONFIG_IDF_TARGET_ESP32C5 // TODO: IDF-8615 Remove the workaround when APM supported on C5!
-    // disable apm filter
-    REG_WRITE(LP_APM_FUNC_CTRL_REG, 0);
-    REG_WRITE(LP_APM0_FUNC_CTRL_REG, 0);
-    REG_WRITE(HP_APM_FUNC_CTRL_REG, 0);
-#endif
-
 #ifdef CONFIG_BOOTLOADER_REGION_PROTECTION_ENABLE
     // protect memory region
-    esp_cpu_configure_region_protection();  // TODO: [ESP32C5] IDF-8833 PSRAM support write
+    esp_cpu_configure_region_protection();
 #endif
 }

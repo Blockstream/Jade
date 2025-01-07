@@ -25,9 +25,6 @@
 #include "esp_rom_uart.h"
 #include "esp_rom_sys.h"
 #include "esp_rom_caps.h"
-#if CONFIG_IDF_TARGET_ESP32C5
-#include "soc/pcr_reg.h"
-#endif
 
 #ifdef CONFIG_ESP_CONSOLE_NONE
 void bootloader_console_init(void)
@@ -51,8 +48,8 @@ void bootloader_console_init(void)
 
 #if CONFIG_ESP_CONSOLE_UART_CUSTOM
     // Some constants to make the following code less upper-case
-    const int uart_tx_gpio = CONFIG_ESP_CONSOLE_UART_TX_GPIO;
-    const int uart_rx_gpio = CONFIG_ESP_CONSOLE_UART_RX_GPIO;
+    const int uart_tx_gpio = (CONFIG_ESP_CONSOLE_UART_TX_GPIO >= 0) ? CONFIG_ESP_CONSOLE_UART_TX_GPIO : UART_NUM_0_TXD_DIRECT_GPIO_NUM;
+    const int uart_rx_gpio = (CONFIG_ESP_CONSOLE_UART_RX_GPIO >= 0) ? CONFIG_ESP_CONSOLE_UART_RX_GPIO : UART_NUM_0_RXD_DIRECT_GPIO_NUM;
 
     // Switch to the new UART (this just changes UART number used for esp_rom_printf in ROM code).
     esp_rom_output_set_as_console(uart_num);
@@ -77,6 +74,12 @@ void bootloader_console_init(void)
         // Enable the peripheral
         uart_ll_enable_bus_clock(uart_num, true);
         uart_ll_reset_register(uart_num);
+        // Set clock source
+#if SOC_UART_SUPPORT_XTAL_CLK
+        uart_ll_set_sclk(UART_LL_GET_HW(uart_num), (soc_module_clk_t)UART_SCLK_XTAL);
+#else
+        uart_ll_set_sclk(UART_LL_GET_HW(uart_num), (soc_module_clk_t)UART_SCLK_APB);
+#endif
         // Reset TX and RX FIFOs
         uart_ll_txfifo_rst(UART_LL_GET_HW(uart_num));
         uart_ll_rxfifo_rst(UART_LL_GET_HW(uart_num));
@@ -88,13 +91,6 @@ void bootloader_console_init(void)
 #if ESP_ROM_UART_CLK_IS_XTAL
     clock_hz = (uint32_t)rtc_clk_xtal_freq_get() * MHZ; // From esp32-s3 on, UART clk source is selected to XTAL in ROM
 #endif
-#if CONFIG_IDF_TARGET_ESP32C5_MP_VERSION
-#if CONFIG_IDF_ENV_FPGA
-    clock_hz = CONFIG_XTAL_FREQ * MHZ;
-#else
-    clock_hz = REG_GET_FIELD(PCR_SYSCLK_CONF_REG, PCR_CLK_XTAL_FREQ) * MHZ;
-#endif  // CONFIG_IDF_ENV_FPGA
-#endif  // CONFIG_IDF_TARGET_ESP32C5_MP_VERSION
     esp_rom_uart_set_clock_baudrate(uart_num, clock_hz, CONFIG_ESP_CONSOLE_UART_BAUDRATE);
 }
 #endif // CONFIG_ESP_CONSOLE_UART
