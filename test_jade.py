@@ -2916,22 +2916,21 @@ def test_sign_psbt(jadeapi, cases):
         except JadeError as err:
             # Check expected error
             assert 'expected_output' not in txn_data
-            assert err.message == txn_data['expected_error']
+            assert err.message == txn_data['expected_error'], err.message
             continue
 
-        # Othewise, should have worked, check expected output
+        # Otherwise, should have worked, check expected output
         assert 'expected_error' not in txn_data
         assert rslt == txn_data['expected_output']['psbt'], base64.b64encode(rslt).decode()
 
         # Optionally test extracted tx
         expected_txn = txn_data['expected_output'].get('txn')
         if expected_txn:
-            psbt = wally.psbt_from_bytes(rslt)
-            wally.psbt_finalize(psbt)
-            assert wally.psbt_is_finalized(psbt)
-            txn = wally.psbt_extract(psbt)
+            psbt = wally.psbt_from_bytes(rslt, 0)
+            wally.psbt_finalize(psbt, 0)
+            txn = wally.psbt_extract(psbt, wally.WALLY_PSBT_EXTRACT_FINAL)
             txn = wally.tx_to_bytes(txn, wally.WALLY_TX_FLAG_USE_WITNESS)
-            assert txn == expected_txn, wally.hex_from_bytes(txn)
+            assert txn == expected_txn, txn.hex()
 
 
 # Helper to check a multisig registration
