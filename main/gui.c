@@ -1555,7 +1555,7 @@ void gui_set_text_font(gui_view_node_t* node, uint32_t font)
 
 void gui_set_text_default_font(gui_view_node_t* node) { gui_set_text_font(node, GUI_DEFAULT_FONT); }
 
-// resolve transalted strings/etc
+// resolve translated strings/etc
 static void gui_resolve_text(gui_view_node_t* node)
 {
     JADE_ASSERT(node);
