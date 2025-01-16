@@ -413,7 +413,6 @@ bool gui_initialized(void);
 
 void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, const char* title, const bool managed);
 gui_activity_t* gui_make_activity(void);
-void free_unmanaged_activity(gui_activity_t* activity);
 
 void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent);
 void gui_chain_activities(const link_activity_t* link_act, linked_activities_info_t* pActInfo);

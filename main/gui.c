@@ -621,9 +621,8 @@ static void push_updatable(
 // call to 'gui_set_current_activity_ex()' passing 'free_other_activities' as true.
 // eg. when the main loop reaches some known point (eg. getting back to the main dashboard
 // screen between actions) it can call this to 'garbage collect' all outstanding gui elements.
-// If not 'managed', just create and return the activity - the caller must free by calling
-// free_unmanaged_activity() explicitly - this may be required for long-lived activities
-// (eg. the main dashboard screen) or for particularly large activities which need freeing asap.
+// If not 'managed', we are making the dashboard activity, which persists as long as the
+// firmware is running, and will never be freed.
 void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, const char* title, const bool managed)
 {
     JADE_INIT_OUT_PPTR(ppact);
@@ -764,26 +763,6 @@ static void free_managed_activity(activity_holder_t* holder)
     JADE_ASSERT(holder);
     free_activity_internals(&holder->activity);
     free(holder);
-}
-
-// Free an activity-holder and all of the activity contents (title, selectables/updatables etc.)
-void free_unmanaged_activity(gui_activity_t* activity)
-{
-    JADE_ASSERT(activity);
-
-#ifdef CONFIG_DEBUG_MODE
-    // Assert this is indeed an 'unmanaged' activity
-    // ie. is not in the list of managed activities
-    JADE_SEMAPHORE_TAKE(gui_mutex);
-    for (activity_holder_t* managed = existing_activities; managed; managed = managed->next) {
-        JADE_ASSERT(&managed->activity != activity);
-    }
-    JADE_SEMAPHORE_GIVE(gui_mutex);
-#endif
-
-    JADE_LOGW("Freeing unmanaged gui activity at %p", activity);
-    free_activity_internals(activity);
-    free(activity);
 }
 
 static void switch_activity_callback(void* handler_arg, esp_event_base_t base, int32_t id, void* event_data)
