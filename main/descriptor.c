@@ -540,7 +540,7 @@ bool descriptor_to_bytes(descriptor_data_t* descriptor, uint8_t* output_bytes, c
     JADE_ASSERT(output_len == DESCRIPTOR_BYTES_LEN(descriptor));
 
     JADE_ASSERT(descriptor->script_len);
-    JADE_ASSERT(descriptor->values || !descriptor->num_values);
+    JADE_ASSERT(descriptor->num_values <= sizeof(descriptor->values) / sizeof(descriptor->values[0]));
 
     // Version byte
     uint8_t* write_ptr = output_bytes;
