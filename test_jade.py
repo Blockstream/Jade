@@ -400,6 +400,12 @@ GET_BIP85_RSA_SIGNING_TESTS = [
 #
 TEST_SEED_SINGLE_SIG = 'b90e532426d0dc20fffe01037048c018e940300038b165c211915c672e07762c'
 
+# The single-sig mnemonic used for test case generation.
+# See the commit description adding this line for details of the
+# resulting descriptors and multisig testing setup.
+TEST_MNEMONIC_SINGLE_SIG = 'paddle puppy easily actor poet apart screen drastic ' \
+    'city front predict damp'
+
 # NOTE: for get-xpub the root (empty path array) can be accessed (to allow
 # external creation of watch-only public key tree)
 # NOTE: networks 'liquid' and 'mainnet' result in 'xpub' prefix, else 'tpub'
@@ -3644,7 +3650,15 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_sign_tx(jadeapi, SIGN_TXN_SINGLE_SIG_TESTS)
     test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
 
-    # Test sign psbts (HWI-generated cases)
+    # Push the singlesig test mnemonic for tests which use it
+    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_SINGLE_SIG)
+    assert rslt is True
+
+    # Test signing singlesig PSBTs (core generated test cases)
+    # FIXME: Add tests for:
+    # - Mixed wallet and non-wallet inputs
+    # - Unusual input and change paths
+    # - Negative test cases (invalid PSBTs)
     test_sign_psbt(jadeapi, SIGN_PSBT_SS_TESTS)
 
     # Sign identity (ssh & gpg) tests require a specific mnemonic

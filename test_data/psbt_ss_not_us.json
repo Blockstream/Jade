@@ -1,4 +1,5 @@
 {
+  "description": "A PSBT that has no inputs for us to sign (it is returned unchanged)",
   "input": {
     "network": "testnet",
     "psbt": "cHNidP8BAFICAAAAAV9ZJHX9n9Fcj+UrjgHyyBTMxh0rG0KzeGP8VNByGZz8AAAAAAD/////AbwCAAAAAAAAFgAUeFfTG303mETo/+U87pz+I+nbhtEAAAAAAAEBH3oDAAAAAAAAFgAU6YI5EpoDj1UXeRnheli5Z2anpvYiBgOKpsOyRWlKqyaPEOQZTOLyCgb7wwPpt1otyYir61WXThiNaI6gVAAAgAAAAIAAAACAAAAAAAIAAAAAAA=="
