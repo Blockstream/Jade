@@ -417,7 +417,6 @@ void free_unmanaged_activity(gui_activity_t* activity);
 
 void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent);
 void gui_chain_activities(const link_activity_t* link_act, linked_activities_info_t* pActInfo);
-void free_view_node(gui_view_node_t* node);
 void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...);
 void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...);
 void gui_make_button(gui_view_node_t** ptr, color_t color, color_t selected_color, uint32_t event_id, void* args);

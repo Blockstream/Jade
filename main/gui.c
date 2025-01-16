@@ -108,6 +108,8 @@ extern const uint8_t statusbar_logo_start[] asm("_binary_statusbar_small_bin_gz_
 extern const uint8_t statusbar_logo_end[] asm("_binary_statusbar_small_bin_gz_end");
 #endif
 
+static void free_view_node(gui_view_node_t* node);
+
 static void make_status_bar(void)
 {
     gui_view_node_t* status_parent = NULL;
