@@ -240,7 +240,6 @@ void reset_pin(pin_insert_t* pin_insert, const char* title)
 
     // Update title if passed
     if (title) {
-        JADE_ASSERT(pin_insert->title);
         gui_update_text(pin_insert->title, title);
     }
 }
