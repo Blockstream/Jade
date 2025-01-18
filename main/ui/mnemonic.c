@@ -406,6 +406,51 @@ gui_activity_t* make_confirm_passphrase_activity(const char* passphrase, gui_vie
     return act;
 }
 
+gui_activity_t* make_bip85_qr_overview_activity(const Icon* icon, const bool initial)
+{
+    JADE_ASSERT(icon);
+
+    gui_activity_t* const act = gui_make_activity();
+
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 45, 55);
+    gui_set_parent(hsplit, act->root_node);
+
+    // lhs - text
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 25, 25);
+    gui_set_parent(vsplit, hsplit);
+
+    // rhs - icon
+    gui_view_node_t* icon_bg;
+    gui_make_fill(&icon_bg, TFT_DARKGREY);
+    gui_set_parent(icon_bg, hsplit);
+
+    gui_view_node_t* node;
+    gui_make_icon(&node, icon, TFT_BLACK, &TFT_LIGHTGREY);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, icon_bg);
+
+    // First row, header with back/next buttons
+    btn_data_t hdrbtns[] = { 
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MNEMONIC_EXIT, .borders = GUI_BORDER_ALL }
+        // { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer
+        // { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_EXPORT_NEXT, .borders = GUI_BORDER_ALL }
+    };
+
+    add_buttons(vsplit, UI_ROW, hdrbtns, 1);
+
+    // Message
+    gui_make_text(&node, "BIP85", TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    // Select next button by default
+    gui_set_activity_initial_selection(act, hdrbtns[0].btn);
+
+    return act;
+}
+
 gui_activity_t* make_export_qr_overview_activity(const Icon* icon, const bool initial)
 {
     JADE_ASSERT(icon);
