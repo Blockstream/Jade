@@ -854,8 +854,18 @@ static void set_tree_activity(gui_view_node_t* node, gui_activity_t* activity)
     }
 }
 
-// set a parent for a node and also add the node to the parent's children list
-// TODO: if `child` is selectable, check that there are no other selectable items in its subtree (from parent to root)
+// Helper function to check if node or any of its ancestors are selectable
+static bool has_selectable_ancestor(gui_view_node_t* node) 
+{
+    while (node) {
+        if (is_kind_selectable(node->kind)) {
+            return true;
+        }
+        node = node->parent;
+    }
+    return false;
+}
+
 void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent)
 {
     JADE_ASSERT(child);
@@ -863,6 +873,13 @@ void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent)
 
     // child should not already have a parent
     JADE_ASSERT(!child->parent);
+    
+    // Check that if child is selectable, none of its ancestors are selectable
+    if (is_kind_selectable(child->kind)) {
+        JADE_ASSERT_MSG(!has_selectable_ancestor(parent), 
+            "Cannot set parent: selectable child cannot have selectable ancestors");
+    }
+    
     child->parent = parent;
 
     // also inherits the activity
