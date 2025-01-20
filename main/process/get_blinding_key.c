@@ -20,7 +20,7 @@ void get_blinding_key_process(void* process_ptr)
     size_t script_len = 0;
     const uint8_t* script = NULL;
     rpc_get_bytes_ptr("script", &params, &script, &script_len);
-    if (!script || script_len <= 0) {
+    if (!script || !script_len) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
         goto cleanup;
     }
