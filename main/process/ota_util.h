@@ -11,8 +11,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define VERSION_STRING_MAX_LENGTH 32
-
 #define CUSTOM_HEADER_MIN_WRITE                                                                                        \
     (sizeof(esp_app_desc_t) + sizeof(esp_custom_app_desc_t) + sizeof(esp_image_header_t)                               \
         + sizeof(esp_image_segment_header_t))
