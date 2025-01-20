@@ -2466,7 +2466,9 @@ def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
 
 # Helper to verify a signature - handles checking an Anti-Exfil signature
 # contains the entropy that was passed in by the host.
-def _verify_signature(jadeapi, network, msghash, path, host_entropy, signer_commitment, signature):
+def _verify_signature(jadeapi, network, msghash, path,
+                      host_entropy, signer_commitment,
+                      signature, is_schnorr):
     # entropy/signer_commitment imply anti-exfil signature
     assert (host_entropy is None) == (signer_commitment is None)
 
@@ -2475,6 +2477,14 @@ def _verify_signature(jadeapi, network, msghash, path, host_entropy, signer_comm
     hdkey = wally.bip32_key_from_base58(xpub)
     pubkey = wally.bip32_key_get_pub_key(hdkey)
 
+    if is_schnorr:
+        # Taproot signature. Tweak the pubkey for a keyspend and verify
+        assert signer_commitment == bytes()  # No Anti-Exfil for Schnorr yet
+        assert len(signature) == wally.EC_SIGNATURE_LEN
+        pubkey = wally.ec_public_key_bip341_tweak(pubkey, None, 0)
+        wally.ec_sig_verify(pubkey, msghash, wally.EC_FLAG_SCHNORR, signature)
+        return
+
     # If presented a 'recoverable' signature, recover the public key
     # and verify it matches that fetched from the hw above
     if len(signature) == wally.EC_SIGNATURE_RECOVERABLE_LEN:
@@ -2482,6 +2492,7 @@ def _verify_signature(jadeapi, network, msghash, path, host_entropy, signer_comm
         assert recovered_pubkey == pubkey
         signature = signature[1:]  # Truncate leading byte for verification
 
+    # ECDSA signature
     assert len(signature) == wally.EC_SIGNATURE_LEN
     if host_entropy:
         # Verify AE signature and that the host-entropy is included
@@ -2519,7 +2530,29 @@ def _check_msg_signature(jadeapi, testcase, actual):
 
     # Verify the signature
     _verify_signature(jadeapi, network, msghash, inputdata['path'],
-                      host_entropy, signer_commitment, rawsig)
+                      host_entropy, signer_commitment, rawsig, is_schnorr=False)
+
+
+# Helper to fetch the scriptpubkeys and input values for a sign_tx test case
+# (required for taproot signing).
+def _get_scriptpubkeys_and_values(jadeapi, testcase, txn):
+    inputs = testcase['input']['inputs']
+    scriptpubkeys = wally.map_init(len(inputs), None)
+    values = []
+    for i, inputdata in enumerate(inputs):
+        if inputdata.get('input_tx'):
+            # Fetch info from the prevout for the input
+            utxo_index = wally.tx_get_input_index(txn, i)
+            utxo = wally.tx_from_bytes(inputdata['input_tx'], 0)
+            wally.map_add_integer(scriptpubkeys, i, wally.tx_get_output_script(utxo, utxo_index))
+            values.append(wally.tx_get_output_satoshi(utxo, utxo_index))
+        else:
+            # If no input_tx, sats can be passed instead (Deprecated).
+            # Only valid for non-taproot, single-input segwit txns
+            assert inputdata['is_witness']
+            assert len(inputs) == 1
+            values.append(inputdata['satoshi'])
+    return scriptpubkeys, values
 
 
 # Helper to verify a tx signature - handles checking an Anti-Exfil signature
@@ -2547,6 +2580,7 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
     else:
         # BTC tx, straightforward
         txn = wally.tx_from_bytes(test_input['txn'], 0)
+        scriptpubkeys, values = _get_scriptpubkeys_and_values(jadeapi, testcase, txn)
 
     # Iterate over the results verifying each signature
     for i, (expected, actual) in enumerate(zip(testcase['expected_output'], rslt)):
@@ -2566,38 +2600,51 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
             assert len(actual) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN + 1  # sighash byte, low-s
             signer_commitment, signature = None, actual  # No signer_commitment for EC sig
 
-        # Verify signature (if we signed this input)
-        if len(signature):
-            inputdata = test_input['inputs'][i]
-            sighash = inputdata.get('sighash', wally.WALLY_SIGHASH_ALL)
+        if not len(signature):
+            continue  # We didn't sign this input, ignore it
 
-            # Get the signature message hash (ie. the hash value that was signed)
-            tx_flags = wally.WALLY_TX_FLAG_USE_WITNESS if inputdata['is_witness'] else 0
-            if is_liquid:
-                msghash = wally.tx_get_elements_signature_hash(
-                    txn, i, inputdata['script'], inputdata.get('value_commitment'),
-                    sighash, tx_flags)
+        # We signed this input, verify the signature
+        inputdata = test_input['inputs'][i]
+        script = inputdata['script']
+        sighash = inputdata.get('sighash', wally.WALLY_SIGHASH_ALL)
+        is_p2tr = script[0] == 0x51 and script[1] == 32  # OP_1 [32 byte xonly pubkey]
+
+        # Get the signature message hash (ie. the hash value that was signed)
+        tx_flags = 0
+        if inputdata['is_witness'] and not is_p2tr:
+            tx_flags = wally.WALLY_TX_FLAG_USE_WITNESS
+        if is_liquid:
+            msghash = wally.tx_get_elements_signature_hash(
+                txn, i, script, inputdata.get('value_commitment'),
+                sighash, tx_flags)
+        else:
+            if is_p2tr:
+                key_version, codesep_pos = 0, wally.WALLY_NO_CODESEPARATOR
+                msghash = wally.tx_get_btc_taproot_signature_hash(
+                    txn, i, scriptpubkeys, values, None, key_version,
+                    codesep_pos, None, sighash, tx_flags)
             else:
-                if inputdata.get('input_tx'):
-                    # Get satoshi amount from input tx if we have one
-                    utxo_index = wally.tx_get_input_index(txn, i)
-                    input_txn = wally.tx_from_bytes(inputdata['input_tx'], 0)
-                    satoshi = wally.tx_get_output_satoshi(input_txn, utxo_index)
-                else:
-                    # If no input_tx, sats can be passed instead
-                    # (Now only valid for single-input segwit tx)
-                    assert inputdata['is_witness'] and len(test_input['inputs']) == 1
-                    satoshi = inputdata['satoshi']
-
                 msghash = wally.tx_get_btc_signature_hash(
-                    txn, i, inputdata['script'], satoshi, sighash, tx_flags)
+                    txn, i, script, values[i], sighash, tx_flags)
 
-            # Check trailing sighash byte and verify signature!
-            assert int.from_bytes(signature[-1:], 'little') == sighash
+        # Check sighash and verify signature!
+        if is_p2tr:
+            # Either 64 byte default sig or 65 byte non-default with sighash byte appended
+            if len(signature) == wally.EC_SIGNATURE_LEN:
+                assert sighash == wally.WALLY_SIGHASH_DEFAULT
+            else:
+                assert len(signature) == wally.EC_SIGNATURE_LEN + 1
+                assert sighash != wally.WALLY_SIGHASH_DEFAULT
+                assert signature[-1] == sighash
+            rawsig = signature[:wally.EC_SIGNATURE_LEN]  # Ignore any sighash byte
+        else:
+            # A DER encoded sig with sighash byte appended
+            assert signature[-1] == sighash
             rawsig = wally.ec_sig_from_der(signature[:-1])  # truncate sighash byte
-            host_entropy = inputdata.get('ae_host_entropy') if use_ae_signatures else None
-            _verify_signature(jadeapi, network, msghash, inputdata['path'],
-                              host_entropy, signer_commitment, rawsig)
+
+        host_entropy = inputdata.get('ae_host_entropy') if use_ae_signatures else None
+        _verify_signature(jadeapi, network, msghash, inputdata['path'],
+                          host_entropy, signer_commitment, rawsig, is_schnorr=is_p2tr)
 
 
 def test_set_pinserver(jadeapi):

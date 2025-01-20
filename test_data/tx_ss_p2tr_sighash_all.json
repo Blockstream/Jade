@@ -1,0 +1,64 @@
+{
+  "description": "Send from 1/bcrt1pq8xqld5mxpdtut3j2jukk523nc2kpz9anlxhhm32u5ez8uxdl3ksu40vwp and 2/bcrt1p4l3z85g9zl4j53nnkpaeyc4f35scvj96gfdcns4yel88zs73lgss3k88j5 to bcrt1qc9feglfcmnx8ywy50mdjan4f5ss2nlg75yqlsd using SIGHASH_ALL. Note no legacy (non-AE) support.",
+  "input": {
+    "network": "localtest",
+    "use_ae_signatures": true,
+    "txn": "0200000000010220946aa1843ec584446ac631205ac5bb6ad45e15ecd035f9c6ef437bf1d4814d0100000000fdffffffe5798fde1a344843b17c5acbcaff4fc51407381e203bc4e4bbed008edc081f6d0000000000fdffffff02983a000000000000160014c153947d38dccc7238947edb2ecea9a420a9fd1ec01200000000000022512048ba30f8903233b0b7e4d852518df1f65d0c8a5fa97bf91c81f97741b7d93fe1010001006f000000",
+    "change": [
+      null,
+      {
+        "is_change": true,
+        "path": [
+          2147483734,
+          2147483649,
+          2147483648,
+          1,
+          4
+        ],
+        "variant": "tr(k)"
+      }
+    ],
+    "inputs": [
+      {
+        "is_witness": true,
+        "path": [
+          2147483734,
+          2147483649,
+          2147483648,
+          0,
+          2
+        ],
+        "script": "5120afe223d10517eb2a4673b07b9262a98d218648ba425b89c2a4cfce7143d1fa21",
+        "sighash": 1,
+        "ae_host_commitment": "",
+        "ae_host_entropy": "",
+        "input_tx": "020000000001013dd85b939ae22cece15426457bb7ec7b215acab7cc0bced366bbb5312364df1c0000000000fdffffff027ec4052a0100000022512002de34c3dd90208740242b80d7b2ab214e72aa14007a7922aa3bf714a7bf86b21027000000000000225120afe223d10517eb2a4673b07b9262a98d218648ba425b89c2a4cfce7143d1fa21024730440220317152167f0e7faa80c97279240478f77c542035b5399f3d26e390f32ef0be97022019606a745f222aa78c4edc7fbebea5a7df40881b7a8a45a2d7991925f4dbfb3e0121026b1e4f5ebed7fa9929bf88c3a1bc431f41a9bdbec9d13db60aa38bba9dd8b7f06e000000"
+      },
+      {
+        "is_witness": true,
+        "path": [
+          2147483734,
+          2147483649,
+          2147483648,
+          0,
+          1
+        ],
+        "script": "512001cc0fb69b305abe2e3254b96b51519e156088bd9fcd7bee2ae53223f0cdfc6d",
+        "sighash": 1,
+        "ae_host_commitment": "",
+        "ae_host_entropy": "",
+        "input_tx": "020000000001010804fae48d7fda5c4f81a28b558969759c58b7a4455fac22c47d21728cb41ea10000000000fdffffff02102700000000000022512001cc0fb69b305abe2e3254b96b51519e156088bd9fcd7bee2ae53223f0cdfc6d7ec4052a01000000225120e0af310dee1ccba5c897cfb95dc302a479d33747ddd55a4e250a9e3f7fe579060247304402203e1132575152ca50efc3159454f336cd9116fa3ab83edff1d4e99a96dd33efe902207e3c9cc3ef8b9bd4503839743bce420bd2a379e93f51b777c77beb145882ab5a0121026b1e4f5ebed7fa9929bf88c3a1bc431f41a9bdbec9d13db60aa38bba9dd8b7f06e000000"
+      }
+    ]
+  },
+  "expected_output": [
+    [
+      "",
+      "4d8e7922c339dacdd50b94b238f13801d36cebc82502f34e424759b6b654879456a645fcc435160963cbd915c020e5eff9eef342d29c39dcec85f0037d1562bd01"
+    ],
+    [
+      "",
+      "d7f021bc8e8f54eaeb3202b1c1ae1e5917145c0ac89277dabb953e8da5886e737608e5f8f543abdadda747cad1ee4bd4c1e68bfe7a7c9838bd544f5ac3c1a6b401"
+    ]
+  ]
+}
