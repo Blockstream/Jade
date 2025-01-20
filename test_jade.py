@@ -65,8 +65,9 @@ def _h2b_test_case(testcase):
             for summary_item in additional_info['wallet_output_summary']:
                 summary_item['asset_id'] = h2b(summary_item['asset_id'])
 
-        if 'expected_output' in testcase:
-            testcase['expected_output'] = h2b(testcase['expected_output'])
+        for k in ['expected_output', 'expected_legacy_output']:
+            if k in testcase:
+                testcase[k] = h2b(testcase[k])
 
     elif 'psbt' in testcase['input']:
         testcase['input']['psbt'] = base64.b64decode(testcase['input']['psbt'])
@@ -544,7 +545,7 @@ SIGN_IDENTITY_TESTS = "identity_*.json"
 SIGN_TXN_TESTS = "txn_*.json"
 SIGN_TXN_FAIL_CASES = "badtxn_*.json"
 SIGN_LIQUID_TXN_TESTS = "liquid_txn_*.json"
-SIGN_TXN_SINGLE_SIG_TESTS = "singlesig_txn*.json"
+SIGN_TXN_SS_TESTS = "tx_ss_*.json"
 SIGN_LIQUID_TXN_SINGLE_SIG_TESTS = "singlesig_liquid_txn*.json"
 SIGN_PSBT_TESTS = "psbt_tm_*.json"
 SIGN_PSBT_SS_TESTS = "psbt_ss_*.json"
@@ -2559,7 +2560,7 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
             signer_commitment, signature = actual
         else:
             # Standard EC signature should be low-s and low-r
-            assert actual == expected, actual.hex()
+            assert actual == expected, f'{actual.hex()} != {expected.hex()}'
 
             # NOTE: low-s is implied/assumed here, so no need to remove one from max-len
             assert len(actual) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN + 1  # sighash byte, low-s
@@ -2751,17 +2752,30 @@ def test_sign_message_file(jadeapi):
             assert e.message == expected_error, 'Expected error: ' + expected_error
 
 
+def test_sign_tx_case(jadeapi, txn_data):
+    inputdata = txn_data['input']
+    rslt = jadeapi.sign_tx(inputdata['network'],
+                           inputdata['txn'],
+                           inputdata['inputs'],
+                           inputdata['change'],
+                           inputdata.get('use_ae_signatures'))
+
+    # Check returned signatures
+    _check_tx_signatures(jadeapi, txn_data, rslt)
+
+
 def test_sign_tx(jadeapi, pattern):
     for txn_data in _get_test_cases(pattern):
-        inputdata = txn_data['input']
-        rslt = jadeapi.sign_tx(inputdata['network'],
-                               inputdata['txn'],
-                               inputdata['inputs'],
-                               inputdata['change'],
-                               inputdata.get('use_ae_signatures'))
 
-        # Check returned signatures
-        _check_tx_signatures(jadeapi, txn_data, rslt)
+        # Run the signing test case
+        test_sign_tx_case(jadeapi, txn_data)
+
+        if 'expected_legacy_output' in txn_data:
+            # Test case has legacy signing results, test them also.
+            # TODO: Remove this once legacy signing is removed.
+            txn_data['input']['use_ae_signatures'] = False
+            txn_data['expected_output'] = txn_data['expected_legacy_output']
+            test_sign_tx_case(jadeapi, txn_data)
 
 
 def test_sign_tx_error_cases(jadeapi, pattern):
@@ -3647,12 +3661,14 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_miniscript_descriptor_registration_ss_signer(jadeapi)
 
     test_get_singlesig_receive_address(jadeapi)
-    test_sign_tx(jadeapi, SIGN_TXN_SINGLE_SIG_TESTS)
     test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
 
     # Push the singlesig test mnemonic for tests which use it
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_SINGLE_SIG)
     assert rslt is True
+
+    # Test signing singlesig transactions
+    test_sign_tx(jadeapi, SIGN_TXN_SS_TESTS)
 
     # Test signing singlesig PSBTs (core generated test cases)
     # FIXME: Add tests for:
