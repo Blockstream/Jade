@@ -152,7 +152,7 @@ static void rpc_get_raw_type_ptr(const CborValue* value, const uint8_t** data, s
     }
 
     const CborError cberr = cbor_value_get_string_length(value, size);
-    if (cberr != CborNoError) {
+    if (cberr != CborNoError || !*size) {
         return;
     }
 
