@@ -380,7 +380,7 @@ void rpc_get_id_ptr(const CborValue* value, const char** data, size_t* written)
 void rpc_get_id(const CborValue* value, char* data, const size_t datalen, size_t* written)
 {
     JADE_ASSERT(data);
-    JADE_ASSERT(datalen);
+    JADE_ASSERT(datalen == MAXLEN_ID + 1);
     JADE_INIT_OUT_SIZE(written);
 
     if (!value) {

@@ -1091,7 +1091,7 @@ void sign_psbt_process(void* process_ptr)
     jade_process_free_on_exit(process, psbt_bytes_out);
 
     // Send as cbor message - maybe split over N messages if the result is large
-    char original_id[MAXLEN_ID];
+    char original_id[MAXLEN_ID + 1];
     size_t original_id_len = 0;
     rpc_get_id(&process->ctx.value, original_id, sizeof(original_id), &original_id_len);
 
