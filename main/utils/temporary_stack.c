@@ -56,7 +56,7 @@ bool run_on_temporary_stack(const size_t stack_size, temporary_stack_function_t 
 
     // Allocate temporary stack
     JADE_LOGI("Using temporary stack of size: %u", stack_size);
-#ifdef CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+#ifdef CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM
     uint8_t* const temporary_stack = JADE_MALLOC_PREFER_SPIRAM(stack_size);
 #else
     uint8_t* const temporary_stack = JADE_MALLOC_DRAM(stack_size);
@@ -114,7 +114,7 @@ bool run_in_temporary_task(const size_t stack_size, temporary_stack_function_t f
 
     // Run the temporary task
     JADE_LOGI("Using temporary task with stack of size: %u", stack_size);
-#ifdef CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+#ifdef CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM
     const UBaseType_t mem_caps = MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM;
 #else
     const UBaseType_t mem_caps = MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL;

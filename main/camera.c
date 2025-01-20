@@ -531,7 +531,7 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
     idletimer_set_min_timeout_secs(CAMERA_MIN_TIMEOUT_SECS);
 
     // Run the camera task
-#ifdef CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+#ifdef CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM
     const UBaseType_t mem_caps = MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM;
 #else
     const UBaseType_t mem_caps = MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL;
