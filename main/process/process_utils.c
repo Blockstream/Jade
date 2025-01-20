@@ -28,7 +28,7 @@ bool check_extended_data_fields(CborValue* params, const char* expected_origid, 
     size_t origlen = 0;
     rpc_get_string_ptr("orig", params, &orig, &origlen);
 
-    char origid[MAXLEN_ID];
+    char origid[MAXLEN_ID + 1];
     size_t origidlen = 0;
     rpc_get_string("origid", sizeof(origid), params, origid, &origidlen);
 
