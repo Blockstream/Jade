@@ -105,19 +105,19 @@ void register_otp_process(void* process_ptr)
     GET_MSG_PARAMS(process);
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
 
-    size_t written = 0;
     char otp_name[OTP_MAX_NAME_LEN];
-    rpc_get_string("name", sizeof(otp_name), &params, otp_name, &written);
-    if (!written || !storage_key_name_valid(otp_name)) {
+    size_t otp_name_len = 0;
+    rpc_get_string("name", sizeof(otp_name), &params, otp_name, &otp_name_len);
+    if (!otp_name_len || !storage_key_name_valid(otp_name)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to fetch valid otp name from parameters", NULL);
         goto cleanup;
     }
 
-    written = 0;
     const char* otp_uri = NULL;
-    rpc_get_string_ptr("uri", &params, &otp_uri, &written);
-    if (!otp_uri || !written) {
+    size_t otp_uri_len = 0;
+    rpc_get_string_ptr("uri", &params, &otp_uri, &otp_uri_len);
+    if (!otp_uri || !otp_uri_len) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to fetch otp uri from parameters", NULL);
         goto cleanup;
     }
@@ -132,7 +132,7 @@ void register_otp_process(void* process_ptr)
 
     // Validate and persist the new otp uri
     const char* errmsg = NULL;
-    const int errcode = handle_new_otp_uri(otp_name, otp_uri, written, &errmsg);
+    const int errcode = handle_new_otp_uri(otp_name, otp_uri, otp_uri_len, &errmsg);
     if (errcode) {
         // Display any internal error that may occur after the user has viewed
         // and confirmed the OTP record (earlier errors are just messaged)
