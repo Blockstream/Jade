@@ -148,8 +148,6 @@ void ota_delta_process(void* process_ptr)
     bool uploading = false;
     bool ota_end_called = false;
     bool ota_begin_called = false;
-    char id[MAXLEN_ID + 1];
-    id[0] = '\0';
 
     mbedtls_sha256_context sha_ctx;
 
@@ -216,7 +214,7 @@ void ota_delta_process(void* process_ptr)
         .hash_type = hash_type,
         .ota_handle = &ota_handle,
         .dctx = dctx,
-        .id = id,
+        .id = { 0 },
         .validated_confirmed = &validated_confirmed,
         .uncompressedsize = uncompressedpatchsize,
         .remaining_uncompressed = &remaining_uncompressed,
@@ -324,17 +322,17 @@ cleanup:
 
         // If we get here and we have not finished loading the data, send an error message
         if (uploading) {
-            if (id[0] == '\0') {
+            if (joctx.id[0] == '\0') {
                 // This should not happen under normal circumstances, but it could occur if the delta
                 // uploaded is not appropriate for the base/running firmware (or perhaps is corrupted).
                 // In that case bspatch() can fail unexpectedly - default the id.
-                strcpy(id, "00");
+                strcpy(joctx.id, "00");
             }
             const int error_code
                 = ota_return_status == ERROR_USER_DECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
 
             uint8_t buf[256];
-            jade_process_reject_message_with_id(id, error_code, "Error uploading OTA delta data",
+            jade_process_reject_message_with_id(joctx.id, error_code, "Error uploading OTA delta data",
                 (const uint8_t*)MESSAGES[ota_return_status], strlen(MESSAGES[ota_return_status]), buf, sizeof(buf),
                 ota_source);
         }

@@ -82,9 +82,6 @@ void ota_process(void* process_ptr)
     bool validated_confirmed = false;
     bool ota_end_called = false;
 
-    char id[MAXLEN_ID + 1];
-    id[0] = '\0';
-
     // Context used to compute (compressed) firmware hash - ie. file as uploaded
     mbedtls_sha256_context sha_ctx;
     esp_ota_handle_t ota_handle = 0;
@@ -143,7 +140,7 @@ void ota_process(void* process_ptr)
         .sha_ctx = &sha_ctx,
         .hash_type = hash_type,
         .dctx = dctx,
-        .id = id,
+        .id = { 0 },
         .validated_confirmed = &validated_confirmed,
         .uncompressedsize = firmwaresize,
         .remaining_uncompressed = &remaining_uncompressed,
@@ -244,12 +241,12 @@ cleanup:
 
         // If we get here and we have not finished loading the data, send an error message
         if (uploading) {
-            JADE_ASSERT(id[0] != '\0');
+            JADE_ASSERT(joctx.id[0] != '\0');
             const int error_code
                 = ota_return_status == ERROR_USER_DECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
 
             uint8_t buf[256];
-            jade_process_reject_message_with_id(id, error_code, "Error uploading OTA data",
+            jade_process_reject_message_with_id(joctx.id, error_code, "Error uploading OTA data",
                 (const uint8_t*)MESSAGES[ota_return_status], strlen(MESSAGES[ota_return_status]), buf, sizeof(buf),
                 ota_source);
         }

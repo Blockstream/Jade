@@ -62,7 +62,7 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
 
     size_t written = 0;
     JADE_ASSERT(joctx->id[0] == '\0');
-    rpc_get_id(&value, joctx->id, MAXLEN_ID + 1, &written);
+    rpc_get_id(&value, joctx->id, sizeof(joctx->id), &written);
     JADE_ASSERT(written != 0);
 
     // If we are carrying a cached error abandon immediately

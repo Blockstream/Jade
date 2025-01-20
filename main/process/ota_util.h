@@ -38,7 +38,7 @@ typedef struct {
     progress_bar_t progress_bar;
     mbedtls_sha256_context* sha_ctx;
     hash_type_t hash_type;
-    char* id;
+    char id[MAXLEN_ID + 1];
     bool extended_replies;
     const uint8_t* expected_hash;
     const char* expected_hash_hexstr;
