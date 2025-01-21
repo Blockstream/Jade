@@ -568,6 +568,7 @@ or, if 'extended_replies' was set in the original request, and the Jade fw suppo
 
 * 'confirmed' is initially false, until the user verifies the OTA upload, then all subsequent replies will be true
 * 'progress' is the percentage complete value as shown on Jade (which is based on uncompressed final firmware written, so can differ from the proportion of compressed data uploaded)
+
 NOTE: 'extended_replies' is supported as of Jade fw 1.0.34
 
 We then send the 'ota_complete' message to verify the OTA was successful (before the device reboots).
@@ -1033,7 +1034,7 @@ Request to fetch a single-sig address for the given script type and bip32 path, 
         }
     }
 
-* 'variant' indicates the script type used, and must be one of: 'pkh(k)', 'wpkh(k)' or 'sh(wpkh(k))'
+* 'variant' indicates the script type used, and must be one of: 'pkh(k)', 'wpkh(k)', 'sh(wpkh(k))' or 'tr(k)'.
 
 or:
 
@@ -1395,7 +1396,7 @@ sign_message reply (anti-exfil)
         "result": "<32 bytes>"
     }
 
-* In the case of Anti-Exfil signing, the inital returned data is the 'signer commitment' bytes (which the caller can use later to verify the AE signature).
+* In the case of Anti-Exfil signing, the inital returned data is the 'signer commitment' bytes (which the caller can use later to verify the signature).
 
 The caller must then send a 'get_signature' message, passing the 'host entropy'.
 
@@ -1437,7 +1438,9 @@ sign_tx request (legacy)
 
 Request to sign transaction inputs using RFC6979.
 
-* This flow should be considered legacy - 'anti-exfil' signatures should be preferred.  See sign_tx_ae_request_.
+.. warning:: Taproot inputs can not be signed with this flow and the request will error if any are present.
+
+.. warning:: This legacy flow is **deprecated** and will be removed in a future release. See sign_tx_ae_request_ for the non-legacy flow supporting 'anti-exfil' signatures and taproot.
 
 .. code-block:: cbor
 
@@ -1567,7 +1570,9 @@ The batch of replies should contain the same number of messages as the number of
 sign_tx request (anti-exfil)
 ----------------------------
 
-To use Anti-Exfil signatures (recommended), the the initial request is the same as in sign_tx_legacy_request_, except the 'use_ae_signatures' field should be set to 'true'.
+This flow is required in order use optional Anti-Exfil signatures (recommended), or to sign taproot inputs.
+
+The initial request is identical to sign_tx_legacy_request_, except the 'use_ae_signatures' field must be set to 'true'.
 
 .. _sign_tx_ae_reply:
 
@@ -1589,7 +1594,9 @@ sign_tx input request (anti-exfil)
 ----------------------------------
 
 As in sign_tx_legacy_input_request_, 'tx_input' messages should be sent to Jade - one for each tx input.
-However, in this case the message must include the 'ae_host_commitment'.
+
+If an Anti-Exfil signature is required for an input, the message must include the 'ae_host_commitment'
+field. Otherwise, 'ae_host_commitment' should be omitted or empty to produce a non Anti-Exfil signature.
 
 .. code-block:: cbor
 
@@ -1606,8 +1613,9 @@ However, in this case the message must include the 'ae_host_commitment'.
         }
     }
 
-
-* NOTE: in the Anti-Exfil flow the reply will be sent immediately, and does not wait for all inputs to be sent.
+* If 'sighash' is omitted for a taproot input, it defaults to 0 (SIGHASH_DEFAULT). Otherwise it defaults to 1 (SIGHASH_ALL).
+* NOTE: Taproot inputs do not currently support Anti-Exfil signatures and so 'ae_host_commitment' must be omitted or empty.
+* NOTE: Unlike the legacy flow, the sign_tx_ae_input_reply_ will be sent as soon as the user confirms signing on the hw, and does not wait for all inputs to be sent.
 
 .. _sign_tx_ae_input_reply:
 
@@ -1621,19 +1629,20 @@ sign_tx input reply (anti-exfil)
         "result": <32 bytes>
     }
 
-* In the case of Anti-Exfil signing, the inital returned data is the 'signer commitment' bytes (which the caller can use later to verify the AE signature).
-* 'result' will be empty, if no signature was required for this input.
+* If an Anti-Exfil signature was requested for the input, 'result' will contain the 'signer commitment' bytes which the caller can use later to verify the signature.
+* If no signature was requested, or 'ae_host_commitment' was omitted/empty in the request, then 'result' will be empty.
 
-Once all 'tx_input' messages have been sent, the caller must then send a 'get_signature' message for each input, passing the 'host entropy'.
+Once all 'tx_input' messages have been sent and replies received, the caller must then send a sign_tx_ae_get_signature_request_' message and await its reply for each input in turn.
 
 .. _sign_tx_ae_get_signature_request:
 
 get_signature request (sign_tx)
 -------------------------------
 
-* NOTE: The first reply is not sent until the user has explicitly confirmed signing on the hw.
+Request to fetch a signature for a transaction input.
 
-Request to fetch an Anti-Exfil signature, providing the 'host entropy' (as in sign_message_ae_get_signature_request_).
+* If an Anti-Exfil signature was requested for the input, 'ae_host_entropy' must be provided.
+* If no signature was requested, or 'ae_host_commitment' was omitted/empty in the request, then 'ae_host_entropy' must be omitted or empty.
 
 .. code-block:: cbor
 
@@ -1645,12 +1654,18 @@ Request to fetch an Anti-Exfil signature, providing the 'host entropy' (as in si
         }
     }
 
-The reply is then sent immediately.
+* NOTE: The first reply is not sent until the user has explicitly confirmed signing on the hw.
+
+After user confirmation, the corresponding sign_tx_ae_get_signature_reply_ is then sent immediately.
+This differs from the legacy flow where all signature requests must be sent first and then all
+signature replies are returned.
 
 .. _sign_tx_ae_get_signature_reply:
 
 get_signature reply (sign_tx)
 -----------------------------
+
+Contains the generated signature for an input, if any.
 
 .. code-block:: cbor
 
@@ -1659,8 +1674,9 @@ get_signature reply (sign_tx)
         "result": <bytes>
     }
 
-* 'result' will be the bytes for the signature for the corresponding input, in DER format with the sighash appended.
-* 'result' will be empty, if no signature was required for this input.
+* If a signature for a taproot input was requested, 'result' will contain the 64 or 65 byte BIP 0341 Schnorr signature.
+* Otherwise, if a signature was requested, 'result' will contain the DER-encoded ECDSA signature with the sighash byte appended.
+* If no signature was requested, then 'result' will be empty.
 
 .. _sign_psbt_request:
 
@@ -2134,7 +2150,7 @@ sign_liquid_tx input reply (anti-exfil)
         "result": <32 bytes>
     }
 
-* In the case of Anti-Exfil signing, the inital returned data is the 'signer commitment' bytes (which the caller can use later to verify the AE signature).
+* In the case of Anti-Exfil signing, the inital returned data is the 'signer commitment' bytes (which the caller can use later to verify the signature).
 * 'result' will be empty, if no signature was required for this input.
 
 Once all 'tx_input' messages have been sent, the caller must then send a 'get_signature' message for each input, passing the 'host entropy'.
