@@ -821,6 +821,8 @@ void sign_liquid_tx_process(void* process_ptr)
         rpc_get_id(&process->ctx.value, sig_data->id, sizeof(sig_data->id), &written);
         JADE_ASSERT(written != 0);
 
+        bool made_ae_commitment = false;
+
         // Path node can be omitted if we don't want to sign this input
         // (But if passed must be valid - empty/root path is not allowed for signing)
         // Make signature-hash (should have a prevout script in hand)
@@ -882,10 +884,10 @@ void sign_liquid_tx_process(void* process_ptr)
                 goto cleanup;
             }
 
-            // If using anti-exfil signatures, compute signer commitment for returning to caller
-            if (use_ae_signatures) {
+            // If using anti-exfil signatures for this input,
+            // compute signer commitment for returning to caller
+            if (sig_data->use_ae) {
                 JADE_ASSERT(ae_host_commitment);
-                JADE_ASSERT(ae_host_commitment_len == WALLY_HOST_COMMITMENT_LEN);
                 if (!wallet_get_signer_commitment(sig_data->signature_hash, sizeof(sig_data->signature_hash),
                         sig_data->path, sig_data->path_len, ae_host_commitment, ae_host_commitment_len,
                         ae_signer_commitment, sizeof(ae_signer_commitment))) {
@@ -893,6 +895,7 @@ void sign_liquid_tx_process(void* process_ptr)
                         process, CBOR_RPC_INTERNAL_ERROR, "Failed to make ae signer commitment", NULL);
                     goto cleanup;
                 }
+                made_ae_commitment = true;
             }
         } else {
             // Empty byte-string reply (no path given implies no sig needed or expected)
@@ -901,13 +904,14 @@ void sign_liquid_tx_process(void* process_ptr)
             JADE_ASSERT(sig_data->path_len == 0);
         }
 
-        // If using ae-signatures, reply with the signer commitment
+        // If using ae-signatures, reply with the (possibly empty) signer commitment
         // FIXME: change message flow to reply here even when not using ae-signatures
         // as this simplifies the code both here and in the client.
         if (use_ae_signatures) {
             uint8_t buffer[256];
-            jade_process_reply_to_message_bytes(process->ctx, ae_signer_commitment,
-                has_path ? sizeof(ae_signer_commitment) : 0, buffer, sizeof(buffer));
+            const size_t commitment_len = made_ae_commitment ? sizeof(ae_signer_commitment) : 0;
+            jade_process_reply_to_message_bytes(
+                process->ctx, ae_signer_commitment, commitment_len, buffer, sizeof(buffer));
         }
     }
 

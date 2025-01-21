@@ -330,13 +330,17 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
         sig_data->sighash = (uint8_t)sighash;
     }
 
-    // If required, read anti-exfil host commitment data
     if (use_ae_signatures) {
+        // Using the anti-exfil signing flow.
+        // Commitment data is optional on a per-input basis: If not provided
+        // for a given input, a normal (non-AE) signature is generated.
         rpc_get_bytes_ptr("ae_host_commitment", params, ae_host_commitment, ae_host_commitment_len);
-        if (!*ae_host_commitment || *ae_host_commitment_len != WALLY_HOST_COMMITMENT_LEN) {
+        if (*ae_host_commitment_len && *ae_host_commitment_len != WALLY_HOST_COMMITMENT_LEN) {
             *errmsg = "Failed to extract valid host commitment from parameters";
             return false;
         }
+        // Record whether we should generate an AE signature for this input
+        sig_data->use_ae = *ae_host_commitment_len != 0;
     }
 
     // Get prevout script - required for signing inputs
@@ -349,6 +353,12 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
     bool is_p2tr = false;
     const script_flavour_t script_flavour = get_script_flavour(*script, *script_len, &is_p2tr);
     if (is_p2tr) {
+        if (sig_data->use_ae) {
+            // Taproot commitments must be empty, so that we can add anti-exfil
+            // support later without backwards compatibility issues.
+            *errmsg = "Invalid non-empty taproot host commitment";
+            return false;
+        }
         sig_data->segwit_ver = SEGWIT_V1;
     }
     // Track the types of the input prevout scripts

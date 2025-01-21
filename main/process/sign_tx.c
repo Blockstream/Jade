@@ -303,19 +303,22 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
             const uint8_t* ae_host_entropy = NULL;
             size_t ae_host_entropy_len = 0;
 
-            if (sig_data->segwit_ver != SEGWIT_V1) {
-                // Non taproot signature: requires the host entropy to include
-                // in the signature
-                rpc_get_bytes_ptr("ae_host_entropy", &params, &ae_host_entropy, &ae_host_entropy_len);
-
-                if (!ae_host_entropy || ae_host_entropy_len != WALLY_S2C_DATA_LEN) {
-                    jade_process_reject_message(
-                        process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract host entropy from parameters", NULL);
-                    goto cleanup;
-                }
+            // Fetch any host entropy to include in the signature.
+            rpc_get_bytes_ptr("ae_host_entropy", &params, &ae_host_entropy, &ae_host_entropy_len);
+            if (ae_host_entropy_len && ae_host_entropy_len != WALLY_S2C_DATA_LEN) {
+                jade_process_reject_message(
+                    process, CBOR_RPC_PROTOCOL_ERROR, "Failed to extract valid host entropy from parameters", NULL);
+                goto cleanup;
+            }
+            const bool use_ae = ae_host_entropy_len != 0;
+            if (sig_data->use_ae != use_ae) {
+                // We must be given both a commitment and entropy, or neither.
+                jade_process_reject_message(process, CBOR_RPC_PROTOCOL_ERROR,
+                    "Failed to extract valid host commitment and entropy from parameters", NULL);
+                goto cleanup;
             }
 
-            // Generate Anti-Exfil or non-AE Schnorr signature
+            // Generate Anti-Exfil, non-AE ECDSA or non-AE Schnorr signature
             if (!wallet_sign_tx_input_hash(sig_data, ae_host_entropy, ae_host_entropy_len)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input", NULL);
                 goto cleanup;
@@ -657,10 +660,10 @@ void sign_tx_process(void* process_ptr)
                 goto cleanup;
             }
 
-            // If using anti-exfil signatures, compute signer commitment for returning to caller
-            if (use_ae_signatures) {
+            // If using anti-exfil signatures for this input,
+            // compute signer commitment for returning to caller
+            if (sig_data->use_ae) {
                 JADE_ASSERT(ae_host_commitment);
-                JADE_ASSERT(ae_host_commitment_len == WALLY_HOST_COMMITMENT_LEN);
                 if (!wallet_get_signer_commitment(sig_data->signature_hash, sizeof(sig_data->signature_hash),
                         sig_data->path, sig_data->path_len, ae_host_commitment, ae_host_commitment_len,
                         ae_signer_commitment, sizeof(ae_signer_commitment))) {
@@ -686,7 +689,7 @@ void sign_tx_process(void* process_ptr)
             JADE_LOGD("input_amount = %" PRIu32, (uint32_t)input_amount);
         }
 
-        // If using ae-signatures, reply with the signer commitment
+        // If using ae-signatures, reply with the (possibly empty) signer commitment
         // FIXME: change message flow to reply here even when not using ae-signatures
         // as this simplifies the code both here and in the client.
         if (use_ae_signatures) {

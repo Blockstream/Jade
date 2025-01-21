@@ -1,0 +1,39 @@
+{
+  "description": "Spend from 1/bcrt1pq8xqld5mxpdtut3j2jukk523nc2kpz9anlxhhm32u5ez8uxdl3ksu40vwp to bcrt1qc9feglfcmnx8ywy50mdjan4f5ss2nlg75yqlsd. Input contains ae_host_commitment which must be empty for taproot signing.",
+  "input": {
+    "network": "localtest",
+    "use_ae_signatures": true,
+    "txn": "02000000000101f6cc882d7a523a2cd198ca62378746785061b01c08840d70b8e0db0615c0122b0000000000fdffffff028813000000000000160014c153947d38dccc7238947edb2ecea9a420a9fd1ef912000000000000225120ab98d7024d5b4cb3b2aa2997dcb620aa8945548b39de0a0e8bcb659f9d59932e01006f000000",
+    "change": [
+      null,
+      {
+        "is_change": true,
+        "path": [
+          2147483734,
+          2147483649,
+          2147483648,
+          1,
+          3
+        ],
+        "variant": "tr(k)"
+      }
+    ],
+    "inputs": [
+      {
+        "is_witness": true,
+        "path": [
+          2147483734,
+          2147483649,
+          2147483648,
+          0,
+          1
+        ],
+        "script": "512001cc0fb69b305abe2e3254b96b51519e156088bd9fcd7bee2ae53223f0cdfc6d",
+        "sighash": 0,
+        "ae_host_commitment": "4dc3fdadce5758c96c1a31fb8b4cbae97c89e70dd2bae33a78e6b7463d3122f9",
+        "input_tx": "0200000000010129341ee2c7fb81251d00facf891ee65379cb98be889dc1021304935c3c2230870000000000fdffffff02102700000000000022512001cc0fb69b305abe2e3254b96b51519e156088bd9fcd7bee2ae53223f0cdfc6d7ec4052a01000000225120c5593a4d380430f06e4c09f05b33a6147fd05c42df11ddc963be527c2f5aca360247304402200c22e8e61d129ab8212e500c0c4ddb1f4edba04cd045b4c65ada7fe5ecc636f602202a326ece3b3cf52e5b07442a30d0c40dcba30238a0b119a01c20fe030e85d3b90121031310c715ebba85b83a06083f862fe2e544bd55c438da78a8b44915f22fcf8ad56e000000"
+      }
+    ]
+  },
+  "expected_error": "Invalid non-empty taproot host commitment"
+}

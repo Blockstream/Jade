@@ -20,6 +20,7 @@ typedef struct {
     char id[16 + 1]; // For caller use: not used by signing.
     uint8_t segwit_ver; // Input: The segwit version of this input
     uint8_t sighash; // Input: The sighash flags to sign with
+    bool use_ae; // Output: Whether the input is using anti-exfil
     size_t path_len; // Input: The length of the path in "path"
     size_t sig_len; // Output: The length of the signature in "sig"
 } signing_data_t;

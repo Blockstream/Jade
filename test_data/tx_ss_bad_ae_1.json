@@ -35,5 +35,5 @@
       }
     ]
   },
-  "expected_error": "Failed to extract valid host commitment from parameters"
+  "expected_error": "Failed to extract valid host commitment and entropy from parameters"
 }
