@@ -142,7 +142,9 @@ def _h2b_test_case(testcase):
 def _read_json_file(filename):
     logger.info('Reading json file: {}'.format(filename))
     with open(filename, 'r') as json_file:
-        return json.load(json_file)
+        ret = json.load(json_file)
+        ret['filename'] = filename  # Add filename for debugging
+        return ret
 
 
 # Helper to read json test files into a list
@@ -2801,14 +2803,25 @@ def test_sign_message_file(jadeapi):
 
 def test_sign_tx_case(jadeapi, txn_data):
     inputdata = txn_data['input']
-    rslt = jadeapi.sign_tx(inputdata['network'],
-                           inputdata['txn'],
-                           inputdata['inputs'],
-                           inputdata['change'],
-                           inputdata.get('use_ae_signatures'))
+    expected_output = txn_data.get('expected_output')
+    expected_error = txn_data.get('expected_error')
+    assert expected_output or expected_error
+    try:
+        rslt = jadeapi.sign_tx(inputdata['network'],
+                               inputdata['txn'],
+                               inputdata['inputs'],
+                               inputdata['change'],
+                               inputdata.get('use_ae_signatures'))
+        assert not expected_error, f"Expected an error in {txn_data['filename']}"
+        # Check returned signatures
+        _check_tx_signatures(jadeapi, txn_data, rslt)
+    except JadeError as err:
+        assert expected_error, f"Unexpected error {err.message} in {txn_data['filename']}"
+        if err.message != expected_error:
+            assert False, f"Wrong error '{err.message}' in {txn_data['filename']}"
 
-    # Check returned signatures
-    _check_tx_signatures(jadeapi, txn_data, rslt)
+        for i in range(txn_data.get('extra_responses', 0)):
+            logger.debug(jadeapi.jade.read_response())
 
 
 def test_sign_tx(jadeapi, pattern):
@@ -2817,30 +2830,12 @@ def test_sign_tx(jadeapi, pattern):
         # Run the signing test case
         test_sign_tx_case(jadeapi, txn_data)
 
-        if 'expected_legacy_output' in txn_data:
+        if 'expected_legacy_output' in txn_data and 'expected_error' not in txn_data:
             # Test case has legacy signing results, test them also.
             # TODO: Remove this once legacy signing is removed.
             txn_data['input']['use_ae_signatures'] = False
             txn_data['expected_output'] = txn_data['expected_legacy_output']
             test_sign_tx_case(jadeapi, txn_data)
-
-
-def test_sign_tx_error_cases(jadeapi, pattern):
-    # Sign Tx failures
-    for txn_data in _get_test_cases(pattern):
-        try:
-            inputdata = txn_data['input']
-            rslt = jadeapi.sign_tx(inputdata['network'],
-                                   inputdata['txn'],
-                                   inputdata['inputs'],
-                                   inputdata['change'],
-                                   inputdata.get('use_ae_signatures'))
-            assert False, "Expected exception from bad sign_tx test case"
-        except JadeError as err:
-            assert err.message == txn_data["expected_error"]
-
-        for i in range(txn_data["extra_responses"]):
-            logger.debug(jadeapi.jade.read_response())
 
 
 def test_liquid_blinding_keys(jadeapi):
@@ -3679,7 +3674,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     # Sign Tx - includes some failure cases
     test_sign_tx(jadeapi, SIGN_TXN_TESTS)
-    test_sign_tx_error_cases(jadeapi, SIGN_TXN_FAIL_CASES)
+    test_sign_tx(jadeapi, SIGN_TXN_FAIL_CASES)
 
     # Test liquid blinding keys/nonce, blinded commitments and sign-tx
     test_liquid_blinding_keys(jadeapi)
