@@ -1,0 +1,39 @@
+{
+  "description": "tx_ss_p2wpkh_single_input.json, but ae_host_commitment is missing",
+  "input": {
+    "network": "localtest",
+    "use_ae_signatures": true,
+    "txn": "02000000000101962675e3082c9df574155ea8a005a4d2888e8f6a68769e0fef1ca1fff24b23190000000000fdffffff028813000000000000160014c153947d38dccc7238947edb2ecea9a420a9fd1efb12000000000000160014fd02dc9ef3aa06200e215f8a16ff56241ac3077f02002102151478c7a51abb39dc80bc35231ebb6e4d681f68a955c7c2a37ea0aa4415fe6934000000",
+    "change": [
+      null,
+      {
+        "is_change": true,
+        "path": [
+          2147483732,
+          2147483649,
+          2147483648,
+          1,
+          3
+        ],
+        "variant": "wpkh(k)"
+      }
+    ],
+    "inputs": [
+      {
+        "is_witness": true,
+        "path": [
+          2147483732,
+          2147483649,
+          2147483648,
+          0,
+          2
+        ],
+        "script": "76a914faaba4d82b92371198437bc6fc7f995834fdf25a88ac",
+        "sighash": 1,
+        "ae_host_entropy": "9e02c7553f61576b17df8983fefd0f3dcbca289c34ebb52e1b9e67f9d4f54920",
+        "satoshi": 10000
+      }
+    ]
+  },
+  "expected_error": "Failed to extract valid host commitment from parameters"
+}
