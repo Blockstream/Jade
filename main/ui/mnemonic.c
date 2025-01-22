@@ -17,7 +17,7 @@ gui_activity_t* make_mnemonic_setup_type_activity(void)
     gui_activity_t* const act = make_menu_activity("Setup Type", hdrbtns, 2, menubtns, 2);
 
     // Set the intially selected item to the 'New' button
-    gui_set_activity_initial_selection(act, menubtns[0].btn);
+    gui_set_activity_initial_selection(menubtns[0].btn);
 
     return act;
 }
@@ -38,7 +38,7 @@ gui_activity_t* make_mnemonic_setup_method_activity(const bool advanced)
         = make_menu_activity(advanced ? "Advanced Setup" : "Setup Method", hdrbtns, 2, menubtns, 2);
 
     // Set the intially selected item to the 'New' button
-    gui_set_activity_initial_selection(act, menubtns[0].btn);
+    gui_set_activity_initial_selection(menubtns[0].btn);
 
     return act;
 }
@@ -54,7 +54,7 @@ gui_activity_t* make_new_mnemonic_activity(void)
     gui_activity_t* const act = make_menu_activity("Recovery Phrase", hdrbtns, 2, menubtns, 2);
 
     // Set the intially selected item to the '12 words' button
-    gui_set_activity_initial_selection(act, menubtns[0].btn);
+    gui_set_activity_initial_selection(menubtns[0].btn);
 
     return act;
 }
@@ -82,7 +82,7 @@ gui_activity_t* make_restore_mnemonic_activity(const bool temporary_restore)
     gui_activity_t* const act = make_menu_activity("Restore Wallet", hdrbtns, 2, menubtns, nbtns);
 
     // Set the intially selected item to the '12 words' or 'Scan QR' buttons
-    gui_set_activity_initial_selection(act, menubtns[selected].btn);
+    gui_set_activity_initial_selection(menubtns[selected].btn);
 
     return act;
 }
@@ -98,7 +98,7 @@ gui_activity_t* make_bip85_mnemonic_words_activity(void)
     gui_activity_t* const act = make_menu_activity("BIP85", hdrbtns, 2, menubtns, 2);
 
     // Set the intially selected item to the '12 words' button
-    gui_set_activity_initial_selection(act, menubtns[0].btn);
+    gui_set_activity_initial_selection(menubtns[0].btn);
 
     return act;
 }
@@ -150,7 +150,7 @@ static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t 
     }
 
     // Set the intially selected item to the next/verify (ie. the last) button
-    gui_set_activity_initial_selection(act, hdrbtns[1].btn);
+    gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // Copy activity and prev and next buttons into output struct
     page_act->activity = act;
@@ -373,7 +373,7 @@ gui_activity_t* make_calculate_final_word_activity(void)
     gui_activity_t* const act = make_show_message_activity(message, 3, "Final Word", hdrbtns, 2, ftrbtns, 2);
 
     // Select 'Existing' button by default
-    gui_set_activity_initial_selection(act, ftrbtns[0].btn);
+    gui_set_activity_initial_selection(ftrbtns[0].btn);
 
     return act;
 }
@@ -463,7 +463,7 @@ gui_activity_t* make_export_qr_overview_activity(const Icon* icon, const bool in
     add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
 
     // Select 'Start'/Done button by default
-    gui_set_activity_initial_selection(act, ftrbtn.btn);
+    gui_set_activity_initial_selection(ftrbtn.btn);
 
     return act;
 }
@@ -522,7 +522,7 @@ gui_activity_t* make_export_qr_fragment_activity(
     gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_TOP);
 
     // Select 'Next' button by default
-    gui_set_activity_initial_selection(act, hdrbtns[2].btn);
+    gui_set_activity_initial_selection(hdrbtns[2].btn);
 
     return act;
 }

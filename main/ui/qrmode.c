@@ -146,7 +146,7 @@ gui_activity_t* make_search_verify_address_activity(
     add_buttons(vsplit, UI_ROW, ftrbtns, 2);
 
     // Select 'Edit Root' button by default
-    gui_set_activity_initial_selection(act, ftrbtns[1].btn);
+    gui_set_activity_initial_selection(ftrbtns[1].btn);
 
     return act;
 }
@@ -407,7 +407,7 @@ gui_activity_t* make_qr_back_continue_activity(
         add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
 
         // Select default selected button
-        gui_set_activity_initial_selection(act, default_selection ? ftrbtn.btn : hdrbtn.btn);
+        gui_set_activity_initial_selection(default_selection ? ftrbtn.btn : hdrbtn.btn);
     }
 
     // RHS - QR icon

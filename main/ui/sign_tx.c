@@ -166,7 +166,7 @@ static gui_activity_t* make_display_assetinfo_activities(
 
     gui_activity_t* const act = make_show_message_activity(message, 1, "Asset Info", hdrbtns1, 2, NULL, 0);
 
-    gui_set_activity_initial_selection(act, hdrbtns1[1].btn);
+    gui_set_activity_initial_selection(hdrbtns1[1].btn);
 
     // Second screen, asset id hex
     ret = snprintf(buf, sizeof(buf), "\n%s", asset_id_hex);
@@ -177,7 +177,7 @@ static gui_activity_t* make_display_assetinfo_activities(
 
     *assetinfo2 = make_show_message_activity(message, 1, "Asset Id", hdrbtns2, 2, NULL, 0);
 
-    gui_set_activity_initial_selection(*assetinfo2, hdrbtns2[1].btn);
+    gui_set_activity_initial_selection(hdrbtns2[1].btn);
 
     return act;
 }
@@ -294,7 +294,7 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, num_btns);
 
     // Set the intially selected item to the 'Next' button
-    gui_set_activity_initial_selection(act, hdrbtns[1].btn);
+    gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(amountvalue, true, TFT_BLACK, gui_get_highlight_color());

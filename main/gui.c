@@ -439,7 +439,7 @@ void gui_select_node(gui_view_node_t* node)
     // the activity is drawn for the first time, rather than trying to
     // set the selection immediately.
     if (!node->activity->selectables) {
-        gui_set_activity_initial_selection(node->activity, node);
+        gui_set_activity_initial_selection(node);
         return;
     }
 
@@ -2413,11 +2413,11 @@ void gui_prev(void)
 
 // Set the item to be initally selected when the activity is activated/switched-to
 // 'node' can be NULL to unset any specific initial selection
-void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_t* node)
+void gui_set_activity_initial_selection(gui_view_node_t* node)
 {
-    JADE_ASSERT(activity);
-    JADE_ASSERT(node->activity == activity);
-    activity->initial_selection = node;
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->activity);
+    node->activity->initial_selection = node;
 }
 
 // Post a node to the gui task to be repainted

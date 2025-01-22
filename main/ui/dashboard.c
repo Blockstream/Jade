@@ -500,7 +500,7 @@ gui_activity_t* make_wallet_erase_pin_info_activity(void)
     gui_activity_t* const act = make_show_message_activity(message, 3, "Wallet-Erase PIN", hdrbtns, 2, &ftrbtn, 1);
 
     // Set the intially selected item to the 'Continue' button
-    gui_set_activity_initial_selection(act, ftrbtn.btn);
+    gui_set_activity_initial_selection(ftrbtn.btn);
 
     return act;
 }
@@ -764,7 +764,7 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
     }
 
     // Set the intially selected item to the next/verify (ie. the last) button
-    gui_set_activity_initial_selection(act, hdrbtns[1].btn);
+    gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // Copy activity and prev and next buttons into output struct
     page_act->activity = act;

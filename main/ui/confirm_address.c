@@ -99,8 +99,7 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
         act = make_show_message_activity(message, 1, title, hdrbtns, 2, NULL, 0);
 #endif // ADDRESS_STRING_GRID
 
-        gui_set_activity_initial_selection(
-            act, show_one_screen_tick && default_selection ? hdrbtns[1].btn : hdrbtns[0].btn);
+        gui_set_activity_initial_selection(show_one_screen_tick && default_selection ? hdrbtns[1].btn : hdrbtns[0].btn);
     } else {
         // Need two (MAX_ADDRESS_SCREENS) screens to show address
         // First screen 'confirm' button becomes 'next'
@@ -125,7 +124,7 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
         act = make_show_message_activity(message, 1, titlebuf, hdrbtns1, 2, NULL, 0);
 #endif // ADDRESS_STRING_GRID
 
-        gui_set_activity_initial_selection(act, hdrbtns1[1].btn);
+        gui_set_activity_initial_selection(hdrbtns1[1].btn);
 
         // Second screen 'reject' button becomes 'back'
         btn_data_t hdrbtns2[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
@@ -146,7 +145,7 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
         *actaddr2 = make_show_message_activity(message, 1, titlebuf, hdrbtns2, 2, NULL, 0);
 #endif // ADDRESS_STRING_GRID
 
-        gui_set_activity_initial_selection(*actaddr2, default_selection ? hdrbtns2[1].btn : hdrbtns2[0].btn);
+        gui_set_activity_initial_selection(default_selection ? hdrbtns2[1].btn : hdrbtns2[0].btn);
     }
 
     return act;

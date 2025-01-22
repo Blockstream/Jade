@@ -120,7 +120,7 @@ static gui_activity_t* make_view_multisig_activities(const char* multisig_name, 
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
 
     // Set the intially selected item to the 'Next' button
-    gui_set_activity_initial_selection(act, hdrbtns[1].btn);
+    gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());
@@ -282,7 +282,7 @@ static gui_activity_t* make_final_multisig_summary_activities(const char* multis
 
     // Set the intially selected item to 'Discard' when confirming new record
     // but to 'Retain' when viewing existing record.
-    gui_set_activity_initial_selection(act, hdrbtns[initial_confirmation ? 0 : 1].btn);
+    gui_set_activity_initial_selection(hdrbtns[initial_confirmation ? 0 : 1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());

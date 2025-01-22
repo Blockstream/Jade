@@ -122,7 +122,7 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
             act_scripts[iscreen] = make_show_message_activity(message, 1, title, hdrbtns, 2, NULL, 0);
 
             // Set the intially selected item to the 'Next' button
-            gui_set_activity_initial_selection(act_scripts[iscreen], hdrbtns[1].btn);
+            gui_set_activity_initial_selection(hdrbtns[1].btn);
         }
         *num_script_screens = script_screens_needed;
     }
@@ -138,7 +138,7 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 2);
 
     // Set the intially selected item to the 'Next' button
-    gui_set_activity_initial_selection(act, hdrbtns[1].btn);
+    gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());
@@ -254,7 +254,7 @@ static gui_activity_t* make_final_descriptor_summary_activities(
 
     // Set the intially selected item to 'Discard' when confirming new record
     // but to 'Retain' when viewing existing record.
-    gui_set_activity_initial_selection(act, hdrbtns[initial_confirmation ? 0 : 1].btn);
+    gui_set_activity_initial_selection(hdrbtns[initial_confirmation ? 0 : 1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(name, true, TFT_BLACK, gui_get_highlight_color());

@@ -504,7 +504,7 @@ static bool await_yesno_activity_impl(const char* title, const char* message[], 
 
     gui_activity_t* const act
         = make_show_message_activity(message, message_size, title, hdrbtns, help_url ? 2 : 0, ftrbtns, 2);
-    gui_set_activity_initial_selection(act, ftrbtns[default_selection ? 1 : 0].btn);
+    gui_set_activity_initial_selection(ftrbtns[default_selection ? 1 : 0].btn);
 
     return await_yesno_activity_loop(act, help_url);
 }
@@ -545,7 +545,7 @@ bool await_continueback_activity(const char* title, const char* message[], const
     btn_data_t ftrbtn = { .txt = "Continue", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOP };
 
     gui_activity_t* const act = make_show_message_activity(message, message_size, title, hdrbtns, 2, &ftrbtn, 1);
-    gui_set_activity_initial_selection(act, (default_selection ? ftrbtn : hdrbtns[0]).btn);
+    gui_set_activity_initial_selection((default_selection ? ftrbtn : hdrbtns[0]).btn);
 
     return await_yesno_activity_loop(act, help_url);
 }
