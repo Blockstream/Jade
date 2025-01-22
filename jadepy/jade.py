@@ -1642,7 +1642,7 @@ class JadeAPI:
         The signatures are either in DER format with the sighash appended, or
         (for taproot inputs) 64/65 byte BIP 0341 Schnorr signatures.
         """
-        if use_ae_signatures:
+        if not use_legacy:
             # Anti-exfil protocol:
             # We send one message per input (which includes host-commitment *but
             # not* the host entropy) and receive the signer-commitment in reply.
@@ -1655,7 +1655,12 @@ class JadeAPI:
             for txinput in inputs:
                 # ae-protocol - do not send the host entropy immediately
                 txinput = txinput.copy() if txinput else {}  # shallow copy
-                host_ae_entropy_values.append(txinput.pop('ae_host_entropy', None))
+                ae_host_entropy = txinput.pop('ae_host_entropy', None)
+                if not use_ae_signatures:
+                    if ae_host_entropy or txinput.get('ae_host_commitment', None):
+                        msg = 'Anti-Exfil host data present but use_ae_signatures=false'
+                        raise JadeError(1, msg, 'tx_input')
+                host_ae_entropy_values.append(ae_host_entropy)
 
                 base_id += 1
                 input_id = str(base_id)
@@ -1672,7 +1677,12 @@ class JadeAPI:
                 signatures.append(reply)
 
             assert len(signatures) == len(inputs)
-            return list(zip(signer_commitments, signatures))
+            if use_ae_signatures:
+                return list(zip(signer_commitments, signatures))
+            # Since AE host data was not allowed, we should not have
+            # received any signer commitments
+            assert all(not sc for sc in signer_commitments)
+            return signatures
         else:
             # Legacy protocol:
             # We send one message per input - without expecting replies.
@@ -1681,7 +1691,8 @@ class JadeAPI:
             # Then receive all n replies for the n signatures.
             # NOTE: *NOT* a sequence of n blocking rpc calls.
             # NOTE: at some point this flow should be removed in favour of the one
-            # above, albeit without passing anti-exfil entropy or commitment data.
+            # above.
+            assert not use_ae_signatures, 'Can not use Anti-Exfil with legacy sign_tx'
 
             # Send all n inputs
             requests = []
@@ -1815,7 +1826,7 @@ class JadeAPI:
                   'txn': txn,
                   'num_inputs': len(inputs),
                   'trusted_commitments': commitments,
-                  'use_ae_signatures': use_ae_signatures,
+                  'use_ae_signatures': not use_legacy,
                   'change': change,
                   'asset_info': asset_info,
                   'additional_info': additional_info}
@@ -1900,7 +1911,7 @@ class JadeAPI:
         params = {'network': network,
                   'txn': txn,
                   'num_inputs': len(inputs),
-                  'use_ae_signatures': use_ae_signatures,
+                  'use_ae_signatures': not use_legacy,
                   'change': change}
 
         reply = self._jadeRpc('sign_tx', params, str(base_id))
