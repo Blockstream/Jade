@@ -2807,12 +2807,15 @@ def test_sign_tx_case(jadeapi, txn_data):
     expected_output = txn_data.get('expected_output')
     expected_error = txn_data.get('expected_error')
     assert expected_output or expected_error
+    use_ae_signatures = inputdata.get('use_ae_signatures')
+    use_legacy_flow = not use_ae_signatures and not args.no_legacy_flow
     try:
         rslt = jadeapi.sign_tx(inputdata['network'],
                                inputdata['txn'],
                                inputdata['inputs'],
                                inputdata['change'],
-                               inputdata.get('use_ae_signatures'))
+                               use_ae_signatures,
+                               use_legacy_flow)
         assert not expected_error, f"Expected an error in {txn_data['filename']}"
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
@@ -2821,8 +2824,10 @@ def test_sign_tx_case(jadeapi, txn_data):
         if err.message != expected_error:
             assert False, f"Wrong error '{err.message}' in {txn_data['filename']}"
 
-        for i in range(txn_data.get('extra_responses', 0)):
-            logger.debug(jadeapi.jade.read_response())
+        if use_legacy_flow:
+            # Only the legacy flow returns extra responses
+            for i in range(txn_data.get('extra_responses', 0)):
+                logger.debug(jadeapi.jade.read_response())
 
 
 def test_sign_tx(jadeapi, pattern):
@@ -2832,8 +2837,7 @@ def test_sign_tx(jadeapi, pattern):
         test_sign_tx_case(jadeapi, txn_data)
 
         if 'expected_legacy_output' in txn_data and 'expected_error' not in txn_data:
-            # Test case has legacy signing results, test them also.
-            # TODO: Remove this once legacy signing is removed.
+            # Test case has non-Anti-exfil signing results, test them also.
             txn_data['input']['use_ae_signatures'] = False
             for txinput in txn_data['input']['inputs']:
                 for k in ['ae_host_commitment', 'ae_host_entropy']:
@@ -3257,12 +3261,14 @@ def test_generic_multisig_matches_ga_signatures(jadeapi):
                 change['paths'] = [path[-1:]] * 2
                 change['multisig_name'] = ga_2of2_multisig_name
 
+        use_ae_signatures = inputdata.get('use_ae_signatures')
+        use_legacy_flow = not use_ae_signatures and not args.no_legacy_flow
         rslt = jadeapi.sign_tx(inputdata['network'],
                                inputdata['txn'],
                                inputdata.get('inputs'),
                                inputdata['change'],
-                               inputdata.get('use_ae_signatures'),
-                               )
+                               use_ae_signatures,
+                               use_legacy_flow)
 
         # Check returned signatures
         _check_tx_signatures(jadeapi, ga_msig, rslt)
@@ -4124,6 +4130,11 @@ if __name__ == '__main__':
                         action="store_true",
                         dest="qemu",
                         help="Skip tests which appear problematic on qemu hw emulator",
+                        default=False)
+    parser.add_argument("--nolegacyflow",
+                        action="store_true",
+                        dest="no_legacy_flow",
+                        help="Do not use the legacy sign_tx flow (use the AE flow instead)",
                         default=False)
     parser.add_argument("--log",
                         action="store",
