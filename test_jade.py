@@ -2835,6 +2835,9 @@ def test_sign_tx(jadeapi, pattern):
             # Test case has legacy signing results, test them also.
             # TODO: Remove this once legacy signing is removed.
             txn_data['input']['use_ae_signatures'] = False
+            for txinput in txn_data['input']['inputs']:
+                for k in ['ae_host_commitment', 'ae_host_entropy']:
+                    txinput[k] = bytes()
             txn_data['expected_output'] = txn_data['expected_legacy_output']
             test_sign_tx_case(jadeapi, txn_data)
 
