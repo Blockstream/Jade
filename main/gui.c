@@ -311,12 +311,9 @@ static void set_tree_active(gui_view_node_t* node, bool value)
 // Returns true if the node was found and marked active or inactive as requested.
 // Returns false if node not found or if it would deactivate the only active node,
 // in which case no 'active' nodes are changed.
-bool gui_set_active(gui_activity_t* activity, gui_view_node_t* node, bool value)
+bool gui_set_active(gui_view_node_t* node, bool value)
 {
-    JADE_ASSERT(activity);
-    JADE_ASSERT(node);
-
-    // TODO: make sure that `node` is part of `activity`
+    JADE_ASSERT(node->activity);
 
     if (value) {
         // Set passed node to active
@@ -326,19 +323,25 @@ bool gui_set_active(gui_activity_t* activity, gui_view_node_t* node, bool value)
     }
 
     // Check other active nodes exist
-    selectable_t* const begin = activity->selectables;
+    selectable_t* const begin = node->activity->selectables;
     if (!begin) {
         return false;
     }
 
+    bool found_this_node = false;
     bool other_active_nodes_exist = false;
     selectable_t* current = begin;
     do {
-        other_active_nodes_exist = current->node != node && current->node->is_active;
+        JADE_ASSERT(current->node->activity == node->activity);
+        found_this_node |= (current->node == node);
+        other_active_nodes_exist |= (current->node != node && current->node->is_active);
         current = current->next;
-    } while (current != begin && !other_active_nodes_exist);
+    } while (current != begin && (!other_active_nodes_exist || !found_this_node));
 
-    // no other active nodes, we can't de-activate it
+    // Should have seen current node
+    JADE_ASSERT(found_this_node);
+
+    // if no other active nodes, we can't de-activate current (ie last active) node
     if (!other_active_nodes_exist) {
         return false;
     }
@@ -422,12 +425,12 @@ static bool gui_select_prev(gui_activity_t* activity)
     return true;
 }
 
-// Note: node must exist and be part of passed activity.
+// Note: node must exist and be active/selectable.
 // Any prior selection will be cleared.
-void gui_select_node(gui_activity_t* activity, gui_view_node_t* node)
+void gui_select_node(gui_view_node_t* node)
 {
-    JADE_ASSERT(activity);
     JADE_ASSERT(node);
+    JADE_ASSERT(node->activity);
     JADE_ASSERT(node->is_active);
 
     // If there are no selectables, it (probably) means the gui element
@@ -435,12 +438,12 @@ void gui_select_node(gui_activity_t* activity, gui_view_node_t* node)
     // In this case we mark the node as the one to initially select when
     // the activity is drawn for the first time, rather than trying to
     // set the selection immediately.
-    if (!activity->selectables) {
-        gui_set_activity_initial_selection(activity, node);
+    if (!node->activity->selectables) {
+        gui_set_activity_initial_selection(node->activity, node);
         return;
     }
 
-    selectable_t* const begin = activity->selectables;
+    selectable_t* const begin = node->activity->selectables;
     selectable_t* current = begin;
 
     selectable_t* old_selected = NULL;
@@ -448,6 +451,7 @@ void gui_select_node(gui_activity_t* activity, gui_view_node_t* node)
 
     // look for both the selected node and `node`
     do {
+        JADE_ASSERT(current->node->activity == node->activity);
         if (current->node->is_selected) {
             old_selected = current;
         }
@@ -457,8 +461,9 @@ void gui_select_node(gui_activity_t* activity, gui_view_node_t* node)
         current = current->next;
     } while (current != begin && (!new_selected || !old_selected));
 
-    // Must have found node - ie. passed node must be part of 'activity'
+    // Must have found node
     JADE_ASSERT(new_selected);
+    JADE_ASSERT(new_selected->node == node);
 
     // Deactivate prior selection
     if (old_selected) {
@@ -470,7 +475,7 @@ void gui_select_node(gui_activity_t* activity, gui_view_node_t* node)
     set_tree_selection(new_selected->node, true);
     gui_repaint(new_selected->node);
 
-    activity->selectables = new_selected;
+    node->activity->selectables = new_selected;
 }
 
 // select the next item in the selectables list
@@ -537,6 +542,7 @@ static void select_action(gui_activity_t* activity)
 
     selectable_t* const current = activity->selectables;
     if (current && current->node->is_selected && current->node->button->click_event_id != GUI_BUTTON_EVENT_NONE) {
+        JADE_ASSERT(current->node->activity == activity);
         const esp_err_t rc = esp_event_post(GUI_BUTTON_EVENT, current->node->button->click_event_id,
             &current->node->button->args, sizeof(void*), 100 / portTICK_PERIOD_MS);
         JADE_ASSERT(rc == ESP_OK);
@@ -813,22 +819,24 @@ void gui_chain_activities(const link_activity_t* link_act, linked_activities_inf
     pActInfo->last_activity_next_button = link_act->next_button;
 }
 
-// attach a view node (recusively) to an activity
-static void set_tree_activity(gui_view_node_t* node, gui_activity_t* activity)
+// attach a view node (recusively) to an activity, by inheriting the activity from the parent
+static void set_tree_activity(gui_view_node_t* node)
 {
     JADE_ASSERT(node);
-    // JADE_ASSERT(activity); TODO: does it make sense to allow to set a NULL activity? we use it for the status bar
+    JADE_ASSERT(node->parent);
 
+    // node should not already have an activity
     JADE_ASSERT(!node->activity);
 
-    // set our
-    node->activity = activity;
+    // NOTE: activity can be null if ultimate parent not attached yet
+    // ie. making a node subtree before attaching subtree root to activity tree
+    node->activity = node->parent->activity;
 
-    // and then all the others
-    gui_view_node_t* current = node->child;
-    while (current) {
-        set_tree_activity(current, activity);
-        current = current->sibling;
+    // set child nodes (depth first recursion)
+    gui_view_node_t* child = node->child;
+    while (child) {
+        set_tree_activity(child);
+        child = child->sibling;
     }
 }
 
@@ -848,6 +856,8 @@ void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent)
 {
     JADE_ASSERT(child);
     JADE_ASSERT(parent);
+    // NOTE: parent->activity can be null if parent not attached yet
+    // ie. making a node subtree before attaching subtree root to activity tree
 
     // child should not already have a parent
     JADE_ASSERT(!child->parent);
@@ -861,13 +871,13 @@ void gui_set_parent(gui_view_node_t* child, gui_view_node_t* parent)
     child->parent = parent;
 
     // also inherits the activity
-    set_tree_activity(child, parent->activity);
+    set_tree_activity(child);
 
     // first child
     if (!parent->child) {
         parent->child = child;
     } else {
-        // Add to tail
+        // Add to tail of siblings list
         gui_view_node_t* ptr = parent->child;
         while (ptr->sibling) {
             ptr = ptr->sibling;
@@ -2093,11 +2103,13 @@ static void gui_render_activity(gui_activity_t* activity)
         // If the activity has an 'initial_selection' and it appears active, select it now
         // If not, select the first active item
         if (activity->initial_selection && activity->initial_selection->is_active) {
-            gui_select_node(activity, activity->initial_selection);
+            JADE_ASSERT(activity->initial_selection->activity == activity);
+            gui_select_node(activity->initial_selection);
         } else {
             gui_view_node_t* const node = gui_get_first_active_node(activity);
             if (node) {
-                gui_select_node(activity, node);
+                JADE_ASSERT(node->activity == activity);
+                gui_select_node(node);
             }
         }
     }
@@ -2404,6 +2416,7 @@ void gui_prev(void)
 void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_t* node)
 {
     JADE_ASSERT(activity);
+    JADE_ASSERT(node->activity == activity);
     activity->initial_selection = node;
 }
 

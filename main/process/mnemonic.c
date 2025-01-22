@@ -437,12 +437,15 @@ static void enable_relevant_chars(const bool is_mnemonic, const char* word, cons
     JADE_ASSERT(btns);
     JADE_ASSERT(btns_len == 26); // ie A->Z
 
+    JADE_ASSERT(backspace->activity == act);
+    JADE_ASSERT(enter->activity == act);
+
     JADE_LOGD("word = %s, word_len = %u", word, word_len);
 
     // Enable enter if a) not entering a mnemonic, and b) not part-way through entering a word
     // Enable backspace in all cases.
-    gui_set_active(act, enter, !is_mnemonic && !word_len);
-    gui_set_active(act, backspace, true);
+    gui_set_active(enter, !is_mnemonic && !word_len);
+    gui_set_active(backspace, true);
 
     // TODO: are there any invalid characters to start the word?
 
@@ -488,11 +491,12 @@ static void enable_relevant_chars(const bool is_mnemonic, const char* word, cons
     // Select a random active letter as the selected one
     uint8_t selected = get_uniform_random_byte(num_enabled);
     for (size_t i = 0; i < btns_len; ++i) {
-        gui_set_active(act, btns[i], enabled[i]);
+        JADE_ASSERT(btns[i]->activity == act);
+        gui_set_active(btns[i], enabled[i]);
 
         // If we haven't set a selected item yet, set it now
         if (enabled[i] && !selected--) {
-            gui_select_node(act, btns[i]);
+            gui_select_node(btns[i]);
         }
     }
 }

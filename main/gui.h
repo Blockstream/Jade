@@ -454,8 +454,8 @@ bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, u
     esp_event_base_t* trigger_event_base, int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait);
 
 void gui_set_activity_initial_selection(gui_activity_t* activity, gui_view_node_t* node);
-bool gui_set_active(gui_activity_t* activity, gui_view_node_t* node, bool value);
-void gui_select_node(gui_activity_t* activity, gui_view_node_t* node);
+bool gui_set_active(gui_view_node_t* node, bool value);
+void gui_select_node(gui_view_node_t* node);
 
 void gui_set_activity_title(gui_activity_t* activity, const char* title);
 
