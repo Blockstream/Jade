@@ -33,9 +33,7 @@
           46
         ],
         "value_commitment": "089dee47c534d93b0009ccb62362722f5c007b26a9f85e993d53fd2c5ff9221f0a",
-        "script": "748c632102b21244f7c1977902cac6ccefc329d775c9551aad1ae2f094fdf8c09d92ea232bad6703ffff00b275682103a7c1c7a7d7bea899f2dbab5798334b4bc5830b51001b5f3129363f7296bc740cac",
-        "ae_host_commitment": "32bb83b662e67a56e0d379be1dc5b62f641ac43d995658040a50743d17249704",
-        "ae_host_entropy": "5ecebacebc3c1108c0a88771d811fe28702fa6974eaf31dac43b28d24c8ddd3c"
+        "script": "748c632102b21244f7c1977902cac6ccefc329d775c9551aad1ae2f094fdf8c09d92ea232bad6703ffff00b275682103a7c1c7a7d7bea899f2dbab5798334b4bc5830b51001b5f3129363f7296bc740cac"
       },
       {
         "is_witness": true,
