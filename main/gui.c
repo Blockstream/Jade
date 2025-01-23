@@ -2212,15 +2212,13 @@ static size_t handle_gui_input_queue(bool* switched_activities)
 
     gui_task_job_t* job = NULL;
     size_t item_size = 0;
+
     while ((job = xRingbufferReceive(gui_input_queue, &item_size, 10 / portTICK_PERIOD_MS))) {
         JADE_ASSERT(item_size == sizeof(gui_task_job_t));
 
         // *Either* repainting a node *or* moving to a whole new activity
         JADE_ASSERT(!job->node_to_repaint != !job->new_activity);
         activity_holder_t* to_free = job->to_free;
-
-        // Take the main gui mutex
-        JADE_SEMAPHORE_TAKE(gui_mutex);
 
         if (job->new_activity && job->new_activity != current_activity) {
             *switched_activities = true;
@@ -2273,9 +2271,6 @@ static size_t handle_gui_input_queue(bool* switched_activities)
             // Issue repaint command on the node passed
             repaint_node(job->node_to_repaint);
         }
-
-        // Release the main gui mutex
-        JADE_SEMAPHORE_GIVE(gui_mutex);
 
         // Return the ringbuffer slot
         vRingbufferReturnItem(gui_input_queue, job);
@@ -2332,6 +2327,9 @@ static void gui_task(void* args)
         // time each loop, just let vTaskDelayUntil() track the 'last_wake' count.
         vTaskDelayUntil(&last_wake, period);
 
+        // Take the gui semaphore while the gui task is awake
+        JADE_SEMAPHORE_TAKE(gui_mutex);
+
         // Check the input queue - repaint node or set new activity if need be
         // Note: this can also free all the old/completed activities
         bool switched_activities = false;
@@ -2339,6 +2337,7 @@ static void gui_task(void* args)
         if (jobs_handled > 4) {
             JADE_LOGW("gui task handled %u jobs", jobs_handled);
         }
+
         bool updated = true;
         if (!switched_activities) {
             // Not switching activities, update any 'updatable' gui elements on this activity
@@ -2351,6 +2350,8 @@ static void gui_task(void* args)
             // Flush
             display_flush();
         }
+
+        JADE_SEMAPHORE_GIVE(gui_mutex);
     }
 
     vTaskDelete(NULL);
