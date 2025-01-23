@@ -308,47 +308,13 @@ static void set_tree_active(gui_view_node_t* node, bool value)
 }
 
 // Function to set the passed node as active or inactive, depending on 'value'.
-// Returns true if the node was found and marked active or inactive as requested.
-// Returns false if node not found or if it would deactivate the only active node,
-// in which case no 'active' nodes are changed.
-bool gui_set_active(gui_view_node_t* node, bool value)
+void gui_set_active(gui_view_node_t* node, const bool value)
 {
-    JADE_ASSERT(node->activity);
+    JADE_ASSERT(node);
 
-    if (value) {
-        // Set passed node to active
-        set_tree_active(node, true);
-        gui_repaint(node);
-        return true;
-    }
-
-    // Check other active nodes exist
-    selectable_t* const begin = node->activity->selectables;
-    if (!begin) {
-        return false;
-    }
-
-    bool found_this_node = false;
-    bool other_active_nodes_exist = false;
-    selectable_t* current = begin;
-    do {
-        JADE_ASSERT(current->node->activity == node->activity);
-        found_this_node |= (current->node == node);
-        other_active_nodes_exist |= (current->node != node && current->node->is_active);
-        current = current->next;
-    } while (current != begin && (!other_active_nodes_exist || !found_this_node));
-
-    // Should have seen current node
-    JADE_ASSERT(found_this_node);
-
-    // if no other active nodes, we can't de-activate current (ie last active) node
-    if (!other_active_nodes_exist) {
-        return false;
-    }
-
-    set_tree_active(node, false);
+    // Set passed node to active/inactive and redraw
+    set_tree_active(node, value);
     gui_repaint(node);
-    return true;
 }
 
 static gui_view_node_t* gui_get_first_active_node(gui_activity_t* activity)
