@@ -2438,8 +2438,10 @@ void gui_repaint(gui_view_node_t* node)
 
     // Post the node to the gui task
     const gui_task_job_t node_repaint_info = { .node_to_repaint = node, .new_activity = NULL, .to_free = NULL };
-    while (xRingbufferSend(gui_input_queue, &node_repaint_info, sizeof(node_repaint_info), portMAX_DELAY) != pdTRUE) {
-        // wait for a spot in the ring
+    while (xRingbufferSend(gui_input_queue, &node_repaint_info, sizeof(node_repaint_info), 500 / portTICK_PERIOD_MS)
+        != pdTRUE) {
+        // wait for a spot in the ringbuffer
+        JADE_LOGW("Failed to send node repaint info using gui ringbuffer");
     }
 }
 
@@ -2484,8 +2486,9 @@ void gui_set_current_activity_ex(gui_activity_t* new_current, const bool free_ma
     }
 
     // Post the new activity and the list to free to the gui task
-    while (xRingbufferSend(gui_input_queue, &switch_info, sizeof(switch_info), portMAX_DELAY) != pdTRUE) {
-        // wait for a spot in the ring
+    while (xRingbufferSend(gui_input_queue, &switch_info, sizeof(switch_info), 500 / portTICK_PERIOD_MS) != pdTRUE) {
+        // wait for a spot in the ringbuffer
+        JADE_LOGW("Failed to send new activity using gui ringbuffer");
     }
 }
 

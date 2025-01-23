@@ -258,8 +258,9 @@ bool jade_process_push_in_message(const uint8_t* data, const size_t size)
         JADE_LOGE("Message of size %u too large for input queue (max: %u)", size, xRingbufferGetMaxItemSize(shared_in));
         return false;
     }
-    while (xRingbufferSend(shared_in, data, size, 10 / portTICK_PERIOD_MS) != pdTRUE) {
+    while (xRingbufferSend(shared_in, data, size, 500 / portTICK_PERIOD_MS) != pdTRUE) {
         // wait for a spot in the ringbuffer
+        JADE_LOGW("Failed to send input message using shared input ringbuffer");
     }
 
     return true;
