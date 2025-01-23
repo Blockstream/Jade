@@ -317,7 +317,7 @@ void gui_set_active(gui_view_node_t* node, const bool value)
     gui_repaint(node);
 }
 
-static gui_view_node_t* gui_get_first_active_node(gui_activity_t* activity)
+static gui_view_node_t* get_first_active_node(gui_activity_t* activity)
 {
     JADE_ASSERT(activity);
 
@@ -339,7 +339,7 @@ static gui_view_node_t* gui_get_first_active_node(gui_activity_t* activity)
 // select the previous item in the selectables list
 // Returns true if the selection is 'moved' to a prior item, or false if not (and selection left unchanged)
 // eg. no current item selected, no other selectable items, no prior selectable items [and not wrapping] etc.
-static bool gui_select_prev(gui_activity_t* activity)
+static bool select_prev(gui_activity_t* activity)
 {
     JADE_ASSERT(activity);
 
@@ -393,7 +393,7 @@ static bool gui_select_prev(gui_activity_t* activity)
 
 // Note: node must exist and be active/selectable.
 // Any prior selection will be cleared.
-void gui_select_node(gui_view_node_t* node)
+static void select_node(gui_view_node_t* node)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->activity);
@@ -447,7 +447,7 @@ void gui_select_node(gui_view_node_t* node)
 // select the next item in the selectables list
 // Returns true if the selection is 'moved' to a subsequent item, or false if not (and selection left unchanged)
 // eg. no current item selected, no other selectable items, no later selectable items [and not wrapping] etc.
-static bool gui_select_next(gui_activity_t* activity)
+static bool select_next(gui_activity_t* activity)
 {
     JADE_ASSERT(activity);
 
@@ -532,7 +532,7 @@ void gui_activity_set_active_selection(gui_activity_t* activity, gui_view_node_t
         set_tree_active(nodes[i], active[i]);
         if (nodes[i] == selected) {
             JADE_ASSERT(active[i]); // can only select active node
-            gui_select_node(nodes[i]);
+            select_node(nodes[i]);
             set_selected = true;
         }
     }
@@ -774,7 +774,7 @@ static void switch_activity_callback(void* handler_arg, esp_event_base_t base, i
     gui_set_current_activity(activity);
 }
 
-static void gui_connect_button_activity(gui_view_node_t* node, gui_activity_t* activity)
+static void connect_button_activity(gui_view_node_t* node, gui_activity_t* activity)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->activity);
@@ -801,12 +801,12 @@ void gui_chain_activities(const link_activity_t* link_act, linked_activities_inf
     if (pActInfo->last_activity) {
         if (link_act->prev_button) {
             // connect our "prev" btn to prev activity
-            gui_connect_button_activity(link_act->prev_button, pActInfo->last_activity);
+            connect_button_activity(link_act->prev_button, pActInfo->last_activity);
         }
 
         // connect prev "next" btn to this activity
         if (pActInfo->last_activity_next_button) {
-            gui_connect_button_activity(pActInfo->last_activity_next_button, link_act->activity);
+            connect_button_activity(pActInfo->last_activity_next_button, link_act->activity);
         }
     }
 
@@ -1558,7 +1558,7 @@ void gui_set_text_font(gui_view_node_t* node, uint32_t font)
 void gui_set_text_default_font(gui_view_node_t* node) { gui_set_text_font(node, GUI_DEFAULT_FONT); }
 
 // resolve translated strings/etc
-static void gui_resolve_text(gui_view_node_t* node)
+static void resolve_text(gui_view_node_t* node)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
@@ -1579,20 +1579,9 @@ static void gui_resolve_text(gui_view_node_t* node)
     node->render_data.resolved_text_length = strlen(node->render_data.resolved_text);
 }
 
-// Helper to get the ultimate root node for any given node
-static inline gui_view_node_t* gui_get_root_node(gui_view_node_t* node)
-{
-    JADE_ASSERT(node);
-    gui_view_node_t* root = node;
-    while (root->parent) {
-        root = root->parent;
-    }
-    return root;
-}
-
 // Helper function to just update the text node internal text data - does not repaint,
 // so several nodes can be updated then a single repaint issued - eg. the status bar
-static void gui_update_text_node_text(gui_view_node_t* node, const char* text)
+static void update_text_node_text(gui_view_node_t* node, const char* text)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
@@ -1609,7 +1598,7 @@ static void gui_update_text_node_text(gui_view_node_t* node, const char* text)
     node->text->text = new_text;
 
     // resolve text references
-    gui_resolve_text(node);
+    resolve_text(node);
 }
 
 // Takes the gui_mutex, updates the text node, and then only draws the
@@ -1623,7 +1612,7 @@ void gui_update_text(gui_view_node_t* node, const char* text)
     // if part of current activity release the mutex and post
     // a message to the gui task to repaint it.
     JADE_SEMAPHORE_TAKE(gui_mutex);
-    gui_update_text_node_text(node, text);
+    update_text_node_text(node, text);
     const bool repaint = current_activity && node->activity == current_activity;
     JADE_SEMAPHORE_GIVE(gui_mutex);
 
@@ -1747,7 +1736,7 @@ static void render_node(gui_view_node_t* node, const dispWin_t constraints, cons
 
         // resolve the value for text objects
         if (node->kind == TEXT) {
-            gui_resolve_text(node);
+            resolve_text(node);
         }
 
         node->render_data.is_first_time = false;
@@ -2087,7 +2076,7 @@ static void repaint_node(gui_view_node_t* node)
     }
 }
 
-static void gui_render_activity(gui_activity_t* activity)
+static void render_activity(gui_activity_t* activity)
 {
     JADE_ASSERT(activity);
     JADE_ASSERT(activity->root_node);
@@ -2100,12 +2089,12 @@ static void gui_render_activity(gui_activity_t* activity)
         // If not, select the first active item
         if (activity->initial_selection && activity->initial_selection->is_active) {
             JADE_ASSERT(activity->initial_selection->activity == activity);
-            gui_select_node(activity->initial_selection);
+            select_node(activity->initial_selection);
         } else {
-            gui_view_node_t* const node = gui_get_first_active_node(activity);
+            gui_view_node_t* const node = get_first_active_node(activity);
             if (node) {
                 JADE_ASSERT(node->activity == activity);
-                gui_select_node(node);
+                select_node(node);
             }
         }
     }
@@ -2134,7 +2123,7 @@ static bool update_status_bar(const bool force_redraw)
     dispWin_t status_bar_cs = GUI_DISPLAY_WINDOW;
     status_bar_cs.y2 = status_bar_cs.y1 + GUI_STATUS_BAR_HEIGHT;
 
-    // NOTE: we use the internal 'gui_update_text_node_text()' method here
+    // NOTE: we use the internal 'update_text_node_text()' method here
     // since we don't want to redraw each update individually, but rather
     // capture in a single repaint after all nodes are updated.
     if ((status_bar.battery_update_counter % 10) == 0) {
@@ -2147,9 +2136,9 @@ static bool update_status_bar(const bool force_redraw)
         if (new_ble != status_bar.last_ble_val) {
             status_bar.last_ble_val = new_ble;
             if (new_ble) {
-                gui_update_text_node_text(status_bar.ble_text, (char[]){ 'E', '\0' });
+                update_text_node_text(status_bar.ble_text, (char[]){ 'E', '\0' });
             } else {
-                gui_update_text_node_text(status_bar.ble_text, (char[]){ 'F', '\0' });
+                update_text_node_text(status_bar.ble_text, (char[]){ 'F', '\0' });
             }
             status_bar.updated = true;
         }
@@ -2158,11 +2147,11 @@ static bool update_status_bar(const bool force_redraw)
         if (new_usb != status_bar.last_usb_val) {
             status_bar.last_usb_val = new_usb;
             if (new_usb) {
-                gui_update_text_node_text(status_bar.usb_text, (char[]){ 'C', '\0' });
+                update_text_node_text(status_bar.usb_text, (char[]){ 'C', '\0' });
                 // FIXME: change to charging rather than usb connected
                 // serial_start();
             } else {
-                gui_update_text_node_text(status_bar.usb_text, (char[]){ 'D', '\0' });
+                update_text_node_text(status_bar.usb_text, (char[]){ 'D', '\0' });
                 // FIXME: change to no power rather than usb connected
                 // serial_stop();
             }
@@ -2180,7 +2169,7 @@ static bool update_status_bar(const bool force_redraw)
         if (new_bat != status_bar.last_battery_val) {
             status_bar.last_battery_val = new_bat;
             gui_set_color(status_bar.battery_text, color);
-            gui_update_text_node_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
+            update_text_node_text(status_bar.battery_text, (char[]){ new_bat + '0', '\0' });
             status_bar.updated = true;
         }
         status_bar.battery_update_counter = 60;
@@ -2245,12 +2234,12 @@ static size_t handle_gui_input_queue(bool* switched_activities)
             // Update the status bar text for the new activity
             if (current_activity->status_bar) {
                 const bool force_redraw = true;
-                gui_update_text_node_text(status_bar.title, current_activity->title ? current_activity->title : "");
+                update_text_node_text(status_bar.title, current_activity->title ? current_activity->title : "");
                 update_status_bar(force_redraw);
             }
 
             // Draw the new activity
-            gui_render_activity(current_activity);
+            render_activity(current_activity);
 
             // Register new events
             activity_event_t* l = current_activity->activity_events;
@@ -2374,18 +2363,18 @@ void gui_front_click(void)
     }
 }
 
-static void gui_next_right(void)
+void select_next_right(void)
 {
     if (!idletimer_register_activity(true)) {
-        gui_select_next(current_activity);
+        select_next(current_activity);
         esp_event_post(GUI_EVENT, GUI_WHEEL_RIGHT_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
     }
 }
 
-static void gui_prev_left(void)
+void select_prev_left(void)
 {
     if (!idletimer_register_activity(true)) {
-        gui_select_prev(current_activity);
+        select_prev(current_activity);
         esp_event_post(GUI_EVENT, GUI_WHEEL_LEFT_EVENT, NULL, 0, 50 / portTICK_PERIOD_MS);
     }
 }
@@ -2393,18 +2382,18 @@ static void gui_prev_left(void)
 void gui_next(void)
 {
     if (gui_orientation_flipped) {
-        gui_prev_left();
+        select_prev_left();
     } else {
-        gui_next_right();
+        select_next_right();
     }
 }
 
 void gui_prev(void)
 {
     if (gui_orientation_flipped) {
-        gui_next_right();
+        select_next_right();
     } else {
-        gui_prev_left();
+        select_prev_left();
     }
 }
 
