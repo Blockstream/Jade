@@ -489,16 +489,21 @@ static void enable_relevant_chars(const bool is_mnemonic, const char* word, cons
     JADE_ASSERT(num_enabled > 0);
 
     // Select a random active letter as the selected one
-    uint8_t selected = get_uniform_random_byte(num_enabled);
+    uint8_t iselected = get_uniform_random_byte(num_enabled);
+    gui_view_node_t* selected = NULL;
     for (size_t i = 0; i < btns_len; ++i) {
         JADE_ASSERT(btns[i]->activity == act);
-        gui_set_active(btns[i], enabled[i]);
 
-        // If we haven't set a selected item yet, set it now
-        if (enabled[i] && !selected--) {
-            gui_select_node(btns[i]);
+        // Set item to select
+        if (enabled[i] && !iselected--) {
+            JADE_ASSERT(!selected);
+            selected = btns[i];
         }
     }
+    JADE_ASSERT(selected);
+
+    // Update the ui
+    gui_activity_set_active_selection(act, btns, btns_len, enabled, selected);
 }
 
 // NOTE: only the English wordlist is supported.

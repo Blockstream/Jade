@@ -515,6 +515,36 @@ static void select_action(gui_activity_t* activity)
     }
 }
 
+// Mark a collection of nodes as active or inactive, select one, and redraw the entire activity.
+void gui_activity_set_active_selection(gui_activity_t* activity, gui_view_node_t** nodes, const size_t num_nodes,
+    const bool* active, gui_view_node_t* selected)
+{
+    JADE_ASSERT(activity);
+    JADE_ASSERT(nodes);
+    JADE_ASSERT(num_nodes);
+    JADE_ASSERT(active);
+    JADE_ASSERT(selected);
+
+    bool set_selected = false;
+    JADE_SEMAPHORE_TAKE(gui_mutex);
+    for (size_t i = 0; i < num_nodes; ++i) {
+        JADE_ASSERT(nodes[i]->activity == activity);
+        set_tree_active(nodes[i], active[i]);
+        if (nodes[i] == selected) {
+            JADE_ASSERT(active[i]); // can only select active node
+            gui_select_node(nodes[i]);
+            set_selected = true;
+        }
+    }
+    JADE_SEMAPHORE_GIVE(gui_mutex);
+
+    // 'selected' should have been seen in 'nodes'
+    JADE_ASSERT(set_selected);
+
+    // May as well repaint the whole activity
+    gui_repaint(activity->root_node);
+}
+
 // push a selectable element to the `selectables` list of `activity`
 static void push_selectable(gui_activity_t* activity, gui_view_node_t* node, uint16_t x, uint16_t y)
 {
