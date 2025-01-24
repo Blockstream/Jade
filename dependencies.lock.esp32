@@ -98,6 +98,6 @@ direct_dependencies:
 - espressif/libsodium
 - espressif/nghttp
 - idf
-manifest_hash: 7e5521635493657803d091ca9252cfc19f2844c07c04dca7fd77d460540421c8
+manifest_hash: 6dd050cc930040319a1c8912e0ddb20a434316a91889ec78992aa7a588e733b4
 target: esp32
 version: 2.0.0
