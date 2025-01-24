@@ -60,39 +60,6 @@ static SemaphoreHandle_t writer_shutdown_done = NULL;
 #endif
 #endif // IDF_TARGET_ESP32
 
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-#ifndef CONFIG_JADE_USE_USB_JTAG_SERIAL
-static TaskHandle_t s_tusb_tskh;
-
-static void tusb_device_task(void* arg)
-{
-    while (true) {
-        tud_task();
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-}
-
-esp_err_t tusb_run_task(void)
-{
-    assert(!s_tusb_tskh);
-    void* task_arg = NULL;
-    xTaskCreatePinnedToCore(tusb_device_task, "TinyUSB", 1024 * 4, task_arg, 5, &s_tusb_tskh, 1);
-    if (!s_tusb_tskh) {
-        return ESP_FAIL;
-    }
-    return ESP_OK;
-}
-
-esp_err_t tusb_stop_task(void)
-{
-    assert(s_tusb_tskh);
-    vTaskDelete(s_tusb_tskh);
-    s_tusb_tskh = NULL;
-    return ESP_OK;
-}
-#endif
-#endif // IDF_TARGET_ESP32S3
-
 static void post_exit_event_and_await_death(SemaphoreHandle_t* semaphore_done)
 {
     // Post 'exit' event
@@ -244,10 +211,6 @@ static bool serial_init_internal(void)
     if (err != ESP_OK) {
         return false;
     }
-    err = tusb_run_task();
-    if (err != ESP_OK) {
-        return false;
-    }
     const tinyusb_config_cdcacm_t acm_cfg = { .usb_dev = TINYUSB_USBDEV_0,
         .cdc_port = TINYUSB_CDC_ACM_0,
         .rx_unread_buf_sz = 64,
@@ -355,8 +318,6 @@ void serial_stop(void)
 #ifdef CONFIG_IDF_TARGET_ESP32S3
 #ifndef CONFIG_JADE_USE_USB_JTAG_SERIAL
     esp_err_t err = tusb_cdc_acm_deinit(TINYUSB_CDC_ACM_0);
-    JADE_ASSERT(err == ESP_OK);
-    err = tusb_stop_task();
     JADE_ASSERT(err == ESP_OK);
     err = tinyusb_driver_uninstall();
     JADE_ASSERT(err == ESP_OK);
