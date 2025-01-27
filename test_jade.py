@@ -540,6 +540,7 @@ MULTI_REG_TESTS = "multisig_reg_*.json"
 MULTI_REG_SS_TESTS = "multisig_reg_ss_*.json"
 MULTI_REG_FILE_TESTS = "multisig_file_*.json"
 MULTI_REG_BAD_FILE_TESTS = "multisig_bad_file_*.json"
+DESCRIPTOR_REG_TESTS = "descriptor_*.json"
 DESCRIPTOR_REG_SS_TESTS = "descriptor_ss_*.json"
 SIGN_MSG_TESTS = "msg_*.json"
 SIGN_MSG_FILE_TESTS = "msgfile_*.json"
@@ -3341,8 +3342,8 @@ def test_generic_multisig_ss_signer(jadeapi):
         _check_multisig_registration(jadeapi, multisig_data)
 
 
-def test_miniscript_descriptor_registration(jadeapi):
-    for descriptor_data in _get_test_cases(DESCRIPTOR_REG_SS_TESTS):
+def test_miniscript_descriptor_registration(jadeapi, pattern):
+    for descriptor_data in _get_test_cases(pattern):
         # Register the descriptor
         inputdata = descriptor_data['input']
         rslt = jadeapi.register_descriptor(inputdata['network'],
@@ -3396,10 +3397,6 @@ def test_miniscript_descriptor_registration(jadeapi):
                                                    paths,
                                                    multisig_name=inputdata['descriptor_name'])
                 assert rslt == addr_test['expected_address']
-
-
-def test_miniscript_descriptor_registration_ss_signer(jadeapi):
-    test_miniscript_descriptor_registration(jadeapi)  # for now ...
 
 
 def test_12word_mnemonic(jadeapi):
@@ -3674,7 +3671,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_generic_multisig_files(jadeapi)
 
     # Test descriptor wallets
-    test_miniscript_descriptor_registration(jadeapi)
+    test_miniscript_descriptor_registration(jadeapi, DESCRIPTOR_REG_TESTS)
 
     # Get (receive) green-addresses, get-xpub, and sign-message
     test_get_greenaddress_receive_address(jadeapi)
@@ -3708,9 +3705,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_generic_multisig_ss_signer(jadeapi)
 
     # Test the descriptor wallets again, using a second signer
-    # NOTE: some of these tests assume 'test_miniscript_descriptor_registration()' test
-    # has already been run, to register the descriptors for the test mnemonic signer
-    test_miniscript_descriptor_registration_ss_signer(jadeapi)
+    test_miniscript_descriptor_registration(jadeapi, DESCRIPTOR_REG_SS_TESTS)
 
     test_get_singlesig_receive_address(jadeapi)
     test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
