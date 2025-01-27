@@ -7,7 +7,7 @@ stages:
   - test
   - deploy
 
-image: blockstream/verde@sha256:acd212ebeed9563cc0fdf7f94d03159adfb201342b03f5c0dbf3cc68f986e5a1
+image: blockstream/verde@sha256:391a4337c174f2eb47dc9f31d7e25d19a5f101bbc07fa8a296866c1ee52b8473
 
 test_bip85_rsa_key_gen:
   tags:
@@ -57,6 +57,7 @@ test_configs:
   script:
     - . $HOME/esp/esp-idf/export.sh
     - idf.py all size-components size
+    - source /venv/bin/activate
     - ./tools/fwprep.py build/jade.bin build
     - ./tools/mkindex.py build $(basename $(ls build/*_fw.bin) | cut -d'_' -f1)
     - cp sdkconfig build/

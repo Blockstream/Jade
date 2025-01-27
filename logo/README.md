@@ -1,7 +1,7 @@
 # Files in this directory are compressed using python
 
 ```
-python -c "import zlib; import sys; open(sys.argv[2], 'wb').write(zlib.compress(open(sys.argv[1], 'rb').read(), 9))" uncompressed_file.bin compressed_file.bin.gz
+python -c "from zopfli import zlib; import sys; open(sys.argv[2], 'wb').write(zlib.compress(open(sys.argv[1], 'rb').read()))" uncompressed_file.bin compressed_file.bin.gz
 ```
 
 # The input file used is the output of GIMP RGB C-Source image dump (file.c) which contains a stucture Picture.

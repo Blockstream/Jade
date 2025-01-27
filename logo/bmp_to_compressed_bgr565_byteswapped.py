@@ -1,4 +1,5 @@
-import zlib
+from zopfli import zlib
+
 import struct
 from PIL import Image
 
@@ -28,7 +29,7 @@ def compress_to_bgr565(bmp_file):
 
     data_len = data_len.to_bytes(2, 'little')
     compressed_data = bytes([width]) + data_len + swapped_data
-    compressed_data = zlib.compress(compressed_data, level=9)
+    compressed_data = zlib.compress(compressed_data)
     compressed_file = bmp_file.replace('.bmp', '.bin.gz')
     with open(compressed_file, "wb") as file:
         file.write(compressed_data)

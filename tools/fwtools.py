@@ -1,3 +1,4 @@
+from zopfli.zlib import compress as zopfli_compress
 import zlib
 import logging
 import re
@@ -89,7 +90,7 @@ def parse_compressed_filename(filepath):
 # Returns compressed data
 def compress(uncompressed):
     logger.info(f'Compressing {len(uncompressed)} bytes')
-    compressed = zlib.compress(uncompressed, 9)
+    compressed = zopfli_compress(uncompressed)
     logger.info(f'Compressed to {len(compressed)} bytes')
     return compressed
 
