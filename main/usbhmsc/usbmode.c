@@ -791,17 +791,16 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
     if (!deserialise_psbt(psbt_bytes, psbt_len, &psbt) || !psbt) {
         // Failed ...
         // Try to interpret as base64 text file
-        char* const psbt64 = JADE_MALLOC_PREFER_SPIRAM(psbt_len + 1);
-        const size_t bytes_read = read_file_to_buffer(filename, (uint8_t*)psbt64, psbt_len);
-        JADE_ASSERT(bytes_read == psbt_len);
 
-        // Add trailing terminator and trim any trailing whitespace
-        do {
-            psbt64[psbt_len] = '\0';
-        } while (isspace((unsigned char)(psbt64[--psbt_len])));
+        // Reduce length if file includes trailing whitespace
+        while (psbt_len && isspace(psbt_bytes[psbt_len - 1])) {
+            --psbt_len;
+        }
 
         size_t written = 0;
-        const int wret = wally_base64_to_bytes(psbt64, 0, psbt_bytes, psbt_len, &written);
+        char* const psbt64 = (char*)psbt_bytes;
+        psbt_bytes = JADE_MALLOC_PREFER_SPIRAM(psbt_len); // sufficient
+        const int wret = wally_base64_n_to_bytes(psbt64, psbt_len, 0, psbt_bytes, psbt_len, &written);
         free(psbt64);
 
         if (wret != WALLY_OK || !written || written > psbt_len) {
