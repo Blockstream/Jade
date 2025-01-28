@@ -53,7 +53,7 @@
 
 gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon);
 gui_activity_t* make_qr_back_continue_activity(
-    const char* message[], size_t message_size, const char* url, const Icon* qr_icon, bool default_selection);
+    const char* message[], size_t message_size, const char* url, Icon* qr_icon, bool default_selection);
 
 gui_activity_t* make_show_xpub_qr_activity(
     const char* label, const char* pathstr, Icon* icons, size_t num_icons, size_t frames_per_qr_icon);
