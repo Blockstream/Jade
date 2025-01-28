@@ -118,6 +118,7 @@ bool bcur_parse_bip39(
         CborValue next;
         size_t tmp_len = mnemonic_len - write_pos;
         cberr = cbor_value_copy_text_string(&arrayItem, mnemonic + write_pos, &tmp_len, &next);
+        JADE_ASSERT(cberr == CborNoError);
         write_pos += tmp_len;
         arrayItem = next;
     }
@@ -451,6 +452,7 @@ static void encode_hdkey(CborEncoder* encoder, const uint32_t fingerprint, const
 
         {
             cberr = cbor_encode_uint(&key_path_map_encoder, 1);
+            JADE_ASSERT(cberr == CborNoError);
             CborEncoder key_path_array_encoder;
             cberr = cbor_encoder_create_array(&key_path_map_encoder, &key_path_array_encoder, 2 * path_len);
             JADE_ASSERT(cberr == CborNoError);
