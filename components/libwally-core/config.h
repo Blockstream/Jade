@@ -73,8 +73,10 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #define HAVE_SYS_TYPES_H 1
 
-/* Define if we have unaligned access */
+/* Define if we have unaligned access (If not already defined) */
+#ifndef HAVE_UNALIGNED_ACCESS
 #define HAVE_UNALIGNED_ACCESS 1
+#endif
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
