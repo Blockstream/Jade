@@ -29,6 +29,10 @@ device_logger.setLevel(logging.DEBUG)
 device_logger.addHandler(jadehandler)
 
 
+def wait(seconds):
+    time.sleep(seconds)
+
+
 def h2b(hexdata):
     if hexdata is None:
         return None
@@ -703,7 +707,7 @@ def test_very_bad_message(jade):
     for badmsg in [empty, text, truncated]:
         # Send the bad message, and after a pause a good message
         jade.write(badmsg)
-        time.sleep(3)
+        wait(3)
         jade.write_request(goodmsg)
 
         # We should receive a bag of errors
@@ -743,7 +747,7 @@ def test_random_bytes(jade):
         jade.write(noise)
         nsent += len(noise)
 
-    time.sleep(5)
+    wait(5)
     goodmsg = jade.build_request('goodmsg', 'add_entropy', {'entropy': 'somebytes'.encode()})
     jade.write_request(goodmsg)
 
@@ -813,7 +817,7 @@ def test_too_much_input(jade, has_psram):
     assert int(error['data']) == expected_buffer_size
 
     # After a short pause send a good message
-    time.sleep(5)
+    wait(5)
     goodmsg = jade.build_request('trailer', 'add_entropy', {'entropy': 'random'.encode()})
     jade.write_request(goodmsg)
 
@@ -844,7 +848,7 @@ def test_split_message(jade):
     msg = cbor.dumps({'method': 'get_version_info', 'id': '24680'})
     for msgpart in [msg[:5], msg[5:10], msg[10:]]:
         jade.write(msgpart)
-        time.sleep(0.25)
+        wait(0.25)
 
     reply = jade.read_response()
 
@@ -3648,7 +3652,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.ping()
     assert rslt == 0  # idle
 
-    time.sleep(5)  # Lets idle tasks clean up
+    wait(5)  # Lets idle tasks clean up
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
@@ -3741,7 +3745,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
 
-    time.sleep(5)  # Lets idle tasks clean up
+    wait(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
     check_mem_stats(startinfo, endinfo, has_psram, has_ble)
 
@@ -3768,7 +3772,7 @@ def run_interface_tests(jadeapi,
     rslt = jadeapi.logout()
     assert rslt is True
 
-    time.sleep(5)  # Lets idle tasks clean up
+    wait(5)  # Lets idle tasks clean up
     startinfo = jadeapi.get_version_info()
     assert len(startinfo) == NUM_VALUES_VERINFO
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
@@ -3845,7 +3849,7 @@ def run_interface_tests(jadeapi,
     rslt = jadeapi.logout()
     assert rslt is True
 
-    time.sleep(5)  # Lets idle tasks clean up
+    wait(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
     check_mem_stats(startinfo, endinfo, has_psram, has_ble)
 
@@ -3879,7 +3883,7 @@ def mixed_sources_test(serialport, bleid):
     # 1. Authorise over serial, check BLE connection fails
     with JadeAPI.create_serial(serialport, timeout=SRTIMEOUT) as jade_serial:
         jade_serial.set_mnemonic(TEST_MNEMONIC)
-        time.sleep(1)
+        wait(1)
 
         rslt = jade_serial.get_xpub(network, path)
         assert rslt == expected
@@ -3934,7 +3938,7 @@ def mixed_sources_test(serialport, bleid):
             assert rslt is True
 
     # 3. Check BLE re-enabled, and both interfces can be used when user not authenticated
-    time.sleep(1)
+    wait(1)
     with JadeAPI.create_serial(serialport, timeout=SRTIMEOUT) as jade_serial:
         info1 = jade_serial.get_version_info()
         with JadeAPI.create_ble(serial_number=bleid) as jade_ble:
@@ -4033,7 +4037,7 @@ def test_ble_connection_fails(info, args):
 def check_stuck():
     # NOTE: belt'n'braces - serial/ble reads/writes should timeout before this does
     timeout = 60  # minutes
-    time.sleep(60 * timeout)
+    wait(60 * timeout)
     err_str = "tests got caught running longer than {} minutes, terminating"
     logger.error(err_str.format(timeout))
     logger.handlers[0].flush()
