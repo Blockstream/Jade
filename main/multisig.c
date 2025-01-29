@@ -543,7 +543,7 @@ void multisig_get_valid_record_names(
 
     // Load description of each - remove ones that are not valid for this wallet or passed script type
     size_t written = 0;
-    for (int i = 0; i < num_multisigs; ++i) {
+    for (size_t i = 0; i < num_multisigs; ++i) {
         const char* errmsg = NULL;
         multisig_data_t multisig_data;
         if (multisig_load_from_storage(names[i], &multisig_data, NULL, 0, NULL, &errmsg)

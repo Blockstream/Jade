@@ -698,7 +698,7 @@ void descriptor_get_valid_record_names(
 
     // Load description of each - remove ones that are not valid for this wallet
     size_t written = 0;
-    for (int i = 0; i < num_descriptors; ++i) {
+    for (size_t i = 0; i < num_descriptors; ++i) {
         const char* errmsg = NULL;
         descriptor_data_t descriptor_data;
         if (descriptor_load_from_storage(names[i], &descriptor_data, &errmsg)) {
