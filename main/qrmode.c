@@ -122,6 +122,39 @@ static void rotate_flags(uint32_t* flags, const uint32_t high, const uint32_t lo
     }
 }
 
+// Rotate scripttype flags
+// Legacy -> wrapped segwit -> segwit (v0) -> taproot (segwit v1) -> legacy ...
+static void rotate_scripttypes(uint32_t* flags, const bool reverse)
+{
+    JADE_ASSERT(flags);
+
+    if (reverse) {
+        if (contains_flags(*flags, QR_XPUB_LEGACY | QR_XPUB_WITNESS)) {
+            *flags &= ~QR_XPUB_WITNESS;
+        } else if (contains_flags(*flags, QR_XPUB_LEGACY)) {
+            *flags ^= (QR_XPUB_LEGACY | QR_XPUB_TAPROOT);
+        } else if (contains_flags(*flags, QR_XPUB_TAPROOT)) {
+            *flags ^= (QR_XPUB_WITNESS | QR_XPUB_TAPROOT);
+        } else if (contains_flags(*flags, QR_XPUB_WITNESS)) {
+            *flags |= QR_XPUB_LEGACY;
+        } else { // ie. currently 0/default/uninitialised - treat as 'segwit v0'
+            *flags |= (QR_XPUB_LEGACY | QR_XPUB_WITNESS);
+        }
+    } else {
+        if (contains_flags(*flags, QR_XPUB_LEGACY | QR_XPUB_WITNESS)) {
+            *flags &= ~QR_XPUB_LEGACY;
+        } else if (contains_flags(*flags, QR_XPUB_WITNESS)) {
+            *flags ^= (QR_XPUB_WITNESS | QR_XPUB_TAPROOT);
+        } else if (contains_flags(*flags, QR_XPUB_TAPROOT)) {
+            *flags ^= (QR_XPUB_LEGACY | QR_XPUB_TAPROOT);
+        } else if (contains_flags(*flags, QR_XPUB_LEGACY)) {
+            *flags |= QR_XPUB_WITNESS;
+        } else { // ie. currently 0/default/uninitialised - treat as 'segwit v0'
+            *flags |= QR_XPUB_TAPROOT;
+        }
+    }
+}
+
 static uint8_t qr_framerate_from_flags(const uint32_t qr_flags)
 {
     // Frame periods around 800ms, 450ms, 270ms  (see GUI_TARGET_FRAMERATE)
@@ -159,6 +192,9 @@ static const char* qr_density_desc_from_flags(const uint32_t qr_flags)
 static script_variant_t xpub_script_variant_from_flags(const uint32_t qr_flags)
 {
     // unset/default is treated as 'high' (ie. the middle value)
+    if (contains_flags(qr_flags, QR_XPUB_TAPROOT)) {
+        return P2TR;
+    }
     if (contains_flags(qr_flags, QR_XPUB_MULTISIG)) {
         return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? MULTI_P2WSH_P2SH
             : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? MULTI_P2SH
@@ -173,6 +209,7 @@ static inline const char* xpub_scripttype_desc_from_flags(const uint32_t qr_flag
     // unset/default is treated as 'high' (ie. the middle value)
     return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? "Wrapped Segwit"
         : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? "Legacy"
+        : contains_flags(qr_flags, QR_XPUB_TAPROOT)                   ? "Taproot"
                                                                       : "Native Segwit";
 }
 static inline const char* xpub_wallettype_desc_from_flags(const uint32_t qr_flags)
@@ -269,9 +306,9 @@ static bool handle_xpub_options(uint32_t* qr_flags)
                     gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
                     if (gui_activity_wait_event(act_scripttype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
                         if (ev_id == GUI_WHEEL_LEFT_EVENT) {
-                            rotate_flags(qr_flags, QR_XPUB_WITNESS, QR_XPUB_LEGACY);
+                            rotate_scripttypes(qr_flags, true);
                         } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            rotate_flags(qr_flags, QR_XPUB_LEGACY, QR_XPUB_WITNESS);
+                            rotate_scripttypes(qr_flags, false);
                         } else if (ev_id == gui_get_click_event()) {
                             // Done
                             break;
