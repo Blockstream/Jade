@@ -374,6 +374,11 @@ static void encode_script_variant_tag(CborEncoder* encoder, const script_variant
         cberr = cbor_encode_tag(encoder, 401);
         JADE_ASSERT(cberr == CborNoError);
         break;
+    // Taproot
+    case P2TR:
+        cberr = cbor_encode_tag(encoder, 409);
+        JADE_ASSERT(cberr == CborNoError);
+        break;
     default:
         JADE_ASSERT_MSG(false, "Unhandled script variant");
     }
