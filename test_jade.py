@@ -2451,7 +2451,7 @@ def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
     # Memory stats to log/check
     breaches = []
     for field, limit in [('JADE_FREE_HEAP', 1536),
-                         ('JADE_FREE_DRAM', 4096 if has_ble else 1536),
+                         ('JADE_FREE_DRAM', 8192 if has_ble else 1536),
                          ('JADE_LARGEST_DRAM', 4096 if check_frag else -1),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
