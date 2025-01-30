@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.34] - 2025-03-12
+### Added
+- Add support for signing bip86 single-key p2tr inputs and for registering bip86 p2tr(key) descriptors
+- Add support for generating and verifying single-key p2tr addresses, and verifying change to such an address
+- Extend xpub export via QR to support bip86 taproot paths
+
+### Changed
+- Performance improvements for txn signing
+- Update libwally to version 1.4.0
+- Update ESP-IDF base firmware to v5.4, and update dependencies including i2c driver
+- Disable building diy touch devices as dependencies not yet migrated to new i2c driver
+- Internal code quality review comments actioned
+
+### Fixed
+- Fixed wrapping issue displaying long passphrases on JadePlus devices
+- Fix display of battery voltage in Options->Device menus for JadePlus devices
+- Fixed restarting serial driver once usb-storage action has been completed and the device removed
+- Fixed issues iterating the characters on the keyboard screen when entering a 12- or 24-word recovery phrase
+- Reinstate camera config for qemu with web display
+- Allow usb-storage connection to retry if serial usb is connected
+- Add vertical flip for OV5640 (for diy devices, eg. T-Display S3 PRO)
+
 ## [1.0.33] - 2024-11-26
 ### Added
 - Add 'extended_reply' to provide more information during firmware upgrade process
