@@ -176,6 +176,14 @@ ESP32S3_CHIP_BOARDS = ['JADE_V2', 'TTGO_TDISPLAYS3', 'TTGO_TDISPLAYS3PROCAMERA',
 TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
 slot invite sadness banana'
+# The seed resulting from TEST_MNEMONIC
+TEST_MNEMONIC_SEED = \
+    'f1d56befd46eddfc31cda129dc76cd4a2b41d2cf86f10a5ccf0787617afa3869' \
+    '967aab0224742ccc002056747ea09b68598ddf79c027c37a7c3ec923004593da'
+# The master blinding key resulting from TEST_MNEMONIC
+TEST_MNEMONIC_MASTER_BLINDING_KEY = \
+    'afacc503637e85da661ca1706c4ea147f1407868c48d8f92dd339ac272293cdc'
+
 
 TEST_MNEMONIC_PREFIXES = 'fish inne face gin orc perm usef meth fen kidn chuc \
 part fav suns draw limb scie cran ova let slot invi sadn bana'
@@ -410,8 +418,15 @@ TEST_SEED_SINGLE_SIG = 'b90e532426d0dc20fffe01037048c018e940300038b165c211915c67
 # The single-sig mnemonic used for test case generation.
 # See the commit description adding this line for details of the
 # resulting descriptors and multisig testing setup.
-TEST_MNEMONIC_SINGLE_SIG = 'paddle puppy easily actor poet apart screen drastic ' \
-    'city front predict damp'
+TEST_MNEMONIC_SINGLE_SIG = \
+    'paddle puppy easily actor poet apart screen drastic city front predict damp'
+# The seed resulting from TEST_MNEMONIC_SINGLE_SIG
+TEST_MNEMONIC_SS_SEED = \
+    '5eff11cb0a00759be57e20d20d8076b80e8954df54318967116269909b501c10' \
+    '99c27239c6e1cc1e9211a9b8157f150d58fc3f88ba79fd7c1515f3f317732337'
+# The master blinding key resulting from TEST_MNEMONIC_SINGLE_SIG
+TEST_MNEMONIC_SS_MASTER_BLINDING_KEY = \
+    'f5c572fce078ab45598b5c661395ee0bfe680a67704061151ad354d93170d187'
 
 # NOTE: for get-xpub the root (empty path array) can be accessed (to allow
 # external creation of watch-only public key tree)
