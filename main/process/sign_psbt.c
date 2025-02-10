@@ -679,7 +679,7 @@ static bool validate_outputs(const network_t network_id, struct wally_psbt* psbt
     return true;
 }
 
-// Sign a psbt - the passed wally psbt struct is updated with any signatures.
+// Sign a psbt/pset - the passed wally psbt struct is updated with any signatures.
 // Returns 0 if no errors occurred - does not necessarily indicate that signatures were added.
 // Returns an rpc/message error code on error, and the error string should be populated.
 int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** errmsg)
@@ -688,10 +688,10 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
     JADE_INIT_OUT_PPTR(errmsg);
     JADE_ASSERT(network_id != NETWORK_NONE);
 
-    // Elements/PSET not supported
     size_t is_elements = 0;
-    if (wally_psbt_is_elements(psbt, &is_elements) != WALLY_OK || is_elements) {
-        *errmsg = "Liquid/Elements PSET not supported";
+    JADE_WALLY_VERIFY(wally_psbt_is_elements(psbt, &is_elements));
+    if (!is_elements != !network_is_liquid(network_id)) {
+        *errmsg = "Network/psbt type mismatch";
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
@@ -727,6 +727,7 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
         struct wally_psbt_input* input = &psbt->inputs[index];
 
         // Get the utxo being spent
+        // FIXME: for btc only accept 'non-witness utxo' ?
         const struct wally_tx_output* utxo = NULL;
         if (wally_psbt_get_input_best_utxo(psbt, index, &utxo) != WALLY_OK || !utxo) {
             *errmsg = "Input utxo missing";
@@ -824,7 +825,8 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
                         multisig_data = NULL;
                     }
 
-                    if (!multisig_data) {
+                    // NOTE: descriptors not supported for elements atm
+                    if (!multisig_data && !is_elements) {
                         descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
                         if (get_suitable_descriptor_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
                                 utxo->script_len, network_id, wallet_name, sizeof(wallet_name), descriptor)) {
