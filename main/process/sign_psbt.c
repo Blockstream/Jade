@@ -467,10 +467,11 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
 
     // Check each output in turn
     for (size_t index = 0; index < psbt->num_outputs; ++index) {
+        output_info_t* const outinfo = output_info + index;
         JADE_LOGD("Considering output %u for change", index);
 
         // By default, assume not a validated or change output, and so user must verify
-        JADE_ASSERT(!(output_info[index].flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
+        JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
 
         // Find the first key belonging to this signer
         if (!key_iter_output_begin_public(psbt, index, &iter)) {
@@ -526,9 +527,9 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             JADE_LOGI("Output %u singlesig %s path/script validated", index, is_change ? "change" : "receive");
 
             // Set appropriate flags
-            output_info[index].flags |= OUTPUT_FLAG_VALIDATED;
+            outinfo->flags |= OUTPUT_FLAG_VALIDATED;
             if (is_change) {
-                output_info[index].flags |= OUTPUT_FLAG_CHANGE;
+                outinfo->flags |= OUTPUT_FLAG_CHANGE;
             }
 
             // Check the path is as expected
@@ -536,9 +537,9 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
                 // Not our standard change path - add warning
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                 const bool have_path_str = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
-                const int ret = snprintf(output_info[index].message, sizeof(output_info[index].message),
-                    "Unusual receive path: %s", have_path_str ? path_str : "too long");
-                JADE_ASSERT(ret > 0 && ret < sizeof(output_info[index].message));
+                const int ret = snprintf(outinfo->message, sizeof(outinfo->message), "Unusual receive path: %s",
+                    have_path_str ? path_str : "too long");
+                JADE_ASSERT(ret > 0 && ret < sizeof(outinfo->message));
             }
         } else if (signing_flags == (PSBT_SIGNING_GREEN_MULTISIG | PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED)) {
             // Signed only Green multisig inputs, only consider similar outputs
@@ -560,7 +561,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             JADE_LOGI("Output %u green-multisig path/script validated", index);
 
             // Set appropriate flags - note Green wallet-output is always assumed to be change
-            output_info[index].flags |= (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE);
+            outinfo->flags |= (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE);
 
         } else if (signing_flags == (PSBT_SIGNING_MULTISIG | PSBT_SIGNING_SINGLE_MULTISIG_RECORD)) {
             // Generic multisig or descriptor
@@ -590,9 +591,9 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
                 wallet_name);
 
             // Set appropriate flags
-            output_info[index].flags |= OUTPUT_FLAG_VALIDATED;
+            outinfo->flags |= OUTPUT_FLAG_VALIDATED;
             if (is_change) {
-                output_info[index].flags |= OUTPUT_FLAG_CHANGE;
+                outinfo->flags |= OUTPUT_FLAG_CHANGE;
             }
 
             // Check path tail looks as expected
@@ -600,9 +601,9 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
                 // Not our standard change path - add warning
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                 const bool have_path_str = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
-                const int ret = snprintf(output_info[index].message, sizeof(output_info[index].message),
-                    "Unusual change path suffix: %s", have_path_str ? path_str : "too long");
-                JADE_ASSERT(ret > 0 && ret < sizeof(output_info[index].message));
+                const int ret = snprintf(outinfo->message, sizeof(outinfo->message), "Unusual change path suffix: %s",
+                    have_path_str ? path_str : "too long");
+                JADE_ASSERT(ret > 0 && ret < sizeof(outinfo->message));
             }
         } else {
             // Skip if we did not sign *only* multisig inputs for a single multisig record
