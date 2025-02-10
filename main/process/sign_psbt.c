@@ -32,6 +32,15 @@ bool show_btc_transaction_outputs_activity(
 bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
 
+bool show_elements_transaction_outputs_activity(network_t network_id, const struct wally_tx* tx,
+    const output_info_t* output_info, const asset_info_t* assets, size_t num_assets);
+bool show_elements_swap_activity(network_t network_id, bool initial_proposal, const asset_summary_t* in_sums,
+    size_t num_in_sums, const asset_summary_t* out_sums, size_t num_out_sums, const asset_info_t* assets,
+    size_t num_assets);
+bool show_elements_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx,
+    const output_info_t* outinfo, script_flavour_t aggregate_inputs_scripts_flavour, uint64_t fees, TxType_t txtype,
+    bool tx_is_partial);
+
 // From https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
 static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; // 'psbt' + 0xff
 
@@ -848,36 +857,76 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
     }
 
     // Explicit fee is only valid for Liquid
-    JADE_ASSERT(!explicit_fee || network_is_liquid(network_id));
+    JADE_ASSERT(!explicit_fee || is_elements);
 
-    // Sanity check amounts
-    uint64_t output_amount;
-    JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &output_amount));
-    if (output_amount > input_amount) {
-        *errmsg = "Invalid input/output amounts";
-        retval = CBOR_RPC_BAD_PARAMETERS;
-        goto cleanup;
+    if (is_elements) {
+        // FIXME: some assumptions for now
+        const TxType_t txtype = TXTYPE_SEND_PAYMENT;
+        const bool is_partial = false;
+        const asset_info_t* assets = NULL;
+        const size_t num_assets = 0;
+
+        if (txtype == TXTYPE_SWAP) {
+#if 0
+            // FIXME: Support swaps/partial txs
+            // Confirm wallet-summary info (ie. net inputs and outputs)
+            if (!show_elements_swap_activity(network_id, is_partial, in_sums, num_in_sums,
+                    out_sums, num_out_sums, assets, num_assets)) {
+                *errmsg = "User declined to sign psbt";
+                retval = CBOR_RPC_USER_CANCELLED;
+                goto cleanup;
+            }
+#else
+            *errmsg = "Swap psbt signing is not yet supported";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+#endif
+        } else {
+            // Confirm all non-change outputs
+            if (!show_elements_transaction_outputs_activity(network_id, tx, output_info, assets, num_assets)) {
+                *errmsg = "User declined to sign psbt";
+                retval = CBOR_RPC_USER_CANCELLED;
+                goto cleanup;
+            }
+        }
+        JADE_LOGD("User accepted outputs");
+
+        // User to agree fee amount
+        // Check to see whether user accepted or declined
+        if (!show_elements_fee_confirmation_activity(
+                network_id, tx, output_info, aggregate_inputs_scripts_flavour, explicit_fee, txtype, is_partial)) {
+            *errmsg = "User declined to sign psbt";
+            retval = CBOR_RPC_USER_CANCELLED;
+            goto cleanup;
+        }
+        JADE_LOGD("User accepted fee");
+    } else {
+        // Bitcoin: Sanity check amounts
+        uint64_t output_amount;
+        JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &output_amount));
+        if (output_amount > input_amount) {
+            *errmsg = "Invalid input/output amounts";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
+
+        if (!show_btc_transaction_outputs_activity(network_id, tx, output_info)) {
+            *errmsg = "User declined to sign psbt";
+            retval = CBOR_RPC_USER_CANCELLED;
+            goto cleanup;
+        }
+        JADE_LOGD("User accepted outputs");
+
+        // User to agree fee amount
+        // Check to see whether user accepted or declined
+        if (!show_btc_fee_confirmation_activity(
+                network_id, tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
+            *errmsg = "User declined to sign psbt";
+            retval = CBOR_RPC_USER_CANCELLED;
+            goto cleanup;
+        }
+        JADE_LOGD("User accepted fee");
     }
-
-    // User to verify outputs and fee amount
-    if (!show_btc_transaction_outputs_activity(network_id, tx, output_info)) {
-        *errmsg = "User declined to sign psbt";
-        retval = CBOR_RPC_USER_CANCELLED;
-        goto cleanup;
-    }
-
-    JADE_LOGD("User accepted outputs");
-
-    // User to agree fee amount
-    // Check to see whether user accepted or declined
-    if (!show_btc_fee_confirmation_activity(
-            network_id, tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
-        *errmsg = "User declined to sign psbt";
-        retval = CBOR_RPC_USER_CANCELLED;
-        goto cleanup;
-    }
-
-    JADE_LOGD("User accepted fee");
 
     // Show warning if nothing to sign
     if (!signing_flags) {
