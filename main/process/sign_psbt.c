@@ -736,7 +736,10 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
         }
-        input_amount += utxo->satoshi;
+        if (!is_elements) {
+            // Bitcoin: Collect input total for fee calculation
+            input_amount += utxo->satoshi;
+        }
 
         // If we are signing this input, look at the script type, sighash, multisigs etc.
         if (key_iter_input_begin_public(psbt, index, &iter)) {
@@ -1086,28 +1089,27 @@ void sign_psbt_process(void* process_ptr)
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
 
-    if (network_is_liquid(network_id)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "sign_psbt call not appropriate for liquid network");
-        goto cleanup;
-    }
-
-    // psbt must be sent as bytes
-    size_t psbt_len_in = 0;
-    const uint8_t* psbt_bytes_in = NULL;
-    rpc_get_bytes_ptr("psbt", &params, &psbt_bytes_in, &psbt_len_in);
-    if (!psbt_bytes_in || !psbt_len_in) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract psbt bytes from parameters");
-        goto cleanup;
-    }
-
-    // Parse to wally structure
     struct wally_psbt* psbt = NULL;
-    if (!deserialise_psbt(psbt_bytes_in, psbt_len_in, &psbt)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract psbt from passed bytes");
-        goto cleanup;
+
+    {
+        // psbt must be sent as bytes
+        const uint8_t* bytes = NULL;
+        size_t bytes_len = 0;
+        rpc_get_bytes_ptr("psbt", &params, &bytes, &bytes_len);
+        if (!bytes || !bytes_len) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract psbt bytes from parameters");
+            goto cleanup;
+        }
+
+        // Parse to wally structure
+        if (!deserialise_psbt(bytes, bytes_len, &psbt)) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract psbt from passed bytes");
+            goto cleanup;
+        }
+        jade_process_call_on_exit(process, jade_wally_free_psbt_wrapper, psbt);
     }
-    jade_process_call_on_exit(process, jade_wally_free_psbt_wrapper, psbt);
 
     // Sign the psbt - parameter updated with any signatures
     const char* errmsg = NULL;
@@ -1117,26 +1119,26 @@ void sign_psbt_process(void* process_ptr)
         goto cleanup;
     }
 
-    // Serialise updated psbt
-    size_t psbt_len_out = 0;
-    uint8_t* psbt_bytes_out = NULL;
-    if (!serialise_psbt(psbt, &psbt_bytes_out, &psbt_len_out)) {
+    // Serialise signed psbt
+    uint8_t* bytes = NULL;
+    size_t bytes_len = 0;
+    if (!serialise_psbt(psbt, &bytes, &bytes_len)) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to serialise sign psbt");
         goto cleanup;
     }
-    jade_process_free_on_exit(process, psbt_bytes_out);
+    jade_process_free_on_exit(process, bytes);
 
     // Send as cbor message - maybe split over N messages if the result is large
     char original_id[MAXLEN_ID + 1];
     size_t original_id_len = 0;
     rpc_get_id(&process->ctx.value, original_id, sizeof(original_id), &original_id_len);
 
-    const int nmsgs = (psbt_len_out / PSBT_OUT_CHUNK_SIZE) + 1;
+    const int nmsgs = (bytes_len / PSBT_OUT_CHUNK_SIZE) + 1;
     uint8_t* const msgbuf = JADE_MALLOC(MAX_OUTPUT_MSG_SIZE);
-    uint8_t* chunk = psbt_bytes_out;
+    uint8_t* chunk = bytes;
     for (size_t imsg = 0; imsg < nmsgs; ++imsg) {
-        JADE_ASSERT(chunk < psbt_bytes_out + psbt_len_out);
-        const size_t remaining = psbt_bytes_out + psbt_len_out - chunk;
+        JADE_ASSERT(chunk < bytes + bytes_len);
+        const size_t remaining = bytes + bytes_len - chunk;
         const size_t chunk_len = remaining < PSBT_OUT_CHUNK_SIZE ? remaining : PSBT_OUT_CHUNK_SIZE;
         const size_t seqnum = imsg + 1;
         jade_process_reply_to_message_bytes_sequence(
