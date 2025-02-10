@@ -15,6 +15,7 @@
 #include "../utils/network.h"
 #include "../utils/psbt.h"
 #include "../utils/util.h"
+#include "../utils/wally_ext.h"
 #include "../wallet.h"
 
 #include <sodium/utils.h>
@@ -30,8 +31,6 @@ bool show_btc_transaction_outputs_activity(
     const char* network, const struct wally_tx* tx, const output_info_t* output_info);
 bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
-
-static void jade_wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
 
 // From https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
 static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; // 'psbt' + 0xff

@@ -9,6 +9,7 @@
 #include <freertos/task.h>
 #include <stdint.h>
 #include <wally_map.h>
+#include <wally_psbt.h>
 #include <wally_transaction.h>
 
 /* index == 0 is reserved for idf internal use,
@@ -145,4 +146,6 @@ void jade_wally_init(void)
 void jade_wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
 void jade_wally_free_map_wrapper(void* map) { JADE_WALLY_VERIFY(wally_map_free((struct wally_map*)map)); }
+
+void jade_wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
 #endif // AMALGAMATED_BUILD
