@@ -39,7 +39,6 @@ void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* all_sig
 
 static const char TX_TYPE_STR_SWAP[] = "swap";
 static const char TX_TYPE_STR_SEND_PAYMENT[] = "send_payment";
-typedef enum { TXTYPE_UNKNOWN, TXTYPE_SEND_PAYMENT, TXTYPE_SWAP } TxType_t;
 
 // Map a txtype string to an enum value
 #define TX_TYPE_STR_MATCH(typestr) ((len == sizeof(typestr) - 1 && !strncmp(type, typestr, sizeof(typestr) - 1)))
@@ -513,6 +512,23 @@ static bool add_output_info(
     return true;
 }
 
+bool show_elements_fee_confirmation_activity(const char* network, const struct wally_tx* tx,
+    const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t fees,
+    const TxType_t txtype, const bool tx_is_partial)
+{
+    JADE_ASSERT(network);
+    JADE_ASSERT(tx);
+    JADE_ASSERT(outinfo);
+
+    const char* const warning_msg
+        = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
+    const char* title
+        = (txtype == TXTYPE_SWAP) ? (tx_is_partial ? "Swap Proposal" : "Complete Swap") : "Send Transaction";
+
+    // Return whether the user accepts or declines
+    return show_elements_final_confirmation_activity(network, title, fees, warning_msg);
+}
+
 /*
  * The message flow here is complicated because we cater for both a legacy flow
  * for standard deterministic EC signatures (see rfc6979) and a newer message
@@ -937,13 +953,10 @@ void sign_liquid_tx_process(void* process_ptr)
         // Partial tx without fees - can skip the fee screen ?
         JADE_LOGI("No fees for partial tx, so skipping fee confirmation screen");
     } else {
-        const char* const warning_msg
-            = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-        const char* title
-            = (txtype == TXTYPE_SWAP) ? (tx_is_partial ? "Swap Proposal" : "Complete Swap") : "Send Transaction";
-
+        // User to agree fee amount
         // If user cancels we'll send the 'cancelled' error response for the last input message only
-        if (!show_elements_final_confirmation_activity(network, title, fees, warning_msg)) {
+        if (!show_elements_fee_confirmation_activity(
+                network, tx, output_info, aggregate_inputs_scripts_flavour, fees, txtype, tx_is_partial)) {
             // If using ae-signatures, we need to load the message to send the error back on
             if (use_ae_signatures) {
                 jade_process_load_in_message(process, true);

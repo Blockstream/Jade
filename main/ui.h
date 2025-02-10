@@ -83,6 +83,8 @@ typedef enum { QR_GUIDES_NONE, QR_GUIDES_SMALL, QR_GUIDES_LARGE } qr_frame_guide
 #define OUTPUT_FLAG_CHANGE 8
 #define OUTPUT_FLAG_HAS_UNBLINDED 16
 
+typedef enum { TXTYPE_UNKNOWN, TXTYPE_SEND_PAYMENT, TXTYPE_SWAP } TxType_t;
+
 typedef struct {
     char message[128];
     uint8_t blinding_key[33];
