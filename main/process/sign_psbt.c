@@ -452,23 +452,77 @@ static bool get_suitable_descriptor_record(const key_iter* iter, const uint32_t*
 }
 
 // Examine outputs for change we can automatically validate
-static void validate_any_change_outputs(const network_t network_id, struct wally_psbt* psbt,
-    const uint8_t signing_flags, const char* wallet_name, const multisig_data_t* multisig_data,
-    const descriptor_data_t* descriptor, output_info_t* output_info)
+static bool validate_outputs(const network_t network_id, struct wally_psbt* psbt, const uint8_t signing_flags,
+    const char* wallet_name, const multisig_data_t* multisig_data, const descriptor_data_t* descriptor,
+    output_info_t* output_info, uint64_t* explicit_fee, const char** errmsg)
 {
     JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(psbt);
-    JADE_ASSERT(signing_flags);
     // wallet_name, multisig_data and descriptor optional
     JADE_ASSERT(output_info);
+    JADE_INIT_OUT_SIZE(explicit_fee);
+    JADE_INIT_OUT_PPTR(errmsg);
 
+    const bool is_liquid = network_is_liquid(network_id);
     JADE_ASSERT(!multisig_data || !descriptor); // cannot have both
+    JADE_ASSERT(!is_liquid || !descriptor); // atm do not support liquid descriptors
+
+    uint8_t policy_asset[ASSET_TAG_LEN];
+    if (is_liquid) {
+        network_to_policy_asset(network_id, policy_asset, sizeof(policy_asset));
+    }
 
     key_iter iter; // Holds any public key in use
 
     // Check each output in turn
     for (size_t index = 0; index < psbt->num_outputs; ++index) {
+        size_t written = 0;
         output_info_t* const outinfo = output_info + index;
+
+        // If liquid, look for blinding data and explicit fees (scriptless outputs)
+        if (is_liquid) {
+            if ((wally_psbt_get_output_asset_commitment_len(psbt, index, &written) == WALLY_OK && written)
+                || (wally_psbt_get_output_value_commitment_len(psbt, index, &written) == WALLY_OK && written)) {
+                outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
+            }
+
+            if (wally_psbt_get_output_blinding_public_key(
+                    psbt, index, outinfo->blinding_key, sizeof(outinfo->blinding_key), &written)
+                    == WALLY_OK
+                && written) {
+                JADE_ASSERT(written == sizeof(outinfo->blinding_key));
+                outinfo->flags |= OUTPUT_FLAG_HAS_BLINDING_KEY;
+            }
+
+            if (wally_psbt_get_output_amount(psbt, index, &outinfo->value) == WALLY_OK
+                && wally_psbt_get_output_asset(psbt, index, outinfo->asset_id, sizeof(outinfo->asset_id), &written)
+                    == WALLY_OK
+                && written) {
+                JADE_ASSERT(written == sizeof(outinfo->asset_id));
+                reverse_in_place(outinfo->asset_id, sizeof(outinfo->asset_id));
+                outinfo->flags |= OUTPUT_FLAG_HAS_UNBLINDED;
+            }
+
+            if (wally_psbt_get_output_script_len(psbt, index, &written) != WALLY_OK || !written) {
+                if (outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL || !(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED)) {
+                    *errmsg = "Fee output (without script) cannot be blinded";
+                    return false;
+                }
+
+                if (memcmp(outinfo->asset_id, policy_asset, sizeof(policy_asset))) {
+                    *errmsg = "Unexpected fee output (without script) asset-id";
+                    return false;
+                }
+
+                // Tally fees
+                *explicit_fee += outinfo->value;
+
+                // If is fee output, can't be change, so may as well skip now
+                JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
+                continue;
+            }
+        }
+
         JADE_LOGD("Considering output %u for change", index);
 
         // By default, assume not a validated or change output, and so user must verify
@@ -613,6 +667,7 @@ static void validate_any_change_outputs(const network_t network_id, struct wally
                 "Ignoring multisig output %u as not signing only multisig inputs for a single registration", index);
         }
     }
+    return true;
 }
 
 // Sign a psbt - the passed wally psbt struct is updated with any signatures.
@@ -783,6 +838,18 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
         } // is our key
     } // iterate keys
 
+    // Examine outputs for liquid unblinded info and fees, and for change we can automatically validate
+    uint64_t explicit_fee = 0;
+    if (!validate_outputs(network_id, psbt, signing_flags, wallet_name, multisig_data, descriptor, output_info,
+            &explicit_fee, errmsg)) {
+        // errmsg will be populated
+        retval = CBOR_RPC_BAD_PARAMETERS;
+        goto cleanup;
+    }
+
+    // Explicit fee is only valid for Liquid
+    JADE_ASSERT(!explicit_fee || network_is_liquid(network_id));
+
     // Sanity check amounts
     uint64_t output_amount;
     JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &output_amount));
@@ -790,12 +857,6 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
         *errmsg = "Invalid input/output amounts";
         retval = CBOR_RPC_BAD_PARAMETERS;
         goto cleanup;
-    }
-
-    // Examine outputs for change we can automatically validate
-    if (signing_flags) {
-        validate_any_change_outputs(
-            network_id, psbt, signing_flags, wallet_name, multisig_data, descriptor, output_info);
     }
 
     // User to verify outputs and fee amount
