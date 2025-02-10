@@ -14,6 +14,7 @@
 #include "../utils/malloc_ext.h"
 #include "../utils/network.h"
 #include "../utils/psbt.h"
+#include "../utils/temporary_stack.h"
 #include "../utils/util.h"
 #include "../utils/wally_ext.h"
 #include "../wallet.h"
@@ -43,6 +44,7 @@ bool show_elements_fee_confirmation_activity(network_t network_id, const struct 
 
 // From https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
 static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; // 'psbt' + 0xff
+static const uint8_t PSET_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x65, 0x74, 0xFF }; // 'pset' + 0xff
 
 // Cache what type of inputs we are signing
 #define PSBT_SIGNING_SINGLESIG 0x1
@@ -1000,22 +1002,49 @@ cleanup:
     return retval;
 }
 
+typedef struct {
+    const uint8_t* bytes;
+    size_t bytes_len;
+    struct wally_psbt* psbt_out;
+} psbt_parse_data_t;
+
+static bool parse_psbt_bytes(void* ctx)
+{
+    JADE_ASSERT(ctx);
+    psbt_parse_data_t* data = (psbt_parse_data_t*)ctx;
+    data->psbt_out = NULL;
+    const uint32_t flags = WALLY_PSBT_PARSE_FLAG_STRICT;
+    const int wret = wally_psbt_from_bytes(data->bytes, data->bytes_len, flags, &data->psbt_out);
+    return wret == WALLY_OK && data->psbt_out != NULL;
+}
+
 // PSBT bytes -> wally struct
 // Returns false on error.
 // Otherwise caller takes ownership of wally struct, and must call wally_psbt_free()
-bool deserialise_psbt(const uint8_t* psbt_bytes, const size_t psbt_len, struct wally_psbt** psbt_out)
+bool deserialise_psbt(const uint8_t* bytes, const size_t bytes_len, struct wally_psbt** psbt_out)
 {
-    JADE_ASSERT(psbt_bytes);
+    JADE_ASSERT(bytes);
     JADE_INIT_OUT_PPTR(psbt_out);
 
-    // Sanity check lead bytes before attempting full parse
-    // NOTE: libwally supports PSET (elements) which Jade does not as yet.
-    if (psbt_len < sizeof(PSBT_MAGIC_PREFIX) || memcmp(psbt_bytes, PSBT_MAGIC_PREFIX, sizeof(PSBT_MAGIC_PREFIX))) {
-        JADE_LOGE("Unexpected leading 'magic' bytes for PSBT");
-        return false;
-    }
+    psbt_parse_data_t data = { .bytes = bytes, .bytes_len = bytes_len, NULL };
+    bool ret = false;
 
-    return wally_psbt_from_bytes(psbt_bytes, psbt_len, WALLY_PSBT_PARSE_FLAG_STRICT, psbt_out) == WALLY_OK && *psbt_out;
+    if (bytes_len <= sizeof(PSBT_MAGIC_PREFIX)) {
+        ret = false; // PSBT/PSET is too short
+    } else if (!memcmp(bytes, PSBT_MAGIC_PREFIX, sizeof(PSBT_MAGIC_PREFIX))) {
+        // PSBT - can parse immediately
+        ret = parse_psbt_bytes(&data);
+    } else if (!memcmp(bytes, PSET_MAGIC_PREFIX, sizeof(PSET_MAGIC_PREFIX))) {
+        // PSET - can need large stack to unblind and/or verify proofs - parse on dedicated stack
+        const size_t stack_size = 54 * 1024; // 54kb seems sufficient
+        ret = run_in_temporary_task(stack_size, parse_psbt_bytes, &data);
+    }
+    if (ret) {
+        *psbt_out = data.psbt_out;
+    } else {
+        JADE_LOGE("Failed to parse PSBT/PSET");
+    }
+    return ret;
 }
 
 // PSBT wally struct -> bytes
