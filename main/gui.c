@@ -1927,8 +1927,8 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
 
             const int pos_y = resolve_valign(0, node->text->valign);
 
-            uint8_t offset_x = 0;
-            uint8_t offset_y = 0;
+            uint16_t offset_x = 0;
+            uint16_t offset_y = 0;
             char buf[2] = { '\0', '\0' };
             for (size_t i = 0; i < node->render_data.resolved_text_length; ++i) {
                 buf[0] = node->render_data.resolved_text[i];
