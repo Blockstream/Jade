@@ -997,17 +997,17 @@ static void make_split_node(
     data->parts = parts;
 
     // copy the values
-    data->values = JADE_CALLOC(1, sizeof(uint8_t) * parts);
+    data->values = JADE_CALLOC(1, sizeof(uint16_t) * parts);
 
     for (uint8_t i = 0; i < parts; ++i) {
-        data->values[i] = va_arg(values, uint32_t);
+        data->values[i] = (uint16_t)va_arg(values, uint32_t);
     };
 
     // ... and also set a destructor to free them later
     make_view_node(ptr, split_kind, data, free_view_node_split_data);
 }
 
-void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...)
+void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...)
 {
     JADE_INIT_OUT_PPTR(ptr);
 
@@ -1017,7 +1017,7 @@ void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t p
     va_end(args);
 }
 
-void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint32_t parts, ...)
+void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...)
 {
     JADE_INIT_OUT_PPTR(ptr);
 
@@ -1453,7 +1453,7 @@ static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
     // the string can fit entirely in its box, no need to scroll. we might need to reset stuff though, if the text has
     // changed
     if (can_text_fit(node->render_data.resolved_text, node->text->font, node->render_data.padded_constraints)) {
-        uint8_t old_offset = node->text->scroll->offset;
+        const size_t old_offset = node->text->scroll->offset;
 
         // set offset to zero and wait a little before checking again
         node->text->scroll->going_back = false;
@@ -1686,7 +1686,7 @@ void gui_update_picture(gui_view_node_t* node, const Picture* picture, const boo
     }
 }
 
-static inline color_t DEBUG_COLOR(uint8_t depth)
+static inline color_t DEBUG_COLOR(const uint8_t depth)
 {
     switch (depth) {
     case 0:
@@ -1910,7 +1910,7 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
     } else {
         // normal print with wrap
         if (node->text->noise) { // with noise
-            color_t color = node->is_selected ? node->text->selected_color : node->text->color;
+            const color_t color = node->is_selected ? node->text->selected_color : node->text->color;
 
             int pos_x = 0;
             switch (node->text->halign) {
