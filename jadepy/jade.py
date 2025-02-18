@@ -85,10 +85,12 @@ try:
         Returns
         -------
         dict
-            with single key 'body', whose value is the json returned from the call
-
+            with single key 'body', whose value is the data returned from the call
+            NOTE: if 'accept' is 'json' this will be nested json, otherwise a single
+            text/bytes field.
         """
         logger.debug('_http_request: {}'.format(params))
+        use_json = params.get('accept') in ['json', 'application/json']
 
         # Use the first non-onion url
         url = [url for url in params['urls'] if not url.endswith('.onion')][0]
@@ -97,21 +99,21 @@ try:
             assert 'data' not in params, 'Cannot pass body to requests.get'
             def http_call_fn(): return requests.get(url)
         elif params['method'] == 'POST':
-            data = json.dumps(params['data'])
+            data = json.dumps(params['data']) if use_json else params['data']
             def http_call_fn(): return requests.post(url, data)
         else:
             raise JadeError(1, "Only GET and POST methods supported", params['method'])
 
         try:
             f = http_call_fn()
-            logger.debug("http_request received reply: {}".format(f.text))
+            logger.debug("http_request received reply length {} and encoding {}".format(
+                len(f.content), f.encoding))
 
             if f.status_code != 200:
-                logger.error("http error {} : {}".format(f.status_code, f.text))
+                logger.error("http error {}".format(f.status_code))
                 raise ValueError(f.status_code)
 
-            assert params['accept'] == 'json'
-            f = f.json()
+            f = f.json() if use_json else f.text if f.encoding else f.content
         except Exception as e:
             logging.error(e)
             f = None
