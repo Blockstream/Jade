@@ -2187,12 +2187,9 @@ class JadeInterface:
             The request formatted as cbor message bytes
         """
         dump = cbor.dumps(request)
-        len_dump = len(dump)
-        if 'method' in request and 'ota_data' in request['method']:
-            msg = 'Sending ota_data message {} as cbor of size {}'.format(request['id'], len_dump)
-            logger.info(msg)
-        else:
-            logger.info('Sending: {} as cbor of size {}'.format(_hexlify(request), len_dump))
+        logger.info('Sending {} request {} length {}'.format(request['method'],
+            request['id'], len(dump)))
+        logger.debug('Sending: {}'.format(_hexlify(request)))
         return dump
 
     def write(self, bytes_):
@@ -2209,9 +2206,9 @@ class JadeInterface:
         int
             The number of bytes written
         """
-        logger.debug("Sending: {} bytes".format(len(bytes_)))
+        # logger.debug("Sending: {} bytes".format(len(bytes_)))
         wrote = self.impl.write(bytes_)
-        logger.debug("Sent: {} bytes".format(len(bytes_)))
+        # logger.debug("Sent: {} bytes".format(len(bytes_)))
         return wrote
 
     def write_request(self, request):
@@ -2237,9 +2234,9 @@ class JadeInterface:
         bytes
             The bytes received
         """
-        logger.debug("Reading {} bytes...".format(n))
+        # logger.debug("Reading {} bytes...".format(n))
         bytes_ = self.impl.read(n)
-        logger.debug("Received: {} bytes".format(len(bytes_)))
+        # logger.debug("Received: {} bytes".format(len(bytes_)))
         return bytes_
 
     def read_cbor_message(self):
@@ -2262,7 +2259,8 @@ class JadeInterface:
             if isinstance(message, collections.abc.Mapping):
                 # A message response (to a prior request)
                 if 'id' in message:
-                    logger.info("Received msg: {}".format(_hexlify(message)))
+                    logger.info("Received reply {}".format(message['id']))
+                    logger.debug("Received: {}".format(_hexlify(message)))
                     return message
 
                 # A log message - handle as normal
