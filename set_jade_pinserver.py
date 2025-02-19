@@ -108,7 +108,7 @@ if __name__ == '__main__':
 
     # Cannot update 'second' url unless setting first url
     if args.urlA is None and args.urlB is not None:
-        print("Cannot set second URL unless also setting first URL")
+        print('Cannot set second URL unless also setting first URL')
         sys.exit(1)
 
     print('Connecting...')
@@ -120,5 +120,5 @@ if __name__ == '__main__':
         kwargs = {'device': args.serialport, 'timeout': 120}
 
     with create_jade_fn(**kwargs) as jade:
-        print('Connected: {}'.format(jade.get_version_info()))
+        print(f'Connected: {jade.get_version_info()}')
         update_pinserver(jade, args)

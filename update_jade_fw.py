@@ -74,8 +74,8 @@ def get_fw_metadata(verinfo, release_data):
 # Download compressed firmware file from Firmware Server using 'requests'
 def download_file(verinfo, release):
     # Workout hw_target subdir
-    board_type = verinfo.get("BOARD_TYPE")
-    features = verinfo.get("JADE_FEATURES")
+    board_type = verinfo.get('BOARD_TYPE')
+    features = verinfo.get('JADE_FEATURES')
     hw_target = {'JADE': 'jade',
                  'JADE_V1.1': 'jade1.1',
                  'JADE_V2': 'jade2.0'}.get(board_type if board_type else 'JADE')
@@ -125,7 +125,7 @@ def download_file(verinfo, release):
     if write_file == 'y' or write_file == 'Y':
         fwtools.write(fwcmp, os.path.basename(fwname))
         if fwhash:
-            fwtools.write(fwhash, os.path.basename(fwname) + ".hash", text=True)
+            fwtools.write(fwhash, os.path.basename(fwname) + '.hash', text=True)
 
     # Return
     return fwdata['fwsize'], fwdata.get('patch_size'), fwhash, fwcmp
@@ -143,7 +143,7 @@ def get_local_fwfile(fwfilename):
     fwcmp = fwtools.read(fwfilename)
     fwhash = None
     try:
-        fwhash = fwtools.read(fwfilename + ".hash", text=True)
+        fwhash = fwtools.read(fwfilename + '.hash', text=True)
     except Exception as e:
         logger.warning('Hash file no present or not valid')
 

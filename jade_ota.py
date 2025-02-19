@@ -129,7 +129,7 @@ def download_file(hw_target, write_compressed, release):
         cmpfilename = f'{COMP_FW_DIR}/{os.path.basename(fwname)}'
         fwtools.write(fwcmp, cmpfilename)
         if fwhash:
-            fwtools.write(fwhash, cmpfilename + ".hash", text=True)
+            fwtools.write(fwhash, cmpfilename + '.hash', text=True)
 
     # Return
     return fwdata['fwsize'], fwdata.get('patch_size'), fwhash, fwcmp
@@ -178,7 +178,7 @@ def download_file_gdk(hw_target, write_compressed, release):
         cmpfilename = f'{COMP_FW_DIR}/{os.path.basename(fwname)}'
         fwtools.write(fwcmp, cmpfilename)
         if fwhash:
-            fwtools.write(fwhash, cmpfilename + ".hash", text=True)
+            fwtools.write(fwhash, cmpfilename + '.hash', text=True)
 
     # Return
     return fwdata['fwsize'], fwdata.get('patch_size'), fwhash, fwcmp
@@ -224,7 +224,7 @@ def get_local_compressed_fwfile(fwfilename):
     fwcmp = fwtools.read(fwfilename)
     fwhash = None
     try:
-        fwhash = fwtools.read(fwfilename + ".hash", text=True)
+        fwhash = fwtools.read(fwfilename + '.hash', text=True)
     except Exception as e:
         logger.warning('Hash file no present or not valid')
 

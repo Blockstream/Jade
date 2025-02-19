@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
     with create_jade_fn(**kwargs) as jade:
         verinfo = jade.get_version_info()
-        print('Connected: {}'.format(verinfo))
+        print(f'Connected: {verinfo}')
 
         if verinfo['BOARD_TYPE'] not in ESP32S3_CHIP_BOARDS:
             print('Attestation only available on esp32s3 chipset')

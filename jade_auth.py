@@ -32,7 +32,7 @@ if LOGGING:
 http_request_fn = None
 if USE_GDK_HTTP_CLIENT:
     import json
-    import greenaddress as gdk
+    import green_gdk as gdk
 
     gdk.init({})
     gdk_session = gdk.Session({'name': 'mainnet'})
