@@ -144,7 +144,7 @@ def _h2b_test_case(testcase):
 
 # Helper to read a json file into a dict
 def _read_json_file(filename):
-    logger.info('Reading json file: {}'.format(filename))
+    logger.info(f'Reading json file: {filename}')
     with open(filename, 'r') as json_file:
         ret = json.load(json_file)
         ret['filename'] = filename  # Add filename for debugging
@@ -153,21 +153,21 @@ def _read_json_file(filename):
 
 # Helper to read json test files into a list
 def _get_test_cases(pattern):
-    return (_h2b_test_case(_read_json_file(f)) for f in glob.glob("./test_data/" + pattern))
+    return (_h2b_test_case(_read_json_file(f)) for f in glob.glob('./test_data/' + pattern))
 
 
-BLE_TEST_PASSKEYFILE = "ble_test_passkey.txt"
-BLE_TEST_BADKEYFILE = "ble_test_badkey.txt"
+BLE_TEST_PASSKEYFILE = 'ble_test_passkey.txt'
+BLE_TEST_BADKEYFILE = 'ble_test_badkey.txt'
 
 # The default serial read timeout
 DEFAULT_SERIAL_TIMEOUT = 240
 
 # The pubkey for the test (in-proc) pinserver
-PINSERVER_TEST_PUBKEY_FILE = "server_public_key.pub"
+PINSERVER_TEST_PUBKEY_FILE = 'server_public_key.pub'
 
 # Pinserver prod defaults
-PINSERVER_DEFAULT_URL = "https://j8d.io"
-PINSERVER_DEFAULT_ONION = "http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion"
+PINSERVER_DEFAULT_URL = 'https://j8d.io'
+PINSERVER_DEFAULT_ONION = 'http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion'
 
 # The number of values expected back in version info
 NUM_VALUES_VERINFO = 20
@@ -264,23 +264,23 @@ quality fringe palace foot recipe labor glow tortoise potato still',
 
 # Test cases generated with: https://github.com/ethankosakovsky/bip85
 GET_BIP85_BIP39_DATA = [
-    (12, 0, "elephant this puppy lucky fatigue skate aerobic emotion peanut outer clinic casino"),
-    (12, 12, "prevent marriage menu outside total tone prison few sword coffee print salad"),
-    (12, 100, "lottery divert goat drink tackle picture youth text stem marriage call tip"),
-    (12, 65535, "curtain angle fatigue siren involve bleak detail frame name spare size cycle"),
+    (12, 0, 'elephant this puppy lucky fatigue skate aerobic emotion peanut outer clinic casino'),
+    (12, 12, 'prevent marriage menu outside total tone prison few sword coffee print salad'),
+    (12, 100, 'lottery divert goat drink tackle picture youth text stem marriage call tip'),
+    (12, 65535, 'curtain angle fatigue siren involve bleak detail frame name spare size cycle'),
 
     (24, 0,
-     "certain act palace ball plug they divide fold climb hand tuition inside choose sponsor grass "
-     "scheme choose split top twenty always vendor fit thank"),
+     'certain act palace ball plug they divide fold climb hand tuition inside choose sponsor grass '
+     'scheme choose split top twenty always vendor fit thank'),
     (24, 24,
-     "flip meat face wood hammer crack fat topple admit canvas bid capital leopard angry fan gate "
-     "domain exile patient recipe nut honey resist inner"),
+     'flip meat face wood hammer crack fat topple admit canvas bid capital leopard angry fan gate '
+     'domain exile patient recipe nut honey resist inner'),
     (24, 1024,
-     "phone goat wheel unique local maximum sand reflect scissors one have spin weasel dignity "
-     "antenna acid pulp increase fitness typical bacon strike spy festival"),
+     'phone goat wheel unique local maximum sand reflect scissors one have spin weasel dignity '
+     'antenna acid pulp increase fitness typical bacon strike spy festival'),
     (24, 65535,
-     "humble museum grab fitness wrap window front job quarter update rich grape gap daring blame "
-     "cricket traffic sad trade easily genius boost lumber rhythm")
+     'humble museum grab fitness wrap window front job quarter update rich grape gap daring blame '
+     'cricket traffic sad trade easily genius boost lumber rhythm')
 ]
 
 # Test vector generated using https://github.com/akarve/bipsea/blob/main/tests/test_bip85.py#L127
@@ -553,25 +553,25 @@ YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
                              '2dafKNiCKbRum9S1u5BYqTByZT5R9zSqcWy')]
 
 # Hold test data in separate files as can be large
-QR_QVGA_SCAN_TESTS = "qr_qvga_*.json"
-QR_VGA_SCAN_TESTS = "qr_vga_*.json"
-MULTI_REG_TESTS = "multisig_reg_*.json"
-MULTI_REG_SS_TESTS = "multisig_reg_ss_*.json"
-MULTI_REG_FILE_TESTS = "multisig_file_*.json"
-MULTI_REG_BAD_FILE_TESTS = "multisig_bad_file_*.json"
-DESCRIPTOR_REG_TESTS = "descriptor_*.json"
-DESCRIPTOR_REG_SS_TESTS = "descriptor_ss_*.json"
-SIGN_MSG_TESTS = "msg_*.json"
-SIGN_MSG_FILE_TESTS = "msgfile_*.json"
-SIGN_IDENTITY_TESTS = "identity_*.json"
-SIGN_TXN_TESTS = "txn_*.json"
-SIGN_TXN_FAIL_CASES = "badtxn_*.json"
-SIGN_LIQUID_TXN_TESTS = "liquid_txn_*.json"
-SIGN_TXN_SS_TESTS = "tx_ss_*.json"
-SIGN_TXN_SS_BAD_TESTS = "tx_ss_bad_*.json"
-SIGN_LIQUID_TXN_SINGLE_SIG_TESTS = "singlesig_liquid_txn*.json"
-SIGN_PSBT_TESTS = "psbt_tm_*.json"
-SIGN_PSBT_SS_TESTS = "psbt_ss_*.json"
+QR_QVGA_SCAN_TESTS = 'qr_qvga_*.json'
+QR_VGA_SCAN_TESTS = 'qr_vga_*.json'
+MULTI_REG_TESTS = 'multisig_reg_*.json'
+MULTI_REG_SS_TESTS = 'multisig_reg_ss_*.json'
+MULTI_REG_FILE_TESTS = 'multisig_file_*.json'
+MULTI_REG_BAD_FILE_TESTS = 'multisig_bad_file_*.json'
+DESCRIPTOR_REG_TESTS = 'descriptor_*.json'
+DESCRIPTOR_REG_SS_TESTS = 'descriptor_ss_*.json'
+SIGN_MSG_TESTS = 'msg_*.json'
+SIGN_MSG_FILE_TESTS = 'msgfile_*.json'
+SIGN_IDENTITY_TESTS = 'identity_*.json'
+SIGN_TXN_TESTS = 'txn_*.json'
+SIGN_TXN_FAIL_CASES = 'badtxn_*.json'
+SIGN_LIQUID_TXN_TESTS = 'liquid_txn_*.json'
+SIGN_TXN_SS_TESTS = 'tx_ss_*.json'
+SIGN_TXN_SS_BAD_TESTS = 'tx_ss_bad_*.json'
+SIGN_LIQUID_TXN_SINGLE_SIG_TESTS = 'singlesig_liquid_txn*.json'
+SIGN_PSBT_TESTS = 'psbt_tm_*.json'
+SIGN_PSBT_SS_TESTS = 'psbt_ss_*.json'
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -714,8 +714,8 @@ def test_bad_message(jade):
 
 
 def test_very_bad_message(jade):
-    empty = cbor.dumps(b"")
-    text = cbor.dumps("This is not a good cbor message")
+    empty = cbor.dumps(b'')
+    text = cbor.dumps('This is not a good cbor message')
     truncated = cbor.dumps("{'id': '1', method: 'msgwillbecut'}")[1:]
     goodmsg = jade.build_request('ent', 'add_entropy', {'entropy': 'noise'.encode()})
 
@@ -868,7 +868,7 @@ def test_split_message(jade):
     reply = jade.read_response()
 
     # Returned id should match sent
-    assert reply['id'] == "24680"
+    assert reply['id'] == '24680'
     assert 'error' not in reply
     assert 'result' in reply and len(reply['result']) == NUM_VALUES_VERINFO
 
@@ -966,23 +966,23 @@ ffae18852bbd7300000000')
 
     MULTI_COSIGNERS = [
         {
-          "fingerprint": h2b("1273da33"),
-          "derivation": [44, 2147483648, 2147483648],
-          "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3\
-GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
-          "path": [3, 1]
+          'fingerprint': h2b('1273da33'),
+          'derivation': [44, 2147483648, 2147483648],
+          'xpub': 'tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3\
+GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG',
+          'path': [3, 1]
         },
         {
-          "fingerprint": h2b("e3ebcc79"),
-          "derivation": [2147483651, 2147483649, 1],
-          "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8\
-epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
-          "path": [1]
+          'fingerprint': h2b('e3ebcc79'),
+          'derivation': [2147483651, 2147483649, 1],
+          'xpub': 'tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8\
+epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka',
+          'path': [1]
         }
     ]
     # Default test user is cosigners[1]
     bad_multi_cosigners1 = copy.deepcopy(MULTI_COSIGNERS)
-    bad_multi_cosigners1[1]['fingerprint'] = h2b("abcdef")
+    bad_multi_cosigners1[1]['fingerprint'] = h2b('abcdef')
     bad_multi_cosigners2 = copy.deepcopy(MULTI_COSIGNERS)
     bad_multi_cosigners2[1]['fingerprint'] = bad_multi_cosigners2[0]['fingerprint']
     bad_multi_cosigners3 = copy.deepcopy(MULTI_COSIGNERS)
@@ -1227,11 +1227,11 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                    'Failed to parse descriptor'),
                   (('baddescr6', 'register_descriptor',
                     {'network': 'testnet', 'descriptor_name': 'test',
-                     'descriptor': "wsh(pk(" + DESCR_SIGNER + "))"}),
+                     'descriptor': 'wsh(pk(' + DESCR_SIGNER + '))'}),
                    'Failed to extract valid parameter values'),
                   (('baddescr7', 'register_descriptor',
                     {'network': 'testnet', 'descriptor_name': 'test', 'descriptor': DESCRIPTOR,
-                     'datavalues': "Wrong type"}), 'Failed to extract valid parameter values'),
+                     'datavalues': 'Wrong type'}), 'Failed to extract valid parameter values'),
                   (('baddescr8', 'register_descriptor',
                     {'network': 'testnet', 'descriptor_name': 'test', 'descriptor': DESCRIPTOR,
                      'datavalues': []}), 'Failed to extract valid parameter values'),
@@ -1759,26 +1759,26 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     BADVAL33 = EXPECTED_LIQ_COMMITMENT_1['value_commitment']
 
     # Correct lengths, prefixes, etc.
-    BAD_ASSET_PROOF = h2b("0100017454d5579ec0def281d4712c832e98af69208af4146ba\
-691841d6605088e16c55cb5bffdbad36202475d94dea902fbcfa8c428ab7b3901e92df8b201ac865da3")
-    BAD_VALUE_PROOF = h2b("200000000000047f47eb9b2f9267f23f7f64c6f93ab7cb7311b\
-305abe97f4ac7877e981ffc7d4f662052de1efc379c28cf17f887e92208e70739e1e7abd095227587a895589e725de8")
+    BAD_ASSET_PROOF = h2b('0100017454d5579ec0def281d4712c832e98af69208af4146ba\
+691841d6605088e16c55cb5bffdbad36202475d94dea902fbcfa8c428ab7b3901e92df8b201ac865da3')
+    BAD_VALUE_PROOF = h2b('200000000000047f47eb9b2f9267f23f7f64c6f93ab7cb7311b\
+305abe97f4ac7877e981ffc7d4f662052de1efc379c28cf17f887e92208e70739e1e7abd095227587a895589e725de8')
 
     GOOD_ASSET = {
-        "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
-        "contract": {
-            "entity": {
-                "domain": "liquidtestnet.com"
+        'asset_id': '38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5',
+        'contract': {
+            'entity': {
+                'domain': 'liquidtestnet.com'
             },
-            "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
-            "name": "Testnet Asset",
-            "precision": 3,
-            "ticker": "TEST",
-            "version": 0
+            'issuer_pubkey': '035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01',
+            'name': 'Testnet Asset',
+            'precision': 3,
+            'ticker': 'TEST',
+            'version': 0
         },
-        "issuance_prevout": {
-            "txid": "0e19e938c74378ae83b549213a12be88ede6e32e1407bfdf50c4ec3f927408ec",
-            "vout": 0
+        'issuance_prevout': {
+            'txid': '0e19e938c74378ae83b549213a12be88ede6e32e1407bfdf50c4ec3f927408ec',
+            'vout': 0
         }
     }
 
@@ -2169,16 +2169,16 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
 
 def _set_wallet(jade, mnemonic=TEST_MNEMONIC, passphrase=None):
     # Set mnemonic
-    request = jade.build_request("id_mnem", "debug_set_mnemonic",
-                                 {"mnemonic": mnemonic, "passphrase": passphrase})
+    request = jade.build_request('id_mnem', 'debug_set_mnemonic',
+                                 {'mnemonic': mnemonic, 'passphrase': passphrase})
     reply = jade.make_rpc_call(request)
     assert reply['id'] == request['id']
     assert 'error' not in reply
     assert reply['result'] is True
 
     # Get and return root xpub
-    request = jade.build_request("id_xpub", "get_xpub",
-                                 {"network": "mainnet", "path": []})
+    request = jade.build_request('id_xpub', 'get_xpub',
+                                 {'network': 'mainnet', 'path': []})
     reply = jade.make_rpc_call(request)
     assert reply['id'] == request['id']
     assert 'error' not in reply
@@ -2234,8 +2234,8 @@ def test_mnemonic_import_bad(jade):
                                       TEST_MNEMONIC_SEEDSIGNER[:-4] + '0000',  # invalid mnemonic
                                       TEST_MNEMONIC_SEEDSIGNER_COMPACT[:-1],  # bad length
                                       ]):
-        request = jade.build_request("badmnemonic_" + str(i), "debug_set_mnemonic",
-                                     {"mnemonic": bad_mnemonic})
+        request = jade.build_request('badmnemonic_' + str(i), 'debug_set_mnemonic',
+                                     {'mnemonic': bad_mnemonic})
         reply = jade.make_rpc_call(request)
         assert reply['id'] == request['id']
         assert 'result' not in reply
@@ -2246,8 +2246,8 @@ def test_mnemonic_import_bad(jade):
 def test_passphrase(jade):
     # Set mnemonic with/without a passphrase, and get root xpub
     xpub0 = _set_wallet(jade, passphrase=None)
-    xpub1 = _set_wallet(jade, passphrase="Passphrase1")
-    xpub2 = _set_wallet(jade, passphrase="Passphrase2")
+    xpub1 = _set_wallet(jade, passphrase='Passphrase1')
+    xpub2 = _set_wallet(jade, passphrase='Passphrase2')
 
     # Check root xpubs are not the same
     # ie. that the passphrase leads to a different wallet
@@ -2255,8 +2255,8 @@ def test_passphrase(jade):
 
     # Check that using the same passphrase does get the same wallet
     xpub0_again = _set_wallet(jade, passphrase=None)
-    xpub1_again = _set_wallet(jade, passphrase="Passphrase1")
-    xpub2_again = _set_wallet(jade, passphrase="Passphrase2")
+    xpub1_again = _set_wallet(jade, passphrase='Passphrase1')
+    xpub2_again = _set_wallet(jade, passphrase='Passphrase2')
 
     assert xpub0_again == xpub0 and xpub1_again == xpub1 and xpub2_again == xpub2
 
@@ -2275,10 +2275,10 @@ def test_scan_qr(jadeapi, use_vga_images):
         rslt = jadeapi.scan_qr(image_data)
         assert rslt
 
-        if expected.get("text") is not None:
-            assert rslt.decode() == expected["text"]
+        if expected.get('text') is not None:
+            assert rslt.decode() == expected['text']
         else:
-            assert rslt == h2b(expected["hex"])
+            assert rslt == h2b(expected['hex'])
 
 
 # Pinserver handshake test - note this is tightly coupled to the dedicated
@@ -2436,16 +2436,16 @@ def test_handshake_bad_server(jade):
     server = PINServerECDHv2(replay_counter, cke)
     try:
         server.call_with_payload(cke, encrypted_data, PINDb.set_pin)
-        assert False, "Expected exception from bad pinserver"
+        assert False, 'Expected exception from bad pinserver'
     except ValueError as e:
-        assert str(e) == "Invalid argument"
+        assert str(e) == 'Invalid argument'
 
     server = PINServerECDHv2(replay_counter, cke)
     try:
         server.call_with_payload(cke, encrypted_data, PINDb.get_aes_key)
-        assert False, "Expected exception from bad pinserver"
+        assert False, 'Expected exception from bad pinserver'
     except ValueError as e:
-        assert str(e) == "Invalid argument"
+        assert str(e) == 'Invalid argument'
 
     # Jade should error if sent this empty body (but completes the test case handler)
     msg2 = jade.build_request('completeBad', result['http_request']['on-reply'])
@@ -2475,15 +2475,13 @@ def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
         diff = initial - final
 
         if limit >= 0 and diff > limit:
-            logger.warning("{} - {} to {} ({}) BREACH".format(
-                field, initial, final, diff))
+            logger.warning(f'{field} - {initial} to {final} ({diff}) BREACH')
             breaches.append(field)
         else:
-            logger.info("{} - {} to {} ({})".format(
-                field, initial, final, diff))
+            logger.info(f'{field} - {initial} to {final} ({diff})')
 
     if breaches:
-        logger.error("Memory limit breaches: {}".format(breaches))
+        logger.error(f'Memory limit breaches: {breaches}')
         assert endinfo['GCOV'] or not strict
 
 
@@ -2741,8 +2739,8 @@ def test_bip85_rsa_encrypted_entropy(jadeapi):
 
 
 def test_bip85_rsa_pubkey(jadeapi):
-    INDEX = "Index: "
-    KEYLEN = "Key bits: "
+    INDEX = 'Index: '
+    KEYLEN = 'Key bits: '
     KEY_START = '-----BEGIN PUBLIC KEY-----'
     KEY_END = '-----END PUBLIC KEY-----'
     EOL = '\n'
@@ -2876,7 +2874,7 @@ def test_liquid_blinding_keys(jadeapi):
     # flag, as would normally block while asking user.
     try:
         rslt = jadeapi.get_master_blinding_key(True)
-        assert False, "Expecting 'user declined' error"
+        assert False, 'Expecting "user declined" error'
     except JadeError as e:
         assert e.code == JadeError.USER_CANCELLED
 
@@ -2977,13 +2975,13 @@ def test_sign_liquid_tx(jadeapi, has_psram, has_ble, pattern):
         if not has_psram:
             # Skip any liquid txns too large for reduced message buffer on no-psram devices
             if len(inputdata['txn']) > (15 * 1024):  # esitimate 1k for rest of message fields
-                logger.warning("Skipping test - tx too large for non-psram device")
+                logger.warning('Skipping test - tx too large for non-psram device')
                 continue
 
             # Skip any explicit proof tests which cannot be handled by no-psram devices
             if any(tcs and ('value_blind_proof' in tcs or 'asset_blind_proof' in tcs)
                     for tcs in inputdata['trusted_commitments']):
-                logger.warning("Skipping test - explicit proofs too large for non-psram device")
+                logger.warning('Skipping test - explicit proofs too large for non-psram device')
                 continue
 
         rslt = jadeapi.sign_liquid_tx(inputdata['network'],
@@ -3174,7 +3172,7 @@ def test_generic_multisig_files(jadeapi):
             jadeapi.register_multisig_file(multisig_file)
             assert False, 'Expected error: ' + expected_error
         except JadeError as e:
-            assert e.message == expected_error, "Expected: " + expected_error
+            assert e.message == expected_error, 'Expected: ' + expected_error
 
 
 def test_generic_multisig_matches_ga_addresses(jadeapi):
@@ -3201,7 +3199,7 @@ def test_generic_multisig_matches_ga_addresses(jadeapi):
             subaccount = user_signer['derivation'][1] - 2147483648  # unharden
             branch = user_signer['derivation'][2]
         else:
-            assert False, "Unexpected derivation for ga-multisig wallet"
+            assert False, 'Unexpected derivation for ga-multisig wallet'
 
         user_xpub = jadeapi.get_xpub(inputdata['network'], user_signer['derivation'])
         assert user_xpub == user_signer['xpub']   # checks our xpub entry
@@ -3351,10 +3349,10 @@ def test_generic_multisig_ss_signer(jadeapi):
                 rslt = jadeapi.get_receive_address(inputdata['network'],
                                                    addr_test['paths'],
                                                    multisig_name=inputdata['multisig_name'])
-                assert False, "Accessing other wallet multisig should fail"
+                assert False, 'Accessing other wallet multisig should fail'
         except JadeError as e:
             assert e.code == JadeError.BAD_PARAMETERS
-            assert e.message == "Cannot de-serialise multisig wallet data"
+            assert e.message == 'Cannot de-serialise multisig wallet data'
 
         # If we register the same multisig description to this wallet, it should produce
         # the same addresses as it did previously (for the other signatory)
@@ -3662,7 +3660,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     jadeapi.logout()
     assert jadeapi.get_version_info()['JADE_STATE'] in ['LOCKED', 'UNINIT']
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
-    assert jadeapi.get_version_info()['JADE_STATE'] == "READY"
+    assert jadeapi.get_version_info()['JADE_STATE'] == 'READY'
 
     rslt = jadeapi.ping()
     assert rslt == 0  # idle
@@ -3812,14 +3810,14 @@ def run_interface_tests(jadeapi,
 
     # Smoke tests
     if smoke:
-        logger.info("Smoke tests")
+        logger.info('Smoke tests')
 
         # Sanity check selfcheck time on Jade hw (skip for qemu)
         # May need updating if more tests added to selfcheck.c
         # Don't need to run internal tests more than once (so skip for ble)
         if not isble:
             time_ms = jadeapi.run_remote_selfcheck()
-            logger.info('selfcheck time: ' + str(time_ms) + 'ms')
+            logger.info(f'selfcheck time: {time_ms} ms')
             assert qemu or time_ms < (46000 if is_s3 else 132000)
 
         # Test good pinserver handshake, and also 'bad sig' pinserver
@@ -3845,12 +3843,12 @@ def run_interface_tests(jadeapi,
     # Too much input test - sends a lot of data so only run
     # if not running over BLE (as would take a long time)
     if not isble:
-        logger.info("Buffer overflow test - PSRAM: {}".format(has_psram))
+        logger.info(f'Buffer overflow test - PSRAM: {has_psram}')
         test_too_much_input(jadeapi.jade, has_psram)
 
     # Negative tests
     if negative:
-        logger.info("Negative tests")
+        logger.info('Negative tests')
         test_random_bytes(jadeapi.jade)
         test_very_bad_message(jadeapi.jade)
         test_bad_message(jadeapi.jade)
@@ -3874,7 +3872,7 @@ def run_interface_tests(jadeapi,
 
 # Run all selected tests over a passed JadeAPI instance.
 def run_jade_tests(jadeapi, args, isble):
-    logger.info(f"Running selected Jade tests over passed connection, is_ble={isble}")
+    logger.info(f'Running selected Jade tests over passed connection, is_ble={isble}')
 
     # Low-level JadeInterface tests
     if not args.skiplow:
@@ -3888,7 +3886,7 @@ def run_jade_tests(jadeapi, args, isble):
 # This test should be passed 2 different connection details to the same jade hw
 # Test that is we auth over one, we can't connect with the other.
 def mixed_sources_test(serialport, bleid):
-    logger.info("Running 'mixed sources' Tests")
+    logger.info('Running mixed sources tests')
     SRTIMEOUT = 3  # Use a short timeout
     SCAN_TIMEOUT = 6
 
@@ -3906,10 +3904,10 @@ def mixed_sources_test(serialport, bleid):
         try:
             # With BLE we shouldn't even be able to scan/connect the device
             with JadeAPI.create_ble(serial_number=bleid, scan_timeout=SCAN_TIMEOUT) as jade_ble:
-                assert False, "Expected BLE connection to fail as authorised over serial!"
+                assert False, 'Expected BLE connection to fail as authorised over serial!'
 
         except JadeError as err:
-            assert err.code == 1 and "Unable to locate BLE device" in err.message
+            assert err.code == 1 and 'Unable to locate BLE device' in err.message
 
         rslt = jade_serial.logout()
         assert rslt is True
@@ -3931,7 +3929,7 @@ def mixed_sources_test(serialport, bleid):
 
             try:
                 rslt = jade_serial.get_xpub(network, path)
-                assert False, "Expected exception from mixed sources test"
+                assert False, 'Expected exception from mixed sources test'
             except JadeError as err:
                 assert err.code == JadeError.HW_LOCKED
 
@@ -3945,7 +3943,7 @@ def mixed_sources_test(serialport, bleid):
             # BLE connection should now be broken
             try:
                 rslt = jade_ble.get_xpub(network, path)
-                assert False, "Expected exception from mixed sources test"
+                assert False, 'Expected exception from mixed sources test'
             except AssertionError as err:
                 assert jade_ble.jade.impl.client is None
 
@@ -3966,11 +3964,11 @@ def mixed_sources_test(serialport, bleid):
 
 # Run all selected tests over all selected backends (serial/ble)
 def run_all_jade_tests(info, args):
-    logger.info("Running Jade tests over selected backend interfaces")
+    logger.info('Running Jade tests over selected backend interfaces')
 
     # 1. Test over serial connection
     if not args.skipserial:
-        logger.info("Testing Serial ({})".format(args.serialport))
+        logger.info(f'Testing Serial ({args.serialport})')
         with JadeAPI.create_serial(args.serialport,
                                    timeout=args.serialtimeout) as jade:
             run_jade_tests(jade, args, isble=False)
@@ -3982,7 +3980,7 @@ def run_all_jade_tests(info, args):
     if not args.skipble:
         if info['JADE_CONFIG'] == 'BLE':
             bleid = info['EFUSEMAC'][6:]
-            logger.info("Testing BLE ({})".format(bleid))
+            logger.info(f'Testing BLE ({bleid})')
             with JadeAPI.create_ble(serial_number=bleid) as jade:
                 run_jade_tests(jade, args, isble=True)
 
@@ -3994,21 +3992,21 @@ def run_all_jade_tests(info, args):
             if info['GCOV']:
                 jade.run_remote_gcov_dump()
         else:
-            msg = "Skipping BLE tests - not enabled on the hardware"
+            msg = 'Skipping BLE tests - not enabled on the hardware'
             logger.warning(msg)
 
 
 # Connect to Jade by serial or BLE and get the info block
 def get_jade_info(args):
     if not args.skipserial:
-        logger.info("Getting info via Serial ({})".format(args.serialport))
+        logger.info(f'Getting info via Serial ({args.serialport})')
         with JadeAPI.create_serial(device=args.serialport,
                                    timeout=args.serialtimeout) as jade:
             return jade.get_version_info()
 
     if not args.skipble:
         bleid = args.bleid
-        logger.info("Getting info via BLE ({})".format(id or '<any>'))
+        logger.info(f'Getting info via BLE ({id or "<any>"})')
         with JadeAPI.create_ble(serial_number=bleid) as jade:
             return jade.get_version_info()
 
@@ -4017,7 +4015,7 @@ def test_ble_connection_fails(info, args):
     if not args.skipble:
         if info['JADE_CONFIG'] == 'BLE':
             bleid = info['EFUSEMAC'][6:]
-            logger.info("Testing BLE connection fails or times-out")
+            logger.info('Testing BLE connection fails or times-out')
             jade = JadeAPI.create_ble(serial_number=bleid)
 
             # When timeout elapses, raise interrupt/exception
@@ -4036,45 +4034,44 @@ def test_ble_connection_fails(info, args):
                 try:
                     jade.connect()
                     jade.get_version_info()
-                    assert False, "test_ble_connection_fails() connected!"
+                    assert False, 'test_ble_connection_fails() connected!'
                 except KeyboardInterrupt as e:
-                    logger.info("BLE connection timed-out: {}".format(e))
+                    logger.info(f'BLE connection timed-out: {e}')
                 except Exception as e:
-                    logger.info("BLE connection failed with: {}".format(e))
+                    logger.info(f'BLE connection failed with: {e}')
                 finally:
                     timer.cancel()
                     jade.disconnect()
         else:
-            msg = "Skipping BLE tests - not enabled on the hardware"
+            msg = 'Skipping BLE tests - not enabled on the hardware'
             logger.warning(msg)
 
 
 def check_stuck():
     # NOTE: belt'n'braces - serial/ble reads/writes should timeout before this does
     timeout = 60  # minutes
-    wait(60 * timeout)
-    err_str = "tests got caught running longer than {} minutes, terminating"
-    logger.error(err_str.format(timeout))
+    time.sleep(60 * timeout)
+    logger.error(f'tests got caught running longer than {timeout} minutes, terminating')
     logger.handlers[0].flush()
     os._exit(1)
 
 
 def start_agent(passkey_file):
-    logger.info('Starting bt-agent with passkey file: {}'.format(passkey_file))
+    logger.info(f'Starting bt-agent with passkey file: {passkey_file}')
     command = ['/usr/bin/bt-agent', '-c', 'DisplayYesNo', '-p', passkey_file]
     btagent = subprocess.Popen(command,
                                shell=False,
                                stdout=subprocess.DEVNULL)
-    logger.info('Started bt-agent with process id: {}'.format(btagent.pid))
+    logger.info(f'Started bt-agent with process id: {btagent.pid}')
     return btagent
 
 
 def kill_agent(btagent):
-    command = 'kill -HUP {}'.format(btagent.pid)
+    command = f'kill -HUP {btagent.pid}'
     subprocess.run(command,
                    shell=True,
                    stdout=subprocess.DEVNULL)
-    logger.info('Killed bt-agent {}'.format(btagent.pid))
+    logger.info(f'Killed bt-agent {btagent.pid}')
 
 
 if __name__ == '__main__':
@@ -4082,91 +4079,91 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     sergrp = parser.add_mutually_exclusive_group()
-    sergrp.add_argument("--skipserial",
-                        action="store_true",
-                        dest="skipserial",
-                        help="Skip testing over serial connection",
+    sergrp.add_argument('--skipserial',
+                        action='store_true',
+                        dest='skipserial',
+                        help='Skip testing over serial connection',
                         default=False)
-    sergrp.add_argument("--serialport",
-                        action="store",
-                        dest="serialport",
-                        help="Serial port or device",
+    sergrp.add_argument('--serialport',
+                        action='store',
+                        dest='serialport',
+                        help='Serial port or device',
                         default=None)
 
     blegrp = parser.add_mutually_exclusive_group()
-    blegrp.add_argument("--skipble",
-                        action="store_true",
-                        dest="skipble",
-                        help="Skip testing over BLE connection",
+    blegrp.add_argument('--skipble',
+                        action='store_true',
+                        dest='skipble',
+                        help='Skip testing over BLE connection',
                         default=False)
-    blegrp.add_argument("--bleid",
-                        action="store",
-                        dest="bleid",
-                        help="BLE device serial number or id",
+    blegrp.add_argument('--bleid',
+                        action='store',
+                        dest='bleid',
+                        help='BLE device serial number or id',
                         default=None)
 
     skpgrp = parser.add_mutually_exclusive_group()
-    skpgrp.add_argument("--skiplow",
-                        action="store_true",
-                        dest="skiplow",
-                        help="Skip low-level JadeInterface (negative) tests",
+    skpgrp.add_argument('--skiplow',
+                        action='store_true',
+                        dest='skiplow',
+                        help='Skip low-level JadeInterface (negative) tests',
                         default=False)
-    skpgrp.add_argument("--skiphigh",
-                        action="store_true",
-                        dest="skiphigh",
-                        help="Skip high-level JadeAPI (happy-path) tests",
+    skpgrp.add_argument('--skiphigh',
+                        action='store_true',
+                        dest='skiphigh',
+                        help='Skip high-level JadeAPI (happy-path) tests',
                         default=False)
 
     agtgrp = parser.add_mutually_exclusive_group()
-    agtgrp.add_argument("--noagent",
-                        action="store_true",
-                        dest="noagent",
-                        help="Do not run the BLE passkey agent",
+    agtgrp.add_argument('--noagent',
+                        action='store_true',
+                        dest='noagent',
+                        help='Do not run the BLE passkey agent',
                         default=False)
-    agtgrp.add_argument("--agentkeyfile",
-                        action="store",
-                        dest="agentkeyfile",
-                        help="Use the specified BLE passkey agent key file",
+    agtgrp.add_argument('--agentkeyfile',
+                        action='store',
+                        dest='agentkeyfile',
+                        help='Use the specified BLE passkey agent key file',
                         default=BLE_TEST_PASSKEYFILE)
 
-    parser.add_argument("--serialtimeout",
-                        action="store",
-                        dest="serialtimeout",
+    parser.add_argument('--serialtimeout',
+                        action='store',
+                        dest='serialtimeout',
                         type=int,
-                        help="Serial port timeout",
+                        help='Serial port timeout',
                         default=DEFAULT_SERIAL_TIMEOUT)
-    parser.add_argument("--authuser",
-                        action="store_true",
-                        dest="authuser",
-                        help="Full user authentication with Jade & pinserver",
+    parser.add_argument('--authuser',
+                        action='store_true',
+                        dest='authuser',
+                        help='Full user authentication with Jade & pinserver',
                         default=False)
-    parser.add_argument("--qemu",
-                        action="store_true",
-                        dest="qemu",
-                        help="Skip tests which appear problematic on qemu hw emulator",
+    parser.add_argument('--qemu',
+                        action='store_true',
+                        dest='qemu',
+                        help='Skip tests which appear problematic on qemu hw emulator',
                         default=False)
-    parser.add_argument("--nolegacyflow",
-                        action="store_true",
-                        dest="no_legacy_flow",
-                        help="Do not use the legacy sign_tx flow (use the AE flow instead)",
+    parser.add_argument('--nolegacyflow',
+                        action='store_true',
+                        dest='no_legacy_flow',
+                        help='Do not use the legacy sign_tx flow (use the AE flow instead)',
                         default=False)
-    parser.add_argument("--log",
-                        action="store",
-                        dest="loglevel",
-                        help="Jade logging level",
-                        choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"],
-                        default="INFO")
+    parser.add_argument('--log',
+                        action='store',
+                        dest='loglevel',
+                        help='Jade logging level',
+                        choices=['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'],
+                        default='INFO')
     args = parser.parse_args()
     jadehandler.setLevel(getattr(logging, args.loglevel))
-    logger.debug('args: {}'.format(args))
+    logger.debug(f'args: {args}')
     manage_agents = args.agentkeyfile and not args.skipble and not args.noagent
 
     if args.skipserial and args.skipble:
-        logger.error("Can only skip one of Serial or BLE tests, not both!")
+        logger.error('Can only skip one of Serial or BLE tests, not both!')
         os.exit(1)
 
     if args.bleid and not args.skipserial:
-        logger.error("Can only supply ble-id when skipping serial tests")
+        logger.error('Can only supply ble-id when skipping serial tests')
         os.exit(1)
 
     # Run the thread that forces exit if we're too long running
@@ -4195,11 +4192,11 @@ if __name__ == '__main__':
             #    stop_all_agents()
             #    if btagent:
             #        kill_agent(btagent)
-            #    logger.info("Testing BLE fails with incorrect passkey")
+            #    logger.info('Testing BLE fails with incorrect passkey')
             #    btgent = start_agent(BLE_TEST_BADKEYFILE)
             #    test_ble_connection_fails(info, args)
         else:
-            assert False, "Can't connect to Jade over serial or BLE"
+            assert False, 'Failed to connect to Jade over serial or BLE'
     finally:
         if btagent:
             kill_agent(btagent)
