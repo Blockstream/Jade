@@ -314,8 +314,9 @@ class JadeAPI:
         NOTE: interface must be 'connected'.
 
         If the call returns an 'http_request' structure, this is handled here and the http
-        call is made, and the result is passed into the rpc method given in 'on reply', by
-        calling this function recursively.
+        call is made, and the result is passed into the rpc method given in 'on reply'.
+        (This is repeated as many times as necessary, until a result other than an 'http_request'
+        is returned.)
 
         Parameters
         ----------
@@ -348,31 +349,37 @@ class JadeAPI:
             NOTE: will return the last/final reply after a sequence of calls, where 'http_request'
             was returned and remote data was fetched and passed into a subsequent call.
         """
-        newid = inputid if inputid else str(random.randint(100000, 999999))
-        request = self.jade.build_request(newid, method, params)
-        reply = self.jade.make_rpc_call(request, long_timeout)
-        result = self._get_result_or_raise_error(reply)
+        make_http_request = http_request_fn
+        while True:
+            newid = inputid if inputid else str(random.randint(100000, 999999))
+            request = self.jade.build_request(newid, method, params)
+            reply = self.jade.make_rpc_call(request, long_timeout)
+            result = self._get_result_or_raise_error(reply)
 
-        # The Jade can respond with a request for interaction with a remote
-        # http server. This is used for interaction with the pinserver but the
-        # code below acts as a dumb proxy and simply makes the http request and
-        # forwards the response back to the Jade.
-        # Note: the function called to make the http-request can be passed in,
-        # or it can default to the simple _http_request() function above, if available.
-        if isinstance(result, collections.abc.Mapping) and 'http_request' in result:
-            this_module = sys.modules[__name__]
-            make_http_request = http_request_fn or getattr(this_module, '_http_request', None)
-            assert make_http_request, 'Default _http_request() function not available'
+            # Return most results immediately
+            if not isinstance(result, collections.abc.Mapping) or 'http_request' not in result:
+                return result
 
+            # The Jade can respond with a request for interaction with a remote
+            # http server. This is used for example in the interaction with the pinserver
+            # but the code here acts as a dumb proxy and simply makes the http request and
+            # forwards the response back to the Jade.
+            # Note: the function called to make the http-request can be passed in,
+            # or it can default to the simple _http_request() function above, if available.
+
+            # Find default http_request fn if needed
+            if not make_http_request:
+                this_module = sys.modules[__name__]
+                make_http_request = getattr(this_module, '_http_request', None)
+                assert make_http_request, 'Default _http_request() function not available'
+
+            # Make the http request
             http_request = result['http_request']
             http_response = make_http_request(http_request['params'])
-            return self._jadeRpc(
-                http_request['on-reply'],
-                http_response['body'],
-                http_request_fn=make_http_request,
-                long_timeout=long_timeout)
 
-        return result
+            # Loop and call Jade with the result
+            method = http_request['on-reply']
+            params = http_response['body']
 
     def ping(self):
         """
