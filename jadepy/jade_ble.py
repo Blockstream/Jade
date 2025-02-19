@@ -75,13 +75,13 @@ class JadeBleImpl:
         # Match device-name only if no serial number provided
         device_mac = None
         while not device_mac and self.scan_timeout > 0:
-            logger.info("Scanning, timeout = {}s".format(self.scan_timeout))
+            logger.info(f'Scanning, timeout = {self.scan_timeout}s')
             scan_time = min(2, self.scan_timeout)
             self.scan_timeout -= scan_time
 
             devices = await bleak.discover(scan_time)
             for dev in devices:
-                logger.debug('Seen: {}'.format(dev.name))
+                logger.debug(f'Seen: {dev.name}')
                 if dev.name and \
                    dev.name.startswith(self.device_name) and \
                    (self.serial_number is None or
@@ -91,13 +91,13 @@ class JadeBleImpl:
                     full_name = dev.name
 
         if not device_mac:
-            raise JadeError(1, "Unable to locate BLE device",
-                            "Device name: {}, Serial number: {}".format(
-                              self.device_name, self.serial_number or '<any>'))
+            raise JadeError(1, 'Unable to locate BLE device',
+                            f'Device name: {self.device_name}, '
+                            f'Serial number: {self.serial_number or "<any>"}')
 
         # Remove previous bt/ble pairing data for this device
         if platform.system() == 'Linux':
-            command = "bt-device --remove '{}'".format(device_mac)
+            command = f'bt-device --remove "{device_mac}"'
             process = subprocess.run(command,
                                      shell=True,
                                      stdout=subprocess.DEVNULL)
@@ -109,25 +109,24 @@ class JadeBleImpl:
             try:
                 attempts_remaining -= 1
                 client = bleak.BleakClient(device_mac)
-                logger.info('Connecting to: {} ({})'
-                            .format(full_name, device_mac))
+                logger.info(f'Connecting to: {full_name} ({device_mac})')
                 await client.connect()
                 connected = client.is_connected
-                logger.info('Connected: {}'.format(connected))
+                logger.info(f'Connected: {connected}')
             except Exception as e:
-                logger.warning("BLE connection exception: '{}'".format(e))
+                logger.warning(f'BLE connection exception: {e}')
                 if not attempts_remaining:
-                    logger.warning("Exhausted retries - BLE connection failed")
-                    raise JadeError(2, "Unable to connect to BLE device",
-                                    "Device name: {}, Serial number: {}".format(
-                                        self.device_name, self.serial_number or '<any>'))
+                    logger.warning('Exhausted retries - BLE connection failed')
+                    raise JadeError(2, 'Unable to connect to BLE device',
+                                    f'Device name: {self.device_name}, '
+                                    f'Serial number: {self.serial_number or "<any>"}')
 
         # Peruse services and characteristics
         # Get the 'handle' of the receiving charactersitic
         for service in client.services:
             for char in service.characteristics:
                 if char.uuid == JadeBleImpl.IO_RX_CHAR_UUID:
-                    logger.debug('Found RX characterisitic - handle: '.format(char.handle))
+                    logger.debug(f'Found RX characterisitic - handle: {char.handle}')
                     self.rx_char_handle = char.handle
 
                 if 'read' in char.properties:
@@ -180,7 +179,7 @@ class JadeBleImpl:
         except Exception as err:
             # Sometimes get an exception when testing connection
             # if the client has already internally disconnected ...
-            logger.warning("Exception when disconnecting ble: {}".format(err))
+            logger.warning(f'Exception when disconnecting ble: {err}')
 
         # Set the client to None in any case - that will cause the receive
         # generator to terminate and not wait forever for data.
@@ -219,8 +218,8 @@ class JadeBleImpl:
         try:
             await self.write_task
         except asyncio.CancelledError:
-            logger.warning("write() task cancelled having written "
-                           "{} of {} bytes".format(written, towrite))
+            logger.warning('write() task cancelled having written '
+                           f'{written} of {towrite} bytes')
         finally:
             self.write_task = None
 

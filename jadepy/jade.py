@@ -89,7 +89,7 @@ try:
             NOTE: if 'accept' is 'json' this will be nested json, otherwise a single
             text/bytes field.
         """
-        logger.debug('_http_request: {}'.format(params))
+        logger.debug(f'_http_request: {params}')
         use_json = params.get('accept') in ['json', 'application/json']
 
         # Use the first non-onion url
@@ -102,15 +102,15 @@ try:
             data = json.dumps(params['data']) if use_json else params['data']
             def http_call_fn(): return requests.post(url, data)
         else:
-            raise JadeError(1, "Only GET and POST methods supported", params['method'])
+            raise JadeError(1, 'Only GET and POST methods supported', params['method'])
 
         try:
             f = http_call_fn()
-            logger.debug("http_request received reply length {} and encoding {}".format(
-                len(f.content), f.encoding))
+            logger.debug(f'http_request received reply length {len(f.content)}'
+                         f'and encoding {f.encoding}')
 
             if f.status_code != 200:
-                logger.error("http error {}".format(f.status_code))
+                logger.error(f'http error {f.status_code}')
                 raise ValueError(f.status_code)
 
             f = f.json() if use_json else f.text if f.encoding else f.content
@@ -128,23 +128,23 @@ except ImportError as e:
 def generate_dump():
     while True:
         try:
-            with socket.create_connection(("localhost", 4444)) as s:
+            with socket.create_connection(('localhost', 4444)) as s:
                 output = b""
-                while b"Open On-Chip Debugger" not in output:
+                while b'Open On-Chip Debugger' not in output:
                     data = s.recv(1024)
                     if not data:
                         continue
                     output += data
 
-                s.sendall(b"esp gcov dump\n")
+                s.sendall(b'esp gcov dump\n')
 
-                output = b""
-                while b"Targets disconnected." not in output:
+                output = b''
+                while b'Targets disconnected.' not in output:
                     data = s.recv(1024)
                     if not data:
                         continue
                     output += data
-                s.sendall(b"resume\n")
+                s.sendall(b'resume\n')
                 time.sleep(1)
             return
         except ConnectionRefusedError:
@@ -178,7 +178,7 @@ class JadeAPI:
 
     def __exit__(self, exc_type, exc, tb):
         if (exc_type):
-            logger.info("Exception causing JadeAPI context exit.")
+            logger.info('Exception causing JadeAPI context exit.')
             logger.info(exc_type)
             logger.info(exc)
             traceback.print_tb(tb)
@@ -2005,7 +2005,7 @@ class JadeInterface:
 
     def __exit__(self, exc_type, exc, tb):
         if (exc_type):
-            logger.info("Exception causing JadeInterface context exit.")
+            logger.info('Exception causing JadeInterface context exit.')
             logger.info(exc_type)
             logger.info(exc)
             traceback.print_tb(tb)
@@ -2084,8 +2084,8 @@ class JadeInterface:
         JadeError if BLE backend not available (ie. BLE dependencies not installed)
         """
         this_module = sys.modules[__name__]
-        if not hasattr(this_module, "JadeBleImpl"):
-            raise JadeError(1, "BLE support not installed", None)
+        if not hasattr(this_module, 'JadeBleImpl'):
+            raise JadeError(1, 'BLE support not installed', None)
 
         impl = JadeBleImpl(device_name or DEFAULT_BLE_DEVICE_NAME,
                            serial_number or DEFAULT_BLE_SERIAL_NUMBER,
@@ -2121,7 +2121,7 @@ class JadeInterface:
         Log any/all outstanding messages/data.
         NOTE: can run indefinitely if data is arriving constantly.
         """
-        logger.warning("Draining interface...")
+        logger.warning('Draining interface...')
         drained = bytearray()
         finished = False
 
@@ -2135,10 +2135,10 @@ class JadeInterface:
                     device_logger.warning(drained.decode('utf-8'))
                 except Exception as _:
                     # Dump the bytes raw and as hex if decoding as utf-8 failed
-                    device_logger.warning("Raw:")
+                    device_logger.warning('Raw:')
                     device_logger.warning(drained)
-                    device_logger.warning("----")
-                    device_logger.warning("Hex dump:")
+                    device_logger.warning('----')
+                    device_logger.warning('Hex dump:')
                     device_logger.warning(drained.hex())
 
                 # Clear and loop to continue collecting
@@ -2166,9 +2166,9 @@ class JadeInterface:
         dict
             The request object as a dict
         """
-        request = {"method": method, "id": input_id}
+        request = {'method': method, 'id': input_id}
         if params is not None:
-            request["params"] = params
+            request['params'] = params
         return request
 
     @staticmethod
@@ -2187,9 +2187,8 @@ class JadeInterface:
             The request formatted as cbor message bytes
         """
         dump = cbor.dumps(request)
-        logger.info('Sending {} request {} length {}'.format(request['method'],
-            request['id'], len(dump)))
-        logger.debug('Sending: {}'.format(_hexlify(request)))
+        logger.info(f'Sending {request["method"]} request {request["id"]} length {len(dump)}')
+        logger.debug(f'Sending: {_hexlify(request)}')
         return dump
 
     def write(self, bytes_):
@@ -2206,9 +2205,9 @@ class JadeInterface:
         int
             The number of bytes written
         """
-        # logger.debug("Sending: {} bytes".format(len(bytes_)))
+        # logger.debug(f'Sending: {len(bytes_)} bytes')
         wrote = self.impl.write(bytes_)
-        # logger.debug("Sent: {} bytes".format(len(bytes_)))
+        # logger.debug(f'Sent: {len(bytes_)} bytes')
         return wrote
 
     def write_request(self, request):
@@ -2234,9 +2233,9 @@ class JadeInterface:
         bytes
             The bytes received
         """
-        # logger.debug("Reading {} bytes...".format(n))
+        # logger.debug(f'Reading {n} bytes...')
         bytes_ = self.impl.read(n)
-        # logger.debug("Received: {} bytes".format(len(bytes_)))
+        # logger.debug(f'Received: {len(bytes_)} bytes')
         return bytes_
 
     def read_cbor_message(self):
@@ -2259,8 +2258,8 @@ class JadeInterface:
             if isinstance(message, collections.abc.Mapping):
                 # A message response (to a prior request)
                 if 'id' in message:
-                    logger.info("Received reply {}".format(message['id']))
-                    logger.debug("Received: {}".format(_hexlify(message)))
+                    logger.info(f'Received reply {message["id"]}')
+                    logger.debug(f'Received: {_hexlify(message)}')
                     return message
 
                 # A log message - handle as normal
@@ -2268,7 +2267,7 @@ class JadeInterface:
                     response = message['log']
                     log_method = device_logger.error
                     try:
-                        response = message['log'].decode("utf-8")
+                        response = message['log'].decode('utf-8')
                         log_methods = {
                             'E': device_logger.error,
                             'W': device_logger.warning,
@@ -2280,12 +2279,12 @@ class JadeInterface:
                             lvl = response[0]
                             log_method = log_methods.get(lvl, device_logger.error)
                     except Exception as e:
-                        logger.error('Error processing log message: {}'.format(e))
-                    log_method('>> {}'.format(response))
+                        logger.error(f'Error processing log message: {e}')
+                    log_method(f'>> {response}')
                     continue
 
             # Unknown/unhandled/unexpected message
-            logger.error("Unhandled message received")
+            logger.error('Unhandled message received')
             device_logger.error(message)
 
     def read_response(self, long_timeout=False):

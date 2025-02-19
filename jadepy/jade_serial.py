@@ -47,7 +47,7 @@ class JadeSerialImpl:
     def connect(self):
         assert self.ser is None
 
-        logger.info('Connecting to {} at {}'.format(self.device, self.baud))
+        logger.info(f'Connecting to {self.device} at {self.baud}')
         self.ser = serial.Serial(self.device, self.baud,
                                  timeout=self.timeout,
                                  write_timeout=self.timeout)
@@ -57,7 +57,7 @@ class JadeSerialImpl:
             try:
                 self.ser.open()
             except serial.serialutil.SerialException:
-                raise JadeError(1, "Unable to open port", self.device)
+                raise JadeError(1, 'Unable to open port', self.device)
 
         # Ensure RTS and DTR are not set (as this can cause the hw to reboot)
         self.ser.setRTS(False)
