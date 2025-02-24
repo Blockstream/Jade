@@ -77,28 +77,28 @@ set_source_files_properties(
     )
 
 # fortify/performance flags
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC NDEBUG=1)
-target_compile_options(${COMPONENT_TARGET} PUBLIC "-fstack-protector-strong")
-target_link_options(${COMPONENT_TARGET} PUBLIC -Wl,-z,relro -Wl,-z,now)
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC _FORTIFY_SOURCE=2)
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE NDEBUG=1)
+target_compile_options(${COMPONENT_TARGET} PRIVATE "-fstack-protector-strong")
+target_link_options(${COMPONENT_TARGET} PRIVATE -Wl,-z,relro -Wl,-z,now)
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE _FORTIFY_SOURCE=2)
 
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_ELEMENTS=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_MINIMAL=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_MBEDTLS_SHA256_H")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_MBEDTLS_SHA512_H")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DBUILD_ELEMENTS=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DBUILD_MINIMAL=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DHAVE_MBEDTLS_SHA256_H")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DHAVE_MBEDTLS_SHA512_H")
 
 # libsecp flags
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DECMULT_WINDOW_SIZE=8")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_ECDH=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_ECDSA_S2C=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_EXTRAKEYS=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_GENERATOR=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_RANGEPROOF=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_RECOVERY=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_SCHNORRSIG=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_SURJECTIONPROOF=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DENABLE_MODULE_WHITELIST=1")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DHAVE_BUILTIN_POPCOUNT=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DECMULT_WINDOW_SIZE=8")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DENABLE_MODULE_ECDH=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DENABLE_MODULE_ECDSA_S2C=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DENABLE_MODULE_EXTRAKEYS=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DENABLE_MODULE_GENERATOR=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DENABLE_MODULE_RANGEPROOF=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DENABLE_MODULE_RECOVERY=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DENABLE_MODULE_SCHNORRSIG=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DENABLE_MODULE_SURJECTIONPROOF=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DENABLE_MODULE_WHITELIST=1")
+target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DHAVE_BUILTIN_POPCOUNT=1")
 
 add_custom_command(TARGET ${COMPONENT_LIB}
                    POST_BUILD

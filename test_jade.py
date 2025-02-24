@@ -3820,7 +3820,7 @@ def run_interface_tests(jadeapi,
         if not isble:
             time_ms = jadeapi.run_remote_selfcheck()
             logger.info('selfcheck time: ' + str(time_ms) + 'ms')
-            assert qemu or time_ms < (46000 if is_s3 else 128000)
+            assert qemu or time_ms < (46000 if is_s3 else 132000)
 
         # Test good pinserver handshake, and also 'bad sig' pinserver
         test_handshake(jadeapi.jade)

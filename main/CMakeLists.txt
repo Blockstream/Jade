@@ -71,7 +71,6 @@ if(CONFIG_ETH_USE_OPENETH)
 endif()
 
 target_link_libraries(${COMPONENT_TARGET} "-u custom_app_desc")
-target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DBUILD_ELEMENTS=1")
 if(CONFIG_APPTRACE_GCOV_ENABLE)
     target_compile_options(${COMPONENT_LIB} PRIVATE --coverage)
 endif()
