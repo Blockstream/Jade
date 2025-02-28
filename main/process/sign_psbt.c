@@ -50,25 +50,72 @@ struct pubkey_data {
     size_t key_len;
 };
 
-// Helper to get next key derived from the signer master key in the passed keypath map.
-// NOTE: Both start_index and found_index are zero-based.
-// The return indicates whether any key was found - and if so hdkey and index will be populated.
-static bool get_our_next_key(
-    const struct wally_map* keypaths, const size_t start_index, struct ext_key* hdkey, size_t* index)
-{
-    JADE_ASSERT(keypaths);
-    JADE_ASSERT(hdkey);
-    JADE_ASSERT(index);
-    JADE_ASSERT(keychain_get());
+/* An iterator for keypaths in a PSBT input or output.
+ * The iterator holds the privately-derived key that corresponds to the
+ * public keys it iterates, so use of this struct must be wrapped with
+ * SENSITIVE_PUSH/SENSITIVE_POP.
+ */
+typedef struct key_iter_t {
+    struct ext_key hdkey;
+    const struct wally_psbt* psbt;
+    size_t index;
+    size_t key_index;
+    bool is_input;
+    bool is_taproot;
+    bool is_valid;
+} key_iter;
 
-    JADE_WALLY_VERIFY(
-        wally_map_keypath_get_bip32_key_from(keypaths, start_index, &keychain_get()->xpriv, hdkey, index));
-    if (!*index) {
-        // No key of ours here
-        return false;
+/* Advance a PSBT key iterator.
+ * `is_valid` is set to true if a key was found, false otherwise.
+ * When `is_valid` is true:
+ *   - `hdkey` holds the privately derived key matching the found pubkey.
+ *   - `key_index` holds the index of the key in the relevant keypath.
+ */
+static bool key_iter_next(key_iter* iter)
+{
+    JADE_ASSERT(iter && iter->is_valid);
+    const struct wally_map* keypaths;
+    size_t key_index;
+    if (iter->is_input) {
+        keypaths = &iter->psbt->inputs[iter->index].keypaths;
+    } else {
+        keypaths = &iter->psbt->outputs[iter->index].keypaths;
     }
-    --*index; // reduce to 0-based
-    return true; // Found
+    ++iter->key_index;
+    JADE_WALLY_VERIFY(wally_map_keypath_get_bip32_key_from(
+        keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index));
+    if (key_index) {
+        iter->is_valid = true; // Found
+        iter->key_index = key_index - 1; // Adjust to 0-based index
+    } else {
+        iter->is_valid = false; // Not found
+    }
+    return iter->is_valid;
+}
+
+static bool key_iter_init(const struct wally_psbt* psbt, size_t index, bool is_input, key_iter* iter)
+{
+    JADE_ASSERT(psbt);
+    JADE_ASSERT(index <= (is_input ? psbt->num_inputs : psbt->num_outputs));
+    JADE_ASSERT(iter);
+    iter->psbt = psbt;
+    iter->index = index;
+    iter->key_index = 0;
+    --iter->key_index; // Incrementing will wrap around to 0 i.e. the first key
+    iter->is_input = is_input;
+    iter->is_taproot = false; // FIXME: Add support for taproot
+    iter->is_valid = true;
+    return key_iter_next(iter);
+}
+
+static bool key_iter_input_begin(const struct wally_psbt* psbt, size_t index, key_iter* iter)
+{
+    return key_iter_init(psbt, index, true, iter);
+}
+
+static bool key_iter_output_begin(const struct wally_psbt* psbt, size_t index, key_iter* iter)
+{
+    return key_iter_init(psbt, index, false, iter);
 }
 
 static bool is_green_multisig_signers(
@@ -542,16 +589,18 @@ static bool get_suitable_descriptor_record(const struct wally_map* keypaths, con
 // Examine outputs for change we can automatically validate
 static void validate_any_change_outputs(const char* network, struct wally_psbt* psbt, const uint8_t signing_flags,
     const char* wallet_name, const multisig_data_t* multisig_data, const descriptor_data_t* descriptor,
-    output_info_t* output_info, struct ext_key* hdkey)
+    output_info_t* output_info)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(psbt);
     JADE_ASSERT(signing_flags);
     // wallet_name, multisig_data and descriptor optional
     JADE_ASSERT(output_info);
-    JADE_ASSERT(hdkey);
 
     JADE_ASSERT(!multisig_data || !descriptor); // cannot have both
+
+    key_iter iter; // Holds any private key in use
+    SENSITIVE_PUSH(&iter, sizeof(iter));
 
     // Check each output in turn
     for (size_t index = 0; index < psbt->num_outputs; ++index) {
@@ -562,9 +611,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
         JADE_ASSERT(!(output_info[index].flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
 
         // Find the first key belonging to this signer
-        const size_t start_index_zero = 0;
-        size_t our_key_index = 0;
-        if (!get_our_next_key(&output->keypaths, start_index_zero, hdkey, &our_key_index)) {
+        if (!key_iter_output_begin(psbt, index, &iter)) {
             // No key in this output belongs to this signer
             JADE_LOGD("No key in input %u, ignoring", index);
             continue;
@@ -574,7 +621,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
         size_t path_len = 0;
         uint32_t path[MAX_PATH_LEN];
         JADE_WALLY_VERIFY(
-            wally_map_keypath_get_item_path(&output->keypaths, our_key_index, path, MAX_PATH_LEN, &path_len));
+            wally_map_keypath_get_item_path(&output->keypaths, iter.key_index, path, MAX_PATH_LEN, &path_len));
         const bool is_change = path_len >= 2 && path[path_len - 2] == 1;
 
         // Get the output scriptpubkey
@@ -588,7 +635,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
 
         const size_t num_keys = output->keypaths.num_items;
         if (num_keys == 1) {
-            JADE_ASSERT(our_key_index == 0); // only key present
+            JADE_ASSERT(iter.key_index == 0); // only key present
 
             // Skip if we did not sign any singlesig inputs
             if (!(signing_flags & PSBT_SIGNING_SINGLESIG)) {
@@ -606,7 +653,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             }
 
             // Check that we can generate a script that matches the tx
-            if (!verify_singlesig_script_matches(script_variant, hdkey, tx_script, tx_script_len)) {
+            if (!verify_singlesig_script_matches(script_variant, &iter.hdkey, tx_script, tx_script_len)) {
                 JADE_LOGW("Receive script failed validation");
                 continue;
             }
@@ -631,7 +678,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             }
         } else if (signing_flags == (PSBT_SIGNING_GREEN_MULTISIG | PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED)) {
             // Signed only Green multisig inputs, only consider similar outputs
-            JADE_ASSERT(our_key_index < num_keys);
+            JADE_ASSERT(iter.key_index < num_keys);
 
             struct pubkey_data recovery_pubkey = { .key_len = 0 };
             if (!is_green_multisig_signers(network, &output->keypaths, &recovery_pubkey)) {
@@ -652,7 +699,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
 
         } else if (signing_flags == (PSBT_SIGNING_MULTISIG | PSBT_SIGNING_SINGLE_MULTISIG_RECORD)) {
             // Generic multisig or descriptor
-            JADE_ASSERT(our_key_index < num_keys);
+            JADE_ASSERT(iter.key_index < num_keys);
             JADE_ASSERT(!multisig_data != !descriptor); // one or the other
 
             // Get the path tail after the last hardened element
@@ -684,7 +731,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             }
 
             // Check path tail looks as expected
-            if (!wallet_is_expected_multisig_path(our_key_index, is_change, &path[path_tail_start], path_tail_len)) {
+            if (!wallet_is_expected_multisig_path(iter.key_index, is_change, &path[path_tail_start], path_tail_len)) {
                 // Not our standard change path - add warning
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                 const bool have_path_str = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
@@ -698,6 +745,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
                 "Ignoring multisig output %u as not signing only multisig inputs for a single registration", index);
         }
     }
+    SENSITIVE_POP(&iter);
 }
 
 // Sign a psbt - the passed wally psbt struct is updated with any signatures.
@@ -724,9 +772,8 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     }
     JADE_ASSERT(tx->num_inputs == psbt->num_inputs && tx->num_outputs == psbt->num_outputs);
 
-    // Any private key in use
-    struct ext_key hdkey;
-    SENSITIVE_PUSH(&hdkey, sizeof(hdkey));
+    key_iter iter; // Holds any private key in use
+    SENSITIVE_PUSH(&iter, sizeof(iter));
     int retval = 0;
 
     // We track if the type of the inputs we are signing changes (ie. single-sig vs
@@ -758,11 +805,9 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
         input_amount += utxo->satoshi;
 
         // If we are signing this input, look at the script type, sighash, multisigs etc.
-        const size_t start_index_zero = 0;
-        size_t our_key_index = 0;
-        if (get_our_next_key(&input->keypaths, start_index_zero, &hdkey, &our_key_index)) {
+        if (key_iter_input_begin(psbt, index, &iter)) {
             // Found our key - we are signing this input
-            JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", our_key_index, index);
+            JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", iter.key_index, index);
             signing_inputs[index] = true;
 
             const size_t num_keys = input->keypaths.num_items;
@@ -808,7 +853,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                 size_t path_len = 0;
                 uint32_t path[MAX_PATH_LEN];
                 JADE_WALLY_VERIFY(
-                    wally_map_keypath_get_item_path(&input->keypaths, our_key_index, path, MAX_PATH_LEN, &path_len));
+                    wally_map_keypath_get_item_path(&input->keypaths, iter.key_index, path, MAX_PATH_LEN, &path_len));
 
                 // Get the path tail after the last hardened element
                 const size_t path_tail_start = get_multisig_path_tail_start_index(path, path_len);
@@ -887,8 +932,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
     // Examine outputs for change we can automatically validate
     if (signing_flags) {
-        validate_any_change_outputs(
-            network, psbt, signing_flags, wallet_name, multisig_data, descriptor, output_info, &hdkey);
+        validate_any_change_outputs(network, psbt, signing_flags, wallet_name, multisig_data, descriptor, output_info);
     }
 
     // User to verify outputs and fee amount
@@ -928,7 +972,6 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
         }
 
         JADE_LOGD("Signing input %u", index);
-        struct wally_psbt_input* input = &psbt->inputs[index];
 
         // Get the scriptpubkey or redeemscript, then the actual signing script, then the txhash
         uint8_t script[WALLY_SCRIPTSIG_MAX_LEN]; // Sufficient
@@ -951,19 +994,19 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
             goto cleanup;
         }
 
-        size_t key_index = 0; // Counter updated as we search for our key(s)
-        while (get_our_next_key(&input->keypaths, key_index, &hdkey, &key_index)) {
+        key_iter_input_begin(psbt, index, &iter);
+        while (iter.is_valid) {
             // Sign the input with this key
-            if (wally_psbt_sign_input_bip32(psbt, index, key_index, txhash, sizeof(txhash), &hdkey, EC_FLAG_GRIND_R)
+            if (wally_psbt_sign_input_bip32(
+                    psbt, index, iter.key_index, txhash, sizeof(txhash), &iter.hdkey, EC_FLAG_GRIND_R)
                 != WALLY_OK) {
                 *errmsg = "Failed to generate signature";
                 retval = CBOR_RPC_INTERNAL_ERROR;
                 goto cleanup;
             }
-
             // Loop in case we need sign again - ie. we are multiple signers in a multisig
             // Continue search from next key index position
-            ++key_index;
+            key_iter_next(&iter);
         }
     }
 
@@ -971,7 +1014,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     JADE_ASSERT(!retval);
 
 cleanup:
-    SENSITIVE_POP(&hdkey);
+    SENSITIVE_POP(&iter);
     JADE_WALLY_VERIFY(wally_tx_free(tx));
     free(descriptor);
     free(multisig_data);
