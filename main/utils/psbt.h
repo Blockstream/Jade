@@ -37,4 +37,7 @@ bool key_iter_output_begin(const struct wally_psbt* psbt, size_t index, key_iter
  */
 bool key_iter_next(key_iter* iter);
 
+// Get the path to the key the iterator current points to
+bool key_iter_get_path(const key_iter* iter, uint32_t* path, size_t path_len, size_t* written);
+
 #endif /* PSBT_H_ */

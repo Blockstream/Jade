@@ -553,8 +553,10 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
         // Get the key path, and check the penultimate element
         size_t path_len = 0;
         uint32_t path[MAX_PATH_LEN];
-        JADE_WALLY_VERIFY(
-            wally_map_keypath_get_item_path(&output->keypaths, iter.key_index, path, MAX_PATH_LEN, &path_len));
+        if (!key_iter_get_path(&iter, path, MAX_PATH_LEN, &path_len)) {
+            JADE_LOGE("No valid path in output %u, ignoring", index);
+            continue;
+        }
         const bool is_change = path_len >= 2 && path[path_len - 2] == 1;
 
         // Get the output scriptpubkey
@@ -785,8 +787,10 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
             } else {
                 size_t path_len = 0;
                 uint32_t path[MAX_PATH_LEN];
-                JADE_WALLY_VERIFY(
-                    wally_map_keypath_get_item_path(&input->keypaths, iter.key_index, path, MAX_PATH_LEN, &path_len));
+                if (!key_iter_get_path(&iter, path, MAX_PATH_LEN, &path_len)) {
+                    JADE_LOGE("No valid path in output %u, ignoring", index);
+                    continue;
+                }
 
                 // Get the path tail after the last hardened element
                 const size_t path_tail_start = get_multisig_path_tail_start_index(path, path_len);

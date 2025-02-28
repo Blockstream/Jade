@@ -31,16 +31,19 @@ bool key_iter_output_begin(const struct wally_psbt* psbt, const size_t index, ke
     return key_iter_init(psbt, index, false, iter);
 }
 
-bool key_iter_next(key_iter* iter)
+static const struct wally_map* key_iter_get_keypaths(const key_iter* iter)
 {
     JADE_ASSERT(iter && iter->is_valid);
-    const struct wally_map* keypaths;
-    size_t key_index;
     if (iter->is_input) {
-        keypaths = &iter->psbt->inputs[iter->index].keypaths;
-    } else {
-        keypaths = &iter->psbt->outputs[iter->index].keypaths;
+        return &iter->psbt->inputs[iter->index].keypaths;
     }
+    return &iter->psbt->outputs[iter->index].keypaths;
+}
+
+bool key_iter_next(key_iter* iter)
+{
+    const struct wally_map* keypaths = key_iter_get_keypaths(iter);
+    size_t key_index;
     ++iter->key_index;
     JADE_WALLY_VERIFY(wally_map_keypath_get_bip32_key_from(
         keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index));
@@ -51,4 +54,11 @@ bool key_iter_next(key_iter* iter)
         iter->is_valid = false; // Not found
     }
     return iter->is_valid;
+}
+
+bool key_iter_get_path(const key_iter* iter, uint32_t* path, const size_t path_len, size_t* written)
+{
+    const struct wally_map* keypaths = key_iter_get_keypaths(iter);
+    int ret = wally_map_keypath_get_item_path(keypaths, iter->key_index, path, path_len, written);
+    return ret == WALLY_OK && *written <= path_len;
 }
