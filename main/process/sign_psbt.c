@@ -12,6 +12,7 @@
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
 #include "../utils/network.h"
+#include "../utils/psbt.h"
 #include "../utils/util.h"
 #include "../wallet.h"
 
@@ -49,74 +50,6 @@ struct pubkey_data {
     uint8_t key[EC_PUBLIC_KEY_LEN];
     size_t key_len;
 };
-
-/* An iterator for keypaths in a PSBT input or output.
- * The iterator holds the privately-derived key that corresponds to the
- * public keys it iterates, so use of this struct must be wrapped with
- * SENSITIVE_PUSH/SENSITIVE_POP.
- */
-typedef struct key_iter_t {
-    struct ext_key hdkey;
-    const struct wally_psbt* psbt;
-    size_t index;
-    size_t key_index;
-    bool is_input;
-    bool is_taproot;
-    bool is_valid;
-} key_iter;
-
-/* Advance a PSBT key iterator.
- * `is_valid` is set to true if a key was found, false otherwise.
- * When `is_valid` is true:
- *   - `hdkey` holds the privately derived key matching the found pubkey.
- *   - `key_index` holds the index of the key in the relevant keypath.
- */
-static bool key_iter_next(key_iter* iter)
-{
-    JADE_ASSERT(iter && iter->is_valid);
-    const struct wally_map* keypaths;
-    size_t key_index;
-    if (iter->is_input) {
-        keypaths = &iter->psbt->inputs[iter->index].keypaths;
-    } else {
-        keypaths = &iter->psbt->outputs[iter->index].keypaths;
-    }
-    ++iter->key_index;
-    JADE_WALLY_VERIFY(wally_map_keypath_get_bip32_key_from(
-        keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index));
-    if (key_index) {
-        iter->is_valid = true; // Found
-        iter->key_index = key_index - 1; // Adjust to 0-based index
-    } else {
-        iter->is_valid = false; // Not found
-    }
-    return iter->is_valid;
-}
-
-static bool key_iter_init(const struct wally_psbt* psbt, size_t index, bool is_input, key_iter* iter)
-{
-    JADE_ASSERT(psbt);
-    JADE_ASSERT(index <= (is_input ? psbt->num_inputs : psbt->num_outputs));
-    JADE_ASSERT(iter);
-    iter->psbt = psbt;
-    iter->index = index;
-    iter->key_index = 0;
-    --iter->key_index; // Incrementing will wrap around to 0 i.e. the first key
-    iter->is_input = is_input;
-    iter->is_taproot = false; // FIXME: Add support for taproot
-    iter->is_valid = true;
-    return key_iter_next(iter);
-}
-
-static bool key_iter_input_begin(const struct wally_psbt* psbt, size_t index, key_iter* iter)
-{
-    return key_iter_init(psbt, index, true, iter);
-}
-
-static bool key_iter_output_begin(const struct wally_psbt* psbt, size_t index, key_iter* iter)
-{
-    return key_iter_init(psbt, index, false, iter);
-}
 
 static bool is_green_multisig_signers(
     const char* network, const struct wally_map* keypaths, struct pubkey_data* recovery_pubkey)
