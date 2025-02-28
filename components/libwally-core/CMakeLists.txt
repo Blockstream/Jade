@@ -27,6 +27,7 @@ idf_component_register(SRCS
                        "upstream/src/sign.c"
                        "upstream/src/symmetric.c"
                        "upstream/src/transaction.c"
+                       "upstream/src/tx_io.c"
                        "upstream/src/wif.c"
                        "upstream/src/wordlist.c"
                        "upstream/src/ccan/ccan/base64/base64.c"
