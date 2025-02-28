@@ -61,24 +61,14 @@ static bool get_our_next_key(
     JADE_ASSERT(index);
     JADE_ASSERT(keychain_get());
 
-    struct ext_key* nextkey = NULL;
     JADE_WALLY_VERIFY(
-        wally_map_keypath_get_bip32_key_from_alloc(keypaths, start_index, &keychain_get()->xpriv, &nextkey));
-    if (!nextkey) {
+        wally_map_keypath_get_bip32_key_from(keypaths, start_index, &keychain_get()->xpriv, hdkey, index));
+    if (!*index) {
         // No key of ours here
         return false;
     }
-
-    // Copy and free the allocated key
-    memcpy(hdkey, nextkey, sizeof(struct ext_key));
-    JADE_WALLY_VERIFY(bip32_key_free(nextkey));
-
-    // Find the pubkey in the map and return the (0-based) index
-    JADE_WALLY_VERIFY(wally_map_find_bip32_public_key_from(keypaths, start_index, hdkey, index));
-    JADE_ASSERT(index); // 1-based - should def be found!
     --*index; // reduce to 0-based
-
-    return true;
+    return true; // Found
 }
 
 static bool is_green_multisig_signers(
