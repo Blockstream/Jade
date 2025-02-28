@@ -82,9 +82,7 @@ static bool is_green_multisig_signers(
         recovery_pubkey->key_len = 0;
     }
 
-    size_t num_keys = 0;
-    JADE_WALLY_VERIFY(wally_map_get_num_items(keypaths, &num_keys));
-
+    const size_t num_keys = keypaths->num_items;
     if (num_keys != 2 && num_keys != 3) {
         // Green multisig is 2of2 or 2of3 only
         return false;
@@ -323,8 +321,7 @@ static bool verify_multisig_script_matches(const multisig_data_t* multisig_data,
     }
 
     // Ensure number of signatories match
-    size_t num_keys = 0;
-    JADE_WALLY_VERIFY(wally_map_get_num_items(keypaths, &num_keys));
+    const size_t num_keys = keypaths->num_items;
     if (multisig_data->num_xpubs != num_keys) {
         JADE_LOGD("Mismatch in number of signatories");
         return false;
@@ -423,8 +420,7 @@ static bool verify_descriptor_script_matches(const char* descriptor_name, const 
 
     // Ensure number of pubkeys is not less than the number of xpub signers
     // (xpubs can be reused with different paths, but they cannot be left unused)
-    size_t num_keys = 0;
-    JADE_WALLY_VERIFY(wally_map_get_num_items(keypaths, &num_keys));
+    const size_t num_keys = keypaths->num_items;
     if (descriptor->num_values > num_keys) {
         JADE_LOGD("Mismatch in number of signatories");
         return false;
@@ -590,8 +586,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             continue;
         }
 
-        size_t num_keys = 0;
-        JADE_WALLY_VERIFY(wally_map_get_num_items(&output->keypaths, &num_keys));
+        const size_t num_keys = output->keypaths.num_items;
         if (num_keys == 1) {
             JADE_ASSERT(our_key_index == 0); // only key present
 
@@ -770,8 +765,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
             JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", our_key_index, index);
             signing_inputs[index] = true;
 
-            size_t num_keys = 0;
-            JADE_WALLY_VERIFY(wally_map_get_num_items(&input->keypaths, &num_keys));
+            const size_t num_keys = input->keypaths.num_items;
             if (num_keys > 1) {
                 signing_flags |= is_green_multisig_signers(network, &input->keypaths, NULL)
                     ? PSBT_SIGNING_GREEN_MULTISIG
