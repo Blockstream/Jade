@@ -546,7 +546,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
         // Find the first key belonging to this signer
         if (!key_iter_output_begin(psbt, index, &iter)) {
             // No key in this output belongs to this signer
-            JADE_LOGD("No key in input %u, ignoring", index);
+            JADE_LOGD("No key in output %u, ignoring", index);
             continue;
         }
 
