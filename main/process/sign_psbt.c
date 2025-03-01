@@ -51,18 +51,17 @@ struct pubkey_data {
     size_t key_len;
 };
 
-static bool is_green_multisig_signers(
-    const char* network, const struct wally_map* keypaths, struct pubkey_data* recovery_pubkey)
+static bool is_green_multisig_signers(const char* network, const key_iter* iter, struct pubkey_data* recovery_pubkey)
 {
     JADE_ASSERT(network);
-    JADE_ASSERT(keypaths);
+    JADE_ASSERT(iter && iter->is_valid);
 
     // recovery_pubkey is optional
     if (recovery_pubkey) {
         recovery_pubkey->key_len = 0;
     }
 
-    const size_t num_keys = keypaths->num_items;
+    const size_t num_keys = key_iter_get_num_keys(iter);
     if (num_keys != 2 && num_keys != 3) {
         // Green multisig is 2of2 or 2of3 only
         return false;
@@ -86,30 +85,24 @@ static bool is_green_multisig_signers(
 
     for (size_t ikey = 0; ikey < num_keys; ++ikey) {
         uint8_t key_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
-        JADE_WALLY_VERIFY(
-            wally_map_keypath_get_item_fingerprint(keypaths, ikey, key_fingerprint, sizeof(key_fingerprint)));
+        key_iter_get_fingerprint_at(iter, ikey, key_fingerprint, sizeof(key_fingerprint));
 
         if (!memcmp(key_fingerprint, user_fingerprint, sizeof(key_fingerprint))) {
             // Appears to be our signer
-            if (user_path_len
-                || wally_map_keypath_get_item_path(keypaths, ikey, user_path, MAX_PATH_LEN, &user_path_len)
-                    != WALLY_OK) {
+            if (user_path_len || !key_iter_get_path_at(iter, ikey, user_path, MAX_PATH_LEN, &user_path_len)) {
                 // Seen user signer already or path too long
                 return false;
             }
         } else if (!memcmp(key_fingerprint, ga_fingerprint, sizeof(key_fingerprint))) {
             // Appears to be ga-service signer
-            if (ga_path_len
-                || wally_map_keypath_get_item_path(keypaths, ikey, ga_path, MAX_GASERVICE_PATH_LEN, &ga_path_len)
-                    != WALLY_OK) {
+            if (ga_path_len || !key_iter_get_path_at(iter, ikey, ga_path, MAX_GASERVICE_PATH_LEN, &ga_path_len)) {
                 // Seen ga service signer already or path too long
                 return false;
             }
         } else {
             // 2of3 recovery key
             if (recovery_path_len
-                || wally_map_keypath_get_item_path(keypaths, ikey, recovery_path, MAX_PATH_LEN, &recovery_path_len)
-                    != WALLY_OK) {
+                || !key_iter_get_path_at(iter, ikey, recovery_path, MAX_PATH_LEN, &recovery_path_len)) {
                 // Seen 'third-party' signer already or path too long
                 return false;
             }
@@ -117,14 +110,11 @@ static bool is_green_multisig_signers(
             // Return the recovery pubkey if the caller so desires
             // NOTE: only compressed pubkeys are expected/supported.
             if (recovery_pubkey) {
-                size_t written = 0;
-                if (wally_map_get_item_key(keypaths, ikey, recovery_pubkey->key, sizeof(recovery_pubkey->key), &written)
-                        != WALLY_OK
-                    || written > sizeof(recovery_pubkey->key)) {
+                if (!key_iter_get_pubkey_at(iter, ikey, recovery_pubkey->key, sizeof(recovery_pubkey->key))) {
                     JADE_LOGE("Error fetching ga-multisig 2of3 recovery key");
                     return false;
                 }
-                recovery_pubkey->key_len = written;
+                recovery_pubkey->key_len = sizeof(recovery_pubkey->key);
             }
         }
     }
@@ -568,7 +558,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             continue;
         }
 
-        const size_t num_keys = output->keypaths.num_items;
+        const size_t num_keys = key_iter_get_num_keys(&iter);
         if (num_keys == 1) {
             JADE_ASSERT(iter.key_index == 0); // only key present
 
@@ -616,7 +606,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             JADE_ASSERT(iter.key_index < num_keys);
 
             struct pubkey_data recovery_pubkey = { .key_len = 0 };
-            if (!is_green_multisig_signers(network, &output->keypaths, &recovery_pubkey)) {
+            if (!is_green_multisig_signers(network, &iter, &recovery_pubkey)) {
                 JADE_LOGD("Ignoring non-green-multisig output %u as only signing green-multisig inputs", index);
                 continue;
             }
@@ -745,11 +735,10 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
             JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", iter.key_index, index);
             signing_inputs[index] = true;
 
-            const size_t num_keys = input->keypaths.num_items;
+            const size_t num_keys = key_iter_get_num_keys(&iter);
             if (num_keys > 1) {
-                signing_flags |= is_green_multisig_signers(network, &input->keypaths, NULL)
-                    ? PSBT_SIGNING_GREEN_MULTISIG
-                    : PSBT_SIGNING_MULTISIG;
+                signing_flags |= is_green_multisig_signers(network, &iter, NULL) ? PSBT_SIGNING_GREEN_MULTISIG
+                                                                                 : PSBT_SIGNING_MULTISIG;
             } else {
                 signing_flags |= PSBT_SIGNING_SINGLESIG;
             }
