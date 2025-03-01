@@ -190,20 +190,20 @@ static bool verify_ga_script_matches(const char* network, const uint32_t* path, 
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
 
-    // NOTE: 2of3 csv not supported
-    if (!recovery_key || !recovery_key->key_len) {
-        // Try each of the allowed csv blocks
-        const size_t* allowed_csv_blocks = NULL;
-        const size_t num_allowed = csvBlocksForNetwork(network, &allowed_csv_blocks);
-        JADE_ASSERT(num_allowed);
-        JADE_ASSERT(allowed_csv_blocks);
-
-        for (size_t i = 0; i < num_allowed; ++i) {
-            if (verify_ga_script_matches_impl(
-                    network, path, path_len, recovery_key, allowed_csv_blocks[i], target_script, target_script_len)) {
-                // csv script match
-                return true;
-            }
+    // NOTE: 2of3 csv not supported, so don't check for it if we have a recovery key
+    if (!recovery_key->key_len) {
+        // Check for a csv/optimized csv script
+        uint32_t csv_blocks;
+        int ret = wally_scriptpubkey_csv_blocks_from_csv_2of2_then_1(target_script, target_script_len, &csv_blocks);
+        if (ret == WALLY_OK && csvBlocksExpectedForNetwork(network, csv_blocks)
+            && verify_ga_script_matches_impl(
+                network, path, path_len, NULL, csv_blocks, target_script, target_script_len)) {
+            // csv script matches
+            return true;
+        }
+        if (ret == WALLY_OK) {
+            // This is a csv script, but it doesn't match
+            return false;
         }
     }
 
@@ -215,7 +215,7 @@ static bool verify_ga_script_matches(const char* network, const uint32_t* path, 
         return true;
     }
 
-    // No csv values match
+    // Not a matching Green multisig script
     return false;
 }
 
