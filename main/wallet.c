@@ -799,16 +799,18 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
 // - native segwit v0 p2wpkh
 // - p2sh-wrapped segwit v0 p2wpkh
 // - segwit v1 p2tr (keyspend only)
-bool wallet_build_singlesig_script(const script_variant_t script_variant, const uint8_t* pubkey,
-    const size_t pubkey_len, uint8_t* output, const size_t output_len, size_t* written)
+bool wallet_build_singlesig_script(const script_variant_t script_variant, const struct ext_key* hdkey, uint8_t* output,
+    const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
-    if (!is_singlesig(script_variant) || !pubkey || pubkey_len != EC_PUBLIC_KEY_LEN || !output
-        || output_len < script_length_for_variant(script_variant) || !written) {
+    if (!is_singlesig(script_variant) || !hdkey || !output || output_len < script_length_for_variant(script_variant)
+        || !written) {
         return false;
     }
 
+    const uint8_t* pubkey = hdkey->pub_key;
+    const size_t pubkey_len = sizeof(hdkey->pub_key);
     if (script_variant == P2WPKH_P2SH) {
         // Get the p2sh/p2wsh script-pubkey for the passed pubkey
         JADE_LOGD("Generating singlesig p2sh_p2wpkh script");
@@ -855,8 +857,7 @@ bool wallet_search_for_singlesig_script(const script_variant_t script_variant, c
             bip32_key_from_parent(search_root, *index, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived));
 
         size_t written = 0;
-        if (!wallet_build_singlesig_script(
-                script_variant, derived.pub_key, sizeof(derived.pub_key), generated, sizeof(generated), &written)) {
+        if (!wallet_build_singlesig_script(script_variant, &derived, generated, sizeof(generated), &written)) {
             JADE_LOGE("Error generating singlesig script");
             return false;
         }

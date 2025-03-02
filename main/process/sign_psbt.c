@@ -221,7 +221,7 @@ static bool verify_ga_script_matches(const char* network, const uint32_t* path, 
 
 // Helper to generate a singlesig script of the given type with the pubkey given, and
 // compare it to the target script provided.
-// Returns true if then generated script matches the target script.
+// Returns true if the generated script matches the target script.
 static bool verify_singlesig_script_matches(const script_variant_t script_variant, const struct ext_key* hdkey,
     const uint8_t* target_script, const size_t target_script_len)
 {
@@ -238,8 +238,7 @@ static bool verify_singlesig_script_matches(const script_variant_t script_varian
     // Build our script
     size_t trial_script_len = 0;
     uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
-    if (!wallet_build_singlesig_script(script_variant, hdkey->pub_key, sizeof(hdkey->pub_key), trial_script,
-            sizeof(trial_script), &trial_script_len)) {
+    if (!wallet_build_singlesig_script(script_variant, hdkey, trial_script, sizeof(trial_script), &trial_script_len)) {
         // Failed to build script
         JADE_LOGE("Receive script cannot be constructed");
         return false;

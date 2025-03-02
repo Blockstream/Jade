@@ -69,8 +69,8 @@ bool wallet_build_ga_script_ex(const char* network, const uint8_t* recovery_pubk
     size_t csv_blocks, const uint32_t* path, size_t path_len, uint8_t* output, size_t output_len, size_t* written);
 bool wallet_build_ga_script(const char* network, const char* xpubrecovery, size_t csv_blocks, const uint32_t* path,
     size_t path_len, uint8_t* output, size_t output_len, size_t* written);
-bool wallet_build_singlesig_script(script_variant_t script_variant, const uint8_t* pubkey, size_t pubkey_len,
-    uint8_t* output, size_t output_len, size_t* written);
+bool wallet_build_singlesig_script(
+    script_variant_t script_variant, const struct ext_key* hdkey, uint8_t* output, size_t output_len, size_t* written);
 bool wallet_search_for_singlesig_script(script_variant_t script_variant, const struct ext_key* search_root,
     size_t* index, size_t search_depth, const uint8_t* script, size_t script_len);
 bool wallet_build_multisig_script(script_variant_t script_variant, bool sorted, uint8_t threshold,
