@@ -676,7 +676,7 @@ static void offer_jade_reset(void)
     pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = true };
     make_pin_insert_activity(&pin_insert, "Reset Jade", confirm_msg);
     JADE_ASSERT(pin_insert.activity);
-    JADE_ASSERT(sizeof(num) == sizeof(pin_insert.pin));
+    JADE_STATIC_ASSERT(sizeof(num) == sizeof(pin_insert.pin));
 
     gui_set_current_activity(pin_insert.activity);
     if (!run_pin_entry_loop(&pin_insert)) {

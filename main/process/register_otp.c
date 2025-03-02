@@ -200,7 +200,7 @@ static bool get_otp_data_from_kb(
     if (otp_uri && uri_len) {
         JADE_INIT_OUT_SIZE(uri_written);
         JADE_ASSERT(uri_len >= OTP_MAX_URI_LEN);
-        JADE_ASSERT(sizeof(kb_entry.strdata) >= OTP_MAX_URI_LEN);
+        JADE_STATIC_ASSERT(sizeof(kb_entry.strdata) >= OTP_MAX_URI_LEN);
 
         // Reset kb data - note URI can be longer than name
         gui_set_activity_title(kb_entry.activity, "OTP URI");

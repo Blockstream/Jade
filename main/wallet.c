@@ -724,7 +724,7 @@ bool wallet_build_ga_script_ex(const char* network, const struct ext_key* user_k
         return false;
     }
     memcpy(next_pubkey, gakey.pub_key, sizeof(gakey.pub_key));
-    JADE_ASSERT(sizeof(gakey.pub_key) == EC_PUBLIC_KEY_LEN);
+    JADE_STATIC_ASSERT(sizeof(gakey.pub_key) == EC_PUBLIC_KEY_LEN);
     next_pubkey += sizeof(gakey.pub_key);
 
     if (user_key) {

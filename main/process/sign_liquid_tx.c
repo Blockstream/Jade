@@ -477,12 +477,12 @@ static bool add_output_info(
         }
 
         // 4. Fetch the asset_id, value, and optional blinding_key into the info struct
-        JADE_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
+        JADE_STATIC_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
         memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
         outinfo->value = commitments->value;
 
         if (commitments->content & COMMITMENTS_BLINDING_KEY) {
-            JADE_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
+            JADE_STATIC_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
             memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
             outinfo->flags |= OUTPUT_FLAG_HAS_BLINDING_KEY;
         }

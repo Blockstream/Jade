@@ -85,7 +85,7 @@ void get_commitments_process(void* process_ptr)
 
     if (!vbf_len) {
         // Compute both abf and vbf
-        JADE_ASSERT(sizeof(commitments.abf) + sizeof(commitments.vbf) == WALLY_ABF_VBF_LEN);
+        JADE_STATIC_ASSERT(sizeof(commitments.abf) + sizeof(commitments.vbf) == WALLY_ABF_VBF_LEN);
         uint8_t tmp_abf_vbf[sizeof(commitments.abf) + sizeof(commitments.vbf)];
         if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts,
                 hash_prevouts_len, output_index, BF_ASSET_VALUE, tmp_abf_vbf, sizeof(tmp_abf_vbf))) {

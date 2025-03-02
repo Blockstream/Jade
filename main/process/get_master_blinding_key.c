@@ -40,7 +40,7 @@ void get_master_blinding_key_process(void* process_ptr)
     // NOTE: 'master_unblinding_key' is stored here as the full output of hmac512, when according to slip-0077
     // the master unblinding key is only the second half of that - ie. 256 bits
     // So we only return the relevant slice of the data.
-    JADE_ASSERT(sizeof(keychain_get()->master_unblinding_key) == HMAC_SHA512_LEN);
+    JADE_STATIC_ASSERT(sizeof(keychain_get()->master_unblinding_key) == HMAC_SHA512_LEN);
 
     uint8_t buffer[256];
     jade_process_reply_to_message_bytes(process->ctx, keychain_get()->master_unblinding_key + HMAC_SHA512_LEN / 2,

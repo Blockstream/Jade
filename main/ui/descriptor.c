@@ -78,7 +78,7 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
     gui_set_parent(script, splitscript);
 
     // NOTE: can be up to five script display screens
-    JADE_ASSERT(sizeof(descriptor->script) <= MAX_NUM_SCRIPT_SCREENS * MAX_SCRIPT_CHARS_PER_SCREEN);
+    JADE_STATIC_ASSERT(sizeof(descriptor->script) <= MAX_NUM_SCRIPT_SCREENS * MAX_SCRIPT_CHARS_PER_SCREEN);
     JADE_ASSERT(descriptor->script_len <= sizeof(descriptor->script));
 
     if (descriptor->script_len < MAX_SCRIPT_CHARS_PER_SCREEN) {

@@ -387,7 +387,7 @@ bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t t
 
     // Counter to BE bytes
     uint8_t rcnt_buf[2 * sizeof(uint32_t)];
-    JADE_ASSERT(sizeof(rcnt_buf) == sizeof(otp_ctx->counter));
+    JADE_STATIC_ASSERT(sizeof(rcnt_buf) == sizeof(otp_ctx->counter));
     const uint8_t* const p2nd = (uint8_t*)(&otp_ctx->counter) + sizeof(uint32_t);
     uint32_to_be(*(uint32_t*)p2nd, rcnt_buf);
     uint32_to_be((uint32_t)otp_ctx->counter, rcnt_buf + sizeof(uint32_t));
@@ -426,7 +426,7 @@ static bool get_otp_encryption_key(uint8_t* aeskey, const size_t aeskey_len)
     JADE_WALLY_VERIFY(bip32_key_from_seed_custom(keychain_get()->seed, keychain_get()->seed_len, BIP32_VER_MAIN_PRIVATE,
         OTP_HMAC_KEY, sizeof(OTP_HMAC_KEY), 0, &key));
 
-    JADE_ASSERT(sizeof(key.priv_key) - 1 == AES_KEY_LEN_256);
+    JADE_STATIC_ASSERT(sizeof(key.priv_key) - 1 == AES_KEY_LEN_256);
     memcpy(aeskey, key.priv_key + 1, sizeof(key.priv_key) - 1);
     return true;
 }
