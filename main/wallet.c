@@ -685,8 +685,9 @@ static void wallet_build_csv(const char* network, const uint8_t* pubkeys, const 
 
 // Function to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
 // Note only the pub_key member is required to be valid from passed ext_key structs.
-bool wallet_build_ga_script_ex(const char* network, const struct ext_key* recovery_hdkey, const size_t csv_blocks,
-    const uint32_t* path, const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
+bool wallet_build_ga_script_ex(const char* network, const struct ext_key* user_key,
+    const struct ext_key* recovery_hdkey, const size_t csv_blocks, const uint32_t* path, const size_t path_len,
+    uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
@@ -726,13 +727,17 @@ bool wallet_build_ga_script_ex(const char* network, const struct ext_key* recove
     JADE_ASSERT(sizeof(gakey.pub_key) == EC_PUBLIC_KEY_LEN);
     next_pubkey += sizeof(gakey.pub_key);
 
-    // Derive user pubkey from the path
-    struct ext_key derived;
-    if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived)) {
-        return false;
+    if (user_key) {
+        // Copy the already-derived user pubkey provided by the caller
+        memcpy(next_pubkey, user_key->pub_key, sizeof(user_key->pub_key));
+    } else {
+        // Derive the user pubkey from the path and copy it
+        struct ext_key derived;
+        if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived)) {
+            return false;
+        }
+        memcpy(next_pubkey, derived.pub_key, sizeof(derived.pub_key));
     }
-    memcpy(next_pubkey, derived.pub_key, sizeof(derived.pub_key));
-    JADE_ASSERT(sizeof(derived.pub_key) == EC_PUBLIC_KEY_LEN);
     next_pubkey += EC_PUBLIC_KEY_LEN;
 
     // Add recovery key also, if one passed
@@ -777,7 +782,8 @@ bool wallet_build_ga_script(const char* network, const char* xpubrecovery, const
         }
     }
 
-    return wallet_build_ga_script_ex(network, recovery_p, csv_blocks, path, path_len, output, output_len, written);
+    return wallet_build_ga_script_ex(
+        network, NULL, recovery_p, csv_blocks, path, path_len, output, output_len, written);
 }
 
 // Function to build a single-sig script:

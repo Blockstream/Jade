@@ -139,9 +139,9 @@ static bool is_green_multisig_signers(const char* network, const key_iter* iter,
 }
 
 // Generate a green-multisig script and test whether it matches the passed target_script
-static bool verify_ga_script_matches_impl(const char* network, const struct ext_key* recovery_key,
-    const size_t csv_blocks, const uint32_t* path, const size_t path_len, const uint8_t* target_script,
-    const size_t target_script_len)
+static bool verify_ga_script_matches_impl(const char* network, const struct ext_key* user_key,
+    const struct ext_key* recovery_key, const size_t csv_blocks, const uint32_t* path, const size_t path_len,
+    const uint8_t* target_script, const size_t target_script_len)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(path);
@@ -151,8 +151,8 @@ static bool verify_ga_script_matches_impl(const char* network, const struct ext_
     size_t trial_script_len = 0;
     uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
 
-    if (!wallet_build_ga_script_ex(
-            network, recovery_key, csv_blocks, path, path_len, trial_script, sizeof(trial_script), &trial_script_len)) {
+    if (!wallet_build_ga_script_ex(network, user_key, recovery_key, csv_blocks, path, path_len, trial_script,
+            sizeof(trial_script), &trial_script_len)) {
         // Failed to build script
         JADE_LOGE("Receive script cannot be constructed");
         return false;
@@ -169,8 +169,9 @@ static bool verify_ga_script_matches_impl(const char* network, const struct ext_
 }
 
 // Generate green-multisig scripts for multisig and for any possible csv scripts and test whether any match
-static bool verify_ga_script_matches(const char* network, const struct ext_key* recovery_key, const uint32_t* path,
-    const size_t path_len, const uint8_t* target_script, const size_t target_script_len)
+static bool verify_ga_script_matches(const char* network, const struct ext_key* user_key,
+    const struct ext_key* recovery_key, const uint32_t* path, const size_t path_len, const uint8_t* target_script,
+    const size_t target_script_len)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(path);
@@ -184,7 +185,7 @@ static bool verify_ga_script_matches(const char* network, const struct ext_key* 
         int ret = wally_scriptpubkey_csv_blocks_from_csv_2of2_then_1(target_script, target_script_len, &csv_blocks);
         if (ret == WALLY_OK && csvBlocksExpectedForNetwork(network, csv_blocks)
             && verify_ga_script_matches_impl(
-                network, recovery_key, csv_blocks, path, path_len, target_script, target_script_len)) {
+                network, user_key, recovery_key, csv_blocks, path, path_len, target_script, target_script_len)) {
             // csv script matches
             return true;
         }
@@ -197,7 +198,7 @@ static bool verify_ga_script_matches(const char* network, const struct ext_key* 
     // Check 2of2/2of3 legacy multisig
     const size_t csv_blocks = 0;
     if (verify_ga_script_matches_impl(
-            network, recovery_key, csv_blocks, path, path_len, target_script, target_script_len)) {
+            network, user_key, recovery_key, csv_blocks, path, path_len, target_script, target_script_len)) {
         // Legacy multisig w/o csv
         return true;
     }
@@ -578,7 +579,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
                 continue;
             }
 
-            if (!verify_ga_script_matches(network, recovery_p, path, path_len, tx_script, tx_script_len)) {
+            if (!verify_ga_script_matches(network, &iter.hdkey, recovery_p, path, path_len, tx_script, tx_script_len)) {
                 JADE_LOGD("Receive script failed validation for Green multisig");
                 continue;
             }
