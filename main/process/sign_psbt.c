@@ -168,7 +168,8 @@ static bool verify_ga_script_matches_impl(const char* network, const struct ext_
     return true;
 }
 
-// Generate green-multisig scripts for multisig and for any possible csv scripts and test whether any match
+// Generate a green-multisig script, and compare it to the target script provided.
+// Returns true if the generated script matches the target script.
 static bool verify_ga_script_matches(const char* network, const struct ext_key* user_key,
     const struct ext_key* recovery_key, const uint32_t* path, const size_t path_len, const uint8_t* target_script,
     const size_t target_script_len)
@@ -178,33 +179,19 @@ static bool verify_ga_script_matches(const char* network, const struct ext_key* 
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
 
-    // NOTE: 2of3 csv not supported, so don't check for it if we have a recovery key
-    if (!recovery_key) {
-        // Check for a csv/optimized csv script
-        uint32_t csv_blocks;
+    uint32_t csv_blocks = 0;
+    // NOTE: 2of3 csv not supported, so we don't check for it if we have a recovery key
+    if (recovery_key) {
+        // 2of2: fetch the number of csv blocks if this is a csv script
         int ret = wally_scriptpubkey_csv_blocks_from_csv_2of2_then_1(target_script, target_script_len, &csv_blocks);
-        if (ret == WALLY_OK && csvBlocksExpectedForNetwork(network, csv_blocks)
-            && verify_ga_script_matches_impl(
-                network, user_key, recovery_key, csv_blocks, path, path_len, target_script, target_script_len)) {
-            // csv script matches
-            return true;
-        }
-        if (ret == WALLY_OK) {
-            // This is a csv script, but it doesn't match
-            return false;
+        if (ret == WALLY_OK && !csvBlocksExpectedForNetwork(network, csv_blocks)) {
+            return false; // csv script with an invalid csv_blocks
         }
     }
 
-    // Check 2of2/2of3 legacy multisig
-    const size_t csv_blocks = 0;
-    if (verify_ga_script_matches_impl(
-            network, user_key, recovery_key, csv_blocks, path, path_len, target_script, target_script_len)) {
-        // Legacy multisig w/o csv
-        return true;
-    }
-
-    // Not a matching Green multisig script
-    return false;
+    // Generate and match the script, either csv, or legacy if csv_blocks is 0
+    return verify_ga_script_matches_impl(
+        network, user_key, recovery_key, csv_blocks, path, path_len, target_script, target_script_len);
 }
 
 // Helper to generate a singlesig script of the given type with the pubkey given, and
