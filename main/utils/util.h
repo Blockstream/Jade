@@ -77,4 +77,17 @@ static inline bool ishardened(const uint32_t n) { return n & 0x80000000; }
 static inline uint32_t harden(const uint32_t n) { return n | 0x80000000; }
 static inline uint32_t unharden(const uint32_t n) { return n & ~0x80000000; }
 
+// Return the first index where all remaining elements are unhardened.
+// A return value >= `path_len` indicates the entire path is hardened.
+static inline size_t path_get_unhardened_tail_index(const uint32_t* path, const size_t path_len)
+{
+    size_t path_tail_start = 0;
+    for (size_t i = 0; i < path_len; ++i) {
+        if (ishardened(path[i])) {
+            path_tail_start = i + 1;
+        }
+    }
+    return path_tail_start;
+}
+
 #endif /* UTIL_H_ */

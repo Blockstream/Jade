@@ -255,22 +255,6 @@ static bool verify_singlesig_script_matches(const script_variant_t script_varian
     return true;
 }
 
-// Find the last hardened path index, and return the next index
-// ie. the start of the non-hardened path tail (if it exists)
-static size_t get_multisig_path_tail_start_index(const uint32_t* path, const size_t path_len)
-{
-    JADE_ASSERT(path);
-
-    // Get the path tail after the last hardened element
-    size_t path_tail_start = 0;
-    for (size_t i = 0; i < path_len; ++i) {
-        if (ishardened(path[i])) {
-            path_tail_start = i + 1;
-        }
-    }
-    return path_tail_start;
-}
-
 // Use the passed multisig to derive the signers pubkeys, and if they seem good to make the output script
 // Return whether that is all good and the generated output script matches the passed target script
 static bool verify_multisig_script_matches(const multisig_data_t* multisig_data, const uint32_t* path,
@@ -624,7 +608,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             JADE_ASSERT(!multisig_data != !descriptor); // one or the other
 
             // Get the path tail after the last hardened element
-            const size_t path_tail_start = get_multisig_path_tail_start_index(path, path_len);
+            const size_t path_tail_start = path_get_unhardened_tail_index(path, path_len);
             JADE_ASSERT(path_tail_start <= path_len);
             const size_t path_tail_len = path_len - path_tail_start;
 
@@ -778,7 +762,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                 }
 
                 // Get the path tail after the last hardened element
-                const size_t path_tail_start = get_multisig_path_tail_start_index(path, path_len);
+                const size_t path_tail_start = path_get_unhardened_tail_index(path, path_len);
                 JADE_ASSERT(path_tail_start <= path_len);
                 const size_t path_tail_len = path_len - path_tail_start;
 
