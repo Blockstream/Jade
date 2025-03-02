@@ -65,8 +65,8 @@ bool wallet_is_expected_multisig_path(size_t cosigner_index, bool is_change, con
 void wallet_build_receive_path(
     uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path, size_t output_len, size_t* written);
 
-bool wallet_build_ga_script_ex(const char* network, const uint8_t* recovery_pubkey, size_t recovery_pubkey_len,
-    size_t csv_blocks, const uint32_t* path, size_t path_len, uint8_t* output, size_t output_len, size_t* written);
+bool wallet_build_ga_script_ex(const char* network, const struct ext_key* recovery_hdkey, size_t csv_blocks,
+    const uint32_t* path, size_t path_len, uint8_t* output, size_t output_len, size_t* written);
 bool wallet_build_ga_script(const char* network, const char* xpubrecovery, size_t csv_blocks, const uint32_t* path,
     size_t path_len, uint8_t* output, size_t output_len, size_t* written);
 bool wallet_build_singlesig_script(

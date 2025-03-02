@@ -46,20 +46,10 @@ static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; //
 
 #define PSBT_OUT_CHUNK_SIZE (MAX_OUTPUT_MSG_SIZE - 64)
 
-struct pubkey_data {
-    uint8_t key[EC_PUBLIC_KEY_LEN];
-    size_t key_len;
-};
-
-static bool is_green_multisig_signers(const char* network, const key_iter* iter, struct pubkey_data* recovery_pubkey)
+static bool is_green_multisig_signers(const char* network, const key_iter* iter, struct ext_key* recovery_hdkey)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(iter && iter->is_valid);
-
-    // recovery_pubkey is optional
-    if (recovery_pubkey) {
-        recovery_pubkey->key_len = 0;
-    }
 
     const size_t num_keys = key_iter_get_num_keys(iter);
     if (num_keys != 2 && num_keys != 3) {
@@ -109,12 +99,11 @@ static bool is_green_multisig_signers(const char* network, const key_iter* iter,
 
             // Return the recovery pubkey if the caller so desires
             // NOTE: only compressed pubkeys are expected/supported.
-            if (recovery_pubkey) {
-                if (!key_iter_get_pubkey_at(iter, ikey, recovery_pubkey->key, sizeof(recovery_pubkey->key))) {
+            if (recovery_hdkey) {
+                if (!key_iter_get_pubkey_at(iter, ikey, recovery_hdkey->pub_key, sizeof(recovery_hdkey->pub_key))) {
                     JADE_LOGE("Error fetching ga-multisig 2of3 recovery key");
                     return false;
                 }
-                recovery_pubkey->key_len = sizeof(recovery_pubkey->key);
             }
         }
     }
@@ -151,20 +140,19 @@ static bool is_green_multisig_signers(const char* network, const key_iter* iter,
 
 // Generate a green-multisig script and test whether it matches the passed target_script
 static bool verify_ga_script_matches_impl(const char* network, const uint32_t* path, const size_t path_len,
-    const struct pubkey_data* recovery_key, const size_t csv_blocks, const uint8_t* target_script,
+    const struct ext_key* recovery_key, const size_t csv_blocks, const uint8_t* target_script,
     const size_t target_script_len)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(path);
-    JADE_ASSERT(recovery_key);
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
 
     size_t trial_script_len = 0;
     uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
 
-    if (!wallet_build_ga_script_ex(network, recovery_key->key, recovery_key->key_len, csv_blocks, path, path_len,
-            trial_script, sizeof(trial_script), &trial_script_len)) {
+    if (!wallet_build_ga_script_ex(
+            network, recovery_key, csv_blocks, path, path_len, trial_script, sizeof(trial_script), &trial_script_len)) {
         // Failed to build script
         JADE_LOGE("Receive script cannot be constructed");
         return false;
@@ -182,16 +170,15 @@ static bool verify_ga_script_matches_impl(const char* network, const uint32_t* p
 
 // Generate green-multisig scripts for multisig and for any possible csv scripts and test whether any match
 static bool verify_ga_script_matches(const char* network, const uint32_t* path, const size_t path_len,
-    const struct pubkey_data* recovery_key, const uint8_t* target_script, const size_t target_script_len)
+    const struct ext_key* recovery_key, const uint8_t* target_script, const size_t target_script_len)
 {
     JADE_ASSERT(network);
     JADE_ASSERT(path);
-    JADE_ASSERT(recovery_key);
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
 
     // NOTE: 2of3 csv not supported, so don't check for it if we have a recovery key
-    if (!recovery_key->key_len) {
+    if (!recovery_key) {
         // Check for a csv/optimized csv script
         uint32_t csv_blocks;
         int ret = wally_scriptpubkey_csv_blocks_from_csv_2of2_then_1(target_script, target_script_len, &csv_blocks);
@@ -584,13 +571,14 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             // Signed only Green multisig inputs, only consider similar outputs
             JADE_ASSERT(iter.key_index < num_keys);
 
-            struct pubkey_data recovery_pubkey = { .key_len = 0 };
-            if (!is_green_multisig_signers(network, &iter, &recovery_pubkey)) {
+            struct ext_key recovery_hdkey;
+            struct ext_key* recovery_p = num_keys == 3 ? &recovery_hdkey : NULL;
+            if (!is_green_multisig_signers(network, &iter, recovery_p)) {
                 JADE_LOGD("Ignoring non-green-multisig output %u as only signing green-multisig inputs", index);
                 continue;
             }
 
-            if (!verify_ga_script_matches(network, path, path_len, &recovery_pubkey, tx_script, tx_script_len)) {
+            if (!verify_ga_script_matches(network, path, path_len, recovery_p, tx_script, tx_script_len)) {
                 JADE_LOGD("Receive script failed validation for Green multisig");
                 continue;
             }
@@ -716,8 +704,8 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
             const size_t num_keys = key_iter_get_num_keys(&iter);
             if (num_keys > 1) {
-                signing_flags |= is_green_multisig_signers(network, &iter, NULL) ? PSBT_SIGNING_GREEN_MULTISIG
-                                                                                 : PSBT_SIGNING_MULTISIG;
+                const bool is_green = is_green_multisig_signers(network, &iter, NULL);
+                signing_flags |= is_green ? PSBT_SIGNING_GREEN_MULTISIG : PSBT_SIGNING_MULTISIG;
             } else {
                 signing_flags |= PSBT_SIGNING_SINGLESIG;
             }
