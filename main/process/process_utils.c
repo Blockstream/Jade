@@ -308,7 +308,7 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
         return false;
     }
     // Assume segwit v0 for witness inputs unless v1 is detected below
-    sig_data->segwit_ver = is_witness ? SEGWIT_V0 : SEGWIT_NONE;
+    sig_data->sig_type = is_witness ? WALLY_SIGTYPE_SW_V0 : WALLY_SIGTYPE_PRE_SW;
 
     const size_t max_path_len = sizeof(sig_data->path) / sizeof(sig_data->path[0]);
     if (!rpc_get_bip32_path("path", params, sig_data->path, max_path_len, &sig_data->path_len)
@@ -359,7 +359,7 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
             *errmsg = "Invalid non-empty taproot host commitment";
             return false;
         }
-        sig_data->segwit_ver = SEGWIT_V1;
+        sig_data->sig_type = WALLY_SIGTYPE_SW_V1;
     }
     // Track the types of the input prevout scripts
     update_aggregate_scripts_flavour(script_flavour, aggregate_script_flavour);

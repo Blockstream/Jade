@@ -373,9 +373,9 @@ cleanup:
 
 // Whether or not a sighash type is valid for BTC.
 // NOTE: atm we only accept 'SIGHASH_ALL', or SIGHASH_DEFAULT for p2tr
-static bool is_valid_btc_sighash_type(const signing_data_t* const sig_data)
+static bool is_valid_btc_sig_type(const signing_data_t* const sig_data)
 {
-    if (sig_data->segwit_ver == SEGWIT_V1) {
+    if (sig_data->sig_type == WALLY_SIGTYPE_SW_V1) {
         return sig_data->sighash == WALLY_SIGHASH_DEFAULT || sig_data->sighash == WALLY_SIGHASH_ALL;
     }
     return sig_data->sighash == WALLY_SIGHASH_ALL;
@@ -554,18 +554,18 @@ void sign_tx_process(void* process_ptr)
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
-            if (!is_valid_btc_sighash_type(sig_data)) {
+            if (!is_valid_btc_sig_type(sig_data)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
             }
-            if (sig_data->segwit_ver == SEGWIT_V1) {
+            if (sig_data->sig_type == WALLY_SIGTYPE_SW_V1) {
                 num_p2tr_to_sign += 1;
             }
         } else {
             // May still need witness flag
             bool is_witness = false;
             rpc_get_boolean("is_witness", &params, &is_witness);
-            sig_data->segwit_ver = is_witness ? SEGWIT_V0 : SEGWIT_NONE;
+            sig_data->sig_type = is_witness ? WALLY_SIGTYPE_SW_V0 : WALLY_SIGTYPE_PRE_SW;
             sig_data->sighash = WALLY_SIGHASH_ALL;
         }
 
@@ -629,7 +629,7 @@ void sign_tx_process(void* process_ptr)
             // For single segwit v0 inputs we can instead get just the amount
             // directly from message. This optimization is deprecated and will
             // be removed in a future firmware release.
-            if (sig_data->segwit_ver != SEGWIT_V0 || num_inputs > 1) {
+            if (sig_data->sig_type != WALLY_SIGTYPE_SW_V0 || num_inputs > 1) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract input_tx from parameters", NULL);
                 goto cleanup;
@@ -655,7 +655,7 @@ void sign_tx_process(void* process_ptr)
 
         bool made_ae_commitment = false;
 
-        if (has_path && sig_data->segwit_ver == SEGWIT_V1) {
+        if (has_path && sig_data->sig_type == WALLY_SIGTYPE_SW_V1) {
             // We have been given a path, so are expected to sign this input.
             // We can't compute a taproot signature hash until we have all
             // values and scriptpubkeys - do nothing here and do taproot
@@ -718,7 +718,7 @@ void sign_tx_process(void* process_ptr)
     // amounts and scriptpubkeys
     for (size_t index = 0; num_p2tr_to_sign != 0 && index < num_inputs; ++index) {
         signing_data_t* const sig_data = all_signing_data + index;
-        if (sig_data->segwit_ver != SEGWIT_V1 || !sig_data->path_len) {
+        if (sig_data->sig_type != WALLY_SIGTYPE_SW_V1 || !sig_data->path_len) {
             // Not signing this input
             continue;
         }

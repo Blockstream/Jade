@@ -9,20 +9,13 @@
 // Blinding factors
 typedef enum { BF_ASSET, BF_VALUE, BF_ASSET_VALUE } BlindingFactorType_t;
 
-// The segwit version (or pre-segwit-ness) of an input
-typedef enum {
-    SEGWIT_NONE = WALLY_SIGTYPE_PRE_SW,
-    SEGWIT_V0 = WALLY_SIGTYPE_SW_V0,
-    SEGWIT_V1 = WALLY_SIGTYPE_SW_V1
-} segwit_version_t;
-
 // Input/Output data for signing a tx input
 typedef struct {
     uint8_t signature_hash[SHA256_LEN]; // Input: The signature hash to sign
     uint32_t path[16]; // Input: The path to sign with
     uint8_t sig[EC_SIGNATURE_DER_MAX_LEN + 1]; // Output: The DER or Schnorr signature
     char id[16 + 1]; // For caller use: not used by signing.
-    uint8_t segwit_ver; // Input: The segwit version of this input
+    uint8_t sig_type; // Input: Signature hash type required (WALLY_SIGTYPE_)
     uint8_t sighash; // Input: The sighash flags to sign with
     bool use_ae; // Output: Whether the input is using anti-exfil
     size_t path_len; // Input: The length of the path in "path"
@@ -126,8 +119,7 @@ bool wallet_get_shared_blinding_nonce(const uint8_t* master_blinding_key, size_t
 bool wallet_get_blinding_factor(const uint8_t* master_blinding_key, size_t master_blinding_key_len,
     const uint8_t* hash_prevouts, size_t hash_len, size_t output_index, BlindingFactorType_t type, uint8_t* output,
     size_t output_len);
-bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, size_t index, segwit_version_t segwit_ver,
-    const uint8_t* script, size_t script_len, const uint8_t* satoshi, size_t satoshi_len, uint8_t sighash,
-    uint8_t* output, size_t output_len);
+bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, size_t index, uint32_t sig_type, const uint8_t* script,
+    size_t script_len, const uint8_t* satoshi, size_t satoshi_len, uint8_t sighash, uint8_t* output, size_t output_len);
 
 #endif /* WALLET_H_ */

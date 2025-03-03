@@ -846,7 +846,7 @@ void sign_liquid_tx_process(void* process_ptr)
             // As we are signing this input, use it to validate some part of any passed 'input summary'
             if (wallet_input_summary) {
                 // We can only verify input amounts with segwit inputs which have an explicit commitment to sign
-                if (sig_data->segwit_ver == SEGWIT_NONE) {
+                if (sig_data->sig_type == WALLY_SIGTYPE_PRE_SW) {
                     jade_process_reject_message(
                         process, CBOR_RPC_BAD_PARAMETERS, "Non-segwit input cannot be used as verified amount", NULL);
                     goto cleanup;
@@ -866,7 +866,7 @@ void sign_liquid_tx_process(void* process_ptr)
 
             size_t value_len = 0;
             const uint8_t* value_commitment = NULL;
-            if (sig_data->segwit_ver != SEGWIT_NONE) {
+            if (sig_data->sig_type != WALLY_SIGTYPE_PRE_SW) {
                 JADE_LOGD("For segwit input using explicitly passed value_commitment");
                 rpc_get_bytes_ptr("value_commitment", &params, &value_commitment, &value_len);
                 if (value_len != ASSET_COMMITMENT_LEN && value_len != WALLY_TX_ASSET_CT_VALUE_UNBLIND_LEN) {
@@ -877,7 +877,7 @@ void sign_liquid_tx_process(void* process_ptr)
             }
 
             // Generate hash of this input which we will sign later
-            if (!wallet_get_elements_tx_input_hash(tx, index, sig_data->segwit_ver, script, script_len,
+            if (!wallet_get_elements_tx_input_hash(tx, index, sig_data->sig_type, script, script_len,
                     value_len == 0 ? NULL : value_commitment, value_len, sig_data->sighash, sig_data->signature_hash,
                     sizeof(sig_data->signature_hash))) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);

@@ -1047,7 +1047,7 @@ bool wallet_sign_tx_input_hash(
 
     // Generate signature as appropriate
     int wret = WALLY_OK;
-    if (ae_host_entropy && sig_data->segwit_ver != SEGWIT_V1) {
+    if (ae_host_entropy && sig_data->sig_type != WALLY_SIGTYPE_SW_V1) {
         // Anti-Exfil signature
         wret = wally_ae_sig_from_bytes(privkey, sizeof(privkey), sig_data->signature_hash,
             sizeof(sig_data->signature_hash), ae_host_entropy, ae_host_entropy_len, EC_FLAG_ECDSA, signature,
@@ -1059,7 +1059,7 @@ bool wallet_sign_tx_input_hash(
         uint32_t flags;
         SENSITIVE_PUSH(tweaked, sizeof(tweaked));
 
-        if (sig_data->segwit_ver != SEGWIT_V1) {
+        if (sig_data->sig_type != WALLY_SIGTYPE_SW_V1) {
             // ECDSA. Sign directly with the private key
             signing_key = privkey;
             flags = EC_FLAG_ECDSA | EC_FLAG_GRIND_R;
@@ -1082,7 +1082,7 @@ bool wallet_sign_tx_input_hash(
         return false;
     }
 
-    if (sig_data->segwit_ver != SEGWIT_V1) {
+    if (sig_data->sig_type != WALLY_SIGTYPE_SW_V1) {
         // ECDSA: DER-encode the signature
         JADE_WALLY_VERIFY(wally_ec_sig_to_der(
             signature, sizeof(signature), sig_data->sig, sizeof(sig_data->sig) - 1, &sig_data->sig_len));
@@ -1117,18 +1117,18 @@ bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_d
 
     JADE_ASSERT(sig_data);
     wret = wally_tx_get_input_signature_hash(tx, index, scriptpubkeys, assets, amounts, script, script_len, key_version,
-        codesep, annex, annex_len, genesis, genesis_len, sig_data->sighash, sig_data->segwit_ver, cache,
+        codesep, annex, annex_len, genesis, genesis_len, sig_data->sighash, sig_data->sig_type, cache,
         sig_data->signature_hash, sizeof(sig_data->signature_hash));
 
     if (wret != WALLY_OK) {
-        JADE_LOGE("Failed to get btc signature hash for segwit version %d, error %d", (int)sig_data->segwit_ver, wret);
+        JADE_LOGE("Failed to get btc signature hash for segwit version %d, error %d", (int)sig_data->sig_type, wret);
         return false;
     }
     return true;
 }
 
 // Function to fetch a hash for an elements input - output buffer should be of size SHA256_LEN
-bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, const segwit_version_t segwit_ver,
+bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, const uint32_t sig_type,
     const uint8_t* script, const size_t script_len, const uint8_t* satoshi, const size_t satoshi_len,
     const uint8_t sighash, uint8_t* output, const size_t output_len)
 {
@@ -1136,14 +1136,14 @@ bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, const size_t index, 
         return false;
     }
 
-    if (segwit_ver == SEGWIT_V1) {
+    if (sig_type == WALLY_SIGTYPE_SW_V1) {
         // TODO: Implement
         JADE_LOGE("Unsupported segwit version v1");
         return false;
     }
 
     // Generate the elements signature hash to sign
-    const size_t hash_flags = segwit_ver == SEGWIT_V0 ? WALLY_TX_FLAG_USE_WITNESS : 0;
+    const size_t hash_flags = sig_type == WALLY_SIGTYPE_SW_V0 ? WALLY_TX_FLAG_USE_WITNESS : 0;
     const int wret = wally_tx_get_elements_signature_hash(
         tx, index, script, script_len, satoshi, satoshi_len, sighash, hash_flags, output, output_len);
     if (wret != WALLY_OK) {
