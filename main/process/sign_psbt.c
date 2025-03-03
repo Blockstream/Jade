@@ -678,13 +678,23 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
             const size_t num_keys = key_iter_get_num_keys(&iter);
             if (num_keys > 1) {
+                if (iter.is_taproot) {
+                    // This is a multisig taproot script-path spend which has
+                    // a key for this wallet (or the PSBT is incorrect/bogus)
+                    JADE_LOGW("Unsupported multisig taproot input %u", index);
+                    *errmsg = "Unsupported multisig taproot";
+                    retval = CBOR_RPC_BAD_PARAMETERS;
+                    goto cleanup;
+                }
                 const bool is_green = is_green_multisig_signers(network, &iter, NULL);
                 signing_flags |= is_green ? PSBT_SIGNING_GREEN_MULTISIG : PSBT_SIGNING_MULTISIG;
             } else {
                 signing_flags |= PSBT_SIGNING_SINGLESIG;
             }
 
-            // Only support SIGHASH_ALL atm.
+            // Only support SIGHASH_ALL, or SIGHASH_DEFAULT for taproot atm.
+            // SIGHASH_DEFAULT is 0 so passes this check, the 0 is
+            // converted to ALL/DEFAULT by wally when signing
             if (input->sighash && input->sighash != WALLY_SIGHASH_ALL) {
                 JADE_LOGW("Unsupported sighash for signing input %u", index);
                 *errmsg = "Unsupported sighash";
@@ -697,13 +707,6 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                 bool is_p2tr = false;
                 const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len, &is_p2tr);
                 update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
-                if (is_p2tr) {
-                    // FIXME: Support taproot signing
-                    JADE_LOGW("Unsupported p2tr input %u", index);
-                    *errmsg = "Unsupported p2tr input type";
-                    retval = CBOR_RPC_BAD_PARAMETERS;
-                    goto cleanup;
-                }
             }
 
             // If multisig, see if all signing inputs match the same persisted wallet record
