@@ -833,6 +833,8 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     display_processing_message_activity();
 
     // Sign our inputs
+    JADE_WALLY_VERIFY(wally_psbt_signing_cache_enable(psbt, 0));
+
     for (size_t index = 0; index < psbt->num_inputs; ++index) {
         // See if we flagged this input for signing
         if (!signing_inputs[index]) {
