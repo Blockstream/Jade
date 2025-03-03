@@ -10,7 +10,11 @@
 typedef enum { BF_ASSET, BF_VALUE, BF_ASSET_VALUE } BlindingFactorType_t;
 
 // The segwit version (or pre-segwit-ness) of an input
-typedef enum { SEGWIT_V0 = 0, SEGWIT_V1 = 1, SEGWIT_NONE = 0xff } segwit_version_t;
+typedef enum {
+    SEGWIT_NONE = WALLY_SIGTYPE_PRE_SW,
+    SEGWIT_V0 = WALLY_SIGTYPE_SW_V0,
+    SEGWIT_V1 = WALLY_SIGTYPE_SW_V1
+} segwit_version_t;
 
 // Input/Output data for signing a tx input
 typedef struct {
@@ -104,10 +108,10 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_ha
 // Get the signature hash for the "index"-th input of "tx".
 // For segwit v1, all "amounts" must be populated, and "scriptpubkeys" must
 // have an entry for each index.
-// Otherwise, only "amounts[index]" must be populated and "scriptpubkeys"
+// Otherwise, "amounts" must contain an amount for "index" and "scriptpubkeys"
 // is unused.
 bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, signing_data_t* sig_data, const uint8_t* script,
-    size_t script_len, const uint64_t* amounts, size_t amounts_len, const struct wally_map* scriptpubkeys);
+    size_t script_len, const struct wally_map* amounts, const struct wally_map* scriptpubkeys);
 bool wallet_get_signer_commitment(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
     size_t path_len, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
 // Sign the signature hash in sig_data.
