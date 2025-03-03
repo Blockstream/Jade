@@ -497,6 +497,11 @@ void sign_tx_process(void* process_ptr)
     JADE_WALLY_VERIFY(wally_map_init_alloc(num_inputs, NULL, &amounts));
     jade_process_call_on_exit(process, jade_wally_free_map_wrapper, amounts);
 
+    struct wally_map* cache;
+    // FIXME: Use a wally constant for the cache size when it is exposed
+    JADE_WALLY_VERIFY(wally_map_init_alloc(16, NULL, &cache));
+    jade_process_call_on_exit(process, jade_wally_free_map_wrapper, cache);
+
     // We track if the type of the inputs we are signing changes (ie. single-sig vs
     // green/multisig/other) so we can show a warning to the user if so.
     script_flavour_t aggregate_inputs_scripts_flavour = SCRIPT_FLAVOUR_NONE;
@@ -665,7 +670,7 @@ void sign_tx_process(void* process_ptr)
         } else if (has_path) {
             // We have been given a path, so are expected to sign this input.
             // Generate the signature hash of this input which we will sign later
-            if (!wallet_get_tx_input_hash(tx, index, sig_data, script, script_len, amounts, scriptpubkeys)) {
+            if (!wallet_get_tx_input_hash(tx, index, sig_data, script, script_len, amounts, scriptpubkeys, cache)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
                 goto cleanup;
             }
@@ -717,7 +722,7 @@ void sign_tx_process(void* process_ptr)
             // Not signing this input
             continue;
         }
-        if (!wallet_get_tx_input_hash(tx, index, sig_data, NULL, 0, amounts, scriptpubkeys)) {
+        if (!wallet_get_tx_input_hash(tx, index, sig_data, NULL, 0, amounts, scriptpubkeys, cache)) {
             // We are using ae-signatures, so we need to load the message to send the error back on
             jade_process_load_in_message(process, true);
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make taproot tx input hash", NULL);

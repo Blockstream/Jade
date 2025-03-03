@@ -111,7 +111,7 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_ha
 // Otherwise, "amounts" must contain an amount for "index" and "scriptpubkeys"
 // is unused.
 bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, signing_data_t* sig_data, const uint8_t* script,
-    size_t script_len, const struct wally_map* amounts, const struct wally_map* scriptpubkeys);
+    size_t script_len, const struct wally_map* amounts, const struct wally_map* scriptpubkeys, struct wally_map* cache);
 bool wallet_get_signer_commitment(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
     size_t path_len, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
 // Sign the signature hash in sig_data.

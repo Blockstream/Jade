@@ -1106,9 +1106,9 @@ bool wallet_sign_tx_input_hash(
 
 // Function to fetch a hash for signing a transaction input
 bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_data_t* sig_data, const uint8_t* script,
-    size_t script_len, const struct wally_map* amounts, const struct wally_map* scriptpubkeys)
+    size_t script_len, const struct wally_map* amounts, const struct wally_map* scriptpubkeys, struct wally_map* cache)
 {
-    struct wally_map *assets = NULL, *cache = NULL;
+    struct wally_map* assets = NULL;
     const uint32_t key_version = 0;
     const uint32_t codesep = WALLY_NO_CODESEPARATOR;
     const uint8_t *annex = NULL, *genesis = NULL;
