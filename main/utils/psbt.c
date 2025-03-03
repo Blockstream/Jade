@@ -16,7 +16,12 @@ static bool key_iter_init(const struct wally_psbt* psbt, const size_t index, con
     iter->key_index = 0;
     --iter->key_index; // Incrementing will wrap around to 0 i.e. the first key
     iter->is_input = is_input;
-    iter->is_taproot = false; // FIXME: Add support for taproot
+    // We are a taproot key iterator only if we have taproot keypaths
+    if (is_input) {
+        iter->is_taproot = psbt->inputs[index].taproot_leaf_paths.num_items != 0;
+    } else {
+        iter->is_taproot = psbt->outputs[index].taproot_leaf_paths.num_items != 0;
+    }
     iter->is_valid = true;
     return key_iter_next(iter);
 }
@@ -35,9 +40,11 @@ static const struct wally_map* key_iter_get_keypaths(const key_iter* iter)
 {
     JADE_ASSERT(iter && iter->is_valid);
     if (iter->is_input) {
-        return &iter->psbt->inputs[iter->index].keypaths;
+        const struct wally_psbt_input* input = &iter->psbt->inputs[iter->index];
+        return iter->is_taproot ? &input->taproot_leaf_paths : &input->keypaths;
     }
-    return &iter->psbt->outputs[iter->index].keypaths;
+    const struct wally_psbt_output* output = &iter->psbt->outputs[iter->index];
+    return iter->is_taproot ? &output->taproot_leaf_paths : &output->keypaths;
 }
 
 bool key_iter_next(key_iter* iter)
