@@ -138,36 +138,6 @@ static bool is_green_multisig_signers(const char* network, const key_iter* iter,
     return true;
 }
 
-// Generate a green-multisig script and test whether it matches the passed target_script
-static bool verify_ga_script_matches_impl(const char* network, const struct ext_key* user_key,
-    const struct ext_key* recovery_key, const size_t csv_blocks, const uint32_t* path, const size_t path_len,
-    const uint8_t* target_script, const size_t target_script_len)
-{
-    JADE_ASSERT(network);
-    JADE_ASSERT(path);
-    JADE_ASSERT(target_script);
-    JADE_ASSERT(target_script_len);
-
-    size_t trial_script_len = 0;
-    uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
-
-    if (!wallet_build_ga_script_ex(network, user_key, recovery_key, csv_blocks, path, path_len, trial_script,
-            sizeof(trial_script), &trial_script_len)) {
-        // Failed to build script
-        JADE_LOGE("Receive script cannot be constructed");
-        return false;
-    }
-
-    // Compare generated script to that expected/in the txn
-    if (trial_script_len != target_script_len || sodium_memcmp(target_script, trial_script, trial_script_len) != 0) {
-        JADE_LOGW("Receive script failed validation");
-        return false;
-    }
-
-    // Script matches
-    return true;
-}
-
 // Generate a green-multisig script, and compare it to the target script provided.
 // Returns true if the generated script matches the target script.
 static bool verify_ga_script_matches(const char* network, const struct ext_key* user_key,
@@ -190,8 +160,24 @@ static bool verify_ga_script_matches(const char* network, const struct ext_key* 
     }
 
     // Generate and match the script, either csv, or legacy if csv_blocks is 0
-    return verify_ga_script_matches_impl(
-        network, user_key, recovery_key, csv_blocks, path, path_len, target_script, target_script_len);
+    size_t trial_script_len = 0;
+    uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
+
+    if (!wallet_build_ga_script_ex(network, user_key, recovery_key, csv_blocks, path, path_len, trial_script,
+            sizeof(trial_script), &trial_script_len)) {
+        // Failed to build script
+        JADE_LOGE("Receive script cannot be constructed");
+        return false;
+    }
+
+    // Compare generated script to that expected/in the txn
+    if (trial_script_len != target_script_len || sodium_memcmp(target_script, trial_script, trial_script_len) != 0) {
+        JADE_LOGW("Receive script failed validation");
+        return false;
+    }
+
+    // Script matches
+    return true;
 }
 
 // Helper to generate a singlesig script of the given type with the pubkey given, and
