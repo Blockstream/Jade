@@ -298,20 +298,21 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
                 *errmsg = "Invalid multisig file";
                 goto cleanup;
             }
-            // Multisig name - check length
-            strncpy(multisig_name, value, sizeof(multisig_name));
-            if (value_len >= MAX_MULTISIG_NAME_SIZE) {
-                multisig_name[sizeof(multisig_name) - 1] = '\0';
+            // Multisig name - sanitize, NUL-terminate and check length
+            // multisig_name includes the NUL terminator hence '- 1' below.
+            size_t i;
+            for (i = 0; i < value_len && i < sizeof(multisig_name) - 1; ++i) {
+                if (value[i] == '\0') {
+                    break; // Embedded NUL character
+                }
+                // Copy, sanitizing spaces to underscores
+                multisig_name[i] = isspace((unsigned char)value[i]) ? '_' : value[i];
+            }
+            multisig_name[i] = '\0';
+
+            if (value_len > sizeof(multisig_name) - 1) {
                 name_truncated = true;
                 JADE_LOGW("Multisig name too long - truncating: '%s' to '%s'", value, multisig_name);
-            }
-            // Attempt to sanitize name string
-            for (char* pch = multisig_name; *pch; ++pch) {
-                JADE_ASSERT(pch < multisig_name + sizeof(multisig_name));
-                // Change spaces to underscores
-                if (isspace((unsigned char)*pch)) {
-                    *pch = '_';
-                }
             }
             if (!storage_key_name_valid(multisig_name)) {
                 JADE_LOGE("Invalid multisig name: %s", multisig_name);
