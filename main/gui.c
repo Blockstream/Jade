@@ -19,6 +19,7 @@
 #include "storage.h"
 #include "utils/event.h"
 #include "utils/malloc_ext.h"
+#include "utils/util.h"
 
 // A genuine production v2 Jade may be awaiting mandatory attestation data
 #if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)                                                  \
@@ -95,8 +96,6 @@ struct {
 } status_bar;
 
 // Utils
-static inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
-
 static void gui_task(void* args);
 static void repaint_node(gui_view_node_t* node);
 
@@ -1073,7 +1072,7 @@ void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, 
     struct view_node_text_data* data = JADE_CALLOC(1, sizeof(struct view_node_text_data));
 
     // max chars limited to GUI_MAX_TEXT_LENGTH
-    const size_t len = min(GUI_MAX_TEXT_LENGTH, strlen(text) + 1);
+    const size_t len = min_u16(GUI_MAX_TEXT_LENGTH, strlen(text) + 1);
     data->text = JADE_MALLOC(len);
     const int ret = snprintf(data->text, len, "%s", text); // cut to len
     JADE_ASSERT(ret >= 0); // truncation is acceptable here, as is empty string
@@ -1588,7 +1587,7 @@ static void update_text_node_text(gui_view_node_t* node, const char* text)
     JADE_ASSERT(text);
 
     // max chars limited to GUI_MAX_TEXT_LENGTH
-    const size_t len = min(GUI_MAX_TEXT_LENGTH, strlen(text) + 1);
+    const size_t len = min_u16(GUI_MAX_TEXT_LENGTH, strlen(text) + 1);
     char* new_text = JADE_MALLOC(len);
     const int ret = snprintf(new_text, len, "%s", text);
     JADE_ASSERT(ret >= 0); // truncation is acceptable here, as is empty string
@@ -1798,7 +1797,7 @@ static void render_vsplit(gui_view_node_t* node, const dispWin_t constraints, co
             .x1 = constraints.x1,
             .x2 = constraints.x2,
             .y1 = y,
-            .y2 = min(y + step, max_y),
+            .y2 = min_u16(y + step, max_y),
         };
 
         render_node(ptr, child_constraints, depth + 1);
@@ -1830,7 +1829,7 @@ static void render_hsplit(gui_view_node_t* node, const dispWin_t constraints, co
         }
 
         dispWin_t child_constraints
-            = { .x1 = x, .x2 = min(x + step, max_x), .y1 = constraints.y1, .y2 = constraints.y2 };
+            = { .x1 = x, .x2 = min_u16(x + step, max_x), .y1 = constraints.y1, .y2 = constraints.y2 };
 
         render_node(ptr, child_constraints, depth + 1);
 

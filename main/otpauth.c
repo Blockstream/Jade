@@ -302,8 +302,6 @@ static bool base32_to_bin(
     return true;
 }
 
-static inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
-
 static void pad_secret(uint8_t* secret, size_t* secret_len, const size_t min_size)
 {
     JADE_ASSERT(secret);
@@ -314,7 +312,7 @@ static void pad_secret(uint8_t* secret, size_t* secret_len, const size_t min_siz
     const size_t actual_len = *secret_len;
     while (*secret_len < min_size) {
         const size_t reminder = min_size - *secret_len;
-        const size_t max = min(reminder, actual_len);
+        const size_t max = min_u16(reminder, actual_len);
 
         memcpy(secret + *secret_len, secret, max);
         *secret_len += max;

@@ -17,6 +17,8 @@
 #define jmemset memset
 #endif
 
+static inline uint16_t min_u16(uint16_t a, uint16_t b) { return a < b ? a : b; }
+
 static inline const char* make_empty_none(const char* pstr) { return (!pstr || *pstr == '\0') ? "<None>" : pstr; }
 
 static inline void reverse(uint8_t* dest, const uint8_t* src, const size_t len)
