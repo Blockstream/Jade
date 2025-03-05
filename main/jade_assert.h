@@ -12,7 +12,7 @@ void jade_abort(const char* file, const int line_n);
 // means the compiler knows this is terminal
 #define JADE_ABORT()                                                                                                   \
     do {                                                                                                               \
-        jade_abort(__FILE__, __LINE__);                                                                                \
+        jade_abort(__FILE_NAME__, __LINE__);                                                                           \
         abort();                                                                                                       \
     } while (false)
 

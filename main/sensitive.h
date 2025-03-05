@@ -63,7 +63,7 @@ void sensitive_clear_stack(void);
 void sensitive_assert_empty(void);
 void sensitive_init(void);
 
-#define SENSITIVE_PUSH(addr, size) sensitive_push(__FILE__, __LINE__, addr, size)
-#define SENSITIVE_POP(addr) sensitive_pop(__FILE__, __LINE__, addr)
+#define SENSITIVE_PUSH(addr, size) sensitive_push(__FILE_NAME__, __LINE__, addr, size)
+#define SENSITIVE_POP(addr) sensitive_pop(__FILE_NAME__, __LINE__, addr)
 
 #endif

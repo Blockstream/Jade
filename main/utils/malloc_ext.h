@@ -60,13 +60,13 @@ static inline void* jade_calloc(const char* file, const int line, const size_t n
     return ptr;
 }
 
-#define JADE_MALLOC(size) jade_malloc(__FILE__, __LINE__, size)
-#define JADE_CALLOC(num, size) jade_calloc(__FILE__, __LINE__, num, size)
-#define JADE_MALLOC_PREFER_SPIRAM(size) jade_malloc_prefer_spiram(__FILE__, __LINE__, size)
+#define JADE_MALLOC(size) jade_malloc(__FILE_NAME__, __LINE__, size)
+#define JADE_CALLOC(num, size) jade_calloc(__FILE_NAME__, __LINE__, num, size)
+#define JADE_MALLOC_PREFER_SPIRAM(size) jade_malloc_prefer_spiram(__FILE_NAME__, __LINE__, size)
 #define JADE_MALLOC_PREFER_SPIRAM_ALIGNED(size, alignment)                                                             \
-    jade_malloc_spiram_aligned(__FILE__, __LINE__, size, alignment)
-#define JADE_CALLOC_PREFER_SPIRAM(num, size) jade_calloc_prefer_spiram(__FILE__, __LINE__, num, size)
-#define JADE_MALLOC_DRAM(size) jade_malloc_dram(__FILE__, __LINE__, size)
-#define JADE_CALLOC_DRAM(size) jade_calloc_dram(__FILE__, __LINE__, size)
+    jade_malloc_spiram_aligned(__FILE_NAME__, __LINE__, size, alignment)
+#define JADE_CALLOC_PREFER_SPIRAM(num, size) jade_calloc_prefer_spiram(__FILE_NAME__, __LINE__, num, size)
+#define JADE_MALLOC_DRAM(size) jade_malloc_dram(__FILE_NAME__, __LINE__, size)
+#define JADE_CALLOC_DRAM(size) jade_calloc_dram(__FILE_NAME__, __LINE__, size)
 
 #endif /* UTILS_MALLOC_EXT_H_ */
