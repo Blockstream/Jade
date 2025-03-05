@@ -707,28 +707,26 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
         break;
     }
     case 2: {
-        gui_view_node_t* key;
-        gui_make_text(&key,
+        gui_make_text(&node,
             "device may not cause\n"
             "harmful interference\n"
             "and (2) this device\n"
             "must accept any\n"
             "interference received",
             TFT_WHITE);
-        gui_set_parent(key, parent);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_parent(node, parent);
+        gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
         gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 8, 0, 0, 4);
         break;
     }
     case 3: {
-        gui_view_node_t* key;
-        gui_make_text(&key,
+        gui_make_text(&node,
             "including interference\n"
             "that may cause\n"
             "undesired operation.",
             TFT_WHITE);
-        gui_set_parent(key, parent);
-        gui_set_align(key, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+        gui_set_parent(node, parent);
+        gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
         gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 8, 0, 0, 4);
         break;
     }
