@@ -21,7 +21,7 @@
 // First Character (Reserved. 0x00)
 // Number Of Characters (Reserved. 0x00)
 
-unsigned char tft_Comic24[] = { 0x00, 0x19, 0x00, 0x00,
+const unsigned char tft_Comic24[] = { 0x00, 0x19, 0x00, 0x00,
 
     // Individual Character Format:
     // ----------------------------

@@ -14,7 +14,7 @@ typedef struct {
 } dispWin_t;
 
 typedef struct {
-    uint8_t* font;
+    const uint8_t* font;
     uint8_t x_size;
     uint8_t y_size;
     uint8_t offset;
