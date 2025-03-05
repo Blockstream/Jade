@@ -213,7 +213,7 @@ typedef struct {
 } camera_task_config_t;
 
 // Signal to the caller that we are done, and await our death
-static void post_exit_event_and_await_death(void)
+static void camera_post_exit_event_and_await_death(void)
 {
     // Ensure we have cleaned up sensitive data
     sensitive_assert_empty();
@@ -283,7 +283,7 @@ static void jade_camera_init(void)
     JADE_LOGI("Camera init done");
     if (err != ESP_OK) {
         JADE_LOGE("Camera init failed with error 0x%x", err);
-        post_exit_event_and_await_death();
+        camera_post_exit_event_and_await_death();
     }
 
     sensor_t* camera_sensor = esp_camera_sensor_get();
@@ -489,7 +489,7 @@ static void jade_camera_task(void* data)
         SENSITIVE_POP(image_buffer);
         free(image_buffer);
     }
-    post_exit_event_and_await_death();
+    camera_post_exit_event_and_await_death();
 }
 
 void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool show_ui, const char* text_label,

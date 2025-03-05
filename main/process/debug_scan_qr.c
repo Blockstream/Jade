@@ -9,7 +9,7 @@
 
 #ifdef CONFIG_DEBUG_MODE
 
-static const size_t CBOR_OVERHEAD = 64;
+static const size_t QR_CBOR_OVERHEAD = 64;
 
 typedef struct {
     jade_process_t* process;
@@ -95,7 +95,7 @@ static bool return_image_data(const size_t width, const size_t height, const uin
     }
 
     // All good, reply with the compressed image data
-    const size_t buflen = compressed_len + CBOR_OVERHEAD;
+    const size_t buflen = compressed_len + QR_CBOR_OVERHEAD;
     uint8_t* buffer = JADE_MALLOC_PREFER_SPIRAM(buflen);
     JADE_LOGI("Trying to send compressed captured image data, message buffer len: %u", buflen);
     jade_process_reply_to_message_bytes(info->process->ctx, compressed, compressed_len, buffer, buflen);

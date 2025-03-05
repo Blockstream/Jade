@@ -24,10 +24,10 @@
 #if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)                                                  \
     && defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS)
 #include "attestation/attestation.h"
-static inline bool awaiting_attestation_data(void) { return !attestation_initialised(); }
+static inline bool gui_awaiting_attestation_data(void) { return !attestation_initialised(); }
 #else
 // Jade v1.x and diy devices are never awaiting mandatory attestation data
-static inline bool awaiting_attestation_data(void) { return false; }
+static inline bool gui_awaiting_attestation_data(void) { return false; }
 #endif
 
 ESP_EVENT_DEFINE_BASE(GUI_BUTTON_EVENT);
@@ -2596,7 +2596,7 @@ gui_activity_t* gui_display_splash(void)
     gui_view_node_t* splash_node = NULL;
 
     // Blank screen while awaiting attestation data upload
-    if (!awaiting_attestation_data()) {
+    if (!gui_awaiting_attestation_data()) {
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
         Picture* const pic = get_picture(splashstart, splashend);
         gui_make_picture(&splash_node, pic);

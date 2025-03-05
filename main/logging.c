@@ -6,7 +6,7 @@
 #include <string.h>
 
 static const size_t BUFFER_SIZE = 256;
-static const size_t CBOR_OVERHEAD = 8;
+static const size_t LOG_CBOR_OVERHEAD = 8;
 static const char* TRUNCATE_TAIL = "...\n";
 
 // Writes logging messages to the serial interface output buffer, ensuring
@@ -25,7 +25,7 @@ int serial_logger(const char* message, va_list fmt)
     }
 
     CborEncoder root_encoder;
-    uint8_t cbor_buff[BUFFER_SIZE + CBOR_OVERHEAD];
+    uint8_t cbor_buff[BUFFER_SIZE + LOG_CBOR_OVERHEAD];
     cbor_encoder_init(&root_encoder, cbor_buff, sizeof(cbor_buff), 0);
     CborEncoder root_map_encoder; // LOG
     CborError cberr = cbor_encoder_create_map(&root_encoder, &root_map_encoder, 1);

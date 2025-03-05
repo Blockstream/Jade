@@ -43,8 +43,8 @@ static uint8_t* serial_data_out = NULL;
 static TaskHandle_t serial_reader_handle = NULL;
 static TaskHandle_t* p_serial_writer_handle = NULL;
 static volatile bool serial_is_enabled = false;
-static SemaphoreHandle_t reader_shutdown_done = NULL;
-static SemaphoreHandle_t writer_shutdown_done = NULL;
+static SemaphoreHandle_t serial_reader_shutdown_done = NULL;
+static SemaphoreHandle_t serial_writer_shutdown_done = NULL;
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 // The documentation for 'uart_driver_install()' says:
@@ -60,7 +60,7 @@ static SemaphoreHandle_t writer_shutdown_done = NULL;
 #endif
 #endif // IDF_TARGET_ESP32
 
-static void post_exit_event_and_await_death(SemaphoreHandle_t* semaphore_done)
+static void serial_post_exit_event_and_await_death(SemaphoreHandle_t* semaphore_done)
 {
     // Post 'exit' event
     xSemaphoreGive(*semaphore_done);
@@ -129,7 +129,7 @@ static void serial_reader(void* ignore)
         const bool force_reject_if_no_msg = false;
         handle_data(full_serial_data_in, &read, len, &last_processing_time, force_reject_if_no_msg, serial_data_out);
     }
-    post_exit_event_and_await_death(&reader_shutdown_done);
+    serial_post_exit_event_and_await_death(&serial_reader_shutdown_done);
 }
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
@@ -198,7 +198,7 @@ static void serial_writer(void* ignore)
 #endif
         xTaskNotifyWait(0x00, ULONG_MAX, NULL, 100 / portTICK_PERIOD_MS);
     }
-    post_exit_event_and_await_death(&writer_shutdown_done);
+    serial_post_exit_event_and_await_death(&serial_writer_shutdown_done);
 }
 
 static bool serial_init_internal(void)
@@ -270,12 +270,12 @@ bool serial_init(TaskHandle_t* serial_handle)
     JADE_ASSERT(!full_serial_data_in);
     JADE_ASSERT(!serial_data_out);
     JADE_ASSERT(!serial_is_enabled);
-    JADE_ASSERT(!reader_shutdown_done);
-    JADE_ASSERT(!writer_shutdown_done);
-    reader_shutdown_done = xSemaphoreCreateBinary();
-    writer_shutdown_done = xSemaphoreCreateBinary();
-    JADE_ASSERT(reader_shutdown_done);
-    JADE_ASSERT(writer_shutdown_done);
+    JADE_ASSERT(!serial_reader_shutdown_done);
+    JADE_ASSERT(!serial_writer_shutdown_done);
+    serial_reader_shutdown_done = xSemaphoreCreateBinary();
+    serial_writer_shutdown_done = xSemaphoreCreateBinary();
+    JADE_ASSERT(serial_reader_shutdown_done);
+    JADE_ASSERT(serial_writer_shutdown_done);
 
     // Extra byte at the start for source-id
     full_serial_data_in = JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
@@ -304,10 +304,10 @@ void serial_stop(void)
     // flag tasks to die
     serial_is_enabled = false;
 
-    xSemaphoreTake(reader_shutdown_done, portMAX_DELAY);
+    xSemaphoreTake(serial_reader_shutdown_done, portMAX_DELAY);
     vTaskDelete(serial_reader_handle);
 
-    xSemaphoreTake(writer_shutdown_done, portMAX_DELAY);
+    xSemaphoreTake(serial_writer_shutdown_done, portMAX_DELAY);
     vTaskDelete(*p_serial_writer_handle);
 
 #ifdef CONFIG_IDF_TARGET_ESP32

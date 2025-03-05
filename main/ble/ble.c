@@ -62,7 +62,7 @@ static const size_t ATT_OVERHEAD = 3;
 static const size_t MAX_BLE_ATTR_SIZE = 512;
 static size_t ble_max_write_size = 0;
 static TaskHandle_t* p_ble_writer_handle = NULL;
-static SemaphoreHandle_t writer_shutdown_done = NULL;
+static SemaphoreHandle_t ble_writer_shutdown_done = NULL;
 
 gui_activity_t* make_ble_confirmation_activity(uint32_t numcmp);
 
@@ -357,7 +357,7 @@ static void ble_writer(void* ignore)
     }
 
     // Post 'exit' event and wait to be killed
-    xSemaphoreGive(writer_shutdown_done);
+    xSemaphoreGive(ble_writer_shutdown_done);
     for (;;) {
         vTaskDelay(portMAX_DELAY);
     }
@@ -460,8 +460,8 @@ bool ble_init(TaskHandle_t* ble_handle)
     ble_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
     p_ble_writer_handle = ble_handle;
 
-    writer_shutdown_done = xSemaphoreCreateBinary();
-    JADE_ASSERT(writer_shutdown_done);
+    ble_writer_shutdown_done = xSemaphoreCreateBinary();
+    JADE_ASSERT(ble_writer_shutdown_done);
 
     // Start automatically only if persisted flag set
     // (This won't start automatically on first boot - only once user has explicitly enabled)
@@ -565,7 +565,7 @@ void ble_stop(void)
 
     // The above kills the main BLE task
     // Kill our writer task in any case
-    xSemaphoreTake(writer_shutdown_done, portMAX_DELAY);
+    xSemaphoreTake(ble_writer_shutdown_done, portMAX_DELAY);
     vTaskDelete(*p_ble_writer_handle);
     *p_ble_writer_handle = NULL;
 }
