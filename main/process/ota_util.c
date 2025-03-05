@@ -67,12 +67,12 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
 
     // If we are carrying a cached error abandon immediately
     // (the error will be returned with this id)
-    if (*joctx->ota_return_status != SUCCESS) {
+    if (*joctx->ota_return_status != OTA_SUCCESS) {
         return;
     }
 
     if (!rpc_is_method(&value, "ota_data")) {
-        *joctx->ota_return_status = ERROR_BADDATA;
+        *joctx->ota_return_status = OTA_ERR_BADDATA;
         return;
     }
 
@@ -82,13 +82,13 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     rpc_get_bytes_ptr("params", &value, &inbound_buf, &written);
 
     if (written == 0 || data[0] != *joctx->expected_source || written > JADE_OTA_BUF_SIZE || !inbound_buf) {
-        *joctx->ota_return_status = ERROR_BADDATA;
+        *joctx->ota_return_status = OTA_ERR_BADDATA;
         return;
     }
 
     if (written > joctx->remaining_compressed) {
         JADE_LOGE("Received %u bytes when only needed %u", written, joctx->remaining_compressed);
-        *joctx->ota_return_status = ERROR_BADDATA;
+        *joctx->ota_return_status = OTA_ERR_BADDATA;
         return;
     }
 
@@ -99,7 +99,7 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     // Return any non-zero error code from the decompress routine
     const int ret = joctx->dctx->write_compressed(joctx->dctx, (uint8_t* const)inbound_buf, written);
     if (ret) {
-        *joctx->ota_return_status = ret < 0 ? ERROR_DECOMPRESS : ret;
+        *joctx->ota_return_status = ret < 0 ? OTA_ERR_DECOMPRESS : ret;
         return;
     }
 
@@ -166,7 +166,7 @@ enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
     JADE_ASSERT(ota_end_called);
 
     // Ensure no cached error - if so return it now
-    if (*joctx->ota_return_status != SUCCESS) {
+    if (*joctx->ota_return_status != OTA_SUCCESS) {
         return *joctx->ota_return_status;
     }
 
@@ -176,7 +176,7 @@ enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
                   "uncompressed %u",
             joctx->uncompressedsize, joctx->compressedsize, joctx->remaining_compressed,
             *joctx->remaining_uncompressed);
-        return ERROR_OTA_INIT;
+        return OTA_ERR_INIT;
     }
 
     // Verify calculated compressed file hash matches expected
@@ -193,7 +193,7 @@ enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
         JADE_LOGE("Firmware hash mismatch: expected: %s, got: %s", joctx->expected_hash_hexstr, calc_hash_hexstr);
         JADE_WALLY_VERIFY(wally_free_string(calc_hash_hexstr));
 
-        return ERROR_BAD_HASH;
+        return OTA_ERR_BADHASH;
     }
 
     // All good, finalise the ota and set the partition to boot
@@ -202,16 +202,16 @@ enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
 
     if (err != ESP_OK) {
         JADE_LOGE("esp_ota_end() returned %d", err);
-        return ERROR_FINISH;
+        return OTA_ERR_FINISH;
     }
 
     err = esp_ota_set_boot_partition(joctx->update_partition);
     if (err != ESP_OK) {
         JADE_LOGE("esp_ota_set_boot_partition() returned %d", err);
-        return ERROR_SETPARTITION;
+        return OTA_ERR_SETPARTITION;
     }
 
-    return SUCCESS;
+    return OTA_SUCCESS;
 }
 
 // NOTE: 'dest' is assumed to be at least as long as 'strlen(src)'
@@ -240,7 +240,7 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     const esp_image_header_t* header = (esp_image_header_t*)uncompressed;
     if (header->chip_id != CONFIG_IDF_FIRMWARE_CHIP_ID) {
         JADE_LOGE("Mismatch chip id, expected %d, found %d", CONFIG_IDF_FIRMWARE_CHIP_ID, header->chip_id);
-        return ERROR_INVALIDFW;
+        return OTA_ERR_INVALIDFW;
     }
 
     const size_t app_info_offset = sizeof(esp_image_header_t) + sizeof(esp_image_segment_header_t);
@@ -250,7 +250,7 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
 
     if (esp_efuse_check_secure_version(new_app_info->secure_version) == false) {
         JADE_LOGE("Secure version downgrade not allowed");
-        return ERROR_NODOWNGRADE;
+        return OTA_ERR_NODOWNGRADE;
     }
 
     const size_t custom_info_offset = app_info_offset + sizeof(esp_app_desc_t);
@@ -260,12 +260,12 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     // 'Config' is allowed to differ.
     if (strcmp(JADE_OTA_BOARD_TYPE, custom_info->board_type)) {
         JADE_LOGE("Firmware board type mismatch %s %s", JADE_OTA_BOARD_TYPE, custom_info->board_type);
-        return ERROR_INVALIDFW;
+        return OTA_ERR_INVALIDFW;
     }
 
     if (strcmp(JADE_OTA_FEATURES, custom_info->features)) {
         JADE_LOGE("Firmware features mismatch");
-        return ERROR_INVALIDFW;
+        return OTA_ERR_INVALIDFW;
     }
 
     // User to confirm once new firmware version known and all checks passed
@@ -286,7 +286,7 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     // Ask user to confirm
     if (!show_ota_versions_activity(current_version, new_version, joctx->expected_hash_hexstr, full_fw_hash)) {
         JADE_LOGW("User declined ota firmware version");
-        return ERROR_USER_DECLINED;
+        return OTA_ERR_USERDECLINED;
     }
 
     // Now user has confirmed, display the progress bar
@@ -295,5 +295,5 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     gui_set_current_activity_ex(act, true); // free prior activities
     vTaskDelay(100 / portTICK_PERIOD_MS); // time for screen to update
 
-    return SUCCESS;
+    return OTA_SUCCESS;
 }

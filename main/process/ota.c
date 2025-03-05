@@ -32,7 +32,7 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t l
 
     if (!*joctx->validated_confirmed && length >= CUSTOM_HEADER_MIN_WRITE) {
         const enum ota_status res = ota_user_validation(joctx, uncompressed);
-        if (res != SUCCESS) {
+        if (res != OTA_SUCCESS) {
             JADE_LOGE("ota_user_validation() error, %u", res);
             *joctx->ota_return_status = res;
             return res;
@@ -43,7 +43,7 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t l
     const esp_err_t res = esp_ota_write(*joctx->ota_handle, (const void*)uncompressed, length);
     if (res != ESP_OK) {
         JADE_LOGE("ota_write() error: %u", res);
-        *joctx->ota_return_status = ERROR_WRITE;
+        *joctx->ota_return_status = OTA_ERR_WRITE;
         return DEFLATE_ERROR;
     }
 
@@ -78,7 +78,7 @@ void ota_process(void* process_ptr)
 
     jade_process_t* process = process_ptr;
     bool uploading = false;
-    enum ota_status ota_return_status = ERROR_OTA_SETUP;
+    enum ota_status ota_return_status = OTA_ERR_SETUP;
     bool validated_confirmed = false;
     bool ota_end_called = false;
 
@@ -167,12 +167,12 @@ void ota_process(void* process_ptr)
     jade_process_reply_to_message_ok(process);
     uploading = true;
 
-    ota_return_status = SUCCESS;
+    ota_return_status = OTA_SUCCESS;
     while (joctx.remaining_compressed) {
         jade_process_get_in_message(&joctx, &handle_in_bin_data, true);
 
         // NOTE: the ota_return_status can be set via ptr in joctx
-        if (ota_return_status != SUCCESS) {
+        if (ota_return_status != OTA_SUCCESS) {
             JADE_LOGE("Error on ota_data message: %d", ota_return_status);
             goto cleanup;
         }
@@ -185,11 +185,11 @@ void ota_process(void* process_ptr)
     // Bail-out if the fw uncompressed to an unexpected size
     if (remaining_uncompressed != 0) {
         JADE_LOGE("Expected uncompressed size: %u, got %u", firmwaresize, firmwaresize - remaining_uncompressed);
-        ota_return_status = ERROR_DECOMPRESS;
+        ota_return_status = OTA_ERR_DECOMPRESS;
     }
     if (joctx.fwwritten != firmwaresize) {
         JADE_LOGE("Expected amountof firmware written: %u, expected %u", joctx.fwwritten, firmwaresize);
-        ota_return_status = ERROR_DECOMPRESS;
+        ota_return_status = OTA_ERR_DECOMPRESS;
     }
 
     // Expect a complete/request for status
@@ -203,12 +203,12 @@ void ota_process(void* process_ptr)
 
     // If all good with the upload do all final checks and then finalise the ota
     // and set the new boot partition, etc.
-    if (ota_return_status == SUCCESS) {
+    if (ota_return_status == OTA_SUCCESS) {
         ota_return_status = post_ota_check(&joctx, &ota_end_called);
     }
 
     // Send final message reply with final status
-    if (ota_return_status != SUCCESS) {
+    if (ota_return_status != OTA_SUCCESS) {
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Error completing OTA", MESSAGES[ota_return_status]);
         goto cleanup;
@@ -223,7 +223,7 @@ cleanup:
 
     // If ota has been successful show message and reboot.
     // If error, show error-message and await user acknowledgement.
-    if (ota_return_status == SUCCESS) {
+    if (ota_return_status == OTA_SUCCESS) {
         JADE_LOGW("OTA successful - rebooting");
 
         const char* message[] = { "Upgrade successful!" };
@@ -243,7 +243,7 @@ cleanup:
         if (uploading) {
             JADE_ASSERT(joctx.id[0] != '\0');
             const int error_code
-                = ota_return_status == ERROR_USER_DECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
+                = ota_return_status == OTA_ERR_USERDECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
 
             uint8_t buf[256];
             jade_process_reject_message_with_id(joctx.id, error_code, "Error uploading OTA data",
@@ -252,7 +252,7 @@ cleanup:
         }
 
         // If the error is not 'did not start' or 'user declined', show an error screen
-        if (ota_return_status != ERROR_OTA_SETUP && ota_return_status != ERROR_USER_DECLINED) {
+        if (ota_return_status != OTA_ERR_SETUP && ota_return_status != OTA_ERR_USERDECLINED) {
             const char* message[] = { MESSAGES[ota_return_status] };
             await_error_activity(message, 1);
         }
