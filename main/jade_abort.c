@@ -1,4 +1,5 @@
 #include "gui.h"
+#include "jade_assert.h"
 #include "keychain.h"
 #include "sensitive.h"
 #include "ui.h"
@@ -30,6 +31,7 @@ void jade_abort(const char* file, const int line_n)
     // 2) to give serial writer a chance to process outstanding logging
     vTaskDelay(5000 / portTICK_PERIOD_MS);
     __real_abort();
+    __builtin_unreachable();
 }
 
 // we wrap the real abort in the entire firmwawre so that ours gets called instead

@@ -5,15 +5,15 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-void jade_abort(const char* file, const int line_n);
+__attribute__((__noreturn__)) void jade_abort(const char* file, const int line_n);
+
+void __wrap_abort(void);
 
 // Abort, after clearing sensitive memory areas
-// Note the call to abort() is redundant as jade_abort() will never return but it
-// means the compiler knows this is terminal
 #define JADE_ABORT()                                                                                                   \
     do {                                                                                                               \
         jade_abort(__FILE_NAME__, __LINE__);                                                                           \
-        abort();                                                                                                       \
+        __builtin_unreachable();                                                                                       \
     } while (false)
 
 // Assert (ie. abort if false)
