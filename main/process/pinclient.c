@@ -46,7 +46,7 @@ static const unsigned char LABEL_ORACLE_RESPONSE[]
 
 // Success or failure, and any error data to send in reply message
 typedef struct {
-    enum { SUCCESS = 0, CAN_RETRY, FAILURE, CANCELLED } result;
+    enum { PIN_SUCCESS = 0, PIN_CAN_RETRY, PIN_FAILURE, PIN_CANCELLED } result;
 
     uint32_t errorcode;
     const char* message;
@@ -307,8 +307,8 @@ static pinserver_result_t generate_ephemeral_pinkeys(pin_keys_t* pinkeys)
                pinkeys->privkey, sizeof(pinkeys->privkey), pinkeys->cke, sizeof(pinkeys->cke))
             != WALLY_OK) {
         JADE_LOGE("Failed to generate ephemeral client key");
-        RETURN_RESULT(
-            FAILURE, CBOR_RPC_INTERNAL_ERROR, "Cannot initiate handshake - failed to generate ephemeral client key");
+        RETURN_RESULT(PIN_FAILURE, CBOR_RPC_INTERNAL_ERROR,
+            "Cannot initiate handshake - failed to generate ephemeral client key");
     }
 
     // Load the replay counter and deduce the server key via tweak
@@ -321,11 +321,11 @@ static pinserver_result_t generate_ephemeral_pinkeys(pin_keys_t* pinkeys)
     if (!res || !generate_ske(pinkeys)) {
         JADE_LOGE("Failed to deduce ephemeral server key");
         RETURN_RESULT(
-            FAILURE, CBOR_RPC_INTERNAL_ERROR, "Cannot initiate handshake - failed to deduce ephemeral server key");
+            PIN_FAILURE, CBOR_RPC_INTERNAL_ERROR, "Cannot initiate handshake - failed to deduce ephemeral server key");
     }
 
     // Success!
-    RETURN_RESULT(SUCCESS, 0, NULL);
+    RETURN_RESULT(PIN_SUCCESS, 0, NULL);
 }
 
 // Trigger, and then parse, 'pin' message
@@ -350,10 +350,10 @@ static pinserver_result_t handle_pin(
 
     if (IS_CURRENT_MESSAGE(process, "cancel")) {
         // Cancelled
-        RETURN_RESULT(CANCELLED, 0, NULL);
+        RETURN_RESULT(PIN_CANCELLED, 0, NULL);
     } else if (!IS_CURRENT_MESSAGE(process, "pin")) {
         // Protocol error
-        RETURN_RESULT(FAILURE, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'pin'");
+        RETURN_RESULT(PIN_FAILURE, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'pin'");
     }
 
     // If we receive no parameters it implies some comms failure with the pinserver
@@ -362,7 +362,7 @@ static pinserver_result_t handle_pin(
     if (cberr != CborNoError || !cbor_value_is_valid(&params) || cbor_value_get_type(&params) == CborInvalidType
         || !cbor_value_is_map(&params)) {
         // We provide the error details in case the user opts not to retry
-        RETURN_RESULT(CAN_RETRY, CBOR_RPC_BAD_PARAMETERS, "Failed to read parameters from Oracle");
+        RETURN_RESULT(PIN_CAN_RETRY, CBOR_RPC_BAD_PARAMETERS, "Failed to read parameters from Oracle");
     }
 
     // encrypted key
@@ -370,23 +370,23 @@ static pinserver_result_t handle_pin(
     const char* data = NULL;
     rpc_get_string_ptr("data", &params, &data, &data_len);
     if (!data || !data_len) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "data field missing");
+        RETURN_RESULT(PIN_FAILURE, CBOR_RPC_BAD_PARAMETERS, "data field missing");
     }
 
     size_t written = 0;
     if (mbedtls_base64_decode(aes_encrypted, sizeof(aes_encrypted), &written, (const uint8_t*)data, data_len)
         || written != SERVER_REPLY_PAYLOAD_LEN) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "data field invalid");
+        RETURN_RESULT(PIN_FAILURE, CBOR_RPC_BAD_PARAMETERS, "data field invalid");
     }
 
     // Decrypt the message payload and check hmacs
     JADE_LOGD("Decrypting response and obtaining server key");
     if (!decrypt_reply(pinkeys, aes_encrypted, written, serverkey, serverkey_len)) {
-        RETURN_RESULT(FAILURE, CBOR_RPC_BAD_PARAMETERS, "Failed to decrypt payload");
+        RETURN_RESULT(PIN_FAILURE, CBOR_RPC_BAD_PARAMETERS, "Failed to decrypt payload");
     }
 
     // Success!
-    RETURN_RESULT(SUCCESS, 0, NULL);
+    RETURN_RESULT(PIN_SUCCESS, 0, NULL);
 }
 
 // Helper to hmac an n-digit pin into a 256bit secret
@@ -509,7 +509,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
 
     // Start the ecdh and derive the ephemeral encryption keys
     pinserver_result_t retval = generate_ephemeral_pinkeys(&pinkeys);
-    if (retval.result != SUCCESS) {
+    if (retval.result != PIN_SUCCESS) {
         goto cleanup;
     }
 
@@ -528,7 +528,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
             sizeof(payload), &written)
         || !assemble_reply_data(&pinkeys, payload, written, data, sizeof(data))) {
         // Internal failure
-        retval.result = FAILURE;
+        retval.result = PIN_FAILURE;
         retval.errorcode = CBOR_RPC_INTERNAL_ERROR;
         retval.message = "Failed to create Oracle message content";
         goto cleanup;
@@ -541,7 +541,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     // Get the server's aes key for the given pin/key data
     uint8_t serverkey[AES_KEY_LEN_256];
     retval = handle_pin(process, &pinkeys, serverkey, sizeof(serverkey));
-    if (retval.result != SUCCESS) {
+    if (retval.result != PIN_SUCCESS) {
         goto cleanup;
     }
 
@@ -550,7 +550,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
     JADE_WALLY_VERIFY(wally_hmac_sha256(serverkey, sizeof(serverkey), pin, pin_len, finalaes, finalaes_len));
 
     // Success - well nothing has obviously failed anyway
-    JADE_ASSERT(retval.result == SUCCESS);
+    JADE_ASSERT(retval.result == PIN_SUCCESS);
 
 cleanup:
     SENSITIVE_POP(sig);
@@ -579,7 +579,7 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         // If a) the error is 'retry-able' and b) the user elects to retry, then loop and try again
         // (In a CI build no GUI, so assume 'no' and return the error immediately.)
-        if (pir.result == CAN_RETRY) {
+        if (pir.result == PIN_CAN_RETRY) {
             const char* question[] = { "Failed communicating", "with Oracle - retry ?" };
             if (await_yesno_activity("Network Error", question, 2, true, NULL)) {
                 const char* message[] = { "Retrying..." };
@@ -589,8 +589,8 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
         }
 #endif
         // If failed or abandoned, send reject message
-        // NOTE: 'CANCELLED' is deliberately 'silent'
-        if (pir.result != SUCCESS && pir.result != CANCELLED) {
+        // NOTE: 'PIN_CANCELLED' is deliberately 'silent'
+        if (pir.result != PIN_SUCCESS && pir.result != PIN_CANCELLED) {
             JADE_LOGE("Failed to complete pinserver interaction");
             jade_process_reject_message(process, pir.errorcode, pir.message, NULL);
 
@@ -600,7 +600,7 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
         }
 
         // Otherwise if all good, return true
-        return pir.result == SUCCESS;
+        return pir.result == PIN_SUCCESS;
     }
 }
 
