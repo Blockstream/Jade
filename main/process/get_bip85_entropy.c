@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../aes.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
@@ -333,3 +334,4 @@ void get_bip85_rsa_entropy_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

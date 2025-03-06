@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <inttypes.h>
 
 #include "../button_events.h"
@@ -351,3 +352,4 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
 
     return act;
 }
+#endif // AMALGAMATED_BUILD

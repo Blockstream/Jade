@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../display.h"
 #include "../jade_assert.h"
@@ -851,3 +852,4 @@ gui_activity_t* make_storage_stats_activity(const size_t entries_used, const siz
 
     return act;
 }
+#endif // AMALGAMATED_BUILD

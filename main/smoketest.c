@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <esp_flash.h>
 
 #include "camera.h"
@@ -533,3 +534,4 @@ void start_smoketest(void)
 
     power_shutdown();
 }
+#endif // AMALGAMATED_BUILD

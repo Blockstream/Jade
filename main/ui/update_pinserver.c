@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../ui.h"
 #include "../utils/util.h"
@@ -244,3 +245,4 @@ bool show_pinserver_certificate_activity(const char* cert_hash_hex, const bool i
         }
     }
 }
+#endif // AMALGAMATED_BUILD

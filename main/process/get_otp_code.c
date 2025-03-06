@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../gui.h"
 #include "../jade_assert.h"
 #include "../otpauth.h"
@@ -101,3 +102,4 @@ cleanup:
     SENSITIVE_POP(otp_uri);
     return;
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../keychain.h"
 #include "../process.h"
 #include "../ui.h"
@@ -343,3 +344,4 @@ cleanup:
         }
     }
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../storage.h"
@@ -70,3 +71,4 @@ bool select_registered_wallet(const char multisig_names[][NVS_KEY_NAME_MAX_SIZE]
     *wallet_name_out = *is_multisig ? multisig_names[selected] : descriptor_names[selected - num_multisigs];
     return true;
 }
+#endif // AMALGAMATED_BUILD

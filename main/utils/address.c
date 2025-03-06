@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "address.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
@@ -291,3 +292,4 @@ bool parse_address(const char* address, address_data_t* addr_data)
 
     return false;
 }
+#endif // AMALGAMATED_BUILD

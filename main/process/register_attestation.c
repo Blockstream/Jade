@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../jade_assert.h"
 #include "../process.h"
 #include "../ui.h"
@@ -85,3 +86,4 @@ void register_attestation_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

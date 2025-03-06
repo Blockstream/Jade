@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "sdkconfig.h"
 #if defined(CONFIG_ETH_USE_OPENETH) && defined(CONFIG_HAS_CAMERA)
 #include "../camera.h"
@@ -314,3 +315,4 @@ bool qemu_start_display_webserver(void)
     return false;
 }
 #endif
+#endif // AMALGAMATED_BUILD

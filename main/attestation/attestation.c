@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <sdkconfig.h>
 
 #include "attestation.h"
@@ -746,3 +747,4 @@ cleanup:
     mbedtls_pk_free(&pk);
     return retval;
 }
+#endif // AMALGAMATED_BUILD

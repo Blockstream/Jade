@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <freertos/task.h>
@@ -117,3 +118,4 @@ esp_err_t sync_await_single_event(esp_event_base_t event_base, int32_t event_id,
 
     return retval;
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../ui.h"
@@ -95,3 +96,4 @@ gui_activity_t* make_camera_activity(gui_view_node_t** image_node, gui_view_node
 
     return act;
 }
+#endif // AMALGAMATED_BUILD

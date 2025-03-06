@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "jade_assert.h"
 #include "process.h"
 #include "utils/cbor_rpc.h"
@@ -45,3 +46,4 @@ int serial_logger(const char* message, va_list fmt)
 
     return written;
 }
+#endif // AMALGAMATED_BUILD

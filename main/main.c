@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <esp_app_desc.h>
 #include <esp_chip_info.h>
 #include <esp_efuse.h>
@@ -273,3 +274,4 @@ void app_main(void)
     start_smoketest();
 #endif
 }
+#endif // AMALGAMATED_BUILD

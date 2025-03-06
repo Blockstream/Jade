@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../jade_assert.h"
 #include "../multisig.h"
 #include "../process.h"
@@ -186,3 +187,4 @@ void get_registered_multisig_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

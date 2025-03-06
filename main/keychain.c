@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "keychain.h"
 #include "aes.h"
 #include "jade_assert.h"
@@ -731,3 +732,4 @@ bool keychain_init_unit_key(void)
     SENSITIVE_POP(privatekey);
     return res;
 }
+#endif // AMALGAMATED_BUILD

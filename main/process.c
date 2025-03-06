@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "process.h"
 #include "ble/ble.h"
 #include "jade_assert.h"
@@ -652,3 +653,4 @@ void jade_process_reply_to_message_bytes_sequence(cbor_msg_t ctx, const size_t s
     JADE_ASSERT(cberr == CborNoError);
     jade_process_push_out_message(buffer, cbor_encoder_get_buffer_size(&root_encoder, buffer), ctx.source);
 }
+#endif // AMALGAMATED_BUILD

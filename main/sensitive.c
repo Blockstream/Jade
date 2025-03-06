@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "utils/malloc_ext.h"
@@ -139,3 +140,4 @@ void sensitive_assert_empty(void)
         JADE_ABORT();
     }
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
@@ -749,3 +750,4 @@ void register_multisig_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

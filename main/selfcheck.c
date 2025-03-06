@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <sdkconfig.h>
 #include <string.h>
 #include <wally_bip32.h>
@@ -1495,3 +1496,4 @@ bool debug_selfcheck(jade_process_t* process)
     // PASS !
     return true;
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "storage.h"
 #include "jade_assert.h"
 #include "keychain.h"
@@ -772,3 +773,4 @@ bool storage_erase_otp(const char* name)
     erase_key(HOTP_COUNTERS_NAMESPACE, name);
     return erase_key(OTP_NAMESPACE, name);
 }
+#endif // AMALGAMATED_BUILD

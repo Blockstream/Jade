@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "wire.h"
 
 #include <ctype.h>
@@ -195,3 +196,4 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_
     // Update caller's 'last processing time'
     *last_processing_time = time_now;
 }
+#endif // AMALGAMATED_BUILD

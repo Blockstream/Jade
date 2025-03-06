@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../descriptor.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
@@ -262,3 +263,4 @@ void register_descriptor_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <esp_camera.h>
 #include <freertos/idf_additions.h>
 
@@ -577,3 +578,4 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
 }
 
 #endif // CONFIG_HAS_CAMERA
+#endif // AMALGAMATED_BUILD

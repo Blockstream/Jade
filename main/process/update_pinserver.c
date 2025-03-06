@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
@@ -305,3 +306,4 @@ void update_pinserver_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

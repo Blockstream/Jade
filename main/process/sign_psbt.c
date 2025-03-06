@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../descriptor.h"
 #include "../jade_assert.h"
@@ -1032,3 +1033,4 @@ void sign_psbt_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

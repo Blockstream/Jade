@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../descriptor.h"
 #include "../jade_assert.h"
 #include "../process.h"
@@ -103,3 +104,4 @@ void get_registered_descriptor_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

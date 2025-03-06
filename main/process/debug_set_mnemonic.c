@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../jade_assert.h"
 #include "../keychain.h"
 #include "../process.h"
@@ -132,3 +133,4 @@ cleanup:
     return;
 }
 #endif // CONFIG_DEBUG_MODE
+#endif // AMALGAMATED_BUILD

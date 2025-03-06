@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "urldecode.h"
 #include "../jade_assert.h"
 
@@ -64,3 +65,4 @@ bool urldecode(const char* src, const size_t src_len, char* dest, const size_t d
     *dest = '\0';
     return true;
 }
+#endif // AMALGAMATED_BUILD

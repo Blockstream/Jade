@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "power.h"
 #include "jade_assert.h"
 #include <sdkconfig.h>
@@ -28,3 +29,4 @@
 // Stubs for other hw boards (ie. no power management)
 #include "power/minimal.inc"
 #endif
+#endif // AMALGAMATED_BUILD

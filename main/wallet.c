@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "wallet.h"
 #include "descriptor.h"
 #include "jade_assert.h"
@@ -1442,3 +1443,4 @@ void wallet_get_bip85_rsa_entropy(
     JADE_WALLY_VERIFY(bip85_get_rsa_entropy(&keychain_get()->xpriv, key_bits, index, entropy, entropy_len, written));
     JADE_ASSERT(*written <= entropy_len);
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 // ============================================================================
 // Proportional font Header Format:
 // ------------------------------------------------
@@ -271,3 +272,4 @@ const unsigned char tft_Dejavu18[] = { 0x00, 0x12, 0x00, 0x00,
 
     // Terminator
     0xFF };
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <quirc.h>
 #include <string.h>
 
@@ -207,3 +208,4 @@ bool jade_camera_scan_qr(
     return false;
 #endif
 }
+#endif // AMALGAMATED_BUILD

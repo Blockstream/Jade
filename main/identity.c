@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "identity.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
@@ -436,3 +437,4 @@ bool sign_identity(const char* identity, const size_t identity_len, const size_t
     SENSITIVE_POP(&keypair);
     return result;
 }
+#endif // AMALGAMATED_BUILD

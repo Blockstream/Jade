@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "input.h"
 #include "sdkconfig.h"
 
@@ -20,3 +21,4 @@ void input_init(void)
     navigation_init();
     select_init();
 }
+#endif // AMALGAMATED_BUILD

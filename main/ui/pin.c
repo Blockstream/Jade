@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../random.h"
@@ -261,3 +262,4 @@ size_t get_pin_as_number(const pin_insert_t* pin_insert)
 
     return val;
 }
+#endif // AMALGAMATED_BUILD

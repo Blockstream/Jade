@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../ui.h"
@@ -435,3 +436,4 @@ gui_activity_t* make_qr_back_continue_activity(
 
     return act;
 }
+#endif // AMALGAMATED_BUILD

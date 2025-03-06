@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "qrmode.h"
 
 #include "bcur.h"
@@ -1778,3 +1779,4 @@ void handle_qr_auth(const bool suppress_pin_change_confirmation)
 
     // Then we return to the dispatcher to handle messages as sent by the task we have just started
 }
+#endif // AMALGAMATED_BUILD

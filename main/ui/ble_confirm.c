@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../ui.h"
@@ -16,3 +17,4 @@ gui_activity_t* make_ble_confirmation_activity(const uint32_t numcmp)
 
     return make_show_message_activity(message, 3, "Pair Device", NULL, 0, ftrbtns, 2);
 }
+#endif // AMALGAMATED_BUILD

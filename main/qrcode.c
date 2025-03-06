@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 /**
  * The MIT License (MIT)
  *
@@ -1082,3 +1083,4 @@ void qrcode_freeIcon(Icon* icon)
 
    }
  */
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../bcur.h"
 #include "../button_events.h"
 #include "../descriptor.h"
@@ -2795,3 +2796,4 @@ void dashboard_process(void* process_ptr)
         do_dashboard(process, initial_keychain, has_pin, act_dashboard, event_data);
     }
 }
+#endif // AMALGAMATED_BUILD

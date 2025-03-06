@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <assets_snapshot.h>
 #include <inttypes.h>
 #include <math.h>
@@ -802,3 +803,4 @@ bool show_elements_final_confirmation_activity(
 
     return show_final_confirmation_activity(title, feeamount, ticker, warning_msg);
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "display_hw.h"
 
 #include "display.h"
@@ -388,3 +389,4 @@ void display_hw_flush(void)
 #endif
 }
 #endif // FRAME BUFFER
+#endif // AMALGAMATED_BUILD

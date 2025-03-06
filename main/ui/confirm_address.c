@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../ui.h"
 #include "jade_assert.h"
@@ -201,3 +202,4 @@ bool show_confirm_address_activity(const char* address, const bool default_selec
         }
     }
 }
+#endif // AMALGAMATED_BUILD

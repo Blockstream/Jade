@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 // Sinclair_Inverted_S.c
 // Font type    : Full (95 characters)
 // Font size    : 8x8 pixels
@@ -105,3 +106,4 @@ const unsigned char Sinclair_Inverted_S[764] = {
     0x00, 0x70, 0x10, 0x0C, 0x10, 0x10, 0x70, 0x00, // }
     0x00, 0x14, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, // ~
 };
+#endif // AMALGAMATED_BUILD

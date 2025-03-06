@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <string.h>
 
 #include "../button_events.h"
@@ -246,3 +247,4 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry)
     JADE_ASSERT(kb_entry->len <= kb_entry->max_allowed_len);
     JADE_ASSERT(kb_entry->strdata[kb_entry->len] == '\0' && strlen(kb_entry->strdata) == kb_entry->len);
 }
+#endif // AMALGAMATED_BUILD

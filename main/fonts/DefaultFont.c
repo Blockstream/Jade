@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 // Default font
 
 // ========================================================================
@@ -235,3 +236,4 @@ const unsigned char tft_DefaultFont[] = { 0x00, 0x0B, 0x86, 0x04,
 
     // Terminator
     0xFF };
+#endif // AMALGAMATED_BUILD

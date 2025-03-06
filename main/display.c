@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "display.h"
 #include "gui.h"
 
@@ -969,3 +970,4 @@ void display_flush(void)
 #endif
 #endif
 }
+#endif // AMALGAMATED_BUILD

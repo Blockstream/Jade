@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 
 #include "rsa.h"
 #include "jade_assert.h"
@@ -153,3 +154,4 @@ cleanup:
 
     return retval;
 }
+#endif // AMALGAMATED_BUILD

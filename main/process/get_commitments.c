@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../jade_assert.h"
 #include "../process.h"
 #include "../sensitive.h"
@@ -134,3 +135,4 @@ void get_commitments_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

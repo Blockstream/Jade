@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "temporary_stack.h"
 #include "jade_assert.h"
 #include "jade_tasks.h"
@@ -143,3 +144,4 @@ bool run_in_temporary_task(const size_t stack_size, temporary_stack_function_t f
     // Return the boolean result - any other output info should be in the ctx object
     return rslt;
 }
+#endif // AMALGAMATED_BUILD

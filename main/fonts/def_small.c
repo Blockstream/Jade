@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 // This comes with no warranty, implied or otherwise
 
 // This data structure was designed to support Proportional fonts
@@ -232,3 +233,4 @@ const unsigned char tft_def_small[] = { 0x00, 0x08, 0x00, 0x00,
 
     // Terminator
     0xFF };
+#endif // AMALGAMATED_BUILD

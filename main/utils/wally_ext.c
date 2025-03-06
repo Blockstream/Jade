@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "wally_ext.h"
 #include "jade_assert.h"
 #include "jade_log.h"
@@ -144,3 +145,4 @@ void jade_wally_init(void)
 void jade_wally_free_tx_wrapper(void* tx) { JADE_WALLY_VERIFY(wally_tx_free((struct wally_tx*)tx)); }
 
 void jade_wally_free_map_wrapper(void* map) { JADE_WALLY_VERIFY(wally_map_free((struct wally_map*)map)); }
+#endif // AMALGAMATED_BUILD

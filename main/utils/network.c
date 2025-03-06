@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "network.h"
 #include "jade_assert.h"
 
@@ -245,3 +246,4 @@ const char* networkGetPolicyAsset(const char* network)
         return NULL;
     }
 }
+#endif // AMALGAMATED_BUILD

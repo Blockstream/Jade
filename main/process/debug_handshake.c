@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
@@ -153,3 +154,4 @@ cleanup:
     SENSITIVE_POP(&keydata);
 }
 #endif // CONFIG_DEBUG_MODE
+#endif // AMALGAMATED_BUILD

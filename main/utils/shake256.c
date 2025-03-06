@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "utils/shake256.h"
 #include <stdint.h>
 #include <string.h>
@@ -101,3 +102,4 @@ int shake256_mbedtls_rnd_cb(void* ctx, uint8_t* buf, const size_t len)
     shake256_fill_data(sctx, buf, len);
     return 0;
 }
+#endif // AMALGAMATED_BUILD

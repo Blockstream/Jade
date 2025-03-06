@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "ota_util.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
@@ -333,3 +334,4 @@ const char* ota_get_status_text(const enum ota_status status)
         return "OTA_ERR_UNKNOWN";
     }
 }
+#endif // AMALGAMATED_BUILD

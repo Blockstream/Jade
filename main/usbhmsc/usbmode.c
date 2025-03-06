@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../gui.h"
 #include "../jade_assert.h"
@@ -896,3 +897,4 @@ bool usbstorage_sign_psbt(const char* extra_path)
     const usbstorage_action_context_t ctx = { .extra_path = extra_path };
     return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
+#endif // AMALGAMATED_BUILD

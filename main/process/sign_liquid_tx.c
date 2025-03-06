@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../assets.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
@@ -980,3 +981,4 @@ void sign_liquid_tx_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

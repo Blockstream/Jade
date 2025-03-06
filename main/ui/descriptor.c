@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../descriptor.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
@@ -363,3 +364,4 @@ bool show_descriptor_activity(const char* descriptor_name, const descriptor_data
 
     return confirmed;
 }
+#endif // AMALGAMATED_BUILD

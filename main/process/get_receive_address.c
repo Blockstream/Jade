@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../descriptor.h"
 #include "../gui.h"
 #include "../jade_assert.h"
@@ -272,3 +273,4 @@ void get_receive_address_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

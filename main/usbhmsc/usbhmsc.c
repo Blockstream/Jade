@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "usbhmsc.h"
 
 #include <esp_err.h>
@@ -314,3 +315,4 @@ void usbstorage_unmount(void)
     usb_device_installed = false;
     JADE_SEMAPHORE_GIVE(interface_semaphore);
 }
+#endif // AMALGAMATED_BUILD

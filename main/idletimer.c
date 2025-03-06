@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "idletimer.h"
 #include "gui.h"
 #include "jade_assert.h"
@@ -236,3 +237,4 @@ void idletimer_init(void)
     JADE_ASSERT_MSG(
         retval == pdPASS, "Failed to create idle_timeout task, xTaskCreatePinnedToCore() returned %d", retval);
 }
+#endif // AMALGAMATED_BUILD

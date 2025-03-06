@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <string.h>
 
 #include "../button_events.h"
@@ -526,3 +527,4 @@ gui_activity_t* make_export_qr_fragment_activity(
 
     return act;
 }
+#endif // AMALGAMATED_BUILD

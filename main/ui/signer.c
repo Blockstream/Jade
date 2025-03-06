@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 
 #include "../signer.h"
 #include "../button_events.h"
@@ -220,3 +221,4 @@ bool show_signer_activity(
         }
     }
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "assets.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
@@ -235,3 +236,4 @@ bool assets_get_info(const char* network, const asset_info_t* assets, const size
     // Not found in passed info nor in h/coded snapshot info
     return false;
 }
+#endif // AMALGAMATED_BUILD

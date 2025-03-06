@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "psbt.h"
 #include "../keychain.h"
 #include "jade_assert.h"
@@ -153,3 +154,4 @@ bool key_iter_get_path(const key_iter* iter, uint32_t* path, const size_t path_l
 {
     return key_iter_get_path_at(iter, iter->key_index, path, path_len, written);
 }
+#endif // AMALGAMATED_BUILD

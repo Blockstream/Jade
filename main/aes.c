@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <aes.h>
 #include <jade_assert.h>
 #include <jade_wally_verify.h>
@@ -61,3 +62,4 @@ bool aes_decrypt_bytes(const uint8_t* aeskey, const size_t aeskey_len, const uin
 
     return true;
 }
+#endif // AMALGAMATED_BUILD

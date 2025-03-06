@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../aes.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
@@ -551,3 +552,4 @@ bool pinclient_set(
     return get_pinserver_aeskey(
         process, pin, pin_len, PINSERVER_DOC_SET_PIN, pass_client_entropy, finalaes, finalaes_len);
 }
+#endif // AMALGAMATED_BUILD

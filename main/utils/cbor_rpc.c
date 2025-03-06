@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "cbor_rpc.h"
 #include "jade_assert.h"
 #include "utils/malloc_ext.h"
@@ -685,3 +686,4 @@ void add_boolean_to_map(CborEncoder* container, const char* name, const bool val
     cberr = cbor_encode_boolean(container, value);
     JADE_ASSERT(cberr == CborNoError);
 }
+#endif // AMALGAMATED_BUILD

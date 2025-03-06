@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../descriptor.h"
 #include "../identity.h"
 #include "../jade_assert.h"
@@ -560,3 +561,4 @@ void http_request_reply(const void* ctx, CborEncoder* container)
     cberr = cbor_encoder_close_container(container, &root_map);
     JADE_ASSERT(cberr == CborNoError);
 }
+#endif // AMALGAMATED_BUILD

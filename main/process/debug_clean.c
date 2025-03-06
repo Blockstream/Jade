@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../descriptor.h"
 #include "../jade_assert.h"
 #include "../keychain.h"
@@ -73,3 +74,4 @@ void debug_clean_reset_process(void* process_ptr)
     return;
 }
 #endif // CONFIG_DEBUG_MODE
+#endif // AMALGAMATED_BUILD

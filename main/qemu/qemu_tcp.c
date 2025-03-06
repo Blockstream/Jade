@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "qemu_tcp.h"
 #include "jade_assert.h"
 #include "jade_tasks.h"
@@ -248,3 +249,4 @@ bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
     eth_start();
     return true;
 }
+#endif // AMALGAMATED_BUILD

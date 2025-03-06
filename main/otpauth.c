@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "otpauth.h"
 #include "aes.h"
 #include "jade_assert.h"
@@ -502,3 +503,4 @@ cleanup:
     SENSITIVE_POP(&aeskey);
     return ret;
 }
+#endif // AMALGAMATED_BUILD

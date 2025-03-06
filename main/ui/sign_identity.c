@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../ui.h"
 #include "jade_assert.h"
@@ -58,3 +59,4 @@ bool show_sign_identity_activity(const char* identity, const size_t identity_len
         }
     }
 }
+#endif // AMALGAMATED_BUILD

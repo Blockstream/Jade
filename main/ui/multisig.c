@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../multisig.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
@@ -407,3 +408,4 @@ bool show_multisig_activity(const char* multisig_name, const bool is_sorted, con
 
     return confirmed;
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "keychain.h"
@@ -132,3 +133,4 @@ void build_version_info_reply(const void* ctx, CborEncoder* container)
     cberr = cbor_encoder_close_container(container, &map_encoder);
     JADE_ASSERT(cberr == CborNoError);
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 
 #include "../jade_assert.h"
 #include "../process.h"
@@ -41,3 +42,4 @@ void get_bip85_pubkey_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

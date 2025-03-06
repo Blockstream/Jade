@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "ble.h"
 #ifdef CONFIG_BT_ENABLED
 #include "../button_events.h"
@@ -882,3 +883,4 @@ bool ble_remove_all_devices(void)
     return retval;
 }
 #endif // CONFIG_BT_ENABLED
+#endif // AMALGAMATED_BUILD

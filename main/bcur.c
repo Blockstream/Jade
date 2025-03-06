@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "bcur.h"
 #include "jade_assert.h"
 #include "keychain.h"
@@ -834,3 +835,4 @@ bool bcur_check_fragment_sizes(void)
     return !overflowed;
 }
 #endif
+#endif // AMALGAMATED_BUILD

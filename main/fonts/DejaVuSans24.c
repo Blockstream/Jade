@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 // ========================================================================
 // This comes with no warranty, implied or otherwise
 
@@ -330,3 +331,4 @@ const unsigned char tft_Dejavu24[] = { 0x00, 0x17, 0x00, 0x00,
 
     // Terminator
     0xFF };
+#endif // AMALGAMATED_BUILD

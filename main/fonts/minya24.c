@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 // This comes with no warranty, implied or otherwise
 
 // This data structure was designed to support Proportional fonts
@@ -333,3 +334,4 @@ const unsigned char tft_minya24[] = { 0x00, 0x15, 0x00, 0x00,
 
     // Terminator
     0xFF };
+#endif // AMALGAMATED_BUILD

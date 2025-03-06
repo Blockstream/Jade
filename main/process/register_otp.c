@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../jade_assert.h"
 #include "../otpauth.h"
 #include "../process.h"
@@ -416,3 +417,4 @@ bool register_otp_string(const char* otp_uri, const size_t uri_len, const char**
     // Validate and persist the new otp uri
     return handle_new_otp_uri(otp_name, otp_uri, uri_len, errmsg);
 }
+#endif // AMALGAMATED_BUILD

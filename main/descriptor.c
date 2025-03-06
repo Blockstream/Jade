@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "descriptor.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
@@ -711,3 +712,4 @@ void descriptor_get_valid_record_names(
     }
     *num_written = written;
 }
+#endif // AMALGAMATED_BUILD

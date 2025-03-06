@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../ui.h"
@@ -744,3 +745,4 @@ void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const
 
     progress_bar->percent_last_value = pcnt;
 }
+#endif // AMALGAMATED_BUILD

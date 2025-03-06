@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 
 #include "../jade_assert.h"
 #include "../process.h"
@@ -169,3 +170,4 @@ void sign_bip85_digests_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif // AMALGAMATED_BUILD

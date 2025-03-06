@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 
 #include "signer.h"
 #include "jade_assert.h"
@@ -81,3 +82,4 @@ bool validate_signers(const signer_t* signers, const size_t num_signers, const b
 
     return bFound;
 }
+#endif // AMALGAMATED_BUILD

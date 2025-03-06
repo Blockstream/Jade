@@ -1,5 +1,6 @@
-#include "gui.h"
 #include "jade_assert.h"
+#ifndef AMALGAMATED_BUILD
+#include "gui.h"
 #include "keychain.h"
 #include "sensitive.h"
 #include "ui.h"
@@ -33,6 +34,7 @@ void jade_abort(const char* file, const int line_n)
     __real_abort();
     __builtin_unreachable();
 }
+#endif // AMALGAMATED_BUILD
 
 // Wrap the real abort in the entire firmware so that ours gets called instead
 // (see CMakeLists.txt) which will in turn call the real abort

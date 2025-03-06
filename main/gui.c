@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <stdarg.h>
 #include <string.h>
 
@@ -2616,3 +2617,4 @@ gui_activity_t* gui_display_splash(void)
     gui_set_current_activity(act);
     return act;
 }
+#endif // AMALGAMATED_BUILD

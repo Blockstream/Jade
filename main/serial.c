@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "serial.h"
 #include "jade_assert.h"
 #include "jade_tasks.h"
@@ -324,3 +325,4 @@ void serial_stop(void)
 #endif
 #endif
 }
+#endif // AMALGAMATED_BUILD

@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "random.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
@@ -285,3 +286,4 @@ void random_full_initialization(void)
     strengthen(STRENGTHEN_MILLISECONDS);
     random_sanity_check();
 }
+#endif // AMALGAMATED_BUILD

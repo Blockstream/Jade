@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../camera.h"
 #include "../jade_assert.h"
 #include "../process.h"
@@ -194,3 +195,4 @@ cleanup:
     return;
 }
 #endif // CONFIG_DEBUG_MODE
+#endif // AMALGAMATED_BUILD

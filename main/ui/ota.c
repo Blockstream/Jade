@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../ui.h"
@@ -150,3 +151,4 @@ bool show_ota_versions_activity(
         }
     }
 }
+#endif // AMALGAMATED_BUILD

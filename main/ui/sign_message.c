@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../ui.h"
 #include "jade_assert.h"
@@ -189,3 +190,4 @@ bool show_sign_message_activity(const char* message, const char* hashhex, const 
         }
     }
 }
+#endif // AMALGAMATED_BUILD

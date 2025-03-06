@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include "multisig.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
@@ -682,3 +683,4 @@ bool multisig_create_export_file(const char* multisig_name, const multisig_data_
     *written = write_ptr - output;
     return true;
 }
+#endif // AMALGAMATED_BUILD

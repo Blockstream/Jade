@@ -1,3 +1,4 @@
+#ifndef AMALGAMATED_BUILD
 #include <wally_bip39.h>
 
 #include "../bcur.h"
@@ -1578,3 +1579,4 @@ void handle_bip85_mnemonic()
     SENSITIVE_POP(new_mnemonic);
     JADE_WALLY_VERIFY(wally_free_string(new_mnemonic));
 }
+#endif // AMALGAMATED_BUILD
