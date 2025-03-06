@@ -297,3 +297,39 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
 
     return OTA_SUCCESS;
 }
+
+const char* ota_get_status_text(const enum ota_status status)
+{
+    switch (status) {
+    case OTA_SUCCESS:
+        return "OK";
+    case OTA_ERR_SETUP:
+        return "OTA_ERR_SETUP";
+    case OTA_ERR_INIT:
+        return "OTA_ERR_INIT";
+    case OTA_ERR_BADPARTITION:
+        return "OTA_ERR_BADPARTITION";
+    case OTA_ERR_DECOMPRESS:
+        return "OTA_ERR_DECOMPRESS";
+    case OTA_ERR_WRITE:
+        return "OTA_ERR_WRITE";
+    case OTA_ERR_FINISH:
+        return "OTA_ERR_FINISH";
+    case OTA_ERR_SETPARTITION:
+        return "OTA_ERR_SETPARTITION";
+    case OTA_ERR_BADDATA:
+        return "OTA_ERR_BADDATA";
+    case OTA_ERR_NODOWNGRADE:
+        return "OTA_ERR_NODOWNGRADE";
+    case OTA_ERR_INVALIDFW:
+        return "OTA_ERR_INVALIDFW";
+    case OTA_ERR_USERDECLINED:
+        return "OTA_ERR_USERDECLINED";
+    case OTA_ERR_BADHASH:
+        return "OTA_ERR_BADHASH";
+    case OTA_ERR_PATCH:
+        return "OTA_ERR_PATCH";
+    default:
+        return "OTA_ERR_UNKNOWN";
+    }
+}

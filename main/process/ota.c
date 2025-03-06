@@ -210,7 +210,7 @@ void ota_process(void* process_ptr)
     // Send final message reply with final status
     if (ota_return_status != OTA_SUCCESS) {
         jade_process_reject_message(
-            process, CBOR_RPC_INTERNAL_ERROR, "Error completing OTA", MESSAGES[ota_return_status]);
+            process, CBOR_RPC_INTERNAL_ERROR, "Error completing OTA", ota_get_status_text(ota_return_status));
         goto cleanup;
     }
 
@@ -232,7 +232,7 @@ cleanup:
         vTaskDelay(2500 / portTICK_PERIOD_MS);
         esp_restart();
     } else {
-        JADE_LOGE("OTA error %u: %s", ota_return_status, MESSAGES[ota_return_status]);
+        JADE_LOGE("OTA error %u: %s", ota_return_status, ota_get_status_text(ota_return_status));
         if (validated_confirmed && !ota_end_called) {
             // ota_begin has been called, cleanup
             const esp_err_t err = esp_ota_abort(ota_handle);
@@ -240,6 +240,7 @@ cleanup:
         }
 
         // If we get here and we have not finished loading the data, send an error message
+        const char* status_text = ota_get_status_text(ota_return_status);
         if (uploading) {
             JADE_ASSERT(joctx.id[0] != '\0');
             const int error_code
@@ -247,14 +248,12 @@ cleanup:
 
             uint8_t buf[256];
             jade_process_reject_message_with_id(joctx.id, error_code, "Error uploading OTA data",
-                (const uint8_t*)MESSAGES[ota_return_status], strlen(MESSAGES[ota_return_status]), buf, sizeof(buf),
-                ota_source);
+                (const uint8_t*)status_text, strlen(status_text), buf, sizeof(buf), ota_source);
         }
 
         // If the error is not 'did not start' or 'user declined', show an error screen
         if (ota_return_status != OTA_ERR_SETUP && ota_return_status != OTA_ERR_USERDECLINED) {
-            const char* message[] = { MESSAGES[ota_return_status] };
-            await_error_activity(message, 1);
+            await_error_activity(&status_text, 1);
         }
     }
 }

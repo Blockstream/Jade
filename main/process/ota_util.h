@@ -72,28 +72,11 @@ enum ota_status {
     OTA_ERR_PATCH,
 };
 
-// status messages
-static const char MESSAGES[][21] = {
-    "OK",
-    "OTA_ERR_SETUP",
-    "OTA_ERR_INIT",
-    "OTA_ERR_BADPARTITION",
-    "OTA_ERR_DECOMPRESS",
-    "OTA_ERR_WRITE",
-    "OTA_ERR_FINISH",
-    "OTA_ERR_SETPARTITION",
-    "OTA_ERR_BADDATA",
-    "OTA_ERR_NODOWNGRADE",
-    "OTA_ERR_INVALIDFW",
-    "OTA_ERR_USERDECLINED",
-    "OTA_ERR_BADHASH",
-    "OTA_ERR_PATCH",
-};
-
 void handle_in_bin_data(void* ctx, uint8_t* data, size_t rawsize);
 
 bool ota_init(jade_ota_ctx_t* joctx);
 enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called);
 enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompressed);
+const char* ota_get_status_text(enum ota_status status);
 
 #endif /* JADE_OTA_UTIL_H_ */
