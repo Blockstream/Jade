@@ -678,14 +678,6 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
             const size_t num_keys = key_iter_get_num_keys(&iter);
             if (num_keys > 1) {
-                if (iter.is_taproot) {
-                    // This is a multisig taproot script-path spend which has
-                    // a key for this wallet (or the PSBT is incorrect/bogus)
-                    JADE_LOGW("Unsupported multisig taproot input %u", index);
-                    *errmsg = "Unsupported multisig taproot";
-                    retval = CBOR_RPC_BAD_PARAMETERS;
-                    goto cleanup;
-                }
                 const bool is_green = is_green_multisig_signers(network, &iter, NULL);
                 signing_flags |= is_green ? PSBT_SIGNING_GREEN_MULTISIG : PSBT_SIGNING_MULTISIG;
             } else {

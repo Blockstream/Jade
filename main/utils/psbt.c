@@ -6,6 +6,32 @@
 #include <wally_map.h>
 #include <wally_psbt.h>
 
+// Ensure a taproot input/output is single-key and keypath-only
+// (until taproots with scripts are supported)
+static bool key_iter_is_supported_taproot(const key_iter* iter, const struct wally_map* keypaths)
+{
+    if (keypaths->num_items > 1) {
+        return false; // More than one keypath: a multisig script-path spend
+    }
+    if (iter->is_input) {
+        const struct wally_psbt_input* input = &iter->psbt->inputs[iter->index];
+        if (input->taproot_leaf_scripts.num_items) {
+            return false; // Leaf script present: a script-path spend
+        }
+        // TODO: use the wally merkle root accessor when it is exposed
+        const uint32_t PSBT_IN_TAP_MERKLE_ROOT = 0x18; // From BIP-174
+        if (wally_map_get_integer(&input->psbt_fields, PSBT_IN_TAP_MERKLE_ROOT)) {
+            return false; // Merkle root present: script-path present
+        }
+    } else {
+        const struct wally_psbt_output* output = &iter->psbt->outputs[iter->index];
+        if (output->taproot_tree.num_items) {
+            return false; // Taptree present: script-path present
+        }
+    }
+    return true; // One key, no merkle root, no scripts: OK
+}
+
 static bool key_iter_init(const struct wally_psbt* psbt, const size_t index, const bool is_input, key_iter* iter)
 {
     JADE_ASSERT(psbt);
@@ -52,13 +78,19 @@ bool key_iter_next(key_iter* iter)
     const struct wally_map* keypaths = key_iter_get_keypaths(iter);
     size_t key_index;
     ++iter->key_index;
-    JADE_WALLY_VERIFY(wally_map_keypath_get_bip32_key_from(
-        keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index));
-    if (key_index) {
-        iter->is_valid = true; // Found
-        iter->key_index = key_index - 1; // Adjust to 0-based index
-    } else {
-        iter->is_valid = false; // Not found
+    if (iter->is_taproot && !iter->key_index) {
+        // First iteration: validate
+        iter->is_valid = key_iter_is_supported_taproot(iter, keypaths);
+    }
+    if (iter->is_valid) {
+        JADE_WALLY_VERIFY(wally_map_keypath_get_bip32_key_from(
+            keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index));
+        if (key_index) {
+            iter->is_valid = true; // Found
+            iter->key_index = key_index - 1; // Adjust to 0-based index
+        } else {
+            iter->is_valid = false; // Not found
+        }
     }
     return iter->is_valid;
 }
