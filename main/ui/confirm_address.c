@@ -11,16 +11,20 @@
 
 #if ADDRESS_STRING_GRID
 
+#define ADDR_GRID_FONT GUI_DEFAULT_FONT
 #define ADDR_GRID_TOPPAD 12
 #define ADDR_GRID_X 5
 #define ADDR_GRID_Y 5
 #define ADDR_GRID_SIZE (ADDR_GRID_X * ADDR_GRID_Y)
 #define ADDR_TEXTSPLITLEN (MAX_DISPLAY_ADDRESS_LEN / ADDR_GRID_SIZE)
 
+// The length of the required buffer to hold 'len' characters
+// with a nul-terminator injected every 'wordlen' characters, and
+// at the very end.  eg. for "abcdefhij\0" -> "abc\0def\0ghi\0j\0"
 #define SPLIT_TEXT_LEN(len, wordlen) (len + (len / wordlen) + 1)
 
 // Helper to copy text from one buffer to another, where the destination has terminators every
-// 'wordlen' chars, eg: "abc\0def\0ghi\0j\0"
+// 'wordlen' chars, eg: "abcdefghi\0" -> "abc\0def\0ghi\0j\0"
 // output 'num_words' is number of 'words' written - eg. 4
 // output 'written' is number iof bytes written, including all '\0's - eg. 14
 static void split_text(const char* src, const size_t len, const size_t wordlen, char* output, const size_t output_len,
@@ -89,8 +93,8 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
 #if ADDRESS_STRING_GRID
         JADE_ASSERT(num_words <= ADDR_GRID_SIZE);
         const char* remaining_words = NULL;
-        act = make_text_grid_activity(
-            title, hdrbtns, 2, ADDR_GRID_TOPPAD, ADDR_GRID_X, ADDR_GRID_Y, address_words, num_words, &remaining_words);
+        act = make_text_grid_activity(title, hdrbtns, 2, ADDR_GRID_TOPPAD, ADDR_GRID_X, ADDR_GRID_Y, address_words,
+            num_words, ADDR_GRID_FONT, &remaining_words);
         JADE_ASSERT(remaining_words == address_words + words_len); // all words consumed (displayed)
 #else
         const int ret = snprintf(buf, sizeof(buf), "\n%s", address);
@@ -114,7 +118,7 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
         JADE_ASSERT(num_words > ADDR_GRID_SIZE);
         const char* remaining_words = NULL;
         act = make_text_grid_activity(titlebuf, hdrbtns1, 2, ADDR_GRID_TOPPAD, ADDR_GRID_X, ADDR_GRID_Y, address_words,
-            ADDR_GRID_SIZE, &remaining_words);
+            ADDR_GRID_SIZE, ADDR_GRID_FONT, &remaining_words);
         JADE_ASSERT(remaining_words > address_words);
         JADE_ASSERT(remaining_words < address_words + words_len); // Some words remaining
 #else
@@ -136,7 +140,7 @@ gui_activity_t* make_display_address_activities(const char* title, const bool sh
 #if ADDRESS_STRING_GRID
         const size_t num_p2words = num_words - ADDR_GRID_SIZE;
         *actaddr2 = make_text_grid_activity(titlebuf, hdrbtns2, 2, ADDR_GRID_TOPPAD, ADDR_GRID_X, ADDR_GRID_Y,
-            remaining_words, num_p2words, &remaining_words);
+            remaining_words, num_p2words, ADDR_GRID_FONT, &remaining_words);
         JADE_ASSERT(remaining_words == address_words + words_len); // all words consumed (displayed)
 #else
         ret = snprintf(buf, sizeof(buf), "\n%s", address + MAX_DISPLAY_ADDRESS_LEN);

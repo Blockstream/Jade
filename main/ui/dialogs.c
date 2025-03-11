@@ -20,7 +20,7 @@ void update_menu_item(gui_view_node_t* node, const char* label, const char* valu
     gui_update_text(node, buf);
 }
 
-// Handles up to 5 splits, row or column.
+// Handles up to 7 splits, row or column.
 // layout == UI_ROW -> [ x | y | z ] items in a row -> an hsplit
 // layout == UI_COLUMN -> [ x / y / z ] items in a column -> a vsplit
 gui_view_node_t* make_even_split(const ui_button_layout_t layout, const uint8_t num_splits)
@@ -46,6 +46,12 @@ gui_view_node_t* make_even_split(const ui_button_layout_t layout, const uint8_t 
         break;
     case 5:
         make_split(&split, GUI_SPLIT_RELATIVE, 5, 20, 20, 20, 20, 20);
+        break;
+    case 6:
+        make_split(&split, GUI_SPLIT_RELATIVE, 6, 17, 16, 17, 17, 16, 17);
+        break;
+    case 7:
+        make_split(&split, GUI_SPLIT_RELATIVE, 7, 14, 15, 14, 14, 14, 15, 14);
         break;
     default:
         JADE_ASSERT_MSG(false, "Unsupported split size");
@@ -190,12 +196,12 @@ gui_view_node_t* add_title_bar(
     return vsplit;
 }
 
-// Helper to create an activity which is a grid of (up to 5x5) text items
+// Helper to create an activity which is a grid of (up to 7x7) text items
 // NOTE: the text is passed as one char large array containing embedded terminators
 // to delineate the separate texts - eg: ... , "abc\0def\0ghi\0j\0", 4)
 gui_activity_t* make_text_grid_activity(const char* title, btn_data_t* hdrbtns, const size_t num_hdrbtns,
     const size_t toppad, const uint8_t xcells, const uint8_t ycells, const char* texts, const size_t num_texts,
-    const char** remaining_texts)
+    const uint32_t font, const char** remaining_texts)
 {
     // Title and header are optional
     JADE_ASSERT(hdrbtns || !num_hdrbtns);
@@ -229,7 +235,8 @@ gui_activity_t* make_text_grid_activity(const char* title, btn_data_t* hdrbtns, 
             const int itxt = (y * xcells) + x;
             if (itxt < num_texts) {
                 gui_view_node_t* node;
-                gui_make_text(&node, text_item, TFT_WHITE);
+                gui_make_text_font(&node, text_item, TFT_WHITE, font);
+                gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
                 gui_set_parent(node, hsplit);
                 text_item += strlen(text_item) + 1;
             }
