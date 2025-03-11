@@ -6,15 +6,16 @@
 #define ADDRESS_STRING_GRID (CONFIG_DISPLAY_WIDTH >= 320)
 
 // Max amount of address we can show on a single screen
-#define MAX_DISPLAY_ADDRESS_LEN (ADDRESS_STRING_GRID ? 100 : 96)
+#define MAX_DISPLAY_ADDRESS_LEN 96
 #define MAX_ADDRESS_SCREENS 2
 
 #if ADDRESS_STRING_GRID
-
+// Target 4 characters per cell
 #define ADDR_GRID_FONT GUI_DEFAULT_FONT
-#define ADDR_GRID_TOPPAD 12
-#define ADDR_GRID_X 5
-#define ADDR_GRID_Y 5
+#define ADDR_GRID_TOPPAD 4
+#define ADDR_GRID_X 4
+#define ADDR_GRID_Y 6
+
 #define ADDR_GRID_SIZE (ADDR_GRID_X * ADDR_GRID_Y)
 #define ADDR_TEXTSPLITLEN (MAX_DISPLAY_ADDRESS_LEN / ADDR_GRID_SIZE)
 
