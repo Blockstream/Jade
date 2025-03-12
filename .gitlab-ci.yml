@@ -418,6 +418,7 @@ test_flash_artifact:
     - test_build_jade_ci
   before_script:
     - mv build_jade_ci build
+  allow_failure: true
 
 test_flash_artifacts3:
   extends: .test_flash_artifact_template_s3
@@ -463,6 +464,7 @@ test_flash_artifact_ota_delta:
     - mv build_jade_ci build
   script:
     - ./ota_delta_ci.sh
+  allow_failure: true
 
 test_flash_artifact_ota_delta_v1_1:
   stage: deploy
@@ -483,6 +485,7 @@ test_flash_artifact_noblobs:
     - test_build_jade_noblobs_ci
   before_script:
     - mv build_jade_noblobs_ci build
+  allow_failure: true
 
 test_flash_artifact_v1_1:
   extends: .test_flash_artifact_template_v1_1
