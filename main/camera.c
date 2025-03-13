@@ -326,6 +326,10 @@ static void jade_camera_stop(void)
 {
     esp_camera_deinit();
     power_camera_off();
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+    touchscreen_deinit();
+    touchscreen_init();
+#endif
 }
 
 static inline bool invoke_user_cb_fn(const camera_task_config_t* camera_config, const camera_fb_t* fb)

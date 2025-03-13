@@ -5,8 +5,6 @@
 #include <esp_lcd_touch.h>
 #include <esp_lcd_touch_ft5x06.h>
 
-#error Touch devices are not supported at the moment due to upstream updates delays, please use TAG 1.0.33 for now
-
 static volatile bool shutdown_requested = false;
 static volatile bool shutdown_finished = false;
 
@@ -36,11 +34,17 @@ static void touchscreen_task(void* ignored)
     i2c_master_bus_handle_t touch_i2c_handle = NULL;
     ESP_ERROR_CHECK(_i2c_init_master(
         CONFIG_DISPLAY_TOUCHSCREEN_I2C, CONFIG_I2C_TOUCH_SDA, CONFIG_I2C_TOUCH_SCL, &touch_i2c_handle));
+    JADE_ASSERT(touch_i2c_handle);
 
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
     esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
-    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(CONFIG_DISPLAY_TOUCHSCREEN_I2C, &tp_io_config, &tp_io_handle));
+    tp_io_config.scl_speed_hz = CONFIG_I2C_MASTER_CLK;
+
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(touch_i2c_handle, &tp_io_config, &tp_io_handle));
+    JADE_ASSERT(tp_io_handle);
+
     ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_ft5x06(tp_io_handle, &tp_cfg, &ret_touch));
+    JADE_ASSERT(ret_touch);
 
     uint16_t touch_x[1];
     uint16_t touch_y[1];

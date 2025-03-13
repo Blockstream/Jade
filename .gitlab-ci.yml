@@ -217,7 +217,6 @@ test_build_display_m5core2:
     - cp configs/sdkconfig_display_m5core2.defaults sdkconfig.defaults
   after_script:
     - mv build build_display_m5core2
-  allow_failure: true
 
 test_build_display_m5stickcplus:
   extends: .test_build_template
@@ -239,7 +238,6 @@ test_build_display_m5cores3:
     - cp configs/sdkconfig_display_m5cores3.defaults sdkconfig.defaults
   after_script:
     - mv build build_display_m5cores3
-  allow_failure: true
 
 test_build_display_twatchs3:
   extends: .test_build_template
@@ -247,7 +245,6 @@ test_build_display_twatchs3:
     - cp configs/sdkconfig_display_ttgo_twatchs3.defaults sdkconfig.defaults
   after_script:
     - mv build build_display_twatchs3
-  allow_failure: true
 
 test_build_display_ttgo_tdisplay:
   extends: .test_build_template
