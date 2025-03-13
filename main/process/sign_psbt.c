@@ -636,7 +636,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     }
     JADE_ASSERT(tx->num_inputs == psbt->num_inputs && tx->num_outputs == psbt->num_outputs);
 
-    key_iter iter; // Holds any private key in use
+    key_iter iter; // Holds any public/private key in use
     SENSITIVE_PUSH(&iter, sizeof(iter));
     int retval = 0;
 
@@ -669,7 +669,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
         input_amount += utxo->satoshi;
 
         // If we are signing this input, look at the script type, sighash, multisigs etc.
-        if (key_iter_input_begin(psbt, index, &iter)) {
+        if (key_iter_input_begin_public(psbt, index, &iter)) {
             // Found our key - we are signing this input
             JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", iter.key_index, index);
             signing_inputs[index] = true;

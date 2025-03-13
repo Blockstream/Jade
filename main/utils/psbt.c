@@ -59,6 +59,11 @@ bool key_iter_input_begin(const struct wally_psbt* psbt, const size_t index, key
     return key_iter_init(psbt, index, /* is_input */ true, /* is_private */ true, iter);
 }
 
+bool key_iter_input_begin_public(const struct wally_psbt* psbt, const size_t index, key_iter* iter)
+{
+    return key_iter_init(psbt, index, /* is_input */ true, /* is_private */ false, iter);
+}
+
 bool key_iter_output_begin_public(const struct wally_psbt* psbt, const size_t index, key_iter* iter)
 {
     return key_iter_init(psbt, index, /* is_input */ false, /* is_private */ false, iter);

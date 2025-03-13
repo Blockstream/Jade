@@ -27,6 +27,9 @@ typedef struct key_iter_t {
 // Initialize a key iterator for the `index`th PSBT input
 bool key_iter_input_begin(const struct wally_psbt* psbt, size_t index, key_iter* iter);
 
+// Initialize a public key iterator for the `index`th PSBT input
+bool key_iter_input_begin_public(const struct wally_psbt* psbt, size_t index, key_iter* iter);
+
 // Initialize a public key iterator for the `index`th PSBT output
 bool key_iter_output_begin_public(const struct wally_psbt* psbt, size_t index, key_iter* iter);
 
