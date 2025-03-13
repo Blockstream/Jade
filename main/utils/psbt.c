@@ -32,7 +32,8 @@ static bool key_iter_is_supported_taproot(const key_iter* iter, const struct wal
     return true; // One key, no merkle root, no scripts: OK
 }
 
-static bool key_iter_init(const struct wally_psbt* psbt, const size_t index, const bool is_input, key_iter* iter)
+static bool key_iter_init(
+    const struct wally_psbt* psbt, const size_t index, const bool is_input, const bool is_private, key_iter* iter)
 {
     JADE_ASSERT(psbt);
     JADE_ASSERT(index <= (is_input ? psbt->num_inputs : psbt->num_outputs));
@@ -42,6 +43,7 @@ static bool key_iter_init(const struct wally_psbt* psbt, const size_t index, con
     iter->key_index = 0;
     --iter->key_index; // Incrementing will wrap around to 0 i.e. the first key
     iter->is_input = is_input;
+    iter->is_private = is_private;
     // We are a taproot key iterator only if we have taproot keypaths
     if (is_input) {
         iter->is_taproot = psbt->inputs[index].taproot_leaf_paths.num_items != 0;
@@ -54,12 +56,12 @@ static bool key_iter_init(const struct wally_psbt* psbt, const size_t index, con
 
 bool key_iter_input_begin(const struct wally_psbt* psbt, const size_t index, key_iter* iter)
 {
-    return key_iter_init(psbt, index, true, iter);
+    return key_iter_init(psbt, index, /* is_input */ true, /* is_private */ true, iter);
 }
 
-bool key_iter_output_begin(const struct wally_psbt* psbt, const size_t index, key_iter* iter)
+bool key_iter_output_begin_public(const struct wally_psbt* psbt, const size_t index, key_iter* iter)
 {
-    return key_iter_init(psbt, index, false, iter);
+    return key_iter_init(psbt, index, /* is_input */ false, /* is_private */ false, iter);
 }
 
 static const struct wally_map* key_iter_get_keypaths(const key_iter* iter)
@@ -83,8 +85,15 @@ bool key_iter_next(key_iter* iter)
         iter->is_valid = key_iter_is_supported_taproot(iter, keypaths);
     }
     if (iter->is_valid) {
-        JADE_WALLY_VERIFY(wally_map_keypath_get_bip32_key_from(
-            keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index));
+        int ret;
+        if (iter->is_private) {
+            ret = wally_map_keypath_get_bip32_key_from(
+                keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index);
+        } else {
+            ret = wally_map_keypath_get_bip32_public_key_from(
+                keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index);
+        }
+        JADE_WALLY_VERIFY(ret);
         if (key_index) {
             iter->is_valid = true; // Found
             iter->key_index = key_index - 1; // Adjust to 0-based index

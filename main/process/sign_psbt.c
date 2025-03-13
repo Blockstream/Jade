@@ -463,8 +463,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
 
     JADE_ASSERT(!multisig_data || !descriptor); // cannot have both
 
-    key_iter iter; // Holds any private key in use
-    SENSITIVE_PUSH(&iter, sizeof(iter));
+    key_iter iter; // Holds any public key in use
 
     // Check each output in turn
     for (size_t index = 0; index < psbt->num_outputs; ++index) {
@@ -474,7 +473,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
         JADE_ASSERT(!(output_info[index].flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
 
         // Find the first key belonging to this signer
-        if (!key_iter_output_begin(psbt, index, &iter)) {
+        if (!key_iter_output_begin_public(psbt, index, &iter)) {
             // No key in this output belongs to this signer
             JADE_LOGD("No key in output %u, ignoring", index);
             continue;
@@ -611,7 +610,6 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
                 "Ignoring multisig output %u as not signing only multisig inputs for a single registration", index);
         }
     }
-    SENSITIVE_POP(&iter);
 }
 
 // Sign a psbt - the passed wally psbt struct is updated with any signatures.

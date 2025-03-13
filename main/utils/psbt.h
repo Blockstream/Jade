@@ -19,6 +19,7 @@ typedef struct key_iter_t {
     size_t index;
     size_t key_index;
     bool is_input;
+    bool is_private;
     bool is_taproot;
     bool is_valid;
 } key_iter;
@@ -26,8 +27,8 @@ typedef struct key_iter_t {
 // Initialize a key iterator for the `index`th PSBT input
 bool key_iter_input_begin(const struct wally_psbt* psbt, size_t index, key_iter* iter);
 
-// Initialize a key iterator for the `index`th PSBT output
-bool key_iter_output_begin(const struct wally_psbt* psbt, size_t index, key_iter* iter);
+// Initialize a public key iterator for the `index`th PSBT output
+bool key_iter_output_begin_public(const struct wally_psbt* psbt, size_t index, key_iter* iter);
 
 /* Advance a key iterator.
  * `is_valid` is set to true if a key was found, false otherwise.
