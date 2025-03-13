@@ -4,63 +4,64 @@
 #include "power/i2c.inc"
 
 #define AXP2101_ADDR 0x34
+static i2c_master_dev_handle_t axp2101 = NULL;
 
 static void axp2101_init(void)
 {
     // initial stuff
     // Set vbus voltage limit to 4.36v
-    _power_write_command(AXP2101_ADDR, 0x15, 6);
+    _power_write_command(axp2101, 0x15, 6);
     vTaskDelay(100 / portTICK_PERIOD_MS);
     // Set input current limit to 100ma.
-    _power_write_command(AXP2101_ADDR, 0x16, 0);
+    _power_write_command(axp2101, 0x16, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
     // Set input current limit to 100ma.
-    _power_write_command(AXP2101_ADDR, 0x24, 0);
+    _power_write_command(axp2101, 0x24, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     // FIXME: disable things we do not need
     // TFT backlight
-    _power_write_command(AXP2101_ADDR, 0x92, 28);
+    _power_write_command(axp2101, 0x92, 28);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x93, 28);
+    _power_write_command(axp2101, 0x93, 28);
     vTaskDelay(100 / portTICK_PERIOD_MS);
     // touch screen driver ALDO3
-    _power_write_command(AXP2101_ADDR, 0x94, 28);
+    _power_write_command(axp2101, 0x94, 28);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x95, 28);
+    _power_write_command(axp2101, 0x95, 28);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x97, 28);
+    _power_write_command(axp2101, 0x97, 28);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x80, 1);
+    _power_write_command(axp2101, 0x80, 1);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x90, 1 + 2 + 4 + 8 + 32);
+    _power_write_command(axp2101, 0x90, 1 + 2 + 4 + 8 + 32);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x91, 0);
+    _power_write_command(axp2101, 0x91, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
     // FIXME: implement setbit and clearbit
-    _power_write_command(AXP2101_ADDR, 0x40, 0);
+    _power_write_command(axp2101, 0x40, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x41, 0);
+    _power_write_command(axp2101, 0x41, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x42, 0);
+    _power_write_command(axp2101, 0x42, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x48, 0);
+    _power_write_command(axp2101, 0x48, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x49, 0);
+    _power_write_command(axp2101, 0x49, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x4A, 0);
+    _power_write_command(axp2101, 0x4A, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x61, 2);
+    _power_write_command(axp2101, 0x61, 2);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x62, 4);
+    _power_write_command(axp2101, 0x62, 4);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x63, 1);
+    _power_write_command(axp2101, 0x63, 1);
     vTaskDelay(100 / portTICK_PERIOD_MS);
     // FIXME: clearbit
-    _power_write_command(AXP2101_ADDR, 0x64, 4);
+    _power_write_command(axp2101, 0x64, 4);
     vTaskDelay(100 / portTICK_PERIOD_MS);
-    _power_write_command(AXP2101_ADDR, 0x6A, 7);
+    _power_write_command(axp2101, 0x6A, 7);
     vTaskDelay(100 / portTICK_PERIOD_MS);
     // FIXME: implement setbit
 }
@@ -68,6 +69,7 @@ static void axp2101_init(void)
 esp_err_t power_init(void)
 {
     I2C_CHECK_RET(_power_i2c_init());
+    I2C_CHECK_RET(_power_i2c_attach_device(AXP2101_ADDR, &axp2101));
 
     axp2101_init();
 
