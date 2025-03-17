@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
+. $HOME/esp/esp-idf/export.sh
+
 # this is the minimum to run qemu
 # build/qemu-system-xtensa -nographic \
 #     -machine esp32 \
@@ -17,11 +19,9 @@ set -eo pipefail
 # -serial pty)
 # -serial mon:stdio)
 
-
 # if you want to put qemu in a state where it can be used with idf.py flash or esptool.py
 # -global driver=esp32.gpio,property=strap_mode,value=0x0f \
-
-/opt/bin/qemu-system-xtensa -nographic \
+qemu-system-xtensa -nographic \
     -machine esp32 \
     -m 4M \
     -drive file=/flash_image.bin,if=mtd,format=raw \
@@ -29,6 +29,7 @@ set -eo pipefail
     -drive file=/qemu_efuse.bin,if=none,format=raw,id=efuse \
     -global driver=nvram.esp32.efuse,property=drive,value=efuse \
     -serial pty &
+
 sleep 4
 
 source /venv/bin/activate

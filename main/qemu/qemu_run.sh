@@ -1,8 +1,12 @@
 #!/bin/bash
+#
+set -eo pipefail
 
-pkill -f qemu-system-xtensa
+. $HOME/esp/esp-idf/export.sh
 
-/opt/bin/qemu-system-xtensa -nographic \
+pkill -f qemu-system-xtensa | true
+
+qemu-system-xtensa -nographic \
     -machine esp32 \
     -m 4M \
     -drive file=/flash_image.bin,if=mtd,format=raw \

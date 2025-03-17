@@ -1,8 +1,12 @@
 #!/bin/bash
 
-pkill -f qemu-system-xtensa
+set -eo pipefail
 
-/opt/bin/qemu-system-xtensa -s -S -nographic \
+. $HOME/esp/esp-idf/export.sh
+
+pkill -f qemu-system-xtensa | true
+
+qemu-system-xtensa -s -S -nographic \
     -machine esp32 \
     -m 4M \
     -drive file=/flash_image.bin,if=mtd,format=raw \
@@ -19,4 +23,3 @@ xtensa-esp32-elf-gdb /jade/build/jade.elf \
     -ex "tb app_main" -ex "c" \
     -ex "b main.c:120"\
     -ex 'info b' -ex 'set print pretty on'
-

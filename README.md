@@ -42,6 +42,7 @@ mkdir ~/esp
 cd ~/esp
 git clone -b v5.4 --recursive https://github.com/espressif/esp-idf.git
 cd ~/esp/esp-idf && git checkout 67c1de1eebe095d554d281952fde63c16ee2dca0 && ./install.sh --enable-gdbgui esp32 esp32s3
+python ~/esp/esp-idf/tools/idf_tools.py install qemu-xtensa
 ```
 
 Set up the environmental variables:
