@@ -813,6 +813,9 @@ void display_print_in_area(const char* st, int x, int y, dispWin_t areaWin, bool
     TFT_X = x;
     TFT_Y = y;
 
+    // for non-proportional fonts, char width is the same for all chars
+    // for proportional fonts, this value is calculated as each char is printed
+    tmpw = cfont.x_size;
     int tmph = cfont.y_size;
 
     if ((TFT_Y + tmph - 1) > areaWin.y2) {
