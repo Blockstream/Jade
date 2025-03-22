@@ -1,15 +1,22 @@
 #include "gui.h"
 #include "jade_assert.h"
 #include "jade_tasks.h"
+#include "power/i2c.inc"
 
 #include <esp_lcd_touch.h>
+
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN_CST816S)
+#include <esp_lcd_touch_cst816s.h>
+#define ESP_LCD_TOUCH_IO_I2C_CONFIG() ESP_LCD_TOUCH_IO_I2C_CST816S_CONFIG()
+#define ESP_LCD_TOUCH_NEW_I2C(han, cfg, ret) esp_lcd_touch_new_i2c_cst816s(han, cfg, ret)
+#elif defined(CONFIG_DISPLAY_TOUCHSCREEN_FT5X06)
 #include <esp_lcd_touch_ft5x06.h>
+#define ESP_LCD_TOUCH_IO_I2C_CONFIG() ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG()
+#define ESP_LCD_TOUCH_NEW_I2C(han, cfg, ret) esp_lcd_touch_new_i2c_ft5x06(han, cfg, ret)
+#endif
 
 static volatile bool shutdown_requested = false;
 static volatile bool shutdown_finished = false;
-
-esp_err_t _i2c_init_master(i2c_port_t port_num, int sda_io_num, int scl_io_num, i2c_master_bus_handle_t* handle);
-esp_err_t _i2c_deinit(i2c_master_bus_handle_t handle);
 
 static void touchscreen_task(void* ignored)
 {
@@ -37,13 +44,13 @@ static void touchscreen_task(void* ignored)
     JADE_ASSERT(touch_i2c_handle);
 
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
-    esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
+    esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_CONFIG();
     tp_io_config.scl_speed_hz = CONFIG_I2C_MASTER_CLK;
 
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(touch_i2c_handle, &tp_io_config, &tp_io_handle));
     JADE_ASSERT(tp_io_handle);
 
-    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_ft5x06(tp_io_handle, &tp_cfg, &ret_touch));
+    ESP_ERROR_CHECK(ESP_LCD_TOUCH_NEW_I2C(tp_io_handle, &tp_cfg, &ret_touch));
     JADE_ASSERT(ret_touch);
 
     uint16_t touch_x[1];
