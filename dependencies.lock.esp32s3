@@ -60,6 +60,20 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.1.2
+  espressif/esp_lcd_touch_cst816s:
+    component_hash: 270bd7df3a2a5cffa3a626c4709fc03237d83fd9daa6fb70c833a2f1875f0f68
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.4.2'
+    - name: espressif/esp_lcd_touch
+      registry_url: https://components.espressif.com
+      require: public
+      version: ^1.0.4
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.0.3
   espressif/esp_lcd_touch_ft5x06:
     component_hash: abaec05f46a793549b60afdda9eff86e3c8e87782c8c169007911232388d2858
     dependencies:
@@ -147,6 +161,7 @@ direct_dependencies:
 - espressif/esp-dsp
 - espressif/esp32-camera
 - espressif/esp_lcd_touch
+- espressif/esp_lcd_touch_cst816s
 - espressif/esp_lcd_touch_ft5x06
 - espressif/esp_tinyusb
 - espressif/libsodium
@@ -154,6 +169,6 @@ direct_dependencies:
 - espressif/tinyusb
 - espressif/usb_host_msc
 - idf
-manifest_hash: fb52c4b033ad1633132692f52acbb150cb425e3d340af1542a0a3e1aa0bbdc0b
+manifest_hash: 8aabb1df6dec46d13c116ad3c0bdc497be51d44771487c36a71a7b82a9d6a2f0
 target: esp32s3
 version: 2.0.0

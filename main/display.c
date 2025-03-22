@@ -182,7 +182,8 @@ void display_fill_rect(int x, int y, int w, int h, color_t color)
         || ((y - CONFIG_DISPLAY_OFFSET_Y) + h > CONFIG_DISPLAY_HEIGHT)) {
         JADE_LOGE(
             "display_fill_rect called with bad params (ignored) x %d y %d w %d h %d color %u\n", x, y, w, h, color);
-#if !defined(CONFIG_BOARD_TYPE_M5_CORES3) && !defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)
+#if !defined(CONFIG_BOARD_TYPE_M5_CORES3) && !defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)                                 \
+    && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
         return;
 #endif
     }
@@ -243,7 +244,8 @@ void display_init(TaskHandle_t* gui_h)
     JADE_ASSERT(gui_h);
     display_hw_init(gui_h);
 
-#if defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3) || defined(CONFIG_BOARD_TYPE_M5_CORES3)
+#if defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3) || defined(CONFIG_BOARD_TYPE_M5_CORES3)                                   \
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
 #define TOUCH_BUTTON_AREA 40
 #define TOUCH_BUTTON_MARGIN 5
 #define TOUCH_BUTTON_WIDTH 40
@@ -551,7 +553,8 @@ static int print_proportional_char(int x, int y)
             if ((ch & mask)) {
                 const int cx = (uint16_t)(x + fontChar.xOffset + i);
                 const int cy = (uint16_t)(y + j + fontChar.adjYOffset);
-#if !defined(CONFIG_BOARD_TYPE_M5_CORES3) && !defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)
+#if !defined(CONFIG_BOARD_TYPE_M5_CORES3) && !defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)                                 \
+    && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
                 if ((cx < CONFIG_DISPLAY_OFFSET_X) || (cy < CONFIG_DISPLAY_OFFSET_Y)
                     || (cx > (CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X))
                     || (cy > (CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y))) {

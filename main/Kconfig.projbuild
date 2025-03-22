@@ -63,6 +63,10 @@ menu "Blockstream Jade"
         config BOARD_TYPE_TTGO_TWATCHS3
             bool "TTGO T-WATCH S3"
             select HAS_AXP
+        config BOARD_TYPE_WS_TOUCH_LCD2
+            bool "Waveshare Touch LCD 2 (esp32s3)"
+            select HAS_CAMERA
+            select DISPLAY_TOUCHSCREEN
         config BOARD_TYPE_QEMU
             bool "qemu display via websocket"
         config BOARD_TYPE_QEMU_LARGER
@@ -90,8 +94,19 @@ menu "Blockstream Jade"
 
     config DISPLAY_TOUCHSCREEN
         bool "Set if touchscreen is available"
-        default y if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_TTGO_TWATCHS3
+        default y if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_TTGO_TWATCHS3 || BOARD_TYPE_WS_TOUCH_LCD2
         default n
+
+    choice DISPLAY_TOUCHSCREEN_CONTROLLER
+        depends on DISPLAY_TOUCHSCREEN
+        prompt "Touchscreen Controller"
+        default DISPLAY_TOUCHSCREEN_CST816S if BOARD_TYPE_WS_TOUCH_LCD2
+        default DISPLAY_TOUCHSCREEN_FT5X06
+        config DISPLAY_TOUCHSCREEN_FT5X06
+            bool "FT5X06 Touchscreen Controller"
+        config DISPLAY_TOUCHSCREEN_CST816S
+            bool "CST816S Touchscreen Controller"
+    endchoice
 
     config DISPLAY_TOUCHSCREEN_I2C
         depends on DISPLAY_TOUCHSCREEN
@@ -115,7 +130,7 @@ menu "Blockstream Jade"
         default y if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE_V2 || \
             BOARD_TYPE_TTGO_TDISPLAY || BOARD_TYPE_M5_STICKC_PLUS || BOARD_TYPE_M5_STICKC_PLUS_2 || \
             BOARD_TYPE_M5_FIRE || BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || \
-            BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_TTGO_TWATCHS3
+            BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_TTGO_TWATCHS3 || BOARD_TYPE_WS_TOUCH_LCD2
         help
             Invert the colors in the dipslay. Some devices may have inverted colors depending on revision
 
@@ -162,6 +177,7 @@ menu "Blockstream Jade"
             default 12 if BOARD_TYPE_M5_CORES3
             default 21 if BOARD_TYPE_M5_CORE2
             default 39 if BOARD_TYPE_TTGO_TWATCHS3
+            default 48 if BOARD_TYPE_WS_TOUCH_LCD2
             default -1
         config I2C_TOUCH_SCL
             depends on DISPLAY_TOUCHSCREEN
@@ -169,6 +185,7 @@ menu "Blockstream Jade"
             default 11 if BOARD_TYPE_M5_CORES3
             default 40 if BOARD_TYPE_TTGO_TWATCHS3
             default 22 if BOARD_TYPE_M5_CORE2
+            default 47 if BOARD_TYPE_WS_TOUCH_LCD2
             default -1
     endmenu
 
@@ -252,19 +269,19 @@ menu "Blockstream Jade"
         bool "Enable Camera Functions"
         help
             Enables camera functionality
-            default y if BOARD_TYPE_JADE_V2 || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE || (ETH_USE_OPENETH && HTTPD_WS_SUPPORT) || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default y if BOARD_TYPE_JADE_V2 || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE || (ETH_USE_OPENETH && HTTPD_WS_SUPPORT) || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || BOARD_TYPE_WS_TOUCH_LCD2
 
     menu "Camera Orientation"
         visible if HAS_CAMERA && BOARD_TYPE_CUSTOM
 
         config CAMERA_ROTATE_90
             bool "Rotate Camera Image by 90 degrees"
-            default n if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default n if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || BOARD_TYPE_WS_TOUCH_LCD2
             default y
 
         config CAMERA_ROTATE_180
             bool "Rotate Camera Image by 180 degrees"
-            default y if BOARD_TYPE_M5_CORES3
+            default y if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_WS_TOUCH_LCD2
             default n
 
         config CAMERA_ROTATE_270
@@ -287,23 +304,27 @@ menu "Blockstream Jade"
             default 13 if BOARD_TYPE_JADE_V2
             default 39 if BOARD_TYPE_M5_CORES3
             default 45 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 12 if BOARD_TYPE_WS_TOUCH_LCD2
             default 32
         config CAMERA_D1
             int "Camera pin D1"
             default 15 if BOARD_TYPE_JADE_V2
             default 40 if BOARD_TYPE_M5_CORES3
             default 41 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 13 if BOARD_TYPE_WS_TOUCH_LCD2
             default 35
         config CAMERA_D2
             int "Camera pin D2"
             default 16 if BOARD_TYPE_JADE_V2
             default 41 if BOARD_TYPE_M5_CORES3
             default 40 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 15 if BOARD_TYPE_WS_TOUCH_LCD2
             default 34
         config CAMERA_D3
             int "Camera pin D3"
             default 14 if BOARD_TYPE_JADE_V2
             default 42 if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 11 if BOARD_TYPE_WS_TOUCH_LCD2
             default 5
         config CAMERA_D4
             int "Camera pin D4"
@@ -311,29 +332,33 @@ menu "Blockstream Jade"
             default 15 if BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_M5_CORES3
             default 12 if BOARD_TYPE_JADE_V2
             default 1 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 14 if BOARD_TYPE_WS_TOUCH_LCD2
             default -1
         config CAMERA_D5
             int "Camera pin D5"
             default 10 if BOARD_TYPE_JADE_V2
             default 16 if BOARD_TYPE_M5_CORES3
             default 3 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 10 if BOARD_TYPE_WS_TOUCH_LCD2
             default 18
         config CAMERA_D6
             int "Camera pin D6"
             default 9 if BOARD_TYPE_JADE_V2
             default 48 if BOARD_TYPE_M5_CORES3
             default 10 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 7 if BOARD_TYPE_WS_TOUCH_LCD2
             default 36
         config CAMERA_D7
             int "Camera pin D7"
             default 6 if BOARD_TYPE_JADE_V2
             default 47 if BOARD_TYPE_M5_CORES3
             default 4 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 2 if BOARD_TYPE_WS_TOUCH_LCD2
             default 19
 
         config CAMERA_XCLK
             int "Camera XCLK"
-            default 8 if BOARD_TYPE_JADE_V2
+            default 8 if BOARD_TYPE_JADE_V2 || BOARD_TYPE_WS_TOUCH_LCD2
             default -1 if BOARD_TYPE_M5_CORES3
             default 11 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
             default 27
@@ -349,6 +374,7 @@ menu "Blockstream Jade"
             default 11 if BOARD_TYPE_JADE_V2
             default 45 if BOARD_TYPE_M5_CORES3
             default 2 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 9 if BOARD_TYPE_WS_TOUCH_LCD2
             default -1
 
         config CAMERA_VSYNC
@@ -356,6 +382,7 @@ menu "Blockstream Jade"
             default 4 if BOARD_TYPE_JADE_V2
             default 46 if BOARD_TYPE_M5_CORES3
             default 7 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 6 if BOARD_TYPE_WS_TOUCH_LCD2
             default 22
 
         config CAMERA_HREF
@@ -363,6 +390,7 @@ menu "Blockstream Jade"
             default 7 if BOARD_TYPE_JADE_V2
             default 38 if BOARD_TYPE_M5_CORES3
             default 15 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 4 if BOARD_TYPE_WS_TOUCH_LCD2
             default 26
 
         config CAMERA_SDA
@@ -370,12 +398,14 @@ menu "Blockstream Jade"
             default 1 if BOARD_TYPE_JADE_V2
             default 12 if BOARD_TYPE_M5_CORES3
             default 5 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 21 if BOARD_TYPE_WS_TOUCH_LCD2
             default 25
         config CAMERA_SCL
             int "Camera SCL"
             default 2 if BOARD_TYPE_JADE_V2
             default 11 if BOARD_TYPE_M5_CORES3
             default 6 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 16 if BOARD_TYPE_WS_TOUCH_LCD2
             default 23
 
         config CAMERA_RESET
@@ -387,6 +417,7 @@ menu "Blockstream Jade"
             int "Camera PWDN"
             default 5 if BOARD_TYPE_JADE_V2
             default 46 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 17 if BOARD_TYPE_WS_TOUCH_LCD2
             default -1
 
     endmenu
@@ -408,6 +439,7 @@ menu "Blockstream Jade"
             default 170 if BOARD_TYPE_JADE_V2 || BOARD_TYPE_QEMU_LARGER || BOARD_TYPE_TTGO_TDISPLAYS3
             default 200 if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TWATCHS3
             default 222 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 280 if BOARD_TYPE_WS_TOUCH_LCD2
             default 135
         config DCS_ADDRESS_MODE_BGR_SELECTED
             bool "BGR"
@@ -416,7 +448,7 @@ menu "Blockstream Jade"
             bool "Mirror X"
             default y if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE_V2 || \
                 BOARD_TYPE_TTGO_TDISPLAY || BOARD_TYPE_M5_STICKC_PLUS || BOARD_TYPE_M5_STICKC_PLUS_2 || BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_TTGO_TWATCHS3
-            default n if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default n if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || BOARD_TYPE_WS_TOUCH_LCD2
         config DCS_ADDRESS_MODE_MIRROR_Y_SELECTED
             bool "Mirror Y"
             default y if BOARD_TYPE_TTGO_TWATCHS3
@@ -425,18 +457,18 @@ menu "Blockstream Jade"
             bool "Swap X and Y"
             default y if BOARD_TYPE_JADE || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE_V2
             default y if BOARD_TYPE_TTGO_TDISPLAY || BOARD_TYPE_M5_STICKC_PLUS || BOARD_TYPE_M5_STICKC_PLUS_2 || BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
-            default n if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TWATCHS3
+            default n if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TWATCHS3 || BOARD_TYPE_WS_TOUCH_LCD2
         config DISPLAY_OFFSET_X
             int "X offset"
             default 0 if BOARD_TYPE_JADE_V2
             default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_TTGO_TWATCHS3
-            default 0 if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 0 if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || BOARD_TYPE_WS_TOUCH_LCD2
             default 40
             help
                 Adjust when using small display and image is not centered.
         config DISPLAY_OFFSET_Y
             int "Y offset"
-            default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2
+            default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_WS_TOUCH_LCD2
             default 35 if BOARD_TYPE_JADE_V2 || BOARD_TYPE_TTGO_TDISPLAYS3
             default 49 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
             default 80 if BOARD_TYPE_TTGO_TWATCHS3
@@ -450,6 +482,7 @@ menu "Blockstream Jade"
                 default 19 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
                 default 38 if BOARD_TYPE_M5_CORE2
                 default 8 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+                default 40 if BOARD_TYPE_WS_TOUCH_LCD2
                 default -1
             config DISPLAY_PIN_MOSI
                 int "MOSI pin number"
@@ -461,6 +494,7 @@ menu "Blockstream Jade"
                 default 37 if BOARD_TYPE_M5_CORES3
                 default 17 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
                 default 13 if BOARD_TYPE_TTGO_TWATCHS3
+                default 38 if BOARD_TYPE_WS_TOUCH_LCD2
                 default -1
             config DISPLAY_PIN_CLK
                 int "CLK pin number"
@@ -470,6 +504,7 @@ menu "Blockstream Jade"
                 default 13 if BOARD_TYPE_M5_STICKC_PLUS || BOARD_TYPE_M5_STICKC_PLUS_2
                 default 18 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_TTGO_TDISPLAY || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || BOARD_TYPE_TTGO_TWATCHS3
                 default 36 if BOARD_TYPE_M5_CORES3
+                default 39 if BOARD_TYPE_WS_TOUCH_LCD2
                 default -1
             config DISPLAY_PIN_CS
                 int "CS pin number"
@@ -481,6 +516,7 @@ menu "Blockstream Jade"
                 default 14 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
                 default 39 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
                 default 12 if BOARD_TYPE_TTGO_TWATCHS3
+                default 45 if BOARD_TYPE_WS_TOUCH_LCD2
                 default -1
             config DISPLAY_PIN_DC
                 int "DC pin number"
@@ -495,6 +531,7 @@ menu "Blockstream Jade"
                 default 35 if BOARD_TYPE_M5_CORES3
                 default 9 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
                 default 38 if BOARD_TYPE_TTGO_TWATCHS3
+                default 42 if BOARD_TYPE_WS_TOUCH_LCD2
                 default -1
             config DISPLAY_PIN_RST
                 int "RST pin number"
@@ -513,6 +550,7 @@ menu "Blockstream Jade"
                 default 27 if BOARD_TYPE_M5_STICKC_PLUS_2
                 default 48 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
                 default 45 if BOARD_TYPE_TTGO_TWATCHS3
+                default 1 if BOARD_TYPE_WS_TOUCH_LCD2
                 default -1
             config PIN_NUM_DC
                 int "DC pin number"
@@ -561,14 +599,15 @@ menu "Blockstream Jade"
             config LCD_PIXEL_CLOCK_HZ
                 int "LCD pixel clock Hz"
                 default 2000000 if BOARD_TYPE_TTGO_TDISPLAYS3
+                default 80000000 if BOARD_TYPE_WS_TOUCH_LCD2
                 default -1
             config LCD_CMD_BITS
                 int "LCD CMD bits"
-                default 8 if BOARD_TYPE_TTGO_TDISPLAYS3
+                default 8 if BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_WS_TOUCH_LCD2
                 default -1
             config LCD_PARAM_BITS
                 int "LCD PARAM bits"
-                default 8 if BOARD_TYPE_TTGO_TDISPLAYS3
+                default 8 if BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_WS_TOUCH_LCD2
                 default -1
             config PIN_NUM_RST
                 int "RST pin number"
