@@ -7,6 +7,7 @@
 #include "random.h"
 #include "sensitive.h"
 #include "utils/malloc_ext.h"
+#include "utils/util.h"
 
 #include <esp_ds.h>
 #include <esp_efuse.h>
@@ -378,19 +379,6 @@ static void calc_rinv_mprime(const mbedtls_mpi* N, mbedtls_mpi* rinv, uint32_t* 
 
     mbedtls_mpi_free(&tmp);
     mbedtls_mpi_free(&a);
-}
-
-static void reverse_in_place(uint8_t* buf, const size_t len)
-{
-    JADE_ASSERT(buf);
-    JADE_ASSERT(len);
-
-    for (size_t i = 0; i < len / 2; ++i) {
-        const int mirror_idx = len - i - 1;
-        const uint8_t tmp = buf[i];
-        buf[i] = buf[mirror_idx];
-        buf[mirror_idx] = tmp;
-    }
 }
 
 static void rsa_ctx_to_ds_params(mbedtls_rsa_context* rsa, esp_ds_p_data_t* params)

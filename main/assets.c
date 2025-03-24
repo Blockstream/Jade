@@ -4,22 +4,13 @@
 #include "jade_wally_verify.h"
 #include "utils/malloc_ext.h"
 #include "utils/network.h"
+#include "utils/util.h"
 
 #include <assets_snapshot.h>
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
 #define ASSET_CONTRACT_BUFFER_LEN 768
-
-// flip the order of the bytes in-place
-static void reverse_in_place(uint8_t* buf, size_t len)
-{
-    for (uint8_t *c1 = buf, *c2 = buf + len - 1; c1 < c2; ++c1, --c2) {
-        const uint8_t tmp = *c1;
-        *c1 = *c2;
-        *c2 = tmp;
-    }
-}
 
 // Compute the asset-id given the contract hash and the issuance prevout details
 static void compute_asset_id(const uint8_t* contract_hash, const size_t contract_hash_len, const uint8_t* txhash,

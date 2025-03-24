@@ -31,6 +31,18 @@ static inline void reverse(uint8_t* dest, const uint8_t* src, const size_t len)
     }
 }
 
+// flip the order of the bytes in-place
+static inline void reverse_in_place(uint8_t* buf, size_t len)
+{
+    JADE_ASSERT(buf);
+
+    for (uint8_t *c1 = buf, *c2 = buf + len - 1; c1 < c2; ++c1, --c2) {
+        const uint8_t tmp = *c1;
+        *c1 = *c2;
+        *c2 = tmp;
+    }
+}
+
 static inline void uint32_to_be(const uint32_t val, uint8_t* buffer)
 {
     JADE_ASSERT(buffer);
