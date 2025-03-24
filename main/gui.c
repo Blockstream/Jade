@@ -2301,6 +2301,12 @@ static bool update_updateables(void)
 // gui task, for managing display/activities
 static void gui_task(void* args)
 {
+    // Flush/clear display as soon as we're able
+    JADE_SEMAPHORE_TAKE(gui_mutex);
+    display_flush();
+    JADE_SEMAPHORE_GIVE(gui_mutex);
+
+    // Loop to periodically handle gui events
     const TickType_t period = 1000 / GUI_TARGET_FRAMERATE / portTICK_PERIOD_MS;
     TickType_t last_wake = xTaskGetTickCount();
 
