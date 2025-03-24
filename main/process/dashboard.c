@@ -296,10 +296,6 @@ static void enable_connection_interfaces(const jade_msg_source_t source)
 // Home screen/menu update
 static void update_home_screen(gui_view_node_t* status_light, gui_view_node_t* status_text, gui_view_node_t* label)
 {
-    JADE_ASSERT(status_light);
-    JADE_ASSERT(status_text);
-    JADE_ASSERT(label);
-
     if (home_screen_type == HOME_SCREEN_TYPE_ACTIVE) {
         gui_set_color(status_light, gui_get_highlight_color());
         gui_update_text(status_light, keychain_has_temporary() ? "N" : "J"); // Clock or Filled circle
