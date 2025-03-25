@@ -301,7 +301,14 @@ test_build_diycam_tcameraplus:
   before_script:
     - cp configs/sdkconfig_diycam_tcameraplus.defaults sdkconfig.defaults
   after_script:
-    - mv build_diycam_tcameraplus
+    - mv build build_diycam_tcameraplus
+
+test_build_waveshare_touch_lcd2:
+  extends: .test_build_template
+  before_script:
+    - cp configs/sdkconfig_display_waveshares3_touch_lcd2.defaults sdkconfig.defaults
+  after_script:
+    - mv build build_waveshare_touch_lcd2
 
 test_build_jade_noblobs_ci:
   extends: .test_build_template
