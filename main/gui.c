@@ -187,6 +187,9 @@ static void make_status_bar(void)
     JADE_ASSERT(name_alignment != GUI_ALIGN_CENTER);
     gui_make_text_font(&status_bar.title, "Jade", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(status_bar.title, name_alignment, GUI_ALIGN_MIDDLE);
+#if HOME_SCREEN_DEEP_STATUS_BAR && (CONFIG_DISPLAY_WIDTH <= 280)
+    gui_set_text_scroll(status_bar.title, TFT_BLACK);
+#endif
     gui_set_parent(status_bar.title, name_parent);
 
     // Status bar data fields for tracking updates
