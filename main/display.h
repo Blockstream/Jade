@@ -3,6 +3,7 @@
 
 #include <arch/sys_arch.h>
 #include <esp_event.h>
+#include <freertos/task.h>
 
 #define color_t uint16_t
 
