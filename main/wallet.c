@@ -654,6 +654,22 @@ bool wallet_get_gaservice_path(
     return true;
 }
 
+bool wallet_get_gaservice_root_key(
+    const struct ext_key* const service, const bool subaccount_root, struct ext_key* gakey)
+{
+    if (!service || !gakey) {
+        return false;
+    }
+
+    uint32_t root_path[GASERVICE_ROOT_PATH_LEN];
+    wallet_get_gaservice_path_root(subaccount_root, root_path, GASERVICE_ROOT_PATH_LEN);
+
+    JADE_WALLY_VERIFY(
+        bip32_key_from_parent_path(service, root_path, GASERVICE_ROOT_PATH_LEN, BIP32_FLAG_KEY_PUBLIC, gakey));
+
+    return true;
+}
+
 // Helper to validate the user-path, and fetch the wallet's relevant gait service pubkey
 static bool wallet_get_gaservice_key(
     const char* network, const uint32_t* path, const size_t path_len, struct ext_key* gakey)
@@ -663,37 +679,28 @@ static bool wallet_get_gaservice_key(
     JADE_ASSERT(path_len);
     JADE_ASSERT(gakey);
 
-    uint32_t ga_path[MAX_GASERVICE_PATH_LEN]; // 32 + 3 max
-    size_t ga_path_len = 0;
-    if (!wallet_get_gaservice_path(path, path_len, ga_path, MAX_GASERVICE_PATH_LEN, &ga_path_len)) {
-        // Cannot get ga service path from user path
-        return false;
-    }
+    const keychain_t* const keychain = keychain_get();
+    JADE_ASSERT(keychain);
 
-    // Derive ga account pubkey for the path, except the ptr (so we can log it).
     const struct ext_key* const service = networkToGaService(network);
     if (!service) {
         JADE_LOGE("Unknown network: %s", network);
         return false;
     }
-    /*
-        // This outputs the parent service xpub to match what the gdk has in its txn data
-        struct ext_key garoot;
-        JADE_WALLY_VERIFY(bip32_key_from_parent_path(service, ga_path, ga_path_len-1, BIP32_FLAG_KEY_PUBLIC |
-       BIP32_FLAG_SKIP_HASH, &garoot));
 
-        // Log this xpub
-        char *logbuf;
-        JADE_WALLY_VERIFY(bip32_key_to_base58(&garoot, BIP32_FLAG_KEY_PUBLIC, &logbuf));
-        JADE_LOGI("service xpub: %s", logbuf);
-        JADE_WALLY_VERIFY(wally_free_string(logbuf));
+    uint32_t ga_path_tail[MAX_GASERVICE_PATH_TAIL_LEN];
+    size_t ga_path_tail_len = 0;
+    bool is_subaccount_path = false;
+    if (!wallet_get_gaservice_path_tail(
+            path, path_len, ga_path_tail, MAX_GASERVICE_PATH_TAIL_LEN, &ga_path_tail_len, &is_subaccount_path)) {
+        // Path pattern not recognised
+        return false;
+    }
 
-        // Derive final part of the path into the output
-        JADE_WALLY_VERIFY(bip32_key_from_parent_path(&garoot, &ga_path[ga_path_len-1], 1, BIP32_FLAG_KEY_PUBLIC |
-       BIP32_FLAG_SKIP_HASH, gakey));
-     */
-    JADE_WALLY_VERIFY(
-        bip32_key_from_parent_path(service, ga_path, ga_path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, gakey));
+    const struct ext_key* const cached_service_root = keychain_cached_service(service, is_subaccount_path);
+    JADE_WALLY_VERIFY(bip32_key_from_parent_path(
+        cached_service_root, ga_path_tail, ga_path_tail_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, gakey));
+
     return true;
 }
 

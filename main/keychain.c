@@ -242,6 +242,27 @@ bool keychain_is_network_type_consistent(const char* network)
     return network_type_restriction == NETWORK_TYPE_NONE || network_type == network_type_restriction;
 }
 
+const struct ext_key* keychain_cached_service(const struct ext_key* const service, const bool subaccount_root)
+{
+    JADE_ASSERT(keychain_data);
+
+    // If no service passed, invalidate cache
+    if (!service) {
+        keychain_data->cached_service = NULL;
+        return NULL;
+    }
+
+    // Recompute cached values if service mismatch
+    if (service != keychain_data->cached_service) {
+        wallet_get_gaservice_root_key(service, false, &keychain_data->cached_gaservice_main_root);
+        wallet_get_gaservice_root_key(service, true, &keychain_data->cached_gaservice_subact_root);
+        keychain_data->cached_service = service;
+    }
+
+    // Return cached value
+    return subaccount_root ? &keychain_data->cached_gaservice_subact_root : &keychain_data->cached_gaservice_main_root;
+}
+
 void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
 {
     JADE_INIT_OUT_PPTR(mnemonic);
@@ -284,6 +305,9 @@ void keychain_derive_from_seed(const uint8_t* seed, const size_t seed_len, keych
 
     // Compute and cache the path the GA server will use to sign
     wallet_calculate_gaservice_path(&keydata->xpriv, keydata->gaservice_path, GASERVICE_PATH_LEN);
+
+    // Ensure cached green-multisig service path roots are unset
+    keydata->cached_service = NULL;
 }
 
 // Derive master key from mnemonic if passed a valid mnemonic

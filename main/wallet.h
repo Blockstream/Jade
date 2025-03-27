@@ -99,6 +99,7 @@ bool wallet_unserialize_gaservice_path(
 bool wallet_get_gaservice_fingerprint(const char* network, uint8_t* output, size_t output_len);
 bool wallet_get_gaservice_path(
     const uint32_t* path, size_t path_len, uint32_t* ga_path, size_t ga_path_len, size_t* written);
+bool wallet_get_gaservice_root_key(const struct ext_key* service, bool subaccount_root, struct ext_key* gakey);
 
 bool wallet_get_message_hash(const uint8_t* bytes, size_t bytes_len, uint8_t* output, size_t output_len);
 bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,

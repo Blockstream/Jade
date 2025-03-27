@@ -15,6 +15,9 @@ typedef struct {
     uint8_t master_unblinding_key[HMAC_SHA512_LEN];
     uint8_t seed[BIP32_ENTROPY_LEN_512];
     struct ext_key xpriv;
+    struct ext_key cached_gaservice_main_root;
+    struct ext_key cached_gaservice_subact_root;
+    const struct ext_key* cached_service;
     size_t seed_len;
 } keychain_t;
 
@@ -24,6 +27,7 @@ typedef enum { PASSPHRASE_WORDLIST, PASSPHRASE_FREETEXT } passphrase_type_t;
 void keychain_init_cache(void);
 bool keychain_init_unit_key(void);
 void keychain_set(const keychain_t* src, uint8_t userdata, bool temporary);
+const struct ext_key* keychain_cached_service(const struct ext_key* service, bool subaccount_root);
 void keychain_clear(void);
 
 const keychain_t* keychain_get(void);
