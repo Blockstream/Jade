@@ -579,6 +579,57 @@ bool wallet_get_gaservice_fingerprint(const char* network, uint8_t* output, size
     return true;
 }
 
+static void wallet_get_gaservice_path_root(const bool subaccount_root, uint32_t* ga_path, const size_t ga_path_len)
+{
+    JADE_ASSERT(ga_path);
+    JADE_ASSERT(ga_path_len == GASERVICE_ROOT_PATH_LEN);
+
+    const keychain_t* const keychain = keychain_get();
+    JADE_ASSERT(keychain);
+
+    // The first element is 3 for subaccount paths, or 1 otherwise
+    ga_path[0] = subaccount_root ? 3 : 1;
+
+    // GA service path goes in elements 1 - 32 incl.
+    JADE_STATIC_ASSERT(sizeof(keychain->gaservice_path) == (ga_path_len - 1) * sizeof(ga_path[0]));
+    memcpy(&ga_path[1], keychain->gaservice_path, sizeof(keychain->gaservice_path));
+}
+
+static bool wallet_get_gaservice_path_tail(const uint32_t* path, const size_t path_len, uint32_t* ga_path,
+    const size_t ga_path_len, size_t* written, bool* is_subaccount_path)
+{
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len);
+    JADE_ASSERT(ga_path);
+    JADE_ASSERT(ga_path_len >= MAX_GASERVICE_PATH_TAIL_LEN);
+    JADE_ASSERT(written);
+    JADE_ASSERT(is_subaccount_path);
+
+    // We only support the following cases - populate the path tail
+    if (path_len == 2 && path[0] == PATH_BRANCH && path[1] < MAX_PATH_PTR) {
+        // 1.  1/ptr
+        // service path tail: ptr
+        ga_path[0] = path[1];
+        *written = 1;
+        *is_subaccount_path = false;
+        return true;
+    }
+
+    if (path_len == 4 && path[0] == SUBACT_ROOT && path[1] > SUBACT_FLOOR && path[1] < SUBACT_CEILING
+        && path[2] == PATH_BRANCH && path[3] < MAX_PATH_PTR) {
+        // 2.  3'/subact'/1/ptr
+        // service path tail: subact/ptr
+        ga_path[0] = unharden(path[1]);
+        ga_path[1] = path[3];
+        *written = 2;
+        *is_subaccount_path = true;
+        return true;
+    }
+
+    // Path pattern not recognised
+    return false;
+}
+
 // Fetch the wallet's relevant gait service path based on the user signer's path
 bool wallet_get_gaservice_path(
     const uint32_t* path, const size_t path_len, uint32_t* ga_path, const size_t ga_path_len, size_t* written)
@@ -587,42 +638,18 @@ bool wallet_get_gaservice_path(
         return false;
     }
 
-    const keychain_t* const keychain = keychain_get();
-    JADE_ASSERT(keychain);
-
-    // We only support the following cases
-    if (path_len == 2) {
-        // 1.  1/ptr
-        if (path[0] != PATH_BRANCH || path[1] >= MAX_PATH_PTR) {
-            return false;
-        }
-
-        // gapath: 1/<ga service path (32)>/ptr
-        ga_path[0] = path[0];
-        // skip 1-32
-        ga_path[33] = path[1];
-        *written = 34;
-
-    } else if (path_len == 4) {
-        // 2.  3'/subact'/1/ptr
-        if (path[0] != SUBACT_ROOT || path[1] <= SUBACT_FLOOR || path[1] >= SUBACT_CEILING || path[2] != PATH_BRANCH
-            || path[3] >= MAX_PATH_PTR) {
-            return false;
-        }
-
-        // gapath: 3/<ga service path (32)>/subact/ptr
-        ga_path[0] = unharden(path[0]);
-        // skip 1-32
-        ga_path[33] = unharden(path[1]);
-        ga_path[34] = path[3];
-        *written = 35;
-    } else {
+    // Populate the path tail based on the user path
+    size_t tail_len = 0;
+    bool is_subaccount_path = false;
+    if (!wallet_get_gaservice_path_tail(path, path_len, &ga_path[GASERVICE_ROOT_PATH_LEN],
+            ga_path_len - GASERVICE_ROOT_PATH_LEN, &tail_len, &is_subaccount_path)) {
+        // Path pattern not recognised
         return false;
     }
 
-    // GA service path goes in elements 1 - 32 incl.
-    JADE_STATIC_ASSERT(sizeof(keychain->gaservice_path) == (ga_path_len - 1) * sizeof(ga_path[0]));
-    memcpy(&ga_path[1], keychain->gaservice_path, sizeof(keychain->gaservice_path));
+    // Populate GA service path root
+    wallet_get_gaservice_path_root(is_subaccount_path, ga_path, GASERVICE_ROOT_PATH_LEN);
+    *written = GASERVICE_ROOT_PATH_LEN + tail_len;
 
     return true;
 }
