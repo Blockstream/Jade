@@ -138,15 +138,16 @@ static void qemu_tcp_writer(void* ignore)
     }
 }
 
-static bool is_our_netif(const char* prefix, esp_netif_t* netif)
+static bool is_our_netif(esp_netif_t* netif, void* ctx)
 {
-    return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
+    const char* prefix = (const char*)ctx;
+    return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix)) == 0;
 }
 
 static void on_got_ip(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
     ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
-    if (!is_our_netif(TAG, event->esp_netif)) {
+    if (!is_our_netif(event->esp_netif, (void*)TAG)) {
         JADE_LOGE("Got IPv4 from another interface \"%s\": ignored", esp_netif_get_desc(event->esp_netif));
         return;
     }
@@ -156,22 +157,18 @@ static void on_got_ip(void* arg, esp_event_base_t event_base, int32_t event_id, 
 
 static esp_netif_t* get_example_netif_from_desc(const char* desc)
 {
-    esp_netif_t* netif = NULL;
     char* expected_desc;
     asprintf(&expected_desc, "%s: %s", TAG, desc);
-    while ((netif = esp_netif_next(netif)) != NULL) {
-        if (strcmp(esp_netif_get_desc(netif), expected_desc) == 0) {
-            free(expected_desc);
-            return netif;
-        }
-    }
+    esp_netif_t* const netif = esp_netif_find_if(is_our_netif, expected_desc);
     free(expected_desc);
     return netif;
 }
 
 static void eth_stop(void)
 {
-    esp_netif_t* eth_netif = get_example_netif_from_desc("eth");
+    esp_netif_inherent_config_t esp_netif_config = ESP_NETIF_INHERENT_DEFAULT_ETH();
+    esp_netif_t* eth_netif = get_example_netif_from_desc(esp_netif_config.if_desc);
+
     ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_ETH_GOT_IP, ctx_got_ip));
     ESP_ERROR_CHECK(esp_eth_stop(s_eth_handle));
     ESP_ERROR_CHECK(esp_eth_del_netif_glue(s_eth_glue));
@@ -193,7 +190,6 @@ static void eth_start(void)
     esp_netif_config_t netif_config = { .base = &esp_netif_config, .stack = ESP_NETIF_NETSTACK_DEFAULT_ETH };
     esp_netif_t* netif = esp_netif_new(&netif_config);
     assert(netif);
-    free(desc);
 
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, on_got_ip, NULL, &ctx_got_ip));
 
@@ -213,16 +209,14 @@ static void eth_start(void)
     esp_eth_start(s_eth_handle);
     ESP_ERROR_CHECK(esp_register_shutdown_handler(&eth_stop));
     JADE_LOGI("Waiting for IP(s)");
-    esp_netif_t* netif_ip = NULL;
     esp_netif_ip_info_t ip;
-    for (int i = 0; i < esp_netif_get_nr_of_ifs(); ++i) {
-        netif_ip = esp_netif_next(netif_ip);
-        if (is_our_netif(TAG, netif_ip)) {
-            JADE_LOGI("Connected to %s", esp_netif_get_desc(netif_ip));
-            ESP_ERROR_CHECK(esp_netif_get_ip_info(netif_ip, &ip));
-            JADE_LOGI("- IPv4 address: " IPSTR, IP2STR(&ip.ip));
-        }
+    esp_netif_t* netif_ip = esp_netif_find_if(is_our_netif, desc);
+    if (netif_ip) {
+        JADE_LOGI("Connected to %s", esp_netif_get_desc(netif_ip));
+        ESP_ERROR_CHECK(esp_netif_get_ip_info(netif_ip, &ip));
+        JADE_LOGI("- IPv4 address: " IPSTR, IP2STR(&ip.ip));
     }
+    free(desc);
 }
 
 bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
