@@ -70,6 +70,10 @@ if(CONFIG_ETH_USE_OPENETH)
     endif()
 endif()
 
+if(CONFIG_AMALGAMATED_BUILD)
+    add_compile_definitions(AMALGAMATED_BUILD=1)
+endif()
+
 target_link_libraries(${COMPONENT_TARGET} "-u custom_app_desc")
 if(CONFIG_APPTRACE_GCOV_ENABLE)
     target_compile_options(${COMPONENT_LIB} PRIVATE --coverage)

@@ -20,6 +20,12 @@ menu "Blockstream Jade"
                 Time in milliseconds after which actions are automatically approved and workflows proceed.
     endmenu
 
+    config AMALGAMATED_BUILD
+        bool "Amalgamated build"
+        default n
+        help
+            Enable amagamated build, compiling all files as a single translation unit.  Should create a smaller/faster binary.
+
     choice
         prompt "Board type"
         default BOARD_TYPE_JADE
