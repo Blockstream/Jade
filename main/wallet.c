@@ -27,6 +27,10 @@
 #include <mbedtls/base64.h>
 #include <sodium/utils.h>
 
+// GA derived key index, and fixed GA key message
+static const uint32_t GA_PATH_ROOT = BIP32_INITIAL_HARDENED_CHILD + 0x4741;
+static const uint8_t GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
+
 // Restrictions on GA BIP32 path elements
 static const uint32_t SUBACT_ROOT = BIP32_INITIAL_HARDENED_CHILD + 3;
 static const uint32_t SUBACT_FLOOR = BIP32_INITIAL_HARDENED_CHILD;
@@ -494,6 +498,35 @@ void wallet_build_receive_path(const uint32_t subaccount, const uint32_t branch,
         output_path[1] = pointer;
         *written = 2;
     }
+}
+
+// Helper to create the service/gait path.
+// (The below is correct for newly created wallets, verified in regtest).
+bool wallet_calculate_gaservice_path(struct ext_key* root_key, uint8_t* service_path, const size_t service_path_len)
+{
+    if (!root_key || !service_path || service_path_len != HMAC_SHA512_LEN) {
+        return false;
+    }
+
+    // 1. Derive a child of the private key using the fixed GA index
+    struct ext_key derived;
+    SENSITIVE_PUSH(&derived, sizeof(derived));
+    JADE_WALLY_VERIFY(bip32_key_from_parent_path(
+        root_key, &GA_PATH_ROOT, 1, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
+
+    // 2. Get it as an 'extended public key' byte-array
+    uint8_t extkeydata[sizeof(derived.chain_code) + sizeof(derived.pub_key)];
+    SENSITIVE_PUSH(extkeydata, sizeof(extkeydata));
+    memcpy(extkeydata, derived.chain_code, sizeof(derived.chain_code));
+    memcpy(extkeydata + sizeof(derived.chain_code), derived.pub_key, sizeof(derived.pub_key));
+
+    // 3. HMAC the fixed GA key message with 2. to yield the 512-bit 'service path' for this mnemonic/private key
+    JADE_WALLY_VERIFY(wally_hmac_sha512(
+        GA_KEY_MSG, sizeof(GA_KEY_MSG), extkeydata, sizeof(extkeydata), service_path, service_path_len));
+    SENSITIVE_POP(extkeydata);
+    SENSITIVE_POP(&derived);
+
+    return true;
 }
 
 bool wallet_get_gaservice_fingerprint(const char* network, uint8_t* output, size_t output_len)

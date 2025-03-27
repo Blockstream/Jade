@@ -8,6 +8,7 @@
 #include "storage.h"
 #include "utils/malloc_ext.h"
 #include "utils/network.h"
+#include "wallet.h"
 
 #include <sodium/crypto_verify_32.h>
 #include <string.h>
@@ -19,10 +20,6 @@
 
 // Encrypted length plus hmac (input length given)
 #define ENCRYPTED_DATA_LEN(len) (AES_ENCRYPTED_LEN(len) + HMAC_SHA256_LEN)
-
-// GA derived key index, and fixed GA key message
-static const uint32_t GA_PATH_ROOT = BIP32_INITIAL_HARDENED_CHILD + 0x4741;
-static const uint8_t GA_KEY_MSG[] = "GreenAddress.it HD wallet path";
 
 // Internal variables - the single/global keychain data
 static keychain_t* keychain_data = NULL;
@@ -245,31 +242,6 @@ bool keychain_is_network_type_consistent(const char* network)
     return network_type_restriction == NETWORK_TYPE_NONE || network_type == network_type_restriction;
 }
 
-// Helper to create the service/gait path.
-// (The below is correct for newly created wallets, verified in regtest).
-static void populate_service_path(keychain_t* keydata)
-{
-    JADE_ASSERT(keydata);
-
-    // 1. Derive a child of our private key using the fixed GA index
-    struct ext_key derived;
-    SENSITIVE_PUSH(&derived, sizeof(derived));
-    JADE_WALLY_VERIFY(bip32_key_from_parent_path(
-        &keydata->xpriv, &GA_PATH_ROOT, 1, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_SKIP_HASH, &derived));
-
-    // 2. Get it as an 'extended public key' byte-array
-    uint8_t extkeydata[sizeof(derived.chain_code) + sizeof(derived.pub_key)];
-    SENSITIVE_PUSH(extkeydata, sizeof(extkeydata));
-    memcpy(extkeydata, derived.chain_code, sizeof(derived.chain_code));
-    memcpy(extkeydata + sizeof(derived.chain_code), derived.pub_key, sizeof(derived.pub_key));
-
-    // 3. HMAC the fixed GA key message with 2. to yield the 512-bit 'service path' for this mnemonic/private key
-    JADE_WALLY_VERIFY(wally_hmac_sha512(GA_KEY_MSG, sizeof(GA_KEY_MSG), extkeydata, sizeof(extkeydata),
-        keydata->service_path, sizeof(keydata->service_path)));
-    SENSITIVE_POP(extkeydata);
-    SENSITIVE_POP(&derived);
-}
-
 void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
 {
     JADE_INIT_OUT_PPTR(mnemonic);
@@ -311,7 +283,7 @@ void keychain_derive_from_seed(const uint8_t* seed, const size_t seed_len, keych
         wally_asset_blinding_key_from_seed(seed, seed_len, keydata->master_unblinding_key, HMAC_SHA512_LEN));
 
     // Compute and cache the path the GA server will use to sign
-    populate_service_path(keydata);
+    wallet_calculate_gaservice_path(&keydata->xpriv, keydata->service_path, sizeof(keydata->service_path));
 }
 
 // Derive master key from mnemonic if passed a valid mnemonic
