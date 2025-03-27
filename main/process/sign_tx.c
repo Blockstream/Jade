@@ -39,13 +39,16 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
     JADE_ASSERT(output_info);
     JADE_INIT_OUT_PPTR(errmsg);
 
-    *errmsg = NULL;
+    bool ret = false;
+    multisig_data_t* multisig_data = NULL;
+    descriptor_data_t* descriptor = NULL;
+
     size_t num_array_items = 0;
     if (!cbor_value_is_array(wallet_outputs)
         || cbor_value_get_array_length(wallet_outputs, &num_array_items) != CborNoError
         || num_array_items != tx->num_outputs) {
         *errmsg = "Unexpected number of output entries for transaction";
-        return false;
+        goto cleanup;
     }
 
     CborValue arrayItem;
@@ -72,44 +75,49 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
 
             // If multisig, need to verify against the registered multisig wallets
             if (rpc_has_field_data("multisig_name", &arrayItem)) {
-                // Load multisig data record
-                multisig_data_t multisig_data;
-                char multisig_name[MAX_MULTISIG_NAME_SIZE];
-                if (!params_load_multisig(&arrayItem, multisig_name, sizeof(multisig_name), &multisig_data, errmsg)) {
-                    // 'errmsg' populated by above call
-                    return false;
+                // Load multisig data record (alloc on first use)
+                if (!multisig_data) {
+                    multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
                 }
-                JADE_LOGI("Change is to %uof%u multisig: '%s'", multisig_data.threshold, multisig_data.num_xpubs,
+
+                char multisig_name[MAX_MULTISIG_NAME_SIZE];
+                if (!params_load_multisig(&arrayItem, multisig_name, sizeof(multisig_name), multisig_data, errmsg)) {
+                    // 'errmsg' populated by above call
+                    goto cleanup;
+                }
+                JADE_LOGI("Change is to %uof%u multisig: '%s'", multisig_data->threshold, multisig_data->num_xpubs,
                     multisig_name);
 
                 // Get the paths (suffixes) and derive pubkeys
                 uint8_t pubkeys[MAX_ALLOWED_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
-                if (!params_multisig_pubkeys(is_change, &arrayItem, &multisig_data, pubkeys, sizeof(pubkeys), &written,
+                if (!params_multisig_pubkeys(is_change, &arrayItem, multisig_data, pubkeys, sizeof(pubkeys), &written,
                         output_info[i].message, sizeof(output_info[i].message), errmsg)) {
                     // 'errmsg' populated by above call
-                    return false;
+                    goto cleanup;
                 }
 
                 // Build a script pubkey for the passed parameters
-                if (!wallet_build_multisig_script(multisig_data.variant, multisig_data.sorted, multisig_data.threshold,
-                        pubkeys, written, script, sizeof(script), &script_len)) {
+                if (!wallet_build_multisig_script(multisig_data->variant, multisig_data->sorted,
+                        multisig_data->threshold, pubkeys, written, script, sizeof(script), &script_len)) {
                     *errmsg = "Failed to generate valid multisig script";
-                    return false;
+                    goto cleanup;
                 }
             } else if (rpc_has_field_data("descriptor_name", &arrayItem)) {
                 // Not valid for liquid wallets atm
                 if (isLiquidNetwork(network)) {
                     *errmsg = "Descriptor wallets not supported on liquid network";
-                    return false;
+                    goto cleanup;
                 }
 
-                // Load descriptor record
-                descriptor_data_t descriptor;
+                // Load descriptor record (alloc on first use)
+                if (!descriptor) {
+                    descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
+                }
+
                 char descriptor_name[MAX_DESCRIPTOR_NAME_SIZE];
-                if (!params_load_descriptor(
-                        &arrayItem, descriptor_name, sizeof(descriptor_name), &descriptor, errmsg)) {
+                if (!params_load_descriptor(&arrayItem, descriptor_name, sizeof(descriptor_name), descriptor, errmsg)) {
                     // 'errmsg' populated by above call
-                    return false;
+                    goto cleanup;
                 }
 
                 // The path is given in two parts - optional (change) branch and mandatory index pointer
@@ -117,14 +125,14 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                 rpc_get_sizet("branch", &arrayItem, &branch); // optional
                 if (!rpc_get_sizet("pointer", &arrayItem, &pointer)) {
                     *errmsg = "Failed to extract path elements from parameters";
-                    return false;
+                    goto cleanup;
                 }
 
                 // Build a script pubkey for the passed parameters
-                if (!wallet_build_descriptor_script(network, descriptor_name, &descriptor, branch, pointer, script,
+                if (!wallet_build_descriptor_script(network, descriptor_name, descriptor, branch, pointer, script,
                         sizeof(script), &script_len, errmsg)) {
                     *errmsg = "Failed to generate valid descriptor script";
-                    return false;
+                    goto cleanup;
                 }
             } else {
                 size_t path_len = 0;
@@ -135,7 +143,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                 const bool ret = rpc_get_bip32_path("path", &arrayItem, path, max_path_len, &path_len);
                 if (!ret || path_len == 0) {
                     *errmsg = "Failed to extract valid receive path from parameters";
-                    return false;
+                    goto cleanup;
                 }
 
                 // Optional script variant, default is green-multisig
@@ -145,7 +153,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                 rpc_get_string("variant", sizeof(variant), &arrayItem, variant, &written);
                 if (!get_script_variant(variant, written, &script_variant)) {
                     *errmsg = "Invalid script variant parameter";
-                    return false;
+                    goto cleanup;
                 }
 
                 if (is_greenaddress(script_variant)) {
@@ -173,7 +181,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                             script, sizeof(script), &script_len)) {
                         JADE_LOGE("Output %u path/script failed to construct", i);
                         *errmsg = "Receive script cannot be constructed";
-                        return false;
+                        goto cleanup;
                     }
                 } else if (is_singlesig(script_variant)) {
                     // If paths not as expected show a warning message and ask the user to confirm
@@ -181,7 +189,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                         char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                         if (!wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
                             *errmsg = "Failed to convert path to string format";
-                            return false;
+                            goto cleanup;
                         }
                         const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
                             "Unusual %s path: %s", is_change ? "change" : "receive", path_str);
@@ -197,13 +205,13 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                             script_variant, &derived, script, sizeof(script), &script_len)) {
                         JADE_LOGE("Output %u path/script failed to construct", i);
                         *errmsg = "Receive script cannot be constructed";
-                        return false;
+                        goto cleanup;
                     }
                 } else {
                     // Multisig handled above, so should be nothing left
                     JADE_LOGE("Output %u unknown script variant %d", i, script_variant);
                     *errmsg = "Receive script variant not handled";
-                    return false;
+                    goto cleanup;
                 }
             }
 
@@ -212,7 +220,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                 || sodium_memcmp(tx->outputs[i].script, script, script_len) != 0) {
                 JADE_LOGE("Receive script failed validation");
                 *errmsg = "Receive script cannot be validated";
-                return false;
+                goto cleanup;
             }
 
             // Change path valid and matches tx output script
@@ -231,7 +239,12 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
     JADE_ASSERT(cberr == CborNoError);
 
     // All paths checked
-    return true;
+    ret = true;
+
+cleanup:
+    free(multisig_data);
+    free(descriptor);
+    return ret;
 }
 
 bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_info_t* outinfo,
