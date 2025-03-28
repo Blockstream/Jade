@@ -34,8 +34,8 @@ void jade_abort(const char* file, const int line_n)
     __builtin_unreachable();
 }
 
-// we wrap the real abort in the entire firmwawre so that ours gets called instead
+// Wrap the real abort in the entire firmware so that ours gets called instead
 // (see CMakeLists.txt) which will in turn call the real abort
-// we do this so that we can clear the keychain and the sensitive stack
+// We do this so that we can clear the keychain and the sensitive stack
 
 void __wrap_abort(void) { jade_abort("WRAPPED", 0); }
