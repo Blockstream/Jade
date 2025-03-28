@@ -283,7 +283,7 @@ void keychain_derive_from_seed(const uint8_t* seed, const size_t seed_len, keych
         wally_asset_blinding_key_from_seed(seed, seed_len, keydata->master_unblinding_key, HMAC_SHA512_LEN));
 
     // Compute and cache the path the GA server will use to sign
-    wallet_calculate_gaservice_path(&keydata->xpriv, keydata->service_path, sizeof(keydata->service_path));
+    wallet_calculate_gaservice_path(&keydata->xpriv, keydata->gaservice_path, GASERVICE_PATH_LEN);
 }
 
 // Derive master key from mnemonic if passed a valid mnemonic
@@ -361,7 +361,9 @@ static void serialize(uint8_t* serialized, const size_t serialized_len, const ke
 
     // ext-key, ga-path, master-blinding-key
     JADE_WALLY_VERIFY(bip32_key_serialize(&keydata->xpriv, BIP32_FLAG_KEY_PRIVATE, serialized, BIP32_SERIALIZED_LEN));
-    memcpy(serialized + BIP32_SERIALIZED_LEN, keydata->service_path, HMAC_SHA512_LEN);
+    const bool ret = wallet_serialize_gaservice_path(
+        serialized + BIP32_SERIALIZED_LEN, HMAC_SHA512_LEN, keydata->gaservice_path, GASERVICE_PATH_LEN);
+    JADE_ASSERT(ret);
     memcpy(serialized + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, keydata->master_unblinding_key, HMAC_SHA512_LEN);
 }
 
@@ -373,7 +375,9 @@ static void unserialize(const uint8_t* decrypted, const size_t decrypted_len, ke
 
     // ext-key, ga-path, master-blinding-key
     JADE_WALLY_VERIFY(bip32_key_unserialize(decrypted, BIP32_SERIALIZED_LEN, &keydata->xpriv));
-    memcpy(keydata->service_path, decrypted + BIP32_SERIALIZED_LEN, HMAC_SHA512_LEN);
+    const bool ret = wallet_unserialize_gaservice_path(
+        decrypted + BIP32_SERIALIZED_LEN, HMAC_SHA512_LEN, keydata->gaservice_path, GASERVICE_PATH_LEN);
+    JADE_ASSERT(ret);
     memcpy(keydata->master_unblinding_key, decrypted + BIP32_SERIALIZED_LEN + HMAC_SHA512_LEN, HMAC_SHA512_LEN);
 }
 

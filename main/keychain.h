@@ -8,12 +8,13 @@
 #include <wally_crypto.h>
 
 #define PASSPHRASE_MAX_LEN 100
+#define GASERVICE_PATH_LEN (HMAC_SHA512_LEN / 2)
 
 typedef struct {
-    struct ext_key xpriv;
-    uint8_t service_path[HMAC_SHA512_LEN];
+    uint32_t gaservice_path[GASERVICE_PATH_LEN];
     uint8_t master_unblinding_key[HMAC_SHA512_LEN];
     uint8_t seed[BIP32_ENTROPY_LEN_512];
+    struct ext_key xpriv;
     size_t seed_len;
 } keychain_t;
 

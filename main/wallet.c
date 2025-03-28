@@ -500,11 +500,42 @@ void wallet_build_receive_path(const uint32_t subaccount, const uint32_t branch,
     }
 }
 
+bool wallet_serialize_gaservice_path(
+    uint8_t* serialized, const size_t serialized_len, const uint32_t* gaservice_path, const size_t gaservice_path_len)
+{
+    if (!serialized || serialized_len != HMAC_SHA512_LEN || !gaservice_path
+        || gaservice_path_len != GASERVICE_PATH_LEN) {
+        return false;
+    }
+
+    for (size_t i = 0; i < gaservice_path_len; ++i) {
+        JADE_ASSERT(!(gaservice_path[i] & 0xFFFF0000));
+        serialized[2 * i] = gaservice_path[i] >> 8;
+        serialized[2 * i + 1] = gaservice_path[i] & 0xFF;
+    }
+    return true;
+}
+
+bool wallet_unserialize_gaservice_path(
+    const uint8_t* serialized, const size_t serialized_len, uint32_t* gaservice_path, const size_t gaservice_path_len)
+{
+    if (!serialized || serialized_len != HMAC_SHA512_LEN || !gaservice_path
+        || gaservice_path_len != GASERVICE_PATH_LEN) {
+        return false;
+    }
+
+    for (size_t i = 0; i < gaservice_path_len; ++i) {
+        gaservice_path[i] = (serialized[2 * i] << 8) + serialized[2 * i + 1];
+    }
+    return true;
+}
+
 // Helper to create the service/gait path.
 // (The below is correct for newly created wallets, verified in regtest).
-bool wallet_calculate_gaservice_path(struct ext_key* root_key, uint8_t* service_path, const size_t service_path_len)
+bool wallet_calculate_gaservice_path(
+    struct ext_key* root_key, uint32_t* gaservice_path, const size_t gaservice_path_len)
 {
-    if (!root_key || !service_path || service_path_len != HMAC_SHA512_LEN) {
+    if (!root_key || !gaservice_path || gaservice_path_len != (HMAC_SHA512_LEN / 2)) {
         return false;
     }
 
@@ -520,13 +551,15 @@ bool wallet_calculate_gaservice_path(struct ext_key* root_key, uint8_t* service_
     memcpy(extkeydata, derived.chain_code, sizeof(derived.chain_code));
     memcpy(extkeydata + sizeof(derived.chain_code), derived.pub_key, sizeof(derived.pub_key));
 
-    // 3. HMAC the fixed GA key message with 2. to yield the 512-bit 'service path' for this mnemonic/private key
+    // 3. HMAC the fixed GA key message with 2. to yield the 64 'service path' bytes for this mnemonic/private key
+    uint8_t serialized[HMAC_SHA512_LEN];
     JADE_WALLY_VERIFY(wally_hmac_sha512(
-        GA_KEY_MSG, sizeof(GA_KEY_MSG), extkeydata, sizeof(extkeydata), service_path, service_path_len));
+        GA_KEY_MSG, sizeof(GA_KEY_MSG), extkeydata, sizeof(extkeydata), serialized, sizeof(serialized)));
     SENSITIVE_POP(extkeydata);
     SENSITIVE_POP(&derived);
 
-    return true;
+    // 4. Deserialize to 32 '16 bit' (ie. unhardened) path elements
+    return wallet_unserialize_gaservice_path(serialized, sizeof(serialized), gaservice_path, gaservice_path_len);
 }
 
 bool wallet_get_gaservice_fingerprint(const char* network, uint8_t* output, size_t output_len)
@@ -554,7 +587,8 @@ bool wallet_get_gaservice_path(
         return false;
     }
 
-    JADE_ASSERT(keychain_get());
+    const keychain_t* const keychain = keychain_get();
+    JADE_ASSERT(keychain);
 
     // We only support the following cases
     if (path_len == 2) {
@@ -587,10 +621,8 @@ bool wallet_get_gaservice_path(
     }
 
     // GA service path goes in elements 1 - 32 incl.
-    const keychain_t* const keychain = keychain_get();
-    for (size_t i = 0; i < 32; ++i) {
-        ga_path[i + 1] = (keychain->service_path[2 * i] << 8) + keychain->service_path[2 * i + 1];
-    }
+    JADE_STATIC_ASSERT(sizeof(keychain->gaservice_path) == (ga_path_len - 1) * sizeof(ga_path[0]));
+    memcpy(&ga_path[1], keychain->gaservice_path, sizeof(keychain->gaservice_path));
 
     return true;
 }

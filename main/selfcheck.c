@@ -1,7 +1,6 @@
 #ifndef AMALGAMATED_BUILD
 #include <sdkconfig.h>
 #include <string.h>
-#include <wally_bip32.h>
 
 #include "bcur.h"
 #include "jade_assert.h"
@@ -12,15 +11,18 @@
 #include "random.h"
 #include "rsa.h"
 #include "storage.h"
-#include <sodium/crypto_verify_64.h>
-#include <sodium/utils.h>
-#include <utils/malloc_ext.h>
-#include <utils/util.h>
-
+#include "utils/malloc_ext.h"
 #include "utils/shake256.h"
+#include "utils/util.h"
+#include "wallet.h"
+
 #include <mbedtls/pem.h>
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
+#include <sodium/crypto_verify_64.h>
+#include <sodium/utils.h>
+
+#include <wally_bip32.h>
 #include <wally_bip85.h>
 
 #include <cdecoder.h>
@@ -65,7 +67,7 @@ static bool all_fields_same(const keychain_t* keydata1, const keychain_t* keydat
     if (sodium_memcmp(&keydata1->xpriv, &keydata2->xpriv, sizeof(keydata1->xpriv))) {
         return false;
     }
-    if (crypto_verify_64(keydata1->service_path, keydata2->service_path)) {
+    if (sodium_memcmp(keydata1->gaservice_path, keydata2->gaservice_path, sizeof(keydata1->gaservice_path))) {
         return false;
     }
     if (crypto_verify_64(keydata1->master_unblinding_key, keydata2->master_unblinding_key)) {
@@ -97,7 +99,7 @@ static bool any_fields_same(const keychain_t* keydata1, const keychain_t* keydat
     if (!sodium_memcmp(&keydata1->xpriv, &keydata2->xpriv, sizeof(keydata1->xpriv))) {
         return true;
     }
-    if (!crypto_verify_64(keydata1->service_path, keydata2->service_path)) {
+    if (!sodium_memcmp(keydata1->gaservice_path, keydata2->gaservice_path, sizeof(keydata1->gaservice_path))) {
         return true;
     }
     if (!crypto_verify_64(keydata1->master_unblinding_key, keydata2->master_unblinding_key)) {
@@ -119,9 +121,9 @@ static bool any_fields_same(const keychain_t* keydata1, const keychain_t* keydat
 static bool test_simple_restore(void)
 {
     size_t written = 0;
-    uint8_t expected_service_path[HMAC_SHA512_LEN];
+    uint8_t expected_gaservice_path[HMAC_SHA512_LEN];
     const int ret
-        = wally_hex_to_bytes(SERVICE_PATH_HEX, expected_service_path, sizeof(expected_service_path), &written);
+        = wally_hex_to_bytes(SERVICE_PATH_HEX, expected_gaservice_path, sizeof(expected_gaservice_path), &written);
     if (ret != WALLY_OK || written != HMAC_SHA512_LEN) {
         FAIL();
     }
@@ -130,9 +132,24 @@ static bool test_simple_restore(void)
     if (!keychain_derive_from_mnemonic(TEST_MNEMONIC, NULL, &keydata)) {
         FAIL();
     }
-    if (crypto_verify_64(keydata.service_path, expected_service_path) != 0) {
+
+    uint8_t serialized[HMAC_SHA512_LEN];
+    if (!wallet_serialize_gaservice_path(serialized, sizeof(serialized), keydata.gaservice_path, GASERVICE_PATH_LEN)) {
         FAIL();
     }
+    if (crypto_verify_64(serialized, expected_gaservice_path) != 0) {
+        FAIL();
+    }
+
+    uint32_t deserialised_expected_path[GASERVICE_PATH_LEN];
+    if (!wallet_unserialize_gaservice_path(
+            expected_gaservice_path, sizeof(expected_gaservice_path), deserialised_expected_path, GASERVICE_PATH_LEN)) {
+        FAIL();
+    }
+    if (sodium_memcmp(keydata.gaservice_path, deserialised_expected_path, sizeof(keydata.gaservice_path))) {
+        FAIL();
+    }
+
     return true;
 }
 

@@ -136,7 +136,7 @@ void debug_handshake(void* process_ptr)
     JADE_ASSERT(res == 0);
     res = sodium_memcmp(&keydata.xpriv, &keychain_get()->xpriv, sizeof(keydata.xpriv));
     JADE_ASSERT(res == 0);
-    res = crypto_verify_64(keydata.service_path, keychain_get()->service_path);
+    res = sodium_memcmp(keydata.gaservice_path, keychain_get()->gaservice_path, sizeof(keydata.gaservice_path));
     JADE_ASSERT(res == 0);
     res = crypto_verify_64(keydata.master_unblinding_key, keychain_get()->master_unblinding_key);
     JADE_ASSERT(res == 0);

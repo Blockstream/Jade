@@ -89,7 +89,11 @@ void wallet_get_fingerprint(uint8_t* output, size_t output_len);
 bool wallet_get_hdkey(const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* output);
 bool wallet_get_xpub(const char* network, const uint32_t* path, size_t path_len, char** output);
 
-bool wallet_calculate_gaservice_path(struct ext_key* root_key, uint8_t* service_path, size_t service_path_len);
+bool wallet_calculate_gaservice_path(struct ext_key* root_key, uint32_t* gaservice_path, size_t gaservice_path_len);
+bool wallet_serialize_gaservice_path(
+    uint8_t* serialized, size_t serialized_len, const uint32_t* gaservice_path, size_t gaservice_path_len);
+bool wallet_unserialize_gaservice_path(
+    const uint8_t* serialized, size_t serialized_len, uint32_t* gaservice_path, size_t gaservice_path_len);
 bool wallet_get_gaservice_fingerprint(const char* network, uint8_t* output, size_t output_len);
 bool wallet_get_gaservice_path(
     const uint32_t* path, size_t path_len, uint32_t* ga_path, size_t ga_path_len, size_t* written);
