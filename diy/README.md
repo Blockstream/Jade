@@ -119,6 +119,20 @@ There are a number of hardware devices that can run Jade firmware with minimal c
   * [3d printed case, example STL files available here](https://www.printables.com/model/493485-cases-for-diy-jade-based-on-esp32-cam)
 * [Assembly Guide & Hardware Notes](./esp32-cam/)
 
+### Waveshare S3 Touch LCD 2
+![](img/ws-touch-lcd2.jpg)
+* Costs ~$20 USD from manufacturer
+* Touch screen interface (virtual buttons)
+* Wifi/Bluetooth
+* Easy USB debugging and flashing 
+* Typically supports Secure Boot V2
+* Hardware Required (No Soldering Required)
+  * [Waveshare S3 Touch LCD 2](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.htm)
+  * OV5640 Camera module (optionally included in purchase)
+  * 3.7V Lithium battery with MX1.25 connector (optional)
+* Build [config](../configs/sdkconfig_display_waveshares3_touch_lcd2.defaults)
+  (BT/WIFI disabled)
+
 # Modifying Configuration Files for Use
 Once you are familiar with the process of flashing the firmware using the sdkconfig templates that are included in the /config folder of this repository, there are some additional changes that you should make to these files before using the device with actual funds.
 
