@@ -67,6 +67,12 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     gui_make_activity_ex(&act, true, device_name, false);
     JADE_ASSERT(act);
 
+#if HOME_SCREEN_DEEP_STATUS_BAR && (CONFIG_DISPLAY_WIDTH <= 280)
+    gui_view_node_t* status_bar_title = gui_status_bar_title();
+    status_bar_title->activity = act;
+    gui_set_text_scroll(status_bar_title, TFT_BLACK);
+#endif
+
     gui_view_node_t* node;
     gui_view_node_t* hsplit;
 

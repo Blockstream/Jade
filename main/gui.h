@@ -461,6 +461,7 @@ void gui_set_activity_title(gui_activity_t* activity, const char* title);
 
 gui_activity_t* gui_current_activity(void);
 gui_activity_t* gui_display_splash(void);
+gui_view_node_t* gui_status_bar_title(void);
 
 void gui_wheel_click(void);
 void gui_front_click(void);
