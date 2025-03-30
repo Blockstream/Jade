@@ -2722,6 +2722,12 @@ void dashboard_process(void* process_ptr)
     JADE_ASSERT(status_text);
     JADE_ASSERT(label);
 
+#if HOME_SCREEN_DEEP_STATUS_BAR && (CONFIG_DISPLAY_WIDTH <= 280)
+    gui_view_node_t* status_bar_title = gui_status_bar_title();
+    status_bar_title->activity = act_home;  // FIXME: not sure this is ideal
+    gui_set_text_scroll(status_bar_title, TFT_BLACK);
+#endif
+
     // We may as well associate the long-lived event data with this activity also
     wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act_home);
     JADE_ASSERT(event_data);

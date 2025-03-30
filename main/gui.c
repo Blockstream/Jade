@@ -196,6 +196,8 @@ static void make_status_bar(void)
     status_bar.battery_update_counter = 0;
 }
 
+gui_view_node_t* gui_status_bar_title(void) { return status_bar.title; }
+
 gui_event_t gui_get_click_event(void) { return gui_click_event; }
 
 void gui_set_click_event(const bool use_wheel_click)
