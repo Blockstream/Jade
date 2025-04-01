@@ -590,11 +590,10 @@ static void push_selectable(gui_activity_t* activity, gui_view_node_t* node, uin
     }
 }
 
-static void push_updatable(
-    gui_activity_t* activity, gui_view_node_t* node, gui_updatable_callback_t callback, void* extra_args)
+static void push_updatable(gui_view_node_t* node, gui_updatable_callback_t callback, void* extra_args)
 {
-    JADE_ASSERT(activity);
     JADE_ASSERT(node);
+    JADE_ASSERT(node->activity);
 
     // allocate & fill all the fields
     updatable_t* us = JADE_CALLOC(1, sizeof(updatable_t));
@@ -605,6 +604,7 @@ static void push_updatable(
     us->extra_args = extra_args;
 
     // first one!
+    gui_activity_t* const activity = node->activity;
     if (!activity->updatables) {
         activity->updatables = us;
     } else {
@@ -1179,7 +1179,7 @@ void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, const size_t num
     // If there are multiple icons, push this to the list of updatable elements so
     // that the image gets periodically updated.
     if (num_icons > 1) {
-        push_updatable(node->activity, node, icon_animation_frame_callback, NULL);
+        push_updatable(node, icon_animation_frame_callback, NULL);
     }
 }
 
@@ -1518,7 +1518,7 @@ void gui_set_text_scroll(gui_view_node_t* node, color_t background_color)
     node->text->scroll = scroll_data;
 
     // now push this to the list of updatable elements so that it gets updated every frame
-    push_updatable(node->activity, node, text_scroll_frame_callback, NULL);
+    push_updatable(node, text_scroll_frame_callback, NULL);
 }
 
 void gui_set_text_scroll_selected(
