@@ -31,7 +31,7 @@ bool show_btc_transaction_outputs_activity(
 bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
 
-static void wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
+static void jade_wally_free_psbt_wrapper(void* psbt) { JADE_WALLY_VERIFY(wally_psbt_free((struct wally_psbt*)psbt)); }
 
 // From https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
 static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; // 'psbt' + 0xff
@@ -968,7 +968,7 @@ void sign_psbt_process(void* process_ptr)
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract psbt from passed bytes", NULL);
         goto cleanup;
     }
-    jade_process_call_on_exit(process, wally_free_psbt_wrapper, psbt);
+    jade_process_call_on_exit(process, jade_wally_free_psbt_wrapper, psbt);
 
     // Sign the psbt - parameter updated with any signatures
     const char* errmsg = NULL;
