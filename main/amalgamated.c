@@ -39,10 +39,14 @@
 #include "./gui.c"
 #include "./identity.c"
 #include "./idletimer.c"
+#ifdef ESP_PLATFORM
 #include "./input.c"
+#endif // ESP_PLATFORM
 #include "./jade_abort.c"
 #include "./keychain.c"
+#ifdef ESP_PLATFORM
 #include "./logging.c"
+#endif // ESP_PLATFORM
 #include "./main.c"
 #include "./multisig.c"
 #include "./otpauth.c"
@@ -99,7 +103,9 @@
 #include "./rsa.c"
 #include "./selfcheck.c"
 #include "./sensitive.c"
+#ifdef ESP_PLATFORM
 #include "./serial.c"
+#endif // ESP_PLATFORM
 #include "./signer.c"
 #include "./smoketest.c"
 #include "./storage.c"

@@ -17,7 +17,7 @@ typedef struct {
     bool check_qr; // check captured image is a valid qr code
 } image_capture_into_t;
 
-static size_t compress(const uint8_t* data, size_t data_len, uint8_t* output, size_t output_len)
+static size_t compress_impl(const uint8_t* data, size_t data_len, uint8_t* output, size_t output_len)
 {
     JADE_ASSERT(data);
     JADE_ASSERT(data_len);
@@ -34,7 +34,7 @@ static size_t compress(const uint8_t* data, size_t data_len, uint8_t* output, si
     return status == TDEFL_STATUS_DONE ? output_len : 0;
 }
 
-static size_t decompress(const uint8_t* data, size_t data_len, uint8_t* output, size_t output_len)
+static size_t decompress_impl(const uint8_t* data, size_t data_len, uint8_t* output, size_t output_len)
 {
     JADE_ASSERT(data);
     JADE_ASSERT(data_len);
@@ -76,7 +76,7 @@ static bool return_image_data(const size_t width, const size_t height, const uin
     JADE_LOGI("Compressing image data of len: %u", len);
     const size_t compressed_buflen = len;
     uint8_t* const compressed = JADE_MALLOC_PREFER_SPIRAM(compressed_buflen);
-    const size_t compressed_len = compress(data, len, compressed, compressed_buflen);
+    const size_t compressed_len = compress_impl(data, len, compressed, compressed_buflen);
     if (!compressed_len) {
         JADE_LOGW("Compressing image data failed");
         goto cleanup;
@@ -86,7 +86,7 @@ static bool return_image_data(const size_t width, const size_t height, const uin
     // Decompress and verify is same
     const size_t decompressed_buflen = len;
     uint8_t* const decompressed = JADE_MALLOC_PREFER_SPIRAM(decompressed_buflen);
-    const size_t decompressed_len = decompress(compressed, compressed_len, decompressed, decompressed_buflen);
+    const size_t decompressed_len = decompress_impl(compressed, compressed_len, decompressed, decompressed_buflen);
     ret = (decompressed_len == len) && !memcmp(data, decompressed, len);
     free(decompressed);
 
@@ -167,7 +167,7 @@ void debug_scan_qr_process(void* process_ptr)
     const size_t decompressed_buflen = CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT;
     uint8_t* const decompressed = JADE_MALLOC_PREFER_SPIRAM(decompressed_buflen);
     jade_process_free_on_exit(process, decompressed);
-    const size_t decompressed_len = decompress(data, len, decompressed, decompressed_buflen);
+    const size_t decompressed_len = decompress_impl(data, len, decompressed, decompressed_buflen);
     if (!decompressed_len || decompressed_len != decompressed_buflen) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to decompress image data", NULL);
         goto cleanup;

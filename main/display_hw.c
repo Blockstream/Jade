@@ -3,11 +3,11 @@
 
 #include "display.h"
 
-#include "driver/gpio.h"
 #include "jade_assert.h"
 #include "jade_tasks.h"
 #include "utils/malloc_ext.h"
 #include "utils/util.h"
+#include <driver/gpio.h>
 
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
@@ -81,6 +81,7 @@ static esp_lcd_panel_handle_t ph = NULL;
 
 static void esp_lcd_init(void* _ignored)
 {
+#ifdef ESP_PLATFORM
     esp_lcd_panel_io_handle_t io_handle = NULL;
 
 #if CONFIG_DISPLAY_PIN_BL != -1
@@ -208,6 +209,11 @@ static void esp_lcd_init(void* _ignored)
     ESP_ERROR_CHECK(esp_lcd_panel_set_gap(ph, CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_OFFSET_Y));
 
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(ph, true));
+#else
+#define X_FLIPPED false
+#define Y_FLIPPED false
+    ph = (void*)1;
+#endif
     xSemaphoreGive(init_done);
     for (;;) {
         vTaskDelay(portMAX_DELAY);
@@ -255,7 +261,7 @@ void display_hw_init(TaskHandle_t* gui_handle)
     vSemaphoreDelete(init_done);
 }
 
-void inline display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* color_data)
+inline void display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* color_data)
 {
     JADE_ASSERT(ph);
     JADE_ASSERT(color_data);
@@ -297,7 +303,7 @@ void inline display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* c
 }
 
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
-void inline display_hw_draw_rect(int x, int y, int w, int h, const uint16_t color)
+inline void display_hw_draw_rect(int x, int y, int w, int h, const uint16_t color)
 {
     const int calculatedx = x - CONFIG_DISPLAY_OFFSET_X;
     const int calculatedy = y - CONFIG_DISPLAY_OFFSET_Y;

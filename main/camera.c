@@ -231,9 +231,9 @@ static void camera_post_exit_event_and_await_death(void)
     }
 }
 
-#ifndef CONFIG_ETH_USE_OPENETH
 static void jade_camera_init(void)
 {
+#if !defined(CONFIG_ETH_USE_OPENETH) && defined(ESP_PLATFORM)
     JADE_LOGI("CAMERA_IMAGE_WIDTH: %u", CAMERA_IMAGE_WIDTH);
     JADE_LOGI("CAMERA_IMAGE_HEIGHT: %u", CAMERA_IMAGE_HEIGHT);
     JADE_LOGI("UI_CAMERA_IMAGE_WIDTH: %u", UI_CAMERA_IMAGE_WIDTH);
@@ -322,8 +322,8 @@ static void jade_camera_init(void)
     touchscreen_deinit();
     touchscreen_init();
 #endif
+#endif // !defined(CONFIG_ETH_USE_OPENETH) && defined(ESP_PLATFORM)
 }
-#endif
 
 // Stop the camera
 static void jade_camera_stop(void)
@@ -400,9 +400,7 @@ static void jade_camera_task(void* data)
 
     // Initialise the camera
     sensitive_init();
-#ifndef CONFIG_ETH_USE_OPENETH
     jade_camera_init();
-#endif
     vTaskDelay(500 / portTICK_PERIOD_MS);
     void* image_buffer = NULL;
     Picture pic = {};

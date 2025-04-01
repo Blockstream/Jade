@@ -600,7 +600,7 @@ static uint8_t get_char_ptr(const uint8_t c)
     return 1;
 }
 
-static void inline print_char(uint8_t c, int x, int y)
+static inline void print_char(uint8_t c, int x, int y)
 {
     const uint8_t fz = (cfont.x_size + 7) >> 3;
     uint16_t temp = ((c - cfont.offset) * (fz * cfont.y_size)) + 4;

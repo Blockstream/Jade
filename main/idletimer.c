@@ -8,6 +8,7 @@
 #include "storage.h"
 #include "ui.h"
 #include "utils/event.h"
+#include <esp_system.h>
 
 #define DEFAULT_IDLE_TIMEOUT_SECS 600
 #define UI_SCREEN_IDLE_TIMEOUT_SECS 90
