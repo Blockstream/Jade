@@ -469,7 +469,7 @@ void http_request_reply(const void* ctx, CborEncoder* container)
 
     const bool has_data_payload = request_data->strdata || (request_data->rawdata && request_data->rawdata_len);
     const bool nested_json = request_data->accept
-        && (!strcmp(request_data->accept, "json") | !strcmp(request_data->accept, "application/json"));
+        && (!strcmp(request_data->accept, "json") || !strcmp(request_data->accept, "application/json"));
 
     JADE_ASSERT(!nested_json || !request_data->rawdata_len);
 
