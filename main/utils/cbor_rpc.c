@@ -632,7 +632,7 @@ void add_string_array_to_map(CborEncoder* container, const char* name, const cha
     cberr = cbor_encoder_create_array(container, &array_encoder, len);
     JADE_ASSERT(cberr == CborNoError);
 
-    for (int i = 0; i < len; ++i) {
+    for (size_t i = 0; i < len; ++i) {
         const char* value = texts[i];
         JADE_ASSERT(value);
         cberr = cbor_encode_text_stringz(&array_encoder, value);
