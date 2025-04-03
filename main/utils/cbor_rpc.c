@@ -2,10 +2,10 @@
 #include "cbor_rpc.h"
 #include "jade_assert.h"
 #include "utils/malloc_ext.h"
-#include "wally_core.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wally_core.h>
 
 #define MAXLEN_METHOD 32
 
