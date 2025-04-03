@@ -444,6 +444,7 @@ void update_aggregate_scripts_flavour(
     }
 }
 
+// eg:
 // {
 //   "http_request": {
 //     //
@@ -456,13 +457,13 @@ void update_aggregate_scripts_flavour(
 //     }
 //     "on-reply": `on_reply`
 //   }
-void http_request_reply(const void* ctx, CborEncoder* container)
+void client_data_request_reply(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
     JADE_ASSERT(container);
 
-    const data_request_t* const request_data = (const data_request_t*)ctx;
-    JADE_ASSERT(request_data->num_urls);
+    const client_data_request_t* const request_data = (const client_data_request_t*)ctx;
+    JADE_ASSERT(request_data->request_type);
     JADE_ASSERT(request_data->on_reply);
     // method, accept and certificate and data fields are optional, but some combinations may be nonsensical
     JADE_ASSERT(request_data->rawdata || !request_data->rawdata_len);
@@ -473,7 +474,10 @@ void http_request_reply(const void* ctx, CborEncoder* container)
 
     JADE_ASSERT(!nested_json || !request_data->rawdata_len);
 
-    size_t num_params = 1; // urls
+    size_t num_params = 0;
+    if (request_data->num_urls) {
+        ++num_params;
+    }
     if (request_data->method) {
         ++num_params;
     }
@@ -491,8 +495,8 @@ void http_request_reply(const void* ctx, CborEncoder* container)
     CborError cberr = cbor_encoder_create_map(container, &root_map, 1);
     JADE_ASSERT(cberr == CborNoError);
 
-    // Envelope data for http request
-    cberr = cbor_encode_text_stringz(&root_map, "http_request");
+    // Envelope data for client request
+    cberr = cbor_encode_text_stringz(&root_map, request_data->request_type);
     JADE_ASSERT(cberr == CborNoError);
 
     CborEncoder http_encoder;
@@ -507,7 +511,9 @@ void http_request_reply(const void* ctx, CborEncoder* container)
     JADE_ASSERT(cberr == CborNoError);
 
     // The urls (http/tls/onion)
-    add_string_array_to_map(&params_encoder, "urls", (const char**)request_data->urls, request_data->num_urls);
+    if (request_data->num_urls) {
+        add_string_array_to_map(&params_encoder, "urls", (const char**)request_data->urls, request_data->num_urls);
+    }
 
     // Any additional root certificate that may be required
     if (request_data->certificate) {

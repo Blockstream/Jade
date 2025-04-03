@@ -72,8 +72,13 @@ static void send_http_request_reply(jade_process_t* process, const char* documen
     JADE_ASSERT(data);
 
     // Prepare request data
-    data_request_t pin_data
-        = { .method = "POST", .accept = "json", .on_reply = "pin", .strdata = data, .rawdata_len = 0, .num_urls = 0 };
+    client_data_request_t pin_data = { .request_type = CLIENT_REQUEST_TYPE_HTTP,
+        .method = "POST",
+        .accept = "json",
+        .on_reply = "pin",
+        .strdata = data,
+        .rawdata_len = 0,
+        .num_urls = 0 };
 
     // Add urls - bespoke pinserver urls or defaults if not set
     char buf[MAX_PINSVR_URL_LENGTH];
@@ -114,7 +119,7 @@ static void send_http_request_reply(jade_process_t* process, const char* documen
     }
 
     // Send reply message
-    jade_process_reply_to_message_result(process->ctx, &pin_data, http_request_reply);
+    jade_process_reply_to_message_result(process->ctx, &pin_data, client_data_request_reply);
 }
 
 // Hepler to tweak the server static key into a session key

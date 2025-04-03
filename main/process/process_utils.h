@@ -31,8 +31,11 @@ typedef struct {
 
 #define MAX_REQUEST_URLS 2
 
+#define CLIENT_REQUEST_TYPE_HTTP "http_request"
+
 typedef struct {
     const char* urls[MAX_REQUEST_URLS];
+    const char* request_type;
     const char* certificate;
     const char* method;
     const char* accept;
@@ -43,7 +46,7 @@ typedef struct {
     const char* on_reply;
     size_t rawdata_len; // zero implies may be char data
     uint8_t num_urls;
-} data_request_t;
+} client_data_request_t;
 
 #define HAS_NO_CURRENT_MESSAGE(process)                                                                                \
     (process && !process->ctx.cbor && !process->ctx.cbor_len && process->ctx.source == SOURCE_NONE)
@@ -138,7 +141,8 @@ bool params_get_bip85_rsa_key(CborValue* params, size_t* key_bits, size_t* index
 script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len, bool* is_p2tr);
 void update_aggregate_scripts_flavour(script_flavour_t new_script_flavour, script_flavour_t* aggregate_scripts_flavour);
 
-// A message reply which is actually a request for more data from a resource
-void http_request_reply(const void* ctx, CborEncoder* container);
+// A message reply which is actually a request for more data from the client
+// 'ctx' should be a 'client_data_request_t' struct as above
+void client_data_request_reply(const void* ctx, CborEncoder* container);
 
 #endif /* PROCESS_UTILS_H_ */
