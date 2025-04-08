@@ -45,8 +45,8 @@ void camera_set_debug_image(const uint8_t* data, const size_t len)
 #define CAMERA_IMAGE_RESOLUTION FRAMESIZE_QVGA
 #endif
 
-#define MIN(a, b) (a < b ? a : b)
-#define MAX(a, b) (a > b ? a : b)
+#define CAM_MIN(a, b) (a < b ? a : b)
+#define CAM_MAX(a, b) (a > b ? a : b)
 
 // The image from the camera framebuffer is scaled and cropped to fit the display image
 // (Based on Jade screen dimensions and the fact that the image is half the screen.)
@@ -69,20 +69,20 @@ void camera_set_debug_image(const uint8_t* data, const size_t len)
 // Scale down if image much larger than screen area in both dimensions
 // The numerator is fixed at 2, allowing half-integer scaling
 #define SCALE_NUMERATOR 2
-#define CALC_SCALE_DENOMINATOR(img, ui) MAX(SCALE_NUMERATOR, (((SCALE_NUMERATOR * img) + (ui / 2)) / ui))
+#define CALC_SCALE_DENOMINATOR(img, ui) CAM_MAX(SCALE_NUMERATOR, (((SCALE_NUMERATOR * img) + (ui / 2)) / ui))
 #define SCALE_DENOMINATOR                                                                                              \
-    MIN(CALC_SCALE_DENOMINATOR(UI_CAMERA_IMAGE_WIDTH, UI_DISPLAY_WIDTH),                                               \
+    CAM_MIN(CALC_SCALE_DENOMINATOR(UI_CAMERA_IMAGE_WIDTH, UI_DISPLAY_WIDTH),                                           \
         CALC_SCALE_DENOMINATOR(UI_CAMERA_IMAGE_HEIGHT, UI_DISPLAY_HEIGHT))
 #define CAM2UI(x) ((x * SCALE_NUMERATOR) / SCALE_DENOMINATOR)
 #define UI2CAM(x) ((x * SCALE_DENOMINATOR) / SCALE_NUMERATOR)
 
 // Dimensions of image to display
-#define DISPLAY_IMAGE_WIDTH MIN(UI_DISPLAY_WIDTH, CAM2UI(UI_CAMERA_IMAGE_WIDTH))
-#define DISPLAY_IMAGE_HEIGHT MIN(UI_DISPLAY_HEIGHT, CAM2UI(UI_CAMERA_IMAGE_HEIGHT))
+#define DISPLAY_IMAGE_WIDTH CAM_MIN(UI_DISPLAY_WIDTH, CAM2UI(UI_CAMERA_IMAGE_WIDTH))
+#define DISPLAY_IMAGE_HEIGHT CAM_MIN(UI_DISPLAY_HEIGHT, CAM2UI(UI_CAMERA_IMAGE_HEIGHT))
 
 // Crop central area of camera frame if scaled image still larger
-#define XOFFSET MAX(0, ((UI_CAMERA_IMAGE_WIDTH - UI2CAM(DISPLAY_IMAGE_WIDTH)) / 2))
-#define YOFFSET MAX(0, ((UI_CAMERA_IMAGE_HEIGHT - UI2CAM(DISPLAY_IMAGE_HEIGHT)) / 2))
+#define XOFFSET CAM_MAX(0, ((UI_CAMERA_IMAGE_WIDTH - UI2CAM(DISPLAY_IMAGE_WIDTH)) / 2))
+#define YOFFSET CAM_MAX(0, ((UI_CAMERA_IMAGE_HEIGHT - UI2CAM(DISPLAY_IMAGE_HEIGHT)) / 2))
 
 static inline void copy_pixel(uint8_t dest[DISPLAY_IMAGE_HEIGHT][DISPLAY_IMAGE_WIDTH], const uint16_t destx,
     const uint16_t desty, const uint8_t src[CAMERA_IMAGE_HEIGHT][CAMERA_IMAGE_WIDTH], const uint16_t srcx,
