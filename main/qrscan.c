@@ -8,9 +8,9 @@
 #include "qrscan.h"
 #include "sensitive.h"
 #include "utils/malloc_ext.h"
+#include "utils/util.h"
 
 #define SCAN_EXTRA_MARGIN 20
-#define MIN(a, b) (a < b ? a : b)
 
 // Inspect qrcodes and try to extract payload - whether any were seen and any
 // string data extracted are stored in the qr_data struct passed.
@@ -132,10 +132,10 @@ bool scan_qr(const size_t width, const size_t height, const uint8_t* data, const
     JADE_ASSERT(qr_data->ds);
 
     // Also correctly size the internal image buffer since we know the size of the camera images/display.
-    const size_t ideal_scan_box_size
-        = MIN(camera_displayed_image_width(), camera_displayed_image_height()) + SCAN_EXTRA_MARGIN;
-    const size_t scan_width = MIN(ideal_scan_box_size, CAMERA_IMAGE_WIDTH);
-    const size_t scan_height = MIN(ideal_scan_box_size, CAMERA_IMAGE_HEIGHT);
+    const uint16_t ideal_scan_box_size
+        = min_u16(camera_displayed_image_width(), camera_displayed_image_height()) + SCAN_EXTRA_MARGIN;
+    const uint16_t scan_width = min_u16(ideal_scan_box_size, CAMERA_IMAGE_WIDTH);
+    const uint16_t scan_height = min_u16(ideal_scan_box_size, CAMERA_IMAGE_HEIGHT);
     const int qret = quirc_resize(qr_data->q, scan_width, scan_height);
     JADE_ASSERT(qret == 0);
     qr_data->len = 0;
@@ -176,10 +176,10 @@ bool jade_camera_scan_qr(
 
     // Also correctly size the internal image buffer since we know the size of the camera images/display.
     // This image buffer is then reused for every camera image frame processed.
-    const size_t ideal_scan_box_size
-        = MIN(camera_displayed_image_width(), camera_displayed_image_height()) + SCAN_EXTRA_MARGIN;
-    const size_t scan_width = MIN(ideal_scan_box_size, CAMERA_IMAGE_WIDTH);
-    const size_t scan_height = MIN(ideal_scan_box_size, CAMERA_IMAGE_HEIGHT);
+    const uint16_t ideal_scan_box_size
+        = min_u16(camera_displayed_image_width(), camera_displayed_image_height()) + SCAN_EXTRA_MARGIN;
+    const uint16_t scan_width = min_u16(ideal_scan_box_size, CAMERA_IMAGE_WIDTH);
+    const uint16_t scan_height = min_u16(ideal_scan_box_size, CAMERA_IMAGE_HEIGHT);
     const int qret = quirc_resize(qr_data->q, scan_width, scan_height);
     JADE_ASSERT(qret == 0);
     qr_data->len = 0;

@@ -176,9 +176,9 @@ static void copy_camera_image_180(
 
 void await_qr_help_activity(const char* url);
 
-size_t camera_displayed_image_width(void) { return UI2CAM(DISPLAY_IMAGE_WIDTH); }
+uint16_t camera_displayed_image_width(void) { return UI2CAM(DISPLAY_IMAGE_WIDTH); }
 
-size_t camera_displayed_image_height(void) { return UI2CAM(DISPLAY_IMAGE_HEIGHT); }
+uint16_t camera_displayed_image_height(void) { return UI2CAM(DISPLAY_IMAGE_HEIGHT); }
 
 gui_activity_t* make_camera_activity(gui_view_node_t** image_node, gui_view_node_t** label_node, bool show_click_btn,
     qr_frame_guides_t qr_frame_guides, progress_bar_t* progress_bar, bool show_help_btn);
