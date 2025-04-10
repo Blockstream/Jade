@@ -7,6 +7,7 @@
 #include "utils/util.h"
 
 #include <assets_snapshot.h>
+#include <cbor.h>
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
