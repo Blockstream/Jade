@@ -270,14 +270,16 @@ void display_init(TaskHandle_t* gui_h)
         .x2 = TOUCH_BUTTON_WIDTH + CONFIG_DISPLAY_OFFSET_X,
         .y2 = (CONFIG_DISPLAY_HEIGHT + (TOUCH_BUTTON_AREA - TOUCH_BUTTON_MARGIN)) + CONFIG_DISPLAY_OFFSET_Y };
 
-    display_print_in_area("<", CENTER, CENTER, disp_win_virtual_buttons, 0);
+    display_set_font(JADE_SYMBOLS_16x16_FONT, NULL);
+    display_print_in_area("H", CENTER, CENTER, disp_win_virtual_buttons, 0);
     disp_win_virtual_buttons.x1 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) - (TOUCH_BUTTON_WIDTH / 2);
     disp_win_virtual_buttons.x2 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) + (TOUCH_BUTTON_WIDTH / 2);
-    display_print_in_area("OK", CENTER, CENTER, disp_win_virtual_buttons, 0);
+    display_print_in_area("J", CENTER, CENTER, disp_win_virtual_buttons, 0);
     disp_win_virtual_buttons.x1
         = ((CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X) - TOUCH_BUTTON_WIDTH;
     disp_win_virtual_buttons.x2 = (CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X;
-    display_print_in_area(">", CENTER, CENTER, disp_win_virtual_buttons, 0);
+    display_print_in_area("I", CENTER, CENTER, disp_win_virtual_buttons, 0);
+    display_set_font(DEFAULT_FONT, NULL);
 
     vTaskDelay(50 / portTICK_PERIOD_MS);
 #endif
@@ -537,6 +539,19 @@ void display_icon(const Icon* imgbuf, int x, int y, color_t color, dispWin_t are
 #endif
 }
 
+static inline bool is_within_limits(int cx, int cy)
+{
+    // Allow for characters to be printed in the virtual button area
+#ifndef CONFIG_DISPLAY_TOUCHSCREEN
+    if ((cx < CONFIG_DISPLAY_OFFSET_X) || (cy < CONFIG_DISPLAY_OFFSET_Y)
+        || (cx > (CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X))
+        || (cy > (CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y))) {
+        return false;
+    }
+#endif
+    return true;
+}
+
 static int print_proportional_char(int x, int y)
 {
     uint8_t ch = 0;
@@ -554,14 +569,9 @@ static int print_proportional_char(int x, int y)
             if ((ch & mask)) {
                 const int cx = (uint16_t)(x + fontChar.xOffset + i);
                 const int cy = (uint16_t)(y + j + fontChar.adjYOffset);
-#if !defined(CONFIG_BOARD_TYPE_M5_CORES3) && !defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)                                 \
-    && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
-                if ((cx < CONFIG_DISPLAY_OFFSET_X) || (cy < CONFIG_DISPLAY_OFFSET_Y)
-                    || (cx > (CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X))
-                    || (cy > (CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y))) {
+                if (!is_within_limits(cx, cy)) {
                     continue;
                 }
-#endif
                 draw_bitmap(cx, cy, 1, 1, &_fg);
             }
             mask >>= 1;
@@ -608,9 +618,6 @@ static inline void print_char(uint8_t c, int x, int y)
     const uint8_t fz = (cfont.x_size + 7) >> 3;
     uint16_t temp = ((c - cfont.offset) * (fz * cfont.y_size)) + 4;
     uint16_t cx, cy;
-    const uint16_t x_limit = (CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X);
-    const uint16_t y_limit = (CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y);
-
     for (uint8_t j = 0; j < cfont.y_size; ++j) {
         for (uint16_t k = 0; k < fz; ++k) {
             uint8_t ch = cfont.font[temp + k];
@@ -619,9 +626,10 @@ static inline void print_char(uint8_t c, int x, int y)
                 if (ch & mask) {
                     cx = x + i + (k << 3);
                     cy = y + j;
-                    if (cx <= x_limit && cy <= y_limit) {
-                        draw_bitmap(cx, cy, 1, 1, &_fg);
+                    if (!is_within_limits(cx, cy)) {
+                        continue;
                     }
+                    draw_bitmap(cx, cy, 1, 1, &_fg);
                 }
                 mask >>= 1;
             }
