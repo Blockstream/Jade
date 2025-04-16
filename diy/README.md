@@ -131,7 +131,8 @@ There are a number of hardware devices that can run Jade firmware with minimal c
   * OV5640 Camera module (optionally included in purchase)
   * 3.7V Lithium battery with MX1.25 connector (optional)
 * Build [config](../configs/sdkconfig_display_waveshares3_touch_lcd2.defaults)
-  (BT/WIFI disabled)
+  (BT enabled, see next section for disabling)
+* [Assembly Guide & Hardware Notes](./waveshare/)  
 
 # Modifying Configuration Files for Use
 Once you are familiar with the process of flashing the firmware using the sdkconfig templates that are included in the /config folder of this repository, there are some additional changes that you should make to these files before using the device with actual funds.
