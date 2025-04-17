@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.35] - 2025-04-18
+### Added
+- Add support for esp32s3 Waveshare Touch LCD 2 diy device
+
+### Changed
+- Minor changes to reduce binary size
+- Further performance improvements for txn/psbt signing
+- Use qemu from idf, no longer build from source
+- Tweaks to how 'http-request' responses are made and handled in jadepy client
+- Internal code quality improvements
+- Update dependencies
+
+### Fixed
+- Correct dimensions of 'grid display' used to show addresses on JadePlus devices
+- Remove occasional screen flicker when booting JadePlus devices
+- Update diy touch devices i2c driver and re-enable these builds
+- Fix diy units with OV3660 camera
+
 ## [1.0.34] - 2025-03-12
 ### Added
 - Add support for signing bip86 single-key p2tr inputs and for registering bip86 p2tr(key) descriptors
