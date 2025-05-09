@@ -2,9 +2,13 @@
 
 ## S3 Touch LCD 2
 
+The device uses touchscreen navigation and the BOOT button for sleep/wake.
+Bluetooth is enabled by default but can be turned off with the NORADIO config
+script.
+
 ## Flashing
 
-To prepare the board for flashing, hold down the `boot` button and plug in the
+To prepare the board for flashing, hold down the `BOOT` button and plug in the
 USB at the same time.
 
 ### Enclosure
