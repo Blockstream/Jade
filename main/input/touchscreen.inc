@@ -65,7 +65,6 @@ static void touchscreen_task(void* ignored)
     uint16_t touch_strength[1];
     uint8_t touch_cnt = 10;
 
-    // FIXME: don't allow multiple touches within 300 ms?
     // FIXME: this doesn't currently work with Display -> Flip Orientation feature
     // but it could by changing the touch_y[0] > 200 logic with < 40 and inverting prev with next and viceversa
     while (!shutdown_requested) {
@@ -85,7 +84,7 @@ static void touchscreen_task(void* ignored)
                     } else {
                         continue;
                     }
-                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    vTaskDelay(250 / portTICK_PERIOD_MS);
                 }
             }
         }
