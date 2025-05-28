@@ -144,6 +144,44 @@ static inline void fill_disp_buf_color(size_t opt_loop, color_t original, uint32
 
 #define min(A, B) ((A) < (B) ? (A) : (B))
 
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+#define TOUCH_BUTTON_WIDTH 40
+#define TOUCH_BUTTON_HEIGHT 40
+#define TOUCH_BUTTON_MARGIN 5
+
+static void display_draw_touch_buttons(void)
+{
+    /* The TwatchS3 and core s3 don't have buttons that can be used (just power and
+       reset)
+       but it has a touch panel, we use the bottom 40 pixels worth of height
+       to display 3 buttons (prev, OK, next), we handle this here rather than
+       in display_hw because we want to draw text inside the virtual buttons */
+
+    /* blank the bottom of the display with black */
+    uint16_t line[CONFIG_DISPLAY_WIDTH] = { TFT_BLACK };
+    for (int16_t i = 0; i < TOUCH_BUTTON_HEIGHT; ++i) {
+        draw_bitmap(CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_HEIGHT + i + CONFIG_DISPLAY_OFFSET_Y,
+            CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X, 1, line);
+    }
+
+    dispWin_t disp_win_virtual_buttons = { .x1 = TOUCH_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_X,
+        .y1 = CONFIG_DISPLAY_HEIGHT + TOUCH_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_Y,
+        .x2 = TOUCH_BUTTON_WIDTH + CONFIG_DISPLAY_OFFSET_X,
+        .y2 = (CONFIG_DISPLAY_HEIGHT + (TOUCH_BUTTON_HEIGHT - TOUCH_BUTTON_MARGIN)) + CONFIG_DISPLAY_OFFSET_Y };
+
+    display_set_font(JADE_SYMBOLS_16x16_FONT, NULL);
+    display_print_in_area("H", CENTER, CENTER, disp_win_virtual_buttons, 0);
+    disp_win_virtual_buttons.x1 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) - (TOUCH_BUTTON_WIDTH / 2);
+    disp_win_virtual_buttons.x2 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) + (TOUCH_BUTTON_WIDTH / 2);
+    display_print_in_area("J", CENTER, CENTER, disp_win_virtual_buttons, 0);
+    disp_win_virtual_buttons.x1
+        = ((CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X) - TOUCH_BUTTON_WIDTH;
+    disp_win_virtual_buttons.x2 = (CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X;
+    display_print_in_area("I", CENTER, CENTER, disp_win_virtual_buttons, 0);
+    display_set_font(DEFAULT_FONT, NULL);
+}
+#endif
+
 void display_fill_rect(int x, int y, int w, int h, color_t color)
 {
     if ((x >= GUI_DISPLAY_WINDOW.x2) || (y > GUI_DISPLAY_WINDOW.y2)) {
@@ -183,8 +221,7 @@ void display_fill_rect(int x, int y, int w, int h, color_t color)
         || ((y - CONFIG_DISPLAY_OFFSET_Y) + h > CONFIG_DISPLAY_HEIGHT)) {
         JADE_LOGE(
             "display_fill_rect called with bad params (ignored) x %d y %d w %d h %d color %u\n", x, y, w, h, color);
-#if !defined(CONFIG_BOARD_TYPE_M5_CORES3) && !defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)                                 \
-    && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+#if !defined(CONFIG_DISPLAY_TOUCHSCREEN)
         return;
 #endif
     }
@@ -245,43 +282,8 @@ void display_init(TaskHandle_t* gui_h)
     JADE_ASSERT(gui_h);
     display_hw_init(gui_h);
 
-#if defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3) || defined(CONFIG_BOARD_TYPE_M5_CORES3)                                   \
-    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
-#define TOUCH_BUTTON_AREA 40
-#define TOUCH_BUTTON_MARGIN 5
-#define TOUCH_BUTTON_WIDTH 40
-    /* The TwatchS3 and core s3 don't have buttons that can be used (just power and
-       reset)
-       but it has a touch panel, we use the bottom 40 pixels worth of height
-       to display 3 buttons (prev, OK, next), we handle this here rather than
-       in display_hw because we want to draw text inside the virtual buttons */
-
-    vTaskDelay(50 / portTICK_PERIOD_MS);
-
-    /* blank the bottom of the display with black */
-    uint16_t line[CONFIG_DISPLAY_WIDTH] = { TFT_BLACK };
-    for (int16_t i = 0; i < TOUCH_BUTTON_AREA; ++i) {
-        draw_bitmap(CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_HEIGHT + i + CONFIG_DISPLAY_OFFSET_Y,
-            CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X, 1, line);
-    }
-
-    dispWin_t disp_win_virtual_buttons = { .x1 = TOUCH_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_X,
-        .y1 = CONFIG_DISPLAY_HEIGHT + TOUCH_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_Y,
-        .x2 = TOUCH_BUTTON_WIDTH + CONFIG_DISPLAY_OFFSET_X,
-        .y2 = (CONFIG_DISPLAY_HEIGHT + (TOUCH_BUTTON_AREA - TOUCH_BUTTON_MARGIN)) + CONFIG_DISPLAY_OFFSET_Y };
-
-    display_set_font(JADE_SYMBOLS_16x16_FONT, NULL);
-    display_print_in_area("H", CENTER, CENTER, disp_win_virtual_buttons, 0);
-    disp_win_virtual_buttons.x1 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) - (TOUCH_BUTTON_WIDTH / 2);
-    disp_win_virtual_buttons.x2 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) + (TOUCH_BUTTON_WIDTH / 2);
-    display_print_in_area("J", CENTER, CENTER, disp_win_virtual_buttons, 0);
-    disp_win_virtual_buttons.x1
-        = ((CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X) - TOUCH_BUTTON_WIDTH;
-    disp_win_virtual_buttons.x2 = (CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X;
-    display_print_in_area("I", CENTER, CENTER, disp_win_virtual_buttons, 0);
-    display_set_font(DEFAULT_FONT, NULL);
-
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+    display_draw_touch_buttons();
 #endif
 #endif
 
@@ -296,7 +298,13 @@ void display_init(TaskHandle_t* gui_h)
 bool display_flip_orientation(const bool flipped_orientation)
 {
 #ifndef CONFIG_ETH_USE_OPENETH
-    return display_hw_flip_orientation(flipped_orientation);
+    display_hw_flip_orientation(flipped_orientation);
+
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+    display_draw_touch_buttons();
+#endif
+
+    return flipped_orientation;
 #else
     // Not supported for qemu
     return false;
