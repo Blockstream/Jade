@@ -19,6 +19,10 @@
 #define ESP_LCD_TOUCH_NEW_I2C(han, cfg, ret) esp_lcd_touch_new_i2c_ft5x06(han, cfg, ret)
 #endif
 
+#define TOUCH_BUTTON_WIDTH 40
+#define TOUCH_BUTTON_HEIGHT 40
+#define TOUCH_BUTTON_MARGIN 5
+
 static volatile bool shutdown_requested = false;
 static volatile bool shutdown_finished = false;
 
@@ -28,7 +32,6 @@ esp_err_t _i2c_deinit(i2c_master_bus_handle_t handle);
 static void touchscreen_task(void* ignored)
 {
     esp_lcd_touch_handle_t ret_touch = NULL;
-    // FIXME: check mirror flags?
     const esp_lcd_touch_config_t tp_cfg = {
         .x_max = CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X,
         .y_max = CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y,
@@ -63,33 +66,44 @@ static void touchscreen_task(void* ignored)
     uint16_t touch_x[1];
     uint16_t touch_y[1];
     uint16_t touch_strength[1];
-    uint8_t touch_cnt = 10;
+    uint8_t touch_cnt = 1;
 
-    // FIXME: this doesn't currently work with Display -> Flip Orientation feature
-    // but it could by changing the touch_y[0] > 200 logic with < 40 and inverting prev with next and viceversa
     while (!shutdown_requested) {
         if (esp_lcd_touch_read_data(ret_touch) == ESP_OK) {
             bool touchpad_pressed
                 = esp_lcd_touch_get_coordinates(ret_touch, touch_x, touch_y, touch_strength, &touch_cnt, 1);
+
             if (touchpad_pressed) {
-                const uint16_t first_third_end = CONFIG_DISPLAY_WIDTH / 3;
-                const uint16_t middle_thirds_end = (CONFIG_DISPLAY_WIDTH * 2) / 3;
-                if (touch_y[0] > 200) {
-                    if (touch_x[0] <= first_third_end) {
+                const uint16_t display_left = CONFIG_DISPLAY_OFFSET_X;
+                const uint16_t display_right = CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X;
+                const uint16_t display_top = CONFIG_DISPLAY_OFFSET_Y;
+                const uint16_t display_bottom = CONFIG_DISPLAY_HEIGHT + TOUCH_BUTTON_HEIGHT + CONFIG_DISPLAY_OFFSET_Y;
+                const uint16_t split_width = CONFIG_DISPLAY_WIDTH / 3;
+
+                bool is_flipped = gui_get_flipped_orientation();
+
+                if (
+                    (!is_flipped && touch_y[0] + TOUCH_BUTTON_HEIGHT >= display_bottom && touch_y[0] < display_bottom) ||
+                    (is_flipped && touch_y[0] >= display_top && touch_y[0] < display_top + TOUCH_BUTTON_HEIGHT)
+                ) {
+                    if (touch_x[0] >= display_left && touch_x[0] < display_left + split_width) {
                         gui_prev();
-                    } else if (touch_x[0] > first_third_end && touch_x[0] < middle_thirds_end) {
+                    } else if (touch_x[0] >= display_left + split_width && touch_x[0] < display_left + split_width * 2) {
                         gui_front_click();
-                    } else if (touch_x[0] >= middle_thirds_end) {
+                    } else if (touch_x[0] >= display_left + split_width * 2 && touch_x[0] < display_right) {
                         gui_next();
                     } else {
                         continue;
                     }
+
                     vTaskDelay(250 / portTICK_PERIOD_MS);
                 }
             }
         }
+
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
+
     ESP_ERROR_CHECK(_i2c_deinit(touch_i2c_handle));
     shutdown_finished = true;
     vTaskDelete(NULL);
