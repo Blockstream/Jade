@@ -9,7 +9,7 @@
 
 typedef struct {
     char address[MAX_ADDRESS_LEN];
-    const char* network;
+    uint32_t network_id;
     uint8_t script[MAX_ADDRESS_LEN]; // script should always be shorter than the address
     size_t script_len;
 } address_data_t;

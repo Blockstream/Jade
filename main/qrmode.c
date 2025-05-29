@@ -623,7 +623,7 @@ static bool handle_address_options(const bool show_account, uint16_t* account_in
 static bool verify_address(const address_data_t* const addr_data)
 {
     JADE_ASSERT(addr_data);
-    JADE_ASSERT(addr_data->network);
+    JADE_ASSERT(addr_data->network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(addr_data->script_len);
 
     const bool default_selection = true;
@@ -633,8 +633,7 @@ static bool verify_address(const address_data_t* const addr_data)
     }
 
     // check network - eg. testnet address, but this jade is setup for mainnet only
-    const uint32_t network_id = networkToNetworkId(addr_data->network);
-    if (!keychain_is_network_id_consistent(network_id)) {
+    if (!keychain_is_network_id_consistent(addr_data->network_id)) {
         const char* message[] = { "Network type inconsistent" };
         await_error_activity(message, 1);
         return false;
@@ -753,8 +752,8 @@ static bool verify_address(const address_data_t* const addr_data)
             JADE_ASSERT(!search_roots);
             JADE_ASSERT(!search_roots_len);
             const uint32_t multi_index = is_change ? 1 : 0;
-            verified = wallet_search_for_descriptor_script(addr_data->network, label, descriptor, multi_index, &index,
-                address_search_batch_size, addr_data->script, addr_data->script_len);
+            verified = wallet_search_for_descriptor_script(addr_data->network_id, label, descriptor, multi_index,
+                &index, address_search_batch_size, addr_data->script, addr_data->script_len);
         } else {
             JADE_ASSERT(search_roots);
             JADE_ASSERT(search_roots_len == 1);

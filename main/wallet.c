@@ -1073,7 +1073,7 @@ bool wallet_build_descriptor_script(const char* network, const char* descriptor_
     return true;
 }
 
-bool wallet_search_for_descriptor_script(const char* network, const char* descriptor_name,
+bool wallet_search_for_descriptor_script(const uint32_t network_id, const char* descriptor_name,
     const descriptor_data_t* descriptor, size_t multi_index, size_t* index, size_t search_depth, const uint8_t* script,
     const size_t script_len)
 {
@@ -1085,7 +1085,7 @@ bool wallet_search_for_descriptor_script(const char* network, const char* descri
 
     uint32_t child_num = *index;
     const bool found = descriptor_search_for_script(
-        descriptor_name, descriptor, network, multi_index, &child_num, search_depth, script, script_len);
+        descriptor_name, descriptor, network_id, multi_index, &child_num, search_depth, script, script_len);
 
     *index = child_num;
     return found;

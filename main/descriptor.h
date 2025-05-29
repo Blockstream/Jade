@@ -66,7 +66,7 @@ bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
     const char** errmsg);
 
 // Iterate over a number of leaf child indexes testing the generated script for a match against the passed script
-bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor, const char* network,
+bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
     uint32_t multi_index, uint32_t* child_num, size_t search_depth, const uint8_t* script, size_t script_len);
 
 // Storage related functions

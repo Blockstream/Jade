@@ -257,7 +257,7 @@ static bool try_parse_address(const uint32_t trial_network_id, address_data_t* a
     if (wret == WALLY_OK) {
         JADE_LOGI("Address %s, %ssegwit-native for %s", addr_data->address, is_segwit ? "" : "non-", network);
         JADE_ASSERT(addr_data->script_len <= sizeof(addr_data->script));
-        addr_data->network = network;
+        addr_data->network_id = trial_network_id;
         return true;
     }
 
@@ -273,7 +273,7 @@ bool parse_address(const char* address, address_data_t* addr_data)
     JADE_ASSERT(addr_data);
 
     addr_data->address[0] = '\0';
-    addr_data->network = NULL;
+    addr_data->network_id = WALLY_NETWORK_NONE;
     addr_data->script_len = 0;
 
     // Convert potential uri form into raw base58 address string
@@ -289,7 +289,7 @@ bool parse_address(const char* address, address_data_t* addr_data)
         // Script parsed
         const size_t len = strnlen(addr_data->address, sizeof(addr_data->address));
         JADE_ASSERT(len > 0 && len < sizeof(addr_data->address));
-        JADE_ASSERT(addr_data->network);
+        JADE_ASSERT(addr_data->network_id != WALLY_NETWORK_NONE);
         JADE_ASSERT(addr_data->script_len);
         return true;
     }

@@ -167,12 +167,11 @@ static void string_values_to_map(const string_value_t* datavalues, const size_t 
     }
 }
 
-static bool parse_descriptor(const char* name, const descriptor_data_t* descriptor, const char* network,
+static bool parse_descriptor(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
     descriptor_type_t* deduced_type, struct wally_descriptor** output, uint32_t* depth, const char** errmsg)
 {
     JADE_ASSERT(name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(!network || isValidNetwork(network));
     JADE_ASSERT(!deduced_type || *deduced_type == DESCRIPTOR_TYPE_UNKNOWN);
     JADE_INIT_OUT_PPTR(output);
     JADE_INIT_OUT_SIZE(depth);
@@ -187,7 +186,6 @@ static bool parse_descriptor(const char* name, const descriptor_data_t* descript
     const uint8_t num_types = type_unknown ? 2 : 1;
 
     struct wally_descriptor* d = NULL;
-    const uint32_t network_id = networkToNetworkId(network);
 
     // Load any passed values into a wally_map
     struct wally_map values;
@@ -283,16 +281,16 @@ bool descriptor_get_signers(const char* name, const descriptor_data_t* descripto
 {
     JADE_ASSERT(name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(!network || isValidNetwork(network));
     JADE_ASSERT(!deduced_type || *deduced_type == DESCRIPTOR_TYPE_UNKNOWN);
     JADE_ASSERT(!signers == !signers_len); // both or neither
     JADE_INIT_OUT_SIZE(written);
     JADE_INIT_OUT_PPTR(errmsg);
 
+    const uint32_t network_id = networkToNetworkId(network);
     bool retval = false;
     struct wally_descriptor* d = NULL;
     uint32_t depth = 0;
-    if (!parse_descriptor(name, descriptor, network, deduced_type, &d, &depth, errmsg)) {
+    if (!parse_descriptor(name, descriptor, network_id, deduced_type, &d, &depth, errmsg)) {
         JADE_ASSERT(!d);
         return false;
     }
@@ -403,9 +401,10 @@ bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor
     JADE_INIT_OUT_PPTR(output);
     JADE_INIT_OUT_PPTR(errmsg);
 
+    const uint32_t network_id = networkToNetworkId(network);
     struct wally_descriptor* d = NULL;
     uint32_t depth = 0;
-    if (!parse_descriptor(name, descriptor, network, deduced_type, &d, &depth, errmsg)) {
+    if (!parse_descriptor(name, descriptor, network_id, deduced_type, &d, &depth, errmsg)) {
         JADE_ASSERT(!d);
         return false;
     }
@@ -445,9 +444,10 @@ bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
     JADE_INIT_OUT_SIZE(output_len);
     JADE_INIT_OUT_PPTR(errmsg);
 
+    const uint32_t network_id = networkToNetworkId(network);
     struct wally_descriptor* d = NULL;
     uint32_t depth = 0;
-    if (!parse_descriptor(name, descriptor, network, deduced_type, &d, &depth, errmsg)) {
+    if (!parse_descriptor(name, descriptor, network_id, deduced_type, &d, &depth, errmsg)) {
         JADE_ASSERT(!d);
         return false;
     }
@@ -473,13 +473,13 @@ bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
     return true;
 }
 
-bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor, const char* network,
+bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
     const uint32_t multi_index, uint32_t* child_num, const size_t search_depth, const uint8_t* script,
     const size_t script_len)
 {
     JADE_ASSERT(name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(child_num);
     JADE_ASSERT(search_depth);
     JADE_ASSERT(script);
@@ -490,7 +490,7 @@ bool descriptor_search_for_script(const char* name, const descriptor_data_t* des
 
     struct wally_descriptor* d = NULL;
     uint32_t depth = 0;
-    if (!parse_descriptor(name, descriptor, network, deduced_type, &d, &depth, &errmsg)) {
+    if (!parse_descriptor(name, descriptor, network_id, deduced_type, &d, &depth, &errmsg)) {
         JADE_ASSERT(!d);
         return false;
     }
