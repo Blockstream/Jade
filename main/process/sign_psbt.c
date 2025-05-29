@@ -155,7 +155,7 @@ static bool verify_ga_script_matches(const uint32_t network_id, const struct ext
     if (recovery_key) {
         // 2of2: fetch the number of csv blocks if this is a csv script
         int ret = wally_scriptpubkey_csv_blocks_from_csv_2of2_then_1(target_script, target_script_len, &csv_blocks);
-        if (ret == WALLY_OK && !csvBlocksExpectedForNetwork(network_id, csv_blocks)) {
+        if (ret == WALLY_OK && !network_is_known_csv_blocks(network_id, csv_blocks)) {
             return false; // csv script with an invalid csv_blocks
         }
     }
@@ -945,7 +945,7 @@ void sign_psbt_process(void* process_ptr)
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
 
-    if (isLiquidNetworkId(network_id)) {
+    if (network_is_liquid(network_id)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "sign_psbt call not appropriate for liquid network", NULL);
         goto cleanup;

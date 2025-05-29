@@ -24,46 +24,47 @@ static const size_t ALLOWED_CSV_LIQUID[] = { 65535 };
 static const size_t ALLOWED_CSV_TESTNET_LIQUID[] = { 1440, 65535 };
 
 // True for liquid and liquid regtest/testnet networks
-bool isLiquidNetworkId(const uint32_t network_id)
+bool network_is_liquid(const uint32_t network_id)
 {
     JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     return network_id == WALLY_NETWORK_LIQUID || network_id == WALLY_NETWORK_LIQUID_TESTNET
         || network_id == WALLY_NETWORK_LIQUID_REGTEST;
 }
 
-// Are the passed number of csv blocks expected for the given network
-static size_t csvBlocksForNetwork(const uint32_t network_id, const size_t** csvAllowed)
+// return the allowed csv_blocks values for a network
+static size_t network_to_csv_blocks(const uint32_t network_id, const size_t** allowed)
 {
-    JADE_INIT_OUT_PPTR(csvAllowed);
+    JADE_INIT_OUT_PPTR(allowed);
 
     switch (network_id) {
     case WALLY_NETWORK_BITCOIN_MAINNET:
-        *csvAllowed = ALLOWED_CSV_MAINNET;
+        *allowed = ALLOWED_CSV_MAINNET;
         return sizeof(ALLOWED_CSV_MAINNET) / sizeof(ALLOWED_CSV_MAINNET[0]);
     case WALLY_NETWORK_LIQUID:
-        *csvAllowed = ALLOWED_CSV_LIQUID;
+        *allowed = ALLOWED_CSV_LIQUID;
         return sizeof(ALLOWED_CSV_LIQUID) / sizeof(ALLOWED_CSV_LIQUID[0]);
     case WALLY_NETWORK_BITCOIN_TESTNET:
     case WALLY_NETWORK_BITCOIN_REGTEST:
-        *csvAllowed = ALLOWED_CSV_TESTNET;
+        *allowed = ALLOWED_CSV_TESTNET;
         return sizeof(ALLOWED_CSV_TESTNET) / sizeof(ALLOWED_CSV_TESTNET[0]);
     case WALLY_NETWORK_LIQUID_TESTNET:
     case WALLY_NETWORK_LIQUID_REGTEST:
-        *csvAllowed = ALLOWED_CSV_TESTNET_LIQUID;
+        *allowed = ALLOWED_CSV_TESTNET_LIQUID;
         return sizeof(ALLOWED_CSV_TESTNET_LIQUID) / sizeof(ALLOWED_CSV_TESTNET_LIQUID[0]);
     }
     JADE_ASSERT(false); // Unknown network
 }
 
-bool csvBlocksExpectedForNetwork(const uint32_t network_id, const uint32_t csvBlocks)
+// True if csv_blocks is one of the networks hard-coded csv_blocks values
+bool network_is_known_csv_blocks(const uint32_t network_id, const uint32_t csv_blocks)
 {
-    const size_t* csvAllowed = NULL;
-    const size_t num_allowed = csvBlocksForNetwork(network_id, &csvAllowed);
+    const size_t* allowed = NULL;
+    const size_t num_allowed = network_to_csv_blocks(network_id, &allowed);
     JADE_ASSERT(num_allowed > 0);
-    JADE_ASSERT(csvAllowed);
+    JADE_ASSERT(allowed);
 
     for (size_t i = 0; i < num_allowed; ++i) {
-        if (csvBlocks == csvAllowed[i]) {
+        if (csv_blocks == allowed[i]) {
             return true;
         }
     }
@@ -71,18 +72,18 @@ bool csvBlocksExpectedForNetwork(const uint32_t network_id, const uint32_t csvBl
     return false;
 }
 
-// minimum allowed csv blocks per network
-size_t networkToMinAllowedCsvBlocks(const uint32_t network_id)
+// True if csv_blocks is not below the networks smallest csv_blocks value
+bool network_is_allowable_csv_blocks(const uint32_t network_id, const uint32_t csv_blocks)
 {
-    const size_t* csvAllowed = NULL;
-    const size_t num_allowed = csvBlocksForNetwork(network_id, &csvAllowed);
+    const size_t* allowed = NULL;
+    const size_t num_allowed = network_to_csv_blocks(network_id, &allowed);
     JADE_ASSERT(num_allowed > 0);
-    JADE_ASSERT(csvAllowed);
+    JADE_ASSERT(allowed);
 
-    return csvAllowed[0];
+    return csv_blocks >= allowed[0];
 }
 
-uint32_t networkToNetworkId(const char* network)
+uint32_t network_from_name(const char* network)
 {
     if (network) {
         if (!strcmp(TAG_MAINNET, network)) {
@@ -102,7 +103,7 @@ uint32_t networkToNetworkId(const char* network)
     return WALLY_NETWORK_NONE;
 }
 
-const char* networkIdToNetwork(const uint32_t network_id)
+const char* network_to_name(const uint32_t network_id)
 {
     switch (network_id) {
     case WALLY_NETWORK_BITCOIN_MAINNET:
@@ -123,7 +124,7 @@ const char* networkIdToNetwork(const uint32_t network_id)
 }
 
 // network id to type (main or test)
-network_type_t networkIdToType(const uint32_t network_id)
+network_type_t network_to_type(const uint32_t network_id)
 {
     switch (network_id) {
     case WALLY_NETWORK_BITCOIN_MAINNET:
@@ -140,15 +141,15 @@ network_type_t networkIdToType(const uint32_t network_id)
 
 // network id to BIP32 key version.
 // Mainnets map to VER_MAIN_PRIVATE, testnets to VER_TEST_PRIVATE
-uint32_t networkToBip32Version(const uint32_t network_id)
+uint32_t network_to_bip32_version(const uint32_t network_id)
 {
-    const network_type_t network_type = networkIdToType(network_id);
+    const network_type_t network_type = network_to_type(network_id);
     JADE_ASSERT(network_type != NETWORK_TYPE_NONE);
     return network_type == NETWORK_TYPE_MAIN ? BIP32_VER_MAIN_PRIVATE : BIP32_VER_TEST_PRIVATE;
 }
 
 // network id to relevant P2PKH address prefix
-uint8_t networkToP2PKHPrefix(const uint32_t network_id)
+uint8_t network_to_p2pkh_prefix(const uint32_t network_id)
 {
     switch (network_id) {
     case WALLY_NETWORK_BITCOIN_MAINNET:
@@ -168,7 +169,7 @@ uint8_t networkToP2PKHPrefix(const uint32_t network_id)
 }
 
 // network id to relevant P2SH address prefix
-uint8_t networkToP2SHPrefix(const uint32_t network_id)
+uint8_t network_to_p2sh_prefix(const uint32_t network_id)
 {
     switch (network_id) {
     case WALLY_NETWORK_BITCOIN_MAINNET:
@@ -188,7 +189,7 @@ uint8_t networkToP2SHPrefix(const uint32_t network_id)
 }
 
 // network id to relevant bech32 hrp
-const char* networkToBech32Hrp(const uint32_t network_id)
+const char* network_to_bech32_prefix(const uint32_t network_id)
 {
     switch (network_id) {
     case WALLY_NETWORK_BITCOIN_MAINNET:
@@ -209,7 +210,7 @@ const char* networkToBech32Hrp(const uint32_t network_id)
 }
 
 // network id to relevant confidential address prefix
-uint8_t networkToCAPrefix(const uint32_t network_id)
+uint8_t network_to_confidential_prefix(const uint32_t network_id)
 {
     switch (network_id) {
     case WALLY_NETWORK_LIQUID:
@@ -224,7 +225,7 @@ uint8_t networkToCAPrefix(const uint32_t network_id)
 }
 
 // network id to relevant confidential blech32 hrp
-const char* networkToBlech32Hrp(const uint32_t network_id)
+const char* network_to_blech32_prefix(const uint32_t network_id)
 {
     switch (network_id) {
     case WALLY_NETWORK_LIQUID:
@@ -239,7 +240,7 @@ const char* networkToBlech32Hrp(const uint32_t network_id)
 }
 
 // network id to relevant policy-asset (lower-case hex id)
-const char* networkGetPolicyAsset(const uint32_t network_id)
+const char* network_to_policy_asset_hex(const uint32_t network_id)
 {
     // These are the policy assets for the liquid networks.
     // NOTE: 'rich' information should be present in the h/coded data in assets.c

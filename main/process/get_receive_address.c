@@ -31,7 +31,7 @@ void get_receive_address_process(void* process_ptr)
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
-    const bool isLiquid = isLiquidNetworkId(network_id);
+    const bool isLiquid = network_is_liquid(network_id);
 
     // Handle single-sig and generic multisig script variants
     // (Green-multisig is the default for backwards compatibility)
@@ -155,17 +155,17 @@ void get_receive_address_process(void* process_ptr)
             rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &params, xpubrecovery, &written);
 
             // Optional 'blocks' for csv outputs
-            size_t csvBlocks = 0;
-            rpc_get_sizet("csv_blocks", &params, &csvBlocks);
+            size_t csv_blocks = 0;
+            rpc_get_sizet("csv_blocks", &params, &csv_blocks);
 
-            if (csvBlocks && !csvBlocksExpectedForNetwork(network_id, csvBlocks)) {
+            if (csv_blocks && !network_is_known_csv_blocks(network_id, csv_blocks)) {
                 const int ret
-                    = snprintf(warning_msg, sizeof(warning_msg), "\nWarning:\nNon-standard csv:\n%u", csvBlocks);
+                    = snprintf(warning_msg, sizeof(warning_msg), "\nWarning:\nNon-standard csv:\n%u", csv_blocks);
                 JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
             }
 
             // Build a script pubkey for the passed parameters
-            if (!wallet_build_ga_script(network_id, written ? xpubrecovery : NULL, csvBlocks, path, path_len, script,
+            if (!wallet_build_ga_script(network_id, written ? xpubrecovery : NULL, csv_blocks, path, path_len, script,
                     sizeof(script), &script_len)) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid green address script", NULL);

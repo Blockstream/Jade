@@ -77,7 +77,7 @@ static bool get_asset_display_info(const uint32_t network_id, const asset_info_t
     char* asset_id_hex, const size_t asset_id_hex_len, char* amount, const size_t amount_len, char* ticker,
     const size_t ticker_len)
 {
-    JADE_ASSERT(isLiquidNetworkId(network_id));
+    JADE_ASSERT(network_is_liquid(network_id));
     JADE_ASSERT(assets || !num_assets);
     JADE_ASSERT(asset_id);
     JADE_ASSERT(asset_id_len);
@@ -478,7 +478,7 @@ bool show_btc_transaction_outputs_activity(
 bool show_elements_transaction_outputs_activity(const uint32_t network_id, const struct wally_tx* tx,
     const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets)
 {
-    JADE_ASSERT(isLiquidNetworkId(network_id));
+    JADE_ASSERT(network_is_liquid(network_id));
     JADE_ASSERT(tx);
     JADE_ASSERT(output_info);
     JADE_ASSERT(assets || !num_assets);
@@ -576,7 +576,7 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
 {
     JADE_ASSERT(title);
     JADE_ASSERT(direction);
-    JADE_ASSERT(isLiquidNetworkId(network_id));
+    JADE_ASSERT(network_is_liquid(network_id));
     JADE_ASSERT(assets || !num_assets);
     JADE_ASSERT(summary);
     JADE_ASSERT(summary_len);
@@ -623,7 +623,7 @@ bool show_elements_swap_activity(const uint32_t network_id, const bool initial_p
     const movement_summary_info_t* wallet_output_summary, const size_t wallet_output_summary_size,
     const asset_info_t* assets, const size_t num_assets)
 {
-    JADE_ASSERT(isLiquidNetworkId(network_id));
+    JADE_ASSERT(network_is_liquid(network_id));
     JADE_ASSERT(wallet_input_summary);
     JADE_ASSERT(wallet_input_summary_size);
     JADE_ASSERT(wallet_output_summary);
@@ -779,11 +779,11 @@ bool show_btc_final_confirmation_activity(const uint64_t fee, const char* warnin
 bool show_elements_final_confirmation_activity(
     const uint32_t network_id, const char* title, const uint64_t fee, const char* warning_msg)
 {
-    JADE_ASSERT(isLiquidNetworkId(network_id));
+    JADE_ASSERT(network_is_liquid(network_id));
     JADE_ASSERT(title);
 
     // Policy asset must be present in h/coded asset data, and it must have a 'ticker'
-    const char* asset_id_hex = networkGetPolicyAsset(network_id);
+    const char* asset_id_hex = network_to_policy_asset_hex(network_id);
     JADE_ASSERT(asset_id_hex);
     asset_info_t asset_info = {};
     const bool have_asset_info = assets_get_info(network_id, NULL, 0, asset_id_hex, &asset_info);

@@ -442,7 +442,7 @@ void auth_user_process(void* process_ptr)
 #ifndef CONFIG_DEBUG_MODE
         // If not a debug build, we restrict the hw to this network type
         // (In case it wasn't set at wallet creation/recovery time [older fw])
-        keychain_set_network_type_restriction(networkIdToType(network_id));
+        keychain_set_network_type_restriction(network_to_type(network_id));
 #endif
         JADE_LOGI("Success");
     }

@@ -1598,7 +1598,7 @@ static bool post_auth_msg_request(const jade_msg_source_t source, const bool sup
     } else {
         network_id = WALLY_NETWORK_BITCOIN_MAINNET;
     }
-    add_string_to_map(&params_encoder, "network", networkIdToNetwork(network_id));
+    add_string_to_map(&params_encoder, "network", network_to_name(network_id));
     add_boolean_to_map(&params_encoder, "suppress_pin_change_confirmation", suppress_pin_change_confirmation);
     cberr = cbor_encoder_close_container(&root_map_encoder, &params_encoder);
     JADE_ASSERT(cberr == CborNoError);

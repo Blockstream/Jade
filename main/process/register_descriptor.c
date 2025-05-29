@@ -35,7 +35,7 @@ static int register_descriptor(
     JADE_ASSERT(descriptor->num_values < MAX_ALLOWED_SIGNERS);
 
     // Not valid for liquid wallets atm
-    if (isLiquidNetworkId(network_id)) {
+    if (network_is_liquid(network_id)) {
         *errmsg = "Descriptor wallets not supported on liquid network";
         return CBOR_RPC_BAD_PARAMETERS;
     }

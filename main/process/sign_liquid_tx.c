@@ -549,7 +549,7 @@ void sign_liquid_tx_process(void* process_ptr)
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
 
-    if (!isLiquidNetworkId(network_id)) {
+    if (!network_is_liquid(network_id)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "sign_liquid_tx call only appropriate for liquid network", NULL);
         goto cleanup;
@@ -700,7 +700,7 @@ void sign_liquid_tx_process(void* process_ptr)
     // Can be null for unblinded outputs as we will skip them.
     // Populate an `output_index` -> (blinding_key, asset, value) map
     uint8_t policy_asset[ASSET_TAG_LEN];
-    const char* policy_asset_hex = networkGetPolicyAsset(network_id);
+    const char* policy_asset_hex = network_to_policy_asset_hex(network_id);
     JADE_WALLY_VERIFY(wally_hex_to_bytes(policy_asset_hex, policy_asset, sizeof(policy_asset), &written));
     JADE_ASSERT(written == sizeof(policy_asset));
 

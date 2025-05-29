@@ -241,7 +241,7 @@ bool keychain_is_network_type_consistent(const network_type_t network_type)
 
 bool keychain_is_network_id_consistent(const uint32_t network_id)
 {
-    const network_type_t network_type = networkIdToType(network_id);
+    const network_type_t network_type = network_to_type(network_id);
     return keychain_is_network_type_consistent(network_type);
 }
 

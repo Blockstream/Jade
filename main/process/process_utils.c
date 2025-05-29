@@ -29,7 +29,7 @@ bool jade_process_check_network(jade_process_t* process, CborValue* params, uint
     char network[MAX_NETWORK_NAME_LEN];
     size_t network_len;
     rpc_get_string("network", sizeof(network), params, network, &network_len);
-    *network_id = networkToNetworkId(network_len ? network : NULL);
+    *network_id = network_from_name(network_len ? network : NULL);
 
     if (*network_id == WALLY_NETWORK_NONE) {
         jade_process_reject_message(

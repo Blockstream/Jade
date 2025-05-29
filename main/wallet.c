@@ -778,7 +778,7 @@ static void wallet_build_csv(const uint32_t network_id, const uint8_t* pubkeys, 
     JADE_ASSERT(written);
 
     // Create 2of2 CSV multisig script (2of3-csv not supported)
-    if (isLiquidNetworkId(network_id)) {
+    if (network_is_liquid(network_id)) {
         // NOTE: we use the original (un-optimised) csv script for liquid
         JADE_LOGI("Generating liquid csv script");
         JADE_WALLY_VERIFY(wally_scriptpubkey_csv_2of2_then_1_from_bytes(
@@ -813,7 +813,7 @@ bool wallet_build_ga_script_ex(const uint32_t network_id, const struct ext_key* 
     }
 
     // If csv, ensure above allowed minimum for network
-    if (csv_blocks && csv_blocks < networkToMinAllowedCsvBlocks(network_id)) {
+    if (csv_blocks && !network_is_allowable_csv_blocks(network_id, csv_blocks)) {
         JADE_LOGE("csvblocks (%u) too low for network %" PRIu32, csv_blocks, network_id);
         return false;
     }
@@ -857,7 +857,7 @@ bool wallet_build_ga_script_ex(const uint32_t network_id, const struct ext_key* 
     }
 
     // Get 2of2 or 2of3, csv or multisig script, depending on params
-    if (csv_blocks > 0) {
+    if (csv_blocks) {
         wallet_build_csv(
             network_id, pubkeys, num_pubkeys * EC_PUBLIC_KEY_LEN, csv_blocks, script, sizeof(script), &script_len);
     } else {
@@ -1333,7 +1333,7 @@ bool wallet_get_xpub(const uint32_t network_id, const uint32_t* path, const size
     JADE_ASSERT(output);
 
     // Get the version prefix bytes for the passed network
-    const uint32_t version = networkToBip32Version(network_id);
+    const uint32_t version = network_to_bip32_version(network_id);
 
     // NOTE: we do not SKIP_HASH in this case, as it is included in the xpub
     struct ext_key derived;

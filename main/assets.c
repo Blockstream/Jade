@@ -193,7 +193,7 @@ bool assets_get_allocate(const char* field, const CborValue* value, asset_info_t
 bool assets_get_info(const uint32_t network_id, const asset_info_t* assets, const size_t num_assets,
     const char* asset_id, asset_info_t* asset_info_out)
 {
-    JADE_ASSERT(isLiquidNetworkId(network_id));
+    JADE_ASSERT(network_is_liquid(network_id));
     JADE_ASSERT(assets || !num_assets);
     JADE_ASSERT(asset_id);
 

@@ -69,7 +69,7 @@ bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id,
             bool is_change = true;
             rpc_get_boolean("is_change", &arrayItem, &is_change);
 
-            size_t csvBlocks = 0;
+            size_t csv_blocks = 0;
             size_t script_len = 0;
             uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
             size_t written = 0;
@@ -105,7 +105,7 @@ bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id,
                 }
             } else if (rpc_has_field_data("descriptor_name", &arrayItem)) {
                 // Not valid for liquid wallets atm
-                if (isLiquidNetworkId(network_id)) {
+                if (network_is_liquid(network_id)) {
                     *errmsg = "Descriptor wallets not supported on liquid network";
                     goto cleanup;
                 }
@@ -164,21 +164,21 @@ bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id,
                     rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &arrayItem, xpubrecovery, &written);
 
                     // Optional 'blocks' for csv outputs
-                    rpc_get_sizet("csv_blocks", &arrayItem, &csvBlocks);
+                    rpc_get_sizet("csv_blocks", &arrayItem, &csv_blocks);
 
                     // If number of csv blocks unexpected show a warning message and ask the user to confirm
-                    if (csvBlocks && !csvBlocksExpectedForNetwork(network_id, csvBlocks)) {
-                        JADE_LOGW("Unexpected number of csv blocks in path for output: %u", csvBlocks);
+                    if (csv_blocks && !network_is_known_csv_blocks(network_id, csv_blocks)) {
+                        JADE_LOGW("Unexpected number of csv blocks in path for output: %u", csv_blocks);
                         const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
                             "This wallet output has a non-standard csv value (%u), so it may be difficult to find.  "
                             "Proceed at your own risk.",
-                            csvBlocks);
+                            csv_blocks);
                         JADE_ASSERT(
                             ret > 0 && ret < sizeof(output_info[i].message)); // Keep message within size handled by gui
                     }
 
                     // Build a script pubkey for the passed parameters
-                    if (!wallet_build_ga_script(network_id, written ? xpubrecovery : NULL, csvBlocks, path, path_len,
+                    if (!wallet_build_ga_script(network_id, written ? xpubrecovery : NULL, csv_blocks, path, path_len,
                             script, sizeof(script), &script_len)) {
                         JADE_LOGE("Output %u path/script failed to construct", i);
                         *errmsg = "Receive script cannot be constructed";
@@ -409,7 +409,7 @@ void sign_tx_process(void* process_ptr)
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
-    if (isLiquidNetworkId(network_id)) {
+    if (network_is_liquid(network_id)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "sign_tx call not appropriate for liquid network", NULL);
         goto cleanup;
