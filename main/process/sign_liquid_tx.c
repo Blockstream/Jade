@@ -17,19 +17,20 @@
 #include "../wallet.h"
 
 #include <sodium/utils.h>
+#include <wally_address.h>
 #include <wally_anti_exfil.h>
 #include <wally_elements.h>
 
 #include "process_utils.h"
 
-bool show_elements_transaction_outputs_activity(const char* network, const struct wally_tx* tx,
+bool show_elements_transaction_outputs_activity(const uint32_t network_id, const struct wally_tx* tx,
     const output_info_t* output_info, const asset_info_t* assets, size_t num_assets);
-bool show_elements_swap_activity(const char* network, bool initial_proposal,
+bool show_elements_swap_activity(const uint32_t network_id, bool initial_proposal,
     const movement_summary_info_t* wallet_input_summary, size_t wallet_input_summary_size,
     const movement_summary_info_t* wallet_output_summary, size_t wallet_output_summary_size, const asset_info_t* assets,
     size_t num_assets);
 bool show_elements_final_confirmation_activity(
-    const char* network, const char* title, const uint64_t fee, const char* warning_msg);
+    const uint32_t network_id, const char* title, const uint64_t fee, const char* warning_msg);
 
 // From sign_tx.c
 bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id, const struct wally_tx* tx,
@@ -512,11 +513,11 @@ static bool add_output_info(
     return true;
 }
 
-bool show_elements_fee_confirmation_activity(const char* network, const struct wally_tx* tx,
+bool show_elements_fee_confirmation_activity(const uint32_t network_id, const struct wally_tx* tx,
     const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t fees,
     const TxType_t txtype, const bool tx_is_partial)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(tx);
     JADE_ASSERT(outinfo);
 
@@ -526,7 +527,7 @@ bool show_elements_fee_confirmation_activity(const char* network, const struct w
         = (txtype == TXTYPE_SWAP) ? (tx_is_partial ? "Swap Proposal" : "Complete Swap") : "Send Transaction";
 
     // Return whether the user accepts or declines
-    return show_elements_final_confirmation_activity(network, title, fees, warning_msg);
+    return show_elements_final_confirmation_activity(network_id, title, fees, warning_msg);
 }
 
 /*
@@ -699,7 +700,7 @@ void sign_liquid_tx_process(void* process_ptr)
     // Can be null for unblinded outputs as we will skip them.
     // Populate an `output_index` -> (blinding_key, asset, value) map
     uint8_t policy_asset[ASSET_TAG_LEN];
-    const char* policy_asset_hex = networkGetPolicyAsset(network);
+    const char* policy_asset_hex = networkGetPolicyAsset(network_id);
     JADE_WALLY_VERIFY(wally_hex_to_bytes(policy_asset_hex, policy_asset, sizeof(policy_asset), &written));
     JADE_ASSERT(written == sizeof(policy_asset));
 
@@ -768,7 +769,7 @@ void sign_liquid_tx_process(void* process_ptr)
 
     if (txtype == TXTYPE_SWAP) {
         // Confirm wallet-summary info (ie. net inputs and outputs)
-        if (!show_elements_swap_activity(network, tx_is_partial, wallet_input_summary, wallet_input_summary_size,
+        if (!show_elements_swap_activity(network_id, tx_is_partial, wallet_input_summary, wallet_input_summary_size,
                 wallet_output_summary, wallet_output_summary_size, assets, num_assets)) {
             JADE_LOGW("User declined to sign swap transaction");
             jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
@@ -776,7 +777,7 @@ void sign_liquid_tx_process(void* process_ptr)
         }
     } else {
         // Confirm all non-change outputs
-        if (!show_elements_transaction_outputs_activity(network, tx, output_info, assets, num_assets)) {
+        if (!show_elements_transaction_outputs_activity(network_id, tx, output_info, assets, num_assets)) {
             JADE_LOGW("User declined to sign transaction");
             jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
             goto cleanup;
@@ -952,7 +953,7 @@ void sign_liquid_tx_process(void* process_ptr)
         // User to agree fee amount
         // If user cancels we'll send the 'cancelled' error response for the last input message only
         if (!show_elements_fee_confirmation_activity(
-                network, tx, output_info, aggregate_inputs_scripts_flavour, fees, txtype, tx_is_partial)) {
+                network_id, tx, output_info, aggregate_inputs_scripts_flavour, fees, txtype, tx_is_partial)) {
             // If using ae-signatures, we need to load the message to send the error back on
             if (use_ae_signatures) {
                 jade_process_load_in_message(process, true);

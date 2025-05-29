@@ -107,11 +107,11 @@ void script_to_address(const char* network, const uint8_t* script, const size_t 
 }
 
 // Convert the passed liquid script into an address (confidential if blindng key passed)
-void elements_script_to_address(const char* network, const uint8_t* script, const size_t script_len,
+void elements_script_to_address(const uint32_t network_id, const uint8_t* script, const size_t script_len,
     const bool has_value, const uint8_t* blinding_key, const size_t blinding_key_len, char* output,
     const size_t output_len)
 {
-    JADE_ASSERT(isLiquidNetwork(network));
+    JADE_ASSERT(isLiquidNetworkId(network_id));
     JADE_ASSERT(output);
     JADE_ASSERT(output_len);
 
@@ -125,6 +125,7 @@ void elements_script_to_address(const char* network, const uint8_t* script, cons
     size_t output_type = WALLY_SCRIPT_TYPE_UNKNOWN;
     JADE_WALLY_VERIFY(wally_scriptpubkey_get_type(script, script_len, &output_type));
 
+    const char* const network = networkIdToNetwork(network_id); // TODO: use ID
     char* tmp_str = NULL;
     uint8_t prefix = 0;
     const char* hrp = NULL;

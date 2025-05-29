@@ -262,30 +262,19 @@ const char* networkToBlech32Hrp(const char* network)
     }
 }
 
-/* FIXME: Remove this if/when TAG_LOCALTESTLIQUID uses testnet assets */
-bool networkUsesTestnetAssets(const char* network)
-{
-    JADE_ASSERT(isLiquidNetwork(network));
-
-    // TAG_LOCALTESTLIQUID appears to use mainnet assets ?
-    return !strcmp(TAG_TESTNETLIQUID, network);
-}
-
 // hexadecimal string to relevant policy-asset (lower-case hex id)
-const char* networkGetPolicyAsset(const char* network)
+const char* networkGetPolicyAsset(const uint32_t network_id)
 {
-    JADE_ASSERT(isLiquidNetwork(network));
-
     // These are the policy assets for the liquid networks.
     // NOTE: 'rich' information should be present in the h/coded data in assets.c
-    if (!strcmp(TAG_LIQUID, network)) {
+    if (network_id == WALLY_NETWORK_LIQUID) {
         return "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d";
-    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+    } else if (network_id == WALLY_NETWORK_LIQUID_TESTNET) {
         return "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49";
-    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
+    } else if (network_id == WALLY_NETWORK_LIQUID_REGTEST) {
         return "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225";
-    } else {
-        return NULL;
     }
+    JADE_ASSERT(false); // Not a liquid network
+    return NULL; // Unreachable
 }
 #endif // AMALGAMATED_BUILD

@@ -71,12 +71,12 @@ static uint32_t displayable_outputs(
 
 // Lookup the passed asset-id in the asset data, and return the asset-id, issuer,
 // ticker, and the passed value scaled correctly for the precision provided.
-static bool get_asset_display_info(const char* network, const asset_info_t* assets, const size_t num_assets,
+static bool get_asset_display_info(const uint32_t network_id, const asset_info_t* assets, const size_t num_assets,
     const uint8_t* asset_id, const size_t asset_id_len, const uint64_t value, char* issuer, const size_t issuer_len,
     char* asset_id_hex, const size_t asset_id_hex_len, char* amount, const size_t amount_len, char* ticker,
     const size_t ticker_len)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isLiquidNetworkId(network_id));
     JADE_ASSERT(assets || !num_assets);
     JADE_ASSERT(asset_id);
     JADE_ASSERT(asset_id_len);
@@ -99,7 +99,7 @@ static bool get_asset_display_info(const char* network, const asset_info_t* asse
 
     // Look up the asset-id in the canned asset-data
     asset_info_t asset_info = {};
-    const bool have_asset_info = assets_get_info(network, assets, num_assets, asset_id_hex, &asset_info);
+    const bool have_asset_info = assets_get_info(network_id, assets, num_assets, asset_id_hex, &asset_info);
     if (have_asset_info) {
         JADE_LOGI("Found asset data for asset-id: '%s'", asset_id_hex);
 
@@ -474,10 +474,10 @@ bool show_btc_transaction_outputs_activity(
     return true;
 }
 
-bool show_elements_transaction_outputs_activity(const char* network, const struct wally_tx* tx,
+bool show_elements_transaction_outputs_activity(const uint32_t network_id, const struct wally_tx* tx,
     const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isLiquidNetworkId(network_id));
     JADE_ASSERT(tx);
     JADE_ASSERT(output_info);
     JADE_ASSERT(assets || !num_assets);
@@ -515,7 +515,7 @@ bool show_elements_transaction_outputs_activity(const char* network, const struc
 
         // Get the address
         char address[MAX_ADDRESS_LEN];
-        elements_script_to_address(network, out->script, out->script_len, output_info[i].value > 0,
+        elements_script_to_address(network_id, out->script, out->script_len, output_info[i].value > 0,
             (output_info[i].flags & OUTPUT_FLAG_HAS_BLINDING_KEY) ? output_info[i].blinding_key : NULL,
             sizeof(output_info[i].blinding_key), address, sizeof(address));
         const bool is_address = true;
@@ -538,7 +538,7 @@ bool show_elements_transaction_outputs_activity(const char* network, const struc
         char asset_id_hex[2 * ASSET_TAG_LEN + 1];
         char amount[32];
         char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
-        const bool have_asset_info = get_asset_display_info(network, assets, num_assets, output_info[i].asset_id,
+        const bool have_asset_info = get_asset_display_info(network_id, assets, num_assets, output_info[i].asset_id,
             sizeof(output_info[i].asset_id), output_info[i].value, issuer, sizeof(issuer), asset_id_hex,
             sizeof(asset_id_hex), amount, sizeof(amount), ticker, sizeof(ticker));
 
@@ -569,13 +569,13 @@ bool show_elements_transaction_outputs_activity(const char* network, const struc
     return true;
 }
 
-static bool show_elements_asset_summary_activity(const char* title, const char* direction, const char* network,
+static bool show_elements_asset_summary_activity(const char* title, const char* direction, const uint32_t network_id,
     const asset_info_t* assets, const size_t num_assets, const movement_summary_info_t* summary,
     const size_t summary_len)
 {
     JADE_ASSERT(title);
     JADE_ASSERT(direction);
-    JADE_ASSERT(network);
+    JADE_ASSERT(isLiquidNetworkId(network_id));
     JADE_ASSERT(assets || !num_assets);
     JADE_ASSERT(summary);
     JADE_ASSERT(summary_len);
@@ -599,7 +599,7 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
         char asset_id_hex[2 * ASSET_TAG_LEN + 1];
         char amount[32];
         char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
-        const bool have_asset_info = get_asset_display_info(network, assets, num_assets, summary[i].asset_id,
+        const bool have_asset_info = get_asset_display_info(network_id, assets, num_assets, summary[i].asset_id,
             sizeof(summary[i].asset_id), summary[i].value, issuer, sizeof(issuer), asset_id_hex, sizeof(asset_id_hex),
             amount, sizeof(amount), ticker, sizeof(ticker));
 
@@ -617,12 +617,12 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
     return true;
 }
 
-bool show_elements_swap_activity(const char* network, const bool initial_proposal,
+bool show_elements_swap_activity(const uint32_t network_id, const bool initial_proposal,
     const movement_summary_info_t* wallet_input_summary, const size_t wallet_input_summary_size,
     const movement_summary_info_t* wallet_output_summary, const size_t wallet_output_summary_size,
     const asset_info_t* assets, const size_t num_assets)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isLiquidNetworkId(network_id));
     JADE_ASSERT(wallet_input_summary);
     JADE_ASSERT(wallet_input_summary_size);
     JADE_ASSERT(wallet_output_summary);
@@ -632,13 +632,13 @@ bool show_elements_swap_activity(const char* network, const bool initial_proposa
     const char* title = initial_proposal ? "Swap Proposal" : "Complete Swap";
 
     if (!show_elements_asset_summary_activity(
-            title, "Receive", network, assets, num_assets, wallet_output_summary, wallet_output_summary_size)) {
+            title, "Receive", network_id, assets, num_assets, wallet_output_summary, wallet_output_summary_size)) {
         // User pressed 'cancel'
         return false;
     }
 
     if (!show_elements_asset_summary_activity(
-            title, "Send", network, assets, num_assets, wallet_input_summary, wallet_input_summary_size)) {
+            title, "Send", network_id, assets, num_assets, wallet_input_summary, wallet_input_summary_size)) {
         // User pressed 'cancel'
         return false;
     }
@@ -776,16 +776,16 @@ bool show_btc_final_confirmation_activity(const uint64_t fee, const char* warnin
 }
 
 bool show_elements_final_confirmation_activity(
-    const char* network, const char* title, const uint64_t fee, const char* warning_msg)
+    const uint32_t network_id, const char* title, const uint64_t fee, const char* warning_msg)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(isLiquidNetworkId(network_id));
     JADE_ASSERT(title);
 
     // Policy asset must be present in h/coded asset data, and it must have a 'ticker'
-    const char* asset_id_hex = networkGetPolicyAsset(network);
+    const char* asset_id_hex = networkGetPolicyAsset(network_id);
     JADE_ASSERT(asset_id_hex);
     asset_info_t asset_info = {};
-    const bool have_asset_info = assets_get_info(network, NULL, 0, asset_id_hex, &asset_info);
+    const bool have_asset_info = assets_get_info(network_id, NULL, 0, asset_id_hex, &asset_info);
     JADE_ASSERT(have_asset_info);
     JADE_ASSERT(asset_info.ticker);
     JADE_ASSERT(asset_info.ticker_len);

@@ -8,6 +8,7 @@
 
 #include <assets_snapshot.h>
 #include <cbor.h>
+#include <wally_address.h>
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
@@ -189,10 +190,10 @@ bool assets_get_allocate(const char* field, const CborValue* value, asset_info_t
 // Lookup asset-info for the passed asset-id.
 // 1. Looks in any explicitly passed asset-info
 // 2. Looks in any h/coded asset snapshot data (eg. policy assets)
-bool assets_get_info(const char* network, const asset_info_t* assets, const size_t num_assets, const char* asset_id,
-    asset_info_t* asset_info_out)
+bool assets_get_info(const uint32_t network_id, const asset_info_t* assets, const size_t num_assets,
+    const char* asset_id, asset_info_t* asset_info_out)
 {
-    JADE_ASSERT(isLiquidNetwork(network));
+    JADE_ASSERT(isLiquidNetworkId(network_id));
     JADE_ASSERT(assets || !num_assets);
     JADE_ASSERT(asset_id);
 
@@ -208,7 +209,10 @@ bool assets_get_info(const char* network, const asset_info_t* assets, const size
     }
 
     // 3. Search the h/coded assets snapshot
-    const bool use_testnet_registry = networkUsesTestnetAssets(network);
+    // FIXME: WALLY_NETWORK_LIQUID_REGTEST appears to use mainnet assets?
+    const bool use_testnet_registry = network_id == WALLY_NETWORK_LIQUID_TESTNET /* ||
+        network_id == WALLY_NETWORK_LIQUID_REGTEST */
+        ;
     const snapshot_asset_info_t* snapshot_asset = assets_snapshot_get_info(asset_id, use_testnet_registry);
     if (snapshot_asset) {
         // Copy pointers and deduce sizes (as snapshot fields are nul-terminated strings)

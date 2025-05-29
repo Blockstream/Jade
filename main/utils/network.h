@@ -44,7 +44,6 @@ const char* networkToBech32Hrp(const char* network);
 uint8_t networkToCAPrefix(const char* network);
 const char* networkToBlech32Hrp(const char* network);
 
-bool networkUsesTestnetAssets(const char* network);
-const char* networkGetPolicyAsset(const char* network);
+const char* networkGetPolicyAsset(const uint32_t network_id);
 
 #endif /* UTILS_NETWORK_H_ */

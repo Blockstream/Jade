@@ -233,11 +233,11 @@ void get_receive_address_process(void* process_ptr)
                     process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding key for script", NULL);
                 goto cleanup;
             }
-            elements_script_to_address(
-                network, script, script_len, has_value, blinding_key, sizeof(blinding_key), address, sizeof(address));
+            elements_script_to_address(network_id, script, script_len, has_value, blinding_key, sizeof(blinding_key),
+                address, sizeof(address));
         } else {
             JADE_ASSERT(!p_master_blinding_key && !master_blinding_key_len);
-            elements_script_to_address(network, script, script_len, has_value, NULL, 0, address, sizeof(address));
+            elements_script_to_address(network_id, script, script_len, has_value, NULL, 0, address, sizeof(address));
         }
     } else {
         JADE_ASSERT(!confidential && !p_master_blinding_key && !master_blinding_key_len);
