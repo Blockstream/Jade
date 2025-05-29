@@ -73,23 +73,19 @@ typedef struct {
         goto cleanup;                                                                                                  \
     }
 
+bool jade_process_check_network(jade_process_t* process, CborValue* params, uint32_t* network_id);
+
 // Ensure the rpc "network" parameter is valid and consistent with prior use.
 // Declares 'network_id'/'network' variables and initializes them.
 // Assumes GET_MSG_PARAMS() was used previously in the same scope.
+// TODO: Remove 'network' and pass around 'network_id' instead.
 #define CHECK_NETWORK_CONSISTENT(process)                                                                              \
-    char network[MAX_NETWORK_NAME_LEN];                                                                                \
-    size_t network_len;                                                                                                \
-    rpc_get_string("network", sizeof(network), &params, network, &network_len);                                        \
-    const uint32_t network_id = networkToNetworkId(network_len ? network : NULL);                                      \
-    if (network_id == WALLY_NETWORK_NONE) {                                                                            \
-        jade_process_reject_message(                                                                                   \
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);                \
+    uint32_t network_id;                                                                                               \
+    if (!jade_process_check_network(process, &params, &network_id)) {                                                  \
         goto cleanup;                                                                                                  \
-    } else if (!keychain_is_network_type_consistent(network)) {                                                        \
-        jade_process_reject_message(                                                                                   \
-            process, CBOR_RPC_NETWORK_MISMATCH, "Network type inconsistent with prior usage", NULL);                   \
-        goto cleanup;                                                                                                  \
-    }
+    }                                                                                                                  \
+    const char* const network = networkIdToNetwork(network_id);                                                        \
+    (void)network;
 
 // Do we have have a keychain, and does its userdata indicate the same 'source'
 // as the current message ?

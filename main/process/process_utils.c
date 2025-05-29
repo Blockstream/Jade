@@ -12,12 +12,36 @@
 #include "process_utils.h"
 
 #include <sys/time.h>
+#include <wally_address.h>
 #include <wally_anti_exfil.h>
 #include <wally_script.h>
 
 #include "process_utils.h"
 
 static const char KEY_TYPE_RSA[] = { 'R', 'S', 'A' };
+
+bool jade_process_check_network(jade_process_t* process, CborValue* params, uint32_t* network_id)
+{
+    JADE_ASSERT(process);
+    JADE_ASSERT(params);
+    JADE_ASSERT(network_id);
+
+    char network[MAX_NETWORK_NAME_LEN];
+    size_t network_len;
+    rpc_get_string("network", sizeof(network), params, network, &network_len);
+    *network_id = networkToNetworkId(network_len ? network : NULL);
+
+    if (*network_id == WALLY_NETWORK_NONE) {
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
+        return false;
+    } else if (!keychain_is_network_type_consistent(network)) {
+        jade_process_reject_message(
+            process, CBOR_RPC_NETWORK_MISMATCH, "Network type inconsistent with prior usage", NULL);
+        return false;
+    }
+    return true;
+}
 
 // Sanity check extended-data payload fields
 bool check_extended_data_fields(CborValue* params, const char* expected_origid, const char* expected_orig,
