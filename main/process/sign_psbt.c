@@ -618,11 +618,10 @@ static void validate_any_change_outputs(const uint32_t network_id, struct wally_
 // Sign a psbt - the passed wally psbt struct is updated with any signatures.
 // Returns 0 if no errors occurred - does not necessarily indicate that signatures were added.
 // Returns an rpc/message error code on error, and the error string should be populated.
-int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
+int sign_psbt(const uint32_t network_id, struct wally_psbt* psbt, const char** errmsg)
 {
     JADE_ASSERT(psbt);
     JADE_INIT_OUT_PPTR(errmsg);
-    const uint32_t network_id = networkToNetworkId(network);
     JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
 
     // Elements/PSET not supported
@@ -972,7 +971,7 @@ void sign_psbt_process(void* process_ptr)
 
     // Sign the psbt - parameter updated with any signatures
     const char* errmsg = NULL;
-    const int errcode = sign_psbt(network, psbt, &errmsg);
+    const int errcode = sign_psbt(network_id, psbt, &errmsg);
     if (errcode) {
         jade_process_reject_message(process, errcode, errmsg, NULL);
         goto cleanup;

@@ -29,7 +29,7 @@ void await_qr_help_activity(const char* url);
 // PSBT serialisation functions
 bool deserialise_psbt(const uint8_t* bytes, size_t bytes_len, struct wally_psbt** psbt_out);
 bool serialise_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len);
-int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg);
+int sign_psbt(const uint32_t network_id, struct wally_psbt* psbt, const char** errmsg);
 
 #define MAX_FILENAME_SIZE 256
 #define MAX_FILE_ENTRIES 64
@@ -827,8 +827,13 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
 
     // Sign PSBT
     const char* errmsg = NULL;
-    const char* network = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? TAG_TESTNET : TAG_MAINNET;
-    const int errcode = sign_psbt(network, psbt, &errmsg);
+    uint32_t network_id;
+    if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
+        network_id = WALLY_NETWORK_BITCOIN_TESTNET;
+    } else {
+        network_id = WALLY_NETWORK_BITCOIN_MAINNET;
+    }
+    const int errcode = sign_psbt(network_id, psbt, &errmsg);
     if (errcode) {
         if (errcode != CBOR_RPC_USER_CANCELLED) {
             const char* message[] = { errmsg };

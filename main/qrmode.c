@@ -89,7 +89,7 @@ bool select_registered_wallet(const char multisig_names[][NVS_KEY_NAME_MAX_SIZE]
 
 // PSBT struct and functions
 struct wally_psbt;
-int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg);
+int sign_psbt(const uint32_t network_id, struct wally_psbt* psbt, const char** errmsg);
 int wally_psbt_free(struct wally_psbt* psbt);
 
 #define EXPORT_XPUB_PATH_LEN 4
@@ -1132,8 +1132,13 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     // Try to sign extracted PSBT
     bool ret = false;
     const char* errmsg = NULL;
-    const char* network = keychain_get_network_type_restriction() == NETWORK_TYPE_TEST ? TAG_TESTNET : TAG_MAINNET;
-    const int errcode = sign_psbt(network, psbt, &errmsg);
+    uint32_t network_id;
+    if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
+        network_id = WALLY_NETWORK_BITCOIN_TESTNET;
+    } else {
+        network_id = WALLY_NETWORK_BITCOIN_MAINNET;
+    }
+    const int errcode = sign_psbt(network_id, psbt, &errmsg);
     if (errcode) {
         if (errcode != CBOR_RPC_USER_CANCELLED) {
             const char* message[] = { errmsg };
@@ -1586,8 +1591,8 @@ static bool post_auth_msg_request(const jade_msg_source_t source, const bool sup
     cberr = cbor_encoder_create_map(&root_map_encoder, &params_encoder, 2);
     JADE_ASSERT(cberr == CborNoError);
     const network_type_t restriction = keychain_get_network_type_restriction();
-    const char* networks = restriction == NETWORK_TYPE_TEST ? "testnet" : "mainnet";
-    add_string_to_map(&params_encoder, "network", networks);
+    const char* network = restriction == NETWORK_TYPE_TEST ? TAG_TESTNET : TAG_MAINNET;
+    add_string_to_map(&params_encoder, "network", network);
     add_boolean_to_map(&params_encoder, "suppress_pin_change_confirmation", suppress_pin_change_confirmation);
     cberr = cbor_encoder_close_container(&root_map_encoder, &params_encoder);
     JADE_ASSERT(cberr == CborNoError);
