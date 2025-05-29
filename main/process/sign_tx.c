@@ -291,15 +291,14 @@ bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_
 }
 
 // Loop to generate and send Anti-Exfil signatures as they are requested.
-void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_signing_data, const uint32_t num_inputs)
+void send_ae_signature_replies(jade_process_t* process, signing_data_t* signing_data)
 {
     JADE_ASSERT(process);
-    JADE_ASSERT(all_signing_data);
-    JADE_ASSERT(num_inputs > 0);
+    JADE_ASSERT(signing_data);
+    JADE_ASSERT(signing_data->num_inputs > 0);
 
-    SENSITIVE_PUSH(all_signing_data, sizeof(all_signing_data));
-    for (size_t i = 0; i < num_inputs; ++i) {
-        signing_data_t* const sig_data = all_signing_data + i;
+    for (size_t i = 0; i < signing_data->num_inputs; ++i) {
+        input_data_t* const input_data = &signing_data->inputs[i];
 
         // We always need a 'get-signature' exchange even if we are not providing a signature
         jade_process_load_in_message(process, true);
@@ -310,7 +309,7 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
             goto cleanup;
         }
 
-        if (sig_data->path_len > 0) {
+        if (input_data->path_len > 0) {
             // We are expecting to generate a signature for this input
             GET_MSG_PARAMS(process);
 
@@ -325,7 +324,7 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
                 goto cleanup;
             }
             const bool use_ae = ae_host_entropy_len != 0;
-            if (sig_data->use_ae != use_ae) {
+            if (input_data->use_ae != use_ae) {
                 // We must be given both a commitment and entropy, or neither.
                 jade_process_reject_message(process, CBOR_RPC_PROTOCOL_ERROR,
                     "Failed to extract valid host commitment and entropy from parameters", NULL);
@@ -333,66 +332,62 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* all_sign
             }
 
             // Generate Anti-Exfil, non-AE ECDSA or non-AE Schnorr signature
-            if (!wallet_sign_tx_input_hash(sig_data, ae_host_entropy, ae_host_entropy_len)) {
+            if (!wallet_sign_tx_input_hash(input_data, ae_host_entropy, ae_host_entropy_len)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input", NULL);
                 goto cleanup;
             }
-            JADE_ASSERT(sig_data->sig_len > 0);
+            JADE_ASSERT(input_data->sig_len > 0);
         }
 
         // Send signature reply - will be empty for any inputs we are not signing
-        const bytes_info_t bytes_info = { .data = sig_data->sig, .size = sig_data->sig_len };
+        const bytes_info_t bytes_info = { .data = input_data->sig, .size = input_data->sig_len };
         jade_process_reply_to_message_result(process->ctx, &bytes_info, cbor_result_bytes_cb);
     }
-
 cleanup:
-    SENSITIVE_POP(all_signing_data);
+    (void)process; /* No-op for label */
 }
 
 // The backward compatible 'send all messages in a batch' method for standard EC signatures.
 // NOTE: should be converted to the same message flow as above, at some point.
-void send_ec_signature_replies(
-    const jade_msg_source_t source, signing_data_t* all_signing_data, const uint32_t num_inputs)
+void send_ec_signature_replies(const jade_msg_source_t source, signing_data_t* signing_data)
 {
-    JADE_ASSERT(all_signing_data);
-    JADE_ASSERT(num_inputs > 0);
+    JADE_ASSERT(signing_data);
+    JADE_ASSERT(signing_data->num_inputs > 0);
 
     uint8_t msgbuf[256];
-    SENSITIVE_PUSH(all_signing_data, sizeof(all_signing_data));
-    for (size_t i = 0; i < num_inputs; ++i) {
-        signing_data_t* const sig_data = all_signing_data + i;
-        if (sig_data->path_len > 0) {
+    for (size_t i = 0; i < signing_data->num_inputs; ++i) {
+        input_data_t* const input_data = &signing_data->inputs[i];
+
+        if (input_data->path_len > 0) {
             // Generate EC signature
-            if (!wallet_sign_tx_input_hash(sig_data, NULL, 0)) {
-                jade_process_reject_message_with_id(sig_data->id, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input",
+            if (!wallet_sign_tx_input_hash(input_data, NULL, 0)) {
+                jade_process_reject_message_with_id(input_data->id, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input",
                     NULL, 0, msgbuf, sizeof(msgbuf), source);
-                goto cleanup;
+                return;
             }
-            JADE_ASSERT(sig_data->sig_len > 0);
+            JADE_ASSERT(input_data->sig_len > 0);
         }
     }
 
     // Now send all signatures - one per message - in reply to input messages
     // Will be empty for any inputs we are not signing
-    for (size_t i = 0; i < num_inputs; ++i) {
-        const signing_data_t* const sig_data = all_signing_data + i;
-        const bytes_info_t bytes_info = { .data = sig_data->sig, .size = sig_data->sig_len };
-        jade_process_reply_to_message_result_with_id(
-            sig_data->id, msgbuf, sizeof(msgbuf), source, &bytes_info, cbor_result_bytes_cb);
-    }
+    for (size_t i = 0; i < signing_data->num_inputs; ++i) {
+        input_data_t* const input_data = &signing_data->inputs[i];
 
-cleanup:
-    SENSITIVE_POP(all_signing_data);
+        const bytes_info_t bytes_info = { .data = input_data->sig, .size = input_data->sig_len };
+        jade_process_reply_to_message_result_with_id(
+            input_data->id, msgbuf, sizeof(msgbuf), source, &bytes_info, cbor_result_bytes_cb);
+    }
 }
 
 // Whether or not a sighash type is valid for BTC.
 // NOTE: atm we only accept 'SIGHASH_ALL', or SIGHASH_DEFAULT for p2tr
-static bool is_valid_btc_sig_type(const signing_data_t* const sig_data)
+static bool is_valid_btc_sig_type(const input_data_t* const input_data)
 {
-    if (sig_data->sig_type == WALLY_SIGTYPE_SW_V1) {
-        return sig_data->sighash == WALLY_SIGHASH_DEFAULT || sig_data->sighash == WALLY_SIGHASH_ALL;
+    if (input_data->sig_type == WALLY_SIGTYPE_SW_V1) {
+        return input_data->sighash == WALLY_SIGHASH_DEFAULT || input_data->sighash == WALLY_SIGHASH_ALL;
     }
-    return sig_data->sighash == WALLY_SIGHASH_ALL;
+    return input_data->sighash == WALLY_SIGHASH_ALL;
 }
 
 /*
@@ -496,25 +491,10 @@ void sign_tx_process(void* process_ptr)
     jade_process_reply_to_message_ok(process);
 
     // We generate the hashes for each input but defer signing them
-    // until after the final user confirmation.  Hold them in an block for
+    // until after the final user confirmation.  Hold them in a struct for
     // ease of cleanup if something goes wrong part-way through.
-    signing_data_t* const all_signing_data = JADE_CALLOC(num_inputs, sizeof(signing_data_t));
-    jade_process_free_on_exit(process, all_signing_data);
-
-    // Hold input scriptpubkeys/amounts in a map keyed by input index
-    // (this is how wally wants them).
-    struct wally_map* scriptpubkeys;
-    JADE_WALLY_VERIFY(wally_map_init_alloc(num_inputs, NULL, &scriptpubkeys));
-    jade_process_call_on_exit(process, jade_wally_free_map_wrapper, scriptpubkeys);
-
-    struct wally_map* amounts;
-    JADE_WALLY_VERIFY(wally_map_init_alloc(num_inputs, NULL, &amounts));
-    jade_process_call_on_exit(process, jade_wally_free_map_wrapper, amounts);
-
-    struct wally_map* cache;
-    // FIXME: Use a wally constant for the cache size when it is exposed
-    JADE_WALLY_VERIFY(wally_map_init_alloc(16, NULL, &cache));
-    jade_process_call_on_exit(process, jade_wally_free_map_wrapper, cache);
+    signing_data_t* const signing_data = signing_data_allocate(num_inputs);
+    jade_process_call_on_exit(process, signing_data_free, signing_data);
 
     // We track if the type of the inputs we are signing changes (ie. single-sig vs
     // green/multisig/other) so we can show a warning to the user if so.
@@ -552,8 +532,8 @@ void sign_tx_process(void* process_ptr)
         // Reply is our signature for the input, or an empty string if we are not
         // signing this input (ie. if no path was passed for this input).
         written = 0;
-        signing_data_t* const sig_data = all_signing_data + index;
-        rpc_get_id(&process->ctx.value, sig_data->id, sizeof(sig_data->id), &written);
+        input_data_t* const input_data = &signing_data->inputs[index];
+        rpc_get_id(&process->ctx.value, input_data->id, sizeof(input_data->id), &written);
         JADE_ASSERT(written != 0);
 
         // Path node can be omitted if we don't want to sign this input
@@ -563,24 +543,24 @@ void sign_tx_process(void* process_ptr)
             num_to_sign += 1;
 
             // Get all common tx-signing input fields which must be present if a path is given
-            if (!params_tx_input_signing_data(use_ae_signatures, &params, sig_data, &ae_host_commitment,
+            if (!params_tx_input_signing_data(use_ae_signatures, &params, input_data, &ae_host_commitment,
                     &ae_host_commitment_len, &script, &script_len, &aggregate_inputs_scripts_flavour, &errmsg)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
-            if (!is_valid_btc_sig_type(sig_data)) {
+            if (!is_valid_btc_sig_type(input_data)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
             }
-            if (sig_data->sig_type == WALLY_SIGTYPE_SW_V1) {
+            if (input_data->sig_type == WALLY_SIGTYPE_SW_V1) {
                 num_p2tr_to_sign += 1;
             }
         } else {
             // May still need witness flag
             bool is_witness = false;
             rpc_get_boolean("is_witness", &params, &is_witness);
-            sig_data->sig_type = is_witness ? WALLY_SIGTYPE_SW_V0 : WALLY_SIGTYPE_PRE_SW;
-            sig_data->sighash = WALLY_SIGHASH_ALL;
+            input_data->sig_type = is_witness ? WALLY_SIGTYPE_SW_V0 : WALLY_SIGTYPE_PRE_SW;
+            input_data->sighash = WALLY_SIGHASH_ALL;
         }
 
         // Full input tx can be omitted for transactions with only one single witness
@@ -625,9 +605,9 @@ void sign_tx_process(void* process_ptr)
 
             // Fetch the amount and scriptpubkey from the passed input tx
             const struct wally_tx_output* const txout = &input_tx->outputs[tx->inputs[index].index];
-            res = wally_map_add_integer(scriptpubkeys, index, txout->script, txout->script_len);
+            res = wally_map_add_integer(&signing_data->scriptpubkeys, index, txout->script, txout->script_len);
             if (res == WALLY_OK) {
-                res = wally_map_add_integer(amounts, index, (uint8_t*)&txout->satoshi, sizeof(uint64_t));
+                res = wally_map_add_integer(&signing_data->amounts, index, (uint8_t*)&txout->satoshi, sizeof(uint64_t));
                 // Keep a running total
                 input_amount += txout->satoshi;
             }
@@ -643,7 +623,7 @@ void sign_tx_process(void* process_ptr)
             // For single segwit v0 inputs we can instead get just the amount
             // directly from message. This optimization is deprecated and will
             // be removed in a future firmware release.
-            if (sig_data->sig_type != WALLY_SIGTYPE_SW_V0 || num_inputs > 1) {
+            if (input_data->sig_type != WALLY_SIGTYPE_SW_V0 || num_inputs > 1) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract input_tx from parameters", NULL);
                 goto cleanup;
@@ -656,7 +636,7 @@ void sign_tx_process(void* process_ptr)
             if (!rpc_get_uint64_t("satoshi", &params, &satoshi)) {
                 res = WALLY_EINVAL;
             } else {
-                res = wally_map_add_integer(amounts, index, (uint8_t*)&satoshi, sizeof(uint64_t));
+                res = wally_map_add_integer(&signing_data->amounts, index, (uint8_t*)&satoshi, sizeof(uint64_t));
                 // Keep a running total
                 input_amount += satoshi;
             }
@@ -669,7 +649,7 @@ void sign_tx_process(void* process_ptr)
 
         bool made_ae_commitment = false;
 
-        if (has_path && sig_data->sig_type == WALLY_SIGTYPE_SW_V1) {
+        if (has_path && input_data->sig_type == WALLY_SIGTYPE_SW_V1) {
             // We have been given a path, so are expected to sign this input.
             // We can't compute a taproot signature hash until we have all
             // values and scriptpubkeys - do nothing here and do taproot
@@ -684,17 +664,17 @@ void sign_tx_process(void* process_ptr)
         } else if (has_path) {
             // We have been given a path, so are expected to sign this input.
             // Generate the signature hash of this input which we will sign later
-            if (!wallet_get_tx_input_hash(tx, index, sig_data, script, script_len, amounts, scriptpubkeys, cache)) {
+            if (!wallet_get_tx_input_hash(tx, index, signing_data, script, script_len)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
                 goto cleanup;
             }
 
             // If using anti-exfil signatures for this input,
             // compute signer commitment for returning to caller
-            if (sig_data->use_ae) {
+            if (input_data->use_ae) {
                 JADE_ASSERT(ae_host_commitment);
-                if (!wallet_get_signer_commitment(sig_data->signature_hash, sizeof(sig_data->signature_hash),
-                        sig_data->path, sig_data->path_len, ae_host_commitment, ae_host_commitment_len,
+                if (!wallet_get_signer_commitment(input_data->signature_hash, sizeof(input_data->signature_hash),
+                        input_data->path, input_data->path_len, ae_host_commitment, ae_host_commitment_len,
                         ae_signer_commitment, sizeof(ae_signer_commitment))) {
                     jade_process_reject_message(
                         process, CBOR_RPC_INTERNAL_ERROR, "Failed to make ae signer commitment", NULL);
@@ -706,7 +686,7 @@ void sign_tx_process(void* process_ptr)
             // Empty byte-string reply (no path given implies no sig needed or expected)
             JADE_ASSERT(!script);
             JADE_ASSERT(script_len == 0);
-            JADE_ASSERT(sig_data->path_len == 0);
+            JADE_ASSERT(input_data->path_len == 0);
         }
 
         // Check/log a running total
@@ -731,12 +711,12 @@ void sign_tx_process(void* process_ptr)
     // Loop to process any taproot inputs now that we have all input
     // amounts and scriptpubkeys
     for (size_t index = 0; num_p2tr_to_sign != 0 && index < num_inputs; ++index) {
-        signing_data_t* const sig_data = all_signing_data + index;
-        if (sig_data->sig_type != WALLY_SIGTYPE_SW_V1 || !sig_data->path_len) {
+        input_data_t* const input_data = &signing_data->inputs[index];
+        if (input_data->sig_type != WALLY_SIGTYPE_SW_V1 || !input_data->path_len) {
             // Not signing this input
             continue;
         }
-        if (!wallet_get_tx_input_hash(tx, index, sig_data, NULL, 0, amounts, scriptpubkeys, cache)) {
+        if (!wallet_get_tx_input_hash(tx, index, signing_data, NULL, 0)) {
             // We are using ae-signatures, so we need to load the message to send the error back on
             jade_process_load_in_message(process, true);
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make taproot tx input hash", NULL);
@@ -787,10 +767,10 @@ void sign_tx_process(void* process_ptr)
     // convert normal EC signatures to use the new/improved message flow.
     if (use_ae_signatures) {
         // Generate and send Anti-Exfil signature replies
-        send_ae_signature_replies(process, all_signing_data, num_inputs);
+        send_ae_signature_replies(process, signing_data);
     } else {
         // Generate and send standard EC signature replies
-        send_ec_signature_replies(source, all_signing_data, num_inputs);
+        send_ec_signature_replies(source, signing_data);
     }
     JADE_LOGI("Success");
 

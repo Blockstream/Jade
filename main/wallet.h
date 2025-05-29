@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include <wally_bip32.h>
+#include <wally_map.h>
 #include <wally_transaction.h>
 
 // Blinding factors
@@ -20,6 +21,20 @@ typedef struct {
     bool use_ae; // Output: Whether the input is using anti-exfil
     size_t path_len; // Input: The length of the path in "path"
     size_t sig_len; // Output: The length of the signature in "sig"
+} input_data_t;
+
+// Input/Output data for signing a tx
+// segwit v1: All "amounts"/"assets" must be populated, and "scriptpubkeys"
+//     must have an entry for each item in "inputs".
+// Otherwise: "amounts"/"assets" must contain an amount for the index
+//     being signed, and "scriptpubkeys" is unused.
+typedef struct {
+    input_data_t* inputs;
+    size_t num_inputs;
+    struct wally_map amounts;
+    struct wally_map assets;
+    struct wally_map scriptpubkeys;
+    struct wally_map cache;
 } signing_data_t;
 
 #define MAX_VARIANT_LEN 24
@@ -106,17 +121,17 @@ bool wallet_sign_message_hash(const uint8_t* signature_hash, size_t signature_ha
     size_t path_len, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len, uint8_t* output, size_t output_len,
     size_t* written);
 
+signing_data_t* signing_data_allocate(const size_t num_inputs);
+
+void signing_data_free(void* signing_data);
+
 // Get the signature hash for the "index"-th input of "tx".
-// For segwit v1, all "amounts" must be populated, and "scriptpubkeys" must
-// have an entry for each index.
-// Otherwise, "amounts" must contain an amount for "index" and "scriptpubkeys"
-// is unused.
-bool wallet_get_tx_input_hash(struct wally_tx* tx, size_t index, signing_data_t* sig_data, const uint8_t* script,
-    size_t script_len, const struct wally_map* amounts, const struct wally_map* scriptpubkeys, struct wally_map* cache);
+bool wallet_get_tx_input_hash(
+    struct wally_tx* tx, size_t index, signing_data_t* signing_data, const uint8_t* script, size_t script_len);
 bool wallet_get_signer_commitment(const uint8_t* signature_hash, size_t signature_hash_len, const uint32_t* path,
     size_t path_len, const uint8_t* commitment, size_t commitment_len, uint8_t* output, size_t output_len);
-// Sign the signature hash in sig_data.
-bool wallet_sign_tx_input_hash(signing_data_t* sig_data, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len);
+// Sign the signature hash in input_data.
+bool wallet_sign_tx_input_hash(input_data_t* input_data, const uint8_t* ae_host_entropy, size_t ae_host_entropy_len);
 
 bool wallet_hmac_with_master_key(const uint8_t* data, size_t data_len, uint8_t* output, size_t output_len);
 bool wallet_get_public_blinding_key(const uint8_t* master_blinding_key, size_t master_blinding_key_len,

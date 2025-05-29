@@ -289,15 +289,15 @@ bool params_get_master_blindingkey(
 }
 
 // Get the common parameters required when signing an tx input
-bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, signing_data_t* sig_data,
+bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, input_data_t* input_data,
     const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len, const uint8_t** script, size_t* script_len,
     script_flavour_t* aggregate_script_flavour, const char** errmsg)
 {
-    // Ensure that signing_data_t meets our expections
-    JADE_STATIC_ASSERT(sizeof(((signing_data_t*)0)->path) == MAX_PATH_LEN * sizeof(uint32_t));
-    JADE_STATIC_ASSERT(sizeof(((signing_data_t*)0)->id) == MAXLEN_ID + 1);
+    // Ensure that input_data_t meets our expections
+    JADE_STATIC_ASSERT(sizeof(((input_data_t*)0)->path) == MAX_PATH_LEN * sizeof(uint32_t));
+    JADE_STATIC_ASSERT(sizeof(((input_data_t*)0)->id) == MAXLEN_ID + 1);
     JADE_ASSERT(params);
-    JADE_ASSERT(sig_data);
+    JADE_ASSERT(input_data);
     JADE_INIT_OUT_PPTR(ae_host_commitment);
     JADE_INIT_OUT_SIZE(ae_host_commitment_len);
     JADE_INIT_OUT_PPTR(script);
@@ -311,11 +311,11 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
         return false;
     }
     // Assume segwit v0 for witness inputs unless v1 is detected below
-    sig_data->sig_type = is_witness ? WALLY_SIGTYPE_SW_V0 : WALLY_SIGTYPE_PRE_SW;
+    input_data->sig_type = is_witness ? WALLY_SIGTYPE_SW_V0 : WALLY_SIGTYPE_PRE_SW;
 
-    const size_t max_path_len = sizeof(sig_data->path) / sizeof(sig_data->path[0]);
-    if (!rpc_get_bip32_path("path", params, sig_data->path, max_path_len, &sig_data->path_len)
-        || sig_data->path_len == 0) {
+    const size_t max_path_len = sizeof(input_data->path) / sizeof(input_data->path[0]);
+    if (!rpc_get_bip32_path("path", params, input_data->path, max_path_len, &input_data->path_len)
+        || input_data->path_len == 0) {
         *errmsg = "Failed to extract valid path from parameters";
         return false;
     }
@@ -330,7 +330,7 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
             *errmsg = "Failed to fetch valid sighash from parameters";
             return false;
         }
-        sig_data->sighash = (uint8_t)sighash;
+        input_data->sighash = (uint8_t)sighash;
     }
 
     if (use_ae_signatures) {
@@ -343,7 +343,7 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
             return false;
         }
         // Record whether we should generate an AE signature for this input
-        sig_data->use_ae = *ae_host_commitment_len != 0;
+        input_data->use_ae = *ae_host_commitment_len != 0;
     }
 
     // Get prevout script - required for signing inputs
@@ -356,20 +356,20 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
     bool is_p2tr = false;
     const script_flavour_t script_flavour = get_script_flavour(*script, *script_len, &is_p2tr);
     if (is_p2tr) {
-        if (sig_data->use_ae) {
+        if (input_data->use_ae) {
             // Taproot commitments must be empty, so that we can add anti-exfil
             // support later without backwards compatibility issues.
             *errmsg = "Invalid non-empty taproot host commitment";
             return false;
         }
-        sig_data->sig_type = WALLY_SIGTYPE_SW_V1;
+        input_data->sig_type = WALLY_SIGTYPE_SW_V1;
     }
     // Track the types of the input prevout scripts
     update_aggregate_scripts_flavour(script_flavour, aggregate_script_flavour);
 
     if (!have_sighash) {
         // Default to SIGHASH_DEFAULT for taproot, or SIGHASH_ALL otherwise
-        sig_data->sighash = is_p2tr ? WALLY_SIGHASH_DEFAULT : WALLY_SIGHASH_ALL;
+        input_data->sighash = is_p2tr ? WALLY_SIGHASH_DEFAULT : WALLY_SIGHASH_ALL;
     }
 
     return true;

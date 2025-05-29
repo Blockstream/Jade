@@ -131,7 +131,7 @@ bool params_multisig_pubkeys(bool is_change, CborValue* params, multisig_data_t*
 bool params_get_master_blindingkey(
     CborValue* params, uint8_t* master_blinding_key, size_t master_blinding_key_len, const char** errmsg);
 
-bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, signing_data_t* sig_data,
+bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, input_data_t* sig_data,
     const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len, const uint8_t** script, size_t* script_len,
     script_flavour_t* aggregate_script_flavour, const char** errmsg);
 

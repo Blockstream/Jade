@@ -1128,9 +1128,9 @@ bool wallet_get_signer_commitment(const uint8_t* signature_hash, const size_t si
 // cannot (as the entropy is provided explicitly). However all signatures produced are Low-S,
 // to comply with bitcoin standardness rules.
 bool wallet_sign_tx_input_hash(
-    signing_data_t* sig_data, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len)
+    input_data_t* input_data, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len)
 {
-    if (!sig_data || sig_data->path_len == 0) {
+    if (!input_data || input_data->path_len == 0) {
         return false;
     }
     if ((!ae_host_entropy && ae_host_entropy_len > 0)
@@ -1143,14 +1143,14 @@ bool wallet_sign_tx_input_hash(
 
     // Derive the child key
     SENSITIVE_PUSH(privkey, sizeof(privkey));
-    wallet_get_privkey(sig_data->path, sig_data->path_len, privkey, sizeof(privkey));
+    wallet_get_privkey(input_data->path, input_data->path_len, privkey, sizeof(privkey));
 
     // Generate signature as appropriate
     int wret = WALLY_OK;
-    if (ae_host_entropy && sig_data->sig_type != WALLY_SIGTYPE_SW_V1) {
+    if (ae_host_entropy && input_data->sig_type != WALLY_SIGTYPE_SW_V1) {
         // Anti-Exfil signature
-        wret = wally_ae_sig_from_bytes(privkey, sizeof(privkey), sig_data->signature_hash,
-            sizeof(sig_data->signature_hash), ae_host_entropy, ae_host_entropy_len, EC_FLAG_ECDSA, signature,
+        wret = wally_ae_sig_from_bytes(privkey, sizeof(privkey), input_data->signature_hash,
+            sizeof(input_data->signature_hash), ae_host_entropy, ae_host_entropy_len, EC_FLAG_ECDSA, signature,
             sizeof(signature));
     } else {
         // Standard EC or taproot signature
@@ -1159,7 +1159,7 @@ bool wallet_sign_tx_input_hash(
         uint32_t flags;
         SENSITIVE_PUSH(tweaked, sizeof(tweaked));
 
-        if (sig_data->sig_type != WALLY_SIGTYPE_SW_V1) {
+        if (input_data->sig_type != WALLY_SIGTYPE_SW_V1) {
             // ECDSA. Sign directly with the private key
             signing_key = privkey;
             flags = EC_FLAG_ECDSA | EC_FLAG_GRIND_R;
@@ -1170,8 +1170,8 @@ bool wallet_sign_tx_input_hash(
             wret = wally_ec_private_key_bip341_tweak(privkey, sizeof(privkey), NULL, 0, 0, tweaked, sizeof(tweaked));
         }
         if (wret == WALLY_OK) {
-            wret = wally_ec_sig_from_bytes(signing_key, EC_PRIVATE_KEY_LEN, sig_data->signature_hash,
-                sizeof(sig_data->signature_hash), flags, signature, sizeof(signature));
+            wret = wally_ec_sig_from_bytes(signing_key, EC_PRIVATE_KEY_LEN, input_data->signature_hash,
+                sizeof(input_data->signature_hash), flags, signature, sizeof(signature));
         }
         SENSITIVE_POP(tweaked);
     }
@@ -1182,46 +1182,76 @@ bool wallet_sign_tx_input_hash(
         return false;
     }
 
-    if (sig_data->sig_type != WALLY_SIGTYPE_SW_V1) {
+    if (input_data->sig_type != WALLY_SIGTYPE_SW_V1) {
         // ECDSA: DER-encode the signature
         JADE_WALLY_VERIFY(wally_ec_sig_to_der(
-            signature, sizeof(signature), sig_data->sig, sizeof(sig_data->sig) - 1, &sig_data->sig_len));
+            signature, sizeof(signature), input_data->sig, sizeof(input_data->sig) - 1, &input_data->sig_len));
     } else {
         // Taproot: Copy the Schnorr signature as-is.
-        sig_data->sig_len = sizeof(signature);
-        memcpy(sig_data->sig, signature, sizeof(signature));
-        if (sig_data->sighash == WALLY_SIGHASH_DEFAULT) {
+        input_data->sig_len = sizeof(signature);
+        memcpy(input_data->sig, signature, sizeof(signature));
+        if (input_data->sighash == WALLY_SIGHASH_DEFAULT) {
             // We don't add the sighash byte for default signatures, so we are done
             return true;
         }
     }
 
     // Append the sighash used
-    JADE_ASSERT(sig_data->sig_len <= sizeof(sig_data->sig) - 1);
-    sig_data->sig[sig_data->sig_len] = sig_data->sighash;
-    sig_data->sig_len += 1;
+    JADE_ASSERT(input_data->sig_len <= sizeof(input_data->sig) - 1);
+    input_data->sig[input_data->sig_len] = input_data->sighash;
+    input_data->sig_len += 1;
 
     return true;
 }
 
-// Function to fetch a hash for signing a transaction input
-bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_data_t* sig_data, const uint8_t* script,
-    size_t script_len, const struct wally_map* amounts, const struct wally_map* scriptpubkeys, struct wally_map* cache)
+signing_data_t* signing_data_allocate(const size_t num_inputs)
 {
-    struct wally_map* assets = NULL;
+    signing_data_t* p = JADE_CALLOC(1, sizeof(signing_data_t));
+    p->inputs = JADE_CALLOC(num_inputs, sizeof(input_data_t));
+    p->num_inputs = num_inputs;
+    JADE_WALLY_VERIFY(wally_map_init(num_inputs, NULL, &p->amounts));
+    JADE_WALLY_VERIFY(wally_map_init(num_inputs, NULL, &p->assets));
+    JADE_WALLY_VERIFY(wally_map_init(num_inputs, NULL, &p->scriptpubkeys));
+    // FIXME: Use a wally constant for the cache size when it is exposed
+    JADE_WALLY_VERIFY(wally_map_init(16, NULL, &p->cache));
+    return p;
+}
+
+void signing_data_free(void* signing_data)
+{
+    // Note we ignore wally errors here to ensure we free as much as possible
+    signing_data_t* p = (signing_data_t*)signing_data;
+    if (p->inputs) {
+        wally_bzero(p->inputs, p->num_inputs * sizeof(input_data_t));
+        free(p->inputs);
+    }
+    wally_map_clear(&p->amounts);
+    wally_map_clear(&p->assets);
+    wally_map_clear(&p->scriptpubkeys);
+    wally_map_clear(&p->cache);
+    free(p);
+}
+
+// Function to fetch a hash for signing a transaction input
+bool wallet_get_tx_input_hash(
+    struct wally_tx* tx, const size_t index, signing_data_t* signing_data, const uint8_t* script, size_t script_len)
+{
     const uint32_t key_version = 0;
     const uint32_t codesep = WALLY_NO_CODESEPARATOR;
     const uint8_t *annex = NULL, *genesis = NULL;
     const size_t annex_len = 0, genesis_len = 0;
     int wret;
 
-    JADE_ASSERT(sig_data);
-    wret = wally_tx_get_input_signature_hash(tx, index, scriptpubkeys, assets, amounts, script, script_len, key_version,
-        codesep, annex, annex_len, genesis, genesis_len, sig_data->sighash, sig_data->sig_type, cache,
-        sig_data->signature_hash, sizeof(sig_data->signature_hash));
+    JADE_ASSERT(signing_data);
+    JADE_ASSERT(index < signing_data->num_inputs);
+    input_data_t* const input_data = &signing_data->inputs[index];
+    wret = wally_tx_get_input_signature_hash(tx, index, &signing_data->scriptpubkeys, &signing_data->assets,
+        &signing_data->amounts, script, script_len, key_version, codesep, annex, annex_len, genesis, genesis_len,
+        input_data->sighash, input_data->sig_type, &signing_data->cache, input_data->signature_hash,
+        sizeof(input_data->signature_hash));
 
     if (wret != WALLY_OK) {
-        JADE_LOGE("Failed to get btc signature hash for segwit version %d, error %d", (int)sig_data->sig_type, wret);
+        JADE_LOGE("Failed to get btc signature hash for segwit version %d, error %d", (int)input_data->sig_type, wret);
         return false;
     }
     return true;
