@@ -62,7 +62,8 @@ typedef struct {
 #define ASSERT_HAS_CURRENT_MESSAGE(process) JADE_ASSERT(HAS_CURRENT_MESSAGE(process))
 #define ASSERT_CURRENT_MESSAGE(process, method) JADE_ASSERT(IS_CURRENT_MESSAGE(process, method))
 
-// Assumes 'cleanup' label exists
+// Get the parameters for the current process message.
+// Declares 'params' to hold them, assumes a 'cleanup' label exists.
 #define GET_MSG_PARAMS(process)                                                                                        \
     CborValue params;                                                                                                  \
     const CborError _cberr = cbor_value_map_find_value(&process->ctx.value, CBOR_RPC_TAG_PARAMS, &params);             \
@@ -72,10 +73,15 @@ typedef struct {
         goto cleanup;                                                                                                  \
     }
 
-// Ensure network is valid and consistent with prior usage
-// Assumes 'cleanup' label exists
-#define CHECK_NETWORK_CONSISTENT(process, network, network_len)                                                        \
-    if (network_len == 0 || !isValidNetwork(network)) {                                                                \
+// Ensure the rpc "network" parameter is valid and consistent with prior use.
+// Declares 'network_id'/'network' variables and initializes them.
+// Assumes GET_MSG_PARAMS() was used previously in the same scope.
+#define CHECK_NETWORK_CONSISTENT(process)                                                                              \
+    char network[MAX_NETWORK_NAME_LEN];                                                                                \
+    size_t network_len;                                                                                                \
+    rpc_get_string("network", sizeof(network), &params, network, &network_len);                                        \
+    const uint32_t network_id = networkToNetworkId(network_len ? network : NULL);                                      \
+    if (network_id == WALLY_NETWORK_NONE) {                                                                            \
         jade_process_reject_message(                                                                                   \
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);                \
         goto cleanup;                                                                                                  \

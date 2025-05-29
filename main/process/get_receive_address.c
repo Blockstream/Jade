@@ -26,17 +26,11 @@ void get_receive_address_process(void* process_ptr)
     JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
-    char network[MAX_NETWORK_NAME_LEN];
-
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_receive_address");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
-
-    // Check network is valid and consistent with prior usage
-    size_t written = 0;
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-    CHECK_NETWORK_CONSISTENT(process, network, written);
+    CHECK_NETWORK_CONSISTENT(process);
     const bool isLiquid = isLiquidNetwork(network);
 
     // Handle single-sig and generic multisig script variants
@@ -71,6 +65,7 @@ void get_receive_address_process(void* process_ptr)
 
         // Get the paths (suffixes) and derive pubkeys
         const bool is_change = false;
+        size_t written = 0;
         uint8_t pubkeys[MAX_ALLOWED_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
         if (!params_multisig_pubkeys(is_change, &params, &multisig_data, pubkeys, sizeof(pubkeys), &written,
                 warning_msg, sizeof(warning_msg), &errmsg)) {
@@ -136,7 +131,7 @@ void get_receive_address_process(void* process_ptr)
         script_variant_t script_variant;
 
         // Green-multisig is the default (for backwards compatibility) if no variant passed
-        written = 0;
+        size_t written = 0;
         rpc_get_string("variant", sizeof(variant), &params, variant, &written);
         if (!get_script_variant(variant, written, &script_variant)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid script variant parameter", NULL);

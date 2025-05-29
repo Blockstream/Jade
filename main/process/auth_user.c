@@ -349,20 +349,9 @@ void auth_user_process(void* process_ptr)
     JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
-    char network[MAX_NETWORK_NAME_LEN];
-    size_t written = 0;
-
     ASSERT_CURRENT_MESSAGE(process, "auth_user");
     GET_MSG_PARAMS(process);
-
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-    if (written == 0 || !isValidNetwork(network)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
-        goto cleanup;
-    }
-
-    CHECK_NETWORK_CONSISTENT(process, network, written);
+    CHECK_NETWORK_CONSISTENT(process);
 
     // Can optionally include epoch time to set internal clock
     if (rpc_has_field_data("epoch", &params)) {

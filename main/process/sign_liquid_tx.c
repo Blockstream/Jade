@@ -541,25 +541,21 @@ void sign_liquid_tx_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
-    char network[MAX_NETWORK_NAME_LEN];
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "sign_liquid_tx");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
-    const jade_msg_source_t source = process->ctx.source;
+    CHECK_NETWORK_CONSISTENT(process);
 
-    // Check network is valid and consistent with prior usage
-    size_t written = 0;
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-    CHECK_NETWORK_CONSISTENT(process, network, written);
     if (!isLiquidNetwork(network)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "sign_liquid_tx call only appropriate for liquid network", NULL);
         goto cleanup;
     }
+    const jade_msg_source_t source = process->ctx.source;
 
-    written = 0;
+    size_t written = 0;
     const uint8_t* txbytes = NULL;
     rpc_get_bytes_ptr("txn", &params, &txbytes, &written);
 

@@ -633,7 +633,6 @@ void register_multisig_process(void* process_ptr)
     JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
-    char network[MAX_NETWORK_NAME_LEN];
     char multisig_name[MAX_MULTISIG_NAME_SIZE];
     char variant[MAX_VARIANT_LEN];
     const char* errmsg = NULL;
@@ -667,13 +666,10 @@ void register_multisig_process(void* process_ptr)
 
     // Otherwise expect our original message fields
 
-    // Check network is valid and consistent with prior usage
-    size_t written = 0;
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-    CHECK_NETWORK_CONSISTENT(process, network, written);
+    CHECK_NETWORK_CONSISTENT(process);
 
     // Get name of multisig wallet
-    written = 0;
+    size_t written = 0;
     rpc_get_string("multisig_name", sizeof(multisig_name), &params, multisig_name, &written);
     if (written == 0 || !storage_key_name_valid(multisig_name)) {
         jade_process_reject_message(

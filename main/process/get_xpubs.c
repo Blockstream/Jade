@@ -13,20 +13,14 @@ void get_xpubs_process(void* process_ptr)
     JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
-    char network[MAX_NETWORK_NAME_LEN];
-
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_xpub");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
-
-    // Check network is valid and consistent with prior usage
-    size_t written = 0;
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-    CHECK_NETWORK_CONSISTENT(process, network, written);
+    CHECK_NETWORK_CONSISTENT(process);
 
     // NOTE: for get-xpub accessing the root key (empty bip32 path array) *IS* allowed.
-    written = 0;
+    size_t written = 0;
     uint32_t path[MAX_PATH_LEN];
     const size_t max_path_len = sizeof(path) / sizeof(path[0]);
     const bool has_path = rpc_get_bip32_path("path", &params, path, max_path_len, &written);

@@ -209,7 +209,6 @@ void register_descriptor_process(void* process_ptr)
     JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
     jade_process_t* process = process_ptr;
 
-    char network[MAX_NETWORK_NAME_LEN];
     char descriptor_name[MAX_DESCRIPTOR_NAME_SIZE];
     const char* errmsg = NULL;
 
@@ -217,14 +216,10 @@ void register_descriptor_process(void* process_ptr)
     ASSERT_CURRENT_MESSAGE(process, "register_descriptor");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
-
-    // Check network is valid and consistent with prior usage
-    size_t written = 0;
-    rpc_get_string("network", sizeof(network), &params, network, &written);
-    CHECK_NETWORK_CONSISTENT(process, network, written);
+    CHECK_NETWORK_CONSISTENT(process);
 
     // Get name of descriptor wallet
-    written = 0;
+    size_t written = 0;
     rpc_get_string("descriptor_name", sizeof(descriptor_name), &params, descriptor_name, &written);
     if (written == 0 || !storage_key_name_valid(descriptor_name)) {
         jade_process_reject_message(
