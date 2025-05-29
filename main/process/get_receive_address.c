@@ -241,7 +241,7 @@ void get_receive_address_process(void* process_ptr)
         }
     } else {
         JADE_ASSERT(!confidential && !p_master_blinding_key && !master_blinding_key_len);
-        script_to_address(network, script, script_len, has_value, address, sizeof(address));
+        script_to_address(network_id, script, script_len, has_value, address, sizeof(address));
     }
 
     // Display to the user to confirm

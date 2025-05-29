@@ -1316,21 +1316,14 @@ bool wallet_get_hdkey(const uint32_t* path, const size_t path_len, const uint32_
     return true;
 }
 
-bool wallet_get_xpub(const char* network, const uint32_t* path, const size_t path_len, char** output)
+bool wallet_get_xpub(const uint32_t network_id, const uint32_t* path, const size_t path_len, char** output)
 {
     JADE_ASSERT(keychain_get());
     JADE_ASSERT(path_len == 0 || path);
-
-    if (!network || !output) {
-        return false;
-    }
+    JADE_ASSERT(output);
 
     // Get the version prefix bytes for the passed network
-    const uint32_t version = networkToVersion(network);
-    if (!version) {
-        JADE_LOGE("Unknown network: %s", network);
-        return false;
-    }
+    const uint32_t version = networkToBip32Version(network_id);
 
     // NOTE: we do not SKIP_HASH in this case, as it is included in the xpub
     struct ext_key derived;

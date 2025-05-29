@@ -2,6 +2,7 @@
 #include <assets_snapshot.h>
 #include <inttypes.h>
 #include <math.h>
+#include <wally_address.h>
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
@@ -415,9 +416,9 @@ static bool show_input_output_activity(const char* title, const bool is_wallet_o
 }
 
 bool show_btc_transaction_outputs_activity(
-    const char* network, const struct wally_tx* tx, const output_info_t* output_info)
+    const uint32_t network_id, const struct wally_tx* tx, const output_info_t* output_info)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(tx);
     // Note: output_info is optional and can be null
 
@@ -456,7 +457,7 @@ bool show_btc_transaction_outputs_activity(
         JADE_ASSERT(ret > 0 && ret < sizeof(amount));
 
         char address[MAX_ADDRESS_LEN];
-        script_to_address(network, out->script, out->script_len, out->satoshi > 0, address, sizeof(address));
+        script_to_address(network_id, out->script, out->script_len, out->satoshi > 0, address, sizeof(address));
         const bool is_address = true;
 
         // Show output info

@@ -104,7 +104,7 @@ bool wallet_search_for_descriptor_script(const uint32_t network_id, const char* 
 
 void wallet_get_fingerprint(uint8_t* output, size_t output_len);
 bool wallet_get_hdkey(const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* output);
-bool wallet_get_xpub(const char* network, const uint32_t* path, size_t path_len, char** output);
+bool wallet_get_xpub(const uint32_t network_id, const uint32_t* path, size_t path_len, char** output);
 
 bool wallet_calculate_gaservice_path(struct ext_key* root_key, uint32_t* gaservice_path, size_t gaservice_path_len);
 bool wallet_serialize_gaservice_path(

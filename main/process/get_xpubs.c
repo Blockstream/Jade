@@ -31,7 +31,7 @@ void get_xpubs_process(void* process_ptr)
     }
 
     char* output = NULL;
-    if (!wallet_get_xpub(network, path, written, &output) || !output) {
+    if (!wallet_get_xpub(network_id, path, written, &output) || !output) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get xpub for path", NULL);
         goto cleanup;
     }

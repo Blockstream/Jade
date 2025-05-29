@@ -50,10 +50,10 @@ static void render_op_return(
 }
 
 // Convert the passed btc script into an address
-void script_to_address(const char* network, const uint8_t* script, const size_t script_len, const bool has_value,
+void script_to_address(const uint32_t network_id, const uint8_t* script, const size_t script_len, const bool has_value,
     char* output, const size_t output_len)
 {
-    JADE_ASSERT(!isLiquidNetwork(network));
+    JADE_ASSERT(!isLiquidNetworkId(network_id));
     JADE_ASSERT(output);
     JADE_ASSERT(output_len);
 
@@ -74,18 +74,18 @@ void script_to_address(const char* network, const uint8_t* script, const size_t 
     case WALLY_SCRIPT_TYPE_P2WPKH:
     case WALLY_SCRIPT_TYPE_P2WSH:
     case WALLY_SCRIPT_TYPE_P2TR:
-        hrp = networkToBech32Hrp(network);
+        hrp = networkToBech32Hrp(network_id);
         JADE_ASSERT(hrp);
         JADE_WALLY_VERIFY(wally_addr_segwit_from_bytes(script, script_len, hrp, 0, &tmp_str));
         break;
 
     case WALLY_SCRIPT_TYPE_P2PKH:
-        prefix = networkToP2PKHPrefix(network);
+        prefix = networkToP2PKHPrefix(network_id);
         base58_addr(prefix, script + 3, &tmp_str);
         break;
 
     case WALLY_SCRIPT_TYPE_P2SH:
-        prefix = networkToP2SHPrefix(network);
+        prefix = networkToP2SHPrefix(network_id);
         base58_addr(prefix, script + 2, &tmp_str);
         break;
 
@@ -125,7 +125,6 @@ void elements_script_to_address(const uint32_t network_id, const uint8_t* script
     size_t output_type = WALLY_SCRIPT_TYPE_UNKNOWN;
     JADE_WALLY_VERIFY(wally_scriptpubkey_get_type(script, script_len, &output_type));
 
-    const char* const network = networkIdToNetwork(network_id); // TODO: use ID
     char* tmp_str = NULL;
     uint8_t prefix = 0;
     const char* hrp = NULL;
@@ -133,18 +132,18 @@ void elements_script_to_address(const uint32_t network_id, const uint8_t* script
     case WALLY_SCRIPT_TYPE_P2WPKH:
     case WALLY_SCRIPT_TYPE_P2WSH:
     case WALLY_SCRIPT_TYPE_P2TR:
-        hrp = networkToBech32Hrp(network);
+        hrp = networkToBech32Hrp(network_id);
         JADE_ASSERT(hrp);
         JADE_WALLY_VERIFY(wally_addr_segwit_from_bytes(script, script_len, hrp, 0, &tmp_str));
         break;
 
     case WALLY_SCRIPT_TYPE_P2PKH:
-        prefix = networkToP2PKHPrefix(network);
+        prefix = networkToP2PKHPrefix(network_id);
         base58_addr(prefix, script + 3, &tmp_str);
         break;
 
     case WALLY_SCRIPT_TYPE_P2SH:
-        prefix = networkToP2SHPrefix(network);
+        prefix = networkToP2SHPrefix(network_id);
         base58_addr(prefix, script + 2, &tmp_str);
         break;
 
@@ -167,7 +166,7 @@ void elements_script_to_address(const uint32_t network_id, const uint8_t* script
         case WALLY_SCRIPT_TYPE_P2WPKH:
         case WALLY_SCRIPT_TYPE_P2WSH:
         case WALLY_SCRIPT_TYPE_P2TR:
-            hrpConfidential = networkToBlech32Hrp(network);
+            hrpConfidential = networkToBlech32Hrp(network_id);
             JADE_ASSERT(hrpConfidential);
             JADE_WALLY_VERIFY(wally_confidential_addr_from_addr_segwit(
                 tmp_str, hrp, hrpConfidential, blinding_key, blinding_key_len, &conf_tmp_str));
@@ -175,7 +174,7 @@ void elements_script_to_address(const uint32_t network_id, const uint8_t* script
 
         case WALLY_SCRIPT_TYPE_P2PKH:
         case WALLY_SCRIPT_TYPE_P2SH:
-            prefix = networkToCAPrefix(network);
+            prefix = networkToCAPrefix(network_id);
             JADE_WALLY_VERIFY(
                 wally_confidential_addr_from_addr(tmp_str, prefix, blinding_key, blinding_key_len, &conf_tmp_str));
             break;
@@ -234,31 +233,31 @@ static bool address_from_uri(const char* address, address_data_t* addr_data)
     return true;
 }
 
-static bool try_parse_address(const uint32_t trial_network_id, address_data_t* addr_data)
+static bool try_parse_address(const uint32_t network_id, address_data_t* addr_data)
 {
     JADE_ASSERT(addr_data);
-    const char* const network = networkIdToNetwork(trial_network_id);
     int wret = WALLY_EINVAL;
     bool is_segwit = false;
 
     // 1. Try non- (or wrapped-) segwit.
     // Don't bother trying Bitcoin regtest since it shares a prefix with testnet
-    if (trial_network_id != WALLY_NETWORK_BITCOIN_REGTEST) {
+    if (network_id != WALLY_NETWORK_BITCOIN_REGTEST) {
         wret = wally_address_to_scriptpubkey(
-            addr_data->address, trial_network_id, addr_data->script, sizeof(addr_data->script), &addr_data->script_len);
+            addr_data->address, network_id, addr_data->script, sizeof(addr_data->script), &addr_data->script_len);
     }
 
     if (wret != WALLY_OK) {
         // 2. Try native segwit
-        wret = wally_addr_segwit_to_bytes(addr_data->address, networkToBech32Hrp(network), 0, addr_data->script,
+        wret = wally_addr_segwit_to_bytes(addr_data->address, networkToBech32Hrp(network_id), 0, addr_data->script,
             sizeof(addr_data->script), &addr_data->script_len);
         is_segwit = wret == WALLY_OK;
     }
 
     if (wret == WALLY_OK) {
+        const char* const network = networkIdToNetwork(network_id);
         JADE_LOGI("Address %s, %ssegwit-native for %s", addr_data->address, is_segwit ? "" : "non-", network);
         JADE_ASSERT(addr_data->script_len <= sizeof(addr_data->script));
-        addr_data->network_id = trial_network_id;
+        addr_data->network_id = network_id;
         return true;
     }
 

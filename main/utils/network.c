@@ -139,6 +139,7 @@ const char* networkIdToNetwork(const uint32_t network_id)
     return NULL; // Unreachable
 }
 
+// network id to type (main or test)
 network_type_t networkIdToType(const uint32_t network_id)
 {
     switch (network_id) {
@@ -154,115 +155,107 @@ network_type_t networkIdToType(const uint32_t network_id)
     return NETWORK_TYPE_NONE;
 }
 
-// 'mainnet' and 'liquid' map to VER_MAIN_PRIVATE, others to VER_TEST_PRIVATE
-uint32_t networkToVersion(const char* network)
+// network id to BIP32 key version.
+// Mainnets map to VER_MAIN_PRIVATE, testnets to VER_TEST_PRIVATE
+uint32_t networkToBip32Version(const uint32_t network_id)
 {
-    JADE_ASSERT(isValidNetwork(network));
-
-    if (!strcmp(TAG_MAINNET, network) || !strcmp(TAG_LIQUID, network)) {
-        return BIP32_VER_MAIN_PRIVATE;
-    } else if (isTestNetwork(network)) {
-        return BIP32_VER_TEST_PRIVATE;
-    } else {
-        return 0;
-    }
+    const network_type_t network_type = networkIdToType(network_id);
+    JADE_ASSERT(network_type != NETWORK_TYPE_NONE);
+    return network_type == NETWORK_TYPE_MAIN ? BIP32_VER_MAIN_PRIVATE : BIP32_VER_TEST_PRIVATE;
 }
 
-// 'mainnet' like string to relevant P2PKH address prefix
-uint8_t networkToP2PKHPrefix(const char* network)
+// network id to relevant P2PKH address prefix
+uint8_t networkToP2PKHPrefix(const uint32_t network_id)
 {
-    JADE_ASSERT(isValidNetwork(network));
-
-    if (!strcmp(TAG_MAINNET, network)) {
+    switch (network_id) {
+    case WALLY_NETWORK_BITCOIN_MAINNET:
         return WALLY_ADDRESS_VERSION_P2PKH_MAINNET;
-    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
-        return WALLY_ADDRESS_VERSION_P2PKH_TESTNET;
-    } else if (!strcmp(TAG_LIQUID, network)) {
+    case WALLY_NETWORK_LIQUID:
         return WALLY_ADDRESS_VERSION_P2PKH_LIQUID;
-    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+    case WALLY_NETWORK_BITCOIN_TESTNET:
+    case WALLY_NETWORK_BITCOIN_REGTEST:
+        return WALLY_ADDRESS_VERSION_P2PKH_TESTNET;
+    case WALLY_NETWORK_LIQUID_TESTNET:
         return WALLY_ADDRESS_VERSION_P2PKH_LIQUID_TESTNET;
-    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
+    case WALLY_NETWORK_LIQUID_REGTEST:
         return WALLY_ADDRESS_VERSION_P2PKH_LIQUID_REGTEST;
-    } else {
-        return 0;
     }
+    JADE_ASSERT(false); // Unknown/invalid network
+    return 0; // Unreachable
 }
 
-// 'mainnet' like string to relevant P2SH address prefix
-uint8_t networkToP2SHPrefix(const char* network)
+// network id to relevant P2SH address prefix
+uint8_t networkToP2SHPrefix(const uint32_t network_id)
 {
-    JADE_ASSERT(isValidNetwork(network));
-
-    if (!strcmp(TAG_MAINNET, network)) {
+    switch (network_id) {
+    case WALLY_NETWORK_BITCOIN_MAINNET:
         return WALLY_ADDRESS_VERSION_P2SH_MAINNET;
-    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
-        return WALLY_ADDRESS_VERSION_P2SH_TESTNET;
-    } else if (!strcmp(TAG_LIQUID, network)) {
+    case WALLY_NETWORK_LIQUID:
         return WALLY_ADDRESS_VERSION_P2SH_LIQUID;
-    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+    case WALLY_NETWORK_BITCOIN_TESTNET:
+    case WALLY_NETWORK_BITCOIN_REGTEST:
+        return WALLY_ADDRESS_VERSION_P2SH_TESTNET;
+    case WALLY_NETWORK_LIQUID_TESTNET:
         return WALLY_ADDRESS_VERSION_P2SH_LIQUID_TESTNET;
-    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
+    case WALLY_NETWORK_LIQUID_REGTEST:
         return WALLY_ADDRESS_VERSION_P2SH_LIQUID_REGTEST;
-    } else {
-        return 0;
     }
+    JADE_ASSERT(false); // Unknown/invalid network
+    return 0; // Unreachable
 }
 
-// 'mainnet' like string to relevant bech32 hrp
-const char* networkToBech32Hrp(const char* network)
+// network id to relevant bech32 hrp
+const char* networkToBech32Hrp(const uint32_t network_id)
 {
-    JADE_ASSERT(isValidNetwork(network));
-
-    if (!strcmp(TAG_MAINNET, network)) {
+    switch (network_id) {
+    case WALLY_NETWORK_BITCOIN_MAINNET:
         return "bc";
-    } else if (!strcmp(TAG_TESTNET, network)) {
-        return "tb";
-    } else if (!strcmp(TAG_LOCALTEST, network)) {
-        return "bcrt";
-    } else if (!strcmp(TAG_LIQUID, network)) {
+    case WALLY_NETWORK_LIQUID:
         return "ex";
-    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+    case WALLY_NETWORK_BITCOIN_TESTNET:
+        return "tb";
+    case WALLY_NETWORK_BITCOIN_REGTEST:
+        return "bcrt";
+    case WALLY_NETWORK_LIQUID_TESTNET:
         return "tex";
-    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
+    case WALLY_NETWORK_LIQUID_REGTEST:
         return "ert";
-    } else {
-        return NULL;
     }
+    JADE_ASSERT(false); // Unknown/invalid network
+    return NULL; // Unreachable
 }
 
-// 'liquid' like string to relevant confidential address prefix
-uint8_t networkToCAPrefix(const char* network)
+// network id to relevant confidential address prefix
+uint8_t networkToCAPrefix(const uint32_t network_id)
 {
-    JADE_ASSERT(isLiquidNetwork(network));
-
-    if (!strcmp(TAG_LIQUID, network)) {
+    switch (network_id) {
+    case WALLY_NETWORK_LIQUID:
         return WALLY_CA_PREFIX_LIQUID;
-    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+    case WALLY_NETWORK_LIQUID_TESTNET:
         return WALLY_CA_PREFIX_LIQUID_TESTNET;
-    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
+    case WALLY_NETWORK_LIQUID_REGTEST:
         return WALLY_CA_PREFIX_LIQUID_REGTEST;
-    } else {
-        return 0;
     }
+    JADE_ASSERT(false); // Unknown/invalid network
+    return 0; // Unreachable
 }
 
-// 'liquid' like string to relevant confidential blech32 hrp
-const char* networkToBlech32Hrp(const char* network)
+// network id to relevant confidential blech32 hrp
+const char* networkToBlech32Hrp(const uint32_t network_id)
 {
-    JADE_ASSERT(isLiquidNetwork(network));
-
-    if (!strcmp(TAG_LIQUID, network)) {
+    switch (network_id) {
+    case WALLY_NETWORK_LIQUID:
         return "lq";
-    } else if (!strcmp(TAG_TESTNETLIQUID, network)) {
+    case WALLY_NETWORK_LIQUID_TESTNET:
         return "tlq";
-    } else if (!strcmp(TAG_LOCALTESTLIQUID, network)) {
+    case WALLY_NETWORK_LIQUID_REGTEST:
         return "el";
-    } else {
-        return NULL;
     }
+    JADE_ASSERT(false); // Unknown/invalid network
+    return 0; // Unreachable
 }
 
-// hexadecimal string to relevant policy-asset (lower-case hex id)
+// network id to relevant policy-asset (lower-case hex id)
 const char* networkGetPolicyAsset(const uint32_t network_id)
 {
     // These are the policy assets for the liquid networks.

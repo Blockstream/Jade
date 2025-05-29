@@ -26,7 +26,7 @@
 #include "process_utils.h"
 
 bool show_btc_transaction_outputs_activity(
-    const char* network, const struct wally_tx* tx, const output_info_t* output_info);
+    const uint32_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
 bool show_btc_final_confirmation_activity(uint64_t fee, const char* warning_msg);
 
 // Can optionally be passed paths for change outputs, which we verify internally
@@ -475,7 +475,7 @@ void sign_tx_process(void* process_ptr)
     }
 
     // User to confirm
-    if (!show_btc_transaction_outputs_activity(network, tx, output_info)) {
+    if (!show_btc_transaction_outputs_activity(network_id, tx, output_info)) {
         JADE_LOGW("User declined to sign transaction");
         jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
         goto cleanup;

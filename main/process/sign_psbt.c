@@ -28,7 +28,7 @@
 #include "process_utils.h"
 
 bool show_btc_transaction_outputs_activity(
-    const char* network, const struct wally_tx* tx, const output_info_t* output_info);
+    const uint32_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
 bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
 
@@ -799,7 +799,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
     }
 
     // User to verify outputs and fee amount
-    if (!show_btc_transaction_outputs_activity(network, tx, output_info)) {
+    if (!show_btc_transaction_outputs_activity(network_id, tx, output_info)) {
         *errmsg = "User declined to sign psbt";
         retval = CBOR_RPC_USER_CANCELLED;
         goto cleanup;

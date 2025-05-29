@@ -34,15 +34,15 @@ uint32_t networkToNetworkId(const char* network);
 const char* networkIdToNetwork(const uint32_t network_id);
 
 network_type_t networkIdToType(const uint32_t network_id);
-uint32_t networkToVersion(const char* network);
+uint32_t networkToBip32Version(const uint32_t network_id);
 
-uint8_t networkToP2PKHPrefix(const char* network);
-uint8_t networkToP2SHPrefix(const char* network);
-const char* networkToBech32Hrp(const char* network);
+uint8_t networkToP2PKHPrefix(const uint32_t network_id);
+uint8_t networkToP2SHPrefix(const uint32_t network_id);
+const char* networkToBech32Hrp(const uint32_t network_id);
 
 // Liquid-specific
-uint8_t networkToCAPrefix(const char* network);
-const char* networkToBlech32Hrp(const char* network);
+uint8_t networkToCAPrefix(const uint32_t network_id);
+const char* networkToBlech32Hrp(const uint32_t network_id);
 
 const char* networkGetPolicyAsset(const uint32_t network_id);
 
