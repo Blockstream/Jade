@@ -18,18 +18,20 @@
 #include <ctype.h>
 #include <sodium/utils.h>
 
+#include <wally_address.h>
+
 bool show_multisig_activity(const char* multisig_name, bool is_sorted, size_t threshold, size_t num_signers,
     const signer_t* signer_details, const size_t num_signer_details, const char* master_blinding_key_hex,
     const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting,
     bool is_valid);
 
 // Function to validate multsig parameters and persist the record
-static int register_multisig(const char* multisig_name, const char* network, const script_variant_t script_variant,
-    const bool sorted, const size_t threshold, const signer_t* signers, const size_t num_signers,
-    const uint8_t* master_blinding_key, const size_t master_blinding_key_len, const char** errmsg)
+static int register_multisig(const char* multisig_name, const uint32_t network_id,
+    const script_variant_t script_variant, const bool sorted, const size_t threshold, const signer_t* signers,
+    const size_t num_signers, const uint8_t* master_blinding_key, const size_t master_blinding_key_len,
+    const char** errmsg)
 {
     JADE_ASSERT(multisig_name);
-    JADE_ASSERT(isValidNetwork(network));
     JADE_ASSERT(is_multisig(script_variant));
     JADE_ASSERT(threshold);
     JADE_ASSERT(signers);
@@ -237,13 +239,13 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     JADE_INIT_OUT_PPTR(errmsg);
 
     // Work out network and appropriate xpub version bytes
-    const char* network = NULL;
+    uint32_t network_id;
     uint8_t xpub_version[4];
     if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
-        network = TAG_TESTNET;
+        network_id = WALLY_NETWORK_BITCOIN_TESTNET;
         uint32_to_be(BIP32_VER_TEST_PUBLIC, xpub_version);
     } else {
-        network = TAG_MAINNET;
+        network_id = WALLY_NETWORK_BITCOIN_MAINNET;
         uint32_to_be(BIP32_VER_MAIN_PUBLIC, xpub_version);
     }
 
@@ -537,7 +539,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     }
 
     // Try to register multisig!
-    retval = register_multisig(multisig_name, network, script_variant, sorted, threshold, signers, nsigners,
+    retval = register_multisig(multisig_name, network_id, script_variant, sorted, threshold, signers, nsigners,
         blinding_key, blinding_key_len, errmsg);
     if (retval) {
         JADE_LOGE("Failed to register multisig record: %s", *errmsg);
@@ -732,7 +734,7 @@ void register_multisig_process(void* process_ptr)
     }
     jade_process_free_on_exit(process, signers);
 
-    const int errcode = register_multisig(multisig_name, network, script_variant, sorted, threshold, signers,
+    const int errcode = register_multisig(multisig_name, network_id, script_variant, sorted, threshold, signers,
         num_signers, master_blinding_key, master_blinding_key_len, &errmsg);
     if (errcode) {
         jade_process_reject_message(process, errcode, errmsg, NULL);

@@ -19,9 +19,6 @@
 #define TAG_LOCALTEST "localtest"
 #define TAG_LOCALTESTLIQUID "localtest-liquid"
 
-bool isValidNetwork(const char* network);
-bool isTestNetwork(const char* network);
-bool isLiquidNetwork(const char* network);
 bool isLiquidNetworkId(const uint32_t network_id);
 
 bool csvBlocksExpectedForNetwork(const uint32_t network_id, uint32_t csvBlocks);

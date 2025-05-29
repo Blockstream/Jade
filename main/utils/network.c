@@ -11,32 +11,7 @@ static const size_t ALLOWED_CSV_TESTNET[] = { 144, 4320, 51840 };
 static const size_t ALLOWED_CSV_LIQUID[] = { 65535 };
 static const size_t ALLOWED_CSV_TESTNET_LIQUID[] = { 1440, 65535 };
 
-// True for known networks
-bool isValidNetwork(const char* network)
-{
-    if (!network) {
-        return false;
-    }
-    return !strcmp(TAG_MAINNET, network) || !strcmp(TAG_LIQUID, network) || !strcmp(TAG_TESTNET, network)
-        || !strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTEST, network)
-        || !strcmp(TAG_LOCALTESTLIQUID, network);
-}
-
-// True for testnet and localtest type networks
-bool isTestNetwork(const char* network)
-{
-    JADE_ASSERT(isValidNetwork(network));
-    return !strcmp(TAG_TESTNET, network) || !strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTEST, network)
-        || !strcmp(TAG_LOCALTESTLIQUID, network);
-}
-
-// True for liquid and localtestliquid networks
-bool isLiquidNetwork(const char* network)
-{
-    JADE_ASSERT(isValidNetwork(network));
-    return !strcmp(TAG_LIQUID, network) || !strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network);
-}
-
+// True for liquid and liquid regtest/testnet networks
 bool isLiquidNetworkId(const uint32_t network_id)
 {
     JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
