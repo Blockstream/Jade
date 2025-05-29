@@ -12,7 +12,6 @@
 #include "process_utils.h"
 
 #include <sys/time.h>
-#include <wally_address.h>
 #include <wally_anti_exfil.h>
 #include <wally_script.h>
 
@@ -20,7 +19,7 @@
 
 static const char KEY_TYPE_RSA[] = { 'R', 'S', 'A' };
 
-bool jade_process_check_network(jade_process_t* process, CborValue* params, uint32_t* network_id)
+bool jade_process_check_network(jade_process_t* process, CborValue* params, network_t* network_id)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(params);

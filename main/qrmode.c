@@ -22,7 +22,6 @@
 #include "utils/network.h"
 #include "wallet.h"
 
-#include <wally_address.h>
 #include <wally_script.h>
 
 #include <string.h>
@@ -90,7 +89,7 @@ bool select_registered_wallet(const char multisig_names[][NVS_KEY_NAME_MAX_SIZE]
 
 // PSBT struct and functions
 struct wally_psbt;
-int sign_psbt(const uint32_t network_id, struct wally_psbt* psbt, const char** errmsg);
+int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** errmsg);
 int wally_psbt_free(struct wally_psbt* psbt);
 
 #define EXPORT_XPUB_PATH_LEN 4
@@ -1133,7 +1132,7 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     // Try to sign extracted PSBT
     bool ret = false;
     const char* errmsg = NULL;
-    uint32_t network_id;
+    network_t network_id;
     if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
         network_id = NETWORK_BITCOIN_TESTNET;
     } else {
@@ -1592,7 +1591,7 @@ static bool post_auth_msg_request(const jade_msg_source_t source, const bool sup
     cberr = cbor_encoder_create_map(&root_map_encoder, &params_encoder, 2);
     JADE_ASSERT(cberr == CborNoError);
     const network_type_t restriction = keychain_get_network_type_restriction();
-    uint32_t network_id;
+    network_t network_id;
     if (restriction == NETWORK_TYPE_TEST) {
         network_id = NETWORK_BITCOIN_TESTNET;
     } else {

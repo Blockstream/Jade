@@ -2,6 +2,7 @@
 #define JADE_ASSETS_H_
 
 #include "utils/cbor_rpc.h"
+#include "utils/network.h"
 
 // NOTE: strings here may not be nul-terminated as may directly reference message fields
 typedef struct {
@@ -16,7 +17,7 @@ typedef struct {
 
 bool assets_get_allocate(const char* field, const CborValue* value, asset_info_t** data, size_t* written);
 
-bool assets_get_info(uint32_t network_id, const asset_info_t* assets, size_t num_assets, const char* asset_id,
+bool assets_get_info(network_t network_id, const asset_info_t* assets, size_t num_assets, const char* asset_id,
     asset_info_t* asset_info_out);
 
 #endif /* JADE_ASSETS_H_ */

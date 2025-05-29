@@ -17,23 +17,22 @@
 #include "../wallet.h"
 
 #include <sodium/utils.h>
-#include <wally_address.h>
 #include <wally_anti_exfil.h>
 #include <wally_elements.h>
 
 #include "process_utils.h"
 
-bool show_elements_transaction_outputs_activity(const uint32_t network_id, const struct wally_tx* tx,
+bool show_elements_transaction_outputs_activity(const network_t network_id, const struct wally_tx* tx,
     const output_info_t* output_info, const asset_info_t* assets, size_t num_assets);
-bool show_elements_swap_activity(const uint32_t network_id, bool initial_proposal,
+bool show_elements_swap_activity(const network_t network_id, bool initial_proposal,
     const movement_summary_info_t* wallet_input_summary, size_t wallet_input_summary_size,
     const movement_summary_info_t* wallet_output_summary, size_t wallet_output_summary_size, const asset_info_t* assets,
     size_t num_assets);
 bool show_elements_final_confirmation_activity(
-    const uint32_t network_id, const char* title, const uint64_t fee, const char* warning_msg);
+    const network_t network_id, const char* title, const uint64_t fee, const char* warning_msg);
 
 // From sign_tx.c
-bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id, const struct wally_tx* tx,
+bool validate_wallet_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
     CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg);
 void send_ae_signature_replies(jade_process_t* process, signing_data_t* signing_data);
 void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* signing_data);
@@ -513,7 +512,7 @@ static bool add_output_info(
     return true;
 }
 
-bool show_elements_fee_confirmation_activity(const uint32_t network_id, const struct wally_tx* tx,
+bool show_elements_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
     const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t fees,
     const TxType_t txtype, const bool tx_is_partial)
 {

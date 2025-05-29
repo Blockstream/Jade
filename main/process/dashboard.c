@@ -51,8 +51,6 @@ static inline bool awaiting_attestation_data(void) { return false; }
 #include <sodium/utils.h>
 #include <time.h>
 
-#include <wally_address.h>
-
 // Whether during initialisation we select USB, BLE QR etc.
 static jade_msg_source_t initialisation_source = SOURCE_NONE;
 static jade_msg_source_t internal_relogin_source = SOURCE_NONE;

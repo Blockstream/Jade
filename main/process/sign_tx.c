@@ -18,7 +18,6 @@
 #include <inttypes.h>
 #include <sodium/utils.h>
 
-#include <wally_address.h>
 #include <wally_anti_exfil.h>
 #include <wally_map.h>
 #include <wally_script.h>
@@ -26,11 +25,11 @@
 #include "process_utils.h"
 
 bool show_btc_transaction_outputs_activity(
-    const uint32_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
+    const network_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
 bool show_btc_final_confirmation_activity(uint64_t fee, const char* warning_msg);
 
 // Can optionally be passed paths for change outputs, which we verify internally
-bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id, const struct wally_tx* tx,
+bool validate_wallet_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
     CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg)
 {
     JADE_ASSERT(process);

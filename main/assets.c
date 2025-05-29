@@ -8,7 +8,6 @@
 
 #include <assets_snapshot.h>
 #include <cbor.h>
-#include <wally_address.h>
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
@@ -190,7 +189,7 @@ bool assets_get_allocate(const char* field, const CborValue* value, asset_info_t
 // Lookup asset-info for the passed asset-id.
 // 1. Looks in any explicitly passed asset-info
 // 2. Looks in any h/coded asset snapshot data (eg. policy assets)
-bool assets_get_info(const uint32_t network_id, const asset_info_t* assets, const size_t num_assets,
+bool assets_get_info(const network_t network_id, const asset_info_t* assets, const size_t num_assets,
     const char* asset_id, asset_info_t* asset_info_out)
 {
     JADE_ASSERT(network_is_liquid(network_id));

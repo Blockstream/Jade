@@ -51,7 +51,7 @@ static void render_op_return(
 }
 
 // Convert the passed btc script into an address
-void script_to_address(const uint32_t network_id, const uint8_t* script, const size_t script_len, const bool has_value,
+void script_to_address(const network_t network_id, const uint8_t* script, const size_t script_len, const bool has_value,
     char* output, const size_t output_len)
 {
     JADE_ASSERT(!network_is_liquid(network_id));
@@ -108,7 +108,7 @@ void script_to_address(const uint32_t network_id, const uint8_t* script, const s
 }
 
 // Convert the passed liquid script into an address (confidential if blindng key passed)
-void elements_script_to_address(const uint32_t network_id, const uint8_t* script, const size_t script_len,
+void elements_script_to_address(const network_t network_id, const uint8_t* script, const size_t script_len,
     const bool has_value, const uint8_t* blinding_key, const size_t blinding_key_len, char* output,
     const size_t output_len)
 {
@@ -234,7 +234,7 @@ static bool address_from_uri(const char* address, address_data_t* addr_data)
     return true;
 }
 
-static bool try_parse_address(const uint32_t network_id, address_data_t* addr_data)
+static bool try_parse_address(const network_t network_id, address_data_t* addr_data)
 {
     JADE_ASSERT(addr_data);
     int wret = WALLY_EINVAL;

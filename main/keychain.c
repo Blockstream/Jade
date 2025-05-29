@@ -239,7 +239,7 @@ bool keychain_is_network_type_consistent(const network_type_t network_type)
     return network_type_restriction == NETWORK_TYPE_NONE || network_type == network_type_restriction;
 }
 
-bool keychain_is_network_id_consistent(const uint32_t network_id)
+bool keychain_is_network_id_consistent(const network_t network_id)
 {
     const network_type_t network_type = network_to_type(network_id);
     return keychain_is_network_type_consistent(network_type);

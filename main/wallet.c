@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <wally_address.h>
 #include <wally_anti_exfil.h>
 #include <wally_bip32.h>
 #include <wally_bip39.h>
@@ -88,7 +87,7 @@ struct ext_key LIQUID_SERVICE;
 struct ext_key TESTNETLIQUID_SERVICE;
 
 // network id to relevant GA service key
-static struct ext_key* networkToGaService(const uint32_t network_id)
+static struct ext_key* network_to_ga_service(const network_t network_id)
 {
     switch (network_id) {
     case NETWORK_BITCOIN:
@@ -101,8 +100,10 @@ static struct ext_key* networkToGaService(const uint32_t network_id)
         return &TESTNET_SERVICE;
     case NETWORK_LIQUID_TESTNET:
         return &TESTNETLIQUID_SERVICE;
+    case NETWORK_NONE:
+        break;
     }
-    JADE_LOGE("Unknown network: %" PRIu32, network_id);
+    JADE_LOGE("Unknown network: %d", network_id);
     return NULL;
 }
 
@@ -407,7 +408,7 @@ static void wallet_get_privkey(const uint32_t* path, const size_t path_len, uint
     SENSITIVE_POP(&derived);
 }
 
-static uint32_t get_bip44_coin_type(const uint32_t network_id)
+static uint32_t get_bip44_coin_type(const network_t network_id)
 {
     switch (network_id) {
     case NETWORK_BITCOIN:
@@ -419,11 +420,13 @@ static uint32_t get_bip44_coin_type(const uint32_t network_id)
     case NETWORK_BITCOIN_REGTEST:
     case NETWORK_LIQUID_REGTEST:
         return BIP44_COIN_TEST;
+    case NETWORK_NONE:
+        break;
     }
     JADE_ASSERT(false); // Invalid network
 }
 
-bool wallet_is_expected_singlesig_path(const uint32_t network_id, const script_variant_t script_variant,
+bool wallet_is_expected_singlesig_path(const network_t network_id, const script_variant_t script_variant,
     const bool is_change, const uint32_t* path, const size_t path_len)
 {
     JADE_ASSERT(is_singlesig(script_variant));
@@ -576,12 +579,12 @@ bool wallet_calculate_gaservice_path(
     return wallet_unserialize_gaservice_path(serialized, sizeof(serialized), gaservice_path, gaservice_path_len);
 }
 
-bool wallet_get_gaservice_fingerprint(const uint32_t network_id, uint8_t* output, size_t output_len)
+bool wallet_get_gaservice_fingerprint(const network_t network_id, uint8_t* output, size_t output_len)
 {
     JADE_ASSERT(output);
     JADE_ASSERT(output_len == BIP32_KEY_FINGERPRINT_LEN);
 
-    const struct ext_key* const service = networkToGaService(network_id);
+    const struct ext_key* const service = network_to_ga_service(network_id);
     if (!service) {
         return false;
     }
@@ -684,7 +687,7 @@ bool wallet_get_gaservice_root_key(
 
 // Helper to validate the user-path, and fetch the wallet's relevant gait service pubkey
 static bool wallet_get_gaservice_key(
-    const uint32_t network_id, const uint32_t* path, const size_t path_len, struct ext_key* gakey)
+    const network_t network_id, const uint32_t* path, const size_t path_len, struct ext_key* gakey)
 {
     JADE_ASSERT(path);
     JADE_ASSERT(path_len);
@@ -693,7 +696,7 @@ static bool wallet_get_gaservice_key(
     const keychain_t* const keychain = keychain_get();
     JADE_ASSERT(keychain);
 
-    const struct ext_key* const service = networkToGaService(network_id);
+    const struct ext_key* const service = network_to_ga_service(network_id);
     if (!service) {
         return false;
     }
@@ -765,7 +768,7 @@ static void wallet_build_multisig(const bool sorted, const size_t threshold, con
 }
 
 // Helper to build a 2of2 CSV multisig script
-static void wallet_build_csv(const uint32_t network_id, const uint8_t* pubkeys, const size_t pubkeys_len,
+static void wallet_build_csv(const network_t network_id, const uint8_t* pubkeys, const size_t pubkeys_len,
     const size_t blocks, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(network_id != NETWORK_NONE);
@@ -795,7 +798,7 @@ static void wallet_build_csv(const uint32_t network_id, const uint8_t* pubkeys, 
 
 // Function to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
 // Note only the pub_key member is required to be valid from passed ext_key structs.
-bool wallet_build_ga_script_ex(const uint32_t network_id, const struct ext_key* user_key,
+bool wallet_build_ga_script_ex(const network_t network_id, const struct ext_key* user_key,
     const struct ext_key* recovery_hdkey, const size_t csv_blocks, const uint32_t* path, const size_t path_len,
     uint8_t* output, const size_t output_len, size_t* written)
 {
@@ -814,7 +817,7 @@ bool wallet_build_ga_script_ex(const uint32_t network_id, const struct ext_key* 
 
     // If csv, ensure above allowed minimum for network
     if (csv_blocks && !network_is_allowable_csv_blocks(network_id, csv_blocks)) {
-        JADE_LOGE("csvblocks (%u) too low for network %" PRIu32, csv_blocks, network_id);
+        JADE_LOGE("csvblocks (%u) too low for network %d", csv_blocks, network_id);
         return false;
     }
 
@@ -871,7 +874,7 @@ bool wallet_build_ga_script_ex(const uint32_t network_id, const struct ext_key* 
 }
 
 // Function to build a green-address script - 2of2 or 2of3 multisig, or a 2of2 csv
-bool wallet_build_ga_script(const uint32_t network_id, const char* xpubrecovery, const size_t csv_blocks,
+bool wallet_build_ga_script(const network_t network_id, const char* xpubrecovery, const size_t csv_blocks,
     const uint32_t* path, const size_t path_len, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
@@ -1057,7 +1060,7 @@ bool wallet_search_for_multisig_script(const script_variant_t script_variant, co
     return found;
 }
 
-bool wallet_build_descriptor_script(const uint32_t network_id, const char* descriptor_name,
+bool wallet_build_descriptor_script(const network_t network_id, const char* descriptor_name,
     const descriptor_data_t* descriptor, const size_t multi_index, const size_t index, uint8_t* output,
     const size_t output_len, size_t* written, const char** errmsg)
 {
@@ -1083,7 +1086,7 @@ bool wallet_build_descriptor_script(const uint32_t network_id, const char* descr
     return true;
 }
 
-bool wallet_search_for_descriptor_script(const uint32_t network_id, const char* descriptor_name,
+bool wallet_search_for_descriptor_script(const network_t network_id, const char* descriptor_name,
     const descriptor_data_t* descriptor, size_t multi_index, size_t* index, size_t search_depth, const uint8_t* script,
     const size_t script_len)
 {
@@ -1326,7 +1329,7 @@ bool wallet_get_hdkey(const uint32_t* path, const size_t path_len, const uint32_
     return true;
 }
 
-bool wallet_get_xpub(const uint32_t network_id, const uint32_t* path, const size_t path_len, char** output)
+bool wallet_get_xpub(const network_t network_id, const uint32_t* path, const size_t path_len, char** output)
 {
     JADE_ASSERT(keychain_get());
     JADE_ASSERT(path_len == 0 || path);

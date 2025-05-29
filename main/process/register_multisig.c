@@ -18,15 +18,13 @@
 #include <ctype.h>
 #include <sodium/utils.h>
 
-#include <wally_address.h>
-
 bool show_multisig_activity(const char* multisig_name, bool is_sorted, size_t threshold, size_t num_signers,
     const signer_t* signer_details, const size_t num_signer_details, const char* master_blinding_key_hex,
     const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting,
     bool is_valid);
 
 // Function to validate multsig parameters and persist the record
-static int register_multisig(const char* multisig_name, const uint32_t network_id,
+static int register_multisig(const char* multisig_name, const network_t network_id,
     const script_variant_t script_variant, const bool sorted, const size_t threshold, const signer_t* signers,
     const size_t num_signers, const uint8_t* master_blinding_key, const size_t master_blinding_key_len,
     const char** errmsg)
@@ -239,7 +237,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     JADE_INIT_OUT_PPTR(errmsg);
 
     // Work out network and appropriate xpub version bytes
-    uint32_t network_id;
+    network_t network_id;
     uint8_t xpub_version[4];
     if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
         network_id = NETWORK_BITCOIN_TESTNET;

@@ -1,7 +1,7 @@
 #ifndef KEYCHAIN_H_
 #define KEYCHAIN_H_
 
-#include <network_type.h>
+#include "utils/network.h"
 
 #include <stdbool.h>
 #include <wally_bip32.h>
@@ -53,7 +53,7 @@ void keychain_cache_mnemonic_entropy(const char* mnemonic);
 void keychain_clear_network_type_restriction(void);
 void keychain_set_network_type_restriction(const network_type_t network_type);
 network_type_t keychain_get_network_type_restriction(void);
-bool keychain_is_network_id_consistent(const uint32_t network_id);
+bool keychain_is_network_id_consistent(const network_t network_id);
 bool keychain_is_network_type_consistent(const network_type_t network_type);
 
 // mnemonic returned should be freed by caller with wally_free_string

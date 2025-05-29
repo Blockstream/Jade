@@ -22,7 +22,6 @@
 #include <sodium/crypto_verify_64.h>
 #include <sodium/utils.h>
 
-#include <wally_address.h>
 #include <wally_bip32.h>
 #include <wally_bip85.h>
 

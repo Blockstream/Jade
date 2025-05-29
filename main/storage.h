@@ -7,7 +7,7 @@
 
 #include <nvs.h>
 
-#include <network_type.h>
+#include "utils/network.h"
 
 #define BLE_ENABLED 0x1
 

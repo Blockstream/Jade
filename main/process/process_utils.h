@@ -73,13 +73,13 @@ typedef struct {
         goto cleanup;                                                                                                  \
     }
 
-bool jade_process_check_network(jade_process_t* process, CborValue* params, uint32_t* network_id);
+bool jade_process_check_network(jade_process_t* process, CborValue* params, network_t* network_id);
 
 // Ensure the rpc "network" parameter is valid and consistent with prior use.
 // Declares 'network_id' variable and initializes it.
 // Assumes GET_MSG_PARAMS() was used previously in the same scope.
 #define CHECK_NETWORK_CONSISTENT(process)                                                                              \
-    uint32_t network_id;                                                                                               \
+    network_t network_id;                                                                                              \
     if (!jade_process_check_network(process, &params, &network_id)) {                                                  \
         goto cleanup;                                                                                                  \
     }

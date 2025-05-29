@@ -2,7 +2,6 @@
 #include <assets_snapshot.h>
 #include <inttypes.h>
 #include <math.h>
-#include <wally_address.h>
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
@@ -72,7 +71,7 @@ static uint32_t displayable_outputs(
 
 // Lookup the passed asset-id in the asset data, and return the asset-id, issuer,
 // ticker, and the passed value scaled correctly for the precision provided.
-static bool get_asset_display_info(const uint32_t network_id, const asset_info_t* assets, const size_t num_assets,
+static bool get_asset_display_info(const network_t network_id, const asset_info_t* assets, const size_t num_assets,
     const uint8_t* asset_id, const size_t asset_id_len, const uint64_t value, char* issuer, const size_t issuer_len,
     char* asset_id_hex, const size_t asset_id_hex_len, char* amount, const size_t amount_len, char* ticker,
     const size_t ticker_len)
@@ -416,7 +415,7 @@ static bool show_input_output_activity(const char* title, const bool is_wallet_o
 }
 
 bool show_btc_transaction_outputs_activity(
-    const uint32_t network_id, const struct wally_tx* tx, const output_info_t* output_info)
+    const network_t network_id, const struct wally_tx* tx, const output_info_t* output_info)
 {
     JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(tx);
@@ -475,7 +474,7 @@ bool show_btc_transaction_outputs_activity(
     return true;
 }
 
-bool show_elements_transaction_outputs_activity(const uint32_t network_id, const struct wally_tx* tx,
+bool show_elements_transaction_outputs_activity(const network_t network_id, const struct wally_tx* tx,
     const output_info_t* output_info, const asset_info_t* assets, const size_t num_assets)
 {
     JADE_ASSERT(network_is_liquid(network_id));
@@ -570,7 +569,7 @@ bool show_elements_transaction_outputs_activity(const uint32_t network_id, const
     return true;
 }
 
-static bool show_elements_asset_summary_activity(const char* title, const char* direction, const uint32_t network_id,
+static bool show_elements_asset_summary_activity(const char* title, const char* direction, const network_t network_id,
     const asset_info_t* assets, const size_t num_assets, const movement_summary_info_t* summary,
     const size_t summary_len)
 {
@@ -618,7 +617,7 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
     return true;
 }
 
-bool show_elements_swap_activity(const uint32_t network_id, const bool initial_proposal,
+bool show_elements_swap_activity(const network_t network_id, const bool initial_proposal,
     const movement_summary_info_t* wallet_input_summary, const size_t wallet_input_summary_size,
     const movement_summary_info_t* wallet_output_summary, const size_t wallet_output_summary_size,
     const asset_info_t* assets, const size_t num_assets)
@@ -777,7 +776,7 @@ bool show_btc_final_confirmation_activity(const uint64_t fee, const char* warnin
 }
 
 bool show_elements_final_confirmation_activity(
-    const uint32_t network_id, const char* title, const uint64_t fee, const char* warning_msg)
+    const network_t network_id, const char* title, const uint64_t fee, const char* warning_msg)
 {
     JADE_ASSERT(network_is_liquid(network_id));
     JADE_ASSERT(title);

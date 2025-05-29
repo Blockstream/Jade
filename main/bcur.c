@@ -2,11 +2,11 @@
 #include "bcur.h"
 #include "jade_assert.h"
 #include "keychain.h"
-#include "network_type.h"
 #include "qrcode.h"
 #include "qrscan.h"
 #include "ui.h"
 #include "utils/malloc_ext.h"
+#include "utils/network.h"
 #include "utils/util.h"
 
 #include <cbor.h>

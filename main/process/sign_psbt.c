@@ -20,7 +20,6 @@
 
 #include <sodium/utils.h>
 
-#include <wally_address.h>
 #include <wally_map.h>
 #include <wally_psbt.h>
 #include <wally_psbt_members.h>
@@ -29,7 +28,7 @@
 #include "process_utils.h"
 
 bool show_btc_transaction_outputs_activity(
-    const uint32_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
+    const network_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
 bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
 
@@ -47,7 +46,7 @@ static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; //
 
 #define PSBT_OUT_CHUNK_SIZE (MAX_OUTPUT_MSG_SIZE - 64)
 
-static bool is_green_multisig_signers(const uint32_t network_id, const key_iter* iter, struct ext_key* recovery_hdkey)
+static bool is_green_multisig_signers(const network_t network_id, const key_iter* iter, struct ext_key* recovery_hdkey)
 {
     JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(iter && iter->is_valid);
@@ -141,7 +140,7 @@ static bool is_green_multisig_signers(const uint32_t network_id, const key_iter*
 
 // Generate a green-multisig script, and compare it to the target script provided.
 // Returns true if the generated script matches the target script.
-static bool verify_ga_script_matches(const uint32_t network_id, const struct ext_key* user_key,
+static bool verify_ga_script_matches(const network_t network_id, const struct ext_key* user_key,
     const struct ext_key* recovery_key, const uint32_t* path, const size_t path_len, const uint8_t* target_script,
     const size_t target_script_len)
 {
@@ -287,7 +286,7 @@ static bool verify_multisig_script_matches(const multisig_data_t* multisig_data,
 // Use the passed descriptor to derive the output script
 // Return whether the generated output script matches the passed target script
 static bool verify_descriptor_script_matches_impl(const char* descriptor_name, const descriptor_data_t* descriptor,
-    const uint32_t network_id, const uint32_t multi_index, const uint32_t index, const uint8_t* target_script,
+    const network_t network_id, const uint32_t multi_index, const uint32_t index, const uint8_t* target_script,
     const size_t target_script_len)
 {
     JADE_ASSERT(descriptor_name);
@@ -319,7 +318,7 @@ static bool verify_descriptor_script_matches_impl(const char* descriptor_name, c
 // Use the passed descriptor to derive the output script
 // Return whether the generated output script matches the passed target script
 static bool verify_descriptor_script_matches(const char* descriptor_name, const descriptor_data_t* descriptor,
-    const uint32_t network_id, const uint32_t* path, const size_t path_len, const key_iter* iter,
+    const network_t network_id, const uint32_t* path, const size_t path_len, const key_iter* iter,
     const uint8_t* target_script, const size_t target_script_len)
 {
     JADE_ASSERT(descriptor_name);
@@ -405,7 +404,7 @@ static bool get_suitable_multisig_record(const key_iter* iter, const uint32_t* p
 // Try to find a descriptor registration which creates the passed script with the given
 // key iterators keys.  Our signer's path tail is passed in, and is assumed to be common across signers.
 static bool get_suitable_descriptor_record(const key_iter* iter, const uint32_t* path, const size_t path_len,
-    const uint8_t* target_script, const size_t target_script_len, const uint32_t network_id, char* wallet_name,
+    const uint8_t* target_script, const size_t target_script_len, const network_t network_id, char* wallet_name,
     const size_t wallet_name_len, descriptor_data_t* const descriptor)
 {
     JADE_ASSERT(iter && iter->is_valid);
@@ -452,9 +451,9 @@ static bool get_suitable_descriptor_record(const key_iter* iter, const uint32_t*
 }
 
 // Examine outputs for change we can automatically validate
-static void validate_any_change_outputs(const uint32_t network_id, struct wally_psbt* psbt, const uint8_t signing_flags,
-    const char* wallet_name, const multisig_data_t* multisig_data, const descriptor_data_t* descriptor,
-    output_info_t* output_info)
+static void validate_any_change_outputs(const network_t network_id, struct wally_psbt* psbt,
+    const uint8_t signing_flags, const char* wallet_name, const multisig_data_t* multisig_data,
+    const descriptor_data_t* descriptor, output_info_t* output_info)
 {
     JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(psbt);
@@ -618,7 +617,7 @@ static void validate_any_change_outputs(const uint32_t network_id, struct wally_
 // Sign a psbt - the passed wally psbt struct is updated with any signatures.
 // Returns 0 if no errors occurred - does not necessarily indicate that signatures were added.
 // Returns an rpc/message error code on error, and the error string should be populated.
-int sign_psbt(const uint32_t network_id, struct wally_psbt* psbt, const char** errmsg)
+int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** errmsg)
 {
     JADE_ASSERT(psbt);
     JADE_INIT_OUT_PPTR(errmsg);

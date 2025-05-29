@@ -16,15 +16,13 @@
 #include <ctype.h>
 #include <sodium/utils.h>
 
-#include <wally_address.h>
-
 bool show_descriptor_activity(const char* descriptor_name, const descriptor_data_t* descriptor,
     const signer_t* signer_details, size_t num_signer_details, const uint8_t* wallet_fingerprint,
     size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting, bool is_valid);
 
 // Function to validate descriptor and persist the record
 static int register_descriptor(
-    const char* descriptor_name, const uint32_t network_id, descriptor_data_t* descriptor, const char** errmsg)
+    const char* descriptor_name, const network_t network_id, descriptor_data_t* descriptor, const char** errmsg)
 {
     JADE_ASSERT(descriptor_name);
     JADE_ASSERT(network_id != NETWORK_NONE);

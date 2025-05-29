@@ -8,7 +8,6 @@
 #include "utils/temporary_stack.h"
 #include "wallet.h"
 
-#include <wally_address.h>
 #include <wally_descriptor.h>
 #include <wally_script.h>
 
@@ -167,7 +166,7 @@ static void string_values_to_map(const string_value_t* datavalues, const size_t 
     }
 }
 
-static bool parse_descriptor(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
+static bool parse_descriptor(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
     descriptor_type_t* deduced_type, struct wally_descriptor** output, uint32_t* depth, const char** errmsg)
 {
     JADE_ASSERT(name);
@@ -276,7 +275,7 @@ fail:
 
 // NOTE: signers should either be sufficient to hold details for all signers, or NULL if
 // the only value of interest is the number of signers in the descriptor.
-bool descriptor_get_signers(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
+bool descriptor_get_signers(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
     descriptor_type_t* deduced_type, signer_t* signers, const size_t signers_len, size_t* written, const char** errmsg)
 {
     JADE_ASSERT(name);
@@ -389,7 +388,7 @@ cleanup:
 }
 
 // On success output must be freed with wally_free_string()
-bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
+bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
     const uint32_t multi_index, const uint32_t child_num, descriptor_type_t* deduced_type, char** output,
     const char** errmsg)
 {
@@ -430,7 +429,7 @@ bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor
 // On success output must be freed
 // NOTE: For miniscript expressions, the script generated is untyped bitcoin script.
 //       For descriptors, a scriptPubKey is generated.
-bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
+bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
     const uint32_t multi_index, const uint32_t child_num, descriptor_type_t* deduced_type, uint8_t** output,
     size_t* output_len, const char** errmsg)
 {
@@ -470,7 +469,7 @@ bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
     return true;
 }
 
-bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
+bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
     const uint32_t multi_index, uint32_t* child_num, const size_t search_depth, const uint8_t* script,
     const size_t script_len)
 {

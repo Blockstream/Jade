@@ -5,22 +5,24 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "network.h"
+
 #define MAX_ADDRESS_LEN 128
 
 typedef struct {
     char address[MAX_ADDRESS_LEN];
-    uint32_t network_id;
+    network_t network_id;
     uint8_t script[MAX_ADDRESS_LEN]; // script should always be shorter than the address
     size_t script_len;
 } address_data_t;
 
 // Script pubkey to address, for BTC networks
-void script_to_address(const uint32_t network_id, const uint8_t* script, size_t script_len, bool has_value,
+void script_to_address(const network_t network_id, const uint8_t* script, size_t script_len, bool has_value,
     char* output, size_t output_len);
 
 // Script pubkey to address, for liquid networks
 // Will be converted to a confidential address if blindingkey is passed.
-void elements_script_to_address(const uint32_t network_id, const uint8_t* script, size_t script_len, bool has_value,
+void elements_script_to_address(const network_t network_id, const uint8_t* script, size_t script_len, bool has_value,
     const uint8_t* blinding_key, size_t blinding_key_len, char* output, size_t output_len);
 
 // Attempt to parse an address - return the network and the scriptpubkey
