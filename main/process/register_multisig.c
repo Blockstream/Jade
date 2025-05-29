@@ -242,10 +242,10 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
     uint32_t network_id;
     uint8_t xpub_version[4];
     if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
-        network_id = WALLY_NETWORK_BITCOIN_TESTNET;
+        network_id = NETWORK_BITCOIN_TESTNET;
         uint32_to_be(BIP32_VER_TEST_PUBLIC, xpub_version);
     } else {
-        network_id = WALLY_NETWORK_BITCOIN_MAINNET;
+        network_id = NETWORK_BITCOIN;
         uint32_to_be(BIP32_VER_MAIN_PUBLIC, xpub_version);
     }
 

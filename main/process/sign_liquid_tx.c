@@ -517,7 +517,7 @@ bool show_elements_fee_confirmation_activity(const uint32_t network_id, const st
     const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t fees,
     const TxType_t txtype, const bool tx_is_partial)
 {
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(tx);
     JADE_ASSERT(outinfo);
 

@@ -924,8 +924,8 @@ static bool test_miniscript_descriptors(void)
     descriptor_data_t desc = {};
     bool ret;
 
-    const uint32_t MAINNET = WALLY_NETWORK_BITCOIN_MAINNET;
-    const uint32_t TESTNET = WALLY_NETWORK_BITCOIN_TESTNET;
+    const uint32_t MAINNET = NETWORK_BITCOIN;
+    const uint32_t TESTNET = NETWORK_BITCOIN_TESTNET;
     uint8_t buf[BIP32_KEY_FINGERPRINT_LEN];
     size_t num_signers = 0;
     signer_t signers[3];

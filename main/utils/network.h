@@ -10,14 +10,25 @@
 // Maximum length of a network name
 #define MAX_NETWORK_NAME_LEN 20
 
+// Network ID - values are set to match wally constants
+typedef enum {
+    NETWORK_NONE = 0x00,
+    NETWORK_BITCOIN = 0x01,
+    NETWORK_BITCOIN_REGTEST = 0xff,
+    NETWORK_BITCOIN_TESTNET = 0x02,
+    NETWORK_LIQUID = 0x03,
+    NETWORK_LIQUID_REGTEST = 0x04,
+    NETWORK_LIQUID_TESTNET = 0x05
+} network_t;
+
 bool network_is_liquid(uint32_t network_id);
 
 bool network_is_known_csv_blocks(uint32_t network_id, uint32_t csv_blocks);
 bool network_is_allowable_csv_blocks(uint32_t network_id, uint32_t csv_blocks);
 
-// Network name to WALLY_NETWORK_ constant, or WALLY_NETWORK_NONE if unknown
-uint32_t network_from_name(const char* network);
-// WALLY_NETWORK_ constant to network name. Asserts if unknown/WALLY_NETWORK_NONE
+// Network name to NETWORK_ constant, or NETWORK_NONE if unknown
+uint32_t network_from_name(const char* name);
+// NETWORK_ constant to network name. Asserts if unknown/NETWORK_NONE
 const char* network_to_name(uint32_t network_id);
 
 network_type_t network_to_type(uint32_t network_id);

@@ -34,7 +34,7 @@ bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id,
     CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg)
 {
     JADE_ASSERT(process);
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(tx);
     JADE_ASSERT(wallet_outputs);
     JADE_ASSERT(output_info);

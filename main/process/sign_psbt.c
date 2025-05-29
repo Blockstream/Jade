@@ -49,7 +49,7 @@ static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; //
 
 static bool is_green_multisig_signers(const uint32_t network_id, const key_iter* iter, struct ext_key* recovery_hdkey)
 {
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(iter && iter->is_valid);
 
     const size_t num_keys = key_iter_get_num_keys(iter);
@@ -145,7 +145,7 @@ static bool verify_ga_script_matches(const uint32_t network_id, const struct ext
     const struct ext_key* recovery_key, const uint32_t* path, const size_t path_len, const uint8_t* target_script,
     const size_t target_script_len)
 {
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(path);
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
@@ -292,7 +292,7 @@ static bool verify_descriptor_script_matches_impl(const char* descriptor_name, c
 {
     JADE_ASSERT(descriptor_name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
 
@@ -324,7 +324,7 @@ static bool verify_descriptor_script_matches(const char* descriptor_name, const 
 {
     JADE_ASSERT(descriptor_name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(path);
     JADE_ASSERT(path_len);
     JADE_ASSERT(iter && iter->is_valid);
@@ -411,7 +411,7 @@ static bool get_suitable_descriptor_record(const key_iter* iter, const uint32_t*
     JADE_ASSERT(iter && iter->is_valid);
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(wallet_name);
     JADE_ASSERT(wallet_name_len);
     JADE_ASSERT(descriptor);
@@ -456,7 +456,7 @@ static void validate_any_change_outputs(const uint32_t network_id, struct wally_
     const char* wallet_name, const multisig_data_t* multisig_data, const descriptor_data_t* descriptor,
     output_info_t* output_info)
 {
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(psbt);
     JADE_ASSERT(signing_flags);
     // wallet_name, multisig_data and descriptor optional
@@ -622,7 +622,7 @@ int sign_psbt(const uint32_t network_id, struct wally_psbt* psbt, const char** e
 {
     JADE_ASSERT(psbt);
     JADE_INIT_OUT_PPTR(errmsg);
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
 
     // Elements/PSET not supported
     size_t is_elements = 0;

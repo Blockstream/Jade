@@ -31,7 +31,7 @@ bool jade_process_check_network(jade_process_t* process, CborValue* params, uint
     rpc_get_string("network", sizeof(network), params, network, &network_len);
     *network_id = network_from_name(network_len ? network : NULL);
 
-    if (*network_id == WALLY_NETWORK_NONE) {
+    if (*network_id == NETWORK_NONE) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
         return false;

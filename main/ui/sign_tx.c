@@ -418,7 +418,7 @@ static bool show_input_output_activity(const char* title, const bool is_wallet_o
 bool show_btc_transaction_outputs_activity(
     const uint32_t network_id, const struct wally_tx* tx, const output_info_t* output_info)
 {
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(tx);
     // Note: output_info is optional and can be null
 

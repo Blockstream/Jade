@@ -242,7 +242,7 @@ static bool try_parse_address(const uint32_t network_id, address_data_t* addr_da
 
     // 1. Try non- (or wrapped-) segwit.
     // Don't bother trying Bitcoin regtest since it shares a prefix with testnet
-    if (network_id != WALLY_NETWORK_BITCOIN_REGTEST) {
+    if (network_id != NETWORK_BITCOIN_REGTEST) {
         wret = wally_address_to_scriptpubkey(
             addr_data->address, network_id, addr_data->script, sizeof(addr_data->script), &addr_data->script_len);
     }
@@ -274,7 +274,7 @@ bool parse_address(const char* address, address_data_t* addr_data)
     JADE_ASSERT(addr_data);
 
     addr_data->address[0] = '\0';
-    addr_data->network_id = WALLY_NETWORK_NONE;
+    addr_data->network_id = NETWORK_NONE;
     addr_data->script_len = 0;
 
     // Convert potential uri form into raw base58 address string
@@ -284,13 +284,12 @@ bool parse_address(const char* address, address_data_t* addr_data)
     }
 
     // Try to parse the passed address for mainnet, testnet and localtest/regtest
-    if (try_parse_address(WALLY_NETWORK_BITCOIN_MAINNET, addr_data)
-        || try_parse_address(WALLY_NETWORK_BITCOIN_TESTNET, addr_data)
-        || try_parse_address(WALLY_NETWORK_BITCOIN_REGTEST, addr_data)) {
+    if (try_parse_address(NETWORK_BITCOIN, addr_data) || try_parse_address(NETWORK_BITCOIN_TESTNET, addr_data)
+        || try_parse_address(NETWORK_BITCOIN_REGTEST, addr_data)) {
         // Script parsed
         const size_t len = strnlen(addr_data->address, sizeof(addr_data->address));
         JADE_ASSERT(len > 0 && len < sizeof(addr_data->address));
-        JADE_ASSERT(addr_data->network_id != WALLY_NETWORK_NONE);
+        JADE_ASSERT(addr_data->network_id != NETWORK_NONE);
         JADE_ASSERT(addr_data->script_len);
         return true;
     }

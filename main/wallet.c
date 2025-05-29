@@ -91,15 +91,15 @@ struct ext_key TESTNETLIQUID_SERVICE;
 static struct ext_key* networkToGaService(const uint32_t network_id)
 {
     switch (network_id) {
-    case WALLY_NETWORK_BITCOIN_MAINNET:
+    case NETWORK_BITCOIN:
         return &MAINNET_SERVICE;
-    case WALLY_NETWORK_LIQUID:
+    case NETWORK_LIQUID:
         return &LIQUID_SERVICE;
-    case WALLY_NETWORK_BITCOIN_TESTNET:
-    case WALLY_NETWORK_BITCOIN_REGTEST:
-    case WALLY_NETWORK_LIQUID_REGTEST: // localtest-liquid uses the regtest/testnet key
+    case NETWORK_BITCOIN_TESTNET:
+    case NETWORK_BITCOIN_REGTEST:
+    case NETWORK_LIQUID_REGTEST: // localtest-liquid uses the regtest/testnet key
         return &TESTNET_SERVICE;
-    case WALLY_NETWORK_LIQUID_TESTNET:
+    case NETWORK_LIQUID_TESTNET:
         return &TESTNETLIQUID_SERVICE;
     }
     JADE_LOGE("Unknown network: %" PRIu32, network_id);
@@ -410,14 +410,14 @@ static void wallet_get_privkey(const uint32_t* path, const size_t path_len, uint
 static uint32_t get_bip44_coin_type(const uint32_t network_id)
 {
     switch (network_id) {
-    case WALLY_NETWORK_BITCOIN_MAINNET:
+    case NETWORK_BITCOIN:
         return BIP44_COIN_BTC;
-    case WALLY_NETWORK_LIQUID:
+    case NETWORK_LIQUID:
         return BIP44_COIN_LBTC;
-    case WALLY_NETWORK_BITCOIN_TESTNET:
-    case WALLY_NETWORK_LIQUID_TESTNET:
-    case WALLY_NETWORK_BITCOIN_REGTEST:
-    case WALLY_NETWORK_LIQUID_REGTEST:
+    case NETWORK_BITCOIN_TESTNET:
+    case NETWORK_LIQUID_TESTNET:
+    case NETWORK_BITCOIN_REGTEST:
+    case NETWORK_LIQUID_REGTEST:
         return BIP44_COIN_TEST;
     }
     JADE_ASSERT(false); // Invalid network
@@ -768,7 +768,7 @@ static void wallet_build_multisig(const bool sorted, const size_t threshold, con
 static void wallet_build_csv(const uint32_t network_id, const uint8_t* pubkeys, const size_t pubkeys_len,
     const size_t blocks, uint8_t* output, const size_t output_len, size_t* written)
 {
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(pubkeys_len == 2 * EC_PUBLIC_KEY_LEN); // 2of2 only
 
     JADE_ASSERT(blocks > 0);
@@ -1063,7 +1063,7 @@ bool wallet_build_descriptor_script(const uint32_t network_id, const char* descr
 {
     JADE_ASSERT(keychain_get());
 
-    if (network_id == WALLY_NETWORK_NONE || !descriptor_name || !descriptor || !output || !output_len || !errmsg) {
+    if (network_id == NETWORK_NONE || !descriptor_name || !descriptor || !output || !output_len || !errmsg) {
         return false;
     }
 

@@ -395,7 +395,7 @@ bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor
 {
     JADE_ASSERT(name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(!deduced_type || *deduced_type == DESCRIPTOR_TYPE_UNKNOWN);
     JADE_INIT_OUT_PPTR(output);
     JADE_INIT_OUT_PPTR(errmsg);
@@ -436,7 +436,7 @@ bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
 {
     JADE_ASSERT(name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(!deduced_type || *deduced_type == DESCRIPTOR_TYPE_UNKNOWN);
     JADE_INIT_OUT_PPTR(output);
     JADE_INIT_OUT_SIZE(output_len);
@@ -476,7 +476,7 @@ bool descriptor_search_for_script(const char* name, const descriptor_data_t* des
 {
     JADE_ASSERT(name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(child_num);
     JADE_ASSERT(search_depth);
     JADE_ASSERT(script);

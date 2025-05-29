@@ -829,9 +829,9 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
     const char* errmsg = NULL;
     uint32_t network_id;
     if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
-        network_id = WALLY_NETWORK_BITCOIN_TESTNET;
+        network_id = NETWORK_BITCOIN_TESTNET;
     } else {
-        network_id = WALLY_NETWORK_BITCOIN_MAINNET;
+        network_id = NETWORK_BITCOIN;
     }
     const int errcode = sign_psbt(network_id, psbt, &errmsg);
     if (errcode) {

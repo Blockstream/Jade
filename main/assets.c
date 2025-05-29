@@ -209,9 +209,9 @@ bool assets_get_info(const uint32_t network_id, const asset_info_t* assets, cons
     }
 
     // 3. Search the h/coded assets snapshot
-    // FIXME: WALLY_NETWORK_LIQUID_REGTEST appears to use mainnet assets?
-    const bool use_testnet_registry = network_id == WALLY_NETWORK_LIQUID_TESTNET /* ||
-        network_id == WALLY_NETWORK_LIQUID_REGTEST */
+    // FIXME: NETWORK_LIQUID_REGTEST appears to use mainnet assets?
+    const bool use_testnet_registry = network_id == NETWORK_LIQUID_TESTNET /* ||
+        network_id == NETWORK_LIQUID_REGTEST */
         ;
     const snapshot_asset_info_t* snapshot_asset = assets_snapshot_get_info(asset_id, use_testnet_registry);
     if (snapshot_asset) {

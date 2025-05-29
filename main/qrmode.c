@@ -624,7 +624,7 @@ static bool handle_address_options(const bool show_account, uint16_t* account_in
 static bool verify_address(const address_data_t* const addr_data)
 {
     JADE_ASSERT(addr_data);
-    JADE_ASSERT(addr_data->network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(addr_data->network_id != NETWORK_NONE);
     JADE_ASSERT(addr_data->script_len);
 
     const bool default_selection = true;
@@ -1135,9 +1135,9 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     const char* errmsg = NULL;
     uint32_t network_id;
     if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
-        network_id = WALLY_NETWORK_BITCOIN_TESTNET;
+        network_id = NETWORK_BITCOIN_TESTNET;
     } else {
-        network_id = WALLY_NETWORK_BITCOIN_MAINNET;
+        network_id = NETWORK_BITCOIN;
     }
     const int errcode = sign_psbt(network_id, psbt, &errmsg);
     if (errcode) {
@@ -1594,9 +1594,9 @@ static bool post_auth_msg_request(const jade_msg_source_t source, const bool sup
     const network_type_t restriction = keychain_get_network_type_restriction();
     uint32_t network_id;
     if (restriction == NETWORK_TYPE_TEST) {
-        network_id = WALLY_NETWORK_BITCOIN_TESTNET;
+        network_id = NETWORK_BITCOIN_TESTNET;
     } else {
-        network_id = WALLY_NETWORK_BITCOIN_MAINNET;
+        network_id = NETWORK_BITCOIN;
     }
     add_string_to_map(&params_encoder, "network", network_to_name(network_id));
     add_boolean_to_map(&params_encoder, "suppress_pin_change_confirmation", suppress_pin_change_confirmation);

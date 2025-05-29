@@ -27,7 +27,7 @@ static int register_descriptor(
     const char* descriptor_name, const uint32_t network_id, descriptor_data_t* descriptor, const char** errmsg)
 {
     JADE_ASSERT(descriptor_name);
-    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(descriptor);
     JADE_INIT_OUT_PPTR(errmsg);
 
