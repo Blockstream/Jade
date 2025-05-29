@@ -633,7 +633,8 @@ static bool verify_address(const address_data_t* const addr_data)
     }
 
     // check network - eg. testnet address, but this jade is setup for mainnet only
-    if (!keychain_is_network_type_consistent(addr_data->network)) {
+    const uint32_t network_id = networkToNetworkId(addr_data->network);
+    if (!keychain_is_network_id_consistent(network_id)) {
         const char* message[] = { "Network type inconsistent" };
         await_error_activity(message, 1);
         return false;

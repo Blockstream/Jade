@@ -210,12 +210,11 @@ void keychain_clear_network_type_restriction(void)
 }
 
 // Set the network type restriction (must currently be 'none', or same as passed).
-void keychain_set_network_type_restriction(const char* network)
+void keychain_set_network_type_restriction(const network_type_t network_type)
 {
-    JADE_ASSERT(keychain_is_network_type_consistent(network));
+    JADE_ASSERT(keychain_is_network_type_consistent(network_type));
 
     if (network_type_restriction == NETWORK_TYPE_NONE) {
-        const network_type_t network_type = isTestNetwork(network) ? NETWORK_TYPE_TEST : NETWORK_TYPE_MAIN;
         JADE_LOGI("Restricting to network type: %s", network_type == NETWORK_TYPE_TEST ? "TEST" : "MAIN");
 
         // If we have a persisted wallet, and we are not currently working with temporary keys
@@ -235,11 +234,15 @@ void keychain_set_network_type_restriction(const char* network)
 network_type_t keychain_get_network_type_restriction(void) { return network_type_restriction; }
 
 // Compare pinned/restricted network type and the type of the network passed
-bool keychain_is_network_type_consistent(const char* network)
+bool keychain_is_network_type_consistent(const network_type_t network_type)
 {
-    JADE_ASSERT(isValidNetwork(network));
-    const network_type_t network_type = isTestNetwork(network) ? NETWORK_TYPE_TEST : NETWORK_TYPE_MAIN;
     return network_type_restriction == NETWORK_TYPE_NONE || network_type == network_type_restriction;
+}
+
+bool keychain_is_network_id_consistent(const uint32_t network_id)
+{
+    const network_type_t network_type = networkIdToType(network_id);
+    return keychain_is_network_type_consistent(network_type);
 }
 
 const struct ext_key* keychain_cached_service(const struct ext_key* const service, const bool subaccount_root)

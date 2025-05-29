@@ -35,7 +35,8 @@ bool jade_process_check_network(jade_process_t* process, CborValue* params, uint
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid network from parameters", NULL);
         return false;
-    } else if (!keychain_is_network_type_consistent(network)) {
+    }
+    if (!keychain_is_network_id_consistent(*network_id)) {
         jade_process_reject_message(
             process, CBOR_RPC_NETWORK_MISMATCH, "Network type inconsistent with prior usage", NULL);
         return false;

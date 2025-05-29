@@ -51,9 +51,10 @@ void keychain_cache_mnemonic_entropy(const char* mnemonic);
 
 // Clear/set/get/compare the pinned/restricted network type
 void keychain_clear_network_type_restriction(void);
-void keychain_set_network_type_restriction(const char* network);
+void keychain_set_network_type_restriction(const network_type_t network_type);
 network_type_t keychain_get_network_type_restriction(void);
-bool keychain_is_network_type_consistent(const char* network);
+bool keychain_is_network_id_consistent(const uint32_t network_id);
+bool keychain_is_network_type_consistent(const network_type_t network_type);
 
 // mnemonic returned should be freed by caller with wally_free_string
 void keychain_get_new_mnemonic(char** mnemonic, size_t nwords);

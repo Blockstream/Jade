@@ -2115,7 +2115,7 @@ static void handle_network_type(gui_view_node_t* network_type_item)
     }
 
     keychain_clear_network_type_restriction();
-    keychain_set_network_type_restriction(type == NETWORK_TYPE_TEST ? TAG_TESTNET : TAG_MAINNET);
+    keychain_set_network_type_restriction(type);
     update_network_menu_label(network_type_item);
 }
 

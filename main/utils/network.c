@@ -132,6 +132,21 @@ const char* networkIdToNetwork(const uint32_t network_id)
     return NULL; // Unreachable
 }
 
+network_type_t networkIdToType(const uint32_t network_id)
+{
+    switch (network_id) {
+    case WALLY_NETWORK_BITCOIN_MAINNET:
+    case WALLY_NETWORK_LIQUID:
+        return NETWORK_TYPE_MAIN;
+    case WALLY_NETWORK_BITCOIN_TESTNET:
+    case WALLY_NETWORK_LIQUID_TESTNET:
+    case WALLY_NETWORK_BITCOIN_REGTEST:
+    case WALLY_NETWORK_LIQUID_REGTEST:
+        return NETWORK_TYPE_TEST;
+    }
+    return NETWORK_TYPE_NONE;
+}
+
 // 'mainnet' and 'liquid' map to VER_MAIN_PRIVATE, others to VER_TEST_PRIVATE
 uint32_t networkToVersion(const char* network)
 {
