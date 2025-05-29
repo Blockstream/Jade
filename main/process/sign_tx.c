@@ -157,7 +157,6 @@ bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id,
                     goto cleanup;
                 }
 
-                const char* const network = networkIdToNetwork(network_id); // TODO: use ID
                 if (is_greenaddress(script_variant)) {
                     // Optional recovery xpub for 2of3 accounts
                     written = 0;
@@ -168,7 +167,7 @@ bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id,
                     rpc_get_sizet("csv_blocks", &arrayItem, &csvBlocks);
 
                     // If number of csv blocks unexpected show a warning message and ask the user to confirm
-                    if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
+                    if (csvBlocks && !csvBlocksExpectedForNetwork(network_id, csvBlocks)) {
                         JADE_LOGW("Unexpected number of csv blocks in path for output: %u", csvBlocks);
                         const int ret = snprintf(output_info[i].message, sizeof(output_info[i].message),
                             "This wallet output has a non-standard csv value (%u), so it may be difficult to find.  "
@@ -179,7 +178,7 @@ bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id,
                     }
 
                     // Build a script pubkey for the passed parameters
-                    if (!wallet_build_ga_script(network, written ? xpubrecovery : NULL, csvBlocks, path, path_len,
+                    if (!wallet_build_ga_script(network_id, written ? xpubrecovery : NULL, csvBlocks, path, path_len,
                             script, sizeof(script), &script_len)) {
                         JADE_LOGE("Output %u path/script failed to construct", i);
                         *errmsg = "Receive script cannot be constructed";
@@ -187,7 +186,7 @@ bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id,
                     }
                 } else if (is_singlesig(script_variant)) {
                     // If paths not as expected show a warning message and ask the user to confirm
-                    if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
+                    if (!wallet_is_expected_singlesig_path(network_id, script_variant, is_change, path, path_len)) {
                         char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                         if (!wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
                             *errmsg = "Failed to convert path to string format";

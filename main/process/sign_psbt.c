@@ -20,6 +20,7 @@
 
 #include <sodium/utils.h>
 
+#include <wally_address.h>
 #include <wally_map.h>
 #include <wally_psbt.h>
 #include <wally_psbt_members.h>
@@ -46,9 +47,9 @@ static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; //
 
 #define PSBT_OUT_CHUNK_SIZE (MAX_OUTPUT_MSG_SIZE - 64)
 
-static bool is_green_multisig_signers(const char* network, const key_iter* iter, struct ext_key* recovery_hdkey)
+static bool is_green_multisig_signers(const uint32_t network_id, const key_iter* iter, struct ext_key* recovery_hdkey)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(iter && iter->is_valid);
 
     const size_t num_keys = key_iter_get_num_keys(iter);
@@ -63,7 +64,7 @@ static bool is_green_multisig_signers(const char* network, const key_iter* iter,
     size_t user_path_len = 0;
 
     uint8_t ga_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
-    if (!wallet_get_gaservice_fingerprint(network, ga_fingerprint, sizeof(ga_fingerprint))) {
+    if (!wallet_get_gaservice_fingerprint(network_id, ga_fingerprint, sizeof(ga_fingerprint))) {
         // Can't get ga-signer for network
         return false;
     }
@@ -140,11 +141,11 @@ static bool is_green_multisig_signers(const char* network, const key_iter* iter,
 
 // Generate a green-multisig script, and compare it to the target script provided.
 // Returns true if the generated script matches the target script.
-static bool verify_ga_script_matches(const char* network, const struct ext_key* user_key,
+static bool verify_ga_script_matches(const uint32_t network_id, const struct ext_key* user_key,
     const struct ext_key* recovery_key, const uint32_t* path, const size_t path_len, const uint8_t* target_script,
     const size_t target_script_len)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(path);
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
@@ -154,7 +155,7 @@ static bool verify_ga_script_matches(const char* network, const struct ext_key* 
     if (recovery_key) {
         // 2of2: fetch the number of csv blocks if this is a csv script
         int ret = wally_scriptpubkey_csv_blocks_from_csv_2of2_then_1(target_script, target_script_len, &csv_blocks);
-        if (ret == WALLY_OK && !csvBlocksExpectedForNetwork(network, csv_blocks)) {
+        if (ret == WALLY_OK && !csvBlocksExpectedForNetwork(network_id, csv_blocks)) {
             return false; // csv script with an invalid csv_blocks
         }
     }
@@ -163,7 +164,7 @@ static bool verify_ga_script_matches(const char* network, const struct ext_key* 
     size_t trial_script_len = 0;
     uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
 
-    if (!wallet_build_ga_script_ex(network, user_key, recovery_key, csv_blocks, path, path_len, trial_script,
+    if (!wallet_build_ga_script_ex(network_id, user_key, recovery_key, csv_blocks, path, path_len, trial_script,
             sizeof(trial_script), &trial_script_len)) {
         // Failed to build script
         JADE_LOGE("Receive script cannot be constructed");
@@ -498,7 +499,6 @@ static void validate_any_change_outputs(const uint32_t network_id, struct wally_
             continue;
         }
 
-        const char* const network = networkIdToNetwork(network_id); // TODO: use ID
         const size_t num_keys = key_iter_get_num_keys(&iter);
         if (num_keys == 1) {
             JADE_ASSERT(iter.key_index == 0); // only key present
@@ -534,7 +534,7 @@ static void validate_any_change_outputs(const uint32_t network_id, struct wally_
             }
 
             // Check the path is as expected
-            if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
+            if (!wallet_is_expected_singlesig_path(network_id, script_variant, is_change, path, path_len)) {
                 // Not our standard change path - add warning
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                 const bool have_path_str = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
@@ -548,12 +548,13 @@ static void validate_any_change_outputs(const uint32_t network_id, struct wally_
 
             struct ext_key recovery_hdkey;
             struct ext_key* recovery_p = num_keys == 3 ? &recovery_hdkey : NULL;
-            if (!is_green_multisig_signers(network, &iter, recovery_p)) {
+            if (!is_green_multisig_signers(network_id, &iter, recovery_p)) {
                 JADE_LOGD("Ignoring non-green-multisig output %u as only signing green-multisig inputs", index);
                 continue;
             }
 
-            if (!verify_ga_script_matches(network, &iter.hdkey, recovery_p, path, path_len, tx_script, tx_script_len)) {
+            if (!verify_ga_script_matches(
+                    network_id, &iter.hdkey, recovery_p, path, path_len, tx_script, tx_script_len)) {
                 JADE_LOGD("Receive script failed validation for Green multisig");
                 continue;
             }
@@ -679,7 +680,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
             const size_t num_keys = key_iter_get_num_keys(&iter);
             if (num_keys > 1) {
-                const bool is_green = is_green_multisig_signers(network, &iter, NULL);
+                const bool is_green = is_green_multisig_signers(network_id, &iter, NULL);
                 signing_flags |= is_green ? PSBT_SIGNING_GREEN_MULTISIG : PSBT_SIGNING_MULTISIG;
             } else {
                 signing_flags |= PSBT_SIGNING_SINGLESIG;

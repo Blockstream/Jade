@@ -45,35 +45,33 @@ bool isLiquidNetworkId(const uint32_t network_id)
 }
 
 // Are the passed number of csv blocks expected for the given network
-size_t csvBlocksForNetwork(const char* network, const size_t** csvAllowed)
+static size_t csvBlocksForNetwork(const uint32_t network_id, const size_t** csvAllowed)
 {
-    JADE_ASSERT(isValidNetwork(network));
     JADE_INIT_OUT_PPTR(csvAllowed);
 
-    if (!strcmp(TAG_MAINNET, network)) {
+    switch (network_id) {
+    case WALLY_NETWORK_BITCOIN_MAINNET:
         *csvAllowed = ALLOWED_CSV_MAINNET;
         return sizeof(ALLOWED_CSV_MAINNET) / sizeof(ALLOWED_CSV_MAINNET[0]);
-    } else if (!strcmp(TAG_LIQUID, network)) {
+    case WALLY_NETWORK_LIQUID:
         *csvAllowed = ALLOWED_CSV_LIQUID;
         return sizeof(ALLOWED_CSV_LIQUID) / sizeof(ALLOWED_CSV_LIQUID[0]);
-    } else if (!strcmp(TAG_TESTNET, network) || !strcmp(TAG_LOCALTEST, network)) {
+    case WALLY_NETWORK_BITCOIN_TESTNET:
+    case WALLY_NETWORK_BITCOIN_REGTEST:
         *csvAllowed = ALLOWED_CSV_TESTNET;
         return sizeof(ALLOWED_CSV_TESTNET) / sizeof(ALLOWED_CSV_TESTNET[0]);
-    } else if (!strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network)) {
+    case WALLY_NETWORK_LIQUID_TESTNET:
+    case WALLY_NETWORK_LIQUID_REGTEST:
         *csvAllowed = ALLOWED_CSV_TESTNET_LIQUID;
         return sizeof(ALLOWED_CSV_TESTNET_LIQUID) / sizeof(ALLOWED_CSV_TESTNET_LIQUID[0]);
-    } else {
-        *csvAllowed = NULL;
-        return 0;
     }
+    JADE_ASSERT(false); // Unknown network
 }
 
-bool csvBlocksExpectedForNetwork(const char* network, const uint32_t csvBlocks)
+bool csvBlocksExpectedForNetwork(const uint32_t network_id, const uint32_t csvBlocks)
 {
-    JADE_ASSERT(network);
-
     const size_t* csvAllowed = NULL;
-    const size_t num_allowed = csvBlocksForNetwork(network, &csvAllowed);
+    const size_t num_allowed = csvBlocksForNetwork(network_id, &csvAllowed);
     JADE_ASSERT(num_allowed > 0);
     JADE_ASSERT(csvAllowed);
 
@@ -87,12 +85,10 @@ bool csvBlocksExpectedForNetwork(const char* network, const uint32_t csvBlocks)
 }
 
 // minimum allowed csv blocks per network
-size_t networkToMinAllowedCsvBlocks(const char* network)
+size_t networkToMinAllowedCsvBlocks(const uint32_t network_id)
 {
-    JADE_ASSERT(network);
-
     const size_t* csvAllowed = NULL;
-    const size_t num_allowed = csvBlocksForNetwork(network, &csvAllowed);
+    const size_t num_allowed = csvBlocksForNetwork(network_id, &csvAllowed);
     JADE_ASSERT(num_allowed > 0);
     JADE_ASSERT(csvAllowed);
 

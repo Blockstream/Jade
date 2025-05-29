@@ -158,14 +158,14 @@ void get_receive_address_process(void* process_ptr)
             size_t csvBlocks = 0;
             rpc_get_sizet("csv_blocks", &params, &csvBlocks);
 
-            if (csvBlocks && !csvBlocksExpectedForNetwork(network, csvBlocks)) {
+            if (csvBlocks && !csvBlocksExpectedForNetwork(network_id, csvBlocks)) {
                 const int ret
                     = snprintf(warning_msg, sizeof(warning_msg), "\nWarning:\nNon-standard csv:\n%u", csvBlocks);
                 JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
             }
 
             // Build a script pubkey for the passed parameters
-            if (!wallet_build_ga_script(network, written ? xpubrecovery : NULL, csvBlocks, path, path_len, script,
+            if (!wallet_build_ga_script(network_id, written ? xpubrecovery : NULL, csvBlocks, path, path_len, script,
                     sizeof(script), &script_len)) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid green address script", NULL);
@@ -182,9 +182,9 @@ void get_receive_address_process(void* process_ptr)
 
             // If paths not as expected show a warning message with the address
             bool is_change = false;
-            if (!wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len)) {
+            if (!wallet_is_expected_singlesig_path(network_id, script_variant, is_change, path, path_len)) {
                 is_change = true;
-                is_change = wallet_is_expected_singlesig_path(network, script_variant, is_change, path, path_len);
+                is_change = wallet_is_expected_singlesig_path(network_id, script_variant, is_change, path, path_len);
 
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                 if (!wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {

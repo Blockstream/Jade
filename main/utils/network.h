@@ -24,9 +24,8 @@ bool isTestNetwork(const char* network);
 bool isLiquidNetwork(const char* network);
 bool isLiquidNetworkId(const uint32_t network_id);
 
-size_t csvBlocksForNetwork(const char* network, const size_t** csvAllowed);
-bool csvBlocksExpectedForNetwork(const char* network, uint32_t csvBlocks);
-size_t networkToMinAllowedCsvBlocks(const char* network);
+bool csvBlocksExpectedForNetwork(const uint32_t network_id, uint32_t csvBlocks);
+size_t networkToMinAllowedCsvBlocks(const uint32_t network_id);
 
 // TAG_ string to WALLY_NETWORK_ constant, or WALLY_NETWORK_NONE if unknown
 uint32_t networkToNetworkId(const char* network);
