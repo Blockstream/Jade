@@ -187,7 +187,7 @@ static bool parse_descriptor(const char* name, const descriptor_data_t* descript
     const uint8_t num_types = type_unknown ? 2 : 1;
 
     struct wally_descriptor* d = NULL;
-    const uint32_t network_id = network ? networkToId(network) : WALLY_NETWORK_NONE;
+    const uint32_t network_id = networkToNetworkId(network);
 
     // Load any passed values into a wally_map
     struct wally_map values;

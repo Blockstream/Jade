@@ -233,28 +233,31 @@ static bool address_from_uri(const char* address, address_data_t* addr_data)
     return true;
 }
 
-static bool try_parse_address(const char* trial_network, address_data_t* addr_data)
+static bool try_parse_address(const uint32_t trial_network_id, address_data_t* addr_data)
 {
-    JADE_ASSERT(trial_network);
     JADE_ASSERT(addr_data);
+    const char* const network = networkIdToNetwork(trial_network_id);
+    int wret = WALLY_EINVAL;
+    bool is_segwit = false;
 
-    // 1. Try non- (or wrapped-) segwit
-    if (wally_address_to_scriptpubkey(addr_data->address, networkToId(trial_network), addr_data->script,
-            sizeof(addr_data->script), &addr_data->script_len)
-        == WALLY_OK) {
-        JADE_ASSERT(addr_data->script_len <= sizeof(addr_data->script));
-        JADE_LOGI("Address %s, non-segwit-native for %s", addr_data->address, trial_network);
-        addr_data->network = trial_network;
-        return true;
+    // 1. Try non- (or wrapped-) segwit.
+    // Don't bother trying Bitcoin regtest since it shares a prefix with testnet
+    if (trial_network_id != WALLY_NETWORK_BITCOIN_REGTEST) {
+        wret = wally_address_to_scriptpubkey(
+            addr_data->address, trial_network_id, addr_data->script, sizeof(addr_data->script), &addr_data->script_len);
     }
 
-    // 2. Try native segwit
-    if (wally_addr_segwit_to_bytes(addr_data->address, networkToBech32Hrp(trial_network), 0, addr_data->script,
-            sizeof(addr_data->script), &addr_data->script_len)
-        == WALLY_OK) {
+    if (wret != WALLY_OK) {
+        // 2. Try native segwit
+        wret = wally_addr_segwit_to_bytes(addr_data->address, networkToBech32Hrp(network), 0, addr_data->script,
+            sizeof(addr_data->script), &addr_data->script_len);
+        is_segwit = wret == WALLY_OK;
+    }
+
+    if (wret == WALLY_OK) {
+        JADE_LOGI("Address %s, %ssegwit-native for %s", addr_data->address, is_segwit ? "" : "non-", network);
         JADE_ASSERT(addr_data->script_len <= sizeof(addr_data->script));
-        JADE_LOGI("Address %s, segwit-native for %s", addr_data->address, trial_network);
-        addr_data->network = trial_network;
+        addr_data->network = network;
         return true;
     }
 
@@ -280,8 +283,9 @@ bool parse_address(const char* address, address_data_t* addr_data)
     }
 
     // Try to parse the passed address for mainnet, testnet and localtest/regtest
-    if (try_parse_address(TAG_MAINNET, addr_data) || try_parse_address(TAG_TESTNET, addr_data)
-        || try_parse_address(TAG_LOCALTEST, addr_data)) {
+    if (try_parse_address(WALLY_NETWORK_BITCOIN_MAINNET, addr_data)
+        || try_parse_address(WALLY_NETWORK_BITCOIN_TESTNET, addr_data)
+        || try_parse_address(WALLY_NETWORK_BITCOIN_REGTEST, addr_data)) {
         // Script parsed
         const size_t len = strnlen(addr_data->address, sizeof(addr_data->address));
         JADE_ASSERT(len > 0 && len < sizeof(addr_data->address));
