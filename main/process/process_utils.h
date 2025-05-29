@@ -76,16 +76,13 @@ typedef struct {
 bool jade_process_check_network(jade_process_t* process, CborValue* params, uint32_t* network_id);
 
 // Ensure the rpc "network" parameter is valid and consistent with prior use.
-// Declares 'network_id'/'network' variables and initializes them.
+// Declares 'network_id' variable and initializes it.
 // Assumes GET_MSG_PARAMS() was used previously in the same scope.
-// TODO: Remove 'network' and pass around 'network_id' instead.
 #define CHECK_NETWORK_CONSISTENT(process)                                                                              \
     uint32_t network_id;                                                                                               \
     if (!jade_process_check_network(process, &params, &network_id)) {                                                  \
         goto cleanup;                                                                                                  \
-    }                                                                                                                  \
-    const char* const network = networkIdToNetwork(network_id);                                                        \
-    (void)network;
+    }
 
 // Do we have have a keychain, and does its userdata indicate the same 'source'
 // as the current message ?

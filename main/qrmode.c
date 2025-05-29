@@ -22,6 +22,7 @@
 #include "utils/network.h"
 #include "wallet.h"
 
+#include <wally_address.h>
 #include <wally_script.h>
 
 #include <string.h>
@@ -1591,8 +1592,13 @@ static bool post_auth_msg_request(const jade_msg_source_t source, const bool sup
     cberr = cbor_encoder_create_map(&root_map_encoder, &params_encoder, 2);
     JADE_ASSERT(cberr == CborNoError);
     const network_type_t restriction = keychain_get_network_type_restriction();
-    const char* network = restriction == NETWORK_TYPE_TEST ? TAG_TESTNET : TAG_MAINNET;
-    add_string_to_map(&params_encoder, "network", network);
+    uint32_t network_id;
+    if (restriction == NETWORK_TYPE_TEST) {
+        network_id = WALLY_NETWORK_BITCOIN_TESTNET;
+    } else {
+        network_id = WALLY_NETWORK_BITCOIN_MAINNET;
+    }
+    add_string_to_map(&params_encoder, "network", networkIdToNetwork(network_id));
     add_boolean_to_map(&params_encoder, "suppress_pin_change_confirmation", suppress_pin_change_confirmation);
     cberr = cbor_encoder_close_container(&root_map_encoder, &params_encoder);
     JADE_ASSERT(cberr == CborNoError);

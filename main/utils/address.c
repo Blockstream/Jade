@@ -8,6 +8,7 @@
 #include <wally_script.h>
 
 #include <stdio.h>
+#include <string.h>
 
 static const char BITCOIN_ADDRESS_URI_SCHEME[] = "bitcoin";
 

@@ -2,8 +2,20 @@
 #include "network.h"
 #include "jade_assert.h"
 
+#include <string.h>
+
 #include <wally_address.h>
 #include <wally_bip32.h>
+
+// Main networks
+#define TAG_MAINNET "mainnet"
+#define TAG_LIQUID "liquid"
+
+// Test networks
+#define TAG_TESTNET "testnet"
+#define TAG_TESTNETLIQUID "testnet-liquid"
+#define TAG_LOCALTEST "localtest"
+#define TAG_LOCALTESTLIQUID "localtest-liquid"
 
 // Green CSV buckets allowed
 static const size_t ALLOWED_CSV_MAINNET[] = { 25920, 51840, 65535 };
