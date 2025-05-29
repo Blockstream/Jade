@@ -57,8 +57,10 @@ do
     sha256sum "${FILE_PREFIX}"_*_"${SIGNED_SUFFIX}"
 done
 
-# Copy main fw binaries that have been signed
+# Copy main fw binaries that have been signed, consistent with v1
 cp "${FILE_PREFIX}_ble_jade_${SIGNED_SUFFIX}" "${BLEDIR}/jade_${SIGNED_SUFFIX}"
 cp "${FILE_PREFIX}_noradio_jade_${SIGNED_SUFFIX}" "${NORADIODIR}/jade_${SIGNED_SUFFIX}"
+cp "${FILE_PREFIX}_ble_bootloader_${SIGNED_SUFFIX}" "${BLEDIR}/bootloader/bootloader_${SIGNED_SUFFIX}"
+cp "${FILE_PREFIX}_noradio_bootloader_${SIGNED_SUFFIX}" "${NORADIODIR}/bootloader/bootloader_${SIGNED_SUFFIX}"
 
 popd
