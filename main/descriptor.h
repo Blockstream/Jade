@@ -49,19 +49,19 @@ typedef struct _descriptor_data {
 size_t string_values_len(const string_value_t* datavalues, size_t num_values);
 
 // Parse the descriptor and get signer information
-bool descriptor_get_signers(const char* name, const descriptor_data_t* descriptor, const char* network,
+bool descriptor_get_signers(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
     descriptor_type_t* type, signer_t* signers, size_t signers_len, size_t* written, const char** errmsg);
 
 // Generate an address using a descriptor/miniscript expression
 // On success output must be freed with wally_free_string()
-bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor, const char* network,
+bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
     uint32_t multi_index, uint32_t child_num, descriptor_type_t* type, char** output, const char** errmsg);
 
 // Generate a script using a descriptor/miniscript expression
 // On success output must be freed
 // NOTE: For miniscript expressions, the script generated is untyped bitcoin script.
 //       For descriptors, a scriptPubKey is generated.
-bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor, const char* network,
+bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
     uint32_t multi_index, uint32_t child_num, descriptor_type_t* type, uint8_t** output, size_t* output_len,
     const char** errmsg);
 

@@ -16,16 +16,18 @@
 #include <ctype.h>
 #include <sodium/utils.h>
 
+#include <wally_address.h>
+
 bool show_descriptor_activity(const char* descriptor_name, const descriptor_data_t* descriptor,
     const signer_t* signer_details, size_t num_signer_details, const uint8_t* wallet_fingerprint,
     size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting, bool is_valid);
 
 // Function to validate descriptor and persist the record
 static int register_descriptor(
-    const char* descriptor_name, const char* network, descriptor_data_t* descriptor, const char** errmsg)
+    const char* descriptor_name, const uint32_t network_id, descriptor_data_t* descriptor, const char** errmsg)
 {
     JADE_ASSERT(descriptor_name);
-    JADE_ASSERT(isValidNetwork(network));
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(descriptor);
     JADE_INIT_OUT_PPTR(errmsg);
 
@@ -33,7 +35,7 @@ static int register_descriptor(
     JADE_ASSERT(descriptor->num_values < MAX_ALLOWED_SIGNERS);
 
     // Not valid for liquid wallets atm
-    if (isLiquidNetwork(network)) {
+    if (isLiquidNetworkId(network_id)) {
         *errmsg = "Descriptor wallets not supported on liquid network";
         return CBOR_RPC_BAD_PARAMETERS;
     }
@@ -52,8 +54,8 @@ static int register_descriptor(
 
     // Get signers - this also yields the type
     descriptor_type_t deduced_type = DESCRIPTOR_TYPE_UNKNOWN;
-    if (!descriptor_get_signers(
-            descriptor_name, descriptor, network, &deduced_type, signers, MAX_ALLOWED_SIGNERS, &num_signers, errmsg)) {
+    if (!descriptor_get_signers(descriptor_name, descriptor, network_id, &deduced_type, signers, MAX_ALLOWED_SIGNERS,
+            &num_signers, errmsg)) {
         JADE_LOGE("Failed to extract signer information from descriptor");
         retval = CBOR_RPC_BAD_PARAMETERS;
         goto cleanup;
@@ -82,8 +84,8 @@ static int register_descriptor(
     // Validate descriptor by fetching an external and change address
     char* addr0 = NULL;
     char* addr1 = NULL;
-    if (!descriptor_to_address(descriptor_name, descriptor, network, 0, 0, NULL, &addr0, errmsg)
-        || !descriptor_to_address(descriptor_name, descriptor, network, 1, 0, NULL, &addr1, errmsg)) {
+    if (!descriptor_to_address(descriptor_name, descriptor, network_id, 0, 0, NULL, &addr0, errmsg)
+        || !descriptor_to_address(descriptor_name, descriptor, network_id, 1, 0, NULL, &addr1, errmsg)) {
         // errmsg populated by prior call
         retval = CBOR_RPC_BAD_PARAMETERS;
         goto cleanup;
@@ -245,7 +247,7 @@ void register_descriptor_process(void* process_ptr)
         goto cleanup;
     }
 
-    const int errcode = register_descriptor(descriptor_name, network, &descriptor, &errmsg);
+    const int errcode = register_descriptor(descriptor_name, network_id, &descriptor, &errmsg);
     if (errcode) {
         jade_process_reject_message(process, errcode, errmsg, NULL);
         goto cleanup;

@@ -37,6 +37,13 @@ bool isLiquidNetwork(const char* network)
     return !strcmp(TAG_LIQUID, network) || !strcmp(TAG_TESTNETLIQUID, network) || !strcmp(TAG_LOCALTESTLIQUID, network);
 }
 
+bool isLiquidNetworkId(const uint32_t network_id)
+{
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
+    return network_id == WALLY_NETWORK_LIQUID || network_id == WALLY_NETWORK_LIQUID_TESTNET
+        || network_id == WALLY_NETWORK_LIQUID_REGTEST;
+}
+
 // Are the passed number of csv blocks expected for the given network
 size_t csvBlocksForNetwork(const char* network, const size_t** csvAllowed)
 {

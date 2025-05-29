@@ -95,7 +95,7 @@ bool wallet_search_for_multisig_script(script_variant_t script_variant, bool sor
     const uint8_t* script, size_t script_len);
 
 typedef struct _descriptor_data descriptor_data_t;
-bool wallet_build_descriptor_script(const char* network, const char* descriptor_name,
+bool wallet_build_descriptor_script(const uint32_t network_id, const char* descriptor_name,
     const descriptor_data_t* descriptor, size_t multi_index, size_t index, uint8_t* output, size_t output_len,
     size_t* written, const char** errmsg);
 bool wallet_search_for_descriptor_script(const uint32_t network_id, const char* descriptor_name,

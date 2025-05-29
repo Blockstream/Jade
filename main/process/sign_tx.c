@@ -18,6 +18,7 @@
 #include <inttypes.h>
 #include <sodium/utils.h>
 
+#include <wally_address.h>
 #include <wally_anti_exfil.h>
 #include <wally_map.h>
 #include <wally_script.h>
@@ -29,11 +30,11 @@ bool show_btc_transaction_outputs_activity(
 bool show_btc_final_confirmation_activity(uint64_t fee, const char* warning_msg);
 
 // Can optionally be passed paths for change outputs, which we verify internally
-bool validate_wallet_outputs(jade_process_t* process, const char* network, const struct wally_tx* tx,
+bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id, const struct wally_tx* tx,
     CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg)
 {
     JADE_ASSERT(process);
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(tx);
     JADE_ASSERT(wallet_outputs);
     JADE_ASSERT(output_info);
@@ -104,7 +105,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                 }
             } else if (rpc_has_field_data("descriptor_name", &arrayItem)) {
                 // Not valid for liquid wallets atm
-                if (isLiquidNetwork(network)) {
+                if (isLiquidNetworkId(network_id)) {
                     *errmsg = "Descriptor wallets not supported on liquid network";
                     goto cleanup;
                 }
@@ -129,7 +130,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                 }
 
                 // Build a script pubkey for the passed parameters
-                if (!wallet_build_descriptor_script(network, descriptor_name, descriptor, branch, pointer, script,
+                if (!wallet_build_descriptor_script(network_id, descriptor_name, descriptor, branch, pointer, script,
                         sizeof(script), &script_len, errmsg)) {
                     *errmsg = "Failed to generate valid descriptor script";
                     goto cleanup;
@@ -156,6 +157,7 @@ bool validate_wallet_outputs(jade_process_t* process, const char* network, const
                     goto cleanup;
                 }
 
+                const char* const network = networkIdToNetwork(network_id); // TODO: use ID
                 if (is_greenaddress(script_variant)) {
                     // Optional recovery xpub for 2of3 accounts
                     written = 0;
@@ -408,7 +410,7 @@ void sign_tx_process(void* process_ptr)
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
-    if (isLiquidNetwork(network)) {
+    if (isLiquidNetworkId(network_id)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "sign_tx call not appropriate for liquid network", NULL);
         goto cleanup;
@@ -466,7 +468,7 @@ void sign_tx_process(void* process_ptr)
         output_info = JADE_CALLOC(tx->num_outputs, sizeof(output_info_t));
         jade_process_free_on_exit(process, output_info);
 
-        if (!validate_wallet_outputs(process, network, tx, &wallet_outputs, output_info, &errmsg)) {
+        if (!validate_wallet_outputs(process, network_id, tx, &wallet_outputs, output_info, &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
         }

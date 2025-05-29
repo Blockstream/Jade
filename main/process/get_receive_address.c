@@ -31,7 +31,7 @@ void get_receive_address_process(void* process_ptr)
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
-    const bool isLiquid = isLiquidNetwork(network);
+    const bool isLiquid = isLiquidNetworkId(network_id);
 
     // Handle single-sig and generic multisig script variants
     // (Green-multisig is the default for backwards compatibility)
@@ -92,7 +92,7 @@ void get_receive_address_process(void* process_ptr)
         }
     } else if (rpc_has_field_data("descriptor_name", &params)) {
         // Not valid for liquid wallets atm
-        if (isLiquidNetwork(network)) {
+        if (isLiquid) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Descriptor wallets not supported on liquid network", NULL);
             goto cleanup;
@@ -116,8 +116,8 @@ void get_receive_address_process(void* process_ptr)
         }
 
         // Build a script pubkey for the passed parameters
-        if (!wallet_build_descriptor_script(
-                network, descriptor_name, &descriptor, branch, pointer, script, sizeof(script), &script_len, &errmsg)) {
+        if (!wallet_build_descriptor_script(network_id, descriptor_name, &descriptor, branch, pointer, script,
+                sizeof(script), &script_len, &errmsg)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid descriptor script", NULL);
             goto cleanup;

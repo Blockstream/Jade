@@ -22,6 +22,7 @@
 #include <sodium/crypto_verify_64.h>
 #include <sodium/utils.h>
 
+#include <wally_address.h>
 #include <wally_bip32.h>
 #include <wally_bip85.h>
 
@@ -923,6 +924,8 @@ static bool test_miniscript_descriptors(void)
     descriptor_data_t desc = {};
     bool ret;
 
+    const uint32_t MAINNET = WALLY_NETWORK_BITCOIN_MAINNET;
+    const uint32_t TESTNET = WALLY_NETWORK_BITCOIN_TESTNET;
     uint8_t buf[BIP32_KEY_FINGERPRINT_LEN];
     size_t num_signers = 0;
     signer_t signers[3];
@@ -944,14 +947,14 @@ static bool test_miniscript_descriptors(void)
         "NuUfgYqsahxTLGJq2");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("A0", &desc, "testnet", NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("A0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 3) {
         FAIL();
     }
-    ret = descriptor_get_signers("A0", &desc, "testnet", &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("A0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
@@ -995,7 +998,7 @@ static bool test_miniscript_descriptors(void)
 
     for (uint32_t child_num = 0; child_num < 2; ++child_num) {
         char* addr = NULL;
-        ret = descriptor_to_address("A1", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+        ret = descriptor_to_address("A1", &desc, TESTNET, multi_index, child_num, NULL, &addr, &errmsg);
         if (!ret || strcmp(addr, expectedA[child_num])) {
             wally_free_string(addr);
             FAIL();
@@ -1004,7 +1007,7 @@ static bool test_miniscript_descriptors(void)
 
         // Pass unknown type - should give same answer
         desc.type = DESCRIPTOR_TYPE_UNKNOWN;
-        ret = descriptor_to_address("A2", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+        ret = descriptor_to_address("A2", &desc, TESTNET, multi_index, child_num, NULL, &addr, &errmsg);
         if (!ret || strcmp(addr, expectedA[child_num])) {
             wally_free_string(addr);
             FAIL();
@@ -1012,14 +1015,14 @@ static bool test_miniscript_descriptors(void)
         wally_free_string(addr);
 
         // Wrong network should fail
-        ret = descriptor_to_address("A3", &desc, "mainnet", multi_index, child_num, NULL, &addr, &errmsg);
+        ret = descriptor_to_address("A3", &desc, MAINNET, multi_index, child_num, NULL, &addr, &errmsg);
         if (ret) {
             FAIL();
         }
 
         // Wrong descriptor type should fail
         desc.type = DESCRIPTOR_TYPE_MINISCRIPT_ONLY;
-        ret = descriptor_to_address("A4", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+        ret = descriptor_to_address("A4", &desc, TESTNET, multi_index, child_num, NULL, &addr, &errmsg);
         if (ret) {
             FAIL();
         }
@@ -1047,14 +1050,14 @@ static bool test_miniscript_descriptors(void)
         "HyV8DomjCjJRT3d57");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("B0", &desc, "testnet", NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("B0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 3) {
         FAIL();
     }
-    ret = descriptor_get_signers("B0", &desc, "testnet", &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("B0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
@@ -1101,7 +1104,7 @@ static bool test_miniscript_descriptors(void)
         for (uint32_t child_num = 0; child_num < 2; ++child_num) {
             // Use unknown type
             char* addr = NULL;
-            ret = descriptor_to_address("B1", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+            ret = descriptor_to_address("B1", &desc, TESTNET, multi_index, child_num, NULL, &addr, &errmsg);
             if (!ret || strcmp(addr, expectedB[multi_index][child_num])) {
                 wally_free_string(addr);
                 FAIL();
@@ -1120,7 +1123,7 @@ static bool test_miniscript_descriptors(void)
         for (uint32_t child_num = 0; child_num < 2; ++child_num) {
             // Use unknown type
             char* addr = NULL;
-            ret = descriptor_to_address("B2", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+            ret = descriptor_to_address("B2", &desc, TESTNET, multi_index, child_num, NULL, &addr, &errmsg);
             if (!ret || strcmp(addr, expectedB[multi_index][child_num])) {
                 wally_free_string(addr);
                 FAIL();
@@ -1141,14 +1144,14 @@ static bool test_miniscript_descriptors(void)
         "VHdMw7p8MnQycgAV8");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("b0", &desc, "testnet", NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("b0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 3) {
         FAIL();
     }
-    ret = descriptor_get_signers("b0", &desc, "testnet", &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("b0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
@@ -1190,7 +1193,7 @@ static bool test_miniscript_descriptors(void)
         for (uint32_t child_num = 0; child_num < 2; ++child_num) {
             // Use unknown type
             char* addr = NULL;
-            ret = descriptor_to_address("b1", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+            ret = descriptor_to_address("b1", &desc, TESTNET, multi_index, child_num, NULL, &addr, &errmsg);
             if (!ret || strcmp(addr, expectedb[multi_index][child_num])) {
                 wally_free_string(addr);
                 FAIL();
@@ -1209,7 +1212,7 @@ static bool test_miniscript_descriptors(void)
         for (uint32_t child_num = 0; child_num < 2; ++child_num) {
             // Use unknown type
             char* addr = NULL;
-            ret = descriptor_to_address("b2", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+            ret = descriptor_to_address("b2", &desc, TESTNET, multi_index, child_num, NULL, &addr, &errmsg);
             if (!ret || strcmp(addr, expectedb[multi_index][child_num])) {
                 wally_free_string(addr);
                 FAIL();
@@ -1231,14 +1234,14 @@ static bool test_miniscript_descriptors(void)
         ",older(30)))))");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("C0", &desc, "testnet", NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("C0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 2) {
         FAIL();
     }
-    ret = descriptor_get_signers("C0", &desc, "testnet", &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("C0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
@@ -1277,7 +1280,7 @@ static bool test_miniscript_descriptors(void)
     for (uint32_t child_num = 0; child_num < 2; ++child_num) {
         // Use unknown type
         char* addr = NULL;
-        ret = descriptor_to_address("C1", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+        ret = descriptor_to_address("C1", &desc, TESTNET, multi_index, child_num, NULL, &addr, &errmsg);
         if (!ret || strcmp(addr, expectedC[child_num])) {
             wally_free_string(addr);
             FAIL();
@@ -1295,7 +1298,7 @@ static bool test_miniscript_descriptors(void)
     for (uint32_t child_num = 0; child_num < 2; ++child_num) {
         // Use unknown type
         char* addr = NULL;
-        const bool ret = descriptor_to_address("C2", &desc, "testnet", multi_index, child_num, NULL, &addr, &errmsg);
+        const bool ret = descriptor_to_address("C2", &desc, TESTNET, multi_index, child_num, NULL, &addr, &errmsg);
         if (!ret || strcmp(addr, expectedC[child_num])) {
             wally_free_string(addr);
             FAIL();
@@ -1310,14 +1313,14 @@ static bool test_miniscript_descriptors(void)
         "preHp6Xhgd42JH/0/*),a:1)");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("L0", &desc, "testnet", NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("L0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 1) {
         FAIL();
     }
-    ret = descriptor_get_signers("L0", &desc, "testnet", &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("L0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
     if (!ret) {
         FAIL();
     }
@@ -1351,7 +1354,7 @@ static bool test_miniscript_descriptors(void)
         // Use unknown type
         uint8_t* script = NULL;
         size_t script_len = 0;
-        ret = descriptor_to_script("L1", &desc, "testnet", multi_index, child_num, NULL, &script, &script_len, &errmsg);
+        ret = descriptor_to_script("L1", &desc, TESTNET, multi_index, child_num, NULL, &script, &script_len, &errmsg);
         if (!ret) {
             FAIL();
         }

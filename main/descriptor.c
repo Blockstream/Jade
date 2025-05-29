@@ -276,7 +276,7 @@ fail:
 
 // NOTE: signers should either be sufficient to hold details for all signers, or NULL if
 // the only value of interest is the number of signers in the descriptor.
-bool descriptor_get_signers(const char* name, const descriptor_data_t* descriptor, const char* network,
+bool descriptor_get_signers(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
     descriptor_type_t* deduced_type, signer_t* signers, const size_t signers_len, size_t* written, const char** errmsg)
 {
     JADE_ASSERT(name);
@@ -286,7 +286,6 @@ bool descriptor_get_signers(const char* name, const descriptor_data_t* descripto
     JADE_INIT_OUT_SIZE(written);
     JADE_INIT_OUT_PPTR(errmsg);
 
-    const uint32_t network_id = networkToNetworkId(network);
     bool retval = false;
     struct wally_descriptor* d = NULL;
     uint32_t depth = 0;
@@ -390,18 +389,17 @@ cleanup:
 }
 
 // On success output must be freed with wally_free_string()
-bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor, const char* network,
+bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
     const uint32_t multi_index, const uint32_t child_num, descriptor_type_t* deduced_type, char** output,
     const char** errmsg)
 {
     JADE_ASSERT(name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(!deduced_type || *deduced_type == DESCRIPTOR_TYPE_UNKNOWN);
     JADE_INIT_OUT_PPTR(output);
     JADE_INIT_OUT_PPTR(errmsg);
 
-    const uint32_t network_id = networkToNetworkId(network);
     struct wally_descriptor* d = NULL;
     uint32_t depth = 0;
     if (!parse_descriptor(name, descriptor, network_id, deduced_type, &d, &depth, errmsg)) {
@@ -432,19 +430,18 @@ bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor
 // On success output must be freed
 // NOTE: For miniscript expressions, the script generated is untyped bitcoin script.
 //       For descriptors, a scriptPubKey is generated.
-bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor, const char* network,
+bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor, const uint32_t network_id,
     const uint32_t multi_index, const uint32_t child_num, descriptor_type_t* deduced_type, uint8_t** output,
     size_t* output_len, const char** errmsg)
 {
     JADE_ASSERT(name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(!deduced_type || *deduced_type == DESCRIPTOR_TYPE_UNKNOWN);
     JADE_INIT_OUT_PPTR(output);
     JADE_INIT_OUT_SIZE(output_len);
     JADE_INIT_OUT_PPTR(errmsg);
 
-    const uint32_t network_id = networkToNetworkId(network);
     struct wally_descriptor* d = NULL;
     uint32_t depth = 0;
     if (!parse_descriptor(name, descriptor, network_id, deduced_type, &d, &depth, errmsg)) {

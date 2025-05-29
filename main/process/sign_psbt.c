@@ -286,12 +286,12 @@ static bool verify_multisig_script_matches(const multisig_data_t* multisig_data,
 // Use the passed descriptor to derive the output script
 // Return whether the generated output script matches the passed target script
 static bool verify_descriptor_script_matches_impl(const char* descriptor_name, const descriptor_data_t* descriptor,
-    const char* network, const uint32_t multi_index, const uint32_t index, const uint8_t* target_script,
+    const uint32_t network_id, const uint32_t multi_index, const uint32_t index, const uint8_t* target_script,
     const size_t target_script_len)
 {
     JADE_ASSERT(descriptor_name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
 
@@ -299,7 +299,7 @@ static bool verify_descriptor_script_matches_impl(const char* descriptor_name, c
     const char* errmsg = NULL;
     size_t trial_script_len = 0;
     uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient;
-    if (!wallet_build_descriptor_script(network, descriptor_name, descriptor, multi_index, index, trial_script,
+    if (!wallet_build_descriptor_script(network_id, descriptor_name, descriptor, multi_index, index, trial_script,
             sizeof(trial_script), &trial_script_len, &errmsg)) {
         JADE_LOGE("Receive script cannot be constructed");
         return false;
@@ -318,12 +318,12 @@ static bool verify_descriptor_script_matches_impl(const char* descriptor_name, c
 // Use the passed descriptor to derive the output script
 // Return whether the generated output script matches the passed target script
 static bool verify_descriptor_script_matches(const char* descriptor_name, const descriptor_data_t* descriptor,
-    const char* network, const uint32_t* path, const size_t path_len, const key_iter* iter,
+    const uint32_t network_id, const uint32_t* path, const size_t path_len, const key_iter* iter,
     const uint8_t* target_script, const size_t target_script_len)
 {
     JADE_ASSERT(descriptor_name);
     JADE_ASSERT(descriptor);
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(path);
     JADE_ASSERT(path_len);
     JADE_ASSERT(iter && iter->is_valid);
@@ -345,13 +345,13 @@ static bool verify_descriptor_script_matches(const char* descriptor_name, const 
     uint32_t multi_index = 1;
     if (path_len > 1
         && verify_descriptor_script_matches_impl(
-            descriptor_name, descriptor, network, multi_index, index, target_script, target_script_len)) {
+            descriptor_name, descriptor, network_id, multi_index, index, target_script, target_script_len)) {
         return true;
     }
 
     multi_index = 0;
     return verify_descriptor_script_matches_impl(
-        descriptor_name, descriptor, network, multi_index, index, target_script, target_script_len);
+        descriptor_name, descriptor, network_id, multi_index, index, target_script, target_script_len);
 }
 
 // Try to find a multisig registration which creates the passed script with the given
@@ -404,13 +404,13 @@ static bool get_suitable_multisig_record(const key_iter* iter, const uint32_t* p
 // Try to find a descriptor registration which creates the passed script with the given
 // key iterators keys.  Our signer's path tail is passed in, and is assumed to be common across signers.
 static bool get_suitable_descriptor_record(const key_iter* iter, const uint32_t* path, const size_t path_len,
-    const uint8_t* target_script, const size_t target_script_len, const char* network, char* wallet_name,
+    const uint8_t* target_script, const size_t target_script_len, const uint32_t network_id, char* wallet_name,
     const size_t wallet_name_len, descriptor_data_t* const descriptor)
 {
     JADE_ASSERT(iter && iter->is_valid);
     JADE_ASSERT(target_script);
     JADE_ASSERT(target_script_len);
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(wallet_name);
     JADE_ASSERT(wallet_name_len);
     JADE_ASSERT(descriptor);
@@ -434,7 +434,7 @@ static bool get_suitable_descriptor_record(const key_iter* iter, const uint32_t*
 
         JADE_LOGI("Trying loaded descriptor: %s", names[i]);
         if (!verify_descriptor_script_matches(
-                names[i], descriptor, network, path, path_len, iter, target_script, target_script_len)) {
+                names[i], descriptor, network_id, path, path_len, iter, target_script, target_script_len)) {
             JADE_LOGD("Receive script failed validation with %s", names[i]);
             continue;
         }
@@ -451,11 +451,11 @@ static bool get_suitable_descriptor_record(const key_iter* iter, const uint32_t*
 }
 
 // Examine outputs for change we can automatically validate
-static void validate_any_change_outputs(const char* network, struct wally_psbt* psbt, const uint8_t signing_flags,
+static void validate_any_change_outputs(const uint32_t network_id, struct wally_psbt* psbt, const uint8_t signing_flags,
     const char* wallet_name, const multisig_data_t* multisig_data, const descriptor_data_t* descriptor,
     output_info_t* output_info)
 {
-    JADE_ASSERT(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
     JADE_ASSERT(psbt);
     JADE_ASSERT(signing_flags);
     // wallet_name, multisig_data and descriptor optional
@@ -498,6 +498,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
             continue;
         }
 
+        const char* const network = networkIdToNetwork(network_id); // TODO: use ID
         const size_t num_keys = key_iter_get_num_keys(&iter);
         if (num_keys == 1) {
             JADE_ASSERT(iter.key_index == 0); // only key present
@@ -580,7 +581,7 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
                 continue;
             }
             if (descriptor
-                && !verify_descriptor_script_matches(wallet_name, descriptor, network, &path[path_tail_start],
+                && !verify_descriptor_script_matches(wallet_name, descriptor, network_id, &path[path_tail_start],
                     path_tail_len, &iter, tx_script, tx_script_len)) {
                 JADE_LOGD("Receive script failed validation with descriptor %s", wallet_name);
                 continue;
@@ -618,9 +619,10 @@ static void validate_any_change_outputs(const char* network, struct wally_psbt* 
 // Returns an rpc/message error code on error, and the error string should be populated.
 int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 {
-    JADE_ASSERT(network);
     JADE_ASSERT(psbt);
     JADE_INIT_OUT_PPTR(errmsg);
+    const uint32_t network_id = networkToNetworkId(network);
+    JADE_ASSERT(network_id != WALLY_NETWORK_NONE);
 
     // Elements/PSET not supported
     size_t is_elements = 0;
@@ -737,8 +739,8 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                     }
 
                     if (descriptor
-                        && !verify_descriptor_script_matches(wallet_name, descriptor, network, &path[path_tail_start],
-                            path_tail_len, &iter, utxo->script, utxo->script_len)) {
+                        && !verify_descriptor_script_matches(wallet_name, descriptor, network_id,
+                            &path[path_tail_start], path_tail_len, &iter, utxo->script, utxo->script_len)) {
                         // Previously found descriptor record does not work for this input.  Abandon multisig
                         // change detection.
                         JADE_LOGW("Previously found descriptor record '%s' inappropriate for input %u - change "
@@ -761,7 +763,7 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
                     if (!multisig_data) {
                         descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
                         if (get_suitable_descriptor_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
-                                utxo->script_len, network, wallet_name, sizeof(wallet_name), descriptor)) {
+                                utxo->script_len, network_id, wallet_name, sizeof(wallet_name), descriptor)) {
                             JADE_LOGI("Signing multisig input - registered descriptor record found: %s", wallet_name);
                             signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
                         } else {
@@ -792,7 +794,8 @@ int sign_psbt(const char* network, struct wally_psbt* psbt, const char** errmsg)
 
     // Examine outputs for change we can automatically validate
     if (signing_flags) {
-        validate_any_change_outputs(network, psbt, signing_flags, wallet_name, multisig_data, descriptor, output_info);
+        validate_any_change_outputs(
+            network_id, psbt, signing_flags, wallet_name, multisig_data, descriptor, output_info);
     }
 
     // User to verify outputs and fee amount
@@ -942,7 +945,7 @@ void sign_psbt_process(void* process_ptr)
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
 
-    if (isLiquidNetwork(network)) {
+    if (isLiquidNetworkId(network_id)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "sign_psbt call not appropriate for liquid network", NULL);
         goto cleanup;

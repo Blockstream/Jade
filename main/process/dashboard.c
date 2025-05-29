@@ -51,6 +51,8 @@ static inline bool awaiting_attestation_data(void) { return false; }
 #include <sodium/utils.h>
 #include <time.h>
 
+#include <wally_address.h>
+
 // Whether during initialisation we select USB, BLE QR etc.
 static jade_msg_source_t initialisation_source = SOURCE_NONE;
 static jade_msg_source_t internal_relogin_source = SOURCE_NONE;
@@ -1221,8 +1223,7 @@ static void handle_registered_wallets(void)
 
                 // Get signer info from descriptor
                 size_t num_signer_details = 0;
-                const char* network_unknown = NULL;
-                if (!descriptor_get_signers(wallet_name, &descriptor, network_unknown, NULL, signer_details,
+                if (!descriptor_get_signers(wallet_name, &descriptor, WALLY_NETWORK_NONE, NULL, signer_details,
                         MAX_ALLOWED_SIGNERS, &num_signer_details, &errmsg)) {
                     JADE_LOGE("Failed to load signer information from descriptor data");
                     const char* message[] = { "Unable to load", "signer details" };

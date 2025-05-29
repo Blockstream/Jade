@@ -32,7 +32,7 @@ bool show_elements_final_confirmation_activity(
     const char* network, const char* title, const uint64_t fee, const char* warning_msg);
 
 // From sign_tx.c
-bool validate_wallet_outputs(jade_process_t* process, const char* network, const struct wally_tx* tx,
+bool validate_wallet_outputs(jade_process_t* process, const uint32_t network_id, const struct wally_tx* tx,
     CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg);
 void send_ae_signature_replies(jade_process_t* process, signing_data_t* signing_data);
 void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* signing_data);
@@ -548,7 +548,7 @@ void sign_liquid_tx_process(void* process_ptr)
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
 
-    if (!isLiquidNetwork(network)) {
+    if (!isLiquidNetworkId(network_id)) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "sign_liquid_tx call only appropriate for liquid network", NULL);
         goto cleanup;
@@ -627,7 +627,7 @@ void sign_liquid_tx_process(void* process_ptr)
     if (rpc_has_field_data("change", &params)) {
         CborValue wallet_outputs;
         if (rpc_get_array("change", &params, &wallet_outputs)) {
-            if (!validate_wallet_outputs(process, network, tx, &wallet_outputs, output_info, &errmsg)) {
+            if (!validate_wallet_outputs(process, network_id, tx, &wallet_outputs, output_info, &errmsg)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
