@@ -6,6 +6,7 @@
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
 #include "../utils/cbor_rpc.h"
+#include "../utils/malloc_ext.h"
 #include "attestation/attestation.h"
 
 typedef struct {
@@ -45,7 +46,10 @@ void sign_attestation_and_send_reply(jade_process_t* process, const uint8_t* cha
     }
 
     // Reply with pubkey and signatures
-    jade_process_reply_to_message_result(process->ctx, &output, reply_attestation);
+    const size_t buflen = 2560;
+    uint8_t* const buf = JADE_MALLOC(buflen);
+    jade_process_reply_to_message_result(process->ctx, buf, buflen, &output, reply_attestation);
+    free(buf);
 }
 #endif // CONFIG_IDF_TARGET_ESP32S3
 

@@ -128,7 +128,9 @@ void get_commitments_process(void* process_ptr)
     }
 
     commitments.content = COMMITMENTS_ABF | COMMITMENTS_VBF | COMMITMENTS_INCLUDES_COMMITMENTS;
-    jade_process_reply_to_message_result(process->ctx, &commitments, reply_commitments);
+
+    uint8_t buf[320];
+    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &commitments, reply_commitments);
 
     JADE_LOGI("Success");
 

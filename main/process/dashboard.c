@@ -250,7 +250,10 @@ void set_request_change_pin(bool change_pin);
 static void process_get_version_info_request(jade_process_t* process)
 {
     ASSERT_CURRENT_MESSAGE(process, "get_version_info");
-    jade_process_reply_to_message_result(process->ctx, &process->ctx.source, build_version_info_reply);
+
+    uint8_t buf[1024];
+    jade_process_reply_to_message_result(
+        process->ctx, buf, sizeof(buf), &process->ctx.source, build_version_info_reply);
 }
 
 // If the user has successfully authenticated over a given connection interface,
@@ -515,7 +518,10 @@ static void dispatch_message(jade_process_t* process)
         if (debug_selfcheck(process)) {
             const TickType_t end_time = xTaskGetTickCount();
             const uint64_t elapsed_time_ms = (end_time - start_time) * portTICK_PERIOD_MS;
-            jade_process_reply_to_message_result(process->ctx, &elapsed_time_ms, cbor_result_uint64_cb);
+
+            uint8_t buf[64];
+            jade_process_reply_to_message_result(
+                process->ctx, buf, sizeof(buf), &elapsed_time_ms, cbor_result_uint64_cb);
         } else {
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "ERROR", NULL);
         }

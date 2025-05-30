@@ -100,15 +100,16 @@ void get_shared_nonce_process(void* process_ptr)
 
     if (p_blinding_pubkey) {
         // Return shared blinding nonce *and* the blinding pubkey (as it is explicitly requested)
+        uint8_t buf[256];
         const nonce_pubkey_data_t data = { .shared_nonce = shared_nonce,
             .shared_nonce_len = sizeof(shared_nonce),
             .pubkey = p_blinding_pubkey,
             .pubkey_len = blinding_pubkey_len };
-        jade_process_reply_to_message_result(process->ctx, &data, reply_nonce_and_pubkey);
+        jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &data, reply_nonce_and_pubkey);
     } else {
         // Just shared blinding nonce alone (default/legacy behaviour)
-        uint8_t buffer[256];
-        jade_process_reply_to_message_bytes(process->ctx, shared_nonce, sizeof(shared_nonce), buffer, sizeof(buffer));
+        uint8_t buf[128];
+        jade_process_reply_to_message_bytes(process->ctx, shared_nonce, sizeof(shared_nonce), buf, sizeof(buf));
     }
     JADE_LOGI("Success");
 

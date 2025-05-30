@@ -541,29 +541,33 @@ void cbor_result_uint64_cb(const void* ctx, CborEncoder* container)
     JADE_ASSERT(cberr == CborNoError);
 }
 
-void jade_process_reply_to_message_result(const cbor_msg_t ctx, const void* cbctx, cbor_encoder_fn_t cb)
+void jade_process_reply_to_message_result(
+    const cbor_msg_t ctx, uint8_t* output, size_t output_size, const void* cbctx, cbor_encoder_fn_t cb)
 {
     JADE_ASSERT(cb);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_size);
 
     char id[MAXLEN_ID + 1];
     size_t written = 0;
     rpc_get_id(&ctx.value, id, sizeof(id), &written);
     JADE_ASSERT(written != 0);
 
-    uint8_t buf[MAX_STANDARD_OUTPUT_MSG_SIZE];
-    jade_process_reply_to_message_result_with_id(id, buf, sizeof(buf), ctx.source, cbctx, cb);
+    jade_process_reply_to_message_result_with_id(id, output, output_size, ctx.source, cbctx, cb);
 }
 
 void jade_process_reply_to_message_ok(jade_process_t* process)
 {
+    uint8_t buf[64];
     const bool ok = true;
-    jade_process_reply_to_message_result(process->ctx, &ok, cbor_result_boolean_cb);
+    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &ok, cbor_result_boolean_cb);
 }
 
 void jade_process_reply_to_message_fail(jade_process_t* process)
 {
+    uint8_t buf[64];
     const bool ok = false;
-    jade_process_reply_to_message_result(process->ctx, &ok, cbor_result_boolean_cb);
+    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &ok, cbor_result_boolean_cb);
 }
 
 void jade_process_reject_message_with_id(const char* id, int code, const char* message, const uint8_t* data,

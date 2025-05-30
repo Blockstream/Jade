@@ -9,6 +9,7 @@
 #include "../storage.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/malloc_ext.h"
 
 #include <cbor.h>
 #include <mbedtls/base64.h>
@@ -81,30 +82,30 @@ static void send_http_request_reply(jade_process_t* process, const char* documen
         .num_urls = 0 };
 
     // Add urls - bespoke pinserver urls or defaults if not set
-    char buf[MAX_PINSVR_URL_LENGTH];
-    char urlA[sizeof(buf) + sizeof(PINSERVER_DOC_GET_PIN)];
-    char urlB[sizeof(buf) + sizeof(PINSERVER_DOC_GET_PIN)];
+    char urlbuf[MAX_PINSVR_URL_LENGTH];
+    char urlA[sizeof(urlbuf) + sizeof(PINSERVER_DOC_GET_PIN)];
+    char urlB[sizeof(urlbuf) + sizeof(PINSERVER_DOC_GET_PIN)];
 
     // Add first URL (defaults to h/coded url)
     size_t urlA_len = 0;
-    const bool urlASet = storage_get_pinserver_urlA(buf, sizeof(buf), &urlA_len);
+    const bool urlASet = storage_get_pinserver_urlA(urlbuf, sizeof(urlbuf), &urlA_len);
     if (urlASet && urlA_len <= 1) {
         // Explcitly no url
         urlA[0] = '\0';
     } else {
-        urlA_len = snprintf(urlA, sizeof(urlA), "%s/%s", urlASet ? buf : PINSERVER_URL, document);
+        urlA_len = snprintf(urlA, sizeof(urlA), "%s/%s", urlASet ? urlbuf : PINSERVER_URL, document);
         JADE_ASSERT(urlA_len > 0 && urlA_len < sizeof(urlA));
         pin_data.urls[pin_data.num_urls++] = urlA;
     }
 
     // Add second URL (defaults to h/coded onion)
     size_t urlB_len = 0;
-    const bool urlBSet = storage_get_pinserver_urlB(buf, sizeof(buf), &urlB_len);
+    const bool urlBSet = storage_get_pinserver_urlB(urlbuf, sizeof(urlbuf), &urlB_len);
     if (urlBSet && urlB_len <= 1) {
         // Explcitly no second url
         urlB[0] = '\0';
     } else {
-        urlB_len = snprintf(urlB, sizeof(urlB), "%s/%s", urlBSet ? buf : PINSERVER_ONION, document);
+        urlB_len = snprintf(urlB, sizeof(urlB), "%s/%s", urlBSet ? urlbuf : PINSERVER_ONION, document);
         JADE_ASSERT(urlB_len > 0 && urlB_len < sizeof(urlB));
         pin_data.urls[pin_data.num_urls++] = urlB;
     }
@@ -119,7 +120,10 @@ static void send_http_request_reply(jade_process_t* process, const char* documen
     }
 
     // Send reply message
-    jade_process_reply_to_message_result(process->ctx, &pin_data, client_data_request_reply);
+    const size_t buflen = 1024 + cert_len;
+    uint8_t* const buf = JADE_MALLOC(buflen);
+    jade_process_reply_to_message_result(process->ctx, buf, buflen, &pin_data, client_data_request_reply);
+    free(buf);
 }
 
 // Hepler to tweak the server static key into a session key

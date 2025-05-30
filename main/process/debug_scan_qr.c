@@ -185,8 +185,9 @@ void debug_scan_qr_process(void* process_ptr)
     }
 
     // Reply with the decoded data (empty if failed)
+    uint8_t buf[512]; // sufficient for all existing test cases
     const bytes_info_t bytes_info = { .data = qr_data.data, .size = qr_data.len };
-    jade_process_reply_to_message_result(process->ctx, &bytes_info, cbor_result_bytes_cb);
+    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &bytes_info, cbor_result_bytes_cb);
     JADE_LOGI("Success");
 
 cleanup:

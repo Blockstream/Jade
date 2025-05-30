@@ -94,7 +94,8 @@ void get_otp_code_process(void* process_ptr)
     }
     JADE_LOGD("User pressed accept");
 
-    jade_process_reply_to_message_result(process->ctx, token, cbor_result_string_cb);
+    uint8_t buf[64];
+    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), token, cbor_result_string_cb);
 
     JADE_LOGI("Success");
 

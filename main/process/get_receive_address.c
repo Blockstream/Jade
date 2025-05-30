@@ -267,7 +267,8 @@ void get_receive_address_process(void* process_ptr)
     }
 
     // Reply with the address
-    jade_process_reply_to_message_result(process->ctx, address, cbor_result_string_cb);
+    uint8_t buf[256];
+    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), address, cbor_result_string_cb);
 
     JADE_LOGI("Success");
 

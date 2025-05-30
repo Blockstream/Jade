@@ -4,6 +4,7 @@
 #include "../process.h"
 #include "../storage.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/malloc_ext.h"
 #include "../wallet.h"
 
 #include "process_utils.h"
@@ -119,7 +120,10 @@ void get_registered_multisigs_process(void* process_ptr)
     }
 
     // Reply with this info
-    jade_process_reply_to_message_result(process->ctx, &descriptions, reply_registered_multisigs);
+    const size_t buflen = 256 + (176 * descriptions.num_multisigs);
+    uint8_t* const buf = JADE_MALLOC(buflen);
+    jade_process_reply_to_message_result(process->ctx, buf, buflen, &descriptions, reply_registered_multisigs);
+    free(buf);
 
     JADE_LOGI("Success");
 

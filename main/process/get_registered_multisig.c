@@ -176,11 +176,14 @@ void get_registered_multisig_process(void* process_ptr)
     }
 
     // Reply with this info
+    const size_t buflen = 1024 + (128 * multisig_data.num_xpubs);
+    uint8_t* const buf = JADE_MALLOC(buflen);
     const multisig_details_t multisig_details = { .multisig_name = multisig_name,
         .multisig_export_file = export_file,
         .multisig_data = &multisig_data,
         .signer_details = signer_details };
-    jade_process_reply_to_message_result(process->ctx, &multisig_details, reply_registered_multisig);
+    jade_process_reply_to_message_result(process->ctx, buf, buflen, &multisig_details, reply_registered_multisig);
+    free(buf);
 
     JADE_LOGI("Success");
 

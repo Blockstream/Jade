@@ -55,8 +55,10 @@ static bool handleImmediateMessage(cbor_msg_t* ctx)
         if (method_len == sizeof(PING) && !strncmp(method, PING, method_len)) {
             // Simple ping message
             JADE_LOGI("Ping message, replying immediately");
+            uint8_t buf[64];
             const uint64_t jade_task_current_action = main_thread_action;
-            jade_process_reply_to_message_result(*ctx, &jade_task_current_action, cbor_result_uint64_cb);
+            jade_process_reply_to_message_result(
+                *ctx, buf, sizeof(buf), &jade_task_current_action, cbor_result_uint64_cb);
             return true;
         } else if (method_len == sizeof(VERINFO) && !strncmp(method, VERINFO, method_len)) {
             // Version-info message - reply immediately if it contains the 'nonblocking' flag
@@ -65,13 +67,15 @@ static bool handleImmediateMessage(cbor_msg_t* ctx)
             if (rpc_get_map("params", &ctx->value, &params) && rpc_get_boolean("nonblocking", &params, &nonblocking)
                 && nonblocking) {
                 JADE_LOGI("VerInfoEx message, replying immediately");
-                jade_process_reply_to_message_result(*ctx, &ctx->source, build_version_info_reply);
+                uint8_t buf[1024];
+                jade_process_reply_to_message_result(*ctx, buf, sizeof(buf), &ctx->source, build_version_info_reply);
                 return true;
             }
 #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_DEBUG_MODE) && defined(CONFIG_APPTRACE_GCOV_ENABLE)
         } else if (method_len == sizeof(DEBUG_GCOV_DUMP) && !strncmp(method, DEBUG_GCOV_DUMP, method_len)) {
+            uint8_t buf[64];
             const bool ok = true;
-            jade_process_reply_to_message_result(*ctx, &ok, cbor_result_boolean_cb);
+            jade_process_reply_to_message_result(*ctx, buf, sizeof(buf), &ok, cbor_result_boolean_cb);
             esp_gcov_dump();
             return true;
 #endif

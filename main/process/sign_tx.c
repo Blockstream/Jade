@@ -415,6 +415,7 @@ static void send_ae_signature_replies(const network_t network_id, jade_process_t
     JADE_ASSERT(signing_data);
     JADE_ASSERT(signing_data->num_inputs > 0);
 
+    uint8_t buf[256];
     for (size_t i = 0; i < signing_data->num_inputs; ++i) {
         input_data_t* const input_data = &signing_data->inputs[i];
 
@@ -459,7 +460,7 @@ static void send_ae_signature_replies(const network_t network_id, jade_process_t
 
         // Send signature reply - will be empty for any inputs we are not signing
         const bytes_info_t bytes_info = { .data = input_data->sig, .size = input_data->sig_len };
-        jade_process_reply_to_message_result(process->ctx, &bytes_info, cbor_result_bytes_cb);
+        jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &bytes_info, cbor_result_bytes_cb);
     }
 cleanup:
     (void)process; /* No-op for label */
@@ -473,7 +474,7 @@ static void send_ec_signature_replies(
     JADE_ASSERT(signing_data);
     JADE_ASSERT(signing_data->num_inputs > 0);
 
-    uint8_t msgbuf[256];
+    uint8_t buf[256];
     for (size_t i = 0; i < signing_data->num_inputs; ++i) {
         input_data_t* const input_data = &signing_data->inputs[i];
 
@@ -481,7 +482,7 @@ static void send_ec_signature_replies(
             // Generate EC signature
             if (!wallet_sign_tx_input_hash(network_id, input_data, NULL, 0)) {
                 jade_process_reject_message_with_id(input_data->id, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input",
-                    NULL, 0, msgbuf, sizeof(msgbuf), source);
+                    NULL, 0, buf, sizeof(buf), source);
                 return;
             }
             JADE_ASSERT(input_data->sig_len > 0);
@@ -495,7 +496,7 @@ static void send_ec_signature_replies(
 
         const bytes_info_t bytes_info = { .data = input_data->sig, .size = input_data->sig_len };
         jade_process_reply_to_message_result_with_id(
-            input_data->id, msgbuf, sizeof(msgbuf), source, &bytes_info, cbor_result_bytes_cb);
+            input_data->id, buf, sizeof(buf), source, &bytes_info, cbor_result_bytes_cb);
     }
 }
 

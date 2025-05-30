@@ -96,7 +96,8 @@ void sign_identity_process(void* process_ptr)
     }
 
     // Return pubkey and signature
-    jade_process_reply_to_message_result(process->ctx, &output, reply_signature_and_pubkey);
+    uint8_t buf[256];
+    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &output, reply_signature_and_pubkey);
 
     JADE_LOGI("Success");
 
