@@ -9,6 +9,7 @@
 #include "../ui.h"
 #include "../utils/address.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/malloc_ext.h"
 #include "../utils/network.h"
 #include "../wallet.h"
 
@@ -56,9 +57,11 @@ void get_receive_address_process(void* process_ptr)
 
     if (rpc_has_field_data("multisig_name", &params)) {
         // Load multisig data record
-        multisig_data_t multisig_data;
+        multisig_data_t* const multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
+        jade_process_free_on_exit(process, multisig_data);
+
         char multisig_name[MAX_MULTISIG_NAME_SIZE];
-        if (!params_load_multisig(&params, multisig_name, sizeof(multisig_name), &multisig_data, &errmsg)) {
+        if (!params_load_multisig(&params, multisig_name, sizeof(multisig_name), multisig_data, &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
         }
@@ -67,15 +70,15 @@ void get_receive_address_process(void* process_ptr)
         const bool is_change = false;
         size_t written = 0;
         uint8_t pubkeys[MAX_ALLOWED_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
-        if (!params_multisig_pubkeys(is_change, &params, &multisig_data, pubkeys, sizeof(pubkeys), &written,
-                warning_msg, sizeof(warning_msg), &errmsg)) {
+        if (!params_multisig_pubkeys(is_change, &params, multisig_data, pubkeys, sizeof(pubkeys), &written, warning_msg,
+                sizeof(warning_msg), &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
         }
 
         // Build a script pubkey for the passed parameters
-        if (!wallet_build_multisig_script(multisig_data.variant, multisig_data.sorted, multisig_data.threshold, pubkeys,
-                written, script, sizeof(script), &script_len)) {
+        if (!wallet_build_multisig_script(multisig_data->variant, multisig_data->sorted, multisig_data->threshold,
+                pubkeys, written, script, sizeof(script), &script_len)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid multisig script", NULL);
             goto cleanup;
@@ -83,7 +86,7 @@ void get_receive_address_process(void* process_ptr)
 
         if (confidential) {
             if (!multisig_get_master_blinding_key(
-                    &multisig_data, multisig_master_blinding_key, sizeof(multisig_master_blinding_key), &errmsg)) {
+                    multisig_data, multisig_master_blinding_key, sizeof(multisig_master_blinding_key), &errmsg)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
@@ -99,9 +102,11 @@ void get_receive_address_process(void* process_ptr)
         }
 
         // Load descriptor record
-        descriptor_data_t descriptor;
+        descriptor_data_t* const descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
+        jade_process_free_on_exit(process, descriptor);
+
         char descriptor_name[MAX_DESCRIPTOR_NAME_SIZE];
-        if (!params_load_descriptor(&params, descriptor_name, sizeof(descriptor_name), &descriptor, &errmsg)) {
+        if (!params_load_descriptor(&params, descriptor_name, sizeof(descriptor_name), descriptor, &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
             goto cleanup;
         }
@@ -116,7 +121,7 @@ void get_receive_address_process(void* process_ptr)
         }
 
         // Build a script pubkey for the passed parameters
-        if (!wallet_build_descriptor_script(network_id, descriptor_name, &descriptor, branch, pointer, script,
+        if (!wallet_build_descriptor_script(network_id, descriptor_name, descriptor, branch, pointer, script,
                 sizeof(script), &script_len, &errmsg)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid descriptor script", NULL);
