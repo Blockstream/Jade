@@ -32,7 +32,7 @@ void get_master_blinding_key_process(void* process_ptr)
         if (onlyIfSilent || !await_yesno_activity("Blinding Key", question, 2, true, "blkstrm.com/blindingkey")) {
             JADE_LOGW("User declined to export master blinding key");
             jade_process_reject_message(
-                process, CBOR_RPC_USER_CANCELLED, "User declined to export master blinding key", NULL);
+                process, CBOR_RPC_USER_CANCELLED, "User declined to export master blinding key");
             goto cleanup;
         }
         JADE_LOGD("User pressed accept");

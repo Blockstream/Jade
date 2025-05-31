@@ -648,13 +648,13 @@ void register_multisig_process(void* process_ptr)
         size_t multisig_file_len = 0;
         rpc_get_string_ptr("multisig_file", &params, &multisig_file, &multisig_file_len);
         if (!multisig_file || !multisig_file_len) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid multisig file data", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid multisig file data");
             goto cleanup;
         }
 
         const int errcode = register_multisig_file(multisig_file, multisig_file_len, &errmsg);
         if (errcode) {
-            jade_process_reject_message(process, errcode, errmsg, NULL);
+            jade_process_reject_message(process, errcode, errmsg);
             goto cleanup;
         }
 
@@ -672,14 +672,13 @@ void register_multisig_process(void* process_ptr)
     size_t written = 0;
     rpc_get_string("multisig_name", sizeof(multisig_name), &params, multisig_name, &written);
     if (written == 0 || !storage_key_name_valid(multisig_name)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Missing or invalid multisig name parameter", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Missing or invalid multisig name parameter");
         goto cleanup;
     }
 
     CborValue descriptor;
     if (!rpc_get_map("descriptor", &params, &descriptor)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Cannot extract multisig descriptor data", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Cannot extract multisig descriptor data");
         goto cleanup;
     }
 
@@ -688,7 +687,7 @@ void register_multisig_process(void* process_ptr)
     script_variant_t script_variant;
     rpc_get_string("variant", sizeof(variant), &descriptor, variant, &written);
     if (!get_script_variant(variant, written, &script_variant) || !is_multisig(script_variant)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid script variant parameter", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid script variant parameter");
         goto cleanup;
     }
 
@@ -696,7 +695,7 @@ void register_multisig_process(void* process_ptr)
     bool sorted = false;
     if (rpc_has_field_data("sorted", &descriptor)) {
         if (!rpc_get_boolean("sorted", &descriptor, &sorted)) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid sorted flag value", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid sorted flag value");
             goto cleanup;
         }
     }
@@ -707,7 +706,7 @@ void register_multisig_process(void* process_ptr)
     if (rpc_has_field_data("master_blinding_key", &descriptor)) {
         rpc_get_bytes_ptr("master_blinding_key", &descriptor, &master_blinding_key, &master_blinding_key_len);
         if (!master_blinding_key || master_blinding_key_len != MULTISIG_MASTER_BLINDING_KEY_SIZE) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid blinding key value", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid blinding key value");
             goto cleanup;
         }
     }
@@ -716,7 +715,7 @@ void register_multisig_process(void* process_ptr)
     written = 0;
     rpc_get_sizet("threshold", &descriptor, &written);
     if (written == 0 || written > MAX_ALLOWED_SIGNERS) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid multisig threshold value", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid multisig threshold value");
         goto cleanup;
     }
     const uint8_t threshold = (uint8_t)written;
@@ -727,7 +726,7 @@ void register_multisig_process(void* process_ptr)
     get_signers_allocate("signers", &descriptor, &signers, &num_signers);
     if (num_signers == 0) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid co-signers from parameters", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid co-signers from parameters");
         goto cleanup;
     }
     jade_process_free_on_exit(process, signers);
@@ -735,7 +734,7 @@ void register_multisig_process(void* process_ptr)
     const int errcode = register_multisig(multisig_name, network_id, script_variant, sorted, threshold, signers,
         num_signers, master_blinding_key, master_blinding_key_len, &errmsg);
     if (errcode) {
-        jade_process_reject_message(process, errcode, errmsg, NULL);
+        jade_process_reject_message(process, errcode, errmsg);
         goto cleanup;
     }
 

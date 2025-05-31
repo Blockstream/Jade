@@ -162,7 +162,7 @@ void sign_message_process(void* process_ptr)
         size_t message_file_len = 0;
         rpc_get_string_ptr("message_file", &params, &message_file, &message_file_len);
         if (!message_file || !message_file_len) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid sign message file data", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid sign message file data");
             goto cleanup;
         }
 
@@ -172,7 +172,7 @@ void sign_message_process(void* process_ptr)
         const int errcode
             = sign_message_file(message_file, message_file_len, signature, sizeof(signature), &written, &errmsg);
         if (errcode) {
-            jade_process_reject_message(process, errcode, errmsg, NULL);
+            jade_process_reject_message(process, errcode, errmsg);
             goto cleanup;
         }
 
@@ -190,15 +190,13 @@ void sign_message_process(void* process_ptr)
     size_t msg_len = 0;
     rpc_get_string_ptr("message", &params, &message, &msg_len);
     if (msg_len == 0) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract message from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract message from parameters");
         goto cleanup;
     }
 
     uint8_t message_hash[SHA256_LEN];
     if (!wallet_get_message_hash((const uint8_t*)message, msg_len, message_hash, sizeof(message_hash))) {
-        jade_process_reject_message(
-            process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert message to btc hex format", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert message to btc hex format");
         goto cleanup;
     }
 
@@ -208,14 +206,13 @@ void sign_message_process(void* process_ptr)
     const size_t max_path_len = sizeof(path) / sizeof(path[0]);
     const bool has_path = rpc_get_bip32_path("path", &params, path, max_path_len, &path_len);
     if (!has_path || path_len == 0) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters");
         goto cleanup;
     }
 
     char pathstr[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
     if (!wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr))) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format");
         goto cleanup;
     }
 
@@ -228,7 +225,7 @@ void sign_message_process(void* process_ptr)
         rpc_get_bytes_ptr("ae_host_commitment", &params, &ae_host_commitment, &ae_host_commitment_len);
         if (!ae_host_commitment || ae_host_commitment_len != WALLY_HOST_COMMITMENT_LEN) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid host commitment from parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid host commitment from parameters");
             goto cleanup;
         }
     }
@@ -243,7 +240,7 @@ void sign_message_process(void* process_ptr)
         // Ask the user to confirm signing the message
         if (!confirm_sign_message(message, msg_len, message_hash, sizeof(message_hash), pathstr)) {
             JADE_LOGW("User declined to sign message");
-            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign message", NULL);
+            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign message");
             goto cleanup;
         }
         JADE_LOGD("User pressed accept");
@@ -269,7 +266,7 @@ void sign_message_process(void* process_ptr)
         uint8_t ae_signer_commitment[WALLY_S2C_OPENING_LEN];
         if (!wallet_get_signer_commitment(message_hash, sizeof(message_hash), path, path_len, ae_host_commitment,
                 ae_host_commitment_len, ae_signer_commitment, sizeof(ae_signer_commitment))) {
-            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make ae signer commitment", NULL);
+            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make ae signer commitment");
             goto cleanup;
         }
 
@@ -282,7 +279,7 @@ void sign_message_process(void* process_ptr)
         if (!IS_CURRENT_MESSAGE(process, "get_signature")) {
             // Protocol error
             jade_process_reject_message(
-                process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'get_signature'", NULL);
+                process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'get_signature'");
             goto cleanup;
         }
 
@@ -290,7 +287,7 @@ void sign_message_process(void* process_ptr)
         rpc_get_bytes_ptr("ae_host_entropy", &params, &ae_host_entropy, &ae_host_entropy_len);
         if (!ae_host_entropy || ae_host_entropy_len != WALLY_S2C_DATA_LEN) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract host entropy from parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract host entropy from parameters");
             goto cleanup;
         }
     }
@@ -301,7 +298,7 @@ void sign_message_process(void* process_ptr)
     if (!wallet_sign_message_hash(message_hash, sizeof(message_hash), path, path_len, ae_host_entropy,
             ae_host_entropy_len, sig_output, sizeof(sig_output), &written)
         || !written) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign message", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign message");
         goto cleanup;
     }
     JADE_ASSERT(written < sizeof(sig_output));

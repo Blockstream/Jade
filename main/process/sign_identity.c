@@ -53,7 +53,7 @@ void sign_identity_process(void* process_ptr)
     size_t curve_len = 0;
     size_t index = 0;
     if (!params_identity_curve_index(&params, &identity, &identity_len, &curve, &curve_len, &index, &errmsg)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
@@ -62,7 +62,7 @@ void sign_identity_process(void* process_ptr)
     rpc_get_bytes_ptr("challenge", &params, &challenge, &challenge_len);
     if (challenge_len == 0) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid challenge from parameters", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid challenge from parameters");
         goto cleanup;
     }
 
@@ -70,7 +70,7 @@ void sign_identity_process(void* process_ptr)
     // Reinitialising the wallet would address that, as seed is cached after mnemonic entry
     if (keychain_get()->seed_len == 0) {
         JADE_LOGE("No wallet seed available.  Wallet must be re-initialised from mnemonic.");
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Feature requires resetting Jade", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Feature requires resetting Jade");
 
         const char* message[] = { "Feature requires Jade reset" };
         await_error_activity(message, 1);
@@ -80,7 +80,7 @@ void sign_identity_process(void* process_ptr)
     // User to confirm identity
     if (!show_sign_identity_activity(identity, identity_len)) {
         JADE_LOGW("User declined to sign message");
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign identity", NULL);
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign identity");
         goto cleanup;
     }
     JADE_LOGD("User pressed accept");
@@ -91,7 +91,7 @@ void sign_identity_process(void* process_ptr)
     signature_and_pubkey_t output;
     if (!sign_identity(identity, identity_len, index, curve, curve_len, challenge, challenge_len, output.pubkey,
             sizeof(output.pubkey), output.signature, sizeof(output.signature))) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign identity", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign identity");
         goto cleanup;
     }
 

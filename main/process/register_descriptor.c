@@ -222,8 +222,7 @@ void register_descriptor_process(void* process_ptr)
     size_t written = 0;
     rpc_get_string("descriptor_name", sizeof(descriptor_name), &params, descriptor_name, &written);
     if (written == 0 || !storage_key_name_valid(descriptor_name)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Missing or invalid descriptor name parameter", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Missing or invalid descriptor name parameter");
         goto cleanup;
     }
 
@@ -234,20 +233,20 @@ void register_descriptor_process(void* process_ptr)
     rpc_get_string("descriptor", sizeof(descriptor.script), &params, descriptor.script, &written);
     if (!written) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid output descriptor string", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid output descriptor string");
         goto cleanup;
     }
     descriptor.script_len = (uint16_t)written;
 
     // Signers' keys
     if (!get_data_values("datavalues", &params, &descriptor)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid parameter values", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid parameter values");
         goto cleanup;
     }
 
     const int errcode = register_descriptor(descriptor_name, network_id, &descriptor, &errmsg);
     if (errcode) {
-        jade_process_reject_message(process, errcode, errmsg, NULL);
+        jade_process_reject_message(process, errcode, errmsg);
         goto cleanup;
     }
 

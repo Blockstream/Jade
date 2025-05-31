@@ -42,7 +42,7 @@ static void check_wallet_erase_pin(jade_process_t* process, const uint8_t* pin_e
         keychain_persist_key_flags();
 
         // Show/return 'Internal Error' message, and shut-down
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Internal Error", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Internal Error");
 
         const char* message[] = { "Internal Error!" };
         await_error_activity(message, 1);
@@ -92,7 +92,7 @@ static bool get_pin_get_aeskey(jade_process_t* process, const char* title, uint8
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
     if (!run_pin_entry_loop(&pin_insert)) {
         // User abandoned entering pin
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandonded pin entry", NULL);
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandonded pin entry");
         SENSITIVE_POP(&pin_insert);
         return false;
     }
@@ -139,7 +139,7 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         if (!run_pin_entry_loop(&pin_insert)) {
             // User abandoned setting new pin
-            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandoned setting new PIN", NULL);
+            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandoned setting new PIN");
             SENSITIVE_POP(&pin_insert);
             return false;
         }
@@ -174,7 +174,7 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
             const char* message[] = { "Pin mismatch,", "please try again." };
             if (!await_continueback_activity(NULL, message, 2, true, NULL)) {
                 // Abandon setting new pin
-                jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandoned setting new PIN", NULL);
+                jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandoned setting new PIN");
                 SENSITIVE_POP(&pin_insert);
                 return false;
             }
@@ -243,7 +243,7 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
         if (!keychain_complete_derivation_with_passphrase(passphrase)) {
             SENSITIVE_POP(passphrase);
             JADE_LOGE("Failed to derive wallet");
-            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to derive wallet", NULL);
+            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to derive wallet");
 
             const char* message[] = { "Failed to derive wallet" };
             await_error_activity(message, 1);
@@ -320,7 +320,7 @@ static bool set_pin_save_keys(jade_process_t* process)
     if (!keychain_store(aeskey, sizeof(aeskey))) {
         JADE_LOGE("Failed to store key data encrypted in flash memory!");
         jade_process_reject_message(
-            process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);
+            process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory");
 
         const char* message[] = { "Failed to persist key data" };
         await_error_activity(message, 1);
@@ -358,7 +358,7 @@ void auth_user_process(void* process_ptr)
         const char* errmsg = NULL;
         const int errcode = params_set_epoch_time(&params, &errmsg);
         if (errcode) {
-            jade_process_reject_message(process, errcode, errmsg, NULL);
+            jade_process_reject_message(process, errcode, errmsg);
             goto cleanup;
         }
     }
@@ -399,7 +399,7 @@ void auth_user_process(void* process_ptr)
             // Reject the message as hw locked
             JADE_LOGI("Trying to reuse temporary keychain with different message-source");
             jade_process_reject_message(process, CBOR_RPC_HW_LOCKED,
-                "Cannot process message - temporary wallet associated with different connection", NULL);
+                "Cannot process message - temporary wallet associated with different connection");
         }
     } else if (keychain_has_pin()) {
         // Jade is initialised with persisted wallet - if required use PIN to unlock

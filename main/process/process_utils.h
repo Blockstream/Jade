@@ -69,7 +69,7 @@ typedef struct {
     const CborError _cberr = cbor_value_map_find_value(&process->ctx.value, CBOR_RPC_TAG_PARAMS, &params);             \
     if (_cberr != CborNoError || !cbor_value_is_valid(&params) || cbor_value_get_type(&params) == CborInvalidType      \
         || !cbor_value_is_map(&params)) {                                                                              \
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Expecting parameters map", NULL);               \
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Expecting parameters map");                     \
         goto cleanup;                                                                                                  \
     }
 

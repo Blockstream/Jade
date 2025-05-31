@@ -22,21 +22,21 @@ void get_blinding_key_process(void* process_ptr)
     const uint8_t* script = NULL;
     rpc_get_bytes_ptr("script", &params, &script, &script_len);
     if (!script || !script_len) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters");
         goto cleanup;
     }
 
     const char* errmsg = NULL;
     uint8_t master_blinding_key[HMAC_SHA512_LEN];
     if (!params_get_master_blindingkey(&params, master_blinding_key, sizeof(master_blinding_key), &errmsg)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
     uint8_t public_blinding_key[EC_PUBLIC_KEY_LEN];
     if (!wallet_get_public_blinding_key(master_blinding_key, sizeof(master_blinding_key), script, script_len,
             public_blinding_key, sizeof(public_blinding_key))) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding key for script", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding key for script");
         goto cleanup;
     }
 

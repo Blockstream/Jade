@@ -23,8 +23,7 @@ void register_attestation_process(void* process_ptr)
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
     if (!attestation_can_be_initialised()) {
-        jade_process_reject_message(
-            process, CBOR_RPC_INTERNAL_ERROR, "Attestation data not able to be initialised", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Attestation data not able to be initialised");
         goto cleanup;
     }
 
@@ -34,7 +33,7 @@ void register_attestation_process(void* process_ptr)
     rpc_get_string("privkey_pem", JADE_ATTEST_RSA_PRIVKEY_PEM_MAX_LEN, &params, privkey_pem, &privkey_pem_len);
     if (privkey_pem_len == 0) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid private key from parameters", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid private key from parameters");
         goto cleanup;
     }
 
@@ -43,7 +42,7 @@ void register_attestation_process(void* process_ptr)
     rpc_get_string("ext_pubkey_pem", sizeof(ext_pubkey_pem), &params, ext_pubkey_pem, &ext_pubkey_pem_len);
     if (ext_pubkey_pem_len == 0) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid external pubkey from parameters", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid external pubkey from parameters");
         goto cleanup;
     }
 
@@ -52,7 +51,7 @@ void register_attestation_process(void* process_ptr)
     rpc_get_bytes_ptr("ext_signature", &params, &ext_signature, &ext_signature_len);
     if (ext_signature_len == 0) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid external signature from parameters", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid external signature from parameters");
         goto cleanup;
     }
 
@@ -62,8 +61,7 @@ void register_attestation_process(void* process_ptr)
     // Initialise attestation parameters
     if (!attestation_initialise(
             privkey_pem, privkey_pem_len, ext_pubkey_pem, ext_pubkey_pem_len, ext_signature, ext_signature_len)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_INTERNAL_ERROR, "Failed to initialise attestation parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to initialise attestation parameters");
         goto cleanup;
     }
 
@@ -80,7 +78,7 @@ void register_attestation_process(void* process_ptr)
 #endif
 
 #else // CONFIG_IDF_TARGET_ESP32S3
-    jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Attestation not supported", NULL);
+    jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Attestation not supported");
 #endif // CONFIG_IDF_TARGET_ESP32S3
 
 cleanup:

@@ -79,7 +79,7 @@ void get_registered_multisigs_process(void* process_ptr)
     const size_t num_names = sizeof(names) / sizeof(names[0]);
     size_t num_multisigs = 0;
     if (!storage_get_all_multisig_registration_names(names, num_names, &num_multisigs)) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to load multisig registrations", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to load multisig registrations");
         goto cleanup;
     }
 

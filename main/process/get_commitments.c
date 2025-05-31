@@ -49,14 +49,13 @@ void get_commitments_process(void* process_ptr)
     commitment_t commitments = { .content = COMMITMENTS_NONE };
 
     if (!rpc_get_n_bytes("asset_id", &params, sizeof(commitments.asset_id), commitments.asset_id)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract asset_id from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract asset_id from parameters");
         goto cleanup;
     }
 
     bool ret = rpc_get_uint64_t("value", &params, &commitments.value);
     if (!ret) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value from parameters");
         goto cleanup;
     }
 
@@ -65,7 +64,7 @@ void get_commitments_process(void* process_ptr)
     const uint8_t* hash_prevouts = NULL;
     size_t output_index = 0;
     if (!params_hashprevouts_outputindex(&params, &hash_prevouts, &hash_prevouts_len, &output_index, &errmsg)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
@@ -73,14 +72,14 @@ void get_commitments_process(void* process_ptr)
     size_t vbf_len = 0;
     rpc_get_bytes("vbf", sizeof(commitments.vbf), &params, commitments.vbf, &vbf_len);
     if (vbf_len && vbf_len != sizeof(commitments.vbf)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract vbf from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract vbf from parameters");
         goto cleanup;
     }
 
     // generate the abf (and vbf if necessary)
     uint8_t master_blinding_key[HMAC_SHA512_LEN];
     if (!params_get_master_blindingkey(&params, master_blinding_key, sizeof(master_blinding_key), &errmsg)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
@@ -91,7 +90,7 @@ void get_commitments_process(void* process_ptr)
         if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts,
                 hash_prevouts_len, output_index, BF_ASSET_VALUE, tmp_abf_vbf, sizeof(tmp_abf_vbf))) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf/vbf from the parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf/vbf from the parameters");
             goto cleanup;
         }
         memcpy(commitments.abf, tmp_abf_vbf, sizeof(commitments.abf));
@@ -100,8 +99,7 @@ void get_commitments_process(void* process_ptr)
         // Compute abf only
         if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts,
                 hash_prevouts_len, output_index, BF_ASSET, commitments.abf, sizeof(commitments.abf))) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf from the parameters", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf from the parameters");
             goto cleanup;
         }
     }
@@ -114,7 +112,7 @@ void get_commitments_process(void* process_ptr)
             sizeof(commitments.abf), commitments.asset_generator, sizeof(commitments.asset_generator))
         != WALLY_OK) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to build asset generator from the parameters", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to build asset generator from the parameters");
         goto cleanup;
     }
 
@@ -123,7 +121,7 @@ void get_commitments_process(void* process_ptr)
             sizeof(commitments.value_commitment))
         != WALLY_OK) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to build value commitment from the parameters", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to build value commitment from the parameters");
         goto cleanup;
     }
 

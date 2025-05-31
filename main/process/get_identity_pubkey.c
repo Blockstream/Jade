@@ -27,7 +27,7 @@ void get_identity_pubkey_process(void* process_ptr)
     size_t curve_len = 0;
     size_t index = 0;
     if (!params_identity_curve_index(&params, &identity, &identity_len, &curve, &curve_len, &index, &errmsg)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
@@ -36,14 +36,14 @@ void get_identity_pubkey_process(void* process_ptr)
     rpc_get_string_ptr("type", &params, &type, &type_len);
     if (!type || !is_key_type_valid(type, type_len)) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid key type from parameters", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid key type from parameters");
         goto cleanup;
     }
 
     // Check keychain has seed data
     if (keychain_get()->seed_len == 0) {
         JADE_LOGE("No wallet seed available.  Wallet must be re-initialised from mnemonic.");
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Feature requires resetting Jade", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Feature requires resetting Jade");
 
         const char* message[] = { "Feature requires Jade reset" };
         await_error_activity(message, 1);
@@ -54,7 +54,7 @@ void get_identity_pubkey_process(void* process_ptr)
     // Get identity pubkey - Note we use uncompressed keys in this api
     uint8_t pubkey[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
     if (!get_identity_pubkey(identity, identity_len, index, curve, curve_len, type, type_len, pubkey, sizeof(pubkey))) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to get identity pubkey", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to get identity pubkey");
         goto cleanup;
     }
 

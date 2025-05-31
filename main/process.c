@@ -600,12 +600,11 @@ void jade_process_reject_message_ex(const cbor_msg_t ctx, int code, const char* 
         written > 0 ? id : "00", code, message, data, datalen, buffer, buffer_len, ctx.source);
 }
 
-void jade_process_reject_message(jade_process_t* process, int code, const char* message, const char* data)
+void jade_process_reject_message(jade_process_t* process, int code, const char* message)
 {
     if (HAS_CURRENT_MESSAGE(process)) {
-        uint8_t buf[MAX_STANDARD_OUTPUT_MSG_SIZE];
-        jade_process_reject_message_ex(
-            process->ctx, code, message, (const uint8_t*)data, data ? strlen(data) : 0, buf, sizeof(buf));
+        uint8_t buf[256];
+        jade_process_reject_message_ex(process->ctx, code, message, NULL, 0, buf, sizeof(buf));
     } else {
         JADE_LOGW("Ignoring attempt to reject 'no-message'");
     }

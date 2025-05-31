@@ -23,7 +23,7 @@ void get_bip85_pubkey_process(void* process_ptr)
     size_t index = 0;
 
     if (!params_get_bip85_rsa_key(&params, &key_bits, &index, &errmsg)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
@@ -31,7 +31,7 @@ void get_bip85_pubkey_process(void* process_ptr)
 
     char pubkey_pem[896];
     if (!rsa_get_bip85_pubkey_pem(key_bits, index, pubkey_pem, sizeof(pubkey_pem))) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to generate RSA key", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to generate RSA key");
         goto cleanup;
     }
 

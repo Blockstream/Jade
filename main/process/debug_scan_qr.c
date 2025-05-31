@@ -137,7 +137,7 @@ void debug_capture_image_data_process(void* process_ptr)
     // (We can detect as the callback frees the 'current message' on successful completion)
     if (HAS_CURRENT_MESSAGE(process)) {
         // The camera callback was not called - ie. camera screen was 'Exit'-ed.
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to capture image", NULL);
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to capture image");
     }
 
 cleanup:
@@ -158,8 +158,7 @@ void debug_scan_qr_process(void* process_ptr)
     const uint8_t* data = NULL;
     rpc_get_bytes_ptr("image", &params, &data, &len);
     if (!data || !len) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract image data from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract image data from parameters");
         goto cleanup;
     }
 
@@ -169,7 +168,7 @@ void debug_scan_qr_process(void* process_ptr)
     jade_process_free_on_exit(process, decompressed);
     const size_t decompressed_len = decompress_impl(data, len, decompressed, decompressed_buflen);
     if (!decompressed_len || decompressed_len != decompressed_buflen) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to decompress image data", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to decompress image data");
         goto cleanup;
     }
 

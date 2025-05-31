@@ -25,14 +25,13 @@ void get_xpubs_process(void* process_ptr)
     const size_t max_path_len = sizeof(path) / sizeof(path[0]);
     const bool has_path = rpc_get_bip32_path("path", &params, path, max_path_len, &written);
     if (!has_path) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters");
         goto cleanup;
     }
 
     char* output = NULL;
     if (!wallet_get_xpub(network_id, path, written, &output) || !output) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get xpub for path", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get xpub for path");
         goto cleanup;
     }
     jade_process_wally_free_string_on_exit(process, output);

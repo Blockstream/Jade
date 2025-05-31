@@ -51,7 +51,7 @@ void debug_set_mnemonic_process(void* process_ptr)
         rpc_get_bytes_ptr("seed", &params, &seed, &written);
         if (written != 32 && written != 64) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid seed from parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid seed from parameters");
             goto cleanup;
         }
         keychain_derive_from_seed(seed, written, &keydata);
@@ -69,7 +69,7 @@ void debug_set_mnemonic_process(void* process_ptr)
         }
         if (qr_data.len == 0) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract mnemonic prefixes from parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract mnemonic prefixes from parameters");
             goto cleanup;
         }
 
@@ -78,7 +78,7 @@ void debug_set_mnemonic_process(void* process_ptr)
         // NOTE: only the English wordlist is supported.
         if (!import_and_validate_mnemonic(&qr_data)) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to expand mnemonic prefixes into full mnemonic words", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to expand mnemonic prefixes into full mnemonic words");
             goto cleanup;
         }
 
@@ -88,7 +88,7 @@ void debug_set_mnemonic_process(void* process_ptr)
             rpc_get_string("passphrase", sizeof(passphrase), &params, passphrase, &written);
             if (written == 0 || written > PASSPHRASE_MAX_LEN) {
                 jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid passphrase from parameters", NULL);
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid passphrase from parameters");
                 goto cleanup;
             }
             p_passphrase = passphrase;
@@ -96,8 +96,7 @@ void debug_set_mnemonic_process(void* process_ptr)
 
         // Derive a keychain from the passed mnemonic and passphrase
         if (!keychain_derive_from_mnemonic((const char*)qr_data.data, p_passphrase, &keydata)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to derive keychain from mnemonic", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to derive keychain from mnemonic");
             goto cleanup;
         }
     }

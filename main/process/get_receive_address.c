@@ -51,7 +51,7 @@ void get_receive_address_process(void* process_ptr)
     rpc_get_boolean("confidential", &params, &confidential);
     if (confidential && !isLiquid) {
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Confidential addresses only apply to liquid networks", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Confidential addresses only apply to liquid networks");
         goto cleanup;
     }
 
@@ -62,7 +62,7 @@ void get_receive_address_process(void* process_ptr)
 
         char multisig_name[MAX_MULTISIG_NAME_SIZE];
         if (!params_load_multisig(&params, multisig_name, sizeof(multisig_name), multisig_data, &errmsg)) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
             goto cleanup;
         }
 
@@ -72,22 +72,21 @@ void get_receive_address_process(void* process_ptr)
         uint8_t pubkeys[MAX_ALLOWED_SIGNERS * EC_PUBLIC_KEY_LEN]; // Sufficient
         if (!params_multisig_pubkeys(is_change, &params, multisig_data, pubkeys, sizeof(pubkeys), &written, warning_msg,
                 sizeof(warning_msg), &errmsg)) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
             goto cleanup;
         }
 
         // Build a script pubkey for the passed parameters
         if (!wallet_build_multisig_script(multisig_data->variant, multisig_data->sorted, multisig_data->threshold,
                 pubkeys, written, script, sizeof(script), &script_len)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid multisig script", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid multisig script");
             goto cleanup;
         }
 
         if (confidential) {
             if (!multisig_get_master_blinding_key(
                     multisig_data, multisig_master_blinding_key, sizeof(multisig_master_blinding_key), &errmsg)) {
-                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
                 goto cleanup;
             }
             p_master_blinding_key = multisig_master_blinding_key;
@@ -97,7 +96,7 @@ void get_receive_address_process(void* process_ptr)
         // Not valid for liquid wallets atm
         if (isLiquid) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Descriptor wallets not supported on liquid network", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Descriptor wallets not supported on liquid network");
             goto cleanup;
         }
 
@@ -107,7 +106,7 @@ void get_receive_address_process(void* process_ptr)
 
         char descriptor_name[MAX_DESCRIPTOR_NAME_SIZE];
         if (!params_load_descriptor(&params, descriptor_name, sizeof(descriptor_name), descriptor, &errmsg)) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
             goto cleanup;
         }
 
@@ -116,15 +115,14 @@ void get_receive_address_process(void* process_ptr)
         rpc_get_sizet("branch", &params, &branch); // optional
         if (!rpc_get_sizet("pointer", &params, &pointer)) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters");
             goto cleanup;
         }
 
         // Build a script pubkey for the passed parameters
         if (!wallet_build_descriptor_script(network_id, descriptor_name, descriptor, branch, pointer, script,
                 sizeof(script), &script_len, &errmsg)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid descriptor script", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid descriptor script");
             goto cleanup;
         }
     } else {
@@ -139,7 +137,7 @@ void get_receive_address_process(void* process_ptr)
         size_t written = 0;
         rpc_get_string("variant", sizeof(variant), &params, variant, &written);
         if (!get_script_variant(variant, written, &script_variant)) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid script variant parameter", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid script variant parameter");
             goto cleanup;
         }
 
@@ -149,7 +147,7 @@ void get_receive_address_process(void* process_ptr)
             if (!rpc_get_sizet("subaccount", &params, &subaccount) || !rpc_get_sizet("branch", &params, &branch)
                 || !rpc_get_sizet("pointer", &params, &pointer)) {
                 jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters", NULL);
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters");
                 goto cleanup;
             }
             wallet_build_receive_path(subaccount, branch, pointer, path, max_path_len, &path_len);
@@ -173,7 +171,7 @@ void get_receive_address_process(void* process_ptr)
             if (!wallet_build_ga_script(network_id, written ? xpubrecovery : NULL, csv_blocks, path, path_len, script,
                     sizeof(script), &script_len)) {
                 jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid green address script", NULL);
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid green address script");
                 goto cleanup;
             }
         } else if (is_singlesig(script_variant)) {
@@ -181,7 +179,7 @@ void get_receive_address_process(void* process_ptr)
             rpc_get_bip32_path("path", &params, path, max_path_len, &path_len);
             if (path_len == 0) {
                 jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters", NULL);
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters");
                 goto cleanup;
             }
 
@@ -194,7 +192,7 @@ void get_receive_address_process(void* process_ptr)
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
                 if (!wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
                     jade_process_reject_message(
-                        process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format", NULL);
+                        process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format");
                     goto cleanup;
                 }
                 const char* path_desc = is_change ? "Note:\nChange path" : "Warning:\nUnusual path";
@@ -208,12 +206,12 @@ void get_receive_address_process(void* process_ptr)
                 || !wallet_build_singlesig_script(
                     network_id, script_variant, &derived, script, sizeof(script), &script_len)) {
                 jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid singlesig script", NULL);
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid singlesig script");
                 goto cleanup;
             }
         } else {
             // Multisig handled above, so should be nothing left
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unhandled script variant", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unhandled script variant");
             goto cleanup;
         }
 
@@ -235,8 +233,7 @@ void get_receive_address_process(void* process_ptr)
             uint8_t blinding_key[EC_PUBLIC_KEY_LEN];
             if (!wallet_get_public_blinding_key(p_master_blinding_key, master_blinding_key_len, script, script_len,
                     blinding_key, sizeof(blinding_key))) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding key for script", NULL);
+                jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Cannot get blinding key for script");
                 goto cleanup;
             }
             elements_script_to_address(network_id, script, script_len, has_value, blinding_key, sizeof(blinding_key),
@@ -254,7 +251,7 @@ void get_receive_address_process(void* process_ptr)
     const bool default_selection = false;
     if (!show_confirm_address_activity(address, default_selection)) {
         JADE_LOGW("User declined to confirm address");
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to confirm address", NULL);
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to confirm address");
         goto cleanup;
     }
 

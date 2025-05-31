@@ -118,16 +118,14 @@ void get_registered_multisig_process(void* process_ptr)
     written = 0;
     rpc_get_string("multisig_name", sizeof(multisig_name), &params, multisig_name, &written);
     if (written == 0 || !storage_key_name_valid(multisig_name)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Missing or invalid multisig name parameter", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Missing or invalid multisig name parameter");
         goto cleanup;
     }
 
     bool asfile = false;
     if (rpc_has_field_data("as_file", &params)) {
         if (!rpc_get_boolean("as_file", &params, &asfile)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid as_file parameter", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid as_file parameter");
             goto cleanup;
         }
     }
@@ -144,7 +142,7 @@ void get_registered_multisig_process(void* process_ptr)
         // Doesn't exist, corrupt or for another wallet
         JADE_LOGW("%s", errmsg);
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Named multisig wallet does not exist for this signer", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Named multisig wallet does not exist for this signer");
         goto cleanup;
     }
     JADE_ASSERT(written <= MAX_ALLOWED_SIGNERS);
@@ -152,7 +150,7 @@ void get_registered_multisig_process(void* process_ptr)
     if (written != multisig_data.num_xpubs) {
         JADE_LOGW("Unable to export multisig details - no signer details");
         jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Named multisig too old include detailed signer data", NULL);
+            process, CBOR_RPC_BAD_PARAMETERS, "Named multisig too old include detailed signer data");
         goto cleanup;
     }
 
@@ -169,8 +167,7 @@ void get_registered_multisig_process(void* process_ptr)
                 export_file, export_file_len, &written)
             || !written || written > export_file_len) {
             JADE_LOGE("Failed to produce multisig export file");
-            jade_process_reject_message(
-                process, CBOR_RPC_INTERNAL_ERROR, "Failed to produce multisig export file", NULL);
+            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to produce multisig export file");
             goto cleanup;
         }
     }

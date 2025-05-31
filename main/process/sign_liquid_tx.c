@@ -128,7 +128,7 @@ static bool validate_additional_info(jade_process_t* process, const struct wally
     }
 done:
     if (errmsg) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         return false;
     }
     return true;
@@ -359,7 +359,7 @@ bool rpc_get_trusted_commitments(
 
 cleanup:
     if (errmsg) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         return false;
     }
     return true;
@@ -629,7 +629,7 @@ bool validate_elements_outputs(jade_process_t* process, const network_t network_
     }
 done:
     if (errmsg) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         return false;
     }
     return true;

@@ -528,7 +528,7 @@ static bool get_pinserver_aeskey(jade_process_t* process, const uint8_t* pin, co
         // NOTE: 'PIN_CANCELLED' is deliberately 'silent'
         if (pir.result != PIN_SUCCESS && pir.result != PIN_CANCELLED) {
             JADE_LOGE("Failed to complete pinserver interaction");
-            jade_process_reject_message(process, pir.errorcode, pir.message, NULL);
+            jade_process_reject_message(process, pir.errorcode, pir.message);
 
             const char* message[] = { "Network or server", "error" };
             await_error_activity(message, 2);

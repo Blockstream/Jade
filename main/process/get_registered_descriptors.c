@@ -67,7 +67,7 @@ void get_registered_descriptors_process(void* process_ptr)
     const size_t num_names = sizeof(names) / sizeof(names[0]);
     size_t num_descriptors = 0;
     if (!storage_get_all_descriptor_registration_names(names, num_names, &num_descriptors)) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to load descriptor registrations", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to load descriptor registrations");
         goto cleanup;
     }
 

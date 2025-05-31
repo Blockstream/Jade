@@ -295,7 +295,7 @@ void update_pinserver_process(void* process_ptr)
     const char* errmsg = NULL;
     const int errcode = update_pinserver(&params, &errmsg);
     if (errcode) {
-        jade_process_reject_message(process, errcode, errmsg, NULL);
+        jade_process_reject_message(process, errcode, errmsg);
         goto cleanup;
     }
 

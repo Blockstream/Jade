@@ -49,7 +49,7 @@ void get_shared_nonce_process(void* process_ptr)
     const uint8_t* script = NULL;
     rpc_get_bytes_ptr("script", &params, &script, &script_len);
     if (!script || !script_len) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract script from parameters");
         goto cleanup;
     }
 
@@ -57,8 +57,7 @@ void get_shared_nonce_process(void* process_ptr)
     const uint8_t* their_pubkey = NULL;
     rpc_get_bytes_ptr("their_pubkey", &params, &their_pubkey, &their_pubkey_len);
     if (!their_pubkey || their_pubkey_len != EC_PUBLIC_KEY_LEN) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract their_pubkey from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract their_pubkey from parameters");
         goto cleanup;
     }
 
@@ -70,7 +69,7 @@ void get_shared_nonce_process(void* process_ptr)
         bool include_pubkey = false;
         if (!rpc_get_boolean("include_pubkey", &params, &include_pubkey)) {
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid pubkey flag from parameters", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid pubkey flag from parameters");
             goto cleanup;
         }
 
@@ -84,7 +83,7 @@ void get_shared_nonce_process(void* process_ptr)
     const char* errmsg = NULL;
     uint8_t master_blinding_key[HMAC_SHA512_LEN];
     if (!params_get_master_blindingkey(&params, master_blinding_key, sizeof(master_blinding_key), &errmsg)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
@@ -94,7 +93,7 @@ void get_shared_nonce_process(void* process_ptr)
             their_pubkey, their_pubkey_len, shared_nonce, sizeof(shared_nonce), p_blinding_pubkey,
             blinding_pubkey_len)) {
         jade_process_reject_message(
-            process, CBOR_RPC_INTERNAL_ERROR, "Failed to compute hashed shared nonce value for the parameters", NULL);
+            process, CBOR_RPC_INTERNAL_ERROR, "Failed to compute hashed shared nonce value for the parameters");
         goto cleanup;
     }
 

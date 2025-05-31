@@ -102,7 +102,7 @@ void ota_process(void* process_ptr)
     size_t compressedsize = 0;
     if (!rpc_get_sizet("fwsize", &params, &firmwaresize) || !rpc_get_sizet("cmpsize", &params, &compressedsize)
         || firmwaresize <= compressedsize) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad filesize parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Bad filesize parameters");
         goto cleanup;
     }
 
@@ -119,7 +119,7 @@ void ota_process(void* process_ptr)
     } else if (rpc_get_n_bytes("cmphash", &params, sizeof(expected_hash), expected_hash)) {
         hash_type = HASHTYPE_FILEDATA;
     } else {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Cannot extract valid fw hash value", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Cannot extract valid fw hash value");
         goto cleanup;
     }
     JADE_WALLY_VERIFY(wally_hex_from_bytes(expected_hash, sizeof(expected_hash), &expected_hash_hexstr));
@@ -157,7 +157,7 @@ void ota_process(void* process_ptr)
     };
 
     if (!ota_init(&joctx)) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to initialize OTA", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to initialize OTA");
         goto cleanup;
     }
 
@@ -197,8 +197,7 @@ void ota_process(void* process_ptr)
     jade_process_load_in_message(process, true);
     if (!IS_CURRENT_MESSAGE(process, "ota_complete")) {
         // Protocol error
-        jade_process_reject_message(
-            process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'ota_complete'", NULL);
+        jade_process_reject_message(process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'ota_complete'");
         goto cleanup;
     }
 
@@ -210,8 +209,10 @@ void ota_process(void* process_ptr)
 
     // Send final message reply with final status
     if (ota_return_status != OTA_SUCCESS) {
-        jade_process_reject_message(
-            process, CBOR_RPC_INTERNAL_ERROR, "Error completing OTA", ota_get_status_text(ota_return_status));
+        uint8_t buf[256];
+        const char* error = ota_get_status_text(ota_return_status);
+        jade_process_reject_message_ex(process->ctx, CBOR_RPC_INTERNAL_ERROR, "Error completing OTA",
+            (const uint8_t*)error, strlen(error), buf, sizeof(buf));
         goto cleanup;
     }
 

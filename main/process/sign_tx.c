@@ -124,7 +124,7 @@ struct wally_tx* rpc_get_signing_tx(
     }
     return tx;
 fail:
-    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
     return NULL;
 }
 
@@ -359,7 +359,7 @@ cleanup:
     free(multisig_data);
     free(descriptor);
     if (errmsg) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         return false;
     }
     return true;
@@ -424,7 +424,7 @@ static void send_ae_signature_replies(const network_t network_id, jade_process_t
         if (!IS_CURRENT_MESSAGE(process, "get_signature")) {
             // Protocol error
             jade_process_reject_message(
-                process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'get_signature'", NULL);
+                process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'get_signature'");
             goto cleanup;
         }
 
@@ -439,20 +439,20 @@ static void send_ae_signature_replies(const network_t network_id, jade_process_t
             rpc_get_bytes_ptr("ae_host_entropy", &params, &ae_host_entropy, &ae_host_entropy_len);
             if (ae_host_entropy_len && ae_host_entropy_len != WALLY_S2C_DATA_LEN) {
                 jade_process_reject_message(
-                    process, CBOR_RPC_PROTOCOL_ERROR, "Failed to extract valid host entropy from parameters", NULL);
+                    process, CBOR_RPC_PROTOCOL_ERROR, "Failed to extract valid host entropy from parameters");
                 goto cleanup;
             }
             const bool use_ae = ae_host_entropy_len != 0;
             if (input_data->use_ae != use_ae) {
                 // We must be given both a commitment and entropy, or neither.
                 jade_process_reject_message(process, CBOR_RPC_PROTOCOL_ERROR,
-                    "Failed to extract valid host commitment and entropy from parameters", NULL);
+                    "Failed to extract valid host commitment and entropy from parameters");
                 goto cleanup;
             }
 
             // Generate Anti-Exfil, non-AE ECDSA or non-AE Schnorr signature
             if (!wallet_sign_tx_input_hash(network_id, input_data, ae_host_entropy, ae_host_entropy_len)) {
-                jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input", NULL);
+                jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input");
                 goto cleanup;
             }
             JADE_ASSERT(input_data->sig_len > 0);
@@ -564,7 +564,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     // IE. THIS DATA IS NOT VALID AFTER THE INITIAL MESSAGE HAS BEEN PROCESSED
     if (for_liquid) {
         if (!assets_get_allocate("asset_info", &params, &assets, &num_assets)) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid asset info passed", NULL);
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid asset info passed");
             goto cleanup;
         }
         jade_process_free_on_exit(process, assets);
@@ -610,7 +610,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     }
     if (cancelmsg) {
         JADE_LOGW("%s", cancelmsg);
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, cancelmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, cancelmsg);
         goto cleanup;
     }
     JADE_LOGD("User accepted outputs");
@@ -644,8 +644,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         jade_process_load_in_message(process, true);
         if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
             // Protocol error
-            jade_process_reject_message(
-                process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'tx_input'", NULL);
+            jade_process_reject_message(process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'tx_input'");
             goto cleanup;
         }
 
@@ -679,11 +678,11 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             // Get all common tx-signing input fields which must be present if a path is given
             if (!params_tx_input_signing_data(use_ae_signatures, &params, input_data, &ae_host_commitment,
                     &ae_host_commitment_len, &script, &script_len, &aggregate_inputs_scripts_flavour, &errmsg)) {
-                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
                 goto cleanup;
             }
             if (!is_valid_sig_type(input_data, txtype, for_liquid, is_partial)) {
-                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value");
                 goto cleanup;
             }
             if (input_data->sig_type == WALLY_SIGTYPE_SW_V1) {
@@ -695,7 +694,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 // We can only verify input amounts with segwit inputs which have an explicit commitment to sign
                 if (input_data->sig_type == WALLY_SIGTYPE_PRE_SW) {
                     jade_process_reject_message(
-                        process, CBOR_RPC_BAD_PARAMETERS, "Non-segwit input cannot be used as verified amount", NULL);
+                        process, CBOR_RPC_BAD_PARAMETERS, "Non-segwit input cannot be used as verified amount");
                     goto cleanup;
                 }
 
@@ -703,7 +702,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 commitment_t commitment;
                 if (get_commitment_data(&params, &commitment)) {
                     if (!verify_commitment_consistent(&commitment, &errmsg)) {
-                        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+                        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
                         goto cleanup;
                     }
                     asset_summary_update(
@@ -717,13 +716,13 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 rpc_get_bytes_ptr("value_commitment", &params, &value_commitment, &value_len);
                 if (value_len != ASSET_COMMITMENT_LEN && value_len != WALLY_TX_ASSET_CT_VALUE_UNBLIND_LEN) {
                     jade_process_reject_message(
-                        process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value commitment from parameters", NULL);
+                        process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value commitment from parameters");
                     goto cleanup;
                 }
                 int res = wally_map_add_integer(&signing_data->amounts, index, value_commitment, value_len);
                 if (res != WALLY_OK) {
                     jade_process_reject_message(
-                        process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value commitment from parameters", NULL);
+                        process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value commitment from parameters");
                     goto cleanup;
                 }
             }
@@ -766,7 +765,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             int res = wally_tx_from_bytes(txbuf, txsize, 0, &input_tx); // 0 = no witness
 
             if (res != WALLY_OK || !input_tx) {
-                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract input_tx", NULL);
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract input_tx");
                 JADE_WALLY_VERIFY(wally_tx_free(input_tx));
                 goto cleanup;
             }
@@ -777,16 +776,15 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             res = wally_tx_get_txid(input_tx, txhash, sizeof(txhash));
 
             if (res != WALLY_OK || sodium_memcmp(txhash, tx->inputs[index].txhash, sizeof(txhash)) != 0) {
-                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS,
-                    "input_tx cannot be verified against transaction input data", NULL);
+                jade_process_reject_message(
+                    process, CBOR_RPC_BAD_PARAMETERS, "input_tx cannot be verified against transaction input data");
                 JADE_WALLY_VERIFY(wally_tx_free(input_tx));
                 goto cleanup;
             }
 
             // Check that passed input tx has an output at tx->input[index].index
             if (input_tx->num_outputs <= tx->inputs[index].index) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "input_tx missing corresponding output", NULL);
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "input_tx missing corresponding output");
                 JADE_WALLY_VERIFY(wally_tx_free(input_tx));
                 goto cleanup;
             }
@@ -800,7 +798,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 input_amount += txout->satoshi;
             }
             if (res != WALLY_OK) {
-                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract prevout", NULL);
+                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract prevout");
                 JADE_WALLY_VERIFY(wally_tx_free(input_tx));
                 goto cleanup;
             }
@@ -813,7 +811,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             // be removed in a future firmware release.
             if (input_data->sig_type != WALLY_SIGTYPE_SW_V0 || tx->num_inputs > 1) {
                 jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract input_tx from parameters", NULL);
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract input_tx from parameters");
                 goto cleanup;
             }
 
@@ -829,7 +827,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             }
             if (res != WALLY_OK) {
                 jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract satoshi from parameters", NULL);
+                    process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract satoshi from parameters");
                 goto cleanup;
             }
         }
@@ -845,7 +843,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             // skip creating a signer commitment here as well.
             if (!use_ae_signatures) {
                 jade_process_reject_message(
-                    process, CBOR_RPC_INTERNAL_ERROR, "Taproot signing requires Anti-exfil flow", NULL);
+                    process, CBOR_RPC_INTERNAL_ERROR, "Taproot signing requires Anti-exfil flow");
                 goto cleanup;
             }
         } else if (has_path) {
@@ -853,7 +851,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             // Generate the signature hash of this input which we will sign later.
             // Note we pass a NULL genesis blockhash as this input is not taproot.
             if (!wallet_get_tx_input_hash(tx, index, signing_data, script, script_len, NULL, 0)) {
-                jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash", NULL);
+                jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make tx input hash");
                 goto cleanup;
             }
 
@@ -865,7 +863,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                         input_data->path, input_data->path_len, ae_host_commitment, ae_host_commitment_len,
                         ae_signer_commitment, sizeof(ae_signer_commitment))) {
                     jade_process_reject_message(
-                        process, CBOR_RPC_INTERNAL_ERROR, "Failed to make ae signer commitment", NULL);
+                        process, CBOR_RPC_INTERNAL_ERROR, "Failed to make ae signer commitment");
                     goto cleanup;
                 }
                 made_ae_commitment = true;
@@ -917,7 +915,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         if (!wallet_get_tx_input_hash(tx, index, signing_data, NULL, 0, genesis, genesis_len)) {
             // We are using ae-signatures, so we need to load the message to send the error back on
             jade_process_load_in_message(process, true);
-            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make taproot tx input hash", NULL);
+            jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make taproot tx input hash");
             goto cleanup;
         }
         --num_p2tr_to_sign; // Stop early if we have done all taproot inputs
@@ -933,7 +931,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 jade_process_load_in_message(process, true);
             }
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Total input amounts less than total output amounts", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Total input amounts less than total output amounts");
             goto cleanup;
         }
 
@@ -946,7 +944,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 jade_process_load_in_message(process, true);
             }
             JADE_LOGW("User declined to sign transaction");
-            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
+            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction");
             goto cleanup;
         }
         JADE_LOGD("User accepted fee");
@@ -960,7 +958,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 jade_process_load_in_message(process, true);
             }
             jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to validate input/output summary information", NULL);
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to validate input/output summary information");
             goto cleanup;
         } else if (in_sums || out_sums) {
             JADE_LOGI("Input and output summary information validated");
@@ -978,8 +976,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                     jade_process_load_in_message(process, true);
                 }
                 JADE_LOGW("User declined to sign transaction");
-                jade_process_reject_message(
-                    process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
+                jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction");
                 goto cleanup;
             }
 

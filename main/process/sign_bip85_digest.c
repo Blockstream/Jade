@@ -105,7 +105,7 @@ void sign_bip85_digests_process(void* process_ptr)
     size_t index = 0;
 
     if (!params_get_bip85_rsa_key(&params, &key_bits, &index, &errmsg)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
@@ -115,8 +115,7 @@ void sign_bip85_digests_process(void* process_ptr)
     get_digests_allocate("digests", &params, &digests, &num_digests);
 
     if (num_digests == 0) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract digests from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract digests from parameters");
         goto cleanup;
     }
 
@@ -125,7 +124,7 @@ void sign_bip85_digests_process(void* process_ptr)
 
     const size_t max_digests = key_bits <= 2048 ? 8 : key_bits < 4096 ? 6 : 4;
     if (num_digests > max_digests) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported number of digests", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported number of digests");
         goto cleanup;
     }
 
@@ -146,7 +145,7 @@ void sign_bip85_digests_process(void* process_ptr)
     const char* message[] = { buf1, buf2, buf3 };
     if (!await_yesno_activity("BIPI85 RSA Signing", message, 3, true, "blkstrm.com/bip85rsa")) {
         JADE_LOGW("User declined to sign digests with BIP85 key");
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign digests", NULL);
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign digests");
         goto cleanup;
     }
     JADE_LOGD("User pressed accept");
@@ -158,7 +157,7 @@ void sign_bip85_digests_process(void* process_ptr)
     jade_process_free_on_exit(process, signatures);
 
     if (!rsa_bip85_key_sign_digests(key_bits, index, digests, num_digests, signatures, num_digests)) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to generate RSA signatures", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to generate RSA signatures");
         goto cleanup;
     }
 

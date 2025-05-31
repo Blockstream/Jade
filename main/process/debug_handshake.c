@@ -92,7 +92,7 @@ void debug_handshake(void* process_ptr)
     if (!keychain_store(aeskey1, sizeof(aeskey1))) {
         JADE_LOGE("Failed to store key data encrypted in flash memory!");
         jade_process_reject_message(
-            process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory", NULL);
+            process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory");
     }
 
     JADE_ASSERT(keychain_has_pin());

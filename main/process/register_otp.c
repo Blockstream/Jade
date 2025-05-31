@@ -110,8 +110,7 @@ void register_otp_process(void* process_ptr)
     size_t otp_name_len = 0;
     rpc_get_string("name", sizeof(otp_name), &params, otp_name, &otp_name_len);
     if (!otp_name_len || !storage_key_name_valid(otp_name)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to fetch valid otp name from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to fetch valid otp name from parameters");
         goto cleanup;
     }
 
@@ -119,14 +118,14 @@ void register_otp_process(void* process_ptr)
     size_t otp_uri_len = 0;
     rpc_get_string_ptr("uri", &params, &otp_uri, &otp_uri_len);
     if (!otp_uri || !otp_uri_len) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to fetch otp uri from parameters", NULL);
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to fetch otp uri from parameters");
         goto cleanup;
     }
 
     // Check keychain has seed data
     if (keychain_get()->seed_len == 0) {
         JADE_LOGE("No wallet seed available.  Wallet must be re-initialised from mnemonic.");
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Feature requires resetting Jade", NULL);
+        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Feature requires resetting Jade");
         const char* message[] = { "Feature requires Jade reset" };
         await_error_activity(message, 1);
     }
@@ -141,7 +140,7 @@ void register_otp_process(void* process_ptr)
             const char* message[] = { errmsg };
             await_error_activity(message, 1);
         }
-        jade_process_reject_message(process, errcode, errmsg, NULL);
+        jade_process_reject_message(process, errcode, errmsg);
         goto cleanup;
     }
 
