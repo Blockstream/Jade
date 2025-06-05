@@ -107,8 +107,7 @@ void get_shared_nonce_process(void* process_ptr)
         jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &data, reply_nonce_and_pubkey);
     } else {
         // Just shared blinding nonce alone (default/legacy behaviour)
-        uint8_t buf[128];
-        jade_process_reply_to_message_bytes(process->ctx, shared_nonce, sizeof(shared_nonce), buf, sizeof(buf));
+        jade_process_reply_to_message_bytes(process->ctx, shared_nonce, sizeof(shared_nonce));
     }
     JADE_LOGI("Success");
 

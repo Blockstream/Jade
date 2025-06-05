@@ -10,8 +10,6 @@
 
 #ifdef CONFIG_DEBUG_MODE
 
-static const size_t QR_CBOR_OVERHEAD = 64;
-
 typedef struct {
     jade_process_t* process;
     bool check_qr; // check captured image is a valid qr code
@@ -96,11 +94,7 @@ static bool return_image_data(const size_t width, const size_t height, const uin
     }
 
     // All good, reply with the compressed image data
-    const size_t buflen = compressed_len + QR_CBOR_OVERHEAD;
-    uint8_t* buffer = JADE_MALLOC_PREFER_SPIRAM(buflen);
-    JADE_LOGI("Trying to send compressed captured image data, message buffer len: %u", buflen);
-    jade_process_reply_to_message_bytes(info->process->ctx, compressed, compressed_len, buffer, buflen);
-    free(buffer);
+    jade_process_reply_to_message_bytes(info->process->ctx, compressed, compressed_len);
 
     // Free the input message (to signal that we have been called and sent the reply)
     jade_process_free_current_message(info->process);
@@ -184,9 +178,7 @@ void debug_scan_qr_process(void* process_ptr)
     }
 
     // Reply with the decoded data (empty if failed)
-    uint8_t buf[512]; // sufficient for all existing test cases
-    const bytes_info_t bytes_info = { .data = qr_data.data, .size = qr_data.len };
-    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &bytes_info, cbor_result_bytes_cb);
+    jade_process_reply_to_message_bytes(process->ctx, qr_data.data, qr_data.len);
     JADE_LOGI("Success");
 
 cleanup:

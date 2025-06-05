@@ -96,7 +96,7 @@ void jade_process_push_out_message(const uint8_t* data, size_t length, jade_msg_
 void jade_process_reply_to_message_result_with_id(const char* id, uint8_t* output, size_t output_size,
     jade_msg_source_t source, const void* cbctx, cbor_encoder_fn_t cb);
 void jade_process_reply_to_message_result(
-    const cbor_msg_t ctx, uint8_t* output, size_t output_size, const void* cbctx, cbor_encoder_fn_t cb);
+    cbor_msg_t ctx, uint8_t* output, size_t output_size, const void* cbctx, cbor_encoder_fn_t cb);
 void jade_process_reply_to_message_ok(jade_process_t* process);
 void jade_process_reply_to_message_fail(jade_process_t* process);
 void jade_process_reply_to_message_ex(jade_msg_source_t source, const uint8_t* reply_payload, size_t payload_len);
@@ -116,8 +116,7 @@ void cbor_result_string_cb(const void* ctx, CborEncoder* container);
 void cbor_result_boolean_cb(const void* ctx, CborEncoder* container);
 void cbor_result_uint64_cb(const void* ctx, CborEncoder* container);
 
-void jade_process_reply_to_message_bytes(
-    cbor_msg_t ctx, const uint8_t* data, size_t datalen, uint8_t* buffer, size_t buflen);
+void jade_process_reply_to_message_bytes(cbor_msg_t ctx, const uint8_t* data, size_t datalen);
 void jade_process_reply_to_message_bytes_sequence(cbor_msg_t ctx, const size_t seqnum, const size_t seqlen,
     const uint8_t* data, const size_t datalen, uint8_t* buffer, const size_t buflen);
 

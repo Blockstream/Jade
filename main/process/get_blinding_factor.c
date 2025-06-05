@@ -64,8 +64,7 @@ void get_blinding_factor_process(void* process_ptr)
         goto cleanup;
     }
 
-    uint8_t buffer[256];
-    jade_process_reply_to_message_bytes(process->ctx, blinding_factor, bf_len, buffer, sizeof(buffer));
+    jade_process_reply_to_message_bytes(process->ctx, blinding_factor, bf_len);
     JADE_LOGI("Success");
 
 cleanup:

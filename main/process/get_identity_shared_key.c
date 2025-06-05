@@ -58,8 +58,7 @@ void get_identity_shared_key_process(void* process_ptr)
     }
 
     // Return pubkey to caller
-    uint8_t buffer[256];
-    jade_process_reply_to_message_bytes(process->ctx, shared_key, sizeof(shared_key), buffer, sizeof(buffer));
+    jade_process_reply_to_message_bytes(process->ctx, shared_key, sizeof(shared_key));
 
     JADE_LOGI("Success");
 

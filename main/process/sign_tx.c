@@ -415,7 +415,6 @@ static void send_ae_signature_replies(const network_t network_id, jade_process_t
     JADE_ASSERT(signing_data);
     JADE_ASSERT(signing_data->num_inputs > 0);
 
-    uint8_t buf[256];
     for (size_t i = 0; i < signing_data->num_inputs; ++i) {
         input_data_t* const input_data = &signing_data->inputs[i];
 
@@ -459,8 +458,7 @@ static void send_ae_signature_replies(const network_t network_id, jade_process_t
         }
 
         // Send signature reply - will be empty for any inputs we are not signing
-        const bytes_info_t bytes_info = { .data = input_data->sig, .size = input_data->sig_len };
-        jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &bytes_info, cbor_result_bytes_cb);
+        jade_process_reply_to_message_bytes(process->ctx, input_data->sig, input_data->sig_len);
     }
 cleanup:
     (void)process; /* No-op for label */
@@ -889,10 +887,8 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         // FIXME: change message flow to reply here even when not using ae-signatures
         // as this simplifies the code both here and in the client.
         if (use_ae_signatures) {
-            uint8_t buffer[256];
             const size_t commitment_len = made_ae_commitment ? sizeof(ae_signer_commitment) : 0;
-            jade_process_reply_to_message_bytes(
-                process->ctx, ae_signer_commitment, commitment_len, buffer, sizeof(buffer));
+            jade_process_reply_to_message_bytes(process->ctx, ae_signer_commitment, commitment_len);
         }
     }
 

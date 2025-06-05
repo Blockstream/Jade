@@ -42,6 +42,9 @@ extern uint8_t macid[6];
 // The 'id' we make using that mac-id
 static char jade_id[16];
 
+#define JADE_MSG_REPLY_LEN 256
+#define JADE_MSG_REPLY_OVERHEAD 64
+
 #ifdef CONFIG_HEAP_TRACING
 
 #include <esp_heap_trace.h>
@@ -603,16 +606,26 @@ void jade_process_reject_message_ex(const cbor_msg_t ctx, int code, const char* 
 void jade_process_reject_message(jade_process_t* process, int code, const char* message)
 {
     if (HAS_CURRENT_MESSAGE(process)) {
-        uint8_t buf[256];
+        uint8_t buf[JADE_MSG_REPLY_LEN];
         jade_process_reject_message_ex(process->ctx, code, message, NULL, 0, buf, sizeof(buf));
     } else {
         JADE_LOGW("Ignoring attempt to reject 'no-message'");
     }
 }
 
-void jade_process_reply_to_message_bytes(
-    cbor_msg_t ctx, const uint8_t* data, const size_t datalen, uint8_t* buffer, const size_t buflen)
+void jade_process_reply_to_message_bytes(const cbor_msg_t ctx, const uint8_t* data, const size_t datalen)
 {
+    // Avoid allocating for small replies
+    uint8_t buf[JADE_MSG_REPLY_LEN];
+    uint8_t* buffer = buf;
+    size_t buflen = sizeof(buf);
+
+    if (datalen > JADE_MSG_REPLY_LEN - JADE_MSG_REPLY_OVERHEAD) {
+        buflen = datalen + JADE_MSG_REPLY_OVERHEAD;
+        JADE_ASSERT(buflen > sizeof(buf));
+        buffer = JADE_MALLOC(buflen);
+    }
+
     CborEncoder root_encoder;
     cbor_encoder_init(&root_encoder, buffer, buflen, 0);
 
@@ -631,9 +644,14 @@ void jade_process_reply_to_message_bytes(
     cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
     JADE_ASSERT(cberr == CborNoError);
     jade_process_push_out_message(buffer, cbor_encoder_get_buffer_size(&root_encoder, buffer), ctx.source);
+
+    if (buffer != buf) {
+        // Allocated buffer
+        free(buffer);
+    }
 }
 
-void jade_process_reply_to_message_bytes_sequence(cbor_msg_t ctx, const size_t seqnum, const size_t seqlen,
+void jade_process_reply_to_message_bytes_sequence(const cbor_msg_t ctx, const size_t seqnum, const size_t seqlen,
     const uint8_t* data, const size_t datalen, uint8_t* buffer, const size_t buflen)
 {
     CborEncoder root_encoder;

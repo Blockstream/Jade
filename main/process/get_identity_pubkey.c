@@ -59,8 +59,7 @@ void get_identity_pubkey_process(void* process_ptr)
     }
 
     // Return pubkey to caller
-    uint8_t buffer[256];
-    jade_process_reply_to_message_bytes(process->ctx, pubkey, sizeof(pubkey), buffer, sizeof(buffer));
+    jade_process_reply_to_message_bytes(process->ctx, pubkey, sizeof(pubkey));
 
     JADE_LOGI("Success");
 

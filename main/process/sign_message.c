@@ -253,7 +253,6 @@ void sign_message_process(void* process_ptr)
     // convert normal EC signatures to use the new/improved message flow.
     size_t ae_host_entropy_len = 0;
     const uint8_t* ae_host_entropy = NULL;
-    uint8_t buf[256];
     if (use_ae_signatures) {
         JADE_ASSERT(ae_host_commitment);
         JADE_ASSERT(ae_host_commitment_len == WALLY_HOST_COMMITMENT_LEN);
@@ -271,8 +270,7 @@ void sign_message_process(void* process_ptr)
         }
 
         // Return signer commitment to caller
-        jade_process_reply_to_message_bytes(
-            process->ctx, ae_signer_commitment, sizeof(ae_signer_commitment), buf, sizeof(buf));
+        jade_process_reply_to_message_bytes(process->ctx, ae_signer_commitment, sizeof(ae_signer_commitment));
 
         // Await 'get_signature' message containing host entropy
         jade_process_load_in_message(process, true);
@@ -303,6 +301,8 @@ void sign_message_process(void* process_ptr)
     }
     JADE_ASSERT(written < sizeof(sig_output));
     JADE_ASSERT(sig_output[written - 1] == '\0');
+
+    uint8_t buf[256];
     jade_process_reply_to_message_result(
         process->ctx, buf, sizeof(buf), (const char*)sig_output, cbor_result_string_cb);
 
