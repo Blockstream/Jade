@@ -573,6 +573,90 @@ static bool add_output_info(
     return true;
 }
 
+static bool validate_elements_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
+    const TxType_t txtype, commitment_t* commitments, output_info_t* output_info, asset_summary_t* in_sums,
+    const size_t num_in_sums, asset_summary_t* out_sums, const size_t num_out_sums, uint64_t* fees)
+{
+    JADE_ASSERT(tx);
+    JADE_ASSERT(commitments);
+    JADE_ASSERT(output_info);
+    JADE_ASSERT(fees);
+
+    const char* errmsg = NULL;
+    *fees = 0;
+
+    uint8_t policy_asset[ASSET_TAG_LEN];
+    network_to_policy_asset(network_id, policy_asset, sizeof(policy_asset));
+
+    // Check the trusted commitments: expect one element in the array for each output.
+    // Can be null for unblinded outputs as we will skip them.
+    // Populate an `output_index` -> (blinding_key, asset, value) map
+
+    // NOTE: some advanced tx types permit some outputs to be blind (ie blinded, without unblinding info/proofs)
+    // By default/in the basic 'send payment' case all outputs must have unconfidential/unblinded.
+    const bool allow_blind_outputs = txtype == TXTYPE_SWAP; // swaps allow 'other wallets' blind outputs
+
+    // Save fees for the final confirmation screen
+    for (size_t i = 0; i < tx->num_outputs; ++i) {
+        // Gather the (unblinded) output info for user confirmation
+        output_info_t* outinfo = output_info + i;
+        if (!add_output_info(&commitments[i], &tx->outputs[i], outinfo, &errmsg)) {
+            goto done;
+        }
+
+        // If are not allowing blinded outputs, check each confidential output has unblinding info
+        if (!allow_blind_outputs && outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL) {
+            if (!(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED) || !(outinfo->flags & OUTPUT_FLAG_HAS_BLINDING_KEY)) {
+                errmsg = "Missing commitments data for blinded output";
+                goto done;
+            }
+        }
+
+        // Collect fees (ie. outputs with no script)
+        // NOTE: fees must be unconfidential, and must be denominated in the policy asset
+        if (!tx->outputs[i].script) {
+            if (outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL) {
+                errmsg = "Fee output (without script) cannot be blinded";
+                goto done;
+            }
+            if (memcmp(outinfo->asset_id, policy_asset, sizeof(policy_asset))) {
+                errmsg = "Unexpected fee output (without script) asset-id";
+                goto done;
+            }
+            if (!outinfo->value) {
+                errmsg = "Fee output (without script) cannot be 0";
+                goto done;
+            }
+            if (*fees) {
+                errmsg = "Unexpected multiple fee outputs (without script)";
+                goto done;
+            }
+            *fees += outinfo->value;
+        }
+
+        // If the output has been verified as belonging to this wallet, we can
+        // use it to validate some part of any passed input- or output- summary.
+        if (outinfo->flags & OUTPUT_FLAG_VALIDATED) {
+            JADE_ASSERT(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED);
+
+            if (outinfo->flags & OUTPUT_FLAG_CHANGE) {
+                // NOTE: change outputs are subtracted from the relevant 'input summary'.
+                asset_summary_update(
+                    in_sums, num_in_sums, outinfo->asset_id, sizeof(outinfo->asset_id), (0 - outinfo->value));
+            } else {
+                asset_summary_update(
+                    out_sums, num_out_sums, outinfo->asset_id, sizeof(outinfo->asset_id), outinfo->value);
+            }
+        }
+    }
+done:
+    if (errmsg) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        return false;
+    }
+    return true;
+}
+
 bool show_elements_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
     const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t fees,
     const TxType_t txtype, const bool is_partial)
@@ -656,76 +740,10 @@ void sign_liquid_tx_process(void* process_ptr)
         goto cleanup;
     }
 
-    // Check the trusted commitments: expect one element in the array for each output.
-    // Can be null for unblinded outputs as we will skip them.
-    // Populate an `output_index` -> (blinding_key, asset, value) map
-    uint8_t policy_asset[ASSET_TAG_LEN];
-    network_to_policy_asset(network_id, policy_asset, sizeof(policy_asset));
-
-    // NOTE: some advanced tx types permit some outputs to be blind (ie blinded, without unblinding info/proofs)
-    // By default/in the basic 'send payment' case all outputs must have unconfidential/unblinded.
-    const bool allow_blind_outputs = txtype == TXTYPE_SWAP; // swaps allow 'other wallets' blind outputs
-
-    // Save fees for the final confirmation screen
     uint64_t fees = 0;
-    for (size_t i = 0; i < tx->num_outputs; ++i) {
-        // Gather the (unblinded) output info for user confirmation
-        output_info_t* outinfo = output_info + i;
-        const char* errmsg = NULL;
-        if (!add_output_info(&commitments[i], &tx->outputs[i], outinfo, &errmsg)) {
-            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
-            goto cleanup;
-        }
-
-        // If are not allowing blinded outputs, check each confidential output has unblinding info
-        if (!allow_blind_outputs && outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL) {
-            if (!(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED) || !(outinfo->flags & OUTPUT_FLAG_HAS_BLINDING_KEY)) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Missing commitments data for blinded output", NULL);
-                goto cleanup;
-            }
-        }
-
-        // Collect fees (ie. outputs with no script)
-        // NOTE: fees must be unconfidential, and must be denominated in the policy asset
-        if (!tx->outputs[i].script) {
-            if (outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Fee output (without script) cannot be blinded", NULL);
-                goto cleanup;
-            }
-            if (memcmp(outinfo->asset_id, policy_asset, sizeof(policy_asset))) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Unexpected fee output (without script) asset-id", NULL);
-                goto cleanup;
-            }
-            if (!outinfo->value) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Fee output (without script) cannot be 0", NULL);
-                goto cleanup;
-            }
-            if (fees) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Unexpected multiple fee outputs (without script)", NULL);
-                goto cleanup;
-            }
-            fees += outinfo->value;
-        }
-
-        // If the output has been verified as belonging to this wallet, we can
-        // use it to validate some part of any passed input- or output- summary.
-        if (outinfo->flags & OUTPUT_FLAG_VALIDATED) {
-            JADE_ASSERT(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED);
-
-            if (outinfo->flags & OUTPUT_FLAG_CHANGE) {
-                // NOTE: change outputs are subtracted from the relevant 'input summary'.
-                asset_summary_update(
-                    in_sums, num_in_sums, outinfo->asset_id, sizeof(outinfo->asset_id), (0 - outinfo->value));
-            } else {
-                asset_summary_update(
-                    out_sums, num_out_sums, outinfo->asset_id, sizeof(outinfo->asset_id), outinfo->value);
-            }
-        }
+    if (!validate_elements_outputs(process, network_id, tx, txtype, commitments, output_info, in_sums, num_in_sums,
+            out_sums, num_out_sums, &fees)) {
+        goto cleanup;
     }
 
     if (txtype == TXTYPE_SWAP) {
