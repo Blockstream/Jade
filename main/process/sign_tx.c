@@ -409,7 +409,7 @@ bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_
 }
 
 // Loop to generate and send Anti-Exfil signatures as they are requested.
-void send_ae_signature_replies(jade_process_t* process, signing_data_t* signing_data)
+static void send_ae_signature_replies(const network_t network_id, jade_process_t* process, signing_data_t* signing_data)
 {
     JADE_ASSERT(process);
     JADE_ASSERT(signing_data);
@@ -450,7 +450,7 @@ void send_ae_signature_replies(jade_process_t* process, signing_data_t* signing_
             }
 
             // Generate Anti-Exfil, non-AE ECDSA or non-AE Schnorr signature
-            if (!wallet_sign_tx_input_hash(input_data, ae_host_entropy, ae_host_entropy_len)) {
+            if (!wallet_sign_tx_input_hash(network_id, input_data, ae_host_entropy, ae_host_entropy_len)) {
                 jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input", NULL);
                 goto cleanup;
             }
@@ -467,7 +467,8 @@ cleanup:
 
 // The backward compatible 'send all messages in a batch' method for standard EC signatures.
 // NOTE: should be converted to the same message flow as above, at some point.
-void send_ec_signature_replies(const jade_msg_source_t source, signing_data_t* signing_data)
+static void send_ec_signature_replies(
+    const network_t network_id, const jade_msg_source_t source, signing_data_t* signing_data)
 {
     JADE_ASSERT(signing_data);
     JADE_ASSERT(signing_data->num_inputs > 0);
@@ -478,7 +479,7 @@ void send_ec_signature_replies(const jade_msg_source_t source, signing_data_t* s
 
         if (input_data->path_len > 0) {
             // Generate EC signature
-            if (!wallet_sign_tx_input_hash(input_data, NULL, 0)) {
+            if (!wallet_sign_tx_input_hash(network_id, input_data, NULL, 0)) {
                 jade_process_reject_message_with_id(input_data->id, CBOR_RPC_INTERNAL_ERROR, "Failed to sign tx input",
                     NULL, 0, msgbuf, sizeof(msgbuf), source);
                 return;
@@ -1000,10 +1001,10 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     // convert normal EC signatures to use the new/improved message flow.
     if (use_ae_signatures) {
         // Generate and send Anti-Exfil signature replies
-        send_ae_signature_replies(process, signing_data);
+        send_ae_signature_replies(network_id, process, signing_data);
     } else {
         // Generate and send standard EC signature replies
-        send_ec_signature_replies(source, signing_data);
+        send_ec_signature_replies(network_id, source, signing_data);
     }
     JADE_LOGI("Success");
 

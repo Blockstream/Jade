@@ -1144,8 +1144,8 @@ bool wallet_get_signer_commitment(const uint8_t* signature_hash, const size_t si
 // NOTE: the standard EC signature will 'grind-r' to produce a 'low-r' signature, the anti-exfil case
 // cannot (as the entropy is provided explicitly). However all signatures produced are Low-S,
 // to comply with bitcoin standardness rules.
-bool wallet_sign_tx_input_hash(
-    input_data_t* input_data, const uint8_t* ae_host_entropy, const size_t ae_host_entropy_len)
+bool wallet_sign_tx_input_hash(const network_t network_id, input_data_t* input_data, const uint8_t* ae_host_entropy,
+    const size_t ae_host_entropy_len)
 {
     if (!input_data || input_data->path_len == 0) {
         return false;
@@ -1183,8 +1183,10 @@ bool wallet_sign_tx_input_hash(
         } else {
             // Taproot. Tweak the private key before Schnorr signing
             signing_key = tweaked;
-            flags = EC_FLAG_SCHNORR;
-            wret = wally_ec_private_key_bip341_tweak(privkey, sizeof(privkey), NULL, 0, 0, tweaked, sizeof(tweaked));
+            flags = network_is_liquid(network_id) ? EC_FLAG_ELEMENTS : 0;
+            wret
+                = wally_ec_private_key_bip341_tweak(privkey, sizeof(privkey), NULL, 0, flags, tweaked, sizeof(tweaked));
+            flags |= EC_FLAG_SCHNORR; // Update for signing below
         }
         if (wret == WALLY_OK) {
             wret = wally_ec_sig_from_bytes(signing_key, EC_PRIVATE_KEY_LEN, input_data->signature_hash,
