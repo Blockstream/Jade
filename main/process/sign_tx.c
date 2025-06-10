@@ -116,6 +116,12 @@ struct wally_tx* rpc_get_signing_tx(
         }
     }
 
+    size_t is_elements = 0;
+    JADE_WALLY_VERIFY(wally_tx_is_elements(tx, &is_elements));
+    if (for_liquid != is_elements) {
+        errmsg = "Transaction is the wrong type for the current network";
+        goto fail;
+    }
     return tx;
 fail:
     jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
