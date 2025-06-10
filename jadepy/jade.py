@@ -379,6 +379,8 @@ class JadeAPI:
 
             # Loop and call Jade with the result
             method = http_request['on-reply']
+            # If an error occurs, typically the 'error' key will be populated
+            assert 'body' in http_response, http_response
             params = http_response['body']
 
     def ping(self):
