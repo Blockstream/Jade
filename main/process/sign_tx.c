@@ -465,13 +465,19 @@ void send_ec_signature_replies(const jade_msg_source_t source, signing_data_t* s
     }
 }
 
-// Whether or not a sighash type is valid for BTC.
-// NOTE: atm we only accept 'SIGHASH_ALL', or SIGHASH_DEFAULT for p2tr
-static bool is_valid_btc_sig_type(const input_data_t* const input_data)
+// Whether or not a sighash type is valid
+static bool is_valid_sig_type(
+    const input_data_t* const input_data, const TxType_t txtype, const bool for_liquid, const bool is_partial)
 {
+    if (for_liquid && txtype == TXTYPE_SWAP && is_partial) {
+        // Liquid partial swap: must be SINGLE | ACP
+        return input_data->sighash == (WALLY_SIGHASH_SINGLE | WALLY_SIGHASH_ANYONECANPAY);
+    }
     if (input_data->sig_type == WALLY_SIGTYPE_SW_V1) {
+        // Taproot: must be ALL or DEFAULT
         return input_data->sighash == WALLY_SIGHASH_DEFAULT || input_data->sighash == WALLY_SIGHASH_ALL;
     }
+    // All other cases must be ALL at present
     return input_data->sighash == WALLY_SIGHASH_ALL;
 }
 
@@ -584,7 +590,7 @@ void sign_tx_process(void* process_ptr)
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                 goto cleanup;
             }
-            if (!is_valid_btc_sig_type(input_data)) {
+            if (!is_valid_sig_type(input_data, txtype, for_liquid, is_partial)) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value", NULL);
                 goto cleanup;
             }
