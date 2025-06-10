@@ -724,7 +724,6 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                         process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value commitment from parameters", NULL);
                     goto cleanup;
                 }
-                // FIXME: we need the scriptpubkey for taproot
             }
         } else if (!for_liquid) {
             // Bitcoin: May still need witness flag
@@ -736,10 +735,24 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
         const uint8_t* txbuf = NULL;
         size_t txsize = 0;
-        // Bitcoin: Full input tx can be omitted for transactions with only one single witness
-        // input, otherwise it must be present to validate the input utxo amounts.
         if (!for_liquid) {
+            // Bitcoin: Full input tx can be omitted for transactions with only one single witness
+            // input, otherwise it must be present to validate the input utxo amounts.
             rpc_get_bytes_ptr("input_tx", &params, &txbuf, &txsize);
+        } else {
+            // Liquid: If the caller provided scriptpubkey/asset_id, store them.
+            // This is required for signing taproot inputs, as we don't get passed
+            // the prevout tx.
+            size_t bytes_len = 0;
+            const uint8_t* bytes = NULL;
+            rpc_get_bytes_ptr("scriptpubkey", &params, &bytes, &bytes_len);
+            if (bytes) {
+                JADE_WALLY_VERIFY(wally_map_add_integer(&signing_data->scriptpubkeys, index, bytes, bytes_len));
+            }
+            rpc_get_bytes_ptr("asset_generator", &params, &bytes, &bytes_len);
+            if (bytes) {
+                JADE_WALLY_VERIFY(wally_map_add_integer(&signing_data->assets, index, bytes, bytes_len));
+            }
         }
 
         // If we have the full prior transaction, use it.
