@@ -1,11 +1,14 @@
 #ifndef AMALGAMATED_BUILD
 #include "network.h"
+#include "../jade_wally_verify.h"
 #include "jade_assert.h"
 
 #include <string.h>
 
 #include <wally_address.h>
 #include <wally_bip32.h>
+#include <wally_crypto.h>
+#include <wally_elements.h>
 
 // Main networks
 #define TAG_MAINNET "mainnet"
@@ -280,5 +283,15 @@ const char* network_to_policy_asset_hex(const network_t network_id)
     }
     JADE_ASSERT(false); // Not a liquid network
     return NULL; // Unreachable
+}
+
+void network_to_policy_asset(const network_t network_id, uint8_t* policy_asset, size_t policy_asset_len)
+{
+    JADE_ASSERT(policy_asset);
+    JADE_ASSERT(policy_asset_len == ASSET_TAG_LEN);
+    const char* policy_asset_hex = network_to_policy_asset_hex(network_id);
+    size_t written;
+    JADE_WALLY_VERIFY(wally_hex_to_bytes(policy_asset_hex, policy_asset, policy_asset_len, &written));
+    JADE_ASSERT(written == policy_asset_len);
 }
 #endif // AMALGAMATED_BUILD

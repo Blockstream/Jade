@@ -2,6 +2,7 @@
 #define UTILS_NETWORK_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 // Maximum length of a network name
@@ -42,6 +43,7 @@ const char* network_to_bech32_prefix(network_t network_id);
 uint8_t network_to_confidential_prefix(network_t network_id);
 const char* network_to_blech32_prefix(network_t network_id);
 
+void network_to_policy_asset(network_t network_id, uint8_t* policy_asset, size_t policy_asset_len);
 const char* network_to_policy_asset_hex(network_t network_id);
 
 #endif /* UTILS_NETWORK_H_ */

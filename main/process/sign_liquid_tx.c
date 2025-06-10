@@ -653,10 +653,7 @@ void sign_liquid_tx_process(void* process_ptr)
     // Can be null for unblinded outputs as we will skip them.
     // Populate an `output_index` -> (blinding_key, asset, value) map
     uint8_t policy_asset[ASSET_TAG_LEN];
-    const char* policy_asset_hex = network_to_policy_asset_hex(network_id);
-    size_t written;
-    JADE_WALLY_VERIFY(wally_hex_to_bytes(policy_asset_hex, policy_asset, sizeof(policy_asset), &written));
-    JADE_ASSERT(written == sizeof(policy_asset));
+    network_to_policy_asset(network_id, policy_asset, sizeof(policy_asset));
 
     // NOTE: some advanced tx types permit some outputs to be blind (ie blinded, without unblinding info/proofs)
     // By default/in the basic 'send payment' case all outputs must have unconfidential/unblinded.
@@ -784,7 +781,7 @@ void sign_liquid_tx_process(void* process_ptr)
 
         // Make and store the reply data, and then delete the (potentially
         // large) input message.  Replies will be sent after user confirmation.
-        written = 0;
+        size_t written = 0;
         input_data_t* const input_data = &signing_data->inputs[index];
         rpc_get_id(&process->ctx.value, input_data->id, sizeof(input_data->id), &written);
         JADE_ASSERT(written != 0);
