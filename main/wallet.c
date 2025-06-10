@@ -1246,13 +1246,13 @@ void signing_data_free(void* signing_data)
 }
 
 // Function to fetch a hash for signing a transaction input
-bool wallet_get_tx_input_hash(
-    struct wally_tx* tx, const size_t index, signing_data_t* signing_data, const uint8_t* script, size_t script_len)
+bool wallet_get_tx_input_hash(struct wally_tx* tx, const size_t index, signing_data_t* signing_data,
+    const uint8_t* script, size_t script_len, const uint8_t* genesis, const size_t genesis_len)
 {
     const uint32_t key_version = 0;
     const uint32_t codesep = WALLY_NO_CODESEPARATOR;
-    const uint8_t *annex = NULL, *genesis = NULL;
-    const size_t annex_len = 0, genesis_len = 0;
+    const uint8_t* annex = NULL;
+    const size_t annex_len = 0;
     int wret;
 
     JADE_ASSERT(signing_data);
