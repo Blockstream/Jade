@@ -43,17 +43,23 @@ static const char TX_TYPE_STR_SEND_PAYMENT[] = "send_payment";
 
 // Map a txtype string to an enum value
 #define TX_TYPE_STR_MATCH(typestr) ((len == sizeof(typestr) - 1 && !strncmp(type, typestr, sizeof(typestr) - 1)))
-static TxType_t get_txtype(const char* type, const size_t len)
+static bool rpc_get_txtype(jade_process_t* process, CborValue* value, TxType_t* txtype)
 {
-    if (type && len) {
-        if (TX_TYPE_STR_MATCH(TX_TYPE_STR_SWAP)) {
-            return TXTYPE_SWAP;
-        }
-        if (TX_TYPE_STR_MATCH(TX_TYPE_STR_SEND_PAYMENT)) {
-            return TXTYPE_SEND_PAYMENT;
-        }
+    const char* type = NULL;
+    size_t len = 0;
+    rpc_get_string_ptr("tx_type", value, &type, &len);
+    if (!type || !len) {
+        *txtype = TXTYPE_SEND_PAYMENT;
+        return true; // Not present, treat as a payment
     }
-    return TXTYPE_UNKNOWN;
+    if (TX_TYPE_STR_MATCH(TX_TYPE_STR_SWAP)) {
+        *txtype = TXTYPE_SWAP;
+        return true;
+    } else if (TX_TYPE_STR_MATCH(TX_TYPE_STR_SEND_PAYMENT)) {
+        *txtype = TXTYPE_SEND_PAYMENT;
+        return true;
+    }
+    return false; // Unknown tx_type
 }
 
 static void rpc_get_asset_summary(
@@ -105,10 +111,58 @@ static void rpc_get_asset_summary(
     }
 }
 
-static TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, bool* is_partial,
-    asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums)
+static bool validate_additional_info(jade_process_t* process, const struct wally_tx* tx, const TxType_t txtype,
+    const bool is_partial, const asset_summary_t* in_sums, const size_t num_in_sums, const asset_summary_t* out_sums,
+    const size_t num_out_sums)
+{
+    const char* errmsg = NULL;
+    // Shouldn't have pointers to empty arrays
+    JADE_ASSERT(!in_sums == !num_in_sums);
+    JADE_ASSERT(!out_sums == !num_out_sums);
+
+    // Validate tx type data
+    if (txtype == TXTYPE_SWAP) {
+        // Input and output summary must be present - they will be fully validated later
+        if (!in_sums || !out_sums) {
+            errmsg = "Swap tx missing input/output summary information";
+            goto done;
+        }
+
+        // Validate swap or proposal appears to have expected inputs and outputs
+        if (is_partial) {
+            // At this time the only 'partial swap' we accept is an initial proposal with exactly one
+            // input and exactly one output which is to self, and in a different asset to the input
+            if (tx->num_inputs != 1 || tx->num_outputs != 1 || num_in_sums != 1 || num_out_sums != 1
+                || !memcmp(in_sums[0].asset_id, out_sums[0].asset_id, sizeof(out_sums[0].asset_id))) {
+                errmsg = "Initial swap proposal must have single wallet input and output in different assets";
+                goto done;
+            }
+        } else {
+            // TODO: Ideally check total number of assets in our inputs and outputs
+            if (tx->num_inputs < 2 || tx->num_outputs < 2) {
+                errmsg = "Insufficient inputs/outputs for a swap tx";
+                goto done;
+            }
+        }
+    } else if (txtype != TXTYPE_SEND_PAYMENT) {
+        errmsg = "Unsupported tx-type in additional info";
+        goto done;
+    }
+done:
+    if (errmsg) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        return false;
+    }
+    return true;
+}
+
+static TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx,
+    TxType_t* txtype, bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums,
+    size_t* num_out_sums)
 {
     JADE_ASSERT(params);
+    JADE_ASSERT(tx);
+    JADE_ASSERT(txtype);
     JADE_ASSERT(is_partial);
     JADE_INIT_OUT_PPTR(in_sums);
     JADE_INIT_OUT_SIZE(num_in_sums);
@@ -116,11 +170,12 @@ static TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* para
     JADE_INIT_OUT_SIZE(num_out_sums);
 
     *is_partial = false;
+    *txtype = TXTYPE_SEND_PAYMENT;
 
     // If no 'additional_data' passed, assume this is a a simple send-payment 'classic' tx
     CborValue additional_info;
     if (!rpc_get_map("additional_info", params, &additional_info)) {
-        return TXTYPE_SEND_PAYMENT;
+        return true;
     }
 
     // input/output summaries required for some complex txn types, eg. swaps
@@ -131,10 +186,14 @@ static TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* para
     rpc_get_boolean("is_partial", &additional_info, is_partial);
 
     // Tx Type
-    const char* ptype = NULL;
-    size_t typelen = 0;
-    rpc_get_string_ptr("tx_type", &additional_info, &ptype, &typelen);
-    return get_txtype(ptype, typelen);
+    if (!rpc_get_txtype(process, &additional_info, txtype)) {
+        return false;
+    }
+    if (!validate_additional_info(
+            process, tx, *txtype, *is_partial, *in_sums, *num_in_sums, *out_sums, *num_out_sums)) {
+        return false;
+    }
+    return true;
 }
 
 static bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
@@ -516,7 +575,7 @@ static bool add_output_info(
 
 bool show_elements_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
     const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t fees,
-    const TxType_t txtype, const bool tx_is_partial)
+    const TxType_t txtype, const bool is_partial)
 {
     JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(tx);
@@ -524,8 +583,7 @@ bool show_elements_fee_confirmation_activity(const network_t network_id, const s
 
     const char* const warning_msg
         = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED ? WARN_MSG_MIXED_INPUTS : NULL;
-    const char* title
-        = (txtype == TXTYPE_SWAP) ? (tx_is_partial ? "Swap Proposal" : "Complete Swap") : "Send Transaction";
+    const char* title = (txtype == TXTYPE_SWAP) ? (is_partial ? "Swap Proposal" : "Complete Swap") : "Send Transaction";
 
     // Return whether the user accepts or declines
     return show_elements_final_confirmation_activity(network_id, title, fees, warning_msg);
@@ -591,43 +649,10 @@ void sign_liquid_tx_process(void* process_ptr)
     size_t num_in_sums = 0;
     asset_summary_t* out_sums = NULL;
     size_t num_out_sums = 0;
-    bool tx_is_partial = false;
-    const TxType_t txtype
-        = rpc_get_additional_info(process, &params, &tx_is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums);
-
-    // Shouldn't have pointers to empty arrays
-    JADE_ASSERT(!in_sums == !num_in_sums);
-    JADE_ASSERT(!out_sums == !num_out_sums);
-
-    // Validate tx type data
-    if (txtype == TXTYPE_SWAP) {
-        // Input and output summary must be present - they will be fully validated later
-        if (!in_sums || !out_sums) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Swap tx missing input/output summary information", NULL);
-            goto cleanup;
-        }
-
-        // Validate swap or proposal appears to have expected inputs and outputs
-        if (tx_is_partial) {
-            // At this time the only 'partial swap' we accept is an initial proposal with exactly one
-            // input and exactly one output which is to self, and in a different asset to the input
-            if (tx->num_inputs != 1 || tx->num_outputs != 1 || num_in_sums != 1 || num_out_sums != 1
-                || !memcmp(in_sums->asset_id, out_sums->asset_id, sizeof(out_sums->asset_id))) {
-                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS,
-                    "Initial swap proposal must have single wallet input and output in different assets", NULL);
-                goto cleanup;
-            }
-        } else {
-            // TODO: Ideally check total number of assets in our inputs and outputs
-            if (tx->num_inputs < 2 || tx->num_outputs < 2) {
-                jade_process_reject_message(
-                    process, CBOR_RPC_BAD_PARAMETERS, "Insufficient inputs/outputs for a swap tx", NULL);
-                goto cleanup;
-            }
-        }
-    } else if (txtype != TXTYPE_SEND_PAYMENT) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported tx-type in additional info", NULL);
+    bool is_partial = false;
+    TxType_t txtype = TXTYPE_SEND_PAYMENT;
+    if (!rpc_get_additional_info(
+            process, &params, tx, &txtype, &is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums)) {
         goto cleanup;
     }
 
@@ -696,7 +721,7 @@ void sign_liquid_tx_process(void* process_ptr)
     if (txtype == TXTYPE_SWAP) {
         // Confirm wallet-summary info (ie. net inputs and outputs)
         if (!show_elements_swap_activity(
-                network_id, tx_is_partial, in_sums, num_in_sums, out_sums, num_out_sums, assets, num_assets)) {
+                network_id, is_partial, in_sums, num_in_sums, out_sums, num_out_sums, assets, num_assets)) {
             JADE_LOGW("User declined to sign swap transaction");
             jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
             goto cleanup;
@@ -729,7 +754,7 @@ void sign_liquid_tx_process(void* process_ptr)
     // Run through each input message and generate a signature-hash for each one
     // NOTE: atm we only usually accept 'SIGHASH_ALL' for inputs we are signing - the exception
     // being an initial swap proposal when we expect WALLY_SIGHASH_SINGLE | WALLY_SIGHASH_ANYONECANPAY
-    const uint8_t expected_sighash = (txtype == TXTYPE_SWAP && tx_is_partial)
+    const uint8_t expected_sighash = (txtype == TXTYPE_SWAP && is_partial)
         ? (WALLY_SIGHASH_SINGLE | WALLY_SIGHASH_ANYONECANPAY)
         : WALLY_SIGHASH_ALL;
     bool signing = false;
@@ -871,14 +896,14 @@ void sign_liquid_tx_process(void* process_ptr)
         JADE_LOGI("Input and output summary information validated");
     }
 
-    if (tx_is_partial && !fees) {
+    if (is_partial && !fees) {
         // Partial tx without fees - can skip the fee screen ?
         JADE_LOGI("No fees for partial tx, so skipping fee confirmation screen");
     } else {
         // User to agree fee amount
         // If user cancels we'll send the 'cancelled' error response for the last input message only
         if (!show_elements_fee_confirmation_activity(
-                network_id, tx, output_info, aggregate_inputs_scripts_flavour, fees, txtype, tx_is_partial)) {
+                network_id, tx, output_info, aggregate_inputs_scripts_flavour, fees, txtype, is_partial)) {
             // If using ae-signatures, we need to load the message to send the error back on
             if (use_ae_signatures) {
                 jade_process_load_in_message(process, true);
