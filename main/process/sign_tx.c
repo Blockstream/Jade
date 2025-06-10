@@ -905,6 +905,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make taproot tx input hash", NULL);
             goto cleanup;
         }
+        --num_p2tr_to_sign; // Stop early if we have done all taproot inputs
     }
 
     if (!for_liquid) {
