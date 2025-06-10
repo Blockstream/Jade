@@ -28,42 +28,58 @@ bool show_btc_transaction_outputs_activity(
     const network_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
 bool show_btc_final_confirmation_activity(uint64_t fee, const char* warning_msg);
 
-struct wally_tx* rpc_get_signing_tx(jade_process_t* process, const CborValue* params)
+struct wally_tx* rpc_get_signing_tx(
+    jade_process_t* process, const CborValue* params, const network_t network_id, const bool for_liquid)
 {
+    struct wally_tx* tx = NULL;
+    const char* errmsg = NULL;
+
+    if (for_liquid != network_is_liquid(network_id)) {
+        if (for_liquid) {
+            errmsg = "sign_liquid_tx call only appropriate for liquid network";
+        } else {
+            errmsg = "sign_tx call not appropriate for liquid network";
+        }
+        goto fail;
+    }
+
     size_t written = 0;
     const uint8_t* txbytes = NULL;
     rpc_get_bytes_ptr("txn", params, &txbytes, &written);
 
     if (written == 0) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract tx from parameters", NULL);
-        return NULL;
+        errmsg = "Failed to extract tx from parameters";
+        goto fail;
     }
     JADE_ASSERT(txbytes);
 
-    struct wally_tx* tx = NULL;
-    int wret = wally_tx_from_bytes(txbytes, written, 0, &tx); // 0 = no witness, TODO
+    // Note we ignore witness in the passed in transaction
+    // TODO: Should we validate any signatures already present and/or
+    // skip signing any already signed inputs?
+    const uint32_t tx_flags = for_liquid ? WALLY_TX_FLAG_USE_ELEMENTS : 0;
+    const int wret = wally_tx_from_bytes(txbytes, written, tx_flags, &tx);
     if (wret != WALLY_OK || !tx) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract tx from passed bytes", NULL);
-        return NULL;
+        errmsg = "Failed to extract tx from passed bytes";
+        goto fail;
     }
     jade_process_call_on_exit(process, jade_wally_free_tx_wrapper, tx);
 
     size_t num_inputs = 0;
     bool ret = rpc_get_sizet("num_inputs", params, &num_inputs);
     if (!ret || num_inputs == 0) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid number of inputs from parameters", NULL);
-        return NULL;
+        errmsg = "Failed to extract valid number of inputs from parameters";
+        goto fail;
     }
 
-    // Check the number of inputs the client wants to send is what we
-    // would expect for the given transaction.  Fail if not.
-    if (num_inputs != tx->num_inputs) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Unexpected number of inputs for transaction", NULL);
-        return NULL;
+    if (num_inputs == tx->num_inputs) {
+        return tx;
     }
-    return tx;
+    // The number of inputs the client wants to send must match the number
+    // of transaction inputs
+    errmsg = "Unexpected number of inputs for transaction";
+fail:
+    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+    return NULL;
 }
 
 // Can optionally be passed paths for change outputs, which we verify internally
@@ -446,14 +462,10 @@ void sign_tx_process(void* process_ptr)
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
-    if (network_is_liquid(network_id)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "sign_tx call not appropriate for liquid network", NULL);
-        goto cleanup;
-    }
     const jade_msg_source_t source = process->ctx.source;
 
-    struct wally_tx* tx = rpc_get_signing_tx(process, &params);
+    const bool for_liquid = false;
+    struct wally_tx* tx = rpc_get_signing_tx(process, &params, network_id, for_liquid);
     if (!tx) {
         goto cleanup;
     }
