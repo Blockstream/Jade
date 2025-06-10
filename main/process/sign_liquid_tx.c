@@ -34,8 +34,8 @@ bool show_elements_final_confirmation_activity(
 // From sign_tx.c
 struct wally_tx* rpc_get_signing_tx(
     jade_process_t* process, const CborValue* params, const network_t network_id, const bool for_liquid);
-bool validate_wallet_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
-    CborValue* wallet_outputs, output_info_t* output_info, const char** errmsg);
+bool rpc_get_signing_outputs(jade_process_t* process, const CborValue* params, const network_t network_id,
+    const bool for_liquid, const struct wally_tx* tx, output_info_t** output_info);
 void send_ae_signature_replies(jade_process_t* process, signing_data_t* signing_data);
 void send_ec_signature_replies(jade_msg_source_t source, signing_data_t* signing_data);
 
@@ -557,6 +557,11 @@ void sign_liquid_tx_process(void* process_ptr)
         goto cleanup;
     }
 
+    // Whether to use Anti-Exfil signatures and message flow
+    // Optional flag, defaults to false
+    bool use_ae_signatures = false;
+    rpc_get_boolean("use_ae_signatures", &params, &use_ae_signatures);
+
     // Copy trusted commitment data into a temporary structure (so we can free the message)
     commitment_t* commitments = NULL;
     size_t num_commitments = 0;
@@ -579,26 +584,10 @@ void sign_liquid_tx_process(void* process_ptr)
         goto cleanup;
     }
 
-    // We always need this extra data to 'unblind' confidential txns
-    output_info_t* output_info = JADE_CALLOC(tx->num_outputs, sizeof(output_info_t));
-    jade_process_free_on_exit(process, output_info);
-
-    // Whether to use Anti-Exfil signatures and message flow
-    // Optional flag, defaults to false
-    bool use_ae_signatures = false;
-    rpc_get_boolean("use_ae_signatures", &params, &use_ae_signatures);
-
-    // Can optionally be passed info for wallet outputs, which we verify internally
-    // NOTE: Element named 'change' for backward-compatibility reasons
-    const char* errmsg = NULL;
-    if (rpc_has_field_data("change", &params)) {
-        CborValue wallet_outputs;
-        if (rpc_get_array("change", &params, &wallet_outputs)) {
-            if (!validate_wallet_outputs(process, network_id, tx, &wallet_outputs, output_info, &errmsg)) {
-                jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
-                goto cleanup;
-            }
-        }
+    // Optional info for wallet outputs
+    output_info_t* output_info = NULL;
+    if (!rpc_get_signing_outputs(process, &params, network_id, for_liquid, tx, &output_info)) {
+        goto cleanup;
     }
 
     // Can optionally be passed asset info data (registry json)
@@ -809,6 +798,7 @@ void sign_liquid_tx_process(void* process_ptr)
         // Make signature-hash (should have a prevout script in hand)
         const bool has_path = rpc_has_field_data("path", &params);
         if (has_path) {
+            const char* errmsg = NULL;
             signing = true;
 
             // Get all common tx-signing input fields which must be present if a path is given
