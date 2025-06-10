@@ -140,7 +140,9 @@ static TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* para
 static bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
     const size_t asset_id_len, const uint64_t value)
 {
-    JADE_ASSERT(sums);
+    if (!sums) {
+        return true; // Nothing to do
+    }
     JADE_ASSERT(asset_id);
     JADE_ASSERT(asset_id_len == sizeof(sums[0].asset_id));
 
@@ -156,9 +158,9 @@ static bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, c
 
 static bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
 {
-    JADE_ASSERT(sums);
+    JADE_ASSERT(!sums == !num_sums);
 
-    // Check every asset record has been fully validated
+    // Check every asset record (if any) has been fully validated
     for (size_t i = 0; i < num_sums; ++i) {
         if (sums[i].value != sums[i].validated_value) {
             char* asset_id_hex = NULL;
@@ -680,11 +682,11 @@ void sign_liquid_tx_process(void* process_ptr)
         if (output_info[i].flags & OUTPUT_FLAG_VALIDATED) {
             JADE_ASSERT(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED);
 
-            // NOTE: change outputs are subtracted from the relevant 'input summary'.
-            if (in_sums && (output_info[i].flags & OUTPUT_FLAG_CHANGE)) {
+            if (output_info[i].flags & OUTPUT_FLAG_CHANGE) {
+                // NOTE: change outputs are subtracted from the relevant 'input summary'.
                 asset_summary_update(in_sums, num_in_sums, output_info[i].asset_id, sizeof(output_info[i].asset_id),
                     (0 - output_info[i].value));
-            } else if (out_sums) {
+            } else {
                 asset_summary_update(out_sums, num_out_sums, output_info[i].asset_id, sizeof(output_info[i].asset_id),
                     output_info[i].value);
             }
@@ -856,17 +858,16 @@ void sign_liquid_tx_process(void* process_ptr)
 
     // Check the summary information for each asset as previously confirmed
     // by the user is consistent with the verified input and outputs.
-    if (in_sums && out_sums) {
-        if (!asset_summary_validate(in_sums, num_in_sums) || !asset_summary_validate(out_sums, num_out_sums)) {
-            JADE_LOGW("Failed to fully validate input and output summary information");
-            // If using ae-signatures, we need to load the message to send the error back on
-            if (use_ae_signatures) {
-                jade_process_load_in_message(process, true);
-            }
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to validate input/output summary information", NULL);
-            goto cleanup;
+    if (!asset_summary_validate(in_sums, num_in_sums) || !asset_summary_validate(out_sums, num_out_sums)) {
+        JADE_LOGW("Failed to fully validate input and output summary information");
+        // If using ae-signatures, we need to load the message to send the error back on
+        if (use_ae_signatures) {
+            jade_process_load_in_message(process, true);
         }
+        jade_process_reject_message(
+            process, CBOR_RPC_BAD_PARAMETERS, "Failed to validate input/output summary information", NULL);
+        goto cleanup;
+    } else if (in_sums || out_sums) {
         JADE_LOGI("Input and output summary information validated");
     }
 
