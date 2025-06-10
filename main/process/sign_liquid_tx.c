@@ -156,7 +156,7 @@ done:
     return true;
 }
 
-static TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx,
+TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx,
     TxType_t* txtype, bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums,
     size_t* num_out_sums)
 {
@@ -196,7 +196,7 @@ static TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* para
     return true;
 }
 
-static bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
+bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
     const size_t asset_id_len, const uint64_t value)
 {
     if (!sums) {
@@ -215,7 +215,7 @@ static bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, c
     return false;
 }
 
-static bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
+bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
 {
     JADE_ASSERT(!sums == !num_sums);
 
@@ -232,7 +232,7 @@ static bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
     return true;
 }
 
-static bool get_commitment_data(CborValue* item, commitment_t* commitment)
+bool get_commitment_data(CborValue* item, commitment_t* commitment)
 {
     JADE_ASSERT(item);
     JADE_ASSERT(commitment);
@@ -305,7 +305,7 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
     return true;
 }
 
-static bool rpc_get_trusted_commitments(
+bool rpc_get_trusted_commitments(
     jade_process_t* process, const CborValue* value, const struct wally_tx* tx, commitment_t** data)
 {
     JADE_ASSERT(process);
@@ -429,7 +429,7 @@ static bool verify_explicit_proofs(void* ctx)
 }
 #endif // CONFIG_SPIRAM
 
-static bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg)
+bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg)
 {
     JADE_ASSERT(commitments);
     JADE_INIT_OUT_PPTR(errmsg);
@@ -573,7 +573,7 @@ static bool add_output_info(
     return true;
 }
 
-static bool validate_elements_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
+bool validate_elements_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
     const TxType_t txtype, commitment_t* commitments, output_info_t* output_info, asset_summary_t* in_sums,
     const size_t num_in_sums, asset_summary_t* out_sums, const size_t num_out_sums, uint64_t* fees)
 {
@@ -681,6 +681,7 @@ bool show_elements_fee_confirmation_activity(const network_t network_id, const s
  * but at some point we should remove it and use the new message flow for all
  * cases, which would simplify the code here and in the client.
  */
+#if 0
 void sign_liquid_tx_process(void* process_ptr)
 {
     JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
@@ -973,4 +974,5 @@ void sign_liquid_tx_process(void* process_ptr)
 cleanup:
     return;
 }
+#endif
 #endif // AMALGAMATED_BUILD
