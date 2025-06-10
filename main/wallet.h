@@ -144,7 +144,5 @@ bool wallet_get_shared_blinding_nonce(const uint8_t* master_blinding_key, size_t
 bool wallet_get_blinding_factor(const uint8_t* master_blinding_key, size_t master_blinding_key_len,
     const uint8_t* hash_prevouts, size_t hash_len, size_t output_index, BlindingFactorType_t type, uint8_t* output,
     size_t output_len);
-bool wallet_get_elements_tx_input_hash(struct wally_tx* tx, size_t index, uint32_t sig_type, const uint8_t* script,
-    size_t script_len, const uint8_t* satoshi, size_t satoshi_len, uint8_t sighash, uint8_t* output, size_t output_len);
 
 #endif /* WALLET_H_ */
