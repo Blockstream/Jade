@@ -46,4 +46,6 @@ const char* network_to_blech32_prefix(network_t network_id);
 void network_to_policy_asset(network_t network_id, uint8_t* policy_asset, size_t policy_asset_len);
 const char* network_to_policy_asset_hex(network_t network_id);
 
+void network_to_genesis_hash(network_t network_id, uint8_t* genesis, size_t genesis_len);
+
 #endif /* UTILS_NETWORK_H_ */

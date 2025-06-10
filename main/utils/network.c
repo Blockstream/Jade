@@ -26,6 +26,18 @@ static const size_t ALLOWED_CSV_TESTNET[] = { 144, 4320, 51840 };
 static const size_t ALLOWED_CSV_LIQUID[] = { 65535 };
 static const size_t ALLOWED_CSV_TESTNET_LIQUID[] = { 1440, 65535 };
 
+// Genesis blockhashes for Liquid chains.
+// Note these are binary format, not display format which is reversed
+static const uint8_t GENESIS_LIQUID[SHA256_LEN]
+    = { 0x03, 0x60, 0x20, 0x8a, 0x88, 0x96, 0x92, 0x37, 0x2c, 0x8d, 0x68, 0xb0, 0x84, 0xa6, 0x2e, 0xfd, 0xf6, 0x0e,
+          0xa1, 0xa3, 0x59, 0xa0, 0x4c, 0x94, 0xb2, 0x0d, 0x22, 0x36, 0x58, 0x27, 0x66, 0x14 };
+static const uint8_t GENESIS_LIQUID_TESTNET[SHA256_LEN]
+    = { 0xc1, 0xb1, 0x6a, 0xe2, 0x4f, 0x24, 0x23, 0xae, 0xa2, 0xea, 0x34, 0x55, 0x22, 0x92, 0x79, 0x3b, 0x5b, 0x5e,
+          0x82, 0x99, 0x9a, 0x1e, 0xed, 0x81, 0xd5, 0x6a, 0xee, 0x52, 0x8e, 0xda, 0x71, 0xa7 };
+static const uint8_t GENESIS_LIQUID_REGTEST[SHA256_LEN]
+    = { 0x21, 0xca, 0xb1, 0xe5, 0xda, 0x47, 0x18, 0xea, 0x14, 0x0d, 0x97, 0x16, 0x93, 0x17, 0x02, 0x42, 0x2f, 0x0e,
+          0x6a, 0xd9, 0x15, 0xc8, 0xd9, 0xb5, 0x83, 0xca, 0xc2, 0x70, 0x6b, 0x2a, 0x90, 0x00 };
+
 // True for liquid and liquid regtest/testnet networks
 bool network_is_liquid(const network_t network_id)
 {
@@ -294,4 +306,25 @@ void network_to_policy_asset(const network_t network_id, uint8_t* policy_asset, 
     JADE_WALLY_VERIFY(wally_hex_to_bytes(policy_asset_hex, policy_asset, policy_asset_len, &written));
     JADE_ASSERT(written == policy_asset_len);
 }
+
+void network_to_genesis_hash(network_t network_id, uint8_t* genesis, size_t genesis_len)
+{
+    JADE_ASSERT(genesis);
+    JADE_ASSERT(genesis_len == sizeof(GENESIS_LIQUID));
+    switch (network_id) {
+    case NETWORK_LIQUID:
+        memcpy(genesis, GENESIS_LIQUID, sizeof(GENESIS_LIQUID));
+        return;
+    case NETWORK_LIQUID_TESTNET:
+        memcpy(genesis, GENESIS_LIQUID_TESTNET, sizeof(GENESIS_LIQUID_TESTNET));
+        return;
+    case NETWORK_LIQUID_REGTEST:
+        memcpy(genesis, GENESIS_LIQUID_REGTEST, sizeof(GENESIS_LIQUID_REGTEST));
+        return;
+    default:
+        break;
+    }
+    JADE_ASSERT(false); // Not a liquid network
+}
+
 #endif // AMALGAMATED_BUILD
