@@ -56,8 +56,8 @@ static TxType_t get_txtype(const char* type, const size_t len)
     return TXTYPE_UNKNOWN;
 }
 
-static void get_asset_summary_allocate(
-    const char* field, const CborValue* value, asset_summary_t** data, size_t* written)
+static void rpc_get_asset_summary(
+    jade_process_t* process, const char* field, const CborValue* value, asset_summary_t** data, size_t* written)
 {
     JADE_ASSERT(field);
     JADE_ASSERT(value);
@@ -82,42 +82,31 @@ static void get_asset_summary_allocate(
     }
 
     asset_summary_t* const sums = JADE_CALLOC(num_array_items, sizeof(asset_summary_t));
+    jade_process_free_on_exit(process, sums);
 
     for (size_t i = 0; i < num_array_items; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
         asset_summary_t* const item = sums + i;
 
-        if (cbor_value_is_null(&arrayItem) || !cbor_value_is_map(&arrayItem)) {
-            free(sums);
+        if (!cbor_value_is_map(&arrayItem)
+            || !rpc_get_n_bytes("asset_id", &arrayItem, sizeof(item->asset_id), item->asset_id)
+            || !rpc_get_uint64_t("satoshi", &arrayItem, &item->value)) {
             return;
         }
 
-        if (!rpc_get_n_bytes("asset_id", &arrayItem, sizeof(item->asset_id), item->asset_id)) {
-            free(sums);
-            return;
-        }
-
-        if (!rpc_get_uint64_t("satoshi", &arrayItem, &item->value)) {
-            free(sums);
-            return;
-        }
-
-        CborError err = cbor_value_advance(&arrayItem);
-        JADE_ASSERT(err == CborNoError);
+        cberr = cbor_value_advance(&arrayItem);
+        JADE_ASSERT(cberr == CborNoError);
     }
 
     cberr = cbor_value_leave_container(&result, &arrayItem);
-    if (cberr != CborNoError) {
-        free(sums);
-        return;
+    if (cberr == CborNoError) {
+        *written = num_array_items;
+        *data = sums;
     }
-
-    *written = num_array_items;
-    *data = sums;
 }
 
-static TxType_t get_additional_info_allocate(CborValue* params, bool* is_partial, asset_summary_t** in_sums,
-    size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums)
+static TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, bool* is_partial,
+    asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums)
 {
     JADE_ASSERT(params);
     JADE_ASSERT(is_partial);
@@ -126,6 +115,8 @@ static TxType_t get_additional_info_allocate(CborValue* params, bool* is_partial
     JADE_INIT_OUT_PPTR(out_sums);
     JADE_INIT_OUT_SIZE(num_out_sums);
 
+    *is_partial = false;
+
     // If no 'additional_data' passed, assume this is a a simple send-payment 'classic' tx
     CborValue additional_info;
     if (!rpc_get_map("additional_info", params, &additional_info)) {
@@ -133,13 +124,11 @@ static TxType_t get_additional_info_allocate(CborValue* params, bool* is_partial
     }
 
     // input/output summaries required for some complex txn types, eg. swaps
-    get_asset_summary_allocate("wallet_input_summary", &additional_info, in_sums, num_in_sums);
-    get_asset_summary_allocate("wallet_output_summary", &additional_info, out_sums, num_out_sums);
+    rpc_get_asset_summary(process, "wallet_input_summary", &additional_info, in_sums, num_in_sums);
+    rpc_get_asset_summary(process, "wallet_output_summary", &additional_info, out_sums, num_out_sums);
 
-    // 'partial' flag (defaults to false)
-    if (!rpc_get_boolean("is_partial", &additional_info, is_partial)) {
-        *is_partial = false;
-    }
+    // 'partial' flag (defaults to false, set above)
+    rpc_get_boolean("is_partial", &additional_info, is_partial);
 
     // Tx Type
     const char* ptype = NULL;
@@ -602,9 +591,7 @@ void sign_liquid_tx_process(void* process_ptr)
     size_t num_out_sums = 0;
     bool tx_is_partial = false;
     const TxType_t txtype
-        = get_additional_info_allocate(&params, &tx_is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums);
-    jade_process_free_on_exit(process, in_sums);
-    jade_process_free_on_exit(process, out_sums);
+        = rpc_get_additional_info(process, &params, &tx_is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums);
 
     // Shouldn't have pointers to empty arrays
     JADE_ASSERT(!in_sums == !num_in_sums);
