@@ -759,6 +759,10 @@ void sign_liquid_tx_process(void* process_ptr)
         : WALLY_SIGHASH_ALL;
     bool signing = false;
 
+    // Prevent use of 'assets': we invalidate its internal pointers when
+    // we load the next message with jade_process_load_in_message()
+    assets = NULL;
+
     for (size_t index = 0; index < tx->num_inputs; ++index) {
         jade_process_load_in_message(process, true);
         if (!IS_CURRENT_MESSAGE(process, "tx_input")) {
