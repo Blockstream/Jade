@@ -570,25 +570,24 @@ bool show_elements_transaction_outputs_activity(const network_t network_id, cons
 }
 
 static bool show_elements_asset_summary_activity(const char* title, const char* direction, const network_t network_id,
-    const asset_info_t* assets, const size_t num_assets, const movement_summary_info_t* summary,
-    const size_t summary_len)
+    const asset_info_t* assets, const size_t num_assets, const asset_summary_t* sums, const size_t num_sums)
 {
     JADE_ASSERT(title);
     JADE_ASSERT(direction);
     JADE_ASSERT(network_is_liquid(network_id));
     JADE_ASSERT(assets || !num_assets);
-    JADE_ASSERT(summary);
-    JADE_ASSERT(summary_len);
+    JADE_ASSERT(sums);
+    JADE_ASSERT(num_sums);
 
-    for (size_t i = 0; i < summary_len; ++i) {
+    for (size_t i = 0; i < num_sums; ++i) {
         char label[16];
-        if (summary_len == 1) {
+        if (num_sums == 1) {
             // Omit counter if just one input/output
             const int ret = snprintf(label, sizeof(label), "%s", direction);
             JADE_ASSERT(ret > 0 && ret < sizeof(label));
         } else {
             // 1 based indices for display purposes
-            const int ret = snprintf(label, sizeof(label), "%s  (%d/%d)", direction, i + 1, summary_len);
+            const int ret = snprintf(label, sizeof(label), "%s  (%d/%d)", direction, i + 1, num_sums);
             JADE_ASSERT(ret > 0 && ret < sizeof(label));
         }
         const bool is_address = false;
@@ -599,9 +598,9 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
         char asset_id_hex[2 * ASSET_TAG_LEN + 1];
         char amount[32];
         char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
-        const bool have_asset_info = get_asset_display_info(network_id, assets, num_assets, summary[i].asset_id,
-            sizeof(summary[i].asset_id), summary[i].value, issuer, sizeof(issuer), asset_id_hex, sizeof(asset_id_hex),
-            amount, sizeof(amount), ticker, sizeof(ticker));
+        const bool have_asset_info = get_asset_display_info(network_id, assets, num_assets, sums[i].asset_id,
+            sizeof(sums[i].asset_id), sums[i].value, issuer, sizeof(issuer), asset_id_hex, sizeof(asset_id_hex), amount,
+            sizeof(amount), ticker, sizeof(ticker));
 
         // Normal output screen - with issuer and asset-id etc
         const char* msg = !have_asset_info ? MISSING_ASSET_DATA : NULL;
@@ -618,27 +617,25 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
 }
 
 bool show_elements_swap_activity(const network_t network_id, const bool initial_proposal,
-    const movement_summary_info_t* wallet_input_summary, const size_t wallet_input_summary_size,
-    const movement_summary_info_t* wallet_output_summary, const size_t wallet_output_summary_size,
-    const asset_info_t* assets, const size_t num_assets)
+    const asset_summary_t* in_sums, const size_t num_in_sums, const asset_summary_t* out_sums,
+    const size_t num_out_sums, const asset_info_t* assets, const size_t num_assets)
 {
     JADE_ASSERT(network_is_liquid(network_id));
-    JADE_ASSERT(wallet_input_summary);
-    JADE_ASSERT(wallet_input_summary_size);
-    JADE_ASSERT(wallet_output_summary);
-    JADE_ASSERT(wallet_output_summary_size);
+    JADE_ASSERT(in_sums);
+    JADE_ASSERT(num_in_sums);
+    JADE_ASSERT(out_sums);
+    JADE_ASSERT(num_out_sums);
     JADE_ASSERT(assets || !num_assets);
 
     const char* title = initial_proposal ? "Swap Proposal" : "Complete Swap";
 
     if (!show_elements_asset_summary_activity(
-            title, "Receive", network_id, assets, num_assets, wallet_output_summary, wallet_output_summary_size)) {
+            title, "Receive", network_id, assets, num_assets, out_sums, num_out_sums)) {
         // User pressed 'cancel'
         return false;
     }
 
-    if (!show_elements_asset_summary_activity(
-            title, "Send", network_id, assets, num_assets, wallet_input_summary, wallet_input_summary_size)) {
+    if (!show_elements_asset_summary_activity(title, "Send", network_id, assets, num_assets, in_sums, num_in_sums)) {
         // User pressed 'cancel'
         return false;
     }

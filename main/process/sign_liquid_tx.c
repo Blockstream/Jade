@@ -24,9 +24,8 @@
 
 bool show_elements_transaction_outputs_activity(const network_t network_id, const struct wally_tx* tx,
     const output_info_t* output_info, const asset_info_t* assets, size_t num_assets);
-bool show_elements_swap_activity(const network_t network_id, bool initial_proposal,
-    const movement_summary_info_t* wallet_input_summary, size_t wallet_input_summary_size,
-    const movement_summary_info_t* wallet_output_summary, size_t wallet_output_summary_size, const asset_info_t* assets,
+bool show_elements_swap_activity(const network_t network_id, bool initial_proposal, const asset_summary_t* in_sums,
+    size_t num_in_sums, const asset_summary_t* out_sums, size_t num_out_sums, const asset_info_t* assets,
     size_t num_assets);
 bool show_elements_final_confirmation_activity(
     const network_t network_id, const char* title, const uint64_t fee, const char* warning_msg);
@@ -57,8 +56,8 @@ static TxType_t get_txtype(const char* type, const size_t len)
     return TXTYPE_UNKNOWN;
 }
 
-static void get_wallet_summary_allocate(
-    const char* field, const CborValue* value, movement_summary_info_t** data, size_t* written)
+static void get_asset_summary_allocate(
+    const char* field, const CborValue* value, asset_summary_t** data, size_t* written)
 {
     JADE_ASSERT(field);
     JADE_ASSERT(value);
@@ -82,24 +81,24 @@ static void get_wallet_summary_allocate(
         return;
     }
 
-    movement_summary_info_t* const summary = JADE_CALLOC(num_array_items, sizeof(movement_summary_info_t));
+    asset_summary_t* const sums = JADE_CALLOC(num_array_items, sizeof(asset_summary_t));
 
     for (size_t i = 0; i < num_array_items; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
-        movement_summary_info_t* const item = summary + i;
+        asset_summary_t* const item = sums + i;
 
         if (cbor_value_is_null(&arrayItem) || !cbor_value_is_map(&arrayItem)) {
-            free(summary);
+            free(sums);
             return;
         }
 
         if (!rpc_get_n_bytes("asset_id", &arrayItem, sizeof(item->asset_id), item->asset_id)) {
-            free(summary);
+            free(sums);
             return;
         }
 
         if (!rpc_get_uint64_t("satoshi", &arrayItem, &item->value)) {
-            free(summary);
+            free(sums);
             return;
         }
 
@@ -109,37 +108,33 @@ static void get_wallet_summary_allocate(
 
     cberr = cbor_value_leave_container(&result, &arrayItem);
     if (cberr != CborNoError) {
-        free(summary);
+        free(sums);
         return;
     }
 
     *written = num_array_items;
-    *data = summary;
+    *data = sums;
 }
 
-static TxType_t get_additional_info_allocate(const char* field, CborValue* params, bool* is_partial,
-    movement_summary_info_t** wallet_input_summary, size_t* wallet_input_summary_size,
-    movement_summary_info_t** wallet_output_summary, size_t* wallet_output_summary_size)
+static TxType_t get_additional_info_allocate(CborValue* params, bool* is_partial, asset_summary_t** in_sums,
+    size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums)
 {
-    JADE_ASSERT(field);
     JADE_ASSERT(params);
     JADE_ASSERT(is_partial);
-    JADE_INIT_OUT_PPTR(wallet_input_summary);
-    JADE_INIT_OUT_SIZE(wallet_input_summary_size);
-    JADE_INIT_OUT_PPTR(wallet_output_summary);
-    JADE_INIT_OUT_SIZE(wallet_output_summary_size);
+    JADE_INIT_OUT_PPTR(in_sums);
+    JADE_INIT_OUT_SIZE(num_in_sums);
+    JADE_INIT_OUT_PPTR(out_sums);
+    JADE_INIT_OUT_SIZE(num_out_sums);
 
     // If no 'additional_data' passed, assume this is a a simple send-payment 'classic' tx
     CborValue additional_info;
-    if (!rpc_get_map(field, params, &additional_info)) {
+    if (!rpc_get_map("additional_info", params, &additional_info)) {
         return TXTYPE_SEND_PAYMENT;
     }
 
     // input/output summaries required for some complex txn types, eg. swaps
-    get_wallet_summary_allocate(
-        "wallet_input_summary", &additional_info, wallet_input_summary, wallet_input_summary_size);
-    get_wallet_summary_allocate(
-        "wallet_output_summary", &additional_info, wallet_output_summary, wallet_output_summary_size);
+    get_asset_summary_allocate("wallet_input_summary", &additional_info, in_sums, num_in_sums);
+    get_asset_summary_allocate("wallet_output_summary", &additional_info, out_sums, num_out_sums);
 
     // 'partial' flag (defaults to false)
     if (!rpc_get_boolean("is_partial", &additional_info, is_partial)) {
@@ -153,32 +148,32 @@ static TxType_t get_additional_info_allocate(const char* field, CborValue* param
     return get_txtype(ptype, typelen);
 }
 
-static bool validate_summary_asset_amount(movement_summary_info_t* summary, const size_t summary_size,
-    const uint8_t* asset_id, const size_t asset_id_len, const uint64_t value)
+static bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
+    const size_t asset_id_len, const uint64_t value)
 {
-    JADE_ASSERT(summary);
+    JADE_ASSERT(sums);
     JADE_ASSERT(asset_id);
-    JADE_ASSERT(asset_id_len == sizeof(summary->asset_id));
+    JADE_ASSERT(asset_id_len == sizeof(sums[0].asset_id));
 
     // Add passed sats amount to the first record found with matching asset_id
-    for (size_t i = 0; i < summary_size; ++i) {
-        if (!memcmp(asset_id, summary[i].asset_id, sizeof(summary[i].asset_id))) {
-            summary[i].validated_value += value;
+    for (size_t i = 0; i < num_sums; ++i) {
+        if (!memcmp(asset_id, sums[i].asset_id, sizeof(sums[i].asset_id))) {
+            sums[i].validated_value += value;
             return true;
         }
     }
     return false;
 }
 
-static bool check_summary_validated(movement_summary_info_t* summary, const size_t summary_size)
+static bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
 {
-    JADE_ASSERT(summary);
+    JADE_ASSERT(sums);
 
     // Check every asset record has been fully validated
-    for (size_t i = 0; i < summary_size; ++i) {
-        if (summary[i].value != summary[i].validated_value) {
+    for (size_t i = 0; i < num_sums; ++i) {
+        if (sums[i].value != sums[i].validated_value) {
             char* asset_id_hex = NULL;
-            wally_hex_from_bytes(summary[i].asset_id, sizeof(summary[i].asset_id), &asset_id_hex);
+            wally_hex_from_bytes(sums[i].asset_id, sizeof(sums[i].asset_id), &asset_id_hex);
             JADE_LOGW("Failed to validate input/output summary for %s", asset_id_hex);
             JADE_WALLY_VERIFY(wally_free_string(asset_id_hex));
             return false;
@@ -600,25 +595,25 @@ void sign_liquid_tx_process(void* process_ptr)
     jade_process_free_on_exit(process, assets);
     JADE_LOGI("Read %d assets from message", num_assets);
 
-    // Get any data from the option 'additional_info' section
-    movement_summary_info_t* wallet_input_summary = NULL;
-    size_t wallet_input_summary_size = 0;
-    movement_summary_info_t* wallet_output_summary = NULL;
-    size_t wallet_output_summary_size = 0;
+    // Get any data from the optional 'additional_info' section
+    asset_summary_t* in_sums = NULL;
+    size_t num_in_sums = 0;
+    asset_summary_t* out_sums = NULL;
+    size_t num_out_sums = 0;
     bool tx_is_partial = false;
-    const TxType_t txtype = get_additional_info_allocate("additional_info", &params, &tx_is_partial,
-        &wallet_input_summary, &wallet_input_summary_size, &wallet_output_summary, &wallet_output_summary_size);
-    jade_process_free_on_exit(process, wallet_input_summary);
-    jade_process_free_on_exit(process, wallet_output_summary);
+    const TxType_t txtype
+        = get_additional_info_allocate(&params, &tx_is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums);
+    jade_process_free_on_exit(process, in_sums);
+    jade_process_free_on_exit(process, out_sums);
 
     // Shouldn't have pointers to empty arrays
-    JADE_ASSERT(!wallet_input_summary == !wallet_input_summary_size);
-    JADE_ASSERT(!wallet_output_summary == !wallet_output_summary_size);
+    JADE_ASSERT(!in_sums == !num_in_sums);
+    JADE_ASSERT(!out_sums == !num_out_sums);
 
     // Validate tx type data
     if (txtype == TXTYPE_SWAP) {
         // Input and output summary must be present - they will be fully validated later
-        if (!wallet_input_summary || !wallet_output_summary) {
+        if (!in_sums || !out_sums) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Swap tx missing input/output summary information", NULL);
             goto cleanup;
@@ -628,10 +623,8 @@ void sign_liquid_tx_process(void* process_ptr)
         if (tx_is_partial) {
             // At this time the only 'partial swap' we accept is an initial proposal with exactly one
             // input and exactly one output which is to self, and in a different asset to the input
-            if (tx->num_inputs != 1 || tx->num_outputs != 1 || wallet_input_summary_size != 1
-                || wallet_output_summary_size != 1
-                || !memcmp(wallet_input_summary->asset_id, wallet_output_summary->asset_id,
-                    sizeof(wallet_output_summary->asset_id))) {
+            if (tx->num_inputs != 1 || tx->num_outputs != 1 || num_in_sums != 1 || num_out_sums != 1
+                || !memcmp(in_sums->asset_id, out_sums->asset_id, sizeof(out_sums->asset_id))) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS,
                     "Initial swap proposal must have single wallet input and output in different assets", NULL);
                 goto cleanup;
@@ -701,20 +694,20 @@ void sign_liquid_tx_process(void* process_ptr)
             JADE_ASSERT(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED);
 
             // NOTE: change outputs are subtracted from the relevant 'input summary'.
-            if (wallet_input_summary && (output_info[i].flags & OUTPUT_FLAG_CHANGE)) {
-                validate_summary_asset_amount(wallet_input_summary, wallet_input_summary_size, output_info[i].asset_id,
-                    sizeof(output_info[i].asset_id), (0 - output_info[i].value));
-            } else if (wallet_output_summary) {
-                validate_summary_asset_amount(wallet_output_summary, wallet_output_summary_size,
-                    output_info[i].asset_id, sizeof(output_info[i].asset_id), output_info[i].value);
+            if (in_sums && (output_info[i].flags & OUTPUT_FLAG_CHANGE)) {
+                asset_summary_update(in_sums, num_in_sums, output_info[i].asset_id, sizeof(output_info[i].asset_id),
+                    (0 - output_info[i].value));
+            } else if (out_sums) {
+                asset_summary_update(out_sums, num_out_sums, output_info[i].asset_id, sizeof(output_info[i].asset_id),
+                    output_info[i].value);
             }
         }
     }
 
     if (txtype == TXTYPE_SWAP) {
         // Confirm wallet-summary info (ie. net inputs and outputs)
-        if (!show_elements_swap_activity(network_id, tx_is_partial, wallet_input_summary, wallet_input_summary_size,
-                wallet_output_summary, wallet_output_summary_size, assets, num_assets)) {
+        if (!show_elements_swap_activity(
+                network_id, tx_is_partial, in_sums, num_in_sums, out_sums, num_out_sums, assets, num_assets)) {
             JADE_LOGW("User declined to sign swap transaction");
             jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign transaction", NULL);
             goto cleanup;
@@ -803,7 +796,7 @@ void sign_liquid_tx_process(void* process_ptr)
             }
 
             // As we are signing this input, use it to validate some part of any passed 'input summary'
-            if (wallet_input_summary) {
+            if (in_sums) {
                 // We can only verify input amounts with segwit inputs which have an explicit commitment to sign
                 if (input_data->sig_type == WALLY_SIGTYPE_PRE_SW) {
                     jade_process_reject_message(
@@ -818,8 +811,8 @@ void sign_liquid_tx_process(void* process_ptr)
                         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
                         goto cleanup;
                     }
-                    validate_summary_asset_amount(wallet_input_summary, wallet_input_summary_size, commitment.asset_id,
-                        sizeof(commitment.asset_id), commitment.value);
+                    asset_summary_update(
+                        in_sums, num_in_sums, commitment.asset_id, sizeof(commitment.asset_id), commitment.value);
                 }
             }
 
@@ -876,9 +869,8 @@ void sign_liquid_tx_process(void* process_ptr)
 
     // Check the summary information for each asset as previously confirmed
     // by the user is consistent with the verified input and outputs.
-    if (wallet_input_summary && wallet_output_summary) {
-        if (!check_summary_validated(wallet_input_summary, wallet_input_summary_size)
-            || !check_summary_validated(wallet_output_summary, wallet_output_summary_size)) {
+    if (in_sums && out_sums) {
+        if (!asset_summary_validate(in_sums, num_in_sums) || !asset_summary_validate(out_sums, num_out_sums)) {
             JADE_LOGW("Failed to fully validate input and output summary information");
             // If using ae-signatures, we need to load the message to send the error back on
             if (use_ae_signatures) {

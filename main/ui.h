@@ -97,7 +97,7 @@ typedef struct {
     uint8_t asset_id[32];
     uint64_t value;
     uint64_t validated_value;
-} movement_summary_info_t;
+} asset_summary_t;
 
 // Progress bar
 typedef struct {
