@@ -662,13 +662,6 @@ void sign_liquid_tx_process(void* process_ptr)
     // Save fees for the final confirmation screen
     uint64_t fees = 0;
     for (size_t i = 0; i < tx->num_outputs; ++i) {
-        if ((tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX)
-            != (tx->outputs[i].value[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX)) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Output asset and value blinding inconsistent", NULL);
-            goto cleanup;
-        }
-
         // Gather the (unblinded) output info for user confirmation
         const char* errmsg = NULL;
         if (!add_output_info(&commitments[i], &tx->outputs[i], &output_info[i], &errmsg)) {

@@ -71,12 +71,25 @@ struct wally_tx* rpc_get_signing_tx(
         goto fail;
     }
 
-    if (num_inputs == tx->num_inputs) {
-        return tx;
+    if (num_inputs != tx->num_inputs) {
+        // The number of inputs the client wants to send must match
+        // the number of transaction inputs
+        errmsg = "Unexpected number of inputs for transaction";
+        goto fail;
     }
-    // The number of inputs the client wants to send must match the number
-    // of transaction inputs
-    errmsg = "Unexpected number of inputs for transaction";
+
+    if (for_liquid) {
+        for (size_t i = 0; i < tx->num_outputs; ++i) {
+            bool exp_asset = tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX;
+            bool exp_value = tx->outputs[i].value[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX;
+            if (exp_asset != exp_value) {
+                errmsg = "Output asset and value blinding inconsistent";
+                goto fail;
+            }
+        }
+    }
+
+    return tx;
 fail:
     jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
     return NULL;
