@@ -183,8 +183,8 @@ static bool verify_ga_script_matches(const network_t network_id, const struct ex
 // Helper to generate a singlesig script of the given type with the pubkey given, and
 // compare it to the target script provided.
 // Returns true if the generated script matches the target script.
-static bool verify_singlesig_script_matches(const script_variant_t script_variant, const struct ext_key* hdkey,
-    const uint8_t* target_script, const size_t target_script_len)
+static bool verify_singlesig_script_matches(const network_t network_id, const script_variant_t script_variant,
+    const struct ext_key* hdkey, const uint8_t* target_script, const size_t target_script_len)
 {
     JADE_ASSERT(is_singlesig(script_variant));
     JADE_ASSERT(hdkey);
@@ -199,7 +199,8 @@ static bool verify_singlesig_script_matches(const script_variant_t script_varian
     // Build our script
     size_t trial_script_len = 0;
     uint8_t trial_script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
-    if (!wallet_build_singlesig_script(script_variant, hdkey, trial_script, sizeof(trial_script), &trial_script_len)) {
+    if (!wallet_build_singlesig_script(
+            network_id, script_variant, hdkey, trial_script, sizeof(trial_script), &trial_script_len)) {
         // Failed to build script
         JADE_LOGE("Receive script cannot be constructed");
         return false;
@@ -518,7 +519,7 @@ static void validate_any_change_outputs(const network_t network_id, struct wally
             }
 
             // Check that we can generate a script that matches the tx
-            if (!verify_singlesig_script_matches(script_variant, &iter.hdkey, tx_script, tx_script_len)) {
+            if (!verify_singlesig_script_matches(network_id, script_variant, &iter.hdkey, tx_script, tx_script_len)) {
                 JADE_LOGW("Receive script failed validation");
                 continue;
             }

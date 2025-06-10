@@ -758,8 +758,8 @@ static bool verify_address(const address_data_t* const addr_data)
             JADE_ASSERT(search_roots);
             JADE_ASSERT(search_roots_len == 1);
             JADE_ASSERT(variant != GREEN);
-            verified = wallet_search_for_singlesig_script(
-                variant, &search_roots[0], &index, address_search_batch_size, addr_data->script, addr_data->script_len);
+            verified = wallet_search_for_singlesig_script(addr_data->network_id, variant, &search_roots[0], &index,
+                address_search_batch_size, addr_data->script, addr_data->script_len);
         }
 
         if (verified) {

@@ -200,7 +200,8 @@ void get_receive_address_process(void* process_ptr)
             // Build a script pubkey for the passed parameters
             struct ext_key derived;
             if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived)
-                || !wallet_build_singlesig_script(script_variant, &derived, script, sizeof(script), &script_len)) {
+                || !wallet_build_singlesig_script(
+                    network_id, script_variant, &derived, script, sizeof(script), &script_len)) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid singlesig script", NULL);
                 goto cleanup;

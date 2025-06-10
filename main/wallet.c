@@ -904,8 +904,8 @@ bool wallet_build_ga_script(const network_t network_id, const char* xpubrecovery
 // - native segwit v0 p2wpkh
 // - p2sh-wrapped segwit v0 p2wpkh
 // - segwit v1 p2tr (keyspend only)
-bool wallet_build_singlesig_script(const script_variant_t script_variant, const struct ext_key* hdkey, uint8_t* output,
-    const size_t output_len, size_t* written)
+bool wallet_build_singlesig_script(const network_t network_id, const script_variant_t script_variant,
+    const struct ext_key* hdkey, uint8_t* output, const size_t output_len, size_t* written)
 {
     JADE_ASSERT(keychain_get());
 
@@ -931,10 +931,12 @@ bool wallet_build_singlesig_script(const script_variant_t script_variant, const 
         JADE_WALLY_VERIFY(
             wally_scriptpubkey_p2pkh_from_bytes(pubkey, pubkey_len, WALLY_SCRIPT_HASH160, output, output_len, written));
     } else if (script_variant == P2TR) {
-        // Get a p2tr script-pubkey for the passed pubkey
-        // Wally will tweak the pubkey for us according to BIP-341
+        // Get a p2tr script-pubkey for the passed pubkey.
+        // Wally will tweak the pubkey for us according to BIP-341,
+        // note the tweak for Liquid is different hence using flags below.
         JADE_LOGD("Generating singlesig p2tr script");
-        JADE_WALLY_VERIFY(wally_scriptpubkey_p2tr_from_bytes(pubkey, pubkey_len, 0, output, output_len, written));
+        const uint32_t flags = network_is_liquid(network_id) ? EC_FLAG_ELEMENTS : 0;
+        JADE_WALLY_VERIFY(wally_scriptpubkey_p2tr_from_bytes(pubkey, pubkey_len, flags, output, output_len, written));
     } else {
         JADE_ASSERT_MSG(false, "Unrecognised script variant: %u", script_variant);
         return false;
@@ -943,8 +945,9 @@ bool wallet_build_singlesig_script(const script_variant_t script_variant, const 
     return true;
 }
 
-bool wallet_search_for_singlesig_script(const script_variant_t script_variant, const struct ext_key* search_root,
-    size_t* index, const size_t search_depth, const uint8_t* script, const size_t script_len)
+bool wallet_search_for_singlesig_script(const network_t network_id, const script_variant_t script_variant,
+    const struct ext_key* search_root, size_t* index, const size_t search_depth, const uint8_t* script,
+    const size_t script_len)
 {
     JADE_ASSERT(keychain_get());
 
@@ -962,7 +965,8 @@ bool wallet_search_for_singlesig_script(const script_variant_t script_variant, c
             bip32_key_from_parent(search_root, *index, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived));
 
         size_t written = 0;
-        if (!wallet_build_singlesig_script(script_variant, &derived, generated, sizeof(generated), &written)) {
+        if (!wallet_build_singlesig_script(
+                network_id, script_variant, &derived, generated, sizeof(generated), &written)) {
             JADE_LOGE("Error generating singlesig script");
             return false;
         }

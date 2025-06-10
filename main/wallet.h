@@ -76,20 +76,20 @@ void wallet_get_bip85_rsa_entropy(size_t key_bits, size_t index, uint8_t* entrop
 void wallet_get_default_xpub_export_path(
     script_variant_t variant, uint16_t account, uint32_t* path, size_t path_len, size_t* written);
 bool wallet_is_expected_singlesig_path(
-    const network_t network_id, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);
+    network_t network_id, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);
 bool wallet_is_expected_multisig_path(size_t cosigner_index, bool is_change, const uint32_t* path, size_t path_len);
 void wallet_build_receive_path(
     uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path, size_t output_len, size_t* written);
 
-bool wallet_build_ga_script_ex(const network_t network_id, const struct ext_key* user_key,
+bool wallet_build_ga_script_ex(network_t network_id, const struct ext_key* user_key,
     const struct ext_key* recovery_hdkey, size_t csv_blocks, const uint32_t* path, size_t path_len, uint8_t* output,
     size_t output_len, size_t* written);
-bool wallet_build_ga_script(const network_t network_id, const char* xpubrecovery, size_t csv_blocks,
-    const uint32_t* path, size_t path_len, uint8_t* output, size_t output_len, size_t* written);
-bool wallet_build_singlesig_script(
-    script_variant_t script_variant, const struct ext_key* hdkey, uint8_t* output, size_t output_len, size_t* written);
-bool wallet_search_for_singlesig_script(script_variant_t script_variant, const struct ext_key* search_root,
-    size_t* index, size_t search_depth, const uint8_t* script, size_t script_len);
+bool wallet_build_ga_script(network_t network_id, const char* xpubrecovery, size_t csv_blocks, const uint32_t* path,
+    size_t path_len, uint8_t* output, size_t output_len, size_t* written);
+bool wallet_build_singlesig_script(network_t network_id, script_variant_t script_variant, const struct ext_key* hdkey,
+    uint8_t* output, size_t output_len, size_t* written);
+bool wallet_search_for_singlesig_script(network_t network_id, script_variant_t script_variant,
+    const struct ext_key* search_root, size_t* index, size_t search_depth, const uint8_t* script, size_t script_len);
 bool wallet_build_multisig_script(script_variant_t script_variant, bool sorted, uint8_t threshold,
     const uint8_t* pubkeys, size_t pubkeys_len, uint8_t* output, size_t output_len, size_t* written);
 bool wallet_search_for_multisig_script(script_variant_t script_variant, bool sorted, uint8_t threshold,
@@ -97,23 +97,23 @@ bool wallet_search_for_multisig_script(script_variant_t script_variant, bool sor
     const uint8_t* script, size_t script_len);
 
 typedef struct _descriptor_data descriptor_data_t;
-bool wallet_build_descriptor_script(const network_t network_id, const char* descriptor_name,
+bool wallet_build_descriptor_script(network_t network_id, const char* descriptor_name,
     const descriptor_data_t* descriptor, size_t multi_index, size_t index, uint8_t* output, size_t output_len,
     size_t* written, const char** errmsg);
-bool wallet_search_for_descriptor_script(const network_t network_id, const char* descriptor_name,
+bool wallet_search_for_descriptor_script(network_t network_id, const char* descriptor_name,
     const descriptor_data_t* descriptor, size_t multi_index, size_t* index, size_t search_depth, const uint8_t* script,
     size_t script_len);
 
 void wallet_get_fingerprint(uint8_t* output, size_t output_len);
 bool wallet_get_hdkey(const uint32_t* path, size_t path_len, uint32_t flags, struct ext_key* output);
-bool wallet_get_xpub(const network_t network_id, const uint32_t* path, size_t path_len, char** output);
+bool wallet_get_xpub(network_t network_id, const uint32_t* path, size_t path_len, char** output);
 
 bool wallet_calculate_gaservice_path(struct ext_key* root_key, uint32_t* gaservice_path, size_t gaservice_path_len);
 bool wallet_serialize_gaservice_path(
     uint8_t* serialized, size_t serialized_len, const uint32_t* gaservice_path, size_t gaservice_path_len);
 bool wallet_unserialize_gaservice_path(
     const uint8_t* serialized, size_t serialized_len, uint32_t* gaservice_path, size_t gaservice_path_len);
-bool wallet_get_gaservice_fingerprint(const network_t network_id, uint8_t* output, size_t output_len);
+bool wallet_get_gaservice_fingerprint(network_t network_id, uint8_t* output, size_t output_len);
 bool wallet_get_gaservice_path(
     const uint32_t* path, size_t path_len, uint32_t* ga_path, size_t ga_path_len, size_t* written);
 bool wallet_get_gaservice_root_key(const struct ext_key* service, bool subaccount_root, struct ext_key* gakey);

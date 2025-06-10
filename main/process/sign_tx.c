@@ -317,7 +317,7 @@ bool rpc_get_signing_outputs(jade_process_t* process, const CborValue* params, c
                     struct ext_key derived;
                     if (!wallet_get_hdkey(path, path_len, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH, &derived)
                         || !wallet_build_singlesig_script(
-                            script_variant, &derived, script, sizeof(script), &script_len)) {
+                            network_id, script_variant, &derived, script, sizeof(script), &script_len)) {
                         JADE_LOGE("Output %u path/script failed to construct", i);
                         errmsg = "Receive script cannot be constructed";
                         goto cleanup;
