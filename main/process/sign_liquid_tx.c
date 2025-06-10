@@ -260,31 +260,40 @@ static bool get_commitment_data(CborValue* item, commitment_t* commitment)
     return true;
 }
 
-static void get_commitments_allocate(const char* field, const CborValue* value, commitment_t** data, size_t* written)
+static bool rpc_get_trusted_commitments(
+    jade_process_t* process, const CborValue* value, const struct wally_tx* tx, commitment_t** data)
 {
-    JADE_ASSERT(field);
+    JADE_ASSERT(process);
     JADE_ASSERT(value);
+    JADE_ASSERT(tx);
     JADE_INIT_OUT_PPTR(data);
-    JADE_INIT_OUT_SIZE(written);
+
+    const char* errmsg = NULL;
 
     CborValue result;
-    if (!rpc_get_array(field, value, &result)) {
-        return;
+    if (!rpc_get_array("trusted_commitments", value, &result)) {
+        errmsg = "Failed to extract trusted commitments from parameters";
+        goto cleanup;
     }
 
+    // Expect one commitment element in the array for each output.
+    // (Can be null/zero's for unblinded outputs.)
     size_t num_array_items = 0;
     CborError cberr = cbor_value_get_array_length(&result, &num_array_items);
-    if (cberr != CborNoError || !num_array_items) {
-        return;
+    if (cberr != CborNoError || !num_array_items || num_array_items != tx->num_outputs) {
+        errmsg = "Unexpected number of trusted commitments for transaction";
+        goto cleanup;
     }
 
     CborValue arrayItem;
     cberr = cbor_value_enter_container(&result, &arrayItem);
     if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
-        return;
+        errmsg = "Invalid trusted commitments for transaction";
+        goto cleanup;
     }
 
     commitment_t* const commitments = JADE_CALLOC(num_array_items, sizeof(commitment_t));
+    jade_process_free_on_exit(process, commitments);
 
     for (size_t i = 0; i < num_array_items; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
@@ -297,8 +306,8 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
         }
 
         if (!cbor_value_is_map(&arrayItem)) {
-            free(commitments);
-            return;
+            errmsg = "Invalid trusted commitments for transaction";
+            goto cleanup;
         }
 
         size_t num_map_items = 0;
@@ -310,8 +319,8 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
 
         // Populate commitments data
         if (!get_commitment_data(&arrayItem, &commitments[i])) {
-            free(commitments);
-            return;
+            errmsg = "Invalid trusted commitments for transaction";
+            goto cleanup;
         }
 
         CborError err = cbor_value_advance(&arrayItem);
@@ -319,13 +328,18 @@ static void get_commitments_allocate(const char* field, const CborValue* value, 
     }
 
     cberr = cbor_value_leave_container(&result, &arrayItem);
-    if (cberr != CborNoError) {
-        free(commitments);
-        return;
+    if (cberr == CborNoError) {
+        *data = commitments;
+    } else {
+        errmsg = "Invalid trusted commitments for transaction";
     }
 
-    *written = num_array_items;
-    *data = commitments;
+cleanup:
+    if (errmsg) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg, NULL);
+        return false;
+    }
+    return true;
 }
 
 #ifdef CONFIG_SPIRAM
@@ -564,23 +578,7 @@ void sign_liquid_tx_process(void* process_ptr)
 
     // Copy trusted commitment data into a temporary structure (so we can free the message)
     commitment_t* commitments = NULL;
-    size_t num_commitments = 0;
-    get_commitments_allocate("trusted_commitments", &params, &commitments, &num_commitments);
-
-    if (num_commitments == 0) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract trusted commitments from parameters", NULL);
-        goto cleanup;
-    }
-
-    JADE_ASSERT(commitments);
-    jade_process_free_on_exit(process, commitments);
-
-    // Check the trusted commitments: expect one element in the array for each output.
-    // (Can be null/zero's for unblinded outputs.)
-    if (num_commitments != tx->num_outputs) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Unexpected number of trusted commitments for transaction", NULL);
+    if (!rpc_get_trusted_commitments(process, &params, tx, &commitments)) {
         goto cleanup;
     }
 
