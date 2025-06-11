@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import glob
 import cbor2 as cbor
@@ -2490,6 +2491,7 @@ def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
 def _verify_signature(jadeapi, network, msghash, path,
                       host_entropy, signer_commitment,
                       signature, is_schnorr):
+    is_liquid = 'liquid' in network
     # entropy/signer_commitment imply anti-exfil signature
     assert (host_entropy is None) == (signer_commitment is None)
 
@@ -2502,7 +2504,8 @@ def _verify_signature(jadeapi, network, msghash, path,
         # Taproot signature. Tweak the pubkey for a keyspend and verify
         assert signer_commitment == bytes()  # No Anti-Exfil for Schnorr yet
         assert len(signature) == wally.EC_SIGNATURE_LEN
-        pubkey = wally.ec_public_key_bip341_tweak(pubkey, None, 0)
+        flags = wally.EC_FLAG_ELEMENTS if is_liquid else 0
+        pubkey = wally.ec_public_key_bip341_tweak(pubkey, None, flags)
         wally.ec_sig_verify(pubkey, msghash, wally.EC_FLAG_SCHNORR, signature)
         return
 
@@ -2554,26 +2557,56 @@ def _check_msg_signature(jadeapi, testcase, actual):
                       host_entropy, signer_commitment, rawsig, is_schnorr=False)
 
 
-# Helper to fetch the scriptpubkeys and input values for a sign_tx test case
-# (required for taproot signing).
-def _get_scriptpubkeys_and_values(jadeapi, testcase, txn):
-    inputs = testcase['input']['inputs']
+# Helper to fetch the scriptpubkeys, assets and input values for sign_tx tests
+def _get_signing_data(jadeapi, testcase, txn):
+    test_input = testcase['input']
+    is_liquid = 'liquid' in test_input['network']
+    use_ae_signatures = test_input.get('use_ae_signatures', False)
+
+    inputs = test_input['inputs']
     scriptpubkeys = wally.map_init(len(inputs), None)
-    values = []
+    values = wally.map_init(len(inputs), None)
+    assets = wally.map_init(len(inputs), None) if is_liquid else None
     for i, inputdata in enumerate(inputs):
-        if inputdata.get('input_tx'):
-            # Fetch info from the prevout for the input
+        if not inputdata:
+            pass  # No-op
+        elif inputdata.get('input_tx'):
+            # Bitcoin: Fetch info from the prevout for the input
             utxo_index = wally.tx_get_input_index(txn, i)
             utxo = wally.tx_from_bytes(inputdata['input_tx'], 0)
             wally.map_add_integer(scriptpubkeys, i, wally.tx_get_output_script(utxo, utxo_index))
-            values.append(wally.tx_get_output_satoshi(utxo, utxo_index))
+            # Satoshi value (as uint64 native-endian bytes)
+            value = wally.tx_get_output_satoshi(utxo, utxo_index)
+            wally.map_add_integer(values, i, value.to_bytes(8, byteorder=sys.byteorder))
+        elif is_liquid:
+            # Liquid: Fetch info from the testcase
+            if 'scriptpubkey' in inputdata:
+                wally.map_add_integer(scriptpubkeys, i, inputdata['scriptpubkey'])
+            if 'asset_generator' in inputdata:
+                wally.map_add_integer(assets, i, inputdata['asset_generator'])
+            if 'value_commitment' in inputdata:
+                wally.map_add_integer(values, i, inputdata['value_commitment'])
         else:
-            # If no input_tx, sats can be passed instead (Deprecated).
+            # Bitcoin: If no input_tx, sats can be passed instead (Deprecated).
             # Only valid for non-taproot, single-input segwit txns
             assert inputdata['is_witness']
             assert len(inputs) == 1
-            values.append(inputdata['satoshi'])
-    return scriptpubkeys, values
+            # Satoshi value (as uint64 native-endian bytes)
+            value = inputdata['satoshi']
+            wally.map_add_integer(values, i, value.to_bytes(8, byteorder=sys.byteorder))
+    return scriptpubkeys, assets, values
+
+
+def _get_genesis(network):
+    if 'liquid' not in network:
+        return None
+    if 'localtest' in network:
+        genesis = '00902a6b70c2ca83b5d9c815d96a0e2f4202179316970d14ea1847dae5b1ca21'
+    elif 'testnet' in network:
+        genesis = 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1'
+    else:
+        genesis = '1466275836220db2944ca059a3a10ef6fd2ea684b0688d2c379296888a206003'
+    return bytes.fromhex(genesis)[::-1]
 
 
 # Helper to verify a tx signature - handles checking an Anti-Exfil signature
@@ -2601,7 +2634,9 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
     else:
         # BTC tx, straightforward
         txn = wally.tx_from_bytes(test_input['txn'], 0)
-        scriptpubkeys, values = _get_scriptpubkeys_and_values(jadeapi, testcase, txn)
+
+    scriptpubkeys, assets, values = _get_signing_data(jadeapi, testcase, txn)
+    cache = wally.map_init(16, None)  # TODO: Use a wally constant when available
 
     # Iterate over the results verifying each signature
     for i, (expected, actual) in enumerate(zip(testcase['expected_output'], rslt)):
@@ -2624,29 +2659,26 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
         if not len(signature):
             continue  # We didn't sign this input, ignore it
 
-        # We signed this input, verify the signature
+        # We signed this input, get the signature message hash (ie. the
+        # hash value that was signed) and verify the signature against it
         inputdata = test_input['inputs'][i]
         script = inputdata['script']
-        sighash = inputdata.get('sighash', wally.WALLY_SIGHASH_ALL)
         is_p2tr = script[0] == 0x51 and script[1] == 32  # OP_1 [32 byte xonly pubkey]
-
-        # Get the signature message hash (ie. the hash value that was signed)
-        tx_flags = 0
-        if inputdata['is_witness'] and not is_p2tr:
-            tx_flags = wally.WALLY_TX_FLAG_USE_WITNESS
-        if is_liquid:
-            msghash = wally.tx_get_elements_signature_hash(
-                txn, i, script, inputdata.get('value_commitment'),
-                sighash, tx_flags)
+        def_sighash = wally.WALLY_SIGHASH_DEFAULT if is_p2tr else wally.WALLY_SIGHASH_ALL
+        sighash = inputdata.get('sighash', def_sighash)
+        if is_p2tr:
+            sighash_type = wally.WALLY_SIGTYPE_SW_V1
+            script = None  # Taproot uses the script in 'scriptpubkeys'
+        elif inputdata['is_witness']:
+            sighash_type = wally.WALLY_SIGTYPE_SW_V0
         else:
-            if is_p2tr:
-                key_version, codesep_pos = 0, wally.WALLY_NO_CODESEPARATOR
-                msghash = wally.tx_get_btc_taproot_signature_hash(
-                    txn, i, scriptpubkeys, values, None, key_version,
-                    codesep_pos, None, sighash, tx_flags)
-            else:
-                msghash = wally.tx_get_btc_signature_hash(
-                    txn, i, script, values[i], sighash, tx_flags)
+            sighash_type = wally.WALLY_SIGTYPE_PRE_SW
+
+        key_version, codesep_pos, annex = 0, wally.WALLY_NO_CODESEPARATOR, None
+        genesis = _get_genesis(network)
+        msghash = wally.tx_get_input_signature_hash(
+            txn, i, scriptpubkeys, assets, values, script, key_version,
+            codesep_pos, annex, genesis, sighash, sighash_type, cache)
 
         # Check sighash and verify signature!
         if is_p2tr:
