@@ -2063,10 +2063,11 @@ A batch of 'tx_input' messages should be sent to Jade - one for each tx input, a
         }
     }
 
+* NOTE: Unlike Bitcoin signing, no 'input_tx' is needed.
 * 'is_witness', 'script', 'path' and 'sighash' are as in sign_tx_legacy_input_request_.
 * In addition, if a signature is required for this input and 'is_witness' is 'true', then the input utxo 'value_commitment' must be passed.
-* NOTE: no 'input_tx' is needed.
 * For advanced tx types, eg swaps, with blinded inputs, we pass the unblinding info here.  ie. asset_id, abf, asset_generator, value and vbf - these are as in the 'commitments' data in sign_liquid_tx_legacy_request_.
+* If any input to be signed is taproot (p2tr), then 'scriptpubkey', 'value_commitment' and 'asset_generator' are required for _all inputs_ in the transaction.
 
 Once the entire batch (of 'tx_input' messages) has been sent, processed and confirmed on Jade, a batch of replies are sent.
 
