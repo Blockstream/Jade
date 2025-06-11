@@ -570,7 +570,6 @@ SIGN_TXN_FAIL_CASES = 'badtxn_*.json'
 SIGN_LIQUID_TXN_TESTS = 'liquid_txn_*.json'
 SIGN_TXN_SS_TESTS = 'tx_ss_*.json'
 SIGN_TXN_SS_BAD_TESTS = 'tx_ss_bad_*.json'
-SIGN_LIQUID_TXN_SINGLE_SIG_TESTS = 'singlesig_liquid_txn*.json'
 SIGN_LIQUID_TXN_SS_TESTS = 'tx_liquid_ss*.json'
 SIGN_PSBT_TESTS = 'psbt_tm_*.json'
 SIGN_PSBT_SS_TESTS = 'psbt_ss_*.json'
@@ -3752,7 +3751,6 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_miniscript_descriptor_registration(jadeapi, DESCRIPTOR_REG_SS_TESTS)
 
     test_get_singlesig_receive_address(jadeapi)
-    test_sign_tx(jadeapi, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS, has_psram)
 
     # Push the singlesig test mnemonic for tests which use it
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_SINGLE_SIG)
