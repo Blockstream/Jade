@@ -1745,28 +1745,37 @@ class JadeAPI:
         inputs : [dict]
             The tx inputs.
                 If signing this input, should contain keys:
-                is_witness, bool - whether this is a segwit input
-                script, bytes- the redeem script
-                path, [int] - the bip32 path to sign with
+                is_witness, bool - Whether this is a segwit input
+                script, bytes - The redeem script
+                path, [int] - The bip32 path to sign with
                 value_commitment, 33-bytes - The value commitment of the input
 
-                This is optional if signing this input:
-                sighash, int - The sighash to use, defaults to 0x01 (SIGHASH_ALL)
+                This is optional:
+                sighash, int - The sighash to use, defaults to 0x0 (SIGHASH_DEFAULT) for
+                               taproot inputs, or 0x01 (SIGHASH_ALL) for other input types.
+
+                This is required for all inputs if any taproot input is being signed,
+                otherwise it can be ommmitted:
+                scriptpubkey, bytes - The scriptpubkey
 
                 These are only required for Anti-Exfil signatures:
                 ae_host_commitment, 32-bytes - The host-commitment for Anti-Exfil signatures
                 ae_host_entropy, 32-bytes - The host-entropy for Anti-Exfil signatures
+                Note that ae_host_commitment/ae_host_entropy must be empty for taproot inputs.
 
                 These are only required for advanced transactions, eg. swaps, and only when the
                 inputs need unblinding.
                 Not needed for vanilla send-payment/redeposit etc:
-                abf, 32-bytes - asset blinding factor
-                asset_id, 32-bytes - the unblinded asset-id
-                asset_generator, 33-bytes - the (blinded) asset-generator
-                vbf, 32-bytes - the value blinding factor
+                abf, 32-bytes - Asset blinding factor
+                asset_id, 32-bytes - The unblinded asset-id
+                asset_generator, 33-bytes - The (blinded) asset-generator (asset commitment)
+                vbf, 32-bytes - The value blinding factor
                 value, int - the unblinded sats value of the input
 
-                If not signing this input a null or an empty dict can be passed.
+                If not signing this input a null or an empty dict can be passed,
+                except in the case that any input being signed is taproot. For taproot
+                signing, 'scriptpubkey', 'value_commitment' and 'asset_generator' are
+                required for all inputs.
 
         commitments : [dict]
             An array sized for the number of outputs.
@@ -1873,7 +1882,8 @@ class JadeAPI:
                 path, [int] - the bip32 path to sign with
 
                 This is optional if signing this input:
-                sighash, int - The sighash to use, defaults to 0x01 (SIGHASH_ALL)
+                sighash, int - The sighash to use, defaults to 0x0 (SIGHASH_DEFAULT) for
+                               p2tr inputs, or 0x01 (SIGHASH_ALL) for other input types.
 
                 These are only required for Anti-Exfil signatures:
                 ae_host_commitment, 32-bytes - The host-commitment for Anti-Exfil signatures
