@@ -571,6 +571,7 @@ SIGN_LIQUID_TXN_TESTS = 'liquid_txn_*.json'
 SIGN_TXN_SS_TESTS = 'tx_ss_*.json'
 SIGN_TXN_SS_BAD_TESTS = 'tx_ss_bad_*.json'
 SIGN_LIQUID_TXN_SINGLE_SIG_TESTS = 'singlesig_liquid_txn*.json'
+SIGN_LIQUID_TXN_SS_TESTS = 'tx_liquid_ss*.json'
 SIGN_PSBT_TESTS = 'psbt_tm_*.json'
 SIGN_PSBT_SS_TESTS = 'psbt_ss_*.json'
 
@@ -3766,6 +3767,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # Test signing singlesig transactions
     test_sign_tx(jadeapi, SIGN_TXN_SS_TESTS)
     test_sign_tx(jadeapi, SIGN_TXN_SS_BAD_TESTS)
+    test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_SS_TESTS)
 
     # Test signing singlesig PSBTs (core generated test cases)
     # FIXME: Add tests for:
