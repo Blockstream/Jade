@@ -2853,20 +2853,42 @@ def test_sign_message_file(jadeapi):
             assert e.message == expected_error, 'Expected error: ' + expected_error
 
 
-def test_sign_tx_case(jadeapi, txn_data):
+def test_sign_tx_case(jadeapi, txn_data, has_psram):
     inputdata = txn_data['input']
+    is_liquid = 'liquid' in inputdata['network']
+    if is_liquid and not has_psram:
+        # Skip any liquid txns too large for reduced message buffer on no-psram devices
+        if len(inputdata['txn']) > (15 * 1024):  # estimate 1k for rest of message fields
+            logger.warning('Skipping test - tx too large for non-psram device')
+            return
+
+        # Skip any explicit proof tests which cannot be handled by no-psram devices
+        if any(tcs and ('value_blind_proof' in tcs or 'asset_blind_proof' in tcs)
+                for tcs in inputdata['trusted_commitments']):
+            logger.warning('Skipping test - explicit proofs too large for non-psram device')
+            return
     expected_output = txn_data.get('expected_output')
     expected_error = txn_data.get('expected_error')
     assert expected_output or expected_error
     use_ae_signatures = inputdata.get('use_ae_signatures')
     use_legacy_flow = not use_ae_signatures and not args.no_legacy_flow
     try:
-        rslt = jadeapi.sign_tx(inputdata['network'],
-                               inputdata['txn'],
-                               inputdata['inputs'],
-                               inputdata['change'],
-                               use_ae_signatures,
-                               use_legacy_flow)
+        if is_liquid:
+            rslt = jadeapi.sign_liquid_tx(inputdata['network'],
+                                          inputdata['txn'],
+                                          inputdata['inputs'],
+                                          inputdata['trusted_commitments'],
+                                          inputdata['change'],
+                                          use_ae_signatures,
+                                          inputdata.get('asset_info'),
+                                          inputdata.get('additional_info'))
+        else:
+            rslt = jadeapi.sign_tx(inputdata['network'],
+                                   inputdata['txn'],
+                                   inputdata['inputs'],
+                                   inputdata['change'],
+                                   use_ae_signatures,
+                                   use_legacy_flow)
         assert not expected_error, f"Expected an error in {txn_data['filename']}"
         # Check returned signatures
         _check_tx_signatures(jadeapi, txn_data, rslt)
@@ -2881,11 +2903,11 @@ def test_sign_tx_case(jadeapi, txn_data):
                 logger.debug(jadeapi.jade.read_response())
 
 
-def test_sign_tx(jadeapi, pattern):
+def test_sign_tx(jadeapi, pattern, has_psram):
     for txn_data in _get_test_cases(pattern):
 
         # Run the signing test case
-        test_sign_tx_case(jadeapi, txn_data)
+        test_sign_tx_case(jadeapi, txn_data, has_psram)
 
         if 'expected_legacy_output' in txn_data and 'expected_error' not in txn_data:
             # Test case has non-Anti-exfil signing results, test them also.
@@ -2894,7 +2916,7 @@ def test_sign_tx(jadeapi, pattern):
                 for k in ['ae_host_commitment', 'ae_host_entropy']:
                     txinput[k] = bytes()
             txn_data['expected_output'] = txn_data['expected_legacy_output']
-            test_sign_tx_case(jadeapi, txn_data)
+            test_sign_tx_case(jadeapi, txn_data, has_psram)
 
 
 def test_liquid_blinding_keys(jadeapi):
@@ -3000,34 +3022,6 @@ def test_liquid_blinded_commitments(jadeapi):
                                    ledger_commitments[1]['vbf'],)
     del ledger_commitments[1]['blinding_key']
     assert rslt == ledger_commitments[1]
-
-
-def test_sign_liquid_tx(jadeapi, has_psram, has_ble, pattern):
-    for txn_data in _get_test_cases(pattern):
-        inputdata = txn_data['input']
-        if not has_psram:
-            # Skip any liquid txns too large for reduced message buffer on no-psram devices
-            if len(inputdata['txn']) > (15 * 1024):  # esitimate 1k for rest of message fields
-                logger.warning('Skipping test - tx too large for non-psram device')
-                continue
-
-            # Skip any explicit proof tests which cannot be handled by no-psram devices
-            if any(tcs and ('value_blind_proof' in tcs or 'asset_blind_proof' in tcs)
-                    for tcs in inputdata['trusted_commitments']):
-                logger.warning('Skipping test - explicit proofs too large for non-psram device')
-                continue
-
-        rslt = jadeapi.sign_liquid_tx(inputdata['network'],
-                                      inputdata['txn'],
-                                      inputdata['inputs'],
-                                      inputdata['trusted_commitments'],
-                                      inputdata['change'],
-                                      inputdata.get('use_ae_signatures'),
-                                      inputdata.get('asset_info'),
-                                      inputdata.get('additional_info'))
-
-        # Check returned signatures
-        _check_tx_signatures(jadeapi, txn_data, rslt)
 
 
 def test_sign_psbt(jadeapi, cases):
@@ -3730,13 +3724,13 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_sign_message_file(jadeapi)
 
     # Sign Tx - includes some failure cases
-    test_sign_tx(jadeapi, SIGN_TXN_TESTS)
-    test_sign_tx(jadeapi, SIGN_TXN_FAIL_CASES)
+    test_sign_tx(jadeapi, SIGN_TXN_TESTS, has_psram)
+    test_sign_tx(jadeapi, SIGN_TXN_FAIL_CASES, has_psram)
 
     # Test liquid blinding keys/nonce, blinded commitments and sign-tx
     test_liquid_blinding_keys(jadeapi)
     test_liquid_blinded_commitments(jadeapi)
-    test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_TESTS)
+    test_sign_tx(jadeapi, SIGN_LIQUID_TXN_TESTS, has_psram)
 
     # Test sign psbts (app-generated cases)
     test_sign_psbt(jadeapi, SIGN_PSBT_TESTS)
@@ -3758,16 +3752,16 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_miniscript_descriptor_registration(jadeapi, DESCRIPTOR_REG_SS_TESTS)
 
     test_get_singlesig_receive_address(jadeapi)
-    test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS)
+    test_sign_tx(jadeapi, SIGN_LIQUID_TXN_SINGLE_SIG_TESTS, has_psram)
 
     # Push the singlesig test mnemonic for tests which use it
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_SINGLE_SIG)
     assert rslt is True
 
     # Test signing singlesig transactions
-    test_sign_tx(jadeapi, SIGN_TXN_SS_TESTS)
-    test_sign_tx(jadeapi, SIGN_TXN_SS_BAD_TESTS)
-    test_sign_liquid_tx(jadeapi, has_psram, has_ble, SIGN_LIQUID_TXN_SS_TESTS)
+    test_sign_tx(jadeapi, SIGN_TXN_SS_TESTS, has_psram)
+    test_sign_tx(jadeapi, SIGN_TXN_SS_BAD_TESTS, has_psram)
+    test_sign_tx(jadeapi, SIGN_LIQUID_TXN_SS_TESTS, has_psram)
 
     # Test signing singlesig PSBTs (core generated test cases)
     # FIXME: Add tests for:
