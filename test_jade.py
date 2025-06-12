@@ -952,11 +952,9 @@ def _test_bad_params(jade, args, expected_error):
     assert 'result' not in reply
     assert 'error' in reply
     error = reply['error']
-    assert error['code'] == JadeError.BAD_PARAMETERS
+    assert error['code'] == JadeError.BAD_PARAMETERS, f"{error['code']} : {args}"
     assert 'message' in error
-    assert expected_error in error['message']
-
-    return error['message']
+    assert expected_error in error['message'], f"{error['message']} != {expected_error} : {args}"
 
 
 def test_bad_params(jade):
