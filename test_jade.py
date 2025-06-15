@@ -2092,26 +2092,26 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     # Some bad commitment data is detected immediately... esp if it is
     # missing or not syntactically valid, unparseable etc.
     bad_commitments = [  # Field missing - note commitments are optional so not an error to omit
-                        (_commitsMinus('asset_id'), 'extract trusted commitments'),
-                        (_commitsMinus('value'), 'extract trusted commitments'),
-                        (_commitsMinus('abf'), 'extract trusted commitments'),
-                        (_commitsMinus('vbf'), 'extract trusted commitments'),
+                        (_commitsMinus('asset_id'), 'trusted commitments'),
+                        (_commitsMinus('value'), 'trusted commitments'),
+                        (_commitsMinus('abf'), 'trusted commitments'),
+                        (_commitsMinus('vbf'), 'trusted commitments'),
                         (_commitsMinus('blinding_key'), 'Missing commitments data'),
                         # Field bad type/length etc.
-                        (_commitsUpdate('asset_id', 'notbin'), 'extract trusted commitments'),
-                        (_commitsUpdate('asset_id', h2b('123abc')), 'extract trusted commitments'),
-                        (_commitsUpdate('asset_id', b''), 'extract trusted commitments'),
-                        (_commitsUpdate('value', 'notint'), 'extract trusted commitments'),
-                        (_commitsUpdate('abf', 'notbin'), 'extract trusted commitments'),
-                        (_commitsUpdate('abf', h2b('123abc')), 'extract trusted commitments'),
-                        (_commitsUpdate('abf', b''), 'extract trusted commitments'),
-                        (_commitsUpdate('vbf', 'notbin'), 'extract trusted commitments'),
-                        (_commitsUpdate('vbf', h2b('123abc')), 'extract trusted commitments'),
-                        (_commitsUpdate('vbf', b''), 'extract trusted commitments'),
-                        (_commitsUpdate('asset_generator', 'notbin'), 'extract trusted commit'),
-                        (_commitsUpdate('asset_generator', '123abc'), 'extract trusted commit'),
-                        (_commitsUpdate('value_commitment', 'notbin'), 'extract trusted commit'),
-                        (_commitsUpdate('value_commitment', '123abc'), 'extract trusted commit'),
+                        (_commitsUpdate('asset_id', 'notbin'), 'trusted commitments'),
+                        (_commitsUpdate('asset_id', h2b('123abc')), 'trusted commitments'),
+                        (_commitsUpdate('asset_id', b''), 'trusted commitments'),
+                        (_commitsUpdate('value', 'notint'), 'trusted commitments'),
+                        (_commitsUpdate('abf', 'notbin'), 'trusted commitments'),
+                        (_commitsUpdate('abf', h2b('123abc')), 'trusted commitments'),
+                        (_commitsUpdate('abf', b''), 'trusted commitments'),
+                        (_commitsUpdate('vbf', 'notbin'), 'trusted commitments'),
+                        (_commitsUpdate('vbf', h2b('123abc')), 'trusted commitments'),
+                        (_commitsUpdate('vbf', b''), 'trusted commitments'),
+                        (_commitsUpdate('asset_generator', 'notbin'), 'trusted commitments'),
+                        (_commitsUpdate('asset_generator', '123abc'), 'trusted commitments'),
+                        (_commitsUpdate('value_commitment', 'notbin'), 'trusted commitments'),
+                        (_commitsUpdate('value_commitment', '123abc'), 'trusted commitments'),
                         (_commitsUpdate('blinding_key', 'notbin'), 'Missing commitments data'),
                         (_commitsUpdate('blinding_key', '123abc'), 'Missing commitments data'),
                         # Field bad value
@@ -2121,15 +2121,15 @@ ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                         (_commitsUpdate('asset_generator', BADVAL33), 'blinded asset generator'),
                         (_commitsUpdate('value_commitment', BADVAL33), 'blinded value commitment'),
                         # Asset blind proof in place of abf
-                        (_commitsAssetBlindProof(''), 'extract trusted commitments'),
-                        (_commitsAssetBlindProof('notbin'), 'extract trusted commitments'),
-                        (_commitsAssetBlindProof('123abc'), 'extract trusted commitments'),
-                        (_commitsAssetBlindProof(b''), 'extract trusted commitments'),
+                        (_commitsAssetBlindProof(''), 'trusted commitments'),
+                        (_commitsAssetBlindProof('notbin'), 'trusted commitments'),
+                        (_commitsAssetBlindProof('123abc'), 'trusted commitments'),
+                        (_commitsAssetBlindProof(b''), 'trusted commitments'),
                         # Value blind proof in place of vbf
-                        (_commitsValueBlindProof(''), 'extract trusted commitments'),
-                        (_commitsValueBlindProof('notbin'), 'extract trusted commitments'),
-                        (_commitsValueBlindProof('123abc'), 'extract trusted commitments'),
-                        (_commitsValueBlindProof(b''), 'extract trusted commitments')]
+                        (_commitsValueBlindProof(''), 'trusted commitments'),
+                        (_commitsValueBlindProof('notbin'), 'trusted commitments'),
+                        (_commitsValueBlindProof('123abc'), 'trusted commitments'),
+                        (_commitsValueBlindProof(b''), 'trusted commitments')]
     if has_psram:
         # Invalid/incorrect explicit proofs
         bad_commitments.append((_commitsAssetBlindProof(BAD_ASSET_PROOF),
