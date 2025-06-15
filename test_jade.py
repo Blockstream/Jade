@@ -19,6 +19,7 @@ import wallycore as wally
 from jadepy.jade import JadeAPI, JadeError
 
 # Enable jade logging
+args = None
 jadehandler = logging.StreamHandler()
 
 logger = logging.getLogger('jadepy.jade')
@@ -921,8 +922,8 @@ def test_unexpected_method(jade):
                   ('protocol6', 'get_signature'),
                   ('protocol7', 'get_extended_data')]
 
-    for args in unexpected:
-        request = jade.build_request(*args)
+    for rpc_args in unexpected:
+        request = jade.build_request(*rpc_args)
         reply = jade.make_rpc_call(request)
 
         # Assert protocol-error/unexpected-method response
@@ -932,8 +933,8 @@ def test_unexpected_method(jade):
         assert 'result' not in reply
 
 
-def _test_good_params(jade, args):
-    request = jade.build_request(*args)
+def _test_good_params(jade, rpc_args):
+    request = jade.build_request(*rpc_args)
     reply = jade.make_rpc_call(request)
 
     # Assert all-good response
@@ -943,8 +944,8 @@ def _test_good_params(jade, args):
     return reply['result']
 
 
-def _test_bad_params(jade, args, expected_error):
-    request = jade.build_request(*args)
+def _test_bad_params(jade, rpc_args, expected_error):
+    request = jade.build_request(*rpc_args)
     reply = jade.make_rpc_call(request)
 
     # Assert bad-parameters response
@@ -952,9 +953,9 @@ def _test_bad_params(jade, args, expected_error):
     assert 'result' not in reply
     assert 'error' in reply
     error = reply['error']
-    assert error['code'] == JadeError.BAD_PARAMETERS, f"{error['code']} : {args}"
+    assert error['code'] == JadeError.BAD_PARAMETERS, f"{error['code']}:{rpc_args}"
     assert 'message' in error
-    assert expected_error in error['message'], f"{error['message']} != {expected_error} : {args}"
+    assert expected_error in error['message'], f"{error['message']} != {expected_error}:{rpc_args}"
 
 
 def test_bad_params(jade):
@@ -3895,7 +3896,7 @@ def run_interface_tests(jadeapi,
 
 
 # Run all selected tests over a passed JadeAPI instance.
-def run_jade_tests(jadeapi, args, isble):
+def run_jade_tests(jadeapi, isble):
     logger.info(f'Running selected Jade tests over passed connection, is_ble={isble}')
 
     # Low-level JadeInterface tests
@@ -3987,7 +3988,7 @@ def mixed_sources_test(serialport, bleid):
 
 
 # Run all selected tests over all selected backends (serial/ble)
-def run_all_jade_tests(info, args):
+def run_all_jade_tests(info):
     logger.info('Running Jade tests over selected backend interfaces')
 
     # 1. Test over serial connection
@@ -3995,7 +3996,7 @@ def run_all_jade_tests(info, args):
         logger.info(f'Testing Serial ({args.serialport})')
         with JadeAPI.create_serial(args.serialport,
                                    timeout=args.serialtimeout) as jade:
-            run_jade_tests(jade, args, isble=False)
+            run_jade_tests(jade, isble=False)
             # 1.1 Code coverage
             if info['GCOV'] and (args.skipble or info['JADE_CONFIG'] != 'BLE'):
                 jade.run_remote_gcov_dump()
@@ -4006,7 +4007,7 @@ def run_all_jade_tests(info, args):
             bleid = info['EFUSEMAC'][6:]
             logger.info(f'Testing BLE ({bleid})')
             with JadeAPI.create_ble(serial_number=bleid) as jade:
-                run_jade_tests(jade, args, isble=True)
+                run_jade_tests(jade, isble=True)
 
             # 3. If testing both interfaces, test cannot connect 'other' when one in use
             if not args.skipserial:
@@ -4021,7 +4022,7 @@ def run_all_jade_tests(info, args):
 
 
 # Connect to Jade by serial or BLE and get the info block
-def get_jade_info(args):
+def get_jade_info():
     if not args.skipserial:
         logger.info(f'Getting info via Serial ({args.serialport})')
         with JadeAPI.create_serial(device=args.serialport,
@@ -4035,7 +4036,7 @@ def get_jade_info(args):
             return jade.get_version_info()
 
 
-def test_ble_connection_fails(info, args):
+def test_ble_connection_fails(info):
     if not args.skipble:
         if info['JADE_CONFIG'] == 'BLE':
             bleid = info['EFUSEMAC'][6:]
@@ -4177,6 +4178,7 @@ if __name__ == '__main__':
                         help='Jade logging level',
                         choices=['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'],
                         default='INFO')
+
     args = parser.parse_args()
     jadehandler.setLevel(getattr(logging, args.loglevel))
     logger.debug(f'args: {args}')
@@ -4203,10 +4205,10 @@ if __name__ == '__main__':
         btagent = start_agent(args.agentkeyfile)
 
     try:
-        info = get_jade_info(args)
+        info = get_jade_info()
         if info:
             # Tests of low-level interface and negative tests
-            run_all_jade_tests(info, args)
+            run_all_jade_tests(info)
 
             # FIXME: appears to work (locally) on esp4.1 branch
             # Can only work if only one test running on the box
@@ -4218,7 +4220,7 @@ if __name__ == '__main__':
             #        kill_agent(btagent)
             #    logger.info('Testing BLE fails with incorrect passkey')
             #    btgent = start_agent(BLE_TEST_BADKEYFILE)
-            #    test_ble_connection_fails(info, args)
+            #    test_ble_connection_fails(info)
         else:
             assert False, 'Failed to connect to Jade over serial or BLE'
     finally:
