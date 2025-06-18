@@ -1,7 +1,27 @@
 #ifdef AMALGAMATED_BUILD
 #undef AMALGAMATED_BUILD
+
 #include <stdlib.h>
+void __wrap_abort(void);
 #define abort __wrap_abort
+
+#define BUILD_ELEMENTS 1
+#define BUILD_MINIMAL 1
+#define HAVE_MBEDTLS_SHA256_H
+#define HAVE_MBEDTLS_SHA512_H
+#define ECMULT_WINDOW_SIZE 8
+#define ENABLE_MODULE_ECDH 1
+#define ENABLE_MODULE_ECDSA_S2C 1
+#define ENABLE_MODULE_EXTRAKEYS 1
+#define ENABLE_MODULE_GENERATOR 1
+#define ENABLE_MODULE_RANGEPROOF 1
+#define ENABLE_MODULE_RECOVERY 1
+#define ENABLE_MODULE_SCHNORRSIG 1
+#define ENABLE_MODULE_SURJECTIONPROOF 1
+#define ENABLE_MODULE_WHITELIST 1
+#define HAVE_BUILTIN_POPCOUNT 1
+#include "../components/libwally-core/upstream/src/amalgamation/combined.c"
+
 #include "./aes.c"
 #include "./assets.c"
 #ifdef CONFIG_IDF_TARGET_ESP32S3

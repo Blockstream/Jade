@@ -29,6 +29,10 @@ set_source_files_properties(
     "-Wno-nonnull-compare -Wno-unused-function -Wno-error=maybe-uninitialized -Wno-type-limits -Wno-error=array-parameter"
     )
 
+if(CONFIG_AMALGAMATED_BUILD)
+    target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DWALLY_NO_AMALGAMATION=1")
+endif()
+
 # fortify/performance flags
 target_compile_definitions(${COMPONENT_TARGET} PRIVATE NDEBUG=1)
 target_compile_options(${COMPONENT_TARGET} PRIVATE "-fstack-protector-strong")

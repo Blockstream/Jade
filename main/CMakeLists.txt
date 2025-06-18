@@ -31,6 +31,13 @@ else()
     list(APPEND logo_files ${PROJECT_DIR}/logo/icon_qrguide_qvga_large.bin.gz ${PROJECT_DIR}/logo/icon_qrguide_qvga_small.bin.gz)
 endif()
 
+if(CONFIG_AMALGAMATED_BUILD)
+    set(wallydir "${PROJECT_DIR}/components/libwally-core")
+    list(APPEND wallydirs "${wallydir}" "${wallydir}/upstream" "${wallydir}/upstream/src" "${wallydir}/upstream/src/ccan")
+    set(secpdir "${wallydir}/upstream/src/secp256k1/include")
+endif()
+
+
 idf_component_register(SRC_DIRS "."
                                 "process"
                                 "utils"
@@ -45,6 +52,8 @@ idf_component_register(SRC_DIRS "."
                           "${qemudir}"
                           "${attestdir}"
                           "${usbdir}"
+                          "${wallydirs}"
+                          "${secpdir}"
         PRIV_REQUIRES assets libwally-core libsodium esp32-rotary-encoder esp32-quirc bootloader_support app_update nvs_flash bt autogenlang cbor esp_netif esp32_bsdiff esp32_deflate nghttp esp32_bc-ur driver mbedtls http_parser esp_hw_support efuse esp_eth esp_http_server esp_lcd usb vfs app_trace spi_flash
         EMBED_FILES ${PROJECT_DIR}/pinserver_public_key.pub ${logo_files} ${qemu_display_file})
 
