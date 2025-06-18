@@ -20,8 +20,8 @@ static bool key_iter_is_supported_taproot(const key_iter* iter, const struct wal
             return false; // Leaf script present: a script-path spend
         }
         // TODO: use the wally merkle root accessor when it is exposed
-        const uint32_t PSBT_IN_TAP_MERKLE_ROOT = 0x18; // From BIP-174
-        if (wally_map_get_integer(&input->psbt_fields, PSBT_IN_TAP_MERKLE_ROOT)) {
+        const uint32_t psbt_in_tap_merkle_root = 0x18; // From BIP-174
+        if (wally_map_get_integer(&input->psbt_fields, psbt_in_tap_merkle_root)) {
             return false; // Merkle root present: script-path present
         }
     } else {
