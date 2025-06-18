@@ -1,43 +1,5 @@
 idf_component_register(SRCS
-                       "upstream/src/address.c"
-                       "upstream/src/aes.c"
-                       "upstream/src/anti_exfil.c"
-                       "upstream/src/base_58.c"
-                       "upstream/src/base_64.c"
-                       "upstream/src/bech32.c"
-                       "upstream/src/bip32.c"
-                       "upstream/src/bip38.c"
-                       "upstream/src/bip39.c"
-                       "upstream/src/bip85.c"
-                       "upstream/src/blech32.c"
-                       "upstream/src/coins.c"
-                       "upstream/src/descriptor.c"
-                       "upstream/src/ecdh.c"
-                       "upstream/src/elements.c"
-                       "upstream/src/hex_.c"
-                       "upstream/src/hmac.c"
-                       "upstream/src/internal.c"
-                       "upstream/src/map.c"
-                       "upstream/src/mnemonic.c"
-                       "upstream/src/pbkdf2.c"
-                       "upstream/src/psbt.c"
-                       "upstream/src/pullpush.c"
-                       "upstream/src/script.c"
-                       "upstream/src/scrypt.c"
-                       "upstream/src/sign.c"
-                       "upstream/src/symmetric.c"
-                       "upstream/src/transaction.c"
-                       "upstream/src/tx_io.c"
-                       "upstream/src/wif.c"
-                       "upstream/src/wordlist.c"
-                       "upstream/src/ccan/ccan/base64/base64.c"
-                       "upstream/src/ccan/ccan/crypto/ripemd160/ripemd160.c"
-                       "upstream/src/ccan/ccan/crypto/sha256/sha256.c"
-                       "upstream/src/ccan/ccan/crypto/sha512/sha512.c"
-                       "upstream/src/ccan/ccan/str/hex/hex.c"
-                       "upstream/src/secp256k1/src/secp256k1.c"
-                       "upstream/src/secp256k1/src/precomputed_ecmult.c"
-                       "upstream/src/secp256k1/src/precomputed_ecmult_gen.c"
+                       "upstream/src/amalgamation/combined.c"
                        INCLUDE_DIRS
                        "upstream/include"
                        PRIV_INCLUDE_DIRS
@@ -62,16 +24,7 @@ idf_component_register(SRCS
                        PRIV_REQUIRES mbedtls)
 
 set_source_files_properties(
-    upstream/src/secp256k1/src/secp256k1.c
-    upstream/src/secp256k1/src/precomputed_ecmult.c
-    upstream/src/secp256k1/src/precomputed_ecmult_gen.c
-    upstream/src/secp256k1/src/modules/rangeproof/rangeproof_impl.h
-    upstream/src/bip32.c
-    upstream/src/bip38.c
-    upstream/src/ccan/ccan/base64/base64.c
-    upstream/src/psbt.c
-    upstream/src/sign.c
-    upstream/src/transaction.c
+    upstream/src/amalgamation/combined.c
     PROPERTIES COMPILE_FLAGS
     "-Wno-nonnull-compare -Wno-unused-function -Wno-error=maybe-uninitialized -Wno-type-limits -Wno-error=array-parameter"
     )
