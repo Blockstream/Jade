@@ -22,7 +22,7 @@ menu "Blockstream Jade"
 
     config AMALGAMATED_BUILD
         bool "Amalgamated build"
-        default n
+        default y
         help
             Enable amagamated build, compiling all files as a single translation unit.  Should create a smaller/faster binary.
 

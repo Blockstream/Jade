@@ -78,13 +78,13 @@ test_build_qemu_psram:
   after_script:
     - mv build build_display_qemu_psram
 
-test_build_qemu_psram_amalgamated:
+test_build_qemu_psram_unamalgamated:
   extends: .test_build_template
   before_script:
     - cp configs/sdkconfig_qemu_psram.defaults sdkconfig.defaults
-    - echo "CONFIG_AMALGAMATED_BUILD=y" >>sdkconfig.defaults
+    - echo "CONFIG_AMALGAMATED_BUILD=n" >>sdkconfig.defaults
   after_script:
-    - mv build build_display_qemu_psram_amalgamated
+    - mv build build_display_qemu_psram_unamalgamated
 
 prod_build_jade:
   before_script:
@@ -397,14 +397,14 @@ test_flash_qemu_psram:
     - ./main/qemu/make-flash-img.sh
     - ./main/qemu/qemu_ci_flash.sh
 
-test_flash_qemu_psram_amalgamated:
+test_flash_qemu_psram_unamalgamated:
   stage: deploy
   tags:
     - ga
   needs:
-    - test_build_qemu_psram_amalgamated
+    - test_build_qemu_psram_unamalgamated
   before_script:
-    - mv build_display_qemu_psram_amalgamated build
+    - mv build_display_qemu_psram_unamalgamated build
   script:
     - ./main/qemu/make-flash-img.sh
     - ./main/qemu/qemu_ci_flash.sh
