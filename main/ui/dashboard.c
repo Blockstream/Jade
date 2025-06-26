@@ -749,11 +749,18 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
     }
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
     case 6: {
+        gui_view_node_t* vsplit;
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 80, 20);
+        gui_set_parent(vsplit, parent);
+
         Picture* const pic = get_picture(telecstart, telecend);
         gui_make_picture(&node, pic);
-        gui_set_parent(node, parent);
+        gui_set_parent(node, vsplit);
         gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_padding(node, GUI_MARGIN_ALL_EQUAL, 12);
+
+        gui_make_text(&node, "211-210802", TFT_WHITE);
+        gui_set_parent(node, vsplit);
+        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
         break;
     }
 #endif
