@@ -326,7 +326,7 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
 
     // We should only do this if within 0.4 seconds or so we don't detect a usb device already plugged
 
-    // Now wait for either the the sempahore to be unlocked or for back button on the activity
+    // Now wait for either the sempahore to be unlocked or for back button on the activity
     size_t counter = 0;
     gui_activity_t* act_prompt = NULL;
     bool action_initiated = false;
