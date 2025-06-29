@@ -2095,7 +2095,7 @@ The batch of replies should contain the same number of messages as the number of
 sign_liquid_tx request (anti-exfil)
 -----------------------------------
 
-To use Anti-Exfil signatures (recommended), the the initial request is the same as in sign_liquid_tx_legacy_request_, except the 'use_ae_signatures' field should be set to 'true'.
+To use Anti-Exfil signatures (recommended), the initial request is the same as in sign_liquid_tx_legacy_request_, except the 'use_ae_signatures' field should be set to 'true'.
 
 .. _sign_liquid_tx_ae_reply:
 
