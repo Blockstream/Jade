@@ -28,7 +28,10 @@ bool params_trusted_commitments(
 TxType_t params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
     bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums);
 
-bool get_commitment_data(
+// Returns true if commitments are present and validated correctly.
+// Returns false otherwise, with errmsg set if an error occurred, or
+// NULL if no commitment data was present.
+bool params_commitment_data(
     CborValue* item, commitment_t* commitment, const struct wally_tx_output* const txout, const char** errmsg);
 
 bool asset_summary_update(

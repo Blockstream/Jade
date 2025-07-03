@@ -276,10 +276,46 @@ bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
 }
 
 #ifdef CONFIG_SPIRAM
-static bool verify_explicit_proofs(void* ctx);
-#endif
+// Workaround to run 'wally_explicit_surjectionproof_verify()' and 'wally_explicit_rangeproof_verify()'
+// on a temporary stack, as the underlying libsecp calls require over 50kb of stack space.
+// NOTE: devices without SPIRAM do not have sufficient free memory to be able to do this verification,
+// so atm we exclude it for those devices.
+static bool verify_explicit_proofs(void* ctx)
+{
+    JADE_ASSERT(ctx);
 
-bool get_commitment_data(
+    const ext_commitment_t* ec = (const ext_commitment_t*)ctx;
+    const commitment_t* c = &ec->c;
+    JADE_ASSERT(c->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF));
+
+    if (c->content & COMMITMENTS_ASSET_BLIND_PROOF) {
+        uint8_t reversed_asset_id[sizeof(c->asset_id)];
+        reverse(reversed_asset_id, c->asset_id, sizeof(c->asset_id));
+
+        // NOTE: Appears to require ~52kb of stack space
+        if (wally_explicit_surjectionproof_verify(c->asset_blind_proof, sizeof(c->asset_blind_proof), reversed_asset_id,
+                sizeof(reversed_asset_id), ec->asset_generator, sizeof(ec->asset_generator))
+            != WALLY_OK) {
+            // Failed to verify explicit asset proof
+            return false;
+        }
+    }
+
+    if (c->content & COMMITMENTS_VALUE_BLIND_PROOF) {
+        // NOTE: Appears to require ~40kb of stack space
+        if (wally_explicit_rangeproof_verify(c->value_blind_proof, c->value_blind_proof_len, c->value,
+                ec->value_commitment, sizeof(ec->value_commitment), ec->asset_generator, sizeof(ec->asset_generator))
+            != WALLY_OK) {
+            // Failed to verify explicit value proof
+            return false;
+        }
+    }
+
+    return true;
+}
+#endif // CONFIG_SPIRAM
+
+bool params_commitment_data(
     CborValue* item, commitment_t* commitment, const struct wally_tx_output* const txout, const char** errmsg)
 {
     JADE_ASSERT(item);
@@ -482,7 +518,7 @@ bool params_trusted_commitments(
         }
 
         // Populate commitments data for the tx output if present
-        get_commitment_data(&arrayItem, &commitments[i], &tx->outputs[i], &errmsg);
+        params_commitment_data(&arrayItem, &commitments[i], &tx->outputs[i], &errmsg);
         if (errmsg) {
             goto cleanup;
         }
@@ -505,46 +541,6 @@ cleanup:
     }
     return true;
 }
-
-#ifdef CONFIG_SPIRAM
-// Workaround to run 'wally_explicit_surjectionproof_verify()' and 'wally_explicit_rangeproof_verify()'
-// on a temporary stack, as the underlying libsecp calls require over 50kb of stack space.
-// NOTE: devices without SPIRAM do not have sufficient free memory to be able to do this verification,
-// so atm we exclude it for those devices.
-static bool verify_explicit_proofs(void* ctx)
-{
-    JADE_ASSERT(ctx);
-
-    const ext_commitment_t* ec = (const ext_commitment_t*)ctx;
-    const commitment_t* c = &ec->c;
-    JADE_ASSERT(c->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF));
-
-    if (c->content & COMMITMENTS_ASSET_BLIND_PROOF) {
-        uint8_t reversed_asset_id[sizeof(c->asset_id)];
-        reverse(reversed_asset_id, c->asset_id, sizeof(c->asset_id));
-
-        // NOTE: Appears to require ~52kb of stack space
-        if (wally_explicit_surjectionproof_verify(c->asset_blind_proof, sizeof(c->asset_blind_proof), reversed_asset_id,
-                sizeof(reversed_asset_id), ec->asset_generator, sizeof(ec->asset_generator))
-            != WALLY_OK) {
-            // Failed to verify explicit asset proof
-            return false;
-        }
-    }
-
-    if (c->content & COMMITMENTS_VALUE_BLIND_PROOF) {
-        // NOTE: Appears to require ~40kb of stack space
-        if (wally_explicit_rangeproof_verify(c->value_blind_proof, c->value_blind_proof_len, c->value,
-                ec->value_commitment, sizeof(ec->value_commitment), ec->asset_generator, sizeof(ec->asset_generator))
-            != WALLY_OK) {
-            // Failed to verify explicit value proof
-            return false;
-        }
-    }
-
-    return true;
-}
-#endif // CONFIG_SPIRAM
 
 static bool add_output_info(
     commitment_t* commitments, const struct wally_tx_output* txoutput, output_info_t* outinfo, const char** errmsg)
