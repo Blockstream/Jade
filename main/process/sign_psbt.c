@@ -682,13 +682,15 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    // Txn data must be available
-    struct wally_tx* tx = NULL;
-    if (wally_psbt_extract(psbt, WALLY_PSBT_EXTRACT_NON_FINAL, &tx) != WALLY_OK || !tx) {
+    struct wally_tx* tx = NULL; // Holds the extracted tx
+    // Fetch the tx to sign
+    if (psbt->version == WALLY_PSBT_VERSION_0) {
+        tx = psbt->tx; // For v0, use the PSBT tx directly
+    } else if (wally_psbt_extract(psbt, WALLY_PSBT_EXTRACT_NON_FINAL, &tx) != WALLY_OK) {
         *errmsg = "Failed to extract valid txn from passed psbt";
         return CBOR_RPC_BAD_PARAMETERS;
     }
-    JADE_ASSERT(tx->num_inputs == psbt->num_inputs && tx->num_outputs == psbt->num_outputs);
+    JADE_ASSERT(tx && tx->num_inputs == psbt->num_inputs && tx->num_outputs == psbt->num_outputs);
 
     key_iter iter; // Holds any public/private key in use
     SENSITIVE_PUSH(&iter, sizeof(iter));
@@ -982,7 +984,9 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
 
 cleanup:
     SENSITIVE_POP(&iter);
-    JADE_WALLY_VERIFY(wally_tx_free(tx));
+    if (tx && psbt->version != WALLY_PSBT_VERSION_0) {
+        JADE_WALLY_VERIFY(wally_tx_free(tx));
+    }
     free(descriptor);
     free(multisig_data);
     free(signing_inputs);
