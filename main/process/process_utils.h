@@ -16,20 +16,20 @@
 
 // Holds asset/value blinding data
 typedef struct {
-    uint8_t asset_blind_proof[ASSET_EXPLICIT_SURJECTIONPROOF_LEN];
-    uint8_t value_blind_proof[ASSET_EXPLICIT_RANGEPROOF_MAX_LEN];
+    uint64_t value;
     uint8_t asset_id[ASSET_TAG_LEN];
     uint8_t abf[BLINDING_FACTOR_LEN];
     uint8_t vbf[BLINDING_FACTOR_LEN];
     uint8_t blinding_key[EC_PUBLIC_KEY_LEN];
-    uint64_t value;
-    uint8_t value_blind_proof_len;
     uint8_t content;
 } commitment_t;
 
-// Holds asset/value blinding data plus the resulting blinded commitments
+// Holds asset/value blinding data plus the resulting blinded commitments/proofs
 typedef struct {
     commitment_t c;
+    uint8_t value_blind_proof_len;
+    uint8_t asset_blind_proof[ASSET_EXPLICIT_SURJECTIONPROOF_LEN];
+    uint8_t value_blind_proof[ASSET_EXPLICIT_RANGEPROOF_MAX_LEN];
     uint8_t asset_generator[ASSET_GENERATOR_LEN];
     uint8_t value_commitment[ASSET_COMMITMENT_LEN];
 } ext_commitment_t;
