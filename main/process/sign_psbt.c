@@ -753,6 +753,7 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
         if (utxo->script && utxo->script_len) {
             bool is_p2tr = false;
             const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len, &is_p2tr);
+            JADE_ASSERT(is_p2tr == (sig_type == WALLY_SIGTYPE_SW_V1));
             update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
         }
 
