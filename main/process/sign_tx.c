@@ -1,4 +1,5 @@
 #ifndef AMALGAMATED_BUILD
+#include "../ui/sign_tx.h"
 #include "../button_events.h"
 #include "../descriptor.h"
 #include "../jade_assert.h"
@@ -7,11 +8,9 @@
 #include "../multisig.h"
 #include "../process.h"
 #include "../sensitive.h"
-#include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
-#include "../utils/network.h"
 #include "../utils/wally_ext.h"
 #include "../wallet.h"
 
@@ -38,22 +37,11 @@ bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const ui
     const size_t asset_id_len, const uint64_t value);
 bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums);
 
-bool show_btc_transaction_outputs_activity(
-    const network_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
-bool show_elements_transaction_outputs_activity(const network_t network_id, const struct wally_tx* tx,
-    const output_info_t* output_info, const asset_info_t* assets, size_t num_assets);
-
-bool show_elements_swap_activity(const network_t network_id, bool initial_proposal, const asset_summary_t* in_sums,
-    size_t num_in_sums, const asset_summary_t* out_sums, size_t num_out_sums, const asset_info_t* assets,
-    size_t num_assets);
-
-bool show_btc_final_confirmation_activity(network_t network_id, uint64_t fee, const char* warning_msg);
-bool show_elements_final_confirmation_activity(
-    const network_t network_id, const char* title, const uint64_t fee, const char* warning_msg);
-
-bool show_elements_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
-    const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t fees,
-    const TxType_t txtype, const bool is_partial);
+bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
+    script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
+bool show_elements_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx,
+    const output_info_t* outinfo, script_flavour_t aggregate_inputs_scripts_flavour, uint64_t fees, TxType_t txtype,
+    bool is_partial);
 
 struct wally_tx* rpc_get_signing_tx(
     jade_process_t* process, const CborValue* params, const network_t network_id, const bool for_liquid)
