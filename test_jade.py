@@ -574,6 +574,7 @@ SIGN_TXN_SS_BAD_TESTS = 'tx_ss_bad_*.json'
 SIGN_LIQUID_TXN_SS_TESTS = 'tx_liquid_ss*.json'
 SIGN_PSBT_TESTS = 'psbt_tm_*.json'
 SIGN_PSBT_SS_TESTS = 'psbt_ss_*.json'
+SIGN_PSET_SS_TESTS = 'pset_ss_*.json'
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -3027,8 +3028,10 @@ def test_sign_psbt(jadeapi, cases):
         try:
             rslt = jadeapi.sign_psbt(txn_data['input']['network'], txn_data['input']['psbt'])
         except JadeError as err:
+            if 'expected_output' in txn_data:
+                # We expected this test to pass
+                assert False, f'FAILED: {err.message}: {txn_data}'
             # Check expected error
-            assert 'expected_output' not in txn_data
             assert err.message == txn_data['expected_error'], err.message
             continue
 
@@ -3766,6 +3769,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # - Unusual input and change paths
     # - Negative test cases (invalid PSBTs)
     test_sign_psbt(jadeapi, SIGN_PSBT_SS_TESTS)
+    # Singlesig Liquid (PSET) tests
+    test_sign_psbt(jadeapi, SIGN_PSET_SS_TESTS)
 
     # Sign identity (ssh & gpg) tests require a specific mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12_IDENTITY)
