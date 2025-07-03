@@ -19,6 +19,9 @@ typedef struct _asset_summary {
     uint64_t validated_value;
 } asset_summary_t;
 
+bool params_txn_validate(network_t network_id, bool for_liquid, const struct wally_tx* const tx, uint64_t* explicit_fee,
+    const char** errmsg);
+
 bool params_trusted_commitments(
     jade_process_t* process, const CborValue* params, const struct wally_tx* tx, commitment_t** data);
 
@@ -35,7 +38,7 @@ bool asset_summary_validate(asset_summary_t* sums, size_t num_sums);
 
 bool validate_elements_outputs(jade_process_t* process, network_t network_id, const struct wally_tx* tx,
     TxType_t txtype, commitment_t* commitments, output_info_t* output_info, asset_summary_t* in_sums,
-    size_t num_in_sums, asset_summary_t* out_sums, size_t num_out_sums, uint64_t* fees);
+    size_t num_in_sums, asset_summary_t* out_sums, size_t num_out_sums);
 
 bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);

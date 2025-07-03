@@ -23,8 +23,8 @@
 
 #include "sign_utils.h"
 
-static struct wally_tx* params_txn(
-    jade_process_t* process, const CborValue* params, const network_t network_id, const bool for_liquid)
+static struct wally_tx* params_txn(jade_process_t* process, const CborValue* params, const network_t network_id,
+    const bool for_liquid, uint64_t* explicit_fee)
 {
     struct wally_tx* tx = NULL;
     const char* errmsg = NULL;
@@ -72,22 +72,7 @@ static struct wally_tx* params_txn(
         errmsg = "Unexpected number of inputs for transaction";
         goto fail;
     }
-
-    if (for_liquid) {
-        for (size_t i = 0; i < tx->num_outputs; ++i) {
-            bool exp_asset = tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX;
-            bool exp_value = tx->outputs[i].value[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX;
-            if (exp_asset != exp_value) {
-                errmsg = "Output asset and value blinding inconsistent";
-                goto fail;
-            }
-        }
-    }
-
-    size_t is_elements = 0;
-    JADE_WALLY_VERIFY(wally_tx_is_elements(tx, &is_elements));
-    if (for_liquid != is_elements) {
-        errmsg = "Transaction is the wrong type for the current network";
+    if (!params_txn_validate(network_id, for_liquid, tx, explicit_fee, &errmsg)) {
         goto fail;
     }
     return tx;
@@ -458,7 +443,8 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     CHECK_NETWORK_CONSISTENT(process);
     const jade_msg_source_t source = process->ctx.source;
 
-    struct wally_tx* tx = params_txn(process, &params, network_id, for_liquid);
+    uint64_t explicit_fee = 0;
+    struct wally_tx* tx = params_txn(process, &params, network_id, for_liquid, &explicit_fee);
     if (!tx) {
         goto cleanup;
     }
@@ -497,7 +483,6 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     asset_summary_t *in_sums = NULL, *out_sums = NULL;
     size_t num_in_sums = 0, num_out_sums = 0;
     bool is_partial = false;
-    uint64_t explicit_fee = 0;
     TxType_t txtype = TXTYPE_SEND_PAYMENT;
     // Liquid: Get any data from the optional 'additional_info' section
     if (for_liquid
@@ -508,8 +493,8 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
     // Liquid: Validate commitment, outputs and additional_info
     if (for_liquid
-        && !validate_elements_outputs(process, network_id, tx, txtype, commitments, output_info, in_sums, num_in_sums,
-            out_sums, num_out_sums, &explicit_fee)) {
+        && !validate_elements_outputs(
+            process, network_id, tx, txtype, commitments, output_info, in_sums, num_in_sums, out_sums, num_out_sums)) {
         goto cleanup;
     }
 
