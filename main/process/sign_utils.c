@@ -543,71 +543,72 @@ cleanup:
     return true;
 }
 
-static bool add_output_info(
-    commitment_t* commitments, const struct wally_tx_output* txoutput, output_info_t* outinfo, const char** errmsg)
-{
-    JADE_ASSERT(commitments);
-    JADE_ASSERT(txoutput);
-    JADE_ASSERT(outinfo);
-    JADE_INIT_OUT_PPTR(errmsg);
-    JADE_STATIC_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
-    JADE_STATIC_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
-
-    JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED)));
-    if (commitments->content != COMMITMENTS_NONE) {
-        // Output to be confidential/blinded, use the commitments data
-        outinfo->flags |= (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED);
-
-        // Fetch the asset_id, value, and optional blinding_key into the info struct
-        memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
-        outinfo->value = commitments->value;
-
-        if (commitments->content & COMMITMENTS_BLINDING_KEY) {
-            memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
-            outinfo->flags |= OUTPUT_FLAG_HAS_BLINDING_KEY;
-        }
-    } else if (txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX
-        || txoutput->value[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX) {
-        // No blinding info for blinded output - may not be an issue if we're
-        // not interested in this output.  Just set flags appropriately.
-        outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
-
-        // NOTE: This is not valid if this output has been validated as belonging to this wallet
-        if (outinfo->flags & OUTPUT_FLAG_VALIDATED) {
-            *errmsg = "Missing blinding information for wallet output";
-            return false;
-        }
-    } else {
-        // unconfidential, take directly from the tx
-        outinfo->flags |= OUTPUT_FLAG_HAS_UNBLINDED;
-
-        // Copy the asset ID without the leading unconfidential tag byte
-        // NOTE: we reverse the asset-id bytes to the 'display' order
-        reverse(outinfo->asset_id, txoutput->asset + 1, sizeof(outinfo->asset_id));
-
-        JADE_WALLY_VERIFY(
-            wally_tx_confidential_value_to_satoshi(txoutput->value, txoutput->value_len, &outinfo->value));
-    }
-
-    return true;
-}
-
-bool validate_elements_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
-    const TxType_t txtype, commitment_t* commitments, output_info_t* output_info, asset_summary_t* in_sums,
-    const size_t num_in_sums, asset_summary_t* out_sums, const size_t num_out_sums)
+// Populate a (blinding_key, asset, value) output_info array for each tx output
+bool update_elements_outputs(
+    const struct wally_tx* tx, commitment_t* commitments, output_info_t* output_info, const char** errmsg)
 {
     JADE_ASSERT(tx);
     JADE_ASSERT(commitments);
     JADE_ASSERT(output_info);
+    JADE_INIT_OUT_PPTR(errmsg);
 
-    const char* errmsg = NULL;
+    for (size_t i = 0; i < tx->num_outputs; ++i) {
+        output_info_t* const outinfo = output_info + i;
+        const struct wally_tx_output* const txoutput = tx->outputs + i;
+        const commitment_t* commitment = commitments + i;
+
+        JADE_STATIC_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitment->asset_id));
+        JADE_STATIC_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitment->blinding_key));
+
+        JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED)));
+        if (commitment->content != COMMITMENTS_NONE) {
+            // Output to be confidential/blinded, use the commitment data
+            outinfo->flags |= (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED);
+
+            // Fetch the asset_id, value, and optional blinding_key into the info struct
+            memcpy(outinfo->asset_id, commitment->asset_id, sizeof(commitment->asset_id));
+            outinfo->value = commitment->value;
+
+            if (commitment->content & COMMITMENTS_BLINDING_KEY) {
+                memcpy(outinfo->blinding_key, commitment->blinding_key, sizeof(commitment->blinding_key));
+                outinfo->flags |= OUTPUT_FLAG_HAS_BLINDING_KEY;
+            }
+        } else if (txoutput->asset[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX
+            || txoutput->value[0] != WALLY_TX_ASSET_CT_EXPLICIT_PREFIX) {
+            // No blinding info for blinded output - may not be an issue if we're
+            // not interested in this output.  Just set flags appropriately.
+            outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
+
+            // NOTE: This is not valid if this output has been validated as belonging to this wallet
+            if (outinfo->flags & OUTPUT_FLAG_VALIDATED) {
+                *errmsg = "Missing blinding information for wallet output";
+                return false;
+            }
+        } else {
+            // unconfidential, take directly from the tx
+            outinfo->flags |= OUTPUT_FLAG_HAS_UNBLINDED;
+
+            // Copy the asset ID without the leading unconfidential tag byte
+            // NOTE: we reverse the asset-id bytes to the 'display' order
+            reverse(outinfo->asset_id, txoutput->asset + 1, sizeof(outinfo->asset_id));
+
+            JADE_WALLY_VERIFY(
+                wally_tx_confidential_value_to_satoshi(txoutput->value, txoutput->value_len, &outinfo->value));
+        }
+    }
+    return true;
+}
+
+bool validate_elements_outputs(const network_t network_id, const struct wally_tx* tx, const TxType_t txtype,
+    const output_info_t* const output_info, asset_summary_t* in_sums, const size_t num_in_sums,
+    asset_summary_t* out_sums, const size_t num_out_sums, const char** errmsg)
+{
+    JADE_ASSERT(tx);
+    JADE_ASSERT(output_info);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     uint8_t policy_asset[ASSET_TAG_LEN];
     network_to_policy_asset(network_id, policy_asset, sizeof(policy_asset));
-
-    // Check the trusted commitments: expect one element in the array for each output.
-    // Can be null for unblinded outputs as we will skip them.
-    // Populate an `output_index` -> (blinding_key, asset, value) map
 
     // NOTE: some advanced tx types permit some outputs to be blind (ie blinded, without unblinding info/proofs)
     // By default/in the basic 'send payment' case all outputs must have unconfidential/unblinded.
@@ -615,16 +616,13 @@ bool validate_elements_outputs(jade_process_t* process, const network_t network_
 
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         // Gather the (unblinded) output info for user confirmation
-        output_info_t* outinfo = output_info + i;
-        if (!add_output_info(&commitments[i], &tx->outputs[i], outinfo, &errmsg)) {
-            goto done;
-        }
+        const output_info_t* const outinfo = output_info + i;
 
         // If are not allowing blinded outputs, check each confidential output has unblinding info
         if (!allow_blind_outputs && outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL) {
             if (!(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED) || !(outinfo->flags & OUTPUT_FLAG_HAS_BLINDING_KEY)) {
-                errmsg = "Missing trusted commitment data for blinded output";
-                goto done;
+                *errmsg = "Missing trusted commitment data for blinded output";
+                return false;
             }
         }
 
@@ -642,11 +640,6 @@ bool validate_elements_outputs(jade_process_t* process, const network_t network_
                     out_sums, num_out_sums, outinfo->asset_id, sizeof(outinfo->asset_id), outinfo->value);
             }
         }
-    }
-done:
-    if (errmsg) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
-        return false;
     }
     return true;
 }

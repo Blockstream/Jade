@@ -39,9 +39,12 @@ bool asset_summary_update(
 
 bool asset_summary_validate(asset_summary_t* sums, size_t num_sums);
 
-bool validate_elements_outputs(jade_process_t* process, network_t network_id, const struct wally_tx* tx,
-    TxType_t txtype, commitment_t* commitments, output_info_t* output_info, asset_summary_t* in_sums,
-    size_t num_in_sums, asset_summary_t* out_sums, size_t num_out_sums);
+bool update_elements_outputs(
+    const struct wally_tx* tx, commitment_t* commitments, output_info_t* outinfo, const char** errmsg);
+
+bool validate_elements_outputs(network_t network_id, const struct wally_tx* tx, TxType_t txtype,
+    const output_info_t* const output_info, asset_summary_t* in_sums, size_t num_in_sums, asset_summary_t* out_sums,
+    size_t num_out_sums, const char** errmsg);
 
 // Whether or not the sighash flags for a given tx/signature type is supported
 bool sighash_is_supported(TxType_t txtype, uint32_t sig_type, uint32_t sighash, bool for_liquid, bool is_partial);

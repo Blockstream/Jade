@@ -475,11 +475,16 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         goto cleanup;
     }
 
-    // Liquid: Validate commitment, outputs and additional_info
-    if (for_liquid
-        && !validate_elements_outputs(
-            process, network_id, tx, txtype, commitments, output_info, in_sums, num_in_sums, out_sums, num_out_sums)) {
-        goto cleanup;
+    // Liquid: Gather the (unblinded) output info for user confirmation,
+    // then validate output and additional_info values
+    if (for_liquid) {
+        const char* errmsg = NULL;
+        if (!update_elements_outputs(tx, commitments, output_info, &errmsg)
+            || !validate_elements_outputs(
+                network_id, tx, txtype, output_info, in_sums, num_in_sums, out_sums, num_out_sums, &errmsg)) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
+            goto cleanup;
+        }
     }
 
     const char* cancelmsg = NULL;
