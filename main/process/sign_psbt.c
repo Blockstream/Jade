@@ -759,6 +759,12 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         JADE_WALLY_VERIFY(wally_psbt_get_input_signature_type(psbt, index, &sig_type));
         JADE_ASSERT(sig_type);
         sig_types[index] = (uint8_t)sig_type; // Sufficient
+        if (sig_type == WALLY_SIGTYPE_SW_V1 && txtype == TXTYPE_SWAP) {
+            // The Liquid segwit v1 signature hash does not currently support swaps
+            *errmsg = "Swap transactions cannot contain taproot inputs";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
 
         const size_t num_keys = key_iter_get_num_keys(&iter);
         if (num_keys > 1) {
