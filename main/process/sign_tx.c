@@ -861,7 +861,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             JADE_LOGI("Input and output summary information validated");
         }
         if (is_partial && !explicit_fee) {
-            // Partial tx without fees - can skip the fee screen ?
+            // Partial tx without fees - can skip the fee screen
             JADE_LOGI("No fees for partial tx, so skipping fee confirmation screen");
         } else {
             // User to agree fee amount
