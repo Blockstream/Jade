@@ -497,7 +497,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     asset_summary_t *in_sums = NULL, *out_sums = NULL;
     size_t num_in_sums = 0, num_out_sums = 0;
     bool is_partial = false;
-    uint64_t liquid_fees = 0;
+    uint64_t explicit_fee = 0;
     TxType_t txtype = TXTYPE_SEND_PAYMENT;
     // Liquid: Get any data from the optional 'additional_info' section
     if (for_liquid
@@ -509,7 +509,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     // Liquid: Validate commitment, outputs and additional_info
     if (for_liquid
         && !validate_elements_outputs(process, network_id, tx, txtype, commitments, output_info, in_sums, num_in_sums,
-            out_sums, num_out_sums, &liquid_fees)) {
+            out_sums, num_out_sums, &explicit_fee)) {
         goto cleanup;
     }
 
@@ -884,14 +884,14 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         } else if (in_sums || out_sums) {
             JADE_LOGI("Input and output summary information validated");
         }
-        if (is_partial && !liquid_fees) {
+        if (is_partial && !explicit_fee) {
             // Partial tx without fees - can skip the fee screen ?
             JADE_LOGI("No fees for partial tx, so skipping fee confirmation screen");
         } else {
             // User to agree fee amount
             // If user cancels we'll send the 'cancelled' error response for the last input message only
             if (!show_elements_fee_confirmation_activity(
-                    network_id, tx, output_info, aggregate_inputs_scripts_flavour, liquid_fees, txtype, is_partial)) {
+                    network_id, tx, output_info, aggregate_inputs_scripts_flavour, explicit_fee, txtype, is_partial)) {
                 // If using ae-signatures, we need to load the message to send the error back on
                 if (use_ae_signatures) {
                     jade_process_load_in_message(process, true);
