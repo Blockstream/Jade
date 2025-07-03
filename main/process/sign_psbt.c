@@ -668,6 +668,20 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         return CBOR_RPC_BAD_PARAMETERS;
     }
     const bool for_liquid = is_elements;
+    bool has_genesis_blockhash = false;
+    if (for_liquid) {
+        // Liquid: Check ELIP-0101 genesis blockhash
+        size_t has_genesis = 0;
+        JADE_WALLY_VERIFY(wally_psbt_has_global_genesis_blockhash(psbt, &has_genesis));
+        has_genesis_blockhash = has_genesis;
+        if (has_genesis_blockhash) {
+            uint8_t genesis[SHA256_LEN];
+            network_to_genesis_hash(network_id, genesis, sizeof(genesis));
+            if (memcmp(psbt->genesis_blockhash, genesis, sizeof(genesis))) {
+                *errmsg = "Network/pset genesis mismatch";
+            }
+        }
+    }
 
     uint64_t explicit_fee = 0; // Liquid: Value of the explicit fee output
     struct wally_tx* tx = NULL; // Holds the extracted tx
@@ -953,6 +967,11 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
     display_processing_message_activity();
 
     // Sign our inputs
+    if (signing_flags && for_liquid && !has_genesis_blockhash) {
+        // Liquid: Provide the ELIP-0101 genesis blockhash when signing
+        network_to_genesis_hash(network_id, psbt->genesis_blockhash, sizeof(psbt->genesis_blockhash));
+    }
+
     JADE_WALLY_VERIFY(wally_psbt_signing_cache_enable(psbt, 0));
 
     for (size_t index = 0; index < psbt->num_inputs; ++index) {
