@@ -1,5 +1,5 @@
 {
-  "description": "FIXME",
+  "description": "Liquid L-BTC + asset p2pkh spend with change",
   "input": {
     "network": "localtest-liquid",
     "use_ae_signatures": true,
