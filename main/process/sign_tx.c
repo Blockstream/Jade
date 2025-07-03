@@ -21,27 +21,7 @@
 #include <wally_map.h>
 #include <wally_script.h>
 
-#include "process_utils.h"
-
-bool rpc_get_trusted_commitments(
-    jade_process_t* process, const CborValue* value, const struct wally_tx* tx, commitment_t** data);
-TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx,
-    TxType_t* txtype, bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums,
-    size_t* num_out_sums);
-bool validate_elements_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
-    const TxType_t txtype, commitment_t* commitments, output_info_t* output_info, asset_summary_t* in_sums,
-    const size_t num_in_sums, asset_summary_t* out_sums, const size_t num_out_sums, uint64_t* fees);
-bool get_commitment_data(CborValue* item, commitment_t* commitment);
-bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg);
-bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
-    const size_t asset_id_len, const uint64_t value);
-bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums);
-
-bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
-    script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
-bool show_elements_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx,
-    const output_info_t* outinfo, script_flavour_t aggregate_inputs_scripts_flavour, uint64_t fees, TxType_t txtype,
-    bool is_partial);
+#include "sign_utils.h"
 
 struct wally_tx* rpc_get_signing_tx(
     jade_process_t* process, const CborValue* params, const network_t network_id, const bool for_liquid)

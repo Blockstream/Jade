@@ -25,13 +25,7 @@
 #include <wally_psbt_members.h>
 #include <wally_script.h>
 
-#include "process_utils.h"
-
-bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
-    script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
-bool show_elements_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx,
-    const output_info_t* outinfo, script_flavour_t aggregate_inputs_scripts_flavour, uint64_t fees, TxType_t txtype,
-    bool is_partial);
+#include "sign_utils.h"
 
 // From https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
 static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; // 'psbt' + 0xff

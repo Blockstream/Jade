@@ -83,22 +83,6 @@ typedef enum { QR_GUIDES_NONE, QR_GUIDES_SMALL, QR_GUIDES_LARGE } qr_frame_guide
 #define OUTPUT_FLAG_CHANGE 8
 #define OUTPUT_FLAG_HAS_UNBLINDED 16
 
-typedef enum { TXTYPE_SEND_PAYMENT, TXTYPE_SWAP } TxType_t;
-
-typedef struct {
-    char message[128];
-    uint8_t blinding_key[33];
-    uint8_t asset_id[32];
-    uint64_t value;
-    uint8_t flags;
-} output_info_t;
-
-typedef struct {
-    uint8_t asset_id[32];
-    uint64_t value;
-    uint64_t validated_value;
-} asset_summary_t;
-
 // Progress bar
 typedef struct {
     bool transparent;

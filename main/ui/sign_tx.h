@@ -4,9 +4,9 @@
 #include "../ui.h"
 #include "../utils/network.h"
 
-struct asset_info_t;
-struct asset_summary_t;
-struct output_info_t;
+typedef struct _asset_info asset_info_t;
+typedef struct _asset_summary asset_summary_t;
+typedef struct _output_info output_info_t;
 struct wally_tx;
 
 bool show_btc_transaction_outputs_activity(

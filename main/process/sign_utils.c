@@ -1,4 +1,5 @@
 #ifndef AMALGAMATED_BUILD
+#include "sign_utils.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../ui/sign_tx.h"
