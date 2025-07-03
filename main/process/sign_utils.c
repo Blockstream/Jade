@@ -131,9 +131,8 @@ done:
     return true;
 }
 
-TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx,
-    TxType_t* txtype, bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums,
-    size_t* num_out_sums)
+TxType_t params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
+    bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums)
 {
     JADE_ASSERT(params);
     JADE_ASSERT(tx);
@@ -147,7 +146,7 @@ TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, con
     *is_partial = false;
     *txtype = TXTYPE_SEND_PAYMENT;
 
-    // If no 'additional_data' passed, assume this is a a simple send-payment 'classic' tx
+    // If no 'additional_info' passed, assume this is a a simple send-payment 'classic' tx
     CborValue additional_info;
     if (!rpc_get_map("additional_info", params, &additional_info)) {
         return true;
@@ -280,18 +279,18 @@ bool get_commitment_data(CborValue* item, commitment_t* commitment)
     return true;
 }
 
-bool rpc_get_trusted_commitments(
-    jade_process_t* process, const CborValue* value, const struct wally_tx* tx, commitment_t** data)
+bool params_trusted_commitments(
+    jade_process_t* process, const CborValue* params, const struct wally_tx* tx, commitment_t** data)
 {
     JADE_ASSERT(process);
-    JADE_ASSERT(value);
+    JADE_ASSERT(params);
     JADE_ASSERT(tx);
     JADE_INIT_OUT_PPTR(data);
 
     const char* errmsg = NULL;
 
     CborValue result;
-    if (!rpc_get_array("trusted_commitments", value, &result)) {
+    if (!rpc_get_array("trusted_commitments", params, &result)) {
         errmsg = "Failed to extract trusted commitments from parameters";
         goto cleanup;
     }
