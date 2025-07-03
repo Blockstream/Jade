@@ -43,6 +43,9 @@ bool validate_elements_outputs(jade_process_t* process, network_t network_id, co
     TxType_t txtype, commitment_t* commitments, output_info_t* output_info, asset_summary_t* in_sums,
     size_t num_in_sums, asset_summary_t* out_sums, size_t num_out_sums);
 
+// Whether or not the sighash flags for a given tx/signature type is supported
+bool sighash_is_supported(TxType_t txtype, uint32_t sig_type, uint32_t sighash, bool for_liquid, bool is_partial);
+
 bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
 

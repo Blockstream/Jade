@@ -651,8 +651,24 @@ done:
     return true;
 }
 
-bool show_btc_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
-    const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t input_amount, const uint64_t output_amount)
+bool sighash_is_supported(const TxType_t txtype, const uint32_t sig_type, const uint32_t sighash, const bool for_liquid,
+    const bool is_partial)
+{
+    if (for_liquid && txtype == TXTYPE_SWAP && is_partial) {
+        // Liquid partial swap: must be SINGLE | ACP
+        return sighash == (WALLY_SIGHASH_SINGLE | WALLY_SIGHASH_ANYONECANPAY);
+    }
+    if (sig_type == WALLY_SIGTYPE_SW_V1) {
+        // Taproot: must be ALL or DEFAULT
+        return sighash == WALLY_SIGHASH_DEFAULT || sighash == WALLY_SIGHASH_ALL;
+    }
+    // All other cases must be ALL at present
+    return sighash == WALLY_SIGHASH_ALL;
+}
+
+bool show_btc_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
+    const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t input_amount,
+    const uint64_t output_amount)
 {
     JADE_ASSERT(tx);
     // outputinfo is optional
