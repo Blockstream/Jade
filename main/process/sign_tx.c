@@ -608,7 +608,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
                 // Verify any blinding info for this input - note can only use blinded inputs
                 commitment_t c;
-                if (get_commitment_data(&params, &c, NULL, &errmsg)) {
+                if (params_commitment_data(&params, &c, NULL, &errmsg)) {
                     JADE_ASSERT(!errmsg);
                     // Valid input commitments: update the summary
                     asset_summary_update(in_sums, num_in_sums, c.asset_id, sizeof(c.asset_id), c.value);
