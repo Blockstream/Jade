@@ -47,8 +47,7 @@ void get_commitments_process(void* process_ptr)
     ext_commitment_t ec;
 
     if (!rpc_get_n_bytes("asset_id", &params, sizeof(ec.c.asset_id), ec.c.asset_id)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract asset_id from parameters");
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract asset_id from parameters");
         goto cleanup;
     }
 
@@ -98,8 +97,7 @@ void get_commitments_process(void* process_ptr)
         // Compute abf only
         if (!wallet_get_blinding_factor(master_blinding_key, sizeof(master_blinding_key), hash_prevouts,
                 hash_prevouts_len, output_index, BF_ASSET, ec.c.abf, sizeof(ec.c.abf))) {
-            jade_process_reject_message(
-                process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf from the parameters");
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to compute abf from the parameters");
             goto cleanup;
         }
     }

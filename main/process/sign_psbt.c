@@ -667,7 +667,9 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    uint64_t explicit_fee = 0;
+    const TxType_t txtype = TXTYPE_SEND_PAYMENT; // FIXME: Liquid: assumed for now
+    const bool is_partial = false; // FIXME: Liquid: assumed for now
+    uint64_t explicit_fee = 0; // Liquid: Value of the explicit fee output
     struct wally_tx* tx = NULL; // Holds the extracted tx
 
     // Fetch the tx to sign
@@ -739,12 +741,10 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
             signing_flags |= PSBT_SIGNING_SINGLESIG;
         }
 
-        // Only support SIGHASH_ALL, or SIGHASH_DEFAULT for taproot atm.
-        // SIGHASH_DEFAULT is 0 so passes this check, the 0 is
-        // converted to ALL/DEFAULT by wally when signing
-        if (input->sighash && input->sighash != WALLY_SIGHASH_ALL) {
+        // Check sighash, but only if one was provided (the default is always valid)
+        if (input->sighash && !sighash_is_supported(txtype, sig_type, input->sighash, is_elements, is_partial)) {
             JADE_LOGW("Unsupported sighash for signing input %u", index);
-            *errmsg = "Unsupported sighash";
+            *errmsg = "Unsupported sighash value";
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
         }
@@ -849,9 +849,6 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
     JADE_ASSERT(!explicit_fee || is_elements);
 
     if (is_elements) {
-        // FIXME: some assumptions for now
-        const TxType_t txtype = TXTYPE_SEND_PAYMENT;
-        const bool is_partial = false;
         const asset_info_t* assets = NULL;
         const size_t num_assets = 0;
 

@@ -408,22 +408,6 @@ static void send_ec_signature_replies(
     }
 }
 
-// Whether or not a sighash type is valid
-static bool is_valid_sig_type(
-    const input_data_t* const input_data, const TxType_t txtype, const bool for_liquid, const bool is_partial)
-{
-    if (for_liquid && txtype == TXTYPE_SWAP && is_partial) {
-        // Liquid partial swap: must be SINGLE | ACP
-        return input_data->sighash == (WALLY_SIGHASH_SINGLE | WALLY_SIGHASH_ANYONECANPAY);
-    }
-    if (input_data->sig_type == WALLY_SIGTYPE_SW_V1) {
-        // Taproot: must be ALL or DEFAULT
-        return input_data->sighash == WALLY_SIGHASH_DEFAULT || input_data->sighash == WALLY_SIGHASH_ALL;
-    }
-    // All other cases must be ALL at present
-    return input_data->sighash == WALLY_SIGHASH_ALL;
-}
-
 /*
  * The message flow here is complicated because we cater for both a legacy flow
  * for standard deterministic EC signatures (see rfc6979) and a newer message
@@ -589,7 +573,8 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
                 goto cleanup;
             }
-            if (!is_valid_sig_type(input_data, txtype, for_liquid, is_partial)) {
+            if (!sighash_is_supported(txtype, input_data->sig_type, input_data->sighash, for_liquid, is_partial)) {
+                JADE_LOGW("Unsupported sighash for signing input %u", index);
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value");
                 goto cleanup;
             }
