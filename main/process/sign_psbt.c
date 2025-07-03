@@ -696,8 +696,8 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
 
     // Go through each of the inputs summing amounts
     // Also, if we are signing this input, inspect the script type and any multisig info
-    // Record which inputs we are interested in signing
-    bool* const signing_inputs = JADE_CALLOC(psbt->num_inputs, sizeof(bool));
+    // For inputs we are signing, record the signature type
+    uint8_t* const sig_types = JADE_CALLOC(psbt->num_inputs, sizeof(uint8_t));
     uint64_t input_amount = 0;
     uint8_t signing_flags = 0;
     char wallet_name[NVS_KEY_NAME_MAX_SIZE] = { '\0' };
@@ -726,7 +726,10 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
 
         // Found our key - we are signing this input
         JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", iter.key_index, index);
-        signing_inputs[index] = true;
+        uint32_t sig_type;
+        JADE_WALLY_VERIFY(wally_psbt_get_input_signature_type(psbt, index, &sig_type));
+        JADE_ASSERT(sig_type);
+        sig_types[index] = (uint8_t)sig_type; // Sufficient
 
         const size_t num_keys = key_iter_get_num_keys(&iter);
         if (num_keys > 1) {
@@ -765,7 +768,7 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
             size_t path_len = 0;
             uint32_t path[MAX_PATH_LEN];
             if (!key_iter_get_path(&iter, path, MAX_PATH_LEN, &path_len)) {
-                JADE_LOGE("No valid path in output %u, ignoring", index);
+                JADE_LOGE("No valid path in input %u, ignoring", index);
                 continue;
             }
 
@@ -927,7 +930,7 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
 
     for (size_t index = 0; index < psbt->num_inputs; ++index) {
         // See if we flagged this input for signing
-        if (!signing_inputs[index]) {
+        if (!sig_types[index]) {
             JADE_LOGD("Not required to sign input %u", index);
             continue;
         }
@@ -981,7 +984,7 @@ cleanup:
     }
     free(descriptor);
     free(multisig_data);
-    free(signing_inputs);
+    free(sig_types);
     free(output_info);
     return retval;
 }
