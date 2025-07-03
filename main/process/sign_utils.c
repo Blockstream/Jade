@@ -293,8 +293,8 @@ static bool verify_explicit_proofs(void* ctx)
         reverse(reversed_asset_id, c->asset_id, sizeof(c->asset_id));
 
         // NOTE: Appears to require ~52kb of stack space
-        if (wally_explicit_surjectionproof_verify(c->asset_blind_proof, sizeof(c->asset_blind_proof), reversed_asset_id,
-                sizeof(reversed_asset_id), ec->asset_generator, sizeof(ec->asset_generator))
+        if (wally_explicit_surjectionproof_verify(ec->asset_blind_proof, sizeof(ec->asset_blind_proof),
+                reversed_asset_id, sizeof(reversed_asset_id), ec->asset_generator, sizeof(ec->asset_generator))
             != WALLY_OK) {
             // Failed to verify explicit asset proof
             return false;
@@ -303,7 +303,7 @@ static bool verify_explicit_proofs(void* ctx)
 
     if (c->content & COMMITMENTS_VALUE_BLIND_PROOF) {
         // NOTE: Appears to require ~40kb of stack space
-        if (wally_explicit_rangeproof_verify(c->value_blind_proof, c->value_blind_proof_len, c->value,
+        if (wally_explicit_rangeproof_verify(ec->value_blind_proof, ec->value_blind_proof_len, c->value,
                 ec->value_commitment, sizeof(ec->value_commitment), ec->asset_generator, sizeof(ec->asset_generator))
             != WALLY_OK) {
             // Failed to verify explicit value proof
@@ -325,44 +325,45 @@ bool params_commitment_data(
 
     commitment->content = COMMITMENTS_NONE;
 
+    ext_commitment_t ec;
+    ec.c.content = COMMITMENTS_NONE;
+
     // Need abf or asset_blind_proof
-    if (rpc_get_n_bytes("abf", item, sizeof(commitment->abf), commitment->abf)) {
-        commitment->content |= COMMITMENTS_ABF;
+    if (rpc_get_n_bytes("abf", item, sizeof(ec.c.abf), ec.c.abf)) {
+        ec.c.content |= COMMITMENTS_ABF;
     }
 
-    if (rpc_get_n_bytes(
-            "asset_blind_proof", item, sizeof(commitment->asset_blind_proof), commitment->asset_blind_proof)) {
-        commitment->content |= COMMITMENTS_ASSET_BLIND_PROOF;
+    if (rpc_get_n_bytes("asset_blind_proof", item, sizeof(ec.asset_blind_proof), ec.asset_blind_proof)) {
+        ec.c.content |= COMMITMENTS_ASSET_BLIND_PROOF;
     }
 
-    if (!(commitment->content & (COMMITMENTS_ABF | COMMITMENTS_ASSET_BLIND_PROOF))) {
+    if (!(ec.c.content & (COMMITMENTS_ABF | COMMITMENTS_ASSET_BLIND_PROOF))) {
         // No commitment data present
         return false;
     }
 
     // Need vbf or value_blind_proof
-    if (rpc_get_n_bytes("vbf", item, sizeof(commitment->vbf), commitment->vbf)) {
-        commitment->content |= COMMITMENTS_VBF;
+    if (rpc_get_n_bytes("vbf", item, sizeof(ec.c.vbf), ec.c.vbf)) {
+        ec.c.content |= COMMITMENTS_VBF;
     }
 
     size_t written = 0;
-    rpc_get_bytes(
-        "value_blind_proof", sizeof(commitment->value_blind_proof), item, commitment->value_blind_proof, &written);
-    if (written && written <= sizeof(commitment->value_blind_proof)) {
-        commitment->value_blind_proof_len = (uint8_t)written; // Sufficient
-        commitment->content |= COMMITMENTS_VALUE_BLIND_PROOF;
+    rpc_get_bytes("value_blind_proof", sizeof(ec.value_blind_proof), item, ec.value_blind_proof, &written);
+    if (written && written <= sizeof(ec.value_blind_proof)) {
+        ec.value_blind_proof_len = (uint8_t)written; // Sufficient
+        ec.c.content |= COMMITMENTS_VALUE_BLIND_PROOF;
     }
 
-    if (!(commitment->content & (COMMITMENTS_VBF | COMMITMENTS_VALUE_BLIND_PROOF))
-        || !rpc_get_n_bytes("asset_id", item, sizeof(commitment->asset_id), commitment->asset_id)
-        || !rpc_get_uint64_t("value", item, &commitment->value)) {
+    if (!(ec.c.content & (COMMITMENTS_VBF | COMMITMENTS_VALUE_BLIND_PROOF))
+        || !rpc_get_n_bytes("asset_id", item, sizeof(ec.c.asset_id), ec.c.asset_id)
+        || !rpc_get_uint64_t("value", item, &ec.c.value)) {
         *errmsg = "Invalid or missing trusted commitment data";
         return false;
     }
 
     // Blinding key is optional in some scenarios
-    if (rpc_get_n_bytes("blinding_key", item, sizeof(commitment->blinding_key), commitment->blinding_key)) {
-        commitment->content |= COMMITMENTS_BLINDING_KEY;
+    if (rpc_get_n_bytes("blinding_key", item, sizeof(ec.c.blinding_key), ec.c.blinding_key)) {
+        ec.c.content |= COMMITMENTS_BLINDING_KEY;
     }
 
     // For tx output commitments:
@@ -373,7 +374,6 @@ bool params_commitment_data(
     // - Actual commitments are mandatory
     //
     // The above blinding factors/proofs are then verified against the commitments.
-    ext_commitment_t ec;
     const bool have_asset_generator
         = rpc_get_n_bytes("asset_generator", item, sizeof(ec.asset_generator), ec.asset_generator);
     const bool have_value_commitment
@@ -412,13 +412,13 @@ bool params_commitment_data(
     // 1. Asset generator
     // If passed the abf, check the blinded asset commitment can be reconstructed
     // (ie. from the given reversed asset_id and abf)
-    if (commitment->content & COMMITMENTS_ABF) {
-        uint8_t reversed_asset_id[sizeof(commitment->asset_id)];
-        reverse(reversed_asset_id, commitment->asset_id, sizeof(commitment->asset_id));
+    if (ec.c.content & COMMITMENTS_ABF) {
+        uint8_t reversed_asset_id[sizeof(ec.c.asset_id)];
+        reverse(reversed_asset_id, ec.c.asset_id, sizeof(ec.c.asset_id));
 
         uint8_t cmp[sizeof(ec.asset_generator)];
-        if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitment->abf,
-                sizeof(commitment->abf), cmp, sizeof(cmp))
+        if (wally_asset_generator_from_bytes(
+                reversed_asset_id, sizeof(reversed_asset_id), ec.c.abf, sizeof(ec.c.abf), cmp, sizeof(cmp))
                 != WALLY_OK
             || sodium_memcmp(ec.asset_generator, cmp, sizeof(cmp)) != 0) {
             *errmsg = "Failed to verify trusted commitment data with tx";
@@ -429,10 +429,10 @@ bool params_commitment_data(
     // 2. Value commitment
     // If passed the vbf, check the blinded value commitment can be reconstructed
     // (ie. from the given value, asset_generator and vbf)
-    if (commitment->content & COMMITMENTS_VBF) {
+    if (ec.c.content & COMMITMENTS_VBF) {
         uint8_t cmp[sizeof(ec.value_commitment)];
-        if (wally_asset_value_commitment(commitment->value, commitment->vbf, sizeof(commitment->vbf),
-                ec.asset_generator, sizeof(ec.asset_generator), cmp, sizeof(cmp))
+        if (wally_asset_value_commitment(ec.c.value, ec.c.vbf, sizeof(ec.c.vbf), ec.asset_generator,
+                sizeof(ec.asset_generator), cmp, sizeof(cmp))
                 != WALLY_OK
             || sodium_memcmp(ec.value_commitment, cmp, sizeof(cmp)) != 0) {
             *errmsg = "Failed to verify trusted commitment data with tx";
@@ -442,12 +442,11 @@ bool params_commitment_data(
 
     // Verify any blinded proofs
     // NOTE: only a device with SPIRAM has sufficient memory to be able to do this verification.
-    if (commitment->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF)) {
+    if (ec.c.content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF)) {
 #ifdef CONFIG_SPIRAM
         // Because the libsecp calls 'secp256k1_surjectionproof_verify()' and 'secp256k1_rangeproof_verify()'
         // requires more stack space than is available to the main task, we run that function in a temporary task.
         const size_t stack_size = 54 * 1024; // 54kb seems sufficient
-        memcpy(&ec.c, commitment, sizeof(*commitment));
         if (!run_in_temporary_task(stack_size, verify_explicit_proofs, (void*)&ec)) {
             *errmsg = "Failed to verify explicit asset/value commitment proofs";
             return false;
@@ -457,6 +456,8 @@ bool params_commitment_data(
         return false;
 #endif // CONFIG_SPIRAM
     }
+    // Copy out the valid commitment data for the caller
+    memcpy(commitment, &ec.c, sizeof(ec.c));
     return true;
 }
 
