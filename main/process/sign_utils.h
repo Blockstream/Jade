@@ -28,8 +28,8 @@ bool params_trusted_commitments(
 TxType_t params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
     bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums);
 
-bool get_commitment_data(CborValue* item, commitment_t* commitment);
-bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg);
+bool get_commitment_data(
+    CborValue* item, commitment_t* commitment, const struct wally_tx_output* const txout, const char** errmsg);
 
 bool asset_summary_update(
     asset_summary_t* sums, size_t num_sums, const uint8_t* asset_id, size_t asset_id_len, uint64_t value);
