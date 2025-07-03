@@ -1,10 +1,9 @@
 #ifndef AMALGAMATED_BUILD
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
-#include "../ui.h"
+#include "../ui/sign_tx.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/malloc_ext.h"
-#include "../utils/network.h"
 #include "../utils/temporary_stack.h"
 #include "../utils/util.h"
 
@@ -12,9 +11,6 @@
 #include <wally_elements.h>
 
 #include "process_utils.h"
-
-bool show_elements_final_confirmation_activity(
-    const network_t network_id, const char* title, const uint64_t fee, const char* warning_msg);
 
 static const char TX_TYPE_STR_SWAP[] = "swap";
 static const char TX_TYPE_STR_SEND_PAYMENT[] = "send_payment";

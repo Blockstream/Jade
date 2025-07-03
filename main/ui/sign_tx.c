@@ -9,9 +9,9 @@
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../ui.h"
+#include "../ui/sign_tx.h"
 #include "../utils/address.h"
 #include "../utils/event.h"
-#include "../utils/network.h"
 #include "../utils/util.h"
 
 // from confirm_address
