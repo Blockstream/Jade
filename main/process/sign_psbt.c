@@ -988,8 +988,9 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         key_iter_input_begin(psbt, index, &iter);
         while (iter.is_valid) {
             // Sign the input with this key
+            const uint32_t sign_flags = EC_FLAG_GRIND_R | (for_liquid ? EC_FLAG_ELEMENTS : 0);
             if (wally_psbt_sign_input_bip32(
-                    psbt, index, iter.key_index, txhash, sizeof(txhash), &iter.hdkey, EC_FLAG_GRIND_R)
+                    psbt, index, iter.key_index, txhash, sizeof(txhash), &iter.hdkey, sign_flags)
                 != WALLY_OK) {
                 *errmsg = "Failed to generate signature";
                 retval = CBOR_RPC_INTERNAL_ERROR;
