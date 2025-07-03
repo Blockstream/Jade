@@ -719,117 +719,119 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
             input_amount += utxo->satoshi;
         }
 
-        // If we are signing this input, look at the script type, sighash, multisigs etc.
-        if (key_iter_input_begin_public(psbt, index, &iter)) {
-            // Found our key - we are signing this input
-            JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", iter.key_index, index);
-            signing_inputs[index] = true;
+        if (!key_iter_input_begin_public(psbt, index, &iter)) {
+            // Our key not present: we are not signing this input
+            continue;
+        }
 
-            const size_t num_keys = key_iter_get_num_keys(&iter);
-            if (num_keys > 1) {
-                const bool is_green = is_green_multisig_signers(network_id, &iter, NULL);
-                signing_flags |= is_green ? PSBT_SIGNING_GREEN_MULTISIG : PSBT_SIGNING_MULTISIG;
-            } else {
-                signing_flags |= PSBT_SIGNING_SINGLESIG;
+        // Found our key - we are signing this input
+        JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", iter.key_index, index);
+        signing_inputs[index] = true;
+
+        const size_t num_keys = key_iter_get_num_keys(&iter);
+        if (num_keys > 1) {
+            const bool is_green = is_green_multisig_signers(network_id, &iter, NULL);
+            signing_flags |= is_green ? PSBT_SIGNING_GREEN_MULTISIG : PSBT_SIGNING_MULTISIG;
+        } else {
+            signing_flags |= PSBT_SIGNING_SINGLESIG;
+        }
+
+        // Only support SIGHASH_ALL, or SIGHASH_DEFAULT for taproot atm.
+        // SIGHASH_DEFAULT is 0 so passes this check, the 0 is
+        // converted to ALL/DEFAULT by wally when signing
+        if (input->sighash && input->sighash != WALLY_SIGHASH_ALL) {
+            JADE_LOGW("Unsupported sighash for signing input %u", index);
+            *errmsg = "Unsupported sighash";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
+
+        // Track the types of the input prevout scripts
+        if (utxo->script && utxo->script_len) {
+            bool is_p2tr = false;
+            const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len, &is_p2tr);
+            update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
+        }
+
+        // If multisig, see if all signing inputs match the same persisted wallet record
+        // and if so, cache the record details to use later to verify any multisig change outputs
+        if (signing_flags & PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED) {
+            // Already abandoned multisig change detection - do nothing
+        } else if (signing_flags & (PSBT_SIGNING_SINGLESIG | PSBT_SIGNING_GREEN_MULTISIG)) {
+            // Green-multisig or singlesig input - mark multisig change detection as abandoned
+            JADE_LOGW("Signing singlesig or Green-multisig input %u - multisig change detection abandoned", index);
+            signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+        } else {
+            size_t path_len = 0;
+            uint32_t path[MAX_PATH_LEN];
+            if (!key_iter_get_path(&iter, path, MAX_PATH_LEN, &path_len)) {
+                JADE_LOGE("No valid path in output %u, ignoring", index);
+                continue;
             }
 
-            // Only support SIGHASH_ALL, or SIGHASH_DEFAULT for taproot atm.
-            // SIGHASH_DEFAULT is 0 so passes this check, the 0 is
-            // converted to ALL/DEFAULT by wally when signing
-            if (input->sighash && input->sighash != WALLY_SIGHASH_ALL) {
-                JADE_LOGW("Unsupported sighash for signing input %u", index);
-                *errmsg = "Unsupported sighash";
-                retval = CBOR_RPC_BAD_PARAMETERS;
-                goto cleanup;
-            }
+            // Get the path tail after the last hardened element
+            const size_t path_tail_start = path_get_unhardened_tail_index(path, path_len);
+            JADE_ASSERT(path_tail_start <= path_len);
+            const size_t path_tail_len = path_len - path_tail_start;
 
-            // Track the types of the input prevout scripts
-            if (utxo->script && utxo->script_len) {
-                bool is_p2tr = false;
-                const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len, &is_p2tr);
-                update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
-            }
+            if (signing_flags & PSBT_SIGNING_SINGLE_MULTISIG_RECORD) {
+                // Test this input against the record previously found
+                JADE_ASSERT(!multisig_data != !descriptor); // must be one or the other
 
-            // If multisig, see if all signing inputs match the same persisted wallet record
-            // and if so, cache the record details to use later to verify any multisig change outputs
-            if (signing_flags & PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED) {
-                // Already abandoned multisig change detection - do nothing
-            } else if (signing_flags & (PSBT_SIGNING_SINGLESIG | PSBT_SIGNING_GREEN_MULTISIG)) {
-                // Green-multisig or singlesig input - mark multisig change detection as abandoned
-                JADE_LOGW("Signing singlesig or Green-multisig input %u - multisig change detection abandoned", index);
-                signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
-            } else {
-                size_t path_len = 0;
-                uint32_t path[MAX_PATH_LEN];
-                if (!key_iter_get_path(&iter, path, MAX_PATH_LEN, &path_len)) {
-                    JADE_LOGE("No valid path in output %u, ignoring", index);
-                    continue;
+                if (multisig_data
+                    && !verify_multisig_script_matches(
+                        multisig_data, &path[path_tail_start], path_tail_len, &iter, utxo->script, utxo->script_len)) {
+                    // Previously found multisig record does not work for this input.  Abandon multisig
+                    // change detection.
+                    JADE_LOGW("Previously found multisig record '%s' inappropriate for input %u - change "
+                              "detection abandoned",
+                        wallet_name, index);
+                    signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
                 }
 
-                // Get the path tail after the last hardened element
-                const size_t path_tail_start = path_get_unhardened_tail_index(path, path_len);
-                JADE_ASSERT(path_tail_start <= path_len);
-                const size_t path_tail_len = path_len - path_tail_start;
-
-                if (signing_flags & PSBT_SIGNING_SINGLE_MULTISIG_RECORD) {
-                    // Test this input against the record previously found
-                    JADE_ASSERT(!multisig_data != !descriptor); // must be one or the other
-
-                    if (multisig_data
-                        && !verify_multisig_script_matches(multisig_data, &path[path_tail_start], path_tail_len, &iter,
-                            utxo->script, utxo->script_len)) {
-                        // Previously found multisig record does not work for this input.  Abandon multisig
-                        // change detection.
-                        JADE_LOGW("Previously found multisig record '%s' inappropriate for input %u - change "
-                                  "detection abandoned",
-                            wallet_name, index);
-                        signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
-                    }
-
-                    if (descriptor
-                        && !verify_descriptor_script_matches(wallet_name, descriptor, network_id,
-                            &path[path_tail_start], path_tail_len, &iter, utxo->script, utxo->script_len)) {
-                        // Previously found descriptor record does not work for this input.  Abandon multisig
-                        // change detection.
-                        JADE_LOGW("Previously found descriptor record '%s' inappropriate for input %u - change "
-                                  "detection abandoned",
-                            wallet_name, index);
-                        signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
-                    }
+                if (descriptor
+                    && !verify_descriptor_script_matches(wallet_name, descriptor, network_id, &path[path_tail_start],
+                        path_tail_len, &iter, utxo->script, utxo->script_len)) {
+                    // Previously found descriptor record does not work for this input.  Abandon multisig
+                    // change detection.
+                    JADE_LOGW("Previously found descriptor record '%s' inappropriate for input %u - change "
+                              "detection abandoned",
+                        wallet_name, index);
+                    signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+                }
+            } else {
+                // Search all multisig and descriptor records looking for one that fits this input
+                multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
+                if (get_suitable_multisig_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
+                        utxo->script_len, wallet_name, sizeof(wallet_name), multisig_data)) {
+                    JADE_LOGI("Signing multisig input - registered multisig record found: %s", wallet_name);
+                    signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
                 } else {
-                    // Search all multisig and descriptor records looking for one that fits this input
-                    multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
-                    if (get_suitable_multisig_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
-                            utxo->script_len, wallet_name, sizeof(wallet_name), multisig_data)) {
-                        JADE_LOGI("Signing multisig input - registered multisig record found: %s", wallet_name);
+                    free(multisig_data);
+                    multisig_data = NULL;
+                }
+
+                // NOTE: descriptors not supported for elements atm
+                if (!multisig_data && !is_elements) {
+                    descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
+                    if (get_suitable_descriptor_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
+                            utxo->script_len, network_id, wallet_name, sizeof(wallet_name), descriptor)) {
+                        JADE_LOGI("Signing multisig input - registered descriptor record found: %s", wallet_name);
                         signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
                     } else {
-                        free(multisig_data);
-                        multisig_data = NULL;
-                    }
-
-                    // NOTE: descriptors not supported for elements atm
-                    if (!multisig_data && !is_elements) {
-                        descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
-                        if (get_suitable_descriptor_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
-                                utxo->script_len, network_id, wallet_name, sizeof(wallet_name), descriptor)) {
-                            JADE_LOGI("Signing multisig input - registered descriptor record found: %s", wallet_name);
-                            signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
-                        } else {
-                            free(descriptor);
-                            descriptor = NULL;
-                        }
-                    }
-
-                    if (!multisig_data && !descriptor) {
-                        // No suitable multisig or descriptor record - mark as abandoned
-                        JADE_LOGW(
-                            "No multisig or descriptor record found for input %u - change detection abandoned", index);
-                        signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+                        free(descriptor);
+                        descriptor = NULL;
                     }
                 }
+
+                if (!multisig_data && !descriptor) {
+                    // No suitable multisig or descriptor record - mark as abandoned
+                    JADE_LOGW(
+                        "No multisig or descriptor record found for input %u - change detection abandoned", index);
+                    signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+                }
             }
-        } // is our key
+        }
     } // iterate keys
 
     // Examine outputs for liquid unblinded info and fees, and for change we can automatically validate
