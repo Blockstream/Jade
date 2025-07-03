@@ -19,12 +19,11 @@ typedef struct _asset_summary {
     uint64_t validated_value;
 } asset_summary_t;
 
-bool rpc_get_trusted_commitments(
-    jade_process_t* process, const CborValue* value, const struct wally_tx* tx, commitment_t** data);
+bool params_trusted_commitments(
+    jade_process_t* process, const CborValue* params, const struct wally_tx* tx, commitment_t** data);
 
-TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx,
-    TxType_t* txtype, bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums,
-    size_t* num_out_sums);
+TxType_t params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
+    bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums);
 
 bool get_commitment_data(CborValue* item, commitment_t* commitment);
 bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg);

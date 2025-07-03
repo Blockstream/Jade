@@ -23,7 +23,7 @@
 
 #include "sign_utils.h"
 
-struct wally_tx* rpc_get_signing_tx(
+static struct wally_tx* params_txn(
     jade_process_t* process, const CborValue* params, const network_t network_id, const bool for_liquid)
 {
     struct wally_tx* tx = NULL;
@@ -97,7 +97,7 @@ fail:
 }
 
 // Can optionally be passed paths for change outputs, which we verify internally
-bool rpc_get_signing_outputs(jade_process_t* process, const CborValue* params, const network_t network_id,
+static bool params_signing_outputs(jade_process_t* process, const CborValue* params, const network_t network_id,
     const bool for_liquid, const struct wally_tx* tx, output_info_t** output_info)
 {
     JADE_ASSERT(process);
@@ -502,7 +502,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     CHECK_NETWORK_CONSISTENT(process);
     const jade_msg_source_t source = process->ctx.source;
 
-    struct wally_tx* tx = rpc_get_signing_tx(process, &params, network_id, for_liquid);
+    struct wally_tx* tx = params_txn(process, &params, network_id, for_liquid);
     if (!tx) {
         goto cleanup;
     }
@@ -514,13 +514,13 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
     commitment_t* commitments = NULL;
     // Liquid: Copy trusted commitment data so we can free the message
-    if (for_liquid && !rpc_get_trusted_commitments(process, &params, tx, &commitments)) {
+    if (for_liquid && !params_trusted_commitments(process, &params, tx, &commitments)) {
         goto cleanup;
     }
 
     // Optional info for wallet outputs
     output_info_t* output_info = NULL;
-    if (!rpc_get_signing_outputs(process, &params, network_id, for_liquid, tx, &output_info)) {
+    if (!params_signing_outputs(process, &params, network_id, for_liquid, tx, &output_info)) {
         goto cleanup;
     }
 
@@ -545,7 +545,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     TxType_t txtype = TXTYPE_SEND_PAYMENT;
     // Liquid: Get any data from the optional 'additional_info' section
     if (for_liquid
-        && !rpc_get_additional_info(
+        && !params_additional_info(
             process, &params, tx, &txtype, &is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums)) {
         goto cleanup;
     }
