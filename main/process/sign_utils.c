@@ -16,6 +16,75 @@
 static const char TX_TYPE_STR_SWAP[] = "swap";
 static const char TX_TYPE_STR_SEND_PAYMENT[] = "send_payment";
 
+bool params_txn_validate(const network_t network_id, const bool for_liquid, const struct wally_tx* const tx,
+    uint64_t* explicit_fee, const char** errmsg)
+{
+    JADE_ASSERT(tx);
+    JADE_ASSERT(explicit_fee);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    size_t is_elements = 0;
+    JADE_WALLY_VERIFY(wally_tx_is_elements(tx, &is_elements));
+    if (for_liquid != is_elements) {
+        *errmsg = "Transaction is the wrong type for the current network";
+        return false;
+    }
+
+    if (!for_liquid) {
+        return true; // Bitcoin: No further checks needed
+    }
+
+    // Liquid checks
+    uint8_t policy_asset[ASSET_TAG_LEN];
+    network_to_policy_asset(network_id, policy_asset, sizeof(policy_asset));
+    reverse_in_place(policy_asset, sizeof(policy_asset));
+
+    for (size_t i = 0; i < tx->num_outputs; ++i) {
+        const struct wally_tx_output* const txout = tx->outputs + i;
+        JADE_ASSERT(txout->asset && txout->asset_len == WALLY_TX_ASSET_CT_LEN);
+        JADE_ASSERT(txout->value && txout->value_len);
+        const uint8_t explicit_prefix = WALLY_TX_ASSET_CT_EXPLICIT_PREFIX;
+        const bool is_explicit_asset = txout->asset[0] == explicit_prefix;
+        const bool is_explicit_value = txout->value[0] == explicit_prefix;
+
+        if (is_explicit_asset != is_explicit_value) {
+            *errmsg = "Output asset and value blinding inconsistent";
+            return false;
+        }
+        if (is_explicit_value) {
+            JADE_ASSERT(txout->value_len == WALLY_TX_ASSET_CT_VALUE_UNBLIND_LEN);
+        } else {
+            JADE_ASSERT(txout->value_len == WALLY_TX_ASSET_CT_VALUE_LEN);
+        }
+
+        if (tx->outputs[i].script) {
+            continue; // Not a fee output, no further checks needed
+        }
+
+        // Fee output
+        if (!is_explicit_asset || !is_explicit_value) {
+            *errmsg = "Fee output (without script) cannot be blinded";
+            return false;
+        }
+        if (*explicit_fee) {
+            *errmsg = "Unexpected multiple fee outputs (without script)";
+            return false;
+        }
+        JADE_WALLY_VERIFY(wally_tx_confidential_value_to_satoshi(txout->value, txout->value_len, explicit_fee));
+        if (!*explicit_fee) {
+            *errmsg = "Fee output (without script) cannot be 0";
+            return false;
+        }
+        // Note we compare the asset id ignoring the initial explicit byte
+        if (memcmp(txout->asset + 1, policy_asset, sizeof(policy_asset))) {
+            *errmsg = "Unexpected fee output (without script) asset-id";
+            return false;
+        }
+    }
+
+    return true;
+}
+
 // Map a txtype string to an enum value
 #define TX_TYPE_STR_MATCH(typestr) ((len == sizeof(typestr) - 1 && !strncmp(type, typestr, sizeof(typestr) - 1)))
 static bool rpc_get_txtype(jade_process_t* process, CborValue* value, TxType_t* txtype)
@@ -549,15 +618,13 @@ static bool add_output_info(
 
 bool validate_elements_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
     const TxType_t txtype, commitment_t* commitments, output_info_t* output_info, asset_summary_t* in_sums,
-    const size_t num_in_sums, asset_summary_t* out_sums, const size_t num_out_sums, uint64_t* fees)
+    const size_t num_in_sums, asset_summary_t* out_sums, const size_t num_out_sums)
 {
     JADE_ASSERT(tx);
     JADE_ASSERT(commitments);
     JADE_ASSERT(output_info);
-    JADE_ASSERT(fees);
 
     const char* errmsg = NULL;
-    *fees = 0;
 
     uint8_t policy_asset[ASSET_TAG_LEN];
     network_to_policy_asset(network_id, policy_asset, sizeof(policy_asset));
@@ -570,7 +637,6 @@ bool validate_elements_outputs(jade_process_t* process, const network_t network_
     // By default/in the basic 'send payment' case all outputs must have unconfidential/unblinded.
     const bool allow_blind_outputs = txtype == TXTYPE_SWAP; // swaps allow 'other wallets' blind outputs
 
-    // Save fees for the final confirmation screen
     for (size_t i = 0; i < tx->num_outputs; ++i) {
         // Gather the (unblinded) output info for user confirmation
         output_info_t* outinfo = output_info + i;
@@ -584,28 +650,6 @@ bool validate_elements_outputs(jade_process_t* process, const network_t network_
                 errmsg = "Missing commitments data for blinded output";
                 goto done;
             }
-        }
-
-        // Collect fees (ie. outputs with no script)
-        // NOTE: fees must be unconfidential, and must be denominated in the policy asset
-        if (!tx->outputs[i].script) {
-            if (outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL) {
-                errmsg = "Fee output (without script) cannot be blinded";
-                goto done;
-            }
-            if (memcmp(outinfo->asset_id, policy_asset, sizeof(policy_asset))) {
-                errmsg = "Unexpected fee output (without script) asset-id";
-                goto done;
-            }
-            if (!outinfo->value) {
-                errmsg = "Fee output (without script) cannot be 0";
-                goto done;
-            }
-            if (*fees) {
-                errmsg = "Unexpected multiple fee outputs (without script)";
-                goto done;
-            }
-            *fees += outinfo->value;
         }
 
         // If the output has been verified as belonging to this wallet, we can
