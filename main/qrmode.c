@@ -89,7 +89,8 @@ bool select_registered_wallet(const char multisig_names[][NVS_KEY_NAME_MAX_SIZE]
 
 // PSBT struct and functions
 struct wally_psbt;
-int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** errmsg);
+int sign_psbt(
+    jade_process_t* process, CborValue* params, network_t network_id, struct wally_psbt* psbt, const char** errmsg);
 int wally_psbt_free(struct wally_psbt* psbt);
 
 #define EXPORT_XPUB_PATH_LEN 4
@@ -1138,7 +1139,8 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     } else {
         network_id = NETWORK_BITCOIN;
     }
-    const int errcode = sign_psbt(network_id, psbt, &errmsg);
+    // Note we pass NULL process/params as we don't have any additional info
+    const int errcode = sign_psbt(NULL, NULL, network_id, psbt, &errmsg);
     if (errcode) {
         if (errcode != CBOR_RPC_USER_CANCELLED) {
             const char* message[] = { errmsg };
