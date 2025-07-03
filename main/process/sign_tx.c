@@ -607,14 +607,15 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 }
 
                 // Verify any blinding info for this input - note can only use blinded inputs
-                commitment_t commitment;
-                if (get_commitment_data(&params, &commitment)) {
-                    if (!verify_commitment_consistent(&commitment, &errmsg)) {
-                        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
-                        goto cleanup;
-                    }
-                    asset_summary_update(
-                        in_sums, num_in_sums, commitment.asset_id, sizeof(commitment.asset_id), commitment.value);
+                commitment_t c;
+                if (get_commitment_data(&params, &c, NULL, &errmsg)) {
+                    JADE_ASSERT(!errmsg);
+                    // Valid input commitments: update the summary
+                    asset_summary_update(in_sums, num_in_sums, c.asset_id, sizeof(c.asset_id), c.value);
+                } else if (errmsg) {
+                    // Invalid input commitments (rather than simply not present)
+                    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
+                    goto cleanup;
                 }
             }
             if (for_liquid && input_data->sig_type != WALLY_SIGTYPE_PRE_SW) {

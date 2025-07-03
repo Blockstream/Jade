@@ -2007,7 +2007,7 @@ dab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                   (('badsignliq14', 'sign_liquid_tx',  # Empty commitments for blinded output
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}]}),
-                   'Missing commitments data for blinded output'),
+                   'Missing trusted commitment data for blinded output'),
                   (('badsignliq15', 'sign_liquid_tx',  # invalid network
                     {'network': 'made-up', 'txn': GOODTX, 'num_inputs': 1,
                      'trusted_commitments': [{}, {}],
@@ -2092,44 +2092,44 @@ dab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     # Some bad commitment data is detected immediately... esp if it is
     # missing or not syntactically valid, unparseable etc.
     bad_commitments = [  # Field missing - note commitments are optional so not an error to omit
-                        (_commitsMinus('asset_id'), 'trusted commitments'),
-                        (_commitsMinus('value'), 'trusted commitments'),
-                        (_commitsMinus('abf'), 'trusted commitments'),
-                        (_commitsMinus('vbf'), 'trusted commitments'),
-                        (_commitsMinus('blinding_key'), 'Missing commitments data'),
+                        (_commitsMinus('asset_id'), 'trusted commitment'),
+                        (_commitsMinus('value'), 'trusted commitment'),
+                        (_commitsMinus('abf'), 'trusted commitment'),
+                        (_commitsMinus('vbf'), 'trusted commitment'),
+                        (_commitsMinus('blinding_key'), 'Missing trusted commitment'),
                         # Field bad type/length etc.
-                        (_commitsUpdate('asset_id', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('asset_id', h2b('123abc')), 'trusted commitments'),
-                        (_commitsUpdate('asset_id', b''), 'trusted commitments'),
-                        (_commitsUpdate('value', 'notint'), 'trusted commitments'),
-                        (_commitsUpdate('abf', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('abf', h2b('123abc')), 'trusted commitments'),
-                        (_commitsUpdate('abf', b''), 'trusted commitments'),
-                        (_commitsUpdate('vbf', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('vbf', h2b('123abc')), 'trusted commitments'),
-                        (_commitsUpdate('vbf', b''), 'trusted commitments'),
-                        (_commitsUpdate('asset_generator', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('asset_generator', '123abc'), 'trusted commitments'),
-                        (_commitsUpdate('value_commitment', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('value_commitment', '123abc'), 'trusted commitments'),
-                        (_commitsUpdate('blinding_key', 'notbin'), 'Missing commitments data'),
-                        (_commitsUpdate('blinding_key', '123abc'), 'Missing commitments data'),
+                        (_commitsUpdate('asset_id', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('asset_id', h2b('123abc')), 'trusted commitment'),
+                        (_commitsUpdate('asset_id', b''), 'trusted commitment'),
+                        (_commitsUpdate('value', 'notint'), 'trusted commitment'),
+                        (_commitsUpdate('abf', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('abf', h2b('123abc')), 'trusted commitment'),
+                        (_commitsUpdate('abf', b''), 'trusted commitment'),
+                        (_commitsUpdate('vbf', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('vbf', h2b('123abc')), 'trusted commitment'),
+                        (_commitsUpdate('vbf', b''), 'trusted commitment'),
+                        (_commitsUpdate('asset_generator', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('asset_generator', '123abc'), 'trusted commitment'),
+                        (_commitsUpdate('value_commitment', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('value_commitment', '123abc'), 'trusted commitment'),
+                        (_commitsUpdate('blinding_key', 'notbin'), 'Missing trusted commitment'),
+                        (_commitsUpdate('blinding_key', '123abc'), 'Missing trusted commitment'),
                         # Field bad value
-                        (_commitsUpdate('asset_id', BADVAL32), 'verify blinded asset generator'),
-                        (_commitsUpdate('abf', BADVAL32), 'verify blinded asset generator'),
-                        (_commitsUpdate('vbf', BADVAL32), 'verify blinded value commitment'),
-                        (_commitsUpdate('asset_generator', BADVAL33), 'blinded asset generator'),
-                        (_commitsUpdate('value_commitment', BADVAL33), 'blinded value commitment'),
+                        (_commitsUpdate('asset_id', BADVAL32), 'verify trusted commitment data'),
+                        (_commitsUpdate('abf', BADVAL32), 'verify trusted commitment'),
+                        (_commitsUpdate('vbf', BADVAL32), 'verify trusted commitment'),
+                        (_commitsUpdate('asset_generator', BADVAL33), 'verify trusted commitment'),
+                        (_commitsUpdate('value_commitment', BADVAL33), 'verify trusted commitment'),
                         # Asset blind proof in place of abf
-                        (_commitsAssetBlindProof(''), 'trusted commitments'),
-                        (_commitsAssetBlindProof('notbin'), 'trusted commitments'),
-                        (_commitsAssetBlindProof('123abc'), 'trusted commitments'),
-                        (_commitsAssetBlindProof(b''), 'trusted commitments'),
+                        (_commitsAssetBlindProof(''), 'trusted commitment'),
+                        (_commitsAssetBlindProof('notbin'), 'trusted commitment'),
+                        (_commitsAssetBlindProof('123abc'), 'trusted commitment'),
+                        (_commitsAssetBlindProof(b''), 'trusted commitment'),
                         # Value blind proof in place of vbf
-                        (_commitsValueBlindProof(''), 'trusted commitments'),
-                        (_commitsValueBlindProof('notbin'), 'trusted commitments'),
-                        (_commitsValueBlindProof('123abc'), 'trusted commitments'),
-                        (_commitsValueBlindProof(b''), 'trusted commitments')]
+                        (_commitsValueBlindProof(''), 'trusted commitment'),
+                        (_commitsValueBlindProof('notbin'), 'trusted commitment'),
+                        (_commitsValueBlindProof('123abc'), 'trusted commitment'),
+                        (_commitsValueBlindProof(b''), 'trusted commitment')]
     if has_psram:
         # Invalid/incorrect explicit proofs
         bad_commitments.append((_commitsAssetBlindProof(BAD_ASSET_PROOF),
@@ -2649,7 +2649,7 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
             signer_commitment, signature = actual
         else:
             # Standard EC signature should be low-s and low-r
-            assert actual == expected, f'{actual.hex()} != {expected.hex()}'
+            assert actual == expected, f'{actual.hex()} != {expected.hex()} {testcase["filename"]}'
 
             # NOTE: low-s is implied/assumed here, so no need to remove one from max-len
             assert len(actual) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN + 1  # sighash byte, low-s
@@ -3377,7 +3377,7 @@ def test_generic_multisig_ss_signer(jadeapi):
                 assert False, 'Accessing other wallet multisig should fail'
         except JadeError as e:
             assert e.code == JadeError.BAD_PARAMETERS
-            assert e.message == 'Cannot de-serialise multisig wallet data'
+            assert e.message == 'Cannot de-serialise multisig wallet data', e.message
 
         # If we register the same multisig description to this wallet, it should produce
         # the same addresses as it did previously (for the other signatory)

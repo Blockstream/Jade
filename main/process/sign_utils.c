@@ -275,10 +275,17 @@ bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
     return true;
 }
 
-bool get_commitment_data(CborValue* item, commitment_t* commitment)
+#ifdef CONFIG_SPIRAM
+static bool verify_explicit_proofs(void* ctx);
+#endif
+
+bool get_commitment_data(
+    CborValue* item, commitment_t* commitment, const struct wally_tx_output* const txout, const char** errmsg)
 {
     JADE_ASSERT(item);
     JADE_ASSERT(commitment);
+    // txout is optional
+    JADE_INIT_OUT_PPTR(errmsg);
 
     commitment->content = COMMITMENTS_NONE;
 
@@ -293,6 +300,7 @@ bool get_commitment_data(CborValue* item, commitment_t* commitment)
     }
 
     if (!(commitment->content & (COMMITMENTS_ABF | COMMITMENTS_ASSET_BLIND_PROOF))) {
+        // No commitment data present
         return false;
     }
 
@@ -305,19 +313,14 @@ bool get_commitment_data(CborValue* item, commitment_t* commitment)
     rpc_get_bytes(
         "value_blind_proof", sizeof(commitment->value_blind_proof), item, commitment->value_blind_proof, &written);
     if (written && written <= sizeof(commitment->value_blind_proof)) {
-        commitment->value_blind_proof_len = written;
+        commitment->value_blind_proof_len = (uint8_t)written; // Sufficient
         commitment->content |= COMMITMENTS_VALUE_BLIND_PROOF;
     }
 
-    if (!(commitment->content & (COMMITMENTS_VBF | COMMITMENTS_VALUE_BLIND_PROOF))) {
-        return false;
-    }
-
-    if (!rpc_get_n_bytes("asset_id", item, sizeof(commitment->asset_id), commitment->asset_id)) {
-        return false;
-    }
-
-    if (!rpc_get_uint64_t("value", item, &commitment->value)) {
+    if (!(commitment->content & (COMMITMENTS_VBF | COMMITMENTS_VALUE_BLIND_PROOF))
+        || !rpc_get_n_bytes("asset_id", item, sizeof(commitment->asset_id), commitment->asset_id)
+        || !rpc_get_uint64_t("value", item, &commitment->value)) {
+        *errmsg = "Invalid or missing trusted commitment data";
         return false;
     }
 
@@ -326,25 +329,98 @@ bool get_commitment_data(CborValue* item, commitment_t* commitment)
         commitment->content |= COMMITMENTS_BLINDING_KEY;
     }
 
-    // Actual commitments are optional - but must be both commitments or neither.
-    // If both are passed these will be copied into the tx and signed.
-    // If not passed, the above blinding factors/proofs must match what is already present in the transaction output.
-    // Must be both or neither - error if only one commitment passed.
-    if (rpc_has_field_data("asset_generator", item) || rpc_has_field_data("value_commitment", item)) {
-        if (!rpc_get_n_bytes(
-                "asset_generator", item, sizeof(commitment->asset_generator), commitment->asset_generator)) {
+    // For tx output commitments:
+    // - Actual commitments are optional - but must be both commitments or neither.
+    // - If passed, these must match values in the tx output.
+    // - If not passed, the values from the tx output are used instead.
+    // For tx input commitments (i.e. 'txout' parameter is NULL):
+    // - Actual commitments are mandatory
+    //
+    // The above blinding factors/proofs are then verified against the commitments.
+    ext_commitment_t ec;
+    const bool have_asset_generator
+        = rpc_get_n_bytes("asset_generator", item, sizeof(ec.asset_generator), ec.asset_generator);
+    const bool have_value_commitment
+        = rpc_get_n_bytes("value_commitment", item, sizeof(ec.value_commitment), ec.value_commitment);
+    const bool are_commitments_consistent = have_asset_generator == have_value_commitment;
+
+    if (!are_commitments_consistent || (!txout && !have_asset_generator)) {
+        // Either inconsistently provided, or not provided for a tx input
+        *errmsg = "Invalid or missing trusted commitment data";
+        return false;
+    }
+    if (txout) {
+        if (txout->asset_len != sizeof(ec.asset_generator)
+            || (have_asset_generator && memcmp(txout->asset, ec.asset_generator, sizeof(ec.asset_generator)))) {
+            *errmsg = "Failed to verify trusted commitment data with tx";
             return false;
         }
-
-        if (!rpc_get_n_bytes(
-                "value_commitment", item, sizeof(commitment->value_commitment), commitment->value_commitment)) {
+        if (txout->value_len != sizeof(ec.value_commitment)) {
+            *errmsg = "Failed to verify trusted commitment data with tx";
             return false;
         }
-
-        // Set flag to show struct is fully populated/initialised, including commitments to sign.
-        commitment->content |= COMMITMENTS_INCLUDES_COMMITMENTS;
+        if (have_asset_generator) {
+            // Ensure the commitments match the output values
+            if (memcmp(txout->asset, ec.asset_generator, sizeof(ec.asset_generator))
+                || memcmp(txout->value, ec.value_commitment, sizeof(ec.value_commitment))) {
+                *errmsg = "Failed to verify trusted commitment data with tx";
+                return false;
+            }
+        } else {
+            // Copy the commitments from the tx output for validation
+            memcpy(ec.asset_generator, txout->asset, sizeof(ec.asset_generator));
+            memcpy(ec.value_commitment, txout->value, sizeof(ec.value_commitment));
+        }
     }
 
+    // 1. Asset generator
+    // If passed the abf, check the blinded asset commitment can be reconstructed
+    // (ie. from the given reversed asset_id and abf)
+    if (commitment->content & COMMITMENTS_ABF) {
+        uint8_t reversed_asset_id[sizeof(commitment->asset_id)];
+        reverse(reversed_asset_id, commitment->asset_id, sizeof(commitment->asset_id));
+
+        uint8_t cmp[sizeof(ec.asset_generator)];
+        if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitment->abf,
+                sizeof(commitment->abf), cmp, sizeof(cmp))
+                != WALLY_OK
+            || sodium_memcmp(ec.asset_generator, cmp, sizeof(cmp)) != 0) {
+            *errmsg = "Failed to verify trusted commitment data with tx";
+            return false;
+        }
+    }
+
+    // 2. Value commitment
+    // If passed the vbf, check the blinded value commitment can be reconstructed
+    // (ie. from the given value, asset_generator and vbf)
+    if (commitment->content & COMMITMENTS_VBF) {
+        uint8_t cmp[sizeof(ec.value_commitment)];
+        if (wally_asset_value_commitment(commitment->value, commitment->vbf, sizeof(commitment->vbf),
+                ec.asset_generator, sizeof(ec.asset_generator), cmp, sizeof(cmp))
+                != WALLY_OK
+            || sodium_memcmp(ec.value_commitment, cmp, sizeof(cmp)) != 0) {
+            *errmsg = "Failed to verify trusted commitment data with tx";
+            return false;
+        }
+    }
+
+    // Verify any blinded proofs
+    // NOTE: only a device with SPIRAM has sufficient memory to be able to do this verification.
+    if (commitment->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF)) {
+#ifdef CONFIG_SPIRAM
+        // Because the libsecp calls 'secp256k1_surjectionproof_verify()' and 'secp256k1_rangeproof_verify()'
+        // requires more stack space than is available to the main task, we run that function in a temporary task.
+        const size_t stack_size = 54 * 1024; // 54kb seems sufficient
+        memcpy(&ec.c, commitment, sizeof(*commitment));
+        if (!run_in_temporary_task(stack_size, verify_explicit_proofs, (void*)&ec)) {
+            *errmsg = "Failed to verify explicit asset/value commitment proofs";
+            return false;
+        }
+#else
+        *errmsg = "Devices without external SPIRAM are unable to verify explicit proofs";
+        return false;
+#endif // CONFIG_SPIRAM
+    }
     return true;
 }
 
@@ -366,9 +442,9 @@ bool params_trusted_commitments(
 
     // Expect one commitment element in the array for each output.
     // (Can be null/zero's for unblinded outputs.)
-    size_t num_array_items = 0;
-    CborError cberr = cbor_value_get_array_length(&result, &num_array_items);
-    if (cberr != CborNoError || !num_array_items || num_array_items != tx->num_outputs) {
+    size_t num_outputs = 0;
+    CborError cberr = cbor_value_get_array_length(&result, &num_outputs);
+    if (cberr != CborNoError || !num_outputs || num_outputs != tx->num_outputs) {
         errmsg = "Unexpected number of trusted commitments for transaction";
         goto cleanup;
     }
@@ -380,10 +456,10 @@ bool params_trusted_commitments(
         goto cleanup;
     }
 
-    commitment_t* const commitments = JADE_CALLOC(num_array_items, sizeof(commitment_t));
+    commitment_t* const commitments = JADE_CALLOC(num_outputs, sizeof(commitment_t));
     jade_process_free_on_exit(process, commitments);
 
-    for (size_t i = 0; i < num_array_items; ++i) {
+    for (size_t i = 0; i < tx->num_outputs; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
         commitments[i].content = COMMITMENTS_NONE;
 
@@ -394,7 +470,7 @@ bool params_trusted_commitments(
         }
 
         if (!cbor_value_is_map(&arrayItem)) {
-            errmsg = "Invalid trusted commitments for transaction";
+            errmsg = "Invalid or missing trusted commitment data";
             goto cleanup;
         }
 
@@ -405,9 +481,9 @@ bool params_trusted_commitments(
             continue;
         }
 
-        // Populate commitments data
-        if (!get_commitment_data(&arrayItem, &commitments[i])) {
-            errmsg = "Invalid trusted commitments for transaction";
+        // Populate commitments data for the tx output if present
+        get_commitment_data(&arrayItem, &commitments[i], &tx->outputs[i], &errmsg);
+        if (errmsg) {
             goto cleanup;
         }
 
@@ -419,7 +495,7 @@ bool params_trusted_commitments(
     if (cberr == CborNoError) {
         *data = commitments;
     } else {
-        errmsg = "Invalid trusted commitments for transaction";
+        errmsg = "Invalid or missing trusted commitment data";
     }
 
 cleanup:
@@ -439,29 +515,27 @@ static bool verify_explicit_proofs(void* ctx)
 {
     JADE_ASSERT(ctx);
 
-    const commitment_t* commitments = (const commitment_t*)ctx;
-    JADE_ASSERT(commitments->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF));
-    JADE_ASSERT(commitments->content & COMMITMENTS_INCLUDES_COMMITMENTS);
+    const ext_commitment_t* ec = (const ext_commitment_t*)ctx;
+    const commitment_t* c = &ec->c;
+    JADE_ASSERT(c->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF));
 
-    if (commitments->content & COMMITMENTS_ASSET_BLIND_PROOF) {
-        uint8_t reversed_asset_id[sizeof(commitments->asset_id)];
-        reverse(reversed_asset_id, commitments->asset_id, sizeof(commitments->asset_id));
+    if (c->content & COMMITMENTS_ASSET_BLIND_PROOF) {
+        uint8_t reversed_asset_id[sizeof(c->asset_id)];
+        reverse(reversed_asset_id, c->asset_id, sizeof(c->asset_id));
 
         // NOTE: Appears to require ~52kb of stack space
-        if (wally_explicit_surjectionproof_verify(commitments->asset_blind_proof,
-                sizeof(commitments->asset_blind_proof), reversed_asset_id, sizeof(reversed_asset_id),
-                commitments->asset_generator, sizeof(commitments->asset_generator))
+        if (wally_explicit_surjectionproof_verify(c->asset_blind_proof, sizeof(c->asset_blind_proof), reversed_asset_id,
+                sizeof(reversed_asset_id), ec->asset_generator, sizeof(ec->asset_generator))
             != WALLY_OK) {
             // Failed to verify explicit asset proof
             return false;
         }
     }
 
-    if (commitments->content & COMMITMENTS_VALUE_BLIND_PROOF) {
+    if (c->content & COMMITMENTS_VALUE_BLIND_PROOF) {
         // NOTE: Appears to require ~40kb of stack space
-        if (wally_explicit_rangeproof_verify(commitments->value_blind_proof, commitments->value_blind_proof_len,
-                commitments->value, commitments->value_commitment, sizeof(commitments->value_commitment),
-                commitments->asset_generator, sizeof(commitments->asset_generator))
+        if (wally_explicit_rangeproof_verify(c->value_blind_proof, c->value_blind_proof_len, c->value,
+                ec->value_commitment, sizeof(ec->value_commitment), ec->asset_generator, sizeof(ec->asset_generator))
             != WALLY_OK) {
             // Failed to verify explicit value proof
             return false;
@@ -472,73 +546,6 @@ static bool verify_explicit_proofs(void* ctx)
 }
 #endif // CONFIG_SPIRAM
 
-bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg)
-{
-    JADE_ASSERT(commitments);
-    JADE_INIT_OUT_PPTR(errmsg);
-
-    if (!(commitments->content & COMMITMENTS_INCLUDES_COMMITMENTS)) {
-        *errmsg = "Failed to extract final commitment values from commitments data";
-        return false;
-    }
-
-    if (!(commitments->content & (COMMITMENTS_ABF | COMMITMENTS_ASSET_BLIND_PROOF))
-        || !(commitments->content & (COMMITMENTS_VBF | COMMITMENTS_VALUE_BLIND_PROOF))) {
-        *errmsg = "Failed to extract blinding factors or proofs from commitments data";
-        return false;
-    }
-
-    // 1. Asset generator
-    // If passed the abf, check the blinded asset commitment can be reconstructed
-    // (ie. from the given reversed asset_id and abf)
-    if (commitments->content & COMMITMENTS_ABF) {
-        uint8_t reversed_asset_id[sizeof(commitments->asset_id)];
-        reverse(reversed_asset_id, commitments->asset_id, sizeof(commitments->asset_id));
-
-        uint8_t generator_tmp[sizeof(commitments->asset_generator)];
-        if (wally_asset_generator_from_bytes(reversed_asset_id, sizeof(reversed_asset_id), commitments->abf,
-                sizeof(commitments->abf), generator_tmp, sizeof(generator_tmp))
-                != WALLY_OK
-            || sodium_memcmp(commitments->asset_generator, generator_tmp, sizeof(generator_tmp)) != 0) {
-            *errmsg = "Failed to verify blinded asset generator from commitments data";
-            return false;
-        }
-    }
-
-    // 2. Value commitment
-    // If passed the vbf, check the blinded value commitment can be reconstructed
-    // (ie. from the given value, asset_generator and vbf)
-    if (commitments->content & COMMITMENTS_VBF) {
-        uint8_t commitment_tmp[sizeof(commitments->value_commitment)];
-        if (wally_asset_value_commitment(commitments->value, commitments->vbf, sizeof(commitments->vbf),
-                commitments->asset_generator, sizeof(commitments->asset_generator), commitment_tmp,
-                sizeof(commitment_tmp))
-                != WALLY_OK
-            || sodium_memcmp(commitments->value_commitment, commitment_tmp, sizeof(commitment_tmp)) != 0) {
-            *errmsg = "Failed to verify blinded value commitment from commitments data";
-            return false;
-        }
-    }
-
-    // Verify any blinded proofs
-    // NOTE: only a device with SPIRAM has sufficient memory to be able to do this verification.
-    if (commitments->content & (COMMITMENTS_ASSET_BLIND_PROOF | COMMITMENTS_VALUE_BLIND_PROOF)) {
-#ifdef CONFIG_SPIRAM
-        // Because the libsecp calls 'secp256k1_surjectionproof_verify()' and 'secp256k1_rangeproof_verify()'
-        // requires more stack space than is available to the main task, we run that function in a temporary task.
-        const size_t stack_size = 54 * 1024; // 54kb seems sufficient
-        if (!run_in_temporary_task(stack_size, verify_explicit_proofs, (void*)commitments)) {
-            *errmsg = "Failed to verify explicit asset/value commitment proofs";
-            return false;
-        }
-#else
-        *errmsg = "Devices without external SPIRAM are unable to verify explicit proofs";
-        return false;
-#endif // CONFIG_SPIRAM
-    }
-    return true;
-}
-
 static bool add_output_info(
     commitment_t* commitments, const struct wally_tx_output* txoutput, output_info_t* outinfo, const char** errmsg)
 {
@@ -546,47 +553,19 @@ static bool add_output_info(
     JADE_ASSERT(txoutput);
     JADE_ASSERT(outinfo);
     JADE_INIT_OUT_PPTR(errmsg);
+    JADE_STATIC_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
+    JADE_STATIC_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
 
     JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED)));
     if (commitments->content != COMMITMENTS_NONE) {
         // Output to be confidential/blinded, use the commitments data
         outinfo->flags |= (OUTPUT_FLAG_CONFIDENTIAL | OUTPUT_FLAG_HAS_UNBLINDED);
 
-        // 1. Sanity checks
-        if (txoutput->asset_len != sizeof(commitments->asset_generator)) {
-            *errmsg = "Invalid asset generator in tx output";
-            return false;
-        }
-        if (txoutput->value_len != sizeof(commitments->value_commitment)) {
-            *errmsg = "Invalid value commitment in tx output";
-            return false;
-        }
-
-        // 2. If passed explicit commitments copy them into the transaction output ready for signing
-        // If not, copy the values from the tx into the commitment structure.
-        // ie. so in any case commitment struct is complete, and reflects what is in the tx output
-        if (commitments->content & COMMITMENTS_INCLUDES_COMMITMENTS) {
-            memcpy(txoutput->asset, commitments->asset_generator, sizeof(commitments->asset_generator));
-            memcpy(txoutput->value, commitments->value_commitment, sizeof(commitments->value_commitment));
-        } else {
-            memcpy(commitments->asset_generator, txoutput->asset, sizeof(commitments->asset_generator));
-            memcpy(commitments->value_commitment, txoutput->value, sizeof(commitments->value_commitment));
-            commitments->content |= COMMITMENTS_INCLUDES_COMMITMENTS;
-        }
-
-        // 3. Check the asset generator and value commitment can be reconstructed
-        if (!verify_commitment_consistent(commitments, errmsg)) {
-            // errmsg populated by call if failure
-            return false;
-        }
-
-        // 4. Fetch the asset_id, value, and optional blinding_key into the info struct
-        JADE_STATIC_ASSERT(sizeof(outinfo->asset_id) == sizeof(commitments->asset_id));
+        // Fetch the asset_id, value, and optional blinding_key into the info struct
         memcpy(outinfo->asset_id, commitments->asset_id, sizeof(commitments->asset_id));
         outinfo->value = commitments->value;
 
         if (commitments->content & COMMITMENTS_BLINDING_KEY) {
-            JADE_STATIC_ASSERT(sizeof(outinfo->blinding_key) == sizeof(commitments->blinding_key));
             memcpy(outinfo->blinding_key, commitments->blinding_key, sizeof(commitments->blinding_key));
             outinfo->flags |= OUTPUT_FLAG_HAS_BLINDING_KEY;
         }
@@ -647,7 +626,7 @@ bool validate_elements_outputs(jade_process_t* process, const network_t network_
         // If are not allowing blinded outputs, check each confidential output has unblinding info
         if (!allow_blind_outputs && outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL) {
             if (!(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED) || !(outinfo->flags & OUTPUT_FLAG_HAS_BLINDING_KEY)) {
-                errmsg = "Missing commitments data for blinded output";
+                errmsg = "Missing trusted commitment data for blinded output";
                 goto done;
             }
         }
