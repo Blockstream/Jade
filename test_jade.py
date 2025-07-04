@@ -573,6 +573,7 @@ SIGN_TXN_SS_TESTS = 'tx_ss_*.json'
 SIGN_TXN_SS_BAD_TESTS = 'tx_ss_bad_*.json'
 SIGN_LIQUID_TXN_SS_TESTS = 'tx_liquid_ss*.json'
 SIGN_PSBT_TESTS = 'psbt_tm_*.json'
+SIGN_PSET_TESTS = 'pset_tm_*.json'
 SIGN_PSBT_SS_TESTS = 'psbt_ss_*.json'
 SIGN_PSET_SS_TESTS = 'pset_ss_*.json'
 
@@ -3737,6 +3738,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     # Test sign psbts (app-generated cases)
     test_sign_psbt(jadeapi, SIGN_PSBT_TESTS)
+    test_sign_psbt(jadeapi, SIGN_PSET_TESTS)
 
     # Short sanity-test of 12-word mnemonic
     test_12word_mnemonic(jadeapi)
