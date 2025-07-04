@@ -3044,7 +3044,9 @@ def test_sign_psbt(jadeapi, cases):
         if expected_txn:
             psbt = wally.psbt_from_bytes(rslt, 0)
             wally.psbt_finalize(psbt, 0)
-            txn = wally.psbt_extract(psbt, wally.WALLY_PSBT_EXTRACT_FINAL)
+            # Extract finalized inputs where possible (e.g. multisigs may
+            # not be fully signed and thus aren't finalizable)
+            txn = wally.psbt_extract(psbt, wally.WALLY_PSBT_EXTRACT_OPT_FINAL)
             txn = wally.tx_to_bytes(txn, wally.WALLY_TX_FLAG_USE_WITNESS)
             assert txn == expected_txn, txn.hex()
 
