@@ -3024,11 +3024,28 @@ def test_liquid_blinded_commitments(jadeapi):
     assert rslt == ledger_commitments[1]
 
 
-def test_sign_psbt(jadeapi, cases):
+def test_sign_psbt(jadeapi, cases, has_psram):
     for txn_data in _get_test_cases(cases):
+        # Expect PSET test cases to fail for non-PSRAM devices
+        psbt_bin = txn_data['input']['psbt']
+
+        expect_pset_failure = False
+        if not has_psram:
+            # Max message size from main/process.h
+            # 69 bytes of overhead for a sign_psbt request
+            MAX_INPUT_MSG_SIZE = 1024 * 17 + 69
+            if len(psbt_bin) + 69 > MAX_INPUT_MSG_SIZE:
+                logger.warning(f'Skipping {txn_data["filename"]} large PSBT on non-psram device')
+                continue
+            if psbt_bin[2] == ord('e'):
+                expect_pset_failure = True
+                continue
+
         try:
-            rslt = jadeapi.sign_psbt(txn_data['input']['network'], txn_data['input']['psbt'])
+            rslt = jadeapi.sign_psbt(txn_data['input']['network'], psbt_bin)
         except JadeError as err:
+            if expect_pset_failure:
+                continue  # Trying to parse a PSET on an unsupported device
             if 'expected_output' in txn_data:
                 # We expected this test to pass
                 assert False, f'FAILED: {err.message}: {txn_data}'
@@ -3737,8 +3754,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_sign_tx(jadeapi, SIGN_LIQUID_TXN_TESTS, has_psram)
 
     # Test sign psbts (app-generated cases)
-    test_sign_psbt(jadeapi, SIGN_PSBT_TESTS)
-    test_sign_psbt(jadeapi, SIGN_PSET_TESTS)
+    test_sign_psbt(jadeapi, SIGN_PSBT_TESTS, has_psram)
+    test_sign_psbt(jadeapi, SIGN_PSET_TESTS, has_psram)
 
     # Short sanity-test of 12-word mnemonic
     test_12word_mnemonic(jadeapi)
@@ -3772,9 +3789,9 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # - Mixed wallet and non-wallet inputs
     # - Unusual input and change paths
     # - Negative test cases (invalid PSBTs)
-    test_sign_psbt(jadeapi, SIGN_PSBT_SS_TESTS)
+    test_sign_psbt(jadeapi, SIGN_PSBT_SS_TESTS, has_psram)
     # Singlesig Liquid (PSET) tests
-    test_sign_psbt(jadeapi, SIGN_PSET_SS_TESTS)
+    test_sign_psbt(jadeapi, SIGN_PSET_SS_TESTS, has_psram)
 
     # Sign identity (ssh & gpg) tests require a specific mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12_IDENTITY)
