@@ -1076,9 +1076,17 @@ bool deserialise_psbt(const uint8_t* bytes, const size_t bytes_len, struct wally
         // PSBT - can parse immediately
         ret = parse_psbt_bytes(&data);
     } else if (!memcmp(bytes, PSET_MAGIC_PREFIX, sizeof(PSET_MAGIC_PREFIX))) {
+#ifdef CONFIG_SPIRAM
         // PSET - can need large stack to unblind and/or verify proofs - parse on dedicated stack
         const size_t stack_size = 54 * 1024; // 54kb seems sufficient
         ret = run_in_temporary_task(stack_size, parse_psbt_bytes, &data);
+#else
+        // NOTE: devices without SPIRAM do not have sufficient free memory
+        // to parse/process any reasonable PSET.
+        // TODO: Change all callers to return an error message
+        JADE_LOGE("Cannot process PSET on a non-SPIRAM device");
+        ret = false;
+#endif
     }
     if (ret) {
         *psbt_out = data.psbt_out;
