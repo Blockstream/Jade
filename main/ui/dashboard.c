@@ -349,10 +349,25 @@ gui_activity_t* make_usbstorage_settings_activity(const bool unlocked)
         { .txt = "Firmware Upgrade", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW },
         { .txt = "Sign", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_SIGN },
         //{ .txt = "Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT },
+        { .txt = "Export Xpub", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB },
     };
 
     return make_menu_activity("USB Storage", hdrbtns, 2, menubtns, unlocked ? 2 : 1);
 }
+
+gui_activity_t* make_usbstorage_export_xpub_activity(void)
+{
+//FIXME: implement activity
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXIT },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t menubtns[] = {
+        { .txt = "implement me", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW },
+    };
+
+    return make_menu_activity("Export Xpub", hdrbtns, 2, menubtns, 1);
+}
+
 #endif
 
 gui_activity_t* make_device_settings_activity(void)
