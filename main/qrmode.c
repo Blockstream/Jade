@@ -192,7 +192,7 @@ static const char* qr_density_desc_from_flags(const uint32_t qr_flags)
 }
 
 // We support native segwit and p2sh-wrapped segwit, singlesig and multisig
-static script_variant_t xpub_script_variant_from_flags(const uint32_t qr_flags)
+script_variant_t xpub_script_variant_from_flags(const uint32_t qr_flags)
 {
     // unset/default is treated as 'high' (ie. the middle value)
     if (contains_flags(qr_flags, QR_XPUB_TAPROOT)) {
@@ -258,9 +258,12 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
     return make_show_xpub_qr_activity(label, pathstr, icons, num_icons, frames_per_qr);
 }
 
-static bool handle_xpub_options(uint32_t* qr_flags)
+bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
 {
     JADE_ASSERT(qr_flags);
+    if (for_descriptor) {
+        *qr_flags &= ~QR_XPUB_MULTISIG; // Disallow multisig
+    }
 
     uint16_t account_index = (*qr_flags) >> ACCOUNT_INDEX_FLAGS_SHIFT;
 
@@ -311,7 +314,7 @@ static bool handle_xpub_options(uint32_t* qr_flags)
                 }
             }
             update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
-        } else if (ev_id == BTN_XPUB_OPTIONS_WALLETTYPE) {
+        } else if (!for_descriptor && ev_id == BTN_XPUB_OPTIONS_WALLETTYPE) {
             gui_set_current_activity(act_wallettype);
             while (true) {
                 gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
@@ -387,7 +390,8 @@ void display_xpub_qr(void)
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_XPUB_EXIT);
         if (ev_id == BTN_XPUB_OPTIONS) {
-            if (handle_xpub_options(&qr_flags)) {
+            const bool for_descriptor = false;
+            if (handle_xpub_options(&qr_flags, for_descriptor)) {
                 // Options were updated - re-create xpub screen
                 act = create_display_xpub_qr_activity(qr_flags);
             }

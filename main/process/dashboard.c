@@ -2328,14 +2328,7 @@ static void handle_settings(const bool startup_menu)
 
 #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
         case BTN_SETTINGS_USBSTORAGE:
-            // when entering manually (rather than detecting hot plug)
-            // we have to first manually disable the usb serial, no op if already off
-            // we should register the callback
-            // immediately show the UX Please plug in a USB device
-            // on callback DETECTED we mount and show options for usb stuff to do
-            act = make_usbstorage_settings_activity(keychain_get());
-            // we should only restart it if it was already on
-            // serial_start();
+            act = make_usbstorage_settings_activity(keychain_get()); // create menu
             break;
 
         case BTN_SETTINGS_USBSTORAGE_FW:
@@ -2355,13 +2348,13 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_USBSTORAGE_SIGN:
             JADE_ASSERT(keychain_get());
             usbstorage_sign_psbt(NULL);
-
-            // NOTE: signing cleans up other activities, so need to recreate menu
-            act = make_usbstorage_settings_activity(keychain_get());
+            act = make_usbstorage_settings_activity(keychain_get()); // re-create menu
             break;
 
-        case BTN_SETTINGS_USBSTORAGE_EXPORT:
-            // FIXME: implement
+        case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB:
+            JADE_ASSERT(keychain_get());
+            usbstorage_export_xpub(NULL);
+            act = make_usbstorage_settings_activity(keychain_get()); // re-create menu
             break;
 #endif
         case BTN_SETTINGS_OTP_VIEW:

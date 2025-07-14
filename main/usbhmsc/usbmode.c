@@ -34,6 +34,10 @@ network_t network_from_psbt_type(struct wally_psbt* psbt);
 int sign_psbt(
     jade_process_t* process, CborValue* params, network_t network_id, struct wally_psbt* psbt, const char** errmsg);
 
+// xpub helpers
+script_variant_t xpub_script_variant_from_flags(uint32_t qr_flags);
+bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor);
+
 #define MAX_FILENAME_SIZE 256
 #define MAX_FILE_ENTRIES 64
 
@@ -908,4 +912,165 @@ bool usbstorage_sign_psbt(const char* extra_path)
     const usbstorage_action_context_t ctx = { .extra_path = extra_path };
     return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
+
+static gui_activity_t* make_export_xpub_prompt_activity(void)
+{
+    const char* message[] = { "Save wallet Xpub to", "connected storage?" };
+
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXPORT_XPUB_BACK },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t ftrbtns[] = { { .txt = "Options",
+                                 .font = GUI_DEFAULT_FONT,
+                                 .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS,
+                                 .borders = GUI_BORDER_TOPRIGHT },
+        { .txt = "Export",
+            .font = GUI_DEFAULT_FONT,
+            .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION,
+            .borders = GUI_BORDER_TOPLEFT } };
+    return make_show_message_activity(message, 2, "Export Xpub", hdrbtns, 2, ftrbtns, 2);
+}
+
+static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx)
+{
+    uint32_t qr_flags = storage_get_qr_flags();
+    qr_flags &= ~QR_XPUB_MULTISIG; // Disallow multisig
+
+    gui_activity_t* act = make_export_xpub_prompt_activity();
+    gui_set_current_activity(act);
+
+    while (true) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_EVENT_TIMEOUT);
+
+        if (ev_id == BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS) {
+            const bool for_descriptor = true;
+            handle_xpub_options(&qr_flags, for_descriptor);
+            gui_set_current_activity(act);
+        } else if (ev_id == BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION) {
+            break; // Fall through to perform the export
+        } else if (ev_id == BTN_SETTINGS_EXPORT_XPUB_BACK) {
+            return true;
+        } else if (ev_id != BTN_EVENT_TIMEOUT) {
+            return false;
+        }
+    }
+
+    JADE_ASSERT(!(qr_flags & QR_XPUB_MULTISIG));
+    char descriptor[512], *p = descriptor; // sufficient
+    const script_variant_t script_variant = xpub_script_variant_from_flags(qr_flags);
+    bool is_wrapped = false;
+
+    // Descriptor type
+    switch (script_variant) {
+    case P2PKH:
+        memcpy(p, "pkh([", sizeof("pkh(["));
+        p += sizeof("pkh([") - 1;
+        break;
+    case P2WPKH_P2SH:
+        memcpy(p, "sh(", sizeof("sh("));
+        p += sizeof("sh(") - 1;
+        is_wrapped = true;
+        goto p2wpkh;
+        break;
+    case P2WPKH:
+    p2wpkh:
+        memcpy(p, "wpkh([", sizeof("wpkh(["));
+        p += sizeof("wpkh([") - 1;
+        break;
+    case P2TR:
+        memcpy(p, "tr([", sizeof("tr(["));
+        p += sizeof("tr([") - 1;
+        break;
+    default:
+        JADE_ASSERT(false);
+    }
+
+    // Fingerprint
+    {
+        uint8_t user_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+        wallet_get_fingerprint(user_fingerprint, sizeof(user_fingerprint));
+        char* fphex = NULL;
+        JADE_WALLY_VERIFY(wally_hex_from_bytes(user_fingerprint, sizeof(user_fingerprint), &fphex));
+        JADE_ASSERT(fphex && strlen(fphex) == BIP32_KEY_FINGERPRINT_LEN * 2);
+        memcpy(p, fphex, BIP32_KEY_FINGERPRINT_LEN * 2);
+        wally_free_string(fphex);
+        p += BIP32_KEY_FINGERPRINT_LEN * 2;
+        *p++ = '/';
+        *p = '\0';
+    }
+
+    // Path
+    const uint16_t account_index = qr_flags >> ACCOUNT_INDEX_FLAGS_SHIFT;
+    uint32_t path[EXPORT_XPUB_PATH_LEN];
+    size_t path_len = 0;
+    wallet_get_default_xpub_export_path(script_variant, account_index, path, EXPORT_XPUB_PATH_LEN, &path_len);
+    const bool path_only = true;
+    const size_t remaining_len = sizeof(descriptor) - (p - descriptor);
+    const bool ret = wallet_bip32_path_as_str(path, path_len, p, remaining_len, path_only);
+    JADE_ASSERT(ret);
+    p += strlen(p);
+    *p++ = ']';
+    *p = '\0';
+
+    network_t network_id;
+    if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
+        network_id = NETWORK_BITCOIN_TESTNET;
+    } else {
+        network_id = NETWORK_BITCOIN;
+    }
+
+    // xpub
+    {
+        char* xpub = NULL;
+        if (!wallet_get_xpub(network_id, path, path_len, &xpub) || !xpub) {
+            const char* msg[] = { "unable to get", "xpub from path" };
+            await_error_activity(msg, 2);
+            return false;
+        }
+        const size_t xpub_len = strlen(xpub);
+        // Ensure enough space remains to close the descriptor and add checksum
+        JADE_ASSERT(p + xpub_len < descriptor + (sizeof(descriptor) - 32));
+        strncpy(p, xpub, xpub_len);
+        p += xpub_len;
+        wally_free_string(xpub);
+        memcpy(p, "/0/*)", sizeof("/0/*)"));
+        p += sizeof("/0/*)") - 1;
+        if (is_wrapped) {
+            *p++ = ')';
+        }
+        *p++ = '\0';
+    }
+
+    // Checksum
+    const uint32_t flags = 16 << WALLY_MINISCRIPT_DEPTH_SHIFT;
+    struct wally_descriptor* d = NULL;
+    JADE_WALLY_VERIFY(wally_descriptor_parse(descriptor, NULL, network_id, flags, &d));
+    JADE_ASSERT(d && d->src && d->src_len < sizeof(descriptor));
+    // Use the canonical form with checksum from the parsed descriptor
+    const size_t descriptor_len = d->src_len;
+    memcpy(descriptor, d->src, descriptor_len);
+    descriptor[descriptor_len] = '\0';
+    JADE_WALLY_VERIFY(wally_descriptor_free(d));
+
+    const size_t written
+        = write_buffer_to_file(USBSTORAGE_MOUNT_POINT "/jade-xpub.txt", (const uint8_t*)descriptor, descriptor_len);
+
+    if (written != descriptor_len) {
+        const char* msg[] = { "Failed to save", "xpub file" };
+        await_error_activity(msg, 2);
+        return false;
+    }
+
+    const char* msg[] = { "xpub saved to", "jade-xpub.txt" };
+    await_message_activity(msg, 2);
+    return true;
+}
+
+bool usbstorage_export_xpub(const char* extra_path)
+{
+    const bool is_async = false;
+    usbstorage_action_context_t ctx = { .extra_path = NULL, .ctx = NULL };
+    return handle_usbstorage_action("Export Xpub", export_usb_xpub_fn, &ctx, is_async);
+}
+
 #endif // AMALGAMATED_BUILD
