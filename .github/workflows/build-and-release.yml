@@ -1,0 +1,34 @@
+name: Build Jade Firmware
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build (e.g. 1.0.35)"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for tag checkout
+
+      - name: Checkout specific tag (for manual dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          git fetch --tags
+          git checkout ${{ inputs.tag }}
+
+      - name: Build Firmware
+        run: |
+          bash build_firmware_binaries.sh
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.bin

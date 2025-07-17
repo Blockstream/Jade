@@ -1,0 +1,13 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - type: bind
+        source: .git
+        target: /host/jade/.git
+      - type: bind
+        source: ./docker_data
+        target: /docker_data
+    tty: true
