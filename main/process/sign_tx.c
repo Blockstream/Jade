@@ -602,7 +602,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         }
     } else {
         // Bitcoin: Confirm all non-change outputs
-        if (for_liquid && !show_btc_transaction_outputs_activity(network_id, tx, output_info)) {
+        if (!show_btc_transaction_outputs_activity(network_id, tx, output_info)) {
             cancelmsg = "User declined to sign transaction";
         }
     }
