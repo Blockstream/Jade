@@ -47,7 +47,7 @@ bool show_elements_swap_activity(const network_t network_id, bool initial_propos
     size_t num_in_sums, const asset_summary_t* out_sums, size_t num_out_sums, const asset_info_t* assets,
     size_t num_assets);
 
-bool show_btc_final_confirmation_activity(uint64_t fee, const char* warning_msg);
+bool show_btc_final_confirmation_activity(network_t network_id, uint64_t fee, const char* warning_msg);
 bool show_elements_final_confirmation_activity(
     const network_t network_id, const char* title, const uint64_t fee, const char* warning_msg);
 
@@ -365,8 +365,9 @@ cleanup:
     return true;
 }
 
-bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_info_t* outinfo,
-    const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t input_amount, const uint64_t output_amount)
+bool show_btc_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
+    const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t input_amount,
+    const uint64_t output_amount)
 {
     JADE_ASSERT(tx);
     // outputinfo is optional
@@ -405,7 +406,7 @@ bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_
     }
 
     // Return whether the user accepts or declines
-    return show_btc_final_confirmation_activity(fees, warning_msg);
+    return show_btc_final_confirmation_activity(network_id, fees, warning_msg);
 }
 
 // Loop to generate and send Anti-Exfil signatures as they are requested.
@@ -934,7 +935,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         // User to agree fee amount
         // If user cancels we'll send the 'cancelled' error response for the last input message only
         if (!show_btc_fee_confirmation_activity(
-                tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
+                network_id, tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
             // If using ae-signatures, we need to load the message to send the error back on
             if (use_ae_signatures) {
                 jade_process_load_in_message(process, true);

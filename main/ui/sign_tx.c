@@ -417,7 +417,7 @@ static bool show_input_output_activity(const char* title, const bool is_wallet_o
 bool show_btc_transaction_outputs_activity(
     const network_t network_id, const struct wally_tx* tx, const output_info_t* output_info)
 {
-    JADE_ASSERT(network_id != NETWORK_NONE);
+    JADE_ASSERT(!network_is_liquid(network_id));
     JADE_ASSERT(tx);
     // Note: output_info is optional and can be null
 
@@ -763,8 +763,10 @@ static bool show_final_confirmation_activity(
     }
 }
 
-bool show_btc_final_confirmation_activity(const uint64_t fee, const char* warning_msg)
+bool show_btc_final_confirmation_activity(const network_t network_id, const uint64_t fee, const char* warning_msg)
 {
+    JADE_ASSERT(!network_is_liquid(network_id));
+
     char feeamount[32];
     const int ret = snprintf(feeamount, sizeof(feeamount), "%.08f", 1.0 * fee / 1e8);
     JADE_ASSERT(ret > 0 && ret < sizeof(feeamount));

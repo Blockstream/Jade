@@ -28,8 +28,8 @@
 #include "process_utils.h"
 
 bool show_btc_transaction_outputs_activity(
-    const network_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
-bool show_btc_fee_confirmation_activity(const struct wally_tx* tx, const output_info_t* outinfo,
+    network_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
+bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
 
 // From https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
@@ -810,7 +810,7 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
     // User to agree fee amount
     // Check to see whether user accepted or declined
     if (!show_btc_fee_confirmation_activity(
-            tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
+            network_id, tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
         *errmsg = "User declined to sign psbt";
         retval = CBOR_RPC_USER_CANCELLED;
         goto cleanup;
