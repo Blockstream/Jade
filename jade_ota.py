@@ -278,9 +278,10 @@ def ota(jade, fwcompressed, fwlength, fwhash, patchlen, extended_replies, pushmn
         nonlocal last_written
 
         # For the purposes of this test we usually assume the hw supports
-        # extended replies.  Use --no-extended-reply if this is not the case
+        # extended replies.  Use --no-extended-replies if this is not the case
         # (eg. updating from older firmware).
-        assert (extended_reply is not None) == (extended_replies is True)
+        if (extended_reply is not None) != (extended_replies is True):
+            assert False, 'Extended replies mismatch. Use (or remove) --no-extended-replies'
 
         current_time = time.time()
         secs = current_time - last_time
