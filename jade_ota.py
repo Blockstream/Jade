@@ -244,6 +244,36 @@ def get_bleid(jade):
     return has_radio, id
 
 
+# Get the firmware file to OTA
+def get_firmware(args):
+    if args.downloadfw:
+        fwlen, patchlen, fwhash, fwcmp = download_file(args.hwtarget, args.writecompressed,
+                                                       args.release)
+    elif args.downloadgdk:
+        fwlen, patchlen, fwhash, fwcmp = download_file_gdk(args.hwtarget, args.writecompressed,
+                                                           args.release)
+    elif args.fwfile:
+        assert not args.writecompressed
+        fwlen, patchlen, fwhash, fwcmp = get_local_compressed_fwfile(args.fwfile)
+    else:
+        # Default case, as 'uncompressed fw file' has a default value if not passed explicitly
+        fwlen, patchlen, fwhash, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
+                                                                       args.writecompressed)
+
+    if fwcmp is None:
+        logger.error('No firmware available')
+        sys.exit(2)
+
+    logger.info(f'Got fw {"patch" if patchlen else "file"} of length {len(fwcmp)} '
+                f'with expected uncompressed final fw length {fwlen}')
+
+    if fwhash is not None:
+        logger.info(f'Final fw hash: {fwhash}')
+        fwhash = bytes.fromhex(fwhash)
+
+    return fwlen, patchlen, fwhash, fwcmp
+
+
 # Takes the compressed firmware data to upload, the expected length of the
 # final (uncompressed) firmware, the length of the uncompressed diff/patch
 # (if this is a patch to apply to the current running firmware), and whether
@@ -454,31 +484,7 @@ if __name__ == '__main__':
     if args.writecompressed and not os.path.isdir(COMP_FW_DIR):
         os.mkdir(COMP_FW_DIR)
 
-    # Get the file to OTA
-    if args.downloadfw:
-        fwlen, patchlen, fwhash, fwcmp = download_file(args.hwtarget, args.writecompressed,
-                                                       args.release)
-    elif args.downloadgdk:
-        fwlen, patchlen, fwhash, fwcmp = download_file_gdk(args.hwtarget, args.writecompressed,
-                                                           args.release)
-    elif args.fwfile:
-        assert not args.writecompressed
-        fwlen, patchlen, fwhash, fwcmp = get_local_compressed_fwfile(args.fwfile)
-    else:
-        # Default case, as 'uncompressed fw file' has a default value if not passed explicitly
-        fwlen, patchlen, fwhash, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
-                                                                       args.writecompressed)
-
-    if fwcmp is None:
-        logger.error('No firmware available')
-        sys.exit(2)
-
-    logger.info(f'Got fw {"patch" if patchlen else "file"} of length {len(fwcmp)} '
-                f'with expected uncompressed final fw length {fwlen}')
-
-    if fwhash is not None:
-        logger.info(f'Final fw hash: {fwhash}')
-        fwhash = bytes.fromhex(fwhash)
+    fwlen, patchlen, fwhash, fwcmp = get_firmware(args)
 
     # If ble, start the agent to supply the required passkey for authentication
     # and encryption - don't bother if not.
