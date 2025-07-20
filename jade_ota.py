@@ -437,18 +437,18 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if args.release and not downloading:
-        logger.error('Can only specify release when downloading fw from server')
-        sys.exit(1)
+        logger.info('Ignoring --release release type since we are not downloading fw')
+        args.release = None
+    elif downloading and not args.release:
+        logger.info(f'Assuming a latest stable fw download. Use --release to override')
+        args.release = 'stable'  # default to latest/stable
 
     if args.hwtarget and not downloading:
-        logger.error('Can only supply hardware target when downloading fw from server')
-        sys.exit(1)
-
-    if downloading and not args.hwtarget:
-        args.hwtarget = 'jade'   # default to prod jade
-
-    if downloading and not args.release:
-        args.release = 'stable'  # default to latest/stable
+        logger.info('Ignoring --hw-target hardware target since we are not downloading fw')
+        args.hwtarget = None
+    elif downloading and not args.hwtarget:
+        logger.info(f'Assuming a jade v1.0 hardware target. Use --hw-target to override')
+        args.hwtarget = 'jade'   # default to prod jade 1.0
 
     # Create target dir if not present
     if args.writecompressed and not os.path.isdir(COMP_FW_DIR):
