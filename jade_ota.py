@@ -286,6 +286,25 @@ def get_firmware(args):
 # Fetches the firmware to upload and uploads it, either by pushing a test
 # mnemonic or through normal pinserver authentication.
 def ota(args, jade, info, extended_replies):
+    downloading = args.downloadfw or args.downloadgdk
+    if downloading and not args.release:
+        logger.info(f'Assuming a latest stable fw download. Use --release to override')
+        args.release = 'stable'  # default to latest/stable
+
+    if downloading and not args.hwtarget:
+        # Default HW target from the device we are going to update
+        board_type = info.get('BOARD_TYPE')
+        features = info.get('JADE_FEATURES')
+        hw_target = {'JADE': 'jade',
+                     'JADE_V1.1': 'jade1.1',
+                     'JADE_V2': 'jade2.0'}.get(board_type if board_type else 'JADE')
+        build_type = {'SB': '', 'DEV': 'dev'}.get(features)
+        if hw_target is None or build_type is None:
+            logger.error(f'Unsupported hardware: {board_type} / {features}')
+            sys.exit(1)
+        args.hwtarget = hw_target + build_type
+        logger.info(f'Assuming a {args.hwtarget} hardware target. Use --hw-target to override')
+
     # Fetch the firmware to upload
     fwlength, patchlen, fwhash, fwcompressed = get_firmware(args)
 
@@ -475,16 +494,10 @@ if __name__ == '__main__':
     if args.release and not downloading:
         logger.info('Ignoring --release release type since we are not downloading fw')
         args.release = None
-    elif downloading and not args.release:
-        logger.info(f'Assuming a latest stable fw download. Use --release to override')
-        args.release = 'stable'  # default to latest/stable
 
     if args.hwtarget and not downloading:
         logger.info('Ignoring --hw-target hardware target since we are not downloading fw')
         args.hwtarget = None
-    elif downloading and not args.hwtarget:
-        logger.info(f'Assuming a jade v1.0 hardware target. Use --hw-target to override')
-        args.hwtarget = 'jade'   # default to prod jade 1.0
 
     # Create target dir if not present
     if args.writecompressed and not os.path.isdir(COMP_FW_DIR):
