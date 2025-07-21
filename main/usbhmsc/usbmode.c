@@ -905,19 +905,34 @@ bool usbstorage_sign_psbt(const char* extra_path)
 
 static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
     JADE_ASSERT(ctx);
+	uint32_t path[EXPORT_XPUB_PATH_LEN];
+	size_t path_len = 0;
+	script_variant_t script_variant = P2PKH;
+	uint16_t account_index = 0;
+	wallet_get_default_xpub_export_path(script_variant,
+			account_index,
+			path,
+			EXPORT_XPUB_PATH_LEN,
+			&path_len);
+
+	char *xpub = NULL;
+	network_t network_id = 0x02;
+	if (!wallet_get_xpub(network_id, path, path_len, &xpub) || xpub == NULL) {
+		//await_error_activity((const char*[]){"Unable to derive xpub"}, 1);
+		return false;
+	}
 
     char outpath[MAX_FILENAME_SIZE];
     int len = snprintf(outpath, sizeof(outpath),
                        "%s/test-xpub.txt", USBSTORAGE_MOUNT_POINT);
     JADE_ASSERT(len > 0 && len < sizeof(outpath));
-
-    const char payload[] = "Hello, World!";
-    const size_t payload_len = sizeof(payload) - 1;
+	int xpub_len = strlen(xpub);
+    
     size_t written = write_buffer_to_file(outpath,
-                                          (const uint8_t*)payload,
-                                          payload_len);
+                                          (const uint8_t*)xpub,
+                                          xpub_len);
 
-    if (written != payload_len) {
+    if (written != xpub_len) {
         const char* msg[] = { "Failed to save", "xpub file" };
         await_error_activity(msg, 2);
         return false;
