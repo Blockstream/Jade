@@ -903,11 +903,23 @@ bool usbstorage_sign_psbt(const char* extra_path)
     return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
 
+static const char* _desc_func_for_variant(script_variant_t v) {
+	switch (v) {
+		case P2PKH:             return "pkh(";
+		case P2WPKH:            return "wpkh(";
+		case P2WPKH_P2SH:       return "sh(wpkh(";
+		case P2TR:              return "tr(";
+		default:                return "";    
+	}
+}
+
 static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
     JADE_ASSERT(ctx);
 	uint32_t path[EXPORT_XPUB_PATH_LEN];
 	size_t path_len = 0;
+	// get script variant from user
 	script_variant_t script_variant = P2PKH;
+	// get account index from user
 	uint16_t account_index = 0;
 	wallet_get_default_xpub_export_path(script_variant,
 			account_index,
@@ -916,23 +928,64 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 			&path_len);
 
 	char *xpub = NULL;
-	network_t network_id = 0x02;
+
+    network_t network_id;
+
+    if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
+        network_id = NETWORK_BITCOIN_TESTNET;
+    } else {
+        network_id = NETWORK_BITCOIN;
+    }
+
 	if (!wallet_get_xpub(network_id, path, path_len, &xpub) || xpub == NULL) {
 		//await_error_activity((const char*[]){"Unable to derive xpub"}, 1);
 		return false;
 	}
+	// get fingerprint
+	// then take the whole string and put it together with
+	// scriptvariant([fingerprint/84'/0'accountindex]xpub/0/*)	
+	uint8_t user_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+	wallet_get_fingerprint(user_fingerprint, sizeof(user_fingerprint));
+
+	char* fphex = NULL;
+	wally_hex_from_bytes(user_fingerprint, sizeof(user_fingerprint), &fphex);
+	map_string(fphex, toupper);
+
+	char pathstr[64] = {0};
+	char elem[16];
+	for (size_t i = 0; i < path_len; i++) {
+		uint32_t idx = path[i] & ~0x80000000;
+		bool     hard = (path[i] & 0x80000000) != 0;
+		if (i) strlcat(pathstr, "/", sizeof(pathstr));
+		snprintf(elem, sizeof(elem), "%u%s", (unsigned)idx, hard ? "'" : "");
+		strlcat(pathstr, elem, sizeof(pathstr));
+	}
+
+	char desc[512];
+	const char* wrap = _desc_func_for_variant(script_variant);
+	const bool    is_sh_wpkh = (script_variant == P2WPKH_P2SH);
+	if (is_sh_wpkh) {
+		// remember to close two parentheses
+		snprintf(desc, sizeof(desc),
+				"%s[%s/%s]%s/0/*))",
+				wrap, fphex, pathstr, xpub);
+	} else {
+		snprintf(desc, sizeof(desc),
+				"%s[%s/%s]%s/0/*)",
+				wrap, fphex, pathstr, xpub);
+	}
+	size_t dlen = strlen(desc);
 
     char outpath[MAX_FILENAME_SIZE];
     int len = snprintf(outpath, sizeof(outpath),
-                       "%s/test-xpub.txt", USBSTORAGE_MOUNT_POINT);
+                       "%s/wallet.desc", USBSTORAGE_MOUNT_POINT);
     JADE_ASSERT(len > 0 && len < sizeof(outpath));
-	int xpub_len = strlen(xpub);
     
     size_t written = write_buffer_to_file(outpath,
-                                          (const uint8_t*)xpub,
-                                          xpub_len);
+                                          (const uint8_t*)desc,
+                                          dlen);
 
-    if (written != xpub_len) {
+    if (written != dlen) {
         const char* msg[] = { "Failed to save", "xpub file" };
         await_error_activity(msg, 2);
         return false;
