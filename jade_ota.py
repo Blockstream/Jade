@@ -236,6 +236,13 @@ def get_local_compressed_fwfile(fwfilename):
     return fwinfo.fwsize, fwinfo2.fwsize if fwinfo2 else None, fwhash, fwcmp
 
 
+# Fetch and log the Jade device information
+def get_version_info(jade):
+    info = jade.get_version_info()
+    logger.info(f'Jade device for OTA: {json.dumps(info, indent=4)}')
+    return info
+
+
 # Returns whether we have ble and the id of the jade
 def get_bleid(info):
     has_radio = info['JADE_CONFIG'] == 'BLE'
@@ -282,9 +289,7 @@ def ota(args, jade, info, extended_replies):
     # Fetch the firmware to upload
     fwlength, patchlen, fwhash, fwcompressed = get_firmware(args)
 
-    logger.info(f'Running OTA on: {info}')
     has_pin = info['JADE_HAS_PIN']
-
     chunksize = int(info['JADE_OTA_MAX_CHUNK'])
     assert chunksize > 0
 
@@ -503,14 +508,14 @@ if __name__ == '__main__':
             with JadeAPI.create_serial(device=args.serialport) as jade:
                 # By default serial uses extended-replies
                 extended_replies = not args.noextendedreplies
-                info = jade.get_version_info()
+                info = get_version_info(jade)
                 has_radio, bleid = ota(args, jade, info, extended_replies)
 
         elif not args.skipble:
             if has_radio and bleid is None and args.bleidfromserial:
                 logger.info(f'Jade OTA getting bleid via serial connection')
                 with JadeAPI.create_serial(device=args.serialport) as jade:
-                    info = jade.get_version_info()
+                    info = get_version_info(jade)
 
             if has_radio:
                 logger.info(f'Jade OTA over BLE {bleid}')
@@ -518,7 +523,7 @@ if __name__ == '__main__':
                     # Do not use extended-replies for ble
                     extended_replies = False
                     if not info:
-                        info = jade.get_version_info()
+                        info = get_version_info(jade)
                     ota(args, jade, info, extended_replies)
             else:
                 msg = 'Skipping BLE tests - not enabled on the hardware'
