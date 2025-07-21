@@ -902,4 +902,40 @@ bool usbstorage_sign_psbt(const char* extra_path)
     const usbstorage_action_context_t ctx = { .extra_path = extra_path };
     return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
+
+static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
+    JADE_ASSERT(ctx);
+
+    char outpath[MAX_FILENAME_SIZE];
+    int len = snprintf(outpath, sizeof(outpath),
+                       "%s/test-xpub.txt", USBSTORAGE_MOUNT_POINT);
+    JADE_ASSERT(len > 0 && len < sizeof(outpath));
+
+    const char payload[] = "Hello, World!";
+    const size_t payload_len = sizeof(payload) - 1;
+    size_t written = write_buffer_to_file(outpath,
+                                          (const uint8_t*)payload,
+                                          payload_len);
+
+    if (written != payload_len) {
+        const char* msg[] = { "Failed to save", "xpub file" };
+        await_error_activity(msg, 2);
+        return false;
+    }
+
+    size_t mountlen = strlen(USBSTORAGE_MOUNT_POINT);
+    const char* msg[] = {
+      "Wrote xpub to:",
+      outpath + mountlen + 1
+    };
+    await_message_activity(msg, 2);
+    return true;
+}
+
+bool usbstorage_export_xpub(const char* extra_path) {
+    const bool is_async = false; 
+    const usbstorage_action_context_t ctx = { .extra_path = extra_path, .ctx = NULL };
+    return handle_usbstorage_action("Export Xpub", export_usb_xpub_fn, &ctx, is_async);
+}
+
 #endif // AMALGAMATED_BUILD

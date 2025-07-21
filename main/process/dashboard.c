@@ -2386,7 +2386,8 @@ static void handle_settings(const bool startup_menu)
             break;
 
 		case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB:
-			act = make_usbstorage_export_xpub_activity();
+			usbstorage_export_xpub(NULL);
+			act = make_usbstorage_settings_activity(NULL);
 			break;
 
 		case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS:

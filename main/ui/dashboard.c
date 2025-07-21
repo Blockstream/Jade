@@ -372,7 +372,7 @@ gui_activity_t* make_usbstorage_export_xpub_activity(void)
 
 gui_activity_t* make_usbstorage_export_xpub_options_activity(void)
 {
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_XPUB_OPTIONS},
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS},
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = {
