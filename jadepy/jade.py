@@ -107,7 +107,7 @@ try:
         try:
             f = http_call_fn()
             logger.debug(f'http_request received reply length {len(f.content)}'
-                         f'and encoding {f.encoding}')
+                         f' and encoding {f.encoding}')
 
             if f.status_code != 200:
                 logger.error(f'http error {f.status_code}')
