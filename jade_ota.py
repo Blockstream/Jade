@@ -237,14 +237,16 @@ def get_local_compressed_fwfile(fwfilename):
 
 
 # Returns whether we have ble and the id of the jade
-def get_bleid(jade):
-    info = jade.get_version_info()
+def get_bleid(info):
     has_radio = info['JADE_CONFIG'] == 'BLE'
-    id = info['EFUSEMAC'][6:]
-    return has_radio, id
+    bleid = info['EFUSEMAC'][6:]
+    return has_radio, bleid
 
 
-# Get the firmware file to OTA
+# Get the firmware file to OTA.
+# Returns the compressed firmware data to upload, the expected length of the
+# final (uncompressed) firmware, the length of the uncompressed diff/patch
+# (if this is a patch to apply to the current running firmware)
 def get_firmware(args):
     if args.downloadfw:
         fwlen, patchlen, fwhash, fwcmp = download_file(args.hwtarget, args.writecompressed,
@@ -274,25 +276,24 @@ def get_firmware(args):
     return fwlen, patchlen, fwhash, fwcmp
 
 
-# Takes the compressed firmware data to upload, the expected length of the
-# final (uncompressed) firmware, the length of the uncompressed diff/patch
-# (if this is a patch to apply to the current running firmware), and whether
-# to apply the test mnemonic rather than using normal pinserver authentication.
-def ota(jade, fwcompressed, fwlength, fwhash, patchlen, extended_replies, pushmnemonic):
-    info = jade.get_version_info()
+# Fetches the firmware to upload and uploads it, either by pushing a test
+# mnemonic or through normal pinserver authentication.
+def ota(args, jade, info, extended_replies):
+    # Fetch the firmware to upload
+    fwlength, patchlen, fwhash, fwcompressed = get_firmware(args)
+
     logger.info(f'Running OTA on: {info}')
     has_pin = info['JADE_HAS_PIN']
-    has_radio = info['JADE_CONFIG'] == 'BLE'
-    id = info['EFUSEMAC'][6:]
 
     chunksize = int(info['JADE_OTA_MAX_CHUNK'])
     assert chunksize > 0
 
     # Can set the mnemonic in debug, to ensure OTA is allowed
-    if pushmnemonic:
+    if args.pushmnemonic:
         ret = jade.set_mnemonic(TEST_MNEMONIC)
         assert ret is True
     elif has_pin:
+        # Ensure the Jade is unlocked.
         # The network to use is deduced from the version-info
         network = 'testnet' if info.get('JADE_NETWORKS') == 'TEST' else 'mainnet'
         ret = jade.auth_user(network)
@@ -343,7 +344,7 @@ def ota(jade, fwcompressed, fwlength, fwhash, patchlen, extended_replies, pushmn
     time.sleep(5)
 
     # Return whether we have ble and the id of the jade
-    return has_radio, id
+    return get_bleid(info)
 
 
 if __name__ == '__main__':
@@ -484,8 +485,6 @@ if __name__ == '__main__':
     if args.writecompressed and not os.path.isdir(COMP_FW_DIR):
         os.mkdir(COMP_FW_DIR)
 
-    fwlen, patchlen, fwhash, fwcmp = get_firmware(args)
-
     # If ble, start the agent to supply the required passkey for authentication
     # and encryption - don't bother if not.
     # Note: passkey in the agent passkey file must match the fixed test passkey
@@ -497,31 +496,35 @@ if __name__ == '__main__':
     try:
         has_radio = True
         bleid = args.bleid
+        info = None
 
         if not args.skipserial:
             logger.info(f'Jade OTA over serial')
             with JadeAPI.create_serial(device=args.serialport) as jade:
                 # By default serial uses extended-replies
                 extended_replies = not args.noextendedreplies
-                has_radio, bleid = ota(jade, fwcmp, fwlen, fwhash, patchlen,
-                                       extended_replies, args.pushmnemonic)
+                info = jade.get_version_info()
+                has_radio, bleid = ota(args, jade, info, extended_replies)
 
-        if not args.skipble:
+        elif not args.skipble:
             if has_radio and bleid is None and args.bleidfromserial:
                 logger.info(f'Jade OTA getting bleid via serial connection')
                 with JadeAPI.create_serial(device=args.serialport) as jade:
-                    has_radio, bleid = get_bleid(jade)
+                    info = jade.get_version_info()
 
             if has_radio:
                 logger.info(f'Jade OTA over BLE {bleid}')
                 with JadeAPI.create_ble(serial_number=bleid) as jade:
                     # Do not use extended-replies for ble
                     extended_replies = False
-                    ota(jade, fwcmp, fwlen, fwhash, patchlen, extended_replies,
-                        args.pushmnemonic)
+                    if not info:
+                        info = jade.get_version_info()
+                    ota(args, jade, info, extended_replies)
             else:
                 msg = 'Skipping BLE tests - not enabled on the hardware'
                 logger.warning(msg)
+        else:
+            assert False  # Unreachable
 
     finally:
         if btagent:
