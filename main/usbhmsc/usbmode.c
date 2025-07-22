@@ -37,6 +37,9 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
 #define MIN_PSBT_FILE_SIZE 32
 #define MAX_PSBT_FILE_SIZE MAX_INPUT_MSG_SIZE
 
+#define VARIANT_COUNT 8
+#define MAX_ACCOUNTS 3 
+
 static const char FW_SUFFIX[] = "_fw.bin";
 static const char HASH_SUFFIX[] = ".hash";
 
@@ -60,6 +63,11 @@ typedef struct {
     const char* extra_path;
     void* ctx;
 } usbstorage_action_context_t;
+
+typedef struct {
+	script_variant_t variant;
+	uint16_t account;
+} export_xpub_ctx_t;
 
 // Function/action to call on a usb-storage directory
 typedef bool (*usbstorage_action_fn_t)(const usbstorage_action_context_t* ctx);
@@ -897,46 +905,149 @@ cleanup:
 // After any signatures are added, the file is written in the same format.
 bool usbstorage_sign_psbt(const char* extra_path)
 {
-    // extra_path is optional
     const bool is_async = false;
     const usbstorage_action_context_t ctx = { .extra_path = extra_path };
     return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
 
-static const char* _desc_func_for_variant(script_variant_t v) {
-	switch (v) {
-		case P2PKH:             return "pkh(";
-		case P2WPKH:            return "wpkh(";
-		case P2WPKH_P2SH:       return "sh(wpkh(";
-		case P2TR:              return "tr(";
-		default:                return "";    
+static const char* _desc_func_for_variant(script_variant_t v)
+{
+    const char *s = get_script_variant_string(v);
+    if (!s) return "";    
+
+    const char *p = strchr(s, '(');
+    if (!p) return "";      
+    size_t len = p - s + 1;
+    static char buf[32];
+    if (len >= sizeof(buf)) return ""; 
+    memcpy(buf, s, len);
+    buf[len] = '\0';
+    return buf;
+}
+
+static gui_activity_t* make_export_xpub_prompt_activity(void) {
+    const char* message[] = {
+        "Save wallet details to",
+        "connected storage device?"
+    };
+
+    btn_data_t ftrbtns[] = {
+        { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS, .borders = GUI_BORDER_TOPRIGHT },
+        { .txt = "Export",  .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION, .borders = GUI_BORDER_TOPLEFT }
+    };
+    return make_show_message_activity(
+        message, 2,
+        "Export Xpub",      
+        NULL, 0,           
+        ftrbtns, 2        
+    );
+}
+
+static gui_activity_t* make_export_xpub_options_activity(
+		export_xpub_ctx_t* opts,
+		gui_view_node_t**  variant_item,
+		gui_view_node_t**  account_item) 
+{
+
+	btn_data_t hdr[] = {
+	{.txt = "=", .font  = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXPORT_XPUB_BACK},
+	{.txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }
+	};
+
+
+	gui_make_text(variant_item,  "", TFT_WHITE);
+	gui_set_align(*variant_item, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+	gui_make_text(account_item,  "", TFT_WHITE);
+	gui_set_align(*account_item, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+	btn_data_t menu[] = {
+		{ .content = *variant_item, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_VARIANT},
+		{ .content = *account_item, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACCOUNT},
+	};
+	gui_activity_t* act = make_menu_activity("xpub options", hdr, 2, menu, 2);
+
+	gui_update_text(*variant_item, _desc_func_for_variant(opts->variant));
+	{
+		char buf[16];
+		snprintf(buf, sizeof(buf), "Acct %u", opts->account);
+		gui_update_text(*account_item, buf);
 	}
+
+	return act;
 }
 
 static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
-    JADE_ASSERT(ctx);
+	JADE_ASSERT(ctx);
+	export_xpub_ctx_t default_opts = { .variant = P2PKH, .account = 0 };
+	export_xpub_ctx_t* opts = ctx->ctx ? (export_xpub_ctx_t*)ctx->ctx : &default_opts;
+
+	while (true) {
+		gui_activity_t* prompt = make_export_xpub_prompt_activity();
+		gui_set_current_activity(prompt);
+
+		int32_t ev;
+		gui_activity_wait_event(prompt, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev, NULL, 0);
+
+		if (ev == BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS) {
+			gui_view_node_t *var_item = NULL, *acct_item = NULL;
+			gui_activity_t* opts_act = make_export_xpub_options_activity(
+					opts, &var_item, &acct_item
+					);
+			gui_set_current_activity(opts_act);
+
+			while (true) {
+				gui_activity_wait_event(
+						opts_act,
+						GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL,
+						&ev, NULL, 0
+						);
+
+				switch (ev) {
+					case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_VARIANT:
+						opts->variant = (opts->variant + 1) % VARIANT_COUNT;
+						gui_update_text(var_item, _desc_func_for_variant(opts->variant));
+						break;
+					case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACCOUNT:
+						opts->account = (opts->account + 1) % MAX_ACCOUNTS;
+						{
+							char buf[16];
+							snprintf(buf, sizeof(buf), "Acct %u", opts->account);
+							gui_update_text(acct_item, buf);
+						}
+						break;
+					case BTN_SETTINGS_EXPORT_XPUB_BACK:
+						goto PROMPT_LOOP;
+				}
+			} 
+		}
+		else if (ev == BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION) {
+
+			goto DO_EXPORT;
+		}
+		else {
+			return false;
+		}
+
+PROMPT_LOOP: ;
+	}
+
+DO_EXPORT:
 	uint32_t path[EXPORT_XPUB_PATH_LEN];
 	size_t path_len = 0;
-	// get script variant from user
-	script_variant_t script_variant = P2PKH;
-	// get account index from user
-	uint16_t account_index = 0;
-	wallet_get_default_xpub_export_path(script_variant,
-			account_index,
+	wallet_get_default_xpub_export_path(opts->variant,
+			opts->account,
 			path,
 			EXPORT_XPUB_PATH_LEN,
 			&path_len);
 
 	char *xpub = NULL;
 
-    network_t network_id;
-
-    if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
-        network_id = NETWORK_BITCOIN_TESTNET;
-    } else {
-        network_id = NETWORK_BITCOIN;
-    }
-
+	network_t network_id;
+	if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
+		network_id = NETWORK_BITCOIN_TESTNET;
+	} else {
+		network_id = NETWORK_BITCOIN;
+	}
 	if (!wallet_get_xpub(network_id, path, path_len, &xpub) || xpub == NULL) {
 		//await_error_activity((const char*[]){"Unable to derive xpub"}, 1);
 		return false;
@@ -962,10 +1073,9 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 	}
 
 	char desc[512];
-	const char* wrap = _desc_func_for_variant(script_variant);
-	const bool    is_sh_wpkh = (script_variant == P2WPKH_P2SH);
+	const char* wrap = _desc_func_for_variant(opts->variant);
+	const bool    is_sh_wpkh = (opts->variant == P2WPKH_P2SH || opts->variant == MULTI_P2WSH_P2SH);
 	if (is_sh_wpkh) {
-		// remember to close two parentheses
 		snprintf(desc, sizeof(desc),
 				"%s[%s/%s]%s/0/*))",
 				wrap, fphex, pathstr, xpub);
@@ -976,34 +1086,35 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 	}
 	size_t dlen = strlen(desc);
 
-    char outpath[MAX_FILENAME_SIZE];
-    int len = snprintf(outpath, sizeof(outpath),
-                       "%s/wallet.desc", USBSTORAGE_MOUNT_POINT);
-    JADE_ASSERT(len > 0 && len < sizeof(outpath));
-    
-    size_t written = write_buffer_to_file(outpath,
-                                          (const uint8_t*)desc,
-                                          dlen);
+	char outpath[MAX_FILENAME_SIZE];
+	int len = snprintf(outpath, sizeof(outpath),
+			"%s/jade-xpub.txt", USBSTORAGE_MOUNT_POINT);
+	JADE_ASSERT(len > 0 && len < sizeof(outpath));
 
-    if (written != dlen) {
-        const char* msg[] = { "Failed to save", "xpub file" };
-        await_error_activity(msg, 2);
-        return false;
-    }
+	size_t written = write_buffer_to_file(outpath,
+			(const uint8_t*)desc,
+			dlen);
 
-    size_t mountlen = strlen(USBSTORAGE_MOUNT_POINT);
-    const char* msg[] = {
-      "Wrote xpub to:",
-      outpath + mountlen + 1
-    };
-    await_message_activity(msg, 2);
-    return true;
+	if (written != dlen) {
+		const char* msg[] = { "Failed to save", "xpub file" };
+		await_error_activity(msg, 2);
+		return false;
+	}
+
+	size_t mountlen = strlen(USBSTORAGE_MOUNT_POINT);
+	const char* msg[] = {
+		"Wrote xpub to:",
+		outpath + mountlen + 1
+	};
+	await_message_activity(msg, 2);
+	return true;
 }
 
 bool usbstorage_export_xpub(const char* extra_path) {
-    const bool is_async = false; 
-    const usbstorage_action_context_t ctx = { .extra_path = extra_path, .ctx = NULL };
-    return handle_usbstorage_action("Export Xpub", export_usb_xpub_fn, &ctx, is_async);
+	const bool is_async = false; 
+	export_xpub_ctx_t options = { P2PKH, 0 };
+	usbstorage_action_context_t ctx = { .extra_path = extra_path, .ctx = &options};
+	return handle_usbstorage_action("Export Xpub", export_usb_xpub_fn, &ctx, is_async);
 }
 
 #endif // AMALGAMATED_BUILD
