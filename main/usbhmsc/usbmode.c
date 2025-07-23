@@ -931,6 +931,12 @@ static gui_activity_t* make_export_xpub_prompt_activity(void) {
         "connected storage device?"
     };
 
+
+	btn_data_t hdr[] = {
+	{.txt = "=", .font  = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXPORT_XPUB_BACK},
+	{.txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }
+	};
+
     btn_data_t ftrbtns[] = {
         { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS, .borders = GUI_BORDER_TOPRIGHT },
         { .txt = "Export",  .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION, .borders = GUI_BORDER_TOPLEFT }
@@ -938,7 +944,7 @@ static gui_activity_t* make_export_xpub_prompt_activity(void) {
     return make_show_message_activity(
         message, 2,
         "Export Xpub",      
-        NULL, 0,           
+        hdr, 2,           
         ftrbtns, 2        
     );
 }
@@ -1024,6 +1030,9 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 
 			goto DO_EXPORT;
 		}
+		else if (ev == BTN_SETTINGS_EXPORT_XPUB_BACK) {
+			goto EXIT_EXPORT_XPUB;	
+		}
 		else {
 			return false;
 		}
@@ -1107,6 +1116,8 @@ DO_EXPORT:
 		outpath + mountlen + 1
 	};
 	await_message_activity(msg, 2);
+	return true;
+EXIT_EXPORT_XPUB:
 	return true;
 }
 
