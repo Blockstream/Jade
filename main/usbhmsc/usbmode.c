@@ -910,29 +910,6 @@ bool usbstorage_sign_psbt(const char* extra_path)
     return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
 
-gui_activity_t* make_xpub_options_activity(
-    gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** account_textbox)
-{
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_OPTIONS_EXIT },
-        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP } };
-
-    gui_make_text(script_textbox, "Script", TFT_WHITE);
-    gui_set_align(*script_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    gui_make_text(wallet_textbox, "Wallet", TFT_WHITE);
-    gui_set_align(*wallet_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    gui_make_text(account_textbox, "Account Index", TFT_WHITE);
-    gui_set_align(*account_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    btn_data_t menubtns[]
-        = { { .content = *script_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_SCRIPTTYPE },
-              { .content = *wallet_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_WALLETTYPE },
-              { .content = *account_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_ACCOUNT } };
-
-    return make_menu_activity("Xpub Options", hdrbtns, 2, menubtns, 3);
-}
-
 static bool handle_usb_xpub_options(uint32_t* qr_flags)
 {
     JADE_ASSERT(qr_flags);
@@ -946,7 +923,7 @@ static bool handle_usb_xpub_options(uint32_t* qr_flags)
     gui_view_node_t* script_item = NULL;
     gui_view_node_t* wallet_item = NULL;
     gui_view_node_t* account_item = NULL;
-    gui_activity_t* const act = make_xpub_options_activity(&script_item, &wallet_item, &account_item);
+    gui_activity_t* const act = make_xpub_qr_options_activity(&script_item, &wallet_item, &account_item);
     update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
     update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
     update_menu_item(account_item, "Account Index", buf);
