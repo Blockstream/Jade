@@ -64,11 +64,6 @@ typedef struct {
     void* ctx;
 } usbstorage_action_context_t;
 
-typedef struct {
-	script_variant_t variant;
-	uint16_t account;
-} export_xpub_ctx_t;
-
 // Function/action to call on a usb-storage directory
 typedef bool (*usbstorage_action_fn_t)(const usbstorage_action_context_t* ctx);
 
@@ -916,7 +911,6 @@ static gui_activity_t* make_export_xpub_prompt_activity(void) {
         "connected storage device?"
     };
 
-
 	btn_data_t hdr[] = {
 	{.txt = "=", .font  = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXPORT_XPUB_BACK},
 	{.txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }
@@ -934,9 +928,7 @@ static gui_activity_t* make_export_xpub_prompt_activity(void) {
     );
 }
 
-
 static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
-
 
     uint32_t qr_flags = storage_get_qr_flags();
 
@@ -1051,8 +1043,7 @@ EXIT_EXPORT_XPUB:
 
 bool usbstorage_export_xpub(const char* extra_path) {
 	const bool is_async = false; 
-	export_xpub_ctx_t options = { P2PKH, 0 };
-	usbstorage_action_context_t ctx = { .extra_path = extra_path, .ctx = &options};
+	usbstorage_action_context_t ctx = { .extra_path = NULL, .ctx = NULL};
 	return handle_usbstorage_action("Export Xpub", export_usb_xpub_fn, &ctx, is_async);
 }
 
