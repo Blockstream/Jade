@@ -933,80 +933,6 @@ gui_activity_t* make_xpub_options_activity(
     return make_menu_activity("Xpub Options", hdrbtns, 2, menubtns, 3);
 }
 
-
-static script_variant_t xpub_usb_script_variant_from_flags(const uint32_t qr_flags)
-{
-	//TODO - make more general remove qr
-    // unset/default is treated as 'high' (ie. the middle value)
-    if (contains_flags(qr_flags, QR_XPUB_TAPROOT)) {
-        return P2TR;
-    }
-    if (contains_flags(qr_flags, QR_XPUB_MULTISIG)) {
-        return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? MULTI_P2WSH_P2SH
-            : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? MULTI_P2SH
-                                                                          : MULTI_P2WSH;
-    }
-    return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? P2WPKH_P2SH
-        : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? P2PKH
-                                                                      : P2WPKH;
-}
-
-
-static inline bool contains_script_flags(const uint32_t flags, const uint32_t test_flags)
-{
-    return (flags & test_flags) == test_flags;
-}
-
-static void rotate_xpub_scripttypes(uint32_t* flags, const bool reverse)
-{
-    JADE_ASSERT(flags);
-	//TODO - remove qr from the flags and define them for general use
-
-    if (reverse) {
-        if (contains_flags(*flags, QR_XPUB_LEGACY | QR_XPUB_WITNESS)) {
-            *flags &= ~QR_XPUB_WITNESS;
-        } else if (contains_flags(*flags, QR_XPUB_LEGACY)) {
-            *flags ^= (QR_XPUB_LEGACY | QR_XPUB_TAPROOT);
-        } else if (contains_flags(*flags, QR_XPUB_TAPROOT)) {
-            *flags ^= (QR_XPUB_WITNESS | QR_XPUB_TAPROOT);
-        } else if (contains_flags(*flags, QR_XPUB_WITNESS)) {
-            *flags |= QR_XPUB_LEGACY;
-        } else { // ie. currently 0/default/uninitialised - treat as 'segwit v0'
-            *flags |= (QR_XPUB_LEGACY | QR_XPUB_WITNESS);
-        }
-    } else {
-        if (contains_flags(*flags, QR_XPUB_LEGACY | QR_XPUB_WITNESS)) {
-            *flags &= ~QR_XPUB_LEGACY;
-        } else if (contains_flags(*flags, QR_XPUB_WITNESS)) {
-            *flags ^= (QR_XPUB_WITNESS | QR_XPUB_TAPROOT);
-        } else if (contains_flags(*flags, QR_XPUB_TAPROOT)) {
-            *flags ^= (QR_XPUB_LEGACY | QR_XPUB_TAPROOT);
-        } else if (contains_flags(*flags, QR_XPUB_LEGACY)) {
-            *flags |= QR_XPUB_WITNESS;
-        } else { // ie. currently 0/default/uninitialised - treat as 'segwit v0'
-            *flags |= QR_XPUB_TAPROOT;
-        }
-    }
-}
-
-static inline const char* xpub_usb_scripttype_desc_from_flags(const uint32_t qr_flags)
-{
-	//TODO - make more general remove qr
-    // unset/default is treated as 'high' (ie. the middle value)
-    return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? "Wrapped Segwit"
-        : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? "Legacy"
-        : contains_flags(qr_flags, QR_XPUB_TAPROOT)                   ? "Taproot"
-                                                                      : "Native Segwit";
-}
-
-static inline const char* xpub_usb_wallettype_desc_from_flags(const uint32_t qr_flags)
-{
-	//TODO - make more general remove qr
-    // unset/default is treated as singlesig
-    return contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
-}
-
-
 static bool handle_usb_xpub_options(uint32_t* qr_flags)
 {
     JADE_ASSERT(qr_flags);
@@ -1021,18 +947,18 @@ static bool handle_usb_xpub_options(uint32_t* qr_flags)
     gui_view_node_t* wallet_item = NULL;
     gui_view_node_t* account_item = NULL;
     gui_activity_t* const act = make_xpub_options_activity(&script_item, &wallet_item, &account_item);
-    update_menu_item(script_item, "Script", xpub_usb_scripttype_desc_from_flags(*qr_flags));
-    update_menu_item(wallet_item, "Wallet", xpub_usb_wallettype_desc_from_flags(*qr_flags));
+    update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
+    update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
     update_menu_item(account_item, "Account Index", buf);
     gui_set_current_activity(act);
 
     gui_view_node_t* script_textbox = NULL;
     gui_activity_t* const act_scripttype = make_carousel_activity("Script Type", NULL, &script_textbox);
-    gui_update_text(script_textbox, xpub_usb_scripttype_desc_from_flags(*qr_flags));
+    gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
 
     gui_view_node_t* wallet_textbox = NULL;
     gui_activity_t* const act_wallettype = make_carousel_activity("Wallet Type", NULL, &wallet_textbox);
-    gui_update_text(wallet_textbox, xpub_usb_wallettype_desc_from_flags(*qr_flags));
+    gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
 
     pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
     make_pin_insert_activity(&pin_insert, "Account Index", "Enter index:");

@@ -182,8 +182,6 @@ gui_activity_t* make_unlocked_settings_activity(void);
 gui_activity_t* make_wallet_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
 gui_activity_t* make_usbstorage_settings_activity(bool unlocked);
-gui_activity_t* make_usbstorage_export_xpub_activity(void);
-gui_activity_t* make_usbstorage_export_xpub_options_activity(void);
 
 gui_activity_t* make_authentication_activity(bool initialised_and_pin_unlocked);
 gui_activity_t* make_prefs_settings_activity(bool initialised_and_locked, gui_view_node_t** qr_mode_network_item);
@@ -2388,14 +2386,6 @@ static void handle_settings(const bool startup_menu)
 		case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB:
 			usbstorage_export_xpub(NULL);
 			act = make_usbstorage_settings_activity(NULL);
-			break;
-
-		case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS:
-			act = make_usbstorage_export_xpub_options_activity();
-			break;
-
-		case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION:
-			//FIXME: implement
 			break;
 #endif
         case BTN_SETTINGS_OTP_VIEW:

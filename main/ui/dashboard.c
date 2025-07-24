@@ -357,32 +357,6 @@ gui_activity_t* make_usbstorage_settings_activity(const bool unlocked)
     return make_menu_activity("USB Storage", hdrbtns, 2, menubtns, 3);
 }
 
-gui_activity_t* make_usbstorage_export_xpub_activity(void)
-{
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXIT },
-        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
-
-    btn_data_t menubtns[] = {
-        { .txt = "Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS},
-        { .txt = "Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION},
-    };
-
-    return make_menu_activity("Export Xpub", hdrbtns, 2, menubtns, 2);
-}
-
-gui_activity_t* make_usbstorage_export_xpub_options_activity(void)
-{
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS},
-        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
-
-    btn_data_t menubtns[] = {
-        { .txt = "Script: ", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS},
-        { .txt = "Wallet: ", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS},
-        { .txt = "Account Index: ", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS},
-    };
-
-    return make_menu_activity("Export Xpub", hdrbtns, 2, menubtns, 3);
-}
 #endif
 
 gui_activity_t* make_device_settings_activity(void)
