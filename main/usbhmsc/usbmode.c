@@ -910,20 +910,228 @@ bool usbstorage_sign_psbt(const char* extra_path)
     return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
 
-static const char* _desc_func_for_variant(script_variant_t v)
+gui_activity_t* make_xpub_options_activity(
+    gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** account_textbox)
 {
-    const char *s = get_script_variant_string(v);
-    if (!s) return "";    
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_OPTIONS_EXIT },
+        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP } };
 
-    const char *p = strchr(s, '(');
-    if (!p) return "";      
-    size_t len = p - s + 1;
-    static char buf[32];
-    if (len >= sizeof(buf)) return ""; 
-    memcpy(buf, s, len);
-    buf[len] = '\0';
-    return buf;
+    gui_make_text(script_textbox, "Script", TFT_WHITE);
+    gui_set_align(*script_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    gui_make_text(wallet_textbox, "Wallet", TFT_WHITE);
+    gui_set_align(*wallet_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    gui_make_text(account_textbox, "Account Index", TFT_WHITE);
+    gui_set_align(*account_textbox, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    btn_data_t menubtns[]
+        = { { .content = *script_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_SCRIPTTYPE },
+              { .content = *wallet_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_WALLETTYPE },
+              { .content = *account_textbox, .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS_ACCOUNT } };
+
+    return make_menu_activity("Xpub Options", hdrbtns, 2, menubtns, 3);
 }
+
+
+static script_variant_t xpub_usb_script_variant_from_flags(const uint32_t qr_flags)
+{
+	//TODO - make more general remove qr
+    // unset/default is treated as 'high' (ie. the middle value)
+    if (contains_flags(qr_flags, QR_XPUB_TAPROOT)) {
+        return P2TR;
+    }
+    if (contains_flags(qr_flags, QR_XPUB_MULTISIG)) {
+        return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? MULTI_P2WSH_P2SH
+            : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? MULTI_P2SH
+                                                                          : MULTI_P2WSH;
+    }
+    return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? P2WPKH_P2SH
+        : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? P2PKH
+                                                                      : P2WPKH;
+}
+
+
+static inline bool contains_script_flags(const uint32_t flags, const uint32_t test_flags)
+{
+    return (flags & test_flags) == test_flags;
+}
+
+static void rotate_xpub_scripttypes(uint32_t* flags, const bool reverse)
+{
+    JADE_ASSERT(flags);
+	//TODO - remove qr from the flags and define them for general use
+
+    if (reverse) {
+        if (contains_flags(*flags, QR_XPUB_LEGACY | QR_XPUB_WITNESS)) {
+            *flags &= ~QR_XPUB_WITNESS;
+        } else if (contains_flags(*flags, QR_XPUB_LEGACY)) {
+            *flags ^= (QR_XPUB_LEGACY | QR_XPUB_TAPROOT);
+        } else if (contains_flags(*flags, QR_XPUB_TAPROOT)) {
+            *flags ^= (QR_XPUB_WITNESS | QR_XPUB_TAPROOT);
+        } else if (contains_flags(*flags, QR_XPUB_WITNESS)) {
+            *flags |= QR_XPUB_LEGACY;
+        } else { // ie. currently 0/default/uninitialised - treat as 'segwit v0'
+            *flags |= (QR_XPUB_LEGACY | QR_XPUB_WITNESS);
+        }
+    } else {
+        if (contains_flags(*flags, QR_XPUB_LEGACY | QR_XPUB_WITNESS)) {
+            *flags &= ~QR_XPUB_LEGACY;
+        } else if (contains_flags(*flags, QR_XPUB_WITNESS)) {
+            *flags ^= (QR_XPUB_WITNESS | QR_XPUB_TAPROOT);
+        } else if (contains_flags(*flags, QR_XPUB_TAPROOT)) {
+            *flags ^= (QR_XPUB_LEGACY | QR_XPUB_TAPROOT);
+        } else if (contains_flags(*flags, QR_XPUB_LEGACY)) {
+            *flags |= QR_XPUB_WITNESS;
+        } else { // ie. currently 0/default/uninitialised - treat as 'segwit v0'
+            *flags |= QR_XPUB_TAPROOT;
+        }
+    }
+}
+
+static inline const char* xpub_usb_scripttype_desc_from_flags(const uint32_t qr_flags)
+{
+	//TODO - make more general remove qr
+    // unset/default is treated as 'high' (ie. the middle value)
+    return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? "Wrapped Segwit"
+        : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? "Legacy"
+        : contains_flags(qr_flags, QR_XPUB_TAPROOT)                   ? "Taproot"
+                                                                      : "Native Segwit";
+}
+
+static inline const char* xpub_usb_wallettype_desc_from_flags(const uint32_t qr_flags)
+{
+	//TODO - make more general remove qr
+    // unset/default is treated as singlesig
+    return contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
+}
+
+
+static bool handle_usb_xpub_options(uint32_t* qr_flags)
+{
+    JADE_ASSERT(qr_flags);
+
+    uint16_t account_index = (*qr_flags) >> ACCOUNT_INDEX_FLAGS_SHIFT;
+
+    char buf[8];
+    int rc = snprintf(buf, sizeof(buf), "%u", account_index);
+    JADE_ASSERT(rc > 0 && rc < sizeof(buf));
+
+    gui_view_node_t* script_item = NULL;
+    gui_view_node_t* wallet_item = NULL;
+    gui_view_node_t* account_item = NULL;
+    gui_activity_t* const act = make_xpub_options_activity(&script_item, &wallet_item, &account_item);
+    update_menu_item(script_item, "Script", xpub_usb_scripttype_desc_from_flags(*qr_flags));
+    update_menu_item(wallet_item, "Wallet", xpub_usb_wallettype_desc_from_flags(*qr_flags));
+    update_menu_item(account_item, "Account Index", buf);
+    gui_set_current_activity(act);
+
+    gui_view_node_t* script_textbox = NULL;
+    gui_activity_t* const act_scripttype = make_carousel_activity("Script Type", NULL, &script_textbox);
+    gui_update_text(script_textbox, xpub_usb_scripttype_desc_from_flags(*qr_flags));
+
+    gui_view_node_t* wallet_textbox = NULL;
+    gui_activity_t* const act_wallettype = make_carousel_activity("Wallet Type", NULL, &wallet_textbox);
+    gui_update_text(wallet_textbox, xpub_usb_wallettype_desc_from_flags(*qr_flags));
+
+    pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
+    make_pin_insert_activity(&pin_insert, "Account Index", "Enter index:");
+    JADE_ASSERT(pin_insert.activity);
+
+    const uint32_t initial_flags = *qr_flags;
+    while (true) {
+        // Show, and await button click
+        gui_set_current_activity(act);
+
+        int32_t ev_id;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#else
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_XPUB_OPTIONS_EXIT;
+#endif
+        if (ret) {
+            if (ev_id == BTN_XPUB_OPTIONS_SCRIPTTYPE) {
+                gui_set_current_activity(act_scripttype);
+                while (true) {
+                    gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
+                    if (gui_activity_wait_event(act_scripttype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                            rotate_scripttypes(qr_flags, true);
+                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            rotate_scripttypes(qr_flags, false);
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
+            } else if (ev_id == BTN_XPUB_OPTIONS_WALLETTYPE) {
+                gui_set_current_activity(act_wallettype);
+                while (true) {
+                    gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
+                    if (gui_activity_wait_event(act_wallettype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                            *qr_flags ^= QR_XPUB_MULTISIG; // toggle
+                        } else if (ev_id == gui_get_click_event()) {
+                            // Done
+                            break;
+                        }
+                    }
+                }
+                update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
+            } else if (ev_id == BTN_XPUB_OPTIONS_ACCOUNT) {
+
+                while (true) {
+                    reset_pin(&pin_insert, NULL);
+                    gui_set_current_activity(pin_insert.activity);
+                    if (!run_pin_entry_loop(&pin_insert)) {
+                        // User abandoned index entry
+                        break;
+                    }
+
+                    // Get entered digits as single numeric value
+                    const uint32_t new_account_index = get_pin_as_number(&pin_insert);
+                    if (new_account_index < ACCOUNT_INDEX_MAX) {
+                        account_index = new_account_index;
+
+                        // Update the display
+                        const int ret = snprintf(buf, sizeof(buf), "%u", account_index);
+                        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+                        update_menu_item(account_item, "Account Index", buf);
+                        break;
+                    } else {
+                        // Show message and retry
+                        const int ret = snprintf(buf, sizeof(buf), "%u", ACCOUNT_INDEX_MAX);
+                        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+                        const char* message[] = { "Account index must", "be less than", buf };
+                        await_error_activity(message, 3);
+                    }
+                }
+            } else if (ev_id == BTN_XPUB_OPTIONS_HELP) {
+                await_qr_help_activity("blkstrm.com/xpub");
+            } else if (ev_id == BTN_XPUB_OPTIONS_EXIT) {
+                // Done
+                break;
+            }
+        }
+    }
+
+    // If updated, persist prefereces
+    *qr_flags = (uint16_t)(*qr_flags);
+    *qr_flags |= (((uint32_t)account_index) << ACCOUNT_INDEX_FLAGS_SHIFT);
+    if (initial_flags == *qr_flags) {
+        return false;
+    }
+
+    // Return to indicate if any options were updated
+    storage_set_qr_flags(*qr_flags);
+    return true;
+}
+
 
 static gui_activity_t* make_export_xpub_prompt_activity(void) {
     const char* message[] = {
@@ -949,43 +1157,11 @@ static gui_activity_t* make_export_xpub_prompt_activity(void) {
     );
 }
 
-static gui_activity_t* make_export_xpub_options_activity(
-		export_xpub_ctx_t* opts,
-		gui_view_node_t**  variant_item,
-		gui_view_node_t**  account_item) 
-{
-
-	btn_data_t hdr[] = {
-	{.txt = "=", .font  = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXPORT_XPUB_BACK},
-	{.txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }
-	};
-
-
-	gui_make_text(variant_item,  "", TFT_WHITE);
-	gui_set_align(*variant_item, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-	gui_make_text(account_item,  "", TFT_WHITE);
-	gui_set_align(*account_item, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-	btn_data_t menu[] = {
-		{ .content = *variant_item, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_VARIANT},
-		{ .content = *account_item, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACCOUNT},
-	};
-	gui_activity_t* act = make_menu_activity("xpub options", hdr, 2, menu, 2);
-
-	gui_update_text(*variant_item, _desc_func_for_variant(opts->variant));
-	{
-		char buf[16];
-		snprintf(buf, sizeof(buf), "Acct %u", opts->account);
-		gui_update_text(*account_item, buf);
-	}
-
-	return act;
-}
 
 static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
-	JADE_ASSERT(ctx);
-	export_xpub_ctx_t default_opts = { .variant = P2PKH, .account = 0 };
-	export_xpub_ctx_t* opts = ctx->ctx ? (export_xpub_ctx_t*)ctx->ctx : &default_opts;
+
+
+    uint32_t qr_flags = storage_get_qr_flags();
 
 	while (true) {
 		gui_activity_t* prompt = make_export_xpub_prompt_activity();
@@ -995,36 +1171,7 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 		gui_activity_wait_event(prompt, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev, NULL, 0);
 
 		if (ev == BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS) {
-			gui_view_node_t *var_item = NULL, *acct_item = NULL;
-			gui_activity_t* opts_act = make_export_xpub_options_activity(
-					opts, &var_item, &acct_item
-					);
-			gui_set_current_activity(opts_act);
-
-			while (true) {
-				gui_activity_wait_event(
-						opts_act,
-						GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL,
-						&ev, NULL, 0
-						);
-
-				switch (ev) {
-					case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_VARIANT:
-						opts->variant = (opts->variant + 1) % VARIANT_COUNT;
-						gui_update_text(var_item, _desc_func_for_variant(opts->variant));
-						break;
-					case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACCOUNT:
-						opts->account = (opts->account + 1) % MAX_ACCOUNTS;
-						{
-							char buf[16];
-							snprintf(buf, sizeof(buf), "Acct %u", opts->account);
-							gui_update_text(acct_item, buf);
-						}
-						break;
-					case BTN_SETTINGS_EXPORT_XPUB_BACK:
-						goto PROMPT_LOOP;
-				}
-			} 
+			handle_usb_xpub_options(&qr_flags);
 		}
 		else if (ev == BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION) {
 
@@ -1037,20 +1184,34 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 			return false;
 		}
 
-PROMPT_LOOP: ;
 	}
 
 DO_EXPORT:
+	const script_variant_t script_variant = xpub_script_variant_from_flags(qr_flags);
+	const uint16_t account_index = qr_flags >> ACCOUNT_INDEX_FLAGS_SHIFT;
+
+	const char *prefix;
+
+	switch (script_variant) {
+		case P2PKH:                      prefix = "pkh";            break;
+		case P2WPKH_P2SH:                prefix = "sh(wpkh";        break;
+		case P2WPKH:                     prefix = "wpkh";           break;
+		case P2TR:                       prefix = "tr";             break;
+		case MULTI_P2SH:                 prefix = "sh(multi";       break;
+		case MULTI_P2WSH_P2SH:           prefix = "sh(wsh(multi";   break;
+		case MULTI_P2WSH:                prefix = "wsh(multi";      break;
+		default:                         prefix = "unknown";        break;
+	}
+
 	uint32_t path[EXPORT_XPUB_PATH_LEN];
 	size_t path_len = 0;
-	wallet_get_default_xpub_export_path(opts->variant,
-			opts->account,
+	wallet_get_default_xpub_export_path(script_variant,
+			account_index,
 			path,
 			EXPORT_XPUB_PATH_LEN,
 			&path_len);
 
 	char *xpub = NULL;
-
 	network_t network_id;
 	if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
 		network_id = NETWORK_BITCOIN_TESTNET;
@@ -1061,6 +1222,12 @@ DO_EXPORT:
 		//await_error_activity((const char*[]){"Unable to derive xpub"}, 1);
 		return false;
 	}
+
+	char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
+	const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr));
+
+	JADE_ASSERT(ret);
+
 	// get fingerprint
 	// then take the whole string and put it together with
 	// scriptvariant([fingerprint/84'/0'accountindex]xpub/0/*)	
@@ -1071,40 +1238,24 @@ DO_EXPORT:
 	wally_hex_from_bytes(user_fingerprint, sizeof(user_fingerprint), &fphex);
 	map_string(fphex, toupper);
 
-	char pathstr[64] = {0};
-	char elem[16];
-	for (size_t i = 0; i < path_len; i++) {
-		uint32_t idx = path[i] & ~0x80000000;
-		bool     hard = (path[i] & 0x80000000) != 0;
-		if (i) strlcat(pathstr, "/", sizeof(pathstr));
-		snprintf(elem, sizeof(elem), "%u%s", (unsigned)idx, hard ? "'" : "");
-		strlcat(pathstr, elem, sizeof(pathstr));
-	}
-
-	char desc[512];
-	const char* wrap = _desc_func_for_variant(opts->variant);
-	const bool    is_sh_wpkh = (opts->variant == P2WPKH_P2SH || opts->variant == MULTI_P2WSH_P2SH);
-	if (is_sh_wpkh) {
-		snprintf(desc, sizeof(desc),
-				"%s[%s/%s]%s/0/*))",
-				wrap, fphex, pathstr, xpub);
-	} else {
-		snprintf(desc, sizeof(desc),
-				"%s[%s/%s]%s/0/*)",
-				wrap, fphex, pathstr, xpub);
-	}
-	size_t dlen = strlen(desc);
-
+	char descriptor[512];
+	int n = snprintf(descriptor, sizeof(descriptor),
+			"%s([%s/%s]%s/0/*)%s",
+			prefix,
+			fphex,
+			pathstr + 2,   /* drop leading "m/" */
+			xpub,
+			prefix[0]=='s' && strchr(prefix,'(') ? ")" : "");
+	JADE_ASSERT(n > 0 && n < (int)sizeof(descriptor));
 	char outpath[MAX_FILENAME_SIZE];
 	int len = snprintf(outpath, sizeof(outpath),
 			"%s/jade-xpub.txt", USBSTORAGE_MOUNT_POINT);
 	JADE_ASSERT(len > 0 && len < sizeof(outpath));
-
 	size_t written = write_buffer_to_file(outpath,
-			(const uint8_t*)desc,
-			dlen);
+			(const uint8_t*)descriptor,
+			(size_t)n);
 
-	if (written != dlen) {
+	if (written != (size_t)n) {
 		const char* msg[] = { "Failed to save", "xpub file" };
 		await_error_activity(msg, 2);
 		return false;
