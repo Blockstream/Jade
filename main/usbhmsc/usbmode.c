@@ -910,132 +910,6 @@ bool usbstorage_sign_psbt(const char* extra_path)
     return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
 
-static bool handle_usb_xpub_options(uint32_t* qr_flags)
-{
-    JADE_ASSERT(qr_flags);
-
-    uint16_t account_index = (*qr_flags) >> ACCOUNT_INDEX_FLAGS_SHIFT;
-
-    char buf[8];
-    int rc = snprintf(buf, sizeof(buf), "%u", account_index);
-    JADE_ASSERT(rc > 0 && rc < sizeof(buf));
-
-    gui_view_node_t* script_item = NULL;
-    gui_view_node_t* wallet_item = NULL;
-    gui_view_node_t* account_item = NULL;
-    gui_activity_t* const act = make_xpub_qr_options_activity(&script_item, &wallet_item, &account_item);
-    update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
-    update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
-    update_menu_item(account_item, "Account Index", buf);
-    gui_set_current_activity(act);
-
-    gui_view_node_t* script_textbox = NULL;
-    gui_activity_t* const act_scripttype = make_carousel_activity("Script Type", NULL, &script_textbox);
-    gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
-
-    gui_view_node_t* wallet_textbox = NULL;
-    gui_activity_t* const act_wallettype = make_carousel_activity("Wallet Type", NULL, &wallet_textbox);
-    gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
-
-    pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
-    make_pin_insert_activity(&pin_insert, "Account Index", "Enter index:");
-    JADE_ASSERT(pin_insert.activity);
-
-    const uint32_t initial_flags = *qr_flags;
-    while (true) {
-        // Show, and await button click
-        gui_set_current_activity(act);
-
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_XPUB_OPTIONS_EXIT;
-#endif
-        if (ret) {
-            if (ev_id == BTN_XPUB_OPTIONS_SCRIPTTYPE) {
-                gui_set_current_activity(act_scripttype);
-                while (true) {
-                    gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
-                    if (gui_activity_wait_event(act_scripttype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
-                            rotate_scripttypes(qr_flags, true);
-                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            rotate_scripttypes(qr_flags, false);
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
-                    }
-                }
-                update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
-            } else if (ev_id == BTN_XPUB_OPTIONS_WALLETTYPE) {
-                gui_set_current_activity(act_wallettype);
-                while (true) {
-                    gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
-                    if (gui_activity_wait_event(act_wallettype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            *qr_flags ^= QR_XPUB_MULTISIG; // toggle
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
-                    }
-                }
-                update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
-            } else if (ev_id == BTN_XPUB_OPTIONS_ACCOUNT) {
-
-                while (true) {
-                    reset_pin(&pin_insert, NULL);
-                    gui_set_current_activity(pin_insert.activity);
-                    if (!run_pin_entry_loop(&pin_insert)) {
-                        // User abandoned index entry
-                        break;
-                    }
-
-                    // Get entered digits as single numeric value
-                    const uint32_t new_account_index = get_pin_as_number(&pin_insert);
-                    if (new_account_index < ACCOUNT_INDEX_MAX) {
-                        account_index = new_account_index;
-
-                        // Update the display
-                        const int ret = snprintf(buf, sizeof(buf), "%u", account_index);
-                        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-                        update_menu_item(account_item, "Account Index", buf);
-                        break;
-                    } else {
-                        // Show message and retry
-                        const int ret = snprintf(buf, sizeof(buf), "%u", ACCOUNT_INDEX_MAX);
-                        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-                        const char* message[] = { "Account index must", "be less than", buf };
-                        await_error_activity(message, 3);
-                    }
-                }
-            } else if (ev_id == BTN_XPUB_OPTIONS_HELP) {
-                await_qr_help_activity("blkstrm.com/xpub");
-            } else if (ev_id == BTN_XPUB_OPTIONS_EXIT) {
-                // Done
-                break;
-            }
-        }
-    }
-
-    // If updated, persist prefereces
-    *qr_flags = (uint16_t)(*qr_flags);
-    *qr_flags |= (((uint32_t)account_index) << ACCOUNT_INDEX_FLAGS_SHIFT);
-    if (initial_flags == *qr_flags) {
-        return false;
-    }
-
-    // Return to indicate if any options were updated
-    storage_set_qr_flags(*qr_flags);
-    return true;
-}
-
-
 static gui_activity_t* make_export_xpub_prompt_activity(void) {
     const char* message[] = {
         "Save wallet details to",
@@ -1074,7 +948,7 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 		gui_activity_wait_event(prompt, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev, NULL, 0);
 
 		if (ev == BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_OPTIONS) {
-			handle_usb_xpub_options(&qr_flags);
+			handle_xpub_options(&qr_flags);
 		}
 		else if (ev == BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION) {
 

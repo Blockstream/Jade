@@ -350,11 +350,10 @@ gui_activity_t* make_usbstorage_settings_activity(const bool unlocked)
     btn_data_t menubtns[] = {
         { .txt = "Firmware Upgrade", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW },
         { .txt = "Sign", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_SIGN },
-        //{ .txt = "Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT },
         { .txt = "Export Xpub", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB },
     };
 
-    return make_menu_activity("USB Storage", hdrbtns, 2, menubtns, 3);
+    return make_menu_activity("USB Storage", hdrbtns, 2, menubtns, unlocked ? 3: 1);
 }
 
 #endif

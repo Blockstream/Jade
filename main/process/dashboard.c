@@ -2384,8 +2384,9 @@ static void handle_settings(const bool startup_menu)
             break;
 
 		case BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB:
+			JADE_ASSERT(keychain_get());
 			usbstorage_export_xpub(NULL);
-			act = make_usbstorage_settings_activity(NULL);
+			act = make_usbstorage_settings_activity(keychain_get());
 			break;
 #endif
         case BTN_SETTINGS_OTP_VIEW:
