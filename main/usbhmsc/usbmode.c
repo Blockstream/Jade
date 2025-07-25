@@ -930,6 +930,9 @@ static gui_activity_t* make_export_xpub_prompt_activity(void) {
 
 static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 
+	bool ok = false;
+	char *fphex = NULL;
+	char *xpub = NULL;
     uint32_t qr_flags = storage_get_qr_flags();
 
 	while (true) {
@@ -943,19 +946,16 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 			handle_xpub_options(&qr_flags);
 		}
 		else if (ev == BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB_ACTION) {
-
-			goto DO_EXPORT;
+			break;
 		}
 		else if (ev == BTN_SETTINGS_EXPORT_XPUB_BACK) {
-			goto EXIT_EXPORT_XPUB;	
+			return true;	
 		}
 		else {
 			return false;
 		}
 
 	}
-
-DO_EXPORT:
 	const script_variant_t script_variant = xpub_script_variant_from_flags(qr_flags);
 	const uint16_t account_index = qr_flags >> ACCOUNT_INDEX_FLAGS_SHIFT;
 
@@ -980,16 +980,17 @@ DO_EXPORT:
 			EXPORT_XPUB_PATH_LEN,
 			&path_len);
 
-	char *xpub = NULL;
 	network_t network_id;
 	if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
 		network_id = NETWORK_BITCOIN_TESTNET;
 	} else {
 		network_id = NETWORK_BITCOIN;
 	}
+
 	if (!wallet_get_xpub(network_id, path, path_len, &xpub) || xpub == NULL) {
-		//await_error_activity((const char*[]){"Unable to derive xpub"}, 1);
-		return false;
+		const char* msg[] = { "unable to get", "xpub from path" };
+		await_error_activity(msg, 2);
+		goto cleanup;
 	}
 
 	char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
@@ -997,14 +998,16 @@ DO_EXPORT:
 
 	JADE_ASSERT(ret);
 
-	// get fingerprint
-	// then take the whole string and put it together with
-	// scriptvariant([fingerprint/84'/0'accountindex]xpub/0/*)	
 	uint8_t user_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
 	wallet_get_fingerprint(user_fingerprint, sizeof(user_fingerprint));
 
-	char* fphex = NULL;
-	wally_hex_from_bytes(user_fingerprint, sizeof(user_fingerprint), &fphex);
+	JADE_WALLY_VERIFY(wally_hex_from_bytes(user_fingerprint, sizeof(user_fingerprint), &fphex));
+	if (!fphex) {
+		const char* msg[] = { "unable to get", "fingerprint from wallet" };
+		await_error_activity(msg, 2);
+		goto cleanup;
+	};
+
 	map_string(fphex, toupper);
 
 	char descriptor[512];
@@ -1027,7 +1030,7 @@ DO_EXPORT:
 	if (written != (size_t)n) {
 		const char* msg[] = { "Failed to save", "xpub file" };
 		await_error_activity(msg, 2);
-		return false;
+		goto cleanup;
 	}
 
 	size_t mountlen = strlen(USBSTORAGE_MOUNT_POINT);
@@ -1036,9 +1039,11 @@ DO_EXPORT:
 		outpath + mountlen + 1
 	};
 	await_message_activity(msg, 2);
-	return true;
-EXIT_EXPORT_XPUB:
-	return true;
+	ok = true;
+cleanup:
+	if (xpub) wally_free_string(xpub);
+	if (fphex) wally_free_string(fphex);
+	return ok;
 }
 
 bool usbstorage_export_xpub(const char* extra_path) {
