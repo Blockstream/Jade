@@ -37,9 +37,6 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
 #define MIN_PSBT_FILE_SIZE 32
 #define MAX_PSBT_FILE_SIZE MAX_INPUT_MSG_SIZE
 
-#define VARIANT_COUNT 8
-#define MAX_ACCOUNTS 3 
-
 static const char FW_SUFFIX[] = "_fw.bin";
 static const char HASH_SUFFIX[] = ".hash";
 

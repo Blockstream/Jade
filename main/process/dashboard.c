@@ -182,7 +182,6 @@ gui_activity_t* make_unlocked_settings_activity(void);
 gui_activity_t* make_wallet_settings_activity(void);
 gui_activity_t* make_device_settings_activity(void);
 gui_activity_t* make_usbstorage_settings_activity(bool unlocked);
-
 gui_activity_t* make_authentication_activity(bool initialised_and_pin_unlocked);
 gui_activity_t* make_prefs_settings_activity(bool initialised_and_locked, gui_view_node_t** qr_mode_network_item);
 gui_activity_t* make_display_settings_activity(void);
