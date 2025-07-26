@@ -307,7 +307,9 @@ gui_activity_t* make_locked_settings_activity(void)
     btn_data_t menubtns[]
         = { { .txt = "BIP39 Passphrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
               { .txt = "Device", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
-              { .txt = "Temporary Signer", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN } };
+              { .txt = "Temporary Signer", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN }, 
+		      { .txt = "USB Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE },
+		   };
 
     return make_menu_activity("Options", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
@@ -348,11 +350,12 @@ gui_activity_t* make_usbstorage_settings_activity(const bool unlocked)
     btn_data_t menubtns[] = {
         { .txt = "Firmware Upgrade", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_FW },
         { .txt = "Sign", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_SIGN },
-        //{ .txt = "Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT },
+        { .txt = "Export Xpub", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXPORT_XPUB },
     };
 
-    return make_menu_activity("USB Storage", hdrbtns, 2, menubtns, unlocked ? 2 : 1);
+    return make_menu_activity("USB Storage", hdrbtns, 2, menubtns, unlocked ? 3: 1);
 }
+
 #endif
 
 gui_activity_t* make_device_settings_activity(void)
