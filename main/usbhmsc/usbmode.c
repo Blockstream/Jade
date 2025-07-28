@@ -1005,11 +1005,11 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx) {
 		goto cleanup;
 	};
 
-	map_string(fphex, toupper);
+	map_string(fphex, tolower);
 
 	char descriptor[512];
 	int n = snprintf(descriptor, sizeof(descriptor),
-			"%s([%s/%s]%s/0/*)%s",
+			"%s([%s/%s]%s)%s",
 			prefix,
 			fphex,
 			pathstr + 2,   /* drop leading "m/" */
