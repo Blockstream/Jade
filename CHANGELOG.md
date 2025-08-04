@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.0.36] - 2025-08-6
+### Added
+- Add support for signing Liquid p2tr taproot transactions
+
+### Changed
+- Make transaction signing faster
+- Improved support for several diy devices
+- Require Liquid commitments to match transaction outputs when signing
+- Update Japanese legal page to conform to regulatory requirements
+- Internal code quality and testing improvements
+
+### Fixed
+- Fix signing p2tr taproot transactions with more than one input
+- Improve transaction validity checks when signing
+
 ## [1.0.35] - 2025-04-18
 ### Added
 - Add support for esp32s3 Waveshare Touch LCD 2 diy device
