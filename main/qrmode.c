@@ -61,6 +61,8 @@ gui_activity_t* make_show_xpub_qr_activity(
 gui_activity_t* make_xpub_qr_options_activity(
     gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** density_textbox);
 
+gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon);
+
 gui_activity_t* make_search_verify_address_activity(
     const char* root_label, gui_view_node_t** label_text, progress_bar_t* progress_bar, gui_view_node_t** index_text);
 gui_activity_t* make_search_address_options_activity(
@@ -843,6 +845,7 @@ static bool verify_address(const address_data_t* const addr_data)
     return verified;
 }
 
+
 // Handle QR Options dialog - ie. QR size and frame-rate
 static bool handle_qr_options(uint32_t* qr_flags)
 {
@@ -1487,6 +1490,45 @@ static void add_cr_after_last_slash(const char* url, char* output, const size_t 
     strncpy(output, url, index + 1); // up to and including the '/'
     output[index + 1] = '\n'; // explict line-break
     strcpy(output + index + 2, url + index + 1);
+}
+
+bool show_otp_uri_qr_activity(const char* otp_name) {
+	JADE_ASSERT(otp_name);
+
+	bool ok = false;
+	char uri[OTP_MAX_URI_LEN];
+	size_t written = 0;
+
+	SENSITIVE_PUSH(uri, sizeof(uri));
+
+    if (!otp_load_uri(otp_name, uri, sizeof(uri), &written) || !written) {
+        const char* msg[] = { "Failed to load", "OTP URI" };
+        await_error_activity(msg, 2);
+        goto cleanup;
+    }
+
+    Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
+
+    if (written >= MAX_QR_V6_DATA_LEN) {
+        const char* msg[] = { "URI too long", "for QR" };
+        await_error_activity(msg, 2);
+        goto cleanup;
+    }
+
+	bytes_to_qr_icon((const uint8_t*)uri, written, qr_icon);
+
+	gui_activity_t* const act = make_show_otp_qr_actvity(otp_name, qr_icon); 
+	int32_t ev_id;
+
+	while(true){
+        gui_set_current_activity(act);
+        if (!gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            continue;
+        }
+	}
+cleanup:
+	SENSITIVE_POP(uri);
+	return ok;
 }
 
 // Display screen with help url and qr code
