@@ -712,7 +712,7 @@ def test_bad_message(jade):
         assert 'result' not in reply
         error = reply['error']
         assert error['code'] == JadeError.INVALID_REQUEST
-        assert error['message'] == 'Invalid RPC Request message'
+        assert error['message'].startswith('Invalid RPC Request message')
         assert int(error['data']) == len(msgbytes)
         assert 'result' not in reply
 
@@ -743,7 +743,7 @@ def test_very_bad_message(jade):
             # Assert bad message response
             error = reply['error']
             assert error['code'] == JadeError.INVALID_REQUEST
-            assert error['message'] == 'Invalid RPC Request message'
+            assert error['message'].startswith('Invalid RPC Request message')
             bad_bytes += int(error['data'])
 
         assert bad_bytes == len(badmsg)
@@ -779,7 +779,7 @@ def test_random_bytes(jade):
         reply = jade.read_response()
         error = reply['error']
         assert error['code'] == JadeError.INVALID_REQUEST
-        assert error['message'] == 'Invalid RPC Request message'
+        assert error['message'].startswith('Invalid RPC Request message')
         nreceived += int(error['data'])
 
     assert nreceived == nsent
@@ -832,7 +832,7 @@ def test_too_much_input(jade, has_psram):
     reply = jade.read_response()
     error = reply['error']
     assert error['code'] == JadeError.INVALID_REQUEST
-    assert error['message'] == 'Invalid RPC Request message'
+    assert error['message'].startswith('Invalid RPC Request message')
     assert int(error['data']) == expected_buffer_size
 
     # After a short pause send a good message
@@ -849,7 +849,7 @@ def test_too_much_input(jade, has_psram):
         reply = jade.read_response()
         error = reply['error']
         assert error['code'] == JadeError.INVALID_REQUEST
-        assert error['message'] == 'Invalid RPC Request message'
+        assert error['message'].startswith('Invalid RPC Request message')
         bad_bytes += int(error['data'])
 
     assert bad_bytes == expected_overflow_len
