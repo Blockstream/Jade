@@ -130,7 +130,7 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
         if (!rpc_request_valid(&ctx.value)) {
             // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
             JADE_LOGW("Invalid request, length %u", msg_len);
-            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", msg_len);
+            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message (malformed)", msg_len);
         } else if (handleImmediateMessage(&ctx)) {
             JADE_LOGI("Message handled, not passing to main task");
             idletimer_register_activity(false);
