@@ -2200,7 +2200,8 @@ class JadeInterface:
         """
         dump = cbor.dumps(request)
         logger.info(f'Sending {request["method"]} request {request["id"]} length {len(dump)}')
-        logger.debug(f'Sending: {_hexlify(request)}')
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f'Sending: {_hexlify(request)}')
         return dump
 
     def write(self, bytes_):
@@ -2271,7 +2272,8 @@ class JadeInterface:
                 # A message response (to a prior request)
                 if 'id' in message:
                     logger.info(f'Received reply {message["id"]}')
-                    logger.debug(f'Received: {_hexlify(message)}')
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f'Received: {_hexlify(message)}')
                     return message
 
                 # A log message - handle as normal
