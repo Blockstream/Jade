@@ -60,8 +60,9 @@ class JadeSerialImpl:
                 raise JadeError(1, 'Unable to open port', self.device)
 
         # Ensure RTS and DTR are not set (as this can cause the hw to reboot)
-        self.ser.setRTS(False)
-        self.ser.setDTR(False)
+        if self.device.startswith('/dev/tty'):
+            self.ser.setRTS(False)
+            self.ser.setDTR(False)
 
         logger.info('Connected')
 
@@ -70,8 +71,9 @@ class JadeSerialImpl:
 
         # Ensure RTS and DTR are not set (as this can cause the hw to reboot)
         # and then close the connection
-        self.ser.setRTS(False)
-        self.ser.setDTR(False)
+        if self.device.startswith('/dev/tty'):
+            self.ser.setRTS(False)
+            self.ser.setDTR(False)
         self.ser.close()
 
         # Reset state

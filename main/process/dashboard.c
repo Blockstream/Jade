@@ -1475,9 +1475,10 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
     progress_bar_t time_left = {};
     gui_activity_t* const act
         = make_show_totp_code_activity(otp_ctx->name, timestr, token, confirm_only, &time_left, &txt_ts, &txt_code);
+#ifndef CONFIG_LIBJADE_NO_GUI
     JADE_ASSERT(txt_ts);
     JADE_ASSERT(txt_code);
-
+#endif
     gui_set_current_activity(act);
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
@@ -2699,6 +2700,8 @@ void dashboard_process(void* process_ptr)
     gui_view_node_t* label = NULL;
     gui_activity_t* const act_home = make_home_screen_activity(device_name, running_app_info.version,
         &home_screen_selected_entry, &home_screen_next_entry, &status_light, &status_text, &label);
+#ifndef CONFIG_LIBJADE_NO_GUI
+    // If no GUI is enabled, we do not expect these elements to be set
     JADE_ASSERT(home_screen_selected_entry.symbol);
     JADE_ASSERT(home_screen_selected_entry.text);
     JADE_ASSERT(home_screen_next_entry.symbol);
@@ -2706,6 +2709,7 @@ void dashboard_process(void* process_ptr)
     JADE_ASSERT(status_light);
     JADE_ASSERT(status_text);
     JADE_ASSERT(label);
+#endif // CONFIG_LIBJADE_NO_GUI
 
     // We may as well associate the long-lived event data with this activity also
     wait_event_data_t* const event_data = gui_activity_make_wait_event_data(act_home);

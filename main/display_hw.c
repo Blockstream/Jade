@@ -7,11 +7,15 @@
 #include "jade_tasks.h"
 #include "utils/malloc_ext.h"
 #include "utils/util.h"
+#ifdef CONFIG_LIBJADE
+typedef void* esp_lcd_panel_handle_t;
+#else
 #include <driver/gpio.h>
 
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_lcd_panel_vendor.h>
+#endif // ndef CONFIG_LIBJADE
 
 #include "freertos/semphr.h"
 #include <freertos/FreeRTOS.h>
@@ -42,10 +46,8 @@ static void set_gpio_high(gpio_num_t num)
     ESP_ERROR_CHECK(gpio_set_level(num, 1));
 }
 
-#else
-
+#elif !defined(CONFIG_LIBJADE)
 #include <driver/spi_common.h>
-
 #endif
 
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
@@ -214,15 +216,19 @@ static void esp_lcd_init(void* _ignored)
 #define Y_FLIPPED false
     ph = (void*)1;
 #endif
+#ifndef CONFIG_LIBJADE
     xSemaphoreGive(init_done);
     for (;;) {
         vTaskDelay(portMAX_DELAY);
     }
+#endif // CONFIG_LIBJADE
 }
 
 bool display_hw_flip_orientation(const bool flipped_orientation)
 {
+#ifndef CONFIG_LIBJADE
     ESP_ERROR_CHECK(esp_lcd_panel_mirror(ph, flipped_orientation ^ X_FLIPPED, flipped_orientation ^ Y_FLIPPED));
+#endif // CONFIG_LIBJADE
     return flipped_orientation;
 }
 
@@ -249,6 +255,7 @@ void display_hw_init(TaskHandle_t* gui_handle)
     disp_buf = JADE_MALLOC_PREFER_SPIRAM_ALIGNED(CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT * sizeof(color_t), 16);
 #endif
 #endif
+#ifndef CONFIG_LIBJADE
     /* We have to initialize the lcd on the same core we are going to call it from,
      * see https://github.com/espressif/esp-idf/issues/12347
      * otherwise we could run the esp_lcd_init function directly */
@@ -259,6 +266,7 @@ void display_hw_init(TaskHandle_t* gui_handle)
     xSemaphoreTake(init_done, portMAX_DELAY);
     vTaskDelete(lcdInitTaskHandle);
     vSemaphoreDelete(init_done);
+#endif // CONFIG_LIBJADE
 }
 
 inline void display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* color_data)
@@ -366,7 +374,7 @@ inline void display_hw_draw_rect(int x, int y, int w, int h, const uint16_t colo
     }
 }
 
-inline uint16_t* display_hw_get_buffer(void) { return disp_buf; }
+uint16_t* display_hw_get_buffer(void) { return disp_buf; }
 
 #endif
 
@@ -386,7 +394,9 @@ static inline void switch_buffer(void)
  * single/double full screen buffer) */
 void display_hw_flush(void)
 {
+#ifndef CONFIG_LIBJADE
     ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(ph, 0, 0, CONFIG_DISPLAY_WIDTH, CONFIG_DISPLAY_HEIGHT, disp_buf));
+#endif // CONFIG_LIBJADE
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER_DOUBLE
     /* we only need to switch buffer if we have more than one and we don't bother waiting for writes */
     switch_buffer();

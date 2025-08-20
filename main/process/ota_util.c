@@ -367,6 +367,7 @@ void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx, const bool is_
     return; // Unreachable
 
 error:
+    (void)NULL; // No-op statement for the error label
     // We have an error, send an error response.
     const char* status_text = ota_get_status_text(joctx->ota_return_status);
     JADE_LOGE("OTA error: %s", status_text);

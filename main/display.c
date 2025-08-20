@@ -10,7 +10,9 @@
 #include "storage.h"
 #include "utils/malloc_ext.h"
 #include "utils/util.h"
+#ifndef CONFIG_LIBJADE
 #include <deflate.h>
+#endif
 
 #if defined(CONFIG_ETH_USE_OPENETH)
 #define BUF_N 1

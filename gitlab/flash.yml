@@ -18,15 +18,15 @@
 
 flash_qemu:
   extends: .flash_qemu_template
-  needs: [ build_test_qemu ]
+  needs: [ test_libjade, build_test_qemu ]
 
 flash_qemu_psram:
   extends: .flash_qemu_template
-  needs: [ build_test_qemu_psram ]
+  needs: [ test_libjade, build_test_qemu_psram ]
 
 flash_qemu_psram_unamalgamated:
   extends: .flash_qemu_template
-  needs: [ build_test_qemu_psram_unamalgamated ]
+  needs: [ test_libjade, build_test_qemu_psram_unamalgamated ]
 
 #
 # CI builds
@@ -46,7 +46,7 @@ flash_qemu_psram_unamalgamated:
 
 flash_jade_ci:
   extends: .flash_jade_template
-  needs: [ build_test_jade_ci ]
+  needs: [ test_libjade, build_test_jade_ci ]
 
 flash_jade_noradio_ci:
   extends: .flash_jade_template
@@ -78,7 +78,7 @@ flash_jade_ota_delta_ci:
 
 flash_jade_v1_1_ci:
   extends: .flash_jade_v1_1_template
-  needs: [ build_test_jade_v1_1_ci ]
+  needs: [ test_libjade, build_test_jade_v1_1_ci ]
 
 flash_jade_v1_1_noradio_ci:
   extends: .flash_jade_v1_1_template
@@ -116,6 +116,6 @@ flash_jade_ota_delta_v1_1_ci:
 
 flash_jade_v2_ci:
   extends: .flash_jade_v2_template
-  needs: [ build_test_jade_v2_ci ]
+  needs: [ test_libjade, build_test_jade_v2_ci ]
 
 # FIXME: add noradio and delta flashing for v2.0

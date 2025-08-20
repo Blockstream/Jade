@@ -1,0 +1,4 @@
+#ifndef __LIBJADE_ESP_APP_FORMAT__
+#define __LIBJADE_ESP_APP_FORMAT__ 1
+
+#endif // __LIBJADE_ESP_APP_FORMAT__

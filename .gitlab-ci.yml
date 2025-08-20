@@ -4,6 +4,7 @@ variables:
   GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
 
 stages:
+  - pre_test
   - build_prod
   - build_dev
   - build_test
@@ -20,6 +21,7 @@ include:
   - gitlab/apidocs.yml
   - gitlab/test_fw.yml
   - gitlab/dev_fw.yml
+  - gitlab/test_libjade.yml
   - gitlab/test.yml
   - gitlab/flash.yml
   - gitlab/release.yml

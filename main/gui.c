@@ -107,6 +107,10 @@ struct {
 static void gui_task(void* args);
 static void repaint_node(gui_view_node_t* node);
 
+#ifdef CONFIG_LIBJADE
+#define statusbar_logo_end _binary_statusbar_large_bin_gz_end
+#define statusbar_logo_start _binary_statusbar_large_bin_gz_start
+#else
 #if HOME_SCREEN_DEEP_STATUS_BAR
 extern const uint8_t statusbar_logo_start[] asm("_binary_statusbar_large_bin_gz_start");
 extern const uint8_t statusbar_logo_end[] asm("_binary_statusbar_large_bin_gz_end");
@@ -114,6 +118,7 @@ extern const uint8_t statusbar_logo_end[] asm("_binary_statusbar_large_bin_gz_en
 extern const uint8_t statusbar_logo_start[] asm("_binary_statusbar_small_bin_gz_start");
 extern const uint8_t statusbar_logo_end[] asm("_binary_statusbar_small_bin_gz_end");
 #endif
+#endif // CONFIG_LIBJADE
 
 static void free_view_node(gui_view_node_t* node);
 
@@ -279,14 +284,22 @@ void gui_init(TaskHandle_t* gui_h)
     // Create status-bar
     make_status_bar();
 
+#ifndef CONFIG_LIBJADE
     // Create (high priority) gui task
     BaseType_t retval
         = xTaskCreatePinnedToCore(gui_task, "gui", 3 * 1024, NULL, JADE_TASK_PRIO_GUI, gui_h, JADE_CORE_GUI);
     gui_task_handle = gui_h;
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create GUI task, xTaskCreatePinnedToCore() returned %d", retval);
+#endif // CONFIG_LIBJADE
 }
 
-bool gui_initialized(void) { return *gui_task_handle; } // gui task started
+#ifdef CONFIG_LIBJADE
+bool gui_initialized(void) { return gui_task_handle; }
+static bool gui_is_gui_task(void) { return true; }
+#else
+bool gui_initialized(void) { return gui_task_handle && *gui_task_handle; }
+static bool gui_is_gui_task(void) { return gui_task_handle && xTaskGetCurrentTaskHandle() == *gui_task_handle; }
+#endif // ndef CONFIG_LIBJADE
 
 // Is this kind of node selectable?
 static inline bool is_kind_selectable(enum view_node_kind kind) { return kind == BUTTON; }
@@ -2144,8 +2157,7 @@ static void repaint_node(gui_view_node_t* node)
     JADE_ASSERT(node);
 
     // Ensure we only call the underlying dislay library from the gui_task
-    JADE_ASSERT_MSG(xTaskGetCurrentTaskHandle() == *gui_task_handle,
-        "ERROR: repaint_node() called from non-gui-task: %s", pcTaskGetName(NULL));
+    JADE_ASSERT_MSG(gui_is_gui_task(), "ERROR: repaint_node() called from non-gui-task: %s", pcTaskGetName(NULL));
 
     // borders use the un-padded constraints
     if (node->borders) {
@@ -2534,7 +2546,7 @@ void gui_repaint(gui_view_node_t* node)
 
     // If we are called from the gui task we can immediately repaint the node.
     // If not, we should enqueue a message to the gui task to repaint.
-    if (xTaskGetCurrentTaskHandle() == *gui_task_handle) {
+    if (gui_is_gui_task()) {
         repaint_node(node);
         return;
     }

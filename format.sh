@@ -2,6 +2,10 @@
 set -eo pipefail
 
 (cd main && clang-format -i *.c *.h */*.{c,h,inc})
+pushd libjade
+LIBJADE_SRCS=$(ls *.c *.h | grep -v miniz)
+clang-format -i $LIBJADE_SRCS */*.h */*/*.h
+popd
 
 clang-format -i tools/bip85_rsa_key_gen/main.c
 

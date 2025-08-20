@@ -695,6 +695,7 @@ gui_activity_t* make_progress_bar_activity(const char* title, const char* messag
 
 void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const size_t current)
 {
+#ifndef CONFIG_LIBJADE_NO_GUI
     JADE_ASSERT(progress_bar);
     JADE_ASSERT(progress_bar->progress_bar);
     // progress_bar->pcnt_txt is optional
@@ -730,5 +731,6 @@ void update_progress_bar(progress_bar_t* progress_bar, const size_t total, const
     }
 
     progress_bar->percent_last_value = pcnt;
+#endif
 }
 #endif // AMALGAMATED_BUILD

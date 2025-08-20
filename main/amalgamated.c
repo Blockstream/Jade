@@ -7,8 +7,10 @@ void __wrap_abort(void);
 
 #define BUILD_ELEMENTS 1
 #define BUILD_MINIMAL 1
+#ifndef CONFIG_LIBJADE
 #define HAVE_MBEDTLS_SHA256_H
 #define HAVE_MBEDTLS_SHA512_H
+#endif
 #define ECMULT_WINDOW_SIZE 8
 #define ENABLE_MODULE_ECDH 1
 #define ENABLE_MODULE_ECDSA_S2C 1
@@ -31,10 +33,14 @@ void __wrap_abort(void);
 #ifdef CONFIG_BT_ENABLED
 #include "./ble/ble.c"
 #endif // CONFIG_BT_ENABLED
+#ifndef CONFIG_LIBJADE
 #include "./camera.c"
+#endif
 #include "./descriptor.c"
+#ifndef CONFIG_LIBJADE_NO_GUI
 #include "./display.c"
 #include "./display_hw.c"
+#endif // CONFIG_LIBJADE_NO_GUI
 #include "./fonts/BigFont.c"
 #include "./fonts/DefaultFont.c"
 #include "./fonts/DejaVuSans18.c"
@@ -56,9 +62,13 @@ void __wrap_abort(void);
 #include "./fonts/minya24.c"
 #include "./fonts/tooney32.c"
 #include "./fonts/various_symbols.c"
+#ifndef CONFIG_LIBJADE_NO_GUI
 #include "./gui.c"
+#endif // CONFIG_LIBJADE_NO_GUI
 #include "./identity.c"
+#ifndef CONFIG_LIBJADE
 #include "./idletimer.c"
+#endif // CONFIG_LIBJADE
 #ifdef ESP_PLATFORM
 #include "./input.c"
 #endif // ESP_PLATFORM
@@ -119,15 +129,19 @@ void __wrap_abort(void);
 #include "./qrcode.c"
 #include "./qrmode.c"
 #include "./qrscan.c"
-#include "./random.c"
 #include "./rsa.c"
+#ifndef CONFIG_LIBJADE
+#include "./random.c"
 #include "./selfcheck.c"
 #include "./sensitive.c"
+#endif // CONFIG_LIBJADE
 #ifdef ESP_PLATFORM
 #include "./serial.c"
 #endif // ESP_PLATFORM
 #include "./signer.c"
+#ifndef CONFIG_LIBJADE
 #include "./smoketest.c"
+#endif // CONFIG_LIBJADE
 #include "./storage.c"
 #include "./ui/ble_confirm.c"
 #include "./ui/camera.c"
@@ -135,7 +149,9 @@ void __wrap_abort(void);
 #include "./ui/dashboard.c"
 #include "./ui/descriptor.c"
 #include "./ui/dialogs.c"
+#ifndef CONFIG_LIBJADE
 #include "./ui/keyboard.c"
+#endif // CONFIG_LIBJADE
 #include "./ui/mnemonic.c"
 #include "./ui/multisig.c"
 #include "./ui/ota.c"
@@ -154,11 +170,15 @@ void __wrap_abort(void);
 #endif // CONFIG_IDF_TARGET_ESP32S3
 #include "./utils/address.c"
 #include "./utils/cbor_rpc.c"
+#ifndef CONFIG_LIBJADE_NO_GUI
 #include "./utils/event.c"
+#endif // CONFIG_LIBJADE_NO_GUI
 #include "./utils/network.c"
 #include "./utils/psbt.c"
 #include "./utils/shake256.c"
+#ifndef CONFIG_LIBJADE
 #include "./utils/temporary_stack.c"
+#endif // CONFIG_LIBJADE
 #include "./utils/urldecode.c"
 #include "./utils/wally_ext.c"
 #include "./versioninfo.c"
