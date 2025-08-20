@@ -19,7 +19,6 @@ import wallycore as wally
 from jadepy.jade import JadeAPI, JadeError
 
 # Enable jade logging
-args = None
 jadehandler = logging.StreamHandler()
 
 logger = logging.getLogger('jadepy.jade')
@@ -32,7 +31,8 @@ device_logger.addHandler(jadehandler)
 
 
 def wait(seconds):
-    time.sleep(seconds)
+    if not args.libjade and not args.spts:
+        time.sleep(seconds)
 
 
 def h2b(hexdata):
@@ -2333,7 +2333,7 @@ def test_handshake(jade):
     urls = result['http_request']['params']['urls']
     assert urls == [TEST_URL+'/set_pin', TEST_ONION+'/set_pin']
     certs = result['http_request']['params']['root_certificates']
-    assert certs == [TEST_CERT]
+    assert certs == [TEST_CERT], f'{certs}'
 
     # 2. This is where the app would call the URL returned with the data
     #    provided.  We use the pinserver class directly here.
@@ -3481,6 +3481,7 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
 
 
 def test_sign_identity(jadeapi):
+
     ecdh_nist_cpty = list(_get_test_cases('identity_ssh_nist_matches_trezor.json'))[0]
     for identity_data in _get_test_cases(SIGN_IDENTITY_TESTS):
         inputdata = identity_data['input']
@@ -3891,17 +3892,18 @@ def run_interface_tests(jadeapi,
         test_ping_protocol(jadeapi.jade)
 
         # Only run QR scan/camera tests a) over serial, and b) on proper Jade hw
-        if not qemu and not isble and startinfo['BOARD_TYPE'] in ['JADE', 'JADE_V1.1', 'JADE_V2']:
-            test_scan_qr(jadeapi)
+        if not qemu and not isble:
+            if args.libjade or startinfo['BOARD_TYPE'] in ['JADE', 'JADE_V1.1', 'JADE_V2']:
+                test_scan_qr(jadeapi)
 
     # Too much input test - sends a lot of data so only run
     # if not running over BLE (as would take a long time)
-    if not isble:
+    if not isble and not args.libjade and not args.spts:
         logger.info(f'Buffer overflow test - PSRAM: {has_psram}')
         test_too_much_input(jadeapi.jade, has_psram)
 
     # Negative tests
-    if negative:
+    if negative and not args.libjade and not args.spts:
         logger.info('Negative tests')
         test_random_bytes(jadeapi.jade)
         test_very_bad_message(jadeapi.jade)
@@ -3911,6 +3913,7 @@ def run_interface_tests(jadeapi,
         test_unknown_method(jadeapi.jade)
         test_unexpected_method(jadeapi.jade)
         test_bad_params(jadeapi.jade)
+    if negative:
         test_bad_params_liquid(jadeapi.jade, has_psram, has_ble)
 
     rslt = jadeapi.logout()
@@ -4020,6 +4023,11 @@ def mixed_sources_test(serialport, bleid):
 def run_all_jade_tests(info):
     logger.info('Running Jade tests over selected backend interfaces')
 
+    if args.libjade:
+        logger.info("Testing libjade")
+        with JadeAPI.create_libjade(timeout=0) as jade:
+            run_jade_tests(jade, isble=False)
+
     # 1. Test over serial connection
     if not args.skipserial:
         logger.info(f'Testing Serial ({args.serialport})')
@@ -4052,6 +4060,11 @@ def run_all_jade_tests(info):
 
 # Connect to Jade by serial or BLE and get the info block
 def get_jade_info():
+    if args.libjade:
+        logger.info("Getting info via libjade")
+        with JadeAPI.create_libjade() as jade:
+            return jade.get_version_info()
+
     if not args.skipserial:
         logger.info(f'Getting info via Serial ({args.serialport})')
         with JadeAPI.create_serial(device=args.serialport,
@@ -4186,6 +4199,11 @@ if __name__ == '__main__':
                         type=int,
                         help='Serial port timeout',
                         default=DEFAULT_SERIAL_TIMEOUT)
+    parser.add_argument("--libjade",
+                        action="store_true",
+                        dest="libjade",
+                        help="Run tests with in-process libjade",
+                        default=False)
     parser.add_argument('--authuser',
                         action='store_true',
                         dest='authuser',
@@ -4211,10 +4229,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
     jadehandler.setLevel(getattr(logging, args.loglevel))
     logger.debug(f'args: {args}')
-    manage_agents = args.agentkeyfile and not args.skipble and not args.noagent
 
-    if args.skipserial and args.skipble:
-        logger.error('Can only skip one of Serial or BLE tests, not both!')
+    args.spts = args.serialport and not args.serialport.startswith('/dev/tty/') and not args.qemu
+
+    manage_agents = args.agentkeyfile and not args.skipble and \
+        not args.noagent and not args.spts and not args.libjade
+
+    if args.libjade:
+        args.skipserial = True
+        args.skipble = True
+    elif args.skipserial and args.skipble:
+        logger.error("Can only skip one of Serial or BLE tests, not both!")
         os.exit(1)
 
     if args.bleid and not args.skipserial:
@@ -4222,8 +4247,9 @@ if __name__ == '__main__':
         os.exit(1)
 
     # Run the thread that forces exit if we're too long running
-    t = threading.Thread(target=check_stuck, daemon=True)
-    t.start()
+    if not args.libjade and not args.spts:
+        t = threading.Thread(target=check_stuck, daemon=True)
+        t.start()
 
     # If ble, start the agent to supply the required passkey for authentication
     # and encryption - don't bother if not.

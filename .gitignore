@@ -1,6 +1,7 @@
 pins
 pinsdir
 build
+build_linux
 sdkconfig
 sdkconfig.defaults
 sdkconfig.old

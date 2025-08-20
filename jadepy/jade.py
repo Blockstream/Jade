@@ -29,6 +29,14 @@ except (ImportError, FileNotFoundError) as e:
     logger.warning(e)
     logger.warning('BLE scanning/connectivity will not be available')
 
+# libjade in-process software emulation is optional.
+# It relies on the libjade.so shared library being in LD_LIBRARY_PATH.
+try:
+    from .jade_sw import JadeSoftwareImpl
+except (ImportError, FileNotFoundError) as e:
+    logger.debug(e)
+    logger.debug('libjade Software Jade emulation will not be available')
+
 
 # Default serial connection
 DEFAULT_BAUD_RATE = 115200
@@ -38,6 +46,9 @@ DEFAULT_SERIAL_TIMEOUT = 120
 DEFAULT_BLE_DEVICE_NAME = 'Jade'
 DEFAULT_BLE_SERIAL_NUMBER = None
 DEFAULT_BLE_SCAN_TIMEOUT = 60
+
+# Default libjade connection
+DEFAULT_LIBJADE_TIMEOUT = 5
 
 
 def _hexlify(data):
@@ -253,6 +264,31 @@ class JadeAPI:
         """
         impl = JadeInterface.create_ble(device_name, serial_number,
                                         scan_timeout, loop)
+        return JadeAPI(impl)
+
+    @staticmethod
+    def create_libjade(timeout=None):
+        """
+        Create a JadeAPI object using libjade (in-process software emulation).
+        WARNING: libjade is BETA and should not be used with real funds.
+        NOTE: raises JadeError if libjade dependencies not installed.
+
+        Parameters
+        ----------
+        timeout : int, optional
+            The read timeout when awaiting messages (Uses 5s if not given).
+
+        Returns
+        -------
+        JadeAPI
+            API object configured to use libjade.
+            NOTE: The caller must call 'connect()' before using the instance.
+
+        Raises
+        ------
+        JadeError if libjade is not available (libjade.so not installed)
+        """
+        impl = JadeInterface.create_libjade(timeout)
         return JadeAPI(impl)
 
     def connect(self):
@@ -1993,18 +2029,18 @@ class JadeAPI:
 
 class JadeInterface:
     """
-    Mid-level interface to Jade
-    Wraps either a serial or a ble connection
+    Mid-level interface to Jade.
+    Wraps either a serial or ble connection, or an in-process libjade instance.
     Calls to send and receive bytes and cbor messages over the interface.
 
     Either:
      a) use wrapped with JadeAPI
     (recommended)
     or:
-     b) use with JadeInterface.create_[serial|ble]() as jade:
+     b) use with JadeInterface.create_[serial|ble|libjade]() as jade:
           ...
     or:
-     c) use JadeInterface.create_[serial|ble], then call connect() before
+     c) use JadeInterface.create_[serial|ble|libjade], then call connect() before
         using, and disconnect() when finished
     (caveat cranium)
     or:
@@ -2108,6 +2144,31 @@ class JadeInterface:
                            serial_number or DEFAULT_BLE_SERIAL_NUMBER,
                            scan_timeout or DEFAULT_BLE_SCAN_TIMEOUT,
                            loop=loop)
+        return JadeInterface(impl)
+
+    @staticmethod
+    def create_libjade(timeout=None):
+        """
+        Create a JadeInterface object object using libjade (in-process software emulation).
+        WARNING: libjade is BETA and should not be used with real funds.
+        NOTE: raises JadeError if libjade dependencies not installed.
+
+        Parameters
+        ----------
+        timeout : int, optional
+            The read timeout when awaiting messages (Uses 5s if not given).
+
+        Returns
+        -------
+        JadeInterface
+            Interface object configured to use the libjade.
+            NOTE: The caller must call 'connect()' before using the instance.
+        """
+        this_module = sys.modules[__name__]
+        if not hasattr(this_module, "JadeSoftwareImpl"):
+            raise JadeError(1, "libjade support not installed", None)
+
+        impl = JadeSoftwareImpl(timeout or DEFAULT_LIBJADE_TIMEOUT)
         return JadeInterface(impl)
 
     def connect(self):

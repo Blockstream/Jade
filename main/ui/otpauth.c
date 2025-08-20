@@ -314,8 +314,10 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
     gui_set_parent(*txt_ts, node);
     gui_set_align(*txt_ts, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
+#ifndef CONFIG_LIBJADE_NO_GUI
     // Display 'progress' bar (time remaining)
     make_progress_bar(vsplit, progress_bar);
+#endif
 
     // Display the OTP code large/central
     gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, vsplit);

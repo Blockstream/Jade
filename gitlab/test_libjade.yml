@@ -1,0 +1,34 @@
+test_libjade:
+  tags: [ ga ]
+  stage: test
+  script:
+    - . $HOME/esp/esp-idf/export.sh
+    - cp configs/sdkconfig_jade.defaults sdkconfig.defaults
+    - idf.py reconfigure
+    - source /venv/bin/activate
+    - pip install -r requirements.txt
+    - pip install -r pinserver/requirements.txt
+    - pip install .
+    - echo "----------------------- BUILD ---------------------------------"
+    - python ./components/assets/gen_assets.py ./components/assets/asset_data.json ./build/esp-idf/assets/asset_data.inc
+    - python ./components/assets/gen_assets.py ./components/assets/asset_data_testnet.json ./build/esp-idf/assets/asset_data_testnet.inc
+    - ./make_libjade.sh Sanitize
+    - export ASAN_OPTIONS=symbolize=1,detect_leaks=0
+    - export UBSAN_OPTIONS=print_stacktrace=1
+    - export ASAN_SO=/usr/lib/gcc/x86_64-linux-gnu/12/libasan.so
+    - export LD_LIBRARY_PATH=$PWD/build_linux/libjade
+    - export SOCKET_LINK=$PWD/tmp_socket
+    - echo "----------------------- STANDARD TESTS ------------------------"
+    - LD_PRELOAD=$ASAN_SO python ./test_jade.py --log CRITICAL --libjade
+    - echo "----------------------- NON-LEGACY TESTS ----------------------"
+    - LD_PRELOAD=$ASAN_SO python ./test_jade.py --log CRITICAL --libjade --nolegacyflow
+    - echo "-----------------------   SERIAL TESTS   ----------------------"
+    - LD_PRELOAD=$ASAN_SO setsid $PWD/build_linux/libjade/libjade_daemon --serialport $SOCKET_LINK >daemon.log 2>&1 &
+    - DAEMON_PID=$!
+    - LD_PRELOAD=$ASAN_SO python ./test_jade.py --log CRITICAL --nolegacyflow --serialport $SOCKET_LINK --serialtimeout 30
+    - kill -- -$DAEMON_PID
+  artifacts:
+    expire_in: 2 days
+    name: libjade_serial_log
+    paths:
+    - daemon.log
