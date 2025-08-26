@@ -1,74 +1,73 @@
 #!/bin/bash
 
 LOCAL_DIR="${1:-fwsvr_mirror}"
-MISSING="missing.log"
-
-FWSERVER="https://jadefw.blockstream.com/bin"
-
+MISSING_LOG="missing.log"
+GCLOUD_BUCKET="gs://jadefw.blockstream.com/bin"
 HWDIRS="jade jade1.1 jade2.0 jadedev jade1.1dev jade2.0dev"
-INDEXES="LATEST BETA PREVIOUS"
-INDEX_JSON="index.json"
 
-# jq filter: <roots>/<release types>/<fw types>/<filename>
-INDEX_JSON_FILENAME_FILTER=".[] | .[] | .[] | .filename"
-
-if [ -d "${LOCAL_DIR}" ]
-then
-  rm -rf "${LOCAL_DIR}"
+if [ $(basename $PWD) != "release" ]; then
+    if [ $(basename $PWD) != "staging" ]; then
+        echo "ERROR: This script must be run from the 'release' or 'staging' source directory"
+        exit 1
+    fi
 fi
 
-mkdir "${LOCAL_DIR}"
-pushd "${LOCAL_DIR}"
+echo "Checking authentication:"
+if ! echo "" | gcloud projects list &> /dev/null; then
+    echo "ERROR: You must run 'gcloud login' to authenticate to gcloud"
+    exit 1
+fi
 
-echo "Pulling fw server files into $(pwd)"
-for hwdir in ${HWDIRS}
-do
-  mkdir "${hwdir}"
-  pushd "${hwdir}"
-  FWLOCATION="${FWSERVER}/${hwdir}"
+echo "Syncing firmware server files into ${LOCAL_DIR}"
+# This always give an error, either:
+# ERROR: [Errno 20] Not a directory: 'fwsvr_mirror/_.gstmp' -> 'fwsvr_mirror/'
+# or:
+# ERROR: [Errno 21] Is a directory: 'fwsvr_mirror/'
+# but it doesn't affect the actual downloaded files
+gcloud storage rsync ${GCLOUD_BUCKET} ${LOCAL_DIR} --recursive --delete-unmatched-destination-objects
+# We always get this file too even though it doesn't appear to exist in the bucket.
+rm -f ${LOCAL_DIR}/_.gstmp
 
-  for index in "${INDEX_JSON}" ${INDEXES}
-  do
-    wget "${FWLOCATION}"/"${index}"
-    if [ $? -ne 0 ]
-    then
-      echo "Missing: ${hwdir} - ${index}" >> ../"${MISSING}"
-    else
-      if [ "${index}" == "${INDEX_JSON}" ]
-      then
-        FWFILES=$(jq -r "${INDEX_JSON_FILENAME_FILTER}" "${INDEX_JSON}")
-      else
-        FWFILES=$(cat ${index})
-      fi
+echo "Checking firmware server files and indices"
+rm -f "${MISSING_LOG}"
 
-      for fwfile in ${FWFILES}
-      do
-        if [ ! -f "${fwfile}" ]
-        then
-          if [ "${index}" != "${INDEX_JSON}" ]
-          then
-            echo "Missing from ${INDEX_JSON}: ${hwdir} - ${index} - ${fwfile}" >> ../"${MISSING}"
-          fi
-
-          mkdir -p $(dirname "${fwfile}")
-          wget -O "${fwfile}" "${FWLOCATION}/${fwfile}"
-          if [ $? -ne 0 ]
-          then
-            echo "Missing: ${hwdir} - ${index} - ${fwfile}" >> ../"${MISSING}"
-          fi
-          wget "${FWLOCATION}/${fwfile}.hash"
+for hwdir in ${HWDIRS}; do
+    for index_name in index.json LATEST BETA PREVIOUS; do
+        index_file="${LOCAL_DIR}/${hwdir}/${index_name}"
+        if [ ! -f "${index_file}" ]; then
+            echo "Missing Index: ${index_file}" >> "${MISSING_LOG}"
+            fw_file_names=""
+        else
+            if [ "${index_name}" == index.json ]; then
+                # jq filter: <roots>/<release types>/<fw types>/<filename>
+                fw_file_names=$(jq -r ".[] | .[] | .[] | .filename" "${index_file}")
+            else
+                fw_file_names=$(cat "${index_file}")
+            fi
         fi
-      done
-    fi
-  done
-  popd
-done
-popd
 
-if [ -f "${LOCAL_DIR}"/"${MISSING}" ]
-then
-  cat "${LOCAL_DIR}"/"${MISSING}"
+        for fw_file_name in $(echo "${fw_file_names}" | tr '\n' ' '); do
+            fw_file="${LOCAL_DIR}/${hwdir}/${fw_file_name}"
+            if [ ! -f "${fw_file}" ]; then
+                echo "Missing FW ${fw_file} named in ${index_file}" >> "${MISSING_LOG}"
+            fi
+            case $fw_file_name in
+                0\.1\.*) ;; # Ignore early FW versions without hashes
+                *_fw.bin)
+                    if [ ! -f "${fw_file}.hash" ]; then
+                        echo "Missing hash for ${fw_file}" >> "${MISSING_LOG}"
+                    fi
+                    ;;
+            esac
+        done
+    done
+done
+
+# TODO: find files that are present but not listed in the indices
+
+if [ -f "${MISSING_LOG}" ]; then
+  cat "${MISSING_LOG}"
   exit 1
 fi
 echo "ALL GOOD!"
-
+exit 0
