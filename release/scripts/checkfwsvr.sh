@@ -28,8 +28,14 @@ gcloud storage rsync ${GCLOUD_BUCKET} ${LOCAL_DIR} --recursive --delete-unmatche
 # We always get this file too even though it doesn't appear to exist in the bucket.
 rm -f ${LOCAL_DIR}/_.gstmp
 
-echo "Checking firmware server files and indices"
+echo "Checking firmware server files, hashes and indices"
 rm -f "${MISSING_LOG}"
+
+function get_uncompressed_hash() {
+    # We add a gzip header to allow gzip to decompress the zlib data
+    printf "\x1f\x8b\x08\x00\x00\x00\x00\x00" | cat - $1 | \
+        gzip -qdc 2>/dev/null | sha256sum | cut -d ' ' -f 1
+}
 
 for hwdir in ${HWDIRS}; do
     for index_name in index.json LATEST BETA PREVIOUS; do
@@ -56,6 +62,11 @@ for hwdir in ${HWDIRS}; do
                 *_fw.bin)
                     if [ ! -f "${fw_file}.hash" ]; then
                         echo "Missing hash for ${fw_file}" >> "${MISSING_LOG}"
+                    fi
+                    fw_hash=$(get_uncompressed_hash "${fw_file}")
+                    if [ "${fw_hash}" != $(cat "${fw_file}.hash") ]; then
+                        echo "ERROR: Hash mismatch for ${fw_file}!"
+                        exit 1
                     fi
                     ;;
             esac
