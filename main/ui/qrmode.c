@@ -226,6 +226,7 @@ gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_
     return make_menu_activity("QR Settings", hdrbtns, 2, menubtns, 2);
 }
 
+// NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
 gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon)
 {
 
@@ -246,7 +247,7 @@ gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon)
 
     // back button
     btn_data_t hdrbtns[]
-        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_EXIT, .borders = GUI_BORDER_ALL },
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK, .borders = GUI_BORDER_ALL },
               { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
               { .txt = "P", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_BRIGHTNESS, .borders = GUI_BORDER_ALL } };
     add_buttons(vsplit, UI_ROW, hdrbtns, 3); // 44 (hsplit) / 3 == 14 - almost 15 so ok

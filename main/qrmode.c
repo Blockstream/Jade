@@ -20,6 +20,7 @@
 #include "utils/address.h"
 #include "utils/malloc_ext.h"
 #include "utils/network.h"
+#include "utils/util.h"
 #include "wallet.h"
 
 #include <wally_script.h>
@@ -36,6 +37,12 @@
 #define ACCOUNT_INDEX_MAX 65536
 #define ACCOUNT_INDEX_FLAGS_SHIFT 16
 
+#define MAX_OTP_SCREENS 1
+#define OTP_TEXTSPLITLEN 4
+#define OTP_GRID_TOPPAD 4
+#define OTP_GRID_X 4
+#define OTP_GRID_Y 6
+#define OTP_GRID_SIZE (OTP_GRID_X * OTP_GRID_Y)
 // When we are displaying a BCUR QR code we ensure the timeout is at least this value
 // as we don't want the unit to shut down because of apparent inactivity.
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
@@ -1443,9 +1450,44 @@ static void add_cr_after_last_slash(const char* url, char* output, const size_t 
     strcpy(output + index + 2, url + index + 1);
 }
 
-bool show_otp_uri_qr_activity(const char* otp_name)
+bool show_otp_secret_text_activity(const otpauth_ctx_t* otp_ctx)
 {
-    JADE_ASSERT(otp_name);
+    JADE_ASSERT(otp_ctx);
+
+    size_t num_words = 0;
+    size_t words_len = 0;
+    char secret_display[256];
+    SENSITIVE_PUSH(secret_display, sizeof(secret_display));
+
+    split_text(otp_ctx->secret, otp_ctx->secret_len, OTP_TEXTSPLITLEN, secret_display, sizeof(secret_display),
+        &num_words, &words_len);
+    JADE_ASSERT(num_words <= MAX_OTP_SCREENS * OTP_GRID_SIZE);
+    JADE_ASSERT(words_len <= sizeof(secret_display));
+
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    const char* remaining_words = NULL;
+    gui_activity_t* const act = make_text_grid_activity("Secret Key", hdrbtns, 2, OTP_GRID_TOPPAD, OTP_GRID_X,
+        OTP_GRID_Y, secret_display, num_words, GUI_DEFAULT_FONT, &remaining_words);
+    JADE_ASSERT(remaining_words == secret_display + words_len);
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    while (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+        if (ev_id == BTN_BACK) {
+            break;
+        }
+    }
+
+    SENSITIVE_POP(secret_display);
+    return true;
+}
+
+bool show_otp_uri_qr_activity(const otpauth_ctx_t* otp_ctx)
+{
+    JADE_ASSERT(otp_ctx);
+    JADE_ASSERT(otp_ctx->name);
 
     bool ok = false;
     char uri[OTP_MAX_URI_LEN];
@@ -1454,7 +1496,7 @@ bool show_otp_uri_qr_activity(const char* otp_name)
 
     SENSITIVE_PUSH(uri, sizeof(uri));
 
-    if (!otp_load_uri(otp_name, uri, sizeof(uri), &written) || !written) {
+    if (!otp_load_uri(otp_ctx->name, uri, sizeof(uri), &written) || !written) {
         const char* msg[] = { "Failed to load", "OTP URI" };
         await_error_activity(msg, 2);
         goto cleanup;
@@ -1471,7 +1513,7 @@ bool show_otp_uri_qr_activity(const char* otp_name)
     JADE_ASSERT(qr_icon->data && qr_icon->width && qr_icon->height);
     SENSITIVE_PUSH(qr_icon->data, qrcode_get_icon_data_size(qr_icon->width, qr_icon->height));
 
-    gui_activity_t* const act = make_show_otp_qr_actvity(otp_name, qr_icon);
+    gui_activity_t* const act = make_show_otp_qr_actvity(otp_ctx->name, qr_icon);
     int32_t ev_id;
 
     while (true) {
@@ -1480,6 +1522,8 @@ bool show_otp_uri_qr_activity(const char* otp_name)
             if (ev_id == BTN_BACK) {
                 ok = true;
                 goto cleanup;
+            } else if (ev_id == BTN_OTP_DETAILS_SECRET) {
+                show_otp_secret_text_activity(otp_ctx);
             } else if (ev_id == BTN_QR_BRIGHTNESS) {
                 gui_next_qrcode_color();
                 gui_repaint(act->root_node);

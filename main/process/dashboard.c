@@ -1452,7 +1452,7 @@ static bool show_otp_detail_options_activity(
             } else if (ev_id == BTN_OTP_DETAILS_VIEW) {
                 show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
             } else if (ev_id == BTN_OTP_DETAILS_EXPORT) {
-                show_otp_uri_qr_activity(otp_ctx->name);
+                show_otp_uri_qr_activity(otp_ctx);
             }
         }
     }

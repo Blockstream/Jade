@@ -28,8 +28,8 @@ void await_qr_help_activity(const char* url);
 bool await_qr_back_continue_activity(
     const char* message[], size_t message_size, const char* url, bool default_selection);
 
-// Display a QR code for the OTP URI of the given otp name
-bool show_otp_uri_qr_activity(const char* otp_name);
+// Display a QR code for the OTP context
+bool show_otp_uri_qr_activity(const otpauth_ctx_t* otp_ctx);
 
 // Start pinserver authentication via qr codes
 void handle_qr_auth(bool suppress_pin_change_confirmation);
