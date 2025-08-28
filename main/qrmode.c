@@ -62,6 +62,7 @@ gui_activity_t* make_xpub_qr_options_activity(
     gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** density_textbox);
 
 gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon);
+gui_activity_t* make_show_otp_secret_text_activity(const char* otp_name, const char* secret_text);
 
 gui_activity_t* make_search_verify_address_activity(
     const char* root_label, gui_view_node_t** label_text, progress_bar_t* progress_bar, gui_view_node_t** index_text);
@@ -1492,8 +1493,37 @@ static void add_cr_after_last_slash(const char* url, char* output, const size_t 
     strcpy(output + index + 2, url + index + 1);
 }
 
-bool show_otp_uri_qr_activity(const char* otp_name) {
-	JADE_ASSERT(otp_name);
+bool show_otp_secret_text_activity(const otpauth_ctx_t* otp_ctx)
+{
+    JADE_ASSERT(otp_ctx);
+    
+    // Convert secret from base32 to readable format (or just show as-is)
+    char secret_display[256];
+    size_t secret_len = otp_ctx->secret_len;
+    if (secret_len >= sizeof(secret_display)) {
+        secret_len = sizeof(secret_display) - 1;
+    }
+    
+    memcpy(secret_display, otp_ctx->secret, secret_len);
+    secret_display[secret_len] = '\0';
+
+    gui_activity_t* const act = make_show_otp_secret_text_activity(otp_ctx->name, secret_display);
+    gui_set_current_activity(act);
+    
+    int32_t ev_id;
+    while (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+        if (ev_id == BTN_BACK) {
+            break;
+        }
+    }
+    
+    return true;
+}
+
+bool show_otp_uri_qr_activity(const otpauth_ctx_t* otp_ctx) 
+{
+	JADE_ASSERT(otp_ctx);
+	JADE_ASSERT(otp_ctx->name);
 
 	bool ok = false;
 	char uri[OTP_MAX_URI_LEN];
@@ -1501,7 +1531,7 @@ bool show_otp_uri_qr_activity(const char* otp_name) {
 
 	SENSITIVE_PUSH(uri, sizeof(uri));
 
-    if (!otp_load_uri(otp_name, uri, sizeof(uri), &written) || !written) {
+    if (!otp_load_uri(otp_ctx->name, uri, sizeof(uri), &written) || !written) {
         const char* msg[] = { "Failed to load", "OTP URI" };
         await_error_activity(msg, 2);
         goto cleanup;
@@ -1517,19 +1547,25 @@ bool show_otp_uri_qr_activity(const char* otp_name) {
 
 	bytes_to_qr_icon((const uint8_t*)uri, written, qr_icon);
 
-	gui_activity_t* const act = make_show_otp_qr_actvity(otp_name, qr_icon); 
+	gui_activity_t* const act = make_show_otp_qr_actvity(otp_ctx->name, qr_icon); 
 	int32_t ev_id;
 
 	while(true){
         gui_set_current_activity(act);
-        if (!gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-            continue;
+        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+			if (ev_id == BTN_BACK) {
+				ok = true;
+				goto cleanup;
+			} else if (ev_id == BTN_OTP_DETAILS_SECRET) {
+				show_otp_secret_text_activity(otp_ctx);	
+			}
         }
 	}
 cleanup:
 	SENSITIVE_POP(uri);
 	return ok;
 }
+
 
 // Display screen with help url and qr code
 // Handles up to v4 codes - ie. text up to 78 bytes

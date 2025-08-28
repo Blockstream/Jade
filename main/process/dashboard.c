@@ -1489,7 +1489,7 @@ static bool show_otp_detail_options_activity(
             } else if (ev_id == BTN_OTP_DETAILS_VIEW) {
                 return show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
             } else if (ev_id == BTN_OTP_DETAILS_EXPORT) {
-				return show_otp_uri_qr_activity(otp_ctx->name);
+				return show_otp_uri_qr_activity(otp_ctx);
             }
         }
     }

@@ -201,6 +201,7 @@ gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_
     return make_menu_activity("QR Settings", hdrbtns, 2, menubtns, 2);
 }
 
+// NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
 gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon) {
 
     JADE_ASSERT(otp_name);
@@ -220,9 +221,9 @@ gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon) {
 
     // back button
     btn_data_t hdrbtns[]
-        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_EXIT, .borders = GUI_BORDER_ALL },
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK, .borders = GUI_BORDER_ALL },
               { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-              { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_XPUB_HELP, .borders = GUI_BORDER_ALL } };
+              { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_HELP, .borders = GUI_BORDER_ALL } };
     add_buttons(vsplit, UI_ROW, hdrbtns, 3); // 44 (hsplit) / 3 == 14 - almost 15 so ok
 
     // second row, type label
@@ -237,7 +238,7 @@ gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon) {
 
     // button
     btn_data_t ftrbtn
-        = { .txt = "show secret", .font = GUI_DEFAULT_FONT, .ev_id = BTN_XPUB_OPTIONS, .borders = GUI_BORDER_TOP };
+        = { .txt = "show secret", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_DETAILS_SECRET, .borders = GUI_BORDER_TOP };
     add_buttons(vsplit, UI_COLUMN, &ftrbtn, 1);
 
     // RHS - QR icons
@@ -249,6 +250,39 @@ gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon) {
     gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(node, fill);
     gui_set_icon_animation(node, qr_icon, 1, 0);
+
+    return act;
+}
+
+gui_activity_t* make_show_otp_secret_text_activity(const char* otp_name, const char* secret_text)
+{
+    JADE_ASSERT(otp_name);
+    JADE_ASSERT(secret_text);
+
+    gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* node;
+
+    btn_data_t hdrbtns[] = { 
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+    { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+    gui_view_node_t* const parent = add_title_bar(act, "Secret Key", hdrbtns, 2, NULL);
+
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 25, 50, 25);
+    gui_set_parent(vsplit, parent);
+
+    gui_make_text(&node, otp_name, TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    gui_make_text_font(&node, secret_text, TFT_WHITE, DEFAULT_FONT);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+
+    btn_data_t ftrbtn = { 
+        .txt = "Back", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BACK 
+    };
+    add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
 
     return act;
 }
