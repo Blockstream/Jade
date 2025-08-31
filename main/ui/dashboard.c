@@ -764,7 +764,12 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
         gui_set_align(node, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
         gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 2, 0);
 
-        gui_make_text(&node, "211-210802", TFT_WHITE);
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#define JP_COMPLIANCE_TEXT "211-210802"
+#else
+#define JP_COMPLIANCE_TEXT "219-259339"
+#endif
+        gui_make_text(&node, JP_COMPLIANCE_TEXT, TFT_WHITE);
         gui_set_parent(node, hsplit);
         gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 4);
