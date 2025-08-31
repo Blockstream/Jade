@@ -25,12 +25,12 @@ esp_err_t power_init(void)
     };
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, BATTERY_ADC_CHANNEL, &config));
     // Curve fitting calibration
-    adc_cali_curve_fitting_config_t cali_config = {
+    adc_cali_line_fitting_config_t cali_config = {
         .unit_id = ADC_UNIT_1,
         .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
-    ESP_ERROR_CHECK(adc_cali_create_scheme_curve_fitting(&cali_config, &adc1_cali_handle));
+//    ESP_ERROR_CHECK(adc_cali_create_scheme_curve_fitting(&cali_config, &adc1_cali_handle));
     return ESP_OK;
 }
 
@@ -47,8 +47,11 @@ uint16_t power_get_vbat(void)
     int cal_vbat = 0;
     int raw_vbat = 0;
     ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, BATTERY_ADC_CHANNEL, &raw_vbat));
-    ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle, raw_vbat, &cal_vbat));
-    return (uint16_t)(cal_vbat * 2);
+//    ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle, raw_vbat, &cal_vbat));
+
+//	 uint16_t v = analogRead(BATTERY_ADC_CHANNEL);
+         cal_vbat =((float)raw_vbat / 4095.0) * 2.0 * 3.3 * (1100 / 1.0);
+    return (uint16_t)(cal_vbat);
 }
 uint8_t power_get_battery_status(void)
 {
