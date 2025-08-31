@@ -453,30 +453,31 @@ test_flash_artifacts3:
   before_script:
     - mv build_display_ttgo_tdisplays3_ci build
 
-test_gcov:
-  # for now this only works on s3
-  tags:
-    - esp32s3flasher
-  stage: build
-  variables:
-    IDF_TOOLS_PATH: "/home/gitlab-runner/.idf/54"
-  script:
-    - cp configs/sdkconfig_display_ttgo_tdisplays3_gcov_ci.defaults sdkconfig.defaults
-    - . $HOME/esp/esp-idf-5.4/export.sh
-    - idf.py all size-components size
-    - ./tools/fwprep.py build/jade.bin build
-    - ./tools/mkindex.py build $(basename $(ls build/*_fw.bin) | cut -d'_' -f1)
-    - cp sdkconfig build/
-    - cp components/esp32_bsdiff/bsdiff.h build/
-    - cp components/esp32_bsdiff/bsdiff.c build/
-    - cp build*/sdkconfig ./
-    - ./ci_flash.sh esp32s3
-  artifacts:
-    expire_in: 2 weeks
-    when: on_success
-    paths:
-    - build*/coverage_report/*
-  allow_failure: true
+# gcov support is non-functional at present
+#test_gcov:
+#  # for now this only works on s3
+#  tags:
+#    - esp32s3flasher
+#  stage: build
+#  variables:
+#    IDF_TOOLS_PATH: "/home/gitlab-runner/.idf/54"
+#  script:
+#    - cp configs/sdkconfig_display_ttgo_tdisplays3_gcov_ci.defaults sdkconfig.defaults
+#    - . $HOME/esp/esp-idf-5.4/export.sh
+#    - idf.py all size-components size
+#    - ./tools/fwprep.py build/jade.bin build
+#    - ./tools/mkindex.py build $(basename $(ls build/*_fw.bin) | cut -d'_' -f1)
+#    - cp sdkconfig build/
+#    - cp components/esp32_bsdiff/bsdiff.h build/
+#    - cp components/esp32_bsdiff/bsdiff.c build/
+#    - cp build*/sdkconfig ./
+#    - ./ci_flash.sh esp32s3
+#  artifacts:
+#    expire_in: 2 weeks
+#    when: on_success
+#    paths:
+#    - build*/coverage_report/*
+#  allow_failure: true
 
 test_flash_artifact_ota_delta:
   stage: deploy
