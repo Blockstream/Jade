@@ -1487,12 +1487,13 @@ static bool show_otp_detail_options_activity(
             if (ev_id == BTN_BACK) {
                 return true;
             } else if (ev_id == BTN_OTP_DETAILS_VIEW) {
-                return show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
+                show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
             } else if (ev_id == BTN_OTP_DETAILS_EXPORT) {
-				return show_otp_uri_qr_activity(otp_ctx);
+				show_otp_uri_qr_activity(otp_ctx);
             }
         }
     }
+	return true;
 }
 // HOTP token-code fixed
 static bool display_hotp_screen(const otpauth_ctx_t* otp_ctx, const char* token, const bool confirm_only)

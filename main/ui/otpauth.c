@@ -167,8 +167,8 @@ static gui_activity_t* make_otp_details_activities(const otpauth_ctx_t* ctx, con
 gui_activity_t* make_view_export_otp_activity(const char* name) {
 
 	//TODO change BTN EVENTS
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_OPTIONS_EXIT },
-        { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_XPUB_OPTIONS_HELP }};
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK},
+		{ .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }};
 
     btn_data_t menubtns[] = { { .txt = "View", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_DETAILS_VIEW},
         { .txt = "Export", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_DETAILS_EXPORT}};
