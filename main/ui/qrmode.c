@@ -254,30 +254,6 @@ gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon) {
     return act;
 }
 
-gui_activity_t* make_show_otp_secret_text_activity(const char* otp_name, const char* secret_text)
-{
-    JADE_ASSERT(otp_name);
-    JADE_ASSERT(secret_text);
-
-    gui_activity_t* const act = gui_make_activity();
-    gui_view_node_t* node;
-
-    btn_data_t hdrbtns[] = { 
-        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
-    { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
-    gui_view_node_t* const parent = add_title_bar(act, "Secret Key", hdrbtns, 2, NULL);
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 25, 50, 25);
-    gui_set_parent(vsplit, parent);
-
-    gui_make_text_font(&node, secret_text, TFT_WHITE, DEFAULT_FONT);
-    gui_set_parent(node, vsplit);
-    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-
-    return act;
-}
-
 // NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
 gui_activity_t* make_show_qr_activity(const char* message[], const size_t message_size, Icon* icons,
     const size_t num_icons, const size_t frames_per_qr_icon, const bool show_options_button, const bool show_help_btn)

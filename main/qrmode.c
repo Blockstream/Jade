@@ -36,6 +36,10 @@
 #define ACCOUNT_INDEX_MAX 65536
 #define ACCOUNT_INDEX_FLAGS_SHIFT 16
 
+#define OTP_TEXTSPLITLEN 4
+#define OTP_GRID_TOPPAD 4
+#define OTP_GRID_X 4
+#define OTP_GRID_Y 6
 // When we are displaying a BCUR QR code we ensure the timeout is at least this value
 // as we don't want the unit to shut down because of apparent inactivity.
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
@@ -62,7 +66,6 @@ gui_activity_t* make_xpub_qr_options_activity(
     gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** density_textbox);
 
 gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon);
-gui_activity_t* make_show_otp_secret_text_activity(const char* otp_name, const char* secret_text);
 
 gui_activity_t* make_search_verify_address_activity(
     const char* root_label, gui_view_node_t** label_text, progress_bar_t* progress_bar, gui_view_node_t** index_text);
@@ -1503,14 +1506,14 @@ bool show_otp_secret_text_activity(const otpauth_ctx_t* otp_ctx)
     size_t words_len = 0; 
     char secret_display[256];
 
-	split_text(otp_ctx->secret, otp_ctx->secret_len, 4, secret_display, sizeof(secret_display), &num_words, &words_len);
+	split_text(otp_ctx->secret, otp_ctx->secret_len, OTP_TEXTSPLITLEN, secret_display, sizeof(secret_display), &num_words, &words_len);
 
     btn_data_t hdrbtns[] = { 
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
     { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     const char* remaining_words = NULL;
-	gui_activity_t* const act = make_text_grid_activity("Secret Key", hdrbtns, 2, 4, 4, 6, secret_display, num_words, GUI_DEFAULT_FONT, &remaining_words);
+	gui_activity_t* const act = make_text_grid_activity("Secret Key", hdrbtns, 2, OTP_GRID_TOPPAD, OTP_GRID_X, OTP_GRID_Y, secret_display, num_words, GUI_DEFAULT_FONT, &remaining_words);
     gui_set_current_activity(act);
     
     int32_t ev_id;
