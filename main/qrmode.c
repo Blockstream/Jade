@@ -83,6 +83,8 @@ int sign_message_file(
 int get_bip85_bip39_entropy_cbor(const CborValue* params, CborEncoder* output, const char** errmsg);
 
 bool show_confirm_address_activity(const char* address, bool default_selection);
+static void split_text(const char* src, const size_t len, const size_t wordlen, char* output, const size_t output_len,
+    size_t* num_words, size_t* written);
 
 bool handle_mnemonic_qr(const char* mnemonic);
 
@@ -1497,17 +1499,18 @@ bool show_otp_secret_text_activity(const otpauth_ctx_t* otp_ctx)
 {
     JADE_ASSERT(otp_ctx);
     
-    // Convert secret from base32 to readable format (or just show as-is)
+    size_t num_words = 0; 
+    size_t words_len = 0; 
     char secret_display[256];
-    size_t secret_len = otp_ctx->secret_len;
-    if (secret_len >= sizeof(secret_display)) {
-        secret_len = sizeof(secret_display) - 1;
-    }
-    
-    memcpy(secret_display, otp_ctx->secret, secret_len);
-    secret_display[secret_len] = '\0';
 
-    gui_activity_t* const act = make_show_otp_secret_text_activity(otp_ctx->name, secret_display);
+	split_text(otp_ctx->secret, otp_ctx->secret_len, 4, secret_display, sizeof(secret_display), &num_words, &words_len);
+
+    btn_data_t hdrbtns[] = { 
+        { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+    { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    const char* remaining_words = NULL;
+	gui_activity_t* const act = make_text_grid_activity("Secret Key", hdrbtns, 2, 4, 4, 6, secret_display, num_words, GUI_DEFAULT_FONT, &remaining_words);
     gui_set_current_activity(act);
     
     int32_t ev_id;
