@@ -36,10 +36,12 @@
 #define ACCOUNT_INDEX_MAX 65536
 #define ACCOUNT_INDEX_FLAGS_SHIFT 16
 
+#define MAX_OTP_SCREENS 1 
 #define OTP_TEXTSPLITLEN 4
 #define OTP_GRID_TOPPAD 4
 #define OTP_GRID_X 4
 #define OTP_GRID_Y 6
+#define OTP_GRID_SIZE (OTP_GRID_X * OTP_GRID_Y)
 // When we are displaying a BCUR QR code we ensure the timeout is at least this value
 // as we don't want the unit to shut down because of apparent inactivity.
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
@@ -1507,6 +1509,8 @@ bool show_otp_secret_text_activity(const otpauth_ctx_t* otp_ctx)
     char secret_display[256];
 
 	split_text(otp_ctx->secret, otp_ctx->secret_len, OTP_TEXTSPLITLEN, secret_display, sizeof(secret_display), &num_words, &words_len);
+    JADE_ASSERT(num_words <= MAX_OTP_SCREENS * OTP_GRID_SIZE);
+    JADE_ASSERT(words_len <= sizeof(secret_display));
 
     btn_data_t hdrbtns[] = { 
         { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
@@ -1514,6 +1518,7 @@ bool show_otp_secret_text_activity(const otpauth_ctx_t* otp_ctx)
 
     const char* remaining_words = NULL;
 	gui_activity_t* const act = make_text_grid_activity("Secret Key", hdrbtns, 2, OTP_GRID_TOPPAD, OTP_GRID_X, OTP_GRID_Y, secret_display, num_words, GUI_DEFAULT_FONT, &remaining_words);
+	JADE_ASSERT(remaining_words == secret_display + words_len);
     gui_set_current_activity(act);
     
     int32_t ev_id;
