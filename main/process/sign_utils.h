@@ -26,7 +26,8 @@ bool params_trusted_commitments(
     jade_process_t* process, const CborValue* params, const struct wally_tx* tx, commitment_t** data);
 
 TxType_t params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
-    bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums);
+    bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums,
+    const char** errmsg);
 
 // Returns true if commitments are present and validated correctly.
 // Returns false otherwise, with errmsg set if an error occurred, or

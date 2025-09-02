@@ -155,21 +155,21 @@ static void rpc_get_asset_summary(
     }
 }
 
-static bool validate_additional_info(jade_process_t* process, const struct wally_tx* tx, const TxType_t txtype,
-    const bool is_partial, const asset_summary_t* in_sums, const size_t num_in_sums, const asset_summary_t* out_sums,
-    const size_t num_out_sums)
+static bool validate_additional_info(const struct wally_tx* tx, const TxType_t txtype, const bool is_partial,
+    const asset_summary_t* in_sums, const size_t num_in_sums, const asset_summary_t* out_sums,
+    const size_t num_out_sums, const char** errmsg)
 {
-    const char* errmsg = NULL;
     // Shouldn't have pointers to empty arrays
     JADE_ASSERT(!in_sums == !num_in_sums);
     JADE_ASSERT(!out_sums == !num_out_sums);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     // Validate tx type data
     if (txtype == TXTYPE_SWAP) {
         // Input and output summary must be present - they will be fully validated later
         if (!in_sums || !out_sums) {
-            errmsg = "Swap tx missing input/output summary information";
-            goto done;
+            *errmsg = "Swap tx missing input/output summary information";
+            return false;
         }
 
         // Validate swap or proposal appears to have expected inputs and outputs
@@ -178,30 +178,26 @@ static bool validate_additional_info(jade_process_t* process, const struct wally
             // input and exactly one output which is to self, and in a different asset to the input
             if (tx->num_inputs != 1 || tx->num_outputs != 1 || num_in_sums != 1 || num_out_sums != 1
                 || !memcmp(in_sums[0].asset_id, out_sums[0].asset_id, sizeof(out_sums[0].asset_id))) {
-                errmsg = "Initial swap proposal must have single wallet input and output in different assets";
-                goto done;
+                *errmsg = "Initial swap proposal must have single wallet input and output in different assets";
+                return false;
             }
         } else {
             // TODO: Ideally check total number of assets in our inputs and outputs
             if (tx->num_inputs < 2 || tx->num_outputs < 2) {
-                errmsg = "Insufficient inputs/outputs for a swap tx";
-                goto done;
+                *errmsg = "Insufficient inputs/outputs for a swap tx";
+                return false;
             }
         }
     } else if (txtype != TXTYPE_SEND_PAYMENT) {
-        errmsg = "Unsupported tx-type in additional info";
-        goto done;
-    }
-done:
-    if (errmsg) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
+        *errmsg = "Unsupported tx-type in additional info";
         return false;
     }
     return true;
 }
 
 TxType_t params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
-    bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums)
+    bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums,
+    const char** errmsg)
 {
     JADE_ASSERT(params);
     JADE_ASSERT(tx);
@@ -211,6 +207,7 @@ TxType_t params_additional_info(jade_process_t* process, CborValue* params, cons
     JADE_INIT_OUT_SIZE(num_in_sums);
     JADE_INIT_OUT_PPTR(out_sums);
     JADE_INIT_OUT_SIZE(num_out_sums);
+    JADE_INIT_OUT_PPTR(errmsg);
 
     *is_partial = false;
     *txtype = TXTYPE_SEND_PAYMENT;
@@ -230,10 +227,10 @@ TxType_t params_additional_info(jade_process_t* process, CborValue* params, cons
 
     // Tx Type
     if (!rpc_get_txtype(process, &additional_info, txtype)) {
+        *errmsg = "Failed to extract tx type from additional_info";
         return false;
     }
-    if (!validate_additional_info(
-            process, tx, *txtype, *is_partial, *in_sums, *num_in_sums, *out_sums, *num_out_sums)) {
+    if (!validate_additional_info(tx, *txtype, *is_partial, *in_sums, *num_in_sums, *out_sums, *num_out_sums, errmsg)) {
         return false;
     }
     return true;

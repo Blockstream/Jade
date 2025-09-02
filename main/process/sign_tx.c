@@ -464,6 +464,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         JADE_LOGI("Read %d assets from message", num_assets);
     }
 
+    const char* errmsg = NULL;
     asset_summary_t *in_sums = NULL, *out_sums = NULL;
     size_t num_in_sums = 0, num_out_sums = 0;
     bool is_partial = false;
@@ -471,14 +472,14 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     // Liquid: Get any data from the optional 'additional_info' section
     if (for_liquid
         && !params_additional_info(
-            process, &params, tx, &txtype, &is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums)) {
+            process, &params, tx, &txtype, &is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums, &errmsg)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
     // Liquid: Gather the (unblinded) output info for user confirmation,
     // then validate output and additional_info values
     if (for_liquid) {
-        const char* errmsg = NULL;
         if (!update_elements_outputs(tx, commitments, output_info, &errmsg)
             || !validate_elements_outputs(
                 network_id, tx, txtype, output_info, in_sums, num_in_sums, out_sums, num_out_sums, &errmsg)) {
@@ -569,7 +570,6 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         // (But if passed must be valid - empty/root path is not allowed for signing)
         const bool has_path = rpc_has_field_data("path", &params);
         if (has_path) {
-            const char* errmsg = NULL;
             num_to_sign += 1;
 
             // Get all common tx-signing input fields which must be present if a path is given
