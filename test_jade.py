@@ -46,6 +46,13 @@ def h2b(hexdata):
         return bytes.fromhex(hexdata)
 
 
+def _h2b_additional_info(additional_info):
+    for summary_item in additional_info['wallet_input_summary']:
+        summary_item['asset_id'] = h2b(summary_item['asset_id'])
+    for summary_item in additional_info['wallet_output_summary']:
+        summary_item['asset_id'] = h2b(summary_item['asset_id'])
+
+
 def _h2b_test_case(testcase):
     # Convert fields from hex to binary
     if 'txn' in testcase['input']:
@@ -65,11 +72,7 @@ def _h2b_test_case(testcase):
                         commitment[k] = v if k == 'value' else h2b(v)
 
         if 'additional_info' in testcase['input']:
-            additional_info = testcase['input']['additional_info']
-            for summary_item in additional_info['wallet_input_summary']:
-                summary_item['asset_id'] = h2b(summary_item['asset_id'])
-            for summary_item in additional_info['wallet_output_summary']:
-                summary_item['asset_id'] = h2b(summary_item['asset_id'])
+            _h2b_additional_info(testcase['input']['additional_info'])
 
         for k in ['expected_output', 'expected_legacy_output']:
             if k in testcase:
@@ -77,6 +80,9 @@ def _h2b_test_case(testcase):
 
     elif 'psbt' in testcase['input']:
         testcase['input']['psbt'] = base64.b64decode(testcase['input']['psbt'])
+
+        if 'additional_info' in testcase['input']:
+            _h2b_additional_info(testcase['input']['additional_info'])
 
         if 'expected_output' in testcase:
             expected_output = testcase['expected_output']
@@ -3042,7 +3048,9 @@ def test_sign_psbt(jadeapi, cases, has_psram):
                 continue
 
         try:
-            rslt = jadeapi.sign_psbt(txn_data['input']['network'], psbt_bin)
+            network = txn_data['input']['network']
+            additional_info = txn_data['input'].get('additional_info')
+            rslt = jadeapi.sign_psbt(network, psbt_bin, additional_info)
         except JadeError as err:
             if expect_pset_failure:
                 continue  # Trying to parse a PSET on an unsupported device
