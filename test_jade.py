@@ -4238,6 +4238,10 @@ if __name__ == '__main__':
     if manage_agents:
         btagent = start_agent(args.agentkeyfile)
 
+    # Remove PINs left over from previous test runs
+    for f in glob.glob("./*.pin"):
+        os.remove(f)
+
     try:
         info = get_jade_info()
         if info:
