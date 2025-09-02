@@ -693,8 +693,8 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
     // Liquid: Get any data from the optional 'additional_info' section
     if (for_liquid && process && params
         && !params_additional_info(
-            process, params, tx, &txtype, &is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums)) {
-        // Note in_sums/out_sums are cleared automatically at proces exit
+            process, params, tx, &txtype, &is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums, errmsg)) {
+        // Note in_sums/out_sums are cleared automatically at process exit
         retval = CBOR_RPC_BAD_PARAMETERS;
         goto cleanup_tx;
     }
