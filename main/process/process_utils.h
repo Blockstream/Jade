@@ -84,7 +84,7 @@ bool jade_process_check_network(jade_process_t* process, CborValue* params, netw
         goto cleanup;                                                                                                  \
     }
 
-// Do we have have a keychain, and does its userdata indicate the same 'source'
+// Do we have a keychain, and does its userdata indicate the same 'source'
 // as the current message ?
 // This is to check that we only handle messages from the same source (serial or ble)
 // as initially unlocked the key material.
