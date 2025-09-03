@@ -755,6 +755,25 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
 
         // Found our key - we are signing this input
         JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", iter.key_index, index);
+
+        if (for_liquid && in_sums) {
+            uint8_t asset_id[32];
+            size_t written = 0;
+            if (!input->has_amount
+                || wally_psbt_input_get_asset(input, asset_id, sizeof(asset_id), &written) != WALLY_OK
+                || written != sizeof(asset_id)) {
+                // If additional_info is present, the caller must provide explicit
+                // value/asset along with their proofs (checked during parsing)
+                *errmsg = "Missing input explicit asset or value";
+                retval = CBOR_RPC_BAD_PARAMETERS;
+                goto cleanup;
+            }
+            // TODO: additional_info should store asset_ids in binary order,
+            // so we shouldn't have to reverse_in_place() here
+            reverse_in_place(asset_id, sizeof(asset_id));
+            asset_summary_update(in_sums, num_in_sums, asset_id, sizeof(asset_id), input->amount);
+        }
+
         uint32_t sig_type;
         JADE_WALLY_VERIFY(wally_psbt_get_input_signature_type(psbt, index, &sig_type));
         JADE_ASSERT(sig_type);
