@@ -202,6 +202,59 @@ gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_
 }
 
 // NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
+gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon) {
+
+    JADE_ASSERT(otp_name);
+    JADE_ASSERT(qr_icon);
+
+    gui_activity_t* const act = gui_make_activity();
+    gui_view_node_t* node;
+
+    gui_view_node_t* hsplit;
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 44, 56);
+    gui_set_parent(hsplit, act->root_node);
+
+    // LHS
+    gui_view_node_t* vsplit;
+    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 25, 25);
+    gui_set_parent(vsplit, hsplit);
+
+    // back button
+    btn_data_t hdrbtns[]
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK, .borders = GUI_BORDER_ALL },
+              { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+              { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_HELP, .borders = GUI_BORDER_ALL } };
+    add_buttons(vsplit, UI_ROW, hdrbtns, 3); // 44 (hsplit) / 3 == 14 - almost 15 so ok
+
+    // second row, type label
+    gui_make_text(&node, otp_name, TFT_WHITE);
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
+
+    // third row, path
+    gui_make_text_font(&node, "Scan Secret Key", TFT_WHITE, DEFAULT_FONT); // fits path
+    gui_set_parent(node, vsplit);
+    gui_set_align(node, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
+
+    // button
+    btn_data_t ftrbtn
+        = { .txt = "View Secret", .font = GUI_DEFAULT_FONT, .ev_id = BTN_OTP_DETAILS_SECRET, .borders = GUI_BORDER_TOP };
+    add_buttons(vsplit, UI_COLUMN, &ftrbtn, 1);
+
+    // RHS - QR icons
+    gui_view_node_t* fill;
+    gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
+    gui_set_parent(fill, hsplit);
+
+    gui_make_icon(&node, qr_icon, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
+    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(node, fill);
+    gui_set_icon_animation(node, qr_icon, 1, 0);
+
+    return act;
+}
+
+// NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
 gui_activity_t* make_show_qr_activity(const char* message[], const size_t message_size, Icon* icons,
     const size_t num_icons, const size_t frames_per_qr_icon, const bool show_options_button, const bool show_help_btn)
 {

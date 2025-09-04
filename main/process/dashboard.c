@@ -202,6 +202,8 @@ gui_activity_t* make_bip39_passphrase_prefs_activity(
 gui_activity_t* make_otp_activity(void);
 gui_activity_t* make_new_otp_activity(void);
 
+gui_activity_t* make_view_export_otp_activity(const char* name);
+
 bool show_otp_details_activity(
     const otpauth_ctx_t* ctx, bool initial_confirmation, bool is_valid, bool show_delete_btn);
 gui_activity_t* make_show_hotp_code_activity(const char* name, const char* codestr, bool confirm_only);
@@ -1465,6 +1467,34 @@ static bool delete_otp_record(const char* otpname)
     return true;
 }
 
+
+static bool show_otp_detail_options_activity(
+    const otpauth_ctx_t* otp_ctx,
+    const bool initial_confirmation,
+    const bool is_valid,
+    const bool show_delete_btn)
+{
+    JADE_ASSERT(otp_ctx);
+    JADE_ASSERT(otp_ctx->name);
+
+    gui_activity_t* const act = make_view_export_otp_activity(otp_ctx->name);
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+
+        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            if (ev_id == BTN_BACK) {
+                return true;
+            } else if (ev_id == BTN_OTP_DETAILS_VIEW) {
+                show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
+            } else if (ev_id == BTN_OTP_DETAILS_EXPORT) {
+				show_otp_uri_qr_activity(otp_ctx);
+            }
+        }
+    }
+	return true;
+}
 // HOTP token-code fixed
 static bool display_hotp_screen(const otpauth_ctx_t* otp_ctx, const char* token, const bool confirm_only)
 {
@@ -1492,7 +1522,7 @@ static bool display_hotp_screen(const otpauth_ctx_t* otp_ctx, const char* token,
                 const bool is_valid = true; // asserted above
                 const bool initial_confirmation = false;
                 const bool show_delete_btn = false;
-                const bool retain = show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
+                const bool retain = show_otp_detail_options_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
                 JADE_ASSERT(retain); // should be no 'discard' option
             } else if (ev_id == BTN_OTP_DISCARD_DELETE) {
                 if (confirm_only || delete_otp_record(otp_ctx->name))
@@ -1503,6 +1533,7 @@ static bool display_hotp_screen(const otpauth_ctx_t* otp_ctx, const char* token,
         }
     }
 }
+
 
 // TOTP token-code display updates with passage of time (unless flagged not to)
 static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, char* token, const size_t token_len,
@@ -1582,7 +1613,7 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
                 const bool is_valid = true; // asserted above
                 const bool initial_confirmation = false;
                 const bool show_delete_btn = false;
-                const bool retain = show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
+                const bool retain = show_otp_detail_options_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
                 JADE_ASSERT(retain); // should be no 'discard' option
             } else if (ev_id == BTN_OTP_DISCARD_DELETE) {
                 if (confirm_only || delete_otp_record(otp_ctx->name))
@@ -1703,7 +1734,7 @@ static void handle_view_otps(void)
         JADE_LOGE("Error loading or executing otp record: %s", names[selected]);
         const bool initial_confirmation = false;
         const bool show_delete_btn = true;
-        if (!show_otp_details_activity(&otp_ctx, initial_confirmation, is_valid, show_delete_btn)) {
+        if (!show_otp_detail_options_activity(&otp_ctx, initial_confirmation, is_valid, show_delete_btn)) {
             // Delete invalid record
             delete_otp_record(otp_ctx.name);
         }
