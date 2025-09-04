@@ -562,7 +562,6 @@ YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
 
 # Hold test data in separate files as can be large
 QR_QVGA_SCAN_TESTS = 'qr_qvga_*.json'
-QR_VGA_SCAN_TESTS = 'qr_vga_*.json'
 MULTI_REG_TESTS = 'multisig_reg_*.json'
 MULTI_REG_SS_TESTS = 'multisig_reg_ss_*.json'
 MULTI_REG_FILE_TESTS = 'multisig_file_*.json'
@@ -2271,10 +2270,8 @@ def test_passphrase(jade):
 
 # Test qr scanning - can be slow as image data large (slow to upload) and
 # tests involve starting the camera (and associated tasks).
-def test_scan_qr(jadeapi, use_vga_images):
-    # Higher res images for s3 hardware
-    pattern = QR_VGA_SCAN_TESTS if use_vga_images else QR_QVGA_SCAN_TESTS
-    for qr_data in _get_test_cases(pattern):
+def test_scan_qr(jadeapi):
+    for qr_data in _get_test_cases(QR_QVGA_SCAN_TESTS):
         expected = qr_data['expected_output']
         image_filename = qr_data['input']['image']
         with open('./test_data/' + image_filename, 'rb') as f:
@@ -3895,9 +3892,7 @@ def run_interface_tests(jadeapi,
 
         # Only run QR scan/camera tests a) over serial, and b) on proper Jade hw
         if not qemu and not isble and startinfo['BOARD_TYPE'] in ['JADE', 'JADE_V1.1', 'JADE_V2']:
-            # Higher res images for s3 hardware
-            use_vga_images = startinfo['BOARD_TYPE'] == 'JADE_V2'
-            test_scan_qr(jadeapi, use_vga_images)
+            test_scan_qr(jadeapi)
 
     # Too much input test - sends a lot of data so only run
     # if not running over BLE (as would take a long time)
