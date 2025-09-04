@@ -349,7 +349,11 @@ bool register_otp_qr(void)
     SENSITIVE_PUSH(&qr_data, sizeof(qr_data));
 
     // Get URI from qr code scan
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+    const qr_frame_guides_t qr_frame_guides = QR_GUIDES_LARGE;
+#else
     const qr_frame_guides_t qr_frame_guides = QR_GUIDES_SMALL;
+#endif
     if (!jade_camera_scan_qr(&qr_data, NULL, qr_frame_guides, "blkstrm.com/otp") || !qr_data.len) {
         // User exit without scanning
         JADE_LOGW("No qr code scanned");
