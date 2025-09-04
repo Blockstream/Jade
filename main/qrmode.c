@@ -1548,14 +1548,13 @@ bool show_otp_uri_qr_activity(const otpauth_ctx_t* otp_ctx)
         goto cleanup;
     }
 
-    Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
-
     if (written >= MAX_QR_V6_DATA_LEN) {
         const char* msg[] = { "URI too long", "for QR" };
         await_error_activity(msg, 2);
         goto cleanup;
     }
 
+    Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
 	bytes_to_qr_icon((const uint8_t*)uri, written, qr_icon);
 
 	gui_activity_t* const act = make_show_otp_qr_actvity(otp_ctx->name, qr_icon); 
@@ -1569,6 +1568,8 @@ bool show_otp_uri_qr_activity(const otpauth_ctx_t* otp_ctx)
 				goto cleanup;
 			} else if (ev_id == BTN_OTP_DETAILS_SECRET) {
 				show_otp_secret_text_activity(otp_ctx);	
+			} else if (ev_id == BTN_HELP) {
+				await_qr_help_activity("blkstrm.com/otp");
 			}
         }
 	}
