@@ -446,6 +446,16 @@ typedef struct {
 
 static propFont fontChar;
 
+#ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
+uint16_t* get_display_buffer_at(int x, int y)
+{
+    const int calculated_x = x - CONFIG_DISPLAY_OFFSET_X;
+    const int calculated_y = y - CONFIG_DISPLAY_OFFSET_Y;
+    uint16_t* hw_buf = display_hw_get_buffer();
+    return hw_buf + calculated_x + calculated_y * CONFIG_DISPLAY_WIDTH;
+}
+#endif
+
 static inline bool get_icon_pixel(uint16_t x, uint16_t y, uint16_t width, const Icon* icon)
 {
     const uint32_t val = ((uint32_t)width) * y + x;
@@ -497,10 +507,7 @@ void display_icon(const Icon* imgbuf, int x, int y, color_t color, dispWin_t are
     }
 
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
-    const int calculatedx = x - CONFIG_DISPLAY_OFFSET_X;
-    const int calculatedy = y - CONFIG_DISPLAY_OFFSET_Y;
-    uint16_t* hw_buf = display_hw_get_buffer();
-    uint16_t* disp_ptr = &hw_buf[calculatedx + calculatedy * CONFIG_DISPLAY_WIDTH];
+    uint16_t* disp_ptr = get_display_buffer_at(x, y);
     const uint32_t* icon_data = imgbuf->data;
     uint32_t icon_bits = 0, bit_counter = 0;
     const uint32_t stride = CONFIG_DISPLAY_WIDTH - draw_width;
@@ -963,10 +970,7 @@ void display_picture(const Picture* imgbuf, int x, int y, dispWin_t area)
     JADE_ASSERT(imgbuf->bytes_per_pixel == 1);
 
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
-    color_t* hw_buf = display_hw_get_buffer();
-    const int offsetx = calculatedx - CONFIG_DISPLAY_OFFSET_X;
-    const int offsety = calculatedy - CONFIG_DISPLAY_OFFSET_Y;
-    uint16_t* disp_ptr = &hw_buf[offsetx + offsety * CONFIG_DISPLAY_WIDTH];
+    uint16_t* disp_ptr = get_display_buffer_at(calculatedx, calculatedy);
     const uint8_t* src_ptr = imgbuf->data_8;
     const uint32_t stride = CONFIG_DISPLAY_WIDTH - imgbuf->width;
     for (size_t i = 0; i < imgbuf->height; ++i) {
