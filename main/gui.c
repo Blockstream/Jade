@@ -1962,10 +1962,10 @@ static void render_icon(gui_view_node_t* node, const dispWin_t cs, const uint8_t
     JADE_ASSERT(node->kind == ICON);
 
     if (node->icon) {
-        const color_t* color = node->is_selected ? &node->icon->selected_color : &node->icon->color;
+        const color_t color = node->is_selected ? node->icon->selected_color : node->icon->color;
         const bool transparent = node->icon->bg_color == node->icon->color;
         display_icon(&node->icon->icon, resolve_halign(0, node->icon->halign), resolve_valign(0, node->icon->valign),
-            *color, cs, transparent ? NULL : &node->icon->bg_color);
+            color, cs, transparent ? NULL : &node->icon->bg_color);
     }
 
     // Draw any children directly over the current node
