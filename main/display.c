@@ -500,18 +500,33 @@ void display_icon(const Icon* imgbuf, int x, int y, color_t color, dispWin_t are
     const int calculatedx = x - CONFIG_DISPLAY_OFFSET_X;
     const int calculatedy = y - CONFIG_DISPLAY_OFFSET_Y;
     uint16_t* hw_buf = display_hw_get_buffer();
-    uint16_t* screen_ptr = &hw_buf[calculatedx + calculatedy * CONFIG_DISPLAY_WIDTH];
+    uint16_t* disp_ptr = &hw_buf[calculatedx + calculatedy * CONFIG_DISPLAY_WIDTH];
+    const uint32_t* icon_data = imgbuf->data;
+    uint32_t icon_bits = 0, bit_counter = 0;
+    const uint32_t stride = CONFIG_DISPLAY_WIDTH - draw_width;
     for (size_t i = 0; i < draw_height; ++i) {
-        uint16_t* row_ptr = screen_ptr + i * CONFIG_DISPLAY_WIDTH;
-        for (size_t k = 0; k < draw_width; ++k) {
-            if (get_icon_pixel(k, i, imgbuf->width, imgbuf)) {
-                row_ptr[k] = color;
-            } else if (bg_color) {
-                row_ptr[k] = *bg_color;
-            } else {
-                // transparent, skip
+        if (bg_color) {
+            const color_t bg = *bg_color;
+            for (size_t k = 0; k < draw_width; ++k, ++bit_counter) {
+                if (!(bit_counter & 31)) {
+                    icon_bits = *icon_data++; // Read next word every 32 bits
+                }
+                *disp_ptr++ = icon_bits & 0x1 ? color : bg;
+                icon_bits >>= 1;
+            }
+        } else {
+            for (size_t k = 0; k < draw_width; ++k, ++bit_counter) {
+                if (!(bit_counter & 31)) {
+                    icon_bits = *icon_data++; // Read next word every 32 bits
+                }
+                if (icon_bits & 0x1) {
+                    *disp_ptr = color;
+                }
+                ++disp_ptr;
+                icon_bits >>= 1;
             }
         }
+        disp_ptr += stride;
     }
 #else
 
