@@ -192,6 +192,7 @@ cd /jade
 rm -fr sdkconfig
 cp configs/sdkconfig_qemu.defaults sdkconfig.defaults
 idf.py all
+cp components/esp32_bsdiff/bsdiff.* build/
 apt-get update -qq && apt-get install virtualenv -yqq
 virtualenv -p python3 ./venv3
 source ./venv3/bin/activate

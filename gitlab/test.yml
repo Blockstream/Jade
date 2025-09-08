@@ -1,0 +1,27 @@
+#
+# Test stage
+#
+
+test_bip85_rsa_key_gen:
+  tags: [ ga ]
+  stage: test
+  script:
+    - . $HOME/esp/esp-idf/export.sh
+    - (cd tools/bip85_rsa_key_gen && ./test.sh)
+    - git diff --exit-code
+
+test_format:
+  tags: [ ga ]
+  stage: test
+  script:
+    - . $HOME/esp/esp-idf/export.sh
+    - ./format.sh
+    - idf.py reconfigure
+    - git diff --exit-code
+
+test_configs:
+  tags: [ ga ]
+  stage: test
+  script:
+    - ./tools/check_default_configs.sh
+    - git diff --exit-code

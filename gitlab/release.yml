@@ -1,0 +1,33 @@
+#
+# Release stage
+#
+# Signs the development artifacts with the in-tree signing key(s).
+# Gathers the signed and unsigned release artifacts together for download.
+#
+create_release_files:
+  tags: [ ga ]
+  stage: release
+  when: manual
+  needs:
+    - build_prod_jade
+    - build_prod_jade_noradio
+    - build_prod_jade_v1_1
+    - build_prod_jade_v1_1_noradio
+    - build_prod_jade_v2
+    - build_prod_jade_v2_noradio
+    - build_dev_jade
+    - build_dev_jade_noradio
+    - build_dev_jade_v1_1
+    - build_dev_jade_v1_1_noradio
+    - build_dev_jade_v2
+    - build_dev_jade_v2_noradio
+  artifacts:
+    expire_in: 14 days
+    when: on_success
+    paths:
+    - release/staging
+  variables:
+    # Skip submodule sync to make releasing faster
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - ./gitlab/stage_release.sh $CI_COMMIT_SHORT_SHA $CI_COMMIT_TAG

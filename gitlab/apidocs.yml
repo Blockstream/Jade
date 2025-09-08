@@ -1,0 +1,19 @@
+#
+# API documentation (part of the release stage)
+#
+build_api_docs:
+  tags: [ ga ]
+  stage: release
+  needs: []
+  variables:
+    # Skip submodule sync as docs don't need it
+    GIT_SUBMODULE_STRATEGY: none
+  artifacts:
+    expire_in: 14 days
+    name: jade-apidocs
+    when: on_success
+    paths:
+    - apidocs.tar.gz
+  script:
+    - (cd docs && make html)
+    - (cd docs/_build && tar czf ../../apidocs.tar.gz html/)

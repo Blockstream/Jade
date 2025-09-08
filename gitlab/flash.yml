@@ -1,0 +1,121 @@
+#
+# Flash (and test) stage
+#
+
+#
+# QEMU
+#
+.flash_qemu_template:
+  stage: flash
+  tags: [ ga ]
+  variables:
+    # Skip submodule sync to make flashing/testing faster
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
+    - ./main/qemu/make-flash-img.sh
+    - ./main/qemu/qemu_ci_flash.sh
+
+flash_qemu:
+  extends: .flash_qemu_template
+  needs: [ build_test_qemu ]
+
+flash_qemu_psram:
+  extends: .flash_qemu_template
+  needs: [ build_test_qemu_psram ]
+
+flash_qemu_psram_unamalgamated:
+  extends: .flash_qemu_template
+  needs: [ build_test_qemu_psram_unamalgamated ]
+
+#
+# CI builds
+#
+
+# Jade v1.0
+.flash_jade_template:
+  stage: flash
+  tags: [ esp32flasher ]
+  script:
+    - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
+    - cp -a build/sdkconfig ./
+    - ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32
+  # FIXME: Remove gcov from ./ci_flash.sh and then skip submodules here
+  # FIXME: Fix v1.0 flashing
+  allow_failure: true
+
+flash_jade_ci:
+  extends: .flash_jade_template
+  needs: [ build_test_jade_ci ]
+
+flash_jade_noradio_ci:
+  extends: .flash_jade_template
+  needs:
+    - job: build_test_jade_noradio_ci
+      artifacts: true
+    - job: flash_jade_ci
+      artifacts: false
+
+flash_jade_ota_delta_ci:
+  extends: .flash_jade_template
+  needs:
+    - job: build_test_jade_ci
+      artifacts: true
+    - job: build_test_jade_noradio_ci
+      artifacts: true
+    - job: flash_jade_noradio_ci
+      artifacts: false
+  script:
+    - mv build_test_jade_ci build
+    - mv build_test_jade_noradio_ci build_noradio
+    - ./tools/flock.sh $JADESERIALPORT ./ota_delta_ci.sh
+
+# Jade v1.1
+.flash_jade_v1_1_template:
+  extends: .flash_jade_template
+  tags: [ esp32flasher_v1_1 ]
+  allow_failure: false
+
+flash_jade_v1_1_ci:
+  extends: .flash_jade_v1_1_template
+  needs: [ build_test_jade_v1_1_ci ]
+
+flash_jade_v1_1_noradio_ci:
+  extends: .flash_jade_v1_1_template
+  needs:
+    - job: build_test_jade_v1_1_noradio_ci
+      artifacts: true
+    - job: flash_jade_v1_1_ci
+      artifacts: false
+
+flash_jade_ota_delta_v1_1_ci:
+  extends: .flash_jade_v1_1_template
+  needs:
+    - job: build_test_jade_v1_1_ci
+      artifacts: true
+    - job: build_test_jade_v1_1_noradio_ci
+      artifacts: true
+    - job: flash_jade_v1_1_noradio_ci
+      artifacts: false
+  script:
+    - mv build_test_jade_v1_1_ci build
+    - mv build_test_jade_v1_1_noradio_ci build_noradio
+    - ./tools/flock.sh $JADESERIALPORT ./ota_delta_ci.sh
+
+# Jade v2.0
+.flash_jade_v2_template:
+  stage: flash
+  tags: [ esp32s3flasher ]
+  variables:
+    IDF_TOOLS_PATH: "/home/gitlab-runner/.idf/54"
+  script:
+    - . $HOME/esp/esp-idf-5.4/export.sh
+    - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
+    - cp build/sdkconfig ./
+    - ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32s3
+
+flash_jade_v2_ci:
+  extends: .flash_jade_v2_template
+  needs: [ build_test_jade_v2_ci ]
+
+# FIXME: add noradio and delta flashing for v2.0

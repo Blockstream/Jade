@@ -1,0 +1,55 @@
+#
+# DIY build stage
+#
+# Used to test that compilation for DIY devices works.
+# These artifacts aren't released so retain them only for 2 days.
+#
+.build_diy_template:
+  extends: .build_template
+  stage: build_diy
+  artifacts:
+    expire_in: 2 days
+  before_script:
+    - cp configs/sdkconfig$(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}//").defaults sdkconfig.defaults
+
+build_diy_display_m5fire:
+  extends: .build_diy_template
+
+build_diy_display_m5blackgray:
+  extends: .build_diy_template
+
+build_diy_display_m5core2:
+  extends: .build_diy_template
+
+build_diy_display_m5stickcplus:
+  extends: .build_diy_template
+
+build_diy_display_m5stickcplus2:
+  extends: .build_diy_template
+
+build_diy_display_m5cores3:
+  extends: .build_diy_template
+
+build_diy_display_ttgo_twatchs3:
+  extends: .build_diy_template
+
+build_diy_display_ttgo_tdisplay:
+  extends: .build_diy_template
+
+build_diy_display_ttgo_tdisplays3:
+  extends: .build_diy_template
+
+build_diy_display_ttgo_tdisplays3procamera:
+  extends: .build_diy_template
+
+build_diy_diycam_esp32-cam:
+  extends: .build_diy_template
+
+build_diy_diycam_esp32-wrover-cam:
+  extends: .build_diy_template
+
+build_diy_diycam_tcameraplus:
+  extends: .build_diy_template
+
+build_diy_display_waveshares3_touch_lcd2:
+  extends: .build_diy_template
