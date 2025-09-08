@@ -88,7 +88,7 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     gui_set_parent(node, hsplit);
 
     // Next item
-    node = make_home_screen_panel_item(GUI_BLOCKSTREAM_QR_PALE, next_entry);
+    node = make_home_screen_panel_item(GUI_BLOCKSTREAM_UNHIGHTLIGHTED_DEFAULT, next_entry);
     gui_set_borders(node, TFT_BLACK, 6, GUI_BORDER_LEFT);
     gui_set_parent(node, hsplit);
 

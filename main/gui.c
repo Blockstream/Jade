@@ -48,6 +48,7 @@ const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE = 0xE0D3;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE = 0xD318;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY = 0xA210;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY = 0xB294;
+const color_t GUI_BLOCKSTREAM_UNHIGHTLIGHTED_DEFAULT = 0x494A;
 
 typedef struct _activity_holder_t activity_holder_t;
 struct _activity_holder_t {

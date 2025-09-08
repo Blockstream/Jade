@@ -19,6 +19,7 @@ extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY;
+extern const color_t GUI_BLOCKSTREAM_UNHIGHTLIGHTED_DEFAULT;
 
 // -------------- Configuration -----------------
 
