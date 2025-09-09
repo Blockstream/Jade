@@ -1133,7 +1133,7 @@ void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const
 
 static bool icon_animation_frame_callback(gui_view_node_t* node, void* extra_args)
 {
-    // no node, invalid node, not yet renreded...
+    // no node, invalid node, not yet rendered...
     if (!node || node->kind != ICON || node->render_data.is_first_time) {
         return false;
     }
@@ -1428,7 +1428,7 @@ static inline bool can_text_fit(const char* text, uint32_t font, dispWin_t cs)
 // move to the next frame of a scrolling text node
 static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
 {
-    // no node, invalid node, not yet renreded...
+    // no node, invalid node, not yet rendered...
     if (!node || node->kind != TEXT || node->render_data.is_first_time) {
         return false;
     }
@@ -2552,7 +2552,7 @@ void gui_activity_register_event(
     JADE_SEMAPHORE_GIVE(gui_mutex);
 }
 
-// Registers and event handler, then blocks waiting for it to fire.  A timeout can be passed.
+// Registers an event handler, then blocks waiting for it to fire.  A timeout can be passed.
 // Returns true if the event fires, false if the timeout elapsed without the event occuring.
 bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, uint32_t event_id,
     esp_event_base_t* trigger_event_base, int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait)
