@@ -3,6 +3,20 @@
 #include "../jade_assert.h"
 #include "../ui.h"
 
+static void make_qrcode(gui_view_node_t* parent, Icon* icons, const size_t num_icons, const size_t frames_per_qr_icon)
+{
+    // qrcodes are a background fill node with the icon node on top
+    gui_view_node_t* fill;
+    gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
+    gui_set_parent(fill, parent);
+
+    gui_view_node_t* icon;
+    gui_make_icon(&icon, icons, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
+    gui_set_align(icon, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(icon, fill);
+    gui_set_icon_animation(icon, icons, num_icons, frames_per_qr_icon);
+}
+
 gui_activity_t* make_show_xpub_qr_activity(
     const char* label, const char* pathstr, Icon* icons, const size_t num_icons, const size_t frames_per_qr_icon)
 {
@@ -46,14 +60,7 @@ gui_activity_t* make_show_xpub_qr_activity(
     add_buttons(vsplit, UI_COLUMN, &ftrbtn, 1);
 
     // RHS - QR icons
-    gui_view_node_t* fill;
-    gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
-    gui_set_parent(fill, hsplit);
-
-    gui_make_icon(&node, icons, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
-    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(node, fill);
-    gui_set_icon_animation(node, icons, num_icons, frames_per_qr_icon);
+    make_qrcode(hsplit, icons, num_icons, frames_per_qr_icon);
 
     return act;
 }
@@ -263,16 +270,7 @@ gui_activity_t* make_show_qr_activity(const char* message[], const size_t messag
     }
 
     // RHS - QR icons
-    {
-        gui_view_node_t* fill;
-        gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
-        gui_set_parent(fill, hsplit);
-
-        gui_make_icon(&node, icons, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
-        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(node, fill);
-        gui_set_icon_animation(node, icons, num_icons, frames_per_qr_icon);
-    }
+    make_qrcode(hsplit, icons, num_icons, frames_per_qr_icon);
 
     return act;
 }
@@ -339,14 +337,8 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
         gui_make_fill(&fill, TFT_BLACK);
         gui_set_parent(fill, vsplit);
 
-        // QR icon background
-        gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
-        gui_set_parent(fill, vsplit);
-
-        gui_make_icon(&node, qr_icon, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
-        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(node, fill);
-        gui_set_icon_animation(node, qr_icon, 1, 0); // takes ownership of icon
+        // QR icon
+        make_qrcode(vsplit, qr_icon, 1, 0); // takes ownership of icon
 
         gui_make_fill(&fill, TFT_BLACK);
         gui_set_parent(fill, vsplit);
@@ -422,13 +414,7 @@ gui_activity_t* make_qr_back_continue_activity(
         gui_set_parent(fill, vsplit);
 
         // QR icon background
-        gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
-        gui_set_parent(fill, vsplit);
-
-        gui_make_icon(&node, qr_icon, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
-        gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-        gui_set_parent(node, fill);
-        gui_set_icon_animation(node, qr_icon, 1, 0); // takes ownership of icon
+        make_qrcode(vsplit, qr_icon, 1, 0); // takes ownership of icon
 
         gui_make_fill(&fill, TFT_BLACK);
         gui_set_parent(fill, vsplit);
