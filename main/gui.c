@@ -80,6 +80,13 @@ static RingbufHandle_t gui_input_queue = NULL;
 // and which gui highlight colour is in use
 static gui_event_t gui_click_event = GUI_FRONT_CLICK_EVENT;
 static color_t gui_highlight_color = 0;
+static const color_t gui_qrcode_colors[5] = { 0xa210, 0x494a, 0xef7b, 0x18c6, 0xffff };
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+// V2 QR codes scan better with a higher contrast background
+static uint8_t gui_qrcode_color_idx = 4;
+#else
+static uint8_t gui_qrcode_color_idx = 1;
+#endif
 static bool gui_orientation_flipped = false;
 
 // status bar
@@ -229,6 +236,17 @@ void gui_set_highlight_color(const uint8_t theme)
         gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT; // jade green
         break;
     }
+}
+
+color_t gui_get_qrcode_color(void) { return gui_qrcode_colors[gui_qrcode_color_idx]; }
+
+void gui_next_qrcode_color(void)
+{
+    uint8_t idx = gui_qrcode_color_idx + 1;
+    if (idx >= sizeof(gui_qrcode_colors) / sizeof(gui_qrcode_colors[0])) {
+        idx = 0; // wrap around
+    }
+    gui_qrcode_color_idx = idx;
 }
 
 bool gui_get_flipped_orientation(void) { return gui_orientation_flipped; }
