@@ -1872,9 +1872,18 @@ static void render_fill(gui_view_node_t* node, const dispWin_t cs, const uint8_t
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == FILL);
 
-    color_t* color = node->is_selected ? &node->fill->selected_color : &node->fill->color;
+    color_t color;
+    if (node->fill->fill_type == FILL_PLAIN) {
+        color = node->is_selected ? node->fill->selected_color : node->fill->color;
+    } else if (node->fill->fill_type == FILL_HIGHLIGHT) {
+        color = gui_get_highlight_color();
+    } else if (node->fill->fill_type == FILL_QR) {
+        color = gui_get_qrcode_color();
+    } else {
+        JADE_ASSERT(false); // Unknown fill type
+    }
 
-    display_fill_rect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1, *color);
+    display_fill_rect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1, color);
 
     // Draw any children directly over the current node
     gui_view_node_t* ptr = node->child;
