@@ -320,8 +320,7 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
     gui_set_parent(node, hsplit);
     gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
 
     gui_make_text_font(txt_ts, timestr, TFT_WHITE, DEFAULT_FONT);
     gui_set_parent(*txt_ts, node);
@@ -331,8 +330,7 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
     make_progress_bar(vsplit, progress_bar);
 
     // Display the OTP code large/central
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, vsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, vsplit);
 
     gui_make_text_font(txt_code, codestr, TFT_WHITE, DEJAVU24_FONT);
     gui_set_parent(*txt_code, node);

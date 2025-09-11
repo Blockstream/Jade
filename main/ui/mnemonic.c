@@ -232,9 +232,8 @@ gui_activity_t* make_confirm_mnemonic_word_activity(gui_view_node_t** text_box, 
             gui_set_parent(node, hsplit);
         } else {
             // Make the selectable row
-            gui_make_fill(&node, gui_get_highlight_color());
+            gui_make_fill(&node, gui_get_highlight_color(), FILL_HIGHLIGHT, vsplit);
             gui_set_margins(node, GUI_MARGIN_ALL_DIFFERENT, 0, 4, 0, 4);
-            gui_set_parent(node, vsplit);
 
             gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 25, 50, 25);
             gui_set_parent(hsplit, node);
@@ -245,8 +244,7 @@ gui_activity_t* make_confirm_mnemonic_word_activity(gui_view_node_t** text_box, 
 
             // This text will be updated, so we add a background that will
             // be repainted every time to wipe the previous string
-            gui_make_fill(&node, gui_get_highlight_color());
-            gui_set_parent(node, hsplit);
+            gui_make_fill(&node, gui_get_highlight_color(), FILL_HIGHLIGHT, hsplit);
 
             gui_make_text(text_box, "", TFT_WHITE);
             gui_set_text_noise(*text_box, gui_get_highlight_color());
@@ -280,8 +278,7 @@ gui_activity_t* make_enter_wordlist_word_activity(gui_view_node_t** titletext, c
 
     // first row, message
     gui_view_node_t* text_bg;
-    gui_make_fill(&text_bg, TFT_BLACK);
-    gui_set_parent(text_bg, vsplit);
+    gui_make_fill(&text_bg, TFT_BLACK, FILL_PLAIN, vsplit);
 
     gui_view_node_t* text_status;
     gui_make_text(&text_status, "", TFT_WHITE);
@@ -424,8 +421,7 @@ gui_activity_t* make_export_qr_overview_activity(const Icon* icon, const bool in
 
     // rhs - icon
     gui_view_node_t* icon_bg;
-    gui_make_fill(&icon_bg, TFT_DARKGREY);
-    gui_set_parent(icon_bg, hsplit);
+    gui_make_fill(&icon_bg, TFT_DARKGREY, FILL_PLAIN, hsplit);
 
     gui_view_node_t* node;
     gui_make_icon(&node, icon, TFT_BLACK, &TFT_LIGHTGREY);
@@ -489,8 +485,7 @@ gui_activity_t* make_export_qr_fragment_activity(
     gui_set_parent(vsplit, hsplit);
 
     // rhs - icon
-    gui_make_fill(&node, TFT_DARKGREY);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_DARKGREY, FILL_PLAIN, hsplit);
 
     gui_make_icon(icon_node, icon, TFT_BLACK, &TFT_LIGHTGREY);
     gui_set_align(*icon_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
@@ -504,8 +499,7 @@ gui_activity_t* make_export_qr_fragment_activity(
     add_buttons(vsplit, UI_ROW, hdrbtns, 3);
 
     // Second row, grid ref
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, vsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, vsplit);
 
     gui_make_text(label_node, "", TFT_WHITE);
     gui_set_align(*label_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);

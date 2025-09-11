@@ -200,10 +200,13 @@ struct view_node_split_data {
     uint8_t parts;
 };
 
+enum __attribute__((__packed__)) fill_node_kind { FILL_PLAIN, FILL_HIGHLIGHT, FILL_QR };
+
 // Data for a "fill" node
 struct view_node_fill_data {
     color_t color;
     color_t selected_color;
+    enum fill_node_kind fill_type;
 };
 
 // Data appended to a text node when it's scrolling
@@ -422,7 +425,7 @@ void gui_chain_activities(const link_activity_t* link_act, linked_activities_inf
 void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...);
 void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...);
 void gui_make_button(gui_view_node_t** ptr, color_t color, color_t selected_color, uint32_t event_id, void* args);
-void gui_make_fill(gui_view_node_t** ptr, color_t color);
+void gui_make_fill(gui_view_node_t** ptr, color_t color, enum fill_node_kind fill_type, gui_view_node_t* parent);
 void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color);
 void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, uint32_t font);
 void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const color_t* bg_color);

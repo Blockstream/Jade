@@ -7,8 +7,7 @@ static void make_qrcode(gui_view_node_t* parent, Icon* icons, const size_t num_i
 {
     // qrcodes are a background fill node with the icon node on top
     gui_view_node_t* fill;
-    gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE);
-    gui_set_parent(fill, parent);
+    gui_make_fill(&fill, GUI_BLOCKSTREAM_QR_PALE, FILL_QR, parent);
 
     gui_view_node_t* icon;
     gui_make_icon(&icon, icons, TFT_BLACK, &GUI_BLOCKSTREAM_QR_PALE);
@@ -120,8 +119,7 @@ gui_activity_t* make_search_verify_address_activity(
     gui_set_padding(node, GUI_MARGIN_TWO_VALUES, 0, 2);
     gui_set_parent(node, hsplit);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
 
     gui_make_text(index_text, "", TFT_WHITE);
     gui_set_align(*index_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
@@ -135,8 +133,7 @@ gui_activity_t* make_search_verify_address_activity(
     gui_set_padding(node, GUI_MARGIN_TWO_VALUES, 0, 2);
     gui_set_parent(node, hsplit);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
 
     gui_make_text(label_text, root_label, TFT_WHITE);
     gui_set_align(*label_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
@@ -334,14 +331,12 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
         gui_set_parent(vsplit, hsplit);
 
         gui_view_node_t* fill;
-        gui_make_fill(&fill, TFT_BLACK);
-        gui_set_parent(fill, vsplit);
+        gui_make_fill(&fill, TFT_BLACK, FILL_PLAIN, vsplit);
 
         // QR icon
         make_qrcode(vsplit, qr_icon, 1, 0); // takes ownership of icon
 
-        gui_make_fill(&fill, TFT_BLACK);
-        gui_set_parent(fill, vsplit);
+        gui_make_fill(&fill, TFT_BLACK, FILL_PLAIN, vsplit);
     }
 
     return act;
@@ -410,14 +405,12 @@ gui_activity_t* make_qr_back_continue_activity(
         gui_set_parent(vsplit, hsplit);
 
         gui_view_node_t* fill;
-        gui_make_fill(&fill, TFT_BLACK);
-        gui_set_parent(fill, vsplit);
+        gui_make_fill(&fill, TFT_BLACK, FILL_PLAIN, vsplit);
 
         // QR icon background
         make_qrcode(vsplit, qr_icon, 1, 0); // takes ownership of icon
 
-        gui_make_fill(&fill, TFT_BLACK);
-        gui_set_parent(fill, vsplit);
+        gui_make_fill(&fill, TFT_BLACK, FILL_PLAIN, vsplit);
     }
 
     return act;

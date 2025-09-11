@@ -128,11 +128,11 @@ static void make_status_bar(void)
     enum gui_horizontal_align name_alignment = GUI_ALIGN_CENTER;
 
     // Black fill background as the root node
-    gui_make_fill(&status_bar.root, TFT_BLACK);
+    gui_make_fill(&status_bar.root, TFT_BLACK, FILL_PLAIN, NULL);
     status_bar.root->parent = NULL;
 
     gui_view_node_t* name_parent;
-    gui_make_fill(&name_parent, TFT_BLACK);
+    gui_make_fill(&name_parent, TFT_BLACK, FILL_PLAIN, NULL);
 
     // Status bar logo image (size appropriate)
     const Picture* const logopic = get_picture(statusbar_logo_start, statusbar_logo_end);
@@ -686,7 +686,7 @@ void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, con
     }
 
     gui_view_node_t* bg;
-    gui_make_fill(&bg, TFT_BLACK);
+    gui_make_fill(&bg, TFT_BLACK, FILL_PLAIN, NULL);
     activity->root_node = bg;
     activity->root_node->activity = activity;
 #ifdef CONFIG_UI_WRAP_ALL_MENUS
@@ -1070,7 +1070,7 @@ void gui_make_button(
     make_view_node(ptr, BUTTON, data, NULL);
 }
 
-void gui_make_fill(gui_view_node_t** ptr, color_t color)
+void gui_make_fill(gui_view_node_t** ptr, color_t color, enum fill_node_kind fill_type, gui_view_node_t* parent)
 {
     JADE_INIT_OUT_PPTR(ptr);
 
@@ -1079,8 +1079,12 @@ void gui_make_fill(gui_view_node_t** ptr, color_t color)
     // by default same color
     data->color = color;
     data->selected_color = color;
+    data->fill_type = fill_type;
 
     make_view_node(ptr, FILL, data, NULL);
+    if (parent) {
+        gui_set_parent(*ptr, parent);
+    }
 }
 
 void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color)

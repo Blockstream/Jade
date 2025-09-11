@@ -25,8 +25,7 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
 
     // first row, message
     gui_view_node_t* text_bg;
-    gui_make_fill(&text_bg, TFT_BLACK);
-    gui_set_parent(text_bg, vsplit);
+    gui_make_fill(&text_bg, TFT_BLACK, FILL_PLAIN, vsplit);
 
     gui_view_node_t* entered_phrase;
     gui_make_text_font(&entered_phrase, "", TFT_WHITE, UBUNTU16_FONT);
@@ -104,8 +103,7 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
             if (!has_shift_btn && btn_ev_id == BTN_KEYBOARD_SHIFT) {
                 // No shift/next-kb button - just use blank/filler
                 gui_view_node_t* filler;
-                gui_make_fill(&filler, TFT_BLACK);
-                gui_set_parent(filler, hsplit);
+                gui_make_fill(&filler, TFT_BLACK, FILL_PLAIN, hsplit);
             } else {
                 // Keyboard button as normal
                 gui_view_node_t* btn;
