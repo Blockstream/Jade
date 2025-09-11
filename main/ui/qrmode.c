@@ -17,6 +17,26 @@ static void make_qrcode(gui_view_node_t* parent, Icon* icons, const size_t num_i
     gui_set_icon_to_qr(icon);
 }
 
+static gui_view_node_t* make_back_brightness_row(gui_view_node_t* parent, uint32_t back_ev_id)
+{
+    // Create a row with left back arrow and right brightness button
+    gui_view_node_t* headersplit;
+    gui_make_hsplit(&headersplit, GUI_SPLIT_RELATIVE, 3, 27, 46, 27); // 27 x 56% (hsplit) == 15
+    gui_set_parent(headersplit, parent);
+
+    // back button, space, brightness button
+    btn_data_t hdrbtns[]
+        = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = back_ev_id, .borders = GUI_BORDER_ALL },
+              { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+              { .txt = "P", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_BRIGHTNESS, .borders = GUI_BORDER_ALL } };
+    // Add individually to avoid creating a new equal 3-way split
+    for (size_t i = 0; i < sizeof(hdrbtns) / sizeof(hdrbtns[0]); ++i) {
+        add_button(headersplit, hdrbtns + i);
+    }
+    // Return the back button that add_button() created for the caller
+    return hdrbtns[0].btn;
+}
+
 gui_activity_t* make_show_xpub_qr_activity(
     const char* label, const char* pathstr, Icon* icons, const size_t num_icons, const size_t frames_per_qr_icon)
 {
@@ -37,11 +57,11 @@ gui_activity_t* make_show_xpub_qr_activity(
     gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 20, 30, 25, 25);
     gui_set_parent(vsplit, hsplit);
 
-    // back button
+    // back button, space, brightness button
     btn_data_t hdrbtns[]
         = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_XPUB_EXIT, .borders = GUI_BORDER_ALL },
               { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-              { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_XPUB_HELP, .borders = GUI_BORDER_ALL } };
+              { .txt = "P", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_BRIGHTNESS, .borders = GUI_BORDER_ALL } };
     add_buttons(vsplit, UI_ROW, hdrbtns, 3); // 44 (hsplit) / 3 == 14 - almost 15 so ok
 
     // second row, type label
@@ -303,14 +323,8 @@ gui_activity_t* make_show_qr_help_activity(const char* url, Icon* qr_icon)
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 25, 55);
         gui_set_parent(vsplit, hsplit);
 
-        gui_view_node_t* headersplit;
-        gui_make_hsplit(&headersplit, GUI_SPLIT_RELATIVE, 2, 27, 73); // 27 x 56% (hsplit) == 15
-        gui_set_parent(headersplit, vsplit);
-
-        // first row, header, back button
-        btn_data_t hdrbtn
-            = { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_HELP_EXIT, .borders = GUI_BORDER_ALL };
-        add_buttons(headersplit, UI_ROW, &hdrbtn, 1);
+        // first row, header: back button, space, brightness button
+        make_back_brightness_row(vsplit, BTN_QR_HELP_EXIT);
 
         // second row, message
         gui_make_text(&node, "Learn more:", TFT_WHITE);
@@ -372,12 +386,7 @@ gui_activity_t* make_qr_back_continue_activity(
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 6, 20, 18, 16, 21, 25);
         gui_set_parent(vsplit, hsplit);
 
-        gui_view_node_t* headersplit;
-        gui_make_hsplit(&headersplit, GUI_SPLIT_RELATIVE, 2, 27, 73); // 27 x 56% (hsplit) == 15
-        gui_set_parent(headersplit, vsplit);
-
-        btn_data_t hdrbtn = { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_NO, .borders = GUI_BORDER_ALL };
-        add_buttons(headersplit, UI_ROW, &hdrbtn, 1);
+        gui_view_node_t* back_btn = make_back_brightness_row(vsplit, BTN_NO);
 
         // second/third/fourth row, message
         gui_make_text(&node, message[0], TFT_WHITE);
@@ -396,7 +405,7 @@ gui_activity_t* make_qr_back_continue_activity(
         add_buttons(vsplit, UI_ROW, &ftrbtn, 1);
 
         // Select default selected button
-        gui_set_activity_initial_selection(default_selection ? ftrbtn.btn : hdrbtn.btn);
+        gui_set_activity_initial_selection(default_selection ? ftrbtn.btn : back_btn);
     }
 
     // RHS - QR icon

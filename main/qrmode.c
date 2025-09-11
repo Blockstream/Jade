@@ -408,8 +408,9 @@ void display_xpub_qr(void)
                     // Options were updated - re-create xpub screen
                     act = create_display_xpub_qr_activity(qr_flags);
                 }
-            } else if (ev_id == BTN_XPUB_HELP) {
-                await_qr_help_activity("blkstrm.com/xpub");
+            } else if (ev_id == BTN_QR_BRIGHTNESS) {
+                gui_next_qrcode_color();
+                gui_repaint(act->root_node);
             } else if (ev_id == BTN_XPUB_EXIT) {
                 // Done
                 break;
@@ -1511,12 +1512,27 @@ void await_qr_help_activity(const char* url)
     gui_activity_t* const act = make_show_qr_help_activity(url_with_crlf, qr_icon);
     gui_set_current_activity(act);
 
+    // Show, and await button click
+    while (true) {
+        int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_HELP_EXIT, NULL, NULL, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_HELP_EXIT, NULL, NULL, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_QR_HELP_EXIT;
 #endif
+        if (ret) {
+            if (ev_id == BTN_QR_BRIGHTNESS) {
+                gui_next_qrcode_color();
+                gui_repaint(act->root_node);
+            } else if (ev_id == BTN_QR_HELP_EXIT) {
+                // Done
+                break;
+            }
+        }
+    }
 }
 
 // Display screen with help url and qr code
@@ -1537,18 +1553,27 @@ bool await_qr_back_continue_activity(
     gui_activity_t* const act = make_qr_back_continue_activity(message, message_size, url, qr_icon, default_selection);
     gui_set_current_activity(act);
 
-    int32_t ev_id = 0;
+    // Show, and await button click
+    while (true) {
+        int32_t ev_id;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
 #else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-    ev_id = BTN_YES;
+        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+        const bool ret = true;
+        ev_id = BTN_YES;
 #endif
-
-    // Return whether 'Continue' was cicked
-    return ret && ev_id == BTN_YES;
+        if (ret) {
+            if (ev_id == BTN_QR_BRIGHTNESS) {
+                gui_next_qrcode_color();
+                gui_repaint(act->root_node);
+            } else if (ev_id == BTN_YES || ev_id == BTN_NO) {
+                // Done: return whether 'Continue' was cicked
+                return ev_id == BTN_YES;
+            }
+        }
+    }
 }
 
 // QR-Mode PinServer interaction
