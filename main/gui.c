@@ -1142,12 +1142,13 @@ void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const
     // background color is set to foreground color to imply transparency
     data->bg_color = bg_color ? *bg_color : color;
 
-    // and top-left
-    data->halign = GUI_ALIGN_LEFT;
-    data->valign = GUI_ALIGN_TOP;
-
     // without animation
     data->animation = NULL;
+
+    // and top-left, normal icon
+    data->halign = GUI_ALIGN_LEFT;
+    data->valign = GUI_ALIGN_TOP;
+    data->icon_type = ICON_PLAIN;
 
     // also set free_view_node_icon_data as destructor to free any animation data
     make_view_node(ptr, ICON, data, free_view_node_icon_data);
@@ -1208,6 +1209,12 @@ void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, const size_t num
     if (num_icons > 1) {
         push_updatable(node, icon_animation_frame_callback, NULL);
     }
+}
+
+void gui_set_icon_to_qr(gui_view_node_t* node)
+{
+    JADE_ASSERT(node);
+    node->icon->icon_type = ICON_QR;
 }
 
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)

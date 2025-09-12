@@ -264,6 +264,8 @@ struct view_node_button_data {
     void* args;
 };
 
+enum __attribute__((__packed__)) icon_node_kind { ICON_PLAIN, ICON_QR };
+
 // Data for an icon node
 // NOTE: animated icons ARE owned here
 struct view_node_icon_animation_data {
@@ -285,11 +287,12 @@ struct view_node_icon_data {
     // background color is set to foreground color to imply transparency
     color_t bg_color;
 
-    enum gui_horizontal_align halign;
-    enum gui_vertical_align valign;
-
     // if != NULL the icon will be regularly updated and so appear animated
     struct view_node_icon_animation_data* animation;
+
+    enum gui_horizontal_align halign;
+    enum gui_vertical_align valign;
+    enum icon_node_kind icon_type;
 };
 
 // Data for a picture node
@@ -439,6 +442,7 @@ void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color
 void gui_set_color(gui_view_node_t* node, color_t color);
 void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum gui_vertical_align valign);
 void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, size_t num_icons, size_t frames_per_icon);
+void gui_set_icon_to_qr(gui_view_node_t* node);
 void gui_set_text_scroll(gui_view_node_t* node, color_t background_color);
 void gui_set_text_scroll_selected(
     gui_view_node_t* node, bool only_when_selected, color_t background_color, color_t selected_background_color);

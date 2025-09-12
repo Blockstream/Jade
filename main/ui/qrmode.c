@@ -14,6 +14,7 @@ static void make_qrcode(gui_view_node_t* parent, Icon* icons, const size_t num_i
     gui_set_align(icon, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(icon, fill);
     gui_set_icon_animation(icon, icons, num_icons, frames_per_qr_icon);
+    gui_set_icon_to_qr(icon);
 }
 
 gui_activity_t* make_show_xpub_qr_activity(
