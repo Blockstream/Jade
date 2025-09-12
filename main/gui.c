@@ -2005,10 +2005,20 @@ static void render_icon(gui_view_node_t* node, const dispWin_t cs, const uint8_t
     JADE_ASSERT(node->kind == ICON);
 
     if (node->icon) {
-        const color_t color = node->is_selected ? node->icon->selected_color : node->icon->color;
-        const bool transparent = node->icon->bg_color == node->icon->color;
+        color_t color, bg_color;
+        if (node->icon->icon_type == ICON_PLAIN) {
+            color = node->is_selected ? node->icon->selected_color : node->icon->color;
+            bg_color = node->icon->bg_color;
+        } else if (node->icon->icon_type == ICON_QR) {
+            color = node->is_selected ? node->icon->selected_color : node->icon->color;
+            bg_color = gui_get_qrcode_color();
+        } else {
+            JADE_ASSERT(false); // Unknown fill type
+        }
+
+        const bool transparent = bg_color == color;
         display_icon(&node->icon->icon, resolve_halign(0, node->icon->halign), resolve_valign(0, node->icon->valign),
-            color, cs, transparent ? NULL : &node->icon->bg_color);
+            color, cs, transparent ? NULL : &bg_color);
     }
 
     // Draw any children directly over the current node
