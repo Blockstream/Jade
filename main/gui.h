@@ -12,7 +12,6 @@ extern color_t _fg;
 // Additional colour tokens
 extern const color_t GUI_BLOCKSTREAM_JADE_GREEN;
 extern const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY;
-extern const color_t GUI_BLOCKSTREAM_QR_PALE;
 
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE;
