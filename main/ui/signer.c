@@ -176,38 +176,36 @@ bool show_signer_activity(
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNER_NEXT);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = (act == act_xpub2) ? act_xpub1 : act_summary;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = (act == act_xpub2) ? act_xpub1 : act_summary;
+            break;
 
-            case BTN_SIGNER_FINGERPRINT:
-                act = act_fingerprint;
-                break;
+        case BTN_SIGNER_FINGERPRINT:
+            act = act_fingerprint;
+            break;
 
-            case BTN_SIGNER_DERIVATION:
-                act = act_derivation;
-                break;
+        case BTN_SIGNER_DERIVATION:
+            act = act_derivation;
+            break;
 
-            case BTN_SIGNER_PATH:
-                act = act_path;
-                break;
+        case BTN_SIGNER_PATH:
+            act = act_path;
+            break;
 
-            case BTN_SIGNER_XPUB:
-                act = act_xpub1;
-                break;
+        case BTN_SIGNER_XPUB:
+            act = act_xpub1;
+            break;
 
-            case BTN_SIGNER_XPUB_NEXT:
-                act = (act == act_xpub1) ? act_xpub2 : act_summary;
-                break;
+        case BTN_SIGNER_XPUB_NEXT:
+            act = (act == act_xpub1) ? act_xpub2 : act_summary;
+            break;
 
-            case BTN_SIGNER_PREV:
-                return false;
+        case BTN_SIGNER_PREV:
+            return false;
 
-            case BTN_SIGNER_NEXT:
-                return true;
-            }
+        case BTN_SIGNER_NEXT:
+            return true;
         }
     }
 }

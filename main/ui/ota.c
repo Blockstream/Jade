@@ -111,34 +111,32 @@ bool show_ota_versions_activity(
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_OTA_ACCEPT);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-            case BTN_OTA_VIEW_CURRENT_VERSION:
-                act = act_currentver;
-                break;
+        case BTN_OTA_VIEW_CURRENT_VERSION:
+            act = act_currentver;
+            break;
 
-            case BTN_OTA_VIEW_NEW_VERSION:
-                act = act_newver;
-                break;
+        case BTN_OTA_VIEW_NEW_VERSION:
+            act = act_newver;
+            break;
 
-            case BTN_OTA_VIEW_FW_HASH:
-                act = act_hash;
-                break;
+        case BTN_OTA_VIEW_FW_HASH:
+            act = act_hash;
+            break;
 
-            case BTN_HELP:
-                await_qr_help_activity("blkstrm.com/fwupgrade");
-                break;
+        case BTN_HELP:
+            await_qr_help_activity("blkstrm.com/fwupgrade");
+            break;
 
-            case BTN_OTA_REJECT:
-                return false;
+        case BTN_OTA_REJECT:
+            return false;
 
-            case BTN_OTA_ACCEPT:
-                return true;
-            }
+        case BTN_OTA_ACCEPT:
+            return true;
         }
     }
 }

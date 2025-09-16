@@ -184,38 +184,36 @@ bool show_otp_details_activity(
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_OTP_RETAIN_CONFIRM);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-            case BTN_OTP_NAME:
-                act = act_name;
-                break;
+        case BTN_OTP_NAME:
+            act = act_name;
+            break;
 
-            case BTN_OTP_LABEL:
-                act = act_label;
-                break;
+        case BTN_OTP_LABEL:
+            act = act_label;
+            break;
 
-            case BTN_OTP_ISSUER:
-                act = act_issuer;
-                break;
+        case BTN_OTP_ISSUER:
+            act = act_issuer;
+            break;
 
-            case BTN_OTP_TYPE:
-                act = act_type;
-                break;
+        case BTN_OTP_TYPE:
+            act = act_type;
+            break;
 
-            case BTN_SETTINGS_OTP_HELP:
-                await_qr_help_activity("blkstrm.com/otp");
-                break;
+        case BTN_SETTINGS_OTP_HELP:
+            await_qr_help_activity("blkstrm.com/otp");
+            break;
 
-            case BTN_OTP_DISCARD_DELETE:
-                return false;
+        case BTN_OTP_DISCARD_DELETE:
+            return false;
 
-            case BTN_OTP_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_OTP_RETAIN_CONFIRM:
+            return true;
         }
     }
 }

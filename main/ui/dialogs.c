@@ -445,23 +445,24 @@ static bool await_yesno_activity_loop(gui_activity_t* const act, const char* hel
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_YES);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            // Return true if 'Yes' was pressed, false if 'No'
-            switch (ev_id) {
-            case BTN_YES:
-                return true;
+        // Return true if 'Yes' was pressed, false if 'No'
+        switch (ev_id) {
+        case BTN_YES:
+            return true;
 
-            case BTN_NO:
-                return false;
+        case BTN_NO:
+            return false;
 
-            case BTN_HELP:
-                await_qr_help_activity(help_url);
-                break;
+        case BTN_HELP:
+            await_qr_help_activity(help_url);
+            break;
 
-            default:
-                JADE_LOGW("Unexpected button event: %ld", ev_id);
-                break;
-            }
+        case BTN_EVENT_TIMEOUT:
+            break;
+
+        default:
+            JADE_LOGW("Unexpected button event: %ld", ev_id);
+            break;
         }
     }
 }

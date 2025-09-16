@@ -37,14 +37,12 @@ bool show_sign_identity_activity(const char* identity, const size_t identity_len
 
     while (true) {
         const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNIDENTITY_ACCEPT);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_SIGNIDENTITY_REJECT:
-                return false;
+        switch (ev_id) {
+        case BTN_SIGNIDENTITY_REJECT:
+            return false;
 
-            case BTN_SIGNIDENTITY_ACCEPT:
-                return true;
-            }
+        case BTN_SIGNIDENTITY_ACCEPT:
+            return true;
         }
     }
 }

@@ -149,34 +149,32 @@ bool show_sign_message_activity(const char* message, const char* hashhex, const 
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNMSG_ACCEPT);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = (act == act_message2) ? act_message1 : act_summary;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = (act == act_message2) ? act_message1 : act_summary;
+            break;
 
-            case BTN_SIGNMSG_MSG:
-                act = act_message1;
-                break;
+        case BTN_SIGNMSG_MSG:
+            act = act_message1;
+            break;
 
-            case BTN_SIGNMSG_HASH:
-                act = act_hash;
-                break;
+        case BTN_SIGNMSG_HASH:
+            act = act_hash;
+            break;
 
-            case BTN_SIGNMSG_PATH:
-                act = act_path;
-                break;
+        case BTN_SIGNMSG_PATH:
+            act = act_path;
+            break;
 
-            case BTN_SIGNMSG_NEXT:
-                act = (act == act_message1) ? act_message2 : act_summary;
-                break;
+        case BTN_SIGNMSG_NEXT:
+            act = (act == act_message1) ? act_message2 : act_summary;
+            break;
 
-            case BTN_SIGNMSG_REJECT:
-                return false;
+        case BTN_SIGNMSG_REJECT:
+            return false;
 
-            case BTN_SIGNMSG_ACCEPT:
-                return true;
-            }
+        case BTN_SIGNMSG_ACCEPT:
+            return true;
         }
     }
 }

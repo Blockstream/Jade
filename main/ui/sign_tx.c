@@ -359,48 +359,46 @@ static bool show_input_output_activity(const char* title, const bool is_wallet_o
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNTX_ACCEPT);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = (act == act_addr2) ? act_addr1 : act_summary;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = (act == act_addr2) ? act_addr1 : act_summary;
+            break;
 
-            case BTN_ADDRESS_REJECT:
-            case BTN_ADDRESS_ACCEPT:
-            case BTN_SIGNTX_ASSETINFO_DONE:
-                act = act_summary;
-                break;
+        case BTN_ADDRESS_REJECT:
+        case BTN_ADDRESS_ACCEPT:
+        case BTN_SIGNTX_ASSETINFO_DONE:
+            act = act_summary;
+            break;
 
-            case BTN_ADDRESS_NEXT:
-                act = act_addr2;
-                break;
+        case BTN_ADDRESS_NEXT:
+            act = act_addr2;
+            break;
 
-            case BTN_SIGNTX_ASSETINFO_NEXT:
-                act = (act == act_assetinfo1) ? act_assetinfo2 : act_assetinfo1;
-                break;
+        case BTN_SIGNTX_ASSETINFO_NEXT:
+            act = (act == act_assetinfo1) ? act_assetinfo2 : act_assetinfo1;
+            break;
 
-            case BTN_SIGNTX_ADDRESS:
-                act = act_addr1;
-                break;
+        case BTN_SIGNTX_ADDRESS:
+            act = act_addr1;
+            break;
 
-            case BTN_SIGNTX_TICKERAMOUNT:
-                act = act_tickeramt;
-                break;
+        case BTN_SIGNTX_TICKERAMOUNT:
+            act = act_tickeramt;
+            break;
 
-            case BTN_SIGNTX_ASSETINFO:
-                act = act_assetinfo1;
-                break;
+        case BTN_SIGNTX_ASSETINFO:
+            act = act_assetinfo1;
+            break;
 
-            case BTN_SIGNTX_WARNING:
-                act = act_warning;
-                break;
+        case BTN_SIGNTX_WARNING:
+            act = act_warning;
+            break;
 
-            case BTN_SIGNTX_REJECT:
-                return false;
+        case BTN_SIGNTX_REJECT:
+            return false;
 
-            case BTN_SIGNTX_ACCEPT:
-                return true;
-            }
+        case BTN_SIGNTX_ACCEPT:
+            return true;
         }
     }
 }
@@ -720,26 +718,24 @@ static bool show_final_confirmation_activity(
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNTX_ACCEPT);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-            case BTN_SIGNTX_TICKERAMOUNT:
-                act = act_feeamt;
-                break;
+        case BTN_SIGNTX_TICKERAMOUNT:
+            act = act_feeamt;
+            break;
 
-            case BTN_SIGNTX_WARNING:
-                act = act_warning;
-                break;
+        case BTN_SIGNTX_WARNING:
+            act = act_warning;
+            break;
 
-            case BTN_SIGNTX_REJECT:
-                return false;
+        case BTN_SIGNTX_REJECT:
+            return false;
 
-            case BTN_SIGNTX_ACCEPT:
-                return true;
-            }
+        case BTN_SIGNTX_ACCEPT:
+            return true;
         }
     }
 }

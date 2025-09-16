@@ -1511,17 +1511,15 @@ void handle_bip85_mnemonic()
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_BIP85_12_WORDS);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            if (ev_id == BTN_BIP85_12_WORDS) {
-                nwords = 12;
-                break;
-            } else if (ev_id == BTN_BIP85_24_WORDS) {
-                nwords = 24;
-                break;
-            } else if (ev_id == BTN_BIP85_EXIT) {
-                // User declined
-                return;
-            }
+        if (ev_id == BTN_BIP85_12_WORDS) {
+            nwords = 12;
+            break;
+        } else if (ev_id == BTN_BIP85_24_WORDS) {
+            nwords = 24;
+            break;
+        } else if (ev_id == BTN_BIP85_EXIT) {
+            // User declined
+            return;
         }
     }
     JADE_ASSERT(nwords == 12 || nwords == 24);

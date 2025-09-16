@@ -166,34 +166,32 @@ static bool show_view_multisig_activity(const char* multisig_name, const bool in
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_MULTISIG_RETAIN_CONFIRM);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-            case BTN_MULTISIG_NAME:
-                act = act_name;
-                break;
+        case BTN_MULTISIG_NAME:
+            act = act_name;
+            break;
 
-            case BTN_MULTISIG_TYPE:
-                act = act_type;
-                break;
+        case BTN_MULTISIG_TYPE:
+            act = act_type;
+            break;
 
-            case BTN_MULTISIG_SORTED:
-                act = act_sorted;
-                break;
+        case BTN_MULTISIG_SORTED:
+            act = act_sorted;
+            break;
 
-            case BTN_MULTISIG_BLINDINGKEY:
-                act = act_blindingkey;
-                break;
+        case BTN_MULTISIG_BLINDINGKEY:
+            act = act_blindingkey;
+            break;
 
-            case BTN_MULTISIG_DISCARD_DELETE:
-                return false;
+        case BTN_MULTISIG_DISCARD_DELETE:
+            return false;
 
-            case BTN_MULTISIG_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_MULTISIG_RETAIN_CONFIRM:
+            return true;
         }
     }
 }
@@ -300,26 +298,24 @@ static bool show_final_multisig_summary_activity(const char* multisig_name, cons
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_MULTISIG_RETAIN_CONFIRM);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-            case BTN_MULTISIG_NAME:
-                act = act_name;
-                break;
+        case BTN_MULTISIG_NAME:
+            act = act_name;
+            break;
 
-            case BTN_MULTISIG_TYPE:
-                act = act_type;
-                break;
+        case BTN_MULTISIG_TYPE:
+            act = act_type;
+            break;
 
-            case BTN_MULTISIG_DISCARD_DELETE:
-                return false;
+        case BTN_MULTISIG_DISCARD_DELETE:
+            return false;
 
-            case BTN_MULTISIG_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_MULTISIG_RETAIN_CONFIRM:
+            return true;
         }
     }
 }

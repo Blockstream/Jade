@@ -173,22 +173,20 @@ bool show_confirm_address_activity(const char* address, const bool default_selec
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_ADDRESS_ACCEPT);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_addr1;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_addr1;
+            break;
 
-            case BTN_ADDRESS_NEXT:
-                act = act_addr2;
-                break;
+        case BTN_ADDRESS_NEXT:
+            act = act_addr2;
+            break;
 
-            case BTN_ADDRESS_REJECT:
-                return false;
+        case BTN_ADDRESS_REJECT:
+            return false;
 
-            case BTN_ADDRESS_ACCEPT:
-                return true;
-            }
+        case BTN_ADDRESS_ACCEPT:
+            return true;
         }
     }
 }

@@ -171,35 +171,33 @@ bool show_view_descriptor_activity(const char* descriptor_name, const descriptor
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_DESCRIPTOR_RETAIN_CONFIRM);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                JADE_ASSERT(script_screen_index < num_script_screens);
-                JADE_ASSERT(act == act_name || act == act_scripts[script_screen_index]);
-                act = script_screen_index == 0 ? act_summary : act_scripts[--script_screen_index];
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            JADE_ASSERT(script_screen_index < num_script_screens);
+            JADE_ASSERT(act == act_name || act == act_scripts[script_screen_index]);
+            act = script_screen_index == 0 ? act_summary : act_scripts[--script_screen_index];
+            break;
 
-            case BTN_DESCRIPTOR_NAME:
-                act = act_name;
-                break;
+        case BTN_DESCRIPTOR_NAME:
+            act = act_name;
+            break;
 
-            case BTN_DESCRIPTOR_SCRIPT:
-                script_screen_index = 0;
-                act = act_scripts[script_screen_index];
-                break;
+        case BTN_DESCRIPTOR_SCRIPT:
+            script_screen_index = 0;
+            act = act_scripts[script_screen_index];
+            break;
 
-            case BTN_DESCRIPTOR_SCRIPT_NEXT:
-                JADE_ASSERT(script_screen_index < num_script_screens);
-                JADE_ASSERT(act == act_scripts[script_screen_index]);
-                act = script_screen_index == num_script_screens - 1 ? act_summary : act_scripts[++script_screen_index];
-                break;
+        case BTN_DESCRIPTOR_SCRIPT_NEXT:
+            JADE_ASSERT(script_screen_index < num_script_screens);
+            JADE_ASSERT(act == act_scripts[script_screen_index]);
+            act = script_screen_index == num_script_screens - 1 ? act_summary : act_scripts[++script_screen_index];
+            break;
 
-            case BTN_DESCRIPTOR_DISCARD_DELETE:
-                return false;
+        case BTN_DESCRIPTOR_DISCARD_DELETE:
+            return false;
 
-            case BTN_DESCRIPTOR_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_DESCRIPTOR_RETAIN_CONFIRM:
+            return true;
         }
     }
 }
@@ -268,22 +266,20 @@ static bool show_final_descriptor_summary_activity(
         gui_set_current_activity(act);
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_DESCRIPTOR_RETAIN_CONFIRM);
-        if (ev_id != BTN_EVENT_TIMEOUT) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-            case BTN_DESCRIPTOR_NAME:
-                act = act_name;
-                break;
+        case BTN_DESCRIPTOR_NAME:
+            act = act_name;
+            break;
 
-            case BTN_DESCRIPTOR_DISCARD_DELETE:
-                return false;
+        case BTN_DESCRIPTOR_DISCARD_DELETE:
+            return false;
 
-            case BTN_DESCRIPTOR_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_DESCRIPTOR_RETAIN_CONFIRM:
+            return true;
         }
     }
 }
