@@ -292,16 +292,8 @@ static bool handle_xpub_options(uint32_t* qr_flags)
         // Show, and await button click
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_XPUB_OPTIONS_EXIT;
-#endif
-        if (ret) {
+        int32_t ev_id = gui_activity_wait_button(act, BTN_XPUB_OPTIONS_EXIT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_XPUB_OPTIONS_SCRIPTTYPE) {
                 gui_set_current_activity(act_scripttype);
                 while (true) {
@@ -393,16 +385,8 @@ void display_xpub_qr(void)
         // Show, and await button click
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_XPUB_EXIT;
-#endif
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_XPUB_EXIT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_XPUB_OPTIONS) {
                 if (handle_xpub_options(&qr_flags)) {
                     // Options were updated - re-create xpub screen
@@ -869,16 +853,8 @@ static bool handle_qr_options(uint32_t* qr_flags)
         // Show, and await button click
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_QR_OPTIONS_EXIT;
-#endif
-        if (ret) {
+        int32_t ev_id = gui_activity_wait_button(act, BTN_QR_OPTIONS_EXIT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             // NOTE: For Density and Speed :- HIGH|LOW > HIGH > LOW
             // Rotate through: LOW -> HIGH -> HIGH|LOW -> LOW -> ...
             // unset/default is treated as HIGH ie. the middle value
@@ -981,16 +957,8 @@ static void display_bcur_qr(const char* message[], const size_t message_size, co
         // Show, and await button click
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_QR_DISPLAY_EXIT;
-#endif
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_QR_DISPLAY_EXIT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_QR_OPTIONS) {
                 if (handle_qr_options(&qr_flags)) {
                     // Options were updated - re-create psbt qr screen
@@ -1437,21 +1405,12 @@ void await_single_qr_activity(
 
     // Show, and await button click - note gui takes ownership of icon
     gui_activity_t* const act = make_show_qr_activity(message, message_size, qr_icon, 1, 0, false, help_url);
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_QR_DISPLAY_EXIT;
-#endif
-
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_QR_DISPLAY_EXIT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_QR_DISPLAY_EXIT) {
                 // Done
                 break;
@@ -1514,16 +1473,8 @@ void await_qr_help_activity(const char* url)
 
     // Show, and await button click
     while (true) {
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_QR_HELP_EXIT;
-#endif
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_QR_HELP_EXIT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_QR_BRIGHTNESS) {
                 gui_next_qrcode_color();
                 gui_repaint(act->root_node);
@@ -1555,16 +1506,8 @@ bool await_qr_back_continue_activity(
 
     // Show, and await button click
     while (true) {
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_YES;
-#endif
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_YES);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_QR_BRIGHTNESS) {
                 gui_next_qrcode_color();
                 gui_repaint(act->root_node);

@@ -461,6 +461,7 @@ void gui_activity_register_event(
     gui_activity_t* activity, const char* event_base, uint32_t event_id, esp_event_handler_t handler, void* args);
 bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, uint32_t event_id,
     esp_event_base_t* trigger_event_base, int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait);
+int32_t gui_activity_wait_button(gui_activity_t* activity, int32_t default_event_id);
 
 void gui_set_activity_initial_selection(gui_view_node_t* node);
 void gui_set_active(gui_view_node_t* node, bool value);

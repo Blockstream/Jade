@@ -144,22 +144,12 @@ bool show_sign_message_activity(const char* message, const char* hashhex, const 
         = make_sign_message_activities(message, hashstr, pathstr, &act_message1, &act_message2, &act_hash, &act_path);
 
     gui_activity_t* act = act_summary;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_SIGNMSG_ACCEPT;
-#endif
-
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNMSG_ACCEPT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             switch (ev_id) {
             case BTN_BACK:
                 act = (act == act_message2) ? act_message1 : act_summary;

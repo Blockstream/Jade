@@ -1333,13 +1333,11 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         while (!got_mnemonic) {
             gui_set_current_activity_ex(act, true);
 
-            // In a debug unattended ci build, use hardcoded mnemonic after a short delay
-            int32_t ev_id;
+            const int32_t ev_id = gui_activity_wait_button(act, BTN_EVENT_TIMEOUT);
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-            const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-            JADE_ASSERT(ret);
-
             switch (ev_id) {
+            case BTN_EVENT_TIMEOUT:
+                JADE_ASSERT(false);
             case BTN_MNEMONIC_EXIT:
                 // Abandon setting up mnemonic altogether
                 goto cleanup;
@@ -1399,8 +1397,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
                 continue;
             }
 #else
-            gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-                CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+            // In a debug unattended ci build, use hardcoded mnemonic after a short delay
             strcpy(mnemonic,
                 "fish inner face ginger orchard permit useful method fence kidney chuckle party favorite sunset draw "
                 "limb "
@@ -1509,21 +1506,12 @@ void handle_bip85_mnemonic()
 
     gui_activity_t* act = make_bip85_mnemonic_words_activity();
     uint8_t nwords = 0;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_BIP85_12_WORDS;
-#endif
-
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_BIP85_12_WORDS);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_BIP85_12_WORDS) {
                 nwords = 12;
                 break;

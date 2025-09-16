@@ -34,21 +34,10 @@ bool show_sign_identity_activity(const char* identity, const size_t identity_len
 
     gui_activity_t* const act = make_sign_identity_activity(display_str);
     gui_set_current_activity(act);
-    int32_t ev_id;
 
     while (true) {
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_SIGNIDENTITY_ACCEPT;
-#endif
-
-        // Check to see whether user accepted or declined
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNIDENTITY_ACCEPT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             switch (ev_id) {
             case BTN_SIGNIDENTITY_REJECT:
                 return false;

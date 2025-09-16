@@ -777,18 +777,8 @@ static void select_initial_connection(const bool offer_qr_temporary)
     while (initialisation_source == SOURCE_NONE) {
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-        // In a debug unattended ci build, assume 'USB' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_CONNECT_VIA_USB;
-#endif
-
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_CONNECT_VIA_USB);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_CONNECT_VIA_USB) {
                 // Set USB/SERIAL source
                 initialisation_source = SOURCE_SERIAL;
@@ -948,20 +938,12 @@ static void handle_ble(void)
     gui_activity_t* const act_status = make_carousel_activity("Bluetooth Status", NULL, &status_textbox);
     update_ble_carousel_label(status_textbox, enabled);
 
-    int32_t ev_id;
     while (true) {
         // Show, and await button click
         gui_set_current_activity(act);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_BLE_EXIT;
-#endif
-        if (ret) {
+        int32_t ev_id = gui_activity_wait_button(act, BTN_BLE_EXIT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_BLE_STATUS) {
                 gui_set_current_activity(act_status);
                 while (true) {
@@ -1377,20 +1359,12 @@ static void handle_passphrase_prefs()
     gui_activity_t* const act_method = make_carousel_activity("Method", NULL, &method_textbox);
     gui_update_text(method_textbox, passphrase_method_desc_from_flags(type));
 
-    int32_t ev_id;
     while (true) {
         // Show, and await button click
         gui_set_current_activity(act);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        bool ret = true;
-        ev_id = BTN_PASSPHRASE_EXIT;
-#endif
-        if (ret) {
+        int32_t ev_id = gui_activity_wait_button(act, BTN_PASSPHRASE_EXIT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_PASSPHRASE_FREQUENCY) {
                 // Never -> Once -> Always -> Once ...
                 gui_set_current_activity(act_freq);
@@ -1472,22 +1446,12 @@ static bool display_hotp_screen(const otpauth_ctx_t* otp_ctx, const char* token,
     JADE_ASSERT(token);
 
     gui_activity_t* const act = make_show_hotp_code_activity(otp_ctx->name, token, confirm_only);
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_OTP_RETAIN_CONFIRM;
-#endif
-
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_OTP_RETAIN_CONFIRM);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             if (ev_id == BTN_OTP_DETAILS) {
                 const bool is_valid = true; // asserted above
                 const bool initial_confirmation = false;

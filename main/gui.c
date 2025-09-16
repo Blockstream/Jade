@@ -2615,6 +2615,20 @@ bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, u
     return ret == ESP_OK;
 }
 
+int32_t gui_activity_wait_button(gui_activity_t* activity, const int32_t default_event_id)
+{
+    int32_t ev_id = default_event_id;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    if (!gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+        ev_id = BTN_EVENT_TIMEOUT;
+    }
+#else
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+#endif
+    return ev_id;
+}
+
 // Update the title associated with the passed activity
 void gui_set_activity_title(gui_activity_t* activity, const char* title)
 {

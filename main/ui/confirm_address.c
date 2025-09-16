@@ -168,22 +168,12 @@ bool show_confirm_address_activity(const char* address, const bool default_selec
         = make_display_address_activities("Verify Address", show_tick, address, default_selection, &act_addr2);
 
     gui_activity_t* act = act_addr1;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_ADDRESS_ACCEPT;
-#endif
-
-        if (ret) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_ADDRESS_ACCEPT);
+        if (ev_id != BTN_EVENT_TIMEOUT) {
             switch (ev_id) {
             case BTN_BACK:
                 act = act_addr1;

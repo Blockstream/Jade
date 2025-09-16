@@ -2,6 +2,8 @@
 #define BUTTON_EVENTS_H_
 #include "sdkconfig.h"
 typedef enum {
+    BTN_EVENT_TIMEOUT,
+
     BTN_BACK,
     BTN_HELP,
     BTN_YES,
