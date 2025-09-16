@@ -1505,11 +1505,10 @@ void handle_bip85_mnemonic()
     }
 
     gui_activity_t* act = make_bip85_mnemonic_words_activity();
+    gui_set_current_activity(act);
     uint8_t nwords = 0;
 
     while (true) {
-        gui_set_current_activity(act);
-
         const int32_t ev_id = gui_activity_wait_button(act, BTN_BIP85_12_WORDS);
         if (ev_id == BTN_BIP85_12_WORDS) {
             nwords = 12;
