@@ -20,8 +20,9 @@ def create_compressed_firmware_image(fwfilename, outputdir):
     outfile = fwtools.get_firmware_compressed_filepath(firmware, outputdir)
 
     # Write the full firmware image hash
-    hashfile = outfile + ".hash"
+    hashfile = outfile + '.hash'
     hash = hashlib.sha256(firmware).hexdigest()
+    logger.info(f'Hash of {outfile} is {hash}')
     fwtools.write(hash, hashfile, text=True)
 
     # Compress and write

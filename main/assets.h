@@ -5,7 +5,7 @@
 #include "utils/network.h"
 
 // NOTE: strings here may not be nul-terminated as may directly reference message fields
-typedef struct {
+typedef struct _asset_info {
     const char* asset_id;
     const char* ticker;
     const char* issuer_domain;

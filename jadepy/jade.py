@@ -107,7 +107,7 @@ try:
         try:
             f = http_call_fn()
             logger.debug(f'http_request received reply length {len(f.content)}'
-                         f'and encoding {f.encoding}')
+                         f' and encoding {f.encoding}')
 
             if f.status_code != 200:
                 logger.error(f'http error {f.status_code}')
@@ -1941,7 +1941,7 @@ class JadeAPI:
         # Send inputs and receive signatures
         return self._send_tx_inputs(base_id, inputs, use_ae_signatures, use_legacy)
 
-    def sign_psbt(self, network, psbt):
+    def sign_psbt(self, network, psbt, additional_info=None):
         """
         RPC call to sign a passed psbt as required
 
@@ -1953,6 +1953,9 @@ class JadeAPI:
         psbt : bytes
             The psbt formatted as bytes
 
+        additional_info: dict, optional
+            Extra data about the transaction.  See sign_liquid_tx for details.
+
         Returns
         -------
         bytes
@@ -1960,6 +1963,8 @@ class JadeAPI:
         """
         # Send PSBT message
         params = {'network': network, 'psbt': psbt}
+        if additional_info:
+            params['additional_info'] = additional_info
         msgid = str(random.randint(100000, 999999))
         request = self.jade.build_request(msgid, 'sign_psbt', params)
         self.jade.write_request(request)
@@ -2200,7 +2205,8 @@ class JadeInterface:
         """
         dump = cbor.dumps(request)
         logger.info(f'Sending {request["method"]} request {request["id"]} length {len(dump)}')
-        logger.debug(f'Sending: {_hexlify(request)}')
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f'Sending: {_hexlify(request)}')
         return dump
 
     def write(self, bytes_):
@@ -2271,7 +2277,8 @@ class JadeInterface:
                 # A message response (to a prior request)
                 if 'id' in message:
                     logger.info(f'Received reply {message["id"]}')
-                    logger.debug(f'Received: {_hexlify(message)}')
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f'Received: {_hexlify(message)}')
                     return message
 
                 # A log message - handle as normal

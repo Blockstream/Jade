@@ -8,12 +8,12 @@
 #include "../process.h"
 #include "../sensitive.h"
 #include "../storage.h"
-#include "../ui.h"
+#include "../ui/sign_tx.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
-#include "../utils/network.h"
 #include "../utils/psbt.h"
+#include "../utils/temporary_stack.h"
 #include "../utils/util.h"
 #include "../utils/wally_ext.h"
 #include "../wallet.h"
@@ -25,15 +25,11 @@
 #include <wally_psbt_members.h>
 #include <wally_script.h>
 
-#include "process_utils.h"
-
-bool show_btc_transaction_outputs_activity(
-    network_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
-bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
-    script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
+#include "sign_utils.h"
 
 // From https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
 static const uint8_t PSBT_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x62, 0x74, 0xFF }; // 'psbt' + 0xff
+static const uint8_t PSET_MAGIC_PREFIX[5] = { 0x70, 0x73, 0x65, 0x74, 0xFF }; // 'pset' + 0xff
 
 // Cache what type of inputs we are signing
 #define PSBT_SIGNING_SINGLESIG 0x1
@@ -452,23 +448,61 @@ static bool get_suitable_descriptor_record(const key_iter* iter, const uint32_t*
 }
 
 // Examine outputs for change we can automatically validate
-static void validate_any_change_outputs(const network_t network_id, struct wally_psbt* psbt,
-    const uint8_t signing_flags, const char* wallet_name, const multisig_data_t* multisig_data,
-    const descriptor_data_t* descriptor, output_info_t* output_info)
+static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* psbt, const uint8_t signing_flags,
+    const char* wallet_name, const multisig_data_t* multisig_data, const descriptor_data_t* descriptor,
+    output_info_t* output_info, const char** errmsg)
 {
     JADE_ASSERT(network_id != NETWORK_NONE);
     JADE_ASSERT(psbt);
-    JADE_ASSERT(signing_flags);
     // wallet_name, multisig_data and descriptor optional
     JADE_ASSERT(output_info);
+    JADE_INIT_OUT_PPTR(errmsg);
 
+    const bool is_liquid = network_is_liquid(network_id);
     JADE_ASSERT(!multisig_data || !descriptor); // cannot have both
+    JADE_ASSERT(!is_liquid || !descriptor); // atm do not support liquid descriptors
 
     key_iter iter; // Holds any public key in use
 
     // Check each output in turn
     for (size_t index = 0; index < psbt->num_outputs; ++index) {
+        size_t written = 0;
         output_info_t* const outinfo = output_info + index;
+
+        // If liquid, look for blinding data and explicit fees (scriptless outputs)
+        if (is_liquid) {
+            if ((wally_psbt_get_output_asset_commitment_len(psbt, index, &written) == WALLY_OK && written)
+                || (wally_psbt_get_output_value_commitment_len(psbt, index, &written) == WALLY_OK && written)) {
+                outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
+            }
+
+            if (wally_psbt_get_output_blinding_public_key(
+                    psbt, index, outinfo->blinding_key, sizeof(outinfo->blinding_key), &written)
+                    == WALLY_OK
+                && written) {
+                JADE_ASSERT(written == sizeof(outinfo->blinding_key));
+                outinfo->flags |= OUTPUT_FLAG_HAS_BLINDING_KEY;
+            }
+
+            if (wally_psbt_get_output_amount(psbt, index, &outinfo->value) == WALLY_OK
+                && wally_psbt_get_output_asset(psbt, index, outinfo->asset_id, sizeof(outinfo->asset_id), &written)
+                    == WALLY_OK
+                && written) {
+                JADE_ASSERT(written == sizeof(outinfo->asset_id));
+                reverse_in_place(outinfo->asset_id, sizeof(outinfo->asset_id));
+                outinfo->flags |= OUTPUT_FLAG_HAS_UNBLINDED;
+            }
+
+            if (wally_psbt_get_output_script_len(psbt, index, &written) != WALLY_OK || !written) {
+                // Fee output
+                JADE_ASSERT(!(outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL));
+                JADE_ASSERT(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED);
+                // Fee outputs can't be change, so may as well skip now
+                JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
+                continue;
+            }
+        }
+
         JADE_LOGD("Considering output %u for change", index);
 
         // By default, assume not a validated or change output, and so user must verify
@@ -613,35 +647,74 @@ static void validate_any_change_outputs(const network_t network_id, struct wally
                 "Ignoring multisig output %u as not signing only multisig inputs for a single registration", index);
         }
     }
+    return true;
 }
 
-// Sign a psbt - the passed wally psbt struct is updated with any signatures.
+// Sign a psbt/pset - the passed wally psbt struct is updated with any signatures.
 // Returns 0 if no errors occurred - does not necessarily indicate that signatures were added.
 // Returns an rpc/message error code on error, and the error string should be populated.
-int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** errmsg)
+int sign_psbt(jade_process_t* process, CborValue* params, const network_t network_id, struct wally_psbt* psbt,
+    const char** errmsg)
 {
     JADE_ASSERT(psbt);
     JADE_INIT_OUT_PPTR(errmsg);
     JADE_ASSERT(network_id != NETWORK_NONE);
+    int retval = 0;
 
-    // Elements/PSET not supported
     size_t is_elements = 0;
-    if (wally_psbt_is_elements(psbt, &is_elements) != WALLY_OK || is_elements) {
-        *errmsg = "Liquid/Elements PSET not supported";
+    JADE_WALLY_VERIFY(wally_psbt_is_elements(psbt, &is_elements));
+    if (!is_elements != !network_is_liquid(network_id)) {
+        *errmsg = "Network/psbt type mismatch";
         return CBOR_RPC_BAD_PARAMETERS;
     }
+    const bool for_liquid = is_elements;
+    bool has_genesis_blockhash = false;
+    if (for_liquid) {
+        // Liquid: Check ELIP-0101 genesis blockhash
+        size_t has_genesis = 0;
+        JADE_WALLY_VERIFY(wally_psbt_has_global_genesis_blockhash(psbt, &has_genesis));
+        has_genesis_blockhash = has_genesis;
+        if (has_genesis_blockhash) {
+            uint8_t genesis[SHA256_LEN];
+            network_to_genesis_hash(network_id, genesis, sizeof(genesis));
+            if (memcmp(psbt->genesis_blockhash, genesis, sizeof(genesis))) {
+                *errmsg = "Network/pset genesis mismatch";
+            }
+        }
+    }
 
-    // Txn data must be available
-    struct wally_tx* tx = NULL;
-    if (wally_psbt_extract(psbt, WALLY_PSBT_EXTRACT_NON_FINAL, &tx) != WALLY_OK || !tx) {
+    uint64_t explicit_fee = 0; // Liquid: Value of the explicit fee output
+    struct wally_tx* tx = NULL; // Holds the extracted tx
+
+    // Fetch the tx to sign
+    if (psbt->version == WALLY_PSBT_VERSION_0) {
+        tx = psbt->tx; // For v0, use the PSBT tx directly
+    } else if (wally_psbt_extract(psbt, WALLY_PSBT_EXTRACT_NON_FINAL, &tx) != WALLY_OK) {
         *errmsg = "Failed to extract valid txn from passed psbt";
         return CBOR_RPC_BAD_PARAMETERS;
     }
-    JADE_ASSERT(tx->num_inputs == psbt->num_inputs && tx->num_outputs == psbt->num_outputs);
+    JADE_ASSERT(tx && tx->num_inputs == psbt->num_inputs && tx->num_outputs == psbt->num_outputs);
+
+    if (!params_txn_validate(network_id, for_liquid, tx, &explicit_fee, errmsg)) {
+        retval = CBOR_RPC_BAD_PARAMETERS;
+        goto cleanup_tx;
+    }
+
+    asset_summary_t *in_sums = NULL, *out_sums = NULL;
+    size_t num_in_sums = 0, num_out_sums = 0;
+    bool is_partial = false;
+    TxType_t txtype = TXTYPE_SEND_PAYMENT;
+    // Liquid: Get any data from the optional 'additional_info' section
+    if (for_liquid && process && params
+        && !params_additional_info(
+            process, params, tx, &txtype, &is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums, errmsg)) {
+        // Note in_sums/out_sums are cleared automatically at process exit
+        retval = CBOR_RPC_BAD_PARAMETERS;
+        goto cleanup_tx;
+    }
 
     key_iter iter; // Holds any public/private key in use
     SENSITIVE_PUSH(&iter, sizeof(iter));
-    int retval = 0;
 
     // We track if the type of the inputs we are signing changes (ie. single-sig vs
     // green/multisig/other) so we can show a warning to the user if so.
@@ -652,8 +725,8 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
 
     // Go through each of the inputs summing amounts
     // Also, if we are signing this input, inspect the script type and any multisig info
-    // Record which inputs we are interested in signing
-    bool* const signing_inputs = JADE_CALLOC(psbt->num_inputs, sizeof(bool));
+    // For inputs we are signing, record the signature type
+    uint8_t* const sig_types = JADE_CALLOC(psbt->num_inputs, sizeof(uint8_t));
     uint64_t input_amount = 0;
     uint8_t signing_flags = 0;
     char wallet_name[NVS_KEY_NAME_MAX_SIZE] = { '\0' };
@@ -663,160 +736,252 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
         struct wally_psbt_input* input = &psbt->inputs[index];
 
         // Get the utxo being spent
+        // FIXME: for btc only accept 'non-witness utxo' ?
         const struct wally_tx_output* utxo = NULL;
         if (wally_psbt_get_input_best_utxo(psbt, index, &utxo) != WALLY_OK || !utxo) {
             *errmsg = "Input utxo missing";
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
         }
-        input_amount += utxo->satoshi;
+        if (!for_liquid) {
+            // Bitcoin: Collect input total for fee calculation
+            input_amount += utxo->satoshi;
+        }
 
-        // If we are signing this input, look at the script type, sighash, multisigs etc.
-        if (key_iter_input_begin_public(psbt, index, &iter)) {
-            // Found our key - we are signing this input
-            JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", iter.key_index, index);
-            signing_inputs[index] = true;
+        if (!key_iter_input_begin_public(psbt, index, &iter)) {
+            // Our key not present: we are not signing this input
+            continue;
+        }
 
-            const size_t num_keys = key_iter_get_num_keys(&iter);
-            if (num_keys > 1) {
-                const bool is_green = is_green_multisig_signers(network_id, &iter, NULL);
-                signing_flags |= is_green ? PSBT_SIGNING_GREEN_MULTISIG : PSBT_SIGNING_MULTISIG;
-            } else {
-                signing_flags |= PSBT_SIGNING_SINGLESIG;
-            }
+        // Found our key - we are signing this input
+        JADE_LOGD("Key %u belongs to this signer, so we will need to sign input %u", iter.key_index, index);
 
-            // Only support SIGHASH_ALL, or SIGHASH_DEFAULT for taproot atm.
-            // SIGHASH_DEFAULT is 0 so passes this check, the 0 is
-            // converted to ALL/DEFAULT by wally when signing
-            if (input->sighash && input->sighash != WALLY_SIGHASH_ALL) {
-                JADE_LOGW("Unsupported sighash for signing input %u", index);
-                *errmsg = "Unsupported sighash";
+        if (for_liquid && in_sums) {
+            uint8_t asset_id[32];
+            size_t written = 0;
+            if (!input->has_amount
+                || wally_psbt_input_get_asset(input, asset_id, sizeof(asset_id), &written) != WALLY_OK
+                || written != sizeof(asset_id)) {
+                // If additional_info is present, the caller must provide explicit
+                // value/asset along with their proofs (checked during parsing)
+                *errmsg = "Missing input explicit asset or value";
                 retval = CBOR_RPC_BAD_PARAMETERS;
                 goto cleanup;
             }
+            // TODO: additional_info should store asset_ids in binary order,
+            // so we shouldn't have to reverse_in_place() here
+            reverse_in_place(asset_id, sizeof(asset_id));
+            asset_summary_update(in_sums, num_in_sums, asset_id, sizeof(asset_id), input->amount);
+        }
 
-            // Track the types of the input prevout scripts
-            if (utxo->script && utxo->script_len) {
-                bool is_p2tr = false;
-                const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len, &is_p2tr);
-                update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
+        uint32_t sig_type;
+        JADE_WALLY_VERIFY(wally_psbt_get_input_signature_type(psbt, index, &sig_type));
+        JADE_ASSERT(sig_type);
+        sig_types[index] = (uint8_t)sig_type; // Sufficient
+        if (sig_type == WALLY_SIGTYPE_SW_V1 && txtype == TXTYPE_SWAP) {
+            // The Liquid segwit v1 signature hash does not currently support swaps
+            *errmsg = "Swap transactions cannot contain taproot inputs";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
+
+        const size_t num_keys = key_iter_get_num_keys(&iter);
+        if (num_keys > 1) {
+            const bool is_green = is_green_multisig_signers(network_id, &iter, NULL);
+            signing_flags |= is_green ? PSBT_SIGNING_GREEN_MULTISIG : PSBT_SIGNING_MULTISIG;
+        } else {
+            signing_flags |= PSBT_SIGNING_SINGLESIG;
+        }
+
+        // Check sighash, but only if one was provided (the default is always valid)
+        if (input->sighash && !sighash_is_supported(txtype, sig_type, input->sighash, for_liquid, is_partial)) {
+            JADE_LOGW("Unsupported sighash for signing input %u", index);
+            *errmsg = "Unsupported sighash value";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
+
+        // Track the types of the input prevout scripts
+        if (utxo->script && utxo->script_len) {
+            bool is_p2tr = false;
+            const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len, &is_p2tr);
+            JADE_ASSERT(is_p2tr == (sig_type == WALLY_SIGTYPE_SW_V1));
+            update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
+        }
+
+        // If multisig, see if all signing inputs match the same persisted wallet record
+        // and if so, cache the record details to use later to verify any multisig change outputs
+        if (signing_flags & PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED) {
+            // Already abandoned multisig change detection - do nothing
+        } else if (signing_flags & (PSBT_SIGNING_SINGLESIG | PSBT_SIGNING_GREEN_MULTISIG)) {
+            // Green-multisig or singlesig input - mark multisig change detection as abandoned
+            JADE_LOGW("Signing singlesig or Green-multisig input %u - multisig change detection abandoned", index);
+            signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+        } else {
+            size_t path_len = 0;
+            uint32_t path[MAX_PATH_LEN];
+            if (!key_iter_get_path(&iter, path, MAX_PATH_LEN, &path_len)) {
+                JADE_LOGE("No valid path in input %u, ignoring", index);
+                continue;
             }
 
-            // If multisig, see if all signing inputs match the same persisted wallet record
-            // and if so, cache the record details to use later to verify any multisig change outputs
-            if (signing_flags & PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED) {
-                // Already abandoned multisig change detection - do nothing
-            } else if (signing_flags & (PSBT_SIGNING_SINGLESIG | PSBT_SIGNING_GREEN_MULTISIG)) {
-                // Green-multisig or singlesig input - mark multisig change detection as abandoned
-                JADE_LOGW("Signing singlesig or Green-multisig input %u - multisig change detection abandoned", index);
-                signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
-            } else {
-                size_t path_len = 0;
-                uint32_t path[MAX_PATH_LEN];
-                if (!key_iter_get_path(&iter, path, MAX_PATH_LEN, &path_len)) {
-                    JADE_LOGE("No valid path in output %u, ignoring", index);
-                    continue;
+            // Get the path tail after the last hardened element
+            const size_t path_tail_start = path_get_unhardened_tail_index(path, path_len);
+            JADE_ASSERT(path_tail_start <= path_len);
+            const size_t path_tail_len = path_len - path_tail_start;
+
+            if (signing_flags & PSBT_SIGNING_SINGLE_MULTISIG_RECORD) {
+                // Test this input against the record previously found
+                JADE_ASSERT(!multisig_data != !descriptor); // must be one or the other
+
+                if (multisig_data
+                    && !verify_multisig_script_matches(
+                        multisig_data, &path[path_tail_start], path_tail_len, &iter, utxo->script, utxo->script_len)) {
+                    // Previously found multisig record does not work for this input.  Abandon multisig
+                    // change detection.
+                    JADE_LOGW("Previously found multisig record '%s' inappropriate for input %u - change "
+                              "detection abandoned",
+                        wallet_name, index);
+                    signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
                 }
 
-                // Get the path tail after the last hardened element
-                const size_t path_tail_start = path_get_unhardened_tail_index(path, path_len);
-                JADE_ASSERT(path_tail_start <= path_len);
-                const size_t path_tail_len = path_len - path_tail_start;
-
-                if (signing_flags & PSBT_SIGNING_SINGLE_MULTISIG_RECORD) {
-                    // Test this input against the record previously found
-                    JADE_ASSERT(!multisig_data != !descriptor); // must be one or the other
-
-                    if (multisig_data
-                        && !verify_multisig_script_matches(multisig_data, &path[path_tail_start], path_tail_len, &iter,
-                            utxo->script, utxo->script_len)) {
-                        // Previously found multisig record does not work for this input.  Abandon multisig
-                        // change detection.
-                        JADE_LOGW("Previously found multisig record '%s' inappropriate for input %u - change "
-                                  "detection abandoned",
-                            wallet_name, index);
-                        signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
-                    }
-
-                    if (descriptor
-                        && !verify_descriptor_script_matches(wallet_name, descriptor, network_id,
-                            &path[path_tail_start], path_tail_len, &iter, utxo->script, utxo->script_len)) {
-                        // Previously found descriptor record does not work for this input.  Abandon multisig
-                        // change detection.
-                        JADE_LOGW("Previously found descriptor record '%s' inappropriate for input %u - change "
-                                  "detection abandoned",
-                            wallet_name, index);
-                        signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
-                    }
+                if (descriptor
+                    && !verify_descriptor_script_matches(wallet_name, descriptor, network_id, &path[path_tail_start],
+                        path_tail_len, &iter, utxo->script, utxo->script_len)) {
+                    // Previously found descriptor record does not work for this input.  Abandon multisig
+                    // change detection.
+                    JADE_LOGW("Previously found descriptor record '%s' inappropriate for input %u - change "
+                              "detection abandoned",
+                        wallet_name, index);
+                    signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+                }
+            } else {
+                // Search all multisig and descriptor records looking for one that fits this input
+                multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
+                if (get_suitable_multisig_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
+                        utxo->script_len, wallet_name, sizeof(wallet_name), multisig_data)) {
+                    JADE_LOGI("Signing multisig input - registered multisig record found: %s", wallet_name);
+                    signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
                 } else {
-                    // Search all multisig and descriptor records looking for one that fits this input
-                    multisig_data = JADE_MALLOC(sizeof(multisig_data_t));
-                    if (get_suitable_multisig_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
-                            utxo->script_len, wallet_name, sizeof(wallet_name), multisig_data)) {
-                        JADE_LOGI("Signing multisig input - registered multisig record found: %s", wallet_name);
+                    free(multisig_data);
+                    multisig_data = NULL;
+                }
+
+                // NOTE: descriptors not supported for elements atm
+                if (!multisig_data && !for_liquid) {
+                    descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
+                    if (get_suitable_descriptor_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
+                            utxo->script_len, network_id, wallet_name, sizeof(wallet_name), descriptor)) {
+                        JADE_LOGI("Signing multisig input - registered descriptor record found: %s", wallet_name);
                         signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
                     } else {
-                        free(multisig_data);
-                        multisig_data = NULL;
-                    }
-
-                    if (!multisig_data) {
-                        descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
-                        if (get_suitable_descriptor_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
-                                utxo->script_len, network_id, wallet_name, sizeof(wallet_name), descriptor)) {
-                            JADE_LOGI("Signing multisig input - registered descriptor record found: %s", wallet_name);
-                            signing_flags |= PSBT_SIGNING_SINGLE_MULTISIG_RECORD;
-                        } else {
-                            free(descriptor);
-                            descriptor = NULL;
-                        }
-                    }
-
-                    if (!multisig_data && !descriptor) {
-                        // No suitable multisig or descriptor record - mark as abandoned
-                        JADE_LOGW(
-                            "No multisig or descriptor record found for input %u - change detection abandoned", index);
-                        signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+                        free(descriptor);
+                        descriptor = NULL;
                     }
                 }
+
+                if (!multisig_data && !descriptor) {
+                    // No suitable multisig or descriptor record - mark as abandoned
+                    JADE_LOGW(
+                        "No multisig or descriptor record found for input %u - change detection abandoned", index);
+                    signing_flags |= PSBT_SIGNING_MULTISIG_CHANGE_ABANDONED;
+                }
             }
-        } // is our key
+        }
     } // iterate keys
 
-    // Sanity check amounts
-    uint64_t output_amount;
-    JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &output_amount));
-    if (output_amount > input_amount) {
-        *errmsg = "Invalid input/output amounts";
+    // Examine outputs for liquid unblinded info and fees, and for change we can automatically validate
+    if (!psbt_update_outputs(
+            network_id, psbt, signing_flags, wallet_name, multisig_data, descriptor, output_info, errmsg)) {
+        // errmsg will be populated
         retval = CBOR_RPC_BAD_PARAMETERS;
         goto cleanup;
     }
 
-    // Examine outputs for change we can automatically validate
-    if (signing_flags) {
-        validate_any_change_outputs(
-            network_id, psbt, signing_flags, wallet_name, multisig_data, descriptor, output_info);
+    // Explicit fee is only valid for Liquid
+    JADE_ASSERT(!explicit_fee || for_liquid);
+
+    if (for_liquid) {
+        // Liquid: Validate commitments, outputs and additional_info
+        if (!validate_elements_outputs(
+                network_id, tx, txtype, output_info, in_sums, num_in_sums, out_sums, num_out_sums, errmsg)) {
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
+
+        // Liquid: Check the summary information for each asset as previously confirmed
+        // by the user is consistent with the verified input and outputs.
+        if (!asset_summary_validate(in_sums, num_in_sums) || !asset_summary_validate(out_sums, num_out_sums)) {
+            JADE_LOGW("Failed to fully validate input and output summary information");
+            *errmsg = "Failed to validate input/output summary information";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        } else if (in_sums || out_sums) {
+            JADE_LOGI("Input and output summary information validated");
+        }
+
+        const asset_info_t* assets = NULL;
+        const size_t num_assets = 0;
+
+        if (txtype == TXTYPE_SWAP) {
+            // Liquid: Confirm wallet-summary info (ie. net inputs and outputs)
+            if (!show_elements_swap_activity(
+                    network_id, is_partial, in_sums, num_in_sums, out_sums, num_out_sums, assets, num_assets)) {
+                *errmsg = "User declined to sign swap transaction";
+                retval = CBOR_RPC_USER_CANCELLED;
+                goto cleanup;
+            }
+        } else {
+            // Confirm all non-change outputs
+            if (!show_elements_transaction_outputs_activity(network_id, tx, output_info, assets, num_assets)) {
+                *errmsg = "User declined to sign psbt";
+                retval = CBOR_RPC_USER_CANCELLED;
+                goto cleanup;
+            }
+        }
+        JADE_LOGD("User accepted outputs");
+
+        if (is_partial && !explicit_fee) {
+            // Partial tx without fees - can skip the fee screen
+            JADE_LOGI("No fees for partial tx, so skipping fee confirmation screen");
+        } else {
+            // User to agree fee amount
+            // Check to see whether user accepted or declined
+            if (!show_elements_fee_confirmation_activity(
+                    network_id, tx, output_info, aggregate_inputs_scripts_flavour, explicit_fee, txtype, is_partial)) {
+                *errmsg = "User declined to sign psbt";
+                retval = CBOR_RPC_USER_CANCELLED;
+                goto cleanup;
+            }
+            JADE_LOGD("User accepted fee");
+        }
+    } else {
+        // Bitcoin: Sanity check amounts
+        uint64_t output_amount;
+        JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &output_amount));
+        if (output_amount > input_amount) {
+            *errmsg = "Total input amounts less than total output amounts";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
+
+        if (!show_btc_transaction_outputs_activity(network_id, tx, output_info)) {
+            *errmsg = "User declined to sign psbt";
+            retval = CBOR_RPC_USER_CANCELLED;
+            goto cleanup;
+        }
+        JADE_LOGD("User accepted outputs");
+
+        // User to agree fee amount
+        // Check to see whether user accepted or declined
+        if (!show_btc_fee_confirmation_activity(
+                network_id, tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
+            *errmsg = "User declined to sign psbt";
+            retval = CBOR_RPC_USER_CANCELLED;
+            goto cleanup;
+        }
+        JADE_LOGD("User accepted fee");
     }
-
-    // User to verify outputs and fee amount
-    if (!show_btc_transaction_outputs_activity(network_id, tx, output_info)) {
-        *errmsg = "User declined to sign psbt";
-        retval = CBOR_RPC_USER_CANCELLED;
-        goto cleanup;
-    }
-
-    JADE_LOGD("User accepted outputs");
-
-    // User to agree fee amount
-    // Check to see whether user accepted or declined
-    if (!show_btc_fee_confirmation_activity(
-            network_id, tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
-        *errmsg = "User declined to sign psbt";
-        retval = CBOR_RPC_USER_CANCELLED;
-        goto cleanup;
-    }
-
-    JADE_LOGD("User accepted fee");
 
     // Show warning if nothing to sign
     if (!signing_flags) {
@@ -827,11 +992,16 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
     display_processing_message_activity();
 
     // Sign our inputs
+    if (signing_flags && for_liquid && !has_genesis_blockhash) {
+        // Liquid: Provide the ELIP-0101 genesis blockhash when signing
+        network_to_genesis_hash(network_id, psbt->genesis_blockhash, sizeof(psbt->genesis_blockhash));
+    }
+
     JADE_WALLY_VERIFY(wally_psbt_signing_cache_enable(psbt, 0));
 
     for (size_t index = 0; index < psbt->num_inputs; ++index) {
         // See if we flagged this input for signing
-        if (!signing_inputs[index]) {
+        if (!sig_types[index]) {
             JADE_LOGD("Not required to sign input %u", index);
             continue;
         }
@@ -862,8 +1032,9 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
         key_iter_input_begin(psbt, index, &iter);
         while (iter.is_valid) {
             // Sign the input with this key
+            const uint32_t sign_flags = EC_FLAG_GRIND_R | (for_liquid ? EC_FLAG_ELEMENTS : 0);
             if (wally_psbt_sign_input_bip32(
-                    psbt, index, iter.key_index, txhash, sizeof(txhash), &iter.hdkey, EC_FLAG_GRIND_R)
+                    psbt, index, iter.key_index, txhash, sizeof(txhash), &iter.hdkey, sign_flags)
                 != WALLY_OK) {
                 *errmsg = "Failed to generate signature";
                 retval = CBOR_RPC_INTERNAL_ERROR;
@@ -880,30 +1051,68 @@ int sign_psbt(const network_t network_id, struct wally_psbt* psbt, const char** 
 
 cleanup:
     SENSITIVE_POP(&iter);
-    JADE_WALLY_VERIFY(wally_tx_free(tx));
     free(descriptor);
     free(multisig_data);
-    free(signing_inputs);
+    free(sig_types);
     free(output_info);
+cleanup_tx:
+    if (tx && psbt->version != WALLY_PSBT_VERSION_0) {
+        JADE_WALLY_VERIFY(wally_tx_free(tx));
+    }
     return retval;
+}
+
+typedef struct {
+    const uint8_t* bytes;
+    size_t bytes_len;
+    struct wally_psbt* psbt_out;
+} psbt_parse_data_t;
+
+static bool parse_psbt_bytes(void* ctx)
+{
+    JADE_ASSERT(ctx);
+    psbt_parse_data_t* data = (psbt_parse_data_t*)ctx;
+    data->psbt_out = NULL;
+    const uint32_t flags = WALLY_PSBT_PARSE_FLAG_STRICT;
+    const int wret = wally_psbt_from_bytes(data->bytes, data->bytes_len, flags, &data->psbt_out);
+    return wret == WALLY_OK && data->psbt_out != NULL;
 }
 
 // PSBT bytes -> wally struct
 // Returns false on error.
 // Otherwise caller takes ownership of wally struct, and must call wally_psbt_free()
-bool deserialise_psbt(const uint8_t* psbt_bytes, const size_t psbt_len, struct wally_psbt** psbt_out)
+bool deserialise_psbt(const uint8_t* bytes, const size_t bytes_len, struct wally_psbt** psbt_out)
 {
-    JADE_ASSERT(psbt_bytes);
+    JADE_ASSERT(bytes);
     JADE_INIT_OUT_PPTR(psbt_out);
 
-    // Sanity check lead bytes before attempting full parse
-    // NOTE: libwally supports PSET (elements) which Jade does not as yet.
-    if (psbt_len < sizeof(PSBT_MAGIC_PREFIX) || memcmp(psbt_bytes, PSBT_MAGIC_PREFIX, sizeof(PSBT_MAGIC_PREFIX))) {
-        JADE_LOGE("Unexpected leading 'magic' bytes for PSBT");
-        return false;
-    }
+    psbt_parse_data_t data = { .bytes = bytes, .bytes_len = bytes_len, NULL };
+    bool ret = false;
 
-    return wally_psbt_from_bytes(psbt_bytes, psbt_len, WALLY_PSBT_PARSE_FLAG_STRICT, psbt_out) == WALLY_OK && *psbt_out;
+    if (bytes_len <= sizeof(PSBT_MAGIC_PREFIX)) {
+        ret = false; // PSBT/PSET is too short
+    } else if (!memcmp(bytes, PSBT_MAGIC_PREFIX, sizeof(PSBT_MAGIC_PREFIX))) {
+        // PSBT - can parse immediately
+        ret = parse_psbt_bytes(&data);
+    } else if (!memcmp(bytes, PSET_MAGIC_PREFIX, sizeof(PSET_MAGIC_PREFIX))) {
+#ifdef CONFIG_SPIRAM
+        // PSET - can need large stack to unblind and/or verify proofs - parse on dedicated stack
+        const size_t stack_size = 54 * 1024; // 54kb seems sufficient
+        ret = run_in_temporary_task(stack_size, parse_psbt_bytes, &data);
+#else
+        // NOTE: devices without SPIRAM do not have sufficient free memory
+        // to parse/process any reasonable PSET.
+        // TODO: Change all callers to return an error message
+        JADE_LOGE("Cannot process PSET on a non-SPIRAM device");
+        ret = false;
+#endif
+    }
+    if (ret) {
+        *psbt_out = data.psbt_out;
+    } else {
+        JADE_LOGE("Failed to parse PSBT/PSET");
+    }
+    return ret;
 }
 
 // PSBT wally struct -> bytes
@@ -945,57 +1154,55 @@ void sign_psbt_process(void* process_ptr)
     GET_MSG_PARAMS(process);
     CHECK_NETWORK_CONSISTENT(process);
 
-    if (network_is_liquid(network_id)) {
-        jade_process_reject_message(
-            process, CBOR_RPC_BAD_PARAMETERS, "sign_psbt call not appropriate for liquid network");
-        goto cleanup;
-    }
-
-    // psbt must be sent as bytes
-    size_t psbt_len_in = 0;
-    const uint8_t* psbt_bytes_in = NULL;
-    rpc_get_bytes_ptr("psbt", &params, &psbt_bytes_in, &psbt_len_in);
-    if (!psbt_bytes_in || !psbt_len_in) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract psbt bytes from parameters");
-        goto cleanup;
-    }
-
-    // Parse to wally structure
     struct wally_psbt* psbt = NULL;
-    if (!deserialise_psbt(psbt_bytes_in, psbt_len_in, &psbt)) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract psbt from passed bytes");
-        goto cleanup;
+
+    {
+        // psbt must be sent as bytes
+        const uint8_t* bytes = NULL;
+        size_t bytes_len = 0;
+        rpc_get_bytes_ptr("psbt", &params, &bytes, &bytes_len);
+        if (!bytes || !bytes_len) {
+            jade_process_reject_message(
+                process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract psbt bytes from parameters");
+            goto cleanup;
+        }
+
+        // Parse to wally structure
+        if (!deserialise_psbt(bytes, bytes_len, &psbt)) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract psbt from passed bytes");
+            goto cleanup;
+        }
+        jade_process_call_on_exit(process, jade_wally_free_psbt_wrapper, psbt);
     }
-    jade_process_call_on_exit(process, jade_wally_free_psbt_wrapper, psbt);
 
     // Sign the psbt - parameter updated with any signatures
     const char* errmsg = NULL;
-    const int errcode = sign_psbt(network_id, psbt, &errmsg);
+    const int errcode = sign_psbt(process, &params, network_id, psbt, &errmsg);
     if (errcode) {
         jade_process_reject_message(process, errcode, errmsg);
         goto cleanup;
     }
 
-    // Serialise updated psbt
-    size_t psbt_len_out = 0;
-    uint8_t* psbt_bytes_out = NULL;
-    if (!serialise_psbt(psbt, &psbt_bytes_out, &psbt_len_out)) {
+    // Serialise signed psbt
+    uint8_t* bytes = NULL;
+    size_t bytes_len = 0;
+    if (!serialise_psbt(psbt, &bytes, &bytes_len)) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to serialise sign psbt");
         goto cleanup;
     }
-    jade_process_free_on_exit(process, psbt_bytes_out);
+    jade_process_free_on_exit(process, bytes);
 
     // Send as cbor message - maybe split over N messages if the result is large
     char original_id[MAXLEN_ID + 1];
     size_t original_id_len = 0;
     rpc_get_id(&process->ctx.value, original_id, sizeof(original_id), &original_id_len);
 
-    const int nmsgs = (psbt_len_out / PSBT_OUT_CHUNK_SIZE) + 1;
+    const int nmsgs = (bytes_len / PSBT_OUT_CHUNK_SIZE) + 1;
     uint8_t* const msgbuf = JADE_MALLOC(MAX_OUTPUT_MSG_SIZE);
-    uint8_t* chunk = psbt_bytes_out;
+    uint8_t* chunk = bytes;
     for (size_t imsg = 0; imsg < nmsgs; ++imsg) {
-        JADE_ASSERT(chunk < psbt_bytes_out + psbt_len_out);
-        const size_t remaining = psbt_bytes_out + psbt_len_out - chunk;
+        JADE_ASSERT(chunk < bytes + bytes_len);
+        const size_t remaining = bytes + bytes_len - chunk;
         const size_t chunk_len = remaining < PSBT_OUT_CHUNK_SIZE ? remaining : PSBT_OUT_CHUNK_SIZE;
         const size_t seqnum = imsg + 1;
         jade_process_reply_to_message_bytes_sequence(

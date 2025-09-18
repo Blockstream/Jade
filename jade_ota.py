@@ -236,33 +236,88 @@ def get_local_compressed_fwfile(fwfilename):
     return fwinfo.fwsize, fwinfo2.fwsize if fwinfo2 else None, fwhash, fwcmp
 
 
+# Fetch and log the Jade device information
+def get_version_info(jade):
+    info = jade.get_version_info()
+    logger.info(f'Jade device for OTA: {json.dumps(info, indent=4)}')
+    return info
+
+
 # Returns whether we have ble and the id of the jade
-def get_bleid(jade):
-    info = jade.get_version_info()
+def get_bleid(info):
     has_radio = info['JADE_CONFIG'] == 'BLE'
-    id = info['EFUSEMAC'][6:]
-    return has_radio, id
+    bleid = info['EFUSEMAC'][6:]
+    return has_radio, bleid
 
 
-# Takes the compressed firmware data to upload, the expected length of the
+# Get the firmware file to OTA.
+# Returns the compressed firmware data to upload, the expected length of the
 # final (uncompressed) firmware, the length of the uncompressed diff/patch
-# (if this is a patch to apply to the current running firmware), and whether
-# to apply the test mnemonic rather than using normal pinserver authentication.
-def ota(jade, fwcompressed, fwlength, fwhash, patchlen, extended_replies, pushmnemonic):
-    info = jade.get_version_info()
-    logger.info(f'Running OTA on: {info}')
-    has_pin = info['JADE_HAS_PIN']
-    has_radio = info['JADE_CONFIG'] == 'BLE'
-    id = info['EFUSEMAC'][6:]
+# (if this is a patch to apply to the current running firmware)
+def get_firmware(args):
+    if args.downloadfw:
+        fwlen, patchlen, fwhash, fwcmp = download_file(args.hwtarget, args.writecompressed,
+                                                       args.release)
+    elif args.downloadgdk:
+        fwlen, patchlen, fwhash, fwcmp = download_file_gdk(args.hwtarget, args.writecompressed,
+                                                           args.release)
+    elif args.fwfile:
+        assert not args.writecompressed
+        fwlen, patchlen, fwhash, fwcmp = get_local_compressed_fwfile(args.fwfile)
+    else:
+        # Default case, as 'uncompressed fw file' has a default value if not passed explicitly
+        fwlen, patchlen, fwhash, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
+                                                                       args.writecompressed)
 
+    if fwcmp is None:
+        logger.error('No firmware available')
+        sys.exit(2)
+
+    logger.info(f'Got fw {"patch" if patchlen else "file"} of length {len(fwcmp)} '
+                f'with expected uncompressed final fw length {fwlen}')
+
+    if fwhash is not None:
+        logger.info(f'Final fw hash: {fwhash}')
+        fwhash = bytes.fromhex(fwhash)
+
+    return fwlen, patchlen, fwhash, fwcmp
+
+
+# Fetches the firmware to upload and uploads it, either by pushing a test
+# mnemonic or through normal pinserver authentication.
+def ota(args, jade, info, extended_replies):
+    downloading = args.downloadfw or args.downloadgdk
+    if downloading and not args.release:
+        logger.info(f'Assuming a latest stable fw download. Use --release to override')
+        args.release = 'stable'  # default to latest/stable
+
+    if downloading and not args.hwtarget:
+        # Default HW target from the device we are going to update
+        board_type = info.get('BOARD_TYPE')
+        features = info.get('JADE_FEATURES')
+        hw_target = {'JADE': 'jade',
+                     'JADE_V1.1': 'jade1.1',
+                     'JADE_V2': 'jade2.0'}.get(board_type if board_type else 'JADE')
+        build_type = {'SB': '', 'DEV': 'dev'}.get(features)
+        if hw_target is None or build_type is None:
+            logger.error(f'Unsupported hardware: {board_type} / {features}')
+            sys.exit(1)
+        args.hwtarget = hw_target + build_type
+        logger.info(f'Assuming a {args.hwtarget} hardware target. Use --hw-target to override')
+
+    # Fetch the firmware to upload
+    fwlength, patchlen, fwhash, fwcompressed = get_firmware(args)
+
+    has_pin = info['JADE_HAS_PIN']
     chunksize = int(info['JADE_OTA_MAX_CHUNK'])
     assert chunksize > 0
 
     # Can set the mnemonic in debug, to ensure OTA is allowed
-    if pushmnemonic:
+    if args.pushmnemonic:
         ret = jade.set_mnemonic(TEST_MNEMONIC)
         assert ret is True
     elif has_pin:
+        # Ensure the Jade is unlocked.
         # The network to use is deduced from the version-info
         network = 'testnet' if info.get('JADE_NETWORKS') == 'TEST' else 'mainnet'
         ret = jade.auth_user(network)
@@ -278,9 +333,10 @@ def ota(jade, fwcompressed, fwlength, fwhash, patchlen, extended_replies, pushmn
         nonlocal last_written
 
         # For the purposes of this test we usually assume the hw supports
-        # extended replies.  Use --no-extended-reply if this is not the case
+        # extended replies.  Use --no-extended-replies if this is not the case
         # (eg. updating from older firmware).
-        assert (extended_reply is not None) == (extended_replies is True)
+        if (extended_reply is not None) != (extended_replies is True):
+            assert False, 'Extended replies mismatch. Use (or remove) --no-extended-replies'
 
         current_time = time.time()
         secs = current_time - last_time
@@ -312,7 +368,7 @@ def ota(jade, fwcompressed, fwlength, fwhash, patchlen, extended_replies, pushmn
     time.sleep(5)
 
     # Return whether we have ble and the id of the jade
-    return has_radio, id
+    return get_bleid(info)
 
 
 if __name__ == '__main__':
@@ -436,48 +492,16 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if args.release and not downloading:
-        logger.error('Can only specify release when downloading fw from server')
-        sys.exit(1)
+        logger.info('Ignoring --release release type since we are not downloading fw')
+        args.release = None
 
     if args.hwtarget and not downloading:
-        logger.error('Can only supply hardware target when downloading fw from server')
-        sys.exit(1)
-
-    if downloading and not args.hwtarget:
-        args.hwtarget = 'jade'   # default to prod jade
-
-    if downloading and not args.release:
-        args.release = 'stable'  # default to latest/stable
+        logger.info('Ignoring --hw-target hardware target since we are not downloading fw')
+        args.hwtarget = None
 
     # Create target dir if not present
     if args.writecompressed and not os.path.isdir(COMP_FW_DIR):
         os.mkdir(COMP_FW_DIR)
-
-    # Get the file to OTA
-    if args.downloadfw:
-        fwlen, patchlen, fwhash, fwcmp = download_file(args.hwtarget, args.writecompressed,
-                                                       args.release)
-    elif args.downloadgdk:
-        fwlen, patchlen, fwhash, fwcmp = download_file_gdk(args.hwtarget, args.writecompressed,
-                                                           args.release)
-    elif args.fwfile:
-        assert not args.writecompressed
-        fwlen, patchlen, fwhash, fwcmp = get_local_compressed_fwfile(args.fwfile)
-    else:
-        # Default case, as 'uncompressed fw file' has a default value if not passed explicitly
-        fwlen, patchlen, fwhash, fwcmp = get_local_uncompressed_fwfile(args.fwfile_uncompressed,
-                                                                       args.writecompressed)
-
-    if fwcmp is None:
-        logger.error('No firmware available')
-        sys.exit(2)
-
-    logger.info(f'Got fw {"patch" if patchlen else "file"} of length {len(fwcmp)} '
-                f'with expected uncompressed final fw length {fwlen}')
-
-    if fwhash is not None:
-        logger.info(f'Final fw hash: {fwhash}')
-        fwhash = bytes.fromhex(fwhash)
 
     # If ble, start the agent to supply the required passkey for authentication
     # and encryption - don't bother if not.
@@ -490,31 +514,35 @@ if __name__ == '__main__':
     try:
         has_radio = True
         bleid = args.bleid
+        info = None
 
         if not args.skipserial:
             logger.info(f'Jade OTA over serial')
             with JadeAPI.create_serial(device=args.serialport) as jade:
                 # By default serial uses extended-replies
                 extended_replies = not args.noextendedreplies
-                has_radio, bleid = ota(jade, fwcmp, fwlen, fwhash, patchlen,
-                                       extended_replies, args.pushmnemonic)
+                info = get_version_info(jade)
+                has_radio, bleid = ota(args, jade, info, extended_replies)
 
-        if not args.skipble:
+        elif not args.skipble:
             if has_radio and bleid is None and args.bleidfromserial:
                 logger.info(f'Jade OTA getting bleid via serial connection')
                 with JadeAPI.create_serial(device=args.serialport) as jade:
-                    has_radio, bleid = get_bleid(jade)
+                    info = get_version_info(jade)
 
             if has_radio:
                 logger.info(f'Jade OTA over BLE {bleid}')
                 with JadeAPI.create_ble(serial_number=bleid) as jade:
                     # Do not use extended-replies for ble
                     extended_replies = False
-                    ota(jade, fwcmp, fwlen, fwhash, patchlen, extended_replies,
-                        args.pushmnemonic)
+                    if not info:
+                        info = get_version_info(jade)
+                    ota(args, jade, info, extended_replies)
             else:
                 msg = 'Skipping BLE tests - not enabled on the hardware'
                 logger.warning(msg)
+        else:
+            assert False  # Unreachable
 
     finally:
         if btagent:

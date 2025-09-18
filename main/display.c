@@ -446,6 +446,16 @@ typedef struct {
 
 static propFont fontChar;
 
+#ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
+uint16_t* get_display_buffer_at(int x, int y)
+{
+    const int calculated_x = x - CONFIG_DISPLAY_OFFSET_X;
+    const int calculated_y = y - CONFIG_DISPLAY_OFFSET_Y;
+    uint16_t* hw_buf = display_hw_get_buffer();
+    return hw_buf + calculated_x + calculated_y * CONFIG_DISPLAY_WIDTH;
+}
+#endif
+
 static inline bool get_icon_pixel(uint16_t x, uint16_t y, uint16_t width, const Icon* icon)
 {
     const uint32_t val = ((uint32_t)width) * y + x;
@@ -497,21 +507,33 @@ void display_icon(const Icon* imgbuf, int x, int y, color_t color, dispWin_t are
     }
 
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
-    const int calculatedx = x - CONFIG_DISPLAY_OFFSET_X;
-    const int calculatedy = y - CONFIG_DISPLAY_OFFSET_Y;
-    uint16_t* hw_buf = display_hw_get_buffer();
-    uint16_t* screen_ptr = &hw_buf[calculatedx + calculatedy * CONFIG_DISPLAY_WIDTH];
+    uint16_t* disp_ptr = get_display_buffer_at(x, y);
+    const uint32_t* icon_data = imgbuf->data;
+    uint32_t icon_bits = 0, bit_counter = 0;
+    const uint32_t stride = CONFIG_DISPLAY_WIDTH - draw_width;
     for (size_t i = 0; i < draw_height; ++i) {
-        uint16_t* row_ptr = screen_ptr + i * CONFIG_DISPLAY_WIDTH;
-        for (size_t k = 0; k < draw_width; ++k) {
-            if (get_icon_pixel(k, i, imgbuf->width, imgbuf)) {
-                row_ptr[k] = color;
-            } else if (bg_color) {
-                row_ptr[k] = *bg_color;
-            } else {
-                // transparent, skip
+        if (bg_color) {
+            const color_t bg = *bg_color;
+            for (size_t k = 0; k < draw_width; ++k, ++bit_counter) {
+                if (!(bit_counter & 31)) {
+                    icon_bits = *icon_data++; // Read next word every 32 bits
+                }
+                *disp_ptr++ = icon_bits & 0x1 ? color : bg;
+                icon_bits >>= 1;
+            }
+        } else {
+            for (size_t k = 0; k < draw_width; ++k, ++bit_counter) {
+                if (!(bit_counter & 31)) {
+                    icon_bits = *icon_data++; // Read next word every 32 bits
+                }
+                if (icon_bits & 0x1) {
+                    *disp_ptr = color;
+                }
+                ++disp_ptr;
+                icon_bits >>= 1;
             }
         }
+        disp_ptr += stride;
     }
 #else
 
@@ -880,14 +902,23 @@ void display_print_in_area(const char* st, int x, int y, dispWin_t areaWin, bool
     }
 }
 
-#define GRAY_MASK1 0xF8
-#define GRAY_MASK2 0xFC
+// Macros to convert a grayscale 0-255 index to big-endian 565 RGB
+#define GS_MASK1 0xF8
+#define GS_MASK2 0xFC
+#define GS_CPU(n) (((n & GS_MASK1) << 8) | ((n & GS_MASK2) << 3) | ((n & GS_MASK1) >> 3))
+// TODO: this should just be GS_CPU(n) if our arch is natively big-endian
+#define GS(n) ((GS_CPU(n) & 0x00ff) << 8) | ((GS_CPU(n) & 0xff00) >> 8)
 
-static inline uint16_t uint8_to_uint16_color(uint8_t gray)
-{
-    const uint16_t res = ((gray & GRAY_MASK1) << 8) | ((gray & GRAY_MASK2) << 3) | ((gray & GRAY_MASK1) >> 3);
-    return __builtin_bswap16(res);
-}
+// We have 6 bits max per R/G/B, so only need 64 distinct mappings
+static const uint16_t gray_565[64] = { GS(0), GS(4), GS(8), GS(12), GS(16), GS(20), GS(24), GS(28), GS(32), GS(36),
+    GS(40), GS(44), GS(48), GS(52), GS(56), GS(60), GS(64), GS(68), GS(72), GS(76), GS(80), GS(84), GS(88), GS(92),
+    GS(96), GS(100), GS(104), GS(108), GS(112), GS(116), GS(120), GS(124), GS(128), GS(132), GS(136), GS(140), GS(144),
+    GS(148), GS(152), GS(156), GS(160), GS(164), GS(168), GS(172), GS(176), GS(180), GS(184), GS(188), GS(192), GS(196),
+    GS(200), GS(204), GS(208), GS(212), GS(216), GS(220), GS(224), GS(228), GS(232), GS(236), GS(240), GS(244), GS(248),
+    GS(252) };
+
+#undef GS_CPU
+#undef GS
 
 void display_picture(const Picture* imgbuf, int x, int y, dispWin_t area)
 {
@@ -939,14 +970,15 @@ void display_picture(const Picture* imgbuf, int x, int y, dispWin_t area)
     JADE_ASSERT(imgbuf->bytes_per_pixel == 1);
 
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
-    color_t* hw_buf = display_hw_get_buffer();
-    const int offsetx = calculatedx - CONFIG_DISPLAY_OFFSET_X;
-    const int offsety = calculatedy - CONFIG_DISPLAY_OFFSET_Y;
-    uint16_t* screen_ptr = &hw_buf[offsetx + offsety * CONFIG_DISPLAY_WIDTH];
+    uint16_t* disp_ptr = get_display_buffer_at(calculatedx, calculatedy);
+    const uint8_t* src_ptr = imgbuf->data_8;
+    const uint32_t stride = CONFIG_DISPLAY_WIDTH - imgbuf->width;
     for (size_t i = 0; i < imgbuf->height; ++i) {
         for (size_t k = 0; k < imgbuf->width; ++k) {
-            screen_ptr[k + i * CONFIG_DISPLAY_WIDTH] = uint8_to_uint16_color(imgbuf->data_8[k + imgbuf->width * i]);
+            *disp_ptr++ = gray_565[*src_ptr >> 2];
+            ++src_ptr;
         }
+        disp_ptr += stride;
     }
 #else
 
@@ -960,7 +992,8 @@ void display_picture(const Picture* imgbuf, int x, int y, dispWin_t area)
         const uint8_t* src_ptr = imgbuf->data_8 + line_offset * imgbuf->width;
 
         for (int i = 0; i < maximum_lines * imgbuf->width; ++i) {
-            *disp_ptr++ = uint8_to_uint16_color(*src_ptr++);
+            *disp_ptr++ = gray_565[*src_ptr >> 2];
+            ++src_ptr;
         }
 
         draw_bitmap(calculatedx, calculatedy + line_offset, imgbuf->width, maximum_lines, disp_buf);

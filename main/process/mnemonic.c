@@ -207,7 +207,11 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
 
         // Verify QR by scanning it back
         qr_data_t qr_data = { .len = 0 };
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+        const qr_frame_guides_t qr_frame_guides = QR_GUIDES_LARGE;
+#else
         const qr_frame_guides_t qr_frame_guides = QR_GUIDES_SMALL;
+#endif
         jade_camera_scan_qr(&qr_data, "Scan QR to verify", qr_frame_guides, "blkstrm.com/seedqr");
         if (qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
             // QR Code scanned, and it matched expected entropy
@@ -1161,7 +1165,11 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     mnemonic[0] = '\0';
 
     // We return 'true' if we scanned any string data at all
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+    const qr_frame_guides_t qr_frame_guides = QR_GUIDES_LARGE;
+#else
     const qr_frame_guides_t qr_frame_guides = QR_GUIDES_SMALL;
+#endif
     const bool qr_scanned
         = jade_camera_scan_qr(&qr_data, NULL, qr_frame_guides, "blkstrm.com/scanwallet") && qr_data.len > 0;
     if (!qr_scanned) {

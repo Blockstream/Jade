@@ -107,10 +107,10 @@ void __wrap_abort(void);
 #include "./process/sign_attestation.c"
 #include "./process/sign_bip85_digest.c"
 #include "./process/sign_identity.c"
-#include "./process/sign_liquid_tx.c"
 #include "./process/sign_message.c"
 #include "./process/sign_psbt.c"
 #include "./process/sign_tx.c"
+#include "./process/sign_utils.c"
 #include "./process/update_pinserver.c"
 #ifdef CONFIG_ETH_USE_OPENETH
 #include "./qemu/qemu_display.c"

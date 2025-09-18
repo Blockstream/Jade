@@ -37,13 +37,18 @@ ESP_EVENT_DEFINE_BASE(GUI_EVENT);
 
 const color_t GUI_BLOCKSTREAM_JADE_GREEN = 0x4C04;
 const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY = 0x0421;
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+// V2 QR codes scan better with a higher contrast background
+const color_t GUI_BLOCKSTREAM_QR_PALE = 0xFFFF;
+#else
 const color_t GUI_BLOCKSTREAM_QR_PALE = 0x494A;
-
+#endif
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT = GUI_BLOCKSTREAM_JADE_GREEN;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE = 0xE0D3;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE = 0xD318;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DARKGREY = 0xA210;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_LIGHTGREY = 0xB294;
+const color_t GUI_BLOCKSTREAM_UNHIGHTLIGHTED_DEFAULT = 0x494A;
 
 typedef struct _activity_holder_t activity_holder_t;
 struct _activity_holder_t {
@@ -1962,10 +1967,10 @@ static void render_icon(gui_view_node_t* node, const dispWin_t cs, const uint8_t
     JADE_ASSERT(node->kind == ICON);
 
     if (node->icon) {
-        const color_t* color = node->is_selected ? &node->icon->selected_color : &node->icon->color;
+        const color_t color = node->is_selected ? node->icon->selected_color : node->icon->color;
         const bool transparent = node->icon->bg_color == node->icon->color;
         display_icon(&node->icon->icon, resolve_halign(0, node->icon->halign), resolve_valign(0, node->icon->valign),
-            *color, cs, transparent ? NULL : &node->icon->bg_color);
+            color, cs, transparent ? NULL : &node->icon->bg_color);
     }
 
     // Draw any children directly over the current node

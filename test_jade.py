@@ -46,6 +46,13 @@ def h2b(hexdata):
         return bytes.fromhex(hexdata)
 
 
+def _h2b_additional_info(additional_info):
+    for summary_item in additional_info['wallet_input_summary']:
+        summary_item['asset_id'] = h2b(summary_item['asset_id'])
+    for summary_item in additional_info['wallet_output_summary']:
+        summary_item['asset_id'] = h2b(summary_item['asset_id'])
+
+
 def _h2b_test_case(testcase):
     # Convert fields from hex to binary
     if 'txn' in testcase['input']:
@@ -65,11 +72,7 @@ def _h2b_test_case(testcase):
                         commitment[k] = v if k == 'value' else h2b(v)
 
         if 'additional_info' in testcase['input']:
-            additional_info = testcase['input']['additional_info']
-            for summary_item in additional_info['wallet_input_summary']:
-                summary_item['asset_id'] = h2b(summary_item['asset_id'])
-            for summary_item in additional_info['wallet_output_summary']:
-                summary_item['asset_id'] = h2b(summary_item['asset_id'])
+            _h2b_additional_info(testcase['input']['additional_info'])
 
         for k in ['expected_output', 'expected_legacy_output']:
             if k in testcase:
@@ -77,6 +80,9 @@ def _h2b_test_case(testcase):
 
     elif 'psbt' in testcase['input']:
         testcase['input']['psbt'] = base64.b64decode(testcase['input']['psbt'])
+
+        if 'additional_info' in testcase['input']:
+            _h2b_additional_info(testcase['input']['additional_info'])
 
         if 'expected_output' in testcase:
             expected_output = testcase['expected_output']
@@ -556,7 +562,6 @@ YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
 
 # Hold test data in separate files as can be large
 QR_QVGA_SCAN_TESTS = 'qr_qvga_*.json'
-QR_VGA_SCAN_TESTS = 'qr_vga_*.json'
 MULTI_REG_TESTS = 'multisig_reg_*.json'
 MULTI_REG_SS_TESTS = 'multisig_reg_ss_*.json'
 MULTI_REG_FILE_TESTS = 'multisig_file_*.json'
@@ -573,7 +578,9 @@ SIGN_TXN_SS_TESTS = 'tx_ss_*.json'
 SIGN_TXN_SS_BAD_TESTS = 'tx_ss_bad_*.json'
 SIGN_LIQUID_TXN_SS_TESTS = 'tx_liquid_ss*.json'
 SIGN_PSBT_TESTS = 'psbt_tm_*.json'
+SIGN_PSET_TESTS = 'pset_tm_*.json'
 SIGN_PSBT_SS_TESTS = 'psbt_ss_*.json'
+SIGN_PSET_SS_TESTS = 'pset_ss_*.json'
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -710,7 +717,7 @@ def test_bad_message(jade):
         assert 'result' not in reply
         error = reply['error']
         assert error['code'] == JadeError.INVALID_REQUEST
-        assert error['message'] == 'Invalid RPC Request message'
+        assert error['message'].startswith('Invalid RPC Request message')
         assert int(error['data']) == len(msgbytes)
         assert 'result' not in reply
 
@@ -741,7 +748,7 @@ def test_very_bad_message(jade):
             # Assert bad message response
             error = reply['error']
             assert error['code'] == JadeError.INVALID_REQUEST
-            assert error['message'] == 'Invalid RPC Request message'
+            assert error['message'].startswith('Invalid RPC Request message')
             bad_bytes += int(error['data'])
 
         assert bad_bytes == len(badmsg)
@@ -777,7 +784,7 @@ def test_random_bytes(jade):
         reply = jade.read_response()
         error = reply['error']
         assert error['code'] == JadeError.INVALID_REQUEST
-        assert error['message'] == 'Invalid RPC Request message'
+        assert error['message'].startswith('Invalid RPC Request message')
         nreceived += int(error['data'])
 
     assert nreceived == nsent
@@ -830,7 +837,7 @@ def test_too_much_input(jade, has_psram):
     reply = jade.read_response()
     error = reply['error']
     assert error['code'] == JadeError.INVALID_REQUEST
-    assert error['message'] == 'Invalid RPC Request message'
+    assert error['message'].startswith('Invalid RPC Request message')
     assert int(error['data']) == expected_buffer_size
 
     # After a short pause send a good message
@@ -847,7 +854,7 @@ def test_too_much_input(jade, has_psram):
         reply = jade.read_response()
         error = reply['error']
         assert error['code'] == JadeError.INVALID_REQUEST
-        assert error['message'] == 'Invalid RPC Request message'
+        assert error['message'].startswith('Invalid RPC Request message')
         bad_bytes += int(error['data'])
 
     assert bad_bytes == expected_overflow_len
@@ -2007,7 +2014,7 @@ dab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                   (('badsignliq14', 'sign_liquid_tx',  # Empty commitments for blinded output
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}]}),
-                   'Missing commitments data for blinded output'),
+                   'Missing trusted commitment data for blinded output'),
                   (('badsignliq15', 'sign_liquid_tx',  # invalid network
                     {'network': 'made-up', 'txn': GOODTX, 'num_inputs': 1,
                      'trusted_commitments': [{}, {}],
@@ -2092,44 +2099,44 @@ dab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
     # Some bad commitment data is detected immediately... esp if it is
     # missing or not syntactically valid, unparseable etc.
     bad_commitments = [  # Field missing - note commitments are optional so not an error to omit
-                        (_commitsMinus('asset_id'), 'trusted commitments'),
-                        (_commitsMinus('value'), 'trusted commitments'),
-                        (_commitsMinus('abf'), 'trusted commitments'),
-                        (_commitsMinus('vbf'), 'trusted commitments'),
-                        (_commitsMinus('blinding_key'), 'Missing commitments data'),
+                        (_commitsMinus('asset_id'), 'trusted commitment'),
+                        (_commitsMinus('value'), 'trusted commitment'),
+                        (_commitsMinus('abf'), 'trusted commitment'),
+                        (_commitsMinus('vbf'), 'trusted commitment'),
+                        (_commitsMinus('blinding_key'), 'Missing trusted commitment'),
                         # Field bad type/length etc.
-                        (_commitsUpdate('asset_id', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('asset_id', h2b('123abc')), 'trusted commitments'),
-                        (_commitsUpdate('asset_id', b''), 'trusted commitments'),
-                        (_commitsUpdate('value', 'notint'), 'trusted commitments'),
-                        (_commitsUpdate('abf', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('abf', h2b('123abc')), 'trusted commitments'),
-                        (_commitsUpdate('abf', b''), 'trusted commitments'),
-                        (_commitsUpdate('vbf', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('vbf', h2b('123abc')), 'trusted commitments'),
-                        (_commitsUpdate('vbf', b''), 'trusted commitments'),
-                        (_commitsUpdate('asset_generator', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('asset_generator', '123abc'), 'trusted commitments'),
-                        (_commitsUpdate('value_commitment', 'notbin'), 'trusted commitments'),
-                        (_commitsUpdate('value_commitment', '123abc'), 'trusted commitments'),
-                        (_commitsUpdate('blinding_key', 'notbin'), 'Missing commitments data'),
-                        (_commitsUpdate('blinding_key', '123abc'), 'Missing commitments data'),
+                        (_commitsUpdate('asset_id', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('asset_id', h2b('123abc')), 'trusted commitment'),
+                        (_commitsUpdate('asset_id', b''), 'trusted commitment'),
+                        (_commitsUpdate('value', 'notint'), 'trusted commitment'),
+                        (_commitsUpdate('abf', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('abf', h2b('123abc')), 'trusted commitment'),
+                        (_commitsUpdate('abf', b''), 'trusted commitment'),
+                        (_commitsUpdate('vbf', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('vbf', h2b('123abc')), 'trusted commitment'),
+                        (_commitsUpdate('vbf', b''), 'trusted commitment'),
+                        (_commitsUpdate('asset_generator', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('asset_generator', '123abc'), 'trusted commitment'),
+                        (_commitsUpdate('value_commitment', 'notbin'), 'trusted commitment'),
+                        (_commitsUpdate('value_commitment', '123abc'), 'trusted commitment'),
+                        (_commitsUpdate('blinding_key', 'notbin'), 'Missing trusted commitment'),
+                        (_commitsUpdate('blinding_key', '123abc'), 'Missing trusted commitment'),
                         # Field bad value
-                        (_commitsUpdate('asset_id', BADVAL32), 'verify blinded asset generator'),
-                        (_commitsUpdate('abf', BADVAL32), 'verify blinded asset generator'),
-                        (_commitsUpdate('vbf', BADVAL32), 'verify blinded value commitment'),
-                        (_commitsUpdate('asset_generator', BADVAL33), 'blinded asset generator'),
-                        (_commitsUpdate('value_commitment', BADVAL33), 'blinded value commitment'),
+                        (_commitsUpdate('asset_id', BADVAL32), 'verify trusted commitment data'),
+                        (_commitsUpdate('abf', BADVAL32), 'verify trusted commitment'),
+                        (_commitsUpdate('vbf', BADVAL32), 'verify trusted commitment'),
+                        (_commitsUpdate('asset_generator', BADVAL33), 'verify trusted commitment'),
+                        (_commitsUpdate('value_commitment', BADVAL33), 'verify trusted commitment'),
                         # Asset blind proof in place of abf
-                        (_commitsAssetBlindProof(''), 'trusted commitments'),
-                        (_commitsAssetBlindProof('notbin'), 'trusted commitments'),
-                        (_commitsAssetBlindProof('123abc'), 'trusted commitments'),
-                        (_commitsAssetBlindProof(b''), 'trusted commitments'),
+                        (_commitsAssetBlindProof(''), 'trusted commitment'),
+                        (_commitsAssetBlindProof('notbin'), 'trusted commitment'),
+                        (_commitsAssetBlindProof('123abc'), 'trusted commitment'),
+                        (_commitsAssetBlindProof(b''), 'trusted commitment'),
                         # Value blind proof in place of vbf
-                        (_commitsValueBlindProof(''), 'trusted commitments'),
-                        (_commitsValueBlindProof('notbin'), 'trusted commitments'),
-                        (_commitsValueBlindProof('123abc'), 'trusted commitments'),
-                        (_commitsValueBlindProof(b''), 'trusted commitments')]
+                        (_commitsValueBlindProof(''), 'trusted commitment'),
+                        (_commitsValueBlindProof('notbin'), 'trusted commitment'),
+                        (_commitsValueBlindProof('123abc'), 'trusted commitment'),
+                        (_commitsValueBlindProof(b''), 'trusted commitment')]
     if has_psram:
         # Invalid/incorrect explicit proofs
         bad_commitments.append((_commitsAssetBlindProof(BAD_ASSET_PROOF),
@@ -2263,10 +2270,8 @@ def test_passphrase(jade):
 
 # Test qr scanning - can be slow as image data large (slow to upload) and
 # tests involve starting the camera (and associated tasks).
-def test_scan_qr(jadeapi, use_vga_images):
-    # Higher res images for s3 hardware
-    pattern = QR_VGA_SCAN_TESTS if use_vga_images else QR_QVGA_SCAN_TESTS
-    for qr_data in _get_test_cases(pattern):
+def test_scan_qr(jadeapi):
+    for qr_data in _get_test_cases(QR_QVGA_SCAN_TESTS):
         expected = qr_data['expected_output']
         image_filename = qr_data['input']['image']
         with open('./test_data/' + image_filename, 'rb') as f:
@@ -2649,7 +2654,7 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
             signer_commitment, signature = actual
         else:
             # Standard EC signature should be low-s and low-r
-            assert actual == expected, f'{actual.hex()} != {expected.hex()}'
+            assert actual == expected, f'{actual.hex()} != {expected.hex()} {testcase["filename"]}'
 
             # NOTE: low-s is implied/assumed here, so no need to remove one from max-len
             assert len(actual) <= wally.EC_SIGNATURE_DER_MAX_LOW_R_LEN + 1  # sighash byte, low-s
@@ -3022,13 +3027,34 @@ def test_liquid_blinded_commitments(jadeapi):
     assert rslt == ledger_commitments[1]
 
 
-def test_sign_psbt(jadeapi, cases):
+def test_sign_psbt(jadeapi, cases, has_psram):
     for txn_data in _get_test_cases(cases):
+        # Expect PSET test cases to fail for non-PSRAM devices
+        psbt_bin = txn_data['input']['psbt']
+
+        expect_pset_failure = False
+        if not has_psram:
+            # Max message size from main/process.h
+            # 69 bytes of overhead for a sign_psbt request
+            MAX_INPUT_MSG_SIZE = 1024 * 17 + 69
+            if len(psbt_bin) + 69 > MAX_INPUT_MSG_SIZE:
+                logger.warning(f'Skipping {txn_data["filename"]} large PSBT on non-psram device')
+                continue
+            if psbt_bin[2] == ord('e'):
+                expect_pset_failure = True
+                continue
+
         try:
-            rslt = jadeapi.sign_psbt(txn_data['input']['network'], txn_data['input']['psbt'])
+            network = txn_data['input']['network']
+            additional_info = txn_data['input'].get('additional_info')
+            rslt = jadeapi.sign_psbt(network, psbt_bin, additional_info)
         except JadeError as err:
+            if expect_pset_failure:
+                continue  # Trying to parse a PSET on an unsupported device
+            if 'expected_output' in txn_data:
+                # We expected this test to pass
+                assert False, f'FAILED: {err.message}: {txn_data}'
             # Check expected error
-            assert 'expected_output' not in txn_data
             assert err.message == txn_data['expected_error'], err.message
             continue
 
@@ -3041,7 +3067,9 @@ def test_sign_psbt(jadeapi, cases):
         if expected_txn:
             psbt = wally.psbt_from_bytes(rslt, 0)
             wally.psbt_finalize(psbt, 0)
-            txn = wally.psbt_extract(psbt, wally.WALLY_PSBT_EXTRACT_FINAL)
+            # Extract finalized inputs where possible (e.g. multisigs may
+            # not be fully signed and thus aren't finalizable)
+            txn = wally.psbt_extract(psbt, wally.WALLY_PSBT_EXTRACT_OPT_FINAL)
             txn = wally.tx_to_bytes(txn, wally.WALLY_TX_FLAG_USE_WITNESS)
             assert txn == expected_txn, txn.hex()
 
@@ -3377,7 +3405,7 @@ def test_generic_multisig_ss_signer(jadeapi):
                 assert False, 'Accessing other wallet multisig should fail'
         except JadeError as e:
             assert e.code == JadeError.BAD_PARAMETERS
-            assert e.message == 'Cannot de-serialise multisig wallet data'
+            assert e.message == 'Cannot de-serialise multisig wallet data', e.message
 
         # If we register the same multisig description to this wallet, it should produce
         # the same addresses as it did previously (for the other signatory)
@@ -3731,7 +3759,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_sign_tx(jadeapi, SIGN_LIQUID_TXN_TESTS, has_psram)
 
     # Test sign psbts (app-generated cases)
-    test_sign_psbt(jadeapi, SIGN_PSBT_TESTS)
+    test_sign_psbt(jadeapi, SIGN_PSBT_TESTS, has_psram)
+    test_sign_psbt(jadeapi, SIGN_PSET_TESTS, has_psram)
 
     # Short sanity-test of 12-word mnemonic
     test_12word_mnemonic(jadeapi)
@@ -3765,7 +3794,9 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # - Mixed wallet and non-wallet inputs
     # - Unusual input and change paths
     # - Negative test cases (invalid PSBTs)
-    test_sign_psbt(jadeapi, SIGN_PSBT_SS_TESTS)
+    test_sign_psbt(jadeapi, SIGN_PSBT_SS_TESTS, has_psram)
+    # Singlesig Liquid (PSET) tests
+    test_sign_psbt(jadeapi, SIGN_PSET_SS_TESTS, has_psram)
 
     # Sign identity (ssh & gpg) tests require a specific mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12_IDENTITY)
@@ -3861,9 +3892,7 @@ def run_interface_tests(jadeapi,
 
         # Only run QR scan/camera tests a) over serial, and b) on proper Jade hw
         if not qemu and not isble and startinfo['BOARD_TYPE'] in ['JADE', 'JADE_V1.1', 'JADE_V2']:
-            # Higher res images for s3 hardware
-            use_vga_images = startinfo['BOARD_TYPE'] == 'JADE_V2'
-            test_scan_qr(jadeapi, use_vga_images)
+            test_scan_qr(jadeapi)
 
     # Too much input test - sends a lot of data so only run
     # if not running over BLE (as would take a long time)
@@ -4203,6 +4232,10 @@ if __name__ == '__main__':
     btagent = None
     if manage_agents:
         btagent = start_agent(args.agentkeyfile)
+
+    # Remove PINs left over from previous test runs
+    for f in glob.glob("./*.pin"):
+        os.remove(f)
 
     try:
         info = get_jade_info()

@@ -1,12 +1,36 @@
 #!/bin/bash
 
-if [ -z "${1}" -o -z "${2}" ]
-then
-    echo "Usage: ${0} <version/dir> <key_label>"
+function usage {
+    echo "Usage: ${0} <version/dir> <key_label> [--serialport PORT]"
+}
+
+VER_DIR=""
+KEY_LABEL=""
+JADE_SERIAL_ARG=""
+
+while true; do
+    case "$1" in
+        --serialport) JADE_SERIAL_ARG="${1} ${2}"; shift 2 ;;
+        -h | --help)
+            usage;
+            exit 0 ;;
+        "") break ;;
+        *)
+            if [ -z "${VER_DIR}" ]; then
+                VER_DIR="${1}"; shift;
+            elif [ -z "${KEY_LABEL}" ]; then
+                KEY_LABEL="${1}"; shift;
+            else
+                usage;
+                exit 1
+            fi ;;
+    esac
+done
+
+if [ -z "${VER_DIR}" -o -z "${KEY_LABEL}" ]; then
+    usage
     exit 1
 fi
-VER_DIR="${1}"
-KEY_LABEL="${2}"
 
 WORKING_DIR="staging/${VER_DIR}/jade2.0"
 
@@ -35,7 +59,7 @@ SIG_SUFFIX="${KEY_LABEL}.sig"
 
 HASH_OPTS="-sha256 -binary"
 VERIFY_OPTS="-pubin -inkey ${PUBKEY} -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pss"
-JADE_SIGN_CMD="python ../../../../jade_bip85_rsa_sign.py ${LOGGING} ${CHECK_JADE_PUBKEY} --keylen ${KEYLEN} --index ${INDEX} --digest-files"
+JADE_SIGN_CMD="python ../../../../jade_bip85_rsa_sign.py ${JADE_SERIAL_ARG} ${LOGGING} ${CHECK_JADE_PUBKEY} --keylen ${KEYLEN} --index ${INDEX} --digest-files"
 
 pushd "${WORKING_DIR}"
 

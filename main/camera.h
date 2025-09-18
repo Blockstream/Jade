@@ -8,15 +8,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// Size of the image as provided by the camera - note this should be consistent
-// with CAMERA_IMAGE_RESOLUTION !  TODO: fetch from Kconfig?
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-#define CAMERA_IMAGE_WIDTH 640
-#define CAMERA_IMAGE_HEIGHT 480
-#else
+// Size of the image as provided by the camera
+// TODO: fetch from Kconfig?
 #define CAMERA_IMAGE_WIDTH 320
 #define CAMERA_IMAGE_HEIGHT 240
-#endif
 
 // How much image (central area) is displayed on screen
 uint16_t camera_displayed_image_width(void);

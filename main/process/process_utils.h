@@ -13,21 +13,26 @@
 #define COMMITMENTS_BLINDING_KEY 0x4
 #define COMMITMENTS_ASSET_BLIND_PROOF 0x8
 #define COMMITMENTS_VALUE_BLIND_PROOF 0x10
-#define COMMITMENTS_INCLUDES_COMMITMENTS 0x20
 
+// Holds asset/value blinding data
 typedef struct {
-    uint8_t asset_blind_proof[ASSET_EXPLICIT_SURJECTIONPROOF_LEN];
-    uint8_t value_blind_proof[ASSET_EXPLICIT_RANGEPROOF_MAX_LEN];
-    uint8_t asset_generator[ASSET_GENERATOR_LEN];
-    uint8_t value_commitment[ASSET_COMMITMENT_LEN];
+    uint64_t value;
     uint8_t asset_id[ASSET_TAG_LEN];
     uint8_t abf[BLINDING_FACTOR_LEN];
     uint8_t vbf[BLINDING_FACTOR_LEN];
     uint8_t blinding_key[EC_PUBLIC_KEY_LEN];
-    uint64_t value;
-    size_t value_blind_proof_len;
     uint8_t content;
 } commitment_t;
+
+// Holds asset/value blinding data plus the resulting blinded commitments/proofs
+typedef struct {
+    commitment_t c;
+    uint8_t value_blind_proof_len;
+    uint8_t asset_blind_proof[ASSET_EXPLICIT_SURJECTIONPROOF_LEN];
+    uint8_t value_blind_proof[ASSET_EXPLICIT_RANGEPROOF_MAX_LEN];
+    uint8_t asset_generator[ASSET_GENERATOR_LEN];
+    uint8_t value_commitment[ASSET_COMMITMENT_LEN];
+} ext_commitment_t;
 
 #define MAX_REQUEST_URLS 2
 
@@ -84,7 +89,7 @@ bool jade_process_check_network(jade_process_t* process, CborValue* params, netw
         goto cleanup;                                                                                                  \
     }
 
-// Do we have have a keychain, and does its userdata indicate the same 'source'
+// Do we have a keychain, and does its userdata indicate the same 'source'
 // as the current message ?
 // This is to check that we only handle messages from the same source (serial or ble)
 // as initially unlocked the key material.

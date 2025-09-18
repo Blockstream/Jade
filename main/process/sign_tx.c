@@ -1,4 +1,5 @@
 #ifndef AMALGAMATED_BUILD
+#include "../ui/sign_tx.h"
 #include "../button_events.h"
 #include "../descriptor.h"
 #include "../jade_assert.h"
@@ -7,11 +8,9 @@
 #include "../multisig.h"
 #include "../process.h"
 #include "../sensitive.h"
-#include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
-#include "../utils/network.h"
 #include "../utils/wally_ext.h"
 #include "../wallet.h"
 
@@ -22,41 +21,10 @@
 #include <wally_map.h>
 #include <wally_script.h>
 
-#include "process_utils.h"
+#include "sign_utils.h"
 
-bool rpc_get_trusted_commitments(
-    jade_process_t* process, const CborValue* value, const struct wally_tx* tx, commitment_t** data);
-TxType_t rpc_get_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx,
-    TxType_t* txtype, bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums,
-    size_t* num_out_sums);
-bool validate_elements_outputs(jade_process_t* process, const network_t network_id, const struct wally_tx* tx,
-    const TxType_t txtype, commitment_t* commitments, output_info_t* output_info, asset_summary_t* in_sums,
-    const size_t num_in_sums, asset_summary_t* out_sums, const size_t num_out_sums, uint64_t* fees);
-bool get_commitment_data(CborValue* item, commitment_t* commitment);
-bool verify_commitment_consistent(const commitment_t* commitments, const char** errmsg);
-bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
-    const size_t asset_id_len, const uint64_t value);
-bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums);
-
-bool show_btc_transaction_outputs_activity(
-    const network_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
-bool show_elements_transaction_outputs_activity(const network_t network_id, const struct wally_tx* tx,
-    const output_info_t* output_info, const asset_info_t* assets, size_t num_assets);
-
-bool show_elements_swap_activity(const network_t network_id, bool initial_proposal, const asset_summary_t* in_sums,
-    size_t num_in_sums, const asset_summary_t* out_sums, size_t num_out_sums, const asset_info_t* assets,
-    size_t num_assets);
-
-bool show_btc_final_confirmation_activity(network_t network_id, uint64_t fee, const char* warning_msg);
-bool show_elements_final_confirmation_activity(
-    const network_t network_id, const char* title, const uint64_t fee, const char* warning_msg);
-
-bool show_elements_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
-    const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t fees,
-    const TxType_t txtype, const bool is_partial);
-
-struct wally_tx* rpc_get_signing_tx(
-    jade_process_t* process, const CborValue* params, const network_t network_id, const bool for_liquid)
+static struct wally_tx* params_txn(jade_process_t* process, const CborValue* params, const network_t network_id,
+    const bool for_liquid, uint64_t* explicit_fee)
 {
     struct wally_tx* tx = NULL;
     const char* errmsg = NULL;
@@ -104,22 +72,7 @@ struct wally_tx* rpc_get_signing_tx(
         errmsg = "Unexpected number of inputs for transaction";
         goto fail;
     }
-
-    if (for_liquid) {
-        for (size_t i = 0; i < tx->num_outputs; ++i) {
-            bool exp_asset = tx->outputs[i].asset[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX;
-            bool exp_value = tx->outputs[i].value[0] == WALLY_TX_ASSET_CT_EXPLICIT_PREFIX;
-            if (exp_asset != exp_value) {
-                errmsg = "Output asset and value blinding inconsistent";
-                goto fail;
-            }
-        }
-    }
-
-    size_t is_elements = 0;
-    JADE_WALLY_VERIFY(wally_tx_is_elements(tx, &is_elements));
-    if (for_liquid != is_elements) {
-        errmsg = "Transaction is the wrong type for the current network";
+    if (!params_txn_validate(network_id, for_liquid, tx, explicit_fee, &errmsg)) {
         goto fail;
     }
     return tx;
@@ -129,7 +82,7 @@ fail:
 }
 
 // Can optionally be passed paths for change outputs, which we verify internally
-bool rpc_get_signing_outputs(jade_process_t* process, const CborValue* params, const network_t network_id,
+static bool params_signing_outputs(jade_process_t* process, const CborValue* params, const network_t network_id,
     const bool for_liquid, const struct wally_tx* tx, output_info_t** output_info)
 {
     JADE_ASSERT(process);
@@ -365,50 +318,6 @@ cleanup:
     return true;
 }
 
-bool show_btc_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
-    const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t input_amount,
-    const uint64_t output_amount)
-{
-    JADE_ASSERT(tx);
-    // outputinfo is optional
-    JADE_ASSERT(input_amount);
-    JADE_ASSERT(output_amount);
-
-    JADE_ASSERT(input_amount >= output_amount);
-
-    // User to agree fee amount
-    // The fee amount is the shortfall between input and output amounts
-    // The 'spend' amount is the total of the outputs not flagged as change
-    const uint64_t fees = input_amount - output_amount;
-    uint64_t spend_amount = output_amount;
-    if (outinfo) {
-        for (size_t i = 0; i < tx->num_outputs; ++i) {
-            if (outinfo[i].flags & OUTPUT_FLAG_CHANGE) {
-                // Deduct change output amount
-                JADE_ASSERT(spend_amount >= tx->outputs[i].satoshi);
-                spend_amount -= tx->outputs[i].satoshi;
-            }
-        }
-    }
-
-    char warnbuf[128]; // sufficient
-    const char* warning_msg = NULL;
-    const bool warn_fees = fees && fees >= spend_amount;
-    const bool warn_scripts = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED;
-    if (warn_fees && warn_scripts) {
-        const int retval = snprintf(warnbuf, sizeof(warnbuf), "%s %s", WARN_MSG_HIGH_FEES, WARN_MSG_MIXED_INPUTS);
-        JADE_ASSERT(retval > 0 && retval < sizeof(warnbuf));
-        warning_msg = warnbuf;
-    } else if (warn_scripts) {
-        warning_msg = WARN_MSG_MIXED_INPUTS;
-    } else if (warn_fees) {
-        warning_msg = WARN_MSG_HIGH_FEES;
-    }
-
-    // Return whether the user accepts or declines
-    return show_btc_final_confirmation_activity(network_id, fees, warning_msg);
-}
-
 // Loop to generate and send Anti-Exfil signatures as they are requested.
 static void send_ae_signature_replies(const network_t network_id, jade_process_t* process, signing_data_t* signing_data)
 {
@@ -499,22 +408,6 @@ static void send_ec_signature_replies(
     }
 }
 
-// Whether or not a sighash type is valid
-static bool is_valid_sig_type(
-    const input_data_t* const input_data, const TxType_t txtype, const bool for_liquid, const bool is_partial)
-{
-    if (for_liquid && txtype == TXTYPE_SWAP && is_partial) {
-        // Liquid partial swap: must be SINGLE | ACP
-        return input_data->sighash == (WALLY_SIGHASH_SINGLE | WALLY_SIGHASH_ANYONECANPAY);
-    }
-    if (input_data->sig_type == WALLY_SIGTYPE_SW_V1) {
-        // Taproot: must be ALL or DEFAULT
-        return input_data->sighash == WALLY_SIGHASH_DEFAULT || input_data->sighash == WALLY_SIGHASH_ALL;
-    }
-    // All other cases must be ALL at present
-    return input_data->sighash == WALLY_SIGHASH_ALL;
-}
-
 /*
  * The message flow here is complicated because we cater for both a legacy flow
  * for standard deterministic EC signatures (see rfc6979) and a newer message
@@ -534,7 +427,8 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     CHECK_NETWORK_CONSISTENT(process);
     const jade_msg_source_t source = process->ctx.source;
 
-    struct wally_tx* tx = rpc_get_signing_tx(process, &params, network_id, for_liquid);
+    uint64_t explicit_fee = 0;
+    struct wally_tx* tx = params_txn(process, &params, network_id, for_liquid, &explicit_fee);
     if (!tx) {
         goto cleanup;
     }
@@ -546,13 +440,13 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
     commitment_t* commitments = NULL;
     // Liquid: Copy trusted commitment data so we can free the message
-    if (for_liquid && !rpc_get_trusted_commitments(process, &params, tx, &commitments)) {
+    if (for_liquid && !params_trusted_commitments(process, &params, tx, &commitments)) {
         goto cleanup;
     }
 
     // Optional info for wallet outputs
     output_info_t* output_info = NULL;
-    if (!rpc_get_signing_outputs(process, &params, network_id, for_liquid, tx, &output_info)) {
+    if (!params_signing_outputs(process, &params, network_id, for_liquid, tx, &output_info)) {
         goto cleanup;
     }
 
@@ -570,23 +464,28 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         JADE_LOGI("Read %d assets from message", num_assets);
     }
 
+    const char* errmsg = NULL;
     asset_summary_t *in_sums = NULL, *out_sums = NULL;
     size_t num_in_sums = 0, num_out_sums = 0;
     bool is_partial = false;
-    uint64_t liquid_fees = 0;
     TxType_t txtype = TXTYPE_SEND_PAYMENT;
     // Liquid: Get any data from the optional 'additional_info' section
     if (for_liquid
-        && !rpc_get_additional_info(
-            process, &params, tx, &txtype, &is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums)) {
+        && !params_additional_info(
+            process, &params, tx, &txtype, &is_partial, &in_sums, &num_in_sums, &out_sums, &num_out_sums, &errmsg)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
-    // Liquid: Validate commitment, outputs and additional_info
-    if (for_liquid
-        && !validate_elements_outputs(process, network_id, tx, txtype, commitments, output_info, in_sums, num_in_sums,
-            out_sums, num_out_sums, &liquid_fees)) {
-        goto cleanup;
+    // Liquid: Gather the (unblinded) output info for user confirmation,
+    // then validate output and additional_info values
+    if (for_liquid) {
+        if (!update_elements_outputs(tx, commitments, output_info, &errmsg)
+            || !validate_elements_outputs(
+                network_id, tx, txtype, output_info, in_sums, num_in_sums, out_sums, num_out_sums, &errmsg)) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
+            goto cleanup;
+        }
     }
 
     const char* cancelmsg = NULL;
@@ -671,7 +570,6 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         // (But if passed must be valid - empty/root path is not allowed for signing)
         const bool has_path = rpc_has_field_data("path", &params);
         if (has_path) {
-            const char* errmsg = NULL;
             num_to_sign += 1;
 
             // Get all common tx-signing input fields which must be present if a path is given
@@ -680,7 +578,8 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
                 goto cleanup;
             }
-            if (!is_valid_sig_type(input_data, txtype, for_liquid, is_partial)) {
+            if (!sighash_is_supported(txtype, input_data->sig_type, input_data->sighash, for_liquid, is_partial)) {
+                JADE_LOGW("Unsupported sighash for signing input %u", index);
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported sighash value");
                 goto cleanup;
             }
@@ -698,14 +597,15 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 }
 
                 // Verify any blinding info for this input - note can only use blinded inputs
-                commitment_t commitment;
-                if (get_commitment_data(&params, &commitment)) {
-                    if (!verify_commitment_consistent(&commitment, &errmsg)) {
-                        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
-                        goto cleanup;
-                    }
-                    asset_summary_update(
-                        in_sums, num_in_sums, commitment.asset_id, sizeof(commitment.asset_id), commitment.value);
+                commitment_t c;
+                if (params_commitment_data(&params, &c, NULL, &errmsg)) {
+                    JADE_ASSERT(!errmsg);
+                    // Valid input commitments: update the summary
+                    asset_summary_update(in_sums, num_in_sums, c.asset_id, sizeof(c.asset_id), c.value);
+                } else if (errmsg) {
+                    // Invalid input commitments (rather than simply not present)
+                    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
+                    goto cleanup;
                 }
             }
             if (for_liquid && input_data->sig_type != WALLY_SIGTYPE_PRE_SW) {
@@ -960,14 +860,14 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         } else if (in_sums || out_sums) {
             JADE_LOGI("Input and output summary information validated");
         }
-        if (is_partial && !liquid_fees) {
-            // Partial tx without fees - can skip the fee screen ?
+        if (is_partial && !explicit_fee) {
+            // Partial tx without fees - can skip the fee screen
             JADE_LOGI("No fees for partial tx, so skipping fee confirmation screen");
         } else {
             // User to agree fee amount
             // If user cancels we'll send the 'cancelled' error response for the last input message only
             if (!show_elements_fee_confirmation_activity(
-                    network_id, tx, output_info, aggregate_inputs_scripts_flavour, liquid_fees, txtype, is_partial)) {
+                    network_id, tx, output_info, aggregate_inputs_scripts_flavour, explicit_fee, txtype, is_partial)) {
                 // If using ae-signatures, we need to load the message to send the error back on
                 if (use_ae_signatures) {
                     jade_process_load_in_message(process, true);
