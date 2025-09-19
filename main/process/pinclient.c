@@ -90,7 +90,7 @@ static void send_http_request_reply(jade_process_t* process, const char* documen
     size_t urlA_len = 0;
     const bool urlASet = storage_get_pinserver_urlA(urlbuf, sizeof(urlbuf), &urlA_len);
     if (urlASet && urlA_len <= 1) {
-        // Explcitly no url
+        // Explicitly no url
         urlA[0] = '\0';
     } else {
         urlA_len = snprintf(urlA, sizeof(urlA), "%s/%s", urlASet ? urlbuf : PINSERVER_URL, document);
@@ -102,7 +102,7 @@ static void send_http_request_reply(jade_process_t* process, const char* documen
     size_t urlB_len = 0;
     const bool urlBSet = storage_get_pinserver_urlB(urlbuf, sizeof(urlbuf), &urlB_len);
     if (urlBSet && urlB_len <= 1) {
-        // Explcitly no second url
+        // Explicitly no second url
         urlB[0] = '\0';
     } else {
         urlB_len = snprintf(urlB, sizeof(urlB), "%s/%s", urlBSet ? urlbuf : PINSERVER_ONION, document);

@@ -462,7 +462,7 @@ void update_aggregate_scripts_flavour(
         // First script sets the 'aggregate_scripts_flavour'
         *aggregate_scripts_flavour = new_script_flavour;
     } else if (*aggregate_scripts_flavour != new_script_flavour) {
-        // As soon as we see something differet, set to 'mixed'
+        // As soon as we see something different, set to 'mixed'
         *aggregate_scripts_flavour = SCRIPT_FLAVOUR_MIXED;
     }
 }
