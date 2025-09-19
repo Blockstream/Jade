@@ -302,7 +302,7 @@ bool bcur_build_cbor_bytes(const uint8_t* data, const size_t data_len, uint8_t**
     JADE_INIT_OUT_SIZE(output_len);
 
     // Format as simple cbor message containing only bytes
-    const size_t buflen = data_len + 8; // sufficent for cbor overhead
+    const size_t buflen = data_len + 8; // sufficient for cbor overhead
     uint8_t* buf = JADE_MALLOC_PREFER_SPIRAM(buflen);
     CborEncoder root_encoder;
     cbor_encoder_init(&root_encoder, buf, buflen, 0);
