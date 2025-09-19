@@ -78,7 +78,7 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
     }
     gui_set_parent(btn, parent);
 
-    // If borders explcitly specified, show in dark grey
+    // If borders explicitly specified, show in dark grey
     // 0 implies default behaviour - no visible borders when not selected
     if (btn_info->borders) {
         gui_set_borders(btn, GUI_BLOCKSTREAM_BUTTONBORDER_GREY, 1, btn_info->borders);
