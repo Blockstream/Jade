@@ -51,6 +51,8 @@ Copy the relevant config file onto `./sdkconfig.defaults`.  The production build
 |                             | no-radio      | ./production/sdkconfig_jade_noradio_prod.defaults        |
 | Jade 1.1 (rocker/jog-wheel) | BLE-enabled   | ./production/sdkconfig_jade_v1_1_prod.defaults           |
 |                             | no-radio      | ./production/sdkconfig_jade_v1_1_noradio_prod.defaults   |
+| Jade 2.0 (Jade Plus)        | BLE-enabled   | ./production/sdkconfig_jade_v2_prod.defaults             |
+|                             | no-radio      | ./production/sdkconfig_jade_v2_noradio_prod.defaults     |
 
 eg:
 ```
