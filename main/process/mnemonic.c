@@ -1334,9 +1334,18 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
             gui_set_current_activity_ex(act, true);
 
             const int32_t ev_id = gui_activity_wait_button(act, BTN_EVENT_TIMEOUT);
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
             switch (ev_id) {
             case BTN_EVENT_TIMEOUT:
+#ifdef CONFIG_DEBUG_UNATTENDED_CI
+                // In a debug unattended ci build, use hardcoded mnemonic after a short delay
+                strcpy(mnemonic,
+                    "fish inner face ginger orchard permit useful method fence kidney chuckle party favorite sunset "
+                    "draw "
+                    "limb "
+                    "science crane oval letter slot invite sadness banana");
+                got_mnemonic = true;
+                break;
+#else
                 JADE_ASSERT(false);
             case BTN_MNEMONIC_EXIT:
                 // Abandon setting up mnemonic altogether
@@ -1391,19 +1400,11 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
                 got_mnemonic = mnemonic_qr(mnemonic, sizeof(mnemonic));
                 qr_scanned = got_mnemonic;
                 break;
-
+#endif
             default:
                 // Unknown event, ignore
                 continue;
             }
-#else
-            // In a debug unattended ci build, use hardcoded mnemonic after a short delay
-            strcpy(mnemonic,
-                "fish inner face ginger orchard permit useful method fence kidney chuckle party favorite sunset draw "
-                "limb "
-                "science crane oval letter slot invite sadness banana");
-            got_mnemonic = true;
-#endif
         }
     }
 
