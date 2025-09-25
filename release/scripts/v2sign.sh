@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ -z "${1}" -o -z "${2}" ]
 then
     echo "Usage: ${0} <version/dir> <key_label>"
@@ -25,6 +27,9 @@ SIGN_OPTS="-inkey ${KEY} -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pss -p
 VERIFY_OPTS="-pubin -inkey ${PUBKEY} -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pss"
 
 pushd "${WORKING_DIR}"
+
+[ -f ${PUBKEY} ] || false # Public key file must exist
+[ -f ${KEY} ] || false # Private key file must exist
 
 # Verify bootloaders are same
 sha1=$(sha256sum "${BLEDIR}/bootloader/bootloader.bin" | cut -d\  -f1)
