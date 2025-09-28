@@ -569,7 +569,7 @@ or, if 'extended_replies' was set in the original request, and the Jade fw suppo
 * 'confirmed' is initially false, until the user verifies the OTA upload, then all subsequent replies will be true
 * 'progress' is the percentage complete value as shown on Jade (which is based on uncompressed final firmware written, so can differ from the proportion of compressed data uploaded)
 
-NOTE: 'extended_replies' is supported as of Jade fw 1.0.34
+NOTE: 'extended_replies' is supported as of Jade fw 1.0.33
 
 We then send the 'ota_complete' message to verify the OTA was successful (before the device reboots).
 
