@@ -826,7 +826,7 @@ static bool verify_address(const address_data_t* const addr_data)
 }
 
 // Handle QR Options dialog - ie. QR size and frame-rate
-static bool handle_qr_options(uint32_t* qr_flags)
+static bool handle_qr_options(uint32_t* qr_flags, const char* help_url)
 {
     JADE_ASSERT(qr_flags);
 
@@ -886,7 +886,7 @@ static bool handle_qr_options(uint32_t* qr_flags)
             }
             update_menu_item(framerate_item, "Frame Rate", qr_framerate_desc_from_flags(*qr_flags));
         } else if (ev_id == BTN_QR_OPTIONS_HELP) {
-            await_qr_help_activity("blkstrm.com/scanjade");
+            await_qr_help_activity(help_url);
         } else if (ev_id == BTN_QR_OPTIONS_EXIT) {
             // Done
             break;
@@ -953,7 +953,7 @@ static void display_bcur_qr(const char* message[], const size_t message_size, co
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_QR_DISPLAY_EXIT);
         if (ev_id == BTN_QR_OPTIONS) {
-            if (handle_qr_options(&qr_flags)) {
+            if (handle_qr_options(&qr_flags, help_url)) {
                 // Options were updated - re-create psbt qr screen
                 display_processing_message_activity();
                 act = create_display_bcur_qr_activity(
