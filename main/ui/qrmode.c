@@ -228,7 +228,7 @@ gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_
 
 // NOTE: 'icons' passed in here must be heap-allocated as the gui element takes ownership
 gui_activity_t* make_show_qr_activity(const char* message[], const size_t message_size, Icon* icons,
-    const size_t num_icons, const size_t frames_per_qr_icon, const bool show_options_button, const bool show_help_btn)
+    const size_t num_icons, const size_t frames_per_qr_icon, const bool show_options_button)
 {
     JADE_ASSERT(message);
     JADE_ASSERT(message_size < 4);
@@ -249,19 +249,12 @@ gui_activity_t* make_show_qr_activity(const char* message[], const size_t messag
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 20, 56, 24);
         gui_set_parent(vsplit, hsplit);
 
-        // tick button
-        btn_data_t hdrbtns[]
-            = { { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT, .borders = GUI_BORDER_ALL },
-                  { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
-                  { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_QR_DISPLAY_HELP, .borders = GUI_BORDER_ALL } };
-
-        if (!show_help_btn) {
-            // Remove help button if not needed
-            hdrbtns[2].txt = NULL;
-            hdrbtns[2].font = GUI_DEFAULT_FONT;
-            hdrbtns[2].ev_id = GUI_BUTTON_EVENT_NONE;
-            hdrbtns[2].borders = 0; // None
-        }
+        // back button, space, brightness button
+        btn_data_t hdrbtns[] = {
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_QR_DISPLAY_EXIT, .borders = GUI_BORDER_ALL },
+            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE },
+            { .txt = "P", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_BRIGHTNESS, .borders = GUI_BORDER_ALL }
+        };
 
         add_buttons(vsplit, UI_ROW, hdrbtns, 3); // 44 (hsplit) / 3 == 14 - almost 15 so ok
 

@@ -67,7 +67,7 @@ gui_activity_t* make_search_address_options_activity(
     bool show_account, gui_view_node_t** account_textbox, gui_view_node_t** change_textbox);
 
 gui_activity_t* make_show_qr_activity(const char* message[], size_t message_size, Icon* icons, size_t num_icons,
-    size_t frames_per_qr_icon, bool show_options_button, bool show_help_btn);
+    size_t frames_per_qr_icon, bool show_options_button);
 gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** framerate_textbox);
 
 bool import_mnemonic(const uint8_t* bytes, size_t bytes_len, char* buf, size_t buf_len, size_t* written);
@@ -905,14 +905,13 @@ static bool handle_qr_options(uint32_t* qr_flags, const char* help_url)
 
 // Create activity to display (potentially multi-frame/animated) qr
 static gui_activity_t* create_display_bcur_qr_activity(const char* message[], const size_t message_size,
-    const char* bcur_type, const uint8_t* cbor, const size_t cbor_len, const uint32_t qr_flags, const char* help_url)
+    const char* bcur_type, const uint8_t* cbor, const size_t cbor_len, const uint32_t qr_flags)
 {
     JADE_ASSERT(message);
     JADE_ASSERT(message_size);
     JADE_ASSERT(bcur_type);
     JADE_ASSERT(cbor);
     JADE_ASSERT(cbor_len);
-    // help_url is optional
 
     // Map BCUR cbor into a series of QR-code icons
     Icon* icons = NULL;
@@ -923,10 +922,10 @@ static gui_activity_t* create_display_bcur_qr_activity(const char* message[], co
     // Create qr activity for those icons
     const bool show_options_button = true;
     const uint8_t frames_per_qr = qr_framerate_from_flags(qr_flags);
-    return make_show_qr_activity(message, message_size, icons, num_icons, frames_per_qr, show_options_button, help_url);
+    return make_show_qr_activity(message, message_size, icons, num_icons, frames_per_qr, show_options_button);
 }
 
-// Display a QR code, with access to size_speed options
+// Display a QR code, with access to size/speed options
 static void display_bcur_qr(const char* message[], const size_t message_size, const char* bcur_type,
     const uint8_t* cbor, const size_t cbor_len, const char* help_url)
 {
@@ -944,8 +943,7 @@ static void display_bcur_qr(const char* message[], const size_t message_size, co
     idletimer_set_min_timeout_secs(BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS);
 
     // Create show psbt activity for those icons
-    gui_activity_t* act
-        = create_display_bcur_qr_activity(message, message_size, bcur_type, cbor, cbor_len, qr_flags, help_url);
+    gui_activity_t* act = create_display_bcur_qr_activity(message, message_size, bcur_type, cbor, cbor_len, qr_flags);
 
     while (true) {
         // Show, and await button click
@@ -954,13 +952,13 @@ static void display_bcur_qr(const char* message[], const size_t message_size, co
         const int32_t ev_id = gui_activity_wait_button(act, BTN_QR_DISPLAY_EXIT);
         if (ev_id == BTN_QR_OPTIONS) {
             if (handle_qr_options(&qr_flags, help_url)) {
-                // Options were updated - re-create psbt qr screen
+                // Options were updated - re-create bcur qr screen
                 display_processing_message_activity();
-                act = create_display_bcur_qr_activity(
-                    message, message_size, bcur_type, cbor, cbor_len, qr_flags, help_url);
+                act = create_display_bcur_qr_activity(message, message_size, bcur_type, cbor, cbor_len, qr_flags);
             }
-        } else if (ev_id == BTN_QR_DISPLAY_HELP) {
-            await_qr_help_activity(help_url);
+        } else if (ev_id == BTN_QR_BRIGHTNESS) {
+            gui_next_qrcode_color();
+            gui_repaint(act->root_node);
         } else if (ev_id == BTN_QR_DISPLAY_EXIT) {
             // Done
             break;
@@ -1001,7 +999,7 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         JADE_ASSERT(sig[written - 1] == '\0');
 
         const char* message[] = { "Scan QR", "signature" };
-        await_single_qr_activity(message, 2, sig, written - 1, NULL);
+        await_single_qr_activity(message, 2, sig, written - 1);
         return true;
     }
 
@@ -1380,23 +1378,20 @@ bool display_bcur_bytes_qr(
     return true;
 }
 
-// Display screen with help url and qr code
-// Handles up to v6. codes - ie text up to 134 bytes
-// help_url is optional
 void await_single_qr_activity(
-    const char* message[], const size_t message_size, const uint8_t* data, const size_t data_len, const char* help_url)
+    const char* message[], const size_t message_size, const uint8_t* data, const size_t data_len)
 {
     JADE_ASSERT(message);
     JADE_ASSERT(message_size);
     JADE_ASSERT(data);
     JADE_ASSERT(data_len);
-    // help_url is optional
 
     Icon* const qr_icon = JADE_MALLOC(sizeof(Icon));
     bytes_to_qr_icon(data, data_len, qr_icon);
 
     // Show, and await button click - note gui takes ownership of icon
-    gui_activity_t* const act = make_show_qr_activity(message, message_size, qr_icon, 1, 0, false, help_url);
+    const bool show_options_button = false;
+    gui_activity_t* const act = make_show_qr_activity(message, message_size, qr_icon, 1, 0, show_options_button);
 
     while (true) {
         gui_set_current_activity(act);
@@ -1405,8 +1400,9 @@ void await_single_qr_activity(
         if (ev_id == BTN_QR_DISPLAY_EXIT) {
             // Done
             break;
-        } else if (ev_id == BTN_QR_DISPLAY_HELP) {
-            await_qr_help_activity(help_url);
+        } else if (ev_id == BTN_QR_BRIGHTNESS) {
+            gui_next_qrcode_color();
+            gui_repaint(act->root_node);
         }
     }
 }

@@ -259,7 +259,6 @@ typedef enum {
     BTN_QR_OPTIONS_FRAMERATE,
     BTN_QR_OPTIONS_HELP,
     BTN_QR_OPTIONS_EXIT,
-    BTN_QR_DISPLAY_HELP,
     BTN_QR_DISPLAY_EXIT,
 
     // NOTE: Always leave these ones last as keyboard buttons use

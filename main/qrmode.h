@@ -15,11 +15,9 @@ void handle_scan_qr(void);
 bool display_bcur_bytes_qr(
     const char* message[], size_t message_size, const uint8_t* data, size_t data_len, const char* help_url);
 
-// Display screen with single arbitrary qr code
-// Handles up to v6 codes - ie. text up to 134 bytes
-// help_url is optional
-void await_single_qr_activity(
-    const char* message[], size_t message_size, const uint8_t* data, size_t data_len, const char* help_url);
+// Display screen with qr code
+// Handles up to v6. codes - ie text up to 134 bytes
+void await_single_qr_activity(const char* message[], size_t message_size, const uint8_t* data, size_t data_len);
 
 // Display screen with help url and qr code
 void await_qr_help_activity(const char* url);
