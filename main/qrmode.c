@@ -89,6 +89,7 @@ bool select_registered_wallet(const char multisig_names[][NVS_KEY_NAME_MAX_SIZE]
 
 // PSBT struct and functions
 struct wally_psbt;
+network_t network_from_psbt_type(struct wally_psbt* psbt);
 int sign_psbt(
     jade_process_t* process, CborValue* params, network_t network_id, struct wally_psbt* psbt, const char** errmsg);
 int wally_psbt_free(struct wally_psbt* psbt);
@@ -1092,12 +1093,8 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     // Try to sign extracted PSBT
     bool ret = false;
     const char* errmsg = NULL;
-    network_t network_id;
-    if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
-        network_id = NETWORK_BITCOIN_TESTNET;
-    } else {
-        network_id = NETWORK_BITCOIN;
-    }
+    const network_t network_id = network_from_psbt_type(psbt);
+
     // Note we pass NULL process/params as we don't have any additional info
     const int errcode = sign_psbt(NULL, NULL, network_id, psbt, &errmsg);
     if (errcode) {

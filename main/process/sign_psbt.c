@@ -650,6 +650,18 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
     return true;
 }
 
+// Deduce the network to try to sign with given a psbt/pset.
+network_t network_from_psbt_type(struct wally_psbt* psbt)
+{
+    JADE_ASSERT(psbt);
+    size_t is_elements = 0;
+    JADE_WALLY_VERIFY(wally_psbt_is_elements(psbt, &is_elements));
+    if (keychain_get_network_type_restriction() == NETWORK_TYPE_TEST) {
+        return is_elements ? NETWORK_LIQUID_TESTNET : NETWORK_BITCOIN_TESTNET;
+    }
+    return is_elements ? NETWORK_LIQUID : NETWORK_BITCOIN;
+}
+
 // Sign a psbt/pset - the passed wally psbt struct is updated with any signatures.
 // Returns 0 if no errors occurred - does not necessarily indicate that signatures were added.
 // Returns an rpc/message error code on error, and the error string should be populated.
