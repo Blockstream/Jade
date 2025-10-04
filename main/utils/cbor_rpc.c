@@ -673,7 +673,13 @@ void add_bytes_to_map(CborEncoder* container, const char* name, const uint8_t* v
 
     CborError cberr = cbor_encode_text_stringz(container, name);
     JADE_ASSERT(cberr == CborNoError);
+#ifdef CONFIG_LIBJADE
+    // Prevent passing null to memcpy with len 0 in tinycbor
+    const uint8_t dummy = 0;
+    cberr = cbor_encode_byte_string(container, len ? value : &dummy, len);
+#else
     cberr = cbor_encode_byte_string(container, value, len);
+#endif
     JADE_ASSERT(cberr == CborNoError);
 }
 
