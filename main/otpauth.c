@@ -271,7 +271,7 @@ static bool base32_to_bin(
     JADE_ASSERT(b32_dec_len);
     JADE_ASSERT(done);
 
-    int tmp = 0;
+    unsigned int tmp = 0;
     uint8_t count = 0;
     *done = 0;
     const char* b32_str_end = b32_str + b32_str_len;
