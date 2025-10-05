@@ -32,16 +32,14 @@ static gui_view_node_t* make_home_screen_panel_item(const color_t color, home_me
     gui_make_vsplit(&item, GUI_SPLIT_RELATIVE, 2, HOME_SCREEN_DEEP_STATUS_BAR ? 55 : 65, GUI_SPLIT_FILL_REMAINING);
 
     // Top row, the symbol and label text
-    gui_make_fill(&fill, color);
-    gui_set_parent(fill, item);
+    gui_make_fill(&fill, color, FILL_PLAIN, item);
     gui_make_text_font(&entry->symbol, "", TFT_WHITE, JADE_SYMBOLS_24x24_FONT);
     gui_set_padding(entry->symbol, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 8);
     gui_set_align(entry->symbol, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(entry->symbol, fill);
 
     // Second row, label text
-    gui_make_fill(&fill, color);
-    gui_set_parent(fill, item);
+    gui_make_fill(&fill, color, FILL_PLAIN, item);
     gui_make_text_font(&entry->text, "", TFT_WHITE, HOME_SCREEN_DEEP_STATUS_BAR ? DEJAVU24_FONT : GUI_DEFAULT_FONT);
     gui_set_padding(entry->text, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 8);
     gui_set_align(entry->text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
@@ -96,21 +94,18 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 9, 44, 47);
     gui_set_parent(hsplit, vsplit);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(status_light, "M", TFT_DARKGREY, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(*status_light, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_padding(*status_light, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 2);
     gui_set_parent(*status_light, node);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(status_text, "", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(*status_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(*status_text, node);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(label, firmware_version, TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(*label, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     gui_set_padding(*label, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 0);

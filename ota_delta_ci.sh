@@ -26,7 +26,7 @@ gcc -O2 -DBSDIFF_EXECUTABLE -o ./tools/bsdiff build/bsdiff.c
 
 # NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware files
 FW_BLE=$(ls build/*_ble_*_fw.bin)
-FW_NORADIO=$(ls build_noblobs/*_noradio_*_fw.bin)
+FW_NORADIO=$(ls build_noradio/*_noradio_*_fw.bin)
 
 # Make four patches between radio and ble firmware variants
 PATCHDIR=patches
@@ -37,7 +37,7 @@ mkdir -p ${PATCHDIR}
 ./tools/mkpatch.py ${FW_NORADIO} ${FW_BLE} ${PATCHDIR}  # makes both directions
 sleep 2
 
-# first we ota to noblob via ble
+# first we ota to noradio via ble
 # NOTE: the filename is of the pattern: 'final-from-base' - hence noradio*ble*patch.bin
 FW_PATCH=$(ls ${PATCHDIR}/*_noradio_*_ble*_patch.bin)
 cp "${FW_NORADIO}.hash" "${FW_PATCH}.hash"
@@ -48,7 +48,7 @@ FW_PATCH=$(ls ${PATCHDIR}/*_noradio_*_noradio*_patch.bin)
 python jade_ota.py --log=INFO --skipble --serialport=${JADESERIALPORT} --fwfile=${FW_PATCH}
 sleep 2
 
-# then we test from noblob to ble via serial
+# then we test from noradio to ble via serial
 # NOTE: the filename is of the pattern: 'final-from-base' - hence ble*noradio*patch.bin
 FW_PATCH=$(ls ${PATCHDIR}/*_ble_*_noradio*_patch.bin)
 cp "${FW_BLE}.hash" "${FW_PATCH}.hash"

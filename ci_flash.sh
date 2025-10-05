@@ -12,19 +12,20 @@ if [[ -z ${JADESERIALPORT} ]]; then
 fi
 
 TARGET_CHIP=${1:-esp32}
+BUILD_DIR=${2:-build}
 
 if [ "$TARGET_CHIP" = "esp32" ]; then
     python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip ${TARGET_CHIP} --port ${JADESERIALPORT} --baud 2000000 --before default_reset erase_flash
-    python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip ${TARGET_CHIP} --port ${JADESERIALPORT} --baud 2000000 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect 0xE000 build/ota_data_initial.bin 0x1000 build/bootloader/bootloader.bin 0x10000 build/jade.bin 0x9000 build/partition_table/partition-table.bin
+    python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip ${TARGET_CHIP} --port ${JADESERIALPORT} --baud 2000000 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect 0xE000 ${BUILD_DIR}/ota_data_initial.bin 0x1000 ${BUILD_DIR}/bootloader/bootloader.bin 0x10000 ${BUILD_DIR}/jade.bin 0x9000 ${BUILD_DIR}/partition_table/partition-table.bin
 else
     python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip ${TARGET_CHIP} --port ${JADESERIALPORT} --baud 460800 --before default_reset erase_flash
-    python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip ${TARGET_CHIP} --port ${JADESERIALPORT} --baud 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 8MB 0x0 build/bootloader/bootloader.bin 0x20000 build/jade.bin 0x8000 build/partition_table/partition-table.bin 0x1a000 build/ota_data_initial.bin
+    python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip ${TARGET_CHIP} --port ${JADESERIALPORT} --baud 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 8MB 0x0 ${BUILD_DIR}/bootloader/bootloader.bin 0x20000 ${BUILD_DIR}/jade.bin 0x8000 ${BUILD_DIR}/partition_table/partition-table.bin 0x1a000 ${BUILD_DIR}/ota_data_initial.bin
 fi
 
 sleep 1
 
 
-if fgrep -qs "CONFIG_APPTRACE_GCOV_ENABLE=y" build/sdkconfig sdkconfig; then
+if fgrep -qs "CONFIG_APPTRACE_GCOV_ENABLE=y" ${BUILD_DIR}/sdkconfig sdkconfig; then
     cleanup() {
         killall -9 openocd || true
     }
@@ -60,7 +61,7 @@ source ~/venv3/bin/activate
 pip install --require-hashes -r requirements.txt
 
 # NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware file
-FW_FULL=$(ls build/*_fw.bin)
+FW_FULL=$(ls ${BUILD_DIR}/*_fw.bin)
 python jade_ota.py --push-mnemonic --log=INFO --serialport=${JADESERIALPORT} --fwfile=${FW_FULL}
 
 sleep 5
@@ -69,7 +70,7 @@ python -c "from jadepy import JadeAPI; jade = JadeAPI.create_serial(device=\"${J
 python test_jade.py --log=INFO --serialport=${JADESERIALPORT}
 
 # check if gcov is enabled and run collection tool
-if fgrep -qs "CONFIG_APPTRACE_GCOV_ENABLE=y" build/sdkconfig sdkconfig; then
+if fgrep -qs "CONFIG_APPTRACE_GCOV_ENABLE=y" ${BUILD_DIR}/sdkconfig sdkconfig; then
   ./tools/gcov/generate_report.sh
   killall -9 openocd || true
 fi

@@ -81,7 +81,7 @@ void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const
         gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     } else {
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 10, 75, 15);
-        gui_make_fill(&node, TFT_BLACK);
+        gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, NULL);
     }
     gui_set_parent(vsplit, parent);
     gui_set_parent(node, vsplit);
@@ -99,8 +99,7 @@ void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const
         pin_insert->pin[i] = 0xFF;
         pin_insert->digit_status[i] = i == 0 ? SELECTED : EMPTY;
 
-        gui_make_fill(&node, TFT_BLACK);
-        gui_set_parent(node, hsplit);
+        gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
         pin_insert->pin_digit_nodes[i].fill_node = node;
 
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 25, 50, 25);

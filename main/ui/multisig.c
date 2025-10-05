@@ -161,49 +161,37 @@ static bool show_view_multisig_activity(const char* multisig_name, const bool in
         = make_view_multisig_activities(multisig_name, initial_confirmation, is_valid, is_sorted, threshold,
             num_signers, make_empty_none(blindingkeystr), &act_name, &act_type, &act_sorted, &act_blindingkey);
     gui_activity_t* act = act_summary;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_MULTISIG_RETAIN_CONFIRM;
-#endif
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_MULTISIG_RETAIN_CONFIRM);
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-        if (ret) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        case BTN_MULTISIG_NAME:
+            act = act_name;
+            break;
 
-            case BTN_MULTISIG_NAME:
-                act = act_name;
-                break;
+        case BTN_MULTISIG_TYPE:
+            act = act_type;
+            break;
 
-            case BTN_MULTISIG_TYPE:
-                act = act_type;
-                break;
+        case BTN_MULTISIG_SORTED:
+            act = act_sorted;
+            break;
 
-            case BTN_MULTISIG_SORTED:
-                act = act_sorted;
-                break;
+        case BTN_MULTISIG_BLINDINGKEY:
+            act = act_blindingkey;
+            break;
 
-            case BTN_MULTISIG_BLINDINGKEY:
-                act = act_blindingkey;
-                break;
+        case BTN_MULTISIG_DISCARD_DELETE:
+            return false;
 
-            case BTN_MULTISIG_DISCARD_DELETE:
-                return false;
-
-            case BTN_MULTISIG_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_MULTISIG_RETAIN_CONFIRM:
+            return true;
         }
     }
 }
@@ -305,41 +293,29 @@ static bool show_final_multisig_summary_activity(const char* multisig_name, cons
     gui_activity_t* act_summary = make_final_multisig_summary_activities(multisig_name, threshold, num_signers,
         num_signer_details, initial_confirmation, overwriting, &act_name, &act_type);
     gui_activity_t* act = act_summary;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_MULTISIG_RETAIN_CONFIRM;
-#endif
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_MULTISIG_RETAIN_CONFIRM);
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-        if (ret) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        case BTN_MULTISIG_NAME:
+            act = act_name;
+            break;
 
-            case BTN_MULTISIG_NAME:
-                act = act_name;
-                break;
+        case BTN_MULTISIG_TYPE:
+            act = act_type;
+            break;
 
-            case BTN_MULTISIG_TYPE:
-                act = act_type;
-                break;
+        case BTN_MULTISIG_DISCARD_DELETE:
+            return false;
 
-            case BTN_MULTISIG_DISCARD_DELETE:
-                return false;
-
-            case BTN_MULTISIG_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_MULTISIG_RETAIN_CONFIRM:
+            return true;
         }
     }
 }

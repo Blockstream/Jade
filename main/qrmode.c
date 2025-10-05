@@ -292,80 +292,70 @@ static bool handle_xpub_options(uint32_t* qr_flags)
         // Show, and await button click
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_XPUB_OPTIONS_EXIT;
-#endif
-        if (ret) {
-            if (ev_id == BTN_XPUB_OPTIONS_SCRIPTTYPE) {
-                gui_set_current_activity(act_scripttype);
-                while (true) {
-                    gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
-                    if (gui_activity_wait_event(act_scripttype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
-                            rotate_scripttypes(qr_flags, true);
-                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            rotate_scripttypes(qr_flags, false);
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
-                    }
-                }
-                update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
-            } else if (ev_id == BTN_XPUB_OPTIONS_WALLETTYPE) {
-                gui_set_current_activity(act_wallettype);
-                while (true) {
-                    gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
-                    if (gui_activity_wait_event(act_wallettype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            *qr_flags ^= QR_XPUB_MULTISIG; // toggle
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
-                    }
-                }
-                update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
-            } else if (ev_id == BTN_XPUB_OPTIONS_ACCOUNT) {
-
-                while (true) {
-                    reset_pin(&pin_insert, NULL);
-                    gui_set_current_activity(pin_insert.activity);
-                    if (!run_pin_entry_loop(&pin_insert)) {
-                        // User abandoned index entry
+        int32_t ev_id = gui_activity_wait_button(act, BTN_XPUB_OPTIONS_EXIT);
+        if (ev_id == BTN_XPUB_OPTIONS_SCRIPTTYPE) {
+            gui_set_current_activity(act_scripttype);
+            while (true) {
+                gui_update_text(script_textbox, xpub_scripttype_desc_from_flags(*qr_flags));
+                if (gui_activity_wait_event(act_scripttype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                        rotate_scripttypes(qr_flags, true);
+                    } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                        rotate_scripttypes(qr_flags, false);
+                    } else if (ev_id == gui_get_click_event()) {
+                        // Done
                         break;
                     }
-
-                    // Get entered digits as single numeric value
-                    const uint32_t new_account_index = get_pin_as_number(&pin_insert);
-                    if (new_account_index < ACCOUNT_INDEX_MAX) {
-                        account_index = new_account_index;
-
-                        // Update the display
-                        const int ret = snprintf(buf, sizeof(buf), "%u", account_index);
-                        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-                        update_menu_item(account_item, "Account Index", buf);
-                        break;
-                    } else {
-                        // Show message and retry
-                        const int ret = snprintf(buf, sizeof(buf), "%u", ACCOUNT_INDEX_MAX);
-                        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-                        const char* message[] = { "Account index must", "be less than", buf };
-                        await_error_activity(message, 3);
-                    }
                 }
-            } else if (ev_id == BTN_XPUB_OPTIONS_HELP) {
-                await_qr_help_activity("blkstrm.com/xpub");
-            } else if (ev_id == BTN_XPUB_OPTIONS_EXIT) {
-                // Done
-                break;
             }
+            update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
+        } else if (ev_id == BTN_XPUB_OPTIONS_WALLETTYPE) {
+            gui_set_current_activity(act_wallettype);
+            while (true) {
+                gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
+                if (gui_activity_wait_event(act_wallettype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                        *qr_flags ^= QR_XPUB_MULTISIG; // toggle
+                    } else if (ev_id == gui_get_click_event()) {
+                        // Done
+                        break;
+                    }
+                }
+            }
+            update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
+        } else if (ev_id == BTN_XPUB_OPTIONS_ACCOUNT) {
+
+            while (true) {
+                reset_pin(&pin_insert, NULL);
+                gui_set_current_activity(pin_insert.activity);
+                if (!run_pin_entry_loop(&pin_insert)) {
+                    // User abandoned index entry
+                    break;
+                }
+
+                // Get entered digits as single numeric value
+                const uint32_t new_account_index = get_pin_as_number(&pin_insert);
+                if (new_account_index < ACCOUNT_INDEX_MAX) {
+                    account_index = new_account_index;
+
+                    // Update the display
+                    const int ret = snprintf(buf, sizeof(buf), "%u", account_index);
+                    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+                    update_menu_item(account_item, "Account Index", buf);
+                    break;
+                } else {
+                    // Show message and retry
+                    const int ret = snprintf(buf, sizeof(buf), "%u", ACCOUNT_INDEX_MAX);
+                    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+                    const char* message[] = { "Account index must", "be less than", buf };
+                    await_error_activity(message, 3);
+                }
+            }
+        } else if (ev_id == BTN_XPUB_OPTIONS_HELP) {
+            await_qr_help_activity("blkstrm.com/xpub");
+        } else if (ev_id == BTN_XPUB_OPTIONS_EXIT) {
+            // Done
+            break;
         }
     }
 
@@ -393,27 +383,18 @@ void display_xpub_qr(void)
         // Show, and await button click
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_XPUB_EXIT;
-#endif
-        if (ret) {
-            if (ev_id == BTN_XPUB_OPTIONS) {
-                if (handle_xpub_options(&qr_flags)) {
-                    // Options were updated - re-create xpub screen
-                    act = create_display_xpub_qr_activity(qr_flags);
-                }
-            } else if (ev_id == BTN_XPUB_HELP) {
-                await_qr_help_activity("blkstrm.com/xpub");
-            } else if (ev_id == BTN_XPUB_EXIT) {
-                // Done
-                break;
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_XPUB_EXIT);
+        if (ev_id == BTN_XPUB_OPTIONS) {
+            if (handle_xpub_options(&qr_flags)) {
+                // Options were updated - re-create xpub screen
+                act = create_display_xpub_qr_activity(qr_flags);
             }
+        } else if (ev_id == BTN_QR_BRIGHTNESS) {
+            gui_next_qrcode_color();
+            gui_repaint(act->root_node);
+        } else if (ev_id == BTN_XPUB_EXIT) {
+            // Done
+            break;
         }
     }
 }
@@ -868,57 +849,47 @@ static bool handle_qr_options(uint32_t* qr_flags)
         // Show, and await button click
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_QR_OPTIONS_EXIT;
-#endif
-        if (ret) {
-            // NOTE: For Density and Speed :- HIGH|LOW > HIGH > LOW
-            // Rotate through: LOW -> HIGH -> HIGH|LOW -> LOW -> ...
-            // unset/default is treated as HIGH ie. the middle value
-            if (ev_id == BTN_QR_OPTIONS_DENSITY) {
-                gui_set_current_activity(act_density);
-                while (true) {
-                    gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
-                    if (gui_activity_wait_event(act_density, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
-                            rotate_flags(qr_flags, QR_DENSITY_LOW, QR_DENSITY_HIGH); // reverse
-                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            rotate_flags(qr_flags, QR_DENSITY_HIGH, QR_DENSITY_LOW);
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
+        int32_t ev_id = gui_activity_wait_button(act, BTN_QR_OPTIONS_EXIT);
+        // NOTE: For Density and Speed :- HIGH|LOW > HIGH > LOW
+        // Rotate through: LOW -> HIGH -> HIGH|LOW -> LOW -> ...
+        // unset/default is treated as HIGH ie. the middle value
+        if (ev_id == BTN_QR_OPTIONS_DENSITY) {
+            gui_set_current_activity(act_density);
+            while (true) {
+                gui_update_text(density_textbox, qr_density_desc_from_flags(*qr_flags));
+                if (gui_activity_wait_event(act_density, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                        rotate_flags(qr_flags, QR_DENSITY_LOW, QR_DENSITY_HIGH); // reverse
+                    } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                        rotate_flags(qr_flags, QR_DENSITY_HIGH, QR_DENSITY_LOW);
+                    } else if (ev_id == gui_get_click_event()) {
+                        // Done
+                        break;
                     }
                 }
-                update_menu_item(density_item, "QR Density", qr_density_desc_from_flags(*qr_flags));
-            } else if (ev_id == BTN_QR_OPTIONS_FRAMERATE) {
-                gui_set_current_activity(act_framerate);
-                while (true) {
-                    gui_update_text(framerate_textbox, qr_framerate_desc_from_flags(*qr_flags));
-                    if (gui_activity_wait_event(act_framerate, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
-                            rotate_flags(qr_flags, QR_SPEED_LOW, QR_SPEED_HIGH); // reverse
-                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            rotate_flags(qr_flags, QR_SPEED_HIGH, QR_SPEED_LOW);
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
-                    }
-                }
-                update_menu_item(framerate_item, "Frame Rate", qr_framerate_desc_from_flags(*qr_flags));
-            } else if (ev_id == BTN_QR_OPTIONS_HELP) {
-                await_qr_help_activity("blkstrm.com/scanjade");
-            } else if (ev_id == BTN_QR_OPTIONS_EXIT) {
-                // Done
-                break;
             }
+            update_menu_item(density_item, "QR Density", qr_density_desc_from_flags(*qr_flags));
+        } else if (ev_id == BTN_QR_OPTIONS_FRAMERATE) {
+            gui_set_current_activity(act_framerate);
+            while (true) {
+                gui_update_text(framerate_textbox, qr_framerate_desc_from_flags(*qr_flags));
+                if (gui_activity_wait_event(act_framerate, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                        rotate_flags(qr_flags, QR_SPEED_LOW, QR_SPEED_HIGH); // reverse
+                    } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                        rotate_flags(qr_flags, QR_SPEED_HIGH, QR_SPEED_LOW);
+                    } else if (ev_id == gui_get_click_event()) {
+                        // Done
+                        break;
+                    }
+                }
+            }
+            update_menu_item(framerate_item, "Frame Rate", qr_framerate_desc_from_flags(*qr_flags));
+        } else if (ev_id == BTN_QR_OPTIONS_HELP) {
+            await_qr_help_activity("blkstrm.com/scanjade");
+        } else if (ev_id == BTN_QR_OPTIONS_EXIT) {
+            // Done
+            break;
         }
     }
 
@@ -980,29 +951,19 @@ static void display_bcur_qr(const char* message[], const size_t message_size, co
         // Show, and await button click
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_QR_DISPLAY_EXIT;
-#endif
-        if (ret) {
-            if (ev_id == BTN_QR_OPTIONS) {
-                if (handle_qr_options(&qr_flags)) {
-                    // Options were updated - re-create psbt qr screen
-                    display_processing_message_activity();
-                    act = create_display_bcur_qr_activity(
-                        message, message_size, bcur_type, cbor, cbor_len, qr_flags, help_url);
-                }
-            } else if (ev_id == BTN_QR_DISPLAY_HELP) {
-                await_qr_help_activity(help_url);
-            } else if (ev_id == BTN_QR_DISPLAY_EXIT) {
-                // Done
-                break;
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_QR_DISPLAY_EXIT);
+        if (ev_id == BTN_QR_OPTIONS) {
+            if (handle_qr_options(&qr_flags)) {
+                // Options were updated - re-create psbt qr screen
+                display_processing_message_activity();
+                act = create_display_bcur_qr_activity(
+                    message, message_size, bcur_type, cbor, cbor_len, qr_flags, help_url);
             }
+        } else if (ev_id == BTN_QR_DISPLAY_HELP) {
+            await_qr_help_activity(help_url);
+        } else if (ev_id == BTN_QR_DISPLAY_EXIT) {
+            // Done
+            break;
         }
     }
 
@@ -1436,27 +1397,16 @@ void await_single_qr_activity(
 
     // Show, and await button click - note gui takes ownership of icon
     gui_activity_t* const act = make_show_qr_activity(message, message_size, qr_icon, 1, 0, false, help_url);
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_DISPLAY_EXIT, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_QR_DISPLAY_EXIT;
-#endif
-
-        if (ret) {
-            if (ev_id == BTN_QR_DISPLAY_EXIT) {
-                // Done
-                break;
-            } else if (ev_id == BTN_QR_DISPLAY_HELP) {
-                await_qr_help_activity(help_url);
-            }
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_QR_DISPLAY_EXIT);
+        if (ev_id == BTN_QR_DISPLAY_EXIT) {
+            // Done
+            break;
+        } else if (ev_id == BTN_QR_DISPLAY_HELP) {
+            await_qr_help_activity(help_url);
         }
     }
 }
@@ -1511,12 +1461,17 @@ void await_qr_help_activity(const char* url)
     gui_activity_t* const act = make_show_qr_help_activity(url_with_crlf, qr_icon);
     gui_set_current_activity(act);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_HELP_EXIT, NULL, NULL, NULL, 0);
-#else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, BTN_QR_HELP_EXIT, NULL, NULL, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-#endif
+    // Show, and await button click
+    while (true) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_QR_HELP_EXIT);
+        if (ev_id == BTN_QR_BRIGHTNESS) {
+            gui_next_qrcode_color();
+            gui_repaint(act->root_node);
+        } else if (ev_id == BTN_QR_HELP_EXIT) {
+            // Done
+            break;
+        }
+    }
 }
 
 // Display screen with help url and qr code
@@ -1537,18 +1492,17 @@ bool await_qr_back_continue_activity(
     gui_activity_t* const act = make_qr_back_continue_activity(message, message_size, url, qr_icon, default_selection);
     gui_set_current_activity(act);
 
-    int32_t ev_id = 0;
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-    const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-    gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const bool ret = true;
-    ev_id = BTN_YES;
-#endif
-
-    // Return whether 'Continue' was cicked
-    return ret && ev_id == BTN_YES;
+    // Show, and await button click
+    while (true) {
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_YES);
+        if (ev_id == BTN_QR_BRIGHTNESS) {
+            gui_next_qrcode_color();
+            gui_repaint(act->root_node);
+        } else if (ev_id == BTN_YES || ev_id == BTN_NO) {
+            // Done: return whether 'Continue' was cicked
+            return ev_id == BTN_YES;
+        }
+    }
 }
 
 // QR-Mode PinServer interaction

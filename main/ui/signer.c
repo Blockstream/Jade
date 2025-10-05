@@ -171,53 +171,41 @@ bool show_signer_activity(
     gui_activity_t* act_summary = make_signer_activities(signer, signer_number, num_signers, is_this_signer,
         &act_fingerprint, &act_derivation, &act_xpub1, &act_xpub2, &act_path);
     gui_activity_t* act = act_summary;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'next' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_SIGNER_NEXT;
-#endif
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNER_NEXT);
+        switch (ev_id) {
+        case BTN_BACK:
+            act = (act == act_xpub2) ? act_xpub1 : act_summary;
+            break;
 
-        if (ret) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = (act == act_xpub2) ? act_xpub1 : act_summary;
-                break;
+        case BTN_SIGNER_FINGERPRINT:
+            act = act_fingerprint;
+            break;
 
-            case BTN_SIGNER_FINGERPRINT:
-                act = act_fingerprint;
-                break;
+        case BTN_SIGNER_DERIVATION:
+            act = act_derivation;
+            break;
 
-            case BTN_SIGNER_DERIVATION:
-                act = act_derivation;
-                break;
+        case BTN_SIGNER_PATH:
+            act = act_path;
+            break;
 
-            case BTN_SIGNER_PATH:
-                act = act_path;
-                break;
+        case BTN_SIGNER_XPUB:
+            act = act_xpub1;
+            break;
 
-            case BTN_SIGNER_XPUB:
-                act = act_xpub1;
-                break;
+        case BTN_SIGNER_XPUB_NEXT:
+            act = (act == act_xpub1) ? act_xpub2 : act_summary;
+            break;
 
-            case BTN_SIGNER_XPUB_NEXT:
-                act = (act == act_xpub1) ? act_xpub2 : act_summary;
-                break;
+        case BTN_SIGNER_PREV:
+            return false;
 
-            case BTN_SIGNER_PREV:
-                return false;
-
-            case BTN_SIGNER_NEXT:
-                return true;
-            }
+        case BTN_SIGNER_NEXT:
+            return true;
         }
     }
 }

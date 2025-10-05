@@ -78,7 +78,7 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
     }
     gui_set_parent(btn, parent);
 
-    // If borders explcitly specified, show in dark grey
+    // If borders explicitly specified, show in dark grey
     // 0 implies default behaviour - no visible borders when not selected
     if (btn_info->borders) {
         gui_set_borders(btn, GUI_BLOCKSTREAM_BUTTONBORDER_GREY, 1, btn_info->borders);
@@ -154,12 +154,12 @@ void populate_title_bar(
 
         if (title_node) {
             *title_node = titlenode;
-            gui_make_fill(&titlenode, TFT_BLACK);
+            gui_make_fill(&titlenode, TFT_BLACK, FILL_PLAIN, NULL);
             gui_set_parent(*title_node, titlenode);
         }
     } else {
         // No title, just a blank space
-        gui_make_fill(&titlenode, TFT_BLACK);
+        gui_make_fill(&titlenode, TFT_BLACK, FILL_PLAIN, NULL);
     }
 
     if (!num_btns) {
@@ -441,37 +441,28 @@ static bool await_yesno_activity_loop(gui_activity_t* const act, const char* hel
     JADE_ASSERT(act);
     // help_url is optional (but should be present if a BTN_HELP btn is present)
 
-    int32_t ev_id;
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'Yes' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_YES;
-#endif
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_YES);
+        // Return true if 'Yes' was pressed, false if 'No'
+        switch (ev_id) {
+        case BTN_YES:
+            return true;
 
-        if (ret) {
-            // Return true if 'Yes' was pressed, false if 'No'
-            switch (ev_id) {
-            case BTN_YES:
-                return true;
+        case BTN_NO:
+            return false;
 
-            case BTN_NO:
-                return false;
+        case BTN_HELP:
+            await_qr_help_activity(help_url);
+            break;
 
-            case BTN_HELP:
-                await_qr_help_activity(help_url);
-                break;
+        case BTN_EVENT_TIMEOUT:
+            break;
 
-            default:
-                JADE_LOGW("Unexpected button event: %ld", ev_id);
-                break;
-            }
+        default:
+            JADE_LOGW("Unexpected button event: %ld", ev_id);
+            break;
         }
     }
 }
@@ -575,8 +566,7 @@ gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** labe
         gui_set_parent(vsplit, parent);
 
         // Updateable label
-        gui_make_fill(&node, TFT_BLACK);
-        gui_set_parent(node, vsplit);
+        gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, vsplit);
 
         gui_make_text(label, "", TFT_WHITE);
         gui_set_padding(*label, GUI_MARGIN_ALL_DIFFERENT, 0, 8, 0, 0);
@@ -586,13 +576,11 @@ gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** labe
         gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 25, 35, 40);
         gui_set_parent(vsplit, parent);
 
-        gui_make_fill(&node, TFT_BLACK);
-        gui_set_parent(node, vsplit);
+        gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, vsplit);
     }
 
     // Background fill
-    gui_make_fill(&node, gui_get_highlight_color());
-    gui_set_parent(node, vsplit);
+    gui_make_fill(&node, gui_get_highlight_color(), FILL_HIGHLIGHT, vsplit);
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 10, 80, 10);
@@ -604,8 +592,7 @@ gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** labe
     gui_set_parent(node, hsplit);
 
     // Updateable carousel item
-    gui_make_fill(&node, gui_get_highlight_color());
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, gui_get_highlight_color(), FILL_HIGHLIGHT, hsplit);
 
     gui_make_text(item, "", TFT_WHITE);
     gui_set_align(*item, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
@@ -655,8 +642,8 @@ void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar)
         gui_make_vsplit(&progress_bar->container, GUI_SPLIT_RELATIVE, 1, 100);
         gui_make_vsplit(&progress_bar->progress_bar, GUI_SPLIT_RELATIVE, 1, 100);
     } else {
-        gui_make_fill(&progress_bar->container, TFT_BLACK);
-        gui_make_fill(&progress_bar->progress_bar, TFT_BLACK);
+        gui_make_fill(&progress_bar->container, TFT_BLACK, FILL_PLAIN, NULL);
+        gui_make_fill(&progress_bar->progress_bar, TFT_BLACK, FILL_PLAIN, NULL);
     }
 
     gui_set_borders(progress_bar->container, TFT_WHITE, 2, GUI_BORDER_ALL);
@@ -699,8 +686,7 @@ gui_activity_t* make_progress_bar_activity(const char* title, const char* messag
     gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     progress_bar->pcnt_txt = node;
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, vsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, vsplit);
 
     gui_set_parent(progress_bar->pcnt_txt, node);
 

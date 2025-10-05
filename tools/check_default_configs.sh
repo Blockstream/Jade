@@ -11,16 +11,18 @@ export IDF_CCACHE_ENABLE=1
 
 rm -fr sdkconfig sdkconfig.defaults build managed_components
 
+# Jade v2 (Jade Plus)
 idf.py set-target esp32s3
-for filename in production/*s3*.defaults configs/*s3*.defaults; do
+for filename in production/*_jade_v2_*.defaults configs/*_jade_v2*.defaults; do
     rm -fr sdkconfig sdkconfig.defaults
     idf.py -D SDKCONFIG_DEFAULTS="${filename}" reconfigure save-defconfig
     tail -n +4 sdkconfig.defaults | LC_ALL=C sort -o ${filename}
 done
 
+# Jade v1.0/v1.1
 idf.py set-target esp32
-for filename in production/*.defaults configs/*.defaults; do
-    [[ $filename == *"s3"* ]] && continue
+for filename in production/*jade*.defaults configs/*jade*.defaults; do
+    [[ $filename == *"v2"* ]] && continue
     rm -fr sdkconfig sdkconfig.defaults
     idf.py -D SDKCONFIG_DEFAULTS="${filename}" reconfigure save-defconfig
     tail -n +4 sdkconfig.defaults | LC_ALL=C sort -o ${filename}

@@ -748,21 +748,10 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             gui_activity_t* const act = make_ble_confirmation_activity(event->passkey.params.numcmp);
 
             JADE_LOGI("Showing BLE confirm screen");
-            int32_t ev_id;
             gui_set_current_activity(act);
 
-// In a debug unattended ci build, assume 'confirm' button clicked after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-            const bool ret = gui_activity_wait_event(
-                act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 30000 / portTICK_PERIOD_MS);
-#else
-            gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-                CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-            const bool ret = true;
-            ev_id = BTN_BLE_CONFIRM;
-#endif
-
-            if (ret && ev_id == BTN_BLE_CONFIRM) {
+            const int32_t ev_id = gui_activity_wait_button(act, BTN_BLE_CONFIRM);
+            if (ev_id == BTN_BLE_CONFIRM) {
                 // Confirmed
                 JADE_LOGI("User pressed confirm");
                 pkey.numcmp_accept = 1;
@@ -772,7 +761,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
                     JADE_LOGE("ble_sm_inject_io errored: %d", rc);
                 }
             } else {
-                if (ret) {
+                if (ev_id != BTN_EVENT_TIMEOUT) {
                     // Denied
                     JADE_LOGI("User pressed deny");
                 } else {

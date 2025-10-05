@@ -12,7 +12,6 @@ extern color_t _fg;
 // Additional colour tokens
 extern const color_t GUI_BLOCKSTREAM_JADE_GREEN;
 extern const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY;
-extern const color_t GUI_BLOCKSTREAM_QR_PALE;
 
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT;
 extern const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE;
@@ -200,10 +199,13 @@ struct view_node_split_data {
     uint8_t parts;
 };
 
+enum __attribute__((__packed__)) fill_node_kind { FILL_PLAIN, FILL_HIGHLIGHT, FILL_QR };
+
 // Data for a "fill" node
 struct view_node_fill_data {
     color_t color;
     color_t selected_color;
+    enum fill_node_kind fill_type;
 };
 
 // Data appended to a text node when it's scrolling
@@ -261,6 +263,8 @@ struct view_node_button_data {
     void* args;
 };
 
+enum __attribute__((__packed__)) icon_node_kind { ICON_PLAIN, ICON_QR };
+
 // Data for an icon node
 // NOTE: animated icons ARE owned here
 struct view_node_icon_animation_data {
@@ -282,11 +286,12 @@ struct view_node_icon_data {
     // background color is set to foreground color to imply transparency
     color_t bg_color;
 
-    enum gui_horizontal_align halign;
-    enum gui_vertical_align valign;
-
     // if != NULL the icon will be regularly updated and so appear animated
     struct view_node_icon_animation_data* animation;
+
+    enum gui_horizontal_align halign;
+    enum gui_vertical_align valign;
+    enum icon_node_kind icon_type;
 };
 
 // Data for a picture node
@@ -405,6 +410,9 @@ void gui_set_click_event(bool use_wheel_click);
 color_t gui_get_highlight_color(void);
 void gui_set_highlight_color(uint8_t theme);
 
+color_t gui_get_qrcode_color(void);
+void gui_next_qrcode_color(void);
+
 bool gui_get_flipped_orientation(void);
 bool gui_set_flipped_orientation(bool flipped_orientation);
 
@@ -419,7 +427,7 @@ void gui_chain_activities(const link_activity_t* link_act, linked_activities_inf
 void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...);
 void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...);
 void gui_make_button(gui_view_node_t** ptr, color_t color, color_t selected_color, uint32_t event_id, void* args);
-void gui_make_fill(gui_view_node_t** ptr, color_t color);
+void gui_make_fill(gui_view_node_t** ptr, color_t color, enum fill_node_kind fill_type, gui_view_node_t* parent);
 void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color);
 void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, uint32_t font);
 void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const color_t* bg_color);
@@ -433,6 +441,7 @@ void gui_set_colors(gui_view_node_t* node, color_t color, color_t selected_color
 void gui_set_color(gui_view_node_t* node, color_t color);
 void gui_set_align(gui_view_node_t* node, enum gui_horizontal_align halign, enum gui_vertical_align valign);
 void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, size_t num_icons, size_t frames_per_icon);
+void gui_set_icon_to_qr(gui_view_node_t* node);
 void gui_set_text_scroll(gui_view_node_t* node, color_t background_color);
 void gui_set_text_scroll_selected(
     gui_view_node_t* node, bool only_when_selected, color_t background_color, color_t selected_background_color);
@@ -452,6 +461,7 @@ void gui_activity_register_event(
     gui_activity_t* activity, const char* event_base, uint32_t event_id, esp_event_handler_t handler, void* args);
 bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, uint32_t event_id,
     esp_event_base_t* trigger_event_base, int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait);
+int32_t gui_activity_wait_button(gui_activity_t* activity, int32_t default_event_id);
 
 void gui_set_activity_initial_selection(gui_view_node_t* node);
 void gui_set_active(gui_view_node_t* node, bool value);

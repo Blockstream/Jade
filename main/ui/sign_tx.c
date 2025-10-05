@@ -354,63 +354,51 @@ static bool show_input_output_activity(const char* title, const bool is_wallet_o
         amount, ticker, issuer, assethex, warning_msg, &act_tickeramt, &act_addr1, &act_addr2, &act_assetinfo1,
         &act_assetinfo2, &act_warning);
     gui_activity_t* act = act_summary;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_SIGNTX_ACCEPT;
-#endif
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNTX_ACCEPT);
+        switch (ev_id) {
+        case BTN_BACK:
+            act = (act == act_addr2) ? act_addr1 : act_summary;
+            break;
 
-        if (ret) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = (act == act_addr2) ? act_addr1 : act_summary;
-                break;
+        case BTN_ADDRESS_REJECT:
+        case BTN_ADDRESS_ACCEPT:
+        case BTN_SIGNTX_ASSETINFO_DONE:
+            act = act_summary;
+            break;
 
-            case BTN_ADDRESS_REJECT:
-            case BTN_ADDRESS_ACCEPT:
-            case BTN_SIGNTX_ASSETINFO_DONE:
-                act = act_summary;
-                break;
+        case BTN_ADDRESS_NEXT:
+            act = act_addr2;
+            break;
 
-            case BTN_ADDRESS_NEXT:
-                act = act_addr2;
-                break;
+        case BTN_SIGNTX_ASSETINFO_NEXT:
+            act = (act == act_assetinfo1) ? act_assetinfo2 : act_assetinfo1;
+            break;
 
-            case BTN_SIGNTX_ASSETINFO_NEXT:
-                act = (act == act_assetinfo1) ? act_assetinfo2 : act_assetinfo1;
-                break;
+        case BTN_SIGNTX_ADDRESS:
+            act = act_addr1;
+            break;
 
-            case BTN_SIGNTX_ADDRESS:
-                act = act_addr1;
-                break;
+        case BTN_SIGNTX_TICKERAMOUNT:
+            act = act_tickeramt;
+            break;
 
-            case BTN_SIGNTX_TICKERAMOUNT:
-                act = act_tickeramt;
-                break;
+        case BTN_SIGNTX_ASSETINFO:
+            act = act_assetinfo1;
+            break;
 
-            case BTN_SIGNTX_ASSETINFO:
-                act = act_assetinfo1;
-                break;
+        case BTN_SIGNTX_WARNING:
+            act = act_warning;
+            break;
 
-            case BTN_SIGNTX_WARNING:
-                act = act_warning;
-                break;
+        case BTN_SIGNTX_REJECT:
+            return false;
 
-            case BTN_SIGNTX_REJECT:
-                return false;
-
-            case BTN_SIGNTX_ACCEPT:
-                return true;
-            }
+        case BTN_SIGNTX_ACCEPT:
+            return true;
         }
     }
 }
@@ -725,41 +713,29 @@ static bool show_final_confirmation_activity(
     gui_activity_t* const act_summary
         = make_final_confirmation_activities(title, feeamount, ticker, warning_msg, &act_feeamt, &act_warning);
     gui_activity_t* act = act_summary;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_SIGNTX_ACCEPT;
-#endif
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNTX_ACCEPT);
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-        if (ret) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        case BTN_SIGNTX_TICKERAMOUNT:
+            act = act_feeamt;
+            break;
 
-            case BTN_SIGNTX_TICKERAMOUNT:
-                act = act_feeamt;
-                break;
+        case BTN_SIGNTX_WARNING:
+            act = act_warning;
+            break;
 
-            case BTN_SIGNTX_WARNING:
-                act = act_warning;
-                break;
+        case BTN_SIGNTX_REJECT:
+            return false;
 
-            case BTN_SIGNTX_REJECT:
-                return false;
-
-            case BTN_SIGNTX_ACCEPT:
-                return true;
-            }
+        case BTN_SIGNTX_ACCEPT:
+            return true;
         }
     }
 }

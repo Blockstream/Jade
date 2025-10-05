@@ -37,12 +37,6 @@ ESP_EVENT_DEFINE_BASE(GUI_EVENT);
 
 const color_t GUI_BLOCKSTREAM_JADE_GREEN = 0x4C04;
 const color_t GUI_BLOCKSTREAM_BUTTONBORDER_GREY = 0x0421;
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-// V2 QR codes scan better with a higher contrast background
-const color_t GUI_BLOCKSTREAM_QR_PALE = 0xFFFF;
-#else
-const color_t GUI_BLOCKSTREAM_QR_PALE = 0x494A;
-#endif
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT = GUI_BLOCKSTREAM_JADE_GREEN;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_ORANGE = 0xE0D3;
 const color_t GUI_BLOCKSTREAM_HIGHTLIGHT_BLUE = 0xD318;
@@ -80,6 +74,13 @@ static RingbufHandle_t gui_input_queue = NULL;
 // and which gui highlight colour is in use
 static gui_event_t gui_click_event = GUI_FRONT_CLICK_EVENT;
 static color_t gui_highlight_color = 0;
+static const color_t gui_qrcode_colors[5] = { 0xa210, 0x494a, 0xef7b, 0x18c6, 0xffff };
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+// V2 QR codes scan better with a higher contrast background
+static uint8_t gui_qrcode_color_idx = 4;
+#else
+static uint8_t gui_qrcode_color_idx = 1;
+#endif
 static bool gui_orientation_flipped = false;
 
 // status bar
@@ -121,11 +122,11 @@ static void make_status_bar(void)
     enum gui_horizontal_align name_alignment = GUI_ALIGN_CENTER;
 
     // Black fill background as the root node
-    gui_make_fill(&status_bar.root, TFT_BLACK);
+    gui_make_fill(&status_bar.root, TFT_BLACK, FILL_PLAIN, NULL);
     status_bar.root->parent = NULL;
 
     gui_view_node_t* name_parent;
-    gui_make_fill(&name_parent, TFT_BLACK);
+    gui_make_fill(&name_parent, TFT_BLACK, FILL_PLAIN, NULL);
 
     // Status bar logo image (size appropriate)
     const Picture* const logopic = get_picture(statusbar_logo_start, statusbar_logo_end);
@@ -229,6 +230,17 @@ void gui_set_highlight_color(const uint8_t theme)
         gui_highlight_color = GUI_BLOCKSTREAM_HIGHTLIGHT_DEFAULT; // jade green
         break;
     }
+}
+
+color_t gui_get_qrcode_color(void) { return gui_qrcode_colors[gui_qrcode_color_idx]; }
+
+void gui_next_qrcode_color(void)
+{
+    uint8_t idx = gui_qrcode_color_idx + 1;
+    if (idx >= sizeof(gui_qrcode_colors) / sizeof(gui_qrcode_colors[0])) {
+        idx = 0; // wrap around
+    }
+    gui_qrcode_color_idx = idx;
 }
 
 bool gui_get_flipped_orientation(void) { return gui_orientation_flipped; }
@@ -668,7 +680,7 @@ void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, con
     }
 
     gui_view_node_t* bg;
-    gui_make_fill(&bg, TFT_BLACK);
+    gui_make_fill(&bg, TFT_BLACK, FILL_PLAIN, NULL);
     activity->root_node = bg;
     activity->root_node->activity = activity;
 #ifdef CONFIG_UI_WRAP_ALL_MENUS
@@ -1052,7 +1064,7 @@ void gui_make_button(
     make_view_node(ptr, BUTTON, data, NULL);
 }
 
-void gui_make_fill(gui_view_node_t** ptr, color_t color)
+void gui_make_fill(gui_view_node_t** ptr, color_t color, enum fill_node_kind fill_type, gui_view_node_t* parent)
 {
     JADE_INIT_OUT_PPTR(ptr);
 
@@ -1061,8 +1073,12 @@ void gui_make_fill(gui_view_node_t** ptr, color_t color)
     // by default same color
     data->color = color;
     data->selected_color = color;
+    data->fill_type = fill_type;
 
     make_view_node(ptr, FILL, data, NULL);
+    if (parent) {
+        gui_set_parent(*ptr, parent);
+    }
 }
 
 void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color)
@@ -1120,12 +1136,13 @@ void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const
     // background color is set to foreground color to imply transparency
     data->bg_color = bg_color ? *bg_color : color;
 
-    // and top-left
-    data->halign = GUI_ALIGN_LEFT;
-    data->valign = GUI_ALIGN_TOP;
-
     // without animation
     data->animation = NULL;
+
+    // and top-left, normal icon
+    data->halign = GUI_ALIGN_LEFT;
+    data->valign = GUI_ALIGN_TOP;
+    data->icon_type = ICON_PLAIN;
 
     // also set free_view_node_icon_data as destructor to free any animation data
     make_view_node(ptr, ICON, data, free_view_node_icon_data);
@@ -1133,7 +1150,7 @@ void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const
 
 static bool icon_animation_frame_callback(gui_view_node_t* node, void* extra_args)
 {
-    // no node, invalid node, not yet renreded...
+    // no node, invalid node, not yet rendered...
     if (!node || node->kind != ICON || node->render_data.is_first_time) {
         return false;
     }
@@ -1186,6 +1203,12 @@ void gui_set_icon_animation(gui_view_node_t* node, Icon* icons, const size_t num
     if (num_icons > 1) {
         push_updatable(node, icon_animation_frame_callback, NULL);
     }
+}
+
+void gui_set_icon_to_qr(gui_view_node_t* node)
+{
+    JADE_ASSERT(node);
+    node->icon->icon_type = ICON_QR;
 }
 
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture)
@@ -1428,7 +1451,7 @@ static inline bool can_text_fit(const char* text, uint32_t font, dispWin_t cs)
 // move to the next frame of a scrolling text node
 static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
 {
-    // no node, invalid node, not yet renreded...
+    // no node, invalid node, not yet rendered...
     if (!node || node->kind != TEXT || node->render_data.is_first_time) {
         return false;
     }
@@ -1850,9 +1873,18 @@ static void render_fill(gui_view_node_t* node, const dispWin_t cs, const uint8_t
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == FILL);
 
-    color_t* color = node->is_selected ? &node->fill->selected_color : &node->fill->color;
+    color_t color;
+    if (node->fill->fill_type == FILL_PLAIN) {
+        color = node->is_selected ? node->fill->selected_color : node->fill->color;
+    } else if (node->fill->fill_type == FILL_HIGHLIGHT) {
+        color = gui_get_highlight_color();
+    } else if (node->fill->fill_type == FILL_QR) {
+        color = gui_get_qrcode_color();
+    } else {
+        JADE_ASSERT(false); // Unknown fill type
+    }
 
-    display_fill_rect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1, *color);
+    display_fill_rect(cs.x1, cs.y1, cs.x2 - cs.x1, cs.y2 - cs.y1, color);
 
     // Draw any children directly over the current node
     gui_view_node_t* ptr = node->child;
@@ -1967,10 +1999,20 @@ static void render_icon(gui_view_node_t* node, const dispWin_t cs, const uint8_t
     JADE_ASSERT(node->kind == ICON);
 
     if (node->icon) {
-        const color_t color = node->is_selected ? node->icon->selected_color : node->icon->color;
-        const bool transparent = node->icon->bg_color == node->icon->color;
+        color_t color, bg_color;
+        if (node->icon->icon_type == ICON_PLAIN) {
+            color = node->is_selected ? node->icon->selected_color : node->icon->color;
+            bg_color = node->icon->bg_color;
+        } else if (node->icon->icon_type == ICON_QR) {
+            color = node->is_selected ? node->icon->selected_color : node->icon->color;
+            bg_color = gui_get_qrcode_color();
+        } else {
+            JADE_ASSERT(false); // Unknown fill type
+        }
+
+        const bool transparent = bg_color == color;
         display_icon(&node->icon->icon, resolve_halign(0, node->icon->halign), resolve_valign(0, node->icon->valign),
-            color, cs, transparent ? NULL : &node->icon->bg_color);
+            color, cs, transparent ? NULL : &bg_color);
     }
 
     // Draw any children directly over the current node
@@ -2552,7 +2594,7 @@ void gui_activity_register_event(
     JADE_SEMAPHORE_GIVE(gui_mutex);
 }
 
-// Registers and event handler, then blocks waiting for it to fire.  A timeout can be passed.
+// Registers an event handler, then blocks waiting for it to fire.  A timeout can be passed.
 // Returns true if the event fires, false if the timeout elapsed without the event occuring.
 bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, uint32_t event_id,
     esp_event_base_t* trigger_event_base, int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait)
@@ -2571,6 +2613,20 @@ bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, u
         = sync_wait_event(wait_event_data, trigger_event_base, trigger_event_id, trigger_event_data, max_wait);
 
     return ret == ESP_OK;
+}
+
+int32_t gui_activity_wait_button(gui_activity_t* activity, const int32_t default_event_id)
+{
+    int32_t ev_id = default_event_id;
+#ifndef CONFIG_DEBUG_UNATTENDED_CI
+    if (!gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+        ev_id = BTN_EVENT_TIMEOUT;
+    }
+#else
+    gui_activity_wait_event(activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
+        CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
+#endif
+    return ev_id;
 }
 
 // Update the title associated with the passed activity

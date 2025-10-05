@@ -179,53 +179,41 @@ bool show_otp_details_activity(
         ctx, initial_confirmation, is_valid, show_delete_btn, &act_name, &act_label, &act_issuer, &act_type);
 
     gui_activity_t* act = act_summary;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_OTP_RETAIN_CONFIRM;
-#endif
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_OTP_RETAIN_CONFIRM);
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-        if (ret) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        case BTN_OTP_NAME:
+            act = act_name;
+            break;
 
-            case BTN_OTP_NAME:
-                act = act_name;
-                break;
+        case BTN_OTP_LABEL:
+            act = act_label;
+            break;
 
-            case BTN_OTP_LABEL:
-                act = act_label;
-                break;
+        case BTN_OTP_ISSUER:
+            act = act_issuer;
+            break;
 
-            case BTN_OTP_ISSUER:
-                act = act_issuer;
-                break;
+        case BTN_OTP_TYPE:
+            act = act_type;
+            break;
 
-            case BTN_OTP_TYPE:
-                act = act_type;
-                break;
+        case BTN_SETTINGS_OTP_HELP:
+            await_qr_help_activity("blkstrm.com/otp");
+            break;
 
-            case BTN_SETTINGS_OTP_HELP:
-                await_qr_help_activity("blkstrm.com/otp");
-                break;
+        case BTN_OTP_DISCARD_DELETE:
+            return false;
 
-            case BTN_OTP_DISCARD_DELETE:
-                return false;
-
-            case BTN_OTP_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_OTP_RETAIN_CONFIRM:
+            return true;
         }
     }
 }
@@ -320,8 +308,7 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
     gui_set_parent(node, hsplit);
     gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
 
     gui_make_text_font(txt_ts, timestr, TFT_WHITE, DEFAULT_FONT);
     gui_set_parent(*txt_ts, node);
@@ -331,8 +318,7 @@ gui_activity_t* make_show_totp_code_activity(const char* name, const char* times
     make_progress_bar(vsplit, progress_bar);
 
     // Display the OTP code large/central
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, vsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, vsplit);
 
     gui_make_text_font(txt_code, codestr, TFT_WHITE, DEJAVU24_FONT);
     gui_set_parent(*txt_code, node);

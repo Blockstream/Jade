@@ -119,45 +119,33 @@ bool show_pinserver_details_activity(
         make_empty_none(display_hex), initial_confirmation, &act_urlA, &act_urlB, &act_pubkey);
 
     gui_activity_t* act = act_summary;
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_PINSERVER_DETAILS_RETAIN_CONFIRM;
-#endif
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_PINSERVER_DETAILS_RETAIN_CONFIRM);
+        switch (ev_id) {
+        case BTN_BACK:
+            act = act_summary;
+            break;
 
-        if (ret) {
-            switch (ev_id) {
-            case BTN_BACK:
-                act = act_summary;
-                break;
+        case BTN_PINSERVER_DETAILS_URL_A:
+            act = act_urlA;
+            break;
 
-            case BTN_PINSERVER_DETAILS_URL_A:
-                act = act_urlA;
-                break;
+        case BTN_PINSERVER_DETAILS_URL_B:
+            act = act_urlB;
+            break;
 
-            case BTN_PINSERVER_DETAILS_URL_B:
-                act = act_urlB;
-                break;
+        case BTN_PINSERVER_DETAILS_PUBKEY:
+            act = act_pubkey;
+            break;
 
-            case BTN_PINSERVER_DETAILS_PUBKEY:
-                act = act_pubkey;
-                break;
+        case BTN_PINSERVER_DETAILS_DISCARD_DELETE:
+            return false;
 
-            case BTN_PINSERVER_DETAILS_DISCARD_DELETE:
-                return false;
-
-            case BTN_PINSERVER_DETAILS_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_PINSERVER_DETAILS_RETAIN_CONFIRM:
+            return true;
         }
     }
 }
@@ -221,27 +209,15 @@ bool show_pinserver_certificate_activity(const char* cert_hash_hex, const bool i
 
     gui_activity_t* act = make_show_pinserver_certificate_activity(make_empty_none(display_hex), initial_confirmation);
     gui_set_current_activity(act);
-    int32_t ev_id;
 
     while (true) {
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_PINSERVER_DETAILS_RETAIN_CONFIRM;
-#endif
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_PINSERVER_DETAILS_RETAIN_CONFIRM);
+        switch (ev_id) {
+        case BTN_PINSERVER_DETAILS_DISCARD_DELETE:
+            return false;
 
-        if (ret) {
-            switch (ev_id) {
-            case BTN_PINSERVER_DETAILS_DISCARD_DELETE:
-                return false;
-
-            case BTN_PINSERVER_DETAILS_RETAIN_CONFIRM:
-                return true;
-            }
+        case BTN_PINSERVER_DETAILS_RETAIN_CONFIRM:
+            return true;
         }
     }
 }

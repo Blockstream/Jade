@@ -1,0 +1,25 @@
+#
+# Python wheel (part of the release stage)
+#
+build_jadepy_wheel:
+  tags: [ ga ]
+  stage: release
+  needs: []
+  artifacts:
+    expire_in: 14 days
+    name: jadepy
+    when: on_success
+    paths:
+    - dist
+  variables:
+    # Skip submodule sync to make releasing faster
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - cd $CI_PROJECT_DIR
+    - apt install -yqq python3-venv
+    - virtualenv -p python3 venv
+    - source venv/bin/activate
+    - pip install build
+    - python -m build
+    - deactivate
+    - rm -rf venv

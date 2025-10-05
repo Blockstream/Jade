@@ -131,7 +131,7 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
             JADE_LOGD("Output %u has output/change data passed", i);
 
             // For backward-compatibility reasons we assume all populated items
-            // are change unless told otherwise (ie. explcit is_change: false)
+            // are change unless told otherwise (ie. explicit is_change: false)
             bool is_change = true;
             rpc_get_boolean("is_change", &arrayItem, &is_change);
 

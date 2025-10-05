@@ -29,9 +29,8 @@ static void check_template(gui_activity_t** act, const char* title, const char* 
 
     // Main area, scrolling horizontal menu
     gui_view_node_t* node;
-    gui_make_fill(&node, color);
+    gui_make_fill(&node, color, FILL_PLAIN, vsplit);
     gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 20, 0, 20, 0);
-    gui_set_parent(node, vsplit);
 
     // l-arrow, item-txt, r-arrow
     gui_view_node_t* hsplit;
@@ -43,8 +42,7 @@ static void check_template(gui_activity_t** act, const char* title, const char* 
     gui_set_parent(node, hsplit);
 
     gui_view_node_t* item_text;
-    gui_make_fill(&node, color);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, color, FILL_PLAIN, hsplit);
     gui_make_text_font(&item_text, message, TFT_WHITE, GUI_DEFAULT_FONT);
     gui_set_align(item_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(item_text, node);
@@ -58,22 +56,19 @@ static void check_template(gui_activity_t** act, const char* title, const char* 
     gui_set_parent(hsplit, vsplit);
 
     gui_view_node_t* status_light;
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(&status_light, "M", TFT_DARKGREY, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(status_light, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_padding(status_light, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 2);
     gui_set_parent(status_light, node);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(status_text, "", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(*status_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(*status_text, node);
 
     gui_view_node_t* label;
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(&label, "TEST", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(label, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     gui_set_padding(label, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 0);
@@ -94,15 +89,13 @@ static void check_template_display(gui_activity_t** act, const char* title, gui_
 
     // Main area, line one
     gui_view_node_t* node;
-    gui_make_fill(&node, color);
+    gui_make_fill(&node, color, FILL_PLAIN, vsplit);
     gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 5, 0, 5, 0);
-    gui_set_parent(node, vsplit);
 
     // Main area, line two
     gui_view_node_t* node2;
-    gui_make_fill(&node2, color);
+    gui_make_fill(&node2, color, FILL_PLAIN, vsplit);
     gui_set_padding(node2, GUI_MARGIN_ALL_DIFFERENT, 5, 0, 5, 0);
-    gui_set_parent(node2, vsplit);
 
     // just one line
     gui_make_text_font(item_text, "", TFT_WHITE, GUI_TITLE_FONT);
@@ -120,22 +113,19 @@ static void check_template_display(gui_activity_t** act, const char* title, gui_
     gui_set_parent(hsplit, vsplit);
 
     gui_view_node_t* status_light;
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(&status_light, "M", TFT_DARKGREY, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(status_light, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_padding(status_light, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 2);
     gui_set_parent(status_light, node);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(status_text, "", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(*status_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(*status_text, node);
 
     gui_view_node_t* label;
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(&label, "TEST", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(label, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     gui_set_padding(label, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 0);
@@ -156,15 +146,13 @@ static void check_template_two(gui_activity_t** act, const char* title, const ch
 
     // Main area, line one
     gui_view_node_t* node;
-    gui_make_fill(&node, color);
+    gui_make_fill(&node, color, FILL_PLAIN, vsplit);
     gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 5, 0, 5, 0);
-    gui_set_parent(node, vsplit);
 
     // Main area, line two
     gui_view_node_t* node2;
-    gui_make_fill(&node2, color);
+    gui_make_fill(&node2, color, FILL_PLAIN, vsplit);
     gui_set_padding(node2, GUI_MARGIN_ALL_DIFFERENT, 5, 0, 5, 0);
-    gui_set_parent(node2, vsplit);
 
     // just one line
     gui_view_node_t* item_text;
@@ -184,22 +172,19 @@ static void check_template_two(gui_activity_t** act, const char* title, const ch
     gui_set_parent(hsplit, vsplit);
 
     gui_view_node_t* status_light;
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(&status_light, "M", TFT_DARKGREY, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(status_light, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_padding(status_light, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 2);
     gui_set_parent(status_light, node);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(status_text, "", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(*status_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(*status_text, node);
 
     gui_view_node_t* label;
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(&label, "TEST", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(label, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     gui_set_padding(label, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 0);
@@ -220,21 +205,18 @@ static void check_template_three(gui_activity_t** act, const char* title, const 
 
     // Main area, line one
     gui_view_node_t* node;
-    gui_make_fill(&node, color);
+    gui_make_fill(&node, color, FILL_PLAIN, vsplit);
     gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 2, 0, 2, 0);
-    gui_set_parent(node, vsplit);
 
     // Main area, line two
     gui_view_node_t* node2;
-    gui_make_fill(&node2, color);
+    gui_make_fill(&node2, color, FILL_PLAIN, vsplit);
     gui_set_padding(node2, GUI_MARGIN_ALL_DIFFERENT, 2, 0, 2, 0);
-    gui_set_parent(node2, vsplit);
 
     // Main area, line threee
     gui_view_node_t* node3;
-    gui_make_fill(&node3, color);
+    gui_make_fill(&node3, color, FILL_PLAIN, vsplit);
     gui_set_padding(node3, GUI_MARGIN_ALL_DIFFERENT, 2, 0, 2, 0);
-    gui_set_parent(node3, vsplit);
 
     // just one line
     gui_view_node_t* item_text;
@@ -260,22 +242,19 @@ static void check_template_three(gui_activity_t** act, const char* title, const 
     gui_set_parent(hsplit, vsplit);
 
     gui_view_node_t* status_light;
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(&status_light, "M", TFT_DARKGREY, JADE_SYMBOLS_16x16_FONT);
     gui_set_align(status_light, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_padding(status_light, GUI_MARGIN_ALL_DIFFERENT, 0, 0, 0, 2);
     gui_set_parent(status_light, node);
 
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(status_text, "", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(*status_text, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(*status_text, node);
 
     gui_view_node_t* label;
-    gui_make_fill(&node, TFT_BLACK);
-    gui_set_parent(node, hsplit);
+    gui_make_fill(&node, TFT_BLACK, FILL_PLAIN, hsplit);
     gui_make_text_font(&label, "TEST", TFT_WHITE, GUI_TITLE_FONT);
     gui_set_align(label, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     gui_set_padding(label, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 0);

@@ -777,61 +777,49 @@ static void select_initial_connection(const bool offer_qr_temporary)
     while (initialisation_source == SOURCE_NONE) {
         gui_set_current_activity(act);
 
-        int32_t ev_id;
-        // In a debug unattended ci build, assume 'USB' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_CONNECT_VIA_USB;
-#endif
-
-        if (ret) {
-            if (ev_id == BTN_CONNECT_VIA_USB) {
-                // Set USB/SERIAL source
-                initialisation_source = SOURCE_SERIAL;
-                show_connect_screen = true;
-            } else if (ev_id == BTN_CONNECT_VIA_BLE) {
-                // Set BLE source and ensure ble enabled now and by default
-                initialisation_source = SOURCE_BLE;
-                show_connect_screen = true;
-                if (!ble_enabled()) {
-                    const uint8_t ble_flags = storage_get_ble_flags() | BLE_ENABLED;
-                    storage_set_ble_flags(ble_flags);
-                    ble_start();
-                }
-            } else if (ev_id == BTN_CONNECT_VIA_QR) {
-                // Offer pinserver via qr with urls etc
-                if (act_confirm_qr_mode) {
-                    // Double check re: temporary-restore/'QR Mode'
-                    act = act_confirm_qr_mode;
-                } else if (auth_qr_mode()) {
-                    JADE_ASSERT(initialisation_source == SOURCE_INTERNAL);
-                    JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
-                }
-            } else if (ev_id == BTN_CONNECT_QR_PIN) {
-                // Offer pinserver via qr with urls etc
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_CONNECT_VIA_USB);
+        if (ev_id == BTN_CONNECT_VIA_USB) {
+            // Set USB/SERIAL source
+            initialisation_source = SOURCE_SERIAL;
+            show_connect_screen = true;
+        } else if (ev_id == BTN_CONNECT_VIA_BLE) {
+            // Set BLE source and ensure ble enabled now and by default
+            initialisation_source = SOURCE_BLE;
+            show_connect_screen = true;
+            if (!ble_enabled()) {
+                const uint8_t ble_flags = storage_get_ble_flags() | BLE_ENABLED;
+                storage_set_ble_flags(ble_flags);
+                ble_start();
+            }
+        } else if (ev_id == BTN_CONNECT_VIA_QR) {
+            // Offer pinserver via qr with urls etc
+            if (act_confirm_qr_mode) {
+                // Double check re: temporary-restore/'QR Mode'
+                act = act_confirm_qr_mode;
+            } else if (auth_qr_mode()) {
+                JADE_ASSERT(initialisation_source == SOURCE_INTERNAL);
+                JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
+            }
+        } else if (ev_id == BTN_CONNECT_QR_PIN) {
+            // Offer pinserver via qr with urls etc
+            if (auth_qr_mode()) {
+                JADE_ASSERT(initialisation_source == SOURCE_INTERNAL);
+                JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
+            }
+        } else if (ev_id == BTN_CONNECT_QR_SCAN) {
+            const char* message[] = { "This wallet will be", "temporary and", "forgotten on reboot" };
+            if (await_continueback_activity(NULL, message, 3, true, "blkstrm.com/qrmode")) {
+                // 'QR-Mode' temporary login only
+                keychain_set_temporary();
                 if (auth_qr_mode()) {
                     JADE_ASSERT(initialisation_source == SOURCE_INTERNAL);
                     JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
                 }
-            } else if (ev_id == BTN_CONNECT_QR_SCAN) {
-                const char* message[] = { "This wallet will be", "temporary and", "forgotten on reboot" };
-                if (await_continueback_activity(NULL, message, 3, true, "blkstrm.com/qrmode")) {
-                    // 'QR-Mode' temporary login only
-                    keychain_set_temporary();
-                    if (auth_qr_mode()) {
-                        JADE_ASSERT(initialisation_source == SOURCE_INTERNAL);
-                        JADE_ASSERT(show_connect_screen == !keychain_has_temporary());
-                    }
-                }
-            } else if (ev_id == BTN_CONNECT_QR_BACK) {
-                act = act_select;
-            } else if (ev_id == BTN_CONNECT_QR_HELP) {
-                await_qr_help_activity("blkstrm.com/qrmode");
             }
+        } else if (ev_id == BTN_CONNECT_QR_BACK) {
+            act = act_select;
+        } else if (ev_id == BTN_CONNECT_QR_HELP) {
+            await_qr_help_activity("blkstrm.com/qrmode");
         }
     }
 }
@@ -948,63 +936,53 @@ static void handle_ble(void)
     gui_activity_t* const act_status = make_carousel_activity("Bluetooth Status", NULL, &status_textbox);
     update_ble_carousel_label(status_textbox, enabled);
 
-    int32_t ev_id;
     while (true) {
         // Show, and await button click
         gui_set_current_activity(act);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_BLE_EXIT;
-#endif
-        if (ret) {
-            if (ev_id == BTN_BLE_STATUS) {
-                gui_set_current_activity(act_status);
-                while (true) {
-                    update_ble_carousel_label(status_textbox, enabled);
-                    if (gui_activity_wait_event(act_status, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            enabled = !enabled; // Just toggle label at this point
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done - apply ble change
-                            break;
-                        }
+        int32_t ev_id = gui_activity_wait_button(act, BTN_BLE_EXIT);
+        if (ev_id == BTN_BLE_STATUS) {
+            gui_set_current_activity(act_status);
+            while (true) {
+                update_ble_carousel_label(status_textbox, enabled);
+                if (gui_activity_wait_event(act_status, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                        enabled = !enabled; // Just toggle label at this point
+                    } else if (ev_id == gui_get_click_event()) {
+                        // Done - apply ble change
+                        break;
                     }
                 }
-
-                // Start/stop BLE and persist pref/flags
-                if (enabled) {
-                    if (!ble_enabled()) {
-                        // Only start BLE immediately if not using some other interface
-                        if (keychain_get_userdata() == SOURCE_NONE) {
-                            ble_start();
-                        } else {
-                            const char* message[] = { "Bluetooth will be", "started on logout", "or disconnection" };
-                            await_message_activity(message, 3);
-                        }
-                    }
-                    ble_flags |= BLE_ENABLED;
-                    storage_set_ble_flags(ble_flags);
-                } else {
-                    if (ble_enabled()) {
-                        ble_stop();
-                    }
-                    ble_flags &= ~BLE_ENABLED;
-                    storage_set_ble_flags(ble_flags);
-                }
-                update_ble_status_item(ble_status_item, enabled);
-            } else if (ev_id == BTN_BLE_RESET_PAIRING) {
-                handle_ble_reset();
-            } else if (ev_id == BTN_BLE_HELP) {
-                await_qr_help_activity("blkstrm.com/bluetooth");
-            } else if (ev_id == BTN_BLE_EXIT) {
-                // Done
-                break;
             }
+
+            // Start/stop BLE and persist pref/flags
+            if (enabled) {
+                if (!ble_enabled()) {
+                    // Only start BLE immediately if not using some other interface
+                    if (keychain_get_userdata() == SOURCE_NONE) {
+                        ble_start();
+                    } else {
+                        const char* message[] = { "Bluetooth will be", "started on logout", "or disconnection" };
+                        await_message_activity(message, 3);
+                    }
+                }
+                ble_flags |= BLE_ENABLED;
+                storage_set_ble_flags(ble_flags);
+            } else {
+                if (ble_enabled()) {
+                    ble_stop();
+                }
+                ble_flags &= ~BLE_ENABLED;
+                storage_set_ble_flags(ble_flags);
+            }
+            update_ble_status_item(ble_status_item, enabled);
+        } else if (ev_id == BTN_BLE_RESET_PAIRING) {
+            handle_ble_reset();
+        } else if (ev_id == BTN_BLE_HELP) {
+            await_qr_help_activity("blkstrm.com/bluetooth");
+        } else if (ev_id == BTN_BLE_EXIT) {
+            // Done
+            break;
         }
     }
 }
@@ -1377,63 +1355,52 @@ static void handle_passphrase_prefs()
     gui_activity_t* const act_method = make_carousel_activity("Method", NULL, &method_textbox);
     gui_update_text(method_textbox, passphrase_method_desc_from_flags(type));
 
-    int32_t ev_id;
     while (true) {
         // Show, and await button click
         gui_set_current_activity(act);
 
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, NULL, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        bool ret = true;
-        ev_id = BTN_PASSPHRASE_EXIT;
-#endif
-        if (ret) {
-            if (ev_id == BTN_PASSPHRASE_FREQUENCY) {
-                // Never -> Once -> Always -> Once ...
-                gui_set_current_activity(act_freq);
-                while (true) {
-                    gui_update_text(
-                        frequency_textbox, passphrase_frequency_desc_from_flags(freq, carousel_freq_shortname));
-                    if (gui_activity_wait_event(act_freq, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
-                            freq = (freq == PASSPHRASE_NEVER  ? PASSPHRASE_ALWAYS
-                                    : freq == PASSPHRASE_ONCE ? PASSPHRASE_NEVER
-                                                              : PASSPHRASE_ONCE);
-                        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            freq = (freq == PASSPHRASE_NEVER  ? PASSPHRASE_ONCE
-                                    : freq == PASSPHRASE_ONCE ? PASSPHRASE_ALWAYS
-                                                              : PASSPHRASE_NEVER);
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
+        int32_t ev_id = gui_activity_wait_button(act, BTN_PASSPHRASE_EXIT);
+        if (ev_id == BTN_PASSPHRASE_FREQUENCY) {
+            // Never -> Once -> Always -> Once ...
+            gui_set_current_activity(act_freq);
+            while (true) {
+                gui_update_text(frequency_textbox, passphrase_frequency_desc_from_flags(freq, carousel_freq_shortname));
+                if (gui_activity_wait_event(act_freq, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                        freq = (freq == PASSPHRASE_NEVER  ? PASSPHRASE_ALWAYS
+                                : freq == PASSPHRASE_ONCE ? PASSPHRASE_NEVER
+                                                          : PASSPHRASE_ONCE);
+                    } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                        freq = (freq == PASSPHRASE_NEVER  ? PASSPHRASE_ONCE
+                                : freq == PASSPHRASE_ONCE ? PASSPHRASE_ALWAYS
+                                                          : PASSPHRASE_NEVER);
+                    } else if (ev_id == gui_get_click_event()) {
+                        // Done
+                        break;
                     }
                 }
-                update_menu_item(
-                    frequency_item, "Frequency", passphrase_frequency_desc_from_flags(freq, menu_freq_shortname));
-            } else if (ev_id == BTN_PASSPHRASE_METHOD) {
-                gui_set_current_activity(act_method);
-                while (true) {
-                    gui_update_text(method_textbox, passphrase_method_desc_from_flags(type));
-                    if (gui_activity_wait_event(act_method, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                        if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                            type = (type == PASSPHRASE_FREETEXT ? PASSPHRASE_WORDLIST : PASSPHRASE_FREETEXT);
-                        } else if (ev_id == gui_get_click_event()) {
-                            // Done
-                            break;
-                        }
-                    }
-                }
-                update_menu_item(method_item, "Method", passphrase_method_desc_from_flags(type));
-            } else if (ev_id == BTN_PASSPHRASE_HELP) {
-                await_qr_help_activity("blkstrm.com/passphrase");
-            } else if (ev_id == BTN_PASSPHRASE_EXIT) {
-                // Done
-                break;
             }
+            update_menu_item(
+                frequency_item, "Frequency", passphrase_frequency_desc_from_flags(freq, menu_freq_shortname));
+        } else if (ev_id == BTN_PASSPHRASE_METHOD) {
+            gui_set_current_activity(act_method);
+            while (true) {
+                gui_update_text(method_textbox, passphrase_method_desc_from_flags(type));
+                if (gui_activity_wait_event(act_method, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+                    if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                        type = (type == PASSPHRASE_FREETEXT ? PASSPHRASE_WORDLIST : PASSPHRASE_FREETEXT);
+                    } else if (ev_id == gui_get_click_event()) {
+                        // Done
+                        break;
+                    }
+                }
+            }
+            update_menu_item(method_item, "Method", passphrase_method_desc_from_flags(type));
+        } else if (ev_id == BTN_PASSPHRASE_HELP) {
+            await_qr_help_activity("blkstrm.com/passphrase");
+        } else if (ev_id == BTN_PASSPHRASE_EXIT) {
+            // Done
+            break;
         }
     }
 
@@ -1472,34 +1439,22 @@ static bool display_hotp_screen(const otpauth_ctx_t* otp_ctx, const char* token,
     JADE_ASSERT(token);
 
     gui_activity_t* const act = make_show_hotp_code_activity(otp_ctx->name, token, confirm_only);
-    int32_t ev_id;
 
     while (true) {
         gui_set_current_activity(act);
 
-        // In a debug unattended ci build, assume 'accept' button pressed after a short delay
-#ifndef CONFIG_DEBUG_UNATTENDED_CI
-        const bool ret = gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-#else
-        gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL,
-            CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const bool ret = true;
-        ev_id = BTN_OTP_RETAIN_CONFIRM;
-#endif
-
-        if (ret) {
-            if (ev_id == BTN_OTP_DETAILS) {
-                const bool is_valid = true; // asserted above
-                const bool initial_confirmation = false;
-                const bool show_delete_btn = false;
-                const bool retain = show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
-                JADE_ASSERT(retain); // should be no 'discard' option
-            } else if (ev_id == BTN_OTP_DISCARD_DELETE) {
-                if (confirm_only || delete_otp_record(otp_ctx->name))
-                    return false;
-            } else if (ev_id == BTN_OTP_RETAIN_CONFIRM) {
-                return true;
-            }
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_OTP_RETAIN_CONFIRM);
+        if (ev_id == BTN_OTP_DETAILS) {
+            const bool is_valid = true; // asserted above
+            const bool initial_confirmation = false;
+            const bool show_delete_btn = false;
+            const bool retain = show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
+            JADE_ASSERT(retain); // should be no 'discard' option
+        } else if (ev_id == BTN_OTP_DISCARD_DELETE) {
+            if (confirm_only || delete_otp_record(otp_ctx->name))
+                return false;
+        } else if (ev_id == BTN_OTP_RETAIN_CONFIRM) {
+            return true;
         }
     }
 }

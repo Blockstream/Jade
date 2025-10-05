@@ -283,7 +283,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
 
         size_t name_len = 0;
         size_t value_len = 0;
-        char value[128]; // should be sufficent for all valid values - eg. xpub
+        char value[128]; // should be sufficient for all valid values - eg. xpub
         if (!split_line(read_ptr, eol, &name_len, value, sizeof(value), &value_len) || !value_len) {
             JADE_LOGE("Failed to process multisig file line: %.*s", eol - read_ptr, read_ptr);
             *errmsg = "Invalid multisig file";
@@ -500,7 +500,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
             }
 
             // Done - this signer complete
-            // Explcitly set no additional path
+            // Explicitly set no additional path
             signers[isigner].path_is_string = false;
             signers[isigner].path_len = 0;
             ++isigner;

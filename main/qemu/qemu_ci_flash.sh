@@ -33,10 +33,11 @@ qemu-system-xtensa -nographic \
 sleep 4
 
 source /venv/bin/activate
+git submodule update --init --depth 1 pinserver
 pip install --require-hashes -r requirements.txt -r pinserver/requirements.txt
 
 # Build the bsdiff tool in the 'tools' directory (source file in the build dir)
-gcc -O2 -DBSDIFF_EXECUTABLE -o ./tools/bsdiff components/esp32_bsdiff/bsdiff.c
+gcc -O2 -DBSDIFF_EXECUTABLE -o ./tools/bsdiff build/bsdiff.c
 
 # OTA the build firmware
 # NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware file
