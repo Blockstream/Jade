@@ -28,8 +28,8 @@ VERIFY_OPTS="-pubin -inkey ${PUBKEY} -pkeyopt digest:sha256 -pkeyopt rsa_padding
 
 pushd "${WORKING_DIR}"
 
-[ -f ${PUBKEY} ] || false # Public key file must exist
-[ -f ${KEY} ] || false # Private key file must exist
+[ -f ${PUBKEY} ] || (echo "Public key file ${PUBKEY} not found" && exit 2)
+[ -f ${KEY} ] || (echo "Private key file ${KEY} not found" && exit 2)
 
 # Verify bootloaders are same
 sha1=$(sha256sum "${BLEDIR}/bootloader/bootloader.bin" | cut -d\  -f1)
