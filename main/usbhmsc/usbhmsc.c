@@ -214,6 +214,10 @@ static void usbstorage_task(void* ignore)
                 done = !usbstorage_is_enabled;
                 break;
             } else if (!ebt && requires_host_uninstall && !usb_device_installed) {
+
+                // Stop powering any connected usb device to trigger detach events
+                disable_usb_host();
+
                 USB_LOGI(500, "msc_host_uninstall.. (1)");
                 esp_err_t err = msc_host_uninstall();
                 if (err == ESP_OK) {
