@@ -348,8 +348,8 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
 
         if (!act_prompt) {
             if (state.usbstorage_state == USBSTORAGE_STATE_NONE) {
-                // If the usb-storage device is not detected/mounted after ~1s, show a screen prompting the user
-                if (counter < 5) {
+                // If the usb-storage device is not detected/mounted after ~3s, show a screen prompting the user
+                if (counter < 15) {
                     xSemaphoreTake(state.semaphore_usbstorage_event, 200 / portTICK_PERIOD_MS);
                     ++counter;
                     continue;
