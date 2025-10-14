@@ -7,6 +7,35 @@
 
 #define USBSTORAGE_MOUNT_POINT "/usb"
 
+#define USB_VISUAL_LOG false
+#define USB_VISUAL_LOG_LEVEL ESP_LOG_INFO
+#define USB_MESSAGE_ACTIVITY(delay, msg)                                                                               \
+    do {                                                                                                               \
+        if (USB_VISUAL_LOG) {                                                                                          \
+            const char* message[] = { msg };                                                                           \
+            display_message_activity(message, 1);                                                                      \
+            vTaskDelay(delay / portTICK_PERIOD_MS);                                                                    \
+        }                                                                                                              \
+    } while (false)
+#define USB_LOGE(delay, fmt, ...)                                                                                      \
+    do {                                                                                                               \
+        JADE_LOGE(fmt, ##__VA_ARGS__);                                                                                 \
+        if (USB_VISUAL_LOG && USB_VISUAL_LOG_LEVEL >= ESP_LOG_ERROR) {                                                 \
+            char msg[128];                                                                                             \
+            snprintf(msg, sizeof(msg), fmt, ##__VA_ARGS__);                                                            \
+            USB_MESSAGE_ACTIVITY(delay, msg);                                                                          \
+        }                                                                                                              \
+    } while (false)
+#define USB_LOGI(delay, fmt, ...)                                                                                      \
+    do {                                                                                                               \
+        JADE_LOGI(fmt, ##__VA_ARGS__);                                                                                 \
+        if (USB_VISUAL_LOG && USB_VISUAL_LOG_LEVEL >= ESP_LOG_INFO) {                                                  \
+            char msg[128];                                                                                             \
+            snprintf(msg, sizeof(msg), fmt, ##__VA_ARGS__);                                                            \
+            USB_MESSAGE_ACTIVITY(delay, msg);                                                                          \
+        }                                                                                                              \
+    } while (false)
+
 typedef enum {
     USBSTORAGE_EVENT_DETECTED,
     USBSTORAGE_EVENT_EJECTED,

@@ -152,7 +152,14 @@ static void usbstorage_task(void* ignore)
         .callback = msc_event_cb,
     };
 
-    JADE_ERROR_CHECK(msc_host_install(&msc_config));
+    {
+        USB_LOGI(500, "msc_host_install..");
+        const esp_err_t err = msc_host_install(&msc_config);
+        if (err != ESP_OK) {
+            USB_LOGE(5000, "msc_host_install failed %d", err);
+        }
+        JADE_ASSERT(err == ESP_OK);
+    }
 
     bool done = false;
 
@@ -193,11 +200,12 @@ static void usbstorage_task(void* ignore)
                 done = !usbstorage_is_enabled;
                 break;
             } else if (!ebt && requires_host_uninstall && !usb_device_installed) {
+                USB_LOGI(500, "msc_host_uninstall..");
                 esp_err_t err = msc_host_uninstall();
                 if (err == ESP_OK) {
                     requires_host_uninstall = false;
                 } else {
-                    JADE_LOGE("msc_host_uninstall failed %d", err);
+                    USB_LOGE(5000, "msc_host_uninstall failed %d", err);
                 }
             }
         }
@@ -207,9 +215,10 @@ static void usbstorage_task(void* ignore)
 
     // This may fail if the user removes the device at the right time
     if (requires_host_uninstall) {
+        USB_LOGI(500, "msc_host_uninstall..");
         const esp_err_t err = msc_host_uninstall();
         if (err != ESP_OK) {
-            JADE_LOGE("msc_host_uninstall failed %d", err);
+            USB_LOGE(5000, "msc_host_uninstall failed %d", err);
         }
     }
 
@@ -218,9 +227,10 @@ static void usbstorage_task(void* ignore)
     vTaskDelete(aux_task);
     vEventGroupDelete(usb_flags);
 
+    USB_LOGI(500, "usb_host_uninstall..");
     const esp_err_t err = usb_host_uninstall();
     if (err != ESP_OK) {
-        JADE_LOGE("usb_host_uninstall failed %d", err);
+        USB_LOGE(5000, "usb_host_uninstall failed %d", err);
     }
 
     xSemaphoreGive(main_task_semaphore);
