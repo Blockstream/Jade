@@ -88,28 +88,45 @@ static void msc_event_cb(const msc_host_event_t* event, void* arg)
     }
 }
 
+static void usb_host_lib_events(const uint32_t timeout)
+{
+    uint32_t event_flags;
+    const esp_err_t err = usb_host_lib_handle_events(timeout, &event_flags);
+
+    if (err == ESP_ERR_TIMEOUT) {
+        return;
+    }
+
+    JADE_ERROR_CHECK(err);
+
+    if (event_flags & USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS) {
+        xEventGroupSetBits(usb_flags, HOST_NO_CLIENT);
+    }
+    if (event_flags & USB_HOST_LIB_EVENT_FLAGS_ALL_FREE) {
+        xEventGroupSetBits(usb_flags, HOST_ALL_FREE);
+    }
+}
+
 static void handle_usb_events(void* args)
 {
     while (true) {
-        uint32_t event_flags;
-        const esp_err_t err = usb_host_lib_handle_events(100 / portTICK_PERIOD_MS, &event_flags);
+        usb_host_lib_events(50 / portTICK_PERIOD_MS);
+
         if (!usbstorage_is_enabled_subtask) {
             break;
         }
-        if (err == ESP_ERR_TIMEOUT) {
-            continue;
-        }
 
-        JADE_ERROR_CHECK(err);
+        msc_host_handle_events(50 / portTICK_PERIOD_MS);
 
-        if (event_flags & USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS) {
-            usb_host_device_free_all();
-            xEventGroupSetBits(usb_flags, HOST_NO_CLIENT);
-        }
-        if (event_flags & USB_HOST_LIB_EVENT_FLAGS_ALL_FREE) {
-            xEventGroupSetBits(usb_flags, HOST_ALL_FREE);
+        if (!usbstorage_is_enabled_subtask) {
+            break;
         }
     }
+
+    // msc_host_uninstall will cause the USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS event
+    // so lets clear any last events
+    uint32_t event_flags;
+    usb_host_lib_handle_events(1, &event_flags);
 
     JADE_ASSERT(!usbstorage_is_enabled);
 
@@ -145,10 +162,7 @@ static void usbstorage_task(void* ignore)
     JADE_ASSERT(aux_task);
 
     const msc_host_driver_config_t msc_config = {
-        .create_backround_task = true,
-        .task_priority = 5,
-        .core_id = JADE_CORE_SECONDARY,
-        .stack_size = 2048 * 2,
+        .create_backround_task = false,
         .callback = msc_event_cb,
     };
 
@@ -200,7 +214,7 @@ static void usbstorage_task(void* ignore)
                 done = !usbstorage_is_enabled;
                 break;
             } else if (!ebt && requires_host_uninstall && !usb_device_installed) {
-                USB_LOGI(500, "msc_host_uninstall..");
+                USB_LOGI(500, "msc_host_uninstall.. (1)");
                 esp_err_t err = msc_host_uninstall();
                 if (err == ESP_OK) {
                     requires_host_uninstall = false;
@@ -215,7 +229,7 @@ static void usbstorage_task(void* ignore)
 
     // This may fail if the user removes the device at the right time
     if (requires_host_uninstall) {
-        USB_LOGI(500, "msc_host_uninstall..");
+        USB_LOGI(500, "msc_host_uninstall.. (2)");
         const esp_err_t err = msc_host_uninstall();
         if (err != ESP_OK) {
             USB_LOGE(5000, "msc_host_uninstall failed %d", err);
