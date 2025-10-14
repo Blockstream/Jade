@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 if [ -z "${1}" -o -z "${2}" ]
 then
@@ -46,16 +47,30 @@ do
         outfile="${file_prefix}_${SIGNED_SUFFIX}"
 
         espsecure.py sign_data --version 2 --pub-key ${PUBKEYS} --signature ${sig_files} --output "${outfile}" "${infile}"
-        espsecure.py signature_info_v2 "${outfile}"
-
+        digests=""
         for pubkey in ${PUBKEYS}
         do
+            # Verify the signature
             espsecure.py verify_signature --version 2 --keyfile "${pubkey}" "${outfile}"
-        done
+            # Capture the signature digest
+            digest=$(espsecure.py digest_sbv2_public_key --keyfile "${pubkey}" -o digest.bin >/dev/null && cat digest.bin | od -A n -t x1 | tr -d ' \n' && rm -f digest.bin)
+            digests="$digests $digest"
+       done
+       # Make sure the signature digests match
+       digests=$(echo ${digests} | tr ' ' '\n' | sort)
+       file_digests=$(espsecure.py signature_info_v2 "${outfile}" | grep "Public key digest for block " | cut -d\: -f2 | sed "s/ //g" | sort)
+       if [ "${digests}" != "${file_digests}" ]; then
+           echo "mismatched digests:"
+           echo "digests:"
+           echo ${digests}
+           echo "expected:"
+           echo ${file_digests}
+           exit 2
+       fi
     done
 
-    sha256sum "${FILE_PREFIX}"_*_"${SIGNED_SUFFIX}"
 done
+sha256sum "${FILE_PREFIX}"_*_"${SIGNED_SUFFIX}"
 
 # Copy main fw binaries that have been signed, consistent with v1
 cp "${FILE_PREFIX}_ble_jade_${SIGNED_SUFFIX}" "${BLEDIR}/jade_${SIGNED_SUFFIX}"
