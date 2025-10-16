@@ -84,7 +84,7 @@ typedef struct {
 
 static const home_menu_item_t home_menu_items[HOME_SCREEN_TYPE_NUM_STATES][NUM_HOME_SCREEN_MENU_ENTRIES] = {
     // Uninitialised
-    { { .symbol = "1", .text = "Setup Jade", .btn_id = BTN_INITIALIZE },
+    { { .symbol = "1", .text = "Set Up Jade", .btn_id = BTN_INITIALIZE },
 #ifdef CONFIG_HAS_CAMERA
         { .symbol = "2", .text = "Scan SeedQR", .btn_id = BTN_SCAN_SEEDQR },
 #endif
@@ -869,7 +869,7 @@ static void initialise_wallet(const bool temporary_restore)
 
 static bool offer_temporary_wallet_login(void)
 {
-    const char* message[] = { "Do you want to", "temporarily login using", "a recovery phrase?" };
+    const char* message[] = { "Do you want to", "temporarily log in with", "a recovery phrase?" };
     if (!await_continueback_activity(NULL, message, 3, true, "blkstrm.com/temporary")) {
         // User decided against it
         return false;
@@ -998,8 +998,8 @@ static void handle_ble(void)
 static void handle_change_pin(void)
 {
     // Set flag to change pin on next successful auth/unlock
-    const char* message[] = { "Do you want to", "change your PIN", "when Jade unlocked?" };
-    const bool change_pin = await_yesno_activity("Change PIN", message, 3, true, NULL);
+    const char* message[] = { "Change your PIN", "after unlocking Jade?" };
+    const bool change_pin = await_yesno_activity("Change PIN", message, 2, true, NULL);
     set_request_change_pin(change_pin);
 }
 
