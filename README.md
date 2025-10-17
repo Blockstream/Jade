@@ -129,11 +129,20 @@ Note: for any but the simplest CI-like build with no GUI, no camera, no user-int
 
 # Run the tests
 
+Virtualenv and bluez-tools are required, you can install them on debian based distros with:
+
+```
+sudo apt install virtualenv bluez-tools
+```
+
+Then to run the tests:
+
 ```
 cd $HOME/jade
 virtualenv -p python3 venv3
 source venv3/bin/activate
 pip install -r requirements.txt
+pip install -r pinserver/requirements.txt
 
 python test_jade.py
 
