@@ -33,32 +33,41 @@ menu "Blockstream Jade"
             bool "Blockstream Jade v1 (wheel)"
             select HAS_AXP
             select HAS_CAMERA
+            select HAS_BATTERY
         config BOARD_TYPE_JADE_V1_1
             bool "Blockstream Jade v1.1 (rocker)"
             select HAS_AXP
             select HAS_CAMERA
+            select HAS_BATTERY
         config BOARD_TYPE_JADE_V2
             bool "Blockstream Jade v2 (esp32s3)"
             select HAS_AXP
             select HAS_CAMERA
+            select HAS_BATTERY
         config BOARD_TYPE_M5_FIRE
             bool "M5Stack Fire"
             select HAS_IP5306
+            select HAS_BATTERY
         config BOARD_TYPE_M5_BLACK_GRAY
             bool "M5Stack Black/Gray"
             select HAS_IP5306
+            select HAS_BATTERY
         config BOARD_TYPE_M5_CORE2
             bool "M5Stack Core 2"
             select HAS_AXP
+            select HAS_BATTERY
         config BOARD_TYPE_M5_CORES3
             bool "M5Stack Core S3"
             select HAS_AXP
             select HAS_CAMERA
+            select HAS_BATTERY
         config BOARD_TYPE_M5_STICKC_PLUS
             bool "M5StickC Plus"
             select HAS_AXP
+            select HAS_BATTERY
         config BOARD_TYPE_M5_STICKC_PLUS_2
             bool "M5StickC Plus 2"
+            select HAS_BATTERY
         config BOARD_TYPE_TTGO_TDISPLAY
             bool "TTGO T-DISPLAY"
         config BOARD_TYPE_TTGO_TDISPLAYS3
@@ -153,13 +162,6 @@ menu "Blockstream Jade"
         default n
         help
             Jade v1 (and some other devices) come with the AXP192 to manage power to ESP, display, camera
-
-    config HAS_BATTERY
-        bool "Use analog input as battery level indicator and USB connection"
-        depends on BOARD_TYPE_TTGO_TDISPLAYS3
-        default n
-        help
-            Some devices can measure voltage and detect charging status through an analog input.
 
     menu "SDA/SCL Pin Mapping"
         visible if BOARD_TYPE_CUSTOM
@@ -278,6 +280,12 @@ menu "Blockstream Jade"
         help
             Enables USB JTAG serial rather than CDC tinyusb, implies no tinyusb/host storage/etc
             default n
+
+    config HAS_BATTERY
+        bool "Enable Battery Functions"
+        help
+            Enables battery functionality
+            default y if BOARD_TYPE_JADE_V2 || BOARD_TYPE_JADE_V1_1 || BOARD_TYPE_JADE || BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_STICKC_PLUS || BOARD_TYPE_M5_STICKC_PLUS_2
 
     config HAS_CAMERA
         bool "Enable Camera Functions"

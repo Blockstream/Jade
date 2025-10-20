@@ -2154,7 +2154,7 @@ static void handle_settings(const bool startup_menu)
         case BTN_SETTINGS_WALLET_EXIT:
         case BTN_SETTINGS_AUTHENTICATION_EXIT:
         case BTN_SETTINGS_PINSERVER_EXIT:
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
         case BTN_SETTINGS_USBSTORAGE_EXIT:
 #endif
             // Change to base 'Settings' menu
@@ -2233,9 +2233,11 @@ static void handle_settings(const bool startup_menu)
             handle_display_mac_address();
             break;
 
+#ifdef CONFIG_HAS_BATTERY
         case BTN_SETTINGS_DEVICE_INFO_BATTERY:
             handle_display_battery_volts();
             break;
+#endif
 
         case BTN_SETTINGS_DEVICE_INFO_STORAGE:
             handle_storage();
@@ -2257,9 +2259,11 @@ static void handle_settings(const bool startup_menu)
             handle_change_pin();
             break;
 
+#ifdef CONFIG_HAS_CAMERA
         case BTN_SETTINGS_CHANGE_PIN_QR:
             done = handle_change_pin_qr();
             break;
+#endif
 
 // NOTE: Only Jade v1.1's and v2's have brightness controls
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)                                         \
@@ -2322,7 +2326,7 @@ static void handle_settings(const bool startup_menu)
             done = offer_temporary_wallet_login();
             break;
 
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
         case BTN_SETTINGS_USBSTORAGE:
             // when entering manually (rather than detecting hot plug)
             // we have to first manually disable the usb serial, no op if already off
@@ -2364,9 +2368,11 @@ static void handle_settings(const bool startup_menu)
             handle_view_otps();
             break;
 
+#ifdef CONFIG_HAS_CAMERA
         case BTN_SETTINGS_OTP_NEW_QR:
             register_otp_qr();
             break;
+#endif
 
         case BTN_SETTINGS_OTP_NEW_KB:
             register_otp_kb_entry();
@@ -2376,9 +2382,11 @@ static void handle_settings(const bool startup_menu)
             show_pinserver_details();
             break;
 
+#ifdef CONFIG_HAS_CAMERA
         case BTN_SETTINGS_PINSERVER_SCAN_QR:
             handle_pinserver_scan();
             break;
+#endif
 
         case BTN_SETTINGS_PINSERVER_RESET:
             handle_pinserver_reset();

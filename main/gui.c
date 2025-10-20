@@ -2291,7 +2291,12 @@ static bool update_status_bar(const bool force_redraw)
 
     if (status_bar.battery_update_counter == 0) {
         uint8_t new_bat = power_get_battery_status();
+#ifdef CONFIG_HAS_BATTERY
         color_t color = new_bat == 0 ? TFT_RED : new_bat == 1 ? TFT_ORANGE : TFT_WHITE;
+#else
+        // If no battery on the device then hide the battery icon with background color
+        color_t color = status_bar.root->fill->color;
+#endif
         if (power_get_battery_charging()) {
             new_bat = new_bat + 12;
         }

@@ -164,10 +164,10 @@ void __wrap_abort(void);
 #include "./ui/sign_tx.c"
 #include "./ui/signer.c"
 #include "./ui/update_pinserver.c"
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
 #include "./usbhmsc/usbhmsc.c"
 #include "./usbhmsc/usbmode.c"
-#endif // CONFIG_IDF_TARGET_ESP32S3
+#endif // CONFIG_IDF_TARGET_ESP32S3 && CONFIG_HAS_BATTERY
 #include "./utils/address.c"
 #include "./utils/cbor_rpc.c"
 #ifndef CONFIG_LIBJADE_NO_GUI

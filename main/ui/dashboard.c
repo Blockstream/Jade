@@ -285,7 +285,7 @@ gui_activity_t* make_uninitialised_settings_activity(void)
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
     btn_data_t menubtns[]
         = { { .txt = "Temporary Signer", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_TEMPORARY_WALLET_LOGIN },
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
               { .txt = "USB Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE },
 #endif
               { .txt = "BIP39 Passphrase", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_BIP39_PASSPHRASE },
@@ -312,12 +312,13 @@ gui_activity_t* make_unlocked_settings_activity(void)
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_EXIT },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    btn_data_t menubtns[] = { { .txt = "Wallet", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET },
-        { .txt = "Device", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-        { .txt = "USB Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE },
+    btn_data_t menubtns[]
+        = { { .txt = "Wallet", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET },
+              { .txt = "Device", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE },
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
+              { .txt = "USB Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE },
 #endif
-        { .txt = "Authentication", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_AUTHENTICATION } };
+              { .txt = "Authentication", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_AUTHENTICATION } };
 
     return make_menu_activity("Options", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
@@ -334,7 +335,7 @@ gui_activity_t* make_wallet_settings_activity(void)
     return make_menu_activity("Wallet", hdrbtns, 2, menubtns, 3);
 }
 
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
 gui_activity_t* make_usbstorage_settings_activity(const bool unlocked)
 {
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_USBSTORAGE_EXIT },
@@ -403,23 +404,19 @@ gui_activity_t* make_display_settings_activity(void)
         = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_BRIGHTNESS },
               { .txt = "Flip Orientation", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_ORIENTATION },
               { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
-    const size_t num_menubtns = 3;
 #elif defined(CONFIG_BOARD_TYPE_JADE_V1_1)
     btn_data_t menubtns[]
         = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_BRIGHTNESS },
               { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
-    const size_t num_menubtns = 2;
 #elif defined(CONFIG_BOARD_TYPE_JADE)
     btn_data_t menubtns[] = { { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
-    const size_t num_menubtns = 1;
 #else // DIY units
     btn_data_t menubtns[]
         = { { .txt = "Flip Orientation", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_ORIENTATION },
               { .txt = "Theme", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_THEME } };
-    const size_t num_menubtns = 2;
 #endif
 
-    return make_menu_activity("Display", hdrbtns, 2, menubtns, num_menubtns);
+    return make_menu_activity("Display", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
 
 gui_activity_t* make_authentication_activity(const bool initialised_and_pin_unlocked)
@@ -429,11 +426,19 @@ gui_activity_t* make_authentication_activity(const bool initialised_and_pin_unlo
 
     btn_data_t menubtns[] = { { .txt = "Duress PIN", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_WALLET_ERASE_PIN },
         { .txt = "OTP", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP },
-        { .txt = "Change PIN (QR)", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_CHANGE_PIN_QR } };
+#ifdef CONFIG_HAS_CAMERA
+        { .txt = "Change PIN (QR)", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_CHANGE_PIN_QR }
+#endif
+    };
 
-    const size_t num_btns = initialised_and_pin_unlocked ? 3 : 2;
+    size_t num_menubtns = 2;
+#ifdef CONFIG_HAS_CAMERA
+    if (initialised_and_pin_unlocked) {
+        num_menubtns = 3;
+    }
+#endif
 
-    return make_menu_activity("Authentication", hdrbtns, 2, menubtns, num_btns);
+    return make_menu_activity("Authentication", hdrbtns, 2, menubtns, num_menubtns);
 }
 
 gui_activity_t* make_otp_activity(void)
@@ -452,10 +457,14 @@ gui_activity_t* make_new_otp_activity(void)
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_EXIT },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_OTP_HELP } };
 
-    btn_data_t menubtns[] = { { .txt = "Scan QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
-        { .txt = "Enter URI", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_KB } };
+    btn_data_t menubtns[] = {
+#ifdef CONFIG_HAS_CAMERA
+        { .txt = "Scan QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_QR },
+#endif
+        { .txt = "Enter URI", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_OTP_NEW_KB }
+    };
 
-    return make_menu_activity("New OTP", hdrbtns, 2, menubtns, 2);
+    return make_menu_activity("New OTP", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
 
 gui_activity_t* make_pinserver_activity(void)
@@ -464,13 +473,15 @@ gui_activity_t* make_pinserver_activity(void)
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_SETTINGS_PINSERVER_HELP } };
 
     btn_data_t menubtns[] = { { .txt = "Settings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SHOW },
+#ifdef CONFIG_HAS_CAMERA
         { .txt = "Scan Oracle QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_SCAN_QR },
+#endif
         { .txt = "Reset Oracle", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER_RESET } };
 
-    return make_menu_activity("Blind Oracle", hdrbtns, 2, menubtns, 3);
+    return make_menu_activity("Blind Oracle", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
 
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
 gui_activity_t* make_usb_connect_activity(const char* title)
 {
     JADE_ASSERT(title);
@@ -544,7 +555,7 @@ gui_activity_t* make_session_activity(void)
 #endif
     };
 
-    return make_menu_activity("Session", hdrbtns, 2, menubtns, 2);
+    return make_menu_activity("Session", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
 
 gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item)
@@ -605,18 +616,17 @@ gui_activity_t* make_info_activity(const char* fw_version)
     gui_set_align(fwver, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(fwver, splitfw);
 
-    btn_data_t menubtns[] = { { .content = splitfw, .ev_id = BTN_SETTINGS_INFO_FWVERSION },
-        { .txt = "Device Info", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO },
-        { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL } };
-
-    // Legal screens only apply to proper jade hw
+    btn_data_t menubtns[]
+        = { { .content = splitfw, .ev_id = BTN_SETTINGS_INFO_FWVERSION },
+              { .txt = "Device Info", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO }
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
-    const size_t num_menubtns = 3;
-#else
-    const size_t num_menubtns = 2;
+              // Legal screens only apply to proper jade hw
+              ,
+              { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL }
 #endif
+          };
 
-    gui_activity_t* const act = make_menu_activity("Info", hdrbtns, 2, menubtns, num_menubtns);
+    gui_activity_t* const act = make_menu_activity("Info", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(fwver, true, TFT_BLACK, gui_get_highlight_color());
@@ -630,10 +640,12 @@ gui_activity_t* make_device_info_activity(void)
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = { { .txt = "MAC Address", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO_MAC },
+#ifdef CONFIG_HAS_BATTERY
         { .txt = "Battery Volts", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO_BATTERY },
+#endif
         { .txt = "Storage", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO_STORAGE } };
 
-    return make_menu_activity("Device Info", hdrbtns, 2, menubtns, 3);
+    return make_menu_activity("Device Info", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
 
 #if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)

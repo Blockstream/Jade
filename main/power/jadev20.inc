@@ -205,14 +205,17 @@ esp_err_t power_camera_on(void) { return ESP_OK; }
 
 esp_err_t power_camera_off(void)
 {
+#ifdef CONFIG_HAS_CAMERA
     esp_rom_gpio_pad_select_gpio(CONFIG_CAMERA_PWDN);
     gpio_set_direction(CONFIG_CAMERA_PWDN, GPIO_MODE_OUTPUT);
     gpio_set_level(CONFIG_CAMERA_PWDN, 1);
+#endif
     return ESP_OK;
 }
 
 uint16_t power_get_vbat(void)
 {
+#ifdef CONFIG_HAS_BATTERY
     uint8_t msb, lsb;
     JADE_SEMAPHORE_TAKE(i2c_mutex);
     I2C_LOG_ANY_ERROR(_power_master_read_slave(stm32, STM32_REG_BAT_VOLTS_0, &lsb, 1));
@@ -220,10 +223,14 @@ uint16_t power_get_vbat(void)
     JADE_SEMAPHORE_GIVE(i2c_mutex);
 
     return (msb << 8) + lsb;
+#else
+    return 0;
+#endif
 }
 
 uint8_t power_get_battery_status(void)
 {
+#ifdef CONFIG_HAS_BATTERY
     const uint16_t vbat = power_get_vbat();
     if (vbat > 4000) {
         return 5;
@@ -236,11 +243,13 @@ uint8_t power_get_battery_status(void)
     } else if (vbat > 3400) {
         return 1;
     }
+#endif
     return 0;
 }
 
 bool power_get_battery_charging(void)
 {
+#ifdef CONFIG_HAS_BATTERY
     JADE_SEMAPHORE_TAKE(i2c_mutex);
     uint8_t charging_status;
     // Bit5-Bit4: 0b00 Ready 0b01 Charging 0b10 Charge done 0b11 Fault
@@ -248,6 +257,9 @@ bool power_get_battery_charging(void)
     JADE_SEMAPHORE_GIVE(i2c_mutex);
 
     return (charging_status & STM32_REG_BAT_CHARGING_MASK) == STM32_REG_BAT_CHARGING;
+#else
+    return false;
+#endif
 }
 
 uint16_t power_get_ibat_charge(void) { return 0; }

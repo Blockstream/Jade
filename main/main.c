@@ -198,7 +198,7 @@ static void boot_process(void)
     JADE_ASSERT(event_data);
     gui_activity_register_event(splash, GUI_EVENT, GUI_FRONT_CLICK_EVENT, sync_wait_event_handler, event_data);
 
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
     usbstorage_init();
 #endif
 
