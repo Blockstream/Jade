@@ -358,12 +358,12 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
 
             // Prompt user to plug a usbstorage device
             act_prompt = make_usb_connect_activity(title);
+            gui_set_current_activity(act_prompt);
         }
 
         // Handle any events from that screen
         if (act_prompt) {
             int32_t ev_id;
-            gui_set_current_activity(act_prompt);
             if (gui_activity_wait_event(
                     act_prompt, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)) {
 
