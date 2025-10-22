@@ -1149,6 +1149,17 @@ void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const
     make_view_node(ptr, ICON, data, free_view_node_icon_data);
 }
 
+void gui_make_qrguide(gui_view_node_t** ptr, color_t color)
+{
+    JADE_INIT_OUT_PPTR(ptr);
+
+    struct view_node_qrguide_data* data = JADE_CALLOC(1, sizeof(struct view_node_qrguide_data));
+
+    data->color = color;
+
+    make_view_node(ptr, QRGUIDE, data, NULL);
+}
+
 static bool icon_animation_frame_callback(gui_view_node_t* node, void* extra_args)
 {
     // no node, invalid node, not yet rendered...
@@ -2041,6 +2052,56 @@ static void render_picture(gui_view_node_t* node, const dispWin_t cs, const uint
     }
 }
 
+// render a qrguide to screen
+static void render_qrguide(gui_view_node_t* node, const dispWin_t cs, const uint8_t depth)
+{
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == QRGUIDE);
+
+    // guide dimensions
+    const uint16_t gwidth = 2;
+    const uint16_t glength = 30;
+    const uint16_t gnubbin = 2;
+
+    // maximum square that fits in the constraints
+    const uint16_t width = cs.x2 - cs.x1;
+    const uint16_t height = cs.y2 - cs.y1;
+    const uint16_t square_size = min_u16(width, height);
+    // guides 3% inset
+    const uint16_t inset = square_size / 30;
+    // guide boundaries
+    const uint16_t left = cs.x1 + (width - square_size) / 2 + inset;
+    const uint16_t right = cs.x2 - (width - square_size) / 2 - inset;
+    const uint16_t top = cs.y1 + (height - square_size) / 2 + inset;
+    const uint16_t bottom = cs.y2 - (height - square_size) / 2 - inset;
+    // top-left
+    display_fill_rect(left, top, gwidth, glength, node->qrguide->color);
+    display_fill_rect(left, top, glength, gwidth, node->qrguide->color);
+    display_fill_rect(left + glength, top, gnubbin, gwidth / 2, node->qrguide->color);
+    display_fill_rect(left, top + glength, gwidth / 2, gnubbin, node->qrguide->color);
+    // top-right
+    display_fill_rect(right - gwidth, top, gwidth, glength, node->qrguide->color);
+    display_fill_rect(right - glength, top, glength, gwidth, node->qrguide->color);
+    display_fill_rect(right - glength - gnubbin, top, gnubbin, gwidth / 2, node->qrguide->color);
+    display_fill_rect(right - gwidth / 2, top + glength, gwidth / 2, gnubbin, node->qrguide->color);
+    // bottom-left
+    display_fill_rect(left, bottom - glength, gwidth, glength, node->qrguide->color);
+    display_fill_rect(left, bottom - gwidth, glength, gwidth, node->qrguide->color);
+    display_fill_rect(left + glength, bottom - gwidth / 2, gnubbin, gwidth / 2, node->qrguide->color);
+    display_fill_rect(left, bottom - glength - gnubbin, gwidth / 2, gnubbin, node->qrguide->color);
+    // bottom-right
+    display_fill_rect(right - gwidth, bottom - glength, gwidth, glength, node->qrguide->color);
+    display_fill_rect(right - glength, bottom - gwidth, glength, gwidth, node->qrguide->color);
+    display_fill_rect(right - glength - gnubbin, bottom - gwidth / 2, gnubbin, gwidth / 2, node->qrguide->color);
+    display_fill_rect(right - gwidth / 2, bottom - glength - gnubbin, gwidth / 2, gnubbin, node->qrguide->color);
+
+    // Draw any children directly over the current node
+    gui_view_node_t* ptr = node->child;
+    if (ptr) {
+        render_node(ptr, cs, depth + 1);
+    }
+}
+
 // paint the borders for a view_node
 static void paint_borders(gui_view_node_t* node, const dispWin_t cs)
 {
@@ -2120,6 +2181,9 @@ static void repaint_node(gui_view_node_t* node)
         break;
     case PICTURE:
         render_picture(node, node->render_data.padded_constraints, node->render_data.depth);
+        break;
+    case QRGUIDE:
+        render_qrguide(node, node->render_data.padded_constraints, node->render_data.depth);
         break;
     }
 }

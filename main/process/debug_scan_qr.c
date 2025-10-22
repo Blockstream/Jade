@@ -123,7 +123,7 @@ void debug_capture_image_data_process(void* process_ptr)
     const bool show_camera_ui = true;
     const bool show_click_button = true;
     image_capture_into_t info = { .process = process, .check_qr = ret && check_qr };
-    const qr_frame_guides_t qr_frame_guides = check_qr ? QR_GUIDES_LARGE : QR_GUIDES_NONE;
+    const qr_frame_guides_t qr_frame_guides = check_qr ? QR_GUIDES_SHOW : QR_GUIDES_NONE;
     jade_camera_process_images(
         return_image_data, &info, show_camera_ui, NULL, show_click_button, qr_frame_guides, NULL, NULL);
 
@@ -172,7 +172,7 @@ void debug_scan_qr_process(void* process_ptr)
 
     // Attempt to scan a qr
     qr_data_t qr_data = { .len = 0 };
-    const qr_frame_guides_t qr_frame_guides = QR_GUIDES_LARGE;
+    const qr_frame_guides_t qr_frame_guides = QR_GUIDES_SHOW;
     if (!jade_camera_scan_qr(&qr_data, "Test Scan Image", qr_frame_guides, NULL)) {
         JADE_LOGW("QR scanning failed!");
     }

@@ -24,11 +24,8 @@ else()
 endif()
 
 if (CONFIG_IDF_TARGET_ESP32S3)
-    list(APPEND logo_files ${PROJECT_DIR}/logo/icon_qrguide_vga_large.bin.gz ${PROJECT_DIR}/logo/icon_qrguide_vga_small.bin.gz)
     set(attestdir "attestation")
     set(usbdir "usbhmsc")
-else()
-    list(APPEND logo_files ${PROJECT_DIR}/logo/icon_qrguide_qvga_large.bin.gz ${PROJECT_DIR}/logo/icon_qrguide_qvga_small.bin.gz)
 endif()
 
 if(CONFIG_AMALGAMATED_BUILD)
