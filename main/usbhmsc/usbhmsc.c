@@ -213,10 +213,6 @@ static void usbstorage_task(void* ignore)
                 trigger_event(USBSTORAGE_EVENT_ABNORMALLY_EJECTED, device_address);
                 done = !usbstorage_is_enabled;
                 break;
-            } else if (ebt & (DEVICE_CONNECTED | HOST_ALL_FREE)) {
-                trigger_event(USBSTORAGE_EVENT_EJECTED, device_address);
-                done = !usbstorage_is_enabled;
-                break;
             } else if (!ebt && requires_host_uninstall && !usb_device_installed) {
 
                 // Stop powering any connected usb device to trigger detach events
