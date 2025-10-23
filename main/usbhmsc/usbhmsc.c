@@ -28,7 +28,7 @@
         esp_err_t err = (x);                                                                                           \
         if (err != ESP_OK) {                                                                                           \
             JADE_LOGE("JADE_RETURN_CHECK %d line: %d", err, __LINE__);                                                 \
-            JADE_SEMAPHORE_GIVE(interface_semaphore);                                                                  \
+            JADE_SEMAPHORE_GIVE(interface_mutex);                                                                      \
             return false;                                                                                              \
         }                                                                                                              \
     } while (0);
@@ -43,7 +43,7 @@ typedef enum {
 
 static SemaphoreHandle_t main_task_semaphore = NULL;
 static SemaphoreHandle_t aux_task_semaphore = NULL;
-static SemaphoreHandle_t interface_semaphore = NULL;
+static SemaphoreHandle_t interface_mutex = NULL;
 static SemaphoreHandle_t callback_mutex = NULL;
 static TaskHandle_t main_task = NULL;
 static bool volatile usb_device_installed = false;
@@ -267,15 +267,15 @@ void usbstorage_init(void)
 {
     JADE_ASSERT(!main_task_semaphore);
     JADE_ASSERT(!aux_task_semaphore);
-    JADE_ASSERT(!interface_semaphore);
+    JADE_ASSERT(!interface_mutex);
     JADE_ASSERT(!callback_mutex);
     main_task_semaphore = xSemaphoreCreateBinary();
     aux_task_semaphore = xSemaphoreCreateBinary();
-    interface_semaphore = xSemaphoreCreateMutex();
+    interface_mutex = xSemaphoreCreateMutex();
     callback_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(main_task_semaphore);
     JADE_ASSERT(aux_task_semaphore);
-    JADE_ASSERT(interface_semaphore);
+    JADE_ASSERT(interface_mutex);
     JADE_ASSERT(callback_mutex);
 }
 
@@ -283,8 +283,8 @@ bool usbstorage_start(void)
 {
     JADE_ASSERT(main_task_semaphore);
     JADE_ASSERT(aux_task_semaphore);
-    JADE_ASSERT(interface_semaphore);
-    JADE_SEMAPHORE_TAKE(interface_semaphore);
+    JADE_ASSERT(interface_mutex);
+    JADE_SEMAPHORE_TAKE(interface_mutex);
     JADE_ASSERT(!usbstorage_is_enabled);
     JADE_ASSERT(!main_task);
 
@@ -299,14 +299,14 @@ bool usbstorage_start(void)
     JADE_ASSERT(main_task);
     xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
     const bool enabled = usbstorage_is_enabled;
-    JADE_SEMAPHORE_GIVE(interface_semaphore);
+    JADE_SEMAPHORE_GIVE(interface_mutex);
     return enabled;
 }
 
 void usbstorage_stop(void)
 {
     JADE_ASSERT(main_task);
-    JADE_SEMAPHORE_TAKE(interface_semaphore);
+    JADE_SEMAPHORE_TAKE(interface_mutex);
     JADE_ASSERT(usbstorage_is_enabled);
     usbstorage_is_enabled = false;
     xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
@@ -317,24 +317,24 @@ void usbstorage_stop(void)
     // Stop powering any connected usb device
     disable_usb_host();
 
-    JADE_SEMAPHORE_GIVE(interface_semaphore);
+    JADE_SEMAPHORE_GIVE(interface_mutex);
 }
 
 bool usbstorage_mount(uint8_t device_address)
 {
-    JADE_SEMAPHORE_TAKE(interface_semaphore);
+    JADE_SEMAPHORE_TAKE(interface_mutex);
     /* if any of these fails usually is because the device was removed */
     JADE_RETURN_CHECK(msc_host_install_device(device_address, &msc_device));
     usb_device_installed = true;
 
     JADE_RETURN_CHECK(msc_host_vfs_register(msc_device, USBSTORAGE_MOUNT_POINT, &mount_config, &vfs_handle));
-    JADE_SEMAPHORE_GIVE(interface_semaphore);
+    JADE_SEMAPHORE_GIVE(interface_mutex);
     return true;
 }
 
 void usbstorage_unmount(void)
 {
-    JADE_SEMAPHORE_TAKE(interface_semaphore);
+    JADE_SEMAPHORE_TAKE(interface_mutex);
     // FIXME: on failure just send a callback rather than ERROR_CHECK?
     if (vfs_handle) {
         JADE_ERROR_CHECK(msc_host_vfs_unregister(vfs_handle));
@@ -345,6 +345,6 @@ void usbstorage_unmount(void)
         msc_device = NULL;
     }
     usb_device_installed = false;
-    JADE_SEMAPHORE_GIVE(interface_semaphore);
+    JADE_SEMAPHORE_GIVE(interface_mutex);
 }
 #endif // AMALGAMATED_BUILD
