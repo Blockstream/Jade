@@ -581,6 +581,27 @@ static bool handle_ota_reply(const uint8_t* msg, const size_t len, void* ctx)
     return true;
 }
 
+static bool wait_for_ota_replies(size_t num_replies, bool* is_ok)
+{
+    JADE_ASSERT(is_ok);
+    *is_ok = false;
+
+    for (size_t i = 0; i < num_replies; ++i) {
+        // Wait for a reply message from the OTA process
+        int num_waits = 0;
+        while (!jade_process_get_out_message(handle_ota_reply, SOURCE_INTERNAL, is_ok)) {
+            // No reply yet: Keep waiting up to ~5s for our message to be processed
+            ++num_waits;
+            if (++num_waits > 100) {
+                return false; // Timed out waiting
+            }
+            // jade_process_get_out_message() already waited 20ms, wait another 30
+            vTaskDelay(30 / portTICK_PERIOD_MS);
+        }
+    }
+    return true; // Successfully waited for all messages
+}
+
 struct usbmode_ota_worker_data {
     char* file_to_flash;
     size_t data_to_send;
@@ -588,76 +609,77 @@ struct usbmode_ota_worker_data {
 
 static void usbmode_ota_worker(void* ctx)
 {
-    JADE_ASSERT(ctx);
     struct usbmode_ota_worker_data* ctx_data = (struct usbmode_ota_worker_data*)ctx;
-    JADE_ASSERT(ctx_data->file_to_flash);
+    JADE_ASSERT(ctx_data && ctx_data->file_to_flash && ctx_data->data_to_send != 0);
 
-    uint8_t buffer[4096];
-
+    uint8_t buffer[JADE_OTA_BUF_SIZE];
+    size_t msgs_sent = 1; // Initially just an "ota" message sent
+    size_t msgs_waited = 0;
     FILE* fp = fopen(ctx_data->file_to_flash, "rb");
-    if (fp == NULL) {
-        // FIXME: handle better? this happens if the user unplugged the device for example
-        free(ctx_data->file_to_flash);
-        vTaskDelete(NULL);
-        return;
-    }
-
-    // first we send data packets and for each we wait for an ok
-    bool ok;
-    while (ctx_data->data_to_send) {
-        ok = false;
-        while (!jade_process_get_out_message(handle_ota_reply, SOURCE_INTERNAL, &ok)) {
-            // Await outbound message
-        }
-
-        if (!ok) {
-            /* user rejected the firmware most likely */
-            break;
-        }
-
-        const size_t written = fread(buffer, 1, sizeof(buffer), fp);
-        if (!written) {
-            // This happens if the user unplugs the device in the middle of ota
-            // at the moment we fail gracefully but we need to send another ota message for things to get unstuck on the
-            // firmware side of things sending an ota complete should do the job
-            // FIXME: instead create an ota_cancel msg and send that (and add support to ota for that)
-            post_ota_complete_message(SOURCE_INTERNAL);
-            // then we wait for the reply back
-            ok = false;
-            while (!jade_process_get_out_message(handle_ota_reply, SOURCE_INTERNAL, &ok)) {
-                // Await outbound message
-            }
-            break;
-        }
-        const bool res = post_ota_data_message(SOURCE_INTERNAL, buffer, written);
-        JADE_ASSERT(res);
-        ctx_data->data_to_send -= written;
-    }
-
-    if (!fclose(fp)) {
-        JADE_LOGE("Closing file %s failed", ctx_data->file_to_flash);
-    }
-
     free(ctx_data->file_to_flash);
-    const size_t data_to_send = ctx_data->data_to_send;
+    ctx_data->file_to_flash = NULL;
+
+    // Loop passing our ota data to the ota task
+    bool failed_wait = false;
+    while (ctx_data->data_to_send) {
+        if (msgs_sent > 2) {
+            // Wait for the n-1th message that we sent. This allows this task to stay
+            // ahead of the ota task so that both can work in parallel.
+            bool ok = false;
+            failed_wait = !wait_for_ota_replies(1, &ok);
+            if (failed_wait) {
+                // Failed to get a reply: The ota task is dead/not responding
+                break;
+            }
+            ++msgs_waited;
+            if (!ok) {
+                // Either: the user rejected the ota (msgs_waited == 1), or
+                // one of our data packets was invalid and the ota failed.
+                break;
+            }
+        }
+
+        // Read, encode and send a chunk of data to the ota task
+        const size_t bytes_read = fp ? fread(buffer, 1, sizeof(buffer), fp) : 0;
+        if (!bytes_read) {
+            // Failed to read from the USB storage file.
+            // e.g. the device was unplugged or is unreliable.
+            break;
+        }
+        const bool res = post_ota_data_message(SOURCE_INTERNAL, buffer, bytes_read);
+        JADE_ASSERT(res);
+        ++msgs_sent;
+        ctx_data->data_to_send -= bytes_read;
+    }
+
+    if (fp && !fclose(fp)) {
+        JADE_LOGE("Closing file failed");
+    }
+
+    /* const bool all_data_sent = ctx_data->data_to_send == 0; */
     free(ctx_data);
 
-    if (!data_to_send) {
-        // all data sent, proceed with ota_complete message
+    if (!failed_wait) {
+        // Either all data was sent or an error occurred. Send "ota_complete"
+        // for both cases.
+        // TODO: add support for "ota_cancel" for the failure case.
         post_ota_complete_message(SOURCE_INTERNAL);
-        ok = false;
-
-        while (!jade_process_get_out_message(handle_ota_reply, SOURCE_INTERNAL, &ok)) {
-            // Await outbound message
-        }
-        // ota success, device will be rebooted soon
+        ++msgs_sent;
+        bool ok = false;
+        // Wait for any outstanding ota replies
+        failed_wait = !wait_for_ota_replies(msgs_sent - msgs_waited, &ok);
     }
+
+    // If the ota succeeded the device will be rebooted soon.
+    // If the ota failed, the user can try again, unless we failed to
+    // wait in which case the main task is probably stuck and the device
+    // will need to be rebooted.
+    // TODO: Notify the user in the failed_wait == true case.
 
     // After ota try to unmount usbstorage and restart normal serial comms
     usbstorage_unmount();
     usbstorage_stop();
     serial_start();
-
     vTaskDelete(NULL);
 }
 
