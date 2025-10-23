@@ -99,11 +99,15 @@ static void usb_host_lib_events(const uint32_t timeout)
 
     JADE_ERROR_CHECK(err);
 
+    EventBits_t event = 0;
     if (event_flags & USB_HOST_LIB_EVENT_FLAGS_NO_CLIENTS) {
-        xEventGroupSetBits(usb_flags, HOST_NO_CLIENT);
+        event |= HOST_NO_CLIENT;
     }
     if (event_flags & USB_HOST_LIB_EVENT_FLAGS_ALL_FREE) {
-        xEventGroupSetBits(usb_flags, HOST_ALL_FREE);
+        event |= HOST_ALL_FREE;
+    }
+    if (event) {
+        xEventGroupSetBits(usb_flags, event);
     }
 }
 
