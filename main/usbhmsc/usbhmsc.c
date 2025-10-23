@@ -44,7 +44,7 @@ typedef enum {
 static SemaphoreHandle_t main_task_semaphore = NULL;
 static SemaphoreHandle_t aux_task_semaphore = NULL;
 static SemaphoreHandle_t interface_semaphore = NULL;
-static SemaphoreHandle_t callback_semaphore = NULL;
+static SemaphoreHandle_t callback_mutex = NULL;
 static TaskHandle_t main_task = NULL;
 static bool volatile usb_device_installed = false;
 
@@ -62,21 +62,23 @@ static void* callback_ctx = NULL;
 
 void usbstorage_register_callback(usbstorage_callback_t callback, void* ctx)
 {
-    JADE_ASSERT(callback_semaphore);
-    JADE_SEMAPHORE_TAKE(callback_semaphore);
+    JADE_ASSERT(callback_mutex);
+    JADE_SEMAPHORE_TAKE(callback_mutex);
     registered_callback = callback;
     callback_ctx = ctx;
-    JADE_SEMAPHORE_GIVE(callback_semaphore);
+    JADE_SEMAPHORE_GIVE(callback_mutex);
 }
 
 static void trigger_event(usbstorage_event_t event, uint8_t device_address)
 {
-    JADE_ASSERT(callback_semaphore);
-    JADE_SEMAPHORE_TAKE(callback_semaphore);
-    if (registered_callback != NULL) {
-        registered_callback(event, device_address, callback_ctx);
+    JADE_ASSERT(callback_mutex);
+    JADE_SEMAPHORE_TAKE(callback_mutex);
+    usbstorage_callback_t callback = registered_callback;
+    void* ctx = callback_ctx;
+    JADE_SEMAPHORE_GIVE(callback_mutex);
+    if (callback != NULL) {
+        callback(event, device_address, ctx);
     }
-    JADE_SEMAPHORE_GIVE(callback_semaphore);
 }
 
 static void msc_event_cb(const msc_host_event_t* event, void* arg)
@@ -228,8 +230,10 @@ static void usbstorage_task(void* ignore)
             }
         }
     }
+    JADE_SEMAPHORE_TAKE(callback_mutex);
     registered_callback = NULL;
     callback_ctx = NULL;
+    JADE_SEMAPHORE_GIVE(callback_mutex);
 
     // This may fail if the user removes the device at the right time
     if (requires_host_uninstall) {
@@ -264,15 +268,15 @@ void usbstorage_init(void)
     JADE_ASSERT(!main_task_semaphore);
     JADE_ASSERT(!aux_task_semaphore);
     JADE_ASSERT(!interface_semaphore);
-    JADE_ASSERT(!callback_semaphore);
+    JADE_ASSERT(!callback_mutex);
     main_task_semaphore = xSemaphoreCreateBinary();
     aux_task_semaphore = xSemaphoreCreateBinary();
     interface_semaphore = xSemaphoreCreateMutex();
-    callback_semaphore = xSemaphoreCreateMutex();
+    callback_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(main_task_semaphore);
     JADE_ASSERT(aux_task_semaphore);
     JADE_ASSERT(interface_semaphore);
-    JADE_ASSERT(callback_semaphore);
+    JADE_ASSERT(callback_mutex);
 }
 
 bool usbstorage_start(void)
