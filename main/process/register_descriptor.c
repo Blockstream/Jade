@@ -30,7 +30,7 @@ static int register_descriptor(
     JADE_INIT_OUT_PPTR(errmsg);
 
     JADE_ASSERT(descriptor->script_len < sizeof(descriptor->script));
-    JADE_ASSERT(descriptor->num_values < MAX_ALLOWED_SIGNERS);
+    JADE_ASSERT(descriptor->num_values <= MAX_ALLOWED_SIGNERS);
 
     // Not valid for liquid wallets atm
     if (network_is_liquid(network_id)) {
@@ -162,7 +162,8 @@ static bool get_data_values(const char* field, const CborValue* value, descripto
     }
 
     size_t num_map_items = 0;
-    if (cbor_value_get_map_length(&result, &num_map_items) != CborNoError || !num_map_items) {
+    if (cbor_value_get_map_length(&result, &num_map_items) != CborNoError || !num_map_items
+        || num_map_items > MAX_ALLOWED_SIGNERS) {
         return false;
     }
 
