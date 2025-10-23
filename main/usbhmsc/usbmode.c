@@ -566,17 +566,10 @@ static bool handle_ota_reply(const uint8_t* msg, const size_t len, void* ctx)
     const CborError cberr = cbor_parser_init(msg, len, CborValidateBasic, &parser, &message);
     if (cberr != CborNoError || !rpc_message_valid(&message)) {
         JADE_LOGE("Invalid cbor message");
-        goto cleanup;
+    } else {
+        rpc_get_boolean("result", &message, ok);
     }
 
-    bool bool_result = false;
-    if (!rpc_get_boolean("result", &message, &bool_result)) {
-        goto cleanup;
-    }
-
-    *ok = bool_result;
-
-cleanup:
     // We return true in all cases to indicate that a message was received
     // and we should stop waiting - whether the message was processed 'successfully'
     // is indicated by the 'ok' flag in the passed context object.
