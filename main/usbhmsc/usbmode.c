@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -615,7 +616,7 @@ static void usbmode_ota_worker(void* ctx)
     uint8_t buffer[JADE_OTA_BUF_SIZE];
     size_t msgs_sent = 1; // Initially just an "ota" message sent
     size_t msgs_waited = 0;
-    FILE* fp = fopen(ctx_data->file_to_flash, "rb");
+    const int fd = open(ctx_data->file_to_flash, O_RDONLY, 0);
     free(ctx_data->file_to_flash);
     ctx_data->file_to_flash = NULL;
 
@@ -640,8 +641,8 @@ static void usbmode_ota_worker(void* ctx)
         }
 
         // Read, encode and send a chunk of data to the ota task
-        const size_t bytes_read = fp ? fread(buffer, 1, sizeof(buffer), fp) : 0;
-        if (!bytes_read) {
+        const ssize_t bytes_read = fd < 0 ? 0 : read(fd, buffer, sizeof(buffer));
+        if (bytes_read <= 0) {
             // Failed to read from the USB storage file.
             // e.g. the device was unplugged or is unreliable.
             break;
@@ -652,8 +653,8 @@ static void usbmode_ota_worker(void* ctx)
         ctx_data->data_to_send -= bytes_read;
     }
 
-    if (fp && !fclose(fp)) {
-        JADE_LOGE("Closing file failed");
+    if (fd >= 0) {
+        close(fd);
     }
 
     /* const bool all_data_sent = ctx_data->data_to_send == 0; */
