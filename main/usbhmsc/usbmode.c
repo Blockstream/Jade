@@ -52,9 +52,11 @@ static const char SIGNED_PSBT_SUFFIX[] = "_signed.psbt";
 typedef bool (*filename_filter_fn_t)(const char* path, const char* filename, const size_t filename_len);
 
 // State of usb storage
-struct usbstorage_state_t {
-    SemaphoreHandle_t semaphore_usbstorage_event;
-    enum { USBSTORAGE_STATE_NONE, USBSTORAGE_STATE_ERROR, USBSTORAGE_STATE_MOUNTED } usbstorage_state;
+typedef enum { USBSTORAGE_STATE_NONE, USBSTORAGE_STATE_ERROR, USBSTORAGE_STATE_MOUNTED } usbstorage_state_t;
+
+struct usbstorage_ctx {
+    SemaphoreHandle_t mutex;
+    volatile usbstorage_state_t state;
 };
 
 // Context object passed through to action callbacks
@@ -272,26 +274,27 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
 // usb storage state event callback
 static void handle_usbstorage_event(const usbstorage_event_t event, const uint8_t device_address, void* ctx)
 {
-    JADE_ASSERT(ctx);
+    struct usbstorage_ctx* const storage_ctx = (struct usbstorage_ctx*)ctx;
+    JADE_ASSERT(storage_ctx && storage_ctx->mutex);
 
-    struct usbstorage_state_t* const state = (struct usbstorage_state_t*)ctx;
-    JADE_ASSERT(state->semaphore_usbstorage_event);
-
-    // When the device is detected, mount it immediately
+    usbstorage_state_t state = USBSTORAGE_STATE_NONE;
     if (event == USBSTORAGE_EVENT_DETECTED) {
+        // Device detected: mount it immediately
         if (usbstorage_mount(device_address)) {
-            state->usbstorage_state = USBSTORAGE_STATE_MOUNTED;
-            xSemaphoreGive(state->semaphore_usbstorage_event);
+            state = USBSTORAGE_STATE_MOUNTED;
         } else {
-            state->usbstorage_state = USBSTORAGE_STATE_ERROR;
-            JADE_LOGE("Failed to mount USB storage!");
+            state = USBSTORAGE_STATE_ERROR;
         }
-    } else if (event == USBSTORAGE_EVENT_EJECTED || event == USBSTORAGE_EVENT_ABNORMALLY_EJECTED) {
-        // Reset state when ejected
-        state->usbstorage_state = USBSTORAGE_STATE_NONE;
+    } else {
+        JADE_ASSERT(event == USBSTORAGE_EVENT_EJECTED || event == USBSTORAGE_EVENT_ABNORMALLY_EJECTED);
+        state = USBSTORAGE_STATE_NONE; // Reset state when ejected
     }
-
-    // Handle other events ?
+    xSemaphoreTake(storage_ctx->mutex, portMAX_DELAY);
+    storage_ctx->state = state;
+    xSemaphoreGive(storage_ctx->mutex);
+    if (state == USBSTORAGE_STATE_ERROR) {
+        JADE_LOGE("Failed to mount USB storage!");
+    }
 }
 
 // Generic handler to run usb storage actions
@@ -313,56 +316,59 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
     display_processing_message_activity();
     serial_stop();
 
-    struct usbstorage_state_t state = {};
-    state.semaphore_usbstorage_event = xSemaphoreCreateBinary();
-    JADE_ASSERT(state.semaphore_usbstorage_event);
-    usbstorage_register_callback(handle_usbstorage_event, &state);
+    struct usbstorage_ctx storage_ctx = { xSemaphoreCreateMutex(), USBSTORAGE_STATE_NONE };
+    JADE_ASSERT(storage_ctx.mutex);
+    usbstorage_state_t state = USBSTORAGE_STATE_NONE;
+    usbstorage_register_callback(handle_usbstorage_event, &storage_ctx);
 
     if (!usbstorage_start()) {
         JADE_LOGE("Failed to start USB storage!");
         const char* message[] = { "Failed to start", "usb storage!" };
         await_error_activity(message, 2);
+        vTaskDelay(100 / portTICK_PERIOD_MS); // sleep a little bit to redraw screen
         // Jade may require restart to use usb storage or serial at this point ...
         return false;
     }
 
     // We should only do this if within 0.4 seconds or so we don't detect a usb device already plugged
 
-    // Now wait for either the sempahore to be unlocked or for back button on the activity
-    size_t counter = 0;
+    // Now wait for either the state to change or for back button on the activity
     gui_activity_t* act_prompt = NULL;
+    int counter = 0;
     bool action_initiated = false;
+
     while (true) {
-        // If the usb_storage is mounted, run the action
-        if (state.usbstorage_state == USBSTORAGE_STATE_MOUNTED) {
+        // Fetch the current state set by handle_usbstorage_event()
+        xSemaphoreTake(storage_ctx.mutex, portMAX_DELAY);
+        state = storage_ctx.state;
+        xSemaphoreGive(storage_ctx.mutex);
+
+        if (state == USBSTORAGE_STATE_MOUNTED) {
+            // USB storage is mounted: run the action
             action_initiated = usbstorage_action(ctx);
             break;
-        }
-
-        if (state.usbstorage_state == USBSTORAGE_STATE_ERROR) {
-            // Only show error screen once
+        } else if (state == USBSTORAGE_STATE_ERROR) {
+            // Error accessing USB storage: Show error and exit
             const char* message[] = { "Error accessing usb", "storage. Note: only", "FAT32 is supported." };
             await_message_activity(message, 3);
             break;
         }
+        // At this point, USB storage is not yet mounted
 
         if (!act_prompt) {
-            if (state.usbstorage_state == USBSTORAGE_STATE_NONE) {
-                // If the usb-storage device is not detected/mounted after ~3s, show a screen prompting the user
-                if (counter < 15) {
-                    xSemaphoreTake(state.semaphore_usbstorage_event, 200 / portTICK_PERIOD_MS);
-                    ++counter;
-                    continue;
-                }
+            if (++counter < 50) {
+                // Wait up to 50x100 ms = ~5s before prompting user
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+                continue;
             }
 
-            // Prompt user to plug a usbstorage device
+            // Prompt user to connect USB storage
             act_prompt = make_usb_connect_activity(title);
             gui_set_current_activity(act_prompt);
         }
 
-        // Handle any events from that screen
         if (act_prompt) {
+            // Handle any events from connect USB storage screen
             int32_t ev_id;
             if (gui_activity_wait_event(
                     act_prompt, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)) {
@@ -384,7 +390,7 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
     // If the action was not an async action (ie. it has already completed) or
     // the action was never properly started, we stop/unmount usbstorage now.
     if (!async_action || !action_initiated) {
-        if (state.usbstorage_state != USBSTORAGE_STATE_NONE) {
+        if (state != USBSTORAGE_STATE_NONE) {
             // if usb was detected it may need unmounting/uninstalling
             usbstorage_unmount();
         }
@@ -393,8 +399,7 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
     }
 
     usbstorage_register_callback(NULL, NULL);
-    vSemaphoreDelete(state.semaphore_usbstorage_event);
-
+    vSemaphoreDelete(storage_ctx.mutex);
     return action_initiated;
 }
 
