@@ -426,9 +426,10 @@ static bool post_ota_message(const jade_msg_source_t source, const size_t fwsize
     CborEncoder root_map_encoder;
 
     // FIXME: check max size required?
-    uint8_t cbor_buf[512 + 128];
+    uint8_t buf[512 + 128];
+    uint8_t* cbor_buf = buf + 1;
     const bool has_params = true;
-    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota", cbor_buf, sizeof(cbor_buf), has_params);
+    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota", cbor_buf, sizeof(buf) - 1, has_params);
 
     CborError cberr = cbor_encode_text_stringz(&root_map_encoder, "params");
     JADE_ASSERT(cberr == CborNoError);
@@ -446,8 +447,9 @@ static bool post_ota_message(const jade_msg_source_t source, const size_t fwsize
     cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
     JADE_ASSERT(cberr == CborNoError);
 
+    buf[0] = source;
     const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
-    return jade_process_push_in_message_ex(cbor_buf, cbor_len, source);
+    return jade_process_push_in_message(buf, cbor_len + 1);
 }
 
 static bool post_ota_data_message(const jade_msg_source_t source, uint8_t* data, size_t data_len)
@@ -456,35 +458,38 @@ static bool post_ota_data_message(const jade_msg_source_t source, uint8_t* data,
     JADE_ASSERT(data_len);
 
     // FIXME: check max size required?
-    uint8_t cbor_buf[4096 + 128];
+    uint8_t buf[JADE_OTA_BUF_SIZE + 128];
+    uint8_t* cbor_buf = buf + 1;
     CborEncoder root_encoder;
     CborEncoder root_map_encoder;
 
     const bool has_params = true;
-    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota_data", cbor_buf, sizeof(cbor_buf), has_params);
+    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota_data", cbor_buf, sizeof(buf) - 1, has_params);
     add_bytes_to_map(&root_map_encoder, "params", data, data_len);
 
     const CborError cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
     JADE_ASSERT(cberr == CborNoError);
 
+    buf[0] = source;
     const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
-    return jade_process_push_in_message_ex(cbor_buf, cbor_len, source);
+    return jade_process_push_in_message(buf, cbor_len + 1);
 }
 
 static bool post_ota_complete_message(const jade_msg_source_t source)
 {
     // FIXME: check max size required?
-    uint8_t cbor_buf[64];
+    uint8_t buf[64];
+    uint8_t* cbor_buf = buf + 1;
     CborEncoder root_encoder;
     CborEncoder root_map_encoder; // id, method
     const bool has_params = false;
-    prepare_common_msg(
-        &root_map_encoder, &root_encoder, source, "ota_complete", cbor_buf, sizeof(cbor_buf), has_params);
+    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota_complete", cbor_buf, sizeof(buf) - 1, has_params);
     const CborError cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
     JADE_ASSERT(cberr == CborNoError);
 
+    buf[0] = source;
     const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
-    return jade_process_push_in_message_ex(cbor_buf, cbor_len, source);
+    return jade_process_push_in_message(buf, cbor_len + 1);
 }
 
 #define MAX_FW_SIZE_DIGITS 7
