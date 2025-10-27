@@ -326,7 +326,6 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
         JADE_LOGE("Failed to start USB storage!");
         const char* message[] = { "Failed to start", "usb storage!" };
         await_error_activity(message, 2);
-        vTaskDelay(100 / portTICK_PERIOD_MS); // sleep a little bit to redraw screen
         // Jade may require restart to use usb storage or serial at this point ...
         return false;
     }
@@ -334,6 +333,7 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
     // We should only do this if within 0.4 seconds or so we don't detect a usb device already plugged
 
     // Now wait for either the state to change or for back button on the activity
+    gui_activity_t* const prior_activity = gui_current_activity();
     gui_activity_t* act_prompt = NULL;
     int counter = 0;
     bool action_initiated = false;
@@ -346,12 +346,15 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
 
         if (state == USBSTORAGE_STATE_MOUNTED) {
             // USB storage is mounted: run the action
+            if (act_prompt) {
+                gui_set_current_activity(prior_activity);
+            }
             action_initiated = usbstorage_action(ctx);
             break;
         } else if (state == USBSTORAGE_STATE_ERROR) {
             // Error accessing USB storage: Show error and exit
             const char* message[] = { "Error accessing usb", "storage. Note: only", "FAT32 is supported." };
-            await_message_activity(message, 3);
+            await_error_activity(message, 3);
             break;
         }
         // At this point, USB storage is not yet mounted
