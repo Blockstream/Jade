@@ -230,10 +230,7 @@ static void usbstorage_task(void* ignore)
             }
         }
     }
-    JADE_SEMAPHORE_TAKE(callback_mutex);
-    registered_callback = NULL;
-    callback_ctx = NULL;
-    JADE_SEMAPHORE_GIVE(callback_mutex);
+    usbstorage_register_callback(NULL, NULL);
 
     // This may fail if the user removes the device at the right time
     if (requires_host_uninstall) {
