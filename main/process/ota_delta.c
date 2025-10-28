@@ -189,6 +189,7 @@ void ota_delta_process(void* process_ptr)
 
     if (joctx->fwwritten != joctx->firmwaresize) {
         joctx->ota_return_status = OTA_ERR_PATCH;
+        goto cleanup;
     }
 
     // Expect a complete/request for status

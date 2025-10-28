@@ -110,10 +110,12 @@ void ota_process(void* process_ptr)
         JADE_LOGE("Expected uncompressed size: %u, got %u", joctx->firmwaresize,
             joctx->firmwaresize - joctx->remaining_uncompressed);
         joctx->ota_return_status = OTA_ERR_DECOMPRESS;
+        goto cleanup;
     }
     if (joctx->fwwritten != joctx->firmwaresize) {
         JADE_LOGE("Expected amountof firmware written: %u, expected %u", joctx->fwwritten, joctx->firmwaresize);
         joctx->ota_return_status = OTA_ERR_DECOMPRESS;
+        goto cleanup;
     }
 
     // Expect a complete/request for status
