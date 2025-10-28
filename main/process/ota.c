@@ -102,9 +102,6 @@ void ota_process(void* process_ptr)
     }
     JADE_ASSERT(joctx->validated_confirmed);
 
-    // Uploading complete
-    uploading = false;
-
     // Bail-out if the fw uncompressed to an unexpected size
     if (joctx->remaining_uncompressed != 0) {
         JADE_LOGE("Expected uncompressed size: %u, got %u", joctx->firmwaresize,
@@ -118,12 +115,15 @@ void ota_process(void* process_ptr)
         goto cleanup;
     }
 
+    // Uploading complete
+    uploading = false;
+
     // Expect a complete/request for status
     jade_process_load_in_message(process, true);
     if (!IS_CURRENT_MESSAGE(process, "ota_complete")) {
         // Protocol error
         jade_process_reject_message(process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'ota_complete'");
-        goto cleanup;
+        return;
     }
 
     // If all good with the upload do all final checks and then finalise the ota
