@@ -246,7 +246,7 @@ cleanup:
     return joctx;
 }
 
-void ota_finalize(jade_ota_ctx_t* joctx)
+void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx)
 {
     JADE_ASSERT(joctx);
 
@@ -298,6 +298,17 @@ void ota_finalize(jade_ota_ctx_t* joctx)
         joctx->ota_return_status = OTA_ERR_SETPARTITION;
         return;
     }
+
+    // OTA completed without errors. send an ok and reboot
+    jade_process_reply_to_message_ok(process);
+    JADE_LOGI("Success");
+    JADE_LOGW("OTA successful - rebooting");
+
+    const char* message[] = { "Upgrade successful!" };
+    display_message_activity(message, 1);
+
+    vTaskDelay(2500 / portTICK_PERIOD_MS);
+    esp_restart();
 }
 
 // NOTE: 'dest' is assumed to be at least as long as 'strlen(src)'

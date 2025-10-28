@@ -128,7 +128,7 @@ void ota_process(void* process_ptr)
 
     // If all good with the upload do all final checks and then finalise the ota
     // and set the new boot partition, etc.
-    ota_finalize(joctx);
+    ota_finalize(process, joctx);
 
     // Send final message reply with final status
     if (joctx->ota_return_status != OTA_SUCCESS) {
@@ -139,22 +139,10 @@ void ota_process(void* process_ptr)
         goto cleanup;
     }
 
-    jade_process_reply_to_message_ok(process);
-    JADE_LOGI("Success");
-
 cleanup:
 
-    // If ota has been successful show message and reboot.
-    // If error, show error-message and await user acknowledgement.
-    if (joctx->ota_return_status == OTA_SUCCESS) {
-        JADE_LOGW("OTA successful - rebooting");
-
-        const char* message[] = { "Upgrade successful!" };
-        display_message_activity(message, 1);
-
-        vTaskDelay(2500 / portTICK_PERIOD_MS);
-        esp_restart();
-    } else {
+    // Show error-message and await user acknowledgement.
+    if (joctx->ota_return_status != OTA_SUCCESS) {
         JADE_LOGE("OTA error %u: %s", joctx->ota_return_status, ota_get_status_text(joctx->ota_return_status));
 
         // If we get here and we have not finished loading the data, send an error message
