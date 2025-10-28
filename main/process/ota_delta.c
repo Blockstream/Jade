@@ -100,11 +100,11 @@ static int ota_stream_writer(const struct bspatch_stream_n* stream, const void* 
     }
 
     if (!joctx->validated_confirmed && length >= CUSTOM_HEADER_MIN_WRITE) {
-        const ota_status_t validation = ota_user_validation(joctx, (uint8_t*)buffer);
-        if (validation != OTA_SUCCESS) {
-            HANDLE_NEW_ERROR(joctx, validation);
+        // We have the header: ask the user to confirm the OTA
+        ota_user_validate(joctx, (uint8_t*)buffer);
+        if (joctx->ota_return_status != OTA_SUCCESS) {
+            HANDLE_NEW_ERROR(joctx, joctx->ota_return_status);
         }
-        joctx->validated_confirmed = true;
     }
 
     if (joctx->hash_type == HASHTYPE_FULLFWDATA) {
@@ -119,6 +119,8 @@ static int ota_stream_writer(const struct bspatch_stream_n* stream, const void* 
     JADE_ASSERT(joctx->uncompressedsize - joctx->remaining_uncompressed > joctx->fwwritten);
 
     if (joctx->fwwritten > CUSTOM_HEADER_MIN_WRITE && !joctx->validated_confirmed) {
+        // It is theoretically possible for the writer to initially write
+        // less than the header, which would cause us to skip validation.
         HANDLE_NEW_ERROR(joctx, OTA_ERR_PATCH);
     }
 

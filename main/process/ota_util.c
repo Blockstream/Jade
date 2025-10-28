@@ -307,7 +307,7 @@ static void to_lower(char* dest, const char* src)
     *dest = '\0';
 }
 
-ota_status_t ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
+void ota_user_validate(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
 {
     JADE_ASSERT(joctx);
     JADE_ASSERT(uncompressed);
@@ -317,6 +317,7 @@ ota_status_t ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompres
     JADE_ASSERT(joctx->update_partition);
     JADE_ASSERT(joctx->running_partition);
     JADE_ASSERT(joctx->ota_handle);
+    JADE_ASSERT(joctx->ota_return_status == OTA_SUCCESS);
 
     JADE_LOGI("Running firmware version: %s", running_app_info.version);
 
@@ -324,7 +325,8 @@ ota_status_t ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompres
     const esp_image_header_t* header = (esp_image_header_t*)uncompressed;
     if (header->chip_id != CONFIG_IDF_FIRMWARE_CHIP_ID) {
         JADE_LOGE("Mismatch chip id, expected %d, found %d", CONFIG_IDF_FIRMWARE_CHIP_ID, header->chip_id);
-        return OTA_ERR_INVALIDFW;
+        joctx->ota_return_status = OTA_ERR_INVALIDFW;
+        return;
     }
 
     const size_t app_info_offset = sizeof(esp_image_header_t) + sizeof(esp_image_segment_header_t);
@@ -334,7 +336,8 @@ ota_status_t ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompres
 
     if (esp_efuse_check_secure_version(new_app_info->secure_version) == false) {
         JADE_LOGE("Secure version downgrade not allowed");
-        return OTA_ERR_NODOWNGRADE;
+        joctx->ota_return_status = OTA_ERR_NODOWNGRADE;
+        return;
     }
 
     const size_t custom_info_offset = app_info_offset + sizeof(esp_app_desc_t);
@@ -344,12 +347,14 @@ ota_status_t ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompres
     // 'Config' is allowed to differ.
     if (strcmp(JADE_OTA_BOARD_TYPE, custom_info->board_type)) {
         JADE_LOGE("Firmware board type mismatch %s %s", JADE_OTA_BOARD_TYPE, custom_info->board_type);
-        return OTA_ERR_INVALIDFW;
+        joctx->ota_return_status = OTA_ERR_INVALIDFW;
+        return;
     }
 
     if (strcmp(JADE_OTA_FEATURES, custom_info->features)) {
         JADE_LOGE("Firmware features mismatch");
-        return OTA_ERR_INVALIDFW;
+        joctx->ota_return_status = OTA_ERR_INVALIDFW;
+        return;
     }
 
     // User to confirm once new firmware version known and all checks passed
@@ -370,7 +375,8 @@ ota_status_t ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompres
     // Ask user to confirm
     if (!show_ota_versions_activity(current_version, new_version, joctx->expected_hash_hexstr, full_fw_hash)) {
         JADE_LOGW("User declined ota firmware version");
-        return OTA_ERR_USERDECLINED;
+        joctx->ota_return_status = OTA_ERR_USERDECLINED;
+        return;
     }
 
     // Now user has confirmed, display the progress bar
@@ -379,7 +385,8 @@ ota_status_t ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompres
     gui_set_current_activity_ex(act, true); // free prior activities
     vTaskDelay(100 / portTICK_PERIOD_MS); // time for screen to update
 
-    return OTA_SUCCESS;
+    // Mark the OTA as validated/user confirmed
+    joctx->validated_confirmed = true;
 }
 
 const char* ota_get_status_text(const ota_status_t status)

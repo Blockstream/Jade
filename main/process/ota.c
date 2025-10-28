@@ -31,13 +31,11 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t l
     jade_ota_ctx_t* joctx = (jade_ota_ctx_t*)ctx;
 
     if (!joctx->validated_confirmed && length >= CUSTOM_HEADER_MIN_WRITE) {
-        const ota_status_t res = ota_user_validation(joctx, uncompressed);
-        if (res != OTA_SUCCESS) {
-            JADE_LOGE("ota_user_validation() error, %u", res);
-            joctx->ota_return_status = res;
-            return res;
+        // We have the header: ask the user to confirm the OTA
+        ota_user_validate(joctx, uncompressed);
+        if (joctx->ota_return_status != OTA_SUCCESS) {
+            return joctx->ota_return_status;
         }
-        joctx->validated_confirmed = true;
     }
 
     const esp_err_t res = esp_ota_write(joctx->ota_handle, (const void*)uncompressed, length);
@@ -60,12 +58,14 @@ static int uncompressed_stream_writer(void* ctx, uint8_t* uncompressed, size_t l
     JADE_ASSERT(joctx->uncompressedsize - joctx->remaining_uncompressed == joctx->fwwritten);
 
     if (joctx->fwwritten > CUSTOM_HEADER_MIN_WRITE && !joctx->validated_confirmed) {
+        // It is theoretically possible for the writer to initially write
+        // less than the header, which would cause us to skip validation.
+        joctx->ota_return_status = OTA_ERR_DECOMPRESS;
         return DEFLATE_ERROR;
     }
 
     /* Update the progress bar once the user has confirmed and upload is in progress */
     if (joctx->validated_confirmed) {
-        JADE_ASSERT(joctx->progress_bar.progress_bar);
         update_progress_bar(&joctx->progress_bar, joctx->uncompressedsize, joctx->fwwritten);
     }
 
