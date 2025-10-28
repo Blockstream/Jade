@@ -34,7 +34,7 @@ static void reply_ok(const void* ctx, CborEncoder* container)
         CborError cberr = cbor_encoder_create_map(container, &map_encoder, 2);
         JADE_ASSERT(cberr == CborNoError);
 
-        add_boolean_to_map(&map_encoder, "confirmed", *joctx->validated_confirmed);
+        add_boolean_to_map(&map_encoder, "confirmed", joctx->validated_confirmed);
         add_uint_to_map(&map_encoder, "progress", joctx->progress_bar.percent_last_value);
 
         cberr = cbor_encoder_close_container(container, &map_encoder);
@@ -68,12 +68,12 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
 
     // If we are carrying a cached error abandon immediately
     // (the error will be returned with this id)
-    if (*joctx->ota_return_status != OTA_SUCCESS) {
+    if (joctx->ota_return_status != OTA_SUCCESS) {
         return;
     }
 
     if (!rpc_is_method(&value, "ota_data")) {
-        *joctx->ota_return_status = OTA_ERR_BADDATA;
+        joctx->ota_return_status = OTA_ERR_BADDATA;
         return;
     }
 
@@ -82,14 +82,14 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
 
     rpc_get_bytes_ptr("params", &value, &inbound_buf, &written);
 
-    if (written == 0 || data[0] != *joctx->expected_source || written > JADE_OTA_BUF_SIZE || !inbound_buf) {
-        *joctx->ota_return_status = OTA_ERR_BADDATA;
+    if (written == 0 || data[0] != joctx->expected_source || written > JADE_OTA_BUF_SIZE || !inbound_buf) {
+        joctx->ota_return_status = OTA_ERR_BADDATA;
         return;
     }
 
     if (written > joctx->remaining_compressed) {
         JADE_LOGE("Received %u bytes when only needed %u", written, joctx->remaining_compressed);
-        *joctx->ota_return_status = OTA_ERR_BADDATA;
+        joctx->ota_return_status = OTA_ERR_BADDATA;
         return;
     }
 
@@ -100,13 +100,13 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     // Return any non-zero error code from the decompress routine
     const int ret = joctx->dctx->write_compressed(joctx->dctx, (uint8_t* const)inbound_buf, written);
     if (ret) {
-        *joctx->ota_return_status = ret < 0 ? OTA_ERR_DECOMPRESS : ret;
+        joctx->ota_return_status = ret < 0 ? OTA_ERR_DECOMPRESS : ret;
         return;
     }
 
     if (joctx->hash_type == HASHTYPE_FILEDATA) {
         // Add received file data to hasher
-        JADE_ZERO_VERIFY(mbedtls_sha256_update(joctx->sha_ctx, inbound_buf, written));
+        JADE_ZERO_VERIFY(mbedtls_sha256_update(&joctx->sha_ctx, inbound_buf, written));
     }
 
     joctx->remaining_compressed -= written;
@@ -116,12 +116,12 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     JADE_LOGI("compressed:   total = %u, current = %u", joctx->compressedsize,
         joctx->compressedsize - joctx->remaining_compressed);
     JADE_LOGI("uncompressed: total = %u, current = %u", joctx->uncompressedsize,
-        joctx->uncompressedsize - *joctx->remaining_uncompressed);
+        joctx->uncompressedsize - joctx->remaining_uncompressed);
 
     // Send ack after all processing - see comment above.
     uint8_t reply_msg[64];
     jade_process_reply_to_message_result_with_id(
-        joctx->id, reply_msg, sizeof(reply_msg), *joctx->expected_source, joctx, reply_ok);
+        joctx->id, reply_msg, sizeof(reply_msg), joctx->expected_source, joctx, reply_ok);
 
     // Blank out the current msg id once 'ok' is sent for it
     joctx->id[0] = '\0';
@@ -131,7 +131,7 @@ bool ota_init(jade_ota_ctx_t* joctx)
 {
     JADE_ASSERT(joctx);
 
-    mbedtls_sha256_init(joctx->sha_ctx);
+    mbedtls_sha256_init(&joctx->sha_ctx);
     joctx->running_partition = esp_ota_get_running_partition();
     JADE_ASSERT(joctx->running_partition);
     JADE_LOGI("Running partition ptr: %p", joctx->running_partition);
@@ -150,9 +150,9 @@ bool ota_init(jade_ota_ctx_t* joctx)
         return false;
     }
 
-    JADE_ZERO_VERIFY(mbedtls_sha256_starts(joctx->sha_ctx, 0));
+    JADE_ZERO_VERIFY(mbedtls_sha256_starts(&joctx->sha_ctx, 0));
 
-    const esp_err_t err = esp_ota_begin(joctx->update_partition, joctx->firmwaresize, joctx->ota_handle);
+    const esp_err_t err = esp_ota_begin(joctx->update_partition, joctx->firmwaresize, &joctx->ota_handle);
     if (err != ESP_OK) {
         JADE_LOGE("Failed to begin ota, error: %d", err);
         return false;
@@ -161,28 +161,34 @@ bool ota_init(jade_ota_ctx_t* joctx)
     return true;
 }
 
-enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
+void ota_free(jade_ota_ctx_t* joctx)
+{
+    if (joctx) {
+        mbedtls_sha256_free(&joctx->sha_ctx);
+    }
+}
+
+ota_status_t post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
 {
     JADE_ASSERT(joctx);
     JADE_ASSERT(ota_end_called);
 
     // Ensure no cached error - if so return it now
-    if (*joctx->ota_return_status != OTA_SUCCESS) {
-        return *joctx->ota_return_status;
+    if (joctx->ota_return_status != OTA_SUCCESS) {
+        return joctx->ota_return_status;
     }
 
-    if (joctx->remaining_compressed || *joctx->remaining_uncompressed || !joctx->compressedsize
+    if (joctx->remaining_compressed || joctx->remaining_uncompressed || !joctx->compressedsize
         || !joctx->uncompressedsize) {
         JADE_LOGE("OTA checks failed: uncompressed size: %u, compressed size: %u, remaining compressed %u, remaining "
                   "uncompressed %u",
-            joctx->uncompressedsize, joctx->compressedsize, joctx->remaining_compressed,
-            *joctx->remaining_uncompressed);
+            joctx->uncompressedsize, joctx->compressedsize, joctx->remaining_compressed, joctx->remaining_uncompressed);
         return OTA_ERR_INIT;
     }
 
     // Verify calculated compressed file hash matches expected
     uint8_t calculated_hash[SHA256_LEN];
-    JADE_ZERO_VERIFY(mbedtls_sha256_finish(joctx->sha_ctx, calculated_hash));
+    JADE_ZERO_VERIFY(mbedtls_sha256_finish(&joctx->sha_ctx, calculated_hash));
 
     JADE_ASSERT(joctx->expected_hash);
     JADE_ASSERT(joctx->expected_hash_hexstr);
@@ -198,7 +204,7 @@ enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
     }
 
     // All good, finalise the ota and set the partition to boot
-    esp_err_t err = esp_ota_end(*joctx->ota_handle);
+    esp_err_t err = esp_ota_end(joctx->ota_handle);
     *ota_end_called = true;
 
     if (err != ESP_OK) {
@@ -224,7 +230,7 @@ static void to_lower(char* dest, const char* src)
     *dest = '\0';
 }
 
-enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
+ota_status_t ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
 {
     JADE_ASSERT(joctx);
     JADE_ASSERT(uncompressed);
@@ -299,7 +305,7 @@ enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncomp
     return OTA_SUCCESS;
 }
 
-const char* ota_get_status_text(const enum ota_status status)
+const char* ota_get_status_text(const ota_status_t status)
 {
     switch (status) {
     case OTA_SUCCESS:

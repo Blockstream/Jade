@@ -34,7 +34,7 @@
 // the next time we receive a message and have the opportunity to reply.
 #define HANDLE_NEW_ERROR(joctx, error)                                                                                 \
     do {                                                                                                               \
-        *joctx->ota_return_status = error;                                                                             \
+        joctx->ota_return_status = error;                                                                              \
         return (joctx->id[0] != '\0') ? error : OTA_SUCCESS;                                                           \
     } while (false)
 
@@ -44,8 +44,8 @@
 // the next time we receive a message and have the opportunity to reply.
 #define HANDLE_ANY_CACHED_ERROR(joctx)                                                                                 \
     do {                                                                                                               \
-        if (*joctx->ota_return_status != OTA_SUCCESS) {                                                                \
-            return (joctx->id[0] != '\0') ? *joctx->ota_return_status : OTA_SUCCESS;                                   \
+        if (joctx->ota_return_status != OTA_SUCCESS) {                                                                 \
+            return (joctx->id[0] != '\0') ? joctx->ota_return_status : OTA_SUCCESS;                                    \
         }                                                                                                              \
     } while (false)
 
@@ -65,7 +65,7 @@ static int patch_stream_reader(const struct bspatch_stream* stream, void* buffer
         HANDLE_NEW_ERROR(joctx, ret);
     }
 
-    *joctx->remaining_uncompressed -= length;
+    joctx->remaining_uncompressed -= length;
 
     return OTA_SUCCESS;
 }
@@ -96,34 +96,34 @@ static int ota_stream_writer(const struct bspatch_stream_n* stream, const void* 
     // If currently in error, return immediately without writing anything
     HANDLE_ANY_CACHED_ERROR(joctx);
 
-    if (length <= 0 || esp_ota_write(*joctx->ota_handle, buffer, length) != ESP_OK) {
+    if (length <= 0 || esp_ota_write(joctx->ota_handle, buffer, length) != ESP_OK) {
         HANDLE_NEW_ERROR(joctx, OTA_ERR_PATCH);
     }
 
-    if (!*joctx->validated_confirmed && length >= CUSTOM_HEADER_MIN_WRITE) {
-        const enum ota_status validation = ota_user_validation(joctx, (uint8_t*)buffer);
+    if (!joctx->validated_confirmed && length >= CUSTOM_HEADER_MIN_WRITE) {
+        const ota_status_t validation = ota_user_validation(joctx, (uint8_t*)buffer);
         if (validation != OTA_SUCCESS) {
             HANDLE_NEW_ERROR(joctx, validation);
         }
-        *joctx->validated_confirmed = true;
+        joctx->validated_confirmed = true;
     }
 
     if (joctx->hash_type == HASHTYPE_FULLFWDATA) {
         // Add written to hash calculation
-        JADE_ZERO_VERIFY(mbedtls_sha256_update(joctx->sha_ctx, buffer, length));
+        JADE_ZERO_VERIFY(mbedtls_sha256_update(&joctx->sha_ctx, buffer, length));
     }
 
     joctx->fwwritten += length;
 
     // For a patch, the amount of patch data uncompressed should always be more than the
     // amount of new firmware we have written, because of additional patch meta-data.
-    JADE_ASSERT(joctx->uncompressedsize - *joctx->remaining_uncompressed > joctx->fwwritten);
+    JADE_ASSERT(joctx->uncompressedsize - joctx->remaining_uncompressed > joctx->fwwritten);
 
-    if (joctx->fwwritten > CUSTOM_HEADER_MIN_WRITE && !*joctx->validated_confirmed) {
+    if (joctx->fwwritten > CUSTOM_HEADER_MIN_WRITE && !joctx->validated_confirmed) {
         HANDLE_NEW_ERROR(joctx, OTA_ERR_PATCH);
     }
 
-    if (*joctx->validated_confirmed) {
+    if (joctx->validated_confirmed) {
         update_progress_bar(&joctx->progress_bar, joctx->firmwaresize, joctx->fwwritten);
     }
 
@@ -139,7 +139,7 @@ static int compressed_stream_reader(void* ctx)
     // NOTE: the ota_return_status can be set via ptr in joctx
     // Return any error here as it can be returned to the caller in the message reply
     jade_process_get_in_message(joctx, &handle_in_bin_data, true);
-    return *joctx->ota_return_status;
+    return joctx->ota_return_status;
 }
 
 void ota_delta_process(void* process_ptr)
@@ -149,12 +149,6 @@ void ota_delta_process(void* process_ptr)
     bool uploading = false;
     bool ota_end_called = false;
     bool ota_begin_called = false;
-
-    mbedtls_sha256_context sha_ctx;
-
-    esp_ota_handle_t ota_handle = 0;
-    // Context used to compute (compressed) firmware hash - ie. file as uploaded
-    enum ota_status ota_return_status = OTA_ERR_SETUP;
 
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "ota_delta");
@@ -206,27 +200,24 @@ void ota_delta_process(void* process_ptr)
     struct deflate_ctx* dctx = JADE_MALLOC_PREFER_SPIRAM(sizeof(struct deflate_ctx));
     jade_process_free_on_exit(process, dctx);
 
-    bool validated_confirmed = false;
-    size_t remaining_uncompressed = uncompressedpatchsize;
-
     jade_ota_ctx_t joctx = {
-        .progress_bar = {},
-        .sha_ctx = &sha_ctx,
+        .sha_ctx = {},
+        .progress_bar = {0},
         .hash_type = hash_type,
-        .ota_handle = &ota_handle,
+        .ota_handle = 0,
         .dctx = dctx,
         .id = { 0 },
-        .validated_confirmed = &validated_confirmed,
         .uncompressedsize = uncompressedpatchsize,
-        .remaining_uncompressed = &remaining_uncompressed,
-        .ota_return_status = &ota_return_status,
-        .expected_source = &ota_source,
+        .remaining_uncompressed = uncompressedpatchsize,
+        .ota_return_status = OTA_ERR_SETUP,
+        .expected_source = ota_source,
         .remaining_compressed = compressedsize,
         .firmwaresize = firmwaresize,
         .compressedsize = compressedsize,
         .expected_hash_hexstr = expected_hash_hexstr,
         .expected_hash = expected_hash,
         .extended_replies = extended_replies,
+        .validated_confirmed = false,
     };
 
     int ret = deflate_init_read_uncompressed(dctx, compressedsize, compressed_stream_reader, &joctx);
@@ -256,13 +247,13 @@ void ota_delta_process(void* process_ptr)
     basestream.read = &base_firmware_stream_reader;
     basestream.opaque = &joctx;
 
-    ota_return_status = OTA_SUCCESS;
+    joctx.ota_return_status = OTA_SUCCESS;
     ret = bspatch(
         &basestream, joctx.running_partition->size, &destination_firmware_stream_writer, firmwaresize, &stream);
 
     if (ret != OTA_SUCCESS) {
         JADE_LOGE("Error applying patch: %d", ret);
-        ota_return_status = ret < 0 ? OTA_ERR_PATCH : ret;
+        joctx.ota_return_status = ret < 0 ? OTA_ERR_PATCH : ret;
         goto cleanup;
     }
     JADE_ASSERT(ota_begin_called);
@@ -271,7 +262,7 @@ void ota_delta_process(void* process_ptr)
     uploading = false;
 
     if (joctx.fwwritten != firmwaresize) {
-        ota_return_status = OTA_ERR_PATCH;
+        joctx.ota_return_status = OTA_ERR_PATCH;
     }
 
     // Expect a complete/request for status
@@ -284,14 +275,14 @@ void ota_delta_process(void* process_ptr)
 
     // If all good with the upload do all final checks and then finalise the ota
     // and set the new boot partition, etc.
-    if (ota_return_status == OTA_SUCCESS) {
-        ota_return_status = post_ota_check(&joctx, &ota_end_called);
+    if (joctx.ota_return_status == OTA_SUCCESS) {
+        joctx.ota_return_status = post_ota_check(&joctx, &ota_end_called);
     }
 
     // Send final message reply with final status
-    if (ota_return_status != OTA_SUCCESS) {
+    if (joctx.ota_return_status != OTA_SUCCESS) {
         uint8_t buf[256];
-        const char* error = ota_get_status_text(ota_return_status);
+        const char* error = ota_get_status_text(joctx.ota_return_status);
         jade_process_reject_message_ex(process->ctx, CBOR_RPC_INTERNAL_ERROR, "Error completing OTA delta",
             (const uint8_t*)error, strlen(error), buf, sizeof(buf));
         goto cleanup;
@@ -302,11 +293,11 @@ void ota_delta_process(void* process_ptr)
     JADE_LOGI("Success");
 
 cleanup:
-    mbedtls_sha256_free(&sha_ctx);
+    ota_free(&joctx);
 
     // If ota has been successful show message and reboot.
     // If error, show error-message and await user acknowledgement.
-    if (ota_return_status == OTA_SUCCESS) {
+    if (joctx.ota_return_status == OTA_SUCCESS) {
         JADE_LOGW("OTA successful - rebooting");
 
         const char* message[] = { "Upgrade successful!" };
@@ -315,15 +306,15 @@ cleanup:
         vTaskDelay(2500 / portTICK_PERIOD_MS);
         esp_restart();
     } else {
-        JADE_LOGE("OTA error %u: %s", ota_return_status, ota_get_status_text(ota_return_status));
+        JADE_LOGE("OTA error %u: %s", joctx.ota_return_status, ota_get_status_text(joctx.ota_return_status));
         if (ota_begin_called && !ota_end_called) {
             // ota_begin has been called, cleanup
-            const esp_err_t err = esp_ota_abort(ota_handle);
+            const esp_err_t err = esp_ota_abort(joctx.ota_handle);
             JADE_ASSERT(err == ESP_OK);
         }
 
         // If we get here and we have not finished loading the data, send an error message
-        const char* status_text = ota_get_status_text(ota_return_status);
+        const char* status_text = ota_get_status_text(joctx.ota_return_status);
         if (uploading) {
             if (joctx.id[0] == '\0') {
                 // This should not happen under normal circumstances, but it could occur if the delta
@@ -332,7 +323,7 @@ cleanup:
                 strcpy(joctx.id, "00");
             }
             const int error_code
-                = ota_return_status == OTA_ERR_USERDECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
+                = joctx.ota_return_status == OTA_ERR_USERDECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
 
             uint8_t buf[256];
             jade_process_reject_message_with_id(joctx.id, error_code, "Error uploading OTA delta data",
@@ -340,7 +331,7 @@ cleanup:
         }
 
         // If the error is not 'did not start' or 'user declined', show an error screen
-        if (ota_return_status != OTA_ERR_SETUP && ota_return_status != OTA_ERR_USERDECLINED) {
+        if (joctx.ota_return_status != OTA_ERR_SETUP && joctx.ota_return_status != OTA_ERR_USERDECLINED) {
             await_error_activity(&status_text, 1);
         }
     }
