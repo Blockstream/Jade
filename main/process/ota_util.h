@@ -77,8 +77,8 @@ typedef struct {
 void handle_in_bin_data(void* ctx, uint8_t* data, size_t rawsize);
 
 jade_ota_ctx_t* ota_init(jade_process_t* process, bool is_delta);
-ota_status_t post_ota_check(jade_ota_ctx_t* joctx);
 void ota_user_validate(jade_ota_ctx_t* joctx, const uint8_t* uncompressed);
+void ota_finalize(jade_ota_ctx_t* joctx);
 const char* ota_get_status_text(ota_status_t status);
 
 #endif /* JADE_OTA_UTIL_H_ */

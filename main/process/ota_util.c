@@ -246,13 +246,13 @@ cleanup:
     return joctx;
 }
 
-ota_status_t post_ota_check(jade_ota_ctx_t* joctx)
+void ota_finalize(jade_ota_ctx_t* joctx)
 {
     JADE_ASSERT(joctx);
 
     // Ensure no cached error - if so return it now
     if (joctx->ota_return_status != OTA_SUCCESS) {
-        return joctx->ota_return_status;
+        return;
     }
 
     if (joctx->remaining_compressed || joctx->remaining_uncompressed || !joctx->compressedsize
@@ -260,7 +260,8 @@ ota_status_t post_ota_check(jade_ota_ctx_t* joctx)
         JADE_LOGE("OTA checks failed: uncompressed size: %u, compressed size: %u, remaining compressed %u, remaining "
                   "uncompressed %u",
             joctx->uncompressedsize, joctx->compressedsize, joctx->remaining_compressed, joctx->remaining_uncompressed);
-        return OTA_ERR_INIT;
+        joctx->ota_return_status = OTA_ERR_INIT;
+        return;
     }
 
     // Verify calculated compressed file hash matches expected
@@ -277,7 +278,8 @@ ota_status_t post_ota_check(jade_ota_ctx_t* joctx)
         JADE_LOGE("Firmware hash mismatch: expected: %s, got: %s", joctx->expected_hash_hexstr, calc_hash_hexstr);
         JADE_WALLY_VERIFY(wally_free_string(calc_hash_hexstr));
 
-        return OTA_ERR_BADHASH;
+        joctx->ota_return_status = OTA_ERR_BADHASH;
+        return;
     }
 
     // All good, finalise the ota and set the partition to boot
@@ -286,16 +288,16 @@ ota_status_t post_ota_check(jade_ota_ctx_t* joctx)
 
     if (err != ESP_OK) {
         JADE_LOGE("esp_ota_end() returned %d", err);
-        return OTA_ERR_FINISH;
+        joctx->ota_return_status = OTA_ERR_FINISH;
+        return;
     }
 
     err = esp_ota_set_boot_partition(joctx->update_partition);
     if (err != ESP_OK) {
         JADE_LOGE("esp_ota_set_boot_partition() returned %d", err);
-        return OTA_ERR_SETPARTITION;
+        joctx->ota_return_status = OTA_ERR_SETPARTITION;
+        return;
     }
-
-    return OTA_SUCCESS;
 }
 
 // NOTE: 'dest' is assumed to be at least as long as 'strlen(src)'

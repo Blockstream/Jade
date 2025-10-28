@@ -202,9 +202,7 @@ void ota_delta_process(void* process_ptr)
 
     // If all good with the upload do all final checks and then finalise the ota
     // and set the new boot partition, etc.
-    if (joctx->ota_return_status == OTA_SUCCESS) {
-        joctx->ota_return_status = post_ota_check(joctx);
-    }
+    ota_finalize(joctx);
 
     // Send final message reply with final status
     if (joctx->ota_return_status != OTA_SUCCESS) {
