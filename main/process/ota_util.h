@@ -4,6 +4,7 @@
 #include "../process.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include <deflate.h>
 #include <esp_app_format.h>
 #include <esp_ota_ops.h>
 #include <esp_partition.h>
@@ -52,21 +53,21 @@ typedef enum {
 typedef struct {
     // Context used to compute (compressed) firmware hash - ie. file as uploaded
     mbedtls_sha256_context sha_ctx;
+    struct deflate_ctx dctx;
     progress_bar_t progress_bar;
     hash_type_t hash_type;
     char id[MAXLEN_ID + 1];
-    const uint8_t* expected_hash;
-    const char* expected_hash_hexstr;
+    uint8_t expected_hash[32];
+    char* expected_hash_hexstr;
     const esp_partition_t* running_partition;
     const esp_partition_t* update_partition;
     esp_ota_handle_t ota_handle;
     ota_status_t ota_return_status;
-    struct deflate_ctx* dctx;
-    const jade_msg_source_t expected_source;
-    size_t remaining_uncompressed;
+    jade_msg_source_t expected_source;
+    size_t compressedsize;
     size_t remaining_compressed;
     size_t uncompressedsize;
-    size_t compressedsize;
+    size_t remaining_uncompressed;
     size_t firmwaresize;
     size_t fwwritten;
     bool extended_replies;
@@ -75,9 +76,8 @@ typedef struct {
 
 void handle_in_bin_data(void* ctx, uint8_t* data, size_t rawsize);
 
-bool ota_init(jade_ota_ctx_t* joctx);
-void ota_free(jade_ota_ctx_t* joctx);
-ota_status_t post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called);
+jade_ota_ctx_t* ota_init(jade_process_t* process, bool is_delta);
+ota_status_t post_ota_check(jade_ota_ctx_t* joctx);
 ota_status_t ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompressed);
 const char* ota_get_status_text(ota_status_t status);
 

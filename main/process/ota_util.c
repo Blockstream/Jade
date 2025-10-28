@@ -7,7 +7,6 @@
 #include "ota_defines.h"
 
 #include <ctype.h>
-#include <deflate.h>
 #include <esp_efuse.h>
 #include <sodium/utils.h>
 #include <string.h>
@@ -98,7 +97,7 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     // For the time being, send ok *after* the processing/decompression steps.
 
     // Return any non-zero error code from the decompress routine
-    const int ret = joctx->dctx->write_compressed(joctx->dctx, (uint8_t* const)inbound_buf, written);
+    const int ret = joctx->dctx.write_compressed(&joctx->dctx, (uint8_t* const)inbound_buf, written);
     if (ret) {
         joctx->ota_return_status = ret < 0 ? OTA_ERR_DECOMPRESS : ret;
         return;
@@ -127,51 +126,129 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     joctx->id[0] = '\0';
 }
 
-bool ota_init(jade_ota_ctx_t* joctx)
+static void ota_free(void* ctx)
 {
-    JADE_ASSERT(joctx);
-
-    mbedtls_sha256_init(&joctx->sha_ctx);
-    joctx->running_partition = esp_ota_get_running_partition();
-    JADE_ASSERT(joctx->running_partition);
-    JADE_LOGI("Running partition ptr: %p", joctx->running_partition);
-
-    // Check partition
-    joctx->update_partition = esp_ota_get_next_update_partition(NULL);
-    JADE_LOGI("Update partition: %p", joctx->update_partition);
-
-    if (joctx->update_partition == NULL) {
-        JADE_LOGE("Failed to get next update partition");
-        return false;
-    }
-
-    if (joctx->update_partition == joctx->running_partition) {
-        JADE_LOGE("Cannot OTA on running partition: %p", joctx->running_partition);
-        return false;
-    }
-
-    JADE_ZERO_VERIFY(mbedtls_sha256_starts(&joctx->sha_ctx, 0));
-
-    const esp_err_t err = esp_ota_begin(joctx->update_partition, joctx->firmwaresize, &joctx->ota_handle);
-    if (err != ESP_OK) {
-        JADE_LOGE("Failed to begin ota, error: %d", err);
-        return false;
-    }
-
-    return true;
-}
-
-void ota_free(jade_ota_ctx_t* joctx)
-{
+    jade_ota_ctx_t* joctx = (jade_ota_ctx_t*)ctx;
     if (joctx) {
         mbedtls_sha256_free(&joctx->sha_ctx);
+        wally_free_string(joctx->expected_hash_hexstr); // Ignore return value
+        if (joctx->ota_handle) {
+            // ota was started but not cleanly shutdown: abort it
+            const esp_err_t err = esp_ota_abort(joctx->ota_handle);
+            JADE_ASSERT(err == ESP_OK);
+            joctx->ota_handle = 0;
+        }
     }
 }
 
-ota_status_t post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
+jade_ota_ctx_t* ota_init(jade_process_t* process, const bool is_delta)
+{
+    JADE_ASSERT(process);
+    jade_ota_ctx_t* joctx = NULL;
+    const char* errmsg = NULL;
+    int errcode = CBOR_RPC_BAD_PARAMETERS;
+
+    // We expect a current message to be present
+    ASSERT_CURRENT_MESSAGE(process, is_delta ? "ota_delta" : "ota");
+    GET_MSG_PARAMS(process);
+
+    const jade_msg_source_t ota_source = process->ctx.source;
+    if (keychain_has_pin()) {
+        // NOTE: ota from internal source is allowed (eg. QR codes or USB storage)
+        JADE_ASSERT(ota_source == (jade_msg_source_t)keychain_get_userdata() || ota_source == SOURCE_INTERNAL);
+        JADE_ASSERT(!keychain_has_temporary());
+    }
+
+    size_t firmwaresize = 0;
+    size_t compressedsize = 0;
+    size_t uncompressedpatchsize = 0;
+
+    if (!rpc_get_sizet("fwsize", &params, &firmwaresize) || !rpc_get_sizet("cmpsize", &params, &compressedsize)
+        || firmwaresize <= compressedsize) {
+        errmsg = "Bad filesize parameters";
+        goto cleanup;
+    }
+    if (is_delta
+        && (!rpc_get_sizet("patchsize", &params, &uncompressedpatchsize) || uncompressedpatchsize <= compressedsize)) {
+        errmsg = "Bad delta filesize parameters";
+        goto cleanup;
+    }
+
+    // Optional field indicating preference for rich reply data
+    bool extended_replies = false;
+    rpc_get_boolean("extended_replies", &params, &extended_replies);
+
+    // Can accept either uploaded file data hash (legacy) or hash of the full/final firmware image (preferred)
+    uint8_t expected_hash[SHA256_LEN];
+    hash_type_t hash_type;
+    if (rpc_get_n_bytes("fwhash", &params, sizeof(expected_hash), expected_hash)) {
+        hash_type = HASHTYPE_FULLFWDATA;
+    } else if (rpc_get_n_bytes("cmphash", &params, sizeof(expected_hash), expected_hash)) {
+        hash_type = HASHTYPE_FILEDATA;
+    } else {
+        errmsg = "Cannot extract valid fw hash value";
+        goto cleanup;
+    }
+    errcode = CBOR_RPC_INTERNAL_ERROR; // From this point all errors are internal
+
+    // We will show a progress bar once the user has confirmed and the upload in progress
+    // Initially just show a message screen.
+    const char* message[] = { "Preparing for firmware", "", "update" };
+    display_message_activity(message, 3);
+    vTaskDelay(100 / portTICK_PERIOD_MS); // sleep a little bit to redraw screen
+
+    joctx = JADE_CALLOC_PREFER_SPIRAM(1, sizeof(jade_ota_ctx_t));
+    jade_process_call_on_exit(process, ota_free, joctx);
+
+    mbedtls_sha256_init(&joctx->sha_ctx);
+    JADE_ZERO_VERIFY(mbedtls_sha256_starts(&joctx->sha_ctx, 0));
+    joctx->hash_type = hash_type;
+    JADE_STATIC_ASSERT(sizeof(joctx->expected_hash) == sizeof(expected_hash));
+    memcpy(joctx->expected_hash, expected_hash, sizeof(expected_hash));
+    JADE_WALLY_VERIFY(wally_hex_from_bytes(expected_hash, sizeof(expected_hash), &joctx->expected_hash_hexstr));
+    joctx->ota_return_status = OTA_ERR_SETUP;
+    joctx->expected_source = ota_source;
+    joctx->compressedsize = compressedsize;
+    joctx->remaining_compressed = joctx->compressedsize;
+    joctx->uncompressedsize = is_delta ? uncompressedpatchsize : firmwaresize;
+    joctx->remaining_uncompressed = joctx->uncompressedsize;
+    joctx->firmwaresize = firmwaresize;
+    joctx->fwwritten = 0;
+    joctx->extended_replies = extended_replies;
+    joctx->validated_confirmed = false;
+
+    joctx->running_partition = esp_ota_get_running_partition();
+    joctx->update_partition = esp_ota_get_next_update_partition(NULL);
+
+    // Check partitions
+    if (joctx->running_partition == NULL) {
+        errmsg = "Failed to get running partition";
+        goto cleanup;
+    } else if (joctx->update_partition == NULL) {
+        errmsg = "Failed to get next update partition";
+        goto cleanup;
+    } else if (joctx->update_partition == joctx->running_partition) {
+        errmsg = "Cannot OTA on running partition";
+        goto cleanup;
+    } else {
+        const esp_err_t err = esp_ota_begin(joctx->update_partition, joctx->firmwaresize, &joctx->ota_handle);
+        if (err != ESP_OK) {
+            errmsg = "Failed to begin ota";
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    if (errmsg) {
+        JADE_LOGE("%s", errmsg);
+        jade_process_reject_message(process, errcode, errmsg);
+    }
+    return joctx;
+}
+
+ota_status_t post_ota_check(jade_ota_ctx_t* joctx)
 {
     JADE_ASSERT(joctx);
-    JADE_ASSERT(ota_end_called);
 
     // Ensure no cached error - if so return it now
     if (joctx->ota_return_status != OTA_SUCCESS) {
@@ -205,7 +282,7 @@ ota_status_t post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called)
 
     // All good, finalise the ota and set the partition to boot
     esp_err_t err = esp_ota_end(joctx->ota_handle);
-    *ota_end_called = true;
+    joctx->ota_handle = 0;
 
     if (err != ESP_OK) {
         JADE_LOGE("esp_ota_end() returned %d", err);
