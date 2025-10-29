@@ -20,6 +20,44 @@ extern esp_app_desc_t running_app_info;
 const __attribute__((section(".rodata_custom_desc"))) esp_custom_app_desc_t custom_app_desc
     = { .version = 1, .board_type = JADE_OTA_BOARD_TYPE, .features = JADE_OTA_FEATURES, .config = JADE_OTA_CONFIG };
 
+static const char* ota_get_status_text(const ota_status_t status)
+{
+    switch (status) {
+    case OTA_SUCCESS:
+        return "OK";
+    case OTA_ERR_SETUP:
+        return "OTA_ERR_SETUP";
+    case OTA_ERR_INIT:
+        return "OTA_ERR_INIT";
+    case OTA_ERR_BADPARTITION:
+        return "OTA_ERR_BADPARTITION";
+    case OTA_ERR_DECOMPRESS:
+        return "OTA_ERR_DECOMPRESS";
+    case OTA_ERR_WRITE:
+        return "OTA_ERR_WRITE";
+    case OTA_ERR_FINISH:
+        return "OTA_ERR_FINISH";
+    case OTA_ERR_SETPARTITION:
+        return "OTA_ERR_SETPARTITION";
+    case OTA_ERR_BADDATA:
+        return "OTA_ERR_BADDATA";
+    case OTA_ERR_NODOWNGRADE:
+        return "OTA_ERR_NODOWNGRADE";
+    case OTA_ERR_INVALIDFW:
+        return "OTA_ERR_INVALIDFW";
+    case OTA_ERR_USERDECLINED:
+        return "OTA_ERR_USERDECLINED";
+    case OTA_ERR_BADHASH:
+        return "OTA_ERR_BADHASH";
+    case OTA_ERR_PATCH:
+        return "OTA_ERR_PATCH";
+    case OTA_ERR_PROTOCOL:
+        return "OTA_ERR_PROTOCOL";
+    default:
+        return "OTA_ERR_UNKNOWN";
+    }
+}
+
 static void reply_ok(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
@@ -246,22 +284,35 @@ cleanup:
     return joctx;
 }
 
-void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx)
+void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx, const bool is_delta)
 {
     JADE_ASSERT(joctx);
 
-    // Ensure no cached error - if so return it now
     if (joctx->ota_return_status != OTA_SUCCESS) {
-        return;
+        goto error; // An error has already occured, return it
     }
 
+    // To reach this far without error, the user must have confirmed
+    JADE_ASSERT(joctx->validated_confirmed);
+
+    // Expect an ota_complete message
+    jade_process_load_in_message(process, true);
+    if (!IS_CURRENT_MESSAGE(process, "ota_complete")) {
+        joctx->ota_return_status = OTA_ERR_PROTOCOL; // Protocol error
+        goto error;
+    }
+
+    if (joctx->fwwritten != joctx->firmwaresize) {
+        JADE_LOGE("OTA checks failed: written: %u/%u", joctx->fwwritten, joctx->firmwaresize);
+        joctx->ota_return_status = is_delta ? OTA_ERR_PATCH : OTA_ERR_DECOMPRESS;
+        goto error;
+    }
     if (joctx->remaining_compressed || joctx->remaining_uncompressed || !joctx->compressedsize
         || !joctx->uncompressedsize) {
-        JADE_LOGE("OTA checks failed: uncompressed size: %u, compressed size: %u, remaining compressed %u, remaining "
-                  "uncompressed %u",
-            joctx->uncompressedsize, joctx->compressedsize, joctx->remaining_compressed, joctx->remaining_uncompressed);
+        JADE_LOGE("OTA checks failed: uncompressed: %u/%u, compressed: %u/%u", joctx->uncompressedsize,
+            joctx->remaining_uncompressed, joctx->compressedsize, joctx->remaining_compressed);
         joctx->ota_return_status = OTA_ERR_INIT;
-        return;
+        goto error;
     }
 
     // Verify calculated compressed file hash matches expected
@@ -279,7 +330,7 @@ void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx)
         JADE_WALLY_VERIFY(wally_free_string(calc_hash_hexstr));
 
         joctx->ota_return_status = OTA_ERR_BADHASH;
-        return;
+        goto error;
     }
 
     // All good, finalise the ota and set the partition to boot
@@ -289,14 +340,14 @@ void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx)
     if (err != ESP_OK) {
         JADE_LOGE("esp_ota_end() returned %d", err);
         joctx->ota_return_status = OTA_ERR_FINISH;
-        return;
+        goto error;
     }
 
     err = esp_ota_set_boot_partition(joctx->update_partition);
     if (err != ESP_OK) {
         JADE_LOGE("esp_ota_set_boot_partition() returned %d", err);
         joctx->ota_return_status = OTA_ERR_SETPARTITION;
-        return;
+        goto error;
     }
 
     // OTA completed without errors. send an ok and reboot
@@ -308,7 +359,37 @@ void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx)
     display_message_activity(message, 1);
 
     vTaskDelay(2500 / portTICK_PERIOD_MS);
-    esp_restart();
+    esp_restart(); // Does not return
+    return; // Unreachable
+
+error:
+    // We have an error, send an error response.
+    const char* status_text = ota_get_status_text(joctx->ota_return_status);
+    JADE_LOGE("OTA error: %s", status_text);
+
+    int errcode = CBOR_RPC_INTERNAL_ERROR;
+    if (joctx->ota_return_status == OTA_ERR_USERDECLINED) {
+        errcode = CBOR_RPC_USER_CANCELLED;
+    } else if (joctx->ota_return_status == OTA_ERR_PROTOCOL) {
+        errcode = CBOR_RPC_PROTOCOL_ERROR;
+    }
+
+    uint8_t buf[256];
+    if (joctx->id[0] != '\0') {
+        // Send error response to the ota_data message we were processing.
+        jade_process_reject_message_with_id(joctx->id, errcode, "Error uploading OTA data", (const uint8_t*)status_text,
+            strlen(status_text), buf, sizeof(buf), joctx->expected_source);
+    } else {
+        // Send error response to the ota_complete message.
+        // If we didn't get an ota_complete, sets the reply id as "00".
+        jade_process_reject_message_ex(process->ctx, errcode, "Error completing OTA", (const uint8_t*)status_text,
+            strlen(status_text), buf, sizeof(buf));
+    }
+
+    // If the error is not 'did not start' or 'user declined', show an error screen
+    if (joctx->ota_return_status != OTA_ERR_SETUP && joctx->ota_return_status != OTA_ERR_USERDECLINED) {
+        await_error_activity(&status_text, 1);
+    }
 }
 
 // NOTE: 'dest' is assumed to be at least as long as 'strlen(src)'
@@ -402,39 +483,4 @@ void ota_user_validate(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
     joctx->validated_confirmed = true;
 }
 
-const char* ota_get_status_text(const ota_status_t status)
-{
-    switch (status) {
-    case OTA_SUCCESS:
-        return "OK";
-    case OTA_ERR_SETUP:
-        return "OTA_ERR_SETUP";
-    case OTA_ERR_INIT:
-        return "OTA_ERR_INIT";
-    case OTA_ERR_BADPARTITION:
-        return "OTA_ERR_BADPARTITION";
-    case OTA_ERR_DECOMPRESS:
-        return "OTA_ERR_DECOMPRESS";
-    case OTA_ERR_WRITE:
-        return "OTA_ERR_WRITE";
-    case OTA_ERR_FINISH:
-        return "OTA_ERR_FINISH";
-    case OTA_ERR_SETPARTITION:
-        return "OTA_ERR_SETPARTITION";
-    case OTA_ERR_BADDATA:
-        return "OTA_ERR_BADDATA";
-    case OTA_ERR_NODOWNGRADE:
-        return "OTA_ERR_NODOWNGRADE";
-    case OTA_ERR_INVALIDFW:
-        return "OTA_ERR_INVALIDFW";
-    case OTA_ERR_USERDECLINED:
-        return "OTA_ERR_USERDECLINED";
-    case OTA_ERR_BADHASH:
-        return "OTA_ERR_BADHASH";
-    case OTA_ERR_PATCH:
-        return "OTA_ERR_PATCH";
-    default:
-        return "OTA_ERR_UNKNOWN";
-    }
-}
 #endif // AMALGAMATED_BUILD

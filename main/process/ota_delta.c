@@ -157,9 +157,8 @@ void ota_delta_process(void* process_ptr)
     int ret = deflate_init_read_uncompressed(&joctx->dctx, joctx->compressedsize, compressed_stream_reader, joctx);
     JADE_ASSERT(!ret);
 
-    // Send the ok response, which implies now we will get ota_data messages
+    // Send the ok response. The caller should then send ota_data messages
     jade_process_reply_to_message_ok(process);
-    bool uploading = true;
 
     struct bspatch_stream_n destination_firmware_stream_writer;
     // new partition
@@ -174,6 +173,7 @@ void ota_delta_process(void* process_ptr)
     basestream.read = &base_firmware_stream_reader;
     basestream.opaque = joctx;
 
+    // Uncompress, verify and apply the patch from incoming ota_data messages
     joctx->ota_return_status = OTA_SUCCESS;
     ret = bspatch(
         &basestream, joctx->running_partition->size, &destination_firmware_stream_writer, joctx->firmwaresize, &stream);
@@ -181,65 +181,9 @@ void ota_delta_process(void* process_ptr)
     if (ret != OTA_SUCCESS) {
         JADE_LOGE("Error applying patch: %d", ret);
         joctx->ota_return_status = ret < 0 ? OTA_ERR_PATCH : ret;
-        goto cleanup;
     }
 
-    if (joctx->fwwritten != joctx->firmwaresize) {
-        joctx->ota_return_status = OTA_ERR_PATCH;
-        goto cleanup;
-    }
-
-    // Uploading complete
-    uploading = false;
-
-    // Expect a complete/request for status
-    jade_process_load_in_message(process, true);
-    if (!IS_CURRENT_MESSAGE(process, "ota_complete")) {
-        // Protocol error
-        jade_process_reject_message(process, CBOR_RPC_PROTOCOL_ERROR, "Unexpected message, expecting 'ota_complete'");
-        return;
-    }
-
-    // If all good with the upload do all final checks and then finalise the ota
-    // and set the new boot partition, etc.
-    ota_finalize(process, joctx);
-
-    // Send final message reply with final status
-    if (joctx->ota_return_status != OTA_SUCCESS) {
-        uint8_t buf[256];
-        const char* error = ota_get_status_text(joctx->ota_return_status);
-        jade_process_reject_message_ex(process->ctx, CBOR_RPC_INTERNAL_ERROR, "Error completing OTA delta",
-            (const uint8_t*)error, strlen(error), buf, sizeof(buf));
-        goto cleanup;
-    }
-
-cleanup:
-
-    // Show error-message and await user acknowledgement.
-    if (joctx->ota_return_status != OTA_SUCCESS) {
-        JADE_LOGE("OTA error %u: %s", joctx->ota_return_status, ota_get_status_text(joctx->ota_return_status));
-
-        // If we get here and we have not finished loading the data, send an error message
-        const char* status_text = ota_get_status_text(joctx->ota_return_status);
-        if (uploading) {
-            if (joctx->id[0] == '\0') {
-                // This should not happen under normal circumstances, but it could occur if the delta
-                // uploaded is not appropriate for the base/running firmware (or perhaps is corrupted).
-                // In that case bspatch() can fail unexpectedly - default the id.
-                strcpy(joctx->id, "00");
-            }
-            const int error_code
-                = joctx->ota_return_status == OTA_ERR_USERDECLINED ? CBOR_RPC_USER_CANCELLED : CBOR_RPC_INTERNAL_ERROR;
-
-            uint8_t buf[256];
-            jade_process_reject_message_with_id(joctx->id, error_code, "Error uploading OTA delta data",
-                (const uint8_t*)status_text, strlen(status_text), buf, sizeof(buf), joctx->expected_source);
-        }
-
-        // If the error is not 'did not start' or 'user declined', show an error screen
-        if (joctx->ota_return_status != OTA_ERR_SETUP && joctx->ota_return_status != OTA_ERR_USERDECLINED) {
-            await_error_activity(&status_text, 1);
-        }
-    }
+    // Finalise the ota and reboot, or send an error and return
+    ota_finalize(process, joctx, is_delta);
 }
 #endif // AMALGAMATED_BUILD
