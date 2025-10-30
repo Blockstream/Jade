@@ -133,7 +133,7 @@ static void idletimer_task(void* ignore)
         if (!idle_timeout_disabled && (projected_timeout_time <= checktime)) {
             // If usb is connected instead of deactivating we can reboot (if wallet loaded) and dim the screen
             typedef enum { SCREEN_DIMMED, REBOOT, POWER_OFF } reset_action_t;
-            reset_action_t action = !usb_connected() ? POWER_OFF : (keychain_get() ? REBOOT : SCREEN_DIMMED);
+            reset_action_t action = !usb_is_powered() ? POWER_OFF : (keychain_get() ? REBOOT : SCREEN_DIMMED);
             JADE_LOGW("Idle-timeout elapsed - action: %u", action);
 
             if (action != SCREEN_DIMMED) {

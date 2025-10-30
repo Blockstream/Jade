@@ -306,7 +306,7 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
     JADE_ASSERT(usbstorage_action);
     JADE_ASSERT(ctx);
 
-    while (usb_connected()) {
+    while (usb_is_powered()) {
         const char* message[] = { "Disconnect USB power and", "connect a storage device" };
         if (!await_continueback_activity(title, message, 2, true, "blkstrm.com/jadeusbstorage")) {
             return false;

@@ -2637,7 +2637,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         // NOTE: only applies to a *peristed* keychain - ie if we have a pin set, and *NOT*
         // if this is a temporary/emergency-restore wallet.
         if (initial_has_pin && initial_keychain && !keychain_has_temporary()) {
-            if ((initial_userdata == SOURCE_SERIAL && !tolerate_usb_disconnection && !usb_connected())
+            if ((initial_userdata == SOURCE_SERIAL && !tolerate_usb_disconnection && !usb_is_powered())
                 || (initial_userdata == SOURCE_BLE && !ble_connected())) {
                 JADE_LOGI("Connection lost - clearing keychain");
                 keychain_clear();

@@ -286,7 +286,7 @@ bool usbstorage_start(void)
     JADE_ASSERT(!main_task);
 
     // Power any connected device
-    JADE_ASSERT(!usb_connected());
+    JADE_ASSERT(!usb_is_powered());
     enable_usb_host();
 
     usbstorage_is_enabled = true;
