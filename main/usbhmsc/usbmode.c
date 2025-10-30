@@ -52,14 +52,6 @@ static const char SIGNED_PSBT_SUFFIX[] = "_signed.psbt";
 // Function predicate to filter filenames available for a particular action
 typedef bool (*filename_filter_fn_t)(const char* path, const char* filename, const size_t filename_len);
 
-// State of usb storage
-typedef enum { USBSTORAGE_STATE_NONE, USBSTORAGE_STATE_ERROR, USBSTORAGE_STATE_MOUNTED } usbstorage_state_t;
-
-struct usbstorage_ctx {
-    SemaphoreHandle_t mutex;
-    volatile usbstorage_state_t state;
-};
-
 // Context object passed through to action callbacks
 typedef struct {
     const char* extra_path;
@@ -272,32 +264,6 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
     return done;
 }
 
-// usb storage state event callback
-static void handle_usbstorage_event(const usbstorage_event_t event, const uint8_t device_address, void* ctx)
-{
-    struct usbstorage_ctx* const storage_ctx = (struct usbstorage_ctx*)ctx;
-    JADE_ASSERT(storage_ctx && storage_ctx->mutex);
-
-    usbstorage_state_t state = USBSTORAGE_STATE_NONE;
-    if (event == USBSTORAGE_EVENT_DETECTED) {
-        // Device detected: mount it immediately
-        if (usbstorage_mount(device_address)) {
-            state = USBSTORAGE_STATE_MOUNTED;
-        } else {
-            state = USBSTORAGE_STATE_ERROR;
-        }
-    } else {
-        JADE_ASSERT(event == USBSTORAGE_EVENT_EJECTED || event == USBSTORAGE_EVENT_ABNORMALLY_EJECTED);
-        state = USBSTORAGE_STATE_NONE; // Reset state when ejected
-    }
-    xSemaphoreTake(storage_ctx->mutex, portMAX_DELAY);
-    storage_ctx->state = state;
-    xSemaphoreGive(storage_ctx->mutex);
-    if (state == USBSTORAGE_STATE_ERROR) {
-        JADE_LOGE("Failed to mount USB storage!");
-    }
-}
-
 // Generic handler to run usb storage actions
 static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t usbstorage_action,
     const usbstorage_action_context_t* ctx, const bool async_action)
@@ -317,12 +283,8 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
     display_processing_message_activity();
     serial_stop();
 
-    struct usbstorage_ctx storage_ctx = { xSemaphoreCreateMutex(), USBSTORAGE_STATE_NONE };
-    JADE_ASSERT(storage_ctx.mutex);
-    usbstorage_state_t state = USBSTORAGE_STATE_NONE;
-    usbstorage_register_callback(handle_usbstorage_event, &storage_ctx);
-
-    if (!usbstorage_start()) {
+    EventGroupHandle_t usbstorage_handle = usbstorage_start();
+    if (!usbstorage_handle) {
         JADE_LOGE("Failed to start USB storage!");
         const char* message[] = { "Failed to start", "usb storage!" };
         await_error_activity(message, 2);
@@ -337,24 +299,25 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
     gui_activity_t* act_prompt = NULL;
     int counter = 0;
     bool action_initiated = false;
+    EventBits_t usbstorage_events;
 
     while (true) {
         // Fetch the current state set by handle_usbstorage_event()
-        xSemaphoreTake(storage_ctx.mutex, portMAX_DELAY);
-        state = storage_ctx.state;
-        xSemaphoreGive(storage_ctx.mutex);
+        usbstorage_events = xEventGroupWaitBits(
+            usbstorage_handle, USBSTORAGE_AVAILABLE | USBSTORAGE_ERROR, pdFALSE, pdFALSE, 100 / portTICK_PERIOD_MS);
 
-        if (state == USBSTORAGE_STATE_MOUNTED) {
+        if (usbstorage_events & USBSTORAGE_ERROR) {
+            // Error accessing USB storage: Show error and exit
+            const char* message[] = { "Error accessing usb", "storage. Note: only", "FAT32 is supported." };
+            await_error_activity(message, 3);
+            break;
+        } else if (usbstorage_events == USBSTORAGE_AVAILABLE) {
             // USB storage is mounted: run the action
             if (act_prompt) {
                 gui_set_current_activity(prior_activity);
             }
+            JADE_LOGI("starting usbstorage_action");
             action_initiated = usbstorage_action(ctx);
-            break;
-        } else if (state == USBSTORAGE_STATE_ERROR) {
-            // Error accessing USB storage: Show error and exit
-            const char* message[] = { "Error accessing usb", "storage. Note: only", "FAT32 is supported." };
-            await_error_activity(message, 3);
             break;
         }
         // At this point, USB storage is not yet mounted
@@ -378,7 +341,6 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
                     act_prompt, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 100 / portTICK_PERIOD_MS)) {
 
                 if (ev_id == BTN_SETTINGS_USBSTORAGE_BACK) {
-                    usbstorage_register_callback(NULL, NULL);
                     // when the user goes back we go through here
                     // then the device hasn't started any action, but has disk detected
                     break;
@@ -394,23 +356,18 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
     // If the action was not an async action (ie. it has already completed) or
     // the action was never properly started, we stop/unmount usbstorage now.
     if (!async_action || !action_initiated) {
-        if (state != USBSTORAGE_STATE_NONE) {
-            // if usb was detected it may need unmounting/uninstalling
-            usbstorage_unmount();
-        }
+        JADE_LOGI("stopping usb");
         usbstorage_stop();
         serial_start();
     }
 
-    usbstorage_register_callback(NULL, NULL);
-    vSemaphoreDelete(storage_ctx.mutex);
     return action_initiated;
 }
 
 // OTA
 
 static void prepare_common_msg(CborEncoder* root_map_encoder, CborEncoder* root_encoder, const jade_msg_source_t source,
-    const char* method, uint8_t* buffer, const size_t buffer_len, const bool has_params)
+    const char* method, uint8_t* buffer, const size_t buffer_len, const bool has_params, const int msg_id)
 {
     JADE_ASSERT(root_map_encoder);
     JADE_ASSERT(root_encoder);
@@ -421,7 +378,13 @@ static void prepare_common_msg(CborEncoder* root_map_encoder, CborEncoder* root_
     cbor_encoder_init(root_encoder, buffer, buffer_len, 0);
     const CborError cberr = cbor_encoder_create_map(root_encoder, root_map_encoder, has_params ? 3 : 2);
     JADE_ASSERT(cberr == CborNoError);
-    add_string_to_map(root_map_encoder, "id", "0");
+
+    {
+        char buf[8];
+        int rc = snprintf(buf, sizeof(buf), "%d", msg_id);
+        JADE_ASSERT(rc > 0 && rc < sizeof(buf));
+        add_string_to_map(root_map_encoder, "id", buf);
+    }
     add_string_to_map(root_map_encoder, "method", method);
 }
 
@@ -434,11 +397,10 @@ static bool post_ota_message(const jade_msg_source_t source, const size_t fwsize
     CborEncoder root_encoder;
     CborEncoder root_map_encoder;
 
-    // FIXME: check max size required?
-    uint8_t buf[512 + 128];
+    uint8_t buf[256]; // sufficient
     uint8_t* cbor_buf = buf + 1;
     const bool has_params = true;
-    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota", cbor_buf, sizeof(buf) - 1, has_params);
+    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota", cbor_buf, sizeof(buf) - 1, has_params, 0);
 
     CborError cberr = cbor_encode_text_stringz(&root_map_encoder, "params");
     JADE_ASSERT(cberr == CborNoError);
@@ -458,22 +420,24 @@ static bool post_ota_message(const jade_msg_source_t source, const size_t fwsize
 
     buf[0] = source;
     const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
+    JADE_ASSERT(cbor_len + 1 <= sizeof(buf));
+
     return jade_process_push_in_message(buf, cbor_len + 1);
 }
 
-static bool post_ota_data_message(const jade_msg_source_t source, uint8_t* data, size_t data_len)
+static bool post_ota_data_message(const jade_msg_source_t source, uint8_t* data, size_t data_len, const int msg_id)
 {
     JADE_ASSERT(data);
     JADE_ASSERT(data_len);
 
-    // FIXME: check max size required?
-    uint8_t buf[JADE_OTA_BUF_SIZE + 128];
+    uint8_t buf[JADE_OTA_BUF_SIZE + 128]; // sufficient
     uint8_t* cbor_buf = buf + 1;
     CborEncoder root_encoder;
     CborEncoder root_map_encoder;
 
     const bool has_params = true;
-    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota_data", cbor_buf, sizeof(buf) - 1, has_params);
+    prepare_common_msg(
+        &root_map_encoder, &root_encoder, source, "ota_data", cbor_buf, sizeof(buf) - 1, has_params, msg_id);
     add_bytes_to_map(&root_map_encoder, "params", data, data_len);
 
     const CborError cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
@@ -481,23 +445,25 @@ static bool post_ota_data_message(const jade_msg_source_t source, uint8_t* data,
 
     buf[0] = source;
     const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
+    JADE_ASSERT(cbor_len + 1 <= sizeof(buf));
     return jade_process_push_in_message(buf, cbor_len + 1);
 }
 
 static bool post_ota_complete_message(const jade_msg_source_t source)
 {
-    // FIXME: check max size required?
-    uint8_t buf[64];
+    uint8_t buf[64]; // sufficient
     uint8_t* cbor_buf = buf + 1;
     CborEncoder root_encoder;
     CborEncoder root_map_encoder; // id, method
     const bool has_params = false;
-    prepare_common_msg(&root_map_encoder, &root_encoder, source, "ota_complete", cbor_buf, sizeof(buf) - 1, has_params);
+    prepare_common_msg(
+        &root_map_encoder, &root_encoder, source, "ota_complete", cbor_buf, sizeof(buf) - 1, has_params, 0);
     const CborError cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
     JADE_ASSERT(cberr == CborNoError);
 
     buf[0] = source;
     const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
+    JADE_ASSERT(cbor_len + 1 <= sizeof(buf));
     return jade_process_push_in_message(buf, cbor_len + 1);
 }
 
@@ -585,24 +551,31 @@ static bool handle_ota_reply(const uint8_t* msg, const size_t len, void* ctx)
     return true;
 }
 
-static bool wait_for_ota_replies(size_t num_replies, bool* is_ok)
+static bool wait_for_ota_replies(size_t num_replies, const bool wait_forever, bool* is_ok)
 {
     JADE_ASSERT(is_ok);
+    bool any_failed = false;
     *is_ok = false;
-
     for (size_t i = 0; i < num_replies; ++i) {
         // Wait for a reply message from the OTA process
         int num_waits = 0;
         while (!jade_process_get_out_message(handle_ota_reply, SOURCE_INTERNAL, is_ok)) {
-            // No reply yet: Keep waiting up to ~5s for our message to be processed
-            ++num_waits;
-            if (++num_waits > 100) {
+            // No reply yet: Keep waiting for our message to be processed.
+            // Wait forever while waiting for user confirmation, and 10
+            // seconds once data has begun being transferred.
+            // Note jade_process_get_out_message() waits up to 20ms for messages.
+            const int max_waits = 10000 / 20;
+            if (!wait_forever && ++num_waits > max_waits) {
+                JADE_LOGE("wait_for_ota_replies timeout");
                 return false; // Timed out waiting
             }
-            // jade_process_get_out_message() already waited 20ms, wait another 30
-            vTaskDelay(30 / portTICK_PERIOD_MS);
         }
+        any_failed |= !*is_ok;
     }
+    if (any_failed) {
+        *is_ok = false;
+    }
+    JADE_LOGD("wait_for_ota_replies: %d replies, OK=%d", (int)num_replies, *is_ok ? 1 : 0);
     return true; // Successfully waited for all messages
 }
 
@@ -617,8 +590,8 @@ static void usbmode_ota_worker(void* ctx)
     JADE_ASSERT(ctx_data && ctx_data->file_to_flash && ctx_data->data_to_send != 0);
 
     uint8_t buffer[JADE_OTA_BUF_SIZE];
-    size_t msgs_sent = 1; // Initially just an "ota" message sent
-    size_t msgs_waited = 0;
+    int msgs_sent = 1; // Initially just an "ota" message sent
+    int msgs_waited = 0;
     const int fd = open(ctx_data->file_to_flash, O_RDONLY, 0);
     free(ctx_data->file_to_flash);
     ctx_data->file_to_flash = NULL;
@@ -626,11 +599,12 @@ static void usbmode_ota_worker(void* ctx)
     // Loop passing our ota data to the ota task
     bool failed_wait = false;
     while (ctx_data->data_to_send) {
-        if (msgs_sent > 2) {
+        if (msgs_sent > 1) {
             // Wait for the n-1th message that we sent. This allows this task to stay
             // ahead of the ota task so that both can work in parallel.
+            const bool wait_forever = msgs_sent <= 4;
             bool ok = false;
-            failed_wait = !wait_for_ota_replies(1, &ok);
+            failed_wait = !wait_for_ota_replies(1, wait_forever, &ok);
             if (failed_wait) {
                 // Failed to get a reply: The ota task is dead/not responding
                 break;
@@ -650,8 +624,9 @@ static void usbmode_ota_worker(void* ctx)
             // e.g. the device was unplugged or is unreliable.
             break;
         }
-        const bool res = post_ota_data_message(SOURCE_INTERNAL, buffer, bytes_read);
+        const bool res = post_ota_data_message(SOURCE_INTERNAL, buffer, bytes_read, msgs_sent);
         JADE_ASSERT(res);
+        JADE_LOGD("posted ota_data message %d", msgs_sent);
         ++msgs_sent;
         ctx_data->data_to_send -= bytes_read;
     }
@@ -671,7 +646,8 @@ static void usbmode_ota_worker(void* ctx)
         ++msgs_sent;
         bool ok = false;
         // Wait for any outstanding ota replies
-        failed_wait = !wait_for_ota_replies(msgs_sent - msgs_waited, &ok);
+        const bool wait_forever = false;
+        failed_wait = !wait_for_ota_replies(msgs_sent - msgs_waited, wait_forever, &ok);
     }
 
     // If the ota succeeded the device will be rebooted soon.
@@ -681,7 +657,7 @@ static void usbmode_ota_worker(void* ctx)
     // TODO: Notify the user in the failed_wait == true case.
 
     // After ota try to unmount usbstorage and restart normal serial comms
-    usbstorage_unmount();
+    JADE_LOGI("OTA complete: stopping usb");
     usbstorage_stop();
     serial_start();
     vTaskDelete(NULL);
@@ -744,15 +720,17 @@ static bool initiate_usb_ota(const usbstorage_action_context_t* ctx)
         return false;
     }
 
-    char hash_filename[MAX_FILENAME_SIZE];
-    const int ret = snprintf(hash_filename, sizeof(hash_filename), "%s%s", filename, HASH_SUFFIX);
-    JADE_ASSERT(ret > 0 && ret < sizeof(hash_filename));
-
     uint8_t hash[SHA256_LEN];
-    if (!read_hash_file_to_buffer(hash_filename, hash, sizeof(hash))) {
-        const char* message[] = { "Failed to read", "hash file" };
-        await_error_activity(message, 2);
-        return false;
+    {
+        char hash_filename[MAX_FILENAME_SIZE];
+        const int ret = snprintf(hash_filename, sizeof(hash_filename), "%s%s", filename, HASH_SUFFIX);
+        JADE_ASSERT(ret > 0 && ret < sizeof(hash_filename));
+
+        if (!read_hash_file_to_buffer(hash_filename, hash, sizeof(hash))) {
+            const char* message[] = { "Failed to read", "hash file" };
+            await_error_activity(message, 2);
+            return false;
+        }
     }
 
     const size_t cmpsize = get_file_size(filename);

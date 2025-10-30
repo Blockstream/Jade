@@ -4,7 +4,9 @@
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../qrmode.h"
+#include "../utils/malloc_ext.h"
 #include "ota_defines.h"
+#include "process_utils.h"
 
 #include <ctype.h>
 #include <esp_efuse.h>
@@ -110,6 +112,7 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     }
 
     if (!rpc_is_method(&value, "ota_data")) {
+        JADE_LOGE("handle_in_bin_data: message is not ota_data");
         joctx->ota_return_status = OTA_ERR_BADDATA;
         return;
     }
@@ -120,6 +123,7 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     rpc_get_bytes_ptr("params", &value, &inbound_buf, &written);
 
     if (written == 0 || data[0] != joctx->expected_source || written > JADE_OTA_BUF_SIZE || !inbound_buf) {
+        JADE_LOGE("handle_in_bin_data: invalid written or source");
         joctx->ota_return_status = OTA_ERR_BADDATA;
         return;
     }
@@ -148,17 +152,16 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
 
     joctx->remaining_compressed -= written;
 
-    JADE_LOGI("Received ota_data msg %s, payload size %u", joctx->id, written);
-
-    JADE_LOGI("compressed:   total = %u, current = %u", joctx->compressedsize,
-        joctx->compressedsize - joctx->remaining_compressed);
-    JADE_LOGI("uncompressed: total = %u, current = %u", joctx->uncompressedsize,
-        joctx->uncompressedsize - joctx->remaining_uncompressed);
-
     // Send ack after all processing - see comment above.
-    uint8_t reply_msg[64];
-    jade_process_reply_to_message_result_with_id(
-        joctx->id, reply_msg, sizeof(reply_msg), joctx->expected_source, joctx, reply_ok);
+    {
+        uint8_t reply_msg[64];
+        jade_process_reply_to_message_result_with_id(
+            joctx->id, reply_msg, sizeof(reply_msg), joctx->expected_source, joctx, reply_ok);
+    }
+
+    JADE_LOGI("sent ok for ota_data %s(%u), %u/%u->%u/%u", joctx->id, written,
+        joctx->compressedsize - joctx->remaining_compressed, joctx->compressedsize,
+        joctx->uncompressedsize - joctx->remaining_uncompressed, joctx->uncompressedsize);
 
     // Blank out the current msg id once 'ok' is sent for it
     joctx->id[0] = '\0';
@@ -280,6 +283,7 @@ cleanup:
     if (errmsg) {
         JADE_LOGE("%s", errmsg);
         jade_process_reject_message(process, errcode, errmsg);
+        joctx = NULL;
     }
     return joctx;
 }
