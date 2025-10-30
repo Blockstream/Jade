@@ -217,7 +217,7 @@ void otp_set_explicit_value(otpauth_ctx_t* otp_ctx, const int64_t value)
     }
 }
 
-bool otp_set_default_value(otpauth_ctx_t* otp_ctx, uint64_t* value_out)
+otp_err_t otp_set_default_value(otpauth_ctx_t* otp_ctx, uint64_t* value_out)
 {
     JADE_ASSERT(otp_is_valid(otp_ctx));
 
@@ -227,14 +227,14 @@ bool otp_set_default_value(otpauth_ctx_t* otp_ctx, uint64_t* value_out)
         value = time(NULL);
         if (value < MIN_ALLOWED_CURRENT_TIMESTAMP) {
             JADE_LOGE("Using TOTP without time set!");
-            return false;
+            return OTP_ERR_TOTP_TIME;
         }
     } else {
         // HOTP uses an incrementing counter held in storage
         value = storage_get_otp_hotp_counter(otp_ctx->name);
         if (!storage_set_otp_hotp_counter(otp_ctx->name, value + 1)) {
             JADE_LOGE("Failed to increment HOTP counter!");
-            return false;
+            return OTP_ERR_HOTP_COUNTER;
         }
     }
 
@@ -243,7 +243,7 @@ bool otp_set_default_value(otpauth_ctx_t* otp_ctx, uint64_t* value_out)
     if (value_out) {
         *value_out = value;
     }
-    return true;
+    return OTP_ERR_OK;
 }
 
 static inline mbedtls_md_type_t get_md_type(const otpauth_ctx_t* otp_ctx)

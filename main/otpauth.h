@@ -33,6 +33,8 @@ typedef struct otpauth_ctx {
     int8_t period;
 } otpauth_ctx_t;
 
+typedef enum { OTP_ERR_OK, OTP_ERR_TOTP_TIME, OTP_ERR_HOTP_COUNTER } otp_err_t;
+
 bool otp_is_valid(const otpauth_ctx_t* otp_ctx);
 
 // Parse the otp uri into a context object
@@ -40,7 +42,7 @@ bool otp_uri_to_ctx(const char* uri, size_t uri_len, otpauth_ctx_t* otp_ctx);
 
 // Update the context object with an explicit or default/calculated nonce value
 void otp_set_explicit_value(otpauth_ctx_t* otp_ctx, int64_t value);
-bool otp_set_default_value(otpauth_ctx_t* otp_ctx, uint64_t* value_out);
+otp_err_t otp_set_default_value(otpauth_ctx_t* otp_ctx, uint64_t* value_out);
 
 // Get the auth code for the given context
 bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, size_t token_len);

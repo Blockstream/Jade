@@ -1497,10 +1497,19 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
 
         // Update values
         if (auto_update) {
-            if (!otp_set_default_value(otp_ctx, &epoch_value)) {
-                const char* message[] = { "Failed to fetch", "time/counter!" };
-                await_error_activity(message, 2);
+            switch (otp_set_default_value(otp_ctx, &epoch_value)) {
+            case OTP_ERR_TOTP_TIME: {
+                const char* msg_totp[] = { "Failed to fetch time.", "Unlock with the", "Blockstream app." };
+                await_error_activity(msg_totp, 3);
                 return false;
+            }
+            case OTP_ERR_HOTP_COUNTER: {
+                const char* msg_hotp[] = { "Failed to fetch", "counter!" };
+                await_error_activity(msg_hotp, 2);
+                return false;
+            }
+            case OTP_ERR_OK:
+                break;
             }
             ctime_r((time_t*)&epoch_value, timestr);
             gui_update_text(txt_ts, timestr);
@@ -1572,10 +1581,19 @@ static bool show_otp_code(otpauth_ctx_t* otp_ctx)
 
     // Update context with current default 'moving' element
     uint64_t value = 0;
-    if (!otp_set_default_value(otp_ctx, &value)) {
-        const char* message[] = { "Failed to fetch", "time/counter!" };
-        await_error_activity(message, 2);
+    switch (otp_set_default_value(otp_ctx, &value)) {
+    case OTP_ERR_TOTP_TIME: {
+        const char* msg_totp[] = { "Failed to fetch time.", "Unlock with the", "Blockstream app." };
+        await_error_activity(msg_totp, 3);
         return false;
+    }
+    case OTP_ERR_HOTP_COUNTER: {
+        const char* msg_hotp[] = { "Failed to fetch", "counter!" };
+        await_error_activity(msg_hotp, 2);
+        return false;
+    }
+    case OTP_ERR_OK:
+        break;
     }
 
     // Calculate token

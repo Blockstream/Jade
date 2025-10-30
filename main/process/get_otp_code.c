@@ -63,7 +63,7 @@ void get_otp_code_process(void* process_ptr)
 
     // Update the context with the current calculated counter value (derived from current time for TOTP)
     uint64_t value = 0;
-    if (!otp_set_default_value(&otp_ctx, &value)) {
+    if (otp_set_default_value(&otp_ctx, &value) != OTP_ERR_OK) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to set OTP counter");
         goto cleanup;
     }
