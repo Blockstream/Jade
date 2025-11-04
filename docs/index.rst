@@ -12,7 +12,7 @@ Welcome to Jade's RPC documentation!
 
 * All Jade RPC messages are CBOR, roughly based on the format of json-rpc messges.
 * The order of named fields inside the messages is unimportant.  The order of items in array elements usually is important.
-* In most cases the flow is message-reply-message-reply... the exception is the legacy sign-tx flow where n messages are sent before n replies are recieved.
+* In most cases the flow is message-reply-message-reply... the exception is the legacy sign-tx flow where n messages are sent before n replies are received.
 * In some cases there may be a delay between sending a message and a reply being sent, where some physical interaction with the Jade unit is required.
 * In general, the types used are string, boolean, uint32/64, and raw byte-strings for binary data.
 * Every message contains an `id` field - an arbitrary string up to 16 characters - which is included in the reply.
@@ -63,7 +63,7 @@ get_extended_data request
 * 'orig' should be the 'method' of the original request message
 * 'seqlen' should be the 'seqlen' in the replies - indicating the total number of message replies which will be required
 * 'seqnum' should indicate the next fragment required - it should always be less-than or equal-to the 'seqlen'
-* NOTE: atm 'seqnum' *MUST* indicate the next fragement.  ie. ie must be the last received seqnum + 1.
+* NOTE: atm 'seqnum' *MUST* indicate the next fragment.  ie. ie must be the last received seqnum + 1.
 * NOTE: at the moment these messages are only used for 'sign_psbt' replies, where the full psbt binary may be sufficiently large that it needs to be split over multiple messages.  See sign_psbt_request_.
 * Use of these messages may increase in future firmware releases.
 
