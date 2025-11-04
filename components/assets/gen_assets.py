@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # Must be passed input json file (eg. downloaded from https://assets.blockstream.info/)
     # and the output header/include file to create, for inclusion in assets.c
     if len(sys.argv) != 3:
-        print('Usage: python', sys.argv[0], '<input json> <ouput file>')
+        print('Usage: python', sys.argv[0], '<input json> <output file>')
         sys.exit(1)
 
     input_file = sys.argv[1]

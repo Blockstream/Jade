@@ -122,11 +122,11 @@ class JadeBleImpl:
                                     f'Serial number: {self.serial_number or "<any>"}')
 
         # Peruse services and characteristics
-        # Get the 'handle' of the receiving charactersitic
+        # Get the 'handle' of the receiving characteristic
         for service in client.services:
             for char in service.characteristics:
                 if char.uuid == JadeBleImpl.IO_RX_CHAR_UUID:
-                    logger.debug(f'Found RX characterisitic - handle: {char.handle}')
+                    logger.debug(f'Found RX characteristic - handle: {char.handle}')
                     self.rx_char_handle = char.handle
 
                 if 'read' in char.properties:

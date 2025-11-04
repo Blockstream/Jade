@@ -171,7 +171,7 @@ _Warning: Doing this cannot be un-done, nor can the signing key that the device 
     CONFIG_SECURE_FLASH_ENCRYPTION_MODE_RELEASE=y
     CONFIG_ESP32_REV_MIN_3=y
 
-_Depending on the hardare you have selected, you may need to remove the last line that requires a minimum of Rev3 hardware..._
+_Depending on the hardware you have selected, you may need to remove the last line that requires a minimum of Rev3 hardware..._
 
 **Remove**
 

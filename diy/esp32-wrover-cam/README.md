@@ -4,7 +4,7 @@
 
 In addition to the 'official' ESP32-WROVER-CAM boards from Freenove, there are also a number of readily available, low cost 'clones'.
 
-Some of these clones have will have different ports (Freenove with USB-C and cloes with MicroUSB), the camera position is slightly different (Hence why the example 3d printed cases have a rather large camera hole) and they also sometimes have slightly different startup behavior.
+Some of these clones have will have different ports (Freenove with USB-C and close with MicroUSB), the camera position is slightly different (Hence why the example 3d printed cases have a rather large camera hole) and they also sometimes have slightly different startup behavior.
 
 Some clone boards won't boot properly until you press the EN/RST pin after powering up the device. If your board behaves in this way, the simplest solution is to connect the EN/RST pin on your ESP32-WROVER-CAM board to a spare button on your LCD hat. (Pressing this button will then allow you to boot/reset the device at any time)
 

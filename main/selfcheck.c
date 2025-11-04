@@ -1131,7 +1131,7 @@ static bool test_miniscript_descriptors(void)
         }
     }
 
-    // Another Liana example - NOTE: resuing placeholder @0
+    // Another Liana example - NOTE: reusing placeholder @0
     INIT_DESC(desc, "wsh(or_d(multi(2,@0/<0;1>/*,@1/<0;1>/*),and_v(v:pkh(@0/<2;3>/*),older(65535))))");
     ADD_MAP_VAL(desc, "@0",
         "[fb5d3ada/48'/1'/0'/2']"
