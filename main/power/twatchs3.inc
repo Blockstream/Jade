@@ -108,4 +108,4 @@ uint16_t power_get_iusb(void) { return 0; }
 
 uint16_t power_get_temp(void) { return 0; }
 
-bool usb_connected(void) { return false; }
+bool usb_is_powered(void) { return false; }

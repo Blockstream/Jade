@@ -206,4 +206,4 @@ void disable_usb_host(void) {}
 void enable_usb_host(void) {}
 
 // This is only a guess by the ADC voltage when the USB is plugged in
-bool usb_connected(void) { return power_get_vbat() > 1350; }
+bool usb_is_powered(void) { return power_get_vbat() > 1350; }

@@ -2191,7 +2191,7 @@ static bool update_status_bar(const bool force_redraw)
             status_bar.updated = true;
         }
 
-        const bool new_usb = usb_connected();
+        const bool new_usb = usb_is_powered();
         if (new_usb != status_bar.last_usb_val) {
             status_bar.last_usb_val = new_usb;
             if (new_usb) {

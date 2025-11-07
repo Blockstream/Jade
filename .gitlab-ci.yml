@@ -43,7 +43,7 @@ include:
     - $CI_JOB_NAME/ota_data_initial.bin
     - $CI_JOB_NAME/bootloader/bootloader.bin
     - $CI_JOB_NAME/partition_table/partition-table.bin
-    - $CI_JOB_NAME/sdkconfig
+    - $CI_JOB_NAME/sdkconfig*
     - $CI_JOB_NAME/bsdiff.*
   script:
     - . $HOME/esp/esp-idf/export.sh
@@ -51,7 +51,7 @@ include:
     - source /venv/bin/activate
     - ./tools/fwprep.py build/jade.bin build
     - ./tools/mkindex.py build $(basename $(ls build/*_fw.bin) | cut -d'_' -f1)
-    - cp sdkconfig build/
+    - cp sdkconfig sdkconfig.defaults build/
     - cp components/esp32_bsdiff/bsdiff.* build/
   after_script:
     - mv build $CI_JOB_NAME

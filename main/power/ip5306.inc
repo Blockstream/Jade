@@ -86,7 +86,7 @@ uint16_t power_get_vusb(void) { return 0; }
 uint16_t power_get_iusb(void) { return 0; }
 uint16_t power_get_temp(void) { return 0; }
 
-bool usb_connected(void)
+bool usb_is_powered(void)
 {
     uint8_t chargedata, chargedata2;
     JADE_SEMAPHORE_TAKE(i2c_mutex);

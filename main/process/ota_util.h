@@ -4,6 +4,7 @@
 #include "../process.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include <deflate.h>
 #include <esp_app_format.h>
 #include <esp_ota_ops.h>
 #include <esp_partition.h>
@@ -32,30 +33,7 @@ typedef struct {
 
 typedef enum { HASHTYPE_FILEDATA, HASHTYPE_FULLFWDATA } hash_type_t;
 
-typedef struct {
-    progress_bar_t progress_bar;
-    mbedtls_sha256_context* sha_ctx;
-    hash_type_t hash_type;
-    char id[MAXLEN_ID + 1];
-    bool extended_replies;
-    const uint8_t* expected_hash;
-    const char* expected_hash_hexstr;
-    const esp_partition_t* running_partition;
-    const esp_partition_t* update_partition;
-    esp_ota_handle_t* ota_handle;
-    enum ota_status* ota_return_status;
-    struct deflate_ctx* dctx;
-    const jade_msg_source_t* expected_source;
-    bool* validated_confirmed;
-    size_t* const remaining_uncompressed;
-    size_t remaining_compressed;
-    size_t uncompressedsize;
-    size_t compressedsize;
-    size_t firmwaresize;
-    size_t fwwritten;
-} jade_ota_ctx_t;
-
-enum ota_status {
+typedef enum {
     OTA_SUCCESS = 0,
     OTA_ERR_SETUP,
     OTA_ERR_INIT,
@@ -70,13 +48,37 @@ enum ota_status {
     OTA_ERR_USERDECLINED,
     OTA_ERR_BADHASH,
     OTA_ERR_PATCH,
-};
+    OTA_ERR_PROTOCOL,
+} ota_status_t;
+
+typedef struct {
+    // Context used to compute (compressed) firmware hash - ie. file as uploaded
+    mbedtls_sha256_context sha_ctx;
+    struct deflate_ctx dctx;
+    progress_bar_t progress_bar;
+    hash_type_t hash_type;
+    char id[MAXLEN_ID + 1];
+    uint8_t expected_hash[32];
+    char* expected_hash_hexstr;
+    const esp_partition_t* running_partition;
+    const esp_partition_t* update_partition;
+    esp_ota_handle_t ota_handle;
+    ota_status_t ota_return_status;
+    jade_msg_source_t expected_source;
+    size_t compressedsize;
+    size_t remaining_compressed;
+    size_t uncompressedsize;
+    size_t remaining_uncompressed;
+    size_t firmwaresize;
+    size_t fwwritten;
+    bool extended_replies;
+    bool validated_confirmed;
+} jade_ota_ctx_t;
 
 void handle_in_bin_data(void* ctx, uint8_t* data, size_t rawsize);
 
-bool ota_init(jade_ota_ctx_t* joctx);
-enum ota_status post_ota_check(jade_ota_ctx_t* joctx, bool* ota_end_called);
-enum ota_status ota_user_validation(jade_ota_ctx_t* joctx, const uint8_t* uncompressed);
-const char* ota_get_status_text(enum ota_status status);
+jade_ota_ctx_t* ota_init(jade_process_t* process, bool is_delta);
+void ota_user_validate(jade_ota_ctx_t* joctx, const uint8_t* uncompressed);
+void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx, bool is_delta);
 
 #endif /* JADE_OTA_UTIL_H_ */

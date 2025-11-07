@@ -261,7 +261,7 @@ uint16_t power_get_temp(void)
     return temp;
 }
 
-bool usb_connected(void)
+bool usb_is_powered(void)
 {
     uint8_t buf;
     JADE_SEMAPHORE_TAKE(i2c_mutex);

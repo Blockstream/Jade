@@ -3,32 +3,24 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <stdbool.h>
 
 #define USBSTORAGE_MOUNT_POINT "/usb"
 
 typedef enum {
-    USBSTORAGE_EVENT_DETECTED,
-    USBSTORAGE_EVENT_EJECTED,
-    USBSTORAGE_EVENT_ABNORMALLY_EJECTED,
+    USBSTORAGE_AVAILABLE = 0x1,
+    USBSTORAGE_ERROR = 0x2,
 } usbstorage_event_t;
-
-typedef void (*usbstorage_callback_t)(usbstorage_event_t event, uint8_t device_address, void* ctx);
-
-/* this is required before usbstorage_start is called */
-void usbstorage_register_callback(usbstorage_callback_t callback, void* ctx);
 
 /* this is called only once in main */
 void usbstorage_init(void);
 
-/* call this any time you want to detect usb storage */
-bool usbstorage_start(void);
+/* Activate usb storage. If the return value is non-null, the caller will
+ * be signalled when usb storage is available at USBSTORAGE_MOUNT_POINT,
+ * or if an error occurs.
+ */
+EventGroupHandle_t usbstorage_start(void);
 
-/* this blocks until the drivers are uninstalled and tasks stopped/deleted */
+/* Shutdown usb storage. Blocks until the shutdown is complete */
 void usbstorage_stop(void);
-
-bool usbstorage_mount(uint8_t device_address);
-
-void usbstorage_unmount(void);
 
 #endif /* USBHMSC_H_ */

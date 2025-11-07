@@ -31,4 +31,4 @@ uint16_t power_get_temp(void) { return 0; }
 void disable_usb_host(void) {}
 void enable_usb_host(void) {}
 
-bool usb_connected(void) { return true; }
+bool usb_is_powered(void) { return true; }

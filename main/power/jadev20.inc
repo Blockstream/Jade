@@ -274,7 +274,7 @@ void enable_usb_host(void)
     JADE_SEMAPHORE_GIVE(i2c_mutex);
 }
 
-bool usb_connected(void)
+bool usb_is_powered(void)
 {
     uint8_t usb_type;
     JADE_SEMAPHORE_TAKE(i2c_mutex);
