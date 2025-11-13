@@ -303,8 +303,13 @@ struct view_node_picture_data {
     enum gui_vertical_align valign;
 };
 
+// Data for a qrguide node
+struct view_node_qrguide_data {
+    color_t color;
+};
+
 // Possible types of a view_node
-enum __attribute__((__packed__)) view_node_kind { HSPLIT, VSPLIT, TEXT, FILL, BUTTON, ICON, PICTURE };
+enum __attribute__((__packed__)) view_node_kind { HSPLIT, VSPLIT, TEXT, FILL, BUTTON, ICON, PICTURE, QRGUIDE };
 
 typedef struct wait_data {
     wait_event_data_t* event_data;
@@ -374,6 +379,7 @@ struct __attribute__((__packed__)) gui_view_node_t {
         struct view_node_button_data* button;
         struct view_node_icon_data* icon;
         struct view_node_picture_data* picture;
+        struct view_node_qrguide_data* qrguide;
     };
     // (optional) destructor
     free_callback_t free_callback;
@@ -432,6 +438,7 @@ void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color);
 void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, uint32_t font);
 void gui_make_icon(gui_view_node_t** ptr, const Icon* icon, color_t color, const color_t* bg_color);
 void gui_make_picture(gui_view_node_t** ptr, const Picture* picture);
+void gui_make_qrguide(gui_view_node_t** ptr, color_t color);
 void gui_set_margins(gui_view_node_t* node, uint32_t sides, ...);
 void gui_set_padding(gui_view_node_t* node, uint32_t sides, ...);
 void gui_set_borders(gui_view_node_t* node, color_t color, uint16_t thickness, uint8_t borders);

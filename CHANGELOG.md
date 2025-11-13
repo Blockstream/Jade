@@ -4,14 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.37] - 2025-11-12
+
 ### Added
+- Add support for Liquid PSET signing via sign_psbt
+- Add support for passing additional_info for non-standard PSBT signing
+- Add support for changing displayed QR brightness
 
 ### Changed
+- Improve reliability of QR detection on Jade Plus devices
+- Default to brighter QR display on Jade Plus devices
+- Speed up QR recognition for all devices
+- Small memory and speed improvements to v0 PSBT signing
+- Improve usability and error reporting from jade_ota.py
+- Internal code quality, testing and release process improvements
 
 ### Fixed
+- Improve consistency checks and requirements for Liquid commitments
+- Update Jade Plus Japanese legal page to conform to regulatory requirements
 
-## [1.0.36] - 2025-08-6
+## [1.0.36] - 2025-08-06
 ### Added
 - Add support for signing Liquid p2tr taproot transactions
 
