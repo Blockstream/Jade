@@ -651,4 +651,7 @@ menu "Blockstream Jade"
         help
             Enable smoketest firmware.
 
+    config LOG_CBOR
+        bool "Enable logging messages CBOR encoded over serial"
+
 endmenu

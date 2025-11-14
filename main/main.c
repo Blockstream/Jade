@@ -152,7 +152,7 @@ static void boot_process(void)
         JADE_ABORT();
     }
 
-#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
+#if !defined(CONFIG_LOG_DEFAULT_LEVEL_NONE) && defined(CONFIG_LOG_CBOR)
     esp_log_set_vprintf(serial_logger);
 #endif
 
