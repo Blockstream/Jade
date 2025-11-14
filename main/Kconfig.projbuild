@@ -654,4 +654,47 @@ menu "Blockstream Jade"
     config LOG_CBOR
         bool "Enable logging messages CBOR encoded over serial"
 
+    config LOG_WIFI
+        bool "Enable logging messages over Wi-Fi using a socket server"
+        default n
+        help
+            Enable logging messages over Wi-Fi using a socket server.
+
+    config LOG_WIFI_EXTRA
+        bool "Add extra wifi logger profiling commands"
+        default n
+        select FREERTOS_USE_TRACE_FACILITY
+        select FREERTOS_USE_STATS_FORMATTING_FUNCTIONS
+        select FREERTOS_GENERATE_RUN_TIME_STATS
+
+    config WIFI_SSID
+        string "Wi-Fi SSID"
+        default ""
+        help
+            SSID of the Wi-Fi network to connect to for logging.
+
+    config WIFI_PASSWORD
+        string "Wi-Fi Password"
+        default ""
+        help
+            Password of the Wi-Fi network to connect to for logging.
+
+    config WIFI_GATEWAY
+        string "Wi-Fi Gateway"
+        default "192.168.1.1"
+        help
+            Gateway IP of the Wi-Fi network.
+
+    config WIFI_LOGGER_IP
+        string "Wi-Fi Logger IP Address"
+        default "192.168.1.100"
+        help
+            IP address to expose Wi-Fi logging on.
+
+    config WIFI_LOGGER_PORT
+        int "Wi-Fi Logger Port"
+        default 8888
+        help
+            Port to expose Wi-Fi logging on.
+
 endmenu

@@ -163,5 +163,6 @@ void __wrap_abort(void);
 #include "./utils/wally_ext.c"
 #include "./versioninfo.c"
 #include "./wallet.c"
+#include "./wifi.c"
 #include "./wire.c"
 #endif // AMALGAMATED_BUILD

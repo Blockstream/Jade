@@ -2,6 +2,7 @@
 #include "jade_assert.h"
 #include "process.h"
 #include "utils/cbor_rpc.h"
+#include "wifi.h"
 #include <esp_log.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,20 +11,27 @@ static const size_t BUFFER_SIZE = 256;
 static const size_t LOG_CBOR_OVERHEAD = 8;
 static const char* TRUNCATE_TAIL = "...\n";
 
+static int write_log_line(char* buf, int buf_len, const char* message, va_list fmt)
+{
+    int written = vsnprintf(buf, buf_len, message, fmt);
+
+    if (written >= buf_len) {
+        // The message has been truncated, write "...\n" to the end
+        char* tail_begin = buf + buf_len - strlen(TRUNCATE_TAIL) - 1;
+        memcpy(tail_begin, TRUNCATE_TAIL, strlen(TRUNCATE_TAIL));
+        written = buf_len - 1;
+    }
+
+    return written;
+}
+
 // Writes logging messages to the serial interface output buffer, ensuring
 // that logging messages are not interleaved on the serial interface with
 // application protocol messages
 int serial_logger(const char* message, va_list fmt)
 {
     char buff[BUFFER_SIZE];
-    int written = vsnprintf(buff, sizeof(buff), message, fmt);
-
-    if (written >= sizeof(buff)) {
-        // The message has been truncated, write "...\n" to the end
-        char* tail_begin = buff + sizeof(buff) - strlen(TRUNCATE_TAIL) - 1;
-        memcpy(tail_begin, TRUNCATE_TAIL, strlen(TRUNCATE_TAIL));
-        written = sizeof(buff) - 1;
-    }
+    int written = write_log_line(buff, sizeof(buff), message, fmt);
 
     CborEncoder root_encoder;
     uint8_t cbor_buff[BUFFER_SIZE + LOG_CBOR_OVERHEAD];
@@ -46,4 +54,18 @@ int serial_logger(const char* message, va_list fmt)
 
     return written;
 }
+
+#ifdef CONFIG_LOG_WIFI
+// Writes logging messages to the wifi socket server
+int wifi_socket_server_logger(const char* message, va_list fmt)
+{
+    char buff[BUFFER_SIZE];
+    int written = write_log_line(buff, sizeof(buff), message, fmt);
+
+    socket_server_send(buff, written);
+
+    return written;
+}
+#endif
+
 #endif // AMALGAMATED_BUILD

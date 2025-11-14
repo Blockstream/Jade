@@ -33,6 +33,7 @@
 #endif
 #include "sensitive.h"
 #include "serial.h"
+#include "wifi.h"
 #ifdef CONFIG_ETH_USE_OPENETH
 #ifdef CONFIG_HAS_CAMERA
 #include "qemu_display.h"
@@ -52,8 +53,18 @@ esp_app_desc_t running_app_info;
 esp_chip_info_t chip_info;
 uint8_t macid[6];
 
-#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
+#if defined(CONFIG_LOG_DEFAULT_LEVEL_NONE) && (defined(CONFIG_LOG_CBOR) || defined(CONFIG_LOG_WIFI))
+#error "CONFIG_LOG_CBOR/CONFIG_LOG_WIFI requires logging to be enabled"
+#endif
+#if defined(CONFIG_LOG_WIFI) && defined(CONFIG_LOG_CBOR)
+#error "CONFIG_LOG_WIFI and CONFIG_LOG_CBOR are mutually exclusive"
+#endif
+
+#ifdef CONFIG_LOG_CBOR
 int serial_logger(const char* message, va_list fmt);
+#endif
+#ifdef CONFIG_LOG_WIFI
+int wifi_socket_server_logger(const char* message, va_list fmt);
 #endif
 
 void offer_startup_options(void);
@@ -152,7 +163,7 @@ static void boot_process(void)
         JADE_ABORT();
     }
 
-#if !defined(CONFIG_LOG_DEFAULT_LEVEL_NONE) && defined(CONFIG_LOG_CBOR)
+#ifdef CONFIG_LOG_CBOR
     esp_log_set_vprintf(serial_logger);
 #endif
 
@@ -194,6 +205,11 @@ static void boot_process(void)
     if (!serial_init(serial_handle)) {
         JADE_ABORT();
     }
+
+#ifdef CONFIG_LOG_WIFI
+    JADE_ASSERT(wifi_socket_server_logger_start() == ESP_OK);
+    esp_log_set_vprintf(wifi_socket_server_logger);
+#endif // CONFIG_LOG_WIFI
 
 #ifdef CONFIG_ETH_USE_OPENETH
     if (!qemu_tcp_init(qemu_tcp_handle)) {
