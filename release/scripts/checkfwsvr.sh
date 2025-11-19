@@ -66,11 +66,12 @@ for hwdir in ${HWDIRS}; do
                 *_fw.bin)
                     if [ ! -f "${fw_file}.hash" ]; then
                         echo "Missing hash for ${fw_file}" >> "${MISSING_LOG}"
-                    fi
-                    fw_hash=$(get_uncompressed_hash "${fw_file}")
-                    if [ "${fw_hash}" != $(cat "${fw_file}.hash") ]; then
-                        echo "ERROR: Hash mismatch for ${fw_file}!"
-                        exit 1
+                    else
+                        fw_hash=$(get_uncompressed_hash "${fw_file}")
+                        if [ "${fw_hash}" != $(cat "${fw_file}.hash") ]; then
+                            echo "ERROR: Hash mismatch for ${fw_file}!"
+                            exit 1
+                        fi
                     fi
                     ;;
             esac
