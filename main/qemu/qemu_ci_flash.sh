@@ -45,7 +45,7 @@ FW_FULL=$(ls build/*_fw.bin)
 python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:30121 --fwfile=${FW_FULL}
 
 # Flash a simple patch-to-self, just to smoke test ota-delta
-./tools/mkpatch.py ${FW_FULL} ${FW_FULL} build/
+./tools/mkpatch.py ${FW_FULL} ${FW_FULL} build/ --force
 FW_PATCH=$(ls ./build/*_patch.bin)
 cp "${FW_FULL}.hash" "${FW_PATCH}.hash"
 python jade_ota.py --log=INFO --skipble --serialport=tcp:localhost:30121 --fwfile=${FW_PATCH}

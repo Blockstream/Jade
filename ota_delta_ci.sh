@@ -32,9 +32,9 @@ FW_NORADIO=$(ls build_noradio/*_noradio_*_fw.bin)
 PATCHDIR=patches
 mkdir -p ${PATCHDIR}
 
-./tools/mkpatch.py ${FW_NORADIO} ${FW_NORADIO} ${PATCHDIR}
-./tools/mkpatch.py ${FW_BLE} ${FW_BLE} ${PATCHDIR}
-./tools/mkpatch.py ${FW_NORADIO} ${FW_BLE} ${PATCHDIR}  # makes both directions
+./tools/mkpatch.py ${FW_NORADIO} ${FW_NORADIO} ${PATCHDIR} --force
+./tools/mkpatch.py ${FW_BLE} ${FW_BLE} ${PATCHDIR} --force
+./tools/mkpatch.py ${FW_NORADIO} ${FW_BLE} ${PATCHDIR} --force  # makes both directions
 sleep 2
 
 # first we ota to noradio via ble

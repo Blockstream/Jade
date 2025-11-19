@@ -39,7 +39,7 @@ def write_decompressed(compressedpath, uncompressedpath):
     return fwtools.write(uncompressed, uncompressedpath)
 
 
-def create_patch(frominfo, frompath, toinfo, topath, outputdir):
+def create_patch(frominfo, frompath, toinfo, topath, outputdir, force):
 
     tmppathpatch = _tmpfilepath(outputdir, 'patch')
     try:
@@ -49,17 +49,25 @@ def create_patch(frominfo, frompath, toinfo, topath, outputdir):
         rslt = subprocess.run([bsdiff, frompath, topath, tmppathpatch])
         assert rslt.returncode == 0
 
-        # Read the uncompressed patch data, and write zlib compressed
-        # with the standard expected filename
+        with open(topath, 'rb') as f:
+            fw_full_size = len(f.read())
+
+        # Read the uncompressed patch data,
         patch = fwtools.read(tmppathpatch)
-        patchpath = fwtools.get_patch_compressed_filepath(patch, frominfo, toinfo, outputdir)
-        compressed = fwtools.compress(patch)
-        fwtools.write(compressed, patchpath)
+        fw_patch_size = len(patch)
+        if force or (fw_patch_size * 2 <= fw_full_size):
+            # Patch is 50% or less of the full size so create it
+            # (zlib compressed, with the standard expected filename)
+            patchpath = fwtools.get_patch_compressed_filepath(patch, frominfo, toinfo, outputdir)
+            compressed = fwtools.compress(patch)
+            fwtools.write(compressed, patchpath)
+        else:
+            logger.info(f'skipping oversize delta {fw_full_size}->{fw_patch_size}')
     finally:
         _remove(tmppathpatch)
 
 
-def create_patches(fwpathA, fwpathB, outputdir):
+def create_patches(fwpathA, fwpathB, outputdir, force):
 
     logger.info(f'Patching between {fwpathA} and {fwpathB}')
     typeA, infoA, infoA_ = fwtools.parse_compressed_filename(fwpathA)
@@ -76,8 +84,8 @@ def create_patches(fwpathA, fwpathB, outputdir):
         write_decompressed(fwpathB, tmppathB)
 
         # Create patches in both directions
-        create_patch(infoA, tmppathA, infoB, tmppathB, outputdir)
-        create_patch(infoB, tmppathB, infoA, tmppathA, outputdir)
+        create_patch(infoA, tmppathA, infoB, tmppathB, outputdir, force)
+        create_patch(infoB, tmppathB, infoA, tmppathA, outputdir, force)
     finally:
         # Delete the uncompressed firmware images
         _remove(tmppathA)
@@ -91,10 +99,11 @@ if __name__ == '__main__':
     jadehandler = logging.StreamHandler()
     logger.addHandler(jadehandler)
 
-    assert len(sys.argv) == 4, f'Usage: {sys.argv[0]} fwA fwB output_dir'
+    assert len(sys.argv) in (4, 5), f'Usage: {sys.argv[0]} fwA fwB output_dir [--force]'
 
     # Compressed firmware (ie. input) files to patch between
     fwA, fwB, outputdir = sys.argv[1], sys.argv[2], sys.argv[3]
+    force = len(sys.argv) == 5 and sys.argv[4] == '--force'
 
     for fw in [fwA, fwB]:
         assert os.path.exists(fw) and os.path.isfile(fw), f'Firmware file {fw} not found.'
@@ -108,4 +117,4 @@ if __name__ == '__main__':
         os.linesep + 'gcc -O2 -DBSDIFF_EXECUTABLE -o tools/bsdiff components/esp32_bsdiff/bsdiff.c'
 
     # Create patches between firmware files
-    create_patches(fwA, fwB, outputdir)
+    create_patches(fwA, fwB, outputdir, force)
