@@ -28,35 +28,35 @@ static const char* ota_get_status_text(const ota_status_t status)
     case OTA_SUCCESS:
         return "OK";
     case OTA_ERR_SETUP:
-        return "OTA_ERR_SETUP";
+        return "ERR_SETUP";
     case OTA_ERR_INIT:
-        return "OTA_ERR_INIT";
+        return "ERR_INIT";
     case OTA_ERR_BADPARTITION:
-        return "OTA_ERR_BADPARTITION";
+        return "ERR_BADPARTITION";
     case OTA_ERR_DECOMPRESS:
-        return "OTA_ERR_DECOMPRESS";
+        return "ERR_DECOMPRESS";
     case OTA_ERR_WRITE:
-        return "OTA_ERR_WRITE";
+        return "ERR_WRITE";
     case OTA_ERR_FINISH:
-        return "OTA_ERR_FINISH";
+        return "ERR_FINISH";
     case OTA_ERR_SETPARTITION:
-        return "OTA_ERR_SETPARTITION";
+        return "ERR_SETPARTITION";
     case OTA_ERR_BADDATA:
-        return "OTA_ERR_BADDATA";
+        return "ERR_BADDATA";
     case OTA_ERR_NODOWNGRADE:
-        return "OTA_ERR_NODOWNGRADE";
+        return "ERR_NODOWNGRADE";
     case OTA_ERR_INVALIDFW:
-        return "OTA_ERR_INVALIDFW";
+        return "ERR_INVALIDFW";
     case OTA_ERR_USERDECLINED:
-        return "OTA_ERR_USERDECLINED";
+        return "ERR_USERDECLINED";
     case OTA_ERR_BADHASH:
-        return "OTA_ERR_BADHASH";
+        return "ERR_BADHASH";
     case OTA_ERR_PATCH:
-        return "OTA_ERR_PATCH";
+        return "ERR_PATCH";
     case OTA_ERR_PROTOCOL:
-        return "OTA_ERR_PROTOCOL";
+        return "ERR_PROTOCOL";
     default:
-        return "OTA_ERR_UNKNOWN";
+        return "ERR_UNKNOWN";
     }
 }
 
