@@ -97,8 +97,9 @@ static void perspective_setup(float *c,
          hden;
 }
 
-static void perspective_map(const float *c,
-                            float u, float v, struct quirc_point *ret)
+__attribute__ ((always_inline))
+static inline void perspective_map(const float *c,
+                                   float u, float v, struct quirc_point *ret)
 {
   float den = (float)1 / (c[6] * u + c[7] * v + (float)1.0);
   float x = (c[0] * u + c[1] * v + c[2]) * den;
