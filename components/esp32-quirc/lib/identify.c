@@ -77,32 +77,32 @@ static void perspective_setup(float *c,
   float x3 = rect[3].x;
   float y3 = rect[3].y;
 
-  float wden = w * (x2 * y3 - x3 * y2 + (x3 - x2) * y1 + x1 * (y2 - y3));
-  float hden = h * (x2 * y3 + x1 * (y2 - y3) - x3 * y2 + (x3 - x2) * y1);
+  float wden = (float)1 / (w * (x2 * y3 - x3 * y2 + (x3 - x2) * y1 + x1 * (y2 - y3)));
+  float hden = (float)1 / (h * (x2 * y3 + x1 * (y2 - y3) - x3 * y2 + (x3 - x2) * y1));
 
   c[0] = (x1 * (x2 * y3 - x3 * y2) + x0 * (-x2 * y3 + x3 * y2 + (x2 - x3) * y1) +
-          x1 * (x3 - x2) * y0) /
+          x1 * (x3 - x2) * y0) *
          wden;
-  c[1] = -(x0 * (x2 * y3 + x1 * (y2 - y3) - x2 * y1) - x1 * x3 * y2 + x2 * x3 * y1 + (x1 * x3 - x2 * x3) * y0) / hden;
+  c[1] = -(x0 * (x2 * y3 + x1 * (y2 - y3) - x2 * y1) - x1 * x3 * y2 + x2 * x3 * y1 + (x1 * x3 - x2 * x3) * y0) * hden;
   c[2] = x0;
   c[3] = (y0 * (x1 * (y3 - y2) - x2 * y3 + x3 * y2) + y1 * (x2 * y3 - x3 * y2) +
-          x0 * y1 * (y2 - y3)) /
+          x0 * y1 * (y2 - y3)) *
          wden;
   c[4] = (x0 * (y1 * y3 - y2 * y3) + x1 * y2 * y3 - x2 * y1 * y3 +
-          y0 * (x3 * y2 - x1 * y2 + (x2 - x3) * y1)) /
+          y0 * (x3 * y2 - x1 * y2 + (x2 - x3) * y1)) *
          hden;
   c[5] = y0;
-  c[6] = (x1 * (y3 - y2) + x0 * (y2 - y3) + (x2 - x3) * y1 + (x3 - x2) * y0) / wden;
-  c[7] = (-x2 * y3 + x1 * y3 + x3 * y2 + x0 * (y1 - y2) - x3 * y1 + (x2 - x1) * y0) /
+  c[6] = (x1 * (y3 - y2) + x0 * (y2 - y3) + (x2 - x3) * y1 + (x3 - x2) * y0) * wden;
+  c[7] = (-x2 * y3 + x1 * y3 + x3 * y2 + x0 * (y1 - y2) - x3 * y1 + (x2 - x1) * y0) *
          hden;
 }
 
 static void perspective_map(const float *c,
                             float u, float v, struct quirc_point *ret)
 {
-  float den = c[6] * u + c[7] * v + 1.0;
-  float x = (c[0] * u + c[1] * v + c[2]) / den;
-  float y = (c[3] * u + c[4] * v + c[5]) / den;
+  float den = (float)1 / (c[6] * u + c[7] * v + (float)1.0);
+  float x = (c[0] * u + c[1] * v + c[2]) * den;
+  float y = (c[3] * u + c[4] * v + c[5]) * den;
 
   ret->x = fast_roundf(x);
   ret->y = fast_roundf(y);
@@ -114,12 +114,12 @@ static void perspective_unmap(const float *c,
 {
   float x = in->x;
   float y = in->y;
-  float den = -c[0] * c[7] * y + c[1] * c[6] * y + (c[3] * c[7] - c[4] * c[6]) * x +
-              c[0] * c[4] - c[1] * c[3];
+  float den = (float)1 / (-c[0] * c[7] * y + c[1] * c[6] * y + (c[3] * c[7] - c[4] * c[6]) * x +
+              c[0] * c[4] - c[1] * c[3]);
 
-  *u = -(c[1] * (y - c[5]) - c[2] * c[7] * y + (c[5] * c[7] - c[4]) * x + c[2] * c[4]) /
+  *u = -(c[1] * (y - c[5]) - c[2] * c[7] * y + (c[5] * c[7] - c[4]) * x + c[2] * c[4]) *
        den;
-  *v = (c[0] * (y - c[5]) - c[2] * c[6] * y + (c[5] * c[6] - c[3]) * x + c[2] * c[3]) /
+  *v = (c[0] * (y - c[5]) - c[2] * c[6] * y + (c[5] * c[6] - c[3]) * x + c[2] * c[3]) *
        den;
 }
 
@@ -465,8 +465,8 @@ static void record_capstone(struct quirc *q, int ring, int stone)
   find_region_corners(q, ring, &stone_reg->seed, capstone->corners);
 
   /* Set up the perspective transform and find the center */
-  perspective_setup(capstone->c, capstone->corners, 7.0, 7.0);
-  perspective_map(capstone->c, 3.5, 3.5, &capstone->center);
+  perspective_setup(capstone->c, capstone->corners, (float)7.0, (float)7.0);
+  perspective_map(capstone->c, (float)3.5, (float)3.5, &capstone->center);
 }
 
 static void test_capstone(struct quirc *q, int x, int y, int *pb)
@@ -570,9 +570,9 @@ static void find_alignment_pattern(struct quirc *q, int index)
      * can estimate its size.
      */
   perspective_unmap(c0->c, &b, &u, &v);
-  perspective_map(c0->c, u, v + 1.0, &a);
+  perspective_map(c0->c, u, v + (float)1.0, &a);
   perspective_unmap(c2->c, &b, &u, &v);
-  perspective_map(c2->c, u + 1.0, v, &c);
+  perspective_map(c2->c, u + (float)1.0, v, &c);
 
   size_estimate = abs((a.x - b.x) * -(c.y - b.y) +
                       (a.y - b.y) * (c.x - b.x));
@@ -781,7 +781,7 @@ static int read_cell(const struct quirc *q, int index, int x, int y)
   const struct quirc_grid *qr = &q->grids[index];
   struct quirc_point p;
 
-  perspective_map(qr->c, x + 0.5, y + 0.5, &p);
+  perspective_map(qr->c, x + (float)0.5, y + (float)0.5, &p);
   if (p.y < 0 || p.y >= q->h || p.x < 0 || p.x >= q->w)
     return 0;
 
@@ -907,7 +907,7 @@ static void jiggle_perspective(struct quirc *q, int index)
   int i;
 
   for (i = 0; i < 8; i++)
-    adjustments[i] = qr->c[i] * 0.02;
+    adjustments[i] = qr->c[i] * (float)0.02;
 
   for (pass = 0; pass < 5; pass++)
   {
@@ -934,7 +934,7 @@ static void jiggle_perspective(struct quirc *q, int index)
     }
 
     for (i = 0; i < 8; i++)
-      adjustments[i] *= 0.5;
+      adjustments[i] *= (float)0.5;
   }
 }
 
@@ -990,7 +990,7 @@ static void rotate_capstone(struct quirc_capstone *cap,
     memcpy(&copy[j], &cap->corners[(j + best) % 4],
            sizeof(copy[j]));
   memcpy(cap->corners, copy, sizeof(cap->corners));
-  perspective_setup(cap->c, cap->corners, 7.0, 7.0);
+  perspective_setup(cap->c, cap->corners, (float)7.0, (float)7.0);
 }
 
 static void record_qr_grid(struct quirc *q, int a, int b, int c)
@@ -1130,9 +1130,9 @@ static void test_neighbours(struct quirc *q, int i,
     {
       const struct neighbour *hn = &hlist->n[j];
       const struct neighbour *vn = &vlist->n[k];
-      float score = fast_fabsf(1.0 - hn->distance / vn->distance);
+      float score = fast_fabsf((float)1.0 - hn->distance / vn->distance);
 
-      if (score > 2.5)
+      if (score > (float)2.5)
         continue;
 
       if (best_h < 0 || score < best_score)
@@ -1175,10 +1175,10 @@ static void test_grouping(struct quirc *q, int i)
 
     perspective_unmap(c1->c, &c2->center, &u, &v);
 
-    u = fast_fabsf(u - 3.5);
-    v = fast_fabsf(v - 3.5);
+    u = fast_fabsf(u - (float)3.5);
+    v = fast_fabsf(v - (float)3.5);
 
-    if (u < 0.2 * v)
+    if (u < (float)0.2 * v)
     {
       struct neighbour *n = &hlist.n[hlist.count++];
 
@@ -1186,7 +1186,7 @@ static void test_grouping(struct quirc *q, int i)
       n->distance = v;
     }
 
-    if (v < 0.2 * u)
+    if (v < (float)0.2 * u)
     {
       struct neighbour *n = &vlist.n[vlist.count++];
 
@@ -1263,11 +1263,11 @@ void quirc_extract(const struct quirc *q, int index,
   if (index < 0 || index > q->num_grids)
     return;
 
-  perspective_map(qr->c, 0.0, 0.0, &code->corners[0]);
-  perspective_map(qr->c, qr->grid_size, 0.0, &code->corners[1]);
+  perspective_map(qr->c, (float)0.0, (float)0.0, &code->corners[0]);
+  perspective_map(qr->c, qr->grid_size, (float)0.0, &code->corners[1]);
   perspective_map(qr->c, qr->grid_size, qr->grid_size,
                   &code->corners[2]);
-  perspective_map(qr->c, 0.0, qr->grid_size, &code->corners[3]);
+  perspective_map(qr->c, (float)0.0, qr->grid_size, &code->corners[3]);
 
   code->size = qr->grid_size;
 
