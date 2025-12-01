@@ -4,23 +4,33 @@
 .build_prod_template:
   extends: .build_template
   stage: build_prod
-  before_script:
-    - cp production/sdkconfig$(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}//")_prod.defaults sdkconfig.defaults
 
 build_prod_jade:
   extends: .build_prod_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade
 
 build_prod_jade_noradio:
   extends: .build_prod_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade --noradio
 
 build_prod_jade_v1_1:
   extends: .build_prod_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v1_1
 
 build_prod_jade_v1_1_noradio:
   extends: .build_prod_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v1_1 --noradio
 
 build_prod_jade_v2:
   extends: .build_prod_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2
 
 build_prod_jade_v2_noradio:
   extends: .build_prod_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2 --noradio

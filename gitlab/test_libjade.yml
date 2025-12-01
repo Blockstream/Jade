@@ -2,7 +2,7 @@
   tags: [ ga ]
   before_script:
     - . $HOME/esp/esp-idf/export.sh
-    - ./tools/switch_to.sh jadedev --noradio
+    - ./tools/switch_to.sh jade --dev --noradio
     - source /venv/bin/activate
     - pip install -r requirements.txt
     - pip install -r pinserver/requirements.txt
