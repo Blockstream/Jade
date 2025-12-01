@@ -371,7 +371,7 @@ static void jade_camera_task(void* data)
     }
 
     // camera_config->ctx is optional
-    // camera_config->show_ui indicates whether to show a ui or collect cmaera data 'silently'
+    // camera_config->show_ui indicates whether to show a ui or collect camera data 'silently'
     // camera_config->text_label is optional
     // camera_config->show_click_button indicates we want the user to select the images presented
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
@@ -427,6 +427,7 @@ static void jade_camera_task(void* data)
 
     // Loop periodically refreshes screen image from camera, and waits for button event
     bool done = false;
+    uint32_t num_captures = 0;
     while (!done) {
         // Capture camera output
         camera_fb_t* const fb = esp_camera_fb_get();
@@ -437,9 +438,22 @@ static void jade_camera_task(void* data)
         JADE_ASSERT(fb->format == PIXFORMAT_GRAYSCALE); // 1BPP/GRAYSCALE
         JADE_ASSERT(fb->width == CAMERA_IMAGE_WIDTH);
         JADE_ASSERT(fb->height == CAMERA_IMAGE_HEIGHT);
+        ++num_captures;
 
-        // If we have a gui, update the image on screen and check for button events
-        if (camera_config->show_ui) {
+        bool skip_screen_update = false;
+        if (!camera_config->show_click_button) {
+            // We have no 'click' button (or no gui at all).
+            // Run the processing callback on every frame
+            done = invoke_user_cb_fn(camera_config, fb);
+            if (num_captures == 2) {
+                // Skip every second screen update to scan faster
+                num_captures = 0;
+                skip_screen_update = true;
+            }
+        }
+
+        if (!done && !skip_screen_update && camera_config->show_ui) {
+            // We have a gui. Update the image on screen and check for button events.
             // Copy from camera output to screen image
             // (Ensure source image large enough to be scaled down to display image size)
             JADE_ASSERT(fb->len >= UI2CAM(UI2CAM(image_size))); // x and y scaled
@@ -473,11 +487,6 @@ static void jade_camera_task(void* data)
                     done = true;
                 }
             }
-        }
-
-        // If we have no 'click' button (or no gui at all), we run the processing callback on every frame
-        if (!done && !camera_config->show_click_button) {
-            done = invoke_user_cb_fn(camera_config, fb);
         }
 
         // Release camera output buffer
