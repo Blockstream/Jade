@@ -5,8 +5,10 @@ if [[ -z ${JADESERIALPORT} ]]; then
     echo "Serial port \"${JADESERIALPORT}\" isn't valid, using defaults"
     if [ "$(uname)" == "Darwin" ]; then
         JADESERIALPORT=/dev/cu.SLAB_USBtoUART
-    else
+    elif [ -c /dev/ttyUSB0 ]; then
         JADESERIALPORT=/dev/ttyUSB0
+    else
+        JADESERIALPORT=/dev/ttyACM0
     fi
     echo "Serial port set to default \"${JADESERIALPORT}\""
 fi
@@ -56,21 +58,37 @@ if fgrep -qs "CONFIG_APPTRACE_GCOV_ENABLE=y" ${BUILD_DIR}/sdkconfig sdkconfig; t
     fi
 fi
 
-source ~/venv3/bin/activate
-
+if [ -r ~/venv3/bin/activate ]; then
+    # Assume we are running under the CI: pinserver requirements are already installed
+    source ~/venv3/bin/activate
+else
+    # Install and activate a local venv
+    if [ ! -r ./venv3/bin/activate ]; then
+        virtualenv -p python3 venv3
+    fi
+    source ./venv3/bin/activate
+    pip install -r pinserver/requirements.txt
+fi
 pip install --require-hashes -r requirements.txt
 
 # NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware file
+SKIP_ARGS=""
+if [ ! -x /usr/bin/bt-agent ]; then
+    echo "bt-agent not available, skipping bluetooth OTA"
+    SKIP_ARGS=" --skipble"
+fi
 FW_FULL=$(ls ${BUILD_DIR}/*_fw.bin)
-python jade_ota.py --push-mnemonic --log=INFO --serialport=${JADESERIALPORT} --fwfile=${FW_FULL}
+python jade_ota.py --push-mnemonic --log=INFO --serialport=${JADESERIALPORT} --fwfile=${FW_FULL}${SKIP_ARGS}
 
 sleep 5
 python -c "from jadepy import JadeAPI; jade = JadeAPI.create_serial(device=\"${JADESERIALPORT}\", timeout=5) ; jade.connect(); jade.drain(); jade.disconnect()"
 
-python test_jade.py --log=INFO --serialport=${JADESERIALPORT}
+python test_jade.py --log=INFO --serialport=${JADESERIALPORT}${SKIP_ARGS}
 
 # check if gcov is enabled and run collection tool
 if fgrep -qs "CONFIG_APPTRACE_GCOV_ENABLE=y" ${BUILD_DIR}/sdkconfig sdkconfig; then
   ./tools/gcov/generate_report.sh
   killall -9 openocd || true
 fi
+
+deactivate
