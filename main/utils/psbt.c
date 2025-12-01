@@ -37,7 +37,7 @@ static bool key_iter_init(
     const struct wally_psbt* psbt, const size_t index, const bool is_input, const bool is_private, key_iter* iter)
 {
     JADE_ASSERT(psbt);
-    JADE_ASSERT(index <= (is_input ? psbt->num_inputs : psbt->num_outputs));
+    JADE_ASSERT(index < (is_input ? psbt->num_inputs : psbt->num_outputs));
     JADE_ASSERT(iter);
     iter->psbt = psbt;
     iter->index = index;
