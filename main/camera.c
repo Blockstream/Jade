@@ -175,7 +175,7 @@ static void copy_camera_image_180(
 void await_qr_help_activity(const char* url);
 
 gui_activity_t* make_camera_activity(gui_view_node_t** image_node, gui_view_node_t** label_node, bool show_click_btn,
-    qr_frame_guides_t qr_frame_guides, progress_bar_t* progress_bar, bool show_help_btn);
+    qr_guide_type_t qr_guide_type, progress_bar_t* progress_bar, bool show_help_btn);
 
 // Camera-task config data
 typedef struct {
@@ -193,8 +193,8 @@ typedef struct {
     bool show_click_button;
 
     // Whether to show guides for ideal QR code placement
-    // NOTE: qr_frame_guides is only valid if 'show_ui' is set.
-    qr_frame_guides_t qr_frame_guides;
+    // NOTE: qr_guide_type is only valid if 'show_ui' is set.
+    qr_guide_type_t qr_guide_type;
 
     // Any progress bar (feedback for multi-frame scanning)
     // NOTE: progress_bar is optional, and only valid if 'show_ui' is set.
@@ -366,7 +366,7 @@ static void jade_camera_task(void* data)
         JADE_ASSERT(!camera_config->text_label);
         JADE_ASSERT(!camera_config->show_click_button);
         JADE_ASSERT(!camera_config->help_url);
-        JADE_ASSERT(camera_config->qr_frame_guides == QR_GUIDES_NONE);
+        JADE_ASSERT(camera_config->qr_guide_type == QR_GUIDE_HIDE);
         JADE_ASSERT(!camera_config->progress_bar);
     }
 
@@ -376,7 +376,7 @@ static void jade_camera_task(void* data)
     // camera_config->show_click_button indicates we want the user to select the images presented
     // (otherwise all images are presented) to the given callback function ctx.fn_process()
     // camera_config->help_url is optional - if preset a '?' (and help screen) are shown
-    // camera_config->qr_frame_guides is optional - if set guides for ideal QR placement are shown
+    // camera_config->qr_guide_type is optional - if set guides for ideal QR placement are shown
     // camera_config->progress_bar is optional, and is for providing feedback for multi-frame scanning
     // NOTE: not valid to have a label, click button, help_url, qr frame or progress bar if no ui shown
     // NOTE: atm show_click_btn and help_url are mutually exclusive
@@ -388,7 +388,7 @@ static void jade_camera_task(void* data)
     if (camera_config->show_ui) {
         // Create camera screen
         act = make_camera_activity(&image_node, &label_node, camera_config->show_click_button,
-            camera_config->qr_frame_guides, camera_config->progress_bar, camera_config->help_url);
+            camera_config->qr_guide_type, camera_config->progress_bar, camera_config->help_url);
         gui_set_current_activity(act);
     }
 
@@ -502,7 +502,7 @@ static void jade_camera_task(void* data)
 }
 
 void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool show_ui, const char* text_label,
-    const bool show_click_button, const qr_frame_guides_t qr_frame_guides, const char* help_url,
+    const bool show_click_button, const qr_guide_type_t qr_guide_type, const char* help_url,
     progress_bar_t* progress_bar)
 {
     JADE_ASSERT(fn);
@@ -521,7 +521,7 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
         JADE_ASSERT(!text_label);
         JADE_ASSERT(!show_click_button);
         JADE_ASSERT(!help_url);
-        JADE_ASSERT(qr_frame_guides == QR_GUIDES_NONE);
+        JADE_ASSERT(qr_guide_type == QR_GUIDE_HIDE);
         JADE_ASSERT(!progress_bar);
     }
 
@@ -530,7 +530,7 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
         .text_label = text_label,
         .show_click_button = show_click_button,
         .help_url = help_url,
-        .qr_frame_guides = qr_frame_guides,
+        .qr_guide_type = qr_guide_type,
         .progress_bar = progress_bar,
         .fn_process = fn,
         .ctx = ctx };
@@ -565,7 +565,7 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
 #else // CONFIG_HAS_CAMERA
 
 void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool show_ui, const char* text_label,
-    const bool show_click_button, const qr_frame_guides_t qr_frame_guides, const char* help_url,
+    const bool show_click_button, const qr_guide_type_t qr_guide_type, const char* help_url,
     progress_bar_t* progress_bar)
 {
     JADE_LOGW("No camera supported for this device");

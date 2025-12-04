@@ -4,7 +4,7 @@
 #include "../ui.h"
 
 gui_activity_t* make_camera_activity(gui_view_node_t** image_node, gui_view_node_t** label_node,
-    const bool show_click_btn, const qr_frame_guides_t qr_frame_guides, progress_bar_t* progress_bar,
+    const bool show_click_btn, const qr_guide_type_t qr_guide_type, progress_bar_t* progress_bar,
     const bool show_help_btn)
 {
     // progress bar is optional
@@ -23,7 +23,7 @@ gui_activity_t* make_camera_activity(gui_view_node_t** image_node, gui_view_node
     gui_view_node_t* parent = *image_node;
 
     // QR frame guide if applicable
-    if (qr_frame_guides != QR_GUIDES_NONE) {
+    if (qr_guide_type == QR_GUIDE_SHOW) {
         gui_make_qrguide(&parent, TFT_WHITE);
         gui_set_parent(parent, *image_node);
     }

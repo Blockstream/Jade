@@ -232,7 +232,7 @@ static void boot_process(void)
 
 #if defined(CONFIG_HAS_CAMERA) && !defined(CONFIG_ETH_USE_OPENETH)
     size_t counter = 0;
-    jade_camera_process_images(&rnd_camera_feed, &counter, false, false, NULL, QR_GUIDES_NONE, NULL, NULL);
+    jade_camera_process_images(&rnd_camera_feed, &counter, false, false, NULL, QR_GUIDE_HIDE, NULL, NULL);
 #endif
 
     jade_wally_init();

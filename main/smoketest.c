@@ -471,7 +471,7 @@ static void check_camera(void)
 {
     // Run the camera task until the user quits
     bool ok = false;
-    jade_camera_process_images(camera_cb, &ok, true, "Click front button", false, QR_GUIDES_NONE, NULL, NULL);
+    jade_camera_process_images(camera_cb, &ok, true, "Click front button", false, QR_GUIDE_HIDE, NULL, NULL);
     JADE_ASSERT(ok); // Must have processed at least one good image
 }
 

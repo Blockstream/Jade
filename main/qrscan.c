@@ -156,11 +156,11 @@ bool scan_qr(const size_t width, const size_t height, const uint8_t* data, const
 // Main entry point to run camera task to capture frames and scan each
 // image until a valid qr-code is found ('valid' as defined by the caller).
 bool jade_camera_scan_qr(
-    qr_data_t* qr_data, const char* text_label, const qr_frame_guides_t qr_frame_guides, const char* help_url)
+    qr_data_t* qr_data, const char* text_label, const qr_guide_type_t qr_guide_type, const char* help_url)
 {
     JADE_ASSERT(qr_data);
     // text_label is optional
-    JADE_ASSERT(qr_frame_guides != QR_GUIDES_NONE);
+    JADE_ASSERT(qr_guide_type != QR_GUIDE_HIDE);
     // help_url is optional
 
 #ifdef CONFIG_HAS_CAMERA
@@ -184,7 +184,7 @@ bool jade_camera_scan_qr(
     // Run the camera task trying to interpet frames as qr-codes
     const bool show_camera_ui = true;
     const bool show_click_button = false;
-    jade_camera_process_images(qr_recognize, qr_data, show_camera_ui, text_label, show_click_button, qr_frame_guides,
+    jade_camera_process_images(qr_recognize, qr_data, show_camera_ui, text_label, show_click_button, qr_guide_type,
         help_url, qr_data->progress_bar);
 
     // Destroy the quirc structs created above
