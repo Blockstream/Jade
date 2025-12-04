@@ -2080,8 +2080,13 @@ static void render_qrguide(gui_view_node_t* node, const dispWin_t cs, const uint
     const uint16_t width = cs.x2 - cs.x1;
     const uint16_t height = cs.y2 - cs.y1;
     const uint16_t square_size = min_u16(width, height);
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+    // guides 9% inset
+    const uint16_t inset = square_size / 11;
+#else
     // guides 3% inset
     const uint16_t inset = square_size / 30;
+#endif
     // guide boundaries
     const uint16_t left = cs.x1 + (width - square_size) / 2 + inset;
     const uint16_t right = cs.x2 - (width - square_size) / 2 - inset;
