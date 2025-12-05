@@ -1,18 +1,30 @@
 name: GitHub Actions test
 on: [push]
 jobs:
-  build:
-
+  build_v1_1:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v5
       with:
         submodules: 'recursive'
-    - name: esp-idf build
+    - name: build Jade 1.1
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: v5.4
         target: esp32
-        command: idf.py -D SDKCONFIG_DEFAULTS="configs/sdkconfig_jade_v1_1.defaults" build all size-components size
+        command: ./tools/switch_to.sh jade_v1_1 --dev --log && idf.py size all
+
+  build_v2:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v5
+      with:
+        submodules: 'recursive'
+    - name: build Jade Plus
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.4
+        target: esp32s3
+        command: ./tools/switch_to.sh jade_v2 --dev --log --jtag && idf.py size all
