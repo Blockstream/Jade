@@ -44,22 +44,17 @@ build_test_jade_v2_noradio_ci:
     - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2 --dev --debug --ci --log --jtag --noradio
 
 
-.build_test_qemu_template:
+build_test_qemu:
   extends: .build_test_template
   before_script:
-    # Create CI config from the default developer device config
-    # TODO: Add qemu to tools/switch_to.sh
-    - echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}//" | sed "s/_ci$//" >device_name
-    - cp configs/sdkconfig$(cat device_name).defaults sdkconfig.defaults
-    - echo "CONFIG_DEBUG_UNATTENDED_CI=y" >>sdkconfig.defaults
-    - echo "CONFIG_HEAP_POISONING_COMPREHENSIVE=y" >>sdkconfig.defaults
-    - echo "CONFIG_LOG_DEFAULT_LEVEL_NONE=y" >>sdkconfig.defaults
-
-build_test_qemu:
-  extends: .build_test_qemu_template
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh qemu --dev --ci
 
 build_test_qemu_psram:
-  extends: .build_test_qemu_template
+  extends: .build_test_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh qemu --dev --ci --psram
 
 build_test_qemu_psram_unamalgamated:
-  extends: .build_test_qemu_template
+  extends: .build_test_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh qemu --dev --ci --psram --unamalgamated
