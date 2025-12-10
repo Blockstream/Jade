@@ -10,6 +10,7 @@
 #include "display.h"
 
 #include "ble/ble.h"
+#include "button_events.h"
 #include "gui.h"
 #include "idletimer.h"
 #include "jade_assert.h"
