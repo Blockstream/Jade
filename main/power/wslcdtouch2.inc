@@ -1,4 +1,4 @@
-// Waveshare LCD Touch 2 implmentation
+// Waveshare LCD Touch 2 implementation
 //
 #include <driver/gpio.h>
 #include <driver/ledc.h>
@@ -14,6 +14,7 @@
 #include "iot_button.h"
 #include "power.h"
 #include "soc/gpio_num.h"
+#include "tusb.h"
 
 #define BATTERY_ADC_CHANNEL ADC_CHANNEL_4
 #define BATTERY_ADC_ATTEN ADC_ATTEN_DB_12
@@ -205,5 +206,18 @@ uint16_t power_get_temp(void) { return 0; }
 void disable_usb_host(void) {}
 void enable_usb_host(void) {}
 
-// This is only a guess by the ADC voltage when the USB is plugged in
-bool usb_is_powered(void) { return power_get_vbat() > 1350; }
+bool usb_is_powered(void)
+{
+    // Check if USB is mounted and not suspended (active connection)
+    if (tud_mounted() && !tud_suspended()) {
+        return true;
+    }
+
+    // Fallback: If voltage is near zero (<1V) but chip is on,
+    // we must be running on USB power without a battery.
+    if (power_get_vbat() < 1000) {
+        return true;
+    }
+
+    return false;
+}
