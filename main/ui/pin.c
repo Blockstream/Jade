@@ -11,6 +11,16 @@ static const char PIN_CHARS[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '
 static const uint32_t NUM_PIN_CHARS = sizeof(PIN_CHARS) / sizeof(PIN_CHARS[0]);
 static const uint32_t NUM_PIN_VALUES = NUM_PIN_CHARS - 1; // ie. not including backspace
 
+static inline bool pin_entry_invert_navigation(void)
+{
+#if defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY) || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAYS3)
+    // TTGO boards need to locally invert navigation so PIN entry matches the rest of the UI.
+    return true;
+#else
+    return false;
+#endif
+}
+
 static inline char get_pin_value(size_t index)
 {
     JADE_ASSERT(index < NUM_PIN_CHARS);
@@ -194,6 +204,14 @@ bool run_pin_entry_loop(pin_insert_t* pin_insert)
     while (true) {
         // wait for a GUI event
         gui_activity_wait_event(pin_insert->activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+        if (pin_entry_invert_navigation()) {
+            // Swap left/right wheel events
+            if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                ev_id = GUI_WHEEL_RIGHT_EVENT;
+            } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                ev_id = GUI_WHEEL_LEFT_EVENT;
+            }
+        }
 
         switch (ev_id) {
         case GUI_WHEEL_LEFT_EVENT:
