@@ -1,4 +1,4 @@
-// M5StackCores3 implmentation
+// M5StackCores3 implementation
 // M5 Core S3 has AXP2101
 //
 #include "power/i2c.inc"

@@ -1,4 +1,4 @@
-// No-op/minimal implmentation for devices with no power-management chip
+// No-op/minimal implementation for devices with no power-management chip
 //
 #include <esp_sleep.h>
 

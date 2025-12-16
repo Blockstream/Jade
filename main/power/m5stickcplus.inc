@@ -1,4 +1,4 @@
-// M5StickCPlus implmentation - also uses AXP192 but configured
+// M5StickCPlus implementation - also uses AXP192 but configured
 // differently from Jade v1.x
 // NOTE: also handles M5StackCore2 as similar enough ...
 //

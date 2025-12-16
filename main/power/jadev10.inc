@@ -1,4 +1,4 @@
-// Jade v1.0 implmentation
+// Jade v1.0 implementation
 //
 #include "power/i2c.inc"
 #include <driver/gpio.h>

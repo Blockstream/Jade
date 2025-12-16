@@ -1,4 +1,4 @@
-// ip5306 PMU implmentation
+// ip5306 PMU implementation
 //
 #include "power/i2c.inc"
 #include <esp_sleep.h>

@@ -1,4 +1,4 @@
-// twatchs3 implmentation
+// twatchs3 implementation
 // twatchs3 has AXP2101
 //
 #include "power/i2c.inc"

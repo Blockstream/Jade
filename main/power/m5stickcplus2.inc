@@ -1,4 +1,4 @@
-// M5StickCPlus implmentation - uses IP5303 Power PMU
+// M5StickCPlus implementation - uses IP5303 Power PMU
 //
 #include <driver/gpio.h>
 #include <esp_adc/adc_oneshot.h>

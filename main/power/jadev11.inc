@@ -1,4 +1,4 @@
-// Jade v1.1 implmentation
+// Jade v1.1 implementation
 //
 #include "power/i2c.inc"
 #include <esp_private/adc_share_hw_ctrl.h>
