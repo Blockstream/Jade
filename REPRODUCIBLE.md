@@ -41,25 +41,18 @@ Since the mounted source repository will have a different owner from the user ru
 
 * RE-RUN FROM HERE TO BUILD DIFFERENT CONFIGURATIONS
 
-4. Copy the relevant config file
+4. Generate the relevant config file
 
-Copy the relevant config file onto `./sdkconfig.defaults`.  The production build configs are in the directory `production`, as follows:
+Generate the relevant config file to `./sdkconfig.defaults` using the script `tools/switch_to.sh`.
 
-| Jade Hardware Type          | Configuration | sdkconfig.defaults source file                           |
-| --------------------------- | ------------- | -------------------------------------------------------- |
-| Jade 1.0 (true wheel)       | BLE-enabled   | ./production/sdkconfig_jade_prod.defaults                |
-|                             | no-radio      | ./production/sdkconfig_jade_noradio_prod.defaults        |
-| Jade 1.1 (rocker/jog-wheel) | BLE-enabled   | ./production/sdkconfig_jade_v1_1_prod.defaults           |
-|                             | no-radio      | ./production/sdkconfig_jade_v1_1_noradio_prod.defaults   |
-| Jade 2.0 (Jade Plus)        | BLE-enabled   | ./production/sdkconfig_jade_v2_prod.defaults             |
-|                             | no-radio      | ./production/sdkconfig_jade_v2_noradio_prod.defaults     |
-
-eg:
-```
-cp ./production/sdkconfig_jade_prod.defaults sdkconfig.defaults
-rm -f sdkconfig
-```
-NOTE: The `rm -f sdkconfig` step is not necessary on a fresh/clean repo, but always best to ensure this file does not exist and is recreated from the `sdkconfig.defaults` file.  This is vital if the `sdkconfig.defaults` file is changed (eg. to build another configuration).
+| Jade Hardware Type          | Configuration | Command                                   |
+| --------------------------- | ------------- | ------------------------------------------|
+| Jade 1.0 (true wheel)       | BLE-enabled   | ./tools/switch_to.sh jade                 |
+|                             | no-radio      | ./tools/switch_to.sh jade --noradio       |
+| Jade 1.1 (rocker/jog-wheel) | BLE-enabled   | ./tools/switch_to.sh jade_v1_1            |
+|                             | no-radio      | ./tools/switch_to.sh jade_v1_1 --noradio  |
+| Jade 2.0 (two buttons)      | BLE-enabled   | ./tools/switch_to.sh jade_v2              |
+|                             | no-radio      | ./tools/switch_to.sh jade_v2 --noradio    |
 
 5. Build
 ```
@@ -79,13 +72,13 @@ A diff of `./build/jade_signed.bin` against `./build/jade.bin` should just show 
 
 # Download Blockstream Jade Firmware
 
-1. Download the official Blockstream Jade firmware, suppliying the relevant `hw-target` flag:
+1. Download the official Blockstream Jade firmware, by supplying the relevant `hw-target` flag:
 
-| Jade Hardware Type          | --hw-target flag    |
-| --------------------------- | ------------------- |
-| Jade 1.0 (true wheel)       | --hw-target jade    |
-| Jade 1.1 (rocker/jog-wheel) | --hw-target jade1.1 |
-| Jade 2.0 (two buttons)      | --hw-target jade2.0 |
+| Jade Hardware Type                 | flag                 |
+| ---------------------------------- | -------------------- |
+| Jade 1.0 (true wheel)              | --hw-target jade     |
+| Jade 1.1 (rocker/jog-wheel)        | --hw-target jade1.1  |
+| Jade 2.0 (two buttons)             | --hw-target jade2.0  |
 
 eg:
 ```
