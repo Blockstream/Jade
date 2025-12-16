@@ -25,7 +25,7 @@
 #include "utils/util.h"
 
 // A genuine production v2 Jade may be awaiting mandatory attestation data
-#if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)                                                  \
+#if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) && defined(CONFIG_SECURE_BOOT)                                              \
     && defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS)
 #include "attestation/attestation.h"
 static inline bool gui_awaiting_attestation_data(void) { return !attestation_initialised(); }
@@ -2081,7 +2081,7 @@ static void render_qrguide(gui_view_node_t* node, const dispWin_t cs, const uint
     const uint16_t width = cs.x2 - cs.x1;
     const uint16_t height = cs.y2 - cs.y1;
     const uint16_t square_size = min_u16(width, height);
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_ANY)
     // guides 9% inset
     const uint16_t inset = square_size / 11;
 #else
@@ -2740,7 +2740,7 @@ void gui_set_activity_title(gui_activity_t* activity, const char* title)
 
 gui_activity_t* gui_current_activity(void) { return current_activity; }
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+#ifdef CONFIG_BOARD_TYPE_JADE_ANY
 extern const uint8_t splashstart[] asm("_binary_splash_bin_gz_start");
 extern const uint8_t splashend[] asm("_binary_splash_bin_gz_end");
 #endif
@@ -2752,7 +2752,7 @@ gui_activity_t* gui_display_splash(void)
 
     // Blank screen while awaiting attestation data upload
     if (!gui_awaiting_attestation_data()) {
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+#ifdef CONFIG_BOARD_TYPE_JADE_ANY
         Picture* const pic = get_picture(splashstart, splashend);
         gui_make_picture(&splash_node, pic);
 #else

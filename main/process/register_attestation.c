@@ -69,7 +69,7 @@ void register_attestation_process(void* process_ptr)
     sign_attestation_and_send_reply(process, ext_signature, ext_signature_len); // sends reply
     JADE_LOGI("Success");
 
-#if defined(CONFIG_BOARD_TYPE_JADE_V2) && !defined(CONFIG_DEBUG_MODE)
+#if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) && !defined(CONFIG_DEBUG_MODE)
     // A production jade unit should reboot after attestation parameters set
     const char* message[] = { "Attestation initialised" };
     display_message_activity(message, 1);

@@ -53,6 +53,19 @@ esp_app_desc_t running_app_info;
 esp_chip_info_t chip_info;
 uint8_t macid[6];
 
+#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1)
+#if !defined(CONFIG_BOARD_TYPE_JADE_ANY) || !defined(CONFIG_BOARD_TYPE_JADE_V1_ANY)
+#error "JADE/JADE_V1_1 requires JADE_ANY and JADE_V1_ANY"
+#endif
+#elif defined(CONFIG_BOARD_TYPE_JADE_V2)
+#if !defined(CONFIG_BOARD_TYPE_JADE_ANY) || !defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)
+#error "JADE_V2 requires JADE_ANY and JADE_V2_ANY"
+#endif
+#elif defined(CONFIG_BOARD_TYPE_JADE_ANY) || defined(CONFIG_BOARD_TYPE_JADE_V1_ANY)                                    \
+    || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)
+#error "JADE_ANY/JADE_V1_ANY/JADE_V2_ANY require a Jade board config"
+#endif
+
 #if defined(CONFIG_LOG_DEFAULT_LEVEL_NONE) && (defined(CONFIG_LOG_CBOR) || defined(CONFIG_LOG_WIFI))
 #error "CONFIG_LOG_CBOR/CONFIG_LOG_WIFI requires logging to be enabled"
 #endif
@@ -82,7 +95,7 @@ void temp_stack_init(void);
 // any further efuses as un-readable.])
 // See: https://docs.espressif.com/projects/esp-idf/en/v5.3.1/esp32s3/security/secure-boot-v2.html
 //  #restrictions-after-secure-boot-is-enabled
-#if defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS) && !defined(CONFIG_BOARD_TYPE_JADE_V2)
+#if defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS) && !defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)
 #error "Error, insecure flag CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS set"
 #endif
 

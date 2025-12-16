@@ -32,7 +32,7 @@
 #include <esp_system.h>
 
 // A genuine production v2 Jade may be awaiting mandatory attestation data
-#if defined(CONFIG_BOARD_TYPE_JADE_V2) && defined(CONFIG_SECURE_BOOT)                                                  \
+#if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) && defined(CONFIG_SECURE_BOOT)                                              \
     && defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS)
 #include "attestation/attestation.h"
 static inline bool awaiting_attestation_data(void) { return !attestation_initialised(); }
@@ -188,7 +188,7 @@ gui_activity_t* make_display_settings_activity(void);
 gui_activity_t* make_info_activity(const char* fw_version);
 gui_activity_t* make_device_info_activity(void);
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+#ifdef CONFIG_BOARD_TYPE_JADE_ANY
 gui_activity_t* make_legal_certifications_activity(void);
 #endif
 gui_activity_t* make_storage_stats_activity(size_t entries_used, size_t entries_free);
@@ -881,7 +881,7 @@ static bool offer_temporary_wallet_login(void)
     return true;
 }
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+#ifdef CONFIG_BOARD_TYPE_JADE_ANY
 static void handle_legal(void)
 {
     gui_activity_t* const first_activity = make_legal_certifications_activity();
@@ -1686,7 +1686,7 @@ static void handle_view_otps(void)
 }
 
 // NOTE: Only Jade v1.1's and v2's have brightness controls
-#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)                                         \
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)                                     \
     || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
 static void handle_screen_brightness(void)
 {
@@ -2266,7 +2266,7 @@ static void handle_settings(const bool startup_menu)
 #endif
 
 // NOTE: Only Jade v1.1's and v2's have brightness controls
-#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)                                         \
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)                                     \
     || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
         case BTN_SETTINGS_DISPLAY_BRIGHTNESS:
             handle_screen_brightness();
@@ -2392,7 +2392,7 @@ static void handle_settings(const bool startup_menu)
             handle_pinserver_reset();
             break;
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+#ifdef CONFIG_BOARD_TYPE_JADE_ANY
         case BTN_SETTINGS_LEGAL:
             handle_legal();
             break;

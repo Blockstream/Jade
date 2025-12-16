@@ -6,18 +6,17 @@
 #include "process.h"
 #include "utils/malloc_ext.h"
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+#ifdef CONFIG_BOARD_TYPE_JADE_ANY
 extern const uint8_t fccstart[] asm("_binary_fcc_bin_gz_start");
 extern const uint8_t fccend[] asm("_binary_fcc_bin_gz_end");
 extern const uint8_t cestart[] asm("_binary_ce_bin_gz_start");
 extern const uint8_t ceend[] asm("_binary_ce_bin_gz_end");
 extern const uint8_t weeestart[] asm("_binary_weee_bin_gz_start");
 extern const uint8_t weeeend[] asm("_binary_weee_bin_gz_end");
-#endif
-
-#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)
 extern const uint8_t telecstart[] asm("_binary_telec_bin_gz_start");
 extern const uint8_t telecend[] asm("_binary_telec_bin_gz_end");
+#endif
 #endif
 
 static gui_view_node_t* make_home_screen_panel_item(const color_t color, home_menu_entry_t* entry)
@@ -266,17 +265,15 @@ gui_activity_t* make_startup_options_activity(void)
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = { { .txt = "Factory Reset", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_RESET },
-        { .txt = "Blind Oracle", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER },
-        { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL } };
-
-    // Legal screens only apply to proper jade hw
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
-    const size_t num_menubtns = 3;
-#else
-    const size_t num_menubtns = 2;
+        { .txt = "Blind Oracle", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_PINSERVER }
+#ifdef CONFIG_BOARD_TYPE_JADE_ANY
+        // Legal screens only apply to official Jade hw
+        ,
+        { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL }
 #endif
+    };
 
-    return make_menu_activity("Boot Menu", hdrbtns, 2, menubtns, num_menubtns);
+    return make_menu_activity("Boot Menu", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
 
 gui_activity_t* make_uninitialised_settings_activity(void)
@@ -399,7 +396,7 @@ gui_activity_t* make_display_settings_activity(void)
 
     // NOTE: Only Jade v1.1's and v2's have brightness controls
     // NOTE: Jade v1.1's do not support Flip Orientation because of issues with screen offsets
-#if defined(CONFIG_BOARD_TYPE_JADE_V2) || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+#if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
     btn_data_t menubtns[]
         = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_BRIGHTNESS },
               { .txt = "Flip Orientation", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_ORIENTATION },
@@ -616,15 +613,14 @@ gui_activity_t* make_info_activity(const char* fw_version)
     gui_set_align(fwver, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
     gui_set_parent(fwver, splitfw);
 
-    btn_data_t menubtns[]
-        = { { .content = splitfw, .ev_id = BTN_SETTINGS_INFO_FWVERSION },
-              { .txt = "Device Info", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO }
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
-              // Legal screens only apply to proper jade hw
-              ,
-              { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL }
+    btn_data_t menubtns[] = { { .content = splitfw, .ev_id = BTN_SETTINGS_INFO_FWVERSION },
+        { .txt = "Device Info", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DEVICE_INFO }
+#ifdef CONFIG_BOARD_TYPE_JADE_ANY
+        // Legal screens only apply to official Jade hw
+        ,
+        { .txt = "Legal", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_LEGAL }
 #endif
-          };
+    };
 
     gui_activity_t* const act = make_menu_activity("Info", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 
@@ -648,14 +644,14 @@ gui_activity_t* make_device_info_activity(void)
     return make_menu_activity("Device Info", hdrbtns, 2, menubtns, sizeof(menubtns) / sizeof(btn_data_t));
 }
 
-#if defined(CONFIG_BOARD_TYPE_JADE) || defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+#ifdef CONFIG_BOARD_TYPE_JADE_ANY
 
-#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
-#define JADE_FCC_ID "2AWI3BLOCK\n STREAMJD2"
-#define MAX_LEGAL_PAGE 6
-#else
+#ifdef CONFIG_BOARD_TYPE_JADE
 #define JADE_FCC_ID "2AWI3BLOCK\n STREAMJD1"
 #define MAX_LEGAL_PAGE 5
+#else
+#define JADE_FCC_ID "2AWI3BLOCK\n STREAMJD2"
+#define MAX_LEGAL_PAGE 6
 #endif
 
 static void make_legal_page(link_activity_t* page_act, int legal_page)
@@ -754,7 +750,7 @@ static void make_legal_page(link_activity_t* page_act, int legal_page)
         gui_set_padding(node, GUI_MARGIN_ALL_EQUAL, 12);
         break;
     }
-#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2)
+#if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)
     case 6: {
         gui_view_node_t* hsplit;
         gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 36, 10, 54);

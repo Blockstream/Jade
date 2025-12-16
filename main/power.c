@@ -9,7 +9,7 @@
 #include "power/jadev10.inc"
 #elif defined(CONFIG_BOARD_TYPE_JADE_V1_1)
 #include "power/jadev11.inc"
-#elif defined(CONFIG_BOARD_TYPE_JADE_V2)
+#elif defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)
 #include "power/jadev20.inc"
 #elif defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS) || defined(CONFIG_BOARD_TYPE_M5_CORE2)
 // These have AXP192 but configured differently from the Jade
