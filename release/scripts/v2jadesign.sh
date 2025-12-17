@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 function usage {
     echo "Usage: ${0} <version/dir> <key_label> [--serialport PORT]"
 }
@@ -32,7 +34,8 @@ if [ -z "${VER_DIR}" -o -z "${KEY_LABEL}" ]; then
     exit 1
 fi
 
-WORKING_DIR="staging/${VER_DIR}/jade2.0"
+WORKING_DIR_PREFIX="staging/${VER_DIR}"
+HWDIRS="jade2.0"
 
 # Can log if required
 LOGGING=""
@@ -61,71 +64,76 @@ HASH_OPTS="-sha256 -binary"
 VERIFY_OPTS="-pubin -inkey ${PUBKEY} -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pss"
 JADE_SIGN_CMD="python ../../../../jade_bip85_rsa_sign.py ${JADE_SERIAL_ARG} ${LOGGING} ${CHECK_JADE_PUBKEY} --keylen ${KEYLEN} --index ${INDEX} --digest-files"
 
-pushd "${WORKING_DIR}"
+for hwdir in ${HWDIRS}; do
+    WORKING_DIR="${WORKING_DIR_PREFIX}/${hwdir}"
 
-# Verify bootloaders are same
-sha1=$(sha256sum "${BLEDIR}/bootloader/bootloader.bin" | cut -d\  -f1)
-sha2=$(sha256sum "${NORADIODIR}/bootloader/bootloader.bin" | cut -d\  -f1)
-if [ -z "${sha1}" -o -z "${sha2}" -o "${sha1}" != "${sha2}" ]
-then
-    echo "Bootloaders missing or differ!"
-    popd
-    exit 2
-fi
+    pushd "${WORKING_DIR}"
 
-# Copy binaries that need signing
-cp "${BLEDIR}/bootloader/bootloader.bin" "${FILE_PREFIX}_ble_bootloader.bin"
-cp "${BLEDIR}/jade.bin" "${FILE_PREFIX}_ble_jade.bin"
-cp "${NORADIODIR}/bootloader/bootloader.bin" "${FILE_PREFIX}_noradio_bootloader.bin"
-cp "${NORADIODIR}/jade.bin" "${FILE_PREFIX}_noradio_jade.bin"
-
-# Hash the bootloaders and fws locally
-HASH_FILES=""
-for build in "ble" "noradio"
-do
-    for program in "bootloader" "jade"
-    do
-        binary="${FILE_PREFIX}_${build}_${program}.bin"
-        hash_file="${FILE_PREFIX}_${build}_${program}.hash"
-        HASH_FILES="${HASH_FILES} ${hash_file}"
-
-        openssl dgst ${HASH_OPTS} -out "${hash_file}" "${binary}"
-    done
-done
-
-# Sign the hashes with jade
-echo "Please approve signing on your Jade device"
-${JADE_SIGN_CMD} ${HASH_FILES}
-
-# Check signatures with labeled pubkey, and rename if good
-for build in "ble" "noradio"
-do
-    for program in "bootloader" "jade"
-    do
-        hash_file="${FILE_PREFIX}_${build}_${program}.hash"
-        sig_file="${hash_file}.sig"
-        openssl pkeyutl -verify ${VERIFY_OPTS} -sigfile "${sig_file}" -in "${hash_file}"
-        if [ "${?}" -eq 0 ]
-        then
-            mv ${sig_file} "${FILE_PREFIX}_${build}_${program}.${SIG_SUFFIX}"
-            rm "${hash_file}"
-        else
-            echo "Signature verification of ${sig_file} over ${hash_file} with ${PUBKEY} failed"
-        fi
-    done
-done
-
-sha256sum *."${SIG_SUFFIX}"
-
-# Verify jade pubkey matches expected (if feched)
-if [ -n "${CHECK_JADE_PUBKEY}" ]
-then
-    sha1=$(sha256sum "${PUBKEY}" | cut -d\  -f1)
-    sha2=$(sha256sum "${JADE_PUBKEY_FILE}" | cut -d\  -f1)
+    # Verify bootloaders are same
+    sha1=$(sha256sum "${BLEDIR}/bootloader/bootloader.bin" | cut -d\  -f1)
+    sha2=$(sha256sum "${NORADIODIR}/bootloader/bootloader.bin" | cut -d\  -f1)
     if [ -z "${sha1}" -o -z "${sha2}" -o "${sha1}" != "${sha2}" ]
     then
-        echo "Error: Pubkey pem mismatch!"
+        echo "Bootloaders missing or differ!"
+        popd
+        exit 2
     fi
-fi
 
-popd
+    # Copy binaries that need signing
+    cp "${BLEDIR}/bootloader/bootloader.bin" "${FILE_PREFIX}_ble_bootloader.bin"
+    cp "${BLEDIR}/jade.bin" "${FILE_PREFIX}_ble_jade.bin"
+    cp "${NORADIODIR}/bootloader/bootloader.bin" "${FILE_PREFIX}_noradio_bootloader.bin"
+    cp "${NORADIODIR}/jade.bin" "${FILE_PREFIX}_noradio_jade.bin"
+
+    # Hash the bootloaders and fws locally
+    HASH_FILES=""
+    for build in "ble" "noradio"
+    do
+        for program in "bootloader" "jade"
+        do
+            binary="${FILE_PREFIX}_${build}_${program}.bin"
+            hash_file="${FILE_PREFIX}_${build}_${program}.hash"
+            HASH_FILES="${HASH_FILES} ${hash_file}"
+
+            openssl dgst ${HASH_OPTS} -out "${hash_file}" "${binary}"
+        done
+    done
+
+    # Sign the hashes with jade
+    echo "Please approve signing on your Jade device"
+    ${JADE_SIGN_CMD} ${HASH_FILES}
+
+    # Check signatures with labeled pubkey, and rename if good
+    for build in "ble" "noradio"
+    do
+        for program in "bootloader" "jade"
+        do
+            hash_file="${FILE_PREFIX}_${build}_${program}.hash"
+            sig_file="${hash_file}.sig"
+            openssl pkeyutl -verify ${VERIFY_OPTS} -sigfile "${sig_file}" -in "${hash_file}"
+            if [ "${?}" -eq 0 ]
+            then
+                mv ${sig_file} "${FILE_PREFIX}_${build}_${program}.${SIG_SUFFIX}"
+                rm "${hash_file}"
+            else
+                echo "Signature verification of ${sig_file} over ${hash_file} with ${PUBKEY} failed"
+            fi
+        done
+    done
+
+    sha256sum *."${SIG_SUFFIX}"
+
+    # Verify jade pubkey matches expected (if feched)
+    if [ -n "${CHECK_JADE_PUBKEY}" ]
+    then
+        sha1=$(sha256sum "${PUBKEY}" | cut -d\  -f1)
+        sha2=$(sha256sum "${JADE_PUBKEY_FILE}" | cut -d\  -f1)
+        if [ -z "${sha1}" -o -z "${sha2}" -o "${sha1}" != "${sha2}" ]
+        then
+            echo "Error: Pubkey pem mismatch!"
+        fi
+    fi
+
+    popd
+
+done
