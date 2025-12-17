@@ -15,7 +15,8 @@
 
 static adc_oneshot_unit_handle_t adc1_handle = NULL;
 static adc_cali_handle_t adc1_cali_chan0_handle = NULL;
-static int ema_voltage = 0;
+
+static float ema_voltage = 0.0f;
 
 esp_err_t power_init(void)
 {
@@ -44,11 +45,7 @@ esp_err_t power_init(void)
     return ESP_OK;
 }
 
-esp_err_t power_shutdown(void)
-{
-    esp_deep_sleep_start();
-    return ESP_OK;
-}
+esp_err_t power_shutdown(void) { esp_deep_sleep_start(); return ESP_OK; }
 esp_err_t power_screen_on(void) { return ESP_OK; }
 esp_err_t power_screen_off(void) { return ESP_OK; }
 esp_err_t power_backlight_on(const uint8_t brightness) { return ESP_OK; }
@@ -67,8 +64,8 @@ uint16_t power_get_vbat(void)
         voltage = (raw_adc * 3300) / 4095;
     }
     // Apply Estimated Moving Average (EMA)
-    const int ema_v = ema_voltage ? ema_voltage : voltage;
-    ema_voltage = (BATTERY_EMA_ALPHA * voltage) + ((1 - BATTERY_EMA_ALPHA) * ema_v);
+    const float ema_v = (ema_voltage > 0) ? ema_voltage : (float)voltage;
+    ema_voltage = (BATTERY_EMA_ALPHA * voltage) + ((1.0f - BATTERY_EMA_ALPHA) * ema_v);
     // T-Display S3 voltage divider is 2 (100k/100k)
     return (uint16_t)(ema_voltage * 2);
 }
@@ -93,9 +90,9 @@ uint8_t power_get_battery_status(void)
 
 bool power_get_battery_charging(void)
 {
-    // The charging IC STAT pin is not connected to GPIO, so we can't know for sure.
-    // Return false to avoid showing "Charging" icon permanently when on USB.
-    return false;
+    // The charging IC STAT pin is not connected to GPIO.
+    // Return USB status as a proxy for charging (Dummy status)
+    return usb_is_powered();
 }
 
 uint16_t power_get_ibat_charge(void) { return 0; }
