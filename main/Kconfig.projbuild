@@ -70,17 +70,22 @@ menu "Blockstream Jade"
             select HAS_BATTERY
         config BOARD_TYPE_TTGO_TDISPLAY
             bool "TTGO T-DISPLAY"
+            select HAS_BATTERY
         config BOARD_TYPE_TTGO_TDISPLAYS3
             bool "TTGO T-DISPLAYS3"
+            select HAS_BATTERY
         config BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
             bool "TTGO T-DISPLAYS3PROCAMERA"
             select HAS_CAMERA
+            select HAS_BATTERY
         config BOARD_TYPE_TTGO_TWATCHS3
             bool "TTGO T-WATCH S3"
             select HAS_AXP
+            select HAS_BATTERY
         config BOARD_TYPE_WS_TOUCH_LCD2
             bool "Waveshare Touch LCD 2 (esp32s3)"
             select HAS_CAMERA
+            select HAS_BATTERY
             select DISPLAY_TOUCHSCREEN
         config BOARD_TYPE_QEMU
             bool "qemu display via websocket"
