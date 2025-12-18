@@ -35,7 +35,7 @@ if [ -z "${VER_DIR}" -o -z "${KEY_LABEL}" ]; then
 fi
 
 WORKING_DIR_PREFIX="staging/${VER_DIR}"
-HWDIRS="jade2.0"
+HWDIRS="jade2.0 jade2.0c"
 
 # Can log if required
 LOGGING=""

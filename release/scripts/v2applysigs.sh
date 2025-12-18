@@ -11,7 +11,7 @@ shift
 SIGNER_KEY_LABELS="$@"
 
 WORKING_DIR_PREFIX="staging/${VER_DIR}"
-HWDIRS="jade2.0"
+HWDIRS="jade2.0 jade2.0c"
 
 BLEDIR="build_v2_prod"
 NORADIODIR="build_v2_noradio_prod"

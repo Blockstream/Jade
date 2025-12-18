@@ -4,7 +4,7 @@ LOCAL_DIR="${1:-fwsvr_mirror}"
 MISSING_LOG="missing.log"
 EXTRA_LOG="extra.log"
 GCLOUD_BUCKET="gs://jadefw.blockstream.com/bin"
-HWDIRS="jade jade1.1 jade2.0 jadedev jade1.1dev jade2.0dev"
+HWDIRS="jade jade1.1 jade2.0 jade2.0c jadedev jade1.1dev jade2.0dev jade2.0cdev"
 
 if [ $(basename $PWD) != "release" ]; then
     if [ $(basename $PWD) != "staging" ]; then

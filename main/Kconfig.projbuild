@@ -68,6 +68,11 @@ menu "Blockstream Jade"
             select HAS_BATTERY
             select BOARD_TYPE_JADE_ANY
             select BOARD_TYPE_JADE_V2_ANY
+        config BOARD_TYPE_JADE_V2C
+            bool "Blockstream Jade Core (Jade v2, no camera, no battery)"
+            select HAS_AXP
+            select BOARD_TYPE_JADE_ANY
+            select BOARD_TYPE_JADE_V2_ANY
         config BOARD_TYPE_M5_FIRE
             bool "M5Stack Fire"
             select HAS_IP5306

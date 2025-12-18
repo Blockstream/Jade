@@ -15,12 +15,16 @@ create_release_files:
     - build_prod_jade_v1_1_noradio
     - build_prod_jade_v2
     - build_prod_jade_v2_noradio
+    - build_prod_jade_v2c
+    - build_prod_jade_v2c_noradio
     - build_dev_jade
     - build_dev_jade_noradio
     - build_dev_jade_v1_1
     - build_dev_jade_v1_1_noradio
     - build_dev_jade_v2
     - build_dev_jade_v2_noradio
+    - build_dev_jade_v2c
+    - build_dev_jade_v2c_noradio
   artifacts:
     expire_in: 14 days
     when: on_success

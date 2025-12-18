@@ -11,7 +11,7 @@ VER_DIR="${1}"
 KEY_LABEL="${2}"
 
 WORKING_DIR_PREFIX="staging/${VER_DIR}"
-HWDIRS="jade2.0"
+HWDIRS="jade2.0 jade2.0c"
 
 # Relative paths from where it will be referenced in fw dir
 KEY="../../../scripts/${KEY_LABEL}.pem"

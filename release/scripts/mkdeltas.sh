@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INDEX="DELTAS"
-HWDIRS="jade jade1.1 jade2.0 jadedev jade1.1dev jade2.0dev"
+HWDIRS="jade jade1.1 jade2.0 jade2.0c jadedev jade1.1dev jade2.0dev jade2.0cdev"
 
 PATTERN_BLE="_ble_*_fw.bin"
 PATTERN_NORADIO="_noradio_*_fw.bin"
