@@ -1,7 +1,8 @@
 #ifndef AMALGAMATED_BUILD
+#include "attestation.h"
 #include <sdkconfig.h>
 
-#include "attestation.h"
+#ifdef CONFIG_IDF_TARGET_ESP32S3
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "random.h"
@@ -735,4 +736,7 @@ cleanup:
     mbedtls_pk_free(&pk);
     return retval;
 }
+#else // CONFIG_IDF_TARGET_ESP32S3
+bool attestation_initialised(void) { return false; }
+#endif // CONFIG_IDF_TARGET_ESP32S3
 #endif // AMALGAMATED_BUILD
