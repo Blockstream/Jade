@@ -178,7 +178,7 @@ PINSERVER_DEFAULT_URL = 'https://j8d.io'
 PINSERVER_DEFAULT_ONION = 'http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion'
 
 # The number of values expected back in version info
-NUM_VALUES_VERINFO = 20
+NUM_VALUES_VERINFO = 23
 ESP32S3_CHIP_BOARDS = ['JADE_V2', 'JADE_V2C', 'TTGO_TDISPLAYS3', 'TTGO_TDISPLAYS3PROCAMERA',
                        'M5CORES3']
 

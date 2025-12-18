@@ -26,9 +26,7 @@ void __wrap_abort(void);
 
 #include "./aes.c"
 #include "./assets.c"
-#ifdef CONFIG_IDF_TARGET_ESP32S3
 #include "./attestation/attestation.c"
-#endif // CONFIG_IDF_TARGET_ESP32S3
 #include "./bcur.c"
 #ifdef CONFIG_BT_ENABLED
 #include "./ble/ble.c"
