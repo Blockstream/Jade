@@ -43,6 +43,15 @@ build_test_jade_v2_noradio_ci:
   before_script:
     - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2 --dev --debug --ci --log --jtag --noradio
 
+build_test_jade_v2c_ci:
+  extends: .build_test_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2c --dev --debug --ci --log --jtag
+
+build_test_jade_v2c_noradio_ci:
+  extends: .build_test_template
+  before_script:
+    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2c --dev --debug --ci --log --jtag --noradio
 
 build_test_qemu:
   extends: .build_test_template

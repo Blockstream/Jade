@@ -60,6 +60,7 @@ There are currently three Jade device targets:
 - jade: The original Jade 1.0 with a selection wheel.
 - jade_v1_1: Jade 1.1, which has a rocker/jog-wheel in place of the selection wheel.
 - jade_v2: Jade Plus, with a larger screen and left/right selection buttons in place of a wheel or rocker.
+- jade_v2c: Jade Core, Jade Plus without camera and battery.
 
 Change `jade` in any calls to the `switch_to.sh` script below to the
 appropriate device you wish to target from the list above.

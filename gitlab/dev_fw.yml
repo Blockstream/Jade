@@ -34,3 +34,13 @@ build_dev_jade_v2_noradio:
   extends: .build_dev_template
   before_script:
     -  . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2 --dev --noradio
+
+build_dev_jade_v2c:
+  extends: .build_dev_template
+  before_script:
+    -  . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2c --dev
+
+build_dev_jade_v2c_noradio:
+  extends: .build_dev_template
+  before_script:
+    -  . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2c --dev --noradio
