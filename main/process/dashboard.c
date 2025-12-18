@@ -856,7 +856,7 @@ bool handle_mnemonic_qr(const char* mnemonic)
 }
 
 // Helper to initialise with mnemonic, and (if successful) request whether the
-// initial conenction will be over USB or BLE.
+// initial connection will be over USB or BLE.
 static void initialise_wallet(const bool temporary_restore)
 {
     const bool force_qr_scan = false;
