@@ -6,6 +6,8 @@
 #include "process.h"
 #include "utils/malloc_ext.h"
 
+#include <string.h>
+
 #ifdef CONFIG_BOARD_TYPE_JADE_ANY
 extern const uint8_t fccstart[] asm("_binary_fcc_bin_gz_start");
 extern const uint8_t fccend[] asm("_binary_fcc_bin_gz_end");
@@ -62,7 +64,14 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     // NOTE: The home screen is created as an 'unmanaged' activity as
     // its lifetime is same as that of the entire application
     gui_activity_t* act = NULL;
-    gui_make_activity_ex(&act, true, device_name, false);
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_LCD2
+    const char* const device_short_id = device_name + 5; // Skip "Jade "
+    JADE_ASSERT(strlen(device_short_id) == 6);
+    const char* const status_bar_title = device_short_id;
+#else
+    const char* const status_bar_title = device_name;
+#endif
+    gui_make_activity_ex(&act, true, status_bar_title, false);
     JADE_ASSERT(act);
 
     gui_view_node_t* node;
