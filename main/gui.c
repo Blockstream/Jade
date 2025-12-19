@@ -254,7 +254,15 @@ bool gui_get_flipped_orientation(void) { return gui_orientation_flipped; }
 
 bool gui_set_flipped_orientation(const bool flipped_orientation)
 {
+#if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+    const bool prev_orientation = gui_orientation_flipped;
+#endif
     gui_orientation_flipped = display_flip_orientation(flipped_orientation);
+#if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+    if (gui_orientation_flipped != prev_orientation) {
+        display_touch_navbar_redraw();
+    }
+#endif
     return gui_orientation_flipped;
 }
 
