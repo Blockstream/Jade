@@ -92,13 +92,13 @@ bool key_iter_next(key_iter* iter)
     }
     if (iter->is_valid) {
         int ret;
-        if (iter->is_private) {
-            ret = wally_map_keypath_get_bip32_key_from(
-                keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index);
-        } else {
-            ret = wally_map_keypath_get_bip32_public_key_from(
-                keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index);
-        }
+        typedef int (*get_bip32_key_fn)(
+            const struct wally_map*, size_t, const struct ext_key*, struct ext_key*, size_t*);
+        get_bip32_key_fn get_key
+            = iter->is_private ? wally_map_keypath_get_bip32_key_from : wally_map_keypath_get_bip32_public_key_from;
+
+        ret = get_key(keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index);
+
         JADE_WALLY_VERIFY(ret);
         if (key_index) {
             iter->is_valid = true; // Found
