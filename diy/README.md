@@ -13,7 +13,7 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 * [Vendor Product Page](https://www.lilygo.cc/en-ca/products/lilygo%C2%AE-ttgo-t-display-1-14-inch-lcd-esp32-control-board)
 * ~$10 USD
 * Two button interface (Press both together to select)
-* No battery (No ability to monitor battery, even if one is added)
+* No battery included; battery connector present; battery indicator works when a battery is attached (since 55b122cec1543bbf7f09e78ca8690fe2e3029c57)
 * Base model has no case
   * [OEM Model K164](https://www.lilygo.cc/products/lilygo%C2%AE-ttgo-t-display-1-14-inch-lcd-esp32-control-board?variant=42720264683701) and other low cost case options available)
 * USB VendorID:1a86 ProductID:55d4 (Same as retail Jade)
@@ -23,7 +23,7 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 * [Vendor Product Page](https://www.lilygo.cc/products/t-display-s3)
 * ~$15 USD
 * Two button interface (Press both together to select)
-* No battery (No ability to monitor battery, even if one is added)
+* No battery included; battery connector present; battery indicator works when a battery is attached (since 55b122cec1543bbf7f09e78ca8690fe2e3029c57)
 * Base model has no case
 * USB VendorID:303a ProductID:4001 (Different to retail Jade, will require custom Electrum/HWI builds until they add support to these device IDs)
 * Typically supports Secure Boot V2
