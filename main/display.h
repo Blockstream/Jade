@@ -91,6 +91,7 @@ extern const color_t TFT_PINK;
 
 void display_init(TaskHandle_t* gui_h);
 bool display_flip_orientation(bool flipped_orientation);
+void display_touch_navbar_redraw(void);
 Icon* get_icon(const uint8_t* start, const uint8_t* end);
 Picture* get_picture(const uint8_t* start, const uint8_t* end);
 void display_picture(const Picture* imgbuf, int x, int y, dispWin_t area);

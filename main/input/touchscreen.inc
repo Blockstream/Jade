@@ -2,12 +2,9 @@
 #include "jade_assert.h"
 #include "jade_tasks.h"
 #if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
-#define DISPLAY_TOUCH_NAV_BUTTON_AREA 40
-#endif
-
-#if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
 // No PMU, so relevant power files will not have been included
 #include "power/i2c.inc"
+static const uint16_t display_touch_nav_button_area = 40;
 #endif
 
 #include <esp_lcd_touch.h>
@@ -69,8 +66,6 @@ static void touchscreen_task(void* ignored)
     uint8_t touch_cnt = 10;
 
     // FIXME: don't allow multiple touches within 300 ms?
-    // FIXME: this doesn't currently work with Display -> Flip Orientation feature
-    // but it could by changing the touch_y[0] > 200 logic with < 40 and inverting prev with next and viceversa
     while (!shutdown_requested) {
         if (esp_lcd_touch_read_data(ret_touch) == ESP_OK) {
             bool touchpad_pressed
@@ -78,13 +73,15 @@ static void touchscreen_task(void* ignored)
             if (touchpad_pressed) {
                 const uint16_t first_third_end = CONFIG_DISPLAY_WIDTH / 3;
                 const uint16_t middle_thirds_end = (CONFIG_DISPLAY_WIDTH * 2) / 3;
-                bool nav_zone = touch_y[0] > 200;
 #if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
                 const bool flipped = gui_get_flipped_orientation();
-                const uint16_t nav_zone_start = CONFIG_DISPLAY_HEIGHT - DISPLAY_TOUCH_NAV_BUTTON_AREA;
-                nav_zone = flipped ? (touch_y[0] < DISPLAY_TOUCH_NAV_BUTTON_AREA) : (touch_y[0] > nav_zone_start);
+                const uint16_t nav_y_start
+                    = flipped ? CONFIG_DISPLAY_OFFSET_Y : CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y;
+                const uint16_t nav_y_end = nav_y_start + display_touch_nav_button_area;
+                if (touch_y[0] >= nav_y_start && touch_y[0] < nav_y_end) {
+#else
+                if (touch_y[0] > 200) {
 #endif
-                if (nav_zone) {
                     if (touch_x[0] <= first_third_end) {
                         gui_prev();
                     } else if (touch_x[0] > first_third_end && touch_x[0] < middle_thirds_end) {
