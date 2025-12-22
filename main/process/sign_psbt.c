@@ -596,7 +596,9 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
             if (!wallet_is_expected_singlesig_path(network_id, script_variant, is_change, path, path_len)) {
                 // Not our standard change path - add warning
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
-                const bool have_path_str = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
+                const bool path_only = false;
+                const bool have_path_str
+                    = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str), path_only);
                 const int ret = snprintf(outinfo->message, sizeof(outinfo->message), "Unusual receive path: %s",
                     have_path_str ? path_str : "too long");
                 JADE_ASSERT(ret > 0 && ret < sizeof(outinfo->message));
@@ -664,7 +666,9 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
             if (!wallet_is_expected_multisig_path(iter.key_index, is_change, &path[path_tail_start], path_tail_len)) {
                 // Not our standard change path - add warning
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
-                const bool have_path_str = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str));
+                const bool path_only = false;
+                const bool have_path_str
+                    = wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str), path_only);
                 const int ret = snprintf(outinfo->message, sizeof(outinfo->message), "Unusual change path suffix: %s",
                     have_path_str ? path_str : "too long");
                 JADE_ASSERT(ret > 0 && ret < sizeof(outinfo->message));

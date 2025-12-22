@@ -190,7 +190,8 @@ void get_receive_address_process(void* process_ptr)
                 is_change = wallet_is_expected_singlesig_path(network_id, script_variant, is_change, path, path_len);
 
                 char path_str[MAX_PATH_STR_LEN(MAX_PATH_LEN)];
-                if (!wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str))) {
+                const bool path_only = false;
+                if (!wallet_bip32_path_as_str(path, path_len, path_str, sizeof(path_str), path_only)) {
                     jade_process_reject_message(
                         process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert path to string format");
                     goto cleanup;
