@@ -51,10 +51,11 @@ static gui_activity_t* make_signer_activities(const signer_t* signer, const size
     gui_set_align(derivation, GUI_ALIGN_RIGHT, GUI_ALIGN_MIDDLE);
     gui_set_parent(derivation, splitderivation);
 
+    const bool path_only = false;
     if (signer->derivation_len == 0) {
         strcpy(display_str, "<None>");
     } else if (!wallet_bip32_path_as_str(
-                   signer->derivation, signer->derivation_len, display_str, sizeof(display_str))) {
+                   signer->derivation, signer->derivation_len, display_str, sizeof(display_str), path_only)) {
         strcpy(display_str, "[too long]");
     }
     gui_make_text(&derivation, display_str, TFT_WHITE);
@@ -121,7 +122,7 @@ static gui_activity_t* make_signer_activities(const signer_t* signer, const size
     } else if (signer->path_is_string) {
         JADE_ASSERT(signer->path_len < sizeof(display_str));
         strcpy(display_str, signer->path_str);
-    } else if (!wallet_bip32_path_as_str(signer->path, signer->path_len, display_str, sizeof(display_str))) {
+    } else if (!wallet_bip32_path_as_str(signer->path, signer->path_len, display_str, sizeof(display_str), path_only)) {
         strcpy(display_str, "[too long]");
     }
     gui_make_text(&path, display_str, TFT_WHITE);

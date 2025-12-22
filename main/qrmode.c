@@ -250,7 +250,8 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
 
     // Create xpub activity for those icons
     char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
-    const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr));
+    const bool path_only = false;
+    const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr), path_only);
     JADE_ASSERT(ret);
     const char* label = contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
     const uint8_t frames_per_qr = qr_framerate_from_flags(QR_SPEED_LOW); // always use slow framerate for xpub export
@@ -484,7 +485,8 @@ static void get_singlesig_search_root(const script_variant_t variant, const uint
     JADE_ASSERT(ret);
 
     // Use the root bip32 path as the label
-    ret = wallet_bip32_path_as_str(path, path_len, pathstr, pathstr_len);
+    const bool path_only = false;
+    ret = wallet_bip32_path_as_str(path, path_len, pathstr, pathstr_len, path_only);
     JADE_ASSERT(ret);
 }
 

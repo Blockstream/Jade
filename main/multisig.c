@@ -664,7 +664,8 @@ bool multisig_create_export_file(const char* multisig_name, const multisig_data_
         }
 
         // Derivation
-        if (!wallet_bip32_path_as_str(signer->derivation, signer->derivation_len, buf, sizeof(buf))) {
+        const bool path_only = false;
+        if (!wallet_bip32_path_as_str(signer->derivation, signer->derivation_len, buf, sizeof(buf), path_only)) {
             JADE_LOGE("Multisig signer derivation path error");
             return false;
         }
