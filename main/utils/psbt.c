@@ -84,7 +84,7 @@ static const struct wally_map* key_iter_get_keypaths(const key_iter* iter)
 bool key_iter_next(key_iter* iter)
 {
     const struct wally_map* keypaths = key_iter_get_keypaths(iter);
-    size_t key_index;
+    size_t found_index;
     ++iter->key_index;
     if (iter->is_taproot && !iter->key_index) {
         // First iteration: validate
@@ -97,12 +97,12 @@ bool key_iter_next(key_iter* iter)
         get_bip32_key_fn get_key
             = iter->is_private ? wally_map_keypath_get_bip32_key_from : wally_map_keypath_get_bip32_public_key_from;
 
-        ret = get_key(keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &key_index);
+        ret = get_key(keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &found_index);
 
         JADE_WALLY_VERIFY(ret);
-        if (key_index) {
+        if (found_index) {
             iter->is_valid = true; // Found
-            iter->key_index = key_index - 1; // Adjust to 0-based index
+            iter->key_index = found_index - 1; // Adjust to 0-based index
         } else {
             iter->is_valid = false; // Not found
         }
