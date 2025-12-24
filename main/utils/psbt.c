@@ -1,8 +1,11 @@
 #ifndef AMALGAMATED_BUILD
 #include "psbt.h"
 #include "../keychain.h"
+#include "../sensitive.h"
+#include "../wallet.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
+#include "util.h"
 
 #include <wally_map.h>
 #include <wally_psbt.h>
@@ -45,6 +48,7 @@ static bool key_iter_init(
     --iter->key_index; // Incrementing will wrap around to 0 i.e. the first key
     iter->is_input = is_input;
     iter->is_private = is_private;
+    iter->is_ga_2of3_recovery_key = false;
     // We are a taproot key iterator only if we have taproot keypaths
     if (is_input) {
         iter->is_taproot = psbt->inputs[index].taproot_leaf_paths.num_items != 0;
@@ -81,6 +85,36 @@ static const struct wally_map* key_iter_get_keypaths(const key_iter* iter)
     return iter->is_taproot ? &output->taproot_leaf_paths : &output->keypaths;
 }
 
+// If the keypaths match those of a Green 2of3 multisig subaccount, take the
+// (3'/subaccount') path from the user key and derive the parent recovery key.
+// Should only be called when the first keypath has been determined to
+// be a non-main account Green server key, and when 3 keypaths are present.
+static bool key_iter_get_green_2of3_recovery_key(const key_iter* iter, const struct wally_map* keypaths,
+    struct ext_key* recovery_hdkey, const uint32_t server_subaccount)
+{
+    JADE_ASSERT(iter && iter->is_valid);
+    JADE_ASSERT(keypaths);
+    JADE_ASSERT(recovery_hdkey);
+    JADE_ASSERT(server_subaccount != 0); // Must not be called for the main account
+    uint32_t path[GA_USER_PATH_MAX_LEN];
+    const size_t start_idx = 1; // Ignore the Green server key at key index 0
+    for (size_t index = start_idx; index < keypaths->num_items; ++index) {
+        size_t path_len = 0;
+        int ret = wally_map_keypath_get_item_path(keypaths, index, path, sizeof(path), &path_len);
+        JADE_WALLY_VERIFY(ret);
+        uint32_t subaccount = 0;
+        if (!is_potential_green_user_path(path, path_len, &subaccount) || subaccount != server_subaccount) {
+            continue; // Didn't find a user key matching the servers subaccount key
+        }
+        // Keypath looks like the user key in a 2of3 (m/3'/subaccount'/1/pointer)
+        // Use the first 2 elements (m/3'/subaccount') to derive a candidate parent recovery key
+        ret = bip32_key_from_parent_path(&keychain_get()->xpriv, path, 2, BIP32_FLAG_KEY_PRIVATE, recovery_hdkey);
+        return ret == WALLY_OK;
+    }
+
+    return false;
+}
+
 bool key_iter_next(key_iter* iter)
 {
     const struct wally_map* keypaths = key_iter_get_keypaths(iter);
@@ -98,8 +132,29 @@ bool key_iter_next(key_iter* iter)
             = iter->is_private ? wally_map_keypath_get_bip32_key_from : wally_map_keypath_get_bip32_public_key_from;
 
         ret = get_key(keypaths, iter->key_index, &keychain_get()->xpriv, &iter->hdkey, &found_index);
-
         JADE_WALLY_VERIFY(ret);
+        if (found_index == 0 && key_iter_get_num_keys(iter) == 3) {
+            // Didn't match any of the 3 keys present: check Green 2of3 parent recovery key
+            size_t path_len = 0;
+            uint32_t path[MAX_GASERVICE_PATH_LEN];
+            ret = wally_map_keypath_get_item_path(keypaths, 0, path, sizeof(path), &path_len);
+            JADE_WALLY_VERIFY(ret);
+            uint32_t server_subaccount = 0;
+            if (is_potential_green_server_path(path, path_len, &server_subaccount) && server_subaccount != 0) {
+                // First key looks like a Green server key for a non-main account.
+                // Derive a recovery key using the user key path and attempt to match it.
+                struct ext_key recovery_hdkey;
+                SENSITIVE_PUSH(&recovery_hdkey, sizeof(recovery_hdkey));
+                if (key_iter_get_green_2of3_recovery_key(iter, keypaths, &recovery_hdkey, server_subaccount)) {
+                    ret = get_key(keypaths, iter->key_index, &recovery_hdkey, &iter->hdkey, &found_index);
+                    if (ret == WALLY_OK && found_index) {
+                        // Mark this as a potential recovery key subject to future script validation
+                        iter->is_ga_2of3_recovery_key = true;
+                    }
+                }
+                SENSITIVE_POP(&recovery_hdkey);
+            }
+        }
         if (found_index) {
             iter->is_valid = true; // Found
             iter->key_index = found_index - 1; // Adjust to 0-based index
