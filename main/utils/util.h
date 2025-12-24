@@ -104,4 +104,8 @@ static inline size_t path_get_unhardened_tail_index(const uint32_t* path, const 
     return path_tail_start;
 }
 
+bool is_potential_green_user_path(const uint32_t* path, size_t path_len, uint32_t* subaccount_out);
+bool is_potential_green_recovery_path(const uint32_t* path, size_t path_len);
+bool is_potential_green_server_path(const uint32_t* path, size_t path_len, uint32_t* subaccount_out);
+
 #endif /* UTIL_H_ */

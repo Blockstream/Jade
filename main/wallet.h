@@ -43,6 +43,8 @@ typedef struct {
 #define GASERVICE_ROOT_PATH_LEN (1 + 32)
 #define MAX_GASERVICE_PATH_TAIL_LEN (1 + 1)
 #define MAX_GASERVICE_PATH_LEN (GASERVICE_ROOT_PATH_LEN + MAX_GASERVICE_PATH_TAIL_LEN)
+#define GA_USER_PATH_MAX_LEN 4
+#define GA_RECOVERY_PATH_LEN 2
 
 // 'm' + ( ('/' + <10 digit number>[+ ']) * n) + '\0'
 #define MAX_PATH_STR_LEN(max_path_elems) (1 + ((1 + 10 + 1) * max_path_elems) + 1)
