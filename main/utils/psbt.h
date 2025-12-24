@@ -22,6 +22,7 @@ typedef struct key_iter_t {
     bool is_private;
     bool is_taproot;
     bool is_valid;
+    bool is_ga_2of3_recovery_key;
 } key_iter;
 
 // Initialize a key iterator for the `index`th PSBT input
