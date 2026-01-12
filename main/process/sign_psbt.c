@@ -53,58 +53,80 @@ static bool is_green_multisig_signers(const network_t network_id, const key_iter
         return false;
     }
 
-    uint8_t user_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
-    wallet_get_fingerprint(user_fingerprint, sizeof(user_fingerprint));
-    uint32_t user_path[MAX_PATH_LEN];
-    size_t user_path_len = 0;
+    uint8_t wallet_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
+    wallet_get_fingerprint(wallet_fingerprint, sizeof(wallet_fingerprint));
 
     uint8_t ga_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
     if (!wallet_get_gaservice_fingerprint(network_id, ga_fingerprint, sizeof(ga_fingerprint))) {
         // Can't get ga-signer for network
         return false;
     }
-    uint32_t ga_path[MAX_GASERVICE_PATH_LEN];
-    size_t ga_path_len = 0;
 
-    uint32_t recovery_path[MAX_PATH_LEN];
-    size_t recovery_path_len = 0;
-
+    uint32_t path[GA_USER_PATH_MAX_LEN], user_path[GA_USER_PATH_MAX_LEN];
+    uint32_t ga_path[MAX_GASERVICE_PATH_LEN], recovery_path[GA_RECOVERY_PATH_LEN];
+    size_t path_len = 0, user_path_len = 0, ga_path_len = 0, recovery_path_len = 0;
     for (size_t ikey = 0; ikey < num_keys; ++ikey) {
         uint8_t key_fingerprint[BIP32_KEY_FINGERPRINT_LEN];
         key_iter_get_fingerprint_at(iter, ikey, key_fingerprint, sizeof(key_fingerprint));
 
-        if (!memcmp(key_fingerprint, user_fingerprint, sizeof(key_fingerprint))) {
-            // Appears to be our signer
-            if (user_path_len || !key_iter_get_path_at(iter, ikey, user_path, MAX_PATH_LEN, &user_path_len)) {
-                // Seen user signer already or path too long
-                return false;
-            }
-        } else if (!memcmp(key_fingerprint, ga_fingerprint, sizeof(key_fingerprint))) {
-            // Appears to be ga-service signer
+        if (!memcmp(key_fingerprint, ga_fingerprint, sizeof(key_fingerprint))) {
+            // Appears to be the Green service signer
             if (ga_path_len || !key_iter_get_path_at(iter, ikey, ga_path, MAX_GASERVICE_PATH_LEN, &ga_path_len)) {
                 // Seen ga service signer already or path too long
                 return false;
             }
-        } else {
-            // 2of3 recovery key
-            if (recovery_path_len
-                || !key_iter_get_path_at(iter, ikey, recovery_path, MAX_PATH_LEN, &recovery_path_len)) {
-                // Seen 'third-party' signer already or path too long
+            continue; // Check next key
+        }
+        if (!memcmp(key_fingerprint, wallet_fingerprint, sizeof(key_fingerprint))) {
+            // Appears to be our signer, matching either user or recovery key
+            if (num_keys == 3 && iter->is_ga_2of3_recovery_key && path_len == GA_RECOVERY_PATH_LEN
+                && (recovery_path_len
+                    || !key_iter_get_path_at(iter, ikey, recovery_path, GA_RECOVERY_PATH_LEN, &recovery_path_len))) {
+                // Seen 2of3 recovery signer already or path too long
                 return false;
             }
+            if (user_path_len || !key_iter_get_path_at(iter, ikey, user_path, GA_USER_PATH_MAX_LEN, &user_path_len)) {
+                // Seen user signer already or path too long
+                return false;
+            }
+            continue; // Check next key
+        }
+        if (num_keys != 3 || !key_iter_get_path_at(iter, ikey, path, GA_USER_PATH_MAX_LEN, &path_len)) {
+            // Can't be a 2of3 recovery key
+            return false;
+        }
+        // At this point, the key is either:
+        // - A user key which does not belong to our wallet, or
+        // - A 2of3 recovery key potentially for our wallet, or
+        // - An unknown key (and thus not a Green multisig).
+        uint32_t user_subaccount = 0;
+        if (iter->is_ga_2of3_recovery_key && !user_path_len
+            && is_potential_green_user_path(path, path_len, &user_subaccount)) {
+            // Appears to be a user key path (that is not for our wallet)
+            user_path_len = path_len;
+            memcpy(user_path, path, path_len * sizeof(path[0]));
+            continue; // Check next key
+        }
+        if (!recovery_path_len && is_potential_green_recovery_path(path, path_len)) {
+            // Appears to be a recovery key path
+            recovery_path_len = path_len;
+            memcpy(recovery_path, path, path_len * sizeof(path[0]));
 
-            // Return the recovery pubkey if the caller so desires
-            // NOTE: only compressed pubkeys are expected/supported.
             if (recovery_hdkey) {
+                // Return the recovery pubkey to the caller.
+                // NOTE: only compressed pubkeys are expected/supported.
                 if (!key_iter_get_pubkey_at(iter, ikey, recovery_hdkey->pub_key, sizeof(recovery_hdkey->pub_key))) {
                     JADE_LOGE("Error fetching ga-multisig 2of3 recovery key");
                     return false;
                 }
             }
+            continue; // Check next key
         }
+        // Seen a signer already or unknown path format
+        return false;
     }
 
-    // Check got expected paths
+    // Check we found the expected paths
     if (!user_path_len || !ga_path_len || (num_keys == 3 && !recovery_path_len)) {
         return false;
     }
@@ -115,7 +137,15 @@ static bool is_green_multisig_signers(const network_t network_id, const key_iter
         return false;
     }
 
-    // Check entire ga-service path
+    if (num_keys == 3 && iter->is_ga_2of3_recovery_key) {
+        // Wallet is the recovery signer. Skip the ga-service path check below
+        // because we do not have the user key required for calculating the
+        // exact Green backend path. Note we have already verified the general
+        // form of the path when iter->is_ga_2of3_recovery_key was set.
+        return true;
+    }
+
+    // Check the Green backend service path matches
     uint32_t expected_ga_path[MAX_GASERVICE_PATH_LEN];
     size_t expected_ga_path_len = 0;
     if (!wallet_get_gaservice_path(
@@ -124,14 +154,9 @@ static bool is_green_multisig_signers(const network_t network_id, const key_iter
         return false;
     }
 
-    if (ga_path_len != expected_ga_path_len
-        || sodium_memcmp(expected_ga_path, ga_path, ga_path_len * sizeof(ga_path[0]))) {
-        // Unexpected ga service path
-        return false;
-    }
-
-    // Looks like GA signers...
-    return true;
+    // If the backend path matches then this is a Green multisig
+    return ga_path_len == expected_ga_path_len
+        && sodium_memcmp(expected_ga_path, ga_path, ga_path_len * sizeof(ga_path[0]));
 }
 
 // Generate a green-multisig script, and compare it to the target script provided.
@@ -587,8 +612,11 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
                 continue;
             }
 
-            if (!verify_ga_script_matches(
+            if (!iter.is_ga_2of3_recovery_key
+                && !verify_ga_script_matches(
                     network_id, &iter.hdkey, recovery_p, path, path_len, tx_script, tx_script_len)) {
+                // Not able to verify that output belongs to green 2of3 when Jade matches recovery key
+                // as backend path is calculated from user key.
                 JADE_LOGD("Receive script failed validation for Green multisig");
                 continue;
             }
