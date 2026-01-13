@@ -178,6 +178,7 @@ static bool import_rsa_key(mbedtls_pk_context* pk, const char* pem, const size_t
     JADE_ASSERT(pem_len);
     JADE_ASSERT(pem[pem_len] == '\0'); // bytes passed to parser must include nul-terminator
 
+    mbedtls_pk_init(pk);
     int rc;
     if (is_private_key) {
         JADE_LOGI("Importing RSA private key from pem of length %u", pem_len);
@@ -257,17 +258,17 @@ static int rsa_rsassa_pkcs1_v15_encode(
     if (md_alg != MBEDTLS_MD_NONE) {
         const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(md_alg);
         if (md_info == NULL)
-            return (MBEDTLS_ERR_RSA_BAD_INPUT_DATA);
+            return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
 
         if (mbedtls_oid_get_oid_by_md(md_alg, &oid, &oid_size) != 0)
-            return (MBEDTLS_ERR_RSA_BAD_INPUT_DATA);
+            return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
 
         hashlen = mbedtls_md_get_size(md_info);
 
         /* Double-check that 8 + hashlen + oid_size can be used as a
          * 1-byte ASN.1 length encoding and that there's no overflow. */
         if (8 + hashlen + oid_size >= 0x80 || 10 + hashlen < hashlen || 10 + hashlen + oid_size < 10 + hashlen)
-            return (MBEDTLS_ERR_RSA_BAD_INPUT_DATA);
+            return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
 
         /*
          * Static bounds check:
@@ -278,11 +279,11 @@ static int rsa_rsassa_pkcs1_v15_encode(
          * - Need oid_size bytes for hash alg OID.
          */
         if (nb_pad < 10 + hashlen + oid_size)
-            return (MBEDTLS_ERR_RSA_BAD_INPUT_DATA);
+            return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
         nb_pad -= 10 + hashlen + oid_size;
     } else {
         if (nb_pad < hashlen)
-            return (MBEDTLS_ERR_RSA_BAD_INPUT_DATA);
+            return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
 
         nb_pad -= hashlen;
     }
@@ -290,7 +291,7 @@ static int rsa_rsassa_pkcs1_v15_encode(
     /* Need space for signature header and padding delimiter (3 bytes),
      * and 8 bytes for the minimal padding */
     if (nb_pad < 3 + 8)
-        return (MBEDTLS_ERR_RSA_BAD_INPUT_DATA);
+        return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
     nb_pad -= 3;
 
     /* Now nb_pad is the amount of memory to be filled
@@ -306,7 +307,7 @@ static int rsa_rsassa_pkcs1_v15_encode(
     /* Are we signing raw data? */
     if (md_alg == MBEDTLS_MD_NONE) {
         memcpy(p, hash, hashlen);
-        return (0);
+        return 0;
     }
 
     /* Signing hashed data, add corresponding ASN.1 structure
@@ -341,10 +342,10 @@ static int rsa_rsassa_pkcs1_v15_encode(
      * after the initial bounds check. */
     if (p != dst + dst_len) {
         mbedtls_platform_zeroize(dst, dst_len);
-        return (MBEDTLS_ERR_RSA_BAD_INPUT_DATA);
+        return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
     }
 
-    return (0);
+    return 0;
 }
 
 static void calc_rinv_mprime(const mbedtls_mpi* N, mbedtls_mpi* rinv, uint32_t* mprime)
@@ -418,8 +419,8 @@ static void rsa_ctx_to_ds_params(mbedtls_rsa_context* rsa, esp_ds_p_data_t* para
 
 bool attestation_can_be_initialised(void)
 {
+#if !defined(CONFIG_SECURE_BOOT) && !defined(CONFIG_DEBUG_MODE)
     // Only 'secure-boot' units can be set-up with attestation
-#ifndef CONFIG_SECURE_BOOT
     return false;
 #else
     // Check efuse is currently unused (ie. 'user', [or already set if in dev mode])
@@ -432,26 +433,21 @@ bool attestation_can_be_initialised(void)
     if (purpose != ESP_EFUSE_KEY_PURPOSE_USER) {
         return false;
     }
-#endif
-
-#ifndef ALLOW_REINITIALISE
     // Check efuse is both readable and writable
     if (esp_efuse_get_key_dis_read(JADE_ATTEST_EFUSE) || esp_efuse_get_key_dis_write(JADE_ATTEST_EFUSE)) {
         return false;
     }
 #endif
 
-    // Check efuses can still be made read-only
-    if (esp_efuse_read_field_bit(ESP_EFUSE_WR_DIS_RD_DIS)) {
-        return false;
-    }
-
-    return true;
+    // Check efuse can still be made read-only (i.e. is not set)
+    return !esp_efuse_read_field_bit(ESP_EFUSE_WR_DIS_RD_DIS);
 #endif // CONFIG_SECURE_BOOT
 }
 
-bool attestation_initialised(void)
+static bool attestation_initialised_impl(attestation_data_t* attestation_data)
 {
+    JADE_ASSERT(attestation_data);
+
     // Check efuse is set to expected purpose
     const esp_efuse_purpose_t purpose = esp_efuse_get_key_purpose(JADE_ATTEST_EFUSE);
     if (purpose != ESP_EFUSE_KEY_PURPOSE_HMAC_DOWN_DIGITAL_SIGNATURE) {
@@ -466,13 +462,15 @@ bool attestation_initialised(void)
 #endif
 
     // Check saved attestation data
-    attestation_data_t attestation_data = {};
-    if (!load_attestation_data(&attestation_data)
-        || attestation_data.encrypted_ds_params.rsa_length != ESP_DS_RSA_4096) {
-        return false;
-    }
+    return load_attestation_data(attestation_data);
+}
 
-    return true;
+bool attestation_initialised(void)
+{
+    attestation_data_t* const attestation_data = JADE_CALLOC(1, sizeof(attestation_data_t));
+    const bool ret = attestation_initialised_impl(attestation_data);
+    free(attestation_data);
+    return ret;
 }
 
 bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_len, const char* ext_pubkey_pem,
@@ -503,19 +501,18 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
 
     uint8_t hmac_key[32];
     SENSITIVE_PUSH(hmac_key, sizeof(hmac_key));
-    get_random(hmac_key, sizeof(hmac_key));
 
 #ifdef ALLOW_REINITIALISE
     // Use fixed key data for dev period
-    const uint8_t key_data[32] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
-        0x17, 0x18, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38 };
-    for (size_t i = 0; i < sizeof(hmac_key); ++i) {
-        hmac_key[i] = key_data[i];
-    }
+    const uint8_t key_data[sizeof(hmac_key)]
+        = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x21, 0x22,
+              0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38 };
+    memcpy(hmac_key, key_data, sizeof(hmac_key));
+#else
+    get_random(hmac_key, sizeof(hmac_key));
 #endif
 
     mbedtls_pk_context pk;
-    mbedtls_pk_init(&pk);
     SENSITIVE_PUSH(&pk, sizeof(pk));
 
     const bool is_private_key = true;
@@ -610,9 +607,9 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
     retval = true;
 
 cleanup:
-    SENSITIVE_POP(hmac_key);
     mbedtls_pk_free(&pk);
     SENSITIVE_POP(&pk);
+    SENSITIVE_POP(hmac_key);
 
     return retval;
 }
@@ -633,16 +630,10 @@ bool attestation_sign_challenge(const uint8_t* challenge, const size_t challenge
     JADE_INIT_OUT_SIZE(ext_sig_written);
 
     // Check to see if attestation data initialised
-    if (!attestation_initialised()) {
+    attestation_data_t* const attestation_data = JADE_CALLOC(1, sizeof(attestation_data_t));
+    if (!attestation_initialised_impl(attestation_data)) {
         JADE_LOGE("Attestation data not properly initialised");
-        return false;
-    }
-
-    // Load attestation data
-    attestation_data_t attestation_data = {};
-    if (!load_attestation_data(&attestation_data)
-        || attestation_data.encrypted_ds_params.rsa_length != ESP_DS_RSA_4096) {
-        JADE_LOGE("Failed to load attestation data");
+        free(attestation_data);
         return false;
     }
 
@@ -661,11 +652,12 @@ bool attestation_sign_challenge(const uint8_t* challenge, const size_t challenge
 
     // Make the signature with the encrypted rsa key using the ds component
     JADE_LOGI("Invoking hardware signing");
-    JADE_ASSERT(signature_len == (attestation_data.encrypted_ds_params.rsa_length + 1) * 4);
+    JADE_ASSERT(signature_len == (attestation_data->encrypted_ds_params.rsa_length + 1) * 4);
     const esp_err_t rc = esp_ds_sign(
-        padded_hashed_challenge, &attestation_data.encrypted_ds_params, JADE_ATTEST_HMAC_EFUSE_ID, signature);
+        padded_hashed_challenge, &attestation_data->encrypted_ds_params, JADE_ATTEST_HMAC_EFUSE_ID, signature);
     if (rc != ESP_OK) {
         JADE_LOGE("esp_ds_sign() failed: %d", rc);
+        free(attestation_data);
         return false;
     }
 
@@ -673,14 +665,14 @@ bool attestation_sign_challenge(const uint8_t* challenge, const size_t challenge
     reverse_in_place(signature, signature_len);
 
     // Copy pubkey pem and external signature to output params
-    JADE_ASSERT(pubkey_pem_len > attestation_data.pubkey_pem_len);
-    JADE_ASSERT(ext_signature_len >= attestation_data.ext_signature_len);
-    JADE_ASSERT(attestation_data.pubkey_pem[attestation_data.pubkey_pem_len] == '\0');
-    strcpy(pubkey_pem, attestation_data.pubkey_pem);
-    *pem_written = attestation_data.pubkey_pem_len; // strlen
-    memcpy(ext_signature, attestation_data.ext_signature, attestation_data.ext_signature_len);
-    *ext_sig_written = attestation_data.ext_signature_len;
-
+    JADE_ASSERT(pubkey_pem_len > attestation_data->pubkey_pem_len);
+    JADE_ASSERT(ext_signature_len >= attestation_data->ext_signature_len);
+    JADE_ASSERT(attestation_data->pubkey_pem[attestation_data->pubkey_pem_len] == '\0');
+    strcpy(pubkey_pem, attestation_data->pubkey_pem);
+    *pem_written = attestation_data->pubkey_pem_len; // strlen
+    memcpy(ext_signature, attestation_data->ext_signature, attestation_data->ext_signature_len);
+    *ext_sig_written = attestation_data->ext_signature_len;
+    free(attestation_data);
     return true;
 }
 
@@ -706,7 +698,6 @@ bool attestation_verify(const uint8_t* challenge, const size_t challenge_len, co
     // Import pubkeys
     const bool is_private_key = false;
     mbedtls_pk_context pk;
-    mbedtls_pk_init(&pk);
 
     // Import RSA public key for signer and check signature over challenge data
     if (!import_rsa_key(&pk, pubkey_pem, pubkey_pem_len, is_private_key)) {
