@@ -42,9 +42,13 @@ When asked whether to save a local copy of the firmware file, answer 'y' - a cop
 
 When asked whether to upload this file to the connected Jade unit - answer 'n' - the script should exit.
 
-The sha256 hash of the file can then be checked, and if desired the downloaded file can be verified against the source code in this repo (given the appropriate tag/config) - see REPRODUCIBLE.md.
+The sha256 hash of the .bin file can then be checked against the **cmphash** provided by Blockstream for the relevant firmware here:  
+- Jade:      https://jadefw.blockstream.com/bin/jade1.1/index.json
+- Jade Plus: https://jadefw.blockstream.com/bin/jade2.0/index.json  
 
-NOTE: if a .hash file is also written, this contains the hash of the final uncompressed firmware - in the case of a delta this hash refers to the complete firmware image obtained by applying the delta to the firmware currently running in the Jade unit.
+If desired, the downloaded file can also be verified against the source code in this repo (given the appropriate tag/config) - see REPRODUCIBLE.md.
+
+NOTE: if a .hash file is also written, this contains the hash of the final uncompressed firmware - in the case of a delta this hash refers to the complete firmware image obtained by applying the delta to the firmware currently running in the Jade unit. This hash can be checked against the **fwhash** given in the same links above, and this is the hash that will be displayed on the screen of the Jade unit at the next step.
 
 This local file can then be uploaded to the Jade hardware as follows:
 ```
