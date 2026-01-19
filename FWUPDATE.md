@@ -42,7 +42,7 @@ When asked whether to save a local copy of the firmware file, answer 'y' - a cop
 
 When asked whether to upload this file to the connected Jade unit - answer 'n' - the script should exit.
 
-The sha256 hash of the file can then be checked, and is desired the downloaded file can be verified against the source code in this repo (given the appropriate tag/config) - see REPRODUCIBLE.md.
+The sha256 hash of the file can then be checked, and if desired the downloaded file can be verified against the source code in this repo (given the appropriate tag/config) - see REPRODUCIBLE.md.
 
 NOTE: if a .hash file is also written, this contains the hash of the final uncompressed firmware - in the case of a delta this hash refers to the complete firmware image obtained by applying the delta to the firmware currently running in the Jade unit.
 
