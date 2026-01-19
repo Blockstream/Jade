@@ -7,13 +7,13 @@ The firmware can also be updated using a small script provided in this repo, as 
 NOTE: Blockstream Jade units will only run firmware signed by Blockstream, therefore it is not possible to build and flash the firmware on a 'diy' basis.
 The signed firmware must be downloaded from Blockstream servers, and can only be updated using the 'OTA' function of the currently installed firmware.
 
-NOTE: To build and flash firmware for other supported esp32 devices - eg. M5Stack or TTGO T-Display, follow the developers instructions in the main README.md.
+NOTE: To build and flash firmware for other supported esp32 devices - e.g. M5Stack or TTGO T-Display, follow the developers instructions in the main README.md.
 
 
 # Method 1 - Download and Update - One Step
 
 The Jade unit should be switched on, and connected via a good quality USB data cable.
-Run the update script - this will inspect the connected Jade to determine its hardware type/revision, and should then display a list of available firmwares appropriate for the connected device.
+Run the update script - this will inspect the connected Jade to determine its hardware type/revision, and should then display a list of available firmware files appropriate for the connected device.
 ```
 ./update_jade_fw.py
 ```
@@ -38,13 +38,21 @@ As above - run the script and select the firmware to fetch.
 ./update_jade_fw.py
 ```
 
-When asked whether to save a local copy of the firmware file, answer 'y' - a copy of the firmware will be written to the current directory.  A .hash file containing the hex hash of the final firmware may also be written.
+When asked whether to save a local copy of the firmware file, answer 'y' - a copy of the firmware will be written to the current directory with a `.bin` file extension.  A `.hash` file containing the hex hash of the final firmware will also be written.
 
-When asked whether to upload this file to the connected Jade unit - answer 'n' - the script should exit.
+When asked whether to upload this file to the connected Jade unit - answer 'n' - the script will then exit.
 
-The sha256 hash of the file can then be checked, and is desired the downloaded file can be verified against the source code in this repo (given the appropriate tag/config) - see REPRODUCIBLE.md.
+The sha256 hash of the .bin file can then be checked against the **cmphash** (compressed hash) provided by Blockstream for the relevant firmware version. This is provided in the firmware metadata JSON file for each device type which can be found here:
 
-NOTE: if a .hash file is also written, this contains the hash of the final uncompressed firmware - in the case of a delta this hash refers to the complete firmware image obtained by applying the delta to the firmware currently running in the Jade unit.
+| Jade Hardware Type          | URL                                                       |
+| --------------------------- | ----------------------------------------------------------|
+| Jade 1.0 (true wheel)       | https://jadefw.blockstream.com/bin/jade/index.json        |
+| Jade 1.1 (rocker/jog-wheel) | https://jadefw.blockstream.com/bin/jade1.1/index.json     |
+| Jade 2.0 (two buttons)      | https://jadefw.blockstream.com/bin/jade2.0/index.json     |
+
+If desired, the downloaded file can also be verified against the source code in this repo (given the appropriate tag/config) - see REPRODUCIBLE.md.
+
+NOTE: The `.hash` file contains the hash of the final uncompressed firmware - in the case of a firmware delta this hash refers to the complete firmware image obtained by applying the delta to the firmware currently running in the Jade unit. This hash can be checked against the **fwhash** given in the same links above, and this is the hash that will be displayed on the screen of the Jade unit at the next step.
 
 This local file can then be uploaded to the Jade hardware as follows:
 ```
@@ -58,8 +66,8 @@ The update should then run to completion and the Jade should reboot the updated 
 
 # Troubleshooting:
 
-The Blockstream Jade unit must be connected and switched on as the script tries to communicate with it - the script will error if no Jade is connected or may hang indefinitely if the Jade is connected but not switched on, or is in the process of some other action (eg. showing an address, signing a message or transaction, etc.)
+The Blockstream Jade unit must be connected and switched on as the script tries to communicate with it - the script will error if no Jade is connected or may hang indefinitely if the Jade is connected but not switched on, or is in the process of some other action (e.g. showing an address, signing a message or transaction, etc.)
 
-By default the usb/serial connector tries to use device /dev/ttyUSB0 - this may need to be changed to eg. /dev/ttyACM0 or some other location as appropriate for the o/s platform and driver in use.  In which case, the `--serialport` option can be used.
+By default the USB/serial connector tries to use device /dev/ttyUSB0 - this may need to be changed to e.g. /dev/ttyACM0 or some other location as appropriate for the o/s platform and driver in use.  In which case, the `--serialport` option can be used.
 
 More verbose logging can be accessed using the `--log` option.
