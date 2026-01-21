@@ -2313,7 +2313,7 @@ class JadeInterface:
             The bytes received
         """
         # logger.debug(f'Reading {n} bytes...')
-        bytes_ = self.impl.read(n)
+        bytes_ = self.impl.read(n) if n else bytes()
         # logger.debug(f'Received: {len(bytes_)} bytes')
         return bytes_
 
