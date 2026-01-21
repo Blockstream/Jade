@@ -107,7 +107,9 @@ bool idletimer_register_activity(const bool is_ui) { return true; }
 void idletimer_set_min_timeout_secs(uint16_t min_timeout_secs){};
 
 // main/logging.c
+#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
 esp_log_level_t _libjade_log_level = ESP_LOG_NONE;
+#endif
 
 // main/selfcheck.c
 bool debug_selfcheck(jade_process_t* process) { return true; }
@@ -559,6 +561,7 @@ void libjade_release(uint8_t* data) { vRingbufferReturnItem(serial_out, (void*)d
 
 void libjade_set_log_level(int level)
 {
+#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
     // Note we don't bother about thread safety for _libjade_log_level
     if (level < 0) {
         _libjade_log_level = ESP_LOG_VERBOSE;
@@ -567,4 +570,5 @@ void libjade_set_log_level(int level)
     } else {
         _libjade_log_level = (esp_log_level_t)level;
     }
+#endif
 }
