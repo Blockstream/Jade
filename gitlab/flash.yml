@@ -39,7 +39,9 @@ flash_qemu_psram_unamalgamated:
   script:
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
     - cp -a build/sdkconfig ./
-    - ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32
+    - ./ci_flash.sh esp32
+    # FIXME: re-enable once gitlab is known to properly kill processes
+    #- ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32
   # FIXME: Remove gcov from ./ci_flash.sh and then skip submodules here
   # FIXME: Fix v1.0 flashing
   allow_failure: true
@@ -68,7 +70,9 @@ flash_jade_ota_delta_ci:
   script:
     - mv build_test_jade_ci build
     - mv build_test_jade_noradio_ci build_noradio
-    - ./tools/flock.sh $JADESERIALPORT ./ota_delta_ci.sh
+    - ./ota_delta_ci.sh
+    # FIXME: re-enable once gitlab is known to properly kill processes
+    #- ./tools/flock.sh $JADESERIALPORT ./ota_delta_ci.sh
 
 # Jade v1.1
 .flash_jade_v1_1_template:
@@ -100,7 +104,9 @@ flash_jade_ota_delta_v1_1_ci:
   script:
     - mv build_test_jade_v1_1_ci build
     - mv build_test_jade_v1_1_noradio_ci build_noradio
-    - ./tools/flock.sh $JADESERIALPORT ./ota_delta_ci.sh
+    - ./ota_delta_ci.sh
+    # FIXME: re-enable once gitlab is known to properly kill processes
+    #- ./tools/flock.sh $JADESERIALPORT ./ota_delta_ci.sh
 
 # Jade v2.0
 .flash_jade_v2_template:
@@ -112,7 +118,9 @@ flash_jade_ota_delta_v1_1_ci:
     - . $HOME/esp/esp-idf-5.4/export.sh
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
     - cp build/sdkconfig ./
-    - ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32s3
+    - ./ci_flash.sh esp32s3
+    # FIXME: re-enable once gitlab is known to properly kill processes
+    #- ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32s3
 
 flash_jade_v2_ci:
   extends: .flash_jade_v2_template
