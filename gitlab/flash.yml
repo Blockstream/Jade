@@ -39,9 +39,9 @@ flash_qemu_psram_unamalgamated:
   script:
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
     - cp -a build/sdkconfig ./
-    - ./ci_flash.sh esp32
+    - ./ci_flash.sh esp32 --skipble
     # FIXME: re-enable once gitlab is known to properly kill processes
-    #- ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32
+    #- ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32 --skipble
   # FIXME: Remove gcov from ./ci_flash.sh and then skip submodules here
   # FIXME: Fix v1.0 flashing
   allow_failure: true
@@ -118,9 +118,9 @@ flash_jade_ota_delta_v1_1_ci:
     - . $HOME/esp/esp-idf-5.4/export.sh
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
     - cp build/sdkconfig ./
-    - ./ci_flash.sh esp32s3
+    - ./ci_flash.sh esp32s3 --skipble
     # FIXME: re-enable once gitlab is known to properly kill processes
-    #- ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32s3
+    #- ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32s3 --skipble
 
 flash_jade_v2_ci:
   extends: .flash_jade_v2_template

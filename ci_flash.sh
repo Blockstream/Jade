@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eo pipefail
 
 if [[ -z ${JADESERIALPORT} ]]; then
@@ -14,7 +14,8 @@ if [[ -z ${JADESERIALPORT} ]]; then
 fi
 
 TARGET_CHIP=${1:-esp32}
-BUILD_DIR=${2:-build}
+BUILD_DIR=build
+SKIP_ARGS=$2
 
 if [ "$TARGET_CHIP" = "esp32" ]; then
     python ${IDF_PATH}/components/esptool_py/esptool/esptool.py --chip ${TARGET_CHIP} --port ${JADESERIALPORT} --baud 2000000 --before default_reset erase_flash
@@ -72,18 +73,17 @@ fi
 pip install --require-hashes -r requirements.txt
 
 # NOTE: tools/fwprep.py should have run in the build step and produced the compressed firmware file
-SKIP_ARGS=""
 if [ ! -x /usr/bin/bt-agent ]; then
     echo "bt-agent not available, skipping bluetooth OTA"
-    SKIP_ARGS=" --skipble"
+    SKIP_ARGS="--skipble"
 fi
 FW_FULL=$(ls ${BUILD_DIR}/*_fw.bin)
-python jade_ota.py --push-mnemonic --log=INFO --serialport=${JADESERIALPORT} --fwfile=${FW_FULL}${SKIP_ARGS}
+python jade_ota.py --push-mnemonic --log=INFO --serialport=${JADESERIALPORT} --fwfile=${FW_FULL} ${SKIP_ARGS}
 
 sleep 5
 python -c "from jadepy import JadeAPI; jade = JadeAPI.create_serial(device=\"${JADESERIALPORT}\", timeout=5) ; jade.connect(); jade.drain(); jade.disconnect()"
 
-python test_jade.py --log=INFO --serialport=${JADESERIALPORT}${SKIP_ARGS}
+python test_jade.py --log=INFO --serialport=${JADESERIALPORT} ${SKIP_ARGS}
 
 # check if gcov is enabled and run collection tool
 if fgrep -qs "CONFIG_APPTRACE_GCOV_ENABLE=y" ${BUILD_DIR}/sdkconfig sdkconfig; then
