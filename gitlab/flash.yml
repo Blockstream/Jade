@@ -40,8 +40,6 @@ flash_qemu_psram_unamalgamated:
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
     - cp -a build/sdkconfig ./
     - ./ci_flash.sh esp32 --skipble
-    # FIXME: re-enable once gitlab is known to properly kill processes
-    #- ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32 --skipble
   # FIXME: Remove gcov from ./ci_flash.sh and then skip submodules here
   # FIXME: Fix v1.0 flashing
   allow_failure: true
@@ -70,9 +68,7 @@ flash_jade_ota_delta_ci:
   script:
     - mv build_test_jade_ci build
     - mv build_test_jade_noradio_ci build_noradio
-    - ./ota_delta_ci.sh
-    # FIXME: re-enable once gitlab is known to properly kill processes
-    #- ./tools/flock.sh $JADESERIALPORT ./ota_delta_ci.sh
+    - ./ota_delta_ci.sh esp32 --skipble
 
 # Jade v1.1
 .flash_jade_v1_1_template:
@@ -104,9 +100,7 @@ flash_jade_ota_delta_v1_1_ci:
   script:
     - mv build_test_jade_v1_1_ci build
     - mv build_test_jade_v1_1_noradio_ci build_noradio
-    - ./ota_delta_ci.sh
-    # FIXME: re-enable once gitlab is known to properly kill processes
-    #- ./tools/flock.sh $JADESERIALPORT ./ota_delta_ci.sh
+    - ./ota_delta_ci.sh esp32 --skipble
 
 # Jade v2.0
 .flash_jade_v2_template:
@@ -119,11 +113,29 @@ flash_jade_ota_delta_v1_1_ci:
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
     - cp build/sdkconfig ./
     - ./ci_flash.sh esp32s3 --skipble
-    # FIXME: re-enable once gitlab is known to properly kill processes
-    #- ./tools/flock.sh $JADESERIALPORT ./ci_flash.sh esp32s3 --skipble
 
 flash_jade_v2_ci:
   extends: .flash_jade_v2_template
   needs: [ test_libjade, build_test_jade_v2_ci ]
 
-# FIXME: add noradio and delta flashing for v2.0
+flash_jade_v2_noradio_ci:
+  extends: .flash_jade_v2_template
+  needs:
+    - job: build_test_jade_v2_noradio_ci
+      artifacts: true
+    - job: flash_jade_v2_ci
+      artifacts: false
+
+flash_jade_ota_delta_v2_ci:
+  extends: .flash_jade_v2_template
+  needs:
+    - job: build_test_jade_v2_ci
+      artifacts: true
+    - job: build_test_jade_v2_noradio_ci
+      artifacts: true
+    - job: flash_jade_v2_noradio_ci
+      artifacts: false
+  script:
+    - mv build_test_jade_v2_ci build
+    - mv build_test_jade_v2_noradio_ci build_noradio
+    - ./ota_delta_ci.sh esp32s3 --skipble
