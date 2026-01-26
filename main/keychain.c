@@ -712,27 +712,4 @@ void keychain_init_cache(void)
     // Cache the user key/passphrase preferences
     key_flags = storage_get_key_flags();
 }
-
-bool keychain_init_unit_key(void)
-{
-    uint8_t privatekey[EC_PRIVATE_KEY_LEN];
-    SENSITIVE_PUSH(privatekey, sizeof(privatekey));
-
-    bool res = storage_get_pin_privatekey(privatekey, sizeof(privatekey));
-    if (!res) {
-        if (!keychain_get_new_privatekey(privatekey, sizeof(privatekey))) {
-            JADE_LOGE("Failed to create new hw private key");
-            SENSITIVE_POP(privatekey);
-            return false;
-        }
-        res = storage_set_pin_privatekey(privatekey, sizeof(privatekey));
-        if (res) {
-            JADE_LOGI("Initialised new hw private key");
-        } else {
-            JADE_LOGE("Failed to set new hw private key");
-        }
-    }
-    SENSITIVE_POP(privatekey);
-    return res;
-}
 #endif // AMALGAMATED_BUILD

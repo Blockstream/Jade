@@ -251,10 +251,6 @@ static void boot_process(void)
     jade_wally_init();
     wallet_init();
 
-    if (!keychain_init_unit_key()) {
-        JADE_ABORT();
-    }
-
 #ifdef CONFIG_BT_ENABLED
     // Delay BLE initialisation as uses the hw unit key which is not initialised until
     // the first run of keychain_init() (on a new or factory-reset unit).

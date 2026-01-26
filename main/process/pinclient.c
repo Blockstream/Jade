@@ -126,6 +126,26 @@ static void send_http_request_reply(jade_process_t* process, const char* documen
     free(buf);
 }
 
+/* Get/Create the devices unit private key */
+static bool pin_get_unit_privatekey(uint8_t* privatekey, const size_t key_len)
+{
+    bool res = storage_get_pin_privatekey(privatekey, key_len);
+    if (!res) {
+        // Unit key not found: create a new one on demand
+        if (!keychain_get_new_privatekey(privatekey, key_len)) {
+            JADE_LOGE("Failed to create new unit private key");
+            return false;
+        }
+        res = storage_set_pin_privatekey(privatekey, key_len);
+        if (res) {
+            JADE_LOGI("Initialised new unit private key");
+        } else {
+            JADE_LOGE("Failed to set new unit private key");
+        }
+    }
+    return res;
+}
+
 // Hepler to tweak the server static key into a session key
 static bool generate_ske(pin_keys_t* pinkeys)
 {
@@ -457,7 +477,7 @@ static pinserver_result_t pinserver_interaction(jade_process_t* process, const u
 
     size_t written = 0;
     char data[2 * (sizeof(pinkeys.cke) + sizeof(pinkeys.replay_counter) + sizeof(payload))]; // sufficient
-    if (!storage_get_pin_privatekey(pin_privatekey, sizeof(pin_privatekey))
+    if (!pin_get_unit_privatekey(pin_privatekey, sizeof(pin_privatekey))
         || !get_pin_secret(pin, pin_len, pin_privatekey, sizeof(pin_privatekey), pinsecret, sizeof(pinsecret))
         || !sign_payload(pin_privatekey, sizeof(pin_privatekey), &pinkeys, pinsecret, sizeof(pinsecret), entropy,
             entropy_len, sig, sizeof(sig))
