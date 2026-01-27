@@ -288,9 +288,9 @@ bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
     gui_activity_t* const act_wallettype = make_carousel_activity("Wallet Type", NULL, &wallet_textbox);
     gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
 
-    pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
-    make_pin_insert_activity(&pin_insert, "Account Index", "Enter index:");
-    JADE_ASSERT(pin_insert.activity);
+    digit_entry_t digit_entry = { .entry_type = DIGIT_ENTRY_INDEX, .initial_state = ZERO, .digits_shown = true };
+    make_digit_entry_activity(&digit_entry, "Account Index", "Enter index:");
+    JADE_ASSERT(digit_entry.activity);
 
     const uint32_t initial_flags = *qr_flags;
     while (true) {
@@ -331,15 +331,15 @@ bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
         } else if (ev_id == BTN_XPUB_OPTIONS_ACCOUNT) {
 
             while (true) {
-                reset_pin(&pin_insert, NULL);
-                gui_set_current_activity(pin_insert.activity);
-                if (!run_pin_entry_loop(&pin_insert)) {
+                reset_digit_entry(&digit_entry, NULL);
+                gui_set_current_activity(digit_entry.activity);
+                if (!run_digit_entry_loop(&digit_entry)) {
                     // User abandoned index entry
                     break;
                 }
 
                 // Get entered digits as single numeric value
-                const uint32_t new_account_index = get_pin_as_number(&pin_insert);
+                const uint32_t new_account_index = get_entry_as_number(&digit_entry);
                 if (new_account_index < ACCOUNT_INDEX_MAX) {
                     account_index = new_account_index;
 
@@ -567,19 +567,20 @@ static bool handle_address_options(const bool show_account, uint16_t* account_in
         if (gui_activity_wait_event(act_options, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
 
             if (ev_id == BTN_SCAN_ADDRESS_OPTIONS_ACCOUNT && show_account) {
-                pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
-                make_pin_insert_activity(&pin_insert, "Account Index", "Enter index:");
-                JADE_ASSERT(pin_insert.activity);
+                digit_entry_t digit_entry
+                    = { .entry_type = DIGIT_ENTRY_INDEX, .initial_state = ZERO, .digits_shown = true };
+                make_digit_entry_activity(&digit_entry, "Account Index", "Enter index:");
+                JADE_ASSERT(digit_entry.activity);
 
                 while (true) {
-                    gui_set_current_activity(pin_insert.activity);
-                    if (!run_pin_entry_loop(&pin_insert)) {
+                    gui_set_current_activity(digit_entry.activity);
+                    if (!run_digit_entry_loop(&digit_entry)) {
                         // User abandoned index entry
                         break;
                     }
 
                     // Get entered digits as single numeric value
-                    uint32_t new_account_index = get_pin_as_number(&pin_insert);
+                    uint32_t new_account_index = get_entry_as_number(&digit_entry);
                     if (new_account_index < ACCOUNT_INDEX_MAX) {
                         *account_index = new_account_index;
 

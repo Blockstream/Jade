@@ -35,12 +35,18 @@ typedef struct {
     gui_view_node_t* textbox_nodes[NUM_KBS];
 } keyboard_entry_t;
 
-// PIN entry
-#define PIN_SIZE 6
+// digit entry
+#define DIGIT_ENTRY_SIZE 6
 
-enum pin_digit_initial_state { RANDOM, ZERO, POSITION };
+enum __attribute__((__packed__)) digit_entry_type {
+    DIGIT_ENTRY_INVALID = 0,
+    DIGIT_ENTRY_PIN,
+    DIGIT_ENTRY_INDEX,
+};
 
-enum pin_digit_status {
+enum __attribute__((__packed__)) digit_entry_initial_state { RANDOM, ZERO, POSITION };
+
+enum __attribute__((__packed__)) digit_entry_status {
     EMPTY,
     SELECTED,
     SET,
@@ -51,23 +57,23 @@ typedef struct {
     gui_view_node_t* up_arrow_node;
     gui_view_node_t* digit_node;
     gui_view_node_t* down_arrow_node;
-} pin_digit_t;
+} digit_entry_node_t;
 
 typedef struct {
-    const enum pin_digit_initial_state initial_state;
-    const bool pin_digits_shown;
+    const enum digit_entry_type entry_type;
+    const enum digit_entry_initial_state initial_state;
+    const bool digits_shown;
 
-    uint8_t pin[PIN_SIZE];
-    enum pin_digit_status digit_status[PIN_SIZE];
-
+    uint8_t digit[DIGIT_ENTRY_SIZE];
+    enum digit_entry_status digit_status[DIGIT_ENTRY_SIZE];
     gui_activity_t* activity;
     gui_view_node_t* title;
 
-    pin_digit_t pin_digit_nodes[PIN_SIZE];
+    digit_entry_node_t digit_nodes[DIGIT_ENTRY_SIZE];
 
     uint8_t selected_digit;
     uint8_t current_selected_value;
-} pin_insert_t;
+} digit_entry_t;
 
 typedef struct {
     gui_view_node_t* symbol;
@@ -159,11 +165,11 @@ void update_carousel_highlight_color(const gui_view_node_t* text_label, color_t 
 void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title);
 void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
 
-// Functions for pin entry
-void make_pin_insert_activity(pin_insert_t* pin_insert, const char* title, const char* message);
-bool run_pin_entry_loop(pin_insert_t* pin_insert);
-void reset_pin(pin_insert_t* pin_insert, const char* title);
-size_t get_pin_as_number(const pin_insert_t* pin_insert);
+// Functions for number entry
+void make_digit_entry_activity(digit_entry_t* digit_entry, const char* title, const char* message);
+bool run_digit_entry_loop(digit_entry_t* digit_entry);
+void reset_digit_entry(digit_entry_t* digit_entry, const char* title);
+size_t get_entry_as_number(const digit_entry_t* digit_entry);
 
 // Generic progress-bar
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);

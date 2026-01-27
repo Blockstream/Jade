@@ -363,10 +363,10 @@ static void update_home_screen_menu(void)
 // Function to print a pin into a char buffer.
 // Assumes each pin component value is a single digit.
 // NOTE: the passed buffer must be large enough.
-// (In normal circumstances that should be PIN_SIZE digits)
+// (In normal circumstances that should be DIGIT_ENTRY_SIZE digits)
 static void format_pin(char* buf, const uint8_t buf_len, const uint8_t* pin, const size_t pin_len)
 {
-    JADE_ASSERT(pin_len == PIN_SIZE);
+    JADE_ASSERT(pin_len == DIGIT_ENTRY_SIZE);
     JADE_ASSERT(buf_len > pin_len);
 
     for (int i = 0; i < pin_len; ++i) {
@@ -663,8 +663,8 @@ static void offer_jade_reset(void)
     }
 
     // Force user to confirm a random number
-    uint8_t num[PIN_SIZE];
-    for (int i = 0; i < PIN_SIZE; ++i) {
+    uint8_t num[DIGIT_ENTRY_SIZE];
+    for (int i = 0; i < DIGIT_ENTRY_SIZE; ++i) {
         num[i] = get_uniform_random_byte(10);
     }
     char pinstr[sizeof(num) + 1];
@@ -676,22 +676,22 @@ static void offer_jade_reset(void)
     const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm reset: %s", pinstr);
     JADE_ASSERT(ret > 0 && ret < sizeof(confirm_msg));
 
-    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = true };
-    make_pin_insert_activity(&pin_insert, "Reset Jade", confirm_msg);
-    JADE_ASSERT(pin_insert.activity);
-    JADE_STATIC_ASSERT(sizeof(num) == sizeof(pin_insert.pin));
+    digit_entry_t digit_entry = { .entry_type = DIGIT_ENTRY_PIN, .initial_state = RANDOM, .digits_shown = true };
+    make_digit_entry_activity(&digit_entry, "Reset Jade", confirm_msg);
+    JADE_ASSERT(digit_entry.activity);
+    JADE_STATIC_ASSERT(sizeof(num) == sizeof(digit_entry.digit));
 
-    gui_set_current_activity(pin_insert.activity);
-    if (!run_pin_entry_loop(&pin_insert)) {
+    gui_set_current_activity(digit_entry.activity);
+    if (!run_digit_entry_loop(&digit_entry)) {
         // User abandoned pin entry - continue to boot screen
         JADE_LOGI("User confirmation abandoned, not wiping data.");
         return;
     }
 
-    format_pin(pinstr, sizeof(pinstr), pin_insert.pin, sizeof(pin_insert.pin));
+    format_pin(pinstr, sizeof(pinstr), digit_entry.digit, sizeof(digit_entry.digit));
     JADE_LOGI("User entered: %s", pinstr);
 
-    if (!sodium_memcmp(num, pin_insert.pin, sizeof(num))) {
+    if (!sodium_memcmp(num, digit_entry.digit, sizeof(num))) {
         // Correct - erase all jade non-volatile storage
         JADE_LOGI("User confirmed - erasing Jade data");
         if (storage_erase()) {
@@ -1233,36 +1233,36 @@ static void set_wallet_erase_pin(void)
     JADE_LOGI("Requesting wallet-erase PIN");
 
     // Ask user to enter a wallet-erase pin
-    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = false };
-    make_pin_insert_activity(&pin_insert, "Wallet-Erase PIN", "Different from main PIN");
-    JADE_ASSERT(pin_insert.activity);
+    digit_entry_t digit_entry = { .entry_type = DIGIT_ENTRY_PIN, .initial_state = RANDOM, .digits_shown = false };
+    make_digit_entry_activity(&digit_entry, "Wallet-Erase PIN", "Different from main PIN");
+    JADE_ASSERT(digit_entry.activity);
 
     while (true) {
-        reset_pin(&pin_insert, "Wallet-Erase PIN");
-        gui_set_current_activity(pin_insert.activity);
+        reset_digit_entry(&digit_entry, "Wallet-Erase PIN");
+        gui_set_current_activity(digit_entry.activity);
 
-        if (!run_pin_entry_loop(&pin_insert)) {
+        if (!run_digit_entry_loop(&digit_entry)) {
             // User abandoned pin entry
             JADE_LOGI("User abandoned setting wallet erase PIN");
             break;
         }
 
         // This is the first pin, copy it and clear screen fields
-        uint8_t pin[sizeof(pin_insert.pin)];
-        memcpy(pin, pin_insert.pin, sizeof(pin));
-        reset_pin(&pin_insert, "Confirm Erase PIN");
+        uint8_t pin[sizeof(digit_entry.digit)];
+        memcpy(pin, digit_entry.digit, sizeof(pin));
+        reset_digit_entry(&digit_entry, "Confirm Erase PIN");
 
         // Ask user to re-enter PIN
-        if (!run_pin_entry_loop(&pin_insert)) {
+        if (!run_digit_entry_loop(&digit_entry)) {
             // User abandoned second input - back to first ...
             continue;
         }
 
         // Check that the two pins are the same
         JADE_LOGD("Checking pins match");
-        if (!sodium_memcmp(pin, pin_insert.pin, sizeof(pin))) {
+        if (!sodium_memcmp(pin, digit_entry.digit, sizeof(pin))) {
             JADE_LOGI("Setting Wallet-Erase PIN");
-            storage_set_wallet_erase_pin(pin_insert.pin, sizeof(pin_insert.pin));
+            storage_set_wallet_erase_pin(digit_entry.digit, sizeof(digit_entry.digit));
             break;
         } else {
             // Pins mismatch - try again
@@ -1285,7 +1285,7 @@ static void handle_wallet_erase_pin(void)
 
     while (true) {
         // Add wallet erase pin confirmation screens
-        uint8_t pin_erase[PIN_SIZE];
+        uint8_t pin_erase[DIGIT_ENTRY_SIZE];
         gui_activity_t* act = NULL;
         if (storage_get_wallet_erase_pin(pin_erase, sizeof(pin_erase))) {
             char pinstr[sizeof(pin_erase) + 1];

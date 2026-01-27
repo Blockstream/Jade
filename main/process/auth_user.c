@@ -33,7 +33,7 @@ static void check_wallet_erase_pin(jade_process_t* process, const uint8_t* pin_e
 {
     JADE_ASSERT(pin_entered);
 
-    uint8_t pin_erase[PIN_SIZE];
+    uint8_t pin_erase[DIGIT_ENTRY_SIZE];
     if (pin_len == sizeof(pin_erase) && storage_get_wallet_erase_pin(pin_erase, sizeof(pin_erase))
         && !sodium_memcmp(pin_erase, pin_entered, pin_len)) {
         // 'Wallet erase' PIN entered.  Erase wallet keys and reset passphrase setting
@@ -56,7 +56,7 @@ static bool get_pin_get_aeskey(jade_process_t* process, const char* title, uint8
     JADE_ASSERT(process);
     JADE_ASSERT(title);
     JADE_ASSERT(pin);
-    JADE_ASSERT(pin_len == PIN_SIZE);
+    JADE_ASSERT(pin_len == DIGIT_ENTRY_SIZE);
     JADE_ASSERT(aeskey);
     JADE_ASSERT(aes_len == AES_KEY_LEN_256);
 
@@ -79,30 +79,30 @@ static bool get_pin_get_aeskey(jade_process_t* process, const char* title, uint8
         msg = NULL;
     }
 
-    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = false };
-    JADE_ASSERT(sizeof(pin_insert.pin) == pin_len);
-    make_pin_insert_activity(&pin_insert, title, msg);
-    JADE_ASSERT(pin_insert.activity);
-    SENSITIVE_PUSH(&pin_insert, sizeof(pin_insert_t));
+    digit_entry_t digit_entry = { .entry_type = DIGIT_ENTRY_PIN, .initial_state = RANDOM, .digits_shown = false };
+    JADE_ASSERT(sizeof(digit_entry.digit) == pin_len);
+    make_digit_entry_activity(&digit_entry, title, msg);
+    JADE_ASSERT(digit_entry.activity);
+    SENSITIVE_PUSH(&digit_entry, sizeof(digit_entry_t));
 
     // If getting PIN via QRs, free gui memory before attempting QR roundtrip
-    gui_set_current_activity_ex(pin_insert.activity, process->ctx.source == SOURCE_INTERNAL);
+    gui_set_current_activity_ex(digit_entry.activity, process->ctx.source == SOURCE_INTERNAL);
 
     // In a debug unattended ci build, use hardcoded pin after a short delay
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-    if (!run_pin_entry_loop(&pin_insert)) {
+    if (!run_digit_entry_loop(&digit_entry)) {
         // User abandoned entering pin
         jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandonded pin entry");
-        SENSITIVE_POP(&pin_insert);
+        SENSITIVE_POP(&digit_entry);
         return false;
     }
 #else
     vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-    const uint8_t testpin[sizeof(pin_insert.pin)] = { 0, 1, 2, 3, 4, 5 };
-    memcpy(pin_insert.pin, testpin, sizeof(testpin));
+    const uint8_t testpin[sizeof(digit_entry.digit)] = { 0, 1, 2, 3, 4, 5 };
+    memcpy(digit_entry.digit, testpin, sizeof(testpin));
 #endif
-    memcpy(pin, pin_insert.pin, sizeof(pin_insert.pin));
-    SENSITIVE_POP(&pin_insert);
+    memcpy(pin, digit_entry.digit, sizeof(digit_entry.digit));
+    SENSITIVE_POP(&digit_entry);
 
     const char* message[] = { "Checking..." };
     display_message_activity(message, 1);
@@ -118,54 +118,54 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
     JADE_ASSERT(process);
     JADE_ASSERT(title);
     JADE_ASSERT(pin);
-    JADE_ASSERT(pin_len == PIN_SIZE);
+    JADE_ASSERT(pin_len == DIGIT_ENTRY_SIZE);
     JADE_ASSERT(aeskey);
     JADE_ASSERT(aes_len == AES_KEY_LEN_256);
 
     // Enter PIN to lock mnemonic/key material.
     // In a debug unattended ci build, use hardcoded pin after a short delay
-    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = false };
-    JADE_ASSERT(sizeof(pin_insert.pin) == pin_len);
-    make_pin_insert_activity(&pin_insert, title, NULL);
-    JADE_ASSERT(pin_insert.activity);
-    SENSITIVE_PUSH(&pin_insert, sizeof(pin_insert_t));
+    digit_entry_t digit_entry = { .entry_type = DIGIT_ENTRY_PIN, .initial_state = RANDOM, .digits_shown = false };
+    JADE_ASSERT(sizeof(digit_entry.digit) == pin_len);
+    make_digit_entry_activity(&digit_entry, title, NULL);
+    JADE_ASSERT(digit_entry.activity);
+    SENSITIVE_PUSH(&digit_entry, sizeof(digit_entry_t));
 
     while (true) {
-        reset_pin(&pin_insert, title);
+        reset_digit_entry(&digit_entry, title);
 
         // If getting PIN via QRs, free gui memory before attempting QR roundtrip
-        gui_set_current_activity_ex(pin_insert.activity, process->ctx.source == SOURCE_INTERNAL);
+        gui_set_current_activity_ex(digit_entry.activity, process->ctx.source == SOURCE_INTERNAL);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        if (!run_pin_entry_loop(&pin_insert)) {
+        if (!run_digit_entry_loop(&digit_entry)) {
             // User abandoned setting new pin
             jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandoned setting new PIN");
-            SENSITIVE_POP(&pin_insert);
+            SENSITIVE_POP(&digit_entry);
             return false;
         }
 #else
         vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        const uint8_t testpin[sizeof(pin_insert.pin)] = { 0, 1, 2, 3, 4, 5 };
-        memcpy(pin_insert.pin, testpin, sizeof(testpin));
+        const uint8_t testpin[sizeof(digit_entry.digit)] = { 0, 1, 2, 3, 4, 5 };
+        memcpy(digit_entry.digit, testpin, sizeof(testpin));
 #endif
 
         // this is the first pin, copy it and clear screen fields and have the user confirm
-        memcpy(pin, pin_insert.pin, sizeof(pin_insert.pin));
-        reset_pin(&pin_insert, "Confirm PIN");
+        memcpy(pin, digit_entry.digit, sizeof(digit_entry.digit));
+        reset_digit_entry(&digit_entry, "Confirm PIN");
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
-        if (!run_pin_entry_loop(&pin_insert)) {
+        if (!run_digit_entry_loop(&digit_entry)) {
             // User abandoned second input - back to first ...
             continue;
         }
 #else
         vTaskDelay(CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS / portTICK_PERIOD_MS);
-        memcpy(pin_insert.pin, testpin, sizeof(testpin));
+        memcpy(digit_entry.digit, testpin, sizeof(testpin));
 #endif
 
         // check that the two pins are the same
         JADE_LOGD("Checking pins match");
-        if (!sodium_memcmp(pin, pin_insert.pin, sizeof(pin_insert.pin))) {
+        if (!sodium_memcmp(pin, digit_entry.digit, sizeof(digit_entry.digit))) {
             // Pins match
             JADE_LOGI("New pin confirmed");
             break;
@@ -175,12 +175,12 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
             if (!await_continueback_activity(NULL, message, 2, true, NULL)) {
                 // Abandon setting new pin
                 jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandoned setting new PIN");
-                SENSITIVE_POP(&pin_insert);
+                SENSITIVE_POP(&digit_entry);
                 return false;
             }
         }
     }
-    SENSITIVE_POP(&pin_insert);
+    SENSITIVE_POP(&digit_entry);
 
     const char* message[] = { "Persisting PIN data..." };
     display_message_activity(message, 1);
@@ -200,7 +200,7 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
     JADE_ASSERT(keychain_has_pin());
     bool rslt = false;
 
-    uint8_t pin[PIN_SIZE];
+    uint8_t pin[DIGIT_ENTRY_SIZE];
     SENSITIVE_PUSH(pin, sizeof(pin));
     uint8_t aeskey[AES_KEY_LEN_256];
     SENSITIVE_PUSH(aeskey, sizeof(aeskey));
@@ -304,7 +304,7 @@ static bool set_pin_save_keys(jade_process_t* process)
     JADE_ASSERT(!keychain_has_temporary());
     bool rslt = false;
 
-    uint8_t pin[PIN_SIZE];
+    uint8_t pin[DIGIT_ENTRY_SIZE];
     SENSITIVE_PUSH(pin, sizeof(pin));
     uint8_t aeskey[AES_KEY_LEN_256];
     SENSITIVE_PUSH(aeskey, sizeof(aeskey));
