@@ -441,8 +441,6 @@ bool storage_set_pin_privatekey(const uint8_t* privatekey, const size_t key_len)
     return store_blob(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD, privatekey, key_len);
 }
 
-bool storage_erase_pin_privatekey(void) { return erase_key(DEFAULT_NAMESPACE, PIN_PRIVATEKEY_FIELD); }
-
 bool storage_set_encrypted_blob(const uint8_t* encrypted, const size_t encrypted_len)
 {
     JADE_ASSERT(encrypted);
@@ -539,6 +537,7 @@ bool storage_set_pinserver_details(const char* urlA, const char* urlB, const uin
     STORAGE_OPEN(handle, DEFAULT_NAMESPACE, NVS_READWRITE);
     STORAGE_SET_STRING(handle, USER_PINSERVER_URL_A, urlA);
     STORAGE_SET_STRING(handle, USER_PINSERVER_URL_B, urlB);
+    STORAGE_ERASE(handle, PIN_PRIVATEKEY_FIELD); // Re-create on first use later
 
     // Pubkey is optional (as just server public address may change)
     if (pubkey && pubkey_len > 0) {
@@ -572,6 +571,7 @@ bool storage_erase_pinserver_details(void)
     STORAGE_ERASE(handle, USER_PINSERVER_URL_A);
     STORAGE_ERASE(handle, USER_PINSERVER_URL_B);
     STORAGE_ERASE(handle, USER_PINSERVER_PUBKEY);
+    STORAGE_ERASE(handle, PIN_PRIVATEKEY_FIELD); // Re-create on first use later
     STORAGE_COMMIT(handle);
     STORAGE_CLOSE(handle);
     return true;

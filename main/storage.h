@@ -41,7 +41,6 @@ bool storage_key_name_valid(const char* name);
 
 bool storage_set_pin_privatekey(const uint8_t* privatekey, size_t key_len);
 bool storage_get_pin_privatekey(uint8_t* privatekey, size_t key_len);
-bool storage_erase_pin_privatekey(void);
 
 bool storage_set_encrypted_blob(const uint8_t* encrypted, size_t encrypted_len);
 bool storage_get_encrypted_blob(uint8_t* encrypted, size_t encrypted_len, size_t* written);
