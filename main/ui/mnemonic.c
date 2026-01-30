@@ -104,14 +104,11 @@ gui_activity_t* make_bip85_mnemonic_words_activity(void)
     return act;
 }
 
-static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t nwords, const size_t first_index,
-    const char* word1, const char* word2, const char* word3, const char* word4)
+static void make_show_new_mnemonic_page(
+    link_activity_t* page_act, const size_t nwords, const size_t first_index, const char* words[4])
 {
     JADE_ASSERT(page_act);
-    JADE_ASSERT(word1);
-    JADE_ASSERT(word2);
-    JADE_ASSERT(word3);
-    JADE_ASSERT(word4);
+    JADE_ASSERT(words && words[0] && words[1] && words[2] && words[3]);
 
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
@@ -138,7 +135,6 @@ static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t 
     gui_set_parent(vsplit, parent);
 
     char prefixed_word[16];
-    const char* words[] = { word1, word2, word3, word4 };
     for (int irow = 0; irow < 4; ++irow) {
         // index-prefixed word, eg. "1:  river"
         const int ret = snprintf(prefixed_word, sizeof(prefixed_word), "%2u:  %s", first_index + irow + 1, words[irow]);
@@ -174,10 +170,12 @@ void make_show_mnemonic_activities(gui_activity_t** first_activity_ptr, gui_acti
     linked_activities_info_t act_info = {};
 
     const size_t npages = nwords / 4; // 4 words per page
+    const char* words[4] = {};
     for (size_t j = 0; j < npages; ++j) {
-        uint16_t* offsets = word_offs + (j * 4);
-        make_show_new_mnemonic_page(&page_act, nwords, j * 4, mnemonic + offsets[0], mnemonic + offsets[1],
-            mnemonic + offsets[2], mnemonic + offsets[3]);
+        for (size_t w = 0; w < 4; ++w) {
+            words[w] = mnemonic + word_offs[j * 4 + w];
+        }
+        make_show_new_mnemonic_page(&page_act, nwords, j * 4, words);
         gui_chain_activities(&page_act, &act_info);
     }
 
