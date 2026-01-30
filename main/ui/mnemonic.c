@@ -105,7 +105,7 @@ gui_activity_t* make_bip85_mnemonic_words_activity(void)
 }
 
 static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t nwords, const size_t first_index,
-    char* word1, char* word2, char* word3, char* word4)
+    const char* word1, const char* word2, const char* word3, const char* word4)
 {
     JADE_ASSERT(page_act);
     JADE_ASSERT(word1);
@@ -138,7 +138,7 @@ static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t 
     gui_set_parent(vsplit, parent);
 
     char prefixed_word[16];
-    char* words[] = { word1, word2, word3, word4 };
+    const char* words[] = { word1, word2, word3, word4 };
     for (int irow = 0; irow < 4; ++irow) {
         // index-prefixed word, eg. "1:  river"
         const int ret = snprintf(prefixed_word, sizeof(prefixed_word), "%2u:  %s", first_index + irow + 1, words[irow]);
@@ -159,12 +159,12 @@ static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t 
     page_act->next_button = last_page ? NULL : hdrbtns[1].btn;
 }
 
-void make_show_mnemonic_activities(
-    gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], const size_t nwords)
+void make_show_mnemonic_activities(gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr,
+    const char* mnemonic, uint16_t word_offs[], const size_t nwords)
 {
     JADE_INIT_OUT_PPTR(first_activity_ptr);
     JADE_INIT_OUT_PPTR(last_activity_ptr);
-    JADE_ASSERT(words);
+    JADE_ASSERT(word_offs);
 
     // Support 12-word and 24-word mnemonics only
     JADE_ASSERT(nwords == 12 || nwords == 24);
@@ -175,8 +175,9 @@ void make_show_mnemonic_activities(
 
     const size_t npages = nwords / 4; // 4 words per page
     for (size_t j = 0; j < npages; ++j) {
-        make_show_new_mnemonic_page(
-            &page_act, nwords, j * 4, words[j * 4], words[j * 4 + 1], words[j * 4 + 2], words[j * 4 + 3]);
+        uint16_t* offsets = word_offs + (j * 4);
+        make_show_new_mnemonic_page(&page_act, nwords, j * 4, mnemonic + offsets[0], mnemonic + offsets[1],
+            mnemonic + offsets[2], mnemonic + offsets[3]);
         gui_chain_activities(&page_act, &act_info);
     }
 
@@ -185,12 +186,13 @@ void make_show_mnemonic_activities(
 }
 
 gui_activity_t* make_confirm_mnemonic_word_activity(gui_view_node_t** text_box, const uint8_t first_word_index,
-    const uint8_t offset_word_to_confirm, char* words[], const size_t nwords)
+    const uint8_t offset_word_to_confirm, const char* mnemonic, uint16_t word_offs[], const size_t nwords)
 {
     JADE_INIT_OUT_PPTR(text_box);
     JADE_ASSERT(first_word_index <= nwords - 3);
     JADE_ASSERT(offset_word_to_confirm < 3); // top (0), middle (1) or bottom (2)
-    JADE_ASSERT(words);
+    JADE_ASSERT(mnemonic);
+    JADE_ASSERT(word_offs);
 
     // Title/hint index (1-based index)
     char str[32];
@@ -226,7 +228,7 @@ gui_activity_t* make_confirm_mnemonic_word_activity(gui_view_node_t** text_box, 
             gui_set_padding(node, GUI_MARGIN_ALL_DIFFERENT, 0, 10, 0, 0);
             gui_set_parent(node, hsplit);
 
-            gui_make_text(&node, words[index], TFT_WHITE);
+            gui_make_text(&node, mnemonic + word_offs[index], TFT_WHITE);
             gui_set_text_noise(node, TFT_BLACK);
             gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
             gui_set_parent(node, hsplit);
