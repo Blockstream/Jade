@@ -183,21 +183,33 @@ static int get_bip85_bip39_entropy_data(const CborValue* params, bip85_data_t* b
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    // User to confirm
-    char nwordphrase[24];
-    int ret = snprintf(nwordphrase, sizeof(nwordphrase), "%u word seed phrase", nwords);
-    JADE_ASSERT(ret > 0 && ret < sizeof(nwordphrase));
+    // Special case for cross-chain swaps
+    if (nwords == 12 && index == 26589) {
+        // User to confirm
+        const char* message[] = { "Scan successful!", "Continue to pair", "with wallet app." };
 
-    char txtindex[24];
-    ret = snprintf(txtindex, sizeof(txtindex), "for BIP85 index %u?", index);
-    JADE_ASSERT(ret > 0 && ret < sizeof(txtindex));
+        if (!await_continueback_activity("Enable Swaps", message, 3, false, "blkstrm.com/bip85")) {
+            // User declined
+            *errmsg = "User declined to export entropy";
+            return CBOR_RPC_USER_CANCELLED;
+        }
+    } else {
+        // User to confirm
+        char nwordphrase[24];
+        int ret = snprintf(nwordphrase, sizeof(nwordphrase), "%u word seed phrase", nwords);
+        JADE_ASSERT(ret > 0 && ret < sizeof(nwordphrase));
 
-    const char* message[] = { "Export an encrypted", nwordphrase, txtindex };
+        char txtindex[24];
+        ret = snprintf(txtindex, sizeof(txtindex), "for BIP85 index %u?", index);
+        JADE_ASSERT(ret > 0 && ret < sizeof(txtindex));
 
-    if (!await_continueback_activity("Key Export", message, 3, false, "blkstrm.com/bip85")) {
-        // User declined
-        *errmsg = "User declined to export entropy";
-        return CBOR_RPC_USER_CANCELLED;
+        const char* message[] = { "Export an encrypted", nwordphrase, txtindex };
+
+        if (!await_continueback_activity("Key Export", message, 3, false, "blkstrm.com/bip85")) {
+            // User declined
+            *errmsg = "User declined to export entropy";
+            return CBOR_RPC_USER_CANCELLED;
+        }
     }
 
     // Calculate encrypted entropy
