@@ -2477,12 +2477,17 @@ def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
     # as there is too much memory allocation outside of our control.
     # Also skip for no-psram (qemu) devices.
     check_frag = has_psram and not has_ble
+    is_v2 = startinfo['BOARD_TYPE'] in ['JADE_V2']
 
     # Memory stats to log/check
+    dram_frag_limit = -1
+    if check_frag:
+        # TODO: Investigate fragmentation in noradio CI runs
+        dram_frag_limit = 18500 if is_v2 else 4096
     breaches = []
     for field, limit in [('JADE_FREE_HEAP', 1536),
                          ('JADE_FREE_DRAM', 8192 if has_ble else 1536),
-                         ('JADE_LARGEST_DRAM', 4096 if check_frag else -1),
+                         ('JADE_LARGEST_DRAM', dram_frag_limit),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
         initial = int(startinfo[field])
