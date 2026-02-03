@@ -136,6 +136,7 @@ flash_jade_ota_delta_v2_ci:
     - job: flash_jade_v2_noradio_ci
       artifacts: false
   script:
+    - . $HOME/esp/esp-idf-5.4/export.sh
     - mv build_test_jade_v2_ci build
     - mv build_test_jade_v2_noradio_ci build_noradio
     - ./ota_delta_ci.sh esp32s3 --skipble
