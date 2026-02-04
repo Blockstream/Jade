@@ -98,10 +98,10 @@ static int gatt_chr_event(
 
             // Check we won't overrun the buffer
             if (ble_read + ble_msg_len >= MAX_INPUT_MSG_SIZE) {
-                const bool force_reject_if_no_msg = true; // reject what we have in the buffer
+                const bool reject_incomplete = true; // Reject current buffer if incomplete
                 const size_t new_data = 0;
                 handle_data(
-                    full_ble_data_in, &ble_read, new_data, &last_processing_time, force_reject_if_no_msg, ble_data_out);
+                    full_ble_data_in, &ble_read, new_data, &last_processing_time, reject_incomplete, ble_data_out);
                 JADE_ASSERT(ble_read == 0);
             }
 
@@ -112,9 +112,9 @@ static int gatt_chr_event(
             JADE_ASSERT(out_copy_len == ble_msg_len);
 
             JADE_LOGD("Passing %u+%u bytes from ble device to common handler", ble_read, ble_msg_len);
-            const bool force_reject_if_no_msg = false;
+            const bool reject_incomplete = false;
             handle_data(
-                full_ble_data_in, &ble_read, ble_msg_len, &last_processing_time, force_reject_if_no_msg, ble_data_out);
+                full_ble_data_in, &ble_read, ble_msg_len, &last_processing_time, reject_incomplete, ble_data_out);
             return 0;
 
         default:

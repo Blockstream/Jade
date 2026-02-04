@@ -99,9 +99,8 @@ static void qemu_tcp_reader(void* ignore)
 
         // Pass to common handler
         JADE_LOGD("Passing %u+%u bytes from tcp stream to common handler", read, len);
-        const bool force_reject_if_no_msg = false;
-        handle_data(
-            full_qemu_tcp_data_in, &read, len, &last_processing_time, force_reject_if_no_msg, qemu_tcp_data_out);
+        const bool reject_incomplete = false;
+        handle_data(full_qemu_tcp_data_in, &read, len, &last_processing_time, reject_incomplete, qemu_tcp_data_out);
     }
 }
 

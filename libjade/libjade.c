@@ -485,9 +485,9 @@ bool libjade_send(const uint8_t* data, const size_t size)
     uint8_t* data_with_source = _libjade_serial_data_in;
     data_with_source[0] = SOURCE_SERIAL;
     memcpy(data_with_source + 1 + _libjade_serial_read_ptr, data, size);
-    const bool force_reject_if_no_msg = false;
-    handle_data(data_with_source, &_libjade_serial_read_ptr, size, &_libjade_last_processing_time,
-        force_reject_if_no_msg, _libjade_serial_data_out);
+    const bool reject_incomplete = false;
+    handle_data(data_with_source, &_libjade_serial_read_ptr, size, &_libjade_last_processing_time, reject_incomplete,
+        _libjade_serial_data_out);
     return true;
 }
 

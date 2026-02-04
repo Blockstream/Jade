@@ -77,7 +77,7 @@ static bool handleImmediateMessage(cbor_msg_t* ctx)
 
 // Handle bytes in receive buffer
 // NOTE: assumes sizes of input and output buffers - could be passed sizes if preferred
-static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool reject_if_no_msg, uint8_t* data_out)
+static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool reject_incomplete, uint8_t* data_out)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
@@ -105,7 +105,7 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
 
         // If we could not fetch a message from the buffer..
         if (msg_len == 0) {
-            if (!reject_if_no_msg) {
+            if (!reject_incomplete) {
                 // Not a complete cbor message, but we are allowed to await more data to complete the message
                 JADE_LOGD("Got incomplete CBOR message, length %u - awaiting more data...", read);
                 return;
@@ -143,10 +143,10 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
 
         // Otherwise we have some data left in the buffer - move the unhandled data down to the start of the buffer
         // (overwriting what we've handled)
-        // Also set 'reject_if_no_msg' to false, as we have now read a message.
+        // Also set 'reject_incomplete' to false, as we have now read a message.
         memmove(data_in, data_in + msg_len, read - msg_len);
         *read_ptr -= msg_len;
-        reject_if_no_msg = false;
+        reject_incomplete = false;
     }
 
     // Discard the entire buffer by resetting the read-ptr
@@ -156,7 +156,7 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
 // Handle new bytes received
 // NOTE: assumes sizes of input and output buffers - could be passed sizes if preferred
 void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_len, TickType_t* last_processing_time,
-    const bool force_reject_if_no_msg, uint8_t* data_out)
+    bool reject_incomplete, uint8_t* data_out)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
@@ -168,25 +168,21 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_
     const TickType_t time_now = xTaskGetTickCount();
     JADE_ASSERT(time_now >= *last_processing_time);
 
-    // Handle any stale bytes in the buffer
-    if (*read_ptr > 0 && time_now > *last_processing_time + TIMEOUT_TICKS) {
-        // Have stale bytes resting in buffer - reject them
-        const bool reject_if_no_msg = true;
-        const size_t initial_offset = *read_ptr;
-        JADE_LOGW("Timing out %u bytes in buffer", *read_ptr);
-        handle_data_impl(full_data_in, read_ptr, reject_if_no_msg, data_out);
-        JADE_ASSERT(*read_ptr == 0);
+    JADE_LOGI("Received %u new bytes, total in buffer is now %u, time is %lu ticks (time since last %lu)", new_data_len,
+        *read_ptr + new_data_len, time_now, time_now - *last_processing_time);
 
-        // Copy newly recevied bytes down to start of buffer
-        uint8_t* const data_in = full_data_in + 1;
-        memmove(data_in, data_in + initial_offset, new_data_len);
+    if (*read_ptr > 0 && time_now > *last_processing_time + TIMEOUT_TICKS) {
+        // Have stale bytes resting in buffer - reject if no complete message found
+        JADE_LOGW("Timing out %u bytes in buffer (time_now: %lu, last_processing_time: %lu, TIMEOUT_TICKS: %lu)",
+            *read_ptr, time_now, *last_processing_time, TIMEOUT_TICKS);
+        reject_incomplete = true;
     }
 
     // Append new bytes, and try to parse
     *read_ptr += new_data_len;
     JADE_LOGD("Passing %u bytes to common handler", *read_ptr);
-    const bool reject_if_no_msg = force_reject_if_no_msg || (*read_ptr == MAX_INPUT_MSG_SIZE);
-    handle_data_impl(full_data_in, read_ptr, reject_if_no_msg, data_out);
+    reject_incomplete |= (*read_ptr == MAX_INPUT_MSG_SIZE);
+    handle_data_impl(full_data_in, read_ptr, reject_incomplete, data_out);
 
     // Update caller's 'last processing time'
     *last_processing_time = time_now;

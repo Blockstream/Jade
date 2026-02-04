@@ -127,8 +127,8 @@ static void serial_reader(void* ignore)
 #endif // CONFIG_IDF_TARGET_ESP32S3
 
         JADE_LOGD("Passing %u+%u bytes from serial device to common handler", read, len);
-        const bool force_reject_if_no_msg = false;
-        handle_data(full_serial_data_in, &read, len, &last_processing_time, force_reject_if_no_msg, serial_data_out);
+        const bool reject_incomplete = false;
+        handle_data(full_serial_data_in, &read, len, &last_processing_time, reject_incomplete, serial_data_out);
     }
     serial_post_exit_event_and_await_death(&serial_reader_shutdown_done);
 }
