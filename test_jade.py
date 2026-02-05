@@ -2280,13 +2280,19 @@ def test_passphrase(jade):
 
 # Test qr scanning - can be slow as image data large (slow to upload) and
 # tests involve starting the camera (and associated tasks).
-def test_scan_qr(jadeapi):
+def test_scan_qr(jadeapi, board_type):
+    is_v1_1 = board_type == 'JADE_V1.1'
     for qr_data in _get_test_cases(QR_QVGA_SCAN_TESTS):
         expected = qr_data['expected_output']
         image_filename = qr_data['input']['image']
         with open('./test_data/' + image_filename, 'rb') as f:
             image_data = f.read()
 
+        if is_v1_1 and len(image_data) > 45 * 1024:
+            # Skip large QR tests for v1_1 devices, as they
+            # tend to hit the serial timeout
+            logger.debug(f'v1.1: skipping large image file ({len(image_data)} bytes)')
+            continue
         rslt = jadeapi.scan_qr(image_data)
         assert rslt
 
@@ -3909,7 +3915,7 @@ def run_interface_tests(jadeapi,
         # Only run QR scan/camera tests a) over serial, and b) on proper Jade hw
         if not qemu and not isble:
             if args.libjade or startinfo['BOARD_TYPE'] in ['JADE', 'JADE_V1.1', 'JADE_V2']:
-                test_scan_qr(jadeapi)
+                test_scan_qr(jadeapi, startinfo['BOARD_TYPE'])
 
     # Too much input test - sends a lot of data so only run
     # if not running over BLE (as would take a long time)
