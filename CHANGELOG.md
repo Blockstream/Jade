@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.39] - 2026-02-09
+
+### Added
+- Support for signing Green 2of3 recovery transactions as the recovery signer.
+- Support for exporting the wallet descriptor to USB.
+- Experimental increased stack protection, initially for development devices only.
+- Support for building and testing the firmware as a native library ("libjade").
+- Optional WiFi logging support for development/DIY debugging.
+
+### Changed
+- Further changes to make QR scanning approximately 40% faster.
+- Tweak the QR guide display to be more accurate to the live scanning area.
+- Improve the error message when TOTP does not have current time available.
+- Update libwally to release 1.5.2.
+- Many build and release tweaks/fixes.
+
+### Fixed
+- Make OTA error codes display cleanly on 1.x devices.
+- Misc third-party DIY fixes.
+- Misc attestation fixes.
+
 ## [1.0.38] - 2025-11-26
 
 Note: This release contains important security updates; All users should
