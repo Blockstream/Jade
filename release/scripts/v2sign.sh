@@ -17,9 +17,6 @@ HWDIRS="jade2.0 jade2.0c"
 KEY="../../../scripts/${KEY_LABEL}.pem"
 PUBKEY="../../../scripts/${KEY_LABEL}.pub"
 
-BLEDIR="build_v2_prod"
-NORADIODIR="build_v2_noradio_prod"
-
 FILE_PREFIX="v2_${VER_DIR}"
 SIG_SUFFIX="${KEY_LABEL}.sig"
 
@@ -29,6 +26,13 @@ VERIFY_OPTS="-pubin -inkey ${PUBKEY} -pkeyopt digest:sha256 -pkeyopt rsa_padding
 
 for hwdir in ${HWDIRS}; do
     WORKING_DIR="${WORKING_DIR_PREFIX}/${hwdir}"
+    if [ "$hwdir" == "jade2.0" ]; then
+        BLEDIR="build_v2_prod"
+        NORADIODIR="build_v2_noradio_prod"
+    else
+        BLEDIR="build_v2c_prod"
+        NORADIODIR="build_v2c_noradio_prod"
+    fi
 
     pushd "${WORKING_DIR}"
 

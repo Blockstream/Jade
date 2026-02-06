@@ -54,9 +54,6 @@ INDEX=1784767589
 # Relative paths from where it will be referenced in fw dir
 PUBKEY="../../../scripts/${KEY_LABEL}.pub"
 
-BLEDIR="build_v2_prod"
-NORADIODIR="build_v2_noradio_prod"
-
 FILE_PREFIX="v2_${VER_DIR}"
 SIG_SUFFIX="${KEY_LABEL}.sig"
 
@@ -66,6 +63,13 @@ JADE_SIGN_CMD="python ../../../../jade_bip85_rsa_sign.py ${JADE_SERIAL_ARG} ${LO
 
 for hwdir in ${HWDIRS}; do
     WORKING_DIR="${WORKING_DIR_PREFIX}/${hwdir}"
+    if [ "$hwdir" == "jade2.0" ]; then
+        BLEDIR="build_v2_prod"
+        NORADIODIR="build_v2_noradio_prod"
+    else
+        BLEDIR="build_v2c_prod"
+        NORADIODIR="build_v2c_noradio_prod"
+    fi
 
     pushd "${WORKING_DIR}"
 
