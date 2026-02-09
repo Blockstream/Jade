@@ -91,6 +91,7 @@ extern const color_t TFT_PINK;
 
 void display_init(TaskHandle_t* gui_h);
 bool display_flip_orientation(bool flipped_orientation);
+void display_touch_navbar_redraw(void);
 Icon* get_icon(const uint8_t* start, const uint8_t* end);
 Picture* get_picture(const uint8_t* start, const uint8_t* end);
 void display_picture(const Picture* imgbuf, int x, int y, dispWin_t area);
@@ -101,4 +102,9 @@ int display_get_string_width(const char* str);
 void display_set_font(uint8_t font, const char* font_file);
 int display_get_font_height(void);
 void display_flush(void);
+#if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+void display_touch_navbar_redraw(void);
+#else
+static inline void display_touch_navbar_redraw(void) {}
+#endif
 #endif /* DISPLAY_H_ */
