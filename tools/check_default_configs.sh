@@ -2,7 +2,7 @@
 set -eo pipefail
 
 if [ -f /.dockerenv ]; then
-    . ${HOME}/esp/esp-idf/export.sh
+    pushd /opt/esp/idf && . ./export.sh && popd
 fi
 
 export IDF_COMPONENT_API_CACHE_EXPIRATION_MINUTES=500

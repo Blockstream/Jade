@@ -11,8 +11,7 @@ export LABEL=${2:-${1}} # use SHA if tag name not given/empty
 export UPLOAD_DIR="release/staging/upload"
 export STAGING_DIR="release/staging/$LABEL"
 
-. $HOME/esp/esp-idf/export.sh
-. /venv/bin/activate
+pushd /opt/esp/idf && . ./export.sh && popd
 
 # prod builds
 mkdir -p $STAGING_DIR

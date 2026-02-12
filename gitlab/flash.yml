@@ -109,7 +109,7 @@ flash_jade_ota_delta_v1_1_ci:
   variables:
     IDF_TOOLS_PATH: "/home/gitlab-runner/.idf/54"
   script:
-    - . $HOME/esp/esp-idf-5.4/export.sh
+    - pushd $HOME/esp/esp-idf-5.4 && . ./export.sh && popd
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
     - cp build/sdkconfig ./
     - ./ci_flash.sh esp32s3 --skipble
@@ -136,7 +136,7 @@ flash_jade_ota_delta_v2_ci:
     - job: flash_jade_v2_noradio_ci
       artifacts: false
   script:
-    - . $HOME/esp/esp-idf-5.4/export.sh
+    - pushd $HOME/esp/esp-idf-5.4 && . ./export.sh && popd
     - mv build_test_jade_v2_ci build
     - mv build_test_jade_v2_noradio_ci build_noradio
     - ./ota_delta_ci.sh esp32s3 --skipble

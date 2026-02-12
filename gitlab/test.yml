@@ -6,7 +6,7 @@ test_bip85_rsa_key_gen:
   tags: [ ga ]
   stage: test
   script:
-    - . $HOME/esp/esp-idf/export.sh
+    - pushd /opt/esp/idf && . ./export.sh && popd
     - (cd tools/bip85_rsa_key_gen && ./test.sh)
     - git diff --exit-code
 
@@ -14,7 +14,7 @@ test_format:
   tags: [ ga ]
   stage: test
   script:
-    - . $HOME/esp/esp-idf/export.sh
+    - pushd /opt/esp/idf && . ./export.sh && popd
     - ./format.sh
     - idf.py reconfigure
     - git diff --exit-code

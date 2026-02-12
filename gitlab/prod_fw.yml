@@ -8,39 +8,39 @@
 build_prod_jade:
   extends: .build_prod_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade
 
 build_prod_jade_noradio:
   extends: .build_prod_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade --noradio
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade --noradio
 
 build_prod_jade_v1_1:
   extends: .build_prod_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v1_1
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v1_1
 
 build_prod_jade_v1_1_noradio:
   extends: .build_prod_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v1_1 --noradio
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v1_1 --noradio
 
 build_prod_jade_v2:
   extends: .build_prod_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v2
 
 build_prod_jade_v2_noradio:
   extends: .build_prod_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2 --noradio
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v2 --noradio
 
 build_prod_jade_v2c:
   extends: .build_prod_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2c
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v2c
 
 build_prod_jade_v2c_noradio:
   extends: .build_prod_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2c --noradio
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v2c --noradio

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
-. $HOME/esp/esp-idf/export.sh
+pushd /opt/esp/idf && . ./export.sh && popd
 
 # this is the minimum to run qemu
 # build/qemu-system-xtensa -nographic \
@@ -32,7 +32,6 @@ qemu-system-xtensa -nographic \
 
 sleep 4
 
-source /venv/bin/activate
 git submodule update --init --depth 1 pinserver
 pip install --require-hashes -r requirements.txt -r pinserver/requirements.txt
 

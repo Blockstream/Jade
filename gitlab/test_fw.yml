@@ -16,54 +16,54 @@
 build_test_jade_ci:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade --dev --debug --ci
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade --dev --debug --ci
 
 build_test_jade_noradio_ci:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade --dev --debug --ci --noradio
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade --dev --debug --ci --noradio
 
 build_test_jade_v1_1_ci:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v1_1 --dev --debug --ci
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v1_1 --dev --debug --ci
 
 build_test_jade_v1_1_noradio_ci:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v1_1 --dev --debug --ci --noradio
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v1_1 --dev --debug --ci --noradio
 
 build_test_jade_v2_ci:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2 --dev --debug --ci --jtag
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v2 --dev --debug --ci --jtag
 
 build_test_jade_v2_noradio_ci:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2 --dev --debug --ci --jtag --noradio
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v2 --dev --debug --ci --jtag --noradio
 
 build_test_jade_v2c_ci:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2c --dev --debug --ci --jtag
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v2c --dev --debug --ci --jtag
 
 build_test_jade_v2c_noradio_ci:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh jade_v2c --dev --debug --ci --jtag --noradio
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade_v2c --dev --debug --ci --jtag --noradio
 
 build_test_qemu:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh qemu --dev --ci
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh qemu --dev --ci
 
 build_test_qemu_psram:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh qemu --dev --ci --psram
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh qemu --dev --ci --psram
 
 build_test_qemu_psram_unamalgamated:
   extends: .build_test_template
   before_script:
-    - . $HOME/esp/esp-idf/export.sh && ./tools/switch_to.sh qemu --dev --ci --psram --unamalgamated
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh qemu --dev --ci --psram --unamalgamated

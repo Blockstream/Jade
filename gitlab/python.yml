@@ -16,10 +16,5 @@ build_jadepy_wheel:
     GIT_SUBMODULE_STRATEGY: none
   script:
     - cd $CI_PROJECT_DIR
-    - apt install -yqq python3-venv
-    - virtualenv -p python3 venv
-    - source venv/bin/activate
     - pip install build
     - python -m build
-    - deactivate
-    - rm -rf venv
