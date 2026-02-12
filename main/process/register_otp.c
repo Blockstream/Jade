@@ -380,7 +380,7 @@ cleanup:
     return ret;
 }
 
-bool register_otp_string(const char* otp_uri, const size_t uri_len, const char** errmsg)
+int register_otp_string(const char* otp_uri, const size_t uri_len, const char** errmsg)
 {
     JADE_ASSERT(otp_uri);
     JADE_ASSERT(uri_len);
@@ -391,7 +391,7 @@ bool register_otp_string(const char* otp_uri, const size_t uri_len, const char**
     otpauth_ctx_t otp_ctx = { .name = "otp_string" };
     if (!otp_uri_to_ctx(otp_uri, uri_len, &otp_ctx)) {
         *errmsg = "Failed to parse otp record";
-        return false;
+        return CBOR_RPC_INTERNAL_ERROR;
     }
 
     // Check keychain has seed data
@@ -400,7 +400,7 @@ bool register_otp_string(const char* otp_uri, const size_t uri_len, const char**
         *errmsg = "Failed to parse otp record";
         const char* message[] = { "Feature requires Jade reset" };
         await_error_activity(message, 1);
-        return false;
+        return CBOR_RPC_INTERNAL_ERROR;
     }
 
     // Get OTP Name (only) from kb
@@ -409,7 +409,7 @@ bool register_otp_string(const char* otp_uri, const size_t uri_len, const char**
         // User abandoned
         JADE_LOGW("User abandoned (entering otp name)");
         *errmsg = "User abandoned entering otp name";
-        return false;
+        return CBOR_RPC_USER_CANCELLED;
     }
 
     // Validate and persist the new otp uri

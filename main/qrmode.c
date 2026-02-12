@@ -71,7 +71,7 @@ gui_activity_t* make_show_qr_activity(const char* message[], size_t message_size
 gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** framerate_textbox);
 
 bool import_mnemonic(const uint8_t* bytes, size_t bytes_len, char* buf, size_t buf_len, size_t* written);
-bool register_otp_string(const char* otp_uri, size_t uri_len, const char** errmsg);
+int register_otp_string(const char* otp_uri, size_t uri_len, const char** errmsg);
 int register_multisig_file(const char* multisig_file, size_t multisig_file_len, const char** errmsg);
 int update_pinserver(const CborValue* const params, const char** errmsg);
 int params_set_epoch_time(CborValue* params, const char** errmsg);
