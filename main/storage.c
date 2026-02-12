@@ -412,6 +412,27 @@ bool storage_key_name_valid(const char* name)
     return pch > name;
 }
 
+void storage_key_name_make_valid(char* name)
+{
+    // Make name conform to the same rules as storage_key_name_valid()
+    // by replacing any non-conforming characters with '_'.
+    // Truncate if name is too long.
+    // Assert name is not an empty string.
+    char* pch = name;
+    while (*pch != '\0') {
+        if ((pch - name) >= NVS_KEY_NAME_MAX_SIZE) {
+            *pch = '\0';
+            return;
+        }
+        const unsigned char c = *pch;
+        if (!isgraph(c)) {
+            *pch = '_';
+        }
+        ++pch;
+    }
+    JADE_ASSERT(pch > name);
+}
+
 bool storage_get_pin_privatekey(uint8_t* privatekey, const size_t key_len)
 {
     JADE_ASSERT(privatekey);

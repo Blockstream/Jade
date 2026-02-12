@@ -7,6 +7,7 @@
 #include "../storage.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/urldecode.h"
 
 #include "../button_events.h"
 
@@ -170,6 +171,16 @@ static bool get_otp_data_from_kb(
     make_keyboard_entry_activity(&kb_entry, "OTP Name");
     JADE_ASSERT(kb_entry.activity);
 
+    // if otp_name is provided, pre-enter it into the kb activity
+    if (otp_name[0]) {
+        JADE_ASSERT(name_len <= sizeof(kb_entry.strdata));
+        const size_t max_len = strnlen(otp_name, sizeof(kb_entry.strdata) - 1);
+        strncpy(kb_entry.strdata, otp_name, max_len);
+        kb_entry.strdata[max_len] = '\0';
+        kb_entry.len = max_len;
+        JADE_LOGI("Pre-filled OTP name in keyboard activity: %d, %s", (int)kb_entry.len, kb_entry.strdata);
+    }
+
     // 1. Get the OTP Name from the keyboard
     bool done = false;
     while (!done) {
@@ -267,8 +278,8 @@ bool register_otp_kb_entry(void)
     const char* errmsg = NULL;
 
     // Get OTP Name and URI from kb
-    char otp_name[OTP_MAX_NAME_LEN];
-    char otp_uri[OTP_MAX_URI_LEN];
+    char otp_name[OTP_MAX_NAME_LEN] = { 0 };
+    char otp_uri[OTP_MAX_URI_LEN] = { 0 };
     SENSITIVE_PUSH(otp_uri, sizeof(otp_uri));
 
     size_t uri_written = 0;
@@ -354,8 +365,14 @@ int register_otp_string(const char* otp_uri, const size_t uri_len, const char** 
         return CBOR_RPC_INTERNAL_ERROR;
     }
 
-    // Get OTP Name (only) from kb
-    char otp_name[OTP_MAX_NAME_LEN];
+    // Get OTP Name (only) from kb (if we have an issuer, prefill that)
+    char otp_name[OTP_MAX_NAME_LEN] = { 0 };
+    if (otp_ctx.issuer_len) {
+        // If have issuer, prefill otp_name with urldecoded version (truncates to fit if too long)
+        urldecode(otp_ctx.issuer, otp_ctx.issuer_len, otp_name, sizeof(otp_name));
+        // Ensure prefilled name is valid to use as storage key (eg. strip out any invalid chars)
+        storage_key_name_make_valid(otp_name);
+    }
     if (!get_otp_data_from_kb(otp_name, sizeof(otp_name), NULL, 0, NULL)) {
         // User abandoned
         JADE_LOGW("User abandoned (entering otp name)");
