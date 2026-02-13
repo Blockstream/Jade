@@ -13,7 +13,7 @@ typedef nvs_handle_t nvs_handle;
 typedef struct nvs_iterator {
     struct wally_map* m;
     size_t idx;
-} * nvs_iterator_t;
+}* nvs_iterator_t;
 
 #define NVS_DEFAULT_PART_NAME ""
 

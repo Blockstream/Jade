@@ -30,7 +30,7 @@ gui_view_node_t* make_even_split(const ui_button_layout_t layout, const uint8_t 
     // num_splits range asserted in switch below
 
     // Make the split relevant for the number of buttons
-    typedef void (*make_split_fn)(gui_view_node_t * *ptr, enum gui_split_type kind, uint8_t parts, ...);
+    typedef void (*make_split_fn)(gui_view_node_t** ptr, enum gui_split_type kind, uint8_t parts, ...);
     make_split_fn make_split = (layout == UI_COLUMN) ? gui_make_vsplit : gui_make_hsplit;
 
     // Make a split for the number of buttons (if greater than one)

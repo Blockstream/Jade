@@ -9,7 +9,7 @@
 typedef struct Ringbuffer {
     struct wally_map m;
     pthread_mutex_t mutex; // We should use a semaphore to wake at some point
-} * RingbufHandle_t;
+}* RingbufHandle_t;
 
 typedef struct Ringbuffer StaticRingbuffer_t;
 

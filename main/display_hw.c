@@ -154,18 +154,18 @@ static void esp_lcd_init(void* _ignored)
 
     ESP_ERROR_CHECK(spi_bus_initialize(CONFIG_DISPLAY_SPI_HOST, &buscfg, SPI_DMA_CH_AUTO));
 
-    esp_lcd_panel_io_spi_config_t io_config
-        = {.dc_gpio_num = CONFIG_DISPLAY_PIN_DC,
-              .cs_gpio_num = CONFIG_DISPLAY_PIN_CS,
-              .pclk_hz = CONFIG_DISPLAY_SPI_CLOCK,
-              .lcd_cmd_bits = 8,
-              .lcd_param_bits = 8,
-              .spi_mode = 0,
+    esp_lcd_panel_io_spi_config_t io_config = {
+        .dc_gpio_num = CONFIG_DISPLAY_PIN_DC,
+        .cs_gpio_num = CONFIG_DISPLAY_PIN_CS,
+        .pclk_hz = CONFIG_DISPLAY_SPI_CLOCK,
+        .lcd_cmd_bits = 8,
+        .lcd_param_bits = 8,
+        .spi_mode = 0,
 #if defined(CONFIG_DISPLAY_FULL_FRAME_BUFFER) && !defined(CONFIG_DISPLAY_FULL_FRAME_BUFFER_DOUBLE)
-              .on_color_trans_done = color_trans_done,
+        .on_color_trans_done = color_trans_done,
 #endif
-              .trans_queue_depth = TRANSFER_QUEUE_DEPTH,
-          };
+        .trans_queue_depth = TRANSFER_QUEUE_DEPTH,
+    };
 
     ESP_ERROR_CHECK(
         esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)CONFIG_DISPLAY_SPI_HOST, &io_config, &io_handle));

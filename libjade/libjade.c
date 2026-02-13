@@ -104,7 +104,7 @@ const char* locale_lang_with_fallback(const locale_multilang_string_t* str, jloc
 // main/idletimer.c
 void idletimer_init(void) {}
 bool idletimer_register_activity(const bool is_ui) { return true; }
-void idletimer_set_min_timeout_secs(uint16_t min_timeout_secs){};
+void idletimer_set_min_timeout_secs(uint16_t min_timeout_secs) {};
 
 // main/logging.c
 #ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
