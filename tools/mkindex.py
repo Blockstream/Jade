@@ -26,7 +26,7 @@ def load_hash_file(filename, fwhashes):
         assert len(fwhash) == 64
         fwhashes[info] = fwhash
     else:
-        logger.error(f'Skipping non-hash file "{filename}":- {e}')
+        logger.error(f'Skipping non-hash file "{filename}": {e}')
 
 
 def process_fw_filename(fwname, fwhashes):
@@ -97,7 +97,7 @@ def process_current_directory(vstable, vbeta):
         try:
             load_hash_file(filename, full_fw_hashes)
         except Exception as e:
-            logger.error(f'Skipping "{filename}":- {e}')
+            logger.error(f'Skipping "{filename}": {e}')
 
     # Iterate through firmware files, collating the summary info about each one
     # in dictionaries for each release label (beta, stable, previous)
@@ -109,7 +109,7 @@ def process_current_directory(vstable, vbeta):
             else:
                 logging.error(f'Skipping unhandled file: {fwname}')
         except Exception as e:
-            logger.error(f'Skipping "{fwname}":- {e}')
+            logger.error(f'Skipping "{fwname}": {e}')
 
     return {'beta': _sort_release_dict(beta),
             'stable': _sort_release_dict(stable),
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     jadehandler = logging.StreamHandler()
     logger.addHandler(jadehandler)
 
-    assert len(sys.argv) in [3, 4], f'Usage: {sys.argv[0]} <directory> <ver_stable> [ <ver_beta> ]'
+    assert len(sys.argv) in [3, 4], f'Usage: {sys.argv[0]} <directory> <ver_stable> [<ver_beta>]'
     dir, vstable, vbeta = sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None
     assert os.path.exists(dir) and os.path.isdir(dir), f'Directory {dir} not found.'
 
