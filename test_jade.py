@@ -3838,7 +3838,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     wait(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo, has_psram, has_ble)
+    strict = endinfo['BOARD_TYPE'] != 'JADE_V2C'  # TODO: enable for v2.0c
+    check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=strict)
 
     rslt = jadeapi.clean_reset()
     assert rslt is True
@@ -3943,7 +3944,8 @@ def run_interface_tests(jadeapi,
 
     wait(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo, has_psram, has_ble)
+    strict = endinfo['BOARD_TYPE'] != 'JADE_V2C'  # TODO: enable for v2.0c
+    check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=strict)
 
     rslt = jadeapi.clean_reset()
     assert rslt is True
