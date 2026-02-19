@@ -4305,5 +4305,7 @@ if __name__ == '__main__':
         else:
             assert False, 'Failed to connect to Jade over serial or BLE'
     finally:
+        for f in glob.glob("./*.pin"):
+            os.remove(f)
         if btagent:
             kill_agent(btagent)
