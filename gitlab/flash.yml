@@ -36,12 +36,15 @@ flash_qemu_psram_unamalgamated:
 .flash_jade_template:
   stage: flash
   tags: [ jadedev_flasher ]
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  # Note docker compose expects JADESERIALPORT to be set for the runner
   script:
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
     - cp -a build/sdkconfig ./
-    - ./ci_flash.sh esp32 --skipble
-  # FIXME: Remove gcov from ./ci_flash.sh and then skip submodules here
-  # FIXME: Fix v1.0 flashing
+    - git submodule update --init --depth 1 pinserver
+    - docker-compose run --remove-orphans --rm dev bash -c "JADESERIALPORT=$JADESERIALPORT ./ci_flash.sh esp32 --skipble"
+  # FIXME: Fix v1.0 flashing (devices sometimes don't come back from reboot)
   allow_failure: true
 
 flash_jade_ci:
@@ -68,7 +71,8 @@ flash_jade_ota_delta_ci:
   script:
     - mv build_test_jade_ci build
     - mv build_test_jade_noradio_ci build_noradio
-    - ./ota_delta_ci.sh esp32 --skipble
+    - git submodule update --init --depth 1 pinserver
+    - docker-compose run --remove-orphans --rm dev bash -c "JADESERIALPORT=$JADESERIALPORT ./ota_delta_ci.sh esp32 --skipble"
 
 # Jade v1.1
 .flash_jade_v1_1_template:
@@ -100,19 +104,21 @@ flash_jade_ota_delta_v1_1_ci:
   script:
     - mv build_test_jade_v1_1_ci build
     - mv build_test_jade_v1_1_noradio_ci build_noradio
-    - ./ota_delta_ci.sh esp32 --skipble
+    - git submodule update --init --depth 1 pinserver
+    - docker-compose run --remove-orphans --rm dev bash -c "JADESERIALPORT=$JADESERIALPORT ./ota_delta_ci.sh esp32 --skipble"
 
 # Jade v2.0
 .flash_jade_v2_template:
   stage: flash
   tags: [ jade2.0dev_flasher ]
   variables:
-    IDF_TOOLS_PATH: "/home/gitlab-runner/.idf/54"
+    GIT_SUBMODULE_STRATEGY: none
+  # Note docker compose expects JADESERIALPORT to be set for the runner
   script:
-    - pushd $HOME/esp/esp-idf-5.4 && . ./export.sh && popd
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
-    - cp build/sdkconfig ./
-    - ./ci_flash.sh esp32s3 --skipble
+    - cp -a build/sdkconfig ./
+    - git submodule update --init --depth 1 pinserver
+    - docker-compose run --remove-orphans --rm dev bash -c "JADESERIALPORT=$JADESERIALPORT ./ci_flash.sh esp32s3 --skipble"
 
 flash_jade_v2_ci:
   extends: .flash_jade_v2_template
@@ -136,7 +142,47 @@ flash_jade_ota_delta_v2_ci:
     - job: flash_jade_v2_noradio_ci
       artifacts: false
   script:
-    - pushd $HOME/esp/esp-idf-5.4 && . ./export.sh && popd
     - mv build_test_jade_v2_ci build
     - mv build_test_jade_v2_noradio_ci build_noradio
-    - ./ota_delta_ci.sh esp32s3 --skipble
+    - git submodule update --init --depth 1 pinserver
+    - docker-compose run --remove-orphans --rm dev bash -c "JADESERIALPORT=$JADESERIALPORT ./ota_delta_ci.sh esp32s3 --skipble"
+
+# Jade v2.0c
+.flash_jade_v2c_template:
+  stage: flash
+  tags: [ jade2.0cdev_flasher ]
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  # Note docker compose expects JADESERIALPORT to be set for the runner
+  script:
+    - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
+    - cp -a build/sdkconfig ./
+    - git submodule update --init --depth 1 pinserver
+    - docker-compose run --remove-orphans --rm dev bash -c "JADESERIALPORT=$JADESERIALPORT ./ci_flash.sh esp32s3 --skipble"
+
+flash_jade_v2c_ci:
+  extends: .flash_jade_v2c_template
+  needs: [ test_libjade, build_test_jade_v2c_ci ]
+
+flash_jade_v2c_noradio_ci:
+  extends: .flash_jade_v2c_template
+  needs:
+    - job: build_test_jade_v2c_noradio_ci
+      artifacts: true
+    - job: flash_jade_v2c_ci
+      artifacts: false
+
+flash_jade_ota_delta_v2c_ci:
+  extends: .flash_jade_v2c_template
+  needs:
+    - job: build_test_jade_v2c_ci
+      artifacts: true
+    - job: build_test_jade_v2c_noradio_ci
+      artifacts: true
+    - job: flash_jade_v2c_noradio_ci
+      artifacts: false
+  script:
+    - mv build_test_jade_v2c_ci build
+    - mv build_test_jade_v2c_noradio_ci build_noradio
+    - git submodule update --init --depth 1 pinserver
+    - docker-compose run --remove-orphans --rm dev bash -c "JADESERIALPORT=$JADESERIALPORT ./ota_delta_ci.sh esp32s3 --skipble"
