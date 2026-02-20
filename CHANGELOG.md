@@ -11,13 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for exporting the wallet descriptor to USB.
 - Experimental increased stack protection, initially for development devices only.
 - Support for building and testing the firmware as a native library ("libjade").
+- Support for upcoming Jade Core devices.
 - Optional WiFi logging support for development/DIY debugging.
 
 ### Changed
 - Further changes to make QR scanning approximately 40% faster.
 - Tweak the QR guide display to be more accurate to the live scanning area.
 - Improve the error message when TOTP does not have current time available.
-- Update libwally to release 1.5.2.
+- Update idf to 5.4.3, clang-format to 19, libwally to release 1.5.2, update Python libs.
+- Use the idf-provided docker images for building.
 - Many build and release tweaks/fixes.
 
 ### Fixed
