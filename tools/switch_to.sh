@@ -132,9 +132,13 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 if ! have_cmd idf.py; then
-    echo "error: idf.py not found. Please install idf" >&2
-    echo "\(or run export.sh from the idf install\) and try again" >&2
-    exit 1
+    if [ -d /opt/esp/idf ]; then
+        pushd /opt/esp/idf && . ./export.sh && popd
+    else
+        echo "error: idf.py not found. Please install idf" >&2
+        echo "\(or run export.sh from the idf install\) and try again" >&2
+        exit 1
+    fi
 fi
 
 idf.py clean && \
