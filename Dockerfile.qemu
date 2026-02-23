@@ -1,26 +1,11 @@
-FROM blockstream/verde@sha256:9171360dae48d3fba7c0f36ab5eb45e2529d178a603e89197cb08fb123ca619e as builder
+FROM blockstream/jade_builder@sha256:6937ea8808b89fe3510af6e156da4495d313c0ec7d3370108896ed50b605d237
 
-ARG SDK_CONFIG=configs/sdkconfig_qemu_psram.defaults
+ARG QEMU_CONFIG_ARGS="--dev --ci --psram"
 
 WORKDIR /jade
 
 COPY . .
-RUN cp ${SDK_CONFIG} sdkconfig.defaults
-RUN . /root/esp/esp-idf/export.sh && idf.py all
-RUN ./tools/fwprep.py build/jade.bin build
-
-ENV PATH=$PATH:/jade/main/qemu
-RUN make-flash-img.sh
-
-FROM debian:bookworm-slim@sha256:12c396bd585df7ec21d5679bb6a83d4878bc4415ce926c9e5ea6426d23c60bdc
-
-RUN apt-get update -yqq && apt-get install -yqq libpixman-1-dev libglib2.0-dev libslirp-dev libncurses-dev
-
-COPY --from=builder /flash_image.bin /flash_image.bin
-COPY --from=builder /qemu_efuse.bin /qemu_efuse.bin
-
-COPY --from=builder /jade/main/qemu/ /jade/main/qemu/
-
-ENV PATH=$PATH:/jade/main/qemu
-
-CMD [ "qemu_run.sh" ]
+RUN ./tools/switch_to.sh qemu ${QEMU_CONFIG_ARGS}
+RUN cd /opt/esp/idf && . ./export.sh && cd /jade && idf.py all && ./tools/fwprep.py build/jade.bin build
+RUN ./main/qemu/make-flash-img.sh
+CMD [ "/jade/main/qemu/qemu_run.sh" ]
