@@ -256,79 +256,37 @@ or set `CONFIG_DEBUG_MODE=y` to enable this.
 
 # Emulator/Virtualizer (qemu in Docker)
 
-The following will build a docker image running the headless ci-test (approves every request):
+The firmware can be built and run under emulation via qemu:
 
 ```
-docker build -t jade-qemu-ci -f Dockerfile.qemu .
-docker run --rm -p 30121:30121 -it jade-qemu-ci
+$ # Build the default Jade emulation image (debug CI build)
+$ docker build -t jade-qemu -f Dockerfile.qemu .
+$
+$ # Pass switch_to.sh args via QEMU_CONFIG_ARGS, e.g. for a no-psram build:
+$ docker build -t jade-qemu -f Dockerfile.qemu . --build-arg QEMU_CONFIG_ARGS="--dev --ci"
+$
+$ # Pass `--build-arg QEMU_GDB="--gdb"` to enable gdb debugging.
+$
+$ # For a web-enabled 'virtual Jade':
+$ docker build -t jade-qemu -f Dockerfile.qemu . --build-arg QEMU_CONFIG_ARGS="--dev --psram --webdisplay"
+$
+$ # Point your browser to http://localhost:30122 to interface with the virtual Jade.
+$ # Replace --webdisplay with --webdisplay-larger for a larger display.
 ```
 
-The python 'jadepy' API can talk to it as if it were a serial interface, if given the device string 'tcp:localhost:30121'.
+Run any of the above images with e.g.:
+
+```
+$ # Note you can remove `-p 30122:30122` if not using --webdisplay
+$ docker run --rm -p 30121:30121 -p 30122:30122 -it jade-qemu
+```
+
+The jadepy python package can talk to the emulated jade via serial over tcp.
+Pass the device string `"tcp:localhost:30121"` when connecting, e.g.:
 
 ```
 python -c "from jadepy.jade import JadeAPI; jade = JadeAPI.create_serial(device='tcp:localhost:30121'); jade.connect(); print(jade.get_version_info()); jade.disconnect()"
 ```
-
-Similarly, for a manually driven web-enabled 'virtual jade' (at 'http://localhost:30122/'):
-
-```
-docker build -t jade-qemu-web -f Dockerfile.qemu --build-arg="SDK_CONFIG=configs/sdkconfig_qemu_psram_webdisplay.defaults" .
-docker run --rm -p 30121:30121 -p 30122:30122 -it jade-qemu-web
-```
-
-Alternatively, to run the qemu emulator with display and camera support, run:
-
-```
-main/qemu/run_emulator.sh [--larger-display]
-```
-
-Open a web browser and point it to 'http://localhost:30122' to interface with the emulated Jade.
-
-Note that the ```run_emulator.sh``` command will launch a docker image so it will only work on Linux.
-
-Otherwise if you don't need the display or want to run with gdb, follow the below steps.
-
-Run these commands inside the jade source repository root directory to enter a docker container:
-
-```
-DOCKER_BUILDKIT=1 docker build . -t testjadeqemu
-docker run -v ${PWD}:/jade -p 30121:30121 -it testjadeqemu bash
-```
-
-Note: You can skip the build step if you want by fetching the pre-built image and running with
-
-```
-docker pull blockstream/verde
-docker run -v ${PWD}:/jade -p 30121:30121 -it blockstream/verde bash
-```
-
-Inside the container, run:
-
-```
-. /root/esp/esp-idf/export.sh
-cd /jade
-rm -fr sdkconfig
-cp configs/sdkconfig_qemu.defaults sdkconfig.defaults
-idf.py all
-cp components/esp32_bsdiff/bsdiff.* build/
-apt-get update -qq && apt-get install virtualenv -yqq
-virtualenv -p python3 ./venv3
-source ./venv3/bin/activate
-pip install -r requirements.txt
-./tools/fwprep.py build/jade.bin build
-./main/qemu/make-flash-img.sh
-
-# To run the CI tests
-./main/qemu/qemu_ci_flash.sh
-
-# To reboot the qemu instance
-./main/qemu/qemu_reboot.sh
-
-# To reboot the qemu instance and attach gdb to the Jade fw
-./main/qemu/qemu_gdb.sh
-
-```
-At this point the Jade fw running in the qemu emulator should be available on 'tcp:localhost:30121' from inside and outside the docker container.
 
 # Reproducible Build
 
