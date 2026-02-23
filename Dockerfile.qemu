@@ -1,6 +1,7 @@
 FROM blockstream/jade_builder@sha256:6937ea8808b89fe3510af6e156da4495d313c0ec7d3370108896ed50b605d237
 
 ARG QEMU_CONFIG_ARGS="--dev --ci --psram"
+ARG QEMU_GDB=""
 
 WORKDIR /jade
 
@@ -8,4 +9,4 @@ COPY . .
 RUN ./tools/switch_to.sh qemu ${QEMU_CONFIG_ARGS}
 RUN cd /opt/esp/idf && . ./export.sh && cd /jade && idf.py all && ./tools/fwprep.py build/jade.bin build
 RUN ./main/qemu/make-flash-img.sh
-CMD [ "/jade/main/qemu/qemu_run.sh" ]
+CMD [ "/jade/main/qemu/qemu_run.sh", "$QEMU_GDB" ]
