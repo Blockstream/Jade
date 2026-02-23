@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+if [ -z "${IDF_PATH}" ]; then
+    pushd /opt/esp/idf && . ./export.sh && popd
+fi
 
-set -eo pipefail
-
-pushd /opt/esp/idf && . ./export.sh && popd
-
-pkill -f qemu-system-xtensa | true
+pkill -f qemu-system-xtensa || true
 
 qemu-system-xtensa -s -S -nographic \
     -machine esp32 \
