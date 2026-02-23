@@ -24,3 +24,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Install our Python dependencies directly into the idf environment,
 # to prevent any confusion over which env we are in at any given time.
 RUN cd /opt/esp/idf && . ./export.sh && pip install --require-hashes -r /requirements.txt && pip install sphinx
+
+# Allow git operations from docker compose where the jade tree is
+# mounted on /host/jade
+RUN git config --global --add safe.directory /host/jade
