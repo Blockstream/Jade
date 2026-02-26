@@ -48,6 +48,51 @@ static inline void switch_buffer(void)
 }
 #endif
 
+static inline void draw_bitmap(int x, int y, int w, int h, const uint16_t* color_data);
+
+#if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+#define DISPLAY_TOUCH_NAV_BUTTON_AREA 40
+#define DISPLAY_TOUCH_NAV_BUTTON_MARGIN 5
+#define DISPLAY_TOUCH_NAV_BUTTON_WIDTH 40
+static void draw_touch_nav_buttons(void)
+{
+    uint16_t line[CONFIG_DISPLAY_WIDTH] = { TFT_BLACK };
+    for (int16_t i = 0; i < DISPLAY_TOUCH_NAV_BUTTON_AREA; ++i) {
+        draw_bitmap(CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_HEIGHT + i + CONFIG_DISPLAY_OFFSET_Y,
+            CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X, 1, line);
+    }
+
+    const int16_t nav_y1 = CONFIG_DISPLAY_HEIGHT + DISPLAY_TOUCH_NAV_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_Y;
+    const int16_t nav_y2 = (CONFIG_DISPLAY_HEIGHT + (DISPLAY_TOUCH_NAV_BUTTON_AREA - DISPLAY_TOUCH_NAV_BUTTON_MARGIN))
+        + CONFIG_DISPLAY_OFFSET_Y;
+
+    const int16_t center = (CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X;
+    const int16_t left = DISPLAY_TOUCH_NAV_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_X;
+    const int16_t right = (CONFIG_DISPLAY_WIDTH - DISPLAY_TOUCH_NAV_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X;
+    const int16_t half_width = DISPLAY_TOUCH_NAV_BUTTON_WIDTH / 2;
+
+    const struct {
+        const char* symbol;
+        int16_t x1;
+        int16_t x2;
+    } buttons[] = { { "H", left, left + DISPLAY_TOUCH_NAV_BUTTON_WIDTH },
+        { "J", center - half_width, center + half_width },
+        { "I", right - DISPLAY_TOUCH_NAV_BUTTON_WIDTH, right } };
+
+    display_set_font(JADE_SYMBOLS_16x16_FONT, NULL);
+    for (size_t i = 0; i < sizeof(buttons) / sizeof(buttons[0]); ++i) {
+        const dispWin_t button_area
+            = { .x1 = buttons[i].x1, .y1 = nav_y1, .x2 = buttons[i].x2, .y2 = nav_y2 };
+        display_print_in_area(buttons[i].symbol, CENTER, CENTER, button_area, 0);
+    }
+    display_set_font(DEFAULT_FONT, NULL);
+}
+
+void display_touch_navbar_redraw(void) { draw_touch_nav_buttons(); }
+#else
+void display_touch_navbar_redraw(void) {}
+#endif
+
 static inline void draw_bitmap(int x, int y, int w, int h, const uint16_t* color_data)
 {
     // JADE_ASSERT(color_data == &_fg || color_data == disp_buf);
@@ -118,6 +163,45 @@ const color_t TFT_WHITE = 0xFFFF;
 const color_t TFT_ORANGE = 0x20FD;
 const color_t TFT_GREENYELLOW = 0xE5AF;
 const color_t TFT_PINK = 0x19FE;
+
+#if defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3) || defined(CONFIG_BOARD_TYPE_M5_CORES3)                               \
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+static const uint16_t touch_button_area = 40;
+static const uint16_t touch_button_margin = 5;
+static const uint16_t touch_button_width = 40;
+
+static void draw_touch_navbar(void)
+{
+    /* Blank the nav area and draw the virtual navigation buttons */
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+
+    uint16_t line[CONFIG_DISPLAY_WIDTH] = { TFT_BLACK };
+    for (uint16_t i = 0; i < touch_button_area; ++i) {
+        draw_bitmap(CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_HEIGHT + i + CONFIG_DISPLAY_OFFSET_Y,
+            CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X, 1, line);
+    }
+
+    dispWin_t disp_win_virtual_buttons = { .x1 = touch_button_margin + CONFIG_DISPLAY_OFFSET_X,
+        .y1 = CONFIG_DISPLAY_HEIGHT + touch_button_margin + CONFIG_DISPLAY_OFFSET_Y,
+        .x2 = touch_button_width + CONFIG_DISPLAY_OFFSET_X,
+        .y2 = (CONFIG_DISPLAY_HEIGHT + (touch_button_area - touch_button_margin)) + CONFIG_DISPLAY_OFFSET_Y };
+
+    display_set_font(JADE_SYMBOLS_16x16_FONT, NULL);
+    display_print_in_area("H", CENTER, CENTER, disp_win_virtual_buttons, 0);
+
+    disp_win_virtual_buttons.x1 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) - (touch_button_width / 2);
+    disp_win_virtual_buttons.x2 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) + (touch_button_width / 2);
+    display_print_in_area("J", CENTER, CENTER, disp_win_virtual_buttons, 0);
+
+    disp_win_virtual_buttons.x1 = ((CONFIG_DISPLAY_WIDTH - touch_button_margin) + CONFIG_DISPLAY_OFFSET_X)
+        - touch_button_width;
+    disp_win_virtual_buttons.x2 = (CONFIG_DISPLAY_WIDTH - touch_button_margin) + CONFIG_DISPLAY_OFFSET_X;
+    display_print_in_area("I", CENTER, CENTER, disp_win_virtual_buttons, 0);
+    display_set_font(DEFAULT_FONT, NULL);
+
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+}
+#endif
 
 color_t _fg = TFT_WHITE;
 
@@ -247,43 +331,15 @@ void display_init(TaskHandle_t* gui_h)
     JADE_ASSERT(gui_h);
     display_hw_init(gui_h);
 
-#if defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3) || defined(CONFIG_BOARD_TYPE_M5_CORES3)                                   \
-    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
-#define TOUCH_BUTTON_AREA 40
-#define TOUCH_BUTTON_MARGIN 5
-#define TOUCH_BUTTON_WIDTH 40
+#if defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3) || defined(CONFIG_BOARD_TYPE_M5_CORES3)
     /* The TwatchS3 and core s3 don't have buttons that can be used (just power and
-       reset)
-       but it has a touch panel, we use the bottom 40 pixels worth of height
-       to display 3 buttons (prev, OK, next), we handle this here rather than
-       in display_hw because we want to draw text inside the virtual buttons */
+       reset). They use a touch panel and reserve the bottom 40 pixels for three
+       virtual buttons (prev, OK, next). */
+    draw_touch_navbar();
+#endif
 
-    vTaskDelay(50 / portTICK_PERIOD_MS);
-
-    /* blank the bottom of the display with black */
-    uint16_t line[CONFIG_DISPLAY_WIDTH] = { TFT_BLACK };
-    for (int16_t i = 0; i < TOUCH_BUTTON_AREA; ++i) {
-        draw_bitmap(CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_HEIGHT + i + CONFIG_DISPLAY_OFFSET_Y,
-            CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X, 1, line);
-    }
-
-    dispWin_t disp_win_virtual_buttons = { .x1 = TOUCH_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_X,
-        .y1 = CONFIG_DISPLAY_HEIGHT + TOUCH_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_Y,
-        .x2 = TOUCH_BUTTON_WIDTH + CONFIG_DISPLAY_OFFSET_X,
-        .y2 = (CONFIG_DISPLAY_HEIGHT + (TOUCH_BUTTON_AREA - TOUCH_BUTTON_MARGIN)) + CONFIG_DISPLAY_OFFSET_Y };
-
-    display_set_font(JADE_SYMBOLS_16x16_FONT, NULL);
-    display_print_in_area("H", CENTER, CENTER, disp_win_virtual_buttons, 0);
-    disp_win_virtual_buttons.x1 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) - (TOUCH_BUTTON_WIDTH / 2);
-    disp_win_virtual_buttons.x2 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) + (TOUCH_BUTTON_WIDTH / 2);
-    display_print_in_area("J", CENTER, CENTER, disp_win_virtual_buttons, 0);
-    disp_win_virtual_buttons.x1
-        = ((CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X) - TOUCH_BUTTON_WIDTH;
-    disp_win_virtual_buttons.x2 = (CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X;
-    display_print_in_area("I", CENTER, CENTER, disp_win_virtual_buttons, 0);
-    display_set_font(DEFAULT_FONT, NULL);
-
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+#if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+    display_touch_navbar_redraw();
 #endif
 #endif
 
@@ -302,6 +358,13 @@ bool display_flip_orientation(const bool flipped_orientation)
 #else
     // Not supported for qemu
     return false;
+#endif
+}
+
+void display_touch_navbar_redraw(void)
+{
+#if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+    draw_touch_navbar();
 #endif
 }
 
