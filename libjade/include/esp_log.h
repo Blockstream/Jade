@@ -1,7 +1,6 @@
 #ifndef __LIBJADE_ESP_LOG__
 #define __LIBJADE_ESP_LOG__ 1
 
-#include "sdkconfig.h"
 #include <stdio.h>
 
 typedef enum {
@@ -22,22 +21,22 @@ extern esp_log_level_t _libjade_log_level;
 #define ESP_LOGD(f, fmt, ...)                                                                                          \
     do {                                                                                                               \
         if (_libjade_log_level <= ESP_LOG_DEBUG)                                                                       \
-            fprintf(stderr, f ":" fmt "\n", __VA_ARGS__);                                                              \
+            fprintf(stderr, "DEBUG:" f ":" fmt "\n", __VA_ARGS__);                                                     \
     } while (0)
 #define ESP_LOGI(f, fmt, ...)                                                                                          \
     do {                                                                                                               \
         if (_libjade_log_level <= ESP_LOG_INFO)                                                                        \
-            fprintf(stderr, f ":" fmt "\n", __VA_ARGS__);                                                              \
+            fprintf(stderr, "INFO:" f ":" fmt "\n", __VA_ARGS__);                                                      \
     } while (0)
 #define ESP_LOGW(f, fmt, ...)                                                                                          \
     do {                                                                                                               \
         if (_libjade_log_level <= ESP_LOG_WARN)                                                                        \
-            fprintf(stderr, f ":" fmt "\n", __VA_ARGS__);                                                              \
+            fprintf(stderr, "WARN:" f ":" fmt "\n", __VA_ARGS__);                                                      \
     } while (0)
 #define ESP_LOGE(f, fmt, ...)                                                                                          \
     do {                                                                                                               \
         if (_libjade_log_level <= ESP_LOG_ERROR)                                                                       \
-            fprintf(stderr, f ":" fmt "\n", __VA_ARGS__);                                                              \
+            fprintf(stderr, "ERROR:" f ":" fmt "\n", __VA_ARGS__);                                                     \
     } while (0)
 
 static inline void esp_log_level_set(const char* tag, esp_log_level_t level)

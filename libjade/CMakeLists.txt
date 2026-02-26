@@ -43,6 +43,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Sanitize")
     add_link_options(-fsanitize=address -fsanitize=undefined -fsanitize=alignment -fsanitize-address-use-after-scope -fno-sanitize-recover=all)
 endif()
 
+option(LOG "Enable libjade logging" OFF)
+if (NOT LOG)
+    add_compile_options(-DCONFIG_LOG_DEFAULT_LEVEL_NONE)
+endif()
+
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)

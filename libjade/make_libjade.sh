@@ -2,19 +2,38 @@
 #
 # Build the Jade firmware into a shared library for in-process debugging
 #
-# ./libjade/make_libjade.sh [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize]
+# ./libjade/make_libjade.sh [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize] [--log]
 #
 set -e
 
-BUILD_TYPE="${1:-Debug}"
+BUILD_TYPE="Debug"
+LOG="0"
 
-rm -rf build_linux
-mkdir build_linux
+# iterate through optional arguments and set variables accordingly
+for arg in "$@"; do
+    case $arg in
+        Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize)
+            BUILD_TYPE="$arg"
+            shift
+            ;;
+        --log)
+            LOG="LOG"
+            shift
+            ;;
+        *)
+            echo "Unknown argument: $arg"
+            echo "Usage: $0 [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize] [--log]"
+            exit 1
+            ;;
+    esac
+done
+
+mkdir -p build_linux
 cd build_linux
 if [ "${BUILD_TYPE}" == "Sanitize" ]; then
-    cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_C_FLAGS"-fsanitize=undefined" -DCMAKE_CXX_FLAGS"-fsanitize=undefined" ..
+    cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_C_FLAGS"-fsanitize=undefined" -DCMAKE_CXX_FLAGS"-fsanitize=undefined" -DLOG=${LOG} ..
 else
-    cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
+    cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DLOG=${LOG} ..
 fi
 make -j8
 cd ..

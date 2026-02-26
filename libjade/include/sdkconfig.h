@@ -10,9 +10,6 @@
 #define CONFIG_DEBUG_UNATTENDED_CI 1
 #define CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS 1
 
-// Default to no logging
-#define CONFIG_LOG_DEFAULT_LEVEL_NONE
-
 // Tell the firmware code we are building libjade
 #define CONFIG_LIBJADE 1
 
