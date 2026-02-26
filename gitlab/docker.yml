@@ -1,3 +1,38 @@
+build_jade_builder_base:
+  stage: docker_build
+  needs: []
+  when: manual
+  variables:
+    DOCKER_HOST: tcp://localhost:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_BUILDKIT: 1
+    BUILDX_GIT_INFO: false
+  image: docker:23
+  services:
+    - docker:23-dind
+  tags:
+    - cloud
+  retry:
+    max: 2
+    when: [runner_system_failure, unknown_failure, stuck_or_timeout_failure]
+  script:
+    - mkdir tmp
+    - cd tmp
+    - wget https://github.com/espressif/esp-idf/raw/refs/tags/v5.4.3/tools/docker/Dockerfile
+    - wget https://github.com/espressif/esp-idf/raw/refs/tags/v5.4.3/tools/docker/entrypoint.sh
+    - docker build
+      --network=host
+      --build-arg IDF_CLONE_BRANCH_OR_TAG=v5.4.3
+      --build-arg IDF_CLONE_SHALLOW=1
+      --build-arg IDF_INSTALL_TARGETS=esp32,esp32s3
+      -t blockstream/jade_builder_base:${CI_COMMIT_SHA}
+      -t blockstream/jade_builder_base:latest
+      .
+      --progress=plain
+    - echo "$DOCKER_HUB_TOKEN" | docker login --username "$DOCKER_HUB_USER" --password-stdin
+    - docker push blockstream/jade_builder_base:${CI_COMMIT_SHA}
+    - if [ ${CI_COMMIT_BRANCH} == "master" ]; then docker push blockstream/jade_builder_base:latest; fi
+
 build_jade_builder:
   stage: docker_build
   needs: []
