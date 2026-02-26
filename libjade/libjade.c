@@ -18,6 +18,7 @@
 #undef _GNU_SOURCE
 #include "sdkconfig.h"
 
+#include "freertos/timecvt.h"
 #include "libjade.h"
 
 #include "icons.inc"
@@ -80,6 +81,7 @@ static int settimeofday_no_op(const void* yv, const void* tz) { return 0; }
 #define settimeofday settimeofday_no_op
 
 #ifndef CONFIG_LIBJADE_NO_GUI
+#include "main/display.h"
 #include "main/gui.h"
 
 typedef void* locale_multilang_string_t;
@@ -242,14 +244,25 @@ unsigned int xPortGetFreeHeapSize(void) { return 0xffffff; }
 
 void vTaskDelay(TickType_t delay)
 {
+#ifdef CONFIG_LIBJADE_NO_GUI
     // Don't delay, since we don't have multiple threads running
     // in the firmware to wait on.
+#else
+    struct timespec ts = timespec_from_ticktype(delay);
+    nanosleep(&ts, NULL);
+#endif
 }
 
 void vTaskDelayUntil(TickType_t* prev_wake_time, const TickType_t delay)
 {
-    // Used to control the GUI refresh framerate
-    // FIXME: Implement
+#ifndef CONFIG_LIBJADE_NO_GUI
+    // Only used by the GUI main loop
+    TickType_t current_time = xTaskGetTickCount();
+    if (*prev_wake_time + delay > current_time) {
+        vTaskDelay(*prev_wake_time + delay - current_time);
+    }
+    *prev_wake_time += delay;
+#endif
 }
 
 void vTaskDelete(void* task)
