@@ -266,6 +266,8 @@ void display_hw_init(TaskHandle_t* gui_handle)
     xSemaphoreTake(init_done, portMAX_DELAY);
     vTaskDelete(lcdInitTaskHandle);
     vSemaphoreDelete(init_done);
+#else
+    esp_lcd_init(NULL); // Call directly
 #endif // CONFIG_LIBJADE
 }
 

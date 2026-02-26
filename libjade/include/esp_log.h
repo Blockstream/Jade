@@ -1,6 +1,7 @@
 #ifndef __LIBJADE_ESP_LOG__
 #define __LIBJADE_ESP_LOG__ 1
 
+#include "sdkconfig.h"
 #include <stdio.h>
 
 typedef enum {
