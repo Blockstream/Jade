@@ -11,7 +11,6 @@
 #include <http_parser.h>
 #include <mbedtls/md.h>
 
-#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -400,7 +399,8 @@ bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t t
     const size_t offset = hmac[hmac_last_index] & 0xf;
     const int32_t full_code = ((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16)
         | ((hmac[offset + 2] & 0xff) << 8) | ((hmac[offset + 3] & 0xff));
-    const int32_t trunc_code = full_code % (int32_t)pow(10, otp_ctx->digits);
+    const int32_t mod = otp_ctx->digits == 6 ? 1000000 : 100000000;
+    const int32_t trunc_code = full_code % mod;
 
     // Format as a string with leading 0's
     const int ret = snprintf(token, token_len, "%0*ld", otp_ctx->digits, trunc_code);
