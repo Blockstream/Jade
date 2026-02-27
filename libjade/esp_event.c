@@ -10,8 +10,6 @@
 #include <wally_crypto.h>
 #include <wally_map.h>
 
-#ifdef CONFIG_LIBJADE_GUI
-
 typedef struct {
     esp_event_base_t event_base;
     int32_t event_id;
@@ -40,12 +38,13 @@ static pthread_mutex_t _queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 static struct wally_map _event_handlers;
 static pthread_mutex_t _event_handlers_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static pthread_t _default_event_loop_task;
+static volatile bool _default_event_loop_running = false;
+static pthread_t _default_event_loop_task = 0;
 static uint32_t next_entry_id = 0;
 
 void* _default_event_loop(void* params)
 {
-    while (true) {
+    while (_default_event_loop_running) {
         // get next event from queue
         if (pthread_mutex_lock(&_queue_mutex)) {
             JADE_ABORT();
@@ -89,6 +88,7 @@ void* _default_event_loop(void* params)
         // free item
         free(item);
     }
+    pthread_exit(NULL);
     return NULL;
 }
 
@@ -109,19 +109,38 @@ esp_err_t esp_event_loop_create_default(void)
     JADE_ASSERT(!_queue_tail);
     // init thread
     esp_err_t result = ESP_FAIL;
+    _default_event_loop_running = true;
     if (pthread_create(&_default_event_loop_task, NULL, _default_event_loop, NULL)) {
         goto cleanup;
+    }
+    const char* task_name = "event_loop";
+    if (pthread_setname_np(_default_event_loop_task, task_name)) {
+        JADE_LOGW("pthread_setname_np failed for task %s", task_name);
     }
     // all succeeded
     result = ESP_OK;
 cleanup:
     if (result != ESP_OK) {
         if (_default_event_loop_task) {
-            pthread_kill(_default_event_loop_task, SIGTERM);
-            _default_event_loop_task = 0;
+            esp_event_loop_delete_default();
         }
     }
     return result;
+}
+
+esp_err_t esp_event_loop_delete_default(void)
+{
+    if (!_default_event_loop_task) {
+        JADE_LOGE("Default event loop not created");
+        return ESP_ERR_INVALID_STATE;
+    }
+    // kill thread
+    _default_event_loop_running = false;
+    pthread_join(_default_event_loop_task, NULL);
+    _default_event_loop_task = 0;
+    // free event handlers map
+    wally_map_clear(&_event_handlers);
+    return ESP_OK;
 }
 
 esp_err_t esp_event_post(
@@ -215,32 +234,3 @@ esp_err_t esp_event_handler_instance_unregister(
     }
     return ESP_OK;
 }
-
-#else
-
-esp_err_t esp_event_loop_create_default(void) { return ESP_OK; }
-
-esp_err_t esp_event_post(
-    esp_event_base_t event_base, int32_t event_id, void* event_data, size_t event_data_size, TickType_t ticks_to_wait)
-{
-    return ESP_OK;
-}
-
-esp_err_t esp_event_handler_instance_register(esp_event_base_t event_base, int32_t event_id,
-    esp_event_handler_t event_handler, void* event_handler_arg, esp_event_handler_instance_t* instance)
-{
-    return ESP_OK;
-}
-
-esp_err_t esp_event_handler_unregister(esp_event_base_t event_base, int32_t event_id, esp_event_handler_t event_handler)
-{
-    return ESP_OK;
-}
-
-esp_err_t esp_event_handler_instance_unregister(
-    esp_event_base_t event_base, int32_t event_id, esp_event_handler_instance_t instance)
-{
-    return ESP_OK;
-}
-
-#endif

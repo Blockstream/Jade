@@ -70,9 +70,16 @@ static gui_activity_t* current_activity = NULL;
 static activity_holder_t* existing_activities = NULL;
 
 // handle to the task running to update the gui
-static TaskHandle_t* gui_task_handle = NULL;
+static TaskHandle_t gui_task_handle = NULL;
 // queue for gui task to receive items to process (eg. repaint node, switch activities, etc.)
 static RingbufHandle_t gui_input_queue = NULL;
+// flag to indicate whether the gui task should stop. This is set
+// to true when the gui task starts, and is only ever set to false
+// by libjade (on shutdown).
+static volatile bool gui_task_should_run = false;
+// flag indicating the gui task is running. As above, this is only
+// set to false when libjade has exited the gui task.
+static volatile bool gui_task_running = false;
 
 // Click/select event (ie. which button counts as 'click'/select)
 // and which gui highlight colour is in use
@@ -262,11 +269,6 @@ bool gui_set_flipped_orientation(const bool flipped_orientation)
 
 void gui_init(TaskHandle_t* gui_h, const bool create_event_loop)
 {
-#ifdef CONFIG_LIBJADE
-    if (gui_mutex) {
-        return; // Already initialized
-    }
-#endif
     // Create mutex semaphore
     gui_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(gui_mutex);
@@ -297,17 +299,27 @@ void gui_init(TaskHandle_t* gui_h, const bool create_event_loop)
     // Create (high priority) gui task
     BaseType_t retval
         = xTaskCreatePinnedToCore(gui_task, "gui", 3 * 1024 + 256, NULL, JADE_TASK_PRIO_GUI, gui_h, JADE_CORE_GUI);
-    gui_task_handle = gui_h;
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create GUI task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
-#if defined(CONFIG_LIBJADE) && !defined(CONFIG_LIBJADE_GUI)
+void gui_stop(void)
+{
+#ifdef CONFIG_LIBJADE
+    // Only used by libjade
+    JADE_ASSERT(gui_task_handle);
+    JADE_ASSERT(gui_input_queue);
+    JADE_ASSERT(gui_mutex);
+
+    // Stop the gui task and wait for it to fully exit.
+    gui_task_should_run = false;
+    while (gui_task_running) {
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+#endif // CONFIG_LIBJADE
+}
+
 bool gui_initialized(void) { return gui_task_handle; }
-static bool gui_is_gui_task(void) { return true; }
-#else
-bool gui_initialized(void) { return gui_task_handle && *gui_task_handle; }
-static bool gui_is_gui_task(void) { return gui_task_handle && xTaskGetCurrentTaskHandle() == *gui_task_handle; }
-#endif
+static bool gui_is_gui_task(void) { return gui_task_handle && xTaskGetCurrentTaskHandle() == gui_task_handle; }
 
 // Is this kind of node selectable?
 static inline bool is_kind_selectable(enum view_node_kind kind) { return kind == BUTTON; }
@@ -2461,6 +2473,9 @@ static bool update_updateables(void)
 // gui task, for managing display/activities
 static void gui_task(void* args)
 {
+    // Set the global handle for this task
+    gui_task_handle = xTaskGetCurrentTaskHandle();
+
     // Flush/clear display as soon as we're able
     JADE_SEMAPHORE_TAKE(gui_mutex);
     display_flush();
@@ -2470,7 +2485,9 @@ static void gui_task(void* args)
     const TickType_t period = 1000 / GUI_TARGET_FRAMERATE / portTICK_PERIOD_MS;
     TickType_t last_wake = xTaskGetTickCount();
 
-    for (;;) {
+    gui_task_should_run = true;
+    gui_task_running = true;
+    while (gui_task_should_run) {
 
         // Wait for the next frame
         // Note: this task is never suspended, so no need to re-fetch the tick-
@@ -2504,7 +2521,30 @@ static void gui_task(void* args)
         JADE_SEMAPHORE_GIVE(gui_mutex);
     }
 
+#ifdef CONFIG_LIBJADE
+    // gui task is exiting - only happens for libjade.
+    // Free all activities
+    current_activity = NULL;
+    free_activities(existing_activities);
+    existing_activities = NULL;
+
+    // Delete the main input queue
+    if (gui_input_queue) {
+        vRingbufferDelete(gui_input_queue);
+        gui_input_queue = NULL;
+    }
+
+    // Delete the mutex semaphore
+    if (gui_mutex) {
+        vSemaphoreDelete(gui_mutex);
+        gui_mutex = NULL;
+    }
+
+    // Clear handle and running flag.
+    gui_task_handle = NULL;
+    gui_task_running = false;
     vTaskDelete(NULL);
+#endif // CONFIG_LIBJADE
 }
 
 // TODO: different functions for different types of click

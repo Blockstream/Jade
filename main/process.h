@@ -93,6 +93,7 @@ void jade_process_reply_to_message_result_with_id(const char* id, uint8_t* outpu
     jade_msg_source_t source, const void* cbctx, cbor_encoder_fn_t cb);
 void jade_process_reply_to_message_result(
     const cbor_msg_t* const ctx, uint8_t* output, size_t output_size, const void* cbctx, cbor_encoder_fn_t cb);
+void jade_process_reply_to_message_ok_ex(const cbor_msg_t* const ctx);
 void jade_process_reply_to_message_ok(jade_process_t* process);
 void jade_process_reply_to_message_fail(jade_process_t* process);
 void jade_process_reply_to_message_ex(jade_msg_source_t source, const uint8_t* reply_payload, size_t payload_len);

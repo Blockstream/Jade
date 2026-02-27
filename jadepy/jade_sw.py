@@ -78,7 +78,7 @@ class JadeSoftwareImpl:
                 return bytes()
             self.msg = bytes([buff[i] for i in range(bytes_len.value)])
             self.libjade.libjade_release(buff)
-            if logger.isEnabledFor(logging.DEBUG):
+            if False and logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f'Received message {self.msg.hex()}\n')
 
         # Return as much of the message as the caller asked for

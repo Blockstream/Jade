@@ -57,6 +57,9 @@ static void reject_data(const cbor_msg_t* const ctx, const char* msg, size_t rej
 // Some messages we handle immediately in this task
 static const char PING[] = { 'p', 'i', 'n', 'g' };
 static const char VERINFO[] = { 'g', 'e', 't', '_', 'v', 'e', 'r', 's', 'i', 'o', 'n', '_', 'i', 'n', 'f', 'o' };
+#if defined(CONFIG_DEBUG_MODE) && defined(CONFIG_LIBJADE)
+void process_libjade_request(const cbor_msg_t* const ctx);
+#endif // CONFIG_LIBJADE
 
 static bool handle_immediate_message(const cbor_msg_t* const ctx)
 {
@@ -87,6 +90,12 @@ static bool handle_immediate_message(const cbor_msg_t* const ctx)
                 return true;
             }
         }
+#if defined(CONFIG_DEBUG_MODE) && defined(CONFIG_LIBJADE)
+        else if (method_len == strlen("libjade_request") && !strncmp(method, "libjade_request", method_len)) {
+            process_libjade_request(ctx);
+            return true;
+        }
+#endif
     }
     return false;
 }

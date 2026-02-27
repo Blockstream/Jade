@@ -31,14 +31,12 @@ void __wrap_abort(void);
 #ifdef CONFIG_BT_ENABLED
 #include "./ble/ble.c"
 #endif // CONFIG_BT_ENABLED
-#ifndef CONFIG_LIBJADE
+#if !defined(CONFIG_LIBJADE) || defined(CONFIG_LIBJADE_CAMERA)
 #include "./camera.c"
 #endif
 #include "./descriptor.c"
-#ifndef CONFIG_LIBJADE_NO_GUI
 #include "./display.c"
 #include "./display_hw.c"
-#endif // CONFIG_LIBJADE_NO_GUI
 #include "./fonts/BigFont.c"
 #include "./fonts/DefaultFont.c"
 #include "./fonts/DejaVuSans18.c"
@@ -58,9 +56,7 @@ void __wrap_abort(void);
 #include "./fonts/minya24.c"
 #include "./fonts/tooney32.c"
 #include "./fonts/various_symbols.c"
-#ifndef CONFIG_LIBJADE_NO_GUI
 #include "./gui.c"
-#endif // CONFIG_LIBJADE_NO_GUI
 #include "./identity.c"
 #ifndef CONFIG_LIBJADE
 #include "./idletimer.c"
@@ -166,9 +162,7 @@ void __wrap_abort(void);
 #endif // CONFIG_IDF_TARGET_ESP32S3 && CONFIG_HAS_BATTERY
 #include "./utils/address.c"
 #include "./utils/cbor_rpc.c"
-#ifndef CONFIG_LIBJADE_NO_GUI
 #include "./utils/event.c"
-#endif // CONFIG_LIBJADE_NO_GUI
 #include "./utils/network.c"
 #include "./utils/psbt.c"
 #include "./utils/shake256.c"

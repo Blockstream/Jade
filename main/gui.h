@@ -423,6 +423,7 @@ bool gui_get_flipped_orientation(void);
 bool gui_set_flipped_orientation(bool flipped_orientation);
 
 void gui_init(TaskHandle_t* gui_h, bool create_event_loop);
+void gui_stop(void);
 bool gui_initialized(void);
 
 void gui_make_activity_ex(gui_activity_t** ppact, const bool has_status_bar, const char* title, const bool managed);

@@ -37,6 +37,11 @@ void camera_set_debug_image(const uint8_t* data, const size_t len)
 // as we don't want the unit to shut down because of apparent inactivity.
 #define CAMERA_MIN_TIMEOUT_SECS 300
 
+// Flag set to false to request the camera task exits its loop cleanly.
+static volatile bool camera_task_should_run = false;
+// Set once the camera task has finished and returned.
+static volatile bool camera_task_running = false;
+
 // Size of the image as provided by the camera
 #define CAMERA_IMAGE_RESOLUTION FRAMESIZE_QVGA
 #if (CAMERA_IMAGE_WIDTH != 320) || (CAMERA_IMAGE_HEIGHT != 240)
@@ -227,7 +232,6 @@ static void camera_post_exit_event_and_await_death(void)
 
 static void jade_camera_init(void)
 {
-#if !defined(CONFIG_ETH_USE_OPENETH) && defined(ESP_PLATFORM)
     JADE_LOGI("CAMERA_IMAGE_WIDTH: %u", CAMERA_IMAGE_WIDTH);
     JADE_LOGI("CAMERA_IMAGE_HEIGHT: %u", CAMERA_IMAGE_HEIGHT);
     JADE_LOGI("UI_CAMERA_IMAGE_WIDTH: %u", UI_CAMERA_IMAGE_WIDTH);
@@ -245,7 +249,9 @@ static void jade_camera_init(void)
         JADE_LOGE("Failed to inititialise/power camera on: %u", ret);
     }
 
-    const camera_config_t camera_config = { .pin_d0 = CONFIG_CAMERA_D0,
+    const camera_config_t camera_config = {
+#if !defined(CONFIG_ETH_USE_OPENETH) && defined(ESP_PLATFORM)
+        .pin_d0 = CONFIG_CAMERA_D0,
         .pin_d1 = CONFIG_CAMERA_D1,
         .pin_d2 = CONFIG_CAMERA_D2,
         .pin_d3 = CONFIG_CAMERA_D3,
@@ -266,14 +272,15 @@ static void jade_camera_init(void)
         .ledc_timer = LEDC_TIMER_0,
         .xclk_freq_hz = CONFIG_CAMERA_XCLK_FREQ,
 
-        .pixel_format = PIXFORMAT_GRAYSCALE,
-        .frame_size = CAMERA_IMAGE_RESOLUTION,
-
         .fb_count = 2,
         .fb_location = CAMERA_FB_IN_PSRAM,
         .grab_mode = CAMERA_GRAB_LATEST,
+#endif
+        .pixel_format = PIXFORMAT_GRAYSCALE,
+        .frame_size = CAMERA_IMAGE_RESOLUTION,
 
-        .jpeg_quality = 0 };
+        .jpeg_quality = 0
+    };
     const esp_err_t err = esp_camera_init(&camera_config);
     JADE_LOGI("Camera init done");
     if (err != ESP_OK) {
@@ -281,6 +288,7 @@ static void jade_camera_init(void)
         camera_post_exit_event_and_await_death();
     }
 
+#if !defined(CONFIG_ETH_USE_OPENETH) && defined(ESP_PLATFORM)
     sensor_t* camera_sensor = esp_camera_sensor_get();
     JADE_ASSERT(camera_sensor);
 
@@ -311,12 +319,11 @@ static void jade_camera_init(void)
             JADE_LOGE("Failed to set camera vflip, returned: %d", vret);
         }
     }
-
+#endif // !defined(CONFIG_ETH_USE_OPENETH) && defined(ESP_PLATFORM)
 #if defined(CONFIG_DISPLAY_TOUCHSCREEN)
     touchscreen_deinit();
     touchscreen_init();
 #endif
-#endif // !defined(CONFIG_ETH_USE_OPENETH) && defined(ESP_PLATFORM)
 }
 
 // Stop the camera
@@ -328,6 +335,15 @@ static void jade_camera_stop(void)
     touchscreen_deinit();
     touchscreen_init();
 #endif
+}
+
+// Signal the camera task to exit and wait until it has cleared all GUI resources
+void camera_stop(void)
+{
+    camera_task_should_run = false;
+    while (camera_task_running) {
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
 }
 
 static inline bool invoke_user_cb_fn(const camera_task_config_t* camera_config, const camera_fb_t* fb)
@@ -428,7 +444,9 @@ static void jade_camera_task(void* data)
     // Loop periodically refreshes screen image from camera, and waits for button event
     bool done = false;
     uint32_t num_captures = 0;
-    while (!done) {
+    camera_task_should_run = true;
+    camera_task_running = true;
+    while (!done && camera_task_should_run) {
         // Capture camera output
         camera_fb_t* const fb = esp_camera_fb_get();
         if (!fb) {
@@ -501,6 +519,7 @@ static void jade_camera_task(void* data)
         // with our stack-allocated 'pic' after this task's stack is freed.
         gui_clear_picture(image_node);
     }
+    camera_task_running = false;
     camera_post_exit_event_and_await_death();
 }
 
@@ -574,6 +593,8 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
     JADE_LOGW("No camera supported for this device");
     await_error("No camera detected");
 }
+
+void camera_stop(void) {}
 
 #endif // CONFIG_HAS_CAMERA
 #endif // AMALGAMATED_BUILD

@@ -12,11 +12,6 @@
 // Tell the firmware code we are building libjade
 #define CONFIG_LIBJADE 1
 
-// libjade currently has no GUI support
-#ifndef CONFIG_LIBJADE_GUI
-#define CONFIG_LIBJADE_NO_GUI 1
-#endif
-
 // Users can define CONFIG_LIBJADE_NO_SPIRAM to disable SPIRAM emulation
 // (e.g. to allow testing DIY devices)
 #ifndef CONFIG_LIBJADE_NO_SPIRAM
@@ -32,7 +27,7 @@
 #define CONFIG_DISPLAY_FULL_FRAME_BUFFER 1
 #define CONFIG_DISPLAY_FULL_FRAME_BUFFER_DOUBLE 1
 
-// libjade has no camera, but supports the debug scan_qr message
+// libjade may have no camera, but supports the debug scan_qr message
 #define CONFIG_HAS_CAMERA 1
 
 #define CONFIG_IDF_FIRMWARE_CHIP_ID 0 // Needed to build

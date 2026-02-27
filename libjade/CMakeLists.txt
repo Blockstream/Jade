@@ -60,15 +60,15 @@ if (COVERAGE)
     add_link_options(-lgcov --coverage)
 endif()
 
-option(GUI "Enable libjade gui" OFF)
-if (GUI)
-    add_compile_options(-DCONFIG_LIBJADE_GUI)
-endif()
-
 # CI mode defaults to ON since libjade is typically used for testing
 option(CI "Enable CI (auto-click) mode" ON)
 if (CI)
     add_compile_options(-DCONFIG_DEBUG_UNATTENDED_CI)
+endif()
+
+option(CAMERA "Enable libjade camera support" OFF)
+if (CAMERA)
+    add_compile_options(-DCONFIG_LIBJADE_CAMERA)
 endif()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)

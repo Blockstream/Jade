@@ -40,4 +40,8 @@ void camera_set_debug_image(const uint8_t* data, size_t len);
 void jade_camera_process_images(camera_process_fn_t fn, void* ctx, bool show_ui, const char* text_label,
     bool show_click_button, qr_guide_type_t qr_guide_type, const char* help_url, progress_bar_t* progress_bar);
 
+// Signal the camera task to exit its loop and wait until it has finished
+// Safe to call when no camera task is running (it will be a no-op).
+void camera_stop(void);
+
 #endif /* CAMERA_H_ */

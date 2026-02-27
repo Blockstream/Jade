@@ -544,12 +544,14 @@ void jade_process_reply_to_message_result(
     jade_process_reply_to_message_result_with_id(id, output, output_size, ctx->source, cbctx, cb);
 }
 
-void jade_process_reply_to_message_ok(jade_process_t* process)
+void jade_process_reply_to_message_ok_ex(const cbor_msg_t* const ctx)
 {
     uint8_t buf[64];
     const bool ok = true;
-    jade_process_reply_to_message_result(&process->ctx, buf, sizeof(buf), &ok, cbor_result_boolean_cb);
+    jade_process_reply_to_message_result(ctx, buf, sizeof(buf), &ok, cbor_result_boolean_cb);
 }
+
+void jade_process_reply_to_message_ok(jade_process_t* process) { jade_process_reply_to_message_ok_ex(&process->ctx); }
 
 void jade_process_reply_to_message_fail(jade_process_t* process)
 {

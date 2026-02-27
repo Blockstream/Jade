@@ -10,7 +10,7 @@ test_libjade:
   extends: .libjade_test_template
   stage: pre_test
   script:
-    - ./libjade/make_libjade.sh Debug --gui
+    - ./libjade/make_libjade.sh Debug
     - export LD_LIBRARY_PATH=$PWD/build_linux/libjade
     - python ./test_jade.py --log CRITICAL --libjade
 
@@ -18,7 +18,7 @@ test_libjade_sanitize:
   extends: .libjade_test_template
   stage: test
   script:
-    - ./libjade/make_libjade.sh Sanitize --gui
+    - ./libjade/make_libjade.sh Sanitize
     - export ASAN_OPTIONS=symbolize=1,detect_leaks=0
     - export UBSAN_OPTIONS=print_stacktrace=1
     - export ASAN_SO=/usr/lib/gcc/x86_64-linux-gnu/13/libasan.so
@@ -44,7 +44,7 @@ test_libjade_coverage:
   stage: test
   when: manual
   script:
-    - ./libjade/make_libjade.sh Debug --gui --coverage
+    - ./libjade/make_libjade.sh Debug --coverage
     - ./libjade/coverage.sh clean
     - export LD_LIBRARY_PATH=$PWD/build_linux/libjade
     - python ./test_jade.py --log CRITICAL --libjade

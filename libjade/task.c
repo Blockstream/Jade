@@ -5,15 +5,42 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <time.h>
 
-#ifndef CONFIG_LIBJADE_NO_GUI
-// variables to help implement vTaskDelete
-// TODO: move to thread local storage so less chance of interference between threads
-static pthread_mutex_t _task_delay_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t _task_delay_cond = PTHREAD_COND_INITIALIZER;
-#endif
+// Per-thread condition variable for portMAX_DELAY waits, stored in TLS.
+
+static void _task_cond_free(void* p)
+{
+    pthread_cond_destroy((pthread_cond_t*)p);
+    free(p);
+}
+
+static pthread_key_t _task_cond_key;
+static pthread_once_t _task_cond_key_once = PTHREAD_ONCE_INIT;
+static void _task_cond_key_init(void) { pthread_key_create(&_task_cond_key, _task_cond_free); }
+
+static pthread_cond_t* _get_task_cond(void)
+{
+    pthread_once(&_task_cond_key_once, _task_cond_key_init);
+    pthread_cond_t* c = pthread_getspecific(_task_cond_key);
+    if (!c) {
+        c = malloc(sizeof(pthread_cond_t));
+        JADE_ASSERT(c);
+        pthread_cond_init(c, NULL);
+        pthread_setspecific(_task_cond_key, c);
+    }
+    return c;
+}
+
+#define MAX_WAITERS 32
+static pthread_mutex_t _waiter_mutex = PTHREAD_MUTEX_INITIALIZER;
+static struct {
+    pthread_t tid;
+    pthread_cond_t* cond;
+} _waiters[MAX_WAITERS];
+static size_t _waiter_count = 0;
 
 // HW: TLS/Sensitive
 static void* _tls_ptrs[3];
@@ -64,10 +91,6 @@ void* pthread_shim_func(void* arg)
 BaseType_t xTaskCreatePinnedToCore(TaskFunction_t func, const char* name, uint32_t stack_size, void* params,
     uint32_t ux_prio, TaskHandle_t* output, uint32_t xCoreID)
 {
-#ifdef CONFIG_LIBJADE_NO_GUI
-    func(params);
-    return pdTRUE;
-#else
     BaseType_t result = pdTRUE;
     pthread_attr_t attr = { 0 };
     pthread_t thread_id = 0;
@@ -78,6 +101,10 @@ BaseType_t xTaskCreatePinnedToCore(TaskFunction_t func, const char* name, uint32
     }
     if (stack_size < PTHREAD_STACK_MIN) {
         stack_size = PTHREAD_STACK_MIN;
+    }
+    if (strcmp(name, "jade_camera") == 0) {
+        // give the camera thread more stack
+        stack_size *= 2;
     }
     if (pthread_attr_setstacksize(&attr, stack_size) != 0) {
         JADE_LOGE("pthread_attr_setstacksize failed for task %s", name);
@@ -111,7 +138,6 @@ cleanup:
         *output = NULL;
     }
     return result;
-#endif
 }
 
 BaseType_t xTaskCreatePinnedToCoreWithCaps(TaskFunction_t func, const char* const name, uint32_t stack_size,
@@ -132,15 +158,24 @@ unsigned int xPortGetFreeHeapSize(void) { return 0xffffff; }
 
 void vTaskDelay(TickType_t delay)
 {
-#ifdef CONFIG_LIBJADE_NO_GUI
-    // Don't delay, since we don't have multiple threads running
-    // in the firmware to wait on.
-#else
     // if portMAX_DELAY we will make the thread listen for a signal to exit instead of sleeping,
     if (delay == portMAX_DELAY) {
-        pthread_mutex_lock(&_task_delay_mutex);
-        pthread_cond_wait(&_task_delay_cond, &_task_delay_mutex);
-        pthread_mutex_unlock(&_task_delay_mutex);
+        pthread_cond_t* cond = _get_task_cond();
+        const pthread_t self = pthread_self();
+        pthread_mutex_lock(&_waiter_mutex);
+        JADE_ASSERT(_waiter_count < MAX_WAITERS);
+        _waiters[_waiter_count].tid = self;
+        _waiters[_waiter_count].cond = cond;
+        _waiter_count++;
+        pthread_cond_wait(cond, &_waiter_mutex);
+        // remove self from registry
+        for (size_t i = 0; i < _waiter_count; i++) {
+            if (pthread_equal(_waiters[i].tid, self)) {
+                _waiters[i] = _waiters[--_waiter_count];
+                break;
+            }
+        }
+        pthread_mutex_unlock(&_waiter_mutex);
         // jade often uses vTaskDelay(portMAX_DELAY) in a loop so we need to exit the thread here
         pthread_exit(NULL);
         return;
@@ -148,35 +183,35 @@ void vTaskDelay(TickType_t delay)
     // otherwise sleep as normal
     struct timespec ts = timespec_from_ticktype(delay);
     nanosleep(&ts, NULL);
-#endif
 }
 
 void vTaskDelayUntil(TickType_t* prev_wake_time, const TickType_t delay)
 {
-#ifndef CONFIG_LIBJADE_NO_GUI
     // Only used by the GUI main loop
     TickType_t current_time = xTaskGetTickCount();
     if (*prev_wake_time + delay > current_time) {
         vTaskDelay(*prev_wake_time + delay - current_time);
     }
     *prev_wake_time += delay;
-#endif
 }
 
 void vTaskDelete(void* task)
 {
-#ifdef CONFIG_LIBJADE_NO_GUI
-    // Don't delete, since we didn't create any tasks
-#else
+    // if deleting the current task we can just use pthread_exit.
+    // pthread_exit() cannot be used to terminate another thread (like vTaskDelete can),
+    // so if task != current we have to use cooperation with the other thread to signal it to exit.
     if (task == NULL) {
         pthread_exit(NULL);
     } else {
-        // use pthread_cond_signal
-        pthread_mutex_lock(&_task_delay_mutex);
-        pthread_cond_signal(&_task_delay_cond);
-        pthread_mutex_unlock(&_task_delay_mutex);
+        pthread_mutex_lock(&_waiter_mutex);
+        for (size_t i = 0; i < _waiter_count; i++) {
+            if (pthread_equal(_waiters[i].tid, (pthread_t)task)) {
+                pthread_cond_signal(_waiters[i].cond);
+                break;
+            }
+        }
+        pthread_mutex_unlock(&_waiter_mutex);
     }
-#endif
 }
 
 void vTaskDeleteWithCaps(void* task) { vTaskDelete(task); }
