@@ -20,9 +20,10 @@ flash_qemu:
   extends: .flash_qemu_template
   needs: [ test_libjade, build_test_qemu ]
 
-flash_qemu_psram:
-  extends: .flash_qemu_template
-  needs: [ test_libjade, build_test_qemu_psram ]
+# Skip flashing this as its covered by the unamalgamated case
+#flash_qemu_psram:
+#  extends: .flash_qemu_template
+#  needs: [ test_libjade, build_test_qemu_psram ]
 
 flash_qemu_psram_unamalgamated:
   extends: .flash_qemu_template
