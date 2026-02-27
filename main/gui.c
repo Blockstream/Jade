@@ -262,6 +262,11 @@ bool gui_set_flipped_orientation(const bool flipped_orientation)
 
 void gui_init(TaskHandle_t* gui_h)
 {
+#ifdef CONFIG_LIBJADE
+    if (gui_mutex) {
+        return; // Already initialized
+    }
+#endif
     // Create mutex semaphore
     gui_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(gui_mutex);
@@ -294,13 +299,13 @@ void gui_init(TaskHandle_t* gui_h)
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create GUI task, xTaskCreatePinnedToCore() returned %d", retval);
 }
 
-#ifdef CONFIG_LIBJADE
+#if defined(CONFIG_LIBJADE) && !defined(CONFIG_LIBJADE_GUI)
 bool gui_initialized(void) { return gui_task_handle; }
 static bool gui_is_gui_task(void) { return true; }
 #else
 bool gui_initialized(void) { return gui_task_handle && *gui_task_handle; }
 static bool gui_is_gui_task(void) { return gui_task_handle && xTaskGetCurrentTaskHandle() == *gui_task_handle; }
-#endif // ndef CONFIG_LIBJADE
+#endif
 
 // Is this kind of node selectable?
 static inline bool is_kind_selectable(enum view_node_kind kind) { return kind == BUTTON; }

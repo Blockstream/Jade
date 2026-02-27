@@ -53,4 +53,16 @@ LIBJADE_API void libjade_release(uint8_t* data);
  */
 LIBJADE_API void libjade_set_log_level(int level);
 
+/*
+ * Get the display buffer for the global libjade instance.
+ * A pointer to the raw pixel data in RGB565
+ */
+LIBJADE_API void libjade_get_display_buffer(
+    uint8_t** out_buffer, size_t* out_size, size_t* out_width, size_t* out_height);
+
+/*
+ * Handle a GUI event (1 = left button, 2 = right button, 3 = enter button)
+ */
+LIBJADE_API void libjade_handle_gui_event(int event_type);
+
 #endif /* _LIBJADE_H_ */

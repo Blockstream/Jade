@@ -54,6 +54,23 @@ if (NOT LOG)
     add_compile_options(-DCONFIG_LOG_DEFAULT_LEVEL_NONE)
 endif()
 
+option(COVERAGE "Enable libjade profile coverage" OFF)
+if (COVERAGE)
+    add_compile_options(-fprofile-arcs -ftest-coverage)
+    add_link_options(-lgcov --coverage)
+endif()
+
+option(GUI "Enable libjade gui" OFF)
+if (GUI)
+    add_compile_options(-DCONFIG_LIBJADE_GUI)
+endif()
+
+# CI mode defaults to ON since libjade is typically used for testing
+option(CI "Enable CI (auto-click) mode" ON)
+if (CI)
+    add_compile_options(-DCONFIG_DEBUG_UNATTENDED_CI)
+endif()
+
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)

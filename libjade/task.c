@@ -1,7 +1,6 @@
 #define _GNU_SOURCE 1 // For extra pthread functions
 #include "freertos/timecvt.h"
 #include "jade_assert.h"
-#include "sdkconfig.h"
 #include <limits.h>
 #include <pthread.h>
 #include <signal.h>

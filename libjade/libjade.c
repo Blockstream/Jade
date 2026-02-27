@@ -51,7 +51,8 @@
 // https://github.com/richgel999/miniz with a couple of additional
 // patches for memory safety.
 #include "miniz.c"
-// Include the emulation of the o/s task functions
+// Include the emulation of the o/s task/event functions
+#include "esp_event.c"
 #include "task.c"
 // Include the esp32_deflate component
 #define ESP_PLATFORM 1
@@ -106,7 +107,7 @@ const char* locale_lang_with_fallback(const locale_multilang_string_t* str, jloc
 
 // main/idletimer.c
 void idletimer_init(void) {}
-bool idletimer_register_activity(const bool is_ui) { return true; }
+bool idletimer_register_activity(const bool is_ui) { return false; }
 void idletimer_set_min_timeout_secs(uint16_t min_timeout_secs) {};
 
 // main/logging.c
@@ -184,7 +185,7 @@ const uint8_t _binary_pinserver_public_key_pub_start[33]
           0xa2, 0x64, 0x28, 0x16, 0x0a, 0x27, 0xbd, 0xbf, 0xc3, 0x0b, 0x34, 0xec, 0x87, 0xc5, 0x47 };
 
 // Events
-static volatile bool _libjade_stop_requested = false; // Used to stop the firmware
+volatile bool _libjade_stop_requested = false; // Used to stop the firmware
 
 #ifdef CONFIG_LIBJADE_NO_GUI
 void sync_wait_event_handler(void* handler_arg, esp_event_base_t base, int32_t id, void* event_data) {}
@@ -514,6 +515,42 @@ void libjade_set_log_level(int level)
         _libjade_log_level = ESP_LOG_NONE;
     } else {
         _libjade_log_level = (esp_log_level_t)level;
+    }
+#endif
+}
+
+void libjade_get_display_buffer(uint8_t** out_buffer, size_t* out_size, size_t* out_width, size_t* out_height)
+{
+#ifndef CONFIG_LIBJADE_NO_GUI
+    *out_buffer = (uint8_t*)display_hw_get_buffer();
+    *out_size = CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT * sizeof(color_t);
+    *out_width = CONFIG_DISPLAY_WIDTH;
+    *out_height = CONFIG_DISPLAY_HEIGHT;
+#else
+    *out_buffer = NULL;
+    *out_size = 0;
+    *out_width = 0;
+    *out_height = 0;
+#endif
+}
+
+void libjade_handle_gui_event(int event_type)
+{
+#ifndef CONFIG_LIBJADE_NO_GUI
+    JADE_LOGI("libjade_handle_gui_event: event_type=%d", event_type);
+    switch (event_type) {
+    case 1:
+        gui_prev();
+        break;
+    case 2:
+        gui_next();
+        break;
+    case 3:
+        gui_front_click();
+        break;
+    default:
+        JADE_LOGW("libjade_handle_gui_event: unknown event type %d", event_type);
+        break;
     }
 #endif
 }

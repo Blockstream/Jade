@@ -59,6 +59,10 @@ void sync_wait_event_handler(void* handler_arg, esp_event_base_t base, int32_t i
     xSemaphoreGive(data->triggered);
 }
 
+#ifdef CONFIG_LIBJADE
+extern volatile bool _libjade_stop_requested;
+#endif
+
 // This function waits for a previously registered event to be triggered.
 // NOTE: DOES NOT register any event handler - assumes one is already registered and the
 // passed 'wait_event_data_t' instance should contain the relevant registration data.
@@ -68,6 +72,13 @@ esp_err_t sync_wait_event(wait_event_data_t* wait_event_data, esp_event_base_t* 
     int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait)
 {
     JADE_ASSERT(wait_event_data);
+
+#ifdef CONFIG_LIBJADE
+    if (_libjade_stop_requested) {
+        // User requested the firmware to exit
+        pthread_exit(NULL);
+    }
+#endif
 
     JADE_LOGD("Awaiting event %p (timeout = %lu)", wait_event_data, max_wait);
     if (!max_wait) {

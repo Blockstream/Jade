@@ -6,15 +6,16 @@
 // Export debug mode functions for testing
 #define CONFIG_DEBUG_MODE 1
 
-// Auto "press" OK buttons when tasks are run (after 1ms)
-#define CONFIG_DEBUG_UNATTENDED_CI 1
+// In CI mode, auto "press" OK buttons after 1 millisecond
 #define CONFIG_DEBUG_UNATTENDED_CI_TIMEOUT_MS 1
 
 // Tell the firmware code we are building libjade
 #define CONFIG_LIBJADE 1
 
 // libjade currently has no GUI support
+#ifndef CONFIG_LIBJADE_GUI
 #define CONFIG_LIBJADE_NO_GUI 1
+#endif
 
 // Users can define CONFIG_LIBJADE_NO_SPIRAM to disable SPIRAM emulation
 // (e.g. to allow testing DIY devices)

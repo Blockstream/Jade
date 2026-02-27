@@ -9,5 +9,7 @@ typedef int esp_err_t;
 #define ESP_ERR_NVS_NOT_FOUND 3
 #define ESP_ERR_NVS_NO_FREE_PAGES 4
 #define ESP_ERR_NVS_NEW_VERSION_FOUND 5
+#define ESP_ERR_NO_MEM 6
+#define ESP_ERR_INVALID_STATE 7
 
 #endif // __LIBJADE_ESP_ERR__
