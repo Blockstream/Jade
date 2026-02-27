@@ -1524,7 +1524,7 @@ void handle_bip85_mnemonic()
     make_digit_entry_activity(&digit_entry, "BIP85", "Index #:");
     JADE_ASSERT(digit_entry.activity);
 
-    size_t index = 0;
+    uint32_t index = 0;
     while (true) {
         reset_digit_entry(&digit_entry, "BIP85");
         gui_set_current_activity(digit_entry.activity);
@@ -1540,11 +1540,11 @@ void handle_bip85_mnemonic()
 
         // User to confirm
         char buf[8];
-        const int ret = snprintf(buf, sizeof(buf), "%u", index);
+        const int ret = snprintf(buf, sizeof(buf), "%" PRIu32, index);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
         const char* message[] = { "BIP85 index selected:", buf };
         if (await_continueback_activity("BIP85", message, 2, true, "blkstrm.com/bip85")) {
-            JADE_LOGI("BIP85 index number selected: %u", index);
+            JADE_LOGI("BIP85 index number selected: %" PRIu32, index);
             break;
         }
     }

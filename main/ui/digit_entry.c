@@ -4,8 +4,6 @@
 #include "../random.h"
 #include "../ui.h"
 
-#include <math.h>
-
 #define CHAR_BACKSPACE '|'
 #define CHAR_ENTER '~'
 static const char ENTRY_CHARS[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', CHAR_BACKSPACE, CHAR_ENTER };
@@ -287,7 +285,7 @@ void reset_digit_entry(digit_entry_t* digit_entry, const char* title)
     }
 }
 
-size_t get_entry_as_number(const digit_entry_t* digit_entry)
+uint32_t get_entry_as_number(const digit_entry_t* digit_entry)
 {
     JADE_ASSERT(digit_entry);
     if (digit_entry->entry_type == DIGIT_ENTRY_INDEX) {
@@ -296,14 +294,11 @@ size_t get_entry_as_number(const digit_entry_t* digit_entry)
         JADE_ASSERT(digit_entry->selected_digit == DIGIT_ENTRY_SIZE); // entry complete
     }
 
-    size_t val = 0;
+    uint32_t val = 0;
     for (uint8_t i = 0; i < digit_entry->selected_digit; ++i) {
         JADE_ASSERT(digit_entry->digit_status[i] == SET);
-        JADE_ASSERT(digit_entry->digit[i] < get_num_digit_entry_chars(digit_entry));
-
-        const size_t digit = digit_entry->digit[i];
-        const uint8_t exponent = digit_entry->selected_digit - i - 1;
-        val += (digit * pow(10, exponent));
+        JADE_ASSERT(digit_entry->digit[i] < NUM_ENTRY_DIGITS);
+        val = val * 10 + digit_entry->digit[i];
     }
 
     return val;

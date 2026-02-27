@@ -169,7 +169,7 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry);
 void make_digit_entry_activity(digit_entry_t* digit_entry, const char* title, const char* message);
 bool run_digit_entry_loop(digit_entry_t* digit_entry);
 void reset_digit_entry(digit_entry_t* digit_entry, const char* title);
-size_t get_entry_as_number(const digit_entry_t* digit_entry);
+uint32_t get_entry_as_number(const digit_entry_t* digit_entry);
 
 // Generic progress-bar
 void make_progress_bar(gui_view_node_t* parent, progress_bar_t* progress_bar);
