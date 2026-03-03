@@ -37,7 +37,7 @@ class JadeBleImpl:
         self.inputstream = None
         self.write_task = None
         self.client = None
-        self.rx_char_handle = None
+        self.rx_characteristic = None
 
         if not loop:
             loop = asyncio.get_event_loop()
@@ -79,7 +79,7 @@ class JadeBleImpl:
             scan_time = min(2, self.scan_timeout)
             self.scan_timeout -= scan_time
 
-            devices = await bleak.discover(scan_time)
+            devices = await bleak.BleakScanner.discover(scan_time)
             for dev in devices:
                 logger.debug(f'Seen: {dev.name}')
                 if dev.name and \
@@ -122,26 +122,26 @@ class JadeBleImpl:
                                     f'Serial number: {self.serial_number or "<any>"}')
 
         # Peruse services and characteristics
-        # Get the 'handle' of the receiving characteristic
+        # Get the receiving characteristic
         for service in client.services:
-            for char in service.characteristics:
-                if char.uuid == JadeBleImpl.IO_RX_CHAR_UUID:
-                    logger.debug(f'Found RX characteristic - handle: {char.handle}')
-                    self.rx_char_handle = char.handle
+            for c in service.characteristics:
+                if c.uuid == JadeBleImpl.IO_RX_CHAR_UUID:
+                    logger.debug(f'Found RX characteristic - handle: {c.handle}')
+                    self.rx_characteristic = c
 
-                if 'read' in char.properties:
-                    await client.read_gatt_char(char.uuid)
+                if 'read' in c.properties:
+                    await client.read_gatt_char(c.uuid)
 
-                for descriptor in char.descriptors:
-                    await client.read_gatt_descriptor(descriptor.handle)
+                for d in c.descriptors:
+                    await client.read_gatt_descriptor(d)
 
         # Attach handler to be notified of new data on the receiving characteristic
         def _notification_handler(char_handle, data):
-            assert char_handle == self.rx_char_handle
+            assert char_handle == self.rx_characteristic
             inbufs.append(data)
 
-        assert self.rx_char_handle
-        await client.start_notify(self.rx_char_handle,
+        assert self.rx_characteristic
+        await client.start_notify(self.rx_characteristic,
                                   _notification_handler)
 
         # Attach handler called when disconnected
@@ -158,7 +158,7 @@ class JadeBleImpl:
                 self.write_task.cancel()
                 self.write_task = None
 
-        client.set_disconnected_callback(_disconnection_handler)
+        client.disconnected_callback = _disconnection_handler
 
         # Done
         self.client = client
@@ -170,8 +170,8 @@ class JadeBleImpl:
         try:
             if self.client is not None and self.client.is_connected:
                 # Stop listening for incoming data
-                if self.rx_char_handle:
-                    await self.client.stop_notify(self.rx_char_handle)
+                if self.rx_characteristic:
+                    await self.client.stop_notify(self.rx_characteristic)
 
                 # Disconnect underlying client - this should trigger the _disconnection_handler()
                 # above to run before this returns from the 'await'
@@ -183,7 +183,7 @@ class JadeBleImpl:
 
         # Set the client to None in any case - that will cause the receive
         # generator to terminate and not wait forever for data.
-        self.rx_char_handle = None
+        self.rx_characteristic = None
         self.client = None
 
     def disconnect(self):
