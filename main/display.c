@@ -186,7 +186,7 @@ void display_fill_rect(int x, int y, int w, int h, color_t color)
         JADE_LOGE(
             "display_fill_rect called with bad params (ignored) x %d y %d w %d h %d color %u\n", x, y, w, h, color);
 #if !defined(CONFIG_BOARD_TYPE_M5_CORES3) && !defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)                                 \
-    && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+    && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164)
         return;
 #endif
     }
@@ -248,7 +248,7 @@ void display_init(TaskHandle_t* gui_h)
     display_hw_init(gui_h);
 
 #if defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3) || defined(CONFIG_BOARD_TYPE_M5_CORES3)                                   \
-    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) || defined(CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164)
 #define TOUCH_BUTTON_AREA 40
 #define TOUCH_BUTTON_MARGIN 5
 #define TOUCH_BUTTON_WIDTH 40
@@ -264,7 +264,7 @@ void display_init(TaskHandle_t* gui_h)
     uint16_t line[CONFIG_DISPLAY_WIDTH] = { TFT_BLACK };
     for (int16_t i = 0; i < TOUCH_BUTTON_AREA; ++i) {
         draw_bitmap(CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_HEIGHT + i + CONFIG_DISPLAY_OFFSET_Y,
-            CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X, 1, line);
+            CONFIG_DISPLAY_WIDTH, 1, line);
     }
 
     dispWin_t disp_win_virtual_buttons = { .x1 = TOUCH_BUTTON_MARGIN + CONFIG_DISPLAY_OFFSET_X,

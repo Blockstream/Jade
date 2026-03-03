@@ -10,4 +10,7 @@ void display_hw_flush(void);
 void display_hw_draw_rect(int x, int y, int w, int h, const uint16_t color_data);
 uint16_t* display_hw_get_buffer(void);
 #endif
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
+void display_hw_set_brightness(uint8_t brightness);
+#endif
 #endif /* DISPLAY_HW_H_ */

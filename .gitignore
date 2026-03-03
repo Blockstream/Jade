@@ -16,3 +16,4 @@ managed_components/
 dist/
 jade_client.egg-info/
 docs/_build/
+.cache

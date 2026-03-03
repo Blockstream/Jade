@@ -15,6 +15,9 @@ typedef void* esp_lcd_panel_handle_t;
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_lcd_panel_vendor.h>
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
+#include <esp_lcd_sh8601.h>
+#endif
 #endif // ndef CONFIG_LIBJADE
 
 #include "freertos/semphr.h"
@@ -37,6 +40,10 @@ typedef void* esp_lcd_panel_handle_t;
 static TaskHandle_t* gui_h = NULL;
 static SemaphoreHandle_t init_done = NULL;
 
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
+static esp_lcd_panel_io_handle_t global_io_handle = NULL;
+#endif
+
 #ifdef CONFIG_BOARD_TYPE_TTGO_TDISPLAYS3
 
 static void set_gpio_high(gpio_num_t num)
@@ -50,6 +57,14 @@ static void set_gpio_high(gpio_num_t num)
 #include <driver/spi_common.h>
 #endif
 
+/* For touchscreen boards with QSPI AMOLED, include the virtual button area (40px)
+ * in the frame buffer so it gets flushed via DMA along with the content area. */
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
+#define DISPLAY_FLUSH_HEIGHT (CONFIG_DISPLAY_HEIGHT + 40)
+#else
+#define DISPLAY_FLUSH_HEIGHT CONFIG_DISPLAY_HEIGHT
+#endif
+
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER_DOUBLE
 static color_t** _disp_buf = NULL;
@@ -58,6 +73,8 @@ static uint8_t buffer_selected = 0;
 static color_t* disp_buf = NULL;
 #if CONFIG_PIN_NUM_DATA0 != -1
 #define TRANSFER_BUFFER_LINES CONFIG_DISPLAY_HEIGHT
+#elif defined(CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164)
+#define TRANSFER_BUFFER_LINES 8
 #else // not i80, thus SPI - use fewer lines, save dram
 #define TRANSFER_BUFFER_LINES 8
 #endif // CONFIG_PIN_NUM_DATA0
@@ -86,13 +103,70 @@ static void esp_lcd_init(void* _ignored)
 #ifdef ESP_PLATFORM
     esp_lcd_panel_io_handle_t io_handle = NULL;
 
-#if CONFIG_DISPLAY_PIN_BL != -1 && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+#if CONFIG_DISPLAY_PIN_BL != -1 && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) \
+    && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164)
     gpio_config_t bk_gpio_config = { .mode = GPIO_MODE_OUTPUT, .pin_bit_mask = 1ULL << CONFIG_DISPLAY_PIN_BL };
     ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
     ESP_ERROR_CHECK(gpio_set_level(CONFIG_DISPLAY_PIN_BL, 0));
 #endif
 
-#if CONFIG_PIN_NUM_DATA0 != -1
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
+    // QSPI AMOLED initialization using SH8601
+    static const uint8_t cmd_00[] = {0x00};
+    static const uint8_t cmd_80[] = {0x80};
+    static const uint8_t cmd_20[] = {0x20};
+    static const uint8_t cmd_ff[] = {0xFF};
+    static const sh8601_lcd_init_cmd_t lcd_init_cmds[] = {
+        {0x11, cmd_00, 0, 80},
+        {0xC4, cmd_80, 1, 0},
+        {0x35, cmd_00, 1, 0},
+        {0x53, cmd_20, 1, 1},
+        {0x63, cmd_ff, 1, 1},
+        {0x51, cmd_00, 1, 1},
+        {0x29, cmd_00, 0, 10},
+        {0x51, cmd_ff, 1, 0},
+    };
+
+    const spi_bus_config_t buscfg = SH8601_PANEL_BUS_QSPI_CONFIG(
+        CONFIG_DISPLAY_QSPI_CLK,
+        CONFIG_DISPLAY_QSPI_DATA0,
+        CONFIG_DISPLAY_QSPI_DATA1,
+        CONFIG_DISPLAY_QSPI_DATA2,
+        CONFIG_DISPLAY_QSPI_DATA3,
+        CONFIG_DISPLAY_WIDTH * TRANSFER_BUFFER_LINES * sizeof(uint16_t) + 8);
+    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
+
+    const esp_lcd_panel_io_spi_config_t io_config = SH8601_PANEL_IO_QSPI_CONFIG(
+        CONFIG_DISPLAY_QSPI_CS,
+#if defined(CONFIG_DISPLAY_FULL_FRAME_BUFFER) && !defined(CONFIG_DISPLAY_FULL_FRAME_BUFFER_DOUBLE)
+        color_trans_done,
+#else
+        NULL,
+#endif
+        NULL);
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &io_config, &io_handle));
+
+    sh8601_vendor_config_t vendor_config = {
+        .init_cmds = lcd_init_cmds,
+        .init_cmds_size = sizeof(lcd_init_cmds) / sizeof(lcd_init_cmds[0]),
+        .flags = {
+            .use_qspi_interface = 1,
+        },
+    };
+    esp_lcd_panel_dev_config_t panel_config = {
+        .reset_gpio_num = CONFIG_DISPLAY_PIN_RST,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
+        .bits_per_pixel = 16,
+        .vendor_config = &vendor_config,
+    };
+    ESP_ERROR_CHECK(esp_lcd_new_panel_sh8601(io_handle, &panel_config, &ph));
+    global_io_handle = io_handle;
+
+    ESP_ERROR_CHECK(esp_lcd_panel_reset(ph));
+    ESP_ERROR_CHECK(esp_lcd_panel_init(ph));
+    ESP_ERROR_CHECK(esp_lcd_panel_set_gap(ph, CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_OFFSET_Y));
+    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(ph, true));
+#elif CONFIG_PIN_NUM_DATA0 != -1
     set_gpio_high(CONFIG_LCD_POWER_PIN_NUM);
     set_gpio_high(CONFIG_LCD_RD_PIN_NUM);
     set_gpio_high(CONFIG_LCD_BACKLIGHT_PIN_NUM);
@@ -176,8 +250,9 @@ static void esp_lcd_init(void* _ignored)
 #endif
         .bits_per_pixel = 16,
     };
-#endif // else CONFIG_PIN_NUM_DATA0
+#endif // CONFIG_PIN_NUM_DATA0 / SPI
 
+#ifndef CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &ph));
 
 #if CONFIG_DISPLAY_PIN_BL != -1
@@ -211,6 +286,10 @@ static void esp_lcd_init(void* _ignored)
     ESP_ERROR_CHECK(esp_lcd_panel_set_gap(ph, CONFIG_DISPLAY_OFFSET_X, CONFIG_DISPLAY_OFFSET_Y));
 
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(ph, true));
+#else // CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
+#define X_FLIPPED false
+#define Y_FLIPPED false
+#endif // !CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
 #else
 #define X_FLIPPED false
 #define Y_FLIPPED false
@@ -245,14 +324,14 @@ void display_hw_init(TaskHandle_t* gui_handle)
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER_DOUBLE
     _disp_buf = JADE_MALLOC_PREFER_SPIRAM(2 * sizeof(color_t*));
     _disp_buf[0]
-        = JADE_MALLOC_PREFER_SPIRAM_ALIGNED(CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT * sizeof(color_t), 16);
+        = JADE_MALLOC_PREFER_SPIRAM_ALIGNED(CONFIG_DISPLAY_WIDTH * DISPLAY_FLUSH_HEIGHT * sizeof(color_t), 16);
     _disp_buf[1]
-        = JADE_MALLOC_PREFER_SPIRAM_ALIGNED(CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT * sizeof(color_t), 16);
+        = JADE_MALLOC_PREFER_SPIRAM_ALIGNED(CONFIG_DISPLAY_WIDTH * DISPLAY_FLUSH_HEIGHT * sizeof(color_t), 16);
     disp_buf = _disp_buf[0];
 #endif
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
 #ifndef CONFIG_DISPLAY_FULL_FRAME_BUFFER_DOUBLE
-    disp_buf = JADE_MALLOC_PREFER_SPIRAM_ALIGNED(CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT * sizeof(color_t), 16);
+    disp_buf = JADE_MALLOC_PREFER_SPIRAM_ALIGNED(CONFIG_DISPLAY_WIDTH * DISPLAY_FLUSH_HEIGHT * sizeof(color_t), 16);
 #endif
 #endif
 #ifndef CONFIG_LIBJADE
@@ -276,13 +355,12 @@ inline void display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* c
     const int calculatedx = x - CONFIG_DISPLAY_OFFSET_X;
     const int calculatedy = y - CONFIG_DISPLAY_OFFSET_Y;
 #if (defined(CONFIG_BOARD_TYPE_M5_CORES3) || defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3)                                  \
-    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2))                                                                       \
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) || defined(CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164))                      \
     && defined(CONFIG_DISPLAY_FULL_FRAME_BUFFER)
     /* this is required for the virtual buttons */
-    if (calculatedy >= CONFIG_DISPLAY_HEIGHT) {
+    if (calculatedy >= DISPLAY_FLUSH_HEIGHT) {
         ESP_ERROR_CHECK(
             esp_lcd_panel_draw_bitmap(ph, calculatedx, calculatedy, calculatedx + w, calculatedy + h, color_data));
-        ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(ph, calculatedx, calculatedy, x + w, calculatedy + h, color_data));
         return;
     }
 #endif
@@ -385,7 +463,7 @@ static inline void switch_buffer(void)
     disp_buf = _disp_buf[buffer_selected];
     /* it is necessary to copy the old buffer over the new one as writes can be partial */
     /* FIXME: 5.2+ idf seems to support dma memcpy for ESP32 S2/S3 */
-    jmemcpy(disp_buf, _disp_buf[1 - buffer_selected], CONFIG_DISPLAY_WIDTH * CONFIG_DISPLAY_HEIGHT * sizeof(color_t));
+    jmemcpy(disp_buf, _disp_buf[1 - buffer_selected], CONFIG_DISPLAY_WIDTH * DISPLAY_FLUSH_HEIGHT * sizeof(color_t));
 }
 #endif
 
@@ -395,7 +473,7 @@ static inline void switch_buffer(void)
 void display_hw_flush(void)
 {
 #ifndef CONFIG_LIBJADE
-    ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(ph, 0, 0, CONFIG_DISPLAY_WIDTH, CONFIG_DISPLAY_HEIGHT, disp_buf));
+    ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(ph, 0, 0, CONFIG_DISPLAY_WIDTH, DISPLAY_FLUSH_HEIGHT, disp_buf));
 #endif // CONFIG_LIBJADE
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER_DOUBLE
     /* we only need to switch buffer if we have more than one and we don't bother waiting for writes */
@@ -406,4 +484,19 @@ void display_hw_flush(void)
 #endif
 }
 #endif // FRAME BUFFER
+
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
+void display_hw_set_brightness(uint8_t brightness)
+{
+    if (!global_io_handle) {
+        return;
+    }
+    uint32_t cmd = 0x51;
+    cmd &= 0xff;
+    cmd <<= 8;
+    cmd |= 0x02 << 24;
+    esp_lcd_panel_io_tx_param(global_io_handle, cmd, &brightness, 1);
+}
+#endif
+
 #endif // AMALGAMATED_BUILD

@@ -116,6 +116,10 @@ menu "Blockstream Jade"
             select HAS_CAMERA
             select HAS_BATTERY
             select DISPLAY_TOUCHSCREEN
+        config BOARD_TYPE_WS_TOUCH_AMOLED164
+            bool "Waveshare Touch AMOLED 1.64 (esp32s3)"
+            select HAS_BATTERY
+            select DISPLAY_TOUCHSCREEN
         config BOARD_TYPE_QEMU
             bool "qemu display via websocket"
         config BOARD_TYPE_QEMU_LARGER
@@ -143,7 +147,7 @@ menu "Blockstream Jade"
 
     config DISPLAY_TOUCHSCREEN
         bool "Set if touchscreen is available"
-        default y if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_TTGO_TWATCHS3 || BOARD_TYPE_WS_TOUCH_LCD2
+        default y if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_TTGO_TWATCHS3 || BOARD_TYPE_WS_TOUCH_LCD2 || BOARD_TYPE_WS_TOUCH_AMOLED164
         default n
 
     choice DISPLAY_TOUCHSCREEN_CONTROLLER
@@ -227,6 +231,7 @@ menu "Blockstream Jade"
             default 21 if BOARD_TYPE_M5_CORE2
             default 39 if BOARD_TYPE_TTGO_TWATCHS3
             default 48 if BOARD_TYPE_WS_TOUCH_LCD2
+            default 47 if BOARD_TYPE_WS_TOUCH_AMOLED164
             default -1
         config I2C_TOUCH_SCL
             depends on DISPLAY_TOUCHSCREEN
@@ -235,6 +240,7 @@ menu "Blockstream Jade"
             default 40 if BOARD_TYPE_TTGO_TWATCHS3
             default 22 if BOARD_TYPE_M5_CORE2
             default 47 if BOARD_TYPE_WS_TOUCH_LCD2
+            default 48 if BOARD_TYPE_WS_TOUCH_AMOLED164
             default -1
     endmenu
 
@@ -486,6 +492,7 @@ menu "Blockstream Jade"
             range 0 640
             default 320 if BOARD_TYPE_JADE_V2_ANY || BOARD_TYPE_QEMU_LARGER || BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2
             default 480 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 280 if BOARD_TYPE_WS_TOUCH_AMOLED164
             default 240
         config DISPLAY_HEIGHT
             int "Display height in pixels"
@@ -496,6 +503,7 @@ menu "Blockstream Jade"
             default 200 if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TWATCHS3
             default 222 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
             default 280 if BOARD_TYPE_WS_TOUCH_LCD2
+            default 416 if BOARD_TYPE_WS_TOUCH_AMOLED164
             default 135
         config DCS_ADDRESS_MODE_BGR_SELECTED
             bool "BGR"
@@ -519,12 +527,13 @@ menu "Blockstream Jade"
             default 0 if BOARD_TYPE_JADE_V2_ANY
             default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_TTGO_TDISPLAYS3 || BOARD_TYPE_TTGO_TWATCHS3
             default 0 if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || BOARD_TYPE_WS_TOUCH_LCD2
+            default 20 if BOARD_TYPE_WS_TOUCH_AMOLED164
             default 40
             help
                 Adjust when using small display and image is not centered.
         config DISPLAY_OFFSET_Y
             int "Y offset"
-            default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_WS_TOUCH_LCD2
+            default 0 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_WS_TOUCH_LCD2 || BOARD_TYPE_WS_TOUCH_AMOLED164
             default 35 if BOARD_TYPE_JADE_V2_ANY || BOARD_TYPE_TTGO_TDISPLAYS3
             default 49 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
             default 80 if BOARD_TYPE_TTGO_TWATCHS3
@@ -598,6 +607,7 @@ menu "Blockstream Jade"
                 default 23 if BOARD_TYPE_TTGO_TDISPLAY
                 default 33 if BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
                 default 47 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+                default 21 if BOARD_TYPE_WS_TOUCH_AMOLED164
                 default -1
             config DISPLAY_PIN_BL
                 int "Backlight pin number"
@@ -607,6 +617,7 @@ menu "Blockstream Jade"
                 default 48 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
                 default 45 if BOARD_TYPE_TTGO_TWATCHS3
                 default 1 if BOARD_TYPE_WS_TOUCH_LCD2
+                default -1 if BOARD_TYPE_WS_TOUCH_AMOLED164
                 default -1
             config PIN_NUM_DC
                 int "DC pin number"
@@ -684,6 +695,30 @@ menu "Blockstream Jade"
             config LCD_BACKLIGHT_PIN_NUM
                 int "LCD backlight pin number"
                 default 38 if BOARD_TYPE_TTGO_TDISPLAYS3
+                default -1
+            config DISPLAY_QSPI_CS
+                int "QSPI CS pin"
+                default 9 if BOARD_TYPE_WS_TOUCH_AMOLED164
+                default -1
+            config DISPLAY_QSPI_CLK
+                int "QSPI CLK pin"
+                default 10 if BOARD_TYPE_WS_TOUCH_AMOLED164
+                default -1
+            config DISPLAY_QSPI_DATA0
+                int "QSPI DATA0 pin"
+                default 11 if BOARD_TYPE_WS_TOUCH_AMOLED164
+                default -1
+            config DISPLAY_QSPI_DATA1
+                int "QSPI DATA1 pin"
+                default 12 if BOARD_TYPE_WS_TOUCH_AMOLED164
+                default -1
+            config DISPLAY_QSPI_DATA2
+                int "QSPI DATA2 pin"
+                default 13 if BOARD_TYPE_WS_TOUCH_AMOLED164
+                default -1
+            config DISPLAY_QSPI_DATA3
+                int "QSPI DATA3 pin"
+                default 14 if BOARD_TYPE_WS_TOUCH_AMOLED164
                 default -1
         endmenu
     endmenu
