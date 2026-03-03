@@ -17,6 +17,7 @@ else
     cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
 fi
 make -j8
+cd ..
 
 echo "to use libjade set LD_LIBRARY_PATH=$PWD/build_linux/libjade"
 if [ "${BUILD_TYPE}" == "Sanitize" ]; then
