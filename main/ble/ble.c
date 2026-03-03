@@ -315,23 +315,27 @@ static bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
     while (written < towrite) {
         const size_t writenow = written + ble_max_write_size <= towrite ? ble_max_write_size : towrite - written;
         int rc = 0, try = 0;
+        const int max_tries = 13 * 16 + 1; // 209, i.e. approx 2s of 10ms waits
 
         do {
             ++try;
             // os_mbuf data is consumed by indicate_custom, regardless of the outcome
             struct os_mbuf* data = ble_hs_mbuf_from_flat(msg + written, writenow);
-            JADE_ASSERT(data);
-
-            rc = ble_gatts_indicate_custom(peer_conn_handle, tx_val_handle, data);
-            if (rc != 0) {
-                JADE_LOGW("ble_gattc_indicate_custom() returned error %d trying to write %u bytes, attempt %u", rc,
-                    writenow, try);
-                vTaskDelay(100 / portTICK_PERIOD_MS);
+            if (!data) {
+                rc = ESP_FAIL;
+            } else {
+                rc = ble_gatts_indicate_custom(peer_conn_handle, tx_val_handle, data);
             }
-        } while (rc != 0 && try < 10);
+            if (rc != 0) {
+                if ((try % 16) == 1) {
+                    JADE_LOGW("write_ble error %d writing %u bytes, try %d", rc, writenow, try);
+                }
+                vTaskDelay(10 / portTICK_PERIOD_MS);
+            }
+        } while (rc != 0 && try <= max_tries);
 
         if (rc != 0) {
-            JADE_LOGE("ble_gattc_indicate_custom() multiple failures writing %u bytes - written %u bytes of %u, bad "
+            JADE_LOGE("write_ble timeout writing %u bytes - written %u bytes of %u, bad "
                       "connection",
                 writenow, written, towrite);
             // FIXME: fail/error the connection ?
