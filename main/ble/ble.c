@@ -247,16 +247,14 @@ static void ble_start_advertising(void)
     // Reset the write size assuming preferred MTU
     set_ble_max_write_size_for_mtu(CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU);
 
-    struct ble_gap_adv_params adv_params;
-    struct ble_hs_adv_fields fields;
+    struct ble_gap_adv_params adv_params = { 0 };
+    struct ble_hs_adv_fields fields = { 0 };
     const char* name;
     int rc;
 
     // All we really need in the advertising packet is the device name ('Jade abcdef' - 11 bytes)
     // and the service id (128bit - 16bytes) - with 2 bytes of overhead (type, length) per field,
     // this takes up the entire advertising packet (31 bytes max.)
-    memset(&fields, 0, sizeof fields);
-
     name = ble_svc_gap_device_name();
     fields.name = (uint8_t*)name;
     fields.name_len = strlen(name);
@@ -278,7 +276,6 @@ static void ble_start_advertising(void)
     rc = ble_gap_adv_set_fields(&fields);
     JADE_ASSERT_MSG(rc == 0, "ble_gap_adv_set_fields() failed with error %d", rc);
 
-    memset(&adv_params, 0, sizeof adv_params);
     adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
 
@@ -592,7 +589,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             // Note: these values are in specific units/increments
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             JADE_ASSERT(rc == 0);
-            struct ble_gap_upd_params params;
+            struct ble_gap_upd_params params = { 0 };
             params.itvl_min = BLE_GAP_INITIAL_CONN_ITVL_MIN;
             params.itvl_max = BLE_GAP_INITIAL_CONN_ITVL_MAX;
             params.latency = desc.conn_latency;
