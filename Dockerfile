@@ -12,11 +12,11 @@
 #FROM espressif/idf:release-v5.4@sha256:11441b20e4a87dc722ad6d1ef5a920cf8901a62581d8c85a4299a4c0f142e1a3
 
 # See gitlab/docker.yml to build this image yourself.
-FROM blockstream/jade_builder_base@sha256:3d0c9d275f05e849b0caf4d5846c88c57fbc7f9b74c763693d8dd92fee13987c
+FROM blockstream/jade_builder_base@sha256:6f64874834696a7af1f77019ab2aee400d351146bc0de8bbfc9f5b30bf8f7cf9
 
 # These ARGs are easily parseable (eg by HWI)
-ARG ESP_IDF_BRANCH=v5.4.3
-ARG ESP_IDF_COMMIT=ea1c174c1cbb7348bd8ba0ff1eb306246938dd80
+ARG ESP_IDF_BRANCH=v5.4
+ARG ESP_IDF_COMMIT=67c1de1eebe095d554d281952fde63c16ee2dca0
 
 COPY requirements.txt /
 

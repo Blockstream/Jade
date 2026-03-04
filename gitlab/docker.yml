@@ -22,7 +22,7 @@ build_jade_builder_base:
     - wget https://github.com/espressif/esp-idf/raw/refs/tags/v5.4.3/tools/docker/entrypoint.sh
     - docker build
       --network=host
-      --build-arg IDF_CLONE_BRANCH_OR_TAG=v5.4.3
+      --build-arg IDF_CLONE_BRANCH_OR_TAG=v5.4
       --build-arg IDF_CLONE_SHALLOW=1
       --build-arg IDF_INSTALL_TARGETS=esp32,esp32s3
       -t blockstream/jade_builder_base:${CI_COMMIT_SHA}
