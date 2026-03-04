@@ -194,16 +194,30 @@ if [ "$LOG" = "cbor" ]; then
     LOG="uart" # Enable UART logging below
 elif [ "$LOG" = "wifi" ]; then
     echo "updating config file for WIFI logging ..."
+    DEFAULT_SSID=""
+    DEFAULT_PASSWORD=""
+    SHOW_DEFAULT_SSID=""
+    SHOW_DEFAULT_PASSWORD=""
+    if have_cmd nmcli; then
+        WIFI_CONNECTED=$(nmcli -f type,state device status | awk '$1=="wifi" && $2=="connected"' || true)
+        if [ -n "$WIFI_CONNECTED" ]; then
+            WIFI_DETAILS=$(nmcli dev wifi show-password 2>/dev/null || true)
+            DEFAULT_SSID=$(echo "$WIFI_DETAILS" | grep "SSID:" | awk -F'SSID: ' '{print $2}')
+            SHOW_DEFAULT_SSID=" [${DEFAULT_SSID}]"
+            DEFAULT_PASSWORD=$(echo "$WIFI_DETAILS" | grep "Password:" | awk -F'Password: ' '{print $2}')
+            SHOW_DEFAULT_PASSWORD=" [${DEFAULT_PASSWORD}]"
+        fi
+    fi
     DEFAULT_IP="192.168.1.100"
     if have_cmd ip; then
         DEFAULT_IP=$(ip addr show $(ip route | awk '/default/ { print $5 }') | grep "inet" | head -n 1 | awk '/inet/ {print $2}' | cut -d'/' -f1 | cut -d'.' -f1,2,3)
         DEFAULT_IP="${DEFAULT_IP}.100"
     fi
     set_config CONFIG_LOG_WIFI y
-    read -r -p "Enter WIFI SSID: " SSID
-    set_config CONFIG_WIFI_SSID "\"$SSID\""
-    read -r -p "Enter WIFI Password: " PASSWORD
-    set_config CONFIG_WIFI_PASSWORD "\"$PASSWORD\""
+    read -r -p "Enter WIFI SSID${SHOW_DEFAULT_SSID}: " SSID
+    set_config CONFIG_WIFI_SSID "\"${SSID:-${DEFAULT_SSID}}\""
+    read -r -p "Enter WIFI Password${SHOW_DEFAULT_PASSWORD}: " PASSWORD
+    set_config CONFIG_WIFI_PASSWORD "\"${PASSWORD:-${DEFAULT_PASSWORD}}\""
     read -r -p "Enter socket server IP [${DEFAULT_IP}]: " IP
     set_config CONFIG_WIFI_LOGGER_IP "\"${IP:-${DEFAULT_IP}}\""
     read -r -p "Enter socket server PORT [8888]: " PORT
