@@ -1,6 +1,7 @@
 #ifndef AMALGAMATED_BUILD
 #include "../button_events.h"
 #include "../ui.h"
+#include "../utils/util.h"
 #include "jade_assert.h"
 
 // Should the address be displayed a formatted grid, or as a single long string (traditional)
@@ -19,43 +20,6 @@
 
 #define ADDR_GRID_SIZE (ADDR_GRID_X * ADDR_GRID_Y)
 #define ADDR_TEXTSPLITLEN (MAX_DISPLAY_ADDRESS_LEN / ADDR_GRID_SIZE)
-
-// The length of the required buffer to hold 'len' characters
-// with a nul-terminator injected every 'wordlen' characters, and
-// at the very end.  eg. for "abcdefhij\0" -> "abc\0def\0ghi\0j\0"
-#define SPLIT_TEXT_LEN(len, wordlen) (len + (len / wordlen) + 1)
-
-// Helper to copy text from one buffer to another, where the destination has terminators every
-// 'wordlen' chars, eg: "abcdefghi\0" -> "abc\0def\0ghi\0j\0"
-// output 'num_words' is number of 'words' written - eg. 4
-// output 'written' is number iof bytes written, including all '\0's - eg. 14
-static void split_text(const char* src, const size_t len, const size_t wordlen, char* output, const size_t output_len,
-    size_t* num_words, size_t* written)
-{
-    JADE_ASSERT(src);
-    JADE_ASSERT(wordlen);
-    JADE_ASSERT(output);
-    JADE_ASSERT(output_len >= SPLIT_TEXT_LEN(len, wordlen));
-    JADE_INIT_OUT_SIZE(num_words);
-    JADE_INIT_OUT_SIZE(written);
-
-    size_t read = 0;
-    size_t write = 0;
-    while (read < len) {
-        const size_t remaining = len - read;
-        const size_t nchars = remaining > wordlen ? wordlen : remaining;
-
-        JADE_ASSERT(write + nchars + 1 <= output_len);
-        strncpy(output + write, src + read, nchars);
-        read += nchars;
-        write += nchars;
-
-        output[write++] = '\0';
-        ++*num_words;
-    }
-    JADE_ASSERT(write <= output_len);
-    *written = write;
-}
 #endif // ADDRESS_STRING_GRID
 
 // also used in sign_tx

@@ -66,4 +66,32 @@ bool is_potential_green_server_path(const uint32_t* path, const size_t path_len,
     *subaccount_out = path_len == MAX_GASERVICE_PATH_LEN ? path[path_len - 2] : 0;
     return true;
 }
+
+void split_text(const char* src, const size_t len, const size_t wordlen, char* output, const size_t output_len,
+    size_t* num_words, size_t* written)
+{
+    JADE_ASSERT(src);
+    JADE_ASSERT(wordlen);
+    JADE_ASSERT(output);
+    JADE_ASSERT(output_len >= SPLIT_TEXT_LEN(len, wordlen));
+    JADE_INIT_OUT_SIZE(num_words);
+    JADE_INIT_OUT_SIZE(written);
+
+    size_t read = 0;
+    size_t write = 0;
+    while (read < len) {
+        const size_t remaining = len - read;
+        const size_t nchars = remaining > wordlen ? wordlen : remaining;
+
+        JADE_ASSERT(write + nchars + 1 <= output_len);
+        strncpy(output + write, src + read, nchars);
+        read += nchars;
+        write += nchars;
+
+        output[write++] = '\0';
+        ++*num_words;
+    }
+    JADE_ASSERT(write <= output_len);
+    *written = write;
+}
 #endif // AMALGAMATED_BUILD
