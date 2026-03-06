@@ -7,6 +7,8 @@
 #include <freertos/semphr.h>
 #include <freertos/task.h>
 
+#include <wally_core.h>
+
 #include "display.h"
 
 #include "ble/ble.h"
@@ -956,7 +958,8 @@ static void free_view_node_text_data(void* vdata)
     struct view_node_text_data* data = vdata;
 
     // free the char* that we allocated
-    free(data->text);
+    // Use wally_free_string in case the text is sensitive
+    wally_free_string(data->text);
 
     // also the scroll struct if present
     if (data->scroll) {
