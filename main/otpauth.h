@@ -13,6 +13,9 @@
 
 #define OTP_SCHEMA "otpauth"
 #define OTP_SCHEMA_FULL "otpauth://"
+#define OTP_MIGRATE_SCHEMA "otpauth-migration"
+#define OTP_MIGRATE_SCHEMA_FULL "otpauth-migration://"
+#define OTP_MIGRATE_HOST "offline"
 
 typedef struct otpauth_ctx {
     uint64_t counter;
@@ -33,12 +36,24 @@ typedef struct otpauth_ctx {
     int8_t period;
 } otpauth_ctx_t;
 
+typedef struct otpauth_migrate_decode_ctx {
+    // otpauth:// uris for each record decoded from the migrate uri
+    char** uris_out;
+    // length of the 'uris_out' array (ie. max number of uris to decode)
+    size_t uris_out_len;
+} otpauth_migrate_ctx_t;
+
 typedef enum { OTP_ERR_OK, OTP_ERR_TOTP_TIME, OTP_ERR_HOTP_COUNTER } otp_err_t;
 
 bool otp_is_valid(const otpauth_ctx_t* otp_ctx);
 
 // Parse the otp uri into a context object
 bool otp_uri_to_ctx(const char* uri, size_t uri_len, otpauth_ctx_t* otp_ctx);
+
+// Parse the otp migrate uri into a context object
+bool otp_migrate_uri_to_ctx(const char* uri, size_t uri_len, size_t max_uris, otpauth_migrate_ctx_t* ctx);
+// Free the context object from parsing (whether successful or not)
+void otp_migrate_uri_to_ctx_free(otpauth_migrate_ctx_t* ctx);
 
 // Update the context object with an explicit or default/calculated nonce value
 void otp_set_explicit_value(otpauth_ctx_t* otp_ctx, int64_t value);

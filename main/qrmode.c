@@ -81,6 +81,7 @@ gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_
 
 bool import_mnemonic(const uint8_t* bytes, size_t bytes_len, char* buf, size_t buf_len, size_t* written);
 int register_otp_string(const char* otp_uri, size_t uri_len, const char** errmsg);
+int register_otp_migrate_string(const char* otp_uri, size_t uri_len, const char** errmsg);
 int register_multisig_file(const char* multisig_file, size_t multisig_file_len, const char** errmsg);
 int update_pinserver(const CborValue* const params, const char** errmsg);
 int params_set_epoch_time(CborValue* params, const char** errmsg);
@@ -1027,6 +1028,19 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         const int errcode = register_otp_string(strbytes, bytes_len, &errmsg);
         if (errcode) {
             JADE_LOGE("Processing OTP URI failed: %s", errmsg);
+            return false;
+        }
+        return true;
+    }
+
+    // Try to handle as otpauth-migrate string
+    if (bytes_len > sizeof(OTP_MIGRATE_SCHEMA_FULL)
+        && !strncasecmp(strbytes, OTP_MIGRATE_SCHEMA_FULL, sizeof(OTP_MIGRATE_SCHEMA_FULL) - 1)) {
+        // Looks like an OTP MIGRATE URI
+        const char* errmsg = NULL;
+        const int errcode = register_otp_migrate_string(strbytes, bytes_len, &errmsg);
+        if (errcode) {
+            JADE_LOGE("Processing OTP MIGRATE URI failed: %s", errmsg);
             return false;
         }
         return true;

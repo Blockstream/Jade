@@ -6,10 +6,14 @@
 #include "keychain.h"
 #include "sensitive.h"
 #include "storage.h"
+#include "utils/malloc_ext.h"
+#include "utils/urldecode.h"
 #include "utils/util.h"
 
+#include <google-otpauth-migration.pb.h>
 #include <http_parser.h>
 #include <mbedtls/md.h>
+#include <pb_decode.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -18,6 +22,9 @@
 
 #define MBEDTLS_SHA512_HMAC_LEN 64
 #define SECRET_BUFSIZE 256
+
+// Max byte length of a protobuf string field (name/issuer) in an OTP migration payload
+#define OTP_MIGRATE_PB_FIELD_LEN 64
 
 static const uint8_t OTP_HMAC_KEY[] = { 'O', 'T', 'P', 's', 'e', 'e', 'd' };
 
@@ -202,6 +209,378 @@ bool otp_uri_to_ctx(const char* uri, size_t uri_len, otpauth_ctx_t* otp_ctx)
     }
 
     return otp_is_valid(otp_ctx);
+}
+
+#define OTP_MIGRATE_SCHEMA_OFFSET 8
+#define OTP_MIGRATE_REQ_FIELDS ((1 << UF_SCHEMA) | (1 << UF_HOST) | (1 << UF_QUERY))
+#define OTP_MIGRATE_INVALID_FIELDS ((1 << UF_PORT) | (1 << UF_FRAGMENT))
+
+// NOTE: 'data' ownership is assigned to the caller who must free after use
+static bool otp_migrate_url_to_data(const char* uri, size_t uri_len, uint8_t** data, size_t* data_len)
+{
+    JADE_ASSERT(uri);
+    JADE_INIT_OUT_PPTR(data);
+    JADE_INIT_OUT_SIZE(data_len);
+
+    // http_parser_parse_url() does not like non-alphabetic chars in the schema
+    if (strncmp(uri, OTP_MIGRATE_SCHEMA, sizeof(OTP_MIGRATE_SCHEMA) - 1) == 0) {
+        // change schema to remove '-' char
+        uri += OTP_MIGRATE_SCHEMA_OFFSET;
+        uri_len -= OTP_MIGRATE_SCHEMA_OFFSET;
+    }
+
+    struct http_parser_url u;
+    http_parser_url_init(&u);
+    OTP_CHECK_BOOL_RETURN(http_parser_parse_url(uri, uri_len, 0, &u) == 0);
+
+    if (u.field_data[UF_SCHEMA].len != 9
+        || strncmp(OTP_MIGRATE_SCHEMA + OTP_MIGRATE_SCHEMA_OFFSET, uri + u.field_data[UF_SCHEMA].off,
+            u.field_data[UF_SCHEMA].len)) {
+        JADE_LOGE("otp migrate uri missing expected " OTP_MIGRATE_SCHEMA_FULL " schema");
+        return false;
+    }
+
+    OTP_CHECK_BOOL_RETURN((u.field_set & OTP_MIGRATE_REQ_FIELDS) == OTP_MIGRATE_REQ_FIELDS);
+    OTP_CHECK_BOOL_RETURN(!(u.field_set & OTP_MIGRATE_INVALID_FIELDS));
+
+    // 'offline' string is in the 'host' position
+    if (u.field_data[UF_HOST].len != 7
+        || strncmp(OTP_MIGRATE_HOST, uri + u.field_data[UF_HOST].off, u.field_data[UF_HOST].len)) {
+        JADE_LOGE("otp migrate uri missing expected " OTP_MIGRATE_HOST " host");
+        return false;
+    }
+
+    // Remaining field is in the query/parameters string
+    const char* query = uri + u.field_data[UF_QUERY].off;
+    const size_t query_len = u.field_data[UF_QUERY].len;
+
+    // 'data' is mandatory
+    const char* data_param = NULL;
+    size_t data_param_len = 0;
+    OTP_CHECK_BOOL_RETURN(get_query_argument(query, query_len, "data", &data_param, &data_param_len));
+    OTP_CHECK_BOOL_RETURN(data_param && data_param_len);
+
+    // urldecode the data query parameter
+    char* data_b64 = JADE_MALLOC(data_param_len + 1);
+    SENSITIVE_PUSH(data_b64, data_param_len + 1);
+    if (!urldecode(data_param, data_param_len, data_b64, data_param_len + 1)) {
+        JADE_LOGE("Failed to urldecode otp migrate data");
+        SENSITIVE_POP(data_b64);
+        free(data_b64);
+        return false;
+    }
+    size_t data_b64_len = strlen(data_b64);
+
+    // convert from base64
+    size_t data_max_len;
+    JADE_WALLY_VERIFY(wally_base64_get_maximum_length(data_b64, 0, &data_max_len));
+    *data = JADE_MALLOC(data_max_len);
+    JADE_WALLY_VERIFY(wally_base64_n_to_bytes(data_b64, data_b64_len, 0, *data, data_max_len, data_len));
+    SENSITIVE_POP(data_b64);
+    free(data_b64);
+
+    return true;
+}
+
+static bool otp_uri_insert(char* uri, const char* prefix, const char* value)
+{
+    const size_t prefix_len = strlen(prefix);
+    const size_t value_len = strlen(value);
+    const size_t uri_len = strlen(uri);
+    if (uri_len + value_len >= OTP_MAX_URI_LEN) {
+        return false;
+    }
+    memmove(uri + prefix_len + value_len, uri + prefix_len, uri_len - prefix_len + 1);
+    memcpy(uri + prefix_len, value, value_len);
+    return true;
+}
+
+static size_t pb_read_stream(pb_istream_t* stream, const char* name, uint8_t* buf, size_t buf_len)
+{
+    const size_t num_bytes = stream->bytes_left;
+    if (num_bytes > buf_len) {
+        JADE_LOGE("%s buffer too small", name);
+        return 0;
+    }
+    if (!pb_read(stream, buf, num_bytes)) {
+        JADE_LOGE("%s read failed", name);
+        return 0;
+    }
+    return num_bytes;
+}
+
+static bool append_uri_param(char* uri, const char* key, const char* value, bool first)
+{
+    const size_t uri_len = strlen(uri);
+    int n = snprintf(uri + uri_len, OTP_MAX_URI_LEN - uri_len, "%c%s=%s", first ? '?' : '&', key, value);
+    if (n < 0 || n >= OTP_MAX_URI_LEN - uri_len) {
+        return false;
+    }
+    return true;
+}
+
+static bool decode_secret_fn(pb_istream_t* stream, const pb_field_t* field, void** arg)
+{
+    uint8_t buf[32];
+    SENSITIVE_PUSH(buf, sizeof(buf));
+    const size_t buf_len = pb_read_stream(stream, "secret", buf, sizeof(buf));
+    if (!buf_len) {
+        SENSITIVE_POP(buf);
+        return false;
+    }
+
+    // convert to base32
+    char base32[sizeof(buf) * 2];
+    SENSITIVE_PUSH(base32, sizeof(base32));
+    const bool use_padding = false; // padding not used for uris because '=' char is not url-safe
+    bool ret = bin_to_base32(buf, buf_len, base32, sizeof(base32), use_padding);
+    if (ret) {
+        // write to output arg
+        char* opt_uri = (char*)(*arg);
+        ret = append_uri_param(opt_uri, "secret", base32, true);
+    }
+    SENSITIVE_POP(base32);
+    SENSITIVE_POP(buf);
+    return ret;
+}
+
+typedef struct {
+    char* uri_out;
+    // Buffers to hold url-encoded name and issuer, populated during pb_decode.
+    // URI construction is deferred to after pb_decode to avoid field-ordering issues.
+    // https://protobuf.dev/programming-guides/encoding/#order
+    char name_encoded[OTP_MIGRATE_PB_FIELD_LEN * 3 + 1];
+    bool has_name;
+    bool name_has_colon;
+    char issuer_encoded[OTP_MIGRATE_PB_FIELD_LEN * 3 + 1];
+    bool has_issuer;
+} otp_migrate_decode_str_ctx_t;
+
+static bool decode_name_fn(pb_istream_t* stream, const pb_field_t* field, void** arg)
+{
+    uint8_t buf[OTP_MIGRATE_PB_FIELD_LEN];
+    const size_t buf_len = pb_read_stream(stream, "name", buf, sizeof(buf) - 1);
+    if (!buf_len) {
+        return false;
+    }
+    buf[buf_len] = '\0';
+
+    JADE_LOGI("Decoded name: %s", buf);
+
+    otp_migrate_decode_str_ctx_t* str_ctx = (otp_migrate_decode_str_ctx_t*)(*arg);
+
+    // check if name contains a ':' character, in which case we will not prefix the name
+    // with the issuer later on
+    str_ctx->name_has_colon = memchr(buf, ':', buf_len) != NULL;
+
+    // uriencode the name value and store for post-decode URI construction
+    if (!urlencode((char*)buf, buf_len, str_ctx->name_encoded, sizeof(str_ctx->name_encoded))) {
+        return false;
+    }
+    str_ctx->has_name = true;
+    return true;
+}
+
+static bool decode_issuer_fn(pb_istream_t* stream, const pb_field_t* field, void** arg)
+{
+    uint8_t buf[OTP_MIGRATE_PB_FIELD_LEN];
+    const size_t buf_len = pb_read_stream(stream, "issuer", buf, sizeof(buf) - 1);
+    if (!buf_len) {
+        return false;
+    }
+    buf[buf_len] = '\0';
+
+    JADE_LOGI("Decoded issuer: %s", buf);
+
+    otp_migrate_decode_str_ctx_t* str_ctx = (otp_migrate_decode_str_ctx_t*)(*arg);
+
+    // uriencode the issuer value and store for post-decode URI construction
+    if (!urlencode((char*)buf, buf_len, str_ctx->issuer_encoded, sizeof(str_ctx->issuer_encoded))) {
+        return false;
+    }
+    str_ctx->has_issuer = true;
+    return true;
+}
+
+static bool decode_otp_parameters_fn(pb_istream_t* stream, const pb_field_t* field, void** arg)
+{
+    otpauth_migrate_ctx_t* ctx = (otpauth_migrate_ctx_t*)(*arg);
+
+    // find first empty slot in output array
+    size_t i;
+    for (i = 0; i < ctx->uris_out_len; ++i) {
+        if (ctx->uris_out[i] == NULL) {
+            break;
+        }
+    }
+    if (i == ctx->uris_out_len) {
+        JADE_LOGE("Too many OTP records in migration data, max supported is %zu", ctx->uris_out_len);
+        return false;
+    }
+
+    // allocate output URI buffer
+    ctx->uris_out[i] = JADE_MALLOC(OTP_MAX_URI_LEN);
+    char* uri_out = ctx->uris_out[i];
+
+    // start with schema
+    const int ret = snprintf(uri_out, OTP_MAX_URI_LEN, OTP_SCHEMA_FULL);
+    JADE_ASSERT(ret > 0 && ret < OTP_MAX_URI_LEN);
+
+    // decode the message into the URI
+    MigrationPayload_OtpParameters message = MigrationPayload_OtpParameters_init_zero;
+    message.secret.funcs.decode = decode_secret_fn;
+    message.secret.arg = uri_out;
+    otp_migrate_decode_str_ctx_t str_ctx = { .uri_out = uri_out,
+        .name_encoded = { 0 },
+        .has_name = false,
+        .name_has_colon = false,
+        .issuer_encoded = { 0 },
+        .has_issuer = false };
+    message.name.funcs.decode = decode_name_fn;
+    message.name.arg = &str_ctx;
+    message.issuer.funcs.decode = decode_issuer_fn;
+    message.issuer.arg = &str_ctx;
+    if (!pb_decode(stream, MigrationPayload_OtpParameters_fields, &message)) {
+        JADE_LOGE("otp migrate data decode failed");
+        return false;
+    }
+
+    // Insert name and issuer into URI now that all fields are decoded, avoiding
+    // field-ordering issues that might arise if done inside the individual callbacks.
+    if (str_ctx.has_name) {
+        if (!otp_uri_insert(uri_out, OTP_SCHEMA_FULL, str_ctx.name_encoded)) {
+            return false;
+        }
+    }
+    if (str_ctx.has_issuer) {
+        if (!str_ctx.name_has_colon) {
+            // prefix label with "issuer:" to form "otpauth://<type>/<issuer>:<name>?..."
+            if (!otp_uri_insert(uri_out, OTP_SCHEMA_FULL, ":")) {
+                return false;
+            }
+            if (!otp_uri_insert(uri_out, OTP_SCHEMA_FULL, str_ctx.issuer_encoded)) {
+                return false;
+            }
+        }
+        if (!append_uri_param(uri_out, "issuer", str_ctx.issuer_encoded, false)) {
+            return false;
+        }
+    }
+
+    // insert OTP type
+    switch (message.type) {
+    case MigrationPayload_OtpType_OTP_TYPE_HOTP:
+        if (!otp_uri_insert(uri_out, OTP_SCHEMA_FULL, "hotp/")) {
+            return false;
+        }
+        break;
+    case MigrationPayload_OtpType_OTP_TYPE_TOTP:
+        if (!otp_uri_insert(uri_out, OTP_SCHEMA_FULL, "totp/")) {
+            return false;
+        }
+        break;
+    default:
+        JADE_LOGE("Unsupported OTP type: %d", (int)message.type);
+        return false;
+    }
+
+    // add algorithm if not default (SHA1)
+    if (message.algorithm != MigrationPayload_Algorithm_ALGORITHM_SHA1) {
+        const char* algo = NULL;
+        switch (message.algorithm) {
+        case MigrationPayload_Algorithm_ALGORITHM_SHA256:
+            algo = "SHA256";
+            break;
+        case MigrationPayload_Algorithm_ALGORITHM_SHA512:
+            algo = "SHA512";
+            break;
+        case MigrationPayload_Algorithm_ALGORITHM_MD5:
+            algo = "MD5";
+            break;
+        default:
+            JADE_LOGE("Unsupported algorithm: %d", (int)message.algorithm);
+            return false;
+        }
+        if (!append_uri_param(uri_out, "algorithm", algo, false)) {
+            return false;
+        }
+    }
+
+    // add digits if not default (6)
+    if (message.digits != MigrationPayload_DigitCount_DIGIT_COUNT_SIX) {
+        switch (message.digits) {
+        case MigrationPayload_DigitCount_DIGIT_COUNT_EIGHT:
+            if (!append_uri_param(uri_out, "digits", "8", false)) {
+                return false;
+            }
+            break;
+        default:
+            JADE_LOGE("Unsupported digit count: %d", (int)message.digits);
+            return false;
+        }
+    }
+
+    // add counter if HOTP and counter > 0
+    if (message.type == MigrationPayload_OtpType_OTP_TYPE_HOTP && message.counter > 0) {
+        char counter_str[21]; // Big enough to hold 64-bit integer
+        const int ret = snprintf(counter_str, sizeof(counter_str), "%" PRId64, message.counter);
+        JADE_ASSERT(ret > 0 && ret < sizeof(counter_str));
+        if (!append_uri_param(uri_out, "counter", counter_str, false)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void otp_migrate_uri_to_ctx_free(otpauth_migrate_ctx_t* ctx)
+{
+    JADE_ASSERT(ctx && ctx->uris_out);
+    for (size_t i = 0; i < ctx->uris_out_len; ++i) {
+        if (ctx->uris_out[i]) {
+            JADE_WALLY_VERIFY(wally_free_string(ctx->uris_out[i]));
+            ctx->uris_out[i] = NULL;
+        }
+    }
+    free(ctx->uris_out);
+    ctx->uris_out = NULL;
+    ctx->uris_out_len = 0;
+}
+
+bool otp_migrate_uri_to_ctx(const char* uri, const size_t uri_len, const size_t max_uris, otpauth_migrate_ctx_t* ctx)
+{
+    JADE_ASSERT(uri && uri_len);
+    JADE_ASSERT(max_uris);
+    JADE_ASSERT(ctx);
+
+    // Initialize the context
+    ctx->uris_out = JADE_CALLOC(max_uris, sizeof(char*));
+    ctx->uris_out_len = max_uris;
+
+    // convert the otpauth-migration data param (base64) into binary data
+    uint8_t* data;
+    size_t data_len;
+    OTP_CHECK_BOOL_RETURN(otp_migrate_url_to_data(uri, uri_len, &data, &data_len));
+    SENSITIVE_PUSH(data, data_len);
+
+    bool result = false;
+
+    // protobuf decode
+    MigrationPayload message = MigrationPayload_init_zero;
+    message.otp_parameters.funcs.decode = decode_otp_parameters_fn;
+    message.otp_parameters.arg = ctx;
+    pb_istream_t stream = pb_istream_from_buffer(data, data_len);
+    if (!pb_decode(&stream, MigrationPayload_fields, &message)) {
+        JADE_LOGE("otp migrate data decode failed");
+        goto cleanup;
+    }
+
+    result = true;
+
+cleanup:
+    SENSITIVE_POP(data);
+    free(data);
+
+    return result;
 }
 
 void otp_set_explicit_value(otpauth_ctx_t* otp_ctx, const int64_t value)
