@@ -3,8 +3,9 @@
 #include "../jade_assert.h"
 
 #include <ctype.h>
+#include <stdio.h>
 
-static inline char map_char(char c)
+static char map_char(char c)
 {
     // Helper to map url-encoded %-escaped character
     JADE_ASSERT(isxdigit(c));
@@ -58,6 +59,54 @@ bool urldecode(const char* src, const size_t src_len, char* dest, const size_t d
         } else {
             // Copy across
             *dest++ = *src++;
+        }
+    }
+
+    JADE_ASSERT(dest < dest_end);
+    *dest = '\0';
+    return true;
+}
+
+// Simple urlencode function - special chars are replaced by %XX, space is replaced by '+',
+// and anything else is copied verbatim.
+// The output string is always nul-terminated (although the input need not be).
+bool urlencode(const char* src, const size_t src_len, char* dest, const size_t dest_len)
+{
+    JADE_ASSERT(src);
+    JADE_ASSERT(src_len);
+    JADE_ASSERT(dest);
+    JADE_ASSERT(dest_len);
+
+    const char* src_end = src + src_len;
+    const char* dest_end = dest + dest_len;
+
+    while (src < src_end) {
+        if (dest > dest_end - 2) {
+            // Destination insufficient - need at least 1 char for encoding and 1 for nul-terminator.
+            // Truncate (terminate) here and return false.
+            *dest = '\0';
+            return false;
+        }
+
+        if (isalnum((unsigned char)*src) || *src == '-' || *src == '_' || *src == '.' || *src == '~') {
+            // Non-encoded character - copy across
+            *dest++ = *src++;
+        } else if (*src == ' ') {
+            // Space is encoded as '+'
+            *dest++ = '+';
+            ++src;
+        } else {
+            if (dest > dest_end - 4) {
+                // Destination insufficient - need 3 chars for encoding and 1 for nul-terminator.
+                // Truncate (terminate) here and return false.
+                *dest = '\0';
+                return false;
+            }
+
+            // Encode as %XX
+            snprintf(dest, dest_end - dest, "%%%02X", (unsigned char)*src);
+            ++src;
+            dest += 3;
         }
     }
 
