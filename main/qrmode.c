@@ -941,7 +941,6 @@ static gui_activity_t* create_display_bcur_qr_activity(const char* message[], co
     return make_show_qr_activity(message, message_size, icons, num_icons, frames_per_qr, show_options_button);
 }
 
-// Display a QR code, with access to size/speed options
 static void display_bcur_qr(const char* message[], const size_t message_size, const char* bcur_type,
     const uint8_t* cbor, const size_t cbor_len, const char* help_url)
 {
@@ -1151,10 +1150,17 @@ cleanup:
     return ret;
 }
 
+void show_bip85_bip39_entropy_qr(const uint8_t* cbor, const size_t cbor_len)
+{
+    JADE_ASSERT(cbor && cbor_len);
+    const char* message[] = { "Scan with", "wallet", "app" };
+    display_bcur_qr(message, 3, BCUR_TYPE_JADE_BIP8539_REPLY, cbor, cbor_len, "blkstrm.com/bip85");
+}
+
+// Returns false if an error occured or the user cancelled the action
 static bool handle_bip85_bip39_request_qr(const uint8_t* cbor, const size_t cbor_len)
 {
-    JADE_ASSERT(cbor);
-    JADE_ASSERT(cbor_len);
+    JADE_ASSERT(cbor && cbor_len);
 
     // Parse cbor
     CborValue root;
@@ -1166,28 +1172,30 @@ static bool handle_bip85_bip39_request_qr(const uint8_t* cbor, const size_t cbor
         return false;
     }
 
-    uint8_t cbor_reply[176]; // sufficient
-    CborEncoder reply_encoder;
-    cbor_encoder_init(&reply_encoder, cbor_reply, sizeof(cbor_reply), 0);
-
     const char* errmsg = NULL;
+    uint8_t reply_cbor[176]; // sufficient for encrypted bip85 reply
+    SENSITIVE_PUSH(reply_cbor, sizeof(reply_cbor));
+
+    CborEncoder reply_encoder;
+    cbor_encoder_init(&reply_encoder, reply_cbor, sizeof(reply_cbor), 0);
+
     const int errcode = get_bip85_bip39_entropy_cbor(&root, &reply_encoder, &errmsg);
     if (errcode) {
         if (errcode != CBOR_RPC_USER_CANCELLED) {
             JADE_LOGE("Error generating encrypted bip85 entropy: %s", errmsg);
-            const char* message[] = { "Error in bip85/bip39", errmsg };
+            const char* message[] = { "Error generating entropy", errmsg };
             await_error_activity(message, 2);
         }
+        // An error occurred, or the user cancelled the action
+        SENSITIVE_POP(reply_cbor);
         return false;
     }
 
-    const size_t reply_cbor_len = cbor_encoder_get_buffer_size(&reply_encoder, cbor_reply);
-    JADE_ASSERT(reply_cbor_len && reply_cbor_len <= sizeof(cbor_reply));
+    const size_t reply_cbor_len = cbor_encoder_get_buffer_size(&reply_encoder, reply_cbor);
+    JADE_ASSERT(reply_cbor_len && reply_cbor_len <= sizeof(reply_cbor));
 
-    // Now display bcur QR
-    const char* message[] = { "Scan with", "wallet", "app" };
-    display_bcur_qr(message, 3, BCUR_TYPE_JADE_BIP8539_REPLY, cbor_reply, reply_cbor_len, "blkstrm.com/bip85");
-
+    show_bip85_bip39_entropy_qr(reply_cbor, reply_cbor_len);
+    SENSITIVE_POP(reply_cbor);
     return true;
 }
 

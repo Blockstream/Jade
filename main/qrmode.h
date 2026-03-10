@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <cbor.h>
+
 #include "otpauth.h"
 
 // NOTE: Jade only supports the bip39 English wordlist,
@@ -27,6 +29,9 @@ void handle_scan_qr(void);
 // Display a BC-UR bytes message
 bool display_bcur_bytes_qr(
     const char* message[], size_t message_size, const uint8_t* data, size_t data_len, const char* help_url);
+
+// Display bip85/bip39 encrypted entropy as BC-UR QR.
+void show_bip85_bip39_entropy_qr(const uint8_t* cbor, const size_t cbor_len);
 
 // Display screen with qr code
 // Handles up to v6. codes - ie text up to 134 bytes

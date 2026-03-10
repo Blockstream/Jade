@@ -1,13 +1,16 @@
 #ifndef AMALGAMATED_BUILD
 #include "../aes.h"
+#include "../bcur.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../process.h"
+#include "../qrmode.h"
 #include "../random.h"
 #include "../rsa.h"
 #include "../sensitive.h"
 #include "../ui.h"
+#include "../utils/util.h"
 #include "../wallet.h"
 
 #include "process_utils.h"
@@ -22,8 +25,6 @@ typedef struct {
     uint8_t pubkey[EC_PUBLIC_KEY_LEN];
     size_t encrypted_len;
 } bip85_data_t;
-
-void await_qr_help_activity(const char* url);
 
 static void populate_bip85_reply_data(CborEncoder* container, const bip85_data_t* bip85_data)
 {
@@ -170,7 +171,7 @@ static int get_bip85_bip39_entropy_data(const CborValue* params, bip85_data_t* b
     }
 
     size_t index = 0;
-    if (!rpc_get_sizet("index", params, &index)) {
+    if (!rpc_get_sizet("index", params, &index) || index > BIP32_MAX_CHILD_INDEX) {
         *errmsg = "Failed to fetch valid index from message";
         return CBOR_RPC_BAD_PARAMETERS;
     }
@@ -186,12 +187,10 @@ static int get_bip85_bip39_entropy_data(const CborValue* params, bip85_data_t* b
     // Special case for cross-chain swaps
     if (nwords == 12 && index == 26589) {
         // User to confirm
-        const char* message[] = { "Scan successful!", "Continue to pair", "with wallet app." };
+        const char* message[] = { "Continue to pair", "with wallet app." };
 
-        if (!await_continueback_activity("Enable Swaps", message, 3, false, "blkstrm.com/bip85")) {
-            // User declined
-            *errmsg = "User declined to export entropy";
-            return CBOR_RPC_USER_CANCELLED;
+        if (!await_continueback_activity("Enable Swaps", message, 2, false, "blkstrm.com/swaps85")) {
+            goto user_cancel;
         }
     } else {
         // User to confirm
@@ -199,14 +198,14 @@ static int get_bip85_bip39_entropy_data(const CborValue* params, bip85_data_t* b
         int ret = snprintf(nwordphrase, sizeof(nwordphrase), "%u word seed phrase", nwords);
         JADE_ASSERT(ret > 0 && ret < sizeof(nwordphrase));
 
-        char txtindex[24];
+        char txtindex[32];
         ret = snprintf(txtindex, sizeof(txtindex), "for BIP85 index %u?", index);
         JADE_ASSERT(ret > 0 && ret < sizeof(txtindex));
 
         const char* message[] = { "Export an encrypted", nwordphrase, txtindex };
 
         if (!await_continueback_activity("Key Export", message, 3, false, "blkstrm.com/bip85")) {
-            // User declined
+        user_cancel:
             *errmsg = "User declined to export entropy";
             return CBOR_RPC_USER_CANCELLED;
         }
@@ -236,7 +235,7 @@ static int get_bip85_rsa_entropy_data(const CborValue* params, bip85_data_t* bip
     }
 
     size_t index = 0;
-    if (!rpc_get_sizet("index", params, &index)) {
+    if (!rpc_get_sizet("index", params, &index) || index > BIP32_MAX_CHILD_INDEX) {
         *errmsg = "Failed to fetch valid index from message";
         return CBOR_RPC_BAD_PARAMETERS;
     }
@@ -254,7 +253,7 @@ static int get_bip85_rsa_entropy_data(const CborValue* params, bip85_data_t* bip
     int ret = snprintf(nwordphrase, sizeof(nwordphrase), "%u rsa key size", key_bits);
     JADE_ASSERT(ret > 0 && ret < sizeof(nwordphrase));
 
-    char txtindex[24];
+    char txtindex[32];
     ret = snprintf(txtindex, sizeof(txtindex), "for BIP85 index %u?", index);
     JADE_ASSERT(ret > 0 && ret < sizeof(txtindex));
 
@@ -347,5 +346,49 @@ void get_bip85_rsa_entropy_process(void* process_ptr)
 
 cleanup:
     return;
+}
+
+void show_bip85_bip39_entropy_process(void* process_ptr)
+{
+    JADE_LOGI("Starting: %d", xPortGetFreeHeapSize());
+    jade_process_t* process = process_ptr;
+
+    // We expect a current message to be present
+    ASSERT_CURRENT_MESSAGE(process, "show_bip85_bip39_entropy");
+    ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
+    GET_MSG_PARAMS(process);
+
+    const char* errmsg = NULL;
+    uint8_t cbor[176]; // sufficient for encrypted bip85 reply
+    size_t cbor_len;
+
+    SENSITIVE_PUSH(cbor, sizeof(cbor));
+
+    CborEncoder reply_encoder;
+    cbor_encoder_init(&reply_encoder, cbor, sizeof(cbor), 0);
+
+    const int errcode = get_bip85_bip39_entropy_cbor(&params, &reply_encoder, &errmsg);
+    if (errcode) {
+        if (errcode != CBOR_RPC_USER_CANCELLED) {
+            JADE_LOGE("Error generating encrypted bip85 entropy: %s", errmsg);
+            const char* message[] = { "Error in bip85/bip39", errmsg };
+            await_error_activity(message, 2);
+        }
+        // An error occurred, or the user cancelled the action
+        jade_process_reject_message(process, errcode, errmsg);
+        goto cleanup;
+    }
+
+    cbor_len = cbor_encoder_get_buffer_size(&reply_encoder, cbor);
+    JADE_ASSERT(cbor_len && cbor_len <= sizeof(cbor));
+
+    // QR will now display, reply OK
+    jade_process_reply_to_message_ok(process);
+    JADE_LOGI("Success");
+
+    show_bip85_bip39_entropy_qr(cbor, cbor_len);
+
+cleanup:
+    SENSITIVE_POP(cbor);
 }
 #endif // AMALGAMATED_BUILD

@@ -105,6 +105,8 @@ bool parse_uint64(const char* str, size_t str_len, uint64_t* value_out);
 bool parse_uint32(const char* str, size_t str_len, uint32_t* value_out);
 
 // Bip32 path utils
+#define BIP32_MAX_CHILD_INDEX 0x7fffffff
+
 static inline bool ishardened(const uint32_t n) { return n & 0x80000000; }
 static inline uint32_t harden(const uint32_t n) { return n | 0x80000000; }
 static inline uint32_t unharden(const uint32_t n) { return n & ~0x80000000; }

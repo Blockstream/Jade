@@ -8,6 +8,7 @@
 #include "../rsa.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/util.h"
 
 #include "process_utils.h"
 
@@ -128,7 +129,7 @@ bool params_identity_curve_index(CborValue* params, const char** identity, size_
 
     // index is optional
     if (rpc_has_field_data("index", params)) {
-        if (!rpc_get_sizet("index", params, index)) {
+        if (!rpc_get_sizet("index", params, index) || *index > BIP32_MAX_CHILD_INDEX) {
             *errmsg = "Failed to extract valid index from parameters";
             return false;
         }
@@ -422,7 +423,7 @@ bool params_get_bip85_rsa_key(CborValue* params, size_t* key_bits, size_t* index
         return false;
     }
 
-    if (!rpc_get_sizet("index", params, index)) {
+    if (!rpc_get_sizet("index", params, index) || *index > BIP32_MAX_CHILD_INDEX) {
         *errmsg = "Failed to fetch valid index from message";
         return false;
     }

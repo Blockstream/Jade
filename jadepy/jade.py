@@ -758,6 +758,32 @@ class JadeAPI:
                   'pubkey': pubkey}
         return self._jadeRpc('get_bip85_bip39_entropy', params)
 
+    def show_bip85_bip39_entropy(self, num_words, index, pubkey):
+        """
+        RPC call to show bip85-bip39 entropy as a qr code.
+
+        Parameters
+        ----------
+        num_words : int
+            The number of words the entropy is required to produce.
+
+        index : int
+            The index to use in the bip32 path to calculate the entropy.
+
+        pubkey: 33-bytes
+            The host ephemeral pubkey to use to generate a shared ecdh secret to use as an AES key
+            to encrypt the returned entropy.
+
+        Returns
+        -------
+        bool
+            True on success.
+        """
+        params = {'num_words': num_words,
+                  'index': index,
+                  'pubkey': pubkey}
+        return self._jadeRpc('show_bip85_bip39_entropy', params)
+
     def get_bip85_rsa_entropy(self, key_bits, index, pubkey):
         """
         RPC call to fetch encrypted bip85-rsa entropy.
