@@ -94,4 +94,85 @@ void split_text(const char* src, const size_t len, const size_t wordlen, char* o
     JADE_ASSERT(write <= output_len);
     *written = write;
 }
+
+size_t base32_to_bin(const char* b32_str, const size_t b32_str_len, uint8_t* bin, const size_t bin_len)
+{
+    JADE_ASSERT(b32_str && b32_str_len);
+    JADE_ASSERT(bin && bin_len);
+
+    size_t written = 0;
+    unsigned int tmp = 0;
+    uint8_t num_bits = 0;
+    const char* b32_str_end = b32_str + b32_str_len;
+    while (b32_str < b32_str_end && *b32_str) {
+        char ch = *b32_str++;
+
+        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+            ch = (ch & 0x1F) - 1;
+        } else if (ch >= '2' && ch <= '7') {
+            ch -= 24;
+        } else if (ch == '=') {
+            break; // Padding char - end of meaningful input
+        } else {
+            return 0; // Bad character
+        }
+
+        tmp <<= 5;
+        tmp |= ch;
+        num_bits += 5; // Read 5 bits
+        if (num_bits >= 8) {
+            // Write 8 bits
+            if (written >= bin_len) {
+                return 0; // Destination size insufficient
+            }
+            num_bits -= 8;
+            bin[written++] = tmp >> num_bits;
+        }
+    }
+    return written;
+}
+
+static const char b32_alphabet[32] = {
+    // Base 32 encoding characters from rfc4648
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
+    'X', 'Y', 'Z', '2', '3', '4', '5', '6', '7'
+};
+
+bool bin_to_base32(const uint8_t* bin, const size_t bin_len, char* b32_str, const size_t b32_str_len, bool use_padding)
+{
+    JADE_ASSERT(bin && bin_len);
+    JADE_ASSERT(b32_str && b32_str_len);
+
+    const size_t required_chars = (bin_len * 8 + 4) / 5;
+    size_t required_padding = use_padding && required_chars % 8 ? 8 - required_chars % 8 : 0;
+
+    if (b32_str_len < required_chars + required_padding + 1) {
+        JADE_LOGE("Buffer too small in bin_to_base32");
+        return false; // Destination size insufficient
+    }
+
+    unsigned int tmp = 0;
+    uint8_t num_bits = 0;
+    const uint8_t* bin_end = bin + bin_len;
+    char* out = b32_str;
+    while (bin < bin_end) {
+        tmp <<= 8;
+        tmp |= *bin++;
+        num_bits += 8;
+        while (num_bits >= 5) {
+            *out++ = b32_alphabet[(tmp >> (num_bits - 5)) & 0x1F];
+            num_bits -= 5;
+        }
+    }
+    if (num_bits > 0) {
+        *out++ = b32_alphabet[(tmp << (5 - num_bits)) & 0x1F];
+    }
+    // Append '=' padding to a multiple of 8 if requested
+    while (required_padding) {
+        *out++ = '=';
+        --required_padding;
+    }
+    *out = '\0';
+    return true;
+}
 #endif // AMALGAMATED_BUILD

@@ -261,47 +261,6 @@ static inline mbedtls_md_type_t get_md_type(const otpauth_ctx_t* otp_ctx)
     }
 }
 
-static bool base32_to_bin(
-    const char* b32_str, const size_t b32_str_len, uint8_t* b32_dec, const size_t b32_dec_len, size_t* done)
-{
-    JADE_ASSERT(b32_str);
-    JADE_ASSERT(b32_str_len);
-    JADE_ASSERT(b32_dec);
-    JADE_ASSERT(b32_dec_len);
-    JADE_ASSERT(done);
-
-    unsigned int tmp = 0;
-    uint8_t count = 0;
-    *done = 0;
-    const char* b32_str_end = b32_str + b32_str_len;
-    while (b32_str < b32_str_end && *b32_str) {
-        char ch = *b32_str++;
-
-        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-            ch = (ch & 0x1F) - 1;
-        } else if (ch >= '2' && ch <= '7') {
-            ch -= 24;
-        } else {
-            // Bad character
-            return false;
-        }
-
-        tmp <<= 5;
-        tmp |= ch;
-        count += 5;
-        if (count >= 8) {
-            if (*done < b32_dec_len) {
-                b32_dec[(*done)++] = tmp >> (count - 8);
-                count -= 8;
-            } else {
-                // Destination size insufficient
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 static void pad_secret(uint8_t* secret, size_t* secret_len, const size_t min_size)
 {
     JADE_ASSERT(secret);
@@ -335,12 +294,9 @@ static bool prepare_md_ctx(const otpauth_ctx_t* otp_ctx, mbedtls_md_context_t* m
     JADE_ASSERT(otp_is_valid(otp_ctx));
     JADE_ASSERT(md_ctx);
 
+    mbedtls_md_init(md_ctx);
     mbedtls_md_type_t md_type = get_md_type(otp_ctx);
     OTP_CHECK_BOOL_RETURN(mbedtls_md_setup(md_ctx, mbedtls_md_info_from_type(md_type), 1) == 0);
-    // FIXME: use getters instead of MBEDTLS_PRIVATE MACRO
-    const size_t hmac_size = mbedtls_md_get_size(md_ctx->MBEDTLS_PRIVATE(md_info));
-
-    const char* ptr = otp_ctx->secret;
 
     // Sanity check - can't really happen atm as entire URI length is limited
     if (otp_ctx->secret_len / 1.6 > SECRET_BUFSIZE) {
@@ -348,11 +304,9 @@ static bool prepare_md_ctx(const otpauth_ctx_t* otp_ctx, mbedtls_md_context_t* m
         return false;
     }
 
-    size_t done = 0;
-    uint8_t b32_dec[SECRET_BUFSIZE];
-    const bool base32_decode_result = base32_to_bin(ptr, otp_ctx->secret_len, b32_dec, sizeof(b32_dec), &done);
-
-    if (!base32_decode_result || !done) {
+    uint8_t secret_bin[SECRET_BUFSIZE];
+    size_t secret_bin_len = base32_to_bin(otp_ctx->secret, otp_ctx->secret_len, secret_bin, sizeof(secret_bin));
+    if (!secret_bin_len) {
         JADE_LOGE("Bad Base32 secret decode - secret: %.*s", otp_ctx->secret_len, otp_ctx->secret);
         return false;
     }
@@ -362,10 +316,12 @@ static bool prepare_md_ctx(const otpauth_ctx_t* otp_ctx, mbedtls_md_context_t* m
     // as appears necessary to match the test vectors in rfc6238.
     // (See also https://github.com/Daegalus/dart-otp#global-settings)
     if (md_type != MBEDTLS_MD_SHA1) {
-        pad_secret(b32_dec, &done, hmac_size);
+        // FIXME: use getters instead of MBEDTLS_PRIVATE MACRO
+        const size_t hmac_size = mbedtls_md_get_size(md_ctx->MBEDTLS_PRIVATE(md_info));
+        pad_secret(secret_bin, &secret_bin_len, hmac_size);
     }
 
-    return mbedtls_md_hmac_starts(md_ctx, b32_dec, done) == 0;
+    return mbedtls_md_hmac_starts(md_ctx, secret_bin, secret_bin_len) == 0;
 }
 
 bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t token_len)
@@ -377,7 +333,6 @@ bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t t
 
     // Calculate otp hmac of counter (be) with the secret as the key
     mbedtls_md_context_t md_ctx;
-    mbedtls_md_init(&md_ctx);
     OTP_CHECK_BOOL_RETURN(prepare_md_ctx(otp_ctx, &md_ctx));
 
     const size_t hmac_last_index = mbedtls_md_get_size(md_ctx.MBEDTLS_PRIVATE(md_info)) - 1;

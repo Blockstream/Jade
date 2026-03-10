@@ -120,4 +120,9 @@ bool is_potential_green_user_path(const uint32_t* path, size_t path_len, uint32_
 bool is_potential_green_recovery_path(const uint32_t* path, size_t path_len);
 bool is_potential_green_server_path(const uint32_t* path, size_t path_len, uint32_t* subaccount_out);
 
+// Helper function to convert a base32 string to binary, returns 0 on failure
+size_t base32_to_bin(const char* b32_str, size_t b32_str_len, uint8_t* bin, size_t bin_len);
+// Helper function to convert binary data to a base32 string, padding optional
+bool bin_to_base32(const uint8_t* bin, size_t bin_len, char* b32_str, size_t b32_str_len, bool use_padding);
+
 #endif /* UTIL_H_ */
