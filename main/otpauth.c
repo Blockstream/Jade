@@ -298,17 +298,13 @@ static bool prepare_md_ctx(const otpauth_ctx_t* otp_ctx, mbedtls_md_context_t* m
     mbedtls_md_type_t md_type = get_md_type(otp_ctx);
     OTP_CHECK_BOOL_RETURN(mbedtls_md_setup(md_ctx, mbedtls_md_info_from_type(md_type), 1) == 0);
 
-    // Sanity check - can't really happen atm as entire URI length is limited
-    if (otp_ctx->secret_len / 1.6 > SECRET_BUFSIZE) {
-        JADE_LOGE("Bad Base32 secret decode - secret length: %.*s", otp_ctx->secret_len, otp_ctx->secret);
-        return false;
-    }
-
+    bool ret = false;
     uint8_t secret_bin[SECRET_BUFSIZE];
+    SENSITIVE_PUSH(secret_bin, sizeof(secret_bin));
     size_t secret_bin_len = base32_to_bin(otp_ctx->secret, otp_ctx->secret_len, secret_bin, sizeof(secret_bin));
     if (!secret_bin_len) {
-        JADE_LOGE("Bad Base32 secret decode - secret: %.*s", otp_ctx->secret_len, otp_ctx->secret);
-        return false;
+        JADE_LOGE("Bad Base32 secret decode");
+        goto done;
     }
 
     // Do not lengthen/pad the secret for SHA1 *only* - for gauth compatibility.
@@ -320,8 +316,11 @@ static bool prepare_md_ctx(const otpauth_ctx_t* otp_ctx, mbedtls_md_context_t* m
         const size_t hmac_size = mbedtls_md_get_size(md_ctx->MBEDTLS_PRIVATE(md_info));
         pad_secret(secret_bin, &secret_bin_len, hmac_size);
     }
+    ret = mbedtls_md_hmac_starts(md_ctx, secret_bin, secret_bin_len) == 0;
 
-    return mbedtls_md_hmac_starts(md_ctx, secret_bin, secret_bin_len) == 0;
+done:
+    SENSITIVE_POP(secret_bin);
+    return ret;
 }
 
 bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t token_len)
