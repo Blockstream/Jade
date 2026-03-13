@@ -332,7 +332,7 @@ gui_activity_t* make_show_message_activity(const char* message[], const size_t m
         const size_t msgextent = message_size * h;
         toppad = msgextent < yextent ? (yextent - msgextent) / 2 : 0; // top padding to centre message
         JADE_LOGD("ypct, yextent, msgextent, toppad: %u, %u, %u, %u", ypct, yextent, msgextent, toppad);
-        JADE_ASSERT(toppad < 100); // sanity check
+        JADE_ASSERT(toppad < CONFIG_DISPLAY_HEIGHT / 2); // sanity check
 
         switch (message_size) {
         case 2:

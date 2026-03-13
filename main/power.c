@@ -25,6 +25,8 @@
 #include "power/twatchs3.inc"
 #elif defined(CONFIG_HAS_IP5306)
 #include "power/ip5306.inc"
+#elif defined(CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164)
+#include "power/wsamoled164.inc"
 #elif defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
 #include "power/wslcdtouch2.inc"
 #elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAYS3)

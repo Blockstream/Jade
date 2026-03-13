@@ -396,7 +396,8 @@ gui_activity_t* make_display_settings_activity(void)
 
     // NOTE: Only Jade v1.1's and v2's have brightness controls
     // NOTE: Jade v1.1's do not support Flip Orientation because of issues with screen offsets
-#if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+#if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)                                  \
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164)
     btn_data_t menubtns[]
         = { { .txt = "Display Brightness", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_BRIGHTNESS },
               { .txt = "Flip Orientation", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SETTINGS_DISPLAY_ORIENTATION },

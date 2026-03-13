@@ -2,7 +2,7 @@
 #include "jade_assert.h"
 #include "jade_tasks.h"
 
-#if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+#if defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) || defined(CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164)
 // No PMU, so relevant power files will not have been included
 #include "power/i2c.inc"
 #endif
@@ -31,7 +31,12 @@ static void touchscreen_task(void* ignored)
     // FIXME: check mirror flags?
     const esp_lcd_touch_config_t tp_cfg = {
         .x_max = CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X,
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
+        // Full 456px panel height (416 content + 40 virtual buttons)
+        .y_max = CONFIG_DISPLAY_HEIGHT + 40,
+#else
         .y_max = CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y,
+#endif
         .rst_gpio_num = GPIO_NUM_NC,
         .int_gpio_num = GPIO_NUM_NC,
         .levels = {
@@ -60,6 +65,15 @@ static void touchscreen_task(void* ignored)
     ESP_ERROR_CHECK(ESP_LCD_TOUCH_NEW_I2C(tp_io_handle, &tp_cfg, &ret_touch));
     JADE_ASSERT(ret_touch);
 
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_AMOLED164
+    /* FT3168: Extend the monitor-mode timeout to prevent the touch controller
+     * from entering low-power mode and becoming unresponsive.
+     * Register 0x87 = TIME_ENTER_MONITOR: seconds before entering monitor mode (default 2s, set to max 255s)
+     * Register 0x86 = ID_G_CTRL: 0 = keep active mode */
+    esp_lcd_panel_io_tx_param(tp_io_handle, 0x87, (uint8_t[]){0xFF}, 1);
+    esp_lcd_panel_io_tx_param(tp_io_handle, 0x86, (uint8_t[]){0x00}, 1);
+#endif
+
     uint16_t touch_x[1];
     uint16_t touch_y[1];
     uint16_t touch_strength[1];
@@ -75,7 +89,7 @@ static void touchscreen_task(void* ignored)
             if (touchpad_pressed) {
                 const uint16_t first_third_end = CONFIG_DISPLAY_WIDTH / 3;
                 const uint16_t middle_thirds_end = (CONFIG_DISPLAY_WIDTH * 2) / 3;
-                if (touch_y[0] > 200) {
+                if (touch_y[0] > (CONFIG_DISPLAY_HEIGHT - 40)) {
                     if (touch_x[0] <= first_third_end) {
                         gui_prev();
                     } else if (touch_x[0] > first_third_end && touch_x[0] < middle_thirds_end) {
