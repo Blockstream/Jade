@@ -1,1 +1,0 @@
-KERNEL=="ttyUSB*", SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ACTION=="add", ENV{DEVNAME}=="*ttyUSB*", RUN+="/tmp/jade/flashing/flash.sh"

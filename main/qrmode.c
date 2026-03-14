@@ -192,7 +192,7 @@ static const char* qr_density_desc_from_flags(const uint32_t qr_flags)
 }
 
 // We support native segwit and p2sh-wrapped segwit, singlesig and multisig
-static script_variant_t xpub_script_variant_from_flags(const uint32_t qr_flags)
+script_variant_t xpub_script_variant_from_flags(const uint32_t qr_flags)
 {
     // unset/default is treated as 'high' (ie. the middle value)
     if (contains_flags(qr_flags, QR_XPUB_TAPROOT)) {
@@ -250,16 +250,20 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
 
     // Create xpub activity for those icons
     char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
-    const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr));
+    const bool path_only = false;
+    const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr), path_only);
     JADE_ASSERT(ret);
     const char* label = contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
     const uint8_t frames_per_qr = qr_framerate_from_flags(QR_SPEED_LOW); // always use slow framerate for xpub export
     return make_show_xpub_qr_activity(label, pathstr, icons, num_icons, frames_per_qr);
 }
 
-static bool handle_xpub_options(uint32_t* qr_flags)
+bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
 {
     JADE_ASSERT(qr_flags);
+    if (for_descriptor) {
+        *qr_flags &= ~QR_XPUB_MULTISIG; // Disallow multisig
+    }
 
     uint16_t account_index = (*qr_flags) >> ACCOUNT_INDEX_FLAGS_SHIFT;
 
@@ -310,7 +314,7 @@ static bool handle_xpub_options(uint32_t* qr_flags)
                 }
             }
             update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
-        } else if (ev_id == BTN_XPUB_OPTIONS_WALLETTYPE) {
+        } else if (!for_descriptor && ev_id == BTN_XPUB_OPTIONS_WALLETTYPE) {
             gui_set_current_activity(act_wallettype);
             while (true) {
                 gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
@@ -386,7 +390,8 @@ void display_xpub_qr(void)
 
         const int32_t ev_id = gui_activity_wait_button(act, BTN_XPUB_EXIT);
         if (ev_id == BTN_XPUB_OPTIONS) {
-            if (handle_xpub_options(&qr_flags)) {
+            const bool for_descriptor = false;
+            if (handle_xpub_options(&qr_flags, for_descriptor)) {
                 // Options were updated - re-create xpub screen
                 act = create_display_xpub_qr_activity(qr_flags);
             }
@@ -484,7 +489,8 @@ static void get_singlesig_search_root(const script_variant_t variant, const uint
     JADE_ASSERT(ret);
 
     // Use the root bip32 path as the label
-    ret = wallet_bip32_path_as_str(path, path_len, pathstr, pathstr_len);
+    const bool path_only = false;
+    ret = wallet_bip32_path_as_str(path, path_len, pathstr, pathstr_len, path_only);
     JADE_ASSERT(ret);
 }
 

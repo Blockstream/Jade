@@ -20,7 +20,7 @@ function usage {
     if [ -n "$1" ]; then
         echo "error: $1" >&2
     fi
-    echo "${0} jade|jade_v1_1|jade_v2|qemu [OPTIONS]"
+    echo "${0} jade|jade_v1_1|jade_v2|jade_v2c|qemu [OPTIONS]"
     echo "WARNING: THIS SCRIPT IS FOR JADE DEVELOPMENT ONLY";
     echo "JADE OPTIONS:"
     echo "    --noradio    Disable Bluetooth support"
@@ -74,6 +74,7 @@ while true; do
         jade)       CONFIG=$1; ARCH="esp32"; shift ;;
         jade_v1_1)  CONFIG=$1; ARCH="esp32"; shift ;;
         jade_v2)    CONFIG=$1; ARCH="esp32s3"; shift ;;
+        jade_v2c)   CONFIG=$1; ARCH="esp32s3"; shift ;;
         qemu)       CONFIG=$1; ARCH="esp32"; shift ;;
         --dev)      DEVELOPMENT="y"; shift ;;
         --noradio)  NORADIO=1; shift ;;
@@ -131,9 +132,13 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 if ! have_cmd idf.py; then
-    echo "error: idf.py not found. Please install idf" >&2
-    echo "\(or run export.sh from the idf install\) and try again" >&2
-    exit 1
+    if [ -d /opt/esp/idf ]; then
+        pushd /opt/esp/idf && . ./export.sh && popd
+    else
+        echo "error: idf.py not found. Please install idf" >&2
+        echo "\(or run export.sh from the idf install\) and try again" >&2
+        exit 1
+    fi
 fi
 
 idf.py clean && \
@@ -169,7 +174,7 @@ if [ -n "$NORADIO" ]; then
         # add settings (Jade v1.x)
         set_config CONFIG_ESP_WIFI_IRAM_OPT n
         set_config CONFIG_ESP_WIFI_RX_IRAM_OPT n
-    elif [ "$CONFIG" = "jade_v2" ]; then
+    elif [ "$CONFIG" = "jade_v2" ] || [ "$CONFIG" = "jade_v2c" ]; then
         # remove settings (Jade v2)
         remove_config CONFIG_BT_NIMBLE_LOG_LEVEL_NONE
     else

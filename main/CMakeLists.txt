@@ -23,7 +23,6 @@ else()
 endif()
 
 if (CONFIG_IDF_TARGET_ESP32S3)
-    set(attestdir "attestation")
     set(usbdir "usbhmsc")
 endif()
 
@@ -38,18 +37,18 @@ if(CONFIG_LOG_WIFI)
 endif()
 
 idf_component_register(SRC_DIRS "."
+                                "attestation"
+                                "fonts"
                                 "process"
                                 "utils"
                                 "ui"
-                                "fonts"
                                 "${bledir}"
                                 "${qemudir}"
-                                "${attestdir}"
                                 "${usbdir}"
         PRIV_INCLUDE_DIRS "."
+                          "attestation"
                           "${bledir}"
                           "${qemudir}"
-                          "${attestdir}"
                           "${usbdir}"
                           "${wallydirs}"
                           "${secpdir}"

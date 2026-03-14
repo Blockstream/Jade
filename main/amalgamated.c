@@ -26,9 +26,7 @@ void __wrap_abort(void);
 
 #include "./aes.c"
 #include "./assets.c"
-#ifdef CONFIG_IDF_TARGET_ESP32S3
 #include "./attestation/attestation.c"
-#endif // CONFIG_IDF_TARGET_ESP32S3
 #include "./bcur.c"
 #ifdef CONFIG_BT_ENABLED
 #include "./ble/ble.c"
@@ -180,6 +178,7 @@ void __wrap_abort(void);
 #include "./utils/temporary_stack.c"
 #endif // CONFIG_LIBJADE
 #include "./utils/urldecode.c"
+#include "./utils/util.c"
 #include "./utils/wally_ext.c"
 #include "./versioninfo.c"
 #include "./wallet.c"

@@ -1,10 +1,8 @@
 .libjade_test_template:
   tags: [ ga ]
   before_script:
-    - . $HOME/esp/esp-idf/export.sh
+    - pushd /opt/esp/idf && . ./export.sh && popd
     - ./tools/switch_to.sh jade --dev --noradio
-    - source /venv/bin/activate
-    - pip install -r requirements.txt
     - pip install -r pinserver/requirements.txt
     - pip install .
 
@@ -23,7 +21,7 @@ test_libjade_sanitize:
     - ./libjade/make_libjade.sh Sanitize
     - export ASAN_OPTIONS=symbolize=1,detect_leaks=0
     - export UBSAN_OPTIONS=print_stacktrace=1
-    - export ASAN_SO=/usr/lib/gcc/x86_64-linux-gnu/12/libasan.so
+    - export ASAN_SO=/usr/lib/gcc/x86_64-linux-gnu/13/libasan.so
     - export LD_LIBRARY_PATH=$PWD/build_linux/libjade
     - export SOCKET_LINK=$PWD/tmp_socket
     - echo "----------------------- STANDARD TESTS ------------------------"

@@ -1,4 +1,4 @@
 from .jade import JadeAPI
 from .jade_error import JadeError
 
-__version__ = "1.0.37"
+__version__ = "1.0.39"

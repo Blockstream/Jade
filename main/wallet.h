@@ -43,6 +43,8 @@ typedef struct {
 #define GASERVICE_ROOT_PATH_LEN (1 + 32)
 #define MAX_GASERVICE_PATH_TAIL_LEN (1 + 1)
 #define MAX_GASERVICE_PATH_LEN (GASERVICE_ROOT_PATH_LEN + MAX_GASERVICE_PATH_TAIL_LEN)
+#define GA_USER_PATH_MAX_LEN 4
+#define GA_RECOVERY_PATH_LEN 2
 
 // 'm' + ( ('/' + <10 digit number>[+ ']) * n) + '\0'
 #define MAX_PATH_STR_LEN(max_path_elems) (1 + ((1 + 10 + 1) * max_path_elems) + 1)
@@ -54,7 +56,8 @@ typedef enum { GREEN, P2PKH, P2WPKH, P2WPKH_P2SH, MULTI_P2WSH, MULTI_P2SH, MULTI
 
 void wallet_init(void);
 
-bool wallet_bip32_path_as_str(const uint32_t parts[], size_t num_parts, char* output, size_t output_len);
+bool wallet_bip32_path_as_str(
+    const uint32_t parts[], size_t num_parts, char* output, size_t output_len, bool path_only);
 bool wallet_bip32_path_from_str(const char* pathstr, size_t str_len, uint32_t* path, size_t path_len, size_t* written);
 
 bool wallet_derive_pubkey(const uint8_t* serialised_key, size_t key_len, const uint32_t* path, size_t path_len,

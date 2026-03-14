@@ -11,10 +11,7 @@ shift
 SIGNER_KEY_LABELS="$@"
 
 WORKING_DIR_PREFIX="staging/${VER_DIR}"
-HWDIRS="jade2.0"
-
-BLEDIR="build_v2_prod"
-NORADIODIR="build_v2_noradio_prod"
+HWDIRS="jade2.0 jade2.0c"
 
 FILE_PREFIX="v2_${VER_DIR}"
 FW_SUFFIX="bin"
@@ -32,6 +29,13 @@ done
 
 for hwdir in ${HWDIRS}; do
     WORKING_DIR="${WORKING_DIR_PREFIX}/${hwdir}"
+    if [ "$hwdir" == "jade2.0" ]; then
+        BLEDIR="build_v2_prod"
+        NORADIODIR="build_v2_noradio_prod"
+    else
+        BLEDIR="build_v2c_prod"
+        NORADIODIR="build_v2c_noradio_prod"
+    fi
 
     pushd "${WORKING_DIR}"
 

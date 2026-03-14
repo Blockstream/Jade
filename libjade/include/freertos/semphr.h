@@ -7,7 +7,7 @@
 
 typedef struct Semaphore {
     pthread_mutex_t mutex;
-} * SemaphoreHandle_t;
+}* SemaphoreHandle_t;
 
 static inline SemaphoreHandle_t xSemaphoreCreateMutex(void)
 {

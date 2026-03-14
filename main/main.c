@@ -57,9 +57,9 @@ uint8_t macid[6];
 #if !defined(CONFIG_BOARD_TYPE_JADE_ANY) || !defined(CONFIG_BOARD_TYPE_JADE_V1_ANY)
 #error "JADE/JADE_V1_1 requires JADE_ANY and JADE_V1_ANY"
 #endif
-#elif defined(CONFIG_BOARD_TYPE_JADE_V2)
+#elif defined(CONFIG_BOARD_TYPE_JADE_V2) || defined(CONFIG_BOARD_TYPE_JADE_V2C)
 #if !defined(CONFIG_BOARD_TYPE_JADE_ANY) || !defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)
-#error "JADE_V2 requires JADE_ANY and JADE_V2_ANY"
+#error "JADE_V2/JADE_V2C requires JADE_ANY and JADE_V2_ANY"
 #endif
 #elif defined(CONFIG_BOARD_TYPE_JADE_ANY) || defined(CONFIG_BOARD_TYPE_JADE_V1_ANY)                                    \
     || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)
@@ -250,10 +250,6 @@ static void boot_process(void)
 
     jade_wally_init();
     wallet_init();
-
-    if (!keychain_init_unit_key()) {
-        JADE_ABORT();
-    }
 
 #ifdef CONFIG_BT_ENABLED
     // Delay BLE initialisation as uses the hw unit key which is not initialised until

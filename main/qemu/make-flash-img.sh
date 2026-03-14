@@ -3,7 +3,7 @@ set -eo pipefail
 
 FLASH_IMAGE_FILE=/flash_image.bin
 
-. /root/esp/esp-idf/export.sh
+pushd /opt/esp/idf && . ./export.sh && popd
 
 esptool.py --chip esp32 merge_bin --fill-flash-size 4MB -o ${FLASH_IMAGE_FILE} \
 --flash_mode dio --flash_freq 40m --flash_size 4MB \

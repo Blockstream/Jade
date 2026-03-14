@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-. $HOME/esp/esp-idf/export.sh
+pushd /opt/esp/idf && . ./export.sh && popd
 
 pkill -f qemu-system-xtensa || true
 

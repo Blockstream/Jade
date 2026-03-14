@@ -25,7 +25,6 @@ typedef enum { PASSPHRASE_NEVER, PASSPHRASE_ONCE, PASSPHRASE_ALWAYS } passphrase
 typedef enum { PASSPHRASE_WORDLIST, PASSPHRASE_FREETEXT } passphrase_type_t;
 
 void keychain_init_cache(void);
-bool keychain_init_unit_key(void);
 void keychain_set(const keychain_t* src, uint8_t userdata, bool temporary);
 const struct ext_key* keychain_cached_service(const struct ext_key* service, bool subaccount_root);
 void keychain_clear(void);

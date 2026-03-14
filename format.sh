@@ -1,13 +1,23 @@
 #!/bin/bash
 set -eo pipefail
 
-(cd main && clang-format -i *.c *.h */*.{c,h,inc})
+have_cmd()
+{
+    command -v "$1" > /dev/null 2>&1
+}
+
+CLANG_FORMAT=clang-format-19
+if ! have_cmd ${CLANG_FORMAT}; then
+    echo "ERROR: ${CLANG_FORMAT} command not found, please install it"
+    exit 1
+fi
+(cd main && ${CLANG_FORMAT} -i *.c *.h */*.{c,h,inc})
 pushd libjade
 LIBJADE_SRCS=$(ls *.c *.h | grep -v miniz)
-clang-format -i $LIBJADE_SRCS */*.h */*/*.h
+${CLANG_FORMAT} -i $LIBJADE_SRCS */*.h */*/*.h
 popd
 
-clang-format -i tools/bip85_rsa_key_gen/main.c
+${CLANG_FORMAT} -i tools/bip85_rsa_key_gen/main.c
 
 if [ -f /.dockerenv ]; then
     PATH=${PATH}:/root/.local/bin

@@ -24,8 +24,13 @@ void build_version_info_reply(const void* ctx, CborEncoder* container);
 // Flag set when main thread is busy processing a message or awaiting user menu navigation
 extern uint32_t main_thread_action;
 
-// 2s 'no activity' stale message timeout
+#ifdef CONFIG_BOARD_TYPE_JADE_V1_ANY
+// v1.x: Use a 3s 'no activity' stale message timeout on slower HW
+static const TickType_t TIMEOUT_TICKS = 3000 / portTICK_PERIOD_MS;
+#else
+// v2.x: Use a 2s 'no activity' stale message timeout on faster HW
 static const TickType_t TIMEOUT_TICKS = 2000 / portTICK_PERIOD_MS;
+#endif
 
 // Macros for use in handle_data() as always called with fixed params
 #define SEND_REJECT_MSG(code, msg, rejectedlen)                                                                        \

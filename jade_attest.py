@@ -21,7 +21,8 @@ device_logger = logging.getLogger('jadepy.jade-device')
 device_logger.setLevel(logging.INFO)
 device_logger.addHandler(jadehandler)
 
-ESP32S3_CHIP_BOARDS = ['JADE_V2', 'TTGO_TDISPLAYS3', 'TTGO_TDISPLAYS3PROCAMERA', 'M5CORES3']
+ESP32S3_CHIP_BOARDS = ['JADE_V2', 'JADE_V2C', 'TTGO_TDISPLAYS3', 'TTGO_TDISPLAYS3PROCAMERA',
+                       'M5CORES3']
 
 RSA_KEY_LEN = 4096
 RSA_EXPONENT = 65537

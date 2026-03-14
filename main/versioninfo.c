@@ -1,4 +1,5 @@
 #ifndef AMALGAMATED_BUILD
+#include "attestation/attestation.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "keychain.h"
@@ -31,9 +32,9 @@ void build_version_info_reply(const void* ctx, CborEncoder* container)
     const jade_msg_source_t* const source = (const jade_msg_source_t*)ctx;
 
 #ifdef CONFIG_DEBUG_MODE
-    const uint8_t num_version_fields = 20;
+    const uint8_t num_version_fields = 23;
 #else
-    const uint8_t num_version_fields = 12;
+    const uint8_t num_version_fields = 15;
 #endif
 
     CborEncoder map_encoder;
@@ -44,15 +45,15 @@ void build_version_info_reply(const void* ctx, CborEncoder* container)
     add_uint_to_map(&map_encoder, "JADE_OTA_MAX_CHUNK", JADE_OTA_BUF_SIZE);
 
     // Config - eg. ble/radio enabled in build, or not
-    // defined in ota.h
+    // defined in ota_defines.h
     add_string_to_map(&map_encoder, "JADE_CONFIG", JADE_OTA_CONFIG);
 
     // Board type - Production Jade, M5Stack, esp32 dev board, etc.
-    // defined in ota.h
+    // defined in ota_defines.h
     add_string_to_map(&map_encoder, "BOARD_TYPE", JADE_OTA_BOARD_TYPE);
 
     // hardware 'features' eg. 'secure boot' or 'dev' etc.
-    // defined in ota.h
+    // defined in ota_defines.h
     add_string_to_map(&map_encoder, "JADE_FEATURES", JADE_OTA_FEATURES);
 
     const char* idfversion = esp_get_idf_version();
@@ -68,8 +69,17 @@ void build_version_info_reply(const void* ctx, CborEncoder* container)
     add_string_to_map(&map_encoder, "EFUSEMAC", hexstr);
     JADE_WALLY_VERIFY(wally_free_string(hexstr));
 
+    // Attestation initialised
+    add_boolean_to_map(&map_encoder, "ATTESTATION_INITIALISED", attestation_initialised());
+
     // Battery level
     add_uint_to_map(&map_encoder, "BATTERY_STATUS", power_get_battery_status());
+
+    // Battery millivolts
+    add_uint_to_map(&map_encoder, "BATTERY_MILLIVOLTS", power_get_vbat());
+
+    // Battery charging
+    add_boolean_to_map(&map_encoder, "BATTERY_CHARGING", power_get_battery_charging());
 
     // We have five cases:
     // 1. Ready - has keys already associated with the passed message source

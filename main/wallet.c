@@ -116,26 +116,29 @@ void wallet_init(void)
 }
 
 // Outputs eg. "m/a'/b'/c/d" - ie. uses m/ as master, and ' as hardened indicator
-bool wallet_bip32_path_as_str(const uint32_t* parts, const size_t num_parts, char* output, const size_t output_len)
+bool wallet_bip32_path_as_str(
+    const uint32_t* parts, const size_t num_parts, char* output, const size_t output_len, const bool path_only)
 {
     JADE_ASSERT(parts);
     JADE_ASSERT(output);
     JADE_ASSERT(output_len > 16);
 
-    output[0] = 'm';
-    output[1] = '\0';
+    size_t pos = 0;
+    if (!path_only) {
+        output[pos++] = 'm'; // Add leading 'm' master key indicator
+    }
+    output[pos] = '\0';
 
-    for (size_t pos = 1, i = 0; i < num_parts; ++i) {
-        uint32_t val = parts[i];
-        const char* fmt = "/%u";
-
-        if (ishardened(val)) {
-            val = unharden(val);
-            fmt = "/%u'"; // hardened
+    for (size_t i = 0; i < num_parts; ++i) {
+        const char* fmt;
+        if (ishardened(parts[i])) {
+            fmt = path_only && i == 0 ? "%u'" : "/%u'"; // Add hardened indicator
+        } else {
+            fmt = path_only && i == 0 ? "%u" : "/%u";
         }
 
         const size_t freespace = output_len - pos;
-        const int nchars = snprintf(output + pos, freespace, fmt, val);
+        const int nchars = snprintf(output + pos, freespace, fmt, unharden(parts[i]));
         if (nchars < 0 || nchars > freespace) {
             return false;
         }

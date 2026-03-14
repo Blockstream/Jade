@@ -26,7 +26,7 @@ cmd="cp -r /jade /jade_cpy && cd /jade_cpy"
 cmd+=" && cp configs/${config_file} sdkconfig.defaults"
 # comment this out to make subsequent builds faster
 #cmd+=" && rm -fr build sdkconfig"
-cmd+=" && . /root/esp/esp-idf/export.sh && idf.py build"
+cmd+=" && pushd /opt/esp/idf && . ./export.sh && popd && idf.py build"
 cmd+=" && ./main/qemu/make-flash-img.sh && ./main/qemu/qemu_run.sh"
 
 docker run --rm -v $PWD:/jade \

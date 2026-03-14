@@ -12,7 +12,11 @@ typedef enum {
     ESP_LOG_NONE = 5
 } esp_log_level_t;
 
+#ifdef CONFIG_LOG_DEFAULT_LEVEL_NONE
+#define _libjade_log_level ESP_LOG_NONE
+#else
 extern esp_log_level_t _libjade_log_level;
+#endif
 
 #define ESP_LOGD(f, fmt, ...)                                                                                          \
     do {                                                                                                               \

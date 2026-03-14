@@ -3,3 +3,4 @@ sdkconfig.defaults
 sdkconfig
 mananged_components
 build
+build_linux

@@ -70,7 +70,7 @@ def parse_compressed_filename(filepath):
         # File name is:
         # <ver>_<config>_<uncompressed-size>_fw.bin[.hash]
         filetype = 'firmware hash' if parts[-1] == FWFILE_TYPE_HASH else 'full firmware'
-        logger.info(f'Filename suggests {filetype} : {filename}')
+        logger.info(f'Filename suggests {filetype}: {filename}')
         fwinfo = FwInfo(parts[0], parts[1], int(parts[2]))
         return (parts[-1], fwinfo, None)
 

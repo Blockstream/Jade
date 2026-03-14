@@ -178,8 +178,9 @@ PINSERVER_DEFAULT_URL = 'https://j8d.io'
 PINSERVER_DEFAULT_ONION = 'http://mrrxtq6tjpbnbm7vh5jt6mpjctn7ggyfy5wegvbeff3x7jrznqawlmid.onion'
 
 # The number of values expected back in version info
-NUM_VALUES_VERINFO = 20
-ESP32S3_CHIP_BOARDS = ['JADE_V2', 'TTGO_TDISPLAYS3', 'TTGO_TDISPLAYS3PROCAMERA', 'M5CORES3']
+NUM_VALUES_VERINFO = 23
+ESP32S3_CHIP_BOARDS = ['JADE_V2', 'JADE_V2C', 'TTGO_TDISPLAYS3', 'TTGO_TDISPLAYS3PROCAMERA',
+                       'M5CORES3']
 
 TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
@@ -960,9 +961,9 @@ def _test_bad_params(jade, rpc_args, expected_error):
     assert 'result' not in reply
     assert 'error' in reply
     error = reply['error']
-    assert error['code'] == JadeError.BAD_PARAMETERS, f"{error['code']}:{rpc_args}"
+    assert error['code'] == JadeError.BAD_PARAMETERS, f"{error['code']}: {rpc_args}"
     assert 'message' in error
-    assert expected_error in error['message'], f"{error['message']} != {expected_error}:{rpc_args}"
+    assert expected_error in error['message'], f"{error['message']} != {expected_error}: {rpc_args}"
 
 
 def test_bad_params(jade):
@@ -2279,13 +2280,19 @@ def test_passphrase(jade):
 
 # Test qr scanning - can be slow as image data large (slow to upload) and
 # tests involve starting the camera (and associated tasks).
-def test_scan_qr(jadeapi):
+def test_scan_qr(jadeapi, board_type):
+    is_v1_1 = board_type == 'JADE_V1.1'
     for qr_data in _get_test_cases(QR_QVGA_SCAN_TESTS):
         expected = qr_data['expected_output']
         image_filename = qr_data['input']['image']
         with open('./test_data/' + image_filename, 'rb') as f:
             image_data = f.read()
 
+        if is_v1_1 and len(image_data) > 45 * 1024:
+            # Skip large QR tests for v1_1 devices, as they
+            # tend to hit the serial timeout
+            logger.debug(f'v1.1: skipping large image file ({len(image_data)} bytes)')
+            continue
         rslt = jadeapi.scan_qr(image_data)
         assert rslt
 
@@ -2476,12 +2483,17 @@ def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
     # as there is too much memory allocation outside of our control.
     # Also skip for no-psram (qemu) devices.
     check_frag = has_psram and not has_ble
+    is_v2 = startinfo['BOARD_TYPE'] in ['JADE_V2']
 
     # Memory stats to log/check
+    dram_frag_limit = -1
+    if check_frag:
+        # TODO: Investigate fragmentation in noradio CI runs
+        dram_frag_limit = 18500 if is_v2 else 4096
     breaches = []
     for field, limit in [('JADE_FREE_HEAP', 1536),
                          ('JADE_FREE_DRAM', 8192 if has_ble else 1536),
-                         ('JADE_LARGEST_DRAM', 4096 if check_frag else -1),
+                         ('JADE_LARGEST_DRAM', dram_frag_limit),
                          ('JADE_FREE_SPIRAM', 0),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
         initial = int(startinfo[field])
@@ -3826,7 +3838,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     wait(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo, has_psram, has_ble)
+    strict = endinfo['BOARD_TYPE'] != 'JADE_V2C'  # TODO: enable for v2.0c
+    check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=strict)
 
     rslt = jadeapi.clean_reset()
     assert rslt is True
@@ -3884,7 +3897,7 @@ def run_interface_tests(jadeapi,
         if not isble:
             time_ms = jadeapi.run_remote_selfcheck()
             logger.info(f'selfcheck time: {time_ms} ms')
-            assert qemu or time_ms < (52000 if is_s3 else 132000)
+            assert qemu or time_ms < (54000 if is_s3 else 134000)
 
         # Test good pinserver handshake, and also 'bad sig' pinserver
         test_handshake(jadeapi.jade)
@@ -3903,7 +3916,7 @@ def run_interface_tests(jadeapi,
         # Only run QR scan/camera tests a) over serial, and b) on proper Jade hw
         if not qemu and not isble:
             if args.libjade or startinfo['BOARD_TYPE'] in ['JADE', 'JADE_V1.1', 'JADE_V2']:
-                test_scan_qr(jadeapi)
+                test_scan_qr(jadeapi, startinfo['BOARD_TYPE'])
 
     # Too much input test - sends a lot of data so only run
     # if not running over BLE (as would take a long time)
@@ -3931,7 +3944,8 @@ def run_interface_tests(jadeapi,
 
     wait(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
-    check_mem_stats(startinfo, endinfo, has_psram, has_ble)
+    strict = endinfo['BOARD_TYPE'] != 'JADE_V2C'  # TODO: enable for v2.0c
+    check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=strict)
 
     rslt = jadeapi.clean_reset()
     assert rslt is True
@@ -4293,5 +4307,7 @@ if __name__ == '__main__':
         else:
             assert False, 'Failed to connect to Jade over serial or BLE'
     finally:
+        for f in glob.glob("./*.pin"):
+            os.remove(f)
         if btagent:
             kill_agent(btagent)

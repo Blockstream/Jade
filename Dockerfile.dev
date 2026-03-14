@@ -1,8 +1,0 @@
-FROM blockstream/verde@sha256:9171360dae48d3fba7c0f36ab5eb45e2529d178a603e89197cb08fb123ca619e
-
-RUN echo "source /root/esp/esp-idf/export.sh" >> /etc/bash.bashrc
-
-COPY .git /host/jade/.git
-RUN git clone /host/jade/ /jade
-WORKDIR /jade
-RUN git submodule update --init --recursive

@@ -247,16 +247,14 @@ static void ble_start_advertising(void)
     // Reset the write size assuming preferred MTU
     set_ble_max_write_size_for_mtu(CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU);
 
-    struct ble_gap_adv_params adv_params;
-    struct ble_hs_adv_fields fields;
+    struct ble_gap_adv_params adv_params = { 0 };
+    struct ble_hs_adv_fields fields = { 0 };
     const char* name;
     int rc;
 
     // All we really need in the advertising packet is the device name ('Jade abcdef' - 11 bytes)
     // and the service id (128bit - 16bytes) - with 2 bytes of overhead (type, length) per field,
     // this takes up the entire advertising packet (31 bytes max.)
-    memset(&fields, 0, sizeof fields);
-
     name = ble_svc_gap_device_name();
     fields.name = (uint8_t*)name;
     fields.name_len = strlen(name);
@@ -278,7 +276,6 @@ static void ble_start_advertising(void)
     rc = ble_gap_adv_set_fields(&fields);
     JADE_ASSERT_MSG(rc == 0, "ble_gap_adv_set_fields() failed with error %d", rc);
 
-    memset(&adv_params, 0, sizeof adv_params);
     adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
 
@@ -318,23 +315,27 @@ static bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
     while (written < towrite) {
         const size_t writenow = written + ble_max_write_size <= towrite ? ble_max_write_size : towrite - written;
         int rc = 0, try = 0;
+        const int max_tries = 13 * 16 + 1; // 209, i.e. approx 2s of 10ms waits
 
         do {
             ++try;
             // os_mbuf data is consumed by indicate_custom, regardless of the outcome
             struct os_mbuf* data = ble_hs_mbuf_from_flat(msg + written, writenow);
-            JADE_ASSERT(data);
-
-            rc = ble_gatts_indicate_custom(peer_conn_handle, tx_val_handle, data);
-            if (rc != 0) {
-                JADE_LOGW("ble_gattc_indicate_custom() returned error %d trying to write %u bytes, attempt %u", rc,
-                    writenow, try);
-                vTaskDelay(100 / portTICK_PERIOD_MS);
+            if (!data) {
+                rc = ESP_FAIL;
+            } else {
+                rc = ble_gatts_indicate_custom(peer_conn_handle, tx_val_handle, data);
             }
-        } while (rc != 0 && try < 10);
+            if (rc != 0) {
+                if ((try % 16) == 1) {
+                    JADE_LOGW("write_ble error %d writing %u bytes, try %d", rc, writenow, try);
+                }
+                vTaskDelay(10 / portTICK_PERIOD_MS);
+            }
+        } while (rc != 0 && try <= max_tries);
 
         if (rc != 0) {
-            JADE_LOGE("ble_gattc_indicate_custom() multiple failures writing %u bytes - written %u bytes of %u, bad "
+            JADE_LOGE("write_ble timeout writing %u bytes - written %u bytes of %u, bad "
                       "connection",
                 writenow, written, towrite);
             // FIXME: fail/error the connection ?
@@ -592,7 +593,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             // Note: these values are in specific units/increments
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             JADE_ASSERT(rc == 0);
-            struct ble_gap_upd_params params;
+            struct ble_gap_upd_params params = { 0 };
             params.itvl_min = BLE_GAP_INITIAL_CONN_ITVL_MIN;
             params.itvl_max = BLE_GAP_INITIAL_CONN_ITVL_MAX;
             params.latency = desc.conn_latency;

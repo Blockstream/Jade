@@ -1,14 +1,9 @@
-version: "3.7"
 services:
-    dev:
-        build:
-            context: .
-            dockerfile: Dockerfile.dev
-        volumes:
-            - type: bind
-              source: .git
-              target: /host/jade/.git
-        devices:
-            - "/dev/ttyUSB0:/dev/ttyUSB0"
-        privileged: true
-        tty: true
+  dev:
+    image: blockstream/jade_builder@sha256:f0be8979a85a99c481ffdad0040822698f1a1acba773574f05b177becb796d2f
+    volumes:
+      - .:/host/jade/
+      - /dev/serial/by-id:/dev/serial/by-id
+    working_dir: /host/jade/
+    privileged: true
+    tty: true

@@ -43,10 +43,10 @@ gui_activity_t* make_mnemonic_setup_method_activity(bool advanced);
 gui_activity_t* make_new_mnemonic_activity(void);
 gui_activity_t* make_restore_mnemonic_activity(bool temporary_restore);
 
-void make_show_mnemonic_activities(
-    gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr, char* words[], size_t nwords);
+void make_show_mnemonic_activities(gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr,
+    const char* mnemonic, uint16_t word_offs[], size_t nwords);
 gui_activity_t* make_confirm_mnemonic_word_activity(gui_view_node_t** text_box_ptr, uint8_t first_word_index,
-    uint8_t offset_word_to_confirm, char* words[], size_t nwords);
+    uint8_t offset_word_to_confirm, const char* mnemonic, uint16_t word_offs[], size_t nwords);
 
 gui_activity_t* make_enter_wordlist_word_activity(gui_view_node_t** titletext, bool show_enter_btn,
     gui_view_node_t** textbox, gui_view_node_t** backspace, gui_view_node_t** enter, gui_view_node_t** keys,
@@ -239,17 +239,17 @@ cleanup:
 }
 #endif // CONFIG_HAS_CAMERA
 
-// Function to change the mnemonic word separator and provide pointers to
+// Function to change the mnemonic word separator and provide offsets to
 // the start of the words.  Used when confirming one word at a time.
 static void change_mnemonic_word_separator(char* mnemonic, const size_t len, const char old_separator,
-    const char new_separator, char* words[], const size_t nwords)
+    const char new_separator, uint16_t word_offs[], const size_t nwords)
 {
-    JADE_ASSERT(mnemonic);
-    JADE_ASSERT(words);
+    JADE_ASSERT(mnemonic && len < 16384u);
+    JADE_ASSERT(word_offs);
 
     size_t word = 0, i = 0;
     for (/*nothing*/; i < len && word < nwords; ++i, ++word) {
-        words[word] = mnemonic + i; // Pointer to the start of each word
+        word_offs[word] = i; // Offset of the start of each word
         for (/*nothing*/; i < len; ++i) {
             if (mnemonic[i] == old_separator) {
                 mnemonic[i] = new_separator;
@@ -270,21 +270,23 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
     JADE_ASSERT(mnemonic);
 
     // Show the warning banner screen, user to confirm
-    const char* message[] = { "These words are your", "wallet. Keep them", "protected and offline." };
-    if (!await_continueback_activity(NULL, message, 3, true, "blkstrm.com/phrase")) {
-        // Abandon before we begin
-        return false;
+    {
+        const char* message[] = { "These words are your", "wallet. Keep them", "protected and offline." };
+        if (!await_continueback_activity(NULL, message, 3, true, "blkstrm.com/phrase")) {
+            // Abandon before we begin
+            return false;
+        }
     }
 
     // Change the word separator to a null so we can treat each word as a terminated string.
-    char* words[MNEMONIC_MAXWORDS]; // large enough for 12 and 24 word mnemonic
-    change_mnemonic_word_separator(mnemonic, mnemonic_len, ' ', '\0', words, nwords);
+    uint16_t word_offs[MNEMONIC_MAXWORDS]; // large enough for 12 and 24 word mnemonic
+    change_mnemonic_word_separator(mnemonic, mnemonic_len, ' ', '\0', word_offs, nwords);
     bool mnemonic_confirmed = false;
 
     // create the "show mnemonic" activities only once and then reuse them
     gui_activity_t* first_activity = NULL;
     gui_activity_t* last_activity = NULL;
-    make_show_mnemonic_activities(&first_activity, &last_activity, words, nwords);
+    make_show_mnemonic_activities(&first_activity, &last_activity, mnemonic, word_offs, nwords);
     JADE_ASSERT(first_activity);
     JADE_ASSERT(last_activity);
 
@@ -318,7 +320,7 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
             const size_t selected = i + offset_word_to_confirm;
             gui_view_node_t* textbox = NULL;
             gui_activity_t* const confirm_act
-                = make_confirm_mnemonic_word_activity(&textbox, i, offset_word_to_confirm, words, nwords);
+                = make_confirm_mnemonic_word_activity(&textbox, i, offset_word_to_confirm, mnemonic, word_offs, nwords);
             JADE_LOGD("selected = %u", selected);
 
             // Pick some other words from the mnemonic as options, but avoid
@@ -344,8 +346,9 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
                 random_words[j] = new_word;
             }
 
+            // set the first word
             uint8_t index = get_uniform_random_byte(num_words_options);
-            gui_update_text(textbox, words[random_words[index]]); // set the first word
+            gui_update_text(textbox, mnemonic + word_offs[random_words[index]]);
 
             gui_set_current_activity(confirm_act);
 
@@ -358,12 +361,12 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
                 switch (ev_id) {
                 case GUI_WHEEL_LEFT_EVENT:
                     index = (index + num_words_options - 1) % num_words_options;
-                    gui_update_text(textbox, words[random_words[index]]);
+                    gui_update_text(textbox, mnemonic + word_offs[random_words[index]]);
                     break;
 
                 case GUI_WHEEL_RIGHT_EVENT:
                     index = (index + 1) % num_words_options;
-                    gui_update_text(textbox, words[random_words[index]]);
+                    gui_update_text(textbox, mnemonic + word_offs[random_words[index]]);
                     break;
 
                 default:
@@ -1309,14 +1312,16 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
         }
     } else {
         // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
-        const char* message[] = { "For setup instructions", "visit blockstream.com/", "jade" };
         if (temporary_restore) {
             act = make_restore_mnemonic_activity(temporary_restore);
-        } else if (await_continueback_activity(NULL, message, 3, true, "blkstrm.com/jade")) {
-            act = make_mnemonic_setup_type_activity();
         } else {
-            // User decided against it
-            goto cleanup;
+            const char* message[] = { "For setup instructions", "visit blockstream.com/", "jade" };
+            if (await_continueback_activity(NULL, message, 3, true, "blkstrm.com/jade")) {
+                act = make_mnemonic_setup_type_activity();
+            } else {
+                // User decided against it
+                goto cleanup;
+            }
         }
 
         bool got_mnemonic = false;
