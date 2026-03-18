@@ -167,6 +167,7 @@ static bool get_otp_data_from_kb(
     kb_entry.keyboards[2] = KB_NUMBERS_SYMBOLS;
     kb_entry.keyboards[3] = KB_REMAINING_SYMBOLS;
     kb_entry.num_kbs = 4;
+    kb_entry.blocked_chars = " "; // OTP names cant have spaces
 
     make_keyboard_entry_activity(&kb_entry, "OTP Name");
     JADE_ASSERT(kb_entry.activity);

@@ -30,6 +30,7 @@ typedef struct {
     keyboard_type_t keyboards[NUM_KBS];
     size_t num_kbs;
     size_t current_kb;
+    const char* blocked_chars;
 
     gui_activity_t* activity;
     gui_view_node_t* textbox_nodes[NUM_KBS];
