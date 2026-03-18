@@ -91,7 +91,7 @@ static const home_menu_item_t home_menu_items[HOME_SCREEN_TYPE_NUM_STATES][NUM_H
         { .symbol = "3", .text = "Options", .btn_id = BTN_SETTINGS } },
 
     // Initialised/Locked
-    { { .symbol = "5", .text = "Unlock Jade", .btn_id = BTN_CONNECT },
+    { { .symbol = "5", .text = "Ready", .btn_id = BTN_CONNECT },
 #ifdef CONFIG_HAS_CAMERA
         { .symbol = "2", .text = "QR Mode", .btn_id = BTN_QR_MODE },
 #endif
@@ -166,7 +166,7 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     gui_view_node_t** status_text, gui_view_node_t** label);
 
 // Temporary screens while connecting
-gui_activity_t* make_connect_activity(const char* device_name);
+gui_activity_t* make_connect_activity(void);
 gui_activity_t* make_connect_to_activity(const char* device_name, jade_msg_source_t initialisation_source);
 
 // GUI screens
@@ -2782,7 +2782,7 @@ void dashboard_process(void* process_ptr)
                     act_dashboard, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
             } else {
                 JADE_LOGI("User navigated to 'connect' screen");
-                act_dashboard = make_connect_activity(device_name);
+                act_dashboard = make_connect_activity();
                 gui_activity_register_event(
                     act_dashboard, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
             }
