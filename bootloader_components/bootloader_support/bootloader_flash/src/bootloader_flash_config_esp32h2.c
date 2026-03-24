@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -24,6 +24,7 @@
 #include "hal/mmu_ll.h"
 #include "hal/cache_hal.h"
 #include "hal/cache_ll.h"
+#include "hal/mspi_ll.h"
 #include "soc/pcr_reg.h"
 
 void bootloader_flash_update_id()
@@ -87,7 +88,7 @@ void IRAM_ATTR bootloader_configure_spi_pins(int drv)
 static void IRAM_ATTR bootloader_flash_clock_init(void)
 {
     // At this moment, BBPLL should be enabled, safe to switch MSPI clock source to PLL_F64M (default clock src) to raise speed
-    REG_SET_FIELD(PCR_MSPI_CONF_REG, PCR_MSPI_CLK_SEL, 2);
+    _mspi_timing_ll_set_flash_clk_src(0, FLASH_CLK_SRC_PLL_F64M);
 }
 
 static void update_flash_config(const esp_image_header_t *bootloader_hdr)
@@ -108,6 +109,15 @@ static void update_flash_config(const esp_image_header_t *bootloader_hdr)
         break;
     case ESP_IMAGE_FLASH_SIZE_16MB:
         size = 16;
+        break;
+    case ESP_IMAGE_FLASH_SIZE_32MB:
+        size = 32;
+        break;
+    case ESP_IMAGE_FLASH_SIZE_64MB:
+        size = 64;
+        break;
+    case ESP_IMAGE_FLASH_SIZE_128MB:
+        size = 128;
         break;
     default:
         size = 2;
@@ -185,6 +195,15 @@ static void print_flash_info(const esp_image_header_t *bootloader_hdr)
     case ESP_IMAGE_FLASH_SIZE_16MB:
         str = "16MB";
         break;
+    case ESP_IMAGE_FLASH_SIZE_32MB:
+        str = "32MB";
+        break;
+    case ESP_IMAGE_FLASH_SIZE_64MB:
+        str = "64MB";
+        break;
+    case ESP_IMAGE_FLASH_SIZE_128MB:
+        str = "128MB";
+        break;
     default:
         str = "2MB";
         break;
@@ -209,6 +228,9 @@ esp_err_t bootloader_init_spi_flash(void)
 {
     bootloader_init_flash_configure();
     bootloader_spi_flash_resume();
+    if ((void*)bootloader_flash_unlock != (void*)bootloader_flash_unlock_default) {
+        ESP_EARLY_LOGD(TAG, "Using overridden bootloader_flash_unlock");
+    }
     bootloader_flash_unlock();
 
 #if CONFIG_ESPTOOLPY_FLASHMODE_QIO || CONFIG_ESPTOOLPY_FLASHMODE_QOUT

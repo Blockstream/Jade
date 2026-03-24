@@ -1,7 +1,35 @@
 idf_build_get_property(target IDF_TARGET)
+idf_build_get_property(esp_tee_build ESP_TEE_BUILD)
 
 if(${target} STREQUAL "linux")
     return() # This component is not supported by the POSIX/Linux simulator
+endif()
+
+if(esp_tee_build)
+    set(tee_inc_dirs "include"
+                     "private_include"
+                     "bootloader_flash/include")
+
+    set(tee_srcs "src/flash_partitions.c"
+                 "src/bootloader_sha.c"
+                 "src/bootloader_common_loader.c"
+                 "src/esp_image_format.c"
+                 "src/bootloader_utility.c"
+                 "src/bootloader_utility_tee.c"
+                 "bootloader_flash/src/bootloader_flash.c")
+
+    if(CONFIG_SECURE_BOOT_V2_ENABLED)
+        if(CONFIG_SECURE_SIGNED_APPS_RSA_SCHEME OR CONFIG_SECURE_SIGNED_APPS_ECDSA_V2_SCHEME)
+            list(APPEND tee_srcs "src/secure_boot_v2/secure_boot_signatures_bootloader.c"
+                                 "src/secure_boot_v2/secure_boot.c"
+                                 "src/${IDF_TARGET}/secure_boot_secure_features.c")
+        endif()
+    endif()
+
+    idf_component_register(SRCS ${tee_srcs}
+                           INCLUDE_DIRS ${tee_inc_dirs}
+                           PRIV_REQUIRES efuse esp_app_format)
+    return()
 endif()
 
 set(srcs
@@ -36,6 +64,11 @@ if(CONFIG_APP_BUILD_TYPE_APP_2NDBOOT)
         )
 endif()
 
+list(APPEND srcs "src/bootloader_sha.c")
+if(CONFIG_ESP_ROM_REV0_HAS_NO_ECDSA_INTERFACE)
+    list(APPEND srcs "src/${IDF_TARGET}/bootloader_ecdsa.c")
+endif()
+
 if(BOOTLOADER_BUILD OR CONFIG_APP_BUILD_TYPE_RAM)
     set(include_dirs "include" "bootloader_flash/include"
         "private_include")
@@ -45,18 +78,14 @@ if(BOOTLOADER_BUILD OR CONFIG_APP_BUILD_TYPE_RAM)
     "src/bootloader_clock_loader.c"
     "src/bootloader_console.c"
     "src/bootloader_console_loader.c"
-    "src/${IDF_TARGET}/bootloader_sha.c"
     "src/${IDF_TARGET}/bootloader_soc.c"
     "src/${IDF_TARGET}/bootloader_${IDF_TARGET}.c"
     )
-    list(APPEND priv_requires hal)
-    if(CONFIG_ESP_ROM_REV0_HAS_NO_ECDSA_INTERFACE)
-        list(APPEND srcs
-            "src/${IDF_TARGET}/bootloader_ecdsa.c")
+    if(CONFIG_SECURE_ENABLE_TEE)
+        list(APPEND srcs "src/bootloader_utility_tee.c")
     endif()
+    list(APPEND priv_requires hal)
 else()
-    list(APPEND srcs
-        "src/idf/bootloader_sha.c")
     set(include_dirs "include" "bootloader_flash/include")
     set(priv_include_dirs "private_include")
     # heap is required for `heap_memory_layout.h` header

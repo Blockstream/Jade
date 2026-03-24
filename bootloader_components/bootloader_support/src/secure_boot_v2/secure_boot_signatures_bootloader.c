@@ -1,10 +1,11 @@
 /*
- * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 #include "sdkconfig.h"
 
+#include <stddef.h>
 #include <string.h>
 #include "esp_fault.h"
 #include "bootloader_flash_priv.h"
@@ -26,6 +27,7 @@ static const char* TAG = "secure_boot_v2";
 
 esp_err_t esp_secure_boot_verify_signature(uint32_t src_addr, uint32_t length)
 {
+    esp_err_t err = ESP_FAIL;
     uint8_t digest[ESP_SECURE_BOOT_DIGEST_LEN] = {0};
     uint8_t verified_digest[ESP_SECURE_BOOT_DIGEST_LEN] = { 0 }; /* Note: this function doesn't do any anti-FI checks on this buffer */
 
@@ -34,7 +36,12 @@ esp_err_t esp_secure_boot_verify_signature(uint32_t src_addr, uint32_t length)
     ESP_LOGD(TAG, "verifying signature src_addr 0x%" PRIx32 " length 0x%" PRIx32, src_addr, length);
 
     /* Calculate digest of main image */
-    esp_err_t err = bootloader_sha256_flash_contents(src_addr, padded_length, digest);
+#if CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_384_BITS
+    err = bootloader_sha384_flash_contents(src_addr, padded_length, digest);
+#else
+    err = bootloader_sha256_flash_contents(src_addr, padded_length, digest);
+#endif
+
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Digest calculation failed 0x%" PRIx32 ", 0x%" PRIx32, src_addr, padded_length);
         return err;
@@ -65,6 +72,18 @@ static esp_err_t validate_signature_block(const ets_secure_boot_sig_block_t *blo
         ESP_LOGE(TAG, "%s signing scheme selected but signature block generated for %s scheme", esp_secure_boot_get_scheme_name(ESP_SECURE_BOOT_SCHEME), esp_secure_boot_get_scheme_name(block->version));
         return ESP_FAIL;
     }
+
+#if SOC_ECDSA_P192_CURVE_DEFAULT_DISABLED && CONFIG_SECURE_SIGNED_APPS_ECDSA_V2_SCHEME
+    if (block->ecdsa.key.curve_id == ECDSA_CURVE_P192) {
+        // Enabling ECDSA-192 Curve mode
+        esp_err_t err = esp_efuse_enable_ecdsa_p192_curve_mode();
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to enable ECDSA-192 curve mode: %d", err);
+            return err;
+        }
+    }
+#endif
+
     return ESP_OK;
 }
 
@@ -141,19 +160,22 @@ esp_err_t esp_secure_boot_verify_sbv2_signature_block(const ets_secure_boot_sign
         }
         ESP_FAULT_ASSERT(!esp_secure_boot_enabled());
     }
-#if CONFIG_JADE_MINIMUM_SIGNATURES > 1
+
+#if CONFIG_SECURE_BOOT_V2_MIN_SIGNATURES > 1
 _Static_assert(SOC_EFUSE_SECURE_BOOT_KEY_DIGESTS == 3 && SECURE_BOOT_NUM_BLOCKS == 3,
                "We rely on 3 keys in the trusted digests");
 #if CONFIG_SECURE_SIGNED_APPS_RSA_SCHEME
     if (memcmp(&sig_block->block[0].key, &sig_block->block[1].key, sizeof(sig_block->block[0].key)) == 0 ||
         memcmp(&sig_block->block[1].key, &sig_block->block[2].key, sizeof(sig_block->block[0].key)) == 0 ||
         memcmp(&sig_block->block[2].key, &sig_block->block[0].key, sizeof(sig_block->block[0].key)) == 0) {
+        ESP_LOGE(TAG, "Signature blocks have duplicate keys");
         return ESP_ERR_IMAGE_INVALID;
     }
 #elif CONFIG_SECURE_SIGNED_APPS_ECDSA_V2_SCHEME
     if (memcmp(&sig_block->block[0].ecdsa.key, &sig_block->block[1].ecdsa.key, sizeof(sig_block->block[0].ecdsa.key)) == 0 ||
         memcmp(&sig_block->block[1].ecdsa.key, &sig_block->block[2].ecdsa.key, sizeof(sig_block->block[0].ecdsa.key)) == 0 ||
-        memcmp(&sig_block->block[2].ecdsa.key, &sig_block->block[0].ecdsa.key, sizeof(sig_block->block[0].ecsda.key)) == 0) {
+        memcmp(&sig_block->block[2].ecdsa.key, &sig_block->block[0].ecdsa.key, sizeof(sig_block->block[0].ecdsa.key)) == 0) {
+        ESP_LOGE(TAG, "Signature blocks have duplicate keys");
         return ESP_ERR_IMAGE_INVALID;
     }
 #endif
@@ -171,13 +193,12 @@ _Static_assert(SOC_EFUSE_SECURE_BOOT_KEY_DIGESTS == 3 && SECURE_BOOT_NUM_BLOCKS 
     ets_secure_boot_key_digests_t trusted_key_digests = {0};
     bool valid_sig_blk = false;
     for (unsigned i = 0; i < SECURE_BOOT_NUM_BLOCKS; i++) {
+        trusted_key_digests.key_digests[i] = &trusted.key_digests[i];
         if (sig_block->block[i].version != ESP_SECURE_BOOT_SCHEME) {
             ESP_LOGD(TAG, "%s signing scheme selected but signature block %d generated for %s scheme", esp_secure_boot_get_scheme_name(ESP_SECURE_BOOT_SCHEME), i, esp_secure_boot_get_scheme_name(sig_block->block[i].version));
-            continue;
         } else {
             valid_sig_blk = true;
         }
-        trusted_key_digests.key_digests[i] = &trusted.key_digests[i];
     }
     if (valid_sig_blk != true) {
         ESP_LOGE(TAG, "No signature block generated for valid scheme");
@@ -189,20 +210,27 @@ _Static_assert(SOC_EFUSE_SECURE_BOOT_KEY_DIGESTS == 3 && SECURE_BOOT_NUM_BLOCKS 
     // Do NOT allow key revocation while verifying application
     trusted_key_digests.allow_key_revoke = false;
 
-#if CONFIG_JADE_MINIMUM_SIGNATURES > 1
+#if CONFIG_SECURE_BOOT_V2_MIN_SIGNATURES > 1
     size_t validated_keys = 0;
     int sb_result = SB_FAILED;
 
-    ets_secure_boot_sig_block_t sig_block_copy[SECURE_BOOT_NUM_BLOCKS] = {0};
+    _Static_assert(offsetof(ets_secure_boot_signature_t, block) == 0,
+                   "block[0] must be at offset 0 in ets_secure_boot_signature_t for pointer cast to be valid");
+    _Static_assert(__builtin_types_compatible_p(__typeof__(((ets_secure_boot_signature_t *)0)->block[0]), ets_secure_boot_sig_block_t),
+                   "ets_secure_boot_signature_t::block element type must be ets_secure_boot_sig_block_t");
+    static ets_secure_boot_sig_block_t sig_block_copy[SECURE_BOOT_NUM_BLOCKS];
     for (unsigned i = 0; i < SECURE_BOOT_NUM_BLOCKS; i++) {
+        memset(sig_block_copy, 0, sizeof(sig_block_copy));
         memcpy(&sig_block_copy[0], &sig_block->block[i], sizeof(ets_secure_boot_sig_block_t));
         int sb_sub_result = ets_secure_boot_verify_signature((ets_secure_boot_signature_t*)&sig_block_copy[0], image_digest, &trusted_key_digests, verified_digest);
         if (sb_sub_result == SB_SUCCESS) {
             validated_keys++;
-            if (validated_keys >= CONFIG_JADE_MINIMUM_SIGNATURES) {
+            if (validated_keys >= CONFIG_SECURE_BOOT_V2_MIN_SIGNATURES) {
                 sb_result = sb_sub_result;
                 break;
             }
+        } else {
+            ESP_LOGE(TAG, "Signature block %d verification failed.", i);
         }
     }
 #else

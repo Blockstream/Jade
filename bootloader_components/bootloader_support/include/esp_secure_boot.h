@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -14,29 +14,9 @@
 #include "sdkconfig.h"
 #include "esp_rom_crc.h"
 #include "hal/efuse_ll.h"
-
-#if CONFIG_IDF_TARGET_ESP32
-#include "esp32/rom/secure_boot.h"
-#elif CONFIG_IDF_TARGET_ESP32S2
-#include "esp32s2/rom/secure_boot.h"
-#elif CONFIG_IDF_TARGET_ESP32C3
-#include "esp32c3/rom/secure_boot.h"
-#elif CONFIG_IDF_TARGET_ESP32S3
-#include "esp32s3/rom/secure_boot.h"
-#elif CONFIG_IDF_TARGET_ESP32C2
-#include "esp32c2/rom/secure_boot.h"
-#elif CONFIG_IDF_TARGET_ESP32C6
-#include "esp32c6/rom/secure_boot.h"
-#elif CONFIG_IDF_TARGET_ESP32H2
-#include "esp32h2/rom/secure_boot.h"
-#elif CONFIG_IDF_TARGET_ESP32P4
-#include "esp32p4/rom/secure_boot.h"
-#elif CONFIG_IDF_TARGET_ESP32C5
-#include "esp32c5/rom/secure_boot.h"
-#elif CONFIG_IDF_TARGET_ESP32C61
-#include "esp32c61/rom/secure_boot.h"
+#if !CONFIG_IDF_TARGET_LINUX
+#include "rom/secure_boot.h"
 #endif
-
 #ifdef CONFIG_SECURE_BOOT_V1_ENABLED
 #if !defined(CONFIG_SECURE_SIGNED_ON_BOOT) || !defined(CONFIG_SECURE_SIGNED_ON_UPDATE) || !defined(CONFIG_SECURE_SIGNED_APPS)
 #error "internal sdkconfig error, secure boot should always enable all signature options"
@@ -52,12 +32,20 @@ extern "C" {
    Can be compiled as part of app or bootloader code.
 */
 
+#if CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_384_BITS
+#define ESP_SECURE_BOOT_DIGEST_LEN 48
+#else /* !CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_384_BITS */
 #define ESP_SECURE_BOOT_DIGEST_LEN 32
+#endif /* CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_384_BITS */
 
+/* SHA-256 length of the public key digest */
+#define ESP_SECURE_BOOT_KEY_DIGEST_SHA_256_LEN 32
+
+/* Length of the public key digest that is stored in efuses */
 #if CONFIG_IDF_TARGET_ESP32C2
-#define ESP_SECURE_BOOT_KEY_DIGEST_LEN 16
+#define ESP_SECURE_BOOT_KEY_DIGEST_LEN ESP_SECURE_BOOT_KEY_DIGEST_SHA_256_LEN / 2
 #else
-#define ESP_SECURE_BOOT_KEY_DIGEST_LEN 32
+#define ESP_SECURE_BOOT_KEY_DIGEST_LEN ESP_SECURE_BOOT_KEY_DIGEST_SHA_256_LEN
 #endif
 
 #ifdef CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
@@ -212,7 +200,8 @@ esp_err_t esp_secure_boot_v2_permanently_enable(const esp_image_metadata_t *imag
 /** @brief Verify the secure boot signature appended to some binary data in flash.
  *
  * For ECDSA Scheme (Secure Boot V1) - deterministic ECDSA w/ SHA256 image
- * For RSA Scheme (Secure Boot V2) - RSA-PSS Verification of the SHA-256 image
+ * For RSA Scheme (Secure Boot V2) - RSA-PSS Verification of the SHA-256 image digest
+ * For ECDSA Scheme (Secure Boot V2) - ECDSA Verification of the SHA-256 / SHA-384 (in case of ECDSA-P384 secure boot key) image digest
  *
  * Public key is compiled into the calling program in the ECDSA Scheme.
  * See the apt docs/security/secure-boot-v1.rst or docs/security/secure-boot-v2.rst for details.
@@ -236,6 +225,23 @@ typedef struct {
     uint8_t signature[64];
 } esp_secure_boot_sig_block_t;
 
+/** @brief Get the size of the secure boot signature block
+ *
+ * This is the size of the signature block appended to a signed image.
+ *
+ * @return Size of the secure boot signature block in bytes
+ */
+static inline uint32_t esp_secure_boot_sig_block_size(void)
+{
+#if CONFIG_SECURE_SIGNED_APPS_RSA_SCHEME || CONFIG_SECURE_SIGNED_APPS_ECDSA_V2_SCHEME
+    return sizeof(ets_secure_boot_signature_t);
+#elif defined(CONFIG_SECURE_SIGNED_APPS_ECDSA_SCHEME)
+    return sizeof(esp_secure_boot_sig_block_t);
+#else
+    return 0;
+#endif
+}
+
 /** @brief Verify the ECDSA secure boot signature block for Secure Boot V1.
  *
  *  Calculates Deterministic ECDSA w/ SHA256 based on the SHA256 hash of the image. ECDSA signature
@@ -255,13 +261,13 @@ esp_err_t esp_secure_boot_verify_ecdsa_signature_block(const esp_secure_boot_sig
 
 /** @brief Verify the secure boot signature block for Secure Boot V2.
  *
- *  Performs RSA-PSS or ECDSA verification of the SHA-256 image based on the public key
+ *  Performs RSA-PSS or ECDSA verification of the SHA-256 / SHA-384 image based on the public key
  *  in the signature block, compared against the public key digest stored in efuse.
  *
  * Similar to esp_secure_boot_verify_signature(), but can be used when the digest is precalculated.
  * @param[in] sig_block Pointer to signature block data
- * @param[in] image_digest Pointer to 32 byte buffer holding SHA-256 hash.
- * @param[out] verified_digest Pointer to 32 byte buffer that will receive verified digest if verification completes. (Used during bootloader implementation only, result is invalid otherwise.)
+ * @param[in] image_digest Pointer to 32/48 byte buffer holding SHA-256/SHA-384 hash.
+ * @param[out] verified_digest Pointer to 32/48 byte buffer that will receive verified digest if verification completes. (Used during bootloader implementation only, result is invalid otherwise.)
  *
  */
 esp_err_t esp_secure_boot_verify_sbv2_signature_block(const ets_secure_boot_signature_t *sig_block, const uint8_t *image_digest, uint8_t *verified_digest);
@@ -274,7 +280,7 @@ esp_err_t esp_secure_boot_verify_sbv2_signature_block(const ets_secure_boot_sign
  * Each image can have one or more signature blocks (up to SECURE_BOOT_NUM_BLOCKS). Each signature block includes a public key.
  */
 typedef struct {
-    uint8_t key_digests[SOC_EFUSE_SECURE_BOOT_KEY_DIGESTS][ESP_SECURE_BOOT_DIGEST_LEN];    /* SHA of the public key components in the signature block */
+    uint8_t key_digests[SOC_EFUSE_SECURE_BOOT_KEY_DIGESTS][ESP_SECURE_BOOT_KEY_DIGEST_SHA_256_LEN];    /* SHA of the public key components in the signature block */
     unsigned num_digests;                                       /* Number of valid digests, starting at index 0 */
 } esp_image_sig_public_key_digests_t;
 

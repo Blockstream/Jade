@@ -9,7 +9,7 @@
 #include "soc/chip_revision.h"
 #include "hal/efuse_hal.h"
 
-#if !CONFIG_IDF_TARGET_ESP32C6 && !CONFIG_IDF_TARGET_ESP32H2 && !CONFIG_IDF_TARGET_ESP32P4 && !CONFIG_IDF_TARGET_ESP32C5 &&! CONFIG_IDF_TARGET_ESP32C61 // TODO: IDF-5645
+#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3  // TODO: IDF-5645
 #include "soc/rtc_cntl_reg.h"
 #else
 #include "soc/lp_wdt_reg.h"
@@ -34,7 +34,11 @@ __attribute__((weak)) void bootloader_clock_configure(void)
     esp_rom_output_tx_wait_idle(0);
 
     /* Set CPU to a higher certain frequency. Keep other clocks unmodified. */
+#if CONFIG_IDF_TARGET_ESP32P4 && !CONFIG_ESP32P4_SELECTS_REV_LESS_V3
+    int cpu_freq_mhz = 100;
+#else
     int cpu_freq_mhz = CPU_CLK_FREQ_MHZ_BTLD;
+#endif
 
 #if CONFIG_IDF_TARGET_ESP32
     /* On ESP32 rev 0, switching to 80/160 MHz if clock was previously set to
@@ -64,7 +68,7 @@ __attribute__((weak)) void bootloader_clock_configure(void)
         // RTC_FAST clock source will be switched to RC_FAST at application startup
         clk_cfg.fast_clk_src = rtc_clk_fast_src_get();
         if (clk_cfg.fast_clk_src == SOC_RTC_FAST_CLK_SRC_INVALID) {
-            clk_cfg.fast_clk_src = SOC_RTC_FAST_CLK_SRC_XTAL_DIV;
+            clk_cfg.fast_clk_src = SOC_RTC_FAST_CLK_SRC_DEFAULT;
         }
 
 #if CONFIG_IDF_TARGET_ESP32C6
@@ -100,14 +104,12 @@ __attribute__((weak)) void bootloader_clock_configure(void)
 #endif
     // CLR ENA
     CLEAR_PERI_REG_MASK(LP_WDT_INT_ENA_REG, LP_WDT_SUPER_WDT_INT_ENA);                                      /* SWD */
-    CLEAR_PERI_REG_MASK(LP_TIMER_LP_INT_ENA_REG, LP_TIMER_MAIN_TIMER_LP_INT_ENA);                           /* MAIN_TIMER */
     CLEAR_PERI_REG_MASK(LP_ANALOG_PERI_LP_ANA_LP_INT_ENA_REG, LP_ANALOG_PERI_LP_ANA_BOD_MODE0_LP_INT_ENA);  /* BROWN_OUT */
     CLEAR_PERI_REG_MASK(LP_WDT_INT_ENA_REG, LP_WDT_LP_WDT_INT_ENA);                                         /* WDT */
     CLEAR_PERI_REG_MASK(PMU_HP_INT_ENA_REG, PMU_SOC_WAKEUP_INT_ENA);                                        /* SLP_REJECT */
     CLEAR_PERI_REG_MASK(PMU_HP_INT_ENA_REG, PMU_SOC_SLEEP_REJECT_INT_ENA);                                  /* SLP_WAKEUP */
     // SET CLR
     SET_PERI_REG_MASK(LP_WDT_INT_CLR_REG, LP_WDT_SUPER_WDT_INT_CLR);                                        /* SWD */
-    SET_PERI_REG_MASK(LP_TIMER_LP_INT_CLR_REG, LP_TIMER_MAIN_TIMER_LP_INT_CLR);                             /* MAIN_TIMER */
     SET_PERI_REG_MASK(LP_ANALOG_PERI_LP_ANA_LP_INT_CLR_REG, LP_ANALOG_PERI_LP_ANA_BOD_MODE0_LP_INT_CLR);    /* BROWN_OUT */
     SET_PERI_REG_MASK(LP_WDT_INT_CLR_REG, LP_WDT_LP_WDT_INT_CLR);                                           /* WDT */
 #elif CONFIG_IDF_TARGET_ESP32H2
@@ -123,17 +125,43 @@ __attribute__((weak)) void bootloader_clock_configure(void)
     SET_PERI_REG_MASK(LP_WDT_INT_CLR_REG, LP_WDT_LP_WDT_INT_CLR);                                           /* WDT */
     SET_PERI_REG_MASK(PMU_HP_INT_CLR_REG, PMU_SOC_WAKEUP_INT_CLR);                                          /* SLP_REJECT */
     SET_PERI_REG_MASK(PMU_HP_INT_CLR_REG, PMU_SOC_SLEEP_REJECT_INT_CLR);                                    /* SLP_WAKEUP */
+#elif CONFIG_IDF_TARGET_ESP32H21
+    // CLR ENA
+    CLEAR_PERI_REG_MASK(LP_WDT_INT_ENA_REG, LP_WDT_SUPER_WDT_INT_ENA);                                      /* SWD */
+    CLEAR_PERI_REG_MASK(LP_ANA_LP_INT_ENA_REG, LP_ANA_BOD_MODE0_LP_INT_ENA);                                /* BROWN_OUT */
+    CLEAR_PERI_REG_MASK(LP_WDT_INT_ENA_REG, LP_WDT_LP_WDT_INT_ENA);                                         /* WDT */
+    CLEAR_PERI_REG_MASK(PMU_HP_INT_ENA_REG, PMU_SOC_WAKEUP_INT_ENA);                                        /* SLP_REJECT */
+    CLEAR_PERI_REG_MASK(PMU_HP_INT_ENA_REG, PMU_SOC_SLEEP_REJECT_INT_ENA);                                  /* SLP_WAKEUP */
+    // SET CLR
+    SET_PERI_REG_MASK(LP_WDT_INT_CLR_REG, LP_WDT_SUPER_WDT_INT_CLR);                                        /* SWD */
+    SET_PERI_REG_MASK(LP_ANA_LP_INT_CLR_REG, LP_ANA_BOD_MODE0_LP_INT_CLR);                                  /* BROWN_OUT */
+    SET_PERI_REG_MASK(LP_WDT_INT_CLR_REG, LP_WDT_LP_WDT_INT_CLR);                                           /* WDT */
+    SET_PERI_REG_MASK(PMU_HP_INT_CLR_REG, PMU_SOC_WAKEUP_INT_CLR);                                          /* SLP_REJECT */
+    SET_PERI_REG_MASK(PMU_HP_INT_CLR_REG, PMU_SOC_SLEEP_REJECT_INT_CLR);
+#elif CONFIG_IDF_TARGET_ESP32H4
+    // CLR ENA
+    CLEAR_PERI_REG_MASK(LP_WDT_INT_ENA_REG, LP_WDT_SUPER_WDT_INT_ENA);                                      /* SWD */
+    // TODO [ESP32H4] IDF-12295
+    // CLEAR_PERI_REG_MASK(LP_ANA_LP_INT_ENA_REG, LP_ANA_BOD_MODE0_LP_INT_ENA);                                /* BROWN_OUT */
+    CLEAR_PERI_REG_MASK(LP_WDT_INT_ENA_REG, LP_WDT_LP_WDT_INT_ENA);                                         /* WDT */
+    CLEAR_PERI_REG_MASK(PMU_HP_INT_ENA_REG, PMU_SOC_WAKEUP_INT_ENA);                                        /* SLP_REJECT */
+    CLEAR_PERI_REG_MASK(PMU_HP_INT_ENA_REG, PMU_SOC_SLEEP_REJECT_INT_ENA);                                  /* SLP_WAKEUP */
+    // SET CLR
+    SET_PERI_REG_MASK(LP_WDT_INT_CLR_REG, LP_WDT_SUPER_WDT_INT_CLR);                                        /* SWD */
+    // TODO [ESP32H4] IDF-12295
+    // SET_PERI_REG_MASK(LP_ANA_LP_INT_CLR_REG, LP_ANA_BOD_MODE0_LP_INT_CLR);                                  /* BROWN_OUT */
+    SET_PERI_REG_MASK(LP_WDT_INT_CLR_REG, LP_WDT_LP_WDT_INT_CLR);                                           /* WDT */
+    SET_PERI_REG_MASK(PMU_HP_INT_CLR_REG, PMU_SOC_WAKEUP_INT_CLR);                                          /* SLP_REJECT */
+    SET_PERI_REG_MASK(PMU_HP_INT_CLR_REG, PMU_SOC_SLEEP_REJECT_INT_CLR);
 #elif CONFIG_IDF_TARGET_ESP32P4
     // CLR ENA
     CLEAR_PERI_REG_MASK(LP_WDT_INT_ENA_REG, LP_WDT_SUPER_WDT_INT_ENA);                                      /* SWD */
-    CLEAR_PERI_REG_MASK(LP_TIMER_LP_INT_ENA_REG, LP_TIMER_MAIN_TIMER_LP_INT_ENA);                           /* MAIN_TIMER */
     CLEAR_PERI_REG_MASK(LP_ANALOG_PERI_LP_INT_ENA_REG, LP_ANALOG_PERI_BOD_MODE0_LP_INT_ENA);                /* BROWN_OUT */
     CLEAR_PERI_REG_MASK(LP_WDT_INT_ENA_REG, LP_WDT_LP_WDT_INT_ENA);                                         /* WDT */
     CLEAR_PERI_REG_MASK(PMU_HP_INT_ENA_REG, PMU_SOC_WAKEUP_INT_ENA);                                        /* SLP_REJECT */
     CLEAR_PERI_REG_MASK(PMU_HP_INT_ENA_REG, PMU_SOC_SLEEP_REJECT_INT_ENA);                                  /* SLP_WAKEUP */
     // SET CLR
     SET_PERI_REG_MASK(LP_WDT_INT_CLR_REG, LP_WDT_SUPER_WDT_INT_CLR);                                        /* SWD */
-    SET_PERI_REG_MASK(LP_TIMER_LP_INT_CLR_REG, LP_TIMER_MAIN_TIMER_LP_INT_CLR);                             /* MAIN_TIMER */
     SET_PERI_REG_MASK(LP_ANALOG_PERI_LP_INT_CLR_REG, LP_ANALOG_PERI_LP_INT_CLR_REG);                        /* BROWN_OUT */
     SET_PERI_REG_MASK(LP_WDT_INT_CLR_REG, LP_WDT_LP_WDT_INT_CLR);                                           /* WDT */
 #else

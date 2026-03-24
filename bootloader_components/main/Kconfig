@@ -1,5 +1,5 @@
 menu "2nd stage bootloader/ota minimum signatures"
-    config JADE_MINIMUM_SIGNATURES
+    config SECURE_BOOT_V2_MIN_SIGNATURES
         int "bootloader 2nd stage and ota verifies minimum signatures"
         range 1 3
         default 2 if BOARD_TYPE_JADE_V2_ANY

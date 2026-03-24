@@ -44,6 +44,7 @@
 #include "hal/lpwdt_ll.h"
 #include "hal/regi2c_ctrl_ll.h"
 #include "hal/brownout_ll.h"
+#include "hal/axi_icm_ll.h"
 
 static const char *TAG = "boot.esp32c61";
 
@@ -86,7 +87,10 @@ static void bootloader_super_wdt_auto_feed(void)
 
 static inline void bootloader_hardware_init(void)
 {
-    regi2c_ctrl_ll_master_enable_clock(true);
+    // Clear bit reset_event_bypass to ensure that the system bus is also reset during a core reset (WDT),
+    // preventing bus freezing caused by an incorrect MSPI core reset in ROM.
+    axi_icm_ll_reset_with_core_reset(true);
+    _regi2c_ctrl_ll_master_enable_clock(true); // keep ana i2c mst clock always enabled in bootloader
     regi2c_ctrl_ll_master_force_enable_clock(true); // TODO: IDF-9274 Remove this?
     regi2c_ctrl_ll_master_configure_clock();
 }
@@ -95,8 +99,7 @@ static inline void bootloader_ana_reset_config(void)
 {
     //Enable BOD reset (mode1)
     brownout_ll_ana_reset_enable(true);
-    uint8_t power_glitch_dref = 0;
-    bootloader_power_glitch_reset_config(true, power_glitch_dref);
+    bootloader_power_glitch_reset_config(true);
 }
 
 esp_err_t bootloader_init(void)
@@ -119,7 +122,7 @@ esp_err_t bootloader_init(void)
 
     // init eFuse virtual mode (read eFuses to RAM)
 #ifdef CONFIG_EFUSE_VIRTUAL
-    ESP_LOGW(TAG, "eFuse virtual mode is enabled. If Secure boot or Flash encryption is enabled then it does not provide any security. FOR TESTING ONLY!");
+    ESP_EARLY_LOGW(TAG, "eFuse virtual mode is enabled. If Secure boot or Flash encryption is enabled then it does not provide any security. FOR TESTING ONLY!");
 #ifndef CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH
     esp_efuse_init_virtual_mode_in_ram();
 #endif

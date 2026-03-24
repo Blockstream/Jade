@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -24,7 +24,7 @@
 #include "hal/mmu_ll.h"
 #include "hal/cache_hal.h"
 #include "hal/cache_ll.h"
-#include "hal/mspi_timing_tuning_ll.h"
+#include "hal/mspi_ll.h"
 
 static const char *TAG __attribute__((unused))  = "boot.esp32c61";
 
@@ -51,8 +51,9 @@ void IRAM_ATTR bootloader_init_mspi_clock(void)
     // Set source mspi pll clock as 80M in bootloader stage.
     // SPLL clock on C61 is 480MHz , and mspi_pll needs 80MHz
     // in this stage, set divider as 6
-    mspi_ll_clock_src_sel(MSPI_CLK_SRC_SPLL);
-    mspi_ll_fast_set_hs_divider(6);
+    _mspi_timing_ll_set_flash_clk_src(0, FLASH_CLK_SRC_DEFAULT);
+    // MSPI0 and MSPI1 share this core clock register, but only setting to MSPI0 register is valid
+    mspi_timing_ll_set_core_clock(MSPI_TIMING_LL_MSPI_ID_0, MSPI_TIMING_LL_CORE_CLOCK_MHZ_DEFAULT);
 }
 
 void IRAM_ATTR bootloader_flash_clock_config(const esp_image_header_t *pfhdr)
@@ -113,6 +114,15 @@ static void update_flash_config(const esp_image_header_t *bootloader_hdr)
         break;
     case ESP_IMAGE_FLASH_SIZE_16MB:
         size = 16;
+        break;
+    case ESP_IMAGE_FLASH_SIZE_32MB:
+        size = 32;
+        break;
+    case ESP_IMAGE_FLASH_SIZE_64MB:
+        size = 64;
+        break;
+    case ESP_IMAGE_FLASH_SIZE_128MB:
+        size = 128;
         break;
     default:
         size = 2;
@@ -188,6 +198,15 @@ static void print_flash_info(const esp_image_header_t *bootloader_hdr)
     case ESP_IMAGE_FLASH_SIZE_16MB:
         str = "16MB";
         break;
+    case ESP_IMAGE_FLASH_SIZE_32MB:
+        str = "32MB";
+        break;
+    case ESP_IMAGE_FLASH_SIZE_64MB:
+        str = "64MB";
+        break;
+    case ESP_IMAGE_FLASH_SIZE_128MB:
+        str = "128MB";
+        break;
     default:
         str = "2MB";
         break;
@@ -211,7 +230,16 @@ esp_err_t bootloader_init_spi_flash(void)
 {
     bootloader_init_mspi_clock();
     bootloader_init_flash_configure();
+
+#if CONFIG_BOOTLOADER_FLASH_DC_AWARE
+    // Reset flash, clear volatile bits DC[0:1]. Make it work under default mode to boot.
+    bootloader_spi_flash_reset();
+#endif
+
     bootloader_spi_flash_resume();
+    if ((void*)bootloader_flash_unlock != (void*)bootloader_flash_unlock_default) {
+        ESP_EARLY_LOGD(TAG, "Using overridden bootloader_flash_unlock");
+    }
     bootloader_flash_unlock();
 
 #if CONFIG_ESPTOOLPY_FLASHMODE_QIO || CONFIG_ESPTOOLPY_FLASHMODE_QOUT
