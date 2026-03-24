@@ -2,21 +2,12 @@
 # $ docker build -t jade_builder .
 #
 
-# FIXME: The idf built 5.4.3 docker images generates bad firmware images for 1.x
-#        devices. Building this image ourselves (see gitlab/docker.yml) works,
-#        so use our image instead until upstream is fixed.
-#ARG IDF_INSTALL_TARGETS=esp32,esp32s3
-#ARG IDF_CLONE_BRANCH_OR_TAG=v5.4.3
-#ARG IDF_CLONE_SHALLOW=1
-## Use the expressif-provided docker which gives us all the tooling plus qemu.
-#FROM espressif/idf:release-v5.4@sha256:11441b20e4a87dc722ad6d1ef5a920cf8901a62581d8c85a4299a4c0f142e1a3
-
 # See gitlab/docker.yml to build this image yourself.
-FROM blockstream/jade_builder_base@sha256:6f64874834696a7af1f77019ab2aee400d351146bc0de8bbfc9f5b30bf8f7cf9
+FROM blockstream/jade_builder_base@sha256:17574abe64b0915026f324d8df40bf81a60406966b7841e55d3792967d596176
 
 # These ARGs are easily parseable (eg by HWI)
-ARG ESP_IDF_BRANCH=v5.4
-ARG ESP_IDF_COMMIT=67c1de1eebe095d554d281952fde63c16ee2dca0
+ARG ESP_IDF_BRANCH=v5.5.4
+ARG ESP_IDF_COMMIT=735507283d5b2f9fb363a1901172dbd9e847945d
 
 COPY requirements.txt /
 
