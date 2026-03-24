@@ -82,8 +82,5 @@ if(CONFIG_AMALGAMATED_BUILD)
 endif()
 
 target_link_libraries(${COMPONENT_TARGET} "-u custom_app_desc")
-if(CONFIG_APPTRACE_GCOV_ENABLE)
-    target_compile_options(${COMPONENT_LIB} PRIVATE --coverage)
-endif()
 list(APPEND link_options "-Wl,--wrap=abort")
 idf_build_set_property(LINK_OPTIONS "${link_options}" APPEND)

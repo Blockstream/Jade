@@ -38,3 +38,19 @@ test_libjade_sanitize:
     name: libjade_serial_log
     paths:
     - daemon.log
+
+test_libjade_coverage:
+  extends: .libjade_test_template
+  stage: test
+  when: manual
+  script:
+    - ./libjade/make_libjade.sh Debug --gui --coverage
+    - ./libjade/coverage.sh clean
+    - export LD_LIBRARY_PATH=$PWD/build_linux/libjade
+    - python ./test_jade.py --log CRITICAL --libjade
+    - ./libjade/coverage.sh
+  artifacts:
+    expire_in: 2 days
+    name: libjade_coverage
+    paths:
+    - build_linux/lcov

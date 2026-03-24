@@ -590,9 +590,6 @@ class JadeAPI:
             if (cb):
                 cb(written, cmplen, result if have_extended_reply else None)
 
-        if gcov_dump:
-            self.run_remote_gcov_dump()
-
         # All binary data uploaded
         return self._jadeRpc('ota_complete')
 
@@ -611,19 +608,14 @@ class JadeAPI:
 
     def run_remote_gcov_dump(self):
         """
-        RPC call to run in-built gcov-dump.
-        NOTE: Only available in a DEBUG build of the firmware.
+        Deprecated, has no effect.
 
         Returns
         -------
         bool
             Always True.
         """
-        result = self._jadeRpc('debug_gcov_dump', long_timeout=True)
-        time.sleep(0.5)
-        generate_dump()
-        time.sleep(2)
-        return result
+        return True
 
     def capture_image_data(self, check_qr=False):
         """

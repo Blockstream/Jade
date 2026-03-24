@@ -360,7 +360,7 @@ def ota(args, jade, info, extended_replies):
     result = jade.ota_update(fwcompressed, fwlength, chunksize, fwhash,
                              patchlen=patchlen, cb=_log_progress,
                              extended_replies=extended_replies,
-                             gcov_dump=info.get('GCOV', False))
+                             gcov_dump=False)
     assert result is True
 
     logger.info(f'Total ota time in secs: {time.time() - start_time}')
