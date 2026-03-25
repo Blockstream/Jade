@@ -968,7 +968,7 @@ void qrcode_toIcon(QRCode* qrcode, Icon* icon, const uint8_t scale)
         // scaling
         for (uint8_t j = 0; j < scale; j++) {
             for (uint8_t x = 0; x < qrcode->size; x++) {
-                const bool paint = qrcode_getModule(qrcode, x, y);
+                const uint32_t paint = qrcode_getModule(qrcode, x, y);
 
                 // scaling
                 for (uint8_t i = 0; i < scale; i++) {
@@ -1058,7 +1058,7 @@ bool qrcode_toFragmentsIcons(
                 const uint8_t dest_bit = dest_pixel % 32;
                 JADE_ASSERT(dest_elem < num_uints);
 
-                bool paint = qrcode_getModule(qrcode, src_x, src_y);
+                uint32_t paint = qrcode_getModule(qrcode, src_x, src_y);
                 if (show_grid) {
                     // Invert if on a grid-line
                     const bool gridline = (dest_x == icon->width - 1) || (dest_x % scale == 0)
