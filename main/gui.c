@@ -346,7 +346,9 @@ void gui_set_active(gui_view_node_t* node, const bool value)
 
     // Set passed node to active/inactive and redraw
     set_tree_active(node, value);
-    gui_repaint(node);
+    if (!node->render_data.is_first_time) {
+        gui_repaint(node); // Repaint since screen is "live"
+    }
 }
 
 static gui_view_node_t* get_first_active_node(gui_activity_t* activity)
@@ -573,8 +575,10 @@ void gui_activity_set_active_selection(gui_activity_t* activity, gui_view_node_t
     // 'selected' should have been seen in 'nodes'
     JADE_ASSERT(set_selected);
 
-    // May as well repaint the whole activity
-    gui_repaint(activity->root_node);
+    if (activity->root_node && !activity->root_node->render_data.is_first_time) {
+        // Screen is "live": repaint the whole activity
+        gui_repaint(activity->root_node);
+    }
 }
 
 // push a selectable element to the `selectables` list of `activity`
@@ -2163,7 +2167,7 @@ static void repaint_node(gui_view_node_t* node)
 {
     JADE_ASSERT(node);
 
-    // Ensure we only call the underlying dislay library from the gui_task
+    // Ensure we only call the underlying display library from the gui_task
     JADE_ASSERT_MSG(gui_is_gui_task(), "ERROR: repaint_node() called from non-gui-task: %s", pcTaskGetName(NULL));
 
     // borders use the un-padded constraints
