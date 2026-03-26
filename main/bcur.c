@@ -658,16 +658,8 @@ static bool collect_any_bcur(qr_data_t* qr_data)
     return decoded;
 }
 
-// Scan a QR code that may be a BC-UR code/fragment - ie. single-frame or animated/multi-frame.
-// Returns true if a complete (ie. potentially multi-frame) bc-ur code is scanned, or if a single
-// non-BC-UR frame is scanned successfully.
-// If BC-UR, the complete scanned payload and its BC-UR 'type' are returned.
-// NOTE: output is expected to be a valid CBOR message, although this is not validated.
-// If not BC-UR, the scanned payload is returned with a type of NULL.
-// In either case the caller takes ownership, and must free the output data bytes and any type string.
-// Returns false if scanning fails or is abandoned - in which case there is nothing to free.
-bool bcur_scan_qr(
-    const char* prompt_text, char** output_type, uint8_t** output, size_t* output_len, const char* help_url)
+bool bcur_scan_qr(const char* prompt_text, char** output_type, uint8_t** output, size_t* output_len, size_t offset,
+    const char* help_url)
 {
     // prompt_text is optional
     JADE_INIT_OUT_PPTR(output_type);
@@ -698,17 +690,17 @@ bool bcur_scan_qr(
         JADE_ASSERT(result_type);
 
         // Copy payload and bc-ur type
-        *output = JADE_MALLOC_PREFER_SPIRAM(result_len);
-        memcpy(*output, result, result_len);
-        *output_len = result_len;
+        *output = JADE_MALLOC_PREFER_SPIRAM(result_len + offset);
+        memcpy(*output + offset, result, result_len);
+        *output_len = result_len + offset;
         *output_type = strdup(result_type);
     } else {
         // Not a bc-ur code - copy straight payload and append a nul-terminator.
         // Leave bc-ur type as NULL to indicate data was not a bc-ur payload.
-        *output = JADE_MALLOC(qr_data.len + 1);
-        memcpy(*output, qr_data.data, qr_data.len);
-        (*output)[qr_data.len] = '\0';
-        *output_len = qr_data.len;
+        *output = JADE_MALLOC(qr_data.len + offset + 1);
+        memcpy(*output + offset, qr_data.data, qr_data.len);
+        (*output)[qr_data.len + offset] = '\0';
+        *output_len = qr_data.len + offset;
         *output_type = NULL;
     }
 

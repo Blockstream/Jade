@@ -1290,7 +1290,7 @@ void handle_scan_qr(void)
     char* type = NULL;
     uint8_t* data = NULL;
     size_t data_len = 0;
-    if (!bcur_scan_qr(NULL, &type, &data, &data_len, "blkstrm.com/jadescan") || !data) {
+    if (!bcur_scan_qr(NULL, &type, &data, &data_len, 0, "blkstrm.com/jadescan") || !data) {
         // Scan aborted
         JADE_ASSERT(!type);
         JADE_ASSERT(!data);
@@ -1628,9 +1628,9 @@ bool await_qr_back_continue_activity(
 // Create and post a 'cancel' message
 static bool post_cancel_message(const jade_msg_source_t source)
 {
-    uint8_t cbor_buf[32];
+    uint8_t cbor_buf[32 + 1];
     CborEncoder root_encoder;
-    cbor_encoder_init(&root_encoder, cbor_buf, sizeof(cbor_buf), 0);
+    cbor_encoder_init(&root_encoder, cbor_buf + 1, sizeof(cbor_buf) - 1, 0);
 
     CborEncoder root_map_encoder; // id, method
     CborError cberr = cbor_encoder_create_map(&root_encoder, &root_map_encoder, 2);
@@ -1640,16 +1640,17 @@ static bool post_cancel_message(const jade_msg_source_t source)
     cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
     JADE_ASSERT(cberr == CborNoError);
 
-    const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
-    return jade_process_push_in_message_ex(cbor_buf, cbor_len, source);
+    const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf + 1);
+    cbor_buf[0] = source;
+    return jade_process_push_in_message(cbor_buf, cbor_len + 1);
 }
 
 // Locally create and post an 'auth_user' request
 static bool post_auth_msg_request(const jade_msg_source_t source, const bool suppress_pin_change_confirmation)
 {
-    uint8_t cbor_buf[96];
+    uint8_t cbor_buf[96 + 1];
     CborEncoder root_encoder;
-    cbor_encoder_init(&root_encoder, cbor_buf, sizeof(cbor_buf), 0);
+    cbor_encoder_init(&root_encoder, cbor_buf + 1, sizeof(cbor_buf) - 1, 0);
 
     CborEncoder root_map_encoder; // id, method, params
     CborError cberr = cbor_encoder_create_map(&root_encoder, &root_map_encoder, 3);
@@ -1679,8 +1680,9 @@ static bool post_auth_msg_request(const jade_msg_source_t source, const bool sup
     cberr = cbor_encoder_close_container(&root_encoder, &root_map_encoder);
     JADE_ASSERT(cberr == CborNoError);
 
-    const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf);
-    return jade_process_push_in_message_ex(cbor_buf, cbor_len, source);
+    const size_t cbor_len = cbor_encoder_get_buffer_size(&root_encoder, cbor_buf + 1);
+    cbor_buf[0] = source;
+    return jade_process_push_in_message(cbor_buf, cbor_len + 1);
 }
 
 // Scan a bcur QR code, and post it into Jade with SOURCE_INTERNAL
@@ -1689,19 +1691,20 @@ static bool scan_qr_post_in_message(const char* label, const char* expected_type
     JADE_ASSERT(label);
     JADE_ASSERT(expected_type);
 
-    char* output_type = NULL;
-    uint8_t* output = NULL;
-    size_t output_len = 0;
+    char* type = NULL;
+    uint8_t* data = NULL;
+    size_t data_len = 0;
     bool ret = false;
 
-    // NOTE: we take ownership of 'output_type' and 'output'
-    if (!bcur_scan_qr(label, &output_type, &output, &output_len, "blkstrm.com/qrpin")) {
+    // NOTE: we take ownership of 'type' and 'data'
+    const uint32_t offset = 1; // Allow for a prefix message source byte
+    if (!bcur_scan_qr(label, &type, &data, &data_len, offset, "blkstrm.com/qrpin")) {
         JADE_LOGI("QR scanning failed or abandoned");
         return false;
     }
 
     // Check if a non-bc-ur code frame was scanned
-    if (!output_type) {
+    if (!type) {
         JADE_LOGW("Scanning encountered a non-BC-UR QR code, when expecting BC-UR type %s", expected_type);
         const char* message[] = { "Unexpected QR payload" };
         await_error_activity(message, 1);
@@ -1709,19 +1712,20 @@ static bool scan_qr_post_in_message(const char* label, const char* expected_type
     }
 
     // Check the type is as expected
-    if (strcasecmp(expected_type, output_type)) {
-        JADE_LOGW("Scanning returned unexpected type %s when expecting %s", output_type, expected_type);
+    if (strcasecmp(expected_type, type)) {
+        JADE_LOGW("Scanning returned unexpected type %s when expecting %s", type, expected_type);
         const char* message[] = { "Unexpected QR payload type" };
         await_error_activity(message, 1);
         goto cleanup;
     }
 
     // Post as message into Jade with source-qr prefix
-    ret = jade_process_push_in_message_ex(output, output_len, SOURCE_INTERNAL);
+    data[0] = SOURCE_INTERNAL;
+    ret = jade_process_push_in_message(data, data_len);
 
 cleanup:
-    free(output);
-    free(output_type);
+    free(data);
+    free(type);
     return ret;
 }
 

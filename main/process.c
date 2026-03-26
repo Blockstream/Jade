@@ -270,20 +270,6 @@ bool jade_process_push_in_message(const uint8_t* data, const size_t size)
     return true;
 }
 
-bool jade_process_push_in_message_ex(const uint8_t* data, const size_t size, const jade_msg_source_t source)
-{
-    JADE_ASSERT(data);
-    JADE_ASSERT(size);
-    // Post as message into Jade with msg-source prefix
-    const size_t fullsize = size + 1;
-    uint8_t* const fullmsg = JADE_MALLOC(fullsize);
-    fullmsg[0] = source;
-    memcpy(fullmsg + 1, data, size);
-    const bool ret = jade_process_push_in_message(fullmsg, fullsize);
-    free(fullmsg);
-    return ret;
-}
-
 void jade_process_push_out_message(const uint8_t* data, const size_t size, const jade_msg_source_t source)
 {
 #if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)

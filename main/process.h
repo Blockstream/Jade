@@ -84,7 +84,6 @@ void jade_process_free_current_message(jade_process_t* process);
 
 // Push messages to/from a process
 bool jade_process_push_in_message(const uint8_t* data, size_t size);
-bool jade_process_push_in_message_ex(const uint8_t* data, size_t size, jade_msg_source_t source);
 void jade_process_push_out_message(const uint8_t* data, size_t length, jade_msg_source_t source);
 
 // Send message replies
