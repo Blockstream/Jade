@@ -8,6 +8,7 @@ import json
 import base64
 import random
 import logging
+import math
 import argparse
 import subprocess
 import threading
@@ -160,8 +161,16 @@ def _read_json_file(filename):
 
 
 # Helper to read json test files into a list
-def _get_test_cases(pattern):
-    return (_h2b_test_case(_read_json_file(f)) for f in glob.glob('./test_data/' + pattern))
+def _get_test_cases(pattern, allow_sampling=True):
+    filenames = [f for f in glob.glob('./test_data/' + pattern)]
+    if allow_sampling and filenames and args.sample_percent != 100:
+        # Test only args.sample_percent percentage of the files, but
+        # test all files if there are only a small number of them
+        num_files = len(filenames)
+        if num_files > 8:
+            num_files = int(math.ceil((args.sample_percent / 100.0) * num_files))
+            filenames = random.sample(filenames, num_files)
+    return (_h2b_test_case(_read_json_file(f)) for f in filenames)
 
 
 BLE_TEST_PASSKEYFILE = 'ble_test_passkey.txt'
@@ -3205,7 +3214,8 @@ def _check_multisig_registration(jadeapi, multisig_data):
 
 def test_generic_multisig_registration(jadeapi):
     # Generic multisig - check register multisig wallets and get receive addresses
-    for multisig_data in _get_test_cases(MULTI_REG_TESTS):
+    # Run all of these tests since later test cases rely on them :(
+    for multisig_data in _get_test_cases(MULTI_REG_TESTS, allow_sampling=False):
         _check_multisig_registration(jadeapi, multisig_data)
 
     # Ensure the 1of1 is registered at the end - same name will be used to overwrite
@@ -4300,6 +4310,12 @@ if __name__ == '__main__':
                         dest='no_legacy_flow',
                         help='Do not use the legacy sign_tx flow (use the AE flow instead)',
                         default=False)
+    parser.add_argument("--sample-percent",
+                        action="store",
+                        dest="sample_percent",
+                        type=int,
+                        help="Run only a random sample of test cases",
+                        default=100)
     parser.add_argument('--log',
                         action='store',
                         dest='loglevel',
@@ -4311,6 +4327,8 @@ if __name__ == '__main__':
     jadehandler.setLevel(getattr(logging, args.loglevel))
     logger.debug(f'args: {args}')
 
+    if args.sample_percent != 100:
+        logger.warning(f'WARNING: Testing reduced test cases ({args.sample_percent}% sample)')
     args.spts = args.serialport and not args.serialport.startswith('/dev/tty/') and not args.qemu
 
     manage_agents = args.agentkeyfile and not args.skipble and \

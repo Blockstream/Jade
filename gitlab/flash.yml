@@ -14,7 +14,7 @@
   script:
     - mv $(echo $CI_JOB_NAME | sed "s/^${CI_JOB_STAGE}/build_test/") build
     - ./main/qemu/make-flash-img.sh
-    - ./main/qemu/qemu_ci_flash.sh
+    - ./main/qemu/qemu_ci_flash.sh --sample-percent=33
 
 flash_qemu:
   extends: .flash_qemu_template
