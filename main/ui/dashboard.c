@@ -62,7 +62,16 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     // NOTE: The home screen is created as an 'unmanaged' activity as
     // its lifetime is same as that of the entire application
     gui_activity_t* act = NULL;
-    gui_make_activity_ex(&act, true, device_name, false);
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_LCD2
+    const char* status_bar_title = device_name;
+    if (device_name && device_name[0] == 'J' && device_name[1] == 'a' && device_name[2] == 'd'
+        && device_name[3] == 'e' && device_name[4] == ' ' && device_name[11] == '\0') {
+        status_bar_title = device_name + 5; // Use just the short id if present
+    }
+#else
+    const char* const status_bar_title = device_name;
+#endif
+    gui_make_activity_ex(&act, true, status_bar_title, false);
     JADE_ASSERT(act);
 
     gui_view_node_t* node;
