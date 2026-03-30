@@ -23,9 +23,9 @@ static inline bool entry_invert_navigation(void)
 static uint32_t get_max_digit_entry_char(const digit_entry_t* digit_entry)
 {
     if (digit_entry->entry_type == DIGIT_ENTRY_INDEX) {
-        return NUM_ENTRY_DIGITS + 1; // 0-9 + backspace + 'enter' to enter a short number
+        return NUM_ENTRY_DIGITS + 2; // 0-9 + backspace + 'enter' to enter a short number
     }
-    return NUM_ENTRY_DIGITS; // 0-9 + backspace only since PIN entry requires all digits
+    return NUM_ENTRY_DIGITS + 1; // 0-9 + backspace only since PIN entry requires all digits
 }
 
 static inline char get_current_digit_entry_char(const digit_entry_t* digit_entry)
