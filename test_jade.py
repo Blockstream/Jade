@@ -2210,9 +2210,9 @@ def _set_wallet(jade, mnemonic=TEST_MNEMONIC, passphrase=None):
     request = jade.build_request('id_mnem', 'debug_set_mnemonic',
                                  {'mnemonic': mnemonic, 'passphrase': passphrase})
     reply = jade.make_rpc_call(request)
-    assert reply['id'] == request['id']
-    assert 'error' not in reply
-    assert reply['result'] is True
+    assert reply['id'] == request['id'], f"{reply['id']} != {request['id']}: {reply}"
+    assert 'error' not in reply, f'{reply}'
+    assert reply['result'] is True, f'{reply}'
 
     # Get and return root xpub
     request = jade.build_request('id_xpub', 'get_xpub',
