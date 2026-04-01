@@ -712,6 +712,12 @@ b2e95dc777c4d7df504ced12fd668f81a11d14d30033831df1434b59d7',
 
 
 # The tests
+def assert_idle(jade):
+    wait(1)  # Short delay to ensure return to idle status
+    rslt = jade.ping()
+    assert rslt == 0  # idle
+
+
 def test_bad_message(jade):
     bad_requests = [{'method': 'get_version_info'},  # no-id
                     {'id': '2'},               # no method
@@ -3764,6 +3770,7 @@ def test_ping_protocol(jade):
     sigABC2 = jade.make_rpc_call(getsig)['result']
     assert sigABC2 == sigABC1
 
+    wait(1)  # short delay to ensure return to idle status
     jade_is_busy = jade.make_rpc_call(jade.build_request('pingAGAIN', 'ping'))['result']
     assert jade_is_busy == 0  # idle
 
@@ -3773,8 +3780,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.clean_reset()
     assert rslt is True
 
-    rslt = jadeapi.ping()
-    assert rslt == 0  # idle
+    assert_idle(jadeapi)
 
     # On connection, a companion app should:
     # a) get the version info and check is compatible, needs update, etc.
@@ -3811,8 +3817,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert jadeapi.get_version_info()['JADE_STATE'] == 'READY'
 
-    rslt = jadeapi.ping()
-    assert rslt == 0  # idle
+    assert_idle(jadeapi)
 
     wait(5)  # Lets idle tasks clean up
     startinfo = jadeapi.get_version_info()
@@ -3952,14 +3957,10 @@ def run_interface_tests(jadeapi,
     assert rslt['JADE_VERSION'] == startinfo['JADE_VERSION']
     assert rslt['JADE_STATE'] == startinfo['JADE_STATE']
 
-    rslt = jadeapi.ping()
-    assert rslt == 0  # idle
-
+    assert_idle(jadeapi)
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
     assert rslt is True
-
-    rslt = jadeapi.ping()
-    assert rslt == 0  # idle
+    assert_idle(jadeapi)
 
     # Smoke tests
     if smoke:
