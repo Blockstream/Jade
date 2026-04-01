@@ -122,7 +122,7 @@ void get_registered_multisigs_process(void* process_ptr)
     // Reply with this info
     const size_t buflen = 256 + (176 * descriptions.num_multisigs);
     uint8_t* const buf = JADE_MALLOC(buflen);
-    jade_process_reply_to_message_result(process->ctx, buf, buflen, &descriptions, reply_registered_multisigs);
+    jade_process_reply_to_message_result(&process->ctx, buf, buflen, &descriptions, reply_registered_multisigs);
     free(buf);
 
     JADE_LOGI("Success");

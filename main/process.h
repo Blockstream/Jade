@@ -90,15 +90,15 @@ void jade_process_push_out_message(const uint8_t* data, size_t length, jade_msg_
 void jade_process_reply_to_message_result_with_id(const char* id, uint8_t* output, size_t output_size,
     jade_msg_source_t source, const void* cbctx, cbor_encoder_fn_t cb);
 void jade_process_reply_to_message_result(
-    cbor_msg_t ctx, uint8_t* output, size_t output_size, const void* cbctx, cbor_encoder_fn_t cb);
+    const cbor_msg_t* const ctx, uint8_t* output, size_t output_size, const void* cbctx, cbor_encoder_fn_t cb);
 void jade_process_reply_to_message_ok(jade_process_t* process);
 void jade_process_reply_to_message_fail(jade_process_t* process);
 void jade_process_reply_to_message_ex(jade_msg_source_t source, const uint8_t* reply_payload, size_t payload_len);
 void jade_process_reject_message(jade_process_t* process, int code, const char* message);
 void jade_process_reject_message_with_id(const char* id, int code, const char* message, const uint8_t* data,
     size_t datalen, uint8_t* buffer, size_t buffer_len, jade_msg_source_t source);
-void jade_process_reject_message_ex(cbor_msg_t ctx, int code, const char* message, const uint8_t* data, size_t datalen,
-    uint8_t* buffer, size_t buffer_len);
+void jade_process_reject_message_ex(const cbor_msg_t* const ctx, int code, const char* message, const uint8_t* data,
+    size_t datalen, uint8_t* buffer, size_t buffer_len);
 
 // Get in/out messages from the queues/ring-buffers
 void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, bool blocking);
@@ -110,8 +110,8 @@ void cbor_result_string_cb(const void* ctx, CborEncoder* container);
 void cbor_result_boolean_cb(const void* ctx, CborEncoder* container);
 void cbor_result_uint64_cb(const void* ctx, CborEncoder* container);
 
-void jade_process_reply_to_message_bytes(cbor_msg_t ctx, const uint8_t* data, size_t datalen);
-void jade_process_reply_to_message_bytes_sequence(cbor_msg_t ctx, const size_t seqnum, const size_t seqlen,
+void jade_process_reply_to_message_bytes(const cbor_msg_t* const ctx, const uint8_t* data, size_t datalen);
+void jade_process_reply_to_message_bytes_sequence(const cbor_msg_t* const ctx, const size_t seqnum, const size_t seqlen,
     const uint8_t* data, const size_t datalen, uint8_t* buffer, const size_t buflen);
 
 #endif /* PROCESS_H_ */

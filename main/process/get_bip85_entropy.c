@@ -314,7 +314,7 @@ void get_bip85_bip39_entropy_process(void* process_ptr)
 
     // Reply with the encrypted bip85 entropy reply
     uint8_t buf[256];
-    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &bip85_data, reply_bip85_data);
+    jade_process_reply_to_message_result(&process->ctx, buf, sizeof(buf), &bip85_data, reply_bip85_data);
     JADE_LOGI("Success");
 
 cleanup:
@@ -341,7 +341,7 @@ void get_bip85_rsa_entropy_process(void* process_ptr)
 
     // Reply with the encrypted bip85 entropy reply
     uint8_t buf[256];
-    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &bip85_data, reply_bip85_data);
+    jade_process_reply_to_message_result(&process->ctx, buf, sizeof(buf), &bip85_data, reply_bip85_data);
     JADE_LOGI("Success");
 
 cleanup:

@@ -387,7 +387,7 @@ error:
     } else {
         // Send error response to the ota_complete message.
         // If we didn't get an ota_complete, sets the reply id as "00".
-        jade_process_reject_message_ex(process->ctx, errcode, "Error completing OTA", (const uint8_t*)status_text,
+        jade_process_reject_message_ex(&process->ctx, errcode, "Error completing OTA", (const uint8_t*)status_text,
             strlen(status_text), buf, sizeof(buf));
     }
 

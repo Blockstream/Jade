@@ -123,7 +123,7 @@ void get_commitments_process(void* process_ptr)
     }
 
     uint8_t buf[320];
-    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &ec, reply_commitments);
+    jade_process_reply_to_message_result(&process->ctx, buf, sizeof(buf), &ec, reply_commitments);
 
     JADE_LOGI("Success");
 

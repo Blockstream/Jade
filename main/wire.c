@@ -29,7 +29,7 @@ static const TickType_t TIMEOUT_TICKS = 3000 / portTICK_PERIOD_MS;
 static const TickType_t TIMEOUT_TICKS = 2000 / portTICK_PERIOD_MS;
 #endif
 
-static void reject_data(const cbor_msg_t ctx, const char* msg, size_t rejected_len)
+static void reject_data(const cbor_msg_t* const ctx, const char* msg, size_t rejected_len)
 {
     uint8_t len_str[16], out[112]; // sufficient
     JADE_LOGW("%s, length %u", msg, rejected_len);
@@ -42,7 +42,7 @@ static void reject_data(const cbor_msg_t ctx, const char* msg, size_t rejected_l
 static const char PING[] = { 'p', 'i', 'n', 'g' };
 static const char VERINFO[] = { 'g', 'e', 't', '_', 'v', 'e', 'r', 's', 'i', 'o', 'n', '_', 'i', 'n', 'f', 'o' };
 
-static bool handleImmediateMessage(cbor_msg_t* ctx)
+static bool handle_immediate_message(const cbor_msg_t* const ctx)
 {
     JADE_ASSERT(ctx);
 
@@ -57,7 +57,7 @@ static bool handleImmediateMessage(cbor_msg_t* ctx)
             uint8_t buf[64];
             const uint64_t jade_task_current_action = main_thread_action;
             jade_process_reply_to_message_result(
-                *ctx, buf, sizeof(buf), &jade_task_current_action, cbor_result_uint64_cb);
+                ctx, buf, sizeof(buf), &jade_task_current_action, cbor_result_uint64_cb);
             return true;
         } else if (method_len == sizeof(VERINFO) && !strncmp(method, VERINFO, method_len)) {
             // Version-info message - reply immediately if it contains the 'nonblocking' flag
@@ -67,7 +67,7 @@ static bool handleImmediateMessage(cbor_msg_t* ctx)
                 && nonblocking) {
                 JADE_LOGI("VerInfoEx message, replying immediately");
                 uint8_t buf[1024];
-                jade_process_reply_to_message_result(*ctx, buf, sizeof(buf), &ctx->source, build_version_info_reply);
+                jade_process_reply_to_message_result(ctx, buf, sizeof(buf), &ctx->source, build_version_info_reply);
                 return true;
             }
         }
@@ -112,14 +112,14 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
 
             // Not a complete/valid cbor message, and we are not allowed to await more, so reject what we have.
             // Break to reset the read-ptr to the start and lose all the data.
-            reject_data(ctx, "Invalid RPC Request message", read);
+            reject_data(&ctx, "Invalid RPC Request message", read);
             break;
         }
 
         if (!rpc_request_valid(&ctx.value)) {
             // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
-            reject_data(ctx, "Invalid RPC Request message (malformed)", msg_len);
-        } else if (handleImmediateMessage(&ctx)) {
+            reject_data(&ctx, "Invalid RPC Request message (malformed)", msg_len);
+        } else if (handle_immediate_message(&ctx)) {
             JADE_LOGI("Message handled, not passing to main task");
             idletimer_register_activity(false);
         } else {
@@ -129,7 +129,7 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
                 // (but not as 'UI' activity - ie. keep jade on but do not stop the screen from turning off)
                 idletimer_register_activity(false);
             } else {
-                reject_data(ctx, "Input message too large", msg_len);
+                reject_data(&ctx, "Input message too large", msg_len);
             }
         }
 

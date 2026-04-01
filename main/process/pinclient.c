@@ -122,7 +122,7 @@ static void send_http_request_reply(jade_process_t* process, const char* documen
     // Send reply message
     const size_t buflen = 1024 + cert_len;
     uint8_t* const buf = JADE_MALLOC(buflen);
-    jade_process_reply_to_message_result(process->ctx, buf, buflen, &pin_data, client_data_request_reply);
+    jade_process_reply_to_message_result(&process->ctx, buf, buflen, &pin_data, client_data_request_reply);
     free(buf);
 }
 

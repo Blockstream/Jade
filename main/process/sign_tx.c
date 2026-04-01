@@ -369,7 +369,7 @@ static void send_ae_signature_replies(const network_t network_id, jade_process_t
         }
 
         // Send signature reply - will be empty for any inputs we are not signing
-        jade_process_reply_to_message_bytes(process->ctx, input_data->sig, input_data->sig_len);
+        jade_process_reply_to_message_bytes(&process->ctx, input_data->sig, input_data->sig_len);
     }
 cleanup:
     (void)process; /* No-op for label */
@@ -790,7 +790,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         // as this simplifies the code both here and in the client.
         if (use_ae_signatures) {
             const size_t commitment_len = made_ae_commitment ? sizeof(ae_signer_commitment) : 0;
-            jade_process_reply_to_message_bytes(process->ctx, ae_signer_commitment, commitment_len);
+            jade_process_reply_to_message_bytes(&process->ctx, ae_signer_commitment, commitment_len);
         }
     }
 

@@ -37,7 +37,7 @@ void get_xpubs_process(void* process_ptr)
     jade_process_wally_free_string_on_exit(process, output);
 
     uint8_t buf[256];
-    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), output, cbor_result_string_cb);
+    jade_process_reply_to_message_result(&process->ctx, buf, sizeof(buf), output, cbor_result_string_cb);
 
     JADE_LOGI("Success");
 

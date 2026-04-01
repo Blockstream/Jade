@@ -164,7 +164,7 @@ void sign_bip85_digests_process(void* process_ptr)
     // Reply with signatures
     uint8_t buf[2304];
     const signatures_t result = { .signatures = signatures, .num_signatures = num_digests };
-    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), &result, reply_signatures);
+    jade_process_reply_to_message_result(&process->ctx, buf, sizeof(buf), &result, reply_signatures);
     JADE_LOGI("Success");
 
 cleanup:

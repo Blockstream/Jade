@@ -1259,7 +1259,7 @@ void sign_psbt_process(void* process_ptr)
         const size_t chunk_len = remaining < PSBT_OUT_CHUNK_SIZE ? remaining : PSBT_OUT_CHUNK_SIZE;
         const size_t seqnum = imsg + 1;
         jade_process_reply_to_message_bytes_sequence(
-            process->ctx, seqnum, nmsgs, chunk, chunk_len, msgbuf, MAX_OUTPUT_MSG_SIZE);
+            &process->ctx, seqnum, nmsgs, chunk, chunk_len, msgbuf, MAX_OUTPUT_MSG_SIZE);
         chunk += chunk_len;
 
         if (seqnum < nmsgs) {

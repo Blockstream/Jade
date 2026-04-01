@@ -48,7 +48,7 @@ void sign_attestation_and_send_reply(jade_process_t* process, const uint8_t* cha
     // Reply with pubkey and signatures
     const size_t buflen = 2560;
     uint8_t* const buf = JADE_MALLOC(buflen);
-    jade_process_reply_to_message_result(process->ctx, buf, buflen, &output, reply_attestation);
+    jade_process_reply_to_message_result(&process->ctx, buf, buflen, &output, reply_attestation);
     free(buf);
 }
 #endif // CONFIG_IDF_TARGET_ESP32S3

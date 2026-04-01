@@ -37,7 +37,7 @@ void get_bip85_pubkey_process(void* process_ptr)
 
     // Reply with the pubkey pem
     uint8_t buf[1024];
-    jade_process_reply_to_message_result(process->ctx, buf, sizeof(buf), pubkey_pem, cbor_result_string_cb);
+    jade_process_reply_to_message_result(&process->ctx, buf, sizeof(buf), pubkey_pem, cbor_result_string_cb);
     JADE_LOGI("Success");
 
 cleanup:

@@ -183,7 +183,7 @@ void sign_message_process(void* process_ptr)
 
         uint8_t buf[256];
         jade_process_reply_to_message_result(
-            process->ctx, buf, sizeof(buf), (const char*)signature, cbor_result_string_cb);
+            &process->ctx, buf, sizeof(buf), (const char*)signature, cbor_result_string_cb);
         return;
     }
 
@@ -272,7 +272,7 @@ void sign_message_process(void* process_ptr)
         }
 
         // Return signer commitment to caller
-        jade_process_reply_to_message_bytes(process->ctx, ae_signer_commitment, sizeof(ae_signer_commitment));
+        jade_process_reply_to_message_bytes(&process->ctx, ae_signer_commitment, sizeof(ae_signer_commitment));
 
         // Await 'get_signature' message containing host entropy
         jade_process_load_in_message(process, true);
@@ -306,7 +306,7 @@ void sign_message_process(void* process_ptr)
 
     uint8_t buf[256];
     jade_process_reply_to_message_result(
-        process->ctx, buf, sizeof(buf), (const char*)sig_output, cbor_result_string_cb);
+        &process->ctx, buf, sizeof(buf), (const char*)sig_output, cbor_result_string_cb);
 
     JADE_LOGI("Success");
 

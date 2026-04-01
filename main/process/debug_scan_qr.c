@@ -94,7 +94,7 @@ static bool return_image_data(const size_t width, const size_t height, const uin
     }
 
     // All good, reply with the compressed image data
-    jade_process_reply_to_message_bytes(info->process->ctx, compressed, compressed_len);
+    jade_process_reply_to_message_bytes(&info->process->ctx, compressed, compressed_len);
 
     // Free the input message (to signal that we have been called and sent the reply)
     jade_process_free_current_message(info->process);
@@ -177,7 +177,7 @@ void debug_scan_qr_process(void* process_ptr)
     }
 
     // Reply with the decoded data (empty if failed)
-    jade_process_reply_to_message_bytes(process->ctx, qr_data.data, qr_data.len);
+    jade_process_reply_to_message_bytes(&process->ctx, qr_data.data, qr_data.len);
     JADE_LOGI("Success");
 
 cleanup:
