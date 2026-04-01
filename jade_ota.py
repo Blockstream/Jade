@@ -385,6 +385,12 @@ if __name__ == '__main__':
                         dest='serialport',
                         help='Serial port or device',
                         default=None)
+    parser.add_argument('--serialtimeout',
+                        action='store',
+                        dest='serialtimeout',
+                        type=int,
+                        help='Serial port timeout',
+                        default=120)
 
     blegrp = parser.add_mutually_exclusive_group()
     blegrp.add_argument('--skipble',
@@ -519,7 +525,7 @@ if __name__ == '__main__':
 
         if not args.skipserial:
             logger.info(f'Jade OTA over serial')
-            with JadeAPI.create_serial(device=args.serialport) as jade:
+            with JadeAPI.create_serial(device=args.serialport, timeout=args.serialtimeout) as jade:
                 # By default serial uses extended-replies
                 extended_replies = not args.noextendedreplies
                 info = get_version_info(jade)
