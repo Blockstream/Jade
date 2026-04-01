@@ -25,7 +25,6 @@
 #include <lwip/netdb.h>
 
 static uint8_t* full_qemu_tcp_data_in = NULL;
-static uint8_t* qemu_tcp_data_out = NULL;
 
 static esp_eth_handle_t s_eth_handle = NULL;
 static esp_eth_mac_t* s_mac = NULL;
@@ -100,7 +99,7 @@ static void qemu_tcp_reader(void* ignore)
         // Pass to common handler
         JADE_LOGD("Passing %u+%u bytes from tcp stream to common handler", read, len);
         const bool reject_incomplete = false;
-        handle_data(full_qemu_tcp_data_in, &read, len, &last_processing_time, reject_incomplete, qemu_tcp_data_out);
+        handle_data(full_qemu_tcp_data_in, &read, len, &last_processing_time, reject_incomplete);
     }
 }
 
@@ -223,7 +222,6 @@ bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
 {
     JADE_ASSERT(qemu_tcp_handle);
     JADE_ASSERT(!full_qemu_tcp_data_in);
-    JADE_ASSERT(!qemu_tcp_data_out);
 
     JADE_ASSERT(!sockmutex);
     sockmutex = xSemaphoreCreateMutex();
@@ -234,7 +232,6 @@ bool qemu_tcp_init(TaskHandle_t* qemu_tcp_handle)
     // Extra byte at the start for source-id
     full_qemu_tcp_data_in = JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
     full_qemu_tcp_data_in[0] = SOURCE_QEMU_TCP;
-    qemu_tcp_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
 
     BaseType_t retval = xTaskCreatePinnedToCore(
         &qemu_tcp_reader, "qemu_tcp_reader", 5 * 1024, NULL, JADE_TASK_PRIO_READER, NULL, JADE_CORE_SECONDARY);

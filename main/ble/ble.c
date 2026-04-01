@@ -57,7 +57,6 @@ static size_t ble_read = 0;
 static uint8_t own_addr_type = BLE_OWN_ADDR_RANDOM;
 static uint8_t* full_ble_data_in = NULL;
 static TickType_t last_processing_time = 0;
-static uint8_t* ble_data_out = NULL;
 static uint16_t peer_conn_handle = 0;
 static const size_t ATT_OVERHEAD = 3;
 static const size_t MAX_BLE_ATTR_SIZE = 512;
@@ -100,8 +99,7 @@ static int gatt_chr_event(
             if (ble_read + ble_msg_len >= MAX_INPUT_MSG_SIZE) {
                 const bool reject_incomplete = true; // Reject current buffer if incomplete
                 const size_t new_data = 0;
-                handle_data(
-                    full_ble_data_in, &ble_read, new_data, &last_processing_time, reject_incomplete, ble_data_out);
+                handle_data(full_ble_data_in, &ble_read, new_data, &last_processing_time, reject_incomplete);
                 JADE_ASSERT(ble_read == 0);
             }
 
@@ -113,8 +111,7 @@ static int gatt_chr_event(
 
             JADE_LOGD("Passing %u+%u bytes from ble device to common handler", ble_read, ble_msg_len);
             const bool reject_incomplete = false;
-            handle_data(
-                full_ble_data_in, &ble_read, ble_msg_len, &last_processing_time, reject_incomplete, ble_data_out);
+            handle_data(full_ble_data_in, &ble_read, ble_msg_len, &last_processing_time, reject_incomplete);
             return 0;
 
         default:
@@ -449,7 +446,6 @@ bool ble_init(TaskHandle_t* ble_handle)
 {
     JADE_ASSERT(ble_handle);
     JADE_ASSERT(!full_ble_data_in);
-    JADE_ASSERT(!ble_data_out);
 
     // Initialise assuming preferred MTU and sanity check value
     set_ble_max_write_size_for_mtu(CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU);
@@ -459,7 +455,6 @@ bool ble_init(TaskHandle_t* ble_handle)
     // Extra byte at the start for source-id
     full_ble_data_in = (uint8_t*)JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
     full_ble_data_in[0] = SOURCE_BLE;
-    ble_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
     p_ble_writer_handle = ble_handle;
 
     ble_writer_shutdown_done = xSemaphoreCreateBinary();

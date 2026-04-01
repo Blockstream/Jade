@@ -29,14 +29,14 @@ static const TickType_t TIMEOUT_TICKS = 3000 / portTICK_PERIOD_MS;
 static const TickType_t TIMEOUT_TICKS = 2000 / portTICK_PERIOD_MS;
 #endif
 
-// Macros for use in handle_data() as always called with fixed params
-#define SEND_REJECT_MSG(code, msg, rejectedlen)                                                                        \
-    do {                                                                                                               \
-        char lenstr[8];                                                                                                \
-        const int ret = snprintf(lenstr, sizeof(lenstr), "%u", rejectedlen);                                           \
-        JADE_ASSERT(ret > 0 && ret < sizeof(lenstr));                                                                  \
-        jade_process_reject_message_ex(ctx, code, msg, (uint8_t*)lenstr, ret, data_out, MAX_OUTPUT_MSG_SIZE);          \
-    } while (false)
+static void reject_data(const cbor_msg_t ctx, const char* msg, size_t rejected_len)
+{
+    uint8_t len_str[16], out[112]; // sufficient
+    JADE_LOGW("%s, length %u", msg, rejected_len);
+    const int ret = snprintf((char*)len_str, sizeof(len_str), "%u", rejected_len);
+    JADE_ASSERT(ret > 0 && ret < sizeof(len_str));
+    jade_process_reject_message_ex(ctx, CBOR_RPC_INVALID_REQUEST, msg, len_str, ret, out, sizeof(out));
+}
 
 // Some messages we handle immediately in this task
 static const char PING[] = { 'p', 'i', 'n', 'g' };
@@ -76,13 +76,12 @@ static bool handleImmediateMessage(cbor_msg_t* ctx)
 }
 
 // Handle bytes in receive buffer
-// NOTE: assumes sizes of input and output buffers - could be passed sizes if preferred
-static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool reject_incomplete, uint8_t* data_out)
+// NOTE: assumes sizes of input buffer - could be passed sizes if preferred
+static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool reject_incomplete)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
     JADE_ASSERT(*read_ptr <= MAX_INPUT_MSG_SIZE);
-    JADE_ASSERT(data_out);
 
     const jade_msg_source_t source = full_data_in[0];
     uint8_t* const data_in = full_data_in + 1;
@@ -113,15 +112,13 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
 
             // Not a complete/valid cbor message, and we are not allowed to await more, so reject what we have.
             // Break to reset the read-ptr to the start and lose all the data.
-            JADE_LOGW("Got incomplete CBOR message, length %u but not awaiting more data - rejecting", read);
-            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message", read);
+            reject_data(ctx, "Invalid RPC Request message", read);
             break;
         }
 
         if (!rpc_request_valid(&ctx.value)) {
             // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
-            JADE_LOGW("Invalid request, length %u", msg_len);
-            SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Invalid RPC Request message (malformed)", msg_len);
+            reject_data(ctx, "Invalid RPC Request message (malformed)", msg_len);
         } else if (handleImmediateMessage(&ctx)) {
             JADE_LOGI("Message handled, not passing to main task");
             idletimer_register_activity(false);
@@ -132,7 +129,7 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
                 // (but not as 'UI' activity - ie. keep jade on but do not stop the screen from turning off)
                 idletimer_register_activity(false);
             } else {
-                SEND_REJECT_MSG(CBOR_RPC_INVALID_REQUEST, "Input message too large to handle", msg_len);
+                reject_data(ctx, "Input message too large", msg_len);
             }
         }
 
@@ -154,15 +151,14 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
 }
 
 // Handle new bytes received
-// NOTE: assumes sizes of input and output buffers - could be passed sizes if preferred
+// NOTE: assumes sizes of input buffer - could be passed sizes if preferred
 void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_len, TickType_t* last_processing_time,
-    bool reject_incomplete, uint8_t* data_out)
+    bool reject_incomplete)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
     JADE_ASSERT(*read_ptr + new_data_len <= MAX_INPUT_MSG_SIZE);
     JADE_ASSERT(last_processing_time);
-    JADE_ASSERT(data_out);
 
     // Get current message processing time
     const TickType_t time_now = xTaskGetTickCount();
@@ -182,7 +178,7 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_
     *read_ptr += new_data_len;
     JADE_LOGD("Passing %u bytes to common handler", *read_ptr);
     reject_incomplete |= (*read_ptr == MAX_INPUT_MSG_SIZE);
-    handle_data_impl(full_data_in, read_ptr, reject_incomplete, data_out);
+    handle_data_impl(full_data_in, read_ptr, reject_incomplete);
 
     // Update caller's 'last processing time'
     *last_processing_time = time_now;

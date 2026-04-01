@@ -39,7 +39,6 @@
 #endif // IDF_TARGET_ESP32S3
 
 static uint8_t* full_serial_data_in = NULL;
-static uint8_t* serial_data_out = NULL;
 
 static TaskHandle_t serial_reader_handle = NULL;
 static TaskHandle_t* p_serial_writer_handle = NULL;
@@ -128,7 +127,7 @@ static void serial_reader(void* ignore)
 
         JADE_LOGD("Passing %u+%u bytes from serial device to common handler", read, len);
         const bool reject_incomplete = false;
-        handle_data(full_serial_data_in, &read, len, &last_processing_time, reject_incomplete, serial_data_out);
+        handle_data(full_serial_data_in, &read, len, &last_processing_time, reject_incomplete);
     }
     serial_post_exit_event_and_await_death(&serial_reader_shutdown_done);
 }
@@ -269,7 +268,6 @@ bool serial_init(TaskHandle_t* serial_handle)
 {
     JADE_ASSERT(serial_handle);
     JADE_ASSERT(!full_serial_data_in);
-    JADE_ASSERT(!serial_data_out);
     JADE_ASSERT(!serial_is_enabled);
     JADE_ASSERT(!serial_reader_shutdown_done);
     JADE_ASSERT(!serial_writer_shutdown_done);
@@ -281,7 +279,6 @@ bool serial_init(TaskHandle_t* serial_handle)
     // Extra byte at the start for source-id
     full_serial_data_in = JADE_MALLOC_PREFER_SPIRAM(MAX_INPUT_MSG_SIZE + 1);
     full_serial_data_in[0] = SOURCE_SERIAL;
-    serial_data_out = JADE_MALLOC_PREFER_SPIRAM(MAX_OUTPUT_MSG_SIZE);
     p_serial_writer_handle = serial_handle;
     return serial_init_internal();
 }

@@ -472,7 +472,6 @@ void libjade_stop(void)
 }
 
 static uint8_t _libjade_serial_data_in[MAX_INPUT_MSG_SIZE + 1] = { 0 };
-static uint8_t _libjade_serial_data_out[MAX_OUTPUT_MSG_SIZE] = { 0 };
 static size_t _libjade_serial_read_ptr = 0;
 static TickType_t _libjade_last_processing_time = 0;
 
@@ -486,8 +485,7 @@ bool libjade_send(const uint8_t* data, const size_t size)
     data_with_source[0] = SOURCE_SERIAL;
     memcpy(data_with_source + 1 + _libjade_serial_read_ptr, data, size);
     const bool reject_incomplete = false;
-    handle_data(data_with_source, &_libjade_serial_read_ptr, size, &_libjade_last_processing_time, reject_incomplete,
-        _libjade_serial_data_out);
+    handle_data(data_with_source, &_libjade_serial_read_ptr, size, &_libjade_last_processing_time, reject_incomplete);
     return true;
 }
 
