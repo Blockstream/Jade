@@ -79,6 +79,9 @@ int serial_logger(const char* message, va_list fmt);
 #ifdef CONFIG_LOG_WIFI
 int wifi_socket_server_logger(const char* message, va_list fmt);
 #endif
+#if defined(CONFIG_BOARD_TYPE_QEMU) && !defined(CONFIG_LOG_DEFAULT_LEVEL_NONE)
+int qemu_uart0_logger(const char* message, va_list fmt);
+#endif
 
 void offer_startup_options(void);
 void dashboard_process(void* process_ptr);
@@ -235,6 +238,10 @@ static void boot_process(void)
         JADE_ABORT();
     }
 #endif
+#endif
+
+#if defined(CONFIG_BOARD_TYPE_QEMU) && !defined(CONFIG_LOG_DEFAULT_LEVEL_NONE)
+    esp_log_set_vprintf(qemu_uart0_logger);
 #endif
 
     sensitive_init();

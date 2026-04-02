@@ -1,4 +1,5 @@
 #ifndef AMALGAMATED_BUILD
+#include "driver/uart.h"
 #include "jade_assert.h"
 #include "process.h"
 #include "utils/cbor_rpc.h"
@@ -63,6 +64,20 @@ int wifi_socket_server_logger(const char* message, va_list fmt)
     int written = write_log_line(buff, sizeof(buff), message, fmt);
 
     socket_server_send(buff, written);
+
+    return written;
+}
+#endif
+
+#ifdef CONFIG_BOARD_TYPE_QEMU
+// TODO: I would have thought that this would be the default if
+// logging was enabled, perhaps we disabled it somewhere else?
+int qemu_uart0_logger(const char* message, va_list fmt)
+{
+    char buff[BUFFER_SIZE];
+    int written = write_log_line(buff, sizeof(buff), message, fmt);
+
+    uart_write_bytes(UART_NUM_0, buff, written);
 
     return written;
 }

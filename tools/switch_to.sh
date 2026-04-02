@@ -101,8 +101,8 @@ fi
 
 if [ "$CONFIG" = "qemu" ]; then
     # QEMU
-    if [ -n "$NORADIO" ] || [ -n "$LOG" ] || [ -n "$DEBUG" ] || [ -n "$JTAG" ]; then
-        usage "--[noradio|log|log-cbor|log-wifi|debug|jtag] must not be given for qemu"
+    if [ -n "$NORADIO" ] || [ "$LOG" = "wifi" ] || [ -n "$DEBUG" ] || [ -n "$JTAG" ]; then
+        usage "--[noradio|log-wifi|debug|jtag] must not be given for qemu"
     elif [ -n "$WEBDISPLAY" ] && [ -z "$PSRAM" ]; then
         usage "--[webdisplay|webdisplay-larger] require --psram"
     fi

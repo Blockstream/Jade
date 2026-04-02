@@ -56,14 +56,14 @@ build_test_jade_v2c_noradio_ci:
 build_test_qemu:
   extends: .build_test_template
   before_script:
-    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh qemu --dev --ci
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh qemu --dev --ci --log
 
 build_test_qemu_psram:
   extends: .build_test_template
   before_script:
-    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh qemu --dev --ci --psram
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh qemu --dev --ci --psram --log
 
 build_test_qemu_psram_unamalgamated:
   extends: .build_test_template
   before_script:
-    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh qemu --dev --ci --psram --unamalgamated
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh qemu --dev --ci --psram --unamalgamated --log
