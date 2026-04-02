@@ -76,12 +76,33 @@ static bool handle_immediate_message(const cbor_msg_t* const ctx)
 }
 
 // Handle bytes in receive buffer
-// NOTE: assumes sizes of input buffer - could be passed sizes if preferred
-static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool reject_incomplete)
+// NOTE: assumes sizes of input buffer - could be passed size if preferred
+void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_len, TickType_t* last_processing_time,
+    bool reject_incomplete)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr);
-    JADE_ASSERT(*read_ptr <= MAX_INPUT_MSG_SIZE);
+    JADE_ASSERT(*read_ptr <= MAX_INPUT_MSG_SIZE && *read_ptr + new_data_len <= MAX_INPUT_MSG_SIZE);
+    JADE_ASSERT(last_processing_time);
+
+    // Get current message processing time
+    const TickType_t time_now = xTaskGetTickCount();
+    JADE_ASSERT(time_now >= *last_processing_time);
+
+    JADE_LOGI("Received %u new bytes, total in buffer is now %u, time is %lu ticks (time since last %lu)", new_data_len,
+        *read_ptr + new_data_len, time_now, time_now - *last_processing_time);
+
+    if (*read_ptr > 0 && time_now > *last_processing_time + TIMEOUT_TICKS) {
+        // Have stale bytes resting in buffer - reject if no complete message found
+        JADE_LOGW("Timing out %u bytes in buffer (time_now: %lu, last_processing_time: %lu, TIMEOUT_TICKS: %lu)",
+            *read_ptr, time_now, *last_processing_time, TIMEOUT_TICKS);
+        reject_incomplete = true;
+    }
+
+    // Append new bytes, and try to parse
+    *read_ptr += new_data_len;
+    JADE_LOGD("Passing %u bytes to common handler", *read_ptr);
+    reject_incomplete |= (*read_ptr == MAX_INPUT_MSG_SIZE);
 
     const jade_msg_source_t source = full_data_in[0];
     uint8_t* const data_in = full_data_in + 1;
@@ -107,13 +128,14 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
             if (!reject_incomplete) {
                 // Not a complete cbor message, but we are allowed to await more data to complete the message
                 JADE_LOGD("Got incomplete CBOR message, length %u - awaiting more data...", read);
-                return;
+                goto done;
             }
 
             // Not a complete/valid cbor message, and we are not allowed to await more, so reject what we have.
             // Break to reset the read-ptr to the start and lose all the data.
             reject_data(&ctx, "Invalid RPC Request message", read);
-            break;
+            *read_ptr = 0; // Discard entire buffer by resetting the read-ptr
+            goto done;
         }
 
         if (!rpc_request_valid(&ctx.value)) {
@@ -133,9 +155,10 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
             }
         }
 
-        // If we have consumed all the data, break to reset the read-ptr and return
         if (msg_len == read) {
-            break;
+            // We have consumed all the data
+            *read_ptr = 0; // Discard entire buffer by resetting the read-ptr
+            goto done;
         }
 
         // Otherwise we have some data left in the buffer - move the unhandled data down to the start of the buffer
@@ -146,40 +169,7 @@ static void handle_data_impl(uint8_t* full_data_in, size_t* read_ptr, bool rejec
         reject_incomplete = false;
     }
 
-    // Discard the entire buffer by resetting the read-ptr
-    *read_ptr = 0;
-}
-
-// Handle new bytes received
-// NOTE: assumes sizes of input buffer - could be passed sizes if preferred
-void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_len, TickType_t* last_processing_time,
-    bool reject_incomplete)
-{
-    JADE_ASSERT(full_data_in);
-    JADE_ASSERT(read_ptr);
-    JADE_ASSERT(*read_ptr + new_data_len <= MAX_INPUT_MSG_SIZE);
-    JADE_ASSERT(last_processing_time);
-
-    // Get current message processing time
-    const TickType_t time_now = xTaskGetTickCount();
-    JADE_ASSERT(time_now >= *last_processing_time);
-
-    JADE_LOGI("Received %u new bytes, total in buffer is now %u, time is %lu ticks (time since last %lu)", new_data_len,
-        *read_ptr + new_data_len, time_now, time_now - *last_processing_time);
-
-    if (*read_ptr > 0 && time_now > *last_processing_time + TIMEOUT_TICKS) {
-        // Have stale bytes resting in buffer - reject if no complete message found
-        JADE_LOGW("Timing out %u bytes in buffer (time_now: %lu, last_processing_time: %lu, TIMEOUT_TICKS: %lu)",
-            *read_ptr, time_now, *last_processing_time, TIMEOUT_TICKS);
-        reject_incomplete = true;
-    }
-
-    // Append new bytes, and try to parse
-    *read_ptr += new_data_len;
-    JADE_LOGD("Passing %u bytes to common handler", *read_ptr);
-    reject_incomplete |= (*read_ptr == MAX_INPUT_MSG_SIZE);
-    handle_data_impl(full_data_in, read_ptr, reject_incomplete);
-
+done:
     // Update caller's 'last processing time'
     *last_processing_time = time_now;
 }
