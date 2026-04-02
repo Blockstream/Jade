@@ -475,17 +475,25 @@ static uint8_t _libjade_serial_data_in[MAX_INPUT_MSG_SIZE + 1] = { 0 };
 static size_t _libjade_serial_read_ptr = 0;
 static TickType_t _libjade_last_processing_time = 0;
 
-bool libjade_send(const uint8_t* data, const size_t size)
+bool libjade_send(const uint8_t* data, size_t size)
 {
-    if (_libjade_serial_read_ptr + size >= MAX_INPUT_MSG_SIZE) {
-        return false;
+    // Pass messages as though they come from the serial interface
+    _libjade_serial_data_in[0] = SOURCE_SERIAL;
+    while (size) {
+        const size_t remaining_bytes = MAX_INPUT_MSG_SIZE - _libjade_serial_read_ptr;
+        const size_t to_write = size > remaining_bytes ? remaining_bytes : size;
+
+        JADE_ASSERT(_libjade_serial_read_ptr + to_write <= MAX_INPUT_MSG_SIZE);
+        memcpy(_libjade_serial_data_in + 1 + _libjade_serial_read_ptr, data, to_write);
+        // Don't reject incomplete messages. If the buffer is full,
+        // handle_data() will reject the entire buffer for us. Any
+        // valid messages will be removed from the front of the buffer.
+        const bool reject_incomplete = false;
+        handle_data(_libjade_serial_data_in, &_libjade_serial_read_ptr, to_write, &_libjade_last_processing_time,
+            reject_incomplete);
+        data += to_write;
+        size -= to_write;
     }
-    // Pass the message through as though it came from the serial interface
-    uint8_t* data_with_source = _libjade_serial_data_in;
-    data_with_source[0] = SOURCE_SERIAL;
-    memcpy(data_with_source + 1 + _libjade_serial_read_ptr, data, size);
-    const bool reject_incomplete = false;
-    handle_data(data_with_source, &_libjade_serial_read_ptr, size, &_libjade_last_processing_time, reject_incomplete);
     return true;
 }
 
