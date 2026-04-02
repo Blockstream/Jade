@@ -31,8 +31,8 @@ device_logger.setLevel(logging.DEBUG)
 device_logger.addHandler(jadehandler)
 
 
-def wait(seconds):
-    if not args.libjade and not args.spts:
+def wait(seconds, force=False):
+    if force or (not args.libjade and not args.spts):
         time.sleep(seconds)
 
 
@@ -847,13 +847,13 @@ def test_too_much_input(jade, has_psram):
     # Format as a cbor message, otherwise it gets rejected early, as soon
     # as the parser decides the bytes it has are not a valid message.
     # See: test_very_bad_message() above.
-    # Adjust the expected_overflow_len for the cbor overhead
     big_msg = cbor.dumps({'method': 'toobig', 'id': 'tohandle', 'params': cacophony})
-
-    # Send the message up with 4k writes
-    # (as if trying to write too much can hit the timeout)
+    # Adjust the expected_overflow_len for the cbor overhead
     total_len = len(big_msg)
     expected_overflow_len = total_len - expected_buffer_size
+
+    # Send the message up with 4k writes
+    # (otherwise, trying to write too much can hit the timeout)
     remaining = total_len
     while remaining:
         tosend = min(remaining, 4096)
@@ -869,7 +869,7 @@ def test_too_much_input(jade, has_psram):
     assert int(error['data']) == expected_buffer_size
 
     # After a short pause send a good message
-    wait(5)
+    wait(5, force=True)
     goodmsg = jade.build_request('trailer', 'add_entropy', {'entropy': 'random'.encode()})
     jade.write_request(goodmsg)
 
@@ -885,7 +885,7 @@ def test_too_much_input(jade, has_psram):
         assert error['message'].startswith('Invalid RPC Request message')
         bad_bytes += int(error['data'])
 
-    assert bad_bytes == expected_overflow_len
+    assert bad_bytes == expected_overflow_len, f'{bad_bytes} != {expected_overflow_len}'
 
     # After the bad bytes have been rejected, we expect to see the reply to the good message
     reply = jade.read_response()
@@ -900,7 +900,7 @@ def test_split_message(jade):
     msg = cbor.dumps({'method': 'get_version_info', 'id': '24680'})
     for msgpart in [msg[:5], msg[5:10], msg[10:]]:
         jade.write(msgpart)
-        wait(0.25)
+        wait(0.25, force=True)
 
     reply = jade.read_response()
 
@@ -3998,7 +3998,7 @@ def run_interface_tests(jadeapi,
 
     # Too much input test - sends a lot of data so only run
     # if not running over BLE (as would take a long time)
-    if not isble and not args.libjade and not args.spts:
+    if not isble and not args.spts:
         logger.info(f'Buffer overflow test - PSRAM: {has_psram}')
         test_too_much_input(jadeapi.jade, has_psram)
 
