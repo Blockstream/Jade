@@ -48,6 +48,9 @@ build_diy_diycam_esp32-cam:
 build_diy_diycam_esp32-wrover-cam:
   extends: .build_diy_template
 
+build_diy_diycam_esp32-s3-devkitc-1:
+  extends: .build_diy_template
+
 build_diy_diycam_tcameraplus:
   extends: .build_diy_template
 

@@ -119,6 +119,19 @@ There are a number of hardware devices that can run Jade firmware with minimal c
   * [3d printed case, example STL files available here](https://www.printables.com/model/493485-cases-for-diy-jade-based-on-esp32-cam)
 * [Assembly Guide & Hardware Notes](./esp32-cam/)
 
+### ESP32-S3-DevKitC-1 + ST7789 1.14" LCD + OV2640 Camera
+![](img/esp32-s3-devkitc-1.jpg)
+* Costs ~$10-15 USD for the dev board + ~$5-10 USD for display and camera modules
+* Three button interface (left / select / right)
+* USB VendorID:303a ProductID:1001 (Different to retail Jade)
+* Typically supports Secure Boot V2
+* Hardware Required (No Soldering Required)
+  * [ESP32-S3-DevKitC-1](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/index.html) (N8R8 variant, 8MB flash + 8MB Octal PSRAM)
+  * ST7789 1.14" 135*240 SPI LCD module
+  * OV2640 camera module (STM32-compatible red module with onboard oscillator)
+  * Dupont wires
+* [Assembly Guide & Hardware Notes](./esp32-s3-devkitc-1/)
+
 ### Waveshare S3 Touch LCD 2
 ![](img/ws-touch-lcd2.jpg)
 * Costs ~$20 USD from manufacturer
