@@ -261,14 +261,12 @@ if [ -n "$PSRAM" ]; then
         remove_config CONFIG_ESP_ERR_TO_NAME_LOOKUP
         remove_config CONFIG_ESP_INT_WDT_TIMEOUT_MS
         remove_config CONFIG_ESP_SYSTEM_CHECK_INT_LEVEL_5
-        remove_config CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT
         remove_config CONFIG_LWIP_IPV6
         remove_config CONFIG_LWIP_NETIF_LOOPBACK
         remove_config CONFIG_UART_ISR_IN_IRAM
         # add settings
         set_config CONFIG_ESP_BROWNOUT_DET n
         set_config CONFIG_ESP_INT_WDT n
-        set_config CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT y
         set_config CONFIG_HAS_CAMERA y
         set_config CONFIG_HTTPD_MAX_REQ_HDR_LEN 4096
         set_config CONFIG_HTTPD_WS_SUPPORT y
