@@ -29,6 +29,22 @@ static const TickType_t TIMEOUT_TICKS = 3000 / portTICK_PERIOD_MS;
 static const TickType_t TIMEOUT_TICKS = 2000 / portTICK_PERIOD_MS;
 #endif
 
+// Attempt to parse a valid CBOR message from data_in.
+// Returns its length if valid, 0 if invalid.
+static size_t get_msg_len(cbor_msg_t* ctx, const uint8_t* const data_in, const size_t read_len)
+{
+    const int flags = CborValidateCompleteData;
+    const CborError cberr = cbor_parser_init(data_in, read_len, flags, &ctx->parser, &ctx->value);
+    if (cberr == CborNoError) {
+        // If we can parse the value, and it may be an RPC message, return its length
+        CborValue tmp_value = ctx->value;
+        if (cbor_value_advance(&tmp_value) == CborNoError && cbor_value_is_map(&ctx->value)) {
+            return tmp_value.source.ptr - data_in;
+        }
+    }
+    return 0;
+}
+
 static void reject_data(const cbor_msg_t* const ctx, const char* msg, size_t rejected_len)
 {
     uint8_t len_str[16], out[112]; // sufficient
@@ -81,96 +97,72 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_
     bool reject_incomplete)
 {
     JADE_ASSERT(full_data_in);
-    JADE_ASSERT(read_ptr);
-    JADE_ASSERT(*read_ptr <= MAX_INPUT_MSG_SIZE && *read_ptr + new_data_len <= MAX_INPUT_MSG_SIZE);
+    JADE_ASSERT(read_ptr && *read_ptr <= MAX_INPUT_MSG_SIZE && *read_ptr + new_data_len <= MAX_INPUT_MSG_SIZE);
     JADE_ASSERT(last_processing_time);
 
     // Get current message processing time
-    const TickType_t time_now = xTaskGetTickCount();
-    JADE_ASSERT(time_now >= *last_processing_time);
+    const TickType_t now = xTaskGetTickCount();
+    JADE_ASSERT(now >= *last_processing_time);
 
-    JADE_LOGI("Received %u new bytes, total in buffer is now %u, time is %lu ticks (time since last %lu)", new_data_len,
-        *read_ptr + new_data_len, time_now, time_now - *last_processing_time);
+    // Buffer is stale if we had bytes already and the timeout has expired
+    bool have_stale = *read_ptr && now > *last_processing_time + TIMEOUT_TICKS;
+    JADE_LOGI("%u new of %u total %sbytes at tick %lu (prev tick %lu)", new_data_len, *read_ptr + new_data_len,
+        have_stale ? "stale " : "", now, *last_processing_time);
 
-    if (*read_ptr > 0 && time_now > *last_processing_time + TIMEOUT_TICKS) {
-        // Have stale bytes resting in buffer - reject if no complete message found
-        JADE_LOGW("Timing out %u bytes in buffer (time_now: %lu, last_processing_time: %lu, TIMEOUT_TICKS: %lu)",
-            *read_ptr, time_now, *last_processing_time, TIMEOUT_TICKS);
-        reject_incomplete = true;
-    }
-
-    // Append new bytes, and try to parse
-    *read_ptr += new_data_len;
-    JADE_LOGD("Passing %u bytes to common handler", *read_ptr);
-    reject_incomplete |= (*read_ptr == MAX_INPUT_MSG_SIZE);
-
-    const jade_msg_source_t source = full_data_in[0];
     uint8_t* const data_in = full_data_in + 1;
+    cbor_msg_t ctx = { .source = full_data_in[0] };
 
     while (true) {
+        // Try parsing an RPC message from the buffer plus the new data
+        const size_t parse_len = *read_ptr + new_data_len;
+        size_t msg_len = get_msg_len(&ctx, data_in, parse_len);
 
-        cbor_msg_t ctx = { .source = source, .cbor = NULL, .cbor_len = 0 };
-        const size_t read = *read_ptr;
-        size_t msg_len = 0;
-
-        const CborError cberr = cbor_parser_init(data_in, read, CborValidateCompleteData, &ctx.parser, &ctx.value);
-        if (cberr == CborNoError) {
-            // Attempt to fetch the next single cbor object from the stream and store the relevant message length
-            // Will carry out basic structure validation - see: cbor_value_validate_basic()
-            CborValue tmp_value = ctx.value;
-            if (cbor_value_advance(&tmp_value) == CborNoError) {
-                msg_len = tmp_value.source.ptr - data_in;
-            }
-        }
-
-        // If we could not fetch a message from the buffer..
         if (msg_len == 0) {
-            if (!reject_incomplete) {
-                // Not a complete cbor message, but we are allowed to await more data to complete the message
-                JADE_LOGD("Got incomplete CBOR message, length %u - awaiting more data...", read);
-                goto done;
-            }
-
-            // Not a complete/valid cbor message, and we are not allowed to await more, so reject what we have.
-            // Break to reset the read-ptr to the start and lose all the data.
-            reject_data(&ctx, "Invalid RPC Request message", read);
-            *read_ptr = 0; // Discard entire buffer by resetting the read-ptr
-            goto done;
-        }
-
-        if (!rpc_request_valid(&ctx.value)) {
-            // bad message - expect all inputs to be cbor with a root map with an id and a method strings keys values
-            reject_data(&ctx, "Invalid RPC Request message (malformed)", msg_len);
-        } else if (handle_immediate_message(&ctx)) {
-            JADE_LOGI("Message handled, not passing to main task");
-            idletimer_register_activity(false);
-        } else {
-            // Push to task queue for main task to handle
-            if (jade_process_push_in_message(full_data_in, msg_len + 1)) {
-                // Valid message arrival counts as 'activity' against idle timeout
-                // (but not as 'UI' activity - ie. keep jade on but do not stop the screen from turning off)
-                idletimer_register_activity(false);
+            // We could not parse a message from the buffer
+            if (parse_len == MAX_INPUT_MSG_SIZE) {
+                // Can't possibly be a valid message since there
+                // is no more room to complete it: Reject the whole buffer
+                msg_len = parse_len; // Whole buffer
+                reject_data(&ctx, "Invalid RPC Request message", msg_len);
+            } else if (have_stale) {
+                // We have stale data - Throw it away and try any new data
+                msg_len = *read_ptr; // Just the existing stale bytes
+                reject_data(&ctx, "Invalid RPC Request message", msg_len);
             } else {
+                // Continue to wait for more data to complete the message
+                JADE_LOGD("Incomplete RPC Request of length %u - awaiting more data...", parse_len);
+                *read_ptr = parse_len; // Include the new data in the buffer
+                *last_processing_time = now; // New data received
+                return;
+            }
+        } else if (!rpc_request_valid(&ctx.value)) {
+            // We have a valid CBOR map, but it is not a valid RPC message:
+            // reject it and try any following bytes in the buffer.
+            reject_data(&ctx, "Invalid RPC Request message", msg_len);
+        } else {
+            // We have a valid looking RPC message in ctx.value:
+            // Handle it immediately, or give it to the main task queue to handle
+            if (handle_immediate_message(&ctx) || jade_process_push_in_message(full_data_in, msg_len + 1)) {
+                const bool is_ui = false; // Not UI activity
+                idletimer_register_activity(is_ui); // Message handled
+            } else {
+                // Rejected by the main task queue: only happens if too large
                 reject_data(&ctx, "Input message too large", msg_len);
             }
         }
 
-        if (msg_len == read) {
-            // We have consumed all the data
-            *read_ptr = 0; // Discard entire buffer by resetting the read-ptr
-            goto done;
+        if (msg_len == parse_len) {
+            // We have consumed all the provided data
+            *read_ptr = 0; // Discard entire buffer contents
+            *last_processing_time = now; // Update caller's 'last processing time'
+            return;
         }
 
-        // Otherwise we have some data left in the buffer - move the unhandled data down to the start of the buffer
-        // (overwriting what we've handled)
-        // Also set 'reject_incomplete' to false, as we have now read a message.
-        memmove(data_in, data_in + msg_len, read - msg_len);
+        // We have unprocessed data left in the buffer:
+        // Move it to the start of the buffer and loop to process it
+        memmove(data_in, data_in + msg_len, parse_len - msg_len);
         *read_ptr -= msg_len;
-        reject_incomplete = false;
+        have_stale = false;
     }
-
-done:
-    // Update caller's 'last processing time'
-    *last_processing_time = time_now;
 }
 #endif // AMALGAMATED_BUILD

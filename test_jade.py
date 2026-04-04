@@ -759,7 +759,7 @@ def test_very_bad_message(jade):
     for badmsg in [empty, text, truncated]:
         # Send the bad message, and after a pause a good message
         jade.write(badmsg)
-        wait(3)
+        wait(3, force=True)
         jade.write_request(goodmsg)
 
         # We should receive a bag of errors
@@ -799,7 +799,7 @@ def test_random_bytes(jade):
         jade.write(noise)
         nsent += len(noise)
 
-    wait(5)
+    wait(5, force=True)
     goodmsg = jade.build_request('goodmsg', 'add_entropy', {'entropy': 'somebytes'.encode()})
     jade.write_request(goodmsg)
 
@@ -4005,8 +4005,8 @@ def run_interface_tests(jadeapi,
     # Negative tests
     if negative:
         logger.info('Negative tests')
-        if not args.libjade and not args.spts:
-            # TODO: enable these tests at least for args.spts=true
+        if not args.spts:
+            # TODO: enable these tests for args.spts=true
             test_random_bytes(jadeapi.jade)
             test_very_bad_message(jadeapi.jade)
         test_bad_message(jadeapi.jade)
