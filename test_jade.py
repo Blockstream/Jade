@@ -910,12 +910,18 @@ def test_split_message(jade):
     assert 'result' in reply and len(reply['result']) == NUM_VALUES_VERINFO
 
 
-def test_concatenated_messages(jade):
+def test_concatenated_messages(jade, do_wait):
     # Simulate a 'bad' client sending two messages without waiting for a reply
     msg1 = {'method': 'get_version_info', 'id': '123456'}
     msg2 = {'method': 'get_version_info', 'id': '456789'}
     concat_cbor = cbor.dumps(msg1) + cbor.dumps(msg2)
-    jade.write(concat_cbor)
+    # Split the write of the messages in two at a random point
+    split_point = random.randint(1, len(concat_cbor) - 1)
+    jade.write(concat_cbor[:split_point])
+    if do_wait:
+        # Force the first write to timeout (become stale)
+        wait(5, force=True)
+    jade.write(concat_cbor[split_point:])
 
     reply1 = jade.read_response()
     reply2 = jade.read_response()
@@ -4011,7 +4017,8 @@ def run_interface_tests(jadeapi,
             test_very_bad_message(jadeapi.jade)
         test_bad_message(jadeapi.jade)
         test_split_message(jadeapi.jade)
-        test_concatenated_messages(jadeapi.jade)
+        test_concatenated_messages(jadeapi.jade, do_wait=False)
+        test_concatenated_messages(jadeapi.jade, do_wait=True)
         test_unknown_method(jadeapi.jade)
         test_unexpected_method(jadeapi.jade)
         test_bad_params(jadeapi.jade)
