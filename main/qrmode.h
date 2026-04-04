@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "otpauth.h"
+
 // Display singlesig xpub qr code
 void display_xpub_qr(void);
 
@@ -25,6 +27,9 @@ void await_qr_help_activity(const char* url);
 // Display screen with label, url, qr code, and back/continue buttons
 bool await_qr_back_continue_activity(
     const char* message[], size_t message_size, const char* url, bool default_selection);
+
+// Display a QR code for the OTP context
+bool show_otp_uri_qr_activity(const otpauth_ctx_t* otp_ctx);
 
 // Start pinserver authentication via qr codes
 void handle_qr_auth(bool suppress_pin_change_confirmation);

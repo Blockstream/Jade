@@ -7,6 +7,8 @@
 #include <freertos/semphr.h>
 #include <freertos/task.h>
 
+#include <wally_core.h>
+
 #include "display.h"
 
 #include "ble/ble.h"
@@ -293,13 +295,11 @@ void gui_init(TaskHandle_t* gui_h)
     // Create status-bar
     make_status_bar();
 
-#ifndef CONFIG_LIBJADE
     // Create (high priority) gui task
     BaseType_t retval
-        = xTaskCreatePinnedToCore(gui_task, "gui", 3 * 1024 + 128, NULL, JADE_TASK_PRIO_GUI, gui_h, JADE_CORE_GUI);
+        = xTaskCreatePinnedToCore(gui_task, "gui", 3 * 1024 + 256, NULL, JADE_TASK_PRIO_GUI, gui_h, JADE_CORE_GUI);
     gui_task_handle = gui_h;
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create GUI task, xTaskCreatePinnedToCore() returned %d", retval);
-#endif // CONFIG_LIBJADE
 }
 
 #ifdef CONFIG_LIBJADE
@@ -354,7 +354,9 @@ void gui_set_active(gui_view_node_t* node, const bool value)
 
     // Set passed node to active/inactive and redraw
     set_tree_active(node, value);
-    gui_repaint(node);
+    if (!node->render_data.is_first_time) {
+        gui_repaint(node); // Repaint since screen is "live"
+    }
 }
 
 static gui_view_node_t* get_first_active_node(gui_activity_t* activity)
@@ -581,8 +583,10 @@ void gui_activity_set_active_selection(gui_activity_t* activity, gui_view_node_t
     // 'selected' should have been seen in 'nodes'
     JADE_ASSERT(set_selected);
 
-    // May as well repaint the whole activity
-    gui_repaint(activity->root_node);
+    if (activity->root_node && !activity->root_node->render_data.is_first_time) {
+        // Screen is "live": repaint the whole activity
+        gui_repaint(activity->root_node);
+    }
 }
 
 // push a selectable element to the `selectables` list of `activity`
@@ -964,7 +968,8 @@ static void free_view_node_text_data(void* vdata)
     struct view_node_text_data* data = vdata;
 
     // free the char* that we allocated
-    free(data->text);
+    // Use wally_free_string in case the text is sensitive
+    wally_free_string(data->text);
 
     // also the scroll struct if present
     if (data->scroll) {
@@ -2170,7 +2175,7 @@ static void repaint_node(gui_view_node_t* node)
 {
     JADE_ASSERT(node);
 
-    // Ensure we only call the underlying dislay library from the gui_task
+    // Ensure we only call the underlying display library from the gui_task
     JADE_ASSERT_MSG(gui_is_gui_task(), "ERROR: repaint_node() called from non-gui-task: %s", pcTaskGetName(NULL));
 
     // borders use the un-padded constraints

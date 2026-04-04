@@ -1,7 +1,6 @@
 #ifndef AMALGAMATED_BUILD
 #include <assets_snapshot.h>
 #include <inttypes.h>
-#include <math.h>
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
@@ -29,6 +28,14 @@ static const char BLINDED_OUTPUT[] = "Cannot unblind output";
 static const char VERIFIED_WALLET_OUTPUT_MSG[] = "Verified wallet output";
 
 static const char TICKER_BTC[] = "BTC";
+
+static const uint32_t POW_10[9] = { 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000 };
+
+static uint32_t get_asset_scale_factor(const asset_info_t* asset_info)
+{
+    JADE_ASSERT(asset_info && asset_info->precision < sizeof(POW_10) / sizeof(POW_10[0]));
+    return POW_10[asset_info->precision];
+}
 
 // Don't display pre-validated (eg. change) outputs (if provided) unless they have an associated warning message.
 // Should work for elements and standard btc, but liquid hides scriptless outputs (fees)
@@ -115,7 +122,7 @@ static bool get_asset_display_info(const network_t network_id, const asset_info_
         }
 
         // Amount scaled and displayed at relevant precision
-        const uint32_t scale_factor = pow(10, asset_info.precision);
+        const uint32_t scale_factor = get_asset_scale_factor(&asset_info);
         ret = snprintf(amount, amount_len, "%.*f", asset_info.precision, 1.0 * value / scale_factor);
         JADE_ASSERT(ret > 0 && ret < amount_len);
 
@@ -773,7 +780,7 @@ bool show_elements_final_confirmation_activity(
 
     // Fee amount scaled and displayed at relevant precision
     char feeamount[32];
-    const uint32_t scale_factor = pow(10, asset_info.precision);
+    const uint32_t scale_factor = get_asset_scale_factor(&asset_info);
     ret = snprintf(feeamount, sizeof(feeamount), "%.*f", asset_info.precision, 1.0 * fee / scale_factor);
     JADE_ASSERT(ret > 0 && ret < sizeof(feeamount));
 

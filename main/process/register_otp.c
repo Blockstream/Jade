@@ -7,6 +7,7 @@
 #include "../storage.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/urldecode.h"
 
 #include "../button_events.h"
 
@@ -166,9 +167,20 @@ static bool get_otp_data_from_kb(
     kb_entry.keyboards[2] = KB_NUMBERS_SYMBOLS;
     kb_entry.keyboards[3] = KB_REMAINING_SYMBOLS;
     kb_entry.num_kbs = 4;
+    kb_entry.blocked_chars = " "; // OTP names cant have spaces
 
     make_keyboard_entry_activity(&kb_entry, "OTP Name");
     JADE_ASSERT(kb_entry.activity);
+
+    // if otp_name is provided, pre-enter it into the kb activity
+    if (otp_name[0]) {
+        JADE_ASSERT(name_len <= sizeof(kb_entry.strdata));
+        const size_t max_len = strnlen(otp_name, sizeof(kb_entry.strdata) - 1);
+        strncpy(kb_entry.strdata, otp_name, max_len);
+        kb_entry.strdata[max_len] = '\0';
+        kb_entry.len = max_len;
+        JADE_LOGI("Pre-filled OTP name in keyboard activity: %d, %s", (int)kb_entry.len, kb_entry.strdata);
+    }
 
     // 1. Get the OTP Name from the keyboard
     bool done = false;
@@ -267,8 +279,8 @@ bool register_otp_kb_entry(void)
     const char* errmsg = NULL;
 
     // Get OTP Name and URI from kb
-    char otp_name[OTP_MAX_NAME_LEN];
-    char otp_uri[OTP_MAX_URI_LEN];
+    char otp_name[OTP_MAX_NAME_LEN] = { 0 };
+    char otp_uri[OTP_MAX_URI_LEN] = { 0 };
     SENSITIVE_PUSH(otp_uri, sizeof(otp_uri));
 
     size_t uri_written = 0;
@@ -302,22 +314,23 @@ static bool validate_scanned_otp_uri(qr_data_t* qr_data)
     JADE_ASSERT(qr_data->len <= sizeof(qr_data->data));
     JADE_ASSERT(qr_data->data[qr_data->len] == '\0');
 
-    if (qr_data->len >= OTP_MAX_URI_LEN) {
-        JADE_LOGW("String data from qr unexpectedly long: %u", qr_data->len);
-        goto invalid_qr;
+    // Check if otpauth:// uri
+    if (qr_data->len < OTP_MAX_URI_LEN) {
+        otpauth_ctx_t otp_ctx = { .name = "otp_scanning" };
+        if (otp_uri_to_ctx((const char*)qr_data->data, qr_data->len, &otp_ctx)) {
+            // Looks like a valid otp uri
+            return true;
+        }
     }
 
-    otpauth_ctx_t otp_ctx = { .name = "otp_scanning" };
-    if (!otp_uri_to_ctx((const char*)qr_data->data, qr_data->len, &otp_ctx)) {
-        JADE_LOGW("Invalid otp uri string: %s", (const char*)qr_data->data);
-        goto invalid_qr;
+    // Check if otpauth-migrate:// uri
+    otpauth_migrate_ctx_t otp_migrate_ctx;
+    if (otp_migrate_uri_to_ctx((const char*)qr_data->data, qr_data->len, 8, &otp_migrate_ctx)) {
+        // Looks like a valid otp migrate uri
+        otp_migrate_uri_to_ctx_free(&otp_migrate_ctx);
+        return true;
     }
-
-    // uri appears valid
-    return true;
-
-invalid_qr:
-    /* no-op */; // Need an empty statement to allow a label before a declaration
+    otp_migrate_uri_to_ctx_free(&otp_migrate_ctx);
 
     // Show the user that a valid qr was scanned, but the string data
     // did not constitute a valid/parseable OTP URI string.
@@ -328,6 +341,85 @@ invalid_qr:
         return true; // ie. done with scanning
     }
     return false;
+}
+
+int register_otp_string(const char* otp_uri, const size_t uri_len, const char** errmsg)
+{
+    JADE_ASSERT(otp_uri);
+    JADE_ASSERT(uri_len);
+    JADE_INIT_OUT_PPTR(errmsg);
+    JADE_ASSERT(keychain_get());
+
+    // Parse uri
+    otpauth_ctx_t otp_ctx = { .name = "otp_string" };
+    if (!otp_uri_to_ctx(otp_uri, uri_len, &otp_ctx)) {
+        *errmsg = "Failed to parse otp record";
+        return CBOR_RPC_INTERNAL_ERROR;
+    }
+
+    // Check keychain has seed data
+    if (keychain_get()->seed_len == 0) {
+        JADE_LOGE("No wallet seed available.  Wallet must be re-initialised from mnemonic.");
+        *errmsg = "No wallet seed available";
+        const char* message[] = { "Feature requires Jade wallet" };
+        await_error_activity(message, 1);
+        return CBOR_RPC_INTERNAL_ERROR;
+    }
+
+    // Get OTP Name (only) from kb (if we have an issuer, prefill that)
+    char otp_name[OTP_MAX_NAME_LEN] = { 0 };
+    if (otp_ctx.issuer_len) {
+        // If have issuer, prefill otp_name with urldecoded version (truncates to fit if too long)
+        urldecode(otp_ctx.issuer, otp_ctx.issuer_len, otp_name, sizeof(otp_name));
+        // Ensure prefilled name is valid to use as storage key (eg. strip out any invalid chars)
+        storage_key_name_make_valid(otp_name);
+    }
+    if (!get_otp_data_from_kb(otp_name, sizeof(otp_name), NULL, 0, NULL)) {
+        // User abandoned
+        JADE_LOGW("User abandoned (entering otp name)");
+        *errmsg = "User abandoned entering otp name";
+        return CBOR_RPC_USER_CANCELLED;
+    }
+
+    // Validate and persist the new otp uri
+    return handle_new_otp_uri(otp_name, otp_uri, uri_len, errmsg);
+}
+
+int register_otp_migrate_string(const char* otp_migrate_uri, size_t uri_len, const char** errmsg)
+{
+    JADE_ASSERT(otp_migrate_uri);
+    JADE_ASSERT(uri_len);
+    JADE_INIT_OUT_PPTR(errmsg);
+    JADE_ASSERT(keychain_get());
+
+    int ret = CBOR_RPC_INTERNAL_ERROR;
+
+    // Parse uri
+    otpauth_migrate_ctx_t otp_migrate_ctx;
+    if (!otp_migrate_uri_to_ctx(otp_migrate_uri, uri_len, 8, &otp_migrate_ctx)) {
+        *errmsg = "Failed to parse otp migrate record";
+        goto cleanup;
+    }
+
+    // Register each opt uri contained in the migrate uri
+    for (size_t i = 0; i < otp_migrate_ctx.uris_out_len; i++) {
+        const char* otp_uri = otp_migrate_ctx.uris_out[i];
+        if (!otp_uri) {
+            continue;
+        }
+
+        const int errcode = register_otp_string(otp_uri, strlen(otp_uri), errmsg);
+        if (errcode && errcode != CBOR_RPC_USER_CANCELLED) {
+            JADE_LOGE("Failed to register OTP record from migrate uri: %s", *errmsg);
+            goto cleanup;
+        }
+    }
+
+    ret = 0; // success
+
+cleanup:
+    otp_migrate_uri_to_ctx_free(&otp_migrate_ctx);
+    return ret;
 }
 
 bool register_otp_qr(void)
@@ -343,7 +435,6 @@ bool register_otp_qr(void)
     }
 
     bool ret = false;
-    const char* errmsg = NULL;
 
     qr_data_t qr_data = { .len = 0, .is_valid = validate_scanned_otp_uri };
     SENSITIVE_PUSH(&qr_data, sizeof(qr_data));
@@ -355,21 +446,34 @@ bool register_otp_qr(void)
         goto cleanup;
     }
 
-    // Get OTP Name (only) from kb
-    char otp_name[OTP_MAX_NAME_LEN];
-    if (!get_otp_data_from_kb(otp_name, sizeof(otp_name), NULL, 0, NULL)) {
-        // User abandoned
-        JADE_LOGW("User abandoned (entering otp name)");
-        goto cleanup;
+    // Try to handle as otp string
+    if (qr_data.len > sizeof(OTP_SCHEMA_FULL)
+        && !strncasecmp((const char*)qr_data.data, OTP_SCHEMA_FULL, sizeof(OTP_SCHEMA_FULL) - 1)) {
+        // Looks like an OTP URI
+        const char* errmsg = NULL;
+        const int errcode = register_otp_string((const char*)qr_data.data, qr_data.len, &errmsg);
+        if (errcode && errcode != CBOR_RPC_USER_CANCELLED) {
+            JADE_LOGE("Processing OTP URI failed: %s", errmsg);
+            // Display any error (ignoring explicit user cancel)
+            const char* message[] = { errmsg };
+            await_error_activity(message, 1);
+            goto cleanup;
+        }
     }
 
-    // Validate and persist the new otp uri
-    const int errcode = handle_new_otp_uri(otp_name, (const char*)qr_data.data, qr_data.len, &errmsg);
-    if (errcode && errcode != CBOR_RPC_USER_CANCELLED) {
-        // Display any error (ignoring explicit user cancel)
-        const char* message[] = { errmsg };
-        await_error_activity(message, 1);
-        goto cleanup;
+    // Try to handle as otpauth-migrate string
+    if (qr_data.len > sizeof(OTP_MIGRATE_SCHEMA_FULL)
+        && !strncasecmp((const char*)qr_data.data, OTP_MIGRATE_SCHEMA_FULL, sizeof(OTP_MIGRATE_SCHEMA_FULL) - 1)) {
+        // Looks like an OTP MIGRATE URI
+        const char* errmsg = NULL;
+        const int errcode = register_otp_migrate_string((const char*)qr_data.data, qr_data.len, &errmsg);
+        if (errcode && errcode != CBOR_RPC_USER_CANCELLED) {
+            JADE_LOGE("Processing OTP MIGRATE URI failed: %s", errmsg);
+            // Display any error (ignoring explicit user cancel)
+            const char* message[] = { errmsg };
+            await_error_activity(message, 1);
+            goto cleanup;
+        }
     }
 
     // All good
@@ -378,41 +482,5 @@ bool register_otp_qr(void)
 cleanup:
     SENSITIVE_POP(&qr_data);
     return ret;
-}
-
-bool register_otp_string(const char* otp_uri, const size_t uri_len, const char** errmsg)
-{
-    JADE_ASSERT(otp_uri);
-    JADE_ASSERT(uri_len);
-    JADE_INIT_OUT_PPTR(errmsg);
-    JADE_ASSERT(keychain_get());
-
-    // Parse uri
-    otpauth_ctx_t otp_ctx = { .name = "otp_string" };
-    if (!otp_uri_to_ctx(otp_uri, uri_len, &otp_ctx)) {
-        *errmsg = "Failed to parse otp record";
-        return false;
-    }
-
-    // Check keychain has seed data
-    if (keychain_get()->seed_len == 0) {
-        JADE_LOGE("No wallet seed available.  Wallet must be re-initialised from mnemonic.");
-        *errmsg = "Failed to parse otp record";
-        const char* message[] = { "Feature requires Jade reset" };
-        await_error_activity(message, 1);
-        return false;
-    }
-
-    // Get OTP Name (only) from kb
-    char otp_name[OTP_MAX_NAME_LEN];
-    if (!get_otp_data_from_kb(otp_name, sizeof(otp_name), NULL, 0, NULL)) {
-        // User abandoned
-        JADE_LOGW("User abandoned (entering otp name)");
-        *errmsg = "User abandoned entering otp name";
-        return false;
-    }
-
-    // Validate and persist the new otp uri
-    return handle_new_otp_uri(otp_name, otp_uri, uri_len, errmsg);
 }
 #endif // AMALGAMATED_BUILD

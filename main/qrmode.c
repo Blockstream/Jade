@@ -20,6 +20,7 @@
 #include "utils/address.h"
 #include "utils/malloc_ext.h"
 #include "utils/network.h"
+#include "utils/util.h"
 #include "wallet.h"
 
 #include <wally_script.h>
@@ -36,6 +37,12 @@
 #define ACCOUNT_INDEX_MAX 65536
 #define ACCOUNT_INDEX_FLAGS_SHIFT 16
 
+#define MAX_OTP_SCREENS 1
+#define OTP_TEXTSPLITLEN 4
+#define OTP_GRID_TOPPAD 4
+#define OTP_GRID_X 4
+#define OTP_GRID_Y 6
+#define OTP_GRID_SIZE (OTP_GRID_X * OTP_GRID_Y)
 // When we are displaying a BCUR QR code we ensure the timeout is at least this value
 // as we don't want the unit to shut down because of apparent inactivity.
 #define BCUR_QR_DISPLAY_MIN_TIMEOUT_SECS 300
@@ -61,6 +68,8 @@ gui_activity_t* make_show_xpub_qr_activity(
 gui_activity_t* make_xpub_qr_options_activity(
     gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** density_textbox);
 
+gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon);
+
 gui_activity_t* make_search_verify_address_activity(
     const char* root_label, gui_view_node_t** label_text, progress_bar_t* progress_bar, gui_view_node_t** index_text);
 gui_activity_t* make_search_address_options_activity(
@@ -71,7 +80,8 @@ gui_activity_t* make_show_qr_activity(const char* message[], size_t message_size
 gui_activity_t* make_qr_options_activity(gui_view_node_t** density_textbox, gui_view_node_t** framerate_textbox);
 
 bool import_mnemonic(const uint8_t* bytes, size_t bytes_len, char* buf, size_t buf_len, size_t* written);
-bool register_otp_string(const char* otp_uri, size_t uri_len, const char** errmsg);
+int register_otp_string(const char* otp_uri, size_t uri_len, const char** errmsg);
+int register_otp_migrate_string(const char* otp_uri, size_t uri_len, const char** errmsg);
 int register_multisig_file(const char* multisig_file, size_t multisig_file_len, const char** errmsg);
 int update_pinserver(const CborValue* const params, const char** errmsg);
 int params_set_epoch_time(CborValue* params, const char** errmsg);
@@ -288,9 +298,9 @@ bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
     gui_activity_t* const act_wallettype = make_carousel_activity("Wallet Type", NULL, &wallet_textbox);
     gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
 
-    pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
-    make_pin_insert_activity(&pin_insert, "Account Index", "Enter index:");
-    JADE_ASSERT(pin_insert.activity);
+    digit_entry_t digit_entry = { .entry_type = DIGIT_ENTRY_INDEX, .initial_state = ZERO, .digits_shown = true };
+    make_digit_entry_activity(&digit_entry, "Account Index", "Enter index:");
+    JADE_ASSERT(digit_entry.activity);
 
     const uint32_t initial_flags = *qr_flags;
     while (true) {
@@ -331,15 +341,15 @@ bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
         } else if (ev_id == BTN_XPUB_OPTIONS_ACCOUNT) {
 
             while (true) {
-                reset_pin(&pin_insert, NULL);
-                gui_set_current_activity(pin_insert.activity);
-                if (!run_pin_entry_loop(&pin_insert)) {
+                reset_digit_entry(&digit_entry, NULL);
+                gui_set_current_activity(digit_entry.activity);
+                if (!run_digit_entry_loop(&digit_entry)) {
                     // User abandoned index entry
                     break;
                 }
 
                 // Get entered digits as single numeric value
-                const uint32_t new_account_index = get_pin_as_number(&pin_insert);
+                const uint32_t new_account_index = get_entry_as_number(&digit_entry);
                 if (new_account_index < ACCOUNT_INDEX_MAX) {
                     account_index = new_account_index;
 
@@ -567,19 +577,20 @@ static bool handle_address_options(const bool show_account, uint16_t* account_in
         if (gui_activity_wait_event(act_options, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
 
             if (ev_id == BTN_SCAN_ADDRESS_OPTIONS_ACCOUNT && show_account) {
-                pin_insert_t pin_insert = { .initial_state = ZERO, .pin_digits_shown = true };
-                make_pin_insert_activity(&pin_insert, "Account Index", "Enter index:");
-                JADE_ASSERT(pin_insert.activity);
+                digit_entry_t digit_entry
+                    = { .entry_type = DIGIT_ENTRY_INDEX, .initial_state = ZERO, .digits_shown = true };
+                make_digit_entry_activity(&digit_entry, "Account Index", "Enter index:");
+                JADE_ASSERT(digit_entry.activity);
 
                 while (true) {
-                    gui_set_current_activity(pin_insert.activity);
-                    if (!run_pin_entry_loop(&pin_insert)) {
+                    gui_set_current_activity(digit_entry.activity);
+                    if (!run_digit_entry_loop(&digit_entry)) {
                         // User abandoned index entry
                         break;
                     }
 
                     // Get entered digits as single numeric value
-                    uint32_t new_account_index = get_pin_as_number(&pin_insert);
+                    uint32_t new_account_index = get_entry_as_number(&digit_entry);
                     if (new_account_index < ACCOUNT_INDEX_MAX) {
                         *account_index = new_account_index;
 
@@ -1022,6 +1033,19 @@ static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
         return true;
     }
 
+    // Try to handle as otpauth-migrate string
+    if (bytes_len > sizeof(OTP_MIGRATE_SCHEMA_FULL)
+        && !strncasecmp(strbytes, OTP_MIGRATE_SCHEMA_FULL, sizeof(OTP_MIGRATE_SCHEMA_FULL) - 1)) {
+        // Looks like an OTP MIGRATE URI
+        const char* errmsg = NULL;
+        const int errcode = register_otp_migrate_string(strbytes, bytes_len, &errmsg);
+        if (errcode) {
+            JADE_LOGE("Processing OTP MIGRATE URI failed: %s", errmsg);
+            return false;
+        }
+        return true;
+    }
+
     // Try to handle as multisig file
     if (strcasestr(strbytes, "Name") && strcasestr(strbytes, "Format") && strcasestr(strbytes, "Policy")
         && strcasestr(strbytes, "Derivation")) {
@@ -1438,6 +1462,96 @@ static void add_cr_after_last_slash(const char* url, char* output, const size_t 
     strncpy(output, url, index + 1); // up to and including the '/'
     output[index + 1] = '\n'; // explict line-break
     strcpy(output + index + 2, url + index + 1);
+}
+
+bool show_otp_secret_text_activity(const otpauth_ctx_t* otp_ctx)
+{
+    JADE_ASSERT(otp_ctx);
+
+    size_t num_words = 0;
+    size_t words_len = 0;
+    char secret_display[256];
+    SENSITIVE_PUSH(secret_display, sizeof(secret_display));
+
+    split_text(otp_ctx->secret, otp_ctx->secret_len, OTP_TEXTSPLITLEN, secret_display, sizeof(secret_display),
+        &num_words, &words_len);
+    JADE_ASSERT(num_words <= MAX_OTP_SCREENS * OTP_GRID_SIZE);
+    JADE_ASSERT(words_len <= sizeof(secret_display));
+
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    const char* remaining_words = NULL;
+    gui_activity_t* const act = make_text_grid_activity("Secret Key", hdrbtns, 2, OTP_GRID_TOPPAD, OTP_GRID_X,
+        OTP_GRID_Y, secret_display, num_words, GUI_DEFAULT_FONT, &remaining_words);
+    JADE_ASSERT(remaining_words == secret_display + words_len);
+    gui_set_current_activity(act);
+
+    int32_t ev_id;
+    while (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+        if (ev_id == BTN_BACK) {
+            break;
+        }
+    }
+
+    SENSITIVE_POP(secret_display);
+    return true;
+}
+
+bool show_otp_uri_qr_activity(const otpauth_ctx_t* otp_ctx)
+{
+    JADE_ASSERT(otp_ctx);
+    JADE_ASSERT(otp_ctx->name);
+
+    bool ok = false;
+    char uri[OTP_MAX_URI_LEN];
+    Icon* qr_icon = NULL;
+    size_t written = 0;
+
+    SENSITIVE_PUSH(uri, sizeof(uri));
+
+    if (!otp_load_uri(otp_ctx->name, uri, sizeof(uri), &written) || !written) {
+        const char* msg[] = { "Failed to load", "OTP URI" };
+        await_error_activity(msg, 2);
+        goto cleanup;
+    }
+
+    if (written >= MAX_QR_V6_DATA_LEN) {
+        const char* msg[] = { "URI too long", "for QR" };
+        await_error_activity(msg, 2);
+        goto cleanup;
+    }
+
+    qr_icon = JADE_MALLOC(sizeof(Icon));
+    bytes_to_qr_icon((const uint8_t*)uri, written, qr_icon);
+    JADE_ASSERT(qr_icon->data && qr_icon->width && qr_icon->height);
+    SENSITIVE_PUSH(qr_icon->data, qrcode_get_icon_data_size(qr_icon->width, qr_icon->height));
+
+    gui_activity_t* const act = make_show_otp_qr_actvity(otp_ctx->name, qr_icon);
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            if (ev_id == BTN_BACK) {
+                ok = true;
+                goto cleanup;
+            } else if (ev_id == BTN_OTP_DETAILS_SECRET) {
+                show_otp_secret_text_activity(otp_ctx);
+            } else if (ev_id == BTN_QR_BRIGHTNESS) {
+                gui_next_qrcode_color();
+                gui_repaint(act->root_node);
+            }
+        }
+    }
+cleanup:
+    if (qr_icon) {
+        // The GUI node owns the icon: make sure we clear its
+        // data here before the activity is freed.
+        SENSITIVE_POP(qr_icon->data);
+    }
+    SENSITIVE_POP(uri);
+    return ok;
 }
 
 // Display screen with help url and qr code

@@ -266,6 +266,8 @@ void display_hw_init(TaskHandle_t* gui_handle)
     xSemaphoreTake(init_done, portMAX_DELAY);
     vTaskDelete(lcdInitTaskHandle);
     vSemaphoreDelete(init_done);
+#else
+    esp_lcd_init(NULL); // Call directly
 #endif // CONFIG_LIBJADE
 }
 
@@ -317,57 +319,55 @@ inline void display_hw_draw_rect(int x, int y, int w, int h, const uint16_t colo
     const int calculatedx = x - CONFIG_DISPLAY_OFFSET_X;
     const int calculatedy = y - CONFIG_DISPLAY_OFFSET_Y;
     uint16_t* screen_ptr = &disp_buf[calculatedx + calculatedy * CONFIG_DISPLAY_WIDTH];
+    // When both color bytes are the same, use memset for a small speedup
+    const bool can_memset = (color >> 8) == (color & 0xff);
+    // If writing a multiple of 2 pixels to a 4 byte aligned boundary,
+    // write 2 pixels at a time for a small speedup
+    const bool can_double = !(((intptr_t)screen_ptr) % 4) && !(w % 2);
 
     if ((!calculatedx && w == CONFIG_DISPLAY_WIDTH)) {
-        if (color == 0x0000 || color == 0xFFFF) {
-            // small optimization, we can use memset instead of memcpy if it's black/white
+        // Full display width. Write continously for a small speedup
+        if (can_memset) {
             jmemset(screen_ptr, color, CONFIG_DISPLAY_WIDTH * h * sizeof(color_t));
         } else {
-            if (w % 2 == 0) {
+            if (can_double) {
                 uint32_t* disp_buf_32 = (uint32_t*)screen_ptr;
+                const size_t num_uints = h * CONFIG_DISPLAY_WIDTH / 2;
                 const uint32_t color32 = ((uint32_t)color << 16) | color;
-                const size_t size = CONFIG_DISPLAY_WIDTH * h / 2;
-                // we do two pixel at the time, FIXME: maybe with ESP32S3 SIMD we can do more?
-                for (size_t i = 0; i < size; ++i) {
+                for (size_t i = 0; i < num_uints; ++i) {
                     disp_buf_32[i] = color32;
                 }
             } else {
-                // one pixel at the time
-                for (size_t i = 0; i < h; ++i) {
-                    for (size_t k = 0; k < w; ++k) {
-                        screen_ptr[k + CONFIG_DISPLAY_WIDTH * i] = color;
-                    }
+                const size_t num_pixels = h * CONFIG_DISPLAY_WIDTH;
+                for (size_t i = 0; i < num_pixels; ++i) {
+                    screen_ptr[i] = color;
                 }
             }
         }
     } else {
-        if ((color == 0x0000 || color == 0xFFFF)) {
-            // in this we can use memset still, per line
+        if (can_memset) {
             const int data_stride = w * sizeof(color_t);
             for (size_t i = 0; i < h; ++i) {
                 jmemset(screen_ptr, color, data_stride);
                 screen_ptr += CONFIG_DISPLAY_WIDTH;
             }
         } else {
-            // it's not black or white so we can't use memset
-            if (w % 2 == 0) {
-                // we can do two pixel at the time
-                // FIXME: maybe we can do more with ESP32S3 SIMD?
+            if (can_double) {
                 uint32_t* disp_buf_32 = (uint32_t*)screen_ptr;
+                const size_t num_uints = w / 2;
                 const uint32_t color32 = ((uint32_t)color << 16) | color;
-                const size_t size = w / 2;
                 for (size_t i = 0; i < h; ++i) {
-                    for (size_t k = 0; k < size; ++k) {
+                    for (size_t k = 0; k < num_uints; ++k) {
                         disp_buf_32[k] = color32;
                     }
                     disp_buf_32 += CONFIG_DISPLAY_WIDTH / 2;
                 }
             } else {
-                // one pixel at the time
                 for (size_t i = 0; i < h; ++i) {
                     for (size_t k = 0; k < w; ++k) {
-                        screen_ptr[k + CONFIG_DISPLAY_WIDTH * i] = color;
+                        screen_ptr[k] = color;
                     }
+                    screen_ptr += CONFIG_DISPLAY_WIDTH;
                 }
             }
         }

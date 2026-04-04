@@ -10,7 +10,7 @@
 #define KB_ENTRY_STRING_MAX_DISPLAY_LEN 16
 
 static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char* title, const keyboard_type_t kb_type,
-    const bool has_shift_btn, gui_view_node_t** textbox)
+    const bool has_shift_btn, gui_view_node_t** textbox, const char* blocked_chars)
 {
     JADE_ASSERT(kb_screen_activity);
     JADE_ASSERT(title);
@@ -82,6 +82,7 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
             // By default the 'event' is based on the ascii character displayed
             size_t btn_ev_id = BTN_KEYBOARD_ASCII_OFFSET + line[c];
             size_t font = UBUNTU16_FONT;
+            const bool is_blocked_char = blocked_chars && strchr(blocked_chars, line[c]);
 
             // The last three buttons on the last row are exceptions
             // These are buttons for 'backspace', 'shift/next kb', and 'enter/done'
@@ -100,8 +101,8 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
                 }
             }
 
-            if (!has_shift_btn && btn_ev_id == BTN_KEYBOARD_SHIFT) {
-                // No shift/next-kb button - just use blank/filler
+            if ((!has_shift_btn && btn_ev_id == BTN_KEYBOARD_SHIFT) || is_blocked_char) {
+                // No shift/next-kb button or is a blocked character - just use blank/filler
                 gui_view_node_t* filler;
                 gui_make_fill(&filler, TFT_BLACK, FILL_PLAIN, hsplit);
             } else {
@@ -145,8 +146,8 @@ void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title)
         // Single kb screen, no need for kb screen 'linking'
         link_activity_t kb_screen_act = {};
         const bool has_next_kb_btn = false;
-        make_keyboard_screen(
-            &kb_screen_act, title, kb_entry->keyboards[0], has_next_kb_btn, &kb_entry->textbox_nodes[0]);
+        make_keyboard_screen(&kb_screen_act, title, kb_entry->keyboards[0], has_next_kb_btn,
+            &kb_entry->textbox_nodes[0], kb_entry->blocked_chars);
         kb_entry->activity = kb_screen_act.activity;
     } else {
         // Chain the loop of kb screen activities
@@ -155,8 +156,8 @@ void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title)
 
         const bool has_next_kb_btn = true;
         for (size_t i = 0; i < kb_entry->num_kbs; ++i) {
-            make_keyboard_screen(
-                &kb_screen_act, title, kb_entry->keyboards[i], has_next_kb_btn, &kb_entry->textbox_nodes[i]);
+            make_keyboard_screen(&kb_screen_act, title, kb_entry->keyboards[i], has_next_kb_btn,
+                &kb_entry->textbox_nodes[i], kb_entry->blocked_chars);
             gui_chain_activities(&kb_screen_act, &act_info);
         }
 
@@ -210,7 +211,8 @@ void run_keyboard_entry_loop(keyboard_entry_t* kb_entry)
 
         if (ev_id > BTN_KEYBOARD_ASCII_OFFSET) {
             const size_t chr = ev_id - BTN_KEYBOARD_ASCII_OFFSET;
-            if (kb_entry->len < kb_entry->max_allowed_len && ascii_sane(chr)) {
+            if (kb_entry->len < kb_entry->max_allowed_len && ascii_sane(chr)
+                && (!kb_entry->blocked_chars || !strchr(kb_entry->blocked_chars, chr))) {
                 kb_entry->strdata[kb_entry->len] = (char)chr;
                 kb_entry->strdata[++kb_entry->len] = '\0';
                 GUI_UPDATE_TEXTBOX();

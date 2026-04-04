@@ -86,6 +86,18 @@ static inline void map_string(char* s, int (*fnmap)(int))
     }
 }
 
+// The length of the required buffer to hold 'len' characters
+// with a nul-terminator injected every 'wordlen' characters, and
+// at the very end.  eg. for "abcdefhij\0" -> "abc\0def\0ghi\0j\0"
+#define SPLIT_TEXT_LEN(len, wordlen) (len + (len / wordlen) + 1)
+
+// Helper to copy text from one buffer to another, where the destination has terminators every
+// 'wordlen' chars, eg: "abcdefghi\0" -> "abc\0def\0ghi\0j\0"
+// output 'num_words' is number of 'words' written - eg. 4
+// output 'written' is number of bytes written, including all '\0's - eg. 14
+void split_text(
+    const char* src, size_t len, size_t wordlen, char* output, size_t output_len, size_t* num_words, size_t* written);
+
 // Bip32 path utils
 static inline bool ishardened(const uint32_t n) { return n & 0x80000000; }
 static inline uint32_t harden(const uint32_t n) { return n | 0x80000000; }
@@ -107,5 +119,10 @@ static inline size_t path_get_unhardened_tail_index(const uint32_t* path, const 
 bool is_potential_green_user_path(const uint32_t* path, size_t path_len, uint32_t* subaccount_out);
 bool is_potential_green_recovery_path(const uint32_t* path, size_t path_len);
 bool is_potential_green_server_path(const uint32_t* path, size_t path_len, uint32_t* subaccount_out);
+
+// Helper function to convert a base32 string to binary, returns 0 on failure
+size_t base32_to_bin(const char* b32_str, size_t b32_str_len, uint8_t* bin, size_t bin_len);
+// Helper function to convert binary data to a base32 string, padding optional
+bool bin_to_base32(const uint8_t* bin, size_t bin_len, char* b32_str, size_t b32_str_len, bool use_padding);
 
 #endif /* UTIL_H_ */

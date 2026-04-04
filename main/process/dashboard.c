@@ -91,7 +91,7 @@ static const home_menu_item_t home_menu_items[HOME_SCREEN_TYPE_NUM_STATES][NUM_H
         { .symbol = "3", .text = "Options", .btn_id = BTN_SETTINGS } },
 
     // Initialised/Locked
-    { { .symbol = "5", .text = "Unlock Jade", .btn_id = BTN_CONNECT },
+    { { .symbol = "5", .text = "Ready", .btn_id = BTN_CONNECT },
 #ifdef CONFIG_HAS_CAMERA
         { .symbol = "2", .text = "QR Mode", .btn_id = BTN_QR_MODE },
 #endif
@@ -166,7 +166,7 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     gui_view_node_t** status_text, gui_view_node_t** label);
 
 // Temporary screens while connecting
-gui_activity_t* make_connect_activity(const char* device_name);
+gui_activity_t* make_connect_activity(void);
 gui_activity_t* make_connect_to_activity(const char* device_name, jade_msg_source_t initialisation_source);
 
 // GUI screens
@@ -201,6 +201,8 @@ gui_activity_t* make_bip39_passphrase_prefs_activity(
 
 gui_activity_t* make_otp_activity(void);
 gui_activity_t* make_new_otp_activity(void);
+
+gui_activity_t* make_view_export_otp_activity(const char* name);
 
 bool show_otp_details_activity(
     const otpauth_ctx_t* ctx, bool initial_confirmation, bool is_valid, bool show_delete_btn);
@@ -363,10 +365,10 @@ static void update_home_screen_menu(void)
 // Function to print a pin into a char buffer.
 // Assumes each pin component value is a single digit.
 // NOTE: the passed buffer must be large enough.
-// (In normal circumstances that should be PIN_SIZE digits)
+// (In normal circumstances that should be DIGIT_ENTRY_SIZE digits)
 static void format_pin(char* buf, const uint8_t buf_len, const uint8_t* pin, const size_t pin_len)
 {
-    JADE_ASSERT(pin_len == PIN_SIZE);
+    JADE_ASSERT(pin_len == DIGIT_ENTRY_SIZE);
     JADE_ASSERT(buf_len > pin_len);
 
     for (int i = 0; i < pin_len; ++i) {
@@ -663,8 +665,8 @@ static void offer_jade_reset(void)
     }
 
     // Force user to confirm a random number
-    uint8_t num[PIN_SIZE];
-    for (int i = 0; i < PIN_SIZE; ++i) {
+    uint8_t num[DIGIT_ENTRY_SIZE];
+    for (int i = 0; i < DIGIT_ENTRY_SIZE; ++i) {
         num[i] = get_uniform_random_byte(10);
     }
     char pinstr[sizeof(num) + 1];
@@ -676,22 +678,22 @@ static void offer_jade_reset(void)
     const int ret = snprintf(confirm_msg, sizeof(confirm_msg), "Confirm reset: %s", pinstr);
     JADE_ASSERT(ret > 0 && ret < sizeof(confirm_msg));
 
-    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = true };
-    make_pin_insert_activity(&pin_insert, "Reset Jade", confirm_msg);
-    JADE_ASSERT(pin_insert.activity);
-    JADE_STATIC_ASSERT(sizeof(num) == sizeof(pin_insert.pin));
+    digit_entry_t digit_entry = { .entry_type = DIGIT_ENTRY_PIN, .initial_state = RANDOM, .digits_shown = true };
+    make_digit_entry_activity(&digit_entry, "Reset Jade", confirm_msg);
+    JADE_ASSERT(digit_entry.activity);
+    JADE_STATIC_ASSERT(sizeof(num) == sizeof(digit_entry.digit));
 
-    gui_set_current_activity(pin_insert.activity);
-    if (!run_pin_entry_loop(&pin_insert)) {
+    gui_set_current_activity(digit_entry.activity);
+    if (!run_digit_entry_loop(&digit_entry)) {
         // User abandoned pin entry - continue to boot screen
         JADE_LOGI("User confirmation abandoned, not wiping data.");
         return;
     }
 
-    format_pin(pinstr, sizeof(pinstr), pin_insert.pin, sizeof(pin_insert.pin));
+    format_pin(pinstr, sizeof(pinstr), digit_entry.digit, sizeof(digit_entry.digit));
     JADE_LOGI("User entered: %s", pinstr);
 
-    if (!sodium_memcmp(num, pin_insert.pin, sizeof(num))) {
+    if (!sodium_memcmp(num, digit_entry.digit, sizeof(num))) {
         // Correct - erase all jade non-volatile storage
         JADE_LOGI("User confirmed - erasing Jade data");
         if (storage_erase()) {
@@ -1233,36 +1235,36 @@ static void set_wallet_erase_pin(void)
     JADE_LOGI("Requesting wallet-erase PIN");
 
     // Ask user to enter a wallet-erase pin
-    pin_insert_t pin_insert = { .initial_state = RANDOM, .pin_digits_shown = false };
-    make_pin_insert_activity(&pin_insert, "Wallet-Erase PIN", "Different from main PIN");
-    JADE_ASSERT(pin_insert.activity);
+    digit_entry_t digit_entry = { .entry_type = DIGIT_ENTRY_PIN, .initial_state = RANDOM, .digits_shown = false };
+    make_digit_entry_activity(&digit_entry, "Wallet-Erase PIN", "Different from main PIN");
+    JADE_ASSERT(digit_entry.activity);
 
     while (true) {
-        reset_pin(&pin_insert, "Wallet-Erase PIN");
-        gui_set_current_activity(pin_insert.activity);
+        reset_digit_entry(&digit_entry, "Wallet-Erase PIN");
+        gui_set_current_activity(digit_entry.activity);
 
-        if (!run_pin_entry_loop(&pin_insert)) {
+        if (!run_digit_entry_loop(&digit_entry)) {
             // User abandoned pin entry
             JADE_LOGI("User abandoned setting wallet erase PIN");
             break;
         }
 
         // This is the first pin, copy it and clear screen fields
-        uint8_t pin[sizeof(pin_insert.pin)];
-        memcpy(pin, pin_insert.pin, sizeof(pin));
-        reset_pin(&pin_insert, "Confirm Erase PIN");
+        uint8_t pin[sizeof(digit_entry.digit)];
+        memcpy(pin, digit_entry.digit, sizeof(pin));
+        reset_digit_entry(&digit_entry, "Confirm Erase PIN");
 
         // Ask user to re-enter PIN
-        if (!run_pin_entry_loop(&pin_insert)) {
+        if (!run_digit_entry_loop(&digit_entry)) {
             // User abandoned second input - back to first ...
             continue;
         }
 
         // Check that the two pins are the same
         JADE_LOGD("Checking pins match");
-        if (!sodium_memcmp(pin, pin_insert.pin, sizeof(pin))) {
+        if (!sodium_memcmp(pin, digit_entry.digit, sizeof(pin))) {
             JADE_LOGI("Setting Wallet-Erase PIN");
-            storage_set_wallet_erase_pin(pin_insert.pin, sizeof(pin_insert.pin));
+            storage_set_wallet_erase_pin(digit_entry.digit, sizeof(digit_entry.digit));
             break;
         } else {
             // Pins mismatch - try again
@@ -1285,7 +1287,7 @@ static void handle_wallet_erase_pin(void)
 
     while (true) {
         // Add wallet erase pin confirmation screens
-        uint8_t pin_erase[PIN_SIZE];
+        uint8_t pin_erase[DIGIT_ENTRY_SIZE];
         gui_activity_t* act = NULL;
         if (storage_get_wallet_erase_pin(pin_erase, sizeof(pin_erase))) {
             char pinstr[sizeof(pin_erase) + 1];
@@ -1432,6 +1434,30 @@ static bool delete_otp_record(const char* otpname)
     return true;
 }
 
+static bool show_otp_detail_options_activity(
+    const otpauth_ctx_t* otp_ctx, const bool initial_confirmation, const bool is_valid, const bool show_delete_btn)
+{
+    JADE_ASSERT(otp_ctx);
+    JADE_ASSERT(otp_ctx->name);
+
+    gui_activity_t* const act = make_view_export_otp_activity(otp_ctx->name);
+    int32_t ev_id;
+
+    while (true) {
+        gui_set_current_activity(act);
+
+        if (gui_activity_wait_event(act, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
+            if (ev_id == BTN_BACK) {
+                return true;
+            } else if (ev_id == BTN_OTP_DETAILS_VIEW) {
+                show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
+            } else if (ev_id == BTN_OTP_DETAILS_EXPORT) {
+                show_otp_uri_qr_activity(otp_ctx);
+            }
+        }
+    }
+    return true;
+}
 // HOTP token-code fixed
 static bool display_hotp_screen(const otpauth_ctx_t* otp_ctx, const char* token, const bool confirm_only)
 {
@@ -1448,7 +1474,8 @@ static bool display_hotp_screen(const otpauth_ctx_t* otp_ctx, const char* token,
             const bool is_valid = true; // asserted above
             const bool initial_confirmation = false;
             const bool show_delete_btn = false;
-            const bool retain = show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
+            const bool retain
+                = show_otp_detail_options_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
             JADE_ASSERT(retain); // should be no 'discard' option
         } else if (ev_id == BTN_OTP_DISCARD_DELETE) {
             if (confirm_only || delete_otp_record(otp_ctx->name))
@@ -1547,7 +1574,8 @@ static bool display_totp_screen(otpauth_ctx_t* otp_ctx, uint64_t epoch_value, ch
                 const bool is_valid = true; // asserted above
                 const bool initial_confirmation = false;
                 const bool show_delete_btn = false;
-                const bool retain = show_otp_details_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
+                const bool retain
+                    = show_otp_detail_options_activity(otp_ctx, initial_confirmation, is_valid, show_delete_btn);
                 JADE_ASSERT(retain); // should be no 'discard' option
             } else if (ev_id == BTN_OTP_DISCARD_DELETE) {
                 if (confirm_only || delete_otp_record(otp_ctx->name))
@@ -1677,7 +1705,7 @@ static void handle_view_otps(void)
         JADE_LOGE("Error loading or executing otp record: %s", names[selected]);
         const bool initial_confirmation = false;
         const bool show_delete_btn = true;
-        if (!show_otp_details_activity(&otp_ctx, initial_confirmation, is_valid, show_delete_btn)) {
+        if (!show_otp_detail_options_activity(&otp_ctx, initial_confirmation, is_valid, show_delete_btn)) {
             // Delete invalid record
             delete_otp_record(otp_ctx.name);
         }
@@ -2754,7 +2782,7 @@ void dashboard_process(void* process_ptr)
                     act_dashboard, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
             } else {
                 JADE_LOGI("User navigated to 'connect' screen");
-                act_dashboard = make_connect_activity(device_name);
+                act_dashboard = make_connect_activity();
                 gui_activity_register_event(
                     act_dashboard, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, sync_wait_event_handler, event_data);
             }

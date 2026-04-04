@@ -32,6 +32,12 @@ target_include_directories(cbor_target PUBLIC "${CBOR_SOURCE_DIR}")
 set(CBOR_INCLUDE_DIR "${CBOR_SOURCE_DIR}")
 set(ESP_MOCKED "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+set(OTPAUTH_MIGRATE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../components/google-otpauth-migrate")
+file(GLOB OTPAUTH_MIGRATE_SOURCES "${OTPAUTH_MIGRATE_SOURCE_DIR}/*.c")
+add_library(otpauth_migrate_target STATIC "${OTPAUTH_MIGRATE_SOURCES}")
+target_include_directories(otpauth_migrate_target PUBLIC "${OTPAUTH_MIGRATE_SOURCE_DIR}")
+set(OTPAUTH_MIGRATE_INCLUDE_DIR "${OTPAUTH_MIGRATE_SOURCE_DIR}")
+
 # Note -DVERIFY enables (expensive) libsecp256k1 verification
 set(CMAKE_C_FLAGS_DEBUG "-O0 -ggdb3 -DVERIFY -D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS -fstack-protector-strong -fstack-clash-protection")
 
@@ -41,6 +47,11 @@ set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 if(CMAKE_BUILD_TYPE STREQUAL "Sanitize")
     add_compile_options(-O1 -ggdb -fsanitize=address -fsanitize=undefined -fsanitize=alignment -fsanitize-address-use-after-scope -fno-sanitize-recover=all)
     add_link_options(-fsanitize=address -fsanitize=undefined -fsanitize=alignment -fsanitize-address-use-after-scope -fno-sanitize-recover=all)
+endif()
+
+option(LOG "Enable libjade logging" OFF)
+if (NOT LOG)
+    add_compile_options(-DCONFIG_LOG_DEFAULT_LEVEL_NONE)
 endif()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
@@ -53,6 +64,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 
 set(COMMON_INCLUDES
   ${CBOR_INCLUDE_DIR}
+  ${OTPAUTH_MIGRATE_INCLUDE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -83,7 +95,7 @@ target_link_libraries(bcur PRIVATE mbedcrypto)
 
 # libjade.so
 add_library(jade SHARED ${COMMON_SRC})
-target_link_libraries(jade PRIVATE m z bcur cbor_target mbedtls mbedcrypto mbedx509)
+target_link_libraries(jade PRIVATE m z bcur cbor_target otpauth_migrate_target mbedtls mbedcrypto mbedx509)
 target_include_directories(jade PRIVATE ${COMMON_INCLUDES})
 
 set_source_files_properties(libjade.c PROPERTIES COMPILE_OPTIONS
@@ -97,7 +109,7 @@ target_include_directories(jade_static PRIVATE ${COMMON_INCLUDES})
 target_compile_definitions(jade_static PRIVATE LIBJADE_BUILD)
 
 add_executable(libjade_daemon daemon.c)
-target_link_libraries(libjade_daemon PRIVATE jade_static bcur cbor_target m z mbedtls mbedcrypto mbedx509 Threads::Threads)
+target_link_libraries(libjade_daemon PRIVATE jade_static bcur cbor_target otpauth_migrate_target m z mbedtls mbedcrypto mbedx509 Threads::Threads)
 target_include_directories(libjade_daemon PRIVATE ${COMMON_INCLUDES})
 
 # Assets

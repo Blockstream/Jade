@@ -113,17 +113,15 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     return act;
 }
 
-gui_activity_t* make_connect_activity(const char* device_name)
+gui_activity_t* make_connect_activity(void)
 {
-    JADE_ASSERT(device_name);
-
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_CONNECT_BACK },
         { .txt = "?", .font = GUI_TITLE_FONT, .ev_id = BTN_CONNECT_HELP } };
 
     const char* message[]
-        = { "Connect via USB/BLE", "to a companion app", "and select your Jade to", "unlock with your PIN" };
+        = { "Open your wallet app.", "If needed, the app", "will prompt you to", "connect via USB/BLE." };
 
-    return make_show_message_activity(message, 4, device_name, hdrbtns, 2, NULL, 0);
+    return make_show_message_activity(message, 4, "Ready to Pair", hdrbtns, 2, NULL, 0);
 }
 
 gui_activity_t* make_connect_to_activity(const char* device_name, const jade_msg_source_t initialisation_source)

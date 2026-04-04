@@ -80,6 +80,7 @@ int8_t qrcode_initBytes(QRCode* qrcode, uint8_t* modules, uint8_t version, uint8
 
 bool qrcode_getModule(QRCode* qrcode, uint8_t x, uint8_t y);
 
+size_t qrcode_get_icon_data_size(uint16_t width, uint16_t height);
 void qrcode_toIcon(QRCode* qrcode, Icon* icon, uint8_t scale);
 void qrcode_freeIcon(Icon* icon);
 

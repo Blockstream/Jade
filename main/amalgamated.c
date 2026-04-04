@@ -147,6 +147,7 @@ void __wrap_abort(void);
 #include "./ui/dashboard.c"
 #include "./ui/descriptor.c"
 #include "./ui/dialogs.c"
+#include "./ui/digit_entry.c"
 #ifndef CONFIG_LIBJADE
 #include "./ui/keyboard.c"
 #endif // CONFIG_LIBJADE
@@ -154,7 +155,6 @@ void __wrap_abort(void);
 #include "./ui/multisig.c"
 #include "./ui/ota.c"
 #include "./ui/otpauth.c"
-#include "./ui/pin.c"
 #include "./ui/qrmode.c"
 #include "./ui/select_registered_wallet.c"
 #include "./ui/sign_identity.c"

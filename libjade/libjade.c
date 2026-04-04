@@ -51,6 +51,8 @@
 // https://github.com/richgel999/miniz with a couple of additional
 // patches for memory safety.
 #include "miniz.c"
+// Include the emulation of the o/s task functions
+#include "task.c"
 // Include the esp32_deflate component
 #define ESP_PLATFORM 1
 #define ESP_IDF_VERSION 1
@@ -80,6 +82,7 @@ static int settimeofday_no_op(const void* yv, const void* tz) { return 0; }
 #define settimeofday settimeofday_no_op
 
 #ifndef CONFIG_LIBJADE_NO_GUI
+#include "main/display.h"
 #include "main/gui.h"
 
 typedef void* locale_multilang_string_t;
@@ -209,64 +212,6 @@ bool run_on_temporary_stack(size_t stack_size, temporary_stack_function_t fn, vo
 bool run_in_temporary_task(const size_t stack_size, temporary_stack_function_t fn, void* ctx) { return fn(ctx); }
 
 void temp_stack_init(void) {}
-
-// HW: TLS/Sensitive
-static void* _tls_ptrs[3];
-
-void* pvTaskGetThreadLocalStoragePointer(void* task, size_t idx)
-{
-    assert(idx <= sizeof(_tls_ptrs) / sizeof(_tls_ptrs[0]));
-    return _tls_ptrs[idx];
-}
-
-void vTaskSetThreadLocalStoragePointerAndDelCallback(void* task, size_t idx, void* p, TlsDeleteCallbackFunction_t cb)
-{
-    assert(idx <= sizeof(_tls_ptrs) / sizeof(_tls_ptrs[0]));
-    _tls_ptrs[idx] = p;
-    // FIXME: call cb atexit()/thread exit?
-}
-
-const char* pcTaskGetName(void* task) { return "shim_task"; }
-
-BaseType_t xTaskCreatePinnedToCore(TaskFunction_t func, const char* name, uint32_t stack_size, void* params,
-    uint32_t ux_prio, TaskHandle_t* output, uint32_t xCoreID)
-{
-    *output = NULL;
-    func(params);
-    return pdTRUE;
-}
-
-unsigned int uxTaskGetStackHighWaterMark(void* task) { return 0xffffff; }
-
-unsigned int xPortGetFreeHeapSize(void) { return 0xffffff; }
-
-void vTaskDelay(TickType_t delay)
-{
-    // Don't delay, since we don't have multiple threads running
-    // in the firmware to wait on.
-}
-
-void vTaskDelayUntil(TickType_t* prev_wake_time, const TickType_t delay)
-{
-    // Used to control the GUI refresh framerate
-    // FIXME: Implement
-}
-
-void vTaskDelete(void* task)
-{
-    // Don't delete, since we didn't create any task
-}
-
-TickType_t xTaskGetTickCount(void)
-{
-    struct timespec ts;
-    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-        abort();
-    }
-    return ((TickType_t)ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
-}
-
-int xTaskNotify(TaskHandle_t task, unsigned int v, int action) { return pdTRUE; }
 
 void sensitive_init(void) {}
 
