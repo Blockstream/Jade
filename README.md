@@ -35,6 +35,27 @@ dependencies.
 
 # Set up the build environment
 
+### ESP-IDF version compatibility
+
+This project builds successfully with ESP-IDF v5.4.
+
+Using ESP-IDF 6.x may fail during CMake configuration with an error similar to:
+
+```text
+Failed to resolve component 'usb' required by component 'main'
+```
+
+This is due to changes in ESP-IDF 6.x where the `usb` component was removed from the core framework.
+
+### Recommended setup
+
+```bash
+git clone -b v5.4 --recursive https://github.com/espressif/esp-idf.git
+cd esp-idf
+```
+
+Support for ESP-IDF 6.x may require additional dependency adjustments.
+
 Jade requires the esp-idf SDK. You can use our docker image to build or
 install the esp-idf toolchain locally using the commands below.
 
