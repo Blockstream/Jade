@@ -34,13 +34,13 @@ LIBJADE_API void libjade_stop(void);
 /*
  * Send a CBOR message to the global libjade instance.
  */
-LIBJADE_API bool libjade_send(const uint8_t* data, size_t size);
+LIBJADE_API bool libjade_send(const uint8_t* data, size_t len);
 
 /*
  * Receive a CBOR reply message from the global libjade instance.
  * `libjade_release` must be used to free any returned message.
  */
-LIBJADE_API uint8_t* libjade_receive(unsigned int timeout, size_t* size_out);
+LIBJADE_API uint8_t* libjade_receive(unsigned int timeout, size_t* len_out);
 
 /*
  * Free a CBOR message returned from `libjade_receive`.

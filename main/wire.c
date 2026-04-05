@@ -91,10 +91,7 @@ static bool handle_immediate_message(const cbor_msg_t* const ctx)
     return false;
 }
 
-// Handle bytes in receive buffer
-// NOTE: assumes sizes of input buffer - could be passed size if preferred
-void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_len, TickType_t* last_processing_time,
-    bool reject_incomplete)
+void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_len, TickType_t* last_processing_time)
 {
     JADE_ASSERT(full_data_in);
     JADE_ASSERT(read_ptr && *read_ptr <= MAX_INPUT_MSG_SIZE && *read_ptr + new_data_len <= MAX_INPUT_MSG_SIZE);
@@ -104,13 +101,13 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_
     const TickType_t now = xTaskGetTickCount();
     JADE_ASSERT(now >= *last_processing_time);
 
-    // Buffer is stale if we had bytes already and the timeout has expired
-    bool have_stale = *read_ptr && now > *last_processing_time + TIMEOUT_TICKS;
-    JADE_LOGI("%u new of %u total %sbytes at tick %lu (prev tick %lu)", new_data_len, *read_ptr + new_data_len,
-        have_stale ? "stale " : "", now, *last_processing_time);
-
     uint8_t* const data_in = full_data_in + 1;
     cbor_msg_t ctx = { .source = full_data_in[0] };
+
+    // Buffer is stale if we had bytes already and the timeout has expired
+    bool have_stale = *read_ptr && now > *last_processing_time + TIMEOUT_TICKS;
+    JADE_LOGI("%u new of %u total %sbytes at tick %lu (prev %lu) from %d", new_data_len, *read_ptr + new_data_len,
+        have_stale ? "stale " : "", now, *last_processing_time, ctx.source);
 
     while (true) {
         // Try parsing an RPC message from the buffer plus the new data

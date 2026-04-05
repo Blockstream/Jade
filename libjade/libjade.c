@@ -475,36 +475,33 @@ static uint8_t _libjade_serial_data_in[MAX_INPUT_MSG_SIZE + 1] = { 0 };
 static size_t _libjade_serial_read_ptr = 0;
 static TickType_t _libjade_last_processing_time = 0;
 
-bool libjade_send(const uint8_t* data, size_t size)
+bool libjade_send(const uint8_t* data, size_t len)
 {
     // Pass messages as though they come from the serial interface
     _libjade_serial_data_in[0] = SOURCE_SERIAL;
-    while (size) {
+    while (len) {
         const size_t remaining_bytes = MAX_INPUT_MSG_SIZE - _libjade_serial_read_ptr;
-        const size_t to_write = size > remaining_bytes ? remaining_bytes : size;
+        const size_t copy_len = len > remaining_bytes ? remaining_bytes : len;
 
-        JADE_ASSERT(_libjade_serial_read_ptr + to_write <= MAX_INPUT_MSG_SIZE);
-        memcpy(_libjade_serial_data_in + 1 + _libjade_serial_read_ptr, data, to_write);
-        // Don't reject incomplete messages. If the buffer is full,
-        // handle_data() will reject the entire buffer for us. Any
-        // valid messages will be removed from the front of the buffer.
-        const bool reject_incomplete = false;
-        handle_data(_libjade_serial_data_in, &_libjade_serial_read_ptr, to_write, &_libjade_last_processing_time,
-            reject_incomplete);
-        data += to_write;
-        size -= to_write;
+        JADE_ASSERT(_libjade_serial_read_ptr + copy_len <= MAX_INPUT_MSG_SIZE);
+        memcpy(_libjade_serial_data_in + 1 + _libjade_serial_read_ptr, data, copy_len);
+
+        // Pass data through to the common handler
+        handle_data(_libjade_serial_data_in, &_libjade_serial_read_ptr, copy_len, &_libjade_last_processing_time);
+        data += copy_len;
+        len -= copy_len;
     }
     return true;
 }
 
-uint8_t* libjade_receive(const unsigned int timeout, size_t* size_out)
+uint8_t* libjade_receive(const unsigned int timeout, size_t* len_out)
 {
     // timeout is in seconds, convert to milliseconds
     const unsigned int ms = timeout * 1000;
-    void* item = xRingbufferReceive(serial_out, size_out, ms / portTICK_PERIOD_MS);
+    void* item = xRingbufferReceive(serial_out, len_out, ms / portTICK_PERIOD_MS);
     if (!item) {
         // No message available
-        *size_out = 0;
+        *len_out = 0;
     }
     return item;
 }
