@@ -124,7 +124,7 @@ else
     if [ "$CONFIG" = "qemu" ]; then
         usage "--dev must be given for qemu"
     fi
-    CONFIG_FILE="./production/sdkconfig_${CONFIG}_prod.defaults"
+    CONFIG_FILE="./configs/production/sdkconfig_${CONFIG}_prod.defaults"
 fi
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "error: config file $CONFIG_FILE does not exist" >&2

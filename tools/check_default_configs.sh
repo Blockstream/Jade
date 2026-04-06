@@ -13,7 +13,7 @@ rm -fr sdkconfig sdkconfig.defaults build managed_components
 
 # Jade v2/v2c (Jade Plus & Jade Core)
 idf.py set-target esp32s3
-for filename in production/*_jade_v2*.defaults configs/*_jade_v2*.defaults; do
+for filename in configs/production/*_jade_v2*.defaults configs/*_jade_v2*.defaults; do
     rm -fr sdkconfig sdkconfig.defaults
     idf.py -D SDKCONFIG_DEFAULTS="${filename}" reconfigure save-defconfig
     tail -n +4 sdkconfig.defaults | LC_ALL=C sort -o ${filename}.tmp
@@ -24,7 +24,7 @@ done
 
 # Jade v1.0/v1.1
 idf.py set-target esp32
-for filename in production/*jade*.defaults configs/*jade*.defaults; do
+for filename in configs/production/*jade*.defaults configs/*jade*.defaults; do
     [[ $filename == *"v2"* ]] && continue
     rm -fr sdkconfig sdkconfig.defaults
     idf.py -D SDKCONFIG_DEFAULTS="${filename}" reconfigure save-defconfig
