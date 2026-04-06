@@ -239,8 +239,8 @@ if [ -n "$JTAG" ]; then
     fi
     echo "updating config file for JTAG support ..."
     set_config CONFIG_JADE_USE_USB_JTAG_SERIAL y
-    set_config CONFIG_NEWLIB_STDIN_LINE_ENDING_LF y
-    set_config CONFIG_NEWLIB_STDOUT_LINE_ENDING_LF y
+    set_config CONFIG_LIBC_STDIN_LINE_ENDING_LF y
+    set_config CONFIG_LIBC_STDOUT_LINE_ENDING_LF y
 fi
 if [ -n "$PSRAM" ]; then
     echo "updating config file for PSRAM support ..."

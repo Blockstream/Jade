@@ -21,9 +21,9 @@
 
 #ifdef CONFIG_JADE_USE_USB_JTAG_SERIAL
 
-#if !defined(CONFIG_NEWLIB_STDIN_LINE_ENDING_LF) || !defined(CONFIG_NEWLIB_STDOUT_LINE_ENDING_LF)
+#if !defined(CONFIG_LIBC_STDIN_LINE_ENDING_LF) || !defined(CONFIG_LIBC_STDOUT_LINE_ENDING_LF)
 #error                                                                                                                 \
-    "Both CONFIG_NEWLIB_STDIN_LINE_ENDING_LF and CONFIG_NEWLIB_STDOUT_LINE_ENDING_LF must be set for CONFIG_JADE_USE_USB_JTAG_SERIAL mode"
+    "Both CONFIG_LIBC_STDIN_LINE_ENDING_LF and CONFIG_LIBC_STDOUT_LINE_ENDING_LF must be set for CONFIG_JADE_USE_USB_JTAG_SERIAL mode"
 #endif
 
 #if !defined(CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG)
