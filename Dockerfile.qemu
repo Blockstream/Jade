@@ -8,5 +8,5 @@ WORKDIR /jade
 COPY . .
 RUN ./tools/switch_to.sh qemu ${QEMU_CONFIG_ARGS}
 RUN cd /opt/esp/idf && . ./export.sh && cd /jade && idf.py all && ./tools/fwprep.py build/jade.bin build
-RUN ./main/qemu/make-flash-img.sh
+RUN ./main/qemu/make_flash_img.sh
 CMD [ "/jade/main/qemu/qemu_run.sh", "$QEMU_GDB" ]

@@ -1,16 +1,37 @@
 #!/usr/bin/env bash
 set -e
 
-if [ "$#" -gt 1 ] || ([ "$#" -eq 1 ] && [ "$1" != "--larger-display" ]); then
-  echo "Error: Invalid parameters."
-  exit 1
-fi
+function usage {
+    if [ -n "$1" ]; then
+        echo "error: $1" >&2
+    fi
+    echo "Usage: ${0} [OPTIONS]"
+    echo "OPTIONS:"
+    echo "    --larger-display    Use a larger QEMU web display"
+    echo "    -h | --help         Show this help message"
+    if [ -n "$1" ]; then
+        exit 1
+    fi
+    exit 0
+}
+
+LARGER_DISPLAY=""
+
+while true; do
+    case "$1" in
+        --larger-display) LARGER_DISPLAY=1; shift ;;
+        -h | --help) usage ;;
+        "") break ;;
+        *) usage "unknown option $1" ;;
+    esac
+done
 
 jade_docker_image=$(grep '^image:' .gitlab-ci.yml | awk '{print $2}')
 
-config_file="sdkconfig_qemu_psram_webdisplay.defaults"
-if [ "$1" == "--larger-display" ]; then
-  config_file="sdkconfig_qemu_psram_webdisplay_larger.defaults"
+config_file="sdkconfig_qemu.defaults"
+QEMU_CONFIG_ARGS="--dev --psram --webdisplay"
+if [ -n "$LARGER_DISPLAY" ]; then
+    QEMU_CONFIG_ARGS="$QEMU_CONFIG_ARGS --webdisplay-larger"
 fi
 
 # the script makes a copy of the entire repo, cleans the build/config and
@@ -26,8 +47,10 @@ cmd="cp -r /jade /jade_cpy && cd /jade_cpy"
 cmd+=" && cp configs/${config_file} sdkconfig.defaults"
 # comment this out to make subsequent builds faster
 #cmd+=" && rm -fr build sdkconfig"
-cmd+=" && pushd /opt/esp/idf && . ./export.sh && popd && idf.py build"
-cmd+=" && ./main/qemu/make-flash-img.sh && ./main/qemu/qemu_run.sh"
+cmd+=" && pushd /opt/esp/idf && . ./export.sh && popd"
+cmd+=" && ./tools/switch_to.sh qemu ${QEMU_CONFIG_ARGS}"
+cmd+=" && idf.py build"
+cmd+=" && ./main/qemu/make_flash_img.sh && ./main/qemu/qemu_run.sh"
 
 docker run --rm -v $PWD:/jade \
   -p 127.0.0.1:30121:30121/tcp -p 127.0.0.1:30122:30122/tcp \
