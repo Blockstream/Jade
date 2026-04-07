@@ -451,9 +451,9 @@ typedef struct {
     int xOffset;
     int xDelta;
     uint16_t dataPtr;
-} propFont;
+} PropFont;
 
-static propFont fontChar;
+static PropFont fontChar;
 
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
 uint16_t* get_display_buffer_at(int x, int y)
@@ -612,35 +612,29 @@ static int print_proportional_char(int x, int y)
     return char_width;
 }
 
-static uint8_t get_char_ptr(const uint8_t c)
+static uint8_t get_char_ptr(const uint8_t c, PropFont* char_out)
 {
-    uint16_t tempPtr = 4;
+    const uint8_t* font_data = cfont.font + 4;
 
-    do {
-        fontChar.charCode = cfont.font[tempPtr++];
-        if (fontChar.charCode == 0xFF) {
-            return 0;
+    while (*font_data != c && *font_data != 0xff) {
+        if (font_data[2]) {
+            // Non-zero width character. Skip packed glyph bitmap data.
+            font_data += (((int)font_data[2] * font_data[3] - 1) / 8) + 1;
         }
-
-        fontChar.adjYOffset = cfont.font[tempPtr++];
-        fontChar.width = cfont.font[tempPtr++];
-        fontChar.height = cfont.font[tempPtr++];
-        fontChar.xOffset = cfont.font[tempPtr++];
-        fontChar.xOffset = fontChar.xOffset < 0x80 ? fontChar.xOffset : -(0xFF - fontChar.xOffset);
-        fontChar.xDelta = cfont.font[tempPtr++];
-
-        if (c != fontChar.charCode && fontChar.charCode != 0xFF) {
-            if (fontChar.width != 0) {
-                tempPtr += (((fontChar.width * fontChar.height) - 1) / 8) + 1;
-            }
-        }
-    } while ((c != fontChar.charCode) && (fontChar.charCode != 0xFF));
-
-    fontChar.dataPtr = tempPtr;
-    if (c != fontChar.charCode) {
-        return 0;
+        font_data += 6;
     }
-
+    if (*font_data == 0xff) {
+        return 0; // Not found
+    }
+    // Found, copy data
+    char_out->charCode = *font_data++;
+    char_out->adjYOffset = *font_data++;
+    char_out->width = *font_data++;
+    char_out->height = *font_data++;
+    char_out->xOffset = *font_data++;
+    char_out->xOffset = fontChar.xOffset < 0x80 ? fontChar.xOffset : -(0xFF - fontChar.xOffset);
+    char_out->xDelta = *font_data++;
+    char_out->dataPtr = font_data - cfont.font;
     return 1;
 }
 
@@ -680,7 +674,7 @@ int display_get_string_width(const char* str)
     int charWidth, xDelta;
 
     while (*tempStrptr) {
-        if (get_char_ptr(*tempStrptr++)) {
+        if (get_char_ptr(*tempStrptr++, &fontChar)) {
             charWidth = fontChar.width;
             xDelta = fontChar.xDelta;
             strWidth += ((charWidth > xDelta) ? charWidth : xDelta) + 1;
@@ -884,7 +878,7 @@ void display_print_in_area(const char* st, int x, int y, dispWin_t areaWin, bool
             }
         } else {
             if (!cfont.x_size) {
-                if (get_char_ptr(ch)) {
+                if (get_char_ptr(ch, &fontChar)) {
                     tmpw = fontChar.xDelta;
                 } else {
                     continue;
