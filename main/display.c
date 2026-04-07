@@ -279,7 +279,7 @@ void display_init(TaskHandle_t* gui_h)
         .x2 = TOUCH_BUTTON_WIDTH + CONFIG_DISPLAY_OFFSET_X,
         .y2 = (CONFIG_DISPLAY_HEIGHT + (TOUCH_BUTTON_AREA - TOUCH_BUTTON_MARGIN)) + CONFIG_DISPLAY_OFFSET_Y };
 
-    display_set_font(JADE_SYMBOLS_16x16_FONT, NULL);
+    display_set_font(JADE_SYMBOLS_16x16_FONT);
     display_print_in_area("H", CENTER, CENTER, disp_win_virtual_buttons, 0);
     disp_win_virtual_buttons.x1 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) - (TOUCH_BUTTON_WIDTH / 2);
     disp_win_virtual_buttons.x2 = ((CONFIG_DISPLAY_WIDTH / 2) + CONFIG_DISPLAY_OFFSET_X) + (TOUCH_BUTTON_WIDTH / 2);
@@ -288,7 +288,7 @@ void display_init(TaskHandle_t* gui_h)
         = ((CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X) - TOUCH_BUTTON_WIDTH;
     disp_win_virtual_buttons.x2 = (CONFIG_DISPLAY_WIDTH - TOUCH_BUTTON_MARGIN) + CONFIG_DISPLAY_OFFSET_X;
     display_print_in_area("I", CENTER, CENTER, disp_win_virtual_buttons, 0);
-    display_set_font(DEFAULT_FONT, NULL);
+    display_set_font(DEFAULT_FONT);
 
     vTaskDelay(50 / portTICK_PERIOD_MS);
 #endif
@@ -747,56 +747,60 @@ static void get_max_width_height(void)
     cfont.size = tempPtr;
 }
 
-void display_set_font(uint8_t font, const char* font_file)
+void display_set_font(const uint8_t font)
 {
-    cfont.font = NULL;
+    const uint8_t* font_data;
 
     if (font == DEJAVU18_FONT) {
-        cfont.font = tft_Dejavu18;
+        font_data = tft_Dejavu18;
     } else if (font == DEJAVU24_FONT) {
-        cfont.font = tft_Dejavu24;
+        font_data = tft_Dejavu24;
     } else if (font == UBUNTU16_FONT) {
-        cfont.font = tft_Ubuntu16;
+        font_data = tft_Ubuntu16;
     } else if (font == COMIC24_FONT) {
-        cfont.font = tft_Comic24;
+        font_data = tft_Comic24;
     } else if (font == MINYA24_FONT) {
-        cfont.font = tft_minya24;
+        font_data = tft_minya24;
     } else if (font == TOONEY32_FONT) {
-        cfont.font = tft_tooney32;
+        font_data = tft_tooney32;
     } else if (font == SMALL_FONT) {
-        cfont.font = tft_SmallFont;
+        font_data = tft_SmallFont;
     } else if (font == DEF_SMALL_FONT) {
-        cfont.font = tft_def_small;
+        font_data = tft_def_small;
     } else if (font == BIG_FONT) {
-        cfont.font = tft_BigFont;
+        font_data = tft_BigFont;
     } else if (font == SINCLAIR_M) {
-        cfont.font = tft_Sinclair_M;
+        font_data = tft_Sinclair_M;
     } else if (font == SINCLAIR_S) {
-        cfont.font = tft_Sinclair_S;
+        font_data = tft_Sinclair_S;
     } else if (font == RETRO_8X16) {
-        cfont.font = tft_Retro8x16;
+        font_data = tft_Retro8x16;
     } else if (font == VARIOUS_SYMBOLS_FONT) {
-        cfont.font = tft_various_symbols;
+        font_data = tft_various_symbols;
     } else if (font == VARIOUS_SYMBOLS_32_FONT) {
-        cfont.font = tft_Various_Symbols_32x32;
+        font_data = tft_Various_Symbols_32x32;
     } else if (font == BATTERY_FONT) {
-        cfont.font = tft_Battery_24x48;
+        font_data = tft_Battery_24x48;
     } else if (font == JADE_SYMBOLS_16x16_FONT) {
-        cfont.font = jade_symbols_16x16;
+        font_data = jade_symbols_16x16;
     } else if (font == JADE_SYMBOLS_16x32_FONT) {
-        cfont.font = jade_symbols_16x32;
+        font_data = jade_symbols_16x32;
     } else if (font == JADE_SYMBOLS_24x24_FONT) {
-        cfont.font = jade_symbols_24x24;
+        font_data = jade_symbols_24x24;
     } else {
-        cfont.font = tft_DefaultFont;
+        font_data = tft_DefaultFont;
     }
 
+    if (font_data == cfont.font && cfont.max_x_size) {
+        return;
+    }
+    cfont.font = font_data;
     cfont.bitmap = 1;
-    cfont.x_size = cfont.font[0];
-    cfont.y_size = cfont.font[1];
+    cfont.x_size = font_data[0];
+    cfont.y_size = font_data[1];
     if (cfont.x_size > 0) {
-        cfont.offset = cfont.font[2];
-        cfont.numchars = cfont.font[3];
+        cfont.offset = font_data[2];
+        cfont.numchars = font_data[3];
         cfont.size = cfont.x_size * cfont.y_size * cfont.numchars;
     } else {
         cfont.offset = 4;

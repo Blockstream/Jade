@@ -1482,7 +1482,7 @@ static inline bool can_text_fit(const char* text, uint32_t font, dispWin_t cs)
 {
     JADE_ASSERT(text);
 
-    display_set_font(font, NULL); // measure relative to this font
+    display_set_font(font); // measure relative to this font
     return display_get_string_width(text) <= cs.x2 - cs.x1;
 }
 
@@ -1967,7 +1967,7 @@ static void render_text(gui_view_node_t* node, dispWin_t cs)
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
 
-    display_set_font(node->text->font, NULL);
+    display_set_font(node->text->font);
 
     if (node->text->scroll) {
         // this text has the scroll enable, so disable wrap
