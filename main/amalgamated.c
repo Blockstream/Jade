@@ -44,8 +44,6 @@ void __wrap_abort(void);
 #include "./fonts/DejaVuSans18.c"
 #include "./fonts/DejaVuSans24.c"
 #include "./fonts/Retro8x16.c"
-#include "./fonts/Sinclair_Inverted_M.c"
-#include "./fonts/Sinclair_Inverted_S.c"
 #include "./fonts/Sinclair_M.c"
 #include "./fonts/Sinclair_S.c"
 #include "./fonts/SmallFont.c"
