@@ -39,10 +39,15 @@ extern esp_log_level_t _libjade_log_level;
             fprintf(stderr, "ERROR:" f ":" fmt "\n", __VA_ARGS__);                                                     \
     } while (0)
 
+#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
 static inline void esp_log_level_set(const char* tag, esp_log_level_t level)
 {
     // Do nothing, so our internal call to this function doesn't
-    // overwrite the callers desired log level
+    // overwrite the callers desired log level.
+    // We only provide an implementation when DEFAULT_LEVEL_NONE is not set,
+    // so that any use of this function without that guard can be caught
+    // at compile time.
 }
+#endif
 
 #endif // __LIBJADE_ESP_LOG__

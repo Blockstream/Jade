@@ -82,7 +82,7 @@ bool gui_get_flipped_orientation(void) { return false; }
 
 bool gui_set_flipped_orientation(const bool flipped_orientation) { return false; }
 
-void gui_init(TaskHandle_t* gui_h)
+void gui_init(TaskHandle_t* gui_h, const bool create_event_loop)
 {
     // create a blank activity
     current_activity = gui_make_activity();

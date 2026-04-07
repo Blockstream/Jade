@@ -31,9 +31,13 @@ static EventGroupHandle_t usbstorage_flags = NULL;
 static QueueHandle_t usbstorage_msc_queue = NULL;
 static usbstorage_state_t usbstorage_state = USBSTATE_NONE;
 // Disable logging when switching from USB serial to USB storage
+// to work around O/S lockups that freeze OTA updates.
+// Only needed when logging is not disabled completely.
+#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
 #define USBSTORAGE_DISABLE_LOGGING
+#endif
 #ifdef USBSTORAGE_DISABLE_LOGGING
-static esp_log_level_t initial_log_level;
+static esp_log_level_t usbstorage_saved_log_level;
 #endif
 
 static usbstorage_state_t usbstorage_state_get(void)
@@ -253,7 +257,7 @@ EventGroupHandle_t usbstorage_start(void)
 
 #ifdef USBSTORAGE_DISABLE_LOGGING
     // Record initial log level and set logging to NONE
-    initial_log_level = esp_log_level_get(NULL);
+    usbstorage_saved_log_level = esp_log_level_get(NULL);
     esp_log_level_set("*", ESP_LOG_NONE);
 #endif
 
@@ -301,7 +305,7 @@ void usbstorage_stop(void)
 
 #ifdef USBSTORAGE_DISABLE_LOGGING
     // Return to initial log level
-    esp_log_level_set("*", initial_log_level);
+    esp_log_level_set("*", usbstorage_saved_log_level);
     esp_log_level_set("nvs", ESP_LOG_ERROR); // As per storage_init()
 #endif
 }

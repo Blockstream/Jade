@@ -349,7 +349,9 @@ bool storage_init(void)
         }
     }
 
+#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
     esp_log_level_set("nvs", ESP_LOG_ERROR);
+#endif
 
     // Erase any now-deprecated keys
     erase_key(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD);

@@ -95,8 +95,8 @@ void* _default_event_loop(void* params)
 esp_err_t esp_event_loop_create_default(void)
 {
     if (_default_event_loop_task) {
-        JADE_LOGE("Default event loop already created");
-        return ESP_ERR_INVALID_STATE;
+        JADE_LOGI("Default event loop already created");
+        return ESP_OK;
     }
     // init event handlers map
     int ret = wally_map_init(1000, NULL, &_event_handlers);

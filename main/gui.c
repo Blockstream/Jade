@@ -260,7 +260,7 @@ bool gui_set_flipped_orientation(const bool flipped_orientation)
     return gui_orientation_flipped;
 }
 
-void gui_init(TaskHandle_t* gui_h)
+void gui_init(TaskHandle_t* gui_h, const bool create_event_loop)
 {
 #ifdef CONFIG_LIBJADE
     if (gui_mutex) {
@@ -281,9 +281,11 @@ void gui_init(TaskHandle_t* gui_h)
     // create a blank activity
     current_activity = gui_make_activity();
 
-    // create the default event loop used by btns
-    const esp_err_t rc = esp_event_loop_create_default();
-    JADE_ASSERT(rc == ESP_OK);
+    if (create_event_loop) {
+        // create the default event loop used by btns
+        const esp_err_t rc = esp_event_loop_create_default();
+        JADE_ASSERT(rc == ESP_OK);
+    }
 
     // Create main input queue (ringbuffer)
     gui_input_queue = xRingbufferCreate(32 * sizeof(gui_task_job_t), RINGBUF_TYPE_NOSPLIT);

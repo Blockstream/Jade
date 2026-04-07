@@ -179,9 +179,23 @@ static void boot_process(void)
         JADE_ABORT();
     }
 
-#ifdef CONFIG_LOG_CBOR
+    if (!serial_init(serial_handle)) {
+        JADE_ABORT();
+    }
+
+    // Create the default event loop here as multiple components depend on it
+    JADE_ASSERT(esp_event_loop_create_default() == ESP_OK);
+
+#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
+#if defined(CONFIG_LOG_CBOR)
     esp_log_set_vprintf(serial_logger);
+#elif defined(CONFIG_LOG_WIFI)
+    JADE_ASSERT(wifi_socket_server_logger_start() == ESP_OK);
+    esp_log_set_vprintf(wifi_socket_server_logger);
+#elif defined(CONFIG_BOARD_TYPE_QEMU)
+    esp_log_set_vprintf(qemu_uart0_logger);
 #endif
+#endif // CONFIG_LOG_DEFAULT_LEVEL_NONE
 
     const esp_err_t rc = power_init();
     JADE_ASSERT(rc == ESP_OK);
@@ -192,7 +206,8 @@ static void boot_process(void)
 
     keychain_init_cache();
     display_init(gui_handle);
-    gui_init(gui_handle);
+    const bool create_event_loop = false;
+    gui_init(gui_handle, create_event_loop);
 
     // Display splash screen with Blockstream logo.  Carry out further initialisation
     // while that screen is shown for a short time.  Then test to see whether the
@@ -218,15 +233,6 @@ static void boot_process(void)
     usbstorage_init();
 #endif
 
-    if (!serial_init(serial_handle)) {
-        JADE_ABORT();
-    }
-
-#ifdef CONFIG_LOG_WIFI
-    JADE_ASSERT(wifi_socket_server_logger_start() == ESP_OK);
-    esp_log_set_vprintf(wifi_socket_server_logger);
-#endif // CONFIG_LOG_WIFI
-
 #ifdef CONFIG_ETH_USE_OPENETH
     if (!qemu_tcp_init(qemu_tcp_handle)) {
         JADE_LOGI("Failed to start qemu tcp handler");
@@ -238,10 +244,6 @@ static void boot_process(void)
         JADE_ABORT();
     }
 #endif
-#endif
-
-#if defined(CONFIG_BOARD_TYPE_QEMU) && !defined(CONFIG_LOG_DEFAULT_LEVEL_NONE)
-    esp_log_set_vprintf(qemu_uart0_logger);
 #endif
 
     sensitive_init();
