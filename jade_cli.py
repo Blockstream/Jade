@@ -188,5 +188,20 @@ def get_otp_code(jade, name, network):
     click.echo(result)
 
 
+# UTILITY/DEBUG
+
+@cli.command()
+@click.argument('filename')
+@click.option('--check_qr', type=bool, default=False)
+@with_jade_client
+def capture_image_data(jade, filename, check_qr):
+    # NOTE: Requires a DEBUG firmware with CONFIG_RETURN_CAMERA_IMAGES
+    # enabled. Used for generating test case .dat image files.
+    result = jade.capture_image_data(check_qr)
+    with open(filename, 'wb') as f:
+        f.write(result)
+        click.echo(f'Image data written to {filename}')
+
+
 if __name__ == "__main__":
     cli()

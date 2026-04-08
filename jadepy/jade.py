@@ -643,7 +643,7 @@ class JadeAPI:
         RPC call to scan a passed image and return any data extracted from any qr image.
         Exercises the camera image capture, but ignores result and uses passed image instead.
         See also capture_image_data() above.
-        NOTE: Only available in a DEBUG build of the firmware.
+        NOTE: Only available in custom-configured DEBUG builds of the firmware.
 
         Parameters
         ----------

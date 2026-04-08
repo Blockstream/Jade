@@ -2339,6 +2339,9 @@ def test_scan_qr(jadeapi, board_type):
         else:
             assert rslt == h2b(expected['hex'])
 
+    # Reset the epoch time for any following tests
+    jadeapi.set_epoch(int(time.time()))
+
 
 # Pinserver handshake test - note this is tightly coupled to the dedicated
 # test handler in the hardware code (main/process/debug_handshake.c)
