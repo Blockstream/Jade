@@ -4211,7 +4211,7 @@ def test_ble_connection_fails(info):
 
 def check_stuck():
     # NOTE: belt'n'braces - serial/ble reads/writes should timeout before this does
-    timeout = 60  # minutes
+    timeout = 90 if args.qemu else 60  # minutes
     time.sleep(60 * timeout)
     logger.error(f'tests got caught running longer than {timeout} minutes, terminating')
     logger.handlers[0].flush()
