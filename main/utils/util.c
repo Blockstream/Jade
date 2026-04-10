@@ -199,4 +199,14 @@ bool parse_uint64(const char* str, const size_t str_len, uint64_t* value_out)
     *value_out = value;
     return true;
 }
+
+bool parse_uint32(const char* str, const size_t str_len, uint32_t* value_out)
+{
+    uint64_t value;
+    if (!parse_uint64(str, str_len, &value) || value > 0xffffffff) {
+        return false;
+    }
+    *value_out = value & 0xffffffff;
+    return true;
+}
 #endif // AMALGAMATED_BUILD

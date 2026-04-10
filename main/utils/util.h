@@ -101,6 +101,9 @@ void split_text(
 // Parse a uint64 from a string. Allows leading zeros but no non-digit chars
 bool parse_uint64(const char* str, size_t str_len, uint64_t* value_out);
 
+// As for parse_uint64 but for 32 bit integers
+bool parse_uint32(const char* str, size_t str_len, uint32_t* value_out);
+
 // Bip32 path utils
 static inline bool ishardened(const uint32_t n) { return n & 0x80000000; }
 static inline uint32_t harden(const uint32_t n) { return n | 0x80000000; }

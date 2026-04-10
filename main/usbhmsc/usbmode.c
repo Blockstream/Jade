@@ -471,8 +471,6 @@ static bool post_ota_complete_message(const jade_msg_source_t source)
     return jade_process_push_in_message(buf, cbor_len + 1);
 }
 
-#define MAX_FW_SIZE_DIGITS 7
-
 static size_t read_fwsize(const char* str)
 {
     JADE_ASSERT(str);
@@ -494,17 +492,14 @@ static size_t read_fwsize(const char* str)
         return 0;
     }
 
+    const uint64_t MAX_FW_SIZE = 9999999;
     const char* start = second_last_underscore + 1;
     const char* end = last_underscore;
-    if (end == start || (end - start) > MAX_FW_SIZE_DIGITS) {
+    uint32_t fwsize;
+    if (!parse_uint32(start, end - start, &fwsize) || fwsize > MAX_FW_SIZE) {
         return 0;
     }
-
-    char temp[MAX_FW_SIZE_DIGITS + 1]; // Maximum digits plus null terminator
-    strncpy(temp, start, end - start);
-    temp[end - start] = '\0';
-
-    return strtoul(temp, NULL, 10);
+    return fwsize;
 }
 
 static bool read_hash_file_to_buffer(const char* filename, uint8_t* buffer, size_t buf_size)
