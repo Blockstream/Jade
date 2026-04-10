@@ -175,4 +175,28 @@ bool bin_to_base32(const uint8_t* bin, const size_t bin_len, char* b32_str, cons
     *out = '\0';
     return true;
 }
+
+bool parse_uint64(const char* str, const size_t str_len, uint64_t* value_out)
+{
+    const uint64_t max_mul = 0xffffffffffffffffull / 10;
+    const uint64_t max_mod = 0xffffffffffffffffull % 10;
+    JADE_ASSERT(str && value_out);
+    if (!str_len || str_len > 20) {
+        return false; // Empty or too long to fit in uint64_t
+    }
+    uint64_t value = 0;
+    for (size_t i = 0; i < str_len; ++i) {
+        char ch = str[i];
+        if (ch < '0' || ch > '9') {
+            return false;
+        }
+        ch -= '0';
+        if (value > max_mul || (value == max_mul && ch > max_mod)) {
+            return false; // Value too large
+        }
+        value = value * 10 + ch;
+    }
+    *value_out = value;
+    return true;
+}
 #endif // AMALGAMATED_BUILD

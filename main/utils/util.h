@@ -98,6 +98,9 @@ static inline void map_string(char* s, int (*fnmap)(int))
 void split_text(
     const char* src, size_t len, size_t wordlen, char* output, size_t output_len, size_t* num_words, size_t* written);
 
+// Parse a uint64 from a string. Allows leading zeros but no non-digit chars
+bool parse_uint64(const char* str, size_t str_len, uint64_t* value_out);
+
 // Bip32 path utils
 static inline bool ishardened(const uint32_t n) { return n & 0x80000000; }
 static inline uint32_t harden(const uint32_t n) { return n | 0x80000000; }

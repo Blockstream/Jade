@@ -176,33 +176,23 @@ bool otp_uri_to_ctx(const char* uri, size_t uri_len, otpauth_ctx_t* otp_ctx)
 
     // Get counter(hotp) or period(totp)
     if (otp_ctx->type_len == 4 && !strncmp("hotp", otp_ctx->type, otp_ctx->type_len)) {
-        otp_ctx->otp_type = OTPTYPE_HOTP;
-
         // 'counter' is mandatory for hotp
         OTP_CHECK_BOOL_RETURN(get_query_argument(query, query_len, "counter", &tmp, &tmp_len));
-        OTP_CHECK_BOOL_RETURN(tmp && tmp_len > 0 && tmp_len <= 20);
-
-        // Needs copying to nul-terminated buffer before converting
-        char buf[20];
-        memcpy(buf, tmp, tmp_len);
-        buf[tmp_len] = '\0';
-        otp_ctx->counter = strtoull(buf, NULL, 10);
+        OTP_CHECK_BOOL_RETURN(tmp && tmp_len > 0);
+        OTP_CHECK_BOOL_RETURN(parse_uint64(tmp, tmp_len, &otp_ctx->counter));
+        otp_ctx->otp_type = OTPTYPE_HOTP;
     } else if (otp_ctx->type_len == 4 && strncmp("totp", otp_ctx->type, otp_ctx->type_len) == 0) {
-        otp_ctx->otp_type = OTPTYPE_TOTP;
-
         // Period can be specified, but defaults to 30s
         get_query_argument(query, query_len, "period", &tmp, &tmp_len);
         if (!tmp) {
             otp_ctx->period = 30;
         } else {
-            OTP_CHECK_BOOL_RETURN(tmp_len > 0 && tmp_len <= 3);
-
-            // Needs copying to nul-terminated buffer before converting
-            char buf[4];
-            memcpy(buf, tmp, tmp_len);
-            buf[tmp_len] = '\0';
-            otp_ctx->period = strtoul(buf, NULL, 10);
+            uint64_t value64;
+            OTP_CHECK_BOOL_RETURN(parse_uint64(tmp, tmp_len, &value64));
+            OTP_CHECK_BOOL_RETURN(value64 <= 0xff);
+            otp_ctx->period = value64 & 0xff;
         }
+        otp_ctx->otp_type = OTPTYPE_TOTP;
     } else {
         JADE_LOGE("Unknown OTP type: %.*s", otp_ctx->type_len, otp_ctx->type);
         return false;

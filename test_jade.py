@@ -3573,6 +3573,27 @@ def test_hotp(jadeapi):
         rslt = jadeapi.get_otp_code(hotp_name)
         assert rslt == expected
 
+    if not args.libjade:
+        return  # Only test bad parameters on libjade
+
+    # Test bad uri parameters
+    hotp_uri = '&'.join(hotp_uri.split('&')[:-1])
+    bad_params = [
+        '',                                # counter not given
+        '&counter=',                       # counter empty
+        '&counter=000000000000000000001',  # counter too long
+        '&counter=18446744073709551616',   # counter too large
+        '&counter=abc',                    # counter not a number
+    ]
+    for params in bad_params:
+        try:
+            jadeapi.register_otp(hotp_name, hotp_uri + params)
+            assert False, f'hotp error not raised for "{params}"'
+        except JadeError as err:
+            assert err.code == JadeError.BAD_PARAMETERS
+            assert 'Failed to parse otp record' in err.message
+            continue
+
 
 # Test according to otp spec (rfc6238)
 def test_totp(jadeapi):
@@ -3607,6 +3628,26 @@ def test_totp(jadeapi):
         for i, timestamp in enumerate(timestamps):
             rslt = jadeapi.get_otp_code(totp_name, value_override=timestamp)
             assert rslt == expected[i]
+
+    if not args.libjade:
+        return  # Only test bad parameters on libjade
+
+    # Test bad uri parameters
+    totp_uri = '&'.join(totp_uri.split('&')[:-2])
+    bad_params = [
+        '&digits=',     # digits not given
+        '&digits=7',    # digits not valid (6 or 8)
+        '&period=',     # period empty
+        '&period=256',  # period too large
+    ]
+    for params in bad_params:
+        try:
+            jadeapi.register_otp(totp_name, totp_uri + params)
+            assert False, f'totp error not raised for "{params}"'
+        except JadeError as err:
+            assert err.code == JadeError.BAD_PARAMETERS
+            assert 'Failed to parse otp record' in err.message
+            continue
 
 
 # NOTE:
