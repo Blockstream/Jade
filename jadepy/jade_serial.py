@@ -85,4 +85,11 @@ class JadeSerialImpl:
 
     def read(self, n):
         assert self.ser is not None
-        return self.ser.read(n)
+
+        if not n:
+            return bytes()
+
+        waiting = getattr(self.ser, 'in_waiting', 0) or 0
+        read_size = min(n, waiting) if waiting > 0 else 1
+
+        return self.ser.read(read_size)
