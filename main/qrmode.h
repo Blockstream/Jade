@@ -7,6 +7,17 @@
 
 #include "otpauth.h"
 
+// NOTE: Jade only supports the bip39 English wordlist,
+// with a 12 or 24 word mnemonic phrase.
+#define MNEMONIC_MAXWORDS 24
+
+// The longest valid words in the English wordlist are 8 characters.
+#define MNEMONIC_MAX_WORD_LEN 8
+
+// Size of a buffer for holding a mnemonic phrase.
+// 24 8-character words + 23 spaces + NUL = 216 bytes
+#define MNEMONIC_BUFLEN 216
+
 // Display singlesig xpub qr code
 void display_xpub_qr(void);
 

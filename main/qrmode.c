@@ -28,8 +28,6 @@
 #include <string.h>
 #include <time.h>
 
-#define MNEMONIC_BUFLEN 256
-
 #define MAX_QR_V2_DATA_LEN 32
 #define MAX_QR_V4_DATA_LEN 78
 #define MAX_QR_V6_DATA_LEN 134
@@ -1265,17 +1263,16 @@ static bool handle_bip39_qr(const uint8_t* cbor, const size_t cbor_len)
     char mnemonic[MNEMONIC_BUFLEN];
     SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
     size_t written = 0;
+    bool ret = true;
     if (!bcur_parse_bip39(cbor, cbor_len, mnemonic, sizeof(mnemonic), &written) || written >= sizeof(mnemonic)
         || !handle_mnemonic_qr(mnemonic)) {
-        SENSITIVE_POP(mnemonic);
         JADE_LOGE("Processing scanned mnemonic data failed");
         const char* message[] = { "Failed loading wallet" };
         await_error_activity(message, 1);
-        return false;
+        ret = false;
     }
-
     SENSITIVE_POP(mnemonic);
-    return true;
+    return ret;
 }
 
 // Handle scanning a QR - supports addresses and PSBTs

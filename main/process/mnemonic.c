@@ -22,12 +22,6 @@
 #include <cdecoder.h>
 #include <ctype.h>
 
-// NOTE: Jade only supports the bip39 English wordlist
-
-// Should be large enough for all 12 and 24 word mnemonics
-#define MNEMONIC_MAXWORDS 24
-#define MNEMONIC_BUFLEN 256
-
 #define MAX_NUM_FINAL_WORDS 128
 #define NUM_WORDS_SELECT 10
 
@@ -989,8 +983,7 @@ static bool import_bcur_bip39(
     const uint8_t* bytes, const size_t bytes_len, char* buf, const size_t buf_len, size_t* written)
 {
     JADE_ASSERT(bytes);
-    JADE_ASSERT(buf);
-    JADE_ASSERT(buf_len);
+    JADE_ASSERT(buf && buf_len);
     JADE_INIT_OUT_SIZE(written);
 
     JADE_ASSERT(bytes[bytes_len] == '\0');
@@ -1099,7 +1092,7 @@ static bool import_compactseedqr(
 bool import_mnemonic(const uint8_t* bytes, const size_t bytes_len, char* buf, const size_t buf_len, size_t* written)
 {
     JADE_ASSERT(bytes);
-    JADE_ASSERT(buf);
+    JADE_ASSERT(buf && buf_len >= MNEMONIC_BUFLEN);
     JADE_INIT_OUT_SIZE(written);
 
     JADE_ASSERT(bytes[bytes_len] == '\0');
@@ -1110,7 +1103,7 @@ bool import_mnemonic(const uint8_t* bytes, const size_t bytes_len, char* buf, co
     // 4. Try to read word prefixes or whole words (space separated)
     return import_compactseedqr(bytes, bytes_len, buf, buf_len, written)
         || import_seedqr(bytes, bytes_len, buf, buf_len, written)
-        || import_bcur_bip39(bytes, bytes_len, buf, buf_len, written)
+        || import_bcur_bip39(bytes, bytes_len, buf, MNEMONIC_BUFLEN, written)
         || expand_words(bytes, bytes_len, buf, buf_len, written);
 }
 
@@ -1123,33 +1116,32 @@ bool import_and_validate_mnemonic(qr_data_t* qr_data)
     JADE_ASSERT(qr_data->len < sizeof(qr_data->data));
     JADE_ASSERT(qr_data->data[qr_data->len] == '\0');
 
-    char buf[sizeof(qr_data->data)];
-    SENSITIVE_PUSH(buf, sizeof(buf));
+    char mnemonic[sizeof(qr_data->data)];
+    SENSITIVE_PUSH(mnemonic, sizeof(mnemonic));
 
     // Try to import mnemonic, validate, and if all good copy over into the qr_data
     size_t written = 0;
-    if (import_mnemonic(qr_data->data, qr_data->len, buf, sizeof(buf), &written)
-        && bip39_mnemonic_validate(NULL, buf) == WALLY_OK) {
+    bool ret;
+    if (import_mnemonic(qr_data->data, qr_data->len, mnemonic, sizeof(mnemonic), &written)
+        && bip39_mnemonic_validate(NULL, mnemonic) == WALLY_OK) {
         JADE_ASSERT(written);
-        JADE_ASSERT(written <= sizeof(buf));
-        JADE_ASSERT(buf[written - 1] == '\0');
+        JADE_ASSERT(written <= sizeof(mnemonic));
+        JADE_ASSERT(mnemonic[written - 1] == '\0');
 
-        memcpy(qr_data->data, buf, written);
+        memcpy(qr_data->data, mnemonic, written);
         qr_data->len = written - 1; // Do not include nul-terminator
+        ret = true;
+    } else {
+        // Show the user that a valid qr was scanned, but the string data
+        // did not constitute (or expand to) a valid bip39 mnemonic string.
 
-        SENSITIVE_POP(buf);
-        return true;
+        const char* message[] = { "Invalid recovery phrase" };
+        await_error_activity(message, 1);
+        qr_data->len = 0;
+        ret = false;
     }
-
-    // Show the user that a valid qr was scanned, but the string data
-    // did not constitute (or expand to) a valid bip39 mnemonic string.
-    SENSITIVE_POP(buf);
-
-    const char* message[] = { "Invalid recovery phrase" };
-    await_error_activity(message, 1);
-    qr_data->len = 0;
-
-    return false;
+    SENSITIVE_POP(mnemonic);
+    return ret;
 }
 
 static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)

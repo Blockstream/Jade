@@ -3,6 +3,7 @@
 #include "jade_assert.h"
 #include "keychain.h"
 #include "qrcode.h"
+#include "qrmode.h"
 #include "qrscan.h"
 #include "ui.h"
 #include "utils/malloc_ext.h"
@@ -70,10 +71,8 @@ static const uint32_t QR_SCALE_FACTOR[] = { 0, 6, 5, 4, 4, 3, 3, 2, 2, 2, 2, 2, 
 bool bcur_parse_bip39(
     const uint8_t* cbor, const size_t cbor_len, char* mnemonic, const size_t mnemonic_len, size_t* written)
 {
-    JADE_ASSERT(cbor);
-    JADE_ASSERT(cbor_len);
-    JADE_ASSERT(mnemonic);
-    JADE_ASSERT(mnemonic_len);
+    JADE_ASSERT(cbor && cbor_len);
+    JADE_ASSERT(mnemonic && mnemonic_len == MNEMONIC_BUFLEN);
     JADE_INIT_OUT_SIZE(written);
 
     // Parse cbor
@@ -99,9 +98,9 @@ bool bcur_parse_bip39(
     if (cberr != CborNoError || !cbor_value_is_valid(&mapItem) || !cbor_value_is_array(&mapItem)) {
         return false;
     }
-    size_t number_of_words = 0;
-    cberr = cbor_value_get_array_length(&mapItem, &number_of_words);
-    if (cberr != CborNoError || !number_of_words || !cbor_value_is_container(&mapItem)) {
+    size_t num_words = 0;
+    cberr = cbor_value_get_array_length(&mapItem, &num_words);
+    if (cberr != CborNoError || (num_words != 12 && num_words != 24) || !cbor_value_is_container(&mapItem)) {
         return false;
     }
     CborValue arrayItem;
@@ -110,23 +109,31 @@ bool bcur_parse_bip39(
         return false;
     }
     size_t write_pos = 0;
-    for (size_t i = 0; i < number_of_words; ++i) {
+    for (size_t i = 0; i < num_words; ++i) {
+        JADE_ASSERT(write_pos < MNEMONIC_BUFLEN - MNEMONIC_MAX_WORD_LEN - 1);
         if (write_pos) {
             // Add space separator
             mnemonic[write_pos++] = ' ';
         }
 
+        if (!cbor_value_is_text_string(&arrayItem)) {
+            return false; // Non-string in array
+        }
+
+        // Copy the next word
         CborValue next;
-        size_t tmp_len = mnemonic_len - write_pos;
+        size_t tmp_len = MNEMONIC_MAX_WORD_LEN + 1;
         cberr = cbor_value_copy_text_string(&arrayItem, mnemonic + write_pos, &tmp_len, &next);
-        JADE_ASSERT(cberr == CborNoError);
+        if (cberr != CborNoError || !tmp_len) {
+            return false;
+        }
         write_pos += tmp_len;
         arrayItem = next;
     }
-    JADE_ASSERT(cbor_value_at_end(&arrayItem));
+    if (!cbor_value_at_end(&arrayItem)) {
+        return false;
+    }
     cberr = cbor_value_leave_container(&mapItem, &arrayItem);
-    JADE_ASSERT(cberr == CborNoError);
-
     if (cberr != CborNoError || !cbor_value_is_valid(&mapItem) || !cbor_value_is_integer(&mapItem)) {
         return false;
     }
@@ -147,14 +154,17 @@ bool bcur_parse_bip39(
         return false;
     }
     cberr = cbor_value_advance(&mapItem);
-    JADE_ASSERT(cberr == CborNoError && cbor_value_at_end(&mapItem));
+    if (cberr != CborNoError || !cbor_value_at_end(&mapItem)) {
+        return false;
+    }
 
     cberr = cbor_value_leave_container(&value, &mapItem);
-    JADE_ASSERT(cberr == CborNoError);
+    if (cberr != CborNoError) {
+        return false;
+    }
 
     mnemonic[write_pos++] = '\0';
     *written = write_pos;
-
     return true;
 }
 

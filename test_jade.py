@@ -219,6 +219,18 @@ kthskoihieiajpihktihiyjzhsjnihihiojzjlkoihaoidihjtrkkndede'
 TEST_MNEMONIC_BCUR_BIP39_UPPER = 'UR:CRYPTO-BIP39/OEADLKIYJKISINIHJZIEIHIOJPJL\
 KPJOIHIHJPJLIEIHIHHSKTHSJEIHIEJZJLIAJEIOJKHSKPJKHSIOIHIEIAHSJKISIHIOJZHSJPIHIE\
 KTHSKOIHIEIAJPIHKTIHIYJZHSJNIHIHIOJZJLKOIHAOIDIHJTRKKNDEDE'
+# bcur-bip39 mnemonic that has too many (32) words
+TEST_MNEMONIC_BCUR_BIP39_TOO_MANY = 'ur:crypto-bip39/oeadmkcxis\
+jyjljpjyjlinjkihis' * 31 + 'jyjljpjyjlinjkihaoidihjtsgfpvooe'
+# bcur-bip39 mnemonic that has too few (11) words
+TEST_MNEMONIC_BCUR_BIP39_TOO_FEW = 'ur:crypto-account/1-5/lpadahcshecygmzcbdca\
+guoeadluiohsidhsjtiejljtiohsidhsjtiejljtzsmeoelb'
+# bcur-bip39 mnemonic, the last word is abandoned which is 9 chars
+TEST_MNEMONIC_BCUR_BIP39_LONG_WORD = 'ur:crypto-account/1-5/lpadahcsincyrkgosr\
+cegooeadlkiohsidhsjtiejljtiohsidhsjtiejljtiohsintbwscw'
+TEST_MNEMONIC_BCUR_BIP39_EMPTY_WORD = 'ur:crypto-account/1-5/lpadahcshncysavwc\
+sdighoeadlkiohsidhsjtiejljtiohsidhsjtiejljtiocpcxtnnd'
+
 
 TEST_MNEMONIC_BCUR_BIP39_STRING = 'shield group erode awake lock sausage \
 cash glare wave crew flame glove'
@@ -2242,22 +2254,33 @@ def test_mnemonic_import(jade):
 
 
 def test_mnemonic_import_bad(jade):
-    # Check that mnemonic-prefixes are rejected if the prefixes match multiple words
-    # (but none of them exactly/full-match).  ie. prefix is ambiguous.  met -> metal, method
-    for i, bad_mnemonic in enumerate([TEST_MNEMONIC_PREFIXES_AMBIGUOUS,
-                                      TEST_MNEMONIC_SEEDSIGNER[:-1],  # bad length
-                                      TEST_MNEMONIC_SEEDSIGNER + '1234',  # bad length
-                                      TEST_MNEMONIC_SEEDSIGNER[:-4] + '2048',  # out of range
-                                      TEST_MNEMONIC_SEEDSIGNER[:-4] + '0000',  # invalid mnemonic
-                                      TEST_MNEMONIC_SEEDSIGNER_COMPACT[:-1],  # bad length
-                                      ]):
+    # Check importing invalid mnemonics
+    bad_mnemonics = [
+        # mnemonic phrase
+        TEST_MNEMONIC_PREFIXES_AMBIGUOUS,        # ambiguous prefixes
+        # seedsigner
+        TEST_MNEMONIC_SEEDSIGNER[:-1],           # bad length (too short)
+        TEST_MNEMONIC_SEEDSIGNER + '1234',       # bad length (too long)
+        TEST_MNEMONIC_SEEDSIGNER[:-4] + '2048',  # out of range
+        TEST_MNEMONIC_SEEDSIGNER[:-4] + '0000',  # invalid checksum word
+        TEST_MNEMONIC_SEEDSIGNER_COMPACT[:-1],   # bad length (compact case)
+        # bcur-bip39
+        TEST_MNEMONIC_BCUR_BIP39_TOO_MANY,       # too many words
+        TEST_MNEMONIC_BCUR_BIP39_TOO_FEW,        # too few words
+        TEST_MNEMONIC_BCUR_BIP39_LONG_WORD,      # word too long
+        TEST_MNEMONIC_BCUR_BIP39_EMPTY_WORD,     # empty word
+    ]
+    for i, bad_mnemonic in enumerate(bad_mnemonics):
         request = jade.build_request('badmnemonic_' + str(i), 'debug_set_mnemonic',
                                      {'mnemonic': bad_mnemonic})
         reply = jade.make_rpc_call(request)
         assert reply['id'] == request['id']
         assert 'result' not in reply
         assert reply['error']['code'] == JadeError.BAD_PARAMETERS
-        assert reply['error']['message'].startswith('Failed to expand mnemonic prefixes')
+        message = reply['error']['message']
+        expected = ['Failed to expand mnemonic prefixes',
+                    'Failed to extract mnemonic prefixes']
+        assert any(m in message for m in expected), message
 
 
 def test_passphrase(jade):
