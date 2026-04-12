@@ -11,8 +11,10 @@
 // Whether the ble/radio is configured/enabled
 #ifdef CONFIG_BT_ENABLED
 #define JADE_OTA_CONFIG "BLE"
+#define JADE_OTA_CONFIG_LOWER "ble"
 #else
 #define JADE_OTA_CONFIG "NORADIO"
+#define JADE_OTA_CONFIG_LOWER "noradio"
 #endif
 
 // Board type - Production Jade (1.0, 1.1, etc.),

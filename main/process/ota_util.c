@@ -397,15 +397,6 @@ error:
     }
 }
 
-// NOTE: 'dest' is assumed to be at least as long as 'strlen(src)'
-static void to_lower(char* dest, const char* src)
-{
-    while (*src) {
-        *dest++ = tolower(*src++);
-    }
-    *dest = '\0';
-}
-
 void ota_user_validate(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
 {
     JADE_ASSERT(joctx);
@@ -444,12 +435,14 @@ void ota_user_validate(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
 
     // 'Board Type' and 'Features' must match.
     // 'Config' is allowed to differ.
+    JADE_STATIC_ASSERT(sizeof(JADE_OTA_BOARD_TYPE) <= sizeof(custom_info->board_type));
     if (strcmp(JADE_OTA_BOARD_TYPE, custom_info->board_type)) {
         JADE_LOGE("Firmware board type mismatch %s %s", JADE_OTA_BOARD_TYPE, custom_info->board_type);
         joctx->ota_return_status = OTA_ERR_INVALIDFW;
         return;
     }
 
+    JADE_STATIC_ASSERT(sizeof(JADE_OTA_FEATURES) <= sizeof(custom_info->features));
     if (strcmp(JADE_OTA_FEATURES, custom_info->features)) {
         JADE_LOGE("Firmware features mismatch");
         joctx->ota_return_status = OTA_ERR_INVALIDFW;
@@ -457,22 +450,30 @@ void ota_user_validate(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
     }
 
     // User to confirm once new firmware version known and all checks passed
-    char current_config[sizeof(JADE_OTA_CONFIG)];
-    to_lower(current_config, JADE_OTA_CONFIG);
-    char current_version[sizeof(running_app_info.version) + sizeof(current_config) + 2];
-    int rc = snprintf(current_version, sizeof(current_version), "%s %s", running_app_info.version, current_config);
-    JADE_ASSERT(rc > 0 && rc < sizeof(current_version));
+    char current_ver[sizeof(running_app_info.version) + sizeof(JADE_OTA_CONFIG_LOWER) + 2];
+    int rc = snprintf(current_ver, sizeof(current_ver), "%s " JADE_OTA_CONFIG_LOWER, running_app_info.version);
+    JADE_ASSERT(rc > 0 && rc < sizeof(current_ver));
 
-    char new_config[sizeof(custom_info->config)];
-    to_lower(new_config, custom_info->config);
-    char new_version[sizeof(new_app_info->version) + sizeof(new_config) + 2];
-    rc = snprintf(new_version, sizeof(new_version), "%s %s", new_app_info->version, new_config);
-    JADE_ASSERT(rc > 0 && rc < sizeof(new_version));
+    char new_config[sizeof(custom_info->config) + 1];
+    for (size_t i = 0; i < sizeof(custom_info->config); ++i) {
+        new_config[i] = tolower((unsigned char)custom_info->config[i]);
+        if (!new_config[i]) {
+            break;
+        }
+    }
+    new_config[sizeof(new_config) - 1] = '\0';
+    char new_version[sizeof(new_app_info->version) + 1];
+    memcpy(new_version, new_app_info->version, sizeof(new_app_info->version));
+    new_version[sizeof(new_version) - 1] = '\0';
+
+    char new_ver[sizeof(new_version) + sizeof(new_config) + 2];
+    rc = snprintf(new_ver, sizeof(new_ver), "%s %s", new_version, new_config);
+    JADE_ASSERT(rc > 0 && rc < sizeof(new_ver));
 
     const bool full_fw_hash = joctx->hash_type == HASHTYPE_FULLFWDATA;
 
     // Ask user to confirm
-    if (!show_ota_versions_activity(current_version, new_version, joctx->expected_hash_hexstr, full_fw_hash)) {
+    if (!show_ota_versions_activity(current_ver, new_ver, joctx->expected_hash_hexstr, full_fw_hash)) {
         JADE_LOGW("User declined ota firmware version");
         joctx->ota_return_status = OTA_ERR_USERDECLINED;
         return;
