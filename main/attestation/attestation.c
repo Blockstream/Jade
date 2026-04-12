@@ -476,14 +476,11 @@ bool attestation_initialised(void)
 bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_len, const char* ext_pubkey_pem,
     const size_t ext_pubkey_pem_len, const uint8_t* ext_signature, const size_t ext_signature_len)
 {
-    JADE_ASSERT(privkey_pem);
-    JADE_ASSERT(privkey_pem_len);
+    JADE_ASSERT(privkey_pem && privkey_pem_len);
     JADE_ASSERT(privkey_pem[privkey_pem_len] == '\0');
-    JADE_ASSERT(ext_pubkey_pem);
-    JADE_ASSERT(ext_pubkey_pem_len);
+    JADE_ASSERT(ext_pubkey_pem && ext_pubkey_pem_len);
     JADE_ASSERT(ext_pubkey_pem[ext_pubkey_pem_len] == '\0');
-    JADE_ASSERT(ext_signature);
-    JADE_ASSERT(ext_signature_len);
+    JADE_ASSERT(ext_signature && ext_signature_len);
 
     // Check parameters initialised
     if (!attestation_can_be_initialised()) {
@@ -549,7 +546,8 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
         JADE_LOGE("Failed to import valid RSA public (external authority) key");
         goto cleanup;
     }
-    if (!verify_signature(&pk, (const uint8_t*)attestation_data.pubkey_pem, attestation_data.pubkey_pem_len,
+    if (ext_signature_len > sizeof(attestation_data.ext_signature)
+        || !verify_signature(&pk, (const uint8_t*)attestation_data.pubkey_pem, attestation_data.pubkey_pem_len,
             ext_signature, ext_signature_len)) {
         JADE_LOGE("Failed to validate external signature over signer public key");
         goto cleanup;
