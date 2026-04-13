@@ -2195,6 +2195,43 @@ get_signature reply (sign_liquid_tx)
 * 'result' will be the bytes for the signature for the corresponding input, in DER format with the sighash appended.
 * 'result' will be empty, if no signature was required for this input.
 
+.. _show_bip85_bip39_entropy_request:
+
+show_bip85_bip39_entropy request
+--------------------------------
+
+Request to show bip85-bip39 entropy as a qr code.
+
+.. code-block:: cbor
+
+    {
+        "id": "256",
+        "method": "show_bip85_bip39_entropy",
+        "params": {
+            "num_words": 12,
+            "index": 0,
+            "pubkey": <33 bytes>
+        }
+    }
+
+* 'num_words' the number of words the entropy is required to produce (must be 12 or 24).
+* 'index' the index to use in the bip32 path to calculate the entropy.
+* 'pubkey' the host ephemeral pubkey to use to generate a shared ecdh secret to use as an AES key to encrypt the returned entropy.
+
+.. _show_bip85_bip39_entropy_reply:
+
+show_bip85_bip39_entropy reply
+------------------------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed on the hw. It is sent once the QR code is displayed, before the user closes the QR screen.
+
+.. code-block:: cbor
+
+    {
+        "id": "256",
+        "result": true
+    }
+
 Indices and tables
 ==================
 
