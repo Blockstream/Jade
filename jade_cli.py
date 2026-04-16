@@ -15,7 +15,10 @@ class JadeClient:
         self.device = device
 
     def __enter__(self):
-        self.jade = JadeAPI.create_serial(device=self.device)
+        if self.device == 'libjade':
+            self.jade = JadeAPI.create_libjade()
+        else:
+            self.jade = JadeAPI.create_serial(device=self.device)
         self.jade.connect()
         self.jade.add_entropy(os.urandom(32))
         return self.jade
