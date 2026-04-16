@@ -623,8 +623,8 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
                 continue;
             }
 
-            if (!iter.is_ga_2of3_recovery_key
-                && !verify_ga_script_matches(
+            if (iter.is_ga_2of3_recovery_key
+                || !verify_ga_script_matches(
                     network_id, &iter.hdkey, recovery_p, path, path_len, tx_script, tx_script_len)) {
                 // Not able to verify that output belongs to green 2of3 when Jade matches recovery key
                 // as backend path is calculated from user key.
