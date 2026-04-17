@@ -1,4 +1,4 @@
-FROM blockstream/jade_builder@sha256:5db8e13ca640e6b969d66139d708610c27d39a1c4d78ca096ee98f2b4c89130f
+FROM blockstream/jade_builder@sha256:13692d96d78221de3a67d4bd4587c97c58bfa5eab16a9c72cb6d10529e1d3ebb
 
 ARG QEMU_CONFIG_ARGS="--dev --ci --psram"
 ARG QEMU_GDB=""
