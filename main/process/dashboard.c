@@ -1008,6 +1008,7 @@ static void handle_change_pin(void)
     set_request_change_pin(change_pin);
 }
 
+#ifdef CONFIG_HAS_CAMERA
 static bool handle_change_pin_qr(void)
 {
     // Request/start a qr unlock
@@ -1031,6 +1032,7 @@ static bool handle_change_pin_qr(void)
     keychain_clear();
     return true;
 }
+#endif // CONFIG_HAS_CAMERA
 
 // Helper to delete a wallet registration record after user confirms
 static bool offer_delete_registered_wallet(const char* name, const bool is_multisig)
@@ -1930,6 +1932,7 @@ static void handle_flip_orientation(void)
     }
 }
 
+#ifdef CONFIG_HAS_CAMERA
 static void handle_pinserver_scan(void)
 {
     if (keychain_has_pin()) {
@@ -1967,6 +1970,7 @@ cleanup:
     free(type);
     free(data);
 }
+#endif // CONFIG_HAS_CAMERA
 
 static void handle_pinserver_reset(void)
 {
@@ -2051,6 +2055,7 @@ static void handle_display_mac_address(void)
     handle_info_detail_screen("MAC Address", mac);
 }
 
+#ifdef CONFIG_HAS_BATTERY
 static void handle_display_battery_volts(void)
 {
     char power_status[32] = "NO BAT";
@@ -2077,6 +2082,7 @@ static void handle_display_battery_volts(void)
 
     handle_info_detail_screen("Battery Volts", power_status);
 }
+#endif // CONFIG_HAS_BATTERY
 
 static void update_network_menu_label(gui_view_node_t* network_type_item)
 {
