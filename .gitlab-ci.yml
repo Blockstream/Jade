@@ -2,6 +2,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   GIT_DEPTH: 1
   GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
+  SECURE_LOG_LEVEL: "info"
 
 stages:
   - pre_test
@@ -13,6 +14,7 @@ stages:
   - release
   - build_diy
   - docker_build
+  - security
 
 image: blockstream/jade_builder@sha256:5db8e13ca640e6b969d66139d708610c27d39a1c4d78ca096ee98f2b4c89130f
 
@@ -28,6 +30,10 @@ include:
   - gitlab/release.yml
   - gitlab/diy_fw.yml
   - gitlab/docker.yml
+  - gitlab/security.yml
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
 
 #
 # Jade FW build template

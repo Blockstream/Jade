@@ -1,0 +1,24 @@
+#
+# Security stage
+#
+# Perform gitlab security checks.
+#
+sast:
+  stage: security
+  needs: []
+  variables:
+    SAST_EXCLUDED_PATHS:  "docs, test, tools, components, pinserver, release, requirements.txt, test_data, test_jade.py, jade_*.py, set_jade_pinserver.py, update_jade_fw.py"
+
+dependency_scanning:
+  stage: security
+  needs: []
+  variables:
+    DS_GRADLE_RESOLUTION_POLICY: "none"
+    DS_EXCLUDED_PATHS:  "docs, test, tools, components, pinserver, release, requirements.txt, test_data, test_jade.py, jade_*.py, set_jade_pinserver.py, update_jade_fw.py"
+
+secret_detection:
+  stage: security
+  needs: []
+  variables:
+    SECRET_DETECTION_ENABLED: "true"
+    SECRET_DETECTION_EXCLUDED_PATHS: "docs, test, tools, components, pinserver, release, requirements.txt, test_data, test_jade.py, jade_*.py, set_jade_pinserver.py, update_jade_fw.py"
