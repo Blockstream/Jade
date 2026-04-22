@@ -239,6 +239,12 @@ static bool serial_init_internal(void)
         return false;
     }
 
+    // default esp32 pins for UART0
+    err = uart_set_pin(UART_NUM_0, 1, 3, -1, -1);
+    if (err != ESP_OK) {
+        return false;
+    }
+
     /* maximum OTA CHUNK + cbor overhead for RX */
     err = uart_driver_install(UART_NUM_0, (1024 * 4) + 46, 1024, 0, NULL, UART_INTR_ALLOC_FLAGS);
     if (err != ESP_OK) {
