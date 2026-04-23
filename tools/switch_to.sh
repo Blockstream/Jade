@@ -223,6 +223,10 @@ elif [ "$LOG" = "wifi" ]; then
     read -r -p "Enter socket server PORT [8888]: " PORT
     set_config CONFIG_WIFI_LOGGER_PORT ${PORT:-8888}
     LOG="uart" # Enable UART logging below
+    if [ $ARCH = "esp32" ]; then
+        #  On ESP32 we run out of IRAM with WIFI logging enabled
+        set_config CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH y
+    fi
 fi
 if [ "$LOG" = "uart" ]; then
     echo "updating config file for UART logging ..."
