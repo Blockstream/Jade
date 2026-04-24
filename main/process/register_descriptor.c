@@ -137,8 +137,7 @@ static int register_descriptor(
     if (!storage_set_descriptor_registration(descriptor_name, registration, registration_len)) {
         *errmsg = "Failed to persist descriptor data";
 
-        const char* message[] = { "Error saving descriptor" };
-        await_error_activity(message, 1);
+        await_error("Error saving descriptor");
         retval = CBOR_RPC_INTERNAL_ERROR;
         goto cleanup;
     }

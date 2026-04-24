@@ -41,8 +41,7 @@ void show_pinserver_details(void)
 
     // If no pinserver set, show the help screen
     if (!have_pubkey && !have_urlA && !have_urlB && !have_cert) {
-        const char* message[] = { "Custom Oracle not set" };
-        await_message_activity(message, 1);
+        await_message("Custom Oracle not set");
         return;
     }
 

@@ -124,8 +124,7 @@ static int register_multisig(const char* multisig_name, const network_t network_
     if (!storage_set_multisig_registration(multisig_name, registration, registration_len)) {
         *errmsg = "Failed to persist multisig data";
 
-        const char* message[] = { "Error saving multisig" };
-        await_error_activity(message, 1);
+        await_error("Error saving multisig");
 
         retval = CBOR_RPC_INTERNAL_ERROR;
         goto cleanup;

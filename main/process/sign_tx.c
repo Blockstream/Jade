@@ -884,8 +884,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
     // Show warning if nothing to sign
     if (num_to_sign == 0) {
-        const char* message[] = { "There are no relevant", "inputs to be signed" };
-        await_message_activity(message, 2);
+        await_message_2("There are no relevant", "inputs to be signed");
     }
 
     display_processing_message_activity();

@@ -569,8 +569,7 @@ void jade_camera_process_images(camera_process_fn_t fn, void* ctx, const bool sh
     progress_bar_t* progress_bar)
 {
     JADE_LOGW("No camera supported for this device");
-    const char* message[] = { "No camera detected" };
-    await_error_activity(message, 1);
+    await_error("No camera detected");
 }
 
 #endif // CONFIG_HAS_CAMERA

@@ -204,8 +204,7 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
         jade_camera_scan_qr(&qr_data, "Scan QR to verify", QR_GUIDE_SHOW, "blkstrm.com/seedqr");
         if (qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
             // QR Code scanned, and it matched expected entropy
-            const char* message[] = { "QR Code Verified" };
-            await_message_activity(message, 1);
+            await_message("QR Code Verified");
             *export_qr_verified = true;
             break; // done
         } else {
@@ -374,8 +373,7 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
 
             // the wrong word has been selected
             if (random_words[index] != selected) {
-                const char* message[] = { "Incorrect. Check your", "recovery phrase and", "try again." };
-                await_error_activity(message, 3);
+                await_error_3("Incorrect. Check your", "recovery phrase and", "try again.");
                 mnemonic_confirmed = false;
                 break;
             }
@@ -898,8 +896,7 @@ static bool mnemonic_recover(const size_t nwords, const bool advanced_mode, char
     if (words_entered != nwords || bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
         // Invalid mnemonic entered
         JADE_LOGW("Invalid mnemonic entered");
-        const char* message[] = { "Invalid recovery phrase" };
-        await_error_activity(message, 1);
+        await_error("Invalid recovery phrase");
         return false;
     }
 
@@ -1135,8 +1132,7 @@ bool import_and_validate_mnemonic(qr_data_t* qr_data)
         // Show the user that a valid qr was scanned, but the string data
         // did not constitute (or expand to) a valid bip39 mnemonic string.
 
-        const char* message[] = { "Invalid recovery phrase" };
-        await_error_activity(message, 1);
+        await_error("Invalid recovery phrase");
         qr_data->len = 0;
         ret = false;
     }
@@ -1401,8 +1397,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     // c. qr-scanner includes a validation check before returning the scanned mnemonic
     if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
         JADE_LOGE("Invalid mnemonic unexpected");
-        const char* message[] = { "Invalid recovery phrase" };
-        await_error_activity(message, 1);
+        await_error("Invalid recovery phrase");
         goto cleanup;
     }
 
@@ -1443,8 +1438,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     if (!derive_keychain(temporary_restore, mnemonic)) {
         // Error making wallet...
         JADE_LOGE("Failed to derive keychain from valid mnemonic");
-        const char* message[] = { "Failed to create wallet" };
-        await_error_activity(message, 1);
+        await_error("Failed to create wallet");
         goto cleanup;
     }
 
@@ -1552,8 +1546,7 @@ void handle_bip85_mnemonic()
 
     // Display and confirm mnemonic phrase
     if (display_confirm_mnemonic(nwords, new_mnemonic, mnemonic_len)) {
-        const char* message[] = { "Recovery Phrase", "Confirmed" };
-        await_message_activity(message, 2);
+        await_message_2("Recovery Phrase", "Confirmed");
     }
 
     // Cleanup

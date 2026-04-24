@@ -144,8 +144,7 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
 
     DIR* const dir = opendir(path);
     if (!dir) {
-        const char* message[] = { "Error opening USB storage" };
-        await_message_activity(message, 1);
+        await_message("Error opening USB storage");
         return false;
     }
 
@@ -193,8 +192,7 @@ static bool select_file_from_filtered_list(const char* title, const char* const 
 
     if (!num_files) {
         // No candidate files
-        const char* message[] = { "No matching files found" };
-        await_message_activity(message, 1);
+        await_message("No matching files found");
         return false;
     }
 
@@ -290,8 +288,7 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
     EventGroupHandle_t usbstorage_handle = usbstorage_start();
     if (!usbstorage_handle) {
         JADE_LOGE("Failed to start USB storage!");
-        const char* message[] = { "Failed to start", "usb storage!" };
-        await_error_activity(message, 2);
+        await_error_2("Failed to start", "usb storage!");
         // Jade may require restart to use usb storage or serial at this point ...
         return false;
     }
@@ -312,8 +309,7 @@ static bool handle_usbstorage_action(const char* title, usbstorage_action_fn_t u
 
         if (usbstorage_events & USBSTORAGE_ERROR) {
             // Error accessing USB storage: Show error and exit
-            const char* message[] = { "Error accessing usb", "storage. Note: only", "FAT32 is supported." };
-            await_error_activity(message, 3);
+            await_error_3("Error accessing usb", "storage. Note: only", "FAT32 is supported.");
             break;
         } else if (usbstorage_events == USBSTORAGE_AVAILABLE) {
             // USB storage is mounted: run the action
@@ -726,8 +722,7 @@ static bool initiate_usb_ota(const usbstorage_action_context_t* ctx)
         JADE_ASSERT(ret > 0 && ret < sizeof(hash_filename));
 
         if (!read_hash_file_to_buffer(hash_filename, hash, sizeof(hash))) {
-            const char* message[] = { "Failed to read", "hash file" };
-            await_error_activity(message, 2);
+            await_error_2("Failed to read", "hash file");
             return false;
         }
     }
@@ -735,8 +730,7 @@ static bool initiate_usb_ota(const usbstorage_action_context_t* ctx)
     const size_t cmpsize = get_file_size(filename);
     const size_t fwsize = read_fwsize(filename);
     if (!cmpsize || !fwsize) {
-        const char* message[] = { "Failed to parse", "firmware filename" };
-        await_error_activity(message, 2);
+        await_error_2("Failed to parse", "firmware filename");
         return false;
     }
 
@@ -777,13 +771,11 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
     // Sanity check file size
     size_t psbt_len = get_file_size(filename);
     if (psbt_len < MIN_PSBT_FILE_SIZE) {
-        const char* message[] = { "Invalid PSBT file" };
-        await_error_activity(message, 1);
+        await_error("Invalid PSBT file");
         return false;
     }
     if (psbt_len > MAX_PSBT_FILE_SIZE) {
-        const char* message[] = { "PSBT file too large" };
-        await_error_activity(message, 1);
+        await_error("PSBT file too large");
         return false;
     }
 
@@ -813,8 +805,7 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
         free(psbt64);
 
         if (wret != WALLY_OK || !written || written > psbt_len) {
-            const char* message[] = { "Failed to load PSBT" };
-            await_error_activity(message, 1);
+            await_error("Failed to load PSBT");
             goto cleanup;
         }
         psbt_len = written;
@@ -822,8 +813,7 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
 
         // Deserialise bytes
         if (!deserialise_psbt(psbt_bytes, psbt_len, &psbt) || !psbt) {
-            const char* message[] = { "Failed to load PSBT" };
-            await_error_activity(message, 1);
+            await_error("Failed to load PSBT");
             goto cleanup;
         }
     }
@@ -841,8 +831,7 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
     const int errcode = sign_psbt(NULL, NULL, network_id, psbt, &errmsg);
     if (errcode) {
         if (errcode != CBOR_RPC_USER_CANCELLED) {
-            const char* message[] = { errmsg };
-            await_error_activity(message, 1);
+            await_error(errmsg);
         }
         goto cleanup;
     }
@@ -851,8 +840,7 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
     // Create a new file if name not too long.  If new name would be too long, overwrite existing file.
     char output_filename[MAX_FILENAME_SIZE];
     if (filename_len - strlen(PSBT_SUFFIX) + strlen(SIGNED_PSBT_SUFFIX) + 1 > MAX_FILENAME_SIZE) {
-        const char* message[] = { "Warning: Long filename", "Overwriting existing", "psbt file" };
-        await_error_activity(message, 3);
+        await_error_3("Warning: Long filename", "Overwriting existing", "psbt file");
         strcpy(output_filename, filename);
     } else {
         const int ret = snprintf(output_filename, sizeof(output_filename), "%.*s%s", filename_len - strlen(PSBT_SUFFIX),
@@ -864,8 +852,7 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
         // Encode to base64
         char* psbt64 = NULL;
         if (wally_psbt_to_base64(psbt, 0, &psbt64) != WALLY_OK || !psbt64) {
-            const char* message[] = { "Failed to", "serialise PSBT" };
-            await_error_activity(message, 2);
+            await_error_2("Failed to", "serialise PSBT");
             goto cleanup;
         }
         const size_t psbt64_len = strlen(psbt64);
@@ -875,8 +862,7 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
     } else {
         // Serialise signed PSBT to bytes
         if (!serialise_psbt(psbt, &psbt_bytes, &psbt_len)) {
-            const char* message[] = { "Failed to", "serialise PSBT" };
-            await_error_activity(message, 2);
+            await_error_2("Failed to", "serialise PSBT");
             goto cleanup;
         }
         const size_t written = write_buffer_to_file(output_filename, psbt_bytes, psbt_len);
@@ -886,8 +872,7 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
     const size_t mount_point_len = strlen(USBSTORAGE_MOUNT_POINT);
     JADE_ASSERT(strlen(output_filename) > mount_point_len);
     JADE_ASSERT(!memcmp(output_filename, USBSTORAGE_MOUNT_POINT, mount_point_len));
-    const char* message[] = { "PSBT file saved:", output_filename + mount_point_len + 1 };
-    await_error_activity(message, 2);
+    await_error_2("PSBT file saved:", output_filename + mount_point_len + 1);
     retval = true;
 
 cleanup:
@@ -1018,8 +1003,7 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx)
     {
         char* xpub = NULL;
         if (!wallet_get_xpub(network_id, path, path_len, &xpub) || !xpub) {
-            const char* msg[] = { "unable to get", "xpub from path" };
-            await_error_activity(msg, 2);
+            await_error_2("unable to get", "xpub from path");
             return false;
         }
         const size_t xpub_len = strlen(xpub);
@@ -1051,13 +1035,11 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx)
         = write_buffer_to_file(USBSTORAGE_MOUNT_POINT "/jade-xpub.txt", (const uint8_t*)descriptor, descriptor_len);
 
     if (written != descriptor_len) {
-        const char* msg[] = { "Failed to save", "xpub file" };
-        await_error_activity(msg, 2);
+        await_error_2("Failed to save", "xpub file");
         return false;
     }
 
-    const char* msg[] = { "xpub saved to", "jade-xpub.txt" };
-    await_message_activity(msg, 2);
+    await_message_2("xpub saved to", "jade-xpub.txt");
     return true;
 }
 

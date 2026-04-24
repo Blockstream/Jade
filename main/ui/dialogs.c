@@ -468,7 +468,7 @@ static bool await_yesno_activity_loop(gui_activity_t* const act, const char* hel
 }
 
 // Run activity that displays a message and awaits an 'ack' button click
-void await_message_activity(const char* message[], const size_t message_size)
+static void await_message_activity(const char* message[], const size_t message_size)
 {
     btn_data_t ftrbtn = { .txt = "Continue", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOP };
 
@@ -478,9 +478,41 @@ void await_message_activity(const char* message[], const size_t message_size)
     JADE_ASSERT(rslt);
 }
 
-void await_error_activity(const char* message[], const size_t message_size)
+void await_message(const char* msg)
 {
-    await_message_activity(message, message_size);
+    const char* m[] = { msg };
+    await_message_activity(m, 1);
+}
+void await_message_2(const char* msg1, const char* msg2)
+{
+    const char* m[] = { msg1, msg2 };
+    await_message_activity(m, 2);
+}
+void await_message_3(const char* msg1, const char* msg2, const char* msg3)
+{
+    const char* m[] = { msg1, msg2, msg3 };
+    await_message_activity(m, 3);
+}
+void await_message_4(const char* msg1, const char* msg2, const char* msg3, const char* msg4)
+{
+    const char* m[] = { msg1, msg2, msg3, msg4 };
+    await_message_activity(m, 4);
+}
+
+void await_error(const char* msg)
+{
+    const char* m[] = { msg };
+    await_message_activity(m, 1);
+}
+void await_error_2(const char* msg1, const char* msg2)
+{
+    const char* m[] = { msg1, msg2 };
+    await_message_activity(m, 2);
+}
+void await_error_3(const char* msg1, const char* msg2, const char* msg3)
+{
+    const char* m[] = { msg1, msg2, msg3 };
+    await_message_activity(m, 3);
 }
 
 // Generic activity that displays a message and Yes/No buttons, and waits

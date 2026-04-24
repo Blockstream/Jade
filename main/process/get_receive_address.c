@@ -260,8 +260,7 @@ void get_receive_address_process(void* process_ptr)
 
     // Show warning if necessary
     if (warning_msg[0] != '\0') {
-        const char* message[] = { warning_msg };
-        await_message_activity(message, 1);
+        await_message(warning_msg);
     }
 
     // Reply with the address

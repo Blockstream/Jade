@@ -393,7 +393,7 @@ error:
 
     // If the error is not 'did not start' or 'user declined', show an error screen
     if (joctx->ota_return_status != OTA_ERR_SETUP && joctx->ota_return_status != OTA_ERR_USERDECLINED) {
-        await_error_activity(&status_text, 1);
+        await_error(status_text);
     }
 }
 

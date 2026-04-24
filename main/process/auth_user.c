@@ -44,8 +44,7 @@ static void check_wallet_erase_pin(jade_process_t* process, const uint8_t* pin_e
         // Show/return 'Internal Error' message, and shut-down
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Internal Error");
 
-        const char* message[] = { "Internal Error!" };
-        await_error_activity(message, 1);
+        await_error("Internal Error!");
         power_shutdown();
     }
 }
@@ -222,8 +221,7 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
 
         jade_process_reply_to_message_fail(process);
 
-        const char* message[] = { "Incorrect PIN!" };
-        await_error_activity(message, 1);
+        await_error("Incorrect PIN!");
         goto cleanup;
     }
 
@@ -245,8 +243,7 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
             JADE_LOGE("Failed to derive wallet");
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to derive wallet");
 
-            const char* message[] = { "Failed to derive wallet" };
-            await_error_activity(message, 1);
+            await_error("Failed to derive wallet");
             goto cleanup;
         }
         SENSITIVE_POP(passphrase);
@@ -268,17 +265,14 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
             if (set_pin_get_aeskey(process, "Enter New PIN", pin, sizeof(pin), aeskey_new, sizeof(aeskey_new))) {
                 JADE_LOGI("PIN changed on server");
                 if (keychain_reencrypt(aeskey, sizeof(aeskey), aeskey_new, sizeof(aeskey_new))) {
-                    const char* message[] = { "PIN changed" };
-                    await_message_activity(message, 1);
+                    await_message("PIN changed");
                 } else {
                     JADE_LOGE("Failed to re-encrypt with changed PIN data");
-                    const char* message[] = { "Failed to re-encypt key data!" };
-                    await_error_activity(message, 1);
+                    await_error("Failed to re-encrypt key data!");
                 }
             } else {
                 JADE_LOGW("Abandoned change-PIN");
-                const char* message[] = { "Change-PIN abandoned" };
-                await_error_activity(message, 1);
+                await_error("Change-PIN abandoned");
             }
             SENSITIVE_POP(aeskey_new);
         }
@@ -322,8 +316,7 @@ static bool set_pin_save_keys(jade_process_t* process)
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory");
 
-        const char* message[] = { "Failed to persist key data" };
-        await_error_activity(message, 1);
+        await_error("Failed to persist key data");
         goto cleanup;
     }
 

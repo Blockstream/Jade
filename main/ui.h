@@ -147,8 +147,13 @@ gui_activity_t* display_message_activity(const char* message[], size_t message_s
 gui_activity_t* display_processing_message_activity();
 
 // Run activity that displays a message and awaits an 'ack' button click
-void await_message_activity(const char* message[], size_t message_size);
-void await_error_activity(const char* message[], size_t message_size);
+void await_message(const char* msg);
+void await_message_2(const char* msg1, const char* msg2);
+void await_message_3(const char* msg1, const char* msg2, const char* msg3);
+void await_message_4(const char* msg1, const char* msg2, const char* msg3, const char* msg4);
+void await_error(const char* msg);
+void await_error_2(const char* msg1, const char* msg2);
+void await_error_3(const char* msg1, const char* msg2, const char* msg3);
 
 // Activity that displays a message and awaits a 'Yes'/'Continue' or 'No'/'Skip'/'Back' event
 bool await_yesno_activity(

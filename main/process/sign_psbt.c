@@ -1038,8 +1038,7 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
 
     // Show warning if nothing to sign
     if (!signing_flags) {
-        const char* message[] = { "There are no relevant", "inputs to be signed" };
-        await_message_activity(message, 2);
+        await_message_2("There are no relevant", "inputs to be signed");
     }
 
     display_processing_message_activity();
