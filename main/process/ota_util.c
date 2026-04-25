@@ -10,6 +10,7 @@
 
 #include <ctype.h>
 #include <esp_efuse.h>
+#include <esp_image_format.h>
 #include <sodium/utils.h>
 #include <string.h>
 
@@ -346,6 +347,20 @@ void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx, const bool is_
         joctx->ota_return_status = OTA_ERR_FINISH;
         goto error;
     }
+
+#ifdef CONFIG_SECURE_BOOT
+    esp_partition_pos_t update_pos = {
+        .offset = joctx->update_partition->address,
+        .size = joctx->update_partition->size
+    };
+    esp_image_metadata_t metadata;
+    err = esp_image_verify(ESP_IMAGE_VERIFY, &update_pos, &metadata);
+    if (err != ESP_OK) {
+        JADE_LOGE("esp_image_verify() returned %d - likely missing Secure Boot signature", err);
+        joctx->ota_return_status = OTA_ERR_INVALIDFW;
+        goto error;
+    }
+#endif
 
     err = esp_ota_set_boot_partition(joctx->update_partition);
     if (err != ESP_OK) {
