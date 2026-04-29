@@ -350,6 +350,6 @@ echo "============================================"
 
 if [ -z "$SKIP_RECONFIGURE" ]; then
     idf.py set-target $ARCH && \
-        idf.py reconfigure && \
+        idf.py -DCMAKE_EXPORT_COMPILE_COMMANDS=1 reconfigure && \
         echo "run idf.py all to build the firmware"
 fi

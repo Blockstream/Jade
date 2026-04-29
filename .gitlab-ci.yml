@@ -14,6 +14,7 @@ stages:
   - release
   - build_diy
   - docker_build
+  - build_security
   - security
 
 image: blockstream/jade_builder@sha256:cbf0aabee7513dc8cad8f1d69a5e00f5b73bcd0965a44254627c0de4bfc8c4f2
@@ -54,6 +55,7 @@ include:
     - $CI_JOB_NAME/bootloader/bootloader.bin
     - $CI_JOB_NAME/partition_table/partition-table.bin
     - $CI_JOB_NAME/sdkconfig*
+    - $CI_JOB_NAME/compile_commands.json
     - $CI_JOB_NAME/bsdiff.*
   script:
     - pushd /opt/esp/idf && . ./export.sh && popd

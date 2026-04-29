@@ -3,10 +3,39 @@
 #
 # Perform gitlab security checks.
 #
+
+.build_security_template:
+  extends: .build_template
+  stage: build_security
+
+build_sast_jade:  # Build and export full build directory
+  extends: .build_security_template
+  before_script:
+    - pushd /opt/esp/idf && . ./export.sh && popd && ./tools/switch_to.sh jade
+  after_script:
+    - mv build "$CI_JOB_NAME"
+  artifacts:
+    expire_in: 1 day
+    when: on_success
+    paths:
+    - $CI_JOB_NAME
+
+semgrep-sast:
+  rules:
+    - when: never
+
 sast:
   stage: security
-  needs: []
+  needs:
+    - job: build_sast_jade
+      artifacts: true
+  before_script:
+    - 'export SAST_COMPILATION_DATABASE="fixed_compile_commands.json"'
+    - python3 ./tools/fix_compilation_db.py
+    # Create a symbolic link between build_sast_jade and build
+    - ln -s build_sast_jade build
   variables:
+    GITLAB_ADVANCED_SAST_CPP_ENABLED: 'true'
     SAST_EXCLUDED_PATHS:  "docs, test, tools, components, pinserver, release, requirements.txt, test_data, test_jade.py, jade_*.py, set_jade_pinserver.py, update_jade_fw.py, tests"
 
 dependency_scanning:
