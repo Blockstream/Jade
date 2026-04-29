@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import base64
+import json
 import click
 import functools
 import logging
@@ -8,6 +9,33 @@ import os
 import time
 
 from jadepy.jade import JadeAPI
+
+
+def h2b(hexdata):
+    if hexdata is None or isinstance(hexdata, (int, bool)):
+        return hexdata
+    if isinstance(hexdata, list):
+        return list(map(h2b, hexdata))
+    if isinstance(hexdata, dict):
+        return {k: h2b(v) for k, v in hexdata.items()}
+    return bytes.fromhex(hexdata)
+
+
+def b2h_impl(obj, leaf_fn):
+    if isinstance(obj, dict):
+        return {k: b2h_impl(v, leaf_fn) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [b2h_impl(v, leaf_fn) for v in obj]
+    if isinstance(obj, tuple):
+        return tuple(b2h_impl(v, leaf_fn) for v in obj)
+    return leaf_fn(obj)
+
+
+def b2h(result):
+    return b2h_impl(
+        result,
+        lambda v: bytes(v).hex() if isinstance(v, (bytes, bytearray)) else v
+    )
 
 
 class JadeClient:
@@ -151,11 +179,16 @@ def sign_message(jade, path, message, network):
 
 @cli.command()
 @click.argument('tx')
+@click.argument('inputs')
+@click.argument('change')
 @click.option('--network', default='testnet')
 @with_jade_client
-def sign_tx(jade, tx, network):
-    result = jade.sign_tx(network, tx)
-    click.echo(base64.b64encode(result))
+def sign_tx(jade, tx, inputs, change, network):
+    tx_bytes = bytes.fromhex(tx)
+    inputs_obj = h2b(json.loads(inputs))
+    change_obj = h2b(json.loads(change))
+    result = jade.sign_tx(network, tx_bytes, inputs_obj, change_obj)
+    click.echo(json.dumps(b2h(result)))
 
 
 @cli.command()
