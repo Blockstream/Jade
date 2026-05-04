@@ -222,8 +222,9 @@ bool show_multisig_activity(const char* multisig_name, bool is_sorted, size_t th
     const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting,
     bool is_valid);
 bool show_descriptor_activity(const char* descriptor_name, const descriptor_data_t* descriptor,
-    const signer_t* signer_details, size_t num_signer_details, const uint8_t* wallet_fingerprint,
-    size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting, bool is_valid);
+    const char* blinding_key, const signer_t* signer_details, size_t num_signer_details,
+    const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, network_t network_id, bool initial_confirmation,
+    bool overwriting, bool is_valid);
 
 gui_activity_t* make_session_activity(void);
 gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item);
@@ -1077,6 +1078,7 @@ static void handle_registered_wallets(void)
     uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
     wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
     signer_t* const signer_details = JADE_CALLOC(MAX_ALLOWED_SIGNERS, sizeof(signer_t));
+    char* blinding_key = NULL;
 
     done = false;
     while (!done) {
@@ -1193,10 +1195,16 @@ static void handle_registered_wallets(void)
                 // No option to export (atm)
                 JADE_ASSERT(ev_id == BTN_VIEW_WALLET);
 
+                // Free any blinding_key from a previous pass through the loop
+                if (blinding_key) {
+                    JADE_WALLY_VERIFY(wally_free_string(blinding_key));
+                    blinding_key = NULL;
+                }
+
                 // Get signer info from descriptor
                 size_t num_signer_details = 0;
                 if (!descriptor_get_signers(wallet_name, &descriptor, NETWORK_NONE, NULL, signer_details,
-                        MAX_ALLOWED_SIGNERS, &num_signer_details, &errmsg)) {
+                        MAX_ALLOWED_SIGNERS, &num_signer_details, &blinding_key, &errmsg)) {
                     JADE_LOGE("Failed to load signer information from descriptor data");
                     await_error_2("Unable to load", "signer details");
                     continue;
@@ -1205,8 +1213,9 @@ static void handle_registered_wallets(void)
                 // We are not confirming or writing-to-storage
                 const bool initial_confirmation = false;
                 const bool overwriting = false;
-                if (!show_descriptor_activity(wallet_name, &descriptor, signer_details, num_signer_details, fingerprint,
-                        sizeof(fingerprint), initial_confirmation, overwriting, is_valid)) {
+                if (!show_descriptor_activity(wallet_name, &descriptor, blinding_key, signer_details,
+                        num_signer_details, fingerprint, sizeof(fingerprint), NETWORK_NONE, initial_confirmation,
+                        overwriting, is_valid)) {
                     // Delete record ?
                     done = offer_delete_registered_wallet(wallet_name, is_multisig);
                 }
@@ -1214,8 +1223,11 @@ static void handle_registered_wallets(void)
         }
     }
 
-    // Free any signer details
+    // Free any signer / blinding key details
     free(signer_details);
+    if (blinding_key) {
+        JADE_WALLY_VERIFY(wally_free_string(blinding_key));
+    }
 }
 
 static void set_wallet_erase_pin(void)

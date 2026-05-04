@@ -363,8 +363,18 @@ static bool verify_descriptor_script_matches(const char* descriptor_name, const 
 
     // Ensure number of pubkeys is not less than the number of xpub signers
     // (xpubs can be reused with different paths, but they cannot be left unused)
+    // Note: for Elements confidential descriptors, @B is the blinding key (not a signing xpub),
+    // so we count only values that are NOT the blinding-key placeholder.
+    size_t num_signing_values = 0;
+    for (size_t i = 0; i < descriptor->num_values; ++i) {
+        const string_value_t* const val = &descriptor->values[i];
+        const bool is_blinding_key = val->key_len == 2 && !strncmp(val->key, "@B", 2);
+        if (!is_blinding_key) {
+            ++num_signing_values;
+        }
+    }
     const size_t num_keys = key_iter_get_num_keys(iter);
-    if (descriptor->num_values > num_keys) {
+    if (num_signing_values > num_keys) {
         JADE_LOGD("Mismatch in number of signatories");
         return false;
     }
@@ -494,7 +504,6 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
 
     const bool is_liquid = network_is_liquid(network_id);
     JADE_ASSERT(!multisig_data || !descriptor); // cannot have both
-    JADE_ASSERT(!is_liquid || !descriptor); // atm do not support liquid descriptors
 
     key_iter iter; // Holds any public key in use
 
@@ -925,8 +934,7 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
                     multisig_data = NULL;
                 }
 
-                // NOTE: descriptors not supported for elements atm
-                if (!multisig_data && !for_liquid) {
+                if (!multisig_data && (!for_liquid || descriptor_allow_liquid())) {
                     descriptor = JADE_MALLOC(sizeof(descriptor_data_t));
                     if (get_suitable_descriptor_record(&iter, &path[path_tail_start], path_tail_len, utxo->script,
                             utxo->script_len, network_id, wallet_name, sizeof(wallet_name), descriptor)) {

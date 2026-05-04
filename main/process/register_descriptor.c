@@ -17,8 +17,9 @@
 #include <sodium/utils.h>
 
 bool show_descriptor_activity(const char* descriptor_name, const descriptor_data_t* descriptor,
-    const signer_t* signer_details, size_t num_signer_details, const uint8_t* wallet_fingerprint,
-    size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting, bool is_valid);
+    const char* blinding_key, const signer_t* signer_details, size_t num_signer_details,
+    const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, network_t network_id, bool initial_confirmation,
+    bool overwriting, bool is_valid);
 
 // Function to validate descriptor and persist the record
 static int register_descriptor(
@@ -32,8 +33,7 @@ static int register_descriptor(
     JADE_ASSERT(descriptor->script_len < sizeof(descriptor->script));
     JADE_ASSERT(descriptor->num_values <= MAX_ALLOWED_SIGNERS);
 
-    // Not valid for liquid wallets atm
-    if (network_is_liquid(network_id)) {
+    if (network_is_liquid(network_id) && !descriptor_allow_liquid()) {
         *errmsg = "Descriptor wallets not supported on liquid network";
         return CBOR_RPC_BAD_PARAMETERS;
     }
@@ -49,11 +49,12 @@ static int register_descriptor(
     uint8_t* const registration = JADE_MALLOC(registration_len);
     signer_t* const signers = JADE_CALLOC(MAX_ALLOWED_SIGNERS, sizeof(signer_t));
     size_t num_signers = 0;
+    char* blinding_key = NULL;
 
     // Get signers - this also yields the type
     descriptor_type_t deduced_type = DESCRIPTOR_TYPE_UNKNOWN;
     if (!descriptor_get_signers(descriptor_name, descriptor, network_id, &deduced_type, signers, MAX_ALLOWED_SIGNERS,
-            &num_signers, errmsg)) {
+            &num_signers, &blinding_key, errmsg)) {
         JADE_LOGE("Failed to extract signer information from descriptor");
         retval = CBOR_RPC_BAD_PARAMETERS;
         goto cleanup;
@@ -124,8 +125,8 @@ static int register_descriptor(
     // Check to see whether user accepted or declined
     const bool is_valid = true;
     const bool initial_confirmation = true;
-    if (!show_descriptor_activity(descriptor_name, descriptor, signers, num_signers, fingerprint, sizeof(fingerprint),
-            initial_confirmation, overwriting, is_valid)) {
+    if (!show_descriptor_activity(descriptor_name, descriptor, blinding_key, signers, num_signers, fingerprint,
+            sizeof(fingerprint), network_id, initial_confirmation, overwriting, is_valid)) {
         JADE_LOGW("User declined to register descriptor");
         *errmsg = "User declined to register descriptor";
         retval = CBOR_RPC_USER_CANCELLED;
@@ -144,6 +145,9 @@ static int register_descriptor(
 
 cleanup:
     free(signers);
+    if (blinding_key) {
+        JADE_WALLY_VERIFY(wally_free_string(blinding_key));
+    }
     free(registration);
     return retval;
 }

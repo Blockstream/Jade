@@ -49,9 +49,15 @@ typedef struct _descriptor_data {
 // Get total length of string values
 size_t string_values_len(const string_value_t* datavalues, size_t num_values);
 
+bool descriptor_allow_liquid(void);
+
 // Parse the descriptor and get signer information
+// If `signers` is NULL then only the number of signers is returned in `written` (and `blinding_key` is ignored).
+// If `blinding_key` is non-NULL, then the blinding key hex value is returned (if present in descriptor)
+//    - caller must free the blinding key with wally_free_string().
 bool descriptor_get_signers(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
-    descriptor_type_t* type, signer_t* signers, size_t signers_len, size_t* written, const char** errmsg);
+    descriptor_type_t* type, signer_t* signers, size_t signers_len, size_t* written, char** blinding_key,
+    const char** errmsg);
 
 // Generate an address using a descriptor/miniscript expression
 // On success output must be freed with wally_free_string()

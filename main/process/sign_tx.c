@@ -172,8 +172,7 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
                     goto cleanup;
                 }
             } else if (rpc_has_field_data("descriptor_name", &arrayItem)) {
-                // Not valid for liquid wallets atm
-                if (network_is_liquid(network_id)) {
+                if (network_is_liquid(network_id) && !descriptor_allow_liquid()) {
                     errmsg = "Descriptor wallets not supported on liquid network";
                     goto cleanup;
                 }

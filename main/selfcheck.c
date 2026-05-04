@@ -946,14 +946,14 @@ static bool test_miniscript_descriptors(void)
         "NuUfgYqsahxTLGJq2");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("A0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("A0", &desc, TESTNET, NULL, NULL, 0, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 3) {
         FAIL();
     }
-    ret = descriptor_get_signers("A0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("A0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }
@@ -1049,14 +1049,14 @@ static bool test_miniscript_descriptors(void)
         "HyV8DomjCjJRT3d57");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("B0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("B0", &desc, TESTNET, NULL, NULL, 0, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 3) {
         FAIL();
     }
-    ret = descriptor_get_signers("B0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("B0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }
@@ -1143,14 +1143,14 @@ static bool test_miniscript_descriptors(void)
         "VHdMw7p8MnQycgAV8");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("b0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("b0", &desc, TESTNET, NULL, NULL, 0, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 3) {
         FAIL();
     }
-    ret = descriptor_get_signers("b0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("b0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }
@@ -1233,14 +1233,14 @@ static bool test_miniscript_descriptors(void)
         ",older(30)))))");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("C0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("C0", &desc, TESTNET, NULL, NULL, 0, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 2) {
         FAIL();
     }
-    ret = descriptor_get_signers("C0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("C0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }
@@ -1312,14 +1312,14 @@ static bool test_miniscript_descriptors(void)
         "preHp6Xhgd42JH/0/*),a:1)");
 
     // Check parsing and key iteration
-    ret = descriptor_get_signers("L0", &desc, TESTNET, NULL, NULL, 0, &num_signers, &errmsg);
+    ret = descriptor_get_signers("L0", &desc, TESTNET, NULL, NULL, 0, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }
     if (num_signers != 1) {
         FAIL();
     }
-    ret = descriptor_get_signers("L0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, &errmsg);
+    ret = descriptor_get_signers("L0", &desc, TESTNET, &desc.type, signers, 3, &num_signers, NULL, &errmsg);
     if (!ret) {
         FAIL();
     }

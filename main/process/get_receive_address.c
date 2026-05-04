@@ -93,8 +93,7 @@ void get_receive_address_process(void* process_ptr)
             master_blinding_key_len = sizeof(multisig_master_blinding_key);
         }
     } else if (rpc_has_field_data("descriptor_name", &params)) {
-        // Not valid for liquid wallets atm
-        if (isLiquid) {
+        if (isLiquid && !descriptor_allow_liquid()) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Descriptor wallets not supported on liquid network");
             goto cleanup;
@@ -124,6 +123,12 @@ void get_receive_address_process(void* process_ptr)
                 sizeof(script), &script_len, &errmsg)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to generate valid descriptor script");
             goto cleanup;
+        }
+
+        if (confidential) {
+            // Use the wallet's own master blinding key (the descriptor's @B blinding key)
+            p_master_blinding_key = keychain_get()->master_unblinding_key;
+            master_blinding_key_len = sizeof(keychain_get()->master_unblinding_key);
         }
     } else {
         uint32_t path[MAX_PATH_LEN];

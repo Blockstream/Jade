@@ -285,8 +285,9 @@ static bool show_final_descriptor_summary_activity(
 }
 
 bool show_descriptor_activity(const char* descriptor_name, const descriptor_data_t* descriptor,
-    const signer_t* signer_details, const size_t num_signer_details, const uint8_t* wallet_fingerprint,
-    const size_t wallet_fingerprint_len, const bool initial_confirmation, const bool overwriting, const bool is_valid)
+    const char* blinding_key, const signer_t* signer_details, const size_t num_signer_details,
+    const uint8_t* wallet_fingerprint, const size_t wallet_fingerprint_len, const network_t network_id,
+    const bool initial_confirmation, const bool overwriting, const bool is_valid)
 {
     JADE_ASSERT(descriptor_name);
     JADE_ASSERT(descriptor);
@@ -296,13 +297,17 @@ bool show_descriptor_activity(const char* descriptor_name, const descriptor_data
     JADE_ASSERT(!overwriting || initial_confirmation);
     JADE_ASSERT(!initial_confirmation || is_valid);
 
+    // If a blinding key is present it occupies screen 1 (signers are shifted by 1)
+    const bool has_blinding_key = blinding_key != NULL;
+    const uint8_t blinding_key_screen_offset = has_blinding_key ? 1 : 0;
+
     // NOTE: because the descriptor potentially has a lot of signers/parameters and info to display
     // we deal with the data values one at a time, rather than creating them all up-front.
     gui_activity_t* act_clear = gui_make_activity();
     bool confirmed = false;
-    uint8_t screen = 0; // 0 = initial summary, 1->n = signers, n+1 = final summary
+    uint8_t screen = 0; // 0 = initial summary, 1 = blinding key (if present), 2..n = signers, n+1 = final summary
     while (true) {
-        JADE_ASSERT(screen <= num_signer_details + 1);
+        JADE_ASSERT(screen <= num_signer_details + blinding_key_screen_offset + 1);
         if (screen == 0) {
             confirmed = show_view_descriptor_activity(descriptor_name, descriptor, initial_confirmation, is_valid);
             if (confirmed && is_valid) {
@@ -312,7 +317,7 @@ bool show_descriptor_activity(const char* descriptor_name, const descriptor_data
                 // either details not valid or record has been rejected
                 break;
             }
-        } else if (screen > num_signer_details) {
+        } else if (screen > num_signer_details + blinding_key_screen_offset) {
             confirmed = show_final_descriptor_summary_activity(descriptor_name, initial_confirmation, overwriting);
             if (confirmed) {
                 // User pressed 'confirm'
@@ -321,11 +326,33 @@ bool show_descriptor_activity(const char* descriptor_name, const descriptor_data
                 // User pressed 'back'
                 --screen;
             }
+        } else if (has_blinding_key && screen == 1) {
+            // Free all existing activities before blinding key screen
+            gui_set_current_activity_ex(act_clear, true);
+
+            // Show blinding key screen - reuse signer prev/next events for back/forward navigation
+            btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNER_PREV },
+                { .txt = ">", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNER_NEXT } };
+            const char* message[] = { blinding_key };
+            gui_activity_t* const act_bk = make_show_message_activity(message, 1, "Blinding Key", hdrbtns, 2, NULL, 0);
+            gui_set_activity_initial_selection(hdrbtns[1].btn);
+
+            gui_set_current_activity(act_bk);
+            for (;;) {
+                const int32_t ev_id = gui_activity_wait_button(act_bk, BTN_SIGNER_NEXT);
+                if (ev_id == BTN_SIGNER_NEXT) {
+                    ++screen;
+                    break;
+                } else if (ev_id == BTN_SIGNER_PREV) {
+                    --screen;
+                    break;
+                }
+            }
         } else {
             // Free all existing activities between signers/parameters
             gui_set_current_activity_ex(act_clear, true);
 
-            const uint8_t signer_index = screen - 1;
+            const uint8_t signer_index = screen - 1 - blinding_key_screen_offset;
             const signer_t* signer = signer_details + signer_index;
             const bool is_this_signer = !sodium_memcmp(signer->fingerprint, wallet_fingerprint, wallet_fingerprint_len);
             if (show_signer_activity(signer, signer_index + 1, num_signer_details, is_this_signer)) {
