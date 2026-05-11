@@ -19,6 +19,8 @@ from pinserver.pindb import PINDb
 import wallycore as wally
 from jadepy.jade import JadeAPI, JadeError
 
+LIQUID_DESCRIPTORS = True
+
 # Enable jade logging
 jadehandler = logging.StreamHandler()
 
@@ -1306,12 +1308,9 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                      'datavalues': {'@0': DESCR_SIGNER, '@1': DESCR_SIGNER}}),
                    'Failed to parse descriptor'),
                   (('baddescr17', 'register_descriptor',
-                    {'network': 'liquid', 'descriptor_name': 'isgood', 'descriptor': DESCRIPTOR,
-                     'datavalues': {'@0': DESCR_SIGNER}}), 'not supported on liquid'),
-                  (('baddescr18', 'register_descriptor',
                     {'network': 'testnet', 'descriptor_name': 'too_few', 'descriptor': 'test',
                      'datavalues': {}}), 'Failed to extract valid parameter values'),
-                  (('baddescr19', 'register_descriptor',
+                  (('baddescr18', 'register_descriptor',
                     {'network': 'testnet', 'descriptor_name': 'too_many', 'descriptor': 'test',
                      'datavalues': {"%15d" % i: "x" * 159 for i in range(16)}}),
                    'Failed to extract valid parameter values'),
@@ -1366,9 +1365,6 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                     {'branch': 0, 'pointer': 1, 'descriptor_name': 'does not exist',
                      'network': 'testnet'}), 'Cannot find named descriptor wallet'),
                   (('badrecvaddr17', 'get_receive_address',
-                    {'branch': 0, 'pointer': 1, 'descriptor_name': 'looksvalid',
-                     'network': 'liquid'}), 'not supported on liquid'),
-                  (('badrecvaddr18', 'get_receive_address',
                     {'path': [1, 2, 3], 'variant': 'pkh(k)', 'confidential': True,
                      'network': 'mainnet'}), 'Confidential addresses only apply to liquid'),
 
@@ -1729,6 +1725,16 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                     {'network': 'testnet', 'txn': GOODTX, 'num_inputs': 1,
                      'change': [None, None]}), 'Unexpected number of output entries')]
 
+    if not LIQUID_DESCRIPTORS:
+        bad_params.extend([
+            (('baddescr19', 'register_descriptor',
+              {'network': 'liquid', 'descriptor_name': 'isgood', 'descriptor': DESCRIPTOR,
+               'datavalues': {'@0': DESCR_SIGNER}}), 'not supported on liquid'),
+            (('badrecvaddr18', 'get_receive_address',
+              {'branch': 0, 'pointer': 1, 'descriptor_name': 'looksvalid',
+               'network': 'liquid'}), 'not supported on liquid'),
+        ])
+
     # Test all the simple cases
     for badmsg, errormsg in bad_params:
         if (args.libjade or args.spts) and badmsg[1] in ['ota', 'ota_delta']:
@@ -2078,32 +2084,35 @@ dab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000')
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': [{}, {}],
                      'change': [{}, {}]}), 'Failed to extract valid receive path'),
-                  (('badsignliq19', 'sign_liquid_tx',  # descriptor wallet
-                    {'network': 'localtest-liquid', 'txn': GOODTX,
-                     'num_inputs': 1, 'trusted_commitments': [{}, {}],
-                     'change': [{'descriptor_name': 'looksvalid', 'is_change': True,
-                                 'branch': 1, 'pointer': 13}, {}]}), 'not supported on liquid'),
-
-                  (('badsignliq20', 'sign_liquid_tx',
+                  (('badsignliq19', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
                      'change': None, 'asset_info': [BAD_ASSET1]}), 'Invalid asset info passed'),
-                  (('badsignliq21', 'sign_liquid_tx',
+                  (('badsignliq20', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
                      'change': None, 'asset_info': [BAD_ASSET2]}), 'Invalid asset info passed'),
-                  (('badsignliq22', 'sign_liquid_tx',
+                  (('badsignliq21', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
                      'change': None, 'asset_info': [BAD_ASSET3]}), 'Invalid asset info passed'),
-                  (('badsignliq23', 'sign_liquid_tx',
+                  (('badsignliq22', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
                      'change': None, 'asset_info': [BAD_ASSET4]}), 'Invalid asset info passed'),
-                  (('badsignliq24', 'sign_liquid_tx',
+                  (('badsignliq23', 'sign_liquid_tx',
                     {'network': 'localtest-liquid', 'txn': GOODTX,
                      'num_inputs': 1, 'trusted_commitments': GOOD_COMMITMENTS,
                      'change': None, 'asset_info': [BAD_ASSET5]}), 'Invalid asset info passed')]
+
+    if not LIQUID_DESCRIPTORS:
+        bad_params.append(
+            (('badsignliq24', 'sign_liquid_tx',
+              {'network': 'localtest-liquid', 'txn': GOODTX,
+               'num_inputs': 1, 'trusted_commitments': [{}, {}],
+               'change': [{'descriptor_name': 'looksvalid', 'is_change': True,
+                           'branch': 1, 'pointer': 13}, {}]}), 'not supported on liquid')
+        )
 
     bad_liq_inputs = [(('badliqin1', 'tx_input'), 'Expecting parameters map'),
                       (('badliqin2', 'tx_input',
@@ -3494,6 +3503,7 @@ def test_miniscript_descriptor_registration(jadeapi, pattern):
     for descriptor_data in _get_test_cases(pattern):
         # Register the descriptor
         inputdata = descriptor_data['input']
+
         rslt = jadeapi.register_descriptor(inputdata['network'],
                                            inputdata['descriptor_name'],
                                            inputdata['descriptor'],
@@ -3545,6 +3555,50 @@ def test_miniscript_descriptor_registration(jadeapi, pattern):
                                                    paths,
                                                    multisig_name=inputdata['descriptor_name'])
                 assert rslt == addr_test['expected_address']
+
+
+def test_descriptor_slip77_network_rules(jadeapi):
+    descriptor_no_slip77 = 'wsh(pkh(@0/<0;1>/*))'
+    descriptor_with_slip77 = 'ct(slip77(@B),wpkh(@0/<0;1>/*))'
+    signer = "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGra\
+Z9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+    blinding_key = TEST_MNEMONIC_MASTER_BLINDING_KEY
+
+    if LIQUID_DESCRIPTORS:
+        # Liquid descriptor with SLIP-77 should pass
+        assert jadeapi.register_descriptor(
+            'localtest-liquid', 'liqs77ok', descriptor_with_slip77,
+            {'@B': blinding_key, '@0': signer}) is True
+
+        # Liquid descriptor without SLIP-77 should fail.
+        _test_bad_params(
+            jadeapi.jade,
+            ('liq_s77_miss', 'register_descriptor',
+             {'network': 'localtest-liquid', 'descriptor_name': 'liqnos77',
+              'descriptor': descriptor_no_slip77, 'datavalues': {'@0': signer}}),
+            'must use slip77 blinding for liquid network')
+    else:
+        # Liquid descriptors disabled: reject liquid descriptors up-front
+        _test_bad_params(
+            jadeapi.jade,
+            ('liq_s77_off', 'register_descriptor',
+             {'network': 'localtest-liquid', 'descriptor_name': 'liqoff77',
+              'descriptor': descriptor_with_slip77,
+              'datavalues': {'@B': blinding_key, '@0': signer}}),
+            'not supported on liquid')
+
+    # Non-liquid descriptor with SLIP-77 should fail
+    _test_bad_params(
+        jadeapi.jade,
+        ('btc_s77_bad', 'register_descriptor',
+         {'network': 'testnet', 'descriptor_name': 'btcs77bad',
+          'descriptor': descriptor_with_slip77,
+          'datavalues': {'@B': blinding_key, '@0': signer}}),
+        'Descriptor must not be confidential for bitcoin network')
+
+    # Non-liquid descriptor without SLIP-77 should pass.
+    assert jadeapi.register_descriptor(
+      'testnet', 'btcnos77', descriptor_no_slip77, {'@0': signer}) is True
 
 
 def test_12word_mnemonic(jadeapi):
@@ -3869,6 +3923,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     # Test descriptor wallets
     test_miniscript_descriptor_registration(jadeapi, DESCRIPTOR_REG_TESTS)
+    test_descriptor_slip77_network_rules(jadeapi)
 
     if not args.json_filter:
         # Get (receive) green-addresses, get-xpub, and sign-message
