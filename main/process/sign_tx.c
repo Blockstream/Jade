@@ -139,6 +139,7 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
             size_t script_len = 0;
             uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
             size_t written = 0;
+            bool is_green_2of3 = false;
 
             // If multisig, need to verify against the registered multisig wallets
             if (rpc_has_field_data("multisig_name", &arrayItem)) {
@@ -229,6 +230,15 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
                     written = 0;
                     char xpubrecovery[120]; // Should be sufficient as all xpubs should be <= 112
                     rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &arrayItem, xpubrecovery, &written);
+                    is_green_2of3 = written != 0;
+                    if (is_green_2of3 && is_change) {
+                        // Green 2of3: We don't trust the host-provided xpub, so
+                        // force the user to validate this probable change output.
+                        // TODO: Allow registration of 2of3 accounts so the user
+                        //       doesn't have to validate legitimate change outputs.
+                        JADE_LOGD("Ignoring 2of3 change identification");
+                        is_change = false;
+                    }
 
                     // Optional 'blocks' for csv outputs
                     rpc_get_sizet("csv_blocks", &arrayItem, &csv_blocks);
@@ -296,7 +306,13 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
             JADE_LOGI("Output %u receive path/script validated", i);
 
             // Set appropriate flags
-            outinfo->flags |= OUTPUT_FLAG_VALIDATED;
+            if (!is_green_2of3) {
+                // Note for Green 2of3 we don't trust the host-provided xpub, so
+                // we do not mark this output as a validated wallet output.
+                // TODO: Allow registration of 2of3 accounts so the user
+                //       doesn't have to confirm legitimate wallet outputs.
+                outinfo->flags |= OUTPUT_FLAG_VALIDATED;
+            }
             if (is_change) {
                 outinfo->flags |= OUTPUT_FLAG_CHANGE;
             }
