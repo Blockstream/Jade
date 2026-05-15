@@ -577,7 +577,7 @@ bool update_elements_outputs(
             outinfo->flags |= OUTPUT_FLAG_CONFIDENTIAL;
 
             // NOTE: This is not valid if this output has been validated as belonging to this wallet
-            if (outinfo->flags & OUTPUT_FLAG_VALIDATED) {
+            if (outinfo->flags & OUTPUT_FLAG_IS_OURS) {
                 *errmsg = "Missing blinding information for wallet output";
                 return false;
             }
@@ -625,7 +625,7 @@ bool validate_elements_outputs(const network_t network_id, const struct wally_tx
 
         // If the output has been verified as belonging to this wallet, we can
         // use it to validate some part of any passed input- or output- summary.
-        if (outinfo->flags & OUTPUT_FLAG_VALIDATED) {
+        if (outinfo->flags & OUTPUT_FLAG_IS_OURS) {
             JADE_ASSERT(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED);
 
             if (outinfo->flags & OUTPUT_FLAG_CHANGE) {

@@ -124,8 +124,9 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
 
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
 
-        // By default, assume not a validated or change output, and so user must verify
-        JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
+        // Initially we assume the output isn't a wallet output or wallet
+        // change, so the user must explicitly confirm it.
+        JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_IS_OURS | OUTPUT_FLAG_CHANGE)));
         if (cbor_value_is_map(&arrayItem)) {
             // Output path info passed, try to verify output
             JADE_LOGD("Output %u has output/change data passed", i);
@@ -308,13 +309,13 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
             // Set appropriate flags
             if (!is_green_2of3) {
                 // Note for Green 2of3 we don't trust the host-provided xpub, so
-                // we do not mark this output as a validated wallet output.
+                // we do not mark this output as belonging to our wallet.
                 // TODO: Allow registration of 2of3 accounts so the user
                 //       doesn't have to confirm legitimate wallet outputs.
-                outinfo->flags |= OUTPUT_FLAG_VALIDATED;
-            }
-            if (is_change) {
-                outinfo->flags |= OUTPUT_FLAG_CHANGE;
+                outinfo->flags |= OUTPUT_FLAG_IS_OURS;
+                if (is_change) {
+                    outinfo->flags |= OUTPUT_FLAG_CHANGE;
+                }
             }
         }
         const CborError err = cbor_value_advance(&arrayItem);

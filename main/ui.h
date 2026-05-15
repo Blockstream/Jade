@@ -84,11 +84,16 @@ typedef struct {
 // Whether QR Frame Guides (box corners) should be shown
 typedef enum { QR_GUIDE_HIDE, QR_GUIDE_SHOW } qr_guide_type_t;
 
-#define OUTPUT_FLAG_CONFIDENTIAL 1
-#define OUTPUT_FLAG_HAS_BLINDING_KEY 2
-#define OUTPUT_FLAG_VALIDATED 4
-#define OUTPUT_FLAG_CHANGE 8
-#define OUTPUT_FLAG_HAS_UNBLINDED 16
+// Output is confidential/blinded
+#define OUTPUT_FLAG_CONFIDENTIAL (1 << 0)
+// Output has a blinding public key
+#define OUTPUT_FLAG_HAS_BLINDING_KEY (1 << 1)
+// Output is ours (belongs to a wallet controlled by this Jade)
+#define OUTPUT_FLAG_IS_OURS (1 << 2)
+// Output is a change output for this wallet (only set with OUTPUT_FLAG_IS_OURS)
+#define OUTPUT_FLAG_CHANGE (1 << 3)
+// Output has unblinded asset and value
+#define OUTPUT_FLAG_HAS_UNBLINDED (1 << 4)
 
 // Progress bar
 typedef struct {

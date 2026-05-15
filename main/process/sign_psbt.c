@@ -531,16 +531,17 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
                 // Fee output
                 JADE_ASSERT(!(outinfo->flags & OUTPUT_FLAG_CONFIDENTIAL));
                 JADE_ASSERT(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED);
-                // Fee outputs can't be change, so may as well skip now
-                JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
+                // Fee outputs can't be ours or change: skip further processing
+                JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_IS_OURS | OUTPUT_FLAG_CHANGE)));
                 continue;
             }
         }
 
         JADE_LOGD("Considering output %u for change", index);
 
-        // By default, assume not a validated or change output, and so user must verify
-        JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE)));
+        // Initially we assume the output isn't a wallet output or wallet
+        // change, so the user must explicitly confirm it.
+        JADE_ASSERT(!(outinfo->flags & (OUTPUT_FLAG_IS_OURS | OUTPUT_FLAG_CHANGE)));
 
         // Find the first key belonging to this signer
         if (!key_iter_output_begin_public(psbt, index, &iter)) {
@@ -596,7 +597,7 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
             JADE_LOGI("Output %u singlesig %s path/script validated", index, is_change ? "change" : "receive");
 
             // Set appropriate flags
-            outinfo->flags |= OUTPUT_FLAG_VALIDATED;
+            outinfo->flags |= OUTPUT_FLAG_IS_OURS;
             if (is_change) {
                 outinfo->flags |= OUTPUT_FLAG_CHANGE;
             }
@@ -636,7 +637,7 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
             JADE_LOGI("Output %u green-multisig path/script validated", index);
 
             // Set appropriate flags - note Green wallet-output is always assumed to be change
-            outinfo->flags |= (OUTPUT_FLAG_VALIDATED | OUTPUT_FLAG_CHANGE);
+            outinfo->flags |= (OUTPUT_FLAG_IS_OURS | OUTPUT_FLAG_CHANGE);
 
         } else if (signing_flags == (PSBT_SIGNING_MULTISIG | PSBT_SIGNING_SINGLE_MULTISIG_RECORD)) {
             // Generic multisig or descriptor
@@ -666,7 +667,7 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
                 wallet_name);
 
             // Set appropriate flags
-            outinfo->flags |= OUTPUT_FLAG_VALIDATED;
+            outinfo->flags |= OUTPUT_FLAG_IS_OURS;
             if (is_change) {
                 outinfo->flags |= OUTPUT_FLAG_CHANGE;
             }

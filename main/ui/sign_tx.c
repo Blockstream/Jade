@@ -53,8 +53,9 @@ static bool display_output(
             return true;
         }
 
-        if (output_info[i].flags & OUTPUT_FLAG_VALIDATED && output_info[i].flags & OUTPUT_FLAG_CHANGE) {
+        if (output_info[i].flags & OUTPUT_FLAG_CHANGE) {
             // Hide change outputs which have already been internally validated
+            JADE_ASSERT(output_info[i].flags & OUTPUT_FLAG_IS_OURS);
             return false;
         }
     }
@@ -441,7 +442,7 @@ bool show_btc_transaction_outputs_activity(
         // Free all existing activities between outputs
         gui_set_current_activity_ex(act_clear, true);
 
-        const bool is_wallet_output = output_info && (output_info[i].flags & OUTPUT_FLAG_VALIDATED);
+        const bool is_wallet_output = output_info && (output_info[i].flags & OUTPUT_FLAG_IS_OURS);
 
         char title[16];
         int ret = snprintf(title, sizeof(title), "Output %ld/%ld", nDisplayedOutput, nTotalOutputsDisplayed);
@@ -503,7 +504,7 @@ bool show_elements_transaction_outputs_activity(const network_t network_id, cons
         // Free all existing activities between outputs
         gui_set_current_activity_ex(act_clear, true);
 
-        const bool is_wallet_output = output_info[i].flags & OUTPUT_FLAG_VALIDATED;
+        const bool is_wallet_output = output_info[i].flags & OUTPUT_FLAG_IS_OURS;
 
         char title[16];
         const int ret = snprintf(title, sizeof(title), "Output %ld/%ld", nDisplayedOutput, nTotalOutputsDisplayed);
