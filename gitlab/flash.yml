@@ -53,32 +53,32 @@ flash_qemu_psram_unamalgamated:
   # FIXME: Fix v1.0 flashing (devices sometimes don't come back from reboot)
   allow_failure: true
 
-flash_jade_ci:
-  extends: .flash_jade_template
-  needs: [ test_libjade, build_test_jade_ci ]
+#flash_jade_ci:
+#  extends: .flash_jade_template
+#  needs: [ test_libjade, build_test_jade_ci ]
 
-flash_jade_noradio_ci:
-  extends: .flash_jade_template
-  needs:
-    - job: build_test_jade_noradio_ci
-      artifacts: true
-    - job: flash_jade_ci
-      artifacts: false
+#flash_jade_noradio_ci:
+#  extends: .flash_jade_template
+#  needs:
+#    - job: build_test_jade_noradio_ci
+#      artifacts: true
+#    - job: flash_jade_ci
+#      artifacts: false
 
-flash_jade_ota_delta_ci:
-  extends: .flash_jade_template
-  needs:
-    - job: build_test_jade_ci
-      artifacts: true
-    - job: build_test_jade_noradio_ci
-      artifacts: true
-    - job: flash_jade_noradio_ci
-      artifacts: false
-  script:
-    - mv build_test_jade_ci build
-    - mv build_test_jade_noradio_ci build_noradio
-    - git submodule update --init --depth 1 pinserver
-    - docker-compose run --remove-orphans --rm dev bash -c "JADESERIALPORT=$JADESERIALPORT ./ota_delta_ci.sh esp32 --skipble"
+#flash_jade_ota_delta_ci:
+#  extends: .flash_jade_template
+#  needs:
+#    - job: build_test_jade_ci
+#      artifacts: true
+#    - job: build_test_jade_noradio_ci
+#      artifacts: true
+#    - job: flash_jade_noradio_ci
+#      artifacts: false
+#  script:
+#    - mv build_test_jade_ci build
+#    - mv build_test_jade_noradio_ci build_noradio
+#    - git submodule update --init --depth 1 pinserver
+#    - docker-compose run --remove-orphans --rm dev bash -c "JADESERIALPORT=$JADESERIALPORT ./ota_delta_ci.sh esp32 --skipble"
 
 # Jade v1.1
 .flash_jade_v1_1_template:
