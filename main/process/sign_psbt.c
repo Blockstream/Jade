@@ -825,7 +825,11 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
             // TODO: additional_info should store asset_ids in binary order,
             // so we shouldn't have to reverse_in_place() here
             reverse_in_place(asset_id, sizeof(asset_id));
-            asset_summary_update(in_sums, num_in_sums, asset_id, sizeof(asset_id), input->amount);
+            if (!asset_summary_update(in_sums, num_in_sums, asset_id, sizeof(asset_id), input->amount)) {
+                *errmsg = "Failed to validate input/output summary information";
+                retval = CBOR_RPC_BAD_PARAMETERS;
+                goto cleanup;
+            }
         }
 
         uint32_t sig_type;

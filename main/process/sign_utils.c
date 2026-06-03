@@ -628,13 +628,18 @@ bool validate_elements_outputs(const network_t network_id, const struct wally_tx
         if (outinfo->flags & OUTPUT_FLAG_IS_OURS) {
             JADE_ASSERT(outinfo->flags & OUTPUT_FLAG_HAS_UNBLINDED);
 
+            bool is_valid;
             if (outinfo->flags & OUTPUT_FLAG_CHANGE) {
                 // NOTE: change outputs are subtracted from the relevant 'input summary'.
-                asset_summary_update(
-                    in_sums, num_in_sums, outinfo->asset_id, sizeof(outinfo->asset_id), (0 - outinfo->value));
+                is_valid = asset_summary_update(
+                    in_sums, num_in_sums, outinfo->asset_id, sizeof(outinfo->asset_id), 0 - outinfo->value);
             } else {
-                asset_summary_update(
+                is_valid = asset_summary_update(
                     out_sums, num_out_sums, outinfo->asset_id, sizeof(outinfo->asset_id), outinfo->value);
+            }
+            if (!is_valid) {
+                *errmsg = "Failed to validate input/output summary information";
+                return false;
             }
         }
     }

@@ -619,7 +619,11 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                 if (params_commitment_data(&params, &c, NULL, &errmsg)) {
                     JADE_ASSERT(!errmsg);
                     // Valid input commitments: update the summary
-                    asset_summary_update(in_sums, num_in_sums, c.asset_id, sizeof(c.asset_id), c.value);
+                    if (!asset_summary_update(in_sums, num_in_sums, c.asset_id, sizeof(c.asset_id), c.value)) {
+                        errmsg = "Failed to validate input/output summary information";
+                        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
+                        goto cleanup;
+                    }
                 } else if (errmsg) {
                     // Invalid input commitments (rather than simply not present)
                     jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
