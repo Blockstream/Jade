@@ -925,6 +925,7 @@ static bool test_miniscript_descriptors(void)
 
     const uint32_t MAINNET = NETWORK_BITCOIN;
     const uint32_t TESTNET = NETWORK_BITCOIN_TESTNET;
+    const uint32_t LTESTNET = NETWORK_LIQUID_TESTNET;
     uint8_t buf[BIP32_KEY_FINGERPRINT_LEN];
     size_t num_signers = 0;
     signer_t signers[3];
@@ -1373,6 +1374,97 @@ static bool test_miniscript_descriptors(void)
     // Check serialisation
     if (!check_descriptor_serialisation(&desc)) {
         FAIL();
+    }
+
+    // Liquid example
+    if (!descriptor_allow_liquid()) {
+        return true; // Skip test if Liquid support not enabled
+    }
+    for (int i = 0; i < 2; i++) {
+        INIT_DESC(desc, "ct(slip77(@B),wpkh(@0/<0;1>/*))");
+        ADD_MAP_VAL(desc, "@B", "afacc503637e85da661ca1706c4ea147f1407868c48d8f92dd339ac272293cdc");
+        ADD_MAP_VAL(desc, "@0",
+            "[e3ebcc79/84'/1'/0']"
+            "tpubDC2Q4xK4XH72Gae41fkTzHPCugZXvDDZJwEDzVT5osM5ejQULHVtUhbjFqUBqTnMX5RVwtkstpBvjdznWG89y3Kt48"
+            "4Ta3qxTFPPWoyTh8s");
+        bool get_bk = i;
+        char* blinding_key = NULL;
+        ret = descriptor_get_signers(
+            "LQ0", &desc, LTESTNET, NULL, NULL, 0, &num_signers, get_bk ? &blinding_key : NULL, &errmsg);
+        if (!ret) {
+            FAIL();
+        }
+        if (num_signers != 1) {
+            FAIL();
+        }
+        if (get_bk && blinding_key) {
+            FAIL(); // Blinding key should not be returned when testing number of signers
+        }
+        ret = descriptor_get_signers(
+            "LQ0", &desc, LTESTNET, &desc.type, signers, 3, &num_signers, get_bk ? &blinding_key : NULL, &errmsg);
+        if (!ret) {
+            FAIL();
+        }
+        if (desc.type != DESCRIPTOR_TYPE_MIXED) {
+            FAIL();
+        }
+        if (num_signers != 1) {
+            FAIL();
+        }
+        if (get_bk && !blinding_key) {
+            FAIL(); // Blinding key should be returned
+        }
+        if (get_bk && strcmp(blinding_key, "afacc503637e85da661ca1706c4ea147f1407868c48d8f92dd339ac272293cdc")) {
+            FAIL(); // Blinding key should match expected value
+        }
+        if (blinding_key) {
+            wally_free_string(blinding_key);
+        }
+
+        if (signers[0].derivation_len != 3 || signers[0].derivation[0] != harden(84)
+            || signers[0].derivation[1] != harden(1) || signers[0].derivation[2] != harden(0)) {
+            FAIL();
+        }
+        if (!signers[0].path_is_string || strcmp(signers[0].path_str, "<0;1>/*")) {
+            FAIL();
+        }
+
+        if (!FP_XPUB_MATCH(0, "e3ebcc79",
+                "tpubDC2Q4xK4XH72Gae41fkTzHPCugZXvDDZJwEDzVT5osM5ejQULHVtUhbjFqUBqTnMX5RVwtkstpBvjdznWG89y3Kt48"
+                "4Ta3qxTFPPWoyTh8s")) {
+            FAIL();
+        }
+
+        // The expected/correct scriptPubkey
+        const char* expectedLQ[2]
+            = { "00142aca142db0227433da1e44ccc914b0cf6ad8cf72", "00144ae0383771d8140d4ce37cdfe08f0728b5c599ed" };
+
+        multi_index = 0;
+        for (uint32_t child_num = 0; child_num < 2; ++child_num) {
+            // Use unknown type
+            uint8_t* script = NULL;
+            size_t script_len = 0;
+            ret = descriptor_to_script(
+                "LQ0", &desc, LTESTNET, multi_index, child_num, NULL, &script, &script_len, &errmsg);
+            if (!ret) {
+                FAIL();
+            }
+
+            char* hex = NULL;
+            JADE_WALLY_VERIFY(wally_hex_from_bytes(script, script_len, &hex));
+            if (!hex || strcmp(hex, expectedLQ[child_num])) {
+                free(hex);
+                free(script);
+                FAIL();
+            }
+
+            free(hex);
+            free(script);
+        }
+
+        if (!check_descriptor_serialisation(&desc)) {
+            FAIL();
+        }
     }
 
     return true;
