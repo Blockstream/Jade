@@ -85,4 +85,19 @@ void __wrap_abort(void);
         JADE_LOGD("Released mutex %p", (void*)s);                                                                      \
     } while (false)
 
+// Warn if a function return value is unused.
+#ifndef WARN_UNUSED_RESULT
+#define WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))
+#endif
+
+// Deliberately ignores result of a function
+#ifndef IGNORE_RESULT
+#define IGNORE_RESULT(x)                                                                                               \
+    do {                                                                                                               \
+        if ((x)) {                                                                                                     \
+            (void)0;                                                                                                   \
+        }                                                                                                              \
+    } while (0)
+#endif
+
 #endif // JADE_ASSERT_H_

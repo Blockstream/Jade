@@ -145,3 +145,7 @@ add_custom_command(OUTPUT asset_data_testnet.inc
 add_custom_target(asset_data DEPENDS asset_data.inc asset_data_testnet.inc)
 add_dependencies(jade asset_data)
 add_dependencies(jade_static asset_data)
+
+target_compile_options(jade PRIVATE -Werror=unused-result)
+target_compile_options(jade_static PRIVATE -Werror=unused-result)
+target_compile_options(libjade_daemon PRIVATE -Werror=unused-result)
