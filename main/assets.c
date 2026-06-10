@@ -47,9 +47,11 @@ static bool get_asset_contract_hash(const CborValue* contract, uint8_t* contract
 
     char contract_json[ASSET_CONTRACT_BUFFER_LEN];
     FILE* const fstr = fmemopen((uint8_t*)contract_json, sizeof(contract_json), "w");
-    if (cbor_value_to_json(fstr, contract, CborConvertDefaultFlags) != CborNoError) {
+    if (!fstr || cbor_value_to_json(fstr, contract, CborConvertDefaultFlags) != CborNoError) {
         JADE_LOGE("Failed to convert asset contract data to json");
-        fclose(fstr);
+        if (fstr) {
+            fclose(fstr);
+        }
         return false;
     }
     fclose(fstr);
