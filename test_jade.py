@@ -3299,12 +3299,21 @@ def test_generic_multisig_matches_ga_addresses(jadeapi):
     # ie. if I use the standard ga receive-address, I get the same result as
     # that using 'generic multisig' (as the co-signers are set-up to match green)
     matching_ga_msigs = list(_get_test_cases('multisig_reg_*matches_ga_*.json'))
-    if not matching_ga_msigs:
-        return
 
     for ga_msig in matching_ga_msigs:
         inputdata = ga_msig['input']
         signers = inputdata['descriptor']['signers']
+
+        # Register multisig wallet
+        descriptor = inputdata['descriptor']
+        rslt = jadeapi.register_multisig(inputdata['network'],
+                                         inputdata['multisig_name'],
+                                         descriptor['variant'],
+                                         descriptor['sorted'],
+                                         descriptor['threshold'],
+                                         descriptor['signers'],
+                                         master_blinding_key=descriptor.get('master_blinding_key'))
+        assert rslt is True
 
         # Check this test looks good - ie. 2of2 or 2of3
         assert inputdata['descriptor']['threshold'] == 2
@@ -3337,38 +3346,38 @@ def test_generic_multisig_matches_ga_addresses(jadeapi):
                                                recovery_xpub=recovery_xpub)
             assert rslt == addr_test['expected_address']
 
-    # ... and maybe blinding key tests ...
-    for blinding_test in ga_msig.get('blinding_key_tests', []):
-        rslt = jadeapi.get_blinding_key(blinding_test['script'])
-        assert rslt == blinding_test['expected_blinding_key']
+        # ... and maybe blinding key tests ...
+        for blinding_test in ga_msig.get('blinding_key_tests', []):
+            rslt = jadeapi.get_blinding_key(blinding_test['script'])
+            assert rslt == blinding_test['expected_blinding_key']
 
-        rslt = jadeapi.get_shared_nonce(blinding_test['script'],
-                                        blinding_test['their_pubkey'])
-        assert rslt == blinding_test['expected_shared_nonce']
+            rslt = jadeapi.get_shared_nonce(blinding_test['script'],
+                                            blinding_test['their_pubkey'])
+            assert rslt == blinding_test['expected_shared_nonce']
 
-        rslt = jadeapi.get_shared_nonce(blinding_test['script'],
-                                        blinding_test['their_pubkey'],
-                                        include_pubkey=True)
-        assert rslt['blinding_key'] == blinding_test['expected_blinding_key']
-        assert rslt['shared_nonce'] == blinding_test['expected_shared_nonce']
+            rslt = jadeapi.get_shared_nonce(blinding_test['script'],
+                                            blinding_test['their_pubkey'],
+                                            include_pubkey=True)
+            assert rslt['blinding_key'] == blinding_test['expected_blinding_key']
+            assert rslt['shared_nonce'] == blinding_test['expected_shared_nonce']
 
-    # ... and blinding/commitments tests!
-    for blinding_test in ga_msig.get('commitments_tests', []):
-        for bf_type, rslt_key in [('ASSET', 'abf'), ('VALUE', 'vbf')]:
-            rslt = jadeapi.get_blinding_factor(blinding_test['hash_prevouts'],
-                                               blinding_test['output_index'],
-                                               bf_type)
-            assert rslt == blinding_test[rslt_key]
+        # ... and blinding/commitments tests!
+        for blinding_test in ga_msig.get('commitments_tests', []):
+            for bf_type, rslt_key in [('ASSET', 'abf'), ('VALUE', 'vbf')]:
+                rslt = jadeapi.get_blinding_factor(blinding_test['hash_prevouts'],
+                                                   blinding_test['output_index'],
+                                                   bf_type)
+                assert rslt == blinding_test[rslt_key]
 
-        rslt = jadeapi.get_commitments(blinding_test['asset_id'],
-                                       blinding_test['value'],
-                                       blinding_test['hash_prevouts'],
-                                       blinding_test['output_index'],
-                                       multisig_name=inputdata['multisig_name'])
-        assert rslt['abf'] == blinding_test['abf']
-        assert rslt['vbf'] == blinding_test['vbf']
-        assert rslt['asset_generator'] == blinding_test['asset_generator']
-        assert rslt['value_commitment'] == blinding_test['value_commitment']
+            rslt = jadeapi.get_commitments(blinding_test['asset_id'],
+                                           blinding_test['value'],
+                                           blinding_test['hash_prevouts'],
+                                           blinding_test['output_index'],
+                                           multisig_name=inputdata['multisig_name'])
+            assert rslt['abf'] == blinding_test['abf']
+            assert rslt['vbf'] == blinding_test['vbf']
+            assert rslt['asset_generator'] == blinding_test['asset_generator']
+            assert rslt['value_commitment'] == blinding_test['value_commitment']
 
 
 def test_generic_multisig_matches_ga_signatures(jadeapi):
