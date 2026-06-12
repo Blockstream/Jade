@@ -38,11 +38,13 @@ void sign_attestation_and_send_reply(jade_process_t* process, const uint8_t* cha
     // Compute the signature and send back to caller
     size_t pem_written = 0;
     attestation_reply_t output;
+    output.ext_signature_len = 0;
     if (!attestation_sign_challenge(challenge, challenge_len, output.signature, sizeof(output.signature),
             output.pubkey_pem, sizeof(output.pubkey_pem), &pem_written, output.ext_signature,
             sizeof(output.ext_signature), &output.ext_signature_len)
         || !pem_written || !output.ext_signature_len) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to sign attestation");
+        return;
     }
 
     // Reply with pubkey and signatures
