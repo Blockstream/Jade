@@ -163,6 +163,9 @@ def _read_json_file(filename):
 # Helper to read json test files into a list
 def _get_test_cases(pattern, allow_sampling=True):
     filenames = [f for f in glob.glob('./test_data/' + pattern)]
+    if args.json_filter:
+        allowed_filenames = glob.glob('./test_data/' + args.json_filter)
+        filenames = [f for f in filenames if f in allowed_filenames]
     if allow_sampling and filenames and args.sample_percent != 100:
         # Test only args.sample_percent percentage of the files, but
         # test all files if there are only a small number of them
@@ -3229,7 +3232,7 @@ def test_generic_multisig_registration(jadeapi):
 
     # Ensure the 1of1 is registered at the end - same name will be used to overwrite
     # any large test cases (eg. nof15) that otherwise consume all the storage space.
-    for multisig_data in _get_test_cases('test_data/multisig_reg_1of1.json'):
+    for multisig_data in _get_test_cases('multisig_reg_1of1.json'):
         inputdata = multisig_data['input']
         descriptor = inputdata['descriptor']
         rslt = jadeapi.register_multisig(inputdata['network'],
@@ -3295,7 +3298,10 @@ def test_generic_multisig_matches_ga_addresses(jadeapi):
     # This test checks that the generic multisig wallets 'matches_ga', do...
     # ie. if I use the standard ga receive-address, I get the same result as
     # that using 'generic multisig' (as the co-signers are set-up to match green)
-    matching_ga_msigs = _get_test_cases('multisig_reg_*matches_ga_*.json')
+    matching_ga_msigs = list(_get_test_cases('multisig_reg_*matches_ga_*.json'))
+    if not matching_ga_msigs:
+        return
+
     for ga_msig in matching_ga_msigs:
         inputdata = ga_msig['input']
         signers = inputdata['descriptor']['signers']
@@ -3545,7 +3551,11 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
 
 def test_sign_identity(jadeapi):
 
-    ecdh_nist_cpty = list(_get_test_cases('identity_ssh_nist_matches_trezor.json'))[0]
+    ecdh_nist_cptys = list(_get_test_cases('identity_ssh_nist_matches_trezor.json'))
+    if not args.json_filter:
+        assert len(ecdh_nist_cptys) == 1
+    ecdh_nist_cpty = ecdh_nist_cptys[0] if ecdh_nist_cptys else None
+
     for identity_data in _get_test_cases(SIGN_IDENTITY_TESTS):
         inputdata = identity_data['input']
         expected = identity_data['expected_output']
@@ -3568,6 +3578,8 @@ def test_sign_identity(jadeapi):
 
         # Symmetry test for ecdh 'shared key'
         # Note the 3rd param is the 'other party public key' (slip-0017)
+        if not ecdh_nist_cpty:
+            continue
         assert ecdh_nist_cpty['input']['curve'] == inputdata['curve']
         ecdhA = jadeapi.get_identity_shared_key(inputdata['identity'],
                                                 inputdata['curve'],
@@ -3828,28 +3840,33 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
     has_ble = startinfo['JADE_CONFIG'] == 'BLE'
 
-    # Test update pinserver details
-    test_set_pinserver(jadeapi)
+    if not args.json_filter:
+        # Test update pinserver details
+        test_set_pinserver(jadeapi)
 
-    # Test BIP85 entropy
-    test_bip85_bip39_encrypted_entropy(jadeapi)
-    test_bip85_rsa_encrypted_entropy(jadeapi)
-    test_bip85_rsa_pubkey(jadeapi)
-    test_bip85_rsa_signing(jadeapi)
+        # Test BIP85 entropy
+        test_bip85_bip39_encrypted_entropy(jadeapi)
+        test_bip85_rsa_encrypted_entropy(jadeapi)
+        test_bip85_rsa_pubkey(jadeapi)
+        test_bip85_rsa_signing(jadeapi)
 
     # Test generic multisig
     test_generic_multisig_registration(jadeapi)
     test_generic_multisig_matches_ga_addresses(jadeapi)
-    test_generic_multisig_matches_ga_signatures(jadeapi)
-    test_generic_multisig_matches_ga_signatures_liquid(jadeapi)
+    if not args.json_filter:
+        test_generic_multisig_matches_ga_signatures(jadeapi)
+        test_generic_multisig_matches_ga_signatures_liquid(jadeapi)
     test_generic_multisig_files(jadeapi)
 
     # Test descriptor wallets
     test_miniscript_descriptor_registration(jadeapi, DESCRIPTOR_REG_TESTS)
 
-    # Get (receive) green-addresses, get-xpub, and sign-message
-    test_get_greenaddress_receive_address(jadeapi)
-    test_get_xpubs(jadeapi)
+    if not args.json_filter:
+        # Get (receive) green-addresses, get-xpub, and sign-message
+        test_get_greenaddress_receive_address(jadeapi)
+        test_get_xpubs(jadeapi)
+
+    # Test message signing
     test_sign_message(jadeapi)
     test_sign_message_file(jadeapi)
 
@@ -3857,17 +3874,21 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     test_sign_tx(jadeapi, SIGN_TXN_TESTS, has_psram)
     test_sign_tx(jadeapi, SIGN_TXN_FAIL_CASES, has_psram)
 
-    # Test liquid blinding keys/nonce, blinded commitments and sign-tx
-    test_liquid_blinding_keys(jadeapi)
-    test_liquid_blinded_commitments(jadeapi)
+    if not args.json_filter:
+        # Test liquid blinding keys/nonce, blinded commitments and sign-tx
+        test_liquid_blinding_keys(jadeapi)
+        test_liquid_blinded_commitments(jadeapi)
+
+    # Sign Tx for Liquid Network
     test_sign_tx(jadeapi, SIGN_LIQUID_TXN_TESTS, has_psram)
 
     # Test sign psbts (app-generated cases)
     test_sign_psbt(jadeapi, SIGN_PSBT_TESTS, has_psram)
     test_sign_psbt(jadeapi, SIGN_PSET_TESTS, has_psram)
 
-    # Short sanity-test of 12-word mnemonic
-    test_12word_mnemonic(jadeapi)
+    if not args.json_filter:
+        # Short sanity-test of 12-word mnemonic
+        test_12word_mnemonic(jadeapi)
 
     # Sign single sig
     # Single sig requires a different seed for the tests
@@ -3882,7 +3903,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     # Test the descriptor wallets again, using a second signer
     test_miniscript_descriptor_registration(jadeapi, DESCRIPTOR_REG_SS_TESTS)
 
-    test_get_singlesig_receive_address(jadeapi)
+    if not args.json_filter:
+        test_get_singlesig_receive_address(jadeapi)
 
     # Push the singlesig test mnemonic for tests which use it
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_SINGLE_SIG)
@@ -3908,11 +3930,12 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     test_sign_identity(jadeapi)
 
-    # Test OTP (hotp and totp)
-    # (These don't depend on the wallet/mnemonic, just that the hw is unlocked)
-    test_hotp(jadeapi)
-    test_totp(jadeapi)
-    test_totp_ex(jadeapi)
+    if not args.json_filter:
+        # Test OTP (hotp and totp)
+        # (These don't depend on the wallet/mnemonic, just that the hw is unlocked)
+        test_hotp(jadeapi)
+        test_totp(jadeapi)
+        test_totp_ex(jadeapi)
 
     # restore the mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
@@ -4033,6 +4056,10 @@ def run_interface_tests(jadeapi,
 # Run all selected tests over a passed JadeAPI instance.
 def run_jade_tests(jadeapi, isble):
     logger.info(f'Running selected Jade tests over passed connection, is_ble={isble}')
+
+    if args.json_filter:
+        run_api_tests(jadeapi, isble, args.qemu, authuser=args.authuser)
+        return
 
     # Low-level JadeInterface tests
     if not args.skiplow:
@@ -4321,6 +4348,11 @@ if __name__ == '__main__':
                         type=int,
                         help="Run only a random sample of test cases",
                         default=100)
+    parser.add_argument('--json-filter',
+                        action='store',
+                        dest='json_filter',
+                        help='Run only cases matching this glob under ./test_data/',
+                        default=None)
     parser.add_argument('--log',
                         action='store',
                         dest='loglevel',
@@ -4329,6 +4361,9 @@ if __name__ == '__main__':
                         default='INFO')
 
     args = parser.parse_args()
+    if args.json_filter:
+        args.skiplow = True
+        args.skiphigh = True
     jadehandler.setLevel(getattr(logging, args.loglevel))
     logger.debug(f'args: {args}')
 
