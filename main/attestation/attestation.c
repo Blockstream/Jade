@@ -596,7 +596,7 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
     err = esp_efuse_write_field_bit(ESP_EFUSE_WR_DIS_RD_DIS);
     if (err != ESP_OK) {
         JADE_LOGE("Failed to burn disable-read-protection single-bit efuse");
-        return false;
+        goto cleanup;
     }
 #endif
 
