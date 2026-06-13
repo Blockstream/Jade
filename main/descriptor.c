@@ -661,7 +661,7 @@ bool descriptor_from_bytes(const uint8_t* bytes, const size_t bytes_len, descrip
 
     // Descriptor script
     memcpy(&descriptor->script_len, read_ptr, sizeof(descriptor->script_len));
-    if (descriptor->script_len > sizeof(descriptor->script)) {
+    if (descriptor->script_len >= sizeof(descriptor->script)) {
         JADE_LOGE("Bad script_len stored registered descriptor data");
         return false;
     }
@@ -672,13 +672,17 @@ bool descriptor_from_bytes(const uint8_t* bytes, const size_t bytes_len, descrip
 
     // Any data values
     memcpy(&descriptor->num_values, read_ptr, sizeof(descriptor->num_values));
+    if (descriptor->num_values > MAX_ALLOWED_SIGNERS) {
+        JADE_LOGE("Bad num_values in stored registered descriptor data");
+        return false;
+    }
     read_ptr += sizeof(descriptor->num_values);
 
     for (uint8_t i = 0; i < descriptor->num_values; ++i) {
         string_value_t* const map_entry = descriptor->values + i;
 
         memcpy(&map_entry->key_len, read_ptr, sizeof(map_entry->key_len));
-        if (map_entry->key_len > sizeof(map_entry->key)) {
+        if (map_entry->key_len >= sizeof(map_entry->key)) {
             JADE_LOGE("Bad key_len stored registered descriptor data");
             return false;
         }
@@ -688,7 +692,7 @@ bool descriptor_from_bytes(const uint8_t* bytes, const size_t bytes_len, descrip
         read_ptr += map_entry->key_len;
 
         memcpy(&map_entry->value_len, read_ptr, sizeof(map_entry->value_len));
-        if (map_entry->value_len > sizeof(map_entry->value)) {
+        if (map_entry->value_len >= sizeof(map_entry->value)) {
             JADE_LOGE("Bad value_len stored registered descriptor data");
             return false;
         }
