@@ -242,7 +242,10 @@ bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_d
     bool flipped_change_element = false;
     if (!all_paths_as_expected) {
         bool unused;
-        multisig_validate_paths(!is_change, &all_signer_paths, &flipped_change_element, &unused);
+        if (!multisig_validate_paths(!is_change, &all_signer_paths, &flipped_change_element, &unused)) {
+            *errmsg = "Expected a valid change or non-change signer path";
+            return false;
+        }
     }
 
     // If paths not as expected show a warning message and ask the user to confirm

@@ -396,6 +396,8 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
         || !output->num_xpubs || output->num_xpubs > MAX_ALLOWED_SIGNERS
         || (output->master_blinding_key_len && output->master_blinding_key_len != MULTISIG_MASTER_BLINDING_KEY_SIZE)) {
         *errmsg = "Multisig wallet data invalid";
+        free(registration);
+        return false;
     }
 
     free(registration);
