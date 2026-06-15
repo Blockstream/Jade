@@ -243,7 +243,7 @@ void display_init(TaskHandle_t* gui_h)
 #endif
     JADE_ASSERT(!*gui_h);
 
-    power_screen_on();
+    JADE_ASSERT(power_screen_on() == ESP_OK);
     vTaskDelay(100 / portTICK_PERIOD_MS);
 
 #if defined(CONFIG_ETH_USE_OPENETH)
