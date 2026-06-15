@@ -128,6 +128,7 @@ void register_otp_process(void* process_ptr)
         JADE_LOGE("No wallet seed available.  Wallet must be re-initialised from mnemonic.");
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Feature requires resetting Jade");
         await_error("Feature requires Jade reset");
+        goto cleanup;
     }
 
     // Validate and persist the new otp uri
