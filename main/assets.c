@@ -168,8 +168,9 @@ bool assets_get_allocate(const char* field, const CborValue* value, asset_info_t
                 rpc_get_string_ptr("domain", &entity, &asset->issuer_domain, &asset->issuer_domain_len);
             }
 
+            // "precision" field is optional in the asset contract and defaults to 0
             size_t precision = 0;
-            rpc_get_sizet("precision", &contract, &precision);
+            IGNORE_RESULT(rpc_get_sizet("precision", &contract, &precision));
             asset->precision = precision;
         }
 
