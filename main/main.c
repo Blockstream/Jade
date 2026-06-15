@@ -116,7 +116,7 @@ static void validate_running_image(void)
 {
     // Populate chip info struct and mac-id
     esp_chip_info(&chip_info);
-    esp_efuse_mac_get_default(macid);
+    JADE_ASSERT(esp_efuse_mac_get_default(macid) == ESP_OK);
 
     // Check running partition/fw image
     const esp_partition_t* running = esp_ota_get_running_partition();
