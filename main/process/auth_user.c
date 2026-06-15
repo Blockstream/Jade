@@ -269,10 +269,12 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
                 } else {
                     JADE_LOGE("Failed to re-encrypt with changed PIN data");
                     await_error("Failed to re-encrypt key data!");
+                    goto cleanup;
                 }
             } else {
                 JADE_LOGW("Abandoned change-PIN");
                 await_error("Change-PIN abandoned");
+                goto cleanup;
             }
             SENSITIVE_POP(aeskey_new);
         }
