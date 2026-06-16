@@ -93,6 +93,7 @@ void debug_handshake(void* process_ptr)
         JADE_LOGE("Failed to store key data encrypted in flash memory!");
         jade_process_reject_message(
             process, CBOR_RPC_INTERNAL_ERROR, "Failed to store key data encrypted in flash memory");
+        goto cleanup;
     }
 
     JADE_ASSERT(keychain_has_pin());
