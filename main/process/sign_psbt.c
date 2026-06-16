@@ -742,6 +742,7 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
             network_to_genesis_hash(network_id, genesis, sizeof(genesis));
             if (memcmp(psbt->genesis_blockhash, genesis, sizeof(genesis))) {
                 *errmsg = "Network/pset genesis mismatch";
+                return CBOR_RPC_BAD_PARAMETERS;
             }
         }
     }
