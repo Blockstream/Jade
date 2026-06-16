@@ -414,8 +414,10 @@ bool descriptor_get_signers(const char* name, const descriptor_data_t* descripto
             *errmsg = "Failed to get child path string";
             goto cleanup;
         }
+        const size_t child_path_len = strlen(str);
+        JADE_ASSERT(child_path_len < sizeof(signer->path_str));
         strcpy(signer->path_str, str);
-        signer->path_len = strlen(str);
+        signer->path_len = child_path_len;
         signer->path_is_string = true;
         JADE_WALLY_VERIFY(wally_free_string(str));
     }
