@@ -469,6 +469,8 @@ void libjade_stop(void)
     serial_out = NULL;
     vRingbufferDelete(internal_out);
     internal_out = NULL;
+    // clear keychain
+    keychain_clear();
 }
 
 static uint8_t _libjade_serial_data_in[MAX_INPUT_MSG_SIZE + 1] = { 0 };
