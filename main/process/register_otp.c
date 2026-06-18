@@ -355,7 +355,7 @@ int register_otp_string(const char* otp_uri, const size_t uri_len, const char** 
 
     // Check keychain has seed data
     if (keychain_get()->seed_len == 0) {
-        JADE_LOGE("No wallet seed available.  Wallet must be re-initialised from mnemonic.");
+        JADE_LOGE("No wallet seed available"); // Wallet must be re-initialised from mnemonic
         *errmsg = "No wallet seed available";
         await_error("Feature requires Jade wallet");
         return CBOR_RPC_INTERNAL_ERROR;
@@ -365,13 +365,17 @@ int register_otp_string(const char* otp_uri, const size_t uri_len, const char** 
     char otp_name[OTP_MAX_NAME_LEN] = { 0 };
     if (otp_ctx.issuer_len) {
         // If have issuer, prefill otp_name with urldecoded version (truncates to fit if too long)
-        urldecode(otp_ctx.issuer, otp_ctx.issuer_len, otp_name, sizeof(otp_name));
+        if (!urldecode(otp_ctx.issuer, otp_ctx.issuer_len, otp_name, sizeof(otp_name))) {
+            JADE_LOGE("Failed to decode otp issuer");
+            *errmsg = "Failed to decode otp issuer";
+            return CBOR_RPC_BAD_PARAMETERS;
+        }
         // Ensure prefilled name is valid to use as storage key (eg. strip out any invalid chars)
         storage_key_name_make_valid(otp_name);
     }
     if (!get_otp_data_from_kb(otp_name, sizeof(otp_name), NULL, 0, NULL)) {
         // User abandoned
-        JADE_LOGW("User abandoned (entering otp name)");
+        JADE_LOGW("User abandoned entering otp name");
         *errmsg = "User abandoned entering otp name";
         return CBOR_RPC_USER_CANCELLED;
     }

@@ -76,7 +76,7 @@ static gui_activity_t* make_otp_details_activities(const otpauth_ctx_t* ctx, con
 
     if (ctx->label && ctx->label_len) {
         // urldecode the label string - use font with no messed-with characters
-        urldecode(ctx->label, ctx->label_len, display_str, sizeof(display_str));
+        JADE_ASSERT(urldecode(ctx->label, ctx->label_len, display_str, sizeof(display_str)));
     } else {
         const int ret = snprintf(display_str, sizeof(display_str), "<None>");
         JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
@@ -98,7 +98,7 @@ static gui_activity_t* make_otp_details_activities(const otpauth_ctx_t* ctx, con
 
     if (ctx->issuer && ctx->issuer_len) {
         // urldecode the issuer string - use font with no messed-with characters
-        urldecode(ctx->issuer, ctx->issuer_len, display_str, sizeof(display_str));
+        JADE_ASSERT(urldecode(ctx->issuer, ctx->issuer_len, display_str, sizeof(display_str)));
     } else {
         const int ret = snprintf(display_str, sizeof(display_str), "<None>");
         JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
