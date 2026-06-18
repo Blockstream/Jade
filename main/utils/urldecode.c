@@ -45,12 +45,10 @@ bool urldecode(const char* src, const size_t src_len, char* dest, const size_t d
             return false;
         }
 
-        const unsigned char c1 = src[1];
-        const unsigned char c2 = src[2];
-
-        if ((*src == '%') && (src < src_end - 2) && isxdigit(c1) && isxdigit(c2)) {
+        if ((*src == '%') && (src_end - src > 2) && isxdigit((unsigned char)src[1])
+            && isxdigit((unsigned char)src[2])) {
             // Encoded hex character
-            *dest++ = (16 * map_char(c1)) + map_char(c2);
+            *dest++ = (16 * map_char(src[1])) + map_char(src[2]);
             src += 3;
         } else if (*src == '+') {
             // Encoded <space>
@@ -81,7 +79,7 @@ bool urlencode(const char* src, const size_t src_len, char* dest, const size_t d
     const char* dest_end = dest + dest_len;
 
     while (src < src_end) {
-        if (dest > dest_end - 2) {
+        if (dest_end - dest < 2) {
             // Destination insufficient - need at least 1 char for encoding and 1 for nul-terminator.
             // Truncate (terminate) here and return false.
             *dest = '\0';
@@ -96,7 +94,7 @@ bool urlencode(const char* src, const size_t src_len, char* dest, const size_t d
             *dest++ = '+';
             ++src;
         } else {
-            if (dest > dest_end - 4) {
+            if (dest_end - dest < 4) {
                 // Destination insufficient - need 3 chars for encoding and 1 for nul-terminator.
                 // Truncate (terminate) here and return false.
                 *dest = '\0';
