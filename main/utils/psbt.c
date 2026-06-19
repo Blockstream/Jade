@@ -100,7 +100,7 @@ static bool key_iter_get_green_2of3_recovery_key(const key_iter* iter, const str
     const size_t start_idx = 1; // Ignore the Green server key at key index 0
     for (size_t index = start_idx; index < keypaths->num_items; ++index) {
         size_t path_len = 0;
-        int ret = wally_map_keypath_get_item_path(keypaths, index, path, sizeof(path), &path_len);
+        int ret = wally_map_keypath_get_item_path(keypaths, index, path, sizeof(path) / sizeof(path[0]), &path_len);
         JADE_WALLY_VERIFY(ret);
         uint32_t subaccount = 0;
         if (!is_potential_green_user_path(path, path_len, &subaccount) || subaccount != server_subaccount) {
@@ -137,7 +137,7 @@ bool key_iter_next(key_iter* iter)
             // Didn't match any of the 3 keys present: check Green 2of3 parent recovery key
             size_t path_len = 0;
             uint32_t path[MAX_GASERVICE_PATH_LEN];
-            ret = wally_map_keypath_get_item_path(keypaths, 0, path, sizeof(path), &path_len);
+            ret = wally_map_keypath_get_item_path(keypaths, 0, path, sizeof(path) / sizeof(path[0]), &path_len);
             JADE_WALLY_VERIFY(ret);
             uint32_t server_subaccount = 0;
             if (is_potential_green_server_path(path, path_len, &server_subaccount) && server_subaccount != 0) {
