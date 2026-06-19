@@ -75,6 +75,19 @@ static inline bool string_all(const char* s, int (*fntest)(int))
     return true;
 }
 
+static inline bool string_n_all(const char* s, size_t len, int (*fntest)(int))
+{
+    JADE_ASSERT(s);
+    JADE_ASSERT(fntest);
+
+    while (len--) {
+        if (!fntest(*s++)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static inline void map_string(char* s, int (*fnmap)(int))
 {
     JADE_ASSERT(s);

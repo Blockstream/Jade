@@ -1,10 +1,13 @@
 #ifndef AMALGAMATED_BUILD
+#include <ctype.h>
+
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
 #include "../keychain.h"
 #include "../process.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/util.h"
 
 #include "../button_events.h"
 
@@ -54,6 +57,12 @@ void sign_identity_process(void* process_ptr)
     size_t index = 0;
     if (!params_identity_curve_index(&params, &identity, &identity_len, &curve, &curve_len, &index, &errmsg)) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
+        goto cleanup;
+    }
+
+    // Identity must be a string of printable characters
+    if (!string_n_all(identity, identity_len, isprint)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid identity string");
         goto cleanup;
     }
 
