@@ -55,8 +55,6 @@ static inline void draw_bitmap(int x, int y, int w, int h, const uint16_t* color
 #if defined(CONFIG_HAS_CAMERA)
     qemu_draw_bitmap(x, y, w, h, color_data);
 #endif
-#elif defined(CONFIG_LIBJADE)
-    display_libjade_draw_bitmap(x, y, w, h, color_data);
 #else
     display_hw_draw_bitmap(x, y, w, h, color_data);
 #if BUF_N > 1

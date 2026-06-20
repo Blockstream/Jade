@@ -5,9 +5,6 @@
 void display_hw_init(TaskHandle_t* gui_handle);
 bool display_hw_flip_orientation(bool flipped_orientation);
 void display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* color_data);
-#ifdef CONFIG_LIBJADE
-void display_libjade_draw_bitmap(int x, int y, int w, int h, const uint16_t* color_data);
-#endif
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
 void display_hw_flush(void);
 void display_hw_draw_rect(int x, int y, int w, int h, const uint16_t color_data);

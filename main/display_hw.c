@@ -318,26 +318,6 @@ inline void display_hw_draw_bitmap(int x, int y, int w, int h, const uint16_t* c
 #endif
 }
 
-#ifdef CONFIG_LIBJADE
-inline void display_libjade_draw_bitmap(int x, int y, int w, int h, const uint16_t* color_data)
-{
-    JADE_ASSERT(color_data);
-    const int calculatedx = x - CONFIG_DISPLAY_OFFSET_X;
-    const int calculatedy = y - CONFIG_DISPLAY_OFFSET_Y;
-
-    // copy one line at the time
-    const int data_stride = w * sizeof(uint16_t);
-    uint16_t* screen_ptr = &disp_buf[calculatedx + calculatedy * CONFIG_DISPLAY_WIDTH];
-    const uint16_t* data_ptr = color_data;
-
-    for (int k = 0; k < h; ++k) {
-        jmemcpy(screen_ptr, data_ptr, data_stride);
-        screen_ptr += CONFIG_DISPLAY_WIDTH;
-        data_ptr += w;
-    }
-}
-#endif
-
 #ifdef CONFIG_DISPLAY_FULL_FRAME_BUFFER
 inline void display_hw_draw_rect(int x, int y, int w, int h, const uint16_t color)
 {
