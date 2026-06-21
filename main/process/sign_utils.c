@@ -516,8 +516,11 @@ bool params_trusted_commitments(
         }
 
         // Populate commitments data for the tx output if present
-        params_commitment_data(&arrayItem, &commitments[i], &tx->outputs[i], &errmsg);
-        if (errmsg) {
+        if (params_commitment_data(&arrayItem, &commitments[i], &tx->outputs[i], &errmsg)) {
+            // Valid output commitments
+            JADE_ASSERT(!errmsg);
+        } else if (errmsg) {
+            // Invalid input commitments (rather than simply not present)
             goto cleanup;
         }
 
