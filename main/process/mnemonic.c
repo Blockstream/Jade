@@ -112,7 +112,7 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
     size_t num_icons = 0;
     const bool show_grid = true;
     const uint8_t expected_grid_size = (qrcode_version == 1) ? 3 : 5;
-    qrcode_toFragmentsIcons(&qrcode, fragment_target_size, show_grid, &icons, &num_icons);
+    JADE_ASSERT(qrcode_toFragmentsIcons(&qrcode, fragment_target_size, show_grid, &icons, &num_icons));
     JADE_ASSERT(num_icons == expected_grid_size * expected_grid_size);
 
     // Show the overview and magnified fragments, and when the user
@@ -201,8 +201,9 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
 
         // Verify QR by scanning it back
         qr_data_t qr_data = { .len = 0 };
-        jade_camera_scan_qr(&qr_data, "Scan QR to verify", QR_GUIDE_SHOW, "blkstrm.com/seedqr");
-        if (qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
+        const bool scan_success
+            = jade_camera_scan_qr(&qr_data, "Scan QR to verify", QR_GUIDE_SHOW, "blkstrm.com/seedqr");
+        if (scan_success && qr_data.len == entropy_len && !memcmp(qr_data.data, entropy, entropy_len)) {
             // QR Code scanned, and it matched expected entropy
             await_message("QR Code Verified");
             *export_qr_verified = true;
