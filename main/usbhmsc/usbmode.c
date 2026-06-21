@@ -16,7 +16,6 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -885,12 +884,12 @@ cleanup:
 // Sign PSBT file, and write updated file back to the usb-storage directory.
 // Accepts binary PSBT or base64-encoded PSBT file as 'xxx.psbt'.
 // After any signatures are added, the file is written in the same format.
-bool usbstorage_sign_psbt(const char* extra_path)
+void usbstorage_sign_psbt(const char* extra_path)
 {
     // extra_path is optional
     const bool is_async = false;
     const usbstorage_action_context_t ctx = { .extra_path = extra_path };
-    return handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
+    handle_usbstorage_action("Sign PSBT", sign_usb_psbt, &ctx, is_async);
 }
 
 static gui_activity_t* make_export_xpub_prompt_activity(void)
@@ -1043,11 +1042,11 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx)
     return true;
 }
 
-bool usbstorage_export_xpub(const char* extra_path)
+void usbstorage_export_xpub(const char* extra_path)
 {
     const bool is_async = false;
     usbstorage_action_context_t ctx = { .extra_path = NULL, .ctx = NULL };
-    return handle_usbstorage_action("Export Xpub", export_usb_xpub_fn, &ctx, is_async);
+    handle_usbstorage_action("Export Xpub", export_usb_xpub_fn, &ctx, is_async);
 }
 
 #endif // AMALGAMATED_BUILD
