@@ -12,8 +12,9 @@ static const char ENTRY_CHARS[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8',
 
 static inline bool entry_invert_navigation(void)
 {
-#if defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY) || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAYS3)
-    // TTGO boards need to locally invert navigation so number entry matches the rest of the UI.
+#if defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY) || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAYS3) \
+    || defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS_2)
+    // These boards need to locally invert navigation so number entry matches the rest of the UI.
     return true;
 #else
     return false;
