@@ -195,7 +195,7 @@ static bool validate_additional_info(const struct wally_tx* tx, const TxType_t t
     return true;
 }
 
-TxType_t params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
+bool params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
     bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums,
     const char** errmsg)
 {

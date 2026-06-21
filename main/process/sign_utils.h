@@ -25,7 +25,7 @@ bool params_txn_validate(network_t network_id, bool for_liquid, const struct wal
 bool params_trusted_commitments(
     jade_process_t* process, const CborValue* params, const struct wally_tx* tx, commitment_t** data);
 
-TxType_t params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
+bool params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
     bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums,
     const char** errmsg);
 
