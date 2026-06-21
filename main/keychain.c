@@ -257,8 +257,8 @@ const struct ext_key* keychain_cached_service(const struct ext_key* const servic
 
     // Recompute cached values if service mismatch
     if (service != keychain_data->cached_service) {
-        wallet_get_gaservice_root_key(service, false, &keychain_data->cached_gaservice_main_root);
-        wallet_get_gaservice_root_key(service, true, &keychain_data->cached_gaservice_subact_root);
+        JADE_ASSERT(wallet_get_gaservice_root_key(service, false, &keychain_data->cached_gaservice_main_root));
+        JADE_ASSERT(wallet_get_gaservice_root_key(service, true, &keychain_data->cached_gaservice_subact_root));
         keychain_data->cached_service = service;
     }
 
@@ -307,7 +307,7 @@ void keychain_derive_from_seed(const uint8_t* seed, const size_t seed_len, keych
         wally_asset_blinding_key_from_seed(seed, seed_len, keydata->master_unblinding_key, HMAC_SHA512_LEN));
 
     // Compute and cache the path the GA server will use to sign
-    wallet_calculate_gaservice_path(&keydata->xpriv, keydata->gaservice_path, GASERVICE_PATH_LEN);
+    JADE_ASSERT(wallet_calculate_gaservice_path(&keydata->xpriv, keydata->gaservice_path, GASERVICE_PATH_LEN));
 
     // Ensure cached green-multisig service path roots are unset
     keydata->cached_service = NULL;
