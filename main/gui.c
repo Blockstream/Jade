@@ -1722,6 +1722,18 @@ void gui_update_icon(gui_view_node_t* node, const Icon icon, const bool repaint_
     }
 }
 
+// Takes the gui_mutex and nulls the picture pointer without repainting.
+// Use this to safely detach a Picture whose backing data is about to be freed.
+void gui_clear_picture(gui_view_node_t* node)
+{
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == PICTURE);
+
+    JADE_SEMAPHORE_TAKE(gui_mutex);
+    node->picture->picture = NULL;
+    JADE_SEMAPHORE_GIVE(gui_mutex);
+}
+
 // Takes the gui_mutex, updates the picture, and then only draws the
 // updated item if it is part of the 'current activity'.
 void gui_update_picture(gui_view_node_t* node, const Picture* picture, const bool repaint_parent)
