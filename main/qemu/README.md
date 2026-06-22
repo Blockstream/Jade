@@ -3,11 +3,11 @@ Run the following:
 ```docker build . -t local_jade```
 
 The above creates the docker image with all the required dependencies. You can also look into fetching instead blockstream/jade_builder with (or see https://hub.docker.com/r/blockstream/jade_builder/tags for recent images)
-```docker pull blockstream/jade_builder@sha256:13692d96d78221de3a67d4bd4587c97c58bfa5eab16a9c72cb6d10529e1d3ebb```
+```docker pull blockstream/jade_builder@sha256:8b739db85b6b99664db0e3ece57cddfa4e0fee4101a20ca930c391273f21e2f9```
 
 You can then tag this as local_jade with
 
-```docker tag blockstream/jade_builder@sha256:13692d96d78221de3a67d4bd4587c97c58bfa5eab16a9c72cb6d10529e1d3ebb local_jade```
+```docker tag blockstream/jade_builder@sha256:8b739db85b6b99664db0e3ece57cddfa4e0fee4101a20ca930c391273f21e2f9 local_jade```
 
 At this point we are ready to build and run Jade in qemu with the following:
 
