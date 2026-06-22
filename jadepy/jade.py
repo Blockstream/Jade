@@ -2335,6 +2335,15 @@ class JadeInterface:
         # logger.debug(f'Received: {len(bytes_)} bytes')
         return bytes_
 
+    def readable(self):
+        return True  # Act like a file-like object
+
+    def writable(self):
+        return True  # Act like a file-like object
+
+    def seekable(self):
+        return False  # Act like a file-like object
+
     def read_cbor_message(self):
         """
         Try to read a single cbor (response) message from the underlying interface.
