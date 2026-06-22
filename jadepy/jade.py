@@ -2069,6 +2069,8 @@ class JadeInterface:
     def __init__(self, impl):
         assert impl is not None
         self.impl = impl
+        # Support older cbor2 versions that return EOFError
+        self.EOFError = getattr(cbor, 'CBORDecodeEOF', EOFError)
 
     def __enter__(self):
         self.connect()
@@ -2358,7 +2360,7 @@ class JadeInterface:
         """
         while True:
             # 'self' is sufficiently 'file-like' to act as a load source.
-            # Throws EOFError on end of stream/timeout/lost-connection etc.
+            # Throws self.EOFError on end of stream/timeout/lost-connection etc.
             message = cbor.load(self)
 
             if isinstance(message, collections.abc.Mapping):
@@ -2415,7 +2417,7 @@ class JadeInterface:
         while True:
             try:
                 return self.read_cbor_message()
-            except EOFError as _:
+            except self.EOFError as _:
                 if not long_timeout:
                     raise
 
