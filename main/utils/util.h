@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "jade_assert.h"
+#include "../jade_assert.h"
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
 #include <dsps_mem.h>
@@ -112,10 +112,10 @@ void split_text(
     const char* src, size_t len, size_t wordlen, char* output, size_t output_len, size_t* num_words, size_t* written);
 
 // Parse a uint64 from a string. Allows leading zeros but no non-digit chars
-bool parse_uint64(const char* str, size_t str_len, uint64_t* value_out);
+WARN_UNUSED_RESULT bool parse_uint64(const char* str, size_t str_len, uint64_t* value_out);
 
 // As for parse_uint64 but for 32 bit integers
-bool parse_uint32(const char* str, size_t str_len, uint32_t* value_out);
+WARN_UNUSED_RESULT bool parse_uint32(const char* str, size_t str_len, uint32_t* value_out);
 
 // Bip32 path utils
 #define BIP32_MAX_CHILD_INDEX 0x7fffffff
@@ -144,6 +144,7 @@ bool is_potential_green_server_path(const uint32_t* path, size_t path_len, uint3
 // Helper function to convert a base32 string to binary, returns 0 on failure
 size_t base32_to_bin(const char* b32_str, size_t b32_str_len, uint8_t* bin, size_t bin_len);
 // Helper function to convert binary data to a base32 string, padding optional
-bool bin_to_base32(const uint8_t* bin, size_t bin_len, char* b32_str, size_t b32_str_len, bool use_padding);
+WARN_UNUSED_RESULT bool bin_to_base32(
+    const uint8_t* bin, size_t bin_len, char* b32_str, size_t b32_str_len, bool use_padding);
 
 #endif /* UTIL_H_ */

@@ -1,6 +1,7 @@
 #ifndef SIGN_UTILS_H_
 #define SIGN_UTILS_H_
 
+#include "../jade_assert.h"
 #include "process_utils.h"
 
 typedef enum { TXTYPE_SEND_PAYMENT, TXTYPE_SWAP } TxType_t;
@@ -19,31 +20,31 @@ typedef struct _asset_summary {
     uint64_t validated_value;
 } asset_summary_t;
 
-bool params_txn_validate(network_t network_id, bool for_liquid, const struct wally_tx* const tx, uint64_t* explicit_fee,
-    const char** errmsg);
+WARN_UNUSED_RESULT bool params_txn_validate(network_t network_id, bool for_liquid, const struct wally_tx* const tx,
+    uint64_t* explicit_fee, const char** errmsg);
 
-bool params_trusted_commitments(
+WARN_UNUSED_RESULT bool params_trusted_commitments(
     jade_process_t* process, const CborValue* params, const struct wally_tx* tx, commitment_t** data);
 
-bool params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx, TxType_t* txtype,
-    bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums, size_t* num_out_sums,
-    const char** errmsg);
+WARN_UNUSED_RESULT bool params_additional_info(jade_process_t* process, CborValue* params, const struct wally_tx* tx,
+    TxType_t* txtype, bool* is_partial, asset_summary_t** in_sums, size_t* num_in_sums, asset_summary_t** out_sums,
+    size_t* num_out_sums, const char** errmsg);
 
 // Returns true if commitments are present and validated correctly.
 // Returns false otherwise, with errmsg set if an error occurred, or
 // NULL if no commitment data was present.
-bool params_commitment_data(
+WARN_UNUSED_RESULT bool params_commitment_data(
     CborValue* item, commitment_t* commitment, const struct wally_tx_output* const txout, const char** errmsg);
 
-bool asset_summary_update(
+WARN_UNUSED_RESULT bool asset_summary_update(
     asset_summary_t* sums, size_t num_sums, const uint8_t* asset_id, size_t asset_id_len, uint64_t value);
 
 bool asset_summary_validate(asset_summary_t* sums, size_t num_sums);
 
-bool update_elements_outputs(
+WARN_UNUSED_RESULT bool update_elements_outputs(
     const struct wally_tx* tx, commitment_t* commitments, output_info_t* outinfo, const char** errmsg);
 
-bool validate_elements_outputs(network_t network_id, const struct wally_tx* tx, TxType_t txtype,
+WARN_UNUSED_RESULT bool validate_elements_outputs(network_t network_id, const struct wally_tx* tx, TxType_t txtype,
     const output_info_t* const output_info, asset_summary_t* in_sums, size_t num_in_sums, asset_summary_t* out_sums,
     size_t num_out_sums, const char** errmsg);
 

@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "jade_assert.h"
+
 static inline bool is_identity_protocol_ssh(const char* identity, const size_t identity_len)
 {
     return identity_len > 6 && !memcmp(identity, "ssh://", 6);
@@ -46,13 +48,14 @@ static inline bool is_identity_curve_valid(const char* curve_name, const size_t 
     return is_identity_curve_nist256p1(curve_name, curve_name_len);
 }
 
-bool get_identity_pubkey(const char* identity, size_t identity_len, size_t index, const char* curve, size_t curve_name,
-    const char* type, size_t type_len, uint8_t* pubkey_out, size_t pubkey_out_len);
+WARN_UNUSED_RESULT bool get_identity_pubkey(const char* identity, size_t identity_len, size_t index, const char* curve,
+    size_t curve_name, const char* type, size_t type_len, uint8_t* pubkey_out, size_t pubkey_out_len);
 
-bool get_identity_shared_key(const char* identity, size_t identity_len, size_t index, const char* curve_name,
-    size_t curve_name_len, const uint8_t* their_pubkey, size_t their_pubkey_len, uint8_t* output, size_t output_len);
+WARN_UNUSED_RESULT bool get_identity_shared_key(const char* identity, size_t identity_len, size_t index,
+    const char* curve_name, size_t curve_name_len, const uint8_t* their_pubkey, size_t their_pubkey_len,
+    uint8_t* output, size_t output_len);
 
-bool sign_identity(const char* identity, size_t identity_len, size_t index, const char* curve_name,
+WARN_UNUSED_RESULT bool sign_identity(const char* identity, size_t identity_len, size_t index, const char* curve_name,
     size_t curve_name_len, const uint8_t* challenge_hash, size_t challenge_hash_len, uint8_t* pubkey_out,
     size_t pubkey_out_len, uint8_t* signature_out, size_t signature_out_len);
 

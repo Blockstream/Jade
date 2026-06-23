@@ -3,6 +3,8 @@
 
 #include <esp_event.h>
 
+#include "../jade_assert.h"
+
 #define ESP_NO_EVENT 0xFF
 
 ESP_EVENT_DECLARE_BASE(JADE_EVENT);

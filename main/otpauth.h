@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "jade_assert.h"
+
 #define OTP_MAX_NAME_LEN 16
 #define OTP_MAX_URI_LEN 256
 #define OTP_MAX_TOKEN_LEN 12
@@ -45,13 +47,14 @@ typedef struct otpauth_migrate_decode_ctx {
 
 typedef enum { OTP_ERR_OK, OTP_ERR_TOTP_TIME, OTP_ERR_HOTP_COUNTER } otp_err_t;
 
-bool otp_is_valid(const otpauth_ctx_t* otp_ctx);
+WARN_UNUSED_RESULT bool otp_is_valid(const otpauth_ctx_t* otp_ctx);
 
 // Parse the otp uri into a context object
-bool otp_uri_to_ctx(const char* uri, size_t uri_len, otpauth_ctx_t* otp_ctx);
+WARN_UNUSED_RESULT bool otp_uri_to_ctx(const char* uri, size_t uri_len, otpauth_ctx_t* otp_ctx);
 
 // Parse the otp migrate uri into a context object
-bool otp_migrate_uri_to_ctx(const char* uri, size_t uri_len, size_t max_uris, otpauth_migrate_ctx_t* ctx);
+WARN_UNUSED_RESULT bool otp_migrate_uri_to_ctx(
+    const char* uri, size_t uri_len, size_t max_uris, otpauth_migrate_ctx_t* ctx);
 // Free the context object from parsing (whether successful or not)
 void otp_migrate_uri_to_ctx_free(otpauth_migrate_ctx_t* ctx);
 
@@ -60,11 +63,11 @@ void otp_set_explicit_value(otpauth_ctx_t* otp_ctx, int64_t value);
 otp_err_t otp_set_default_value(otpauth_ctx_t* otp_ctx, uint64_t* value_out);
 
 // Get the auth code for the given context
-bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, size_t token_len);
+WARN_UNUSED_RESULT bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, size_t token_len);
 
 // Functions to deal with uri encryption and persistence
 // NOTE: otp_name must be nul-terminated, uri does not
-bool otp_save_uri(const char* otp_name, const char* uri, size_t uri_len);
-bool otp_load_uri(const char* otp_name, char* uri, size_t uri_len, size_t* written);
+WARN_UNUSED_RESULT bool otp_save_uri(const char* otp_name, const char* uri, size_t uri_len);
+WARN_UNUSED_RESULT bool otp_load_uri(const char* otp_name, char* uri, size_t uri_len, size_t* written);
 
 #endif /* OTPAUTH_H_ */

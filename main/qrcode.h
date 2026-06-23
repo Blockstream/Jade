@@ -43,6 +43,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "jade_assert.h"
+
 // QR Code Format Encoding
 #define MODE_NUMERIC 0
 #define MODE_ALPHANUMERIC 1
@@ -86,7 +88,7 @@ void qrcode_freeIcon(Icon* icon);
 
 // Blockstream added function
 // NOTE: only supports v1 and v2 qrcodes atm.
-bool qrcode_toFragmentsIcons(
+WARN_UNUSED_RESULT bool qrcode_toFragmentsIcons(
     QRCode* qrcode, uint8_t target_size, bool show_grid, Icon** icons_out, size_t* num_icons_out);
 
 #ifdef __cplusplus

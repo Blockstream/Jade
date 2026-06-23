@@ -1,6 +1,7 @@
 #ifndef PROCESS_UTILS_H_
 #define PROCESS_UTILS_H_
 
+#include "../jade_assert.h"
 #include "../keychain.h"
 #include "../process.h"
 #include "../utils/cbor_rpc.h"
@@ -117,29 +118,31 @@ bool check_extended_data_fields(CborValue* params, const char* expected_origid, 
 // Common parameter extraction/handling
 int params_set_epoch_time(CborValue* params, const char** errmsg);
 
-bool params_identity_curve_index(CborValue* params, const char** identity, size_t* identity_len, const char** curve,
-    size_t* curve_len, size_t* index, const char** errmsg);
+WARN_UNUSED_RESULT bool params_identity_curve_index(CborValue* params, const char** identity, size_t* identity_len,
+    const char** curve, size_t* curve_len, size_t* index, const char** errmsg);
 
-bool params_hashprevouts_outputindex(CborValue* params, const uint8_t** hash_prevouts, size_t* hash_prevouts_len,
-    size_t* output_index, const char** errmsg);
+WARN_UNUSED_RESULT bool params_hashprevouts_outputindex(CborValue* params, const uint8_t** hash_prevouts,
+    size_t* hash_prevouts_len, size_t* output_index, const char** errmsg);
 
 typedef struct _descriptor_data descriptor_data_t;
-bool params_load_descriptor(CborValue* params, char* descriptor_name, const size_t descriptor_name_len,
-    descriptor_data_t* descriptor, const char** errmsg);
+WARN_UNUSED_RESULT bool params_load_descriptor(CborValue* params, char* descriptor_name,
+    const size_t descriptor_name_len, descriptor_data_t* descriptor, const char** errmsg);
 
 typedef struct _multisig_data multisig_data_t;
-bool params_load_multisig(CborValue* params, char* multisig_name, size_t multisig_name_len,
+WARN_UNUSED_RESULT bool params_load_multisig(CborValue* params, char* multisig_name, size_t multisig_name_len,
     multisig_data_t* multisig_data, const char** errmsg);
-bool params_multisig_pubkeys(bool is_change, CborValue* params, multisig_data_t* multisig_data, uint8_t* pubkeys,
-    size_t pubkeys_len, size_t* pubkeys_written, char* warningmsg, size_t warningmsg_len, const char** errmsg);
-bool params_get_master_blindingkey(
+WARN_UNUSED_RESULT bool params_multisig_pubkeys(bool is_change, CborValue* params, multisig_data_t* multisig_data,
+    uint8_t* pubkeys, size_t pubkeys_len, size_t* pubkeys_written, char* warningmsg, size_t warningmsg_len,
+    const char** errmsg);
+WARN_UNUSED_RESULT bool params_get_master_blindingkey(
     CborValue* params, uint8_t* master_blinding_key, size_t master_blinding_key_len, const char** errmsg);
 
-bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params, input_data_t* sig_data,
-    const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len, const uint8_t** script, size_t* script_len,
-    script_flavour_t* aggregate_script_flavour, const char** errmsg);
+WARN_UNUSED_RESULT bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* params,
+    input_data_t* sig_data, const uint8_t** ae_host_commitment, size_t* ae_host_commitment_len, const uint8_t** script,
+    size_t* script_len, script_flavour_t* aggregate_script_flavour, const char** errmsg);
 
-bool params_get_bip85_rsa_key(CborValue* params, size_t* key_bits, size_t* index, const char** errmsg);
+WARN_UNUSED_RESULT bool params_get_bip85_rsa_key(
+    CborValue* params, size_t* key_bits, size_t* index, const char** errmsg);
 
 // Track the types of the input prevout scripts
 script_flavour_t get_script_flavour(const uint8_t* script, const size_t script_len, bool* is_p2tr);

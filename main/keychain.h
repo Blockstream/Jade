@@ -1,6 +1,7 @@
 #ifndef KEYCHAIN_H_
 #define KEYCHAIN_H_
 
+#include "jade_assert.h"
 #include "utils/network.h"
 
 #include <stdbool.h>
@@ -57,18 +58,20 @@ bool keychain_is_network_type_consistent(const network_type_t network_type);
 
 // mnemonic returned should be freed by caller with wally_free_string
 void keychain_get_new_mnemonic(char** mnemonic, size_t nwords);
-bool keychain_get_new_privatekey(uint8_t* privatekey, size_t size);
+WARN_UNUSED_RESULT bool keychain_get_new_privatekey(uint8_t* privatekey, size_t size);
 
 bool keychain_has_pin(void);
 uint8_t keychain_pin_attempts_remaining(void);
 void keychain_erase_encrypted(void);
 
 void keychain_derive_from_seed(const uint8_t* seed, size_t seed_len, keychain_t* keydata);
-bool keychain_derive_from_mnemonic(const char* mnemonic, const char* passphrase, keychain_t* keydata);
-bool keychain_complete_derivation_with_passphrase(const char* passphrase);
+WARN_UNUSED_RESULT bool keychain_derive_from_mnemonic(
+    const char* mnemonic, const char* passphrase, keychain_t* keydata);
+WARN_UNUSED_RESULT bool keychain_complete_derivation_with_passphrase(const char* passphrase);
 
-bool keychain_store(const uint8_t* aeskey, size_t aeslen);
-bool keychain_load(const uint8_t* aeskey, size_t aeslen);
-bool keychain_reencrypt(const uint8_t* curr_aeskey, size_t curr_aeslen, const uint8_t* new_aeskey, size_t new_aeslen);
+WARN_UNUSED_RESULT bool keychain_store(const uint8_t* aeskey, size_t aeslen);
+WARN_UNUSED_RESULT bool keychain_load(const uint8_t* aeskey, size_t aeslen);
+WARN_UNUSED_RESULT bool keychain_reencrypt(
+    const uint8_t* curr_aeskey, size_t curr_aeslen, const uint8_t* new_aeskey, size_t new_aeslen);
 
 #endif /* KEYCHAIN_H_ */

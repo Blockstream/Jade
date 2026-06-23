@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "display.h"
+#include "jade_assert.h"
 #include "utils/cbor_rpc.h"
 #include "wallet.h"
 
@@ -24,20 +25,25 @@ extern const char BCUR_TYPE_JADE_BIP8539_REPLY[];
 extern const char BCUR_TYPE_BYTES[];
 
 // Parse BC-UR messages - decodes BC-UR and parses nested CBOR
-bool bcur_parse_bip39_wrapper(const char* bcur, size_t bcur_len, char* mnemonic, size_t mnemonic_len, size_t* written);
-bool bcur_parse_bip39(const uint8_t* cbor, size_t cbor_len, char* mnemonic, size_t mnemonic_len, size_t* written);
-bool bcur_parse_bytes(const uint8_t* cbor, size_t cbor_len, const uint8_t** bytes, size_t* bytes_len);
-bool bcur_parse_psbt(const uint8_t* cbor, size_t cbor_len, struct wally_psbt** psbt_out);
-bool bcur_parse_jade_message(const uint8_t* cbor, size_t cbor_len, CborParser* parser, CborValue* root,
-    const char* expected_method, CborValue* params);
+WARN_UNUSED_RESULT bool bcur_parse_bip39_wrapper(
+    const char* bcur, size_t bcur_len, char* mnemonic, size_t mnemonic_len, size_t* written);
+WARN_UNUSED_RESULT bool bcur_parse_bip39(
+    const uint8_t* cbor, size_t cbor_len, char* mnemonic, size_t mnemonic_len, size_t* written);
+WARN_UNUSED_RESULT bool bcur_parse_bytes(
+    const uint8_t* cbor, size_t cbor_len, const uint8_t** bytes, size_t* bytes_len);
+WARN_UNUSED_RESULT bool bcur_parse_psbt(const uint8_t* cbor, size_t cbor_len, struct wally_psbt** psbt_out);
+WARN_UNUSED_RESULT bool bcur_parse_jade_message(const uint8_t* cbor, size_t cbor_len, CborParser* parser,
+    CborValue* root, const char* expected_method, CborValue* params);
 
 // Build BC-UR CBOR messages
 void bcur_build_cbor_crypto_hdkey(
     const uint32_t* path, size_t path_len, uint8_t* output, size_t output_len, size_t* written);
 void bcur_build_cbor_crypto_account(script_variant_t script_variant, const uint32_t* path, size_t path_len,
     uint8_t* output, size_t output_len, size_t* written);
-bool bcur_build_cbor_bytes(const uint8_t* data, size_t data_len, uint8_t** output, size_t* output_len);
-bool bcur_build_cbor_crypto_psbt(const struct wally_psbt* psbt, uint8_t** output, size_t* output_len);
+WARN_UNUSED_RESULT bool bcur_build_cbor_bytes(
+    const uint8_t* data, size_t data_len, uint8_t** output, size_t* output_len);
+WARN_UNUSED_RESULT bool bcur_build_cbor_crypto_psbt(
+    const struct wally_psbt* psbt, uint8_t** output, size_t* output_len);
 
 // Scan a QR code that may be a BC-UR code/fragment - ie. single-frame or animated/multi-frame.
 // Returns true if a complete (ie. potentially multi-frame) bc-ur code is scanned, or if a single
@@ -48,8 +54,8 @@ bool bcur_build_cbor_crypto_psbt(const struct wally_psbt* psbt, uint8_t** output
 // If not BC-UR, the scanned payload is returned with a type of NULL.
 // In either case the caller takes ownership, and must free the output data bytes and any type string.
 // Returns false if scanning fails or is abandoned - in which case there is nothing to free.
-bool bcur_scan_qr(const char* prompt_text, char** output_type, uint8_t** output, size_t* output_len, size_t offset,
-    const char* help_url);
+WARN_UNUSED_RESULT bool bcur_scan_qr(const char* prompt_text, char** output_type, uint8_t** output, size_t* output_len,
+    size_t offset, const char* help_url);
 
 // Encodes the passed payload into a set of one or more BC-UR fragments with the given 'type'.
 // These are then rendered as a set of QR codes of the passed version/size.

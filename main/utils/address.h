@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "../jade_assert.h"
 #include "network.h"
 
 #define MAX_ADDRESS_LEN 128
@@ -26,6 +27,6 @@ void elements_script_to_address(const network_t network_id, const uint8_t* scrip
     const uint8_t* blinding_key, size_t blinding_key_len, char* output, size_t output_len);
 
 // Attempt to parse an address - return the network and the scriptpubkey
-bool parse_address(const char* address, address_data_t* addr_data);
+WARN_UNUSED_RESULT bool parse_address(const char* address, address_data_t* addr_data);
 
 #endif /* UTILS_ADDRESS_H_ */

@@ -1,6 +1,7 @@
 #ifndef MULTISIG_H_
 #define MULTISIG_H_
 
+#include "jade_assert.h"
 #include "signer.h"
 #include "utils/cbor_rpc.h"
 #include "wallet.h"
@@ -51,29 +52,29 @@ typedef struct _multisig_data {
     uint8_t xpubs[MAX_ALLOWED_SIGNERS * BIP32_SERIALIZED_LEN];
 } multisig_data_t;
 
-bool multisig_data_to_bytes(script_variant_t variant, bool sorted, uint8_t threshold,
+WARN_UNUSED_RESULT bool multisig_data_to_bytes(script_variant_t variant, bool sorted, uint8_t threshold,
     const uint8_t* master_blinding_key, size_t master_blinding_key_len, const signer_t* signers, size_t num_signers,
     size_t total_num_path_elements, uint8_t* output_bytes, size_t output_len);
 
-bool multisig_data_from_bytes(const uint8_t* bytes, size_t bytes_len, multisig_data_t* output, signer_t* signer_details,
-    size_t signer_details_len, size_t* written);
+WARN_UNUSED_RESULT bool multisig_data_from_bytes(const uint8_t* bytes, size_t bytes_len, multisig_data_t* output,
+    signer_t* signer_details, size_t signer_details_len, size_t* written);
 
-bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output, signer_t* signer_details,
-    size_t signer_details_len, size_t* written, const char** errmsg);
+WARN_UNUSED_RESULT bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output,
+    signer_t* signer_details, size_t signer_details_len, size_t* written, const char** errmsg);
 
-bool multisig_validate_paths(
+WARN_UNUSED_RESULT bool multisig_validate_paths(
     const bool is_change, CborValue* all_signer_paths, bool* all_paths_as_expected, bool* final_elements_consistent);
 
-bool multisig_get_pubkeys(const uint8_t* xpubs, size_t num_xpubs, CborValue* all_signer_paths, uint8_t* pubkeys,
-    size_t pubkeys_len, size_t* written);
+WARN_UNUSED_RESULT bool multisig_get_pubkeys(const uint8_t* xpubs, size_t num_xpubs, CborValue* all_signer_paths,
+    uint8_t* pubkeys, size_t pubkeys_len, size_t* written);
 
-bool multisig_get_master_blinding_key(const multisig_data_t* multisig_data, uint8_t* master_blinding_key,
-    size_t master_blinding_key_len, const char** errmsg);
+WARN_UNUSED_RESULT bool multisig_get_master_blinding_key(const multisig_data_t* multisig_data,
+    uint8_t* master_blinding_key, size_t master_blinding_key_len, const char** errmsg);
 
 void multisig_get_valid_record_names(
     const size_t* script_type, char names[][MAX_MULTISIG_NAME_SIZE], size_t num_names, size_t* num_written);
 
-bool multisig_create_export_file(const char* multisig_name, const multisig_data_t* multisig_data,
+WARN_UNUSED_RESULT bool multisig_create_export_file(const char* multisig_name, const multisig_data_t* multisig_data,
     const signer_t* signer_details, size_t num_signer_details, char* output, size_t output_len, size_t* written);
 
 #endif /* MULTISIG_H_ */

@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "jade_assert.h"
+
 // An extracted QR code string
 #define QR_MAX_PAYLOAD_LENGTH 1024
 
@@ -37,14 +39,15 @@ struct _qr_data_t {
 
 #ifdef CONFIG_DEBUG_MODE
 // Function to scan single image - may be useful for testing
-bool scan_qr(const size_t width, const size_t height, const uint8_t* data, const size_t len, qr_data_t* qr_data);
+WARN_UNUSED_RESULT bool scan_qr(
+    const size_t width, const size_t height, const uint8_t* data, const size_t len, qr_data_t* qr_data);
 #endif
 
 // Function to scan a qr code with the camera.
 // Any scanned/extracted string (which passes any additional validity check)
 // is written to the passed qr_data struct, and the function returns true.
 // The function returns false if scanning is aborted, and no string is returned.
-bool jade_camera_scan_qr(
+WARN_UNUSED_RESULT bool jade_camera_scan_qr(
     qr_data_t* qr_data, const char* text_label, qr_guide_type_t qr_guide_type, const char* help_url);
 
 #endif /* QRSCAN_H_ */

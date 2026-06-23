@@ -7,6 +7,7 @@
 
 #include <nvs.h>
 
+#include "jade_assert.h"
 #include "utils/network.h"
 
 #define BLE_ENABLED 0x1

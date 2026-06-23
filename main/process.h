@@ -12,6 +12,8 @@
 
 #include <cbor.h>
 
+#include "jade_assert.h"
+
 // This should be the size of the largest valid input message.
 // Used by ble and serial when reading data in. (sign-liquid-txn)
 // NOTE: limited to 17k when SPIRAM not enabled.
@@ -65,7 +67,7 @@ typedef struct {
 } bytes_info_t;
 
 const char* get_jade_id(void);
-bool jade_process_init(
+WARN_UNUSED_RESULT bool jade_process_init(
     TaskHandle_t** serial_handle, TaskHandle_t** ble_handle, TaskHandle_t** qemu_tcp_handle, TaskHandle_t** gui_handle);
 
 // Intialise and cleanup jade process structs
@@ -83,7 +85,7 @@ void jade_process_transfer_current_message(jade_process_t* process, jade_process
 void jade_process_free_current_message(jade_process_t* process);
 
 // Push messages to/from a process
-bool jade_process_push_in_message(const uint8_t* data, size_t size);
+WARN_UNUSED_RESULT bool jade_process_push_in_message(const uint8_t* data, size_t size);
 void jade_process_push_out_message(const uint8_t* data, size_t length, jade_msg_source_t source);
 
 // Send message replies

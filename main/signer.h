@@ -7,6 +7,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "jade_assert.h"
+
 // The maximum number of script signers supported
 #define MAX_ALLOWED_SIGNERS 15
 
@@ -36,7 +38,7 @@ typedef struct {
     size_t path_len;
 } signer_t;
 
-bool validate_signers(const signer_t* signers, size_t num_signers, bool accept_string_path,
+WARN_UNUSED_RESULT bool validate_signers(const signer_t* signers, size_t num_signers, bool accept_string_path,
     const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, size_t* total_num_path_elements);
 
 #endif /* SIGNER_H_ */

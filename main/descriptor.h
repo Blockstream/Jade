@@ -1,6 +1,7 @@
 #ifndef DESCRIPTOR_H_
 #define DESCRIPTOR_H_
 
+#include "jade_assert.h"
 #include "signer.h"
 #include "utils/network.h"
 
@@ -55,31 +56,34 @@ bool descriptor_allow_liquid(void);
 // If `signers` is NULL then only the number of signers is returned in `written` (and `blinding_key` is ignored).
 // If `blinding_key` is non-NULL, then the blinding key hex value is returned (if present in descriptor)
 //    - caller must free the blinding key with wally_free_string().
-bool descriptor_get_signers(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
-    descriptor_type_t* type, signer_t* signers, size_t signers_len, size_t* written, char** blinding_key,
-    const char** errmsg);
+WARN_UNUSED_RESULT bool descriptor_get_signers(const char* name, const descriptor_data_t* descriptor,
+    const network_t network_id, descriptor_type_t* type, signer_t* signers, size_t signers_len, size_t* written,
+    char** blinding_key, const char** errmsg);
 
 // Generate an address using a descriptor/miniscript expression
 // On success output must be freed with wally_free_string()
-bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
-    uint32_t multi_index, uint32_t child_num, descriptor_type_t* type, char** output, const char** errmsg);
+WARN_UNUSED_RESULT bool descriptor_to_address(const char* name, const descriptor_data_t* descriptor,
+    const network_t network_id, uint32_t multi_index, uint32_t child_num, descriptor_type_t* type, char** output,
+    const char** errmsg);
 
 // Generate a script using a descriptor/miniscript expression
 // On success output must be freed
 // NOTE: For miniscript expressions, the script generated is untyped bitcoin script.
 //       For descriptors, a scriptPubKey is generated.
-bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
-    uint32_t multi_index, uint32_t child_num, descriptor_type_t* type, uint8_t** output, size_t* output_len,
-    const char** errmsg);
+WARN_UNUSED_RESULT bool descriptor_to_script(const char* name, const descriptor_data_t* descriptor,
+    const network_t network_id, uint32_t multi_index, uint32_t child_num, descriptor_type_t* type, uint8_t** output,
+    size_t* output_len, const char** errmsg);
 
 // Iterate over a number of leaf child indexes testing the generated script for a match against the passed script
-bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor, const network_t network_id,
-    uint32_t multi_index, uint32_t* child_num, size_t search_depth, const uint8_t* script, size_t script_len);
+WARN_UNUSED_RESULT bool descriptor_search_for_script(const char* name, const descriptor_data_t* descriptor,
+    const network_t network_id, uint32_t multi_index, uint32_t* child_num, size_t search_depth, const uint8_t* script,
+    size_t script_len);
 
 // Storage related functions
-bool descriptor_to_bytes(descriptor_data_t* descriptor, uint8_t* output_bytes, size_t output_len);
-bool descriptor_from_bytes(const uint8_t* bytes, size_t bytes_len, descriptor_data_t* descriptor);
-bool descriptor_load_from_storage(const char* descriptor_name, descriptor_data_t* output, const char** errmsg);
+WARN_UNUSED_RESULT bool descriptor_to_bytes(descriptor_data_t* descriptor, uint8_t* output_bytes, size_t output_len);
+WARN_UNUSED_RESULT bool descriptor_from_bytes(const uint8_t* bytes, size_t bytes_len, descriptor_data_t* descriptor);
+WARN_UNUSED_RESULT bool descriptor_load_from_storage(
+    const char* descriptor_name, descriptor_data_t* output, const char** errmsg);
 void descriptor_get_valid_record_names(
     char names[][MAX_DESCRIPTOR_NAME_SIZE], const size_t num_names, size_t* num_written);
 

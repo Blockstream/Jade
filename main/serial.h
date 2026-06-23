@@ -5,7 +5,9 @@
 #include <freertos/task.h>
 #include <stdbool.h>
 
-bool serial_init(TaskHandle_t* serial_handle);
+#include "jade_assert.h"
+
+WARN_UNUSED_RESULT bool serial_init(TaskHandle_t* serial_handle);
 bool serial_enabled(void);
 void serial_start(void);
 void serial_stop(void);
