@@ -536,7 +536,8 @@ static bool handle_ota_reply(const uint8_t* msg, const size_t len, void* ctx)
     if (cberr != CborNoError || !rpc_message_valid(&message)) {
         JADE_LOGE("Invalid cbor message");
     } else {
-        rpc_get_boolean("result", &message, ok);
+        // Optional field, but we expect it to be present and true for a positive response
+        *ok = rpc_get_boolean_or("result", &message, false);
     }
 
     // We return true in all cases to indicate that a message was received

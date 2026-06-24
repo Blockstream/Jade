@@ -180,8 +180,7 @@ void get_receive_address_process(void* process_ptr)
             }
         } else if (is_singlesig(script_variant)) {
             // For single-sig the path is explicit in the params
-            rpc_get_bip32_path("path", &params, path, max_path_len, &path_len);
-            if (path_len == 0) {
+            if (!rpc_get_bip32_path("path", &params, path, max_path_len, &path_len) || path_len == 0) {
                 jade_process_reject_message(
                     process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid path from parameters");
                 goto cleanup;

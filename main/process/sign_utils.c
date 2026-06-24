@@ -222,8 +222,8 @@ bool params_additional_info(jade_process_t* process, CborValue* params, const st
     rpc_get_asset_summary(process, "wallet_input_summary", &additional_info, in_sums, num_in_sums);
     rpc_get_asset_summary(process, "wallet_output_summary", &additional_info, out_sums, num_out_sums);
 
-    // 'partial' flag (defaults to false, set above)
-    rpc_get_boolean("is_partial", &additional_info, is_partial);
+    // 'partial' flag (defaults to false, initially also defaulted above)
+    *is_partial = rpc_get_boolean_or("is_partial", &additional_info, false);
 
     // Tx Type
     if (!rpc_get_txtype(process, &additional_info, txtype)) {

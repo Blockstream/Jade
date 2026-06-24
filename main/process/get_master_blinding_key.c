@@ -20,16 +20,17 @@ void get_master_blinding_key_process(void* process_ptr)
     if (keychain_get_confirm_export_blinding_key()) {
         // Optional field to suppress asking user for permission and instead
         // error in the cases where we would normally need to ask the user.
-        bool onlyIfSilent = false;
+        bool only_if_silent = false;
 
         CborValue params;
         const CborError cberr = cbor_value_map_find_value(&process->ctx.value, CBOR_RPC_TAG_PARAMS, &params);
         if (cberr == CborNoError || cbor_value_is_valid(&params) || cbor_value_is_map(&params)) {
-            rpc_get_boolean("only_if_silent", &params, &onlyIfSilent);
+            // This field is optional and defaults to false if not present (initialized above)
+            only_if_silent = rpc_get_boolean_or("only_if_silent", &params, false);
         }
 
         const char* question[] = { "Export master", "blinding key?" };
-        if (onlyIfSilent || !await_yesno_activity("Blinding Key", question, 2, true, "blkstrm.com/blindingkey")) {
+        if (only_if_silent || !await_yesno_activity("Blinding Key", question, 2, true, "blkstrm.com/blindingkey")) {
             JADE_LOGW("User declined to export master blinding key");
             jade_process_reject_message(
                 process, CBOR_RPC_USER_CANCELLED, "User declined to export master blinding key");
