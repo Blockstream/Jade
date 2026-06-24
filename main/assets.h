@@ -5,6 +5,9 @@
 #include "utils/cbor_rpc.h"
 #include "utils/network.h"
 
+// Maximum allowed precision for supported assets
+#define ASSET_PRECISION_MAX 8
+
 // NOTE: strings here may not be nul-terminated as may directly reference message fields
 typedef struct _asset_info {
     const char* asset_id;

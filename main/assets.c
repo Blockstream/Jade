@@ -169,7 +169,13 @@ bool assets_get_allocate(const char* field, const CborValue* value, asset_info_t
             }
 
             // "precision" field is optional in the asset contract and defaults to 0
-            asset->precision = rpc_get_sizet_or("precision", &contract, 0);
+            const size_t precision = rpc_get_sizet_or("precision", &contract, 0);
+            if (precision > ASSET_PRECISION_MAX) {
+                JADE_LOGE("Invalid asset precision %zu", precision);
+                free(assets);
+                return false;
+            }
+            asset->precision = (uint8_t)precision;
         }
 
         CborError err = cbor_value_advance(&arrayItem);

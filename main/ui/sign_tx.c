@@ -4,6 +4,7 @@
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
+#include "../assets.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../jade_wally_verify.h"
@@ -33,6 +34,8 @@ static const uint32_t POW_10[9] = { 1, 10, 100, 1000, 10000, 100000, 1000000, 10
 
 static uint32_t get_asset_scale_factor(const asset_info_t* asset_info)
 {
+    // Sanity check to ensure the scale factor array is large enough to hold all possible precisions
+    JADE_STATIC_ASSERT(sizeof(POW_10) / sizeof(POW_10[0]) == ASSET_PRECISION_MAX + 1);
     JADE_ASSERT(asset_info && asset_info->precision < sizeof(POW_10) / sizeof(POW_10[0]));
     return POW_10[asset_info->precision];
 }
