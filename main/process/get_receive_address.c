@@ -47,8 +47,8 @@ void get_receive_address_process(void* process_ptr)
     const uint8_t* p_master_blinding_key = NULL;
     size_t master_blinding_key_len = 0;
 
-    bool confidential = isLiquid; // default to confidential addresses for liquid
-    rpc_get_boolean("confidential", &params, &confidential);
+    // Defaults to confidential addresses for liquid
+    const bool confidential = rpc_get_boolean_or("confidential", &params, isLiquid);
     if (confidential && !isLiquid) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Confidential addresses only apply to liquid networks");
@@ -110,8 +110,8 @@ void get_receive_address_process(void* process_ptr)
         }
 
         // The path is given in two parts - optional (change) branch and mandatory index pointer
-        size_t branch = 0, pointer = 0;
-        rpc_get_sizet("branch", &params, &branch); // optional
+        const size_t branch = rpc_get_sizet_or("branch", &params, 0); // optional
+        size_t pointer = 0;
         if (!rpc_get_sizet("pointer", &params, &pointer)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract path elements from parameters");
@@ -163,8 +163,7 @@ void get_receive_address_process(void* process_ptr)
             rpc_get_string("recovery_xpub", sizeof(xpubrecovery), &params, xpubrecovery, &written);
 
             // Optional 'blocks' for csv outputs
-            size_t csv_blocks = 0;
-            rpc_get_sizet("csv_blocks", &params, &csv_blocks);
+            const size_t csv_blocks = rpc_get_sizet_or("csv_blocks", &params, 0);
 
             if (csv_blocks && !network_is_known_csv_blocks(network_id, csv_blocks)) {
                 const int ret

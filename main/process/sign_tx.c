@@ -133,10 +133,8 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
 
             // For backward-compatibility reasons we assume all populated items
             // are change unless told otherwise (ie. explicit is_change: false)
-            bool is_change = true;
-            rpc_get_boolean("is_change", &arrayItem, &is_change);
+            bool is_change = rpc_get_boolean_or("is_change", &arrayItem, true);
 
-            size_t csv_blocks = 0;
             size_t script_len = 0;
             uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
             size_t written = 0;
@@ -190,8 +188,8 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
                 }
 
                 // The path is given in two parts - optional (change) branch and mandatory index pointer
-                size_t branch = 0, pointer = 0;
-                rpc_get_sizet("branch", &arrayItem, &branch); // optional
+                const size_t branch = rpc_get_sizet_or("branch", &arrayItem, 0); // optional
+                size_t pointer = 0;
                 if (!rpc_get_sizet("pointer", &arrayItem, &pointer)) {
                     errmsg = "Failed to extract path elements from parameters";
                     goto cleanup;
@@ -240,8 +238,8 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
                         is_change = false;
                     }
 
-                    // Optional 'blocks' for csv outputs
-                    rpc_get_sizet("csv_blocks", &arrayItem, &csv_blocks);
+                    // Optional 'blocks' for csv outputs, defaults to 0
+                    const size_t csv_blocks = rpc_get_sizet_or("csv_blocks", &arrayItem, 0);
 
                     // If number of csv blocks unexpected show a warning message and ask the user to confirm
                     if (csv_blocks && !network_is_known_csv_blocks(network_id, csv_blocks)) {
@@ -452,8 +450,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
     // Whether to use Anti-Exfil signatures and message flow
     // Optional flag, defaults to false
-    bool use_ae_signatures = false;
-    rpc_get_boolean("use_ae_signatures", &params, &use_ae_signatures);
+    const bool use_ae_signatures = rpc_get_boolean_or("use_ae_signatures", &params, false);
 
     commitment_t* commitments = NULL;
     // Liquid: Copy trusted commitment data so we can free the message
@@ -648,8 +645,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             }
         } else if (!for_liquid) {
             // Bitcoin: May still need witness flag
-            bool is_witness = false;
-            rpc_get_boolean("is_witness", &params, &is_witness);
+            const bool is_witness = rpc_get_boolean_or("is_witness", &params, false);
             input_data->sig_type = is_witness ? WALLY_SIGTYPE_SW_V0 : WALLY_SIGTYPE_PRE_SW;
             input_data->sighash = WALLY_SIGHASH_ALL;
         }

@@ -359,8 +359,8 @@ void auth_user_process(void* process_ptr)
     }
 
     // Optional flag to suppress user confirmation of any pin change
-    bool suppress_pin_change_confirmation = false;
-    rpc_get_boolean("suppress_pin_change_confirmation", &params, &suppress_pin_change_confirmation);
+    const bool suppress_pin_change_confirmation
+        = rpc_get_boolean_or("suppress_pin_change_confirmation", &params, false);
 
     // We have five cases:
     // 1. Temporary - has a temporary keys in memory

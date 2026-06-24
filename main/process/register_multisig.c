@@ -711,8 +711,7 @@ void register_multisig_process(void* process_ptr)
     }
 
     // Threshold
-    written = 0;
-    rpc_get_sizet("threshold", &descriptor, &written);
+    written = rpc_get_sizet_or("threshold", &descriptor, 0);
     if (written == 0 || written > MAX_ALLOWED_SIGNERS) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid multisig threshold value");
         goto cleanup;
