@@ -478,6 +478,20 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         goto cleanup;
     }
 
+    // Liquid: Optional caller-supplied genesis hash overrides the hardcoded network default.
+    // Must be read and copied now while the initial message buffer (params) is still valid.
+    uint8_t caller_genesis[SHA256_LEN];
+    bool has_caller_genesis = false;
+    if (for_liquid) {
+        const uint8_t* genesis_ptr = NULL;
+        size_t genesis_ptr_len = 0;
+        rpc_get_bytes_ptr("genesis_block_hash", &params, &genesis_ptr, &genesis_ptr_len);
+        if (genesis_ptr && genesis_ptr_len == SHA256_LEN) {
+            memcpy(caller_genesis, genesis_ptr, SHA256_LEN);
+            has_caller_genesis = true;
+        }
+    }
+
     // Liquid: Gather the (unblinded) output info for user confirmation,
     // then validate output and additional_info values
     if (for_liquid) {
@@ -799,9 +813,15 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
     uint8_t genesis_buff[SHA256_LEN], *genesis = NULL;
     size_t genesis_len = 0;
     if (for_liquid && num_p2tr_to_sign) {
-        // Liquid: Fetch the genesis blockhash for taproot hash generation
+        // Liquid: Fetch the genesis blockhash for taproot hash generation.
+        // Prefer the caller-supplied hash (from sign_liquid_tx params) so that
+        // non-standard regtest environments (e.g. -initialfreecoins) work correctly.
         genesis = genesis_buff;
-        network_to_genesis_hash(network_id, genesis, sizeof(genesis_buff));
+        if (has_caller_genesis) {
+            memcpy(genesis_buff, caller_genesis, SHA256_LEN);
+        } else {
+            network_to_genesis_hash(network_id, genesis, sizeof(genesis_buff));
+        }
         genesis_len = sizeof(genesis_buff);
     }
     for (size_t index = 0; num_p2tr_to_sign != 0 && index < tx->num_inputs; ++index) {
