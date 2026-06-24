@@ -1,6 +1,7 @@
 #ifndef UTILS_CBOR_RPC_H_
 #define UTILS_CBOR_RPC_H_
 
+#include "../jade_assert.h"
 #include <cbor.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -39,7 +40,8 @@ void rpc_get_id_ptr(const CborValue* value, const char** data, size_t* written);
 void rpc_get_method(const CborValue* value, const char** data, size_t* written);
 bool rpc_is_method(const CborValue* value, const char* method);
 
-// Some typed/checked getters for various nodes/data-types
+// Typed/checked getters for various nodes/data-types.
+// _or() variants accept and return a default value if the field is not present.
 bool rpc_has_field_data(const char* field, const CborValue* value);
 void rpc_get_raw_string_ptr(const CborValue* value, const char** data, size_t* size);
 void rpc_get_string_ptr(const char* field, const CborValue* value, const char** data, size_t* size);
@@ -49,8 +51,11 @@ void rpc_get_bytes_ptr(const char* field, const CborValue* value, const uint8_t*
 void rpc_get_bytes(const char* field, size_t max, const CborValue* value, uint8_t* data, size_t* written);
 bool rpc_get_n_bytes(const char* field, const CborValue* value, size_t expected_size, uint8_t* data);
 bool rpc_get_sizet(const char* field, const CborValue* value, size_t* res);
+size_t rpc_get_sizet_or(const char* field, const CborValue* value, size_t default_value);
 bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res);
+uint64_t rpc_get_uint64_t_or(const char* field, const CborValue* value, uint64_t default_value);
 bool rpc_get_boolean(const char* field, const CborValue* value, bool* res);
+bool rpc_get_boolean_or(const char* field, const CborValue* value, bool default_value);
 
 bool rpc_get_bip32_path(
     const char* field, const CborValue* value, uint32_t* path_ptr, size_t max_path_len, size_t* written);

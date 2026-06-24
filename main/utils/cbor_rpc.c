@@ -296,6 +296,13 @@ bool rpc_get_boolean(const char* field, const CborValue* value, bool* res)
         && cbor_value_get_boolean(&result, res) == CborNoError;
 }
 
+bool rpc_get_boolean_or(const char* field, const CborValue* value, const bool default_value)
+{
+    bool res = default_value;
+    IGNORE_RESULT(rpc_get_boolean(field, value, &res));
+    return res;
+}
+
 bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res)
 {
     JADE_ASSERT(value);
@@ -309,6 +316,13 @@ bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res)
     const CborError cberr = cbor_value_get_uint64(&result, res);
     JADE_ASSERT(cberr == CborNoError);
     return true;
+}
+
+uint64_t rpc_get_uint64_t_or(const char* field, const CborValue* value, const uint64_t default_value)
+{
+    uint64_t res = default_value;
+    IGNORE_RESULT(rpc_get_uint64_t(field, value, &res));
+    return res;
 }
 
 bool rpc_get_sizet(const char* field, const CborValue* value, size_t* res)
@@ -329,6 +343,13 @@ bool rpc_get_sizet(const char* field, const CborValue* value, size_t* res)
     }
     *res = tmp & 0xFFFFFFFF;
     return true;
+}
+
+size_t rpc_get_sizet_or(const char* field, const CborValue* value, const size_t default_value)
+{
+    size_t res = default_value;
+    IGNORE_RESULT(rpc_get_sizet(field, value, &res));
+    return res;
 }
 
 void rpc_get_method(const CborValue* value, const char** data, size_t* written)
