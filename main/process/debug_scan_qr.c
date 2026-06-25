@@ -116,7 +116,7 @@ void debug_capture_image_data_process(void* process_ptr)
 
     // Caller may want to restrict to images which contain a valid qr code
     bool check_qr = false;
-    const bool ret = rpc_get_boolean("check_qr", &params, &check_qr);
+    const bool ret = rpc_get_bool("check_qr", &params, &check_qr);
 
     // Launch the camera with the 'click' callback function set to
     // return the captured image data in the reply message

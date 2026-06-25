@@ -287,7 +287,7 @@ void rpc_get_string(const char* field, const size_t max, const CborValue* value,
     *written = local_written;
 }
 
-bool rpc_get_boolean(const char* field, const CborValue* value, bool* res)
+bool rpc_get_bool(const char* field, const CborValue* value, bool* res)
 {
     JADE_ASSERT(value);
     JADE_ASSERT(res);
@@ -296,10 +296,10 @@ bool rpc_get_boolean(const char* field, const CborValue* value, bool* res)
         && cbor_value_get_boolean(&result, res) == CborNoError;
 }
 
-bool rpc_get_boolean_or(const char* field, const CborValue* value, const bool default_value)
+bool rpc_get_bool_or(const char* field, const CborValue* value, const bool default_value)
 {
     bool res = default_value;
-    IGNORE_RESULT(rpc_get_boolean(field, value, &res));
+    IGNORE_RESULT(rpc_get_bool(field, value, &res));
     return res;
 }
 

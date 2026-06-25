@@ -88,7 +88,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
     int retval = CBOR_RPC_BAD_PARAMETERS;
 
     // 1. update or erase the pinserver details (defaults to false)
-    const bool reset_details = rpc_get_boolean_or("reset_details", params, false);
+    const bool reset_details = rpc_get_bool_or("reset_details", params, false);
 
     size_t urlA_len = 0, urlB_len = 0;
     rpc_get_string("urlA", sizeof(urlA), params, urlA, &urlA_len);
@@ -176,7 +176,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
     }
 
     // 2. update or erase the certificate (defaults to false)
-    const bool reset_certificate = rpc_get_boolean_or("reset_certificate", params, false);
+    const bool reset_certificate = rpc_get_bool_or("reset_certificate", params, false);
     const bool set_certificate = rpc_has_field_data("certificate", params);
 
     if (set_certificate && reset_certificate) {

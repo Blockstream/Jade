@@ -48,7 +48,7 @@ void get_receive_address_process(void* process_ptr)
     size_t master_blinding_key_len = 0;
 
     // Defaults to confidential addresses for liquid
-    const bool confidential = rpc_get_boolean_or("confidential", &params, isLiquid);
+    const bool confidential = rpc_get_bool_or("confidential", &params, isLiquid);
     if (confidential && !isLiquid) {
         jade_process_reject_message(
             process, CBOR_RPC_BAD_PARAMETERS, "Confidential addresses only apply to liquid networks");

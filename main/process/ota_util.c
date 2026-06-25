@@ -216,7 +216,7 @@ jade_ota_ctx_t* ota_init(jade_process_t* process, const bool is_delta)
     }
 
     // Optional field indicating preference for rich reply data
-    const bool extended_replies = rpc_get_boolean_or("extended_replies", &params, false);
+    const bool extended_replies = rpc_get_bool_or("extended_replies", &params, false);
 
     // Can accept either uploaded file data hash (legacy) or hash of the full/final firmware image (preferred)
     uint8_t expected_hash[SHA256_LEN];

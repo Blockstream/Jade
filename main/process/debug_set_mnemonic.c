@@ -43,7 +43,7 @@ void debug_set_mnemonic_process(void* process_ptr)
     SENSITIVE_PUSH(&keydata, sizeof(keydata));
 
     // Get field which can be set to test 'temporary restore' wallet
-    bool temporary_wallet = rpc_get_boolean_or("temporary_wallet", &params, false);
+    bool temporary_wallet = rpc_get_bool_or("temporary_wallet", &params, false);
 
     // Slightly hacky, can accept a seed or a mnemonic
     if (rpc_has_field_data("seed", &params)) {

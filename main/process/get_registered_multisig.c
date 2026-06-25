@@ -124,7 +124,7 @@ void get_registered_multisig_process(void* process_ptr)
 
     bool asfile = false;
     if (rpc_has_field_data("as_file", &params)) {
-        if (!rpc_get_boolean("as_file", &params, &asfile)) {
+        if (!rpc_get_bool("as_file", &params, &asfile)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid as_file parameter");
             goto cleanup;
         }

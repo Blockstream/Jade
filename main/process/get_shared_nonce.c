@@ -67,7 +67,7 @@ void get_shared_nonce_process(void* process_ptr)
     size_t blinding_pubkey_len = 0;
     if (rpc_has_field_data("include_pubkey", &params)) {
         bool include_pubkey = false;
-        if (!rpc_get_boolean("include_pubkey", &params, &include_pubkey)) {
+        if (!rpc_get_bool("include_pubkey", &params, &include_pubkey)) {
             jade_process_reject_message(
                 process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract valid pubkey flag from parameters");
             goto cleanup;

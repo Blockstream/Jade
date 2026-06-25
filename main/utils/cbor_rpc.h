@@ -55,8 +55,8 @@ WARN_UNUSED_RESULT bool rpc_get_sizet(const char* field, const CborValue* value,
 WARN_UNUSED_RESULT size_t rpc_get_sizet_or(const char* field, const CborValue* value, size_t default_value);
 WARN_UNUSED_RESULT bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res);
 WARN_UNUSED_RESULT uint64_t rpc_get_uint64_t_or(const char* field, const CborValue* value, uint64_t default_value);
-WARN_UNUSED_RESULT bool rpc_get_boolean(const char* field, const CborValue* value, bool* res);
-WARN_UNUSED_RESULT bool rpc_get_boolean_or(const char* field, const CborValue* value, bool default_value);
+WARN_UNUSED_RESULT bool rpc_get_bool(const char* field, const CborValue* value, bool* res);
+WARN_UNUSED_RESULT bool rpc_get_bool_or(const char* field, const CborValue* value, bool default_value);
 
 WARN_UNUSED_RESULT bool rpc_get_bip32_path(
     const char* field, const CborValue* value, uint32_t* path_ptr, size_t max_path_len, size_t* written);

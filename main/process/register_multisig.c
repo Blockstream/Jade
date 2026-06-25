@@ -693,7 +693,7 @@ void register_multisig_process(void* process_ptr)
     // Handle sorted-multisig - defaults to false if not passed
     bool sorted = false;
     if (rpc_has_field_data("sorted", &descriptor)) {
-        if (!rpc_get_boolean("sorted", &descriptor, &sorted)) {
+        if (!rpc_get_bool("sorted", &descriptor, &sorted)) {
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid sorted flag value");
             goto cleanup;
         }

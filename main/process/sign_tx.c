@@ -133,7 +133,7 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
 
             // For backward-compatibility reasons we assume all populated items
             // are change unless told otherwise (ie. explicit is_change: false)
-            bool is_change = rpc_get_boolean_or("is_change", &arrayItem, true);
+            bool is_change = rpc_get_bool_or("is_change", &arrayItem, true);
 
             size_t script_len = 0;
             uint8_t script[WALLY_SCRIPTPUBKEY_P2WSH_LEN]; // Sufficient
@@ -450,7 +450,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
     // Whether to use Anti-Exfil signatures and message flow
     // Optional flag, defaults to false
-    const bool use_ae_signatures = rpc_get_boolean_or("use_ae_signatures", &params, false);
+    const bool use_ae_signatures = rpc_get_bool_or("use_ae_signatures", &params, false);
 
     commitment_t* commitments = NULL;
     // Liquid: Copy trusted commitment data so we can free the message
@@ -645,7 +645,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             }
         } else if (!for_liquid) {
             // Bitcoin: May still need witness flag
-            const bool is_witness = rpc_get_boolean_or("is_witness", &params, false);
+            const bool is_witness = rpc_get_bool_or("is_witness", &params, false);
             input_data->sig_type = is_witness ? WALLY_SIGTYPE_SW_V0 : WALLY_SIGTYPE_PRE_SW;
             input_data->sighash = WALLY_SIGHASH_ALL;
         }

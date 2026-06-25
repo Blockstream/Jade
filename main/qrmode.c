@@ -1728,7 +1728,7 @@ static bool handle_jade_reply_http_request_show_qr(const char* message[], const 
 
     // Ultimate response is boolean
     bool bool_result = false;
-    if (rpc_get_boolean("result", &root, &bool_result)) {
+    if (rpc_get_bool("result", &root, &bool_result)) {
         JADE_LOGI("Boolean result: %u", bool_result);
         goto cleanup;
     }

@@ -333,7 +333,7 @@ bool params_tx_input_signing_data(const bool use_ae_signatures, CborValue* param
     JADE_ASSERT(errmsg);
 
     bool is_witness;
-    if (!rpc_get_boolean("is_witness", params, &is_witness)) {
+    if (!rpc_get_bool("is_witness", params, &is_witness)) {
         *errmsg = "Failed to extract is_witness from parameters";
         return false;
     }

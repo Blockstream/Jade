@@ -82,7 +82,7 @@ static bool handle_immediate_message(const cbor_msg_t* const ctx)
             // Version-info message - reply immediately if it contains the 'nonblocking' flag
             CborValue params;
             bool nonblocking = false;
-            if (rpc_get_map("params", &ctx->value, &params) && rpc_get_boolean("nonblocking", &params, &nonblocking)
+            if (rpc_get_map("params", &ctx->value, &params) && rpc_get_bool("nonblocking", &params, &nonblocking)
                 && nonblocking) {
                 JADE_LOGI("VerInfoEx message, replying immediately");
                 uint8_t buf[1024];
