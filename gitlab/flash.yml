@@ -4,10 +4,11 @@
 
 #
 # QEMU
+# (tagged as ga-qemu to limit jobs to one per physical CI box)
 #
 .flash_qemu_template:
   stage: flash
-  tags: [ ga ]
+  tags: [ ga-qemu ]
   variables:
     # Skip submodule sync to make flashing/testing faster
     GIT_SUBMODULE_STRATEGY: none
