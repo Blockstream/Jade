@@ -71,7 +71,7 @@ void get_otp_code_process(void* process_ptr)
     // totp token/code updates with time - but we disable that if an explicit epoch value is passed
     bool auto_update = true;
 #ifdef CONFIG_DEBUG_MODE
-    if (rpc_get_uint64_t("override", &params, &value)) {
+    if (rpc_get_uint64("override", &params, &value)) {
         otp_set_explicit_value(&otp_ctx, value);
         auto_update = false; // frozen on passed override value
     }

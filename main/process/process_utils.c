@@ -84,7 +84,7 @@ int params_set_epoch_time(CborValue* params, const char** errmsg)
     JADE_INIT_OUT_PPTR(errmsg);
 
     uint64_t epoch = 0;
-    if (!rpc_get_uint64_t("epoch", params, &epoch)) {
+    if (!rpc_get_uint64("epoch", params, &epoch)) {
         *errmsg = "Failed to extract valid epoch value from parameters";
         return CBOR_RPC_BAD_PARAMETERS;
     }

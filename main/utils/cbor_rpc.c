@@ -303,7 +303,7 @@ bool rpc_get_bool_or(const char* field, const CborValue* value, const bool defau
     return res;
 }
 
-bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res)
+bool rpc_get_uint64(const char* field, const CborValue* value, uint64_t* res)
 {
     JADE_ASSERT(value);
     JADE_ASSERT(res);
@@ -318,10 +318,10 @@ bool rpc_get_uint64_t(const char* field, const CborValue* value, uint64_t* res)
     return true;
 }
 
-uint64_t rpc_get_uint64_t_or(const char* field, const CborValue* value, const uint64_t default_value)
+uint64_t rpc_get_uint64_or(const char* field, const CborValue* value, const uint64_t default_value)
 {
     uint64_t res = default_value;
-    IGNORE_RESULT(rpc_get_uint64_t(field, value, &res));
+    IGNORE_RESULT(rpc_get_uint64(field, value, &res));
     return res;
 }
 

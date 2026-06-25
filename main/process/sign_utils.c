@@ -140,7 +140,7 @@ static void rpc_get_asset_summary(
 
         if (!cbor_value_is_map(&arrayItem)
             || !rpc_get_n_bytes("asset_id", &arrayItem, sizeof(item->asset_id), item->asset_id)
-            || !rpc_get_uint64_t("satoshi", &arrayItem, &item->value)) {
+            || !rpc_get_uint64("satoshi", &arrayItem, &item->value)) {
             return;
         }
 
@@ -353,7 +353,7 @@ bool params_commitment_data(
 
     if (!(ec.c.content & (COMMITMENTS_VBF | COMMITMENTS_VALUE_BLIND_PROOF))
         || !rpc_get_n_bytes("asset_id", item, sizeof(ec.c.asset_id), ec.c.asset_id)
-        || !rpc_get_uint64_t("value", item, &ec.c.value)) {
+        || !rpc_get_uint64("value", item, &ec.c.value)) {
         *errmsg = "Invalid or missing trusted commitment data";
         return false;
     }

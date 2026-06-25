@@ -51,7 +51,7 @@ void get_commitments_process(void* process_ptr)
         goto cleanup;
     }
 
-    bool ret = rpc_get_uint64_t("value", &params, &ec.c.value);
+    bool ret = rpc_get_uint64("value", &params, &ec.c.value);
     if (!ret) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract value from parameters");
         goto cleanup;

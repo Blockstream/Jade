@@ -736,7 +736,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             // Get the amount
             uint64_t satoshi;
             int res = WALLY_EINVAL;
-            if (rpc_get_uint64_t("satoshi", &params, &satoshi)) {
+            if (rpc_get_uint64("satoshi", &params, &satoshi)) {
                 res = wally_map_add_integer(&signing_data->amounts, index, (uint8_t*)&satoshi, sizeof(uint64_t));
                 // Keep a running total
                 input_amount += satoshi;
