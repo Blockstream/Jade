@@ -491,6 +491,20 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         goto cleanup;
     }
 
+    // Liquid: Optional ELIP-0101 genesis blockhash can override test network defaults.
+    // Defers to params_genesis_hash() for validation (incl. disallowing on Bitcoin).
+    uint8_t genesis_hash[SHA256_LEN];
+    {
+        const uint8_t* genesis = NULL;
+        size_t genesis_len = 0;
+        rpc_get_bytes_ptr("genesis_hash", &params, &genesis, &genesis_len);
+        params_genesis_hash(network_id, for_liquid, genesis, genesis_len, genesis_hash, sizeof(genesis_hash), &errmsg);
+        if (errmsg) {
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
+            goto cleanup;
+        }
+    }
+
     // Liquid: Gather the (unblinded) output info for user confirmation,
     // then validate output and additional_info values
     if (for_liquid) {
@@ -812,21 +826,13 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
     // Loop to process any taproot inputs now that we have all input
     // amounts and scriptpubkeys
-    uint8_t genesis_buff[SHA256_LEN], *genesis = NULL;
-    size_t genesis_len = 0;
-    if (for_liquid && num_p2tr_to_sign) {
-        // Liquid: Fetch the genesis blockhash for taproot hash generation
-        genesis = genesis_buff;
-        network_to_genesis_hash(network_id, genesis, sizeof(genesis_buff));
-        genesis_len = sizeof(genesis_buff);
-    }
     for (size_t index = 0; num_p2tr_to_sign != 0 && index < tx->num_inputs; ++index) {
         input_data_t* const input_data = &signing_data->inputs[index];
         if (input_data->sig_type != WALLY_SIGTYPE_SW_V1 || !input_data->path_len) {
             // Not signing this input
             continue;
         }
-        if (!wallet_get_tx_input_hash(tx, index, signing_data, NULL, 0, genesis, genesis_len)) {
+        if (!wallet_get_tx_input_hash(tx, index, signing_data, NULL, 0, genesis_hash, sizeof(genesis_hash))) {
             // We are using ae-signatures, so we need to load the message to send the error back on
             jade_process_load_in_message(process, true);
             jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to make taproot tx input hash");

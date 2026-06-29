@@ -731,19 +731,17 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         return CBOR_RPC_BAD_PARAMETERS;
     }
     const bool for_liquid = is_elements;
-    bool has_genesis_blockhash = false;
+    // Liquid: Optional ELIP-0101 genesis blockhash can override test network defaults.
+    // Defers to params_genesis_hash() for validation (only needed for Lisuid/PSET).
+    size_t has_genesis_blockhash = 0;
     if (for_liquid) {
-        // Liquid: Check ELIP-0101 genesis blockhash
-        size_t has_genesis = 0;
-        JADE_WALLY_VERIFY(wally_psbt_has_global_genesis_blockhash(psbt, &has_genesis));
-        has_genesis_blockhash = has_genesis;
-        if (has_genesis_blockhash) {
-            uint8_t genesis[SHA256_LEN];
-            network_to_genesis_hash(network_id, genesis, sizeof(genesis));
-            if (memcmp(psbt->genesis_blockhash, genesis, sizeof(genesis))) {
-                *errmsg = "Network/pset genesis mismatch";
-                return CBOR_RPC_BAD_PARAMETERS;
-            }
+        JADE_WALLY_VERIFY(wally_psbt_has_global_genesis_blockhash(psbt, &has_genesis_blockhash));
+        const uint8_t* psbt_genesis = has_genesis_blockhash ? psbt->genesis_blockhash : NULL;
+        const size_t psbt_genesis_len = has_genesis_blockhash ? sizeof(psbt->genesis_blockhash) : 0;
+        params_genesis_hash(network_id, for_liquid, psbt_genesis, psbt_genesis_len, psbt->genesis_blockhash,
+            sizeof(psbt->genesis_blockhash), errmsg);
+        if (*errmsg) {
+            return CBOR_RPC_BAD_PARAMETERS;
         }
     }
 
@@ -1058,11 +1056,6 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
     display_processing_message_activity();
 
     // Sign our inputs
-    if (signing_flags && for_liquid && !has_genesis_blockhash) {
-        // Liquid: Provide the ELIP-0101 genesis blockhash when signing
-        network_to_genesis_hash(network_id, psbt->genesis_blockhash, sizeof(psbt->genesis_blockhash));
-    }
-
     JADE_WALLY_VERIFY(wally_psbt_signing_cache_enable(psbt, 0));
 
     for (size_t index = 0; index < psbt->num_inputs; ++index) {
@@ -1116,6 +1109,13 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
     JADE_ASSERT(!retval);
 
 cleanup:
+    if (!signing_flags && for_liquid && !has_genesis_blockhash) {
+        // Liquid: We didn't sign any inputs and the user didn't provide an
+        // ELIP-0101 genesis blockhash, so remove it from the result PSET.
+        // Note if we did sign, then per ELIP-0101 we keep any added genesis hash.
+        JADE_WALLY_VERIFY(wally_bzero(psbt->genesis_blockhash, sizeof(psbt->genesis_blockhash)));
+    }
+
     SENSITIVE_POP(&iter);
     free(descriptor);
     free(multisig_data);

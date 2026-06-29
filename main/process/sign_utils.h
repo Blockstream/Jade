@@ -51,6 +51,12 @@ WARN_UNUSED_RESULT bool validate_elements_outputs(network_t network_id, const st
 // Whether or not the sighash flags for a given tx/signature type is supported
 bool sighash_is_supported(TxType_t txtype, uint32_t sig_type, uint32_t sighash, bool for_liquid, bool is_partial);
 
+// Liquid: populates genesis_out with the given or network-default genesis.
+// Non-Liquid: errors if genesis hash is provided, leaves genesis_out unset.
+// If validation fails, errmsg is set to non-NULL.
+void params_genesis_hash(network_t network_id, bool for_liquid, const uint8_t* genesis, size_t genesis_len,
+    uint8_t* genesis_out, size_t genesis_out_len, const char** errmsg);
+
 bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
 

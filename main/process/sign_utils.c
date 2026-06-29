@@ -664,6 +664,50 @@ bool sighash_is_supported(const TxType_t txtype, const uint32_t sig_type, const 
     return sighash == WALLY_SIGHASH_ALL;
 }
 
+void params_genesis_hash(network_t network_id, const bool for_liquid, const uint8_t* genesis, const size_t genesis_len,
+    uint8_t* genesis_out, const size_t genesis_out_len, const char** errmsg)
+{
+    JADE_ASSERT(genesis_out && genesis_out_len == SHA256_LEN);
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    if (!for_liquid) {
+        // Bitcoin
+        if (genesis) {
+            *errmsg = "genesis_hash only appropriate for liquid networks";
+        }
+        return;
+    }
+    // Liquid
+    if (!genesis) {
+        // Use the consensus genesis blockhash for the network
+        network_to_genesis_hash(network_id, genesis_out, genesis_out_len);
+        return;
+    }
+    // Caller has provided a genesis blockhash to use
+    if (genesis_len != SHA256_LEN) {
+        *errmsg = "Invalid genesis_hash";
+        return;
+    }
+    uint8_t mainnet_genesis[SHA256_LEN];
+    network_to_genesis_hash(NETWORK_LIQUID, mainnet_genesis, sizeof(mainnet_genesis));
+    const bool is_mainnet_genesis = !memcmp(genesis, mainnet_genesis, genesis_len);
+    if (network_id == NETWORK_LIQUID_TESTNET || network_id == NETWORK_LIQUID_REGTEST) {
+        if (is_mainnet_genesis) {
+            // Caller attempting to use the mainnet genesis hash on a test network
+            *errmsg = "Network/pset genesis mismatch";
+            return;
+        }
+    } else if (!is_mainnet_genesis) {
+        // Caller attempting to use a non-mainnet genesis hash on mainnet
+        *errmsg = "Network/pset genesis mismatch";
+        return;
+    }
+    if (genesis_out != genesis) {
+        // Caller provided a new buffer for the result; copy it there
+        memcpy(genesis_out, genesis, genesis_len);
+    }
+}
+
 bool show_btc_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
     const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t input_amount,
     const uint64_t output_amount)
