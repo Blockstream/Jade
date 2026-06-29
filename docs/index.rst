@@ -19,7 +19,7 @@ Welcome to Jade's RPC documentation!
 * Several calls require a `network` parameter.  Allowed values are: 'mainnet' and 'liquid'. If using a test wallet, 'testnet', 'testnet-liquid', 'localtest' and 'localtest-liquid' are allowed.
 * Successful action replies include a `result` structure, specific to each method.
 * Failed/errored/declined actions instead include a common `error` structure.
-  
+
 .. _common_error_reply:
 
 common error reply
@@ -39,7 +39,7 @@ common error reply
 * 'code' values are listed in `main/utils/cbor_rpc.h`.
 * 'message' should be a meaningful string describing the error encountered.
 * 'data' content is optional, and usually unused/null.
-  
+
 .. _get_extended_data_request:
 
 get_extended_data request
@@ -159,15 +159,15 @@ get_version_info reply
 * 'BATTERY_STATUS' : positive integer value up to 5 (fully charged).
 
 * 'JADE_STATE' :
-  
+
   - 'UNINIT' - no wallet set on the hw, mnemonic not entered, unit uninitialised.
   - 'UNSAVED' - wallet mnemonic has been set on hw, but not yet persisted with blind pinserver.
   - 'LOCKED' - wallet set, but currently locked - requires PIN entry to unlock.
   - 'READY' - wallet set and unlocked for this interface, ready to use.
   - 'TEMP' - hw currently set with a temporary ('Emergency Restore') wallet, ready to use.
-    
+
 * 'JADE_NETWORKS' :
-  
+
   - 'MAIN' - wallet is locked to mainnet/production networks and cannot be used on testnet or regtest networks.
   - 'TEST' - wallet is locked to testnet/regtest/localtest networks, and cannot be used on mainnet or liquid production networks.
   - 'ALL' - wallet is not (yet) locked to a specific network type.
@@ -1177,7 +1177,7 @@ sign_bip85_digests reply
 
 * 'result' is an array of signatures, corresponding to the array of digests passed in.
 
-  
+
 .. _get_identity_pubkey_request:
 
 get_identity_pubkey request
@@ -1500,7 +1500,7 @@ multi-sig:
         "multisig_name": "small_beans",
         "paths": [ [0,1], [0,1] ]
     }
-  
+
 .. _sign_tx_legacy_reply:
 
 sign_tx reply (legacy)
@@ -1815,7 +1815,7 @@ Used to fetch a script-specific blinding nonce.
 * 'their_pubkey' needs to be the EC public key of the counterparty for the given script.
 * 'include_pubkey' is an optional boolean field.  If present and 'true' the reply will also include the public blinding key for the script (see get_blinding_key_request_).
 * 'multisig_name' is optional and defaults to null.  It is only used for registered multisig wallets.
- 
+
 .. _get_shared_nonce_reply:
 
 get_blinding_nonce reply
@@ -1865,7 +1865,7 @@ Used to fetch a deterministic output blinding factor (abf/assetblinder or vbf/va
 * 'hash_prevout' should be the double sha256 of the serialization of all input outpoints, as documented in bip143.
 * 'type' must be either 'ASSET', 'VALUE', or 'ASSET_AND_VALUE'.
 * 'multisig_name' is optional and defaults to null.  It is only used for registered multisig wallets.
- 
+
 .. _get_blinding_factor_reply:
 
 get_blinding_factor reply
@@ -1907,7 +1907,7 @@ Used to fetch output commitments - ie. returns blinded output (and associated bl
 * 'vbf' is an optional override, and defaults to null, in which case the value is calculated.
 * 'vbf' is provided for one output, so the tx commitment values sum correctly.
 * 'multisig_name' is optional and defaults to null.  It is only used for registered multisig wallets.
- 
+
 .. _get_commitments_reply:
 
 get_commitments reply
@@ -1946,6 +1946,7 @@ Request to sign liquid transaction inputs.
         "method": "sign_liquid_tx",
         "params": {
             "network": "testnet-liquid",
+            "genesis_hash": <bytes>,
             "txn": <bytes>,
             "num_inputs": 4,
             "use_ae_signatures": false,
@@ -2017,6 +2018,7 @@ Request to sign liquid transaction inputs.
     }
 
 * Most fields are as described in sign_tx_legacy_request_.
+* 'genesis_hash' is optional, but if passed should be an ELIP-101 compatible genesis blockhash for the network being signed for. Only valid for Liquid regtest and Liquid testnet networks.
 * 'asset_info' is optional, but if passed should be the asset-id, contract and issuance-prevout sections of the asset registry data pertinent to the assets being transacted.  If present, this allows the transaction details displayed on Jade to include assets' name, issuer and ticker fields, rather than just asset-id alone.  NOTE: if passed, this data must be accurate as obtained from the asset registry json, and the fields in the expected (ie. alphabetical) order.  'asset_info' for the network policy-asset is not required.
 * 'trusted_commitments' must be passed in for each blinded output.  Where an output is not blinded (eg. fee output) null may be passed.If 'asset_generator' and 'value_commitment' are included, they must match the value in the matching transaction output being signed.
 * 'trusted_commitments' entries passed in here can be obtained using the get_commitments_request_, with the relevant 'blinding_key' added (which would originally be obtained from get_blinding_key_request_).
