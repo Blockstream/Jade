@@ -126,9 +126,16 @@ bool run_in_temporary_task(const size_t stack_size, temporary_stack_function_t f
         JADE_TASK_PRIO_TEMPORARY, &temporary_task, JADE_CORE_SECONDARY, mem_caps);
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create temporary task, xTaskCreatePinnedToCore() returned %d", retval);
 
-    // Wait for the task to flag completion and copy the result
-    while (xSemaphoreTake(task_semaphore, portMAX_DELAY) != pdTRUE) {
-        // wait for mutex
+    // Wait for the task to flag completion and copy the result.
+    // Use a timeout to avoid deadlocking if the temporary task hangs/crashes.
+#ifdef CONFIG_ETH_USE_OPENETH
+    const TickType_t timeout_ms = 300000 / portTICK_PERIOD_MS; // 5 minutes for QEMU
+#else
+    const TickType_t timeout_ms = 30000 / portTICK_PERIOD_MS; // 30 seconds for real hardware
+#endif
+    if (xSemaphoreTake(task_semaphore, timeout_ms) != pdTRUE) {
+        JADE_LOGE("Temporary task %p timed out - task appears to have hung or crashed", (void*)temporary_task);
+        s_rslt = false;
     }
     const bool rslt = s_rslt;
 
