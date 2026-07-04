@@ -2,6 +2,7 @@
 //
 
 #include <driver/gpio.h>
+#include <driver/ledc.h>
 #include <esp_adc/adc_cali.h>
 #include <esp_adc/adc_cali_scheme.h>
 #include <esp_adc/adc_oneshot.h>
@@ -11,13 +12,45 @@
 #define BATTERY_ADC_ATTEN ADC_ATTEN_DB_12
 #define BATTERY_EMA_ALPHA 0.3f // estimated moving average smoothing factor
 
+#define LCD_BL_LEDC_TIMER LEDC_TIMER_0
+#define LCD_BL_LEDC_MODE LEDC_LOW_SPEED_MODE
+#define LCD_BL_LEDC_CHANNEL LEDC_CHANNEL_0
+#define LCD_BL_LEDC_DUTY_RES LEDC_TIMER_10_BIT
+#define LCD_BL_LEDC_DUTY_MAX ((1 << 10) - 1)
+#define LCD_BL_LEDC_FREQUENCY 10000
+
 static adc_oneshot_unit_handle_t adc1_handle = NULL;
 static adc_cali_handle_t adc1_cali_chan0_handle = NULL;
 
 static float ema_voltage = 0.0f;
 
+static esp_err_t brightness_init(void)
+{
+    gpio_reset_pin(CONFIG_DISPLAY_PIN_BL);
+    gpio_set_direction(CONFIG_DISPLAY_PIN_BL, GPIO_MODE_OUTPUT);
+
+    ledc_timer_config_t ledc_timer = { .speed_mode = LCD_BL_LEDC_MODE,
+        .timer_num = LCD_BL_LEDC_TIMER,
+        .duty_resolution = LCD_BL_LEDC_DUTY_RES,
+        .freq_hz = LCD_BL_LEDC_FREQUENCY,
+        .clk_cfg = LEDC_AUTO_CLK };
+    ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+
+    ledc_channel_config_t ledc_channel = { .speed_mode = LCD_BL_LEDC_MODE,
+        .channel = LCD_BL_LEDC_CHANNEL,
+        .timer_sel = LCD_BL_LEDC_TIMER,
+        .intr_type = LEDC_INTR_DISABLE,
+        .gpio_num = CONFIG_DISPLAY_PIN_BL,
+        .duty = 0,
+        .hpoint = 0 };
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+    return ESP_OK;
+}
+
 esp_err_t power_init(void)
 {
+    ESP_ERROR_CHECK(brightness_init());
+
     // Initialise the ADC to measure battery level
     adc_oneshot_unit_init_cfg_t init_config1 = {
         .unit_id = ADC_UNIT_1,
@@ -50,8 +83,25 @@ esp_err_t power_shutdown(void)
 }
 esp_err_t power_screen_on(void) { return ESP_OK; }
 esp_err_t power_screen_off(void) { return ESP_OK; }
-esp_err_t power_backlight_on(const uint8_t brightness) { return ESP_OK; }
-esp_err_t power_backlight_off(void) { return ESP_OK; }
+esp_err_t power_backlight_on(uint8_t brightness)
+{
+    if (brightness < BACKLIGHT_MIN) {
+        brightness = BACKLIGHT_MIN;
+    } else if (brightness > BACKLIGHT_MAX) {
+        brightness = BACKLIGHT_MAX;
+    }
+
+    const uint32_t duty = (brightness * LCD_BL_LEDC_DUTY_MAX) / BACKLIGHT_MAX;
+    ESP_ERROR_CHECK(ledc_set_duty(LCD_BL_LEDC_MODE, LCD_BL_LEDC_CHANNEL, duty));
+    ESP_ERROR_CHECK(ledc_update_duty(LCD_BL_LEDC_MODE, LCD_BL_LEDC_CHANNEL));
+    return ESP_OK;
+}
+esp_err_t power_backlight_off(void)
+{
+    ESP_ERROR_CHECK(ledc_set_duty(LCD_BL_LEDC_MODE, LCD_BL_LEDC_CHANNEL, 0));
+    ESP_ERROR_CHECK(ledc_update_duty(LCD_BL_LEDC_MODE, LCD_BL_LEDC_CHANNEL));
+    return ESP_OK;
+}
 esp_err_t power_camera_on(void) { return ESP_OK; }
 esp_err_t power_camera_off(void) { return ESP_OK; }
 
