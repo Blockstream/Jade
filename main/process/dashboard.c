@@ -1701,9 +1701,9 @@ static void handle_view_otps(void)
     SENSITIVE_POP(otp_uri);
 }
 
-// NOTE: Only Jade v1.1's and v2's have brightness controls
+// NOTE: Only boards listed here have brightness controls
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)                                     \
-    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
 static void handle_screen_brightness(void)
 {
     static const char* LABELS[] = { "Min(1)", "Low(2)", "Medium(3)", "High(4)", "Max(5)" };
@@ -1728,6 +1728,15 @@ static void handle_screen_brightness(void)
     while (!done) {
         // wait for a GUI event
         gui_activity_wait_event(act, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+
+#if defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
+        // Match TTGO value-selection direction to the rest of its numeric entry UI.
+        if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+            ev_id = GUI_WHEEL_RIGHT_EVENT;
+        } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+            ev_id = GUI_WHEEL_LEFT_EVENT;
+        }
+#endif
 
         switch (ev_id) {
         case GUI_WHEEL_LEFT_EVENT:
@@ -2279,9 +2288,9 @@ static void handle_settings(const bool startup_menu)
             break;
 #endif
 
-// NOTE: Only Jade v1.1's and v2's have brightness controls
+// NOTE: Only boards listed here have brightness controls
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)                                     \
-    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
         case BTN_SETTINGS_DISPLAY_BRIGHTNESS:
             handle_screen_brightness();
             break;
