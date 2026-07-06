@@ -1,7 +1,6 @@
 #include "jade_assert.h"
 
 #include <driver/gpio.h>
-#include <esp_rom_sys.h>
 #include <esp_adc/adc_cali.h>
 #include <esp_adc/adc_cali_scheme.h>
 #include <esp_adc/adc_oneshot.h>
@@ -11,7 +10,6 @@
 
 #define BOARD_POWERON_GPIO  10
 #define BACKLIGHT_GPIO      42
-#define BACKLIGHT_STEPS     16
 
 #define BATTERY_ADC_CHANNEL ADC_CHANNEL_3
 #define BATTERY_ADC_ATTEN   ADC_ATTEN_DB_12
@@ -20,33 +18,6 @@
 static adc_oneshot_unit_handle_t adc1_handle = NULL;
 static adc_cali_handle_t adc1_cali_chan0_handle = NULL;
 static float ema_voltage = 0.0f;
-static uint8_t bl_level = 0;
-
-static void set_backlight(uint8_t value)
-{
-    if (value > BACKLIGHT_STEPS) {
-        value = BACKLIGHT_STEPS;
-    }
-    if (value == 0) {
-        gpio_set_level(BACKLIGHT_GPIO, 0);
-        esp_rom_delay_us(3000);
-        bl_level = 0;
-        return;
-    }
-    if (bl_level == 0) {
-        gpio_set_level(BACKLIGHT_GPIO, 1);
-        bl_level = BACKLIGHT_STEPS;
-        esp_rom_delay_us(30);
-    }
-    const int from = BACKLIGHT_STEPS - bl_level;
-    const int to = BACKLIGHT_STEPS - value;
-    const int num = (BACKLIGHT_STEPS + to - from) % BACKLIGHT_STEPS;
-    for (int i = 0; i < num; i++) {
-        gpio_set_level(BACKLIGHT_GPIO, 0);
-        gpio_set_level(BACKLIGHT_GPIO, 1);
-    }
-    bl_level = value;
-}
 
 esp_err_t power_init(void)
 {
@@ -84,24 +55,17 @@ esp_err_t power_shutdown(void)
 esp_err_t power_screen_on(void) { return ESP_OK; }
 esp_err_t power_screen_off(void) { return ESP_OK; }
 
-esp_err_t power_backlight_on(uint8_t brightness)
+esp_err_t power_backlight_on(const uint8_t brightness)
 {
-    // Brightness is a level BACKLIGHT_MIN (1) to BACKLIGHT_MAX (5),
-    // mapped linearly onto dimmer steps 1 to BACKLIGHT_STEPS.
-    if (brightness < BACKLIGHT_MIN) {
-        brightness = BACKLIGHT_MIN;
-    } else if (brightness > BACKLIGHT_MAX) {
-        brightness = BACKLIGHT_MAX;
-    }
-    const uint8_t scaled
-        = 1 + ((BACKLIGHT_STEPS - 1) * (brightness - BACKLIGHT_MIN)) / (BACKLIGHT_MAX - BACKLIGHT_MIN);
-    set_backlight(scaled);
+    // On/off only for now: any requested brightness level lights the display.
+    (void)brightness;
+    gpio_set_level(BACKLIGHT_GPIO, 1);
     return ESP_OK;
 }
 
 esp_err_t power_backlight_off(void)
 {
-    set_backlight(0);
+    gpio_set_level(BACKLIGHT_GPIO, 0);
     return ESP_OK;
 }
 
