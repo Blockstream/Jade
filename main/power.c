@@ -33,6 +33,8 @@
 #elif defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
 // T-Display can read battery level but lacks hardware to read charging status
 #include "power/tdisplay.inc"
+#elif defined(CONFIG_BOARD_TYPE_TDECK)
+#include "power/tdeck.inc"
 #else
 // Stubs for other hw boards (ie. no power management)
 #include "power/minimal.inc"

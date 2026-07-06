@@ -11,6 +11,8 @@
 #elif defined(CONFIG_BOARD_TYPE_JADE)
 #include <input/selectbtn.inc>
 #include <input/wheel.inc>
+#elif defined(CONFIG_BOARD_TYPE_TDECK)
+#include <input/tdeck.inc>
 #else
 #include <input/navbtns.inc>
 #include <input/selectbtn.inc>

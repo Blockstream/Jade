@@ -75,6 +75,7 @@ while true; do
         jade_v1_1)  CONFIG=$1; ARCH="esp32"; shift ;;
         jade_v2)    CONFIG=$1; ARCH="esp32s3"; shift ;;
         jade_v2c)   CONFIG=$1; ARCH="esp32s3"; shift ;;
+        tdeck)      CONFIG=$1; ARCH="esp32s3"; shift ;;
         qemu)       CONFIG=$1; ARCH="esp32"; shift ;;
         --dev)      DEVELOPMENT="y"; shift ;;
         --noradio)  NORADIO=1; shift ;;

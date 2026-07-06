@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jade Web Flasher</title>
+  <link rel="icon" href="branding/logo.svg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117; color: #c9d1d9;
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    }
+    .container { max-width: 720px; width: 100%; padding: 24px; }
+    header {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 32px;
+      padding-bottom: 16px; border-bottom: 1px solid #21262d;
+    }
+    header svg { flex-shrink: 0; }
+    header h1 { font-size: 24px; font-weight: 600; color: #00d4aa; }
+    header span { font-size: 14px; color: #8b949e; }
+
+    .tab-bar { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid #21262d; }
+    .tab-btn {
+      padding: 10px 20px; cursor: pointer; border: none; background: none;
+      color: #8b949e; font-size: 14px; border-bottom: 2px solid transparent;
+      transition: all .15s;
+    }
+    .tab-btn:hover { color: #c9d1d9; }
+    .tab-btn.active { color: #00d4aa; border-bottom-color: #00d4aa; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .card {
+      background: #161b22; border: 1px solid #21262d; border-radius: 8px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .card-title { font-size: 14px; font-weight: 500; color: #8b949e; margin-bottom: 12px; }
+
+    select {
+      width: 100%; padding: 10px 12px; border: 1px solid #30363d; border-radius: 6px;
+      background: #0d1117; color: #c9d1d9; font-size: 14px; margin-bottom: 12px;
+    }
+    select:focus { outline: none; border-color: #00d4aa; }
+
+    .info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+    .info-row .label { color: #8b949e; }
+    .info-row .value { color: #c9d1d9; font-family: monospace; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 24px; border: none; border-radius: 6px;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-primary { background: #00d4aa; color: #0d1117; }
+    .btn-primary:hover { background: #00b894; }
+    .btn-primary:disabled { background: #2ea043; cursor: not-allowed; opacity: 0.6; }
+    .btn-outline {
+      background: transparent; border: 1px solid #30363d; color: #c9d1d9;
+    }
+    .btn-outline:hover { border-color: #8b949e; }
+
+    .actions { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+
+    .console {
+      background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+      padding: 12px; font-family: "SF Mono", "Cascadia Code", monospace;
+      font-size: 12px; line-height: 1.6; max-height: 300px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-all;
+      margin-top: 16px;
+    }
+    .console .info { color: #8b949e; }
+    .console .ok { color: #3fb950; }
+    .console .err { color: #f85149; }
+    .console .warn { color: #d29922; }
+
+    .progress-bar {
+      height: 4px; background: #21262d; border-radius: 2px; margin: 12px 0; overflow: hidden;
+    }
+    .progress-bar .fill {
+      height: 100%; background: #00d4aa; border-radius: 2px;
+      width: 0%; transition: width .3s;
+    }
+
+    .drop-zone {
+      border: 2px dashed #30363d; border-radius: 8px; padding: 40px 20px;
+      text-align: center; cursor: pointer; transition: all .15s;
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: #00d4aa; background: #161b22; }
+    .drop-zone p { color: #8b949e; font-size: 14px; }
+    .drop-zone .hint { font-size: 12px; color: #484f58; margin-top: 8px; }
+
+    .compat-banner {
+      background: #d29922; color: #0d1117; padding: 10px 16px; border-radius: 6px;
+      font-size: 13px; margin-bottom: 16px; display: none;
+    }
+
+    @media (max-width: 600px) {
+      .container { padding: 16px; }
+      header h1 { font-size: 20px; }
+      .actions { flex-direction: column; }
+      .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+        <rect width="40" height="40" rx="8" fill="#00d4aa"/>
+        <text x="20" y="27" font-family="Arial" font-size="20" font-weight="bold" fill="#0d1117" text-anchor="middle">J</text>
+      </svg>
+      <div>
+        <h1>Jade Web Flasher</h1>
+        <span>Flash firmware to your device from the browser</span>
+      </div>
+    </header>
+
+    <div class="compat-banner" id="compatBanner">
+      Your browser does not support Web Serial. Use Chrome or Edge version 89+.
+    </div>
+
+    <div class="card">
+      <div class="card-title">Board</div>
+      <select id="boardSelect">
+        <option value="tdeck">LilyGO T-Deck (ESP32-S3)</option>
+      </select>
+      <div id="boardInfo"></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="ci">Latest CI Build</button>
+      <button class="tab-btn" data-tab="zip">Custom ZIP Bundle</button>
+    </div>
+
+    <div class="tab-content active" id="tab-ci">
+      <div class="card">
+        <div class="card-title">Firmware Source</div>
+        <p style="font-size:13px;color:#8b949e;margin-bottom:12px">
+          Downloads the latest firmware built from the <code>master</code> branch.
+        </p>
+        <div class="info-row"><span class="label">Board</span><span class="value" id="ciBoard">LilyGO T-Deck</span></div>
+        <div class="info-row"><span class="label">Chip</span><span class="value" id="ciChip">—</span></div>
+        <div class="info-row"><span class="label">Flash</span><span class="value" id="ciFlash">—</span></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-zip">
+      <div class="card">
+        <div class="card-title">Upload Firmware ZIP</div>
+        <p style="font-size:13px;color:#8b949e;margin-bottom:12px">
+          Download a <code>firmware-tdeck.zip</code> artifact from the
+          <a href="https://github.com/3rdIteration/Jade/actions" style="color:#00d4aa">Actions tab</a>
+          and drop it here.
+        </p>
+        <div class="drop-zone" id="dropZone">
+          <p>Drop ZIP file here or click to browse</p>
+          <p class="hint">Supports firmware-tdeck.zip artifacts from CI</p>
+        </div>
+        <input type="file" id="zipInput" accept=".zip" style="display:none">
+      </div>
+      <div id="zipBoardInfo" class="card" style="display:none">
+        <div class="card-title">Loaded Firmware</div>
+        <div class="info-row"><span class="label">Board</span><span class="value" id="zipBoard">—</span></div>
+        <div class="info-row"><span class="label">Files</span><span class="value" id="zipFiles">—</span></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="flashBtn">Flash Firmware</button>
+    </div>
+
+    <div id="progressSection" style="display:none">
+      <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="console" id="console">
+      <span class="info">Ready. Select a firmware source and click "Flash Firmware".</span>
+    </div>
+  </div>
+
+  <script src="vendor/jszip-3.10.1.min.js"></script>
+  <script type="module">
+import { ESPLoader, Transport } from './vendor/esptool-js-0.6.0.js';
+
+const BOARDS = {
+  tdeck: {
+    name: 'LilyGO T-Deck',
+    chip: 'ESP32-S3',
+    flashMode: 'qio',
+    flashFreq: '80m',
+    flashSize: '16MB',
+    layout: [
+      { offset: '0x0',       file: 'bootloader.bin' },
+      { offset: '0x8000',    file: 'partition-table.bin' },
+      { offset: '0x1a000',   file: 'ota_data_initial.bin' },
+      { offset: '0x20000',   file: 'jade.bin' },
+    ],
+  },
+};
+
+const logDiv = document.getElementById('console');
+
+function log(msg, cls = 'info') {
+  const line = document.createElement('div');
+  line.className = cls;
+  line.textContent = msg;
+  logDiv.appendChild(line);
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function clearLog() {
+  logDiv.innerHTML = '';
+}
+
+function boardKey() { return document.getElementById('boardSelect').value; }
+function board() { return BOARDS[boardKey()]; }
+
+function updateBoardInfo() {
+  const b = board();
+  document.getElementById('boardInfo').innerHTML = `
+    <div class="info-row"><span class="label">Chip</span><span class="value">${b.chip}</span></div>
+    <div class="info-row"><span class="label">Flash</span><span class="value">${b.flashMode} / ${b.flashFreq} / ${b.flashSize}</span></div>
+    <div class="info-row"><span class="label">Layout</span><span class="value">${b.layout.length} files</span></div>
+  `;
+  document.getElementById('ciBoard').textContent = b.name;
+  document.getElementById('ciChip').textContent = b.chip;
+  document.getElementById('ciFlash').textContent = `${b.flashMode} / ${b.flashFreq} / ${b.flashSize}`;
+  document.getElementById('zipBoard').textContent = b.name;
+}
+document.getElementById('boardSelect').addEventListener('change', updateBoardInfo);
+updateBoardInfo();
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+document.getElementById('dropZone').addEventListener('click', () => {
+  document.getElementById('zipInput').click();
+});
+document.getElementById('dropZone').addEventListener('dragover', e => {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+});
+document.getElementById('dropZone').addEventListener('dragleave', e => {
+  e.currentTarget.classList.remove('drag-over');
+});
+document.getElementById('dropZone').addEventListener('drop', e => {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) handleZip(e.dataTransfer.files[0]);
+});
+document.getElementById('zipInput').addEventListener('change', e => {
+  if (e.target.files.length) handleZip(e.target.files[0]);
+});
+
+let zipFirmware = null;
+
+async function handleZip(file) {
+  clearLog();
+  try {
+    log('Reading ZIP file...');
+    const data = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(data);
+    const files = {};
+    const promises = [];
+    zip.forEach((path, entry) => {
+      if (!entry.dir) {
+        promises.push((async () => {
+          files[path] = await entry.async('uint8array');
+        })());
+      }
+    });
+    await Promise.all(promises);
+    log(`Loaded ${Object.keys(files).length} files from ZIP.`, 'ok');
+
+    if (files['flasher_args.json']) {
+      const args = JSON.parse(new TextDecoder().decode(files['flasher_args.json']));
+      log('Found flasher_args.json in ZIP.', 'ok');
+      zipFirmware = { files, args };
+    } else {
+      log('No flasher_args.json found, using default layout.', 'warn');
+      zipFirmware = { files, args: null };
+    }
+    document.getElementById('zipBoardInfo').style.display = 'block';
+    const fileList = Object.keys(files).filter(f => f.endsWith('.bin')).join(', ');
+    document.getElementById('zipFiles').textContent = fileList || '(no .bin files)';
+  } catch (e) {
+    log('Failed to read ZIP: ' + e.message, 'err');
+    zipFirmware = null;
+  }
+}
+
+function resolveLayout(b, files, args) {
+  if (args && args.files) {
+    const entries = [];
+    for (const [name, info] of Object.entries(args.files)) {
+      const key = info.file;
+      const data = files[key];
+      if (data) entries.push({ address: parseInt(info.offset, 16), data, name });
+    }
+    return entries;
+  }
+  return b.layout
+    .map(e => ({ address: parseInt(e.offset, 16), data: files[e.file], name: e.file }))
+    .filter(e => e.data);
+}
+
+async function fetchCIFirmware() {
+  const bk = boardKey();
+  const b = board();
+  const files = {};
+
+  let args = null;
+  const argsResp = await fetch(`./firmware/${bk}/flasher_args.json`);
+  if (argsResp.ok) {
+    args = await argsResp.json();
+    log('Loaded flasher_args.json.', 'ok');
+    for (const [name, info] of Object.entries(args.files || {})) {
+      const resp = await fetch(`./firmware/${bk}/${info.file}`);
+      if (resp.ok) {
+        files[info.file] = new Uint8Array(await resp.arrayBuffer());
+        log(`  Loaded ${info.file} (offset ${info.offset})`);
+      } else {
+        throw new Error(`Failed to fetch ${info.file}`);
+      }
+    }
+  } else {
+    log('Falling back to default layout.', 'warn');
+    for (const entry of b.layout) {
+      const resp = await fetch(`./firmware/${bk}/${entry.file}`);
+      if (resp.ok) {
+        files[entry.file] = new Uint8Array(await resp.arrayBuffer());
+        log(`  Loaded ${entry.file} (offset ${entry.offset})`);
+      } else if (entry.file === 'ota_data_initial.bin') {
+        log(`  ${entry.file} not found, skipping.`, 'warn');
+      } else {
+        throw new Error(`Failed to fetch ${entry.file}`);
+      }
+    }
+  }
+
+  document.getElementById('ciChip').textContent = b.chip;
+  document.getElementById('ciFiles').textContent = Object.keys(files).join(', ');
+  return { files, args };
+}
+
+document.getElementById('flashBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('flashBtn');
+  btn.disabled = true;
+  clearLog();
+
+  const b = board();
+  const isCIMode = document.querySelector('.tab-btn.active').dataset.tab === 'ci';
+
+  let firmware;
+  if (isCIMode) {
+    log('Loading CI firmware...');
+    try {
+      firmware = await fetchCIFirmware();
+    } catch (e) {
+      log('Failed to load CI firmware: ' + e.message, 'err');
+      log('Has the CI pipeline run successfully? Check the Actions tab.', 'err');
+      btn.disabled = false;
+      return;
+    }
+  } else {
+    if (!zipFirmware) {
+      log('No ZIP loaded. Drop a firmware artifact ZIP first.', 'err');
+      btn.disabled = false;
+      return;
+    }
+    firmware = zipFirmware;
+  }
+
+  const layout = resolveLayout(b, firmware.files, firmware.args);
+
+  if (layout.length === 0) {
+    log('No flashable files found!', 'err');
+    btn.disabled = false;
+    return;
+  }
+
+  log(`\nTarget: ${b.name} (${b.chip})`);
+  log(`Flash: ${b.flashMode} / ${b.flashFreq} / ${b.flashSize}`);
+  log(`Files to flash: ${layout.length}`);
+  for (const e of layout) {
+    log(`  0x${e.address.toString(16).padStart(5,'0')}  ${e.name}  (${e.data.length} bytes)`);
+  }
+
+  log('\nConnecting to device...');
+  log('Select the device serial port in the browser prompt.');
+
+  let transport;
+  try {
+    const port = await navigator.serial.requestPort();
+    transport = new Transport(port, false);
+
+    const terminal = {
+      clean: () => {},
+      writeLine: (data) => log(data),
+      write: (data) => log(data),
+    };
+
+    const esploader = new ESPLoader({
+      transport,
+      baudrate: 115200,
+      terminal,
+      debugLogging: false,
+    });
+
+    log('Connecting and detecting chip...');
+    const chipName = await esploader.main();
+    log(`Connected to: ${chipName}`, 'ok');
+
+    if (!chipName.toUpperCase().includes(b.chip.replace('-','').toUpperCase().slice(0,5))) {
+      log(`Warning: Expected ${b.chip} but detected ${chipName}`, 'warn');
+    }
+
+    const totalBytes = layout.reduce((s, e) => s + e.data.length, 0);
+    let writtenBytes = 0;
+
+    const progressFill = document.getElementById('progressFill');
+    document.getElementById('progressSection').style.display = 'block';
+
+    await esploader.writeFlash({
+      fileArray: layout.map(e => ({ data: e.data, address: e.address })),
+      flashMode: b.flashMode,
+      flashFreq: b.flashFreq,
+      flashSize: b.flashSize,
+      eraseAll: false,
+      compress: true,
+      reportProgress: (fileIndex, written, total) => {
+        const pct = Math.round(((writtenBytes + written) / totalBytes) * 100);
+        progressFill.style.width = Math.min(pct, 100) + '%';
+      },
+    });
+
+    writtenBytes = totalBytes;
+    progressFill.style.width = '100%';
+    log(`\nAll ${layout.length} files flashed successfully!`, 'ok');
+
+    log('Resetting device...');
+    await esploader.after('hard_reset');
+    log('Done! Device should reboot.', 'ok');
+
+  } catch (e) {
+    log(`\nError: ${e.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+    try { if (transport) await transport.disconnect(); } catch (_) {}
+  }
+});
+
+if (!navigator.serial) {
+  document.getElementById('compatBanner').style.display = 'block';
+  document.getElementById('flashBtn').disabled = true;
+}
+  </script>
+</body>
+</html>
