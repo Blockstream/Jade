@@ -40,14 +40,27 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
     // NOTE: final three characters ('|', '>', 'S') are rendered in different symbols fonts
     // and are buttons for 'backspace', 'shift/next kb', and 'enter/done'  (see below)
     if (kb_type == KB_LOWER_CASE_CHARS) {
+#ifdef CONFIG_HAS_KEYBOARD
+        // Match the physical keyboard layout (space key ends the middle row)
+        lines[0] = "qwertyuiop";
+        lines[1] = "asdfghjkl ";
+        lines[2] = "zxcvbnm|>S";
+#else
         lines[0] = "abcdefghij";
         lines[1] = "klmnopqrst";
         lines[2] = "uvwxyz |>S";
+#endif
         // 'sizes' ok
     } else if (kb_type == KB_UPPER_CASE_CHARS) {
+#ifdef CONFIG_HAS_KEYBOARD
+        lines[0] = "QWERTYUIOP";
+        lines[1] = "ASDFGHJKL ";
+        lines[2] = "ZXCVBNM|>S";
+#else
         lines[0] = "ABCDEFGHIJ";
         lines[1] = "KLMNOPQRST";
         lines[2] = "UVWXYZ |>S";
+#endif
         // 'sizes' ok
     } else if (kb_type == KB_NUMBERS_SYMBOLS) {
         lines[0] = "1234567890";

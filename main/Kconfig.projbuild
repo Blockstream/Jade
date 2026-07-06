@@ -110,6 +110,7 @@ menu "Blockstream Jade"
         config BOARD_TYPE_TDECK
             bool "LilyGO T-Deck (keyboard + trackball)"
             select HAS_BATTERY
+            select HAS_KEYBOARD
         config BOARD_TYPE_TTGO_TWATCHS3
             bool "TTGO T-WATCH S3"
             select HAS_AXP
@@ -322,6 +323,12 @@ menu "Blockstream Jade"
         help
             Enables USB JTAG serial rather than CDC tinyusb, implies no tinyusb/host storage/etc
             default n
+
+    config HAS_KEYBOARD
+        bool "Device has a physical keyboard"
+        help
+            Device has a physical qwerty keyboard - on-screen keyboards
+            are laid out qwerty to match
 
     config HAS_BATTERY
         bool "Enable Battery Functions"

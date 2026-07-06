@@ -290,9 +290,16 @@ gui_activity_t* make_enter_wordlist_word_activity(gui_view_node_t** titletext, c
 
     // second row, keyboard
     char* lines[NUM_KEYBOARD_ROWS];
+#ifdef CONFIG_HAS_KEYBOARD
+    // Match the physical keyboard layout
+    lines[0] = (char[]){ 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P' };
+    lines[1] = (char[]){ 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L' };
+    lines[2] = (char[]){ 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ' ', '|' };
+#else
     lines[0] = (char[]){ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J' };
     lines[1] = (char[]){ 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S' };
     lines[2] = (char[]){ 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', ' ', '|' };
+#endif
     const size_t sizes[NUM_KEYBOARD_ROWS] = { 10, 9, 9 };
 
     JADE_ASSERT(CONFIG_DISPLAY_WIDTH >= 240);
