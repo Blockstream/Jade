@@ -402,6 +402,14 @@ async function handleZip(file) {
 }
 
 function resolveLayout(b, files, args) {
+  if (args && args.flash_files) {
+    const entries = [];
+    for (const [offset, filePath] of Object.entries(args.flash_files)) {
+      const data = files[filePath];
+      if (data) entries.push({ address: parseInt(offset, 16), data, name: filePath });
+    }
+    return entries;
+  }
   if (args && args.files) {
     const entries = [];
     for (const [name, info] of Object.entries(args.files)) {
@@ -426,13 +434,14 @@ async function fetchCIFirmware() {
   if (argsResp.ok) {
     args = await argsResp.json();
     log('Loaded flasher_args.json.', 'ok');
-    for (const [name, info] of Object.entries(args.files || {})) {
-      const resp = await fetch(`./firmware/${bk}/${info.file}`);
+    const fileMap = args.flash_files || {};
+    for (const [offset, filePath] of Object.entries(fileMap)) {
+      const resp = await fetch(`./firmware/${bk}/${filePath}`);
       if (resp.ok) {
-        files[info.file] = new Uint8Array(await resp.arrayBuffer());
-        log(`  Loaded ${info.file} (offset ${info.offset})`);
+        files[filePath] = new Uint8Array(await resp.arrayBuffer());
+        log(`  Loaded ${filePath} (offset ${offset})`);
       } else {
-        throw new Error(`Failed to fetch ${info.file}`);
+        throw new Error(`Failed to fetch ${filePath}`);
       }
     }
   } else {
