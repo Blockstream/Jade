@@ -84,9 +84,17 @@ esp_err_t power_shutdown(void)
 esp_err_t power_screen_on(void) { return ESP_OK; }
 esp_err_t power_screen_off(void) { return ESP_OK; }
 
-esp_err_t power_backlight_on(const uint8_t brightness)
+esp_err_t power_backlight_on(uint8_t brightness)
 {
-    const uint8_t scaled = (brightness * BACKLIGHT_STEPS) / 255;
+    // Brightness is a level BACKLIGHT_MIN (1) to BACKLIGHT_MAX (5),
+    // mapped linearly onto dimmer steps 1 to BACKLIGHT_STEPS.
+    if (brightness < BACKLIGHT_MIN) {
+        brightness = BACKLIGHT_MIN;
+    } else if (brightness > BACKLIGHT_MAX) {
+        brightness = BACKLIGHT_MAX;
+    }
+    const uint8_t scaled
+        = 1 + ((BACKLIGHT_STEPS - 1) * (brightness - BACKLIGHT_MIN)) / (BACKLIGHT_MAX - BACKLIGHT_MIN);
     set_backlight(scaled);
     return ESP_OK;
 }
