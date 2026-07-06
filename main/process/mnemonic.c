@@ -818,13 +818,24 @@ static size_t get_wordlist_words(
                 // Wait for kb button click
                 gui_activity_wait_event(enter_word_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
                 selected_backspace = (ev_id == BTN_KEYBOARD_BACKSPACE);
-                done_entering_words = (ev_id == BTN_KEYBOARD_ENTER);
-                if (!selected_backspace && !done_entering_words) {
-                    // Character/letter was clicked
-                    const char letter_selected = ev_id - BTN_KEYBOARD_ASCII_OFFSET;
+                // A physical keyboard can send 'enter' at any time - only honour it
+                // where the on-screen enter button would be active (see enable_relevant_chars)
+                done_entering_words = (ev_id == BTN_KEYBOARD_ENTER && !is_mnemonic && !char_index);
+                if (!selected_backspace && ev_id >= BTN_KEYBOARD_ASCII_OFFSET) {
+                    // Character/letter was clicked/typed (physical keyboards send lowercase)
+                    const char letter_selected = toupper((int)(ev_id - BTN_KEYBOARD_ASCII_OFFSET));
                     if (letter_selected >= 'A' && letter_selected <= 'Z') {
+                        // Only accept a letter if some word still matches the new stem -
+                        // the on-screen keyboard disables impossible letters, but a
+                        // physical keyboard cannot
                         word[char_index] = tolower(letter_selected);
-                        word[++char_index] = '\0';
+                        word[char_index + 1] = '\0';
+                        if (valid_words(word, char_index + 1, p_filter_words, num_filter_words, possible_word_list,
+                                NUM_WORDS_SELECT, &exact_match)) {
+                            ++char_index;
+                        } else {
+                            word[char_index] = '\0';
+                        }
                     }
                 }
             }

@@ -23,6 +23,12 @@
 // caps the overall scroll rate
 #define TB_DEBOUNCE_US      2000
 
+// Edges required per scroll step - raise to reduce sensitivity
+#define TB_EDGES_PER_EVENT  2
+
+// Edges further apart than this do not accumulate towards a step
+#define TB_GESTURE_TIMEOUT_US 300000
+
 static void tdeck_keyboard_task(void* unused)
 {
     gpio_set_direction(BOARD_POWERON_GPIO, GPIO_MODE_OUTPUT);
@@ -79,13 +85,26 @@ static QueueHandle_t tb_queue = NULL;
 static void tb_isr(void* arg)
 {
     static int64_t last_event_us = 0;
+    static tb_nav_t last_nav = TB_NAV_PREV;
+    static uint8_t edge_count = 0;
+
     const int64_t now = esp_timer_get_time();
-    if (now - last_event_us < TB_DEBOUNCE_US) {
+    const int64_t elapsed = now - last_event_us;
+    if (elapsed < TB_DEBOUNCE_US) {
         return;
     }
     last_event_us = now;
 
     const tb_nav_t nav = (tb_nav_t)(uintptr_t)arg;
+    if (nav != last_nav || elapsed > TB_GESTURE_TIMEOUT_US) {
+        last_nav = nav;
+        edge_count = 0;
+    }
+    if (++edge_count < TB_EDGES_PER_EVENT) {
+        return;
+    }
+    edge_count = 0;
+
     BaseType_t higher_priority_woken = pdFALSE;
     xQueueSendFromISR(tb_queue, &nav, &higher_priority_woken);
     if (higher_priority_woken == pdTRUE) {
