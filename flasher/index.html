@@ -202,9 +202,12 @@ const BOARDS = {
   tdeck: {
     name: 'LilyGO T-Deck',
     chip: 'ESP32-S3',
-    flashMode: 'qio',
-    flashFreq: '80m',
-    flashSize: '16MB',
+    // 'keep' is required: esptool-js patches the bootloader header when a
+    // mode/freq/size is given, but does not recompute the appended SHA-256,
+    // and the ESP32-S3 ROM rejects the image (ets_loader.c 78 bootloop).
+    flashMode: 'keep',
+    flashFreq: 'keep',
+    flashSize: 'keep',
     layout: [
       { offset: '0x0',       file: 'bootloader.bin' },
       { offset: '0x8000',    file: 'partition-table.bin' },
