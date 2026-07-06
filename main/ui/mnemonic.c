@@ -383,34 +383,6 @@ gui_activity_t* make_calculate_final_word_activity(void)
     return act;
 }
 
-gui_activity_t* make_confirm_passphrase_activity(const char* passphrase, gui_view_node_t** textbox)
-{
-    JADE_ASSERT(passphrase);
-    JADE_INIT_OUT_PPTR(textbox);
-
-    gui_activity_t* const act = gui_make_activity();
-    gui_view_node_t* const parent = add_title_bar(act, "Confirm Passphrase", NULL, 0, NULL);
-
-    gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 2, 70, 30);
-    gui_set_parent(vsplit, parent);
-
-    // passphrase
-    gui_make_text(textbox, passphrase, TFT_WHITE);
-    gui_set_text_noise(*textbox, TFT_BLACK);
-    gui_set_parent(*textbox, vsplit);
-
-    gui_set_padding(*textbox, GUI_MARGIN_ALL_DIFFERENT, 12, 2, 0, 4);
-    gui_set_align(*textbox, GUI_ALIGN_LEFT, GUI_ALIGN_TOP);
-
-    // third row, Yes and No buttons
-    btn_data_t ftrbtns[] = { { .txt = "No", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO, .borders = GUI_BORDER_TOPRIGHT },
-        { .txt = "Yes", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOPLEFT } };
-    add_buttons(vsplit, UI_ROW, ftrbtns, 2);
-
-    return act;
-}
-
 gui_activity_t* make_export_qr_overview_activity(const Icon* icon, const bool initial)
 {
     JADE_ASSERT(icon);

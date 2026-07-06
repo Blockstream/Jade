@@ -4,6 +4,11 @@
 #include "../random.h"
 #include "../ui.h"
 
+#ifdef CONFIG_HAS_KEYBOARD
+#include <ctype.h>
+#include <string.h>
+#endif
+
 #define CHAR_BACKSPACE '|'
 #define CHAR_ENTER '~'
 static const char ENTRY_CHARS[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', CHAR_BACKSPACE, CHAR_ENTER };
@@ -202,6 +207,63 @@ static bool prev_selected_digit(digit_entry_t* digit_entry)
     return true;
 }
 
+#ifdef CONFIG_HAS_KEYBOARD
+// Map physical key events to digits. Accept actual ascii digits, plus the
+// letter keys which have digits printed on them on the T-Deck keyboard:
+// w=1 e=2 r=3 s=4 d=5 f=6 z=7 x=8 c=9 (0 is on the mic key).
+static int keyboard_event_digit(const int32_t ev_id)
+{
+    static const char digit_key_aliases[] = "wersdfzxc"; // 1-9
+
+    if (ev_id <= BTN_KEYBOARD_ASCII_OFFSET) {
+        return -1;
+    }
+    const int ch = tolower(ev_id - BTN_KEYBOARD_ASCII_OFFSET);
+    if (ch >= '0' && ch <= '9') {
+        return ch - '0';
+    }
+    const char* const alias = strchr(digit_key_aliases, ch);
+    if (alias) {
+        return (alias - digit_key_aliases) + 1;
+    }
+    return -1;
+}
+
+// Handle a physical keyboard event - returns true (with 'done' set) when
+// entry is complete or abandoned, false to continue the entry loop.
+static bool handle_keyboard_event(digit_entry_t* digit_entry, const int32_t ev_id, bool* done)
+{
+    JADE_ASSERT(digit_entry);
+    JADE_ASSERT(done);
+
+    if (ev_id == BTN_KEYBOARD_BACKSPACE) {
+        if (!prev_selected_digit(digit_entry)) {
+            // Backspace on first digit - entry abandoned
+            *done = false;
+            return true;
+        }
+    } else if (ev_id == BTN_KEYBOARD_ENTER) {
+        // Only valid for 'index' entry (short numbers) - PIN requires all digits
+        if (digit_entry->entry_type == DIGIT_ENTRY_INDEX) {
+            // Enter on first digit abandons entry, otherwise completes it
+            *done = (digit_entry->selected_digit > 0);
+            return true;
+        }
+    } else {
+        const int digit = keyboard_event_digit(ev_id);
+        if (digit >= 0) {
+            digit_entry->current_selected_value = digit;
+            if (!next_selected_digit(digit_entry)) {
+                // Last digit typed - entry complete
+                *done = true;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+#endif // CONFIG_HAS_KEYBOARD
+
 // Returns true if number entry completes and digit_entry->digit is valid,
 // and false if number entry abandoned and digit_entry->digit is not to be used.
 bool run_digit_entry_loop(digit_entry_t* digit_entry)
@@ -211,8 +273,22 @@ bool run_digit_entry_loop(digit_entry_t* digit_entry)
 
     int32_t ev_id;
     while (true) {
+#ifdef CONFIG_HAS_KEYBOARD
+        // Wait for a GUI event or a physical keyboard event
+        esp_event_base_t ev_base = NULL;
+        gui_activity_wait_event_of_either_base(
+            digit_entry->activity, GUI_EVENT, GUI_BUTTON_EVENT, &ev_base, &ev_id, NULL, 0);
+        if (ev_base == GUI_BUTTON_EVENT) {
+            bool done = false;
+            if (handle_keyboard_event(digit_entry, ev_id, &done)) {
+                return done;
+            }
+            continue;
+        }
+#else
         // wait for a GUI event
         gui_activity_wait_event(digit_entry->activity, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
+#endif
         if (entry_invert_navigation()) {
             // Swap left/right wheel events
             if (ev_id == GUI_WHEEL_LEFT_EVENT) {

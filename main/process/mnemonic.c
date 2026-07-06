@@ -47,7 +47,6 @@ gui_activity_t* make_enter_wordlist_word_activity(gui_view_node_t** titletext, b
     size_t keys_len);
 gui_activity_t* make_calculate_final_word_activity(void);
 
-gui_activity_t* make_confirm_passphrase_activity(const char* passphrase, gui_view_node_t** textbox);
 
 gui_activity_t* make_export_qr_overview_activity(const Icon* icon, bool initial);
 gui_activity_t* make_export_qr_fragment_activity(
@@ -1190,13 +1189,9 @@ static void get_freetext_passphrase(char* passphrase, const size_t passphrase_le
     JADE_ASSERT(passphrase_len);
     passphrase[0] = '\0';
 
-    // We will need this activity later when confirming
-    gui_view_node_t* text_to_confirm = NULL;
-    gui_activity_t* const confirm_passphrase_activity = make_confirm_passphrase_activity(passphrase, &text_to_confirm);
-    int32_t ev_id;
-
     // For passphrase we want all 4 keyboards
     keyboard_entry_t kb_entry = { .max_allowed_len = passphrase_len - 1 };
+    SENSITIVE_PUSH(kb_entry.strdata, sizeof(kb_entry.strdata));
     kb_entry.keyboards[0] = KB_LOWER_CASE_CHARS;
     kb_entry.keyboards[1] = KB_UPPER_CASE_CHARS;
     kb_entry.keyboards[2] = KB_NUMBERS_SYMBOLS;
@@ -1206,20 +1201,39 @@ static void get_freetext_passphrase(char* passphrase, const size_t passphrase_le
     make_keyboard_entry_activity(&kb_entry, "Enter Passphrase");
     JADE_ASSERT(kb_entry.activity);
 
+    // A second, deliberately blank, entry screen to confirm by blind re-entry
+    // (do not display or pre-populate with the initial entry)
+    keyboard_entry_t kb_confirm = { .max_allowed_len = passphrase_len - 1 };
+    SENSITIVE_PUSH(kb_confirm.strdata, sizeof(kb_confirm.strdata));
+    memcpy(kb_confirm.keyboards, kb_entry.keyboards, sizeof(kb_entry.keyboards));
+    kb_confirm.num_kbs = kb_entry.num_kbs;
+
+    make_keyboard_entry_activity(&kb_confirm, "Confirm Passphrase");
+    JADE_ASSERT(kb_confirm.activity);
+
     bool done = false;
     while (!done) {
         // Run the keyboard entry loop to get a typed passphrase
         run_keyboard_entry_loop(&kb_entry);
 
-        // Ask user to confirm passphrase
-        gui_update_text(text_to_confirm, kb_entry.len > 0 ? kb_entry.strdata : "<no passphrase>");
-        gui_set_current_activity(confirm_passphrase_activity);
-        gui_activity_wait_event(confirm_passphrase_activity, GUI_BUTTON_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0);
-        done = (ev_id == BTN_YES);
+        // Ask user to re-enter the passphrase to confirm
+        kb_confirm.strdata[0] = '\0';
+        kb_confirm.len = 0;
+        run_keyboard_entry_loop(&kb_confirm);
+
+        done = (kb_entry.len == kb_confirm.len) && !strcmp(kb_entry.strdata, kb_confirm.strdata);
+        if (!done) {
+            // Mismatch - start over from scratch
+            await_error_2("Passphrases do not", "match - please retry");
+            kb_entry.strdata[0] = '\0';
+            kb_entry.len = 0;
+        }
     }
 
     JADE_ASSERT(kb_entry.len < passphrase_len);
     strcpy(passphrase, kb_entry.strdata);
+    SENSITIVE_POP(kb_confirm.strdata);
+    SENSITIVE_POP(kb_entry.strdata);
 }
 
 void get_passphrase(char* passphrase, const size_t passphrase_len)

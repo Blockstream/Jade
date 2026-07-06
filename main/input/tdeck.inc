@@ -59,6 +59,7 @@ static void tdeck_keyboard_task(void* unused)
         uint8_t key_byte = 0;
         const esp_err_t ret = i2c_master_receive(kb_i2c_dev, &key_byte, 1, KB_I2C_TIMEOUT_MS);
         if (ret == ESP_OK && key_byte != 0) {
+            JADE_LOGD("keyboard key 0x%02x", key_byte);
             if (key_byte == 0x0D) {
                 esp_event_post(GUI_BUTTON_EVENT, BTN_KEYBOARD_ENTER, NULL, 0, portMAX_DELAY);
             } else if (key_byte == 0x08) {

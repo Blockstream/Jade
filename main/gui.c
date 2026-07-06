@@ -2767,6 +2767,31 @@ bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, u
     return ret == ESP_OK;
 }
 
+// As gui_activity_wait_event, but registered for (any event id of) two event bases,
+// eg. to wait on gui navigation events and keyboard button events at the same time.
+bool gui_activity_wait_event_of_either_base(gui_activity_t* activity, const char* event_base1,
+    const char* event_base2, esp_event_base_t* trigger_event_base, int32_t* trigger_event_id,
+    void** trigger_event_data, const TickType_t max_wait)
+{
+    JADE_ASSERT(activity);
+    JADE_ASSERT(event_base1);
+    JADE_ASSERT(event_base2);
+
+    // create a new wait-event-data structure and attach to the activity, which takes ownership
+    wait_event_data_t* const wait_event_data = gui_activity_make_wait_event_data(activity);
+    JADE_ASSERT(wait_event_data);
+
+    // register both bases against the same wait data so either can wake the caller
+    gui_activity_register_event(activity, event_base1, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_event_data);
+    gui_activity_register_event(activity, event_base2, ESP_EVENT_ANY_ID, sync_wait_event_handler, wait_event_data);
+
+    // immediately start waiting
+    const esp_err_t ret
+        = sync_wait_event(wait_event_data, trigger_event_base, trigger_event_id, trigger_event_data, max_wait);
+
+    return ret == ESP_OK;
+}
+
 int32_t gui_activity_wait_button(gui_activity_t* activity, const int32_t default_event_id)
 {
     int32_t ev_id = default_event_id;
