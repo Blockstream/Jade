@@ -16,7 +16,9 @@ jobs:
           submodules: recursive
 
       - name: Build T-Deck firmware
+        shell: bash
         run: |
+          . /opt/esp/idf/export.sh
           cp configs/sdkconfig_display_tdeck.defaults sdkconfig.defaults
           idf.py -B build_tdeck set-target esp32s3
           idf.py -B build_tdeck build
