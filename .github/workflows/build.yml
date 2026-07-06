@@ -2,7 +2,7 @@ name: Build T-Deck
 
 on:
   push:
-    branches: [ master ]
+    branches: [ '**' ]
   pull_request:
     branches: [ master ]
 
@@ -40,15 +40,11 @@ jobs:
           retention-days: 90
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push'
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -58,11 +54,10 @@ jobs:
           name: firmware-tdeck
           path: flasher/firmware/tdeck/
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: flasher/
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: flasher/
+          destination_dir: .
+          keep_files: false
