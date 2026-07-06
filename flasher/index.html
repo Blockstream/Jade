@@ -171,6 +171,8 @@
 
     <div class="actions">
       <button class="btn btn-primary" id="flashBtn">Flash Firmware</button>
+      <button class="btn btn-outline" id="serialBtn">Connect Serial</button>
+      <button class="btn btn-outline" id="disconnectBtn" style="display:none">Disconnect</button>
     </div>
 
     <div id="progressSection" style="display:none">
@@ -179,6 +181,10 @@
 
     <div class="console" id="console">
       <span class="info">Ready. Select a firmware source and click "Flash Firmware".</span>
+    </div>
+
+    <div class="console" id="serialOutput" style="display:none; max-height: 400px;">
+      <span class="info">Serial monitor connected (115200 baud). Output appears below.</span>
     </div>
   </div>
 
@@ -263,6 +269,102 @@ document.getElementById('zipInput').addEventListener('change', e => {
 });
 
 let zipFirmware = null;
+let serialMonitor = null;
+let serialPort = null;
+
+const serialDiv = document.getElementById('serialOutput');
+const consoleDiv = document.getElementById('console');
+const serialBtn = document.getElementById('serialBtn');
+const disconnectBtn = document.getElementById('disconnectBtn');
+
+function serialWrite(text) {
+  const last = serialDiv.lastChild;
+  if (last && last.nodeType === Node.TEXT_NODE) {
+    last.textContent += text;
+  } else {
+    serialDiv.appendChild(document.createTextNode(text));
+  }
+  serialDiv.scrollTop = serialDiv.scrollHeight;
+  if (serialDiv.children.length > 500) {
+    serialDiv.removeChild(serialDiv.firstChild);
+  }
+}
+
+function serialLine(text, cls = '') {
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = text + '\n';
+  serialDiv.appendChild(line);
+  serialDiv.scrollTop = serialDiv.scrollHeight;
+  if (serialDiv.children.length > 500) {
+    serialDiv.removeChild(serialDiv.firstChild);
+  }
+}
+
+async function startSerialMonitor(port) {
+  serialPort = port;
+  serialDiv.style.display = 'block';
+  consoleDiv.style.display = 'none';
+  serialDiv.innerHTML = '';
+
+  serialBtn.style.display = 'none';
+  disconnectBtn.style.display = '';
+  document.getElementById('flashBtn').disabled = true;
+
+  serialLine('Serial monitor connected (115200 baud). Press RESET on device if needed.', 'info');
+
+  let reader;
+  try {
+    reader = port.readable.getReader();
+  } catch (e) {
+    serialLine(`Failed to open serial stream: ${e.message}`, 'err');
+    await stopSerialMonitor();
+    return;
+  }
+  const decoder = new TextDecoder();
+  serialMonitor = { port, reader };
+
+  try {
+    while (serialMonitor) {
+      const { value, done } = await reader.read();
+      if (done || !serialMonitor) break;
+      const text = decoder.decode(value, { stream: true });
+      serialWrite(text);
+    }
+  } catch (e) {
+    if (serialMonitor) serialLine(`Serial disconnected: ${e.message}`, 'err');
+  }
+}
+
+async function stopSerialMonitor() {
+  if (serialMonitor) {
+    const { port, reader } = serialMonitor;
+    serialMonitor = null;
+    try { await reader.cancel(); } catch (_) {}
+    try { reader.releaseLock(); } catch (_) {}
+    try { await port.close(); } catch (_) {}
+  } else if (serialPort) {
+    try { await serialPort.close(); } catch (_) {}
+  }
+  serialPort = null;
+  serialDiv.style.display = 'none';
+  consoleDiv.style.display = '';
+  serialBtn.style.display = '';
+  disconnectBtn.style.display = 'none';
+  document.getElementById('flashBtn').disabled = false;
+}
+
+serialBtn.addEventListener('click', async () => {
+  try {
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    await startSerialMonitor(port);
+  } catch (e) {
+    log('Serial connect failed: ' + e.message, 'err');
+  }
+});
+
+disconnectBtn.addEventListener('click', stopSerialMonitor);
 
 async function handleZip(file) {
   clearLog();
@@ -399,6 +501,7 @@ document.getElementById('flashBtn').addEventListener('click', async () => {
   log('\nConnecting to device...');
   log('Select the device serial port in the browser prompt.');
 
+  document.getElementById('serialBtn').disabled = true;
   let transport;
   try {
     const port = await navigator.serial.requestPort();
@@ -450,13 +553,20 @@ document.getElementById('flashBtn').addEventListener('click', async () => {
 
     log('Resetting device...');
     await esploader.after('hard_reset');
-    log('Done! Device should reboot.', 'ok');
+
+    log('Starting serial monitor (115200 baud)...', 'ok');
+    await transport.disconnect();
+    await port.open({ baudRate: 115200 });
+    await startSerialMonitor(port);
 
   } catch (e) {
     log(`\nError: ${e.message}`, 'err');
   } finally {
     btn.disabled = false;
-    try { if (transport) await transport.disconnect(); } catch (_) {}
+    document.getElementById('serialBtn').disabled = false;
+    if (!serialMonitor) {
+      try { if (transport) await transport.disconnect(); } catch (_) {}
+    }
   }
 });
 
