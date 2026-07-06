@@ -7,6 +7,7 @@
 
 #include <driver/gpio.h>
 #include <driver/i2c_master.h>
+#include <esp_timer.h>
 
 #define BOARD_POWERON_GPIO  10
 #define KB_I2C_ADDR         0x55
@@ -14,7 +15,13 @@
 
 #define TB_LEFT_GPIO        1
 #define TB_RIGHT_GPIO       2
+#define TB_UP_GPIO          3
+#define TB_DOWN_GPIO        15
 #define TB_PRESS_GPIO       0
+
+// Ignore edges arriving faster than this - filters contact noise and
+// caps the overall scroll rate
+#define TB_DEBOUNCE_US      2000
 
 static void tdeck_keyboard_task(void* unused)
 {
@@ -60,9 +67,45 @@ static void tdeck_keyboard_task(void* unused)
     vTaskDelete(NULL);
 }
 
-static void tb_left_trigger(void* arg, void* ctx) { gui_prev(); }
-static void tb_right_trigger(void* arg, void* ctx) { gui_next(); }
 static void tb_press_trigger(void* arg, void* ctx) { gui_front_click(); }
+
+// The trackball direction outputs are not buttons - each line toggles
+// level once per step of ball travel, so treat every edge as one scroll
+// increment (the resting level of a line is arbitrary).
+typedef enum { TB_NAV_PREV, TB_NAV_NEXT } tb_nav_t;
+
+static QueueHandle_t tb_queue = NULL;
+
+static void tb_isr(void* arg)
+{
+    static int64_t last_event_us = 0;
+    const int64_t now = esp_timer_get_time();
+    if (now - last_event_us < TB_DEBOUNCE_US) {
+        return;
+    }
+    last_event_us = now;
+
+    const tb_nav_t nav = (tb_nav_t)(uintptr_t)arg;
+    BaseType_t higher_priority_woken = pdFALSE;
+    xQueueSendFromISR(tb_queue, &nav, &higher_priority_woken);
+    if (higher_priority_woken == pdTRUE) {
+        portYIELD_FROM_ISR();
+    }
+}
+
+static void tdeck_trackball_task(void* unused)
+{
+    for (;;) {
+        tb_nav_t nav;
+        if (xQueueReceive(tb_queue, &nav, portMAX_DELAY) == pdTRUE) {
+            if (nav == TB_NAV_PREV) {
+                gui_prev();
+            } else {
+                gui_next();
+            }
+        }
+    }
+}
 
 void navigation_init(void)
 {
@@ -71,24 +114,34 @@ void navigation_init(void)
     JADE_ASSERT_MSG(retval == pdPASS, "Failed to create tdeck_keyboard task, xTaskCreatePinnedToCore() returned %d",
         retval);
 
+    tb_queue = xQueueCreate(8, sizeof(tb_nav_t));
+    JADE_ASSERT(tb_queue);
+
+    retval = xTaskCreatePinnedToCore(
+        &tdeck_trackball_task, "tdeck_tball", 2 * 1024, NULL, JADE_TASK_PRIO_WHEEL, NULL, JADE_CORE_SECONDARY);
+    JADE_ASSERT_MSG(retval == pdPASS, "Failed to create tdeck_trackball task, xTaskCreatePinnedToCore() returned %d",
+        retval);
+
+    const gpio_config_t tb_cfg = {
+        .pin_bit_mask = (1ULL << TB_LEFT_GPIO) | (1ULL << TB_RIGHT_GPIO) | (1ULL << TB_UP_GPIO)
+            | (1ULL << TB_DOWN_GPIO),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .intr_type = GPIO_INTR_ANYEDGE,
+    };
+    ESP_ERROR_CHECK(gpio_config(&tb_cfg));
+
+    const esp_err_t rc = gpio_install_isr_service(0);
+    JADE_ASSERT(rc == ESP_OK || rc == ESP_ERR_INVALID_STATE);
+    ESP_ERROR_CHECK(gpio_isr_handler_add(TB_LEFT_GPIO, tb_isr, (void*)(uintptr_t)TB_NAV_PREV));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(TB_UP_GPIO, tb_isr, (void*)(uintptr_t)TB_NAV_PREV));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(TB_RIGHT_GPIO, tb_isr, (void*)(uintptr_t)TB_NAV_NEXT));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(TB_DOWN_GPIO, tb_isr, (void*)(uintptr_t)TB_NAV_NEXT));
+
     const button_config_t btn_cfg = {
         .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,
         .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS,
     };
-
-    button_handle_t btn_left = NULL;
-    const button_gpio_config_t left_gpio_cfg = { .gpio_num = TB_LEFT_GPIO, .active_level = 0 };
-    ESP_ERROR_CHECK(iot_button_new_gpio_device(&btn_cfg, &left_gpio_cfg, &btn_left));
-    JADE_ASSERT(btn_left);
-    ESP_ERROR_CHECK(iot_button_register_cb(btn_left, BUTTON_PRESS_DOWN, NULL, tb_left_trigger, NULL));
-    ESP_ERROR_CHECK(iot_button_register_cb(btn_left, BUTTON_LONG_PRESS_HOLD, NULL, tb_left_trigger, NULL));
-
-    button_handle_t btn_right = NULL;
-    const button_gpio_config_t right_gpio_cfg = { .gpio_num = TB_RIGHT_GPIO, .active_level = 0 };
-    ESP_ERROR_CHECK(iot_button_new_gpio_device(&btn_cfg, &right_gpio_cfg, &btn_right));
-    JADE_ASSERT(btn_right);
-    ESP_ERROR_CHECK(iot_button_register_cb(btn_right, BUTTON_PRESS_DOWN, NULL, tb_right_trigger, NULL));
-    ESP_ERROR_CHECK(iot_button_register_cb(btn_right, BUTTON_LONG_PRESS_HOLD, NULL, tb_right_trigger, NULL));
 
     button_handle_t btn_press = NULL;
     const button_gpio_config_t press_gpio_cfg = { .gpio_num = TB_PRESS_GPIO, .active_level = 0 };
