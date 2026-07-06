@@ -8,6 +8,11 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        variant:
+          - { name: tdeck, config: sdkconfig_display_tdeck.defaults }
+          - { name: tdeck-debug, config: sdkconfig_display_tdeck_debug.defaults }
     runs-on: ubuntu-latest
     container: espressif/idf:v5.5.4
     steps:
@@ -15,30 +20,30 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build T-Deck firmware
+      - name: Build ${{ matrix.variant.name }} firmware
         shell: bash
         run: |
           . /opt/esp/idf/export.sh
-          cp configs/sdkconfig_display_tdeck.defaults sdkconfig.defaults
-          idf.py -B build_tdeck set-target esp32s3
-          idf.py -B build_tdeck build
+          cp configs/${{ matrix.variant.config }} sdkconfig.defaults
+          idf.py -B build_${{ matrix.variant.name }} set-target esp32s3
+          idf.py -B build_${{ matrix.variant.name }} build
 
       - name: Stage firmware artifacts
         run: |
-          mkdir -p firmware-tdeck/bootloader firmware-tdeck/partition_table
-          cp build_tdeck/bootloader/bootloader.bin firmware-tdeck/bootloader/
-          cp build_tdeck/partition_table/partition-table.bin firmware-tdeck/partition_table/
-          cp build_tdeck/ota_data_initial.bin firmware-tdeck/ 2>/dev/null || true
-          cp build_tdeck/jade.bin firmware-tdeck/ 2>/dev/null || true
-          cp build_tdeck/flasher_args.json firmware-tdeck/ 2>/dev/null || true
+          mkdir -p firmware-${{ matrix.variant.name }}/bootloader firmware-${{ matrix.variant.name }}/partition_table
+          cp build_${{ matrix.variant.name }}/bootloader/bootloader.bin firmware-${{ matrix.variant.name }}/bootloader/
+          cp build_${{ matrix.variant.name }}/partition_table/partition-table.bin firmware-${{ matrix.variant.name }}/partition_table/
+          cp build_${{ matrix.variant.name }}/ota_data_initial.bin firmware-${{ matrix.variant.name }}/ 2>/dev/null || true
+          cp build_${{ matrix.variant.name }}/jade.bin firmware-${{ matrix.variant.name }}/ 2>/dev/null || true
+          cp build_${{ matrix.variant.name }}/flasher_args.json firmware-${{ matrix.variant.name }}/ 2>/dev/null || true
           echo "Firmware staged:"
-          find firmware-tdeck -type f | sort
+          find firmware-${{ matrix.variant.name }} -type f | sort
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-tdeck
-          path: firmware-tdeck/
+          name: firmware-${{ matrix.variant.name }}
+          path: firmware-${{ matrix.variant.name }}/
           retention-days: 90
 
   deploy:
@@ -50,11 +55,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download firmware artifact
+      - name: Download normal firmware artifact
         uses: actions/download-artifact@v4
         with:
           name: firmware-tdeck
           path: flasher/firmware/tdeck/
+
+      - name: Download debug firmware artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware-tdeck-debug
+          path: flasher/firmware/tdeck-debug/
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v3

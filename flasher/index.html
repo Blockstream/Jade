@@ -127,6 +127,11 @@
       <select id="boardSelect">
         <option value="tdeck">LilyGO T-Deck (ESP32-S3)</option>
       </select>
+      <div class="card-title" style="margin-top:12px">Variant</div>
+      <select id="variantSelect">
+        <option value="">Normal (TinyUSB CDC)</option>
+        <option value="debug">Debug (USB-Serial-JTAG console)</option>
+      </select>
       <div id="boardInfo"></div>
     </div>
 
@@ -139,9 +144,10 @@
       <div class="card">
         <div class="card-title">Firmware Source</div>
         <p style="font-size:13px;color:#8b949e;margin-bottom:12px">
-          Downloads the latest firmware built from the <code>master</code> branch.
+          Downloads the latest firmware built from the <code>T-Deck-Plus</code> branch.
         </p>
         <div class="info-row"><span class="label">Board</span><span class="value" id="ciBoard">LilyGO T-Deck</span></div>
+        <div class="info-row"><span class="label">Variant</span><span class="value" id="ciVariant">—</span></div>
         <div class="info-row"><span class="label">Chip</span><span class="value" id="ciChip">—</span></div>
         <div class="info-row"><span class="label">Flash</span><span class="value" id="ciFlash">—</span></div>
         <div class="info-row"><span class="label">Files</span><span class="value" id="ciFiles">—</span></div>
@@ -152,13 +158,13 @@
       <div class="card">
         <div class="card-title">Upload Firmware ZIP</div>
         <p style="font-size:13px;color:#8b949e;margin-bottom:12px">
-          Download a <code>firmware-tdeck.zip</code> artifact from the
-          <a href="https://github.com/3rdIteration/Jade/actions" style="color:#00d4aa">Actions tab</a>
+          Download a           <code>firmware-tdeck.zip</code> or <code>firmware-tdeck-debug.zip</code> artifact
+          from the <a href="https://github.com/3rdIteration/Jade/actions" style="color:#00d4aa">Actions tab</a>
           and drop it here.
         </p>
         <div class="drop-zone" id="dropZone">
           <p>Drop ZIP file here or click to browse</p>
-          <p class="hint">Supports firmware-tdeck.zip artifacts from CI</p>
+          <p class="hint">Supports firmware-tdeck.zip and firmware-tdeck-debug.zip artifacts</p>
         </div>
         <input type="file" id="zipInput" accept=".zip" style="display:none">
       </div>
@@ -224,6 +230,14 @@ function clearLog() {
 
 function boardKey() { return document.getElementById('boardSelect').value; }
 function board() { return BOARDS[boardKey()]; }
+function firmwareKey() {
+  const v = document.getElementById('variantSelect').value;
+  return boardKey() + (v ? '-' + v : '');
+}
+function variantLabel() {
+  const s = document.getElementById('variantSelect');
+  return s.options[s.selectedIndex].text;
+}
 
 function updateBoardInfo() {
   const b = board();
@@ -233,11 +247,13 @@ function updateBoardInfo() {
     <div class="info-row"><span class="label">Layout</span><span class="value">${b.layout.length} files</span></div>
   `;
   document.getElementById('ciBoard').textContent = b.name;
+  document.getElementById('ciVariant').textContent = variantLabel();
   document.getElementById('ciChip').textContent = b.chip;
   document.getElementById('ciFlash').textContent = `${b.flashMode} / ${b.flashFreq} / ${b.flashSize}`;
   document.getElementById('zipBoard').textContent = b.name;
 }
 document.getElementById('boardSelect').addEventListener('change', updateBoardInfo);
+document.getElementById('variantSelect').addEventListener('change', updateBoardInfo);
 updateBoardInfo();
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -425,18 +441,18 @@ function resolveLayout(b, files, args) {
 }
 
 async function fetchCIFirmware() {
-  const bk = boardKey();
+  const fwKey = firmwareKey();
   const b = board();
   const files = {};
 
   let args = null;
-  const argsResp = await fetch(`./firmware/${bk}/flasher_args.json`);
+  const argsResp = await fetch(`./firmware/${fwKey}/flasher_args.json`);
   if (argsResp.ok) {
     args = await argsResp.json();
     log('Loaded flasher_args.json.', 'ok');
     const fileMap = args.flash_files || {};
     for (const [offset, filePath] of Object.entries(fileMap)) {
-      const resp = await fetch(`./firmware/${bk}/${filePath}`);
+      const resp = await fetch(`./firmware/${fwKey}/${filePath}`);
       if (resp.ok) {
         files[filePath] = new Uint8Array(await resp.arrayBuffer());
         log(`  Loaded ${filePath} (offset ${offset})`);
@@ -447,7 +463,7 @@ async function fetchCIFirmware() {
   } else {
     log('Falling back to default layout.', 'warn');
     for (const entry of b.layout) {
-      const resp = await fetch(`./firmware/${bk}/${entry.file}`);
+      const resp = await fetch(`./firmware/${fwKey}/${entry.file}`);
       if (resp.ok) {
         files[entry.file] = new Uint8Array(await resp.arrayBuffer());
         log(`  Loaded ${entry.file} (offset ${entry.offset})`);
