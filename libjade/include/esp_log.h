@@ -21,22 +21,22 @@ extern esp_log_level_t _libjade_log_level;
 #define ESP_LOGD(f, fmt, ...)                                                                                          \
     do {                                                                                                               \
         if (_libjade_log_level <= ESP_LOG_DEBUG)                                                                       \
-            fprintf(stderr, "DEBUG:" f ":" fmt "\n", __VA_ARGS__);                                                     \
+            fprintf(stderr, "DEBUG:%s:" fmt "\n", f, __VA_ARGS__);                                                     \
     } while (0)
 #define ESP_LOGI(f, fmt, ...)                                                                                          \
     do {                                                                                                               \
         if (_libjade_log_level <= ESP_LOG_INFO)                                                                        \
-            fprintf(stderr, "INFO:" f ":" fmt "\n", __VA_ARGS__);                                                      \
+            fprintf(stderr, "INFO:%s:" fmt "\n", f, __VA_ARGS__);                                                      \
     } while (0)
 #define ESP_LOGW(f, fmt, ...)                                                                                          \
     do {                                                                                                               \
         if (_libjade_log_level <= ESP_LOG_WARN)                                                                        \
-            fprintf(stderr, "WARN:" f ":" fmt "\n", __VA_ARGS__);                                                      \
+            fprintf(stderr, "WARN:%s:" fmt "\n", f, __VA_ARGS__);                                                      \
     } while (0)
 #define ESP_LOGE(f, fmt, ...)                                                                                          \
     do {                                                                                                               \
         if (_libjade_log_level <= ESP_LOG_ERROR)                                                                       \
-            fprintf(stderr, "ERROR:" f ":" fmt "\n", __VA_ARGS__);                                                     \
+            fprintf(stderr, "ERROR:%s:" fmt "\n", f, __VA_ARGS__);                                                     \
     } while (0)
 
 #ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
