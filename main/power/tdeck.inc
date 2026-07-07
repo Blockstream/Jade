@@ -7,7 +7,11 @@
 #include <esp_adc/adc_oneshot.h>
 #include <esp_sleep.h>
 
+#ifdef CONFIG_JADE_USE_USB_JTAG_SERIAL
+#include <driver/usb_serial_jtag.h>
+#else
 #include "tusb.h"
+#endif
 
 #define BOARD_POWERON_GPIO  10
 #define BACKLIGHT_GPIO      42
@@ -18,7 +22,28 @@ void tdeck_set_keyboard_backlight(uint8_t value);
 
 #define BATTERY_ADC_CHANNEL ADC_CHANNEL_3
 #define BATTERY_ADC_ATTEN   ADC_ATTEN_DB_12
+#define BATTERY_ADC_SAMPLES 8
 #define BATTERY_EMA_ALPHA   0.3f
+
+// Voltage divider ratio is 2.0 (100k/100k) plus ~10% correction for
+// undervoltage while the display loads the rail (as per other t-deck
+// firmwares, eg. meshtastic)
+#define BATTERY_VDIV_MULTIPLIER 2.11f
+
+// Above this the sense node is being held up by the charger with the
+// battery full (charge terminated) rather than actively charging
+#define BATTERY_CHARGED_MILLIVOLTS 4300
+
+static bool usb_connected(void)
+{
+#ifdef CONFIG_JADE_USE_USB_JTAG_SERIAL
+    // TinyUSB is not initialised in this mode - infer usb connection
+    // from the usb-serial-jtag peripheral instead
+    return usb_serial_jtag_is_connected();
+#else
+    return tud_mounted() && !tud_suspended();
+#endif
+}
 
 static adc_oneshot_unit_handle_t adc1_handle = NULL;
 static adc_cali_handle_t adc1_cali_chan0_handle = NULL;
@@ -121,16 +146,26 @@ esp_err_t power_camera_off(void) { return ESP_OK; }
 uint16_t power_get_vbat(void)
 {
     JADE_ASSERT(adc1_handle);
-    int raw_adc, voltage;
-    ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, BATTERY_ADC_CHANNEL, &raw_adc));
-    if (adc1_cali_chan0_handle) {
-        ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan0_handle, raw_adc, &voltage));
-    } else {
-        voltage = (raw_adc * 3300) / 4095;
+
+    // Average several samples to smooth adc noise
+    int raw_sum = 0;
+    for (int i = 0; i < BATTERY_ADC_SAMPLES; ++i) {
+        int raw_adc;
+        ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, BATTERY_ADC_CHANNEL, &raw_adc));
+        raw_sum += raw_adc;
     }
+
+    int voltage;
+    const int raw_avg = raw_sum / BATTERY_ADC_SAMPLES;
+    if (adc1_cali_chan0_handle) {
+        ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan0_handle, raw_avg, &voltage));
+    } else {
+        voltage = (raw_avg * 3300) / 4095;
+    }
+
     const float ema_v = (ema_voltage > 0) ? ema_voltage : (float)voltage;
     ema_voltage = (BATTERY_EMA_ALPHA * voltage) + ((1.0f - BATTERY_EMA_ALPHA) * ema_v);
-    return (uint16_t)(ema_voltage * 2);
+    return (uint16_t)(ema_voltage * BATTERY_VDIV_MULTIPLIER);
 }
 
 uint8_t power_get_battery_status(void)
@@ -146,7 +181,9 @@ uint8_t power_get_battery_status(void)
 
 bool power_get_battery_charging(void)
 {
-    return tud_mounted() && !tud_suspended();
+    // No charger status line on the t-deck - infer charging from usb
+    // power being present while the battery is not yet full
+    return usb_connected() && power_get_vbat() < BATTERY_CHARGED_MILLIVOLTS;
 }
 
 uint16_t power_get_ibat_charge(void) { return 0; }
@@ -158,13 +195,4 @@ uint16_t power_get_temp(void) { return 0; }
 void disable_usb_host(void) {}
 void enable_usb_host(void) {}
 
-bool usb_is_powered(void)
-{
-    if (tud_mounted() && !tud_suspended()) {
-        return true;
-    }
-    if (power_get_vbat() < 1000) {
-        return true;
-    }
-    return false;
-}
+bool usb_is_powered(void) { return usb_connected(); }
