@@ -13,6 +13,9 @@
 #define KB_I2C_ADDR         0x55
 #define KB_I2C_TIMEOUT_MS   50
 
+// Keyboard controller command: set backlight brightness (0-255, 0 = off)
+#define KB_BRIGHTNESS_CMD   0x01
+
 #define TB_LEFT_GPIO        1
 #define TB_RIGHT_GPIO       2
 #define TB_UP_GPIO          3
@@ -28,6 +31,13 @@
 
 // Edges further apart than this do not accumulate towards a step
 #define TB_GESTURE_TIMEOUT_US 300000
+
+// Pending keyboard backlight level (0-255), or -1 when no change pending.
+// Set from other tasks (eg. the screen backlight code) - applied by the
+// keyboard task below, which owns the i2c device.
+static volatile int16_t kb_backlight_req = -1;
+
+void tdeck_set_keyboard_backlight(const uint8_t value) { kb_backlight_req = value; }
 
 static void tdeck_keyboard_task(void* unused)
 {
@@ -56,6 +66,15 @@ static void tdeck_keyboard_task(void* unused)
     ESP_ERROR_CHECK(i2c_master_bus_add_device(kb_i2c_bus, &dev_cfg, &kb_i2c_dev));
 
     for (;;) {
+        // Apply any pending keyboard backlight change (retried on failure)
+        const int16_t kb_bl = kb_backlight_req;
+        if (kb_bl >= 0) {
+            const uint8_t cmd[] = { KB_BRIGHTNESS_CMD, (uint8_t)kb_bl };
+            if (i2c_master_transmit(kb_i2c_dev, cmd, sizeof(cmd), KB_I2C_TIMEOUT_MS) == ESP_OK) {
+                kb_backlight_req = -1;
+            }
+        }
+
         uint8_t key_byte = 0;
         const esp_err_t ret = i2c_master_receive(kb_i2c_dev, &key_byte, 1, KB_I2C_TIMEOUT_MS);
         if (ret == ESP_OK && key_byte != 0) {

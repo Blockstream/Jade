@@ -13,6 +13,9 @@
 #define BACKLIGHT_GPIO      42
 #define BACKLIGHT_STEPS     16
 
+// Implemented in input/tdeck.inc - the keyboard task owns the i2c bus
+void tdeck_set_keyboard_backlight(uint8_t value);
+
 #define BATTERY_ADC_CHANNEL ADC_CHANNEL_3
 #define BATTERY_ADC_ATTEN   ADC_ATTEN_DB_12
 #define BATTERY_EMA_ALPHA   0.3f
@@ -99,12 +102,16 @@ esp_err_t power_backlight_on(uint8_t brightness)
     const uint8_t scaled
         = 1 + ((BACKLIGHT_STEPS - 1) * (brightness - BACKLIGHT_MIN)) / (BACKLIGHT_MAX - BACKLIGHT_MIN);
     set_backlight(scaled);
+
+    // Have the keyboard backlight track the screen backlight (levels 1-5 -> 51-255)
+    tdeck_set_keyboard_backlight(brightness * 51);
     return ESP_OK;
 }
 
 esp_err_t power_backlight_off(void)
 {
     set_backlight(0);
+    tdeck_set_keyboard_backlight(0);
     return ESP_OK;
 }
 
