@@ -6,6 +6,7 @@ import click
 import functools
 import logging
 import os
+import sys
 import time
 
 from jadepy.jade import JadeAPI
@@ -101,6 +102,15 @@ def cli(ctx, verbose, device):
 
     if verbose:
         logging.basicConfig(level=logging.INFO)
+
+
+# DEBUG
+
+@cli.command()
+@with_jade_client
+def selfcheck(jade):
+    response = jade.run_remote_selfcheck()
+    click.echo(response)
 
 
 # INFO
