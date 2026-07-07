@@ -1,5 +1,6 @@
 .libjade_test_template:
   tags: [ ga ]
+  dependencies: []
   before_script:
     - pushd /opt/esp/idf && . ./export.sh && popd
     - ./tools/switch_to.sh jade --dev --noradio

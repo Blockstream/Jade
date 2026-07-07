@@ -5,6 +5,7 @@
 test_bip85_rsa_key_gen:
   tags: [ ga ]
   stage: test
+  dependencies: []
   script:
     - pushd /opt/esp/idf && . ./export.sh && popd
     - (cd tools/bip85_rsa_key_gen && ./test.sh)
@@ -13,6 +14,7 @@ test_bip85_rsa_key_gen:
 test_format:
   tags: [ ga ]
   stage: test
+  dependencies: []
   script:
     - pushd /opt/esp/idf && . ./export.sh && popd
     - ./format.sh
@@ -22,6 +24,7 @@ test_format:
 test_configs:
   tags: [ ga ]
   stage: test
+  dependencies: []
   script:
     - ./tools/check_default_configs.sh
     - git diff --exit-code
