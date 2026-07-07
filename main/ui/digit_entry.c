@@ -4,10 +4,6 @@
 #include "../random.h"
 #include "../ui.h"
 
-#ifdef CONFIG_HAS_KEYBOARD
-#include <ctype.h>
-#include <string.h>
-#endif
 
 #define CHAR_BACKSPACE '|'
 #define CHAR_ENTER '~'
@@ -208,23 +204,16 @@ static bool prev_selected_digit(digit_entry_t* digit_entry)
 }
 
 #ifdef CONFIG_HAS_KEYBOARD
-// Map physical key events to digits. Accept actual ascii digits, plus the
-// letter keys which have digits printed on them on the T-Deck keyboard:
-// w=1 e=2 r=3 s=4 d=5 f=6 z=7 x=8 c=9 (0 is on the mic key).
+// Map physical key events to digits - only actual ascii digits qualify
+// (on the T-Deck keyboard these are typed with the SYM modifier held)
 static int keyboard_event_digit(const int32_t ev_id)
 {
-    static const char digit_key_aliases[] = "wersdfzxc"; // 1-9
-
     if (ev_id <= BTN_KEYBOARD_ASCII_OFFSET) {
         return -1;
     }
-    const int ch = tolower(ev_id - BTN_KEYBOARD_ASCII_OFFSET);
+    const int ch = ev_id - BTN_KEYBOARD_ASCII_OFFSET;
     if (ch >= '0' && ch <= '9') {
         return ch - '0';
-    }
-    const char* const alias = strchr(digit_key_aliases, ch);
-    if (alias) {
-        return (alias - digit_key_aliases) + 1;
     }
     return -1;
 }

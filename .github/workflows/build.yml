@@ -19,11 +19,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          # Full history + tags so git describe produces a parseable
+          # firmware version (companion apps reject e.g. "1")
+          fetch-depth: 0
 
       - name: Build ${{ matrix.variant.name }} firmware
         shell: bash
         run: |
           . /opt/esp/idf/export.sh
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          echo "Firmware version: $(git describe --tags --always --dirty)"
           cp configs/${{ matrix.variant.config }} sdkconfig.defaults
           idf.py -B build_${{ matrix.variant.name }} set-target esp32s3
           idf.py -B build_${{ matrix.variant.name }} build
