@@ -66,11 +66,10 @@
 #undef ESP_PLATFORM
 #include "components/esp32_deflate/deflate.c"
 // qrCode encoding/decoding
-#include "components/esp32-quirc/lib/decode.c"
-#include "components/esp32-quirc/lib/identify.c"
-#include "components/esp32-quirc/lib/quirc.c"
-#include "components/esp32-quirc/lib/version_db.c"
-#include "components/esp32-quirc/openmv/collections.c"
+#include "components/k_quirc/src/k_quirc.c"
+#include "components/k_quirc/src/k_quirc_decode.c"
+#include "components/k_quirc/src/k_quirc_identify.c"
+#include "components/k_quirc/src/k_quirc_version.c"
 // bspatch
 #include "components/esp32_bsdiff/bspatch.c"
 

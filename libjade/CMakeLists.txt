@@ -90,8 +90,8 @@ set(COMMON_INCLUDES
   ${CMAKE_CURRENT_SOURCE_DIR}/../components/libwally-core/upstream/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../components/assets
   ${CMAKE_CURRENT_SOURCE_DIR}/../components/esp32_bsdiff
-  ${CMAKE_CURRENT_SOURCE_DIR}/../components/esp32-quirc
-  ${CMAKE_CURRENT_SOURCE_DIR}/../components/esp32-quirc/lib
+  ${CMAKE_CURRENT_SOURCE_DIR}/../components/k_quirc/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../components/k_quirc/src
   ${CMAKE_CURRENT_SOURCE_DIR}/../components/libwally-core/upstream
   ${CMAKE_CURRENT_SOURCE_DIR}/../components/libwally-core/upstream/src
   ${CMAKE_CURRENT_SOURCE_DIR}/../components/libwally-core/upstream/src/ccan
