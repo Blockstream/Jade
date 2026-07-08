@@ -25,9 +25,9 @@
 #include <wally_bip32.h>
 #include <wally_bip85.h>
 
-#include <cdecoder.h>
-#include <cencoder.h>
 #include <ctype.h>
+#include <ur_decoder.h>
+#include <ur_encoder.h>
 
 int register_multisig_file(const char* multisig_file, size_t multisig_file_len, const char** errmsg);
 
@@ -478,20 +478,20 @@ bool test_multisig_files(jade_process_t* process)
 
 #define FREE_DECODER_AND_FAIL(d)                                                                                       \
     do {                                                                                                               \
-        urfree_placement_decoder(d);                                                                                   \
+        ur_decoder_free(d);                                                                                            \
         FAIL();                                                                                                        \
     } while (false)
 
 #define FREE_ENCODER_AND_FAIL(e)                                                                                       \
     do {                                                                                                               \
-        urfree_placement_encoder(e);                                                                                   \
+        ur_encoder_free(e);                                                                                            \
         FAIL();                                                                                                        \
     } while (false)
 
 #define FREE_ENCODED_PARTS(p)                                                                                          \
     do {                                                                                                               \
         for (int i = 0; i < sizeof(p) / sizeof(p[0]); ++i) {                                                           \
-            urfree_encoded_encoder(p[i]);                                                                              \
+            free(p[i]);                                                                                                \
         }                                                                                                              \
     } while (false)
 
@@ -526,119 +526,89 @@ static bool test_bcur_decode_encode(void)
     // 1. Try decoder
     {
         // Check decoder with a message of 2 'pure' fragments
-        uint8_t decoder[URDECODER_SIZE];
-        urcreate_placement_decoder(decoder, sizeof(decoder));
-        if (uris_success_decoder(decoder)) {
+        ur_decoder_t* const decoder = ur_decoder_new();
+        JADE_ASSERT(decoder);
+        if (ur_decoder_get_state(decoder) != UR_DECODER_PROCESSING) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (uris_complete_decoder(decoder)) {
+        if (ur_decoder_received_parts_count(decoder) != 0) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (uris_failure_decoder(decoder)) {
-            FREE_DECODER_AND_FAIL(decoder);
-        }
-        if (urreceived_parts_count_decoder(decoder) != 0) {
-            FREE_DECODER_AND_FAIL(decoder);
-        }
-        // NOTE: Can't call urexpected_part_count_decoder() until first part processed
+        // NOTE: Can't call ur_decoder_expected_part_count() until first part processed
 
-        // send first qr
-        if (!urreceive_part_decoder(decoder, qr_part1of2)) {
+        // send first qr - should be processed, but NOT complete yet
+        if (ur_decoder_receive_part(decoder, qr_part1of2) != UR_DECODER_PROCESSING) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (uris_failure_decoder(decoder)) {
+        if (ur_decoder_received_parts_count(decoder) != 1) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (uris_success_decoder(decoder)) {
-            // Should NOT be complete yet
-            FREE_DECODER_AND_FAIL(decoder);
-        }
-        if (urreceived_parts_count_decoder(decoder) != 1) {
-            FREE_DECODER_AND_FAIL(decoder);
-        }
-        if (urexpected_part_count_decoder(decoder) != 2) {
+        if (ur_decoder_expected_part_count(decoder) != 2) {
             FREE_DECODER_AND_FAIL(decoder);
         }
 
-        // send first qr again - should be ignored/harmless
-        if (!urreceive_part_decoder(decoder, qr_part1of2)) {
+        // send first qr again - should be ignored/harmless, still NOT complete
+        if (ur_decoder_receive_part(decoder, qr_part1of2) != UR_DECODER_PROCESSING) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (uris_failure_decoder(decoder)) {
+        if (ur_decoder_received_parts_count(decoder) != 1) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (uris_success_decoder(decoder)) {
-            // Should NOT be complete yet
-            FREE_DECODER_AND_FAIL(decoder);
-        }
-        if (urreceived_parts_count_decoder(decoder) != 1) {
-            FREE_DECODER_AND_FAIL(decoder);
-        }
-        if (urexpected_part_count_decoder(decoder) != 2) {
+        if (ur_decoder_expected_part_count(decoder) != 2) {
             FREE_DECODER_AND_FAIL(decoder);
         }
 
-        // send second qr
-        if (!urreceive_part_decoder(decoder, qr_part2of2)) {
+        // send second qr - should now be complete
+        if (ur_decoder_receive_part(decoder, qr_part2of2) != UR_DECODER_OK) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (uris_failure_decoder(decoder)) {
+        if (ur_decoder_received_parts_count(decoder) != 2) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (!uris_success_decoder(decoder)) {
-            // Should now be complete
-            FREE_DECODER_AND_FAIL(decoder);
-        }
-        if (urreceived_parts_count_decoder(decoder) != 2) {
-            FREE_DECODER_AND_FAIL(decoder);
-        }
-        if (urexpected_part_count_decoder(decoder) != 2) {
+        if (ur_decoder_expected_part_count(decoder) != 2) {
             FREE_DECODER_AND_FAIL(decoder);
         }
 
-        // read the result
-        const char* type = NULL;
-        uint8_t* result = NULL;
-        size_t result_len = 0;
-        urresult_ur_decoder(decoder, &result, &result_len, &type);
-        JADE_ASSERT(type);
-        JADE_ASSERT(result_len);
+        // read the result - borrowed from the decoder, freed with it
+        const ur_result_t* const result = ur_decoder_get_result(decoder);
         JADE_ASSERT(result);
-        if (strncmp(expected_type, type, strlen(expected_type))) {
+        JADE_ASSERT(result->type);
+        JADE_ASSERT(result->cbor_len);
+        JADE_ASSERT(result->cbor_data);
+        if (strncmp(expected_type, result->type, strlen(expected_type))) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (result_len != payload_len || memcmp(result, payload, result_len)) {
+        if (result->cbor_len != payload_len || memcmp(result->cbor_data, payload, result->cbor_len)) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        urfree_placement_decoder(decoder);
+        ur_decoder_free(decoder);
     }
 
     // 2. Try encoder
     {
         // If we encode the data, the first two parts should match the original payloads
         // ie. the 'pure' fragments (ie. the actual data split into two and encoded)
-        uint8_t encoder[URENCODER_SIZE];
-        urcreate_placement_encoder(
-            encoder, sizeof(encoder), expected_type, payload, payload_len, encoder_max_fragment_len, 0, 10);
-        const bool force_uppercase = true;
+        ur_encoder_t* const encoder
+            = ur_encoder_new(expected_type, payload, payload_len, encoder_max_fragment_len, 0, 10);
+        JADE_ASSERT(encoder);
         char* parts[3] = { NULL, NULL, NULL };
-        urnext_part_encoder(encoder, force_uppercase, &parts[0]);
+        ur_encoder_next_part(encoder, &parts[0]);
         if (!parts[0] || strncmp(parts[0], qr_part1of2, strlen(qr_part1of2))) {
             FREE_ENCODED_PARTS(parts);
             FREE_ENCODER_AND_FAIL(encoder);
         }
-        if (uris_complete_encoder(encoder)) {
+        if (ur_encoder_is_complete(encoder)) {
             // Should NOT be complete yet
             FREE_ENCODED_PARTS(parts);
             FREE_ENCODER_AND_FAIL(encoder);
         }
 
-        urnext_part_encoder(encoder, force_uppercase, &parts[1]);
+        ur_encoder_next_part(encoder, &parts[1]);
         if (!parts[1] || strncmp(parts[1], qr_part2of2, strlen(qr_part2of2))) {
             FREE_ENCODED_PARTS(parts);
             FREE_ENCODER_AND_FAIL(encoder);
         }
-        if (!uris_complete_encoder(encoder)) {
+        if (!ur_encoder_is_complete(encoder)) {
             // Should now be complete
             FREE_ENCODED_PARTS(parts);
             FREE_ENCODER_AND_FAIL(encoder);
@@ -646,12 +616,12 @@ static bool test_bcur_decode_encode(void)
 
         // We can continue to generate additional parts - these are fountain-code fragments
         // which can stand in for any missed fragments.  NOTE: the sequence-numbers appear 'overflowed'.
-        urnext_part_encoder(encoder, force_uppercase, &parts[2]);
+        ur_encoder_next_part(encoder, &parts[2]);
         if (!parts[2] || strncmp(parts[2], "UR:CRYPTO-PSBT/3-2/", strlen("UR:CRYPTO-PSBT/3-2/"))) {
             FREE_ENCODED_PARTS(parts);
             FREE_ENCODER_AND_FAIL(encoder);
         }
-        urfree_placement_encoder(encoder);
+        ur_encoder_free(encoder);
 
         // Check fountain encoding / redundancy with fresh decoders - incl. getting a 'later' part first
         // Check all 2-of-3 combinations - any 2 distinct parts should be sufficient.
@@ -664,46 +634,40 @@ static bool test_bcur_decode_encode(void)
             const size_t initial_expected_received = i == 2 ? 0 : 1;
 
             for (size_t j = 0; j < 3; ++j) {
-                uint8_t decoder[URDECODER_SIZE];
-                urcreate_placement_decoder(decoder, sizeof(decoder));
+                ur_decoder_t* const decoder = ur_decoder_new();
+                JADE_ASSERT(decoder);
 
-                // Present first part
-                if (!urreceive_part_decoder(decoder, parts[i])) {
+                // Present first part - should be processed, but NOT complete yet
+                if (ur_decoder_receive_part(decoder, parts[i]) != UR_DECODER_PROCESSING) {
                     FREE_ENCODED_PARTS(parts);
                     FREE_DECODER_AND_FAIL(decoder);
                 }
-                if (uris_success_decoder(decoder)) {
-                    // Should NOT be complete yet
+                if (ur_decoder_processed_parts_count(decoder) != 1) {
                     FREE_ENCODED_PARTS(parts);
                     FREE_DECODER_AND_FAIL(decoder);
                 }
-                if (urprocessed_parts_count_decoder(decoder) != 1) {
+                if (ur_decoder_expected_part_count(decoder) != 2) {
                     FREE_ENCODED_PARTS(parts);
                     FREE_DECODER_AND_FAIL(decoder);
                 }
-                if (urexpected_part_count_decoder(decoder) != 2) {
-                    FREE_ENCODED_PARTS(parts);
-                    FREE_DECODER_AND_FAIL(decoder);
-                }
-                if (urreceived_parts_count_decoder(decoder) != initial_expected_received) {
+                if (ur_decoder_received_parts_count(decoder) != initial_expected_received) {
                     FREE_ENCODED_PARTS(parts);
                     FREE_DECODER_AND_FAIL(decoder);
                 }
 
                 // Present second part
-                if (!urreceive_part_decoder(decoder, parts[j])) {
+                const ur_decoder_state_t state = ur_decoder_receive_part(decoder, parts[j]);
+                if (ur_decoder_state_is_error(state)) {
                     FREE_ENCODED_PARTS(parts);
                     FREE_DECODER_AND_FAIL(decoder);
                 }
-                if (urprocessed_parts_count_decoder(decoder) != 2) {
+                // NOTE: a duplicate part is deduped before it is counted, so
+                // 'processed' remains 1 if the same part is presented twice
+                if (ur_decoder_processed_parts_count(decoder) != (i != j ? 2 : 1)) {
                     FREE_ENCODED_PARTS(parts);
                     FREE_DECODER_AND_FAIL(decoder);
                 }
-                if (urexpected_part_count_decoder(decoder) != 2) {
-                    FREE_ENCODED_PARTS(parts);
-                    FREE_DECODER_AND_FAIL(decoder);
-                }
-                if (uris_failure_decoder(decoder)) {
+                if (ur_decoder_expected_part_count(decoder) != 2) {
                     FREE_ENCODED_PARTS(parts);
                     FREE_DECODER_AND_FAIL(decoder);
                 }
@@ -715,43 +679,41 @@ static bool test_bcur_decode_encode(void)
                 // the 'pure' data part is received (and can be combined with the fountain
                 // part to generate the missing data part).
                 if (i != j) {
-                    if (urreceived_parts_count_decoder(decoder) != 2) {
+                    if (ur_decoder_received_parts_count(decoder) != 2) {
                         FREE_ENCODED_PARTS(parts);
                         FREE_DECODER_AND_FAIL(decoder);
                     }
-                    if (!uris_success_decoder(decoder)) {
+                    if (state != UR_DECODER_OK) {
                         FREE_ENCODED_PARTS(parts);
                         FREE_DECODER_AND_FAIL(decoder);
                     }
 
-                    // Check payload is as expected
-                    const char* type = NULL;
-                    uint8_t* result = NULL;
-                    size_t result_len = 0;
-                    urresult_ur_decoder(decoder, &result, &result_len, &type);
-                    JADE_ASSERT(type);
-                    JADE_ASSERT(result_len);
+                    // Check payload is as expected - result borrowed from the decoder
+                    const ur_result_t* const result = ur_decoder_get_result(decoder);
                     JADE_ASSERT(result);
-                    if (strncmp(expected_type, type, strlen(expected_type))) {
+                    JADE_ASSERT(result->type);
+                    JADE_ASSERT(result->cbor_len);
+                    JADE_ASSERT(result->cbor_data);
+                    if (strncmp(expected_type, result->type, strlen(expected_type))) {
                         FREE_ENCODED_PARTS(parts);
                         FREE_DECODER_AND_FAIL(decoder);
                     }
-                    if (result_len != payload_len || memcmp(result, payload, result_len)) {
+                    if (result->cbor_len != payload_len || memcmp(result->cbor_data, payload, result->cbor_len)) {
                         FREE_ENCODED_PARTS(parts);
                         FREE_DECODER_AND_FAIL(decoder);
                     }
                 } else {
                     // Same part received twice - does not increment 'received_parts'
-                    if (urreceived_parts_count_decoder(decoder) != initial_expected_received) {
+                    if (ur_decoder_received_parts_count(decoder) != initial_expected_received) {
                         FREE_ENCODED_PARTS(parts);
                         FREE_DECODER_AND_FAIL(decoder);
                     }
-                    if (uris_success_decoder(decoder)) {
+                    if (state != UR_DECODER_PROCESSING) {
                         FREE_ENCODED_PARTS(parts);
                         FREE_DECODER_AND_FAIL(decoder);
                     }
                 }
-                urfree_placement_decoder(decoder);
+                ur_decoder_free(decoder);
             }
         }
         FREE_ENCODED_PARTS(parts);
@@ -783,28 +745,25 @@ bool test_bcur_decode_bad_cases(void)
 
     // Various bad cases - test the decoder ignores them
     for (size_t i = 0; i < ncases; ++i) {
-        uint8_t decoder[URDECODER_SIZE];
-        urcreate_placement_decoder(decoder, sizeof(decoder));
+        ur_decoder_t* const decoder = ur_decoder_new();
+        JADE_ASSERT(decoder);
 
-        // Present first part - should be ignored and all counts
-        // of 'parts seen' should remain zero, and 'is complete'
-        // and 'is success' should be false.
-        if (urreceive_part_decoder(decoder, cases[i])) {
+        // Present first part - should be rejected with a transient (non-terminal)
+        // error, and all counts of 'parts seen' should remain zero.
+        const ur_decoder_state_t state = ur_decoder_receive_part(decoder, cases[i]);
+        if (!ur_decoder_state_is_error(state)) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (urprocessed_parts_count_decoder(decoder)) {
+        if (ur_decoder_state_is_terminal(state)) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (urreceived_parts_count_decoder(decoder)) {
+        if (ur_decoder_processed_parts_count(decoder)) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (uris_complete_decoder(decoder)) {
+        if (ur_decoder_received_parts_count(decoder)) {
             FREE_DECODER_AND_FAIL(decoder);
         }
-        if (uris_success_decoder(decoder)) {
-            FREE_DECODER_AND_FAIL(decoder);
-        }
-        urfree_placement_decoder(decoder);
+        ur_decoder_free(decoder);
     }
     return true;
 }

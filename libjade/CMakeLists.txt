@@ -105,14 +105,15 @@ set(COMMON_SRC
   ${IDF_PATH}/components/http_parser/http_parser.c
 )
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../components/esp32_bc-ur
-                 ${CMAKE_CURRENT_BINARY_DIR}/bcur)
-target_include_directories(bcur PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../components/libwally-core/upstream/include)
-target_link_libraries(bcur PRIVATE mbedcrypto)
+# Jade does its own payload CBOR (TinyCBOR) - only the UR transport
+# layer of the cUR component is needed
+set(UR_ENVELOPE_ONLY ON CACHE BOOL "" FORCE)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../components/cUR
+                 ${CMAKE_CURRENT_BINARY_DIR}/cur)
 
 # libjade.so
 add_library(jade SHARED ${COMMON_SRC})
-target_link_libraries(jade PRIVATE m z bcur cbor_target otpauth_migrate_target mbedtls mbedcrypto mbedx509)
+target_link_libraries(jade PRIVATE m z ur cbor_target otpauth_migrate_target mbedtls mbedcrypto mbedx509)
 target_include_directories(jade PRIVATE ${COMMON_INCLUDES})
 
 set_source_files_properties(libjade.c PROPERTIES COMPILE_OPTIONS
@@ -121,12 +122,12 @@ target_compile_definitions(jade PRIVATE LIBJADE_BUILD)
 
 # libjade.a
 add_library(jade_static STATIC ${COMMON_SRC})
-target_link_libraries(jade_static PRIVATE m z mbedtls mbedcrypto mbedx509 bcur)
+target_link_libraries(jade_static PRIVATE m z mbedtls mbedcrypto mbedx509 ur)
 target_include_directories(jade_static PRIVATE ${COMMON_INCLUDES})
 target_compile_definitions(jade_static PRIVATE LIBJADE_BUILD)
 
 add_executable(libjade_daemon daemon.c)
-target_link_libraries(libjade_daemon PRIVATE jade_static bcur cbor_target otpauth_migrate_target m z mbedtls mbedcrypto mbedx509 Threads::Threads)
+target_link_libraries(libjade_daemon PRIVATE jade_static ur cbor_target otpauth_migrate_target m z mbedtls mbedcrypto mbedx509 Threads::Threads)
 target_include_directories(libjade_daemon PRIVATE ${COMMON_INCLUDES})
 
 # Assets
