@@ -87,7 +87,7 @@ static void esp_lcd_init(void* _ignored)
     esp_lcd_panel_io_handle_t io_handle = NULL;
 
 #if CONFIG_DISPLAY_PIN_BL != -1 && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)                                           \
-    && !defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
+    && !defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY) && !defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS_2)
     gpio_config_t bk_gpio_config = { .mode = GPIO_MODE_OUTPUT, .pin_bit_mask = 1ULL << CONFIG_DISPLAY_PIN_BL };
     ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
     ESP_ERROR_CHECK(gpio_set_level(CONFIG_DISPLAY_PIN_BL, 0));
@@ -181,7 +181,8 @@ static void esp_lcd_init(void* _ignored)
 
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &ph));
 
-#if CONFIG_DISPLAY_PIN_BL != -1 && !defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)
+#if CONFIG_DISPLAY_PIN_BL != -1 && !defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)                                          \
+    && !defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS_2)
     ESP_ERROR_CHECK(gpio_set_level(CONFIG_DISPLAY_PIN_BL, 1));
 #endif
 
