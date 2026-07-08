@@ -641,22 +641,18 @@ static bool collect_any_bcur(qr_data_t* qr_data)
         return false;
     }
 
-    // Update associated progress bar - be a bit defensive here
+    // Update associated progress bar using the weighted estimate, which also
+    // credits mixed fountain parts that have not yet resolved a pure fragment.
+    // If not fully decoded don't show a full bar - cap at 'almost done'.
     const bool decoded = state == UR_DECODER_OK;
-    const size_t nreceived = ur_decoder_received_parts_count(qr_data->ctx);
-    if (!ur_decoder_state_is_error(state) && nreceived) {
-        // NOTE: can only call 'expected' once we have received at least one part
-        const size_t nexpected = ur_decoder_expected_part_count(qr_data->ctx);
-
-        // If fully decoded show full bar - but if not fully decoded
-        // don't show a full bar - pause at 'almost done' if required.
+    if (!ur_decoder_state_is_error(state)) {
         if (decoded) {
-            update_progress_bar(qr_data->progress_bar, nexpected, nexpected);
-        } else if (nreceived < nexpected) {
-            update_progress_bar(qr_data->progress_bar, nexpected, nreceived);
+            update_progress_bar(qr_data->progress_bar, 100, 100);
+        } else {
+            const float estimate = ur_decoder_estimated_percent_complete_weighted(qr_data->ctx);
+            const size_t pcnt = estimate * 100.0f;
+            update_progress_bar(qr_data->progress_bar, 100, pcnt < 99 ? pcnt : 99);
         }
-        // else, appear to have all pieces but not fully decoded ...
-        // just leave progress bar showing whatever 'almost done' level.
     }
 
     // Return true if complete
