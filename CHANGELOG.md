@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.41] - 2026-07-17
+
+Note: This release contains important security updates; All users should
+upgrade as soon as possible. The developers would like to thank:
+
+- Jordan Mecom from Spiral for developing Loupe and reporting issues to us
+  for this and previous releases. You can read more about the Loupe project
+  here: https://spiralbtc.substack.com/p/meet-loupe-ai-powered-vulnerability.
+- Damir for helping investigate and fix several important issues for this release.
+
+Added:
+- Improve stack protection for production devices.
+- Add support for registering and signing with Liquid descriptors (development devices only).
+- Add support for custom genesis blockhashes when signing Liquid transactions.
+- Add support for running libjade with gui/input/nvs/camera support.
+- Add a libjade gui example runnable as a desktop application.
+
+Changed:
+- Update IDF framework to version 5.5.4.
+- Update Python dependencies to the latest known-good versions.
+- Update libwally and libsecp256k1-zkp to their latest releases.
+- Create new docker build images to ensure consistent builds.
+- Rename displayed L-BTC asset issuer from 'peg-in' to 'federation' for clarity.
+- Update message handling to use less memory and be more robust with slow or flaky connections.
+- Optimizations for qr mode processing and smoother display updates.
+- Optimizations to reduce firmware size.
+
+Fixed:
+- Work around ABI differences in cbor2 versions to make installation/packaging easier.
+- Fix `sign_tx` call in `jade_cli.py`.
+- GUI spelling fixes.
+- QEMU fixes and helper script updates.
+- Fix DIY M5StickC Plus 2 PIN navigation.
+- Many build and test infrastructure cleanups and fixes.
+- Various internal improvements for validation and error handling.
+- Various minor bug fixes resulting from build/test infrastructure improvements.
+
 ## [1.0.40] - 2026-04-30
 
 ### Added
