@@ -64,6 +64,7 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     gui_activity_t* act = NULL;
     gui_make_activity_ex(&act, true, device_name, false);
     JADE_ASSERT(act);
+    gui_set_activity_status_bar_title_scroll(act, true);
 
     gui_view_node_t* node;
     gui_view_node_t* hsplit;

@@ -1578,7 +1578,7 @@ static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
     return true;
 }
 
-void gui_set_text_scroll(gui_view_node_t* node, color_t background_color)
+static void init_text_scroll(gui_view_node_t* node, color_t background_color)
 {
     JADE_ASSERT(node);
     JADE_ASSERT(node->kind == TEXT);
@@ -1594,6 +1594,11 @@ void gui_set_text_scroll(gui_view_node_t* node, color_t background_color)
     scroll_data->selected_background_color = background_color;
 
     node->text->scroll = scroll_data;
+}
+
+void gui_set_text_scroll(gui_view_node_t* node, color_t background_color)
+{
+    init_text_scroll(node, background_color);
 
     // now push this to the list of updatable elements so that it gets updated every frame
     push_updatable(node, text_scroll_frame_callback, NULL);
@@ -1610,6 +1615,35 @@ void gui_set_text_scroll_selected(
     node->text->scroll->only_when_selected = only_when_selected;
     node->text->scroll->background_color = background_color;
     node->text->scroll->selected_background_color = selected_background_color;
+}
+
+static void reset_text_scroll(gui_view_node_t* node)
+{
+    JADE_ASSERT(node);
+    JADE_ASSERT(node->kind == TEXT);
+
+    if (node->text->scroll) {
+        node->text->scroll->prev_offset = 0;
+        node->text->scroll->offset = 0;
+        node->text->scroll->going_back = false;
+        node->text->scroll->wait = GUI_SCROLL_WAIT_END;
+    }
+}
+
+static void set_status_bar_title_scroll(const bool scroll)
+{
+    JADE_ASSERT(status_bar.title);
+    JADE_ASSERT(status_bar.title->kind == TEXT);
+
+    if (scroll && !status_bar.title->text->scroll) {
+        init_text_scroll(status_bar.title, TFT_BLACK);
+    } else if (!scroll && status_bar.title->text->scroll) {
+        free(status_bar.title->text->scroll);
+        status_bar.title->text->scroll = NULL;
+    }
+
+    reset_text_scroll(status_bar.title);
+    status_bar.updated = true;
 }
 
 void gui_set_text_noise(gui_view_node_t* node, color_t background_color)
@@ -2348,6 +2382,11 @@ static bool update_status_bar(const bool force_redraw)
 
     status_bar.battery_update_counter--;
 
+    if (current_activity->status_bar_title_scroll && status_bar.title->text->scroll
+        && text_scroll_frame_callback(status_bar.title, NULL)) {
+        status_bar.updated = true;
+    }
+
     if (status_bar.updated || force_redraw) {
         render_node(status_bar.root, status_bar_cs, 0);
         status_bar.updated = false;
@@ -2406,6 +2445,7 @@ static size_t handle_gui_input_queue(bool* switched_activities)
             if (current_activity->status_bar) {
                 const bool force_redraw = true;
                 update_text_node_text(status_bar.title, current_activity->title ? current_activity->title : "");
+                set_status_bar_title_scroll(current_activity->status_bar_title_scroll);
                 update_status_bar(force_redraw);
             }
 
@@ -2800,6 +2840,19 @@ void gui_set_activity_title(gui_activity_t* activity, const char* title)
     if (repaint) {
         gui_repaint(status_bar.root);
     }
+}
+
+void gui_set_activity_status_bar_title_scroll(gui_activity_t* activity, const bool scroll)
+{
+    JADE_ASSERT(activity);
+    JADE_ASSERT(activity->status_bar);
+
+    JADE_SEMAPHORE_TAKE(gui_mutex);
+    activity->status_bar_title_scroll = scroll;
+    if (current_activity && activity == current_activity) {
+        set_status_bar_title_scroll(scroll);
+    }
+    JADE_SEMAPHORE_GIVE(gui_mutex);
 }
 
 gui_activity_t* gui_current_activity(void) { return current_activity; }

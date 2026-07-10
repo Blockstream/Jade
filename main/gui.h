@@ -339,6 +339,8 @@ struct __attribute__((__packed__)) gui_activity_t {
 
     // add the status bar on top of this activity (top 24px)
     bool status_bar;
+    // allow the status bar title to scroll when it does not fit
+    bool status_bar_title_scroll;
     // title shown in the status bar (if enabled)
     char* title;
     // should that cursor "wrap around" when you reach one end?
@@ -478,6 +480,7 @@ void gui_activity_set_active_selection(
     gui_activity_t* activity, gui_view_node_t** nodes, size_t num_nodes, const bool* active, gui_view_node_t* selected);
 
 void gui_set_activity_title(gui_activity_t* activity, const char* title);
+void gui_set_activity_status_bar_title_scroll(gui_activity_t* activity, bool scroll);
 
 gui_activity_t* gui_current_activity(void);
 gui_activity_t* gui_display_splash(void);
