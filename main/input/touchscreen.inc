@@ -91,6 +91,9 @@ static void touchscreen_task(void* ignored)
         }
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
+    // Since IDF 5.5 the i2c bus cannot be deleted while devices are still attached
+    ESP_ERROR_CHECK(esp_lcd_touch_del(ret_touch));
+    ESP_ERROR_CHECK(esp_lcd_panel_io_del(tp_io_handle));
     ESP_ERROR_CHECK(_i2c_deinit(touch_i2c_handle));
     shutdown_finished = true;
     vTaskDelete(NULL);
