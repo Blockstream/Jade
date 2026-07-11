@@ -150,7 +150,8 @@ static void make_status_bar(void)
 #if HOME_SCREEN_DEEP_STATUS_BAR
     // Make an hsplit for the logo on the left, and info on the right
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 100 - HOME_SCREEN_STATUS_BAR_TITLE_WIDTH_PERCENT,
+        HOME_SCREEN_STATUS_BAR_TITLE_WIDTH_PERCENT);
     gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 2);
     gui_set_parent(hsplit, status_bar.root);
 
@@ -175,7 +176,7 @@ static void make_status_bar(void)
     name_alignment = GUI_ALIGN_RIGHT;
 #else
     // Make an hsplit for the icon, name, and status icons
-    gui_make_hsplit(&status_parent, GUI_SPLIT_RELATIVE, 5, 10, 57, 8, 8, 17);
+    gui_make_hsplit(&status_parent, GUI_SPLIT_RELATIVE, 5, 10, HOME_SCREEN_STATUS_BAR_TITLE_WIDTH_PERCENT, 8, 8, 17);
     gui_set_padding(status_parent, GUI_MARGIN_ALL_DIFFERENT, 3, 0, 0, 4);
     gui_set_parent(status_parent, status_bar.root);
 
