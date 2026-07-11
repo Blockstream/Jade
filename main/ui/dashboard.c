@@ -1,4 +1,6 @@
 #ifndef AMALGAMATED_BUILD
+#include <string.h>
+
 #include "../button_events.h"
 #include "../display.h"
 #include "../jade_assert.h"
@@ -47,6 +49,21 @@ static gui_view_node_t* make_home_screen_panel_item(const color_t color, home_me
     return item;
 }
 
+static const char* get_home_screen_title(const char* device_name)
+{
+    // Match the status-bar title column width from make_status_bar().
+    const int title_width = (CONFIG_DISPLAY_WIDTH * HOME_SCREEN_STATUS_BAR_TITLE_WIDTH_PERCENT) / 100;
+
+    display_set_font(GUI_TITLE_FONT);
+    if (display_get_string_width(device_name) <= title_width
+        || strncmp(device_name, "Jade ", strlen("Jade ")) != 0) {
+        return device_name;
+    }
+
+    // Remove "Jade " prefix to allow the device ID to be shown.
+    return device_name + strlen("Jade ");
+}
+
 gui_activity_t* make_home_screen_activity(const char* device_name, const char* firmware_version,
     home_menu_entry_t* selected_entry, home_menu_entry_t* next_entry, gui_view_node_t** status_light,
     gui_view_node_t** status_text, gui_view_node_t** label)
@@ -62,7 +79,7 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     // NOTE: The home screen is created as an 'unmanaged' activity as
     // its lifetime is same as that of the entire application
     gui_activity_t* act = NULL;
-    gui_make_activity_ex(&act, true, device_name, false);
+    gui_make_activity_ex(&act, true, get_home_screen_title(device_name), false);
     JADE_ASSERT(act);
 
     gui_view_node_t* node;
