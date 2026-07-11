@@ -48,6 +48,9 @@ esp_err_t power_init(void)
     axp2101_init();
 
     vTaskDelay(100 / portTICK_PERIOD_MS);
+    // Since IDF 5.5 the i2c bus cannot be deleted while devices are still attached
+    I2C_CHECK_RET(i2c_master_bus_rm_device(axp2101));
+    I2C_CHECK_RET(i2c_master_bus_rm_device(aw9523));
     I2C_CHECK_RET(_i2c_deinit(NULL));
 
     return ESP_OK;
