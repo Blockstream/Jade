@@ -91,6 +91,23 @@ extern const color_t TFT_PINK;
 
 void display_init(TaskHandle_t* gui_h);
 bool display_flip_orientation(bool flipped_orientation);
+
+#if defined(CONFIG_BOARD_TYPE_TTGO_TWATCHS3) || defined(CONFIG_BOARD_TYPE_M5_CORES3)                                   \
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2)
+#define DISPLAY_HAS_TOUCH_NAVBAR 1
+#else
+#define DISPLAY_HAS_TOUCH_NAVBAR 0
+#endif
+
+// Height in pixels of the touch area reserved below the main display for the
+// virtual navigation buttons (or the fixed capacitive strip on the M5 Core2)
+#define TOUCH_BUTTON_AREA 40
+
+#if DISPLAY_HAS_TOUCH_NAVBAR
+void display_touch_navbar_redraw(void);
+#else
+static inline void display_touch_navbar_redraw(void) {}
+#endif
 Icon* get_icon(const uint8_t* start, const uint8_t* end);
 Picture* get_picture(const uint8_t* start, const uint8_t* end);
 void display_picture(const Picture* imgbuf, int x, int y, dispWin_t area);
