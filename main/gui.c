@@ -263,7 +263,12 @@ bool gui_get_flipped_orientation(void) { return gui_orientation_flipped; }
 
 bool gui_set_flipped_orientation(const bool flipped_orientation)
 {
-    gui_orientation_flipped = display_flip_orientation(flipped_orientation);
+    const bool new_orientation = display_flip_orientation(flipped_orientation);
+    if (gui_orientation_flipped != new_orientation) {
+        gui_orientation_flipped = new_orientation;
+        // Redraw the virtual navbar buttons (if any) at their new position
+        display_touch_navbar_redraw();
+    }
     return gui_orientation_flipped;
 }
 
