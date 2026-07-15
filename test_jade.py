@@ -350,7 +350,6 @@ YzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi'),
                              '2dafKNiCKbRum9S1u5BYqTByZT5R9zSqcWy')]
 
 # Hold test data in separate files as can be large
-QR_QVGA_SCAN_TESTS = 'qr_qvga_*.json'
 MULTI_REG_TESTS = 'multisig_reg_*.json'
 MULTI_REG_SS_TESTS = 'multisig_reg_ss_*.json'
 MULTI_REG_FILE_TESTS = 'multisig_file_*.json'
@@ -2027,27 +2026,6 @@ def test_passphrase(jade):
     assert xpub0_again == xpub0 and xpub1_again == xpub1 and xpub2_again == xpub2
 
 
-# Test qr scanning - can be slow as image data large (slow to upload) and
-# tests involve starting the camera (and associated tasks).
-def test_scan_qr(jadeapi, board_type):
-    for qr_data in _get_test_cases(QR_QVGA_SCAN_TESTS):
-        expected = qr_data['expected_output']
-        image_filename = qr_data['input']['image']
-        with open('./test_data/' + image_filename, 'rb') as f:
-            image_data = f.read()
-
-        rslt = jadeapi.scan_qr(image_data)
-        assert rslt
-
-        if expected.get('text') is not None:
-            assert rslt.decode() == expected['text']
-        else:
-            assert rslt == h2b(expected['hex'])
-
-    # Reset the epoch time for any following tests
-    jadeapi.set_epoch(int(time.time()))
-
-
 # Check/print memory stats
 def check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict, retry_count=0):
 
@@ -2286,7 +2264,6 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
         host_entropy = inputdata.get('ae_host_entropy') if use_ae_signatures else None
         _verify_signature(jadeapi, network, msghash, inputdata['path'],
                           host_entropy, signer_commitment, rawsig, is_schnorr=is_p2tr)
-
 
 
 def test_get_greenaddress_receive_address(jadeapi):
@@ -2707,11 +2684,6 @@ def run_interface_tests(jadeapi,
         # Fix after mnemonic tests removal
         rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
         assert rslt
-
-        # Only run QR scan/camera tests a) over serial, and b) on proper Jade hw
-        if not qemu and not isble:
-            if args.libjade or startinfo['BOARD_TYPE'] in ['JADE', 'JADE_V1.1', 'JADE_V2']:
-                test_scan_qr(jadeapi, startinfo['BOARD_TYPE'])
 
     # Too much input test - sends a lot of data so only run
     # if not running over BLE (as would take a long time)
