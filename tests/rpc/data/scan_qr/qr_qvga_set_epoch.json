@@ -1,0 +1,8 @@
+{
+  "input": {
+    "image": "qr_qvga_set_epoch.dat"
+  },
+  "expected_output": {
+    "text": "UR:JADE-EPOCH/OTIYJNIHJYISJLIEINJKIHJYHEIHJOJLIAISIDINIEIYETEEEOENEEENIYJOHSJPHSJNJKOYIHIHJOJLIAISCYIALPWTISGELGREID"
+  }
+}
