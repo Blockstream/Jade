@@ -1,0 +1,22 @@
+{
+  "input": {
+    "network": "localtest",
+    "descriptor_name": "test_descriptor",
+    "descriptor": "tr(@0/<0;1>/*)",
+    "datavalues": {
+      "@0": "[e3ebcc79/86'/1'/0']tpubDCXH5giLNcN6MfDQwvskJVJMT4HemX3LKmKFac5xe9rzaFVkiUbx8wrPAt9NGKW2yXS8XsnqYm6FSP36WD4fnhNr5CweqaRwZcknepxtc9d"
+    }
+  },
+  "address_tests": [
+    {
+      "branch": 0,
+      "pointer": 0,
+      "expected_address": "bcrt1pem42zy9qwlr9vynrtg0m5gqvz99txm5slx4dmkyfe6uhyskzz8qshv7x9n"
+    },
+    {
+      "branch": 0,
+      "pointer": 1,
+      "expected_address": "bcrt1psu9scqlwhpjv7nv0ecslpda3uwrghf7h03edux4wzyefsvtpasfsjhkkkd"
+    }
+  ]
+}

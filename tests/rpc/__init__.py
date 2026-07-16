@@ -57,3 +57,17 @@ def verify_signature(jade, network, msghash, path,
     else:
         # Verify EC signature
         wally.ec_sig_verify(pubkey, msghash, wally.EC_FLAG_ECDSA, signature)
+
+
+def check_bad_params(jade, rpc_args, expected_error):
+    request = jade.build_request(*rpc_args)
+    reply = jade.make_rpc_call(request)
+
+    # Assert bad-parameters response
+    assert reply['id'] == request['id']
+    assert 'result' not in reply
+    assert 'error' in reply
+    error = reply['error']
+    assert error['code'] == JadeError.BAD_PARAMETERS, f"{error['code']}: {rpc_args}"
+    assert 'message' in error
+    assert expected_error in error['message'], f"{error['message']} != {expected_error}: {rpc_args}"
