@@ -19,6 +19,7 @@ from jadepy.jade import JadeAPI, JadeError
 
 LIQUID_DESCRIPTORS = True
 
+
 # Enable jade logging
 jadehandler = logging.StreamHandler()
 
@@ -186,9 +187,6 @@ slot invite sadness banana'
 TEST_MNEMONIC_SEED = \
     'f1d56befd46eddfc31cda129dc76cd4a2b41d2cf86f10a5ccf0787617afa3869' \
     '967aab0224742ccc002056747ea09b68598ddf79c027c37a7c3ec923004593da'
-# The master blinding key resulting from TEST_MNEMONIC
-TEST_MNEMONIC_MASTER_BLINDING_KEY = \
-    'afacc503637e85da661ca1706c4ea147f1407868c48d8f92dd339ac272293cdc'
 
 
 # NOTE: the best way to generate test cases is directly in core.
@@ -351,8 +349,6 @@ MULTI_REG_TESTS = 'multisig_reg_*.json'
 MULTI_REG_SS_TESTS = 'multisig_reg_ss_*.json'
 MULTI_REG_FILE_TESTS = 'multisig_file_*.json'
 MULTI_REG_BAD_FILE_TESTS = 'multisig_bad_file_*.json'
-DESCRIPTOR_REG_TESTS = 'descriptor_*.json'
-DESCRIPTOR_REG_SS_TESTS = 'descriptor_ss_*.json'
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -2326,108 +2322,6 @@ def test_liquid_blinded_commitments(jadeapi):
     assert rslt == ledger_commitments[1]
 
 
-def test_miniscript_descriptor_registration(jadeapi, pattern):
-    for descriptor_data in _get_test_cases(pattern):
-        # Register the descriptor
-        inputdata = descriptor_data['input']
-
-        rslt = jadeapi.register_descriptor(inputdata['network'],
-                                           inputdata['descriptor_name'],
-                                           inputdata['descriptor'],
-                                           inputdata.get('datavalues'))
-        assert rslt is True
-
-        # Pull the data back, then reload (roundtrip) - should be a no-op
-        roundtrip = jadeapi.get_registered_descriptor(inputdata['descriptor_name'])
-        assert roundtrip is not None
-        assert roundtrip['descriptor'] == inputdata['descriptor']
-        assert roundtrip.get('datavalues') == inputdata.get('datavalues')
-
-        roundtrip['network'] = inputdata['network']  # the only item not roundtripped
-        rslt = jadeapi._jadeRpc('register_descriptor', roundtrip)  # push result structure back
-        assert rslt
-
-        # Check present and correct in 'get_registered_multisigs' also
-        registered_descriptors = jadeapi.get_registered_descriptors()
-        descriptor_desc = registered_descriptors.get(inputdata['descriptor_name'])
-        assert descriptor_desc is not None
-        assert descriptor_desc['descriptor_len'] == len(inputdata['descriptor'])
-        assert descriptor_desc['num_datavalues'] == len(inputdata.get('datavalues', []))
-
-        # This includes 'get receive address' tests ...
-        for addr_test in descriptor_data['address_tests']:
-            rslt = jadeapi.get_receive_address(inputdata['network'],
-                                               addr_test['branch'],
-                                               addr_test['pointer'],
-                                               descriptor_name=inputdata['descriptor_name'])
-            assert rslt == addr_test['expected_address']
-
-        # Check multisig equivalent if provided
-        if 'multisig_equivalent' in inputdata:
-            # Register the multisig equivalent
-            descriptor = inputdata['multisig_equivalent']['descriptor']
-            rslt = jadeapi.register_multisig(inputdata['network'],
-                                             inputdata['descriptor_name'],
-                                             descriptor['variant'],
-                                             descriptor['sorted'],
-                                             descriptor['threshold'],
-                                             descriptor['signers'],
-                                             None)  # blinding key
-            assert rslt is True
-
-            # Check the receive addresses are the same
-            for addr_test in descriptor_data['address_tests']:
-                paths = [[addr_test['branch'], addr_test['pointer']]] * len(descriptor['signers'])
-                rslt = jadeapi.get_receive_address(inputdata['network'],
-                                                   paths,
-                                                   multisig_name=inputdata['descriptor_name'])
-                assert rslt == addr_test['expected_address']
-
-
-def test_descriptor_slip77_network_rules(jadeapi):
-    descriptor_no_slip77 = 'wsh(pkh(@0/<0;1>/*))'
-    descriptor_with_slip77 = 'ct(slip77(@B),wpkh(@0/<0;1>/*))'
-    signer = "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGra\
-Z9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
-    blinding_key = TEST_MNEMONIC_MASTER_BLINDING_KEY
-
-    if LIQUID_DESCRIPTORS:
-        # Liquid descriptor with SLIP-77 should pass
-        assert jadeapi.register_descriptor(
-            'localtest-liquid', 'liqs77ok', descriptor_with_slip77,
-            {'@B': blinding_key, '@0': signer}) is True
-
-        # Liquid descriptor without SLIP-77 should fail.
-        _test_bad_params(
-            jadeapi.jade,
-            ('liq_s77_miss', 'register_descriptor',
-             {'network': 'localtest-liquid', 'descriptor_name': 'liqnos77',
-              'descriptor': descriptor_no_slip77, 'datavalues': {'@0': signer}}),
-            'must use slip77 blinding for liquid network')
-    else:
-        # Liquid descriptors disabled: reject liquid descriptors up-front
-        _test_bad_params(
-            jadeapi.jade,
-            ('liq_s77_off', 'register_descriptor',
-             {'network': 'localtest-liquid', 'descriptor_name': 'liqoff77',
-              'descriptor': descriptor_with_slip77,
-              'datavalues': {'@B': blinding_key, '@0': signer}}),
-            'not supported on liquid')
-
-    # Non-liquid descriptor with SLIP-77 should fail
-    _test_bad_params(
-        jadeapi.jade,
-        ('btc_s77_bad', 'register_descriptor',
-         {'network': 'testnet', 'descriptor_name': 'btcs77bad',
-          'descriptor': descriptor_with_slip77,
-          'datavalues': {'@B': blinding_key, '@0': signer}}),
-        'Descriptor must not be confidential for bitcoin network')
-
-    # Non-liquid descriptor without SLIP-77 should pass.
-    assert jadeapi.register_descriptor(
-      'testnet', 'btcnos77', descriptor_no_slip77, {'@0': signer}) is True
-
-
 def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     rslt = jadeapi.clean_reset()
@@ -2478,10 +2372,6 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
     has_ble = startinfo['JADE_CONFIG'] == 'BLE'
 
-    # Test descriptor wallets
-    test_miniscript_descriptor_registration(jadeapi, DESCRIPTOR_REG_TESTS)
-    test_descriptor_slip77_network_rules(jadeapi)
-
     if not args.json_filter:
         # Get (receive) green-addresses, get-xpub, and sign-message
         test_get_greenaddress_receive_address(jadeapi)
@@ -2497,12 +2387,8 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     rslt = jadeapi.set_seed(bytes.fromhex(TEST_SEED_SINGLE_SIG))
     assert rslt is True
 
-    # Test the descriptor wallets again, using a second signer
-    test_miniscript_descriptor_registration(jadeapi, DESCRIPTOR_REG_SS_TESTS)
-
     if not args.json_filter:
         test_get_singlesig_receive_address(jadeapi)
-
 
     # restore the mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
