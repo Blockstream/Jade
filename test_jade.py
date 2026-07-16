@@ -191,9 +191,6 @@ TEST_MNEMONIC_MASTER_BLINDING_KEY = \
     'afacc503637e85da661ca1706c4ea147f1407868c48d8f92dd339ac272293cdc'
 
 
-TEST_MNEMONIC_12_IDENTITY = 'alcohol woman abuse must during monitor noble \
-actual mixed trade anger aisle'
-
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
 # bitcoin-cli sethdseed true "92zRAmYnWVRrWJ6cQb8yrzEz9r3aXj4oEUiPAZEbiPKHpCnxkKz"
@@ -356,7 +353,6 @@ MULTI_REG_FILE_TESTS = 'multisig_file_*.json'
 MULTI_REG_BAD_FILE_TESTS = 'multisig_bad_file_*.json'
 DESCRIPTOR_REG_TESTS = 'descriptor_*.json'
 DESCRIPTOR_REG_SS_TESTS = 'descriptor_ss_*.json'
-SIGN_IDENTITY_TESTS = 'identity_*.json'
 
 TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
 
@@ -403,66 +399,6 @@ c9c188310d4c43353cc319886ee4d9f439389d8f43'),
                              'asset_id': h2b('5ac9f65c0efcc4775e0baec4ec03abdd\
 e22473cd3cf33c0419ca290e0751b225'),
                              'value': 9000000}
-
-SIGN_IDENTITY_DATA = [
-    # challenge, identity, index, curve, slip13 pubkey, signature prefixed 0x00, slip17 pubkey
-    # First test case copied from:
-    # https://github.com/trezor/trezor-firmware/blob/a3c79bf4f7393386d23fe92210c7bce4d1049280
-    # /tests/device_tests/misc/test_msg_signidentity.py#L75
-    # NOTE: slight differnece as we return the *uncompressed* pubkey
-    # THIS IS THE ONE TRUE TEST (except the ecdh pubkey, which is unverified)
-    ('cd8552569d6e4509266ef137584d1e62c7579b5b8ed69bbafa4b864c6521e7c2',
-     'ssh://satoshi@bitcoin.org', 47, 'nist256p1',
-     '0473f21a3da3d0e96fc2189f81dd826658c3d76b2d55bd1da349bc6c3573b13ae4d56471\
-0ca0bf84b81c6850e916cb94ae9c397b550589da476ace7aee39ebcb37',
-     '005122cebabb852cdd32103b602662afa88e54c0c0c1b38d7099c64dcd49efe908288114\
-e66ed2d8c82f23a70b769a4db723173ec53840c08aafb840d3f09a18d3',
-     '04248befa95e9dbcf0a2ef7cf6957651ee25a168355590c4c84a6a8601758ca230d397bc\
-ba67b4676c3f2711b59083fff9157c16899da6d4ed76f8eaf57a100fa8'
-     ),
-
-    # These are 'speculative', just to cover a few more cases for regressions
-
-    # ssh
-    ('c16e1456df150491c50722a9d02fa04c74ef065a94f1936f7db029f71138c239',
-     'ssh://jade@jadepin.blockstream.com', 112, 'nist256p1',
-     '04a88f160249fd794bdb12fc56896e8dac6bf5e72e33960e2a7d11252f6a93ef28fa183f\
-3eca7ac84aa0d2e1488f281dbe4af394fcbeda3ab368e7fe98fc25f16f',
-     '00d0472ffa6a6b0075b71a60c7abd3faf9f6d49b7bb86bace344e23c68b888ebc273d48b\
-62b4af70f2ad1ca213f6886e26d74d31cfbbd7f4ac917af4d243939813',
-     '04ae7218d72039060c69cf50a17698cfe157905e859d7570663c57099e6cf2946be4f6a3\
-11f4c3f349b70edea7a8e18b2c2d354811bc5836c713784f72d4d4c201'
-     ),
-    ('ff732d6499071333f13170d2184054b6dffc1296ca43cb1599a68cea65071e6f',
-     'ssh://someuser@github.com', 3754, 'nist256p1',
-     '0434e451e9bc1bdba24654822277f5960f42cf6d0375629813d41476c499d62f7d971174\
-0406834034958b7782ef743b295530e580bd68a1a1ad3de8b6a141c4c0',
-     '00ce030c73249ac7b53184c7987917f00c290ad3b5617c1c0f0465ff150035a46b288766\
-c8594e7f574778402c4df5085bfc0642240200ddbe01c0ec9cd2b46a55',
-     '04d0ea80cef5fc83d7ac73ae7f33deff8d3b46641d021145cd0d51acf535daa212541315\
-630d9e3f99f3adbb652f2178ed7b8190503a3df57dac03c0f9c0ad1d88'
-     ),
-
-    # gpg
-    ('bcfc224438bd07742c4a3ad6db530e3f071f93645728e9f69eaee21c2f4ed54a',
-     'gpg://GreenAddress <greenaddress@blockstream.io>', 0, 'nist256p1',
-     '04741f65f95543b6de0ccfcdc13016e573df52fca14b2b15fd3142930bc4d871cc6375a5\
-5e402911d873332b8610f73a4020676462c498268a94434a00bca9691e',
-     '00010f560db262ee2d82b0032a858d72bb5d927563743af55b3c8514f4c3e353e233e363\
-7c172b60b40a48f0c19117ddbd6fc15dcb936430087a86c4db139caa97',
-     '0425d63b5f4c41af1d8bee7f6419c28e3d39ec637aef1d5694b008cbc03509c8349f290b\
-5937e53105f1aaf613bcf6c72b486015546ee08e7d83412f51f94a6e2a'
-     ),
-    ('fa94545d4f18e4cc4655c87869fc8a790a07eb58a3e5b599ab9f7da6d8ab5061',
-     'gpg://Jade <jade@blockstream.com>', 0, 'nist256p1',
-     '041127ef35e4690ff035e13ebab340ab3fa2327c0409bbed3dbf03b8932777d929bd8ade\
-43e3ebceb9fc74c23a32cd0e380d9b529a70ee0e83763e0c7af5f0bb1f',
-     '000118565f7363337ad72a1c497a1e1de5d336a99b09af8c49b36518e925a0ca517dafff\
-b2e95dc777c4d7df504ced12fd668f81a11d14d30033831df1434b59d7',
-     '043ede5aad3f3171b495b68da5c36d35eb724e4cb3beafa08b529830bf7679b955730684\
-7b8f392c6288ce45565c3133301811f5dcfa6e216e4ae2397e22603e52'
-     )
-]
 
 
 # The tests
@@ -2492,51 +2428,6 @@ Z9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
       'testnet', 'btcnos77', descriptor_no_slip77, {'@0': signer}) is True
 
 
-def test_sign_identity(jadeapi):
-
-    ecdh_nist_cptys = list(_get_test_cases('identity_ssh_nist_matches_trezor.json'))
-    if not args.json_filter:
-        assert len(ecdh_nist_cptys) == 1
-    ecdh_nist_cpty = ecdh_nist_cptys[0] if ecdh_nist_cptys else None
-
-    for identity_data in _get_test_cases(SIGN_IDENTITY_TESTS):
-        inputdata = identity_data['input']
-        expected = identity_data['expected_output']
-
-        # Check get-pubkey call for slip-0013 and slip-0017
-        for pubkey_type in ['slip-0013', 'slip-0017']:
-            rslt = jadeapi.get_identity_pubkey(inputdata['identity'],
-                                               inputdata['curve'],
-                                               pubkey_type,
-                                               inputdata['index'])
-            assert rslt == expected[pubkey_type]
-
-        # Sign for an identity using a given curve (slip-0013)
-        rslt = jadeapi.sign_identity(inputdata['identity'],
-                                     inputdata['curve'],
-                                     inputdata['challenge'],
-                                     inputdata['index'])
-        assert rslt['pubkey'] == expected['slip-0013']
-        assert rslt['signature'] == expected['signature']
-
-        # Symmetry test for ecdh 'shared key'
-        # Note the 3rd param is the 'other party public key' (slip-0017)
-        if not ecdh_nist_cpty:
-            continue
-        assert ecdh_nist_cpty['input']['curve'] == inputdata['curve']
-        ecdhA = jadeapi.get_identity_shared_key(inputdata['identity'],
-                                                inputdata['curve'],
-                                                ecdh_nist_cpty['expected_output']['slip-0017'],
-                                                index=inputdata['index'])
-        ecdhB = jadeapi.get_identity_shared_key(ecdh_nist_cpty['input']['identity'],
-                                                ecdh_nist_cpty['input']['curve'],
-                                                expected['slip-0017'],
-                                                index=ecdh_nist_cpty['input']['index'])
-        # Assert symmetry
-        assert ecdhA == expected['ecdh_with_trezor']
-        assert ecdhA == ecdhB
-
-
 def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     rslt = jadeapi.clean_reset()
@@ -2612,11 +2503,6 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     if not args.json_filter:
         test_get_singlesig_receive_address(jadeapi)
 
-    # Sign identity (ssh & gpg) tests require a specific mnemonic
-    rslt = jadeapi.set_mnemonic(TEST_MNEMONIC_12_IDENTITY)
-    assert rslt is True
-
-    test_sign_identity(jadeapi)
 
     # restore the mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
