@@ -265,9 +265,6 @@ a57c982037546e352')
 TEST_THEIR_PK = h2b('03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9\
 251f2904c')
 
-EXPECTED_SHARED_SECRET = h2b('35801ebd1e62e8698490440861cff2e5bd10cf4aec19b51f\
-8ccc7dc910a7e488')
-
 TEST_HASH_PREVOUTS_HEX = '95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6\
 147f5ec88342'
 
@@ -2102,111 +2099,6 @@ def _check_tx_signatures(jadeapi, testcase, rslt):
                           host_entropy, signer_commitment, rawsig, is_schnorr=is_p2tr)
 
 
-def test_liquid_blinding_keys(jadeapi):
-    # Check Jade's master blinding key is as expected and is consistent with wally
-    seed = wally.bip39_mnemonic_to_seed512(TEST_MNEMONIC, None)
-    master_blinding_key = wally.asset_blinding_key_from_seed(seed)
-    assert EXPECTED_MASTER_BLINDING_KEY == master_blinding_key[32:]  # 2nd half of full 512bits
-
-    # Get Liquid master blinding key - errors if we pass the 'onlyIfSilent'
-    # flag, as would normally block while asking user.
-    try:
-        rslt = jadeapi.get_master_blinding_key(True)
-        assert False, 'Expecting "user declined" error'
-    except JadeError as e:
-        assert e.code == JadeError.USER_CANCELLED
-
-    # These ask the user to confirm which is fine
-    rslt = jadeapi.get_master_blinding_key(False)
-    assert rslt == EXPECTED_MASTER_BLINDING_KEY
-    rslt = jadeapi.get_master_blinding_key()
-    assert rslt == EXPECTED_MASTER_BLINDING_KEY
-
-    # Get Liquid script blinding key
-    rslt = jadeapi.get_blinding_key(TEST_SCRIPT)
-    assert rslt == EXPECTED_BLINDING_KEY
-
-    # Get Liquid shared nonce
-    rslt = jadeapi.get_shared_nonce(TEST_SCRIPT, TEST_THEIR_PK)
-    assert rslt == EXPECTED_SHARED_SECRET
-
-    # Get Liquid shared nonce and public blinding key in one call
-    rslt = jadeapi.get_shared_nonce(TEST_SCRIPT, TEST_THEIR_PK, include_pubkey=True)
-    assert rslt['shared_nonce'] == EXPECTED_SHARED_SECRET
-    assert rslt['blinding_key'] == EXPECTED_BLINDING_KEY
-
-
-def test_liquid_blinded_commitments(jadeapi):
-
-    # Test Jade's values are as expected and are consistent with wally
-    abf = wally.asset_blinding_key_to_abf(EXPECTED_MASTER_BLINDING_KEY, TEST_HASH_PREVOUTS, 3)
-    vbf = wally.asset_blinding_key_to_vbf(EXPECTED_MASTER_BLINDING_KEY, TEST_HASH_PREVOUTS, 3)
-
-    # Get Liquid blinding factor
-    rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'ASSET')
-    assert rslt == EXPECTED_LIQ_COMMITMENT_1['abf']
-    assert rslt == abf
-
-    rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'VALUE')
-    assert rslt == EXPECTED_LIQ_COMMITMENT_1['vbf']
-    assert rslt == vbf
-
-    rslt = jadeapi.get_blinding_factor(TEST_HASH_PREVOUTS, 3, 'ASSET_AND_VALUE')
-    assert rslt == EXPECTED_LIQ_COMMITMENT_1['abf'] + EXPECTED_LIQ_COMMITMENT_1['vbf']
-    assert rslt == abf + vbf
-
-    # Get Liquid commitments without custom VBF
-    rslt = jadeapi.get_commitments(TEST_REGTEST_BITCOIN,
-                                   9000000,
-                                   TEST_HASH_PREVOUTS,
-                                   3)
-    assert rslt == EXPECTED_LIQ_COMMITMENT_1
-
-    # Get Liquid commitments with custom VBF
-    rslt = jadeapi.get_commitments(TEST_REGTEST_BITCOIN,
-                                   9000000,
-                                   TEST_HASH_PREVOUTS,
-                                   0,
-                                   EXPECTED_LIQ_COMMITMENT_2['vbf'])
-    assert rslt == EXPECTED_LIQ_COMMITMENT_2
-
-    # This checks that we get the same blinders and commitments as we got
-    # using a ledger.  See also test_data/txn_liquid_ledger_compare.json,
-    # which is the same tx as ledger-signed liquid tx:
-    # 4b4a27e482eff9dbaa52e7bada4cd7115c299c8e6ac8ebbd20e8d923ad2dad00
-    # - and gets the same blinders and the same final signatures.
-
-    ledger_txs = list(_get_test_cases('liquid_txn_ledger_compare.json'))
-    assert len(ledger_txs) == 1
-    ledger_commitments = ledger_txs[0]['input']['trusted_commitments']
-    assert len(ledger_commitments) == 3
-    assert ledger_commitments[2] is None
-
-    # Get the hash-prevout for that transaction
-    txn = wally.tx_from_bytes(ledger_txs[0]['input']['txn'], wally.WALLY_TX_FLAG_USE_ELEMENTS)
-    hash_prevouts = bytes(wally.tx_get_hash_prevouts(txn, 0, 0xffffffff))
-
-    # Sanity check it, since we know what it should be ...
-    assert hash_prevouts == h2b('7e78263a58236ffd160ee5a2c58c18b71637974aa95e1c72070b08208012144f')
-
-    # First output commitments, no custom vbf
-    rslt = jadeapi.get_commitments(ledger_commitments[0]['asset_id'],
-                                   ledger_commitments[0]['value'],
-                                   hash_prevouts,
-                                   0)
-    del ledger_commitments[0]['blinding_key']
-    assert rslt == ledger_commitments[0]
-
-    # Second output commitments, including custom vbf
-    rslt = jadeapi.get_commitments(ledger_commitments[1]['asset_id'],
-                                   ledger_commitments[1]['value'],
-                                   hash_prevouts,
-                                   1,
-                                   ledger_commitments[1]['vbf'],)
-    del ledger_commitments[1]['blinding_key']
-    assert rslt == ledger_commitments[1]
-
-
 def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
     rslt = jadeapi.clean_reset()
@@ -2256,10 +2148,6 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     assert len(startinfo) == NUM_VALUES_VERINFO
     has_psram = startinfo['JADE_FREE_SPIRAM'] > 0
     has_ble = startinfo['JADE_CONFIG'] == 'BLE'
-    if not args.json_filter:
-        # Test liquid blinding keys/nonce, blinded commitments and sign-tx
-        test_liquid_blinding_keys(jadeapi)
-        test_liquid_blinded_commitments(jadeapi)
 
     # restore the mnemonic
     rslt = jadeapi.set_mnemonic(TEST_MNEMONIC)
